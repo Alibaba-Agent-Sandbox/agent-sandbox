@@ -1,0 +1,29 @@
+Usage: cli run [OPTIONS] SANDBOX_ID COMMAND_NAME
+
+  Run a named custom command or registered command.
+
+  Supports two argument styles:
+
+  Legacy:  ebx run <id> <cmd> --arg key=value
+  New:     ebx run <id> <cmd> --key value
+
+  When the command comes from @sandbox.register, typed options (--x, --y, ...)
+  are derived automatically from the function signature.
+
+  Examples:
+
+      ebx run abc123 dev
+
+      ebx run abc123 test --arg file=tests/
+
+      ebx run abc123 demo --x 1 --y hello
+
+  Related commands:
+    ebx exec SANDBOX_ID CMD  Run an arbitrary shell command
+    ebx info SANDBOX_ID      Inspect the target sandbox
+    ebx template info ID     Inspect a template definition
+
+Options:
+  -a, --arg TEXT  Command argument as key=value (repeatable, legacy style)
+  -h, --help      Show this message and exit.
+[exit_code:0]

@@ -1,0 +1,146 @@
+# Getting Started
+
+This tutorial walks you through the complete sandbox lifecycle, from installation to teardown.
+
+---
+
+## Prerequisites
+
+- Node.js 20 or later (for the `ebx` CLI)
+- A valid API Key (obtained from the Easy Sandbox platform)
+- Network access to the Alibaba Cloud Hangzhou region (default `cn-hangzhou`)
+
+## 1. Installation
+
+```bash
+# Install the CLI globally from npm
+npm install -g @easy-sandbox/cli
+
+# Or run it without installing
+npx @easy-sandbox/cli --version
+
+# Verify the installation
+ebx --version
+```
+
+### Standalone binary (no Node.js required)
+
+If you'd rather not set up a Node.js environment, `ebx` is also available as a
+precompiled standalone binary for Linux, macOS, and Windows:
+
+```bash
+# Example: install v0.3.0 on macOS (Apple Silicon)
+curl -fsSL -o "$HOME/ebx" \
+  "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v0.3.0/ebx-0.3.0-darwin-arm64"
+chmod +x "$HOME/ebx"
+sudo mv "$HOME/ebx" /usr/local/bin/ebx
+```
+
+For other platforms, checksum verification, and a comparison with the npm
+install, see the [Binary Installation](binary-installation.md) guide.
+
+## 2. Configure the API Key
+
+There are two ways to configure credentials. When a call actually needs the key, this is the order (highest first). The full table is in [Configuration — Credential resolution](../reference/configuration.md#credential-resolution).
+
+### Option 1: Environment variable (recommended for CI/CD)
+
+```bash
+export E2B_API_KEY="your-api-key-here"
+```
+
+### Option 2: `ebx config set` (recommended for local development)
+
+Used when neither the environment nor the project `.env` sets the key.
+
+```bash
+ebx config set sandbox_api_key your-api-key
+# Writes to ~/.ebx/.env (permissions 600)
+```
+
+Verify the configuration:
+
+```bash
+ebx config get sandbox_api_key
+```
+
+## 3. Create Your First Sandbox
+
+### Using the CLI
+
+```bash
+ebx create --template base
+```
+
+## 4. Execute Code
+
+### CLI
+
+```bash
+ebx exec <sandbox-id> "echo 'Hello from sandbox'"
+```
+
+## 5. Run Shell Commands
+
+### CLI
+
+```bash
+ebx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
+```
+
+## 6. File Operations
+
+### CLI upload/download
+
+```bash
+# Upload
+ebx upload <sandbox-id> ./data.csv /home/user/data.csv
+
+# Download
+ebx download <sandbox-id> /home/user/result.csv ./result.csv
+```
+
+## 7. List Directory Contents
+
+```bash
+ebx sandbox files list <sandbox-id> --path /home/user
+```
+
+## 8. Destroy a Sandbox
+
+### CLI
+
+```bash
+ebx kill <sandbox-id>
+
+# Destroy all running sandboxes
+ebx kill --all --yes
+```
+
+## 9. Complete Example
+
+```bash
+# Create a sandbox and upload a project
+ebx create --template base --upload ./project
+
+# Run something inside it
+ebx exec <sandbox-id> "python /home/user/project/main.py"
+
+# Fetch the result and tear the sandbox down
+ebx download <sandbox-id> /home/user/result.csv ./result.csv
+ebx kill <sandbox-id> --yes
+```
+
+---
+
+## Next Steps
+
+- [Authentication](authentication.md) — Authentication methods and configuration priority
+- [CLI Tutorial](cli-tutorial.md) — Full CLI lifecycle operations
+- [Using Templates](using-templates.md) — Create sandboxes from templates
+- [Error Codes Reference](../reference/error-codes.md) — Error troubleshooting
+- [Troubleshooting](troubleshooting.md) — Common issues and solutions
+
+## Related SDK documentation
+
+Using the Python SDK instead of (or next to) the CLI: [Getting Started (SDK)](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/getting-started.md) and the [SDK Usage Guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) in the `python-sdk` repository.

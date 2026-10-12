@@ -1,0 +1,27 @@
+# Allowlist for scripts/check-no-local-paths.sh
+#
+# One entry per line:   <path-glob>[|<extended-regex>]
+#   * <path-glob>   matches the repo-relative file path (bash pattern; `*` also matches `/`).
+#   * <regex>       optional; when present the entry only covers lines matching it.
+# Blank lines and lines starting with `#` are ignored. Keep entries as narrow as possible
+# and say why the match is legitimate. Never allowlist a real credential - remove it.
+
+# Repo-health checker defines the very patterns that detect machine-local paths.
+scripts/check-repo-health.sh|/Users/|\.venv/bin/python
+
+# TEMPORARY: split-audit document quotes the leaks it describes. Remove this entry once
+# the document is scrubbed of the literal paths (re-sweep pending, see the hygiene note).
+docs/design/repository-layout.md
+
+# This note describes the patterns the guard rejects.
+.agents/notes/implemented/process/*-open-source-hygiene.md
+
+# Test data for the Windows path parser (`_parseFileInfo`); not a real user path.
+tests/test_protocol/test_filesystem.test.ts|C:\\\\Users\\\\(test|docs)\\\\
+
+# Deliberately invalid API key (one repeated character) used by the wrong-key E2E scenarios.
+e2e/scenarios/10-cloud-readonly.mjs|e2b_(.)\1{19,}
+# /home/sandbox is the sandbox-side home directory used as test data, not a developer path.
+tests/test_cli/test_sandbox_system_extra_commands.test.ts|/home/sandbox
+# Redaction regex for the config.toml warning text in the differential harness.
+parity/diff/config_cmds.mjs|home\\/\\.ebx

@@ -1,0 +1,76 @@
+{
+  "name": "@easy-sandbox/cli",
+  "version": "0.3.0",
+  "description": "ebx — the Easy Sandbox command-line interface (Node.js)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "ebx": "dist/bin/ebx.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SKILL.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:binary": "node scripts/build_binary.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --exclude 'tests/integration/test_{cli,nl_template_init,shortcut_target_hint}_e2e.test.ts'",
+    "test:integration": "vitest run tests/integration",
+    "dev": "tsx src/bin/ebx.ts",
+    "parity:coverage": "node scripts/parity-coverage.mjs",
+    "check:hygiene": "bash scripts/check-no-local-paths.sh",
+    "e2e": "node e2e/run.mjs",
+    "e2e:offline": "node e2e/run.mjs --suite offline",
+    "e2e:known-issues": "node e2e/known-issues/run.mjs",
+    "e2e:providers": "bash e2e/providers/run.sh",
+    "e2e:cleanup": "node e2e/cleanup.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Easy-Sandbox/easy-sandbox.git"
+  },
+  "homepage": "https://github.com/Easy-Sandbox/easy-sandbox#readme",
+  "bugs": {
+    "url": "https://github.com/Easy-Sandbox/easy-sandbox/issues"
+  },
+  "keywords": [
+    "sandbox",
+    "cli",
+    "ebx",
+    "easy-sandbox",
+    "e2b",
+    "agents",
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@alicloud/fcsandbox20260509": "^1.5.1",
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/openapi-core": "^1.0.8",
+    "@inquirer/prompts": "^8.7.3",
+    "ws": "^8.22.0",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "postject": "^1.0.0-alpha.6",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  }
+}

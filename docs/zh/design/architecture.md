@@ -1,0 +1,194 @@
+# CLI 架构设计
+
+> 本文描述 Node.js / TypeScript 实现的 `ebx` CLI（`@easy-sandbox/cli`）本身：分层结构、源码目录、构建与发布方式，以及保证其行为与原 Python `ebx` 完全一致的契约。命令级行为见
+> [CLI 命令体系设计](cli-design.md)；MCP 服务见 [MCP Server 设计](mcp-server.md)；模板目录客户端见
+> [模板目录设计](templates-catalog.md)。
+>
+> CLI 是 Easy Sandbox 平台的客户端。它用 TypeScript 重新实现了命令行所需的客户端分层（模型、传输、协议、高层 API、会话存储），这些分层与 Python SDK 的概念一一对应；SDK 自身的设计记录在 SDK 仓库中（见本文末尾的[相关 SDK 文档](#相关-sdk-文档)）。
+
+---
+
+## 1. 分层结构
+
+下层永不 import 上层。CLI 仓库只实现命令行需要的那几层；它不包含 Compat、Declarative、Extensions、Integrations 以及沙箱内 Server 层。
+
+```mermaid
+graph TB
+    BIN["bin — ebx 可执行入口 (src/bin/ebx.ts)"]
+    subgraph Front["命令行"]
+        FW["framework — click 兼容命令框架"]
+        CLI["cli — main、OutputManager、formatters、region 选项"]
+        CMD["cli/commands — 命令组"]
+    end
+    subgraph Services["宿主侧服务"]
+        AG["agent — MCP 服务、编码 Agent 适配器、模板创作/改造"]
+        PRV["provider 层 — 规划中（见第 8 节）"]
+        SES["session — LocalSessionStore"]
+    end
+    subgraph Core["客户端核心（对应 SDK 概念）"]
+        API["api — Sandbox、files、code、commands、network、image、template、capability、session_manager"]
+        PRO["protocol — sandbox、filesystem、process、terminal、port、code_interpreter、template"]
+        TRA["transport — HTTP、WebSocket、认证、编解码、流式、配置加载"]
+        MOD["models — config、errors、sandbox、template、session、filesystem、process"]
+        UTL["utils — registry、模板索引、github token、密钥存储、日志、重试、dockerignore"]
+    end
+
+    BIN --> CLI
+    CLI --> FW
+    CLI --> CMD
+    CMD --> AG
+    CMD --> SES
+    CMD --> API
+    CMD --> PRV
+    AG --> API
+    SES --> API
+    PRV --> API
+    API --> PRO --> TRA
+    TRA --> MOD
+    TRA --> UTL
+```
+
+| 层 | 目录 | 职责 |
+|----|------|------|
+| 入口 | `src/bin/` | `ebx.ts`，可执行入口（构建为 `dist/bin/ebx.js`，即 npm 包的 `bin` 目标） |
+| 命令框架 | `src/framework/` | click 兼容的迷你框架（`Context`、`Command`、`Group`、`Option`、`Argument`、参数类型、帮助格式化、`termui` 交互提示、懒加载子命令），目的是让 Node CLI 在参数解析、帮助文本、错误文本和退出码上与 Click 逐字节一致 |
+| CLI | `src/cli/` | `main`（根命令组、全局选项）、`output`（`OutputManager`）、`formatters`（表格 / JSON / quiet）、`region`（共享的命令级 `--region` 选项）、`_rich*`（终端表格渲染辅助） |
+| 命令组 | `src/cli/commands/` | 每个命令组一个模块，见第 4 节 |
+| Agent / MCP | `src/agent/` | MCP 服务（`mcp`、`mcp_http`、`mcp_main`、`tools`）、宿主侧编码 Agent 适配（`coding_agent`、`qwen_code`、`clarify`、`codegen`、`template_guide`）、模板创作/改造（`adopt`、`dockerfile_sources`） |
+| Session | `src/session/` | `LocalSessionStore`：`~/.ebx/sessions/` 下的 JSON 会话文件 |
+| API | `src/api/` | `Sandbox` 及其模块（`files`、`code`、`commands`、`network`）、`image`、`template`（`TemplateManager`）、`fc_template`（官方 CreateTemplate API 适配器）、`docker_builder`（本地 `docker build` + ACR 推送）、`capability`、`session_manager` |
+| Protocol | `src/protocol/` | 平台 API 与沙箱内 envd API 的类型化封装（`sandbox`、`filesystem`、`process`、`terminal`、`port`、`code_interpreter`、`template`） |
+| Transport | `src/transport/` | HTTP / WebSocket 客户端、API Key / AK-SK 认证、编解码、流式处理，以及分层配置加载器（`config`） |
+| Models | `src/models/` | 类型化数据模型与错误体系（`errors`，错误码 `E1xxx`–`E7xxx`） |
+| Utils | `src/utils/` | GitHub / 本地模板 registry 客户端、远程模板索引客户端、GitHub token 指引、密钥存储（`keychain`）、日志、重试、`.dockerignore` 匹配器，以及 dotenv / tar / YAML 辅助 |
+
+以下划线开头的文件（例如 `src/api/_yaml.ts`、`src/utils/_pyformat.ts`、`src/agent/_pycompat.ts`）是内部兼容辅助模块，用来复刻原实现所依赖的 Python 标准库调用的精确语义，使线上协议输出、`--json` 输出和磁盘文件保持逐字节一致。
+
+## 2. 命令框架（`src/framework/`）
+
+- 参数与命令属性沿用 Click 的 snake_case 命名（`is_flag`、`help_option_names`）；方法使用 camelCase（`ctx.getHelp()`、`group.addCommand()`）。
+- Python 的 `None` 对应 `null`；"尚无值"使用 `UNSET` 哨兵。
+- 所有可能执行用户代码或加载懒加载命令的操作都是 `async`。命令回调签名为 `(ctx, params) => unknown | Promise<unknown>`，`params` 按参数名保存取值。
+- 子命令可以懒注册，使 `ebx --version` 与 `ebx --help` 不必加载所有命令模块（启动耗时由 `benchmarks/` 跟踪）。
+- 测试使用 `CliRunner` 辅助类（`tests/helpers/cliRunner.ts`），对应 `click.testing.CliRunner`。
+
+## 3. 输出与格式化（`src/cli/output.ts`、`src/cli/formatters.ts`）
+
+- `OutputManager` 是唯一决定内容输出到 stdout 还是 stderr 的地方：结果走 stdout；诊断、进度和警告走 stderr（通道策略见 [CLI 命令体系设计 §7](cli-design.md)）。
+- 全局开关 `--json`、`--quiet`、`--ci`、`--no-color`、`--verbose` 只解析一次并保存在 click 上下文中（`ctx.meta["ebx.output"]`），formatters（表格、JSON、quiet）由它获得。
+- CI 与 TTY 检测（`isCiEnv`、`isTty`）：通过一组固定的 CI 环境变量识别 CI；CI 下自动启用 quiet、无颜色、适合 JSON 的输出。非 TTY、`TERM=dumb`、`--json`、`--quiet`、`--ci` 都不绘制瞬态"运行中"标题。
+- 长耗时步骤会绘制瞬态标题和滚动的灰色活动行（`EBX_ACTIVITY_LINES`，1–10）。
+- 退出码是确定的：`0` 成功、`1` 一般错误、`2` 参数错误、`3` 认证失败、`4` 资源不存在、`5` 超时、`6` 配额超限。
+
+## 4. 命令组（`src/cli/commands/`）
+
+命令树定义见 [CLI 命令体系设计](cli-design.md)。模块划分遵循移植契约（`cli/commands/<name>.py` 对应 `src/cli/commands/<name>.ts`）：
+
+| 模块 | 命令组 |
+|------|--------|
+| `config_cmd` | `ebx config`（`init`、`get`、`set`、`list`、`delete`）及可配置的 `[shortcuts]` |
+| `sandbox` | 沙箱生命周期命令（`create`、`list`、`info`、`kill`、`exec`、`run`、`connect`、`upload`、`download`），可在顶层和 `ebx sandbox` 下使用 |
+| `sandbox_files` | `ebx sandbox files`（`list`、`stat`、`mkdir`、`rm`、`mv`、`search`） |
+| `sandbox_process` | `ebx sandbox process`（`list`、`start`、`info`、`signal`） |
+| `sandbox_system` | `ebx sandbox system`（`info`、`env`、`ports`、`packages`、`metrics`） |
+| `template` | `ebx template`（`init`、`deploy`、`build`、`push`、`create`、`install`、`list`、`info`、`delete`、`search`） |
+| `deploy` | `ebx deploy` |
+| `mcp` | `ebx mcp`（`install`、`start`、`status`、`deploy`） |
+
+`ebx sandbox capabilities`、`ebx sandbox shell-stream` 与 `ebx install` 同属该命令树，具体参数见 [CLI 命令体系设计](cli-design.md)。
+
+命令只负责编排：通过框架解析选项、加载配置、调用 `api` 层（自然语言创建和 MCP 则调用 `agent` 层），并通过 `OutputManager` 输出。
+
+## 5. 客户端核心：api、protocol、transport、session、models
+
+CLI 的客户端核心镜像 Python SDK 的分层，使行为、错误码和线上格式保持一致：
+
+- **Transport**（`src/transport/`）：`HttpClient`（重试、超时、连接管理）、WebSocket 辅助、流式解码器，`AuthProvider` 接口背后的 `ApiKeyAuth` / `AkSkAuth`，以及 `config.ts`——按代码参数、进程环境（`E2B_*` 优先于 `SANDBOX_*`）、`.env`（逐 key 合并）、`~/.ebx/config.toml` 的顺序解析配置的分层加载器。
+- **Protocol**（`src/protocol/`）：每种线上接口一个类（`SandboxProtocol`、`ProcessProtocol`、`FilesystemProtocol`、`CodeInterpreterProtocol`、`TerminalSession`、`PortClient`、`TemplateProtocol`）。
+- **API**（`src/api/`）：面向用户的 `Sandbox` 类及其模块、`TemplateManager`、`Image`、`DockerBuilder` 与官方模板 API 适配器。`api/deploy`（SDK 的 `Sandbox.deploy`）仅属于 SDK，不移植。
+- **Session**（`src/session/`）：`LocalSessionStore` 将命名会话持久化为 JSON 文件；并发访问通过每个文件旁的锁目录保护（Node 没有 `flock`，见 `parity/KNOWN-GAPS.md`）。
+- **Models**（`src/models/`）：出现在线上协议或 `--json` 输出中的数据字段保持 Python 的 `snake_case` 名称和键顺序；异常类保持名称、`code` 与消息文本。
+
+## 6. Agent 与 MCP 模块（`src/agent/`）
+
+| 模块 | 作用 |
+|------|------|
+| `mcp.ts` | MCP STDIO 服务：自包含的最小 JSON-RPC 2.0 处理器（`ebx mcp start`），`SandboxManager` 负责默认沙箱的会话绑定 |
+| `mcp_http.ts` | 基于 `node:http` 的 MCP Streamable HTTP 传输（`POST/GET/DELETE /mcp`、`/health`、Bearer Token 认证），供 `ebx mcp start --http` 与 FC 部署产物使用 |
+| `mcp_main.ts` | 等价于 `python -m easy_sandbox.agent.mcp` 的入口 |
+| `tools.ts` | 7 个 P0 工具的 schema（`TOOL_SCHEMAS`）与处理函数 |
+| `coding_agent.ts`、`qwen_code.ts` | 可插拔的宿主侧编码 Agent 边界与 Qwen Code 适配器（定位或安装 Agent、以 headless 方式运行） |
+| `clarify.ts`、`codegen.ts`、`template_guide.ts` | 自然语言 `ebx create "<描述>"`：先调研的需求澄清、模板生成、提供给 Agent 的参考资料 |
+| `adopt.ts`、`dockerfile_sources.ts` | `ebx template init --adopt`：暂存已有项目、仅回写审查通过的白名单文件、校验 Dockerfile 的 `COPY`/`ADD` 源路径 |
+| `_archive.ts`、`_http.ts` | 面向 Qwen Code 独立安装器的安全 tar/zip 解压与支持代理的下载器 |
+
+MCP 的行为（工具、会话绑定、传输、FC 部署）见 [MCP Server 设计](mcp-server.md)。
+
+## 7. 配置与凭据
+
+- 每个凭据的解析顺序：显式选项 → 进程环境 → `./.env` → `~/.ebx`（先 `.env` 后 `config.toml`）→ 内置默认值。空白值不计入。完整表格见[配置参考](../reference/configuration.md#credential-resolution)。
+- 磁盘状态位于 `~/.ebx/`：`config.toml`、`.env`（凭据，权限 600）、`sessions/`、`templates/`、`index/`（远程模板索引缓存）、`bin/`（已安装的编码 Agent）、`generated/`（自然语言生成产物）以及 `secrets.json`（明文，权限 600，仅限本地开发）。
+- `utils/github_token.ts` 保存 registry 客户端与模板索引客户端共用的 GitHub token 提示文案；`utils/template_index.ts` 是[模板目录设计](templates-catalog.md)中描述的远程目录客户端。
+- 凭据永不打印：`ebx config list` 对密钥做掩码，测试夹具只使用占位符。
+
+## 8. Provider 层（规划中）
+
+Provider 层（选择控制面后端、规范化配置键注册表、`ebx provider` 命令、可安装的 provider 插件）由
+[Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md)（英文）规定，在 Python 到 Node 的移植达到一致后落地。它位于命令组与 `api` 层之间，并新增一个由共享键注册表生成的模块 `src/utils/config_keys.ts`。在此之前 CLI 只对接内置的阿里云 provider，现有键名与行为不变。
+
+## 9. 目录结构
+
+```
+cli/
+├── src/
+│   ├── bin/               # ebx.ts — 可执行入口
+│   ├── framework/         # click 兼容命令框架
+│   ├── cli/               # main、output、formatters、region、_rich*
+│   │   └── commands/      # config_cmd、deploy、mcp、sandbox、sandbox_files、sandbox_process、sandbox_system、template
+│   ├── agent/             # MCP 服务、编码 Agent 适配器、模板创作/改造
+│   ├── session/           # LocalSessionStore
+│   ├── api/               # Sandbox、files、code、commands、network、image、template、capability、session_manager
+│   ├── protocol/          # 平台与 envd 协议封装
+│   ├── transport/         # HTTP/WS、认证、编解码、流式、配置
+│   ├── models/            # 数据模型、错误、配置
+│   └── utils/             # registry、模板索引、github token、密钥存储、日志、重试、辅助函数
+├── tests/                 # 镜像 src/（test_api/、test_cli/、test_agent/ …）；vitest；helpers/、fixtures/
+├── parity/                # Python 测试台账与已知差异
+├── scripts/               # build_binary.mjs、parity-coverage.mjs、仓库检查、模板部署辅助脚本
+├── benchmarks/            # CLI 启动性能基准
+├── docs/                  # en/ 与 zh/ 文档、PORTING.md、design/ 草案
+└── .agents/               # ADR、证据、调研（不随包发布）
+```
+
+## 10. 构建、打包与独立二进制
+
+- **npm 包**：`npm run build` 执行 `tsc -p tsconfig.build.json` 并输出 `dist/`；`package.json#bin` 将 `ebx` 映射到 `dist/bin/ebx.js`；`files` 为白名单（`dist`、`README.md`、`SKILL.md`、`LICENSE`、`NOTICE`）。要求 Node.js ≥ 20；CI 在 Node 20 与 22 上运行测试矩阵。
+- **发布**：推送 `vX.Y.Z` 标签会触发 `release.yml`，校验标签与 `package.json#version` 一致后，带 provenance 发布 `@easy-sandbox/cli` 到 npm。
+- **独立二进制**：`scripts/build_binary.mjs` 用 esbuild 将 `src/bin/ebx.ts` 及全部依赖打成单个 CommonJS 文件，再通过 Node.js 单一可执行应用（SEA）机制（`postject`；macOS 上做 ad-hoc 重签名）注入 `node` 二进制的副本。产物命名为 `ebx-{version}-{platform}-{arch}[.exe]`（`linux`/`darwin`/`windows`，`x64`/`arm64`），以 `ebx --version` 做冒烟测试，并由 `release-binary.yml` 在四平台构建矩阵上发布并附带 SHA256 校验和。安装方式见[二进制安装](../guide/binary-installation.md)。
+- **开发命令**：`make test`、`make typecheck`、`make lint`、`make build`、`make binary`、`make ci`；`npm run dev -- --help` 通过 `tsx` 从源码运行 CLI。
+
+## 11. 与 Python 保持一致的契约
+
+Node CLI 取代原单包 Python 项目中的 CLI，不得丢失、降级或悄悄改变任何行为。契约及其保障手段：
+
+| 项 | 位置 |
+|----|------|
+| 移植规则（模块镜像、命名、数据字段与字符串规则、配置位置、技术栈） | [`docs/PORTING.md`](../../PORTING.md) |
+| 必须有对应 Node 测试的 Python 测试（台账） | `parity/python-tests-to-port.txt` |
+| 台账覆盖率报告 | `npm run parity:coverage`（`scripts/parity-coverage.mjs`） |
+| 已记录的行为差异（语言层面，绝不静默） | `parity/KNOWN-GAPS.md` |
+| CLI 输出 golden 采集 | `.agents/evidence/cli/` 与 `tests/` 下的 golden 文件 |
+| 与 Python oracle CLI 的差分测试 | `parity/diff/`（见 PORTING.md） |
+
+阅读或修改代码时要记住：模块 `src/<pkg>/<mod>.ts` 对应 Python 的 `<pkg>/<mod>.py`；函数使用 camelCase，线上/JSON 数据字段保持 `snake_case`；所有面向用户的字符串逐字保留；stdout/stderr 路由与退出码属于契约的一部分。
+
+## 相关 SDK 文档
+
+Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记录在 [`python-sdk` 仓库](https://github.com/Easy-Sandbox/python-sdk)中：
+
+- [系统架构](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/architecture.md) — 本 CLI 所镜像的客户端分层所属的六层架构
+- [SDK API 设计](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/sdk-api-design.md)
+- [沙箱类型](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/sandbox-types.md)
+- [模板系统](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与
+  [模板 YAML 规范](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)
+- [Server API](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)

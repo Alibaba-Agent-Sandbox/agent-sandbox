@@ -1,0 +1,104 @@
+easy_sandbox.__init__	MISSING	
+easy_sandbox._version	MISSING	
+easy_sandbox.agent.__init__	reexport-only	
+easy_sandbox.agent.adopt	present	agent/adopt.ts
+easy_sandbox.agent.builtin	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.agent.clarify	present	agent/clarify.ts
+easy_sandbox.agent.codegen	present	agent/codegen.ts
+easy_sandbox.agent.coding_agent	present	agent/coding_agent.ts
+easy_sandbox.agent.dockerfile_sources	present	agent/dockerfile_sources.ts
+easy_sandbox.agent.infer	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.agent.mcp	present	agent/mcp.ts
+easy_sandbox.agent.mcp_http	present	agent/mcp_http.ts
+easy_sandbox.agent.qwen_code	present	agent/qwen_code.ts
+easy_sandbox.agent.template_guide	present	agent/template_guide.ts
+easy_sandbox.agent.tools	present	agent/tools.ts
+easy_sandbox.api.__init__	present	api/index.ts
+easy_sandbox.api.capability	present	api/capability.ts
+easy_sandbox.api.code	present	api/code.ts
+easy_sandbox.api.commands	present	api/commands.ts
+easy_sandbox.api.deploy	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.api.docker_builder	present	api/docker_builder.ts
+easy_sandbox.api.fc_template	present	api/fc_template.ts
+easy_sandbox.api.files	present	api/files.ts
+easy_sandbox.api.image	present	api/image.ts
+easy_sandbox.api.network	present	api/network.ts
+easy_sandbox.api.sandbox	present	api/sandbox.ts
+easy_sandbox.api.session_manager	present	api/session_manager.ts
+easy_sandbox.api.template	present	api/template.ts
+easy_sandbox.cli.__init__	reexport-only	
+easy_sandbox.cli.commands.__init__	reexport-only	
+easy_sandbox.cli.commands._adopt	present	cli/commands/_adopt.ts
+easy_sandbox.cli.commands._coding_agent	present	cli/commands/_coding_agent.ts
+easy_sandbox.cli.commands.config_cmd	present	cli/commands/config_cmd.ts
+easy_sandbox.cli.commands.deploy	present	cli/commands/deploy.ts
+easy_sandbox.cli.commands.mcp	present	cli/commands/mcp.ts
+easy_sandbox.cli.commands.sandbox	present	cli/commands/sandbox.ts
+easy_sandbox.cli.commands.sandbox_files	present	cli/commands/sandbox_files.ts
+easy_sandbox.cli.commands.sandbox_process	present	cli/commands/sandbox_process.ts
+easy_sandbox.cli.commands.sandbox_system	present	cli/commands/sandbox_system.ts
+easy_sandbox.cli.commands.template	present	cli/commands/template.ts
+easy_sandbox.cli.formatters	present	cli/formatters.ts
+easy_sandbox.cli.main	present	cli/main.ts
+easy_sandbox.cli.output	present	cli/output.ts
+easy_sandbox.cli.region	present	cli/region.ts
+easy_sandbox.cli.repl	present	cli/repl.ts
+easy_sandbox.cli.scaffold	present	cli/scaffold.ts
+easy_sandbox.compat.__init__	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.compat.sandbox	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.declarative.__init__	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.declarative.config	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.declarative.decorator	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.declarative.serializer	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.extensions.__init__	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.extensions.domain	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.extensions.oss	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.extensions.vpc	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.models.__init__	present	models/index.ts
+easy_sandbox.models.config	present	models/config.ts
+easy_sandbox.models.errors	present	models/errors.ts
+easy_sandbox.models.filesystem	present	models/filesystem.ts
+easy_sandbox.models.process	present	models/process.ts
+easy_sandbox.models.sandbox	present	models/sandbox.ts
+easy_sandbox.models.session	present	models/session.ts
+easy_sandbox.models.template	present	models/template.ts
+easy_sandbox.protocol.__init__	present	protocol/index.ts
+easy_sandbox.protocol.code_interpreter	present	protocol/code_interpreter.ts
+easy_sandbox.protocol.filesystem	present	protocol/filesystem.ts
+easy_sandbox.protocol.port	present	protocol/port.ts
+easy_sandbox.protocol.process	present	protocol/process.ts
+easy_sandbox.protocol.sandbox	present	protocol/sandbox.ts
+easy_sandbox.protocol.template	present	protocol/template.ts
+easy_sandbox.protocol.terminal	present	protocol/terminal.ts
+easy_sandbox.server.__init__	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server._compat	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.app	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.registry	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.router	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes_browser	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes_devtools	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes_files	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes_process	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes_pty	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.routes_system	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.server.types	dropped	SDK/server-owned; not reached by CLI (see PORTING.md 'Module mirroring' / KNOWN-GAPS)
+easy_sandbox.session.__init__	present	session/index.ts
+easy_sandbox.session.local	present	session/local.ts
+easy_sandbox.transport.__init__	present	transport/index.ts
+easy_sandbox.transport.auth	present	transport/auth.ts
+easy_sandbox.transport.codec	present	transport/codec.ts
+easy_sandbox.transport.config	present	transport/config.ts
+easy_sandbox.transport.http	present	transport/http.ts
+easy_sandbox.transport.streaming	present	transport/streaming.ts
+easy_sandbox.transport.ws	present	transport/ws.ts
+easy_sandbox.utils.__init__	present	utils/index.ts
+easy_sandbox.utils.async_bridge	MISSING	
+easy_sandbox.utils.coerce	present	utils/coerce.ts
+easy_sandbox.utils.dockerignore	present	utils/dockerignore.ts
+easy_sandbox.utils.github_token	present	utils/github_token.ts
+easy_sandbox.utils.keychain	present	utils/keychain.ts
+easy_sandbox.utils.logging	present	utils/logging.ts
+easy_sandbox.utils.registry	present	utils/registry.ts
+easy_sandbox.utils.retry	present	utils/retry.ts
+easy_sandbox.utils.template_index	present	utils/template_index.ts

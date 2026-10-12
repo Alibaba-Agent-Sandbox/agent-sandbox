@@ -1,0 +1,79 @@
+name: Release Binary
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # required to upload assets to the GitHub Release
+
+jobs:
+  build-binary:
+    name: Build ebx binary (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # ubuntu-latest    -> linux-x64
+        # macos-latest     -> darwin-arm64 (Apple Silicon)
+        # macos-15-intel   -> darwin-x64   (Intel; macos-13 has been retired)
+        # windows-latest   -> windows-x64
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+          - os: macos-latest
+            target: darwin-arm64
+          - os: macos-15-intel
+            target: darwin-x64
+          - os: windows-latest
+            target: windows-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies (includes the esbuild + postject build toolchain)
+        run: npm ci
+
+      - name: Build binary
+        run: node scripts/build_binary.mjs
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          cd dist/binary
+          for f in ebx-*; do
+            case "$f" in *.sha256) continue ;; esac
+            [ -f "$f" ] || continue
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$f" > "$f.sha256"
+            else
+              shasum -a 256 "$f" > "$f.sha256"
+            fi
+            cat "$f.sha256"
+          done
+
+      # Manual runs (workflow_dispatch) have no release to attach to, so the
+      # binaries are exposed as workflow artifacts for download instead.
+      - name: Upload workflow artifacts (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebx-binary-${{ matrix.target }}
+          path: dist/binary/
+          if-no-files-found: error
+
+      - name: Upload binaries to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/binary/ebx-*

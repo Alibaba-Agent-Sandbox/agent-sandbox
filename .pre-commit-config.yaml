@@ -1,0 +1,42 @@
+# See https://pre-commit.com for more information
+repos:
+  # General checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: '\.vscode/|tsconfig.*\.json$'
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Secret detection (Yelp detect-secrets)
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '(tests/|package-lock\.json|\.lock|\.secrets\.baseline)'
+
+  # Type check (tsc, strict) — runs the project-local compiler
+  - repo: local
+    hooks:
+      - id: tsc
+        name: tsc --noEmit
+        entry: npx --no-install tsc -p tsconfig.json --noEmit
+        language: system
+        types_or: [ts, tsx, json]
+        pass_filenames: false
+
+  # Custom secret-scanning (also runs via core.hooksPath)
+  - repo: local
+    hooks:
+      - id: check-secrets
+        name: check-secrets
+        entry: .githooks/check-secrets.sh
+        language: script
+        pass_filenames: false

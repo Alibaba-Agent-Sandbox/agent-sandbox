@@ -1,0 +1,176 @@
+{
+"cases": [
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1.0,\"method\":\"tools/list\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 1.0, \"result\": {\"tools\": [{\"name\": \"create_sandbox\", \"description\": \"创建一个云端沙箱，并将其设为当前会话的默认沙箱。之后省略 sandbox_id 的工具调用都作用在这只沙箱上。省略 template 时使用 MCP server 配置的模板（ebx mcp start 默认为 code-interpreter-v1）。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"template\": {\"type\": \"string\", \"description\": \"沙箱模板名称，省略时使用 server 配置的模板\"}, \"timeout\": {\"type\": \"integer\", \"description\": \"沙箱超时时间（秒），默认 300\", \"default\": 300}, \"envs\": {\"type\": \"object\", \"description\": \"环境变量键值对\", \"additionalProperties\": {\"type\": \"string\"}}}}}, {\"name\": \"run_code\", \"description\": \"在沙箱中执行代码（通过 Code Interpreter）。支持 Python、JavaScript 等语言。省略 sandbox_id 时使用默认沙箱。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"要执行的代码\"}, \"language\": {\"type\": \"string\", \"description\": \"编程语言，默认 python\", \"default\": \"python\", \"enum\": [\"python\", \"javascript\", \"shell\", \"typescript\", \"r\"]}, \"sandbox_id\": {\"type\": \"string\", \"description\": \"沙箱 ID，省略时使用默认沙箱\"}, \"timeout\": {\"type\": \"integer\", \"description\": \"执行超时（秒），默认 30\", \"default\": 30}}, \"required\": [\"code\"]}}, {\"name\": \"run_command\", \"description\": \"在沙箱中通过 sh -c 执行命令，因此支持管道、&&、$VAR 和 cd。省略 sandbox_id 时使用默认沙箱。省略 cwd 时使用镜像自己的工作目录。timeout 是本次调用等待的秒数；非零退出码会标成工具错误。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"command\": {\"type\": \"string\", \"description\": \"交给 sh -c 的命令\"}, \"sandbox_id\": {\"type\": \"string\", \"description\": \"沙箱 ID\"}, \"cwd\": {\"type\": \"string\", \"description\": \"工作目录，省略时使用镜像工作目录\"}, \"timeout\": {\"type\": \"integer\", \"description\": \"执行超时（秒），默认 60\", \"default\": 60}}, \"required\": [\"command\"]}}, {\"name\": \"read_file\", \"description\": \"读取沙箱中的文件内容。省略 sandbox_id 时使用默认沙箱。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"path\": {\"type\": \"string\", \"description\": \"文件绝对路径\"}, \"sandbox_id\": {\"type\": \"string\", \"description\": \"沙箱 ID\"}, \"encoding\": {\"type\": \"string\", \"description\": \"文件编码，默认 utf-8\", \"default\": \"utf-8\"}}, \"required\": [\"path\"]}}, {\"name\": \"write_file\", \"description\": \"在沙箱中创建或覆写文件。省略 sandbox_id 时使用默认沙箱。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"path\": {\"type\": \"string\", \"description\": \"文件绝对路径\"}, \"content\": {\"type\": \"string\", \"description\": \"文件内容\"}, \"sandbox_id\": {\"type\": \"string\", \"description\": \"沙箱 ID\"}}, \"required\": [\"path\", \"content\"]}}, {\"name\": \"list_files\", \"description\": \"列出沙箱中指定目录的文件和子目录。省略 sandbox_id 时使用默认沙箱。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"path\": {\"type\": \"string\", \"description\": \"目录路径，省略时列出 /\", \"default\": \"/\"}, \"sandbox_id\": {\"type\": \"string\", \"description\": \"沙箱 ID\"}}}}, {\"name\": \"kill_sandbox\", \"description\": \"销毁指定沙箱。省略 sandbox_id 时销毁默认沙箱；当前没有默认沙箱时返回错误，而不是成功。\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"sandbox_id\": {\"type\": \"string\", \"description\": \"要销毁的沙箱 ID，省略时销毁默认沙箱\"}}}}]}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1e400,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": Infinity, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":-1e400,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": -Infinity, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":-0.0,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": -0.0, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":-0,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 0, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1E2,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 100.0, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":12345678901234567890,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 12345678901234567890, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":123456789012345678901234567890,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 123456789012345678901234567890, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":0.1,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 0.1, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1e16,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 1e+16, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1e15,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 1000000000000000.0, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":9007199254740993,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 9007199254740993, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":123456789.123456789,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 123456789.12345679, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1.7976931348623157e308,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 1.7976931348623157e+308, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":5e-324,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 5e-324, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":1e-7,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 1e-07, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":NaN,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": NaN, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":Infinity,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": Infinity, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":-Infinity,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": -Infinity, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":[1.0,2,3.5,{\"k\":4.0}],\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": [1.0, 2, 3.5, {\"k\": 4.0}], \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":{\"2\":1,\"1\":2.0,\"b\":3,\"0\":4},\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": {\"2\": 1, \"1\": 2.0, \"b\": 3, \"0\": 4}, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":{\"10\":1,\"9\":2,\"a\":3,\"1\":{\"3\":1,\"2\":2}},\"method\":\"initialize\",\"params\":{}}",
+"{\"jsonrpc\": \"2.0\", \"id\": {\"10\": 1, \"9\": 2, \"a\": 3, \"1\": {\"3\": 1, \"2\": 2}}, \"result\": {\"protocolVersion\": \"2024-11-05\", \"capabilities\": {\"tools\": {\"listChanged\": false}}, \"serverInfo\": {\"name\": \"easy-sandbox\", \"version\": \"0.2.0\"}}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":{\"1\":1,\"1\":2},\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": {\"1\": 2}, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":{\"a\":1,\"1\":2,\"a\":3},\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": {\"a\": 3, \"1\": 2}, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":4294967295,\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 4294967295, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":{\"4294967295\":1,\"4294967294\":2,\"4294967296\":3},\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": {\"4294967295\": 1, \"4294967294\": 2, \"4294967296\": 3}, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":{\"01\":1,\"1\":2,\"-1\":3,\"1.5\":4},\"method\":\"ping\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": {\"01\": 1, \"1\": 2, \"-1\": 3, \"1.5\": 4}, \"result\": {}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":2.0,\"method\":\"no/such\"}",
+"{\"jsonrpc\": \"2.0\", \"id\": 2.0, \"error\": {\"code\": -32601, \"message\": \"Method not found: no/such\"}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":2.0,\"method\":1.0}",
+"{\"jsonrpc\": \"2.0\", \"id\": 2.0, \"error\": {\"code\": -32601, \"message\": \"Method not found: 1.0\"}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":3.0,\"method\":\"tools/call\",\"params\":1.0}",
+"{\"jsonrpc\": \"2.0\", \"id\": 3.0, \"error\": {\"code\": -32602, \"message\": \"params must be a JSON object\"}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":3.5,\"method\":\"tools/call\",\"params\":{\"name\":1.0,\"arguments\":{}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 3.5, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"Unknown tool: 1.0\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":4.0,\"method\":\"tools/call\",\"params\":{\"name\":\"run_code\",\"arguments\":2.0}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 4.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"Tool arguments must be an object\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":5.0,\"method\":\"tools/call\",\"params\":{\"name\":\"no_tool\",\"arguments\":{\"timeout\":30.0}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 5.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"Unknown tool: no_tool\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":6.0,\"method\":\"tools/call\",\"params\":{\"name\":\"run_code\",\"arguments\":{\"timeout\":30.0}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 6.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"'code'\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":7.0,\"method\":\"tools/call\",\"params\":{\"name\":\"run_code\",\"arguments\":{\"code\":2.0}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 7.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"[E5001] Failed to connect to Platform API: All connection attempts failed\\\", \\\"suggestion\\\": \\\"Check network connectivity and API base URL.\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":8.0,\"method\":\"tools/call\",\"params\":{\"name\":\"read_file\",\"arguments\":{}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 8.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"'path'\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":9.0,\"method\":\"tools/call\",\"params\":{\"name\":\"write_file\",\"arguments\":{\"path\":\"/a\"}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 9.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"'content'\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":10.0,\"method\":\"tools/call\",\"params\":{\"name\":\"run_command\",\"arguments\":{\"command\":2.0}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 10.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"[E5001] Failed to connect to Platform API: All connection attempts failed\\\", \\\"suggestion\\\": \\\"Check network connectivity and API base URL.\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":11.0,\"method\":\"tools/call\",\"params\":{\"name\":\"run_command\",\"arguments\":{\"command\":12345678901234567890}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 11.0, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"[E5001] Failed to connect to Platform API: All connection attempts failed\\\", \\\"suggestion\\\": \\\"Check network connectivity and API base URL.\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":[1.0],\"method\":\"tools/call\",\"params\":{\"name\":\"run_code\",\"arguments\":[1.0]}}",
+"{\"jsonrpc\": \"2.0\", \"id\": [1.0], \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"error\\\": \\\"Tool arguments must be an object\\\"}\"}], \"isError\": true}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{\"x\":1.0}}",
+null
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":13.0,\"method\":\"initialize\",\"params\":{\"protocolVersion\":2.0,\"capabilities\":{\"2\":1,\"1\":2},\"clientInfo\":{\"name\":\"c\",\"version\":1.0}}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 13.0, \"result\": {\"protocolVersion\": \"2024-11-05\", \"capabilities\": {\"tools\": {\"listChanged\": false}}, \"serverInfo\": {\"name\": \"easy-sandbox\", \"version\": \"0.2.0\"}}}"
+],
+[
+"{\"jsonrpc\":\"2.0\",\"id\":14.0,\"method\":\"ping\",\"params\":{\"b\":1.0,\"a\":2.0}}",
+"{\"jsonrpc\": \"2.0\", \"id\": 14.0, \"result\": {}}"
+]
+]
+}

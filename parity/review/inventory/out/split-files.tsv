@@ -1,0 +1,622 @@
+.agents/design/2026-09-23-cli-final-design.md	CHANGED	cli/.agents/design/2026-09-23-cli-final-design.md	-1/+1
+.agents/evidence/README.md	CHANGED	python-sdk/.agents/evidence/README.md, cli/.agents/evidence/README.md	-34/+19
+.agents/evidence/cli/config/config.md	SAME	cli/.agents/evidence/cli/config/config.md	
+.agents/evidence/cli/create.md	SAME	cli/.agents/evidence/cli/create.md	
+.agents/evidence/cli/download.md	SAME	cli/.agents/evidence/cli/download.md	
+.agents/evidence/cli/error.md	SAME	cli/.agents/evidence/cli/error.md	
+.agents/evidence/cli/exec.md	SAME	cli/.agents/evidence/cli/exec.md	
+.agents/evidence/cli/help.md	SAME	cli/.agents/evidence/cli/help.md	
+.agents/evidence/cli/info.md	SAME	cli/.agents/evidence/cli/info.md	
+.agents/evidence/cli/kill.md	SAME	cli/.agents/evidence/cli/kill.md	
+.agents/evidence/cli/list.md	SAME	cli/.agents/evidence/cli/list.md	
+.agents/evidence/cli/mcp/mcp.md	SAME	cli/.agents/evidence/cli/mcp/mcp.md	
+.agents/evidence/cli/template/template.md	SAME	cli/.agents/evidence/cli/template/template.md	
+.agents/evidence/cli/upload.md	SAME	cli/.agents/evidence/cli/upload.md	
+.agents/evidence/cli/version.md	SAME	cli/.agents/evidence/cli/version.md	
+.agents/evidence/research/2026-09-04-agents-md-audit.md	CHANGED	python-sdk/.agents/evidence/research/2026-09-04-agents-md-audit.md	-3/+3
+.agents/evidence/research/2026-09-04-ai-native-oss-completeness.md	CHANGED	python-sdk/.agents/evidence/research/2026-09-04-ai-native-oss-completeness.md	-5/+5
+.agents/evidence/research/2026-09-04-container-serve-boundary.md	CHANGED	python-sdk/.agents/evidence/research/2026-09-04-container-serve-boundary.md	-5/+5
+.agents/evidence/research/2026-09-04-fc-claude-code-image-inspection.md	CHANGED	python-sdk/.agents/evidence/research/2026-09-04-fc-claude-code-image-inspection.md	-1/+1
+.agents/evidence/research/2026-09-04-fc-sandbox-official-docs.md	SAME	python-sdk/.agents/evidence/research/2026-09-04-fc-sandbox-official-docs.md	
+.agents/evidence/research/2026-09-04-overdesign-audit.md	SAME	cli/.agents/evidence/research/2026-09-04-overdesign-audit.md	
+.agents/evidence/research/2026-09-04-pypi-publish-readiness.md	CHANGED	python-sdk/.agents/evidence/research/2026-09-04-pypi-publish-readiness.md	-7/+7
+.agents/evidence/research/2026-09-04-qwencli-and-agents-doc-audit.md	CHANGED	cli/.agents/evidence/research/2026-09-04-qwencli-and-agents-doc-audit.md	-9/+9
+.agents/evidence/verify/2026-09-04-full-suite.md	CHANGED	python-sdk/.agents/evidence/verify/2026-09-04-full-suite.md	-1/+1
+.agents/evidence/verify/2026-09-04-wave3-full-suite.md	CHANGED	python-sdk/.agents/evidence/verify/2026-09-04-wave3-full-suite.md	-1/+1
+.agents/evidence/verify/2026-09-05-server-framework-full-suite.md	CHANGED	python-sdk/.agents/evidence/verify/2026-09-05-server-framework-full-suite.md	-3/+3
+.agents/evidence/verify/2026-09-08-real-e2e-verification.md	CHANGED	python-sdk/.agents/evidence/verify/2026-09-08-real-e2e-verification.md	-5/+5
+.agents/evidence/verify/2026-09-08-template-deploy-e2e.md	CHANGED	cli/.agents/evidence/verify/2026-09-08-template-deploy-e2e.md	-7/+7
+.agents/notes/README.md	CHANGED	python-sdk/.agents/notes/README.md, cli/.agents/notes/README.md	-4/+15
+.agents/notes/implemented/architecture/2026-09-02-agent-as-cli-wrapper.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-02-agent-as-cli-wrapper.md	
+.agents/notes/implemented/architecture/2026-09-02-dual-auth-mode.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-02-dual-auth-mode.md	
+.agents/notes/implemented/architecture/2026-09-02-sbox-cli-naming.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-02-sbox-cli-naming.md	
+.agents/notes/implemented/architecture/2026-09-02-self-implement-e2b-protocol.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-02-self-implement-e2b-protocol.md	
+.agents/notes/implemented/architecture/2026-09-02-session-pluggable-storage.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-02-session-pluggable-storage.md	
+.agents/notes/implemented/architecture/2026-09-02-snapshot-hibernate-deferred.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-02-snapshot-hibernate-deferred.md	
+.agents/notes/implemented/architecture/2026-09-03-capability-model.md	CHANGED	python-sdk/.agents/notes/implemented/architecture/2026-09-03-capability-model.md	-1/+1
+.agents/notes/implemented/architecture/2026-09-03-cli-run-vs-exec.md	CHANGED	cli/.agents/notes/implemented/architecture/2026-09-03-cli-run-vs-exec.md	-2/+2
+.agents/notes/implemented/architecture/2026-09-03-command-source-resolution.md	CHANGED	cli/.agents/notes/implemented/architecture/2026-09-03-command-source-resolution.md	-1/+1
+.agents/notes/implemented/architecture/2026-09-03-no-backward-compat-capability.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-03-no-backward-compat-capability.md	
+.agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md	
+.agents/notes/implemented/architecture/2026-09-04-envd-container-service-model.md	CHANGED	python-sdk/.agents/notes/implemented/architecture/2026-09-04-envd-container-service-model.md	-1/+1
+.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md	
+.agents/notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-ebx.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-ebx.md	
+.agents/notes/implemented/architecture/2026-09-09-layer-violation-fix.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-09-layer-violation-fix.md	
+.agents/notes/implemented/architecture/2026-09-09-server-command-registry.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-09-server-command-registry.md	
+.agents/notes/implemented/architecture/2026-09-23-overdesign-cleanup.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-23-overdesign-cleanup.md	
+.agents/notes/implemented/architecture/2026-09-24-code-capability-gate-restoration.md	CHANGED	python-sdk/.agents/notes/implemented/architecture/2026-09-24-code-capability-gate-restoration.md	-4/+4
+.agents/notes/implemented/architecture/2026-09-29-byo-agent-integration-contract.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-byo-agent-integration-contract.md	
+.agents/notes/implemented/architecture/2026-09-29-cli-output-channel-separation.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-cli-output-channel-separation.md	
+.agents/notes/implemented/architecture/2026-09-29-pluggable-coding-agent-backend.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-pluggable-coding-agent-backend.md	
+.agents/notes/implemented/architecture/2026-09-29-research-first-two-phase-clarification.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-research-first-two-phase-clarification.md	
+.agents/notes/implemented/architecture/2026-09-29-skills-design-removal-and-mcp-docs-convergence.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-skills-design-removal-and-mcp-docs-convergence.md	
+.agents/notes/implemented/architecture/2026-09-29-static-skill-md-agent-guide.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-static-skill-md-agent-guide.md	
+.agents/notes/implemented/architecture/2026-09-29-template-catalog-single-source-of-truth.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-29-template-catalog-single-source-of-truth.md	
+.agents/notes/implemented/feature/.gitkeep	SAME	python-sdk/.agents/notes/implemented/feature/.gitkeep, cli/.agents/notes/implemented/feature/.gitkeep	
+.agents/notes/implemented/feature/2026-09-02-api-commands.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-api-commands.md	
+.agents/notes/implemented/feature/2026-09-02-api-files.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-api-files.md	
+.agents/notes/implemented/feature/2026-09-02-api-sandbox.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-api-sandbox.md	
+.agents/notes/implemented/feature/2026-09-02-cli-tool.md	SAME	cli/.agents/notes/implemented/feature/2026-09-02-cli-tool.md	
+.agents/notes/implemented/feature/2026-09-02-compat-e2b.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-compat-e2b.md	
+.agents/notes/implemented/feature/2026-09-02-models-and-errors.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-models-and-errors.md	
+.agents/notes/implemented/feature/2026-09-02-protocol-filesystem.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-protocol-filesystem.md	
+.agents/notes/implemented/feature/2026-09-02-protocol-process.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-protocol-process.md	
+.agents/notes/implemented/feature/2026-09-02-protocol-sandbox.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-protocol-sandbox.md	
+.agents/notes/implemented/feature/2026-09-02-protocol-terminal.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-protocol-terminal.md	
+.agents/notes/implemented/feature/2026-09-02-transport-auth.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-transport-auth.md	
+.agents/notes/implemented/feature/2026-09-02-transport-config.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-transport-config.md	
+.agents/notes/implemented/feature/2026-09-02-transport-http.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-transport-http.md	
+.agents/notes/implemented/feature/2026-09-02-transport-streaming.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-transport-streaming.md	
+.agents/notes/implemented/feature/2026-09-02-transport-websocket.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-02-transport-websocket.md	
+.agents/notes/implemented/feature/2026-09-03-custom-commands-schema.md	CHANGED	python-sdk/.agents/notes/implemented/feature/2026-09-03-custom-commands-schema.md	-1/+1
+.agents/notes/implemented/feature/2026-09-03-minimal-template-repo.md	CHANGED	cli/.agents/notes/implemented/feature/2026-09-03-minimal-template-repo.md	-1/+1
+.agents/notes/implemented/feature/2026-09-04-sandbox-register-command.md	CHANGED	cli/.agents/notes/implemented/feature/2026-09-04-sandbox-register-command.md	-3/+3
+.agents/notes/implemented/feature/2026-09-04-template-command-redesign.md	SAME	cli/.agents/notes/implemented/feature/2026-09-04-template-command-redesign.md	
+.agents/notes/implemented/feature/2026-09-09-docker-builder-acr-push.md	CHANGED	python-sdk/.agents/notes/implemented/feature/2026-09-09-docker-builder-acr-push.md	-1/+1
+.agents/notes/implemented/feature/2026-09-09-server-capability-expansion.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-09-server-capability-expansion.md	
+.agents/notes/implemented/feature/2026-09-09-template-awesome-community-index.md	SAME	cli/.agents/notes/implemented/feature/2026-09-09-template-awesome-community-index.md	
+.agents/notes/implemented/feature/2026-09-09-template-deploy-command.md	SAME	cli/.agents/notes/implemented/feature/2026-09-09-template-deploy-command.md	
+.agents/notes/implemented/feature/2026-09-23-cli-command-reduction.md	SAME	cli/.agents/notes/implemented/feature/2026-09-23-cli-command-reduction.md	
+.agents/notes/implemented/feature/2026-09-23-mcp-fc-streamable-http.md	SAME	cli/.agents/notes/implemented/feature/2026-09-23-mcp-fc-streamable-http.md	
+.agents/notes/implemented/feature/2026-09-23-server-endpoint-audit.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-23-server-endpoint-audit.md	
+.agents/notes/implemented/feature/2026-09-28-create-timeout-floor.md	SAME	cli/.agents/notes/implemented/feature/2026-09-28-create-timeout-floor.md	
+.agents/notes/implemented/feature/2026-09-28-custom-positional-only-name.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-28-custom-positional-only-name.md	
+.agents/notes/implemented/feature/2026-09-28-envd-inject-default-false.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-28-envd-inject-default-false.md	
+.agents/notes/implemented/feature/2026-09-28-generation2-microvm-limitation.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-28-generation2-microvm-limitation.md	
+.agents/notes/implemented/feature/2026-09-28-platform-reserved-template-names.md	SAME	cli/.agents/notes/implemented/feature/2026-09-28-platform-reserved-template-names.md	
+.agents/notes/implemented/feature/2026-09-29-aksk-token-exchange.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-29-aksk-token-exchange.md	
+.agents/notes/implemented/feature/2026-09-29-ci-env-suppression.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-ci-env-suppression.md	
+.agents/notes/implemented/feature/2026-09-29-cli-help-text-audit.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-cli-help-text-audit.md	
+.agents/notes/implemented/feature/2026-09-29-config-init-wizard.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-config-init-wizard.md	
+.agents/notes/implemented/feature/2026-09-29-config-set-aksk.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-config-set-aksk.md	
+.agents/notes/implemented/feature/2026-09-29-init-create-semantics.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-init-create-semantics.md	
+.agents/notes/implemented/feature/2026-09-29-init-restore-and-create-explicit-error.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-init-restore-and-create-explicit-error.md	
+.agents/notes/implemented/feature/2026-09-29-nl-create-qwen-code-integration.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-nl-create-qwen-code-integration.md	
+.agents/notes/implemented/feature/2026-09-29-qwen-session-turns-param-unification.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-qwen-session-turns-param-unification.md	
+.agents/notes/implemented/feature/2026-09-29-region-command-level-option.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-region-command-level-option.md	
+.agents/notes/implemented/feature/2026-09-29-remove-rename-notices.md	SAME	python-sdk/.agents/notes/implemented/feature/2026-09-29-remove-rename-notices.md	
+.agents/notes/implemented/feature/2026-09-29-single-question-clarification.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-single-question-clarification.md	
+.agents/notes/implemented/feature/2026-09-29-template-yaml-legacy-cleanup.md	SAME	cli/.agents/notes/implemented/feature/2026-09-29-template-yaml-legacy-cleanup.md	
+.agents/notes/implemented/feature/2026-09-30-config-delete.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-config-delete.md	
+.agents/notes/implemented/feature/2026-09-30-config-init-acr-and-aksk.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-config-init-acr-and-aksk.md	
+.agents/notes/implemented/feature/2026-09-30-configurable-cli-shortcuts.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-configurable-cli-shortcuts.md	
+.agents/notes/implemented/feature/2026-09-30-credential-resolution-priority.md	CHANGED	cli/.agents/notes/implemented/feature/2026-09-30-credential-resolution-priority.md	-1/+1
+.agents/notes/implemented/feature/2026-09-30-deploy-fixed-pipeline-agent-flag.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-deploy-fixed-pipeline-agent-flag.md	
+.agents/notes/implemented/feature/2026-09-30-init-directory-prompt.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-init-directory-prompt.md	
+.agents/notes/implemented/feature/2026-09-30-nl-template-init-and-create-scope-prompt.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-nl-template-init-and-create-scope-prompt.md	
+.agents/notes/implemented/feature/2026-09-30-nl-template-server-entrypoint.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-nl-template-server-entrypoint.md	
+.agents/notes/implemented/feature/2026-09-30-rolling-agent-activity-lines.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-rolling-agent-activity-lines.md	
+.agents/notes/implemented/feature/2026-09-30-shortcut-target-hint.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-shortcut-target-hint.md	
+.agents/notes/implemented/feature/2026-09-30-step-activity-logs.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-step-activity-logs.md	
+.agents/notes/implemented/feature/2026-09-30-template-init-adopt-existing-project.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-template-init-adopt-existing-project.md	
+.agents/notes/implemented/feature/2026-09-30-unified-config-keys.md	SAME	cli/.agents/notes/implemented/feature/2026-09-30-unified-config-keys.md	
+.agents/notes/implemented/process/.gitkeep	SAME	python-sdk/.agents/notes/implemented/process/.gitkeep, cli/.agents/notes/implemented/process/.gitkeep	
+.agents/notes/implemented/process/2026-09-04-single-distribution-cli-extra.md	RELOCATED	cli/.agents/notes/superseded/2026-09-04-single-distribution-cli-extra.md	
+.agents/notes/implemented/process/2026-09-09-cloud-e2e-test-infrastructure.md	CHANGED	python-sdk/.agents/notes/implemented/process/2026-09-09-cloud-e2e-test-infrastructure.md	-4/+4
+.agents/notes/proposed/architecture/.gitkeep	SAME	python-sdk/.agents/notes/proposed/architecture/.gitkeep, cli/.agents/notes/proposed/architecture/.gitkeep	
+.agents/notes/proposed/feature/2026-09-04-discovery-api-two-layer.md	CHANGED	python-sdk/.agents/notes/proposed/feature/2026-09-04-discovery-api-two-layer.md	-2/+2
+.agents/notes/proposed/process/.gitkeep	SAME	python-sdk/.agents/notes/proposed/process/.gitkeep, cli/.agents/notes/proposed/process/.gitkeep	
+.agents/notes/proposed/process/2026-09-03-release-publish-flow.md	CHANGED	python-sdk/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md	-2/+2
+.agents/notes/proposed/process/2026-09-04-pypi-packaging-decisions.md	RELOCATED	python-sdk/.agents/notes/superseded/2026-09-04-pypi-packaging-decisions.md	
+.agents/notes/rejected/.gitkeep	SAME	python-sdk/.agents/notes/rejected/.gitkeep, cli/.agents/notes/rejected/.gitkeep	
+.agents/notes/rejected/2026-09-03-capability-model-alternatives.md	CHANGED	python-sdk/.agents/notes/rejected/2026-09-03-capability-model-alternatives.md	-6/+6
+.agents/research/README.md	CHANGED	python-sdk/.agents/research/README.md, cli/.agents/research/README.md	-1/+1
+.agents/research/competitor-comparison.md	SAME	python-sdk/.agents/research/competitor-comparison.md	
+.agents/research/e2b-analysis.md	CHANGED	python-sdk/.agents/research/e2b-analysis.md	-1/+1
+.agents/research/mcp-and-agent-integration.md	SAME	cli/.agents/research/mcp-and-agent-integration.md	
+.agents/research/modal-analysis.md	SAME	python-sdk/.agents/research/modal-analysis.md	
+.agents/research/user-scenarios.md	SAME	python-sdk/.agents/research/user-scenarios.md	
+.aicoding-chat-workspace	MISSING		
+.env.example	CHANGED	python-sdk/.env.example, cli/.env.example	-5/+11
+.githooks/check-secrets.sh	SAME	python-sdk/.githooks/check-secrets.sh, cli/.githooks/check-secrets.sh	
+.githooks/pre-commit	SAME	python-sdk/.githooks/pre-commit, cli/.githooks/pre-commit	
+.github/CODE_OF_CONDUCT.md	SAME	python-sdk/.github/CODE_OF_CONDUCT.md, cli/.github/CODE_OF_CONDUCT.md	
+.github/CONTRIBUTING.md	CHANGED	python-sdk/.github/CONTRIBUTING.md, cli/.github/CONTRIBUTING.md	-16/+47
+.github/DISCUSSION_TEMPLATE/welcome.md	CHANGED	python-sdk/.github/DISCUSSION_TEMPLATE/welcome.md, cli/.github/DISCUSSION_TEMPLATE/welcome.md	-9/+9
+.github/ISSUE_TEMPLATE/bug_report.yml	CHANGED	python-sdk/.github/ISSUE_TEMPLATE/bug_report.yml, cli/.github/ISSUE_TEMPLATE/bug_report.yml	-2/+16
+.github/ISSUE_TEMPLATE/config.yml	CHANGED	python-sdk/.github/ISSUE_TEMPLATE/config.yml, cli/.github/ISSUE_TEMPLATE/config.yml	-2/+5
+.github/ISSUE_TEMPLATE/docs_improvement.yml	SAME	python-sdk/.github/ISSUE_TEMPLATE/docs_improvement.yml, cli/.github/ISSUE_TEMPLATE/docs_improvement.yml	
+.github/ISSUE_TEMPLATE/feature_request.yml	SAME	python-sdk/.github/ISSUE_TEMPLATE/feature_request.yml, cli/.github/ISSUE_TEMPLATE/feature_request.yml	
+.github/ISSUE_TEMPLATE/template_request.yml	SAME	python-sdk/.github/ISSUE_TEMPLATE/template_request.yml, cli/.github/ISSUE_TEMPLATE/template_request.yml	
+.github/PULL_REQUEST_TEMPLATE.md	CHANGED	python-sdk/.github/PULL_REQUEST_TEMPLATE.md, cli/.github/PULL_REQUEST_TEMPLATE.md	-1/+15
+.github/SECURITY.md	CHANGED	python-sdk/.github/SECURITY.md, cli/.github/SECURITY.md	-5/+8
+.github/dependabot.yml	CHANGED	python-sdk/.github/dependabot.yml, cli/.github/dependabot.yml	-3/+16
+.github/discussions/welcome-post.md	CHANGED	python-sdk/.github/discussions/welcome-post.md, cli/.github/discussions/welcome-post.md	-12/+12
+.github/workflows/ci.yml	CHANGED	python-sdk/.github/workflows/ci.yml, cli/.github/workflows/ci.yml	-68/+101
+.github/workflows/publish.yml	CHANGED	python-sdk/.github/workflows/publish.yml	-7/+39
+.github/workflows/release-binary.yml	CHANGED	cli/.github/workflows/release-binary.yml	-14/+17
+.gitignore	CHANGED	python-sdk/.gitignore, cli/.gitignore, .gitignore	-6/+4
+.pre-commit-config.yaml	CHANGED	python-sdk/.pre-commit-config.yaml, cli/.pre-commit-config.yaml	-2/+1
+.python-version	SAME	python-sdk/.python-version	
+.secrets.baseline	SAME	python-sdk/.secrets.baseline, cli/.secrets.baseline	
+AGENTS.md	CHANGED	python-sdk/AGENTS.md, cli/AGENTS.md	-83/+74
+CHANGELOG.md	CHANGED	python-sdk/CHANGELOG.md, cli/CHANGELOG.md	-2/+47
+LICENSE	SAME	python-sdk/LICENSE, cli/LICENSE	
+Makefile	CHANGED	python-sdk/Makefile, cli/Makefile	-29/+55
+NOTICE	SAME	python-sdk/NOTICE, cli/NOTICE	
+README.md	CHANGED	python-sdk/README.md, cli/README.md	-129/+50
+README.zh-CN.md	CHANGED	python-sdk/README.zh-CN.md, cli/README.zh-CN.md	-126/+47
+SKILL.md	CHANGED	cli/SKILL.md	-14/+15
+benchmarks/__init__.py	MISSING		
+benchmarks/bench_cli_startup.py	RELOCATED	cli/benchmarks/bench_cli_startup.mjs	
+benchmarks/bench_create.py	RELOCATED	python-sdk/client-sdk/benchmarks/bench_create.py	
+benchmarks/bench_import.py	RELOCATED	python-sdk/client-sdk/benchmarks/bench_import.py	
+docs/README.md	SAME	python-sdk/docs/README.md, cli/docs/README.md	
+docs/en/DESIGN.md	CHANGED	python-sdk/docs/en/DESIGN.md, cli/docs/en/DESIGN.md	-13/+29
+docs/en/README.md	CHANGED	python-sdk/docs/en/README.md, cli/docs/en/README.md	-38/+55
+docs/en/design/architecture.md	CHANGED	python-sdk/docs/en/design/architecture.md, cli/docs/en/design/architecture.md	-31/+24
+docs/en/design/built-in-agents.md	SAME	python-sdk/docs/en/design/built-in-agents.md	
+docs/en/design/cli-design.md	CHANGED	cli/docs/en/design/cli-design.md	-21/+21
+docs/en/design/mcp-server.md	CHANGED	python-sdk/docs/en/design/mcp-server.md, cli/docs/en/design/mcp-server.md	-75/+33
+docs/en/design/sandbox-types.md	SAME	python-sdk/docs/en/design/sandbox-types.md	
+docs/en/design/sdk-api-design.md	SAME	python-sdk/docs/en/design/sdk-api-design.md	
+docs/en/design/server-api.md	CHANGED	python-sdk/docs/en/design/server-api.md	-49/+159
+docs/en/design/template-system.md	CHANGED	python-sdk/docs/en/design/template-system.md	-65/+13
+docs/en/design/templates-catalog.md	CHANGED	cli/docs/en/design/templates-catalog.md	-17/+84
+docs/en/explanation/architecture-overview.md	CHANGED	python-sdk/docs/en/explanation/architecture-overview.md	-7/+2
+docs/en/explanation/e2b-compatibility.md	SAME	python-sdk/docs/en/explanation/e2b-compatibility.md	
+docs/en/explanation/sandbox-lifecycle.md	SAME	python-sdk/docs/en/explanation/sandbox-lifecycle.md	
+docs/en/guide/agent-skill-installation.md	CHANGED	cli/docs/en/guide/agent-skill-installation.md	-19/+20
+docs/en/guide/authentication.md	CHANGED	python-sdk/docs/en/guide/authentication.md, cli/docs/en/guide/authentication.md	-67/+54
+docs/en/guide/authoring-templates.md	CHANGED	python-sdk/docs/en/guide/authoring-templates.md, cli/docs/en/guide/authoring-templates.md	-131/+15
+docs/en/guide/binary-installation.md	CHANGED	cli/docs/en/guide/binary-installation.md	-21/+22
+docs/en/guide/byo-agent-integration.md	CHANGED	cli/docs/en/guide/byo-agent-integration.md	-4/+4
+docs/en/guide/cli-tutorial.md	CHANGED	cli/docs/en/guide/cli-tutorial.md	-4/+11
+docs/en/guide/comparison.md	CHANGED	python-sdk/docs/en/guide/comparison.md	-4/+6
+docs/en/guide/declarative-usage.md	SAME	python-sdk/docs/en/guide/declarative-usage.md	
+docs/en/guide/deploy-and-build.md	CHANGED	cli/docs/en/guide/deploy-and-build.md	-161/+6
+docs/en/guide/e2e-template-workflow.md	CHANGED	cli/docs/en/guide/e2e-template-workflow.md	-131/+44
+docs/en/guide/environment-variables.md	CHANGED	python-sdk/docs/en/guide/environment-variables.md, cli/docs/en/guide/environment-variables.md	-2/+16
+docs/en/guide/getting-started.md	CHANGED	python-sdk/docs/en/guide/getting-started.md, cli/docs/en/guide/getting-started.md	-73/+15
+docs/en/guide/mcp-integration.md	CHANGED	python-sdk/docs/en/guide/mcp-integration.md, cli/docs/en/guide/mcp-integration.md	-106/+59
+docs/en/guide/migrate-from-e2b.md	SAME	python-sdk/docs/en/guide/migrate-from-e2b.md	
+docs/en/guide/sdk-usage.md	CHANGED	python-sdk/docs/en/guide/sdk-usage.md	-0/+123
+docs/en/guide/session-persistence.md	CHANGED	python-sdk/docs/en/guide/session-persistence.md	-1/+3
+docs/en/guide/troubleshooting.md	CHANGED	python-sdk/docs/en/guide/troubleshooting.md, cli/docs/en/guide/troubleshooting.md	-28/+15
+docs/en/guide/using-templates.md	CHANGED	cli/docs/en/guide/using-templates.md	-36/+9
+docs/en/reference/api-reference.md	CHANGED	python-sdk/docs/en/reference/api-reference.md	-0/+83
+docs/en/reference/cli-reference.md	CHANGED	cli/docs/en/reference/cli-reference.md	-2/+2
+docs/en/reference/configuration.md	CHANGED	python-sdk/docs/en/reference/configuration.md, cli/docs/en/reference/configuration.md	-154/+215
+docs/en/reference/error-codes.md	CHANGED	python-sdk/docs/en/reference/error-codes.md, cli/docs/en/reference/error-codes.md	-1/+108
+docs/en/reference/server-http-api.md	SAME	python-sdk/docs/en/reference/server-http-api.md	
+docs/en/reference/template-yaml-spec.md	CHANGED	python-sdk/docs/en/reference/template-yaml-spec.md	-0/+31
+docs/zh/DESIGN.md	CHANGED	python-sdk/docs/zh/DESIGN.md, cli/docs/zh/DESIGN.md	-13/+29
+docs/zh/README.md	CHANGED	python-sdk/docs/zh/README.md, cli/docs/zh/README.md	-28/+32
+docs/zh/design/architecture.md	CHANGED	python-sdk/docs/zh/design/architecture.md, cli/docs/zh/design/architecture.md	-31/+24
+docs/zh/design/built-in-agents.md	SAME	python-sdk/docs/zh/design/built-in-agents.md	
+docs/zh/design/cli-design.md	CHANGED	cli/docs/zh/design/cli-design.md	-21/+21
+docs/zh/design/mcp-server.md	CHANGED	python-sdk/docs/zh/design/mcp-server.md, cli/docs/zh/design/mcp-server.md	-76/+34
+docs/zh/design/sandbox-types.md	SAME	python-sdk/docs/zh/design/sandbox-types.md	
+docs/zh/design/sdk-api-design.md	SAME	python-sdk/docs/zh/design/sdk-api-design.md	
+docs/zh/design/server-api.md	CHANGED	python-sdk/docs/zh/design/server-api.md	-49/+144
+docs/zh/design/template-system.md	CHANGED	python-sdk/docs/zh/design/template-system.md	-65/+13
+docs/zh/design/templates-catalog.md	CHANGED	cli/docs/zh/design/templates-catalog.md	-16/+79
+docs/zh/explanation/architecture-overview.md	CHANGED	python-sdk/docs/zh/explanation/architecture-overview.md	-7/+2
+docs/zh/explanation/e2b-compatibility.md	SAME	python-sdk/docs/zh/explanation/e2b-compatibility.md	
+docs/zh/explanation/sandbox-lifecycle.md	SAME	python-sdk/docs/zh/explanation/sandbox-lifecycle.md	
+docs/zh/guide/agent-skill-installation.md	CHANGED	cli/docs/zh/guide/agent-skill-installation.md	-19/+20
+docs/zh/guide/authentication.md	CHANGED	python-sdk/docs/zh/guide/authentication.md, cli/docs/zh/guide/authentication.md	-67/+54
+docs/zh/guide/authoring-templates.md	CHANGED	python-sdk/docs/zh/guide/authoring-templates.md, cli/docs/zh/guide/authoring-templates.md	-131/+15
+docs/zh/guide/binary-installation.md	CHANGED	cli/docs/zh/guide/binary-installation.md	-19/+20
+docs/zh/guide/byo-agent-integration.md	CHANGED	cli/docs/zh/guide/byo-agent-integration.md	-4/+4
+docs/zh/guide/cli-tutorial.md	CHANGED	cli/docs/zh/guide/cli-tutorial.md	-4/+11
+docs/zh/guide/comparison.md	CHANGED	python-sdk/docs/zh/guide/comparison.md	-4/+6
+docs/zh/guide/declarative-usage.md	SAME	python-sdk/docs/zh/guide/declarative-usage.md	
+docs/zh/guide/deploy-and-build.md	CHANGED	cli/docs/zh/guide/deploy-and-build.md	-161/+6
+docs/zh/guide/e2e-template-workflow.md	CHANGED	cli/docs/zh/guide/e2e-template-workflow.md	-131/+44
+docs/zh/guide/environment-variables.md	CHANGED	python-sdk/docs/zh/guide/environment-variables.md, cli/docs/zh/guide/environment-variables.md	-2/+16
+docs/zh/guide/getting-started.md	CHANGED	python-sdk/docs/zh/guide/getting-started.md, cli/docs/zh/guide/getting-started.md	-71/+14
+docs/zh/guide/mcp-integration.md	CHANGED	python-sdk/docs/zh/guide/mcp-integration.md, cli/docs/zh/guide/mcp-integration.md	-125/+78
+docs/zh/guide/migrate-from-e2b.md	SAME	python-sdk/docs/zh/guide/migrate-from-e2b.md	
+docs/zh/guide/sdk-usage.md	CHANGED	python-sdk/docs/zh/guide/sdk-usage.md	-0/+122
+docs/zh/guide/session-persistence.md	CHANGED	python-sdk/docs/zh/guide/session-persistence.md	-1/+3
+docs/zh/guide/troubleshooting.md	CHANGED	python-sdk/docs/zh/guide/troubleshooting.md, cli/docs/zh/guide/troubleshooting.md	-28/+14
+docs/zh/guide/using-templates.md	CHANGED	cli/docs/zh/guide/using-templates.md	-36/+9
+docs/zh/reference/api-reference.md	CHANGED	python-sdk/docs/zh/reference/api-reference.md	-0/+79
+docs/zh/reference/cli-reference.md	CHANGED	cli/docs/zh/reference/cli-reference.md	-2/+2
+docs/zh/reference/configuration.md	CHANGED	python-sdk/docs/zh/reference/configuration.md, cli/docs/zh/reference/configuration.md	-154/+215
+docs/zh/reference/error-codes.md	CHANGED	python-sdk/docs/zh/reference/error-codes.md, cli/docs/zh/reference/error-codes.md	-1/+108
+docs/zh/reference/server-http-api.md	SAME	python-sdk/docs/zh/reference/server-http-api.md	
+docs/zh/reference/template-yaml-spec.md	CHANGED	python-sdk/docs/zh/reference/template-yaml-spec.md	-0/+29
+examples/README.md	CHANGED	python-sdk/examples/README.md	-5/+7
+examples/README.zh-CN.md	CHANGED	python-sdk/examples/README.zh-CN.md	-5/+7
+examples/agents/browser_automation.py	SAME	python-sdk/examples/agents/browser_automation.py	
+examples/agents/codex_agent.py	SAME	python-sdk/examples/agents/codex_agent.py	
+examples/compat-demos/README.md	CHANGED	python-sdk/examples/compat-demos/README.md	-1/+1
+examples/compat-demos/comparison.py	SAME	python-sdk/examples/compat-demos/comparison.py	
+examples/compat-demos/e2b_data_analysis.py	SAME	python-sdk/examples/compat-demos/e2b_data_analysis.py	
+examples/compat-demos/e2b_web_scraper.py	SAME	python-sdk/examples/compat-demos/e2b_web_scraper.py	
+examples/compat-demos/e2e_capability_validation.py	CHANGED	python-sdk/examples/compat-demos/e2e_capability_validation.py	-7/+10
+examples/compat-demos/modal_compute.py	SAME	python-sdk/examples/compat-demos/modal_compute.py	
+examples/compat-demos/modal_data_analysis.py	SAME	python-sdk/examples/compat-demos/modal_data_analysis.py	
+examples/quickstart/01_hello.py	SAME	python-sdk/examples/quickstart/01_hello.py	
+examples/quickstart/02_file_ops.py	SAME	python-sdk/examples/quickstart/02_file_ops.py	
+examples/quickstart/03_web_service.py	SAME	python-sdk/examples/quickstart/03_web_service.py	
+examples/quickstart/04_data_analysis.py	SAME	python-sdk/examples/quickstart/04_data_analysis.py	
+examples/quickstart/05_decorator_usage.py	SAME	python-sdk/examples/quickstart/05_decorator_usage.py	
+examples/quickstart/README.md	CHANGED	python-sdk/examples/quickstart/README.md	-1/+1
+examples/templates/README.md	CHANGED	python-sdk/examples/templates/README.md	-2/+4
+examples/templates/python-hello/Dockerfile	CHANGED	python-sdk/examples/templates/python-hello/Dockerfile	-3/+3
+examples/templates/python-hello/README.md	CHANGED	python-sdk/examples/templates/python-hello/README.md	-1/+4
+examples/templates/python-hello/commands.py	SAME	python-sdk/examples/templates/python-hello/commands.py	
+examples/templates/python-hello/template.yaml	SAME	python-sdk/examples/templates/python-hello/template.yaml	
+llms.txt	CHANGED	python-sdk/llms.txt, cli/llms.txt	-34/+33
+pyproject.toml	CHANGED	python-sdk/pyproject.toml	-141/+6
+scripts/build_binary.py	CHANGED	cli/scripts/build_binary.mjs	-263/+267
+scripts/build_hermes.sh	CHANGED	cli/scripts/build_hermes.sh	-6/+13
+scripts/capture_cli_evidence.py	RELOCATED	cli/scripts/capture-cli-evidence.mjs	
+scripts/cloud_e2e_test.py	RELOCATED	python-sdk/scripts/e2e/cloud_e2e_test.py	
+scripts/deploy_all_templates.sh	CHANGED	cli/scripts/deploy_all_templates.sh	-15/+24
+scripts/deploy_remaining.sh	CHANGED	cli/scripts/deploy_remaining.sh	-16/+34
+scripts/e2e_build_and_test.py	RELOCATED	python-sdk/scripts/e2e/e2e_build_and_test.py	
+scripts/evidence_cases.py	RELOCATED	cli/tests/test_cli_evidence/evidence_cases.ts	
+scripts/quick_build_test.py	RELOCATED	python-sdk/scripts/e2e/quick_build_test.py	
+src/easy_sandbox/__init__.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/__init__.py	-1/+7
+src/easy_sandbox/_version.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/_version.py	-1/+1
+src/easy_sandbox/agent/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/__init__.py	
+src/easy_sandbox/agent/adopt.py	PORTED	cli/src/agent/adopt.ts	
+src/easy_sandbox/agent/builtin.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/builtin.py	
+src/easy_sandbox/agent/clarify.py	PORTED	cli/src/agent/clarify.ts	
+src/easy_sandbox/agent/codegen.py	PORTED	cli/src/agent/codegen.ts	
+src/easy_sandbox/agent/coding_agent.py	PORTED	cli/src/agent/coding_agent.ts	
+src/easy_sandbox/agent/dockerfile_sources.py	PORTED	cli/src/agent/dockerfile_sources.ts	
+src/easy_sandbox/agent/infer.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/infer.py	
+src/easy_sandbox/agent/mcp.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/agent/mcp.py, cli/src/agent/mcp.ts	-1/+1
+src/easy_sandbox/agent/mcp_http.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/mcp_http.py, cli/src/agent/mcp_http.ts	
+src/easy_sandbox/agent/qwen_code.py	PORTED	cli/src/agent/qwen_code.ts	
+src/easy_sandbox/agent/template_guide.py	PORTED	cli/src/agent/template_guide.ts	
+src/easy_sandbox/agent/tools.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/tools.py, cli/src/agent/tools.ts	
+src/easy_sandbox/api/__init__.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/__init__.py	-0/+4
+src/easy_sandbox/api/capability.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/capability.py, cli/src/api/capability.ts	
+src/easy_sandbox/api/code.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/code.py, cli/src/api/code.ts	
+src/easy_sandbox/api/commands.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/commands.py, cli/src/api/commands.ts	-4/+4
+src/easy_sandbox/api/deploy.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/deploy.py	
+src/easy_sandbox/api/docker_builder.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/docker_builder.py, cli/src/api/docker_builder.ts	-23/+38
+src/easy_sandbox/api/fc_template.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/fc_template.py, cli/src/api/fc_template.ts	
+src/easy_sandbox/api/files.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/files.py, cli/src/api/files.ts	
+src/easy_sandbox/api/image.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/image.py, cli/src/api/image.ts	-0/+26
+src/easy_sandbox/api/network.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/network.py, cli/src/api/network.ts	-0/+22
+src/easy_sandbox/api/sandbox.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/sandbox.py, cli/src/api/sandbox.ts	-17/+500
+src/easy_sandbox/api/session_manager.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/session_manager.py, cli/src/api/session_manager.ts	
+src/easy_sandbox/api/template.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/template.py, cli/src/api/template.ts	
+src/easy_sandbox/cli/__init__.py	MISSING		
+src/easy_sandbox/cli/commands/__init__.py	MISSING		
+src/easy_sandbox/cli/commands/_adopt.py	PORTED	cli/src/cli/commands/_adopt.ts	
+src/easy_sandbox/cli/commands/_coding_agent.py	PORTED	cli/src/cli/commands/_coding_agent.ts	
+src/easy_sandbox/cli/commands/config_cmd.py	PORTED	cli/src/cli/commands/config_cmd.ts	
+src/easy_sandbox/cli/commands/deploy.py	PORTED	cli/src/cli/commands/deploy.ts	
+src/easy_sandbox/cli/commands/mcp.py	PORTED	cli/src/cli/commands/mcp.ts	
+src/easy_sandbox/cli/commands/sandbox.py	PORTED	cli/src/cli/commands/sandbox.ts	
+src/easy_sandbox/cli/commands/sandbox_files.py	PORTED	cli/src/cli/commands/sandbox_files.ts	
+src/easy_sandbox/cli/commands/sandbox_process.py	PORTED	cli/src/cli/commands/sandbox_process.ts	
+src/easy_sandbox/cli/commands/sandbox_system.py	PORTED	cli/src/cli/commands/sandbox_system.ts	
+src/easy_sandbox/cli/commands/template.py	PORTED	cli/src/cli/commands/template.ts	
+src/easy_sandbox/cli/formatters.py	PORTED	cli/src/cli/formatters.ts	
+src/easy_sandbox/cli/main.py	PORTED	cli/src/cli/main.ts	
+src/easy_sandbox/cli/output.py	PORTED	cli/src/cli/output.ts	
+src/easy_sandbox/cli/region.py	PORTED	cli/src/cli/region.ts	
+src/easy_sandbox/cli/repl.py	PORTED	cli/src/cli/repl.ts	
+src/easy_sandbox/cli/scaffold.py	PORTED	cli/src/cli/scaffold.ts	
+src/easy_sandbox/compat/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/compat/__init__.py	
+src/easy_sandbox/compat/sandbox.py	SAME	python-sdk/client-sdk/src/easy_sandbox/compat/sandbox.py	
+src/easy_sandbox/declarative/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/declarative/__init__.py	
+src/easy_sandbox/declarative/config.py	SAME	python-sdk/client-sdk/src/easy_sandbox/declarative/config.py	
+src/easy_sandbox/declarative/decorator.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/declarative/decorator.py	-12/+29
+src/easy_sandbox/declarative/serializer.py	SAME	python-sdk/client-sdk/src/easy_sandbox/declarative/serializer.py	
+src/easy_sandbox/extensions/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/__init__.py	
+src/easy_sandbox/extensions/domain.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/domain.py	
+src/easy_sandbox/extensions/oss.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/oss.py	
+src/easy_sandbox/extensions/vpc.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/vpc.py	
+src/easy_sandbox/models/__init__.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/__init__.py	-0/+14
+src/easy_sandbox/models/config.py	SAME	python-sdk/client-sdk/src/easy_sandbox/models/config.py, cli/src/models/config.ts	
+src/easy_sandbox/models/errors.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/errors.py, cli/src/models/errors.ts	-0/+258
+src/easy_sandbox/models/filesystem.py	SAME	python-sdk/client-sdk/src/easy_sandbox/models/filesystem.py, cli/src/models/filesystem.ts	
+src/easy_sandbox/models/process.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/process.py, cli/src/models/process.ts	-1/+1
+src/easy_sandbox/models/sandbox.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/sandbox.py, cli/src/models/sandbox.ts	-0/+10
+src/easy_sandbox/models/session.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/session.py, cli/src/models/session.ts	-0/+1
+src/easy_sandbox/models/template.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/template.py, cli/src/models/template.ts	-0/+74
+src/easy_sandbox/protocol/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/__init__.py	
+src/easy_sandbox/protocol/code_interpreter.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/code_interpreter.py, cli/src/protocol/code_interpreter.ts	
+src/easy_sandbox/protocol/filesystem.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/filesystem.py, cli/src/protocol/filesystem.ts	
+src/easy_sandbox/protocol/port.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/port.py, cli/src/protocol/port.ts	
+src/easy_sandbox/protocol/process.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/protocol/process.py, cli/src/protocol/process.ts	-6/+6
+src/easy_sandbox/protocol/sandbox.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/sandbox.py, cli/src/protocol/sandbox.ts	
+src/easy_sandbox/protocol/template.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/template.py, cli/src/protocol/template.ts	
+src/easy_sandbox/protocol/terminal.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/terminal.py, cli/src/protocol/terminal.ts	
+src/easy_sandbox/py.typed	SAME	python-sdk/client-sdk/src/easy_sandbox/py.typed	
+src/easy_sandbox/server/__init__.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/__init__.py	-0/+5
+src/easy_sandbox/server/_compat.py	SAME	python-sdk/server-sdk/src/easy_sandbox/server/_compat.py	
+src/easy_sandbox/server/app.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/app.py	-30/+260
+src/easy_sandbox/server/registry.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/registry.py	-0/+8
+src/easy_sandbox/server/router.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/router.py	-2/+22
+src/easy_sandbox/server/routes.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes.py	-33/+168
+src/easy_sandbox/server/routes_browser.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_browser.py	-0/+46
+src/easy_sandbox/server/routes_devtools.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_devtools.py	-8/+48
+src/easy_sandbox/server/routes_files.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_files.py	-59/+326
+src/easy_sandbox/server/routes_process.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_process.py	-15/+209
+src/easy_sandbox/server/routes_pty.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_pty.py	-12/+149
+src/easy_sandbox/server/routes_system.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_system.py	-3/+85
+src/easy_sandbox/server/types.py	SAME	python-sdk/server-sdk/src/easy_sandbox/server/types.py	
+src/easy_sandbox/session/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/session/__init__.py	
+src/easy_sandbox/session/local.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/session/local.py, cli/src/session/local.ts	-0/+2
+src/easy_sandbox/transport/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/__init__.py	
+src/easy_sandbox/transport/auth.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/auth.py, cli/src/transport/auth.ts	
+src/easy_sandbox/transport/codec.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/codec.py, cli/src/transport/codec.ts	
+src/easy_sandbox/transport/config.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/transport/config.py, cli/src/transport/config.ts	-194/+664
+src/easy_sandbox/transport/http.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/http.py, cli/src/transport/http.ts	
+src/easy_sandbox/transport/streaming.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/streaming.py, cli/src/transport/streaming.ts	
+src/easy_sandbox/transport/ws.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/ws.py, cli/src/transport/ws.ts	
+src/easy_sandbox/utils/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/__init__.py	
+src/easy_sandbox/utils/async_bridge.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/async_bridge.py	
+src/easy_sandbox/utils/coerce.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/utils/coerce.py, cli/src/utils/coerce.ts	-4/+6
+src/easy_sandbox/utils/dockerignore.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/dockerignore.py, cli/src/utils/dockerignore.ts	
+src/easy_sandbox/utils/github_token.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/github_token.py, cli/src/utils/github_token.ts	
+src/easy_sandbox/utils/keychain.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/keychain.py, cli/src/utils/keychain.ts	
+src/easy_sandbox/utils/logging.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/utils/logging.py, cli/src/utils/logging.ts	-4/+6
+src/easy_sandbox/utils/registry.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/registry.py, cli/src/utils/registry.ts	
+src/easy_sandbox/utils/retry.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/retry.py, cli/src/utils/retry.ts	
+src/easy_sandbox/utils/template_index.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/utils/template_index.py, cli/src/utils/template_index.ts	-1/+1
+tests/__init__.py	SAME	python-sdk/client-sdk/tests/__init__.py, python-sdk/server-sdk/tests/__init__.py	
+tests/conftest.py	CHANGED	python-sdk/client-sdk/tests/conftest.py, python-sdk/server-sdk/tests/conftest.py	-42/+6
+tests/integration/__init__.py	SAME	python-sdk/client-sdk/tests/integration/__init__.py	
+tests/integration/test_adopt_deploy_e2e.py	PORTED	cli/tests/integration/test_adopt_deploy_e2e.test.ts	
+tests/integration/test_cli_e2e.py	PORTED	cli/tests/integration/test_cli_e2e.test.ts	
+tests/integration/test_client_run_command_e2e.py	CHANGED	python-sdk/client-sdk/tests/integration/test_client_run_command_e2e.py	-2/+5
+tests/integration/test_credential_priority_e2e.py	PORTED	cli/tests/integration/test_credential_priority_e2e.test.ts	
+tests/integration/test_declarative_register_e2e.py	CHANGED	python-sdk/client-sdk/tests/integration/test_declarative_register_e2e.py	-2/+5
+tests/integration/test_e2e.py	SAME	python-sdk/client-sdk/tests/integration/test_e2e.py	
+tests/integration/test_nl_template_init_e2e.py	PORTED	cli/tests/integration/test_nl_template_init_e2e.test.ts	
+tests/integration/test_progress_activity_e2e.py	PORTED	cli/tests/integration/test_progress_activity_e2e.test.ts	
+tests/integration/test_server_e2e.py	CHANGED	python-sdk/client-sdk/tests/integration/test_server_e2e.py	-2/+4
+tests/integration/test_shortcut_target_hint_e2e.py	PORTED	cli/tests/integration/test_shortcut_target_hint_e2e.test.ts	
+tests/integration/test_workflow_e2e.py	CHANGED	python-sdk/client-sdk/tests/integration/test_workflow_e2e.py, cli/tests/integration/test_workflow_e2e.test.ts	-69/+16
+tests/test_agent/__init__.py	SAME	python-sdk/client-sdk/tests/test_agent/__init__.py	
+tests/test_agent/test_adopt.py	PORTED	cli/tests/test_agent/test_adopt.test.ts	
+tests/test_agent/test_builtin.py	SAME	python-sdk/client-sdk/tests/test_agent/test_builtin.py	
+tests/test_agent/test_clarify.py	PORTED	cli/tests/test_agent/test_clarify.test.ts	
+tests/test_agent/test_codegen.py	PORTED	cli/tests/test_agent/test_codegen.test.ts	
+tests/test_agent/test_coding_agent.py	PORTED	cli/tests/test_agent/test_coding_agent.test.ts	
+tests/test_agent/test_dockerfile_sources.py	PORTED	cli/tests/test_agent/test_dockerfile_sources.test.ts	
+tests/test_agent/test_infer.py	SAME	python-sdk/client-sdk/tests/test_agent/test_infer.py	
+tests/test_agent/test_mcp.py	SAME	python-sdk/client-sdk/tests/test_agent/test_mcp.py, cli/tests/test_agent/test_mcp.test.ts	
+tests/test_agent/test_mcp_http.py	SAME	python-sdk/client-sdk/tests/test_agent/test_mcp_http.py, cli/tests/test_agent/test_mcp_http.test.ts	
+tests/test_agent/test_mcp_stdio.py	CHANGED	python-sdk/client-sdk/tests/test_agent/test_mcp_stdio.py, cli/tests/test_agent/test_mcp_stdio.test.ts	-23/+6
+tests/test_agent/test_qwen_code.py	PORTED	cli/tests/test_agent/test_qwen_code.test.ts	
+tests/test_agent/test_template_guide.py	PORTED	cli/tests/test_agent/test_template_guide.test.ts	
+tests/test_agent/test_tools.py	SAME	python-sdk/client-sdk/tests/test_agent/test_tools.py, cli/tests/test_agent/test_tools.test.ts	
+tests/test_agent_guide.py	PORTED	cli/tests/test_agent_guide.test.ts	
+tests/test_api/__init__.py	SAME	python-sdk/client-sdk/tests/test_api/__init__.py	
+tests/test_api/conftest.py	SAME	python-sdk/client-sdk/tests/test_api/conftest.py	
+tests/test_api/test_capability.py	SAME	python-sdk/client-sdk/tests/test_api/test_capability.py, cli/tests/test_api/test_capability.test.ts	
+tests/test_api/test_code.py	SAME	python-sdk/client-sdk/tests/test_api/test_code.py, cli/tests/test_api/test_code.test.ts	
+tests/test_api/test_commands.py	SAME	python-sdk/client-sdk/tests/test_api/test_commands.py, cli/tests/test_api/test_commands.test.ts	
+tests/test_api/test_deploy.py	CHANGED	python-sdk/client-sdk/tests/test_api/test_deploy.py	-1/+22
+tests/test_api/test_docker_builder.py	CHANGED	python-sdk/client-sdk/tests/test_api/test_docker_builder.py, cli/tests/test_api/test_docker_builder.test.ts	-3/+3
+tests/test_api/test_fc_template.py	SAME	python-sdk/client-sdk/tests/test_api/test_fc_template.py, cli/tests/test_api/test_fc_template.test.ts	
+tests/test_api/test_files.py	SAME	python-sdk/client-sdk/tests/test_api/test_files.py, cli/tests/test_api/test_files.test.ts	
+tests/test_api/test_image.py	SAME	python-sdk/client-sdk/tests/test_api/test_image.py, cli/tests/test_api/test_image.test.ts	
+tests/test_api/test_network.py	SAME	python-sdk/client-sdk/tests/test_api/test_network.py, cli/tests/test_api/test_network.test.ts	
+tests/test_api/test_sandbox.py	SAME	python-sdk/client-sdk/tests/test_api/test_sandbox.py, cli/tests/test_api/test_sandbox.test.ts	
+tests/test_api/test_template.py	SAME	python-sdk/client-sdk/tests/test_api/test_template.py, cli/tests/test_api/test_template.test.ts	
+tests/test_byo_agent_docs.py	PORTED	cli/tests/test_byo_agent_docs.test.ts	
+tests/test_cli/__init__.py	MISSING		
+tests/test_cli/conftest.py	RELOCATED	cli/tests/test_cli/conftest.ts	
+tests/test_cli/test_config_commands.py	PORTED	cli/tests/test_cli/test_config_commands.test.ts	
+tests/test_cli/test_config_init.py	PORTED	cli/tests/test_cli/test_config_init.test.ts	
+tests/test_cli/test_config_llm.py	PORTED	cli/tests/test_cli/test_config_llm.test.ts	
+tests/test_cli/test_config_masked_input.py	PORTED	cli/tests/test_cli/test_config_masked_input.test.ts	
+tests/test_cli/test_connect_repl.py	PORTED	cli/tests/test_cli/test_connect_repl.test.ts	
+tests/test_cli/test_create_backend.py	PORTED	cli/tests/test_cli/test_create_backend.test.ts	
+tests/test_cli/test_create_nl.py	PORTED	cli/tests/test_cli/test_create_nl.test.ts	
+tests/test_cli/test_create_route_guard_and_unknown_cmd.py	PORTED	cli/tests/test_cli/test_create_route_guard_and_unknown_cmd.test.ts	
+tests/test_cli/test_deploy_commands.py	PORTED	cli/tests/test_cli/test_deploy_commands.test.ts	
+tests/test_cli/test_discover_commands.py	PORTED	cli/tests/test_cli/test_discover_commands.test.ts	
+tests/test_cli/test_formatters.py	PORTED	cli/tests/test_cli/test_formatters.test.ts	
+tests/test_cli/test_help_alias.py	PORTED	cli/tests/test_cli/test_help_alias.test.ts	
+tests/test_cli/test_main.py	PORTED	cli/tests/test_cli/test_main.test.ts	
+tests/test_cli/test_mcp_commands.py	PORTED	cli/tests/test_cli/test_mcp_commands.test.ts	
+tests/test_cli/test_output_activity.py	PORTED	cli/tests/test_cli/test_output_activity.test.ts	
+tests/test_cli/test_output_channels.py	PORTED	cli/tests/test_cli/test_output_channels.test.ts	
+tests/test_cli/test_region_options.py	PORTED	cli/tests/test_cli/test_region_options.test.ts	
+tests/test_cli/test_run_command.py	PORTED	cli/tests/test_cli/test_run_command.test.ts	
+tests/test_cli/test_run_command_server.py	PORTED	cli/tests/test_cli/test_run_command_server.test.ts	
+tests/test_cli/test_sandbox_commands.py	PORTED	cli/tests/test_cli/test_sandbox_commands.test.ts	
+tests/test_cli/test_sandbox_files_commands.py	PORTED	cli/tests/test_cli/test_sandbox_files_commands.test.ts	
+tests/test_cli/test_sandbox_process_commands.py	PORTED	cli/tests/test_cli/test_sandbox_process_commands.test.ts	
+tests/test_cli/test_sandbox_system_extra_commands.py	PORTED	cli/tests/test_cli/test_sandbox_system_extra_commands.test.ts	
+tests/test_cli/test_shortcuts.py	PORTED	cli/tests/test_cli/test_shortcuts.test.ts	
+tests/test_cli/test_step_activity.py	PORTED	cli/tests/test_cli/test_step_activity.test.ts	
+tests/test_cli/test_template_adopt.py	PORTED	cli/tests/test_cli/test_template_adopt.test.ts	
+tests/test_cli/test_template_commands.py	PORTED	cli/tests/test_cli/test_template_commands.test.ts	
+tests/test_cli/test_template_github_token_setup.py	PORTED	cli/tests/test_cli/test_template_github_token_setup.test.ts	
+tests/test_cli/test_template_index_commands.py	PORTED	cli/tests/test_cli/test_template_index_commands.test.ts	
+tests/test_cli_evidence/__init__.py	MISSING		
+tests/test_cli_evidence/conftest.py	MISSING		
+tests/test_cli_evidence/golden/config-get-apikey-env.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-apikey-env.txt	
+tests/test_cli_evidence/golden/config-get-apikey-set.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-apikey-set.txt	
+tests/test_cli_evidence/golden/config-get-apikey-unset.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-apikey-unset.txt	
+tests/test_cli_evidence/golden/config-get-github-token-set.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-github-token-set.txt	
+tests/test_cli_evidence/golden/config-get-github-token-unset.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-github-token-unset.txt	
+tests/test_cli_evidence/golden/config-get-llm-model-unset.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-llm-model-unset.txt	
+tests/test_cli_evidence/golden/config-get-qwen-model.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-qwen-model.txt	
+tests/test_cli_evidence/golden/config-get-region.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-region.txt	
+tests/test_cli_evidence/golden/config-get-unknown.txt	SAME	cli/tests/test_cli_evidence/golden/config-get-unknown.txt	
+tests/test_cli_evidence/golden/config-init.txt	SAME	cli/tests/test_cli_evidence/golden/config-init.txt	
+tests/test_cli_evidence/golden/config-list-json.txt	SAME	cli/tests/test_cli_evidence/golden/config-list-json.txt	
+tests/test_cli_evidence/golden/config-list.txt	SAME	cli/tests/test_cli_evidence/golden/config-list.txt	
+tests/test_cli_evidence/golden/config-set-empty-credential.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-empty-credential.txt	
+tests/test_cli_evidence/golden/config-set-empty-default.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-empty-default.txt	
+tests/test_cli_evidence/golden/config-set-empty-env.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-empty-env.txt	
+tests/test_cli_evidence/golden/config-set-github-token-clear.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-github-token-clear.txt	
+tests/test_cli_evidence/golden/config-set-github-token-missing-value.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-github-token-missing-value.txt	
+tests/test_cli_evidence/golden/config-set-github-token.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-github-token.txt	
+tests/test_cli_evidence/golden/config-set-llm-apikey.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-llm-apikey.txt	
+tests/test_cli_evidence/golden/config-set-region.txt	SAME	cli/tests/test_cli_evidence/golden/config-set-region.txt	
+tests/test_cli_evidence/golden/connect-repl.txt	SAME	cli/tests/test_cli_evidence/golden/connect-repl.txt	
+tests/test_cli_evidence/golden/create-env-invalid.txt	SAME	cli/tests/test_cli_evidence/golden/create-env-invalid.txt	
+tests/test_cli_evidence/golden/create-env.txt	SAME	cli/tests/test_cli_evidence/golden/create-env.txt	
+tests/test_cli_evidence/golden/create-metadata.txt	SAME	cli/tests/test_cli_evidence/golden/create-metadata.txt	
+tests/test_cli_evidence/golden/create-nl-clarify-required.txt	SAME	cli/tests/test_cli_evidence/golden/create-nl-clarify-required.txt	
+tests/test_cli_evidence/golden/create-nl-confirm-required.txt	SAME	cli/tests/test_cli_evidence/golden/create-nl-confirm-required.txt	
+tests/test_cli_evidence/golden/create-nl-conflict.txt	SAME	cli/tests/test_cli_evidence/golden/create-nl-conflict.txt	
+tests/test_cli_evidence/golden/create-nl-nodejs.txt	SAME	cli/tests/test_cli_evidence/golden/create-nl-nodejs.txt	
+tests/test_cli_evidence/golden/create-nl-not-installed.txt	SAME	cli/tests/test_cli_evidence/golden/create-nl-not-installed.txt	
+tests/test_cli_evidence/golden/create-nl-python.txt	SAME	cli/tests/test_cli_evidence/golden/create-nl-python.txt	
+tests/test_cli_evidence/golden/create-template-base-json.txt	SAME	cli/tests/test_cli_evidence/golden/create-template-base-json.txt	
+tests/test_cli_evidence/golden/create-template-base.txt	SAME	cli/tests/test_cli_evidence/golden/create-template-base.txt	
+tests/test_cli_evidence/golden/download-file.txt	SAME	cli/tests/test_cli_evidence/golden/download-file.txt	
+tests/test_cli_evidence/golden/error-auth.txt	SAME	cli/tests/test_cli_evidence/golden/error-auth.txt	
+tests/test_cli_evidence/golden/error-create-noargs.txt	SAME	cli/tests/test_cli_evidence/golden/error-create-noargs.txt	
+tests/test_cli_evidence/golden/error-quota.txt	SAME	cli/tests/test_cli_evidence/golden/error-quota.txt	
+tests/test_cli_evidence/golden/error-template-not-found.txt	SAME	cli/tests/test_cli_evidence/golden/error-template-not-found.txt	
+tests/test_cli_evidence/golden/error-timeout.txt	SAME	cli/tests/test_cli_evidence/golden/error-timeout.txt	
+tests/test_cli_evidence/golden/error-unknown-custom-hint.txt	SAME	cli/tests/test_cli_evidence/golden/error-unknown-custom-hint.txt	
+tests/test_cli_evidence/golden/error-unknown-suggestion.txt	SAME	cli/tests/test_cli_evidence/golden/error-unknown-suggestion.txt	
+tests/test_cli_evidence/golden/exec-basic.txt	SAME	cli/tests/test_cli_evidence/golden/exec-basic.txt	
+tests/test_cli_evidence/golden/exec-json.txt	SAME	cli/tests/test_cli_evidence/golden/exec-json.txt	
+tests/test_cli_evidence/golden/exec-nonzero.txt	SAME	cli/tests/test_cli_evidence/golden/exec-nonzero.txt	
+tests/test_cli_evidence/golden/exec-timeout-cwd.txt	SAME	cli/tests/test_cli_evidence/golden/exec-timeout-cwd.txt	
+tests/test_cli_evidence/golden/help-config-get.txt	SAME	cli/tests/test_cli_evidence/golden/help-config-get.txt	
+tests/test_cli_evidence/golden/help-config-init.txt	SAME	cli/tests/test_cli_evidence/golden/help-config-init.txt	
+tests/test_cli_evidence/golden/help-config-list.txt	SAME	cli/tests/test_cli_evidence/golden/help-config-list.txt	
+tests/test_cli_evidence/golden/help-config-set.txt	SAME	cli/tests/test_cli_evidence/golden/help-config-set.txt	
+tests/test_cli_evidence/golden/help-config.txt	SAME	cli/tests/test_cli_evidence/golden/help-config.txt	
+tests/test_cli_evidence/golden/help-connect.txt	SAME	cli/tests/test_cli_evidence/golden/help-connect.txt	
+tests/test_cli_evidence/golden/help-create.txt	SAME	cli/tests/test_cli_evidence/golden/help-create.txt	
+tests/test_cli_evidence/golden/help-deploy.txt	SAME	cli/tests/test_cli_evidence/golden/help-deploy.txt	
+tests/test_cli_evidence/golden/help-download.txt	SAME	cli/tests/test_cli_evidence/golden/help-download.txt	
+tests/test_cli_evidence/golden/help-ebx.txt	SAME	cli/tests/test_cli_evidence/golden/help-ebx.txt	
+tests/test_cli_evidence/golden/help-exec.txt	SAME	cli/tests/test_cli_evidence/golden/help-exec.txt	
+tests/test_cli_evidence/golden/help-info.txt	SAME	cli/tests/test_cli_evidence/golden/help-info.txt	
+tests/test_cli_evidence/golden/help-init-alias.txt	SAME	cli/tests/test_cli_evidence/golden/help-init-alias.txt	
+tests/test_cli_evidence/golden/help-install.txt	SAME	cli/tests/test_cli_evidence/golden/help-install.txt	
+tests/test_cli_evidence/golden/help-kill.txt	SAME	cli/tests/test_cli_evidence/golden/help-kill.txt	
+tests/test_cli_evidence/golden/help-list.txt	SAME	cli/tests/test_cli_evidence/golden/help-list.txt	
+tests/test_cli_evidence/golden/help-mcp-deploy.txt	SAME	cli/tests/test_cli_evidence/golden/help-mcp-deploy.txt	
+tests/test_cli_evidence/golden/help-mcp-install.txt	SAME	cli/tests/test_cli_evidence/golden/help-mcp-install.txt	
+tests/test_cli_evidence/golden/help-mcp-start.txt	SAME	cli/tests/test_cli_evidence/golden/help-mcp-start.txt	
+tests/test_cli_evidence/golden/help-mcp-status.txt	SAME	cli/tests/test_cli_evidence/golden/help-mcp-status.txt	
+tests/test_cli_evidence/golden/help-mcp-stop.txt	SAME	cli/tests/test_cli_evidence/golden/help-mcp-stop.txt	
+tests/test_cli_evidence/golden/help-mcp.txt	SAME	cli/tests/test_cli_evidence/golden/help-mcp.txt	
+tests/test_cli_evidence/golden/help-run.txt	SAME	cli/tests/test_cli_evidence/golden/help-run.txt	
+tests/test_cli_evidence/golden/help-template-build.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-build.txt	
+tests/test_cli_evidence/golden/help-template-cache.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-cache.txt	
+tests/test_cli_evidence/golden/help-template-delete.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-delete.txt	
+tests/test_cli_evidence/golden/help-template-info.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-info.txt	
+tests/test_cli_evidence/golden/help-template-init.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-init.txt	
+tests/test_cli_evidence/golden/help-template-install.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-install.txt	
+tests/test_cli_evidence/golden/help-template-list.txt	SAME	cli/tests/test_cli_evidence/golden/help-template-list.txt	
+tests/test_cli_evidence/golden/help-template.txt	SAME	cli/tests/test_cli_evidence/golden/help-template.txt	
+tests/test_cli_evidence/golden/help-upload.txt	SAME	cli/tests/test_cli_evidence/golden/help-upload.txt	
+tests/test_cli_evidence/golden/info-json.txt	SAME	cli/tests/test_cli_evidence/golden/info-json.txt	
+tests/test_cli_evidence/golden/info.txt	SAME	cli/tests/test_cli_evidence/golden/info.txt	
+tests/test_cli_evidence/golden/kill-all.txt	SAME	cli/tests/test_cli_evidence/golden/kill-all.txt	
+tests/test_cli_evidence/golden/kill-no-id.txt	SAME	cli/tests/test_cli_evidence/golden/kill-no-id.txt	
+tests/test_cli_evidence/golden/kill-single.txt	SAME	cli/tests/test_cli_evidence/golden/kill-single.txt	
+tests/test_cli_evidence/golden/list-empty.txt	SAME	cli/tests/test_cli_evidence/golden/list-empty.txt	
+tests/test_cli_evidence/golden/list-json.txt	SAME	cli/tests/test_cli_evidence/golden/list-json.txt	
+tests/test_cli_evidence/golden/list-running.txt	SAME	cli/tests/test_cli_evidence/golden/list-running.txt	
+tests/test_cli_evidence/golden/list.txt	SAME	cli/tests/test_cli_evidence/golden/list.txt	
+tests/test_cli_evidence/golden/mcp-install-cursor.txt	SAME	cli/tests/test_cli_evidence/golden/mcp-install-cursor.txt	
+tests/test_cli_evidence/golden/mcp-status-json.txt	SAME	cli/tests/test_cli_evidence/golden/mcp-status-json.txt	
+tests/test_cli_evidence/golden/mcp-status.txt	SAME	cli/tests/test_cli_evidence/golden/mcp-status.txt	
+tests/test_cli_evidence/golden/run-default-arg.txt	SAME	cli/tests/test_cli_evidence/golden/run-default-arg.txt	
+tests/test_cli_evidence/golden/run-dispatch-json.txt	SAME	cli/tests/test_cli_evidence/golden/run-dispatch-json.txt	
+tests/test_cli_evidence/golden/run-dispatch.txt	SAME	cli/tests/test_cli_evidence/golden/run-dispatch.txt	
+tests/test_cli_evidence/golden/run-invalid-arg.txt	SAME	cli/tests/test_cli_evidence/golden/run-invalid-arg.txt	
+tests/test_cli_evidence/golden/run-unknown-command.txt	SAME	cli/tests/test_cli_evidence/golden/run-unknown-command.txt	
+tests/test_cli_evidence/golden/template-cache-clear.txt	SAME	cli/tests/test_cli_evidence/golden/template-cache-clear.txt	
+tests/test_cli_evidence/golden/template-cache.txt	SAME	cli/tests/test_cli_evidence/golden/template-cache.txt	
+tests/test_cli_evidence/golden/template-info-backend.txt	SAME	cli/tests/test_cli_evidence/golden/template-info-backend.txt	
+tests/test_cli_evidence/golden/template-install-builtin.txt	SAME	cli/tests/test_cli_evidence/golden/template-install-builtin.txt	
+tests/test_cli_evidence/golden/template-install-rate-limit.txt	SAME	cli/tests/test_cli_evidence/golden/template-install-rate-limit.txt	
+tests/test_cli_evidence/golden/template-list-backend.txt	SAME	cli/tests/test_cli_evidence/golden/template-list-backend.txt	
+tests/test_cli_evidence/golden/template-search-rate-limit.txt	SAME	cli/tests/test_cli_evidence/golden/template-search-rate-limit.txt	
+tests/test_cli_evidence/golden/upload-dir.txt	SAME	cli/tests/test_cli_evidence/golden/upload-dir.txt	
+tests/test_cli_evidence/golden/upload-file.txt	SAME	cli/tests/test_cli_evidence/golden/upload-file.txt	
+tests/test_cli_evidence/golden/version.txt	SAME	cli/tests/test_cli_evidence/golden/version.txt	
+tests/test_cli_evidence/test_evidence_snapshots.py	PORTED	cli/tests/test_cli_evidence/test_evidence_snapshots.test.ts	
+tests/test_compat/__init__.py	SAME	python-sdk/client-sdk/tests/test_compat/__init__.py	
+tests/test_compat/test_compat_imports.py	SAME	python-sdk/client-sdk/tests/test_compat/test_compat_imports.py	
+tests/test_declarative/__init__.py	SAME	python-sdk/client-sdk/tests/test_declarative/__init__.py	
+tests/test_declarative/test_config.py	SAME	python-sdk/client-sdk/tests/test_declarative/test_config.py	
+tests/test_declarative/test_decorator.py	SAME	python-sdk/client-sdk/tests/test_declarative/test_decorator.py	
+tests/test_declarative/test_register.py	CHANGED	python-sdk/client-sdk/tests/test_declarative/test_register.py	-0/+10
+tests/test_declarative/test_serializer.py	SAME	python-sdk/client-sdk/tests/test_declarative/test_serializer.py	
+tests/test_extensions/__init__.py	SAME	python-sdk/client-sdk/tests/test_extensions/__init__.py	
+tests/test_extensions/test_vpc.py	SAME	python-sdk/client-sdk/tests/test_extensions/test_vpc.py	
+tests/test_models/__init__.py	SAME	python-sdk/client-sdk/tests/test_models/__init__.py	
+tests/test_models/test_config.py	SAME	python-sdk/client-sdk/tests/test_models/test_config.py, cli/tests/test_models/test_config.test.ts	
+tests/test_models/test_errors.py	CHANGED	python-sdk/client-sdk/tests/test_models/test_errors.py, cli/tests/test_models/test_errors.test.ts	-1/+21
+tests/test_models/test_filesystem.py	SAME	python-sdk/client-sdk/tests/test_models/test_filesystem.py, cli/tests/test_models/test_filesystem.test.ts	
+tests/test_models/test_process.py	SAME	python-sdk/client-sdk/tests/test_models/test_process.py, cli/tests/test_models/test_process.test.ts	
+tests/test_models/test_sandbox.py	SAME	python-sdk/client-sdk/tests/test_models/test_sandbox.py, cli/tests/test_models/test_sandbox.test.ts	
+tests/test_models/test_session.py	SAME	python-sdk/client-sdk/tests/test_models/test_session.py, cli/tests/test_models/test_session.test.ts	
+tests/test_models/test_template.py	SAME	python-sdk/client-sdk/tests/test_models/test_template.py, cli/tests/test_models/test_template.test.ts	
+tests/test_packaging.py	CHANGED	python-sdk/client-sdk/tests/test_packaging.py, python-sdk/server-sdk/tests/test_packaging.py	-95/+91
+tests/test_protocol/__init__.py	SAME	python-sdk/client-sdk/tests/test_protocol/__init__.py	
+tests/test_protocol/test_code_interpreter.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_code_interpreter.py, cli/tests/test_protocol/test_code_interpreter.test.ts	
+tests/test_protocol/test_filesystem.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_filesystem.py, cli/tests/test_protocol/test_filesystem.test.ts	
+tests/test_protocol/test_port.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_port.py, cli/tests/test_protocol/test_port.test.ts	
+tests/test_protocol/test_process.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_process.py, cli/tests/test_protocol/test_process.test.ts	
+tests/test_protocol/test_sandbox.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_sandbox.py, cli/tests/test_protocol/test_sandbox.test.ts	
+tests/test_protocol/test_template.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_template.py, cli/tests/test_protocol/test_template.test.ts	
+tests/test_protocol/test_terminal.py	SAME	python-sdk/client-sdk/tests/test_protocol/test_terminal.py, cli/tests/test_protocol/test_terminal.test.ts	
+tests/test_server/__init__.py	SAME	python-sdk/server-sdk/tests/test_server/__init__.py	
+tests/test_server/test_app.py	SAME	python-sdk/server-sdk/tests/test_server/test_app.py	
+tests/test_server/test_env_subprocess_boundary.py	SAME	python-sdk/server-sdk/tests/test_server/test_env_subprocess_boundary.py	
+tests/test_server/test_registry.py	SAME	python-sdk/server-sdk/tests/test_server/test_registry.py	
+tests/test_server/test_router.py	SAME	python-sdk/server-sdk/tests/test_server/test_router.py	
+tests/test_server/test_routes_browser.py	SAME	python-sdk/server-sdk/tests/test_server/test_routes_browser.py	
+tests/test_server/test_routes_devtools.py	SAME	python-sdk/server-sdk/tests/test_server/test_routes_devtools.py	
+tests/test_server/test_routes_files.py	SAME	python-sdk/server-sdk/tests/test_server/test_routes_files.py	
+tests/test_server/test_routes_process.py	SAME	python-sdk/server-sdk/tests/test_server/test_routes_process.py	
+tests/test_server/test_routes_pty.py	SAME	python-sdk/server-sdk/tests/test_server/test_routes_pty.py	
+tests/test_server/test_routes_system.py	SAME	python-sdk/server-sdk/tests/test_server/test_routes_system.py	
+tests/test_session/__init__.py	SAME	python-sdk/client-sdk/tests/test_session/__init__.py	
+tests/test_session/test_local_store.py	SAME	python-sdk/client-sdk/tests/test_session/test_local_store.py, cli/tests/test_session/test_local_store.test.ts	
+tests/test_session/test_session_manager.py	SAME	python-sdk/client-sdk/tests/test_session/test_session_manager.py, cli/tests/test_session/test_session_manager.test.ts	
+tests/test_skill_installation_docs.py	PORTED	cli/tests/test_skill_installation_docs.test.ts	
+tests/test_templates/__init__.py	CHANGED	python-sdk/client-sdk/tests/test_templates/__init__.py	-1/+1
+tests/test_templates/conftest.py	CHANGED	python-sdk/client-sdk/tests/test_templates/conftest.py	-46/+2
+tests/test_templates/test_local_install.py	PORTED	cli/tests/test_templates/test_local_install.test.ts	
+tests/test_templates/test_template_catalog.py	SAME	python-sdk/client-sdk/tests/test_templates/test_template_catalog.py	
+tests/test_templates/test_template_e2e.py	CHANGED	python-sdk/client-sdk/tests/test_templates/test_template_e2e.py	-1/+3
+tests/test_transport/__init__.py	SAME	python-sdk/client-sdk/tests/test_transport/__init__.py	
+tests/test_transport/conftest.py	SAME	python-sdk/client-sdk/tests/test_transport/conftest.py	
+tests/test_transport/test_auth.py	SAME	python-sdk/client-sdk/tests/test_transport/test_auth.py, cli/tests/test_transport/test_auth.test.ts	
+tests/test_transport/test_codec.py	SAME	python-sdk/client-sdk/tests/test_transport/test_codec.py, cli/tests/test_transport/test_codec.test.ts	
+tests/test_transport/test_config.py	SAME	python-sdk/client-sdk/tests/test_transport/test_config.py, cli/tests/test_transport/test_config.test.ts	
+tests/test_transport/test_http.py	SAME	python-sdk/client-sdk/tests/test_transport/test_http.py, cli/tests/test_transport/test_http.test.ts	
+tests/test_transport/test_streaming.py	SAME	python-sdk/client-sdk/tests/test_transport/test_streaming.py, cli/tests/test_transport/test_streaming.test.ts	
+tests/test_transport/test_ws.py	SAME	python-sdk/client-sdk/tests/test_transport/test_ws.py, cli/tests/test_transport/test_ws.test.ts	
+tests/test_utils/__init__.py	SAME	python-sdk/client-sdk/tests/test_utils/__init__.py	
+tests/test_utils/test_async_bridge.py	SAME	python-sdk/client-sdk/tests/test_utils/test_async_bridge.py	
+tests/test_utils/test_coerce.py	CHANGED	python-sdk/client-sdk/tests/test_utils/test_coerce.py, cli/tests/test_utils/test_coerce.test.ts	-1/+18
+tests/test_utils/test_dockerignore.py	SAME	python-sdk/client-sdk/tests/test_utils/test_dockerignore.py, cli/tests/test_utils/test_dockerignore.test.ts	
+tests/test_utils/test_github_token.py	SAME	python-sdk/client-sdk/tests/test_utils/test_github_token.py, cli/tests/test_utils/test_github_token.test.ts	
+tests/test_utils/test_keychain.py	SAME	python-sdk/client-sdk/tests/test_utils/test_keychain.py, cli/tests/test_utils/test_keychain.test.ts	
+tests/test_utils/test_logging.py	SAME	python-sdk/client-sdk/tests/test_utils/test_logging.py, cli/tests/test_utils/test_logging.test.ts	
+tests/test_utils/test_registry.py	SAME	python-sdk/client-sdk/tests/test_utils/test_registry.py, cli/tests/test_utils/test_registry.test.ts	
+tests/test_utils/test_retry.py	SAME	python-sdk/client-sdk/tests/test_utils/test_retry.py, cli/tests/test_utils/test_retry.test.ts	
+tests/test_utils/test_template_index.py	SAME	python-sdk/client-sdk/tests/test_utils/test_template_index.py, cli/tests/test_utils/test_template_index.test.ts	

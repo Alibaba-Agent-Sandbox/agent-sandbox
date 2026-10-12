@@ -1,0 +1,25 @@
+# Ledger entries that do NOT belong to the CLI port: they test the Python SDK itself (template definition parsing,
+# capability resolution, image chain builder, declarative server bridge). After the monorepo split the Python tests
+# live in python-sdk/client-sdk/tests; the CLI port keeps only the CLI-facing class (TestCLICompleteness).
+#
+# Format:  <ledger entry> -> <path of the Python file, relative to the python-sdk checkout>
+# `scripts/parity-coverage.mjs` reports these as "moved" instead of "missing" and, when ../python-sdk is present,
+# checks that the class and test function really exist there.
+tests/integration/test_workflow_e2e.py::TestCapabilityResolution::test_resolve_fallback_to_defaults -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestCapabilityResolution::test_resolve_from_local_cache -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestCapabilityResolution::test_resolve_from_local_yaml -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestCapabilityResolution::test_resolve_with_custom_commands -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestDeclarativeServerBridge::test_list_registered_commands -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestDeclarativeServerBridge::test_register_bridges_to_server_registry -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestDeclarativeServerBridge::test_registered_function_still_callable -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestDeclarativeServerBridge::test_register_with_defaults -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestImageChainBuilder::test_basic_chain -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestImageChainBuilder::test_empty_image -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestImageChainBuilder::test_from_template -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestImageChainBuilder::test_full_chain -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestImageChainBuilder::test_repr -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_custom_commands_parsed -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_legacy_build_fields_ignored -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_parse_python_hello_template -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_template_with_capabilities_none_uses_defaults -> client-sdk/tests/integration/test_workflow_e2e.py
+tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_template_with_explicit_capabilities -> client-sdk/tests/integration/test_workflow_e2e.py

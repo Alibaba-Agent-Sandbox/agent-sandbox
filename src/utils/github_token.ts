@@ -1,0 +1,95 @@
+/**
+ * GitHub token guidance shared by the template utilities and the CLI (port of `utils/github_token.py`).
+ *
+ * Task 206 — safe, fast guidance when an anonymous GitHub rate limit is hit:
+ *
+ * - One canonical remedy for both the registry tarball client (`utils/registry`) and the template-index client
+ *   (`utils/template_index`) — see {@link rate_limit_message} / {@link rate_limit_suggestion}.
+ * - The persistent `ebx config set github_token` flow is the recommended fix (masked input, stored in
+ *   `~/.ebx/.env`, reused automatically). The explicit `--token` flag keeps working as a temporary override but is
+ *   documented as leak-prone (shell history / process list).
+ * - {@link FINE_GRAINED_PAT_URL} is GitHub's officially documented pre-filled fine-grained PAT form.
+ *   `contents=read` implicitly grants the required `metadata:read` and public repositories need no other permissions;
+ *   a 90-day lifetime is pre-selected.
+ *
+ * Security posture: nothing in this module ever reads `gh auth token`, opens a browser, or prints / logs a token
+ * value.
+ *
+ * Naming: functions are exported under their camelCase names (`rateLimitMessage`, `rateLimitSuggestion`) — keyword
+ * arguments become an options object.
+ */
+
+/**
+ * Environment variable GitHub itself uses, and the env var mapped to the persistent `github_token` config key.
+ */
+export const GITHUB_TOKEN_ENV_VAR = "GITHUB_TOKEN";
+
+/** Config key for `ebx config set github_token` (stored in `~/.ebx/.env` under {@link GITHUB_TOKEN_ENV_VAR}). */
+export const GITHUB_TOKEN_CONFIG_KEY = "github_token";
+
+/**
+ * Officially documented URL that opens GitHub's "new fine-grained personal access token" form with the fields
+ * pre-filled: read-only repository contents access, a 90-day lifetime, and a descriptive name.
+ *
+ * Verified against GitHub docs, "Pre-filling fine-grained personal access token details using URL parameters":
+ * supported parameters are `name`, `description`, `target_name`, `expires_in` (1-366 days or `none`) and
+ * `<permission>=read|write|admin`. `contents=read` also selects `metadata:read`. Public repositories need no extra
+ * permissions.
+ */
+export const FINE_GRAINED_PAT_URL =
+  "https://github.com/settings/personal-access-tokens/new" +
+  "?name=ebx-template-token" +
+  "&description=Read-only+access+for+ebx+template+installs" +
+  "&expires_in=90" +
+  "&contents=read";
+
+/**
+ * Return the unified anonymous-rate-limit headline.
+ *
+ * @param options.operation optional short phrase naming what was being fetched (e.g.
+ *   `"fetching the template index"`); the tarball client uses the base sentence without it.
+ */
+export function rateLimitMessage(options: { operation?: string } = {}): string {
+  const operation = options.operation ?? "";
+  const where = operation ? ` while ${operation}` : "";
+  return `GitHub API rate limit exceeded${where} (anonymous requests are limited to 60/hour).`;
+}
+
+/**
+ * Return the unified remediation for an anonymous rate limit.
+ *
+ * Recommends the persistent `ebx config set github_token` flow first (interactive, masked input), points at the
+ * officially verified fine-grained PAT prefill URL (public repositories need no extra permissions; 90-day lifetime
+ * recommended), keeps `--token` as an explicit temporary override with a leak warning, and covers non-TTY / CI
+ * sessions by pointing at secret injection.
+ *
+ * @param options.extra optional extra sentence appended last (e.g. the mirror hint of the template-index client).
+ */
+export function rateLimitSuggestion(options: { extra?: string } = {}): string {
+  const extra = options.extra ?? "";
+  const parts = [
+    "Authenticate to raise the limit to 5000/hour: run " +
+      "'ebx config set github_token' in an interactive terminal " +
+      "(masked input; stored in ~/.ebx/.env and reused automatically).",
+    "Create a fine-grained token here - public repositories need no " +
+      "extra permissions and a 90-day expiry is recommended: " +
+      `${FINE_GRAINED_PAT_URL}`,
+    "In CI / non-interactive sessions, inject GITHUB_TOKEN as a secret " +
+      "instead. The explicit '--token <value>' flag also works but may " +
+      "leak into shell history and process listings.",
+  ];
+  if (extra) parts.push(extra);
+  return parts.join(" ");
+}
+
+/** Python-name aliases (`rate_limit_message` / `rate_limit_suggestion`). */
+export const rate_limit_message = rateLimitMessage;
+export const rate_limit_suggestion = rateLimitSuggestion;
+
+export const __all__ = [
+  "FINE_GRAINED_PAT_URL",
+  "GITHUB_TOKEN_CONFIG_KEY",
+  "GITHUB_TOKEN_ENV_VAR",
+  "rate_limit_message",
+  "rate_limit_suggestion",
+] as const;

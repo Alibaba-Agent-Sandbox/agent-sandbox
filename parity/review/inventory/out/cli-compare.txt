@@ -1,0 +1,18 @@
+modules {'MISSING': 3, 'reexport-only': 3, 'present': 72, 'dropped': 26}
+symbols {'MISSING': 61, 'present': 933, 'renamed': 585}
+literal stats {
+"present/identifier": 2258,
+"present/message": 2587,
+"present/path": 112,
+"MISSING/message": 92,
+"dropped-module/identifier": 832,
+"dropped-module/message": 386,
+"present/env": 213,
+"MISSING/identifier": 35,
+"dropped-module/endpoint": 61,
+"present/endpoint": 76,
+"dropped-module/env": 76,
+"dropped-module/path": 9,
+"MISSING/path": 1
+}
+env {'present': 97}
