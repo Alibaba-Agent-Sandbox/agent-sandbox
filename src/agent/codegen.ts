@@ -716,7 +716,7 @@ async function generateTemplateFilesImpl(
   const dockerfile = path.join(work, "Dockerfile");
   const templateYaml = path.join(work, "template.yaml");
   const commandsPy = path.join(work, SERVER_ENTRYPOINT);
-  const missing = REQUIRED_TEMPLATE_FILES.filter((name) => !isFile(path.join(work, name)));
+  const missing = [...REQUIRED_TEMPLATE_FILES, "README.md"].filter((name) => !isFile(path.join(work, name)));
   if (missing.length > 0) {
     const stderrTail = pySplitLines(pyStrip(result.rawStderr || "")).slice(-3);
     let detail = ` exit_code=${result.exitCode}`;

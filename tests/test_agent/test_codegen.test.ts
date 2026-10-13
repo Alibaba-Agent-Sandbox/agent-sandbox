@@ -63,18 +63,21 @@ function fakeRunWriting(
     dockerfile?: string | null;
     templateYaml?: string | null;
     commandsPy?: string | null;
+    readme?: string | null;
     result?: QwenCodeRunResult | null;
   } = {},
 ): Fake {
   const dockerfile = opts.dockerfile === undefined ? DOCKERFILE : opts.dockerfile;
   const templateYaml = opts.templateYaml === undefined ? VALID_TEMPLATE_YAML : opts.templateYaml;
   const commandsPy = opts.commandsPy === undefined ? COMMANDS_PY : opts.commandsPy;
+  const readme = opts.readme === undefined ? "# demo\n" : opts.readme;
   const result = opts.result ?? null;
   return async (_prompt, kwargs) => {
     const cwd: string = kwargs.cwd;
     if (dockerfile !== null) fs.writeFileSync(path.join(cwd, "Dockerfile"), dockerfile, "utf8");
     if (templateYaml !== null) fs.writeFileSync(path.join(cwd, "template.yaml"), templateYaml, "utf8");
     if (commandsPy !== null) fs.writeFileSync(path.join(cwd, "commands.py"), commandsPy, "utf8");
+    if (readme !== null) fs.writeFileSync(path.join(cwd, "README.md"), readme, "utf8");
     if (result !== null) return result;
     return new QwenCodeRunResult({ text: "done", isError: false, exitCode: 0 });
   };
@@ -199,6 +202,7 @@ describe("TestGenerateTemplateFiles", () => {
       fs.writeFileSync(path.join(cwd, "Dockerfile"), DOCKERFILE, "utf8");
       fs.writeFileSync(path.join(cwd, "template.yaml"), VALID_TEMPLATE_YAML, "utf8");
       fs.writeFileSync(path.join(cwd, "commands.py"), COMMANDS_PY, "utf8");
+      fs.writeFileSync(path.join(cwd, "README.md"), "# demo\n", "utf8");
       return new QwenCodeRunResult({ text: "ok", exitCode: 0 });
     };
     patchRun(fake);
@@ -275,6 +279,11 @@ describe("TestGenerateTemplateFiles", () => {
 
     expect(result.commandsPy).toBe(path.join(result.workdir, "commands.py"));
     expect([...result.files]).toEqual([".dockerignore", "Dockerfile", "README.md", "app.py", "commands.py", "template.yaml"]);
+  });
+
+  it("test_missing_readme_is_rejected", async () => {
+    patchRun(fakeRunWriting({ readme: null }));
+    await raises(() => generateTemplateFiles("no readme", { baseDir: tmpPath }), AICodegenError, "README.md");
   });
 
   it("test_dockerfile_only_result_is_rejected", async () => {
