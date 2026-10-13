@@ -35,6 +35,7 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 | [Agent Skill Installation](guide/agent-skill-installation.md) | Install the static SKILL.md agent guide into Qoder / Claude Code / Cursor / Qwen Code / Codex |
 | [BYO Agent Integration](guide/byo-agent-integration.md) | Bring your own agent CLI inside a sandbox: responsibility boundary, `custom_commands` contract, credential whitelist, version locking, license boundaries |
 | [Testing & Definition of Done](guide/testing-e2e.md) | Three verification layers (unit, differential, real-cloud E2E) and the Definition of Done |
+| [Command and SDK map](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/command-map.md) | `ebx` and the Python SDK next to the E2B and OpenSandbox commands and methods |
 
 ### [`reference/`](reference/) — CLI / Configuration Reference
 

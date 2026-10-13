@@ -35,6 +35,7 @@
 | [Agent Skill 安装与分发](guide/agent-skill-installation.md) | 把静态 SKILL.md 指南安装到 Qoder / Claude Code / Cursor / Qwen Code / Codex |
 | [自带 Agent（BYO）集成](guide/byo-agent-integration.md) | 在沙箱内运行自带 Agent CLI：职责边界、custom_commands 契约、凭证白名单、版本锁定与许可边界 |
 | [测试与完成定义](guide/testing-e2e.md) | 三层验证（单元、差分、真实云 E2E）与完成定义（Definition of Done） |
+| [命令与 SDK 对照](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/command-map.md) | `ebx`、Python SDK 与 E2B、OpenSandbox 的命令和方法对照 |
 
 ### [`reference/`](reference/) — CLI / 配置参考
 
