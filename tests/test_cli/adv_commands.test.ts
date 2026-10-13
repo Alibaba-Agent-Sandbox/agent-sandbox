@@ -36,7 +36,7 @@ function baseEnv(home: string, url: string | null, extra: Record<string, string 
     COLUMNS: "100",
     EBX_NO_KEYCHAIN: "1",
   };
-  if (url) Object.assign(env, { E2B_API_KEY: "k-adversarial-stub", E2B_API_URL: url, E2B_DOMAIN: "stub.invalid" });
+  if (url) Object.assign(env, { EBX_SANDBOX_API_KEY: "k-adversarial-stub", EBX_SANDBOX_BASE_URL: url, EBX_SANDBOX_DOMAIN: "stub.invalid" });
   for (const [k, v] of Object.entries(extra)) {
     if (v === null) delete env[k];
     else env[k] = v;
@@ -179,7 +179,7 @@ describe("commands (review regressions)", () => {
     });
   });
 
-  it("ADV-commands-09 a scheme-less E2B_API_URL reports the httpx protocol message", async () => {
+  it("ADV-commands-09 a scheme-less EBX_SANDBOX_BASE_URL reports the httpx protocol message", async () => {
     await withStub(async ({ home, cwd }) => {
       const r = await runEbx(["list"], { home, cwd, url: "127.0.0.1:9" });
       expect(r.stderr).toContain("Request URL is missing an 'http://' or 'https://' protocol.");

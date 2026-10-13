@@ -8,6 +8,11 @@ let cached: string | null = null;
 
 export function hostVersion(): string {
   if (cached !== null) return cached;
+  const fromTest = process.env["TEST_EBX_HOST_VERSION"];
+  if (fromTest) {
+    cached = fromTest;
+    return cached;
+  }
   const injected = injectedPackageVersion();
   if (injected !== undefined) {
     cached = injected;

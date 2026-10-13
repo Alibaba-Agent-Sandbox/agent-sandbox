@@ -787,10 +787,10 @@ async function respond(
  *
  * Environment variables:
  * - `EBX_MCP_AUTH_TOKEN` — Bearer token for client auth (optional)
- * - `E2B_API_KEY` / `SANDBOX_API_KEY` — Sandbox backend API key
- * - `E2B_API_URL` / `SANDBOX_API_BASE_URL` — API URL override
- * - `E2B_DOMAIN` — Domain override
- * - `SANDBOX_TEMPLATE` / `EBX_TEMPLATE` — Default template
+ * - `EBX_SANDBOX_API_KEY` — Sandbox backend API key
+ * - `EBX_SANDBOX_BASE_URL` — API URL override
+ * - `EBX_SANDBOX_DOMAIN` — Domain override
+ * - `EBX_DEFAULT_TEMPLATE` — Default template
  * - `EBX_MCP_ALLOWED_ORIGINS` — comma separated extra `Origin` values
  */
 export function _createDefaultApp(env: NodeJS.ProcessEnv = process.env): McpHttpApp {
@@ -802,12 +802,12 @@ export function _createDefaultApp(env: NodeJS.ProcessEnv = process.env): McpHttp
       .filter((part) => part),
   );
   // Python: os.environ.get("SANDBOX_TEMPLATE") or os.environ.get("EBX_TEMPLATE", "base")
-  const template = env.SANDBOX_TEMPLATE || (env.EBX_TEMPLATE ?? "base");
+  const template = env.EBX_DEFAULT_TEMPLATE ?? "base";
   return createMcpApp({
     auth_token: env.EBX_MCP_AUTH_TOKEN ?? null,
-    api_key: env.E2B_API_KEY || env.SANDBOX_API_KEY || null,
-    api_url: env.E2B_API_URL || env.SANDBOX_API_BASE_URL || null,
-    domain: env.E2B_DOMAIN || null,
+    api_key: env.EBX_SANDBOX_API_KEY || null,
+    api_url: env.EBX_SANDBOX_BASE_URL || null,
+    domain: env.EBX_SANDBOX_DOMAIN || null,
     template,
     allowed_origins: allowedOrigins,
   });

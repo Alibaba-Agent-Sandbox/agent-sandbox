@@ -6,7 +6,7 @@
  *  - the root `ebx` group no longer accepts `--region/-r`;
  *  - regional commands (`list`/`kill`, the `template` control plane, and `mcp deploy`) accept a local `--region` and
  *    forward it to `loadConfig` / `resolveRegion`;
- *  - priority everywhere: command `--region` > `SANDBOX_REGION` env / `ebx config set region` (`~/.ebx/config.toml`) >
+ *  - priority everywhere: command `--region` > `ALIBABA_CLOUD_REGION_ID` env / `ebx config set region` (`~/.ebx/config.toml`) >
  *    default `cn-hangzhou`;
  *  - purely local commands reject `--region` with the standard Click error;
  *  - the `template deploy` alias and the top-level `install` / `deploy` shortcuts expose/forward `--region` like the
@@ -60,7 +60,10 @@ function useIsolatedRegionEnv(): { readonly dir: string } {
     transportConfig._setConfigFile(path.join(state.dir, "config.toml"));
     transportConfig._setEnvFileCandidates([path.join(state.dir, ".env")]);
     for (const v of [
-      "SANDBOX_REGION",
+      "ALIBABA_CLOUD_REGION_ID",
+      "EBX_SANDBOX_API_KEY",
+      "EBX_SANDBOX_BASE_URL",
+      "EBX_SANDBOX_DOMAIN",
       "E2B_API_KEY",
       "E2B_API_URL",
       "SANDBOX_API_KEY",
@@ -317,18 +320,18 @@ describe("TestResolveRegionPriority", () => {
   });
 
   it("test_env_var_fallback", () => {
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
     expect(resolveRegion(null)).toBe("cn-shenzhen");
   });
 
   it("test_cli_region_beats_env_var", () => {
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
     expect(resolveRegion("cn-shanghai")).toBe("cn-shanghai");
   });
 
   it("test_env_var_beats_config_file", () => {
     writeConfig("cn-beijing");
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
     expect(resolveRegion(null)).toBe("cn-shenzhen");
   });
 
@@ -366,7 +369,7 @@ describe("TestMcpDeployRegionSemantics", () => {
   });
 
   it("test_falls_back_to_env_var", async () => {
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
     const cfg = await deploy(region_env.dir);
     expect(cfg["region"]).toBe("cn-shenzhen");
   });
@@ -378,7 +381,7 @@ describe("TestMcpDeployRegionSemantics", () => {
   });
 
   it("test_explicit_region_still_wins_over_env", async () => {
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
     const cfg = await deploy(region_env.dir, "--region", "cn-shanghai");
     expect(cfg["region"]).toBe("cn-shanghai");
   });

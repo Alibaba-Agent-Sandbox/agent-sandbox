@@ -59,5 +59,9 @@ Options:
                        generation. Does not build or deploy. Replacing an
                        existing Dockerfile still needs --force when there is no
                        interactive preview.
+  --model TEXT         Model id for natural-language generation. Overrides
+                       llm_model for this command. An interactive terminal
+                       offers coding and chat models with the arrow keys when
+                       the chosen id does not exist.
   -h, --help           Show this message and exit.
 [exit_code:0]

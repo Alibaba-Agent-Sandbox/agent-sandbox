@@ -3,6 +3,7 @@
  * shapes, exit codes E8000-E8030 (spec `docs/design/providers-and-credentials-cli.md` section 5).
  */
 
+import "./host-version-for-plugins.js";
 import "../_support/isolatedHome.js";
 
 import fs from "node:fs";

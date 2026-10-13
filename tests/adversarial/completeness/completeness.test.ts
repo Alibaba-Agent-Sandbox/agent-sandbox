@@ -58,9 +58,14 @@ describe("completeness (adversarial)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("ADV-completeness-03 KNOWN-GAPS records the deferred providers/canonical-config work that the SDK already ships", () => {
-    const gaps = read("parity/KNOWN-GAPS.md");
-    expect(/provider/i.test(gaps) && /EBX_SANDBOX|canonical/i.test(gaps)).toBe(true);
+  it("ADV-completeness-03 the canonical sandbox key is EBX_SANDBOX_API_KEY and retired names are not aliases", () => {
+    const keys = read("docs/design/fixtures/config-keys.json");
+    expect(keys).toContain('"env": "EBX_SANDBOX_API_KEY"');
+    expect(keys).not.toMatch(/"E2B_API_KEY"/);
+    expect(keys).not.toMatch(/"SANDBOX_API_KEY"/);
+    expect(keys).toContain('"env": "ALIBABA_CLOUD_REGION_ID"');
+    expect(keys).toContain('"env": "ALICLOUD_ACCESS_KEY_ID"');
+    expect(keys).toContain('"env": "ALICLOUD_ACCESS_KEY_SECRET"');
   });
 
   it.skipIf(!haveBin || !haveSdk)(
@@ -87,10 +92,11 @@ describe("completeness (adversarial)", () => {
   );
 
   const ADV_KEY = "sk-" + "adv-canonical-123456";
-  it.skipIf(!haveBin)("ADV-completeness-05 EBX_SANDBOX_API_KEY (canonical name documented by the SDK) is honoured like E2B_API_KEY", () => {
-    const viaE2b = ebx(["config", "get", "sandbox_api_key"], { E2B_API_KEY: ADV_KEY });
+  it.skipIf(!haveBin)("ADV-completeness-05 only EBX_SANDBOX_API_KEY is honoured", () => {
+    const viaRetired = ebx(["config", "get", "sandbox_api_key"], { E2B_API_KEY: ADV_KEY });
     const viaCanonical = ebx(["config", "get", "sandbox_api_key"], { EBX_SANDBOX_API_KEY: ADV_KEY });
-    expect(viaE2b.stdout.trim()).toMatch(/^sk-/);
-    expect(viaCanonical.stdout.trim()).toBe(viaE2b.stdout.trim());
+    expect(viaRetired.stdout.trim()).toBe("(not set)");
+    expect(viaCanonical.stdout.trim()).toMatch(/^sk-/);
+    expect(viaCanonical.stdout).not.toContain(ADV_KEY);
   });
 });

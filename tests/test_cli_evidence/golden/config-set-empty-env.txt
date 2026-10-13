@@ -1,2 +1,2 @@
-Cleared region (falls back to default: cn-hangzhou); environment variable SANDBOX_REGION still overrides it at runtime (value not shown).
+Cleared region (falls back to default: cn-hangzhou); environment variable ALIBABA_CLOUD_REGION_ID still overrides it at runtime (value not shown).
 [exit_code:0]

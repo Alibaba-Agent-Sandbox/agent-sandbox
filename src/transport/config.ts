@@ -468,9 +468,7 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
   const _explicit_url =
     "api_url" in applied_overrides ||
     "api_base_url" in applied_overrides ||
-    _envPresent("SANDBOX_API_BASE_URL") ||
-    _envPresent("EBX_SANDBOX_BASE_URL") ||
-    _envPresent("E2B_API_URL");
+    _envPresent("EBX_SANDBOX_BASE_URL");
   if (!_explicit_url && "region" in merged) {
     if (!("api_url" in merged)) merged["api_url"] = `https://api.${pyStr(merged["region"])}.e2b.fc.aliyuncs.com`;
     if (!("domain" in merged)) merged["domain"] = `${pyStr(merged["region"])}.e2b.fc.aliyuncs.com`;
@@ -498,10 +496,10 @@ export function resetConfig(): void {
  * timeout instead of the 30s default.
  */
 export function httpTimeoutConfigured(): boolean {
-  const timeout = process.env["SANDBOX_HTTP_TIMEOUT"];
+  const timeout = process.env["EBX_HTTP_TIMEOUT"];
   if (timeout && pyStrip(timeout)) return true;
   // .env files use env-var-style keys (see _ENV_VAR_MAP), not field names.
-  if ("SANDBOX_HTTP_TIMEOUT" in _loadDotenvFile()) return true;
+  if ("EBX_HTTP_TIMEOUT" in _loadDotenvFile()) return true;
   const toml_data = _loadTomlFile(_CONFIG_FILE);
   const section = "transport" in toml_data ? toml_data["transport"] : toml_data;
   if (typeof section === "string") return section.includes("http_timeout");

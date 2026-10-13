@@ -33,6 +33,8 @@ const ledger = readFileSync(join(root, "parity", "python-tests-to-port.txt"), "u
   .filter(Boolean)
   .map((l) => l.replace(/\[.*$/s, ""))
   .filter((v, i, a) => a.indexOf(v) === i)
+  // `npm test` and the vitest run below both exclude tests/integration.
+  .filter((l) => !l.startsWith("tests/integration/"))
   .filter((l) => !filter || l.includes(filter));
 
 const report = JSON.parse(readFileSync(reportPath, "utf8"));

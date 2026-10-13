@@ -12,6 +12,24 @@ import { stdGetLogger } from "./logging.js";
 
 const logger = stdGetLogger("dotenv.main");
 
+/** One parse warning per path, mtime, size, and source line. A second read of the same file stays quiet. */
+const _dotenvParseWarned = new Set<string>();
+
+function warnDotenvParse(dotenvPath: string, line: number): void {
+  let token = `${dotenvPath}\0${line}`;
+  if (dotenvPath) {
+    try {
+      const st = fs.statSync(dotenvPath, { bigint: true });
+      token = `${dotenvPath}\0${String(st.mtimeNs)}\0${String(st.size)}\0${line}`;
+    } catch {
+      /* path is not a stable file; fall back to the line token */
+    }
+  }
+  if (_dotenvParseWarned.has(token)) return;
+  _dotenvParseWarned.add(token);
+  logger.warning("python-dotenv could not parse statement starting at line %s", line);
+}
+
 export class DotenvParseError extends Error {
   constructor(message: string) {
     super(message);
@@ -223,9 +241,7 @@ export function dotenvValues(
 
   const raw: [string, string | null][] = [];
   for (const mapping of parseStream(text)) {
-    if (mapping.error) {
-      logger.warning("python-dotenv could not parse statement starting at line %s", mapping.original.line);
-    }
+    if (mapping.error) warnDotenvParse(p, mapping.original.line);
     if (mapping.key !== null) raw.push([mapping.key, mapping.value]);
   }
   const out = new Map<string, string | null>();

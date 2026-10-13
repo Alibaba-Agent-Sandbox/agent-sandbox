@@ -23,8 +23,8 @@ Usage: cli config set [OPTIONS] KEY [VALUE]
   anything. In CI / non-interactive sessions VALUE is required.
 
   Available keys (expected value):
-    sandbox_api_key    Sandbox service API key, E2B-compatible (string;
-                       env vars E2B_API_KEY > SANDBOX_API_KEY).
+    sandbox_api_key    Sandbox service API key (string; env var
+                       EBX_SANDBOX_API_KEY).
                        ``api_key`` is accepted as an alias.
     access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth, used by
                        template deploy and ACR push (string)

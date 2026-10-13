@@ -32,10 +32,11 @@ const DEFAULT_URL = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com";
 const iso = useIso();
 
 describe("TestBackwardCompatibleModel", () => {
-  it("test_legacy_constructor_names", () => {
+  it("test_retired_constructor_names_are_ignored", () => {
     const c = new LayeredConfig({ api_key: "k", api_url: "https://x", domain: "d.example" } as never);
-    expect([c.sandbox_api_key, c.sandbox_base_url, c.sandbox_domain]).toEqual(["k", "https://x", "d.example"]);
-    expect([c.api_key, c.api_url, c.api_base_url, c.domain]).toEqual(["k", "https://x", "https://x", "d.example"]);
+    expect(c.sandbox_api_key).toBeNull();
+    expect(c.sandbox_base_url).toBe(DEFAULT_URL);
+    expect(c.sandbox_domain).toBe("cn-hangzhou.e2b.fc.aliyuncs.com");
   });
 
   it("test_canonical_constructor_names", () => {
@@ -43,9 +44,10 @@ describe("TestBackwardCompatibleModel", () => {
     expect([c.api_key, c.api_url, c.domain]).toEqual(["k", "https://x", "d"]);
   });
 
-  it("test_same_value_twice_is_fine_conflict_is_error", () => {
-    expect(new LayeredConfig({ api_key: "k", sandbox_api_key: "k" } as never).api_key).toBe("k");
-    expect(() => new LayeredConfig({ api_key: "a", sandbox_api_key: "b" } as never)).toThrow(ProviderConfigError);
+  it("test_retired_kwarg_does_not_override_the_canonical_field", () => {
+    const c = new LayeredConfig({ api_key: "a", sandbox_api_key: "b" } as never);
+    expect(c.sandbox_api_key).toBe("b");
+    expect(c.api_key).toBe("b");
   });
 
   it("test_legacy_setters", () => {
@@ -65,25 +67,28 @@ describe("TestBackwardCompatibleModel", () => {
 
 const CASES: Array<[string, string, string | number | boolean]> = [
   ["EBX_SANDBOX_API_KEY", "sandbox_api_key", "v"],
-  ["E2B_API_KEY", "sandbox_api_key", "v"],
-  ["SANDBOX_API_KEY", "sandbox_api_key", "v"],
   ["EBX_SANDBOX_BASE_URL", "sandbox_base_url", "https://v.example"],
-  ["E2B_API_URL", "sandbox_base_url", "https://v.example"],
-  ["SANDBOX_API_BASE_URL", "sandbox_base_url", "https://v.example"],
   ["EBX_SANDBOX_DOMAIN", "sandbox_domain", "v.example"],
-  ["E2B_DOMAIN", "sandbox_domain", "v.example"],
-  ["EBX_ALICLOUD_EXPRESS_REGION", "region", "cn-beijing"],
-  ["SANDBOX_REGION", "region", "cn-beijing"],
-  ["EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID", "access_key_id", "id"],
+  ["ALIBABA_CLOUD_REGION_ID", "region", "cn-beijing"],
   ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", "id"],
-  ["AccessKey", "access_key_id", "id"],
-  ["EBX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET", "access_key_secret", "sec"],
   ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", "sec"],
-  ["AccessSecret", "access_key_secret", "sec"],
   ["EBX_HTTP_TIMEOUT", "http_timeout", 12.5],
-  ["SANDBOX_HTTP_TIMEOUT", "http_timeout", 12.5],
   ["EBX_MAX_RETRIES", "max_retries", 7],
   ["EBX_HTTP2", "http2", false],
+];
+const RETIRED_ENV = [
+  "E2B_API_KEY",
+  "SANDBOX_API_KEY",
+  "E2B_API_URL",
+  "SANDBOX_API_BASE_URL",
+  "E2B_DOMAIN",
+  "SANDBOX_REGION",
+  "EBX_ALICLOUD_EXPRESS_REGION",
+  "AccessKey",
+  "AccessSecret",
+  "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID",
+  "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET",
+  "SANDBOX_HTTP_TIMEOUT",
 ];
 const raw = (v: string | number | boolean): string => (v === false ? "false" : String(v));
 const field = (cfg: LayeredConfig, name: string): unknown => (cfg as unknown as Record<string, unknown>)[name];
@@ -102,49 +107,62 @@ describe.each(CASES)("TestEveryNameInEveryLayer[%s -> %s]", (env, name, value) =
   });
 });
 
+describe("retired names", () => {
+  it.each(RETIRED_ENV)("test_retired_env_is_not_a_value[%s]", (env) => {
+    iso.setenv(env, "retired-value");
+    const cfg = loadLayeredConfig();
+    expect(cfg.sandbox_api_key).toBeNull();
+    expect(cfg.sandbox_base_url).toBe(DEFAULT_URL);
+    expect(cfg.region).toBe("cn-hangzhou");
+    expect(cfg.access_key_id).toBeNull();
+    expect(cfg.access_key_secret).toBeNull();
+    expect(cfg.http_timeout).toBe(30);
+  });
+});
+
 describe("TestPrecedence", () => {
-  it("test_name_order_in_process_env", () => {
+  it("test_retired_names_do_not_hide_the_canonical_dotenv", () => {
     iso.setenv("SANDBOX_API_KEY", "legacy");
-    expect(loadLayeredConfig().sandbox_api_key).toBe("legacy");
     iso.setenv("E2B_API_KEY", "compat");
-    expect(loadLayeredConfig().sandbox_api_key).toBe("compat");
+    iso.writeEnv("EBX_SANDBOX_API_KEY=canon-dotenv\n");
+    expect(loadLayeredConfig().sandbox_api_key).toBe("canon-dotenv");
     iso.setenv("EBX_SANDBOX_API_KEY", "canon");
     expect(loadLayeredConfig().sandbox_api_key).toBe("canon");
   });
 
   it("test_layer_before_name", () => {
-    iso.setenv("SANDBOX_API_KEY", "legacy-env");
     iso.writeEnv("EBX_SANDBOX_API_KEY=canon-dotenv\n");
-    expect(loadLayeredConfig().sandbox_api_key).toBe("legacy-env");
+    iso.setenv("EBX_SANDBOX_API_KEY", "canon-env");
+    expect(loadLayeredConfig().sandbox_api_key).toBe("canon-env");
   });
 
   it("test_override_beats_env_beats_dotenv_beats_toml", () => {
     iso.writeToml('[transport]\nsandbox_api_key = "toml"\n');
     expect(loadLayeredConfig().sandbox_api_key).toBe("toml");
-    iso.writeEnv("E2B_API_KEY=dotenv\n");
+    iso.writeEnv("EBX_SANDBOX_API_KEY=dotenv\n");
     expect(loadLayeredConfig().sandbox_api_key).toBe("dotenv");
-    iso.setenv("E2B_API_KEY", "env");
+    iso.setenv("EBX_SANDBOX_API_KEY", "env");
     expect(loadLayeredConfig().sandbox_api_key).toBe("env");
-    expect(loadLayeredConfig({ api_key: "kw" }).sandbox_api_key).toBe("kw");
+    expect(loadLayeredConfig({ api_key: "kw" }).sandbox_api_key).toBe("env");
     expect(loadLayeredConfig({ sandbox_api_key: "kw2" }).sandbox_api_key).toBe("kw2");
   });
 
   it("test_blank_override_and_env_are_ignored", () => {
-    iso.writeEnv("E2B_API_KEY=dotenv\n");
+    iso.writeEnv("EBX_SANDBOX_API_KEY=dotenv\n");
     iso.setenv("EBX_SANDBOX_API_KEY", "   ");
-    expect(loadLayeredConfig({ api_key: "  " }).sandbox_api_key).toBe("dotenv");
+    expect(loadLayeredConfig({ sandbox_api_key: "  " }).sandbox_api_key).toBe("dotenv");
   });
 
-  it("test_toml_legacy_and_canonical_names", () => {
+  it("test_toml_ignores_retired_names", () => {
     iso.writeToml('[transport]\napi_url = "https://legacy"\n');
-    expect(loadLayeredConfig().sandbox_base_url).toBe("https://legacy");
+    expect(loadLayeredConfig().sandbox_base_url).toBe(DEFAULT_URL);
     iso.writeToml('[transport]\napi_url = "https://legacy"\nsandbox_base_url = "https://canon"\n');
     expect(loadLayeredConfig().sandbox_base_url).toBe("https://canon");
   });
 
-  it("test_flat_legacy_toml", () => {
+  it("test_flat_retired_toml_is_ignored", () => {
     iso.writeToml('api_url = "https://flat"\n');
-    expect(loadLayeredConfig().sandbox_base_url).toBe("https://flat");
+    expect(loadLayeredConfig().sandbox_base_url).toBe(DEFAULT_URL);
   });
 
   it("test_builtin_scoped_toml_table", () => {
@@ -155,9 +173,9 @@ describe("TestPrecedence", () => {
   });
 
   it("test_cache_is_used_without_overrides_and_reset_clears", () => {
-    iso.setenv("E2B_API_KEY", "one");
+    iso.setenv("EBX_SANDBOX_API_KEY", "one");
     expect(loadLayeredConfig()).toBe(loadLayeredConfig());
-    process.env["E2B_API_KEY"] = "two";
+    process.env["EBX_SANDBOX_API_KEY"] = "two";
     expect(loadLayeredConfig().sandbox_api_key).toBe("one");
     resetLayeredConfig();
     expect(loadLayeredConfig().sandbox_api_key).toBe("two");
@@ -172,15 +190,23 @@ describe("TestRegionDerivation", () => {
   });
 
   it("test_explicit_process_env_url_wins_and_domain_stays_default", () => {
-    iso.setenv("E2B_API_URL", "https://custom.example");
+    iso.setenv("EBX_SANDBOX_BASE_URL", "https://custom.example");
     const c = loadLayeredConfig({ region: "cn-beijing" });
     expect(c.sandbox_base_url).toBe("https://custom.example");
     expect(c.sandbox_domain).toBe("cn-hangzhou.e2b.fc.aliyuncs.com");
   });
 
   it("test_dotenv_url_is_kept_as_default_semantics", () => {
-    iso.writeEnv("E2B_API_URL=https://dotenv.example\nSANDBOX_REGION=cn-beijing\n");
+    iso.writeEnv("EBX_SANDBOX_BASE_URL=https://dotenv.example\nALIBABA_CLOUD_REGION_ID=cn-beijing\n");
     expect(loadLayeredConfig().sandbox_base_url).toBe("https://dotenv.example");
+  });
+
+  it("test_retired_region_does_not_derive_the_url", () => {
+    iso.setenv("SANDBOX_REGION", "cn-beijing");
+    iso.setenv("E2B_API_URL", "https://retired.example");
+    const c = loadLayeredConfig();
+    expect(c.region).toBe("cn-hangzhou");
+    expect(c.sandbox_base_url).toBe(DEFAULT_URL);
   });
 });
 
@@ -215,39 +241,34 @@ describe("TestProviderSelectionAndOptions", () => {
 
 describe("TestExplain", () => {
   it("test_sources_and_masking", () => {
-    iso.writeToml('[transport]\napi_url = "https://t.example"\n');
-    iso.setenv("E2B_API_KEY", "abcdefghijkl");
+    iso.writeToml('[transport]\nsandbox_base_url = "https://t.example"\n');
+    iso.setenv("EBX_SANDBOX_API_KEY", "abcdefghijkl");
     const info = explainConfig();
-    expect(info["sandbox_api_key"]).toMatchObject({ source: "environ", name: "E2B_API_KEY", value: "****ijkl" });
+    expect(info["sandbox_api_key"]).toMatchObject({ source: "environ", name: "EBX_SANDBOX_API_KEY", value: "****ijkl" });
     expect(JSON.stringify(info)).not.toContain("abcdefgh");
     expect(info["sandbox_base_url"]?.source).toBe("toml");
     expect(info["http_timeout"]?.source).toBe("default");
   });
 
   it("test_short_secrets_fully_masked", () => {
-    iso.setenv("E2B_API_KEY", "short");
+    iso.setenv("EBX_SANDBOX_API_KEY", "short");
     expect(explainConfig()["sandbox_api_key"]?.value).toBe("****");
   });
 });
 
 describe("TestAudit", () => {
-  it("test_reports_legacy_only_by_name", () => {
+  it("test_retired_names_are_not_reported", () => {
     iso.setenv("SANDBOX_API_KEY", "secret-value");
     iso.setenv("E2B_API_KEY", "x");
     iso.writeEnv("SANDBOX_REGION=cn-beijing\nEBX_HTTP_TIMEOUT=5\n");
     iso.writeToml('[transport]\napi_url = "https://t"\nsandbox_domain = "d"\n');
     const found = auditConfig();
-    const names = new Set(found.map((f) => `${f.where}|${f.name}`));
-    expect(names.has("env|SANDBOX_API_KEY")).toBe(true);
-    expect(names.has("dotenv|SANDBOX_REGION")).toBe(true);
-    expect(names.has("config|transport.api_url")).toBe(true);
-    expect([...names].some((n) => n.endsWith("|E2B_API_KEY"))).toBe(false);
-    expect([...names].some((n) => n.includes("sandbox_domain"))).toBe(false);
+    expect(found).toEqual([]);
     expect(JSON.stringify(found)).not.toContain("secret-value");
   });
 
   it("test_empty_when_clean", () => {
-    iso.setenv("E2B_API_KEY", "x");
+    iso.setenv("EBX_SANDBOX_API_KEY", "x");
     expect(auditConfig()).toEqual([]);
   });
 });
@@ -266,17 +287,14 @@ describe("TestOptInWarning", () => {
     }
   });
 
-  it("test_opt_in_warns_once_per_legacy_kwarg", () => {
+  it("test_opt_in_does_not_warn_for_a_retired_kwarg", () => {
     iso.setenv("EBX_WARN_DEPRECATED", "1");
     _resetDeprecationWarnings();
     const spy = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
     try {
-      new LayeredConfig({ api_key: "x" } as never);
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect(String(spy.mock.calls[0]?.[0])).toContain("api_key");
-      expect(spy.mock.calls[0]?.[1]).toBe("DeprecationWarning");
-      new LayeredConfig({ api_key: "y" } as never);
-      expect(spy).toHaveBeenCalledTimes(1);
+      const c = new LayeredConfig({ api_key: "x" } as never);
+      expect(c.sandbox_api_key).toBeNull();
+      expect(spy).not.toHaveBeenCalled();
     } finally {
       spy.mockRestore();
     }
@@ -305,21 +323,23 @@ describe("TestMigration", () => {
     ["sandbox_api_key", "sandbox_base_url", "region", "http_timeout"].forEach((f, i) => expect(field(after, f), f).toEqual(snapshot[i]));
     const doc = parseTomlText(fs.readFileSync(iso.toml, "utf-8")) as Record<string, Record<string, unknown>>;
     expect(doc["core"]?.["config_format"]).toBe(2);
-    expect(doc["transport"]).not.toHaveProperty("api_url");
-    expect(doc["transport"]?.["sandbox_base_url"]).toBe("https://t.example");
+    expect(doc["transport"]?.["api_url"]).toBe("https://t.example");
+    expect(doc["transport"]?.["http_timeout"]).toBe(9);
+    expect(doc["transport"]).not.toHaveProperty("region");
+    const providers = doc["providers"] as Record<string, Record<string, unknown>> | undefined;
+    expect(providers?.["alicloud-express"]?.["region"]).toBe("cn-beijing");
     const envText = fs.readFileSync(iso.env, "utf-8");
     expect(envText).toContain("# keep me");
     expect(envText).toContain("OPENAI_API_KEY=k");
-    const names = new Set(
-      envText
-        .split("\n")
-        .filter((ln) => ln.includes("=") && !ln.startsWith("#"))
-        .map((ln) => ln.split("=", 1)[0]),
-    );
-    expect(names).toEqual(new Set(["EBX_SANDBOX_API_KEY", "EBX_ALICLOUD_EXPRESS_REGION", "OPENAI_API_KEY"]));
+    expect(envText).toContain("E2B_API_KEY=abc");
+    expect(envText).toContain("SANDBOX_API_KEY=old");
+    expect(envText).not.toContain("EBX_SANDBOX_API_KEY");
     expect(fs.existsSync(path.join(iso.home, "config.toml.bak"))).toBe(true);
     expect(fs.existsSync(path.join(iso.home, ".env.bak"))).toBe(true);
-    if (process.platform !== "win32") expect((fs.statSync(iso.env).mode & 0o777).toString(8)).toBe("600");
+    if (process.platform !== "win32") {
+      expect((fs.statSync(iso.toml).mode & 0o777).toString(8)).toBe("600");
+      expect((fs.statSync(path.join(iso.home, ".env.bak")).mode & 0o777).toString(8)).toBe("600");
+    }
   });
 
   it("test_apply_twice_is_stable", () => {

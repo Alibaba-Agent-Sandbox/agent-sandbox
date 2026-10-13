@@ -2,7 +2,7 @@
  * Authentication providers for Platform API and Sandbox envd API.
  *
  * Two authentication modes:
- * 1. API Key: E2B_API_KEY -> Authorization: Bearer {api_key} header (Platform API, 已实测验证)
+ * 1. API Key: EBX_SANDBOX_API_KEY -> Authorization: Bearer {api_key} header (Platform API, 已实测验证)
  * 2. AK/SK: Exchange for temporary API key (TTL=3600s, auto-refresh 5min before expiry)
  *
  * After sandbox creation, envd API uses envdAccessToken from create response,
@@ -40,7 +40,7 @@ export interface AuthProvider {
 /**
  * API Key authentication for Platform API.
  *
- * Uses E2B_API_KEY environment variable or explicit api_key parameter.
+ * Uses EBX_SANDBOX_API_KEY environment variable or explicit api_key parameter.
  * Sends X-API-KEY header on Platform API requests.
  */
 export class ApiKeyAuth implements AuthProvider {
@@ -360,7 +360,7 @@ export async function _exchangeAkskForApiKey(
         suggestion:
           "Check network connectivity to fcsandbox." +
           `${region}.aliyuncs.com. ` +
-          "Or use E2B_API_KEY directly.",
+          "Or use EBX_SANDBOX_API_KEY directly.",
       });
     }
     if (exc instanceof TimeoutException) {
@@ -375,7 +375,7 @@ export async function _exchangeAkskForApiKey(
     const body_text = pyTruncate(resp.text, 500);
     logger.warning("Token exchange failed (HTTP %s): %s", resp.status_code, body_text);
     throw new TokenExchangeError(`Token exchange failed (HTTP ${resp.status_code}): ${body_text}`, {
-      suggestion: "Verify AK/SK credentials have FCSandbox API access. Or use E2B_API_KEY directly.",
+      suggestion: "Verify AK/SK credentials have FCSandbox API access. Or use EBX_SANDBOX_API_KEY directly.",
     });
   }
 
@@ -400,7 +400,7 @@ export async function _exchangeAkskForApiKey(
       {
         suggestion:
           "The FCSandbox token exchange API response format may have changed. " +
-          "Use E2B_API_KEY directly as a workaround.",
+          "Use EBX_SANDBOX_API_KEY directly as a workaround.",
       },
     );
   }
@@ -419,7 +419,7 @@ export interface CreateAuthProviderOptions {
 /**
  * Create the appropriate auth provider based on available credentials.
  *
- * Priority: api_key > E2B_API_KEY (fallback) > AK/SK
+ * Priority: api_key > EBX_SANDBOX_API_KEY (fallback) > AK/SK
  *
  * When the AK/SK path is selected, a token exchange function is
  * automatically injected into the AkSkAuth instance so that
@@ -435,11 +435,10 @@ export function createAuthProvider(opts: CreateAuthProviderOptions = {}): AuthPr
     return new ApiKeyAuth(api_key);
   }
 
-  // E2B-compatible: check E2B_API_KEY
-  const e2b_key = process.env["E2B_API_KEY"];
-  if (e2b_key) {
-    logger.debug("Using API Key authentication (via E2B_API_KEY)");
-    return new ApiKeyAuth(e2b_key);
+  const sandbox_key = process.env["EBX_SANDBOX_API_KEY"];
+  if (sandbox_key) {
+    logger.debug("Using API Key authentication (via EBX_SANDBOX_API_KEY)");
+    return new ApiKeyAuth(sandbox_key);
   }
 
   if (access_key_id && access_key_secret) {
@@ -455,7 +454,7 @@ export function createAuthProvider(opts: CreateAuthProviderOptions = {}): AuthPr
   }
 
   throw new InvalidAPIKeyError("No authentication credentials provided", {
-    suggestion: "Set E2B_API_KEY or both ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET.",
+    suggestion: "Set EBX_SANDBOX_API_KEY or both ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET.",
   });
 }
 

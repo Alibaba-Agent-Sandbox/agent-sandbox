@@ -11,6 +11,11 @@ import { sys } from "../../src/framework/io.js";
 
 /** `_CONFIG_ENV_VARS` of `test_config_commands.py`: every variable that changes an effective config value. */
 export const CONFIG_ENV_VARS = [
+  "EBX_SANDBOX_API_KEY",
+  "EBX_SANDBOX_BASE_URL",
+  "EBX_SANDBOX_DOMAIN",
+  "EBX_HTTP_TIMEOUT",
+  "ALIBABA_CLOUD_REGION_ID",
   "E2B_API_KEY",
   "SANDBOX_API_KEY",
   "E2B_API_URL",

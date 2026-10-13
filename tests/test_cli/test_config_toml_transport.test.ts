@@ -87,7 +87,8 @@ describe("TransportTomlLoader", () => {
     const text = chunks.join("");
     const hits = text.split("python-dotenv could not parse statement starting at line").length - 1;
     expect(hits).toBe(1);
-    expect(text).toContain("WARNING: python-dotenv could not parse statement starting at line 1\n");
+    expect(text).toContain("python-dotenv could not parse statement starting at line 1\n");
+    expect(text.match(/python-dotenv could not parse statement starting at line/g)).toHaveLength(1);
   });
 });
 

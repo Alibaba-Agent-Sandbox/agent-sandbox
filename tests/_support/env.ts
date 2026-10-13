@@ -117,6 +117,11 @@ export function useIsolatedEnv(): Isolation {
 }
 
 export const _LEAKY_ENV_VARS = [
+  "EBX_SANDBOX_API_KEY",
+  "EBX_SANDBOX_BASE_URL",
+  "EBX_SANDBOX_DOMAIN",
+  "EBX_HTTP_TIMEOUT",
+  "ALIBABA_CLOUD_REGION_ID",
   "E2B_API_KEY",
   "E2B_API_URL",
   "E2B_DOMAIN",

@@ -71,7 +71,7 @@ describe("TestMcpInstall", () => {
     const srv = config.mcpServers["easy-sandbox"];
     expect(srv.args.slice(-2)).toEqual(["mcp", "start"]);
     expect(srv.command).toBeTruthy();
-    expect(srv.env.E2B_API_KEY).toBe("test-key-1234");
+    expect(srv.env.EBX_SANDBOX_API_KEY).toBe("test-key-1234");
   });
 
   it("test_install_claude", async () => {
@@ -96,7 +96,7 @@ describe("TestMcpInstall", () => {
     const srv = config.servers["easy-sandbox"];
     expect(srv.type).toBe("stdio");
     expect(srv.args.slice(-2)).toEqual(["mcp", "start"]);
-    expect(srv.env ?? {}).not.toHaveProperty("E2B_API_KEY");
+    expect(srv.env ?? {}).not.toHaveProperty("EBX_SANDBOX_API_KEY");
   });
 
   it("test_install_refuses_to_overwrite_jsonc", async () => {
@@ -135,7 +135,7 @@ describe("TestMcpInstall", () => {
     const config = readJson(configPath);
     const srv = config.mcpServers["easy-sandbox"];
     // No env block if no key
-    expect(!("env" in srv) || !("E2B_API_KEY" in (srv.env ?? {}))).toBe(true);
+    expect(!("env" in srv) || !("EBX_SANDBOX_API_KEY" in (srv.env ?? {}))).toBe(true);
   });
 
   it("test_install_requires_target", async () => {
@@ -253,7 +253,7 @@ describe("TestMcpStart", () => {
       expect(command).toContain("--http");
       expect(command).not.toContain("--api-key");
       expect(command).not.toContain("--auth-token");
-      expect(opts.env["E2B_API_KEY"]).toBe("super-secret-key");
+      expect(opts.env["EBX_SANDBOX_API_KEY"]).toBe("super-secret-key");
       expect(opts.env["EBX_MCP_AUTH_TOKEN"]).toBe("bearer-token");
       fs.writeFileSync(path.join(tmpPath(), "mcp-server.json"), JSON.stringify({ pid: 424242, mode: "http" }));
       return { pid: 424242, poll: () => null };
@@ -338,7 +338,7 @@ describe("TestMcpDeploy", () => {
     expect(cfg.function_name).toBe("easy-sandbox-mcp");
     expect(cfg.region).toBe("cn-hangzhou");
     expect(cfg.memory).toBe(512);
-    expect(cfg.environment_variables).toHaveProperty("E2B_API_KEY");
+    expect(cfg.environment_variables).toHaveProperty("EBX_SANDBOX_API_KEY");
     expect(cfg.environment_variables).toHaveProperty("EBX_MCP_AUTH_TOKEN");
   });
 
@@ -369,9 +369,8 @@ describe("TestMcpDeploy", () => {
     expect(cfg.region).toBe("cn-shanghai");
     expect(cfg.memory).toBe(1024);
     expect(cfg.timeout).toBe(300);
-    expect(cfg.environment_variables.EBX_TEMPLATE).toBe("python-base");
-    expect(cfg.environment_variables.SANDBOX_TEMPLATE).toBe("python-base");
-    expect(cfg.environment_variables.SANDBOX_REGION).toBe("cn-shanghai");
+    expect(cfg.environment_variables.EBX_DEFAULT_TEMPLATE).toBe("python-base");
+    expect(cfg.environment_variables.ALIBABA_CLOUD_REGION_ID).toBe("cn-shanghai");
     expect(cfg.environment_variables.EBX_MCP_AUTH_TOKEN).toBeTruthy();
   });
 
@@ -429,10 +428,11 @@ describe("TestMcpDeploy", () => {
     // deploy without API key shows warning.
     const out = path.join(tmpPath(), "artifact");
     patchApiKey(null);
+    iso.monkeypatch.delenv("EBX_SANDBOX_API_KEY");
     iso.monkeypatch.delenv("E2B_API_KEY");
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("E2B_API_KEY");
+    expect(result.output).toContain("EBX_SANDBOX_API_KEY");
   });
 
   it("test_deploy_explicit_api_key", async () => {
@@ -444,7 +444,7 @@ describe("TestMcpDeploy", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(readApiKey).not.toHaveBeenCalled();
     const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.environment_variables.E2B_API_KEY).toBe("cli-api-key");
+    expect(cfg.environment_variables.EBX_SANDBOX_API_KEY).toBe("cli-api-key");
   });
 
   it("test_deploy_session_affinity_flag", async () => {

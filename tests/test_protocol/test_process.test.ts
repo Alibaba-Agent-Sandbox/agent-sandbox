@@ -193,7 +193,7 @@ describe("TestSendStdin", () => {
 
     expect(mock_http.envdRequest).toHaveBeenCalledTimes(1);
     const call_kwargs = mock_http.envdRequest.mock.calls[0][2];
-    expect(call_kwargs.payload).toEqual({ pid: 42, data: "input\n" });
+    expect(call_kwargs.payload).toEqual({ process: { pid: 42 }, input: { stdin: Buffer.from("input\n", "utf-8").toString("base64") } });
   });
 });
 
@@ -206,7 +206,7 @@ describe("TestKillProcess", () => {
 
     expect(mock_http.envdRequest).toHaveBeenCalledTimes(1);
     const call_kwargs = mock_http.envdRequest.mock.calls[0][2];
-    expect(call_kwargs.payload).toEqual({ pid: 42, signal: 9 });
+    expect(call_kwargs.payload).toEqual({ process: { pid: 42 }, signal: "SIGNAL_SIGKILL" });
   });
 });
 
@@ -237,7 +237,7 @@ describe("TestEnvdPayloadIsolation", () => {
       await proto.start(envd_url(), envd_token(), { cmd: "echo", args: ["test"], env: per_call_env });
 
       const process_obj = captured_payload["process"];
-      expect(process_obj["envVars"]).toEqual({ MY_CALL_VAR: "hello" });
+      expect(process_obj["envs"]).toEqual({ MY_CALL_VAR: "hello" });
       const payload_str = JSON.stringify(captured_payload);
       expect(payload_str).not.toContain(_SERVER_INJECTED_VAR);
       expect(payload_str).not.toContain(_SERVER_INJECTED_VALUE);

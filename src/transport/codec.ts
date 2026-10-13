@@ -40,7 +40,7 @@ export function json_decode(data: Uint8Array | string): any {
     }
   }
   try {
-    const parsed = NEEDS_NUMBER_SOURCE.test(text) ? JSON.parse(text, orjsonNumberReviver as never) : JSON.parse(text);
+    const parsed = NEEDS_NUMBER_SOURCE.test(text) ? parseOrjsonNumbers(text) : JSON.parse(text);
     // JSON.parse is laxer than orjson for lone surrogate escapes and overflowing numbers.
     if (STRICTER_THAN_JS.test(text)) {
       const strict = orjsonDiagnose(text);
@@ -59,17 +59,77 @@ const NEEDS_NUMBER_SOURCE = /\d{16}|\.\d|\d[eE]/;
 const U64_MAX = 18446744073709551615n;
 const I64_MIN = -9223372036854775808n;
 
+const ORJSON_NUMBER = /(-?(?:0|[1-9]\d*))(?:\.\d+)?(?:[eE][-+]?\d+)?/y;
+const ORJSON_NUMBER_TAG = "\u0000orjson:";
+
 /**
- * orjson's number model on top of `JSON.parse`: a literal with a fraction/exponent is a `float` (whole values become
- * {@link PyFloat}), integers beyond 2**53 stay exact up to 64 bits (`bigint`) and are floats beyond that.
+ * orjson's number model: a literal with a fraction or exponent is a float (whole values become {@link PyFloat}),
+ * `-0` is the integer 0, integers beyond 2**53 stay exact up to 64 bits (`bigint`) and are floats beyond that.
+ *
+ * `JSON.parse`'s reviver `context.source` exists only on Node 22+, so the literal text is tagged before parsing.
  */
-function orjsonNumberReviver(_key: string, value: unknown, ctx?: { source?: string }): unknown {
-  if (typeof value !== "number" || ctx?.source === undefined) return value;
-  const src = ctx.source;
-  if (/[.eE]/.test(src)) return Number.isInteger(value) || !Number.isFinite(value) ? new PyFloat(value) : value;
-  if (Number.isSafeInteger(value)) return value === 0 ? 0 : value;
+function orjsonNumberFromSource(src: string): number | bigint | PyFloat {
+  if (/[.eE]/.test(src)) {
+    const value = Number.parseFloat(src);
+    return Number.isInteger(value) || !Number.isFinite(value) ? new PyFloat(value) : value;
+  }
+  const asNumber = Number(src);
+  if (Number.isSafeInteger(asNumber)) return asNumber === 0 ? 0 : asNumber;
   const big = BigInt(src);
-  return big >= I64_MIN && big <= U64_MAX ? big : new PyFloat(value);
+  return big >= I64_MIN && big <= U64_MAX ? big : new PyFloat(asNumber);
+}
+
+function tagOrjsonNumbers(text: string): string {
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i] as string;
+    if (ch === '"') {
+      let end = i + 1;
+      while (end < text.length) {
+        const c = text[end] as string;
+        if (c === "\\") {
+          end += 2;
+          continue;
+        }
+        end += 1;
+        if (c === '"') break;
+      }
+      out += text.slice(i, end);
+      i = end;
+      continue;
+    }
+    if (ch === "-" || (ch >= "0" && ch <= "9")) {
+      ORJSON_NUMBER.lastIndex = i;
+      const match = ORJSON_NUMBER.exec(text);
+      if (match && match.index === i) {
+        out += JSON.stringify(ORJSON_NUMBER_TAG + match[0]);
+        i += match[0].length;
+        continue;
+      }
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
+function restoreOrjsonNumbers(value: unknown): unknown {
+  if (typeof value === "string" && value.startsWith(ORJSON_NUMBER_TAG)) return orjsonNumberFromSource(value.slice(ORJSON_NUMBER_TAG.length));
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) value[i] = restoreOrjsonNumbers(value[i]);
+    return value;
+  }
+  if (value !== null && typeof value === "object") {
+    for (const key of Object.keys(value)) {
+      (value as Record<string, unknown>)[key] = restoreOrjsonNumbers((value as Record<string, unknown>)[key]);
+    }
+  }
+  return value;
+}
+
+function parseOrjsonNumbers(text: string): unknown {
+  return restoreOrjsonNumbers(JSON.parse(tagOrjsonNumbers(text)));
 }
 
 class OrjsonFail extends Error {

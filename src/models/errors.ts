@@ -107,7 +107,7 @@ export class InvalidCredentialsError extends AuthenticationError {
  */
 export class TokenExchangeError extends AuthenticationError {
   static override code = "E1004";
-  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use E2B_API_KEY directly, or check AK/SK credentials and network connectivity.";
+  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use EBX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.";
 }
 
 /**

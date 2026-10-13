@@ -226,7 +226,7 @@ describe("TestStdioProcess", () => {
     ].join("\n");
     const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "ebx-mcp-stdio-"));
     const env = { ...process.env };
-    env.E2B_API_KEY = "stdio-e2e-placeholder";
+    env.EBX_SANDBOX_API_KEY = "stdio-e2e-placeholder";
     env.EBX_MCP_RUNTIME_DIR = runtime;
     env.HOME = runtime;
     env.USERPROFILE = runtime;

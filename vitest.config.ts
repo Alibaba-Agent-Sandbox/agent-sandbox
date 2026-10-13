@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
+    setupFiles: ["tests/setup/suppress-ci.ts"],
     testTimeout: 20000,
   },
 });

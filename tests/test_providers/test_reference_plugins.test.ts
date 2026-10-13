@@ -88,8 +88,8 @@ describe("e2b-compatible (rest provider) over a local E2B-style server", () => {
   });
 
   it("uses the inherited generic key and URL with the declared header scheme", async () => {
-    iso.setenv("E2B_API_KEY", "abcd1234");
-    iso.setenv("E2B_API_URL", origin);
+    iso.setenv("EBX_SANDBOX_API_KEY", "abcd1234");
+    iso.setenv("EBX_SANDBOX_BASE_URL", origin);
     const infra = await getProvider("e2b-compatible").buildInfra(loadLayeredConfig({ provider: "e2b-compatible", http2: false }));
     try {
       const info = await infra.sandbox_protocol.create(new SandboxConfig({ template: "base" }), {});
@@ -103,9 +103,9 @@ describe("e2b-compatible (rest provider) over a local E2B-style server", () => {
   });
 
   it("scoped credentials win and never reach the built-in provider's namespace", async () => {
-    iso.setenv("E2B_API_KEY", "generic");
+    iso.setenv("EBX_SANDBOX_API_KEY", "generic");
     iso.setenv("EBX_E2B_COMPATIBLE_SANDBOX_API_KEY", "scoped");
-    iso.setenv("E2B_API_URL", origin);
+    iso.setenv("EBX_SANDBOX_BASE_URL", origin);
     const infra = await getProvider("e2b-compatible").buildInfra(loadLayeredConfig({ provider: "e2b-compatible", http2: false }));
     try {
       await infra.sandbox_protocol.create(new SandboxConfig({ template: "base" }), {});

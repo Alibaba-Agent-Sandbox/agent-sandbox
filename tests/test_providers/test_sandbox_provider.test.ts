@@ -217,7 +217,7 @@ describe("provider-level behaviour that needs no plugin runtime", () => {
 
   it("test_builtin_provider_builds_the_existing_transport_objects", async () => {
     const provider = getProvider();
-    const infra = await provider.buildInfra(loadLayeredConfig({ api_key: "k", api_url: "https://api.example" }));
+    const infra = await provider.buildInfra(loadLayeredConfig({ sandbox_api_key: "k", sandbox_base_url: "https://api.example" }));
     try {
       expect(infra.http_client).not.toBeNull();
       expect(infra.sandbox_protocol.constructor.name).toBe("SandboxProtocol");

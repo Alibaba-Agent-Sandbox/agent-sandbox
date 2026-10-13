@@ -18,10 +18,10 @@ export function serverOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): {
   template: string;
 } {
   return {
-    api_key: env.E2B_API_KEY || env.SANDBOX_API_KEY || null,
-    api_url: env.E2B_API_URL || env.SANDBOX_API_BASE_URL || null,
-    domain: env.E2B_DOMAIN || null,
-    template: env.SANDBOX_TEMPLATE || env.EBX_TEMPLATE || "base",
+    api_key: env.EBX_SANDBOX_API_KEY || null,
+    api_url: env.EBX_SANDBOX_BASE_URL || null,
+    domain: env.EBX_SANDBOX_DOMAIN || null,
+    template: env.EBX_DEFAULT_TEMPLATE || "base",
   };
 }
 

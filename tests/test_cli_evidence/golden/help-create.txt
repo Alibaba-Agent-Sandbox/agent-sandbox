@@ -66,6 +66,12 @@ Options:
                            clarification, build/deploy confirmation) and run the
                            full create pipeline. Required for AI generation in
                            non-interactive shells.
+  --model TEXT             Model id for the Qwen Code generation step (for
+                           example qwen-coder-plus). Overrides llm_model /
+                           EBX_LLM_MODEL / OPENAI_MODEL for this command. When
+                           the endpoint rejects the model, an interactive
+                           terminal offers coding and chat models with the arrow
+                           keys.
   --acr-namespace TEXT     ACR namespace for building the AI-generated template
                            (env: ACR_NAMESPACE, or set in .env file)
   --dir DIRECTORY          Parent directory for the AI-generated template files

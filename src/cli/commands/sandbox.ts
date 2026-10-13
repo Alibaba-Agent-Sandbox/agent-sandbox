@@ -790,8 +790,8 @@ export async function _generateTemplateWorkspace(
     return gen;
   } catch (exc) {
     const text = exc instanceof Error ? `${exc.message}\n${(exc as { suggestion?: string }).suggestion ?? ""}` : String(exc);
-    if (!qwenCode.modelRejectedByEndpoint(text) || modelOverride) throw _withModelHint(exc, creds);
-    if (yes || fmt.use_json || !sandboxSeams.stdinIsatty()) throw _withModelHint(exc, creds);
+    if (!qwenCode.modelRejectedByEndpoint(text)) throw exc;
+    if (modelOverride || yes || fmt.use_json || !sandboxSeams.stdinIsatty()) throw _withModelHint(exc, creds);
     const picked = await _pickReplacementModel(ctx, creds);
     if (!picked) throw _withModelHint(exc, creds);
     const configCmd = await import("./config_cmd.js");

@@ -116,7 +116,7 @@ function _stdout(): { write(text: string): void; flush(): void } {
 
 /** Keys that users can configure (key -> help). */
 export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
-  ["sandbox_api_key", "Sandbox service API key (E2B-compatible; env vars E2B_API_KEY > SANDBOX_API_KEY)"],
+  ["sandbox_api_key", "Sandbox service API key (env: EBX_SANDBOX_API_KEY)"],
   ["access_key_id", "Alibaba Cloud AccessKey ID for template deploy / ACR push"],
   ["access_key_secret", "Alibaba Cloud AccessKey Secret for template deploy / ACR push"],
   ["acr_namespace", "ACR namespace for template build, push, and install (env: ACR_NAMESPACE)"],
@@ -134,7 +134,7 @@ export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
 
 /** Keys stored in `~/.ebx/.env` (mapped to their env-var name) rather than `config.toml`. */
 export const _ENV_STORED_KEYS: ReadonlyMap<string, string> = new Map([
-  ["sandbox_api_key", "E2B_API_KEY"],
+  ["sandbox_api_key", "EBX_SANDBOX_API_KEY"],
   ["access_key_id", "ALICLOUD_ACCESS_KEY_ID"],
   ["access_key_secret", "ALICLOUD_ACCESS_KEY_SECRET"],
   ["acr_namespace", "ACR_NAMESPACE"],
@@ -194,14 +194,14 @@ const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_ap
 
 /** Environment variables that override each key at runtime, in priority order. */
 const _ENV_OVERRIDES: ReadonlyMap<string, readonly string[]> = new Map([
-  ["sandbox_api_key", ["E2B_API_KEY", "SANDBOX_API_KEY"]],
-  ["access_key_id", ["ALICLOUD_ACCESS_KEY_ID", "AccessKey"]],
-  ["access_key_secret", ["ALICLOUD_ACCESS_KEY_SECRET", "AccessSecret"]],
+  ["sandbox_api_key", ["EBX_SANDBOX_API_KEY"]],
+  ["access_key_id", ["ALICLOUD_ACCESS_KEY_ID"]],
+  ["access_key_secret", ["ALICLOUD_ACCESS_KEY_SECRET"]],
   ["acr_namespace", ["ACR_NAMESPACE"]],
-  ["api_url", ["E2B_API_URL", "SANDBOX_API_BASE_URL"]],
-  ["domain", ["E2B_DOMAIN"]],
-  ["region", ["SANDBOX_REGION"]],
-  ["http_timeout", ["SANDBOX_HTTP_TIMEOUT"]],
+  ["api_url", ["EBX_SANDBOX_BASE_URL"]],
+  ["domain", ["EBX_SANDBOX_DOMAIN"]],
+  ["region", ["ALIBABA_CLOUD_REGION_ID"]],
+  ["http_timeout", ["EBX_HTTP_TIMEOUT"]],
   [
     "llm_api_key",
     ["EBX_LLM_API_KEY", "BAILIAN_CODING_PLAN_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY", "EBX_QWEN_CODE_API_KEY"],
@@ -1066,8 +1066,8 @@ const GET_HELP = [
   "",
   "    \b",
   "    Available keys:",
-  "      sandbox_api_key    Sandbox service API key (E2B-compatible; env vars",
-  "                         E2B_API_KEY > SANDBOX_API_KEY; stored in ~/.ebx/.env,",
+  "      sandbox_api_key    Sandbox service API key (env var EBX_SANDBOX_API_KEY;",
+  "                         stored in ~/.ebx/.env,",
   "                         shown masked). ``api_key`` is accepted as an alias.",
   "      access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth",
   "                         (template deploy, ACR push; stored in ~/.ebx/.env)",
@@ -1136,8 +1136,8 @@ const SET_HELP = [
   "",
   "    \b",
   "    Available keys (expected value):",
-  "      sandbox_api_key    Sandbox service API key, E2B-compatible (string;",
-  "                         env vars E2B_API_KEY > SANDBOX_API_KEY).",
+  "      sandbox_api_key    Sandbox service API key (string; env var",
+  "                         EBX_SANDBOX_API_KEY).",
   "                         ``api_key`` is accepted as an alias.",
   "      access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth, used by",
   "                         template deploy and ACR push (string)",
@@ -1612,7 +1612,7 @@ function _printNoninteractiveSetup(): void {
   const lines = [
     "Non-interactive setup. Run these commands to configure ebx:",
     "",
-    "  ebx config set sandbox_api_key <E2B_API_KEY>",
+    "  ebx config set sandbox_api_key <EBX_SANDBOX_API_KEY>",
     "  ebx config set region cn-hangzhou",
     "  ebx config set llm_api_key <DASHSCOPE_OR_MODELSTUDIO_KEY>",
     "",
@@ -1625,7 +1625,7 @@ function _printNoninteractiveSetup(): void {
     "  ebx config set llm_base_url <OPENAI_COMPATIBLE_BASE_URL>",
     "  ebx config set llm_model qwen3-coder-plus",
     "",
-    "Environment variables (E2B_API_KEY, EBX_LLM_API_KEY, ACR_NAMESPACE,",
+    "Environment variables (EBX_SANDBOX_API_KEY, EBX_LLM_API_KEY, ACR_NAMESPACE,",
     "ALICLOUD_ACCESS_KEY_ID, ALICLOUD_ACCESS_KEY_SECRET) override stored values.",
   ];
   for (const line of lines) echo(line);
@@ -1654,9 +1654,9 @@ export const init = command("init", {
     echo("ebx guided configuration (press Enter to keep the current value or skip):");
     echo();
 
-    const apiKey = await configSeams._promptSecret("1/6 Sandbox API key (sandbox_api_key / E2B_API_KEY, input masked)");
+    const apiKey = await configSeams._promptSecret("1/6 Sandbox API key (sandbox_api_key / EBX_SANDBOX_API_KEY, input masked)");
     if (pyStrip(apiKey)) {
-      configSeams.writeEnvVar("E2B_API_KEY", pyStrip(apiKey));
+      configSeams.writeEnvVar("EBX_SANDBOX_API_KEY", pyStrip(apiKey));
       fmt.printSuccess("Stored sandbox_api_key in ~/.ebx/.env");
     }
 

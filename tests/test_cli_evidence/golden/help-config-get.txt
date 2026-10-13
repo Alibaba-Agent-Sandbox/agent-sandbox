@@ -7,8 +7,8 @@ Usage: cli config get [OPTIONS] KEY
   these print ``(not set)``. Sensitive keys are masked.
 
   Available keys:
-    sandbox_api_key    Sandbox service API key (E2B-compatible; env vars
-                       E2B_API_KEY > SANDBOX_API_KEY; stored in ~/.ebx/.env,
+    sandbox_api_key    Sandbox service API key (env var EBX_SANDBOX_API_KEY;
+                       stored in ~/.ebx/.env,
                        shown masked). ``api_key`` is accepted as an alias.
     access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth
                        (template deploy, ACR push; stored in ~/.ebx/.env)

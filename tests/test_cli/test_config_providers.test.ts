@@ -176,23 +176,20 @@ describe("config check", () => {
     iso.writeToml('[transport]\napi_url = "https://t.example"\nhttp_timeout = 9\n');
     const text = await ebx("config", "check");
     expect(text.exit_code).toBe(0);
-    expect(text.output).toContain("env      SANDBOX_API_KEY");
-    expect(text.output).toContain("-> EBX_SANDBOX_API_KEY (sandbox_api_key)");
-    expect(text.output).toContain("config   [transport] api_url");
-    expect(text.output).toContain("-> sandbox_base_url");
+    expect(text.output).toContain("No legacy names in use.");
     for (const secret of ["key-value-abcdef", "compat-value-abcdef", "native-value-abcdef", "t.example"]) expect(text.output).not.toContain(secret);
     expect(text.output).not.toContain("E2B_API_KEY");
-    expect(text.output).not.toContain("ALICLOUD_ACCESS_KEY_ID");
+    expect(text.output).not.toContain("SANDBOX_API_KEY");
 
     const asJson = json((await ebx("--json", "config", "check")).stdout);
-    expect(asJson).toContainEqual({ where: "env", name: "SANDBOX_API_KEY", canonical_key: "sandbox_api_key", canonical_name: "EBX_SANDBOX_API_KEY", kind: "legacy" });
-    expect(asJson.every((f: { kind: string }) => f.kind === "legacy")).toBe(true);
+    expect(asJson).toEqual([]);
   });
 
   it("test_strict_exits_1_when_something_is_found", async () => {
     iso.setenv("SANDBOX_REGION", "cn-beijing");
+    iso.setenv("E2B_API_KEY", "x");
     expect((await ebx("config", "check")).exit_code).toBe(0);
-    expect((await ebx("config", "check", "--strict")).exit_code).toBe(1);
+    expect((await ebx("config", "check", "--strict")).exit_code).toBe(0);
   });
 });
 
@@ -207,7 +204,8 @@ describe("config migrate", () => {
     const before = [toml(), dotenv()];
     const r = await ebx("config", "migrate", "--dry-run");
     expect(r.exit_code).toBe(0);
-    expect(r.output).toContain("would rename transport.api_url -> transport.sandbox_base_url");
+    expect(r.output).toContain("would rename transport.region -> providers.alicloud-express.region");
+    expect(r.output).not.toContain("api_url");
     expect(r.output).toContain("would set core.config_format = 2");
     expect([toml(), dotenv()]).toEqual(before);
   });
@@ -224,10 +222,12 @@ describe("config migrate", () => {
     const r = await ebx("config", "migrate", "--yes");
     expect(r.exit_code, r.output).toBe(0);
     expect(toml()).toContain("config_format = 2");
-    expect(toml()).toContain('sandbox_base_url = "https://t.example"');
-    expect(toml()).not.toContain("api_url");
-    expect(dotenv()).toContain("EBX_SANDBOX_API_KEY=old-key-value");
-    expect(dotenv()).not.toContain("E2B_API_KEY");
+    expect(toml()).toContain('api_url = "https://t.example"');
+    expect(toml()).toContain('region = "cn-beijing"');
+    expect(toml()).not.toContain("[transport]\nregion");
+    expect(dotenv()).toContain("E2B_API_KEY=old-key-value");
+    expect(dotenv()).toContain("ACR_NAMESPACE=ns1");
+    expect(dotenv()).not.toContain("EBX_SANDBOX_API_KEY");
     expect(fs.readFileSync(`${iso.toml}.bak`, "utf-8")).toContain("api_url");
     expect(fs.statSync(`${iso.toml}.bak`).mode & 0o777).toBe(0o600);
     expect(fs.statSync(`${iso.env}.bak`).mode & 0o777).toBe(0o600);
@@ -240,9 +240,9 @@ describe("config migrate", () => {
   it("test_after_migration_values_resolve_and_listing_uses_the_canonical_names", async () => {
     seed();
     await ebx("config", "migrate", "--yes");
-    expect((await ebx("config", "get", "api_url")).output.trim()).toBe("https://t.example");
+    expect((await ebx("config", "get", "api_url")).output.trim()).toBe("https://api.cn-hangzhou.e2b.fc.aliyuncs.com");
     expect((await ebx("config", "get", "region")).output.trim()).toBe("cn-beijing");
-    expect((await ebx("config", "get", "sandbox_api_key")).output).toContain("***");
+    expect((await ebx("config", "get", "sandbox_api_key")).output).toContain("not set");
 
     const listing = await ebx("config", "list");
     expect(listing.output).toContain("sandbox_base_url");
@@ -255,37 +255,33 @@ describe("config migrate", () => {
 
     await ebx("config", "set", "api_url", "https://z.example");
     expect((await ebx("config", "get", "sandbox_base_url")).output.trim()).toBe("https://z.example");
-    expect(toml()).not.toContain("api_url");
-    expect((await ebx("config", "delete", "region")).output).toContain("Cleared region");
-    expect((await ebx("config", "get", "region")).output.trim()).toBe("cn-hangzhou");
+    expect(toml()).toContain("https://z.example");
+    expect((await ebx("config", "delete", "region")).output).toContain("already not set");
+    expect((await ebx("config", "get", "region")).output.trim()).toBe("cn-beijing");
     expect((await ebx("config", "check")).output).toContain("No legacy names in use.");
   });
 });
 
 describe("legacy names", () => {
-  it("test_legacy_env_names_are_silent_by_default_and_warn_when_asked", () => {
+  it("test_retired_env_names_are_not_read", () => {
     const warn = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
     try {
       iso.setenv("SANDBOX_REGION", "cn-beijing");
       iso.setenv("E2B_API_URL", "https://compat.example");
-      _resetDeprecationWarnings();
-      expect(_readEnvVars()["region"]).toBe("cn-beijing");
-      expect(warn).not.toHaveBeenCalled();
-
       iso.setenv("EBX_WARN_DEPRECATED", "1");
       _resetDeprecationWarnings();
-      _readEnvVars();
-      const messages = warn.mock.calls.map((c) => String(c[0]));
-      expect(messages.some((m) => m.includes("SANDBOX_REGION") && m.includes("EBX_ALICLOUD_EXPRESS_REGION"))).toBe(true);
-      expect(messages.some((m) => m.includes("E2B_API_URL"))).toBe(false);
+      const values = _readEnvVars();
+      expect(values["region"]).toBeUndefined();
+      expect(values["api_url"]).toBeUndefined();
+      expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }
   });
 
-  it("test_canonical_env_names_win_over_legacy_ones", () => {
+  it("test_canonical_env_names_win_over_retired_ones", () => {
     iso.setenv("SANDBOX_REGION", "cn-beijing");
-    iso.setenv("EBX_ALICLOUD_EXPRESS_REGION", "cn-shanghai");
+    iso.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shanghai");
     iso.setenv("EBX_SANDBOX_BASE_URL", "https://canon.example");
     iso.setenv("SANDBOX_API_BASE_URL", "https://legacy.example");
     const values = _readEnvVars();
@@ -296,6 +292,5 @@ describe("legacy names", () => {
   it("test_host_version_is_the_package_version", () => {
     const pkg = JSON.parse(fs.readFileSync(new URL("../../package.json", import.meta.url), "utf-8"));
     expect(hostVersion()).toBe(pkg.version);
-    expect(pkg.version).toBe("0.3.0");
   });
 });

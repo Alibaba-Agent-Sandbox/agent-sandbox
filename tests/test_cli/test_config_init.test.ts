@@ -68,7 +68,7 @@ describe("TestConfigInitWizard", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     const envContent = readText(envFile);
-    expect(envContent).toContain("E2B_API_KEY=sk-platform");
+    expect(envContent).toContain("EBX_SANDBOX_API_KEY=sk-platform");
     expect(envContent).toContain("EBX_LLM_API_KEY=sk-qwen");
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexampleAk");
@@ -152,7 +152,7 @@ describe("TestConfigInitMaskedInput", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(mockPrompt).toHaveBeenCalledTimes(3);
     const envContent = readText(envFile);
-    expect(envContent).toContain("E2B_API_KEY=sk-platform");
+    expect(envContent).toContain("EBX_SANDBOX_API_KEY=sk-platform");
     expect(envContent).toContain("EBX_LLM_API_KEY=sk-qwen");
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexample");

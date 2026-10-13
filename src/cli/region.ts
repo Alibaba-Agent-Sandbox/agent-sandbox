@@ -8,7 +8,7 @@
  * every command):
  *
  * 1. Command `--region/-r` value
- * 2. `SANDBOX_REGION` process environment (then the same name in `./.env`)
+ * 2. `ALIBABA_CLOUD_REGION_ID` process environment (then the same name in `./.env`)
  * 3. `ebx config set region` (`~/.ebx/config.toml` or `~/.ebx/.env`)
  * 4. Default `cn-hangzhou`
  */
@@ -33,7 +33,7 @@ export function regionOption(): Option {
 /**
  * Return the effective region for a command invocation.
  *
- * Priority: command `--region` > `SANDBOX_REGION` > `ebx config set region` > `cn-hangzhou`. Commands that build the
+ * Priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`. Commands that build the
  * full transport config should instead call `loadConfig({ region: cliRegion })` directly -- the same priority
  * applies.
  */
