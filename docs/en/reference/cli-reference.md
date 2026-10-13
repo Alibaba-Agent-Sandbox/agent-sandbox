@@ -28,7 +28,7 @@ The following command groups from earlier pre-releases were removed before the f
 
 | Removed | Replacement |
 |---------|-------------|
-| `ebx auth login/logout/status/switch` | `ebx config set sandbox_api_key <value>` to persist credentials, or the `E2B_API_KEY` / `SANDBOX_API_KEY` environment variables; check the effective state with `ebx config list` |
+| `ebx auth login/logout/status/switch` | `ebx config set sandbox_api_key <value>` to persist credentials, or the `EBX_SANDBOX_API_KEY` environment variable; check the effective state with `ebx config list` |
 | `ebx secret create/list/delete/inject` | Environment variables or `.env` files for credentials and secrets; sandbox environment injection via `ebx create --env KEY=VALUE` |
 | `ebx session` / `ebx sessions list/info/rename/export/import/clean` | Session data is still stored locally in `~/.ebx/sessions/` by `LocalSessionStore`; use the SDK's `Sandbox.connect()` programmatically (the interactive REPL `ebx connect <SANDBOX_ID>` remains available) |
 | `ebx skill search/install/list/create/publish` | Templates are the current capability-distribution mechanism (`ebx template search` / `ebx template install`); the repository-root `SKILL.md` documents agent-facing usage |
@@ -109,7 +109,7 @@ Mutual exclusion is deliberate: either the description or the template would hav
 
 The AI path requires a locally available Qwen Code CLI and DashScope/ModelStudio credentials. When it is missing, interactive terminals are offered an official standalone install (verified via SHA256, installed into `~/.ebx/bin`); non-interactive environments must pass `--yes` explicitly. On a terminal that install is an `Installing ... 12s` header with the download, checksum, and extract milestones in grey underneath; the archive bytes and the API key are not shown. Creating the sandbox itself uses `Creating sandbox... 12s` (file names appear under it only when `--upload` is set).
 
-Before generating, the agent runs a two-phase clarification on one native session: a plain **research round** first (its own tools settle the publicly verifiable facts — tool stack, official install method, common dependencies; unreachable facts get safe defaults), then a **structured assessment** of the description's completeness (target: 80%). Below the threshold, interactive sessions are asked **one question at a time**, numbered `Question 1`, `Question 2`, … with no total shown (an internal 5-round cap is mentioned only when reached); every answer resumes the same session, re-assesses the full description plus the whole Q/A history, already-asked topics are never repeated, and delegation answers ("you decide" / "use the default") instruct the agent to settle the choice itself with safe defaults. Non-interactive sessions without `--yes` fail fast with `E2008`, listing the missing details and a ready-to-use example description; `--yes` skips research and assessment entirely. The research round is bounded (20 agent turns, 240 s by default, override with `EBX_QWEN_RESEARCH_TIMEOUT`); when it times out or runs out of turns the CLI warns with the reason and continues with safe defaults, and the assessment then starts a fresh session. If the assessment is unavailable (timeout, crash, unparseable payload), the CLI warns and generates directly. While the agent works, a TTY shows a header such as `Researching public facts... 12s` / `Assessing description... 12s` with the agent's last four activity lines in grey on the lines below it (recent assistant text and tool names; they scroll line by line, `EBX_ACTIVITY_LINES=1..10` changes the count, and it also works under `--verbose`); nothing of this is printed to stdout or in `--json` / `--quiet` / CI modes.
+Before generating, the agent runs a two-phase clarification on one native session: a plain **research round** first (its own tools settle the publicly verifiable facts — tool stack, official install method, common dependencies; unreachable facts get safe defaults), then a **structured assessment** of the description's completeness (target: 80%). Below the threshold, interactive sessions are asked **one question at a time**, numbered `Question 1`, `Question 2`, … with no total shown (an internal 5-round cap is mentioned only when reached); every answer resumes the same session, re-assesses the full description plus the whole Q/A history, already-asked topics are never repeated, and delegation answers ("you decide" / "use the default") instruct the agent to settle the choice itself with safe defaults. Non-interactive sessions without `--yes` fail fast with `E2008`, listing the missing details and a ready-to-use example description; `--yes` skips research and assessment entirely. The research round is bounded (20 agent turns, 240 s by default, override with `EBX_QWEN_RESEARCH_TIMEOUT`); when it times out or runs out of turns the CLI warns with the reason and continues with safe defaults, and the assessment then starts a fresh session. If the assessment is unavailable (timeout, crash, unparseable payload), the CLI warns and generates directly. While the agent works, a TTY shows a header such as `Researching public facts... 12s` / `Assessing description... 12s` with the agent's last six activity lines in grey on the lines below it (recent assistant text and a short redacted tool detail — command, url, query, or path; they scroll line by line, `EBX_ACTIVITY_LINES` is 1–10, and it also works under `--verbose`; file bytes, thinking, and credentials stay hidden); nothing of this is printed to stdout or in `--json` / `--quiet` / CI modes.
 
 ```bash
 ebx create [DESCRIPTION] [options]
@@ -341,7 +341,7 @@ Available config keys:
 
 | Key | Description |
 |-----|-------------|
-| `sandbox_api_key` | Sandbox service API key (stored in `~/.ebx/.env` as `E2B_API_KEY`, shown masked; `api_key` is a get/set alias) |
+| `sandbox_api_key` | Sandbox service API key (stored in `~/.ebx/.env` as `EBX_SANDBOX_API_KEY`, shown masked) |
 | `access_key_id` | Alibaba Cloud AccessKey ID (template deploy, ACR push) |
 | `access_key_secret` | Alibaba Cloud AccessKey Secret (shown masked) |
 | `acr_namespace` | ACR namespace for template build, push, and install (stored as `ACR_NAMESPACE`) |
@@ -395,14 +395,14 @@ ebx config init --yes   # Non-interactive: print equivalent ebx config set comma
 ebx config init --reset-shortcuts   # Reset the [shortcuts] aliases to the default set
 ```
 
-- Interactive terminals prompt for six items in order; sensitive values (API keys and the AccessKey secret) are typed with asterisk feedback (one `*` per character, never echoed) when the terminal supports it — otherwise a no-echo fallback is used with an explicit notice. Press Enter to skip a prompt. Secrets are stored in `~/.ebx/.env` (`E2B_API_KEY`, `EBX_LLM_API_KEY`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`); the ACR namespace is stored there as `ACR_NAMESPACE`; the region is written to `~/.ebx/config.toml`.
+- Interactive terminals prompt for six items in order; sensitive values (API keys and the AccessKey secret) are typed with asterisk feedback (one `*` per character, never echoed) when the terminal supports it — otherwise a no-echo fallback is used with an explicit notice. Press Enter to skip a prompt. Secrets are stored in `~/.ebx/.env` (`EBX_SANDBOX_API_KEY`, `EBX_LLM_API_KEY`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`); the ACR namespace is stored there as `ACR_NAMESPACE`; the region is written to `~/.ebx/config.toml`.
 - The wizard also writes a complete `[shortcuts]` template (every available command, ready to edit) into `~/.ebx/config.toml`; `--reset-shortcuts` restores the factory defaults without touching credentials.
 - Enter accepts the current value / skips the prompt, Backspace edits, and Ctrl-C / EOF (Ctrl-D) abort the wizard cleanly.
 - Non-TTY environments (CI, piped input) or `--yes` never block: they print the equivalent non-interactive `ebx config set` commands and exit 0.
 
 ```bash
 ebx config init
-# 1/6 Sandbox API key (E2B_API_KEY, input masked)
+# 1/6 Sandbox API key (EBX_SANDBOX_API_KEY, input masked)
 # 2/6 Region (default cn-hangzhou)
 # 3/6 LLM API key (DashScope/ModelStudio, input masked)
 # 4/6 ACR namespace (needed by ebx install / template deploy)
@@ -569,7 +569,7 @@ Parameters for `template build` / `template deploy` are resolved through a **5-l
 | 4 | `template.yaml` in the template directory |
 | 5 | Hardcoded fallback |
 
-> **Automation / CI**: pass `--acr-namespace` and the template directory explicitly on the command line instead of relying on `ACR_NAMESPACE` / `EBX_TEMPLATE_DIR` environment variables or a `.env` file, so builds cannot silently drift with the surrounding environment. For `template install` / `install`, either pass `--acr-namespace` explicitly or use `--download-only` when the pipeline must not touch the cloud at all.
+> **Automation / CI**: pass `--acr-namespace` and the template directory explicitly on the command line instead of relying on `ACR_NAMESPACE` / `EBX_DEFAULT_TEMPLATE_DIR` environment variables or a `.env` file, so builds cannot silently drift with the surrounding environment. For `template install` / `install`, either pass `--acr-namespace` explicitly or use `--download-only` when the pipeline must not touch the cloud at all.
 
 ### ebx template build
 
@@ -732,7 +732,7 @@ ebx template search <QUERY> [options]
 |--------|-------|-------------|
 | `--tag` | `-t` | Filter by exact tag name |
 | `--status` | `-s` | Filter by status: `official` / `community` / `experimental` |
-| `--index-url` | | Index location: HTTP(S) URL or local file path (env: `EBX_TEMPLATE_INDEX_URL`; default: the canonical remote index) |
+| `--index-url` | | Index location: HTTP(S) URL or local file path (env: `EBX_DEFAULT_TEMPLATE_INDEX_URL`; default: the canonical remote index) |
 | `--token` | | GitHub token for private mirrors / higher rate limits (env: `GITHUB_TOKEN`). Temporary override only — prefer `ebx config set github_token` |
 | `--refresh` | | Force a re-fetch of the index, ignoring the local cache |
 
@@ -819,12 +819,12 @@ ebx mcp deploy [options]
 | `--auth-token-file` | Path to a Bearer token file |
 | `--generate-token` | Auto-generate a random Bearer token |
 | `--enable-session-affinity/--no-session-affinity` | Mcp-Session-Id affinity (default: enabled) |
-| `--api-key` | E2B_API_KEY to inject into FC function env |
+| `--api-key` | EBX_SANDBOX_API_KEY to inject into FC function env |
 | `--custom-domain` | Custom domain for the MCP endpoint |
 | `--output-dir` | Write the deployment artifact to this directory |
 
 ```bash
-ebx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./deploy-artifact
+ebx mcp deploy --generate-token --api-key $EBX_SANDBOX_API_KEY --output-dir ./deploy-artifact
 ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir ./artifact
 ```
 

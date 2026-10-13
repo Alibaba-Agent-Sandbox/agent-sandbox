@@ -27,10 +27,7 @@ import { dotenvValues } from "../utils/_dotenv.js";
 import { PyFloat, pyStrip } from "../utils/_pyformat.js";
 import { parseTomlBytes } from "../utils/toml_plain.js";
 import { dumpsToml } from "../utils/toml_write.js";
-import { getLogger } from "../utils/logging.js";
 import { TransportConfig, _setLegacyNameHook, clearCachedConfigBytes, readCachedConfigBytes } from "./config.js";
-
-const logger = getLogger("transport.config_layers");
 
 export const ENVD_PORT = 49983;
 export const DEFAULT_BASE_URL = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com";
@@ -41,12 +38,7 @@ const BUILTIN_DERIVE: Readonly<Record<string, string>> = {
   sandbox_domain: "{region}.e2b.fc.aliyuncs.com",
 };
 
-const LEGACY_FIELD_NAMES: Readonly<Record<string, string>> = {
-  api_key: "sandbox_api_key",
-  api_url: "sandbox_base_url",
-  api_base_url: "sandbox_base_url",
-  domain: "sandbox_domain",
-};
+const LEGACY_FIELD_NAMES: Readonly<Record<string, string>> = {};
 
 /** Live file locations; tests redirect them with the `_set*` seams (Python parity: module-level patchables). */
 export const paths = {
@@ -265,24 +257,22 @@ function isFile(p: string): boolean {
   }
 }
 
-let _quietDepth = 0;
-
-/** Run `fn` without the "Failed to load" warning (probes such as "are providers in use" must not add output). */
+/**
+ * Run `fn` for probes that must not add output.
+ *
+ * The layered TOML loader no longer emits `Failed to load` (that line belongs to `_loadTomlFile`, once).
+ * The wrapper stays so existing callers keep a single place to mark a silent read.
+ */
 export function quietly<T>(fn: () => T): T {
-  _quietDepth++;
-  try {
-    return fn();
-  } finally {
-    _quietDepth--;
-  }
+  return fn();
 }
 
 /**
  * Load a TOML file as plain data; an unreadable or invalid file is an empty document (with a warning).
  *
- * Does not log `Loaded config`. That line belongs to `transport/config.ts` `_loadTomlFile` (the Python CLI's single
- * loader). Provider resolution reads the same file through {@link readCachedConfigBytes}, so `--verbose` prints the
- * line once.
+ * Does not log `Loaded config` or `Failed to load`. Those lines belong to `transport/config.ts` `_loadTomlFile`
+ * (the Python CLI's single loader), and only once per file. This loader is called once per key while `config list`
+ * probes ACR and provider values; warning here repeated the friendly corruption message many times.
  */
 export function loadTomlFile(p: string): Record<string, unknown> {
   if (!isFile(p)) return {};
@@ -291,8 +281,7 @@ export function loadTomlFile(p: string): Record<string, unknown> {
     if (buf === null) return {};
     const data = parseTomlBytes(buf);
     return { ...data };
-  } catch (exc) {
-    if (_quietDepth === 0) logger.warning("Failed to load %s: %s", p, exc instanceof Error ? exc.message : String(exc));
+  } catch {
     return {};
   }
 }

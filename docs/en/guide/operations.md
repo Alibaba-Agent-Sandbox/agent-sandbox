@@ -65,8 +65,7 @@ This is the same pipeline as `ebx template deploy`. It is registered as a shortc
 | Read one key | `ebx config get region` | [config get](../reference/cli-reference.md#ebx-config-get) |
 | Show every key and its source | `ebx config list` | [config list](../reference/cli-reference.md#ebx-config-list) |
 | Remove one stored value | `ebx config delete acr_namespace` | [config delete](../reference/cli-reference.md#ebx-config-delete) |
-| List legacy names in use | `ebx config check` | [Providers — migrating names](providers.md#finding-and-migrating-legacy-names) |
-| Rewrite stored names to the canonical ones | `ebx config migrate --dry-run` | [Providers — migrating names](providers.md#finding-and-migrating-legacy-names) |
+| Show the current configuration names | `ebx config list` | [Providers — credentials and configuration keys](providers.md#credentials-and-configuration-keys) |
 
 There is no `ebx config reset`. Clearing one key is `ebx config delete <KEY>` or `ebx config set <KEY> ""`.
 

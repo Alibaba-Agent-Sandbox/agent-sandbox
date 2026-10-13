@@ -38,7 +38,7 @@
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass api_key parameter.
+  Suggestion: Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **解决**：
@@ -210,7 +210,7 @@ export DASHSCOPE_API_KEY="your-key"
 
 ### 长时间步骤看起来停住了
 
-终端上标题应持续走动（`Building Docker image locally... 12s`，然后 `13s`）。最近四行日志以灰色显示在标题下方。如果只看到一行、没有耗时，当前会话是 `--quiet`、`--json`、`--ci`、`TERM=dumb`，或者不是终端。去掉这些选项就能看到动态块。`--verbose` 改为打印完整的部署日志。`EBX_ACTIVITY_LINES`（1–10，默认 4）决定保留几行灰色文字。文件内容和凭证不会进入这个块。
+终端上标题应持续走动（`Building Docker image locally... 12s`，然后 `13s`）。最近六行日志以灰色显示在标题下方。如果只看到一行、没有耗时，当前会话是 `--quiet`、`--json`、`--ci`、`TERM=dumb`，或者不是终端。去掉这些选项就能看到动态块。`--verbose` 改为打印完整的部署日志。`EBX_ACTIVITY_LINES`（1–10，默认 6）决定保留几行灰色文字。灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏。
 
 ### E7003 — 部署超时
 

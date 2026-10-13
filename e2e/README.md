@@ -23,7 +23,6 @@ npm run e2e:offline                   # only the no-credential suite (seconds)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
 node e2e/run.mjs --list               # all suites and scenarios
 node e2e/run.mjs --json out.json --markdown out.md   # machine/markdown reports (secrets masked)
-npm run e2e:known-issues              # real-cloud check of the SDK defect fixes KI-001..KI-008 (see known-issues/README.md)
 npm run e2e:cleanup                   # dry-run janitor for sandboxes leaked by an interrupted run
 ```
 
@@ -45,7 +44,7 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 | Suite | Needs | Content |
 |---|---|---|
 | `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, shortcuts, MCP `install/status/stop` into a temp HOME, `template init`, local `template search --index-url` |
-| `cloud-readonly` | cloud | wrong API key (`E1000`, or `E1001` after the KI-006 fix; exit 3), `template list/info/delete` and not-found envelopes (exit 4, `E2001`/`E5000`), `list` shapes, secret masking of `config list` |
+| `cloud-readonly` | cloud | wrong API key (`E1000`, exit 3), `template list/info/delete` and not-found envelopes (exit 4, `E2001`/`E5000`), `list` shapes, secret masking of `config list` |
 | `cloud-lifecycle` | cloud | `create` -> `list` -> `info` -> `exec` (exit-code propagation, `--cwd`, `--json`, `-q`, `--ci`, `CI=true`, timeout -> exit 5) -> `upload`/`download` (binary round-trip) -> `sandbox files/process/system/capabilities/shell-stream` -> `connect` -> `run` custom commands -> env/upload at create -> `kill` |
 | `catalog` | outbound GitHub | `template search` and `template install --download-only` against the remote index |
 | `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template deploy` (docker build, ACR push, CreateTemplate) -> `create` -> `exec` -> `template delete` |
@@ -67,21 +66,6 @@ Scenarios are plain objects in `scenarios/*.mjs` (table style). Common fields:
 Multi-step scenarios use `run(ctx)` with `ctx.ebx(argv, opts)` (masked + normalised result),
 `ctx.rawEbx` (masked only, for checks that must see real bytes), `ctx.track(id)`/`ctx.untrack(id)`
 (register sandboxes for cleanup), `ctx.eventually(fn)`, `ctx.fail(msg)`.
-
-## Provider plugins (`e2e/providers/run.sh`)
-
-A bash script that installs the reference plugins from `python-sdk/examples/providers` into a throwaway `HOME` and drives
-real sandboxes through the CLI: `npm run e2e:providers` or `e2e/providers/run.sh [offline|local-process|opensandbox|e2b-compatible]`.
-
-| Target | Needs | What it checks |
-|---|---|---|
-| `offline` | nothing (git, python3) | hidden-until-used `provider` group, consent and `--yes` rules (`E8012`), install from a path and from a local git repo pinned to a commit, `E8003` conflict and `--force`, `doctor`/`info`, `E8001`, `E8002` (secret on the command line), `provider default`, `E8030`, tamper detection (`E8011`), uninstall |
-| `local-process` | python3 | `create`, `list`, `exec` (exit-code propagation), `upload`/`download` round trip, `sandbox files list`, `kill`, E4 after kill, all with qualified ids |
-| `opensandbox` | a live OpenSandbox: `python-sdk/e2e/opensandbox/local-up.sh` (Docker; key `local-dev-key`, `127.0.0.1:8080`) | install by path and by git, `doctor`, `provider default opensandbox`, the full sandbox round trip with and without `--provider`, secret masking, and `ebx provider test` (the contract suite) |
-| `e2b-compatible` | `E2B_API_KEY` (+ `E2B_API_URL`, `E2B_DOMAIN`) in the environment | the REST plugin inheriting the generic `sandbox_*` keys runs the same round trip on the live cloud; without the key it is reported as `SKIP` |
-
-Variables: `EBX_BIN` (binary under test, default `tsx src/bin/ebx.ts` in a checkout), `PROVIDERS_DIR`, `OSB_URL`, `OSB_KEY`, `OSB_IMAGE`.
-The script scrubs the child environment, never prints credentials, kills every sandbox it created on exit, and exits non-zero on any failed step.
 
 ## Environment variables
 

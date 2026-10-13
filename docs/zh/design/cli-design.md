@@ -132,7 +132,7 @@ ebx mcp deploy --region cn-shanghai
 ebx config set region cn-shanghai
 ```
 
-解析优先级：命令 `--region` > `SANDBOX_REGION` > `ebx config set region` > `cn-hangzhou`。
+解析优先级：命令 `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`。
 
 CLI 会自动检测 CI 环境（`CI`、`GITHUB_ACTIONS`、`GITLAB_CI`、`JENKINS_URL` 等环境变量），自动启用 CI 模式。非 TTY 环境下颜色输出自动禁用。
 
@@ -185,8 +185,8 @@ graph TD
 
 1. **可执行文件检测**：先查 `PATH`，再查 `~/.ebx/bin`（Windows 识别 `.cmd`/`.exe` 后缀）。
 2. **安装引导**：未安装时，交互式终端询问是否安装官方 standalone 版本（经 SHA256 校验后原子安装到 `~/.ebx/bin`，Unix 设置执行权限）；非 TTY 或用户拒绝时抛出 `E2005` 并打印 Quick Setup，不阻塞、不降级。
-3. **凭证解析**：进程环境变量优先于 `./.env`，`./.env` 写了的键优先于 `~/.ebx`。API Key 顺序是 `EBX_LLM_API_KEY`，然后 `BAILIAN_CODING_PLAN_API_KEY`、`DASHSCOPE_API_KEY`、`OPENAI_API_KEY`，然后旧的 `EBX_QWEN_CODE_API_KEY`，然后 `./.env` 里的同名变量，然后 `ebx config set llm_api_key` 保存的值。`llm_base_url` 使用 `EBX_LLM_BASE_URL`、然后 `OPENAI_BASE_URL`、然后已保存的值（仅当 `llm_base_url` 未设置时才读旧的 `qwen_code_base_url`），最后是 DashScope 默认地址。`llm_model` 使用 `EBX_LLM_MODEL`、然后 `OPENAI_MODEL`、然后已保存的值，最后是 `qwen3-coder-plus`。以上都没有时才用 `~/.qwen/settings.json`。交互式终端可提示输入并安全保存；非 TTY 抛 `E2006`。
-4. **生成前澄清（research-first，同一原生会话上的两阶段）**：生成之前，coding agent 先跑一轮普通检索轮（`--session-id`，**不带** `--json-schema`），用它自己的工具（web fetch / shell）确认全部可公开查证的事实——工具技术栈、官方安装方式、常见运行时与依赖——检索不到的逐条记录安全合理默认值；随后同一会话继续（`--resume`）跑一次带 `--json-schema` 的结构化评估轮。已对 qwen-code 0.15.11 核验：`--json-schema` 会在首次有效 `structured_output` 调用时结束会话，因此检索轮刻意不带 schema，以保工具循环不被过早切断。只有用户偏好、私有约束和无法推断的业务决策才可能计为缺失。低于 80% 阈值时，交互式终端每轮只问 **一个问题**，以 `Question 1`、`Question 2` 逐次编号且**不显示总数**（内部 5 轮上限仅在触达时提示）；每次回答都恢复同一原生会话并基于完整描述 + 全部问答历史重新评估，已问过主题嵌入每个后续 prompt（完全重复的问题会防御性地中断循环），回答“你自己决定”“采用默认”等授权语义则指示 Agent 自行采用安全合理默认值。非 TTY / CI 未传 `--yes` 时快速失败并抛 `E2008`，列出缺失的模板要素与可直接套用的示例描述。`--yes` 完全跳过检索与评估；检索轮失败仅带原因提示告警（绝不作为门槛；检索限定 20 轮 / 240 秒，可用 `EBX_QWEN_RESEARCH_TIMEOUT` 覆盖，且提示词把耗时的 web fetch 限制在 3 次以内），随后评估会新开一个**全新**会话——qwen 会拒绝重复指定失败检索轮可能已创建的 `--session-id`，这曾表现为莫名的“评估不可用”；评估不可用时降级为直接生成并打印 warning。阶段状态（检索 / 评估 / 重新评估 / 生成）在 **stderr** 上渲染（TTY 为 spinner，非 TTY 为单行机器可读 progress 行），Agent 工作期间还会在标题 `Assessing description... 12s` 下方以灰色显示最近四行动态（常规为 Rich status，`--verbose` / `--no-color` 下为可自擦除的 `\r` 行，`--json` / `--quiet` / CI / `TERM=dumb` 下不显示）。为驱动该行，headless 运行采用 `--output-format stream-json --include-partial-messages`，但只展示助手文本尾部与工具*名称*，绝不展示工具入参或思考内容；超时或 Ctrl-C 时会终止整个 agent 进程树。stdout 保持干净，且绝不回显模型的研究输出。生成阶段会续接澄清会话，模型在自身记忆中保有描述、研究结论与全部问答。
+3. **凭证解析**：进程环境变量优先于 `./.env`，`./.env` 写了的键优先于 `~/.ebx`。每个键只有一个环境变量：LLM API Key 是 `EBX_LLM_API_KEY`，地址是 `EBX_LLM_BASE_URL`，模型是 `EBX_LLM_MODEL`。`ebx config set llm_api_key` 存的是 `EBX_LLM_API_KEY`。以上都没有时才用 `~/.qwen/settings.json`。交互式终端可提示输入并安全保存；非 TTY 抛 `E2006`。
+4. **生成前澄清（research-first，同一原生会话上的两阶段）**：生成之前，coding agent 先跑一轮普通检索轮（`--session-id`，**不带** `--json-schema`），用它自己的工具（web fetch / shell）确认全部可公开查证的事实——工具技术栈、官方安装方式、常见运行时与依赖——检索不到的逐条记录安全合理默认值；随后同一会话继续（`--resume`）跑一次带 `--json-schema` 的结构化评估轮。已对 qwen-code 0.15.11 核验：`--json-schema` 会在首次有效 `structured_output` 调用时结束会话，因此检索轮刻意不带 schema，以保工具循环不被过早切断。只有用户偏好、私有约束和无法推断的业务决策才可能计为缺失。低于 80% 阈值时，交互式终端每轮只问 **一个问题**，以 `Question 1`、`Question 2` 逐次编号且**不显示总数**（内部 5 轮上限仅在触达时提示）；每次回答都恢复同一原生会话并基于完整描述 + 全部问答历史重新评估，已问过主题嵌入每个后续 prompt（完全重复的问题会防御性地中断循环），回答“你自己决定”“采用默认”等授权语义则指示 Agent 自行采用安全合理默认值。非 TTY / CI 未传 `--yes` 时快速失败并抛 `E2008`，列出缺失的模板要素与可直接套用的示例描述。`--yes` 完全跳过检索与评估；检索轮失败仅带原因提示告警（绝不作为门槛；检索限定 20 轮 / 240 秒，可用 `EBX_QWEN_RESEARCH_TIMEOUT` 覆盖，且提示词把耗时的 web fetch 限制在 3 次以内），随后评估会新开一个**全新**会话——qwen 会拒绝重复指定失败检索轮可能已创建的 `--session-id`，这曾表现为莫名的“评估不可用”；评估不可用时降级为直接生成并打印 warning。阶段状态（检索 / 评估 / 重新评估 / 生成）在 **stderr** 上渲染（TTY 为 spinner，非 TTY 为单行机器可读 progress 行），Agent 工作期间还会在标题 `Assessing description... 12s` 下方以灰色显示最近六行动态（常规为 Rich status，`--verbose` / `--no-color` 下为可自擦除的 `\r` 行，`--json` / `--quiet` / CI / `TERM=dumb` 下不显示）。为驱动该行，headless 运行采用 `--output-format stream-json --include-partial-messages`，但展示助手文本尾部，以及一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏；超时或 Ctrl-C 时会终止整个 agent 进程树。stdout 保持干净，且绝不回显模型的研究输出。生成阶段会续接澄清会话，模型在自身记忆中保有描述、研究结论与全部问答。
 5. **生成与校验**：在 `--dir` 下全新的 `<slug>-<时间戳>-<随机后缀>/` 工作目录（默认 `~/.ebx/generated/`；交互式终端会询问保存位置，回车即用默认值；模板名 `ebx-nl-<slug>-<随机后缀>`）以 headless 模式调用 Qwen Code（`qwen "<prompt>" --output-format json --yolo`，prompt 为位置参数——0.15.11 `--help` 已将旧 `-p` 标记为弃用；列表参数、限定 cwd 与超时，默认 600s 可用 `EBX_QWEN_CODEGEN_TIMEOUT` 覆盖），要求产出**可直接使用**的模板——Dockerfile、在 9000 端口启动容器内 `easy_sandbox.server` `SandboxServer` 的 `commands.py`（沙箱部署后通过 HTTP(S) 访问，只有 Dockerfile 无法使用）、template.yaml 与 README；提示词内嵌服务端 SDK 参考（`agent/template_guide.py`：Dockerfile 规则、`CapabilityGroup`、`CommandRegistry`、`RouteTable.route`、`template.yaml` 字段）。随后校验：Dockerfile 含 `FROM` 且引用 `commands.py`，`commands.py` 是合法 Python、导入 `easy_sandbox.server` 并调用 `serve()`/`start()`，template.yaml 通过 `parse_template_data` 的 YAML schema 校验。失败或超时抛 `E2007` 并保留生成目录供检查。
 6. **构建与创建**：确认后复用 `ebx template deploy` 的构建/部署链路（`--acr-namespace` 可指定推送命名空间），成功后调用现有 `Sandbox.create`。任何一步失败都不会静默回退到 `base`，而是给出错误码、Quick Setup 与下一步命令。
 
@@ -395,9 +395,9 @@ ebx run <sandbox-id> <command-name> [选项]
 
 ### ebx deploy
 
-`ebx deploy` 是模板生命周期中的**发布步骤**，是一条固定流水线：`docker build` → 推送 ACR → `CreateTemplate` → 轮询直到就绪。它就是 `PATH` 默认为 `.` 的 `ebx template deploy`，逐项复用后者的选项集合（两者不会漂移，`-v/--verbose` 也可用），不需要 LLM。交互式终端上，每个耗时步骤都是 `message... 12s` 标题，标题下方以灰色显示最近四行 docker 或轮询输出（与生成模板时的区块相同；`EBX_ACTIVITY_LINES` 可改行数）。工具暂时没有输出时，标题上的耗时仍每秒刷新。`--verbose` 改为打印完整日志。`--json`、`--quiet`、CI 和非 TTY 仍只留一行 progress。
+`ebx deploy` 是模板生命周期中的**发布步骤**，是一条固定流水线：`docker build` → 推送 ACR → `CreateTemplate` → 轮询直到就绪。它就是 `PATH` 默认为 `.` 的 `ebx template deploy`，逐项复用后者的选项集合（两者不会漂移，`-v/--verbose` 也可用），不需要 LLM。交互式终端上，每个耗时步骤都是 `message... 12s` 标题，标题下方以灰色显示最近六行 docker 或轮询输出（与生成模板时的区块相同；`EBX_ACTIVITY_LINES` 可改行数）。工具暂时没有输出时，标题上的耗时仍每秒刷新。`--verbose` 改为打印完整日志。`--json`、`--quiet`、CI 和非 TTY 仍只留一行 progress。
 
-创建沙箱、上传或下载文件、拉取模板或模板索引、用镜像注册模板、安装 coding-agent CLI，以及 `ebx kill --all`，这些可能停住的步骤使用同一套标题。某一步若有安全的日志——相对路径、安装阶段（镜像源、校验和、解压）、docker 输出或轮询状态——最近四行显示在标题下方（`EBX_ACTIVITY_LINES`）。文件内容、工具入参、ACR token 和 `--build-arg` 的值不会进入这几行；记录 docker 命令的 info 日志会把 build-arg 的值写成 `***`。`--verbose` 仍会打印完整的部署日志，并且不画部署区块。其余命令在终端上保留会走动的标题，包括 `--verbose` 和 `--no-color`。`--json`、`--quiet`、CI、`TERM=dumb` 和非 TTY 对这些标题保持沉默。
+创建沙箱、上传或下载文件、拉取模板或模板索引、用镜像注册模板、安装 coding-agent CLI，以及 `ebx kill --all`，这些可能停住的步骤使用同一套标题。某一步若有安全的日志——相对路径、安装阶段（镜像源、校验和、解压）、docker 输出或轮询状态——最近六行显示在标题下方（`EBX_ACTIVITY_LINES`，1–10）。灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏；ACR token 和 `--build-arg` 的值不会进入这几行；记录 docker 命令的 info 日志会把 build-arg 的值写成 `***`。`--verbose` 仍会打印完整的部署日志，并且不画部署区块。其余命令在终端上保留会走动的标题，包括 `--verbose` 和 `--no-color`。`--json`、`--quiet`、CI、`TERM=dumb` 和非 TTY 对这些标题保持沉默。
 
 ```text
 ebx template init ["描述" | --adopt 目录]  →  ebx deploy [PATH]  →  ebx create --template ID
@@ -1019,9 +1019,9 @@ ebx mcp start [选项]
 
 选项：
   --template <name>         默认沙箱模板 (默认: code-interpreter-v1)
-  --api-key <key>           API Key 覆盖 (环境变量: E2B_API_KEY)
-  --api-url <url>           API URL 覆盖 (环境变量: E2B_API_URL)
-  --domain <domain>         Domain 覆盖 (环境变量: E2B_DOMAIN)
+  --sandbox-api-key <key>   API Key 覆盖 (环境变量: EBX_SANDBOX_API_KEY)
+  --sandbox-base-url <url>  API URL 覆盖 (环境变量: EBX_SANDBOX_BASE_URL)
+  --sandbox-domain <domain> Domain 覆盖 (环境变量: EBX_SANDBOX_DOMAIN)
 ```
 
 以 STDIO 模式启动 MCP Server。通常由 IDE 自动调用，不需要手动执行。
@@ -1041,7 +1041,7 @@ ebx mcp deploy [选项]
 
 选项：
   --name <name>             FC 函数名称（默认: easy-sandbox-mcp）
-  --region <region>         FC 地域；命令 --region > SANDBOX_REGION >
+  --region <region>         FC 地域；命令 --region > ALIBABA_CLOUD_REGION_ID >
                             ebx config set region > cn-hangzhou
   --template <name>         默认沙箱模板（默认: base）
   --memory <mb>             FC 函数内存（默认: 512）
@@ -1055,7 +1055,7 @@ ebx mcp deploy [选项]
   --output-dir <path>       产物输出目录
 
 示例：
-  ebx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./artifact
+  ebx mcp deploy --generate-token --sandbox-api-key $EBX_SANDBOX_API_KEY --output-dir ./artifact
   ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
 ```
 
@@ -1071,12 +1071,12 @@ ebx mcp deploy [选项]
 
 | 配置键          | 说明                                  | 默认值                    |
 | --------------- | ------------------------------------- | ------------------------- |
-| `sandbox_api_key` | 沙箱服务 API Key（存为 `E2B_API_KEY`） | (未设置)                  |
-| `api_url`       | Platform API URL                      | (自动)                    |
-| `region`        | 默认区域                               | `cn-hangzhou`             |
+| `sandbox_api_key` | 沙箱服务 API Key（存为 `EBX_SANDBOX_API_KEY`） | (未设置)                  |
+| `sandbox_base_url` | 平台 API URL（环境变量 `EBX_SANDBOX_BASE_URL`） | (自动)                    |
+| `region`        | 默认区域（环境变量 `ALIBABA_CLOUD_REGION_ID`） | `cn-hangzhou`             |
 | `http_timeout`  | HTTP 请求超时（秒）                    | (自动)                    |
 | `max_retries`   | 最大重试次数                           | (自动)                    |
-| `domain`        | Envd Domain                           | (自动)                    |
+| `sandbox_domain` | Envd 域名（环境变量 `EBX_SANDBOX_DOMAIN`） | (自动)                    |
 | `llm_api_key`   | LLM API Key，供自然语言推理和编码代理使用 | (未设置) |
 | `llm_model`     | LLM 模型名称                          | `qwen3-coder-plus`       |
 | `llm_base_url`  | LLM API Base URL（OpenAI 兼容）       | DashScope 兼容端点        |
@@ -1105,7 +1105,7 @@ ebx config get region
 ebx config set region ""
 ```
 
-进程环境变量优先于 `./.env`，`./.env` 优先于已保存的 LLM 配置：`EBX_LLM_API_KEY`（然后是 `BAILIAN_CODING_PLAN_API_KEY`、`DASHSCOPE_API_KEY`、`OPENAI_API_KEY`）、`EBX_LLM_BASE_URL` / `OPENAI_BASE_URL`，以及 `EBX_LLM_MODEL` / `OPENAI_MODEL`。空白值不算已配置。这些都没设置时，才用 `~/.ebx` 里的值。
+进程环境变量优先于 `./.env`，`./.env` 优先于已保存的 LLM 配置。变量是 `EBX_LLM_API_KEY`、`EBX_LLM_BASE_URL` 和 `EBX_LLM_MODEL`。空白值不算已配置。这些都没设置时，才用 `~/.ebx` 里的值。
 
 ***
 
@@ -1233,7 +1233,7 @@ ebx create --template my-ml-env
 WARNING: Could not resolve capabilities for template 'base'; falling back to DEFAULT_CAPABILITIES
 ```
 
-日志传播（propagate）保持开启，因此测试的日志捕获与嵌入式宿主仍然能看到记录。CLI 运行期间，日志级别以 `--verbose` / `--quiet` / `--log-level`（含 CI 自动检测）为唯一依据；`SANDBOX_LOG_LEVEL` 适用于由 SDK 自己掌控日志的独立使用场景。
+日志传播（propagate）保持开启，因此测试的日志捕获与嵌入式宿主仍然能看到记录。CLI 运行期间，日志级别以 `--verbose` / `--quiet` / `--log-level`（含 CI 自动检测）为唯一依据；`EBX_LOG_LEVEL` 适用于由 SDK 自己掌控日志的独立使用场景。
 
 ### Spinner 暂停/恢复
 
@@ -1316,7 +1316,7 @@ ebx template install --help
 # 错误信息包含修复建议
 $ ebx config set unknown_key value
 Error: Unknown config key: 'unknown_key'
-Available keys: api_key, api_url, domain, ...
+Available keys: sandbox_api_key, sandbox_base_url, sandbox_domain, ...
 ```
 
 ### 原则 6：懒加载高性能

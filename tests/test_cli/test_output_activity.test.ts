@@ -103,15 +103,15 @@ describe("TestTransientLine", () => {
 
     await out.activity("Working", (update) => {
       expect(update).not.toBeNull();
-      update!("one\ntwo\nthree\nfour\nfive");
+      update!("one\ntwo\nthree\nfour\nfive\nsix\nseven");
       const first = buf.getvalue();
       expect(first).not.toContain("one");
-      expect(["two", "three", "four", "five"].every((x) => first.includes(x))).toBe(true);
-      update!("one\ntwo\nthree\nfour\nfive\nsix");
+      expect(["two", "three", "four", "five", "six", "seven"].every((x) => first.includes(x))).toBe(true);
+      update!("one\ntwo\nthree\nfour\nfive\nsix\nseven\neight");
       const latest = buf.getvalue().slice(first.length);
       expect(latest).not.toContain("two"); // scrolled out
-      expect(["three", "four", "five", "six"].every((x) => latest.includes(x))).toBe(true);
-      expect(latest.startsWith("\x1b[4A\r")).toBe(true); // rewound over header + 4 rows
+      expect(["three", "four", "five", "six", "seven", "eight"].every((x) => latest.includes(x))).toBe(true);
+      expect(latest.startsWith("\x1b[6A\r")).toBe(true); // rewound over header + 6 rows
     });
   });
 
@@ -142,8 +142,8 @@ describe("TestTransientLine", () => {
   });
 
   it.each([
-    ["", 4],
-    ["nope", 4],
+    ["", 6],
+    ["nope", 6],
     ["0", 1],
     ["5", 5],
     ["99", 10],
@@ -278,7 +278,7 @@ describe("TestRichStatus", () => {
 
     await out.activity("Researching public facts", (update) => {
       expect(update).not.toBeNull();
-      update!("gone-first\nsecond\nthird\ntool: web_fetch\nwriting notes");
+      update!("gone-first\nsecond\nthird\nfourth\nfifth\ntool: web_fetch\nwriting notes");
       expect(out._spinnerStack.length).toBeGreaterThan(0); // registered so log writes can pause it
     });
 

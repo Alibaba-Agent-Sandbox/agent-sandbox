@@ -32,17 +32,3 @@ long-running output timing, TLS/HTTP2 behaviour of the real gateway. Use the rea
 
 Reports (`--out`) are written as `diff-report.json` and `diff-report.md` and contain only normalised
 output (the stub credentials are fake).
-
-## Framework / output-layer harnesses
-
-Self-contained scripts that need only `ORACLE_VENV` (a venv with the original package; no stub server). They render or
-run the same input in-process (or as real processes for `help_all`) on both implementations and diff the results.
-
-| Script | Covers |
-|---|---|
-| `help_all.mjs` | `--help` / `-h` of every command path the oracle registers, at several terminal widths, plus root usage-error paths |
-| `rich_tables.mjs` | Rich tables behind `OutputFormatter.print_table` / `OutputManager.table` (CJK, emoji, markup, ragged rows, widths, TTY, NO_COLOR) |
-| `output_channels.mjs` | `OutputManager` channels, logging bridge, `OutputFormatter`, over the global mode matrix |
-| `repl_failures.mjs` | `describe_command_failure`, `sanitize_text`, `program_name` |
-| `handle_errors.mjs` | `handle_errors` exit codes / messages for every exception kind and output mode |
-| `orjson_gen.py` | Generates `orjson_cases.json` with the oracle's orjson; consumed by `tests/test_cli/test_orjson_dumps.test.ts` |

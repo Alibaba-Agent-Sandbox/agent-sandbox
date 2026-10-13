@@ -10,13 +10,13 @@ Configuration is loaded in the following priority order (highest to lowest):
 
 ```text
 1. Explicit options / arguments (CLI options such as --region; SDK keyword arguments)   ← Highest
-2. Environment variables (E2B_* takes priority over SANDBOX_*)
-3. .env files (./.env or ~/.ebx/.env)
+2. Process environment variables
+3. .env files (./.env, then ~/.ebx/.env)
 4. ~/.ebx/config.toml
 5. Built-in defaults                                  ← Lowest
 ```
 
-Within the same priority level, E2B-prefixed variables take priority over SANDBOX-prefixed variables.
+Each key has exactly one environment variable. The first layer that sets that variable wins.
 
 `.env` files are merged **per key**. `./.env` overrides `~/.ebx/.env` when both set the same key. A key that the project file does not set still comes from `~/.ebx/.env`.
 
@@ -26,16 +26,22 @@ A blank or whitespace-only value does not count. It does not hide the next layer
 
 Every credential uses that order at the moment it is needed. `ebx config list` shows the winner and labels it `(env)`, `(user)`, `(default)`, or `(not set)`.
 
-| What you need | 1. Explicit option / argument (CLI option, or SDK keyword) | 2. Process environment | 3. `./.env` | 4. `~/.ebx` | 5. Default |
-|---|---|---|---|---|---|
-| Sandbox API key | `api_key=` | `E2B_API_KEY`, then `SANDBOX_API_KEY` | same names | `~/.ebx/.env` (`ebx config set sandbox_api_key`) | none |
-| Alibaba Cloud AK/SK | `access_key_id=` / `access_key_secret=` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET`, then `AccessKey` / `AccessSecret` | same names | `~/.ebx/.env` | none |
-| ACR namespace | `--acr-namespace` | `ACR_NAMESPACE` | `ACR_NAMESPACE` | `~/.ebx/.env` (`ebx config set acr_namespace`) | none |
-| GitHub token | `--token` | `GITHUB_TOKEN` | `GITHUB_TOKEN` | `~/.ebx/.env` (`ebx config set github_token`) | none |
-| LLM API key | `llm_api_key=` | `EBX_LLM_API_KEY`, then `BAILIAN_CODING_PLAN_API_KEY`, `DASHSCOPE_API_KEY`, `OPENAI_API_KEY` | same names | `~/.ebx/.env` (`ebx config set llm_api_key`) | none |
-| LLM base URL | `openai_base_url=` | `EBX_LLM_BASE_URL`, then `OPENAI_BASE_URL` | same names | `llm_base_url` in `~/.ebx/config.toml` | DashScope compatible-mode |
-| LLM model | `openai_model=` | `EBX_LLM_MODEL`, then `OPENAI_MODEL` | same names | `llm_model` in `~/.ebx/config.toml` | `qwen3-coder-plus` |
-| Region | command `--region` | `SANDBOX_REGION` | `SANDBOX_REGION` | `region` in `~/.ebx/config.toml` | `cn-hangzhou` |
+Each key has one name. Product settings use `EBX_<KEY>`. A vendor that already publishes a variable keeps that variable: Alibaba Cloud access keys are `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`, the region is `ALIBABA_CLOUD_REGION_ID`, ACR settings are `ACR_NAMESPACE` and the matching `ACR_*` variables, and the GitHub token is `GITHUB_TOKEN`. `team_id` is optional and is not required; its environment variable is `EBX_ALICLOUD_EXPRESS_TEAM_ID`.
+
+| What you need | Key | Environment variable |
+|---|---|---|
+| Sandbox API key | `sandbox_api_key` | `EBX_SANDBOX_API_KEY` |
+| Sandbox API base URL | `sandbox_base_url` | `EBX_SANDBOX_BASE_URL` |
+| Data-plane domain | `sandbox_domain` | `EBX_SANDBOX_DOMAIN` |
+| Region | `region` | `ALIBABA_CLOUD_REGION_ID` |
+| Alibaba Cloud AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
+| ACR namespace / password | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
+| GitHub token | `github_token` | `GITHUB_TOKEN` |
+| LLM API key | `llm_api_key` | `EBX_LLM_API_KEY` |
+| LLM base URL | `llm_base_url` | `EBX_LLM_BASE_URL` |
+| LLM model | `llm_model` | `EBX_LLM_MODEL` |
+| Default provider | `provider` | `EBX_PROVIDER` |
+| Team id (optional) | `team_id` | `EBX_ALICLOUD_EXPRESS_TEAM_ID` |
 
 The same chain is what these calls read:
 
@@ -43,9 +49,7 @@ The same chain is what these calls read:
 - `ebx template install` / `ebx template search` (GitHub token)
 - `ebx mcp install` (the sandbox API key copied into the editor config)
 
-An older `EBX_QWEN_CODE_API_KEY` is still accepted as `llm_api_key` when the `llm_*` value is unset. In the process environment it sits after `OPENAI_API_KEY`. In `~/.ebx` it is used only after `EBX_LLM_API_KEY` and a legacy `llm_api_key` in `config.toml`.
-
-`ebx mcp install` writes that sandbox API key into the Cursor and Claude config. `E2B_API_URL` and `SANDBOX_REGION` are copied into the same file only when the process environment sets them. `ebx mcp start` loads `~/.ebx` again, so a region saved with `ebx config set region` still applies when the editor starts the server.
+`ebx mcp install` writes `EBX_SANDBOX_API_KEY` into the Cursor and Claude config. `EBX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` are copied into the same file only when the process environment sets them. `ebx mcp start` loads `~/.ebx` again, so a region saved with `ebx config set region` still applies when the editor starts the server.
 
 `ebx config list` marks a process variable as `(env)` and either file as `(user)`. The value in the table is the one the command will use.
 
@@ -55,31 +59,34 @@ An older `EBX_QWEN_CODE_API_KEY` is still accepted as `llm_api_key` when the `ll
 
 ### Common (SDK and CLI)
 
-| Environment Variable | Config Field | Series | Description |
-|---------------------|-------------|--------|-------------|
-| `E2B_API_KEY` | `api_key` | E2B | API Key (most common) |
-| `E2B_API_URL` | `api_url` | E2B | Platform API URL |
-| `E2B_DOMAIN` | `domain` | E2B | Data plane domain |
-| `SANDBOX_API_KEY` | `api_key` | Sandbox | API Key (fallback) |
-| `SANDBOX_API_BASE_URL` | `api_url` | Sandbox | Platform API URL (fallback) |
-| `SANDBOX_REGION` | `region` | Sandbox | Region |
-| `SANDBOX_HTTP_TIMEOUT` | `http_timeout` | Sandbox | HTTP timeout in seconds |
-| `ALICLOUD_ACCESS_KEY_ID` | `access_key_id` | AK/SK | Alibaba Cloud AK |
-| `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | AK/SK | Alibaba Cloud SK |
-| `ACR_NAMESPACE` | `acr_namespace` | ACR | ACR namespace (`ebx config set acr_namespace`, or `ebx config init`) |
-| `GITHUB_TOKEN` | `github_token` | GitHub | GitHub token for template downloads (store with `ebx config set github_token`; CI: inject as a secret) |
-| `EBX_LLM_API_KEY` | `llm_api_key` | LLM | LLM API key (store with `ebx config set llm_api_key`) |
-| `BAILIAN_CODING_PLAN_API_KEY` | `llm_api_key` | LLM | LLM API key fallback |
-| `DASHSCOPE_API_KEY` | `llm_api_key` | LLM | LLM API key fallback |
-| `OPENAI_API_KEY` | `llm_api_key` | LLM | LLM API key fallback |
-| `EBX_LLM_BASE_URL` | `llm_base_url` | LLM | LLM base URL |
-| `OPENAI_BASE_URL` | `llm_base_url` | LLM | LLM base URL fallback |
-| `EBX_LLM_MODEL` | `llm_model` | LLM | LLM model name |
-| `OPENAI_MODEL` | `llm_model` | LLM | LLM model name fallback |
+| Environment Variable | Config key | Description |
+|---------------------|-------------|-------------|
+| `EBX_PROVIDER` | `provider` | Default provider id |
+| `EBX_SANDBOX_API_KEY` | `sandbox_api_key` | Sandbox API key |
+| `EBX_SANDBOX_BASE_URL` | `sandbox_base_url` | Platform API URL |
+| `EBX_SANDBOX_DOMAIN` | `sandbox_domain` | Data plane domain |
+| `ALIBABA_CLOUD_REGION_ID` | `region` | Region |
+| `EBX_HTTP_TIMEOUT` | `http_timeout` | HTTP timeout in seconds |
+| `EBX_LOG_LEVEL` | `log_level` | SDK log level |
+| `EBX_DEFAULT_TEMPLATE` | `default_template` | Default template |
+| `ALICLOUD_ACCESS_KEY_ID` | `access_key_id` | Alibaba Cloud AccessKey ID |
+| `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | Alibaba Cloud AccessKey Secret |
+| `ACR_NAMESPACE` | `acr_namespace` | ACR namespace (`ebx config set acr_namespace`, or `ebx config init`) |
+| `ACR_REGISTRY` | `acr_registry` | ACR registry host |
+| `ACR_REPO` | `acr_repo` | ACR repository |
+| `ACR_USERNAME` | `acr_username` | ACR user name |
+| `ACR_PASSWORD` | `acr_password` | ACR password |
+| `ACREE_INSTANCE_ID` | `acr_instance_id` | ACR Enterprise Edition instance |
+| `ACR_VPC_ID` | `acr_vpc_id` | ACR VPC |
+| `ACR_VSWITCH_IDS` | `acr_vswitch_ids` | ACR vSwitch ids (comma separated) |
+| `ACR_SECURITY_GROUP_ID` | `acr_security_group_id` | ACR security group |
+| `EBX_ALICLOUD_EXPRESS_TEAM_ID` | `team_id` | Team id. Optional. Not required. |
+| `GITHUB_TOKEN` | `github_token` | GitHub token for template downloads (store with `ebx config set github_token`; CI: inject as a secret) |
+| `EBX_LLM_API_KEY` | `llm_api_key` | LLM API key (store with `ebx config set llm_api_key`) |
+| `EBX_LLM_BASE_URL` | `llm_base_url` | LLM base URL |
+| `EBX_LLM_MODEL` | `llm_model` | LLM model name |
 
-When both `E2B_API_KEY` and `SANDBOX_API_KEY` are present, `E2B_API_KEY` takes priority. The CLI lists that key as `sandbox_api_key`; the Python SDK field stays `api_key`.
-
-For the LLM API key the environment order is `EBX_LLM_API_KEY`, then `BAILIAN_CODING_PLAN_API_KEY`, `DASHSCOPE_API_KEY`, `OPENAI_API_KEY`. Any of those wins over `./.env`, which wins over `~/.ebx/.env`. Base URL order is `EBX_LLM_BASE_URL` then `OPENAI_BASE_URL`, then the same names in `./.env`, then the stored `llm_base_url`. Model order is `EBX_LLM_MODEL` then `OPENAI_MODEL`, then `./.env`, then the stored `llm_model`. The full chain is in [Credential resolution](#credential-resolution).
+Each row is the only environment variable for that key. The full chain is in [Credential resolution](#credential-resolution).
 
 ### CLI display
 
@@ -96,13 +103,17 @@ These variables change what a terminal shows. They are not stored by `ebx config
 Config file path: `~/.ebx/config.toml`
 
 ```toml
+[core]
+provider = "alicloud-express"
+
 [transport]
-api_key = "your-api-key"
-api_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
-domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
-region = "cn-hangzhou"
+sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
+sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 http_timeout = 30.0
 max_retries = 3
+
+[providers.alicloud-express]
+region = "cn-hangzhou"
 
 [shortcuts]
 init = "template init"          # command path, not "ebx template init"
@@ -138,25 +149,26 @@ ebx config set region ""
 ebx config set github_token ""
 ```
 
-The `region` key set here is the **persistent default** for regional commands. A single invocation can override it with the command-level `--region`/`-r` option (accepted by `ebx list`, `ebx kill --all`, the template control-plane commands, and `ebx mcp deploy`). Resolution priority: command `--region` > `SANDBOX_REGION` > `ebx config set region` > `cn-hangzhou`.
+The `region` key set here is the **persistent default** for regional commands. A single invocation can override it with the command-level `--region`/`-r` option (accepted by `ebx list`, `ebx kill --all`, the template control-plane commands, and `ebx mcp deploy`). Resolution priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`.
 
 ### Keys Configurable via ebx config
 
-| Config Key | Description |
-|-----------|-------------|
-| `sandbox_api_key` | Sandbox service API key (stored as `E2B_API_KEY`; `api_key` is a get/set alias) |
-| `api_url` | Platform API URL |
-| `region` | Region |
-| `http_timeout` | HTTP timeout in seconds |
-| `max_retries` | Maximum retry count |
-| `domain` | Data plane domain |
-| `llm_api_key` | LLM API key for NL inference and the coding agent (stored as `EBX_LLM_API_KEY`) |
-| `llm_model` | LLM model name (default: `qwen3-coder-plus`) |
-| `llm_base_url` | LLM API base URL, OpenAI-compatible (default: DashScope compatible-mode) |
-| `access_key_id` | Alibaba Cloud AccessKey ID (🧪 experimental AK/SK auth) |
-| `access_key_secret` | Alibaba Cloud AccessKey Secret (🧪 experimental AK/SK auth) |
-| `acr_namespace` | ACR namespace for `ebx install` / `ebx template deploy` (stored as `ACR_NAMESPACE`) |
-| `github_token` | GitHub token for template downloads (`ebx template install` / `ebx template search`; mapped to `GITHUB_TOKEN`, stored in `~/.ebx/.env`, shown masked) |
+| Config Key | Environment variable | Description |
+|-----------|-------------|-------------|
+| `sandbox_api_key` | `EBX_SANDBOX_API_KEY` | Sandbox service API key (stored in `~/.ebx/.env`) |
+| `sandbox_base_url` | `EBX_SANDBOX_BASE_URL` | Platform API URL |
+| `region` | `ALIBABA_CLOUD_REGION_ID` | Region |
+| `http_timeout` | `EBX_HTTP_TIMEOUT` | HTTP timeout in seconds |
+| `max_retries` | `EBX_MAX_RETRIES` | Maximum retry count |
+| `sandbox_domain` | `EBX_SANDBOX_DOMAIN` | Data plane domain |
+| `llm_api_key` | `EBX_LLM_API_KEY` | LLM API key for NL inference and the coding agent |
+| `llm_model` | `EBX_LLM_MODEL` | LLM model name (default: `qwen3-coder-plus`) |
+| `llm_base_url` | `EBX_LLM_BASE_URL` | LLM API base URL (default: DashScope compatible-mode) |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (🧪 experimental AK/SK auth) |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (🧪 experimental AK/SK auth) |
+| `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `ebx install` / `ebx template deploy` |
+| `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`ebx template install` / `ebx template search`; stored in `~/.ebx/.env`, shown masked) |
+| `team_id` | `EBX_ALICLOUD_EXPRESS_TEAM_ID` | Team id. Optional. Not required. |
 
 ### Guided Configuration (ebx config init)
 
@@ -164,11 +176,11 @@ The `region` key set here is the **persistent default** for regional commands. A
 ebx config init
 ```
 
-The interactive wizard prompts for: the sandbox API key, the default region, the LLM API key, the ACR namespace (`ACR_NAMESPACE`), the AccessKey ID, and the AccessKey secret. Press Enter to skip a prompt. Secrets and the namespace are stored in `~/.ebx/.env`; the region goes to `~/.ebx/config.toml`. Non-TTY environments or `--yes` never block; the equivalent `ebx config set` commands are printed instead.
+The interactive wizard prompts for: the sandbox API key, the default region, the LLM API key, the ACR namespace (`ACR_NAMESPACE`), the AccessKey ID, and the AccessKey secret. Press Enter to skip a prompt. Secrets and the namespace are stored in `~/.ebx/.env` under the one variable for each key; the region goes to `~/.ebx/config.toml`. Non-TTY environments or `--yes` never block; the equivalent `ebx config set` commands are printed instead.
 
 ### AK/SK Authentication Configuration (Experimental)
 
-When `access_key_id` and `access_key_secret` are set via `ebx config set`, they are stored in `~/.ebx/.env` (mapped to environment variables `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET` respectively). Used for AK/SK → API Key token exchange authentication.
+When `access_key_id` and `access_key_secret` are set via `ebx config set`, they are stored in `~/.ebx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for AK/SK → API Key token exchange authentication.
 
 > **Note**: This feature is experimental. The token exchange endpoint is pending FC platform confirmation. See [Authentication](../guide/authentication.md#aksk-alibaba-cloud-extended-authentication-) for details.
 
@@ -181,14 +193,14 @@ The CLI reads both `.env` files and merges them per key:
 1. `.env` in the current directory (wins when it sets the key)
 2. `~/.ebx/.env` (used for any key the project file does not set)
 
-`.env` file format:
+`.env` file format. Use the one variable for each key:
 
 ```bash
-E2B_API_KEY=your-api-key
-SANDBOX_REGION=cn-beijing
+EBX_SANDBOX_API_KEY=your-api-key
+ALIBABA_CLOUD_REGION_ID=cn-beijing
 ```
 
-The `ebx config set sandbox_api_key <KEY>` command saves the API Key to `~/.ebx/.env` (file permissions 600). Credential keys such as `github_token` (mapped to `GITHUB_TOKEN`) are stored the same way.
+The `ebx config set sandbox_api_key <KEY>` command saves the API Key to `~/.ebx/.env` as `EBX_SANDBOX_API_KEY` (file permissions 600). `github_token` is stored as `GITHUB_TOKEN`.
 
 ---
 
@@ -196,8 +208,8 @@ The `ebx config set sandbox_api_key <KEY>` command saves the API Key to `~/.ebx/
 
 | File | Path | Description |
 |------|------|-------------|
-| config.toml | `~/.ebx/config.toml` | CLI extended configuration (`[transport]`, `[shortcuts]`, LLM defaults) |
-| .env | `~/.ebx/.env` | Authentication credentials (written by auth login / `ebx config set`) |
+| config.toml | `~/.ebx/config.toml` | CLI extended configuration (`[core]`, `[transport]`, `[providers.<id>]`, `[shortcuts]`, LLM defaults) |
+| .env | `~/.ebx/.env` | Authentication credentials (written by `ebx config set`) |
 | .env (local) | `./.env` | Project-level environment variables |
 | Session storage | `~/.ebx/sessions/*.json` | Local session data |
 | Template cache | `~/.ebx/templates/` | Installed templates |

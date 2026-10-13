@@ -1,7 +1,7 @@
 /**
  * Layered configuration loading.
  *
- * Priority: code params > process environment (E2B_* first, SANDBOX_* fallback)
+ * Priority: code params > process environment (one variable per key)
  * > .env files > ~/.ebx/config.toml > defaults. A blank or whitespace-only
  * value does not count and does not hide the next layer.
  *
@@ -25,6 +25,22 @@ import { ValueError } from "../models/_pydantic.js";
 import { getLogger } from "../utils/logging.js";
 
 const logger = getLogger("transport.config");
+
+/** One "Failed to load" line per path and mtime. `config list` and startup re-read the same file. */
+const _tomlLoadWarned = new Set<string>();
+
+function warnTomlLoadFailure(p: string, message: string): void {
+  let token = p;
+  try {
+    const st = fs.statSync(p);
+    token = `${p}\0${String(st.mtimeNs)}\0${st.size}`;
+  } catch {
+    token = `${p}\0${message}`;
+  }
+  if (_tomlLoadWarned.has(token)) return;
+  _tomlLoadWarned.add(token);
+  logger.warning("Failed to load %s: %s", p, message);
+}
 
 // envd 数据平面固定端口（已实测验证）
 export const ENVD_PORT = 49983;
@@ -57,7 +73,7 @@ let _cached_config: TransportConfig | null = null;
  * Transport-layer configuration.
  *
  * Loaded lazily from multiple sources with priority:
- * code params > env vars (E2B_* > SANDBOX_*) > .env files > config.toml > defaults
+ * code params > env vars (one name per key) > .env files > config.toml > defaults
  */
 export class TransportConfig extends BaseModel {
   static override modelFields = {
@@ -123,28 +139,16 @@ export class TransportConfig extends BaseModel {
   }
 }
 
-// Single merged env-var mapping. E2B_* entries are listed first so they can
-// be checked with higher priority at read time.
-// (env_var_name, field_name, is_e2b_official)
+// One environment variable per field. The third flag is unused and stays true so
+// callers that still unpack the triple keep working. Vendor-official names are
+// not wrapped in EBX_.
 export const _ENV_VAR_MAP: [string, string, boolean][] = [
-  ["E2B_API_KEY", "api_key", true],
-  ["E2B_API_URL", "api_url", true],
-  ["E2B_DOMAIN", "domain", true],
-  ["SANDBOX_API_KEY", "api_key", false],
-  ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", false],
-  ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", false],
-  ["AccessKey", "access_key_id", false],
-  ["AccessSecret", "access_key_secret", false],
-  ["SANDBOX_API_BASE_URL", "api_url", false],
-  ["SANDBOX_REGION", "region", false],
-  ["SANDBOX_HTTP_TIMEOUT", "http_timeout", false],
-  // Canonical names (docs/design/providers-and-credentials-cli.md): listed last with is_e2b=true so they win over every legacy name.
   ["EBX_SANDBOX_API_KEY", "api_key", true],
   ["EBX_SANDBOX_BASE_URL", "api_url", true],
   ["EBX_SANDBOX_DOMAIN", "domain", true],
-  ["EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID", "access_key_id", true],
-  ["EBX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET", "access_key_secret", true],
-  ["EBX_ALICLOUD_EXPRESS_REGION", "region", true],
+  ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", true],
+  ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", true],
+  ["ALIBABA_CLOUD_REGION_ID", "region", true],
   ["EBX_HTTP_TIMEOUT", "http_timeout", true],
 ];
 
@@ -286,7 +290,7 @@ export function _loadTomlFile(p: string): Record<string, any> {
     logger.debug("Loaded config from %s", p);
     return { ...data };
   } catch (exc) {
-    logger.warning("Failed to load %s: %s", p, pyStr(exc instanceof Error ? exc.message : exc));
+    warnTomlLoadFailure(p, pyStr(exc instanceof Error ? exc.message : exc));
     return {};
   }
 }
@@ -337,9 +341,7 @@ export function projectDotenvValue(names: readonly string[]): string | null {
 }
 
 /**
- * Read recognised environment variables.
- *
- * E2B_* official vars take precedence; SANDBOX_* vars act as fallbacks.
+ * Read recognised environment variables. Each field has one variable.
  */
 export function _readEnvVars(): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -363,7 +365,7 @@ export function _readEnvVars(): Record<string, unknown> {
 /**
  * Convert env-style key-values (from .env file) to TransportConfig field names.
  *
- * Applies the same priority: E2B_* entries override SANDBOX_* entries.
+ * Each field has one variable.
  */
 export function _envDictToFields(env_vals: Record<string, string>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -387,7 +389,7 @@ export function _envDictToFields(env_vals: Record<string, string>): Record<strin
  *
  * Priority (highest to lowest):
  * 1. Code-level `overrides`
- * 2. Environment variables (E2B_* > SANDBOX_*)
+ * 2. Environment variables (one name per key)
  * 3. .env files, merged per key (`./.env` overrides `~/.ebx/.env`)
  * 4. ~/.ebx/config.toml (optional SDK extension)
  * 5. TransportConfig defaults

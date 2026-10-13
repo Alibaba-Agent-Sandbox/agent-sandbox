@@ -25,14 +25,10 @@ API Key 是最常用的认证方式，通过 `Authorization: Bearer {api_key}` �
 #### 1. 环境变量（优先于 `~/.ebx`）
 
 ```bash
-# 推荐变量名（E2B 兼容）
-export E2B_API_KEY="your-api-key"
-
-# 或使用备选变量名
-export SANDBOX_API_KEY="your-api-key"
+export EBX_SANDBOX_API_KEY="your-api-key"
 ```
 
-当 `E2B_API_KEY` 和 `SANDBOX_API_KEY` 同时存在时，`E2B_API_KEY` 优先。
+`EBX_SANDBOX_API_KEY` 是沙箱 API Key 唯一的环境变量。
 
 #### 2. ebx config set（持久化到本地文件）
 
@@ -42,14 +38,14 @@ ebx config set sandbox_api_key your-api-key
 # 文件权限: 600（仅所有者可读写）
 ```
 
-存储格式为 `E2B_API_KEY=your-key`，位于 `~/.ebx/.env`。
+存储格式为 `EBX_SANDBOX_API_KEY=your-key`，位于 `~/.ebx/.env`。
 
 #### 3. .env 文件
 
 在项目根目录创建 `.env` 文件：
 
 ```dotenv
-E2B_API_KEY=your-api-key
+EBX_SANDBOX_API_KEY=your-api-key
 ```
 
 CLI 按键合并 `.env`。`./.env` 写了该键时优先；没写的键仍然来自 `~/.ebx/.env`。
@@ -63,8 +59,11 @@ CLI 按键合并 `.env`。`./.env` 写了该键时优先；没写的键仍然来
 
 ```toml
 [transport]
-api_key = "your-api-key"
+sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
+sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 ```
+
+沙箱 API Key 存在 `~/.ebx/.env` 的 `EBX_SANDBOX_API_KEY`，不放在 `config.toml`。
 
 ## AK/SK 阿里云扩展认证 🧪
 
@@ -118,8 +117,8 @@ flowchart TD
 LLM 密钥、GitHub token 和区域走同一条链。空白或只含空格的值会被跳过。变量名和默认值见 [凭证解析](../reference/configuration.md#凭证解析)。
 
 在同一层级内，API Key 优先于 AK/SK：
-- 若同时提供了 `api_key` 和 `access_key_id`，使用 API Key
-- 若同时设置了 `E2B_API_KEY` 和 `ALICLOUD_ACCESS_KEY_ID`，使用 E2B_API_KEY
+- 若同时提供了 `sandbox_api_key` 和 `access_key_id`，使用 API Key
+- 若同时设置了 `EBX_SANDBOX_API_KEY` 和 `ALICLOUD_ACCESS_KEY_ID`，使用 `EBX_SANDBOX_API_KEY`
 
 ---
 
@@ -153,7 +152,7 @@ ebx config get access_key_id
 
 ```bash
 # 通过环境变量设置 API Key（推荐）
-export E2B_API_KEY="your-api-key"
+export EBX_SANDBOX_API_KEY="your-api-key"
 
 # 或通过 ebx config 持久化
 ebx config set sandbox_api_key your-api-key
@@ -175,7 +174,7 @@ ebx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass api_key parameter.
+  Suggestion: Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **解决**：确保通过上述任一方式配置了有效的 API Key。
@@ -201,4 +200,4 @@ ebx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET
 
 ## 相关 SDK 文档
 
-以代码参数传递凭据（`Sandbox.create(api_key=...)`、`access_key_id=` / `access_key_secret=`）以及 envd 请求头的说明，见 `python-sdk` 仓库中 SDK 的[认证指南](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/authentication.md)。
+以代码参数传递凭据（`Sandbox.create(sandbox_api_key=...)`、`access_key_id=` / `access_key_secret=`）以及 envd 请求头的说明，见 `python-sdk` 仓库中 SDK 的[认证指南](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/authentication.md)。

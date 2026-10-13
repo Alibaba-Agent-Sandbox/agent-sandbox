@@ -163,10 +163,10 @@ const ACTIVITY_STRIP_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|[\x00-\x
 
 /** Environment variable overriding how many grey activity lines are shown. */
 export const ACTIVITY_LINES_ENV = "EBX_ACTIVITY_LINES";
-const ACTIVITY_LINES_DEFAULT = 4;
+const ACTIVITY_LINES_DEFAULT = 6;
 const ACTIVITY_LINES_MAX = 10;
 
-/** How many activity lines to show: `EBX_ACTIVITY_LINES` (1-10), default 4. */
+/** How many activity lines to show: `EBX_ACTIVITY_LINES` (1-10), default 6. */
 export function _activityLineCount(): number {
   const raw = (process.env[ACTIVITY_LINES_ENV] ?? "").trim();
   if (!/^[+-]?\d+$/.test(raw.replace(/_/g, ""))) return ACTIVITY_LINES_DEFAULT;
@@ -600,7 +600,7 @@ export class OutputManager {
    *
    * *fn* receives an `update(summary)` callable, or `null` when no live display can be drawn (non-TTY, `--json`,
    * `--quiet`, CI, dumb terminal); callers then simply skip reporting. *summary* is recent activity, **one line per
-   * entry, oldest first**: the display keeps the last `EBX_ACTIVITY_LINES` (default 4) of them in grey *below* the
+   * entry, oldest first**: the display keeps the last `EBX_ACTIVITY_LINES` (default 6) of them in grey *below* the
    * `message... 12s` header, so the block scrolls by line. An update that arrives inside the throttle window is
    * remembered and drawn on the next update that is allowed through - a later call is still required, so a throttled
    * line never appears on its own.

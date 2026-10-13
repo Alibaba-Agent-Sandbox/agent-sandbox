@@ -12,7 +12,7 @@ MCP（Model Context Protocol）是一个开放协议，允许 AI 模型与外部
 
 ```bash
 npm install -g @easy-sandbox/cli   # ebx CLI + MCP STDIO server
-export E2B_API_KEY=your-api-key     # 或：ebx config set sandbox_api_key your-api-key
+export EBX_SANDBOX_API_KEY=your-api-key     # 或：ebx config set sandbox_api_key your-api-key
 ```
 
 ---
@@ -43,7 +43,7 @@ ebx mcp install --target vscode
 
 写入工作区 `.vscode/mcp.json` 的 `servers` 键（`type: stdio`），然后重新加载 VS Code 窗口。这个文件经常会被提交，所以安装器不把 API key 写进去；`ebx mcp start` 从环境变量或 `~/.ebx` 读取。
 
-所有目标注册的都是同一个 STDIO 命令：`ebx mcp start`。命令写成正在运行的 `ebx` 可执行文件的绝对路径（找不到时退回到 `node <ebx.js 的绝对路径>`），这样 IDE 自带的精简 PATH 也能拉起 server。安装器采用合并写入 — 已配置的其他 MCP server 会被保留。配置文件如果不是严格 JSON（注释、尾逗号），安装器会拒绝覆盖。Cursor 和 Claude 的用户级配置在 API key 可用时会嵌入 `env` 块。这把密钥按 [凭证解析](../reference/configuration.md#凭证解析) 取值：进程环境变量，然后 `./.env`，然后 `~/.ebx`。`E2B_API_URL` 和 `SANDBOX_REGION` 只有进程环境变量设置了才会写入；`ebx config set region` 保存的区域在 `ebx mcp start` 启动时再次读取。
+所有目标注册的都是同一个 STDIO 命令：`ebx mcp start`。命令写成正在运行的 `ebx` 可执行文件的绝对路径（找不到时退回到 `node <ebx.js 的绝对路径>`），这样 IDE 自带的精简 PATH 也能拉起 server。安装器采用合并写入 — 已配置的其他 MCP server 会被保留。配置文件如果不是严格 JSON（注释、尾逗号），安装器会拒绝覆盖。Cursor 和 Claude 的用户级配置在 API key 可用时会嵌入 `env` 块。这把密钥按 [凭证解析](../reference/configuration.md#凭证解析) 取值：进程环境变量，然后 `./.env`，然后 `~/.ebx`。`EBX_SANDBOX_BASE_URL` 和 `SANDBOX_REGION` 只有进程环境变量设置了才会写入；`ebx config set region` 保存的区域在 `ebx mcp start` 启动时再次读取。
 
 ### 查看安装状态
 
@@ -95,9 +95,9 @@ ebx mcp stop
 | 选项 | 说明 |
 |------|------|
 | `--template` | 默认模板（默认 code-interpreter-v1） |
-| `--api-key` | API Key 覆盖（环境变量: `E2B_API_KEY`） |
-| `--api-url` | API URL 覆盖（环境变量: `E2B_API_URL`） |
-| `--domain` | Domain 覆盖（环境变量: `E2B_DOMAIN`） |
+| `--api-key` | API Key 覆盖（环境变量: `EBX_SANDBOX_API_KEY`） |
+| `--api-url` | API URL 覆盖（环境变量: `EBX_SANDBOX_BASE_URL`） |
+| `--domain` | Domain 覆盖（环境变量: `EBX_SANDBOX_DOMAIN`） |
 | `--http` | 改为 Streamable HTTP（默认 `127.0.0.1:9000`） |
 | `--host` / `--port` | HTTP 绑定地址和端口。非回环地址必须带非空 `--auth-token` |
 | `--auth-token` | HTTP Bearer token（环境变量: `EBX_MCP_AUTH_TOKEN`） |
@@ -134,7 +134,7 @@ printf '%s\n' \
 
 ```bash
 export EBX_MCP_AUTH_TOKEN=replace_me   # Bearer token（回环地址下省略则关闭认证）
-export E2B_API_KEY=your-api-key
+export EBX_SANDBOX_API_KEY=your-api-key
 
 ebx mcp start --http --host 0.0.0.0 --port 9000
 ```
@@ -147,7 +147,7 @@ ebx mcp start --http --host 0.0.0.0 --port 9000
 
 | 入口 | 客户端鉴权 | 怎么配置 |
 |------|------------|----------|
-| `ebx mcp start`（STDIO） | 没有 Bearer。进程由本机 IDE 拉起，不对外监听 | 沙箱调用用 `E2B_API_KEY` / `ebx config set sandbox_api_key` |
+| `ebx mcp start`（STDIO） | 没有 Bearer。进程由本机 IDE 拉起，不对外监听 | 沙箱调用用 `EBX_SANDBOX_API_KEY` / `ebx config set sandbox_api_key` |
 | `ebx mcp start --http` | Bearer。回环地址可以不配 token（启动时会警告）；`--host` 不是回环时必须有非空 `--auth-token` | `--auth-token` 或 `EBX_MCP_AUTH_TOKEN` |
 | 阿里云 FC 上的远程函数 | Bearer 必填。产物里的 `app.py` 在 token 为空时拒绝启动，不会变成“免认证” | `ebx mcp deploy --generate-token` 写入函数环境变量 `EBX_MCP_AUTH_TOKEN`。FC HTTP 触发器使用 `anonymous`，这样 MCP 客户端不用阿里云签名；真正的鉴权是应用层 Bearer。`GET /health` 只返回状态和协议，不校验 token，也不含密钥 |
 
@@ -187,7 +187,7 @@ token 比较使用常量时间算法。可用 `openssl rand -base64 32` 生成�
 ```bash
 ebx mcp deploy \
   --generate-token \
-  --api-key $E2B_API_KEY \
+  --api-key $EBX_SANDBOX_API_KEY \
   --output-dir ./mcp-artifact
 ```
 
@@ -196,7 +196,7 @@ ebx mcp deploy \
 | 文件 | 内容 |
 |------|------|
 | `requirements.txt` | `easy-sandbox[mcp]`、`uvicorn>=0.29` |
-| `app.py` | ASGI 入口，读取 FC 环境变量（`EBX_MCP_AUTH_TOKEN`、`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`EBX_TEMPLATE`） |
+| `app.py` | ASGI 入口，读取 FC 环境变量（`EBX_MCP_AUTH_TOKEN`、`EBX_SANDBOX_API_KEY`、`EBX_SANDBOX_BASE_URL`、`EBX_SANDBOX_DOMAIN`、`EBX_DEFAULT_TEMPLATE`） |
 | `config.yaml` | YAML 清单：函数名、地域、运行时 `python3.10`、handler `app.app`、内存/超时、环境变量、HTTP 触发器（POST/GET/DELETE）、会话亲和 |
 
 命令还会打印：手动 FC 部署步骤（打包 → 创建函数 → 创建 HTTP 触发器 → 如支持则启用 `Mcp-Session-Id` 亲和）以及指向 `<FC_HTTP_TRIGGER_URL>/mcp`、Bearer token 打码的 IDE 配置模板。
@@ -278,8 +278,8 @@ curl -s -X DELETE http://localhost:9000/mcp \
 | 症状 | 可能原因 | 解决方法 |
 |------|----------|----------|
 | IDE 显示 server 失败 / 无工具 | `ebx` 不在 IDE 的 `PATH` 中 | 在 IDE 配置中使用绝对路径，如 `/usr/local/bin/ebx`（npm 全局 bin 目录见 `npm prefix -g`） |
-| 工具列表正常但每次调用报错 | API key 缺失或无效 | `ebx mcp status` 看 `auth_configured`；设置 `E2B_API_KEY` 或 `ebx config set sandbox_api_key` |
-| IDE 重启后 `create_sandbox` 失败 | 后端 API URL/地域不匹配 | 在 server 参数/env 块中传 `--api-url`（或设 `E2B_API_URL`） |
+| 工具列表正常但每次调用报错 | API key 缺失或无效 | `ebx mcp status` 看 `auth_configured`；设置 `EBX_SANDBOX_API_KEY` 或 `ebx config set sandbox_api_key` |
+| IDE 重启后 `create_sandbox` 失败 | 后端 API URL/地域不匹配 | 在 server 参数/env 块中传 `--api-url`（或设 `EBX_SANDBOX_BASE_URL`） |
 | HTTP 每个请求都 401 | `EBX_MCP_AUTH_TOKEN` 为空（fail-closed） | 设置非空 token。本机回环可以删掉该变量来关闭认证。FC 产物没有 token 时不会启动 |
 | HTTP 404 Unknown session | `Mcp-Session-Id` 已过期（空闲 TTL 3600 秒）或实例重启 | 重新发送 `initialize` 创建新会话 |
 | HTTP 503 会话上限 | 进程内并发会话超过 100 | 关闭空闲会话（`DELETE /mcp`）或经 `create_mcp_app()` 调高 `max_sessions` |

@@ -38,7 +38,7 @@
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass api_key parameter.
+  Suggestion: Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **Solution**:
@@ -210,7 +210,7 @@ A non-interactive `--adopt` without `-y` stops with "Confirmation required befor
 
 ### A long step looks frozen
 
-On a terminal the header should keep moving (`Building Docker image locally... 12s`, then `13s`). The last four log lines sit under it in grey. If you see a single line and no elapsed time, the session is `--quiet`, `--json`, `--ci`, `TERM=dumb`, or not a terminal. Pass nothing extra for the live block. `--verbose` prints the full deploy log instead. `EBX_ACTIVITY_LINES` (1–10, default 4) changes how many grey lines are kept. File contents and credentials are never part of that block.
+On a terminal the header should keep moving (`Building Docker image locally... 12s`, then `13s`). The last six log lines sit under it in grey. If you see a single line and no elapsed time, the session is `--quiet`, `--json`, `--ci`, `TERM=dumb`, or not a terminal. Pass nothing extra for the live block. `--verbose` prints the full deploy log instead. `EBX_ACTIVITY_LINES` (1–10, default 6) changes how many grey lines are kept. Grey rows include a short redacted tool detail (command, url, query, or path). File bytes, thinking, and credentials stay hidden.
 
 ### E7003 — Deploy Timeout
 

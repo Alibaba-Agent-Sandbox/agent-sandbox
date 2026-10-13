@@ -289,16 +289,16 @@ graph LR
 ### 认证
 
 - **客户端 → MCP**：`Authorization: Bearer <token>`，常量时间比较校验；经 `EBX_MCP_AUTH_TOKEN` 配置。本机回环未配置时认证关闭；配置为空时 fail-closed（所有请求返回 401）。FC 产物调用 `require_auth_token`，token 为空则进程拒绝启动
-- **MCP → 沙箱**：`E2B_API_KEY`（或 `SANDBOX_API_KEY`）环境变量
+- **MCP → 沙箱**：`EBX_SANDBOX_API_KEY`环境变量
 
 ### 环境变量
 
 | 变量 | 用途 |
 |------|------|
-| `E2B_API_KEY` / `SANDBOX_API_KEY` | 沙箱后端 API Key |
-| `E2B_API_URL` / `SANDBOX_API_BASE_URL` | Platform API URL 覆盖 |
-| `E2B_DOMAIN` | 沙箱 Domain 覆盖 |
-| `SANDBOX_TEMPLATE` / `EBX_TEMPLATE` | 默认沙箱模板 |
+| `EBX_SANDBOX_API_KEY` | 沙箱后端 API Key |
+| `EBX_SANDBOX_BASE_URL` | 平台 API URL |
+| `EBX_SANDBOX_DOMAIN` | 沙箱 Domain 覆盖 |
+| `EBX_DEFAULT_TEMPLATE` | 默认沙箱模板 |
 | `EBX_MCP_AUTH_TOKEN` | 客户端认证 Bearer token（HTTP 传输） |
 
 ---
@@ -382,7 +382,7 @@ ebx --json mcp status     # JSON 输出
       "command": "ebx",
       "args": ["mcp", "start"],
       "env": {
-        "E2B_API_KEY": "your-api-key"
+        "EBX_SANDBOX_API_KEY": "your-api-key"
       }
     }
   }
@@ -399,7 +399,7 @@ ebx --json mcp status     # JSON 输出
       "command": "ebx",
       "args": ["mcp", "start"],
       "env": {
-        "E2B_API_KEY": "your-api-key"
+        "EBX_SANDBOX_API_KEY": "your-api-key"
       }
     }
   }
@@ -461,7 +461,7 @@ graph TB
         ASGI["app.py → easy_sandbox.agent.mcp_http:asgi_app"]
         Trigger["HTTP 触发器: POST/GET/DELETE /mcp"]
         Session["会话亲和: Mcp-Session-Id"]
-        Env["环境变量: E2B_API_KEY / EBX_MCP_AUTH_TOKEN / EBX_TEMPLATE"]
+        Env["环境变量: EBX_SANDBOX_API_KEY / EBX_MCP_AUTH_TOKEN / EBX_DEFAULT_TEMPLATE"]
     end
 ```
 
@@ -474,18 +474,18 @@ ebx mcp deploy \
   --template base \
   --memory 512 --timeout 600 \
   --generate-token \
-  --api-key $E2B_API_KEY \
+  --api-key $EBX_SANDBOX_API_KEY \
   --output-dir ./mcp-artifact
 ```
 
-选项：`--name`（默认 `easy-sandbox-mcp`）、`--region`（命令 `--region` > `SANDBOX_REGION` > `ebx config set region` > `cn-hangzhou`）、`--template`（默认 `base`）、`--memory`（默认 512）、`--timeout`（默认 600）、Bearer token 来源 `--auth-token-file` / `--generate-token` / 环境变量 `EBX_MCP_AUTH_TOKEN`、`--enable-session-affinity/--no-session-affinity`（默认启用）、`--api-key`、`--custom-domain`、`--output-dir`。
+选项：`--name`（默认 `easy-sandbox-mcp`）、`--region`（命令 `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`）、`--template`（默认 `base`）、`--memory`（默认 512）、`--timeout`（默认 600）、Bearer token 来源 `--auth-token-file` / `--generate-token` / 环境变量 `EBX_MCP_AUTH_TOKEN`、`--enable-session-affinity/--no-session-affinity`（默认启用）、`--sandbox-api-key`（`EBX_SANDBOX_API_KEY`）、`--custom-domain`、`--output-dir`。
 
 ### 产物内容
 
 | 文件 | 内容 |
 |------|------|
 | `requirements.txt` | `easy-sandbox[mcp]`、`uvicorn>=0.29` |
-| `app.py` | ASGI 入口，从 FC 函数环境变量读取 `EBX_MCP_AUTH_TOKEN`、`E2B_API_KEY`/`SANDBOX_API_KEY`、`E2B_API_URL`/`SANDBOX_API_BASE_URL`、`E2B_DOMAIN`、`SANDBOX_TEMPLATE`/`EBX_TEMPLATE` |
+| `app.py` | ASGI 入口，从 FC 函数环境变量读取 `EBX_MCP_AUTH_TOKEN`、`EBX_SANDBOX_API_KEY`、`EBX_SANDBOX_BASE_URL`、`EBX_SANDBOX_DOMAIN`、`EBX_DEFAULT_TEMPLATE` |
 | `config.yaml` | YAML 部署清单（非 FC API 载荷）：`function_name`、`region`、`runtime`（`python3.10`）、`handler`（`app.app`）、`memory`、`timeout`、`environment_variables`、`http_trigger`（POST/GET/DELETE 方法 + `enable_session_affinity`）、可选 `custom_domain` |
 
 `ebx mcp deploy` 还会打印手动部署步骤（打包产物、经 FC 控制台或 SDK 创建函数、创建 HTTP 触发器、如支持则启用 `Mcp-Session-Id` 亲和）以及 Bearer token 打码的 IDE 配置模板。
@@ -494,7 +494,7 @@ ebx mcp deploy \
 
 - **协议**：Streamable HTTP（MCP 规范 2025-06-18）；`initialize` 协商 `2025-06-18`，与 `GET /health` 一致（STDIO 独立保持 `2024-11-05`）
 - **会话亲和**：委托 FC 平台层通过 `Mcp-Session-Id` 头实现 — 无需应用层粘性路由
-- **认证**：双层 — 客户端→MCP 使用 `Authorization: Bearer <token>`；MCP→沙箱使用 FC 环境变量中的 `E2B_API_KEY`
+- **认证**：双层 — 客户端→MCP 使用 `Authorization: Bearer <token>`；MCP→沙箱使用 FC 环境变量中的 `EBX_SANDBOX_API_KEY`
 - **生命周期**：沙箱按 MCP 会话懒创建；`DELETE /mcp` 触发清理；空闲会话 TTL 作为安全网
 - **冷启动**：FC 冷启动 (~1–3s) 可能与 MCP initialize 超时冲突；生产环境建议使用预留实例
 - **密钥**：`config.yaml` 含 API key 与 Bearer token — 切勿提交到版本控制

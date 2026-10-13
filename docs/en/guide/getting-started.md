@@ -46,7 +46,7 @@ There are two ways to configure credentials. When a call actually needs the key,
 ### Option 1: Environment variable (recommended for CI/CD)
 
 ```bash
-export E2B_API_KEY="your-api-key-here"
+export EBX_SANDBOX_API_KEY="your-api-key-here"
 ```
 
 ### Option 2: `ebx config set` (recommended for local development)

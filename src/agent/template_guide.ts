@@ -132,7 +132,8 @@ function dockerfileRules(profile: TemplateProfile): string {
 - 不要写 CMD 指令。平台用 start_cmd / ready_cmd 启动服务，而不是镜像指令：
   - start_cmd: \`${profile.start_cmd}\`
   - ready_cmd: \`${profile.ready_cmd ?? ""}\`
-- 架构 \`${profile.arch}\`。\`WORKDIR ${profile.workdir}\`。
+- 架构 \`${profile.arch}\`。\`WORKDIR ${profile.workdir}\`。默认用户 \`${profile.user || "镜像默认"}\`${profile.user ? `，写 \`USER ${profile.user}\`` : "，不要写 USER"}。
+- \`template.yaml\` 里写 \`user: ${profile.user || '""'}\` 和 \`workdir: ${profile.workdir}\`。这是沙箱执行时的默认用户和工作目录，和 Dockerfile 保持一致。
 - ${ports}
 - 仓库：${profile.registry}
 ${installIntro}
@@ -147,7 +148,8 @@ ${secrets}`;
 - 以这一行开头：\`FROM ${profile.base_image}\`。镜像里必须有 python3 和 pip（基础镜像不是 Python 时
   用 apt-get 安装 \`python3 python3-pip\`，pip 需加 \`--break-system-packages\`）。
 - ${entry}
-- 架构 \`${profile.arch}\`。\`WORKDIR ${profile.workdir}\`，\`COPY commands.py .\`（以及业务代码），\`EXPOSE ${SERVER_PORT}\`（业务端口一并 EXPOSE），
+- 架构 \`${profile.arch}\`。\`WORKDIR ${profile.workdir}\`${profile.user ? `，\`USER ${profile.user}\`` : ""}，\`COPY commands.py .\`（以及业务代码），\`EXPOSE ${SERVER_PORT}\`（业务端口一并 EXPOSE），
+- \`template.yaml\` 里写 \`user: ${profile.user || '""'}\` 和 \`workdir: ${profile.workdir}\`。这是沙箱执行时的默认用户和工作目录。
   最后 \`${cmd}\`。
 - ${ports}
 - 仓库：${profile.registry}

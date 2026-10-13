@@ -83,7 +83,7 @@ export class AuthenticationError extends SandboxError {
  */
 export class InvalidAPIKeyError extends AuthenticationError {
   static override code = "E1001";
-  static override suggestion = "Check your E2B_API_KEY environment variable or pass api_key parameter.";
+  static override suggestion = "Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.";
 }
 
 /**

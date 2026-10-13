@@ -22,7 +22,6 @@ npm run e2e:offline                   # 仅无需凭据的套件(几秒)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
 node e2e/run.mjs --list               # 列出所有套件与场景
 node e2e/run.mjs --json out.json --markdown out.md   # 机器/Markdown 报告(已脱敏)
-npm run e2e:known-issues              # SDK 缺陷修复 KI-001..KI-008 的真实云端验证(见 known-issues/README.zh-CN.md)
 npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 janitor(默认 dry-run)
 ```
 
@@ -44,7 +43,7 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 | 套件 | 依赖 | 内容 |
 |---|---|---|
 | `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、shortcuts、向临时 HOME 写入 MCP `install/status/stop`、`template init`、本地 `template search --index-url` |
-| `cloud-readonly` | 云端 | 错误 API Key(`E1000`,KI-006 修复后为 `E1001`;退出码 3)、`template list/info/delete` 与 not-found 信封(退出码 4,`E2001`/`E5000`)、`list` 输出结构、`config list` 密钥脱敏 |
+| `cloud-readonly` | 云端 | 错误 API Key(`E1000`,退出码 3)、`template list/info/delete` 与 not-found 信封(退出码 4,`E2001`/`E5000`)、`list` 输出结构、`config list` 密钥脱敏 |
 | `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、`--json`、`-q`、`--ci`、`CI=true`、超时→退出码 5)→ `upload`/`download`(二进制往返)→ `sandbox files/process/system/capabilities/shell-stream` → `connect` → `run` 自定义命令 → 创建时注入 env/上传 → `kill` |
 | `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template install --download-only` |
 | `docker-deploy` | 云端 + Docker,需主动开启 | `template init` → `template deploy`(docker build、ACR push、CreateTemplate)→ `create` → `exec` → `template delete` |
@@ -56,19 +55,6 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 `stdout`/`stderr`/`output`(字符串、正则、`{ not: ... }`)、`jsonShape`/`json`(JSON 断言)、`retries`/`retryReason`、
 `timeoutMs`、`needs`。多步骤场景使用 `run(ctx)`:`ctx.ebx`(脱敏+规范化结果)、`ctx.rawEbx`(仅脱敏)、
 `ctx.track/untrack`(登记待清理沙箱)、`ctx.eventually`、`ctx.fail`。详见英文版示例。
-
-## 提供商插件（`e2e/providers/run.sh`）
-
-一个 bash 脚本：把 `python-sdk/examples/providers` 中的参考插件安装到一次性的 `HOME`，并通过 CLI 驱动真实沙箱。运行方式：`npm run e2e:providers` 或 `e2e/providers/run.sh [offline|local-process|opensandbox|e2b-compatible]`。
-
-| 目标 | 依赖 | 检查内容 |
-|---|---|---|
-| `offline` | 无（git、python3） | “用到才出现”的 `provider` 命令组、同意界面与 `--yes` 规则（`E8012`）、从路径安装与从钉住 commit 的本地 git 仓库安装、`E8003` 冲突与 `--force`、`doctor`/`info`、`E8001`、`E8002`（命令行传密钥）、`provider default`、`E8030`、篡改检测（`E8011`）、卸载 |
-| `local-process` | python3 | `create`、`list`、`exec`（退出码透传）、`upload`/`download` 往返、`sandbox files list`、`kill`、终止后返回退出码 4，全程使用限定 id |
-| `opensandbox` | 运行中的 OpenSandbox：`python-sdk/e2e/opensandbox/local-up.sh`（Docker；密钥 `local-dev-key`，`127.0.0.1:8080`） | 按路径与按 git 安装、`doctor`、`provider default opensandbox`、带与不带 `--provider` 的完整沙箱往返、密钥掩码，以及 `ebx provider test`（契约套件） |
-| `e2b-compatible` | 环境中的 `E2B_API_KEY`（及 `E2B_API_URL`、`E2B_DOMAIN`） | REST 插件继承通用 `sandbox_*` 键，在真实云上跑同一往返；没有密钥时报告为 `SKIP` |
-
-变量：`EBX_BIN`（被测二进制，检出仓库中默认为 `tsx src/bin/ebx.ts`）、`PROVIDERS_DIR`、`OSB_URL`、`OSB_KEY`、`OSB_IMAGE`。脚本会清理子进程环境，从不打印凭证，退出时终止它创建的所有沙箱，任何步骤失败都以非零退出。
 
 ## 环境变量
 

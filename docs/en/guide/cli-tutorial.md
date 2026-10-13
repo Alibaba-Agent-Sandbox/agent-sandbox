@@ -336,7 +336,7 @@ ebx template deploy ./my-template \
   --acr-namespace my-ns --acr-repo my-template
 ```
 
-`template deploy` automatically performs: local Docker build → ACR push → CreateTemplate API call. On a terminal each of those steps is a moving `message... 12s` header with the latest four log lines in grey underneath. See [While a command is running](#while-a-command-is-running), and [Authoring Templates](authoring-templates.md) for the template files.
+`template deploy` automatically performs: local Docker build → ACR push → CreateTemplate API call. On a terminal each of those steps is a moving `message... 12s` header with the latest six log lines in grey underneath. See [While a command is running](#while-a-command-is-running), and [Authoring Templates](authoring-templates.md) for the template files.
 
 ---
 
@@ -409,9 +409,9 @@ Building Docker image locally: my-template:latest... 12s
 #5 DONE 0.1s
 ```
 
-The header's elapsed time moves about once a second, including while the tool is silent. The grey rows are the last four lines (`EBX_ACTIVITY_LINES`, from 1 to 10). The same block is used for creating a sandbox, upload, download, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, `ebx kill --all`, and each deploy phase (build, push, wait until READY).
+The header's elapsed time moves about once a second, including while the tool is silent. The grey rows are the last six lines (`EBX_ACTIVITY_LINES`, from 1 to 10). The same block is used for creating a sandbox, upload, download, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, `ebx kill --all`, and each deploy phase (build, push, wait until READY).
 
-Grey rows are safe text only: relative paths, install milestones (mirror, checksum, extract), docker or poll lines, and `i/N <id>` while killing. File bytes, tool input, ACR tokens, and `--build-arg` values are not shown.
+Grey rows include a short redacted tool detail (command, url, query, or path), along with relative paths, install milestones (mirror, checksum, extract), docker or poll lines, and `i/N <id>` while killing. File bytes, thinking, and credentials stay hidden. ACR tokens and `--build-arg` values are not shown.
 
 `--json`, `--quiet`, `--ci`, `TERM=dumb`, and a non-TTY print no such header. Deploy still prints one progress line per phase in those modes. `--verbose` prints the full deploy log instead of the block; other commands keep the header on a terminal. Results stay on stdout.
 

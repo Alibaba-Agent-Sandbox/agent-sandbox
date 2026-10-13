@@ -84,42 +84,14 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": true,
       "settable": true,
       "env": "EBX_SANDBOX_API_KEY",
-      "aliases": [
-        {
-          "name": "E2B_API_KEY",
-          "kind": "compat",
-          "surface": "env"
-        },
-        {
-          "name": "SANDBOX_API_KEY",
-          "kind": "legacy",
-          "surface": "env"
-        },
-        {
-          "name": "api_key",
-          "kind": "legacy",
-          "surface": "config"
-        },
-        {
-          "name": "api_key",
-          "kind": "legacy",
-          "surface": "kwarg"
-        },
-        {
-          "name": "--api-key",
-          "kind": "legacy",
-          "surface": "flag"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_SANDBOX_API_KEY",
-        "E2B_API_KEY",
-        "SANDBOX_API_KEY"
+        "EBX_SANDBOX_API_KEY"
       ],
       "toml_section": null,
       "storage_phase1": {
         "file": "env",
-        "name": "E2B_API_KEY"
+        "name": "EBX_SANDBOX_API_KEY"
       },
       "storage_phase2": {
         "file": "env",
@@ -138,52 +110,14 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_SANDBOX_BASE_URL",
-      "aliases": [
-        {
-          "name": "E2B_API_URL",
-          "kind": "compat",
-          "surface": "env"
-        },
-        {
-          "name": "SANDBOX_API_BASE_URL",
-          "kind": "legacy",
-          "surface": "env"
-        },
-        {
-          "name": "api_url",
-          "kind": "legacy",
-          "surface": "config"
-        },
-        {
-          "name": "api_base_url",
-          "kind": "legacy",
-          "surface": "config"
-        },
-        {
-          "name": "api_url",
-          "kind": "legacy",
-          "surface": "kwarg"
-        },
-        {
-          "name": "api_base_url",
-          "kind": "legacy",
-          "surface": "kwarg"
-        },
-        {
-          "name": "--api-url",
-          "kind": "legacy",
-          "surface": "flag"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_SANDBOX_BASE_URL",
-        "E2B_API_URL",
-        "SANDBOX_API_BASE_URL"
+        "EBX_SANDBOX_BASE_URL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
         "file": "toml",
-        "name": "api_url",
+        "name": "sandbox_base_url",
         "section": "transport"
       },
       "storage_phase2": {
@@ -204,36 +138,14 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_SANDBOX_DOMAIN",
-      "aliases": [
-        {
-          "name": "E2B_DOMAIN",
-          "kind": "compat",
-          "surface": "env"
-        },
-        {
-          "name": "domain",
-          "kind": "legacy",
-          "surface": "config"
-        },
-        {
-          "name": "domain",
-          "kind": "legacy",
-          "surface": "kwarg"
-        },
-        {
-          "name": "--domain",
-          "kind": "legacy",
-          "surface": "flag"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_SANDBOX_DOMAIN",
-        "E2B_DOMAIN"
+        "EBX_SANDBOX_DOMAIN"
       ],
       "toml_section": "transport",
       "storage_phase1": {
         "file": "toml",
-        "name": "domain",
+        "name": "sandbox_domain",
         "section": "transport"
       },
       "storage_phase2": {
@@ -254,16 +166,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_HTTP_TIMEOUT",
-      "aliases": [
-        {
-          "name": "SANDBOX_HTTP_TIMEOUT",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_HTTP_TIMEOUT",
-        "SANDBOX_HTTP_TIMEOUT"
+        "EBX_HTTP_TIMEOUT"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -445,21 +350,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_LOG_LEVEL",
-      "aliases": [
-        {
-          "name": "SANDBOX_LOG_LEVEL",
-          "kind": "legacy",
-          "surface": "env"
-        },
-        {
-          "name": "--log-level",
-          "kind": "legacy",
-          "surface": "flag"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_LOG_LEVEL",
-        "SANDBOX_LOG_LEVEL"
+        "EBX_LOG_LEVEL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -491,22 +384,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_DEFAULT_TEMPLATE",
-      "aliases": [
-        {
-          "name": "SANDBOX_TEMPLATE",
-          "kind": "legacy",
-          "surface": "env"
-        },
-        {
-          "name": "EBX_TEMPLATE",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_DEFAULT_TEMPLATE",
-        "SANDBOX_TEMPLATE",
-        "EBX_TEMPLATE"
+        "EBX_DEFAULT_TEMPLATE"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -532,34 +412,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_LLM_API_KEY",
-      "aliases": [
-        {
-          "name": "BAILIAN_CODING_PLAN_API_KEY",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "DASHSCOPE_API_KEY",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "OPENAI_API_KEY",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "EBX_QWEN_CODE_API_KEY",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_LLM_API_KEY",
-        "BAILIAN_CODING_PLAN_API_KEY",
-        "DASHSCOPE_API_KEY",
-        "OPENAI_API_KEY",
-        "EBX_QWEN_CODE_API_KEY"
+        "EBX_LLM_API_KEY"
       ],
       "toml_section": null,
       "storage_phase1": {
@@ -583,21 +438,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_LLM_BASE_URL",
-      "aliases": [
-        {
-          "name": "OPENAI_BASE_URL",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "qwen_code_base_url",
-          "kind": "legacy",
-          "surface": "config"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_LLM_BASE_URL",
-        "OPENAI_BASE_URL"
+        "EBX_LLM_BASE_URL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -623,21 +466,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_LLM_MODEL",
-      "aliases": [
-        {
-          "name": "OPENAI_MODEL",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "qwen_code_model",
-          "kind": "legacy",
-          "surface": "config"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_LLM_MODEL",
-        "OPENAI_MODEL"
+        "EBX_LLM_MODEL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -662,21 +493,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": true,
       "credential": false,
       "settable": true,
-      "env": "EBX_GITHUB_TOKEN",
-      "aliases": [
-        {
-          "name": "GITHUB_TOKEN",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "--token",
-          "kind": "legacy",
-          "surface": "flag"
-        }
-      ],
+      "env": "GITHUB_TOKEN",
+      "aliases": [],
       "env_names": [
-        "EBX_GITHUB_TOKEN",
         "GITHUB_TOKEN"
       ],
       "toml_section": null,
@@ -686,7 +505,7 @@ const SCHEMA: ConfigKeysSchema = {
       },
       "storage_phase2": {
         "file": "env",
-        "name": "EBX_GITHUB_TOKEN"
+        "name": "GITHUB_TOKEN"
       },
       "default": null,
       "choices": [],
@@ -800,17 +619,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_REGION",
-      "aliases": [
-        {
-          "name": "SANDBOX_REGION",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ALIBABA_CLOUD_REGION_ID",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_REGION",
-        "SANDBOX_REGION"
+        "ALIBABA_CLOUD_REGION_ID"
       ],
       "toml_section": null,
       "storage_phase1": {
@@ -821,7 +633,7 @@ const SCHEMA: ConfigKeysSchema = {
       "storage_phase2": {
         "file": "toml",
         "name": "region",
-        "section": "providers.alicloud-express"
+        "section": "transport"
       },
       "default": "cn-hangzhou",
       "choices": [],
@@ -835,23 +647,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": true,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID",
-      "aliases": [
-        {
-          "name": "ALICLOUD_ACCESS_KEY_ID",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "AccessKey",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ALICLOUD_ACCESS_KEY_ID",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID",
-        "ALICLOUD_ACCESS_KEY_ID",
-        "AccessKey"
+        "ALICLOUD_ACCESS_KEY_ID"
       ],
       "toml_section": null,
       "storage_phase1": {
@@ -860,7 +659,7 @@ const SCHEMA: ConfigKeysSchema = {
       },
       "storage_phase2": {
         "file": "env",
-        "name": "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID"
+        "name": "ALICLOUD_ACCESS_KEY_ID"
       },
       "default": null,
       "choices": [],
@@ -874,23 +673,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": true,
       "credential": true,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET",
-      "aliases": [
-        {
-          "name": "ALICLOUD_ACCESS_KEY_SECRET",
-          "kind": "native",
-          "surface": "env"
-        },
-        {
-          "name": "AccessSecret",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ALICLOUD_ACCESS_KEY_SECRET",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET",
-        "ALICLOUD_ACCESS_KEY_SECRET",
-        "AccessSecret"
+        "ALICLOUD_ACCESS_KEY_SECRET"
       ],
       "toml_section": null,
       "storage_phase1": {
@@ -899,7 +685,7 @@ const SCHEMA: ConfigKeysSchema = {
       },
       "storage_phase2": {
         "file": "env",
-        "name": "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET"
+        "name": "ALICLOUD_ACCESS_KEY_SECRET"
       },
       "default": null,
       "choices": [],
@@ -913,16 +699,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_NAMESPACE",
-      "aliases": [
-        {
-          "name": "ACR_NAMESPACE",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_NAMESPACE",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_NAMESPACE",
         "ACR_NAMESPACE"
       ],
       "toml_section": null,
@@ -932,7 +711,7 @@ const SCHEMA: ConfigKeysSchema = {
       },
       "storage_phase2": {
         "file": "env",
-        "name": "EBX_ALICLOUD_EXPRESS_ACR_NAMESPACE"
+        "name": "ACR_NAMESPACE"
       },
       "default": null,
       "choices": [],
@@ -946,16 +725,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_REGISTRY",
-      "aliases": [
-        {
-          "name": "ACR_REGISTRY",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_REGISTRY",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_REGISTRY",
         "ACR_REGISTRY"
       ],
       "toml_section": null,
@@ -981,16 +753,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_REPO",
-      "aliases": [
-        {
-          "name": "ACR_REPO",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_REPO",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_REPO",
         "ACR_REPO"
       ],
       "toml_section": null,
@@ -1016,16 +781,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_USERNAME",
-      "aliases": [
-        {
-          "name": "ACR_USERNAME",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_USERNAME",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_USERNAME",
         "ACR_USERNAME"
       ],
       "toml_section": null,
@@ -1051,16 +809,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": true,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_PASSWORD",
-      "aliases": [
-        {
-          "name": "ACR_PASSWORD",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_PASSWORD",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_PASSWORD",
         "ACR_PASSWORD"
       ],
       "toml_section": null,
@@ -1070,7 +821,7 @@ const SCHEMA: ConfigKeysSchema = {
       },
       "storage_phase2": {
         "file": "env",
-        "name": "EBX_ALICLOUD_EXPRESS_ACR_PASSWORD"
+        "name": "ACR_PASSWORD"
       },
       "default": null,
       "choices": [],
@@ -1084,16 +835,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_INSTANCE_ID",
-      "aliases": [
-        {
-          "name": "ACREE_INSTANCE_ID",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACREE_INSTANCE_ID",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_INSTANCE_ID",
         "ACREE_INSTANCE_ID"
       ],
       "toml_section": null,
@@ -1119,16 +863,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_VPC_ID",
-      "aliases": [
-        {
-          "name": "ACR_VPC_ID",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_VPC_ID",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_VPC_ID",
         "ACR_VPC_ID"
       ],
       "toml_section": null,
@@ -1154,16 +891,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_VSWITCH_IDS",
-      "aliases": [
-        {
-          "name": "ACR_VSWITCH_IDS",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_VSWITCH_IDS",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_VSWITCH_IDS",
         "ACR_VSWITCH_IDS"
       ],
       "toml_section": null,
@@ -1189,16 +919,9 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_ACR_SECURITY_GROUP_ID",
-      "aliases": [
-        {
-          "name": "ACR_SECURITY_GROUP_ID",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "env": "ACR_SECURITY_GROUP_ID",
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_ACR_SECURITY_GROUP_ID",
         "ACR_SECURITY_GROUP_ID"
       ],
       "toml_section": null,
@@ -1225,22 +948,9 @@ const SCHEMA: ConfigKeysSchema = {
       "credential": false,
       "settable": true,
       "env": "EBX_ALICLOUD_EXPRESS_TEAM_ID",
-      "aliases": [
-        {
-          "name": "E2B_TEAM_ID",
-          "kind": "compat",
-          "surface": "env"
-        },
-        {
-          "name": "TEAM_ID",
-          "kind": "legacy",
-          "surface": "env"
-        }
-      ],
+      "aliases": [],
       "env_names": [
-        "EBX_ALICLOUD_EXPRESS_TEAM_ID",
-        "E2B_TEAM_ID",
-        "TEAM_ID"
+        "EBX_ALICLOUD_EXPRESS_TEAM_ID"
       ],
       "toml_section": null,
       "storage_phase1": {

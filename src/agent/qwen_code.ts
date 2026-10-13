@@ -843,13 +843,16 @@ export const _ACTIVITY_FEED_LINES = 10;
  * Rolling, line-oriented log of what the agent is doing.
  *
  * The assistant's text is split into lines as it streams (a newline ends a line; a very long unbroken run is cut at
- * {@link _ACTIVITY_SUMMARY_MAX} characters), and every tool use adds a `tool: <name>` line. Only the assistant's own
- * text and the *name* of a tool are recorded — never tool input (shell commands can carry secrets) and never
- * thinking.
+ * {@link _ACTIVITY_SUMMARY_MAX} characters), and every tool use adds a `tool: <name> <detail>` line. The detail is a
+ * short redacted command, url, query, or path. File bytes, thinking, and credentials stay hidden.
  */
 export class _ActivityFeed {
   _lines: string[] = [];
   _partial = "";
+  /** Accumulated `input_json_delta` text, keyed by content-block index. */
+  _toolJson = new Map<number, string>();
+  /** Tool name for an open content block, so a later delta can finish its line. */
+  _toolNames = new Map<number, string>();
 
   private commit(raw: string): void {
     const line = _oneLine(raw);
@@ -886,13 +889,107 @@ export class _ActivityFeed {
   }
 }
 
-/** Record `tool: <name>` once. Never records tool input. */
-function noteTool(feed: _ActivityFeed, name: unknown): boolean {
+/** First non-empty input field wins. File bytes and credentials are not in this list. */
+const TOOL_DETAIL_KEYS = ["command", "cmd", "url", "query", "pattern", "search_term", "path", "file_path", "filePath", "glob", "description"] as const;
+
+/** `sk-…`, `github_pat_…`, `ghp_…`, `AKIA…`, `Bearer …`. The token itself is never kept. */
+function redactSecrets(text: string): string {
+  return text
+    .replace(/Bearer\s+\S+/g, "Bearer …")
+    .replace(/\bgithub_pat_[A-Za-z0-9_-]{4,}/g, "github_pat_…")
+    .replace(/\b(ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_-]{4,}/g, "$1…")
+    .replace(/\bsk-[A-Za-z0-9_-]{4,}/g, "sk-…")
+    .replace(/\bAKIA[A-Za-z0-9]{4,}/g, "AKIA…");
+}
+
+/** One display string for a detail value. Arrays of strings are joined with spaces. */
+function detailText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string")) return value.join(" ");
+  return "";
+}
+
+/** Collapse controls, then redact. Empty after that means "try the next key". */
+function sanitizeDetail(text: string): string {
+  const clean = text.replace(ANSI_RE, "").replace(CONTROL_RE, " ");
+  return redactSecrets(pySplitWhitespace(clean).join(" "));
+}
+
+function inputObject(input: unknown): Record<string, unknown> | null {
+  if (isDict(input)) return input;
+  if (typeof input !== "string") return null;
+  try {
+    const parsed = JSON.parse(input) as unknown;
+    return isDict(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Short redacted detail, or `""` when no allowed key has a value. */
+function toolDetail(input: unknown): string {
+  const body = inputObject(input);
+  if (body === null) return "";
+  for (const key of TOOL_DETAIL_KEYS) {
+    if (!(key in body)) continue;
+    const text = sanitizeDetail(detailText(body[key]));
+    if (text) return text;
+  }
+  return "";
+}
+
+/** `tool: <name>` or `tool: <name> <detail>`, already a single capped line. */
+function toolLabel(name: string, input: unknown): string {
+  const namePart = _oneLine(name, 60);
+  const head = `tool: ${namePart}`;
+  const detail = toolDetail(input);
+  if (!detail) return head;
+  const room = _ACTIVITY_SUMMARY_MAX - cpLength(head) - 1;
+  if (room <= 0) return head;
+  const fitted = cpLength(detail) <= room ? detail : room === 1 ? "…" : `…${cpSlice(detail, -(room - 1))}`;
+  return `${head} ${fitted}`;
+}
+
+/**
+ * Record `tool: <name> <detail>`.
+ *
+ * An identical line, or a repeat that adds no detail, is a no-op. When the new event only adds a detail and that tool
+ * line is still the last line, it is rewritten in place. Text committed after it appends a new line instead.
+ */
+function noteTool(feed: _ActivityFeed, name: unknown, input?: unknown): boolean {
   if (typeof name !== "string" || !name) return false;
-  const label = `tool: ${_oneLine(name, 60)}`;
-  if (feed._lines.length > 0 && feed._lines[feed._lines.length - 1] === label && !feed._partial) return false;
+  const namePart = _oneLine(name, 60);
+  if (!namePart) return false;
+  const label = _oneLine(toolLabel(name, input));
+  const bare = `tool: ${namePart}`;
+  if (!feed._partial && feed._lines.length > 0) {
+    const last = feed._lines[feed._lines.length - 1] as string;
+    if (last === label) return false;
+    if (label.startsWith(`${bare} `) && last === bare) {
+      feed._lines[feed._lines.length - 1] = label;
+      return true;
+    }
+    if (label === bare && (last === bare || last.startsWith(`${bare} `))) return false;
+  }
   feed.note(label);
   return true;
+}
+
+function contentBlockIndex(event: Record<string, unknown>): number {
+  const index = event.index;
+  return typeof index === "number" && Number.isInteger(index) ? index : 0;
+}
+
+/** Apply a completed tool-input JSON blob to the open tool line. Incomplete JSON changes nothing. */
+function applyToolJson(feed: _ActivityFeed, index: number): boolean {
+  const name = feed._toolNames.get(index);
+  const raw = feed._toolJson.get(index);
+  if (!name || !raw) return false;
+  try {
+    return noteTool(feed, name, JSON.parse(raw) as unknown);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -910,11 +1007,28 @@ export function _feedStreamEvent(message: unknown, feed: _ActivityFeed): boolean
       feed.text(delta.text);
       return true;
     }
-    // The tool name arrives when the call starts. Recording it here means a long write is not a blank header until
-    // the tool finally returns. The input itself is never recorded.
+    // The tool name arrives when the call starts, so a long call is not a blank header. Argument JSON streams in as
+    // `input_json_delta` and is applied once it parses; file bytes, thinking, and credentials are never recorded.
     const block = event.content_block;
     if (event.type === "content_block_start" && isDict(block) && block.type === "tool_use") {
-      return noteTool(feed, block.name);
+      const index = contentBlockIndex(event);
+      feed._toolJson.set(index, "");
+      if (typeof block.name === "string" && block.name) feed._toolNames.set(index, block.name);
+      else feed._toolNames.delete(index);
+      return noteTool(feed, block.name, block.input);
+    }
+    if (isDict(delta) && delta.type === "input_json_delta") {
+      const index = contentBlockIndex(event);
+      const chunk = typeof delta.partial_json === "string" ? delta.partial_json : "";
+      feed._toolJson.set(index, (feed._toolJson.get(index) ?? "") + chunk);
+      return applyToolJson(feed, index);
+    }
+    if (event.type === "content_block_stop") {
+      const index = contentBlockIndex(event);
+      const changed = applyToolJson(feed, index);
+      feed._toolJson.delete(index);
+      feed._toolNames.delete(index);
+      return changed;
     }
     return false;
   }
@@ -923,7 +1037,7 @@ export function _feedStreamEvent(message: unknown, feed: _ActivityFeed): boolean
     const content = isDict(body) ? body.content : null;
     if (Array.isArray(content)) {
       for (const block of content) {
-        if (isDict(block) && block.type === "tool_use" && noteTool(feed, block.name)) return true;
+        if (isDict(block) && block.type === "tool_use" && noteTool(feed, block.name, block.input)) return true;
       }
     }
     return false;

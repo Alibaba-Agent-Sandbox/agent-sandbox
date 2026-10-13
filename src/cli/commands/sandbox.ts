@@ -330,7 +330,7 @@ const SANDBOX_HELP = `Manage sandbox lifecycle, files, processes, and system det
  */
 export const _CREATE_REQUEST_TIMEOUT_FLOOR = 120.0;
 
-/** How many file/status lines a live progress block keeps. The display itself shows only the last `EBX_ACTIVITY_LINES` (default 4). */
+/** How many file/status lines a live progress block keeps. The display itself shows only the last `EBX_ACTIVITY_LINES` (default 6). */
 export const _PROGRESS_NOTE_LIMIT = 10;
 
 /**
@@ -365,9 +365,10 @@ type ActivityUpdate = ((summary: string) => void) | null;
  * Phase status for the clarification / generation flow.
  *
  * Interactive TTY: an animated spinner on **stderr** (never stdout) with the `message... 12s` header, and below it the
- * agent's last four activity lines in grey (`EBX_ACTIVITY_LINES` changes the count) that scroll line by line -- its
- * recent text and the tools it uses, never tool input or reasoning. `--verbose` keeps the same block as a self-erasing
- * one that log output is written around. Every other mode (non-TTY, `--json`): one machine-readable progress line on
+ * agent's last six activity lines in grey (`EBX_ACTIVITY_LINES`, 1–10) that scroll line by line -- its
+ * recent text and a short redacted tool detail (command, url, query, or path). File bytes, thinking, and
+ * credentials stay hidden. `--verbose` keeps the same block as a self-erasing one that log output is written around.
+ * Every other mode (non-TTY, `--json`): one machine-readable progress line on
  * stderr; quiet and CI stay silent. stdout is never touched in any mode.
  *
  * `body` receives the `update(summary)` callable to hand to the agent as `onActivity`, or `null` when no live line is

@@ -38,7 +38,7 @@ For one shell, export `EBX_LLM_MODEL` (then `OPENAI_MODEL` if that is unset). A 
 
 | What you are calling | Store it as | Command |
 |---|---|---|
-| The sandbox control plane | `sandbox_api_key` (`EBX_SANDBOX_API_KEY`, also `E2B_API_KEY`) | `ebx config set sandbox_api_key` |
+| The sandbox control plane | `sandbox_api_key` (`EBX_SANDBOX_API_KEY`) | `ebx config set sandbox_api_key` |
 | Template build and deploy (AccessKey) | `access_key_id`, `access_key_secret` | `ebx config set access_key_id` and `access_key_secret` |
 | Natural-language template generation | `llm_api_key` (`EBX_LLM_API_KEY`, then Bailian, DashScope, and OpenAI names) | `ebx config set llm_api_key` |
 | A provider plugin secret | `providers.<id>.<key>` in `~/.ebx/.env` | `ebx config set providers.<id>.<key>` |

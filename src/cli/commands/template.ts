@@ -332,7 +332,7 @@ export function _coerceInt(value: unknown, dflt: number): number {
   return dflt;
 }
 
-/** How many build/push lines to remember. The display keeps the last `EBX_ACTIVITY_LINES` of them (default 4). */
+/** How many build/push lines to remember. The display keeps the last `EBX_ACTIVITY_LINES` of them (default 6). */
 const _STEP_LOG_LINES = 10;
 
 /**

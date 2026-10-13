@@ -71,14 +71,14 @@
 
 ## 5. `src/cli/commands/config_cmd.ts`
 
-现在 `config_cmd.ts` 有自己的别名表（`_LEGACY_ENV_FALLBACKS`、`_LEGACY_TOML_FALLBACKS` 及 `get/set/delete` 的键解析）。按以下顺序替换：
+`config_cmd.ts` 按每个键唯一的名字解析。用这条规则替换旧的多名字表，顺序如下：
 
-1. 键解析（`get/set/delete KEY`）：使用 `findKeyByAlias(name, "config")` 加层优先的 `resolveKey`，覆盖旧名称、`provider:key`、`--provider` 和歧义提示（规格 §3.2）。旧表仅作为兜底保留，待 golden 全绿后删除。
+1. 键解析（`get/set/delete KEY`）：层优先的 `resolveKey` 查找该键唯一的环境变量。限定形式 `providers.<id>.<key>` 和 `--provider` 选择提供方。未知键以退出码 2 结束，并列出存在的键（规格 §3.2）。
 2. 读取：`get`/`list` 使用 `loadLayeredConfig()`/`explainConfig()`（来源标签）。输出通道与格式不变。
-3. 写入：`[core] config_format != 2` 时使用阶段 1 存储（旧存储名），`config migrate` 后使用阶段 2，均取自 `config_keys.ts` 的 `storage_phase1`/`storage_phase2`。`delete` 删除该键的所有存储名。
-4. `get/set/delete/list` 的新选项：`--provider`、`--legacy-names`（也可用 `EBX_CONFIG_LEGACY_NAMES=1`）、`--all`。`config list` 的 golden 需重新生成：规范名 `sandbox_base_url`、`sandbox_domain` 及新增分组行。
-5. 触及旧名称时，在 TTY 上向 stderr 输出一行提示（规格 §3.4）；`--json/--quiet/--ci` 与非 TTY 下保持静默。
-6. `config check [--strict] [--json]` → `auditConfig()`（只含名称，绝不含值）。`config migrate [--yes] [--dry-run]` → `planMigration()`、`applyMigration({ backup: true })`；非 TTY 且无 `--yes` → 退出码 2。
+3. 写入：`config set` 写入该键唯一的环境变量（密钥在 `~/.ebx/.env`，其他键用配置键名写入 `config.toml`）。`delete` 删除该已存值。
+4. `get/set/delete/list` 接受 `--provider` 和 `--all`。`config list` 显示 `sandbox_base_url`、`sandbox_domain` 以及注册表里的其他键。
+5. `explainConfig()` 报告决定每个键的那一个变量。密钥脱敏。
+6. `config list` 显示每个键那一个名字，并脱敏密钥。没有第二个名字需要审计或改写。
 7. 提供方作用域的键（`acr_*`、`team_id`、`region`、插件字段）：`config set <provider>:<key>` 或配合 `--provider`；密钥写入 `~/.ebx/.env`（0600）。
 
 需先补的缺口：`config-keys.json` 没有 `description_zh`/`required`；若 `config list` 需要中文描述，请从 Python 仓库重新生成该 fixture（漂移测试会强制更新）。

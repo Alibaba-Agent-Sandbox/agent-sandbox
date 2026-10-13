@@ -25,14 +25,10 @@ API Key is the most common authentication method, sent to the platform API via t
 #### 1. Environment variable (wins over `~/.ebx`)
 
 ```bash
-# Recommended variable name (E2B compatible)
-export E2B_API_KEY="your-api-key"
-
-# Or use an alternative variable name
-export SANDBOX_API_KEY="your-api-key"
+export EBX_SANDBOX_API_KEY="your-api-key"
 ```
 
-When both `E2B_API_KEY` and `SANDBOX_API_KEY` are present, `E2B_API_KEY` takes precedence.
+`EBX_SANDBOX_API_KEY` is the only environment variable for the sandbox API key.
 
 #### 2. ebx config set (persisted to local file)
 
@@ -42,14 +38,14 @@ ebx config set sandbox_api_key your-api-key
 # File permissions: 600 (owner read/write only)
 ```
 
-Stored as `E2B_API_KEY=your-key` in `~/.ebx/.env`.
+Stored as `EBX_SANDBOX_API_KEY=your-key` in `~/.ebx/.env`.
 
 #### 3. .env file
 
 Create a `.env` file in the project root directory:
 
 ```dotenv
-E2B_API_KEY=your-api-key
+EBX_SANDBOX_API_KEY=your-api-key
 ```
 
 The CLI merges `.env` files per key. `./.env` wins for a key it sets. A key it omits still comes from `~/.ebx/.env`.
@@ -63,8 +59,11 @@ Set in `~/.ebx/config.toml`:
 
 ```toml
 [transport]
-api_key = "your-api-key"
+sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
+sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 ```
+
+The sandbox API key is stored in `~/.ebx/.env` as `EBX_SANDBOX_API_KEY`, not in `config.toml`.
 
 ## AK/SK Alibaba Cloud Extended Authentication 🧪
 
@@ -118,8 +117,8 @@ flowchart TD
 LLM keys, the GitHub token, and the region use this same chain. A blank or whitespace-only value is skipped. The names and defaults are listed in [Credential resolution](../reference/configuration.md#credential-resolution).
 
 Within the same level, API Key takes precedence over AK/SK:
-- If both `api_key` and `access_key_id` are provided, API Key is used
-- If both `E2B_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, E2B_API_KEY is used
+- If both `sandbox_api_key` and `access_key_id` are provided, API Key is used
+- If both `EBX_SANDBOX_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, `EBX_SANDBOX_API_KEY` is used
 
 ---
 
@@ -153,7 +152,7 @@ Manage secrets via environment variables or configuration:
 
 ```bash
 # Set API Key via environment variable (recommended)
-export E2B_API_KEY="your-api-key"
+export EBX_SANDBOX_API_KEY="your-api-key"
 
 # Or persist via ebx config
 ebx config set sandbox_api_key your-api-key
@@ -175,7 +174,7 @@ ebx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass api_key parameter.
+  Suggestion: Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **Solution**: Ensure a valid API Key is configured via any of the methods above.
@@ -201,4 +200,4 @@ ebx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET
 
 ## Related SDK documentation
 
-Passing credentials as code parameters (`Sandbox.create(api_key=...)`, `access_key_id=` / `access_key_secret=`) and the envd request headers are described in the SDK's [Authentication guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/authentication.md) in the `python-sdk` repository.
+Passing credentials as code parameters (`Sandbox.create(sandbox_api_key=...)`, `access_key_id=` / `access_key_secret=`) and the envd request headers are described in the SDK's [Authentication guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/authentication.md) in the `python-sdk` repository.

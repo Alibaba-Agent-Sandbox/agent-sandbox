@@ -9,7 +9,6 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { startStub } from './stub.mjs';
 import { CASES } from './cases.mjs';
-import { createAllowList } from './sdk_defect_allowlist.mjs';
 
 const args = process.argv.slice(2);
 const opt = { filter: null, fast: false, out: null, verbose: false, list: false, show: false };
@@ -121,30 +120,24 @@ const stub = await startStub();
 const cases = CASES.filter((c) => (!opt.fast || !c.slow) && (!opt.filter || opt.filter.test(c.id)));
 console.log(`differential run: ${cases.length} cases\n  oracle: ${ORACLE}\n  binary: ${BIN}\n  stub  : ${stub.url}`);
 const results = [];
-const allow = createAllowList('diff');
 for (const c of cases) {
   const oracle = await execCase(c, ORACLE, 'oracle', stub, root);
   const bin = await execCase(c, BIN, 'bin', stub, root);
-  let diffs = compare(oracle, bin);
-  const ruling = diffs.length ? allow.judgeResults(c.id, oracle, bin) : null;
-  const allowedKis = ruling?.allowed ? ruling.kis : null;
-  if (allowedKis) diffs = [];
+  const diffs = compare(oracle, bin);
   if (opt.show) console.log(`--- ${c.id}  [exit ${oracle.exit}]\n${oracle.stdout}\n${oracle.stderr ? `[stderr] ${oracle.stderr}\n` : ''}${oracle.wire ? `[wire]\n${oracle.wire.join('\n')}\n` : ''}${Object.entries(oracle.artifacts).map(([k, v]) => `[artifact ${k}]\n${v}`).join('\n')}`);
-  results.push({ id: c.id, evidence: c.evidence ?? null, ok: diffs.length === 0, allowed: allowedKis, diffs, oracle: { exit: oracle.exit }, bin: { exit: bin.exit } });
-  console.log(`${diffs.length ? 'DIFF' : allowedKis ? `ALLOWED (${allowedKis.join(', ')}; parity/sdk-defect-fixes.md)` : 'same'}  ${c.id}${diffs.length ? ` (${diffs.length})` : ''}`);
+  results.push({ id: c.id, evidence: c.evidence ?? null, ok: diffs.length === 0, diffs, oracle: { exit: oracle.exit }, bin: { exit: bin.exit } });
+  console.log(`${diffs.length ? 'DIFF' : 'same'}  ${c.id}${diffs.length ? ` (${diffs.length})` : ''}`);
   if (diffs.length && opt.verbose) console.log(diffs.map((d) => `    ${d.replace(/\n/g, '\n    ')}`).join('\n'));
 }
 await stub.close();
 rmSync(root, { recursive: true, force: true });
 
 const bad = results.filter((r) => !r.ok);
-const stale = allow.report({ complete: !opt.fast && !opt.filter });
-const nAllowed = results.filter((r) => r.ok && r.allowed).length;
-console.log(`\n${results.length - bad.length - nAllowed}/${results.length} identical, ${nAllowed} allow-listed (SDK defect fixes), ${bad.length + stale} differing`);
+console.log(`\n${results.length - bad.length}/${results.length} identical, ${bad.length} differing`);
 if (opt.out) {
   mkdirSync(opt.out, { recursive: true });
   writeFileSync(join(opt.out, 'diff-report.json'), JSON.stringify({ oracle: ORACLE, bin: BIN, results }, null, 2));
-  const md = ['| Case | Result | Evidence case | Details |', '|---|---|---|---|', ...results.map((r) => `| \`${r.id}\` | ${r.ok ? (r.allowed ? `allow-listed (${r.allowed.join(', ')})` : 'identical') : 'DIFF'} | ${r.evidence ?? ''} | ${r.diffs.map((d) => d.split('\n')[0]).join('; ').replace(/\|/g, '\\|')} |`)];
+  const md = ['| Case | Result | Evidence case | Details |', '|---|---|---|---|', ...results.map((r) => `| \`${r.id}\` | ${r.ok ? 'identical' : 'DIFF'} | ${r.evidence ?? ''} | ${r.diffs.map((d) => d.split('\n')[0]).join('; ').replace(/\|/g, '\\|')} |`)];
   writeFileSync(join(opt.out, 'diff-report.md'), `${md.join('\n')}\n`);
 }
-process.exitCode = bad.length || stale ? 1 : 0;
+process.exitCode = bad.length ? 1 : 0;

@@ -132,7 +132,7 @@ ebx mcp deploy --region cn-shanghai
 ebx config set region cn-shanghai
 ```
 
-Resolution priority: command `--region` > `SANDBOX_REGION` > `ebx config set region` > `cn-hangzhou`.
+Resolution priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`.
 
 The CLI automatically detects CI environments (`CI`, `GITHUB_ACTIONS`, `GITLAB_CI`, `JENKINS_URL`, etc.) and enables CI mode automatically. Color output is automatically disabled in non-TTY environments.
 
@@ -185,8 +185,8 @@ graph TD
 
 1. **Executable discovery**: checks `PATH` first, then `~/.ebx/bin` (recognizing `.cmd`/`.exe` suffixes on Windows).
 2. **Install guidance**: when missing, interactive terminals are asked whether to install the official standalone build (SHA256-verified, atomically installed into `~/.ebx/bin`, executable bit set on Unix); non-TTY or a declined prompt raises `E2005` with the Quick Setup — no hang, no silent fallback.
-3. **Credential resolution**: a process environment variable wins over `./.env`, which wins over `~/.ebx` for a key it sets. API key order is `EBX_LLM_API_KEY`, then `BAILIAN_CODING_PLAN_API_KEY`, `DASHSCOPE_API_KEY`, `OPENAI_API_KEY`, then a legacy `EBX_QWEN_CODE_API_KEY`, then the same names in `./.env`, then the value stored by `ebx config set llm_api_key`. `llm_base_url` uses `EBX_LLM_BASE_URL` then `OPENAI_BASE_URL` then the stored value (a legacy `qwen_code_base_url` only when `llm_base_url` is unset) then the DashScope default. `llm_model` uses `EBX_LLM_MODEL` then `OPENAI_MODEL` then the stored value then `qwen3-coder-plus`. `~/.qwen/settings.json` is used only when none of those keys exist. Interactive terminals may prompt for and securely store a key; non-TTY raises `E2006`.
-4. **Pre-generation clarification (research-first, two phases on one native session)**: before generating, the coding agent first runs a plain research round (`--session-id`, **no** `--json-schema`) in which it settles every publicly verifiable fact with its own tools (web fetch / shell) — tool stack, official install method, common runtimes and dependencies — recording safe defaults for anything unreachable. The same session then continues (`--resume`) with one structured `--json-schema` assessment round; verified against qwen-code 0.15.11, `--json-schema` ends the session on the first valid `structured_output` call, so the schema is deliberately absent from the research round to keep the tool loop free. Only user preferences, private constraints, and business decisions the agent cannot infer may count as missing. Below the 80% threshold, interactive terminals are asked exactly ONE question per round, numbered `Question 1`, `Question 2`, … with **no total shown** (the internal 5-round cap is mentioned only when reached); each answer resumes the same native session and triggers a fresh assessment against the full description + Q/A history, already-asked topics are embedded in every follow-up prompt (an exactly-repeated question breaks the loop defensively), and delegation answers ("you decide" / "use the default") instruct the agent to settle the choice itself with safe defaults. Non-TTY / CI sessions without `--yes` fail fast with `E2008`, listing the missing template facets and a ready-to-use example description. `--yes` skips research and assessment entirely; a failed research round only warns with a reason-specific hint (never a gate; the research is bounded to 20 turns / 240 s, `EBX_QWEN_RESEARCH_TIMEOUT` overrides, and its prompt caps slow web fetches at three) and the assessment then starts a **fresh** session — qwen rejects re-pinning a `--session-id` the failed round may already have created, which used to surface as a bogus “assessment unavailable”; an unavailable assessment degrades to direct generation with a warning. Phase status (researching / assessing / re-assessing / generating) renders on **stderr** as a spinner (TTY) or one machine-readable progress line (non-TTY), and — while the agent works — a header `Assessing description... 12s` with the last four activity lines in grey underneath (a Rich status normally, a self-erasing `\r` line under `--verbose` / `--no-color`, absent for `--json` / `--quiet` / CI / `TERM=dumb`). The headless run streams `--output-format stream-json --include-partial-messages` to feed that line, but shows only the assistant's text tail and tool *names*, never tool input or thinking; the whole agent process tree is killed on timeout or Ctrl-C. stdout stays clean and the model's research output is never echoed. Generation then resumes the clarification session, so the model keeps the description, the research summary, and every Q/A pair in its own memory.
+3. **Credential resolution**: a process environment variable wins over `./.env`, which wins over `~/.ebx` for a key it sets. Each key has one environment variable: the LLM API key is `EBX_LLM_API_KEY`, the base URL is `EBX_LLM_BASE_URL`, and the model is `EBX_LLM_MODEL`. `ebx config set llm_api_key` stores `EBX_LLM_API_KEY`. `~/.qwen/settings.json` is used only when none of those keys exist. Interactive terminals may prompt for and securely store a key; non-TTY raises `E2006`.
+4. **Pre-generation clarification (research-first, two phases on one native session)**: before generating, the coding agent first runs a plain research round (`--session-id`, **no** `--json-schema`) in which it settles every publicly verifiable fact with its own tools (web fetch / shell) — tool stack, official install method, common runtimes and dependencies — recording safe defaults for anything unreachable. The same session then continues (`--resume`) with one structured `--json-schema` assessment round; verified against qwen-code 0.15.11, `--json-schema` ends the session on the first valid `structured_output` call, so the schema is deliberately absent from the research round to keep the tool loop free. Only user preferences, private constraints, and business decisions the agent cannot infer may count as missing. Below the 80% threshold, interactive terminals are asked exactly ONE question per round, numbered `Question 1`, `Question 2`, … with **no total shown** (the internal 5-round cap is mentioned only when reached); each answer resumes the same native session and triggers a fresh assessment against the full description + Q/A history, already-asked topics are embedded in every follow-up prompt (an exactly-repeated question breaks the loop defensively), and delegation answers ("you decide" / "use the default") instruct the agent to settle the choice itself with safe defaults. Non-TTY / CI sessions without `--yes` fail fast with `E2008`, listing the missing template facets and a ready-to-use example description. `--yes` skips research and assessment entirely; a failed research round only warns with a reason-specific hint (never a gate; the research is bounded to 20 turns / 240 s, `EBX_QWEN_RESEARCH_TIMEOUT` overrides, and its prompt caps slow web fetches at three) and the assessment then starts a **fresh** session — qwen rejects re-pinning a `--session-id` the failed round may already have created, which used to surface as a bogus “assessment unavailable”; an unavailable assessment degrades to direct generation with a warning. Phase status (researching / assessing / re-assessing / generating) renders on **stderr** as a spinner (TTY) or one machine-readable progress line (non-TTY), and — while the agent works — a header `Assessing description... 12s` with the last six activity lines in grey underneath (a Rich status normally, a self-erasing `\r` line under `--verbose` / `--no-color`, absent for `--json` / `--quiet` / CI / `TERM=dumb`). The headless run streams `--output-format stream-json --include-partial-messages` to feed that line, but shows the assistant's text tail and a short redacted tool detail (command, url, query, or path). File bytes, thinking, and credentials stay hidden; the whole agent process tree is killed on timeout or Ctrl-C. stdout stays clean and the model's research output is never echoed. Generation then resumes the clarification session, so the model keeps the description, the research summary, and every Q/A pair in its own memory.
 5. **Generation & validation**: runs Qwen Code in headless mode inside a fresh `<slug>-<timestamp>-<token>/` workspace under `--dir` (default `~/.ebx/generated/`; an interactive terminal is asked where to save it, Enter accepts the default; template name `ebx-nl-<slug>-<token>`) via `qwen "<prompt>" --output-format json --yolo` (the prompt is positional — the legacy `-p` flag is deprecated per the 0.15.11 `--help`; list-form arguments, bounded cwd and timeout — 600s by default, overridable with `EBX_QWEN_CODEGEN_TIMEOUT`), expecting a *usable* template — a Dockerfile, a `commands.py` that starts the container-side `easy_sandbox.server` `SandboxServer` on port 9000 (a deployed sandbox is reached over HTTP(S), so a Dockerfile alone cannot be used), a template.yaml, and a README. The prompt carries the server SDK reference (`agent/template_guide.py`: Dockerfile rules, `CapabilityGroup`, `CommandRegistry`, `RouteTable.route`, `template.yaml` fields). The output is then validated — the Dockerfile must contain `FROM` and reference `commands.py`, `commands.py` must be valid Python that imports `easy_sandbox.server` and calls `serve()`/`start()`, and template.yaml must pass the `parse_template_data` YAML schema check. Failure or timeout raises `E2007` and keeps the generated directory for inspection.
 6. **Build & create**: after confirmation, reuses the `ebx template deploy` build/deploy pipeline (`--acr-namespace` selects the push namespace) and then calls the existing `Sandbox.create`. No step ever silently falls back to `base`; failures report the error code, the Quick Setup, and next-step commands.
 
@@ -398,9 +398,9 @@ See ADR `2026-09-03-cli-run-vs-exec.md` for details.
 
 ### ebx deploy
 
-`ebx deploy` is the **publish step** of the template lifecycle and a fixed pipeline: `docker build` → push to ACR → `CreateTemplate` → poll until ready. It is exactly `ebx template deploy` with `PATH` defaulting to `.`, reuses that command's option set verbatim (so the two cannot drift and `-v/--verbose` works), and needs no LLM. On an interactive terminal each long step is a `message... 12s` header with the latest four lines of docker or poll output in grey underneath (the same block as template generation; `EBX_ACTIVITY_LINES` changes the count). The header keeps moving once a second while the tool is silent. `--verbose` prints the full log instead. `--json`, `--quiet`, CI, and non-TTY stay one progress line.
+`ebx deploy` is the **publish step** of the template lifecycle and a fixed pipeline: `docker build` → push to ACR → `CreateTemplate` → poll until ready. It is exactly `ebx template deploy` with `PATH` defaulting to `.`, reuses that command's option set verbatim (so the two cannot drift and `-v/--verbose` works), and needs no LLM. On an interactive terminal each long step is a `message... 12s` header with the latest six lines of docker or poll output in grey underneath (the same block as template generation; `EBX_ACTIVITY_LINES` changes the count). The header keeps moving once a second while the tool is silent. `--verbose` prints the full log instead. `--json`, `--quiet`, CI, and non-TTY stay one progress line.
 
-The same header is the progress display for every other step that can sit still: creating a sandbox, uploading or downloading files, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, and `ebx kill --all`. Where a step has a safe log — relative paths, install milestones (mirror, checksum, extract), docker lines, or a poll status — the last four lines sit under the header (`EBX_ACTIVITY_LINES`). File bytes, tool input, ACR tokens, and `--build-arg` values are never part of that log; the info line that records the docker command redacts build-arg values. `--verbose` still prints the full deploy log and does not draw the deploy block. Other commands keep the moving header on a terminal, including under `--verbose` and `--no-color`. `--json`, `--quiet`, CI, `TERM=dumb`, and a non-TTY stay silent for these headers.
+The same header is the progress display for every other step that can sit still: creating a sandbox, uploading or downloading files, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, and `ebx kill --all`. Where a step has a safe log — relative paths, install milestones (mirror, checksum, extract), docker lines, or a poll status — the last six lines sit under the header (`EBX_ACTIVITY_LINES`, 1–10). Grey rows include a short redacted tool detail (command, url, query, or path). File bytes, thinking, and credentials stay hidden; ACR tokens and `--build-arg` values are not part of that log; the info line that records the docker command redacts build-arg values. `--verbose` still prints the full deploy log and does not draw the deploy block. Other commands keep the moving header on a terminal, including under `--verbose` and `--no-color`. `--json`, `--quiet`, CI, `TERM=dumb`, and a non-TTY stay silent for these headers.
 
 ```text
 ebx template init ["DESCRIPTION" | --adopt DIR]  →  ebx deploy [PATH]  →  ebx create --template ID
@@ -1023,9 +1023,9 @@ ebx mcp start [options]
 
 Options:
   --template <name>         Default sandbox template (default: code-interpreter-v1)
-  --api-key <key>           API Key override (env: E2B_API_KEY)
-  --api-url <url>           API URL override (env: E2B_API_URL)
-  --domain <domain>         Domain override (env: E2B_DOMAIN)
+  --sandbox-api-key <key>   API Key override (env: EBX_SANDBOX_API_KEY)
+  --sandbox-base-url <url>  API URL override (env: EBX_SANDBOX_BASE_URL)
+  --sandbox-domain <domain> Domain override (env: EBX_SANDBOX_DOMAIN)
 ```
 
 Start MCP Server in STDIO mode. Usually called automatically by the IDE; manual execution is not typically needed.
@@ -1045,7 +1045,7 @@ ebx mcp deploy [options]
 
 Options:
   --name <name>             FC function name (default: easy-sandbox-mcp)
-  --region <region>         FC region; command --region > SANDBOX_REGION >
+  --region <region>         FC region; command --region > ALIBABA_CLOUD_REGION_ID >
                             ebx config set region > cn-hangzhou
   --template <name>         Default sandbox template (default: base)
   --memory <mb>             FC function memory (default: 512)
@@ -1059,7 +1059,7 @@ Options:
   --output-dir <path>       Write the artifact to this directory
 
 Examples:
-  ebx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./artifact
+  ebx mcp deploy --generate-token --sandbox-api-key $EBX_SANDBOX_API_KEY --output-dir ./artifact
   ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
 ```
 
@@ -1075,12 +1075,12 @@ The configuration file is located at `~/.ebx/config.toml`, with API Keys stored 
 
 | Config Key      | Description                           | Default                   |
 | --------------- | ------------------------------------- | ------------------------- |
-| `sandbox_api_key` | Sandbox service API key (stored as `E2B_API_KEY`) | (not set)          |
-| `api_url`       | Platform API URL                      | (auto)                    |
-| `region`        | Default region                        | `cn-hangzhou`             |
+| `sandbox_api_key` | Sandbox service API key (stored as `EBX_SANDBOX_API_KEY`) | (not set)          |
+| `sandbox_base_url` | Platform API URL (env `EBX_SANDBOX_BASE_URL`) | (auto)                    |
+| `region`        | Default region (env `ALIBABA_CLOUD_REGION_ID`) | `cn-hangzhou`             |
 | `http_timeout`  | HTTP request timeout (seconds)        | (auto)                    |
 | `max_retries`   | Max retry count                       | (auto)                    |
-| `domain`        | Envd Domain                           | (auto)                    |
+| `sandbox_domain` | Envd domain (env `EBX_SANDBOX_DOMAIN`) | (auto)                    |
 | `llm_api_key`   | LLM API key for NL inference and the coding agent | (not set) |
 | `llm_model`     | LLM model name                        | `qwen3-coder-plus`       |
 | `llm_base_url`  | LLM API base URL (OpenAI compatible)  | DashScope compatible endpoint |
@@ -1109,7 +1109,7 @@ ebx config get region
 ebx config set region ""
 ```
 
-A process environment variable overrides `./.env`, which overrides the stored LLM settings: `EBX_LLM_API_KEY` (then `BAILIAN_CODING_PLAN_API_KEY`, `DASHSCOPE_API_KEY`, `OPENAI_API_KEY`), `EBX_LLM_BASE_URL` / `OPENAI_BASE_URL`, and `EBX_LLM_MODEL` / `OPENAI_MODEL`. A blank value does not count. When those are unset, the value in `~/.ebx` is used.
+A process environment variable overrides `./.env`, which overrides the stored LLM settings. The variables are `EBX_LLM_API_KEY`, `EBX_LLM_BASE_URL`, and `EBX_LLM_MODEL`. A blank value does not count. When those are unset, the value in `~/.ebx` is used.
 
 ***
 
@@ -1237,7 +1237,7 @@ Consequences:
 WARNING: Could not resolve capabilities for template 'base'; falling back to DEFAULT_CAPABILITIES
 ```
 
-Log propagation stays enabled, so test log capture and embedding applications keep seeing records. During a CLI run the verbosity flags (`--verbose` / `--quiet` / `--log-level`, plus CI auto-detection) are the single source of truth for the log level; `SANDBOX_LOG_LEVEL` applies to standalone SDK use, where the SDK owns logging.
+Log propagation stays enabled, so test log capture and embedding applications keep seeing records. During a CLI run the verbosity flags (`--verbose` / `--quiet` / `--log-level`, plus CI auto-detection) are the single source of truth for the log level; `EBX_LOG_LEVEL` applies to standalone SDK use, where the SDK owns logging.
 
 ### Spinner Pause / Resume
 
@@ -1320,7 +1320,7 @@ ebx template install --help
 # Error messages include fix suggestions
 $ ebx config set unknown_key value
 Error: Unknown config key: 'unknown_key'
-Available keys: api_key, api_url, domain, ...
+Available keys: sandbox_api_key, sandbox_base_url, sandbox_domain, ...
 ```
 
 ### Principle 6: Lazy Loading for High Performance

@@ -65,8 +65,7 @@
 | 读取一个键 | `ebx config get region` | [config get](../reference/cli-reference.md#ebx-config-get) |
 | 显示每个键及其来源 | `ebx config list` | [config list](../reference/cli-reference.md#ebx-config-list) |
 | 删掉一个已保存的值 | `ebx config delete acr_namespace` | [config delete](../reference/cli-reference.md#ebx-config-delete) |
-| 列出正在使用的旧名称 | `ebx config check` | [提供商 — 迁移名称](providers.md#发现并迁移旧名称) |
-| 把已保存的名称改成规范名 | `ebx config migrate --dry-run` | [提供商 — 迁移名称](providers.md#发现并迁移旧名称) |
+| 查看当前配置名 | `ebx config list` | [提供商 — 凭证与配置键](providers.md#凭证与配置键) |
 
 没有 `ebx config reset`。清掉一个键用 `ebx config delete <KEY>` 或 `ebx config set <KEY> ""`。
 

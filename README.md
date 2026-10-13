@@ -183,6 +183,7 @@ pip install easy-sandbox-server
 |-------|------|
 | Getting Started | [Getting Started](docs/en/guide/getting-started.md) |
 | Best Practices | [Best Practices](docs/en/guide/best-practices.md) |
+| Accessibility | [Accessibility](ACCESSIBILITY.md) |
 | Operations | [Operations](docs/en/guide/operations.md) |
 | Providers | [Providers](docs/en/guide/providers.md) |
 | Authoring Providers | [Authoring Providers](docs/en/guide/authoring-providers.md) |

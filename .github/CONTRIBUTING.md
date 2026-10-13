@@ -188,12 +188,12 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/Easy-Sandbox/easy-sandbox/issues/new/choose) with our templates
+- Use [GitHub Issues](https://github.com/Easy-Sandbox/cli/issues/new/choose) with our templates
 - For security vulnerabilities, see our [Security Policy](SECURITY.md)
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/Easy-Sandbox/easy-sandbox/discussions) for general questions
+- Open a [Discussion](https://github.com/Easy-Sandbox/cli/discussions) for general questions
 - Check existing issues and discussions before creating new ones
 
 ## License

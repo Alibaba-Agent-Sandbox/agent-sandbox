@@ -81,25 +81,37 @@ A command that needs a feature the provider does not declare (for example `ebx s
 
 ## Credentials and configuration keys
 
-Every key has one **canonical name**; older names keep working.
+Every key has one name. Settings that belong to Easy Sandbox use `EBX_`. When a vendor already publishes a variable, that variable is the name. It is not wrapped in `EBX_`.
 
-| Key | Canonical env | Legacy / compatible names |
+| Key | Environment variable | Why this name |
 |---|---|---|
-| `provider` | `EBX_PROVIDER` | - |
-| `sandbox_api_key` | `EBX_SANDBOX_API_KEY` | `E2B_API_KEY`, `SANDBOX_API_KEY` |
-| `sandbox_base_url` | `EBX_SANDBOX_BASE_URL` | `E2B_API_URL`, `SANDBOX_API_BASE_URL`, config `api_url` |
-| `sandbox_domain` | `EBX_SANDBOX_DOMAIN` | `E2B_DOMAIN`, config `domain` |
-| `region` | `EBX_ALICLOUD_EXPRESS_REGION` | `SANDBOX_REGION` |
-| `access_key_id`, `access_key_secret` | `EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID`, `..._SECRET` | `ALICLOUD_ACCESS_KEY_ID`/`_SECRET` (native), `AccessKey`, `AccessSecret` |
-| `acr_*`, `team_id` | `EBX_ALICLOUD_EXPRESS_<KEY>` | `ACR_NAMESPACE`, `ACR_PASSWORD`, ... |
-| plugin option `<key>` | `EBX_<PROVIDER_ID>_<KEY>` (dashes become underscores) | the plugin's declared `env` names |
+| `provider` | `EBX_PROVIDER` | product setting |
+| `sandbox_api_key` | `EBX_SANDBOX_API_KEY` | product sandbox key |
+| `sandbox_base_url` | `EBX_SANDBOX_BASE_URL` | product platform URL |
+| `sandbox_domain` | `EBX_SANDBOX_DOMAIN` | product data-plane domain |
+| `llm_api_key` | `EBX_LLM_API_KEY` | product codegen key. The Qwen Code child receives it as `OPENAI_API_KEY`, because that is the variable the `qwen` program reads |
+| `github_token` | `GITHUB_TOKEN` | GitHub's variable |
+| `region` | `ALIBABA_CLOUD_REGION_ID` | Alibaba Cloud region variable |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey secret |
+| `acr_namespace` | `ACR_NAMESPACE` | registry namespace |
+| `acr_registry` | `ACR_REGISTRY` | registry host |
+| `acr_repo` | `ACR_REPO` | repository |
+| `acr_username` | `ACR_USERNAME` | registry user |
+| `acr_password` | `ACR_PASSWORD` | registry password |
+| `acr_instance_id` | `ACREE_INSTANCE_ID` | ACR Enterprise instance |
+| `acr_vpc_id` | `ACR_VPC_ID` | ACR Enterprise VPC |
+| `acr_vswitch_ids` | `ACR_VSWITCH_IDS` | ACR Enterprise vSwitches |
+| `acr_security_group_id` | `ACR_SECURITY_GROUP_ID` | ACR Enterprise security group |
+| `team_id` | `EBX_ALICLOUD_EXPRESS_TEAM_ID` | no Alibaba Cloud variable for this; the provider prefix is used |
+| plugin option `<key>` | `EBX_<PROVIDER_ID>_<KEY>` | a third-party provider with no single official variable |
 
 Resolution order for one key: command-line override, process environment, `./.env`, `~/.ebx/.env`, `[providers.<id>]` and `[transport]` in `~/.ebx/config.toml`, derived value, default. Blank values count as unset. Plugins receive **only** the options they declare and the generic keys you consented to at install (`[core] inherit`); everything else stays out of their environment.
 
 `ebx config` addresses all of them:
 
 ```bash
-ebx config set sandbox_base_url https://api.example.com      # canonical; "api_url" still works and is echoed as typed
+ebx config set sandbox_base_url https://api.example.com
 ebx config set acr_repo my-repo                              # built-in provider key (stored in [providers.alicloud-express])
 ebx config set providers.my-cloud.region eu-1                # qualified: one provider's option
 ebx config set --provider my-cloud region eu-1 # bare key of the effective provider
@@ -110,15 +122,7 @@ ebx config list --provider my-cloud                          # the provider's ke
 
 A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `ebx provider config <id> list|get|set|unset|init` is the same surface scoped to one provider.
 
-### Finding and migrating legacy names
-
-```bash
-ebx config check              # lists legacy names in use (names only, never values); --strict exits 1 when any
-ebx config migrate --dry-run  # prints "would rename X -> Y"
-ebx config migrate --yes      # rewrites ~/.ebx/config.toml and ~/.ebx/.env, keeps *.bak (mode 0600), sets config_format = 2
-```
-
-`migrate` is idempotent. After it, `ebx config list` shows the canonical names (`sandbox_base_url`, `sandbox_domain`); `--legacy-names` (or `EBX_CONFIG_LEGACY_NAMES=1`) prints the old ones for one more release. **Older ebx / easy-sandbox versions no longer read the migrated values.** Legacy names stay silent unless `EBX_WARN_DEPRECATED=1` is set, which prints one stderr line per name. On a terminal, `ebx config set api_url ...` adds `note: 'api_url' is now 'sandbox_base_url' (the old name keeps working).` on stderr.
+`ebx config list` prints the names in the table above. A name that is not in the table is not read.
 
 ---
 

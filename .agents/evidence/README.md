@@ -7,7 +7,7 @@ edited afterwards (see [`../README.md`](../README.md)).
 
 Each file shows the exact command invoked, its stdout, exit code and stderr (when non-empty). They were generated
 offline (mocked backend, 99 cases) from the **Python `ebx` v0.2.0**
-([`ebx` tag `v0.2.0`](https://github.com/Easy-Sandbox/easy-sandbox/releases/tag/v0.2.0)) with a capture
+([`python-sdk` tag `v0.2.0`](https://github.com/Easy-Sandbox/python-sdk/releases/tag/v0.2.0)) with a capture
 script that did not survive the rewrite to Node.js; they are the behavioural oracle for the Node CLI, not output of
 it. The original index also listed `connect.md` and `run.md`; those two files are not present in this tree. To record the Node CLI, add a new
 dated file; do not regenerate these.
@@ -35,7 +35,6 @@ dated file; do not regenerate these.
 
 - [`verify/2026-09-08-template-deploy-e2e.md`](verify/2026-09-08-template-deploy-e2e.md)
 - [`verify/2026-10-12-e2e-foundation.md`](verify/2026-10-12-e2e-foundation.md)
-- [`verify/2026-10-12-cli-capability-e2e.md`](verify/2026-10-12-cli-capability-e2e.md)
 
 Evidence for the Python SDK and server lives in the
 [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk/tree/main/.agents/evidence).

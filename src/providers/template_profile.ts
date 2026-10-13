@@ -34,6 +34,8 @@ export interface TemplateProfile {
   readonly start_cmd: string | null;
   readonly ready_cmd: string | null;
   readonly arch: string;
+  /** Login user persisted as the sandbox default. Empty means the image default. */
+  readonly user: string;
   readonly workdir: string;
   readonly reserved_ports: readonly number[];
   readonly registry: string;
@@ -47,6 +49,7 @@ interface ProfileFields {
   start_cmd: string | null;
   ready_cmd: string | null;
   arch: string;
+  user: string;
   workdir: string;
   reserved_ports: readonly number[];
   registry: string;
@@ -69,6 +72,7 @@ const ALICLOUD_EXPRESS_FIELDS: ProfileFields = {
   start_cmd: "easy-sandbox-server serve --port 9000 --commands /home/user/app/commands.py",
   ready_cmd: "easy-sandbox-server healthcheck --port 9000",
   arch: "linux/amd64",
+  user: "user",
   workdir: "/home/user/app",
   reserved_ports: [49983, 5000, 49999],
   registry:
@@ -84,6 +88,7 @@ const GENERIC_FIELDS: ProfileFields = {
   start_cmd: null,
   ready_cmd: null,
   arch: "linux/amd64",
+  user: "",
   workdir: "/app",
   reserved_ports: [],
   registry:
@@ -109,6 +114,7 @@ function bind(fields: ProfileFields, providerId: string, missing: boolean): Temp
     start_cmd: fields.start_cmd,
     ready_cmd: fields.ready_cmd,
     arch: fields.arch,
+    user: fields.user,
     workdir: fields.workdir,
     reserved_ports: [...fields.reserved_ports],
     registry: fields.registry,
@@ -198,6 +204,7 @@ export function parseTemplateTable(table: unknown, providerId: string): Template
     start_cmd: startCmd,
     ready_cmd: readyCmd,
     arch: arch.trim(),
+    user: typeof table["user"] === "string" ? table["user"].trim() : "",
     workdir: workdir.trim(),
     reserved_ports: ports,
     registry: registry.trim(),

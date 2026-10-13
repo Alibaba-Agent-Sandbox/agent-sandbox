@@ -17,7 +17,7 @@ import {
 import { coerce, resolveKey, type Sources } from "../../src/utils/config_resolver.js";
 
 const ALL_KEYS: readonly ConfigKey[] = [...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS];
-const key = (name: string): ConfigKey => getKey(name) as ConfigKey;
+const key = (name: string, scope = "core"): ConfigKey => getKey(name, scope) as ConfigKey;
 const src = (kw: Partial<Sources> = {}): Sources => ({ overrides: {}, environ: {}, dotenv: [], toml: {}, ...kw });
 
 describe("TestRegistry", () => {
@@ -61,35 +61,34 @@ describe("TestRegistry", () => {
     }
   });
 
-  it.each([
-    "SANDBOX_API_KEY", "SANDBOX_API_BASE_URL", "SANDBOX_HTTP_TIMEOUT", "SANDBOX_LOG_LEVEL", "SANDBOX_TEMPLATE", "EBX_TEMPLATE",
-    "EBX_QWEN_CODE_API_KEY", "SANDBOX_REGION", "AccessKey", "AccessSecret", "ACR_NAMESPACE", "ACR_REGISTRY", "ACR_REPO",
-    "ACR_USERNAME", "ACR_PASSWORD", "ACREE_INSTANCE_ID", "ACR_VPC_ID", "ACR_VSWITCH_IDS", "ACR_SECURITY_GROUP_ID", "TEAM_ID",
-  ])("test_inventory_names_are_all_known[%s]", (legacy) => {
-    const known = new Set(ALL_KEYS.flatMap((k) => k.aliases.filter((a) => a.surface === "env").map((a) => a.name)));
-    expect(known.has(legacy)).toBe(true);
+  it("test_each_key_has_one_environment_name", () => {
+    for (const k of ALL_KEYS) {
+      expect(k.aliases).toEqual([]);
+      expect(envNames(k)).toEqual([k.env]);
+    }
   });
 
-  it.each([
-    "E2B_API_KEY", "E2B_API_URL", "E2B_DOMAIN", "E2B_TEAM_ID", "ALICLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_SECRET",
-    "GITHUB_TOKEN", "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "DASHSCOPE_API_KEY", "BAILIAN_CODING_PLAN_API_KEY",
-  ])("test_compat_and_native_names_are_known[%s]", (name) => {
-    const known = new Set(
-      ALL_KEYS.flatMap((k) => k.aliases.filter((a) => a.surface === "env" && (a.kind === "compat" || a.kind === "native")).map((a) => a.name)),
-    );
-    expect(known.has(name)).toBe(true);
+  it("test_vendor_official_names_are_the_canonical_env", () => {
+    expect(key("access_key_id", "alicloud-express").env).toBe("ALICLOUD_ACCESS_KEY_ID");
+    expect(key("access_key_secret", "alicloud-express").env).toBe("ALICLOUD_ACCESS_KEY_SECRET");
+    expect(key("region", "alicloud-express").env).toBe("ALIBABA_CLOUD_REGION_ID");
+    expect(key("acr_namespace", "alicloud-express").env).toBe("ACR_NAMESPACE");
+    expect(key("github_token").env).toBe("GITHUB_TOKEN");
+    expect(key("sandbox_api_key").env).toBe("EBX_SANDBOX_API_KEY");
+    expect(key("llm_api_key").env).toBe("EBX_LLM_API_KEY");
   });
 
-  it("test_e2b_names_are_never_legacy", () => {
-    for (const k of ALL_KEYS) for (const a of k.aliases) if (a.name.startsWith("E2B_")) expect(a.kind).toBe("compat");
+  it("test_retired_names_are_not_resolved", () => {
+    const known = new Set(ALL_KEYS.map((k) => k.env));
+    for (const name of ["E2B_API_KEY", "SANDBOX_API_KEY", "AccessKey", "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID", "OPENAI_API_KEY"]) {
+      expect(known.has(name)).toBe(false);
+    }
   });
 
-  it("test_env_names_order_scoped_canonical_compat_legacy", () => {
+  it("test_env_names_order_is_scoped_then_canonical", () => {
     expect(envNames(key("sandbox_api_key"), { scopedFor: "my-prov" })).toEqual([
       "EBX_MY_PROV_SANDBOX_API_KEY",
       "EBX_SANDBOX_API_KEY",
-      "E2B_API_KEY",
-      "SANDBOX_API_KEY",
     ]);
   });
 
@@ -162,22 +161,16 @@ describe("TestResolvePrecedence", () => {
     expect([val(s)?.value, val(s)?.layer]).toEqual(["t", "toml"]);
   });
 
-  it("test_layer_beats_name_priority", () => {
-    const s = src({ environ: { SANDBOX_API_KEY: "legacy-env" }, dotenv: [{ EBX_SANDBOX_API_KEY: "canon-dotenv" }] });
-    expect(val(s)?.value).toBe("legacy-env");
-  });
-
-  it("test_name_order_within_layer", () => {
-    const names = ["EBX_SANDBOX_API_KEY", "E2B_API_KEY", "SANDBOX_API_KEY"];
-    const environ: Record<string, string> = Object.fromEntries(names.map((n) => [n, n]));
-    for (const n of names) {
-      expect(val(src({ environ }))?.value).toBe(n);
-      delete environ[n];
-    }
+  it("test_retired_name_does_not_beat_the_canonical_name", () => {
+    const s = src({
+      environ: { SANDBOX_API_KEY: "legacy-env", E2B_API_KEY: "compat-env" },
+      dotenv: [{ EBX_SANDBOX_API_KEY: "canon-dotenv" }],
+    });
+    expect(val(s)?.value).toBe("canon-dotenv");
   });
 
   it("test_blank_values_fall_through", () => {
-    const s = src({ environ: { EBX_SANDBOX_API_KEY: "  ", E2B_API_KEY: "" }, dotenv: [{ SANDBOX_API_KEY: "from-dotenv" }] });
+    const s = src({ environ: { EBX_SANDBOX_API_KEY: "  " }, dotenv: [{ EBX_SANDBOX_API_KEY: "from-dotenv" }] });
     expect(val(s)?.value).toBe("from-dotenv");
   });
 
@@ -193,16 +186,15 @@ describe("TestResolvePrecedence", () => {
     expect(val(src({ toml }))?.value).toBe("plain");
   });
 
-  it("test_toml_name_order", () => {
+  it("test_toml_ignores_retired_names", () => {
     const k = key("sandbox_base_url");
     expect(resolveKey(k, src({ toml: { transport: { api_url: "legacy", sandbox_base_url: "canon" } } }))?.value).toBe("canon");
-    expect(resolveKey(k, src({ toml: { transport: { api_base_url: "b", api_url: "a" } } }))?.value).toBe("a");
+    expect(resolveKey(k, src({ toml: { transport: { api_base_url: "b", api_url: "a" } } }))?.layer).toBe("default");
   });
 
-  it("test_flat_legacy_toml_only_without_transport_table", () => {
+  it("test_flat_retired_toml_is_ignored", () => {
     const k = key("sandbox_base_url");
-    expect(resolveKey(k, src({ toml: { api_url: "flat" } }))?.value).toBe("flat");
-    expect(resolveKey(k, src({ toml: { api_url: "flat", transport: { x: 1 } } }))?.layer).toBe("default");
+    expect(resolveKey(k, src({ toml: { api_url: "flat" } }))?.layer).toBe("default");
   });
 
   it("test_default_applies_last_and_can_be_disabled", () => {
@@ -211,10 +203,10 @@ describe("TestResolvePrecedence", () => {
     expect(resolveKey(k, src(), { useDefault: false })).toBeNull();
   });
 
-  it("test_overrides_accept_legacy_kwarg_names", () => {
+  it("test_overrides_ignore_retired_kwarg_names", () => {
     const k = key("sandbox_base_url");
-    expect(resolveKey(k, src({ overrides: { api_url: "u" } }))?.value).toBe("u");
-    expect(resolveKey(k, src({ overrides: { api_base_url: "u2" } }))?.value).toBe("u2");
+    expect(resolveKey(k, src({ overrides: { api_url: "u" } }))?.layer).toBe("default");
+    expect(resolveKey(k, src({ overrides: { sandbox_base_url: "u2" } }))?.value).toBe("u2");
   });
 });
 

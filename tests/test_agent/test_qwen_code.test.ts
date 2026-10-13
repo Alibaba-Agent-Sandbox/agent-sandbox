@@ -891,10 +891,10 @@ posixOnly("TestRealProcess", () => {
     expect(result.sessionId).toBe("sid");
     expect(result.isError).toBe(false);
     // The feed scrolls by line: text lines first, the tool as its own line.
-    expect(seen[seen.length - 1]!.split("\n")).toEqual(["starting", "Hello wor", "ld", "tool: run_shell_command"]);
+    expect(seen[seen.length - 1]!.split("\n")).toEqual(["starting", "Hello wor", "ld", "tool: run_shell_command echo sk-…"]);
     expect(seen.some((s) => s.split("\n").includes("Hello wor"))).toBe(true);
     const joined = seen.join("\n");
-    expect(joined).not.toContain("sk-secret-token"); // tool input is never surfaced
+    expect(joined).not.toContain("sk-secret-token"); // the command is shown, the token is redacted
     expect(joined).not.toContain("private reasoning"); // neither is thinking
     expect(joined).not.toContain("\x1b");
     expect(seen.every((s) => s.split("\n").length <= qwenCode._ACTIVITY_FEED_LINES)).toBe(true);
@@ -1039,7 +1039,7 @@ describe("TestStreamHelpers", () => {
       },
       feed,
     );
-    expect(feed.render().split("\n")).toEqual(["checking docs", "tool: web_fetch"]);
+    expect(feed.render().split("\n")).toEqual(["checking docs", "tool: web_fetch u"]);
     expect(feed.render()).not.toContain('"u"');
     expect(feed.render().split("\n").some((line) => line === "u")).toBe(false);
   });
@@ -1067,10 +1067,112 @@ describe("TestStreamHelpers", () => {
       },
       feed,
     );
-    expect(finished).toBe(false);
-    expect(feed.render().split("\n")).toEqual(["tool: write_file"]);
+    expect(finished).toBe(true);
+    expect(feed.render().split("\n")).toEqual(["tool: write_file commands.py"]);
     expect(feed.render()).not.toContain("secret");
-    expect(feed.render()).not.toContain("commands.py");
+  });
+
+  it("test_streamed_tool_json_rewrites_the_open_line", () => {
+    const feed = new qwenCode._ActivityFeed();
+    qwenCode._feedStreamEvent(
+      {
+        type: "stream_event",
+        event: {
+          type: "content_block_start",
+          index: 1,
+          content_block: { type: "tool_use", name: "run_shell_command", input: {} },
+        },
+      },
+      feed,
+    );
+    const partial = qwenCode._feedStreamEvent(
+      {
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          index: 1,
+          delta: { type: "input_json_delta", partial_json: '{"command": "echo ' },
+        },
+      },
+      feed,
+    );
+    expect(partial).toBe(false);
+    expect(feed.render()).toBe("tool: run_shell_command");
+    const done = qwenCode._feedStreamEvent(
+      {
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          index: 1,
+          delta: { type: "input_json_delta", partial_json: 'hi"}' },
+        },
+      },
+      feed,
+    );
+    expect(done).toBe(true);
+    expect(feed.render()).toBe("tool: run_shell_command echo hi");
+    const stopped = qwenCode._feedStreamEvent(
+      { type: "stream_event", event: { type: "content_block_stop", index: 1 } },
+      feed,
+    );
+    expect(stopped).toBe(false);
+    expect(feed.render()).toBe("tool: run_shell_command echo hi");
+  });
+
+  it("test_detail_appends_when_text_was_committed_after_the_tool", () => {
+    const feed = new qwenCode._ActivityFeed();
+    qwenCode._feedStreamEvent(
+      {
+        type: "stream_event",
+        event: { type: "content_block_start", content_block: { type: "tool_use", name: "write_file", input: {} } },
+      },
+      feed,
+    );
+    text(feed, "done\n");
+    const changed = qwenCode._feedStreamEvent(
+      {
+        type: "assistant",
+        message: { content: [{ type: "tool_use", name: "write_file", input: { path: "commands.py", content: "secret" } }] },
+      },
+      feed,
+    );
+    expect(changed).toBe(true);
+    expect(feed.render().split("\n")).toEqual(["tool: write_file", "done", "tool: write_file commands.py"]);
+    expect(feed.render()).not.toContain("secret");
+  });
+
+  it("test_tool_detail_prefers_the_first_key_and_redacts", () => {
+    const feed = new qwenCode._ActivityFeed();
+    qwenCode._feedStreamEvent(
+      {
+        type: "assistant",
+        message: {
+          content: [
+            {
+              type: "tool_use",
+              name: "run_shell_command",
+              input: {
+                url: "https://example.com",
+                command: ["echo", "sk-abcd", "github_pat_abcd", "ghp_abcd", "gho_abcd", "AKIAABCD", "Bearer abcd"],
+                content: "secret",
+                old_string: "secret",
+                new_string: "secret",
+                api_key: "secret",
+                token: "secret",
+                secret: "secret",
+                password: "secret",
+                thinking: "secret",
+              },
+            },
+          ],
+        },
+      },
+      feed,
+    );
+    expect(feed.render()).toBe("tool: run_shell_command echo sk-… github_pat_… ghp_… gho_… AKIA… Bearer …");
+    expect(feed.render()).not.toContain("abcd");
+    expect(feed.render()).not.toContain("secret");
+    expect(feed.render()).not.toContain("https://example.com");
   });
 
   it("test_feed_is_bounded_and_single_line_entries_are_clean", () => {

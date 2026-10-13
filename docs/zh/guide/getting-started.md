@@ -44,7 +44,7 @@ sudo mv "$HOME/ebx" /usr/local/bin/ebx
 ### 方式一：环境变量（推荐用于 CI/CD）
 
 ```bash
-export E2B_API_KEY="your-api-key-here"
+export EBX_SANDBOX_API_KEY="your-api-key-here"
 ```
 
 ### 方式二：`ebx config set`（推荐用于本地开发）

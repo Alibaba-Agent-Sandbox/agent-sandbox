@@ -289,16 +289,16 @@ graph LR
 ### Authentication
 
 - **Client → MCP**: `Authorization: Bearer <token>`, validated with constant-time comparison; configured via `EBX_MCP_AUTH_TOKEN`. On loopback, leaving it unset disables authentication; a configured-but-empty token fails closed (every request gets 401). The FC artifact calls `require_auth_token` and refuses to start when the token is empty
-- **MCP → Sandbox**: `E2B_API_KEY` (or `SANDBOX_API_KEY`) environment variable
+- **MCP → Sandbox**: `EBX_SANDBOX_API_KEY`  environment variable
 
 ### Environment Variables
 
 | Variable | Purpose |
 |----------|---------|
-| `E2B_API_KEY` / `SANDBOX_API_KEY` | Sandbox backend API key |
-| `E2B_API_URL` / `SANDBOX_API_BASE_URL` | Platform API URL override |
-| `E2B_DOMAIN` | Sandbox domain override |
-| `SANDBOX_TEMPLATE` / `EBX_TEMPLATE` | Default sandbox template |
+| `EBX_SANDBOX_API_KEY` | Sandbox backend API key |
+| `EBX_SANDBOX_BASE_URL` | Platform API URL |
+| `EBX_SANDBOX_DOMAIN` | Sandbox domain |
+| `EBX_DEFAULT_TEMPLATE` | Default sandbox template |
 | `EBX_MCP_AUTH_TOKEN` | Bearer token for client authentication (HTTP transport) |
 
 ---
@@ -338,7 +338,7 @@ ebx mcp install --target claude
 ebx mcp install --target vscode
 ```
 
-`install` merges an `easy-sandbox` entry into the target IDE config: Cursor `~/.cursor/mcp.json`, Claude Desktop `claude_desktop_config.json` (`mcpServers`), and the VS Code workspace `.vscode/mcp.json` (`servers`, `type: stdio`). The command is the absolute path of the running `ebx` executable, or `node <absolute path of ebx.js>` when `ebx` cannot be found. Cursor and Claude receive `E2B_API_KEY` in `env` when a key is available. The VS Code workspace file does not. A config that is not strict JSON is left untouched.
+`install` merges an `easy-sandbox` entry into the target IDE config: Cursor `~/.cursor/mcp.json`, Claude Desktop `claude_desktop_config.json` (`mcpServers`), and the VS Code workspace `.vscode/mcp.json` (`servers`, `type: stdio`). The command is the absolute path of the running `ebx` executable, or `node <absolute path of ebx.js>` when `ebx` cannot be found. Cursor and Claude receive `EBX_SANDBOX_API_KEY` in `env` when a key is available. The VS Code workspace file does not. A config that is not strict JSON is left untouched.
 
 ### Installation Output
 
@@ -382,7 +382,7 @@ Reports the server name, transport (stdio), tool count and names, whether an API
       "command": "ebx",
       "args": ["mcp", "start"],
       "env": {
-        "E2B_API_KEY": "your-api-key"
+        "EBX_SANDBOX_API_KEY": "your-api-key"
       }
     }
   }
@@ -399,7 +399,7 @@ Reports the server name, transport (stdio), tool count and names, whether an API
       "command": "ebx",
       "args": ["mcp", "start"],
       "env": {
-        "E2B_API_KEY": "your-api-key"
+        "EBX_SANDBOX_API_KEY": "your-api-key"
       }
     }
   }
@@ -461,7 +461,7 @@ graph TB
         ASGI["app.py → easy_sandbox.agent.mcp_http:asgi_app"]
         Trigger["HTTP trigger: POST/GET/DELETE /mcp"]
         Session["Session affinity: Mcp-Session-Id"]
-        Env["Env vars: E2B_API_KEY / EBX_MCP_AUTH_TOKEN / EBX_TEMPLATE"]
+        Env["Env vars: EBX_SANDBOX_API_KEY / EBX_MCP_AUTH_TOKEN / EBX_DEFAULT_TEMPLATE"]
     end
 ```
 
@@ -474,18 +474,18 @@ ebx mcp deploy \
   --template base \
   --memory 512 --timeout 600 \
   --generate-token \
-  --api-key $E2B_API_KEY \
+  --api-key $EBX_SANDBOX_API_KEY \
   --output-dir ./mcp-artifact
 ```
 
-Options: `--name` (default `easy-sandbox-mcp`), `--region` (command `--region` > `SANDBOX_REGION` > `ebx config set region` > `cn-hangzhou`), `--template` (default `base`), `--memory` (default 512), `--timeout` (default 600), `--auth-token-file` / `--generate-token` / `EBX_MCP_AUTH_TOKEN` env for the Bearer token, `--enable-session-affinity/--no-session-affinity` (default enabled), `--api-key`, `--custom-domain`, `--output-dir`.
+Options: `--name` (default `easy-sandbox-mcp`), `--region` (command `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`), `--template` (default `base`), `--memory` (default 512), `--timeout` (default 600), `--auth-token-file` / `--generate-token` / `EBX_MCP_AUTH_TOKEN` env for the Bearer token, `--enable-session-affinity/--no-session-affinity` (default enabled), `--sandbox-api-key` (`EBX_SANDBOX_API_KEY`), `--custom-domain`, `--output-dir`.
 
 ### Artifact Contents
 
 | File | Content |
 |------|---------|
 | `requirements.txt` | `easy-sandbox[mcp]`, `uvicorn>=0.29` |
-| `app.py` | ASGI entry point reading `EBX_MCP_AUTH_TOKEN`, `E2B_API_KEY`/`SANDBOX_API_KEY`, `E2B_API_URL`/`SANDBOX_API_BASE_URL`, `E2B_DOMAIN`, `SANDBOX_TEMPLATE`/`EBX_TEMPLATE` from the FC function environment |
+| `app.py` | ASGI entry point reading `EBX_MCP_AUTH_TOKEN`, `EBX_SANDBOX_API_KEY`, `EBX_SANDBOX_BASE_URL`, `EBX_SANDBOX_DOMAIN`, `EBX_DEFAULT_TEMPLATE` from the FC function environment |
 | `config.yaml` | YAML deployment manifest (not an FC API payload): `function_name`, `region`, `runtime` (`python3.10`), `handler` (`app.app`), `memory`, `timeout`, `environment_variables`, `http_trigger` (methods POST/GET/DELETE + `enable_session_affinity`), optional `custom_domain` |
 
 `ebx mcp deploy` also prints manual deployment steps (package the artifact, create the function via the FC console or SDK, create an HTTP trigger, enable `Mcp-Session-Id` affinity if supported) and an IDE config template with the Bearer token masked.
@@ -494,7 +494,7 @@ Options: `--name` (default `easy-sandbox-mcp`), `--region` (command `--region` >
 
 - **Protocol**: Streamable HTTP (MCP spec 2025-06-18); `initialize` negotiates `2025-06-18` consistently with `GET /health` (STDIO keeps `2024-11-05`)
 - **Session affinity**: delegated to the FC platform layer via the `Mcp-Session-Id` header — no application-level sticky routing needed
-- **Authentication**: dual-layer — client→MCP uses `Authorization: Bearer <token>`; MCP→sandbox uses `E2B_API_KEY` from the FC env
+- **Authentication**: dual-layer — client→MCP uses `Authorization: Bearer <token>`; MCP→sandbox uses `EBX_SANDBOX_API_KEY` from the FC env
 - **Lifecycle**: sandboxes are lazily created per MCP session; `DELETE /mcp` triggers cleanup; the idle-session TTL is the safety net
 - **Cold start**: FC cold start (~1–3 s) may conflict with MCP initialize timeouts; provisioned instances are recommended for production
 - **Secrets**: `config.yaml` contains the API key and Bearer token — never commit it to version control

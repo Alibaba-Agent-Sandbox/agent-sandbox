@@ -22,11 +22,7 @@
 | 文档 | 说明 |
 |------|------|
 | [快速开始](guide/getting-started.md) | 安装、配置、第一个沙箱 |
-| [最佳实践](guide/best-practices.md) | 何时使用 `--provider`、`--model`、`llm_model`、凭证和独立二进制 |
-| [操作指南](guide/operations.md) | 每个命令组，以及做这件事时要运行的那一条命令 |
 | [二进制安装](guide/binary-installation.md) | 单文件 `ebx` 二进制（Node SEA），无需 Node.js |
-| [提供商](guide/providers.md) | 安装、选择并配置沙箱提供商 |
-| [编写提供商](guide/authoring-providers.md) | 编写 EPP/1 提供商插件，含 `[template]` 与从 git 安装 |
 | [认证配置](guide/authentication.md) | API Key / AK-SK 认证与 `ebx config` |
 | [CLI 教程](guide/cli-tutorial.md) | 命令行快速上手 |
 | [模板使用](guide/using-templates.md) | 官方与社区模板使用 |
@@ -61,7 +57,7 @@
 
 ### 按角色
 
-- **CLI 用户**：[快速开始](guide/getting-started.md) → [操作指南](guide/operations.md) → [最佳实践](guide/best-practices.md) → [CLI 教程](guide/cli-tutorial.md)
+- **CLI 用户**：[快速开始](guide/getting-started.md) → [CLI 教程](guide/cli-tutorial.md) → [CLI 命令体系](design/cli-design.md)
 - **模板作者**：[模板编写](guide/authoring-templates.md) → [部署与构建](guide/deploy-and-build.md) → [端到端模板工作流](guide/e2e-template-workflow.md)
 - **AI Agent 开发者**：[自带 Agent（BYO）集成](guide/byo-agent-integration.md) → [MCP 集成](guide/mcp-integration.md) → [MCP Server](design/mcp-server.md)
 - **CLI 贡献者**：[CLI 架构](design/architecture.md) → [Python 到 Node 移植](../PORTING.md)

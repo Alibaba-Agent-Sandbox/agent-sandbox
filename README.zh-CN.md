@@ -178,6 +178,7 @@ pip install easy-sandbox-server
 |------|------|
 | 快速入门 | [快速入门](docs/zh/guide/getting-started.md) |
 | 最佳实践 | [最佳实践](docs/zh/guide/best-practices.md) |
+| 无障碍 | [无障碍说明](ACCESSIBILITY.md) |
 | 操作指南 | [操作指南](docs/zh/guide/operations.md) |
 | 提供商 | [提供商](docs/zh/guide/providers.md) |
 | 编写提供商 | [编写提供商](docs/zh/guide/authoring-providers.md) |

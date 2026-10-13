@@ -39,8 +39,8 @@ EBX_ORACLE=/path/to/python/ebx EBX_BIN="node dist/bin/ebx.js" node parity/diff/d
 
 ## 凭据
 
-真实凭据只存放在被 git 忽略的 `.env` 文件或环境变量中(`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`/`AccessSecret`、
-`ACR_NAMESPACE`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`)。绝不打印、记录或提交;套件会对捕获的所有内容脱敏。
+真实凭据只存放在被 git 忽略的 `.env` 文件或环境变量中（`EBX_SANDBOX_API_KEY`、`EBX_SANDBOX_BASE_URL`、`EBX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`、
+`ACR_NAMESPACE`、`EBX_LLM_API_KEY`、`EBX_LLM_BASE_URL`）。绝不打印、记录或提交；套件会对捕获的所有内容脱敏。
 
 ## 完成定义
 

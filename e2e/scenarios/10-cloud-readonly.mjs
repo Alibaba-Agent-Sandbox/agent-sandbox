@@ -16,12 +16,12 @@ export default {
       },
     },
     {
-      id: 'auth-wrong-key', title: 'wrong API key: exit 3, E1000 (original) / E1001 (KI-006 fix), 401', argv: ['list'], env: { E2B_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 3, output: [/E100[01]/, /Authentication failed|rejected the API key/, '401'],
+      id: 'auth-wrong-key', title: 'wrong API key: exit 3, E1000, 401 suggestion', argv: ['list'], env: { E2B_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 3, output: ['E1000', 'Authentication failed', '401'],
     },
     {
-      id: 'auth-wrong-key-json', title: 'wrong API key under --json: error envelope with code E1000 (original) / E1001 (KI-006 fix)', argv: ['--json', 'info', 'sbx-00000000-0000-0000-0000-000000000000'], env: { E2B_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 3,
+      id: 'auth-wrong-key-json', title: 'wrong API key under --json: error envelope with code E1000', argv: ['--json', 'info', 'sbx-00000000-0000-0000-0000-000000000000'], env: { E2B_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 3,
       jsonShape: { status: 'string', message: 'string', code: 'string', suggestion: 'string' },
-      json: (j) => { if (j.status !== 'error' || !['E1000', 'E1001'].includes(j.code)) throw new Error(`unexpected envelope ${JSON.stringify(j)}`); },
+      json: (j) => { if (j.status !== 'error' || j.code !== 'E1000') throw new Error(`unexpected envelope ${JSON.stringify(j)}`); },
     },
     { id: 'auth-wrong-key-template-list', title: 'wrong API key on template list fails (non-zero) and mentions 401', argv: ['template', 'list'], env: { E2B_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 'nonzero', output: '401' },
     {
@@ -48,13 +48,13 @@ export default {
     { id: 'template-delete-missing', title: 'template delete of unknown id: exit 4, E2001', argv: ['template', 'delete', 'tpl-does-not-exist', '--yes'], exit: 4, output: 'E2001' },
     { id: 'create-missing-template', title: 'create --template <unknown>: exit 4, E2001', argv: ['create', '--template', 'no-such-template-e2e-xyz'], exit: 4, output: ['E2001', 'not found'] },
     { id: 'create-missing-template-json', title: 'create unknown template --json envelope', argv: ['--json', 'create', '--template', 'no-such-template-e2e-xyz'], exit: 4, jsonShape: { status: 'string', code: 'string' }, json: (j) => { if (j.code !== 'E2001') throw new Error(`code ${j.code}`); } },
-    { id: 'info-missing-sandbox', title: 'info of unknown sandbox: exit 4 (E5000/404 originally, E2009 after the KI-005 fix)', argv: ['info', 'sbx-00000000-0000-0000-0000-000000000000'], exit: 4, output: [/404|E2009/, 'not found'] },
+    { id: 'info-missing-sandbox', title: 'info of unknown sandbox: exit 4, E5000/404', argv: ['info', 'sbx-00000000-0000-0000-0000-000000000000'], exit: 4, output: ['404', 'not found'] },
     {
       id: 'info-missing-sandbox-json', title: 'info unknown sandbox --json envelope', argv: ['--json', 'info', 'sbx-00000000-0000-0000-0000-000000000000'], exit: 4,
       jsonShape: { status: 'string', message: 'string', code: 'string', suggestion: 'string' }, json: (j) => { if (j.status !== 'error') throw new Error('status must be "error"'); },
     },
-    { id: 'exec-missing-sandbox', title: 'exec in unknown sandbox: exit 4 (404 originally, E2009 after the KI-005 fix)', argv: ['exec', 'sbx-00000000-0000-0000-0000-000000000000', 'echo hi'], exit: 4, output: /404|E2009/ },
-    { id: 'kill-missing-sandbox', title: 'kill of unknown sandbox: exit 4 (404 originally, E2009 after the KI-005 fix)', argv: ['kill', 'sbx-00000000-0000-0000-0000-000000000000', '--yes'], exit: 4, output: /404|E2009/ },
+    { id: 'exec-missing-sandbox', title: 'exec in unknown sandbox: exit 4', argv: ['exec', 'sbx-00000000-0000-0000-0000-000000000000', 'echo hi'], exit: 4, output: '404' },
+    { id: 'kill-missing-sandbox', title: 'kill of unknown sandbox: exit 4', argv: ['kill', 'sbx-00000000-0000-0000-0000-000000000000', '--yes'], exit: 4, output: '404' },
     { id: 'files-missing-sandbox', title: 'sandbox files list in unknown sandbox: non-zero', argv: ['sandbox', 'files', 'list', 'sbx-00000000-0000-0000-0000-000000000000', '--path', '/tmp'], exit: 'nonzero' },
     {
       id: 'kill-all-guard', title: '`kill --all` without --yes does not destroy anything when declined', needs: ['killall'],

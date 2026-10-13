@@ -81,25 +81,37 @@ ebx kill local-process:sbx-1 --yes
 
 ## 凭证与配置键
 
-每个键只有一个 **规范名称**；旧名称继续可用。
+每个键只有一个名称。Easy Sandbox 自己的设置用 `EBX_`。厂商已经规定了变量名的，直接用那个名字，不再套一层 `EBX_`。
 
-| 键 | 规范环境变量 | 旧名称 / 兼容名称 |
+| 键 | 环境变量 | 为什么是这个名字 |
 |---|---|---|
-| `provider` | `EBX_PROVIDER` | - |
-| `sandbox_api_key` | `EBX_SANDBOX_API_KEY` | `E2B_API_KEY`、`SANDBOX_API_KEY` |
-| `sandbox_base_url` | `EBX_SANDBOX_BASE_URL` | `E2B_API_URL`、`SANDBOX_API_BASE_URL`、配置项 `api_url` |
-| `sandbox_domain` | `EBX_SANDBOX_DOMAIN` | `E2B_DOMAIN`、配置项 `domain` |
-| `region` | `EBX_ALICLOUD_EXPRESS_REGION` | `SANDBOX_REGION` |
-| `access_key_id`、`access_key_secret` | `EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID`、`..._SECRET` | `ALICLOUD_ACCESS_KEY_ID`/`_SECRET`（原生）、`AccessKey`、`AccessSecret` |
-| `acr_*`、`team_id` | `EBX_ALICLOUD_EXPRESS_<KEY>` | `ACR_NAMESPACE`、`ACR_PASSWORD` 等 |
-| 插件选项 `<key>` | `EBX_<PROVIDER_ID>_<KEY>`（短横线变下划线） | 插件声明的 `env` 名称 |
+| `provider` | `EBX_PROVIDER` | 产品自己的设置 |
+| `sandbox_api_key` | `EBX_SANDBOX_API_KEY` | 产品自己的沙箱密钥 |
+| `sandbox_base_url` | `EBX_SANDBOX_BASE_URL` | 产品自己的平台地址 |
+| `sandbox_domain` | `EBX_SANDBOX_DOMAIN` | 产品自己的数据面域名 |
+| `llm_api_key` | `EBX_LLM_API_KEY` | 产品自己的代码生成密钥。启动 Qwen Code 时会写进子进程的 `OPENAI_API_KEY`，因为 `qwen` 程序读的是这个变量 |
+| `github_token` | `GITHUB_TOKEN` | GitHub 官方变量 |
+| `region` | `ALIBABA_CLOUD_REGION_ID` | 阿里云官方地域变量 |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | 阿里云官方 AccessKey ID |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | 阿里云官方 AccessKey Secret |
+| `acr_namespace` | `ACR_NAMESPACE` | 镜像仓库命名空间 |
+| `acr_registry` | `ACR_REGISTRY` | 镜像仓库地址 |
+| `acr_repo` | `ACR_REPO` | 镜像仓库名 |
+| `acr_username` | `ACR_USERNAME` | 镜像仓库用户名 |
+| `acr_password` | `ACR_PASSWORD` | 镜像仓库密码 |
+| `acr_instance_id` | `ACREE_INSTANCE_ID` | 企业版实例 |
+| `acr_vpc_id` | `ACR_VPC_ID` | 企业版 VPC |
+| `acr_vswitch_ids` | `ACR_VSWITCH_IDS` | 企业版交换机 |
+| `acr_security_group_id` | `ACR_SECURITY_GROUP_ID` | 企业版安全组 |
+| `team_id` | `EBX_ALICLOUD_EXPRESS_TEAM_ID` | 没有对应的阿里云官方变量，所以用提供商前缀 |
+| 插件选项 `<key>` | `EBX_<PROVIDER_ID>_<KEY>` | 第三方提供商没有统一的官方变量名时，用这个形式 |
 
 单个键的解析顺序：命令行覆盖、进程环境变量、`./.env`、`~/.ebx/.env`、`~/.ebx/config.toml` 中的 `[providers.<id>]` 与 `[transport]`、派生值、默认值。空白值视为未设置。插件 **只** 会收到它声明的选项以及你在安装时同意的通用键（`[core] inherit`），其余一概不会进入它的环境。
 
 `ebx config` 可以操作所有这些键：
 
 ```bash
-ebx config set sandbox_base_url https://api.example.com      # 规范名；"api_url" 仍然可用，并按输入原样回显
+ebx config set sandbox_base_url https://api.example.com
 ebx config set acr_repo my-repo                              # 内置提供商的键（存放在 [providers.alicloud-express]）
 ebx config set providers.my-cloud.region eu-1                # 限定名：某个提供商的选项
 ebx config set --provider my-cloud region eu-1 # 当前提供商的裸键
@@ -110,15 +122,7 @@ ebx config list --provider my-cloud                          # 该提供商的�
 
 仅存在于另一个已安装提供商中的裸键会被拒绝，并提示 `Did you mean 'providers.<id>.<key>'?`。`ebx provider config <id> list|get|set|unset|init` 是限定到单个提供商的同一套能力。
 
-### 发现并迁移旧名称
-
-```bash
-ebx config check              # 列出正在使用的旧名称（只列名称，不显示值）；--strict 在存在时退出码 1
-ebx config migrate --dry-run  # 打印 "would rename X -> Y"
-ebx config migrate --yes      # 重写 ~/.ebx/config.toml 与 ~/.ebx/.env，保留 *.bak（权限 0600），设置 config_format = 2
-```
-
-`migrate` 是幂等的。迁移之后，`ebx config list` 显示规范名称（`sandbox_base_url`、`sandbox_domain`）；`--legacy-names`（或 `EBX_CONFIG_LEGACY_NAMES=1`）在下一个版本内仍可打印旧名称。**更旧版本的 ebx / easy-sandbox 不再读取迁移后的值。** 旧名称默认静默，设置 `EBX_WARN_DEPRECATED=1` 后每个名称在 stderr 打印一行。在终端中，`ebx config set api_url ...` 会在 stderr 追加 `note: 'api_url' is now 'sandbox_base_url' (the old name keeps working).`
+`ebx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。
 
 ---
 

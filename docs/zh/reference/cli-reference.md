@@ -28,7 +28,7 @@ ebx
 
 | 已移除 | 替代路径 |
 |--------|----------|
-| `ebx auth login/logout/status/switch` | 用 `ebx config set sandbox_api_key <value>` 持久化凭证，或直接使用 `E2B_API_KEY` / `SANDBOX_API_KEY` 环境变量；用 `ebx config list` 查看生效状态 |
+| `ebx auth login/logout/status/switch` | 用 `ebx config set sandbox_api_key <value>` 持久化凭证，或直接使用 `EBX_SANDBOX_API_KEY` 环境变量；用 `ebx config list` 查看生效状态 |
 | `ebx secret create/list/delete/inject` | 用环境变量或 `.env` 文件管理凭证与密钥；沙箱环境注入用 `ebx create --env KEY=VALUE` |
 | `ebx session` / `ebx sessions list/info/rename/export/import/clean` | 会话数据仍由 `LocalSessionStore` 存储在本地 `~/.ebx/sessions/`；在程序中用 SDK 的 `Sandbox.connect()`（交互式 REPL `ebx connect <SANDBOX_ID>` 仍可用） |
 | `ebx skill search/install/list/create/publish` | 模板是当前的能力分发机制（`ebx template search` / `ebx template install`）；仓库根目录的 `SKILL.md` 面向 Agent 使用说明 |
@@ -109,7 +109,7 @@ ebx [全局选项] <子命令> [子命令选项]
 
 AI 路径需要本机可用的 Qwen Code CLI 与 DashScope/ModelStudio 凭证。未安装时会在交互式终端提示安装官方 standalone 版本（经 SHA256 校验后安装到 `~/.ebx/bin`）；非交互环境必须显式传入 `--yes`。终端上这次安装是 `Installing ... 12s` 标题，下方以灰色显示下载、校验和解压阶段；压缩包内容和 API key 不会出现。创建沙箱本身使用 `Creating sandbox... 12s`（只有带 `--upload` 时，文件名才会出现在标题下方）。
 
-生成之前，Agent 会在同一个原生会话上执行两阶段澄清：先跑一轮普通**检索轮**（用它自己的工具确认可公开查证的事实——工具技术栈、官方安装方式、常见依赖；检索不到时采用安全合理默认值），再做一次**结构化评估**（完整度目标 80%）。低于阈值时，交互式会话每轮只问 **一个问题**，以 `Question 1`、`Question 2` 逐次编号（不显示总数；内部 5 轮上限仅在触达时提示）；每次回答都恢复同一会话并基于完整描述 + 全部问答历史重新评估，已问过的主题不会重复，回答“你自己决定”“采用默认”等授权语义会让 Agent 自行采用安全合理默认值。非交互会话未传 `--yes` 时快速失败并抛 `E2008`，列出缺失项与可直接套用的示例描述；`--yes` 完全跳过检索与评估。检索轮有上限（默认 20 个 agent 轮次、240 秒，可用 `EBX_QWEN_RESEARCH_TIMEOUT` 覆盖）；超时或轮次耗尽时 CLI 会带上原因告警并按安全默认值继续，随后评估会新开一个会话。评估不可用（超时、崩溃、无法解析）时打印 warning 并直接生成。Agent 工作期间，TTY 上会显示形如 `Researching public facts... 12s` / `Assessing description... 12s` 的标题，标题下方另起四行以灰色显示 Agent 最近的动态（近期文本与工具名，按行滚动；`EBX_ACTIVITY_LINES=1..10` 可调整行数；`--verbose` 下同样如此）；这些内容不会写入 stdout，也不会出现在 `--json` / `--quiet` / CI 模式。
+生成之前，Agent 会在同一个原生会话上执行两阶段澄清：先跑一轮普通**检索轮**（用它自己的工具确认可公开查证的事实——工具技术栈、官方安装方式、常见依赖；检索不到时采用安全合理默认值），再做一次**结构化评估**（完整度目标 80%）。低于阈值时，交互式会话每轮只问 **一个问题**，以 `Question 1`、`Question 2` 逐次编号（不显示总数；内部 5 轮上限仅在触达时提示）；每次回答都恢复同一会话并基于完整描述 + 全部问答历史重新评估，已问过的主题不会重复，回答“你自己决定”“采用默认”等授权语义会让 Agent 自行采用安全合理默认值。非交互会话未传 `--yes` 时快速失败并抛 `E2008`，列出缺失项与可直接套用的示例描述；`--yes` 完全跳过检索与评估。检索轮有上限（默认 20 个 agent 轮次、240 秒，可用 `EBX_QWEN_RESEARCH_TIMEOUT` 覆盖）；超时或轮次耗尽时 CLI 会带上原因告警并按安全默认值继续，随后评估会新开一个会话。评估不可用（超时、崩溃、无法解析）时打印 warning 并直接生成。Agent 工作期间，TTY 上会显示形如 `Researching public facts... 12s` / `Assessing description... 12s` 的标题，标题下方另起六行以灰色显示 Agent 最近的动态（近期文本，以及一小段已脱敏的工具详情——命令、url、查询或路径；按行滚动；`EBX_ACTIVITY_LINES` 为 1–10；`--verbose` 下同样如此；文件内容、思考内容和凭证保持隐藏）；这些内容不会写入 stdout，也不会出现在 `--json` / `--quiet` / CI 模式。
 
 ```bash
 ebx create [DESCRIPTION] [选项]
@@ -341,7 +341,7 @@ ebx config get <KEY>
 
 | 键 | 说明 |
 |---|------|
-| `sandbox_api_key` | 沙箱服务 API Key（存 `~/.ebx/.env` 的 `E2B_API_KEY`，输出时脱敏；`api_key` 仍可作为 get/set 别名） |
+| `sandbox_api_key` | 沙箱服务 API Key（存 `~/.ebx/.env` 的 `EBX_SANDBOX_API_KEY`，输出时脱敏） |
 | `access_key_id` | 阿里云 AccessKey ID（模板部署、ACR 推送） |
 | `access_key_secret` | 阿里云 AccessKey Secret（输出时脱敏） |
 | `acr_namespace` | 模板构建、推送、安装用的 ACR 命名空间（存为 `ACR_NAMESPACE`） |
@@ -395,14 +395,14 @@ ebx config init --yes   # 非交互：打印等效的 ebx config set 命令
 ebx config init --reset-shortcuts   # 将 [shortcuts] 别名重置为默认集
 ```
 
-- 交互式终端中依次提示六项；敏感值（API Key 与 AccessKey Secret）在终端支持时以星号反馈（每个字符一个 `*`，绝不回显原文），不支持时安全降级为无回显输入并明确提示。直接回车跳过该项。密钥存储到 `~/.ebx/.env`（`E2B_API_KEY`、`EBX_LLM_API_KEY`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）；ACR 命名空间也存在该文件，变量名为 `ACR_NAMESPACE`；区域写入 `~/.ebx/config.toml`。
+- 交互式终端中依次提示六项；敏感值（API Key 与 AccessKey Secret）在终端支持时以星号反馈（每个字符一个 `*`，绝不回显原文），不支持时安全降级为无回显输入并明确提示。直接回车跳过该项。密钥存储到 `~/.ebx/.env`（`EBX_SANDBOX_API_KEY`、`EBX_LLM_API_KEY`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）；ACR 命名空间也存在该文件，变量名为 `ACR_NAMESPACE`；区域写入 `~/.ebx/config.toml`。
 - 向导还会向 `~/.ebx/config.toml` 写入完整的 `[shortcuts]` 模板（列出全部可用命令，可直接编辑）；`--reset-shortcuts` 恢复出厂默认且不影响凭证。
 - Enter 接受当前值/跳过提示，退格编辑，Ctrl-C / EOF（Ctrl-D）干净地中止向导。
 - 非 TTY 环境（CI、管道输入）或传入 `--yes` 时不阻塞：打印等效的非交互 `ebx config set` 命令并以 0 退出。
 
 ```bash
 ebx config init
-# 1/6 Sandbox API key (E2B_API_KEY, input masked)
+# 1/6 Sandbox API key (EBX_SANDBOX_API_KEY, input masked)
 # 2/6 Region (默认 cn-hangzhou)
 # 3/6 LLM API key (DashScope/ModelStudio, input masked)
 # 4/6 ACR namespace（ebx install / template deploy 需要）
@@ -569,7 +569,7 @@ ebx template deploy ./my-template --acr-namespace prod --yes
 | 4 | 模板目录下的 `template.yaml` |
 | 5 | 硬编码兜底值 |
 
-> **自动化 / CI**：请在命令行显式传入 `--acr-namespace` 与模板目录，而不是依赖 `ACR_NAMESPACE` / `EBX_TEMPLATE_DIR` 环境变量或 `.env` 文件，避免构建随环境漂移。对 `template install` / `install`，要么显式传 `--acr-namespace`，要么在流程不应触碰云端时使用 `--download-only`。
+> **自动化 / CI**：请在命令行显式传入 `--acr-namespace` 与模板目录，而不是依赖 `ACR_NAMESPACE` / `EBX_DEFAULT_TEMPLATE_DIR` 环境变量或 `.env` 文件，避免构建随环境漂移。对 `template install` / `install`，要么显式传 `--acr-namespace`，要么在流程不应触碰云端时使用 `--download-only`。
 
 ### ebx template build
 
@@ -732,7 +732,7 @@ ebx template search <QUERY> [选项]
 |------|------|------|
 | `--tag` | `-t` | 按标签过滤 |
 | `--status` | `-s` | 按状态过滤：`official` / `community` / `experimental` |
-| `--index-url` | | 索引位置：HTTP(S) URL 或本地文件路径（环境变量：`EBX_TEMPLATE_INDEX_URL`；默认：官方远程索引） |
+| `--index-url` | | 索引位置：HTTP(S) URL 或本地文件路径（环境变量：`EBX_DEFAULT_TEMPLATE_INDEX_URL`；默认：官方远程索引） |
 | `--token` | | GitHub 令牌（私有镜像 / 提升限流额度；环境变量：`GITHUB_TOKEN`）。仅作临时覆盖 —— 推荐 `ebx config set github_token` |
 | `--refresh` | | 强制重新拉取索引，忽略本地缓存 |
 
@@ -819,12 +819,12 @@ ebx mcp deploy [选项]
 | `--auth-token-file` | Bearer Token 文件路径 |
 | `--generate-token` | 自动生成随机 Bearer Token |
 | `--enable-session-affinity/--no-session-affinity` | Mcp-Session-Id 会话亲和（默认开启） |
-| `--api-key` | 注入到 FC 环境变量的 E2B_API_KEY |
+| `--api-key` | 注入到 FC 环境变量的 EBX_SANDBOX_API_KEY |
 | `--custom-domain` | 自定义域名 |
 | `--output-dir` | 部署产物输出目录 |
 
 ```bash
-ebx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./deploy-artifact
+ebx mcp deploy --generate-token --api-key $EBX_SANDBOX_API_KEY --output-dir ./deploy-artifact
 ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir ./artifact
 ```
 

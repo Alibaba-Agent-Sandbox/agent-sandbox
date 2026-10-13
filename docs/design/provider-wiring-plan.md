@@ -71,14 +71,14 @@ Errors raised by the library are `ProviderError` subclasses carrying `code` (`E8
 
 ## 5. `src/cli/commands/config_cmd.ts`
 
-Today `config_cmd.ts` has its own alias tables (`_LEGACY_ENV_FALLBACKS`, `_LEGACY_TOML_FALLBACKS`, key resolution around the `get/set/delete` helpers). Replace, in this order:
+`config_cmd.ts` resolves each key by its one name. Replace the old multi-name tables with that rule, in this order:
 
-1. Key resolution (`get/set/delete KEY`): use `findKeyByAlias(name, "config")` plus the layer-first `resolveKey` — handles legacy names, `provider:key`, `--provider`, ambiguity suggestions (spec §3.2). Keep the legacy tables only as a fallback until goldens are green, then delete them.
+1. Key resolution (`get/set/delete KEY`): the layer-first `resolveKey` looks up the one environment variable for the key. Qualified `providers.<id>.<key>` and `--provider` select the provider. An unknown key exits 2 and lists the keys that exist (spec §3.2).
 2. Reading values: `loadLayeredConfig()`/`explainConfig()` for `get`/`list` (source labels). Output channel/format unchanged.
-3. Writing: phase-1 storage while `[core] config_format != 2` (legacy storage names), phase-2 after `config migrate` — both from `config_keys.ts` (`storage_phase1`/`storage_phase2`). `delete` removes every stored name of the key.
-4. New options on `get/set/delete/list`: `--provider`, `--legacy-names` (also `EBX_CONFIG_LEGACY_NAMES=1`) and `--all`. `config list` regenerates the golden: canonical names `sandbox_base_url`, `sandbox_domain`, new group lines.
-5. TTY-only one-line stderr note when a legacy name is addressed (spec §3.4); silent with `--json/--quiet/--ci` and non-TTY.
-6. `config check [--strict] [--json]` → `auditConfig()` (names only, never values). `config migrate [--yes] [--dry-run]` → `planMigration()`, `applyMigration({ backup: true })`; non-TTY without `--yes` → exit 2.
+3. Writing: `config set` writes the one environment variable for the key (secrets in `~/.ebx/.env`, other keys under their config key in `config.toml`). `delete` removes that stored value.
+4. `get/set/delete/list` accept `--provider` and `--all`. `config list` shows `sandbox_base_url`, `sandbox_domain`, and the other keys from the registry.
+5. `explainConfig()` reports the one variable that decided each key. Secrets are masked.
+6. `config list` shows the one name for each key and masks secrets. There is no second name to audit or rewrite.
 7. Provider-scoped keys (`acr_*`, `team_id`, `region`, plugin fields) — `config set <provider>:<key>` or with `--provider`; secrets go to `~/.ebx/.env` (0600).
 
 Gap to close first: `config-keys.json` has no `description_zh`/`required`; if `config list` needs zh descriptions, regenerate the fixture from the Python repo (the drift test will force the update).

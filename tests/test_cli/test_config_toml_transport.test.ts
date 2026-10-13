@@ -7,6 +7,9 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as transport from "../../src/transport/config.js";
+import { loadTomlFile } from "../../src/transport/config_layers.js";
+import { dotenvValues } from "../../src/utils/_dotenv.js";
+import { getLogger, Handler, type LogRecord } from "../../src/utils/logging.js";
 import { loads } from "../../src/utils/_tomllib.js";
 
 describe("TransportTomlLoader", () => {
@@ -42,6 +45,49 @@ describe("TransportTomlLoader", () => {
   it("returns {} on invalid UTF-8", () => {
     fs.writeFileSync(file, Buffer.from([0xc3, 0x28]));
     expect(transport._loadTomlFile(file)).toEqual({});
+  });
+
+  it("warns once for a corrupt file; the layered loader does not repeat it", () => {
+    fs.writeFileSync(file, "[transport\n");
+    const records: string[] = [];
+    const handler = new (class extends Handler {
+      override emit(record: LogRecord): void {
+        records.push(record.getMessage());
+      }
+    })();
+    const legacy = getLogger("transport.config");
+    legacy.addHandler(handler);
+    try {
+      expect(transport._loadTomlFile(file)).toEqual({});
+      expect(transport._loadTomlFile(file)).toEqual({});
+      expect(loadTomlFile(file)).toEqual({});
+      expect(loadTomlFile(file)).toEqual({});
+    } finally {
+      legacy.removeHandler(handler);
+    }
+    expect(records.filter((m) => m.startsWith("Failed to load "))).toEqual([
+      `Failed to load ${file}: Expected ']' at the end of a table declaration (at line 1, column 11)`,
+    ]);
+  });
+
+  it("warns once, with a WARNING prefix, when .env cannot be parsed", () => {
+    const envFile = path.join(dir, ".env");
+    fs.writeFileSync(envFile, 'KEY="unterminated\n');
+    const chunks: string[] = [];
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+      chunks.push(String(chunk));
+      return true;
+    });
+    try {
+      dotenvValues(envFile);
+      dotenvValues(envFile);
+    } finally {
+      spy.mockRestore();
+    }
+    const text = chunks.join("");
+    const hits = text.split("python-dotenv could not parse statement starting at line").length - 1;
+    expect(hits).toBe(1);
+    expect(text).toContain("WARNING: python-dotenv could not parse statement starting at line 1\n");
   });
 });
 

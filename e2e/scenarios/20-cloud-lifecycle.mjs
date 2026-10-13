@@ -135,7 +135,7 @@ export default {
         if (ctx.parseJsonLoose(r.stdout)?.status !== 'success') ctx.fail('no success envelope');
       },
     },
-    { id: 'download-missing-remote', title: 'download of a missing remote file: exit 4 (404 originally, E4001 after the KI-005 fix)', requires: ['create-json'], argv: (ctx) => ['download', sid(ctx), '/tmp/e2e/missing.txt', 'nope.txt'], exit: 4, output: /404|E4001/ },
+    { id: 'download-missing-remote', title: 'download of a missing remote file: exit 4 (not found)', requires: ['create-json'], argv: (ctx) => ['download', sid(ctx), '/tmp/e2e/missing.txt', 'nope.txt'], exit: 4, output: '404' },
 
     // ---- sandbox files ---------------------------------------------------------------------------------
     {
@@ -148,7 +148,7 @@ export default {
       id: 'files-stat-json', title: 'sandbox files stat --json exposes Name/Path/Type/Size keys (values are template-dependent)', requires: ['upload-json'], argv: (ctx) => ['--json', 'sandbox', 'files', 'stat', sid(ctx), '--path', '/tmp/e2e/a.txt'],
       jsonShape: { Name: 'string', Path: 'string', Type: 'string', Size: 'string|number' },
     },
-    { id: 'files-stat-missing', title: 'sandbox files stat of a missing path: exit 4 (404 originally, E4001 after the KI-005 fix)', requires: ['create-json'], argv: (ctx) => ['sandbox', 'files', 'stat', sid(ctx), '--path', '/tmp/e2e/zzz-missing'], exit: 4, output: /404|E4001/ },
+    { id: 'files-stat-missing', title: 'sandbox files stat of a missing path: exit 4', requires: ['create-json'], argv: (ctx) => ['sandbox', 'files', 'stat', sid(ctx), '--path', '/tmp/e2e/zzz-missing'], exit: 4, output: '404' },
     { id: 'files-mkdir', title: 'sandbox files mkdir creates nested dirs', requires: ['create-json'], argv: (ctx) => ['sandbox', 'files', 'mkdir', sid(ctx), '--path', '/tmp/e2e/m/n/o'], stdout: 'Directory created: /tmp/e2e/m/n/o' },
     {
       id: 'files-mv', title: 'sandbox files mv moves a file', requires: ['upload-json', 'files-mkdir'], argv: (ctx) => ['sandbox', 'files', 'mv', sid(ctx), '--source', '/tmp/e2e/a.txt', '--dest', '/tmp/e2e/m/moved.txt'],
@@ -260,6 +260,6 @@ export default {
         if (Array.isArray(j) && j.some((s) => s.ID === sid(ctx))) ctx.fail('killed sandbox still listed');
       },
     },
-    { id: 'kill-twice', title: 'killing an already-killed sandbox: exit 4 (404 originally, E2009 after the KI-005 fix)', requires: ['kill-yes-json'], argv: (ctx) => ['kill', sid(ctx), '--yes'], exit: 4, output: /404|E2009/ },
+    { id: 'kill-twice', title: 'killing an already-killed sandbox: exit 4', requires: ['kill-yes-json'], argv: (ctx) => ['kill', sid(ctx), '--yes'], exit: 4, output: '404' },
   ],
 };

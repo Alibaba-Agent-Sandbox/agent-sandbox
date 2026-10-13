@@ -334,7 +334,7 @@ ebx template deploy ./my-template \
   --acr-namespace my-ns --acr-repo my-template
 ```
 
-`template deploy` 会自动完成：本地 Docker 构建 → ACR 推送 → 调用 CreateTemplate API。终端上，每一步都是会走动的 `message... 12s` 标题，下方以灰色显示最近四行日志。见 [命令执行时看到什么](#命令执行时看到什么)，模板文件见 [模板编写指南](authoring-templates.md)。
+`template deploy` 会自动完成：本地 Docker 构建 → ACR 推送 → 调用 CreateTemplate API。终端上，每一步都是会走动的 `message... 12s` 标题，下方以灰色显示最近六行日志。见 [命令执行时看到什么](#命令执行时看到什么)，模板文件见 [模板编写指南](authoring-templates.md)。
 
 ---
 
@@ -407,9 +407,9 @@ Building Docker image locally: my-template:latest... 12s
 #5 DONE 0.1s
 ```
 
-标题上的耗时大约每秒走一次，工具暂时没有输出时也一样。灰色行是最近四行（`EBX_ACTIVITY_LINES`，1 到 10）。创建沙箱、上传、下载、拉取模板或模板索引、用镜像注册模板、安装 coding-agent CLI、`ebx kill --all`，以及部署的每个阶段（构建、推送、等到 READY），都用这一块。
+标题上的耗时大约每秒走一次，工具暂时没有输出时也一样。灰色行是最近六行（`EBX_ACTIVITY_LINES`，1 到 10）。创建沙箱、上传、下载、拉取模板或模板索引、用镜像注册模板、安装 coding-agent CLI、`ebx kill --all`，以及部署的每个阶段（构建、推送、等到 READY），都用这一块。
 
-灰色行只放安全文本：相对路径、安装阶段（镜像源、校验和、解压）、docker 或轮询输出，以及销毁时的 `i/N <id>`。文件内容、工具入参、ACR token 和 `--build-arg` 的值不会出现。
+灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径），以及相对路径、安装阶段（镜像源、校验和、解压）、docker 或轮询输出，还有销毁时的 `i/N <id>`。文件内容、思考内容和凭证保持隐藏。ACR token 和 `--build-arg` 的值不会出现。
 
 `--json`、`--quiet`、`--ci`、`TERM=dumb` 和非 TTY 不画这个标题。这些模式下，部署仍是每个阶段一行 progress。`--verbose` 改为打印完整的部署日志；其余命令在终端上仍保留标题。结果留在 stdout。
 

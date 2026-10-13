@@ -156,8 +156,8 @@ export function _setIdeConfigMap(map: IdeConfigMap): void {
 /**
  * Read the sandbox API key with the same order the SDK uses.
  *
- * Process environment, then `./.env`, then `~/.ebx/.env`, then a legacy `api_key` in `~/.ebx/config.toml`.
- * `E2B_API_KEY` beats `SANDBOX_API_KEY` inside each layer.
+ * Process environment, then `./.env`, then `~/.ebx/.env`, then `sandbox_api_key` in `~/.ebx/config.toml`.
+ * The sandbox key is `EBX_SANDBOX_API_KEY`.
  */
 export function _readApiKey(): string | null {
   resetConfig();
@@ -224,13 +224,13 @@ export function _buildMcpServerConfig(): PyDict {
   }
   const apiKey = self._readApiKey() || "";
   const envBlock: PyDict = new Map();
-  if (apiKey) envBlock.set("E2B_API_KEY", apiKey);
+  if (apiKey) envBlock.set("EBX_SANDBOX_API_KEY", apiKey);
 
-  const apiUrl = process.env["E2B_API_URL"] || process.env["SANDBOX_API_BASE_URL"];
-  if (apiUrl) envBlock.set("E2B_API_URL", apiUrl);
+  const apiUrl = process.env["EBX_SANDBOX_BASE_URL"];
+  if (apiUrl) envBlock.set("EBX_SANDBOX_BASE_URL", apiUrl);
 
-  const region = process.env["SANDBOX_REGION"];
-  if (region) envBlock.set("SANDBOX_REGION", region);
+  const region = process.env["ALIBABA_CLOUD_REGION_ID"];
+  if (region) envBlock.set("ALIBABA_CLOUD_REGION_ID", region);
 
   const [command_, args] = _resolveMcpLaunch();
   const config: PyDict = _dictOf([
@@ -453,7 +453,7 @@ export const install = command("install", {
       const workspaceConfig: PyDict = new Map(serverConfig);
       workspaceConfig.set("type", "stdio");
       const envBlock: PyDict = new Map((workspaceConfig.get("env") as PyDict | undefined) ?? []);
-      envBlock.delete("E2B_API_KEY");
+      envBlock.delete("EBX_SANDBOX_API_KEY");
       if (envBlock.size > 0) workspaceConfig.set("env", envBlock);
       else workspaceConfig.delete("env");
       let mcpServers = existing.get("servers");
@@ -750,9 +750,9 @@ export const start = command("start", {
       default: "code-interpreter-v1",
       help: "Default sandbox template ID or alias (default: code-interpreter-v1).",
     }),
-    option(["--api-key"], { default: null, envvar: "E2B_API_KEY", help: "API key override." }),
-    option(["--api-url"], { default: null, envvar: "E2B_API_URL", help: "API URL override." }),
-    option(["--domain"], { default: null, envvar: "E2B_DOMAIN", help: "Domain override." }),
+    option(["--api-key"], { default: null, envvar: "EBX_SANDBOX_API_KEY", help: "API key override." }),
+    option(["--api-url"], { default: null, envvar: "EBX_SANDBOX_BASE_URL", help: "API URL override." }),
+    option(["--domain"], { default: null, envvar: "EBX_SANDBOX_DOMAIN", help: "Domain override." }),
     option(["--http", "use_http"], {
       is_flag: true,
       default: false,
@@ -855,7 +855,7 @@ async function _startHttp(
     delete env["EBX_MCP_AUTH_TOKEN"];
     if (o.auth_token) env["EBX_MCP_AUTH_TOKEN"] = o.auth_token;
     // The key stays in the environment. Putting it on the child argv would show it in the process list.
-    if (o.api_key) env["E2B_API_KEY"] = o.api_key;
+    if (o.api_key) env["EBX_SANDBOX_API_KEY"] = o.api_key;
     const plugin = _selectedPlugin();
     if (plugin !== null) env["EBX_PROVIDER"] = plugin;
     const command_ = [
@@ -1178,13 +1178,10 @@ export const _DEPLOY_APP_PY =
   "# Remote clients can reach this process. Do not boot with auth disabled.\n" +
   "app = create_mcp_app(\n" +
   '    auth_token=require_auth_token(os.environ.get("EBX_MCP_AUTH_TOKEN")),\n' +
-  '    api_key=os.environ.get("E2B_API_KEY")' +
-  ' or os.environ.get("SANDBOX_API_KEY"),\n' +
-  '    api_url=os.environ.get("E2B_API_URL")' +
-  ' or os.environ.get("SANDBOX_API_BASE_URL"),\n' +
-  '    domain=os.environ.get("E2B_DOMAIN"),\n' +
-  '    template=os.environ.get("SANDBOX_TEMPLATE",' +
-  ' os.environ.get("EBX_TEMPLATE", "base")),\n' +
+  '    api_key=os.environ.get("EBX_SANDBOX_API_KEY"),\n' +
+  '    api_url=os.environ.get("EBX_SANDBOX_BASE_URL"),\n' +
+  '    domain=os.environ.get("EBX_SANDBOX_DOMAIN"),\n' +
+  '    template=os.environ.get("EBX_DEFAULT_TEMPLATE", "base"),\n' +
   ")\n";
 
 /** Generate a cryptographically secure random Bearer token (`secrets.token_urlsafe(32)`). */
@@ -1229,17 +1226,17 @@ export const deploy = command("deploy", {
     "settings and environment variables).\n" +
     "\n" +
     "``--region`` overrides the FC region for this invocation; without it the\n" +
-    "region comes from ``ebx config set region`` / the ``SANDBOX_REGION``\n" +
+    "region comes from ``ebx config set region`` / ``ALIBABA_CLOUD_REGION_ID``\n" +
     "environment variable and defaults to ``cn-hangzhou``.\n" +
     "\n" +
     "A non-empty Bearer token is required (--generate-token or\n" +
     "--auth-token-file). POST and DELETE /mcp are implemented. GET /mcp\n" +
     "returns 405 until SSE server notifications exist. The function\n" +
-    "environment sets SANDBOX_REGION to the selected region.\n" +
+    "environment sets ALIBABA_CLOUD_REGION_ID to the selected region.\n" +
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp deploy --generate-token --api-key $E2B_API_KEY\n" +
+    "  ebx mcp deploy --generate-token --api-key $EBX_SANDBOX_API_KEY\n" +
     "  ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai\n" +
     "  ebx mcp deploy --generate-token --output-dir ./deploy-artifact\n" +
     "\n" +
@@ -1270,8 +1267,8 @@ export const deploy = command("deploy", {
     }),
     option(["--api-key"], {
       default: null,
-      envvar: "E2B_API_KEY",
-      help: "E2B_API_KEY to inject into the FC function env.",
+      envvar: "EBX_SANDBOX_API_KEY",
+      help: "EBX_SANDBOX_API_KEY to inject into the FC function env.",
     }),
     option(["--custom-domain"], { default: null, help: "Custom domain for the MCP endpoint." }),
     option(["--output-dir"], {
@@ -1320,8 +1317,8 @@ export const deploy = command("deploy", {
 
     if (!apiKey) {
       echo(
-        "Warning: No E2B_API_KEY provided. The generated MCP Server artifact " +
-          "cannot create sandboxes until --api-key or E2B_API_KEY is configured.",
+        "Warning: No EBX_SANDBOX_API_KEY provided. The generated MCP Server artifact " +
+          "cannot create sandboxes until --api-key or EBX_SANDBOX_API_KEY is configured.",
         { err: true },
       );
     }
@@ -1341,14 +1338,13 @@ export const deploy = command("deploy", {
     // config.yaml: provider-neutral YAML deployment manifest, not an FC API payload
     const envVars: Record<string, string> = {
       EBX_MCP_AUTH_TOKEN: authToken,
-      EBX_TEMPLATE: template,
-      SANDBOX_TEMPLATE: template,
-      SANDBOX_REGION: region,
+      EBX_DEFAULT_TEMPLATE: template,
+      ALIBABA_CLOUD_REGION_ID: region,
     };
-    if (apiKey) envVars["E2B_API_KEY"] = apiKey;
+    if (apiKey) envVars["EBX_SANDBOX_API_KEY"] = apiKey;
 
-    const apiUrl = process.env["E2B_API_URL"] || process.env["SANDBOX_API_BASE_URL"];
-    if (apiUrl) envVars["E2B_API_URL"] = apiUrl;
+    const apiUrl = process.env["EBX_SANDBOX_BASE_URL"];
+    if (apiUrl) envVars["EBX_SANDBOX_BASE_URL"] = apiUrl;
 
     const fcConfig: Record<string, unknown> = {
       function_name: name,

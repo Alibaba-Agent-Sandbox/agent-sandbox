@@ -38,7 +38,7 @@ ebx config set llm_model qwen3-coder-plus
 
 | 你在调用什么 | 存成什么 | 命令 |
 |---|---|---|
-| 沙箱控制面 | `sandbox_api_key`（`EBX_SANDBOX_API_KEY`，也可 `E2B_API_KEY`） | `ebx config set sandbox_api_key` |
+| 沙箱控制面 | `sandbox_api_key`（`EBX_SANDBOX_API_KEY`） | `ebx config set sandbox_api_key` |
 | 模板构建与部署（AccessKey） | `access_key_id`、`access_key_secret` | `ebx config set access_key_id` 和 `access_key_secret` |
 | 自然语言生成模板 | `llm_api_key`（`EBX_LLM_API_KEY`，然后是百炼、DashScope、OpenAI 的名字） | `ebx config set llm_api_key` |
 | 提供者插件的密钥 | `~/.ebx/.env` 里的 `providers.<id>.<key>` | `ebx config set providers.<id>.<key>` |

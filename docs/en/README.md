@@ -22,11 +22,7 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 | Guide | Description |
 |-------|-------------|
 | [Getting Started](guide/getting-started.md) | Install, configure, first sandbox |
-| [Best Practices](guide/best-practices.md) | When to use `--provider`, `--model`, `llm_model`, credentials, and the standalone binary |
-| [Operations](guide/operations.md) | Every command group and the one command for that job |
 | [Binary Installation](guide/binary-installation.md) | Single-file `ebx` binary (Node SEA), no Node.js required |
-| [Providers](guide/providers.md) | Install, select, and configure sandbox providers |
-| [Authoring Providers](guide/authoring-providers.md) | Write an EPP/1 provider plugin, including `[template]` and install-from-git |
 | [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `ebx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |
 | [Using Templates](guide/using-templates.md) | Official and community templates |
@@ -61,7 +57,7 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 
 ### By role
 
-- **CLI user**: [Getting Started](guide/getting-started.md) → [Operations](guide/operations.md) → [Best Practices](guide/best-practices.md) → [CLI Tutorial](guide/cli-tutorial.md)
+- **CLI user**: [Getting Started](guide/getting-started.md) → [CLI Tutorial](guide/cli-tutorial.md) → [CLI Command System](design/cli-design.md)
 - **Template author**: [Authoring Templates](guide/authoring-templates.md) → [Deploy & Build](guide/deploy-and-build.md) → [E2E Template Workflow](guide/e2e-template-workflow.md)
 - **AI Agent developer**: [BYO Agent Integration](guide/byo-agent-integration.md) → [MCP Integration](guide/mcp-integration.md) → [MCP Server](design/mcp-server.md)
 - **CLI contributor**: [CLI Architecture](design/architecture.md) → [Python to Node port](../PORTING.md)

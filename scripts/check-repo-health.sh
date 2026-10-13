@@ -135,9 +135,9 @@ chk(pkg.bin && pkg.bin.ebx === "dist/bin/ebx.js", "bin.ebx -> dist/bin/ebx.js", 
 chk(pkg.type === "module", "type: module (ESM)", "package.json should declare type: module");
 chk(pkg.license === "Apache-2.0", "license is Apache-2.0", "license must be Apache-2.0");
 chk(pkg.engines && /20/.test(pkg.engines.node || ""), "engines.node >= 20", "engines.node must pin Node >= 20");
-chk(pkg.repository && /Easy-Sandbox\/cli(\.git)?$/.test(pkg.repository.url || ""), "repository.url points at easy-sandbox/easy-sandbox", `repository.url is ${pkg.repository && pkg.repository.url} (expected github.com/easy-sandbox/easy-sandbox.git)`);
+chk(pkg.repository && /Easy-Sandbox\/cli(\.git)?$/.test(pkg.repository.url || ""), "repository.url points at Easy-Sandbox/cli", `repository.url is ${pkg.repository && pkg.repository.url} (expected github.com/Easy-Sandbox/cli.git)`);
 chk(!!pkg.homepage, "homepage set", "homepage missing");
-chk(pkg.bugs && pkg.bugs.url && /Easy-Sandbox\/cli/.test(pkg.bugs.url), "bugs.url points at easy-sandbox/easy-sandbox", "bugs.url missing or not easy-sandbox/easy-sandbox");
+chk(pkg.bugs && pkg.bugs.url && /Easy-Sandbox\/cli/.test(pkg.bugs.url), "bugs.url points at Easy-Sandbox/cli", "bugs.url missing or not Easy-Sandbox/cli");
 chk(Array.isArray(pkg.keywords) && pkg.keywords.length > 0, "keywords set", "keywords missing", "WARN");
 chk(pkg.publishConfig && pkg.publishConfig.access === "public", "publishConfig.access = public (required for a scoped package)", "publishConfig.access must be 'public' for @easy-sandbox/cli");
 chk(Array.isArray(pkg.files) && pkg.files.includes("dist"), "files whitelist includes dist", "files must whitelist dist");

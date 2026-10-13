@@ -20,7 +20,7 @@
 
 ```bash
 npm install -g @easy-sandbox/cli   # ebx CLI（需要 Node.js 20+）
-export SANDBOX_API_KEY=your-api-key
+export EBX_SANDBOX_API_KEY=your-api-key
 ebx create --template base
 ebx list
 ```
