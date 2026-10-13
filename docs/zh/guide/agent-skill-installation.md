@@ -82,7 +82,7 @@ npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox -a qoder -g -y
 | `--copy` | 使用复制而非默认的链接/复制策略 |
 | `--all` | 等价于 `--skill '*' --agent '*' -y` |
 
-### 文件落在哪里（实测）
+### 文件落在哪里
 
 项目级安装写入 `<project>/<agent-dir>/skills/easy-sandbox/`（例如 `.qoder/skills/easy-sandbox/`），并在项目根生成 `skills-lock.json` 记录本次安装：
 
