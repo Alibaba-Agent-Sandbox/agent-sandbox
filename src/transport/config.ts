@@ -32,8 +32,8 @@ const _tomlLoadWarned = new Set<string>();
 function warnTomlLoadFailure(p: string, message: string): void {
   let token = p;
   try {
-    const st = fs.statSync(p);
-    token = `${p}\0${String(st.mtimeNs)}\0${st.size}`;
+    const st = fs.statSync(p, { bigint: true });
+    token = `${p}\0${String(st.mtimeNs)}\0${String(st.size)}`;
   } catch {
     token = `${p}\0${message}`;
   }
@@ -257,9 +257,9 @@ export function clearCachedConfigBytes(): void {
  * provider and then calls `loadConfig` hits the disk once. Only `_loadTomlFile` logs `Loaded config`.
  */
 export function readCachedConfigBytes(p: string): Buffer | null {
-  let st: fs.Stats;
+  let st: fs.BigIntStats;
   try {
-    st = fs.statSync(p);
+    st = fs.statSync(p, { bigint: true });
   } catch {
     _byteCache.delete(p);
     return null;
@@ -268,15 +268,16 @@ export function readCachedConfigBytes(p: string): Buffer | null {
     _byteCache.delete(p);
     return null;
   }
+  const size = Number(st.size);
   const hit = _byteCache.get(p);
-  if (hit && hit.mtimeNs === st.mtimeNs && hit.size === st.size) return Buffer.from(hit.bytes);
+  if (hit && hit.mtimeNs === st.mtimeNs && hit.size === size) return Buffer.from(hit.bytes);
   let bytes: Buffer;
   try {
     bytes = fs.readFileSync(p);
   } catch (e) {
     throw toOSError(e, p);
   }
-  _byteCache.set(p, { mtimeNs: st.mtimeNs, size: st.size, bytes });
+  _byteCache.set(p, { mtimeNs: st.mtimeNs, size, bytes });
   return Buffer.from(bytes);
 }
 
