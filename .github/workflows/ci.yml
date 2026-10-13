@@ -54,6 +54,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check out the Python server SDK
+        uses: actions/checkout@v4
+        with:
+          repository: Easy-Sandbox/python-sdk
+          path: vendor/python-sdk
+          sparse-checkout: server-sdk/src
+          sparse-checkout-cone-mode: false
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -61,6 +69,8 @@ jobs:
         run: npm run build
 
       - name: Run tests
+        env:
+          EBX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
         run: npm test
 
       - name: Parity coverage check
