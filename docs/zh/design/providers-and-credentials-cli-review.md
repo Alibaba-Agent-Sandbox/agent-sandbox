@@ -15,7 +15,7 @@
 | C8 | 2 | `Security` 行看起来像是被强制执行的 | §5.3 标注为"declared by the plugin (not enforced)" |
 | C9 | 2 | 只对非内置提供方使用限定 id，在默认提供方改变之后仍可能误导 | §4.4 只有当环境**和**生效提供方都是 `alicloud-express` 时才使用旧格式 |
 | C10 | 2 | `--provider` 拼写错误给出的错误信息没有帮助 | §4.1 `Did you mean` 提示 |
-| C11 | 2 | `provider` 的可发现性，以及哪个提供方做了回答 | §0：`ebx --help` 的相关命令行，`ebx info` 的 `Provider` 行（仅非内置） |
+| C11 | 2 | `provider` 的可发现性，以及哪个提供方做了回答 | §0：`abx --help` 的相关命令行，`abx info` 的 `Provider` 行（仅非内置） |
 | C12 | 2 | 插件 stderr / `initialize` 可能泄露密钥 | §7 测试 7：stderr 遮蔽 + 不记录 `initialize` |
 | C13 | 2 | 安装器顺序：校验必须先于任何文件写入 | §7 测试 6：在写 blob 之前做 `ls-tree` 校验 |
 

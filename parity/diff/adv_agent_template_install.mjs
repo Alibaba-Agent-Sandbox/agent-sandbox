@@ -85,7 +85,7 @@ add("install local default cache", [...T, "install", "{work}/src", "--registry-t
 add("install local cache name hostile alias", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only", "--alias", "../../escape"], { files: TPL_IN("src") });
 add("install local name from yaml traversal", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only"], { files: { ...TPL_IN("src"), "src/template.yaml": 'name: "../../../escape"\n' } });
 add("install local name absolute", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only"], { files: { ...TPL_IN("src"), "src/template.yaml": "name: /tmp/abs-escape\n" } });
-add("install local src is cache itself", [...T, "install", "{home}/.ebx/templates/demo-tpl", "--registry-type", "local", "--download-only"], { homeFiles: Object.fromEntries(Object.entries(TPL).map(([k, v]) => [`.ebx/templates/demo-tpl/${k}`, v])) });
+add("install local src is cache itself", [...T, "install", "{home}/.abx/templates/demo-tpl", "--registry-type", "local", "--download-only"], { homeFiles: Object.fromEntries(Object.entries(TPL).map(([k, v]) => [`.abx/templates/demo-tpl/${k}`, v])) });
 add("install local src symlink to dir", [...T, "install", "{work}/lnk", "--registry-type", "local", "--download-only"], { files: TPL_IN("src"), symlinks: [["lnk", "{work}/src"]] });
 add("install local file path", [...T, "install", "{work}/src/template.yaml", "--registry-type", "local", "--download-only"], { files: TPL_IN("src") });
 add("install local trailing slash", [...T, "install", "{work}/src/", "--download-only"], { files: TPL_IN("src") });
@@ -232,7 +232,7 @@ add("search index utf8 bom", S(), { index: text(200, "\ufeffschema_version: 1\nt
 add("search index non-utf8", S(), { index: { status: 200, type: "text/plain", body: Buffer.from([0x73, 0x3a, 0x20, 0xff, 0x0a]) } });
 add("search index cached twice", S(), { index: text(200, "schema_version: 1\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n"), repeat: 2 });
 add("search index cached then 500 refresh", S(["--refresh"]), { index: text(200, "schema_version: 1\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n"), repeat: 2 });
-add("search corrupt cache", S(), { index: text(200, "schema_version: 1\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n"), homeFiles: { ".ebx/cache/template-index.yaml": "garbage: [" } });
+add("search corrupt cache", S(), { index: text(200, "schema_version: 1\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n"), homeFiles: { ".abx/cache/template-index.yaml": "garbage: [" } });
 add("search index url file://", [...T, "search", "x", "--index-url", "file://{work}/idx.yaml"], { files: { "idx.yaml": "schema_version: 1\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n" } });
 add("search index url dir", [...T, "search", "x", "--index-url", "{work}"], {});
 add("search index url empty", [...T, "search", "x", "--index-url", ""], {});

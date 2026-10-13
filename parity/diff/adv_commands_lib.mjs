@@ -1,5 +1,5 @@
-// Shared runner for the adv_commands_* differential fuzzers (oracle `ebx` vs Node `ebx`).
-// Needs ORACLE_VENV; Node side runs src/bin/ebx.ts through tsx. One private stub per run; HOME/cwd isolated.
+// Shared runner for the adv_commands_* differential fuzzers (oracle `abx` vs Node `abx`).
+// Needs ORACLE_VENV; Node side runs src/bin/abx.ts through tsx. One private stub per run; HOME/cwd isolated.
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -10,17 +10,17 @@ import { startStub } from "./stub.mjs";
 
 export const CLI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const ORACLE_VENV = process.env.ORACLE_VENV;
-export const haveOracle = () => !!ORACLE_VENV && existsSync(join(ORACLE_VENV, "bin", "ebx"));
+export const haveOracle = () => !!ORACLE_VENV && existsSync(join(ORACLE_VENV, "bin", "abx"));
 export const requireOracle = () => {
   if (!haveOracle()) {
-    console.error("SKIP: ORACLE_VENV must point to a venv with the original easy-sandbox installed (docs/PORTING.md).");
+    console.error("SKIP: ORACLE_VENV must point to a venv with the original agent-sandbox installed (docs/PORTING.md).");
     process.exit(0);
   }
 };
 const TSX = pathToFileURL(join(CLI_ROOT, "node_modules", "tsx", "dist", "esm", "index.mjs")).href;
-const ENTRY = join(CLI_ROOT, "src", "bin", "ebx.ts");
+const ENTRY = join(CLI_ROOT, "src", "bin", "abx.ts");
 export const SECRET_KEY = "k-stub-0123456789abcdef";
-export const scratchRoot = () => realpathSync(mkdtempSync(join(tmpdir(), "ebx-advc-")));
+export const scratchRoot = () => realpathSync(mkdtempSync(join(tmpdir(), "abx-advc-")));
 
 export function normalize(text, ctx) {
   let t = String(text ?? "").replace(/\u001b\[[0-9;?]*[A-Za-z]/g, (m) => (ctx.keepAnsi ? m : ""));
@@ -75,16 +75,16 @@ export async function runKind(kind, c, root) {
   try {
     if (c.world) await fetch(`${stub.url}/__world`, { method: "POST", body: JSON.stringify(typeof c.world === "function" ? c.world(stub) : c.world) });
     c.setup?.(home, cwd, stub);
-    const env = { PATH: process.env.PATH, HOME: home, USERPROFILE: home, LANG: "C.UTF-8", LC_ALL: "C.UTF-8", TERM: "dumb", NO_COLOR: "1", COLUMNS: "100", PYTHONUNBUFFERED: "1", PYTHONIOENCODING: "utf-8", EBX_NO_KEYCHAIN: "1" };
+    const env = { PATH: process.env.PATH, HOME: home, USERPROFILE: home, LANG: "C.UTF-8", LC_ALL: "C.UTF-8", TERM: "dumb", NO_COLOR: "1", COLUMNS: "100", PYTHONUNBUFFERED: "1", PYTHONIOENCODING: "utf-8", ABX_NO_KEYCHAIN: "1" };
     if (c.creds !== false) Object.assign(env, { E2B_API_KEY: SECRET_KEY, E2B_API_URL: stub.url, E2B_DOMAIN: "stub.invalid" });
     for (const [k, v] of Object.entries(c.env ?? {})) {
       if (v === null) delete env[k];
       else env[k] = typeof v === "function" ? v({ home, cwd, stub }) : v;
     }
     const argv = typeof c.argv === "function" ? c.argv({ home, cwd, stub }) : c.argv;
-    let [cmd, args] = kind === "py" ? [join(ORACLE_VENV, "bin", "ebx"), argv] : [process.execPath, ["--import", TSX, ENTRY, ...argv]];
+    let [cmd, args] = kind === "py" ? [join(ORACLE_VENV, "bin", "abx"), argv] : [process.execPath, ["--import", TSX, ENTRY, ...argv]];
     if (c.shell) {
-      env.EBX = [cmd, ...args].map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(" ");
+      env.ABX = [cmd, ...args].map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(" ");
       [cmd, args] = ["bash", ["-c", c.shell]];
     }
     if (c.pty) {

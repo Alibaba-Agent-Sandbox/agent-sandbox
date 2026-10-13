@@ -6,34 +6,34 @@ This tutorial walks you through the complete sandbox lifecycle, from installatio
 
 ## Prerequisites
 
-- Node.js 20 or later (for the `ebx` CLI)
-- A valid API Key (obtained from the Easy Sandbox platform)
+- Node.js 20 or later (for the `abx` CLI)
+- A valid API Key (obtained from the Agent Sandbox platform)
 - Network access to the Alibaba Cloud Hangzhou region (default `cn-hangzhou`)
 
 ## 1. Installation
 
 ```bash
 # Install the CLI globally from npm
-npm install -g @easy-sandbox/cli
+npm install -g @agent-sandbox/cli
 
 # Or run it without installing
-npx @easy-sandbox/cli --version
+npx @agent-sandbox/cli --version
 
 # Verify the installation
-ebx --version
+abx --version
 ```
 
 ### Standalone binary (no Node.js required)
 
-If you'd rather not set up a Node.js environment, `ebx` is also available as a
+If you'd rather not set up a Node.js environment, `abx` is also available as a
 precompiled standalone binary for Linux, macOS, and Windows:
 
 ```bash
 # Example: install v0.3.0 on macOS (Apple Silicon)
-curl -fsSL -o "$HOME/ebx" \
-  "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v0.3.0/ebx-0.3.0-darwin-arm64"
-chmod +x "$HOME/ebx"
-sudo mv "$HOME/ebx" /usr/local/bin/ebx
+curl -fsSL -o "$HOME/abx" \
+  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v0.3.0/abx-0.3.0-darwin-arm64"
+chmod +x "$HOME/abx"
+sudo mv "$HOME/abx" /usr/local/bin/abx
 ```
 
 For other platforms, checksum verification, and a comparison with the npm
@@ -46,22 +46,22 @@ There are two ways to configure credentials. When a call actually needs the key,
 ### Option 1: Environment variable (recommended for CI/CD)
 
 ```bash
-export EBX_SANDBOX_API_KEY="your-api-key-here"
+export ABX_SANDBOX_API_KEY="your-api-key-here"
 ```
 
-### Option 2: `ebx config set` (recommended for local development)
+### Option 2: `abx config set` (recommended for local development)
 
 Used when neither the environment nor the project `.env` sets the key.
 
 ```bash
-ebx config set sandbox_api_key your-api-key
-# Writes to ~/.ebx/.env (permissions 600)
+abx config set sandbox_api_key your-api-key
+# Writes to ~/.abx/.env (permissions 600)
 ```
 
 Verify the configuration:
 
 ```bash
-ebx config get sandbox_api_key
+abx config get sandbox_api_key
 ```
 
 ## 3. Create Your First Sandbox
@@ -69,7 +69,7 @@ ebx config get sandbox_api_key
 ### Using the CLI
 
 ```bash
-ebx create --template base
+abx create --template base
 ```
 
 ## 4. Execute Code
@@ -77,7 +77,7 @@ ebx create --template base
 ### CLI
 
 ```bash
-ebx exec <sandbox-id> "echo 'Hello from sandbox'"
+abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ```
 
 ## 5. Run Shell Commands
@@ -85,7 +85,7 @@ ebx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-ebx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. File Operations
@@ -94,16 +94,16 @@ ebx exec <sandbox-id> "pip install requests && python -c 'import requests; print
 
 ```bash
 # Upload
-ebx upload <sandbox-id> ./data.csv /home/user/data.csv
+abx upload <sandbox-id> ./data.csv /home/user/data.csv
 
 # Download
-ebx download <sandbox-id> /home/user/result.csv ./result.csv
+abx download <sandbox-id> /home/user/result.csv ./result.csv
 ```
 
 ## 7. List Directory Contents
 
 ```bash
-ebx sandbox files list <sandbox-id> --path /home/user
+abx sandbox files list <sandbox-id> --path /home/user
 ```
 
 ## 8. Destroy a Sandbox
@@ -111,24 +111,24 @@ ebx sandbox files list <sandbox-id> --path /home/user
 ### CLI
 
 ```bash
-ebx kill <sandbox-id>
+abx kill <sandbox-id>
 
 # Destroy all running sandboxes
-ebx kill --all --yes
+abx kill --all --yes
 ```
 
 ## 9. Complete Example
 
 ```bash
 # Create a sandbox and upload a project
-ebx create --template base --upload ./project
+abx create --template base --upload ./project
 
 # Run something inside it
-ebx exec <sandbox-id> "python /home/user/project/main.py"
+abx exec <sandbox-id> "python /home/user/project/main.py"
 
 # Fetch the result and tear the sandbox down
-ebx download <sandbox-id> /home/user/result.csv ./result.csv
-ebx kill <sandbox-id> --yes
+abx download <sandbox-id> /home/user/result.csv ./result.csv
+abx kill <sandbox-id> --yes
 ```
 
 ---
@@ -143,4 +143,4 @@ ebx kill <sandbox-id> --yes
 
 ## Related SDK documentation
 
-Using the Python SDK instead of (or next to) the CLI: [Getting Started (SDK)](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/getting-started.md) and the [SDK Usage Guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) in the `python-sdk` repository.
+Using the Python SDK instead of (or next to) the CLI: [Getting Started (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/getting-started.md) and the [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) in the `python-sdk` repository.

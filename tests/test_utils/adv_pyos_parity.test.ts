@@ -125,9 +125,9 @@ describe("pyExpandUser (Path.expanduser)", () => {
   });
 
   it("expands ~ and ~/x through $HOME and keeps '..'", () => {
-    process.env["HOME"] = "/home/user/";
-    expect(pyExpandUser("~")).toBe("/home/user");
-    expect(pyExpandUser("~/a//b/../c")).toBe("/home/user/a/b/../c");
+    process.env["HOME"] = "/home/someone/";
+    expect(pyExpandUser("~")).toBe("/home/someone");
+    expect(pyExpandUser("~/a//b/../c")).toBe("/home/someone/a/b/../c");
     expect(pyExpandUser("plain/x")).toBe("plain/x");
     expect(pyExpandUser("/abs/~x")).toBe("/abs/~x");
   });
@@ -140,40 +140,24 @@ describe("pyExpandUser (Path.expanduser)", () => {
   });
 });
 
-describe("loadTemplateFromYaml failure texts (data.pop('resources', {}))", () => {
-  const cases: Array<[string, string]> = [
-    ["- a\n", "pop expected at most 1 argument, got 2"],
-    ["!!omap [a: 1]\n", "pop expected at most 1 argument, got 2"],
-    ["!!set {a}\n", "set.pop() takes no arguments (2 given)"],
-    ["2001-01-01\n", "'datetime.date' object has no attribute 'pop'"],
-    [
-      "2001-01-01 10:00:00\n",
-      "'datetime.datetime' object has no attribute 'pop'",
-    ],
-    ["!!binary aGVsbG8=\n", "'bytes' object has no attribute 'pop'"],
-    ["1.5\n", "'float' object has no attribute 'pop'"],
-    ["abc\n", "'str' object has no attribute 'pop'"],
-    ["true\n", "'bool' object has no attribute 'pop'"],
-    ["\n", "'NoneType' object has no attribute 'pop'"],
-  ];
-  it.each(cases)("%j", (yaml, message) => {
+describe("loadTemplateFromYaml rejects a document that is not a mapping", () => {
+  const cases = ["- a\n", "!!set {a}\n", "2001-01-01\n", "1.5\n", "abc\n", "true\n", "\n"];
+  it.each(cases)("%j", (yaml) => {
     const file = path.join(fresh(), "template.yaml");
     writeFileSync(file, yaml);
-    expect(() => loadTemplateFromYaml(file)).toThrow(message);
+    expect(() => loadTemplateFromYaml(file)).toThrow("must be a YAML mapping");
   });
 
-  it("YAML errors name the file and carry no snippet (the oracle reads a file stream)", () => {
+  it("YAML errors carry the line and column", () => {
     const file = path.join(fresh(), "template.yaml");
-    writeFileSync(file, "name:\tx\n");
-    expect(() => loadTemplateFromYaml(file)).toThrow(
-      `while scanning for the next token\nfound character '\\t' that cannot start any token\n  in "${file}", line 1, column 6`,
-    );
+    writeFileSync(file, "name: [x\nports: 1\n");
+    expect(() => loadTemplateFromYaml(file)).toThrow(/line 2, column 1/);
   });
 
-  it("a !!binary scalar is accepted for a str field like pydantic does (bytes -> str)", () => {
+  it("a !!binary scalar is not a string", () => {
     const file = path.join(fresh(), "template.yaml");
     writeFileSync(file, "name: !!binary aGVsbG8=\n");
-    expect(loadTemplateFromYaml(file).name).toBe("hello");
+    expect(() => loadTemplateFromYaml(file)).toThrow(/name/);
   });
 });
 

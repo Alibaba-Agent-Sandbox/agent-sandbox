@@ -19,8 +19,6 @@ const CMDS = {
   "files-mv": ["sandbox", "files", "mv", SB, "--source", "/a", "--dest", "/b"], "files-rm": ["sandbox", "files", "rm", SB, "--path", "/a", "--yes"],
   "files-search": ["sandbox", "files", "search", SB, "--path", "/home/user", "--pattern", "*.txt"],
   "proc-list": ["sandbox", "process", "list", SB], "proc-info": ["sandbox", "process", "info", SB, "1"], "proc-signal": ["sandbox", "process", "signal", SB, "1"],
-  "proc-start": ["sandbox", "process", "start", SB, "--command", "echo hi"], "proc-start-fail": ["sandbox", "process", "start", SB, "--command", "exit 2"],
-  "shell-stream": ["sandbox", "shell-stream", SB, "--command", "echo hi"],
   "sys-env": ["sandbox", "system", "env", SB], "sys-info": ["sandbox", "system", "info", SB], "sys-metrics": ["sandbox", "system", "metrics", SB],
   "sys-packages": ["sandbox", "system", "packages", SB], "sys-ports": ["sandbox", "system", "ports", SB],
   "tpl-list": ["template", "list"], "tpl-info": ["template", "info", "tmpl-001"], "tpl-info-404": ["template", "info", "nope"],
@@ -48,7 +46,7 @@ for (const [cn, cargv] of Object.entries(CMDS)) {
     }
   }
 }
-for (const e of [{ CI: "true" }, { GITHUB_ACTIONS: "true" }, { CI: "1", EBX_NO_COLOR: "1" }]) {
+for (const e of [{ CI: "true" }, { GITHUB_ACTIONS: "true" }, { CI: "1", ABX_NO_COLOR: "1" }]) {
   for (const [cn, cargv] of Object.entries(CMDS)) cases.push({ name: `${cn} | env ${JSON.stringify(e)}`, argv: cargv, env: e });
 }
 console.log(`${cases.length} cases`);

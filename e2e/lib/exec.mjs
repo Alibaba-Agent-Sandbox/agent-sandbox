@@ -4,13 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { normalize } from './normalize.mjs';
 
-/** Split `EBX_BIN` ("ebx", "/path/ebx", or "node /path/dist/bin/ebx.js") into [cmd, ...args]. */
+/** Split `ABX_BIN` ("abx", "/path/abx", or "node /path/dist/bin/abx.js") into [cmd, ...args]. */
 export function parseBin(spec) {
   const out = [];
   const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
   let m;
-  while ((m = re.exec(spec ?? 'ebx')) !== null) out.push(m[1] ?? m[2] ?? m[3]);
-  return out.length ? out : ['ebx'];
+  while ((m = re.exec(spec ?? 'abx')) !== null) out.push(m[1] ?? m[2] ?? m[3]);
+  return out.length ? out : ['abx'];
 }
 
 export function makeSandboxDir(prefix) {
@@ -36,7 +36,7 @@ export function baseEnv({ home, creds, extra = {} }) {
     PYTHONUNBUFFERED: '1',
     PYTHONIOENCODING: 'utf-8',
   };
-  for (const k of ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy', 'SSL_CERT_FILE', 'NODE_EXTRA_CA_CERTS', 'DOCKER_HOST', 'DOCKER_BUILDKIT', 'DOCKER_CONFIG']) {
+  for (const k of ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy', 'SSL_CERT_FILE', 'NODE_EXTRA_CA_CERTS', 'DOCKER_HOST', 'DOCKER_BUILDKIT', 'DOCKER_CONFIG', 'ABX_SERVER_SDK_SOURCE', 'ALIBABA_CLOUD_REGION_ID', 'ABX_BASE_IMAGE_TAG', 'ABX_BASE_IMAGE_REGION']) {
     if (process.env[k]) env[k] = process.env[k];
   }
   Object.assign(env, creds, extra);

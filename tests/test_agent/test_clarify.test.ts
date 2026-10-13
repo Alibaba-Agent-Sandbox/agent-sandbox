@@ -3,7 +3,7 @@
  *
  * Port of `tests/test_agent/test_clarify.py`. The research, the evaluation, and the questions themselves are
  * produced by Qwen Code's native session (a plain `--session-id` research round, then `--json-schema` assessment
- * rounds on `--resume`); these tests pin only the thin Easy Sandbox adapter around it:
+ * rounds on `--resume`); these tests pin only the thin Agent Sandbox adapter around it:
  *
  * - the research-first contract — public facts must be settled by the agent's own tools before anything is asked
  *   (the research prompt and the schema carry that rule, and the research run must NOT use `--json-schema` because
@@ -63,15 +63,15 @@ const PAYLOAD: Record<string, unknown> = {
 };
 
 let tmpPath = "";
-const saved = process.env.EBX_QWEN_RESEARCH_TIMEOUT;
+const saved = process.env.ABX_QWEN_RESEARCH_TIMEOUT;
 beforeEach(() => {
   tmpPath = makeTmp();
 });
 afterEach(() => {
   vi.restoreAllMocks();
   rmTmp(tmpPath);
-  if (saved === undefined) delete process.env.EBX_QWEN_RESEARCH_TIMEOUT;
-  else process.env.EBX_QWEN_RESEARCH_TIMEOUT = saved;
+  if (saved === undefined) delete process.env.ABX_QWEN_RESEARCH_TIMEOUT;
+  else process.env.ABX_QWEN_RESEARCH_TIMEOUT = saved;
 });
 
 describe("TestConstants", () => {
@@ -111,18 +111,18 @@ describe("TestConstants", () => {
 
 describe("TestDefaultResearchTimeout", () => {
   it("test_default_without_override", () => {
-    delete process.env.EBX_QWEN_RESEARCH_TIMEOUT;
+    delete process.env.ABX_QWEN_RESEARCH_TIMEOUT;
     expect(clarify.defaultResearchTimeout()).toBe(DEFAULT_RESEARCH_TIMEOUT);
   });
 
   it("test_env_override", () => {
-    process.env.EBX_QWEN_RESEARCH_TIMEOUT = "45";
+    process.env.ABX_QWEN_RESEARCH_TIMEOUT = "45";
     expect(clarify.defaultResearchTimeout()).toBe(45.0);
   });
 
   for (const raw of ["", "abc", "0", "-5"]) {
     it(`test_invalid_override_falls_back [${raw}]`, () => {
-      process.env.EBX_QWEN_RESEARCH_TIMEOUT = raw;
+      process.env.ABX_QWEN_RESEARCH_TIMEOUT = raw;
       expect(clarify.defaultResearchTimeout()).toBe(DEFAULT_RESEARCH_TIMEOUT);
     });
   }
@@ -437,7 +437,7 @@ describe("TestRunResearch", () => {
   });
 
   it("test_timeout_comes_from_the_environment_override", async () => {
-    process.env.EBX_QWEN_RESEARCH_TIMEOUT = "77";
+    process.env.ABX_QWEN_RESEARCH_TIMEOUT = "77";
     const captured = capture();
 
     await clarify.runResearch("p", { binary: BINARY, env: null, cwd: tmpPath, sessionId: SESSION });
@@ -475,7 +475,7 @@ describe("TestRunResearch", () => {
         lines.push(record.getMessage());
       }
     }
-    const logger = stdGetLogger("easy_sandbox.agent.clarify");
+    const logger = stdGetLogger("agent_sandbox.agent.clarify");
     const handler = new Collect();
     const previousLevel = logger.level;
     logger.addHandler(handler);
@@ -680,7 +680,7 @@ describe("TestParseAssessmentPythonSemantics", () => {
   });
 
   it("matches the Python module on a battery of payloads", () => {
-    // Expected values produced with the original easy_sandbox.agent.clarify.parse_assessment.
+    // Expected values produced with the original agent_sandbox.agent.clarify.parse_assessment.
     const cases: Array<[unknown, [number, string | null, string[], string | null] | null]> = [
       [{ completeness: 1, question: "  Q  ", missing: ["a", " b "], example: " e " }, [1.0, "Q", ["a", "b"], "e"]],
       [{ completeness: 100 }, [1.0, null, [], null]],

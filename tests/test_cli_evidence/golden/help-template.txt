@@ -1,29 +1,31 @@
-Usage: cli template [OPTIONS] COMMAND [ARGS]...
+Usage: abx template [options] [command]
 
-  Discover, scaffold, build, and manage sandbox templates.
+Discover, scaffold, build, publish and install sandbox templates.
 
-  Examples:
-    ebx template search python
-    ebx template init --template python --name my-template
-    ebx template list
+Examples:
+  abx template search python
+  abx template init --template python --name my-template
+  abx template list
 
-  Related commands:
-    ebx create --template TEMPLATE  Launch a sandbox from a template
-    ebx install TEMPLATE_REF        Install shortcut
-    ebx config --help               Configure credentials and region
+Related commands:
+  abx create --template TEMPLATE  Launch a sandbox from a template
+  abx deploy [PATH]               Same as 'template deploy'
+  abx config --help               Configure credentials and region
 
 Options:
   -h, --help  Show this message and exit.
 
 Commands:
-  build    Build Docker image locally, push to ACR, and create a sandbox...
-  create   Create a sandbox template from an existing container image.
-  delete   Delete a custom template from the remote platform.
-  deploy   Build, push, and create template in one step (alias of 'template...
-  info     Show details for a template ID.
-  init     Scaffold a new sandbox template project.
-  install  Download a template and (by default) build + deploy it.
-  list     List custom templates registered for the current account.
-  push     Push a locally-built image to Alibaba Cloud ACR.
-  search   Search the template catalog by name, tag, or description.
+  build       Build Docker image locally, push to ACR, and create a sandbox
+              template.
+  create      Create a sandbox template from an existing container image.
+  delete      Delete a custom template from the remote platform.
+  deploy      Build, push, and create template in one step (alias of 'template
+              build').
+  info        Show details for a template ID.
+  init        Scaffold a new sandbox template project.
+  install     Download a template and (by default) build + deploy it.
+  list        List custom templates registered for the current account.
+  push        Push a locally-built image to Alibaba Cloud ACR.
+  search      Search the template catalog by name, tag, or description.
 [exit_code:0]

@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
 
-import { ValidationError } from "../../src/models/_pydantic.js";
+import { ValidationError } from "../../src/models/base.js";
 import {
   ENVD_PORT,
   TransportConfig,
@@ -151,7 +151,7 @@ describe("TestLoadConfig", () => {
 
   it("test_env_var_api_key", () => {
     reset_config();
-    iso.monkeypatch.setenv("EBX_SANDBOX_API_KEY", "test-key-from-env");
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "test-key-from-env");
     const cfg = load_config();
     expect(cfg.api_key).toBe("test-key-from-env");
   });
@@ -165,14 +165,14 @@ describe("TestLoadConfig", () => {
 
   it("test_env_var_base_url", () => {
     reset_config();
-    iso.monkeypatch.setenv("EBX_SANDBOX_BASE_URL", "https://custom.api.com");
+    iso.monkeypatch.setenv("ABX_SANDBOX_BASE_URL", "https://custom.api.com");
     const cfg = load_config();
     expect(cfg.api_url).toBe("https://custom.api.com");
   });
 
   it("test_env_var_http_timeout", () => {
     reset_config();
-    iso.monkeypatch.setenv("EBX_HTTP_TIMEOUT", "45.0");
+    iso.monkeypatch.setenv("ABX_HTTP_TIMEOUT", "45.0");
     const cfg = load_config();
     expect(cfg.http_timeout).toBe(45.0);
   });
@@ -195,7 +195,7 @@ describe("TestLoadConfig", () => {
 
   it("test_none_override_does_not_clobber", () => {
     reset_config();
-    iso.monkeypatch.setenv("EBX_SANDBOX_API_KEY", "env-key");
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "env-key");
     const cfg = load_config({ api_key: null });
     expect(cfg.api_key).toBe("env-key");
   });
@@ -222,9 +222,9 @@ describe("TestLoadConfig", () => {
     reset_config();
     iso.monkeypatch.setenv("SANDBOX_API_KEY", "sandbox-key");
     iso.monkeypatch.setenv("E2B_API_KEY", "e2b-key");
-    iso.monkeypatch.setenv("EBX_SANDBOX_API_KEY", "canon-key");
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "canon-key");
     iso.monkeypatch.setenv("E2B_API_URL", "https://e2b.api.com");
-    iso.monkeypatch.setenv("EBX_SANDBOX_BASE_URL", "https://canon.api.com");
+    iso.monkeypatch.setenv("ABX_SANDBOX_BASE_URL", "https://canon.api.com");
     const cfg = load_config();
     expect(cfg.api_key).toBe("canon-key");
     expect(cfg.api_url).toBe("https://canon.api.com");
@@ -254,7 +254,7 @@ describe("TestDotenvIsolation", () => {
     const cwd_env = path.join(tmp_path, ".env");
     fs.writeFileSync(
       cwd_env,
-      "EBX_SANDBOX_API_KEY=fake-should-not-load\n" + "ALICLOUD_ACCESS_KEY_ID=fake-ak\n" + "ALICLOUD_ACCESS_KEY_SECRET=fake-sk\n",
+      "ABX_SANDBOX_API_KEY=fake-should-not-load\n" + "ALICLOUD_ACCESS_KEY_ID=fake-ak\n" + "ALICLOUD_ACCESS_KEY_SECRET=fake-sk\n",
       "utf-8",
     );
     iso.monkeypatch.chdir(tmp_path);
@@ -279,11 +279,11 @@ describe("TestDotenvIsolation", () => {
   });
 
   it("test_project_dotenv_falls_through_to_system_file", () => {
-    // A project .env that omits a key must not hide ~/.ebx/.env.
+    // A project .env that omits a key must not hide ~/.abx/.env.
     const project = path.join(iso.tmp_path, "project.env");
     const system = path.join(iso.tmp_path, "system.env");
     fs.writeFileSync(project, "ALIBABA_CLOUD_REGION_ID=from-project\n", "utf-8");
-    fs.writeFileSync(system, "EBX_SANDBOX_API_KEY=from-system\n", "utf-8");
+    fs.writeFileSync(system, "ABX_SANDBOX_API_KEY=from-system\n", "utf-8");
     _setEnvFileCandidates([project, system]);
     reset_config();
 
@@ -295,8 +295,8 @@ describe("TestDotenvIsolation", () => {
   it("test_project_dotenv_key_beats_system_file", () => {
     const project = path.join(iso.tmp_path, "project.env");
     const system = path.join(iso.tmp_path, "system.env");
-    fs.writeFileSync(project, "EBX_SANDBOX_API_KEY=from-project\n", "utf-8");
-    fs.writeFileSync(system, "EBX_SANDBOX_API_KEY=from-system\n", "utf-8");
+    fs.writeFileSync(project, "ABX_SANDBOX_API_KEY=from-project\n", "utf-8");
+    fs.writeFileSync(system, "ABX_SANDBOX_API_KEY=from-system\n", "utf-8");
     _setEnvFileCandidates([project, system]);
     reset_config();
 
@@ -319,12 +319,12 @@ describe("TestDotenvIsolation", () => {
   it("test_blank_process_env_and_override_fall_through", () => {
     // Whitespace does not hide a key stored in .env or config.toml.
     const dotenv = path.join(iso.tmp_path, "system.env");
-    fs.writeFileSync(dotenv, "EBX_SANDBOX_API_KEY=from-dotenv\n", "utf-8");
+    fs.writeFileSync(dotenv, "ABX_SANDBOX_API_KEY=from-dotenv\n", "utf-8");
     const toml = path.join(iso.tmp_path, "config.toml");
     fs.writeFileSync(toml, '[transport]\nregion = "cn-beijing"\n', "utf-8");
     _setEnvFileCandidates([dotenv]);
     _setConfigFile(toml);
-    iso.monkeypatch.setenv("EBX_SANDBOX_API_KEY", "   ");
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "   ");
     iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "  ");
     reset_config();
 
@@ -359,7 +359,7 @@ describe("TestHttpTimeoutConfigured", () => {
 
   /** Point all config sources at empty temp locations. */
   const _isolate = (): string => {
-    iso.monkeypatch.delenv("EBX_HTTP_TIMEOUT");
+    iso.monkeypatch.delenv("ABX_HTTP_TIMEOUT");
     iso.monkeypatch.delenv("SANDBOX_HTTP_TIMEOUT");
     _setEnvFileCandidates([]);
     const cfg_file = path.join(iso.tmp_path, "config.toml");
@@ -374,7 +374,7 @@ describe("TestHttpTimeoutConfigured", () => {
 
   it("test_true_when_env_var_set", () => {
     _isolate();
-    iso.monkeypatch.setenv("EBX_HTTP_TIMEOUT", "60");
+    iso.monkeypatch.setenv("ABX_HTTP_TIMEOUT", "60");
     expect(http_timeout_configured()).toBe(true);
   });
 
@@ -387,7 +387,7 @@ describe("TestHttpTimeoutConfigured", () => {
   it("test_true_when_dotenv_has_key", () => {
     _isolate();
     const dotenv = path.join(iso.tmp_path, ".env");
-    fs.writeFileSync(dotenv, "EBX_HTTP_TIMEOUT=75\n", "utf-8");
+    fs.writeFileSync(dotenv, "ABX_HTTP_TIMEOUT=75\n", "utf-8");
     _setEnvFileCandidates([dotenv]);
     expect(http_timeout_configured()).toBe(true);
   });

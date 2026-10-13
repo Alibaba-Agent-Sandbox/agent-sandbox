@@ -17,14 +17,14 @@
  * ```ts
  * import { getOutput } from "../output.js";
  *
- * const out = getOutput();                       // from the current click context (ctx.meta["ebx.output"])
+ * const out = getOutput();                       // from the current click context (ctx.meta["abx.output"])
  * out.info("Creating sandbox...");               // stderr
  * await out.spinner("Creating sandbox", () => createIt());     // activity line on an interactive stderr
  * await out.activity("Researching", async (update) => {         // update === null when no live display is possible
  *   update?.("line one\nline two");
  * }, { tick: true });
  * out.data({ ID: sb.id, Status: sb.status });    // stdout (aligned lines / JSON / bare values in --quiet)
- * out.table(["ID", "Status"], rows);             // stdout (Rich table / JSON list / TSV in --quiet)
+ * out.table(["ID", "Status"], rows);             // stdout (table / JSON list / TSV in --quiet)
  * out.success("done");                           // stdout
  * ```
  *
@@ -34,22 +34,24 @@
  *
  * ## Test seams
  *
- * Python tests monkeypatch module attributes of `easy_sandbox.cli.output` (`sys`, `is_tty`, `_ACTIVITY_MIN_INTERVAL`,
- * `_ACTIVITY_TICK_SECONDS`, `rich.console.Console`, `click.echo`). ESM bindings are read-only, so the same patch
+ * Python tests monkeypatch module attributes of `agent_sandbox.cli.output` (`sys`, `is_tty`, `_ACTIVITY_MIN_INTERVAL`,
+ * `_ACTIVITY_TICK_SECONDS`, `click.echo`). ESM bindings are read-only, so the same patch
  * points live on the mutable {@link outputSeams} object; the module always reads them at call time.
  */
 
-import { echo, getCurrentContext, style, type Context, type TextOutput } from "../framework/index.js";
-import { getTerminalSize, sys as frameworkSys } from "../framework/io.js";
-import { len } from "../framework/py.js";
+import { getCurrentContext, type Context } from "./kit.js";
+import { echo, type TextOutput } from "./io.js";
+import { getTerminalSize, sys as frameworkSys } from "./io.js";
+import { len } from "../utils/_py.js";
 import { pyStr } from "../utils/_pyformat.js";
 import { orjsonDumps } from "./_orjson.js";
 import { type LogRecord, _isConfigured, levelFromName, logging } from "../utils/logging.js";
-import { Console, type ConsoleOptionsInit, type Status, Table as RichTable, Text, cellLen } from "./_rich.js";
+import { type ColorName, paint } from "./color.js";
+import { cellWidth, renderTable } from "./table.js";
 
-export { cellLen as _cellLen };
+export { cellWidth as _cellLen };
 
-export const OUTPUT_META_KEY = "ebx.output";
+export const OUTPUT_META_KEY = "abx.output";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // seams
@@ -61,14 +63,12 @@ interface SysLike {
 }
 
 export const outputSeams: {
-  /** The `sys` module as `output.py` sees it (`sys.stdout` / `sys.stderr`). Defaults to the framework's `sys`. */
+  /** The `sys` module as `output.py` sees it (`sys.stdout` / `sys.stderr`). Defaults to `io.ts`'s `sys`. */
   sys: SysLike;
   /** `is_tty()`; tests replace it to simulate a terminal. Defaults to `sys.stdout.isatty()`. */
   isTty: () => boolean;
   /** `click.echo` as used by the manager. */
   echo: (text: string, opts: { err: boolean }) => void;
-  /** `rich.console.Console(...)` factory used for tables and the status spinner. */
-  Console: (init: ConsoleOptionsInit) => Console;
   /** `_ACTIVITY_MIN_INTERVAL` (seconds between redraws). */
   activityMinInterval: number;
   /** `_ACTIVITY_TICK_SECONDS` (seconds between ticks of a ticked block). */
@@ -79,7 +79,6 @@ export const outputSeams: {
   sys: frameworkSys,
   isTty: () => defaultIsTty(),
   echo: (text, opts) => echo(text, { err: opts.err }),
-  Console: (init) => new Console(init),
   activityMinInterval: 0.1,
   activityTickSeconds: 1.0,
   monotonic: () => performance.now() / 1000,
@@ -158,15 +157,14 @@ export class _LogBridgeHandler extends logging.Handler {
 // Live activity line
 // ---------------------------------------------------------------------------------------------------------------------
 
-// eslint-disable-next-line no-control-regex
 const ACTIVITY_STRIP_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|[\x00-\x1f\x7f]/g;
 
 /** Environment variable overriding how many grey activity lines are shown. */
-export const ACTIVITY_LINES_ENV = "EBX_ACTIVITY_LINES";
+export const ACTIVITY_LINES_ENV = "ABX_ACTIVITY_LINES";
 const ACTIVITY_LINES_DEFAULT = 6;
 const ACTIVITY_LINES_MAX = 10;
 
-/** How many activity lines to show: `EBX_ACTIVITY_LINES` (1-10), default 6. */
+/** How many activity lines to show: `ABX_ACTIVITY_LINES` (1-10), default 6. */
 export function _activityLineCount(): number {
   const raw = (process.env[ACTIVITY_LINES_ENV] ?? "").trim();
   if (!/^[+-]?\d+$/.test(raw.replace(/_/g, ""))) return ACTIVITY_LINES_DEFAULT;
@@ -207,11 +205,11 @@ function pySplitLines(s: string): string[] {
 /** Truncate *text* to at most *width* terminal cells (CJK-aware). */
 export function _fitCells(text: string, width: number): string {
   if (width <= 0) return "";
-  if (cellLen(text) <= width) return text;
+  if (cellWidth(text) <= width) return text;
   const out: string[] = [];
   let used = 0;
   for (const char of text) {
-    const size = cellLen(char);
+    const size = cellWidth(char);
     if (used + size > width - 1) break;
     out.push(char);
     used += size;
@@ -227,7 +225,7 @@ interface PausableDisplay {
 /**
  * A self-erasing block on *stderr*: a header plus grey activity lines.
  *
- * Used for `--verbose` / `--no-color` sessions where Rich's live status is not (or cannot be) used. Duck-types the two
+ * The live activity display. Duck-types the two
  * methods {@link OutputManager._spinnerGuard} calls on a live status (`stop` / `start`), so every ordinary log, info or
  * warning write first clears the block and redraws it afterwards - log lines never interleave with it.
  *
@@ -266,8 +264,8 @@ export class _TransientLine implements PausableDisplay {
     const out: string[] = [];
     for (const [text, grey] of rows) {
       const fitted = _fitCells(text, width);
-      const padded = fitted + " ".repeat(Math.max(width - cellLen(fitted), 0));
-      out.push(grey && this.color ? style(padded, { fg: "bright_black" }) : padded);
+      const padded = fitted + " ".repeat(Math.max(width - cellWidth(fitted), 0));
+      out.push(!this.color ? padded : grey ? paint(padded, "bright_black") : paint(padded, "bold"));
     }
     this.err().write(out.join("\n"));
     if (previous > rows.length) this.err().write("\x1b[J");
@@ -312,7 +310,7 @@ export interface OutputManagerOptions {
   quiet?: boolean;
   /** All output as JSON (machine-parseable). */
   jsonMode?: boolean;
-  /** Disable ANSI colours / Rich markup. */
+  /** Disable ANSI colours. */
   noColor?: boolean;
   /** CI/CD mode: implies quiet + noColor + jsonMode. */
   ci?: boolean;
@@ -365,13 +363,14 @@ export class OutputManager {
   _level: number;
   /**
    * Status objects currently rendering on stderr. Output written while any of them is live is wrapped in a
-   * pause/resume guard so that Rich's live display never garbles a warning or a result.
+   * pause/resume guard so that the live display never garbles a warning or a result.
    */
   _spinnerStack: DisplayHandle[] = [];
   _logBridge: _LogBridgeHandler | null = null;
 
   constructor(opts: OutputManagerOptions = {}) {
-    let { verbose = false, quiet = false } = opts;
+    const verbose = opts.verbose ?? false;
+    let quiet = opts.quiet ?? false;
     let jsonMode = opts.jsonMode ?? opts.json_mode ?? false;
     let noColor = opts.noColor ?? opts.no_color ?? false;
     const ci = opts.ci ?? false;
@@ -508,7 +507,7 @@ export class OutputManager {
   /**
    * Print tabular data.
    *
-   * JSON mode emits a list of dicts; quiet mode emits tab-separated values; normal mode prints a Rich table.
+   * JSON mode emits a list of dicts; quiet mode emits tab-separated values; normal mode prints an aligned table.
    */
   table(headers: string[], rows: string[][]): void {
     if (this.jsonMode) {
@@ -525,17 +524,14 @@ export class OutputManager {
       for (const row of rows) this._writeStdout(row.join("\t"));
       return;
     }
-    const console = outputSeams.Console({ no_color: this.noColor, file: outputSeams.sys.stdout });
-    const table = new RichTable();
-    for (const h of headers) table.addColumn(h, { style: "bold" });
-    for (const row of rows) table.addRow(...row);
-    this._spinnerGuardSync(() => console.print(table));
+    const bold = this.noColor ? undefined : (text: string): string => paint(text, "bold");
+    this._writeStdout(renderTable(headers, rows, bold));
   }
 
   /**
    * Print a progress / status message to *stderr*.
    *
-   * Status updates are diagnostics, never results: they stay on stderr in every mode so `ebx ... | jq` (or any other
+   * Status updates are diagnostics, never results: they stay on stderr in every mode so `abx ... | jq` (or any other
    * consumer of stdout) is unaffected. In CI/quiet mode they are suppressed.
    */
   progress(message: string): void {
@@ -545,15 +541,15 @@ export class OutputManager {
   }
 
   /**
-   * Whether rich spinners are appropriate for the current session.
+   * Whether the full live status line is appropriate for the current session.
    *
    * Only enabled in interactive TTY mode: disabled by `--verbose`, `--quiet`, `--json`, `--no-color` (which includes
    * non-TTY stdout), or when stderr is not connected to a terminal.
    *
-   * In verbose mode spinners are suppressed because DEBUG log lines written to stderr would interleave with the Rich
-   * live-display, producing garbled output like `⠋ Waiting...DEBUG: https://...`.
+   * In verbose mode spinners are suppressed because DEBUG log lines written to stderr would interleave with the
+   * live display, producing garbled output like `⠋ Waiting...DEBUG: https://...`.
    */
-  get useRichSpinner(): boolean {
+  get useLiveStatus(): boolean {
     return !(this.verbose || this.quiet || this.jsonMode || this.noColor || !stderrIsTty());
   }
 
@@ -588,7 +584,7 @@ export class OutputManager {
    * Whether a live (grey) activity line can be drawn on *stderr*.
    *
    * Needs an interactive stderr, a real terminal type, and no `--json` / `--quiet` / CI mode. Unlike
-   * {@link useRichSpinner} it stays available under `--verbose` and `--no-color`: there the line is a self-erasing
+   * {@link useLiveStatus} it stays available under `--verbose` and `--no-color`: there the line is a self-erasing
    * `\r` line that the log writers already pause around.
    */
   get useActivityLine(): boolean {
@@ -600,18 +596,16 @@ export class OutputManager {
    *
    * *fn* receives an `update(summary)` callable, or `null` when no live display can be drawn (non-TTY, `--json`,
    * `--quiet`, CI, dumb terminal); callers then simply skip reporting. *summary* is recent activity, **one line per
-   * entry, oldest first**: the display keeps the last `EBX_ACTIVITY_LINES` (default 6) of them in grey *below* the
+   * entry, oldest first**: the display keeps the last `ABX_ACTIVITY_LINES` (default 6) of them in grey *below* the
    * `message... 12s` header, so the block scrolls by line. An update that arrives inside the throttle window is
    * remembered and drawn on the next update that is allowed through - a later call is still required, so a throttled
    * line never appears on its own.
    *
    * When `tick` is true a timer redraws the same summary once a second so the elapsed time keeps moving during a
    * silent step (create, upload, install, fetch). Agent runs leave it off; they already heartbeat. Everything is
-   * written to **stderr**, never stdout, and each line is stripped of control characters and rendered literally
-   * (never as Rich markup).
+   * written to **stderr**, never stdout, and each line is stripped of control characters and rendered literally.
    *
-   *  - normal TTY: a Rich status whose text is refreshed in place;
-   *  - `--verbose` / `--no-color` on a TTY: a transient block redrawn in place and cleared around every log write.
+   * The block is redrawn in place on a TTY and cleared around every log write.
    */
   async activity<T>(message: string, fn: (update: ActivityUpdate | null) => T | Promise<T>, opts: { tick?: boolean } = {}): Promise<T> {
     const handle = this.startActivity(message, opts);
@@ -660,41 +654,6 @@ export class OutputManager {
       if (timer !== null) clearInterval(timer);
     };
 
-    if (this.useRichSpinner) {
-      const console = outputSeams.Console({ stderr: true });
-      const styled = (head: string, details: string[]): Text => {
-        // Rich would wrap an over-long row inside the spinner table (growing the block); cut each row to the room
-        // left after the spinner glyph instead.
-        const room = Math.max(console.width - 3, 10);
-        const parts: Array<[string, string]> = [[_fitCells(head, room), "bold blue"]];
-        for (const detail of details) parts.push(["\n", ""], [_fitCells(detail, room), "grey50"]);
-        return Text.assemble(parts, { no_wrap: true, overflow: "ellipsis" });
-      };
-      const status: Status = console.status(styled(_activityHead(message, 0), []), { spinner: "dots" });
-      status.start();
-      this._spinnerStack.push(status);
-      const updater = makeUpdater((head, det) => status.update(styled(head, det)));
-      const redraw = (): void => {
-        const text = pending;
-        const now = outputSeams.monotonic();
-        if (last && now - last < outputSeams.activityMinInterval) return;
-        last = now;
-        status.update(styled(_activityHead(message, Math.trunc(now - started)), _activityLines(text, shown)));
-      };
-      const timer = arm(redraw);
-      let closed = false;
-      return {
-        update: updater,
-        close: () => {
-          if (closed) return;
-          closed = true;
-          disarm(timer);
-          this._spinnerStack.pop();
-          status.stop();
-        },
-      };
-    }
-
     const line = new _TransientLine({ color: !this.noColor });
     this._spinnerStack.push(line);
     line.update(_activityHead(message, 0), []);
@@ -738,7 +697,7 @@ export class OutputManager {
     for (const handler of [...rootLogger.handlers]) rootLogger.removeHandler(handler);
     // The SDK's standalone handler would render every record a second time; the bridge supersedes it. The package
     // logger's own level is left untouched: the handler gate already implements the CLI level.
-    const packageLogger = logging.getLogger("easy_sandbox");
+    const packageLogger = logging.getLogger("agent_sandbox");
     for (const handler of [...packageLogger.handlers]) packageLogger.removeHandler(handler);
     // The Python CLI imports the SDK lazily, i.e. after this bridge exists, so `_configureOnce` sees a host and leaves
     // the package logger at NOTSET. ES modules load the SDK (and its module-level `getLogger` calls) up front, which pins
@@ -785,7 +744,7 @@ export class OutputManager {
   /**
    * Hide live spinners around a write, then restore them.
    *
-   * Without this, a Rich live display and a plain `echo` line written at the same time interleave into unreadable
+   * Without this, a live display and a plain `echo` line written at the same time interleave into unreadable
    * output (`⠋ Waiting...Warning: ...`).
    */
   _spinnerGuardSync<T>(fn: () => T): T {
@@ -821,7 +780,7 @@ export class OutputManager {
 
   /** Low-level writer shared by every channel helper. */
   _write(message: string, err: boolean, color: string | null): void {
-    const text = this.noColor || color === null ? message : style(message, { fg: color });
+    const text = this.noColor || color === null ? message : paint(message, color as ColorName);
     this._spinnerGuardSync(() => outputSeams.echo(text, { err }));
   }
 
@@ -842,7 +801,7 @@ const noop = (): void => undefined;
 /**
  * Retrieve the {@link OutputManager} from the click context.
  *
- * The manager is stored in `ctx.meta["ebx.output"]` so that `ctx.obj` remains JSON-serializable.
+ * The manager is stored in `ctx.meta["abx.output"]` so that `ctx.obj` remains JSON-serializable.
  *
  * Falls back to a default instance when no context is available (e.g. during early startup / error handling).
  */
@@ -858,7 +817,7 @@ export function getOutput(ctx: Context | null | undefined = undefined): OutputMa
 /**
  * Turn on verbose mode from a subcommand-level `-v/--verbose` flag.
  *
- * Some users type `ebx create -v` instead of `ebx -v create`. Key subcommands therefore accept a local `-v/--verbose`
+ * Some users type `abx create -v` instead of `abx -v create`. Key subcommands therefore accept a local `-v/--verbose`
  * flag and call this helper, which flips the shared {@link OutputManager} (stored in `ctx.meta`) to verbose and
  * re-applies DEBUG-level logging.
  */

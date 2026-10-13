@@ -5,7 +5,7 @@
 ### config get region（默认值）
 
 ```
-$ ebx config get region
+$ abx config get region
 cn-hangzhou
 Exit code: 0
 ```
@@ -13,7 +13,7 @@ Exit code: 0
 ### config get sandbox_api_key（未设置）
 
 ```
-$ ebx config get sandbox_api_key
+$ abx config get sandbox_api_key
 (not set)
 Exit code: 0
 ```
@@ -21,7 +21,7 @@ Exit code: 0
 ### config get sandbox_api_key（已设置, masked）
 
 ```
-$ ebx config get sandbox_api_key
+$ abx config get sandbox_api_key
 sk-***456
 Exit code: 0
 ```
@@ -29,7 +29,7 @@ Exit code: 0
 ### config get sandbox_api_key（进程环境变量, masked）
 
 ```
-$ ebx config get sandbox_api_key
+$ abx config get sandbox_api_key
 sk-***456
 Exit code: 0
 ```
@@ -37,7 +37,7 @@ Exit code: 0
 ### config get unknown_key（错误）
 
 ```
-$ ebx config get unknown_key
+$ abx config get unknown_key
 Exit code: 2
 ```
 
@@ -51,7 +51,7 @@ Unknown config key: 'unknown_key'
 ### config get qwen_code_model（已移除）
 
 ```
-$ ebx config get qwen_code_model
+$ abx config get qwen_code_model
 Exit code: 2
 ```
 
@@ -65,7 +65,7 @@ Config key 'qwen_code_model' was removed.
 ### config get llm_model（业务默认）
 
 ```
-$ ebx config get llm_model
+$ abx config get llm_model
 qwen3-coder-plus
 Exit code: 0
 ```
@@ -73,7 +73,7 @@ Exit code: 0
 ### config set region
 
 ```
-$ ebx config set region cn-shanghai
+$ abx config set region cn-shanghai
 Set region = cn-shanghai
 Exit code: 0
 ```
@@ -81,7 +81,7 @@ Exit code: 0
 ### config set llm_api_key（masked）
 
 ```
-$ ebx config set llm_api_key sk-mykey12345678
+$ abx config set llm_api_key sk-mykey12345678
 Set llm_api_key = sk-***678
 Exit code: 0
 ```
@@ -89,7 +89,7 @@ Exit code: 0
 ### config set region ""（清除, 回落默认）
 
 ```
-$ ebx config set region ""
+$ abx config set region ""
 Cleared region (falls back to default: cn-hangzhou).
 Exit code: 0
 ```
@@ -97,7 +97,7 @@ Exit code: 0
 ### config set sandbox_api_key ""（清除凭证）
 
 ```
-$ ebx config set sandbox_api_key ""
+$ abx config set sandbox_api_key ""
 Cleared sandbox_api_key (now not set).
 Exit code: 0
 ```
@@ -105,7 +105,7 @@ Exit code: 0
 ### config set region ""（env 仍生效, 值不显示）
 
 ```
-$ ebx config set region ""
+$ abx config set region ""
 Cleared region (falls back to default: cn-hangzhou); environment variable SANDBOX_REGION still overrides it at runtime (value not shown).
 Exit code: 0
 ```
@@ -113,7 +113,7 @@ Exit code: 0
 ### config list
 
 ```
-$ ebx config list
+$ abx config list
 ── Sandbox authentication ──────────────────────────────────────
 sandbox_api_key    (not set)
 
@@ -157,7 +157,7 @@ Exit code: 0
 ### config list --json
 
 ```
-$ ebx --json config list
+$ abx --json config list
 {
   "sandbox_api_key": null,
   "access_key_id": null,
@@ -194,23 +194,23 @@ Exit code: 0
 ### config init（非 TTY：打印非交互命令）
 
 ```
-$ ebx config init
-Non-interactive setup. Run these commands to configure ebx:
+$ abx config init
+Non-interactive setup. Run these commands to configure abx:
 
-  ebx config set sandbox_api_key <E2B_API_KEY>
-  ebx config set region cn-hangzhou
-  ebx config set llm_api_key <DASHSCOPE_OR_MODELSTUDIO_KEY>
+  abx config set sandbox_api_key <E2B_API_KEY>
+  abx config set region cn-hangzhou
+  abx config set llm_api_key <DASHSCOPE_OR_MODELSTUDIO_KEY>
 
   # Required to build, push, and install templates:
-  ebx config set acr_namespace <ACR_NAMESPACE>
-  ebx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>
-  ebx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>
+  abx config set acr_namespace <ACR_NAMESPACE>
+  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>
+  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>
 
   # Optional overrides:
-  ebx config set llm_base_url <OPENAI_COMPATIBLE_BASE_URL>
-  ebx config set llm_model qwen3-coder-plus
+  abx config set llm_base_url <OPENAI_COMPATIBLE_BASE_URL>
+  abx config set llm_model qwen3-coder-plus
 
-Environment variables (E2B_API_KEY, EBX_LLM_API_KEY, ACR_NAMESPACE,
+Environment variables (E2B_API_KEY, ABX_LLM_API_KEY, ACR_NAMESPACE,
 ALICLOUD_ACCESS_KEY_ID, ALICLOUD_ACCESS_KEY_SECRET) override stored values.
 Exit code: 0
 ```
@@ -218,7 +218,7 @@ Exit code: 0
 ### config set github_token（masked）
 
 ```
-$ ebx config set github_token ghp_evidence1234567890
+$ abx config set github_token ghp_evidence1234567890
 Set github_token = ghp***890
 Exit code: 0
 ```
@@ -226,7 +226,7 @@ Exit code: 0
 ### config get github_token（未设置）
 
 ```
-$ ebx config get github_token
+$ abx config get github_token
 (not set)
 Exit code: 0
 ```
@@ -234,7 +234,7 @@ Exit code: 0
 ### config get github_token（已设置, masked）
 
 ```
-$ ebx config get github_token
+$ abx config get github_token
 ghp***890
 Exit code: 0
 ```
@@ -242,7 +242,7 @@ Exit code: 0
 ### config set github_token ""（清除）
 
 ```
-$ ebx config set github_token ""
+$ abx config set github_token ""
 Cleared github_token (now not set).
 Exit code: 0
 ```
@@ -250,7 +250,7 @@ Exit code: 0
 ### config set github_token（非 TTY：缺 VALUE）
 
 ```
-$ ebx config set github_token
+$ abx config set github_token
 Exit code: 2
 ```
 
@@ -258,5 +258,5 @@ Exit code: 2
 
 ```
 Missing VALUE for 'github_token' and stdin is not an interactive terminal.
-  Suggestion: Pass the value explicitly: 'ebx config set github_token <VALUE>'. In CI, inject the GITHUB_TOKEN environment variable as a secret instead of storing it locally.
+  Suggestion: Pass the value explicitly: 'abx config set github_token <VALUE>'. In CI, inject the GITHUB_TOKEN environment variable as a secret instead of storing it locally.
 ```

@@ -1,5 +1,5 @@
 /**
- * Structured error hierarchy for Easy Sandbox (port of `easy_sandbox/models/errors.py`).
+ * Structured error hierarchy for Agent Sandbox (port of `agent_sandbox/models/errors.py`).
  *
  * 注意：错误码（如 E1001、E2001 等）为 SDK 内部定义，不是阿里云官方 API 返回的错误码。
  *
@@ -30,7 +30,7 @@ export interface SandboxErrorOptions {
   docs_url?: string | null;
 }
 
-/** Base exception for all Easy Sandbox errors. */
+/** Base exception for all Agent Sandbox errors. */
 export class SandboxError extends Error {
   static code: string = "E0000";
   static suggestion: string = "";
@@ -83,7 +83,7 @@ export class AuthenticationError extends SandboxError {
  */
 export class InvalidAPIKeyError extends AuthenticationError {
   static override code = "E1001";
-  static override suggestion = "Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.";
+  static override suggestion = "Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.";
 }
 
 /**
@@ -107,7 +107,7 @@ export class InvalidCredentialsError extends AuthenticationError {
  */
 export class TokenExchangeError extends AuthenticationError {
   static override code = "E1004";
-  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use EBX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.";
+  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use ABX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.";
 }
 
 /**
@@ -122,7 +122,7 @@ export class SandboxCreationError extends SandboxError {
  */
 export class TemplateNotFoundError extends SandboxCreationError {
   static override code = "E2001";
-  static override suggestion = "Run 'ebx template list' to see available templates.";
+  static override suggestion = "Run 'abx template list' to see available templates.";
 }
 
 /**
@@ -155,11 +155,11 @@ export class TemplateParseError extends SandboxCreationError {
 }
 
 /**
- * Qwen Code executable was not found on PATH or in ~/.ebx/bin.
+ * Qwen Code executable was not found on PATH or in ~/.abx/bin.
  */
 export class QwenCodeNotInstalledError extends SandboxCreationError {
   static override code = "E2005";
-  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'ebx create --help'), or bypass AI generation with 'ebx create --template <name>'.";
+  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create --template <name>'.";
 }
 
 /**
@@ -167,7 +167,7 @@ export class QwenCodeNotInstalledError extends SandboxCreationError {
  */
 export class QwenCodeCredentialError extends SandboxCreationError {
   static override code = "E2006";
-  static override suggestion = "Configure the unified LLM API key for Qwen Code: 'ebx config set llm_api_key <KEY>' (interactive: 'ebx config init'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.";
+  static override suggestion = "Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.";
 }
 
 /**
@@ -175,7 +175,7 @@ export class QwenCodeCredentialError extends SandboxCreationError {
  */
 export class AICodegenError extends SandboxCreationError {
   static override code = "E2007";
-  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.";
+  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.";
 }
 
 /**
@@ -210,13 +210,13 @@ export class QwenCodeStartupError extends AICodegenError {
  */
 export class DescriptionClarificationError extends SandboxCreationError {
   static override code = "E2008";
-  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'ebx create --template <name>'.";
+  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create --template <name>'.";
 }
 
 /** No sandbox with the given ID exists (never created, expired or already killed). */
 export class SandboxNotFoundError extends SandboxError {
   static override code = "E2009";
-  static override suggestion = "Run 'ebx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected.";
+  static override suggestion = "Run 'abx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected.";
 }
 
 /**
@@ -281,41 +281,29 @@ export class CapabilityNotSupportedError extends ExecutionError {
 }
 
 /**
- * Raised when `Sandbox.custom` cannot resolve a named command.
- *
- * `custom()` checks two sources in order — the template's `custom_commands` (mechanism A) and the in-sandbox
- * SandboxServer registry (mechanism B). This error is raised when neither source yields the command, either because
- * it is genuinely unknown (server returned 404) or because the SandboxServer could not be reached.
+ * Raised when a named command cannot be run: the sandbox has no SandboxServer (it is not running, not reachable, or
+ * the template does not ship one) or the server has no command with that name.
  */
 export class CommandNotFoundError extends ExecutionError {
   static override code = "E3005";
 
   command_name: string;
-  checked_sources: string[];
 
   constructor(
     name: string,
     options: SandboxErrorOptions & {
-      checked: string[];
       server_status?: string;
-      template_commands?: string[] | null;
-    },
+    } = {},
   ) {
-    const { checked, server_status = "", template_commands = null, suggestion, ...rest } = options;
+    const { server_status = "", suggestion, ...rest } = options;
     const parts = [`Command ${pyStrRepr(name)} not found.`];
-    parts.push(`Checked sources: ${checked.join(", ")}.`);
-    if (template_commands !== null) {
-      const available = pySorted(template_commands).join(", ") || "(none)";
-      parts.push(`Available template commands: ${available}.`);
-    }
     if (server_status) parts.push(`Server: ${server_status}.`);
     const _suggestion =
       suggestion ||
-      "Check the command name, the template's custom_commands, and " +
-        "whether the SandboxServer is running (sandbox.server.start()).";
+      "Check the command name against sandbox.list_commands() and make sure the SandboxServer is running " +
+        "(sandbox.start_server()).";
     super(parts.join(" "), { ...rest, suggestion: _suggestion });
     this.command_name = name;
-    this.checked_sources = checked;
   }
 }
 
@@ -332,7 +320,7 @@ export class EnvdRpcError extends ExecutionError {
   static override code = "E3006";
   static override suggestion =
     "The sandbox envd rejected this RPC call. Check the command and " +
-    "arguments, or run with 'ebx -v' for the raw error response.";
+    "arguments, or run with 'abx -v' for the raw error response.";
 
   status_code: number;
   rpc_path: string;
@@ -392,7 +380,7 @@ export class SessionError extends SandboxError {
  */
 export class SessionNotFoundError extends SessionError {
   static override code = "E6001";
-  static override suggestion = "Check session files in ~/.ebx/sessions/ or use LocalSessionStore().list() programmatically.";
+  static override suggestion = "Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically.";
 }
 
 /**
@@ -415,7 +403,7 @@ export class DeployError extends SandboxError {
  */
 export class DeployLLMKeyMissingError extends DeployError {
   static override code = "E7001";
-  static override suggestion = "Set EBX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'ebx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.";
+  static override suggestion = "Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.";
 }
 
 /**
@@ -497,7 +485,7 @@ export class ConnectionError_ extends NetworkError {
  * offer a one-shot interactive ``github_token`` setup (task 206) before
  * giving up.  The raised ``suggestion`` always carries the officially
  * verified fine-grained PAT URL (see
- * :mod:`easy_sandbox.utils.github_token`).
+ * :mod:`agent_sandbox.utils.github_token`).
  */
 export class GitHubRateLimitError extends NetworkError {
   static override code = "E5000";

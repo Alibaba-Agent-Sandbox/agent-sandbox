@@ -15,7 +15,7 @@ import { dotenvValues } from "../../src/utils/_dotenv.js";
 import { DockerIgnore } from "../../src/utils/dockerignore.js";
 
 const COMMANDS =
-  "from easy_sandbox.server import SandboxServer\n\nSandboxServer().serve(port=9000)\n";
+  "from agent_sandbox.server import SandboxServer\n\nSandboxServer().serve(port=9000)\n";
 const DOCKERFILE =
   "FROM python:3.12-slim\nWORKDIR /app\nCOPY commands.py /app/\nCMD [\"python3\", \"commands.py\"]\n";
 
@@ -35,12 +35,12 @@ describe("agent-template gaps", () => {
     expect(DockerIgnore.fromFile(file).excludes(".env")).toBe(false);
   });
 
-  it("reports version: 1.0 as a float in the schema error", () => {
+  it("rejects version: 1.0 (a float) with the offending field named", () => {
     const dir = workspace(
       'name: x\nversion: 1.0\ndescription: d\nports: [9000]\nresources:\n  cpu: 1\n  memory: 512\n',
     );
     expect(() => validateTemplateWorkspace(dir, "demo", { providerId: "generic" })).toThrow(
-      /input_value=1\.0, input_type=float/,
+      /version/,
     );
   });
 

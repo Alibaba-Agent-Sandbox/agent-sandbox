@@ -1,4 +1,4 @@
-# Decision: `ebx template init --adopt` — let the coding agent make an existing project deployable
+# Decision: `abx template init --adopt` — let the coding agent make an existing project deployable
 
 Status: implemented
 
@@ -7,9 +7,9 @@ Status: implemented
 The template lifecycle is **author → publish → launch**:
 
 ```
-ebx template init ["DESCRIPTION"]   author   (AI optional) → Dockerfile, commands.py, template.yaml
-ebx deploy [PATH]                   publish  (fixed pipeline, no AI, no description)
-ebx create --template ID            launch
+abx template init ["DESCRIPTION"]   author   (AI optional) → Dockerfile, commands.py, template.yaml
+abx deploy [PATH]                   publish  (fixed pipeline, no AI, no description)
+abx create --template ID            launch
 ```
 
 `init` can start from a *description* (AI), a *scaffold case* (`-t`) or a
@@ -18,20 +18,20 @@ ebx create --template ID            launch
 an Express service, a data-science repo).
 
 Today such a user must read the template guide, write a `commands.py` that
-starts `easy_sandbox.server`, write a Dockerfile that installs the SDK and
+starts `agent_sandbox.server`, write a Dockerfile that installs the SDK and
 starts it, and hand-write `template.yaml`. The coding agent already does this
 for `init "DESCRIPTION"`; only the *input* differs (a codebase, not a sentence).
 
 Two existing behaviours make the gap worse:
 
-- `ebx template init --from ./app` already accepts a **local path**
+- `abx template init --from ./app` already accepts a **local path**
   (`RegistryClient.resolve` treats any existing path as local). On a plain
   project it copies the whole tree — `.env`, `.git` and all — into
   `./<name>` and reports success, without producing a template.
-- `ebx deploy ./app` with no Dockerfile suggests `init -t python`, which
+- `abx deploy ./app` with no Dockerfile suggests `init -t python`, which
   drops scaffold files into a real project.
 
-An earlier prototype ("existing-project mode" on `ebx deploy`) was removed
+An earlier prototype ("existing-project mode" on `abx deploy`) was removed
 (`2026-09-30-deploy-fixed-pipeline-agent-flag.md`): it put authoring in the
 publish verb and had no safety model. This decision supplies that model.
 Requirements:
@@ -41,7 +41,7 @@ Requirements:
    whitelisted template files are written, only after the user has seen them.
 3. **Secrets reach neither the model provider nor the built image**, and the
    agent process does not hold the user's cloud credentials.
-4. Output is the standard three-file contract, so `ebx deploy ./proj` needs
+4. Output is the standard three-file contract, so `abx deploy ./proj` needs
    no change.
 5. Deterministic validation catches bad output *before* a multi-minute
    `docker build`.
@@ -51,7 +51,7 @@ Requirements:
 ### 1. Entry point
 
 ```
-ebx template init --adopt [DIRECTORY] [--hint TEXT] [--name NAME]
+abx template init --adopt [DIRECTORY] [--hint TEXT] [--name NAME]
                   [--dry-run] [--force] [-y] [-v]
 ```
 
@@ -74,9 +74,9 @@ ebx template init --adopt [DIRECTORY] [--hint TEXT] [--name NAME]
   the length limit (not invented here).
 - `-v/--verbose` is declared on `init` (as on `build` and `deploy`); the
   root `-v`/`--json` are not accepted after the subcommand, which is the bug
-  that motivated the same fix on `deploy`. JSON is `ebx --json template init …`.
+  that motivated the same fix on `deploy`. JSON is `abx --json template init …`.
 - Generated files are written **into `DIRECTORY`** (it is the Docker build
-  context `ebx deploy` uses).
+  context `abx deploy` uses).
 - Why `--adopt`: "project" already means the *template directory* in the
   CLI's own help ("Publish a template project"); `--from` already means
   "template ref (owner/repo or local template path)". `--adopt` is unused
@@ -86,9 +86,9 @@ Two related, small changes ship with it:
 
 - `init --from <local dir>` where the directory has **no `template.yaml`**
   now fails with "this is not a template; to adapt a source project run
-  `ebx template init --adopt <dir>`" (remote refs keep the current
+  `abx template init --adopt <dir>`" (remote refs keep the current
   tolerance). This closes the accidental `.env`-copying path above.
-- `ebx deploy`'s missing-Dockerfile message names `init --adopt` (text only;
+- `abx deploy`'s missing-Dockerfile message names `init --adopt` (text only;
   `deploy` behaviour and options are unchanged).
 
 Rejected surface: implicit adoption when `init DIR` targets a non-empty
@@ -103,9 +103,9 @@ resolve → preflight → stage → disclose → [--dry-run stops] → agent →
 
 | Step | What happens | Failure ⇒ project untouched |
 |---|---|---|
-| resolve | Agent binary + credentials (same helpers as `create`). Refuse `/`, `$HOME`, and anything inside `~/.ebx`. | yes |
+| resolve | Agent binary + credentials (same helpers as `create`). Refuse `/`, `$HOME`, and anything inside `~/.abx`. | yes |
 | preflight | Reserved-file policy (§4). **Secret-in-context check against any existing ignore file (§5.3)** — fails *before* any model call, printing the exact lines to add. | yes |
-| stage | Copy candidate files (§3) into a fresh directory under the system temp dir (`tempfile.mkdtemp("ebx-adopt-")`), **not** under `~/.ebx` (which holds `.env`, credentials and other users' generated work). | yes |
+| stage | Copy candidate files (§3) into a fresh directory under the system temp dir (`tempfile.mkdtemp("abx-adopt-")`), **not** under `~/.abx` (which holds `.env`, credentials and other users' generated work). | yes |
 | disclose | Print: N files / size to be sent, the model host resolved from the credentials (or "provider default"), and counts of what was excluded. Prompt `Send to <host>? [Y/n]`. `-y` skips. **`--dry-run` stops here**: lists every path that would be sent and every exclusion with the reason, deletes staging, makes no model call. | yes |
 | agent | Run the coding agent with `cwd = staging`, `--yolo`, `--max-session-turns`, timeout, and a **scrubbed environment** (§6). No research/clarify phase. | yes |
 | validate | Deterministic checks (§5) on the staged result; content is read **once** into memory. | yes |
@@ -118,7 +118,7 @@ Interactivity is `stdin.isatty() and not fmt.use_json and not is_ci_env()`
 
 **Safety is structural, not textual.** The agent runs with `--yolo`; "only
 create these files" cannot be enforced by a prompt. The agent's cwd is a
-copy, and ebx alone writes into the project, whitelisted names only. Whatever
+copy, and abx alone writes into the project, whitelisted names only. Whatever
 else the agent changed in staging is reported as `not_applied` and
 discarded. Failure paths keep the staging directory for inspection. Tests
 assert the project tree is byte-identical after every failure path.
@@ -159,15 +159,15 @@ docs say so.
 
 ### 4. Reserved files and overwrite policy
 
-Reserved names (the only paths ebx ever writes): `Dockerfile`, `commands.py`,
+Reserved names (the only paths abx ever writes): `Dockerfile`, `commands.py`,
 `template.yaml`, `.dockerignore`.
 
 | Situation | Behaviour |
 |---|---|
 | none exist | generate all |
-| `template.yaml` exists | error: "already a template — run `ebx deploy <dir>`", unless `--force` (regenerate) |
+| `template.yaml` exists | error: "already a template — run `abx deploy <dir>`", unless `--force` (regenerate) |
 | `Dockerfile` / `commands.py` (ours) exist | staging contains them; the agent is told to **adapt, not rewrite** (keep the base image and dependency steps, infer the start command from an existing `CMD`). Shown as `~ replaces` with a diff; approval happens at the preview prompt. With `-y` (no preview), replacing requires `--force` |
-| user's own `commands.py` (no `easy_sandbox.server`) | requires `--force` in every mode; preview marks it `replaces user code` |
+| user's own `commands.py` (no `agent_sandbox.server`) | requires `--force` in every mode; preview marks it `replaces user code` |
 | `.dockerignore` exists | **never modified.** It must satisfy §5.3, otherwise fail early with the lines to add |
 | `Dockerfile.dockerignore` exists | never modified; must satisfy §5.3 too (BuildKit prefers it over `.dockerignore`; the legacy builder the reverse — both are checked) |
 
@@ -175,8 +175,8 @@ Reserved names (the only paths ebx ever writes): `Dockerfile`, `commands.py`,
 existing files without asking"; it is never needed in an interactive run
 except for `template.yaml` and user-owned `commands.py`.
 
-Backups are `<file>.ebx-bak`, never overwritten: if it exists, use
-`.ebx-bak.1`, `.2`, … The generated `.dockerignore` lists `*.ebx-bak`
+Backups are `<file>.abx-bak`, never overwritten: if it exists, use
+`.abx-bak.1`, `.2`, … The generated `.dockerignore` lists `*.abx-bak`
 (backups hold only reserved-name content, no secrets, so a user-owned ignore
 file lacking it is a warning, not an error).
 
@@ -187,7 +187,7 @@ file lacking it is a warning, not an error).
 Extracted from `generate_template_files` into one public
 `validate_template_workspace(workdir, template_name, *, suggestion)` shared
 with `create` (no behaviour change there): required files, `FROM`,
-`commands.py` parses and starts `easy_sandbox.server`, Dockerfile references
+`commands.py` parses and starts `agent_sandbox.server`, Dockerfile references
 `commands.py`, `template.yaml` passes `parse_template_data`, name forced.
 
 Adopt-specific (new code; the existing validator does **not** check ports):
@@ -204,7 +204,7 @@ Adopt-specific (new code; the existing validator does **not** check ports):
    *Skip* instructions with `--from=`, URL sources, heredocs and `ONBUILD`.
    *Warn only* for `$VAR`/`${…}` sources and for globs matching nothing.
    **`*.whl` is always allowed** (the guide's mandatory snippet copies an SDK
-   wheel that `ebx deploy` injects into the context at build time; BuildKit
+   wheel that `abx deploy` injects into the context at build time; BuildKit
    tolerates the empty match). *Error* only for a literal source that is
    missing from *(project on disk ∖ ignore rules) ∪ reserved files* — a
    source that exists but is ignored also fails the real build.
@@ -246,9 +246,9 @@ existing-file conflicts are `click.ClickException`, as in `init` today.
   `{**os.environ, **env}`. Adopt passes a new `clean_env=True`: only an
   allow-list (`PATH`, `HOME`, `LANG`, `LC_*`, `TERM`, `TMPDIR`, proxy vars,
   `SSL_CERT_*`) plus the agent's own credentials survive. `ALICLOUD_*`,
-  `E2B_*`, `ACR_*`, `AWS_*`, `GITHUB_TOKEN`, `EBX_*` (other than the LLM
+  `E2B_*`, `ACR_*`, `AWS_*`, `GITHUB_TOKEN`, `ABX_*` (other than the LLM
   key) are dropped. `HOME` is the real home because Qwen Code reads its own
-  settings there; `~/.ebx/.env` is therefore still readable by a hostile
+  settings there; `~/.abx/.env` is therefore still readable by a hostile
   agent — this residual risk is stated in the docs and is the reason for the
   consent screen; a stricter fix (separate HOME) is future work.
 - **Prompt.** Relative paths only. Inputs: layout summary, which reserved
@@ -284,15 +284,15 @@ existing-file conflicts are `click.ClickException`, as in `init` today.
 ### 8. Output
 
 `_print_init_summary` gains optional `replaced` / `backed_up` / `not_applied`
-and a `next_steps` override (adopt: `ebx deploy <dir> --acr-namespace <ns>`;
-the current text prints `ebx template deploy` / `ebx install`). JSON:
+and a `next_steps` override (adopt: `abx deploy <dir> --acr-namespace <ns>`;
+the current text prints `abx template deploy` / `abx install`). JSON:
 `{name, directory, files, replaced, backed_up, not_applied, dry_run}`.
 
 ### 9. Downstream
 
-Nothing changes: `ebx deploy ./proj` reads `name`, `resources.cpu`,
+Nothing changes: `abx deploy ./proj` reads `name`, `resources.cpu`,
 `resources.memory`, `generation` from `template.yaml`. Known adjacent issue,
-out of scope: `ebx deploy` writes an SDK wheel into the context directory
+out of scope: `abx deploy` writes an SDK wheel into the context directory
 and deletes it afterwards (`inject_sdk_wheel`); a user file with the same
 name would be overwritten and removed. Tracked separately.
 
@@ -308,7 +308,7 @@ CLI (on `template init`):
 # existing: --name, --force, --yes/-y (help text updated), -t, --from, DIRECTORY
 ```
 
-`easy_sandbox/agent/adopt.py` (new module; `codegen.py` is touched only by the
+`agent_sandbox/agent/adopt.py` (new module; `codegen.py` is touched only by the
 `validate_template_workspace` extraction):
 
 ```python
@@ -338,9 +338,9 @@ def plan_from_staging(project: Path, staged: StagedProject, *, name: str, raw_ou
 def promote(project: Path, plan: AdoptPlan, preflight: Preflight) -> PromoteResult: ...
 ```
 
-`easy_sandbox/utils/dockerignore.py` — matcher (`DockerIgnore.from_file(path)`,
+`agent_sandbox/utils/dockerignore.py` — matcher (`DockerIgnore.from_file(path)`,
 `.excludes(rel_path, is_dir=False) -> bool`) and
-`easy_sandbox/agent/dockerfile_sources.py` — the minimal COPY/ADD parser.
+`agent_sandbox/agent/dockerfile_sources.py` — the minimal COPY/ADD parser.
 Both pure functions, exhaustively unit-tested.
 
 `CodingAgentBackend` gains one method (`run_in_workspace`, above).
@@ -355,7 +355,7 @@ orchestration (`_adopt_project(ctx, …)`) sits next to
 - **Run the agent directly in the project and diff afterwards** (the removed
   prototype) — `--yolo` writes cannot be undone by detection; needs a full
   backup. Staging makes the guarantee structural.
-- **`ebx deploy PATH "DESCRIPTION"` / `deploy --agent`** — authoring in the
+- **`abx deploy PATH "DESCRIPTION"` / `deploy --agent`** — authoring in the
   publish verb: two sources of truth, non-reproducible deploys (rejected in
   the deploy ADR; unchanged).
 - **`--project PATH` + positional hint** (first draft) — "project" already
@@ -381,7 +381,7 @@ orchestration (`_adopt_project(ctx, …)`) sits next to
   frequent.
 - **Rule-based detection, no AI** — good later as scaffold cases (`-t flask`);
   does not cover the long tail.
-- **Stage under `~/.ebx/generated`** — sits beside `~/.ebx/.env`; the system
+- **Stage under `~/.abx/generated`** — sits beside `~/.abx/.env`; the system
   temp dir keeps credentials out of the agent's neighbourhood.
 - **`--dry-run` that runs the model but writes nothing** — still uploads the
   user's source, which is the least reversible step. Declining at the
@@ -419,7 +419,7 @@ Offline (CI; the agent is a fake that writes files into `cwd`):
   `Dockerfile.dockerignore` shadowing ⇒ both checked; ignore file excluding
   `*.whl` ⇒ fail; schema errors.
 - **Promote:** reserved names only; `..`/absolute rejected; symlinked target
-  or parent ⇒ abort; `.ebx-bak` numbering; rollback on failed write; **drift**
+  or parent ⇒ abort; `.abx-bak` numbering; rollback on failed write; **drift**
   (file changed between preflight and promote) ⇒ abort, nothing written.
 - **Environment:** the child process env contains none of `ALICLOUD_*`,
   `E2B_*`, `ACR_*`, `AWS_*`, `GITHUB_TOKEN` (fake agent dumps its env) and
@@ -437,7 +437,7 @@ Offline (CI; the agent is a fake that writes files into `cwd`):
   creates a symlink in staging, edits a reserved file to break validation ⇒
   project unchanged, reported under `not_applied` or rejected.
 - **E2E (offline):** sample Flask project without Dockerfile →
-  `ebx template init --adopt p -y` (fake agent) → `ebx deploy p` with only
+  `abx template init --adopt p -y` (fake agent) → `abx deploy p` with only
   Docker/ACR/API mocked → registered payload matches `template.yaml`; no LLM
   call in the deploy step.
 - **Golden:** `help-template-init.txt`, `help-deploy` (message), disclose and
@@ -447,9 +447,9 @@ Offline (CI; the agent is a fake that writes files into `cwd`):
 
 ## Acceptance criteria
 
-1. On a project with no template files, `ebx template init --adopt ./app
+1. On a project with no template files, `abx template init --adopt ./app
    --hint "…"` yields `Dockerfile`, `commands.py`, `template.yaml`,
-   `.dockerignore` in `./app`, and `ebx deploy ./app` runs unmodified.
+   `.dockerignore` in `./app`, and `abx deploy ./app` runs unmodified.
 2. Across all failure paths and `--dry-run`, the project tree hash is unchanged.
 3. Nothing is sent to the model without an interactive yes or `-y`;
    `--dry-run` never contacts the model.
@@ -458,11 +458,11 @@ Offline (CI; the agent is a fake that writes files into `cwd`):
    ignore file excludes it.
 5. The agent process environment contains no cloud/registry credentials.
 6. No file other than the four reserved names is written; every replaced file
-   has a never-overwritten `*.ebx-bak`; symlinked targets abort.
+   has a never-overwritten `*.abx-bak`; symlinked targets abort.
 7. A Dockerfile referencing a path absent from the project (or ignored) is
    rejected before Docker is invoked; `COPY *.whl` is accepted.
 8. `init --from <non-template dir>` no longer copies arbitrary trees.
-9. `ebx deploy` options and behaviour are unchanged; `make test`, `make lint`,
+9. `abx deploy` options and behaviour are unchanged; `make test`, `make lint`,
    `make typecheck` pass; EN/ZH docs, CLI reference, goldens and
    `.agents/evidence` are updated.
 
@@ -474,7 +474,7 @@ Offline (CI; the agent is a fake that writes files into `cwd`):
   (matcher + parser ≈ 1 day; staging/promote ≈ 1; agent/CLI wiring ≈ 1;
   docs/goldens/e2e ≈ 1).
 - Staging (≤ 20 MiB) is left in the temp dir on failure for debugging; docs
-  say how to delete it. A future `ebx clean` could own this.
+  say how to delete it. A future `abx clean` could own this.
 - `create` could later accept `--adopt` (adopt → deploy → launch) by
   composing the same steps; deliberately not part of this decision.
 
@@ -501,5 +501,5 @@ Recommended order (each step is independently testable and shippable):
    invent; confirm with the service owner.
 3. Should the MCP tool surface expose `--adopt`? (Default: no; consent
    prompts do not fit non-interactive tool calls.)
-4. Separate `HOME` for the agent to shield `~/.ebx/.env` (needs a check that
+4. Separate `HOME` for the agent to shield `~/.abx/.env` (needs a check that
    Qwen Code works with a private settings dir).

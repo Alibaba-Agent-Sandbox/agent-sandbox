@@ -1,28 +1,29 @@
-Usage: cli config list [OPTIONS]
+Usage: abx config list [options]
 
-  List all effective configuration values and their sources.
+List all effective configuration values and their sources.
 
-  Values are grouped by function — Sandbox authentication, Alibaba Cloud
-  credentials, connection, LLM, integrations, and shortcuts — in a stable order.
-  Group titles are display-only: ``config get`` and ``config set`` keep taking
-  the bare key names, and ``--json`` output stays a flat ``{key: value}`` map.
+Values are grouped by function — Sandbox authentication, Alibaba
+Cloud credentials, connection, LLM and integrations —
+in a stable order. Group titles are
+display-only: ``config get`` and ``config set`` keep taking the bare
+key names, and ``--json`` output stays a flat ``{key: value}`` map.
 
-  Sources: ``(env)`` a process environment variable, ``(user)`` a value in
-  ``./.env`` or stored with ``ebx config set``, ``(default)`` a built-in
-  default, and ``(not set)`` when no value exists anywhere. A set environment
-  variable wins over either file. ``./.env`` wins over ``~/.ebx`` for a key it
-  sets; a key it omits still comes from ``~/.ebx``. Sensitive values are always
-  masked.
+Sources: ``(env)`` a process environment variable, ``(user)`` a value
+in ``./.env`` or stored with ``abx config set``, ``(default)`` a
+built-in default, and ``(not set)`` when no value exists anywhere.
+A set environment variable wins over either file. ``./.env`` wins
+over ``~/.abx`` for a key it sets; a key it omits still comes from
+``~/.abx``. Sensitive values are always masked.
 
-  Examples:
-    ebx config list
-    ebx --json config list
-    ebx config get http_timeout
+Examples:
+  abx config list
+  abx --json config list
+  abx config get http_timeout
 
-  Related commands:
-    ebx config get KEY        Inspect one effective value
-    ebx config set KEY VALUE
-    ebx config delete KEY     Remove one stored value
+Related commands:
+  abx config get KEY        Inspect one effective value
+  abx config set KEY VALUE
+  abx config delete KEY     Remove one stored value
 
 Options:
   -h, --help  Show this message and exit.

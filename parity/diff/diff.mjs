@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Mock-vs-oracle differential harness.
-//   EBX_ORACLE=<reference ebx> EBX_BIN=<ebx under test> node parity/diff/diff.mjs [--filter re] [--fast] [--out dir] [--verbose]
+//   ABX_ORACLE=<reference abx> ABX_BIN=<abx under test> node parity/diff/diff.mjs [--filter re] [--fast] [--out dir] [--verbose]
 // Runs identical argv against both binaries (isolated HOME/cwd, stub cloud, no CI env) and diffs
 // exit code, normalised stdout/stderr, captured artifacts and the recorded HTTP wire traffic.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, realpathSync } from 'node:fs';
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { startStub } from './stub.mjs';
 import { CASES } from './cases.mjs';
+import { createAllowList } from './sdk_defect_allowlist.mjs';
 
 const args = process.argv.slice(2);
 const opt = { filter: null, fast: false, out: null, verbose: false, list: false, show: false };
@@ -24,9 +25,9 @@ for (let i = 0; i < args.length; i++) {
 if (opt.list) { for (const c of CASES) console.log(`${c.id}${c.slow ? ' (slow)' : ''}${c.evidence ? `  <- ${c.evidence}` : ''}`); process.exit(0); }
 
 const split = (s) => (s.match(/"[^"]*"|'[^']*'|\S+/g) ?? []).map((x) => x.replace(/^["']|["']$/g, ''));
-const ORACLE = process.env.EBX_ORACLE;
-const BIN = process.env.EBX_BIN || 'ebx';
-if (!ORACLE) { console.error('EBX_ORACLE is required (path of the reference implementation, e.g. the Python ebx)'); process.exit(2); }
+const ORACLE = process.env.ABX_ORACLE;
+const BIN = process.env.ABX_BIN || 'abx';
+if (!ORACLE) { console.error('ABX_ORACLE is required (path of the reference implementation, e.g. the Python abx)'); process.exit(2); }
 
 const SECRET_KEY = 'k-stub-0123456789abcdef';
 
@@ -34,12 +35,12 @@ function normalize(text, ctx) {
   let t = String(text ?? '').replace(/\u001b\[[0-9;]*[A-Za-z]/g, '');
   for (const [p, tag] of [[ctx.cwd, '<CWD>'], [ctx.home, '<HOME>'], [ctx.root, '<TMP>']]) if (p) t = t.split(p).join(tag);
   t = t.split(ctx.stubUrl).join('<STUB>').replace(/127\.0\.0\.1:\d+/g, '<STUB-HOST>');
-  t = t.replace(/"command":\s*"[^"]*",(\s*)"args":\s*\[[^\]]*?"mcp",\s*"start"\s*\]/g, '"command": "<EBX-BIN>",$1"args": ["mcp", "start"]');
-  t = t.replace(/"command":\s*"[^"]*ebx(?:\.js)?"/g, '"command": "<EBX-BIN>"');
+  t = t.replace(/"command":\s*"[^"]*",(\s*)"args":\s*\[[^\]]*?"mcp",\s*"start"\s*\]/g, '"command": "<ABX-BIN>",$1"args": ["mcp", "start"]');
+  t = t.replace(/"command":\s*"[^"]*abx(?:\.js)?"/g, '"command": "<ABX-BIN>"');
   t = t.replace(/\/(?:tmp|var\/folders)\/[^\s"'<>]+/g, '<TMPPATH>');
   t = t.replace(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:\d{2}|Z)?/g, '<TS>');
   t = t.replace(/"execution_time":\s*[\d.eE+-]+/g, '"execution_time": 0.0').replace(/\bin \d+(\.\d+)?s\b/g, 'in <N>s');
-  t = t.replace(/"command":\s*"[^"]*(?:\/|\\)?ebx(?:\.js)?"/g, '"command": "<EBX-BIN>"');
+  t = t.replace(/"command":\s*"[^"]*(?:\/|\\)?abx(?:\.js)?"/g, '"command": "<ABX-BIN>"');
   t = t.split(SECRET_KEY).join('<KEY>');
   return t.split('\n').map((l) => l.replace(/\s+$/g, '')).join('\n').trim();
 }
@@ -115,29 +116,35 @@ function compare(a, b) {
   return diffs;
 }
 
-const root = realpathSync(mkdtempSync(join(tmpdir(), 'ebx-diff-')));
+const root = realpathSync(mkdtempSync(join(tmpdir(), 'abx-diff-')));
 const stub = await startStub();
 const cases = CASES.filter((c) => (!opt.fast || !c.slow) && (!opt.filter || opt.filter.test(c.id)));
 console.log(`differential run: ${cases.length} cases\n  oracle: ${ORACLE}\n  binary: ${BIN}\n  stub  : ${stub.url}`);
 const results = [];
+const allow = createAllowList('diff');
 for (const c of cases) {
   const oracle = await execCase(c, ORACLE, 'oracle', stub, root);
   const bin = await execCase(c, BIN, 'bin', stub, root);
-  const diffs = compare(oracle, bin);
+  let diffs = compare(oracle, bin);
+  const ruling = diffs.length ? allow.judgeResults(c.id, oracle, bin) : null;
+  const allowedKis = ruling?.allowed ? ruling.kis : null;
+  if (allowedKis) diffs = [];
   if (opt.show) console.log(`--- ${c.id}  [exit ${oracle.exit}]\n${oracle.stdout}\n${oracle.stderr ? `[stderr] ${oracle.stderr}\n` : ''}${oracle.wire ? `[wire]\n${oracle.wire.join('\n')}\n` : ''}${Object.entries(oracle.artifacts).map(([k, v]) => `[artifact ${k}]\n${v}`).join('\n')}`);
-  results.push({ id: c.id, evidence: c.evidence ?? null, ok: diffs.length === 0, diffs, oracle: { exit: oracle.exit }, bin: { exit: bin.exit } });
-  console.log(`${diffs.length ? 'DIFF' : 'same'}  ${c.id}${diffs.length ? ` (${diffs.length})` : ''}`);
+  results.push({ id: c.id, evidence: c.evidence ?? null, ok: diffs.length === 0, allowed: allowedKis, diffs, oracle: { exit: oracle.exit }, bin: { exit: bin.exit } });
+  console.log(`${diffs.length ? 'DIFF' : allowedKis ? `ALLOWED (${allowedKis.join(', ')}; parity/sdk-defect-fixes.md)` : 'same'}  ${c.id}${diffs.length ? ` (${diffs.length})` : ''}`);
   if (diffs.length && opt.verbose) console.log(diffs.map((d) => `    ${d.replace(/\n/g, '\n    ')}`).join('\n'));
 }
 await stub.close();
 rmSync(root, { recursive: true, force: true });
 
 const bad = results.filter((r) => !r.ok);
-console.log(`\n${results.length - bad.length}/${results.length} identical, ${bad.length} differing`);
+const stale = allow.report({ complete: !opt.fast && !opt.filter });
+const nAllowed = results.filter((r) => r.ok && r.allowed).length;
+console.log(`\n${results.length - bad.length - nAllowed}/${results.length} identical, ${nAllowed} allow-listed (SDK defect fixes), ${bad.length + stale} differing`);
 if (opt.out) {
   mkdirSync(opt.out, { recursive: true });
   writeFileSync(join(opt.out, 'diff-report.json'), JSON.stringify({ oracle: ORACLE, bin: BIN, results }, null, 2));
-  const md = ['| Case | Result | Evidence case | Details |', '|---|---|---|---|', ...results.map((r) => `| \`${r.id}\` | ${r.ok ? 'identical' : 'DIFF'} | ${r.evidence ?? ''} | ${r.diffs.map((d) => d.split('\n')[0]).join('; ').replace(/\|/g, '\\|')} |`)];
+  const md = ['| Case | Result | Evidence case | Details |', '|---|---|---|---|', ...results.map((r) => `| \`${r.id}\` | ${r.ok ? (r.allowed ? `allow-listed (${r.allowed.join(', ')})` : 'identical') : 'DIFF'} | ${r.evidence ?? ''} | ${r.diffs.map((d) => d.split('\n')[0]).join('; ').replace(/\|/g, '\\|')} |`)];
   writeFileSync(join(opt.out, 'diff-report.md'), `${md.join('\n')}\n`);
 }
-process.exitCode = bad.length ? 1 : 0;
+process.exitCode = bad.length || stale ? 1 : 0;

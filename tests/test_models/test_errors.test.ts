@@ -116,7 +116,7 @@ describe("TestAuthenticationErrors", () => {
     expect(err).toBeInstanceOf(AuthenticationError);
     expect(err).toBeInstanceOf(SandboxError);
     expect(err.code).toBe("E1001");
-    expect(err.suggestion).toContain("EBX_SANDBOX_API_KEY");
+    expect(err.suggestion).toContain("ABX_SANDBOX_API_KEY");
     expect(err.suggestion).toContain("sandbox_api_key");
   });
 
@@ -148,7 +148,7 @@ describe("TestCreationErrors", () => {
     const err = new TemplateNotFoundError("no template");
     expect(err).toBeInstanceOf(SandboxCreationError);
     expect(err.code).toBe("E2001");
-    expect(err.suggestion).toContain("ebx template list");
+    expect(err.suggestion).toContain("abx template list");
   });
 
   it("test_quota_exceeded", () => {
@@ -406,6 +406,6 @@ describe("TestSandboxNotFoundError", () => {
     const err = new SandboxNotFoundError("Sandbox 'sbx-1' was not found.");
     expect(err).toBeInstanceOf(SandboxError);
     expect(err.code).toBe("E2009");
-    expect(err.suggestion).toContain("ebx list");
+    expect(err.suggestion).toContain("abx list");
   });
 });

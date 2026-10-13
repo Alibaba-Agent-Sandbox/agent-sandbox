@@ -49,7 +49,7 @@ describe("KI-006 authentication error", () => {
   });
 
   it("test_sandbox_list_api_with_wrong_key", async () => {
-    iso.monkeypatch.setenv("EBX_PROVIDER", "alicloud-express");
+    iso.monkeypatch.setenv("ABX_PROVIDER", "alicloud-express");
     httpx_mock.add_response({ method: "GET", status_code: 401, content: "" });
     await raises(() => Sandbox.list({ api_key: SECRET, api_url: API }), AuthenticationError);
   });

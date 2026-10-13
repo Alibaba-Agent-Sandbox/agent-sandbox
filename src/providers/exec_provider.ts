@@ -8,7 +8,7 @@
 
 import { Buffer } from "node:buffer";
 
-import { CommandTimeoutError, SandboxError } from "../models/errors.js";
+import { CommandTimeoutError, SandboxError, SandboxNotFoundError } from "../models/errors.js";
 import { FileInfo, FileType } from "../models/filesystem.js";
 import { ProcessChunk, ProcessChunkType, ProcessInfo } from "../models/process.js";
 import { SandboxInfo, SandboxStatus, type SandboxConfig } from "../models/sandbox.js";
@@ -18,7 +18,7 @@ import type { EnvdTokenManager } from "../transport/auth.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient } from "../transport/http.js";
 import { StreamReader } from "../transport/streaming.js";
-import { Provider, type ProviderInfra } from "./base.js";
+import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
 import { EppClient, PROTOCOL, isMethodNotFound, resolveCommand, scrubbedEnv, type AsyncQueue, type Notification } from "./epp.js";
 import { ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "./errors.js";
 import { hostVersion } from "./host.js";
@@ -59,7 +59,16 @@ export function recordToInfo(rec: unknown, providerId: string): SandboxInfo {
     started_at: parseTime(r["created_at"]),
     end_at: parseTime(r["expires_at"]),
   };
-  if (r["region"]) data["region"] = String(r["region"]);
+  // The model defaults (cn-hangzhou, 300 s) describe the built-in platform; a plugin must not inherit them by accident.
+  // "" and 0 mean "the provider did not say"; the CLI prints them as "-".
+  data["region"] = r["region"] ? String(r["region"]) : "";
+  data["timeout"] = 0;
+  const started = data["started_at"] as string | null;
+  const ends = data["end_at"] as string | null;
+  if (started && ends) {
+    const lifetime = Math.round((Date.parse(ends) - Date.parse(started)) / 1000);
+    if (lifetime > 0) data["timeout"] = lifetime;
+  }
   return SandboxInfo.modelValidate(data);
 }
 
@@ -118,6 +127,16 @@ export class ExecSandboxProtocol {
     if (!this.features.has(feature)) throw new ProviderFeatureNotSupportedError(this.pid, feature);
   }
 
+  /** A `sandbox.*` call that names an existing sandbox: "not found" is the SDK's `SandboxNotFoundError` (E2009) on every provider. */
+  private async onSandbox<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      return await call();
+    } catch (exc) {
+      if (exc instanceof ProviderResourceNotFoundError) throw new SandboxNotFoundError(exc.message);
+      throw exc;
+    }
+  }
+
   async create(config: CreateConfig, opts: { request_timeout?: number | null } = {}): Promise<SandboxInfo> {
     this.need("sandbox.lifecycle");
     const requestTimeout = opts.request_timeout ?? null;
@@ -144,18 +163,18 @@ export class ExecSandboxProtocol {
     this.need("sandbox.lifecycle");
     if (this.hasConnect) {
       try {
-        return recordToInfo(await this.client.call("sandbox.connect", { sandbox_id: sandboxId }), this.pid);
+        return await this.onSandbox(async () => recordToInfo(await this.client.call("sandbox.connect", { sandbox_id: sandboxId }), this.pid));
       } catch (exc) {
         if (!(exc instanceof ProviderProtocolError) || !isMethodNotFound(exc)) throw exc;
         this.hasConnect = false;
       }
     }
-    return recordToInfo(await this.client.call("sandbox.get", { sandbox_id: sandboxId }), this.pid);
+    return this.getInfo(sandboxId);
   }
 
   async getInfo(sandboxId: string): Promise<SandboxInfo> {
     this.need("sandbox.lifecycle");
-    return recordToInfo(await this.client.call("sandbox.get", { sandbox_id: sandboxId }), this.pid);
+    return this.onSandbox(async () => recordToInfo(await this.client.call("sandbox.get", { sandbox_id: sandboxId }), this.pid));
   }
 
   async list(opts: { status?: string | null; limit?: number; offset?: number } = {}): Promise<SandboxInfo[]> {
@@ -177,10 +196,6 @@ export class ExecSandboxProtocol {
     return out.slice(offset, offset + limit);
   }
 
-  async listV2(opts: { status?: string | null; limit?: number; offset?: number } = {}): Promise<SandboxInfo[]> {
-    return this.list(opts);
-  }
-
   async kill(sandboxId: string): Promise<void> {
     this.need("sandbox.lifecycle");
     try {
@@ -193,7 +208,7 @@ export class ExecSandboxProtocol {
 
   async setTimeout(sandboxId: string, timeout: number): Promise<void> {
     this.need("sandbox.timeout");
-    await this.client.call("sandbox.set_timeout", { sandbox_id: sandboxId, timeout });
+    await this.onSandbox(() => this.client.call("sandbox.set_timeout", { sandbox_id: sandboxId, timeout }));
   }
 
   async isRunning(sandboxId: string): Promise<boolean> {
@@ -203,12 +218,12 @@ export class ExecSandboxProtocol {
 
   async pause(sandboxId: string): Promise<void> {
     this.need("sandbox.pause");
-    await this.client.call("sandbox.pause", { sandbox_id: sandboxId });
+    await this.onSandbox(() => this.client.call("sandbox.pause", { sandbox_id: sandboxId }));
   }
 
   async resume(sandboxId: string): Promise<void> {
     this.need("sandbox.pause");
-    await this.client.call("sandbox.resume", { sandbox_id: sandboxId });
+    await this.onSandbox(() => this.client.call("sandbox.resume", { sandbox_id: sandboxId }));
   }
 }
 
@@ -488,12 +503,7 @@ export class ExecProvider extends Provider {
     this.features = new Set(manifest.features);
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
-    const consented = new Set<string>(
-      receipt === null
-        ? manifest.inherit
-        : (((receipt["consented"] as Dict | undefined)?.["inherit"] as string[] | undefined) ?? []),
-    );
-    this.inherit = new Set(manifest.inherit.filter((k) => consented.has(k)));
+    this.inherit = consentedInherit(manifest.inherit, receipt);
   }
 
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
@@ -527,7 +537,7 @@ export class ExecProvider extends Provider {
     });
     await client.start({
       protocol: PROTOCOL,
-      host: { name: "ebx", version: hostVersion() },
+      host: { name: "abx", version: hostVersion() },
       provider_id: this.id,
       config: initConfig,
       core,

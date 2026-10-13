@@ -5,7 +5,7 @@
 ### info sbx-ev-001
 
 ```
-$ ebx info sbx-ev-001
+$ abx info sbx-ev-001
 ID        sbx-ev-001
 Template  base
 Status    running
@@ -18,7 +18,7 @@ Exit code: 0
 ### --json info sbx-ev-001
 
 ```
-$ ebx --json info sbx-ev-001
+$ abx --json info sbx-ev-001
 {
   "ID": "sbx-ev-001",
   "Template": "base",

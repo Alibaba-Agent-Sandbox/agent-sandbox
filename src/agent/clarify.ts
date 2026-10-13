@@ -1,7 +1,7 @@
 /**
- * Research-first requirement clarification for `ebx create "<description>"`.
+ * Research-first requirement clarification for `abx create "<description>"`.
  *
- * Port of `easy_sandbox/agent/clarify.py`. The natural-language create path starts from one free-form sentence. The
+ * Port of `agent_sandbox/agent/clarify.py`. The natural-language create path starts from one free-form sentence. The
  * clarification phase is **two phases on one native Qwen Code session**, and both the research and the questions come
  * from Qwen Code itself:
  *
@@ -13,7 +13,7 @@
  *   structured completeness verdict. Only user preferences, private constraints and business decisions that the agent
  *   cannot infer may be marked missing; publicly verifiable facts may not.
  *
- * Easy Sandbox never re-implements the agent loop and never replays the transcript by hand; it keeps only the input
+ * Agent Sandbox never re-implements the agent loop and never replays the transcript by hand; it keeps only the input
  * contract, the one-question-per-round experience, the threshold gate ({@link CLARITY_THRESHOLD}), delegation-answer
  * detection ({@link isDelegationAnswer}), anti-repetition (asked questions are embedded in every follow-up prompt),
  * non-interactive behaviour and the thin adapter to the host CLI.
@@ -72,9 +72,9 @@ export const RESEARCH_REASON_TURN_LIMIT = "turn-limit";
 /** qwen-code exit code for an exceeded `--max-session-turns` budget. */
 const QWEN_EXIT_TURN_LIMIT = 53;
 
-/** Research wall-clock budget: {@link DEFAULT_RESEARCH_TIMEOUT} unless `EBX_QWEN_RESEARCH_TIMEOUT` (positive seconds) overrides it. */
+/** Research wall-clock budget: {@link DEFAULT_RESEARCH_TIMEOUT} unless `ABX_QWEN_RESEARCH_TIMEOUT` (positive seconds) overrides it. */
 export function defaultResearchTimeout(): number {
-  const raw = process.env.EBX_QWEN_RESEARCH_TIMEOUT;
+  const raw = process.env.ABX_QWEN_RESEARCH_TIMEOUT;
   if (raw) {
     const value = parsePyFloat(raw);
     if (value === null) return DEFAULT_RESEARCH_TIMEOUT;
@@ -124,8 +124,8 @@ export const CLARIFY_SCHEMA: Record<string, any> = {
   }
 };
 
-const researchPromptTemplate = (description: string): string => `你是 Easy Sandbox 的模板需求分析器。用户会用一句自然语言描述想创建的沙箱，
-随后将据此生成 Dockerfile、commands.py（easy_sandbox.server HTTP 服务）和 template.yaml。
+const researchPromptTemplate = (description: string): string => `你是 Agent Sandbox 的模板需求分析器。用户会用一句自然语言描述想创建的沙箱，
+随后将据此生成 Dockerfile、commands.py（agent_sandbox.server HTTP 服务）和 template.yaml。
 
 用户描述：
 ${description}
@@ -150,14 +150,14 @@ ${description}
 
 不要向用户提问，不要生成任何文件。`;
 
-const assessmentPromptTemplate = (description: string): string => `你是 Easy Sandbox 的模板需求分析器。以下是用户想创建的沙箱描述；若本会话
+const assessmentPromptTemplate = (description: string): string => `你是 Agent Sandbox 的模板需求分析器。以下是用户想创建的沙箱描述；若本会话
 此前已完成事实检索，请直接采用其结论（包括其中记录的默认值与假设）。
 
 用户描述：
 ${description}
 
 请评估生成一个可运行模板（Dockerfile + commands.py + template.yaml）所需信息的完整度。
-说明：每个模板都会在 9000 端口运行 easy_sandbox.server 提供的 HTTP 服务（通用的
+说明：每个模板都会在 9000 端口运行 agent_sandbox.server 提供的 HTTP 服务（通用的
 健康检查、命令、文件、shell 接口都是现成的），这部分是固定做法，不得向用户提问；
 只有需求里的业务接口、入口命令或端口无法自行推断时，才可作为缺失项。
 评估维度：runtime（运行时/基础镜像）、dependencies（预装依赖）、
@@ -213,7 +213,7 @@ export class ClarifyAssessment {
     Object.freeze(this);
   }
 
-  /** Whether the assessment clears the Easy Sandbox threshold gate. */
+  /** Whether the assessment clears the Agent Sandbox threshold gate. */
   get complete(): boolean {
     return this.completeness >= CLARITY_THRESHOLD;
   }

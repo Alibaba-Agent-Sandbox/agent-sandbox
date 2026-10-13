@@ -4,7 +4,10 @@ import type { Sandbox } from "../../api/sandbox.js";
 import { shlexQuote } from "../../api/_shlex.js";
 import type { ProcessResult } from "../../models/process.js";
 import { pyRstrip, pySplitlines, pyStrip } from "../../utils/_pyformat.js";
-import { INT, argument, command, confirm, echo, group, option } from "../../framework/index.js";
+import { argument, command, group, option } from "../kit.js";
+import { INT } from "../types.js";
+import { echo } from "../io.js";
+import { confirm } from "../prompts.js";
 import { getFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
 
@@ -26,15 +29,15 @@ export const files_list = command("list", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox files list abc123\n" +
+    "    abx sandbox files list abc123\n" +
     "\n" +
-    "    ebx sandbox files list abc123 --path /app --recursive\n" +
+    "    abx sandbox files list abc123 --path /app --recursive\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox files stat SANDBOX_ID --path PATH\n" +
-    "  ebx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
-    "  ebx download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
+    "  abx sandbox files stat SANDBOX_ID --path PATH\n" +
+    "  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
+    "  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { default: "/home/user", help: "Directory path to list" }),
@@ -98,15 +101,15 @@ export const files_stat = command("stat", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox files stat abc123 --path /home/user/app.py\n" +
+    "    abx sandbox files stat abc123 --path /home/user/app.py\n" +
     "\n" +
-    "    ebx sandbox files stat abc123 --path /app\n" +
+    "    abx sandbox files stat abc123 --path /app\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox files list SANDBOX_ID --path PATH\n" +
-    "  ebx sandbox files mv SANDBOX_ID --source PATH --dest PATH\n" +
-    "  ebx download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
+    "  abx sandbox files list SANDBOX_ID --path PATH\n" +
+    "  abx sandbox files mv SANDBOX_ID --source PATH --dest PATH\n" +
+    "  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { required: true, help: "File or directory path" }),
@@ -139,15 +142,15 @@ export const files_mkdir = command("mkdir", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox files mkdir abc123 --path /home/user/myproject/src\n" +
+    "    abx sandbox files mkdir abc123 --path /home/user/myproject/src\n" +
     "\n" +
-    "    ebx sandbox files mkdir abc123 --path /tmp/results\n" +
+    "    abx sandbox files mkdir abc123 --path /tmp/results\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox files list SANDBOX_ID --path PATH\n" +
-    "  ebx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
-    "  ebx sandbox files rm SANDBOX_ID --path PATH",
+    "  abx sandbox files list SANDBOX_ID --path PATH\n" +
+    "  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
+    "  abx sandbox files rm SANDBOX_ID --path PATH",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { required: true, help: "Directory path to create" }),
@@ -174,15 +177,15 @@ export const files_rm = command("rm", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox files rm abc123 --path /home/user/temp.txt\n" +
+    "    abx sandbox files rm abc123 --path /home/user/temp.txt\n" +
     "\n" +
-    "    ebx sandbox files rm abc123 --path /home/user/old_dir -y\n" +
+    "    abx sandbox files rm abc123 --path /home/user/old_dir -y\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox files stat SANDBOX_ID --path PATH\n" +
-    "  ebx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
-    "  ebx sandbox files mkdir SANDBOX_ID --path DIRECTORY",
+    "  abx sandbox files stat SANDBOX_ID --path PATH\n" +
+    "  abx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
+    "  abx sandbox files mkdir SANDBOX_ID --path DIRECTORY",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { required: true, help: "File or directory path to delete" }),
@@ -215,15 +218,15 @@ export const files_mv = command("mv", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox files mv abc123 --source /home/user/old.py --dest /home/user/new.py\n" +
+    "    abx sandbox files mv abc123 --source /home/user/old.py --dest /home/user/new.py\n" +
     "\n" +
-    "    ebx sandbox files mv abc123 -s /tmp/results -d /app/results\n" +
+    "    abx sandbox files mv abc123 -s /tmp/results -d /app/results\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox files stat SANDBOX_ID --path PATH\n" +
-    "  ebx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
-    "  ebx sandbox files rm SANDBOX_ID --path PATH",
+    "  abx sandbox files stat SANDBOX_ID --path PATH\n" +
+    "  abx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
+    "  abx sandbox files rm SANDBOX_ID --path PATH",
   params: [
     argument(["sandbox_id"]),
     option(["--source", "-s"], { required: true, help: "Source path" }),
@@ -252,15 +255,15 @@ export const files_search = command("search", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox files search abc123 --path /home/user --pattern \"*.py\"\n" +
+    "    abx sandbox files search abc123 --path /home/user --pattern \"*.py\"\n" +
     "\n" +
-    "    ebx sandbox files search abc123 --path /app --pattern \"*.log\" --max-depth 3\n" +
+    "    abx sandbox files search abc123 --path /app --pattern \"*.log\" --max-depth 3\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
-    "  ebx sandbox files stat SANDBOX_ID --path PATH\n" +
-    "  ebx exec SANDBOX_ID \"find /app -type f\"",
+    "  abx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
+    "  abx sandbox files stat SANDBOX_ID --path PATH\n" +
+    "  abx exec SANDBOX_ID \"find /app -type f\"",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { required: true, help: "Directory to search in" }),
@@ -313,15 +316,15 @@ export const files = group("files", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx sandbox files list abc123 --path /app\n" +
-    "  ebx sandbox files stat abc123 --path /app/main.py\n" +
-    "  ebx sandbox files search abc123 --path /app --pattern \"*.py\"\n" +
+    "  abx sandbox files list abc123 --path /app\n" +
+    "  abx sandbox files stat abc123 --path /app/main.py\n" +
+    "  abx sandbox files search abc123 --path /app --pattern \"*.py\"\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
-    "  ebx download SANDBOX_ID REMOTE_PATH LOCAL_PATH\n" +
-    "  ebx sandbox process --help",
+    "  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
+    "  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH\n" +
+    "  abx sandbox process --help",
   callback: (ctx) => {
     ctx.ensureObject(Object);
   },

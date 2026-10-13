@@ -1,6 +1,8 @@
-# CLI E2E baseline: Python oracle (`ebx` 0.2.0, original Python implementation)
+# CLI E2E baseline: Python oracle (`abx` 0.2.0, original Python implementation)
 
-- Binary under test: `EBX_BIN=<pristine Python ebx, easy-sandbox @ b15b88f>` (`ebx, version 0.2.0`)
+> Historical record of one dated run against the original Python implementation. The scenario suite has changed since: the CLI no longer has the configurable shortcuts, `sandbox process start`, `sandbox shell-stream` or template `custom_commands` that some scenario ids below exercise (`config-reset-shortcuts`, `config-shortcut-expansion`, `process-start-*`, `shell-stream`, `run-custom-command`); `exec --background/--stream`, `sandbox command list` and the removed-spelling checks replaced them. The Python oracle is no longer expected to pass the current suite. Regenerate this table against a live run before relying on it.
+
+- Binary under test: `ABX_BIN=<pristine Python abx, agent-sandbox @ b15b88f>` (`abx, version 0.2.0`)
 - Date: 2026-10-12; cloud: real Alibaba Cloud FC agent sandbox platform (cn-hangzhou), credentials from the gitignored `cli/.env` (never recorded here)
 - Method: `node e2e/run.mjs --json ... --markdown ...` executed **twice back to back** against the same account to detect flakiness; isolated HOME and cwd per suite, CI variables stripped.
 - Run 1: {'pass': 129, 'fail': 0, 'skip': 3, 'xfail': 0}; run 2: {'pass': 129, 'fail': 0, 'skip': 3, 'xfail': 0}; sandboxes created per run: 2/2, leaked: 0/0 (verified with `list` after each run: none of the created ids remain).
@@ -79,7 +81,7 @@
 | cloud-readonly | `exec-missing-sandbox` | PASS | PASS | 1.1s / 1.0s |  |
 | cloud-readonly | `kill-missing-sandbox` | PASS | PASS | 1.0s / 1.0s |  |
 | cloud-readonly | `files-missing-sandbox` | PASS | PASS | 1.0s / 1.0s |  |
-| cloud-readonly | `kill-all-guard` | SKIP | SKIP | 0.0s / 0.0s | opt-in: set EBX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account) |
+| cloud-readonly | `kill-all-guard` | SKIP | SKIP | 0.0s / 0.0s | opt-in: set ABX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account) |
 | cloud-lifecycle | `create-json` | PASS | PASS | 2.0s / 2.3s |  |
 | cloud-lifecycle | `list-contains-sandbox` | PASS | PASS | 1.6s / 4.0s |  |
 | cloud-lifecycle | `list-filter-running` | PASS | PASS | 1.1s / 1.2s |  |
@@ -137,13 +139,13 @@
 | catalog | `install-download-only` | PASS | PASS | 0.5s / 0.5s |  |
 | catalog | `install-download-only-json` | PASS | PASS | 0.5s / 0.5s |  |
 | catalog | `install-unknown-template` | PASS | PASS | 0.3s / 0.3s |  |
-| docker-deploy | `deploy-minimal-template` | SKIP | SKIP | 0.0s / 0.0s | opt-in: set EBX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources) |
-| docker-deploy | `create-from-deployed-template` | SKIP | SKIP | 0.0s / 0.0s | opt-in: set EBX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources) |
+| docker-deploy | `deploy-minimal-template` | SKIP | SKIP | 0.0s / 0.0s | opt-in: set ABX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources) |
+| docker-deploy | `create-from-deployed-template` | SKIP | SKIP | 0.0s / 0.0s | opt-in: set ABX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources) |
 | builtin | `leak-check` | PASS | PASS | 0.0s / 0.0s |  |
 
 ## Snapshot: Node port (informational, not the baseline)
 
-The same suite was executed once against the in-progress Node.js port (`src/bin/ebx.ts` run through `tsx`, working tree at commit `e26562b`) on 2026-10-12: **129 pass, 3 skip, 0 fail**, sandboxes created 2, leaked 0. The 3 skips are the same opt-in scenarios listed under "Not executed". The port is still being developed, so this is a point-in-time observation; rerun `npm run e2e` against a build before claiming parity.
+The same suite was executed once against the in-progress Node.js port (`src/bin/abx.ts` run through `tsx`, working tree at commit `e26562b`) on 2026-10-12: **129 pass, 3 skip, 0 fail**, sandboxes created 2, leaked 0. The 3 skips are the same opt-in scenarios listed under "Not executed". The port is still being developed, so this is a point-in-time observation; rerun `npm run e2e` against a build before claiming parity.
 
 The differential harness (`parity/diff`, `--fast`) gave 118/118 identical for oracle vs oracle and 118/118 identical for oracle vs port on the same day. A first port run taken while the port sources were being edited showed 2 transient MCP-artifact diffs that did not reproduce.
 
@@ -167,7 +169,7 @@ These are properties of the Python oracle on the real cloud; the suite pins the 
 
 | Scenario | Reason |
 |---|---|
-| `docker-deploy/*` (`template build`/`deploy` -> ACR push -> official CreateTemplate -> sandbox) | Opt-in (`EBX_E2E_DOCKER=1`). Docker works locally, but pushing real image layers to personal ACR from this environment stalls at about 17 KB/s (see `python-sdk/e2e/KNOWN-ISSUES.md`, KI-011), so a full deploy cannot finish in a reasonable time. The scenario is written and syntax-checked; it self-skips with this exact reason. |
-| `cloud-readonly/kill-all-guard` | Opt-in (`EBX_E2E_ALLOW_KILL_ALL=1`): `kill --all` could destroy other users' sandboxes in a shared account if an implementation ignored the confirmation. |
+| `docker-deploy/*` (`template build`/`deploy` -> ACR push -> official CreateTemplate -> sandbox) | Opt-in (`ABX_E2E_DOCKER=1`). Docker works locally, but pushing real image layers to personal ACR from this environment stalls at about 17 KB/s (see `python-sdk/e2e/KNOWN-ISSUES.md`, KI-011), so a full deploy cannot finish in a reasonable time. The scenario is written and syntax-checked; it self-skips with this exact reason. |
+| `cloud-readonly/kill-all-guard` | Opt-in (`ABX_E2E_ALLOW_KILL_ALL=1`): `kill --all` could destroy other users' sandboxes in a shared account if an implementation ignored the confirmation. |
 | `mcp start` / `mcp deploy` | Long-running stdio/HTTP server and artifact generation; covered by the unit tests, not by this black-box suite (`mcp stop`, `status`, `install` are covered). |
 | AI generation (`create "<description>"`, `template init "<description>"`) | Requires the Qwen Code binary and a DashScope key, non-deterministic by nature. |

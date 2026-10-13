@@ -2,16 +2,16 @@
  * Remote template index client.
  *
  * The official and community template catalog lives in a **single source of truth** repository:
- * `Easy-Sandbox/awesome-templates`.  Its root index file (`awesome-templates.yaml`) is what `ebx template search`
- * queries and what `ebx template install <name>` resolves bare template names against.
+ * `alibaba-agent-sandbox/awesome-templates`.  Its root index file (`awesome-templates.yaml`) is what `abx template search`
+ * queries and what `abx template install <name>` resolves bare template names against.
  *
  * Design notes
  * ------------
  * * The default index URL points at `raw.githubusercontent.com` — raw files are served by a CDN and are **not**
  *   subject to the 60 requests/hour anonymous limit of `api.github.com`.  A `GITHUB_TOKEN` is still honoured for
- *   private mirrors: prefer storing it once with `ebx config set github_token`; `--token` remains a one-off override
+ *   private mirrors: prefer storing it once with `abx config set github_token`; `--token` remains a one-off override
  *   that may leak into shell history and process listings.
- * * The fetched index is cached under `~/.ebx/index/` together with metadata (`fetched_at` / `etag`).  Within
+ * * The fetched index is cached under `~/.abx/index/` together with metadata (`fetched_at` / `etag`).  Within
  *   `INDEX_MAX_AGE_SECONDS` the cache is used without touching the network; `force=true` (`--refresh`) bypasses it,
  *   and a conditional request (`If-None-Match`) keeps refreshes cheap.
  * * Network failures degrade gracefully: when a cached copy exists it is served with `stale=true` plus a
@@ -23,12 +23,12 @@
 
 import * as os from "node:os";
 import * as path from "node:path";
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { GitHubRateLimitError, NetworkError, TemplateNotFoundError, TemplateParseError } from "../models/errors.js";
 import { asyncWith, HTTPError, httpx } from "../transport/_httpx.js";
 import { PyFloat, pyFloatParse, pyJsonDumps, pyRepr, pyStr, pyStrip, pyStripChars } from "./_pyformat.js";
 import { AttributeError, OSError, PyTypeError, isFile, mkdirParents, pyExpandUser, pyJoin, pyTypeNameOf, readTextPy, writeTextPy } from "./_pyos.js";
-import { safeLoad } from "./_yaml.js";
+import { loadYaml as safeLoad } from "./yaml_io.js";
 import { rateLimitMessage, rateLimitSuggestion } from "./github_token.js";
 import { getLogger } from "./logging.js";
 
@@ -36,19 +36,19 @@ const logger = getLogger("utils.template_index");
 
 /** Canonical index location (single source of truth). */
 export const DEFAULT_INDEX_URL =
-  "https://raw.githubusercontent.com/Easy-Sandbox/awesome-templates/main/awesome-templates.yaml";
+  "https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml";
 
 /** Environment variable that overrides the index location. */
-export const INDEX_URL_ENV = "EBX_TEMPLATE_INDEX_URL";
+export const INDEX_URL_ENV = "ABX_TEMPLATE_INDEX_URL";
 
 /**
- * Local cache location (kept outside `~/.ebx/templates` so it is never mistaken for an installed template).
+ * Local cache location (kept outside `~/.abx/templates` so it is never mistaken for an installed template).
  */
-export let INDEX_CACHE_DIR: string = path.join(os.homedir(), ".ebx", "index");
+export let INDEX_CACHE_DIR: string = path.join(os.homedir(), ".abx", "index");
 export const INDEX_CACHE_FILE = "awesome-templates.yaml";
 export const INDEX_META_FILE = "awesome-templates.meta.json";
 
-/** Test seam for `patch("easy_sandbox.utils.template_index.INDEX_CACHE_DIR", dir)`. */
+/** Test seam for `patch("agent_sandbox.utils.template_index.INDEX_CACHE_DIR", dir)`. */
 export function _setIndexCacheDir(dir: string): string {
   const prev = INDEX_CACHE_DIR;
   INDEX_CACHE_DIR = dir;
@@ -359,7 +359,7 @@ export function parseIndex(text: string, opts: ParseIndexOptions = {}): Template
     throw new TemplateParseError(
       `Template index schema_version ${schema_version} is newer than supported ` +
         `schema_version ${INDEX_SCHEMA_VERSION}.`,
-      { suggestion: "Upgrade easy-sandbox (`pip install -U easy-sandbox`) to read this index." },
+      { suggestion: "Upgrade agent-sandbox (`pip install -U agent-sandbox`) to read this index." },
     );
   }
 
@@ -533,7 +533,7 @@ export function _staleFallback(
 /**
  * Return the template index, using the cache when fresh.
  *
- * index_url: HTTP(S) URL of the index, or a local file path.  Defaults to `EBX_TEMPLATE_INDEX_URL` and then
+ * index_url: HTTP(S) URL of the index, or a local file path.  Defaults to `ABX_TEMPLATE_INDEX_URL` and then
  *   `DEFAULT_INDEX_URL`.
  * token: optional GitHub token (`GITHUB_TOKEN`) for private mirrors.
  * cache_dir: override for the cache directory (tests).
@@ -553,7 +553,7 @@ export async function fetchIndex(
     if (!isFile(pth)) {
       throw new TemplateNotFoundError(`Template index file not found: ${pth}`, {
         suggestion:
-          "Check --index-url / EBX_TEMPLATE_INDEX_URL, or drop the " +
+          "Check --index-url / ABX_TEMPLATE_INDEX_URL, or drop the " +
           "override to use the canonical remote index.",
       });
     }
@@ -579,8 +579,8 @@ export async function fetchIndex(
   const suggestion =
     "Check your network connection, or point at a mirror with " +
     `--index-url / ${INDEX_URL_ENV}. For GitHub rate limits, authenticate ` +
-    "with 'ebx config set github_token'. As a last resort install directly " +
-    "with 'ebx template install owner/repo//subdir[@ref]'.";
+    "with 'abx config set github_token'. As a last resort install directly " +
+    "with 'abx template install owner/repo//subdir[@ref]'.";
 
   let resp: InstanceType<typeof httpx.Response>;
   try {
@@ -642,7 +642,7 @@ export async function fetchIndex(
       reason: `Template index not found at ${url} (HTTP 404).`,
       index_url: url,
       suggestion:
-        "Verify the index URL (--index-url / EBX_TEMPLATE_INDEX_URL); the " +
+        "Verify the index URL (--index-url / ABX_TEMPLATE_INDEX_URL); the " +
         "repository, branch, or file may have moved.",
     });
   }

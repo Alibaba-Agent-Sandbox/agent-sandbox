@@ -1,14 +1,14 @@
-# Decision: `ebx config init` collects the template-deploy prerequisites
+# Decision: `abx config init` collects the template-deploy prerequisites
 
 Status: implemented
 Implemented: 2026-09-30
 
 ## Problem
 
-`ebx install` (and `ebx template deploy`) stop with "Missing ACR namespace"
+`abx install` (and `abx template deploy`) stop with "Missing ACR namespace"
 and "Alibaba Cloud AK/SK credentials not found" unless the user already
 knows about `--acr-namespace`, `ACR_NAMESPACE`, and
-`ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET`. `ebx config init`
+`ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET`. `abx config init`
 only asked for the sandbox API key, the region, and the LLM API key, so the
 first time a user tried to install a template was also the first time they
 heard about those prerequisites.
@@ -19,18 +19,18 @@ namespace was not: it lived only as a flag, a process variable, or a raw
 
 ## Decision
 
-- `acr_namespace` is a config key, stored in `~/.ebx/.env` as
+- `acr_namespace` is a config key, stored in `~/.abx/.env` as
   `ACR_NAMESPACE`. `config get` / `config set` / `config list` treat it like
   the other env-stored keys. Resolution stays CLI flag, then
   `ACR_NAMESPACE` in the process environment, then `./.env`, then
-  `~/.ebx/.env`.
+  `~/.abx/.env`.
 - The guided wizard prompts for six items, each skippable with Enter:
   sandbox API key, region, LLM API key, ACR namespace, AccessKey ID,
   AccessKey Secret. The two API keys and the AccessKey secret stay masked.
-- `--yes` and non-TTY sessions print `ebx config set` lines for the
+- `--yes` and non-TTY sessions print `abx config set` lines for the
   namespace and the AccessKey pair next to the existing ones.
-- The missing-prerequisite errors name `ebx config init` and
-  `ebx config set` first.
+- The missing-prerequisite errors name `abx config init` and
+  `abx config set` first.
 
 ## Not changed
 
@@ -51,8 +51,8 @@ namespace was not: it lived only as a flag, a process variable, or a raw
 
 ## Files changed
 
-- `src/easy_sandbox/cli/commands/config_cmd.py`
-- `src/easy_sandbox/cli/commands/template.py` (error text)
+- `src/agent_sandbox/cli/commands/config_cmd.py`
+- `src/agent_sandbox/cli/commands/template.py` (error text)
 - `docs/{en,zh}/reference/cli-reference.md`, `configuration.md`
 - `docs/{en,zh}/guide/cli-tutorial.md`, `e2e-template-workflow.md`
 - `CHANGELOG.md`

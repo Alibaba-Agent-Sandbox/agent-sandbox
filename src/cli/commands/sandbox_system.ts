@@ -1,33 +1,17 @@
-/** Sandbox system, capabilities, and shell-stream CLI commands (port of `cli/commands/sandbox_system.py`). */
+/** Sandbox system and capabilities CLI commands (port of `cli/commands/sandbox_system.py`). */
 
 import type { Sandbox } from "../../api/sandbox.js";
-import { shlexQuote } from "../../api/_shlex.js";
 import { JSONDecodeError, pyJsonLoads } from "../../agent/_py.js";
-import { ProcessChunkType } from "../../models/process.js";
-import type { ProcessChunk, ProcessResult } from "../../models/process.js";
-import { cmpStr } from "../../framework/py.js";
-import { PyFloat, argument, command, Choice, INT, echo, group, option, sysExit } from "../../framework/index.js";
+import type { ProcessResult } from "../../models/process.js";
+import { cmpStr } from "../../utils/_py.js";
+import { argument, command, group, option } from "../kit.js";
+import { Choice } from "../types.js";
+import { sysExit } from "../errors.js";
+import { echo } from "../io.js";
+import { PyFloat } from "../../utils/_pyformat.js";
 import { pyRstrip, pySplitlines, pyStr, pyStrip } from "../../utils/_pyformat.js";
 import { type OutputFormatter, getFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
-
-// Shell metacharacters that require wrapping in ``sh -c``.
-const _SHELL_META_RE = /[|&;<>()$`\\"'\n]/;
-
-/**
- * Wrap *cmd* in ``sh -c '...'`` when it contains shell metacharacters.
- *
- * Wraps command in ``sh -c`` for variable expansion (``$VAR``), backticks, and newlines.  Note: pipe/redirect/semicolon
- * operators are now auto-detected and wrapped by ``api/commands.py::_needs_shell_wrap``, so this function primarily
- * handles ``$``-expansion and multi-line commands that ``_needs_shell_wrap`` does not cover.
- */
-export function _wrapShellCmd(cmd: string): string {
-  if (_SHELL_META_RE.test(cmd)) {
-    // Use shlex.quote to safely embed the command string.
-    return `sh -c ${shlexQuote(cmd)}`;
-  }
-  return cmd;
-}
 
 /** Connect to a sandbox by ID. */
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {
@@ -168,7 +152,7 @@ function _get(obj: PyJson, key: string, dflt: PyJson): PyJson {
 }
 
 /**
- * Hand `[[name, version], ...]` rows to `print_table`. Rich (`add_row`) rejects non-`str` cells before printing anything;
+ * Hand `[[name, version], ...]` rows to `print_table`. The table renderer rejects non-`str` cells before printing anything;
  * quiet mode (`"\t".join(row)`) fails on the first bad row after the preceding rows were already echoed.
  */
 function _printPackageRows(fmt: OutputFormatter, headers: string[], rows: PyJson[][]): void {
@@ -203,15 +187,15 @@ export const system_info = command("info", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox system info abc123\n" +
+    "    abx sandbox system info abc123\n" +
     "\n" +
-    "    ebx --json sandbox system info abc123\n" +
+    "    abx --json sandbox system info abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx info SANDBOX_ID\n" +
-    "  ebx sandbox system metrics SANDBOX_ID\n" +
-    "  ebx sandbox system packages SANDBOX_ID",
+    "  abx info SANDBOX_ID\n" +
+    "  abx sandbox system metrics SANDBOX_ID\n" +
+    "  abx sandbox system packages SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -268,15 +252,15 @@ export const system_env = command("env", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox system env abc123\n" +
+    "    abx sandbox system env abc123\n" +
     "\n" +
-    "    ebx sandbox system env abc123 --filter PATH,HOME,LANG\n" +
+    "    abx sandbox system env abc123 --filter PATH,HOME,LANG\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox system info SANDBOX_ID\n" +
-    "  ebx exec SANDBOX_ID \"env | sort\"\n" +
-    "  ebx create --env KEY=VALUE",
+    "  abx sandbox system info SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID \"env | sort\"\n" +
+    "  abx create --env KEY=VALUE",
   params: [
     argument(["sandbox_id"]),
     option(["--filter", "-f", "env_filter"], {
@@ -345,15 +329,15 @@ export const system_ports = command("ports", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox system ports abc123\n" +
+    "    abx sandbox system ports abc123\n" +
     "\n" +
-    "    ebx --json sandbox system ports abc123\n" +
+    "    abx --json sandbox system ports abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox system info SANDBOX_ID\n" +
-    "  ebx sandbox process list SANDBOX_ID\n" +
-    "  ebx exec SANDBOX_ID \"ss -tlnp\"",
+    "  abx sandbox system info SANDBOX_ID\n" +
+    "  abx sandbox process list SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID \"ss -tlnp\"",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -389,15 +373,15 @@ export const system_packages = command("packages", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox system packages abc123\n" +
+    "    abx sandbox system packages abc123\n" +
     "\n" +
-    "    ebx sandbox system packages abc123 --manager npm\n" +
+    "    abx sandbox system packages abc123 --manager npm\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox system info SANDBOX_ID\n" +
-    "  ebx exec SANDBOX_ID \"python3 -m pip show PACKAGE\"\n" +
-    "  ebx sandbox process list SANDBOX_ID",
+    "  abx sandbox system info SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID \"python3 -m pip show PACKAGE\"\n" +
+    "  abx sandbox process list SANDBOX_ID",
   params: [
     argument(["sandbox_id"]),
     option(["--manager", "-m"], {
@@ -492,15 +476,15 @@ export const system_metrics = command("metrics", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox system metrics abc123\n" +
+    "    abx sandbox system metrics abc123\n" +
     "\n" +
-    "    ebx --json sandbox system metrics abc123\n" +
+    "    abx --json sandbox system metrics abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox system info SANDBOX_ID\n" +
-    "  ebx sandbox process list SANDBOX_ID\n" +
-    "  ebx info SANDBOX_ID",
+    "  abx sandbox system info SANDBOX_ID\n" +
+    "  abx sandbox process list SANDBOX_ID\n" +
+    "  abx info SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -564,22 +548,23 @@ export const system_metrics = command("metrics", {
 
 export const capabilities = command("capabilities", {
   help:
-    "Show the capability groups declared by a sandbox template.\n" +
+    "Show the capability groups available in a sandbox.\n" +
     "\n" +
-    "Capability groups include shell, files, code, terminal, and ports when\n" +
-    "declared by the template.\n" +
+    "Capability groups include shell, files, code, terminal, and ports. The built-in\n" +
+    "provider reads them from the sandbox template; a plugin provider derives them\n" +
+    "from the features it declares (see abx provider info ID).\n" +
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox capabilities abc123\n" +
+    "    abx sandbox capabilities abc123\n" +
     "\n" +
-    "    ebx --json sandbox capabilities abc123\n" +
+    "    abx --json sandbox capabilities abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx info SANDBOX_ID\n" +
-    "  ebx template info TEMPLATE_ID\n" +
-    "  ebx sandbox system info SANDBOX_ID",
+    "  abx info SANDBOX_ID\n" +
+    "  abx template info TEMPLATE_ID\n" +
+    "  abx sandbox system info SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -601,75 +586,6 @@ export const capabilities = command("capabilities", {
 });
 
 // ---------------------------------------------------------------------------
-// shell-stream
-// ---------------------------------------------------------------------------
-
-export const shell_stream = command("shell-stream", {
-  help:
-    "Execute a command with real-time HTTP chunked streaming output.\n" +
-    "\n" +
-    "Unlike 'exec', output is printed line-by-line as it arrives via\n" +
-    "HTTP chunked streaming.\n" +
-    "\n" +
-    "Examples:\n" +
-    "\n" +
-    "    ebx sandbox shell-stream abc123 --command \"pip install numpy\"\n" +
-    "\n" +
-    "    ebx sandbox shell-stream abc123 -c \"make build\" --cwd /app\n" +
-    "\n" +
-    "\b\n" +
-    "Related commands:\n" +
-    "  ebx exec SANDBOX_ID CMD\n" +
-    "  ebx sandbox process start SANDBOX_ID --command CMD\n" +
-    "  ebx connect SANDBOX_ID",
-  params: [
-    argument(["sandbox_id"]),
-    option(["--command", "-c", "cmd"], {
-      required: true,
-      help: "Command to execute with streaming output",
-    }),
-    option(["--timeout", "-t", "cmd_timeout"], {
-      type: INT,
-      default: 300,
-      help: "Command timeout in seconds (positive integer; default: 300)",
-    }),
-    option(["--cwd"], { default: "", help: "Working directory" }),
-  ],
-  callback: handleErrors(async (ctx, params) => {
-    const sandbox_id = params["sandbox_id"] as string;
-    const cmd = params["cmd"] as string;
-    const cmd_timeout = params["cmd_timeout"] as number;
-    const cwd = params["cwd"] as string;
-
-    const fmt = getFormatter(ctx);
-    const sandbox = await _connectSandbox(sandbox_id);
-
-    let exit_code = 0;
-
-    const _stream = async (): Promise<number> => {
-      // BUG-06: wrap commands containing pipes / redirections so the remote shell evaluates the full pipeline.
-      const effective_cmd = _wrapShellCmd(cmd);
-      for await (const chunk of sandbox.commands.stream(effective_cmd, { timeout: cmd_timeout, cwd }) as AsyncIterable<ProcessChunk>) {
-        if (chunk.type === ProcessChunkType.STDOUT) {
-          if (chunk.data) echo(chunk.data, { nl: false });
-        } else if (chunk.type === ProcessChunkType.STDERR) {
-          if (chunk.data) echo(chunk.data, { err: true, nl: false });
-        } else if (chunk.type === ProcessChunkType.EXIT) {
-          exit_code = chunk.exit_code || 0;
-        }
-      }
-      return exit_code;
-    };
-
-    const code = await _stream();
-
-    if (fmt.use_json) fmt.printData(new Map<string, unknown>([["exit_code", code]]));
-
-    sysExit(code);
-  }),
-});
-
-// ---------------------------------------------------------------------------
 // system group
 // ---------------------------------------------------------------------------
 
@@ -679,15 +595,15 @@ export const system = group("system", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx sandbox system info abc123\n" +
-    "  ebx sandbox system env abc123 --filter PATH,HOME\n" +
-    "  ebx sandbox system metrics abc123\n" +
+    "  abx sandbox system info abc123\n" +
+    "  abx sandbox system env abc123 --filter PATH,HOME\n" +
+    "  abx sandbox system metrics abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx info SANDBOX_ID\n" +
-    "  ebx sandbox process --help\n" +
-    "  ebx sandbox capabilities SANDBOX_ID",
+    "  abx info SANDBOX_ID\n" +
+    "  abx sandbox process --help\n" +
+    "  abx sandbox capabilities SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);
   },

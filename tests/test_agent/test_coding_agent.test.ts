@@ -1,7 +1,7 @@
 /**
  * Unit tests for the pluggable coding-agent backend boundary.
  *
- * Port of `tests/test_agent/test_coding_agent.py`. These tests pin the seam that `ebx create "<description>"` uses
+ * Port of `tests/test_agent/test_coding_agent.py`. These tests pin the seam that `abx create "<description>"` uses
  * (`src/agent/coding_agent.ts`): the resolver, the protocol surface shipped by `QwenCodeBackend`, and — most
  * importantly — the lazy delegation to the verified implementation modules (`qwen_code`, `codegen`, `clarify`), so
  * the existing patch points (`seams.*`) on those modules keep intercepting every adapter call.
@@ -28,7 +28,7 @@ import {
 } from "../../src/agent/coding_agent.js";
 import * as qwenCode from "../../src/agent/qwen_code.js";
 import { QwenCodeCredentials } from "../../src/agent/qwen_code.js";
-import { ValueError } from "../../src/models/_pydantic.js";
+import { ValueError } from "../../src/models/value_error.js";
 import { QwenCodeCredentialError, QwenCodeNotInstalledError, SandboxCreationError } from "../../src/models/errors.js";
 import { CLI_ROOT, makeTmp, raises, rmTmp } from "../helpers/agentSupport.js";
 
@@ -132,11 +132,11 @@ describe("TestQuickSetupWording", () => {
     vi.spyOn(qwenCode.seams, "officialInstallCommand").mockReturnValue("curl -fsSL https://example.test/install.sh | bash");
     const lines = await new QwenCodeBackend().quickSetupLines({ reason: "not-installed" });
     expect(lines).toEqual([
-      "Quick Setup - AI template generation (Qwen Code):",
+      "Quick Setup - template generation (Qwen Code):",
       "  1. Install the Qwen Code CLI (official standalone build):",
       "       curl -fsSL https://example.test/install.sh | bash",
-      "     or re-run 'ebx create \"<description>\"' and accept the install prompt",
-      "     or bypass AI generation with:  ebx create --template base",
+      "     or re-run 'abx create \"<description>\"' and accept the install prompt",
+      "     or bypass template generation with:  abx create --template base",
       "  2. Docs: https://github.com/QwenLM/qwen-code",
     ]);
   });
@@ -144,10 +144,10 @@ describe("TestQuickSetupWording", () => {
   it("test_no_credentials_lines", async () => {
     const lines = await new QwenCodeBackend().quickSetupLines({ reason: "no-credentials" });
     expect(lines).toEqual([
-      "Quick Setup - AI template generation (Qwen Code):",
+      "Quick Setup - template generation (Qwen Code):",
       "  1. Configure the LLM API key for Qwen Code (DashScope/ModelStudio):",
-      "       ebx config set llm_api_key <KEY>   (stored in ~/.ebx/.env)",
-      "       or run the guided wizard:  ebx config init",
+      "       abx config set llm_api_key <KEY>   (stored in ~/.abx/.env)",
+      "       or run the guided wizard:  abx config init --llm",
       "       (exported OPENAI_API_KEY / DASHSCOPE_API_KEY also work)",
       "  2. Docs: https://github.com/QwenLM/qwen-code",
     ]);
@@ -247,7 +247,7 @@ describe("TestDelegation", () => {
   });
 
   it("test_prepare_workdir_delegates", async () => {
-    const expected: [string, string] = [path.join(tmpPath, "ws"), "ebx-nl-test-abc"];
+    const expected: [string, string] = [path.join(tmpPath, "ws"), "abx-nl-test-abc"];
     const mock = vi.spyOn(codegen.seams, "prepareWorkdir").mockReturnValue(expected);
     expect(await new QwenCodeBackend().prepareWorkdir("a python env")).toEqual(expected);
     expect(mock).toHaveBeenCalledTimes(1);
@@ -311,7 +311,7 @@ describe("TestDelegation", () => {
   it("test_generate_forwards_every_argument", async () => {
     const gen = new CodegenResult({
       workdir: tmpPath,
-      templateName: "ebx-nl-test-abc",
+      templateName: "abx-nl-test-abc",
       dockerfile: path.join(tmpPath, "Dockerfile"),
       templateYaml: path.join(tmpPath, "template.yaml"),
       description: "a python env",
@@ -323,7 +323,7 @@ describe("TestDelegation", () => {
 
     const result = await new QwenCodeBackend().generate("a python env", {
       workdir: tmpPath,
-      templateName: "ebx-nl-test-abc",
+      templateName: "abx-nl-test-abc",
       resumeSession: "sess-1",
       binary: path.join(tmpPath, "qwen"),
       env,
@@ -334,7 +334,7 @@ describe("TestDelegation", () => {
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith("a python env", {
       workdir: tmpPath,
-      templateName: "ebx-nl-test-abc",
+      templateName: "abx-nl-test-abc",
       resumeSession: "sess-1",
       binary: path.join(tmpPath, "qwen"),
       env,
@@ -343,7 +343,7 @@ describe("TestDelegation", () => {
   });
 
   it("test_prepare_workdir_forwards_the_base_dir", async () => {
-    const expected: [string, string] = [path.join(tmpPath, "ws"), "ebx-nl-test-abc"];
+    const expected: [string, string] = [path.join(tmpPath, "ws"), "abx-nl-test-abc"];
     const mock = vi.spyOn(codegen.seams, "prepareWorkdir").mockReturnValue(expected);
 
     const result = await new QwenCodeBackend().prepareWorkdir("a python env", { baseDir: tmpPath });

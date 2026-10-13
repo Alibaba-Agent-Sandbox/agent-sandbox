@@ -1,7 +1,7 @@
 /**
  * CLI integration tests for the remote template index.
  *
- * `ebx template search` queries the index and `ebx template install <name>` resolves bare, non-builtin names through
+ * `abx template search` queries the index and `abx template install <name>` resolves bare, non-builtin names through
  * it. Both commands are exercised fully offline: `fetchIndex` is mocked, so nothing here touches the network (or
  * GitHub rate limits).
  */
@@ -31,24 +31,24 @@ schema_version: 1
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
     tags: [qwen, ai-agent]
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code]
     status: official
   - name: node-web
     description: "Node.js web service"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: node-web
     tags: [nodejs, web, deploy]
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code]
     status: official
 `;
 
 const INDEX_URL = "https://example.test/awesome-templates.yaml";
-const SOURCE_OF_TRUTH_REPO = "Easy-Sandbox/awesome-templates";
+const SOURCE_OF_TRUTH_REPO = "alibaba-agent-sandbox/awesome-templates";
 
 const index = (): TemplateIndex => parseIndex(INDEX_YAML, { source_url: INDEX_URL });
 
@@ -134,7 +134,7 @@ describe("TestSearchCommand", () => {
     _patchIndex(index());
     const result = await runner().invoke(cli, ["template", "search", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("ebx template install");
+    expect(result.output).toContain("abx template install");
     expect(result.output).toContain(INDEX_URL);
   });
 
@@ -160,7 +160,7 @@ describe("TestSearchCommand", () => {
   });
 
   it("test_search_index_url_env_override", async () => {
-    setenv("EBX_TEMPLATE_INDEX_URL", "https://mirror.test/from-env.yaml");
+    setenv("ABX_TEMPLATE_INDEX_URL", "https://mirror.test/from-env.yaml");
     const mocked = _patchIndex(index());
     const result = await runner().invoke(cli, ["template", "search", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
@@ -196,7 +196,7 @@ function _mockRegistryClient(opts: { resolved: TemplateRef; fetched: string }) {
 }
 
 const qwenRef = (extra: Record<string, unknown> = {}): TemplateRef =>
-  new TemplateRef({ owner: "Easy-Sandbox", repo: "awesome-templates", path: "qwen-code", registry_type: "github", ...extra });
+  new TemplateRef({ owner: "alibaba-agent-sandbox", repo: "awesome-templates", path: "qwen-code", registry_type: "github", ...extra });
 
 describe("TestInstallBareNameResolution", () => {
   it("test_install_bare_name_resolves_via_index", async () => {
@@ -211,7 +211,7 @@ describe("TestInstallBareNameResolution", () => {
     expect(client.resolve.mock.calls[1]![0]).toBe(`${SOURCE_OF_TRUTH_REPO}//qwen-code`);
     const fetchedRef = (client.fetch.mock.calls[0] as unknown as [TemplateRef])[0];
     expect(fetchedRef.path).toBe("qwen-code");
-    expect(fetchedRef.owner).toBe("Easy-Sandbox");
+    expect(fetchedRef.owner).toBe("alibaba-agent-sandbox");
   });
 
   it("test_install_honours_pinned_ref_from_index", async () => {
@@ -241,7 +241,7 @@ describe("TestInstallBareNameResolution", () => {
     expect(result.exit_code).not.toBe(0);
     const combined = result.output + (result.stderr || "");
     expect(combined).toContain("not found in the template index");
-    expect(combined).toContain("ebx template search");
+    expect(combined).toContain("abx template search");
     expect(((mocked.mock.calls.at(-1) as unknown[])[1] as Record<string, unknown>)["force"]).toBe(true);
   });
 
@@ -250,7 +250,7 @@ describe("TestInstallBareNameResolution", () => {
     const client = _mockRegistryClient({ resolved: qwenRef(), fetched });
     _patchIndex(index());
 
-    const result = await runner().invoke(cli, ["install", "qwen-code", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "install", "qwen-code", "--download-only"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(client.resolve.mock.calls[1]![0]).toBe(`${SOURCE_OF_TRUTH_REPO}//qwen-code`);

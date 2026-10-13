@@ -19,12 +19,14 @@ import { runContractSuite, summarizeContract, type ContractResult } from "../../
 import { SandboxConfig } from "../../src/models/sandbox.js";
 import { loadLayeredConfig } from "../../src/transport/config_layers.js";
 import { useIso } from "../_support/iso.js";
-import { E2B_COMPATIBLE, LOCAL_PROCESS, OPENSANDBOX, TEST_HOST_VERSION, pythonAvailable } from "../_support/plugins.js";
+import { E2B_COMPATIBLE, LOCAL_PROCESS, PY_PROVIDER_EXAMPLES, TEST_HOST_VERSION, ensureOpenSandboxPlugin, pythonAvailable } from "../_support/plugins.js";
 
 const iso = useIso();
 const install = (src: string): Promise<unknown> => installer.install(src, { yes: true, hostVersion: TEST_HOST_VERSION });
 
-const PY_EXAMPLES = path.dirname(OPENSANDBOX);
+const PY_EXAMPLES = PY_PROVIDER_EXAMPLES;
+/** The catalog checkout of the opensandbox plugin, or null (cases skip) when it is absent or still uses a pre-rename manifest name. */
+const OPENSANDBOX = ensureOpenSandboxPlugin();
 
 function treeFiles(dir: string, prefix = ""): string[] {
   return fs
@@ -88,8 +90,8 @@ describe("e2b-compatible (rest provider) over a local E2B-style server", () => {
   });
 
   it("uses the inherited generic key and URL with the declared header scheme", async () => {
-    iso.setenv("EBX_SANDBOX_API_KEY", "abcd1234");
-    iso.setenv("EBX_SANDBOX_BASE_URL", origin);
+    iso.setenv("ABX_SANDBOX_API_KEY", "abcd1234");
+    iso.setenv("ABX_SANDBOX_BASE_URL", origin);
     const infra = await getProvider("e2b-compatible").buildInfra(loadLayeredConfig({ provider: "e2b-compatible", http2: false }));
     try {
       const info = await infra.sandbox_protocol.create(new SandboxConfig({ template: "base" }), {});
@@ -103,9 +105,9 @@ describe("e2b-compatible (rest provider) over a local E2B-style server", () => {
   });
 
   it("scoped credentials win and never reach the built-in provider's namespace", async () => {
-    iso.setenv("EBX_SANDBOX_API_KEY", "generic");
-    iso.setenv("EBX_E2B_COMPATIBLE_SANDBOX_API_KEY", "scoped");
-    iso.setenv("EBX_SANDBOX_BASE_URL", origin);
+    iso.setenv("ABX_SANDBOX_API_KEY", "generic");
+    iso.setenv("ABX_E2B_COMPATIBLE_SANDBOX_API_KEY", "scoped");
+    iso.setenv("ABX_SANDBOX_BASE_URL", origin);
     const infra = await getProvider("e2b-compatible").buildInfra(loadLayeredConfig({ provider: "e2b-compatible", http2: false }));
     try {
       await infra.sandbox_protocol.create(new SandboxConfig({ template: "base" }), {});
@@ -116,20 +118,20 @@ describe("e2b-compatible (rest provider) over a local E2B-style server", () => {
   });
 });
 
-const hasOpenSandbox = fs.existsSync(path.join(OPENSANDBOX, "ebx-provider.toml"));
+const hasOpenSandbox = OPENSANDBOX !== null;
 
 describe.skipIf(!hasOpenSandbox)("opensandbox (exec provider, Node plugin)", () => {
   let tmp = "";
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-osb-"));
+    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-osb-"));
   });
   afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
   it("installs a copy, lists its features and runs the contract kit against the plugin's mock server", async () => {
-    const mockModule = pathToFileURL(path.join(OPENSANDBOX, "tests", "mock", "mock-opensandbox.mjs")).href;
+    const mockModule = pathToFileURL(path.join(OPENSANDBOX as string, "tests", "mock", "mock-opensandbox.mjs")).href;
     const { startMock } = (await import(/* @vite-ignore */ mockModule)) as { startMock: (o?: object) => Promise<{ origin: string; apiKey: string; close: () => Promise<void> }> };
     const src = path.join(tmp, "opensandbox");
-    fs.cpSync(OPENSANDBOX, src, { recursive: true, filter: (p) => !p.includes(`${path.sep}tests${path.sep}`) && !p.endsWith(`${path.sep}tests`) && !p.includes("node_modules") });
+    fs.cpSync(OPENSANDBOX as string, src, { recursive: true, filter: (p) => !p.includes(`${path.sep}tests${path.sep}`) && !p.endsWith(`${path.sep}tests`) && !p.includes("node_modules") });
     await install(src);
     const prov = getProvider("opensandbox");
     expect(prov.kind).toBe("exec");
@@ -150,8 +152,8 @@ describe.skipIf(!hasOpenSandbox)("opensandbox (exec provider, Node plugin)", () 
   }, 300_000);
 
   it("runs the contract kit against a live local OpenSandbox server when one answers", async (ctx) => {
-    const base = process.env["OPENSANDBOX_URL"] ?? process.env["EBX_OPENSANDBOX_BASE_URL"] ?? "http://127.0.0.1:8080";
-    const key = process.env["EBX_OPENSANDBOX_API_KEY"] ?? process.env["OPEN_SANDBOX_API_KEY"] ?? process.env["OPENSANDBOX_API_KEY"] ?? "local-dev-key";
+    const base = process.env["OPENSANDBOX_URL"] ?? process.env["ABX_OPENSANDBOX_BASE_URL"] ?? "http://127.0.0.1:8080";
+    const key = process.env["ABX_OPENSANDBOX_API_KEY"] ?? process.env["OPEN_SANDBOX_API_KEY"] ?? process.env["OPENSANDBOX_API_KEY"] ?? "local-dev-key";
     try {
       const res = await fetch(`${base.replace(/\/v1$/, "")}/health`, { signal: AbortSignal.timeout(2000) });
       if (!res.ok) return ctx.skip();
@@ -159,7 +161,7 @@ describe.skipIf(!hasOpenSandbox)("opensandbox (exec provider, Node plugin)", () 
       return ctx.skip();
     }
     const src = path.join(tmp, "opensandbox");
-    fs.cpSync(OPENSANDBOX, src, { recursive: true, filter: (p) => !p.includes(`${path.sep}tests${path.sep}`) && !p.endsWith(`${path.sep}tests`) && !p.includes("node_modules") });
+    fs.cpSync(OPENSANDBOX as string, src, { recursive: true, filter: (p) => !p.includes(`${path.sep}tests${path.sep}`) && !p.endsWith(`${path.sep}tests`) && !p.includes("node_modules") });
     await install(src);
     const options = { base_url: base.replace(/\/v1$/, ""), api_key: key, ready_timeout: 120 };
     const results = await runContractSuite("opensandbox", { options });

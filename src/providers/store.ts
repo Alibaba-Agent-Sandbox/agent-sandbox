@@ -1,4 +1,4 @@
-/** On-disk provider store (`~/.ebx/providers`): layout, tree digest, receipts, locking (port of `providers/store.py`). */
+/** On-disk provider store (`~/.abx/providers`): layout, tree digest, receipts, locking (port of `providers/store.py`). */
 
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -8,7 +8,7 @@ import { paths } from "../transport/config_layers.js";
 import { validateProviderId } from "../utils/config_keys.js";
 import { ProviderInstallError, ProviderIntegrityError, ProviderNotFoundError } from "./errors.js";
 
-export const RECEIPT_NAME = ".ebx-install.json";
+export const RECEIPT_NAME = ".abx-install.json";
 export const RECEIPT_VERSION = 1;
 
 export const MAX_FILES = 2000;
@@ -250,7 +250,7 @@ export function verifyIntegrity(providerId: string): Receipt {
   const actual = digestDir(fs.realpathSync(directory));
   if (actual !== receipt["tree_sha256"]) {
     throw new ProviderIntegrityError(`Provider '${providerId}': files changed since install.`, {
-      suggestion: `Reinstall or run 'ebx provider update ${providerId}'.`,
+      suggestion: `Reinstall or run 'abx provider update ${providerId}'.`,
     });
   }
   return receipt;
@@ -303,7 +303,7 @@ export async function withStoreLock<T>(fn: () => Promise<T> | T, opts: { timeout
       }
       if (Date.now() >= deadline) {
         throw new ProviderInstallError("Another provider install/update is in progress.", {
-          suggestion: `If none is running, remove ${path.join("providers", ".lock")} from your ebx directory.`,
+          suggestion: `If none is running, remove ${path.join("providers", ".lock")} from your abx directory.`,
         });
       }
       await sleep(50);

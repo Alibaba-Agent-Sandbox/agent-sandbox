@@ -1,25 +1,25 @@
-# Decision: Add access_key_id / access_key_secret to ebx config set
+# Decision: Add access_key_id / access_key_secret to abx config set
 
 Status: implemented
 Implemented: 2026-09-29
 
 ## Problem
 Users need to persist AK/SK credentials for the token exchange flow, but
-`ebx config set` only supported `api_key` and non-secret fields. There was no
+`abx config set` only supported `api_key` and non-secret fields. There was no
 unified mechanism for storing sensitive credentials in the `.env` file versus
 non-sensitive settings in `config.toml`.
 
 ## Decision
-Extend `ebx config set` to accept `access_key_id` and `access_key_secret`:
+Extend `abx config set` to accept `access_key_id` and `access_key_secret`:
 
-- Both values are written to `~/.ebx/.env` (same location as `api_key`),
+- Both values are written to `~/.abx/.env` (same location as `api_key`),
   keeping all secrets in one file with restricted permissions.
 - Introduce a `_ENV_STORED_KEYS` set to centrally define which config keys are
   stored in `.env` vs `config.toml`:
   ```python
   _ENV_STORED_KEYS = {"api_key", "access_key_id", "access_key_secret"}
   ```
-- `ebx config get` masks `access_key_secret` and `api_key` with `***…<last4>`
+- `abx config get` masks `access_key_secret` and `api_key` with `***…<last4>`
   in display output.
 
 ## API Design
@@ -40,10 +40,10 @@ N/A — this decision does not involve API changes. CLI-only.
 - Unit tests verify `config get access_key_secret` returns masked output.
 
 ## Files changed
-- `src/easy_sandbox/cli/commands/config_cmd.py` — `_ENV_STORED_KEYS`, set/get logic
+- `src/agent_sandbox/cli/commands/config_cmd.py` — `_ENV_STORED_KEYS`, set/get logic
 
 ## Acceptance criteria
-- ✅ `ebx config set access_key_id LTAI...` persists to `~/.ebx/.env`
-- ✅ `ebx config set access_key_secret ...` persists to `~/.ebx/.env`
-- ✅ `ebx config get access_key_secret` shows `***…<last4>` masked value
+- ✅ `abx config set access_key_id LTAI...` persists to `~/.abx/.env`
+- ✅ `abx config set access_key_secret ...` persists to `~/.abx/.env`
+- ✅ `abx config get access_key_secret` shows `***…<last4>` masked value
 - ✅ Existing `api_key` behavior unchanged

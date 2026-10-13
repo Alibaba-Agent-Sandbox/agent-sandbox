@@ -5,7 +5,7 @@
  * `CliRunner`, normalises the output and compares it byte for byte against the committed golden files in
  * `tests/test_cli_evidence/golden/<case>.txt` (copied unchanged from the Python repository).
  *
- * Set `EBX_UPDATE_EVIDENCE=1` to **write** (seed / refresh) golden files instead of asserting against them.
+ * Set `ABX_UPDATE_EVIDENCE=1` to **write** (seed / refresh) golden files instead of asserting against them.
  */
 
 import "../_support/isolatedHome.js";
@@ -18,13 +18,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { delenv } from "../helpers/templateSupport.js";
 import { _CI_ENV_VARS } from "../_support/env.js";
-import { useDefaultShortcutsOnly } from "../test_cli/conftest.js";
 import { REGISTRY, eligibleCases, formatResult, normalize, runCase } from "./evidence_cases.js";
 
 const GOLDEN_DIR = fileURLToPath(new URL("./golden/", import.meta.url));
-const UPDATE = process.env["EBX_UPDATE_EVIDENCE"] === "1";
-
-useDefaultShortcutsOnly();
+const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
 /** `_suppress_ci_detection`: the CLI must never auto-enable JSON mode. */
 beforeEach(() => {
@@ -54,7 +51,7 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   }
   expect(
     fs.existsSync(goldenPath),
-    `Golden file missing: ${goldenPath}\nRegenerate with: EBX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence`,
+    `Golden file missing: ${goldenPath}\nRegenerate with: ABX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence`,
   ).toBe(true);
   const expected = fs.readFileSync(goldenPath, "utf8");
   expect(actual, `Output mismatch for ${testCase.output_file}`).toBe(expected);

@@ -5,7 +5,7 @@
 ### exec 基本命令
 
 ```
-$ ebx exec sbx-ev-001 "echo hello"
+$ abx exec sbx-ev-001 "echo hello"
 hello
 Exit code: 0
 ```
@@ -13,7 +13,7 @@ Exit code: 0
 ### --json exec
 
 ```
-$ ebx --json exec sbx-ev-001 "echo hello"
+$ abx --json exec sbx-ev-001 "echo hello"
 {
   "stdout": "hello\n",
   "stderr": "",
@@ -26,7 +26,7 @@ Exit code: 0
 ### exec 非零退出码
 
 ```
-$ ebx exec sbx-ev-001 bad_cmd
+$ abx exec sbx-ev-001 bad_cmd
 Exit code: 127
 ```
 
@@ -39,7 +39,7 @@ command not found
 ### exec --timeout --cwd
 
 ```
-$ ebx exec --timeout 10 --cwd /tmp sbx-ev-001 ls
+$ abx exec --timeout 10 --cwd /tmp sbx-ev-001 ls
 file1
 file2
 Exit code: 0

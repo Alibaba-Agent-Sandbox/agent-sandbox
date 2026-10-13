@@ -8,7 +8,7 @@ An implementation audit found that the Skills documentation and parts of the MCP
 documentation described features that do not exist anywhere in the code:
 
 1. **skills-system.md was a pure design draft** — the Chinese and English
-   `design/skills-system.md` described a `ebx skill` CLI command, SDK Skills
+   `design/skills-system.md` described a `abx skill` CLI command, SDK Skills
    classes, a Skills registry, and a `skills` field in template specs. None of
    these exist: `cli/main.py` has no `skill` command group, the SDK has no
    skills API, `agent/tools.py` registers no skill tools, and template parsing
@@ -22,7 +22,7 @@ documentation described features that do not exist anywhere in the code:
    option, `--transport http`, a `qoder` install target, and "auto-deploy to
    FC" wording, none of which match `cli/commands/mcp.py`, `agent/mcp.py`,
    `agent/mcp_http.py`, or `agent/tools.py`.
-4. **deploy artifact format mismatch** — `ebx mcp deploy` wrote a file named
+4. **deploy artifact format mismatch** — `abx mcp deploy` wrote a file named
    `config.yaml` whose content was produced by `json.dumps` (JSON body under a
    YAML filename), misleading both users and downstream tooling.
 
@@ -46,7 +46,7 @@ content on the user's behalf.
   `architecture.md` source trees.
 - Preserved the qwen-code template's own `/root/.qwen/skills/` concept in
   `template-system.md` only as an external tool capability (SKILL.md → noted as
-  consumed by the bundled agent tool, not an Easy Sandbox feature).
+  consumed by the bundled agent tool, not an Agent Sandbox feature).
 
 ### MCP docs convergence
 
@@ -61,9 +61,9 @@ content on the user's behalf.
   non-existent CLI flags from `mcp-server.md` and `cli-design.md`.
 - Rewrote `docs/*/guide/mcp-integration.md` as a runnable guide: IDE install,
   STDIO start with smoke test, `status`, uvicorn + `create_mcp_app` HTTP usage,
-  Bearer token, `ebx mcp deploy` artifact walkthrough, client config snippets,
+  Bearer token, `abx mcp deploy` artifact walkthrough, client config snippets,
   curl three-step workflow, and a troubleshooting table.
-- Fixed `llms.txt`: `ebx mcp serve` (non-existent) → `ebx mcp start`.
+- Fixed `llms.txt`: `abx mcp serve` (non-existent) → `abx mcp start`.
 
 ### deploy artifact format fix
 

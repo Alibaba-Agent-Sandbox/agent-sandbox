@@ -11,16 +11,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
 import { inputInterrupts, replSeams } from "../../src/cli/repl.js";
-import { KeyboardInterrupt } from "../../src/framework/utils.js";
+import { KeyboardInterrupt } from "../../src/cli/errors.js";
 import { CommandResult } from "../../src/models/process.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
-
-useDefaultShortcutsOnly();
 
 let tmp = "";
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-sbxbr-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-sbxbr-"));
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -97,24 +94,24 @@ describe("TestUploadOrder", () => {
 
 describe("TestRunServerValueRendering", () => {
   const runWith = async (value: unknown, args: string[] = []) => {
-    const custom = vi.fn().mockResolvedValue(new CommandResult({ value, exit_code: 0, source: "server" }));
-    vi.spyOn(Sandbox, "connect").mockResolvedValue({ custom } as unknown as Sandbox);
+    const runCommand = vi.fn().mockResolvedValue(new CommandResult({ value, exit_code: 0 }));
+    vi.spyOn(Sandbox, "connect").mockResolvedValue({ runCommand } as unknown as Sandbox);
     return new CliRunner().invoke(cli, [...args, "run", "sbx-1", "tool"]);
   };
 
-  it("test_run_server_dict_uses_python_str", async () => {
+  it("test_run_server_dict_is_rendered_as_json", async () => {
     const result = await runWith({ a: 1, b: [1, 2.5, null, true], c: 'é"q"', d: {} });
-    expect(result.output).toBe(`{'a': 1, 'b': [1, 2.5, None, True], 'c': 'é"q"', 'd': {}}\n`);
+    expect(result.output).toBe(`{"a":1,"b":[1,2.5,null,true],"c":"é\\"q\\"","d":{}}\n`);
   });
 
-  it("test_run_server_none_prints_blank_line", async () => {
+  it("test_run_server_none_prints_nothing", async () => {
     const result = await runWith(null);
     expect(result.exit_code).toBe(0);
-    expect(result.output).toBe("\n");
+    expect(result.output).toBe("");
   });
 
   it("test_run_server_bool_and_str", async () => {
-    expect((await runWith(true)).output).toBe("True\n");
+    expect((await runWith(true)).output).toBe("true\n");
     expect((await runWith("plain text")).output).toBe("plain text\n");
   });
 

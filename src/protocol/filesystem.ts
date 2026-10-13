@@ -110,7 +110,7 @@ export function _parseFileInfo(data: Record<string, any>): FileInfo {
 function _raiseTransferTimeout(_exc: unknown, verb: string, path: string, size: number): never {
   const sized = size >= 0 ? ` (${size} bytes)` : "";
   throw new FileOperationError(`${verb} ${path}${sized} timed out; the transfer took longer than the HTTP timeout.`, {
-    suggestion: "Raise the HTTP timeout (EBX_HTTP_TIMEOUT / http_timeout) or transfer smaller chunks.",
+    suggestion: "Raise the HTTP timeout (ABX_HTTP_TIMEOUT / http_timeout) or transfer smaller chunks.",
   });
 }
 

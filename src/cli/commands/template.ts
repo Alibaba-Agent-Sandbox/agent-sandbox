@@ -1,5 +1,5 @@
 /**
- * Template management CLI commands (`ebx template ...`, `ebx install`, `ebx init`, `ebx build`, `ebx search`).
+ * Template management CLI commands (`abx template ...`; `abx deploy` is the top-level shortcut of `template deploy`).
  *
  * Port of `cli/commands/template.py`. Helper functions keep the Python names (snake_case -> `_camelCase`); keyword
  * arguments of the internal helpers keep their Python (snake_case) spelling because they are plain data. Every module
@@ -10,33 +10,16 @@
 import fs from "node:fs";
 import nodePath from "node:path";
 
-import {
-  Abort,
-  Argument,
-  Choice,
-  ClickException,
-  FLOAT,
-  INT,
-  IntRange,
-  Option,
-  Path as ClickPath,
-  UsageError,
-  argument,
-  command,
-  confirm,
-  echo,
-  getCurrentContext,
-  group,
-  option,
-  prompt,
-  sys,
-  sysExit,
-  type Context,
-} from "../../framework/index.js";
-import { isatty } from "../../framework/io.js";
-import { cleandoc } from "../../framework/py.js";
+import { Argument, Option, argument, getCurrentContext, group, option, type Context } from "../kit.js";
+import { Choice, FLOAT, INT, IntRange, Path as ClickPath } from "../types.js";
+import { Abort, CliError, UsageError, sysExit } from "../errors.js";
+import { echo, sys } from "../io.js";
+import { confirm, prompt } from "../prompts.js";
+import { isatty } from "../io.js";
+import { cleandoc } from "../../utils/_py.js";
 import { EXIT_NOT_FOUND, handleErrors } from "../main.js";
 import { getFormatter } from "../formatters.js";
+import { requireTemplateFeature } from "../template_provider.js";
 import { enableVerbose, getOutput, isCiEnv } from "../output.js";
 import { regionOption } from "../region.js";
 import { availableCases, renderScaffold } from "../scaffold.js";
@@ -59,7 +42,7 @@ import { HTTPStatusError } from "../../transport/_httpx.js";
 import { dotenvValues } from "../../utils/_dotenv.js";
 import { pyRepr, pyStr, pyTruthy } from "../../utils/_pyformat.js";
 import { AttributeError, OSError, isFile, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, pyTypeNameOf, readTextPy, scandirNames, writeTextPy } from "../../utils/_pyos.js";
-import { safeLoad as yamlSafeLoad } from "../../utils/_yaml.js";
+import { loadYaml as yamlSafeLoad } from "../../utils/yaml_io.js";
 import { FINE_GRAINED_PAT_URL, GITHUB_TOKEN_ENV_VAR } from "../../utils/github_token.js";
 import * as registryMod from "../../utils/registry.js";
 import { BUILTIN_TEMPLATES, RegistryClient, loadTemplateFromYaml } from "../../utils/registry.js";
@@ -68,12 +51,12 @@ import { fetchIndex } from "../../utils/template_index.js";
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /**
- * Shared help for the three `--token` options (task 206). The persistent `ebx config set github_token` flow is
+ * Shared help for the three `--token` options (task 206). The persistent `abx config set github_token` flow is
  * recommended; the flag remains a temporary override with an explicit leak warning.
  */
 const _GITHUB_TOKEN_HELP =
   "GitHub token for private repos / higher rate limits. Prefer " +
-  "'ebx config set github_token' (masked input, stored once in ~/.ebx/.env); " +
+  "'abx config set github_token' (masked input, stored once in ~/.abx/.env); " +
   "--token is a temporary override that may leak into shell history and the " +
   "process list (env: GITHUB_TOKEN).";
 
@@ -144,11 +127,11 @@ export function _translatePlatformError(exc: Any, opts: { context: string; templ
   const detail = _extractPlatformError(resp);
   if (status === 404 && template_id !== null) {
     return new TemplateNotFoundError(`Template '${template_id}' not found on the platform: ${detail}`, {
-      suggestion: "Check the TEMPLATE_ID (run 'ebx template list' to see available templates).",
+      suggestion: "Check the TEMPLATE_ID (run 'abx template list' to see available templates).",
     });
   }
   return new NetworkError(`${context} failed (HTTP ${status}): ${detail}`, {
-    suggestion: "Check your authentication (ebx auth / API key) and the platform status, then retry.",
+    suggestion: "Check your authentication (abx auth / API key) and the platform status, then retry.",
   });
 }
 
@@ -167,7 +150,7 @@ export function _readYamlDefaults(template_dir: string): Record<string, Any> {
   const yamlPath = _findTemplateYaml(template_dir);
   if (yamlPath === null) return {};
   try {
-    const raw = yamlSafeLoad(readTextPy(yamlPath), yamlPath);
+    const raw = yamlSafeLoad(readTextPy(yamlPath));
     const yamlData: Any = pyTruthy(raw) ? raw : {};
     if (!_isDict(yamlData)) throw new AttributeError(`'${pyTypeNameOf(yamlData)}' object has no attribute 'get'`);
     let resources: Any = Object.prototype.hasOwnProperty.call(yamlData, "resources") ? yamlData["resources"] : {};
@@ -213,8 +196,8 @@ export async function _resolveIndexName(name: string, opts: { token: string | nu
       `Template '${name}' is not a built-in template and was not found in the ` + `template index (${index.source_url}).`,
       {
         suggestion:
-          "Run 'ebx template search <query>' to browse the index, or install " +
-          "directly from a repository: 'ebx template install owner/repo//subdir[@ref]'.",
+          "Run 'abx template search <query>' to browse the index, or install " +
+          "directly from a repository: 'abx template install owner/repo//subdir[@ref]'.",
       },
     );
   }
@@ -262,7 +245,7 @@ export async function _offerGithubTokenSetup(fmt: Any, out: Any): Promise<string
     return null;
   }
   await writeEnvVar(GITHUB_TOKEN_ENV_VAR, token);
-  fmt.printSuccess("Stored github_token in ~/.ebx/.env (input hidden); retrying once...");
+  fmt.printSuccess("Stored github_token in ~/.abx/.env (input hidden); retrying once...");
   return token;
 }
 
@@ -291,15 +274,15 @@ export async function _withGithubRateLimitRetry<T>(
 /**
  * Resolve ACR namespace from CLI > os.environ > .env file.
  *
- * `.env` is looked up in the current working directory first and then in `~/.ebx/.env` (mirroring the SDK config
+ * `.env` is looked up in the current working directory first and then in `~/.abx/.env` (mirroring the SDK config
  * loader). Raises `UsageError` if the namespace is not found in any source.
  */
 export function _resolveAcrNamespace(cli_value: string | null | undefined): string {
   if (cli_value && pyStrip(cli_value)) return pyStrip(cli_value);
   const envVal = process.env["ACR_NAMESPACE"];
   if (envVal && pyStrip(envVal)) return pyStrip(envVal);
-  // Try .env files: CWD first, then ~/.ebx/.env. A blank value does not count.
-  for (const dotenvPath of [nodePath.join(process.cwd(), ".env"), nodePath.join(homeDir(), ".ebx", ".env")]) {
+  // Try .env files: CWD first, then ~/.abx/.env. A blank value does not count.
+  for (const dotenvPath of [nodePath.join(process.cwd(), ".env"), nodePath.join(homeDir(), ".abx", ".env")]) {
     if (pathExists(dotenvPath)) {
       const ns = dotenvValues(dotenvPath).get("ACR_NAMESPACE");
       if (ns && pyStrip(ns)) return pyStrip(ns);
@@ -310,7 +293,7 @@ export function _resolveAcrNamespace(cli_value: string | null | undefined): stri
       "  1. --acr-namespace flag\n" +
       "  2. export ACR_NAMESPACE=<ns>\n" +
       "  3. ACR_NAMESPACE=<ns> in ./.env\n" +
-      "  4. ebx config set acr_namespace <ns>   (or re-run 'ebx config init')",
+      "  4. abx config set acr_namespace <ns>   (or run 'abx config init --build')",
   );
 }
 
@@ -332,7 +315,7 @@ export function _coerceInt(value: unknown, dflt: number): number {
   return dflt;
 }
 
-/** How many build/push lines to remember. The display keeps the last `EBX_ACTIVITY_LINES` of them (default 6). */
+/** How many build/push lines to remember. The display keeps the last `ABX_ACTIVITY_LINES` of them (default 6). */
 const _STEP_LOG_LINES = 10;
 
 /**
@@ -756,9 +739,9 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
   const resolvedRepo = acr_repo || yamlDefaults["name"] || nodePath.basename(pyResolve(String(template_dir)));
 
   if (!resolvedAcrUsername || !resolvedAcrPassword) {
-    throw new ClickException(
-      "ACR credentials missing. Run 'ebx config init', or " +
-        "'ebx config set access_key_id' / 'ebx config set access_key_secret', " +
+    throw new CliError(
+      "ACR credentials missing. Run 'abx config init --build', or " +
+        "'abx config set access_key_id' / 'abx config set access_key_secret', " +
         "or pass --acr-username/--acr-password.",
     );
   }
@@ -847,30 +830,30 @@ export const templateSeams: {
   DockerBuilder,
 };
 
-/** Public alias so other commands (e.g. `ebx create` AI path) can reuse the build -> push -> CreateTemplate -> poll pipeline. */
+/** Public alias so other commands (e.g. `abx create` AI path) can reuse the build -> push -> CreateTemplate -> poll pipeline. */
 export const do_deploy = (...a: Parameters<typeof _doDeploy>): ReturnType<typeof _doDeploy> => templateSeams._doDeploy(...a);
 
-/** Public alias used by the `ebx create` AI path to resolve the ACR namespace. */
+/** Public alias used by the `abx create` AI path to resolve the ACR namespace. */
 export const resolve_acr_namespace = _resolveAcrNamespace;
 
 export const template = group("template", {
-  help: cleandoc(`Discover, scaffold, build, and manage sandbox templates.
+  help: cleandoc(`Discover, scaffold, build, publish and install sandbox templates.
 
     \b
     Examples:
-      ebx template search python
-      ebx template init --template python --name my-template
-      ebx template list
+      abx template search python
+      abx template init --template python --name my-template
+      abx template list
 
     \b
     Related commands:
-      ebx create --template TEMPLATE  Launch a sandbox from a template
-      ebx install TEMPLATE_REF        Install shortcut
-      ebx config --help               Configure credentials and region
+      abx create --template TEMPLATE  Launch a sandbox from a template
+      abx deploy [PATH]               Same as 'template deploy'
+      abx config --help               Configure credentials and region
     `),
 });
 
-/** The shared option set of `template install` and the top-level `ebx install` shortcut. */
+/** The option set of `template install`. */
 function _installParams(opts: { acrNamespaceHelp: string; cpuHelp: string; memoryHelp: string }): Array<Argument | Option> {
   return [
     argument(["template_ref"]),
@@ -908,34 +891,34 @@ export const install = template.command("install", {
     cloud-side operations that can incur Alibaba Cloud costs (ACR
     storage/traffic, template resources). Use --download-only to skip the
     build/deploy step and only download to the local cache
-    (~/.ebx/templates/).
+    (~/.abx/templates/).
 
     Use --dir <path> to download into a specific directory instead of
     the cache.
 
     TEMPLATE_REF can be a bare template name from the official index
-    (Easy-Sandbox/awesome-templates) or a registry reference. Bare names
+    (alibaba-agent-sandbox/awesome-templates) or a registry reference. Bare names
     are resolved against the remote index; entries may pin a version, in
     which case that pinned ref is honoured.
 
     A GitHub token (private repos / higher rate limits) is taken from
     --token, then the GITHUB_TOKEN environment variable, then ./.env, then
-    the stored github_token; prefer 'ebx config set github_token' - --token
+    the stored github_token; prefer 'abx config set github_token' - --token
     may leak into shell history and process listings.
 
     \b
     Examples:
-      ebx template install python-hello --download-only   # install by index name
-      ebx template install owner/repo --acr-namespace my-ns
-      ebx template install owner/repo@v1.0 --download-only
-      ebx template install owner/repo//subdir --dir ./local-copy
-      ebx template install owner/repo --acr-namespace my-ns --region cn-shanghai
+      abx template install python-hello --download-only   # install by index name
+      abx template install owner/repo --acr-namespace my-ns
+      abx template install owner/repo@v1.0 --download-only
+      abx template install owner/repo//subdir --dir ./local-copy
+      abx template install owner/repo --acr-namespace my-ns --region cn-shanghai
 
     \b
     Related commands:
-      ebx template search QUERY  Find a template in the index
-      ebx template list          List registered templates
-      ebx create --template ID   Launch the installed template
+      abx template search QUERY  Find a template in the index
+      abx template list          List registered templates
+      abx create --template ID   Launch the installed template
     `),
   params: _installParams({
     acrNamespaceHelp: "ACR namespace for deploy (env: ACR_NAMESPACE, or set in .env file)",
@@ -943,6 +926,7 @@ export const install = template.command("install", {
     memoryHelp: "Memory in MB (default: from template.yaml or 2048)",
   }),
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    if (!params["download_only"]) requireTemplateFeature("templates.build");
     const {
       registry_url: registryUrl,
       registry_type: registryType,
@@ -987,7 +971,7 @@ export const install = template.command("install", {
       if (ref.is_builtin) {
         if (BUILTIN_TEMPLATES.has(templateRef)) {
           fmt.printSuccess(`'${templateRef}' is a built-in template. No installation needed.`);
-          fmt.printSuccess(`Use it directly: ebx create --template ${templateRef}`);
+          fmt.printSuccess(`Use it directly: abx create --template ${templateRef}`);
           return [ref, null];
         }
         // Bare name that is not built-in: resolve it through the remote template index (single source of truth),
@@ -995,7 +979,7 @@ export const install = template.command("install", {
         templateRef = await _resolveIndexName(templateRef, { token: active, fmt, out });
         ref = await client.resolve(templateRef, registryType);
         if (ref.is_builtin) {
-          throw new ClickException(`Template index resolved '${templateRef}' to a built-in template.`);
+          throw new CliError(`Template index resolved '${templateRef}' to a built-in template.`);
         }
       }
 
@@ -1028,7 +1012,7 @@ export const install = template.command("install", {
     if (destDir !== null) {
       const destPath = pyResolve(destDir);
       if (pathExists(destPath) && fs.readdirSync(destPath).length > 0) {
-        throw new ClickException(
+        throw new CliError(
           `Directory '${destPath}' already exists and is not empty. ` + "Remove or empty it first, or choose a different --dir path.",
         );
       }
@@ -1059,7 +1043,7 @@ export const install = template.command("install", {
         fmt.printData(cacheData);
       } else {
         fmt.printDict(cacheData);
-        fmt.printSuccess(`Template '${installName}' installed to the local cache. ` + "Build and push the image with 'ebx template build'.");
+        fmt.printSuccess(`Template '${installName}' installed to the local cache. ` + "Build and push the image with 'abx template build'.");
       }
       return;
     }
@@ -1087,9 +1071,9 @@ export const install = template.command("install", {
     const config = templateSeams.loadConfig({ region });
     if (!(config.access_key_id && config.access_key_secret)) {
       missing.push(
-        "Alibaba Cloud AK/SK credentials not found. Run 'ebx config init', or:\n" +
-          "  ebx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>\n" +
-          "  ebx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>\n" +
+        "Alibaba Cloud AK/SK credentials not found. Run 'abx config init --build', or:\n" +
+          "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>\n" +
+          "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>\n" +
           "  Or set ALICLOUD_ACCESS_KEY_ID / ALICLOUD_ACCESS_KEY_SECRET in the environment.",
       );
     }
@@ -1099,7 +1083,7 @@ export const install = template.command("install", {
         "Cannot build + deploy. Missing prerequisites:\n" +
         missing.map((m) => `  \u2022 ${m}`).join("\n") +
         "\n\nRun with --download-only to just download the template.";
-      throw new ClickException(msg);
+      throw new CliError(msg);
     }
 
     // ensured by precheck above
@@ -1132,7 +1116,7 @@ export const install = template.command("install", {
       fmt.printDict(deployData);
       if (buildStatus === "ready") {
         fmt.printSuccess("Template installed, built, and ready!");
-        fmt.printSuccess(`Use: ebx create --template ${pyStr(_get(deployData, "TemplateID", null))}`);
+        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(deployData, "TemplateID", null))}`);
       } else if (buildStatus === "pushed" || buildStatus === "submitted") {
         fmt.printSuccess("Template downloaded and image pushed; registration submitted.");
       } else {
@@ -1151,16 +1135,16 @@ export const list_templates = template.command("list", {
 
     \b
     Examples:
-      ebx template list
-      ebx template list --official-api
-      ebx template list --region cn-shanghai
-      ebx --json template list
+      abx template list
+      abx template list --official-api
+      abx template list --region cn-shanghai
+      abx --json template list
 
     \b
     Related commands:
-      ebx template info TEMPLATE_ID
-      ebx template search QUERY
-      ebx template install TEMPLATE_REF
+      abx template info TEMPLATE_ID
+      abx template search QUERY
+      abx template install TEMPLATE_REF
     `),
   params: [
     option(["--official-api"], {
@@ -1171,12 +1155,13 @@ export const list_templates = template.command("list", {
     regionOption(),
   ],
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    requireTemplateFeature("templates.read");
     const fmt = getFormatter(ctx);
     const config = templateSeams.loadConfig({ region: params["region"] });
 
     if (params["official_api"]) {
       if (!(config.access_key_id && config.access_key_secret)) {
-        throw new ClickException("--official-api requires AccessKey/AccessSecret in the environment.");
+        throw new CliError("--official-api requires AccessKey/AccessSecret in the environment.");
       }
       const templates = await fcTemplate.listOfficialTemplates({
         access_key_id: config.access_key_id,
@@ -1217,7 +1202,7 @@ export const list_templates = template.command("list", {
     }
 
     if (!pyTruthy(templates)) {
-      fmt.printSuccess("No custom templates found. Use 'ebx template install <repo>' to install from GitHub.");
+      fmt.printSuccess("No custom templates found. Use 'abx template install <repo>' to install from GitHub.");
       return;
     }
 
@@ -1239,16 +1224,16 @@ export const info = template.command("info", {
 
     \b
     Examples:
-      ebx template info tmpl-abc123
-      ebx template info tmpl-abc123 --official-api
-      ebx template info tmpl-abc123 --region cn-shanghai
-      ebx --json template info tmpl-abc123
+      abx template info tmpl-abc123
+      abx template info tmpl-abc123 --official-api
+      abx template info tmpl-abc123 --region cn-shanghai
+      abx --json template info tmpl-abc123
 
     \b
     Related commands:
-      ebx template list
-      ebx create --template TEMPLATE_ID
-      ebx template delete TEMPLATE_ID
+      abx template list
+      abx create --template TEMPLATE_ID
+      abx template delete TEMPLATE_ID
     `),
   params: [
     argument(["template_id"]),
@@ -1260,13 +1245,14 @@ export const info = template.command("info", {
     regionOption(),
   ],
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    requireTemplateFeature("templates.read");
     const templateId: string = params["template_id"];
     const fmt = getFormatter(ctx);
     const config = templateSeams.loadConfig({ region: params["region"] });
 
     if (params["official_api"]) {
       if (!(config.access_key_id && config.access_key_secret)) {
-        throw new ClickException("--official-api requires AccessKey/AccessSecret in the environment.");
+        throw new CliError("--official-api requires AccessKey/AccessSecret in the environment.");
       }
       const data = await fcTemplate.getTemplate(templateId, {
         access_key_id: config.access_key_id,
@@ -1322,24 +1308,24 @@ export const create_template = template.command("create", {
   help: cleandoc(`Create a sandbox template from an existing container image.
 
     Uses the official Alibaba Cloud FCSandbox CreateTemplate API.
-    Requires AK/SK credentials and 'easy-sandbox[alicloud]' extra.
+    Requires AK/SK credentials (set with 'abx config init --build').
 
     \b
     Examples:
-      ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template
-      ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --team-id team-xxx --cpu 4 --memory 4096
-      ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --envd-inject --generation 1
-      ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --region cn-shanghai
 
     \b
     Related commands:
-      ebx template push IMAGE       Push a local image to ACR first
-      ebx template info TEMPLATE_ID Inspect the created template
-      ebx create --template ID      Launch a sandbox from the template
+      abx template push IMAGE       Push a local image to ACR first
+      abx template info TEMPLATE_ID Inspect the created template
+      abx create --template ID      Launch a sandbox from the template
     `),
   params: [
     argument(["image"]),
@@ -1379,6 +1365,7 @@ export const create_template = template.command("create", {
     regionOption(),
   ],
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    requireTemplateFeature("templates.build");
     const { image, name, team_id: teamId, cpu, memory, disk_size: diskSize, internet_access: internetAccess } = params;
     const { start_cmd: startCmd, ready_cmd: readyCmd, generation, envd_inject: envdInject, target_image: targetImage } = params;
     const { registry_type: registryType, acree_instance_id: acreeInstanceId } = params;
@@ -1392,8 +1379,8 @@ export const create_template = template.command("create", {
     if (!ak || !sk) {
       fmt.printError("Alibaba Cloud AK/SK credentials required for official CreateTemplate API.", {
         suggestion:
-          "Run 'ebx config init', or " +
-          "'ebx config set access_key_id' / 'ebx config set access_key_secret'. " +
+          "Run 'abx config init --build', or " +
+          "'abx config set access_key_id' / 'abx config set access_key_secret'. " +
           "ALICLOUD_ACCESS_KEY_ID / ALICLOUD_ACCESS_KEY_SECRET " +
           "(or AccessKey / AccessSecret) in the environment also work.",
       });
@@ -1444,7 +1431,7 @@ export const create_template = template.command("create", {
       fmt.printDict(data);
       const templateId = result["templateID"];
       if (pyTruthy(templateId)) {
-        fmt.printSuccess(`Template created! Use: ebx create --template ${templateId}`);
+        fmt.printSuccess(`Template created! Use: abx create --template ${templateId}`);
       }
     }
   }),
@@ -1459,16 +1446,16 @@ export const push = template.command("push", {
 
     \b
     Examples:
-      ebx template push python-hello:latest --acr-namespace my-ns
-      ebx template push python-hello:latest --acr-namespace my-ns --region cn-shanghai
-      ebx template push my-tmpl:v1 --acr-namespace prod \\
+      abx template push python-hello:latest --acr-namespace my-ns
+      abx template push python-hello:latest --acr-namespace my-ns --region cn-shanghai
+      abx template push my-tmpl:v1 --acr-namespace prod \\
         --acree-instance-id cri-xxx
 
     \b
     Related commands:
-      ebx template build TEMPLATE_DIR  Build, push, and register a template
-      ebx template create IMAGE        Register an existing image
-      ebx config set access_key_id KEY
+      abx template build TEMPLATE_DIR  Build, push, and register a template
+      abx template create IMAGE        Register an existing image
+      abx config set access_key_id KEY
     `),
   params: [
     argument(["image"]),
@@ -1493,6 +1480,7 @@ export const push = template.command("push", {
     regionOption(),
   ],
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    requireTemplateFeature("templates.build");
     const image: string = params["image"];
     const fmt = getFormatter(ctx);
     const config = templateSeams.loadConfig({ region: params["region"] });
@@ -1510,7 +1498,7 @@ export const push = template.command("push", {
     }
     const repoName = repoPart.slice(repoPart.lastIndexOf("/") + 1);
 
-    // Resolve ACR namespace: CLI > env > .env file (CWD, then ~/.ebx/.env)
+    // Resolve ACR namespace: CLI > env > .env file (CWD, then ~/.abx/.env)
     const resolvedNamespace = _resolveAcrNamespace(params["acr_namespace"]);
 
     const resolvedUsername = params["acr_username"] || config.access_key_id || "";
@@ -1518,8 +1506,8 @@ export const push = template.command("push", {
     if (!resolvedUsername || !resolvedPassword) {
       throw new ACRLoginError("ACR credentials missing.", {
         suggestion:
-          "Run 'ebx config init', or " +
-          "'ebx config set access_key_id' / 'ebx config set access_key_secret', " +
+          "Run 'abx config init --build', or " +
+          "'abx config set access_key_id' / 'abx config set access_key_secret', " +
           "or pass --acr-username/--acr-password.",
       });
     }
@@ -1574,7 +1562,7 @@ export const build = template.command("build", {
     \b
     --official-api (default):
       local docker build → ACR push → official CreateTemplate API (envdInject).
-      Requires AK/SK credentials and 'easy-sandbox[alicloud]' extra.
+      Requires AK/SK credentials (set with 'abx config init --build').
 
     \b
     --legacy-api:
@@ -1583,29 +1571,29 @@ export const build = template.command("build", {
 
     Requires Docker daemon running and ACR credentials. In automation/CI,
     pass --acr-namespace and TEMPLATE_DIR explicitly instead of relying
-    on ACR_NAMESPACE / EBX_TEMPLATE_DIR environment variables or .env
+    on ACR_NAMESPACE / ABX_TEMPLATE_DIR environment variables or .env
     files, so the build cannot drift with the surrounding environment.
 
     \b
     Examples:
-      ebx template build ./examples/templates/python-hello \\
+      abx template build ./examples/templates/python-hello \\
         --acr-namespace my-ns --acr-repo python-hello
-      ebx template build ./my-template \\
+      abx template build ./my-template \\
         --acr-namespace prod --acree-instance-id cri-xxx
-      ebx template build ./my-template \\
+      abx template build ./my-template \\
         --acr-namespace prod --disk-size 10240 --internet-access
-      ebx template build ./my-template \\
+      abx template build ./my-template \\
         --acr-namespace prod --legacy-api
-      ebx template build ./my-template --acr-namespace prod --region cn-shanghai
+      abx template build ./my-template --acr-namespace prod --region cn-shanghai
 
     \b
     Related commands:
-      ebx template init DIRECTORY    Scaffold template source files
-      ebx template push IMAGE        Push an existing local image only
-      ebx create --template ID       Launch the completed template
+      abx template init DIRECTORY    Scaffold template source files
+      abx template push IMAGE        Push an existing local image only
+      abx create --template ID       Launch the completed template
     `),
   params: [
-    argument(["template_dir"], { type: new ClickPath({ exists: true }), envvar: "EBX_TEMPLATE_DIR" }),
+    argument(["template_dir"], { type: new ClickPath({ exists: true }), envvar: "ABX_TEMPLATE_DIR" }),
     option(["--acr-registry"], { envvar: "ACR_REGISTRY", default: "registry.cn-hangzhou.aliyuncs.com", help: "ACR registry host" }),
     option(["--acr-namespace"], {
       envvar: "ACR_NAMESPACE",
@@ -1678,6 +1666,7 @@ export const build = template.command("build", {
     regionOption(),
   ],
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    requireTemplateFeature("templates.build");
     const templateDir: string = params["template_dir"];
     if (params["verbose_flag"]) enableVerbose(ctx);
 
@@ -1704,8 +1693,8 @@ export const build = template.command("build", {
     if (!resolvedAcrUsername || !resolvedAcrPassword) {
       fmt.printError("ACR credentials missing.", {
         suggestion:
-          "Run 'ebx config init', or " +
-          "'ebx config set access_key_id' / 'ebx config set access_key_secret', " +
+          "Run 'abx config init --build', or " +
+          "'abx config set access_key_id' / 'abx config set access_key_secret', " +
           "or pass --acr-username/--acr-password.",
       });
       sysExit(1);
@@ -1767,7 +1756,7 @@ export const build = template.command("build", {
       fmt.printDict(data);
       if (buildStatus === "ready") {
         fmt.printSuccess("Template built and ready!");
-        fmt.printSuccess(`Use: ebx create --template ${pyStr(_get(data, "TemplateID", null))}`);
+        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(data, "TemplateID", null))}`);
       } else if (buildStatus === "pushed" || buildStatus === "submitted") {
         fmt.printSuccess("Image pushed to ACR; template registration submitted.");
       } else {
@@ -1791,20 +1780,20 @@ export const deploy = template.command("deploy", {
     "cloud-side operations that can incur Alibaba Cloud costs (ACR " +
     "storage/traffic, template resources).\n\n" +
     "Requires: Docker daemon running, ACR credentials, and an ACR namespace " +
-    "(--acr-namespace, 'ebx config set acr_namespace', or ACR_NAMESPACE in " +
-    "the environment / .env). AK/SK credentials come from 'ebx config init' " +
+    "(--acr-namespace, 'abx config set acr_namespace', or ACR_NAMESPACE in " +
+    "the environment / .env). AK/SK credentials come from 'abx config init --build' " +
     "(access_key_id / access_key_secret) when --acr-username/--acr-password " +
     "are omitted.\n\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx template deploy ./examples/templates/python-hello \\\n" +
+    "  abx template deploy ./examples/templates/python-hello \\\n" +
     "    --acr-namespace my-ns --acr-repo python-hello\n" +
-    "  ebx template deploy ./my-template --acr-namespace prod --yes\n\n" +
+    "  abx template deploy ./my-template --acr-namespace prod --yes\n\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx template init DIRECTORY  Scaffold a template project\n" +
-    "  ebx template list            Verify the registered template\n" +
-    "  ebx create --template ID     Launch a sandbox from the template",
+    "  abx template init DIRECTORY  Scaffold a template project\n" +
+    "  abx template list            Verify the registered template\n" +
+    "  abx create --template ID     Launch a sandbox from the template",
   callback: async (ctx: Context, params: Any): Promise<void> => {
     await ctx.invoke(build, { ...params });
   },
@@ -1818,14 +1807,14 @@ export const delete_ = template.command("delete", {
 
     \b
     Examples:
-      ebx template delete tmpl-abc123
-      ebx template delete tmpl-abc123 --yes --region cn-shanghai
+      abx template delete tmpl-abc123
+      abx template delete tmpl-abc123 --yes --region cn-shanghai
 
     \b
     Related commands:
-      ebx template info TEMPLATE_ID  Verify the target before deletion
-      ebx template list              Confirm the template was removed
-      ebx template install REF       Reinstall a template
+      abx template info TEMPLATE_ID  Verify the target before deletion
+      abx template list              Confirm the template was removed
+      abx template install REF       Reinstall a template
     `),
   params: [
     argument(["template_id"]),
@@ -1833,6 +1822,7 @@ export const delete_ = template.command("delete", {
     regionOption(),
   ],
   callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    requireTemplateFeature("templates.build");
     const templateId: string = params["template_id"];
     if (!params["yes"]) {
       if (!templateSeams.stdinIsatty()) {
@@ -1869,29 +1859,29 @@ export const delete_ = template.command("delete", {
 export const search = template.command("search", {
   help: cleandoc(`Search the template catalog by name, tag, or description.
 
-    Queries the template index published in the Easy-Sandbox/awesome-templates
+    Queries the template index published in the alibaba-agent-sandbox/awesome-templates
     repository - the single source of truth for official and community
-    templates. The fetched index is cached under ~/.ebx/index/ and reused for
+    templates. The fetched index is cached under ~/.abx/index/ and reused for
     up to an hour; on network failures the cached copy is served with a
     warning.
 
     For private mirrors / higher rate limits a token is taken from --token,
     then the GITHUB_TOKEN environment variable, then ./.env, then the stored
-    github_token (in that order); prefer 'ebx config set github_token'.
+    github_token (in that order); prefer 'abx config set github_token'.
 
     \b
     Examples:
-      ebx template search python
-      ebx template search ai-agent
-      ebx template search browser --status official
-      ebx template search qwen --tag deploy
-      ebx template search python --refresh    # bypass the local cache
+      abx template search python
+      abx template search ai-agent
+      abx template search browser --status official
+      abx template search qwen --tag deploy
+      abx template search python --refresh    # bypass the local cache
 
     \b
     Related commands:
-      ebx template install <name>             Install a template by index name
-      ebx template install owner/repo//subdir[@ref]
-      ebx template list
+      abx template install <name>             Install a template by index name
+      abx template install owner/repo//subdir[@ref]
+      abx template list
     `),
   params: [
     argument(["query"]),
@@ -1903,10 +1893,10 @@ export const search = template.command("search", {
     }),
     option(["--index-url"], {
       default: null,
-      envvar: "EBX_TEMPLATE_INDEX_URL",
+      envvar: "ABX_TEMPLATE_INDEX_URL",
       help:
         "Template index location: HTTP(S) URL or local file path " +
-        "(env: EBX_TEMPLATE_INDEX_URL; default: the canonical remote index)",
+        "(env: ABX_TEMPLATE_INDEX_URL; default: the canonical remote index)",
     }),
     option(["--token"], { default: null, envvar: "GITHUB_TOKEN", help: _GITHUB_TOKEN_HELP }),
     option(["--refresh"], {
@@ -1959,7 +1949,7 @@ export const search = template.command("search", {
     fmt.printTable(headers, rows);
     if (!fmt.quiet) {
       echo(`\n${results.length} template(s) found.`);
-      echo(`Install one with: ebx template install <name> (index: ${index.source_url})`);
+      echo(`Install one with: abx template install <name> (index: ${index.source_url})`);
     }
   }),
 });
@@ -2006,7 +1996,7 @@ export async function _tryArrowCasePicker(cases: Array<[string, string]>): Promi
 /**
  * Return whether `value` is a sentence rather than a directory path.
  *
- * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `ebx template init [DIRECTORY]` invocations
+ * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template init [DIRECTORY]` invocations
  * are unchanged. Whitespace or CJK text is a natural-language description. Prefix a directory that contains spaces
  * with `./`.
  */
@@ -2044,34 +2034,35 @@ export const init = template.command("init", {
     (derived from --name, the scaffold case, or the fetched template).
 
     A DIRECTORY that contains whitespace or CJK text is a natural-language
-    description: Qwen Code generates Dockerfile, commands.py (the HTTP
-    server) and template.yaml into ./<name>/ and stops. An interactive
+    description: template generation (Qwen Code, needs 'abx config init --llm')
+    writes Dockerfile, commands.py (the HTTP server) and template.yaml into
+    ./<name>/ and stops. An interactive
     terminal is asked for that directory first (Enter keeps ./<name>/).
     A path token (my-app, ./my app) stays a directory.
 
     --adopt adapts a project that already has source code and no template
-    files. The agent sees a copy, and only Dockerfile, commands.py,
+    files. Template generation sees a copy, and only Dockerfile, commands.py,
     template.yaml and a generated .dockerignore are written back, after you
     confirm. Nothing is built or deployed.
 
     \b
     Examples:
-      ebx template init --list                     # List built-in cases
-      ebx template init -t python                  # Creates ./python/
-      ebx template init -t python --name myapp     # Creates ./myapp/
-      ebx template init -t python ./my-template    # Explicit directory
-      ebx template init --from owner/repo          # Creates ./<template-name>/
-      ebx template init "a python data science env"  # AI files only, no build
-      ebx template init -y "a node.js api server"    # non-interactive AI files
-      ebx template init --adopt . --hint "port 8080" # adapt this project
-      ebx template init --adopt ./app --dry-run      # show what would be sent
+      abx template init --list                     # List built-in cases
+      abx template init -t python                  # Creates ./python/
+      abx template init -t python --name myapp     # Creates ./myapp/
+      abx template init -t python ./my-template    # Explicit directory
+      abx template init --from owner/repo          # Creates ./<template-name>/
+      abx template init "a python data science env"  # generate files only, no build
+      abx template init -y "a node.js api server"    # non-interactive generation
+      abx template init --adopt . --hint "port 8080" # adapt this project
+      abx template init --adopt ./app --dry-run      # show what would be sent
 
     \b
     Related commands:
-      ebx template deploy DIRECTORY
-      ebx template install TEMPLATE_REF
-      ebx create --template TEMPLATE
-      ebx create "DESCRIPTION"   # generate, build, deploy, and create
+      abx template deploy DIRECTORY
+      abx template install TEMPLATE_REF
+      abx create --template TEMPLATE
+      abx create "DESCRIPTION"   # generate, build, deploy, and create
     `),
   params: [
     argument(["directory"], { default: null, required: false, type: new ClickPath() }),
@@ -2087,12 +2078,12 @@ export const init = template.command("init", {
       is_flag: true,
       default: false,
       help:
-        "Adapt an existing source project: the coding agent adds the template files " +
+        "Adapt an existing source project: template generation adds the template files " +
         "(Dockerfile, commands.py, template.yaml). DIRECTORY is the project (default: .).",
     }),
     option(["--hint"], {
       default: null,
-      help: "With --adopt: what the code cannot tell the agent (ports, services).",
+      help: "With --adopt: what the code cannot tell the generator (ports, services).",
     }),
     option(["--dry-run"], {
       is_flag: true,
@@ -2106,7 +2097,7 @@ export const init = template.command("init", {
       help:
         "Skip confirmation prompts: the template directory, description " +
         "clarification, and (with --adopt) the send and write prompts. Required for " +
-        "non-interactive AI generation. " +
+        "non-interactive template generation. " +
         "Does not build or deploy. Replacing an existing Dockerfile still needs --force " +
         "when there is no interactive preview.",
     }),
@@ -2205,8 +2196,8 @@ export const init = template.command("init", {
       // A local directory with no manifest is a source project, not a template. Copying it would also copy .env and
       // .git. Remote refs stay tolerant.
       if ((ref.registry_type ?? "") === "local" && _findTemplateYaml(source) === null) {
-        throw new ClickException(
-          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: ebx template init --adopt ${fromRef}`,
+        throw new CliError(
+          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template init --adopt ${fromRef}`,
         );
       }
 
@@ -2237,7 +2228,7 @@ export const init = template.command("init", {
       if (!force) {
         const conflicts = scandirNames(source).filter((f) => pathExists(pyJoin(target, f)));
         if (conflicts.length > 0) {
-          throw new ClickException(`Files already exist in ${target}: ${conflicts.slice(0, 5).join(", ")}. ` + "Use --force to overwrite.");
+          throw new CliError(`Files already exist in ${target}: ${conflicts.slice(0, 5).join(", ")}. ` + "Use --force to overwrite.");
         }
       }
       pyCopytree(source, target);
@@ -2282,7 +2273,7 @@ export const init = template.command("init", {
     if (!force) {
       const conflicts = [...files.keys()].filter((fn) => pathExists(pyJoin(target, fn)));
       if (conflicts.length > 0) {
-        throw new ClickException(`Files already exist in ${target}: ${conflicts.join(", ")}. ` + "Use --force to overwrite.");
+        throw new CliError(`Files already exist in ${target}: ${conflicts.join(", ")}. ` + "Use --force to overwrite.");
       }
     }
 
@@ -2339,7 +2330,7 @@ export function _printInitSummary(
     }
   }
   if (not_applied && not_applied.length > 0) {
-    out.info("Agent changes not applied:");
+    out.info("Generated changes not applied:");
     for (const filename of not_applied) {
       out.info(`  ${filename}`);
     }
@@ -2352,8 +2343,8 @@ export function _printInitSummary(
     return;
   }
   const dirArg = String(target) !== process.cwd() ? String(target) : ".";
-  out.info(`  ebx template deploy ${dirArg} --acr-namespace <ns>`);
-  out.info(`  ebx install ${dirArg} --acr-namespace <ns>`);
+  out.info(`  abx template deploy ${dirArg} --acr-namespace <ns>`);
+  out.info(`  abx template install ${dirArg} --acr-namespace <ns>`);
 }
 
 /** Python `sorted()` order for strings (code point order, not UTF-16 unit order). */
@@ -2368,56 +2359,3 @@ function _codePointCompare(a: string, b: string): number {
   }
   return ca.length - cb.length;
 }
-
-// ---------------------------------------------------------------------------
-// Top-level shortcut: ebx install
-// ---------------------------------------------------------------------------
-
-export const install_shortcut = command("install", {
-  help: cleandoc(`Install a template from TEMPLATE_REF (shortcut for 'ebx template install').
-
-    Downloads and (by default) builds + deploys a template: local docker
-    build, ACR push, and CreateTemplate registration — cloud-side steps
-    that can incur Alibaba Cloud costs. Use --download-only to only fetch
-    it into the local cache (~/.ebx/templates/) without building.
-
-    \b
-    TEMPLATE_REF formats:
-      <name>                Template name from the official index
-      owner/repo            GitHub repo (default registry)
-      owner/repo@v1.0       Pinned to a tag/branch/commit
-      owner/repo//subdir    A subdirectory within a repo
-      ./path/to/template    Local directory
-
-    \b
-    Examples:
-      ebx install python-hello --download-only       # install by index name
-      ebx install owner/repo --acr-namespace my-ns  # download + build + deploy
-      ebx install owner/repo --acr-namespace my-ns --region cn-shanghai
-      ebx install owner/repo --download-only         # download only
-      ebx install ./my-template --acr-namespace ns   # local dir + deploy
-
-    \b
-    Related commands:
-      ebx template search QUERY
-      ebx template list
-      ebx create --template TEMPLATE
-    `),
-  params: _installParams({ acrNamespaceHelp: "ACR namespace for deploy", cpuHelp: "CPU cores", memoryHelp: "Memory in MB" }),
-  callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
-    await ctx.invoke(install, {
-      template_ref: params["template_ref"],
-      registry_url: params["registry_url"],
-      registry_type: params["registry_type"],
-      token: params["token"],
-      alias: params["alias"],
-      download_only: params["download_only"],
-      dest_dir: params["dest_dir"],
-      acr_namespace: params["acr_namespace"],
-      cpu: params["cpu"],
-      memory: params["memory"],
-      yes: params["yes"],
-      region: params["region"],
-    });
-  }),
-});

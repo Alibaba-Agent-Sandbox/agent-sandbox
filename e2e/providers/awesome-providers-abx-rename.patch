@@ -1,0 +1,1082 @@
+diff --git a/.github/ISSUE_TEMPLATE/provider.yml b/.github/ISSUE_TEMPLATE/provider.yml
+index 03e6e95..9f6aa95 100644
+--- a/.github/ISSUE_TEMPLATE/provider.yml
++++ b/.github/ISSUE_TEMPLATE/provider.yml
+@@ -7,7 +7,7 @@ body:
+     id: id
+     attributes:
+       label: Provider id
+-      description: Lowercase, hyphenated. This becomes the directory name and `ebx --provider` value.
++      description: Lowercase, hyphenated. This becomes the directory name and `abx --provider` value.
+     validations:
+       required: true
+   - type: dropdown
+diff --git a/.github/PULL_REQUEST_TEMPLATE.md b/.github/PULL_REQUEST_TEMPLATE.md
+index 081a8dd..c6161e5 100644
+--- a/.github/PULL_REQUEST_TEMPLATE.md
++++ b/.github/PULL_REQUEST_TEMPLATE.md
+@@ -4,7 +4,7 @@
+ - [ ] `awesome-providers.yaml` has a matching entry
+ - [ ] README lists what works, what is partial, and what returns E8004 (English and 中文)
+ - [ ] T0 passes: `node tests/run.mjs` (or the provider's equivalent)
+-- [ ] No API keys, cloud credentials, or `~/.ebx` contents
++- [ ] No API keys, cloud credentials, or `~/.abx` contents
+ 
+ ## Test
+ 
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 2911f66..940d6ee 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -2,20 +2,20 @@
+ 
+ [中文](#中文)
+ 
+-Providers in this repository are installable backends for the Easy Sandbox CLI and Python SDK. One directory is one provider. The SDK and the CLI do not vendor these plugins.
++Providers in this repository are installable backends for the Agent Sandbox CLI and Python SDK. One directory is one provider. The SDK and the CLI do not vendor these plugins.
+ 
+-1. Read [docs/authoring.md](docs/authoring.md). It explains how `ebx create` reaches a plugin and which methods you must implement.
+-2. If you are using an AI coding tool, load [SKILL.md](SKILL.md) first (`npx skills add Easy-Sandbox/awesome-providers --skill easy-sandbox-provider -y`).
++1. Read [docs/authoring.md](docs/authoring.md). It explains how `abx create` reaches a plugin and which methods you must implement.
++2. If you are using an AI coding tool, load [SKILL.md](SKILL.md) first (`npx skills add alibaba-agent-sandbox/awesome-providers --skill agent-sandbox-provider -y`).
+ 3. Add a directory whose name is the provider id, plus one entry in `awesome-providers.yaml`.
+ 4. Follow [docs/e2e.md](docs/e2e.md). T0 must pass. The README must say what works, what is partial, and what returns E8004.
+-5. Open a pull request. Do not commit API keys, cloud credentials, or a populated `~/.ebx`.
++5. Open a pull request. Do not commit API keys, cloud credentials, or a populated `~/.abx`.
+ 
+ ## 中文
+ 
+-本仓库里的 provider 是 Easy Sandbox CLI 和 Python SDK 的可安装后端。一个目录就是一个 provider。SDK 和 CLI 不内置这些插件。
++本仓库里的 provider 是 Agent Sandbox CLI 和 Python SDK 的可安装后端。一个目录就是一个 provider。SDK 和 CLI 不内置这些插件。
+ 
+-1. 阅读 [docs/authoring.zh-CN.md](docs/authoring.zh-CN.md)。里面说明了 `ebx create` 如何调用到插件，以及必须实现哪些方法。
+-2. 使用 AI 编码工具时，先加载 [SKILL.md](SKILL.md)（`npx skills add Easy-Sandbox/awesome-providers --skill easy-sandbox-provider -y`）。
++1. 阅读 [docs/authoring.zh-CN.md](docs/authoring.zh-CN.md)。里面说明了 `abx create` 如何调用到插件，以及必须实现哪些方法。
++2. 使用 AI 编码工具时，先加载 [SKILL.md](SKILL.md)（`npx skills add alibaba-agent-sandbox/awesome-providers --skill agent-sandbox-provider -y`）。
+ 3. 新增一个与 provider id 同名的目录，并在 `awesome-providers.yaml` 增加一条。
+ 4. 按 [docs/e2e.zh-CN.md](docs/e2e.zh-CN.md) 测试。T0 必须通过。README 必须写明能用、部分可用、以及返回 E8004 的能力。
+-5. 提交 pull request。不要提交 API key、云凭证，或填好的 `~/.ebx`。
++5. 提交 pull request。不要提交 API key、云凭证，或填好的 `~/.abx`。
+diff --git a/README.md b/README.md
+index d31184f..58897f6 100644
+--- a/README.md
++++ b/README.md
+@@ -1,20 +1,20 @@
+-# Awesome Providers for Easy Sandbox
++# Awesome Providers for Agent Sandbox
+ 
+ A catalog of installable sandbox provider plugins for the
+-[Easy Sandbox](https://github.com/Easy-Sandbox/python-sdk) Python SDK and the
+-[`ebx`](https://github.com/Easy-Sandbox/easy-sandbox) CLI.
++[Agent Sandbox](https://github.com/alibaba-agent-sandbox/agent-sandbox/tree/main/python-sdk) Python SDK and the
++[`abx`](https://github.com/alibaba-agent-sandbox/agent-sandbox) CLI.
+ 
+ Each provider is its own directory. The machine-readable index is
+ [`awesome-providers.yaml`](./awesome-providers.yaml) (`schema_version: 1`).
+ This repository does not contain the SDK or the CLI. The SDK keeps the
+ provider host (installer, EPP client, registry). Plugins are installed into
+-`~/.ebx/providers`.
++`~/.abx/providers`.
+ 
+ ## Providers
+ 
+ | Provider | Kind | What it is | Install |
+ |---|---|---|---|
+-| [opensandbox](./opensandbox/) | `exec` (Node, no npm dependencies) | Runs sandboxes on an [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) server | `ebx provider install Easy-Sandbox/awesome-providers//opensandbox` |
++| [opensandbox](./opensandbox/) | `exec` (Node, no npm dependencies) | Runs sandboxes on an [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) server | `abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox` |
+ 
+ ## Install
+ 
+@@ -23,33 +23,33 @@ install. A non-interactive shell needs `--yes`. A full 40-hex `--ref` (or
+ `--sha256`) pins the install; a branch or tag without that pin also needs
+ `--allow-unpinned`.
+ 
+-`//` is the provider directory, the same spelling as `ebx template install owner/repo//subdir`. `@ref` after the directory pins a tag, branch, or commit.
++`//` is the provider directory, the same spelling as `abx template install owner/repo//subdir`. `@ref` after the directory pins a tag, branch, or commit.
+ 
+ ```bash
+ # Catalog install. A full 40-hex commit in @ref pins it.
+-ebx provider install Easy-Sandbox/awesome-providers//opensandbox@<40-hex-commit> --yes
++abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox@<40-hex-commit> --yes
+ 
+ # Branch tip, explicitly unpinned
+-ebx provider install Easy-Sandbox/awesome-providers//opensandbox@main --allow-unpinned --yes
++abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox@main --allow-unpinned --yes
+ 
+ # Local checkout of one provider directory
+-ebx provider install ./opensandbox --yes
++abx provider install ./opensandbox --yes
+ 
+-ebx provider list
+-ebx provider info opensandbox
++abx provider list
++abx provider info opensandbox
+ ```
+ 
+-`ebx provider info opensandbox` is the list of features this install actually implements. The CLI and the Python SDK both refuse anything outside that list with `E8004`. What each feature maps to, and the OpenSandbox row, is in the [CLI providers guide](https://github.com/Easy-Sandbox/easy-sandbox/blob/main/docs/en/guide/providers.md#what-you-can-run-after-installing) and the [SDK providers guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/providers.md#what-you-can-call-after-installing).
++`abx provider info opensandbox` is the list of features this install actually implements. The CLI and the Python SDK both refuse anything outside that list with `E8004`. What each feature maps to, and the OpenSandbox row, is in the [CLI providers guide](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/en/guide/providers.md#what-you-can-run-after-installing) and the [SDK providers guide](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/en/guide/providers.md#what-you-can-call-after-installing).
+ 
+ The same store is what the Python SDK reads:
+ 
+ ```bash
+-python -m easy_sandbox.providers install ./opensandbox --yes
+-python -m easy_sandbox.providers list
++python -m agent_sandbox.providers install ./opensandbox --yes
++python -m agent_sandbox.providers list
+ ```
+ 
+ ```python
+-from easy_sandbox.api.sandbox import Sandbox
++from agent_sandbox.api.sandbox import Sandbox
+ 
+ sb = await Sandbox.create(provider="opensandbox")
+ ```
+@@ -60,7 +60,7 @@ sb = await Sandbox.create(provider="opensandbox")
+ awesome-providers.yaml    index (schema_version, one entry per provider)
+ LICENSE                   Apache-2.0
+ opensandbox/              first provider
+-  ebx-provider.toml       manifest
++  abx-provider.toml       manifest
+   provider.mjs            EPP/1 entry (Node >= 20, no dependencies)
+   src/                    protocol implementation
+   tests/                  unit, mock, live, contract
+@@ -73,51 +73,51 @@ Tiers T0–T5, including the live OpenSandbox tier, are in [docs/e2e.md](docs/e2
+ 
+ ## Contributing
+ 
+-How a provider is written, and how `ebx create` reaches it: [docs/authoring.md](docs/authoring.md) ([中文](docs/authoring.zh-CN.md)).
++How a provider is written, and how `abx create` reaches it: [docs/authoring.md](docs/authoring.md) ([中文](docs/authoring.zh-CN.md)).
+ 
+-AI coding tools load [SKILL.md](SKILL.md) (`name: easy-sandbox-provider`) before editing a plugin:
++AI coding tools load [SKILL.md](SKILL.md) (`name: agent-sandbox-provider`) before editing a plugin:
+ 
+ ```bash
+-npx skills add Easy-Sandbox/awesome-providers --skill easy-sandbox-provider -y
++npx skills add alibaba-agent-sandbox/awesome-providers --skill agent-sandbox-provider -y
+ ```
+ 
+ ## Adding a provider
+ 
+ 1. Add a top-level directory named after the provider id.
+-2. Put an `ebx-provider.toml` manifest in it. An `exec` plugin also needs the
++2. Put an `abx-provider.toml` manifest in it. An `exec` plugin also needs the
+    program named by `[runtime] command` (for example `provider.mjs`).
+ 3. Register it in [`awesome-providers.yaml`](./awesome-providers.yaml): `name`
+    must match `[provider].id`, and `path` must be the directory.
+ 4. Open a pull request.
+ 
+-Install from a path while developing: `ebx provider install ./your-provider --yes`.
++Install from a path while developing: `abx provider install ./your-provider --yes`.
+ The protocol is specified in the
+-[Python SDK provider design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md).
++[Python SDK provider design](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/en/design/providers-and-credentials.md).
+ 
+ ## 中文
+ 
+-这是 Easy Sandbox 的可安装沙箱提供方目录。每个提供方一个目录，根目录的
++这是 Agent Sandbox 的可安装沙箱提供方目录。每个提供方一个目录，根目录的
+ [`awesome-providers.yaml`](./awesome-providers.yaml) 是索引（`schema_version: 1`）。
+ 本仓库不包含 Python SDK 或 CLI。SDK 只保留宿主（安装器、EPP 客户端、注册表）；
+-插件安装到 `~/.ebx/providers`。
++插件安装到 `~/.abx/providers`。
+ 
+ 目前的第一个提供方是 [opensandbox](./opensandbox/)：无 npm 依赖的 Node `exec`
+ 插件，把沙箱跑在 [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox)
+ 服务上。
+ 
+-`//` 是提供方所在子目录，和 `ebx template install owner/repo//subdir` 同一写法。目录后的 `@ref` 用来固定 tag、分支或提交。
++`//` 是提供方所在子目录，和 `abx template install owner/repo//subdir` 同一写法。目录后的 `@ref` 用来固定 tag、分支或提交。
+ 
+ ```bash
+-ebx provider install Easy-Sandbox/awesome-providers//opensandbox@<40位提交哈希> --yes
+-ebx provider list
+-ebx provider info opensandbox
++abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox@<40位提交哈希> --yes
++abx provider list
++abx provider info opensandbox
+ ```
+ 
+-`ebx provider info opensandbox` 列出这次安装实际实现的能力。CLI 和 Python SDK 对清单之外的命令和方法都以 `E8004` 拒绝。每项能力对应哪些命令，以及 OpenSandbox 能用和不能用的对照，见 [CLI 提供商指南](https://github.com/Easy-Sandbox/easy-sandbox/blob/main/docs/zh/guide/providers.md) 和 [SDK 提供商指南](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/providers.md)。
++`abx provider info opensandbox` 列出这次安装实际实现的能力。CLI 和 Python SDK 对清单之外的命令和方法都以 `E8004` 拒绝。每项能力对应哪些命令，以及 OpenSandbox 能用和不能用的对照，见 [CLI 提供商指南](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/zh/guide/providers.md) 和 [SDK 提供商指南](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/zh/guide/providers.md)。
+ 
+-如何编写 provider，以及 `ebx create` 如何调用到它：见 [docs/authoring.zh-CN.md](docs/authoring.zh-CN.md)。端到端分级见 [docs/e2e.zh-CN.md](docs/e2e.zh-CN.md)。贡献步骤见 [CONTRIBUTING.md](CONTRIBUTING.md)。给 AI 用的 skill 是仓库根目录的 [SKILL.md](SKILL.md)。
++如何编写 provider，以及 `abx create` 如何调用到它：见 [docs/authoring.zh-CN.md](docs/authoring.zh-CN.md)。端到端分级见 [docs/e2e.zh-CN.md](docs/e2e.zh-CN.md)。贡献步骤见 [CONTRIBUTING.md](CONTRIBUTING.md)。给 AI 用的 skill 是仓库根目录的 [SKILL.md](SKILL.md)。
+ 
+-新增提供方：新建顶层目录，放入 `ebx-provider.toml`（`exec` 类型还要有清单里的入口程序），
++新增提供方：新建顶层目录，放入 `abx-provider.toml`（`exec` 类型还要有清单里的入口程序），
+ 在 `awesome-providers.yaml` 增加一条（`name` 与 `[provider].id` 相同，`path` 为目录名），然后提交 PR。
+ 许可证为 Apache-2.0。
+ 
+diff --git a/SECURITY.md b/SECURITY.md
+index a92b50f..44e57a5 100644
+--- a/SECURITY.md
++++ b/SECURITY.md
+@@ -1,6 +1,6 @@
+ # Security
+ 
+-Do not open a public issue for a vulnerability that exposes credentials, sandbox breakout, or installer trust bypass. Email the maintainers through the security contact of the [Easy Sandbox](https://github.com/Easy-Sandbox/python-sdk) organization, and include a reproduction that uses a throwaway key.
++Do not open a public issue for a vulnerability that exposes credentials, sandbox breakout, or installer trust bypass. Email the maintainers through the security contact of the [Agent Sandbox](https://github.com/alibaba-agent-sandbox/agent-sandbox/tree/main/python-sdk) organization, and include a reproduction that uses a throwaway key.
+ 
+ What to report:
+ 
+@@ -9,12 +9,12 @@ What to report:
+ - Secrets from `initialize.config` written to logs, receipts, or `provider info` output.
+ - An `E8004` feature that is still reachable.
+ 
+-What not to send: live API keys, access keys, or a copy of `~/.ebx/.env`.
++What not to send: live API keys, access keys, or a copy of `~/.abx/.env`.
+ 
+ ## 中文
+ 
+-会泄露凭证、逃出沙箱，或绕过安装信任检查的问题，不要开公开 issue。通过 [Easy Sandbox](https://github.com/Easy-Sandbox/python-sdk) 组织的安全联系方式邮件告知维护者，并附上使用一次性密钥的复现步骤。
++会泄露凭证、逃出沙箱，或绕过安装信任检查的问题，不要开公开 issue。通过 [Agent Sandbox](https://github.com/alibaba-agent-sandbox/agent-sandbox/tree/main/python-sdk) 组织的安全联系方式邮件告知维护者，并附上使用一次性密钥的复现步骤。
+ 
+ 需要报告的情况：安装插件时在用户同意之前就执行了代码；provider 源码里的路径逃出安装目录（`..`、符号链接、子模块）；`initialize.config` 里的密钥被写进日志、安装回执或 `provider info` 的输出；声明为 `E8004` 的能力仍然可以被调用。
+ 
+-不要发送：真实的 API key、AccessKey，或 `~/.ebx/.env` 的副本。
++不要发送：真实的 API key、AccessKey，或 `~/.abx/.env` 的副本。
+diff --git a/SKILL.md b/SKILL.md
+index 4e40436..6714063 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,53 +1,53 @@
+ ---
+-name: easy-sandbox-provider
++name: agent-sandbox-provider
+ description: >-
+-  Write an installable Easy Sandbox provider plugin (EPP/1) that the ebx CLI and
++  Write an installable Agent Sandbox provider plugin (EPP/1) that the abx CLI and
+   the Python SDK both load. Use when adding a sandbox backend, implementing
+-  sandbox.create, or explaining how ebx create reaches a provider.
+-  编写可安装的 Easy Sandbox provider：调用链、EPP/1 方法、清单和目录仓库的提交方式。
++  sandbox.create, or explaining how abx create reaches a provider.
++  编写可安装的 Agent Sandbox provider：调用链、EPP/1 方法、清单和目录仓库的提交方式。
+ ---
+ 
+-# Easy Sandbox provider
++# Agent Sandbox provider
+ 
+-Write a provider plugin. Do not add the plugin to the Python SDK or the CLI repository. Add a directory to [Easy-Sandbox/awesome-providers](https://github.com/Easy-Sandbox/awesome-providers).
++Write a provider plugin. Do not add the plugin to the Python SDK or the CLI repository. Add a directory to [alibaba-agent-sandbox/awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers).
+ 
+ Human guide: [docs/authoring.zh-CN.md](docs/authoring.zh-CN.md) and [docs/authoring.md](docs/authoring.md). Method list: `docs/design/fixtures/epp-methods.json` in the CLI repository. Copy `opensandbox/` for a real HTTP backend.
+ 
+ ## Call path
+ 
+-`ebx create` calls `Sandbox.create`. It does not import the plugin.
++`abx create` calls `Sandbox.create`. It does not import the plugin.
+ 
+ 1. `--provider` / `--opt` are taken off the argv in `main()` and stored for this process.
+-2. Provider id: `provider=` argument, then `--provider`, then `EBX_PROVIDER`, then `./.env`, then `~/.ebx/.env`, then `[core] provider`, then `alicloud-express`.
++2. Provider id: `provider=` argument, then `--provider`, then `ABX_PROVIDER`, then `./.env`, then `~/.abx/.env`, then `[core] provider`, then `alicloud-express`.
+ 3. `alicloud-express` uses the built-in client. The plugin process is not started.
+-4. Any other id loads `~/.ebx/providers/<id>`, checks the tree digest, and spawns the manifest command with a scrubbed environment.
++4. Any other id loads `~/.abx/providers/<id>`, checks the tree digest, and spawns the manifest command with a scrubbed environment.
+ 5. The host sends `initialize`, then `sandbox.create`.
+ 6. The plugin returns `sandbox_id`. The CLI prints `<id>:<sandbox_id>`.
+ 7. Later commands check the declared feature first. A missing feature is `E8004` and the method is not sent.
+ 
+-`ebx create "some description"` without `--template` runs the built-in template authoring pipeline before that create. It is not implemented by the plugin. Tell the user to run `ebx --provider <id> create --template <image-or-name>`.
++`abx create "some description"` without `--template` runs the built-in template authoring pipeline before that create. It is not implemented by the plugin. Tell the user to run `abx --provider <id> create --template <image-or-name>`.
+ 
+ Python `Sandbox.create(template=..., provider="<id>")` starts at step 2 and uses the same installed directory.
+ 
+ ## Implement
+ 
+-- One directory. Name equals `[provider].id`. Files: `ebx-provider.toml`, the program named by `[runtime] command`, and a README.
++- One directory. Name equals `[provider].id`. Files: `abx-provider.toml`, the program named by `[runtime] command`, and a README.
+ - `exec`: JSON-RPC 2.0, one JSON object per line, stdin/stdout. No package install step.
+ - Declare only features whose methods you implement.
+ - `sandbox.lifecycle`: `sandbox.create`, `sandbox.get`, `sandbox.list`, `sandbox.kill`. `sandbox.connect` is optional.
+ - `exec.run` is `exec.run`. Streaming (`exec.stream`) is `exec.start` plus `exec.output` / `exec.exit` notifications. There is no method named `exec.stream`.
+ - `files.rw` uses `files.move`, not `rename`. `process.manage` uses `process.stdin`, not `send_stdin`.
+ - `sandbox.create` must return `sandbox_id`. Omit `envd_url` to stay on EPP. An `http(s)` `envd_url` switches later file and process calls to the envd transport.
+-- Secrets go through `initialize.config` only. Never read `EBX_SANDBOX_API_KEY` unless `[core] inherit` lists it and the user consented.
++- Secrets go through `initialize.config` only. Never read `ABX_SANDBOX_API_KEY` unless `[core] inherit` lists it and the user consented.
+ - Do not log config values marked `secret`.
+ 
+ ## Checks
+ 
+ ```bash
+-ebx provider install ./my-cloud --link --yes
+-ebx provider doctor my-cloud
+-ebx provider test my-cloud
+-ebx --provider my-cloud create --template base
++abx provider install ./my-cloud --link --yes
++abx provider doctor my-cloud
++abx provider test my-cloud
++abx --provider my-cloud create --template base
+ ```
+ 
+ `provider test` is the contract suite. A declared feature that fails the contract is a bug. An undeclared feature must come back as E8004.
+@@ -57,7 +57,7 @@ ebx --provider my-cloud create --template base
+ Add the directory and one `awesome-providers.yaml` entry (`name`, `path`, `description`, `kind`, `license`, `status`). The README table must say what works, what is partial, and what returns E8004. Install line for users:
+ 
+ ```bash
+-ebx provider install Easy-Sandbox/awesome-providers//my-cloud
++abx provider install alibaba-agent-sandbox/awesome-providers//my-cloud
+ ```
+ 
+-`//` is the subdirectory, the same spelling as `ebx template install owner/repo//subdir`.
++`//` is the subdirectory, the same spelling as `abx template install owner/repo//subdir`.
+diff --git a/awesome-providers.yaml b/awesome-providers.yaml
+index 71dca34..5e1bbdf 100644
+--- a/awesome-providers.yaml
++++ b/awesome-providers.yaml
+@@ -1,14 +1,14 @@
+-# Easy Sandbox provider plugins
++# Agent Sandbox provider plugins
+ #
+ # A curated index of installable sandbox providers. One directory per provider.
+ # The SDK and the CLI do not ship these plugins; install one with:
+ #
+-#   ebx provider install Easy-Sandbox/awesome-providers//<path>
++#   abx provider install alibaba-agent-sandbox/awesome-providers//<path>
+ #
+ # Schema (schema_version 1):
+ #   schema_version: 1
+ #   providers:
+-#     - name:         provider id (matches ebx-provider.toml [provider].id)
++#     - name:         provider id (matches abx-provider.toml [provider].id)
+ #       description:  one line
+ #       repo:         GitHub repository URL
+ #       path:         directory inside this repo (omit only if the whole repo is one plugin)
+@@ -24,10 +24,10 @@ schema_version: 1
+ providers:
+   - name: opensandbox
+     description: "OpenSandbox server (Docker or Kubernetes) through a dependency-free Node EPP/1 plugin"
+-    repo: https://github.com/Easy-Sandbox/awesome-providers
++    repo: https://github.com/alibaba-agent-sandbox/awesome-providers
+     path: opensandbox
+     tags: [opensandbox, exec, node, epp]
+-    author: Easy-Sandbox
++    author: alibaba-agent-sandbox
+     kind: exec
+     license: Apache-2.0
+     status: official
+diff --git a/docs/authoring.md b/docs/authoring.md
+index 3717cab..604c0c4 100644
+--- a/docs/authoring.md
++++ b/docs/authoring.md
+@@ -2,16 +2,16 @@
+ 
+ [简体中文](authoring.zh-CN.md)
+ 
+-A provider is an installable sandbox backend. One directory in this repository is one provider. The Python SDK and the `ebx` CLI do not contain provider implementations; they install a directory from here into `~/.ebx/providers/<id>` and talk to it.
++A provider is an installable sandbox backend. One directory in this repository is one provider. The Python SDK and the `abx` CLI do not contain provider implementations; they install a directory from here into `~/.abx/providers/<id>` and talk to it.
+ 
+ Copy [opensandbox/](../opensandbox/) when the backend is a real HTTP service, or the `local-process` example in the Python SDK (`examples/providers/local-process/`) when you want the smallest exec plugin.
+ 
+-## How `ebx create` reaches your plugin
++## How `abx create` reaches your plugin
+ 
+-`ebx create` never imports your code. It calls `Sandbox.create`. That call chooses a provider before any sandbox API runs.
++`abx create` never imports your code. It calls `Sandbox.create`. That call chooses a provider before any sandbox API runs.
+ 
+ ```text
+-ebx --provider my-cloud create --template base
++abx --provider my-cloud create --template base
+         │
+         │  1. The CLI takes --provider and --opt off the command line
+         │     (any position) and keeps them for this process only.
+@@ -21,20 +21,20 @@ Sandbox.create({ template, timeout, envs, metadata, ... })
+         │  2. Provider id, first match wins:
+         │     provider= argument
+         │     > --provider
+-        │     > EBX_PROVIDER
+-        │     > ./.env  >  ~/.ebx/.env
+-        │     > [core] provider in ~/.ebx/config.toml
++        │     > ABX_PROVIDER
++        │     > ./.env  >  ~/.abx/.env
++        │     > [core] provider in ~/.abx/config.toml
+         │     > alicloud-express
+         ▼
+    alicloud-express? ── yes ──► built-in Alibaba Cloud client.
+         │                         Your plugin is not started.
+         no
+         ▼
+-   3. Read ~/.ebx/providers/my-cloud. Check the tree digest (E8011 if a
++   3. Read ~/.abx/providers/my-cloud. Check the tree digest (E8011 if a
+       file changed). Do not start the process when the digest fails.
+         ▼
+    4. Spawn the manifest command. cwd is the plugin directory.
+-      Environment is scrubbed: PATH, locale, EBX_PROVIDER_DATA_DIR,
++      Environment is scrubbed: PATH, locale, ABX_PROVIDER_DATA_DIR,
+       and only the env names the manifest listed.
+         ▼
+    5. initialize → plugin returns features.
+@@ -50,14 +50,14 @@ Sandbox.create({ template, timeout, envs, metadata, ... })
+ 
+ These do not enter your plugin:
+ 
+-- `ebx create --template base` with no provider selected. That is `alicloud-express`.
+-- `ebx create "a node api"` with a sentence and no `--template`. The CLI first runs the built-in template authoring pipeline (generate, build, deploy). Only the final create uses the selected provider. Launch a plugin with `ebx --provider my-cloud create --template <image-or-name>`.
++- `abx create --template base` with no provider selected. That is `alicloud-express`.
++- `abx create "a node api"` with a sentence and no `--template`. The CLI first runs the built-in template authoring pipeline (generate, build, deploy). Only the final create uses the selected provider. Launch a plugin with `abx --provider my-cloud create --template <image-or-name>`.
+ 
+ ## What you ship
+ 
+ ```text
+ my-cloud/
+-  ebx-provider.toml    required
++  abx-provider.toml    required
+   provider.mjs         or provider.py; whatever [runtime] command names
+   README.md            what works, what returns E8004, how to configure
+ ```
+@@ -85,24 +85,24 @@ No `envd_url` means the host keeps using EPP (`epp://<provider>/<sandbox_id>`).
+ ## Develop
+ 
+ ```bash
+-ebx provider install ./my-cloud --link --yes
+-ebx provider doctor my-cloud
+-ebx provider test my-cloud
+-ebx --provider my-cloud create --template base
+-ebx exec my-cloud:<id> "echo hello"
++abx provider install ./my-cloud --link --yes
++abx provider doctor my-cloud
++abx provider test my-cloud
++abx --provider my-cloud create --template base
++abx exec my-cloud:<id> "echo hello"
+ ```
+ 
+ `--link` is a development symlink. It skips the digest check and prints a warning. A real install copies the files and checks the digest on every start.
+ 
+-Config reaches the plugin only inside `initialize.config`. Secret fields are not accepted as `--opt` (they would land in shell history). Users set them with `ebx config set providers.<id>.<key>`.
++Config reaches the plugin only inside `initialize.config`. Secret fields are not accepted as `--opt` (they would land in shell history). Users set them with `abx config set providers.<id>.<key>`.
+ 
+ ## Add it to this catalog
+ 
+ 1. Directory name equals `[provider].id`.
+ 2. Add an entry to [`awesome-providers.yaml`](../awesome-providers.yaml): `name`, `path`, `description`, `kind`, `license`, `status`.
+ 3. README states which CLI commands and SDK methods work, which return E8004, and which are partial.
+-4. Open a pull request. Install from the catalog with `ebx provider install Easy-Sandbox/awesome-providers//my-cloud`.
++4. Open a pull request. Install from the catalog with `abx provider install alibaba-agent-sandbox/awesome-providers//my-cloud`.
+ 
+ ## For an AI agent
+ 
+-Install [`SKILL.md`](../SKILL.md) (`name: easy-sandbox-provider`) into the coding tool before editing a plugin. The skill is the same rules as this page, in the form an agent loads: where the code lives, the create call path, the method names, and the checks to run.
++Install [`SKILL.md`](../SKILL.md) (`name: agent-sandbox-provider`) into the coding tool before editing a plugin. The skill is the same rules as this page, in the form an agent loads: where the code lives, the create call path, the method names, and the checks to run.
+diff --git a/docs/authoring.zh-CN.md b/docs/authoring.zh-CN.md
+index ae06062..af556fa 100644
+--- a/docs/authoring.zh-CN.md
++++ b/docs/authoring.zh-CN.md
+@@ -2,16 +2,16 @@
+ 
+ [English](authoring.md)
+ 
+-Provider 是可安装的沙箱后端。本仓库里一个目录就是一个 provider。Python SDK 和 `ebx` CLI 不包含具体实现；它们把这里的目录安装到 `~/.ebx/providers/<id>`，再和它通信。
++Provider 是可安装的沙箱后端。本仓库里一个目录就是一个 provider。Python SDK 和 `abx` CLI 不包含具体实现；它们把这里的目录安装到 `~/.abx/providers/<id>`，再和它通信。
+ 
+ 后端是真实 HTTP 服务时，复制 [opensandbox/](../opensandbox/)。想要最小的 exec 插件时，复制 Python SDK 里的 `examples/providers/local-process/`。
+ 
+-## `ebx create` 如何调用到你的插件
++## `abx create` 如何调用到你的插件
+ 
+-`ebx create` 不会 import 你的代码。它调用 `Sandbox.create`。这次调用在访问任何沙箱 API 之前先选定 provider。
++`abx create` 不会 import 你的代码。它调用 `Sandbox.create`。这次调用在访问任何沙箱 API 之前先选定 provider。
+ 
+ ```text
+-ebx --provider my-cloud create --template base
++abx --provider my-cloud create --template base
+         │
+         │  1. CLI 从命令行取出 --provider 和 --opt（任意位置），
+         │     只在本次进程内保存。
+@@ -21,20 +21,20 @@ Sandbox.create({ template, timeout, envs, metadata, ... })
+         │  2. provider id，先匹配到的生效：
+         │     provider= 参数
+         │     > --provider
+-        │     > EBX_PROVIDER
+-        │     > ./.env  >  ~/.ebx/.env
+-        │     > ~/.ebx/config.toml 的 [core] provider
++        │     > ABX_PROVIDER
++        │     > ./.env  >  ~/.abx/.env
++        │     > ~/.abx/config.toml 的 [core] provider
+         │     > alicloud-express
+         ▼
+    是 alicloud-express？ ── 是 ──► 内置阿里云客户端。你的插件不会启动。
+         │
+         否
+         ▼
+-   3. 读取 ~/.ebx/providers/my-cloud，校验目录摘要（文件被改过则是 E8011）。
++   3. 读取 ~/.abx/providers/my-cloud，校验目录摘要（文件被改过则是 E8011）。
+       摘要失败时不启动进程。
+         ▼
+    4. 启动清单里的 command。工作目录是插件目录。
+-      环境变量被裁剪：PATH、locale、EBX_PROVIDER_DATA_DIR，
++      环境变量被裁剪：PATH、locale、ABX_PROVIDER_DATA_DIR，
+       以及清单点名的那些变量。
+         ▼
+    5. initialize → 插件返回 features。
+@@ -49,14 +49,14 @@ Python 的 `Sandbox.create(template="base", provider="my-cloud")` 从第 2 步
+ 
+ 下面两条不会进入你的插件：
+ 
+-- 没有选定 provider 时的 `ebx create --template base`。那是 `alicloud-express`。
+-- `ebx create "一个 node 服务"` 这种带描述、没有 `--template` 的命令。CLI 会先走内置的模板编写流程（生成、构建、部署）。只有最后一次创建使用选中的 provider。启动插件用 `ebx --provider my-cloud create --template <镜像或名称>`。
++- 没有选定 provider 时的 `abx create --template base`。那是 `alicloud-express`。
++- `abx create "一个 node 服务"` 这种带描述、没有 `--template` 的命令。CLI 会先走内置的模板编写流程（生成、构建、部署）。只有最后一次创建使用选中的 provider。启动插件用 `abx --provider my-cloud create --template <镜像或名称>`。
+ 
+ ## 你要提交的文件
+ 
+ ```text
+ my-cloud/
+-  ebx-provider.toml    必需
++  abx-provider.toml    必需
+   provider.mjs         或 provider.py，与 [runtime] command 一致
+   README.md            写明能用什么、什么返回 E8004、如何配置
+ ```
+@@ -84,24 +84,24 @@ my-cloud/
+ ## 开发
+ 
+ ```bash
+-ebx provider install ./my-cloud --link --yes
+-ebx provider doctor my-cloud
+-ebx provider test my-cloud
+-ebx --provider my-cloud create --template base
+-ebx exec my-cloud:<id> "echo hello"
++abx provider install ./my-cloud --link --yes
++abx provider doctor my-cloud
++abx provider test my-cloud
++abx --provider my-cloud create --template base
++abx exec my-cloud:<id> "echo hello"
+ ```
+ 
+ `--link` 是开发用的符号链接，跳过摘要校验，并且每次使用都会在 stderr 警告。正式安装会复制文件，并在每次启动时校验摘要。
+ 
+-配置只出现在 `initialize.config` 里。密钥字段不能用 `--opt`（会进 shell 历史）。用户用 `ebx config set providers.<id>.<key>` 设置。
++配置只出现在 `initialize.config` 里。密钥字段不能用 `--opt`（会进 shell 历史）。用户用 `abx config set providers.<id>.<key>` 设置。
+ 
+ ## 加入本目录
+ 
+ 1. 目录名等于 `[provider].id`。
+ 2. 在 [`awesome-providers.yaml`](../awesome-providers.yaml) 增加一条：`name`、`path`、`description`、`kind`、`license`、`status`。
+ 3. README 写明哪些 CLI 命令和 SDK 方法可用，哪些返回 E8004，哪些只是部分可用。
+-4. 提交 pull request。从目录安装：`ebx provider install Easy-Sandbox/awesome-providers//my-cloud`。
++4. 提交 pull request。从目录安装：`abx provider install alibaba-agent-sandbox/awesome-providers//my-cloud`。
+ 
+ ## 给 AI
+ 
+-改插件之前，把 [`SKILL.md`](../SKILL.md)（`name: easy-sandbox-provider`）装进编码工具。它和本页是同一套规则，只是写成 agent 会加载的形式：代码放哪、create 的调用链、方法名、以及要跑的检查。
++改插件之前，把 [`SKILL.md`](../SKILL.md)（`name: agent-sandbox-provider`）装进编码工具。它和本页是同一套规则，只是写成 agent 会加载的形式：代码放哪、create 的调用链、方法名、以及要跑的检查。
+diff --git a/docs/e2e.md b/docs/e2e.md
+index cbe0e63..53c556c 100644
+--- a/docs/e2e.md
++++ b/docs/e2e.md
+@@ -8,17 +8,17 @@ Every provider in this catalog is tested in the same tiers. A tier that cannot r
+ |---|---|---|---|
+ | T0 | This provider's unit and mock tests | `node tests/run.mjs` in the provider directory | Node >= 20 |
+ | T1 | Install, consent, pin, tamper, doctor, uninstall. No sandbox is created | `cli/e2e/providers/run.sh offline` and `python-sdk/e2e/opensandbox/provider_install_e2e.py` | git, Node, the SDK |
+-| T2 | Create, exec, files, and kill through `ebx`, with a provider that needs no cloud | `cli/e2e/providers/run.sh local-process` | Python 3 |
+-| T3 | The install line users type: `ebx provider install Easy-Sandbox/awesome-providers//<name>` | `cli/e2e/providers/run.sh catalog` | git and GitHub |
++| T2 | Create, exec, files, and kill through `abx`, with a provider that needs no cloud | `cli/e2e/providers/run.sh local-process` | Python 3 |
++| T3 | The install line users type: `abx provider install alibaba-agent-sandbox/awesome-providers//<name>` | `cli/e2e/providers/run.sh catalog` | git and GitHub |
+ | T4 | A real backend this plugin talks to. For OpenSandbox that is a local server | `local-up.sh up`, then `run.sh opensandbox` and `provider_e2e.py` | Docker for OpenSandbox |
+ | T5 | The built-in Alibaba Cloud provider. Not a test of this catalog | `npm run e2e` in the CLI repo, `make e2e` in the SDK repo | cloud credentials |
+ 
+ ## Rules
+ 
+-- Throwaway `HOME`. Do not touch the developer's real `~/.ebx`.
++- Throwaway `HOME`. Do not touch the developer's real `~/.abx`.
+ - Do not print API keys. `provider config list` must not contain them.
+ - A feature the plugin does not declare must fail as `E8004`.
+-- Do not use `ebx create "a sentence"` as a provider test. Use `ebx --provider <id> create --template <image-or-name>`.
++- Do not use `abx create "a sentence"` as a provider test. Use `abx --provider <id> create --template <image-or-name>`.
+ - Kill only the sandboxes this run created.
+ 
+ ## What a pull request includes
+diff --git a/docs/e2e.zh-CN.md b/docs/e2e.zh-CN.md
+index b02c559..b84e1b4 100644
+--- a/docs/e2e.zh-CN.md
++++ b/docs/e2e.zh-CN.md
+@@ -8,17 +8,17 @@
+ |---|---|---|---|
+ | T0 | 这个 provider 自己的单元测试和 mock 测试 | 在 provider 目录里执行 `node tests/run.mjs` | Node >= 20 |
+ | T1 | 安装、同意、固定版本、篡改检测、doctor、卸载。不创建沙箱 | `cli/e2e/providers/run.sh offline` 和 `python-sdk/e2e/opensandbox/provider_install_e2e.py` | git、Node、SDK |
+-| T2 | 用 `ebx` 完成创建、执行、文件和销毁。这个 provider 不需要云 | `cli/e2e/providers/run.sh local-process` | Python 3 |
+-| T3 | 用户实际输入的安装命令：`ebx provider install Easy-Sandbox/awesome-providers//<name>` | `cli/e2e/providers/run.sh catalog` | git 和 GitHub |
++| T2 | 用 `abx` 完成创建、执行、文件和销毁。这个 provider 不需要云 | `cli/e2e/providers/run.sh local-process` | Python 3 |
++| T3 | 用户实际输入的安装命令：`abx provider install alibaba-agent-sandbox/awesome-providers//<name>` | `cli/e2e/providers/run.sh catalog` | git 和 GitHub |
+ | T4 | 插件真正调用的后端。对 OpenSandbox 来说是本机服务 | `local-up.sh up`，然后 `run.sh opensandbox` 和 `provider_e2e.py` | OpenSandbox 需要 Docker |
+ | T5 | 内置阿里云 provider。不是本目录的测试 | CLI 仓库里 `npm run e2e`，SDK 仓库里 `make e2e` | 云凭证 |
+ 
+ ## 规则
+ 
+-- 使用一次性的 `HOME`。不要碰开发者真实的 `~/.ebx`。
++- 使用一次性的 `HOME`。不要碰开发者真实的 `~/.abx`。
+ - 不要打印 API key。`provider config list` 的输出里不能有密钥。
+ - 插件没有声明的能力必须以 `E8004` 失败。
+-- 不要用 `ebx create "一句话"` 做 provider 测试。使用 `ebx --provider <id> create --template <镜像或名称>`。
++- 不要用 `abx create "一句话"` 做 provider 测试。使用 `abx --provider <id> create --template <镜像或名称>`。
+ - 只销毁这次运行创建的沙箱。
+ 
+ ## Pull request 要带上什么
+diff --git a/opensandbox/README.md b/opensandbox/README.md
+index 276128b..3cdece0 100644
+--- a/opensandbox/README.md
++++ b/opensandbox/README.md
+@@ -2,35 +2,35 @@
+ 
+ [简体中文](README.zh-CN.md)
+ 
+-An [EPP/1](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md) **exec provider** that runs Easy
++An [EPP/1](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/en/design/providers-and-credentials.md) **exec provider** that runs Agent
+ Sandbox sandboxes on an [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) server
+ (Docker or Kubernetes runtime). It works unchanged from the Python SDK (`Sandbox.create(provider="opensandbox")`)
+-and from the `ebx` CLI (`ebx --provider opensandbox ...`).
++and from the `abx` CLI (`abx --provider opensandbox ...`).
+ 
+ This directory is the canonical plugin. It lives in
+-[Easy-Sandbox/awesome-providers](https://github.com/Easy-Sandbox/awesome-providers), not in the Python SDK.
++[alibaba-agent-sandbox/awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers), not in the Python SDK.
+ 
+-* Runtime: **Node.js >= 20, no npm dependencies** (built-in `fetch`). Chosen because the `ebx` CLI is a
+-  Node program, so every `ebx` user already has Node; the Python SDK needs `node` on `PATH` to use it.
+-* Design and API mapping: [`provider-opensandbox-mapping.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/provider-opensandbox-mapping.md).
+-* Authoring review that produced this plugin: [`provider-authoring-evaluation.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/provider-authoring-evaluation.md).
++* Runtime: **Node.js >= 20, no npm dependencies** (built-in `fetch`). Chosen because the `abx` CLI is a
++  Node program, so every `abx` user already has Node; the Python SDK needs `node` on `PATH` to use it.
++* Design and API mapping: [`provider-opensandbox-mapping.md`](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/en/design/provider-opensandbox-mapping.md).
++* Authoring review that produced this plugin: [`provider-authoring-evaluation.md`](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/en/design/provider-authoring-evaluation.md).
+ 
+ ## Install
+ 
+ ```bash
+-ebx provider install Easy-Sandbox/awesome-providers//opensandbox@<40-hex-commit> --yes
+-ebx provider info opensandbox          # the features this install declares
+-ebx provider doctor opensandbox
++abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox@<40-hex-commit> --yes
++abx provider info opensandbox          # the features this install declares
++abx provider doctor opensandbox
+ ```
+ 
+-`//opensandbox` is the subdirectory, the same `//` as `ebx template install owner/repo//subdir`. A git URL with `--subdir` still works; the two forms must not disagree.
++`//opensandbox` is the subdirectory, the same `//` as `abx template install owner/repo//subdir`. A git URL with `--subdir` still works; the two forms must not disagree.
+ 
+-A local checkout of this directory works with the same command (`ebx provider install ./opensandbox --yes`).
++A local checkout of this directory works with the same command (`abx provider install ./opensandbox --yes`).
+ A branch or tag without a 40-hex `--ref` is unpinned and needs `--allow-unpinned` when there is no terminal.
+ `file://` and other plain-text transports also need `--allow-insecure-transport`. The Python installer accepts the same source:
+ 
+ ```bash
+-python -m easy_sandbox.providers install ./opensandbox --yes
++python -m agent_sandbox.providers install ./opensandbox --yes
+ ```
+ 
+ Installing does not execute anything; the plugin runs only when a command uses it, and its files are
+@@ -38,7 +38,7 @@ re-hashed against the install receipt before every start.
+ 
+ ## Configure
+ 
+-Every field can be set with the canonical `EBX_OPENSANDBOX_<FIELD>` variable, in `~/.ebx/config.toml`
++Every field can be set with the canonical `ABX_OPENSANDBOX_<FIELD>` variable, in `~/.abx/config.toml`
+ under `[providers.opensandbox]`, or (where listed) with the OpenSandbox-native variable. Canonical names win.
+ 
+ | Field | Native alias | Default | Meaning |
+@@ -61,7 +61,7 @@ otherwise used as an image reference verbatim.
+ 
+ ## What the CLI and the SDK can call
+ 
+-Both hosts load this plugin. A method or command works only when its feature is in the manifest. Anything else raises `E8004` before a request is sent. `ebx provider info opensandbox` prints the declared set.
++Both hosts load this plugin. A method or command works only when its feature is in the manifest. Anything else raises `E8004` before a request is sent. `abx provider info opensandbox` prints the declared set.
+ 
+ | You want | CLI | SDK | This provider |
+ |---|---|---|---|
+@@ -96,23 +96,23 @@ node tests/run.mjs                      # 24 unit + 21 mock-server tests, no ser
+ ```
+ 
+ Live tiers need a reachable OpenSandbox server. The one-command local setup is the SDK
+-harness ([e2e/opensandbox](https://github.com/Easy-Sandbox/python-sdk/blob/main/e2e/opensandbox/README.md));
++harness ([e2e/opensandbox](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/e2e/opensandbox/README.md));
+ that harness starts the server and installs this plugin, it is not a second copy of it.
+ 
+ ```bash
+-export EBX_OPENSANDBOX_BASE_URL=http://127.0.0.1:8080
++export ABX_OPENSANDBOX_BASE_URL=http://127.0.0.1:8080
+ export OPEN_SANDBOX_API_KEY=...         # whatever your server expects
+ OPENSANDBOX_LIVE=1 node tests/run.mjs live                         # plugin over EPP/1 directly
+ OPENSANDBOX_LIVE=1 python -m pytest tests/contract                 # contract kit + SDK scenarios
+ ```
+ 
+-`tests/contract` needs `easy_sandbox` importable and `pytest`; it installs the plugin into a temporary
+-`~/.ebx` and never touches your real store.
++`tests/contract` needs `agent_sandbox` importable and `pytest`; it installs the plugin into a temporary
++`~/.abx` and never touches your real store.
+ 
+ ## Layout
+ 
+ ```
+-ebx-provider.toml   manifest (runtime, features, security, config schema)
++abx-provider.toml   manifest (runtime, features, security, config schema)
+ provider.mjs        entry: EPP dispatcher and capability wiring
+ src/                http.mjs (lifecycle + execd client), sandbox.mjs, exec.mjs, files.mjs,
+                     sse.mjs, multipart.mjs, convert.mjs, config.mjs, errors.mjs, epp.mjs
+diff --git a/opensandbox/README.zh-CN.md b/opensandbox/README.zh-CN.md
+index f1e9b21..486abd7 100644
+--- a/opensandbox/README.zh-CN.md
++++ b/opensandbox/README.zh-CN.md
+@@ -2,40 +2,40 @@
+ 
+ [English](README.md)
+ 
+-一个 [EPP/1](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md) **exec 提供方**插件，让 Easy Sandbox 在
++一个 [EPP/1](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/zh/design/providers-and-credentials.md) **exec 提供方**插件，让 Agent Sandbox 在
+ [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) 服务（Docker 或 Kubernetes 运行时）上创建沙箱。
+-Python SDK（`Sandbox.create(provider="opensandbox")`）与 `ebx` CLI（`ebx --provider opensandbox ...`）均可直接使用。
++Python SDK（`Sandbox.create(provider="opensandbox")`）与 `abx` CLI（`abx --provider opensandbox ...`）均可直接使用。
+ 
+ 本目录是插件的唯一源码，位于
+-[Easy-Sandbox/awesome-providers](https://github.com/Easy-Sandbox/awesome-providers)，不在 Python SDK 仓库里。
++[alibaba-agent-sandbox/awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers)，不在 Python SDK 仓库里。
+ 
+-* 运行时：**Node.js >= 20，无 npm 依赖**（使用内置 `fetch`）。选择 Node 是因为 `ebx` CLI 本身基于 Node，
++* 运行时：**Node.js >= 20，无 npm 依赖**（使用内置 `fetch`）。选择 Node 是因为 `abx` CLI 本身基于 Node，
+   使用 CLI 的用户已具备 Node；仅使用 Python SDK 时需要 `node` 在 `PATH` 中。
+-* 设计与 API 映射：[`provider-opensandbox-mapping.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/provider-opensandbox-mapping.md)（仅英文）。
+-* 产出本插件的编写体验评估：[`provider-authoring-evaluation.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/provider-authoring-evaluation.md)。
++* 设计与 API 映射：[`provider-opensandbox-mapping.md`](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/en/design/provider-opensandbox-mapping.md)（仅英文）。
++* 产出本插件的编写体验评估：[`provider-authoring-evaluation.md`](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/docs/zh/design/provider-authoring-evaluation.md)。
+ 
+ ## 安装
+ 
+ ```bash
+-ebx provider install Easy-Sandbox/awesome-providers//opensandbox@<40位提交哈希> --yes
+-ebx provider info opensandbox          # 这次安装声明了哪些能力
+-ebx provider doctor opensandbox
++abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox@<40位提交哈希> --yes
++abx provider info opensandbox          # 这次安装声明了哪些能力
++abx provider doctor opensandbox
+ ```
+ 
+-`//opensandbox` 是子目录，和 `ebx template install owner/repo//subdir` 的 `//` 相同。带 `--subdir` 的 git URL 仍然可用，两种写法不能互相矛盾。
++`//opensandbox` 是子目录，和 `abx template install owner/repo//subdir` 的 `//` 相同。带 `--subdir` 的 git URL 仍然可用，两种写法不能互相矛盾。
+ 
+-检出本目录后也可以 `ebx provider install ./opensandbox --yes`。没有 40 位 `--ref` 的分支或标签属于未固定安装，
++检出本目录后也可以 `abx provider install ./opensandbox --yes`。没有 40 位 `--ref` 的分支或标签属于未固定安装，
+ 在非交互环境还需要 `--allow-unpinned`。`file://` 等明文传输另需 `--allow-insecure-transport`。Python 安装器接受同一路径：
+ 
+ ```bash
+-python -m easy_sandbox.providers install ./opensandbox --yes
++python -m agent_sandbox.providers install ./opensandbox --yes
+ ```
+ 
+ 安装不会执行任何代码；只有命令实际用到插件时才会启动，且每次启动前都会按安装回执重新校验文件摘要。
+ 
+ ## 配置
+ 
+-每个字段都可通过规范名称 `EBX_OPENSANDBOX_<FIELD>`、`~/.ebx/config.toml` 的 `[providers.opensandbox]` 段，
++每个字段都可通过规范名称 `ABX_OPENSANDBOX_<FIELD>`、`~/.abx/config.toml` 的 `[providers.opensandbox]` 段，
+ 或（有列出时）OpenSandbox 原生环境变量设置。规范名称优先。
+ 
+ | 字段 | 原生别名 | 默认值 | 含义 |
+@@ -57,7 +57,7 @@ python -m easy_sandbox.providers install ./opensandbox --yes
+ 
+ ## CLI 和 SDK 能调用什么
+ 
+-两边加载的是同一个插件。方法和命令只有在清单声明了对应能力时才可用，否则会在发出请求之前返回 `E8004`。`ebx provider info opensandbox` 打印这份声明。
++两边加载的是同一个插件。方法和命令只有在清单声明了对应能力时才可用，否则会在发出请求之前返回 `E8004`。`abx provider info opensandbox` 打印这份声明。
+ 
+ | 你要做的事 | CLI | SDK | 本提供商 |
+ |---|---|---|---|
+@@ -92,22 +92,22 @@ node tests/run.mjs                      # 24 个单元测试 + 21 个模拟服
+ ```
+ 
+ 联机测试需要可访问的 OpenSandbox 服务。一键本地启动在 SDK 的测试工具里
+-（[e2e/opensandbox](https://github.com/Easy-Sandbox/python-sdk/blob/main/e2e/opensandbox/README.md)）：
++（[e2e/opensandbox](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/python-sdk/e2e/opensandbox/README.md)）：
+ 它负责启动服务并安装本插件，不是插件的第二份源码。
+ 
+ ```bash
+-export EBX_OPENSANDBOX_BASE_URL=http://127.0.0.1:8080
++export ABX_OPENSANDBOX_BASE_URL=http://127.0.0.1:8080
+ export OPEN_SANDBOX_API_KEY=...         # 按你的服务要求设置
+ OPENSANDBOX_LIVE=1 node tests/run.mjs live                         # 直接以 EPP/1 驱动插件
+ OPENSANDBOX_LIVE=1 python -m pytest tests/contract                 # 契约测试套件 + SDK 场景
+ ```
+ 
+-`tests/contract` 需要可导入的 `easy_sandbox` 和 `pytest`；它把插件安装到临时的 `~/.ebx`，不会改动你真实的存储。
++`tests/contract` 需要可导入的 `agent_sandbox` 和 `pytest`；它把插件安装到临时的 `~/.abx`，不会改动你真实的存储。
+ 
+ ## 目录结构
+ 
+ ```
+-ebx-provider.toml   清单（运行时、特性、安全声明、配置模式）
++abx-provider.toml   清单（运行时、特性、安全声明、配置模式）
+ provider.mjs        入口：EPP 分发与能力装配
+ src/                http.mjs（生命周期 + execd 客户端）、sandbox.mjs、exec.mjs、files.mjs、
+                     sse.mjs、multipart.mjs、convert.mjs、config.mjs、errors.mjs、epp.mjs
+diff --git a/opensandbox/ebx-provider.toml b/opensandbox/abx-provider.toml
+similarity index 98%
+rename from opensandbox/ebx-provider.toml
+rename to opensandbox/abx-provider.toml
+index 5dcaec4..9e5f906 100644
+--- a/opensandbox/ebx-provider.toml
++++ b/opensandbox/abx-provider.toml
+@@ -7,7 +7,7 @@ name_zh     = "OpenSandbox 开源沙箱"
+ version     = "0.1.0"
+ description = "Runs sandboxes on an OpenSandbox server (Docker or Kubernetes runtime) through its lifecycle API and per-sandbox execd daemon."
+ license     = "Apache-2.0"
+-homepage    = "https://github.com/Easy-Sandbox/awesome-providers/tree/main/opensandbox"
++homepage    = "https://github.com/alibaba-agent-sandbox/awesome-providers/tree/main/opensandbox"
+ 
+ [compat]
+ protocol = "epp/1"
+diff --git a/opensandbox/package.json b/opensandbox/package.json
+index c9f1e8a..e736e49 100644
+--- a/opensandbox/package.json
++++ b/opensandbox/package.json
+@@ -1,7 +1,7 @@
+ {
+-  "name": "ebx-provider-opensandbox",
++  "name": "abx-provider-opensandbox",
+   "version": "0.1.0",
+-  "description": "OpenSandbox provider plugin (EPP/1) for Easy Sandbox: Python SDK and ebx CLI",
++  "description": "OpenSandbox provider plugin (EPP/1) for Agent Sandbox: Python SDK and abx CLI",
+   "license": "Apache-2.0",
+   "private": true,
+   "type": "module",
+diff --git a/opensandbox/provider.mjs b/opensandbox/provider.mjs
+index 7d6e995..4f32be7 100644
+--- a/opensandbox/provider.mjs
++++ b/opensandbox/provider.mjs
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env node
+-// OpenSandbox provider for Easy Sandbox: an EPP/1 plugin in dependency-free Node ESM (Node >= 20).
++// OpenSandbox provider for Agent Sandbox: an EPP/1 plugin in dependency-free Node ESM (Node >= 20).
+ // Protocol: newline-delimited JSON-RPC 2.0 on stdin/stdout, free-form logs on stderr.
+ 
+ import { pathToFileURL } from "node:url";
+@@ -14,7 +14,7 @@ import { methods as fileMethods } from "./src/files.mjs";
+ export const PROTOCOL = "epp/1";
+ export const PLUGIN = { name: "opensandbox", version: "0.1.0" };
+ 
+-/** What this plugin implements; keep in sync with `[features] supported` in ebx-provider.toml. */
++/** What this plugin implements; keep in sync with `[features] supported` in abx-provider.toml. */
+ export const FEATURES = [
+   "sandbox.lifecycle",
+   "sandbox.timeout",
+diff --git a/opensandbox/src/convert.mjs b/opensandbox/src/convert.mjs
+index 166b034..ba33f68 100644
+--- a/opensandbox/src/convert.mjs
++++ b/opensandbox/src/convert.mjs
+@@ -78,7 +78,7 @@ export function memoryLimit(memoryMb) {
+   return `${Math.round(n)}Mi`;
+ }
+ 
+-/** OpenSandbox accepts only a numeric GPU count; Easy Sandbox's gpu is a free-form spec such as "A10". */
++/** OpenSandbox accepts only a numeric GPU count; Agent Sandbox's gpu is a free-form spec such as "A10". */
+ export function gpuLimit(gpu) {
+   if (gpu === undefined || gpu === null || gpu === "") return undefined;
+   if (/^\d+$/.test(String(gpu))) return String(gpu);
+diff --git a/opensandbox/src/errors.mjs b/opensandbox/src/errors.mjs
+index 83c2614..ea61500 100644
+--- a/opensandbox/src/errors.mjs
++++ b/opensandbox/src/errors.mjs
+@@ -100,7 +100,7 @@ export function mapHttpError(status, rawBody, ctx = {}) {
+   if (status === 401) {
+     return make(CODES.AUTH, `OpenSandbox rejected the API key${where}${detail}`, {
+       sdk_code: "E1001",
+-      suggestion: "Set EBX_OPENSANDBOX_API_KEY (or OPEN_SANDBOX_API_KEY) to a valid key.",
++      suggestion: "Set ABX_OPENSANDBOX_API_KEY (or OPEN_SANDBOX_API_KEY) to a valid key.",
+     });
+   }
+   if (lower.includes("runtime server not configured")) {
+diff --git a/opensandbox/src/exec.mjs b/opensandbox/src/exec.mjs
+index 6d4debd..bb3c8a3 100644
+--- a/opensandbox/src/exec.mjs
++++ b/opensandbox/src/exec.mjs
+@@ -13,7 +13,7 @@ const WATCHDOG_MS = 15_000;
+ 
+ /** One shell script, no `ps`: slim images do not ship procps. Output: pid, ppid, state, user, cmd (tab separated). */
+ const LIST_PROCESSES = [
+-  "# __ebx_ps__",
++  "# __abx_ps__",
+   "for d in /proc/[0-9]*; do",
+   '  pid=${d#/proc/}; [ -r "$d/stat" ] || continue',
+   '  line=$(cat "$d/stat" 2>/dev/null) || continue',
+@@ -49,7 +49,7 @@ async function prepare(ctx, id, params, signal) {
+   let argv = [String(params.cmd ?? ""), ...(params.args ?? []).map(String)];
+   if (!argv[0]) throw badParams("Missing parameter 'cmd'.");
+   if (typeof params.stdin === "string" && params.stdin.length > 0) {
+-    const file = `/tmp/.ebx-stdin-${randomUUID()}`;
++    const file = `/tmp/.abx-stdin-${randomUUID()}`;
+     await upload(ctx, id, file, Buffer.from(params.stdin, "utf8"), signal);
+     argv = ["sh", "-c", STDIN_WRAPPER, "sh", file, ...argv];
+   }
+@@ -250,7 +250,7 @@ export const methods = {
+     for (const line of res.stdout.split("\n")) {
+       const [pid, ppid, state, user, ...cmd] = line.split("\t");
+       const command = cmd.join("\t").trim();
+-      if (!/^\d+$/.test(pid ?? "") || command.includes("__ebx_ps__")) continue;
++      if (!/^\d+$/.test(pid ?? "") || command.includes("__abx_ps__")) continue;
+       processes.push({
+         pid: Number(pid),
+         ppid: Number(ppid),
+diff --git a/opensandbox/src/http.mjs b/opensandbox/src/http.mjs
+index 178fb00..9ae02fa 100644
+--- a/opensandbox/src/http.mjs
++++ b/opensandbox/src/http.mjs
+@@ -30,7 +30,7 @@ function networkError(err, url, secrets) {
+   const target = redact(new URL(url).origin, secrets);
+   return new RpcError(CODES.FAIL, `Cannot reach OpenSandbox at ${target}: ${reason}`, {
+     retryable: true,
+-    suggestion: "Check EBX_OPENSANDBOX_BASE_URL and that the server (or the sandbox, if paused) is running.",
++    suggestion: "Check ABX_OPENSANDBOX_BASE_URL and that the server (or the sandbox, if paused) is running.",
+   });
+ }
+ 
+diff --git a/opensandbox/src/multipart.mjs b/opensandbox/src/multipart.mjs
+index 53dff74..5f21eed 100644
+--- a/opensandbox/src/multipart.mjs
++++ b/opensandbox/src/multipart.mjs
+@@ -6,7 +6,7 @@
+ import { randomUUID } from "node:crypto";
+ 
+ export function buildUpload({ path, mode, content }) {
+-  const boundary = `----ebx-opensandbox-${randomUUID()}`;
++  const boundary = `----abx-opensandbox-${randomUUID()}`;
+   const metadata = { path };
+   if (mode !== undefined) metadata.mode = mode;
+   const filename = (String(path).split("/").pop() || "file").replace(/["\r\n\\]/g, "_");
+diff --git a/opensandbox/tests/contract/conftest.py b/opensandbox/tests/contract/conftest.py
+index a5cee2d..e311ae0 100644
+--- a/opensandbox/tests/contract/conftest.py
++++ b/opensandbox/tests/contract/conftest.py
+@@ -1,7 +1,7 @@
+ """Fixtures for the pytest tier: install the plugin into a throwaway store, talk to a live server.
+ 
+-Opt in with ``OPENSANDBOX_LIVE=1`` plus ``EBX_OPENSANDBOX_BASE_URL`` and ``OPEN_SANDBOX_API_KEY``
+-(or ``EBX_OPENSANDBOX_API_KEY``). Everything is skipped otherwise.
++Opt in with ``OPENSANDBOX_LIVE=1`` plus ``ABX_OPENSANDBOX_BASE_URL`` and ``OPEN_SANDBOX_API_KEY``
++(or ``ABX_OPENSANDBOX_API_KEY``). Everything is skipped otherwise.
+ """
+ 
+ from __future__ import annotations
+@@ -13,7 +13,7 @@ from pathlib import Path
+ import pytest
+ 
+ PLUGIN_DIR = Path(__file__).resolve().parents[2]
+-BASE_URL = os.environ.get("EBX_OPENSANDBOX_BASE_URL") or os.environ.get("OPEN_SANDBOX_DOMAIN")
++BASE_URL = os.environ.get("ABX_OPENSANDBOX_BASE_URL") or os.environ.get("OPEN_SANDBOX_DOMAIN")
+ 
+ 
+ def _live() -> bool:
+@@ -31,7 +31,7 @@ def pytest_collection_modifyitems(config, items):
+     if _live():
+         return
+     skip = pytest.mark.skip(
+-        reason="set OPENSANDBOX_LIVE=1 and EBX_OPENSANDBOX_BASE_URL to a reachable server"
++        reason="set OPENSANDBOX_LIVE=1 and ABX_OPENSANDBOX_BASE_URL to a reachable server"
+     )
+     for item in items:
+         if str(PLUGIN_DIR) in str(item.fspath):
+@@ -40,14 +40,14 @@ def pytest_collection_modifyitems(config, items):
+ 
+ @pytest.fixture(scope="session", autouse=True)
+ def installed_plugin(tmp_path_factory):
+-    """Install the plugin by local path into an isolated ``~/.ebx`` (never touches the real one)."""
++    """Install the plugin by local path into an isolated ``~/.abx`` (never touches the real one)."""
+     if not _live():
+         yield None
+         return
+-    import easy_sandbox.transport.config as config_module
+-    from easy_sandbox.providers import installer, registry
++    import agent_sandbox.transport.config as config_module
++    from agent_sandbox.providers import installer, registry
+ 
+-    home = tmp_path_factory.mktemp("ebx-home")
++    home = tmp_path_factory.mktemp("abx-home")
+     saved = config_module._CONFIG_FILE
+     config_module._CONFIG_FILE = home / "config.toml"
+     try:
+diff --git a/opensandbox/tests/contract/test_contract.py b/opensandbox/tests/contract/test_contract.py
+index 8528066..49acd72 100644
+--- a/opensandbox/tests/contract/test_contract.py
++++ b/opensandbox/tests/contract/test_contract.py
+@@ -2,7 +2,7 @@
+ 
+ from __future__ import annotations
+ 
+-from easy_sandbox.providers.testing import ProviderContractTests
++from agent_sandbox.providers.testing import ProviderContractTests
+ 
+ 
+ class TestOpenSandboxContract(ProviderContractTests):
+diff --git a/opensandbox/tests/contract/test_sdk.py b/opensandbox/tests/contract/test_sdk.py
+index 8eaf50f..5706e7c 100644
+--- a/opensandbox/tests/contract/test_sdk.py
++++ b/opensandbox/tests/contract/test_sdk.py
+@@ -7,13 +7,13 @@ import time
+ 
+ import pytest
+ 
+-from easy_sandbox.api.sandbox import Sandbox
+-from easy_sandbox.models.errors import (
++from agent_sandbox.api.sandbox import Sandbox
++from agent_sandbox.models.errors import (
+     FileNotFoundError_,
+     ProviderFeatureNotSupportedError,
+     ProviderResourceNotFoundError,
+ )
+-from easy_sandbox.models.process import ProcessChunkType
++from agent_sandbox.models.process import ProcessChunkType
+ 
+ PID = "opensandbox"
+ 
+diff --git a/opensandbox/tests/live/live.test.mjs b/opensandbox/tests/live/live.test.mjs
+index 1ec2f09..0eb1aa9 100644
+--- a/opensandbox/tests/live/live.test.mjs
++++ b/opensandbox/tests/live/live.test.mjs
+@@ -3,15 +3,15 @@
+ //   # start a server with the SDK harness python-sdk/e2e/opensandbox/local-up.sh, then:
+ //   OPENSANDBOX_LIVE=1 node tests/run.mjs live
+ //
+-// Reads EBX_OPENSANDBOX_BASE_URL / EBX_OPENSANDBOX_API_KEY (or the OPENSANDBOX_* names printed by local-up.sh env).
++// Reads ABX_OPENSANDBOX_BASE_URL / ABX_OPENSANDBOX_API_KEY (or the OPENSANDBOX_* names printed by local-up.sh env).
+ import test from "node:test";
+ import assert from "node:assert/strict";
+ import { randomBytes } from "node:crypto";
+ import { EppHost } from "../epp-client.mjs";
+ 
+ const live = process.env.OPENSANDBOX_LIVE === "1";
+-const baseUrl = process.env.EBX_OPENSANDBOX_BASE_URL ?? process.env.OPENSANDBOX_BASE_URL ?? "http://127.0.0.1:8080";
+-const apiKey = process.env.EBX_OPENSANDBOX_API_KEY ?? process.env.OPENSANDBOX_API_KEY;
++const baseUrl = process.env.ABX_OPENSANDBOX_BASE_URL ?? process.env.OPENSANDBOX_BASE_URL ?? "http://127.0.0.1:8080";
++const apiKey = process.env.ABX_OPENSANDBOX_API_KEY ?? process.env.OPENSANDBOX_API_KEY;
+ const image = process.env.OPENSANDBOX_TEST_IMAGE ?? "python:3.12-slim";
+ 
+ const rpcError = async (promise) => {
+@@ -29,7 +29,7 @@ test("live: full lifecycle, exec, files, ports against a real OpenSandbox", { sk
+   let id;
+   const call = (method, params = {}) => host.call(method, { sandbox_id: id, ...params });
+   try {
+-    const rec = await host.call("sandbox.create", { template: "base", timeout: 300, metadata: { name: "ebx-live", suite: "node" }, envs: { LIVE_VAR: "bar" }, cpu: 1, memory: 512 });
++    const rec = await host.call("sandbox.create", { template: "base", timeout: 300, metadata: { name: "abx-live", suite: "node" }, envs: { LIVE_VAR: "bar" }, cpu: 1, memory: 512 });
+     id = rec.sandbox_id;
+     assert.equal(rec.status, "running");
+     assert.equal(rec.template, image);
+diff --git a/opensandbox/tests/mock/epp.test.mjs b/opensandbox/tests/mock/epp.test.mjs
+index 401aafb..0f09f3e 100644
+--- a/opensandbox/tests/mock/epp.test.mjs
++++ b/opensandbox/tests/mock/epp.test.mjs
+@@ -266,7 +266,7 @@ test("process.* : list, kill by pid and by command id, signal limits", { skip: !
+     const sleeper = processes.find((p) => p.command.startsWith("sleep 30"));
+     assert.ok(sleeper, JSON.stringify(processes));
+     assert.equal(typeof sleeper.pid, "number");
+-    assert.ok(!processes.some((p) => p.command.includes("__ebx_ps__")));
++    assert.ok(!processes.some((p) => p.command.includes("__abx_ps__")));
+     await host.call("process.signal", { sandbox_id: id, pid: sleeper.pid, signal: 15 });
+     await host.waitNote((n) => n.method === "exec.exit" && n.params.process_id === process_id);
+     assert.equal((await rpcError(host.call("process.kill", { sandbox_id: id, pid: 99999999 }))).code, -32002);
+diff --git a/opensandbox/tests/mock/mock-opensandbox.mjs b/opensandbox/tests/mock/mock-opensandbox.mjs
+index 5d42a94..01fe346 100644
+--- a/opensandbox/tests/mock/mock-opensandbox.mjs
++++ b/opensandbox/tests/mock/mock-opensandbox.mjs
+@@ -54,7 +54,7 @@ export async function startMock(options = {}) {
+   let origin = "";
+ 
+   const fsPath = (sb, p) => {
+-    if (p.startsWith("/tmp/.ebx-stdin-")) return p; // the plugin's stdin spool is read through an absolute path
++    if (p.startsWith("/tmp/.abx-stdin-")) return p; // the plugin's stdin spool is read through an absolute path
+     const full = resolve(sb.root, `.${p.startsWith("/") ? p : `/${p}`}`);
+     if (full !== sb.root && !full.startsWith(sb.root + sep)) throw new Error("path escapes sandbox");
+     return full;

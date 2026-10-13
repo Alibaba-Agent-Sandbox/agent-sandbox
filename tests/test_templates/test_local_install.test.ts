@@ -1,5 +1,5 @@
 /**
- * End-to-end `ebx install` tests for the template catalog (port of `tests/test_templates/test_local_install.py`).
+ * End-to-end `abx template install` tests for the template catalog (port of `tests/test_templates/test_local_install.py`).
  *
  * Drives the real CLI, the real reference resolver, the real fetch/cache logic and the real `loadTemplateFromYaml`
  * pipeline. Only one boundary is mocked: the GitHub archive download (`httpx.AsyncClient`). A tripwire on
@@ -24,7 +24,7 @@ import { patchHttpxAsyncClient, patchedAsyncClient, restoreHttpx } from "../_sup
 import { tarArchive, tarEntry } from "../_support/tar.js";
 import { TEMPLATES_DIR, discoverTemplateDirs, useSuppressCiDetection } from "./conftest.js";
 
-const GITHUB_OWNER = "Easy-Sandbox";
+const GITHUB_OWNER = "alibaba-agent-sandbox";
 const GITHUB_REPO = "awesome-templates";
 const GITHUB_TAG = "v1.0.0";
 const GITHUB_REF = `${GITHUB_OWNER}/${GITHUB_REPO}`;
@@ -128,18 +128,18 @@ const isDir = (p: string): boolean => fs.existsSync(p) && fs.statSync(p).isDirec
 const isFile = (p: string): boolean => fs.existsSync(p) && fs.statSync(p).isFile();
 const baseName = (p: string): string => path.basename(p);
 const templateDirs = discoverTemplateDirs();
-const cacheDirIn = (): string => path.join(tmpPath(), "ebx-cache");
+const cacheDirIn = (): string => path.join(tmpPath(), "abx-cache");
 
 const INSTALL_LOCAL = ["--registry-type", "local", "--download-only"];
 
 describe("TestLocalInstall", () => {
-  // `ebx install <path> --registry-type local` for every catalog template (never builds or pushes an image).
+  // `abx template install <path> --registry-type local` for every catalog template (never builds or pushes an image).
   it.each(templateDirs)("test_local_install_succeeds [%s]", async (template_dir) => {
     const expected = loadTemplateFromYaml(path.join(template_dir, "template.yaml"));
     const cache_dir = cacheDirIn();
     _setTemplateCacheDir(cache_dir);
 
-    const result = await runner().invoke(cli, ["install", template_dir, ...INSTALL_LOCAL]);
+    const result = await runner().invoke(cli, ["template", "install", template_dir, ...INSTALL_LOCAL]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(result.output).toContain("Using local template from");
@@ -154,7 +154,7 @@ describe("TestLocalInstall", () => {
     const cache_dir = cacheDirIn();
     _setTemplateCacheDir(cache_dir);
 
-    const result = await runner().invoke(cli, ["install", template_dir, ...INSTALL_LOCAL]);
+    const result = await runner().invoke(cli, ["template", "install", template_dir, ...INSTALL_LOCAL]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     const cached = path.join(cache_dir, expected.name);
@@ -170,7 +170,7 @@ describe("TestLocalInstall", () => {
     const relative = underCwd ? `./${rel.split(path.sep).join("/")}` : template_dir;
     _setTemplateCacheDir(cacheDirIn());
 
-    const result = await runner().invoke(cli, ["install", relative, "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "install", relative, "--download-only"]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(result.output).toContain("Using local template from");
@@ -181,7 +181,7 @@ describe("TestLocalInstall", () => {
     _setTemplateCacheDir(cache_dir);
     const alias = `custom-${baseName(template_dir)}`;
 
-    const result = await runner().invoke(cli, ["install", template_dir, "--registry-type", "local", "--alias", alias, "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "install", template_dir, "--registry-type", "local", "--alias", alias, "--download-only"]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(result.output).toContain(alias);
@@ -190,10 +190,10 @@ describe("TestLocalInstall", () => {
   });
 
   it.each(templateDirs)("test_local_install_long_form_equivalent [%s]", async (template_dir) => {
-    // `ebx template install` and `ebx install` behave identically.
+    // `abx template install` and `abx install` behave identically.
     _setTemplateCacheDir(cacheDirIn());
-    const shortcut = await runner().invoke(cli, ["install", template_dir, ...INSTALL_LOCAL]);
-    _setTemplateCacheDir(path.join(tmpPath(), "ebx-cache-2"));
+    const shortcut = await runner().invoke(cli, ["template", "install", template_dir, ...INSTALL_LOCAL]);
+    _setTemplateCacheDir(path.join(tmpPath(), "abx-cache-2"));
     const long_form = await runner().invoke(cli, ["template", "install", template_dir, ...INSTALL_LOCAL]);
 
     expect(shortcut.exit_code, _combined_output(shortcut)).toBe(0);
@@ -204,7 +204,7 @@ describe("TestLocalInstall", () => {
     const expected = loadTemplateFromYaml(path.join(template_dir, "template.yaml"));
     _setTemplateCacheDir(cacheDirIn());
 
-    const result = await runner().invoke(cli, ["--json", "install", template_dir, ...INSTALL_LOCAL]);
+    const result = await runner().invoke(cli, ["--json", "template", "install", template_dir, ...INSTALL_LOCAL]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     const payload = _install_payload(result.output);
@@ -222,14 +222,14 @@ describe("TestLocalInstallFailures", () => {
 
   it("test_missing_directory", async () => {
     const missing = path.join(tmpPath(), "does-not-exist");
-    const result = await runner().invoke(cli, ["install", missing, "--registry-type", "local"]);
+    const result = await runner().invoke(cli, ["template", "install", missing, "--registry-type", "local"]);
     expect(result.exit_code).not.toBe(0);
   });
 
   it("test_directory_without_yaml_or_dockerfile", async () => {
     const empty = path.join(tmpPath(), "empty-template");
     fs.mkdirSync(empty);
-    const result = await runner().invoke(cli, ["install", empty, "--registry-type", "local"]);
+    const result = await runner().invoke(cli, ["template", "install", empty, "--registry-type", "local"]);
     expect(result.exit_code).not.toBe(0);
     expect(mentionsYaml(_combined_output(result))).toBe(true);
   });
@@ -240,7 +240,7 @@ describe("TestLocalInstallFailures", () => {
     fs.mkdirSync(folder);
     fs.writeFileSync(path.join(folder, "Dockerfile"), "FROM ubuntu:22.04\n", "utf-8");
 
-    const result = await runner().invoke(cli, ["install", folder, "--registry-type", "local"]);
+    const result = await runner().invoke(cli, ["template", "install", folder, "--registry-type", "local"]);
 
     expect(result.exit_code).not.toBe(0);
     expect(mentionsYaml(_combined_output(result))).toBe(true);
@@ -250,7 +250,7 @@ describe("TestLocalInstallFailures", () => {
     const folder = path.join(tmpPath(), "broken");
     fs.mkdirSync(folder);
     fs.writeFileSync(path.join(folder, "template.yaml"), "name: broken\ncapabilities:\n  - not-a-real-capability\n", "utf-8");
-    const result = await runner().invoke(cli, ["install", folder, "--registry-type", "local"]);
+    const result = await runner().invoke(cli, ["template", "install", folder, "--registry-type", "local"]);
     expect(result.exit_code).not.toBe(0);
     expect(_combined_output(result).toLowerCase()).toContain("capability");
   });
@@ -312,7 +312,7 @@ function mockedGithub(tarball: Buffer, cache_dir: string): ReturnType<typeof pat
 const anySubdir = (dir: string): boolean => fs.readdirSync(dir).some((n) => isDir(path.join(dir, n)));
 
 describe("TestMockedGithubInstall", () => {
-  // `ebx install owner/repo//<template> --registry-type github` offline.
+  // `abx install owner/repo//<template> --registry-type github` offline.
   it.each(templateDirs)("test_github_install_subdir [%s]", async (template_dir) => {
     const tarball = build_repo_tarball(TEMPLATES_DIR);
     const cache_dir = cacheDirIn();
@@ -320,13 +320,13 @@ describe("TestMockedGithubInstall", () => {
     const expected = loadTemplateFromYaml(path.join(template_dir, "template.yaml"));
 
     const downloader = mockedGithub(tarball, cache_dir);
-    const result = await runner().invoke(cli, ["install", ref, "--registry-type", "github", "--registry-url", GITHUB_URL, "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "install", ref, "--registry-type", "github", "--registry-url", GITHUB_URL, "--download-only"]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(result.output).toContain(`Fetching template from ${GITHUB_REF}`);
     expect(downloader.get).toHaveBeenCalledTimes(1);
 
-    // real cache layout: ~/.ebx/templates/<owner>/<repo>/<ref>/<subdir>
+    // real cache layout: ~/.abx/templates/<owner>/<repo>/<ref>/<subdir>
     const cached = path.join(cache_dir, GITHUB_OWNER, GITHUB_REPO, GITHUB_TAG, baseName(template_dir));
     expect(isFile(path.join(cached, "template.yaml")), `template was not cached at ${cached}`).toBe(true);
     expect(isFile(path.join(cached, "Dockerfile"))).toBe(true);
@@ -343,8 +343,8 @@ describe("TestMockedGithubInstall", () => {
     const ref = `${GITHUB_REF}//${baseName(template_dir)}@${GITHUB_TAG}`;
 
     const downloader = mockedGithub(tarball, cacheDirIn());
-    const first = await runner().invoke(cli, ["install", ref, "--registry-type", "github", "--download-only"]);
-    const second = await runner().invoke(cli, ["install", ref, "--registry-type", "github", "--download-only"]);
+    const first = await runner().invoke(cli, ["template", "install", ref, "--registry-type", "github", "--download-only"]);
+    const second = await runner().invoke(cli, ["template", "install", ref, "--registry-type", "github", "--download-only"]);
 
     expect(first.exit_code, _combined_output(first)).toBe(0);
     expect(second.exit_code, _combined_output(second)).toBe(0);
@@ -359,7 +359,7 @@ describe("TestMockedGithubInstall", () => {
     const ref = `${GITHUB_REF}//${baseName(template_dir)}`;
 
     const downloader = mockedGithub(tarball, cache_dir);
-    const result = await runner().invoke(cli, ["install", ref, "--registry-type", "github", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "install", ref, "--registry-type", "github", "--download-only"]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(downloader.get).toHaveBeenCalledTimes(1);
@@ -374,7 +374,7 @@ describe("TestMockedGithubInstall", () => {
     const ref = `${GITHUB_REF}//${baseName(template_dir)}@${GITHUB_TAG}`;
 
     mockedGithub(tarball, cacheDirIn());
-    const result = await runner().invoke(cli, ["install", ref, "--registry-type", "github", "--alias", "gh-alias", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "install", ref, "--registry-type", "github", "--alias", "gh-alias", "--download-only"]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(result.output).toContain("gh-alias");
@@ -385,7 +385,7 @@ describe("TestMockedGithubInstall", () => {
     const tarball = build_repo_tarball(TEMPLATES_DIR);
 
     mockedGithub(tarball, cacheDirIn());
-    const result = await runner().invoke(cli, ["install", `${GITHUB_REF}@${GITHUB_TAG}`, "--registry-type", "github"]);
+    const result = await runner().invoke(cli, ["template", "install", `${GITHUB_REF}@${GITHUB_TAG}`, "--registry-type", "github"]);
 
     expect(result.exit_code).not.toBe(0);
     const combined = _combined_output(result);
@@ -415,7 +415,7 @@ describe("TestSandboxYamlAliasInstall", () => {
     const cache_dir = cacheDirIn();
     _setTemplateCacheDir(cache_dir);
 
-    const result = await runner().invoke(cli, ["install", tmpl_dir, ...INSTALL_LOCAL]);
+    const result = await runner().invoke(cli, ["template", "install", tmpl_dir, ...INSTALL_LOCAL]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     expect(result.output).toContain("Using local template from");
@@ -452,7 +452,7 @@ describe("TestSandboxYamlAliasInstall", () => {
     const cache_dir = cacheDirIn();
     _setTemplateCacheDir(cache_dir);
 
-    const result = await runner().invoke(cli, ["install", tmpl_dir, ...INSTALL_LOCAL]);
+    const result = await runner().invoke(cli, ["template", "install", tmpl_dir, ...INSTALL_LOCAL]);
 
     expect(result.exit_code, _combined_output(result)).toBe(0);
     // The canonical template.yaml name should be used (both-yamls, not both-yamls-alt)
@@ -466,7 +466,7 @@ describe("TestMockedGithubInstallFailures", () => {
     const tarball = build_repo_tarball(TEMPLATES_DIR);
 
     mockedGithub(tarball, cacheDirIn());
-    const result = await runner().invoke(cli, ["install", `${GITHUB_REF}//no-such-template@${GITHUB_TAG}`, "--registry-type", "github"]);
+    const result = await runner().invoke(cli, ["template", "install", `${GITHUB_REF}//no-such-template@${GITHUB_TAG}`, "--registry-type", "github"]);
 
     expect(result.exit_code).not.toBe(0);
   });

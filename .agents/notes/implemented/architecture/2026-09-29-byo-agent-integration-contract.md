@@ -7,7 +7,7 @@ Related: [2026-09-29-pluggable-coding-agent-backend.md](2026-09-29-pluggable-cod
 
 ## Problem
 
-Task 195 evaluated whether Easy Sandbox should ship a pluggable sandbox-embedded
+Task 195 evaluated whether Agent Sandbox should ship a pluggable sandbox-embedded
 agent (e.g. a bundled Qwen Code CLI) instead of leaving agents to the user. The
 evaluation covered Qwen Code CLI, Qoder CLI, Codex CLI, Claude Code, and
 user-defined agent commands: install channels, real headless CLI behaviour,
@@ -17,7 +17,7 @@ requirements.
 
 Two integration axes were being conflated in the docs:
 
-1. **Host-side generation** — `ebx create "<description>"` runs Qwen Code *on
+1. **Host-side generation** — `abx create "<description>"` runs Qwen Code *on
    the host* to generate `Dockerfile` + `template.yaml` (already covered by the
    pluggable-backend ADR; Qwen Code is the default host backend).
 2. **In-sandbox agents** — a coding-agent CLI running *inside* the sandbox to
@@ -32,15 +32,15 @@ constraint.
 
 ## Decision
 
-**Bring Your Own Agent (BYO).** Easy Sandbox provides the isolated runtime and
+**Bring Your Own Agent (BYO).** Agent Sandbox provides the isolated runtime and
 the operational surface; the agent CLI provides planning, reasoning, code
 generation, and its tool loop. Concretely:
 
 ### Responsibility split
 
-- Easy Sandbox owns: sandbox CRUD + lifecycle (TTL, kill), files, shell
+- Agent Sandbox owns: sandbox CRUD + lifecycle (TTL, kill), files, shell
   commands, network/ports, the MCP server, credential injection
-  (`ebx create --env KEY=...`), and the template build/deploy pipeline.
+  (`abx create --env KEY=...`), and the template build/deploy pipeline.
 - The agent CLI owns: model calls, planning, task decomposition, code
   generation, and its internal tool loop.
 - The SDK adds **no LLM client dependency** and no agent runtime (no planner,
@@ -66,7 +66,7 @@ generation, and its tool loop. Concretely:
 
 No new capability, template schema, or SDK API. A BYO agent template maps the
 contract onto the `CustomCommand` model that already exists
-(`src/easy_sandbox/models/template.py`):
+(`src/agent_sandbox/models/template.py`):
 
 | Contract element | Mechanism |
 | --- | --- |
@@ -74,11 +74,11 @@ contract onto the `CustomCommand` model that already exists
 | Headless startup | `custom_commands.<name>.cmd` with `{placeholder}` tokens |
 | Prompt input | required `args[]` entry (filled after `shlex.quote()`) |
 | JSON output | flags in `cmd`; format documented in `description`; stdout parsed by the caller |
-| Auth env whitelist | `env` names in `template.yaml` + values via `ebx create --env` |
+| Auth env whitelist | `env` names in `template.yaml` + values via `abx create --env` |
 | Working directory | `custom_commands.<name>.cwd` (`/workspace` convention) |
 | Timeout | `custom_commands.<name>.timeout` per turn; sandbox TTL separate |
 | Resource limits | `resources.cpu` / `resources.memory`; `Sandbox.create(cpu=, memory=)` overrides |
-| Lifecycle | `ebx create --timeout`, `ebx kill <id>` |
+| Lifecycle | `abx create --timeout`, `abx kill <id>` |
 | Error mapping | non-zero exit code + stderr on `CommandResult` |
 | Version locking | exact versions in the `Dockerfile` (+ SHA256 for archives) |
 | License boundary | official (Apache-2.0) vs proprietary (BYO/community only) |
@@ -102,7 +102,7 @@ contract does not force uniformity.
 
 N/A — this decision does not involve API changes. The contract reuses the
 existing `CustomCommand` / `custom_commands` mechanism and the existing CLI
-(`ebx run <id> <name>`) and SDK (`sandbox.custom(name, **kwargs)`) entry
+(`abx run <id> <name>`) and SDK (`sandbox.custom(name, **kwargs)`) entry
 points.
 
 ## Alternatives considered
@@ -199,6 +199,6 @@ existing template pipeline.
 - Changed: `docs/en/README.md`, `docs/zh/README.md`, `docs/en/DESIGN.md`,
   `docs/zh/DESIGN.md` (index entries; the stale "Built-in Agents" summaries
   now describe `AgentModule` + dedicated templates and link the BYO guide).
-- Untouched by design: `src/easy_sandbox/**` (no SDK/CLI changes), external
+- Untouched by design: `src/agent_sandbox/**` (no SDK/CLI changes), external
   awesome-templates repository (template convergence is a separate task), and
   the verified Agent Skill installation commands (task 193 scope).

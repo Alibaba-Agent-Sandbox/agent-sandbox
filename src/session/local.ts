@@ -1,7 +1,7 @@
 /**
  * Local filesystem session store (port of `session/local.py`).
  *
- * Sessions are persisted as JSON files under `~/.ebx/sessions/`. Concurrent access is protected by a lock beside each
+ * Sessions are persisted as JSON files under `~/.abx/sessions/`. Concurrent access is protected by a lock beside each
  * file: the Python original used `filelock` (`flock` on `<file>.lock`, 5 s timeout). Node has no `flock`, so the
  * `<file>.lock` file is still created (same artefact on disk) and mutual exclusion is taken through an atomic
  * `mkdir <file>.lock.d` with the same 5 s timeout (see parity/KNOWN-GAPS.md).
@@ -15,7 +15,7 @@ import { SessionInfo } from "../models/session.js";
 import { pyJsonDumps } from "../utils/_pyformat.js";
 import { _utf8DecodeError, UnicodeDecodeError } from "../utils/_pyos.js";
 
-export const DEFAULT_DIR: string = path.join(os.homedir(), ".ebx", "sessions");
+export const DEFAULT_DIR: string = path.join(os.homedir(), ".abx", "sessions");
 
 const LOCK_TIMEOUT_MS = 5000;
 const LOCK_POLL_MS = 50;
@@ -71,7 +71,7 @@ function isAlnum(ch: string): boolean {
   return /^[\p{L}\p{N}]$/u.test(ch);
 }
 
-/** File-backed session store (`~/.ebx/sessions/`). */
+/** File-backed session store (`~/.abx/sessions/`). */
 export class LocalSessionStore {
   _base_dir: string;
 

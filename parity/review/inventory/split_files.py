@@ -22,11 +22,11 @@ orig_files = subprocess.check_output(["git", "-C", str(ORIG), "ls-files"], text=
 def candidates(rel):
     out = []
     parts = rel.split("/")
-    if rel.startswith("src/easy_sandbox/"):
+    if rel.startswith("src/agent_sandbox/"):
         sub = rel[len("src/"):]
         out += [f"python-sdk/client-sdk/src/{sub}", f"python-sdk/server-sdk/src/{sub}"]
         if rel.endswith(".py"):
-            out.append("cli/src/" + sub[len("easy_sandbox/"):][:-3] + ".ts")
+            out.append("cli/src/" + sub[len("agent_sandbox/"):][:-3] + ".ts")
     elif rel.startswith("tests/"):
         sub = rel[len("tests/"):]
         out += [f"python-sdk/client-sdk/tests/{sub}", f"python-sdk/server-sdk/tests/{sub}", f"cli/tests/{sub}"]

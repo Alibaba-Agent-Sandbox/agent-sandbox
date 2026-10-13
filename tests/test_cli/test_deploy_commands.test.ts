@@ -1,9 +1,9 @@
 /**
- * Tests for the top-level `ebx deploy` command.
+ * Tests for the top-level `abx deploy` command.
  *
- * `ebx deploy` is the fixed *publish* step of the template lifecycle (docker build -> push -> register) and delegates
+ * `abx deploy` is the fixed *publish* step of the template lifecycle (docker build -> push -> register) and delegates
  * to `template build`. It takes no description and no LLM: what a template is lives in `template.yaml`, authored
- * earlier by `ebx template init`. The pipeline itself is covered by the `template` tests, so here `build` is replaced by
+ * earlier by `abx template init`. The pipeline itself is covered by the `template` tests, so here `build` is replaced by
  * a recorder that keeps its real option set.
  */
 
@@ -18,7 +18,8 @@ import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import { deploySeams, deploy_shortcut } from "../../src/cli/commands/deploy.js";
 import { build as realBuild } from "../../src/cli/commands/template.js";
 import { cli } from "../../src/cli/main.js";
-import { Option, UsageError, command, getCurrentContext } from "../../src/framework/index.js";
+import { command, getCurrentContext } from "../../src/cli/kit.js";
+import { UsageError } from "../../src/cli/errors.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { delenv, useTmpPath, writeText } from "../helpers/templateSupport.js";
 
@@ -82,7 +83,7 @@ describe("TestFixedPipeline", () => {
     vi.spyOn(codingAgent, "resolveCodingAgentBackend").mockImplementation(boom);
     vi.spyOn(codingAgent, "ensureCodingAgentBinary").mockImplementation(boom);
     vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockImplementation(boom);
-    for (const v of ["EBX_LLM_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]) delenv(v);
+    for (const v of ["ABX_LLM_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]) delenv(v);
 
     const result = await runner().invoke(cli, ["deploy", p]);
 
@@ -102,9 +103,9 @@ describe("TestFixedPipeline", () => {
 
   it("test_shares_every_template_build_option", () => {
     const deployOpts = new Set<string>();
-    for (const p of deploy_shortcut.params) for (const o of (p as { opts?: string[] }).opts ?? []) deployOpts.add(o);
+    for (const p of deploy_shortcut.params) for (const o of p.kind === "option" ? p.decls : []) deployOpts.add(o);
     for (const param of realBuild.params) {
-      if (param instanceof Option) for (const o of param.opts) expect(deployOpts.has(o), param.name ?? "").toBe(true);
+      if (param.kind === "option") for (const o of param.decls) expect(deployOpts.has(o), param.name).toBe(true);
     }
   });
 
@@ -114,7 +115,7 @@ describe("TestFixedPipeline", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("--verbose");
     expect(result.output).toContain("--acr-namespace");
-    expect(result.output).toContain("ebx template init");
+    expect(result.output).toContain("abx template init");
     for (const gone of ["--agent", "--instruction", "--max-wall-time", "--max-session-turns"]) expect(result.output).not.toContain(gone);
     expect(result.output).not.toContain("--traditional");
   });
@@ -152,7 +153,7 @@ describe("TestFixedPipeline", () => {
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("No Dockerfile found");
-    expect(result.output).toContain("ebx template init");
+    expect(result.output).toContain("abx template init");
     expect(buildCalls).toEqual([]);
   });
 
@@ -179,12 +180,12 @@ describe("TestFixedPipeline", () => {
     expect(buildCalls).toEqual([]);
   });
 
-  it("test_traditional_flag_is_deprecated_but_harmless", async () => {
+  it("test_traditional_flag_is_removed", async () => {
     const p = project();
     const result = await runner().invoke(cli, ["deploy", p, "--traditional"]);
 
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("--traditional is deprecated");
-    expect(buildCalls.length).toBe(1);
+    expect(result.exit_code).toBe(2);
+    expect(result.output).toContain("No such option");
+    expect(buildCalls.length).toBe(0);
   });
 });

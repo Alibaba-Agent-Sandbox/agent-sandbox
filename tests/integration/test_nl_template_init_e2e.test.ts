@@ -1,7 +1,7 @@
 /**
  * End-to-end CLI flows for natural-language create versus template init.
  *
- * Each test enters through the real `ebx` command tree (`template init`, `init`, `create`, `sandbox create`). The
+ * Each test enters through the real `abx` command tree (`template init`, `init`, `create`, `sandbox create`). The
  * coding agent, image build, and sandbox API are stubbed so the run stays offline; the assertions are on the files
  * left on disk and on the calls that must not happen.
  *
@@ -32,9 +32,7 @@ import { cli } from "../../src/cli/main.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { useTmpPath } from "../helpers/templateSupport.js";
-import { useDefaultShortcutsOnly } from "../test_cli/conftest.js";
 
-useDefaultShortcutsOnly();
 const tmpPath = useTmpPath();
 
 type Mock = ReturnType<typeof vi.fn>;
@@ -48,7 +46,7 @@ const _CREDS = new QwenCodeCredentials({
   baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   model: "qwen3-coder-plus",
 });
-const _TEMPLATE_NAME = "ebx-nl-sandbox-abc123";
+const _TEMPLATE_NAME = "abx-nl-sandbox-abc123";
 const _DESCRIPTION = "a python data science env with pandas";
 
 const runner = (): CliRunner => new CliRunner();
@@ -67,7 +65,7 @@ function _codegenResult(tmp: string): CodegenResult {
   const commandsPy = path.join(workdir, "commands.py");
   fs.writeFileSync(
     commandsPy,
-    "from easy_sandbox.server import CommandRegistry, SandboxServer\n" +
+    "from agent_sandbox.server import CommandRegistry, SandboxServer\n" +
       "registry = CommandRegistry()\n" +
       "SandboxServer(registry=registry).serve(port=9000)\n",
     "utf-8",
@@ -244,7 +242,7 @@ it("test_top_level_init_matches_template_init", async () => {
   const ready = agentReady();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["init", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -311,7 +309,7 @@ it("test_noninteractive_create_reminds_about_init_and_does_not_launch", async ()
   expect(result.exit_code).not.toBe(0);
   const shown = _shown(result);
   expect(shown).toContain("Confirmation required");
-  expect(shown).toContain("ebx template init");
+  expect(shown).toContain("abx template init");
   expect(ready.deploy).not.toHaveBeenCalled();
   expect(create).not.toHaveBeenCalled();
 });
@@ -324,12 +322,12 @@ it("test_noninteractive_create_reminds_about_init_and_does_not_launch", async ()
 const _SERVER_DOCKERFILE =
   "FROM python:3.12-slim\n" +
   "COPY *.whl /tmp/\n" +
-  "RUN pip install --no-cache-dir easy-sandbox-server\n" +
+  "RUN pip install --no-cache-dir agent-sandbox-server\n" +
   "WORKDIR /app\n" +
   "COPY commands.py .\n" +
   "EXPOSE 9000\n";
 const _SERVER_COMMANDS =
-  "from easy_sandbox.server import CommandRegistry, SandboxServer\n" +
+  "from agent_sandbox.server import CommandRegistry, SandboxServer\n" +
   "registry = CommandRegistry()\n" +
   '@registry.command("hello")\n' +
   "def hello(name: str = 'World') -> str:\n" +

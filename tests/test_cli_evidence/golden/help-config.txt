@@ -1,31 +1,32 @@
-Usage: cli config [OPTIONS] COMMAND [ARGS]...
+Usage: abx config [options] [command]
 
-  Manage persistent credentials and CLI defaults.
+Manage persistent credentials and CLI defaults.
 
-  Values are read from ~/.ebx/config.toml and ~/.ebx/.env. Environment variables
-  can still override the stored configuration at runtime.
+Values are read from ~/.abx/config.toml and ~/.abx/.env. Environment
+variables can still override the stored configuration at runtime.
 
-  Examples:
-    ebx config init
-    ebx config list
-    ebx config get region
-    ebx config set http_timeout 120
-    ebx config set github_token     Prompt for the token (masked input)
-    ebx config delete region   Remove one stored value
+Examples:
+  abx config init
+  abx config list
+  abx config get region
+  abx config set http_timeout 120
+  abx config set github_token     Prompt for the token (masked input)
+  abx config delete region   Remove one stored value
 
-  Related commands:
-    ebx config init           Guided setup (credentials, region, ACR, LLM)
-    ebx config get            Read one effective value
-    ebx config set            Store or update one value
-    ebx config delete KEY     Remove one stored value
+Related commands:
+  abx config init           Guided setup (credentials, region, ACR, LLM)
+  abx config get            Read one effective value
+  abx config set            Store or update one value
+  abx config delete KEY     Remove one stored value
 
 Options:
   -h, --help  Show this message and exit.
 
 Commands:
-  delete  Remove one stored configuration value.
-  get     Get a configuration value by KEY.
-  init    Guided setup: credentials, region, ACR namespace, and the LLM API...
-  list    List all effective configuration values and their sources.
-  set     Set a configuration value: KEY [VALUE].
+  delete      Remove one stored configuration value.
+  get         Get a configuration value by KEY.
+  init        Guided setup: credentials and region (add --build / --llm for the
+              rest).
+  list        List all effective configuration values and their sources.
+  set         Set a configuration value: KEY [VALUE].
 [exit_code:0]

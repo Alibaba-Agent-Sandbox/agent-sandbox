@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { _doDeploy, templateSeams } from "../../src/cli/commands/template.js";
 import { unifiedDiff } from "../../src/cli/commands/_adopt.js";
 import { cli } from "../../src/cli/main.js";
-import { ClickException } from "../../src/framework/index.js";
+import { CliError } from "../../src/cli/errors.js";
 import { DockerBuilder } from "../../src/api/docker_builder.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { fakeConfig, mockHttp, patchLoadConfig, patchTransport, setenv, spyAny, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
@@ -77,7 +77,7 @@ describe("TestDoDeployLegacyPipeline", () => {
 
   it("test_missing_acr_credentials_raises_click_exception", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
-    await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(ClickException);
+    await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(CliError);
     await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(/ACR credentials missing/);
   });
 
@@ -110,7 +110,7 @@ describe("TestDeployConfirmation", () => {
   it("test_deploy_without_yes_in_non_interactive_mode_is_usage_error", async () => {
     patchLoadConfig(fakeConfig());
     const result = await runner().invoke(cli, ["template", "deploy", templateDir(), "--acr-namespace", "ns"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required for deploying to cloud");
   });
 
@@ -130,7 +130,7 @@ describe("TestDeleteConfirmation", () => {
   it("test_delete_without_yes_in_non_interactive_mode_is_usage_error", async () => {
     patchLoadConfig(fakeConfig());
     const result = await runner().invoke(cli, ["template", "delete", "tpl-1"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required for deleting template");
   });
 
@@ -209,7 +209,7 @@ describe("TestInstallPipelineStatuses", () => {
   it("test_install_ready_status_prints_usage_hint", async () => {
     const out = await install("ready");
     expect(out).toContain("Template installed, built, and ready!");
-    expect(out).toContain("Use: ebx create --template tpl-9");
+    expect(out).toContain("Use: abx create --template tpl-9");
   });
 
   it("test_install_pushed_status_message", async () => {
@@ -227,7 +227,7 @@ describe("TestInstallPipelineStatuses", () => {
     writeText(path.join(source, "template.yaml"), "name: st-test\n");
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required for build + deploy");
   });
 
@@ -249,19 +249,19 @@ describe("TestInstallPipelineStatuses", () => {
 describe("TestInitFlagCombinations", () => {
   it("test_nl_description_cannot_combine_with_template_flag", async () => {
     const result = await runner().invoke(cli, ["template", "init", "a python web service that serves files", "-t", "python"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("A natural-language description cannot be combined with --template/-t or --from.");
   });
 
   it("test_from_builtin_template_is_rejected", async () => {
     const result = await runner().invoke(cli, ["template", "init", "--from", "base"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("'base' is a built-in template and cannot be used with --from.");
   });
 });
 
 describe("TestAdoptUnifiedDiff", () => {
-  it("test_unified_diff_matches_difflib_for_multiple_hunks", () => {
+  it("test_unified_diff_for_multiple_hunks", () => {
     const a = Array.from({ length: 20 }, (_, i) => `l${i}\n`);
     const b = [...a];
     b[2] = "L2\n";
@@ -270,7 +270,7 @@ describe("TestAdoptUnifiedDiff", () => {
     expect(unifiedDiff(a, b, "f.py", "f.py")).toEqual([
       "--- f.py\n", "+++ f.py\n", "@@ -1,6 +1,6 @@\n", " l0\n", " l1\n", "-l2\n", "+L2\n", " l3\n", " l4\n", " l5\n",
       "@@ -8,6 +8,7 @@\n", " l7\n", " l8\n", " l9\n", "+new\n", " l10\n", " l11\n", " l12\n",
-      "@@ -17,4 +18,4 @@\n", " l16\n", " l17\n", " l18\n", "-l19\n", "+l19",
+      "@@ -17,4 +18,4 @@\n", " l16\n", " l17\n", " l18\n", "-l19\n", "+l19\n", "\\ No newline at end of file\n",
     ]);
   });
 

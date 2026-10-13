@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Differential fuzz of the MCP STDIO framing / response ORDER: the original `python -m easy_sandbox.agent.mcp` versus
+ * Differential fuzz of the MCP STDIO framing / response ORDER: the original `python -m agent_sandbox.agent.mcp` versus
  * `src/agent/mcp_main.ts`. Random sequences of valid, malformed, blank, non-object and notification lines are cut at random
  * byte offsets (including mid-line and mid-UTF-8), written with pauses between chunks, and the raw stdout bytes (response
  * order included) must be identical.
@@ -27,7 +27,7 @@ const SEED = arg("--seed", 20261012);
 const verbose = process.argv.includes("--verbose");
 
 if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "python"))) {
-  console.error("ORACLE_VENV must point to a venv with the original easy-sandbox installed (see docs/PORTING.md).");
+  console.error("ORACLE_VENV must point to a venv with the original agent-sandbox installed (see docs/PORTING.md).");
   process.exit(2);
 }
 
@@ -99,7 +99,7 @@ async function runOne(kind, chunks) {
   const env = { ...process.env, E2B_API_KEY: "k", E2B_API_URL: "http://127.0.0.1:9", SANDBOX_TEMPLATE: "t", PYTHONUNBUFFERED: "1" };
   const [cmd, args, cwd] =
     kind === "py"
-      ? [join(ORACLE_VENV, "bin", "python"), ["-m", "easy_sandbox.agent.mcp"], "/tmp"]
+      ? [join(ORACLE_VENV, "bin", "python"), ["-m", "agent_sandbox.agent.mcp"], "/tmp"]
       : [process.execPath, ["--import", "tsx", join(CLI_ROOT, "src", "agent", "mcp_main.ts")], CLI_ROOT];
   const proc = spawn(cmd, args, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
   const out = [];

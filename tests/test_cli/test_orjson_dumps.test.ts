@@ -18,7 +18,8 @@ import { OutputFormatter } from "../../src/cli/formatters.js";
 import { OutputManager } from "../../src/cli/output.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { PyFloat } from "../../src/utils/_pyformat.js";
-import { command, echo } from "../../src/framework/index.js";
+import { command } from "../../src/cli/kit.js";
+import { echo } from "../../src/cli/io.js";
 import { useCapsys } from "./conftest.js";
 
 type Tagged = null | boolean | string | Tagged[] | { i: string } | { f: string } | { d: [Tagged, Tagged][] } | { x: string };

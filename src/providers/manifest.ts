@@ -1,4 +1,4 @@
-/** `ebx-provider.toml` manifest: parsing, validation and version comparison (port of `providers/manifest.py`). */
+/** `abx-provider.toml` manifest: parsing, validation and version comparison (port of `providers/manifest.py`). */
 
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -15,12 +15,13 @@ import { parseTomlText } from "../utils/toml_plain.js";
 import { FEATURES, type ConfigField } from "./base.js";
 import { ProviderManifestError, ProviderVersionError } from "./errors.js";
 
-export const MANIFEST_NAME = "ebx-provider.toml";
+export const MANIFEST_NAME = "abx-provider.toml";
+/** Manifest names used before the product rename; recognised only to explain what to change. */
 export const MANIFEST_MAX_BYTES = 256 * 1024;
 export const SUPPORTED_PROTOCOLS: Readonly<Record<string, string>> = { exec: "epp/1", rest: "e2b-rest/1" };
 export const FIELD_TYPES = ["string", "int", "float", "bool", "enum", "path", "url", "csv"] as const;
 export const FILESYSTEM_SCOPES = ["data_dir", "cwd", "home", "any"] as const;
-const FORBIDDEN_ENV_PREFIXES = ["EBX_", "E2B_", "ALICLOUD_"];
+const FORBIDDEN_ENV_PREFIXES = ["ABX_", "E2B_", "ALICLOUD_"];
 const FORBIDDEN_LAUNCHERS = [".bat", ".cmd", ".ps1"];
 
 export interface SecuritySection {
@@ -134,7 +135,7 @@ export function checkRequires(manifest: Manifest, opts: { component: string; hos
   if (spec && !versionSatisfies(opts.host_version, spec)) {
     throw new ProviderVersionError(
       `Provider '${manifest.id}' requires ${opts.component} ${spec} (this is ${opts.host_version}).`,
-      { suggestion: "Upgrade easy-sandbox/ebx or install a compatible provider version." },
+      { suggestion: "Upgrade agent-sandbox/abx or install a compatible provider version." },
     );
   }
 }
@@ -377,7 +378,14 @@ export function parseManifest(data: Uint8Array | string): Manifest {
   };
 }
 
-/** Read and parse `<directory>/ebx-provider.toml`. */
+/** The error for a plugin root without `abx-provider.toml`. */
+export function missingManifestError(): ProviderManifestError {
+  return new ProviderManifestError(`Invalid ${MANIFEST_NAME}: file not found at the plugin root.`, {
+    suggestion: "Point SOURCE at the directory that contains abx-provider.toml (owner/repo//subdir or --subdir).",
+  });
+}
+
+/** Read and parse `<directory>/abx-provider.toml`. */
 export function loadManifest(directory: string): Manifest {
   const file = path.join(directory, MANIFEST_NAME);
   let data: Buffer;
@@ -385,6 +393,7 @@ export function loadManifest(directory: string): Manifest {
     data = fs.readFileSync(file);
   } catch (exc) {
     const e = exc as NodeJS.ErrnoException;
+    if (e.code === "ENOENT") throw missingManifestError();
     throw new ProviderManifestError(`Invalid ${MANIFEST_NAME}: cannot read ${MANIFEST_NAME}: ${e.code ?? e.message}.`);
   }
   return parseManifest(data);

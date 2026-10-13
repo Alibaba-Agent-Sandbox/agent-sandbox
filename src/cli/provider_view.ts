@@ -42,7 +42,7 @@ export function scopedFlagOptions(flag: string, key: string, value: string | nul
   const declared = registry.getProvider(view.effective).configFields.some((f) => f.key === key);
   if (!declared) {
     throw new ProviderConfigError(`Option '${flag}' is not supported by provider '${view.effective}'.`, {
-      suggestion: `Use '--opt KEY=VALUE' for provider options (see 'ebx provider info ${view.effective}').`,
+      suggestion: `Use '--opt KEY=VALUE' for provider options (see 'abx provider info ${view.effective}').`,
     });
   }
   return { [key]: value };

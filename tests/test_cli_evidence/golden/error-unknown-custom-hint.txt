@@ -1,6 +1,6 @@
 [exit_code:2]
 [stderr]
-Usage: cli [OPTIONS] [COMMAND] [ARGS]...
-Try 'cli --help' for help.
+Usage: abx [options] [command]
+Try 'abx -h' for help.
 
-Error: No such command 'frobnicate'. No similar command. To add a shortcut, use the command path without the "ebx" prefix, for example: ebx config set shortcuts.NAME "template init". A custom command inside a sandbox is declared in template.yaml (custom_commands) and run with 'ebx run COMMAND'.
+Error: No such command 'frobnicate'. No similar command. See 'abx --help' for the command list (templates: 'abx template init|install'; named commands in a sandbox: 'abx run SANDBOX NAME').

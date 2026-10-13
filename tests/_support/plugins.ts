@@ -2,6 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,7 +10,43 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const FIXTURE_PLUGINS = path.resolve(here, "..", "fixtures", "providers");
 export const LOCAL_PROCESS = path.join(FIXTURE_PLUGINS, "local-process");
 export const E2B_COMPATIBLE = path.join(FIXTURE_PLUGINS, "e2b-compatible");
-export const OPENSANDBOX = path.resolve(here, "..", "..", "..", "python-sdk", "examples", "providers", "opensandbox");
+/** In-repo reference plugins that stay in the Python SDK (not opensandbox). */
+export const PY_PROVIDER_EXAMPLES = path.resolve(here, "..", "..", "..", "python-sdk", "examples", "providers");
+export const AWESOME_PROVIDERS_URL =
+  process.env["ABX_AWESOME_PROVIDERS_URL"] ?? "https://github.com/alibaba-agent-sandbox/awesome-providers.git";
+
+function manifestDir(dir: string): boolean {
+  return fs.existsSync(path.join(dir, "abx-provider.toml"));
+}
+
+/** A checkout already on disk. Does not clone. */
+export function openSandboxFromEnv(): string | null {
+  const direct = process.env["ABX_OPENSANDBOX_PLUGIN"];
+  if (direct && manifestDir(direct)) return direct;
+  const root = process.env["ABX_AWESOME_PROVIDERS"];
+  if (root && manifestDir(path.join(root, "opensandbox"))) return path.join(root, "opensandbox");
+  return null;
+}
+
+/**
+ * The opensandbox plugin from the awesome-providers catalog.
+ * Uses ABX_OPENSANDBOX_PLUGIN / ABX_AWESOME_PROVIDERS, else clones the catalog once under the temp dir.
+ * Returns null when the catalog cannot be fetched (callers skip).
+ */
+export function ensureOpenSandboxPlugin(): string | null {
+  const fromEnv = openSandboxFromEnv();
+  if (fromEnv) return fromEnv;
+  const dest = path.join(os.tmpdir(), "abx-awesome-providers");
+  const plugin = path.join(dest, "opensandbox");
+  if (manifestDir(plugin)) return plugin;
+  try {
+    fs.rmSync(dest, { recursive: true, force: true });
+    execFileSync("git", ["clone", "--depth", "1", AWESOME_PROVIDERS_URL, dest], { stdio: "ignore" });
+  } catch {
+    return null;
+  }
+  return manifestDir(plugin) ? plugin : null;
+}
 
 /** Plugins declare `cli >=0.3`; the CLI package is still 0.2.x, so tests pass this host version explicitly. */
 export const TEST_HOST_VERSION = "0.3.0";
@@ -43,7 +80,7 @@ export interface PluginOptions {
 
 export function writePlugin(root: string, opts: PluginOptions = {}): string {
   fs.mkdirSync(root, { recursive: true });
-  fs.writeFileSync(path.join(root, "ebx-provider.toml"), MANIFEST(opts.id ?? "demo-prov", opts.version ?? "0.1.0", opts.extra ?? ""), "utf-8");
+  fs.writeFileSync(path.join(root, "abx-provider.toml"), MANIFEST(opts.id ?? "demo-prov", opts.version ?? "0.1.0", opts.extra ?? ""), "utf-8");
   fs.writeFileSync(path.join(root, "provider.py"), "print('plugin')\n", "utf-8");
   for (const [rel, content] of Object.entries(opts.files ?? {})) {
     const target = path.join(root, ...rel.split("/"));

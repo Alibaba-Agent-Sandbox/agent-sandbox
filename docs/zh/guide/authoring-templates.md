@@ -1,14 +1,14 @@
 # 编写模板
 
-本文档介绍如何创建自定义 Easy Sandbox 模板，包括目录结构、改造已有项目以及通过 CLI 发布。
+本文档介绍如何创建自定义 Agent Sandbox 模板，包括目录结构、改造已有项目以及通过 CLI 发布。
 
-三种起步方式都只写本地文件，之后用 `ebx deploy` 发布：
+三种起步方式都只写本地文件，之后用 `abx deploy` 发布：
 
 | 起点 | 命令 |
 |------|------|
-| 内置脚手架 | `ebx template init -t python ./my-template` |
-| 一句话（Qwen Code 新建目录） | `ebx template init "一个 Python 数据分析环境"` |
-| 已有源码的项目 | `ebx template init --adopt ./app` — 见 [适配已有项目](#适配已有项目) |
+| 内置脚手架 | `abx template init -t python ./my-template` |
+| 一句话（Qwen Code 新建目录） | `abx template init "一个 Python 数据分析环境"` |
+| 已有源码的项目 | `abx template init --adopt ./app` — 见 [适配已有项目](#适配已有项目) |
 
 ---
 
@@ -55,9 +55,9 @@ ports:
 
 ---
 
-## 字段参考、能力声明与自定义命令
+## 字段参考、能力声明与具名命令
 
-`template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）以及 `custom_commands` 声明（通过 `ebx run <id> <name> --arg k=v` 调用）属于共享的模板契约，规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
+`template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：在沙箱内服务器上用 `@registry.command` 注册，用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
 
 ## Dockerfile 自定义
 
@@ -82,28 +82,28 @@ ENV PYTHONUNBUFFERED=1
 
 ## 提供者模板配置
 
-镜像里的 HTTP 服务不依赖沙箱提供者。`commands.py` 只导入 `easy_sandbox.server`，并在 `if __name__ == "__main__"` 下调用 `serve(port=9000)`。9000 是服务端自己的默认端口。
+镜像里的 HTTP 服务不依赖沙箱提供者。`commands.py` 只导入 `agent_sandbox.server`，并在 `if __name__ == "__main__"` 下调用 `serve(port=9000)`。9000 是服务端自己的默认端口。
 
-`FROM`、`ENTRYPOINT` 是否可替换、用 `CMD` 还是平台的 `start_cmd` / `ready_cmd`、架构、工作目录、保留端口和仓库说明，来自**当前所选提供者的模板配置**。`ebx` 用与其他命令相同的方式解析提供者：`--provider`，然后 `EBX_PROVIDER`，然后配置里的默认值（`alicloud-express`）。模板指南、代码生成提示和 `ebx template init` 只描述这一份配置。
+`FROM`、`ENTRYPOINT` 是否可替换、用 `CMD` 还是平台的 `start_cmd` / `ready_cmd`、架构、工作目录、保留端口和仓库说明，来自**当前所选提供者的模板配置**。`abx` 用与其他命令相同的方式解析提供者：`--provider`，然后 `ABX_PROVIDER`，然后配置里的默认值（`alicloud-express`）。模板指南、代码生成提示和 `abx template init` 只描述这一份配置。
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
-- 其他提供者在 `ebx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像安装的是 `easy-sandbox-server`，不是客户端包。
+- 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
+- 镜像安装的是 `agent-sandbox-server`，不是客户端包。
 
 ---
 
 ## 适配已有项目
 
-`ebx template init --adopt` 用于**已经有应用代码、还没有沙箱模板文件**的目录。Qwen Code 读取该项目的一份副本，ebx 再把模板文件写回同一目录。这一步不构建、不推送、不启动沙箱；写完后用 `ebx deploy` 发布。
+`abx template init --adopt` 用于**已经有应用代码、还没有沙箱模板文件**的目录。Qwen Code 读取该项目的一份副本，abx 再把模板文件写回同一目录。这一步不构建、不推送、不启动沙箱；写完后用 `abx deploy` 发布。
 
 ```bash
-ebx template init --adopt . --hint "API 监听 8080"
-ebx template init --adopt ./app --dry-run          # 只列出文件，不发送
-ebx template init --adopt ./app --name my-api -y   # 非交互
-ebx deploy ./app --acr-namespace my-ns
+abx template init --adopt . --hint "API 监听 8080"
+abx template init --adopt ./app --dry-run          # 只列出文件，不发送
+abx template init --adopt ./app --name my-api -y   # 非交互
+abx deploy ./app --acr-namespace my-ns
 ```
 
-`--hint` 用来补充代码里看不出来的信息（监听端口、旁路服务、私有约束）。`--name` 指定模板名，必须匹配 `^[a-z0-9][a-z0-9-]*$`。省略时，ebx 用目录名做成 ASCII slug。无法做成 slug 的目录名（例如纯中文）需要显式 `--name`。
+`--hint` 用来补充代码里看不出来的信息（监听端口、旁路服务、私有约束）。`--name` 指定模板名，必须匹配 `^[a-z0-9][a-z0-9-]*$`。省略时，abx 用目录名做成 ASCII slug。无法做成 slug 的目录名（例如纯中文）需要显式 `--name`。
 
 ### 写回的文件
 
@@ -116,27 +116,27 @@ ebx deploy ./app --acr-namespace my-ns
 | `template.yaml` | 名称、资源、端口、能力 |
 | `.dockerignore` | 仅当项目里还没有这份文件 |
 
-应用源码保持原样。Agent 在这份名单之外创建或修改的文件会被报告并丢弃。被替换的文件保留为 `*.ebx-bak`；已有备份不会被覆盖（下一份是 `.ebx-bak.1`）。
+应用源码保持原样。Agent 在这份名单之外创建或修改的文件会被报告并丢弃。被替换的文件保留为 `*.abx-bak`；已有备份不会被覆盖（下一份是 `.abx-bak.1`）。
 
 ### 发给模型的内容
 
-ebx 把候选文件复制到临时目录（系统临时目录下的 `ebx-adopt-…`，不会放在 `~/.ebx`），并在发送前征求确认。Agent 只在这份副本里运行。
+abx 把候选文件复制到临时目录（系统临时目录下的 `abx-adopt-…`，不会放在 `~/.abx`），并在发送前征求确认。Agent 只在这份副本里运行。
 
 不会进入副本的内容：`.git`、`node_modules`、虚拟环境等大目录；`.env` 以及其他按文件名识别的密钥（私钥、`credentials*`、`kubeconfig` 等）；内容看起来像密钥的文件；符号链接；二进制文件；大于 1 MiB 的文件。超过 2 000 个文件或 20 MiB 时命令会停下，并提示把 `--adopt` 指到子目录。
 
 `--dry-run` 打印这份文件列表然后删除副本。它不调用模型，也不写项目。非交互环境（CI、管道输入、`--json`）必须带 `-y`，否则命令会在复制之前停下。
 
-Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR_*`、`AWS_*`、`GITHUB_TOKEN`）。它会拿到 `ebx config` 里的 Qwen Code Key。
+Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR_*`、`AWS_*`、`GITHUB_TOKEN`）。它会拿到 `abx config` 里的 Qwen Code Key。
 
-这会把项目源码发给模型。`ebx template init "描述"` 只发送你输入的那句话。
+这会把项目源码发给模型。`abx template init "描述"` 只发送你输入的那句话。
 
 ### 写入前的检查
 
-出现以下情况时，ebx 拒绝结果、项目保持不变，并打印暂存目录路径：
+出现以下情况时，abx 拒绝结果、项目保持不变，并打印暂存目录路径：
 
-- Dockerfile 没有 `FROM`，或 `commands.py` 没有启动 `easy_sandbox.server`
+- Dockerfile 没有 `FROM`，或 `commands.py` 没有启动 `agent_sandbox.server`
 - `template.yaml` 的 `ports` 或 `EXPOSE` 里没有端口 9000
-- `COPY` / `ADD` 指向缺失或被忽略的文件（`COPY *.whl` 是 `ebx deploy` 构建时注入的 wheel，允许不存在）
+- `COPY` / `ADD` 指向缺失或被忽略的文件（`COPY *.whl` 是 `abx deploy` 构建时注入的 wheel，允许不存在）
 - 应用 `.dockerignore` 和 `Dockerfile.dockerignore` 之后，仍有按文件名识别的密钥会进入 Docker 构建上下文
 - 忽略文件排除了 `*.whl`，导致 SDK wheel 无法注入
 
@@ -146,13 +146,13 @@ Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR
 
 | 项目里已有 | 结果 |
 |------------|------|
-| `template.yaml` | 拒绝：这个目录已经是模板。执行 `ebx deploy`，或加 `--force` 重新生成（原文件保留为 `template.yaml.ebx-bak`） |
-| 没有 `import easy_sandbox.server` 的 `commands.py` | 需要 `--force` |
-| `Dockerfile`，或已是 Easy Sandbox 入口的 `commands.py` | 交互式预览可以替换。`-y`、`--json` 和 CI 没有预览，需要 `--force` |
+| `template.yaml` | 拒绝：这个目录已经是模板。执行 `abx deploy`，或加 `--force` 重新生成（原文件保留为 `template.yaml.abx-bak`） |
+| 没有 `import agent_sandbox.server` 的 `commands.py` | 需要 `--force` |
+| `Dockerfile`，或已是 Agent Sandbox 入口的 `commands.py` | 交互式预览可以替换。`-y`、`--json` 和 CI 没有预览，需要 `--force` |
 
-`ebx template init --from <本地目录>` 要求该目录里已有 `template.yaml`。没有的源码树会被拒绝，错误信息指向 `--adopt`，避免把 `.env` 和 `.git` 整份当作模板源码复制走。
+`abx template init --from <本地目录>` 要求该目录里已有 `template.yaml`。没有的源码树会被拒绝，错误信息指向 `--adopt`，避免把 `.env` 和 `.git` 整份当作模板源码复制走。
 
-生成失败时项目不变，错误信息里带有暂存目录。看完之后删掉那个 `ebx-adopt-…` 目录即可。
+生成失败时项目不变，错误信息里带有暂存目录。看完之后删掉那个 `abx-adopt-…` 目录即可。
 
 `--adopt` 不能与 `-t`、`--from`、`--list` 一起用。`--hint` 和 `--dry-run` 必须配合 `--adopt`。
 
@@ -165,16 +165,16 @@ Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR
 将模板目录推送到 GitHub 仓库，其他用户即可通过以下命令安装：
 
 ```bash
-ebx template install your-org/your-template
+abx template install your-org/your-template
 ```
 
 ### 本地安装
 
 ```bash
-ebx template install ./my-template --registry-type local
+abx template install ./my-template --registry-type local
 ```
 
-模板安装后保存在 `~/.ebx/templates/` 目录下。
+模板安装后保存在 `~/.abx/templates/` 目录下。
 
 ### 本地构建并注册模板（template deploy）
 
@@ -183,19 +183,19 @@ ebx template install ./my-template --registry-type local
 > **前置条件**：
 > - Docker 守护进程已启动
 > - 阿里云 AK/SK 凭证（配置在 `.env` 或环境变量中）
-> - 官方阿里云模板 API 客户端（`@alicloud/fcsandbox20260509`）已内置于 `@easy-sandbox/cli`，无需额外安装
+> - 官方阿里云模板 API 客户端（`@alicloud/fcsandbox20260509`）已内置于 `@agent-sandbox/cli`，无需额外安装
 
 ```bash
 # 默认使用官方 CreateTemplate API
-ebx template deploy ./my-template \
+abx template deploy ./my-template \
   --acr-namespace my-ns --acr-repo my-template
 
 # 指定资源参数
-ebx template deploy ./my-template \
+abx template deploy ./my-template \
   --acr-namespace my-ns --cpu 4 --memory 4096 --disk-size 10240 --internet-access
 
 # 使用旧 v3/v2 API（老脚本兼容）
-ebx template deploy ./my-template \
+abx template deploy ./my-template \
   --acr-namespace my-ns --legacy-api
 ```
 
@@ -206,14 +206,14 @@ ebx template deploy ./my-template \
 | 官方 CreateTemplate API | ✅ 是 | AK/SK | `@alicloud/fcsandbox20260509`（已内置） |
 | 旧 v3/v2 Platform API | 否（`--legacy-api`） | E2B API Key | 无额外依赖 |
 
-> **Region 注意**：官方 API 使用的 region 来自 `ebx config set region`（未设置时为 `cn-hangzhou`）。单次部署可通过 `template deploy`/`build`/`create`/`push`/`list`/`info`/`install`/`delete` 的命令级 `--region`/`-r` 选项覆盖。跨区域访问 ACR 可能需要配置 VPC 相关参数。
+> **Region 注意**：官方 API 使用的 region 来自 `abx config set region`（未设置时为 `cn-hangzhou`）。单次部署可通过 `template deploy`/`build`/`create`/`push`/`list`/`info`/`install`/`delete` 的命令级 `--region`/`-r` 选项覆盖。跨区域访问 ACR 可能需要配置 VPC 相关参数。
 
 ### 仅从镜像创建模板
 
 如果镜像已经推送到 ACR，可以直接创建模板，不需要本地构建：
 
 ```bash
-ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
+abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
 ```
 
 ---
@@ -226,9 +226,9 @@ ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-temp
 
 ## 相关 SDK 文档
 
-`template.yaml` 契约与 Python 侧的编写指南位于 [`python-sdk` 仓库](https://github.com/Easy-Sandbox/python-sdk)：
+`template.yaml` 契约与 Python 侧的编写指南位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)：
 
-- [模板 YAML 规范](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md) — 所有字段精确定义
-- [编写模板（SDK）](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/authoring-templates.md) — 字段参考、能力声明、自定义命令、`@sandbox.register`
-- [模板系统](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) — 分级、名称解析、版本管理
-- [声明式用法](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md) — `@sandbox` 装饰器
+- [模板 YAML 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md) — 所有字段精确定义
+- [编写模板（SDK）](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/authoring-templates.md) — 字段参考、能力声明、自定义命令、`@sandbox.register`
+- [模板系统](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) — 分级、名称解析、版本管理
+- [声明式用法](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md) — `@sandbox` 装饰器

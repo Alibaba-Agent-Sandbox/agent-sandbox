@@ -6,7 +6,6 @@ import { join } from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { PyDatetime } from "../../src/models/_pydantic.js";
 import { SessionInfo } from "../../src/models/session.js";
 import { LocalSessionStore } from "../../src/session/local.js";
 
@@ -14,7 +13,7 @@ let store: LocalSessionStore;
 
 beforeEach(() => {
   // Provide a LocalSessionStore backed by a temporary directory.
-  const tmp_path = mkdtempSync(join(tmpdir(), "ebx-store-"));
+  const tmp_path = mkdtempSync(join(tmpdir(), "abx-store-"));
   store = new LocalSessionStore(join(tmp_path, "sessions"));
 });
 
@@ -27,7 +26,7 @@ function _make_session(
     sandbox_id,
     template,
     status,
-    created_at: PyDatetime.fromDate(new Date()),
+    created_at: new Date(),
     metadata: { owner: "test" },
   });
 }

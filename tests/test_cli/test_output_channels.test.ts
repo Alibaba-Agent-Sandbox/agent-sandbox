@@ -23,7 +23,7 @@ import { Sandbox } from "../../src/api/sandbox.js";
 import * as fcTemplate from "../../src/api/fc_template.js";
 import { cli } from "../../src/cli/main.js";
 import { OutputManager, getOutput } from "../../src/cli/output.js";
-import { type Command, type Context, command, option } from "../../src/framework/index.js";
+import { type Command, type Context, command, option } from "../../src/cli/kit.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { getLogger } from "../../src/utils/logging.js";
@@ -42,14 +42,14 @@ usePristineLogging();
 /**
  * Build a click command that runs *body* with a context-bound manager.
  *
- * The manager is stored in `ctx.meta["ebx.output"]` exactly like the real CLI root group does, so `getOutput(ctx)`
+ * The manager is stored in `ctx.meta["abx.output"]` exactly like the real CLI root group does, so `getOutput(ctx)`
  * returns it.
  */
 function makeCtxCmd(body: (out: OutputManager) => void | Promise<void>): Command {
   return command("emit", {
     params: [option("--quiet", { is_flag: true }), option(["--json", "json_flag"], { is_flag: true }), option(["--verbose", "verbose_flag"], { is_flag: true })],
     callback: async (ctx: Context, params) => {
-      ctx.meta["ebx.output"] = new OutputManager({
+      ctx.meta["abx.output"] = new OutputManager({
         quiet: params["quiet"],
         json_mode: params["json_flag"],
         verbose: params["verbose_flag"],
@@ -85,7 +85,7 @@ function mockSandbox(sandboxId = "sbx-chan-001", template = "base"): Record<stri
 }
 
 /**
- * Invoke `ebx create` with a mocked SDK that logs a fallback warning.
+ * Invoke `abx create` with a mocked SDK that logs a fallback warning.
  *
  * The warning emulates `api.capability`'s capability-resolver fallback -- the record that used to be printed twice and
  * used to leak into stdout in `--json` mode.
@@ -206,7 +206,7 @@ describe("TestLoggingBridge", () => {
     );
 
     expect(logging.getLogger().handlers.length).toBe(1);
-    expect(logging.getLogger("easy_sandbox").handlers).toEqual([]);
+    expect(logging.getLogger("agent_sandbox").handlers).toEqual([]);
   });
 
   it("test_library_warning_is_rendered_once_on_stderr", async () => {
@@ -290,11 +290,11 @@ describe("TestSpinnerGuard", () => {
 });
 
 // ---------------------------------------------------------------------------
-// `ebx create` end-to-end
+// `abx create` end-to-end
 // ---------------------------------------------------------------------------
 
 describe("TestCreateChannelSeparation", () => {
-  // `ebx create` never mixes diagnostics into the result stream.
+  // `abx create` never mixes diagnostics into the result stream.
 
   it("test_plain_mode_splits_result_and_warning", async () => {
     const result = await invokeCreate(new CliRunner(), ["create", "--template", "base"]);
@@ -353,7 +353,7 @@ describe("TestCreateChannelSeparation", () => {
 
     const result = await new CliRunner().invoke(cli, ["create", "python", "--template", "base"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("cannot be combined");
     expect(genMock).not.toHaveBeenCalled();
@@ -379,7 +379,7 @@ describe("TestDeployDiagnosticsChannel", () => {
     return command("deploy", {
       params: [option("--quiet", { is_flag: true }), option(["--json", "json_flag"], { is_flag: true })],
       callback: async (ctx: Context, params) => {
-        ctx.meta["ebx.output"] = new OutputManager({ quiet: params["quiet"], json_mode: params["json_flag"], no_color: true });
+        ctx.meta["abx.output"] = new OutputManager({ quiet: params["quiet"], json_mode: params["json_flag"], no_color: true });
         const out = getOutput(ctx);
         const data = await _doDeploy(tmpPath, { acr_namespace: "test-ns", start_cmd: "echo hi", ctx, verbose: false });
         out.data(data);

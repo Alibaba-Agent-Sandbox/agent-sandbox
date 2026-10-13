@@ -1,11 +1,11 @@
 /**
- * Structured logging for Easy Sandbox (port of `easy_sandbox/utils/logging.py`).
+ * Structured logging for Agent Sandbox (port of `agent_sandbox/utils/logging.py`).
  *
  * Because the CLI's `OutputManager` bridges *stdlib* `logging`, this file contains BOTH
  *
  *  1. a small, documented re-implementation of the parts of Python's stdlib `logging` the code base relies on
  *     (exported as the {@link logging} namespace object *and* as individual named exports), and
- *  2. the SDK helper `getLogger(name)` (Python `get_logger`) that prefixes names with `easy_sandbox.` and applies the
+ *  2. the SDK helper `getLogger(name)` (Python `get_logger`) that prefixes names with `agent_sandbox.` and applies the
  *     one-time `SANDBOX_LOG_LEVEL` / handler configuration.
  *
  * ## API cheat-sheet
@@ -13,11 +13,11 @@
  * ```ts
  * import { getLogger, logging, ExcInfo } from "../utils/logging.js";
  *
- * const logger = getLogger("transport.http");          // SDK logger  -> "easy_sandbox.transport.http"
+ * const logger = getLogger("transport.http");          // SDK logger  -> "agent_sandbox.transport.http"
  * logger.debug("Sending request to %s", url);          // %-style lazy formatting (%s %r %d %f %(key)s ...)
  * logger.warning("failed: %s", path, new ExcInfo(err)); // `exc_info=True` equivalent: trailing ExcInfo argument
  *
- * const std = logging.getLogger("easy_sandbox.cli.output"); // stdlib `logging.getLogger(name)`; no name => root
+ * const std = logging.getLogger("agent_sandbox.cli.output"); // stdlib `logging.getLogger(name)`; no name => root
  * logging.getLogger().addHandler(handler);              // root handler bridge hook
  * logging.getLogger().setLevel(logging.DEBUG);
  * class Bridge extends logging.Handler { emit(record) { const msg = this.format(record); ... } }
@@ -520,7 +520,7 @@ export function _configureOnce(): void {
   const level = levelFromName(levelStr, WARNING);
   const handler = new StreamHandler();
   handler.setFormatter(new Formatter(_LOG_FORMAT));
-  const packageLogger = stdGetLogger("easy_sandbox");
+  const packageLogger = stdGetLogger("agent_sandbox");
   packageLogger.setLevel(level);
   if (!packageLogger.handlers.length && !stdGetLogger().handlers.length) {
     packageLogger.addHandler(handler);
@@ -535,13 +535,13 @@ export function _configureOnce(): void {
 /**
  * Get a namespaced logger for a module (Python `get_logger`).
  *
- * @param name Module name, will be prefixed with `easy_sandbox.`.
+ * @param name Module name, will be prefixed with `agent_sandbox.`.
  * @example
  *   const logger = getLogger("transport.http");
  *   logger.debug("Sending request to %s", url);
  */
 export function getLogger(name: string): Logger {
   _configureOnce();
-  if (!name.startsWith("easy_sandbox.")) name = `easy_sandbox.${name}`;
+  if (!name.startsWith("agent_sandbox.")) name = `agent_sandbox.${name}`;
   return stdGetLogger(name);
 }

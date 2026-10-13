@@ -74,7 +74,7 @@ export function setDefaultProvider(providerId: string | null, configPath?: strin
   write(file, `${out.join("\n")}\n`);
 }
 
-/** Remove `[providers.<id>]` from config.toml and `EBX_<ID>_*` from the user `.env`. */
+/** Remove `[providers.<id>]` from config.toml and `ABX_<ID>_*` from the user `.env`. */
 export function purgeProviderSettings(providerId: string, configPath?: string, envPath?: string): void {
   const cfg = configPath ?? paths.configFile;
   const cfgLines = readLines(cfg);
@@ -169,7 +169,7 @@ export function setTomlValue(table: string, key: string, value: string | number 
   write(file, pruned.length > 0 ? `${pruned.join("\n")}\n` : "");
 }
 
-/** Set (or, with `null`, remove) `NAME=value` in a dotenv file (default `~/.ebx/.env`, mode 0600). */
+/** Set (or, with `null`, remove) `NAME=value` in a dotenv file (default `~/.abx/.env`, mode 0600). */
 export function setEnvValue(name: string, value: string | null, envPath?: string): void {
   const file = envPath ?? path.join(path.dirname(paths.configFile), ".env");
   const existing = readLines(file);

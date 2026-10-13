@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""Run every documented `ebx ...` line (from doc_claims.py --json) with `--help` appended against the Node CLI
+"""Run every documented `abx ...` line (from doc_claims.py --json) with `--help` appended against the Node CLI
 (and the Python oracle when ORACLE_VENV is set) in an isolated HOME and compare exit code + stdout + stderr.
 `--help` is eager, so this validates option syntax / command resolution at *runtime* without any network or side effect.
 
-Usage: python3 doc_claims_run.py claims.json [--node dist/bin/ebx.js] [--limit N] [--user-facing-only]
+Usage: python3 doc_claims_run.py claims.json [--node dist/bin/abx.js] [--limit N] [--user-facing-only]
 Env:   ORACLE_VENV (optional)
 """
 import json, os, subprocess, sys, tempfile, concurrent.futures as cf
 from pathlib import Path
 root = Path(__file__).resolve().parents[3]
 claims = json.load(open(sys.argv[1]))
-node_bin = root / "dist/bin/ebx.js"
+node_bin = root / "dist/bin/abx.js"
 if "--node" in sys.argv: node_bin = Path(sys.argv[sys.argv.index("--node") + 1])
 if not node_bin.exists(): print("dist missing: npm run build", file=sys.stderr); sys.exit(0)
-oracle = (Path(os.environ["ORACLE_VENV"]) / "bin/ebx") if os.environ.get("ORACLE_VENV") else None
+oracle = (Path(os.environ["ORACLE_VENV"]) / "bin/abx") if os.environ.get("ORACLE_VENV") else None
 if oracle and not oracle.exists(): oracle = None
 def user_facing(f): return not ("/design/" in f or "/.agents" in f or f.startswith("docs/design") or "providers-and-credentials" in f)
 seen = {}
@@ -27,7 +27,7 @@ if "--limit" in sys.argv: items = items[: int(sys.argv[sys.argv.index("--limit")
 
 def clean_env(home):
     env = {k: v for k, v in os.environ.items() if k in ("PATH", "LANG", "LC_ALL", "TERM")}
-    env.update({"HOME": home, "EBX_NO_KEYCHAIN": "1", "NO_COLOR": "1", "COLUMNS": "100", "CI": "1"})
+    env.update({"HOME": home, "ABX_NO_KEYCHAIN": "1", "NO_COLOR": "1", "COLUMNS": "100", "CI": "1"})
     return env
 def run(cmd, argv):
     with tempfile.TemporaryDirectory() as home:
@@ -49,6 +49,6 @@ with cf.ThreadPoolExecutor(6) as ex:
         n_ok += n[0] == 0
 print(f"distinct documented commands run with --help: {len(items)}; node exit 0: {n_ok}; node non-zero: {len(bad_node)}; node!=oracle: {len(diffs)}")
 for argv, c, n, o in bad_node:
-    print(f"NODE-NONZERO rc={n[0]} (oracle rc={o[0] if o else 'n/a'}) {c['file']}:{c['line']}: ebx {' '.join(argv)}  stderr={n[2].strip()[:120]!r}")
+    print(f"NODE-NONZERO rc={n[0]} (oracle rc={o[0] if o else 'n/a'}) {c['file']}:{c['line']}: abx {' '.join(argv)}  stderr={n[2].strip()[:120]!r}")
 for argv, c, n, o in diffs:
-    print(f"DIFF {c['file']}:{c['line']}: ebx {' '.join(argv)}  node rc={n[0]} oracle rc={o[0]}  stdout_same={n[1]==o[1]} stderr_same={n[2]==o[2]}")
+    print(f"DIFF {c['file']}:{c['line']}: abx {' '.join(argv)}  node rc={n[0]} oracle rc={o[0]}  stdout_same={n[1]==o[1]} stderr_same={n[2]==o[2]}")

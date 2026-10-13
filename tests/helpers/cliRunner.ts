@@ -1,5 +1,5 @@
 /**
- * `CliRunner`: the equivalent of `click.testing.CliRunner` for the TypeScript framework.
+ * `CliRunner`: runs a command (declared with `src/cli/kit.ts`) in an isolated environment and captures its output.
  *
  * ```ts
  * import { CliRunner } from "../helpers/cliRunner.js";
@@ -11,36 +11,30 @@
  * expect(result.output).toContain("Usage:");
  * ```
  *
- * `invoke(cli, args, { input, env, catch_exceptions, color, prog_name, ...contextExtra })` runs `cli.main()` in
- * standalone mode with an isolated environment, then returns a `Result`:
+ * `invoke(cli, args, { input, env, catch_exceptions, color, prog_name, obj })` runs the command (`runCommand`) in an
+ * isolated environment, then returns a `Result`:
  *
  * | field                                 | meaning                                                                    |
  * | ------------------------------------- | -------------------------------------------------------------------------- |
- * | `exit_code`                           | the `SystemExit` code (0 when `main` returned), 1 for uncaught exceptions   |
- * | `output`                              | stdout + stderr interleaved in write order (Click >= 8.2 semantics)         |
+ * | `exit_code`                           | the command's exit code, 1 for uncaught exceptions                          |
+ * | `output`                              | stdout + stderr interleaved in write order                                  |
  * | `stdout`, `stderr`                    | each stream separately                                                      |
  * | `stdout_bytes`, `stderr_bytes`, ...   | UTF-8 buffers                                                               |
- * | `exception`                           | the `SystemExit` (non-zero) or the uncaught error, `null` otherwise         |
- * | `return_value`                        | what `main` returned (only meaningful with `standalone_mode: false`)        |
+ * | `exception`                           | a `SystemExit` (non-zero exit) or the uncaught error, `null` otherwise      |
  *
- * Isolation (the same as Click's): `sys.stdin/stdout/stderr` (the framework's `sys` object from
- * `src/framework/io.ts`) are replaced by in-memory streams that report `isatty() === false`; `FORCED_WIDTH` is 80;
- * the `visible_prompt_func` / `hidden_prompt_func` seams of `termui` read from `input` (the prompt is echoed to
- * stdout, then the typed value and a newline); ANSI codes are stripped unless `color: true`; environment variables
- * in `env` are applied to `process.env` (a `null` value deletes the variable) and restored afterwards.
+ * Isolation: `sys.stdin/stdout/stderr` (from `src/cli/io.ts`) are replaced by in-memory streams that report
+ * `isatty() === false`; the `promptSeams` of `src/cli/prompts.ts` read from `input` (the prompt is echoed to stdout,
+ * then the typed value and a newline); ANSI codes are stripped unless `color: true`; environment variables in `env` are
+ * applied to `process.env` (a `null` value deletes the variable) and restored afterwards.
  *
  * Code that writes to `process.stdout` directly (instead of through `sys` / `echo`) is NOT captured; the CLI never
- * does that. `result.stdout` of a command that prints through `sys.stdout.write` is captured.
- *
- * Differences from Click: `args` strings are split with POSIX `shlex`; `capture: "fd"`, `isolated_filesystem()` and
- * the `pdb` patching do not exist (use `fs.mkdtempSync` + `process.chdir` in tests, or pass absolute paths).
+ * does that. `args` strings are split with POSIX `shlex`.
  */
 
-import { Command } from "../../src/framework/core.js";
-import { formatting } from "../../src/framework/formatting.js";
-import { sys, type TextInput, type TextOutput } from "../../src/framework/io.js";
-import { termui } from "../../src/framework/termui.js";
-import { EOFError, SystemExit, setShouldStripAnsi } from "../../src/framework/utils.js";
+import { EOFError, SystemExit } from "../../src/cli/errors.js";
+import { setShouldStripAnsi, sys, type TextInput, type TextOutput } from "../../src/cli/io.js";
+import { type Command, runCommand } from "../../src/cli/kit.js";
+import { promptSeams } from "../../src/cli/prompts.js";
 import { shlexSplit } from "../../src/api/_shlex.js";
 
 class Mixer {
@@ -201,8 +195,6 @@ export class CliRunner {
     const textInput = new MemoryInput(input, this.echo_stdin ? stdout : null);
 
     const old = { stdin: sys.stdin, stdout: sys.stdout, stderr: sys.stderr };
-    const oldForcedWidth = formatting.FORCED_WIDTH;
-    formatting.FORCED_WIDTH = 80;
 
     sys.stdin = textInput;
     sys.stdout = stdout;
@@ -238,10 +230,10 @@ export class CliRunner {
       });
 
     const defaultColor = opts.color ?? false;
-    const oldVisible = termui.visible_prompt_func;
-    const oldHidden = termui.hidden_prompt_func;
-    termui.visible_prompt_func = visibleInput;
-    termui.hidden_prompt_func = hiddenInput;
+    const oldVisible = promptSeams.visible;
+    const oldHidden = promptSeams.hidden;
+    promptSeams.visible = visibleInput;
+    promptSeams.hidden = hiddenInput;
     const oldStrip = setShouldStripAnsi((_stream, color) => (color === null ? !defaultColor : !color));
 
     const env = this.makeEnv(opts.env ?? null);
@@ -261,10 +253,9 @@ export class CliRunner {
       sys.stdout = old.stdout;
       sys.stderr = old.stderr;
       sys.stdin = old.stdin;
-      termui.visible_prompt_func = oldVisible;
-      termui.hidden_prompt_func = oldHidden;
+      promptSeams.visible = oldVisible;
+      promptSeams.hidden = oldHidden;
       setShouldStripAnsi(oldStrip);
-      formatting.FORCED_WIDTH = oldForcedWidth;
     }
   }
 
@@ -274,7 +265,7 @@ export class CliRunner {
 
     return this.isolation(
       async ({ mixer, stdout: capturedOut, stderr: capturedErr }) => {
-        let returnValue: unknown = null;
+        const returnValue: unknown = null;
         let exception: unknown = null;
         let exitCode = 0;
 
@@ -282,7 +273,8 @@ export class CliRunner {
         const progName = progOpt ?? this.getDefaultProgName(cli);
 
         try {
-          returnValue = await cli.main({ args: argv, prog_name: progName, ...(extra as object) });
+          const code = await runCommand(cli, argv, { prog_name: progName, ...(extra as { obj?: Record<string, unknown> }) });
+          if (code !== 0) throw new SystemExit(code);
         } catch (e) {
           if (e instanceof SystemExit) {
             let eCode: unknown = e.code;

@@ -8,7 +8,7 @@ Implemented: 2026-09-29
 
 Template content, the machine-readable index (`awesome-templates.yaml`), and
 the publishing story were duplicated between this repository and the dedicated
-`Easy-Sandbox/awesome-templates` repository, with a "extract the folder later
+`alibaba-agent-sandbox/awesome-templates` repository, with a "extract the folder later
 via `git subtree push`" plan that never happened. Consequences:
 
 1. **Drift by construction.** The two copies diverged: the qwen-code parameter
@@ -19,7 +19,7 @@ via `git subtree push`" plan that never happened. Consequences:
    only refresh with an SDK release; community templates could not be
    discovered until a new version shipped.
 3. **The root `awesome-templates.yaml` was never the real index.** It lived in
-   this repo but nothing installed from it; `ebx template search` had no
+   this repo but nothing installed from it; `abx template search` had no
    remote source, and bare-name installs had no resolution path.
 4. **Test split was unclear.** `tests/test_templates/` validated a 10-template
    collection that was also being validated (differently) in the other repo.
@@ -30,7 +30,7 @@ must not be reverted.
 
 ## Decision
 
-Make `Easy-Sandbox/awesome-templates` the **single source of truth (SSOT)** for
+Make `alibaba-agent-sandbox/awesome-templates` the **single source of truth (SSOT)** for
 official & community template content, the index, releases, and CI. This
 repository keeps no publishable template collection.
 
@@ -52,7 +52,7 @@ repository keeps no publishable template collection.
 
 - New `utils/template_index.py` fetches the remote index from
   `raw.githubusercontent.com` (CDN — **not** subject to the api.github.com
-  60 req/hour anonymous limit). Cache: `~/.ebx/index/` (body + meta with
+  60 req/hour anonymous limit). Cache: `~/.abx/index/` (body + meta with
   `source_url`/`etag`/`fetched_at`), TTL `INDEX_MAX_AGE_SECONDS = 3600`;
   fresh cache short-circuits the network; `If-None-Match` revalidation keeps
   refreshes cheap; `--refresh` / `force=True` bypasses; corrupt caches are
@@ -64,14 +64,14 @@ repository keeps no publishable template collection.
   404 → verify-URL suggestion; `schema_version` newer than
   `INDEX_SCHEMA_VERSION` → `TemplateParseError` with an upgrade hint. This
   covers GitHub rate limiting without a hard dependency on authentication.
-- `ebx template search` queries the index (`--tag` / `--status` filters,
-  `--index-url` / `EBX_TEMPLATE_INDEX_URL` override, `-j` JSON).
-- `ebx template install <name>` resolves bare names: local path → builtins
+- `abx template search` queries the index (`--tag` / `--status` filters,
+  `--index-url` / `ABX_TEMPLATE_INDEX_URL` override, `-j` JSON).
+- `abx template install <name>` resolves bare names: local path → builtins
   (`base`, `code-interpreter-v1`, no network) → remote index. An index hit
   yields `TemplateIndexEntry.install_ref` (`owner/repo//subdir[@ref]`, pinning
   honoured); a miss on a fresh cache triggers exactly one forced refresh (so a
   freshly published template resolves immediately); still missing →
-  `TemplateNotFoundError` suggesting `ebx template search` or a direct
+  `TemplateNotFoundError` suggesting `abx template search` or a direct
   `owner/repo//subdir` reference. The CLI prints
   `Resolved '<name>' via the template index: <ref>` for auditability.
 - `examples/templates/` keeps only the minimal `python-hello` **fixture**, with
@@ -86,9 +86,9 @@ repository keeps no publishable template collection.
 ## API Design
 
 ```python
-# easy_sandbox/utils/template_index.py
+# agent_sandbox/utils/template_index.py
 DEFAULT_INDEX_URL: str            # raw.githubusercontent.com/.../awesome-templates.yaml
-INDEX_CACHE_DIR: Path             # ~/.ebx/index
+INDEX_CACHE_DIR: Path             # ~/.abx/index
 INDEX_SCHEMA_VERSION = 1
 INDEX_MAX_AGE_SECONDS = 3600
 
@@ -141,7 +141,7 @@ async def fetch_index(url=None, *, token=None, force=False,
 ## Dependencies
 
 - `httpx` (existing), `pyyaml` (existing); no new runtime dependencies.
-- Source-of-truth repo: `easy-sandbox[cli]` (git main until the first release
+- Source-of-truth repo: `agent-sandbox[cli]` (git main until the first release
   containing `template_index`), `pytest`, `pyyaml` via `requirements-dev.txt`.
 
 ## Test Strategy
@@ -160,10 +160,10 @@ async def fetch_index(url=None, *, token=None, force=False,
 
 ## Files changed
 
-- This repo — new: `src/easy_sandbox/utils/template_index.py`,
+- This repo — new: `src/agent_sandbox/utils/template_index.py`,
   `tests/test_cli/test_template_index_commands.py`,
   `tests/test_utils/test_template_index.py`.
-- This repo — changed: `src/easy_sandbox/cli/commands/template.py`;
+- This repo — changed: `src/agent_sandbox/cli/commands/template.py`;
   `examples/templates/README.md`, `python-hello/{template.yaml,README.md}`;
   `tests/test_templates/{__init__,conftest,test_template_catalog,test_template_e2e,test_local_install}.py`;
   `README(.zh-CN).md`, `docs/{en,zh}/{README,DESIGN}.md`,
@@ -189,7 +189,7 @@ Full snapshot: `.agents/evidence/verify/2026-09-29-template-ssot-verification.md
   `test_template_index_commands.py`, `test_templates/`,
   `test_template_commands.py`).
 - CLI evidence goldens `help-install` / `help-template` /
-  `help-template-install` regenerated (`EBX_UPDATE_EVIDENCE=1`); all
+  `help-template-install` regenerated (`ABX_UPDATE_EVIDENCE=1`); all
   template/help evidence cases pass; evidence docs regenerated
   deterministically (83 cases; byte-identical across runs, warning noise
   suppressed).
@@ -197,7 +197,7 @@ Full snapshot: `.agents/evidence/verify/2026-09-29-template-ssot-verification.md
   to the concurrently running NL-create / errors workstream (its files were
   modified during the same window); zero failures in template/index scope. A
   clean full-suite run is expected once that workstream lands.
-- `ruff check src/ tests/` → All checks passed; `mypy src/easy_sandbox/` → no
+- `ruff check src/ tests/` → All checks passed; `mypy src/agent_sandbox/` → no
   issues in 97 source files. During verification the task files gained a
   mapping guard in `template_index._read_cache_meta` (mypy `no-any-return`)
   and ruff formatting (F541 fix + format pass).
@@ -211,13 +211,13 @@ Full snapshot: `.agents/evidence/verify/2026-09-29-template-ssot-verification.md
   empty result.
 - `TEMPLATE_CATALOG` (natural-language inference) still references template
   **names** only; the index is the resolution path, so removed local folders
-  do not affect `ebx create "..."` recommendations.
+  do not affect `abx create "..."` recommendations.
 - Out of scope (untouched): `connect`, natural-language create, MCP deploy,
   Agent Skill files.
 
 ## Acceptance criteria
 
-- [x] `Easy-Sandbox/awesome-templates` holds content + index + tests + CI;
+- [x] `alibaba-agent-sandbox/awesome-templates` holds content + index + tests + CI;
       drift (qwen `max_session_turns`, `EXPOSE 9000`, legacy fields) fixed
       there; the rename is not reverted
 - [x] Main repo keeps only the `python-hello` fixture, explicitly marked at

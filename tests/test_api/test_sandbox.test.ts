@@ -7,8 +7,8 @@ import { CommandsModule } from "../../src/api/commands.js";
 import { FilesModule } from "../../src/api/files.js";
 import { NetworkModule } from "../../src/api/network.js";
 import { NotImplementedError } from "../../src/api/_pyerrors.js";
-import { Sandbox, _seams as sandbox_seams } from "../../src/api/sandbox.js";
-import { CommandNotFoundError } from "../../src/models/errors.js";
+import { Sandbox } from "../../src/api/sandbox.js";
+import { CommandNotFoundError, ConnectionError_ } from "../../src/models/errors.js";
 import { CodeResult } from "../../src/models/process.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
 import { TerminalSession } from "../../src/protocol/terminal.js";
@@ -177,6 +177,13 @@ describe("TestSandboxLifecycle", () => {
     await fx.sandbox.kill();
     expect(fx.sandbox_protocol.kill).toHaveBeenCalledTimes(1);
     expect(fx.sandbox_protocol.kill).toHaveBeenCalledWith(TEST_SANDBOX_ID);
+    expect(fx.http_client.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("test_second_kill_is_a_noop", async () => {
+    await fx.sandbox.kill();
+    await fx.sandbox.kill();
+    expect(fx.sandbox_protocol.kill).toHaveBeenCalledTimes(1);
     expect(fx.http_client.close).toHaveBeenCalledTimes(1);
   });
 
@@ -528,15 +535,12 @@ function serverClient(response: any): any {
 }
 
 describe("TestSandboxRunCommand", () => {
-  // Test Sandbox.custom() (mechanism B) and the run_command alias.
-  it("test_custom_server_success", async () => {
-    // custom() returns a server-sourced CommandResult on HTTP 200.
+  it("test_run_command_success", async () => {
     const mock_client = serverClient({ is_success: true, json: vi.fn(() => ({ result: 42 })) });
 
-    const result = await fx.sandbox.custom("add", { x: 1, y: 2 });
+    const result = await fx.sandbox.runCommand("add", { x: 1, y: 2 });
 
     expect(result.value).toBe(42);
-    expect(result.source).toBe("server");
     expect(result.exit_code).toBe(0);
     expect(result.success).toBe(true);
     expect(mock_client.post).toHaveBeenCalledTimes(1);
@@ -546,76 +550,44 @@ describe("TestSandboxRunCommand", () => {
     });
   });
 
-  it("test_custom_server_error_returns_exit_code_1", async () => {
-    // A reachable server that fails (non-404) yields exit_code=1, not a raise.
+  it("test_run_command_server_error_returns_exit_code_1", async () => {
     serverClient({ is_success: false, status_code: 500, json: vi.fn(() => ({ error: "boom", type: "RuntimeError" })) });
 
-    const result = await fx.sandbox.custom("bad");
+    const result = await fx.sandbox.runCommand("bad");
 
-    expect(result.source).toBe("server");
     expect(result.exit_code).toBe(1);
     expect(result.success).toBe(false);
     expect(result.stderr).toContain("RuntimeError: boom");
   });
 
-  it("test_custom_server_404_raises_command_not_found", async () => {
-    // A 404 from the server means the command is genuinely unknown.
+  it("test_run_command_404_raises_command_not_found", async () => {
     serverClient({ is_success: false, status_code: 404, json: vi.fn(() => ({ error: "not found", type: "ValueError" })) });
 
-    await expect(fx.sandbox.custom("nonexistent")).rejects.toBeInstanceOf(CommandNotFoundError);
+    await expect(fx.sandbox.runCommand("nonexistent")).rejects.toBeInstanceOf(CommandNotFoundError);
   });
 
-  it("test_custom_connection_failure_caches_probe", async () => {
-    // A connection failure raises CommandNotFoundError, sets the probe flag, and short-circuits subsequent calls without
-    // re-hitting HTTP.
+  it("test_run_command_connection_failure_raises_connection_error", async () => {
     const mock_client = { post: vi.fn(async () => Promise.reject(new ConnectError("connection refused"))) };
     fx.http_client._createEnvdClient.mockReturnValue(mock_client);
 
-    await expect(fx.sandbox.custom("whatever")).rejects.toBeInstanceOf(CommandNotFoundError);
-    expect(fx.sandbox._server_probe_failed).toBe(true);
-
-    // Second call is short-circuited by the cached probe flag.
-    await expect(fx.sandbox.custom("whatever")).rejects.toBeInstanceOf(CommandNotFoundError);
-    expect(mock_client.post).toHaveBeenCalledTimes(1);
-
-    // reset_server_probe() re-enables mechanism-B probing.
-    fx.sandbox.resetServerProbe();
-    expect(fx.sandbox._server_probe_failed).toBe(false);
+    const p = fx.sandbox.runCommand("whatever");
+    await expect(p).rejects.toBeInstanceOf(ConnectionError_);
+    await expect(p).rejects.toThrow(/No SandboxServer reachable/);
   });
 
-  it("test_run_command_deprecated_alias", async () => {
-    // run_command() warns DeprecationWarning and returns CommandResult.value.
-    serverClient({ is_success: true, json: vi.fn(() => ({ result: 7 })) });
-    const warn = vi.spyOn(sandbox_seams, "warn").mockImplementation(() => undefined);
-    try {
-      const result = await fx.sandbox.runCommand("add", { x: 1 });
-      expect(result).toBe(7);
-      expect(warn).toHaveBeenCalledTimes(1);
-      expect(warn.mock.calls[0]![1]).toBe("DeprecationWarning");
-      expect(warn.mock.calls[0]![0]).toMatch(/custom/);
-    } finally {
-      warn.mockRestore();
-    }
-  });
-
-  it("test_custom_name_kwarg_no_conflict", async () => {
-    // custom('hello', name='World') must not raise TypeError. Because ``name`` is positional-only (after the ``/``),
-    // passing ``name=`` as a keyword goes into **kwargs, not the command-name parameter.
+  it("test_run_command_name_kwarg_no_conflict", async () => {
     const mock_client = serverClient({ is_success: true, json: vi.fn(() => ({ result: "Hello World" })) });
 
-    const result = await fx.sandbox.custom("hello", { name: "World" });
+    const result = await fx.sandbox.runCommand("hello", { name: "World" });
 
     expect(result.value).toBe("Hello World");
-    expect(result.source).toBe("server");
-    expect(mock_client.post).toHaveBeenCalledTimes(1);
     expect(mock_client.post).toHaveBeenCalledWith("/commands/hello", {
       json: { name: "World" },
       headers: mock_client.post.mock.calls[0][1].headers,
     });
   });
 
-  it("test_custom_502_non_json_raises_command_not_found", async () => {
-    // A 502 with non-JSON body should raise CommandNotFoundError, not a raw RuntimeError.
+  it("test_run_command_502_non_json_raises_connection_error", async () => {
     serverClient({
       is_success: false,
       status_code: 502,
@@ -625,11 +597,25 @@ describe("TestSandboxRunCommand", () => {
       }),
     });
 
-    const p = fx.sandbox.custom("anything");
-    await expect(p).rejects.toBeInstanceOf(CommandNotFoundError);
-    await expect(p).rejects.toThrow(/invalid response/);
+    await expect(fx.sandbox.runCommand("anything")).rejects.toBeInstanceOf(ConnectionError_);
+  });
+});
 
-    // Should also cache the probe failure.
-    expect(fx.sandbox._server_probe_failed).toBe(true);
+describe("TestSandboxListCommands", () => {
+  it("test_list_commands_returns_server_catalogue", async () => {
+    const commands = [{ name: "add", description: "Add", args: [{ name: "x", type: "int", required: true }] }];
+    const get = vi.fn(async (..._a: any[]) => ({ is_success: true, json: vi.fn(() => ({ commands })) }));
+    const mock_client = { get };
+    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
+
+    expect(await fx.sandbox.listCommands()).toEqual(commands);
+    expect(get.mock.calls[0]![0]).toBe("/commands");
+  });
+
+  it("test_list_commands_connection_failure_raises_connection_error", async () => {
+    const mock_client = { get: vi.fn(async () => Promise.reject(new ConnectError("connection refused"))) };
+    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
+
+    await expect(fx.sandbox.listCommands()).rejects.toBeInstanceOf(ConnectionError_);
   });
 });

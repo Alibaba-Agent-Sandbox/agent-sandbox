@@ -1,4 +1,4 @@
-/** Public data models for Easy Sandbox SDK (port of `models/__init__.py`). */
+/** Public data models for Agent Sandbox SDK (port of `models/__init__.py`). */
 
 export { GlobalConfig } from "./config.js";
 export {
@@ -44,14 +44,12 @@ export {
   STANDARD_CAPABILITIES,
   BuildInfo,
   BuildStatus,
-  CustomCommand,
-  CustomCommandArg,
   SandboxTemplate,
   TemplateInfo,
   TemplateRef,
 } from "./template.js";
-// Extra (no Python counterpart): pydantic-compatible validation primitives used by the models.
-export { BaseModel, PyDatetime, ValidationError, ValueError } from "./_pydantic.js";
+export { Model, ValidationError } from "./base.js";
+export { ValueError } from "./value_error.js";
 
 export const __all__ = [
   // Errors
@@ -109,6 +107,4 @@ export const __all__ = [
   "BuildInfo",
   "SandboxTemplate",
   "TemplateRef",
-  "CustomCommandArg",
-  "CustomCommand",
 ] as const;

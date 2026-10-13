@@ -1,6 +1,3 @@
-┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━┓
-┃ ID           ┃ Template    ┃ Status  ┃ Region      ┃
-┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━┩
-│ sbx-XXXXX │ python-base │ running │ cn-hangzhou │
-└──────────────┴─────────────┴─────────┴─────────────┘
+ID            Template     Status   Region
+sbx-XXXXX  python-base  running  cn-hangzhou
 [exit_code:0]

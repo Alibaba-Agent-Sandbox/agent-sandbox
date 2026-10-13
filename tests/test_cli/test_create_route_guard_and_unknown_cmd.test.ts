@@ -1,13 +1,13 @@
 /**
- * Task 210 targeted tests: explicit-route guard on `ebx create` and the root LazyGroup unknown-command hint.
+ * Task 210 targeted tests: explicit-route guard on `abx create` and the root LazyGroup unknown-command hint.
  *
  * Contracts asserted here:
- * - `ebx create` with neither DESCRIPTION nor --template -> Click UsageError, exit code 2, message on stderr listing all
+ * - `abx create` with neither DESCRIPTION nor --template -> Click UsageError, exit code 2, message on stderr listing all
  *   three explicit routes.
  * - Unknown top-level command with a close spelling candidate -> exit 2 and a "Did you mean" suggestion only (no
  *   custom-command hint).
- * - Unknown top-level command with no plausible candidate -> exit 2 and the template.yaml `custom_commands` /
- *   `ebx run COMMAND` hint.
+ * - Unknown top-level command with no plausible candidate -> exit 2 and a pointer to `abx --help` and
+ *   `abx run SANDBOX NAME`.
  * - JSON / quiet / CI flags do not change exit code 2 semantics.
  */
 
@@ -18,19 +18,14 @@ import { describe, expect, it, vi } from "vitest";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
 
-const THREE_ROUTES = ["ebx create --template base", "--template <NAME>", "DESCRIPTION"];
+const THREE_ROUTES = ["abx create --template base", "--template <NAME>", "DESCRIPTION"];
 
 // `runner` fixture
 const runner = (): CliRunner => new CliRunner();
 
-// `_default_shortcuts_only` (autouse): pin the root CLI to the built-in default shortcuts (the real config never leaks
-// in; the previous merge result is restored afterwards).
-useDefaultShortcutsOnly();
-
 // ---------------------------------------------------------------------------
-// 1. ebx create without description / template
+// 1. abx create without description / template
 // ---------------------------------------------------------------------------
 
 describe("TestCreateRequiresExplicitRoute", () => {
@@ -84,26 +79,23 @@ describe("TestUnknownCommandHints", () => {
     expect(result.output).not.toContain("custom_commands");
   });
 
-  it("test_no_candidate_gets_custom_command_hint", async () => {
+  it("test_no_candidate_points_at_help_and_named_commands", async () => {
     const result = await runner().invoke(cli, ["frobnicate"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No such command 'frobnicate'");
-    expect(result.output).toContain("template.yaml");
-    expect(result.output).toContain("custom_commands");
-    expect(result.output).toContain("ebx run COMMAND");
+    expect(result.output).toContain("abx --help");
+    expect(result.output).toContain("abx run SANDBOX NAME");
+    expect(result.output).not.toContain("custom_commands");
   });
 
-  it("test_init_typo_gets_init_correction", async () => {
-    // 'ebx ini' now suggests the restored top-level `init` shortcut.
-    //
-    // difflib at cutoff 0.6 matches 'ini' against 'init' (restored by task 211), so only the correction shows -- no
-    // custom_commands hint.
-    const result = await runner().invoke(cli, ["ini"]);
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such command 'ini'");
-    expect(result.output).toContain("Did you mean");
-    expect(result.output).toContain("'init'");
-    expect(result.output).not.toContain("custom_commands");
+  it("test_init_and_install_are_not_top_level_commands", async () => {
+    // Scaffolding and installing live under `abx template`; the hint names them.
+    for (const name of ["init", "install"]) {
+      const result = await runner().invoke(cli, [name]);
+      expect(result.exit_code).toBe(2);
+      expect(result.output).toContain(`No such command '${name}'`);
+      expect(result.output).toContain("abx template init|install");
+    }
   });
 
   it.each([

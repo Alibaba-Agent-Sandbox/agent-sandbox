@@ -1,27 +1,19 @@
 /**
- * `ebx provider` — manage sandbox providers (backends): install, inspect, select, update and test them.
+ * `abx provider` — manage sandbox providers (backends): install, inspect, select, update and test them.
  *
  * The built-in provider is `alicloud-express` (Alibaba Cloud Express Edition, 阿里云极速版). Further providers are
  * plugins installed from a directory or a git URL; nothing from a plugin is executed while installing. Grammar, JSON
  * shapes and exit codes: `docs/design/providers-and-credentials-cli.md` section 5.
  *
- * The group stays hidden from `ebx --help` until a provider is installed or selected (`providersInUse()`); it is always
+ * The group stays hidden from `abx --help` until a provider is installed or selected (`providersInUse()`); it is always
  * callable and documented here and in the guides.
  */
 
-import {
-  Argument,
-  Choice,
-  Context,
-  argument,
-  command,
-  echo,
-  group,
-  option,
-  sys,
-  sysExit,
-} from "../../framework/index.js";
-import { confirm } from "../../framework/termui.js";
+import { Argument, Context, argument, command, group, option } from "../kit.js";
+import { Choice } from "../types.js";
+import { sysExit } from "../errors.js";
+import { echo, sys } from "../io.js";
+import { confirm } from "../prompts.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
@@ -33,7 +25,7 @@ import { runContractSuite, summarizeContract } from "../../providers/testing.js"
 import { collectSources, loadLayeredConfig, resetLayeredConfig } from "../../transport/config_layers.js";
 import { resolveKey, coerce } from "../../utils/config_resolver.js";
 import { BUILTIN_PROVIDER_ID, getKey, providerEnvName } from "../../utils/config_keys.js";
-import { configFieldToKey, type ConfigField } from "../../providers/base.js";
+import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
 
@@ -48,21 +40,21 @@ const PROVIDER_HELP = [
   "",
   "    Select a provider for one command with the global '--provider ID' (any",
   "    position) and set provider options with '--opt KEY=VALUE' (repeatable).",
-  "    Sandbox references may be qualified: 'ebx kill local-process:sbx-1'.",
+  "    Sandbox references may be qualified: 'abx kill local-process:sbx-1'.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx provider list",
-  "      ebx provider install ./my-provider",
-  "      ebx provider install https://github.com/acme/ebx-provider-acme.git --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7",
-  "      ebx provider default acme",
-  "      ebx create --provider acme --template base",
-  "      ebx list --all-providers",
+  "      abx provider list",
+  "      abx provider install ./my-provider",
+  "      abx provider install https://github.com/acme/abx-provider-acme.git --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7",
+  "      abx provider default acme",
+  "      abx create --provider acme --template base",
+  "      abx list --all-providers",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config      Credentials and defaults (keys: provider, providers.<id>.<key>)",
-  "      ebx info        Show one sandbox",
+  "      abx config      Credentials and defaults (keys: provider, providers.<id>.<key>)",
+  "      abx info        Show one sandbox",
   "    ",
 ].join("\n");
 
@@ -157,7 +149,7 @@ async function askConsent(fmt: OutputFormatter, plan: installer.InstallPlan, que
 
 function nonInteractiveRefusal(source: string): ProviderTrustError {
   return new ProviderTrustError("Installing a provider requires confirmation.", {
-    suggestion: `Re-run with --yes after reviewing: ebx provider install ${source} --ref <commit>`,
+    suggestion: `Re-run with --yes after reviewing: abx provider install ${source} --ref <commit>`,
   });
 }
 
@@ -185,14 +177,17 @@ const list_cmd = command("list", {
   help: [
     "List built-in and installed providers.",
     "",
-    "    Columns: ID, Name, Version, Kind (builtin|rest|exec), Trust",
-    "    (builtin|pinned|local|link|unpinned) and whether it is the default.",
-    "    With --quiet only the ids are printed.",
+    "    Columns: ID, Version, Kind (builtin|rest|exec), Trust",
+    "    (builtin|pinned|local|link|unpinned), how many features the provider",
+    "    supports (a command that needs another feature fails with E8004; 'abx",
+    "    provider info ID' lists them; --json lists them inline as",
+    "    sandbox(lifecycle,pause) exec(run,stream) files(rw) ...) and whether it is",
+    "    the default. --json adds the Name. With --quiet only the ids are printed.",
     "",
     "    \b",
     "    Examples:",
-    "      ebx provider list",
-    "      ebx --json provider list",
+    "      abx provider list",
+    "      abx --json provider list",
     "    ",
   ].join("\n"),
   callback: handleErrors(async (ctx: Context) => {
@@ -203,7 +198,24 @@ const list_cmd = command("list", {
       for (const r of rows) echo(r.id);
       return;
     }
-    table(fmt, ["ID", "Name", "Version", "Kind", "Trust", "Default"], rows.map((r) => [r.id, r.name, r.version, r.kind, r.trust, r.id === def ? "yes" : ""]));
+    const unusable = (r: (typeof rows)[number]): string | null => (r.error ? `(unusable: ${r.error})` : null);
+    // JSON keeps the full compact feature list; the text table shows a count so it stays readable at 80 columns.
+    const features = (r: (typeof rows)[number]): string =>
+      unusable(r) ?? (fmt.use_json ? compactFeatures(r.features) : String(r.features.length));
+    if (fmt.use_json) {
+      table(
+        fmt,
+        ["ID", "Name", "Version", "Kind", "Trust", "Features", "Default"],
+        rows.map((r) => [r.id, r.name, r.version, r.kind, r.trust, features(r), r.id === def ? "yes" : ""]),
+      );
+      return;
+    }
+    table(
+      fmt,
+      ["ID", "Version", "Kind", "Trust", "Features", "Default"],
+      rows.map((r) => [r.id, r.version, r.kind, r.trust, features(r), r.id === def ? "yes" : ""]),
+    );
+    echo("Features is a count; 'abx provider info ID' shows the name and the features.");
   }),
 });
 
@@ -216,8 +228,8 @@ const INFO_HELP = [
   "",
   "    \b",
   "    Examples:",
-  "      ebx provider info alicloud-express",
-  "      ebx --json provider show local-process",
+  "      abx provider info alicloud-express",
+  "      abx --json provider show local-process",
   "    ",
 ].join("\n");
 
@@ -271,20 +283,24 @@ const install_cmd = command("install", {
   help: [
     "Install a provider plugin from a directory or a git URL.",
     "",
-    "    SOURCE is a local directory or a git URL (https://, ssh://, git@host:path).",
+    "    SOURCE is a local directory, owner/repo//subdir[@ref] (same // as",
+    "    'abx template install'), or a git URL (https://, ssh://, git@host:path).",
     "    Nothing from the plugin is executed during installation; the plugin's",
-    "    ebx-provider.toml is validated and its tree digest recorded. A consent screen",
+    "    abx-provider.toml is validated and its tree digest recorded. A consent screen",
     "    lists what the plugin runs, which features it provides and which generic",
     "    credentials it would receive. Non-interactive installs need --yes.",
     "",
-    "    A full 40-hex commit (--ref) or --sha256 pins the install; tag and branch",
-    "    installs are unpinned and need --allow-unpinned without a terminal.",
+    "    A full 40-hex commit (--ref) or --sha256 pins the install. Tag and branch",
+    "    installs are unpinned: they are accepted only after you read the consent",
+    "    screen in a terminal (without --yes) or with --allow-unpinned; --yes alone",
+    "    never accepts a moving ref.",
     "",
     "    \b",
     "    Examples:",
-    "      ebx provider install ./my-provider",
-    "      ebx provider install ./my-provider --link --yes     # development: use in place",
-    "      ebx provider install https://github.com/acme/ebx-provider-acme.git --ref <commit>",
+    "      abx provider install ./my-provider",
+    "      abx provider install ./my-provider --link --yes     # development: use in place",
+    "      abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox",
+    "      abx provider install https://github.com/acme/abx-provider-acme.git --ref <commit>",
     "    ",
   ].join("\n"),
   params: [
@@ -346,7 +362,7 @@ const uninstall_cmd = command("uninstall", {
     "Remove an installed provider.",
     "",
     "    The plugin's data directory is kept unless --purge is given; --purge also",
-    "    removes [providers.<id>] from config.toml and EBX_<ID>_* from ~/.ebx/.env.",
+    "    removes [providers.<id>] from config.toml and ABX_<ID>_* from ~/.abx/.env.",
     "    If the provider was the default, the default is reset to alicloud-express.",
     "    ",
   ].join("\n"),
@@ -360,11 +376,11 @@ const uninstall_cmd = command("uninstall", {
     const id = params["provider_id"] as string;
     if (id === BUILTIN_PROVIDER_ID) throw new ProviderConflictError("The built-in provider cannot be removed.");
     if (store.readReceipt(id) === null && !registryHas(id)) {
-      throw new ProviderNotFoundError(`Provider '${id}' is not installed.`, { suggestion: "Run 'ebx provider list'." });
+      throw new ProviderNotFoundError(`Provider '${id}' is not installed.`, { suggestion: "Run 'abx provider list'." });
     }
     if (!params["yes"]) {
       if (!isInteractive(fmt)) {
-        throw new ProviderTrustError("Removing a provider requires confirmation.", { suggestion: `Re-run with --yes: ebx provider uninstall ${id} --yes` });
+        throw new ProviderTrustError("Removing a provider requires confirmation.", { suggestion: `Re-run with --yes: abx provider uninstall ${id} --yes` });
       }
       if (!(await confirm(`Remove provider '${id}'?`, { default: false }))) {
         echo("Aborted.", { err: true });
@@ -429,7 +445,7 @@ const update_cmd = command("update", {
             confirm: params["yes"] ? undefined : async (plan) => {
               const ok = await askConsent(fmt, plan, "Apply the update?");
               if (!ok && !interactive) {
-                throw new ProviderTrustError("Updating a provider requires confirmation.", { suggestion: `Re-run with --yes after reviewing: ebx provider update ${id}` });
+                throw new ProviderTrustError("Updating a provider requires confirmation.", { suggestion: `Re-run with --yes after reviewing: abx provider update ${id}` });
               }
               return ok;
             },
@@ -478,15 +494,15 @@ const default_cmd = command("default", {
   help: [
     "Show or set the default provider.",
     "",
-    "    Without ID prints the effective default (EBX_PROVIDER wins over the stored",
-    "    value). With ID stores '[core] provider' in ~/.ebx/config.toml; --unset",
+    "    Without ID prints the effective default (ABX_PROVIDER wins over the stored",
+    "    value). With ID stores '[core] provider' in ~/.abx/config.toml; --unset",
     "    returns to alicloud-express.",
     "",
     "    \b",
     "    Examples:",
-    "      ebx provider default",
-    "      ebx provider default local-process",
-    "      ebx provider default --unset",
+    "      abx provider default",
+    "      abx provider default local-process",
+    "      abx provider default --unset",
     "    ",
   ].join("\n"),
   params: [argument(["provider_id"], { metavar: "ID", required: false }) as Argument, option(["--unset"], { is_flag: true, help: "Reset the default to alicloud-express" })],
@@ -508,8 +524,8 @@ const default_cmd = command("default", {
     registry.getProvider(id);
     setDefaultProvider(id === BUILTIN_PROVIDER_ID ? null : id);
     resetLayeredConfig();
-    const override = process.env["EBX_PROVIDER"];
-    if (override && override.trim() && override.trim() !== id) echo(`note: EBX_PROVIDER=${override.trim()} overrides this at runtime.`, { err: true });
+    const override = process.env["ABX_PROVIDER"];
+    if (override && override.trim() && override.trim() !== id) echo(`note: ABX_PROVIDER=${override.trim()} overrides this at runtime.`, { err: true });
     fmt.printSuccess(`Default provider set to '${id}'`);
   }),
 });
@@ -551,7 +567,7 @@ function configRow(f: ConfigField, id: string): string[] {
 }
 
 async function promptPlain(text: string): Promise<string> {
-  const { prompt } = await import("../../framework/termui.js");
+  const { prompt } = await import("../prompts.js");
   return String(await prompt(text.replace(/: $/, "")));
 }
 
@@ -564,7 +580,7 @@ function removeField(id: string, f: ConfigField): void {
 async function readValue(id: string, f: ConfigField, given: string | null): Promise<string> {
   if (given !== null) return given;
   if (!sys.stdin.isatty()) {
-    throw new ProviderConfigError(`No value given for '${f.key}'.`, { suggestion: `ebx provider config ${id} set ${f.key} VALUE` });
+    throw new ProviderConfigError(`No value given for '${f.key}'.`, { suggestion: `abx provider config ${id} set ${f.key} VALUE` });
   }
   const { _promptSecret } = await import("./config_cmd.js");
   return f.secret ? await _promptSecret(`${f.key} (input masked; press Enter to cancel)`) : await promptPlain(`${f.key}: `);
@@ -580,7 +596,7 @@ function storeField(fmt: OutputFormatter, id: string, f: ConfigField, value: str
   if (f.secret) setEnvValue(providerEnvName(id, f.key), String(typed));
   else setTomlValue(`providers.${id}`, f.key, typed);
   resetLayeredConfig();
-  fmt.printSuccess(f.secret ? `Stored ${f.key} for provider '${id}' in ~/.ebx/.env.` : `Set ${f.key} = ${typed} for provider '${id}'.`);
+  fmt.printSuccess(f.secret ? `Stored ${f.key} for provider '${id}' in ~/.abx/.env.` : `Set ${f.key} = ${typed} for provider '${id}'.`);
 }
 
 export const config_cmd = command("config", {
@@ -588,17 +604,17 @@ export const config_cmd = command("config", {
     "Show or edit one provider's configuration.",
     "",
     "    ACTION is one of list, get, set, unset, init. Secrets (fields marked secret",
-    "    in the manifest) are stored in ~/.ebx/.env as EBX_<ID>_<KEY> and always",
-    "    shown masked; other options go to [providers.<id>] in ~/.ebx/config.toml.",
-    "    The same keys are reachable as 'ebx config get providers.<id>.<key>'.",
+    "    in the manifest) are stored in ~/.abx/.env as ABX_<ID>_<KEY> and always",
+    "    shown masked; other options go to [providers.<id>] in ~/.abx/config.toml.",
+    "    The same keys are reachable as 'abx config get providers.<id>.<key>'.",
     "",
     "    \b",
     "    Examples:",
-    "      ebx provider config local-process list",
-    "      ebx provider config local-process set workdir_root /tmp/ebx",
-    "      ebx provider config my-cloud set token       # masked prompt",
-    "      ebx provider config my-cloud unset token",
-    "      ebx provider config my-cloud init            # prompt for every field",
+    "      abx provider config local-process list",
+    "      abx provider config local-process set workdir_root /tmp/abx",
+    "      abx provider config my-cloud set token       # masked prompt",
+    "      abx provider config my-cloud unset token",
+    "      abx provider config my-cloud init            # prompt for every field",
     "    ",
   ].join("\n"),
   params: [
@@ -625,7 +641,7 @@ export const config_cmd = command("config", {
     }
     if (action === "init") {
       if (!sys.stdin.isatty()) {
-        throw new ProviderConfigError("'init' needs an interactive terminal.", { suggestion: `Use 'ebx provider config ${id} set KEY VALUE' for each field.` });
+        throw new ProviderConfigError("'init' needs an interactive terminal.", { suggestion: `Use 'abx provider config ${id} set KEY VALUE' for each field.` });
       }
       const total = p.configFields.length;
       for (const [i, f] of p.configFields.entries()) {
@@ -634,11 +650,11 @@ export const config_cmd = command("config", {
         const entered = await readValue(id, f, null);
         if (entered.trim() !== "") storeField(fmt, id, f, entered);
       }
-      fmt.printSuccess(`Configuration complete. Review it with 'ebx provider config ${id} list'.`);
+      fmt.printSuccess(`Configuration complete. Review it with 'abx provider config ${id} list'.`);
       return;
     }
     if (key === null) {
-      throw new ProviderConfigError(`'${action}' needs a KEY.`, { suggestion: `ebx provider config ${id} ${action} KEY` });
+      throw new ProviderConfigError(`'${action}' needs a KEY.`, { suggestion: `abx provider config ${id} ${action} KEY` });
     }
     const f = fieldOf(id, key);
     if (action === "get") {
@@ -691,8 +707,8 @@ const test_cmd = command("test", {
     "",
     "    \b",
     "    Examples:",
-    "      ebx provider test local-process",
-    "      ebx provider test opensandbox -o domain=127.0.0.1:8080 -o use_server_proxy=true",
+    "      abx provider test local-process",
+    "      abx provider test opensandbox -o domain=127.0.0.1:8080 -o use_server_proxy=true",
     "    ",
   ].join("\n"),
   params: [

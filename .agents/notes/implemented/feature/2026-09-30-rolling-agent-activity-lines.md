@@ -16,7 +16,7 @@ the streamed sentence*, so it was rewritten on every token and never
   recent activity is shown in grey on the **next lines**, by default the last
   **four**, and the block **scrolls by line**: a new line pushes the oldest one
   out.
-- `EBX_ACTIVITY_LINES` (1..10, default 4) changes the count. Invalid values
+- `ABX_ACTIVITY_LINES` (1..10, default 4) changes the count. Invalid values
   fall back to 4.
 - Line semantics live with the producer (`agent/qwen_code.py::_ActivityFeed`):
   streamed assistant text is split at newlines (an unbroken run is cut at 160
@@ -51,13 +51,13 @@ the streamed sentence*, so it was rewritten on every token and never
   contents and that tool input never leaks.
 - `tests/test_cli/test_output_activity.py`: header first and grey lines below,
   only the last N shown and scrolling, redraw moves up over the previous
-  block, `EBX_ACTIVITY_LINES` parsing, log lines never interleave, control
+  block, `ABX_ACTIVITY_LINES` parsing, log lines never interleave, control
   characters/markup rendered literally, erase on exit and on exception,
   Rich rendering keeps the lines below the header and never wraps.
 - Checked by hand under a pty in both renderers (Rich, `--verbose`).
 
 ## Files changed
 
-- `src/easy_sandbox/cli/output.py`, `src/easy_sandbox/agent/qwen_code.py`,
-  `src/easy_sandbox/cli/commands/sandbox.py` (docstring)
+- `src/agent_sandbox/cli/output.py`, `src/agent_sandbox/agent/qwen_code.py`,
+  `src/agent_sandbox/cli/commands/sandbox.py` (docstring)
 - `docs/{en,zh}/reference/cli-reference.md`, `CHANGELOG.md`

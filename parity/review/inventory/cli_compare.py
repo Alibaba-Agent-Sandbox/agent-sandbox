@@ -6,8 +6,8 @@ Prints a machine summary and writes the per-category result JSON when --json is 
 import json, re, sys, collections
 
 py = json.load(open(sys.argv[1])); ts = json.load(open(sys.argv[2]))
-DROPPED_PREFIXES = ("easy_sandbox.compat", "easy_sandbox.declarative", "easy_sandbox.extensions", "easy_sandbox.server",
-                    "easy_sandbox.agent.builtin", "easy_sandbox.agent.infer", "easy_sandbox.api.deploy")
+DROPPED_PREFIXES = ("agent_sandbox.compat", "agent_sandbox.declarative", "agent_sandbox.extensions", "agent_sandbox.server",
+                    "agent_sandbox.agent.builtin", "agent_sandbox.agent.infer", "agent_sandbox.api.deploy")
 
 def camel(s):
     lead = re.match(r"^_+", s).group(0) if s.startswith("_") else ""
@@ -15,8 +15,8 @@ def camel(s):
     return lead + parts[0] + "".join(p[:1].upper() + p[1:] for p in parts[1:])
 
 def modfile(m):
-    p = m.replace("easy_sandbox.", "", 1).replace(".", "/")
-    if p == "easy_sandbox": return "index.ts"
+    p = m.replace("agent_sandbox.", "", 1).replace(".", "/")
+    if p == "agent_sandbox": return "index.ts"
     return p
 
 res = {"modules": [], "symbols": [], "literals": [], "env": [], "exits": []}
@@ -26,7 +26,7 @@ def ts_for(mod):
     cands = [p + ".ts", p + "/index.ts"] if not p.endswith("__init__") else []
     if mod.endswith(".__init__"):
         d = modfile(mod[: -len(".__init__")])
-        cands = [d + "/index.ts"] if d != "easy_sandbox" else ["index.ts"]
+        cands = [d + "/index.ts"] if d != "agent_sandbox" else ["index.ts"]
     return [c for c in cands if c in tsfiles]
 
 alltsnames = collections.defaultdict(set)

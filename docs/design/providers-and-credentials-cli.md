@@ -1,20 +1,20 @@
-# Providers and Credentials — CLI spec (for the Node.js `ebx`)
+# Providers and Credentials — CLI spec (for the Node.js `abx`)
 
 > **Audience**: the CLI worker who applies this spec.
 >
 > **Normative source of the design**: `python-sdk/docs/en/design/providers-and-credentials.md` (naming scheme, precedence, provider contract, security model). This file turns it into exact CLI grammar, help text, JSON shapes, exit codes, module layout and tests.
 >
-> **Naming rule**: each configuration key has exactly one environment variable. That variable is the only name a reader accepts, and it is the name `ebx config set` writes. There is no second name and no migration command.
+> **Naming rule**: each configuration key has exactly one environment variable. That variable is the only name a reader accepts, and it is the name `abx config set` writes. There is no second name and no migration command.
 
 ## 0. What a user sees
 
 | Surface | Rule |
 |---|---|
-| `ebx config list` | Keys are the names in §1 (`sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`, ...). Secrets are masked. |
-| `ebx config get/set/delete` | Accepts those key names, a qualified `providers.<id>.<key>`, or a bare provider key for the active provider. |
-| Dotenv | Layer first. `./.env` wins over `~/.ebx/.env` for a key it sets, using that key's one variable. |
-| `ebx --help` | A `Related commands` line mentions `ebx provider`. |
-| `ebx info` | A `Provider` row is added only for a non-built-in provider. |
+| `abx config list` | Keys are the names in §1 (`sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`, ...). Secrets are masked. |
+| `abx config get/set/delete` | Accepts those key names, a qualified `providers.<id>.<key>`, or a bare provider key for the active provider. |
+| Dotenv | Layer first. `./.env` wins over `~/.abx/.env` for a key it sets, using that key's one variable. |
+| `abx --help` | A `Related commands` line mentions `abx provider`. |
+| `abx info` | A `Provider` row is added only for a non-built-in provider. |
 
 ---
 
@@ -29,7 +29,7 @@ interface ConfigKey {
   key: string;                    // snake_case
   scope: "core" | { provider: string };
   type: "str" | "url" | "int" | "float" | "bool" | "enum" | "path" | "csv";
-  secret: boolean;                // mask in output, store in ~/.ebx/.env (0600)
+  secret: boolean;                // mask in output, store in ~/.abx/.env (0600)
   credential: boolean;            // missing -> E1003 / exit 3 when needed
   env: string;                    // the one environment variable
   storage: { file: "env" | "toml"; name: string; section?: string };
@@ -43,31 +43,31 @@ interface ConfigKey {
 
 | key | type | secret | environment variable | storage | default |
 |---|---|---|---|---|---|
-| `provider` | str | no | `EBX_PROVIDER` | toml `[core] provider` | `alicloud-express` |
-| `sandbox_api_key` | str | yes | `EBX_SANDBOX_API_KEY` | env `EBX_SANDBOX_API_KEY` | — |
-| `sandbox_base_url` | url | no | `EBX_SANDBOX_BASE_URL` | toml `[transport] sandbox_base_url` | derived from region |
-| `sandbox_domain` | str | no | `EBX_SANDBOX_DOMAIN` | toml `[transport] sandbox_domain` | derived from region |
-| `http_timeout` | float | no | `EBX_HTTP_TIMEOUT` | toml `[transport]` | 30.0 |
-| `http2` | bool | no | `EBX_HTTP2` | toml | true |
-| `max_retries` | int | no | `EBX_MAX_RETRIES` | toml | 3 |
-| `log_level` | enum | no | `EBX_LOG_LEVEL` | toml | `WARNING` |
-| `default_template` | str | no | `EBX_DEFAULT_TEMPLATE` | toml `[transport]` | `base` |
-| `llm_api_key` | str | yes | `EBX_LLM_API_KEY` | env `EBX_LLM_API_KEY` | — |
-| `llm_base_url` | url | no | `EBX_LLM_BASE_URL` | toml | DashScope compatible-mode |
-| `llm_model` | str | no | `EBX_LLM_MODEL` | toml | `qwen3-coder-plus` |
+| `provider` | str | no | `ABX_PROVIDER` | toml `[core] provider` | `alicloud-express` |
+| `sandbox_api_key` | str | yes | `ABX_SANDBOX_API_KEY` | env `ABX_SANDBOX_API_KEY` | — |
+| `sandbox_base_url` | url | no | `ABX_SANDBOX_BASE_URL` | toml `[transport] sandbox_base_url` | derived from region |
+| `sandbox_domain` | str | no | `ABX_SANDBOX_DOMAIN` | toml `[transport] sandbox_domain` | derived from region |
+| `http_timeout` | float | no | `ABX_HTTP_TIMEOUT` | toml `[transport]` | 30.0 |
+| `http2` | bool | no | `ABX_HTTP2` | toml | true |
+| `max_retries` | int | no | `ABX_MAX_RETRIES` | toml | 3 |
+| `log_level` | enum | no | `ABX_LOG_LEVEL` | toml | `WARNING` |
+| `default_template` | str | no | `ABX_DEFAULT_TEMPLATE` | toml `[transport]` | `base` |
+| `llm_api_key` | str | yes | `ABX_LLM_API_KEY` | env `ABX_LLM_API_KEY` | — |
+| `llm_base_url` | url | no | `ABX_LLM_BASE_URL` | toml | DashScope compatible-mode |
+| `llm_model` | str | no | `ABX_LLM_MODEL` | toml | `qwen3-coder-plus` |
 | `github_token` | str | yes | `GITHUB_TOKEN` | env `GITHUB_TOKEN` | — |
-| `template_index_url`, `template_dir` | url/path | no | `EBX_TEMPLATE_INDEX_URL`, `EBX_TEMPLATE_DIR` | not settable via `config set` | |
-| `mcp_auth_token`, `mcp_allowed_origins`, `mcp_runtime_dir` | | token yes | `EBX_MCP_*` | not settable via `config set` | |
+| `template_index_url`, `template_dir` | url/path | no | `ABX_TEMPLATE_INDEX_URL`, `ABX_TEMPLATE_DIR` | not settable via `config set` | |
+| `mcp_auth_token`, `mcp_allowed_origins`, `mcp_runtime_dir` | | token yes | `ABX_MCP_*` | not settable via `config set` | |
 
-Pool/WS/backoff tuning (`max_connections`, `max_keepalive_connections`, `keepalive_expiry`, `ws_ping_interval`, `retry_base_delay`): file-only (`[transport]`), env `EBX_<KEY>`, not exposed by `config set`.
+Pool/WS/backoff tuning (`max_connections`, `max_keepalive_connections`, `keepalive_expiry`, `ws_ping_interval`, `retry_base_delay`): file-only (`[transport]`), env `ABX_<KEY>`, not exposed by `config set`.
 
 ### 1.3 Provider-scoped keys of built-in `alicloud-express`
 
 | key | environment variable | notes |
 |---|---|---|
 | `region` | `ALIBABA_CLOUD_REGION_ID` | toml `[providers.alicloud-express] region`. Default `cn-hangzhou`. |
-| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | secret-like, `~/.ebx/.env` |
-| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | secret, `~/.ebx/.env` |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | secret-like, `~/.abx/.env` |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | secret, `~/.abx/.env` |
 | `acr_namespace` | `ACR_NAMESPACE` | |
 | `acr_registry` | `ACR_REGISTRY` | |
 | `acr_repo` | `ACR_REPO` | |
@@ -77,7 +77,7 @@ Pool/WS/backoff tuning (`max_connections`, `max_keepalive_connections`, `keepali
 | `acr_vpc_id` | `ACR_VPC_ID` | |
 | `acr_vswitch_ids` | `ACR_VSWITCH_IDS` | |
 | `acr_security_group_id` | `ACR_SECURITY_GROUP_ID` | |
-| `team_id` | `EBX_ALICLOUD_EXPRESS_TEAM_ID` | Optional. Not required. |
+| `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Optional. Not required. |
 
 The built-in provider implicitly consumes `sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`, `http_timeout`, `http2`, `max_retries` (plus tuning keys). **Every other provider** consumes the non-secret tuning keys only; it receives `sandbox_api_key` / `sandbox_base_url` / `sandbox_domain` solely through its manifest `[core] inherit` list **intersected with** the list the user consented to at install/update (`receipt.consented.inherit`). Switching the default provider never sends the Alibaba key to a plugin (design §4.6).
 
@@ -94,15 +94,15 @@ Key names starting with `shortcuts`, and the table names `core`, `transport`, `p
 ```text
 resolve(key K, provider P, sources S):
   name = the one environment variable for K in §1
-         (a plugin's own field uses EBX_<P>_<K>)
-  layers = [ S.overrides, S.environ, S.dotenv[0] (./.env), S.dotenv[1] (~/.ebx/.env), S.toml, default ]
+         (a plugin's own field uses ABX_<P>_<K>)
+  layers = [ S.overrides, S.environ, S.dotenv[0] (./.env), S.dotenv[1] (~/.abx/.env), S.toml, default ]
   for layer in layers:
       v = layer[name]; if v is a non-blank string / non-null: return (v, layer, name)
   return unset
 ```
 
 * Blank/whitespace-only = unset in every layer, including overrides.
-* `S.dotenv` = each existing candidate file in order (`./.env` first, then `~/.ebx/.env`).
+* `S.dotenv` = each existing candidate file in order (`./.env` first, then `~/.abx/.env`).
 * TOML names for `K`: `[providers.<P>].K`, then `[transport].K`.
 * Numeric/boolean coercion identical to the SDK.
 * **Derived defaults** (`sandbox_base_url`, `sandbox_domain` from `region`): apply only for providers whose schema declares `[endpoint.derive]` and only when the base URL was not explicitly set by an override or the process environment. Each derived key uses set-default semantics.
@@ -110,7 +110,7 @@ resolve(key K, provider P, sources S):
 
 ### 2.2 Provider selection
 
-`explicit (--provider or provider:ref) > EBX_PROVIDER env > EBX_PROVIDER in ./.env > EBX_PROVIDER in ~/.ebx/.env > [core] provider > alicloud-express`. An unknown id → `E8001` (exit 4) naming `ebx provider list` / `ebx provider install`.
+`explicit (--provider or provider:ref) > ABX_PROVIDER env > ABX_PROVIDER in ./.env > ABX_PROVIDER in ~/.abx/.env > [core] provider > alicloud-express`. An unknown id → `E8001` (exit 4) naming `abx provider list` / `abx provider install`.
 
 ### 2.3 `config list`
 
@@ -129,7 +129,7 @@ resolve(key K, provider P, sources S):
 
 ---
 
-## 3. `ebx config`
+## 3. `abx config`
 
 ### 3.1 Options
 
@@ -147,19 +147,19 @@ resolve(key K, provider P, sources S):
 
 `config set` writes the one storage name in §1. Clearing (`set K ""` / `delete`) removes that stored value. Message strings: `Set sandbox_base_url = …`, `Cleared sandbox_base_url (falls back to default: …)`.
 
-### 3.4 `ebx config init`
+### 3.4 `abx config init`
 
-With the built-in provider the wizard prompts for the sandbox API key (`EBX_SANDBOX_API_KEY`), the region (`ALIBABA_CLOUD_REGION_ID`), the LLM API key (`EBX_LLM_API_KEY`), and the AccessKey pair (`ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`). With a non-built-in default provider (or `--provider ID`), the wizard is generated from the provider's schema: one prompt per field in manifest order (`i/N Description (key, ENV_NAME)`, secrets masked, required marked `*`), then `Stored <key> in ~/.ebx/.env` / `Set <key> = <value>`, then `Configuration complete. Review it with 'ebx config list --provider ID'.`
+With the built-in provider the wizard prompts for the sandbox API key (`ABX_SANDBOX_API_KEY`), the region (`ALIBABA_CLOUD_REGION_ID`), the LLM API key (`ABX_LLM_API_KEY`), and the AccessKey pair (`ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`). With a non-built-in default provider (or `--provider ID`), the wizard is generated from the provider's schema: one prompt per field in manifest order (`i/N Description (key, ENV_NAME)`, secrets masked, required marked `*`), then `Stored <key> in ~/.abx/.env` / `Set <key> = <value>`, then `Configuration complete. Review it with 'abx config list --provider ID'.`
 
 ### 3.5 Help text
 
-`ebx config get --help` / `set --help` list the keys from §1. Wording:
+`abx config get --help` / `set --help` list the keys from §1. Wording:
 
 ```
-sandbox_api_key    Sandbox API key (env: EBX_SANDBOX_API_KEY).
-sandbox_base_url   Platform API URL (env: EBX_SANDBOX_BASE_URL).
-sandbox_domain     Envd data-plane domain (env: EBX_SANDBOX_DOMAIN).
-provider           Default provider id (see 'ebx provider list'; default:
+sandbox_api_key    Sandbox API key (env: ABX_SANDBOX_API_KEY).
+sandbox_base_url   Platform API URL (env: ABX_SANDBOX_BASE_URL).
+sandbox_domain     Envd data-plane domain (env: ABX_SANDBOX_DOMAIN).
+provider           Default provider id (see 'abx provider list'; default:
                    alicloud-express).
 providers.<id>.<key>
                    Provider-scoped value; bare keys such as 'region' refer to the
@@ -172,39 +172,39 @@ providers.<id>.<key>
 
 ### 4.1 `--provider`
 
-* Accepted as a **root option** (`ebx --provider ID <cmd> …`) and as a **command-level option** on every command that talks to a provider; the command-level value wins. Help: `--provider ID  Provider for this command (default: 'ebx provider default' value, else alicloud-express)`.
-* Commands that take it (feature they require): `create`/`sandbox create` (`sandbox.lifecycle`), `list`/`sandbox list`, `info`, `kill`, `connect`, `exec`, `run`, `shell`, `shell-stream` (`exec.run`/`exec.stream`), `upload`/`download`/`files` (`files.rw`), `sandbox process …` (`process.manage`), `sandbox system …`, `sandbox timeout` (`sandbox.timeout`), `sandbox pause/resume` (`sandbox.pause`), `template list/info/build/deploy/delete/install/push/create` and `deploy` (`templates.read`/`templates.build`), `mcp install/start/deploy` (`sandbox.lifecycle`).
+* Accepted as a **root option** (`abx --provider ID <cmd> …`) and as a **command-level option** on every command that talks to a provider; the command-level value wins. Help: `--provider ID  Provider for this command (default: 'abx provider default' value, else alicloud-express)`.
+* Commands that take it (feature they require): `create`/`sandbox create` (`sandbox.lifecycle`), `list`/`sandbox list`, `info`, `kill`, `connect`, `exec` (`exec.run`; `exec --stream` needs `exec.stream`), `run`, `shell`, `upload`/`download`/`files` (`files.rw`), `sandbox process …` (`process.manage`), `sandbox system …`, `sandbox timeout` (`sandbox.timeout`), `sandbox pause/resume` (`sandbox.pause`), `template list/info/build/deploy/delete/install/push/create` and `deploy` (`templates.read`/`templates.build`), `mcp install/start/deploy` (`sandbox.lifecycle`).
 * Not provider-bound (never take it): `config` (has its own `--provider` for scoping), `template init/search`, `mcp status`, `provider *`.
-* Typo hint: an unknown id adds `Did you mean 'X'?` (edit distance ≤ 2 against built-in/installed ids) to the `E8001` suggestion. Missing feature → fail **before** any side effect: exit 1, `[E8004] Provider 'ID' does not support 'FEATURE'.` + suggestion `Run 'ebx provider info ID' to see supported features.` (JSON: `{"status":"error","code":"E8004","message":…,"suggestion":…}`).
-* Provider-scoped flags of the built-in provider (`--region/-r`, `--acr-*`, `--team-id`, `--vpc-id`, `--vswitch-ids`, `--security-group-id`) are accepted only when the effective provider declares the matching key; otherwise exit 2: `Option '--region' is not supported by provider 'ID'.` with suggestion `Use '--opt KEY=VALUE' for provider options (see 'ebx provider info ID').`
+* Typo hint: an unknown id adds `Did you mean 'X'?` (edit distance ≤ 2 against built-in/installed ids) to the `E8001` suggestion. Missing feature → fail **before** any side effect: exit 1, `[E8004] Provider 'ID' does not support 'FEATURE'.` + suggestion `Run 'abx provider info ID' to see supported features.` (JSON: `{"status":"error","code":"E8004","message":…,"suggestion":…}`).
+* Provider-scoped flags of the built-in provider (`--region/-r`, `--acr-*`, `--team-id`, `--vpc-id`, `--vswitch-ids`, `--security-group-id`) are accepted only when the effective provider declares the matching key; otherwise exit 2: `Option '--region' is not supported by provider 'ID'.` with suggestion `Use '--opt KEY=VALUE' for provider options (see 'abx provider info ID').`
 
 ### 4.2 `--opt KEY=VALUE` (repeatable)
 
-Sets a provider-scoped key for this invocation (override layer). `KEY` ∈ the effective provider's schema (or an inherited core key, as an override for this provider). Bad syntax / unknown key → exit 2 (`E8002`). `--opt` values appear in argv: for `secret` fields the CLI refuses (`E8002`: `Field 'KEY' is secret; set it with 'ebx provider config ID set KEY' or the EBX_<ID>_<KEY> environment variable.`).
+Sets a provider-scoped key for this invocation (override layer). `KEY` ∈ the effective provider's schema (or an inherited core key, as an override for this provider). Bad syntax / unknown key → exit 2 (`E8002`). `--opt` values appear in argv: for `secret` fields the CLI refuses (`E8002`: `Field 'KEY' is secret; set it with 'abx provider config ID set KEY' or the ABX_<ID>_<KEY> environment variable.`).
 
 ### 4.3 Flags
 
 | Flag | Environment variable | Commands |
 |---|---|---|
-| `--sandbox-api-key` | `EBX_SANDBOX_API_KEY` | `mcp install`, `mcp start` |
-| `--sandbox-base-url` | `EBX_SANDBOX_BASE_URL` | same |
-| `--sandbox-domain` | `EBX_SANDBOX_DOMAIN` | same |
+| `--sandbox-api-key` | `ABX_SANDBOX_API_KEY` | `mcp install`, `mcp start` |
+| `--sandbox-base-url` | `ABX_SANDBOX_BASE_URL` | same |
+| `--sandbox-domain` | `ABX_SANDBOX_DOMAIN` | same |
 | `--acr-instance-id` | `ACREE_INSTANCE_ID` | template commands |
 
-`ebx mcp install` copies `EBX_SANDBOX_API_KEY` into the editor config. It copies `EBX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` into that file only when the process environment sets them, under those same names.
+`abx mcp install` copies `ABX_SANDBOX_API_KEY` into the editor config. It copies `ABX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` into that file only when the process environment sets them, under those same names.
 
 ### 4.4 Qualified sandbox references
 
 Input grammar: `[provider:]sandbox_id` for every command that takes a sandbox id (`info`, `kill`, `exec`, `connect`, `upload`, `download`, `files`, `sandbox process/system …`). The prefix is parsed iff the part before the first `:` matches the provider-id grammar **and** equals a built-in/installed provider id; otherwise the whole string is the id. Output format rule (identical in Python/Node): the **legacy format** (bare ids, no `provider` field) is used **only if both** the ambient provider (the configured default, ignoring `--provider`) **and** the effective provider are `alicloud-express`. In every other case printed ids are qualified (`local-process:sbx-1`) in text mode (tables and `--quiet`), and `--json` rows gain `"provider"` (the bare id stays in `sandbox_id`/`ID`). Rationale: an id pasted from output must be unambiguous when the default is later changed, yet scripts using only the built-in provider see no change. `--provider P` + reference `Q:id` with `P≠Q` → exit 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
 
-`ebx list --all-providers` — adds a `Provider` column/key, queries every configured provider (those whose `credential` fields resolve), skips failing providers with a stderr warning (`warning: provider 'ID' skipped: <message>`), exit 0 if at least one succeeded else the first error's exit code.
+`abx list --all-providers` — adds a `Provider` column/key, queries every configured provider (those whose `credential` fields resolve), skips failing providers with a stderr warning (`warning: provider 'ID' skipped: <message>`), exit 0 if at least one succeeded else the first error's exit code.
 
 ---
 
-## 5. `ebx provider`
+## 5. `abx provider`
 
 ```
-Usage: ebx provider [OPTIONS] COMMAND [ARGS]...
+Usage: abx provider [OPTIONS] COMMAND [ARGS]...
 
   Manage sandbox providers (backends).
 
@@ -222,20 +222,20 @@ Commands:
   doctor     Check a provider (integrity, handshake, features)
 
 Examples:
-  ebx provider list
-  ebx provider install ./my-provider
-  ebx provider install https://github.com/acme/ebx-provider-acme.git --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
-  ebx provider default acme
-  ebx create --provider acme --template base
+  abx provider list
+  abx provider install ./my-provider
+  abx provider install https://github.com/acme/abx-provider-acme.git --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
+  abx provider default acme
+  abx create --provider acme --template base
 ```
 
-Related commands (also printed as the last paragraph of `ebx --help`): `ebx config`, `ebx info`.
+Related commands (also printed as the last paragraph of `abx --help`): `abx config`, `abx info`.
 
 Every subcommand honours `--json/--quiet/--ci/--no-color/--verbose` and the standard `-h/--help`.
 
 ### 5.1 `list`
 
-`ebx provider list` → standard table, headers `["ID", "Name", "Version", "Kind", "Trust", "Default"]`, rows built-in first, then installed sorted by id; `Default` is `yes` or empty; `Kind` ∈ `builtin|rest|exec`; `Trust` ∈ `builtin|pinned|local|link|unpinned`. `--json` = the table's list-of-objects (house style, keys are the header strings). Always at least the built-in row. `--quiet` prints ids only (one per line; the standard quiet table output would be tab-separated rows — **override**: ids only, documented).
+`abx provider list` → standard table, headers `["ID", "Name", "Version", "Kind", "Trust", "Default"]`, rows built-in first, then installed sorted by id; `Default` is `yes` or empty; `Kind` ∈ `builtin|rest|exec`; `Trust` ∈ `builtin|pinned|local|link|unpinned`. `--json` = the table's list-of-objects (house style, keys are the header strings). Always at least the built-in row. `--quiet` prints ids only (one per line; the standard quiet table output would be tab-separated rows — **override**: ids only, documented).
 
 ### 5.2 `info ID`
 
@@ -268,12 +268,12 @@ Installed providers add `Source`, `Commit`, `Digest`, `Runtime` (command line), 
 }
 ```
 
-For installed providers `install` = the receipt object (§7.6 of the design) with `source.url` credentials redacted. Unknown id → exit 4 `[E8001] Provider 'x' is not installed.` (suggestion `Run 'ebx provider list'; install with 'ebx provider install <path-or-git-url>'.`).
+For installed providers `install` = the receipt object (§7.6 of the design) with `source.url` credentials redacted. Unknown id → exit 4 `[E8001] Provider 'x' is not installed.` (suggestion `Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.`).
 
 ### 5.3 `install SOURCE`
 
 ```
-Usage: ebx provider install [OPTIONS] SOURCE
+Usage: abx provider install [OPTIONS] SOURCE
 
   Install a provider plugin. SOURCE is a local directory or a git URL
   (https://, ssh://, git@host:path). Nothing from the plugin is executed
@@ -296,7 +296,7 @@ Behaviour = design §7.6. Consent screen (stdout; in `--json` mode no prompt is 
 
 ```
 Provider      local-process 0.1.0  (Local Process)
-Source        https://github.com/acme/ebx-provider-local-process.git @ 4f1c2ab9… (pinned)
+Source        https://github.com/acme/abx-provider-local-process.git @ 4f1c2ab9… (pinned)
 Digest        sha256:ab12…
 Runs          python3 ./provider.py
 Features      sandbox.lifecycle, exec.run, files.rw
@@ -315,39 +315,39 @@ Errors (stderr, `[CODE] message` + `Suggestion:`), exit code:
 | Condition | Code | Exit | Message |
 |---|---|---|---|
 | source not found / clone fails | E8010 | 1 | `Cannot fetch provider source: <reason>.` |
-| manifest missing/invalid | E8014 | 1 | `Invalid ebx-provider.toml: <reason>.` |
+| manifest missing/invalid | E8014 | 1 | `Invalid abx-provider.toml: <reason>.` |
 | id reserved/conflict without `--force` | E8003 | 1 | `Provider id 'x' is already installed.` / `reserved` |
 | digest mismatch | E8011 | 1 | `Tree digest mismatch: expected <a>, got <b>.` |
-| non-interactive without `--yes` | E8012 | 2 | `Installing a provider requires confirmation.` / `Re-run with --yes after reviewing: ebx provider install <source> --ref <commit>` |
+| non-interactive without `--yes` | E8012 | 2 | `Installing a provider requires confirmation.` / `Re-run with --yes after reviewing: abx provider install <source> --ref <commit>` |
 | unpinned git in non-interactive without `--allow-unpinned` | E8012 | 2 | `Refusing an unpinned git source in non-interactive mode.` / `Pass --ref <40-hex commit> or --sha256 <digest>.` |
 | `--link` without `--yes`, or on Windows | E8012 | 2 | `--link requires --yes (the linked code is not pinned).` / `--link is not supported on Windows.` |
 | insecure transport / credentials in URL | E8012 | 2 | `Insecure provider source 'git://…'.` / `Credentials in URLs are not accepted; use an SSH agent or a git credential helper.` |
-| incompatible `requires` / protocol | E8013 | 1 | `Provider requires ebx cli >=0.4 (this is 0.3.0).` |
+| incompatible `requires` / protocol | E8013 | 1 | `Provider requires abx cli >=0.4 (this is 0.3.0).` |
 | path/size/symlink violations | E8010 | 1 | `Unsafe entry 'a/../b' in provider source.` etc. |
 
 ### 5.4 `uninstall ID`
 
-Options `--purge` (also remove `[providers.<id>]` and `EBX_<ID>_*` from `~/.ebx/.env` and the `data/` dir), `-y/--yes`. Prompt `Remove provider 'ID'? [y/N]` (non-interactive without `--yes` → exit 2 `E8012`). Built-in → exit 2 `[E8003] The built-in provider cannot be removed.` If it was the default: stderr notice `Default provider reset to 'alicloud-express'.`. Unknown → exit 4 `E8001`. Success `Removed provider 'ID'`.
+Options `--purge` (also remove `[providers.<id>]` and `ABX_<ID>_*` from `~/.abx/.env` and the `data/` dir), `-y/--yes`. Prompt `Remove provider 'ID'? [y/N]` (non-interactive without `--yes` → exit 2 `E8012`). Built-in → exit 2 `[E8003] The built-in provider cannot be removed.` If it was the default: stderr notice `Default provider reset to 'alicloud-express'.`. Unknown → exit 4 `E8001`. Success `Removed provider 'ID'`.
 
 ### 5.5 `update [ID | --all]`
 
-Options: `--ref TEXT`, `--check`, `--all`, `-y/--yes`. `--check` prints `ID  installed → available (changes: runtime, security)` rows (table headers `["ID","Installed","Available","Changes"]`) and changes nothing (exit 0). Update applies design §7.6 (re-consent iff runtime/security/features/config-fields changed, pinned needs `--ref`, rollback on `initialize` failure). `link` and `local` installs: `[E8010] Provider 'ID' was installed from a local directory; reinstall it with 'ebx provider install --force <path>'.` (exit 1). Nothing to update: `All providers are up to date.`
+Options: `--ref TEXT`, `--check`, `--all`, `-y/--yes`. `--check` prints `ID  installed → available (changes: runtime, security)` rows (table headers `["ID","Installed","Available","Changes"]`) and changes nothing (exit 0). Update applies design §7.6 (re-consent iff runtime/security/features/config-fields changed, pinned needs `--ref`, rollback on `initialize` failure). `link` and `local` installs: `[E8010] Provider 'ID' was installed from a local directory; reinstall it with 'abx provider install --force <path>'.` (exit 1). Nothing to update: `All providers are up to date.`
 
 ### 5.6 `default [ID]`
 
 * no arg: prints the effective default id (stdout, one line; `--json` → `{"default":"…","source":"env|dotenv|config|builtin"}`), exit 0.
-* `ID`: validates it exists, writes `[core] provider = "ID"`, prints `Default provider set to 'ID'` (+ warning to stderr if `EBX_PROVIDER` is set and overrides it: `note: EBX_PROVIDER=… overrides this at runtime.`).
+* `ID`: validates it exists, writes `[core] provider = "ID"`, prints `Default provider set to 'ID'` (+ warning to stderr if `ABX_PROVIDER` is set and overrides it: `note: ABX_PROVIDER=… overrides this at runtime.`).
 * `--unset`: removes the key, prints `Default provider reset to 'alicloud-express'`.
 * Setting the built-in id writes nothing special (removes the key).
 
 ### 5.7 `config ID …`
 
 ```
-ebx provider config ID list           # == ebx config list --provider ID
-ebx provider config ID get KEY        # == ebx config get providers.ID.KEY
-ebx provider config ID set KEY [VALUE]# masked prompt for secrets, same rules as `ebx config set`
-ebx provider config ID unset KEY      # == ebx config delete providers.ID.KEY
-ebx provider config ID init           # guided prompts from the schema (as §3.7)
+abx provider config ID list           # == abx config list --provider ID
+abx provider config ID get KEY        # == abx config get providers.ID.KEY
+abx provider config ID set KEY [VALUE]# masked prompt for secrets, same rules as `abx config set`
+abx provider config ID unset KEY      # == abx config delete providers.ID.KEY
+abx provider config ID init           # guided prompts from the schema (as §3.7)
 ```
 
 Validation on `set`: type coercion from the manifest field type; `enum` membership; `url` must parse; `path` is stored as given; `required` fields are only enforced when a command runs. Errors → exit 2 `E8002` (`Invalid value for 'KEY': <reason>.`).
@@ -405,8 +405,8 @@ Naming follows the port rules (`tests/<path>.test.ts`, `describe("<Class>")`, `i
 3. `tests/cli/test_config_cmd_providers.test.ts` — key resolution order (§3.2) incl. `--provider`, qualified keys, ambiguity suggestion; `config set` writes the one storage name; clearing removes that stored value; `config list` golden.
 5. `tests/providers/manifest.test.ts` — each validation rule of design §7.5 (one test per rule), version comparator table, command-escape rule.
 6. `tests/providers/store_installer.test.ts` — local dir; git via a temp bare repo (`--allow-insecure-transport` for `file://`); pinned/unpinned/`--sha256`; symlink/hardlink/traversal/case-collision/size/file-count rejections; credentials-in-URL rejection + redaction; `--link` requires `--yes`; `ls-tree` validation rejects symlink/submodule/oversize entries *before* any blob is written; unpinned wording (`tag/branch installs are not pinned`); **tree-digest vectors**; canary test (plugin writes a file if executed → must not exist after install); integrity failure after editing a file; update re-consent matrix; rollback; uninstall/purge; default fallback; lock contention; atomic swap crash-safety (kill between stage and swap leaves the old install intact).
-7. `tests/providers/exec_provider.test.ts` — against `examples/providers/local-process` (copied from python-sdk): handshake, version mismatch (`E8013`), feature gating, **error mapping table**, timeouts, crash with stderr tail, malformed/oversized lines, env scrubbing (plugin echoes env: no `EBX_*`/`E2B_*`/`ALICLOUD_*`), secrets only via `initialize`, process-group kill, cancel, hybrid mode with `envd_url`; **plugin stderr is redacted** (a plugin echoing a secret to stderr: the secret never reaches the CLI's stderr, the doctor output or error messages) and the `initialize` request is never written to the debug/log output.
-8. `tests/cli/test_provider_cmd.test.ts` — every command of §5: help goldens, table/JSON shapes, quiet override, exit codes, the error table, consent screen golden, non-interactive refusals, `default` messages incl. `EBX_PROVIDER` note, `doctor` output.
+7. `tests/providers/exec_provider.test.ts` — against `examples/providers/local-process` (copied from python-sdk): handshake, version mismatch (`E8013`), feature gating, **error mapping table**, timeouts, crash with stderr tail, malformed/oversized lines, env scrubbing (plugin echoes env: no `ABX_*`/`E2B_*`/`ALICLOUD_*`), secrets only via `initialize`, process-group kill, cancel, hybrid mode with `envd_url`; **plugin stderr is redacted** (a plugin echoing a secret to stderr: the secret never reaches the CLI's stderr, the doctor output or error messages) and the `initialize` request is never written to the debug/log output.
+8. `tests/cli/test_provider_cmd.test.ts` — every command of §5: help goldens, table/JSON shapes, quiet override, exit codes, the error table, consent screen golden, non-interactive refusals, `default` messages incl. `ABX_PROVIDER` note, `doctor` output.
 9. `tests/cli/test_provider_flag.test.ts` — `--provider` root+leaf precedence, missing feature fails before side effects (assert no HTTP/Docker call), provider-scoped flag rejection text, `--opt` secret refusal, qualified references, `E8030`, `list --all-providers` partial failure, JSON `provider` key only for non-builtin.
 10. **Differential (oracle) cases** under `parity/diff/`: with the built-in provider only, `list`, `create`, and `kill` against the stub use the one environment variable from §1.
 11. Cross-implementation conformance: install `examples/providers/local-process` from the Python repo with the **Node** installer, then load it with the **Python** SDK (and vice-versa): same receipt digest, both accept the other's receipt.
@@ -419,10 +419,10 @@ Naming follows the port rules (`tests/<path>.test.ts`, `describe("<Class>")`, `i
 2. Copy fixtures from `python-sdk/client-sdk/tests/fixtures/` into `docs/design/fixtures/` and `tests/fixtures/` (the Python repo is the source of truth); add the fixture-identity test.
 3. Implement `config_keys.ts` + the layer-first resolver; port `config_cmd.ts` onto it; each key has one environment variable; regenerate `config list` goldens.
 4. Bind each flag to that one environment variable. Expose `acr_*` keys via `config set`.
-5. `ebx config set` writes the one storage name from §1.
-6. Implement providers: manifest → store/installer (+digest) → registry/builtin → `exec_provider`/`rest_provider` → `ebx provider …` → `--provider/--opt` plumbing → qualified references → `list --all-providers`.
+5. `abx config set` writes the one storage name from §1.
+6. Implement providers: manifest → store/installer (+digest) → registry/builtin → `exec_provider`/`rest_provider` → `abx provider …` → `--provider/--opt` plumbing → qualified references → `list --all-providers`.
 7. Update the CLI docs (`cli-design`, `cli-reference`, `configuration`, `environment-variables`, `authentication`, new `providers` guide) and zh mirrors; `SKILL.md`; `llms.txt`; CHANGELOG.
-8. Make the `mcp install` copy rules (§4.3) and the MCP server env (`EBX_PROVIDER` is forwarded) consistent.
+8. Make the `mcp install` copy rules (§4.3) and the MCP server env (`ABX_PROVIDER` is forwarded) consistent.
 9. Review round with an adversary who did not write the slice (per PORTING.md), appending findings to `parity/review-log.md`.
 10. Open items for later (do not build now): OS-level plugin confinement, keychain secret storage, registry/marketplace source, long-lived plugin daemons (EPP/2), gRPC transport.
 
@@ -433,13 +433,13 @@ Naming follows the port rules (`tests/<path>.test.ts`, `describe("<Class>")`, `i
 The Python SDK side was implemented after this spec was reviewed. These points are decisions made while implementing; the Node implementation must match them (the shared fixtures encode most of them).
 
 1. **E8005 `ProviderResourceNotFoundError`** exists. EPP `-32002` maps to the class named by `data.sdk_code` (E2001, E4001, ...); with no `sdk_code` it maps to E8005 (not E2000). Exit code 4. `exit_code_for` order: auth → 3, not-found family (E8001, E8005, `TemplateNotFoundError`, `FileNotFound_`) → 4, timeout (`CommandTimeoutError`, E8022) → 5, quota → 6, config/trust/mismatch (E8002, E8012, E8030) → 2, else 1. `epp-error-mapping.json` is the source of truth.
-2. **`sandbox.kill` is idempotent at the host adapter**: an E8005 from `sandbox.kill` is swallowed (the sandbox is already gone), so `ebx kill` of a vanished sandbox behaves like the built-in provider. Plugins should also make kill idempotent; the contract kit checks it.
+2. **`sandbox.kill` is idempotent at the host adapter**: an E8005 from `sandbox.kill` is swallowed (the sandbox is already gone), so `abx kill` of a vanished sandbox behaves like the built-in provider. Plugins should also make kill idempotent; the contract kit checks it.
 3. **No-envd providers** get a marker URL `epp://<provider>/<sandbox_id>` as the sandbox's envd URL; every code path that would call envd (command listing, auth checks, terminals) must skip `epp://` URLs and use the provider's data-plane methods.
 4. **Manifest `command`**: elements starting with `./` resolve inside the plugin directory and may not escape it; the consent screen prints the argv as written (`python3 ./provider.py`).
 5. **Plugin environment** additionally carries `PYTHONDONTWRITEBYTECODE=1` (interpreters must not write into the digest-verified directory). Top-level `data/` is reserved for plugin state and excluded from the tree digest; `update` carries `data/` over.
 6. **Process cleanup**: after the plugin exits (cleanly or not) the host still kills the process group, so grandchildren cannot outlive a session (`EppClient.close`).
 7. **`close()`**: provider processes are owned by the sandbox object; the Python API gained `Sandbox.close()`. A CLI invocation must close its provider on every exit path (including `Ctrl-C`).
-8. **Storage**: `ebx config set sandbox_api_key` writes `EBX_SANDBOX_API_KEY` in `~/.ebx/.env` (mode 0600). `sandbox_base_url` is stored as `[transport] sandbox_base_url`. Each key has that one stored name.
-9. **`python -m easy_sandbox.providers`** is the SDK-only twin of `ebx provider` (same layout, same receipts, same digest). A provider installed by one tool must load in the other (§7 item 11).
+8. **Storage**: `abx config set sandbox_api_key` writes `ABX_SANDBOX_API_KEY` in `~/.abx/.env` (mode 0600). `sandbox_base_url` is stored as `[transport] sandbox_base_url`. Each key has that one stored name.
+9. **`python -m agent_sandbox.providers`** is the SDK-only twin of `abx provider` (same layout, same receipts, same digest). A provider installed by one tool must load in the other (§7 item 11).
 10. **Not implemented in Python (follow-ups, same for the CLI)**: `sandbox.yaml` `provider:` / `provider_options:` and `@sandbox(provider=...)`; OS confinement; `list --all-providers` aggregation helper in the SDK (the SDK exposes `Sandbox.list(provider=...)` per provider only).
 

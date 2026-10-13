@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ADV-core: differential of the httpx shim / transport layer. A raw-socket (and TLS) misbehaving server is started per
- * scenario; the SAME `ebx` argv is run against the Python oracle and the Node CLI (isolated HOME, scrubbed env) and the
+ * scenario; the SAME `abx` argv is run against the Python oracle and the Node CLI (isolated HOME, scrubbed env) and the
  * stdout / stderr / exit code and the raw request bytes the server received (header names+values, minus user-agent)
  * are compared.
  *
@@ -27,11 +27,11 @@ const verbose = args.includes("--verbose");
 const filterIdx = args.indexOf("--filter");
 const FILTER = filterIdx >= 0 ? new RegExp(args[filterIdx + 1], "i") : null;
 
-if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "ebx"))) {
+if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "abx"))) {
   console.error("[adv_core_net] ORACLE_VENV not set / missing: SKIPPED");
   process.exit(2);
 }
-const ORACLE = join(ORACLE_VENV, "bin", "ebx");
+const ORACLE = join(ORACLE_VENV, "bin", "abx");
 
 const root = realpathSync(mkdtempSync(join(tmpdir(), "adv-net-")));
 
@@ -224,7 +224,7 @@ const normReq = (r) => {
 
 async function runScenario(scn) {
   const out = {};
-  for (const [label, bin] of [["oracle", [ORACLE]], ["node", [join(CLI_ROOT, "node_modules/.bin/tsx"), join(CLI_ROOT, "src/bin/ebx.ts")]]]) {
+  for (const [label, bin] of [["oracle", [ORACLE]], ["node", [join(CLI_ROOT, "node_modules/.bin/tsx"), join(CLI_ROOT, "src/bin/abx.ts")]]]) {
     const server = await startServer(scn);
     const home = join(root, `${scn.id}-${label}-home`);
     const cwd = join(root, `${scn.id}-${label}-cwd`);
@@ -242,7 +242,7 @@ async function runScenario(scn) {
       NO_COLOR: "1",
       COLUMNS: "120",
       PYTHONUNBUFFERED: "1",
-      EBX_NO_KEYCHAIN: "1",
+      ABX_NO_KEYCHAIN: "1",
       E2B_API_KEY: "k-adv-0123456789abcdef",
       E2B_API_URL: scn.apiUrl ? scn.apiUrl(origin, server) : origin,
       E2B_DOMAIN: "adv.invalid",

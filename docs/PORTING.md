@@ -1,34 +1,37 @@
-# Porting contract: Python `ebx` -> Node.js `ebx`
+# Porting contract: Python `abx` -> Node.js `abx`
 
-The original project (`github.com/easy-sandbox/easy-sandbox` @ `b15b88f`, v0.2.0) shipped the CLI as part of one
+The original project (`github.com/alibaba-agent-sandbox/agent-sandbox` @ `b15b88f`, v0.2.0) shipped the CLI as part of one
 Python package. This repository is the Node.js replacement for that CLI. **Hard rule: the Node CLI must not lose,
 degrade, or silently change any CLI behaviour.** The only intended differences are the ones the task asked for
 (implementation language, split of repositories, Python-specific install/packaging story).
 
 ## Reference material
 
-Keep a local checkout of `https://github.com/easy-sandbox/easy-sandbox` at commit `b15b88f` and install it with
-`pip install -e ".[dev]"` into a virtualenv. That checkout is the Python source of truth; its venv `bin/ebx` is the
-oracle.
+Check out the original Python project once, anywhere you like, and point two variables at it:
+
+```bash
+export ORIG_REPO=/path/to/agent-sandbox-original            # pristine checkout of the original repo
+export ORACLE_VENV=/path/to/venv-for-original-abx          # venv with `pip install -e ".[dev]"` of ORIG_REPO
+```
 
 | What | Where |
 |------|-------|
-| Original Python source (pristine checkout) | `<python-checkout>/src/easy_sandbox/` |
-| Original Python tests (incl. golden CLI snapshots) | `<python-checkout>/tests/` |
-| Python **oracle** CLI (original behaviour, runnable) | `<oracle-venv>/bin/ebx` (always run with an isolated `HOME`, see below) |
+| Original Python source (pristine checkout) | `$ORIG_REPO/src/agent_sandbox/` |
+| Original Python tests (incl. golden CLI snapshots) | `$ORIG_REPO/tests/` |
+| Python **oracle** CLI (original behaviour, runnable) | `$ORACLE_VENV/bin/abx` (always run with an isolated `HOME`, see below) |
 | Ledger of Python CLI/agent tests that must be ported | `parity/python-tests-to-port.txt` |
-| Original docs | `<python-checkout>/docs/` |
+| Original docs | `$ORIG_REPO/docs/` |
 
-If the checkout is missing, re-clone `https://github.com/easy-sandbox/easy-sandbox` at commit `b15b88f` and
-`pip install -e ".[dev]"` it into a venv.
+If you do not have a checkout yet, clone `https://github.com/alibaba-agent-sandbox/agent-sandbox` at commit `b15b88f`, create a
+venv and `pip install -e ".[dev]"` it there.
 
-Always run the oracle with `HOME=$(mktemp -d) EBX_NO_KEYCHAIN=1 ...` (and no CI env vars) so it never touches real
-config; point it at a local stub HTTP server through `E2B_API_URL`/`SANDBOX_API_BASE_URL`/`E2B_DOMAIN` like the Python
-tests do.
+Always run the oracle with an isolated `HOME=$(mktemp -d)` (and no CI env vars) so it never touches real config;
+point it at a local stub HTTP server through `ABX_SANDBOX_BASE_URL`/`ABX_SANDBOX_DOMAIN` like the Python tests
+do. Neither this CLI (`cli/src`) nor the Python oracle reads `ABX_NO_KEYCHAIN`.
 
 ## Module mirroring
 
-Python `src/easy_sandbox/<pkg>/<mod>.py` maps to `src/<pkg>/<mod>.ts` (kebab/snake file names are kept in
+Python `src/agent_sandbox/<pkg>/<mod>.py` maps to `src/<pkg>/<mod>.ts` (kebab/snake file names are kept in
 `camelCase`-free form: keep the Python file name, e.g. `session_manager.ts`, `docker_builder.ts`, `config_cmd.ts`).
 Imports use `.js` extensions (NodeNext ESM).
 
@@ -51,8 +54,8 @@ Imports use `.js` extensions (NodeNext ESM).
   Chinese text and trailing punctuation. Do not "improve" wording.
 * stdout vs stderr channel policy, `--json`/`--quiet`/`--ci`/`--no-color`/`--verbose` semantics and CI/TTY detection
   are part of the contract (see `OutputManager` in `cli/output.py`).
-* Config/credential file locations, formats and precedence are identical (`~/.ebx/config.toml`, `~/.ebx/.env`,
-  `./.env`, env var names, keychain behaviour, `~/.ebx/{bin,templates,index,generated}`).
+* Config/credential file locations, formats and precedence are identical (`~/.abx/config.toml`, `~/.abx/.env`,
+  `./.env`, env var names, keychain behaviour, `~/.abx/{bin,templates,index,generated}`).
 * Time, randomness, filesystem and network access go through small seams (module-level functions) so tests can mock
   them; mirror the seams the Python tests patch (`run_sync`, `load_config`, `Sandbox`, ...), adapting names to camelCase.
 * No behaviour may be dropped because a Node library is inconvenient. If you truly cannot match something, stop and
@@ -60,7 +63,7 @@ Imports use `.js` extensions (NodeNext ESM).
 
 ## Stack
 
-TypeScript (strict, ESM, Node >= 20), `vitest`, runtime deps already installed: `yaml`, `smol-toml`, `ws`,
+TypeScript (strict, ESM, Node >= 20), `vitest`, runtime deps already installed: `yaml`, `ws`,
 `@inquirer/prompts`. Add a dependency only when needed and say why in the PR/commit message. Prefer Node built-ins
 (`fetch`, `node:child_process`, `node:zlib`, `node:crypto`, `node:readline`). The Alibaba Cloud template API uses
 `@alicloud/fcsandbox20260509` + `@alicloud/openapi-client` (Node counterpart of `alibabacloud-fcsandbox20260509`).
@@ -88,6 +91,34 @@ Python tests of the *SDK* modules the CLI re-implements (transport/protocol/api/
 `parity/diff/` holds a stub platform/envd/server and a case runner that executes the same argv against the Python oracle
 and the Node CLI (isolated HOME, same env, same stub) and diffs `exit code`, `stdout`, `stderr` after normalisation
 (timestamps, temp paths, ids, ports). Any unexplained diff is a bug in the Node port.
+
+`parity/diff/mcp_toolerr.mjs` is the ready-made differential for MCP tool errors (Python vs Node stdio server over stub
+platform/envd servers, no credentials): `ORACLE_VENV=$ORACLE_VENV node parity/diff/mcp_toolerr.mjs [--only <mode>] [--verbose]`.
+
+## Optional Python oracle in the test suite
+
+A standalone clone of this repository must pass `npm test` without any Python checkout. The committed
+`tests/fixtures/**/golden.json` files (rendered once from the original Python modules by
+`tests/fixtures/agent/render_golden.py`) are the **default oracle**. A few cross-checks additionally consult a real
+Python installation and are **skipped, with a `[tests] SKIPPED ...` notice on stderr, when it is absent**:
+
+| Tests | Needs | Enabled by |
+|-------|-------|------------|
+| `tests/test_agent/test_template_guide.test.ts` (capability groups, `__all__`, serve port, reference `commands.py` run) | `python3` that can import `agent_sandbox.server` | `ORIG_REPO` (`$ORIG_REPO/src`), `ABX_SERVER_SDK_SRC` (path-delimited list), or a monorepo `python-sdk/` next to `cli/` |
+| `tests/test_agent/test_codegen.test.ts` (`TestPythonSyntaxCheck`: CPython `ast.parse` verdicts) | `python3` on `PATH` | nothing else |
+
+Run the full oracle-backed suite with:
+
+```bash
+export ORIG_REPO=/path/to/agent-sandbox-original      # pristine checkout (see "Reference material")
+export ORACLE_VENV=/path/to/venv-for-original-abx     # optional: only for the differential CLI/MCP runs
+ORIG_REPO="$ORIG_REPO" npm test
+```
+
+Helpers: `pythonReference()`, `itWithPython(it)` and `itWithServerSdk(it)` in `tests/helpers/agentSupport.ts`. New tests
+that need Python must use them instead of failing when the interpreter or package is missing. Never hard-code a
+checkout location; regenerate fixtures with
+`PYTHONPATH="$ORIG_REPO/src" python3 tests/fixtures/agent/render_golden.py > tests/fixtures/agent/golden.json`.
 
 ## Review protocol (multi-agent, adversarial)
 

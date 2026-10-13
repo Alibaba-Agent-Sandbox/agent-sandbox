@@ -17,7 +17,7 @@ describe("TransportTomlLoader", () => {
   let file: string;
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), "ebx-toml-"));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "abx-toml-"));
     file = path.join(dir, "config.toml");
   });
   afterEach(() => {

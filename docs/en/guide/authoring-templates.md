@@ -1,14 +1,14 @@
 # Authoring Templates
 
-This document explains how to create custom Easy Sandbox templates, including the directory structure, adapting an existing project, and publishing with the CLI.
+This document explains how to create custom Agent Sandbox templates, including the directory structure, adapting an existing project, and publishing with the CLI.
 
-Three ways to start, all of them local files only (publish later with `ebx deploy`):
+Three ways to start, all of them local files only (publish later with `abx deploy`):
 
 | Starting point | Command |
 |----------------|---------|
-| Built-in scaffold | `ebx template init -t python ./my-template` |
-| A sentence (Qwen Code writes a new directory) | `ebx template init "a Python data analysis environment"` |
-| A project that already has source code | `ebx template init --adopt ./app` — see [Adapt an existing project](#adapt-an-existing-project) |
+| Built-in scaffold | `abx template init -t python ./my-template` |
+| A sentence (Qwen Code writes a new directory) | `abx template init "a Python data analysis environment"` |
+| A project that already has source code | `abx template init --adopt ./app` — see [Adapt an existing project](#adapt-an-existing-project) |
 
 ---
 
@@ -55,9 +55,9 @@ ports:
 
 ---
 
-## Field Reference, Capabilities and Custom Commands
+## Field Reference, Capabilities and Named Commands
 
-The `template.yaml` fields, the `capabilities` vocabulary (`shell`, `files`, `code`, `terminal`, `ports`) and the `custom_commands` declaration (invoked with `ebx run <id> <name> --arg k=v`) are part of the shared template contract. They are specified in the SDK documentation listed in [Related SDK documentation](#related-sdk-documentation).
+The `template.yaml` fields and the `capabilities` vocabulary (`shell`, `files`, `code`, `terminal`, `ports`) are part of the shared template contract. Named commands are not declared in `template.yaml`: register them on the in-sandbox server (`@registry.command`) and call them with `abx run <id> <name> --arg k=v` (list them with `abx sandbox command list <id>`). The fields and capabilities are specified in the SDK documentation listed in [Related SDK documentation](#related-sdk-documentation).
 
 ## Dockerfile Customization
 
@@ -82,28 +82,28 @@ The `Dockerfile` in the template directory is the sole source for building image
 
 ## Provider template profile
 
-The HTTP server inside the image does not depend on a sandbox provider. `commands.py` imports only `easy_sandbox.server` and calls `serve(port=9000)` under `if __name__ == "__main__"`. Port 9000 is the server default.
+The HTTP server inside the image does not depend on a sandbox provider. `commands.py` imports only `agent_sandbox.server` and calls `serve(port=9000)` under `if __name__ == "__main__"`. Port 9000 is the server default.
 
-Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `start_cmd` / `ready_cmd`, architecture, workdir, reserved ports, and registry notes come from the **selected provider's template profile**. `ebx` resolves that provider the same way as every other command: `--provider`, then `EBX_PROVIDER`, then the configured default (`alicloud-express`). The template guide, the codegen prompt, and `ebx template init` describe that one profile.
+Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `start_cmd` / `ready_cmd`, architecture, workdir, reserved ports, and registry notes come from the **selected provider's template profile**. `abx` resolves that provider the same way as every other command: `--provider`, then `ABX_PROVIDER`, then the configured default (`alicloud-express`). The template guide, the codegen prompt, and `abx template init` describe that one profile.
 
 - `alicloud-express` uses `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`, does not set `CMD` or `ENTRYPOINT`, and starts the server with the platform `start_cmd` / `ready_cmd`. Workdir is `/home/user/app`. Ports 49983, 5000, and 49999 are reserved by that profile.
-- Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `ebx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
-- The image installs `easy-sandbox-server`, not the client package.
+- Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `abx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
+- The image installs `agent-sandbox-server`, not the client package.
 
 ---
 
 ## Adapt an existing project
 
-`ebx template init --adopt` is for a directory that already has application code and is missing the sandbox template files. Qwen Code reads a copy of that project and ebx writes the template files back into the same directory. Nothing is built, pushed, or launched; publish with `ebx deploy` afterwards.
+`abx template init --adopt` is for a directory that already has application code and is missing the sandbox template files. Qwen Code reads a copy of that project and abx writes the template files back into the same directory. Nothing is built, pushed, or launched; publish with `abx deploy` afterwards.
 
 ```bash
-ebx template init --adopt . --hint "the API listens on 8080"
-ebx template init --adopt ./app --dry-run          # list the files; send nothing
-ebx template init --adopt ./app --name my-api -y   # non-interactive
-ebx deploy ./app --acr-namespace my-ns
+abx template init --adopt . --hint "the API listens on 8080"
+abx template init --adopt ./app --dry-run          # list the files; send nothing
+abx template init --adopt ./app --name my-api -y   # non-interactive
+abx deploy ./app --acr-namespace my-ns
 ```
 
-`--hint` is free text for facts the code does not show (the listen port, a sidecar, a private constraint). `--name` sets the template name: it must match `^[a-z0-9][a-z0-9-]*$`. When `--name` is omitted, ebx slugs the directory name. A name that cannot be slugged (a Chinese-only directory, for example) needs `--name`.
+`--hint` is free text for facts the code does not show (the listen port, a sidecar, a private constraint). `--name` sets the template name: it must match `^[a-z0-9][a-z0-9-]*$`. When `--name` is omitted, abx slugs the directory name. A name that cannot be slugged (a Chinese-only directory, for example) needs `--name`.
 
 ### Files written back
 
@@ -116,27 +116,27 @@ Only these files are written, and only after you confirm the preview (or pass `-
 | `template.yaml` | Name, resources, ports, capabilities |
 | `.dockerignore` | Only when the project does not already have one |
 
-Application source stays as it is. A file the agent creates or edits outside that list is reported and discarded. A replaced file is kept as `*.ebx-bak`; an existing backup is never overwritten (the next one is `.ebx-bak.1`).
+Application source stays as it is. A file the agent creates or edits outside that list is reported and discarded. A replaced file is kept as `*.abx-bak`; an existing backup is never overwritten (the next one is `.abx-bak.1`).
 
 ### What is sent to the model
 
-ebx copies candidate files into a temporary directory (`ebx-adopt-…` under the system temp dir, never `~/.ebx`) and asks before sending them. The agent runs only in that copy.
+abx copies candidate files into a temporary directory (`abx-adopt-…` under the system temp dir, never `~/.abx`) and asks before sending them. The agent runs only in that copy.
 
 Left out of the copy: `.git`, `node_modules`, virtualenvs, and similar heavy directories; `.env` and other secret-named files (keys, `credentials*`, `kubeconfig`, …); files whose contents look like a secret; symlinks; binaries; files larger than 1 MiB. The copy stops above 2 000 files or 20 MiB and tells you to point `--adopt` at a subdirectory.
 
 `--dry-run` prints that file list and deletes the copy. It does not call the model and does not write the project. A non-interactive shell (CI, piped input, `--json`) must pass `-y`; otherwise the command stops before any copy is made.
 
-The agent process does not inherit cloud or registry credentials (`ALICLOUD_*`, `E2B_*`, `ACR_*`, `AWS_*`, `GITHUB_TOKEN`). It does receive the Qwen Code key from `ebx config`.
+The agent process does not inherit cloud or registry credentials (`ALICLOUD_*`, `E2B_*`, `ACR_*`, `AWS_*`, `GITHUB_TOKEN`). It does receive the Qwen Code key from `abx config`.
 
-This sends your project source to the model. `ebx template init "DESCRIPTION"` sends only the sentence you typed.
+This sends your project source to the model. `abx template init "DESCRIPTION"` sends only the sentence you typed.
 
 ### Checks before anything is written
 
-ebx rejects the result, leaves the project unchanged, and prints the staging path when:
+abx rejects the result, leaves the project unchanged, and prints the staging path when:
 
-- the Dockerfile has no `FROM`, or `commands.py` does not start `easy_sandbox.server`
+- the Dockerfile has no `FROM`, or `commands.py` does not start `agent_sandbox.server`
 - port 9000 is missing from `template.yaml` `ports` or from `EXPOSE`
-- a `COPY` / `ADD` names a file that is missing or ignored (`COPY *.whl` is the wheel `ebx deploy` injects at build time, so it is allowed)
+- a `COPY` / `ADD` names a file that is missing or ignored (`COPY *.whl` is the wheel `abx deploy` injects at build time, so it is allowed)
 - a secret-named file would still be in the Docker build context after `.dockerignore` and `Dockerfile.dockerignore`
 - an ignore file excludes `*.whl`, which would block the SDK wheel
 
@@ -146,13 +146,13 @@ An existing `.dockerignore` that does not exclude `.env` (including one re-inclu
 
 | Already in the project | What happens |
 |------------------------|--------------|
-| `template.yaml` | Refused: the directory is already a template. Run `ebx deploy`, or pass `--force` to regenerate (the original is kept as `template.yaml.ebx-bak`) |
-| `commands.py` that does not import `easy_sandbox.server` | Needs `--force` |
-| `Dockerfile`, or an Easy Sandbox `commands.py` | An interactive preview can replace it. `-y`, `--json`, and CI need `--force` because there is no preview |
+| `template.yaml` | Refused: the directory is already a template. Run `abx deploy`, or pass `--force` to regenerate (the original is kept as `template.yaml.abx-bak`) |
+| `commands.py` that does not import `agent_sandbox.server` | Needs `--force` |
+| `Dockerfile`, or an Agent Sandbox `commands.py` | An interactive preview can replace it. `-y`, `--json`, and CI need `--force` because there is no preview |
 
-`ebx template init --from <local directory>` requires a `template.yaml` in that directory. A source tree without one is refused and the message points at `--adopt`, so `.env` and `.git` are not copied as template source.
+`abx template init --from <local directory>` requires a `template.yaml` in that directory. A source tree without one is refused and the message points at `--adopt`, so `.env` and `.git` are not copied as template source.
 
-If generation fails, the project is unchanged and the error includes the staging directory. Delete that `ebx-adopt-…` directory after you have inspected it.
+If generation fails, the project is unchanged and the error includes the staging directory. Delete that `abx-adopt-…` directory after you have inspected it.
 
 `--adopt` cannot be combined with `-t`, `--from`, or `--list`. `--hint` and `--dry-run` require `--adopt`.
 
@@ -165,16 +165,16 @@ If generation fails, the project is unchanged and the error includes the staging
 Push the template directory to a GitHub repository, and other users can install it with:
 
 ```bash
-ebx template install your-org/your-template
+abx template install your-org/your-template
 ```
 
 ### Local Installation
 
 ```bash
-ebx template install ./my-template --registry-type local
+abx template install ./my-template --registry-type local
 ```
 
-Installed templates are saved in the `~/.ebx/templates/` directory.
+Installed templates are saved in the `~/.abx/templates/` directory.
 
 ### Building and Registering Templates Locally (template deploy)
 
@@ -183,19 +183,19 @@ When you need to register a custom Docker image as a sandbox template, use the `
 > **Prerequisites**:
 > - Docker daemon is running
 > - Alibaba Cloud AK/SK credentials (configured in `.env` or environment variables)
-> - The official Alibaba Cloud template API client (`@alicloud/fcsandbox20260509`) is bundled with `@easy-sandbox/cli` — no extra install is needed
+> - The official Alibaba Cloud template API client (`@alicloud/fcsandbox20260509`) is bundled with `@agent-sandbox/cli` — no extra install is needed
 
 ```bash
 # Default: official CreateTemplate API
-ebx template deploy ./my-template \
+abx template deploy ./my-template \
   --acr-namespace my-ns --acr-repo my-template
 
 # Specify resource parameters
-ebx template deploy ./my-template \
+abx template deploy ./my-template \
   --acr-namespace my-ns --cpu 4 --memory 4096 --disk-size 10240 --internet-access
 
 # Use legacy v3/v2 API (old script compatibility)
-ebx template deploy ./my-template \
+abx template deploy ./my-template \
   --acr-namespace my-ns --legacy-api
 ```
 
@@ -206,14 +206,14 @@ ebx template deploy ./my-template \
 | Official CreateTemplate API | ✅ Yes | AK/SK | `@alicloud/fcsandbox20260509` (bundled) |
 | Legacy v3/v2 Platform API | No (`--legacy-api`) | E2B API Key | No extra dependency |
 
-> **Region note**: The official API uses the region configured via `ebx config set region` (else `cn-hangzhou`). A single deployment can override it with the command-level `--region`/`-r` option on `template deploy`/`build`/`create`/`push`/`list`/`info`/`install`/`delete`. Cross-region ACR access may require VPC-related parameters.
+> **Region note**: The official API uses the region configured via `abx config set region` (else `cn-hangzhou`). A single deployment can override it with the command-level `--region`/`-r` option on `template deploy`/`build`/`create`/`push`/`list`/`info`/`install`/`delete`. Cross-region ACR access may require VPC-related parameters.
 
 ### Creating Templates from Existing Images
 
 If the image is already pushed to ACR, you can create a template directly without local building:
 
 ```bash
-ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
+abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
 ```
 
 ---
@@ -226,9 +226,9 @@ ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-temp
 
 ## Related SDK documentation
 
-The `template.yaml` contract and the Python-side authoring guides live in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk):
+The `template.yaml` contract and the Python-side authoring guides live in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk):
 
-- [Template YAML Spec](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — precise definitions for all fields
-- [Authoring Templates (SDK)](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, capability declarations, custom commands, `@sandbox.register`
-- [Template System](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md) — tiers, name resolution, versioning
-- [Declarative Usage](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md) — the `@sandbox` decorator
+- [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — precise definitions for all fields
+- [Authoring Templates (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, capability declarations, custom commands, `@sandbox.register`
+- [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) — tiers, name resolution, versioning
+- [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md) — the `@sandbox` decorator

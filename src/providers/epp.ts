@@ -21,6 +21,7 @@ import {
   QuotaExceededError,
   RegionUnavailableError,
   SandboxError,
+  SandboxNotFoundError,
   TemplateNotFoundError,
   TokenExchangeError,
   TokenExpiredError,
@@ -66,6 +67,7 @@ const SDK_CODE_CLASSES: ReadonlyMap<string, ErrorCtor> = new Map(
       InvalidCredentialsError,
       TokenExchangeError,
       TemplateNotFoundError,
+      SandboxNotFoundError,
       QuotaExceededError,
       RegionUnavailableError,
       CommandTimeoutError,
@@ -155,7 +157,7 @@ export function scrubbedEnv(dataDir: string, passthrough: readonly string[] = []
   for (const [name, value] of Object.entries(environ)) {
     if (name.startsWith("LC_") && value !== undefined) env[name] = value;
   }
-  env["EBX_PROVIDER_DATA_DIR"] = dataDir;
+  env["ABX_PROVIDER_DATA_DIR"] = dataDir;
   env["PYTHONDONTWRITEBYTECODE"] = "1";
   return env;
 }
@@ -168,7 +170,7 @@ export function resolveCommand(command: readonly string[], pluginRoot: string): 
       const resolved = path.resolve(root, item);
       const rel = path.relative(root, resolved);
       if (rel.startsWith("..") || path.isAbsolute(rel)) {
-        throw new ProviderManifestError(`Invalid ebx-provider.toml: '${item}' escapes the plugin directory.`);
+        throw new ProviderManifestError(`Invalid abx-provider.toml: '${item}' escapes the plugin directory.`);
       }
       return resolved;
     }
@@ -365,7 +367,7 @@ export class EppClient {
   private spawnFailure(exc: unknown): ProviderProcessError {
     const e = exc as NodeJS.ErrnoException;
     return new ProviderProcessError(`Cannot start provider '${this.provider_id}': ${sanitizeText(e.code ?? e.message ?? String(exc))}.`, {
-      suggestion: `Run 'ebx provider doctor ${this.provider_id}'.`,
+      suggestion: `Run 'abx provider doctor ${this.provider_id}'.`,
     });
   }
 

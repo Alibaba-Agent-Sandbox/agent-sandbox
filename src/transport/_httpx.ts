@@ -1,5 +1,5 @@
 /**
- * Node counterpart of the subset of `httpx` (0.28.1) that `easy_sandbox` uses.
+ * Node counterpart of the subset of `httpx` (0.28.1) that `agent_sandbox` uses.
  *
  * The Python SDK talks to the platform / envd through `httpx.AsyncClient`; its tests drive `httpx.MockTransport`,
  * patch `AsyncClient.__init__` and replace `client.post` / `client.request` on instances.  This module mirrors those
@@ -27,7 +27,7 @@ import * as tls from "node:tls";
 import * as zlib from "node:zlib";
 import { randomBytes } from "node:crypto";
 import { stdGetLogger } from "../utils/logging.js";
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { PyFloat, pyJsonDumps, pyRepr } from "../utils/_pyformat.js";
 import { ContentDecodeError, contentDecoderFor } from "./_decoders.js";
 import { H11_MAX_INCOMPLETE_EVENT_SIZE, H11_READ_CHUNK, h11ChunkedBodyError, h11HeadError, h11ParsedHeadError } from "./_h11.js";
@@ -36,7 +36,7 @@ import { JSONDecodeError, pyJsonLoadsBytes } from "../utils/_pyjson.js";
 import { tlsTrustOptions, type TlsTrust } from "./_tls.js";
 
 export const HTTPX_VERSION = "0.28.1";
-export const USER_AGENT = `ebx-node-httpx/${HTTPX_VERSION}`;
+export const USER_AGENT = `abx-node-httpx/${HTTPX_VERSION}`;
 export const DEFAULT_TIMEOUT_SECONDS = 5.0;
 export const DEFAULT_MAX_REDIRECTS = 20;
 

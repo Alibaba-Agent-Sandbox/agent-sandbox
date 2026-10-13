@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { CLI_ONLY_KEYS } from "../../src/utils/cli_config_keys.js";
 import {
   ALIAS_KINDS,
   ALIAS_SURFACES,
@@ -74,21 +75,21 @@ describe("TestRegistry", () => {
     expect(key("region", "alicloud-express").env).toBe("ALIBABA_CLOUD_REGION_ID");
     expect(key("acr_namespace", "alicloud-express").env).toBe("ACR_NAMESPACE");
     expect(key("github_token").env).toBe("GITHUB_TOKEN");
-    expect(key("sandbox_api_key").env).toBe("EBX_SANDBOX_API_KEY");
-    expect(key("llm_api_key").env).toBe("EBX_LLM_API_KEY");
+    expect(key("sandbox_api_key").env).toBe("ABX_SANDBOX_API_KEY");
+    expect(key("llm_api_key").env).toBe("ABX_LLM_API_KEY");
   });
 
   it("test_retired_names_are_not_resolved", () => {
     const known = new Set(ALL_KEYS.map((k) => k.env));
-    for (const name of ["E2B_API_KEY", "SANDBOX_API_KEY", "AccessKey", "EBX_ALICLOUD_EXPRESS_ACCESS_KEY_ID", "OPENAI_API_KEY"]) {
+    for (const name of ["E2B_API_KEY", "SANDBOX_API_KEY", "AccessKey", "ABX_ALICLOUD_EXPRESS_ACCESS_KEY_ID", "OPENAI_API_KEY"]) {
       expect(known.has(name)).toBe(false);
     }
   });
 
   it("test_env_names_order_is_scoped_then_canonical", () => {
     expect(envNames(key("sandbox_api_key"), { scopedFor: "my-prov" })).toEqual([
-      "EBX_MY_PROV_SANDBOX_API_KEY",
-      "EBX_SANDBOX_API_KEY",
+      "ABX_MY_PROV_SANDBOX_API_KEY",
+      "ABX_SANDBOX_API_KEY",
     ]);
   });
 
@@ -96,20 +97,21 @@ describe("TestRegistry", () => {
     const schema = exportSchema();
     expect(schema.builtin_provider.id).toBe("alicloud-express");
     expect(schema.builtin_provider.name_zh).toBe("阿里云极速版");
-    expect(schema.keys.slice(0, CORE_KEYS.length).map((r) => r.key)).toEqual(CORE_KEYS.map((k) => k.key));
+    const shared = CORE_KEYS.filter((k) => !CLI_ONLY_KEYS.includes(k));
+    expect(schema.keys.slice(0, shared.length).map((r) => r.key)).toEqual(shared.map((k) => k.key));
     expect(exportSchema()).toEqual(schema);
   });
 
   it.each([
     ["my-provider", true], ["e2b", false], ["e2b-compat", true], ["a", false], ["My-Provider", false], ["-x", false],
-    ["a--b", false], ["alicloud-express", false], ["alicloud-foo", false], ["ebx-foo", false], ["x".repeat(41), false],
+    ["a--b", false], ["alicloud-express", false], ["alicloud-foo", false], ["abx-foo", false], ["x".repeat(41), false],
     ["1abc", false], ["a_b", false],
   ] as Array<[string, boolean]>)("test_validate_provider_id[%s]", (pid, ok) => {
     expect(validateProviderId(pid) === null).toBe(ok);
   });
 
   it("test_provider_env_name", () => {
-    expect(providerEnvName("my-provider", "api_token")).toBe("EBX_MY_PROVIDER_API_TOKEN");
+    expect(providerEnvName("my-provider", "api_token")).toBe("ABX_MY_PROVIDER_API_TOKEN");
   });
 });
 
@@ -146,8 +148,8 @@ describe("TestResolvePrecedence", () => {
   it("test_layer_order", () => {
     const s = src({
       overrides: { sandbox_api_key: "o" },
-      environ: { EBX_SANDBOX_API_KEY: "e" },
-      dotenv: [{ EBX_SANDBOX_API_KEY: "d1" }, { EBX_SANDBOX_API_KEY: "d2" }],
+      environ: { ABX_SANDBOX_API_KEY: "e" },
+      dotenv: [{ ABX_SANDBOX_API_KEY: "d1" }, { ABX_SANDBOX_API_KEY: "d2" }],
       toml: { transport: { sandbox_api_key: "t" } },
     });
     expect([val(s)?.value, val(s)?.layer]).toEqual(["o", "override"]);
@@ -155,7 +157,7 @@ describe("TestResolvePrecedence", () => {
     expect([val(s)?.value, val(s)?.layer]).toEqual(["e", "environ"]);
     s.environ = {};
     expect([val(s)?.value, val(s)?.layer, val(s)?.layer_index]).toEqual(["d1", "dotenv", 0]);
-    s.dotenv = [{}, { EBX_SANDBOX_API_KEY: "d2" }];
+    s.dotenv = [{}, { ABX_SANDBOX_API_KEY: "d2" }];
     expect([val(s)?.value, val(s)?.layer_index]).toEqual(["d2", 1]);
     s.dotenv = [];
     expect([val(s)?.value, val(s)?.layer]).toEqual(["t", "toml"]);
@@ -164,18 +166,18 @@ describe("TestResolvePrecedence", () => {
   it("test_retired_name_does_not_beat_the_canonical_name", () => {
     const s = src({
       environ: { SANDBOX_API_KEY: "legacy-env", E2B_API_KEY: "compat-env" },
-      dotenv: [{ EBX_SANDBOX_API_KEY: "canon-dotenv" }],
+      dotenv: [{ ABX_SANDBOX_API_KEY: "canon-dotenv" }],
     });
     expect(val(s)?.value).toBe("canon-dotenv");
   });
 
   it("test_blank_values_fall_through", () => {
-    const s = src({ environ: { EBX_SANDBOX_API_KEY: "  " }, dotenv: [{ EBX_SANDBOX_API_KEY: "from-dotenv" }] });
+    const s = src({ environ: { ABX_SANDBOX_API_KEY: "  " }, dotenv: [{ ABX_SANDBOX_API_KEY: "from-dotenv" }] });
     expect(val(s)?.value).toBe("from-dotenv");
   });
 
   it("test_scoped_name_beats_canonical", () => {
-    const s = src({ environ: { EBX_MY_PROV_SANDBOX_API_KEY: "scoped", EBX_SANDBOX_API_KEY: "plain" } });
+    const s = src({ environ: { ABX_MY_PROV_SANDBOX_API_KEY: "scoped", ABX_SANDBOX_API_KEY: "plain" } });
     expect(val(s, { scopedFor: "my-prov" })?.value).toBe("scoped");
     expect(val(s)?.value).toBe("plain");
   });

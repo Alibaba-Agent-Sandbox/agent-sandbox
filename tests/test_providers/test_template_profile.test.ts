@@ -38,7 +38,7 @@ registry = "pull by image URI; no region-locked FC registry; no envdInject; priv
 let tmp = "";
 beforeEach(() => {
   resetCliSelection();
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-tprof-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-tprof-"));
 });
 afterEach(() => {
   resetCliSelection();
@@ -54,10 +54,10 @@ function workspace(files: Record<string, string>): string {
 
 const YAML = "name: demo\ndescription: demo\nresources:\n  cpu: 1\n  memory: 512\n";
 const MAIN_COMMANDS =
-  "from easy_sandbox.server import SandboxServer\n" +
+  "from agent_sandbox.server import SandboxServer\n" +
   "if __name__ == '__main__':\n" +
   "    SandboxServer().serve(port=9000)\n";
-const IMPORT_COMMANDS = "from easy_sandbox.server import SandboxServer\nSandboxServer().serve(port=9000)\n";
+const IMPORT_COMMANDS = "from agent_sandbox.server import SandboxServer\nSandboxServer().serve(port=9000)\n";
 const NO_CMD_DOCKER = "FROM python:3.12-slim\nCOPY commands.py .\nEXPOSE 9000\n";
 const CMD_DOCKER = 'FROM python:3.12-slim\nCOPY commands.py .\nCMD ["python3", "commands.py"]\n';
 
@@ -71,8 +71,8 @@ describe("template profile selection", () => {
     expect(profile.server_start).toBe("platform_start_cmd");
     expect(profile.entrypoint_replaceable).toBe(false);
     expect(profile.cmd).toBeNull();
-    expect(profile.start_cmd).toBe("easy-sandbox-server serve --port 9000 --commands /home/user/app/commands.py");
-    expect(profile.ready_cmd).toBe("easy-sandbox-server healthcheck --port 9000");
+    expect(profile.start_cmd).toBe("agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py");
+    expect(profile.ready_cmd).toBe("agent-sandbox-server healthcheck --port 9000");
     expect(profile.workdir).toBe("/home/user/app");
     expect(profile.arch).toBe("linux/amd64");
     expect([...profile.reserved_ports]).toEqual([49983, 5000, 49999]);
@@ -131,7 +131,7 @@ describe("template guide text", () => {
     expect(alicloud).toContain(FC_FROM);
     expect(alicloud).not.toMatch(CMD_INSTRUCTION);
     expect(alicloud).not.toContain("python:3.12-slim");
-    expect(alicloud).toContain("easy-sandbox-server");
+    expect(alicloud).toContain("agent-sandbox-server");
     expect(alicloud).toContain("/home/user/app");
     expect(generic).toContain("FROM python:3.12-slim");
     expect(generic).toContain('CMD ["python3", "commands.py"]');
@@ -149,24 +149,24 @@ describe("scaffold dockerfiles", () => {
     expect(docker.startsWith(`${FC_FROM}\n`)).toBe(true);
     expect(docker).not.toMatch(CMD_INSTRUCTION);
     expect(docker).not.toMatch(/(?:^|\n)[ \t]*ENTRYPOINT[ \t]/);
-    expect(docker).toContain("pip install --no-cache-dir easy-sandbox-server");
-    expect(docker).not.toMatch(/pip install --no-cache-dir easy-sandbox(?!-server)/);
+    expect(docker).toContain("pip install --no-cache-dir agent-sandbox-server");
+    expect(docker).not.toMatch(/pip install --no-cache-dir agent-sandbox(?!-server)/);
     expect(docker).toContain("WORKDIR /home/user/app");
     expect(commands).toContain('if __name__ == "__main__":');
     expect(commands).toContain("serve(port=9000)");
-    expect(commands).toContain("easy_sandbox.server");
+    expect(commands).toContain("agent_sandbox.server");
     expect(commands).not.toMatch(/alicloud|opensandbox/);
   });
 
   it("uses the generic base and CMD when the selected provider has no profile", () => {
-    iso.setenv("EBX_PROVIDER", "opensandbox");
+    iso.setenv("ABX_PROVIDER", "opensandbox");
     const files = renderScaffold("node", "demo");
     const docker = files.get("Dockerfile") ?? "";
     expect(docker.startsWith("FROM python:3.12-slim\n")).toBe(true);
     expect(docker).toContain('CMD ["python3", "commands.py"]');
     expect(docker).toContain("WORKDIR /app");
     expect(docker).not.toContain("fc-e2b-registry");
-    expect(docker).toContain("easy-sandbox-server");
+    expect(docker).toContain("agent-sandbox-server");
   });
 });
 
@@ -183,17 +183,17 @@ describe("generated workspace validation", () => {
     const importDir = workspace({ Dockerfile: NO_CMD_DOCKER, "commands.py": IMPORT_COMMANDS, "template.yaml": YAML });
     expect(() => validateTemplateWorkspace(importDir, "demo", { providerId: "alicloud-express" })).toThrow(/import time/);
     const ok = workspace({ Dockerfile: NO_CMD_DOCKER, "commands.py": MAIN_COMMANDS, "template.yaml": YAML });
-    expect(validateTemplateWorkspace(ok, "demo", { providerId: "alicloud-express" }).get("name")).toBe("demo");
+    expect(validateTemplateWorkspace(ok, "demo", { providerId: "alicloud-express" })["name"]).toBe("demo");
   });
 
   it("keeps CMD and still requires serve() for image_cmd", () => {
     const ok = workspace({ Dockerfile: CMD_DOCKER, "commands.py": IMPORT_COMMANDS, "template.yaml": YAML });
-    expect(validateTemplateWorkspace(ok, "demo", { providerId: "opensandbox" }).get("name")).toBe("demo");
+    expect(validateTemplateWorkspace(ok, "demo", { providerId: "opensandbox" })["name"]).toBe("demo");
     const noServe = workspace({
       Dockerfile: CMD_DOCKER,
       "commands.py": "print('hi')\n",
       "template.yaml": YAML,
     });
-    expect(() => validateTemplateWorkspace(noServe, "demo", { providerId: "opensandbox" })).toThrow(/easy_sandbox\.server/);
+    expect(() => validateTemplateWorkspace(noServe, "demo", { providerId: "opensandbox" })).toThrow(/agent_sandbox\.server/);
   });
 });

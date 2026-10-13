@@ -122,7 +122,7 @@ describe("KI-005 sandboxes", () => {
   });
 
   it("test_sandbox_connect_on_a_missing_sandbox", async () => {
-    iso.monkeypatch.setenv("EBX_PROVIDER", "alicloud-express");
+    iso.monkeypatch.setenv("ABX_PROVIDER", "alicloud-express");
     httpx_mock.add_response({ method: "GET", status_code: 404, json: { message: "nope" } });
     await raises(() => Sandbox.connect("sbx-00000000", { api_key: "k", api_url: API }), SandboxNotFoundError);
   });

@@ -13,8 +13,8 @@ const yes = process.argv.includes('--yes');
 const listOnly = process.argv.includes('--list');
 const creds = loadCredentials();
 const mask = makeMasker(creds);
-const bin = parseBin(process.env.EBX_BIN || 'ebx');
-const home = mkdtempSync(join(tmpdir(), 'ebx-e2e-janitor-'));
+const bin = parseBin(process.env.ABX_BIN || 'abx');
+const home = mkdtempSync(join(tmpdir(), 'abx-e2e-janitor-'));
 const env = baseEnv({ home, creds });
 
 if (listOnly) {

@@ -49,7 +49,7 @@ vi.mock("node:child_process", async (importOriginal) => {
 });
 
 function mkTmp(): string {
-  return mkdtempSync(join(tmpdir(), "ebx-dockerbuilder-"));
+  return mkdtempSync(join(tmpdir(), "abx-dockerbuilder-"));
 }
 
 afterEach(() => {
@@ -306,7 +306,7 @@ describe("TestBuildAndRegisterOfficial", () => {
     const builder: any = new DockerBuilder();
     const tmp_path = templateDir();
 
-    const fake_wheel = join(tmp_path, "easy_sandbox-0.0.0-py3-none-any.whl");
+    const fake_wheel = join(tmp_path, "agent_sandbox-0.0.0-py3-none-any.whl");
     writeFileSync(fake_wheel, "fake wheel");
 
     const mock_inject = stubInjectNoWheels([fake_wheel]);
@@ -448,7 +448,7 @@ describe("TestBuildAndRegisterOfficial", () => {
 //
 // The Python client auto-detects a source checkout relative to its own file (`parents[4] / "server-sdk"`) and checks
 // `sys.frozen`; the Node CLI has no such location, so a source tree is only used when given explicitly (option or
-// EBX_SERVER_SDK_SOURCE) and every other case downloads the released wheel (see parity/KNOWN-GAPS.md).
+// ABX_SERVER_SDK_SOURCE) and every other case downloads the released wheel (see parity/KNOWN-GAPS.md).
 // ---------------------------------------------------------------------------
 
 const WHEEL = Buffer.from("PK-fake-wheel-bytes");
@@ -468,13 +468,13 @@ function stubFetch(handler: Handler): void {
 function pypiHandler(opts: { digest?: string | null; wheels?: boolean } = {}): Handler {
   const { digest = null, wheels = true } = opts;
   const sha = digest || createHash("sha256").update(WHEEL).digest("hex");
-  const filename = "easy_sandbox-0.1.0-py3-none-any.whl";
+  const filename = "agent_sandbox-0.1.0-py3-none-any.whl";
 
   return (url: string) => {
     if (new globalThis.URL(url).pathname.endsWith("/json")) {
       const urls = wheels
         ? [
-            { packagetype: "sdist", filename: "easy_sandbox-0.1.0.tar.gz", url: "x" },
+            { packagetype: "sdist", filename: "agent_sandbox-0.1.0.tar.gz", url: "x" },
             {
               packagetype: "bdist_wheel",
               filename,
@@ -505,7 +505,7 @@ function fakeChild(opts: { stdout?: string[]; code?: number; onSpawn?: () => voi
 }
 
 describe("TestInjectSdkWheel", () => {
-  // ``inject_sdk_wheel`` must yield a wheel wherever ebx is installed.
+  // ``inject_sdk_wheel`` must yield a wheel wherever abx is installed.
   beforeEach(() => {
     vi.stubEnv(SERVER_SDK_SOURCE_ENV, "");
     delete process.env[SERVER_SDK_SOURCE_ENV];
@@ -523,9 +523,9 @@ describe("TestInjectSdkWheel", () => {
 
     const wheels = await DockerBuilder.injectSdkWheel(tmp_path);
 
-    expect(wheels.map((w) => w.split("/").pop())).toEqual(["easy_sandbox-0.1.0-py3-none-any.whl"]);
+    expect(wheels.map((w) => w.split("/").pop())).toEqual(["agent_sandbox-0.1.0-py3-none-any.whl"]);
     expect(readFileSync(wheels[0]!)).toEqual(WHEEL);
-    expect(seen[0]).toBe(`https://pypi.org/pypi/easy-sandbox-server/${serverSdkVersion()}/json`);
+    expect(seen[0]).toBe(`https://pypi.org/pypi/agent-sandbox-server/${serverSdkVersion()}/json`);
   });
 
   it("test_frozen_binary_never_shells_out_to_pip", async () => {
@@ -570,19 +570,19 @@ describe("TestInjectSdkWheel", () => {
   it("test_source_checkout_still_builds_from_the_working_tree", async () => {
     // With an explicit source tree unreleased code must reach the image: no PyPI download.
     const project = mkTmp();
-    writeFileSync(join(project, "pyproject.toml"), '[project]\nname = "easy-sandbox-server"\n');
+    writeFileSync(join(project, "pyproject.toml"), '[project]\nname = "agent-sandbox-server"\n');
     const ctx = join(mkTmp(), "ctx");
     mkdirSync(ctx);
     const download = vi.spyOn(DockerBuilder, "_downloadReleaseWheel");
     h.spawn.mockImplementation((_cmd: string, args: string[]) => {
       const out_dir = args[args.indexOf("-w") + 1]!;
-      return fakeChild({ onSpawn: () => writeFileSync(join(out_dir, "easy_sandbox-9.9.9-py3-none-any.whl"), "local") });
+      return fakeChild({ onSpawn: () => writeFileSync(join(out_dir, "agent_sandbox-9.9.9-py3-none-any.whl"), "local") });
     });
 
     const wheels = await DockerBuilder.injectSdkWheel(ctx, project);
 
     expect(download).not.toHaveBeenCalled();
-    expect(wheels.map((w) => w.split("/").pop())).toEqual(["easy_sandbox-9.9.9-py3-none-any.whl"]);
+    expect(wheels.map((w) => w.split("/").pop())).toEqual(["agent_sandbox-9.9.9-py3-none-any.whl"]);
   });
 
   it("test_source_tree_detection_requires_the_sdk_project", () => {
@@ -590,7 +590,7 @@ describe("TestInjectSdkWheel", () => {
     const tmp_path = mkTmp();
     writeFileSync(join(tmp_path, "pyproject.toml"), '[project]\nname = "my-app"\n');
     expect(DockerBuilder._isSdkSourceTree(tmp_path)).toBe(false);
-    writeFileSync(join(tmp_path, "pyproject.toml"), '[project]\nname = "easy-sandbox-server"\n');
+    writeFileSync(join(tmp_path, "pyproject.toml"), '[project]\nname = "agent-sandbox-server"\n');
     expect(DockerBuilder._isSdkSourceTree(tmp_path)).toBe(true);
     expect(DockerBuilder._isSdkSourceTree(join(tmp_path, "missing"))).toBe(false);
   });
@@ -613,7 +613,7 @@ describe("TestBuildProgress", () => {
     h.spawn.mockImplementation(() => fakeChild({ stdout: ["#2 [1/2] FROM python:3.12\n"], code: 0 }));
     const seen: string[] = [];
     await new DockerBuilder().build(tmp_path, "app:latest", { on_output: (l) => seen.push(l) });
-    const call = h.spawn.mock.calls[0]!;
+    const call = h.spawn.mock.calls.find((c) => Array.isArray(c[1]) && c[1].includes("build") && c[1].includes("-t"))!;
     const command: string[] = [call[0], ...call[1]];
     expect(command).toContain("--provenance=false");
     expect(command).toContain("--progress=plain");
@@ -624,7 +624,7 @@ describe("TestBuildProgress", () => {
     const tmp_path = mkTmp();
     vi.stubEnv("DOCKER_BUILDKIT", "0");
     h.spawn.mockImplementation(() => fakeChild({ stdout: [], code: 0 }));
-    const cap = captureLogs("easy_sandbox", 20);
+    const cap = captureLogs("agent_sandbox", 20);
     try {
       await new DockerBuilder().build(tmp_path, "app:latest", { build_args: { ACR_PASSWORD: "s3cret-value" } });
     } finally {

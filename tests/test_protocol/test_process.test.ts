@@ -173,6 +173,17 @@ describe("TestListProcesses", () => {
     expect(result).toEqual([]);
   });
 
+  it("test_envd_config_cmd_becomes_command", async () => {
+    const mock_http = _makeMockHttp({
+      envd_request_return: {
+        processes: [{ pid: 18, config: { cmd: "sleep", args: ["30"] }, status: "running" }],
+      },
+    });
+    const proto = new ProcessProtocol(mock_http);
+    const result = await proto.listProcesses(envd_url(), envd_token());
+    expect(result[0]!.command).toBe("sleep 30");
+  });
+
   it("test_result_wrapper", async () => {
     const mock_http = _makeMockHttp({
       envd_request_return: { result: { processes: [{ pid: 5, command: "node" }] } },
@@ -216,7 +227,7 @@ describe("TestKillProcess", () => {
 
 describe("TestEnvdPayloadIsolation", () => {
   // ProcessProtocol.start() must only include per-call env= in the RPC payload.
-  const _SERVER_INJECTED_VAR = "_EBX_BOUNDARY_SERVER_ONLY";
+  const _SERVER_INJECTED_VAR = "_ABX_BOUNDARY_SERVER_ONLY";
   const _SERVER_INJECTED_VALUE = "should_not_appear_in_payload";
 
   it("test_start_env_param_only_in_payload", async () => {

@@ -1,5 +1,5 @@
 /**
- * Provider errors (E8xxx; port of the provider section of `easy_sandbox/models/errors.py`).
+ * Provider errors (E8xxx; port of the provider section of `agent_sandbox/models/errors.py`).
  *
  * Kept next to the provider layer so the legacy `models/errors.ts` (a 1:1 port of the original module) stays
  * untouched. Every class subclasses `SandboxError`, so existing `except`-style handling keeps working.
@@ -31,7 +31,7 @@ export class ProviderError extends SandboxError {
 /** The provider id is unknown or not installed. */
 export class ProviderNotFoundError extends ProviderError {
   static override code = "E8001";
-  static override suggestion = "Run 'ebx provider list'; install with 'ebx provider install <path-or-git-url>'.";
+  static override suggestion = "Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.";
 }
 
 /** Unknown or invalid provider option, or a schema violation. */
@@ -55,7 +55,7 @@ export class ProviderFeatureNotSupportedError extends CapabilityNotSupportedErro
     super(feature, {
       ...options,
       message: options.message || `Provider '${provider}' does not support '${feature}'.`,
-      suggestion: options.suggestion || `Run 'ebx provider info ${provider}' to see supported features.`,
+      suggestion: options.suggestion || `Run 'abx provider info ${provider}' to see supported features.`,
     });
     this.provider = provider;
     this.feature = feature;
@@ -87,7 +87,7 @@ export class ProviderVersionError extends ProviderError {
   static override code = "E8013";
 }
 
-/** `ebx-provider.toml` is invalid. */
+/** `abx-provider.toml` is invalid. */
 export class ProviderManifestError extends ProviderError {
   static override code = "E8014";
 }

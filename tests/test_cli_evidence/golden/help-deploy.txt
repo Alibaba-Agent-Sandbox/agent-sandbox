@@ -1,79 +1,69 @@
-Usage: cli deploy [OPTIONS] [PATH]
+Usage: abx deploy [options] [PATH]
 
-  Publish a template project: build, push to ACR, register the template.
+Publish a template project: build, push to ACR, register the template (same as
+'abx template deploy').
 
-  Runs the fixed pipeline: docker build, push the image to ACR, register the
-  template, and wait until it is ready. No LLM is involved. PATH is the template
-  directory (default: .). It must contain a Dockerfile; template.yaml supplies
-  the template name and resources.
+Runs the fixed pipeline: docker build, push the image to ACR, register
+the template, and wait until it is ready. No LLM is involved.
+PATH is the template directory (default: .). It must contain a
+Dockerfile; template.yaml supplies the template name and resources.
 
-  To author the files first, use 'ebx template init': --adopt for an existing
-  project, a natural-language description to let the AI write the files, or -t
-  for a scaffold.
+To author the files first, use 'abx template init': --adopt for an existing
+project, a natural-language description to generate the files, or
+--template for a scaffold.
 
-  Accepts every option of 'ebx template deploy' (--acr-namespace, --alias,
-  --yes, -v/--verbose, ...).
+Accepts every option of 'abx template deploy' (--acr-namespace,
+--alias, --yes, -v/--verbose, ...). The ACR namespace and AccessKey are
+set with 'abx config init --build'.
 
-  Examples:
-    ebx deploy --acr-namespace my-ns           # publish ./ as a template
-    ebx deploy ./my-template --yes             # non-interactive
-    ebx deploy ./my-template -v                # with debug logs
+Examples:
+  abx deploy --acr-namespace my-ns           # publish ./ as a template
+  abx deploy ./my-template --yes             # non-interactive
+  abx deploy ./my-template -v                # with debug logs
 
-  Typical flow:
-    ebx template init --adopt .                      # 1a. author from a project
-    ebx template init "a python data science env"   # 1b. author from a description
-    ebx deploy ./<name> --acr-namespace my-ns       # 2. publish
-    ebx create --template <TEMPLATE_ID>             # 3. launch a sandbox
+Typical flow:
+  abx template init --adopt .                      # 1a. author from a project
+  abx template init "a python data science env"   # 1b. generate from a
+description
+  abx deploy ./<name> --acr-namespace my-ns       # 2. publish
+  abx create --template <TEMPLATE_ID>             # 3. launch a sandbox
 
-  Related commands:
-    ebx template init          Author Dockerfile / template.yaml (AI optional)
-    ebx template deploy DIR    The same pipeline with a required DIRECTORY
-    ebx create "DESCRIPTION"   Author + publish + launch in one go
+Related commands:
+  abx template init          Author Dockerfile / template.yaml
+  abx template deploy DIR    The same pipeline with a required DIRECTORY
+  abx create "DESCRIPTION"   Generate + publish + launch in one go
 
 Options:
-  --acr-registry TEXT             ACR registry host
-  --acr-namespace TEXT            ACR namespace (env: ACR_NAMESPACE, or set in
-                                  .env file)
-  --acr-repo TEXT                 ACR repository name (defaults to template.yaml
-                                  name or dir name)
-  --acr-username TEXT             ACR login username (defaults to AccessKey from
-                                  .env)
-  --acr-password TEXT             ACR login password (defaults to AccessSecret
-                                  from .env)
-  --acree-instance-id TEXT        ACR EE instance ID (cri-...)
-  --vpc-id TEXT                   VPC ID for ACR EE
-  --vswitch-ids TEXT              Comma-separated VSwitch IDs
-  --security-group-id TEXT        Security group ID
-  -a, --alias TEXT                Template alias
-  -t, --tag TEXT                  Docker image tag
-  --platform TEXT                 Target platform
-  --cpu INTEGER                   CPU cores (default: from template.yaml
-                                  resources.cpu, fallback 2)
-  --memory INTEGER                Memory in MB (default: from template.yaml
-                                  resources.memory, fallback 2048)
-  --start-cmd TEXT                Container start command
-  --ready-cmd TEXT                Container readiness check command
-  --timeout INTEGER               Build timeout in seconds
-  -f, --dockerfile PATH           Custom Dockerfile path
-  --disk-size INTEGER             Disk size in MB (official API only)
-  --internet-access / --no-internet-access
-                                  Internet access (default: platform decides;
-                                  official API only)
-  --official-api / --legacy-api   Use official CreateTemplate API (default) or
-                                  legacy v3/v2
-  --team-id TEXT                  Team ID for official API (or env TEAM_ID /
-                                  E2B_TEAM_ID)
-  --envd-inject / --no-envd-inject
-                                  Enable envd injection (default False)
-  --generation INTEGER            Sandbox generation (default: template.yaml
-                                  'generation', otherwise 1). 1=first-gen
-                                  (rund), 2=second-gen MicroVM.
-  --target-image TEXT             Destination image ref for envd copy (auto-
-                                  derived with random suffix if omitted)
-  -y, --yes                       Skip confirmation prompt
-  -v, --verbose                   Verbose output (DEBUG level)
-  -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
-                                  hangzhou)
-  -h, --help                      Show this message and exit.
+  --acr-registry <ACR_REGISTRY>            ACR registry host
+  --acr-namespace <ACR_NAMESPACE>          ACR namespace (env: ACR_NAMESPACE, or set in .env file)
+  --acr-repo <ACR_REPO>                    ACR repository name (defaults to template.yaml name or dir name)
+  --acr-username <ACR_USERNAME>            ACR login username (defaults to AccessKey from .env)
+  --acr-password <ACR_PASSWORD>            ACR login password (defaults to AccessSecret from .env)
+  --acree-instance-id <ACREE_INSTANCE_ID>  ACR EE instance ID (cri-...)
+  --vpc-id <VPC_ID>                        VPC ID for ACR EE
+  --vswitch-ids <VSWITCH_IDS>              Comma-separated VSwitch IDs
+  --security-group-id <SECURITY_GROUP_ID>  Security group ID
+  -a, --alias <ALIAS>                      Template alias
+  -t, --tag <TAG>                          Docker image tag
+  --platform <PLATFORM>                    Target platform
+  --cpu <INTEGER>                          CPU cores (default: from template.yaml resources.cpu, fallback 2)
+  --memory <INTEGER>                       Memory in MB (default: from template.yaml resources.memory, fallback 2048)
+  --start-cmd <START_CMD>                  Container start command
+  --ready-cmd <READY_CMD>                  Container readiness check command
+  --timeout <INTEGER>                      Build timeout in seconds
+  -f, --dockerfile <PATH>                  Custom Dockerfile path
+  --disk-size <INTEGER>                    Disk size in MB (official API only)
+  --internet-access                        Internet access (default: platform decides; official API only)
+  --no-internet-access                     Opposite of --internet-access.
+  --official-api                           Use official CreateTemplate API (default) or legacy v3/v2
+  --legacy-api                             Opposite of --official-api.
+  --team-id <TEAM_ID>                      Team ID for official API (or env TEAM_ID / E2B_TEAM_ID)
+  --envd-inject                            Enable envd injection (default False)
+  --no-envd-inject                         Opposite of --envd-inject.
+  --generation <INTEGER>                   Sandbox generation (default: template.yaml 'generation', otherwise 1). 1=first-gen (rund), 2=second-gen MicroVM.
+  --target-image <TARGET_IMAGE>            Destination image ref for envd copy (auto-derived with random suffix if omitted)
+  -y, --yes                                Skip confirmation prompt
+  -v, --verbose                            Verbose output (DEBUG level)
+  -r, --region <TEXT>                      Region override for this command (default: 'abx config set region' value, else cn-hangzhou)
+  -h, --help                               Show this message and exit.
 [exit_code:0]

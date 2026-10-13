@@ -5,7 +5,7 @@
 ### list（有数据）
 
 ```
-$ ebx list
+$ abx list
 ┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━┓
 ┃ ID           ┃ Template    ┃ Status  ┃ Region      ┃
 ┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━┩
@@ -18,7 +18,7 @@ Exit code: 0
 ### --json list
 
 ```
-$ ebx --json list
+$ abx --json list
 [
   {
     "ID": "sbx-list-001",
@@ -39,7 +39,7 @@ Exit code: 0
 ### list --status running
 
 ```
-$ ebx list --status running
+$ abx list --status running
 ┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━┓
 ┃ ID           ┃ Template    ┃ Status  ┃ Region      ┃
 ┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━┩
@@ -51,7 +51,7 @@ Exit code: 0
 ### list（空）
 
 ```
-$ ebx list
+$ abx list
 No sandboxes found.
 Exit code: 0
 ```

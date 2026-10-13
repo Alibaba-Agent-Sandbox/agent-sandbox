@@ -1,7 +1,7 @@
 > ⚠️ **SUPERSEDED / 历史快照（HISTORICAL SNAPSHOT）** — 标注追加于 2026-09-24（任务 #122，承接 #109 审计；正文未改写）
 >
 > 本报告是 **2026-09-04 当时状态** 的只读快照。其中出现的下列称谓/结论可能已过时，请勿据此判断当前实现：
-> - 旧品牌 `serverless-sandbox` / 旧 CLI `sbox` → 现为 `easy-sandbox` / `ebx`，见 ADR [`2026-09-09-brand-rename-sbox-to-ebx.md`](../../notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-ebx.md)。
+> - 旧品牌 `serverless-sandbox` / 旧 CLI `sbox` → 现为 `agent-sandbox` / `abx`，见 ADR [`2026-09-09-brand-rename-sbox-to-abx.md`](../../notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-abx.md)。
 > - 自此已删除的 CLI 命令组（`auth`/`session`/`secret`/`skill`），见 ADR [`2026-09-23-cli-command-reduction.md`](../../notes/implemented/feature/2026-09-23-cli-command-reduction.md)。
 > - 自此已移除的旧架构（`integrations` 集成层 / 能力门控 / 序列化 / keychain），见 ADR [`2026-09-23-overdesign-cleanup.md`](../../notes/implemented/architecture/2026-09-23-overdesign-cleanup.md)。
 >
@@ -134,9 +134,9 @@ def _build_command(self, action, task, context=None):
 
 | 维度 | 判定 |
 |------|------|
-| .agents/notes ADR | **missing** — 全量 grep `envd` 在 .agents/notes/** 只命中 5 个文件（`transport-http.md`、`transport-streaming.md`、`transport-auth.md`、[`2026-09-02-dual-auth-mode.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-dual-auth-mode.md)、[`2026-09-02-self-implement-e2b-protocol.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-self-implement-e2b-protocol.md)），**全部只讨论客户端如何调 envd，无一讨论 envd 从哪来、两层模型、SDK 不 ship 兜底 agent** |
+| .agents/notes ADR | **missing** — 全量 grep `envd` 在 .agents/notes/** 只命中 5 个文件（`transport-http.md`、`transport-streaming.md`、`transport-auth.md`、[`2026-09-02-dual-auth-mode.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-dual-auth-mode.md)、[`2026-09-02-self-implement-e2b-protocol.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-self-implement-e2b-protocol.md)），**全部只讨论客户端如何调 envd，无一讨论 envd 从哪来、两层模型、SDK 不 ship 兜底 agent** |
 | docs/design/ | **partial** — `architecture.md:56-57` 区分了 Platform API 与 envd API（方向正确），但没有讨论 envd 来源、builder/direct 模式、用户 server 与 envd 的关系 |
-| 证据文件 | **documented** — [`docs/evidence/research/2026-09-04-container-serve-boundary.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-container-serve-boundary.md) §2-§3, §6.7 完整覆盖 |
+| 证据文件 | **documented** — [`docs/evidence/research/2026-09-04-container-serve-boundary.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-container-serve-boundary.md) §2-§3, §6.7 完整覆盖 |
 | **总判定** | **missing**（.agents/notes 中无 ADR；证据文件不是 ADR） |
 
 #### 决策 2: @sandbox.register 源码投递执行 + 函数名→命令名 + 参数类型限 str/int/float/bool
@@ -165,7 +165,7 @@ def _build_command(self, action, task, context=None):
 
 | 维度 | 判定 |
 |------|------|
-| .agents/notes ADR | **missing** — 没有任何 ADR 讨论打包结构。[`proposed/process/2026-09-03-release-publish-flow.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md) 讨论的是模板发布流程，不是 SDK 打包结构 |
+| .agents/notes ADR | **missing** — 没有任何 ADR 讨论打包结构。[`proposed/process/2026-09-03-release-publish-flow.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md) 讨论的是模板发布流程，不是 SDK 打包结构 |
 | docs/design/ | **missing** — `DESIGN.md:18` 只记录了包名，没有讨论"为什么不拆" |
 | 证据文件 | **documented** — `pypi-publish-readiness.md` §10 完整讨论了拆分可行性、二进制可行性、推荐方案 A |
 | **总判定** | **missing**（没有 ADR 沉淀"维持单发行 + [cli] extra、不拆分、暂不做二进制"这个决策） |
@@ -186,7 +186,7 @@ def _build_command(self, action, task, context=None):
 
 | 维度 | 判定 |
 |------|------|
-| .agents/notes ADR | **missing** — 没有 ADR 讨论 PyPI 打包决策。[`proposed/process/2026-09-03-release-publish-flow.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md) 讨论的是**模板**发布流程（sbox install），不是 SDK 的 PyPI 发布 |
+| .agents/notes ADR | **missing** — 没有 ADR 讨论 PyPI 打包决策。[`proposed/process/2026-09-03-release-publish-flow.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md) 讨论的是**模板**发布流程（sbox install），不是 SDK 的 PyPI 发布 |
 | docs/design/ | **missing** |
 | 证据文件 | **documented** — `pypi-publish-readiness.md` 全文 + `ai-native-oss-completeness.md` §5.1-5.2 完整覆盖 |
 | **总判定** | **missing**（证据文件详尽但没有 ADR 沉淀决策） |
@@ -242,9 +242,9 @@ issue ↔ ADR 的映射**只存在于 git log / 工单系统**，不在 ADR 文�
 | 推断引擎注册 | `src/serverless_sandbox/agent/infer.py:144-148` |
 | MCP TOOL_SCHEMAS | `src/serverless_sandbox/agent/tools.py:19-158`（零 qwen 命中） |
 | 会话转录 | `<agent-cache>/projects/<project>/conversation-history/{628457aa,6e51593d,9620c890}/*.jsonl`（零 qwen 命中） |
-| envd 证据文件 | [`docs/evidence/research/2026-09-04-container-serve-boundary.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-container-serve-boundary.md)（1467 行） |
-| PyPI 证据文件 | [`docs/evidence/research/2026-09-04-pypi-publish-readiness.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-pypi-publish-readiness.md)（262 行） |
-| OSS 完整性证据 | [`docs/evidence/research/2026-09-04-ai-native-oss-completeness.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-ai-native-oss-completeness.md)（183 行） |
+| envd 证据文件 | [`docs/evidence/research/2026-09-04-container-serve-boundary.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-container-serve-boundary.md)（1467 行） |
+| PyPI 证据文件 | [`docs/evidence/research/2026-09-04-pypi-publish-readiness.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-pypi-publish-readiness.md)（262 行） |
+| OSS 完整性证据 | [`docs/evidence/research/2026-09-04-ai-native-oss-completeness.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-ai-native-oss-completeness.md)（183 行） |
 | ADR 目录 | `.agents/notes/implemented/architecture/`（11 files） |
 | template CLI 代码 | `src/serverless_sandbox/cli/commands/template.py`（340 行） |
 

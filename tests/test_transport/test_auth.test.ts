@@ -1,6 +1,6 @@
 /** Tests for transport.auth module. */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   InvalidAPIKeyError,
@@ -230,6 +230,23 @@ describe("TestEnvdTokenManager", () => {
 
 describe("TestCreateAuthProvider", () => {
   // Test create_auth_provider factory.
+  const credentialEnv = ["ABX_SANDBOX_API_KEY", "E2B_API_KEY", "SANDBOX_API_KEY"] as const;
+  const saved: Partial<Record<(typeof credentialEnv)[number], string | undefined>> = {};
+
+  beforeEach(() => {
+    for (const name of credentialEnv) {
+      saved[name] = process.env[name];
+      delete process.env[name];
+    }
+  });
+
+  afterEach(() => {
+    for (const name of credentialEnv) {
+      const previous = saved[name];
+      if (previous === undefined) delete process.env[name];
+      else process.env[name] = previous;
+    }
+  });
 
   it("test_api_key_priority", () => {
     const auth = create_auth_provider({ api_key: "my-key", access_key_id: "ak", access_key_secret: "sk" });
@@ -270,6 +287,28 @@ describe("TestCreateAuthProvider", () => {
   it("test_api_key_used", () => {
     const auth = create_auth_provider({ api_key: "key-123" });
     expect(auth).toBeInstanceOf(ApiKeyAuth);
+  });
+
+  it("test_env_sandbox_api_key_is_used", async () => {
+    process.env["ABX_SANDBOX_API_KEY"] = "env-key-123";
+    const auth = create_auth_provider();
+    expect(auth).toBeInstanceOf(ApiKeyAuth);
+    expect((auth as ApiKeyAuth)._api_key).toBe("env-key-123");
+    expect(await auth.getHeaders()).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer env-key-123" });
+  });
+
+  it("test_retired_api_key_names_are_not_read", () => {
+    process.env["E2B_API_KEY"] = "retired-e2b";
+    process.env["SANDBOX_API_KEY"] = "retired-sandbox";
+    let caught: unknown;
+    try {
+      create_auth_provider();
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(InvalidAPIKeyError);
+    expect((caught as InvalidAPIKeyError).suggestion).toContain("ABX_SANDBOX_API_KEY");
+    expect((caught as InvalidAPIKeyError).suggestion).not.toContain("E2B_API_KEY");
   });
 });
 

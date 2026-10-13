@@ -18,7 +18,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
 const write = (root, rel, content) => { const p = join(root, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, content); };
-const help = (...argv) => ({ id: `help-${argv.filter((a) => a !== '--help').join('-') || 'ebx'}`, argv, creds: false, wire: false, evidence: `help-${argv.filter((a) => a !== '--help').join('-') || 'ebx'}` });
+const help = (...argv) => ({ id: `help-${argv.filter((a) => a !== '--help').join('-') || 'abx'}`, argv, creds: false, wire: false, evidence: `help-${argv.filter((a) => a !== '--help').join('-') || 'abx'}` });
 
 export const CASES = [
   // ---- offline: help / version -------------------------------------------------------------------
@@ -48,24 +48,24 @@ export const CASES = [
   { id: 'config-get-region', argv: ['config', 'get', 'region'], creds: false, wire: false, evidence: 'config-get-region' },
   { id: 'config-get-apikey-unset', argv: ['config', 'get', 'sandbox_api_key'], creds: false, wire: false, evidence: 'config-get-apikey-unset' },
   { id: 'config-get-apikey-env', argv: ['config', 'get', 'sandbox_api_key'], creds: false, env: { E2B_API_KEY: 'e2b_envkey_0123456789abcdef' }, wire: false, evidence: 'config-get-apikey-env' },
-  { id: 'config-get-apikey-stored', argv: ['config', 'get', 'sandbox_api_key'], creds: false, setup: (h) => write(h, '.ebx/.env', 'E2B_API_KEY=e2b_stored_0123456789abcdef\n'), wire: false, evidence: 'config-get-apikey-set' },
+  { id: 'config-get-apikey-stored', argv: ['config', 'get', 'sandbox_api_key'], creds: false, setup: (h) => write(h, '.abx/.env', 'E2B_API_KEY=e2b_stored_0123456789abcdef\n'), wire: false, evidence: 'config-get-apikey-set' },
   { id: 'config-get-unknown', argv: ['config', 'get', 'unknown_key'], creds: false, wire: false, evidence: 'config-get-unknown' },
   { id: 'config-get-llm-model-unset', argv: ['config', 'get', 'llm_model'], creds: false, wire: false, evidence: 'config-get-llm-model-unset' },
-  { id: 'config-set-region', argv: ['config', 'set', 'region', 'cn-shanghai'], creds: false, wire: false, artifacts: ['home:.ebx/config.toml'], evidence: 'config-set-region' },
-  { id: 'config-set-llm-apikey', argv: ['config', 'set', 'llm_api_key', 'sk-mykey12345678'], creds: false, wire: false, artifacts: ['home:.ebx/.env'], evidence: 'config-set-llm-apikey' },
-  { id: 'config-set-empty-default', argv: ['config', 'set', 'region', ''], creds: false, wire: false, artifacts: ['home:.ebx/config.toml'], evidence: 'config-set-empty-default' },
-  { id: 'config-set-empty-credential', argv: ['config', 'set', 'sandbox_api_key', ''], creds: false, wire: false, setup: (h) => write(h, '.ebx/.env', 'E2B_API_KEY=e2b_stored_0123456789abcdef\n'), artifacts: ['home:.ebx/.env'], evidence: 'config-set-empty-credential' },
+  { id: 'config-set-region', argv: ['config', 'set', 'region', 'cn-shanghai'], creds: false, wire: false, artifacts: ['home:.abx/config.toml'], evidence: 'config-set-region' },
+  { id: 'config-set-llm-apikey', argv: ['config', 'set', 'llm_api_key', 'sk-mykey12345678'], creds: false, wire: false, artifacts: ['home:.abx/.env'], evidence: 'config-set-llm-apikey' },
+  { id: 'config-set-empty-default', argv: ['config', 'set', 'region', ''], creds: false, wire: false, artifacts: ['home:.abx/config.toml'], evidence: 'config-set-empty-default' },
+  { id: 'config-set-empty-credential', argv: ['config', 'set', 'sandbox_api_key', ''], creds: false, wire: false, setup: (h) => write(h, '.abx/.env', 'E2B_API_KEY=e2b_stored_0123456789abcdef\n'), artifacts: ['home:.abx/.env'], evidence: 'config-set-empty-credential' },
   { id: 'config-set-invalid-number', argv: ['config', 'set', 'http_timeout', 'abc'], creds: false, wire: false },
   { id: 'config-list', argv: ['config', 'list'], creds: false, wire: false, evidence: 'config-list' },
   { id: 'config-list-json', argv: ['--json', 'config', 'list'], creds: false, wire: false, evidence: 'config-list-json' },
   { id: 'config-list-with-env', argv: ['config', 'list'], creds: false, env: { E2B_API_KEY: 'e2b_envkey_0123456789abcdef', E2B_API_URL: 'http://api.example.test' }, wire: false },
   { id: 'config-init-non-tty', argv: ['config', 'init'], creds: false, stdin: '', wire: false, evidence: 'config-init' },
   { id: 'config-init-yes', argv: ['config', 'init', '--yes'], creds: false, wire: false },
-  { id: 'config-set-github-token', argv: ['config', 'set', 'github_token', 'ghp_evidence1234567890'], creds: false, wire: false, artifacts: ['home:.ebx/.env'], evidence: 'config-set-github-token' },
+  { id: 'config-set-github-token', argv: ['config', 'set', 'github_token', 'ghp_evidence1234567890'], creds: false, wire: false, artifacts: ['home:.abx/.env'], evidence: 'config-set-github-token' },
   { id: 'config-get-github-token-unset', argv: ['config', 'get', 'github_token'], creds: false, wire: false, evidence: 'config-get-github-token-unset' },
-  { id: 'config-get-github-token-set', argv: ['config', 'get', 'github_token'], creds: false, wire: false, setup: (h) => write(h, '.ebx/.env', 'GITHUB_TOKEN=ghp_evidence1234567890\n'), evidence: 'config-get-github-token-set' },
-  { id: 'config-set-github-token-clear', argv: ['config', 'set', 'github_token', ''], creds: false, wire: false, setup: (h) => write(h, '.ebx/.env', 'GITHUB_TOKEN=ghp_evidence1234567890\n'), artifacts: ['home:.ebx/.env'], evidence: 'config-set-github-token-clear' },
-  { id: 'config-delete-region', argv: ['config', 'delete', 'region'], creds: false, wire: false, setup: (h) => write(h, '.ebx/config.toml', '[transport]\nregion = "cn-shanghai"\n'), artifacts: ['home:.ebx/config.toml'] },
+  { id: 'config-get-github-token-set', argv: ['config', 'get', 'github_token'], creds: false, wire: false, setup: (h) => write(h, '.abx/.env', 'GITHUB_TOKEN=ghp_evidence1234567890\n'), evidence: 'config-get-github-token-set' },
+  { id: 'config-set-github-token-clear', argv: ['config', 'set', 'github_token', ''], creds: false, wire: false, setup: (h) => write(h, '.abx/.env', 'GITHUB_TOKEN=ghp_evidence1234567890\n'), artifacts: ['home:.abx/.env'], evidence: 'config-set-github-token-clear' },
+  { id: 'config-delete-region', argv: ['config', 'delete', 'region'], creds: false, wire: false, setup: (h) => write(h, '.abx/config.toml', '[transport]\nregion = "cn-shanghai"\n'), artifacts: ['home:.abx/config.toml'] },
 
   // ---- offline: MCP config ------------------------------------------------------------------------------
   { id: 'mcp-install-cursor', argv: ['mcp', 'install', '--target', 'cursor'], env: { E2B_API_KEY: 'e2b_envkey_0123456789abcdef' }, creds: false, wire: false, artifacts: ['home:.cursor/mcp.json'], evidence: 'mcp-install-cursor' },

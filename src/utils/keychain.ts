@@ -1,7 +1,7 @@
 /**
  * 密钥安全存储 (port of `utils/keychain.py`).
  *
- * 使用本地 JSON 文件 (~/.ebx/secrets.json) 存储密钥，用文件权限 (chmod 600) 保护。
+ * 使用本地 JSON 文件 (~/.abx/secrets.json) 存储密钥，用文件权限 (chmod 600) 保护。
  *
  * WARNING: 存储为 **明文 JSON** 文件，不提供加密保护。在生产环境中请使用其他安全的密钥管理方案。
  */
@@ -10,15 +10,15 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { JiterError, ValueError, jiterParse } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { _utf8DecodeError, UnicodeDecodeError } from "./_pyos.js";
 import { pyJsonDumps, pySorted } from "./_pyformat.js";
 import { stdGetLogger } from "./logging.js";
 
-const logger = stdGetLogger("easy_sandbox.utils.keychain");
+const logger = stdGetLogger("agent_sandbox.utils.keychain");
 
-export const SERVICE_NAME = "easy-sandbox";
-export const SECRETS_FILE = path.join(os.homedir(), ".ebx", "secrets.json");
+export const SERVICE_NAME = "agent-sandbox";
+export const SECRETS_FILE = path.join(os.homedir(), ".abx", "secrets.json");
 
 /**
  * 密钥存储 — 本地明文 JSON 文件 (chmod 600 保护)。
@@ -137,9 +137,9 @@ export class SecretStore {
       if (bad !== null) throw new UnicodeDecodeError(bad);
       let data: unknown;
       try {
-        data = jiterParse(buf.toString("utf8"));
+        data = JSON.parse(buf.toString("utf8"));
       } catch (e) {
-        if (e instanceof JiterError) return {};
+        if (e instanceof SyntaxError) return {};
         throw e;
       }
       return pyDict(data);

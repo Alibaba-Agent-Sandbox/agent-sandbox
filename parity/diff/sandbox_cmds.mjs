@@ -2,10 +2,10 @@
 /**
  * Differential test of the main sandbox commands -- `create`, `list`, `info`, `kill`, `exec`, `connect`, `upload`,
  * `download`, `run` (and their `sandbox <name>` spellings, help texts and AI-path gates): the original Python CLI
- * (`$ORACLE_VENV/bin/ebx`) versus the Node CLI, run with the same argv, an isolated HOME, no real credentials, and a
+ * (`$ORACLE_VENV/bin/abx`) versus the Node CLI, run with the same argv, an isolated HOME, no real credentials, and a
  * local stub platform + envd (Connect protocol) server that serves scripted answers.
  *
- *   ORACLE_VENV=/path/to/venv-for-original-ebx node parity/diff/sandbox_cmds.mjs [--verbose] [--only <substr>] [--show]
+ *   ORACLE_VENV=/path/to/venv-for-original-abx node parity/diff/sandbox_cmds.mjs [--verbose] [--only <substr>] [--show]
  *
  * Compared per case: exit code, stdout, stderr (ports / timings / temp paths normalised), files written by the command
  * (`artifacts`) and the stub request log (method, path, body, auth headers). Exit code 0 = identical, 1 = differences,
@@ -32,8 +32,8 @@ const dump = process.argv.includes("--dump");
 const onlyIdx = process.argv.indexOf("--only");
 const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
 
-if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "ebx"))) {
-  console.error("ORACLE_VENV must point to a venv with the original easy-sandbox installed (see docs/PORTING.md).");
+if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "abx"))) {
+  console.error("ORACLE_VENV must point to a venv with the original agent-sandbox installed (see docs/PORTING.md).");
   process.exit(2);
 }
 
@@ -189,7 +189,7 @@ add("create no credentials", ["create", "-T", "base"], { creds: false });
 
 // ---- create: natural-language path gates --------------------------------------------------------------------
 const fakeQwen = (home, script = "#!/bin/sh\nexit 1\n") => {
-  const p = write(home, ".ebx/bin/qwen", script);
+  const p = write(home, ".abx/bin/qwen", script);
   chmodSync(p, 0o755);
 };
 add("create ai not installed", ["create", "a python data science env"]);
@@ -199,16 +199,16 @@ add("create ai not installed quiet", ["--quiet", "create", "python"]);
 add("create ai no credentials", ["create", "python env"], { setup: (home) => fakeQwen(home) });
 add("create ai no credentials -y", ["create", "-y", "python env"], { setup: (home) => fakeQwen(home) });
 add("create ai no credentials json", ["--json", "create", "-y", "python env"], { setup: (home) => fakeQwen(home) });
-add("create ai non-tty gate (assessment unavailable)", ["create", "python env"], { setup: (home) => fakeQwen(home), env: { EBX_LLM_API_KEY: "k" } });
-add("create ai -y generation fails", ["create", "-y", "python env"], { setup: (home) => fakeQwen(home), env: { EBX_LLM_API_KEY: "k" } });
-add("create ai -y generation fails json", ["--json", "create", "-y", "python env"], { setup: (home) => fakeQwen(home), env: { EBX_LLM_API_KEY: "k" } });
-add("create ai --dir file", ["create", "-y", "--dir", "afile", "python env"], { setup: (home, cwd) => write(cwd, "afile", "x"), env: { EBX_LLM_API_KEY: "k" } });
-add("create ai --dir unwritable-parent", ["create", "-y", "--dir", "/proc/nope/sub", "python env"], { env: { EBX_LLM_API_KEY: "k" } });
+add("create ai non-tty gate (assessment unavailable)", ["create", "python env"], { setup: (home) => fakeQwen(home), env: { ABX_LLM_API_KEY: "k" } });
+add("create ai -y generation fails", ["create", "-y", "python env"], { setup: (home) => fakeQwen(home), env: { ABX_LLM_API_KEY: "k" } });
+add("create ai -y generation fails json", ["--json", "create", "-y", "python env"], { setup: (home) => fakeQwen(home), env: { ABX_LLM_API_KEY: "k" } });
+add("create ai --dir file", ["create", "-y", "--dir", "afile", "python env"], { setup: (home, cwd) => write(cwd, "afile", "x"), env: { ABX_LLM_API_KEY: "k" } });
+add("create ai --dir unwritable-parent", ["create", "-y", "--dir", "/proc/nope/sub", "python env"], { env: { ABX_LLM_API_KEY: "k" } });
 add("create ai description with conflicting -T", ["create", "-y", "python", "-T", "custom"], { setup: (home) => fakeQwen(home) });
 
 // ---- option/env precedence and timeouts (create) ----------------------------------------------------------------
 const slowCreate = (ms) => (req, ctx) => (req.method === "POST" && req.url === "/sandboxes" ? { ...json(201, sandboxJson(ctx.port)), delay: ms } : undefined);
-const cfgToml = (body) => (home) => write(home, ".ebx/config.toml", body);
+const cfgToml = (body) => (home) => write(home, ".abx/config.toml", body);
 add("create region env", ["create", "-T", "base"], { env: { SANDBOX_REGION: "cn-shanghai" } });
 add("create region flag beats env", ["create", "-T", "base", "--region", "cn-beijing"], { env: { SANDBOX_REGION: "cn-shanghai" } });
 add("create region env invalid", ["create", "-T", "base"], { env: { SANDBOX_REGION: "mars-1" } });
@@ -452,7 +452,7 @@ add("connect json", ["--json", "connect", SBX], { input: "echo a\nexit\n", start
 add("connect quiet", ["--quiet", "connect", SBX], { input: "echo a\nexit\n", start: () => proc({ out: ["a\n"] }) });
 
 // connect on a terminal (line editing)
-const PROMPT = "ebx:sbx-stub> ";
+const PROMPT = "abx:sbx-stub> ";
 add("tty connect exit", ["connect", SBX], { tty: [{ expect: PROMPT, send: "exit\n" }] });
 add("tty connect eof", ["connect", SBX], { tty: [{ expect: PROMPT, send: "\x04" }] });
 add("tty connect ctrl-c then exit", ["connect", SBX], { tty: [{ expect: PROMPT, send: "\x03" }, { expect: "", delay: 0.6, send: "exit\n" }] });
@@ -624,7 +624,7 @@ case "$kind" in
     mode=$(cat "$cfg/gen" 2>/dev/null)
     [ "$mode" = nofiles ] && { reply nothing ""; exit 0; }
     printf 'FROM python:3.12-slim\\nCOPY commands.py .\\nCMD ["python3", "commands.py"]\\n' > Dockerfile
-    printf 'from easy_sandbox.server import SandboxServer\\nSandboxServer().serve(port=9000)\\n' > commands.py
+    printf 'from agent_sandbox.server import SandboxServer\\nSandboxServer().serve(port=9000)\\n' > commands.py
     printf 'name: whatever\\ndescription: demo\\n' > template.yaml
     reply generated ""
     ;;
@@ -632,14 +632,14 @@ esac
 `;
 /** Install the scripted agent; assess = payload objects (or "fail") answered in order, the last one repeats. */
 const agent = (home, { assess = [], research = "ok", gen = "ok" } = {}) => {
-  const p = write(home, ".ebx/bin/qwen", AGENT_SCRIPT);
+  const p = write(home, ".abx/bin/qwen", AGENT_SCRIPT);
   chmodSync(p, 0o755);
   write(home, "qcfg/research", research);
   write(home, "qcfg/gen", gen);
   assess.forEach((a, i) => write(home, `qcfg/assess.${i + 1}`, typeof a === "string" ? a : JSON.stringify(a)));
   if (assess.length) write(home, "qcfg/assess.last", typeof assess.at(-1) === "string" ? assess.at(-1) : JSON.stringify(assess.at(-1)));
 };
-const CI_KEY = { EBX_LLM_API_KEY: "k-test" };
+const CI_KEY = { ABX_LLM_API_KEY: "k-test" };
 const done = { completeness: 0.95, missing: [], example: "" };
 const ask = (c, q, extra = {}) => ({ completeness: c, question: q, missing: ["details"], example: "a python env with pandas", ...extra });
 const SWITCH = "Switch to template init";
@@ -766,14 +766,14 @@ add("non-tty generation nofiles", ["create", "-y", "python env"], { env: CI_KEY,
 add("non-tty generation ok -y deploys (docker unavailable)", ["create", "-y", "python env"], { env: CI_KEY, setup: (h) => agent(h, { assess: [done] }) });
 
 // agent installation / credentials (interactive terminal)
-add("tty create ai install declined", ["create", "python env"], { tty: [{ expect: "Install the official", send: "n\n" }], env: { EBX_LLM_API_KEY: "k-test" } });
-add("tty create ai install eof", ["create", "python env"], { tty: [{ expect: "Install the official", send: "\x04" }], env: { EBX_LLM_API_KEY: "k-test" } });
-add("tty create ai install ctrl-c", ["create", "python env"], { tty: [{ expect: "Install the official", send: "\x03" }], env: { EBX_LLM_API_KEY: "k-test" } });
+add("tty create ai install declined", ["create", "python env"], { tty: [{ expect: "Install the official", send: "n\n" }], env: { ABX_LLM_API_KEY: "k-test" } });
+add("tty create ai install eof", ["create", "python env"], { tty: [{ expect: "Install the official", send: "\x04" }], env: { ABX_LLM_API_KEY: "k-test" } });
+add("tty create ai install ctrl-c", ["create", "python env"], { tty: [{ expect: "Install the official", send: "\x03" }], env: { ABX_LLM_API_KEY: "k-test" } });
 add("tty create ai credentials empty", ["create", "python env"], { tty: [{ expect: "key", send: "\n" }], setup: (h) => agent(h) });
 add("tty create ai credentials stored", ["create", "python env"], {
   tty: [{ expect: "key", send: "sk-stored-test-key\n" }, { expect: SWITCH, send: "y\n" }],
   setup: (h) => agent(h, { assess: [done] }),
-  artifacts: ["env:../.ebx/.env"],
+  artifacts: ["env:../.abx/.env"],
 });
 add("tty create ai credentials ctrl-c", ["create", "python env"], { tty: [{ expect: "key", send: "\x03" }], setup: (h) => agent(h) });
 add("tty create ai credentials eof", ["create", "python env"], { tty: [{ expect: "key", send: "\x04" }], setup: (h) => agent(h) });
@@ -810,54 +810,7 @@ add("connect unicode id prefix", ["connect", "日本語日本語日本語"], { i
 add("connect timeout failure", ["connect", SBX], { input: "sleep 99\nexit\n", start: () => json(504, { message: "gateway timeout" }) });
 add("connect large output", ["connect", SBX], { input: "yes\nexit\n", start: () => proc({ out: ["x".repeat(200_000), "\n"] }) });
 
-// ---- run: template commands (mechanism A) and in-sandbox server (mechanism B) ---------------------------------------
-const TEMPLATE_YAML = `name: base
-custom_commands:
-  build:
-    cmd: make build
-  deploy:
-    cmd: "deploy {target} --env {env}"
-    cwd: /srv
-    timeout: 90
-    env: {STAGE: prod}
-    args:
-      - {name: target, required: true}
-      - {name: env, default: staging}
-  greet:
-    cmd: "echo {who} {num}"
-    args:
-      - {name: who, default: world}
-      - {name: num, type: integer, default: "1"}
-`;
-const tmplSetup = (home) => write(home, ".ebx/templates/base/template.yaml", TEMPLATE_YAML);
-const A = (name, argv, opts = {}) => add(`run A ${name}`, argv, { setup: tmplSetup, ...opts });
-A("build", ["run", SBX, "build"], { start: (c) => proc({ out: [`ran: ${c}\n`], err: ["warn\n"] }) });
-A("build json", ["--json", "run", SBX, "build"], { start: () => proc({ out: ["o\n"], err: ["e\n"] }) });
-A("build quiet", ["--quiet", "run", SBX, "build"], { start: () => proc({ out: ["o\n"] }) });
-A("build exit 3", ["run", SBX, "build"], { start: () => proc({ out: ["o"], code: 3 }) });
-A("build exit 3 json", ["--json", "run", SBX, "build"], { start: () => proc({ code: 3 }) });
-A("build no output", ["run", SBX, "build"], { start: () => proc({}) });
-A("deploy required missing", ["run", SBX, "deploy"]);
-A("deploy required via --arg", ["run", SBX, "deploy", "--arg", "target=prod"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("deploy via extra args", ["run", SBX, "deploy", "--target", "it's a test", "--env", "x y"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("deploy undeclared arg", ["run", SBX, "deploy", "--target", "t", "--bogus", "1"]);
-A("deploy injection value", ["run", SBX, "deploy", "--target", "$(rm -rf /); {env}"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("deploy arg overrides extra", ["run", SBX, "deploy", "--arg", "target=a", "--target", "b"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet defaults", ["run", SBX, "greet"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet boolean flag value", ["run", SBX, "greet", "--who"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet unicode", ["run", SBX, "greet", "--who", "世界"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet empty value", ["run", SBX, "greet", "--arg", "who="], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet server_port ignored for template", ["run", SBX, "greet", "--server_port", "123"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet server_port invalid", ["run", SBX, "greet", "--server_port", "1x"]);
-A("greet server_port padded int", ["run", SBX, "greet", "--server_port", " 12 "], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet server_port underscore int", ["run", SBX, "greet", "--server_port", "1_0"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet empty option name", ["run", SBX, "greet", "--", "x"]);
-A("greet double-dash only", ["run", SBX, "greet", "--"]);
-A("greet value starting with dashes", ["run", SBX, "greet", "--who", "--num"], { start: (c) => proc({ out: [c + "\n"] }) });
-A("greet single-dash token", ["run", SBX, "greet", "-x"]);
-A("greet envd failure", ["run", SBX, "greet"], { start: () => json(503, { message: "unavailable" }) });
-A("greet envd timeout end missing", ["run", SBX, "greet"], { start: () => proc({ noEnd: true }) });
-A("template resolves via alias dir", ["run", SBX, "build"], { setup: (h) => write(h, ".ebx/templates/other/template.yaml", TEMPLATE_YAML.replace("name: base", "name: base\nalias: base")), start: () => proc({ out: ["x\n"] }) });
+// ---- run: named commands served by the in-sandbox server ----------------------------------------------------------
 
 const SERVER_RESPONSES = {
   dict: { status: 200, type: "application/json", body: Buffer.from('{"result":{"a":1,"b":[1,2.5,null,true],"c":"é\\"q\\"","d":{}}}') },
@@ -872,21 +825,18 @@ const SERVER_RESPONSES = {
   nan: { status: 200, type: "application/json", body: Buffer.from('{"result":1e400}') },
 };
 for (const [k, resp] of Object.entries(SERVER_RESPONSES)) {
-  add(`run B result ${k}`, ["run", SBX, "compute"], { server: () => resp });
-  add(`run B result ${k} json`, ["--json", "run", SBX, "compute"], { server: () => resp });
+  add(`run result ${k}`, ["run", SBX, "compute"], { server: () => resp });
+  add(`run result ${k} json`, ["--json", "run", SBX, "compute"], { server: () => resp });
 }
-add("run B kwargs forwarded", ["run", SBX, "compute", "--x", "1", "--y", "hi", "--flag"], { server: () => SERVER_RESPONSES.int });
-add("run B --arg forwarded", ["run", SBX, "compute", "-a", "x=1"], { server: () => SERVER_RESPONSES.int });
-add("run B custom server_port", ["run", SBX, "compute", "--server_port", "9100"], { server: () => SERVER_RESPONSES.int });
-add("run B 404", ["run", SBX, "compute"], { server: () => ({ status: 404, type: "application/json", body: Buffer.from('{"error":"no such command"}') }) });
-add("run B 400 validation", ["run", SBX, "compute"], { server: () => ({ status: 400, type: "application/json", body: Buffer.from('{"error":"x is required","type":"ValidationError"}') }) });
-add("run B 400 validation json", ["--json", "run", SBX, "compute"], { server: () => ({ status: 400, type: "application/json", body: Buffer.from('{"error":"x is required","type":"ValidationError"}') }) });
-add("run B 500 with result", ["run", SBX, "compute"], { server: () => ({ status: 500, type: "application/json", body: Buffer.from('{"result":"partial","error":"boom"}') }) });
-add("run B 502 html", ["run", SBX, "compute"], { server: () => ({ status: 502, type: "text/html", body: Buffer.from("<html>Bad Gateway</html>") }) });
-add("run B empty body", ["run", SBX, "compute"], { server: () => ({ status: 200, type: "application/json", body: Buffer.alloc(0) }) });
-add("run B json array body", ["run", SBX, "compute"], { server: () => ({ status: 200, type: "application/json", body: Buffer.from("[1,2]") }) });
-add("run B reset", ["run", SBX, "compute"], { server: () => RESET });
-add("run B unreachable (no server)", ["run", SBX, "compute"]);
+add("run 404", ["run", SBX, "compute"], { server: () => ({ status: 404, type: "application/json", body: Buffer.from('{"error":"no such command"}') }) });
+add("run 400 validation", ["run", SBX, "compute"], { server: () => ({ status: 400, type: "application/json", body: Buffer.from('{"error":"x is required","type":"ValidationError"}') }) });
+add("run 400 validation json", ["--json", "run", SBX, "compute"], { server: () => ({ status: 400, type: "application/json", body: Buffer.from('{"error":"x is required","type":"ValidationError"}') }) });
+add("run 500 with result", ["run", SBX, "compute"], { server: () => ({ status: 500, type: "application/json", body: Buffer.from('{"result":"partial","error":"boom"}') }) });
+add("run 502 html", ["run", SBX, "compute"], { server: () => ({ status: 502, type: "text/html", body: Buffer.from("<html>Bad Gateway</html>") }) });
+add("run empty body", ["run", SBX, "compute"], { server: () => ({ status: 200, type: "application/json", body: Buffer.alloc(0) }) });
+add("run json array body", ["run", SBX, "compute"], { server: () => ({ status: 200, type: "application/json", body: Buffer.from("[1,2]") }) });
+add("run reset", ["run", SBX, "compute"], { server: () => RESET });
+add("run unreachable (no server)", ["run", SBX, "compute"]);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Stub server
@@ -967,7 +917,7 @@ function startStub(testCase) {
 let certs = null;
 function serverCerts() {
   if (certs) return certs;
-  const dir = mkdtempSync(join(tmpdir(), "ebx-sbxcmds-cert-"));
+  const dir = mkdtempSync(join(tmpdir(), "abx-sbxcmds-cert-"));
   execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", join(dir, "k.pem"), "-out", join(dir, "c.pem"), "-days", "2", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:9000-sbx-stub.localhost,DNS:9100-sbx-stub.localhost,DNS:localhost"], { stdio: "ignore" });
   certs = { dir, cert: join(dir, "c.pem"), key: readFileSync(join(dir, "k.pem")), pem: readFileSync(join(dir, "c.pem")) };
   return certs;
@@ -997,8 +947,8 @@ function startServerStub(testCase, log) {
 // Runners
 // ---------------------------------------------------------------------------------------------------------------
 
-const scratch = mkdtempSync(join(tmpdir(), "ebx-sbxcmds-"));
-const nodeEntry = join(CLI_ROOT, "src/bin/ebx.ts");
+const scratch = mkdtempSync(join(tmpdir(), "abx-sbxcmds-"));
+const nodeEntry = join(CLI_ROOT, "src/bin/abx.ts");
 
 function run(kind, testCase, port, serverPort) {
   const home = mkdtempSync(join(scratch, `${kind}-home-`));
@@ -1009,7 +959,7 @@ function run(kind, testCase, port, serverPort) {
     PATH: process.env.PATH,
     HOME: home,
     USERPROFILE: home,
-    EBX_NO_KEYCHAIN: "1",
+    ABX_NO_KEYCHAIN: "1",
     NO_PROXY: "*",
     no_proxy: "*",
     LANG: "C.UTF-8",
@@ -1021,7 +971,7 @@ function run(kind, testCase, port, serverPort) {
   if (serverPort) Object.assign(env, { E2B_DOMAIN: `localhost:${serverPort}`, SSL_CERT_FILE: serverCerts().cert, REQUESTS_CA_BUNDLE: serverCerts().cert, NODE_EXTRA_CA_CERTS: serverCerts().cert });
   for (const [k, v] of Object.entries(testCase.env ?? {})) env[k] = v;
   const argv = testCase.argv.map((a) => a.replace("@cwd@", cwd));
-  const [cmd, args] = kind === "py" ? [join(ORACLE_VENV, "bin", "ebx"), argv] : [process.execPath, ["--import", pathToFileURL(join(CLI_ROOT, "node_modules/tsx/dist/esm/index.mjs")).href, nodeEntry, ...argv]];
+  const [cmd, args] = kind === "py" ? [join(ORACLE_VENV, "bin", "abx"), argv] : [process.execPath, ["--import", pathToFileURL(join(CLI_ROOT, "node_modules/tsx/dist/esm/index.mjs")).href, nodeEntry, ...argv]];
   const ptySpec = testCase.tty ? JSON.stringify({ argv: [cmd, ...args], cwd, env, steps: testCase.tty, timeout: 60 }) : null;
   return new Promise((ok) => {
     const proc_ = ptySpec
@@ -1071,7 +1021,7 @@ function run(kind, testCase, port, serverPort) {
           return;
         }
         for (const n of names) {
-          if (n === ".ebx" || n === ".config" || n === ".cache") continue;
+          if (n === ".abx" || n === ".config" || n === ".cache") continue;
           const p = join(d, n);
           const r = rel ? `${rel}/${n}` : n;
           const st = lstatSync(p);
@@ -1116,9 +1066,9 @@ function normalise(text, port, home) {
     .replace(/_ssl\.c:\d+/g, "_ssl.c:<n>")
     .split(home)
     .join("<home>")
-    .replace(/(ebx-nl-[a-z0-9-]*?)-\d{8,}-[a-z0-9]+/g, "$1-<ts>-<tok>")
-    .replace(/(ebx-nl-[a-z0-9-]*?)-[0-9a-f]{6}(?![0-9a-z])/g, "$1-<tok>")
-    .replace(/(\.ebx\/generated\/[a-z0-9-]*?)-\d{8}-\d{6}-[a-z0-9]+/g, "$1-<ts>-<tok>")
+    .replace(/(abx-nl-[a-z0-9-]*?)-\d{8,}-[a-z0-9]+/g, "$1-<ts>-<tok>")
+    .replace(/(abx-nl-[a-z0-9-]*?)-[0-9a-f]{6}(?![0-9a-z])/g, "$1-<tok>")
+    .replace(/(\.abx\/generated\/[a-z0-9-]*?)-\d{8}-\d{6}-[a-z0-9]+/g, "$1-<ts>-<tok>")
     .replace(/\d{8}-\d{6}-[0-9a-f]{6}/g, "<ts>-<tok>")
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "<uuid>");
 }

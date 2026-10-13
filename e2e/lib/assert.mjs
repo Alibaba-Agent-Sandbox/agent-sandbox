@@ -68,7 +68,7 @@ export function parseJsonLoose(text) {
   const docs = [];
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    if (/^[{["]/.test(lines[i])) {
+    if (/^[{\["]/.test(lines[i])) {
       for (let j = lines.length; j > i; j--) {
         const v = tryJson(lines.slice(i, j).join('\n'));
         if (v !== undefined) { docs.push(v); i = j - 1; break; }

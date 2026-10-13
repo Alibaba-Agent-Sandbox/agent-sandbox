@@ -6,7 +6,6 @@
  */
 
 import { SessionAlreadyExistsError, SessionNotFoundError } from "../models/errors.js";
-import { PyDatetime } from "../models/_pydantic.js";
 import { SessionInfo } from "../models/session.js";
 import { LocalSessionStore } from "../session/local.js";
 import { getLogger, ExcInfo } from "../utils/logging.js";
@@ -15,8 +14,8 @@ import { Sandbox } from "./sandbox.js";
 
 const logger = getLogger("api.session_manager");
 
-function utcNow(): PyDatetime {
-  return PyDatetime.fromDate(new Date());
+function utcNow(): Date {
+  return new Date();
 }
 
 export interface SessionStartOptions {

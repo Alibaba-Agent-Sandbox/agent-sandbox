@@ -674,7 +674,7 @@ describe("TestEnvdStreamStreaming", () => {
   it("test_http_500_envd_json_error_structured", async () => {
     // Command-not-found 500: envd JSON body is propagated structurally.
     //
-    // Mirrors the real reproduction (`ebx connect` + typo'd command): envd answers /process.Process/Start with 500
+    // Mirrors the real reproduction (`abx connect` + typo'd command): envd answers /process.Process/Start with 500
     // and a JSON error body (e.g. "exec not found"). The transport must surface that body as structured data for
     // upper layers to map, instead of double-printing a WARNING followed by a raw httpx error with the full sandbox
     // URL.
@@ -777,7 +777,7 @@ describe("TestEnvdStreamStreaming", () => {
     const client = _make_client();
     // 1) At INFO level (>= default WARNING visibility): zero records.
     patch_stream_client_init(transport);
-    let restore = caplog.set_level(INFO, "easy_sandbox.transport.http");
+    let restore = caplog.set_level(INFO, "agent_sandbox.transport.http");
     try {
       await raises(() => drain(stream(client)), EnvdRpcError);
     } finally {
@@ -787,7 +787,7 @@ describe("TestEnvdStreamStreaming", () => {
 
     // 2) At DEBUG level the diagnostic line exists but has no URL.
     patch_stream_client_init(transport);
-    restore = caplog.set_level(DEBUG, "easy_sandbox.transport.http");
+    restore = caplog.set_level(DEBUG, "agent_sandbox.transport.http");
     try {
       await raises(() => drain(stream(client)), EnvdRpcError);
     } finally {

@@ -1,5 +1,5 @@
 /**
- * Local Docker build and ACR push utilities (port of `easy_sandbox/api/docker_builder.py`, client-sdk version).
+ * Local Docker build and ACR push utilities (port of `agent_sandbox/api/docker_builder.py`, client-sdk version).
  *
  * Provides a high-level {@link DockerBuilder} that orchestrates:
  *
@@ -10,7 +10,7 @@
  *
  * Differences from Python that are inherent to Node: every Docker operation returns a Promise (child processes cannot
  * block the event loop while streaming lines to `on_output`), and the SDK-wheel helper follows the split SDK:
- * the container-side runtime is the `easy-sandbox-server` distribution.
+ * the container-side runtime is the `agent-sandbox-server` distribution.
  */
 
 import { spawn } from "node:child_process";
@@ -36,13 +36,32 @@ import { ValueError, dictGet, pyExcStr } from "./_pyerrors.js";
 
 const logger = getLogger("api.docker_builder");
 
-const _SDK_DIST_NAME = "easy-sandbox-server";
+/** Fill `<region>` / `<tag>` in a scaffold Dockerfile so `docker build` gets a pullable FROM. */
+function materializedDockerfile(context: string, dockerfile: string | null): string | null {
+  const source = dockerfile ?? join(context, "Dockerfile");
+  if (!existsSync(source)) return dockerfile;
+  const text = readFileSync(source, "utf8");
+  if (!text.includes("<region>") && !text.includes("<tag>")) return dockerfile;
+  const region = process.env.ABX_BASE_IMAGE_REGION || process.env.ALIBABA_CLOUD_REGION_ID || "cn-hangzhou";
+  const tag = process.env.ABX_BASE_IMAGE_TAG || "v0.0.49";
+  if (!/^[a-z0-9-]+$/.test(region)) {
+    throw new DockerBuildError(`Base image region ${region} is not a lowercase DNS label.`);
+  }
+  if (!/^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag)) {
+    throw new DockerBuildError(`Base image tag ${tag} is not a Docker tag.`);
+  }
+  const out = join(context, "Dockerfile.abx-build");
+  writeFileSync(out, text.replaceAll("<region>", region).replaceAll("<tag>", tag));
+  return out;
+}
+
+const _SDK_DIST_NAME = "agent-sandbox-server";
 const _PYPI_RELEASE_URL = "https://pypi.org/pypi/{name}/{version}/json";
 
 /** Environment variable naming an explicit `server-sdk` source tree to build the injected wheel from. */
-export const SERVER_SDK_SOURCE_ENV = "EBX_SERVER_SDK_SOURCE";
-/** Environment variable overriding the `easy-sandbox-server` version downloaded from PyPI. */
-export const SERVER_SDK_VERSION_ENV = "EBX_SERVER_SDK_VERSION";
+export const SERVER_SDK_SOURCE_ENV = "ABX_SERVER_SDK_SOURCE";
+/** Environment variable overriding the `agent-sandbox-server` version downloaded from PyPI. */
+export const SERVER_SDK_VERSION_ENV = "ABX_SERVER_SDK_VERSION";
 
 export interface ACRConfigInit {
   registry?: string;
@@ -332,10 +351,10 @@ function streamLines(cmd: string[], onLine: (line: string) => void): Promise<num
 // ---------------------------------------------------------------------------
 
 /**
- * Version of `easy-sandbox-server` to download from PyPI.
+ * Version of `agent-sandbox-server` to download from PyPI.
  *
  * The client and server distributions are released in lockstep; the Node CLI package version plays the role of the
- * Python client's `__version__`. `EBX_SERVER_SDK_VERSION` overrides it.
+ * Python client's `__version__`. `ABX_SERVER_SDK_VERSION` overrides it.
  */
 export function serverSdkVersion(): string {
   const override = process.env[SERVER_SDK_VERSION_ENV];
@@ -442,6 +461,18 @@ export class DockerBuilder {
   // Docker operations (subprocess)
   // ------------------------------------------------------------------ //
 
+  /** `true` when this daemon accepts buildx-only `docker build` flags. */
+  private async _buildxFlags(): Promise<boolean> {
+    if ((process.env["DOCKER_BUILDKIT"] ?? "1") === "0") return false;
+    try {
+      const result = await runCaptured([this._docker, "buildx", "version"], { timeout: 10 });
+      return result.returncode === 0;
+    } catch (err) {
+      if (isFileNotFound(err) || err instanceof TimeoutExpired) return false;
+      throw err;
+    }
+  }
+
   /** Verify Docker daemon is reachable: `true` if `docker info` exits successfully. */
   async checkDocker(): Promise<boolean> {
     try {
@@ -466,16 +497,15 @@ export class DockerBuilder {
   async build(context_dir: string, tag: string, opts: BuildOptions = {}): Promise<string> {
     const { dockerfile = null, platform = "linux/amd64", build_args = null, on_output = null } = opts;
     const context = resolve(String(context_dir));
+    const resolvedDockerfile = materializedDockerfile(context, dockerfile);
     const cmd: string[] = [this._docker, "build", "--platform", platform, "-t", tag];
-    // --provenance is a buildx-only flag; only add when buildkit is enabled.
-    // Users on constrained environments can set DOCKER_BUILDKIT=0 to fall back to the legacy builder.
-    if ((process.env["DOCKER_BUILDKIT"] ?? "1") !== "0") {
-      // Plain progress: stdout is a pipe, so BuildKit's tty UI would be cursor noise. Step lines are what the CLI
-      // shows under the header.
+    // --provenance and --progress=plain are buildx flags. The legacy builder rejects them.
+    // DOCKER_BUILDKIT=0 forces the legacy builder; otherwise probe `docker buildx version`.
+    if (await this._buildxFlags()) {
       cmd.splice(4, 0, "--provenance=false");
       cmd.splice(5, 0, "--progress=plain");
     }
-    if (dockerfile) cmd.push("-f", String(dockerfile));
+    if (resolvedDockerfile) cmd.push("-f", String(resolvedDockerfile));
     if (build_args) {
       for (const [k, v] of Object.entries(build_args)) cmd.push("--build-arg", `${k}=${v}`);
     }
@@ -616,7 +646,7 @@ export class DockerBuilder {
   // SDK wheel helper
   // ------------------------------------------------------------------ //
 
-  /** Return true if `root` is the easy-sandbox-server source tree (not some other project). */
+  /** Return true if `root` is the agent-sandbox-server source tree (not some other project). */
   static _isSdkSourceTree(root: string): boolean {
     let text: string;
     try {
@@ -624,14 +654,14 @@ export class DockerBuilder {
     } catch {
       return false;
     }
-    return /^name\s*=\s*"easy-sandbox-server"\s*$/m.test(text);
+    return /^name\s*=\s*"agent-sandbox-server"\s*$/m.test(text);
   }
 
   /**
    * Fetch the published server-sdk wheel matching this SDK version from PyPI.
    *
    * Pinning the exact version keeps the server SDK inside the image consistent with the client that generated the
-   * template (the two distributions are released in lockstep); the plain `pip install easy-sandbox-server` Dockerfile
+   * template (the two distributions are released in lockstep); the plain `pip install agent-sandbox-server` Dockerfile
    * fallback would otherwise pick whatever is newest. Verifies the SHA-256 digest published by PyPI.
    *
    * @returns The wheel copied into `context_dir`, or `[]` when this version is not published or PyPI is unreachable.
@@ -694,13 +724,13 @@ export class DockerBuilder {
    * Put a server-sdk wheel into the Docker build context.
    *
    * This allows templates to `COPY *.whl /tmp/` in their Dockerfile and `pip install /tmp/*.whl` to get the
-   * `easy-sandbox-server` version that matches this CLI:
+   * `agent-sandbox-server` version that matches this CLI:
    *
-   * - when a server-sdk source tree is given explicitly (`project_root`, or the `EBX_SERVER_SDK_SOURCE` environment
+   * - when a server-sdk source tree is given explicitly (`project_root`, or the `ABX_SERVER_SDK_SOURCE` environment
    *   variable): build a wheel from it with `pip wheel`, so unreleased changes reach the image;
    * - otherwise: download the released wheel of the same version from PyPI (see `_downloadReleaseWheel`).
    *
-   * When neither works nothing is injected and the Dockerfile falls back to `pip install easy-sandbox-server` (the
+   * When neither works nothing is injected and the Dockerfile falls back to `pip install agent-sandbox-server` (the
    * `COPY *.whl` line matches nothing, which BuildKit accepts).
    *
    * @returns List of wheel file paths copied into the context.
@@ -720,7 +750,7 @@ export class DockerBuilder {
       return [];
     }
 
-    const tmp = mkdtempSync(join(tmpdir(), "ebx-wheel-"));
+    const tmp = mkdtempSync(join(tmpdir(), "abx-wheel-"));
     try {
       logger.info("Building SDK wheel from %s", project_root);
       const pythons = process.platform === "win32" ? ["python", "python3"] : ["python3", "python"];

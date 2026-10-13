@@ -45,19 +45,19 @@ const REQUIRED_DIRECTORY_FRAGMENTS = [
 ];
 
 /**
- * Repository / install-command tokens follow the split: the CLI repository is `easy-sandbox/easy-sandbox` and is installed from npm
- * (the Python original pinned `Easy-Sandbox/easy-sandbox`, `pip index versions easy-sandbox` and the `easy-sandbox[cli]` git URL).
+ * Repository / install-command tokens follow the split: the CLI repository is `agent-sandbox/agent-sandbox` and is installed from npm
+ * (the Python original pinned `alibaba-agent-sandbox/agent-sandbox`, `pip index versions agent-sandbox` and the `agent-sandbox[cli]` git URL).
  */
 const SHARED_TOKENS = [
-  "easy-sandbox/easy-sandbox",
+  "agent-sandbox/agent-sandbox",
   "npx skills add",
-  "npm view @easy-sandbox/cli versions",
+  "npm view @agent-sandbox/cli versions",
   "skills-lock.json",
   "experimental_install",
   "git sparse-checkout set --no-cone /SKILL.md",
-  "npm install -g @easy-sandbox/cli",
+  "npm install -g @agent-sandbox/cli",
   "--target cursor",
-  "~/.ebx/.env",
+  "~/.abx/.env",
   "DISABLE_TELEMETRY=1",
   "DO_NOT_TRACK=1",
   "/plugin marketplace add",
@@ -138,13 +138,13 @@ it("test_skill_first_sdk_second_messaging", () => {
   expect(read(GUIDES.zh).includes("先装 Skill，后装 SDK")).toBe(true);
 });
 
-it("test_guides_declare_static_scope_without_restoring_ebx_skill", () => {
+it("test_guides_declare_static_scope_without_restoring_abx_skill", () => {
   const en = read(GUIDES.en);
   const zh = read(GUIDES.zh);
   expect(en.includes("adds no runtime to this repository")).toBe(true);
   expect(zh.includes("不会给本仓库引入任何运行时")).toBe(true);
-  expect(en.includes("ebx skill"), "guides must not reintroduce the removed `ebx skill` command").toBe(false);
-  expect(zh.includes("ebx skill")).toBe(false);
+  expect(en.includes("abx skill"), "guides must not reintroduce the removed `abx skill` command").toBe(false);
+  expect(zh.includes("abx skill")).toBe(false);
 });
 
 it("test_entry_points_link_to_installation_guides", () => {

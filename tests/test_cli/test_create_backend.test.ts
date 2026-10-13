@@ -1,7 +1,7 @@
 /**
  * End-to-end decoupling proof for the pluggable coding-agent backend.
  *
- * `ebx create "<description>"` must run entirely through the backend returned by `resolveCodingAgentBackend`: these
+ * `abx create "<description>"` must run entirely through the backend returned by `resolveCodingAgentBackend`: these
  * tests replace the backend with a dummy (no Qwen Code anywhere) and assert that no function of the Qwen Code / codegen
  * / clarify modules is ever touched, while the rest of the create pipeline (deploy, `Sandbox.create`) still runs
  * unchanged.
@@ -33,19 +33,13 @@ import { cli } from "../../src/cli/main.js";
 import { SandboxCreationError } from "../../src/models/errors.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
 
 // Keep the configuration sources hermetic (Python patches `config_cmd.load_config_dict` / `read_env_var`).
 vi.mock("../../src/cli/commands/config_cmd.js", () => ({
   _effectiveValue: async () => [null, "default"],
   writeEnvVar: async () => undefined,
   _removeTomlKey: async () => undefined,
-  loadShortcuts: () => ({}),
-  _configFileExists: () => true,
-  _createDefaultConfig: () => undefined,
 }));
-
-useDefaultShortcutsOnly();
 
 const runner = (): CliRunner => new CliRunner();
 
@@ -69,7 +63,7 @@ class _DummyBackend implements CodingAgentBackend {
   name = "dummy";
   displayName = "Dummy Agent";
   configKey = "dummy_api_key";
-  envVar = "EBX_DUMMY_API_KEY";
+  envVar = "ABX_DUMMY_API_KEY";
   baseUrlConfigKey = "dummy_base_url";
   modelConfigKey = "dummy_model";
   credentialPrompt = "Dummy API key (hidden; leave empty to cancel)";
@@ -222,12 +216,12 @@ const savedSeams = {
 };
 
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-backend-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-backend-"));
   const binary = path.join(tmp, "dummy-agent");
   fs.writeFileSync(binary, "#!/bin/sh\n", "utf-8");
   const workdir = path.join(tmp, "dummy-workspace");
   fs.mkdirSync(workdir);
-  dummyBackend = new _DummyBackend({ binary, workdir, template_name: "ebx-nl-dummy-xyz" });
+  dummyBackend = new _DummyBackend({ binary, workdir, template_name: "abx-nl-dummy-xyz" });
 
   // Patch every Qwen Code / codegen / clarify entry point (recording mocks).
   noRealAgent = {
@@ -277,7 +271,7 @@ describe("TestBackendDecoupling", () => {
     const result = await runner().invoke(cli, ["create", "-y", "dummy description"]);
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("AI generated template: ebx-nl-dummy-xyz");
+    expect(result.output).toContain("Generated template: abx-nl-dummy-xyz");
     expect(result.output).toContain("sbx-dummy-001");
 
     expect(resolver).toHaveBeenCalledTimes(1);
@@ -288,7 +282,7 @@ describe("TestBackendDecoupling", () => {
     expect(dummyBackend.generate_calls).toHaveLength(1);
     const genCall = dummyBackend.generate_calls[0]!;
     expect(genCall["description"]).toBe("dummy description");
-    expect(genCall["template_name"]).toBe("ebx-nl-dummy-xyz");
+    expect(genCall["template_name"]).toBe("abx-nl-dummy-xyz");
     expect(genCall["resume_session"]).toBeNull();
     expect(genCall["env"]).toEqual({ DUMMY_AGENT_KEY: "dummy-secret" });
 
@@ -308,7 +302,7 @@ describe("TestBackendDecoupling", () => {
     const result = await runner().invoke(cli, ["create", "a complete dummy description"]);
 
     // Non-interactive without --yes: generation ran, then the gate refused.
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required to build and deploy");
 
     // Round 1 runs the research phase first, on the fresh session.
@@ -345,7 +339,7 @@ describe("TestBackendDecoupling", () => {
 
     const result = await runner().invoke(cli, ["create", "a complete dummy description"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required to build and deploy");
     // The research failure is a warning, never a gate.
     expect(result.output).toContain("could not research the public facts");
@@ -371,7 +365,7 @@ describe("TestBackendDecoupling", () => {
 
     const result = await runner().invoke(cli, ["create", "a complete dummy description"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("could not research the public facts");
     expect(result.output).toContain("could not be started"); // reason-specific hint
     expect(result.output).not.toContain("sanitised detail"); // detail is never rendered
@@ -391,7 +385,7 @@ describe("TestBackendDecoupling", () => {
 
     const result = await runner().invoke(cli, ["create", "a vague dummy description"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain(
       "Could not assess the description completeness with Dummy Agent " + "(assessment unavailable); continuing straight to generation.",
     );
@@ -406,16 +400,16 @@ describe("TestBackendDecoupling", () => {
   });
 
   it("test_missing_binary_uses_the_backend_error_and_wording", async () => {
-    const backend = new _DummyBackend({ binary: null, workdir: path.join(tmp, "ws"), template_name: "ebx-nl-dummy-xyz" });
+    const backend = new _DummyBackend({ binary: null, workdir: path.join(tmp, "ws"), template_name: "abx-nl-dummy-xyz" });
     _patchBackend(backend);
 
     const result = await runner().invoke(cli, ["create", "dummy description"]);
 
     expect(result.exit_code).toBe(1);
-    expect(result.output).toContain("Dummy Agent CLI was not found on PATH or in ~/.ebx/bin.");
+    expect(result.output).toContain("Dummy Agent CLI was not found on PATH or in ~/.abx/bin.");
     expect(result.output).toContain("Dummy setup (not-installed); docs: https://example.test/dummy");
     expect(result.output).toContain("[E2905]");
-    expect(result.output).toContain("Dummy Agent CLI is required for AI template generation");
+    expect(result.output).toContain("Dummy Agent CLI is required for template generation");
     _assertNoRealAgentCalls();
   });
 
@@ -434,7 +428,7 @@ describe("TestBackendDecoupling", () => {
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Dummy Agent is installed but no model credentials were found.");
     expect(result.output).toContain("[E2906]");
-    expect(result.output).toContain("ebx config set dummy_api_key <KEY>");
+    expect(result.output).toContain("abx config set dummy_api_key <KEY>");
     _assertNoRealAgentCalls();
   });
 });

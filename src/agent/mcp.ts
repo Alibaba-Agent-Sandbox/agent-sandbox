@@ -1,5 +1,5 @@
 /**
- * Easy Sandbox MCP Server。
+ * Agent Sandbox MCP Server。
  *
  * 将沙箱能力暴露为 MCP Tools，支持 Cursor / Claude Desktop / VS Code 等 IDE 集成。
  *
@@ -12,7 +12,7 @@
  * 构造参数声明 `2025-06-18`。`initialize` 回显受支持的请求版本；请求缺失或不支持时，
  * 回退到传输的首选（第一个）支持版本。
  *
- * Port of `easy_sandbox/agent/mcp.py`.
+ * Port of `agent_sandbox/agent/mcp.py`.
  */
 
 import type { Readable, Writable } from "node:stream";
@@ -49,7 +49,7 @@ export const MCP_PROTOCOL_VERSION = "2024-11-05";
  */
 export const _STDIO_READ_LIMIT = 8 * 1024 * 1024;
 
-export const SERVER_NAME = "easy-sandbox";
+export const SERVER_NAME = "agent-sandbox";
 export const SERVER_VERSION = "0.3.0";
 
 // ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ interface SandboxStatic {
   killById(sandboxId: string, options?: Record<string, unknown>): Promise<void>;
 }
 
-/** Seam for the lazy SDK import (Python imports `easy_sandbox.api.sandbox` inside each method). */
+/** Seam for the lazy SDK import (Python imports `agent_sandbox.api.sandbox` inside each method). */
 let loadedSandbox: SandboxStatic | null = null;
 
 export const sdk = {
@@ -632,7 +632,7 @@ export class SandboxMCPServer {
    * do not share one sandbox at the same time. A line over the read limit
    * is rejected and the process keeps serving the next message.
    *
-   * SIGINT and SIGTERM (`ebx mcp stop`) stop the read loop; in-flight tool
+   * SIGINT and SIGTERM (`abx mcp stop`) stop the read loop; in-flight tool
    * calls are abandoned without a response and the session's sandboxes are
    * killed before this promise resolves.
    */

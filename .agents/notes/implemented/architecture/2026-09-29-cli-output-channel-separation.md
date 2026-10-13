@@ -6,13 +6,13 @@ Related: [2026-09-29-init-create-semantics.md](../feature/2026-09-29-init-create
 
 ## Problem
 
-Executing `ebx create` (both the `--template` path and the Qwen Code NL path)
+Executing `abx create` (both the `--template` path and the Qwen Code NL path)
 and the shared deploy pipeline produced output that could not be consumed
 reliably:
 
 1. **Duplicate warning.** The capability-resolver fallback warning rendered
    twice: once by the SDK's standalone handler
-   (`easy_sandbox.utils.logging`, timestamped format, `easy_sandbox` package
+   (`agent_sandbox.utils.logging`, timestamped format, `agent_sandbox` package
    logger) and once by the CLI's root handler (`WARNING: ...`). Two handlers
    rendered the same record.
 2. **Garbled live output.** The Rich spinner renders on stderr; warnings and
@@ -21,13 +21,13 @@ reliably:
    `⠋ Waiting...DEBUG: https://...`.
 3. **Machine-readable pollution.** In `--json` mode every message
    (`info` / `progress` / `warning` / `debug` / `error`) was emitted as JSON on
-   **stdout**, so `ebx create --json | jq` received a sequence of documents
+   **stdout**, so `abx create --json | jq` received a sequence of documents
    instead of one. Raw `click.echo` calls bypassed `--quiet` / `--ci` entirely.
 4. **Bypassed manager.** `_do_deploy` warned with a bare
    `click.echo(..., err=True)` that ignored quiet/CI suppression and the
    spinner guard; `on_output=click.echo` in verbose mode wrote docker build
    logs to **stdout**, the result channel.
-5. **Inconsistent result printing.** `ebx create` printed its result through
+5. **Inconsistent result printing.** `abx create` printed its result through
    the legacy `OutputFormatter` (`fmt.print_dict` / `fmt.print_success`) while
    the rest of its progress went through `OutputManager`.
 
@@ -37,24 +37,24 @@ reliably:
 
 | Channel | Content | Consumers |
 |---------|---------|-----------|
-| **stdout** | final results: `data`, `table`, `success` | humans and scripts (`ebx ... --json \| jq`) |
+| **stdout** | final results: `data`, `table`, `success` | humans and scripts (`abx ... --json \| jq`) |
 | **stderr** | progress state and diagnostics: `info`, `progress`, `warning`, `error`, `debug`, plus **every** stdlib `logging` record | humans following a long-running command |
 
 - `--json` keeps stdout a **single JSON document**: the JSON forms of the
   diagnostic methods moved to stderr (`_json(..., err=True)`).
 - `success` stays a result (stdout); commands that emit both `data` and
   `success` skip the notice in `--json` mode so the stdout document stays
-  single (`ebx create` does this).
+  single (`abx create` does this).
 
 ### One logging bridge
 
 - `OutputManager.__init__` installs a single `_LogBridgeHandler` (format
   `LEVELNAME: message`, level = CLI level) on the **root** logger and removes
   handlers installed by the SDK or other hosts on both the root and the
-  `easy_sandbox` package logger. Exactly one handler renders each record.
+  `agent_sandbox` package logger. Exactly one handler renders each record.
 - `propagate` stays enabled, so `caplog`-style capture and embedding hosts
   keep seeing records.
-- `easy_sandbox.utils.logging._configure_once` keeps setting the package level
+- `agent_sandbox.utils.logging._configure_once` keeps setting the package level
   from `SANDBOX_LOG_LEVEL` unconditionally (documented standalone-SDK
   behaviour), but installs its fallback stderr handler only when **neither**
   the root nor the package logger already has one. This makes the
@@ -72,7 +72,7 @@ stay suppressed in verbose/quiet/JSON/non-TTY sessions.
 
 The CLI flags (`--verbose` / `--quiet` / `--log-level` plus CI auto-detection)
 own the log level: the manager sets the **root** level and the **bridge**
-level. It deliberately does not touch the `easy_sandbox` package logger level,
+level. It deliberately does not touch the `agent_sandbox` package logger level,
 which keeps honouring `SANDBOX_LOG_LEVEL` for standalone SDK use.
 
 ### Deploy/create paths go through the manager
@@ -81,11 +81,11 @@ which keeps honouring `SANDBOX_LOG_LEVEL` for standalone SDK use.
   (single stderr line; suppressed by quiet/CI/JSON).
 - `_do_deploy`: docker build output (`on_output=out.info if verbose else None`)
   is a diagnostic, never a result.
-- `ebx create`: result via `out.data(data)` plus a non-JSON
+- `abx create`: result via `out.data(data)` plus a non-JSON
   `out.success("Sandbox <id> created successfully.")`.
 
-Task 160 invariants are untouched: the top-level `ebx init` stays deleted; the
-`ebx config init` / `ebx template init` / `ebx create` boundaries are
+Task 160 invariants are untouched: the top-level `abx init` stays deleted; the
+`abx config init` / `abx template init` / `abx create` boundaries are
 unchanged; the DESCRIPTION + `--template` conflict is still rejected before
 any config read, AI generation, or network call, and the new test pins it
 (`stdout == ""`, codegen and `Sandbox.create` never called).
@@ -103,7 +103,7 @@ No public library API changes; the CLI output surface changes:
 #                   stderr = {"level":"info"...} {"level":"progress"...} {"level":"warning"...}
 
 # Before: capability fallback warning rendered twice
-#         2026-09-29 10:00:00 [WARNING] easy_sandbox.api.capability: Could not resolve ...
+#         2026-09-29 10:00:00 [WARNING] agent_sandbox.api.capability: Could not resolve ...
 #         Warning: Could not resolve ...
 # After:  exactly one "WARNING: Could not resolve capabilities ..." line on stderr
 
@@ -124,7 +124,7 @@ No public library API changes; the CLI output surface changes:
 
 ## Alternatives considered
 
-- **Manager also sets the `easy_sandbox` package logger level** (so `-v`
+- **Manager also sets the `agent_sandbox` package logger level** (so `-v`
   exposes SDK DEBUG) — rejected: it mutates global logging state across tests;
   `tests/test_utils/test_logging.py::test_respects_env_var` and
   `test_default_level_is_warning` then pass or fail depending on execution
@@ -155,7 +155,7 @@ No public library API changes; the CLI output surface changes:
   JSON single document; debug requires verbose), logging bridge (single root
   handler; SDK-configured-before-manager still renders once; duplicate-warning
   regression count; quiet suppression), spinner guard (white-box
-  stop/start/stop/start lifecycle with a fake status), `ebx create`
+  stop/start/stop/start lifecycle with a fake status), `abx create`
   end-to-end × {plain, JSON, quiet, CI} plus the task-160 conflict guard, and
   `_do_deploy` diagnostics (one stderr line; suppressed in quiet).
 - `tests/test_cli/test_template_commands.py::TestStartReadyWarning` — asserts
@@ -166,12 +166,12 @@ No public library API changes; the CLI output surface changes:
 - Targeted run (final): `pytest tests/test_cli tests/test_utils tests/test_templates
   tests/test_cli_evidence` — 1016 passed; full suite (`-m "not integration"`)
   — 2426 passed, 1 skipped; `ruff check src tests` and
-  `mypy src/easy_sandbox/` clean.
+  `mypy src/agent_sandbox/` clean.
 
 ## Acceptance criteria
 
 - [x] capability fallback warning rendered exactly once, on stderr
-- [x] `ebx create --json` stdout is a single JSON document
+- [x] `abx create --json` stdout is a single JSON document
   (`json.loads(result.stdout)` succeeds); diagnostics stay JSON but on stderr
 - [x] `--quiet` / `--ci` print only values / JSON on stdout; no status text or
   log records leak
@@ -183,15 +183,15 @@ No public library API changes; the CLI output surface changes:
 
 ## Files changed
 
-- `src/easy_sandbox/cli/output.py` — channel policy docstring,
+- `src/agent_sandbox/cli/output.py` — channel policy docstring,
   `_LogBridgeHandler`, `_spinner_guard` / `_pause_spinner` / `_resume_spinner`,
   `_write_stdout` / `_write_stderr` / `_write` / `_json(err=...)`,
   `_configure_logging` / `_apply_log_level`
-- `src/easy_sandbox/utils/logging.py` — fallback handler only when nobody else
+- `src/agent_sandbox/utils/logging.py` — fallback handler only when nobody else
   owns the output
-- `src/easy_sandbox/cli/commands/sandbox.py` — create result via
+- `src/agent_sandbox/cli/commands/sandbox.py` — create result via
   `OutputManager` (`out.data` + non-JSON `out.success`)
-- `src/easy_sandbox/cli/commands/template.py` — `_do_deploy` warning via
+- `src/agent_sandbox/cli/commands/template.py` — `_do_deploy` warning via
   `out.warning`; `on_output=out.info if verbose else None`
 - `tests/test_cli/test_output_channels.py` (new),
   `tests/test_cli/test_template_commands.py`
@@ -202,9 +202,9 @@ No public library API changes; the CLI output surface changes:
 
 ## Consequences
 
-- Out of scope and deliberately untouched (task 167 boundary): `ebx template
+- Out of scope and deliberately untouched (task 167 boundary): `abx template
   create`'s own bare `click.echo(..., err=True)` warning (same text, separate
-  command path `ebx template create <image>`; stays on stderr and never
+  command path `abx template create <image>`; stays on stderr and never
   touches JSON stdout); task 166 `envd_stream`; task 181 session turn
   parameter naming; task 168 clarification loop; task 170 diagnose.
 - Verbose mode does not expose SDK `DEBUG` records while

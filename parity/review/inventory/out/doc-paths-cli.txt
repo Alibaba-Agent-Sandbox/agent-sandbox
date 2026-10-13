@@ -1,7 +1,7 @@
 MISSING README.md:157: `examples/templates/`
 MISSING README.md:218: `examples/`
 MISSING CHANGELOG.md:54: `pyproject.toml`
-MISSING CHANGELOG.md:142: `src/easy_sandbox/cli/main.py`
+MISSING CHANGELOG.md:142: `src/agent_sandbox/cli/main.py`
 MISSING CHANGELOG.md:160: `examples/templates/`
 MISSING CHANGELOG.md:167: `tests/test_packaging.py`
 MISSING CHANGELOG.md:167: `tests/test_agent_guide.py`
@@ -95,7 +95,7 @@ MISSING docs/zh/design/templates-catalog.md:205: `tests/test_catalog.py`
 MISSING docs/zh/design/templates-catalog.md:205: `tests/test_index.py`
 MISSING docs/zh/design/templates-catalog.md:206: `tests/test_commands_e2e.py`
 MISSING docs/zh/design/providers-and-credentials-cli-review.md:22: `examples/providers/`
-MISSING docs/zh/guide/byo-agent-integration.md:341: `src/easy_sandbox/models/template.py`
+MISSING docs/zh/guide/byo-agent-integration.md:341: `src/agent_sandbox/models/template.py`
 MISSING docs/en/design/architecture.md:174: `src/utils/config_keys.ts`
 MISSING docs/en/design/cli-design.md:239: `examples/templates/`
 MISSING docs/en/design/templates-catalog.md:9: `examples/templates/`
@@ -108,7 +108,7 @@ MISSING docs/en/design/templates-catalog.md:226: `tests/test_templates/test_temp
 MISSING docs/en/design/templates-catalog.md:235: `tests/test_catalog.py`
 MISSING docs/en/design/templates-catalog.md:235: `tests/test_index.py`
 MISSING docs/en/design/templates-catalog.md:236: `tests/test_commands_e2e.py`
-MISSING docs/en/guide/byo-agent-integration.md:341: `src/easy_sandbox/models/template.py`
+MISSING docs/en/guide/byo-agent-integration.md:341: `src/agent_sandbox/models/template.py`
 MISSING parity/blocked-tests.md:69: `tests/test_cli_evidence/test_mcp_evidence.test.ts`
 MISSING parity/blocked-tests.md:80: `tests/integration/test_progress_activity_e2e.py::*`
 MISSING parity/blocked-tests.md:81: `tests/test_templates/test_local_install.py`
@@ -121,7 +121,7 @@ MISSING parity/KNOWN-GAPS.md:438: `client-sdk/tests/test_api/test_deploy.py`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:1: `examples/templates/`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:2: `examples/`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:3: `pyproject.toml`
-MISSING parity/review/inventory/out/doc-paths-cli.txt:4: `src/easy_sandbox/cli/main.py`
+MISSING parity/review/inventory/out/doc-paths-cli.txt:4: `src/agent_sandbox/cli/main.py`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:5: `examples/templates/`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:6: `tests/test_packaging.py`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:7: `tests/test_agent_guide.py`
@@ -215,7 +215,7 @@ MISSING parity/review/inventory/out/doc-paths-cli.txt:94: `tests/test_catalog.py
 MISSING parity/review/inventory/out/doc-paths-cli.txt:95: `tests/test_index.py`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:96: `tests/test_commands_e2e.py`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:97: `examples/providers/`
-MISSING parity/review/inventory/out/doc-paths-cli.txt:98: `src/easy_sandbox/models/template.py`
+MISSING parity/review/inventory/out/doc-paths-cli.txt:98: `src/agent_sandbox/models/template.py`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:99: `src/utils/config_keys.ts`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:100: `examples/templates/`
 MISSING parity/review/inventory/out/doc-paths-cli.txt:101: `examples/templates/`

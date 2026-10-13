@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Differential test of the `ebx mcp` command group: the original Python CLI (`$ORACLE_VENV/bin/ebx`) versus the Node
- * CLI (`src/bin/ebx.ts`), same argv / env / files, isolated HOME and cwd per run, local stub servers only (no
+ * Differential test of the `abx mcp` command group: the original Python CLI (`$ORACLE_VENV/bin/abx`) versus the Node
+ * CLI (`src/bin/abx.ts`), same argv / env / files, isolated HOME and cwd per run, local stub servers only (no
  * credentials, no network).
  *
- *   ORACLE_VENV=/path/to/venv-for-original-ebx node parity/diff/mcp_cmds.mjs [--only <substring>] [--verbose]
+ *   ORACLE_VENV=/path/to/venv-for-original-abx node parity/diff/mcp_cmds.mjs [--only <substring>] [--verbose]
  *
  * Compared per case: exit code, stdout, stderr (after normalising temp dirs, pids, ports, tokens and the Python-only
  * `command`/`args` launcher of installed IDE configs) and every file the command wrote (the deploy artifact is
@@ -29,18 +29,18 @@ const verbose = process.argv.includes("--verbose");
 const onlyIdx = process.argv.indexOf("--only");
 const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
 
-if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "ebx"))) {
-  console.error("ORACLE_VENV must point to a venv with the original easy-sandbox installed (see docs/PORTING.md).");
+if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "abx"))) {
+  console.error("ORACLE_VENV must point to a venv with the original agent-sandbox installed (see docs/PORTING.md).");
   process.exit(2);
 }
 
 const TSX_LOADER = import.meta.resolve("tsx");
-const NODE_ENTRY = join(CLI_ROOT, "src", "bin", "ebx.ts");
+const NODE_ENTRY = join(CLI_ROOT, "src", "bin", "abx.ts");
 const CONFIG_CMD_PRESENT = existsSync(join(CLI_ROOT, "src", "cli", "commands", "config_cmd.ts"));
 
 /** Launch spec of each implementation. */
 const IMPLS = {
-  python: { cmd: join(ORACLE_VENV, "bin", "ebx"), args: [] },
+  python: { cmd: join(ORACLE_VENV, "bin", "abx"), args: [] },
   node: { cmd: process.execPath, args: ["--import", TSX_LOADER, NODE_ENTRY] },
 };
 
@@ -51,7 +51,7 @@ const IMPLS = {
 const BASE_ENV_KEYS = ["PATH", "LANG", "LC_ALL", "TMPDIR"];
 
 function makeWorld() {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "ebx-mcpdiff-")));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "abx-mcpdiff-")));
   const home = join(root, "home");
   const cwd = join(root, "cwd");
   const run = join(root, "run");
@@ -64,8 +64,8 @@ function baseEnv(world, extra = {}) {
   for (const k of BASE_ENV_KEYS) if (process.env[k] !== undefined) env[k] = process.env[k];
   env.HOME = world.home;
   env.USERPROFILE = world.home;
-  env.EBX_NO_KEYCHAIN = "1";
-  env.EBX_MCP_RUNTIME_DIR = world.run;
+  env.ABX_NO_KEYCHAIN = "1";
+  env.ABX_MCP_RUNTIME_DIR = world.run;
   env.PYTHONUNBUFFERED = "1";
   env.NO_COLOR = "1";
   env.TMPDIR = join(world.root, "tmp");
@@ -156,7 +156,7 @@ function makeNormalizer(world, extra = []) {
     if (!CONFIG_CMD_PRESENT) t = t.replace(CONFIG_WARNING, "");
     t = t.split(world.root).join("<T>");
     for (const [re, rep] of extra) t = t.replace(re, rep);
-    t = t.replace(/ebx-mcp-deploy-[a-z0-9_]{6,8}\b/g, "ebx-mcp-deploy-XXXX");
+    t = t.replace(/abx-mcp-deploy-[a-z0-9_]{6,8}\b/g, "abx-mcp-deploy-XXXX");
     t = t.replace(/\[\d+\]/g, "[PID]");
     return t;
   };
@@ -198,7 +198,7 @@ for (const target of ["cursor", "claude", "vscode"]) {
   add(`install ${target}: replaces stale entry`, {
     argv: ["mcp", "install", "--target", target],
     env: { E2B_API_KEY: "new" },
-    files: { [`${base}/${file}`]: JSON.stringify({ [target === "vscode" ? "servers" : "mcpServers"]: { "easy-sandbox": { command: "old" }, z: 1 }, a: "é" }) },
+    files: { [`${base}/${file}`]: JSON.stringify({ [target === "vscode" ? "servers" : "mcpServers"]: { "agent-sandbox": { command: "old" }, z: 1 }, a: "é" }) },
     ide,
   });
   add(`install ${target}: jsonc refused`, { argv: ["mcp", "install", "--target", target], files: { [`${base}/${file}`]: '{ // c\n "a": 1,\n}\n' }, ide });
@@ -256,8 +256,8 @@ add("install: invalid utf-8", {
   binFiles: { "home/.cursor/mcp.json": Buffer.from([0x7b, 0xff, 0xfe, 0x7d]) },
 });
 add("install: key from ./.env", { argv: ["mcp", "install", "--target", "cursor"], files: { "cwd/.env": "E2B_API_KEY=dotenv-key\n" }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
-add("install: key from ~/.ebx/.env", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.ebx/.env": "SANDBOX_API_KEY=home-key\n" }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
-add("install: key from config.toml", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.ebx/config.toml": '[transport]\napi_key = "toml-key"\n' }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
+add("install: key from ~/.abx/.env", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.abx/.env": "SANDBOX_API_KEY=home-key\n" }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
+add("install: key from config.toml", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.abx/config.toml": '[transport]\napi_key = "toml-key"\n' }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
 add("install: blank env key falls through", {
   argv: ["mcp", "install", "--target", "cursor"],
   env: { E2B_API_KEY: "  ", SANDBOX_API_KEY: "second" },
@@ -268,19 +268,19 @@ add("install: region flag rejected", { argv: ["mcp", "install", "--target", "cur
 // --- status ----------------------------------------------------------------------------------------------------------
 const STATUS_FILES = {
   all: {
-    "home/.cursor/mcp.json": JSON.stringify({ mcpServers: { "easy-sandbox": { command: "x" } } }),
-    "home/.config/claude/claude_desktop_config.json": JSON.stringify({ mcpServers: { "easy-sandbox": {} } }),
-    "cwd/.vscode/mcp.json": JSON.stringify({ servers: { "easy-sandbox": {} } }),
+    "home/.cursor/mcp.json": JSON.stringify({ mcpServers: { "agent-sandbox": { command: "x" } } }),
+    "home/.config/claude/claude_desktop_config.json": JSON.stringify({ mcpServers: { "agent-sandbox": {} } }),
+    "cwd/.vscode/mcp.json": JSON.stringify({ servers: { "agent-sandbox": {} } }),
   },
   listish: {
-    "home/.cursor/mcp.json": JSON.stringify({ mcpServers: ["easy-sandbox"] }),
-    "home/.config/claude/claude_desktop_config.json": JSON.stringify({ mcpServers: "xx-easy-sandbox-yy" }),
+    "home/.cursor/mcp.json": JSON.stringify({ mcpServers: ["agent-sandbox"] }),
+    "home/.config/claude/claude_desktop_config.json": JSON.stringify({ mcpServers: "xx-agent-sandbox-yy" }),
     "cwd/.vscode/mcp.json": JSON.stringify({ servers: 5 }),
   },
   weird: {
     "home/.cursor/mcp.json": "[]",
     "home/.config/claude/claude_desktop_config.json": "{bad json",
-    "cwd/.vscode/mcp.json": JSON.stringify({ mcpServers: { "easy-sandbox": {} } }),
+    "cwd/.vscode/mcp.json": JSON.stringify({ mcpServers: { "agent-sandbox": {} } }),
   },
   nulls: {
     "home/.cursor/mcp.json": JSON.stringify({ mcpServers: null }),
@@ -321,7 +321,7 @@ for (const [n, content] of Object.entries({
 // --- start validation ------------------------------------------------------------------------------------------------
 add("start: non-loopback needs token", { argv: ["mcp", "start", "--http", "--host", "0.0.0.0", "--auth-token", ""] });
 add("start: non-loopback whitespace token", { argv: ["mcp", "start", "--http", "--host", "0.0.0.0", "--auth-token", "  "] });
-add("start: non-loopback env token empty", { argv: ["mcp", "start", "--http", "--host", "10.0.0.1"], env: { EBX_MCP_AUTH_TOKEN: "" } });
+add("start: non-loopback env token empty", { argv: ["mcp", "start", "--http", "--host", "10.0.0.1"], env: { ABX_MCP_AUTH_TOKEN: "" } });
 add("start: non-loopback background", { argv: ["mcp", "start", "--background", "--host", "0.0.0.0"] });
 add("start: bad port", { argv: ["mcp", "start", "--http", "--port", "abc"] });
 add("start: unknown option", { argv: ["mcp", "start", "--bogus"] });
@@ -351,8 +351,8 @@ D("token file, short", ["--auth-token-file", "token.txt"], { files: { "cwd/token
 D("token file, exactly 8", ["--auth-token-file", "token.txt"], { files: { "cwd/token.txt": "12345678\n" } });
 D("token file, 9 chars", ["--auth-token-file", "token.txt"], { files: { "cwd/token.txt": "123456789\n" } });
 D("token file wins over --generate-token", ["--auth-token-file", "token.txt", "--generate-token"], { files: tokenFile });
-D("env token", ["--api-key", "k"], { env: { EBX_MCP_AUTH_TOKEN: `  ${TOKEN}  ` } });
-D("env token blank", ["--api-key", "k"], { env: { EBX_MCP_AUTH_TOKEN: "   " } });
+D("env token", ["--api-key", "k"], { env: { ABX_MCP_AUTH_TOKEN: `  ${TOKEN}  ` } });
+D("env token blank", ["--api-key", "k"], { env: { ABX_MCP_AUTH_TOKEN: "   " } });
 D("no token", []);
 D("no token, no key", []);
 D("generate token", ["--generate-token"], { env: { E2B_API_KEY: "key" }, generated: true });
@@ -363,7 +363,7 @@ D("explicit api key", ["--generate-token", "--api-key", "cli-key"], { generated:
 D("api key from E2B_API_KEY env (click envvar)", ["--generate-token"], { generated: true, env: { E2B_API_KEY: "envkey" } });
 D("api key from SANDBOX_API_KEY", ["--generate-token"], { generated: true, env: { SANDBOX_API_KEY: "sk" } });
 D("api key from ./.env", ["--generate-token"], { generated: true, files: { "cwd/.env": "E2B_API_KEY=dotenvkey\n" } });
-D("api key from config.toml", ["--generate-token"], { generated: true, files: { "home/.ebx/config.toml": '[transport]\napi_key = "tomlkey"\n' } });
+D("api key from config.toml", ["--generate-token"], { generated: true, files: { "home/.abx/config.toml": '[transport]\napi_key = "tomlkey"\n' } });
 D("api key with yaml-special chars", ["--generate-token", "--api-key", "a: b #c 'd' \"e\""], { generated: true });
 D("api key with leading dash and colon", ["--generate-token", "--api-key=-abc: def"], { generated: true });
 D("api key looks numeric", ["--generate-token", "--api-key", "12345"], { generated: true });
@@ -390,7 +390,7 @@ D("custom domain empty", ["--generate-token", "--custom-domain", ""], { generate
 D("region flag", ["--generate-token", "--region", "cn-shanghai"], { generated: true, env: { E2B_API_KEY: "k" } });
 D("region short flag", ["--generate-token", "-r", "cn-beijing"], { generated: true, env: { E2B_API_KEY: "k" } });
 D("region env", ["--generate-token"], { generated: true, env: { E2B_API_KEY: "k", SANDBOX_REGION: "cn-shenzhen" } });
-D("region from config.toml", ["--generate-token"], { generated: true, env: { E2B_API_KEY: "k" }, files: { "home/.ebx/config.toml": '[transport]\nregion = "cn-beijing"\n' } });
+D("region from config.toml", ["--generate-token"], { generated: true, env: { E2B_API_KEY: "k" }, files: { "home/.abx/config.toml": '[transport]\nregion = "cn-beijing"\n' } });
 D("region flag beats env", ["--generate-token", "--region", "cn-shanghai"], { generated: true, env: { E2B_API_KEY: "k", SANDBOX_REGION: "cn-shenzhen" } });
 D("region from ./.env", ["--generate-token"], { generated: true, env: { E2B_API_KEY: "k" }, files: { "cwd/.env": "SANDBOX_REGION=cn-qingdao\n" } });
 D("api url env", ["--generate-token"], { generated: true, env: { E2B_API_KEY: "k", E2B_API_URL: "http://127.0.0.1:9" } });
@@ -424,7 +424,7 @@ add("mcp: stop --help", { argv: ["mcp", "stop", "--help"] });
 add("mcp: status --help", { argv: ["mcp", "status", "--help"] });
 add("mcp: stop extra arg", { argv: ["mcp", "stop", "now"] });
 add("mcp: -v verbose status", {
-  argv: ["--verbose", "mcp", "status"], files: { "home/.ebx/config.toml": "[transport]\nregion = \"cn-hangzhou\"\n" } });
+  argv: ["--verbose", "mcp", "status"], files: { "home/.abx/config.toml": "[transport]\nregion = \"cn-hangzhou\"\n" } });
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Case execution
@@ -478,7 +478,7 @@ async function runStaticCase(impl, c) {
       if (dir && existsSync(dir) && statSync(dir).isDirectory()) {
         const files = walkFiles(dir);
         for (const [name, content] of Object.entries(files)) written[`artifact/${name}`] = content;
-        const m = /EBX_MCP_AUTH_TOKEN: (\S+)/.exec(files["config.yaml"] ?? "");
+        const m = /ABX_MCP_AUTH_TOKEN: (\S+)/.exec(files["config.yaml"] ?? "");
         if (c.generated && m) generatedToken = m[1].replace(/^['"]|['"]$/g, "");
         if (c.tempOut && dir.startsWith(world.root)) rmSync(dir, { recursive: true, force: true });
       }
@@ -638,7 +638,7 @@ for (const [label, extraArgs, extraEnv] of [
   });
 }
 
-// STDIO: signal handling (the process waits on stdin; SIGTERM from `ebx mcp stop`, SIGINT from Ctrl-C).
+// STDIO: signal handling (the process waits on stdin; SIGTERM from `abx mcp stop`, SIGINT from Ctrl-C).
 for (const signal of ["SIGTERM", "SIGINT"]) {
   await jsonrpcSession(null, `start stdio killed by ${signal}`, async (which, world, stub) => {
     const env = baseEnv(world, {});
@@ -661,7 +661,7 @@ for (const signal of ["SIGTERM", "SIGINT"]) {
   });
 }
 
-// `ebx mcp stop` against a live STDIO server.
+// `abx mcp stop` against a live STDIO server.
 await jsonrpcSession(null, "start stdio + mcp stop + mcp status", async (which, world, stub) => {
   const env = baseEnv(world, {});
   const proc = spawnImpl(which, ["mcp", "start", "--api-key", "k", "--api-url", `http://127.0.0.1:${stub.port}`], world, env);
@@ -723,7 +723,7 @@ for (const [label, args, env, signal] of [
   ["no auth, SIGTERM", [], {}, "SIGTERM"],
   ["no auth, SIGINT", [], {}, "SIGINT"],
   ["auth token flag, SIGTERM", ["--auth-token", "sekret"], {}, "SIGTERM"],
-  ["auth token env, SIGTERM", [], { EBX_MCP_AUTH_TOKEN: "envsekret" }, "SIGTERM"],
+  ["auth token env, SIGTERM", [], { ABX_MCP_AUTH_TOKEN: "envsekret" }, "SIGTERM"],
   ["quiet, SIGTERM", ["--quiet-root"], {}, "SIGTERM"],
 ]) {
   await jsonrpcSession(null, `start http foreground (${label})`, async (which, world, stub) => {
@@ -739,7 +739,7 @@ for (const [label, args, env, signal] of [
       probes.push(["health", await httpGet(port, "/health")]);
       probes.push(["mcp GET", await httpGet(port, "/mcp")]);
       probes.push(["mcp POST noauth", await httpGet(port, "/mcp", { "content-type": "application/json" }, "POST", JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }))]);
-      const tok = args.includes("--auth-token") ? "sekret" : env.EBX_MCP_AUTH_TOKEN;
+      const tok = args.includes("--auth-token") ? "sekret" : env.ABX_MCP_AUTH_TOKEN;
       if (tok) {
         probes.push(["mcp POST auth", await httpGet(port, "/mcp", { "content-type": "application/json", authorization: `Bearer ${tok}` }, "POST", JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } }))]);
       }
@@ -788,7 +788,7 @@ await jsonrpcSession(null, "start http: unresolvable host", async (which, world)
 // Background HTTP server: start -> status -> health -> stop.
 for (const [label, extraArgs, env] of [
   ["no token", [], {}],
-  ["token + key via env", [], { EBX_MCP_AUTH_TOKEN: "bg-token", E2B_API_KEY: "bgkey" }],
+  ["token + key via env", [], { ABX_MCP_AUTH_TOKEN: "bg-token", E2B_API_KEY: "bgkey" }],
   ["domain + url args", ["--domain", "d.example"], {}],
 ]) {
   await jsonrpcSession(null, `start --background (${label})`, async (which, world, stub) => {

@@ -65,7 +65,7 @@ describe("KI-003 command timeout", () => {
     const seen = install((r) => (isStart(r) ? new Response(200, { content: stallAfterStart() }) : new Response(200, { json: {} })));
     const err = await raises(() => commands().run("sleep 60", { timeout: 3 }), CommandTimeoutError);
     expect(kills(seen).map(bodyOf)).toEqual([{ process: { pid: 321 }, signal: "SIGNAL_SIGKILL" }]);
-    expect(err.message).toBe("Command did not finish within 3s (no output for 8s; pid 321 was asked to stop).");
+    expect(err.message).toBe("Command timed out: did not finish within 3s (no output for 8s; pid 321 was asked to stop).");
   });
 
   it("test_kill_failure_never_masks_the_timeout", async () => {
@@ -79,7 +79,7 @@ describe("KI-003 command timeout", () => {
     });
     const err = await raises(() => commands().run("sleep 60", { timeout: 3 }), CommandTimeoutError);
     expect(kills(seen)).toEqual([]);
-    expect(err.message).toBe("Command did not finish within 3s (no output for 8s).");
+    expect(err.message).toBe("Command timed out: did not finish within 3s (no output for 8s).");
   });
 
   it("test_stream_and_start_map_timeouts_too", async () => {

@@ -33,14 +33,14 @@ N/A — this decision removes unused internal fields. No public API changes.
   inferior flexibility; goes against industry convention. Rejected.
 
 ## Dependencies
-- `src/easy_sandbox/models/template.py` — `TemplateConfig` model
+- `src/agent_sandbox/models/template.py` — `TemplateConfig` model
 
 ## Test Strategy
 - Verify existing template YAML files parse without the removed fields.
-- Ensure `ebx template deploy` still works with Dockerfile-based builds.
+- Ensure `abx template deploy` still works with Dockerfile-based builds.
 
 ## Files changed
-- `src/easy_sandbox/models/template.py` — removed legacy fields and `to_dockerfile()`
+- `src/agent_sandbox/models/template.py` — removed legacy fields and `to_dockerfile()`
 
 ## Acceptance criteria
 - ✅ `TemplateConfig` no longer accepts `python_packages`, `system_packages`,

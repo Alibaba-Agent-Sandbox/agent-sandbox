@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Black-box E2E runner for ANY `ebx` implementation. See e2e/README.md.
-//   EBX_BIN="/path/to/ebx" node e2e/run.mjs [--suite id[,id]] [--filter regex] [--json out.json] [--markdown out.md]
+// Black-box E2E runner for ANY `abx` implementation. See e2e/README.md.
+//   ABX_BIN="/path/to/abx" node e2e/run.mjs [--suite id[,id]] [--filter regex] [--json out.json] [--markdown out.md]
 import { main } from './lib/runner.mjs';
 
 const args = process.argv.slice(2);
@@ -15,7 +15,7 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--verbose') opts.verbose = true;
   else if (a === '--list') opts.list = true;
   else if (a === '--help' || a === '-h') {
-    console.log('usage: EBX_BIN=<ebx> node e2e/run.mjs [--suite ids] [--filter regex] [--json file] [--markdown file] [--bail] [--verbose] [--list]');
+    console.log('usage: ABX_BIN=<abx> node e2e/run.mjs [--suite ids] [--filter regex] [--json file] [--markdown file] [--bail] [--verbose] [--list]');
     process.exit(0);
   } else { console.error(`unknown option ${a}`); process.exit(2); }
 }

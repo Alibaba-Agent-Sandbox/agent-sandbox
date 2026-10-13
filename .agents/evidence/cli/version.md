@@ -5,7 +5,7 @@
 ### --version
 
 ```
-$ ebx --version
+$ abx --version
 cli, version 0.2.0
 Exit code: 0
 ```

@@ -2,10 +2,10 @@
  * The server SDK reference given to the coding agent must match the real SDK.
  *
  * Port of `tests/test_agent/test_template_guide.py`. The guide is prompt text, so nothing else would notice if
- * `easy_sandbox.server` changed and the guide kept teaching the agent an API that no longer exists. The Python
+ * `agent_sandbox.server` changed and the guide kept teaching the agent an API that no longer exists. The Python
  * facts (capability groups, `__all__`, the `serve` default port) and the reference `commands.py` run are obtained
  * from the real container-side package through `python3` (see `tests/helpers/agentSupport.ts` for how the package
- * is located: `EBX_SERVER_SDK_SRC`, `ORIG_REPO`, or the monorepo `python-sdk/`). Those cross-checks are skipped (with a
+ * is located: `ABX_SERVER_SDK_SRC`, `ORIG_REPO`, or the monorepo `python-sdk/`). Those cross-checks are skipped (with a
  * notice on stderr) when `python3` or the package is unavailable; the `TestGuideGolden` tests need neither.
  */
 
@@ -41,7 +41,7 @@ function probeEnv(): { python: string; env: NodeJS.ProcessEnv } {
   if (python === null) throw new Error("python3 is required to check the guide against the real server SDK");
   const sdk = serverSdkPythonPath(python);
   if (sdk === null) {
-    throw new Error("easy_sandbox.server is not importable: set EBX_SERVER_SDK_SRC or ORIG_REPO");
+    throw new Error("agent_sandbox.server is not importable: set ABX_SERVER_SDK_SRC or ORIG_REPO");
   }
   return { python, env: { ...process.env, PYTHONPATH: sdk, PYTHONDONTWRITEBYTECODE: "1" } };
 }
@@ -93,7 +93,7 @@ describe("TestGuideText", () => {
 
   it("test_sdk_install_pattern_is_the_established_one", () => {
     expect(TEMPLATE_GUIDE).toContain("COPY *.whl /tmp/");
-    expect(TEMPLATE_GUIDE).toContain("pip install --no-cache-dir easy-sandbox-server");
+    expect(TEMPLATE_GUIDE).toContain("pip install --no-cache-dir agent-sandbox-server");
   });
 
   it("test_no_clarification_wording_leaks_into_the_prompt", () => {
@@ -134,7 +134,7 @@ describe("TestGuideText", () => {
   });
 
   serverIt("test_imports_shown_in_the_guide_exist", () => {
-    const block = /from easy_sandbox\.server import \(([\s\S]*?)\)/.exec(TEMPLATE_GUIDE);
+    const block = /from agent_sandbox\.server import \(([\s\S]*?)\)/.exec(TEMPLATE_GUIDE);
     expect(block).not.toBeNull();
     const names = (block as RegExpExecArray)[1]!
       .replace(/\n/g, " ")
@@ -198,8 +198,8 @@ describe("TestGuideGolden", () => {
   });
 
   it("reference commands.py is provider-free and serves only as main", () => {
-    expect(REFERENCE_COMMANDS_PY).toContain("from easy_sandbox.server import");
-    expect(REFERENCE_COMMANDS_PY).not.toMatch(/alicloud|opensandbox|easy_sandbox\.providers/);
+    expect(REFERENCE_COMMANDS_PY).toContain("from agent_sandbox.server import");
+    expect(REFERENCE_COMMANDS_PY).not.toMatch(/alicloud|opensandbox|agent_sandbox\.providers/);
     expect(REFERENCE_COMMANDS_PY).toContain('if __name__ == "__main__":');
     const serveAt = REFERENCE_COMMANDS_PY.indexOf("server.serve(port=9000)");
     expect(serveAt).toBeGreaterThan(REFERENCE_COMMANDS_PY.indexOf('if __name__ == "__main__":'));

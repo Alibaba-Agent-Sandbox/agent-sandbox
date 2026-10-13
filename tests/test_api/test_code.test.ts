@@ -579,7 +579,7 @@ describe("TestCodeRunFallback", () => {
 
     queueStreams(process_protocol, [_mock_process_stream(), _mock_process_stream({ stdout: "x\n" }), _mock_process_stream()]);
 
-    const cap = captureLogs("easy_sandbox.api.code", 30);
+    const cap = captureLogs("agent_sandbox.api.code", 30);
     try {
       await code_module.run("print('x')");
     } finally {
@@ -730,7 +730,7 @@ describe("TestCodeCapabilityGating", () => {
 
   it("test_resolved_capabilities_without_code_gates_run", async () => {
     // A template that resolves WITHOUT 'code' blocks run() end-to-end.
-    const tmp_path = mkdtempSync(join(tmpdir(), "ebx-code-"));
+    const tmp_path = mkdtempSync(join(tmpdir(), "abx-code-"));
     const yaml_file = join(tmp_path, "template.yaml");
     writeFileSync(
       yaml_file,
@@ -753,7 +753,7 @@ describe("TestCodeCapabilityGating", () => {
   it("test_malformed_template_never_grants_code", async () => {
     // Capability resolution failure is fail-closed: a matched-but-malformed template raises rather than silently
     // granting DEFAULT_CAPABILITIES (which would include 'code').
-    const tmp_path = mkdtempSync(join(tmpdir(), "ebx-code-"));
+    const tmp_path = mkdtempSync(join(tmpdir(), "abx-code-"));
     const yaml_file = join(tmp_path, "template.yaml");
     writeFileSync(
       yaml_file,

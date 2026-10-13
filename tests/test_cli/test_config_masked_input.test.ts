@@ -1,5 +1,5 @@
 /**
- * Tests for the masked secret input used by `ebx config init` (port of `tests/test_cli/test_config_masked_input.py`).
+ * Tests for the masked secret input used by `abx config init` (port of `tests/test_cli/test_config_masked_input.py`).
  *
  * `_feedMasked` / `_readMaskedLine` are driven with an injected reader/writer; a real-pty suite (POSIX only, driven
  * through a small Python `pty` helper) pins the asterisk behaviour end to end: one `*` per character, never the
@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
 
 import "../../src/cli/main.js"; // load the root group first: config_cmd and main import each other
 import { _feedMasked, _maskSupported, _maskValue, _readMaskedLine } from "../../src/cli/commands/config_cmd.js";
-import { EOFError, KeyboardInterrupt } from "../../src/framework/index.js";
+import { EOFError, KeyboardInterrupt } from "../../src/cli/errors.js";
 import { withConfig } from "../helpers/configSupport.js";
 
 const CONFIG_CMD_URL = pathToFileURL(fileURLToPath(new URL("../../src/cli/commands/config_cmd.ts", import.meta.url))).href;
@@ -118,7 +118,7 @@ if (PTY_SKIP !== null) console.warn(`SKIPPED real-pty masked input tests: ${PTY_
  * appears on the terminal, mirroring a user typing and then pressing Ctrl-C.
  */
 function runPromptInPty(payload: string, opts: { hold?: number | null; wait_for?: string | null } = {}): [string, string] {
-  const dir = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-pty-"));
+  const dir = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-pty-"));
   try {
     const script = path.join(dir, "child.mjs");
     fs.writeFileSync(script, CHILD_CODE);

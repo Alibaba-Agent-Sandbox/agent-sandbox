@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { activeProviderId } from "../../src/providers/active.js";
-import { CapabilityNotSupportedError, InvalidCredentialsError } from "../../src/models/errors.js";
+import { CapabilityNotSupportedError, InvalidCredentialsError, SandboxNotFoundError } from "../../src/models/errors.js";
 import { ProcessChunkType } from "../../src/models/process.js";
 import { SandboxConfig } from "../../src/models/sandbox.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
@@ -28,7 +28,7 @@ import { LOCAL_PROCESS, TEST_HOST_VERSION, pythonAvailable, writePlugin } from "
 const iso = useIso();
 let tmp = "";
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-sbp-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-sbp-"));
 });
 afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
@@ -106,8 +106,8 @@ describe.skipIf(!pythonAvailable())("reference plugin", () => {
         await sp.connect(info.sandbox_id);
         expect.unreachable();
       } catch (exc) {
-        expect(exc).toBeInstanceOf(E.ProviderResourceNotFoundError);
-        expect((exc as E.ProviderError).code).toBe("E8005");
+        expect(exc).toBeInstanceOf(SandboxNotFoundError);
+        expect((exc as SandboxNotFoundError).code).toBe("E2009");
       }
     } finally {
       await infra.close?.();
@@ -149,12 +149,12 @@ describe.skipIf(!pythonAvailable())("reference plugin", () => {
     expect(resolveProviderId()).toBe("local-process");
     settings.setDefaultProvider(null);
     expect(resolveProviderId()).toBe("alicloud-express");
-    iso.setenv("EBX_PROVIDER", "local-process");
+    iso.setenv("ABX_PROVIDER", "local-process");
     expect(resolveProviderId()).toBe("local-process");
   });
 
   it("test_explicit_provider_beats_ambient_default", () => {
-    iso.setenv("EBX_PROVIDER", "local-process");
+    iso.setenv("ABX_PROVIDER", "local-process");
     expect(resolveProviderId("alicloud-express")).toBe("alicloud-express");
   });
 
@@ -185,7 +185,7 @@ describe("provider-level behaviour that needs no plugin runtime", () => {
       expect.unreachable();
     } catch (exc) {
       expect(exc).toBeInstanceOf(InvalidCredentialsError);
-      expect(String(exc)).toContain("EBX_DEMO_PROV_API_TOKEN");
+      expect(String(exc)).toContain("ABX_DEMO_PROV_API_TOKEN");
     }
   });
 

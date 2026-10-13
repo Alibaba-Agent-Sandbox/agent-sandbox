@@ -1,6 +1,6 @@
-// Regression tests for the findings of the adversarial review of the framework / output / REPL / sandbox commands area
+// Regression tests for the findings of the adversarial review of the command framework / output / REPL / sandbox commands area
 // (parity/review/commands.md, C-01..C-11). Every expected value is the behaviour of the Python oracle (the original
-// `ebx`) and is hard-coded, so no oracle is needed to run them.
+// `abx`) and is hard-coded, so no oracle is needed to run them.
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import http from "node:http";
@@ -12,7 +12,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { startStub } from "../../parity/diff/stub.mjs";
 
 const CLI_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const ENTRY = path.join(CLI_ROOT, "src/bin/ebx.ts");
+const ENTRY = path.join(CLI_ROOT, "src/bin/abx.ts");
 const TSX = pathToFileURL(path.join(CLI_ROOT, "node_modules/tsx/dist/esm/index.mjs")).href;
 const PTY_RUN = path.join(CLI_ROOT, "parity/diff/pty_run.py");
 const SB = "sbx-ev-001";
@@ -34,9 +34,9 @@ function baseEnv(home: string, url: string | null, extra: Record<string, string 
     TERM: "dumb",
     NO_COLOR: "1",
     COLUMNS: "100",
-    EBX_NO_KEYCHAIN: "1",
+    ABX_NO_KEYCHAIN: "1",
   };
-  if (url) Object.assign(env, { EBX_SANDBOX_API_KEY: "k-adversarial-stub", EBX_SANDBOX_BASE_URL: url, EBX_SANDBOX_DOMAIN: "stub.invalid" });
+  if (url) Object.assign(env, { ABX_SANDBOX_API_KEY: "k-adversarial-stub", ABX_SANDBOX_BASE_URL: url, ABX_SANDBOX_DOMAIN: "stub.invalid" });
   for (const [k, v] of Object.entries(extra)) {
     if (v === null) delete env[k];
     else env[k] = v;
@@ -79,11 +79,11 @@ function collect(cmd: string, args: string[], opts: { cwd: string; env: Record<s
   });
 }
 
-function runEbx(args: string[], opts: { home: string; cwd: string; url: string | null; env?: Record<string, string | null>; shell?: string }): Promise<Run> {
+function runAbx(args: string[], opts: { home: string; cwd: string; url: string | null; env?: Record<string, string | null>; shell?: string }): Promise<Run> {
   const env = baseEnv(opts.home, opts.url, opts.env);
   const argv = ["--import", TSX, ENTRY, ...args];
   if (opts.shell) {
-    env.EBX = [process.execPath, ...argv].map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(" ");
+    env.ABX = [process.execPath, ...argv].map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(" ");
     return collect("bash", ["-c", opts.shell], { cwd: opts.cwd, env, timeoutMs: 30000 });
   }
   return collect(process.execPath, argv, { cwd: opts.cwd, env, timeoutMs: 30000 });
@@ -102,7 +102,7 @@ const strip = (s: string) => s.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, "").replace(
 describe("commands (review regressions)", () => {
   it("ADV-commands-01 int options accept Unicode decimal digits like Python int()", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runEbx(["list", "--limit", "\u0663"], { home, cwd, url: stub.url });
+      const r = await runAbx(["list", "--limit", "\u0663"], { home, cwd, url: stub.url });
       expect(r.stderr).not.toContain("not a valid integer");
       expect(r.status).toBe(0);
       const sent = (await log()).find((e) => e.path === "/sandboxes");
@@ -112,7 +112,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-02 integers above 2**53 keep full precision", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      await runEbx(["list", "--limit", "99999999999999999999"], { home, cwd, url: stub.url });
+      await runAbx(["list", "--limit", "99999999999999999999"], { home, cwd, url: stub.url });
       const sent = (await log()).find((e) => e.path === "/sandboxes");
       expect(sent?.query?.limit).toBe("99999999999999999999");
     });
@@ -120,7 +120,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-03 a timeout above 2**31-1 ms does not fire immediately (exec --timeout 2147483648)", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runEbx(["exec", SB, "--timeout", "2147483648", "echo hi"], { home, cwd, url: stub.url });
+      const r = await runAbx(["exec", SB, "--timeout", "2147483648", "echo hi"], { home, cwd, url: stub.url });
       expect(r.stderr).not.toContain("TimeoutOverflowWarning");
       expect(r.stderr).not.toContain("E3001");
       expect(r.status).toBe(0);
@@ -131,7 +131,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-04 a negative exec timeout expires before any Start request is sent (already-expired ConnectTimeout -> E3001)", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runEbx(["exec", SB, "--timeout", "-5", "echo hi"], { home, cwd, url: stub.url });
+      const r = await runAbx(["exec", SB, "--timeout", "-5", "echo hi"], { home, cwd, url: stub.url });
       // `--timeout -5` becomes httpx.Timeout(0). That expires as ConnectTimeout before any bytes (AT-12); the CLI
       // maps TimeoutException to E3001. A ConnectTimeout under a positive timeout is still ConnectionError_ (KI-003).
       expect(r.status).toBe(5);
@@ -143,7 +143,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-05 --log-level info prints the httpx 'HTTP Request:' line for each request", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runEbx(["--log-level", "info", "list"], { home, cwd, url: stub.url });
+      const r = await runAbx(["--log-level", "info", "list"], { home, cwd, url: stub.url });
       expect(r.status).toBe(0);
       expect(r.stderr).toMatch(/^INFO: HTTP Request: GET http:\/\/127\.0\.0\.1:\d+\/sandboxes\S* "HTTP\/1\.1 200 OK"$/m);
     });
@@ -151,7 +151,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-06 create --env __proto__=1 sends the key", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      await runEbx(["create", "--template", "base", "--env", "__proto__=1", "--metadata", "__proto__=2"], { home, cwd, url: stub.url });
+      await runAbx(["create", "--template", "base", "--env", "__proto__=1", "--metadata", "__proto__=2"], { home, cwd, url: stub.url });
       const post = (await log()).find((e) => e.method === "POST" && e.path === "/sandboxes");
       const body = post?.body;
       expect(JSON.stringify(body)).toContain('"__proto__":"1"');
@@ -161,7 +161,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!existsSync("/dev/full"))("ADV-commands-07 a failed stdout write is reported (config list > /dev/full: OS error, exit 120 like Python)", async () => {
     await withStub(async ({ home, cwd }) => {
-      const r = await runEbx(["config", "list"], { home, cwd, url: null, shell: 'eval "$EBX" > /dev/full' });
+      const r = await runAbx(["config", "list"], { home, cwd, url: null, shell: 'eval "$ABX" > /dev/full' });
       // Python: `OS error: [Errno 28] ...` from the failed flush, then the interpreter's final flush fails again
       // ("Exception ignored in: <_io.TextIOWrapper name='<stdout>' ...>") and the exit status becomes 120.
       expect(r.status).toBe(120);
@@ -174,14 +174,14 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-08 FORCE_COLOR together with NO_COLOR does not leak a Node warning on stderr", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runEbx(["config", "list"], { home, cwd, url: stub.url, env: { FORCE_COLOR: "1", NO_COLOR: "1" } });
+      const r = await runAbx(["config", "list"], { home, cwd, url: stub.url, env: { FORCE_COLOR: "1", NO_COLOR: "1" } });
       expect(r.stderr).not.toContain("ignored due to the 'FORCE_COLOR'");
     });
   });
 
-  it("ADV-commands-09 a scheme-less EBX_SANDBOX_BASE_URL reports the httpx protocol message", async () => {
+  it("ADV-commands-09 a scheme-less ABX_SANDBOX_BASE_URL reports the httpx protocol message", async () => {
     await withStub(async ({ home, cwd }) => {
-      const r = await runEbx(["list"], { home, cwd, url: "127.0.0.1:9" });
+      const r = await runAbx(["list"], { home, cwd, url: "127.0.0.1:9" });
       expect(r.stderr).toContain("Request URL is missing an 'http://' or 'https://' protocol.");
       expect(r.stderr).not.toContain("Invalid URL");
     });
@@ -189,7 +189,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!existsSync("/dev/full"))("ADV-commands-10 a download write failure carries no filename (OS error: [Errno 28] No space left on device)", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runEbx(["download", SB, "/home/user/hello.txt", "/dev/full"], { home, cwd, url: stub.url });
+      const r = await runAbx(["download", SB, "/home/user/hello.txt", "/dev/full"], { home, cwd, url: stub.url });
       expect(r.stderr).toContain("OS error: [Errno 28] No space left on device");
       expect(r.stderr).not.toContain("/dev/full");
     });
@@ -217,7 +217,7 @@ describe("commands (review regressions)", () => {
     homes.push(home, cwd);
     try {
       const url = `http://127.0.0.1:${(server.address() as any).port}`;
-      const r = await runEbx(["download", SB, "/trunc", "out"], { home, cwd, url });
+      const r = await runAbx(["download", SB, "/trunc", "out"], { home, cwd, url });
       expect(r.stderr).toContain("(received 1000 bytes, expected 5000)");
     } finally {
       server.closeAllConnections();
@@ -227,7 +227,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!havePython)("ADV-commands-12 the REPL runs every line of a multi-line paste (type-ahead is not dropped)", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const P = "ebx:sbx-ev-0> ";
+      const P = "abx:sbx-ev-0> ";
       const r = await ptySession(["connect", SB], { home, cwd, url: stub.url, timeout: 20, steps: [{ expect: P, send: "echo a\recho b\recho c\rexit\r" }] });
       const out = strip(r.output);
       expect(r.timed_out).toBe(false);
@@ -238,7 +238,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!havePython)("ADV-commands-13 the REPL keeps working after a very long (5000 char) line", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const P = "ebx:sbx-ev-0> ";
+      const P = "abx:sbx-ev-0> ";
       const r = await ptySession(["connect", SB], {
         home,
         cwd,
@@ -257,7 +257,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-14 process signal --signal above 2**63 is rejected like python ('Integer exceeds 64-bit range')", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runEbx(["sandbox", "process", "signal", SB, "1", "--signal", "99999999999999999999"], { home, cwd, url: stub.url });
+      const r = await runAbx(["sandbox", "process", "signal", SB, "1", "--signal", "99999999999999999999"], { home, cwd, url: stub.url });
       const sentSignal = (await log()).some((e) => e.path === "/process.Process/SendSignal");
       expect(sentSignal).toBe(false);
       expect(r.status).not.toBe(0);
@@ -266,7 +266,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-15 the oversized request timeout (--request-timeout 99999999999) is not clamped to 1 ms", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runEbx(["create", "--template", "base", "--request-timeout", "99999999999"], { home, cwd, url: stub.url });
+      const r = await runAbx(["create", "--template", "base", "--request-timeout", "99999999999"], { home, cwd, url: stub.url });
       expect(r.stderr).not.toContain("TimeoutOverflowWarning");
       expect(r.status).toBe(0);
     });
@@ -274,7 +274,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!havePython)("ADV-commands-16 pasted lines run in order, Ctrl+D on an empty prompt after type-ahead disconnects (C-01)", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const P = "ebx:sbx-ev-0> ";
+      const P = "abx:sbx-ev-0> ";
       const r = await ptySession(["connect", SB], { home, cwd, url: stub.url, timeout: 20, steps: [{ expect: P, send: "echo a\recho b\r\x04" }] });
       expect(r.timed_out).toBe(false);
       expect(r.code).toBe(0);
@@ -285,7 +285,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!havePython)("ADV-commands-17 Ctrl+W deletes a whitespace-delimited word (kills do not merge) and Ctrl+Y yanks it back (C-11)", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const P = "ebx:sbx-ev-0> ";
+      const P = "abx:sbx-ev-0> ";
       const r = await ptySession(["connect", SB], {
         home,
         cwd,
@@ -305,7 +305,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!havePython)("ADV-commands-18 TERM=dumb keeps line editing (history, Ctrl+A/K/U) like Python's readline (C-11)", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const P = "ebx:sbx-ev-0> ";
+      const P = "abx:sbx-ev-0> ";
       const env = baseEnv(home, stub.url, { TERM: "dumb", NO_COLOR: null });
       const spec = {
         argv: [process.execPath, "--import", TSX, ENTRY, "connect", SB],

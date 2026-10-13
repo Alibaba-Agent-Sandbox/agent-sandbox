@@ -21,7 +21,7 @@ Two structural constraints made "just let the agent research" non-trivial:
    session ends on the first valid call".  Running research *inside* the
    structured round would cut the tool loop before any research happened.
 2. **The research must use the agent's own tools, not a hand-rolled
-   searcher.**  Easy Sandbox must not re-implement a web-search client or an
+   searcher.**  Agent Sandbox must not re-implement a web-search client or an
    agent loop; the task forbids growing one.
 
 Separately, the interaction contract had three UX gaps: the prompt showed an
@@ -32,7 +32,7 @@ instead of the instruction they are.
 
 ## Verified facts (qwen-code 0.15.11, 2026-09-29)
 
-Re-verified on this machine via `~/.ebx/bin/qwen --help` plus a source-level
+Re-verified on this machine via `~/.abx/bin/qwen --help` plus a source-level
 read of the shipped `cli.js` (no credentials were read; live model calls were
 not available):
 
@@ -71,7 +71,7 @@ not available):
 
 Generation later resumes the same session, so the model keeps the
 description, the research summary, and every Q/A pair in its own memory —
-Easy Sandbox never replays the transcript by hand.
+Agent Sandbox never replays the transcript by hand.
 
 ### What counts as a question
 
@@ -117,7 +117,7 @@ business decisions the agent cannot infer may count as missing.
 session_id) -> bool` (delegating to `clarify.run_research`); the orchestration
 in `_clarify_requirements` runs research → assess on round 1 and assess-only
 (`--resume`) afterwards.  The threshold gate (`CLARITY_THRESHOLD = 0.8`)
-remains Easy Sandbox's verdict, not the model's.
+remains Agent Sandbox's verdict, not the model's.
 
 ### Positional prompt convergence
 
@@ -176,16 +176,16 @@ version branching is required.
 
 ## Files changed
 
-- `src/easy_sandbox/agent/clarify.py` — two-phase rewrite: `run_research`,
+- `src/agent_sandbox/agent/clarify.py` — two-phase rewrite: `run_research`,
   `research_prompt`, delegation detection, anti-repetition prompts, new
   turn/timeout budgets, schema descriptions
-- `src/easy_sandbox/agent/coding_agent.py` — `research()` on the protocol and
+- `src/agent_sandbox/agent/coding_agent.py` — `research()` on the protocol and
   `QwenCodeBackend`
-- `src/easy_sandbox/cli/commands/sandbox.py` — research-first
+- `src/agent_sandbox/cli/commands/sandbox.py` — research-first
   `_clarify_requirements`, `Question N` prompts, asked-tracking, repeated /
   safety-limit wording, `_phase_status` spinner/progress helper, generation
   spinner, `create --help` text
-- `src/easy_sandbox/agent/qwen_code.py` / `src/easy_sandbox/api/deploy.py` —
+- `src/agent_sandbox/agent/qwen_code.py` / `src/agent_sandbox/api/deploy.py` —
   positional prompt
 - `scripts/evidence_cases.py` / `scripts/capture_cli_evidence.py` /
   `tests/test_cli_evidence/test_evidence_snapshots.py` — research mock,

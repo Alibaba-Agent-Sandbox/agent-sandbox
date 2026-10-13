@@ -1,5 +1,5 @@
 /**
- * Branch coverage for `sandbox files|process|system|capabilities|shell-stream` beyond the ported Python tests
+ * Branch coverage for `sandbox files|process|system|capabilities` beyond the ported Python tests
  * (`system info/ports/packages/metrics`, JSON/quiet/error routing, quoting). Expected texts were checked against the
  * Python oracle with `parity/diff/sandbox_subcmds.mjs`.
  */
@@ -9,10 +9,9 @@ import "../_support/isolatedHome.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
-import { _wrapShellCmd } from "../../src/cli/commands/sandbox_system.js";
 import { cli } from "../../src/cli/main.js";
 import { FileInfo, FileType } from "../../src/models/filesystem.js";
-import { ProcessChunk, ProcessChunkType, ProcessInfo, ProcessResult } from "../../src/models/process.js";
+import { ProcessInfo, ProcessResult } from "../../src/models/process.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
 type Mock = ReturnType<typeof vi.fn>;
@@ -112,25 +111,6 @@ describe("TestFilesBranches", () => {
 });
 
 describe("TestProcessBranches", () => {
-  it("test_start_routes_streams_and_exit_message", async () => {
-    const sb = _sandbox();
-    sb.commands.run.mockResolvedValue(ok("out", { stderr: "err", exit_code: 3, execution_time: 0.25 }));
-    const result = await invoke(sb, ["sandbox", "process", "start", "sbx", "-c", "x"]);
-    expect(result.exit_code).toBe(3);
-    expect(result.stdout).toBe("out");
-    expect(result.stderr).toBe("errProcess exited with code 3.\n");
-    expect(sb.commands.run).toHaveBeenCalledWith("x", { timeout: 300, cwd: "" });
-  });
-
-  it("test_start_json_keeps_float_execution_time", async () => {
-    const sb = _sandbox();
-    sb.commands.run.mockResolvedValue(ok("", { exit_code: 0, execution_time: 0 }));
-    const result = await invoke(sb, ["--json", "sandbox", "process", "start", "sbx", "-c", "x"]);
-    expect(result.stdout).toBe(
-      '{\n  "stdout": "",\n  "stderr": "",\n  "exit_code": 0,\n  "execution_time": 0.0\n}\n',
-    );
-  });
-
   it("test_list_quiet_rows", async () => {
     const sb = _sandbox();
     sb.commands.list.mockResolvedValue([new ProcessInfo({ pid: 3 })]);
@@ -338,54 +318,5 @@ describe("TestSystemBranches", () => {
     sb.capabilities = new Set(["shell", "code", "files"]);
     const result = await invoke(sb, ["sandbox", "capabilities", "sbx"]);
     expect(result.stdout).toBe("Capabilities:\n  - code\n  - files\n  - shell\n");
-  });
-});
-
-describe("TestShellStreamBranches", () => {
-  const chunk = (type: ProcessChunkType, data = "", exit_code: number | null = null) =>
-    new ProcessChunk({ type, data, exit_code });
-
-  async function* gen(chunks: ProcessChunk[]) {
-    for (const c of chunks) yield c;
-  }
-
-  it("test_wrap_shell_cmd_only_wraps_metacharacters", () => {
-    expect(_wrapShellCmd("ls -la /tmp")).toBe("ls -la /tmp");
-    expect(_wrapShellCmd("echo $HOME")).toBe("sh -c 'echo $HOME'");
-    expect(_wrapShellCmd("echo `date`")).toBe("sh -c 'echo `date`'");
-    expect(_wrapShellCmd("echo a\necho b")).toBe("sh -c 'echo a\necho b'");
-    expect(_wrapShellCmd("echo a\\ b")).toBe("sh -c 'echo a\\ b'");
-    expect(_wrapShellCmd("echo \"a\" 'b'")).toBe(`sh -c 'echo "a" '"'"'b'"'"''`);
-    expect(_wrapShellCmd("ls | wc -l")).toBe("sh -c 'ls | wc -l'");
-    expect(_wrapShellCmd("ls *.py")).toBe("ls *.py");
-  });
-
-  it("test_stream_wraps_command_and_routes_channels", async () => {
-    const sb = _sandbox();
-    sb.commands.stream.mockReturnValue(
-      gen([
-        chunk(ProcessChunkType.STDOUT, "o1"),
-        chunk(ProcessChunkType.STDERR, "e1"),
-        chunk(ProcessChunkType.STDOUT, ""),
-        chunk(ProcessChunkType.EXIT, "", 3),
-      ]),
-    );
-    const result = await invoke(sb, ["sandbox", "shell-stream", "sbx", "-c", "echo $HOME"]);
-    expect(result.exit_code).toBe(3);
-    expect(result.stdout).toBe("o1");
-    expect(result.stderr).toBe("e1");
-    expect(sb.commands.stream).toHaveBeenCalledWith("sh -c 'echo $HOME'", { timeout: 300, cwd: "" });
-  });
-
-  it("test_stream_json_reports_last_exit_code_and_missing_exit_is_zero", async () => {
-    const sb = _sandbox();
-    sb.commands.stream.mockReturnValue(gen([chunk(ProcessChunkType.EXIT, "", 3), chunk(ProcessChunkType.EXIT, "", 0)]));
-    const last = await invoke(sb, ["--json", "sandbox", "shell-stream", "sbx", "-c", "true"]);
-    expect(last.exit_code).toBe(0);
-    expect(JSON.parse(last.stdout)).toEqual({ exit_code: 0 });
-    sb.commands.stream.mockReturnValue(gen([chunk(ProcessChunkType.STDOUT, "x")]));
-    const none = await invoke(sb, ["sandbox", "shell-stream", "sbx", "-c", "true"]);
-    expect(none.exit_code).toBe(0);
-    expect(none.stdout).toBe("x");
   });
 });

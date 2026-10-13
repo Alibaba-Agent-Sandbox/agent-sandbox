@@ -16,11 +16,10 @@ import {
   ProviderConflictError,
   ProviderInstallError,
   ProviderIntegrityError,
-  ProviderManifestError,
   ProviderNotFoundError,
   ProviderTrustError,
 } from "./errors.js";
-import { MANIFEST_NAME, checkRequires, loadManifest, manifestSummary, parseManifest, type Manifest } from "./manifest.js";
+import { MANIFEST_NAME, checkRequires, loadManifest, manifestSummary, missingManifestError, parseManifest, type Manifest } from "./manifest.js";
 import { purgeProviderSettings, setDefaultProvider } from "./settings.js";
 import * as store from "./store.js";
 
@@ -103,6 +102,68 @@ function expandUser(p: string): string {
 }
 
 /** `("local", path)` or `("git", clean_url)`; rejects unsafe git URLs. */
+const SLUG_PART = /^[A-Za-z0-9_.-]+$/;
+
+/**
+ * Turn `owner/repo//subdir[@ref]` into a GitHub URL plus subdir and ref.
+ *
+ * Same grammar as `abx template install`: `//` is the directory inside the
+ * repository, `@` after that is the git ref. A full git URL, an scp-style
+ * `git@host:path`, or a local path is returned unchanged. `--ref` and
+ * `--subdir` still work; giving both forms with different values is an error.
+ */
+export function expandCatalogRef(
+  source: string,
+  ref?: string | null,
+  subdir?: string | null,
+): { source: string; ref: string | null; subdir: string | null } {
+  const raw = source.trim();
+  const unchanged = { source, ref: ref ?? null, subdir: subdir ?? null };
+  if (
+    !raw ||
+    raw.includes("://") ||
+    raw.startsWith("git@") ||
+    raw.startsWith("./") ||
+    raw.startsWith("/") ||
+    raw.startsWith("~") ||
+    (raw.length >= 3 && raw[1] === ":") ||
+    fs.existsSync(raw)
+  ) {
+    return unchanged;
+  }
+  let body = raw;
+  let embeddedRef: string | null = null;
+  const at = body.lastIndexOf("@");
+  if (at >= 0) {
+    embeddedRef = body.slice(at + 1);
+    body = body.slice(0, at);
+  }
+  let embeddedSubdir: string | null = null;
+  const slash = body.indexOf("//");
+  if (slash >= 0) {
+    embeddedSubdir = body.slice(slash + 2).replace(/^\/+|\/+$/g, "") || null;
+    body = body.slice(0, slash);
+  }
+  const parts = body.split("/");
+  if (parts.length !== 2 || !parts.every((part) => SLUG_PART.test(part))) return unchanged;
+  if (subdir && embeddedSubdir && subdir.replace(/^\/+|\/+$/g, "") !== embeddedSubdir) {
+    throw new ProviderInstallError("Subdirectory given both in SOURCE (after //) and as --subdir.", {
+      suggestion: "Use one of them: owner/repo//subdir, or a git URL with --subdir.",
+    });
+  }
+  if (ref && embeddedRef && ref !== embeddedRef) {
+    throw new ProviderInstallError("Ref given both in SOURCE (after @) and as --ref.", {
+      suggestion: "Use one of them: owner/repo//subdir@ref, or --ref.",
+    });
+  }
+  const repo = parts[1].endsWith(".git") ? parts[1].slice(0, -4) : parts[1];
+  return {
+    source: `https://github.com/${parts[0]}/${repo}.git`,
+    ref: ref || embeddedRef,
+    subdir: (subdir ? subdir.replace(/^\/+|\/+$/g, "") : null) || embeddedSubdir,
+  };
+}
+
 export function classifySource(source: string, opts: { allowInsecure?: boolean } = {}): ["local" | "git", string] {
   const local = expandUser(source);
   if (fs.existsSync(local)) return ["local", local];
@@ -115,7 +176,7 @@ export function classifySource(source: string, opts: { allowInsecure?: boolean }
     });
   if (!scheme && !url.startsWith("ext::")) {
     throw new ProviderInstallError(`Cannot fetch provider source: '${source}' is not a directory or a git URL.`, {
-      suggestion: "Pass a local directory or an https://, ssh:// or git@host:path URL.",
+      suggestion: "Pass a local directory, owner/repo//subdir[@ref], or an https://, ssh:// or git@host:path URL.",
     });
   }
   if (url.startsWith("ext::") || !["https", "ssh", "http", "git", "file"].includes(scheme)) throw insecure();
@@ -343,7 +404,7 @@ function nowIso(): string {
 
 function manifestFromEntries(entries: readonly store.FileEntry[]): Manifest {
   const found = entries.find((e) => e.path === MANIFEST_NAME);
-  if (!found) throw new ProviderManifestError(`Invalid ${MANIFEST_NAME}: file not found at the plugin root.`);
+  if (!found) throw missingManifestError();
   return parseManifest(found.data);
 }
 
@@ -387,7 +448,7 @@ function makeReceipt(plan: InstallPlan, installedBy: Record<string, string> | nu
     trust: plan.trust,
     consented: manifestSummary(m),
     installed_at: nowIso(),
-    installed_by: installedBy ?? { name: "ebx", version },
+    installed_by: installedBy ?? { name: "abx", version },
   };
 }
 
@@ -401,6 +462,9 @@ export interface PrepareOptions {
 
 /** Fetch and validate a source; nothing is written to the store. */
 export async function prepare(source: string, opts: PrepareOptions = {}): Promise<{ plan: InstallPlan; entries: store.FileEntry[] }> {
+  const expanded = expandCatalogRef(source, opts.ref, opts.subdir);
+  source = expanded.source;
+  opts = { ...opts, ref: expanded.ref, subdir: expanded.subdir };
   const [kind, location] = classifySource(source, { allowInsecure: opts.allowInsecureTransport });
   if (opts.link) {
     if (kind !== "local") throw new ProviderInstallError("--link needs a local directory.");
@@ -453,6 +517,20 @@ export interface InstallOptions extends PrepareOptions {
   hostVersion?: string;
 }
 
+/**
+ * A tag or branch moves, so what was reviewed may not be what runs. An unpinned git source is accepted only when the user
+ * reviews it on the consent screen (interactive and no `--yes`) or says so explicitly with `--allow-unpinned`.
+ * `--yes` alone confirms a reviewed, pinned install; it never accepts a moving ref.
+ */
+function refuseUnpinned(plan: InstallPlan, how: { interactive: boolean; yes?: boolean | undefined; allowUnpinned?: boolean | undefined }): void {
+  if (plan.trust !== "unpinned" || how.allowUnpinned) return;
+  if (how.interactive && !how.yes) return;
+  const commit = plan.source.commit;
+  throw new ProviderTrustError(`Refusing an unpinned git source without review${how.yes ? " (--yes does not accept a moving ref)" : " in non-interactive mode"}.`, {
+    suggestion: `Pin it: --ref ${commit ?? "<40-hex commit>"} (or --sha256 <digest>); or pass --allow-unpinned to accept the current head.`,
+  });
+}
+
 /** Install a provider from a directory or git URL and return its receipt. */
 export async function install(source: string, opts: InstallOptions = {}): Promise<Receipt> {
   const interactive = opts.interactive ?? opts.confirm !== undefined;
@@ -466,11 +544,7 @@ export async function install(source: string, opts: InstallOptions = {}): Promis
       suggestion: "Re-run with --yes after reviewing the directory.",
     });
   }
-  if (plan.trust === "unpinned" && !interactive && !opts.allowUnpinned) {
-    throw new ProviderTrustError("Refusing an unpinned git source in non-interactive mode.", {
-      suggestion: "Pass --ref <40-hex commit> or --sha256 <digest>.",
-    });
-  }
+  refuseUnpinned(plan, { interactive, yes: opts.yes, allowUnpinned: opts.allowUnpinned });
 
   const existing = store.readReceipt(manifest.id);
   if (manifest.id === BUILTIN_PROVIDER_ID) throw new ProviderConflictError("The built-in provider id is reserved.");
@@ -485,8 +559,9 @@ export async function install(source: string, opts: InstallOptions = {}): Promis
   if (!opts.yes) {
     if (!opts.confirm) {
       const commit = plan.source.commit;
+      const subdir = plan.source.subdir;
       throw new ProviderTrustError("Installing a provider requires confirmation.", {
-        suggestion: `Re-run with --yes after reviewing: ebx provider install ${source}${commit ? ` --ref ${commit}` : ""}`,
+        suggestion: `Re-run with --yes after reviewing: abx provider install ${source}${subdir ? ` --subdir ${subdir}` : ""}${commit ? ` --ref ${commit}` : ""}`,
       });
     }
     if (!(await opts.confirm(plan))) throw new ProviderTrustError("Installation cancelled.");
@@ -608,7 +683,7 @@ export async function update(providerId: string, opts: UpdateOptions = {}): Prom
   const src = (receipt["source"] ?? {}) as SourceInfo;
   if (src.type !== "git") {
     throw new ProviderInstallError(
-      `Provider '${providerId}' was installed from a local directory; reinstall it with 'ebx provider install --force <path>'.`,
+      `Provider '${providerId}' was installed from a local directory; reinstall it with 'abx provider install --force <path>'.`,
     );
   }
   if (receipt["trust"] === "pinned" && !opts.ref) {
@@ -629,17 +704,13 @@ export async function update(providerId: string, opts: UpdateOptions = {}): Prom
   const base = { id: providerId, installed: src.commit ?? null, available: plan.source.commit ?? null, changes: plan.changes };
   if (same) return { ...base, status: "up-to-date" };
   if (opts.check) return { ...base, status: "available" };
-  if (plan.trust === "unpinned" && !(opts.confirm !== undefined || opts.allowUnpinned || opts.yes)) {
-    throw new ProviderTrustError("Refusing an unpinned git source in non-interactive mode.", {
-      suggestion: "Pass --ref <40-hex commit> or --sha256 <digest>.",
-    });
-  }
+  refuseUnpinned(plan, { interactive: opts.confirm !== undefined, yes: opts.yes, allowUnpinned: opts.allowUnpinned });
   const host = opts.hostVersion ?? hostVersion();
   checkRequires(plan.manifest, { component: "cli", host_version: host });
   if (!opts.yes) {
     if (!opts.confirm) {
       throw new ProviderTrustError("Installing a provider requires confirmation.", {
-        suggestion: `Re-run with --yes after reviewing: ebx provider update ${providerId}`,
+        suggestion: `Re-run with --yes after reviewing: abx provider update ${providerId}`,
       });
     }
     if (!(await opts.confirm(plan))) throw new ProviderTrustError("Update cancelled.");

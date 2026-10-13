@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Adversarial differential of the MCP STDIO server: original (`python -m easy_sandbox.agent.mcp` or `ebx mcp start`) versus the
- * port (`src/agent/mcp_main.ts` or `src/bin/ebx.ts mcp start`). Every case is a script of timed stdin writes / signals /
+ * Adversarial differential of the MCP STDIO server: original (`python -m agent_sandbox.agent.mcp` or `abx mcp start`) versus the
+ * port (`src/agent/mcp_main.ts` or `src/bin/abx.ts mcp start`). Every case is a script of timed stdin writes / signals /
  * closes against a stub platform; stdout bytes, normalised stderr, exit status/signal, stub request log and the runtime-dir
  * state file are compared.
  *
@@ -250,15 +250,15 @@ function normalise(text, ctx) {
 
 async function runOne(kind, testCase) {
   const stub = await startStub();
-  const home = mkdtempSync(join(tmpdir(), "ebx-advmcp-"));
+  const home = mkdtempSync(join(tmpdir(), "abx-advmcp-"));
   const run = join(home, "run");
   mkdirSync(run, { recursive: true });
   await fetch(`${stub.url}/__world`, { method: "POST", body: JSON.stringify(testCase.world ?? {}) });
   const env = {
     PATH: process.env.PATH,
     HOME: home,
-    EBX_NO_KEYCHAIN: "1",
-    EBX_MCP_RUNTIME_DIR: run,
+    ABX_NO_KEYCHAIN: "1",
+    ABX_MCP_RUNTIME_DIR: run,
     E2B_API_KEY: "k-stub",
     E2B_API_URL: stub.url,
     NO_PROXY: "*",
@@ -271,9 +271,9 @@ async function runOne(kind, testCase) {
   let args;
   let cwd = home;
   if (testCase.cli) {
-    if (kind === "py") [cmd, args] = [join(ORACLE_VENV, "bin", "ebx"), ["mcp", "start"]];
-    else [cmd, args] = [process.execPath, ["--import", TSX, join(CLI_ROOT, "src/bin/ebx.ts"), "mcp", "start"]];
-  } else if (kind === "py") [cmd, args] = [join(ORACLE_VENV, "bin", "python"), ["-m", "easy_sandbox.agent.mcp"]];
+    if (kind === "py") [cmd, args] = [join(ORACLE_VENV, "bin", "abx"), ["mcp", "start"]];
+    else [cmd, args] = [process.execPath, ["--import", TSX, join(CLI_ROOT, "src/bin/abx.ts"), "mcp", "start"]];
+  } else if (kind === "py") [cmd, args] = [join(ORACLE_VENV, "bin", "python"), ["-m", "agent_sandbox.agent.mcp"]];
   else {
     [cmd, args] = [process.execPath, ["--import", TSX, join(CLI_ROOT, "src/agent/mcp_main.ts")]];
     cwd = CLI_ROOT;
@@ -321,7 +321,7 @@ async function runOne(kind, testCase) {
       .filter((l) => !/^(DEBUG|INFO|WARNING):?/.test(l) && !/^\s+at |^Traceback|^\s+File |^\w*Error: /.test(l))
       .join("\n")
       .replace(/(^|\n)(ERROR|\s+\w*create_sandbox failed)[\s\S]*$/, "$1<error log trimmed>"),
-    log: log.map((e) => JSON.stringify(e)).join("\n").replace(/_ebx_code_[0-9a-f]{32}/g, "_ebx_code_<uuid>"),
+    log: log.map((e) => JSON.stringify(e)).join("\n").replace(/_abx_code_[0-9a-f]{32}/g, "_abx_code_<uuid>"),
     state: state.map((s) => normalise(s, ctx)),
   };
 }

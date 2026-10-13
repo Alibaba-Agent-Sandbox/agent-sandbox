@@ -1,14 +1,14 @@
-# Verification: every ebx command, black-box
+# Verification: every abx command, black-box
 
 - Date: 2026-10-12
-- Process: `EBX_BIN="/workspace/cli/node_modules/.bin/tsx /workspace/cli/src/bin/ebx.ts" node e2e/run.mjs --suite all-commands`
-- The runner's cwd is an isolated temp dir, so the binary is `tsx` on `src/bin/ebx.ts` by absolute path (the same process `npx tsx src/bin/ebx.ts` starts). No handler imports. `cli/src` was not modified.
-- Version printed: `ebx, version 0.3.0`
+- Process: `ABX_BIN="/workspace/cli/node_modules/.bin/tsx /workspace/cli/src/bin/abx.ts" node e2e/run.mjs --suite all-commands`
+- The runner's cwd is an isolated temp dir, so the binary is `tsx` on `src/bin/abx.ts` by absolute path (the same process `npx tsx src/bin/abx.ts` starts). No handler imports. `cli/src` was not modified.
+- Version printed: `abx, version 0.3.0`
 - Credentials were present in the parent environment and were not passed to the child (`creds: false`, isolated HOME). No sandbox was created.
 
 ## Walk
 
-`ebx --help` then `--help` on every command in each `Commands:` section, plus `provider` (hidden from root help until a provider is installed). `config check` and `config migrate` stay hidden on a fresh HOME and are not in `config --help`, so they are outside this tree.
+`abx --help` then `--help` on every command in each `Commands:` section, plus `provider` (hidden from root help until a provider is installed). `config check` and `config migrate` stay hidden on a fresh HOME and are not in `config --help`, so they are outside this tree.
 
 | | count |
 |---|---:|
@@ -17,7 +17,7 @@
 | Safe local invocation | 77 |
 | Failures | 0 |
 
-Safe invocations: `config get region`, `config set http_timeout 45`, `config list`, `config init --yes` on an isolated HOME; `provider list`, `provider default`, `provider doctor`, `provider update`; `init` and `template init python-case --template python` into a temp dir (Dockerfile, commands.py, template.yaml written); `mcp --help`, `mcp status`, `mcp stop`. Groups with no subcommand exit 2 and print usage. Leaves with a required argument omit it (exit 2, `Missing argument`). `create` / `kill` exit 2 on the local usage error. `mcp install` exits 2 on missing `--target`. `mcp start`, `list`, `template list`, `deploy`, and the other no-argument cloud commands were given `--not-an-ebx-option` (exit 2, `No such option`) so the callback never ran. No command failed, so there is no failure output to record.
+Safe invocations: `config get region`, `config set http_timeout 45`, `config list`, `config init --yes` on an isolated HOME; `provider list`, `provider default`, `provider doctor`, `provider update`; `init` and `template init python-case --template python` into a temp dir (Dockerfile, commands.py, template.yaml written); `mcp --help`, `mcp status`, `mcp stop`. Groups with no subcommand exit 2 and print usage. Leaves with a required argument omit it (exit 2, `Missing argument`). `create` / `kill` exit 2 on the local usage error. `mcp install` exits 2 on missing `--target`. `mcp start`, `list`, `template list`, `deploy`, and the other no-argument cloud commands were given `--not-an-abx-option` (exit 2, `No such option`) so the callback never ran. No command failed, so there is no failure output to record.
 
 ## Suite counts
 

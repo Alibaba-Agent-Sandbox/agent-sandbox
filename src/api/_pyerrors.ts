@@ -6,7 +6,7 @@
 import { PyFloat } from "../utils/_pyformat.js";
 import { AttributeError } from "../utils/_pyos.js";
 
-export { ValueError } from "../models/_pydantic.js";
+export { ValueError } from "../models/value_error.js";
 
 export class RuntimeError extends Error {
   constructor(message = "") {

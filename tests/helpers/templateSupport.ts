@@ -1,6 +1,6 @@
 /**
  * Shared helpers of the template / deploy CLI tests: the Python `MagicMock()` configs, the mocked `DockerBuilder`, the
- * `httpx.HTTPStatusError` factory, the `patch("easy_sandbox.transport.*")` triplet and `monkeypatch.chdir/setenv`.
+ * `httpx.HTTPStatusError` factory, the `patch("agent_sandbox.transport.*")` triplet and `monkeypatch.chdir/setenv`.
  */
 
 import fs from "node:fs";
@@ -29,7 +29,7 @@ export function useTmpPath(): () => string {
   let cwd = "";
   beforeEach(() => {
     cwd = process.cwd();
-    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-tpl-"));
+    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-tpl-"));
   });
   afterEach(() => {
     process.chdir(cwd);
@@ -81,7 +81,7 @@ export interface MockBuilder {
   cls: Fn & { injectSdkWheel: Fn };
 }
 
-/** `patch("easy_sandbox.api.docker_builder.DockerBuilder")` -- installed on the template seam and restored after each test. */
+/** `patch("agent_sandbox.api.docker_builder.DockerBuilder")` -- installed on the template seam and restored after each test. */
 export function useMockBuilder(): () => MockBuilder {
   let original: typeof DockerBuilder | null = null;
   let current: MockBuilder | null = null;

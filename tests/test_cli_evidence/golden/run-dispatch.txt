@@ -1,3 +1,2 @@
-$ npm run dev -- --port 8080
-[cwd=/app timeout=30s]
+5
 [exit_code:0]

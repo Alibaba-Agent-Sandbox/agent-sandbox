@@ -9,19 +9,19 @@ regression tests are in `python-sdk/client-sdk/tests/test_known_issues/` (copy t
 fixtures into the vitest suite: `helpers.py` has the exact frames).
 
 Nothing here touches `cli/`; this file is the only addition. Python files named below are in
-`python-sdk/client-sdk/src/easy_sandbox/`.
+`python-sdk/client-sdk/src/agent_sandbox/`.
 
 ## Summary table
 
 | KI | TS place to change | Python reference | CLI-visible effect |
 |---|---|---|---|
 | 001 | `protocol/process.ts` `ProcessProtocol.start` | `protocol/process.py::ProcessProtocol.start` | per-call `env` (SDK / MCP `run_command` envs) reaches the command |
-| 002 | `protocol/filesystem.ts` `_parseFileInfo`, `stat` (+ new `_unwrapEntry`, `_parseSize`) | `protocol/filesystem.py::_parse_file_info/_unwrap_entry` | `ebx sandbox files list` / `stat` and MCP `list_files` show `directory`, real name/path/size |
+| 002 | `protocol/filesystem.ts` `_parseFileInfo`, `stat` (+ new `_unwrapEntry`, `_parseSize`) | `protocol/filesystem.py::_parse_file_info/_unwrap_entry` | `abx sandbox files list` / `stat` and MCP `list_files` show `directory`, real name/path/size |
 | 003 | `protocol/process.ts` `start` (new guard generator), `transport/http.ts` `envdStream` | `protocol/process.py::_guard_command_timeout`, `transport/http.py::envd_stream` | timeout of a silent command is exit 5 `E3001` "Command did not finish within Ns" instead of "Request timed out" |
-| 004 | `protocol/process.ts` `connectToProcess`, `update`, `sendInput`, `sendSignal`, `kill`, `sendStdin` | `protocol/process.py` | `ebx sandbox process signal` actually signals; stdin reaches the process; `--signal` other than 9/15 is an error |
+| 004 | `protocol/process.ts` `connectToProcess`, `update`, `sendInput`, `sendSignal`, `kill`, `sendStdin` | `protocol/process.py` | `abx sandbox process signal` actually signals; stdin reaches the process; `--signal` other than 9/15 is an error |
 | 005 | `protocol/filesystem.ts` (all envd calls), `protocol/sandbox.ts`, `models/errors.ts`, `cli/src/cli/main.ts` | `protocol/filesystem.py::_raise_file_error`, `protocol/sandbox.py::_sandbox_request`, `models/errors.py::SandboxNotFoundError` | exit 4 kept, but code/text change (`E4001` / `E2009` instead of `E5000` "Resource not found (HTTP 404)") |
 | 006 | `transport/http.ts` `platformRequest` | `transport/http.py::HttpClient.platform_request/_authentication_error` | exit 3 kept; message/code change (`E1001`/`E1003` instead of the generic `E1000` text) |
-| 007 | `protocol/filesystem.ts` `listDir` | `protocol/filesystem.py::list_dir` | `ebx sandbox files list` of a missing directory exits 4 instead of "Directory is empty." |
+| 007 | `protocol/filesystem.ts` `listDir` | `protocol/filesystem.py::list_dir` | `abx sandbox files list` of a missing directory exits 4 instead of "Directory is empty." |
 | 010 | none (the `@sandbox` decorator has no TS port) | `declarative/decorator.py::_build_json_script` | none |
 | 008 (report only) | `protocol/filesystem.ts` `uploadFile`/`downloadFile` | `protocol/filesystem.py::_raise_transfer_timeout` | clear `FileOperationError` text instead of "Request timed out" |
 
@@ -32,7 +32,7 @@ Common helpers to add first (TS):
   builder `_build_envd_rpc_error(raw, status, rpc_path)`); the message is
   `envd RPC <path> failed (HTTP <status>): <detail>` and never contains the sandbox URL.
 * `SandboxNotFoundError` (code `E2009`, extends `SandboxError`, **not** `SandboxCreationError`, suggestion
-  `Run 'ebx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected.`) in
+  `Run 'abx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected.`) in
   `models/errors.ts`, exported next to the other errors and added to the errors `__all__`/fixture parity
   lists. Also add it to the "not found" branch of `exitCodeFor` in `providers/epp.ts` (exit 4).
 
@@ -107,7 +107,7 @@ Common helpers to add first (TS):
 * **TS.** `protocol/process.ts`: `connectToProcess` (line ~185), `update` (~200), `sendInput` (~210),
   `sendSignal` (~224), `sendStdin`/`kill` (delegates), `listProcesses`; the `pid` option type becomes
   `number | string` (the Python side already widened `ProcessInfo.pid` / `Commands` to `int | str`).
-* **CLI.** `ebx sandbox process signal ID PID [--signal N]` (`cli/commands/sandbox_process.ts`) now works for 9 and
+* **CLI.** `abx sandbox process signal ID PID [--signal N]` (`cli/commands/sandbox_process.ts`) now works for 9 and
   15; its help text still advertises `2 (SIGINT)`, which now fails with the `ValueError` message (update the help or
   map it to a friendly error when porting). `--signal` is validated nowhere else.
 
@@ -146,7 +146,7 @@ Common helpers to add first (TS):
   Because the mapping happens before the create handler, `create` with a bad key is now an `AuthenticationError`.
 * **TS.** `transport/http.ts` `platformRequest` (the `// httpx.HTTPStatusError: let higher layers handle` branch):
   add the 401 case; `transport/auth.ts` already has `AkSkAuth`.
-* **CLI.** exit 3 unchanged; message/code/suggestion are the SDK's (`E1001`/`E1003`); `ebx create` with a bad key is now
+* **CLI.** exit 3 unchanged; message/code/suggestion are the SDK's (`E1001`/`E1003`); `abx create` with a bad key is now
   exit 3 instead of 1.
 
 ## KI-007 `files.list` of a missing directory returned `[]`
@@ -158,7 +158,7 @@ Common helpers to add first (TS):
   (KI-005). An existing empty directory (or a file path) still returns `[]`. A non-empty listing costs no extra
   request. A `ListDir` HTTP 404 maps to `FileNotFoundError_` too.
 * **TS.** `protocol/filesystem.ts` `listDir` (after computing `entries`).
-* **CLI.** `ebx sandbox files list ID --path /nope` exits 4 with `File or directory not found in the sandbox: /nope`
+* **CLI.** `abx sandbox files list ID --path /nope` exits 4 with `File or directory not found in the sandbox: /nope`
   (E4001) instead of reporting an empty directory.
 
 ## KI-010 `@sandbox` on `async def`
@@ -170,7 +170,7 @@ Python-only (`declarative/decorator.py`: `_build_json_script(..., is_async)` now
 
 `uploadFile` / `downloadFile` turn `httpx` write/read timeouts (`TimeoutException`) into
 `FileOperationError("Upload to <path> (<n> bytes) timed out; the transfer took longer than the HTTP timeout.")`
-(download: `Download of <path> timed out; ...`) with suggestion `Raise the HTTP timeout (EBX_HTTP_TIMEOUT /
+(download: `Download of <path> timed out; ...`) with suggestion `Raise the HTTP timeout (ABX_HTTP_TIMEOUT /
 http_timeout) or transfer smaller chunks.` The timeout value itself is unchanged. TS: `protocol/filesystem.ts`
 `uploadFile` / `downloadFile`. CLI: exit 1 with that text instead of the `Request timed out` block (exit 5).
 

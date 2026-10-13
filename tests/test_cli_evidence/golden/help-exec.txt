@@ -1,24 +1,41 @@
-Usage: cli exec [OPTIONS] SANDBOX_ID COMMAND
+Usage: abx exec [options] <SANDBOX_ID> <COMMAND...>
 
-  Execute one command in a sandbox and return its exit code.
+Run a command in a sandbox.
 
-  Quote commands containing spaces or shell operators. Use --cwd to select the
-  remote working directory and --timeout for long-running commands.
+'abx exec' is the shortcut of 'abx sandbox exec'.
 
-  Examples:
-    ebx exec abc123 "python --version"
-    ebx exec abc123 "pytest -q" --cwd /app --timeout 300
-    ebx --json exec abc123 "echo ready"
+Put the command after ``--``: it is run exactly as given (no shell).
+A single quoted argument is read as a command line, so pipes and
+redirects work; use ``sh -c '...'`` for variable expansion.
 
-  Related commands:
-    ebx connect SANDBOX_ID  Open the command REPL
-    ebx sandbox shell-stream SANDBOX_ID -c CMD
-    ebx run SANDBOX_ID NAME  Run a registered custom command
+By default the command runs to completion and abx exits with its remote
+exit code. ``--stream`` prints stdout/stderr live while it runs;
+``--background`` starts it, prints the pid and returns at once.
+
+Examples:
+  abx exec abc123 -- python --version
+  abx exec abc123 --cwd /app --timeout 300 -- pytest -q
+  abx exec abc123 --env DEBUG=1 -- python app.py
+  abx exec abc123 --stream -- pip install numpy
+  abx exec abc123 --background -- python -m http.server 8000
+  abx exec abc123 "ls /app | wc -l"
+  abx --json exec abc123 -- echo ready
+
+Related commands:
+  abx connect SANDBOX_ID                  Open the command REPL
+  abx sandbox process list SANDBOX_ID     Find a background process
+  abx run SANDBOX_ID NAME                 Run a named command registered in the
+sandbox
 
 Options:
-  -t, --timeout INTEGER  Command timeout in seconds (positive integer; default:
-                         60)
-  --cwd TEXT             Working directory (empty = container default)
-  -v, --verbose          Verbose output (DEBUG level)
-  -h, --help             Show this message and exit.
+  --cwd <CWD>              Working directory (empty = container default)
+  -e, --env <ENV>          Environment variable for the command, format
+                           KEY=VALUE (repeatable)
+  -t, --timeout <INTEGER>  Command timeout in seconds (positive integer;
+                           default: 60)
+  --background             Start the command, print its pid and return without
+                           waiting
+  --stream                 Print stdout/stderr live while the command runs
+  -v, --verbose            Verbose output (DEBUG level)
+  -h, --help               Show this message and exit.
 [exit_code:0]

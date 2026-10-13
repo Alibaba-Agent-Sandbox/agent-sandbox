@@ -21,7 +21,7 @@ import { E2B_COMPATIBLE, LOCAL_PROCESS, TEST_HOST_VERSION, pythonAvailable, writ
 const iso = useIso();
 let tmp = "";
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-reg-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-reg-"));
 });
 afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
@@ -75,7 +75,7 @@ describe("TestRegistry", () => {
 
   it("test_broken_install_is_listed_with_error_not_fatal", async () => {
     await installPlugin(LOCAL_PROCESS);
-    fs.writeFileSync(path.join(store.providerDir("local-process"), "ebx-provider.toml"), "garbage [");
+    fs.writeFileSync(path.join(store.providerDir("local-process"), "abx-provider.toml"), "garbage [");
     const rows = Object.fromEntries(listProviders().map((r) => [r.id, r]));
     expect(rows["local-process"]).toHaveProperty("error");
   });
@@ -107,8 +107,8 @@ describe("TestRegistry", () => {
 describe("TestProviderSelection", () => {
   it.each(["override", "env", "dotenv", "toml"])("test_precedence_chain[%s]", (where) => {
     registerProvider(new Py());
-    if (where === "env") iso.setenv("EBX_PROVIDER", "py-prov");
-    else if (where === "dotenv") iso.writeEnv("EBX_PROVIDER=py-prov\n");
+    if (where === "env") iso.setenv("ABX_PROVIDER", "py-prov");
+    else if (where === "dotenv") iso.writeEnv("ABX_PROVIDER=py-prov\n");
     else if (where === "toml") iso.writeToml('[core]\nprovider = "py-prov"\n');
     expect(where === "override" ? resolveProviderId("py-prov") : resolveProviderId()).toBe("py-prov");
   });
@@ -116,9 +116,9 @@ describe("TestProviderSelection", () => {
   it("test_override_beats_env_beats_dotenv_beats_toml", () => {
     iso.writeToml('[core]\nprovider = "t"\n');
     expect(resolveProviderId()).toBe("t");
-    iso.writeEnv("EBX_PROVIDER=d\n");
+    iso.writeEnv("ABX_PROVIDER=d\n");
     expect(resolveProviderId()).toBe("d");
-    iso.setenv("EBX_PROVIDER", "e");
+    iso.setenv("ABX_PROVIDER", "e");
     expect(resolveProviderId()).toBe("e");
     expect(resolveProviderId("o")).toBe("o");
   });
@@ -131,8 +131,8 @@ describe("TestCredentialIsolation", () => {
   });
 
   it("test_generic_keys_only_reach_builtin_and_consented_inheritors", () => {
-    iso.setenv("EBX_SANDBOX_API_KEY", "generic-key-1234");
-    iso.setenv("EBX_SANDBOX_BASE_URL", "https://generic.example");
+    iso.setenv("ABX_SANDBOX_API_KEY", "generic-key-1234");
+    iso.setenv("ABX_SANDBOX_BASE_URL", "https://generic.example");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).sandbox_api_key).toBe("generic-key-1234");
     expect(loadLayeredConfig({ provider: "local-process" }).sandbox_api_key).toBeNull();
     expect(loadLayeredConfig({ provider: "local-process" }).sandbox_base_url).not.toBe("https://generic.example");
@@ -141,8 +141,8 @@ describe("TestCredentialIsolation", () => {
   });
 
   it("test_inherit_without_consent_is_dropped", async () => {
-    iso.setenv("EBX_SANDBOX_API_KEY", "generic-key-1234");
-    const file = path.join(store.providerDir("e2b-compatible"), ".ebx-install.json");
+    iso.setenv("ABX_SANDBOX_API_KEY", "generic-key-1234");
+    const file = path.join(store.providerDir("e2b-compatible"), ".abx-install.json");
     const receipt = JSON.parse(fs.readFileSync(file, "utf-8"));
     receipt.consented.inherit = [];
     fs.writeFileSync(file, JSON.stringify(receipt));
@@ -151,8 +151,8 @@ describe("TestCredentialIsolation", () => {
   });
 
   it("test_scoped_env_beats_generic_for_inheritor", () => {
-    iso.setenv("EBX_SANDBOX_API_KEY", "generic");
-    iso.setenv("EBX_E2B_COMPATIBLE_SANDBOX_API_KEY", "scoped");
+    iso.setenv("ABX_SANDBOX_API_KEY", "generic");
+    iso.setenv("ABX_E2B_COMPATIBLE_SANDBOX_API_KEY", "scoped");
     expect(loadLayeredConfig({ provider: "e2b-compatible" }).sandbox_api_key).toBe("scoped");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).sandbox_api_key).toBe("generic");
   });
@@ -166,15 +166,15 @@ describe("TestCredentialIsolation", () => {
     expect(loadLayeredConfig({ provider: "local-process" }).provider_options).toEqual({ debug: false });
     iso.writeToml("[providers.local-process]\ndebug = true\n");
     expect(loadLayeredConfig({ provider: "local-process" }).provider_options["debug"]).toBe(true);
-    iso.writeEnv("EBX_LOCAL_PROCESS_TOKEN=from-dotenv\n");
+    iso.writeEnv("ABX_LOCAL_PROCESS_TOKEN=from-dotenv\n");
     expect(loadLayeredConfig({ provider: "local-process" }).provider_options["token"]).toBe("from-dotenv");
-    iso.setenv("EBX_LOCAL_PROCESS_TOKEN", "from-env");
+    iso.setenv("ABX_LOCAL_PROCESS_TOKEN", "from-env");
     expect(loadLayeredConfig({ provider: "local-process" }).provider_options["token"]).toBe("from-env");
     expect(loadLayeredConfig({ provider: "local-process", provider_options: { token: "kw" } }).provider_options["token"]).toBe("kw");
   });
 
   it("test_other_providers_options_do_not_leak", () => {
-    iso.setenv("EBX_LOCAL_PROCESS_TOKEN", "tok");
+    iso.setenv("ABX_LOCAL_PROCESS_TOKEN", "tok");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).provider_options).not.toHaveProperty("token");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).access_key_secret).toBeNull();
   });
@@ -198,7 +198,7 @@ describe("TestRestProvider", () => {
 
   it("test_build_infra_uses_inherited_key", async () => {
     await installPlugin(E2B_COMPATIBLE);
-    iso.setenv("EBX_SANDBOX_API_KEY", "abcd1234");
+    iso.setenv("ABX_SANDBOX_API_KEY", "abcd1234");
     const prov = getProvider("e2b-compatible");
     expect(prov).toBeInstanceOf(RestProvider);
     const infra = await prov.buildInfra(loadLayeredConfig({ provider: "e2b-compatible" }));

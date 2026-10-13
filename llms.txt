@@ -1,12 +1,12 @@
-# Easy Sandbox
+# Agent Sandbox
 
-> CLI (`ebx`, Node.js/TypeScript) for the Alibaba Cloud FC Agent Sandbox service;
+> CLI (`abx`, Node.js/TypeScript) for the Alibaba Cloud FC Agent Sandbox service;
 > the Python SDK lives in the `python-sdk` repository.
 > E2B-protocol compatible with Alibaba Cloud extensions (OSS, VPC, custom domains).
 
 ## Purpose
 
-Easy Sandbox lets AI agents and developers create, manage, and interact
+Agent Sandbox lets AI agents and developers create, manage, and interact
 with secure cloud sandboxes. It provides isolated execution environments for
 running untrusted code, file operations, and shell commands — designed for
 LLM tool-use and agentic workflows.
@@ -17,7 +17,7 @@ sandbox lifecycle, file operations, and error diagnosis. The guide can be
 installed into skills-aware tools (Qoder, Claude Code, Cursor, Qwen Code,
 Codex, …) before the CLI/SDK is installed, with:
 
-    npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox -a <agent> -y
+    npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a <agent> -y
 
 Full matrix (manual copy, Git sparse checkout, version pinning, uninstall):
 docs/en/guide/agent-skill-installation.md
@@ -27,7 +27,7 @@ docs/en/guide/agent-skill-installation.md
 Layered CLI (lower layers never import upper layers; the client core mirrors the
 Python SDK's layers, whose own architecture lives in the `python-sdk` repository):
 
-- bin: `ebx` executable entry (src/bin/ebx.ts)
+- bin: `abx` executable entry (src/bin/abx.ts)
 - framework: click-compatible command framework (parsing, help, exit codes)
 - cli: main, OutputManager, formatters, command groups (src/cli/commands)
 - agent / session: MCP server, template authoring, local session store
@@ -39,14 +39,15 @@ Details: docs/en/design/architecture.md
 
 ## Key Commands
 
-Install: `npm install -g @easy-sandbox/cli`
+Install: `npm install -g @agent-sandbox/cli`
 
 ```
-ebx create --template python-hello # create sandbox
-ebx exec <id> "echo hello"          # run command
-ebx upload <id> ./local /remote     # file transfer
-ebx mcp start                       # start MCP server (STDIO)
-ebx kill <id>                       # destroy sandbox
+abx create --template python-hello # create sandbox
+abx exec <id> -- echo hello          # run command (--stream, --background)
+abx run <id> <name> --arg k=v       # named command on the in-sandbox server
+abx upload <id> ./local /remote     # file transfer
+abx mcp start                       # start MCP server (STDIO)
+abx kill <id>                       # destroy sandbox
 ```
 
 ## Source Layout
@@ -57,7 +58,7 @@ ebx kill <id>                       # destroy sandbox
 - src/api/ — Sandbox class, file/code/command/network APIs
 - src/cli/ — CLI commands and formatters (on the mini click-compatible framework in src/framework/)
 - src/agent/ — MCP server, tool definitions, template authoring
-- src/bin/ebx.ts — executable entry point
+- src/bin/abx.ts — executable entry point
 
 ## Links
 
@@ -76,9 +77,9 @@ ebx kill <id>                       # destroy sandbox
 
 ## Related: the Python SDK (`python-sdk` repository)
 
-- Repository: https://github.com/Easy-Sandbox/python-sdk
-- Architecture: https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/architecture.md
-- SDK API design: https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md
-- Template system: https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md
-- template.yaml spec: https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md
-- SDK usage: https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md
+- Repository: https://github.com/alibaba-agent-sandbox/python-sdk
+- Architecture: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md
+- SDK API design: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md
+- Template system: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md
+- template.yaml spec: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md
+- SDK usage: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md

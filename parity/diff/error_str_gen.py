@@ -9,12 +9,12 @@ import inspect
 import json
 import sys
 
-from easy_sandbox.models import errors as E
+from agent_sandbox.models import errors as E
 
 EXTRA_MIN = {
     "ProcessError": ({}, {"exit_code": 7, "stdout": "out", "stderr": "err"}),
     "CapabilityNotSupportedError": ({}, {}),
-    "CommandNotFoundError": ({"checked": ["template", "server"]}, {"checked": ["b", "a"], "server_status": "unreachable", "template_commands": ["zeta", "alpha"]}),
+    "CommandNotFoundError": ({}, {"server_status": "unreachable"}),
     "EnvdRpcError": ({}, {"status_code": 500, "rpc_path": "/process.Process/Start", "envd_error": {"code": "unknown", "message": "boom"}, "body_text": "raw"}),
 }
 FIRST = {"CapabilityNotSupportedError": "network", "CommandNotFoundError": "deploy"}

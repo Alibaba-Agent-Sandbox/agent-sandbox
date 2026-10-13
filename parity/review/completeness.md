@@ -17,23 +17,23 @@ all 2980 original tests are accounted for (1351 in the Node ledger, 1647 unchang
 ledger 999/999 passing, no skips). 0 files of the original repo are missing without a CLI-moved-to-Node justification.
 
 What is **not** clean is documentation/cross-project consistency: the python-sdk docs and SDK runtime hints describe
-`ebx` features (`ebx provider *`, `--provider`, `config check/migrate`, canonical `EBX_*` variables) that neither the
+`abx` features (`abx provider *`, `--provider`, `config check/migrate`, canonical `ABX_*` variables) that neither the
 oracle nor the Node CLI has, and that `KNOWN-GAPS.md` does not record as a gap. Plus 3 stale maintainer cross-references.
 
 Counts: 0 BUG in the CLI behaviour; 2 GAP-UNJUSTIFIED (F-01, F-07); 5 doc/stale-reference BUGs (low); the rest ACCEPTED-OK.
 
 ## Findings
 
-### F-01 - GAP-UNJUSTIFIED (medium): python-sdk docs/hints advertise `ebx provider`, `--provider`, `config check|migrate` that the Node CLI does not have
+### F-01 - GAP-UNJUSTIFIED (medium): python-sdk docs/hints advertise `abx provider`, `--provider`, `config check|migrate` that the Node CLI does not have
 
 * Repro (Node CLI, isolated HOME):
-  `HOME=$(mktemp -d) EBX_NO_KEYCHAIN=1 node cli/dist/bin/ebx.js provider list; echo $?` -> `Error: No such command 'provider'` exit 2.
-  Same for `ebx config check`, `ebx create --provider X`, `ebx list --all-providers`. The oracle has none of these either.
+  `HOME=$(mktemp -d) ABX_NO_KEYCHAIN=1 node cli/dist/bin/abx.js provider list; echo $?` -> `Error: No such command 'provider'` exit 2.
+  Same for `abx config check`, `abx create --provider X`, `abx list --all-providers`. The oracle has none of these either.
 * Documents claiming them as available: `python-sdk/docs/en/guide/providers.md:3,22,26,45-62,127,246`,
   `docs/en/reference/error-codes.md:181`, `docs/en/reference/configuration.md:139,334`, zh counterparts,
   `python-sdk/examples/providers/opensandbox/README{,.zh-CN}.md:8,26`; and SDK runtime messages
-  (`python-sdk/client-sdk/src/easy_sandbox/providers/{registry,store,base,epp,installer}.py`: `Run 'ebx provider list'`, `'ebx provider info ID'`, `'ebx provider doctor ...'`).
-  `python-sdk/docs/en/guide/providers.md:3` says the commands "are provided by the Node.js CLI", while `python-sdk/docs/en/DESIGN.md:127` says `ebx provider` is "pending in the CLI" - the docs contradict each other.
+  (`python-sdk/client-sdk/src/agent_sandbox/providers/{registry,store,base,epp,installer}.py`: `Run 'abx provider list'`, `'abx provider info ID'`, `'abx provider doctor ...'`).
+  `python-sdk/docs/en/guide/providers.md:3` says the commands "are provided by the Node.js CLI", while `python-sdk/docs/en/DESIGN.md:127` says `abx provider` is "pending in the CLI" - the docs contradict each other.
 * Expected: either the feature exists in the Node CLI, or the docs/hints say "planned". Actual: the only place that says
   "not yet" is `cli/docs/design/providers-and-credentials-cli.md:3` ("applied after the port reaches parity"); `cli/parity/KNOWN-GAPS.md` and
   `cli/docs/PORTING.md` never mention it (grep `provider` -> 0 hits), so the deferral is undocumented where gaps are tracked.
@@ -44,11 +44,11 @@ Counts: 0 BUG in the CLI behaviour; 2 GAP-UNJUSTIFIED (F-01, F-07); 5 doc/stale-
 
 ### F-07 - GAP-UNJUSTIFIED (medium): canonical client variables documented for "SDK and CLI" are ignored by the CLI
 
-* Repro: `HOME=$(mktemp -d) EBX_NO_KEYCHAIN=1 EBX_SANDBOX_API_KEY=sk-example-key node cli/dist/bin/ebx.js config get sandbox_api_key` ->
-  prints the built-in default `e2b***dc1`; with `E2B_API_KEY=sk-example-key` it prints a masked form of that key.
-* Evidence of the claim: `python-sdk/docs/en/guide/environment-variables.md:277,318`, `reference/configuration.md` (names `EBX_SANDBOX_API_KEY`,
-  `EBX_SANDBOX_BASE_URL`, `EBX_SANDBOX_DOMAIN`, `EBX_PROVIDER`, `EBX_ALICLOUD_EXPRESS_*`, `EBX_HTTP_TIMEOUT`, `EBX_MAX_RETRIES`, `EBX_LOG_LEVEL`, ... ~30 names) and the Python
-  `utils/config_keys.py` docstring ("The Node.js CLI implements the same algorithm"). `grep EBX_SANDBOX cli/src` -> 0 hits.
+* Repro: `HOME=$(mktemp -d) ABX_NO_KEYCHAIN=1 ABX_SANDBOX_API_KEY=sk-adv-canonical-123456 node cli/dist/bin/abx.js config get sandbox_api_key` ->
+  prints the built-in default `e2b***dc1`; with `E2B_API_KEY=sk-adv-canonical-123456` it prints `sk-***456`.
+* Evidence of the claim: `python-sdk/docs/en/guide/environment-variables.md:277,318`, `reference/configuration.md` (names `ABX_SANDBOX_API_KEY`,
+  `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_PROVIDER`, `ABX_ALICLOUD_EXPRESS_*`, `ABX_HTTP_TIMEOUT`, `ABX_MAX_RETRIES`, `ABX_LOG_LEVEL`, ... ~30 names) and the Python
+  `utils/config_keys.py` docstring ("The Node.js CLI implements the same algorithm"). `grep ABX_SANDBOX cli/src` -> 0 hits.
 * Root cause: `cli/src/transport/config.ts` implements the original (pre-canonical) layering; `src/utils/config_keys.ts` from the spec was not created. Same root as F-01.
 * Impact: a user configured per the SDK docs gets different credentials in SDK vs CLI. Test `ADV-completeness-05`.
 * Fix: same as F-01 (implement, or record in KNOWN-GAPS and annotate the docs).
@@ -67,10 +67,10 @@ Module intentionally not ported (the same entry says it "exports nothing"); the 
 
 Real file: `tests/test_cli_evidence/test_evidence_snapshots.test.ts`. Test `ADV-completeness-01`.
 
-### F-05 - BUG (docs, low): `cli/docs/PORTING.md:131` requires findings in `parity/review-log.md`, which does not exist; `PORTING.md:28` tells reviewers to set `EBX_NO_KEYCHAIN=1`, which neither implementation reads
+### F-05 - BUG (docs, low): `cli/docs/PORTING.md:131` requires findings in `parity/review-log.md`, which does not exist; `PORTING.md:28` tells reviewers to set `ABX_NO_KEYCHAIN=1`, which neither implementation reads
 
 Harmless (the keychain integration was removed upstream), but the instruction is misleading. Test `ADV-completeness-01` (first part).
-Fix: create the log or point to `parity/review/*.md`; drop or footnote `EBX_NO_KEYCHAIN`.
+Fix: create the log or point to `parity/review/*.md`; drop or footnote `ABX_NO_KEYCHAIN`.
 
 ### F-06 - BUG (docs, low): `python-sdk/docs/en/design/agents-api.md:6` links to `../../zh/design/agents-api.md`, which does not exist
 
@@ -79,7 +79,7 @@ The zh tree lacks 5 en-only pages added after the split baseline (`agents-api.md
 Also `cli/docs/{en,zh}/design/cli-design.md:11` (`#3-natural-language-creation`) and `cli/docs/zh/design/architecture.md:129`
 (`../reference/configuration.md#credential-resolution`) have broken anchors (the two `cli-design` ones pre-exist in the original).
 
-### F-08 - ACCEPTED-OK: client `pyproject` drops `[cli]`/`[binary]` extras and the `ebx` script; sdist no longer carries SKILL.md/CHANGELOG
+### F-08 - ACCEPTED-OK: client `pyproject` drops `[cli]`/`[binary]` extras and the `abx` script; sdist no longer carries SKILL.md/CHANGELOG
 
 User-approved (CLI moved to Node). `migrating-from-0.2.md` documents it; `SKILL.md` ships in the npm package (`npm pack --dry-run`); packaging tests rewritten.
 
@@ -97,7 +97,7 @@ All classified in `completeness-cli.md` section 5 (regexes, strftime, Python-onl
 * Env reads: 97/97 CLI-reachable names present.
 * Exit sites: per-module multiset equal (63 vs 62; the delta is uvicorn's own `exit(3)` on start failure).
 * Test accounting: 2980/2980; ledger 999/999 passing, 1333/1333 parametrised instances, 0 skips; 4 `TestCLICompleteness` + 3 removed packaging tests accounted for.
-* Documented commands: 360 distinct `ebx ...` lines of `README.md`, `llms.txt`, `SKILL.md`, `AGENTS.md`, `docs/**` run with `--help` on both Node and the oracle: 340 exit 0, 20 non-zero, **0 Node-vs-oracle differences**; all 20 non-zero are intentionally "removed command" mentions (`ebx auth`, `ebx secret`, `ebx skill`, `ebx session`, `ebx config reset`, `ebx template build-local`, `ebx crate` typo example) or placeholders.
+* Documented commands: 360 distinct `abx ...` lines of `README.md`, `llms.txt`, `SKILL.md`, `AGENTS.md`, `docs/**` run with `--help` on both Node and the oracle: 340 exit 0, 20 non-zero, **0 Node-vs-oracle differences**; all 20 non-zero are intentionally "removed command" mentions (`abx auth`, `abx secret`, `abx skill`, `abx session`, `abx config reset`, `abx template build-local`, `abx crate` typo example) or placeholders.
 * Package contents: `npm pack --dry-run` -> `bin`, `dist/**`, README(s), SKILL.md, LICENSE, NOTICE, no tests/sources leaked.
 * Docs: all 77 original en/zh pages exist; 22/22 examples; 9/9 scripts; 3/3 benchmarks; all GitHub templates, hooks, dependabot, 3 original workflows.
 * Links: 595 links in `cli` (3 broken anchors, 2 pre-existing), 983 in `python-sdk` (1 real broken link, F-06).

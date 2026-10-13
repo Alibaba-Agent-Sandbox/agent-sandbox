@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-binary:
-    name: Build ebx binary (${{ matrix.target }})
+    name: Build abx binary (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           cd dist/binary
-          for f in ebx-*; do
+          for f in abx-*; do
             case "$f" in *.sha256) continue ;; esac
             [ -f "$f" ] || continue
             if command -v sha256sum >/dev/null 2>&1; then
@@ -68,7 +68,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: ebx-binary-${{ matrix.target }}
+          name: abx-binary-${{ matrix.target }}
           path: dist/binary/
           if-no-files-found: error
 
@@ -76,4 +76,4 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/binary/ebx-*
+          files: dist/binary/abx-*

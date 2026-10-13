@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // CLI 启动时间基准测试。目标：< 200ms
 // CLI startup-time benchmark. Target: < 200 ms.
-// Usage: node benchmarks/bench_cli_startup.mjs   (EBX_BIN overrides the ebx executable, default: ebx)
+// Usage: node benchmarks/bench_cli_startup.mjs   (ABX_BIN overrides the abx executable, default: abx)
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 
-const EBX_BIN = process.env.EBX_BIN || "ebx";
+const ABX_BIN = process.env.ABX_BIN || "abx";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function timeRun(args) {
   const start = performance.now();
-  spawnSync(EBX_BIN, args, { cwd: ROOT, stdio: "pipe" });
+  spawnSync(ABX_BIN, args, { cwd: ROOT, stdio: "pipe" });
   return (performance.now() - start) / 1000;
 }
 
@@ -36,7 +36,7 @@ function benchCliSubcommand() {
   ];
   for (const cmd of commands) {
     const elapsed = timeRun(cmd);
-    console.log(`  ebx ${cmd.join(" ")}: ${elapsed.toFixed(3)}s`);
+    console.log(`  abx ${cmd.join(" ")}: ${elapsed.toFixed(3)}s`);
   }
 }
 

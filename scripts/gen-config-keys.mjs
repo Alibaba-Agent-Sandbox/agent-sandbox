@@ -2,7 +2,7 @@
 /**
  * Generate `src/utils/config_keys.ts` from `docs/design/fixtures/config-keys.json`.
  *
- * The JSON (exported by the Python SDK: `python -m easy_sandbox.utils.config_keys --json`) is the contract; the
+ * The JSON (exported by the Python SDK: `python -m agent_sandbox.utils.config_keys --json`) is the contract; the
  * TypeScript module is derived data and must never be edited by hand.
  *
  *   node scripts/gen-config-keys.mjs          # rewrite src/utils/config_keys.ts
@@ -21,11 +21,16 @@ const HEADER = `/**
  * Canonical configuration-key registry (GENERATED - do not edit).
  *
  * Source of truth: docs/design/fixtures/config-keys.json (exported by the Python SDK with
- * \`python -m easy_sandbox.utils.config_keys --json\`). Regenerate with \`node scripts/gen-config-keys.mjs\`;
+ * \`python -m agent_sandbox.utils.config_keys --json\`). Regenerate with \`node scripts/gen-config-keys.mjs\`;
  * \`tests/test_utils/test_config_keys.test.ts\` fails when this file drifts from the JSON.
  *
  * The pure layered resolver lives in \`./config_resolver.ts\`.
+ *
+ * Keys only the CLI reads (\`llm_*\`, \`acr_*\`, \`team_id\`) are declared by hand in \`./cli_config_keys.ts\` and appended
+ * to the shared keys at load time; \`exportSchema()\` and the JSON contain the shared keys only.
  */
+
+import { CLI_BUILTIN_KEYS, CLI_CORE_KEYS } from "./cli_config_keys.js";
 `;
 
 const BODY = `
@@ -94,11 +99,15 @@ export const KEY_TYPES: readonly KeyType[] = ["str", "url", "int", "float", "boo
 export const ALIAS_KINDS: readonly AliasKind[] = ["compat", "native", "legacy"];
 export const ALIAS_SURFACES: readonly AliasSurface[] = ["env", "config", "kwarg", "flag"];
 
-export const CORE_KEYS: readonly ConfigKey[] = SCHEMA.keys.filter((k) => k.scope === "core");
-export const ALICLOUD_EXPRESS_KEYS: readonly ConfigKey[] = SCHEMA.keys.filter((k) => k.scope === BUILTIN_PROVIDER_ID);
+/** Shared keys followed by the CLI-only keys (\`cli_config_keys.ts\`). */
+export const CORE_KEYS: readonly ConfigKey[] = [...SCHEMA.keys.filter((k) => k.scope === "core"), ...CLI_CORE_KEYS];
+export const ALICLOUD_EXPRESS_KEYS: readonly ConfigKey[] = [
+  ...SCHEMA.keys.filter((k) => k.scope === BUILTIN_PROVIDER_ID),
+  ...CLI_BUILTIN_KEYS,
+];
 export const CORE_KEY_NAMES: readonly string[] = CORE_KEYS.map((k) => k.key);
 
-const BY_KEY = new Map<string, ConfigKey>(SCHEMA.keys.map((k) => [\`\${k.scope}\\u0000\${k.key}\`, k]));
+const BY_KEY = new Map<string, ConfigKey>([...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS, ...SCHEMA.keys.filter((k) => k.scope !== "core" && k.scope !== BUILTIN_PROVIDER_ID)].map((k) => [\`\${k.scope}\\u0000\${k.key}\`, k]));
 
 export function getKey(key: string, scope = "core"): ConfigKey | undefined {
   return BY_KEY.get(\`\${scope}\\u0000\${key}\`);
@@ -109,7 +118,7 @@ export function builtinKeys(): readonly ConfigKey[] {
 }
 
 export function providerEnvPrefix(providerId: string): string {
-  return "EBX_" + providerId.toUpperCase().replaceAll("-", "_") + "_";
+  return "ABX_" + providerId.toUpperCase().replaceAll("-", "_") + "_";
 }
 
 export function providerEnvName(providerId: string, key: string): string {
@@ -153,7 +162,7 @@ export function envNames(key: ConfigKey, opts: { scopedFor?: string | null } = {
   return [...new Set(names)];
 }
 
-/** Language-neutral schema export (identical to docs/design/fixtures/config-keys.json). */
+/** Language-neutral schema export of the shared keys (identical to docs/design/fixtures/config-keys.json). */
 export function exportSchema(extraProviderKeys: readonly ConfigKey[] = []): ConfigKeysSchema {
   return {
     ...SCHEMA,

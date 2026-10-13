@@ -1,8 +1,8 @@
 # Agent Skill Installation & Distribution
 
-This guide explains how to bring the Easy Sandbox **Agent Skill** (`SKILL.md`, repository root) into your AI coding tool — Qoder, Claude Code, Cursor, Qwen Code, Codex, and any other skills-aware tool — **before** the `ebx` CLI or the Python SDK is installed.
+This guide explains how to bring the Agent Sandbox **Agent Skill** (`SKILL.md`, repository root) into your AI coding tool — Qoder, Claude Code, Cursor, Qwen Code, Codex, and any other skills-aware tool — **before** the `abx` CLI or the Python SDK is installed.
 
-The skill is plain text (YAML frontmatter + Markdown instructions). Installing it adds no runtime to this repository, no registry to the CLI, and nothing that executes on its own. It simply teaches an agent how to operate Easy Sandbox once you are ready.
+The skill is plain text (YAML frontmatter + Markdown instructions). Installing it adds no runtime to this repository, no registry to the CLI, and nothing that executes on its own. It simply teaches an agent how to operate Agent Sandbox once you are ready.
 
 > **How these commands were verified:** every command, option, and directory in this guide was checked on 2026-09-29 against real `--help` output or vendor documentation (sources at the end). The Agent Skills ecosystem has **no single cross-tool installation command** — where tools differ, this guide lists each verified option instead of inventing one.
 
@@ -10,11 +10,11 @@ The skill is plain text (YAML frontmatter + Markdown instructions). Installing i
 
 ## 1. Skill first, SDK second
 
-The skill and the `ebx` / SDK installation are deliberately decoupled:
+The skill and the `abx` / SDK installation are deliberately decoupled:
 
 1. **Install the skill** into your tool (this guide). No Python required.
-2. **Install the package** when the agent (or you) is ready to actually run sandboxes: `npm install -g @easy-sandbox/cli` — see [section 7](#7-after-the-skill-install-easy-sandboxcli-configure-credentials-choose-an-interface).
-3. **Configure credentials** (`ebx config set sandbox_api_key …`, or AK/SK).
+2. **Install the package** when the agent (or you) is ready to actually run sandboxes: `npm install -g @agent-sandbox/cli` — see [section 7](#7-after-the-skill-install-agent-sandboxcli-configure-credentials-choose-an-interface).
+3. **Configure credentials** (`abx config set sandbox_api_key …`, or AK/SK).
 4. **Pick an interface** — MCP for chat agents, CLI for scripts, SDK for Python code (see `SKILL.md` → "Choosing an interface").
 
 The agent reads the skill's instructions and drives steps 2–4 itself; nothing in step 1 depends on them.
@@ -23,15 +23,15 @@ The agent reads the skill's instructions and drives steps 2–4 itself; nothing 
 
 ## 2. Where each tool looks for skills (verified)
 
-A skill is a directory containing a `SKILL.md` file (`easy-sandbox/SKILL.md`). Every tool below loads the same frontmatter format:
+A skill is a directory containing a `SKILL.md` file (`agent-sandbox/SKILL.md`). Every tool below loads the same frontmatter format:
 
 | Tool | User-level (all projects) | Project-level (this repository) | Verified source |
 |------|---------------------------|---------------------------------|-----------------|
-| **Qoder** | `~/.qoder/skills/easy-sandbox/SKILL.md` | `<project>/.qoder/skills/easy-sandbox/SKILL.md` | Qoder docs — [IDE skills](https://docs.qoder.com/zh/extensions/skills), [CLI skills](https://docs.qoder.com/zh/cli/Skills) |
-| **Claude Code** | `~/.claude/skills/easy-sandbox/SKILL.md` | `<project>/.claude/skills/easy-sandbox/SKILL.md` | [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills) |
-| **Cursor** | `~/.cursor/skills/easy-sandbox/SKILL.md` or `~/.agents/skills/easy-sandbox/SKILL.md` | `<project>/.cursor/skills/easy-sandbox/SKILL.md` or `<project>/.agents/skills/easy-sandbox/SKILL.md` | [Cursor skills](https://cursor.com/docs/skills) |
-| **Qwen Code** | `~/.qwen/skills/easy-sandbox/SKILL.md` | `<project>/.qwen/skills/easy-sandbox/SKILL.md` | [Qwen Code skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md) |
-| **Codex** | `$HOME/.agents/skills/easy-sandbox/SKILL.md` | `<repo-root>/.agents/skills/easy-sandbox/SKILL.md` (scanned from the current directory up to the repo root) | [Codex skills](https://developers.openai.com/codex/skills) |
+| **Qoder** | `~/.qoder/skills/agent-sandbox/SKILL.md` | `<project>/.qoder/skills/agent-sandbox/SKILL.md` | Qoder docs — [IDE skills](https://docs.qoder.com/zh/extensions/skills), [CLI skills](https://docs.qoder.com/zh/cli/Skills) |
+| **Claude Code** | `~/.claude/skills/agent-sandbox/SKILL.md` | `<project>/.claude/skills/agent-sandbox/SKILL.md` | [Claude Code skills](https://docs.claude.com/en/docs/claude-code/skills) |
+| **Cursor** | `~/.cursor/skills/agent-sandbox/SKILL.md` or `~/.agents/skills/agent-sandbox/SKILL.md` | `<project>/.cursor/skills/agent-sandbox/SKILL.md` or `<project>/.agents/skills/agent-sandbox/SKILL.md` | [Cursor skills](https://cursor.com/docs/skills) |
+| **Qwen Code** | `~/.qwen/skills/agent-sandbox/SKILL.md` | `<project>/.qwen/skills/agent-sandbox/SKILL.md` | [Qwen Code skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md) |
+| **Codex** | `$HOME/.agents/skills/agent-sandbox/SKILL.md` | `<repo-root>/.agents/skills/agent-sandbox/SKILL.md` (scanned from the current directory up to the repo root) | [Codex skills](https://developers.openai.com/codex/skills) |
 
 Notes verified in the same sources:
 
@@ -51,21 +51,21 @@ The [`skills` CLI](https://github.com/vercel-labs/skills) (npm package `skills`,
 ### Preview first (changes nothing on disk)
 
 ```bash
-npx skills add easy-sandbox/easy-sandbox --list
+npx skills add agent-sandbox/agent-sandbox --list
 ```
 
 ### Install
 
 ```bash
 # One agent, project scope (default), non-interactive:
-npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox -a qoder -y
+npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 
 # The same skill to several agents at once:
-npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox \
+npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox \
   -a qoder -a claude-code -a cursor -a qwen-code -y
 
 # User-level instead of project-level:
-npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox -a qoder -g -y
+npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
 ```
 
 `--agent` names (from `npx skills --help` and the CLI README): `qoder`, `qoder-cn`, `claude-code`, `cursor`, `qwen-code`, `codex`; use `'*'` for every detected agent.
@@ -84,13 +84,13 @@ npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox -a qoder -g -y
 
 ### Where files land (observed)
 
-Project-scope installs write `<project>/<agent-dir>/skills/easy-sandbox/` (for example `.qoder/skills/easy-sandbox/`) and record the install in a `skills-lock.json` at the project root:
+Project-scope installs write `<project>/<agent-dir>/skills/agent-sandbox/` (for example `.qoder/skills/agent-sandbox/`) and record the install in a `skills-lock.json` at the project root:
 
 ```json
 {
   "version": 1,
   "skills": {
-    "easy-sandbox": {
+    "agent-sandbox": {
       "source": "…",
       "sourceType": "…",
       "computedHash": "…"
@@ -104,17 +104,17 @@ Commit `skills-lock.json` alongside the skill so teammates and CI can restore th
 ### Two caveats specific to this repository
 
 - `SKILL.md` lives at the **repository root**, so the skills CLI treats the repository root as the skill folder and snapshots the repository content (a fresh clone without `.git`, roughly 6 MB at the time of writing) into the skill directory. Everything installed is still just files — nothing runs until the agent reads the instructions.
-- Installing from a **local path** (`npx skills add ./easy-sandbox`) copies your working tree **as-is, including files ignored by `.gitignore`** — for example a local `.env`. Always install from the published repository form (as shown above), or from a fresh clone that contains no credentials.
+- Installing from a **local path** (`npx skills add ./agent-sandbox`) copies your working tree **as-is, including files ignored by `.gitignore`** — for example a local `.env`. Always install from the published repository form (as shown above), or from a fresh clone that contains no credentials.
 - The CLI collects anonymous usage telemetry; disable it with `DISABLE_TELEMETRY=1` or `DO_NOT_TRACK=1` if your environment requires it.
 
 ### Update / list / remove
 
 ```bash
 npx skills list                                   # show installed skills
-npx skills update easy-sandbox -y                 # update (auto-detects scope)
+npx skills update agent-sandbox -y                 # update (auto-detects scope)
 npx skills update -g                              # only user-level skills
-npx skills remove easy-sandbox                    # remove from project scope
-npx skills remove easy-sandbox -g                 # remove from user scope
+npx skills remove agent-sandbox                    # remove from project scope
+npx skills remove agent-sandbox -g                 # remove from user scope
 ```
 
 Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the next two options.
@@ -125,20 +125,20 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
 
 `SKILL.md` is one self-contained file; a manual copy is a fully supported install.
 
-1. Open <https://github.com/Easy-Sandbox/easy-sandbox/blob/main/SKILL.md> and use **Raw** / **Download**, then place the file as `easy-sandbox/SKILL.md` under the directory for your tool (section 2). For example:
+1. Open <https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/SKILL.md> and use **Raw** / **Download**, then place the file as `agent-sandbox/SKILL.md` under the directory for your tool (section 2). For example:
 
    ```bash
-   mkdir -p ~/.qoder/skills/easy-sandbox
+   mkdir -p ~/.qoder/skills/agent-sandbox
    # save the downloaded file as:
-   # ~/.qoder/skills/easy-sandbox/SKILL.md
+   # ~/.qoder/skills/agent-sandbox/SKILL.md
    ```
 
 2. Or download directly with `curl` — a single file, **never piped into a shell**:
 
    ```bash
-   mkdir -p ~/.claude/skills/easy-sandbox
-   curl -fsSL "https://raw.githubusercontent.com/easy-sandbox/easy-sandbox/<TAG-OR-COMMIT>/SKILL.md" \
-     -o ~/.claude/skills/easy-sandbox/SKILL.md
+   mkdir -p ~/.claude/skills/agent-sandbox
+   curl -fsSL "https://raw.githubusercontent.com/agent-sandbox/agent-sandbox/<TAG-OR-COMMIT>/SKILL.md" \
+     -o ~/.claude/skills/agent-sandbox/SKILL.md
    ```
 
    Replace `<TAG-OR-COMMIT>` with a release tag or a full commit SHA. Avoid a moving branch (`main`) when you need a reproducible version.
@@ -146,9 +146,9 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
 3. Verify what you downloaded before the agent uses it:
 
    ```bash
-   head -n 3 ~/.claude/skills/easy-sandbox/SKILL.md   # must start with "---"
-   grep -m1 '^name: easy-sandbox$' ~/.claude/skills/easy-sandbox/SKILL.md
-   shasum -a 256 ~/.claude/skills/easy-sandbox/SKILL.md   # record/compare the hash
+   head -n 3 ~/.claude/skills/agent-sandbox/SKILL.md   # must start with "---"
+   grep -m1 '^name: agent-sandbox$' ~/.claude/skills/agent-sandbox/SKILL.md
+   shasum -a 256 ~/.claude/skills/agent-sandbox/SKILL.md   # record/compare the hash
    ```
 
 **This project does not recommend `curl … | sh`-style pipelines** — download to a file, inspect it, then install.
@@ -172,16 +172,16 @@ Use Git when you want the file to come from a tracked, verifiable revision.
 Full clone (then copy just the skill folder you need):
 
 ```bash
-git clone https://github.com/Easy-Sandbox/easy-sandbox.git
-mkdir -p ~/.qwen/skills/easy-sandbox
-cp cli/SKILL.md ~/.qwen/skills/easy-sandbox/SKILL.md
+git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git
+mkdir -p ~/.qwen/skills/agent-sandbox
+cp cli/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
 ```
 
 Sparse checkout (only `SKILL.md`, no other repository content):
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse \
-  https://github.com/Easy-Sandbox/easy-sandbox.git
+  https://github.com/alibaba-agent-sandbox/agent-sandbox.git
 cd cli
 git sparse-checkout set --no-cone /SKILL.md
 ```
@@ -192,7 +192,7 @@ Pin a version at any point with `git checkout <TAG-OR-COMMIT>`; the sparse worki
 
 ## 6. Marketplace and plugin paths (verified, and what they are not)
 
-Plugin marketplaces distribute **bundles**; Easy Sandbox currently publishes no plugin bundle (the repository contains no `.claude-plugin/` or `.cursor-plugin/` manifest). For a single skill, options A–C above are the working paths. The marketplace mechanics below are documented for completeness and for future plugin packaging:
+Plugin marketplaces distribute **bundles**; Agent Sandbox currently publishes no plugin bundle (the repository contains no `.claude-plugin/` or `.cursor-plugin/` manifest). For a single skill, options A–C above are the working paths. The marketplace mechanics below are documented for completeness and for future plugin packaging:
 
 - **Claude Code** — plugins come from marketplaces (a repository or directory with `.claude-plugin/marketplace.json`). Add one with `/plugin marketplace add <marketplace-repo>` and install with `/plugin install <plugin>@<marketplace>`; skills inside a plugin run as `/plugin-name:skill-name`. Standalone skills do not need a plugin at all — `~/.claude/skills/` and `.claude/skills/` are sufficient.
 - **Cursor** — official plugins are installed from **Customize** (marketplace), or distributed through team marketplaces (Teams/Enterprise plans); local plugin development lives in `~/.cursor/plugins/local`. Every marketplace plugin is manually reviewed and must be open source; community plugins and MCP servers are listed on [cursor.directory](https://cursor.directory).
@@ -200,35 +200,35 @@ Plugin marketplaces distribute **bundles**; Easy Sandbox currently publishes no 
 - **Codex** — the built-in `$skill-installer` installs curated skills (for example from `openai/skills`); reusable distribution of your own skills goes through plugins.
 - **Qwen Code** — extensions can bundle skills (`skills` field in the extension's `qwen-extension.json`); a plain directory install needs none of that.
 
-If a marketplace listing for Easy Sandbox appears later, prefer it only after checking this repository's release notes.
+If a marketplace listing for Agent Sandbox appears later, prefer it only after checking this repository's release notes.
 
 ---
 
-## 7. After the skill: install `@easy-sandbox/cli`, configure credentials, choose an interface
+## 7. After the skill: install `@agent-sandbox/cli`, configure credentials, choose an interface
 
 The skills guide the agent loads (`SKILL.md`) contains the operational details; the summary:
 
 ```bash
 # 1. Install the package (CLI + MCP STDIO server; requires Node.js 20+)
-npm install -g @easy-sandbox/cli
+npm install -g @agent-sandbox/cli
 
 # If npm reports no matching version (no public npm release was
 # available at the time of writing — check with the command below), install
 # from source instead:
-npm view @easy-sandbox/cli versions
-git clone https://github.com/Easy-Sandbox/easy-sandbox.git && cd cli
+npm view @agent-sandbox/cli versions
+git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd cli
 npm ci && npm run build && npm install -g .
 
 # 2. Verify
-ebx --version
+abx --version
 
-# 3. Configure credentials (stored in ~/.ebx/.env, masked on display)
-ebx config set sandbox_api_key <YOUR_API_KEY>
-ebx config set region cn-hangzhou
+# 3. Configure credentials (stored in ~/.abx/.env, masked on display)
+abx config set sandbox_api_key <YOUR_API_KEY>
+abx config set region cn-hangzhou
 
 # 4. Choose an interface
-ebx mcp install --target cursor   # MCP for chat agents (or --target claude / vscode)
-ebx exec <sandbox-id> "echo hi"   # CLI for scripts
+abx mcp install --target cursor   # MCP for chat agents (or --target claude / vscode)
+abx exec <sandbox-id> "echo hi"   # CLI for scripts
 ```
 
 - **Credential rules** — never paste real keys into a skill, a repository, a chat message, or a sandbox file; the full rules live in `SKILL.md` → "Credentials and security".
@@ -241,11 +241,11 @@ ebx exec <sandbox-id> "echo hi"   # CLI for scripts
 
 | Method | Pin a version | Update | Uninstall |
 |--------|---------------|--------|-----------|
-| `skills` CLI | `skills-lock.json` (records source + content hash; restore with `npx skills experimental_install`) | `npx skills update easy-sandbox -g` / `-p` | `npx skills remove easy-sandbox [-g]` |
-| Manual copy | Download from a tag/commit raw URL | Repeat the download, overwrite the file | Delete the `easy-sandbox/` skill folder |
+| `skills` CLI | `skills-lock.json` (records source + content hash; restore with `npx skills experimental_install`) | `npx skills update agent-sandbox -g` / `-p` | `npx skills remove agent-sandbox [-g]` |
+| Manual copy | Download from a tag/commit raw URL | Repeat the download, overwrite the file | Delete the `agent-sandbox/` skill folder |
 | Git clone / sparse | `git checkout <TAG-OR-COMMIT>` | `git fetch` + checkout, then re-copy | Delete the clone and the installed skill folder |
 
-Uninstall means removing exactly one folder — for example `~/.qoder/skills/easy-sandbox/` — then reloading the tool. Do not delete the shared `skills/` parent directory: other skills live there.
+Uninstall means removing exactly one folder — for example `~/.qoder/skills/agent-sandbox/` — then reloading the tool. Do not delete the shared `skills/` parent directory: other skills live there.
 
 ---
 
@@ -253,7 +253,7 @@ Uninstall means removing exactly one folder — for example `~/.qoder/skills/eas
 
 1. **A skill is instructions for an agent running with your privileges.** Read `SKILL.md` before installing; prefer the official repository URL. The `skills` CLI itself prints "Review skills before use; they run with full agent permissions."
 2. **Local-path installs copy ignored files** (`.env`, caches). Never install from a local working tree that contains credentials (section 3).
-3. **Credential hygiene:** the skill never asks you to print keys. It instructs agents to use masked commands (`ebx config get sandbox_api_key`) and to store credentials in `~/.ebx/.env`. Do not commit `~/.ebx/.env`, and rotate any key that has appeared in output or a transcript.
+3. **Credential hygiene:** the skill never asks you to print keys. It instructs agents to use masked commands (`abx config get sandbox_api_key`) and to store credentials in `~/.abx/.env`. Do not commit `~/.abx/.env`, and rotate any key that has appeared in output or a transcript.
 4. **No `curl | sh`:** download single files to disk, pin a tag/commit, verify the frontmatter and hash before use (section 4).
 5. **Third-party code boundary:** marketplace plugins are third-party code with different review levels (Claude: official / community / third-party marketplace tiers; Cursor: every marketplace plugin is manually reviewed and must be open source; `cursor.directory` and registry listings are community). A skill folder may contain `scripts/` that the agent can run — treat those as code you are choosing to execute.
 
@@ -267,4 +267,4 @@ Uninstall means removing exactly one folder — for example `~/.qoder/skills/eas
 - Cursor — [Agent Skills](https://cursor.com/docs/skills), [Plugins](https://cursor.com/docs/plugins)
 - Qwen Code — [Agent Skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md)
 - Codex — [Build skills](https://developers.openai.com/codex/skills)
-- PyPI status (Python SDK) — `pip index versions easy-sandbox` returned no matching distribution on 2026-09-29
+- PyPI status (Python SDK) — `pip index versions agent-sandbox` returned no matching distribution on 2026-09-29

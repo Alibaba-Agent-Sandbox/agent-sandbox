@@ -1,7 +1,7 @@
 /**
- * Capability resolver — resolves template capabilities and custom commands (port of `api/capability.py`).
+ * Capability resolver — resolves template capabilities (port of `api/capability.py`).
  *
- * Phase 1: local-only resolution from `~/.ebx/templates/` cache. Phase 2 will add online fallback via
+ * Phase 1: local-only resolution from `~/.abx/templates/` cache. Phase 2 will add online fallback via
  * `GET /templates/{id}` metadata.
  */
 
@@ -10,16 +10,16 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { CapabilityNotSupportedError, TemplateParseError } from "../models/errors.js";
-import { DEFAULT_CAPABILITIES, CustomCommand, SandboxTemplate } from "../models/template.js";
+import { DEFAULT_CAPABILITIES, SandboxTemplate } from "../models/template.js";
 import { getLogger, ExcInfo } from "../utils/logging.js";
 import { pyRepr } from "../utils/_pyformat.js";
 import { dictGet, pyExcStr } from "./_pyerrors.js";
 import { rglobName } from "../utils/_pyos.js";
-import { safeLoad } from "./_yaml.js";
+import { loadYaml as safeLoad } from "../utils/yaml_io.js";
 
 const logger = getLogger("api.capability");
 
-export const TEMPLATE_CACHE_DIR: string = path.join(os.homedir(), ".ebx", "templates");
+export const TEMPLATE_CACHE_DIR: string = path.join(os.homedir(), ".abx", "templates");
 
 /** Module-level mutable state patched by tests (Python `monkeypatch.setattr(capability_mod, "TEMPLATE_CACHE_DIR", ...)`). */
 export const _seams = {
@@ -28,21 +28,14 @@ export const _seams = {
 
 export interface ResolvedCapabilitiesInit {
   capabilities?: Iterable<string>;
-  custom_commands?: Record<string, CustomCommand | Record<string, unknown>>;
 }
 
-/** The resolved capability set and custom commands for a sandbox. */
+/** The resolved capability set for a sandbox. */
 export class ResolvedCapabilities {
   capabilities: Set<string>;
-  custom_commands: Record<string, CustomCommand>;
 
   constructor(init: ResolvedCapabilitiesInit = {}) {
     this.capabilities = init.capabilities !== undefined ? new Set(init.capabilities) : new Set(DEFAULT_CAPABILITIES);
-    const cc: Record<string, CustomCommand> = {};
-    for (const [k, v] of Object.entries(init.custom_commands ?? {})) {
-      cc[k] = v instanceof CustomCommand ? v : CustomCommand.modelValidate(v);
-    }
-    this.custom_commands = cc;
   }
 }
 
@@ -85,7 +78,7 @@ export function _templateMatches(data: Record<string, any>, yaml_path: string, t
 }
 
 /**
- * Scan `~/.ebx/templates/` for a `template.yaml` that matches `template_id` by `name`, `alias`/`aliases`, or directory
+ * Scan `~/.abx/templates/` for a `template.yaml` that matches `template_id` by `name`, `alias`/`aliases`, or directory
  * name. Returns `null` when nothing matches.
  *
  * Fail-closed: when a template matches but fails model validation, a `TemplateParseError` is raised instead of
@@ -151,9 +144,9 @@ export function parseTemplateData(data: Record<string, any>): SandboxTemplate {
  * Resolution order:
  *
  * 1. If `local_yaml_path` is given, parse it directly.
- * 2. Scan `~/.ebx/templates/` for a matching template name.
+ * 2. Scan `~/.abx/templates/` for a matching template name.
  * 3. TODO(Phase2): `GET /templates/{id}` metadata fallback.
- * 4. Fall back to `DEFAULT_CAPABILITIES` with no custom commands and emit a warning.
+ * 4. Fall back to `DEFAULT_CAPABILITIES` and emit a warning.
  */
 export async function resolveCapabilities(
   template_id: string | null = null,
@@ -203,8 +196,5 @@ export async function resolveCapabilities(
 
   const caps: Set<string> = template.capabilities !== null ? new Set(template.capabilities) : new Set(DEFAULT_CAPABILITIES);
 
-  return new ResolvedCapabilities({
-    capabilities: caps,
-    custom_commands: { ...template.custom_commands },
-  });
+  return new ResolvedCapabilities({ capabilities: caps });
 }

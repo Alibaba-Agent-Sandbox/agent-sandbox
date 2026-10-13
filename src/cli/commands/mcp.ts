@@ -17,21 +17,13 @@ import { createRequire } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import {
-  Choice,
-  INT,
-  Path,
-  type Context,
-  command,
-  echo,
-  group,
-  option,
-  sysExit,
-} from "../../framework/index.js";
-import { OSError as FrameworkOSError } from "../../framework/utils.js";
+import { type Context, command, group, option } from "../kit.js";
+import { Choice, INT, Path } from "../types.js";
+import { sysExit } from "../errors.js";
+import { echo } from "../io.js";
 import { TOOL_SCHEMAS } from "../../agent/tools.js";
 import { JSONDecodeError, pyJsonLoads } from "../../agent/_py.js";
-import { safeDump } from "../../agent/_pyyaml.js";
+import { dumpYaml } from "../../utils/yaml_io.js";
 import { pyPathStr, which } from "../../agent/_pycompat.js";
 import { loadConfig, resetConfig } from "../../transport/config.js";
 import {
@@ -156,15 +148,15 @@ export function _setIdeConfigMap(map: IdeConfigMap): void {
 /**
  * Read the sandbox API key with the same order the SDK uses.
  *
- * Process environment, then `./.env`, then `~/.ebx/.env`, then `sandbox_api_key` in `~/.ebx/config.toml`.
- * The sandbox key is `EBX_SANDBOX_API_KEY`.
+ * Process environment, then `./.env`, then `~/.abx/.env`, then `sandbox_api_key` in `~/.abx/config.toml`.
+ * The sandbox key is `ABX_SANDBOX_API_KEY`.
  */
 export function _readApiKey(): string | null {
   resetConfig();
   return loadConfig().api_key as string | null;
 }
 
-/** `[command, ...args]` that re-runs this very CLI (what Python spells `sys.executable -m easy_sandbox.cli.main`). */
+/** `[command, ...args]` that re-runs this very CLI (what Python spells `sys.executable -m agent_sandbox.cli.main`). */
 function _selfCommand(options: { execArgv: boolean }): string[] {
   if (_isSea()) return [process.execPath];
   const entry = process.argv[1];
@@ -191,22 +183,22 @@ function _isSea(): boolean {
 /**
  * Return a command the IDE can execute without relying on a login PATH.
  *
- * The Python CLI prefers the `ebx` script next to its interpreter (an absolute shebang), then `ebx` on PATH, then
- * `python -m easy_sandbox.cli.main`. A Node install has no equivalent absolute launcher (`ebx` is a
+ * The Python CLI prefers the `abx` script next to its interpreter (an absolute shebang), then `abx` on PATH, then
+ * `python -m agent_sandbox.cli.main`. A Node install has no equivalent absolute launcher (`abx` is a
  * `#!/usr/bin/env node` script that needs `node` on PATH, and Windows only has `.cmd` shims), so the first choice is the
- * running runtime itself: the single-file binary, or `node <this entry script>`. `ebx` on PATH is the fallback.
+ * running runtime itself: the single-file binary, or `node <this entry script>`. `abx` on PATH is the fallback.
  */
 export function _resolveMcpLaunch(): [string, string[]] {
   const self_ = _selfCommand({ execArgv: false });
   if (self_.length > 0) return [self_[0] as string, [...self_.slice(1), "mcp", "start"]];
-  const found = which("ebx");
+  const found = which("abx");
   if (found) return [found, ["mcp", "start"]];
-  return ["ebx", ["mcp", "start"]];
+  return ["abx", ["mcp", "start"]];
 }
 
-/** The non-built-in provider chosen by `--provider` or `EBX_PROVIDER` for this invocation, if any (the config default is read by the server itself). */
+/** The non-built-in provider chosen by `--provider` or `ABX_PROVIDER` for this invocation, if any (the config default is read by the server itself). */
 export function _selectedPlugin(): string | null {
-  const id = (cliProvider() ?? process.env["EBX_PROVIDER"] ?? "").trim();
+  const id = (cliProvider() ?? process.env["ABX_PROVIDER"] ?? "").trim();
   return id && id !== BUILTIN_PROVIDER_ID ? id : null;
 }
 
@@ -214,20 +206,20 @@ export function _selectedPlugin(): string | null {
 export function _buildMcpServerConfig(): PyDict {
   const plugin = _selectedPlugin();
   if (plugin !== null) {
-    // The server reads the plugin's options from ~/.ebx itself; no credential is written into the client's config file.
+    // The server reads the plugin's options from ~/.abx itself; no credential is written into the client's config file.
     const [pluginCommand, pluginArgs] = _resolveMcpLaunch();
     return _dictOf([
       ["command", pluginCommand],
       ["args", pluginArgs],
-      ["env", new Map([["EBX_PROVIDER", plugin]]) as PyDict],
+      ["env", new Map([["ABX_PROVIDER", plugin]]) as PyDict],
     ]);
   }
   const apiKey = self._readApiKey() || "";
   const envBlock: PyDict = new Map();
-  if (apiKey) envBlock.set("EBX_SANDBOX_API_KEY", apiKey);
+  if (apiKey) envBlock.set("ABX_SANDBOX_API_KEY", apiKey);
 
-  const apiUrl = process.env["EBX_SANDBOX_BASE_URL"];
-  if (apiUrl) envBlock.set("EBX_SANDBOX_BASE_URL", apiUrl);
+  const apiUrl = process.env["ABX_SANDBOX_BASE_URL"];
+  if (apiUrl) envBlock.set("ABX_SANDBOX_BASE_URL", apiUrl);
 
   const region = process.env["ALIBABA_CLOUD_REGION_ID"];
   if (region) envBlock.set("ALIBABA_CLOUD_REGION_ID", region);
@@ -338,7 +330,7 @@ function _dictOf(entries: Array<[string, PyJson]>): PyDict {
 }
 
 function _isOsError(exc: unknown): boolean {
-  if (exc instanceof PyOSError || exc instanceof FrameworkOSError) return true;
+  if (exc instanceof PyOSError) return true;
   const code = (exc as NodeJS.ErrnoException | null)?.code;
   return exc instanceof Error && typeof code === "string" && /^E[A-Z0-9]+$/.test(code);
 }
@@ -358,7 +350,7 @@ export function _readJsonObject(configPath: string): PyDict {
       echo(
         `Error: ${pyPathStr(configPath)} is not strict JSON (${exc.message}). ` +
           "Refusing to overwrite it. Remove comments or trailing commas, " +
-          "or add the easy-sandbox entry by hand.",
+          "or add the agent-sandbox entry by hand.",
         { err: true },
       );
       return sysExit(1);
@@ -382,24 +374,24 @@ export function _readJsonObject(configPath: string): PyDict {
 
 export const mcp = group("mcp", {
   help:
-    "Configure and run Easy Sandbox as an MCP server.\n" +
+    "Configure and run Agent Sandbox as an MCP server.\n" +
     "\n" +
     "Use local STDIO transport for IDE integrations, or generate a Streamable\n" +
     "HTTP deployment artifact for manual deployment to Alibaba Cloud FC.\n" +
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp install --target cursor\n" +
-    "  ebx mcp start\n" +
-    "  ebx mcp start --http --background\n" +
-    "  ebx mcp stop\n" +
-    "  ebx mcp deploy --generate-token --output-dir ./mcp-artifact\n" +
+    "  abx mcp install --target cursor\n" +
+    "  abx mcp start\n" +
+    "  abx mcp start --http --background\n" +
+    "  abx mcp stop\n" +
+    "  abx mcp deploy --generate-token --output-dir ./mcp-artifact\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx config set sandbox_api_key VALUE  Configure sandbox authentication\n" +
-    "  ebx mcp status                Inspect local MCP configuration\n" +
-    "  ebx mcp stop                  Stop the local MCP server",
+    "  abx config set sandbox_api_key VALUE  Configure sandbox authentication\n" +
+    "  abx mcp status                Inspect local MCP configuration\n" +
+    "  abx mcp stop                  Stop the local MCP server",
 });
 
 const _INSTALL_TOOL_NAMES: [string, string][] = [
@@ -421,15 +413,15 @@ export const install = command("install", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp install --target cursor\n" +
-    "  ebx mcp install --target claude\n" +
-    "  ebx mcp install --target vscode\n" +
+    "  abx mcp install --target cursor\n" +
+    "  abx mcp install --target claude\n" +
+    "  abx mcp install --target vscode\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx mcp status  Verify installed IDE configurations\n" +
-    "  ebx mcp start   Run the configured STDIO server\n" +
-    "  ebx config get sandbox_api_key",
+    "  abx mcp status  Verify installed IDE configurations\n" +
+    "  abx mcp start   Run the configured STDIO server\n" +
+    "  abx config get sandbox_api_key",
   params: [
     option(["--target"], {
       type: new Choice(["cursor", "claude", "vscode"]),
@@ -453,18 +445,18 @@ export const install = command("install", {
       const workspaceConfig: PyDict = new Map(serverConfig);
       workspaceConfig.set("type", "stdio");
       const envBlock: PyDict = new Map((workspaceConfig.get("env") as PyDict | undefined) ?? []);
-      envBlock.delete("EBX_SANDBOX_API_KEY");
+      envBlock.delete("ABX_SANDBOX_API_KEY");
       if (envBlock.size > 0) workspaceConfig.set("env", envBlock);
       else workspaceConfig.delete("env");
       let mcpServers = existing.get("servers");
       if (!_isDict(mcpServers)) mcpServers = new Map();
-      mcpServers.set("easy-sandbox", workspaceConfig);
+      mcpServers.set("agent-sandbox", workspaceConfig);
       existing.set("servers", mcpServers);
     } else {
       // Cursor and Claude use mcpServers
       let mcpServers = existing.get("mcpServers");
       if (!_isDict(mcpServers)) mcpServers = new Map();
-      mcpServers.set("easy-sandbox", serverConfig);
+      mcpServers.set("agent-sandbox", serverConfig);
       existing.set("mcpServers", mcpServers);
     }
 
@@ -487,7 +479,7 @@ export const install = command("install", {
         echo("Please reload the VS Code window to apply changes.");
         echo(
           "The workspace MCP file does not contain the API key. " +
-            "ebx mcp start reads it from the environment or ~/.ebx.",
+            "abx mcp start reads it from the environment or ~/.abx.",
         );
       }
     }
@@ -502,12 +494,12 @@ mcp.addCommand(install);
 /**
  * Directory for the local MCP server pid and log.
  *
- * `EBX_MCP_RUNTIME_DIR` overrides the default `~/.ebx/run` so tests do not touch a developer's running server.
+ * `ABX_MCP_RUNTIME_DIR` overrides the default `~/.abx/run` so tests do not touch a developer's running server.
  */
 export function _runtimeDir(): string {
-  const override = process.env["EBX_MCP_RUNTIME_DIR"];
+  const override = process.env["ABX_MCP_RUNTIME_DIR"];
   if (override) return override;
-  return path.join(_home(), ".ebx", "run");
+  return path.join(_home(), ".abx", "run");
 }
 
 /** JSON file recording the local MCP server process. */
@@ -583,7 +575,7 @@ export function _claimServerSlot(state: PyDict): void {
     const mode = existing.has("mode") ? existing.get("mode") : "stdio";
     echo(
       `Error: an MCP server is already running (pid ${pyStr(existing.get("pid") ?? null)}, ${pyStr(mode)}).\n` +
-        "Stop it with: ebx mcp stop",
+        "Stop it with: abx mcp stop",
       { err: true },
     );
     return sysExit(1);
@@ -619,7 +611,7 @@ async function _printStdioBanner(
   _note(
     ctx,
     [
-      "Easy Sandbox MCP server",
+      "Agent Sandbox MCP server",
       "  transport:  STDIO (newline-delimited JSON-RPC)",
       `  protocol:   ${MCP_PROTOCOL_VERSION}`,
       `  template:   ${o.template}`,
@@ -629,8 +621,8 @@ async function _printStdioBanner(
       `  tools:      ${tools}`,
       "Auth: STDIO has no Bearer token. Sandbox calls use the API key above.",
       "Waiting for JSON-RPC on stdin. Responses are written to stdout.",
-      "Stop with Ctrl-C, or from another terminal: ebx mcp stop",
-      "Background HTTP server: ebx mcp start --http --background",
+      "Stop with Ctrl-C, or from another terminal: abx mcp stop",
+      "Background HTTP server: abx mcp start --http --background",
     ].join("\n"),
   );
 }
@@ -644,7 +636,7 @@ async function _printHttpBanner(
   _note(
     ctx,
     [
-      "Easy Sandbox MCP server",
+      "Agent Sandbox MCP server",
       "  transport:  Streamable HTTP",
       `  protocol:   ${MCP_PROTOCOL_VERSION}`,
       `  endpoint:   http://${o.host}:${o.port}/mcp`,
@@ -652,7 +644,7 @@ async function _printHttpBanner(
       `  template:   ${o.template}`,
       `  api key:    ${_configuredLabel(o.api_key)}`,
       `  auth:       ${_configuredLabel(o.auth_token)}`,
-      "Stop with Ctrl-C, or from another terminal: ebx mcp stop",
+      "Stop with Ctrl-C, or from another terminal: abx mcp stop",
     ].join("\n"),
   );
 }
@@ -726,7 +718,7 @@ export const start = command("start", {
     "\n" +
     "The default transport is STDIO: an IDE writes JSON-RPC to stdin and reads\n" +
     "responses from stdout. Run it in a terminal to see the configuration and\n" +
-    "stop it with Ctrl-C or 'ebx mcp stop'.\n" +
+    "stop it with Ctrl-C or 'abx mcp stop'.\n" +
     "\n" +
     "--http listens for Streamable HTTP. --background detaches that HTTP\n" +
     "server; STDIO cannot keep a client attached after detach, so --background\n" +
@@ -734,25 +726,25 @@ export const start = command("start", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp start\n" +
-    "  ebx mcp start --template python-hello\n" +
-    "  ebx mcp start --http --port 9000\n" +
-    "  ebx mcp start --http --background\n" +
-    "  ebx mcp stop\n" +
+    "  abx mcp start\n" +
+    "  abx mcp start --template python-hello\n" +
+    "  abx mcp start --http --port 9000\n" +
+    "  abx mcp start --http --background\n" +
+    "  abx mcp stop\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx mcp install --target cursor  Register the STDIO command in an IDE\n" +
-    "  ebx mcp stop                     Stop the local MCP server\n" +
-    "  ebx mcp status                   Check authentication and IDE setup",
+    "  abx mcp install --target cursor  Register the STDIO command in an IDE\n" +
+    "  abx mcp stop                     Stop the local MCP server\n" +
+    "  abx mcp status                   Check authentication and IDE setup",
   params: [
     option(["--template"], {
       default: "code-interpreter-v1",
       help: "Default sandbox template ID or alias (default: code-interpreter-v1).",
     }),
-    option(["--api-key"], { default: null, envvar: "EBX_SANDBOX_API_KEY", help: "API key override." }),
-    option(["--api-url"], { default: null, envvar: "EBX_SANDBOX_BASE_URL", help: "API URL override." }),
-    option(["--domain"], { default: null, envvar: "EBX_SANDBOX_DOMAIN", help: "Domain override." }),
+    option(["--api-key"], { default: null, envvar: "ABX_SANDBOX_API_KEY", help: "API key override." }),
+    option(["--api-url"], { default: null, envvar: "ABX_SANDBOX_BASE_URL", help: "API URL override." }),
+    option(["--domain"], { default: null, envvar: "ABX_SANDBOX_DOMAIN", help: "Domain override." }),
     option(["--http", "use_http"], {
       is_flag: true,
       default: false,
@@ -762,13 +754,13 @@ export const start = command("start", {
     option(["--port"], { default: 9000, show_default: true, type: INT, help: "HTTP bind port." }),
     option(["--auth-token"], {
       default: null,
-      envvar: "EBX_MCP_AUTH_TOKEN",
+      envvar: "ABX_MCP_AUTH_TOKEN",
       help: "Bearer token for the HTTP server. Required when --host is not loopback.",
     }),
     option(["--background"], {
       is_flag: true,
       default: false,
-      help: "Detach an HTTP server. Stop it later with 'ebx mcp stop'.",
+      help: "Detach an HTTP server. Stop it later with 'abx mcp stop'.",
     }),
   ],
   callback: handleErrors(async (ctx: Context, params: Record<string, any>) => {
@@ -843,7 +835,7 @@ async function _startHttp(
   },
 ): Promise<void> {
   if (!_isLoopback(o.host) && !o.auth_token) {
-    echo("Error: --host is not loopback, so a non-empty --auth-token (or EBX_MCP_AUTH_TOKEN) is required.", {
+    echo("Error: --host is not loopback, so a non-empty --auth-token (or ABX_MCP_AUTH_TOKEN) is required.", {
       err: true,
     });
     return sysExit(1);
@@ -852,12 +844,12 @@ async function _startHttp(
   if (o.background) {
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
-    delete env["EBX_MCP_AUTH_TOKEN"];
-    if (o.auth_token) env["EBX_MCP_AUTH_TOKEN"] = o.auth_token;
+    delete env["ABX_MCP_AUTH_TOKEN"];
+    if (o.auth_token) env["ABX_MCP_AUTH_TOKEN"] = o.auth_token;
     // The key stays in the environment. Putting it on the child argv would show it in the process list.
-    if (o.api_key) env["EBX_SANDBOX_API_KEY"] = o.api_key;
+    if (o.api_key) env["ABX_SANDBOX_API_KEY"] = o.api_key;
     const plugin = _selectedPlugin();
-    if (plugin !== null) env["EBX_PROVIDER"] = plugin;
+    if (plugin !== null) env["ABX_PROVIDER"] = plugin;
     const command_ = [
       ..._selfCommand({ execArgv: true }),
       "mcp",
@@ -880,7 +872,7 @@ async function _startHttp(
         `  pid:      ${pid}`,
         `  endpoint: http://${o.host}:${o.port}/mcp`,
         `  log:      ${self._serverLogPath()}`,
-        "Stop it with: ebx mcp stop",
+        "Stop it with: abx mcp stop",
       ].join("\n"),
     );
     return;
@@ -1053,7 +1045,7 @@ function _killErrorText(exc: unknown): string {
 
 export const stop = command("stop", {
   help:
-    "Stop the local MCP server started by 'ebx mcp start'.\n" +
+    "Stop the local MCP server started by 'abx mcp start'.\n" +
     "\n" +
     "Sends SIGTERM to the recorded pid (STDIO foreground or HTTP background)\n" +
     "and waits for it to exit. Sandboxes owned by that server are destroyed\n" +
@@ -1061,13 +1053,13 @@ export const stop = command("stop", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp stop\n" +
+    "  abx mcp stop\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx mcp start            Start STDIO in the foreground\n" +
-    "  ebx mcp start --http --background\n" +
-    "  ebx mcp status           Inspect configuration and whether a server is running",
+    "  abx mcp start            Start STDIO in the foreground\n" +
+    "  abx mcp start --http --background\n" +
+    "  abx mcp status           Inspect configuration and whether a server is running",
   callback: handleErrors(async (ctx: Context) => {
     const state = self._runningServer();
     if (state === null) {
@@ -1118,21 +1110,21 @@ export const status = command("status", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp status\n" +
-    "  ebx --json mcp status\n" +
+    "  abx mcp status\n" +
+    "  abx --json mcp status\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx mcp install --target cursor\n" +
-    "  ebx mcp start\n" +
-    "  ebx config get sandbox_api_key",
+    "  abx mcp install --target cursor\n" +
+    "  abx mcp start\n" +
+    "  abx config get sandbox_api_key",
   callback: handleErrors(async (ctx: Context) => {
     const fmt = getFormatter(ctx);
 
     const apiKey = self._readApiKey();
 
     const data: Record<string, unknown> = {
-      server: "easy-sandbox",
+      server: "agent-sandbox",
       transport: "stdio",
       tools_count: TOOL_SCHEMAS.length,
       tools: TOOL_SCHEMAS.map((t) => t.name),
@@ -1148,7 +1140,7 @@ export const status = command("status", {
           const config = _jsonLoads(readTextPy(configPath));
           const key = ideName === "vscode" ? "servers" : "mcpServers";
           if (!_isDict(config)) throw new TypeError("config is not a dict");
-          const installed = _pyIn("easy-sandbox", config.has(key) ? config.get(key) : new Map());
+          const installed = _pyIn("agent-sandbox", config.has(key) ? config.get(key) : new Map());
           data[`installed_${ideName}`] = installed;
         } else {
           data[`installed_${ideName}`] = false;
@@ -1167,21 +1159,21 @@ mcp.addCommand(status);
 // deploy command
 // ---------------------------------------------------------------------------
 
-export const _DEPLOY_REQUIREMENTS = "easy-sandbox[mcp]\nuvicorn>=0.29\n";
+export const _DEPLOY_REQUIREMENTS = "agent-sandbox[mcp]\nuvicorn>=0.29\n";
 
 export const _DEPLOY_APP_PY =
   '"""ASGI entry point for the FC MCP server."""\n' +
   "import os\n" +
   "\n" +
-  "from easy_sandbox.agent.mcp_http import create_mcp_app, require_auth_token\n" +
+  "from agent_sandbox.agent.mcp_http import create_mcp_app, require_auth_token\n" +
   "\n" +
   "# Remote clients can reach this process. Do not boot with auth disabled.\n" +
   "app = create_mcp_app(\n" +
-  '    auth_token=require_auth_token(os.environ.get("EBX_MCP_AUTH_TOKEN")),\n' +
-  '    api_key=os.environ.get("EBX_SANDBOX_API_KEY"),\n' +
-  '    api_url=os.environ.get("EBX_SANDBOX_BASE_URL"),\n' +
-  '    domain=os.environ.get("EBX_SANDBOX_DOMAIN"),\n' +
-  '    template=os.environ.get("EBX_DEFAULT_TEMPLATE", "base"),\n' +
+  '    auth_token=require_auth_token(os.environ.get("ABX_MCP_AUTH_TOKEN")),\n' +
+  '    api_key=os.environ.get("ABX_SANDBOX_API_KEY"),\n' +
+  '    api_url=os.environ.get("ABX_SANDBOX_BASE_URL"),\n' +
+  '    domain=os.environ.get("ABX_SANDBOX_DOMAIN"),\n' +
+  '    template=os.environ.get("ABX_DEFAULT_TEMPLATE", "base"),\n' +
   ")\n";
 
 /** Generate a cryptographically secure random Bearer token (`secrets.token_urlsafe(32)`). */
@@ -1226,7 +1218,7 @@ export const deploy = command("deploy", {
     "settings and environment variables).\n" +
     "\n" +
     "``--region`` overrides the FC region for this invocation; without it the\n" +
-    "region comes from ``ebx config set region`` / ``ALIBABA_CLOUD_REGION_ID``\n" +
+    "region comes from ``abx config set region`` / ``ALIBABA_CLOUD_REGION_ID``\n" +
     "environment variable and defaults to ``cn-hangzhou``.\n" +
     "\n" +
     "A non-empty Bearer token is required (--generate-token or\n" +
@@ -1236,17 +1228,17 @@ export const deploy = command("deploy", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx mcp deploy --generate-token --api-key $EBX_SANDBOX_API_KEY\n" +
-    "  ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai\n" +
-    "  ebx mcp deploy --generate-token --output-dir ./deploy-artifact\n" +
+    "  abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY\n" +
+    "  abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai\n" +
+    "  abx mcp deploy --generate-token --output-dir ./deploy-artifact\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx mcp start                 Run the local STDIO server\n" +
-    "  ebx mcp status                Inspect MCP authentication state\n" +
-    "  ebx config set sandbox_api_key VALUE  Configure sandbox authentication",
+    "  abx mcp start                 Run the local STDIO server\n" +
+    "  abx mcp status                Inspect MCP authentication state\n" +
+    "  abx config set sandbox_api_key VALUE  Configure sandbox authentication",
   params: [
-    option(["--name"], { default: "easy-sandbox-mcp", help: "FC function name for the artifact." }),
+    option(["--name"], { default: "agent-sandbox-mcp", help: "FC function name for the artifact." }),
     regionOption(),
     option(["--template"], { default: "base", help: "Default sandbox template for MCP sessions." }),
     option(["--memory"], { type: INT, default: 512, help: "FC function memory (MB)." }),
@@ -1267,8 +1259,8 @@ export const deploy = command("deploy", {
     }),
     option(["--api-key"], {
       default: null,
-      envvar: "EBX_SANDBOX_API_KEY",
-      help: "EBX_SANDBOX_API_KEY to inject into the FC function env.",
+      envvar: "ABX_SANDBOX_API_KEY",
+      help: "ABX_SANDBOX_API_KEY to inject into the FC function env.",
     }),
     option(["--custom-domain"], { default: null, help: "Custom domain for the MCP endpoint." }),
     option(["--output-dir"], {
@@ -1298,8 +1290,8 @@ export const deploy = command("deploy", {
       authToken = _readTokenFile(authTokenFile);
     } else if (generateToken) {
       authToken = _generateToken();
-    } else if (pyStrip(process.env["EBX_MCP_AUTH_TOKEN"] ?? "")) {
-      authToken = pyStrip(process.env["EBX_MCP_AUTH_TOKEN"] as string);
+    } else if (pyStrip(process.env["ABX_MCP_AUTH_TOKEN"] ?? "")) {
+      authToken = pyStrip(process.env["ABX_MCP_AUTH_TOKEN"] as string);
     }
 
     if (!authToken) {
@@ -1317,8 +1309,8 @@ export const deploy = command("deploy", {
 
     if (!apiKey) {
       echo(
-        "Warning: No EBX_SANDBOX_API_KEY provided. The generated MCP Server artifact " +
-          "cannot create sandboxes until --api-key or EBX_SANDBOX_API_KEY is configured.",
+        "Warning: No ABX_SANDBOX_API_KEY provided. The generated MCP Server artifact " +
+          "cannot create sandboxes until --api-key or ABX_SANDBOX_API_KEY is configured.",
         { err: true },
       );
     }
@@ -1329,7 +1321,7 @@ export const deploy = command("deploy", {
       artifactDir = pyPathStr(outputDir);
       mkdirParents(artifactDir);
     } else {
-      artifactDir = _mkdtemp("ebx-mcp-deploy-");
+      artifactDir = _mkdtemp("abx-mcp-deploy-");
     }
 
     writeTextPy(path.join(artifactDir, "requirements.txt"), _DEPLOY_REQUIREMENTS);
@@ -1337,14 +1329,14 @@ export const deploy = command("deploy", {
 
     // config.yaml: provider-neutral YAML deployment manifest, not an FC API payload
     const envVars: Record<string, string> = {
-      EBX_MCP_AUTH_TOKEN: authToken,
-      EBX_DEFAULT_TEMPLATE: template,
+      ABX_MCP_AUTH_TOKEN: authToken,
+      ABX_DEFAULT_TEMPLATE: template,
       ALIBABA_CLOUD_REGION_ID: region,
     };
-    if (apiKey) envVars["EBX_SANDBOX_API_KEY"] = apiKey;
+    if (apiKey) envVars["ABX_SANDBOX_API_KEY"] = apiKey;
 
-    const apiUrl = process.env["EBX_SANDBOX_BASE_URL"];
-    if (apiUrl) envVars["EBX_SANDBOX_BASE_URL"] = apiUrl;
+    const apiUrl = process.env["ABX_SANDBOX_BASE_URL"];
+    if (apiUrl) envVars["ABX_SANDBOX_BASE_URL"] = apiUrl;
 
     const fcConfig: Record<string, unknown> = {
       function_name: name,
@@ -1361,7 +1353,7 @@ export const deploy = command("deploy", {
     };
     if (customDomain) fcConfig["custom_domain"] = customDomain;
 
-    writeTextPy(path.join(artifactDir, "config.yaml"), safeDump(fcConfig));
+    writeTextPy(path.join(artifactDir, "config.yaml"), dumpYaml(fcConfig));
 
     fmt.printSuccess(`FC deployment artifact written to ${artifactDir}`);
     _printArtifactSummary(artifactDir, fcConfig, authToken);
@@ -1421,7 +1413,7 @@ function _printIdeConfig(authToken: string | null, customDomain: string | null):
   const endpoint = customDomain ? `https://${customDomain}/mcp` : "<FC_HTTP_TRIGGER_URL>/mcp";
 
   const remote: Record<string, unknown> = { url: endpoint };
-  const ideConfig = { mcpServers: { "easy-sandbox-remote": remote } };
+  const ideConfig = { mcpServers: { "agent-sandbox-remote": remote } };
   if (authToken !== null) remote["headers"] = { Authorization: "Bearer <BEARER_TOKEN>" };
 
   echo();

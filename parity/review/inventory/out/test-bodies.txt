@@ -48,7 +48,7 @@
    test_templates/test_local_install.py
 ## identical: 1673
 ## removed_from_file: 7
-   python-sdk/client-sdk/tests/integration/test_workflow_e2e.py::TestCLICompleteness::test_ebx_help_contains_all_commands
+   python-sdk/client-sdk/tests/integration/test_workflow_e2e.py::TestCLICompleteness::test_abx_help_contains_all_commands
    python-sdk/client-sdk/tests/integration/test_workflow_e2e.py::TestCLICompleteness::test_template_help
    python-sdk/client-sdk/tests/integration/test_workflow_e2e.py::TestCLICompleteness::test_config_list_runs
    python-sdk/client-sdk/tests/integration/test_workflow_e2e.py::TestCLICompleteness::test_version_option

@@ -1,15 +1,15 @@
-Usage: cli mcp status [OPTIONS]
+Usage: abx mcp status [options]
 
-  Show MCP tools, authentication state, and IDE installation status.
+Show MCP tools, authentication state, and IDE installation status.
 
-  Examples:
-    ebx mcp status
-    ebx --json mcp status
+Examples:
+  abx mcp status
+  abx --json mcp status
 
-  Related commands:
-    ebx mcp install --target cursor
-    ebx mcp start
-    ebx config get sandbox_api_key
+Related commands:
+  abx mcp install --target cursor
+  abx mcp start
+  abx config get sandbox_api_key
 
 Options:
   -h, --help  Show this message and exit.

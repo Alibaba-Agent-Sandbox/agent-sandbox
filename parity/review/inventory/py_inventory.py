@@ -2,7 +2,7 @@
 """Machine inventory of the ORIGINAL Python package (ast only; imports nothing from it).
 
 Usage: ORIG_REPO=/path/to/original python3 py_inventory.py > py-inventory.json
-(also accepts a path argument pointing at a directory that contains easy_sandbox/ or src/easy_sandbox/)
+(also accepts a path argument pointing at a directory that contains agent_sandbox/ or src/agent_sandbox/)
 
 JSON:
   modules   : {module: {path, classes:[{name,bases,methods:[..],line}], functions:[{name,line,async}], constants:[name],
@@ -19,10 +19,10 @@ arg = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORIG_REPO")
 if not arg or not Path(arg).exists():
     print("ORIG_REPO not set / absent: skipping", file=sys.stderr); sys.exit(0)
 base = Path(arg)
-src = base / "src" / "easy_sandbox" if (base / "src" / "easy_sandbox").is_dir() else base / "easy_sandbox"
+src = base / "src" / "agent_sandbox" if (base / "src" / "agent_sandbox").is_dir() else base / "agent_sandbox"
 
 ENV_RE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$|^[A-Z]{4,}$")
-PATH_HINT = re.compile(r"(\.ebx|\.toml|\.env\b|\.ya?ml|\.json\b|Dockerfile|\.dockerignore|~/|\.sh$|\.py$|\.md$|\.gz$|\.zip$|/tmp|\.cache)")
+PATH_HINT = re.compile(r"(\.abx|\.toml|\.env\b|\.ya?ml|\.json\b|Dockerfile|\.dockerignore|~/|\.sh$|\.py$|\.md$|\.gz$|\.zip$|/tmp|\.cache)")
 ENDPOINT = re.compile(r"^(/[A-Za-z0-9_{}\-./:]+|https?://\S+|wss?://\S+)$")
 
 def call_name(n):

@@ -1,11 +1,10 @@
 # CLI Architecture
 
-> This page describes the Node.js / TypeScript `ebx` CLI (`@easy-sandbox/cli`) itself: its layers, its source
-> directories, how it is built and shipped, and the contract that keeps it behaviourally identical to the original
-> Python `ebx`. Command-level behaviour is in [CLI Command System](cli-design.md); the MCP server in
+> This page describes the Node.js / TypeScript `abx` CLI (`@agent-sandbox/cli`) itself: its layers, its source
+> directories, and how it is built and shipped. Command-level behaviour is in [CLI Command System](cli-design.md); the MCP server in
 > [MCP Server](mcp-server.md); the template catalog client in [Templates Catalog](templates-catalog.md).
 >
-> The CLI is a client of the Easy Sandbox platform. It re-implements, in TypeScript, the client-side layers it needs
+> The CLI is a client of the Agent Sandbox platform. It re-implements, in TypeScript, the client-side layers it needs
 > (models, transport, protocol, high-level API, session store). Those layers mirror the concepts of the Python SDK
 > one-to-one; the SDK's own design is documented in the SDK repository (see
 > [Related SDK documentation](#related-sdk-documentation) at the bottom of this page).
@@ -19,7 +18,7 @@ line needs; it has no Compat, Declarative, Extensions, Integrations or in-sandbo
 
 ```mermaid
 graph TB
-    BIN["bin — ebx executable entry (src/bin/ebx.ts)"]
+    BIN["bin — abx executable entry (src/bin/abx.ts)"]
     subgraph Front["Command line"]
         FW["framework — click-compatible command framework"]
         CLI["cli — main, OutputManager, formatters, region option"]
@@ -55,12 +54,12 @@ graph TB
 
 | Layer | Directory | Responsibility |
 |-------|-----------|----------------|
-| Entry | `src/bin/` | `ebx.ts`, the executable entry point (built to `dist/bin/ebx.js`, the `bin` target of the npm package) |
+| Entry | `src/bin/` | `abx.ts`, the executable entry point (built to `dist/bin/abx.js`, the `bin` target of the npm package) |
 | Command framework | `src/framework/` | A click-compatible mini framework (`Context`, `Command`, `Group`, `Option`, `Argument`, parameter types, help formatting, `termui` prompts, lazy sub-commands). It exists so the Node CLI keeps Click's parsing, help text, error text and exit-code behaviour byte for byte |
 | CLI | `src/cli/` | `main` (root group, global options), `output` (`OutputManager`), `formatters` (table / JSON / quiet), `region` (the shared command-level `--region` option), `_rich*` (terminal table rendering helpers) |
 | Command groups | `src/cli/commands/` | One module per command group, see section 4 |
 | Agent / MCP | `src/agent/` | MCP server (`mcp`, `mcp_http`, `mcp_main`, `tools`), host-side coding-agent adapter (`coding_agent`, `qwen_code`, `clarify`, `codegen`, `template_guide`) and template authoring/adoption (`adopt`, `dockerfile_sources`) |
-| Session | `src/session/` | `LocalSessionStore`: JSON session files under `~/.ebx/sessions/` |
+| Session | `src/session/` | `LocalSessionStore`: JSON session files under `~/.abx/sessions/` |
 | API | `src/api/` | `Sandbox` and its modules (`files`, `code`, `commands`, `network`), `image`, `template` (`TemplateManager`), `fc_template` (official CreateTemplate API adapter), `docker_builder` (local `docker build` + ACR push), `capability`, `session_manager` |
 | Protocol | `src/protocol/` | Typed wrappers for the platform API and the in-sandbox envd API (`sandbox`, `filesystem`, `process`, `terminal`, `port`, `code_interpreter`, `template`) |
 | Transport | `src/transport/` | HTTP and WebSocket clients, API Key / AK-SK auth providers, codec, streaming, and the layered configuration loader (`config`) |
@@ -79,7 +78,7 @@ byte-identical.
 - Python `None` is `null`; "no value yet" is the `UNSET` sentinel.
 - Everything that may run user code or load a lazy command is `async`. A command callback has the signature
   `(ctx, params) => unknown | Promise<unknown>`, where `params` holds the values by parameter name.
-- Sub-commands can be registered lazily so that `ebx --version` and `ebx --help` do not load every command module
+- Sub-commands can be registered lazily so that `abx --version` and `abx --help` do not load every command module
   (the startup cost is tracked by `benchmarks/`).
 - Tests use a `CliRunner` helper (`tests/helpers/cliRunner.ts`), the counterpart of `click.testing.CliRunner`.
 
@@ -89,11 +88,11 @@ byte-identical.
   diagnostics, progress and warnings go to stderr (channel policy documented in
   [CLI Command System §7](cli-design.md)).
 - Global switches `--json`, `--quiet`, `--ci`, `--no-color` and `--verbose` are resolved once and stored in the click
-  context (`ctx.meta["ebx.output"]`); formatters (table, JSON, quiet) are obtained from it.
+  context (`ctx.meta["abx.output"]`); formatters (table, JSON, quiet) are obtained from it.
 - CI and TTY detection (`isCiEnv`, `isTty`): CI is recognised from a fixed list of CI environment variables; a CI run
   implies quiet, no colour and JSON-friendly output. A non-TTY, `TERM=dumb`, `--json`, `--quiet` and `--ci` suppress
   the transient "running" header.
-- Long-running steps draw a transient header with rolling grey activity lines (`EBX_ACTIVITY_LINES`, 1–10).
+- Long-running steps draw a transient header with rolling grey activity lines (`ABX_ACTIVITY_LINES`, 1–10).
 - Exit codes are deterministic: `0` success, `1` general error, `2` argument error, `3` authentication failure,
   `4` resource not found, `5` timeout, `6` quota exceeded.
 
@@ -104,16 +103,16 @@ The command tree is defined in [CLI Command System](cli-design.md). The module s
 
 | Module | Command group |
 |--------|---------------|
-| `config_cmd` | `ebx config` (`init`, `get`, `set`, `list`, `delete`) and the configurable `[shortcuts]` |
-| `sandbox` | the sandbox lifecycle commands (`create`, `list`, `info`, `kill`, `exec`, `run`, `connect`, `upload`, `download`), reachable at top level and under `ebx sandbox` |
-| `sandbox_files` | `ebx sandbox files` (`list`, `stat`, `mkdir`, `rm`, `mv`, `search`) |
-| `sandbox_process` | `ebx sandbox process` (`list`, `start`, `info`, `signal`) |
-| `sandbox_system` | `ebx sandbox system` (`info`, `env`, `ports`, `packages`, `metrics`) |
-| `template` | `ebx template` (`init`, `deploy`, `build`, `push`, `create`, `install`, `list`, `info`, `delete`, `search`) |
-| `deploy` | `ebx deploy` |
-| `mcp` | `ebx mcp` (`install`, `start`, `status`, `deploy`) |
+| `config_cmd` | `abx config` (`init`, `get`, `set`, `list`, `delete`) (credentials and region; `--build` / `--llm` add sections) |
+| `sandbox` | the sandbox lifecycle commands (`create`, `list`, `info`, `kill`, `exec`, `run`, `connect`, `upload`, `download`), reachable at top level and under `abx sandbox` |
+| `sandbox_files` | `abx sandbox files` (`list`, `stat`, `mkdir`, `rm`, `mv`, `search`) |
+| `sandbox_process` | `abx sandbox process` (`list`, `start`, `info`, `signal`) |
+| `sandbox_system` | `abx sandbox system` (`info`, `env`, `ports`, `packages`, `metrics`) |
+| `template` | `abx template` (`init`, `deploy`, `build`, `push`, `create`, `install`, `list`, `info`, `delete`, `search`) |
+| `deploy` | `abx deploy` |
+| `mcp` | `abx mcp` (`install`, `start`, `status`, `deploy`) |
 
-`ebx sandbox capabilities`, `ebx sandbox shell-stream` and `ebx install` are part of the same command tree; their
+`abx sandbox capabilities`, `abx sandbox command` and the fixed top-level shortcuts (`src/cli/command_surface.ts`) are part of the same command tree; their
 exact parameters are in [CLI Command System](cli-design.md).
 
 Commands only orchestrate: they parse options through the framework, load configuration, call the `api` layer (or the
@@ -126,12 +125,12 @@ identical:
 
 - **Transport** (`src/transport/`): `HttpClient` (retry, timeouts, connection handling), WebSocket helper, streaming
   decoder, `ApiKeyAuth` / `AkSkAuth` providers behind the `AuthProvider` interface, and `config.ts`, the layered
-  loader that resolves code parameters, process environment (`E2B_*` before `SANDBOX_*`), `.env` files (merged per
-  key) and `~/.ebx/config.toml`.
+  loader that resolves code parameters, process environment (`ABX_*` and the vendor-official `ALICLOUD_*` / `ALIBABA_CLOUD_*` names), `.env` files (merged per
+  key) and `~/.abx/config.toml`.
 - **Protocol** (`src/protocol/`): one class per wire surface (`SandboxProtocol`, `ProcessProtocol`,
   `FilesystemProtocol`, `CodeInterpreterProtocol`, `TerminalSession`, `PortClient`, `TemplateProtocol`).
 - **API** (`src/api/`): the user-facing `Sandbox` class and its modules, `TemplateManager`, `Image`, `DockerBuilder`
-  and the official template API adapter. `api/deploy` (the SDK's `Sandbox.deploy`) is SDK-only and is not ported.
+  and the official template API adapter.
 - **Session** (`src/session/`): `LocalSessionStore` persists named sessions as JSON files. Concurrent access is
   guarded with a lock directory next to each file (Node has no `flock`; see `parity/KNOWN-GAPS.md`).
 - **Models** (`src/models/`): data fields that appear on the wire or in `--json` output keep their Python `snake_case`
@@ -141,33 +140,33 @@ identical:
 
 | Module | Role |
 |--------|------|
-| `mcp.ts` | MCP STDIO server: a self-contained minimal JSON-RPC 2.0 handler (`ebx mcp start`), `SandboxManager` for default-sandbox session binding |
-| `mcp_http.ts` | MCP Streamable HTTP transport on `node:http` (`POST/GET/DELETE /mcp`, `/health`, bearer-token auth); used by `ebx mcp start --http` and by the FC deployment artifact |
-| `mcp_main.ts` | Entry point equivalent to `python -m easy_sandbox.agent.mcp` |
+| `mcp.ts` | MCP STDIO server: a self-contained minimal JSON-RPC 2.0 handler (`abx mcp start`), `SandboxManager` for default-sandbox session binding |
+| `mcp_http.ts` | MCP Streamable HTTP transport on `node:http` (`POST/GET/DELETE /mcp`, `/health`, bearer-token auth); used by `abx mcp start --http` and by the FC deployment artifact |
+| `mcp_main.ts` | Entry point equivalent to `python -m agent_sandbox.agent.mcp` |
 | `tools.ts` | The 7 P0 tool schemas (`TOOL_SCHEMAS`) and their handlers |
 | `coding_agent.ts`, `qwen_code.ts` | Pluggable host-side coding-agent boundary and the Qwen Code adapter (locate or install the agent, run it headless) |
-| `clarify.ts`, `codegen.ts`, `template_guide.ts` | Natural-language `ebx create "<description>"`: research-first clarification, template generation, the reference material given to the agent |
-| `adopt.ts`, `dockerfile_sources.ts` | `ebx template init --adopt`: stage an existing project, write back only the reviewed whitelist, validate Dockerfile `COPY`/`ADD` sources |
+| `clarify.ts`, `codegen.ts`, `template_guide.ts` | Natural-language `abx create "<description>"`: research-first clarification, template generation, the reference material given to the agent |
+| `adopt.ts`, `dockerfile_sources.ts` | `abx template init --adopt`: stage an existing project, write back only the reviewed whitelist, validate Dockerfile `COPY`/`ADD` sources |
 | `_archive.ts`, `_http.ts` | Safe tar/zip extraction and a proxy-aware downloader for the Qwen Code standalone installer |
 
 MCP behaviour (tools, session binding, transports, FC deployment) is specified in [MCP Server](mcp-server.md).
 
 ## 7. Configuration and credentials
 
-- Resolution order for every credential: explicit option → process environment → `./.env` → `~/.ebx` (`.env`, then
+- Resolution order for every credential: explicit option → process environment → `./.env` → `~/.abx` (`.env`, then
   `config.toml`) → built-in default. Blank values do not count. The full table is in the
   [Configuration reference](../reference/configuration.md#credential-resolution).
-- On-disk state lives under `~/.ebx/`: `config.toml`, `.env` (credentials, mode 600), `sessions/`, `templates/`,
+- On-disk state lives under `~/.abx/`: `config.toml`, `.env` (credentials, mode 600), `sessions/`, `templates/`,
   `index/` (remote template index cache), `bin/` (installed coding agent), `generated/` (natural-language output),
   and `secrets.json` (plaintext, mode 600; local development only).
 - `utils/github_token.ts` holds the single GitHub-token remedy text shared by the registry client and the template
   index client; `utils/template_index.ts` is the remote catalog client described in
   [Templates Catalog](templates-catalog.md).
-- Credentials are never printed: secrets are masked in `ebx config list`, and test fixtures use placeholders.
+- Credentials are never printed: secrets are masked in `abx config list`, and test fixtures use placeholders.
 
 ## 8. Provider layer (planned)
 
-A provider layer (selecting the control-plane backend, canonical config-key registry, `ebx provider` commands,
+A provider layer (selecting the control-plane backend, canonical config-key registry, `abx provider` commands,
 installable provider plugins) is specified in
 [Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md) and is applied after the
 Python-to-Node port reaches parity. It will sit between the command groups and the `api` layer and will add one
@@ -179,7 +178,7 @@ Alibaba Cloud provider only, and existing key names and behaviour are unchanged.
 ```
 cli/
 ├── src/
-│   ├── bin/               # ebx.ts — executable entry point
+│   ├── bin/               # abx.ts — executable entry point
 │   ├── framework/         # click-compatible command framework
 │   ├── cli/               # main, output, formatters, region, _rich*
 │   │   └── commands/      # config_cmd, deploy, mcp, sandbox, sandbox_files, sandbox_process, sandbox_system, template
@@ -201,15 +200,15 @@ cli/
 ## 10. Build, packaging and the standalone binary
 
 - **npm package**: `npm run build` runs `tsc -p tsconfig.build.json` and emits `dist/`; `package.json#bin` maps
-  `ebx` to `dist/bin/ebx.js`; `files` is an allow-list (`dist`, `README.md`, `SKILL.md`, `LICENSE`, `NOTICE`).
+  `abx` to `dist/bin/abx.js`; `files` is an allow-list (`dist`, `README.md`, `SKILL.md`, `LICENSE`, `NOTICE`).
   Node.js ≥ 20; CI runs the test matrix on Node 20 and 22.
 - **Release**: pushing a `vX.Y.Z` tag runs `release.yml`, which checks the tag against `package.json#version` and
-  publishes `@easy-sandbox/cli` to npm with provenance.
-- **Standalone binary**: `scripts/build_binary.mjs` bundles `src/bin/ebx.ts` and every dependency into one CommonJS
+  publishes `@agent-sandbox/cli` to npm with provenance.
+- **Standalone binary**: `scripts/build_binary.mjs` bundles `src/bin/abx.ts` and every dependency into one CommonJS
   file with esbuild, then injects it into a copy of the `node` binary with the Node.js Single Executable Applications
   (SEA) mechanism (`postject`; ad-hoc re-signing on macOS). The output is named
-  `ebx-{version}-{platform}-{arch}[.exe]` (`linux`/`darwin`/`windows`, `x64`/`arm64`), smoke-tested with
-  `ebx --version`, and published with SHA256 checksums by `release-binary.yml` on the four-platform build matrix.
+  `abx-{version}-{platform}-{arch}[.exe]` (`linux`/`darwin`/`windows`, `x64`/`arm64`), smoke-tested with
+  `abx --version`, and published with SHA256 checksums by `release-binary.yml` on the four-platform build matrix.
   Installation is described in [Binary Installation](../guide/binary-installation.md).
 - **Developer commands**: `make test`, `make typecheck`, `make lint`, `make build`, `make binary`, `make ci`;
   `npm run dev -- --help` runs the CLI from source with `tsx`.
@@ -226,21 +225,20 @@ change behaviour. The contract and its enforcement:
 | Coverage report of the ledger | `npm run parity:coverage` (`scripts/parity-coverage.mjs`) |
 | Documented behavioural differences (language-level, never silent) | `parity/KNOWN-GAPS.md` |
 | Golden CLI output captures | `.agents/evidence/cli/` and the golden files under `tests/` |
-| Differential testing against the Python oracle CLI | `parity/diff/` (described in PORTING.md) |
+| Differential testing of two `abx` binaries | `parity/diff/` (described in PORTING.md) |
 
-Rules that matter when reading or changing the code: module `src/<pkg>/<mod>.ts` mirrors Python
-`<pkg>/<mod>.py`; functions are camelCase, wire/JSON data fields keep `snake_case`; every user-visible string is
+Rules that matter when reading or changing the code: modules live at `src/<pkg>/<mod>.ts`; functions are camelCase, wire/JSON data fields keep `snake_case`; every user-visible string is
 verbatim; stdout/stderr routing and exit codes are part of the contract.
 
 ## Related SDK documentation
 
 The Python SDK, the in-sandbox server runtime and the shared `template.yaml` contract are documented in the
-[`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk):
+[`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk):
 
-- [Architecture](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the six-layer
+- [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the six-layer
   architecture whose client-side layers this CLI mirrors
-- [SDK API Design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md)
-- [Sandbox Types](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)
-- [Template System](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and
-  [Template YAML Spec](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
-- [Server API](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
+- [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md)
+- [Sandbox Types](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)
+- [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and
+  [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
+- [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)

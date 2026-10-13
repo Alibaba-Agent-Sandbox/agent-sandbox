@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { CommandTimeoutError } from "../../src/models/errors.js";
+import { CommandTimeoutError, SandboxNotFoundError } from "../../src/models/errors.js";
 import { SandboxConfig } from "../../src/models/sandbox.js";
 import { FEATURES } from "../../src/providers/base.js";
 import { AsyncQueue, mapError, type EppClient, type Notification } from "../../src/providers/epp.js";
@@ -207,7 +207,26 @@ describe("ExecSandboxProtocol", () => {
       }
     }
     const sandbox = new xp.ExecSandboxProtocol(asClient(new Failing()), ALL_FEATURES);
-    await expect(sandbox.connect("x")).rejects.toBeInstanceOf(E.ProviderResourceNotFoundError);
+    await expect(sandbox.connect("x")).rejects.toBeInstanceOf(SandboxNotFoundError);
+    await expect(sandbox.getInfo("x")).rejects.toMatchObject({ code: "E2009", message: "nope" });
+  });
+
+  it("test_sandbox_not_found_is_one_error_for_every_sandbox_call", async () => {
+    class Gone extends FakeClient {
+      override async call(): Promise<never> {
+        throw mapError({ code: -32002, message: "gone" }, "fake");
+      }
+    }
+    const sandbox = new xp.ExecSandboxProtocol(asClient(new Gone()), ALL_FEATURES);
+    for (const call of [() => sandbox.setTimeout("x", 5), () => sandbox.pause("x"), () => sandbox.resume("x")]) {
+      await expect(call()).rejects.toBeInstanceOf(SandboxNotFoundError);
+    }
+  });
+
+  it("test_plugin_can_name_sandbox_not_found_itself", () => {
+    const exc = mapError({ code: -32002, message: "no such sandbox", data: { sdk_code: "E2009" } }, "fake");
+    expect(exc).toBeInstanceOf(SandboxNotFoundError);
+    expect((exc as SandboxNotFoundError).code).toBe("E2009");
   });
 
   it("test_kill_swallows_not_found", async () => {
@@ -310,8 +329,8 @@ secret = true
 describe("echo plugin through the provider", () => {
   let tmp = "";
   beforeEach(async () => {
-    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-echo-"));
-    fs.writeFileSync(path.join(tmp, "ebx-provider.toml"), ECHO_MANIFEST);
+    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-echo-"));
+    fs.writeFileSync(path.join(tmp, "abx-provider.toml"), ECHO_MANIFEST);
     fs.writeFileSync(path.join(tmp, "provider.cjs"), ECHO_PLUGIN);
     await installer.install(tmp, { yes: true, hostVersion: TEST_HOST_VERSION });
   });

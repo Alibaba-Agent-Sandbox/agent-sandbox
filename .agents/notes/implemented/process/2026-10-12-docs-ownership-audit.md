@@ -12,7 +12,7 @@ breakdown of `src/` lived only in the SDK-flavoured architecture page.
 
 ## Decision
 1. **Ownership principle.** Every documentation page is owned by exactly one repository and
-   describes only that repository. This repository owns the `ebx` command surface, its config and
+   describes only that repository. This repository owns the `abx` command surface, its config and
    credential handling as seen from the command line, the CLI-hosted MCP server, template
    authoring/deploy workflows, binary and Agent Skill distribution, and the TypeScript port.
    The `python-sdk` repository owns the Python client/server API, the server HTTP API, the
@@ -23,14 +23,14 @@ breakdown of `src/` lived only in the SDK-flavoured architecture page.
 |---|---|---|
 | `design/cli-design`, `design/templates-catalog` | CLI | kept; templates-catalog gained section 9 (cache and market command notes moved from the SDK copy) |
 | `design/architecture` | CLI | new: written from `src/` and `docs/PORTING.md` (layers, directories, exit codes, build, SEA binary, parity); ends with a Related SDK section |
-| `design/mcp-server` | shared concept | kept as the CLI view (`ebx mcp start/deploy`, FC deploy options); SDK internals replaced by a Related SDK section |
+| `design/mcp-server` | shared concept | kept as the CLI view (`abx mcp start/deploy`, FC deploy options); SDK internals replaced by a Related SDK section |
 | `design/template-system` | SDK | deleted; the SDK page owns the contract and is linked from the Related SDK section |
 | `DESIGN.md` | CLI | rewritten as a CLI-only index (v3.0) |
 | `README.md`, `docs/README.md` | CLI | rewritten as CLI-only guide/reference/design tables |
 | `guide/cli-tutorial`, `using-templates`, `deploy-and-build`, `binary-installation`, `agent-skill-installation`, `byo-agent-integration`, `e2e-template-workflow` | CLI | kept; SDK-only sections removed (SDK code moved to the SDK first), a Related SDK section added where useful |
 | `guide/getting-started`, `authentication`, `environment-variables`, `troubleshooting`, `mcp-integration`, `authoring-templates` | shared concept | kept as CLI views; Python-only sections removed after confirming the SDK page holds them; Related SDK section |
 | `reference/cli-reference` | CLI | kept |
-| `reference/configuration`, `reference/error-codes` | shared concept | kept as CLI views (`ebx config`, exit codes 0-6, `E*` codes as printed by the CLI); the credential-resolution table is the shared contract |
+| `reference/configuration`, `reference/error-codes` | shared concept | kept as CLI views (`abx config`, exit codes 0-6, `E*` codes as printed by the CLI); the credential-resolution table is the shared contract |
 | `reference/template-yaml-spec` | SDK | deleted (byte-identical duplicate); the SDK owns the `template.yaml` contract |
 | `PORTING.md`, `design/repository-layout`, `design/providers-and-credentials-cli*` (+ fixtures) | CLI | untouched here (other workers); `providers-and-credentials-cli*` are listed in the design index as English-only drafts |
 | `SKILL.md`, `llms.txt`, `AGENTS.md`, `README*.md` | CLI | updated to list CLI-owned docs only; `SKILL.md` unchanged (already CLI-only) |
@@ -38,13 +38,13 @@ breakdown of `src/` lived only in the SDK-flavoured architecture page.
 3. **Shared concepts.** A page that both tools need (authentication, configuration, error codes,
    MCP) exists in both repositories as a view written for that repository's tool. The only content
    shared verbatim is the credential-resolution order, which is a contract documented in
-   [`providers-and-credentials`](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md) on the SDK side
+   [`providers-and-credentials`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md) on the SDK side
    and in `docs/design/providers-and-credentials-cli.md` here.
 4. **Information moves.** Before any section was removed here, the equivalent SDK page was checked
    for the content; the few gaps were filled in the SDK first (`Sandbox.deploy` and `Image`
    in the SDK `build-and-deploy` guide, the agent workflow pattern in `sdk-usage`).
 5. **Link policy.** Cross-repository links are absolute
-   `https://github.com/Easy-Sandbox/python-sdk/blob/main/...` URLs in a single "Related SDK
+   `https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/...` URLs in a single "Related SDK
    documentation" section per page (or a subsection of the README). SDK-only anchors are not
    referenced from CLI body text.
 6. **Indexes.** `docs/README.md`, `docs/{en,zh}/README.md`, `docs/{en,zh}/DESIGN.md`,
@@ -60,14 +60,14 @@ N/A — this decision does not involve API changes.
   architecture.
 - **Make one repository the single home of all shared-concept pages and link from the other** —
   rejected: credential, configuration, error-code and MCP pages are read in the context of the tool
-  in hand (`ebx` commands versus Python calls); a pure link loses that context. Only the contract
+  in hand (`abx` commands versus Python calls); a pure link loses that context. Only the contract
   parts are shared (see Decision 3).
 - **Create a third documentation repository** — rejected: no tooling or ownership benefit for two
   repositories, and it would split the bilingual page sets again.
 
 ## Dependencies
 The `python-sdk` repository's matching audit
-([ADR](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/implemented/process/2026-10-12-docs-ownership-audit.md)) so that each
+([ADR](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/implemented/process/2026-10-12-docs-ownership-audit.md)) so that each
 removed section still exists in its owning repository. No code or package dependencies.
 
 ## Test Strategy

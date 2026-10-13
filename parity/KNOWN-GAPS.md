@@ -1,7 +1,27 @@
+# Known gaps
+
+## Command surface redesign (CLI-only; deliberately diverges from the Python CLI)
+
+The CLI has a fixed command surface that the Python CLI does not have. Python tests for the removed behavior were
+deleted (not skipped) and their entries removed from `python-tests-to-port.txt`; the replacements are named after the new
+behavior (`tests/test_cli/test_command_surface.test.ts`, `test_run_command.test.ts`, `test_exec_command.test.ts`).
+Differential cases under `parity/diff/` that exercised removed spellings were updated or dropped; the oracle is still
+used for everything that did not change.
+
+* Removed: user-configurable `[shortcuts]` (config keys, `config init --reset-shortcuts`, `LazyGroup` merge), top-level
+  `init` and `install`, `sandbox process start`, `sandbox shell-stream`, `sandbox run`, global `--profile` and `-t/--timeout`,
+  `deploy --traditional`, `template.yaml` `custom_commands` (and its placeholder substitution), the `server_port` reserved
+  kwarg. Fixed top-level shortcuts: `create list info kill exec connect upload download run deploy`.
+* Added: `abx exec` (`--cwd --env --timeout --background --stream`), `abx sandbox command {list,run}` and the top-level
+  `abx run`, `abx config init --build/--llm`.
+* Differences from the Python client for named commands: `run` prints JSON for non-string results; `--server-port` is an
+  explicit option; there is no extra `--key value` passthrough (use `--arg KEY=VALUE` or `--json-args`).
+* `abx exec` with several words uses exact argv quoting; use `sh -c '...'` for shell syntax.
+
 
 ## agent/mcp, agent/mcp_http, agent/tools (builder agent-B)
 
-Behaviour was checked differentially against the Python oracle (`python -m easy_sandbox.agent.mcp` over stdio, and the
+Behaviour was checked differentially against the Python oracle (`python -m agent_sandbox.agent.mcp` over stdio, and the
 Starlette/uvicorn `create_mcp_app` over raw sockets): 61 HTTP request cases and 41 auth cases are byte-identical
 (status line, header names/order, body); the 28-line stdio script is identical except for the Python defect below.
 The items here are the only known differences.
@@ -32,7 +52,7 @@ The items here are the only known differences.
 * **Cancellation.** asyncio cancels the tool coroutine; Node cannot abort an in-flight SDK call. On SIGTERM/SIGINT/EOF
   in-flight tool calls are abandoned without a response, and a `create_sandbox` that completes *after*
   `shutdown()` kills the sandbox it just created (Python would leak it) and answers with no result.
-* **STDIO from a regular file.** `python -m easy_sandbox.agent.mcp < file` fails in Python
+* **STDIO from a regular file.** `python -m agent_sandbox.agent.mcp < file` fails in Python
   (`Pipe transport is for pipes/sockets only`); the Node server reads files fine.
 * **Stack traces in logs** (`logger.error(..., exc_info=True)`) are JS stacks instead of Python tracebacks.
 * **`Allow` header of `/health` 405s.** Python joins a `set` (`HEAD, GET` or `GET, HEAD` depending on hash seed);
@@ -40,7 +60,7 @@ The items here are the only known differences.
 * **uvicorn identity.** The Node server does not send `server: uvicorn`; Node adds its own `connection`/`keep-alive`
   headers. `serveMcpApp` prints uvicorn-style startup/access lines to stderr (same texts as uvicorn 0.54 at
   `log_level="info"`) but does not implement uvicorn CLI options (workers, TLS, proxy headers, ...).
-* **ASGI module entry point.** `uvicorn easy_sandbox.agent.mcp_http:asgi_app` has no Node meaning; use
+* **ASGI module entry point.** `uvicorn agent_sandbox.agent.mcp_http:asgi_app` has no Node meaning; use
   `getAsgiApp()` / `asgiApp` (a `node:http` listener) from `src/agent/mcp_http.ts`. `deploy` templates must target Node.
 * **SSE.** The Python transport never streams (GET /mcp is 405), and neither does the Node one.
 
@@ -50,8 +70,8 @@ The items here are the only known differences.
   listener on an ephemeral loopback port through a small request helper instead of an in-process ASGI client; every
   collected case (120 across test_mcp/test_mcp_http/test_tools, parametrised ones included) has a same-named Node test
   with the same assertions.
-* `test_mcp_stdio.py` spawns the real `ebx mcp start --api-key ... --api-url ... --template ...` (`src/bin/ebx.ts`, with
-  `EBX_MCP_RUNTIME_DIR`), as in the original repo; `src/agent/mcp_main.ts` (`python -m easy_sandbox.agent.mcp`) is covered
+* `test_mcp_stdio.py` spawns the real `abx mcp start --api-key ... --api-url ... --template ...` (`src/bin/abx.ts`, with
+  `ABX_MCP_RUNTIME_DIR`), as in the original repo; `src/agent/mcp_main.ts` (`python -m agent_sandbox.agent.mcp`) is covered
   by `test_mcp_stdio_loop` and the differential harnesses.
 
 ### Differential harnesses (`parity/diff`, need `ORACLE_VENV`)
@@ -83,7 +103,7 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
 
 * `test_docker_builder.py::TestInjectSdkWheel`: Python auto-detects a source checkout via `parents[4]/server-sdk` and
   `sys.frozen`. Node has neither; `pip wheel` is only used for an explicit `project_root` option or
-  `EBX_SERVER_SDK_SOURCE`, otherwise the released `easy-sandbox-server` wheel is downloaded from PyPI through the httpx
+  `ABX_SERVER_SDK_SOURCE`, otherwise the released `agent-sandbox-server` wheel is downloaded from PyPI through the httpx
   shim (`trust_env`: `HTTP(S)_PROXY` / `ALL_PROXY` / `NO_PROXY` and `SSL_CERT_FILE` / `SSL_CERT_DIR`, SHA-256 verified;
   stubbed in tests). A failed fetch still falls back to the Dockerfile's `pip install` only after that request fails,
   the same as Python; the download is not skipped in favour of an unpinned install when a proxy or private CA is set.
@@ -103,8 +123,7 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
 * **File locking**: Python `filelock.FileLock` (flock) -> a `mkdir`-based lock with stale-lock recovery in
   `src/session/local.ts`; same mutual-exclusion semantics, but not released automatically if the process is SIGKILLed
   (stale detection takes over after the timeout).
-* **YAML**: PyYAML `safe_load` is a port of the PyYAML pipeline (`src/utils/_pyyaml_load.ts`, re-exported by `src/api/_yaml.ts`);
-  see "Follow-up fixes" below for what is verified and what remains.
+* **YAML**: the `yaml` package (YAML 1.1 rules) in `src/utils/yaml_io.ts`; PyYAML's exception text is not reproduced.
 * **Alibaba Cloud FC SDK**: npm `@alicloud/fcsandbox20260509` is 1.5.1, the Python wheel is 1.6.0. Request/response
   models used by `fc_template` (CreateTemplate/UpdateTemplate/GetTemplate/ListTemplates/ListTeams) are identical in both;
   newer 1.6.0-only fields are not used by the CLI. All `fc_template` functions are async (blocking in Python).
@@ -118,12 +137,12 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
 
 ### Intentional changes
 
-* **`template_guide`: provider template profile.** The guide, the codegen prompt, and `ebx template init` describe
+* **`template_guide`: provider template profile.** The guide, the codegen prompt, and `abx template init` describe
   one selected provider profile (`cli/src/providers/template_profile.ts`), not the old single Python prompt.
   `alicloud-express` uses the FC base image and platform `start_cmd` (no Dockerfile `CMD` / `ENTRYPOINT`). Any other
-  provider uses the generic profile (`python:3.12-slim`, `CMD ["python3", "commands.py"]`) unless `ebx-provider.toml`
+  provider uses the generic profile (`python:3.12-slim`, `CMD ["python3", "commands.py"]`) unless `abx-provider.toml`
   has a `[template]` table. A missing profile is announced and is never the FC image. The install snippet names
-  `easy-sandbox-server`. `commands.py` calls `serve()` only under `if __name__ == "__main__"`. The prompt is no
+  `agent-sandbox-server`. `commands.py` calls `serve()` only under `if __name__ == "__main__"`. The prompt is no
   longer byte-identical to `tests/fixtures/agent/golden.json`.
 
 ### Behavioural differences
@@ -141,9 +160,8 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
 * **NUL bytes** in a Python source are always reported as invalid (Python 3.11 raises an uncaught `ValueError`).
 * **Archives**: `.tar.gz`/`.tgz`/`.tar` and `.zip` only; bz2/xz tarballs are unsupported. Absolute names, `..`
   escapes, escaping/absolute symlinks and device nodes are rejected exactly like Python's `_validate_tar_members`.
-* **YAML (`src/agent/_pyyaml.ts`)**: PyYAML `safe_dump`/`safe_load` emulation. Parse-error text differs from PyYAML;
-  timestamps are approximated; `!!binary`, `!!set`, `!!omap` and the `=`/`<<` scalars throw. `validateTemplateWorkspace`
-  and `StagedProject.manifest` return `Map`s (use `toPlain` / `safeDump`).
+* **YAML** (`src/utils/yaml_io.ts`): `yaml` package; parse errors read differently from PyYAML's. `validateTemplateWorkspace`
+  returns plain data (use `dumpYaml` to write it back).
 * **OSError text** uses Node errno messages; spawn failures are mapped to Python-style `[Errno N] ...`.
 * **Integral JSON floats** (`{"result": 1.0}` in headless output) become `1` (JS has no int/float distinction), so
   `json.dumps` of such a value differs from Python (`1.0` vs `1`). The golden case uses `1.5`.
@@ -174,12 +192,9 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
   caplog, `env.ts` for the autouse conftest isolation, `patch.ts` for `patch("httpx.AsyncClient")`, `tar.ts`; pytest-httpx lives in
   `tests/helpers/httpxMock.ts`). The assertions are unchanged.
 * **`CommandArg`** (server dataclass used by test_coerce) is reproduced locally in the test.
-* **Pydantic.** Validation is a hand-written lax-mode emulation (`src/models/_pydantic.ts`). Accept/reject matches
-  pydantic 2.14 for the reachable edges (`"5."` is `int_parsing`, `1e+21` is `int_parsing_size`, a non-0/1 float is
-  `bool_type`, `"1_000"` parses as a float, `"+5"` is unix seconds, `T24:00:00Z` / hour-only / `+24:00` are
-  `unexpected extra characters`). Error `loc` uses the input key when it is an alias (`loc_by_alias` default, so
-  `createdAt`, not the field name). Error text matches `str(ValidationError)` for the cases covered by the tests, not
-  for the whole pydantic message catalogue.
+* **Pydantic.** Models are zod schemas (`src/models/base.ts`); the pydantic error text is not reproduced (a `ValidationError`
+  lists the offending fields). Numbers and booleans still accept their string forms and dates accept ISO text or epoch
+  seconds/milliseconds.
 * **httpx.** `src/transport/_httpx.ts` is an httpx 0.28 shim over `fetch`/`node:http`; HTTP/2 and httpx connection-pool
   limits are not reproduced.
 
@@ -208,30 +223,24 @@ Remaining known differences of those areas:
 * Integer-like JSON keys inside tool `arguments`, floats such as `timeout: 30.0` echoing as `30`: see the MCP section.
 
 
-## cli framework and output layer (builder framework: `src/framework`, `src/cli/{main,output,formatters,region,repl,scaffold,_rich*}.ts`, `src/bin/ebx.ts`)
+## cli command layer and output (`src/cli/{main,kit,types,prompts,errors,io,output,formatters,table,region,repl,scaffold}.ts`, `src/bin/abx.ts`)
 
-Verified differentially against the Python oracle: root `--help`/`--version`, the unknown-command hint paths, Rich
-tables/Status/Live byte output, and the scaffold templates (byte-identical to `render_scaffold`). The items below are the
-known differences.
+Commands are parsed and rendered by `commander` (declared through `src/cli/kit.ts`), tables are plain text
+(`src/cli/table.ts`) and colours come from `picocolors`; none of this is byte-compatible with Click 8.5 or Rich any more.
+The scaffold templates remain byte-identical to `render_scaffold`. The items below are the known differences.
 
-* **Ctrl+R / readline details.** `ebx connect` line editing uses Node's `readline` (Up/Down history, Emacs keys). Python's
+* **Ctrl+R / readline details.** `abx connect` line editing uses Node's `readline` (Up/Down history, Emacs keys). Python's
   GNU readline additionally offers reverse incremental search (Ctrl+R) and its `inputrc` customisations; Node's readline
   does not. History lives only in memory for the process (as in Python, which never wrote a history file either).
-* **SIGINT outside the REPL.** `src/bin/ebx.ts` prints `Aborted!` and calls `process.exit(1)` on SIGINT. Python raises
+* **SIGINT outside the REPL.** `src/bin/abx.ts` prints `Aborted!` and calls `process.exit(1)` on SIGINT. Python raises
   `KeyboardInterrupt` inside the running coroutine, so `finally`/`async with` cleanup blocks run; in Node they do not
   (the Node event loop cannot be interrupted at an arbitrary await). Exit code and message are the same.
-* **Shortcut merge is asynchronous.** Python merges `[shortcuts]` synchronously in `LazyGroup.__init__`. ESM cannot import
-  `config_cmd` synchronously (and `config_cmd` imports `main` -> cycle), so the merge starts in the constructor and is
-  awaited by `listCommands` / `getCommand` / `resolveCommand` (`whenReady()` exposes it). With `mainSeams.configCmd` set it
-  runs synchronously, which is how the tests drive it. Observable behaviour (warnings text, ordering, exit codes) is the
-  same; the only difference is that the "Failed to load shortcuts" warning is printed when the first lookup happens to
-  finish the merge, not strictly during import.
 * **Module loading.** Lazy specs are `"commands/<module>:<attr>"` and loaded with dynamic `import()` through
   `mainSeams.importModule`; Python used `importlib.import_module(...)`. A missing attribute raises `AttributeError` with the
   Python message text.
 * **`renderScaffold` returns a `Map`** (insertion order = file render order) instead of a dict; `OutputFormatter` JSON
   output also uses `Map` where key order matters.
-* **No `run_sync` bridge.** Everything is async/await; the Python tests that patch `easy_sandbox.utils.async_bridge.run_sync`
+* **No `run_sync` bridge.** Everything is async/await; the Python tests that patch `agent_sandbox.utils.async_bridge.run_sync`
   are ported by spying on the `Sandbox` static methods instead.
 * **`OutputManager` options** accept the camelCase names (`jsonMode`, `noColor`, `logLevel`) and the Python snake_case names
   as aliases; `json_mode` / `no_color` are also readable properties. Method names are camelCase (`startActivity`,
@@ -240,14 +249,12 @@ known differences.
   built-ins; for arbitrary JS `Error`s it uses `message`, which differs from Python's text for exotic exception types.
 * **Node fs errors.** Only the errno codes in `toOSError`'s table are translated to the Python `OSError` message text
   (`[Errno 2] No such file or directory: ...` and friends); any other code surfaces the Node message.
-* **Rich.** `_rich*.ts` is a purpose-built subset of Rich (tables, Status, Live, markup-free text): the layouts used by the
-  CLI are byte-verified; arbitrary Rich features (syntax highlighting, panels, trees) are not implemented because the CLI
-  does not use them. Wide-character cell widths follow Rich's table for the code points present in `_rich_cells.ts`.
-* **Click.** `src/framework` implements the Click 8.5 behaviour the CLI relies on (parsing, help rendering, usage errors,
-  `-h/--help`, `standalone_mode`, `Choice`, `INT`/`FLOAT`/`IntRange`/`FloatRange`/`BOOL`/`UUID`/`Path`/`Tuple`, nargs, envvar, `prompt`/`confirm`). Click features not used by `ebx`
-  (shell completion, `click.edit`, `click.File` / `click.DateTime` param types, `click.progressbar`, `CliRunner.isolated_filesystem`, `capture: "fd"`) are
-  not implemented.
-* **Importing `main.ts` has side effects** (kicks off the shortcut merge and may create `~/.ebx/config.toml` on a fresh
+* **Rich and Click are gone.** Help pages follow `commander`'s layout (`Usage: abx sandbox exec [options] <SANDBOX_ID>
+  <COMMAND...>`, no paragraph re-wrapping), tables are plain aligned text with a two-space gutter and no wrapping, and usage
+  errors keep Click's wording only where `kit.ts` rewrites them (`No such option`, `Missing argument`, `Invalid value for`,
+  `No such command`). Exit codes are unchanged (2 for usage errors, including `UsageError` raised in a callback).
+  Prompts (`src/cli/prompts.ts`) use `@inquirer/prompts` on a terminal and a one-line-per-answer fallback for piped input.
+* **Importing `main.ts` has side effects** (it may create `~/.abx/config.toml` on a fresh
   install, as Python does at import of `cli.main`). Tests therefore import `tests/_support/isolatedHome.ts` first.
 
 ## Sandbox sub-commands (`sandbox_files`, `sandbox_process`, `sandbox_system`)
@@ -256,7 +263,7 @@ Differential harness: `ORACLE_VENV=$ORACLE_VENV node parity/diff/sandbox_subcmds
 control-plane/envd servers: help text, errors, exit codes, `--json`/`--quiet`, interactive confirm, request logs).
 Result: 0 differing cases; 2 cases marked KNOWN (first item below).
 
-* **`--verbose` / `--log-level DEBUG` lose SDK log lines (framework seam, not owned by the sandbox sub-commands).**
+* **`--verbose` / `--log-level DEBUG` lose SDK log lines (root-command seam, not owned by the sandbox sub-commands).**
   The Node `main.ts` import chain configures the SDK loggers before `OutputManager` installs its root bridge;
   Python imports the SDK lazily after the bridge exists. The sandbox sub-commands already import the SDK lazily
   (`_connectSandbox`), but the fix has to land in `main.ts` / `utils/logging.ts`.
@@ -266,7 +273,7 @@ Result: 0 differing cases; 2 cases marked KNOWN (first item below).
 * `sandbox_system` keeps a module-local float-preserving JSON loader (`_jsonLoads`, validated with `pyJsonLoads`)
   so `system metrics` renders `1.0` / `2.50` exactly as Python; and emulates Python's `rich`/quiet-mode errors for
   non-`str` table cells (`item N` index and message) in `system packages`.
-* `process start` wraps `execution_time` in `PyFloat` so JSON output keeps Python float rendering.
+* `exec` wraps `execution_time` in `PyFloat` so JSON output keeps Python float rendering.
 * The sandbox sub-command modules import `Sandbox` lazily through `_connectSandbox`; tests spy on
   `Sandbox.connect`, as the Python tests patch `Sandbox.connect`.
 
@@ -302,8 +309,7 @@ cases can flake when the machine is loaded (re-run `--only request-timeout`).
   `ensureCodingAgentBinary`, `resolveCodingAgentCredentials`.
 
 * **Minimal edits outside the owned files** (needed for Ctrl-C parity, verified by pty cases):
-  `src/framework/termui.ts` `raceSigint` (SIGINT during a click `prompt`/`confirm` read raises `KeyboardInterrupt` ->
-  `Abort`, instead of the global handler's `\nAborted!`), and `src/cli/repl.ts` `inputInterrupts` plus `^C`/`^D` echo
+  `src/cli/repl.ts` `inputInterrupts` plus `^C`/`^D` echo
   (Python `asyncio.run` swallows the first Ctrl-C while `input()` blocks, the second raises inside `input()` ->
   `Disconnected.`; a swallowed first Ctrl-C surfaces as `Aborted!`/exit 1 when the coroutine returns or before the next
   command is run).
@@ -315,8 +321,6 @@ cases can flake when the machine is loaded (re-run `--only request-timeout`).
   rendered with Python `str()` in the CLI. Differential cases "run B result float|big|json array body" still differ (5 cases).
 * **`create --request-timeout` <= 0**: the CLI raises the SDK's `ValueError` itself with the Python float repr (`got 0.0`),
   because the SDK only sees a JS number (`got 0`).
-* **`src/api/_yaml.ts`** treats bare `y`/`n` as booleans, which PyYAML (the oracle) does not (only yes/no/on/off/true/false; a
-  template arg named `n` turns into `false`); SDK owner should use `agent/_pyyaml.ts`. The run-A fixture uses `num`.
 * `api/capability.ts` template `rglob` ordering is still sorted (not owned here).
 
 ## config_cmd (`commands/config_cmd.ts`, `utils/_tomllib.ts`)
@@ -324,7 +328,7 @@ cases can flake when the machine is loaded (re-run `--only request-timeout`).
 Differential harness: `ORACLE_VENV=$ORACLE_VENV node parity/diff/config_cmds.mjs [--only <substr>] [--verbose] [--jobs N]`
 (~1450 cases incl. ~58 pty wizard / masked-input cases, 78 `warn-transport` cases that drive `sandbox list` to print the
 transport loader's `WARNING: Failed to load <config.toml>: <tomllib message>` line; isolated HOME and cwd, no real
-credentials, `EBX_NO_KEYCHAIN=1`). Result: 0 differing cases and no output normalisation other than the temp-dir path.
+credentials, `ABX_NO_KEYCHAIN=1`). Result: 0 differing cases and no output normalisation other than the temp-dir path.
 
 * **`utils/_tomllib.ts`**: faithful port of CPython 3.11 `tomllib` (table order, floats, exact `TOMLDecodeError` /
   `UnicodeDecodeError` messages). Used by `config_cmd` and by `transport/config.ts` `_loadTomlFile` (smol-toml is no longer
@@ -332,21 +336,19 @@ credentials, `EBX_NO_KEYCHAIN=1`). Result: 0 differing cases and no output norma
   value, `[Errno 13] Permission denied` texts, and date/time reprs (`datetime.date(2024, 1, 1)`) in pydantic messages.
   `models/_pydantic.ts` was touched minimally: `int` accepts `PyFloat` (integral value OK, fractional -> `int_from_float`)
   and `pyTypeName` honours `__pytype__`.
-* **No import cycle**: shortcut tables (`RESERVED_NAMES`, `_CORE_COMMANDS`, `_DEFAULT_SHORTCUTS`, `_SHORTCUT_TARGET_MAP`,
-  `_describeInvalidShortcutTarget`, `_formatShortcutTargets`) moved to the leaf `cli/_shortcut_table.ts` (re-exported by
-  `main`, same names); `config_cmd` resolves `main.handleErrors` lazily when a command runs. Import order no longer matters.
-* **Seams**: module attributes tests monkeypatch in Python are the mutable `configSeams` object (`_EBX_DIR`, `_CONFIG_FILE`,
-  `_ENV_FILE`, `sys`, `loadConfigDict`, `readEnvVar`, `writeEnvVar`, `_promptSecret`, `loadShortcuts`, `_configFileExists`,
+* **No import cycle**: `config_cmd` resolves `main.handleErrors` lazily when a command runs. Import order no longer matters.
+* **Seams**: module attributes tests monkeypatch in Python are the mutable `configSeams` object (`_ABX_DIR`, `_CONFIG_FILE`,
+  `_ENV_FILE`, `sys`, `loadConfigDict`, `readEnvVar`, `writeEnvVar`, `_promptSecret`, `_configFileExists`,
   `_createDefaultConfig`), read at call time.
 * **Masked input**: Node raw mode vs Python `cbreak`: Ctrl-Z is treated as EOF (Python raises SIGTSTP); on Windows raw mode
-  replaces `msvcrt`. The top-level SIGINT handler in `ebx.ts` prints a newline when Ctrl-C hits a visible click prompt.
+  replaces `msvcrt`. The top-level SIGINT handler in `abx.ts` prints a newline when Ctrl-C hits a visible click prompt.
   Real-pty tests drive a Python helper (no node-pty) and skip with a warning when python3/pty is unavailable.
 * LLM defaults come from the single `agent/qwen_code.ts` constants (as in Python, which imports them lazily).
 * Not differentially testable: truly concurrent writers (outcome is a race in Python too; sequential writers are covered)
-  and OS keychains (Python `config_cmd` never uses one; `EBX_NO_KEYCHAIN` variants are covered).
+  and OS keychains (Python `config_cmd` never uses one; `ABX_NO_KEYCHAIN` variants are covered).
 * `test_create_backend` / `test_create_nl` mock `config_cmd` with async stubs; they belong to the sandbox builder.
 * Exports for other builders: `_effectiveValue`, `readEnvVar`, `writeEnvVar`, `removeEnvVar`, `_removeTomlKey`,
-  `_businessDefault`, `_promptSecret`, `resolveGithubToken`, `loadConfigDict`, `loadShortcuts`, `_configFileExists`,
+  `_businessDefault`, `_promptSecret`, `resolveGithubToken`, `loadConfigDict`, `_configFileExists`,
   `_createDefaultConfig`, `_maskValue`, `_maskSupported`, `_feedMasked`, `_readMaskedLine`.
 
 ## commands/mcp (builder mcp-cmd)
@@ -356,9 +358,9 @@ HOME / cwd / run dirs against a stub platform server: 216 cases (`install` per t
 invalid UTF-8, `status` text+JSON, `stop`, `start` validation, `deploy` option matrix and generated artifact, STDIO over a stdin
 script, SIGTERM/SIGINT, second start refused, HTTP foreground with probes, port in use, unresolvable host, `--background`
 start/status/stop, background child dying early). All identical after normalising temp dirs, pids, ports, tokens, the launcher
-in IDE configs, the `Failed to load shortcuts` warning of the oracle (its own circular import) and the items below.
+in IDE configs and the items below.
 
-* **Launcher.** Python writes `sys.executable -m easy_sandbox.cli.main` style launchers; the port self-launches
+* **Launcher.** Python writes `sys.executable -m agent_sandbox.cli.main` style launchers; the port self-launches
   (`process.execPath` + this CLI's entry). `install` therefore records a different `command`/`args` prefix (the final args
   are still `mcp start`); the `--background` child is the same CLI re-run with `mcp start --http ...`.
 * **HTTP server.** `uvicorn.run` is replaced by `_serveUvicorn` (node:http): same banner / lifecycle lines on stderr, access
@@ -366,7 +368,7 @@ in IDE configs, the `Failed to load shortcuts` warning of the oracle (its own ci
   on a bind failure, graceful shutdown on the first SIGINT/SIGTERM, immediate exit on the second. After SIGTERM the process
   re-raises the signal (as uvicorn does), so the pid file stays behind exactly like the original; SIGINT removes it.
   Bind failures other than EADDRINUSE/EACCES/EADDRNOTAVAIL/ENOTFOUND/EAI_AGAIN use the generic OSError text.
-* **Deploy artifact.** `runtime: python3.10`, handler `app.app` and `requirements.txt` (`easy-sandbox[mcp]`, `uvicorn>=0.29`)
+* **Deploy artifact.** `runtime: python3.10`, handler `app.app` and `requirements.txt` (`agent-sandbox[mcp]`, `uvicorn>=0.29`)
   are unchanged on purpose: the FC function runs the Python SDK from PyPI, not the Node CLI.
 * **Huge `--memory`.** `INT` yields an exact `bigint` beyond 2**53; the generated `config.yaml` is not differential-tested for
   such values (not reachable with real FC memory sizes).
@@ -378,8 +380,6 @@ in IDE configs, the `Failed to load shortcuts` warning of the oracle (its own ci
   them; clients that wait for answers do not see it. (2) `agent/tools.ts` logs `Tool run_code failed: unavailable` where the
   original logs `Tool run_code failed: [E2000] unavailable` (exception `str()` vs bare message), plus traceback frames that
   are inherently different; the harness elides that stderr tail.
-* **Shortcut warning.** `config_cmd.ts` was absent while this was developed; real runs without it print the usual
-  `Failed to load shortcuts` warning (the oracle prints it too, for an unrelated circular-import reason in its dev tree).
 
 ## commands/template, _adopt, deploy (builder template-cmd)
 
@@ -393,17 +393,17 @@ normalising temp names/ports/timings and the items below (cases with a `known` m
 * **YAML parser messages.** Resolved: the parser is a port of PyYAML's, so detail lines (context / problem / snippet, or the
   file name without snippet for `open()` streams) are identical (`search bad yaml`, `install invalid yaml`).
 * **SDK wheel injection.** Python builds the wheel from the local source tree (`pip wheel`); the port downloads the matching
-  `easy-sandbox-server` wheel from PyPI. When neither is available both warn and continue; the warning texts differ
-  (normalised in the harness). The pip hint targets `easy-sandbox-server` (split).
+  `agent-sandbox-server` wheel from PyPI. When neither is available both warn and continue; the warning texts differ
+  (normalised in the harness). The pip hint targets `agent-sandbox-server` (split).
 * **Alibaba SDK errors.** `ListTeams` / ACR failures surface the text of the Node Tea SDK (`Error: Code Code: code: 404 ...`)
   instead of the Python SDK's; the `[E5000]` prefix, suggestion and exit code are identical. The `requests`/urllib3 DEBUG lines of
   the Python `-v` output have no Node counterpart.
-* **HTTP user agent.** `ebx-node-httpx/<version>` instead of `python-httpx/<version>` (framework-wide).
+* **HTTP user agent.** `abx-node-httpx/<version>` instead of `python-httpx/<version>` (framework-wide).
 * **questionary -> `@inquirer/prompts`.** The arrow-key case picker of `template init` uses `select`; the numbered fallback and
   the non-TTY behaviour are unchanged. Tests either `vi.mock("@inquirer/prompts")` or force `templateSeams._tryArrowCasePicker`
   to return `null`.
-* **`difflib.unified_diff`.** Implemented locally in `_adopt.ts` on top of `framework/difflib.SequenceMatcher` (400 random
-  line-list pairs fuzzed against CPython: identical).
+* **`difflib.unified_diff`.** `_adopt.ts` builds the diff with the `diff` package (`structuredPatch`); hunk grouping can differ from CPython on
+  inputs with several equally good alignments.
 * **`Sandbox.deploy` / `run_sync`.** Not ported (no Python-only bridge); the natural-language `template init`/`create` paths call
   `sandbox._generateLocalTemplate` directly.
 * **`_StepReporter`.** The `use_activity_line` branch writes through the same `OutputManager` activity line as Python; the
@@ -411,7 +411,7 @@ normalising temp names/ports/timings and the items below (cases with a `known` m
 * **`assert name` in `template init --from`.** Raised as a bare `Error("")` (same `Unexpected error:` output, unreachable in
   practice).
 * **Doc-consistency tests** (`test_agent_guide`, `test_byo_agent_docs`, `test_skill_installation_docs`) are ported against the CLI
-  repo's own docs / `SKILL.md`: shared-token lists follow `easy-sandbox/easy-sandbox` (npm install commands instead of `pip install`).
+  repo's own docs / `SKILL.md`: shared-token lists follow `agent-sandbox/agent-sandbox` (npm install commands instead of `pip install`).
 * **Not covered by the differential harness.** Paths that need a real TTY (confirmation prompts, the arrow picker, the live
   activity line), a real model run (`template init --adopt` after the dry run, natural-language generation) and real
   docker/ACR/Aliyun; these are covered by the ported unit tests with stubs (`test_template_branches.test.ts` adds the
@@ -425,7 +425,7 @@ normalising temp names/ports/timings and the items below (cases with a `known` m
   registry and the mocks live in `evidence_cases.ts` (including the fixed API key / fixed IDE-config map of the mcp cases), so
   the old `test_mcp_evidence.test.ts` was deleted as subsumed. Comparison uses `stdout` only (the interleaved `output` would
   hide a stdout/stderr split regression). `golden/` holds 103 files for 100 registry cases: three are stale leftovers from the
-  Python repository and are not asserted. Refresh with `EBX_UPDATE_EVIDENCE=1`; docs in `tests/test_cli_evidence/README.md`.
+  Python repository and are not asserted. Refresh with `ABX_UPDATE_EVIDENCE=1`; docs in `tests/test_cli_evidence/README.md`.
 * **`scripts/capture-cli-evidence.mjs`** replaces `scripts/capture_cli_evidence.py`. It runs the same registry inside vitest
   (spies cannot cross a process boundary): `--live` (needs `E2B_API_KEY`), `--command PREFIX`, `--out DIR`. When the output
   directory already has a hand-written `README.md` (as `.agents/evidence/` does) it writes `README.generated.md`; the stale
@@ -435,11 +435,11 @@ normalising temp names/ports/timings and the items below (cases with a `known` m
   opt-in capability group `AGENTS` that `docs/.../template-guide` does not describe, so
   `test_describes_every_capability_group` exempts `AGENTS` (marked in the test). Remove the exemption when the guide is updated
   (cli-followups §5); the guide itself was not changed.
-* **Integration policy** (`tests/integration/README.md`). The three files Python marks `@pytest.mark.integration`
-  (`test_cli_e2e`, `test_nl_template_init_e2e`, `test_shortcut_target_hint_e2e`) are excluded from `npm test` (explicit list in
+* **Integration policy** (`tests/integration/README.md`). The files Python marks `@pytest.mark.integration`
+  (`test_cli_e2e`, `test_nl_template_init_e2e`) are excluded from `npm test` (explicit list in
   the `test` script) and run with `npm run test:integration`; the unmarked ones (`progress_activity`, `adopt_deploy`,
   `credential_priority`, `workflow` CLICompleteness) run in CI in Python and therefore stay in the default run. None needs
-  credentials or a pty: everything is offline (`CliRunner` with stubbed seams, or a real `ebx` process with a temp HOME), so no
+  credentials or a pty: everything is offline (`CliRunner` with stubbed seams, or a real `abx` process with a temp HOME), so no
   `node-pty` / `script` fallback was necessary. `parity:coverage` runs the integration directory too.
 * **Moved to python-sdk.** 18 `test_workflow_e2e.py` entries (`TestTemplateDefinition`, `TestCapabilityResolution`,
   `TestImageChainBuilder`, `TestDeclarativeServerBridge`) test the Python SDK; they exist in
@@ -458,21 +458,10 @@ normalising temp names/ports/timings and the items below (cases with a `known` m
   `UnicodeDecodeError` (a `ValueError`, so `Sandbox._callServerCommand` still maps it to the "non-JSON response" path). The Connect
   codec (`json_decode`) follows orjson's number model (exact up to 64 bits, floats beyond). Integer-like object keys keep their
   insertion order (see the MCP section above for the paths that do not).
-* **YAML** (`utils/_pyyaml_load.ts` loader, `utils/_pyyaml.ts` emitter, shared by `api/_yaml.ts`, `utils/_yaml.ts` and the
-  agent's `safe_dump`): the loader is a line-by-line port of PyYAML 6.0.3's pure-Python pipeline (Reader, Scanner, Parser,
-  Composer, Resolver, SafeConstructor: lazy token pull, merge keys, `!!binary` / `!!set` / `!!omap` / `!!pairs` / `!!timestamp`,
-  key equality `True == 1 == 1.0`, python tags rejected with `could not determine a constructor`, NUL / non-printable characters,
-  `IndexError` / `KeyError` / `ValueError` leaks included). Differential-tested against the oracle on 3 468 documents, string and
-  `open()`-stream modes, exception class and full text (`parity/diff/yaml_gate_gen.py` -> `yaml_gate_cases.json`,
-  `tests/test_utils/test_pyyaml_gate.test.ts`; scalar resolution: `yaml_scalars_gen.py`, `test_pyyaml_scalars.test.ts`; harness
-  `adv_agent_template_yaml.mjs`: 0 accept/reject and 0 message differences). Remaining differences: timestamps surface as `Date`
-  (millisecond precision, naive datetimes read as UTC) after flattening, though the rich tree keeps the Python text; a
-  `UnicodeDecodeError` from `open()` of a file larger than 8 KiB reports the position within the failing 8 KiB decoder chunk in
-  Python (the port reports the absolute position; `Path.read_text()` call sites are exact); recursion depth limits are
-  "Maximum call stack size exceeded" vs "maximum recursion depth exceeded".
+* **YAML**: see `src/utils/yaml_io.ts` (the `yaml` package, YAML 1.1 rules, unknown tags and control characters rejected).
 * **`rglob`**: `Path.rglob("template.yaml")` (capability resolution) and the upload walker share `utils/_pyos.ts`
   (`scandirEntries`/`rglobName`/`rglobAll`), iterating in raw `readdir` order like `os.scandir`.
-* **`int()` parsing** (`framework/py.ts::parseIntStrict`): Unicode decimal digits (CPython 3.11 / Unicode 14 table),
+* **`int()` parsing** (`utils/_py.ts::parseIntStrict`): Unicode decimal digits (CPython 3.11 / Unicode 14 table),
   single underscores, Unicode whitespace (not U+001C..U+001F) and the 4300-digit limit follow CPython. Results beyond
   +-(2**53 - 1) are exact `bigint`s (smaller ones stay `number`), and `INT`/`IntRange` convert to the same. Huge values are
   reachable (`create -t 99999999999999999999` -> the SDK's pydantic range error shows the exact `input_value`; `exec -t` ->
@@ -493,12 +482,12 @@ became `tests/test_templates/adv_*.test.ts`, `tests/test_agent/adv_*.test.ts`, `
   accepted by both on loopback; a slow or fragmenting client can be rejected by Python and accepted by the port.
 * **STDIO EOF (AT-11).** The EOF path waits until the tasks of the last batch are done or provably blocked (a new socket / timer /
   process resource, or a `tools/call` behind a running one), capped at 2 s. asyncio cancels exactly the tasks suspended on I/O, so
-  a one-shot `printf request | ebx mcp start` is always answered now (6/6, was 0/6); a task parked on something that is neither
+  a one-shot `printf request | abx mcp start` is always answered now (6/6, was 0/6); a task parked on something that is neither
   I/O nor finishing is abandoned after the 2 s cap. `tests/test_agent/adv_mcp_stdio_eof.test.ts` is the deterministic stress test.
 * **Negative per-call `timeout` (AT-12).** Fixed in `src/transport`: `httpx.Timeout(<= 0)` expires as `ConnectTimeout` before any
   bytes, and envd streaming does not rewrite that into `ConnectionError_`. The MCP tool result is `{"error": "ConnectTimeout"}`.
-* **`--alias ../x`.** Install keeps `Path / alias` semantics: `Cached  <home>/.ebx/templates/../x` and the copy lands at
-  `<home>/.ebx/x`, exactly like the oracle (its path handling is itself unsafe; fixing it needs a decision shared with the
+* **`--alias ../x`.** Install keeps `Path / alias` semantics: `Cached  <home>/.abx/templates/../x` and the copy lands at
+  `<home>/.abx/x`, exactly like the oracle (its path handling is itself unsafe; fixing it needs a decision shared with the
   Python project).
 * **`shutil.copytree`.** `template install` and `template init --from` use `pyCopytree` (entries snapshotted before the
   destination is created, symlinks followed, per-entry failures collected into `shutil.Error`). `shutil.copystat` is limited to

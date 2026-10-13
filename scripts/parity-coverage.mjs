@@ -7,6 +7,10 @@
 //
 // Ledger line:  tests/test_cli/test_main.py::TestFoo::test_bar[param]
 // Node match:   file tests/test_cli/test_main.test.ts, ancestor titles [TestFoo], title starting with "test_bar"
+//
+// parity/moved-to-python-sdk.txt lists entries that test the Python SDK itself ("<entry> -> <python-sdk relative file>").
+// They are reported as "moved" (not missing) and, when the python-sdk monorepo checkout is next to this CLI, the class
+// and test function are verified to exist there.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -21,21 +25,53 @@ const filter = filterIdx >= 0 ? args[filterIdx + 1] : "";
 if (!args.includes("--no-run")) {
   const run = spawnSync(
     "npx",
-    ["vitest", "run", "--reporter=json", `--outputFile=${reportPath}`, "--exclude", "tests/integration/**"],
+    ["vitest", "run", "--reporter=json", `--outputFile=${reportPath}`],
     { cwd: root, stdio: "inherit" },
   );
   if (!existsSync(reportPath)) process.exit(run.status ?? 1);
 }
 
-const ledger = readFileSync(join(root, "parity", "python-tests-to-port.txt"), "utf8")
+const movedPath = join(root, "parity", "moved-to-python-sdk.txt");
+const moved = new Map();
+if (existsSync(movedPath)) {
+  for (const raw of readFileSync(movedPath, "utf8").split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const [entry, target] = line.split(" -> ");
+    moved.set(entry.trim().replace(/\[.*$/s, ""), (target ?? "").trim());
+  }
+}
+
+const allEntries = readFileSync(join(root, "parity", "python-tests-to-port.txt"), "utf8")
   .split("\n")
   .map((l) => l.trim())
   .filter(Boolean)
   .map((l) => l.replace(/\[.*$/s, ""))
   .filter((v, i, a) => a.indexOf(v) === i)
-  // `npm test` and the vitest run below both exclude tests/integration.
-  .filter((l) => !l.startsWith("tests/integration/"))
   .filter((l) => !filter || l.includes(filter));
+const ledger = allEntries.filter((l) => !moved.has(l));
+const movedEntries = allEntries.filter((l) => moved.has(l));
+
+const pythonSdkRoot = resolve(root, "..", "python-sdk");
+const movedMissing = [];
+if (existsSync(pythonSdkRoot)) {
+  for (const entry of movedEntries) {
+    const [, ...rest] = entry.split("::");
+    const name = rest[rest.length - 1];
+    const cls = rest.length > 1 ? rest[0] : null;
+    const file = join(pythonSdkRoot, moved.get(entry));
+    let found = false;
+    if (existsSync(file)) {
+      let text = readFileSync(file, "utf8");
+      if (cls) {
+        const m = new RegExp(`^class ${cls}\\b[\\s\\S]*?(?=^class |$(?![\\s\\S]))`, "m").exec(text);
+        text = m ? m[0] : "";
+      }
+      found = text.includes(`def ${name}(`);
+    }
+    if (!found) movedMissing.push(`${entry} -> ${moved.get(entry)}`);
+  }
+}
 
 const report = JSON.parse(readFileSync(reportPath, "utf8"));
 const results = new Map();
@@ -68,7 +104,11 @@ for (const entry of ledger) {
   }
 }
 
-console.log(`\nparity ledger entries: ${ledger.length}  passed: ${ok}  failed/skipped: ${bad.length}  missing: ${missing.length}`);
+const movedNote = movedEntries.length
+  ? `  moved to python-sdk: ${movedEntries.length}${existsSync(pythonSdkRoot) ? ` (verified, ${movedMissing.length} not found there)` : " (python-sdk checkout not present: not verified)"}`
+  : "";
+console.log(`\nparity ledger entries: ${ledger.length}  passed: ${ok}  failed/skipped: ${bad.length}  missing: ${missing.length}${movedNote}`);
+if (movedMissing.length) console.log(`\nMOVED BUT NOT FOUND IN python-sdk:\n${movedMissing.join("\n")}`);
 if (bad.length) console.log(`\nFAILED/SKIPPED:\n${bad.join("\n")}`);
 if (missing.length) console.log(`\nMISSING:\n${missing.join("\n")}`);
-process.exit(bad.length || missing.length ? 1 : 0);
+process.exit(bad.length || missing.length || movedMissing.length ? 1 : 0);

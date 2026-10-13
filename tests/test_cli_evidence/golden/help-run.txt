@@ -1,29 +1,35 @@
-Usage: cli run [OPTIONS] SANDBOX_ID COMMAND_NAME
+Usage: abx run [options] <SANDBOX_ID> <COMMAND_NAME>
 
-  Run a named custom command or registered command.
+Run a named command registered in the sandbox.
 
-  Supports two argument styles:
+'abx run' is the shortcut of 'abx sandbox command run'.
 
-  Legacy:  ebx run <id> <cmd> --arg key=value
-  New:     ebx run <id> <cmd> --key value
+Named commands are functions the template registers on the SandboxServer
+that runs inside the sandbox (``POST /commands/NAME``). List them with
+'abx sandbox command list SANDBOX_ID'. Arguments are validated and
+converted by the server according to the registered signature.
 
-  When the command comes from @sandbox.register, typed options (--x, --y, ...)
-  are derived automatically from the function signature.
+Pass arguments with --arg KEY=VALUE (repeatable) and/or --json-args
+'{"key": value}' for typed values. The command's return value is printed
+(JSON with --json). Fails with a clear error when the sandbox has no
+server.
 
-  Examples:
+Examples:
+  abx run abc123 build
+  abx run abc123 test --arg file=tests/
+  abx run abc123 add --json-args '{"x": 1, "y": 2}'
+  abx --json run abc123 greet --arg name=Ada
 
-      ebx run abc123 dev
-
-      ebx run abc123 test --arg file=tests/
-
-      ebx run abc123 demo --x 1 --y hello
-
-  Related commands:
-    ebx exec SANDBOX_ID CMD  Run an arbitrary shell command
-    ebx info SANDBOX_ID      Inspect the target sandbox
-    ebx template info ID     Inspect a template definition
+Related commands:
+  abx sandbox command list SANDBOX_ID   List the registered commands
+  abx exec SANDBOX_ID -- CMD            Run an arbitrary command
+  abx info SANDBOX_ID                   Inspect the target sandbox
 
 Options:
-  -a, --arg TEXT  Command argument as key=value (repeatable, legacy style)
-  -h, --help      Show this message and exit.
+  -a, --arg <ARGS>         Command argument, format KEY=VALUE (repeatable)
+  --json-args <JSON_ARGS>  Command arguments as a JSON object, e.g. '{"x": 1}'
+                           (for typed values)
+  --server-port <INTEGER>  Port of the SandboxServer inside the sandbox
+                           (default: 9000)
+  -h, --help               Show this message and exit.
 [exit_code:0]

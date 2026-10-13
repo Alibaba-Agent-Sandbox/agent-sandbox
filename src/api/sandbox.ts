@@ -9,22 +9,20 @@
  *     await sb.kill();
  *
  * The Python `*_sync` variants (`make_sync`) do not exist in Node: every call is a Promise.
- *
- * `api/deploy.py` (`Sandbox.deploy`) is SDK-only and not reached by the CLI; it is intentionally not ported.
  */
 
 import { ResolvedCapabilities, resolveCapabilities } from "./capability.js";
-import { CommandNotFoundError } from "../models/errors.js";
+import { CommandNotFoundError, ConnectionError_ } from "../models/errors.js";
 import { setActiveProvider, trackOpenInfra } from "../providers/active.js";
+import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import type { Provider, ProviderInfra } from "../providers/base.js";
-import { ProviderConfigError, ProviderMismatchError } from "../providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderMismatchError } from "../providers/errors.js";
 import { cliOptions, cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, registerProvider, resolveProviderId } from "../providers/registry.js";
 import { BUILTIN_PROVIDER_ID, providerEnvName } from "../utils/config_keys.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { CodeResult, CommandResult, ProcessResult, type ProcessChunk } from "../models/process.js";
 import { SandboxConfig, SandboxInfo, type SandboxStatus } from "../models/sandbox.js";
-import type { CustomCommand } from "../models/template.js";
 import { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
 import { FilesystemProtocol } from "../protocol/filesystem.js";
 import { ProcessProtocol } from "../protocol/process.js";
@@ -38,7 +36,6 @@ import { ExcInfo, getLogger } from "../utils/logging.js";
 import { PyFloat, pyRepr, pySorted, pyStr, pyStrip, pyTruthy } from "../utils/_pyformat.js";
 import { AttributeError } from "../utils/_pyos.js";
 import { NotImplementedError, RuntimeError, ValueError, dictGet, pyExcStr, pyTypeName } from "./_pyerrors.js";
-import { shlexQuote } from "./_shlex.js";
 import { CodeContextModule } from "./code.js";
 import { CommandsModule } from "./commands.js";
 import { FilesModule } from "./files.js";
@@ -79,9 +76,9 @@ export interface BuildInfraOptions {
   api_url?: string | null;
   access_key_id?: string | null;
   access_key_secret?: string | null;
-  /** Provider id (or a `Provider` object). Default: `EBX_PROVIDER` / `[core] provider` / `alicloud-express`. */
+  /** Provider id (or a `Provider` object). Default: `ABX_PROVIDER` / `[core] provider` / `alicloud-express`. */
   provider?: string | Provider | null;
-  /** Provider-scoped option values (see `ebx provider info`); exec providers receive them minus secret fields. */
+  /** Provider-scoped option values (see `abx provider info`); exec providers receive them minus secret fields. */
   provider_options?: Record<string, unknown> | null;
 }
 
@@ -137,11 +134,24 @@ export function _selectProvider(provider: string | Provider | null | undefined, 
 }
 
 /** Stands in for `HttpClient.close()` so a `Sandbox` can release provider resources (plugin process, HTTP client). */
+/**
+ * Capability set the module gates use for a provider sandbox: the defaults plus whatever the provider declares. A feature
+ * the provider lacks is refused by its protocol gate with E8004 naming the feature, not by a template-flavoured E3004.
+ */
+function providerCapabilities(prov: Provider): ResolvedCapabilities {
+  return new ResolvedCapabilities({ capabilities: [...DEFAULT_CAPABILITIES, ...prov.capabilities()] });
+}
+
 class InfraCloser {
   private readonly untrack: () => void;
 
   constructor(private readonly infra: ProviderInfra) {
     this.untrack = trackOpenInfra(() => this.close());
+  }
+
+  /** The provider's own HTTP client when it has one (REST providers); `null` for plugins that route over EPP. */
+  get httpClient(): HttpClient | null {
+    return this.infra.http_client;
   }
 
   async close(): Promise<void> {
@@ -161,11 +171,11 @@ export function _effectiveOptions(prov: Provider | null, options: Record<string,
     const f = known.get(key);
     if (f === undefined && !schema.inherit.has(key)) {
       throw new ProviderConfigError(`Unknown option '${key}' for provider '${schema.id}'.`, {
-        suggestion: `Run 'ebx provider info ${schema.id}' to see its options.`,
+        suggestion: `Run 'abx provider info ${schema.id}' to see its options.`,
       });
     }
     if (f?.secret) {
-      throw new ProviderConfigError(`Field '${key}' is secret; set it with 'ebx provider config ${schema.id} set ${key}' or the ${providerEnvName(schema.id, key)} environment variable.`);
+      throw new ProviderConfigError(`Field '${key}' is secret; set it with 'abx provider config ${schema.id} set ${key}' or the ${providerEnvName(schema.id, key)} environment variable.`);
     }
   }
   return { ...cli, ...(options ?? {}) };
@@ -218,6 +228,8 @@ export interface SandboxInit {
   domain?: string;
   secure?: boolean;
   resolved_capabilities?: ResolvedCapabilities | null;
+  /** The capability set a provider declares (reported by `capabilities`; the module gates stay permissive so the provider answers E8004). */
+  declared_capabilities?: ReadonlySet<string> | null;
   provider_id?: string;
 }
 
@@ -256,14 +268,6 @@ export interface RunCodeOptions {
   on_result?: ((r: any) => void) | null;
 }
 
-export interface SandboxRunOptions {
-  timeout?: number;
-  env?: Record<string, string> | null;
-  cwd?: string;
-  user?: string;
-  background?: boolean;
-}
-
 interface EnvdClientLike {
   post(url: string, opts: { json?: unknown; headers?: Record<string, string> }): Promise<HttpResponseLike>;
   get(url: string, opts: { headers?: Record<string, string> }): Promise<HttpResponseLike>;
@@ -279,8 +283,6 @@ interface HttpResponseLike {
 function isJsonDecodeError(e: unknown): boolean {
   return e instanceof SyntaxError || e instanceof ValueError;
 }
-
-const PLACEHOLDER_RE = /\{([\p{L}\p{N}_]+)\}/gu;
 
 function withCause<T extends Error>(err: T, cause: unknown): T {
   (err as { cause?: unknown }).cause = cause;
@@ -310,9 +312,9 @@ export class Sandbox {
   _code_interpreter_protocol: CodeInterpreterProtocol;
   _resolved: ResolvedCapabilities;
   _capabilities: Set<string>;
-  _custom_commands: Record<string, CustomCommand>;
-  _server_probe_failed: boolean;
+  _declared_capabilities: ReadonlySet<string> | null;
   _provider_id: string;
+  _killed: boolean;
 
   private _commands?: CommandsModule;
   private _files?: FilesModule;
@@ -329,6 +331,7 @@ export class Sandbox {
       this._info.envd_url = this._config.buildEnvdUrl(this._info.sandbox_id);
     }
     this._http_client = init.http_client;
+    this._killed = false;
     this._auth = init.auth;
     this._envd_token = init.envd_token;
     this._domain = init.domain ?? "e2b.dev";
@@ -345,11 +348,7 @@ export class Sandbox {
       this._resolved = new ResolvedCapabilities();
     }
     this._capabilities = new Set(this._resolved.capabilities);
-    this._custom_commands = { ...this._resolved.custom_commands };
-
-    // Cache flag for mechanism-B (SandboxServer) reachability. Once a connection attempt fails, subsequent custom()
-    // calls skip the probe to avoid repeated connect-timeout stalls. Reset via resetServerProbe().
-    this._server_probe_failed = false;
+    this._declared_capabilities = init.declared_capabilities ?? null;
   }
 
   // ---- Properties ----
@@ -381,7 +380,7 @@ export class Sandbox {
 
   /** Effective capability set for this sandbox. */
   get capabilities(): ReadonlySet<string> {
-    return new FrozenSet(this._capabilities);
+    return new FrozenSet(this._declared_capabilities ?? this._capabilities);
   }
 
   // ---- Sub-modules (lazy cached properties) ----
@@ -696,7 +695,7 @@ export class Sandbox {
       const info = await infra.sandbox_protocol.create(sandbox_config, { request_timeout: p.request_timeout });
       const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
       logger.info("Sandbox created: %s (provider %s)", info.sandbox_id, prov.id);
-      const resolved = new ResolvedCapabilities(); // a plugin template is a backend image, not a catalog template
+      const resolved = providerCapabilities(prov);
       return new Sandbox({
         info,
         config: infra.config.toTransportConfig(),
@@ -710,6 +709,7 @@ export class Sandbox {
         domain: p.domain || infra.config.sandbox_domain,
         secure: p.secure === null ? true : p.secure,
         resolved_capabilities: resolved,
+        declared_capabilities: prov.capabilities(),
         provider_id: prov.id,
       });
     } catch (e) {
@@ -725,7 +725,7 @@ export class Sandbox {
       const info = await infra.sandbox_protocol.connect(sandbox_id);
       const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
       logger.info("Connected to sandbox: %s (provider %s)", sandbox_id, prov.id);
-      const resolved = new ResolvedCapabilities();
+      const resolved = providerCapabilities(prov);
       return new Sandbox({
         info,
         config: infra.config.toTransportConfig(),
@@ -738,6 +738,7 @@ export class Sandbox {
         code_interpreter_protocol: infra.code_interpreter_protocol as unknown as CodeInterpreterProtocol | null,
         domain: p.domain || infra.config.sandbox_domain,
         resolved_capabilities: resolved,
+        declared_capabilities: prov.capabilities(),
         provider_id: prov.id,
       });
     } catch (e) {
@@ -753,10 +754,12 @@ export class Sandbox {
     await this._http_client.close();
   }
 
-  /** Kill the sandbox and release resources. */
+  /** Kill the sandbox and release resources. A second call is a no-op: the first call closes the client. */
   async kill(): Promise<void> {
+    if (this._killed) return;
     try {
       await this._sandbox_protocol.kill(this.id);
+      this._killed = true;
       logger.info("Sandbox killed: %s", this.id);
     } finally {
       await this._http_client.close();
@@ -809,255 +812,107 @@ export class Sandbox {
     return TerminalSession.create(this.url, this._envd_token, this._config, { cols, rows, shell });
   }
 
-  // ---- Custom command dispatch ----
+  // ---- Named commands (registered on the in-sandbox SandboxServer) ----
 
   /**
-   * Return the merged command catalogue (template + server).
+   * List the named commands registered on the sandbox's SandboxServer (`GET /commands` on `server_port`).
    *
-   * Each entry is `{name, source: "template"|"server", description, args: [{name, required, default, description,
-   * type}], shadowed}`. Template commands take priority: a server command whose name also exists in the template
-   * catalogue is marked `shadowed=true`.
+   * Each entry is `{name, description, args: [{name, type, required, default, description}]}`.
    *
-   * Throws `TokenExpiredError` if the sandbox is not authenticated.
+   * Throws `ConnectionError_` when no SandboxServer is reachable, and `TokenExpiredError` if the sandbox is not
+   * authenticated.
    */
   async listCommands(opts: { server_port?: number } = {}): Promise<Record<string, any>[]> {
     const { server_port = 9000 } = opts;
-    // Verify sandbox authentication (raises TokenExpiredError if invalid)
+    Sandbox._requireHttpDataPlane(this, "named commands");
     this._envd_token.getHeaders();
-
-    const template_names = new Set(Object.keys(this._custom_commands));
-    const results: Record<string, any>[] = Object.entries(this._custom_commands).map(([name, cmd]) => ({
-      name,
-      source: "template",
-      description: cmd.description,
-      args: cmd.args.map((arg) => ({
-        name: arg.name,
-        required: arg.required,
-        default: arg.default,
-        description: arg.description,
-        type: arg.type,
-      })),
-      shadowed: false,
-    }));
-
-    // Server commands (best-effort; never raise on connection failure).
-    let server_cmds: Record<string, any>[];
     try {
-      server_cmds = await this._fetchServerCommands(server_port);
+      return await this._fetchServerCommands(server_port);
     } catch (exc) {
-      if (!(exc instanceof RequestError)) throw exc;
-      logger.debug("Could not fetch server commands (server may be down): %s", pyExcStr(exc));
-      server_cmds = [];
+      if (exc instanceof RequestError) throw this._serverUnreachable(server_port, exc);
+      throw exc;
     }
-
-    for (const cmd_entry of server_cmds) {
-      const srv_name = pyStr(dictGet(cmd_entry, "name", ""));
-      results.push({
-        name: srv_name,
-        source: "server",
-        description: dictGet(cmd_entry, "description", ""),
-        args: dictGet(cmd_entry, "args", []),
-        shadowed: template_names.has(srv_name),
-      });
-    }
-
-    return results;
   }
 
   /**
-   * Run a bare shell command — top-level shortcut for `commands.run`.
+   * Call a named command registered on the sandbox's SandboxServer: `POST /commands/{name}` on `server_port` with
+   * `kwargs` as the JSON body. This is the only way to run a named command; for a raw shell command use
+   * `commands.run()`.
    *
-   * To execute a *named* command (template `custom_commands` or a SandboxServer registry function) use `custom()`.
+   * Throws `CommandNotFoundError` when the server has no command `name`, and `ConnectionError_` when no SandboxServer is
+   * reachable. A command that exists but fails validation/execution resolves to a `CommandResult` with `exit_code` 1.
    */
-  async run(cmd: string, opts: SandboxRunOptions = {}): Promise<ProcessResult | StreamReader<ProcessChunk>> {
-    const { timeout = 60, env = null, cwd = "", user = "", background = false } = opts;
-    return this.commands.run(cmd, { timeout, env, cwd, user, background });
-  }
-
-  // ---- Named command dispatch (template A → server B) ----
-
-  /**
-   * Execute a named command, resolving template (A) then server (B).
-   *
-   * 1. Template `custom_commands` (mechanism A): fills `{placeholder}` tokens with `kwargs` (shlex-quoted) and runs the
-   *    resulting shell command over envd.
-   * 2. Server registry (mechanism B): `POST /commands/{name}` to a SandboxServer on `server_port` (default 9000),
-   *    forwarding `kwargs` as JSON.
-   *
-   * `kwargs.server_port` is consumed as the SandboxServer port (like the Python keyword-only parameter).
-   *
-   * Throws `CommandNotFoundError` if `name` is unknown in both sources or the SandboxServer cannot be reached, and
-   * `ValueError` if a template command's arguments are invalid.
-   */
-  async custom(name: string, kwargs: Record<string, any> = {}): Promise<CommandResult> {
-    const { server_port = 9000, ...rest } = kwargs;
-    return this._custom(name, server_port, rest);
-  }
-
-  private async _custom(name: string, server_port: number, kwargs: Record<string, any>): Promise<CommandResult> {
-    // Phase 1: template custom_commands (A).
-    if (Object.prototype.hasOwnProperty.call(this._custom_commands, name)) {
-      const process_result = await this._runTemplateCommand(name, kwargs);
-      return new CommandResult({
-        value: pyStrip(process_result.stdout),
-        stdout: process_result.stdout,
-        stderr: process_result.stderr,
-        exit_code: process_result.exit_code,
-        execution_time: process_result.execution_time,
-        source: "template",
-      });
-    }
-
-    const checked = ["template custom_commands", "sandbox server"];
-
-    // Phase 2: server registry (B). Skip if a prior probe already failed.
-    if (this._server_probe_failed) {
-      throw new CommandNotFoundError(name, {
-        checked,
-        template_commands: Object.keys(this._custom_commands),
-        server_status: "skipped after a previous connection failure; is the SandboxServer running?",
-      });
-    }
-
+  async runCommand(name: string, kwargs: Record<string, any> = {}, opts: { server_port?: number } = {}): Promise<CommandResult> {
+    const { server_port = 9000 } = opts;
+    Sandbox._requireHttpDataPlane(this, "named commands");
     let response: HttpResponseLike;
     let body: Record<string, any>;
     try {
       [response, body] = await this._callServerCommand(name, server_port, kwargs);
     } catch (exc) {
-      if (exc instanceof RequestError) {
-        this._server_probe_failed = true;
-        throw withCause(
-          new CommandNotFoundError(name, {
-            checked,
-            template_commands: Object.keys(this._custom_commands),
-            server_status: `connection failed (${pyExcStr(exc)}); is the SandboxServer running?`,
-          }),
-          exc,
-        );
-      }
+      if (exc instanceof RequestError) throw this._serverUnreachable(server_port, exc);
       if (exc instanceof RuntimeError) {
-        // Non-JSON response (e.g. 502 Bad Gateway when server is not running). Treat as server-unreachable so the
-        // user gets a friendly CommandNotFoundError instead of a raw RuntimeError.
-        this._server_probe_failed = true;
-        throw withCause(
-          new CommandNotFoundError(name, {
-            checked,
-            template_commands: Object.keys(this._custom_commands),
-            server_status: `server returned an invalid response (${pyExcStr(exc)}); is the SandboxServer running?`,
-          }),
-          exc,
-        );
+        // Non-JSON response (e.g. 502 Bad Gateway when no server is listening on the port).
+        throw this._serverUnreachable(server_port, exc);
       }
       throw exc;
     }
 
     if (response.is_success) {
-      return new CommandResult({ value: dictGet(body, "result"), exit_code: 0, source: "server" });
+      return new CommandResult({ value: dictGet(body, "result"), exit_code: 0 });
     }
 
-    if ((response as { status_code?: number } | null)?.status_code === 404) {
+    if (response.status_code === 404) {
       throw new CommandNotFoundError(name, {
-        checked,
-        template_commands: Object.keys(this._custom_commands),
-        server_status: "reachable but command not found (HTTP 404)",
+        server_status: "HTTP 404",
+        suggestion: "List the registered commands with 'abx sandbox command list SANDBOX_ID'.",
       });
     }
 
-    // Reachable, command exists, but validation/execution failed.
     const error_msg = pyStr(dictGet(body, "error", "Unknown error"));
     const error_type = pyStr(dictGet(body, "type", "UnknownError"));
     return new CommandResult({
       value: dictGet(body, "result"),
       stderr: `${error_type}: ${error_msg}`,
       exit_code: 1,
-      source: "server",
     });
-  }
-
-  /** Clear the cached SandboxServer-unreachable flag, so a subsequent `custom()` retries mechanism B. */
-  resetServerProbe(): void {
-    this._server_probe_failed = false;
-  }
-
-  /**
-   * Deprecated alias for `custom()` returning only `.value`.
-   *
-   * `kwargs.server_port` is consumed as the SandboxServer port.
-   */
-  async runCommand(name: string, kwargs: Record<string, any> = {}): Promise<any> {
-    _seams.warn("Sandbox.run_command() is deprecated; use Sandbox.custom() instead.", "DeprecationWarning");
-    const { server_port = 9000, ...rest } = kwargs;
-    const result = await this._custom(name, server_port, rest);
-    return result.value;
   }
 
   // ---- Named command internals ----
 
   /**
-   * Run a template `custom_commands` entry (mechanism A).
-   *
-   * Fills `{placeholder}` tokens using `kwargs` (shlex-quoted) and runs the resulting shell command. Preserves the
-   * single-pass substitution that closes the argv-injection hole.
-   *
-   * Throws `ValueError` on undeclared/missing args or unfilled placeholders.
+   * Fails with E8004 naming `feature` when the sandbox has no HTTP data plane: a provider that routes over EPP (envd URL
+   * `epp://...`) or has no HTTP client of its own cannot reach an in-sandbox server.
    */
-  async _runTemplateCommand(name: string, kwargs: Record<string, any>): Promise<ProcessResult> {
-    const cmd_def = this._custom_commands[name]!;
-
-    const declared = new Set(cmd_def.args.map((arg) => arg.name));
-    const has = (k: string): boolean => Object.prototype.hasOwnProperty.call(kwargs, k);
-
-    // Reject undeclared kwargs rather than silently dropping them, so typos surface immediately.
-    const undeclared = pySorted(Object.keys(kwargs).filter((k) => !declared.has(k)));
-    if (undeclared.length) {
-      const declared_sorted = pySorted(declared);
-      throw new ValueError(
-        `Unexpected argument(s) ${pyRepr(undeclared)} for custom command ` +
-          `${pyRepr(name)}; declared args: ${declared_sorted.length ? pyRepr(declared_sorted) : "(none)"}`,
-      );
+  static _requireHttpDataPlane(sb: { _info: SandboxInfo; _provider_id: string; _http_client: unknown }, feature: string): void {
+    if (String(sb._info?.envd_url ?? "").startsWith("epp://")) throw new ProviderFeatureNotSupportedError(sb._provider_id, feature);
+    if (sb._http_client instanceof InfraCloser && typeof (sb._http_client.httpClient as { _createEnvdClient?: unknown } | null)?._createEnvdClient !== "function") {
+      throw new ProviderFeatureNotSupportedError(sb._provider_id, feature);
     }
+  }
 
-    // Validate required args
-    for (const arg of cmd_def.args) {
-      if (arg.required && !has(arg.name) && arg.default === null) {
-        throw new ValueError(`Required argument ${pyRepr(arg.name)} missing for custom command ${pyRepr(name)}`);
-      }
-    }
+  private _envdClientFactory(feature: string): (url: string) => EnvdClientLike {
+    Sandbox._requireHttpDataPlane(this, feature);
+    const hc = this._http_client instanceof InfraCloser ? this._http_client.httpClient : this._http_client;
+    const factory = (hc as unknown as { _createEnvdClient: (u: string) => EnvdClientLike })._createEnvdClient;
+    return (url) => factory.call(hc, url);
+  }
 
-    // Build substitution map (declared args only, shlex-quoted).
-    const subs = new Map<string, string>();
-    for (const arg of cmd_def.args) {
-      if (has(arg.name)) {
-        subs.set(arg.name, shlexQuote(pyStr(kwargs[arg.name])));
-      } else if (arg.default !== null) {
-        subs.set(arg.name, shlexQuote(arg.default));
-      }
-    }
-
-    // Single-pass substitution over the ORIGINAL template only. Because replace never re-scans inserted text, a user
-    // value that itself looks like `{other}` cannot be expanded a second time.
-    const cmd_str = cmd_def.cmd.replace(PLACEHOLDER_RE, (m: string, key: string) => subs.get(key) ?? m);
-
-    // Detect unfilled placeholders against the ORIGINAL template (not the substituted string).
-    const unfilled = [...cmd_def.cmd.matchAll(PLACEHOLDER_RE)].map((m) => m[1]!).filter((k) => !subs.has(k));
-    if (unfilled.length) {
-      throw new ValueError(`Unfilled placeholders in command ${pyRepr(name)}: ${pyRepr(unfilled)}`);
-    }
-
-    const result = await this.commands.run(cmd_str, {
-      timeout: cmd_def.timeout,
-      env: cmd_def.env && Object.keys(cmd_def.env).length ? cmd_def.env : null,
-      cwd: cmd_def.cwd,
-    });
-    // commands.run may return StreamReader when background=true, but custom commands always run in foreground.
-    return result as ProcessResult;
+  private _serverUnreachable(server_port: number, cause: unknown): ConnectionError_ {
+    return withCause(
+      new ConnectionError_(`No SandboxServer reachable in sandbox ${this.id} on port ${server_port} (${pyExcStr(cause)}).`, {
+        suggestion:
+          "Named commands are registered on the SandboxServer inside the sandbox; use a template that starts it, " +
+          "or pass --server-port if it listens elsewhere.",
+      }),
+      cause,
+    );
   }
 
   /**
-   * POST `/commands/{name}` to the in-sandbox SandboxServer (B).
+   * POST `/commands/{name}` to the in-sandbox SandboxServer.
    *
-   * Returns the raw `[response, parsed_body]` pair so the caller can map status codes to the unified `CommandResult`
-   * semantics.
+   * Returns the raw `[response, parsed_body]` pair so the caller can map status codes to `CommandResult` semantics.
    *
    * Throws `RequestError` if the request cannot be delivered, and `RuntimeError` if the server returns a non-JSON body.
    */
@@ -1069,10 +924,10 @@ export class Sandbox {
     const url = this.network.getUrl(server_port);
     const access_headers = this.network.getAccessHeaders();
 
-    const client = (this._http_client as unknown as { _createEnvdClient(u: string): EnvdClientLike })._createEnvdClient(url);
+    const client = this._envdClientFactory("named commands")(url);
     const headers = { "Content-Type": "application/json", ...access_headers };
 
-    const response = await client.post(`/commands/${name}`, { json: kwargs, headers });
+    const response = await client.post(`/commands/${encodeURIComponent(name)}`, { json: kwargs, headers });
 
     let body: Record<string, any>;
     try {
@@ -1093,19 +948,21 @@ export class Sandbox {
   }
 
   /**
-   * GET `/commands` from the in-sandbox SandboxServer (B).
+   * GET `/commands` from the in-sandbox SandboxServer.
    *
    * Returns the `commands` list from the JSON body, or an empty list when the response is malformed. Connection errors
-   * propagate as `RequestError` for the caller to handle.
+   * propagate as `RequestError`.
    */
   async _fetchServerCommands(server_port: number): Promise<Record<string, any>[]> {
     const url = this.network.getUrl(server_port);
     const access_headers = this.network.getAccessHeaders();
 
-    const client = (this._http_client as unknown as { _createEnvdClient(u: string): EnvdClientLike })._createEnvdClient(url);
+    const client = this._envdClientFactory("named commands")(url);
     const response = await client.get("/commands", { headers: access_headers });
 
-    if (!response.is_success) return [];
+    if (!response.is_success) {
+      throw new RuntimeError(`Sandbox server answered GET /commands with HTTP ${response.status_code}`);
+    }
     let body: Record<string, any>;
     try {
       body = response.json();

@@ -4,7 +4,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 
-const TEMPLATE = process.env.EBX_E2E_TEMPLATE || 'python-hello';
+const TEMPLATE = process.env.ABX_E2E_TEMPLATE || 'python-hello';
 const sid = (ctx) => ctx.state.id;
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 
@@ -29,7 +29,7 @@ export default {
       id: 'list-contains-sandbox', title: 'list --json contains the new sandbox (Status running, Region set)', requires: ['create-json'],
       async run(ctx) {
         await ctx.eventually(async () => {
-          const r = await ctx.ebx(['--json', 'list']);
+          const r = await ctx.abx(['--json', 'list']);
           const j = r.rawJson();
           const mine = Array.isArray(j) && j.find((s) => s.ID === sid(ctx));
           if (!mine) ctx.fail('new sandbox not yet listed');
@@ -40,7 +40,7 @@ export default {
     {
       id: 'list-filter-running', title: 'list --status running includes it', requires: ['create-json'],
       async run(ctx) {
-        const r = await ctx.ebx(['--json', 'list', '--status', 'running']);
+        const r = await ctx.abx(['--json', 'list', '--status', 'running']);
         const j = r.rawJson();
         if (!Array.isArray(j) || !j.some((s) => s.ID === sid(ctx))) ctx.fail('running sandbox missing from filtered list');
       },
@@ -92,12 +92,12 @@ export default {
         const back = join(ctx.cwd, 'blob.back');
         const data = randomBytes(100 * 1024);
         writeFileSync(local, data);
-        let r = await ctx.ebx(['upload', sid(ctx), 'blob.bin', '/tmp/e2e/blob.bin']);
+        let r = await ctx.abx(['upload', sid(ctx), 'blob.bin', '/tmp/e2e/blob.bin']);
         if (r.code !== 0) ctx.fail(`upload exit ${r.code}\n${r.out}`);
         ctx.check('upload', r.stdout, 'Uploaded');
-        r = await ctx.ebx(['exec', sid(ctx), 'sha256sum /tmp/e2e/blob.bin']);
+        r = await ctx.abx(['exec', sid(ctx), 'sha256sum /tmp/e2e/blob.bin']);
         ctx.check('remote sha', r.stdout, sha(data));
-        r = await ctx.ebx(['download', sid(ctx), '/tmp/e2e/blob.bin', 'blob.back']);
+        r = await ctx.abx(['download', sid(ctx), '/tmp/e2e/blob.bin', 'blob.back']);
         if (r.code !== 0) ctx.fail(`download exit ${r.code}\n${r.out}`);
         ctx.check('download', r.stdout, 'Downloaded');
         if (sha(readFileSync(back)) !== sha(data)) ctx.fail('downloaded bytes differ from uploaded bytes');
@@ -107,7 +107,7 @@ export default {
       id: 'upload-json', title: 'upload --json: {status:"success",message}', requires: ['create-json'],
       async run(ctx) {
         writeFileSync(join(ctx.cwd, 'a.txt'), 'hello e2e\n');
-        const r = await ctx.ebx(['--json', 'upload', sid(ctx), 'a.txt', '/tmp/e2e/a.txt']);
+        const r = await ctx.abx(['--json', 'upload', sid(ctx), 'a.txt', '/tmp/e2e/a.txt']);
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         const j = ctx.parseJsonLoose(r.stdout);
         if (j?.status !== 'success' || !/Uploaded/.test(j.message)) ctx.fail(`envelope ${JSON.stringify(j)}`);
@@ -119,23 +119,23 @@ export default {
         mkdirSync(join(ctx.cwd, 'updir'), { recursive: true });
         writeFileSync(join(ctx.cwd, 'updir', 'one.txt'), '1\n');
         writeFileSync(join(ctx.cwd, 'updir', 'two.txt'), '2\n');
-        const r = await ctx.ebx(['upload', sid(ctx), 'updir', '/tmp/e2e/dir/']);
+        const r = await ctx.abx(['upload', sid(ctx), 'updir', '/tmp/e2e/dir/']);
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         ctx.check('msg', r.stdout, /Uploaded 2 files/);
-        const ls = await ctx.ebx(['exec', sid(ctx), 'cat /tmp/e2e/dir/one.txt /tmp/e2e/dir/two.txt']);
+        const ls = await ctx.abx(['exec', sid(ctx), 'cat /tmp/e2e/dir/one.txt /tmp/e2e/dir/two.txt']);
         ctx.check('content', ls.stdout, /1\n2/);
       },
     },
     {
       id: 'download-json', title: 'download --json writes the file and reports success', requires: ['upload-json'],
       async run(ctx) {
-        const r = await ctx.ebx(['--json', 'download', sid(ctx), '/tmp/e2e/a.txt', 'dl.txt']);
+        const r = await ctx.abx(['--json', 'download', sid(ctx), '/tmp/e2e/a.txt', 'dl.txt']);
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         if (readFileSync(join(ctx.cwd, 'dl.txt'), 'utf8') !== 'hello e2e\n') ctx.fail('content mismatch');
         if (ctx.parseJsonLoose(r.stdout)?.status !== 'success') ctx.fail('no success envelope');
       },
     },
-    { id: 'download-missing-remote', title: 'download of a missing remote file: exit 4 (not found)', requires: ['create-json'], argv: (ctx) => ['download', sid(ctx), '/tmp/e2e/missing.txt', 'nope.txt'], exit: 4, output: '404' },
+    { id: 'download-missing-remote', title: 'download of a missing remote file: exit 4 (404 originally, E4001 after the KI-005 fix)', requires: ['create-json'], argv: (ctx) => ['download', sid(ctx), '/tmp/e2e/missing.txt', 'nope.txt'], exit: 4, output: /404|E4001/ },
 
     // ---- sandbox files ---------------------------------------------------------------------------------
     {
@@ -148,35 +148,38 @@ export default {
       id: 'files-stat-json', title: 'sandbox files stat --json exposes Name/Path/Type/Size keys (values are template-dependent)', requires: ['upload-json'], argv: (ctx) => ['--json', 'sandbox', 'files', 'stat', sid(ctx), '--path', '/tmp/e2e/a.txt'],
       jsonShape: { Name: 'string', Path: 'string', Type: 'string', Size: 'string|number' },
     },
-    { id: 'files-stat-missing', title: 'sandbox files stat of a missing path: exit 4', requires: ['create-json'], argv: (ctx) => ['sandbox', 'files', 'stat', sid(ctx), '--path', '/tmp/e2e/zzz-missing'], exit: 4, output: '404' },
+    { id: 'files-stat-missing', title: 'sandbox files stat of a missing path: exit 4 (404 originally, E4001 after the KI-005 fix)', requires: ['create-json'], argv: (ctx) => ['sandbox', 'files', 'stat', sid(ctx), '--path', '/tmp/e2e/zzz-missing'], exit: 4, output: /404|E4001/ },
     { id: 'files-mkdir', title: 'sandbox files mkdir creates nested dirs', requires: ['create-json'], argv: (ctx) => ['sandbox', 'files', 'mkdir', sid(ctx), '--path', '/tmp/e2e/m/n/o'], stdout: 'Directory created: /tmp/e2e/m/n/o' },
     {
       id: 'files-mv', title: 'sandbox files mv moves a file', requires: ['upload-json', 'files-mkdir'], argv: (ctx) => ['sandbox', 'files', 'mv', sid(ctx), '--source', '/tmp/e2e/a.txt', '--dest', '/tmp/e2e/m/moved.txt'],
       stdout: 'Moved: /tmp/e2e/a.txt -> /tmp/e2e/m/moved.txt',
-      async after(ctx) { const r = await ctx.ebx(['exec', sid(ctx), 'test ! -e /tmp/e2e/a.txt && cat /tmp/e2e/m/moved.txt']); ctx.check('moved', r.stdout, 'hello e2e'); },
+      async after(ctx) { const r = await ctx.abx(['exec', sid(ctx), 'test ! -e /tmp/e2e/a.txt && cat /tmp/e2e/m/moved.txt']); ctx.check('moved', r.stdout, 'hello e2e'); },
     },
     {
       id: 'files-search', title: 'sandbox files search --pattern finds files (order-insensitive)', requires: ['files-mv'], argv: (ctx) => ['sandbox', 'files', 'search', sid(ctx), '--path', '/tmp/e2e', '--pattern', '*.txt'],
       stdout: ['/tmp/e2e/m/moved.txt', '/tmp/e2e/dir/one.txt', /Found \d+ file\(s\)\./],
     },
     { id: 'files-rm-needs-confirmation', title: 'sandbox files rm without --yes and answer "n" aborts (exit 1) and keeps the file', requires: ['files-mv'], stdin: 'n\n', argv: (ctx) => ['sandbox', 'files', 'rm', sid(ctx), '--path', '/tmp/e2e/m/moved.txt'], exit: 1, output: /Aborted|\[y\/N\]/,
-      async after(ctx) { const r = await ctx.ebx(['exec', sid(ctx), 'test -e /tmp/e2e/m/moved.txt && echo still-there']); ctx.check('kept', r.stdout, 'still-there'); } },
+      async after(ctx) { const r = await ctx.abx(['exec', sid(ctx), 'test -e /tmp/e2e/m/moved.txt && echo still-there']); ctx.check('kept', r.stdout, 'still-there'); } },
     {
       id: 'files-rm-yes', title: 'sandbox files rm --yes deletes', requires: ['files-mv'], argv: (ctx) => ['sandbox', 'files', 'rm', sid(ctx), '--path', '/tmp/e2e/m/moved.txt', '--yes'], stdout: 'Deleted: /tmp/e2e/m/moved.txt',
-      async after(ctx) { const r = await ctx.ebx(['exec', sid(ctx), 'test -e /tmp/e2e/m/moved.txt || echo gone']); ctx.check('deleted', r.stdout, 'gone'); },
+      async after(ctx) { const r = await ctx.abx(['exec', sid(ctx), 'test -e /tmp/e2e/m/moved.txt || echo gone']); ctx.check('deleted', r.stdout, 'gone'); },
     },
 
     // ---- process -----------------------------------------------------------------------------------------
-    { id: 'process-start-exit-code', title: 'sandbox process start propagates the exit code and prints "Process exited with code N."', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'start', sid(ctx), '--command', 'echo started; exit 2'], exit: 2, output: ['started', 'Process exited with code 2.'] },
+    { id: 'exec-background-prints-pid', title: 'exec --background prints a numeric pid and returns before the command ends', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--background', '--', 'sleep', '30'], stdout: /^\d+$/m, timeoutMs: 60_000,
+      async after(ctx) { const r = await ctx.abx(['sandbox', 'process', 'list', sid(ctx)]); ctx.check('listed', r.out, /sleep/); } },
     {
-      id: 'process-start-json', title: 'sandbox process start --json: {stdout,stderr,exit_code,execution_time}', requires: ['create-json'], argv: (ctx) => ['--json', 'sandbox', 'process', 'start', sid(ctx), '--command', 'echo pj'],
-      jsonShape: { stdout: 'string', stderr: 'string', exit_code: 'number', execution_time: 'number' },
+      id: 'exec-background-json', title: 'exec --background --json: {pid}', requires: ['create-json'], argv: (ctx) => ['--json', 'exec', sid(ctx), '--background', '--', 'sleep', '5'],
+      jsonShape: { pid: 'number' },
     },
+    { id: 'exec-env-and-cwd', title: 'exec --env KEY=VAL --cwd DIR reaches the command', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--env', 'E2E_X=42', '--cwd', '/tmp', '--', 'sh', '-c', 'echo $E2E_X; pwd'], stdout: [/^42$/m, /^\/tmp$/m] },
+    { id: 'exec-exit-code-argv', title: 'exec -- CMD... propagates the remote exit code', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--', 'sh', '-c', 'echo started; exit 2'], exit: 2, output: 'started' },
     { id: 'process-list', title: 'sandbox process list exits 0 (table or "No processes found.")', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'list', sid(ctx)], output: /PID|No processes found\./ },
     { id: 'process-info-pid1', title: 'sandbox process info 1 shows PID/PPID/User/State/Command', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'info', sid(ctx), '1'], stdout: ['PID', 'PPID', 'User', 'State', 'Command'] },
     { id: 'process-signal', title: 'sandbox process signal acknowledges the signal', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'signal', sid(ctx), '99999', '--signal', '15'], stdout: /Signal 15 sent to process 99999\./ },
     {
-      id: 'shell-stream', title: 'sandbox shell-stream prints lines as they arrive', requires: ['create-json'], argv: (ctx) => ['sandbox', 'shell-stream', sid(ctx), '-c', 'echo s1; echo s2'], stdout: [/^s1$/m, /^s2$/m],
+      id: 'exec-stream', title: 'exec --stream prints lines as they arrive and propagates the exit code', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--stream', '--', 'sh', '-c', 'echo s1; echo s2; exit 3'], stdout: [/^s1$/m, /^s2$/m], exit: 3,
     },
     {
       id: 'connect-repl', title: 'connect REPL executes piped commands and exits on "exit"', requires: ['create-json'], stdin: 'echo hi-from-repl\nexit\n', argv: (ctx) => ['connect', sid(ctx)], timeoutMs: 120_000,
@@ -202,23 +205,25 @@ export default {
     },
     { id: 'capabilities-text', title: 'sandbox capabilities (text)', requires: ['create-json'], argv: (ctx) => ['sandbox', 'capabilities', sid(ctx)], stdout: ['Capabilities:', 'shell', 'files'] },
 
-    // ---- in-sandbox server + custom commands ---------------------------------------------------------------
+    // ---- in-sandbox server + named commands ---------------------------------------------------------------
     {
-      id: 'run-custom-command', title: 'start the in-sandbox server; `run hello` / --arg / --name work; unknown command exits 2 (E3005)', requires: ['create-json'], timeoutMs: 180_000,
+      id: 'run-named-command', title: 'start the in-sandbox server; `sandbox command list`, `run hello`, --arg and --json-args work; unknown command exits 2 (E3005)', requires: ['create-json'], timeoutMs: 180_000,
       async run(ctx) {
-        let r = await ctx.ebx(['exec', sid(ctx), 'nohup python3 /app/commands.py >/tmp/srv.log 2>&1 &']);
+        let r = await ctx.abx(['exec', sid(ctx), 'nohup python3 /app/commands.py >/tmp/srv.log 2>&1 &']);
         if (r.code !== 0) ctx.fail(`could not start server: ${r.out}`);
         await ctx.eventually(async () => {
-          const x = await ctx.ebx(['run', sid(ctx), 'hello']);
+          const x = await ctx.abx(['run', sid(ctx), 'hello']);
           if (x.code !== 0) ctx.fail(`run hello exit ${x.code}: ${x.out.slice(0, 200)}`);
           ctx.check('hello', x.stdout, 'Hello, World!');
         }, { timeoutMs: 60_000, intervalMs: 3_000, what: 'server to answer `run hello`' });
-        r = await ctx.ebx(['run', sid(ctx), 'hello', '--arg', 'name=Bob']);
+        r = await ctx.abx(['run', sid(ctx), 'hello', '--arg', 'name=Bob']);
         ctx.check('--arg', r.stdout, 'Hello, Bob!');
-        r = await ctx.ebx(['--json', 'run', sid(ctx), 'hello', '--name', 'Zed']);
+        r = await ctx.abx(['--json', 'run', sid(ctx), 'hello', '--json-args', '{"name": "Zed"}']);
         const j = ctx.parseJsonLoose(r.stdout);
-        if (j?.result !== 'Hello, Zed!') ctx.fail(`--name json: ${JSON.stringify(j)}`);
-        r = await ctx.ebx(['run', sid(ctx), 'no-such-command-e2e']);
+        if (j?.result !== 'Hello, Zed!') ctx.fail(`--json-args json: ${JSON.stringify(j)}`);
+        r = await ctx.abx(['sandbox', 'command', 'list', sid(ctx)]);
+        ctx.check('command list', r.out, 'hello');
+        r = await ctx.abx(['run', sid(ctx), 'no-such-command-e2e']);
         if (r.code !== 2) ctx.fail(`unknown command exit ${r.code}, expected 2`);
         ctx.check('E3005', r.out, ['E3005', 'not found']);
       },
@@ -230,14 +235,14 @@ export default {
       async run(ctx) {
         mkdirSync(join(ctx.cwd, 'seed'), { recursive: true });
         writeFileSync(join(ctx.cwd, 'seed', 'seed.txt'), 'seeded\n');
-        const r = await ctx.ebx(['--json', 'create', '--template', TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', '--timeout', '600']);
+        const r = await ctx.abx(['--json', 'create', '--template', TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', '--timeout', '600']);
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         const id = r.rawJson().ID;
         ctx.track(id);
         ctx.state.id2 = id;
-        const x = await ctx.ebx(['exec', id, 'printenv E2E_FOO E2E_N; cat /home/user/seed.txt || cat /home/user/seed/seed.txt']);
+        const x = await ctx.abx(['exec', id, 'printenv E2E_FOO E2E_N; cat /home/user/seed.txt || cat /home/user/seed/seed.txt']);
         ctx.check('env+file', x.stdout, ['bar', '1', 'seeded']);
-        const k = await ctx.ebx(['--json', 'kill', id, '--yes']);
+        const k = await ctx.abx(['--json', 'kill', id, '--yes']);
         if (k.code !== 0) ctx.fail(`kill exit ${k.code}`);
         ctx.untrack(id);
       },
@@ -245,21 +250,21 @@ export default {
 
     // ---- kill ----------------------------------------------------------------------------------------------------
     { id: 'kill-needs-confirmation', title: 'kill without --yes and answer "n": exit 1, sandbox survives', requires: ['create-json'], stdin: 'n\n', argv: (ctx) => ['kill', sid(ctx)], exit: 1, output: /Aborted|\[y\/N\]/,
-      async after(ctx) { const r = await ctx.ebx(['--json', 'info', sid(ctx)]); if (r.code !== 0) ctx.fail('sandbox must still exist after declined kill'); } },
+      async after(ctx) { const r = await ctx.abx(['--json', 'info', sid(ctx)]); if (r.code !== 0) ctx.fail('sandbox must still exist after declined kill'); } },
     {
       id: 'kill-yes-json', title: 'kill --yes --json: success envelope; sandbox is gone', requires: ['create-json'], argv: (ctx) => ['--json', 'kill', sid(ctx), '--yes'],
       jsonShape: { status: 'string', message: 'string' }, json: (j) => { if (j.status !== 'success' || !/killed/i.test(j.message)) throw new Error(JSON.stringify(j)); },
       async after(ctx) {
         ctx.untrack(sid(ctx));
         await ctx.eventually(async () => {
-          const r = await ctx.ebx(['--json', 'info', sid(ctx)]);
+          const r = await ctx.abx(['--json', 'info', sid(ctx)]);
           if (r.code !== 4) ctx.fail(`info after kill exit ${r.code}, expected 4`);
         }, { timeoutMs: 30_000, what: 'sandbox to disappear' });
-        const l = await ctx.ebx(['--json', 'list']);
+        const l = await ctx.abx(['--json', 'list']);
         const j = l.rawJson();
         if (Array.isArray(j) && j.some((s) => s.ID === sid(ctx))) ctx.fail('killed sandbox still listed');
       },
     },
-    { id: 'kill-twice', title: 'killing an already-killed sandbox: exit 4', requires: ['kill-yes-json'], argv: (ctx) => ['kill', sid(ctx), '--yes'], exit: 4, output: '404' },
+    { id: 'kill-twice', title: 'killing an already-killed sandbox is idempotent', requires: ['kill-yes-json'], argv: (ctx) => ['kill', sid(ctx), '--yes'], exit: 0, output: /killed/i },
   ],
 };

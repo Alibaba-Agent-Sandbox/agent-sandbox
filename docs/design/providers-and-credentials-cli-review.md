@@ -17,7 +17,7 @@ The full review of the shared design (rounds 1 and 2, all findings and resolutio
 | C8 | 2 | `Security` line looked enforced | §5.3 labelled "declared by the plugin (not enforced)" |
 | C9 | 2 | Qualified ids only for non-builtin could still mislead after the default changes | §4.4 legacy format only when ambient **and** effective are `alicloud-express` |
 | C10 | 2 | `--provider` typos gave an unhelpful error | §4.1 `Did you mean` hint |
-| C11 | 2 | Discoverability of `provider` and which provider answered | §0: `ebx --help` related-commands line, `ebx info` `Provider` row (non-builtin only) |
+| C11 | 2 | Discoverability of `provider` and which provider answered | §0: `abx --help` related-commands line, `abx info` `Provider` row (non-builtin only) |
 | C12 | 2 | Plugin stderr/`initialize` could leak secrets | §7 test 7: stderr redaction + no logging of `initialize` |
 | C13 | 2 | Installer ordering: validation must precede any file write | §7 test 6: `ls-tree` validation before blobs are written |
 

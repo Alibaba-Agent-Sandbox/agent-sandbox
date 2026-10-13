@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Differential fuzz of MCP *tool-error* text: the original Python stdio server (`python -m easy_sandbox.agent.mcp`)
+ * Differential fuzz of MCP *tool-error* text: the original Python stdio server (`python -m agent_sandbox.agent.mcp`)
  * versus the Node one (`src/agent/mcp_main.ts`), driven with the same malformed / unauthorized / missing-sandbox /
  * unreachable-platform tool calls against local stub platform servers. No real credentials or network are used.
  *
- *   ORACLE_VENV=/path/to/venv-for-original-ebx node parity/diff/mcp_toolerr.mjs [--verbose] [--only <mode>]
+ *   ORACLE_VENV=/path/to/venv-for-original-abx node parity/diff/mcp_toolerr.mjs [--verbose] [--only <mode>]
  *
  * For every stub mode and every tool call, both servers must answer with byte-identical JSON-RPC lines (after
  * normalising the stub port) and must send the stub the same HTTP requests (method, path, body, auth headers).
@@ -26,7 +26,7 @@ const onlyIdx = process.argv.indexOf("--only");
 const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
 
 if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "python"))) {
-  console.error("ORACLE_VENV must point to a venv with the original easy-sandbox installed (see docs/PORTING.md).");
+  console.error("ORACLE_VENV must point to a venv with the original agent-sandbox installed (see docs/PORTING.md).");
   process.exit(2);
 }
 
@@ -316,7 +316,7 @@ function startServer(kind, url, home) {
   const env = {
     PATH: process.env.PATH,
     HOME: home,
-    EBX_NO_KEYCHAIN: "1",
+    ABX_NO_KEYCHAIN: "1",
     E2B_API_KEY: "stub-key",
     E2B_API_URL: url,
     SANDBOX_TEMPLATE: "stub-template",
@@ -325,7 +325,7 @@ function startServer(kind, url, home) {
   };
   const [cmd, args, cwd] =
     kind === "py"
-      ? [join(ORACLE_VENV, "bin", "python"), ["-m", "easy_sandbox.agent.mcp"], home]
+      ? [join(ORACLE_VENV, "bin", "python"), ["-m", "agent_sandbox.agent.mcp"], home]
       : [process.execPath, ["--import", "tsx", join(CLI_ROOT, "src", "agent", "mcp_main.ts")], CLI_ROOT];
   const proc = spawn(cmd, args, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
   let buffer = "";
@@ -386,7 +386,7 @@ const labels = [...TOOL_CALLS.map(([n, a]) => `${JSON.stringify(n)} ${JSON.strin
 
 let total = 0;
 let diffs = 0;
-const home = mkdtempSync(join(tmpdir(), "ebx-toolerr-"));
+const home = mkdtempSync(join(tmpdir(), "abx-toolerr-"));
 const modes = [...Object.keys(MODES), "dns"].filter((m) => !only || m === only);
 
 try {

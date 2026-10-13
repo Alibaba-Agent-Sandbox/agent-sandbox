@@ -1,4 +1,4 @@
-server            easy-sandbox
+server            agent-sandbox
 transport         stdio
 tools_count       7
 tools             ['create_sandbox', 'run_code', 'run_command', 'read_file', 'write_file', 'list_files', 'kill_sandbox']

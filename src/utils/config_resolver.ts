@@ -1,6 +1,6 @@
 /**
  * Pure layered resolver for the canonical configuration keys (port of the resolver half of
- * `easy_sandbox/utils/config_keys.py`).
+ * `agent_sandbox/utils/config_keys.py`).
  *
  * Resolution is **layer-first**: layers are tried in order (overrides, process environment, each dotenv file,
  * `config.toml`, default) and inside a layer the names are tried most-specific first. A blank or whitespace-only
@@ -105,7 +105,7 @@ export function overrideNames(key: ConfigKey): string[] {
 }
 
 export interface ResolveOptions {
-  /** Provider whose `[providers.<id>]` table / `EBX_<ID>_<KEY>` variable may override an inherited core key. */
+  /** Provider whose `[providers.<id>]` table / `ABX_<ID>_<KEY>` variable may override an inherited core key. */
   scopedFor?: string | null;
   useDefault?: boolean;
 }

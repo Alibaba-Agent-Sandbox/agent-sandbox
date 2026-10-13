@@ -11,6 +11,7 @@ import { configFieldToKey, type ConfigField } from "../../src/providers/base.js"
 import { exitCodeFor, mapError } from "../../src/providers/epp.js";
 import * as store from "../../src/providers/store.js";
 import { applyMigration, planMigrationData, ProviderSchema, builtinSchema, readDotenv, resolveAll } from "../../src/transport/config_layers.js";
+import { CLI_ONLY_KEYS } from "../../src/utils/cli_config_keys.js";
 import { exportSchema } from "../../src/utils/config_keys.js";
 import { parseTomlText } from "../../src/utils/toml_plain.js";
 import { dumpsToml } from "../../src/utils/toml_write.js";
@@ -23,6 +24,9 @@ type J = Record<string, any>; // eslint-disable-line @typescript-eslint/no-expli
 function load(name: string): J {
   return JSON.parse(fs.readFileSync(path.join(FIXTURES, name), "utf-8"));
 }
+
+// The vectors come from the Python registry, which does not declare the CLI-only keys (src/utils/cli_config_keys.ts).
+const CLI_ONLY_NAMES = new Set(CLI_ONLY_KEYS.map((k) => k.key));
 
 describe("resolution vectors", () => {
   for (const vector of load("config-resolution-vectors.json")["vectors"] as J[]) {
@@ -50,7 +54,7 @@ describe("resolution vectors", () => {
       }
       const { resolved } = resolveAll(sources, schema);
       const got: J = {};
-      for (const [k, r] of resolved) got[k] = { value: r.value, source: r.layer, name: r.name };
+      for (const [k, r] of resolved) if (!CLI_ONLY_NAMES.has(k)) got[k] = { value: r.value, source: r.layer, name: r.name };
       expect(got).toEqual(vector["expect"]);
     });
   }
@@ -70,7 +74,7 @@ describe("tree digest vectors", () => {
 
   it("test_tree_digest_of_an_installed_directory_matches_entries", () => {
     const vec = (load("tree-digest-vectors.json")["vectors"] as J[]).find((v) => v["name"] === "nested and unicode paths") as J;
-    const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-digest-"));
+    const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-digest-"));
     try {
       for (const f of vec["files"] as J[]) {
         const target = path.join(tmp, ...String(f["path"]).split("/"));
@@ -103,7 +107,7 @@ describe("epp error vectors", () => {
 describe("migration vectors", () => {
   let tmp = "";
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-mig-"));
+    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-mig-"));
   });
   afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
 

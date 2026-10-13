@@ -1,7 +1,7 @@
 /**
  * .dockerignore matcher (Docker / BuildKit semantics) — port of `utils/dockerignore.py`.
  *
- * `ebx template init --adopt` must know whether a file such as `.env` would be sent to `docker build` —
+ * `abx template init --adopt` must know whether a file such as `.env` would be sent to `docker build` —
  * `.gitignore` is irrelevant, the build context is the whole directory minus the ignore file. This module
  * reimplements the documented matching rules so the check needs no Docker daemon:
  *

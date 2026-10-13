@@ -24,4 +24,17 @@ e2e/scenarios/10-cloud-readonly.mjs|e2b_(.)\1{19,}
 # /home/sandbox is the sandbox-side home directory used as test data, not a developer path.
 tests/test_cli/test_sandbox_system_extra_commands.test.ts|/home/sandbox
 # Redaction regex for the config.toml warning text in the differential harness.
-parity/diff/config_cmds.mjs|home\\/\\.ebx
+parity/diff/config_cmds.mjs|home\\/\\.abx
+
+# Fake home directory ("/home/someone") used as test data for the Python os.path.expanduser port.
+tests/test_utils/adv_pyos_parity.test.ts|/home/someone
+# Fake Windows-style values fed to the config round-trip differential harness; not a developer path.
+parity/diff/config_cmds.mjs|C:\\\\Users\\\\me
+# Historical verification logs that quote the scratch paths of the run they record (not current guidance).
+.agents/evidence/verify/2026-10-1[23]-differential-*.md|/tmp/(venv-orig|diff-fast)
+# Placeholder / fixture secrets that exist to exercise the redaction and detection code paths.
+tests/test_cli/test_config_llm.test.ts|sk-placeholder
+parity/review/completeness.md|sk-adv-canonical
+parity/diff/adv_agent_template_adopt.mjs|BEGIN (RSA |OPENSSH )?PRIVATE KEY|ghp_abcdefghijklmnopqrstuvwxyz0123
+# Provider e2e harness: a path inside its throw-away $WORK home (provider owner's script).
+e2e/providers/run.sh|\$WORK/home/\.abx

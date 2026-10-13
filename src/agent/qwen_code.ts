@@ -1,8 +1,8 @@
 /**
  * Host-side Qwen Code (https://github.com/QwenLM/qwen-code) adapter.
  *
- * Port of `easy_sandbox/agent/qwen_code.py`. It locates — or installs — the official Qwen Code CLI on the host and
- * runs it in headless JSON mode so that `ebx create "<description>"` can generate a Dockerfile and a `template.yaml`
+ * Port of `agent_sandbox/agent/qwen_code.py`. It locates — or installs — the official Qwen Code CLI on the host and
+ * runs it in headless JSON mode so that `abx create "<description>"` can generate a Dockerfile and a `template.yaml`
  * locally.
  *
  * Verified release facts (see the Python module for the full provenance):
@@ -88,7 +88,7 @@ const STANDALONE_MIRRORS: ReadonlyArray<readonly [string, string]> = [
 const CHECKSUM_NAME = "SHA256SUMS";
 export const _DEFAULT_OPENAI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
 export const _DEFAULT_OPENAI_MODEL = "qwen3-coder-plus";
-const USER_AGENT = "easy-sandbox-qwen-code/1.0";
+const USER_AGENT = "agent-sandbox-qwen-code/1.0";
 
 /** Environment variables that mean "the user already configured auth". */
 const EXISTING_AUTH_ENV_VARS: readonly string[] = ["OPENAI_API_KEY", "DASHSCOPE_API_KEY", "BAILIAN_CODING_PLAN_API_KEY"];
@@ -122,7 +122,7 @@ export interface QwenCodeCredentialsInit {
 /**
  * Resolved Qwen Code model credentials.
  *
- * `source` is one of: `qwen-stored` (the unified `llm_api_key` persisted as `EBX_LLM_API_KEY`), `llm-stored` (legacy
+ * `source` is one of: `qwen-stored` (the unified `llm_api_key` persisted as `ABX_LLM_API_KEY`), `llm-stored` (legacy
  * `llm_api_key` in config.toml), `environment` (a valid variable already exists in the process environment, so the
  * child inherits it) or `qwen-settings` (`~/.qwen/settings.json` is already configured).
  */
@@ -140,7 +140,7 @@ export class QwenCodeCredentials {
     Object.freeze(this);
   }
 
-  /** Whether ebx must inject `OPENAI_*` variables for the child. */
+  /** Whether abx must inject `OPENAI_*` variables for the child. */
   get needsEnvInjection(): boolean {
     return this.source === "qwen-stored" || this.source === "llm-stored";
   }
@@ -267,9 +267,9 @@ export function officialInstallCommand(opts: { windows?: boolean | null } = {}):
   );
 }
 
-/** Managed install directory: `~/.ebx/bin`. */
+/** Managed install directory: `~/.abx/bin`. */
 export function defaultBinDir(): string {
-  return path.join(homeDir(), ".ebx", "bin");
+  return path.join(homeDir(), ".abx", "bin");
 }
 
 function binaryNames(windows?: boolean | null): string[] {
@@ -281,12 +281,12 @@ function binaryNames(windows?: boolean | null): string[] {
 /**
  * Locate the Qwen Code executable.
  *
- * Lookup order: (1) `EBX_QWEN_CODE_BIN` override (absolute path to an executable), (2) the managed directory
- * `~/.ebx/bin` (installed by ebx itself), (3) `PATH` (honours `PATHEXT` on Windows). Returns `null` when nothing
+ * Lookup order: (1) `ABX_QWEN_CODE_BIN` override (absolute path to an executable), (2) the managed directory
+ * `~/.abx/bin` (installed by abx itself), (3) `PATH` (honours `PATHEXT` on Windows). Returns `null` when nothing
  * usable is found.
  */
 export function findQwenCodeBinary(opts: { binDir?: string | null; windows?: boolean | null } = {}): string | null {
-  const override = process.env.EBX_QWEN_CODE_BIN;
+  const override = process.env.ABX_QWEN_CODE_BIN;
   if (override) {
     const candidate = expandUser(override);
     return isFile(candidate) ? candidate : null;
@@ -451,7 +451,7 @@ function rmtree(target: string): void {
  *
  * The archive is downloaded from the Aliyun mirror first with a GitHub fallback, its SHA256 is verified against the
  * mirror's `SHA256SUMS` (a mismatch aborts immediately — no silent retry with an unverified binary), and the install
- * directory is swapped atomically. Returns the path of the installed `qwen` wrapper (`~/.ebx/bin/qwen` or
+ * directory is swapped atomically. Returns the path of the installed `qwen` wrapper (`~/.abx/bin/qwen` or
  * `qwen.cmd`).
  *
  * @throws QwenCodeNotInstalledError On unsupported platforms, when every mirror fails, or when integrity
@@ -658,7 +658,7 @@ export function rankCodegenModels(ids: readonly string[]): string[] {
 /**
  * Resolve credentials for the Qwen Code headless run. First hit wins:
  *
- * 1. The ebx `llm_api_key` persisted as `EBX_LLM_API_KEY` (`source="qwen-stored"`).
+ * 1. The abx `llm_api_key` persisted as `ABX_LLM_API_KEY` (`source="qwen-stored"`).
  * 2. A legacy `llm_api_key` still stored in config.toml (`source="llm-stored"`).
  * 3. A valid variable already present in the process environment (`source="environment"`). An explicit
  *    `storedModel` is still injected as `OPENAI_MODEL`; otherwise the child keeps the environment it already has.
@@ -704,8 +704,8 @@ export function resolveQwenCodeCredentials(
   throw new QwenCodeCredentialError("Qwen Code is installed but no model credentials were found.", {
     suggestion:
       "Store a DashScope/ModelStudio API key with " +
-      "'ebx config set llm_api_key <KEY>' (or run " +
-      "'ebx config init'), export OPENAI_API_KEY / DASHSCOPE_API_KEY, " +
+      "'abx config set llm_api_key <KEY>' (or run " +
+      "'abx config init --llm'), export OPENAI_API_KEY / DASHSCOPE_API_KEY, " +
       "or configure Qwen Code interactively once via 'qwen'.",
   });
 }
@@ -1250,7 +1250,7 @@ export async function _killProcessTree(proc: HeadlessProcess): Promise<void> {
 function timeoutError(timeout: number): QwenCodeTimeoutError {
   return new QwenCodeTimeoutError(`Qwen Code did not finish within ${formatFixed0(timeout)}s and was terminated.`, {
     suggestion:
-      "Retry with a shorter description or raise the limit with " + "EBX_QWEN_CODEGEN_TIMEOUT (seconds).",
+      "Retry with a shorter description or raise the limit with " + "ABX_QWEN_CODEGEN_TIMEOUT (seconds).",
   });
 }
 
@@ -1473,7 +1473,7 @@ export interface RunHeadlessOptions {
  * Run `qwen` in headless JSON mode and return its raw result.
  *
  * The subprocess is spawned with an argv list (no shell), a bounded cwd, an explicit timeout, and — when credentials
- * were stored by ebx — the `OPENAI_*` variables merged into a copy of the current environment. `cleanEnv` starts the
+ * were stored by abx — the `OPENAI_*` variables merged into a copy of the current environment. `cleanEnv` starts the
  * child from {@link scrubbedEnviron} instead of the full process environment (`env` is still merged on top).
  * `onActivity` receives a newline-separated, sanitised feed of what the agent is doing on every event and once per
  * second while it is silent; passing it switches the run to `stream-json`. Either way the whole process tree is
@@ -1488,7 +1488,7 @@ export async function runQwenCodeHeadless(prompt: string, opts: RunHeadlessOptio
   const timeout = opts.timeout ?? 600.0;
   const binaryPath = opts.binary != null ? String(opts.binary) : seams.findQwenCodeBinary();
   if (binaryPath == null) {
-    throw new QwenCodeNotInstalledError("Qwen Code executable was not found on PATH or in ~/.ebx/bin.", {
+    throw new QwenCodeNotInstalledError("Qwen Code executable was not found on PATH or in ~/.abx/bin.", {
       suggestion:
         "Re-run the command in a terminal to install it, or install " +
         `manually: ${seams.officialInstallCommand()}`,

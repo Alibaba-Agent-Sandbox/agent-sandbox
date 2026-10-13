@@ -1,4 +1,4 @@
-// Families of allowed divergences between the original Python `ebx` 0.2.0 (the oracle) and the Node CLI, one per
+// Families of allowed divergences between the original Python `abx` 0.2.0 (the oracle) and the Node CLI, one per
 // observable effect of the SDK defect fixes KI-001 .. KI-008 (parity/sdk-defect-fixes.md describes each).
 //
 // A family has a KI number and one matcher per field (`exit`, `stdout`, `stderr`, `req`). A matcher accepts the exact
@@ -29,10 +29,10 @@ const swapMatches = (pairs) => (py, node) => {
 };
 
 const SUGG_404 = "Verify the sandbox ID, template ID, or endpoint URL\\.";
-const NODE_SB_SUGG = "Run 'ebx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected\\.";
+const NODE_SB_SUGG = "Run 'abx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected\\.";
 const NODE_FILE_SUGG = 'Use files\\.list\\(\\) to check available files, or files\\.exists\\(\\) to verify path\\.';
-const AUTH_SUGG_PY = 'Check your API key or AK/SK credentials \\(ebx config set sandbox_api_key <KEY>\\)\\.';
-const AUTH_SUGG_NODE = 'Check your E2B_API_KEY environment variable or pass api_key parameter\\.';
+const AUTH_SUGG_PY = 'Check your API key or AK/SK credentials \\(abx config set sandbox_api_key <KEY>\\)\\.';
+const AUTH_SUGG_NODE = 'Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key\\.';
 const NODE_AUTH_MSG = "The Platform API rejected the API key \\(HTTP 401\\) for /[^\\n:\"]*: it is invalid, revoked or for another region\\.";
 const j = (s) => s.replace(/\n/g, '\\n');
 
@@ -50,14 +50,14 @@ const textPairs = {
     swap(new RegExp(jsonErr('Resource not found \\(HTTP 404\\)\\.', 'E5000', SUGG_404)), new RegExp(jsonErr('File or directory not found in the sandbox: [^\\n]*', 'E4001', NODE_FILE_SUGG))),
   ],
   file403: [
-    swap(/\[E1000\] Access denied \(HTTP 403\)\.\n {2}Suggestion: Check your credentials and permissions\.\n/, new RegExp(`\\[E4002\\] Permission denied in the sandbox: [^\\n]*\\n  Suggestion: Check file permissions in the sandbox\\.\\n`)),
+    swap(/\[E1000\] Access denied \(HTTP 403\)\.\n  Suggestion: Check your credentials and permissions\.\n/, new RegExp(`\\[E4002\\] Permission denied in the sandbox: [^\\n]*\\n  Suggestion: Check file permissions in the sandbox\\.\\n`)),
     swap(/\[E1000\] Access denied \(HTTP 403\)\.\n/, /\[E4002\] Permission denied in the sandbox: [^\n]*\n/),
   ],
   fileOther: [
-    swap(/\[E5000\] Remote request failed \(HTTP (?<status>\d+)\): [^\n]*\n(?:For more information check: [^\n]*\n)? {2}Suggestion: Check the platform status and retry\. Use 'ebx -v <command>' for details\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>\d+)\) for [^\n]*\n/),
+    swap(/\[E5000\] Remote request failed \(HTTP (?<status>\d+)\): [^\n]*\n(?:For more information check: [^\n]*\n)?  Suggestion: Check the platform status and retry\. Use 'abx -v <command>' for details\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>\d+)\) for [^\n]*\n/),
     swap(/\[E5000\] Remote request failed \(HTTP (?<status>\d+)\): [^\n]*\n(?:For more information check: [^\n]*\n)?/, /\[E4000\] envd file operation failed \(HTTP (?<status>\d+)\) for [^\n]*\n/),
-    swap(/\[E1000\] Authentication failed \(HTTP (?<status>401)\)\.\n {2}Suggestion: Check your API key or AK\/SK credentials \(ebx config set sandbox_api_key <KEY>\)\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>401)\) for [^\n]*\n/),
-    swap(/\[E2002\] Rate limit exceeded \(HTTP (?<status>429)\)\.\n {2}Suggestion: Wait a moment and retry, or request a quota increase\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>429)\) for [^\n]*\n/),
+    swap(/\[E1000\] Authentication failed \(HTTP (?<status>401)\)\.\n  Suggestion: Check your API key or AK\/SK credentials \(abx config set sandbox_api_key <KEY>\)\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>401)\) for [^\n]*\n/),
+    swap(/\[E2002\] Rate limit exceeded \(HTTP (?<status>429)\)\.\n  Suggestion: Wait a moment and retry, or request a quota increase\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>429)\) for [^\n]*\n/),
   ],
   auth401: [
     swap(new RegExp(`\\[E1000\\] Authentication failed \\(HTTP 401\\)\\.\\n  Suggestion: ${AUTH_SUGG_PY}\\n`), new RegExp(`\\[E1001\\] ${NODE_AUTH_MSG}\\n  Suggestion: ${AUTH_SUGG_NODE}\\n`)),
@@ -68,11 +68,11 @@ const textPairs = {
   ],
   create401: [
     swap(/\[E2000\] [^\n]*\n/, new RegExp(`\\[E1001\\] ${NODE_AUTH_MSG}\\n  Suggestion: ${AUTH_SUGG_NODE}\\n`)),
-    swap(/\{\n {2}"status": "error",\n {2}"message": "[^"\n]*",\n {2}"code": "E2000"\n\}\n/, new RegExp(jsonErr(NODE_AUTH_MSG, 'E1001', AUTH_SUGG_NODE))),
+    swap(/\{\n  "status": "error",\n  "message": "[^"\n]*",\n  "code": "E2000"\n\}\n/, new RegExp(jsonErr(NODE_AUTH_MSG, 'E1001', AUTH_SUGG_NODE))),
   ],
   envdRpc: [
-    swap(/\[E5000\] Resource not found \(HTTP 404\)\.\n {2}Suggestion: Verify the sandbox ID, template ID, or endpoint URL\.\n/, /\[E3006\] envd RPC \/process\.Process\/(?:List|SendSignal) failed \(HTTP 404\): [^\n]*\n {2}Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'ebx -v' for the raw error response\.\n/),
-    swap(/\[E5000\] Remote request failed \(HTTP 500\): [^\n]*for url '[^'\n]*?(?<path>\/process\.Process\/(?:List|SendSignal))'\n(?:For more information check: [^\n]*\n)? {2}Suggestion: Check the platform status and retry\. Use 'ebx -v <command>' for details\.\n/, /\[E3006\] envd RPC (?<path>\/process\.Process\/(?:List|SendSignal)) failed \(HTTP 500\): [^\n]*\n {2}Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'ebx -v' for the raw error response\.\n/),
+    swap(/\[E5000\] Resource not found \(HTTP 404\)\.\n  Suggestion: Verify the sandbox ID, template ID, or endpoint URL\.\n/, /\[E3006\] envd RPC \/process\.Process\/(?:List|SendSignal) failed \(HTTP 404\): [^\n]*\n  Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'abx -v' for the raw error response\.\n/),
+    swap(/\[E5000\] Remote request failed \(HTTP 500\): [^\n]*for url '[^'\n]*?(?<path>\/process\.Process\/(?:List|SendSignal))'\n(?:For more information check: [^\n]*\n)?  Suggestion: Check the platform status and retry\. Use 'abx -v <command>' for details\.\n/, /\[E3006\] envd RPC (?<path>\/process\.Process\/(?:List|SendSignal)) failed \(HTTP 500\): [^\n]*\n  Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'abx -v' for the raw error response\.\n/),
   ],
 };
 
@@ -121,7 +121,7 @@ const reqSignal = reqTransform((p) => {
 const reqSignalRejected = reqTransform((p) => (isPath(p, '/process.Process/SendSignal') && p.body && !(p.body.signal in SIGNAL_NAMES) ? [] : null));
 const reqListEmpty = reqTransform((p) => (isPath(p, '/filesystem.Filesystem/ListDir') && p.body ? [p, { ...p, path: '/filesystem.Filesystem/Stat', body: { path: p.body.path } }] : null));
 
-const SIG_REJECT_NODE = (n) => `Unexpected error: envd can only deliver SIGTERM (15) and SIGKILL (9) to a process; got ${n}\n  Suggestion: Use 'ebx -v <command>' for more details, or report this issue.\n`;
+const SIG_REJECT_NODE = (n) => `Unexpected error: envd can only deliver SIGTERM (15) and SIGKILL (9) to a process; got ${n}\n  Suggestion: Use 'abx -v <command>' for more details, or report this issue.\n`;
 const sigNumber = (py) => /Signal (-?\d+) sent to process \d+\.\n/.exec(py)?.[1] ?? /"message": "Signal (-?\d+) sent to process \d+\."/.exec(py)?.[1] ?? null;
 
 const exitIs = (a, b) => (py, node) => py === a && node === b;
@@ -132,7 +132,7 @@ export const FAMILIES = {
   'ki002-stat-entry': {
     ki: 'KI-002',
     why: 'Stat answers with a nested `entry`: a flat answer next to an empty `entry` object now renders the (empty) entry, like the fixed Python SDK',
-    fields: { stdout: (py, node) => /^Name {2}app\.py\nPath {2}\/home\/user\/app\.py\nType {2}file\nSize {2}2048\n$/.test(py) && node === 'Name  \nPath  \nType  file\nSize  0\n' },
+    fields: { stdout: (py, node) => /^Name  app\.py\nPath  \/home\/user\/app\.py\nType  file\nSize  2048\n$/.test(py) && node === 'Name  \nPath  \nType  file\nSize  0\n' },
   },
   'ki004-signal-body': { ki: 'KI-004', why: 'SendSignal body is `{"process":{"pid":N},"signal":"SIGNAL_SIGTERM"|"SIGNAL_SIGKILL"}`', fields: { req: reqSignal } },
   'ki004-signal-rejected': {
@@ -145,7 +145,7 @@ export const FAMILIES = {
         const n = sigNumber(py);
         if (n === null) return false;
         if (node === '') return /^Signal -?\d+ sent to process \d+\.\n$/.test(py);
-        return py === `{\n  "status": "success",\n  "message": "Signal ${n} sent to process ${/process (\d+)\./.exec(py)?.[1]}."\n}\n` && node === `{\n  "status": "error",\n  "message": ${JSON.stringify(SIG_REJECT_NODE(n).split('\n  Suggestion')[0])},\n  "suggestion": "Use 'ebx -v <command>' for more details, or report this issue."\n}\n`;
+        return py === `{\n  "status": "success",\n  "message": "Signal ${n} sent to process ${/process (\d+)\./.exec(py)?.[1]}."\n}\n` && node === `{\n  "status": "error",\n  "message": ${JSON.stringify(SIG_REJECT_NODE(n).split('\n  Suggestion')[0])},\n  "suggestion": "Use 'abx -v <command>' for more details, or report this issue."\n}\n`;
       },
       stderr: (py, node, f) => {
         const n = sigNumber(f.stdout?.[0] ?? '');
@@ -158,7 +158,7 @@ export const FAMILIES = {
     why: 'a signal beyond 64 bits is rejected with the envd message instead of the orjson overflow text',
     fields: {
       stderr: (py, node) => {
-        const m = /^((?:[^\n]*\n)*?)Unexpected error: Integer exceeds 64-bit range\n {2}Suggestion: Use 'ebx -v <command>' for more details, or report this issue\.\n$/.exec(py);
+        const m = /^((?:[^\n]*\n)*?)Unexpected error: Integer exceeds 64-bit range\n  Suggestion: Use 'abx -v <command>' for more details, or report this issue\.\n$/.exec(py);
         const n = /Unexpected error: envd can only deliver SIGTERM \(15\) and SIGKILL \(9\) to a process; got (\d+)\n/.exec(node)?.[1];
         return !!m && !!n && node === `${m[1]}${SIG_REJECT_NODE(n)}`;
       },
@@ -206,7 +206,7 @@ export const FAMILIES = {
       },
       stderr: (py, node) => {
         const [a, b] = [py, node];
-        const m = /\[E4001\] File or directory not found in the sandbox: [^\n]*\n(?: {2}Suggestion: Use files\.list\(\) to check available files, or files\.exists\(\) to verify path\.\n)?$/.exec(b);
+        const m = /\[E4001\] File or directory not found in the sandbox: [^\n]*\n(?:  Suggestion: Use files\.list\(\) to check available files, or files\.exists\(\) to verify path\.\n)?$/.exec(b);
         return !!m && b.slice(0, m.index) === a;
       },
     },

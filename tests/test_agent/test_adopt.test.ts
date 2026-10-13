@@ -1,5 +1,5 @@
 /**
- * Tests for adapting an existing project (`ebx template init --adopt`).
+ * Tests for adapting an existing project (`abx template init --adopt`).
  *
  * Port of `tests/test_agent/test_adopt.py`. The agent is never executed here. Staging, validation and promote are
  * deterministic; a misbehaving writer is simulated by editing the staging directory directly.
@@ -33,7 +33,7 @@ import { DockerIgnore } from "../../src/utils/dockerignore.js";
 import { makeTmp, raises, readGolden, rmTmp } from "../helpers/agentSupport.js";
 
 const COMMANDS = `\
-from easy_sandbox.server import CommandRegistry, SandboxServer
+from agent_sandbox.server import CommandRegistry, SandboxServer
 
 registry = CommandRegistry()
 registry.freeze()
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 const DOCKER = `\
 FROM python:3.12-slim
 COPY *.whl /tmp/
-RUN pip install --no-cache-dir easy-sandbox
+RUN pip install --no-cache-dir agent-sandbox
 WORKDIR /app
 COPY commands.py .
 COPY app.py .
@@ -133,7 +133,7 @@ function rmStaging(staged: StagedProject): void {
 }
 
 describe("TestGuards", () => {
-  it("test_rejects_home_root_and_ebx", async () => {
+  it("test_rejects_home_root_and_abx", async () => {
     const savedHome = process.env.HOME;
     const savedProfile = process.env.USERPROFILE;
     try {
@@ -141,7 +141,7 @@ describe("TestGuards", () => {
       await raises(() => assertAdoptable(path.parse(process.cwd()).root), AdoptRejectedError, "root");
       process.env.HOME = tmpPath;
       process.env.USERPROFILE = tmpPath;
-      const secret = path.join(tmpPath, ".ebx", "generated");
+      const secret = path.join(tmpPath, ".abx", "generated");
       fs.mkdirSync(secret, { recursive: true });
       await raises(() => assertAdoptable(secret), AdoptRejectedError, "credentials");
     } finally {
@@ -217,7 +217,7 @@ describe("TestPreflight", () => {
   it("test_user_commands_py_needs_force_even_interactively", async () => {
     const project = project_(tmpPath);
     write(path.join(project, "commands.py"), "print(1)\n");
-    await raises(() => preflight(project, { force: false, needsConfirm: true }), AdoptRejectedError, "not an Easy Sandbox");
+    await raises(() => preflight(project, { force: false, needsConfirm: true }), AdoptRejectedError, "not an Agent Sandbox");
   });
 
   it("test_dockerfile_without_a_preview_needs_force", async () => {
@@ -257,7 +257,7 @@ describe("TestPreflight", () => {
       expect(compiled.excludes(p)).toBe(true);
     }
     expect(compiled.excludes(".env.example")).toBe(false);
-    expect(compiled.excludes("easy_sandbox-0.0.0-py3-none-any.whl")).toBe(false);
+    expect(compiled.excludes("agent_sandbox-0.0.0-py3-none-any.whl")).toBe(false);
   });
 });
 
@@ -346,7 +346,7 @@ describe("TestPromote", () => {
   it("test_backup_is_never_overwritten_and_drift_aborts", async () => {
     const project = project_(tmpPath);
     write(path.join(project, "Dockerfile"), "FROM scratch\n");
-    write(path.join(project, "Dockerfile.ebx-bak"), "older\n");
+    write(path.join(project, "Dockerfile.abx-bak"), "older\n");
     const state = new Preflight(hashes(project));
     const plan = new AdoptPlan({
       templateName: "app",
@@ -357,8 +357,8 @@ describe("TestPromote", () => {
     });
     const result = promote(project, plan, state);
     expect(read(path.join(project, "Dockerfile"))).toBe("FROM python:3.12-slim\n");
-    expect(read(path.join(project, "Dockerfile.ebx-bak"))).toBe("older\n");
-    expect(result.backedUp).toContain("Dockerfile.ebx-bak.1");
+    expect(read(path.join(project, "Dockerfile.abx-bak"))).toBe("older\n");
+    expect(result.backedUp).toContain("Dockerfile.abx-bak.1");
 
     write(path.join(project, "Dockerfile"), "FROM scratch\n");
     const fresh = new Preflight(hashes(project));
@@ -394,7 +394,7 @@ describe("TestPromote", () => {
     });
     const real = adopt.seams.writeText;
     adopt.seams.writeText = (file: string, text: string): void => {
-      if (path.basename(file) === "commands.py.ebx-tmp") {
+      if (path.basename(file) === "commands.py.abx-tmp") {
         throw Object.assign(new Error("disk full"), { code: "ENOSPC", name: "OSError" });
       }
       real(file, text);

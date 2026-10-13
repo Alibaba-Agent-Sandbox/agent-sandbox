@@ -1,4 +1,4 @@
-/** Tests for sandbox process CLI commands: list, start, info, signal. */
+/** Tests for sandbox process CLI commands: list, info, signal. */
 
 import "../_support/isolatedHome.js";
 
@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
-import { CommandTimeoutError, ExecutionError } from "../../src/models/errors.js";
+import { ExecutionError } from "../../src/models/errors.js";
 import { ProcessInfo, ProcessResult } from "../../src/models/process.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
@@ -81,85 +81,6 @@ describe("TestProcessList", () => {
   it("test_list_missing_sandbox_id", async () => {
     const result = await runner().invoke(cli, ["sandbox", "process", "list"]);
     expect(result.exit_code).toBe(2);
-  });
-});
-
-// ===================================================================
-// sandbox process start
-// ===================================================================
-
-describe("TestProcessStart", () => {
-  it("test_start_happy", async () => {
-    // exit_code=0 -> runner exit_code=0.
-    const sb = _makeSandbox();
-    sb.commands.run = vi
-      .fn()
-      .mockResolvedValue(new ProcessResult({ stdout: "ok\n", stderr: "", exit_code: 0, execution_time: 0.5 }));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "start", "sbx-test-001", "-c", "echo ok"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("ok");
-  });
-
-  it("test_start_nonzero_exit", async () => {
-    // Nonzero exit_code is propagated to the CLI runner.
-    const sb = _makeSandbox();
-    sb.commands.run = vi
-      .fn()
-      .mockResolvedValue(new ProcessResult({ stdout: "", stderr: "fail\n", exit_code: 42, execution_time: 0.1 }));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "start", "sbx-test-001", "-c", "badcmd"]);
-    expect(result.exit_code).toBe(42);
-  });
-
-  it("test_start_timeout_cwd", async () => {
-    // --timeout and --cwd are forwarded to commands.run.
-    const sb = _makeSandbox();
-    sb.commands.run = vi
-      .fn()
-      .mockResolvedValue(new ProcessResult({ stdout: "", stderr: "", exit_code: 0, execution_time: 0.01 }));
-    _patchConnect(sb);
-    await runner().invoke(cli, [
-      "sandbox",
-      "process",
-      "start",
-      "sbx-test-001",
-      "-c",
-      "make build",
-      "--timeout",
-      "60",
-      "--cwd",
-      "/app",
-    ]);
-    expect(sb.commands.run).toHaveBeenCalledTimes(1);
-    expect(sb.commands.run).toHaveBeenCalledWith("make build", { timeout: 60, cwd: "/app" });
-  });
-
-  it("test_start_json", async () => {
-    const sb = _makeSandbox();
-    sb.commands.run = vi
-      .fn()
-      .mockResolvedValue(new ProcessResult({ stdout: "hi\n", stderr: "", exit_code: 0, execution_time: 0.2 }));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "process", "start", "sbx-test-001", "-c", "echo hi"]);
-    expect(result.exit_code).toBe(0);
-    const data = JSON.parse(result.output);
-    expect(data.stdout).toBe("hi\n");
-    expect(data.exit_code).toBe(0);
-  });
-
-  it("test_start_missing_command", async () => {
-    // --command is required -> exit 2.
-    const result = await runner().invoke(cli, ["sandbox", "process", "start", "sbx-test-001"]);
-    expect(result.exit_code).toBe(2);
-  });
-
-  it("test_start_timeout_error", async () => {
-    const sb = _makeSandbox();
-    sb.commands.run = vi.fn().mockRejectedValue(new CommandTimeoutError("timed out"));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "start", "sbx-test-001", "-c", "sleep 9999"]);
-    expect(result.exit_code).toBe(5);
   });
 });
 

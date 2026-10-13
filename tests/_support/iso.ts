@@ -1,6 +1,6 @@
 /**
  * Shared isolation fixture for configuration/provider tests (port of `python-sdk/client-sdk/tests/iso.py`):
- * a throw-away `~/.ebx` directory, no recognised credential env vars, no project `.env`, empty provider registry.
+ * a throw-away `~/.abx` directory, no recognised credential env vars, no project `.env`, empty provider registry.
  */
 
 import fs from "node:fs";
@@ -12,7 +12,7 @@ import { afterEach, beforeEach } from "vitest";
 import { _resetPaths, _setPaths, resetLayeredConfig } from "../../src/transport/config_layers.js";
 import { ALICLOUD_EXPRESS_KEYS, CORE_KEYS, envNames } from "../../src/utils/config_keys.js";
 
-const PREFIXES = ["EBX_", "SANDBOX_", "E2B_", "ALICLOUD_", "ALIBABA_CLOUD_", "OPENAI_"];
+const PREFIXES = ["ABX_", "SANDBOX_", "E2B_", "ALICLOUD_", "ALIBABA_CLOUD_", "OPENAI_"];
 
 function allEnvNames(): Set<string> {
   const names = new Set<string>(["GITHUB_TOKEN", "AccessKey", "AccessKeySecret", "AccessSecret"]);
@@ -21,7 +21,7 @@ function allEnvNames(): Set<string> {
 }
 
 export interface Iso {
-  /** The temporary `~/.ebx` directory. */
+  /** The temporary `~/.abx` directory. */
   readonly home: string;
   /** The temporary directory that contains `home` (also the CWD). */
   readonly root: string;
@@ -75,12 +75,12 @@ export function useIso(): Iso {
         delete process.env[name];
       }
     }
-    root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-iso-"));
-    home = path.join(root, ".ebx");
+    root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-iso-"));
+    home = path.join(root, ".abx");
     fs.mkdirSync(home);
     cwd = process.cwd();
     process.chdir(root);
-    _setPaths({ ebxDir: home, configFile: path.join(home, "config.toml"), envFiles: [path.join(home, ".env")] });
+    _setPaths({ abxDir: home, configFile: path.join(home, "config.toml"), envFiles: [path.join(home, ".env")] });
     resetLayeredConfig();
     try {
       const reg = await import("../../src/providers/registry.js");

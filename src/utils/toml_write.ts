@@ -1,4 +1,4 @@
-/** Minimal TOML writer for the small, scalar-only documents `config.toml` and `.ebx-install.json` mirrors hold. */
+/** Minimal TOML writer for the small, scalar-only documents `config.toml` and `.abx-install.json` mirrors hold. */
 
 function scalar(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";

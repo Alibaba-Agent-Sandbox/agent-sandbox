@@ -11,7 +11,7 @@ under three different names with a wrong semantic label:
 
 | Layer | Old name | Actual behaviour |
 | --- | --- | --- |
-| CLI `ebx deploy` | `--max-tool-calls` (default 100, help: "tool-call limit") | forwarded to `--max-session-turns` |
+| CLI `abx deploy` | `--max-tool-calls` (default 100, help: "tool-call limit") | forwarded to `--max-session-turns` |
 | SDK `Sandbox.deploy()` / `DeployModule.deploy_project()` | `max_tool_calls` (default 100, docstring: "number of tool calls") | forwarded to `--max-session-turns` |
 | qwen-code template (`template.yaml` arg, `commands.py` signature) | `max_turns` (defaults `100` / `50` — inconsistent) | forwarded to `--max-session-turns` |
 
@@ -46,7 +46,7 @@ upstream flag and misleads anyone who knows the upstream CLI.
    host adapter `run_qwen_code_headless()` / `_build_headless_command()`
    in `agent/qwen_code.py` now accepts keyword-only
    `max_session_turns: int | None = None`. `None` (the default) adds no
-   flag, so current `ebx create` NL behaviour is byte-for-byte unchanged;
+   flag, so current `abx create` NL behaviour is byte-for-byte unchanged;
    future callers (clarification loop, diagnose, etc.) get the unified
    name on the same stable interface.
 
@@ -82,9 +82,9 @@ upstream flag and misleads anyone who knows the upstream CLI.
 
 ## Files changed
 
-- `src/easy_sandbox/api/deploy.py`, `src/easy_sandbox/api/sandbox.py` — SDK rename + docstring semantics
-- `src/easy_sandbox/cli/commands/deploy.py` — `--max-session-turns` option, help, examples
-- `src/easy_sandbox/agent/qwen_code.py` — optional `max_session_turns` on the host adapter
+- `src/agent_sandbox/api/deploy.py`, `src/agent_sandbox/api/sandbox.py` — SDK rename + docstring semantics
+- `src/agent_sandbox/cli/commands/deploy.py` — `--max-session-turns` option, help, examples
+- `src/agent_sandbox/agent/qwen_code.py` — optional `max_session_turns` on the host adapter
 - `examples/templates/qwen-code/template.yaml`, `commands.py`, `examples/templates/README.md` — template arg rename + default unified to 100
 - `tests/test_api/test_deploy.py`, `tests/test_cli/test_deploy_commands.py`, `tests/test_agent/test_qwen_code.py`
 - `docs/{en,zh}/reference/api-reference.md`, `docs/{en,zh}/reference/cli-reference.md`, `docs/{en,zh}/design/cli-design.md`, `docs/{en,zh}/guide/deploy-and-build.md`

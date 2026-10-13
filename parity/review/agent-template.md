@@ -5,8 +5,8 @@ and `cli/src/cli/commands/{template,_adopt,deploy,mcp,_coding_agent}.ts`, agains
 Reviewer: independent (did not write the port). `cli/src/**` was not edited.
 
 Placeholders: `$ORACLE_VENV` = the original Python CLI virtualenv (PyYAML safe_load, httpx, pydantic 2.14, uvicorn/httptools, Python 3.11/3.12).
-`$ORIG_REPO` = original repo checkout. Every oracle run used an isolated temp `HOME`, `EBX_NO_KEYCHAIN=1`, fake credentials, stub HTTP
-servers and fake `docker` / fake `qwen` executables. The real `~/.ebx` was never touched.
+`$ORIG_REPO` = original repo checkout. Every oracle run used an isolated temp `HOME`, `ABX_NO_KEYCHAIN=1`, fake credentials, stub HTTP
+servers and fake `docker` / fake `qwen` executables. The real `~/.abx` was never touched.
 
 ## Deliverables
 
@@ -70,17 +70,17 @@ differences. KNOWN-GAPS only documents the error *text*; acceptance differences 
   anchors, flow-key oddities (`{k: ?a}`), duplicated anchors.
 * PyYAML accepts, port **rejects**: `!!binary`, `!!omap`, `!!pairs`, `!!timestamp 2026-01-01`, `!!value`, `"\<newline>"` in a double-quoted
   scalar; `!!set` is accepted but built with a different shape (list vs set), `.inf/.nan/date` mapping keys compare differently.
-* No code execution is possible in Node (tags are never constructed), but the gate promises "a template.yaml that PyYAML (the Python `ebx`
+* No code execution is possible in Node (tags are never constructed), but the gate promises "a template.yaml that PyYAML (the Python `abx`
   and the server-side tooling) can load" and it is weaker than the original: a hostile/hallucinated file lands in the project, and a
   legitimate one using `!!binary`/`!!omap` is refused.
 * Repro: `adv_agent_template_yaml.mjs` (summary lines `ACCEPT[rich]`, `VALUE[thin]`), `adv_agent_template_adopt.mjs --only "yaml:"`.
   Tests `ADV-agent-template-04` (install, 3 tags), `-09` (python tag in adopt), `-10` (NUL in adopt).
-* Oracle: `$ORACLE_VENV` `ebx template init --adopt ... -y` -> `[E2007] Generated template.yaml could not be parsed: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object/apply:os.system'` / `... unacceptable character #x0000: special characters are not allowed`, nothing promoted. Port: exit 0, template.yaml promoted.
+* Oracle: `$ORACLE_VENV` `abx template init --adopt ... -y` -> `[E2007] Generated template.yaml could not be parsed: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object/apply:os.system'` / `... unacceptable character #x0000: special characters are not allowed`, nothing promoted. Port: exit 0, template.yaml promoted.
 * Root cause: `src/agent/_pyyaml.ts` (rich loader built on the `yaml` package's CST/Document; tag resolution and the reader's printable-character
   check are not PyYAML's) and `src/utils/_yaml.ts`. Fix: add a ReaderError pre-pass (PyYAML `NON_PRINTABLE` class), reject every tag outside
   `{str,int,float,bool,null,seq,map,set,omap,pairs,binary,timestamp,merge,value}`, add constructors for `binary/omap/pairs/timestamp/set`, reject TAB per the YAML 1.1 scanner rules PyYAML uses.
 
-### AT-02  `EBX_QWEN_CODEGEN_TIMEOUT` above 2^31-1 ms (~24.8 days) or `inf` kills qwen after 1 ms  (BUG, LOW)
+### AT-02  `ABX_QWEN_CODEGEN_TIMEOUT` above 2^31-1 ms (~24.8 days) or `inf` kills qwen after 1 ms  (BUG, LOW)
 
 Python raises `OverflowError: timeout is too large` -> `Unexpected error: timeout is too large` (exit 1). The port's `setTimeout(..., seconds*1000)` overflows
 Node's 32-bit timer, Node prints `TimeoutOverflowWarning` on stderr and fires after 1 ms, so qwen is killed immediately and the user is told
@@ -102,11 +102,11 @@ bearer (JWT/OIDC token) or many cookies through a proxy gets a hard 431 only aga
 
 ### AT-04  qwen standalone install creates every extracted directory with mode 0700 (Python: 0755)  (BUG, LOW)
 
-`~/.ebx/bin/qwen-code/**` directories are `drwx------` in the port and `drwxr-xr-x` in Python (`tarfile.extractall(filter="data")` keeps the member mode;
-files are identical). Harmless for a single user, but a shared `~/.ebx/bin` (container image layer, `sudo ebx` then non-root use) becomes unusable
+`~/.abx/bin/qwen-code/**` directories are `drwx------` in the port and `drwxr-xr-x` in Python (`tarfile.extractall(filter="data")` keeps the member mode;
+files are identical). Harmless for a single user, but a shared `~/.abx/bin` (container image layer, `sudo abx` then non-root use) becomes unusable
 for other users.
 
-* Repro: `adv_agent_template_adopt.mjs --only "env: no qwen binary" --verbose` (file tree, `~/.ebx/bin/qwen-code/ 700` vs `755`); test `ADV-agent-template-08` (in-process, no network).
+* Repro: `adv_agent_template_adopt.mjs --only "env: no qwen binary" --verbose` (file tree, `~/.abx/bin/qwen-code/ 700` vs `755`); test `ADV-agent-template-08` (in-process, no network).
 * Root cause: `src/agent/_archive.ts:250` `fs.mkdirSync(target, { recursive: true, mode: 0o700 })` for `dir` members, never chmod'ed afterwards. Fix: create with the
   `dataFilter` mode (`member.mode & 0o755`), or `chmod` directories after extraction like `tarfile` does.
 
@@ -118,7 +118,7 @@ for other users.
 
 ### AT-06  `template install --registry-type local` cache path: `path.join` instead of `Path / name`  (BUG, LOW)
 
-`--alias ../../escape` (or a `template.yaml` `name:`) is `Path`-joined un-normalised in Python (`<home>/.ebx/templates/../../escape`, and `~/.ebx/templates/` is created);
+`--alias ../../escape` (or a `template.yaml` `name:`) is `Path`-joined un-normalised in Python (`<home>/.abx/templates/../../escape`, and `~/.abx/templates/` is created);
 the port normalises (`<home>/escape`, no `templates/` dir) and an **absolute** name is re-rooted under the cache (`<cache>/tmp/abs`) where Python writes to the absolute path itself.
 Observable stdout (`Cached  ...`) and file-tree differ. Security note: the *oracle* is the unsafe one here (a hostile local `template.yaml` `name: ../../../x` writes outside the cache);
 the port still allows `..` escapes and only differs in normalisation. Recommend fixing both (reject names containing a path separator) and recording it as an intentional change.
@@ -154,7 +154,7 @@ Test `ADV-agent-template-12`. Root cause: `src/utils/_pyos.ts:181` `pyExpandUser
 
 ### AT-11  STDIO: a request that completes without I/O, immediately followed by EOF, is answered only sometimes  (BUG, LOW, flaky)
 
-`printf '<tools/call create_sandbox timeout:"x">\n' | ebx mcp start`: Python always writes the validation-error response before exiting; the port writes nothing in ~5 of 6 runs
+`printf '<tools/call create_sandbox timeout:"x">\n' | abx mcp start`: Python always writes the validation-error response before exiting; the port writes nothing in ~5 of 6 runs
 (race between the 256-microtask emulation of asyncio scheduling and the stdin `end`). Real clients keep stdin open, so only one-shot pipes are affected.
 
 * Repro: `adv_agent_template_mcp_stdio.mjs --only "tool call then immediate eof"` (run 6 times). Not turned into a vitest because it is nondeterministic.
@@ -181,16 +181,16 @@ STDIO `tools/call run_command {timeout:-1}`: Python -> `{"error": "ConnectTimeou
 
 1. **Hostile tarballs** (`template install`, 49 `tar *` cases plus subdir/alias/cache re-run variants: `..` and absolute members, symlink/hardlink members, symlink-then-file-through-it, devices/FIFOs, duplicate names, file/dir conflicts, backslashes, 12 MB member, bz2/truncated/uncompressed, 300-char names, modes 000/4755): extraction results and error texts identical to `tarfile` + the oracle's filter.
 2. **qwen spawn/kill/signals** (adopt): argv, `start_new_session`, stdin=/dev/null, env scrub allow-list (no `E2B_*`/`ALICLOUD_*`/`GITHUB_TOKEN` reach qwen), SIGTERM then 2 s then SIGKILL on the process group, grandchildren reaped on timeout and when ignoring SIGTERM, stream-json fallback, `--max-session-turns`, exit codes and E2007 messages: identical (grandchild liveness checked via a pid file).
-3. **Adopt safety**: `stage_project` filters (skip dirs, symlinks, secret names and content incl. 64 KiB window boundaries, binaries, 1 MiB/file, 2000 files, 20 MiB), agent writes through symlinks/absolute paths/deleting project files, drift detection, `.ebx-bak[.N]` numbering, `--force`, reserved-file ownership: all identical.
+3. **Adopt safety**: `stage_project` filters (skip dirs, symlinks, secret names and content incl. 64 KiB window boundaries, binaries, 1 MiB/file, 2000 files, 20 MiB), agent writes through symlinks/absolute paths/deleting project files, drift detection, `.abx-bak[.N]` numbering, `--force`, reserved-file ownership: all identical.
 4. **Directory listing order.** Python's `os.walk` yields filesystem order (unsorted, differs per filesystem); libuv's `readdir` yields sorted order. The dry-run list and the prompt's file list therefore differ from the oracle on any filesystem whose native order is not sorted, but the oracle's order is not a contract. The harness sorts indented listing runs before comparing.
-5. **`mcp install`**: 918/924 identical across the cursor/claude/vscode targets incl. symlinked/dangling/hard-linked configs, modes, existing nested JSON, quote/backslash/unicode/control characters in values. Remaining 6 diffs are the documented launcher, AG-03 text, recursion-limit text (`Maximum call stack size exceeded` vs `maximum recursion depth exceeded...`), and two `--output-dir` edge cases (symlink to dir: Python `OS error: [Errno 17] File exists`, port `[E4001] ... not found`; empty `--output-dir`: tmp name only). A real MCP client launch of the written config (`[execPath, ebx.ts|ebx.js, mcp, start]`) works end to end.
+5. **`mcp install`**: 918/924 identical across the cursor/claude/vscode targets incl. symlinked/dangling/hard-linked configs, modes, existing nested JSON, quote/backslash/unicode/control characters in values. Remaining 6 diffs are the documented launcher, AG-03 text, recursion-limit text (`Maximum call stack size exceeded` vs `maximum recursion depth exceeded...`), and two `--output-dir` edge cases (symlink to dir: Python `OS error: [Errno 17] File exists`, port `[E4001] ... not found`; empty `--output-dir`: tmp name only). A real MCP client launch of the written config (`[execPath, abx.ts|abx.js, mcp, start]`) works end to end.
    * Observation: the config pins the absolute path of the current `node` binary and entry script; an nvm switch or `npm i -g` upgrade that moves either one silently breaks the IDE entry. (Documented gap, but worth a doc sentence.)
 6. **Existing config containing a lone surrogate** (`mcp install`): Python fails with an encode error *after truncating the existing `mcp.json` to 0 bytes* (data loss); the port rewrites it. Port is safer; keep as is.
 7. **`mcp start` STDIO over-long line / deep nesting**: Python drops the message following an overlong line and crashes (exit 1, `RecursionError`) on 5 000-deep JSON; the port answers an error and keeps serving. Port behaviour is better (documented).
 8. **Real-client impact of the documented MCP/JSON gaps** (`id: 1.0` echoed as `1`, `-0.0`->`0`, `1E+2`->`100`; lone-surrogate ids; `Allow` header order; huge ints): JSON-RPC ids are strings or integers in every mainstream SDK and JS cannot even serialise `1.0` differently from `1`; value-equal ids correlate identically in Python/JS/Go/Rust clients. Lone surrogates are rejected by most JSON encoders and Python's own server 500s on them over HTTP. `Allow` order is unspecified in HTTP. Judged **no practical impact**; the only gap with client reach is AT-03 (header size), which is not documented.
 9. **HTTP parser strictness** (llhttp vs httptools/h11): lowercase methods, `CONNECT`, `HTTP/1.2`, bare-LF and obs-fold requests, `Content-Length` + `Transfer-Encoding` together (port 400, oracle serves 200 - a request-smuggling shape), non-numeric/negative/duplicate `Content-Length`, missing `Host`: no mainstream client emits these; the port is stricter, never looser. Accepted.
 10. **SIGTERM with a hung in-flight tool call**: the oracle HTTP server does not exit (harness timeout), the port exits on SIGTERM; same for the STDIO server. Port better. Hung tools do not block `ping`/`/health` on the same session in either.
-11. **`mcp deploy` artifact bytes** (`app.py`, `config.yaml`, `requirements.txt`, token handling incl. `EBX_MCP_AUTH_TOKEN`, region/memory/timeout validation): identical for ~76 flag combinations (only the temp-dir name and the `--output-dir` edge cases differ).
+11. **`mcp deploy` artifact bytes** (`app.py`, `config.yaml`, `requirements.txt`, token handling incl. `ABX_MCP_AUTH_TOKEN`, region/memory/timeout validation): identical for ~76 flag combinations (only the temp-dir name and the `--output-dir` edge cases differ).
 12. **Harness-only differences that are NOT port bugs**: (a) the adopt harness strips `/usr/bin` from `PATH` (dirs holding `docker` are removed), so the port's Python-syntax gate falls to its documented lexical fallback (`KNOWN-GAPS.md` "Python syntax check"): py2 `print 'x'`, a U+FEFF BOM and >200 nested parentheses are then accepted where `ast.parse` rejects them. With `python3` on `PATH` the port rejects all three with the oracle's exact text (re-verified; this is why there is no ADV test for them). Residual risk: on a machine without Python (the port's raison d'etre) the gate is only lexical. (b) Fake-qwen `scenario.json`, `bg.pid` and the install wrapper embed per-run paths/pids and are masked.
 
 ## Suggested fix order

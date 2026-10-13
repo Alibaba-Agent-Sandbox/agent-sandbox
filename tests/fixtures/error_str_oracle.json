@@ -175,13 +175,13 @@
     "code": "E1001",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E1001] something went wrong\n  Suggestion: Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.",
-    "suggestion": "Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.",
+    "str": "[E1001] something went wrong\n  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.",
+    "suggestion": "Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.",
     "to_dict": {
      "code": "E1001",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key."
+     "suggestion": "Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key."
     }
    },
    "kwargs": {},
@@ -418,13 +418,13 @@
     "code": "E1004",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E1004] something went wrong\n  Suggestion: Token exchange from AK/SK to Platform API key failed. Use EBX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.",
-    "suggestion": "Token exchange from AK/SK to Platform API key failed. Use EBX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.",
+    "str": "[E1004] something went wrong\n  Suggestion: Token exchange from AK/SK to Platform API key failed. Use ABX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.",
+    "suggestion": "Token exchange from AK/SK to Platform API key failed. Use ABX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.",
     "to_dict": {
      "code": "E1004",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Token exchange from AK/SK to Platform API key failed. Use EBX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity."
+     "suggestion": "Token exchange from AK/SK to Platform API key failed. Use ABX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity."
     }
    },
    "kwargs": {},
@@ -580,13 +580,13 @@
     "code": "E2001",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2001] something went wrong\n  Suggestion: Run 'ebx template list' to see available templates.",
-    "suggestion": "Run 'ebx template list' to see available templates.",
+    "str": "[E2001] something went wrong\n  Suggestion: Run 'abx template list' to see available templates.",
+    "suggestion": "Run 'abx template list' to see available templates.",
     "to_dict": {
      "code": "E2001",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Run 'ebx template list' to see available templates."
+     "suggestion": "Run 'abx template list' to see available templates."
     }
    },
    "kwargs": {},
@@ -904,13 +904,13 @@
     "code": "E2005",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2005] something went wrong\n  Suggestion: Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'ebx create --help'), or bypass AI generation with 'ebx create --template <name>'.",
-    "suggestion": "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'ebx create --help'), or bypass AI generation with 'ebx create --template <name>'.",
+    "str": "[E2005] something went wrong\n  Suggestion: Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create --template <name>'.",
+    "suggestion": "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create --template <name>'.",
     "to_dict": {
      "code": "E2005",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'ebx create --help'), or bypass AI generation with 'ebx create --template <name>'."
+     "suggestion": "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create --template <name>'."
     }
    },
    "kwargs": {},
@@ -985,13 +985,13 @@
     "code": "E2006",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2006] something went wrong\n  Suggestion: Configure the unified LLM API key for Qwen Code: 'ebx config set llm_api_key <KEY>' (interactive: 'ebx config init'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.",
-    "suggestion": "Configure the unified LLM API key for Qwen Code: 'ebx config set llm_api_key <KEY>' (interactive: 'ebx config init'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.",
+    "str": "[E2006] something went wrong\n  Suggestion: Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.",
+    "suggestion": "Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.",
     "to_dict": {
      "code": "E2006",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Configure the unified LLM API key for Qwen Code: 'ebx config set llm_api_key <KEY>' (interactive: 'ebx config init'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY."
+     "suggestion": "Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY."
     }
    },
    "kwargs": {},
@@ -1066,13 +1066,13 @@
     "code": "E2007",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.",
-    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.",
+    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.",
+    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.",
     "to_dict": {
      "code": "E2007",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'."
+     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'."
     }
    },
    "kwargs": {},
@@ -1147,13 +1147,13 @@
     "code": "E2007",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.",
-    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.",
+    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.",
+    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.",
     "to_dict": {
      "code": "E2007",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'."
+     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'."
     }
    },
    "kwargs": {},
@@ -1228,13 +1228,13 @@
     "code": "E2007",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.",
-    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'.",
+    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.",
+    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.",
     "to_dict": {
      "code": "E2007",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'ebx create \"<description>\"' or fall back to 'ebx create --template <name>'."
+     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'."
     }
    },
    "kwargs": {},
@@ -1309,13 +1309,13 @@
     "code": "E2008",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E2008] something went wrong\n  Suggestion: Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'ebx create --template <name>'.",
-    "suggestion": "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'ebx create --template <name>'.",
+    "str": "[E2008] something went wrong\n  Suggestion: Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create --template <name>'.",
+    "suggestion": "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create --template <name>'.",
     "to_dict": {
      "code": "E2008",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'ebx create --template <name>'."
+     "suggestion": "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create --template <name>'."
     }
    },
    "kwargs": {},
@@ -1844,33 +1844,24 @@
    "cls": "CommandNotFoundError",
    "expected": {
     "args": [
-     "Command 'deploy' not found. Checked sources: template, server."
+     "Command 'deploy' not found."
     ],
     "attrs": {
-     "checked_sources": [
-      "template",
-      "server"
-     ],
      "command_name": "deploy"
     },
     "code": "E3005",
     "docs_url": "",
-    "message": "Command 'deploy' not found. Checked sources: template, server.",
-    "str": "[E3005] Command 'deploy' not found. Checked sources: template, server.\n  Suggestion: Check the command name, the template's custom_commands, and whether the SandboxServer is running (sandbox.server.start()).",
-    "suggestion": "Check the command name, the template's custom_commands, and whether the SandboxServer is running (sandbox.server.start()).",
+    "message": "Command 'deploy' not found.",
+    "str": "[E3005] Command 'deploy' not found.\n  Suggestion: Check the command name against sandbox.list_commands() and make sure the SandboxServer is running (sandbox.start_server()).",
+    "suggestion": "Check the command name against sandbox.list_commands() and make sure the SandboxServer is running (sandbox.start_server()).",
     "to_dict": {
      "code": "E3005",
      "docs_url": "",
-     "message": "Command 'deploy' not found. Checked sources: template, server.",
-     "suggestion": "Check the command name, the template's custom_commands, and whether the SandboxServer is running (sandbox.server.start())."
+     "message": "Command 'deploy' not found.",
+     "suggestion": "Check the command name against sandbox.list_commands() and make sure the SandboxServer is running (sandbox.start_server())."
     }
    },
-   "kwargs": {
-    "checked": [
-     "template",
-     "server"
-    ]
-   },
+   "kwargs": {},
    "variant": "minimal"
   },
   {
@@ -1880,40 +1871,28 @@
    "cls": "CommandNotFoundError",
    "expected": {
     "args": [
-     "Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable."
+     "Command 'deploy' not found. Server: unreachable."
     ],
     "attrs": {
-     "checked_sources": [
-      "b",
-      "a"
-     ],
      "command_name": "deploy"
     },
     "code": "E9999",
     "docs_url": "https://example.test/doc",
-    "message": "Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable.",
-    "str": "[E9999] Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable.\n  Suggestion: try again",
+    "message": "Command 'deploy' not found. Server: unreachable.",
+    "str": "[E9999] Command 'deploy' not found. Server: unreachable.\n  Suggestion: try again",
     "suggestion": "try again",
     "to_dict": {
      "code": "E9999",
      "docs_url": "https://example.test/doc",
-     "message": "Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable.",
+     "message": "Command 'deploy' not found. Server: unreachable.",
      "suggestion": "try again"
     }
    },
    "kwargs": {
-    "checked": [
-     "b",
-     "a"
-    ],
     "code": "E9999",
     "docs_url": "https://example.test/doc",
     "server_status": "unreachable",
-    "suggestion": "try again",
-    "template_commands": [
-     "zeta",
-     "alpha"
-    ]
+    "suggestion": "try again"
    },
    "variant": "overridden"
   },
@@ -1924,38 +1903,26 @@
    "cls": "CommandNotFoundError",
    "expected": {
     "args": [
-     "Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable."
+     "Command 'deploy' not found. Server: unreachable."
     ],
     "attrs": {
-     "checked_sources": [
-      "b",
-      "a"
-     ],
      "command_name": "deploy"
     },
     "code": "E3005",
     "docs_url": "",
-    "message": "Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable.",
-    "str": "[E3005] Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable.\n  Suggestion: step 1\nstep 2",
+    "message": "Command 'deploy' not found. Server: unreachable.",
+    "str": "[E3005] Command 'deploy' not found. Server: unreachable.\n  Suggestion: step 1\nstep 2",
     "suggestion": "step 1\nstep 2",
     "to_dict": {
      "code": "E3005",
      "docs_url": "",
-     "message": "Command 'deploy' not found. Checked sources: b, a. Available template commands: alpha, zeta. Server: unreachable.",
+     "message": "Command 'deploy' not found. Server: unreachable.",
      "suggestion": "step 1\nstep 2"
     }
    },
    "kwargs": {
-    "checked": [
-     "b",
-     "a"
-    ],
     "server_status": "unreachable",
-    "suggestion": "step 1\nstep 2",
-    "template_commands": [
-     "zeta",
-     "alpha"
-    ]
+    "suggestion": "step 1\nstep 2"
    },
    "variant": "multiline"
   },
@@ -1977,13 +1944,13 @@
     "code": "E3006",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E3006] something went wrong\n  Suggestion: The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'ebx -v' for the raw error response.",
-    "suggestion": "The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'ebx -v' for the raw error response.",
+    "str": "[E3006] something went wrong\n  Suggestion: The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'abx -v' for the raw error response.",
+    "suggestion": "The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'abx -v' for the raw error response.",
     "to_dict": {
      "code": "E3006",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'ebx -v' for the raw error response."
+     "suggestion": "The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'abx -v' for the raw error response."
     }
    },
    "kwargs": {},
@@ -2412,13 +2379,13 @@
     "code": "E6001",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E6001] something went wrong\n  Suggestion: Check session files in ~/.ebx/sessions/ or use LocalSessionStore().list() programmatically.",
-    "suggestion": "Check session files in ~/.ebx/sessions/ or use LocalSessionStore().list() programmatically.",
+    "str": "[E6001] something went wrong\n  Suggestion: Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically.",
+    "suggestion": "Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically.",
     "to_dict": {
      "code": "E6001",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Check session files in ~/.ebx/sessions/ or use LocalSessionStore().list() programmatically."
+     "suggestion": "Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically."
     }
    },
    "kwargs": {},
@@ -2655,13 +2622,13 @@
     "code": "E7001",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E7001] something went wrong\n  Suggestion: Set EBX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'ebx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.",
-    "suggestion": "Set EBX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'ebx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.",
+    "str": "[E7001] something went wrong\n  Suggestion: Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.",
+    "suggestion": "Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.",
     "to_dict": {
      "code": "E7001",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Set EBX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'ebx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy."
+     "suggestion": "Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy."
     }
    },
    "kwargs": {},

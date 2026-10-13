@@ -34,13 +34,13 @@ N/A — this decision concerns repository layout, not code APIs.
 
 ## Dependencies
 - `2026-09-03-command-source-resolution.md` (directory-walk discovery)
-- [`2026-09-03-release-publish-flow.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md) (how the repo gets published)
+- [`2026-09-03-release-publish-flow.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md) (how the repo gets published)
 - `docs/design/template-system.md` (template packaging + `template.yaml`)
 
 ## Test Strategy
 - A repo with N template folders is discoverable by directory walk.
 - Each folder's `template.yaml` parses (including `capabilities` + `custom_commands`).
-- The collection can be `ebx install`-ed from a local path and from GitHub.
+- The collection can be `abx install`-ed from a local path and from GitHub.
 
 ## Acceptance criteria
 - Repository is just `README` + template folders — no index or registry component.

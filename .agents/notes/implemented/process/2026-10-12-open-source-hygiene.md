@@ -14,17 +14,17 @@ output, and real sandbox / template identifiers captured in the e2e workflow gui
 1. Fix each finding the way a public-repo maintainer would:
    - Scripts and benchmarks resolve the repo root from their own location
      (`$(dirname "${BASH_SOURCE[0]}")/..`, `import.meta.url`), never from a fixed path.
-   - The `ebx` executable comes from `PATH`, overridable with `EBX_BIN`
+   - The `abx` executable comes from `PATH`, overridable with `ABX_BIN`
      (`benchmarks/bench_cli_startup.mjs`, `scripts/*.sh`).
    - `scripts/build_hermes.sh`, `deploy_all_templates.sh`, `deploy_remaining.sh`:
      `ACR_NAMESPACE` is required (no personal default), `TAG` defaults to `dev`,
      `REGION` defaults to `cn-hangzhou`, `DOCKER_PLATFORM` defaults to
      `linux/amd64` (sandbox runtime architecture), result summaries go to a
      `mktemp` file (`RESULTS_FILE` overrides) instead of fixed temp-directory file names, the
-     wheel is the newest `python-sdk/dist/easy_sandbox-*.whl` (`WHEEL` overrides).
+     wheel is the newest `python-sdk/dist/agent_sandbox-*.whl` (`WHEEL` overrides).
    - `.env.example`: `ACR_NAMESPACE=<your-namespace>`.
    - `docs/PORTING.md`: scratch paths replaced by `$ORIG_REPO` / `$ORACLE_VENV`.
-   - Docs: user-home absolute paths to `.ebx/` and `.cursor/mcp.json` became `~/...`;
+   - Docs: user-home absolute paths to `.abx/` and `.cursor/mcp.json` became `~/...`;
      real sandbox UUID and template IDs in `e2e-template-workflow.md` (en/zh) became
      placeholders.
    - Ignored `.agents/evidence` logs scrubbed of local file URLs under user homes and

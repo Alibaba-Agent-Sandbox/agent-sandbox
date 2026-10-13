@@ -1,4 +1,4 @@
-# Decision: Single-question clarification loop for the `ebx create` NL path
+# Decision: Single-question clarification loop for the `abx create` NL path
 
 Status: implemented
 Proposed: 2026-09-29
@@ -6,7 +6,7 @@ Implemented: 2026-09-29
 
 ## Problem
 
-`ebx create "<description>"` feeds one free-form sentence straight into the
+`abx create "<description>"` feeds one free-form sentence straight into the
 coding agent.  A sentence that never mentions the runtime, its dependencies,
 the entry command, exposed ports, resource expectations, or the data the
 sandbox works on produces a mediocre template: the agent has to guess, and the
@@ -27,7 +27,7 @@ Assess the description *before* generation and complete it through a
 - **The assessment comes from the coding agent itself.**  Every round is one
   headless Qwen Code run with `--json-schema` (`CLARIFY_SCHEMA`): a validated
   structured payload carrying `completeness` (0..1), exactly ONE `question`
-  string, the `missing` labels, and a ready-to-use `example`.  Easy Sandbox
+  string, the `missing` labels, and a ready-to-use `example`.  Agent Sandbox
   never re-implements the agent loop.
 - **The one-question rule is structural, not prompt-level** — the schema has a
   single `question` string, so a chatty model cannot ask a battery of
@@ -50,7 +50,7 @@ Assess the description *before* generation and complete it through a
   exactly once and never blocked: below the threshold raises
   `DescriptionClarificationError` (E2008) carrying the missing labels, a
   ready-to-use example description, and actionable alternatives (`--yes`, or
-  `ebx create --template <name>`).
+  `abx create --template <name>`).
 - **`--yes` is the fast path.**  It skips clarification entirely (no assessment
   round) and generates from the current description.
 - **Graceful degradation.**  When the assessment is unavailable (timeout,
@@ -64,7 +64,7 @@ Assess the description *before* generation and complete it through a
 
 ## API Design
 
-New module `src/easy_sandbox/agent/clarify.py` (the thin adapter around the
+New module `src/agent_sandbox/agent/clarify.py` (the thin adapter around the
 agent's structured rounds):
 
 ```python
@@ -115,7 +115,7 @@ a non-empty `outcome.session_id` is the session the generator resumes.
 
 ## Alternatives considered
 
-- **Deterministic facet scoring inside Easy Sandbox** (keyword/regex coverage of
+- **Deterministic facet scoring inside Agent Sandbox** (keyword/regex coverage of
   the six template facets, fixed weights, fixed threshold) — no model needed and
   fully offline, but it cannot judge semantics ("用我的模型跑推理服务" covers
   runtime + entry command and nothing else), needs continuous weight tuning,
@@ -128,7 +128,7 @@ a non-empty `outcome.session_id` is the session the generator resumes.
 - **Trust the model's own "ready" flag without a threshold gate** — the gate is
   a product decision (80%), not the model's; a chatty model must not be able to
   lower it.  Rejected; the payload completeness is clamped and compared against
-  `CLARITY_THRESHOLD` by Easy Sandbox.
+  `CLARITY_THRESHOLD` by Agent Sandbox.
 - **Replay the Q/A transcript by hand into every round** — duplicates session
   state, risks drift, and grows the prompt linearly.  Rejected in favour of the
   agent's native session (`--session-id` / `--resume`).
@@ -159,7 +159,7 @@ All tests are offline; the `qwen` binary and the network are fully mocked.
   `--yes` skipping clarification, and assessment-unavailable degradation.
 - `tests/test_agent/test_codegen.py` — generation resumes the clarification
   session (`resume_session` reaching the Qwen invocation).
-- Evidence snapshots via `EBX_UPDATE_EVIDENCE=1 pytest tests/test_cli_evidence/`
+- Evidence snapshots via `ABX_UPDATE_EVIDENCE=1 pytest tests/test_cli_evidence/`
   — `create-nl-clarify-required` (E2008), `create-nl-confirm-required`
   (complete assessment → confirmation gate), `create-nl-python` /
   `create-nl-nodejs` (`--yes` fast path).
@@ -189,7 +189,7 @@ All tests are offline; the `qwen` binary and the network are fully mocked.
   `docs/{zh,en}/reference/cli-reference.md` and `docs/{zh,en}/guide/cli-tutorial.md`.
 - CLI evidence regenerated (`scripts/capture_cli_evidence.py`,
   `.agents/evidence/cli/create.md`); goldens refreshed with
-  `EBX_UPDATE_EVIDENCE=1 pytest tests/test_cli_evidence/`.
+  `ABX_UPDATE_EVIDENCE=1 pytest tests/test_cli_evidence/`.
 
 ## Evidence
 
@@ -206,15 +206,15 @@ All tests are offline; the `qwen` binary and the network are fully mocked.
 
 ## Files changed
 
-- `src/easy_sandbox/agent/clarify.py` (new)
-- `src/easy_sandbox/agent/coding_agent.py` (backend seam: `assess`,
+- `src/agent_sandbox/agent/clarify.py` (new)
+- `src/agent_sandbox/agent/coding_agent.py` (backend seam: `assess`,
   `prepare_workdir`, `generate(resume_session=...)`)
-- `src/easy_sandbox/agent/qwen_code.py` (`--session-id` / `--resume` /
+- `src/agent_sandbox/agent/qwen_code.py` (`--session-id` / `--resume` /
   `--json-schema`, `structured_result` parsing)
-- `src/easy_sandbox/agent/codegen.py` (`prepare_workdir`,
+- `src/agent_sandbox/agent/codegen.py` (`prepare_workdir`,
   `resume_session` pass-through)
-- `src/easy_sandbox/cli/commands/sandbox.py` (`_clarify_requirements`)
-- `src/easy_sandbox/models/errors.py` (E2008 `DescriptionClarificationError`)
+- `src/agent_sandbox/cli/commands/sandbox.py` (`_clarify_requirements`)
+- `src/agent_sandbox/models/errors.py` (E2008 `DescriptionClarificationError`)
 - `tests/test_agent/test_clarify.py`, `tests/test_agent/test_codegen.py`,
   `tests/test_cli/test_create_nl.py`
 - `scripts/evidence_cases.py`, `tests/test_cli_evidence/golden/`,

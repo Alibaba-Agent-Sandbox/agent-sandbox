@@ -36,10 +36,9 @@ export const _CI_ENV_VARS = [
 
 export const _CREDENTIAL_ENV_VARS = [
   "GITHUB_TOKEN",
-  "EBX_LLM_API_KEY",
-  "EBX_QWEN_CODE_API_KEY",
-  "EBX_LLM_BASE_URL",
-  "EBX_LLM_MODEL",
+  "ABX_LLM_API_KEY",
+  "ABX_LLM_BASE_URL",
+  "ABX_LLM_MODEL",
   "BAILIAN_CODING_PLAN_API_KEY",
   "DASHSCOPE_API_KEY",
   "OPENAI_API_KEY",
@@ -47,7 +46,7 @@ export const _CREDENTIAL_ENV_VARS = [
   "OPENAI_MODEL",
 ];
 
-export function mkTmpDir(prefix = "ebx-test-"): string {
+export function mkTmpDir(prefix = "abx-test-"): string {
   return fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), prefix));
 }
 
@@ -117,10 +116,10 @@ export function useIsolatedEnv(): Isolation {
 }
 
 export const _LEAKY_ENV_VARS = [
-  "EBX_SANDBOX_API_KEY",
-  "EBX_SANDBOX_BASE_URL",
-  "EBX_SANDBOX_DOMAIN",
-  "EBX_HTTP_TIMEOUT",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_SANDBOX_DOMAIN",
+  "ABX_HTTP_TIMEOUT",
   "ALIBABA_CLOUD_REGION_ID",
   "E2B_API_KEY",
   "E2B_API_URL",

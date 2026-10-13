@@ -2,18 +2,18 @@
  * End-to-end check that every credential consumer uses one order (port of
  * `tests/integration/test_credential_priority_e2e.py`).
  *
- * The order is: explicit argument, process environment, `./.env`, `~/.ebx`, then a built-in default. `.env` files merge
- * per key, so a project file that omits a key does not hide `~/.ebx`.
+ * The order is: explicit argument, process environment, `./.env`, `~/.abx`, then a built-in default. `.env` files merge
+ * per key, so a project file that omits a key does not hide `~/.abx`.
  *
  * Consumers covered here:
  *
- * - `ebx config list`
+ * - `abx config list`
  * - `loadConfig` (`Sandbox.create` and the other SDK clients)
- * - the coding agent used by natural-language `ebx create`
+ * - the coding agent used by natural-language `abx create`
  * - `resolveGithubToken` (template install / search)
- * - `ebx mcp install` via `_readApiKey` and `_buildMcpServerConfig`
+ * - `abx mcp install` via `_readApiKey` and `_buildMcpServerConfig`
  * - `resolveRegion` (command `--region`)
- * - ACR namespace (`--acr-namespace` / `ACR_NAMESPACE` / `./.env` / `~/.ebx`)
+ * - ACR namespace (`--acr-namespace` / `ACR_NAMESPACE` / `./.env` / `~/.abx`)
  *
  * Python's `resolve_llm_env` (`Sandbox.deploy`, the SDK's in-sandbox agent deployment) is SDK-only and not part of the
  * CLI port (see parity/KNOWN-GAPS.md); its assertions are covered by `python-sdk/client-sdk/tests/test_api/test_deploy.py`.
@@ -33,7 +33,7 @@ import { _buildMcpServerConfig, _readApiKey } from "../../src/cli/commands/mcp.j
 import { _resolveAcrNamespace } from "../../src/cli/commands/template.js";
 import { cli } from "../../src/cli/main.js";
 import { resolveRegion } from "../../src/cli/region.js";
-import { Command, Context } from "../../src/framework/index.js";
+import { Command, Context } from "../../src/cli/kit.js";
 import {
   _CONFIG_FILE,
   _ENV_FILE_CANDIDATES,
@@ -47,11 +47,8 @@ import {
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { patchConfig, storagePatch } from "../helpers/configSupport.js";
-import { useDefaultShortcutsOnly } from "../test_cli/conftest.js";
 
 const iso = useIsolatedEnv();
-useDefaultShortcutsOnly();
-
 const runner = (): CliRunner => new CliRunner();
 
 const _STORED_SANDBOX = "e2b-stored-sandbox-aaa";
@@ -67,37 +64,42 @@ const _LEGACY_LLM = "sk-legacy-qwen-eee555";
 const _FILE_QWEN = "sk-file-qwen-fff666";
 
 const _ISOLATED_ENV = [
-  "E2B_API_KEY",
-  "SANDBOX_API_KEY",
-  "E2B_API_URL",
-  "SANDBOX_API_BASE_URL",
-  "SANDBOX_REGION",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_LLM_API_KEY",
+  "ABX_LLM_BASE_URL",
+  "ABX_LLM_MODEL",
+  "ALIBABA_CLOUD_REGION_ID",
   "ALICLOUD_ACCESS_KEY_ID",
   "ALICLOUD_ACCESS_KEY_SECRET",
-  "AccessKey",
-  "AccessSecret",
   "ACR_NAMESPACE",
+  "GITHUB_TOKEN",
+  "ABX_HTTP_TIMEOUT",
+  "E2B_API_KEY",
+  "SANDBOX_API_KEY",
+  "SANDBOX_REGION",
+  "AccessKey",
 ];
 
 interface CredentialHome {
-  ebx: string;
+  abx: string;
   project: string;
 }
 
-let home: CredentialHome = { ebx: "", project: "" };
+let home: CredentialHome = { abx: "", project: "" };
 let undoConfig: (() => void) | null = null;
 let savedTransport: { config: string; candidates: string[]; project: string } | null = null;
 
 /** Point every credential reader at one temporary home and project file (`credential_home` fixture). */
 beforeEach(() => {
-  const ebx = path.join(iso.tmp_path, "ebx");
-  fs.mkdirSync(ebx);
+  const abx = path.join(iso.tmp_path, "abx");
+  fs.mkdirSync(abx);
   const project = path.join(iso.tmp_path, "project.env");
-  home = { ebx, project };
-  undoConfig = patchConfig(storagePatch(ebx, { env: true }));
+  home = { abx, project };
+  undoConfig = patchConfig(storagePatch(abx, { env: true }));
   savedTransport = { config: _CONFIG_FILE, candidates: _ENV_FILE_CANDIDATES, project: _PROJECT_ENV_FILE };
-  _setConfigFile(path.join(ebx, "config.toml"));
-  _setEnvFileCandidates([project, path.join(ebx, ".env")]);
+  _setConfigFile(path.join(abx, "config.toml"));
+  _setEnvFileCandidates([project, path.join(abx, ".env")]);
   _setProjectEnvFile(project);
   for (const name of _ISOLATED_ENV) iso.monkeypatch.delenv(name);
   resetConfig();
@@ -113,26 +115,26 @@ afterEach(() => {
   }
 });
 
-function _write_system(ebx: string): void {
+function _write_system(abx: string): void {
   fs.writeFileSync(
-    path.join(ebx, ".env"),
-    `E2B_API_KEY=${_STORED_SANDBOX}\n` +
+    path.join(abx, ".env"),
+    `ABX_SANDBOX_API_KEY=${_STORED_SANDBOX}\n` +
       "ALICLOUD_ACCESS_KEY_ID=stored-ak-id\n" +
       "ALICLOUD_ACCESS_KEY_SECRET=stored-ak-secret\n" +
-      `EBX_LLM_API_KEY=${_STORED_LLM}\n` +
+      `ABX_LLM_API_KEY=${_STORED_LLM}\n` +
       `GITHUB_TOKEN=${_STORED_GITHUB}\n` +
       "ACR_NAMESPACE=ns-stored\n",
     "utf-8",
   );
   fs.writeFileSync(
-    path.join(ebx, "config.toml"),
+    path.join(abx, "config.toml"),
     '[transport]\nllm_base_url = "https://stored.example/v1"\nllm_model = "stored-model"\nregion = "cn-beijing"\n',
     "utf-8",
   );
 }
 
 async function _agent_env(): Promise<Record<string, string>> {
-  const ctx = new Context(new Command("ebx"));
+  const ctx = new Context(new Command("abx"));
   const creds = await resolveCodingAgentCredentials(ctx, { yes: true, backend: new QwenCodeBackend() });
   return creds.asEnv();
 }
@@ -141,13 +143,13 @@ const embeddedEnv = (embedded: Map<string, unknown>): Map<string, string> => emb
 
 describe("TestCredentialPriorityEndToEnd", () => {
   it("test_process_env_beats_system_config", async () => {
-    _write_system(home.ebx);
-    iso.monkeypatch.setenv("E2B_API_KEY", _ENV_SANDBOX);
-    iso.monkeypatch.setenv("DASHSCOPE_API_KEY", _ENV_LLM);
-    iso.monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example/v1");
-    iso.monkeypatch.setenv("OPENAI_MODEL", "env-model");
+    _write_system(home.abx);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ENV_SANDBOX);
+    iso.monkeypatch.setenv("ABX_LLM_API_KEY", _ENV_LLM);
+    iso.monkeypatch.setenv("ABX_LLM_BASE_URL", "https://env.example/v1");
+    iso.monkeypatch.setenv("ABX_LLM_MODEL", "env-model");
     iso.monkeypatch.setenv("GITHUB_TOKEN", _ENV_GITHUB);
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
     iso.monkeypatch.setenv("ALICLOUD_ACCESS_KEY_ID", "env-ak-id");
     resetConfig();
 
@@ -177,10 +179,10 @@ describe("TestCredentialPriorityEndToEnd", () => {
   });
 
   it("test_system_config_when_env_and_project_file_omit_the_key", async () => {
-    _write_system(home.ebx);
+    _write_system(home.abx);
     // The project file exists and sets an unrelated key. That must not hide the sandbox key, LLM key, or GitHub token
-    // saved in ~/.ebx.
-    fs.writeFileSync(home.project, "SANDBOX_HTTP_TIMEOUT=15\n", "utf-8");
+    // saved in ~/.abx.
+    fs.writeFileSync(home.project, "ABX_HTTP_TIMEOUT=15\n", "utf-8");
     resetConfig();
 
     const listed = await runner().invoke(cli, ["config", "list"]);
@@ -209,15 +211,15 @@ describe("TestCredentialPriorityEndToEnd", () => {
 
     // The editor config copies the resolved sandbox key. Region saved only in config.toml is not frozen into that file.
     const embedded = _buildMcpServerConfig() as Map<string, unknown>;
-    expect(embeddedEnv(embedded).get("E2B_API_KEY")).toBe(_STORED_SANDBOX);
-    expect(embeddedEnv(embedded).has("SANDBOX_REGION")).toBe(false);
+    expect(embeddedEnv(embedded).get("ABX_SANDBOX_API_KEY")).toBe(_STORED_SANDBOX);
+    expect(embeddedEnv(embedded).has("ALIBABA_CLOUD_REGION_ID")).toBe(false);
   });
 
   it("test_project_dotenv_beats_system_and_loses_to_process_env", async () => {
-    _write_system(home.ebx);
+    _write_system(home.abx);
     fs.writeFileSync(
       home.project,
-      `E2B_API_KEY=${_PROJECT_SANDBOX}\nEBX_LLM_API_KEY=sk-project-llm-ccc333\nOPENAI_BASE_URL=https://project.example/v1\n`,
+      `ABX_SANDBOX_API_KEY=${_PROJECT_SANDBOX}\nABX_LLM_API_KEY=sk-project-llm-ccc333\nABX_LLM_BASE_URL=https://project.example/v1\n`,
       "utf-8",
     );
     resetConfig();
@@ -227,7 +229,7 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(listed.output).toContain("e2b***ccc (user)");
     expect(listed.output).toContain("sk-***333 (user)");
     expect(listed.output).toContain("https://project.example/v1 (user)");
-    // The model was not in the project file, so ~/.ebx still supplies it.
+    // The model was not in the project file, so ~/.abx still supplies it.
     expect(listed.output).toContain("stored-model (user)");
 
     resetConfig();
@@ -235,8 +237,8 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(_readApiKey()).toBe(_PROJECT_SANDBOX);
     expect((await _agent_env())["OPENAI_API_KEY"]).toBe("sk-project-llm-ccc333");
 
-    iso.monkeypatch.setenv("E2B_API_KEY", _ENV_SANDBOX);
-    iso.monkeypatch.setenv("EBX_LLM_API_KEY", _ENV_LLM);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ENV_SANDBOX);
+    iso.monkeypatch.setenv("ABX_LLM_API_KEY", _ENV_LLM);
     resetConfig();
     expect(loadConfig().api_key).toBe(_ENV_SANDBOX);
     expect(_readApiKey()).toBe(_ENV_SANDBOX);
@@ -246,16 +248,19 @@ describe("TestCredentialPriorityEndToEnd", () => {
   });
 
   it("test_same_layer_order_explicit_region_and_mcp_region", async () => {
-    _write_system(home.ebx);
-    iso.monkeypatch.setenv("E2B_API_KEY", _ENV_SANDBOX);
+    _write_system(home.abx);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ENV_SANDBOX);
     iso.monkeypatch.setenv("SANDBOX_API_KEY", _ALIAS_SANDBOX);
-    iso.monkeypatch.setenv("EBX_LLM_API_KEY", _ENV_LLM);
+    iso.monkeypatch.setenv("E2B_API_KEY", _ALIAS_SANDBOX);
+    iso.monkeypatch.setenv("ABX_LLM_API_KEY", _ENV_LLM);
     iso.monkeypatch.setenv("DASHSCOPE_API_KEY", _VENDOR_LLM);
     iso.monkeypatch.setenv("ALICLOUD_ACCESS_KEY_ID", "env-alicld-ak");
     iso.monkeypatch.setenv("AccessKey", "env-legacy-ak");
-    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-shenzhen");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shenzhen");
+    iso.monkeypatch.setenv("SANDBOX_REGION", "cn-hongkong");
     resetConfig();
 
+    // Each key has exactly one environment name; other spellings are never read.
     expect(loadConfig().api_key).toBe(_ENV_SANDBOX);
     expect(loadConfig().access_key_id).toBe("env-alicld-ak");
     expect((await _agent_env())["OPENAI_API_KEY"]).toBe(_ENV_LLM);
@@ -263,16 +268,16 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(resolveRegion(null)).toBe("cn-shenzhen");
 
     const embedded = _buildMcpServerConfig() as Map<string, unknown>;
-    expect(embeddedEnv(embedded).get("E2B_API_KEY")).toBe(_ENV_SANDBOX);
-    expect(embeddedEnv(embedded).get("SANDBOX_REGION")).toBe("cn-shenzhen");
-    expect(embeddedEnv(embedded).has("E2B_API_URL")).toBe(false);
+    expect(embeddedEnv(embedded).get("ABX_SANDBOX_API_KEY")).toBe(_ENV_SANDBOX);
+    expect(embeddedEnv(embedded).get("ALIBABA_CLOUD_REGION_ID")).toBe("cn-shenzhen");
+    expect(embeddedEnv(embedded).has("ABX_SANDBOX_BASE_URL")).toBe(false);
   });
 
   it("test_blank_values_fall_through", () => {
-    _write_system(home.ebx);
-    iso.monkeypatch.setenv("E2B_API_KEY", "   ");
+    _write_system(home.abx);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "   ");
     iso.monkeypatch.setenv("GITHUB_TOKEN", "   ");
-    iso.monkeypatch.setenv("SANDBOX_REGION", "   ");
+    iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "   ");
     resetConfig();
 
     expect(loadConfig().api_key).toBe(_STORED_SANDBOX);
@@ -282,42 +287,26 @@ describe("TestCredentialPriorityEndToEnd", () => {
 
     iso.monkeypatch.setenv("SANDBOX_API_KEY", _ALIAS_SANDBOX);
     resetConfig();
-    expect(loadConfig().api_key).toBe(_ALIAS_SANDBOX);
+    expect(loadConfig().api_key).toBe(_STORED_SANDBOX);
   });
 
-  it("test_legacy_qwen_key_when_llm_key_is_absent", async () => {
-    const ebx = home.ebx;
-    fs.writeFileSync(path.join(ebx, ".env"), `E2B_API_KEY=${_STORED_SANDBOX}\nEBX_QWEN_CODE_API_KEY=${_FILE_QWEN}\n`, "utf-8");
-    fs.writeFileSync(
-      path.join(ebx, "config.toml"),
-      '[transport]\nqwen_code_base_url = "https://legacy.example/v1"\nqwen_code_model = "legacy-model"\n',
-      "utf-8",
-    );
-    iso.monkeypatch.setenv("EBX_QWEN_CODE_API_KEY", _LEGACY_LLM);
+  it("test_abx_qwen_code_api_key_is_not_read", async () => {
+    const abx = home.abx;
+    fs.writeFileSync(path.join(abx, ".env"), `ABX_SANDBOX_API_KEY=${_STORED_SANDBOX}\nABX_QWEN_CODE_API_KEY=${_FILE_QWEN}\n`, "utf-8");
+    iso.monkeypatch.setenv("ABX_QWEN_CODE_API_KEY", _LEGACY_LLM);
     resetConfig();
 
-    expect((await _agent_env())["OPENAI_API_KEY"]).toBe(_LEGACY_LLM);
-    const listed = await runner().invoke(cli, ["config", "list"]);
-    expect(listed.exit_code).toBe(0);
-    expect(listed.output).toContain("sk-***555 (env)");
-
-    iso.monkeypatch.delenv("EBX_QWEN_CODE_API_KEY");
-    resetConfig();
-    const stored = await _agent_env();
-    expect(stored["OPENAI_API_KEY"]).toBe(_FILE_QWEN);
-    expect(stored["OPENAI_BASE_URL"]).toBe("https://legacy.example/v1");
-    expect(stored["OPENAI_MODEL"]).toBe("legacy-model");
-    const listed_file = await runner().invoke(cli, ["config", "list"]);
-    expect(listed_file.output).toContain("sk-***666 (user)");
-    expect(listed_file.output).toContain("https://legacy.example/v1 (user)");
-    expect(listed_file.output).toContain("legacy-model (user)");
+    await expect(_agent_env()).rejects.toThrow(/no model credentials/);
+    const listed = await runner().invoke(cli, ["config", "get", "llm_api_key"]);
+    expect(listed.output).not.toContain("eee555");
+    expect(listed.output).not.toContain("fff666");
   });
 
   it("test_acr_namespace_follows_the_same_order", () => {
     const home_ = path.join(iso.tmp_path, "home");
-    const ebx = path.join(home_, ".ebx");
-    fs.mkdirSync(ebx, { recursive: true });
-    fs.writeFileSync(path.join(ebx, ".env"), "ACR_NAMESPACE=ns-stored\n", "utf-8");
+    const abx = path.join(home_, ".abx");
+    fs.mkdirSync(abx, { recursive: true });
+    fs.writeFileSync(path.join(abx, ".env"), "ACR_NAMESPACE=ns-stored\n", "utf-8");
     const work = path.join(iso.tmp_path, "work");
     fs.mkdirSync(work);
     fs.writeFileSync(path.join(work, ".env"), "ACR_NAMESPACE=ns-project\n", "utf-8");

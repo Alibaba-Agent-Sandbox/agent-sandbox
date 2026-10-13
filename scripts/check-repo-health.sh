@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Repository health gate for the cli (ebx, npm @easy-sandbox/cli) repository.
+# Repository health gate for the cli (abx, npm @agent-sandbox/cli) repository.
 #
 # Fails (exit 1) when a file, section or invariant required of a complete
 # open-source repository is missing.  It only reads files; run it from anywhere:
@@ -85,7 +85,7 @@ section "README / CHANGELOG sections"
 for h in "Install" "Quick ?start|Usage|CLI" "Documentation|Docs" "Contributing" "License"; do
   need_grep README.md "^#{1,3} .*(${h})" "README.md has a '${h}' heading"
 done
-need_grep README.md 'npm (install|i) .*@easy-sandbox/cli' "README.md documents the npm install command"
+need_grep README.md 'npm (install|i) .*@agent-sandbox/cli' "README.md documents the npm install command"
 need_grep CHANGELOG.md '^## \[Unreleased\]' "CHANGELOG.md has an [Unreleased] section"
 need_grep CHANGELOG.md 'keepachangelog' "CHANGELOG.md declares the Keep a Changelog format"
 
@@ -130,16 +130,16 @@ const R = (k, m) => out.push(`[${k}] ${m}`);
 let pkg;
 try { pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); } catch (e) { R("FAIL", "package.json unreadable: " + e.message); console.log(out.join("\n")); process.exit(0); }
 const chk = (cond, okMsg, badMsg, kind = "FAIL") => R(cond ? "PASS" : kind, cond ? okMsg : badMsg);
-chk(pkg.name === "@easy-sandbox/cli", "package name is @easy-sandbox/cli", `package name is ${pkg.name}`);
-chk(pkg.bin && pkg.bin.ebx === "dist/bin/ebx.js", "bin.ebx -> dist/bin/ebx.js", "bin.ebx must be dist/bin/ebx.js");
+chk(pkg.name === "@agent-sandbox/cli", "package name is @agent-sandbox/cli", `package name is ${pkg.name}`);
+chk(pkg.bin && pkg.bin.abx === "dist/bin/abx.js", "bin.abx -> dist/bin/abx.js", "bin.abx must be dist/bin/abx.js");
 chk(pkg.type === "module", "type: module (ESM)", "package.json should declare type: module");
 chk(pkg.license === "Apache-2.0", "license is Apache-2.0", "license must be Apache-2.0");
 chk(pkg.engines && /20/.test(pkg.engines.node || ""), "engines.node >= 20", "engines.node must pin Node >= 20");
-chk(pkg.repository && /Easy-Sandbox\/cli(\.git)?$/.test(pkg.repository.url || ""), "repository.url points at Easy-Sandbox/cli", `repository.url is ${pkg.repository && pkg.repository.url} (expected github.com/Easy-Sandbox/cli.git)`);
+chk(pkg.repository && /alibaba-agent-sandbox\/cli(\.git)?$/.test(pkg.repository.url || ""), "repository.url points at agent-sandbox/agent-sandbox", `repository.url is ${pkg.repository && pkg.repository.url} (expected github.com/agent-sandbox/agent-sandbox.git)`);
 chk(!!pkg.homepage, "homepage set", "homepage missing");
-chk(pkg.bugs && pkg.bugs.url && /Easy-Sandbox\/cli/.test(pkg.bugs.url), "bugs.url points at Easy-Sandbox/cli", "bugs.url missing or not Easy-Sandbox/cli");
+chk(pkg.bugs && pkg.bugs.url && /alibaba-agent-sandbox\/cli/.test(pkg.bugs.url), "bugs.url points at agent-sandbox/agent-sandbox", "bugs.url missing or not agent-sandbox/agent-sandbox");
 chk(Array.isArray(pkg.keywords) && pkg.keywords.length > 0, "keywords set", "keywords missing", "WARN");
-chk(pkg.publishConfig && pkg.publishConfig.access === "public", "publishConfig.access = public (required for a scoped package)", "publishConfig.access must be 'public' for @easy-sandbox/cli");
+chk(pkg.publishConfig && pkg.publishConfig.access === "public", "publishConfig.access = public (required for a scoped package)", "publishConfig.access must be 'public' for @agent-sandbox/cli");
 chk(Array.isArray(pkg.files) && pkg.files.includes("dist"), "files whitelist includes dist", "files must whitelist dist");
 for (const s of ["build", "typecheck", "test"]) chk(pkg.scripts && pkg.scripts[s], `npm script '${s}'`, `npm script '${s}' missing`);
 chk(pkg.scripts && pkg.scripts.lint, "npm script 'lint'", "npm script 'lint' missing", "WARN");
@@ -185,15 +185,15 @@ try { nm = fs.lstatSync("node_modules"); } catch {}
 chk(!nm || !nm.isSymbolicLink(), "node_modules is not a symlink", "node_modules is a symlink to another location (never commit/publish from such a tree)");
 const gi = fs.existsSync(".gitignore") ? fs.readFileSync(".gitignore", "utf8") : "";
 for (const p of ["node_modules", "dist"]) chk(new RegExp(`^/?${p}/?$`, "m").test(gi), `.gitignore ignores ${p}`, `.gitignore does not ignore ${p}`);
-chk(fs.existsSync("src/bin/ebx.ts"), "src/bin/ebx.ts exists (bin entry)", "src/bin/ebx.ts missing: the 'ebx' bin has no source entry point");
+chk(fs.existsSync("src/bin/abx.ts"), "src/bin/abx.ts exists (bin entry)", "src/bin/abx.ts missing: the 'abx' bin has no source entry point");
 const tests = files.filter((f) => /\.test\.ts$/.test(f) && f.includes(`${path.sep}tests${path.sep}`));
 chk(tests.length > 0, `tests/ has ${tests.length} test files`, "no *.test.ts files under tests/");
 const scratch = tests.filter((f) => /(^|\/)_|tmp|scratch|fuzz/i.test(path.relative(root, f)));
 chk(scratch.length === 0, "no scratch/temporary test files", `scratch test files must not be committed: ${scratch.map((f) => path.relative(root, f)).join(", ")}`);
 const py = files.filter((f) => /\.py$/.test(f) && !path.relative(root, f).startsWith(".agents/"));
 chk(py.length === 0, "no Python files outside .agents/", `Python leftovers in a Node repo: ${py.map((f) => path.relative(root, f)).slice(0, 4).join(", ")}`);
-const stale = files.filter((f) => /\.(sh|mjs|js|ts|yml|yaml)$/.test(f) && /scripts\/|\.github\//.test(f)).filter((f) => !f.endsWith("check-repo-health.sh")).filter((f) => /easy_sandbox\.cli|\.venv\/bin\/python|python3? -m easy_sandbox/.test(fs.readFileSync(f, "utf8")));
-chk(stale.length === 0, "no script invokes the removed Python CLI", `scripts still call the Python CLI (easy_sandbox.cli / .venv/bin/python): ${stale.map((f) => path.relative(root, f)).join(", ")}`);
+const stale = files.filter((f) => /\.(sh|mjs|js|ts|yml|yaml)$/.test(f) && /scripts\/|\.github\//.test(f)).filter((f) => !f.endsWith("check-repo-health.sh")).filter((f) => /agent_sandbox\.cli|\.venv\/bin\/python|python3? -m agent_sandbox/.test(fs.readFileSync(f, "utf8")));
+chk(stale.length === 0, "no script invokes the removed Python CLI", `scripts still call the Python CLI (agent_sandbox.cli / .venv/bin/python): ${stale.map((f) => path.relative(root, f)).join(", ")}`);
 console.log(out.join("\n"));
 JS
 
@@ -263,7 +263,7 @@ if (broken.length) {
   R("FAIL", `${broken.length} broken relative markdown links in ${by.size} files; first: ` + [...by].sort().slice(0, 5).map(([f, ls]) => `${f} -> ${ls[0]}`).join("; "));
 } else R("PASS", "all relative markdown links resolve");
 
-const LEAK = /(\/Users\/[A-Za-z0-9_.-]+\/|file:\/\/\/|\/home\/ubuntu\/|\/tmp\/(?:easy-sandbox|parity|venv)[A-Za-z0-9_-]*|Qoder\/20\d\d|\bthis VM\b)/g;
+const LEAK = /(\/Users\/[A-Za-z0-9_.-]+\/|file:\/\/\/|\/home\/ubuntu\/|\/tmp\/(?:agent-sandbox|parity|venv)[A-Za-z0-9_-]*|Qoder\/20\d\d|\bthis VM\b)/g;
 const leaks = new Map();
 for (const p of files) {
   if (!/\.(md|txt|ya?ml|toml|json|sh|mjs|js|ts|py)$/.test(p)) continue;

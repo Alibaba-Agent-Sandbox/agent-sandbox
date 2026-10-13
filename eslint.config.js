@@ -25,7 +25,7 @@ const nodeGlobals = {
 // style rules that fire on that code base are warnings; real bug classes stay errors.
 export default tseslint.config(
   {
-    ignores: ["dist/**", "dist-pack/**", "coverage/**", "node_modules/**", ".ki-dist/**"],
+    ignores: ["dist/**", "dist-pack/**", "build/**", "coverage/**", "node_modules/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -42,5 +42,10 @@ export default tseslint.config(
       "prefer-const": "warn",
       "require-yield": "off",
     },
+  },
+  {
+    // Output-matching harnesses assert exact CLI text, so their regexes legitimately contain runs of spaces and escapes.
+    files: ["parity/diff/**", "e2e/**"],
+    rules: { "no-regex-spaces": "off", "no-useless-escape": "off" },
   },
 );

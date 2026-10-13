@@ -27,7 +27,7 @@ describe("KI-008 transfer timeout report", () => {
     httpx_mock.add_exception(new WriteTimeout("timed out"), { method: "POST" });
     const err = await raises(() => files().write("/tmp/big.bin", new Uint8Array(1_000_000)), FileOperationError);
     expect(err.message).toBe("Upload to /tmp/big.bin (1000000 bytes) timed out; the transfer took longer than the HTTP timeout.");
-    expect(err.suggestion).toContain("EBX_HTTP_TIMEOUT");
+    expect(err.suggestion).toContain("ABX_HTTP_TIMEOUT");
     expect(err).not.toBeInstanceOf(HTTPError);
   });
 
@@ -35,6 +35,6 @@ describe("KI-008 transfer timeout report", () => {
     httpx_mock.add_exception(new ReadTimeout("timed out"), { method: "GET" });
     const err = await raises(() => files().readBytes("/tmp/big.bin"), FileOperationError);
     expect(err.message).toBe("Download of /tmp/big.bin timed out; the transfer took longer than the HTTP timeout.");
-    expect(err.suggestion).toBe("Raise the HTTP timeout (EBX_HTTP_TIMEOUT / http_timeout) or transfer smaller chunks.");
+    expect(err.suggestion).toBe("Raise the HTTP timeout (ABX_HTTP_TIMEOUT / http_timeout) or transfer smaller chunks.");
   });
 });

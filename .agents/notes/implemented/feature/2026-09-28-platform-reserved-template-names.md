@@ -44,6 +44,6 @@ _PLATFORM_NAME_OVERRIDES = {
 - `tests/test_templates/test_local_install.py` — `_PLATFORM_NAME_OVERRIDES`
 
 ## Acceptance criteria
-- ✅ `ebx template deploy codex` succeeds with name `openai-codex`
+- ✅ `abx template deploy codex` succeeds with name `openai-codex`
 - ✅ Template catalog tests validate the override mapping
 - ✅ Non-reserved templates still require directory == YAML name match

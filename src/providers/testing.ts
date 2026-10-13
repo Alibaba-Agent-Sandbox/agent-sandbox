@@ -2,7 +2,7 @@
  * Provider contract kit (port of `providers/testing.py::ProviderContractTests`).
  *
  * The kit drives a provider through the same protocol objects the CLI uses (`provider.buildInfra`), so it needs no
- * test framework: `runContractSuite()` returns plain results (used by `ebx provider test`), and
+ * test framework: `runContractSuite()` returns plain results (used by `abx provider test`), and
  * `defineProviderContractTests()` registers the cases with any `describe`/`it` pair (vitest, node:test, ...).
  * Only features the plugin declares are exercised; the rest are reported as skipped.
  */
@@ -10,7 +10,7 @@
 import * as assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 
-import { CapabilityNotSupportedError, FileNotFoundError_, SandboxError } from "../models/errors.js";
+import { CapabilityNotSupportedError, FileNotFoundError_, SandboxError, SandboxNotFoundError } from "../models/errors.js";
 import { FileType } from "../models/filesystem.js";
 import { ProcessChunkType, type ProcessChunk } from "../models/process.js";
 import { SandboxConfig, type SandboxInfo } from "../models/sandbox.js";
@@ -233,7 +233,7 @@ export function contractCases(): ContractCase[] {
           await sp.kill(info.sandbox_id);
         }
         await sp.kill(info.sandbox_id);
-        await rejects(() => sp.connect(UNKNOWN_ID), ProviderResourceNotFoundError, SandboxError);
+        await rejects(() => sp.connect(UNKNOWN_ID), SandboxNotFoundError);
       },
     },
     {
@@ -437,7 +437,7 @@ export function contractCases(): ContractCase[] {
       async run(h) {
         const secretKeys = h.provider.configFields.filter((f) => f.secret).map((f) => f.key);
         if (secretKeys.length === 0) throw new SkipContractTest(`${h.providerId} declares no secret config fields`);
-        const canary = `ebx-canary-${randomBytes(8).toString("hex")}`;
+        const canary = `abx-canary-${randomBytes(8).toString("hex")}`;
         const extra = Object.fromEntries(secretKeys.map((k) => [k, canary]));
         let raised: unknown = null;
         let infra: ProviderInfra | null = null;

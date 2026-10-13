@@ -22,7 +22,7 @@ build:  ## Compile TypeScript to dist/
 	npm run build
 
 dist-check:  ## Verify the npm package contents (CI equivalent)
-	npm pack --dry-run --json | node -e "const f=JSON.parse(require('fs').readFileSync(0,'utf8'))[0].files.map(x=>x.path); if(!f.includes('dist/bin/ebx.js')){console.error('dist/bin/ebx.js NOT found in package');process.exit(1)} console.log('dist/bin/ebx.js found in package: OK')"
+	npm pack --dry-run --json | node -e "const f=JSON.parse(require('fs').readFileSync(0,'utf8'))[0].files.map(x=>x.path); if(!f.includes('dist/bin/abx.js')){console.error('dist/bin/abx.js NOT found in package');process.exit(1)} console.log('dist/bin/abx.js found in package: OK')"
 
 binary:  ## Build standalone binary for current platform (esbuild + Node SEA)
 	npm ci

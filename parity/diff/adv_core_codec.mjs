@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ADV-core: differential of src/transport/codec.ts against the oracle's `easy_sandbox.transport.codec` (orjson):
+ * ADV-core: differential of src/transport/codec.ts against the oracle's `agent_sandbox.transport.codec` (orjson):
  *   - json_decode / decode_response / decode_streaming_frame on hostile documents (message text of failures included)
  *   - parse_streaming_frames and EnvelopeStreamParser.feed with random chunkings (frames + pending_bytes)
  *   - json_encode of tricky JSON-able values
@@ -100,7 +100,7 @@ try {
   writeFileSync(specFile, JSON.stringify(spec));
   const PY = String.raw`
 import json, sys, math, struct
-from easy_sandbox.transport import codec as C
+from agent_sandbox.transport import codec as C
 spec = json.load(open(sys.argv[1]))
 def canon(v):
     if isinstance(v, bool) or v is None or isinstance(v, str):
@@ -195,7 +195,7 @@ for (const t of spec.enc) {
 }
 process.stdout.write(JSON.stringify(out));
 `;
-  const py = spawnSync(join(ORACLE_VENV, "bin", "python"), ["-c", PY, specFile], { encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, HOME: tmp, EBX_NO_KEYCHAIN: "1" } });
+  const py = spawnSync(join(ORACLE_VENV, "bin", "python"), ["-c", PY, specFile], { encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, HOME: tmp, ABX_NO_KEYCHAIN: "1" } });
   if (py.status !== 0) { console.error(py.stderr); process.exit(2); }
   const tsFile = join(tmp, "run.mjs");
   writeFileSync(tsFile, TS);

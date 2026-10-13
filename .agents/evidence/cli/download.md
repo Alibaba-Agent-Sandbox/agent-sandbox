@@ -5,7 +5,7 @@
 ### download 文件
 
 ```
-$ ebx download sbx-ev-001 /app/result.csv PLACEHOLDER
+$ abx download sbx-ev-001 /app/result.csv PLACEHOLDER
 Downloaded /app/result.csv -> /var/folders/cb/925wcj8128gf6p6bn1hp1cgc0000gn/T/tmp96wp06au/result.csv
 Exit code: 0
 ```

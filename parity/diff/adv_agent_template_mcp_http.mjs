@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Adversarial differential of the MCP Streamable-HTTP server: `ebx mcp start --http` of the original (Starlette/uvicorn)
+ * Adversarial differential of the MCP Streamable-HTTP server: `abx mcp start --http` of the original (Starlette/uvicorn)
  * versus the port (node:http). Requests are written to a raw TCP socket so malformed / odd requests reach the servers
  * byte-for-byte. Status line, (lower-cased) headers minus Date/Server/Connection/Keep-Alive, and body are compared, with
  * session ids and ports masked.
@@ -151,7 +151,7 @@ function normResponses(resps, ctx) {
 function startServer(kind, cfg) {
   return (async () => {
     const stub = await startStub();
-    const home = mkdtempSync(join(tmpdir(), "ebx-advhttp-"));
+    const home = mkdtempSync(join(tmpdir(), "abx-advhttp-"));
     const run = join(home, "run");
     mkdirSync(run, { recursive: true });
     await fetch(`${stub.url}/__world`, { method: "POST", body: JSON.stringify(cfg.world ?? {}) });
@@ -159,8 +159,8 @@ function startServer(kind, cfg) {
     const env = {
       PATH: process.env.PATH,
       HOME: home,
-      EBX_NO_KEYCHAIN: "1",
-      EBX_MCP_RUNTIME_DIR: run,
+      ABX_NO_KEYCHAIN: "1",
+      ABX_MCP_RUNTIME_DIR: run,
       NO_PROXY: "*",
       no_proxy: "*",
       LANG: "C.UTF-8",
@@ -168,7 +168,7 @@ function startServer(kind, cfg) {
       ...(cfg.env ?? {}),
     };
     const args = ["mcp", "start", "--http", "--port", String(port), "--api-key", "k-stub", "--api-url", stub.url, "--template", "t", ...(cfg.auth ? ["--auth-token", TOKEN] : [])];
-    const [cmd, argv] = kind === "py" ? [join(ORACLE_VENV, "bin", "ebx"), args] : [process.execPath, ["--import", TSX, join(CLI_ROOT, "src/bin/ebx.ts"), ...args]];
+    const [cmd, argv] = kind === "py" ? [join(ORACLE_VENV, "bin", "abx"), args] : [process.execPath, ["--import", TSX, join(CLI_ROOT, "src/bin/abx.ts"), ...args]];
     const proc = spawn(cmd, argv, { cwd: home, env, stdio: ["ignore", "pipe", "pipe"] });
     const errs = [];
     proc.stderr.on("data", (d) => errs.push(d));
@@ -225,7 +225,7 @@ const add = (name, cfg, steps, opts = {}) => cases.push({ name, cfg, steps, ...o
 /** A step: (state) => Buffer | { payload, opts } ; state.sid is the session created by the most recent init step. */
 const NOAUTH = { auth: false };
 const AUTH = { auth: true };
-const ORIGINENV = { auth: false, env: { EBX_MCP_ALLOWED_ORIGINS: "https://ok.example" } };
+const ORIGINENV = { auth: false, env: { ABX_MCP_ALLOWED_ORIGINS: "https://ok.example" } };
 const initStep = (extra = {}) => () => req("POST", "/mcp", { body: INIT, ...extra });
 const withSid = (fn) => (st) => fn(st.sid ?? "no-session");
 

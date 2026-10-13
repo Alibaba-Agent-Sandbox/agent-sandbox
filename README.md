@@ -1,30 +1,30 @@
-# Easy Sandbox
+# Agent Sandbox
 
 **English** | [中文](README.zh-CN.md)
 
 <!-- badges -->
-[![CI](https://github.com/Easy-Sandbox/easy-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/Easy-Sandbox/easy-sandbox/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@easy-sandbox/cli)](https://www.npmjs.com/package/@easy-sandbox/cli)
-[![Node 20+](https://img.shields.io/node/v/@easy-sandbox/cli)](https://www.npmjs.com/package/@easy-sandbox/cli)
-[![License](https://img.shields.io/github/license/easy-sandbox/easy-sandbox)](LICENSE)
+[![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
+[![Node 20+](https://img.shields.io/node/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
+[![License](https://img.shields.io/github/license/agent-sandbox/agent-sandbox)](LICENSE)
 
 > Cloud sandboxes for AI agents — create, execute, and manage isolated environments in seconds.
 
-**Easy Sandbox** is the command-line interface (`ebx`) for the Alibaba Cloud FC Agent Sandbox service.
-The Python SDK lives in [the `python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk) (see [Python SDK](#python-sdk)).
-It is **E2B-protocol compatible** with extensions for the Alibaba Cloud ecosystem (OSS, VPC, custom domains).
+**Agent Sandbox** is the command-line interface (`abx`) for the Alibaba Cloud FC Agent Sandbox service.
+The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk) (see [Python SDK](#python-sdk)).
+Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; neither the CLI nor the SDK is an E2B-protocol drop-in.
 
 ---
 
 ## Features
 
-- **CLI (`ebx`)** — create, inspect, exec, upload/download, deploy, and manage sandboxes from the terminal.
+- **CLI (`abx`)** — create, inspect, exec, upload/download, deploy, and manage sandboxes from the terminal.
 - **Template system** — reusable sandbox images (Python, Node, browser automation, AI agent harnesses, …).
 - **MCP server** — expose sandbox operations as MCP tools for LLM agents.
 - **Agent skill** — a static Agent Skills guide ([`SKILL.md`](SKILL.md)) for Qoder, Claude Code, Cursor, Qwen Code, and Codex.
 - **Runs anywhere Node runs** — Node.js >= 20 (npm / `npx`), or a standalone binary with no runtime required.
 
-The SDK-side features (async-first `Sandbox` API, the `run` / `run_code` / `custom` execution primitives, the `@sandbox` declarative decorator, session persistence, and the E2B compatibility layer) are documented in the [Python SDK](#python-sdk) section.
+The SDK-side features (async-first `Sandbox` API, the `run` / `run_code` execution primitives, the `@sandbox` declarative decorator, session persistence, and the E2B compatibility layer) are documented in the [Python SDK](#python-sdk) section.
 
 ## Installation
 
@@ -32,18 +32,18 @@ Requires **Node.js >= 20**.
 
 ```bash
 # Install globally from npm
-npm install -g @easy-sandbox/cli
+npm install -g @agent-sandbox/cli
 
 # Or run without installing
-npx @easy-sandbox/cli --help
+npx @agent-sandbox/cli --help
 ```
 
 ### Standalone binary (no Node.js required)
 
-`ebx` also ships as a **precompiled standalone binary** for macOS (Apple Silicon / Intel),
+`abx` also ships as a **precompiled standalone binary** for macOS (Apple Silicon / Intel),
 Linux (x64 and arm64), and Windows (x64, `.exe`) — no Node.js installation required. Binaries are
 published for every release on
-[GitHub Releases](https://github.com/Easy-Sandbox/easy-sandbox/releases).
+[GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases).
 
 macOS / Linux (replace `0.3.0` with the release you want; `OS` and `ARCH` are
 auto-detected):
@@ -57,27 +57,27 @@ ARCH=$(uname -m); case "$ARCH" in
 esac
 
 # Download somewhere the current user can write, then install onto PATH.
-curl -fsSL -o "$HOME/ebx" \
-  "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v${VERSION}/ebx-${VERSION}-${OS}-${ARCH}"
-chmod +x "$HOME/ebx"
-sudo mv "$HOME/ebx" /usr/local/bin/ebx
+curl -fsSL -o "$HOME/abx" \
+  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v${VERSION}/abx-${VERSION}-${OS}-${ARCH}"
+chmod +x "$HOME/abx"
+sudo mv "$HOME/abx" /usr/local/bin/abx
 ```
 
 Windows (PowerShell):
 
 ```powershell
 $VERSION = "0.3.0"
-$asset = "ebx-$VERSION-windows-x64.exe"
+$asset = "abx-$VERSION-windows-x64.exe"
 
 # Download the release asset
 Invoke-WebRequest `
-  -Uri "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v$VERSION/$asset" `
+  -Uri "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v$VERSION/$asset" `
   -OutFile $asset
 
 # Move it to a directory on your PATH (create it first if needed)
-$installDir = "$env:LOCALAPPDATA\Programs\ebx"
+$installDir = "$env:LOCALAPPDATA\Programs\abx"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item $asset "$installDir\ebx.exe"
+Move-Item $asset "$installDir\abx.exe"
 ```
 
 Checksums, the full platform matrix, and binary vs. npm trade-offs:
@@ -85,54 +85,56 @@ Checksums, the full platform matrix, and binary vs. npm trade-offs:
 
 ## Using with AI coding tools
 
-The repository ships a static Agent Skills guide ([`SKILL.md`](SKILL.md)) that teaches Qoder, Claude Code, Cursor, Qwen Code, and Codex how to operate Easy Sandbox. Install it **before (or without) the `ebx` CLI**:
+The repository ships a static Agent Skills guide ([`SKILL.md`](SKILL.md)) that teaches Qoder, Claude Code, Cursor, Qwen Code, and Codex how to operate Agent Sandbox. Install it **before (or without) the `abx` CLI**:
 
 ```bash
 # Fast path (requires Node.js); swap qoder for claude-code / cursor / qwen-code / codex,
 # add -g for user-level scope, --list to preview
-npx skills add easy-sandbox/easy-sandbox --skill easy-sandbox -a qoder -y
+npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 ```
 
-No Node.js? Copy `SKILL.md` into your tool's skills directory (for example `~/.qoder/skills/easy-sandbox/SKILL.md`). Full tool matrix, version pinning, upgrades, uninstall, and security notes: [Agent Skill Installation & Distribution](docs/en/guide/agent-skill-installation.md) ([中文](docs/zh/guide/agent-skill-installation.md)).
+No Node.js? Copy `SKILL.md` into your tool's skills directory (for example `~/.qoder/skills/agent-sandbox/SKILL.md`). Full tool matrix, version pinning, upgrades, uninstall, and security notes: [Agent Skill Installation & Distribution](docs/en/guide/agent-skill-installation.md) ([中文](docs/zh/guide/agent-skill-installation.md)).
 
-## CLI (`ebx`)
+## CLI (`abx`)
 
 ```bash
 # Configure credentials
-ebx config set sandbox_api_key <YOUR_API_KEY>
+abx config init                          # credentials + region (--build / --llm add sections)
+abx config set sandbox_api_key <YOUR_API_KEY>   # or set one key directly
 
 # Sandbox lifecycle
-ebx create --template python-base       # create a sandbox
-ebx list                                 # list running sandboxes
-ebx info <sandbox-id>                    # inspect a sandbox
-ebx exec <sandbox-id> "echo hello"       # run a shell command
-ebx connect <sandbox-id>                 # line-based command REPL
+abx create --template python-base       # create a sandbox
+abx list                                 # list running sandboxes
+abx info <sandbox-id>                    # inspect a sandbox
+abx exec <sandbox-id> -- echo hello       # run a command (--cwd/--env/--timeout/--stream/--background)
+abx run <sandbox-id> <name> --arg k=v    # named command registered on the in-sandbox server
+abx connect <sandbox-id>                 # line-based command REPL
 
 # File transfer
-ebx upload <sandbox-id> ./local.txt /remote/path.txt
-ebx download <sandbox-id> /remote/path.txt ./local.txt
+abx upload <sandbox-id> ./local.txt /remote/path.txt
+abx download <sandbox-id> /remote/path.txt ./local.txt
 
 # Template management
-ebx template list                        # list templates
-ebx template info python-base            # template details
-ebx install owner/repo                   # install from GitHub
+abx template list                        # list templates
+abx template info python-base            # template details
+abx template install owner/repo          # install from GitHub
 
 # Template deployment (Alibaba Cloud template API, bundled with the CLI)
-ebx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
-ebx template deploy ./examples/templates/python-hello \
+abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
+abx template deploy ./examples/templates/python-hello \
     --acr-namespace my-ns --acr-repo python-hello
 
 # Template lifecycle: author -> publish -> launch
-ebx template init --adopt ./app --hint "port 8080" # 1a. adapt an existing project
-ebx template init "a python web server"             # 1b. AI writes ./<name>/ (optional)
-ebx deploy ./app --acr-namespace my-ns              # 2. build, push to ACR, register (no LLM)
-ebx create --template <TEMPLATE_ID>                 # 3. launch a sandbox
+abx template init --adopt ./app --hint "port 8080" # 1a. adapt an existing project
+abx template init "a python web server"             # 1b. template generation writes ./<name>/ (optional)
+abx deploy ./app --acr-namespace my-ns              # 2. build, push to ACR, register (no LLM)
+abx create --template <TEMPLATE_ID>                 # 3. launch a sandbox
 
 # MCP server
-ebx mcp start                            # start MCP tool server
+abx mcp start                            # start MCP tool server
 
 # Cleanup
-ebx kill <sandbox-id>
+abx kill <sandbox-id>
 ```
 
 > **Environment variables:** envd uses direct exec — shell features (`$VAR`, pipes, redirects) require `sh -c '...'`. Use `printenv VAR` to read a variable. See the [Environment Variables guide (EN)](docs/en/guide/environment-variables.md) | [环境变量指南 (中文)](docs/zh/guide/environment-variables.md) for details.
@@ -140,38 +142,38 @@ ebx kill <sandbox-id>
 ## Templates
 
 Official and community templates live in the
-[`Easy-Sandbox/awesome-templates`](https://github.com/Easy-Sandbox/awesome-templates)
+[`alibaba-agent-sandbox/awesome-templates`](https://github.com/alibaba-agent-sandbox/awesome-templates)
 repository — the single source of truth for template content, the index, and
 publishing. Discover and install them through the remote index:
 
 ```bash
 # Discover templates through the remote index
-$ ebx template search web
+$ abx template search web
 Name      Description       Tags           Status
 node-web  Node.js web app   nodejs, web    official
 
-$ ebx template install node-web                                        # install by index name
-$ ebx template install Easy-Sandbox/awesome-templates//node-web@v1.0.0 # or pin a ref
+$ abx template install node-web                                        # install by index name
+$ abx template install alibaba-agent-sandbox/awesome-templates//node-web@v1.0.0 # or pin a ref
 ```
 
-[`examples/templates/`](https://github.com/Easy-Sandbox/python-sdk/tree/main/examples/templates) (in the `python-sdk` repository) only keeps a minimal
+[`examples/templates/`](https://github.com/alibaba-agent-sandbox/python-sdk/tree/main/examples/templates) (in the `python-sdk` repository) only keeps a minimal
 `python-hello` **fixture** for offline tests — it is not a publishing source.
-See [examples/templates/README.md](https://github.com/Easy-Sandbox/python-sdk/blob/main/examples/templates/README.md) for the
+See [examples/templates/README.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/examples/templates/README.md) for the
 fixture contract and index behaviour (caching, offline fallback, pinned refs).
 
 ## Python SDK
 
-The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk). The quick start, the execution API (`sandbox.run()` / `sandbox.run_code()` / `sandbox.custom()`) and the architecture documentation are maintained there.
+The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The quick start, the execution API (`sandbox.run()` / `sandbox.run_code()` / `sandbox.custom()`) and the architecture documentation are maintained there.
 
 ```bash
-# Client SDK (import easy_sandbox)
-pip install easy-sandbox
+# Client SDK (import agent_sandbox)
+pip install agent-sandbox
 
-# Server runtime used inside template images (import easy_sandbox.server)
-pip install easy-sandbox-server
+# Server runtime used inside template images (import agent_sandbox.server)
+pip install agent-sandbox-server
 ```
 
-`easy-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with `pip install easy-sandbox-server`. The `ebx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra); install it with `npm install -g @easy-sandbox/cli`.
+`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with `pip install agent-sandbox-server`. The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra); install it with `npm install -g @agent-sandbox/cli`.
 
 ## Documentation
 
@@ -195,7 +197,7 @@ pip install easy-sandbox-server
 | Authoring Templates | [Authoring Templates](docs/en/guide/authoring-templates.md) |
 | Deploy & Build | [Deploy & Build](docs/en/guide/deploy-and-build.md) |
 | E2E Template Workflow | [E2E Template Workflow](docs/en/guide/e2e-template-workflow.md) |
-| BYO Agent Integration | [BYO Agent Integration](docs/en/guide/byo-agent-integration.md) |
+| Agents API | [Agents API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/agents-api.md) |
 | Agent Skill Installation | [Agent Skill Installation](docs/en/guide/agent-skill-installation.md) |
 | MCP Integration | [MCP Integration](docs/en/guide/mcp-integration.md) |
 | Troubleshooting | [Troubleshooting](docs/en/guide/troubleshooting.md) |
@@ -204,6 +206,7 @@ pip install easy-sandbox-server
 
 | Document | Link |
 |----------|------|
+| CLI command tree (canonical paths, fixed shortcuts) | [CLI Command Reference](docs/en/reference/cli-commands.md) |
 | CLI Reference | [CLI Reference](docs/en/reference/cli-reference.md) |
 | Configuration | [Configuration](docs/en/reference/configuration.md) |
 | Error Codes | [Error Codes](docs/en/reference/error-codes.md) |
@@ -220,7 +223,7 @@ pip install easy-sandbox-server
 
 ### Related SDK documentation
 
-The Python SDK, the in-sandbox server SDK and the shared platform contracts are documented in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk): [documentation index](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/README.md), [SDK Usage](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md), [Architecture](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/architecture.md), [SDK API Design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md), [Template System](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md), [Template YAML Spec](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md), [Declarative Usage](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md), [Session Persistence](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/session-persistence.md), [Migrate from E2B](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md), and [`examples/`](https://github.com/Easy-Sandbox/python-sdk/tree/main/examples).
+The Python SDK, the in-sandbox server SDK and the shared platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk): [documentation index](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/README.md), [SDK Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md), [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md), [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md), [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md), [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md), [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md), [Session Persistence](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/session-persistence.md), [Migrate from E2B](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md), and [`examples/`](https://github.com/alibaba-agent-sandbox/python-sdk/tree/main/examples).
 
 ### Other Resources
 

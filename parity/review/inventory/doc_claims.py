@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Static validation of every documented `ebx ...` command line against a click_tree JSON dump.
+"""Static validation of every documented `abx ...` command line against a click_tree JSON dump.
 
 Usage: python3 doc_claims.py <tree.json> <md-or-txt file|dir> [...] [--only-bad] [--json out.json]
-Extracts commands from fenced code blocks (`ebx ...`, `$ ebx ...`) and inline code spans that start with `ebx `,
+Extracts commands from fenced code blocks (`abx ...`, `$ abx ...`) and inline code spans that start with `abx `,
 joins `\\` continuations, tokenises with shlex, cuts at shell operators, then walks the command tree:
   * command path must resolve (unknown subcommand => UNKNOWN-COMMAND)
   * every `-x` / `--long[=v]` token must exist on the resolved command or one of its parents (=> UNKNOWN-OPTION)
@@ -40,7 +40,7 @@ def help_names(chain):
     return names
 
 def walk(tokens):
-    node = tree; path = ["ebx"]; i = 0; chain = [node]; issues = []
+    node = tree; path = ["abx"]; i = 0; chain = [node]; issues = []
     # global-option consumption before/between commands
     while i < len(tokens):
         t = tokens[i]
@@ -86,7 +86,7 @@ def split_cmd(line):
         except ValueError: return None
     # drop leading env assignments
     while toks and re.match(r"^[A-Z_][A-Z0-9_]*=", toks[0]): toks = toks[1:]
-    if not toks or toks[0] != "ebx": return None
+    if not toks or toks[0] != "abx": return None
     out = []
     for t in toks[1:]:
         if t in ("|", "||", "&&", ";", ">", ">>", "2>", "2>&1", "<", "&") or re.match(r"^\d?>", t): break
@@ -106,13 +106,13 @@ def extract(text):
                 buf += " " + s.rstrip("\\").strip(); 
                 if not s.endswith("\\"): cmds.append((startline, buf)); buf = ""
                 continue
-            if re.match(r"^(\$\s+)?(([A-Z_][A-Z0-9_]*=\S+\s+)*)ebx(\s|$)", s):
+            if re.match(r"^(\$\s+)?(([A-Z_][A-Z0-9_]*=\S+\s+)*)abx(\s|$)", s):
                 if s.endswith("\\"): buf = s.rstrip("\\").strip(); startline = n
                 else: cmds.append((n, s))
         else:
-            for m in re.finditer(r"`([^`]*\bebx\s[^`]*)`", raw):
+            for m in re.finditer(r"`([^`]*\babx\s[^`]*)`", raw):
                 span = m.group(1).strip()
-                if re.match(r"^(([A-Z_][A-Z0-9_]*=\S+\s+)*)ebx\s", span): cmds.append((n, span))
+                if re.match(r"^(([A-Z_][A-Z0-9_]*=\S+\s+)*)abx\s", span): cmds.append((n, span))
     return cmds
 
 files = []
@@ -133,6 +133,6 @@ for f in sorted(files):
         rows.append({"file": str(f), "line": ln, "cmd": c, "argv": toks, "resolved": cpath, "issues": issues})
         if issues or not only_bad:
             print(f"{'BAD ' if issues else 'ok  '}{f}:{ln}: {c[:110]}  -> {cpath} {issues if issues else ''}")
-print(f"documented ebx command lines: {total}; with issues: {bad}")
+print(f"documented abx command lines: {total}; with issues: {bad}")
 if "--json" in sys.argv:
     json.dump(rows, open(sys.argv[sys.argv.index("--json") + 1], "w"), indent=1)

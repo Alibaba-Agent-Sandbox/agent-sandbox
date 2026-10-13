@@ -3,7 +3,7 @@
 Status: implemented
 
 ## Problem
-The Node.js `ebx` is being ported from the Python CLI by many contributors at once. Unit tests with
+The Node.js `abx` is being ported from the Python CLI by many contributors at once. Unit tests with
 mocks proved logic but not behaviour: nothing exercised the real cloud, nothing compared the port with
 the Python original, and there was no shared rule for when a task counts as finished. Work was being
 reported as complete on the strength of mocked tests alone.
@@ -16,12 +16,12 @@ reported as complete on the strength of mocked tests alone.
    `.env` files / the environment and are masked in everything the suites capture. Linked from
    `CONTRIBUTING.md` and the PR template.
 2. **`e2e/` black-box suite** (Node, no dependencies): table-style scenarios run any binary selected by
-   `EBX_BIN` against the real cloud with an isolated HOME/cwd, CI variables stripped, output masked and
+   `ABX_BIN` against the real cloud with an isolated HOME/cwd, CI variables stripped, output masked and
    normalised, every sandbox tracked and killed in `finally`, a final leak check, and exact skip reasons.
    Suites: `offline`, `cloud-readonly`, `cloud-lifecycle`, `catalog`, `docker-deploy` (opt-in).
    `npm run e2e`, `npm run e2e:offline`, `npm run e2e:cleanup`.
 3. **`parity/diff/` differential harness**: one stub HTTP server (platform REST + envd Connect RPC) and a
-   runner that executes identical argv against `EBX_ORACLE` and `EBX_BIN`, comparing exit code,
+   runner that executes identical argv against `ABX_ORACLE` and `ABX_BIN`, comparing exit code,
    normalised output, written files and recorded HTTP traffic. 120 cases, 88 seeded from the original
    evidence registry.
 4. `scripts/check-repo-health.sh` exempts `DEFINITION-OF-DONE.md` from the "every file under
@@ -33,8 +33,8 @@ Files: `e2e/**`, `parity/diff/**`, `.agents/notes/DEFINITION-OF-DONE.md`,
 
 ## API Design
 N/A — this decision does not involve API changes. The user-visible entry points are the npm scripts
-`e2e`, `e2e:offline`, `e2e:cleanup` and the environment variables `EBX_BIN`, `EBX_ORACLE`,
-`EBX_E2E_TEMPLATE`, `EBX_E2E_TIMEOUT_MS`, `EBX_E2E_DOCKER`, `EBX_E2E_ALLOW_KILL_ALL`, `EBX_E2E_KEEP`.
+`e2e`, `e2e:offline`, `e2e:cleanup` and the environment variables `ABX_BIN`, `ABX_ORACLE`,
+`ABX_E2E_TEMPLATE`, `ABX_E2E_TIMEOUT_MS`, `ABX_E2E_DOCKER`, `ABX_E2E_ALLOW_KILL_ALL`, `ABX_E2E_KEEP`.
 
 ## Alternatives considered
 - **vitest for the E2E suite** — rejected: the suite must run against binaries of any language and
@@ -51,7 +51,7 @@ N/A — this decision does not involve API changes. The user-visible entry point
 
 ## Dependencies
 Node >= 20 (built-ins only) for both tools; real credentials for the cloud suites; the Python oracle for
-`EBX_ORACLE` (any `ebx` binary can play that role); Docker plus ACR only for the opt-in deploy suite.
+`ABX_ORACLE` (any `abx` binary can play that role); Docker plus ACR only for the opt-in deploy suite.
 
 ## Test Strategy
 The tooling is verified by running it: the E2E suite against the Python oracle on the real cloud twice
@@ -60,8 +60,8 @@ differential run must report 0 differences, and `parity/diff/selftest.mjs` must 
 mutated binary. Offline scenarios run in seconds and are suitable for CI without credentials.
 
 ## Acceptance criteria
-- `EBX_BIN=<oracle> npm run e2e` has 0 failures on the real cloud, twice in a row, with 0 leaked sandboxes.
-- `EBX_ORACLE=X EBX_BIN=X node parity/diff/diff.mjs` reports 0 differences; `selftest.mjs` passes.
+- `ABX_BIN=<oracle> npm run e2e` has 0 failures on the real cloud, twice in a row, with 0 leaked sandboxes.
+- `ABX_ORACLE=X ABX_BIN=X node parity/diff/diff.mjs` reports 0 differences; `selftest.mjs` passes.
 - No credential value appears in any captured output, report, evidence file or tracked file.
 - `DEFINITION-OF-DONE.md` is linked from CONTRIBUTING and the PR template; the repo health gate accepts it.
 

@@ -8,7 +8,7 @@ cli="$(cd "$here/../../.." && pwd)"
 out="$here/out"
 mkdir -p "$out"
 home="$(mktemp -d)"
-export HOME="$home" EBX_NO_KEYCHAIN=1 NO_COLOR=1
+export HOME="$home" ABX_NO_KEYCHAIN=1 NO_COLOR=1
 unset PYTHONPATH
 
 if [ -z "${ORIG_REPO:-}" ] || [ ! -d "$ORIG_REPO/src" ]; then
@@ -41,10 +41,5 @@ python3 "$here/split_files.py" > "$out/split-files.tsv"
 python3 "$here/py_symbols_split.py" > "$out/sdk-symbols.txt" 2>&1
 python3 "$here/py_test_bodies.py" > "$out/test-bodies.txt" 2>&1
 python3 "$here/ledger_param_check.py" > "$out/ledger-params.txt" 2>&1
-if [ -n "${ORACLE_VENV:-}" ] && [ -f "$cli/dist/cli/main.js" ]; then
-  python3 "$here/click_tree.py" > "$tmp/click-py.json"
-  node "$here/click_tree.mjs" > "$tmp/click-node.json"
-  python3 "$here/click_tree_diff.py" "$tmp/click-py.json" "$tmp/click-node.json" | tee "$out/click-diff.txt"
-fi
 python3 "$here/doc_paths.py" "$cli" > "$out/doc-paths-cli.txt"
 echo "done: $out"

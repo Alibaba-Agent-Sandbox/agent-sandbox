@@ -23,7 +23,7 @@ setFileNormaliser((name, data) => {
 const cases = [];
 const add = (name, argv, opts = {}) => {
   const o = { ...opts };
-  if (argv[1] === "deploy" && !argv.includes("--auth-token-file") && !(o.env && "EBX_MCP_AUTH_TOKEN" in o.env)) o.env = { ...o.env, EBX_MCP_AUTH_TOKEN: "fixed-token-123" };
+  if (argv[1] === "deploy" && !argv.includes("--auth-token-file") && !(o.env && "ABX_MCP_AUTH_TOKEN" in o.env)) o.env = { ...o.env, ABX_MCP_AUTH_TOKEN: "fixed-token-123" };
   cases.push({ name, argv, ...o });
 };
 const I = (t) => ["mcp", "install", "--target", t];
@@ -49,7 +49,7 @@ add("cursor: .cursor dir 0500 new file", I("cursor"), { env: KEY, homeFiles: { "
 add("cursor: home .cursor is a file", I("cursor"), { env: KEY, homeFiles: { ".cursor": "x" } });
 add("cursor: hard-linked config (shared inode)", I("cursor"), { env: KEY, homeFiles: { "orig.json": '{"a": 1}' }, homeSymlinks: [] });
 add("cursor: first run + second run (idempotent)", I("cursor"), { env: KEY, repeat: 2 });
-add("cursor: two targets sequentially via repeat", I("cursor"), { env: KEY, repeat: 3, homeFiles: { [CUR]: '{"mcpServers": {"easy-sandbox": {"x": 1}, "b": 2}}' } });
+add("cursor: two targets sequentially via repeat", I("cursor"), { env: KEY, repeat: 3, homeFiles: { [CUR]: '{"mcpServers": {"agent-sandbox": {"x": 1}, "b": 2}}' } });
 add("claude: symlinked config dir", I("claude"), { env: KEY, homeFiles: { "cl/.keep": "" }, homeSymlinks: [[".config/claude", "{home}/cl"]] });
 add("claude: .config is a file", I("claude"), { env: KEY, homeFiles: { ".config": "x" } });
 add("claude: XDG_CONFIG_HOME ignored", I("claude"), { env: { ...KEY, XDG_CONFIG_HOME: "{home}/xdg" } });
@@ -57,7 +57,7 @@ add("claude: APPDATA ignored", I("claude"), { env: { ...KEY, APPDATA: "{home}/ap
 add("claude: existing mac-style path untouched", I("claude"), { env: KEY, homeFiles: { "Library/Application Support/Claude/claude_desktop_config.json": '{"a": 1}' } });
 add("vscode: .vscode is a file", I("vscode"), { env: KEY, files: { ".vscode": "x" } });
 add("vscode: symlinked .vscode", I("vscode"), { env: KEY, files: { "real/.keep": "" }, symlinks: [[".vscode", "{work}/real"]] });
-add("vscode: existing with inputs + servers", I("vscode"), { env: KEY, files: { [VS]: '{"inputs": [{"id": "k"}], "servers": {"a": {"command": "b"}, "easy-sandbox": {"old": true}}}' } });
+add("vscode: existing with inputs + servers", I("vscode"), { env: KEY, files: { [VS]: '{"inputs": [{"id": "k"}], "servers": {"a": {"command": "b"}, "agent-sandbox": {"old": true}}}' } });
 add("vscode: servers is a list", I("vscode"), { env: KEY, files: { [VS]: '{"servers": [1]}' } });
 add("vscode: key never copied", I("vscode"), { env: { E2B_API_KEY: "SECRET-KEY-XYZ", E2B_API_URL: "http://u", SANDBOX_REGION: "r" } });
 add("vscode: only region env", I("vscode"), { env: { SANDBOX_REGION: "r" } });
@@ -100,17 +100,17 @@ add("cursor: env file multi-line quoted", I("cursor"), { files: { ".env": 'E2B_A
 add("cursor: env file interpolation", I("cursor"), { files: { ".env": "BASE=x\nE2B_API_KEY=${BASE}y\n" } });
 add("cursor: env file escapes in double quotes", I("cursor"), { files: { ".env": 'E2B_API_KEY="a\\nb\\tc\\"d"\n' } });
 add("cursor: env file spaces around =", I("cursor"), { files: { ".env": "E2B_API_KEY = spaced \n" } });
-add("cursor: env file empty value", I("cursor"), { files: { ".env": "E2B_API_KEY=\n" }, homeFiles: { ".ebx/.env": "E2B_API_KEY=home\n" } });
+add("cursor: env file empty value", I("cursor"), { files: { ".env": "E2B_API_KEY=\n" }, homeFiles: { ".abx/.env": "E2B_API_KEY=home\n" } });
 add("cursor: env file is a directory", I("cursor"), { files: { ".env/x": "1" } });
-add("cursor: config.toml odd key", I("cursor"), { homeFiles: { ".ebx/config.toml": '[transport]\napi_key = "a\\"b"\n' } });
-add("cursor: config.toml invalid", I("cursor"), { homeFiles: { ".ebx/config.toml": "[transport\napi_key = 1\n" } });
-add("cursor: config.toml key not string", I("cursor"), { homeFiles: { ".ebx/config.toml": "[transport]\napi_key = 5\n" } });
-add("cursor: config.toml top-level api_key", I("cursor"), { homeFiles: { ".ebx/config.toml": 'api_key = "top"\n' } });
+add("cursor: config.toml odd key", I("cursor"), { homeFiles: { ".abx/config.toml": '[transport]\napi_key = "a\\"b"\n' } });
+add("cursor: config.toml invalid", I("cursor"), { homeFiles: { ".abx/config.toml": "[transport\napi_key = 1\n" } });
+add("cursor: config.toml key not string", I("cursor"), { homeFiles: { ".abx/config.toml": "[transport]\napi_key = 5\n" } });
+add("cursor: config.toml top-level api_key", I("cursor"), { homeFiles: { ".abx/config.toml": 'api_key = "top"\n' } });
 
 // ---- install: odd pre-existing JSON ---------------------------------------------------------------------------------
 const PRE = {
-  "dup keys": '{"mcpServers": {"easy-sandbox": 1, "a": 2, "easy-sandbox": 3}, "k": 1, "k": 2}',
-  "key order": '{"z": 1, "mcpServers": {"b": 1, "easy-sandbox": {"old": 1}, "a": 2}, "a": 3}',
+  "dup keys": '{"mcpServers": {"agent-sandbox": 1, "a": 2, "agent-sandbox": 3}, "k": 1, "k": 2}',
+  "key order": '{"z": 1, "mcpServers": {"b": 1, "agent-sandbox": {"old": 1}, "a": 2}, "a": 3}',
   "numeric keys": '{"2": 1, "10": 2, "1": 3, "mcpServers": {}}',
   "big int": `{"n": ${"9".repeat(40)}}`,
   "float forms": '{"a": 1.0, "b": 1e5, "c": 1E-5, "d": -0.0, "e": 0.1, "f": 1e22, "g": 123456789012345678.0}',
@@ -126,7 +126,7 @@ const PRE = {
   "mcpServers null": '{"mcpServers": null}',
   "mcpServers list": '{"mcpServers": []}',
   "mcpServers string": '{"mcpServers": "x"}',
-  "mcpServers has easy-sandbox string": '{"mcpServers": {"easy-sandbox": "x"}}',
+  "mcpServers has agent-sandbox string": '{"mcpServers": {"agent-sandbox": "x"}}',
   "nested deep": `{"a": ${"[".repeat(900)}${"]".repeat(900)}}`,
   "nested too deep": `{"a": ${"[".repeat(5000)}${"]".repeat(5000)}}`,
   "long string": `{"a": "${"é".repeat(100000)}"}`,
@@ -152,7 +152,7 @@ add("cursor: existing 10MB", I("cursor"), { env: KEY, homeFiles: { [CUR]: `{"pad
 add("cursor: existing invalid utf8 in string", I("cursor"), { env: KEY, homeFiles: { [CUR]: Buffer.from('{"a": "\xff"}', "latin1") } });
 add("cursor: existing utf-16 file", I("cursor"), { env: KEY, homeFiles: { [CUR]: Buffer.from('\ufeff{"a": 1}', "utf16le") } });
 add("claude: existing dup keys", I("claude"), { env: KEY, homeFiles: { [CLA]: PRE["dup keys"] } });
-add("vscode: existing dup keys", I("vscode"), { env: KEY, files: { [VS]: '{"servers": {"easy-sandbox": 1, "a": 2, "easy-sandbox": 3}}' } });
+add("vscode: existing dup keys", I("vscode"), { env: KEY, files: { [VS]: '{"servers": {"agent-sandbox": 1, "a": 2, "agent-sandbox": 3}}' } });
 
 // ---- install: option parsing ---------------------------------------------------------------------------------------
 add("install: --target twice (last wins)", ["mcp", "install", "--target", "cursor", "--target", "vscode"], { env: KEY });
@@ -258,10 +258,10 @@ add("deploy: token file symlink", TF(""), { files: { real: "secret\n" }, symlink
 add("deploy: token file 1MB", TF(""), { files: { tok: `${"a".repeat(1 << 20)}\n` } });
 add("deploy: token file beats --generate-token", ["mcp", "deploy", "--auth-token-file", "tok", "--generate-token", "--output-dir", "out", "--api-key", "k"], { files: { tok: "filetoken\n" } });
 add("deploy: empty token file beats --generate-token", ["mcp", "deploy", "--auth-token-file", "tok", "--generate-token", "--output-dir", "out", "--api-key", "k"], { files: { tok: "" } });
-add("deploy: env token", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { EBX_MCP_AUTH_TOKEN: "  envtok  " } });
-add("deploy: env token whitespace only", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { EBX_MCP_AUTH_TOKEN: "  " } });
-add("deploy: env token newline", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { EBX_MCP_AUTH_TOKEN: "a\nb" } });
-add("deploy: no token at all", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { EBX_MCP_AUTH_TOKEN: null } });
+add("deploy: env token", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { ABX_MCP_AUTH_TOKEN: "  envtok  " } });
+add("deploy: env token whitespace only", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { ABX_MCP_AUTH_TOKEN: "  " } });
+add("deploy: env token newline", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { ABX_MCP_AUTH_TOKEN: "a\nb" } });
+add("deploy: no token at all", ["mcp", "deploy", "--output-dir", "out", "--api-key", "k"], { env: { ABX_MCP_AUTH_TOKEN: null } });
 add("deploy: token printed masked (short)", TF(""), { files: { tok: "abc\n" } });
 add("deploy: token printed masked (8)", TF(""), { files: { tok: "12345678\n" } });
 add("deploy: token printed masked (9)", TF(""), { files: { tok: "123456789\n" } });

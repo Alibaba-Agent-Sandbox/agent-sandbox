@@ -1,56 +1,56 @@
 compared modules: 79  absent in split: 25  removed symbols: 6  signature changes: 21
 ## absent
-  easy_sandbox/agent/adopt.py
-  easy_sandbox/agent/clarify.py
-  easy_sandbox/agent/codegen.py
-  easy_sandbox/agent/coding_agent.py
-  easy_sandbox/agent/dockerfile_sources.py
-  easy_sandbox/agent/qwen_code.py
-  easy_sandbox/agent/template_guide.py
-  easy_sandbox/cli/__init__.py
-  easy_sandbox/cli/commands/__init__.py
-  easy_sandbox/cli/commands/_adopt.py
-  easy_sandbox/cli/commands/_coding_agent.py
-  easy_sandbox/cli/commands/config_cmd.py
-  easy_sandbox/cli/commands/deploy.py
-  easy_sandbox/cli/commands/mcp.py
-  easy_sandbox/cli/commands/sandbox.py
-  easy_sandbox/cli/commands/sandbox_files.py
-  easy_sandbox/cli/commands/sandbox_process.py
-  easy_sandbox/cli/commands/sandbox_system.py
-  easy_sandbox/cli/commands/template.py
-  easy_sandbox/cli/formatters.py
-  easy_sandbox/cli/main.py
-  easy_sandbox/cli/output.py
-  easy_sandbox/cli/region.py
-  easy_sandbox/cli/repl.py
-  easy_sandbox/cli/scaffold.py
+  agent_sandbox/agent/adopt.py
+  agent_sandbox/agent/clarify.py
+  agent_sandbox/agent/codegen.py
+  agent_sandbox/agent/coding_agent.py
+  agent_sandbox/agent/dockerfile_sources.py
+  agent_sandbox/agent/qwen_code.py
+  agent_sandbox/agent/template_guide.py
+  agent_sandbox/cli/__init__.py
+  agent_sandbox/cli/commands/__init__.py
+  agent_sandbox/cli/commands/_adopt.py
+  agent_sandbox/cli/commands/_coding_agent.py
+  agent_sandbox/cli/commands/config_cmd.py
+  agent_sandbox/cli/commands/deploy.py
+  agent_sandbox/cli/commands/mcp.py
+  agent_sandbox/cli/commands/sandbox.py
+  agent_sandbox/cli/commands/sandbox_files.py
+  agent_sandbox/cli/commands/sandbox_process.py
+  agent_sandbox/cli/commands/sandbox_system.py
+  agent_sandbox/cli/commands/template.py
+  agent_sandbox/cli/formatters.py
+  agent_sandbox/cli/main.py
+  agent_sandbox/cli/output.py
+  agent_sandbox/cli/region.py
+  agent_sandbox/cli/repl.py
+  agent_sandbox/cli/scaffold.py
 ## removed
-  easy_sandbox/transport/config.py: def _coerce_value
-  easy_sandbox/transport/config.py: def _load_dotenv_file
-  easy_sandbox/transport/config.py: def _read_env_vars
-  easy_sandbox/transport/config.py: def _env_dict_to_fields
-  easy_sandbox/transport/config.py: const _ENV_VAR_MAP
-  easy_sandbox/transport/config.py: const _NUMERIC_FIELDS
+  agent_sandbox/transport/config.py: def _coerce_value
+  agent_sandbox/transport/config.py: def _load_dotenv_file
+  agent_sandbox/transport/config.py: def _read_env_vars
+  agent_sandbox/transport/config.py: def _env_dict_to_fields
+  agent_sandbox/transport/config.py: const _ENV_VAR_MAP
+  agent_sandbox/transport/config.py: const _NUMERIC_FIELDS
 ## sigchanges
-  easy_sandbox/api/network.py: NetworkModule.__init__ params ['self', 'sandbox_id', 'domain', 'secure', 'access_token', 'capabilities']->['self', 'sandbox_id', 'domain', 'secure', 'access_token', 'capabilities', 'port_resolver']
-  easy_sandbox/api/sandbox.py: Sandbox.__init__ params ['self', 'info', 'config', 'http_client', 'auth', 'envd_token', 'sandbox_protocol', 'process_protocol', 'filesystem_protocol', 'code_interpreter_protocol', 'domain', 'secure', 'resolved_capabilities']->['self', 'info', 'config', 'http_client', 'auth', 'envd_token', 'sandbox_protocol', 'process_protocol', 'filesystem_protocol', 'code_interpreter_protocol', 'domain', 'secure', 'resolved_capabilities', 'provider_id']
-  easy_sandbox/api/sandbox.py: Sandbox.create params ['cls', 'template', 'timeout', 'request_timeout', 'metadata', 'envs', 'cpu', 'memory', 'disk', 'gpu', 'description', 'secure', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret']->['cls', 'template', 'timeout', 'request_timeout', 'metadata', 'envs', 'cpu', 'memory', 'disk', 'gpu', 'description', 'secure', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
-  easy_sandbox/api/sandbox.py: Sandbox.connect params ['cls', 'sandbox_id', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret']->['cls', 'sandbox_id', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
-  easy_sandbox/api/sandbox.py: Sandbox.list params ['cls', 'status', 'limit', 'offset', 'api_key', 'api_url', 'access_key_id', 'access_key_secret']->['cls', 'status', 'limit', 'offset', 'api_key', 'api_url', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
-  easy_sandbox/api/sandbox.py: Sandbox.kill_by_id params ['cls', 'sandbox_id', 'api_key', 'api_url', 'access_key_id', 'access_key_secret']->['cls', 'sandbox_id', 'api_key', 'api_url', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
-  easy_sandbox/api/sandbox.py: _build_infra params ['api_key', 'api_url', 'access_key_id', 'access_key_secret']->['api_key', 'api_url', 'access_key_id', 'access_key_secret', 'region', 'provider_options']
-  easy_sandbox/server/app.py: SandboxRequestHandler._check_auth params ['self']->['self', 'route']
-  easy_sandbox/server/app.py: SandboxRequestHandler._read_json_body params ['self']->['self', 'limit']
-  easy_sandbox/server/app.py: SandboxServer.__init__ params ['self', 'host', 'registry', 'route_table', 'pty_port']->['self', 'host', 'registry', 'route_table', 'pty_port', 'policy']
-  easy_sandbox/server/registry.py: CommandRegistry.register params ['self', 'name', 'fn', 'args', 'description', 'hidden']->['self', 'name', 'fn', 'args', 'description', 'hidden', 'scopes']
-  easy_sandbox/server/router.py: RouteTable.register params ['self', 'method', 'path_pattern', 'handler', 'group', 'auth_required', 'streaming', 'name']->['self', 'method', 'path_pattern', 'handler', 'group', 'auth_required', 'streaming', 'name', 'scopes']
-  easy_sandbox/server/routes.py: handle_list_commands params ['registry']->['registry', 'ctx']
-  easy_sandbox/server/routes.py: handle_run_command params ['command_name', 'body', 'registry']->['command_name', 'body', 'registry', 'ctx']
-  easy_sandbox/server/routes.py: handle_upload params ['body']->['body', 'ctx']
-  easy_sandbox/server/routes.py: handle_download params ['path']->['path', 'ctx']
-  easy_sandbox/server/routes.py: handle_shell params ['body']->['body', 'ctx']
-  easy_sandbox/server/routes_pty.py: PtySession.__init__ params ['self', 'shell', 'cols', 'rows', 'env']->['self', 'shell', 'cols', 'rows', 'env', 'base_env']
-  easy_sandbox/server/routes_pty.py: PtySessionManager.create params ['self', 'shell', 'cols', 'rows', 'env']->['self', 'shell', 'cols', 'rows', 'env', 'base_env', 'max_sessions']
-  easy_sandbox/server/routes_pty.py: start_pty_server params ['host', 'port', 'stop_event', 'ready_event']->['host', 'port', 'stop_event', 'ready_event', 'policy_engine']
-  easy_sandbox/transport/config.py: TransportConfig.api_base_url params ['self']->['self', 'value']
+  agent_sandbox/api/network.py: NetworkModule.__init__ params ['self', 'sandbox_id', 'domain', 'secure', 'access_token', 'capabilities']->['self', 'sandbox_id', 'domain', 'secure', 'access_token', 'capabilities', 'port_resolver']
+  agent_sandbox/api/sandbox.py: Sandbox.__init__ params ['self', 'info', 'config', 'http_client', 'auth', 'envd_token', 'sandbox_protocol', 'process_protocol', 'filesystem_protocol', 'code_interpreter_protocol', 'domain', 'secure', 'resolved_capabilities']->['self', 'info', 'config', 'http_client', 'auth', 'envd_token', 'sandbox_protocol', 'process_protocol', 'filesystem_protocol', 'code_interpreter_protocol', 'domain', 'secure', 'resolved_capabilities', 'provider_id']
+  agent_sandbox/api/sandbox.py: Sandbox.create params ['cls', 'template', 'timeout', 'request_timeout', 'metadata', 'envs', 'cpu', 'memory', 'disk', 'gpu', 'description', 'secure', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret']->['cls', 'template', 'timeout', 'request_timeout', 'metadata', 'envs', 'cpu', 'memory', 'disk', 'gpu', 'description', 'secure', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
+  agent_sandbox/api/sandbox.py: Sandbox.connect params ['cls', 'sandbox_id', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret']->['cls', 'sandbox_id', 'api_key', 'api_url', 'domain', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
+  agent_sandbox/api/sandbox.py: Sandbox.list params ['cls', 'status', 'limit', 'offset', 'api_key', 'api_url', 'access_key_id', 'access_key_secret']->['cls', 'status', 'limit', 'offset', 'api_key', 'api_url', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
+  agent_sandbox/api/sandbox.py: Sandbox.kill_by_id params ['cls', 'sandbox_id', 'api_key', 'api_url', 'access_key_id', 'access_key_secret']->['cls', 'sandbox_id', 'api_key', 'api_url', 'access_key_id', 'access_key_secret', 'sandbox_api_key', 'sandbox_base_url', 'sandbox_domain', 'region', 'provider', 'provider_options']
+  agent_sandbox/api/sandbox.py: _build_infra params ['api_key', 'api_url', 'access_key_id', 'access_key_secret']->['api_key', 'api_url', 'access_key_id', 'access_key_secret', 'region', 'provider_options']
+  agent_sandbox/server/app.py: SandboxRequestHandler._check_auth params ['self']->['self', 'route']
+  agent_sandbox/server/app.py: SandboxRequestHandler._read_json_body params ['self']->['self', 'limit']
+  agent_sandbox/server/app.py: SandboxServer.__init__ params ['self', 'host', 'registry', 'route_table', 'pty_port']->['self', 'host', 'registry', 'route_table', 'pty_port', 'policy']
+  agent_sandbox/server/registry.py: CommandRegistry.register params ['self', 'name', 'fn', 'args', 'description', 'hidden']->['self', 'name', 'fn', 'args', 'description', 'hidden', 'scopes']
+  agent_sandbox/server/router.py: RouteTable.register params ['self', 'method', 'path_pattern', 'handler', 'group', 'auth_required', 'streaming', 'name']->['self', 'method', 'path_pattern', 'handler', 'group', 'auth_required', 'streaming', 'name', 'scopes']
+  agent_sandbox/server/routes.py: handle_list_commands params ['registry']->['registry', 'ctx']
+  agent_sandbox/server/routes.py: handle_run_command params ['command_name', 'body', 'registry']->['command_name', 'body', 'registry', 'ctx']
+  agent_sandbox/server/routes.py: handle_upload params ['body']->['body', 'ctx']
+  agent_sandbox/server/routes.py: handle_download params ['path']->['path', 'ctx']
+  agent_sandbox/server/routes.py: handle_shell params ['body']->['body', 'ctx']
+  agent_sandbox/server/routes_pty.py: PtySession.__init__ params ['self', 'shell', 'cols', 'rows', 'env']->['self', 'shell', 'cols', 'rows', 'env', 'base_env']
+  agent_sandbox/server/routes_pty.py: PtySessionManager.create params ['self', 'shell', 'cols', 'rows', 'env']->['self', 'shell', 'cols', 'rows', 'env', 'base_env', 'max_sessions']
+  agent_sandbox/server/routes_pty.py: start_pty_server params ['host', 'port', 'stop_event', 'ready_event']->['host', 'port', 'stop_event', 'ready_event', 'policy_engine']
+  agent_sandbox/transport/config.py: TransportConfig.api_base_url params ['self']->['self', 'value']

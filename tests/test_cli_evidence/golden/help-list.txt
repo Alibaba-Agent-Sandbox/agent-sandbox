@@ -1,25 +1,23 @@
-Usage: cli list [OPTIONS]
+Usage: abx list [options]
 
-  List sandboxes, optionally filtered by lifecycle status.
+List sandboxes, optionally filtered by lifecycle status.
 
-  Examples:
-    ebx list
-    ebx list --status running
-    ebx list --status error --limit 50
-    ebx list --region cn-shanghai
+Examples:
+  abx list
+  abx list --status running
+  abx list --status error --limit 50
+  abx list --region cn-shanghai
 
-  Related commands:
-    ebx info SANDBOX_ID  Show one sandbox in detail
-    ebx create           Create a new sandbox
-    ebx kill SANDBOX_ID  Destroy a sandbox
+Related commands:
+  abx info SANDBOX_ID  Show one sandbox in detail
+  abx create           Create a new sandbox
+  abx kill SANDBOX_ID  Destroy a sandbox
 
 Options:
-  -s, --status [running|stopped|creating|paused|error]
-                                  Filter by status
-  -l, --limit INTEGER             Maximum results (positive integer; default:
-                                  20)
-  -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
-                                  hangzhou)
-  -h, --help                      Show this message and exit.
+  -s, --status <STATUS>  Filter by status (choices: "running", "stopped",
+                         "creating", "paused", "error")
+  -l, --limit <INTEGER>  Maximum results (positive integer; default: 20)
+  -r, --region <TEXT>    Region override for this command (default: 'abx config
+                         set region' value, else cn-hangzhou)
+  -h, --help             Show this message and exit.
 [exit_code:0]

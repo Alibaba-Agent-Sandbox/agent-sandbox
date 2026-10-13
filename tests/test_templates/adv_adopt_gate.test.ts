@@ -7,7 +7,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  ebx,
+  abx,
   put,
   sandbox,
   useAdvSandboxes,
@@ -18,7 +18,7 @@ useAdvSandboxes();
 
 describe("ADV-agent-template: template init --adopt validation gate", () => {
   const COMMANDS_OK =
-    "from easy_sandbox.server import SandboxServer\n\nif __name__ == '__main__':\n    SandboxServer().serve(port=9000)\n";
+    "from agent_sandbox.server import SandboxServer\n\nif __name__ == '__main__':\n    SandboxServer().serve(port=9000)\n";
   const DOCKER_OK =
     "FROM python:3.12-slim\nWORKDIR /app\nCOPY app.py commands.py /app/\nCOPY *.whl /tmp/\nEXPOSE 9000\n";
   const TEMPLATE_OK =
@@ -45,7 +45,7 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
       '#!/bin/sh\ncp "$HOME"/fix/* .\necho \'[{"type":"result","subtype":"success","is_error":false,"result":"done"}]\'\n',
     );
     chmodSync(fake, 0o755);
-    const run = await ebx(
+    const run = await abx(
       sb,
       [
         "template",
@@ -57,9 +57,9 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
         "demo",
       ],
       {
-        EBX_QWEN_CODE_BIN: fake,
+        ABX_QWEN_CODE_BIN: fake,
         OPENAI_API_KEY: "sk-fake-key-for-test",
-        EBX_QWEN_CODEGEN_TIMEOUT: "20",
+        ABX_QWEN_CODEGEN_TIMEOUT: "20",
         ...env,
       },
     );
@@ -76,7 +76,7 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
       "template.yaml": `${TEMPLATE_OK}z: !!python/object/apply:os.system [echo pwn]\n`,
     });
     expect(firstError(run)).toBe(
-      "[E2007] Generated template.yaml could not be parsed: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object/apply:os.system'",
+      "[E2007] Generated template.yaml could not be parsed: Unresolved tag: tag:yaml.org,2002:python/object/apply:os.system at line 8, column 4:",
     );
     expect(existsSync(path.join(sb.work, "app", "template.yaml"))).toBe(false);
   });
@@ -86,20 +86,20 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
       "template.yaml": "name: demo\0\nports: [9000]\n",
     });
     expect(firstError(run)).toBe(
-      "[E2007] Generated template.yaml could not be parsed: unacceptable character #x0000: special characters are not allowed",
+      "[E2007] Generated template.yaml could not be parsed: Unacceptable character #x0000: special characters are not allowed",
     );
     expect(existsSync(path.join(sb.work, "app", "template.yaml"))).toBe(false);
   });
 
   it("ADV-agent-template-11 a timeout beyond setTimeout's 2^31-1 ms is a clean error, not an instant kill plus a Node warning", async () => {
-    const { run } = await adopt({}, { EBX_QWEN_CODEGEN_TIMEOUT: "3000000" });
+    const { run } = await adopt({}, { ABX_QWEN_CODEGEN_TIMEOUT: "3000000" });
     expect(run.stderr).not.toContain("TimeoutOverflowWarning");
     expect(firstError(run)).toBe("Unexpected error: timeout is too large");
   });
 
   it("ADV-agent-template-12 ~user adopt target that cannot be expanded fails like Path.expanduser() (RuntimeError)", async () => {
     const sb = sandbox();
-    const r = await ebx(sb, [
+    const r = await abx(sb, [
       "template",
       "init",
       "--adopt",

@@ -37,7 +37,6 @@ import {
 } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import { CustomCommand, CustomCommandArg } from "../../src/models/template.js";
 import * as protocolSandbox from "../../src/protocol/sandbox.js";
 import * as transportAuth from "../../src/transport/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
@@ -205,10 +204,10 @@ const asSandbox = (sb: unknown): Sandbox => sb as Sandbox;
 
 /** Process-environment variables that could leak into config reads; every `_cfg()` clears them all. */
 const _CFG_ENV_VARS = [
-  "EBX_SANDBOX_API_KEY",
-  "EBX_SANDBOX_BASE_URL",
-  "EBX_SANDBOX_DOMAIN",
-  "EBX_HTTP_TIMEOUT",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_SANDBOX_DOMAIN",
+  "ABX_HTTP_TIMEOUT",
   "ALIBABA_CLOUD_REGION_ID",
   "E2B_API_KEY",
   "E2B_API_URL",
@@ -222,10 +221,9 @@ const _CFG_ENV_VARS = [
   "AccessKey",
   "AccessSecret",
   "GITHUB_TOKEN",
-  "EBX_QWEN_CODE_API_KEY",
-  "EBX_LLM_API_KEY",
-  "EBX_LLM_BASE_URL",
-  "EBX_LLM_MODEL",
+  "ABX_LLM_API_KEY",
+  "ABX_LLM_BASE_URL",
+  "ABX_LLM_MODEL",
   "BAILIAN_CODING_PLAN_API_KEY",
   "DASHSCOPE_API_KEY",
   "OPENAI_API_KEY",
@@ -238,15 +236,15 @@ function mkTmp(prefix: string): string {
 }
 
 /** Add temp-dir cleanup to `patches`. */
-function tmpDir(patches: Patches, prefix = "ebx-evidence-"): string {
+function tmpDir(patches: Patches, prefix = "abx-evidence-"): string {
   const dir = mkTmp(prefix);
   patches.add(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
 
 /**
- * Config command mock: points `_CONFIG_FILE` / `_EBX_DIR` / `_ENV_FILE` (and the project `.env`) at a temp dir.
- * `env` is the content of the `~/.ebx/.env` file; `extraEnv` injects process environment variables (the full
+ * Config command mock: points `_CONFIG_FILE` / `_ABX_DIR` / `_ENV_FILE` (and the project `.env`) at a temp dir.
+ * `env` is the content of the `~/.abx/.env` file; `extraEnv` injects process environment variables (the full
  * `_CFG_ENV_VARS` list is cleared first).
  */
 function _cfgInto(patches: Patches, toml = "", env = "", extraEnv: Record<string, string> = {}): string {
@@ -307,6 +305,7 @@ function _connect(sb: MockSandbox): MockSetup {
   return () => {
     const patches = new Patches();
     vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(sb));
+    vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
     return patches.handle();
   };
 }
@@ -332,7 +331,7 @@ function _protoList(infos: SandboxInfo[]): MockSetup {
 function _mcpInstallCursor(): MockSetup {
   return () => {
     // `mcp install` resolves the path through the module-level IDE map built from `os.homedir()`; HOME is pointed at a
-    // temp dir (this also isolates `_read_api_key`'s ~/.ebx/.env lookup), like Python's `Path.home` patch.
+    // temp dir (this also isolates `_read_api_key`'s ~/.abx/.env lookup), like Python's `Path.home` patch.
     const patches = new Patches();
     const tmp = tmpDir(patches);
     const saved: Record<string, string | undefined> = { HOME: process.env["HOME"], USERPROFILE: process.env["USERPROFILE"] };
@@ -354,9 +353,9 @@ function _mcpStatus(): MockSetup {
     // `installed_*` is deterministically true everywhere. Key order fixes the `installed_*` field order.
     const patches = new Patches();
     const tmp = tmpDir(patches);
-    fs.writeFileSync(path.join(tmp, "cursor.json"), JSON.stringify({ mcpServers: { "easy-sandbox": { command: "ebx" } } }));
-    fs.writeFileSync(path.join(tmp, "claude.json"), JSON.stringify({ mcpServers: { "easy-sandbox": { command: "ebx" } } }));
-    fs.writeFileSync(path.join(tmp, "vscode.json"), JSON.stringify({ servers: { "easy-sandbox": { type: "stdio", command: "ebx" } } }));
+    fs.writeFileSync(path.join(tmp, "cursor.json"), JSON.stringify({ mcpServers: { "agent-sandbox": { command: "abx" } } }));
+    fs.writeFileSync(path.join(tmp, "claude.json"), JSON.stringify({ mcpServers: { "agent-sandbox": { command: "abx" } } }));
+    fs.writeFileSync(path.join(tmp, "vscode.json"), JSON.stringify({ servers: { "agent-sandbox": { type: "stdio", command: "abx" } } }));
     const original = mcpMod._IDE_CONFIG_MAP;
     mcpMod._setIdeConfigMap({
       cursor: () => path.join(tmp, "cursor.json"),
@@ -365,7 +364,7 @@ function _mcpStatus(): MockSetup {
     });
     patches.add(() => mcpMod._setIdeConfigMap(original));
     vi.spyOn(mcpMod, "_readApiKey").mockReturnValue(null);
-    // A developer's own `ebx mcp start` must not change this golden.
+    // A developer's own `abx mcp start` must not change this golden.
     vi.spyOn(mcpMod, "_runningServer").mockReturnValue(null);
     return patches.handle();
   };
@@ -374,17 +373,17 @@ function _mcpStatus(): MockSetup {
 /**
  * Mock the AI codegen pipeline -> deploy -> `Sandbox.create`: the Qwen Code adapter (binary + credentials), the two
  * clarification seams (`run_research`, `evaluate`), the generation workspace, the codegen orchestrator, the build/deploy
- * pipeline and the sandbox creation, so the whole `ebx create "<description>"` path runs offline. `assessment` is the
+ * pipeline and the sandbox creation, so the whole `abx create "<description>"` path runs offline. `assessment` is the
  * assessment the mocked round returns; `null` models a fully complete description.
  */
-function _createCodegen(description = "运行 python", templateName = "ebx-nl-python-ev001", assessment: ClarifyAssessment | null = null): MockSetup {
+function _createCodegen(description = "运行 python", templateName = "abx-nl-python-ev001", assessment: ClarifyAssessment | null = null): MockSetup {
   return () => {
     const patches = new Patches();
     _cfgInto(patches);
     const sb = _makeSb("sbx-ev-001", templateName);
     // Stable placeholder workspace so evidence output is platform-neutral (the real path is
-    // ~/.ebx/generated/<slug>-<stamp>-<token>).
-    const workdir = `/home/user/.ebx/generated/${templateName}`;
+    // ~/.abx/generated/<slug>-<stamp>-<token>).
+    const workdir = `/home/user/.abx/generated/${templateName}`;
     const gen = new CodegenResult({
       workdir,
       templateName,
@@ -477,7 +476,7 @@ function _downloadFile(): MockSetup {
 }
 
 /**
- * Mock for `ebx connect`: deterministic three-line REPL session. Line 1 (`ls /app`) succeeds and registers `ls` as a
+ * Mock for `abx connect`: deterministic three-line REPL session. Line 1 (`ls /app`) succeeds and registers `ls` as a
  * session-verified executable; line 2 (`sl`) hits the structured envd "not found" error (single friendly notice plus
  * the spelling hint); line 3 exits. The REPL input seam is patched so no stdin is needed.
  */
@@ -506,30 +505,37 @@ function _connectRepl(): MockSetup {
 }
 
 /**
- * Mock for `ebx run`: exercises the REAL `Sandbox.custom` dispatch. The stubbed `commands.run` echoes the
- * fully-resolved shell command so the golden proves placeholder substitution / arg validation really happened. Unknown
- * names fall through to the (unreachable) SandboxServer; the probe is pre-marked failed so the lookup is deterministic.
+ * Mock for `abx run` / `abx sandbox command list`: exercises the REAL `Sandbox.runCommand` / `listCommands` dispatch. Only
+ * the two HTTP helpers are stubbed; they emulate an in-sandbox SandboxServer registering `add(x:int, y:int=1)` and
+ * `ping()`, or an unreachable server when `reachable` is false.
  */
-function _runCmd(customCommands: Record<string, CustomCommand>): MockSetup {
+function _runCmd(reachable = true): MockSetup {
   return () => {
     const patches = new Patches();
     const sb = _makeSb();
-    sb["_custom_commands"] = customCommands;
-    sb["_server_probe_failed"] = true;
-    sb.commands.run = async (...args: unknown[]): Promise<ProcessResult> => {
-      const cmdStr = String(args[0]);
-      const opts = (args[1] ?? {}) as { timeout?: number; cwd?: string };
-      return new ProcessResult({
-        stdout: `$ ${cmdStr}\n[cwd=${opts.cwd ?? "/app"} timeout=${opts.timeout ?? 60}s]\n`,
-        stderr: "",
-        exit_code: 0,
-        execution_time: 0.05,
-      });
-    };
+    sb["id"] = "sbx-ev-001";
+    sb["_envd_token"] = { getHeaders: () => ({}) };
+    const catalogue = [
+      { name: "add", description: "Add two integers", args: [{ name: "x", type: "int", required: true, default: null, description: "" }, { name: "y", type: "int", required: false, default: 1, description: "" }] },
+      { name: "ping", description: "Health check", args: [] },
+    ];
     const proto = Sandbox.prototype as unknown as Record<string, (this: unknown, ...a: unknown[]) => unknown>;
-    sb["_runTemplateCommand"] = (name: unknown, kwargs: unknown) => proto["_runTemplateCommand"]!.call(sb, name, kwargs);
-    sb["_custom"] = (name: unknown, port: unknown, kwargs: unknown) => proto["_custom"]!.call(sb, name, port, kwargs);
-    sb["custom"] = (name: unknown, kwargs: unknown) => proto["custom"]!.call(sb, name, kwargs);
+    const unreachable = (): never => {
+      throw new transportHttp.RequestError("connection refused");
+    };
+    sb["_fetchServerCommands"] = async () => (reachable ? catalogue : unreachable());
+    sb["_callServerCommand"] = async (name: unknown, _port: unknown, kwargs: unknown) => {
+      if (!reachable) return unreachable();
+      const k = kwargs as Record<string, unknown>;
+      if (name === "add") {
+        return [{ is_success: true, status_code: 200 }, { result: Number(k["x"]) + Number(k["y"] ?? 1) }];
+      }
+      if (name === "ping") return [{ is_success: true, status_code: 200 }, { result: "pong" }];
+      return [{ is_success: false, status_code: 404 }, { error: `Command '${String(name)}' not found`, type: "NotFound" }];
+    };
+    sb["_serverUnreachable"] = (port: unknown, cause: unknown) => proto["_serverUnreachable"]!.call(sb, port, cause);
+    sb["runCommand"] = (name: unknown, kwargs: unknown, opts: unknown) => proto["runCommand"]!.call(sb, name, kwargs, opts);
+    sb["listCommands"] = (opts: unknown) => proto["listCommands"]!.call(sb, opts);
     vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(sb));
     return patches.handle();
   };
@@ -551,6 +557,7 @@ function _killAll(): MockSetup {
       return { list: vi.fn(async () => infos) };
     });
     vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(sb));
+    vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
     return patches.handle();
   };
 }
@@ -599,10 +606,10 @@ function _tmplSearchRateLimited(): MockSetup {
     const tmp = tmpDir(patches);
     const prevIndex = _setIndexCacheDir(tmp);
     patches.add(() => void _setIndexCacheDir(prevIndex));
-    const savedUrl = process.env["EBX_TEMPLATE_INDEX_URL"];
-    delete process.env["EBX_TEMPLATE_INDEX_URL"];
+    const savedUrl = process.env["ABX_TEMPLATE_INDEX_URL"];
+    delete process.env["ABX_TEMPLATE_INDEX_URL"];
     patches.add(() => {
-      if (savedUrl !== undefined) process.env["EBX_TEMPLATE_INDEX_URL"] = savedUrl;
+      if (savedUrl !== undefined) process.env["ABX_TEMPLATE_INDEX_URL"] = savedUrl;
     });
     patchHttpxAsyncClient(patchedAsyncClient(_rateLimitedResponse(DEFAULT_INDEX_URL)));
     return patches.handle();
@@ -613,7 +620,7 @@ function _tmplInstallRateLimited(): MockSetup {
   return () => {
     const patches = new Patches();
     _cfgInto(patches);
-    const url = "https://api.github.com/repos/Easy-Sandbox/awesome-templates/tarball/v1.0";
+    const url = "https://api.github.com/repos/alibaba-agent-sandbox/awesome-templates/tarball/v1.0";
     const tmp = tmpDir(patches);
     const prev = _setTemplateCacheDir(tmp);
     patches.add(() => void _setTemplateCacheDir(prev));
@@ -636,9 +643,9 @@ function _buildRegistry(): EvidenceCase[] {
   });
   const cases: EvidenceCase[] = [];
 
-  // ── Help (29) ──────────────────────────────────────────────────────
+  // ── Help (36) ──────────────────────────────────────────────────────
   const help: Array<[string[], string]> = [
-    [[], "ebx"],
+    [[], "abx"],
     [["create"], "create"],
     [["list"], "list"],
     [["info"], "info"],
@@ -648,7 +655,13 @@ function _buildRegistry(): EvidenceCase[] {
     [["connect"], "connect"],
     [["upload"], "upload"],
     [["download"], "download"],
-    [["install"], "install"],
+    [["sandbox"], "sandbox"],
+    [["sandbox", "command"], "sandbox-command"],
+    [["sandbox", "command", "list"], "sandbox-command-list"],
+    [["sandbox", "command", "run"], "sandbox-command-run"],
+    [["sandbox", "files"], "sandbox-files"],
+    [["sandbox", "process"], "sandbox-process"],
+    [["provider"], "provider"],
     [["config"], "config"],
     [["config", "get"], "config-get"],
     [["config", "set"], "config-set"],
@@ -682,14 +695,14 @@ function _buildRegistry(): EvidenceCase[] {
       ["config", "get", "sandbox_api_key"],
       "config get sandbox_api_key（已设置, masked）",
       "A",
-      _cfg("", "EBX_SANDBOX_API_KEY=sk-test-abcdef123456\n"),
+      _cfg("", "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n"),
       "config-get-apikey-set",
     ),
     E(
       ["config", "get", "sandbox_api_key"],
       "config get sandbox_api_key（进程环境变量, masked）",
       "A",
-      _cfg("", "", { EBX_SANDBOX_API_KEY: "sk-env-abcdef123456" }),
+      _cfg("", "", { ABX_SANDBOX_API_KEY: "sk-env-abcdef123456" }),
       "config-get-apikey-env",
     ),
     E(["config", "get", "unknown_key"], "config get unknown_key（错误）", "A", _cfg(), "config-get-unknown"),
@@ -708,7 +721,7 @@ function _buildRegistry(): EvidenceCase[] {
       ["config", "set", "sandbox_api_key", ""],
       'config set sandbox_api_key ""（清除凭证）',
       "A",
-      _cfg("", "EBX_SANDBOX_API_KEY=sk-test-abcdef123456\n"),
+      _cfg("", "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n"),
       "config-set-empty-credential",
     ),
     E(
@@ -764,20 +777,20 @@ function _buildRegistry(): EvidenceCase[] {
   cases.push(
     E(["create", "--template", "base"], "create --template base", "B", _create(_makeSb()), "create-template-base"),
     E(["--json", "create", "--template", "base"], "--json create --template base", "B", _create(_makeSb()), "create-template-base-json"),
-    E(["create", "-y", "运行 python"], 'create NL "运行 python"（AI 生成模板）', "B", _createCodegen("运行 python", "ebx-nl-python-ev001"), "create-nl-python"),
+    E(["create", "-y", "运行 python"], 'create NL "运行 python"（AI 生成模板）', "B", _createCodegen("运行 python", "abx-nl-python-ev001"), "create-nl-python"),
     E(
       ["create", "-y", "启动 Node.js 服务"],
       'create NL "启动 Node.js 服务"（AI 生成模板）',
       "B",
-      _createCodegen("启动 Node.js 服务", "ebx-nl-nodejs-ev001"),
+      _createCodegen("启动 Node.js 服务", "abx-nl-nodejs-ev001"),
       "create-nl-nodejs",
     ),
-    E(["create", completeZh], "create NL 非交互描述完整（需确认）", "A", _createCodegen(completeZh, "ebx-nl-python-ev001"), "create-nl-confirm-required"),
+    E(["create", completeZh], "create NL 非交互描述完整（需确认）", "A", _createCodegen(completeZh, "abx-nl-python-ev001"), "create-nl-confirm-required"),
     E(
       ["create", "运行 python"],
       "create NL 非交互描述不完整（E2008 + 缺失项 + 示例）",
       "A",
-      _createCodegen("运行 python", "ebx-nl-python-ev001", incompleteAssessment),
+      _createCodegen("运行 python", "abx-nl-python-ev001", incompleteAssessment),
       "create-nl-clarify-required",
     ),
     E(["create", "运行 python"], "create NL 未安装 Qwen Code（Quick Setup）", "A", _createCodegenNotInstalled(), "create-nl-not-installed"),
@@ -823,23 +836,16 @@ function _buildRegistry(): EvidenceCase[] {
   // ── Connect (1) ────────────────────────────────────────────────────
   cases.push(E(["connect", "sbx-ev-001"], "connect 交互会话（命令不存在 → 单次友好提示 + 拼写建议）", "B", _connectRepl(), "connect-repl"));
 
-  // ── Run (custom command dispatch, 5) ───────────────────────────────
-  const runCmds: Record<string, CustomCommand> = {
-    dev: new CustomCommand({
-      cmd: "npm run dev -- --port {port}",
-      description: "Start the dev server",
-      cwd: "/app",
-      timeout: 30,
-      args: [new CustomCommandArg({ name: "port", default: "3000", description: "Listen port" })],
-    }),
-    test: new CustomCommand({ cmd: "pytest {path}", description: "Run the test suite", args: [new CustomCommandArg({ name: "path", default: "tests/" })] }),
-  };
+  // ── Run / command list (named commands registered on the sandbox server, 8) ──
   cases.push(
-    E(["run", "sbx-ev-001", "dev", "--arg", "port=8080"], "run dev --arg port=8080（占位符替换）", "B", _runCmd(runCmds), "run-dispatch"),
-    E(["run", "sbx-ev-001", "test"], "run test（使用默认参数）", "B", _runCmd(runCmds), "run-default-arg"),
-    E(["--json", "run", "sbx-ev-001", "dev", "--arg", "port=9000"], "--json run dev", "B", _runCmd(runCmds), "run-dispatch-json"),
-    E(["run", "sbx-ev-001", "deploy"], "run deploy（命令名不存在）", "B", _runCmd(runCmds), "run-unknown-command"),
-    E(["run", "sbx-ev-001", "dev", "--arg", "badformat"], "run dev --arg badformat（参数格式错误）", "A", null, "run-invalid-arg"),
+    E(["run", "sbx-ev-001", "add", "--arg", "x=2", "--arg", "y=3"], "run add --arg x=2 --arg y=3（服务端命令）", "B", _runCmd(), "run-dispatch"),
+    E(["run", "sbx-ev-001", "ping"], "run ping（无参数）", "B", _runCmd(), "run-no-args"),
+    E(["--json", "run", "sbx-ev-001", "add", "--json-args", '{"x": 4}'], "--json run add --json-args", "B", _runCmd(), "run-dispatch-json"),
+    E(["run", "sbx-ev-001", "deploy"], "run deploy（命令名不存在）", "B", _runCmd(), "run-unknown-command"),
+    E(["run", "sbx-ev-001", "add", "--arg", "badformat"], "run add --arg badformat（参数格式错误）", "A", null, "run-invalid-arg"),
+    E(["run", "sbx-ev-001", "ping"], "run ping（沙箱内没有 server）", "B", _runCmd(false), "run-no-server"),
+    E(["sandbox", "command", "list", "sbx-ev-001"], "sandbox command list", "B", _runCmd(), "command-list"),
+    E(["sandbox", "command", "list", "sbx-ev-001"], "sandbox command list（沙箱内没有 server）", "B", _runCmd(false), "command-list-no-server"),
   );
 
   // ── Upload / Download (3) ──────────────────────────────────────────
@@ -860,7 +866,7 @@ function _buildRegistry(): EvidenceCase[] {
   cases.push(
     E(["template", "search", "qwen"], "template search（匿名限流：统一引导）", "A", _tmplSearchRateLimited(), "template-search-rate-limit"),
     E(
-      ["template", "install", "Easy-Sandbox/awesome-templates//codex-agent-api@v1.0"],
+      ["template", "install", "alibaba-agent-sandbox/awesome-templates//codex-agent-api@v1.0"],
       "template install owner/repo//subdir@ref（匿名限流）",
       "B",
       _tmplInstallRateLimited(),
@@ -872,8 +878,8 @@ function _buildRegistry(): EvidenceCase[] {
   cases.push(
     E(["create"], "create 无参数（显式用法错误，不再默认 base）", "A", null, "error-create-noargs"),
     E(["crate"], "未知顶层命令（拼写建议）", "A", null, "error-unknown-suggestion"),
-    E(["frobnicate"], "未知顶层命令（custom_commands / ebx run 引导）", "A", null, "error-unknown-custom-hint"),
-    E(["init", "--help"], "顶层 init（ebx template init 快捷别名）", "A", null, "help-init-alias"),
+    E(["frobnicate"], "未知顶层命令（固定命令集合 + abx --help 引导）", "A", null, "error-unknown-custom-hint"),
+    E(["template", "init"], "顶层 init 已移除（使用 abx template init）", "A", null, "error-removed-init"),
     E(["create", "--template", "base"], "AuthenticationError", "B", _createErr(new AuthenticationError("Invalid API key")), "error-auth"),
     E(["create", "--template", "bad"], "TemplateNotFoundError", "B", _createErr(new TemplateNotFoundError("Template 'bad' not found")), "error-template-not-found"),
     E(["create", "--template", "base"], "QuotaExceededError", "B", _createErr(new QuotaExceededError("Sandbox quota exceeded")), "error-quota"),
@@ -906,7 +912,7 @@ export async function runCase(testCase: EvidenceCase): Promise<{ stdout: string;
       handle = await testCase.mock_setup();
       if (handle.env.command) cmd = handle.env.command;
     }
-    const result = await runner.invoke(cli, cmd, { prog_name: "cli" });
+    const result = await runner.invoke(cli, cmd, { prog_name: "abx" });
     return { stdout: result.stdout || "", stderr: result.stderr || "", exit_code: result.exit_code };
   } finally {
     if (handle) await handle.restore();

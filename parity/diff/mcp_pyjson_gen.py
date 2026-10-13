@@ -3,7 +3,7 @@
 
     HOME=$(mktemp -d) /path/to/oracle-venv/bin/python parity/diff/mcp_pyjson_gen.py [--out FILE]
 
-Drives the original stdio MCP server (`python -m easy_sandbox.agent.mcp`) with raw request lines whose JSON number
+Drives the original stdio MCP server (`python -m agent_sandbox.agent.mcp`) with raw request lines whose JSON number
 spellings matter (`1.0`, `1e400`, big ints, `NaN`) and objects with integer-like keys, using only requests that are
 answered without reaching a sandbox platform. Records `[request line, response line]` pairs.
 """
@@ -65,18 +65,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
-    home = tempfile.mkdtemp(prefix="ebx-mcp-gen-")
+    home = tempfile.mkdtemp(prefix="abx-mcp-gen-")
     env = {
         "PATH": os.environ.get("PATH", ""),
         "HOME": home,
-        "EBX_NO_KEYCHAIN": "1",
+        "ABX_NO_KEYCHAIN": "1",
         "E2B_API_KEY": "stub-key",
         "E2B_API_URL": "http://127.0.0.1:1",
         "SANDBOX_TEMPLATE": "stub-template",
         "NO_PROXY": "*",
         "no_proxy": "*",
     }
-    proc = subprocess.Popen([sys.executable, "-m", "easy_sandbox.agent.mcp"], stdin=subprocess.PIPE,
+    proc = subprocess.Popen([sys.executable, "-m", "agent_sandbox.agent.mcp"], stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd=home, text=True)
     cases = []
     for line in LINES:

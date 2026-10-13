@@ -1,4 +1,4 @@
-// Walk every command `ebx --help` exposes, plus the hidden `provider` group, by spawning
+// Walk every command `abx --help` exposes, plus the hidden `provider` group, by spawning
 // the binary. Each node gets `--help` (exit 0, usage names the command) and one local
 // invocation that does not create a sandbox and does not call the cloud or DashScope:
 // a usage error when a required argument or option is missing, or a local operation
@@ -8,31 +8,29 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const UNKNOWN = '--not-an-ebx-option';
-const DETAIL = join(tmpdir(), 'ebx-all-commands-detail.json');
+const UNKNOWN = '--not-an-abx-option';
+const DETAIL = join(tmpdir(), 'abx-all-commands-detail.json');
 
-/** Top-level names the help walk must reach. `provider` is hidden on a fresh HOME. */
+/** Top-level names the help walk must reach: the fixed surface of docs/en/reference/cli-commands.md. */
 const EXPECTED_ROOTS = [
   'config', 'provider', 'sandbox', 'template', 'mcp',
   'create', 'list', 'info', 'kill', 'exec', 'connect', 'upload', 'download',
-  'run', 'deploy', 'init', 'install',
+  'run', 'deploy',
 ];
+
+const COMMAND_HEADINGS = new Set(['Commands:', 'Command groups:', 'Providers:', 'Sandbox shortcuts:']);
 
 function parseCommands(text) {
   const lines = String(text).split(/\r?\n/);
-  const idx = lines.findIndex((l) => l.trim() === 'Commands:');
-  if (idx < 0) return [];
   const cmds = [];
-  for (let i = idx + 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) {
-      if (cmds.length) break;
-      continue;
-    }
-    const m = /^ {2}([a-zA-Z][a-zA-Z0-9-]*)\s{2,}/.exec(line);
+  let inSection = false;
+  for (const line of lines) {
+    if (COMMAND_HEADINGS.has(line.trim())) { inSection = true; continue; }
+    if (!inSection) continue;
+    if (!line.trim()) { inSection = false; continue; }
+    const m = /^  ([a-zA-Z][a-zA-Z0-9-]*)\s{2,}/.exec(line);
     if (m) cmds.push(m[1]);
-    else if (cmds.length && /^\s+/.test(line)) continue;
-    else break;
+    else if (!/^\s+/.test(line)) inSection = false;
   }
   return cmds;
 }
@@ -43,7 +41,7 @@ function usageLine(text) {
 
 /** Unbracketed positional metavars. `[OPTIONS]` and `[PATH]` are optional; `...` is not an argument. */
 function requiredPositionals(usage, path) {
-  let rest = usage.replace(/^Usage:\s+ebx\s*/, '');
+  let rest = usage.replace(/^Usage:\s+abx\s*/, '');
   for (const part of path) {
     if (!rest.startsWith(part)) return [];
     rest = rest.slice(part.length).trimStart();
@@ -76,21 +74,21 @@ function labelOf(path) {
  */
 function planSafe(path, { isGroup, usage }) {
   const key = path.join(' ');
-  if (path.length === 0) return { argv: [], code: 0, match: /Usage: ebx/ };
+  if (path.length === 0) return { argv: [], code: 0, match: /Usage: abx/ };
   if (key === 'config list') return { argv: [...path], code: 0, match: /region/ };
   if (key === 'config get') return { argv: [...path, 'region'], code: 0, match: /^cn-hangzhou$/m };
   if (key === 'config set') return { argv: [...path, 'http_timeout', '45'], code: 0, match: /http_timeout = 45/ };
-  if (key === 'config init') return { argv: [...path, '--yes'], code: 0, match: /ebx config set/ };
+  if (key === 'config init') return { argv: [...path, '--yes'], code: 0, match: /abx config set/ };
   if (key === 'provider list' || key === 'provider default') return { argv: [...path], code: 0, match: /alicloud-express/ };
   if (key === 'provider doctor') return { argv: [...path], code: 0, match: /installed/ };
   if (key === 'provider update') return { argv: [...path], code: 0, match: /up to date/ };
-  if (key === 'template init' || key === 'init') return { kind: 'scaffold', argv: [...path] };
-  if (key === 'mcp') return { argv: ['mcp', '--help'], code: 0, match: /Usage: ebx mcp/ };
-  if (key === 'mcp status') return { argv: [...path], code: 0, match: /easy-sandbox/ };
+  if (key === 'template init') return { kind: 'scaffold', argv: [...path] };
+  if (key === 'mcp') return { argv: ['mcp', '--help'], code: 0, match: /Usage: abx mcp/ };
+  if (key === 'mcp status') return { argv: [...path], code: 0, match: /agent-sandbox/ };
   if (key === 'mcp stop') return { argv: [...path], code: 0, match: /not running/i };
   if (key === 'create' || key === 'sandbox create') return { argv: [...path], code: 2, match: /No DESCRIPTION or --template/ };
   if (key === 'kill' || key === 'sandbox kill') return { argv: [...path], code: 2, match: /sandbox ID/ };
-  if (isGroup) return { argv: [...path], code: 2, match: /Usage: ebx/ };
+  if (isGroup) return { argv: [...path], code: 2, match: /Usage: abx/ };
   if (requiredPositionals(usage, path).length) return { argv: [...path], code: 2, match: /Missing argument/ };
   if (key === 'mcp install') return { argv: [...path], code: 2, match: /Missing option '--target'/ };
   return { argv: [...path, UNKNOWN], code: 2, match: /No such option/ };
@@ -115,7 +113,7 @@ function cloudLeak(text) {
 
 function dump(argv, res) {
   return [
-    `$ ebx ${argv.join(' ')}`.trimEnd(),
+    `$ abx ${argv.join(' ')}`.trimEnd(),
     `exit ${res.code}${res.timedOut ? ' TIMEOUT' : ''}`,
     '--- stdout ---',
     res.stdout ?? '',
@@ -142,7 +140,7 @@ export default {
         const nodes = [];
         const seen = new Set();
 
-        const call = (argv, { home: h = home, cwd: c = cwd } = {}) => ctx.rawEbx(argv, {
+        const call = (argv, { home: h = home, cwd: c = cwd } = {}) => ctx.rawAbx(argv, {
           creds: false, home: h, cwd: c, timeoutMs: 45_000, stdin: '',
         });
 
@@ -156,7 +154,7 @@ export default {
           const helpArgv = [...path, '--help'];
           const help = await call(helpArgv);
           const usage = usageLine(help.stdout) || usageLine(help.stderr);
-          const named = path.length ? path.join(' ') : 'ebx';
+          const named = path.length ? path.join(' ') : 'abx';
           node.help = { code: help.code, usage };
           const helpBlob = `${help.stdout}\n${help.stderr}`;
           if (help.timedOut || help.code !== 0 || !usage.includes(named) || cloudLeak(helpBlob)) {
@@ -169,7 +167,7 @@ export default {
           const work = path[0] === 'config' ? cfgHome : home;
 
           if (plan.kind === 'scaffold') {
-            const slot = path[0] === 'init' ? 'init-python' : 'template-init-python';
+            const slot = 'template-init-python';
             const dir = ctx.newCwd(slot);
             const argv = [...plan.argv, 'python-case', '--template', 'python', '--name', 'python-case'];
             refuseUnsafe(argv);

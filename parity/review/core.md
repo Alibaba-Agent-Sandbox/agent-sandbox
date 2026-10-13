@@ -1,6 +1,6 @@
 # Adversarial review: area `core`
 
-Scope: `cli/src/{models,utils,transport,protocol,api,session}/**` against Python `easy_sandbox/{models,utils,transport,protocol,api,session}`.
+Scope: `cli/src/{models,utils,transport,protocol,api,session}/**` against Python `agent_sandbox/{models,utils,transport,protocol,api,session}`.
 Reviewer: independent (did not write the port). `cli/src/**` was not edited.
 
 Placeholders: `$ORACLE_VENV` = the original Python CLI virtualenv (Python 3.11, httpx 0.28.1, pydantic 2.14.1, websockets 17.2,
@@ -56,7 +56,7 @@ Checked against `npx vitest run tests/adversarial/core` and, for the two remaini
 
 httpx (`trust_env=True`) builds its SSL context from `SSL_CERT_FILE` / `SSL_CERT_DIR`; the Node port uses Node's default
 store (+ `NODE_EXTRA_CA_CERTS`, which Python does NOT read). Corporate / self-hosted platforms with a private CA that work
-with the Python CLI via `SSL_CERT_FILE=ca.pem ebx ...` fail with `[E5001] ... CERTIFICATE_VERIFY_FAILED` in the port. Also
+with the Python CLI via `SSL_CERT_FILE=ca.pem abx ...` fail with `[E5001] ... CERTIFICATE_VERIFY_FAILED` in the port. Also
 applies to `wss://` (`ws.ts`) and to the PyPI/ACR `fetch` calls.
 
 * Repro: `adv_core_net.mjs --filter '^t-selfsigned-(sslcertfile|sslcertdir)$'`; tests `ADV-core-25`, `-26`.
@@ -244,11 +244,11 @@ Fix: replace `\s` by `[ \t\n\r\f\v\x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u20
 
 1. `Accept-Encoding: gzip, deflate, br` (Python without brotli sends `gzip, deflate`); the port decodes br; servers only see a superset.
 2. `NODE_EXTRA_CA_CERTS` honoured (Python ignores it).
-3. `User-Agent` `ebx-node-httpx/0.28.1` vs `python-httpx/0.28.1` (already in KNOWN-GAPS; request logs normalise it).
+3. `User-Agent` `abx-node-httpx/0.28.1` vs `python-httpx/0.28.1` (already in KNOWN-GAPS; request logs normalise it).
 4. HTTP/2: the shim negotiates h2 via ALPN like httpx `http2=True` (`t-h2-only-server` identical); connection-pool limits not reproduced (KNOWN-GAPS).
 5. Retry/backoff: all `429`/`5xx` + `Retry-After` combinations (`p-status-429-*`, 5xx e-*) are identical in request count and timing (see "held up").
 6. File locking: `.lock` + `mkdir .lock.d` instead of `flock`. Caveats to remember: (a) after `kill -9` a *fresh* `.lock.d` blocks the next
-   operation for up to 5 s whereas `filelock` never blocks; (b) Python and Node processes sharing `~/.ebx/sessions` are not mutually exclusive
+   operation for up to 5 s whereas `filelock` never blocks; (b) Python and Node processes sharing `~/.abx/sessions` are not mutually exclusive
    (different lock primitives); (c) two processes recovering the same stale lock can both pass (`local.ts:45-52`, remove-then-`continue`
    without re-check). The store is library-only (no CLI path), so impact is nil today.
 7. `x-gzip` / gzip edge text (see CORE-06) are also unreachable in practice.

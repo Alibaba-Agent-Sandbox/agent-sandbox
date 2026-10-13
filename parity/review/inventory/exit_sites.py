@@ -5,7 +5,7 @@ import os, re, sys, collections
 from pathlib import Path
 o = os.environ.get("ORIG_REPO")
 if not o: print("ORIG_REPO not set: skipping", file=sys.stderr); sys.exit(0)
-py_root = Path(o) / "src/easy_sandbox"; ts_root = Path(__file__).resolve().parents[3] / "src"
+py_root = Path(o) / "src/agent_sandbox"; ts_root = Path(__file__).resolve().parents[3] / "src"
 PY = re.compile(r"\b_?sys\.exit\(([^()]*(?:\([^()]*\))?[^()]*)\)|raise SystemExit\(([^()]*)\)|ctx\.exit\(([^()]*)\)|raise SystemExit\b(?!\()")
 TS = re.compile(r"\bsysExit\(([^()]*(?:\([^()]*\))?[^()]*)\)|new SystemExit\(([^()]*)\)|ctx\.exit\(([^()]*)\)")
 def norm(a):

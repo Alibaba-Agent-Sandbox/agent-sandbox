@@ -15,14 +15,14 @@ export default {
     },
     { id: 'search-no-match', title: 'template search with no hits: exit 0 and message', creds: false, freshHome: true, argv: ['template', 'search', 'zzzznomatch-e2e'], stdout: "No templates matching 'zzzznomatch-e2e'" },
     {
-      id: 'search-caches-index', title: 'template search caches the index under ~/.ebx/index and reuses it', creds: false,
+      id: 'search-caches-index', title: 'template search caches the index under ~/.abx/index and reuses it', creds: false,
       async run(ctx) {
         const home = ctx.newHome('idxcache');
-        let r = await ctx.ebx(['template', 'search', 'python'], { home, creds: false });
+        let r = await ctx.abx(['template', 'search', 'python'], { home, creds: false });
         if (r.code !== 0) ctx.fail(`first search exit ${r.code}`);
-        if (!existsSync(join(home, '.ebx', 'index'))) ctx.fail('no ~/.ebx/index cache created');
-        if (!readdirSync(join(home, '.ebx', 'index')).length) ctx.fail('index cache dir is empty');
-        r = await ctx.ebx(['template', 'search', 'python', '--refresh'], { home, creds: false });
+        if (!existsSync(join(home, '.abx', 'index'))) ctx.fail('no ~/.abx/index cache created');
+        if (!readdirSync(join(home, '.abx', 'index')).length) ctx.fail('index cache dir is empty');
+        r = await ctx.abx(['template', 'search', 'python', '--refresh'], { home, creds: false });
         if (r.code !== 0) ctx.fail(`--refresh exit ${r.code}`);
       },
     },
@@ -31,7 +31,7 @@ export default {
       async run(ctx) {
         const home = ctx.newHome('install');
         const dir = join(ctx.newCwd('install'), 'out');
-        const r = await ctx.ebx(['template', 'install', 'python-hello', '--download-only', '--dir', dir], { home, creds: false, timeoutMs: 180_000 });
+        const r = await ctx.abx(['template', 'install', 'python-hello', '--download-only', '--dir', dir], { home, creds: false, timeoutMs: 180_000 });
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         ctx.check('output', r.out, ['python-hello', 'installed-locally']);
         for (const f of ['Dockerfile', 'commands.py', 'template.yaml']) if (!existsSync(join(dir, f))) ctx.fail(`missing ${f} in ${dir.replace(ctx.root, '<TMP>')}`);

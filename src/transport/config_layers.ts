@@ -1,9 +1,9 @@
 /**
  * Layered configuration with provider selection (port of the layered half of
- * `easy_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).
+ * `agent_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).
  *
- * Resolution is layer-first: explicit overrides > process environment > `./.env` > `~/.ebx/.env` >
- * `~/.ebx/config.toml` > defaults. This module is additive: the legacy `transport/config.ts` loader is untouched and
+ * Resolution is layer-first: explicit overrides > process environment > `./.env` > `~/.abx/.env` >
+ * `~/.abx/config.toml` > defaults. This module is additive: the legacy `transport/config.ts` loader is untouched and
  * `toTransportConfig()` bridges a resolved config to it until the commands are rewired (see
  * `docs/design/provider-wiring-plan.md`).
  */
@@ -42,9 +42,9 @@ const LEGACY_FIELD_NAMES: Readonly<Record<string, string>> = {};
 
 /** Live file locations; tests redirect them with the `_set*` seams (Python parity: module-level patchables). */
 export const paths = {
-  ebxDir: path.join(os.homedir(), ".ebx"),
-  configFile: path.join(os.homedir(), ".ebx", "config.toml"),
-  envFiles: [".env", path.join(os.homedir(), ".ebx", ".env")] as string[],
+  abxDir: path.join(os.homedir(), ".abx"),
+  configFile: path.join(os.homedir(), ".abx", "config.toml"),
+  envFiles: [".env", path.join(os.homedir(), ".abx", ".env")] as string[],
 };
 
 export function _setPaths(p: Partial<typeof paths>): void {
@@ -53,14 +53,14 @@ export function _setPaths(p: Partial<typeof paths>): void {
 
 /** Restore the default locations (derived from the current `HOME`). */
 export function _resetPaths(): void {
-  const dir = path.join(os.homedir(), ".ebx");
-  paths.ebxDir = dir;
+  const dir = path.join(os.homedir(), ".abx");
+  paths.abxDir = dir;
   paths.configFile = path.join(dir, "config.toml");
   paths.envFiles = [".env", path.join(dir, ".env")];
 }
 
 // ---------------------------------------------------------------------------
-// Deprecation warnings (opt-in via EBX_WARN_DEPRECATED)
+// Deprecation warnings (opt-in via ABX_WARN_DEPRECATED)
 // ---------------------------------------------------------------------------
 
 const warnedLegacy = new Set<string>();
@@ -69,9 +69,9 @@ export function _resetDeprecationWarnings(): void {
   warnedLegacy.clear();
 }
 
-/** Emit one DeprecationWarning per legacy name; silent unless `EBX_WARN_DEPRECATED` is truthy. */
+/** Emit one DeprecationWarning per legacy name; silent unless `ABX_WARN_DEPRECATED` is truthy. */
 export function warnLegacyOnce(name: string, canonical: string, where: string, environ: NodeJS.ProcessEnv = process.env): void {
-  const flag = pyStrip(environ["EBX_WARN_DEPRECATED"] ?? "").toLowerCase();
+  const flag = pyStrip(environ["ABX_WARN_DEPRECATED"] ?? "").toLowerCase();
   if (!["1", "true", "yes", "on"].includes(flag)) return;
   const token = `${where}:${name}`;
   if (warnedLegacy.has(token)) return;
@@ -355,7 +355,7 @@ export function providerSchema(providerId: string): ProviderSchema {
   return schemaLookup(providerId);
 }
 
-/** Provider selection: explicit > EBX_PROVIDER > ./.env > ~/.ebx/.env > `[core]` > built-in. */
+/** Provider selection: explicit > ABX_PROVIDER > ./.env > ~/.abx/.env > `[core]` > built-in. */
 export function selectProviderId(sources: Sources): string {
   const key = getKey("provider");
   if (!key) throw new Error("config registry has no 'provider' key");
@@ -463,7 +463,7 @@ export function loadLayeredConfig(overrides: Record<string, unknown> = {}, opts:
   return config;
 }
 
-/** Clear the cached configuration (tests, `ebx config set`). */
+/** Clear the cached configuration (tests, `abx config set`). */
 export function resetLayeredConfig(): void {
   cached = null;
   clearCachedConfigBytes();
@@ -486,7 +486,7 @@ function loadUncached(overrides: Record<string, unknown>, opts: LoadOptions): La
   const unknown = Object.keys(options).filter((k) => !scoped.has(k)).sort();
   if (unknown.length > 0) {
     throw new ProviderConfigError(`Unknown option(s) for provider '${schema.provider_id}': ${unknown.join(", ")}.`, {
-      suggestion: `Run 'ebx provider info ${schema.provider_id}' to list its options.`,
+      suggestion: `Run 'abx provider info ${schema.provider_id}' to list its options.`,
     });
   }
 

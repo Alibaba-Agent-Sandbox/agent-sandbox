@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { _selectProvider } from "../../src/api/sandbox.js";
 import { handleErrors, main } from "../../src/cli/main.js";
-import { SystemExit } from "../../src/framework/utils.js";
+import { SystemExit } from "../../src/cli/errors.js";
 import {
   _CONFIG_FILE,
   _ENV_FILE_CANDIDATES,

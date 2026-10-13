@@ -5,7 +5,7 @@
  * - TOOL_SCHEMA: MCP Tool schema（name, description, inputSchema）
  * - handler 异步函数：接收参数 + sandbox manager，返回 dict 结果
  *
- * Port of `easy_sandbox/agent/tools.py`.
+ * Port of `agent_sandbox/agent/tools.py`.
  */
 
 import { pyExcStr } from "../api/_pyerrors.js";
@@ -32,7 +32,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       "创建一个云端沙箱，并将其设为当前会话的默认沙箱。" +
       "之后省略 sandbox_id 的工具调用都作用在这只沙箱上。" +
       "省略 template 时使用 MCP server 配置的模板" +
-      "（ebx mcp start 默认为 code-interpreter-v1）。",
+      "（abx mcp start 默认为 code-interpreter-v1）。",
     inputSchema: {
       type: "object",
       properties: {

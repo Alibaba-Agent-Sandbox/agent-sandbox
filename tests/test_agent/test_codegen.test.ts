@@ -3,7 +3,7 @@
  *
  * Port of `tests/test_agent/test_codegen.py`. No test performs real network access or executes the real Qwen Code
  * CLI: every headless run is replaced by a fake that writes files into the requested workspace (`seams.runQwenCodeHeadless`
- * plays the role of `patch("easy_sandbox.agent.codegen.run_qwen_code_headless")`). `commands.py` is checked by a real
+ * plays the role of `patch("agent_sandbox.agent.codegen.run_qwen_code_headless")`). `commands.py` is checked by a real
  * `python3` where available (the Python original uses `ast.parse`).
  */
 
@@ -27,7 +27,7 @@ import {
   validateTemplateWorkspace,
 } from "../../src/agent/codegen.js";
 import { pyStrip } from "../../src/agent/_pycompat.js";
-import { safeLoad, toPlain } from "../../src/agent/_pyyaml.js";
+import { loadYaml as safeLoad } from "../../src/utils/yaml_io.js";
 import { QwenCodeRunResult } from "../../src/agent/qwen_code.js";
 import { AICodegenError } from "../../src/models/errors.js";
 import { findPython, itWithPython, makeTmp, raises, readGolden, rmTmp } from "../helpers/agentSupport.js";
@@ -45,7 +45,7 @@ resources:
 const DOCKERFILE = "FROM python:3.12-slim\nRUN pip install pandas\nCOPY commands.py .\nEXPOSE 9000\n";
 
 const COMMANDS_PY =
-  "from easy_sandbox.server import CommandRegistry, SandboxServer\n" +
+  "from agent_sandbox.server import CommandRegistry, SandboxServer\n" +
   "registry = CommandRegistry()\n" +
   "registry.freeze()\n" +
   "if __name__ == \"__main__\":\n" +
@@ -123,18 +123,18 @@ describe("TestTemplateName", () => {
 
 describe("TestPrompt", () => {
   it("test_prompt_mentions_description_and_template_name", () => {
-    const prompt = buildCodegenPrompt("用 playwright 截图", "ebx-nl-sandbox-abc123");
+    const prompt = buildCodegenPrompt("用 playwright 截图", "abx-nl-sandbox-abc123");
     expect(prompt).toContain("用 playwright 截图");
-    expect(prompt).toContain("ebx-nl-sandbox-abc123");
+    expect(prompt).toContain("abx-nl-sandbox-abc123");
     expect(prompt).toContain("Dockerfile");
     expect(prompt).toContain("template.yaml");
   });
 
   it("test_prompt_demands_a_server_not_just_a_dockerfile", () => {
-    const prompt = buildCodegenPrompt("做一个 markdown 转 PDF 的服务", "ebx-nl-sandbox-abc123", "alicloud-express");
+    const prompt = buildCodegenPrompt("做一个 markdown 转 PDF 的服务", "abx-nl-sandbox-abc123", "alicloud-express");
     for (const required of [
       "commands.py",
-      "easy_sandbox.server",
+      "agent_sandbox.server",
       "SandboxServer",
       "CommandRegistry",
       "EXPOSE 9000",
@@ -148,7 +148,7 @@ describe("TestPrompt", () => {
   });
 
   it("test_prompt_carries_the_sdk_reference_and_the_reference_example", () => {
-    const prompt = buildCodegenPrompt("x", "ebx-nl-sandbox-abc123");
+    const prompt = buildCodegenPrompt("x", "abx-nl-sandbox-abc123");
     expect(prompt).toContain("@registry.command");
     expect(prompt).toContain("@table.route");
     expect(prompt).toContain("CapabilityGroup");
@@ -157,13 +157,13 @@ describe("TestPrompt", () => {
   });
 
   it("test_prompt_braces_in_user_text_survive_formatting", () => {
-    const prompt = buildCodegenPrompt("return {'a': {b}} as json", "ebx-nl-sandbox-abc123");
+    const prompt = buildCodegenPrompt("return {'a': {b}} as json", "abx-nl-sandbox-abc123");
     expect(prompt).toContain("return {'a': {b}} as json");
   });
 
   it("test_prompt_has_no_replayed_transcript", async () => {
     // Generation resumes the native session; no Q/A section is embedded.
-    const prompt = buildCodegenPrompt("用 playwright 截图", "ebx-nl-sandbox-abc123", "alicloud-express");
+    const prompt = buildCodegenPrompt("用 playwright 截图", "abx-nl-sandbox-abc123", "alicloud-express");
     expect(prompt).not.toContain("澄清");
     expect(prompt).toContain("用户需求：用 playwright 截图\n\n必须创建的文件：");
   });
@@ -272,7 +272,7 @@ describe("TestGenerateTemplateFiles", () => {
       fs.mkdirSync(path.join(cwd, ".qwen"));
       fs.writeFileSync(path.join(cwd, ".qwen", "session.json"), "{}", "utf8");
       fs.writeFileSync(path.join(cwd, ".dockerignore"), ".git\n", "utf8");
-      fs.writeFileSync(path.join(cwd, "easy_sandbox-0.1.0-py3-none-any.whl"), Buffer.from("whl"));
+      fs.writeFileSync(path.join(cwd, "agent_sandbox-0.1.0-py3-none-any.whl"), Buffer.from("whl"));
       return fakeRunWriting()(prompt, kwargs);
     });
     const result = await generateTemplateFiles("web service", { baseDir: tmpPath });
@@ -305,20 +305,20 @@ describe("TestGenerateTemplateFiles", () => {
   for (const source of [
     "print('hello')\n",
     "import http.server\nhttp.server.HTTPServer(('', 9000), None).serve_forever()\n",
-    "from easy_sandbox.server import SandboxServer\nserver = SandboxServer()\n",
+    "from agent_sandbox.server import SandboxServer\nserver = SandboxServer()\n",
   ]) {
     it(`test_commands_py_that_never_starts_the_server_raises [${source}]`, async () => {
       patchRun(fakeRunWriting({ commandsPy: source }));
       await raises(
         () => generateTemplateFiles("no server", { baseDir: tmpPath }),
         AICodegenError,
-        "does not start an easy_sandbox.server",
+        "does not start an agent_sandbox.server",
       );
     });
   }
 
   it("test_start_helper_counts_as_starting_the_server", async () => {
-    const source = "from easy_sandbox.server import start\nif __name__ == '__main__':\n    start(9000)\n";
+    const source = "from agent_sandbox.server import start\nif __name__ == '__main__':\n    start(9000)\n";
     patchRun(fakeRunWriting({ commandsPy: source }));
     const result = await generateTemplateFiles("start helper", { baseDir: tmpPath });
     expect(result.commandsPy).not.toBeNull();
@@ -392,31 +392,31 @@ describe("TestPrepareWorkdir", () => {
 });
 
 describe("TestDefaults", () => {
-  const saved = process.env.EBX_QWEN_CODEGEN_TIMEOUT;
+  const saved = process.env.ABX_QWEN_CODEGEN_TIMEOUT;
   afterEach(() => {
-    if (saved === undefined) delete process.env.EBX_QWEN_CODEGEN_TIMEOUT;
-    else process.env.EBX_QWEN_CODEGEN_TIMEOUT = saved;
+    if (saved === undefined) delete process.env.ABX_QWEN_CODEGEN_TIMEOUT;
+    else process.env.ABX_QWEN_CODEGEN_TIMEOUT = saved;
   });
 
   it("test_timeout_default", () => {
-    delete process.env.EBX_QWEN_CODEGEN_TIMEOUT;
+    delete process.env.ABX_QWEN_CODEGEN_TIMEOUT;
     expect(defaultCodegenTimeout()).toBe(DEFAULT_CODEGEN_TIMEOUT);
   });
 
   it("test_timeout_env_override", () => {
-    process.env.EBX_QWEN_CODEGEN_TIMEOUT = "120";
+    process.env.ABX_QWEN_CODEGEN_TIMEOUT = "120";
     expect(defaultCodegenTimeout()).toBe(120.0);
   });
 
   it("test_invalid_timeout_env_ignored", () => {
-    process.env.EBX_QWEN_CODEGEN_TIMEOUT = "not-a-number";
+    process.env.ABX_QWEN_CODEGEN_TIMEOUT = "not-a-number";
     expect(defaultCodegenTimeout()).toBe(DEFAULT_CODEGEN_TIMEOUT);
-    process.env.EBX_QWEN_CODEGEN_TIMEOUT = "-5";
+    process.env.ABX_QWEN_CODEGEN_TIMEOUT = "-5";
     expect(defaultCodegenTimeout()).toBe(DEFAULT_CODEGEN_TIMEOUT);
   });
 
   it("test_generated_dir_default", () => {
-    expect(codegen.defaultGeneratedDir()).toBe(path.join(homedir(), ".ebx", "generated"));
+    expect(codegen.defaultGeneratedDir()).toBe(path.join(homedir(), ".abx", "generated"));
   });
 });
 
@@ -451,7 +451,7 @@ describe("TestPromptGolden", () => {
       expect(prompt).not.toContain("FROM python:3.12-slim");
       expect(prompt).not.toMatch(/(?:^|\n)[ \t]*CMD[ \t]/);
     }
-    const generic = buildCodegenPrompt("x", "ebx-nl-sandbox-abc123", "opensandbox");
+    const generic = buildCodegenPrompt("x", "abx-nl-sandbox-abc123", "opensandbox");
     expect(generic).toContain('CMD ["python3", "commands.py"]');
     expect(generic).toContain("has no template profile");
     expect(generic).not.toContain("fc-e2b-registry");
@@ -467,9 +467,8 @@ describe("TestValidateTemplateWorkspace", () => {
   it("returns the manifest with the generated name and keeps the model's other keys", () => {
     write({ Dockerfile: DOCKERFILE, "template.yaml": VALID_TEMPLATE_YAML, "commands.py": COMMANDS_PY });
     const data = validateTemplateWorkspace(tmpPath, "my-name");
-    expect(data).toBeInstanceOf(Map);
-    expect(data.get("name")).toBe("my-name");
-    expect(toPlain(data)).toEqual({
+    expect(data["name"]).toBe("my-name");
+    expect(data).toEqual({
       name: "my-name",
       description: "一个用于数据分析的 Python 环境",
       resources: { cpu: 2, memory: 4096 },
@@ -484,11 +483,11 @@ describe("TestValidateTemplateWorkspace", () => {
   it("default suggestion names the workspace and the fallback command", async () => {
     const exc = await raises(() => validateTemplateWorkspace(tmpPath, "n"), AICodegenError);
     expect(exc.suggestion).toBe(
-      `Inspect the generated workspace: ${tmpPath} — then retry, or fall back to 'ebx create --template <name>'.`,
+      `Inspect the generated workspace: ${tmpPath} — then retry, or fall back to 'abx create --template <name>'.`,
     );
   });
 
-  it("rewrites template.yaml like yaml.safe_dump(sort_keys=False, allow_unicode=True) after generation", async () => {
+  it("rewrites template.yaml in block style, keeping key order, after generation", async () => {
     patchRun(fakeRunWriting({ templateYaml: "name: x\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\n" }));
     const result = await generateTemplateFiles("canon", { baseDir: tmpPath });
     expect(fs.readFileSync(result.templateYaml, "utf8")).toBe(
@@ -499,7 +498,7 @@ describe("TestValidateTemplateWorkspace", () => {
 
 describe("TestListTemplateFiles", () => {
   it("skips dot-dirs, pycache, node_modules and wheels; keeps .dockerignore", () => {
-    for (const rel of ["a/b.txt", "a/.hidden", ".git/config", "node_modules/x.js", "__pycache__/y.pyc", "z.whl", "m.ebx-bak", ".dockerignore", "top.py"]) {
+    for (const rel of ["a/b.txt", "a/.hidden", ".git/config", "node_modules/x.js", "__pycache__/y.pyc", "z.whl", "m.abx-bak", ".dockerignore", "top.py"]) {
       fs.mkdirSync(path.dirname(path.join(tmpPath, rel)), { recursive: true });
       fs.writeFileSync(path.join(tmpPath, rel), "x");
     }

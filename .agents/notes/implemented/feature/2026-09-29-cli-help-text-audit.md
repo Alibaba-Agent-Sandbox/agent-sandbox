@@ -39,10 +39,10 @@ N/A — this decision does not involve API changes. CLI help text only.
 
 ## Test Strategy
 - CLI evidence golden files regenerated to capture new help output.
-- Manual review of `ebx --help` and `ebx <cmd> --help` for all 64 commands.
+- Manual review of `abx --help` and `abx <cmd> --help` for all 64 commands.
 
 ## Files changed
-- `src/easy_sandbox/cli/commands/*.py` — help text updates across all command modules
+- `src/agent_sandbox/cli/commands/*.py` — help text updates across all command modules
 - `docs/en/reference/cli-reference.md` — regenerated
 - `docs/zh/reference/cli-reference.md` — regenerated
 

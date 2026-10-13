@@ -1,11 +1,11 @@
 # Adversarial review: area `commands`
 
-Scope: `cli/src/framework/**`, `cli/src/cli/{main,output,formatters,region,repl,scaffold,_rich*,_orjson}.ts`, `cli/src/bin/ebx.ts`,
-`cli/src/cli/commands/{config_cmd,sandbox,sandbox_files,sandbox_process,sandbox_system}.ts` against Python `easy_sandbox/cli/**`.
+Scope: `cli/src/framework/**`, `cli/src/cli/{main,output,formatters,region,repl,scaffold,_rich*,_orjson}.ts`, `cli/src/bin/abx.ts`,
+`cli/src/cli/commands/{config_cmd,sandbox,sandbox_files,sandbox_process,sandbox_system}.ts` against Python `agent_sandbox/cli/**`.
 Reviewer: independent (did not write the port). `cli/src/**` was not edited.
 
-Placeholders: `$ORACLE_VENV` = virtualenv with the original Python `ebx` (real Click 8.5, Rich, httpx), `$ORIG_REPO` = original checkout.
-All harness runs used an isolated `HOME`, `EBX_NO_KEYCHAIN=1`, no real credentials and a private stub HTTP server per run.
+Placeholders: `$ORACLE_VENV` = virtualenv with the original Python `abx` (real Click 8.5, Rich, httpx), `$ORIG_REPO` = original checkout.
+All harness runs used an isolated `HOME`, `ABX_NO_KEYCHAIN=1`, no real credentials and a private stub HTTP server per run.
 
 ## Deliverables
 
@@ -46,10 +46,10 @@ All BUG / GAP-UNJUSTIFIED findings were addressed in `cli/src`; the `ADV-command
 | --- | --- | --- | --- |
 | C-01 | BUG HIGH | FIXED (`ADV-12`, `ADV-16`) | `src/cli/repl.ts`: stdin is read once into a module-level buffer; each prompt gets a readline `Interface` fed only up to the first Enter / Ctrl+J / Ctrl+C / Ctrl+D (GNU readline consumes one byte at a time), the remainder stays queued for the next `input()`. Raw mode is on only while a prompt is active. EOF / Ctrl+C / Ctrl+D semantics unchanged. |
 | C-02 | BUG MEDIUM-LOW | FIXED (`ADV-13`) | same redesign (no raw-mode toggling with unread bytes dropped); 5000 char line + following line work. |
-| C-03 | BUG MEDIUM | FIXED (`ADV-07`) | `src/framework/io.ts`: non-TTY stdout/stderr are written with `fs.writeSync` (EAGAIN retried), failures (ENOSPC, EIO, ...) are sticky and thrown as the Node error so `handle_errors` prints `OS error: [Errno 28] ...`; stream `'error'` events are recorded, never unhandled. `finalizeStreams` (`src/bin/ebx_main.ts`) reproduces Python's final failing flush: `Exception ignored in: <_io.TextIOWrapper name='<stdout>' ...>` and exit status **120** (the oracle exits 120, not 1; the old test expectation was wrong). EPIPE stays silent. |
+| C-03 | BUG MEDIUM | FIXED (`ADV-07`) | `src/framework/io.ts`: non-TTY stdout/stderr are written with `fs.writeSync` (EAGAIN retried), failures (ENOSPC, EIO, ...) are sticky and thrown as the Node error so `handle_errors` prints `OS error: [Errno 28] ...`; stream `'error'` events are recorded, never unhandled. `finalizeStreams` (`src/bin/abx_main.ts`) reproduces Python's final failing flush: `Exception ignored in: <_io.TextIOWrapper name='<stdout>' ...>` and exit status **120** (the oracle exits 120, not 1; the old test expectation was wrong). EPIPE stays silent. |
 | C-04 | GAP-UNJUSTIFIED | FIXED (`ADV-05`) | `src/transport/_httpx.ts`: `httpx` logger `INFO HTTP Request: METHOD URL "HTTP/x CODE Reason"` for every response incl. redirect hops. |
 | C-05 | BUG LOW | FIXED (`ADV-06`) | `_parsePairs` (`sandbox.ts`) and the pydantic `dict` validator/dump (`src/models/_pydantic.ts`) define `__proto__` as an own property. |
-| C-06 | BUG LOW | FIXED (`ADV-08`) | `src/bin/ebx.ts` is now a shim that drops Node's `NO_COLOR`/`FORCE_COLOR` warning (emitted while linking `node:http`) and then imports `ebx_main.ts`. |
+| C-06 | BUG LOW | FIXED (`ADV-08`) | `src/bin/abx.ts` is now a shim that drops Node's `NO_COLOR`/`FORCE_COLOR` warning (emitted while linking `node:http`) and then imports `abx_main.ts`. |
 | C-07 | BUG LOW | FIXED (`ADV-09`) | `URL_` keeps scheme-less URLs (`127.0.0.1:9`, `not a url`, `/x`, `//h/x`) so the request fails with httpx's `UnsupportedProtocol` text; unparsable URLs that do have a scheme still raise `InvalidURL`. |
 | C-08 | BUG LOW | FIXED (`ADV-10`) | `download` in `sandbox.ts` and `Files.download` in `src/api/files.ts`: open errors keep the filename, write errors do not. |
 | C-09 | BUG LOW | FIXED (`ADV-11`) | `_httpx.ts`: truncated body -> `(received N bytes, expected M)` for Content-Length, `(incomplete chunked read)` for chunked; a real RST is a `ReadError`. |
@@ -64,7 +64,7 @@ All BUG / GAP-UNJUSTIFIED findings were addressed in `cli/src`; the `ADV-command
 Severity is the user impact on a real run. "expected" is always the Python oracle.
 
 ### C-01 REPL drops type-ahead / pasted lines and then hangs (BUG, HIGH)  - open, `ADV-commands-12`
-* Repro: `ebx connect SBX` on a TTY; paste `echo a<CR>echo b<CR>echo c<CR>exit<CR>` in one write.
+* Repro: `abx connect SBX` on a TTY; paste `echo a<CR>echo b<CR>echo c<CR>exit<CR>` in one write.
 * Expected: a, b, c run, then exit 0. Actual: only `echo a` runs, then the prompt hangs forever (the rest of the paste is gone).
 * Root cause: `src/cli/repl.ts:177` `_editedInput` creates a NEW `readline.Interface` per prompt and `rl.close()`s it after the first line
   (`finish`, ~line 188); bytes of the same chunk that belong to later lines are consumed and discarded with it.
@@ -79,7 +79,7 @@ Severity is the user impact on a real run. "expected" is always the Python oracl
   pty canonical buffer limit 4096 is hit while raw mode is toggled between lines). A persistent Interface (C-01 fix) most likely fixes it.
 
 ### C-03 failed stdout/stderr write crashes with an unhandled stream error (BUG, MEDIUM)  - open, `ADV-commands-07`
-* Repro: `ebx config list > /dev/full` (also `list --quiet`).
+* Repro: `abx config list > /dev/full` (also `list --quiet`).
 * Expected: `OS error: [Errno 28] No space left on device` + `Suggestion: Check file permissions and disk space.`, exit 1.
   Actual: Node prints a stack trace (`node:events: throw er; // Unhandled 'error' event ... ENOSPC`) and exits 1. The same code path swallowed
   the failure silently earlier in the review (exit 0), so the behaviour is also unstable between revisions.
@@ -89,7 +89,7 @@ Severity is the user impact on a real run. "expected" is always the Python oracl
   the next `write`/`flush` or at exit, so `handle_errors` prints Python's `OS error: ...` message and exits 1.
 
 ### C-04 `--log-level info|debug` and `--verbose` omit httpx's `INFO: HTTP Request:` line (GAP-UNJUSTIFIED, LOW-MEDIUM)  - open, `ADV-commands-05`
-* Repro: `ebx --log-level info list`. Expected: `INFO: HTTP Request: GET http://HOST/sandboxes?limit=20&offset=0 "HTTP/1.1 200 OK"` on stderr
+* Repro: `abx --log-level info list`. Expected: `INFO: HTTP Request: GET http://HOST/sandboxes?limit=20&offset=0 "HTTP/1.1 200 OK"` on stderr
   (one per request, also at DEBUG and `-v`). Actual: silent. `KNOWN-GAPS.md` only mentions losing SDK log lines.
 * Root cause: the transport (`src/transport/_httpx.ts`) never logs through the `httpx` logger; the CLI log handler never sees it.
 * Fix: log `"HTTP Request: %s %s \"%s %d %s\""` at INFO from the same place the response status is known (also redirects and streamed responses).
@@ -101,12 +101,12 @@ Severity is the user impact on a real run. "expected" is always the Python oracl
 * Fix: `Object.create(null)` is not enough for JSON.stringify of own `__proto__`; use `Object.defineProperty(result, key, {value, enumerable: true, writable: true, configurable: true})` or a `Map`.
 
 ### C-06 `FORCE_COLOR` together with `NO_COLOR` leaks a Node warning (BUG, LOW)  - open, `ADV-commands-08`
-* Repro: `FORCE_COLOR=1 NO_COLOR=1 ebx config list`. Actual stderr: `(node:PID) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.`; Python prints nothing.
-* Root cause: Node's own startup check on the real environment (before `src/bin/ebx.ts` runs).
-* Fix: in the launcher/shim (`bin/ebx.js` wrapper) call `process.removeAllListeners("warning")` is too late; use `NODE_NO_WARNINGS=1`/`--no-warnings` in the re-exec, or `process.emitWarning` filter via `--disable-warning=...` in the shebang; the compiled binary can strip it at build time.
+* Repro: `FORCE_COLOR=1 NO_COLOR=1 abx config list`. Actual stderr: `(node:PID) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.`; Python prints nothing.
+* Root cause: Node's own startup check on the real environment (before `src/bin/abx.ts` runs).
+* Fix: in the launcher/shim (`bin/abx.js` wrapper) call `process.removeAllListeners("warning")` is too late; use `NODE_NO_WARNINGS=1`/`--no-warnings` in the re-exec, or `process.emitWarning` filter via `--disable-warning=...` in the shebang; the compiled binary can strip it at build time.
 
 ### C-07 scheme-less `E2B_API_URL` message differs (BUG, LOW)  - open, `ADV-commands-09`
-* Repro: `E2B_API_URL=127.0.0.1:9 ebx list` (or `"not a url"`). Expected `Request URL is missing an 'http://' or 'https://' protocol.`;
+* Repro: `E2B_API_URL=127.0.0.1:9 abx list` (or `"not a url"`). Expected `Request URL is missing an 'http://' or 'https://' protocol.`;
   actual `Unexpected error: Invalid URL "127.0.0.1:9"`.
 * Root cause: `src/transport/_httpx.ts:472` throws `InvalidURL` with Node's wording, and the scheme-less case should be the `UnsupportedProtocol`
   message (httpx `_transports/default.py`/`httpcore`); `InvalidURL` is only for unparsable authority.
@@ -114,7 +114,7 @@ Severity is the user impact on a real run. "expected" is always the Python oracl
   / `"Request URL has an unsupported protocol 'ftp://'."` and let the CLI map it like Python.
 
 ### C-08 download write error carries a filename (BUG, LOW)  - open, `ADV-commands-10`
-* Repro: `ebx download SBX /home/user/hello.txt /dev/full`. Expected `OS error: [Errno 28] No space left on device`; actual appends `: '/dev/full'`.
+* Repro: `abx download SBX /home/user/hello.txt /dev/full`. Expected `OS error: [Errno 28] No space left on device`; actual appends `: '/dev/full'`.
 * Root cause: `src/api/files.ts:90` `fs.writeFileSync` error carries `path`; the generic OSError mapper uses it. Python's `write_bytes` failure has no filename in this path
   (the open succeeds, the write fails). Only the write-failure case differs; open failures (`ENOENT`, `EACCES`) correctly include the filename.
 * Fix: map write failures with `toOSError(e, null)` (open the file with `openSync` first, then `writeSync`, so open and write errors are distinguishable).

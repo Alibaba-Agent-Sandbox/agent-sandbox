@@ -28,7 +28,7 @@ export function addCliOptions(pairs: readonly string[]): void {
     const key = idx > 0 ? pair.slice(0, idx).trim() : "";
     if (!key) {
       throw new ProviderConfigError(`Invalid --opt '${pair}': expected KEY=VALUE.`, {
-        suggestion: "Example: --opt region=cn-shanghai (see 'ebx provider info ID' for the options).",
+        suggestion: "Example: --opt region=cn-shanghai (see 'abx provider info ID' for the options).",
       });
     }
     selection.options[key] = pair.slice(idx + 1);

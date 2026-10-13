@@ -5,7 +5,7 @@ import "../_support/isolatedHome.js";
 import fs from "node:fs";
 import path from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { cli } from "../../src/cli/main.js";
 import * as qwen from "../../src/agent/qwen_code.js";
@@ -19,11 +19,8 @@ const iso = useIsolatedEnv();
 const runner = (): CliRunner => new CliRunner();
 const tmpPath = (): string => iso.tmp_path;
 
-const LEGACY_LLM_KEY = "sk-" + "placeholder-legacy456";
-
-
 describe("TestConfigLLMApiKey", () => {
-  // Tests for llm_api_key config set/get (secure ~/.ebx/.env storage).
+  // Tests for llm_api_key config set/get (secure ~/.abx/.env storage).
 
   it("test_set_llm_api_key", async () => {
     const tmp = tmpPath();
@@ -38,8 +35,8 @@ describe("TestConfigLLMApiKey", () => {
     // Value should be masked in output
     expect(result.output).not.toContain("sk-test123");
     expect(result.output).toContain("***");
-    // The key is stored in ~/.ebx/.env as EBX_LLM_API_KEY (never TOML).
-    expect(readText(envFile)).toBe("EBX_LLM_API_KEY=sk-test123\n");
+    // The key is stored in ~/.abx/.env as ABX_LLM_API_KEY (never TOML).
+    expect(readText(envFile)).toBe("ABX_LLM_API_KEY=sk-test123\n");
     expect(exists(configFile)).toBe(false);
     // The env file holds credentials, so it stays owner-only.
     if (process.platform !== "win32") expect(fs.statSync(envFile).mode & 0o777).toBe(0o600);
@@ -56,7 +53,7 @@ describe("TestConfigLLMApiKey", () => {
     );
 
     expect(result.exit_code).toBe(0);
-    expect(readText(envFile)).toBe("EBX_LLM_API_KEY=sk-new-secret\n");
+    expect(readText(envFile)).toBe("ABX_LLM_API_KEY=sk-new-secret\n");
     // The old copy never resurrects from config.toml. An empty file is removed.
     expect(exists(configFile)).toBe(false);
   });
@@ -64,19 +61,19 @@ describe("TestConfigLLMApiKey", () => {
   it("test_get_reads_legacy_toml_copy", async () => {
     // A pre-migration llm_api_key in config.toml is still readable.
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, "config.toml"), `[transport]\nllm_api_key = "${LEGACY_LLM_KEY}"\n`);
+    fs.writeFileSync(path.join(tmp, "config.toml"), '[transport]\nllm_api_key = "sk-placeholder-legacy456"\n');
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "llm_api_key"]));
 
     expect(result.exit_code).toBe(0);
-    expect(result.output).not.toContain(LEGACY_LLM_KEY);
+    expect(result.output).not.toContain("sk-placeholder-legacy456");
     expect(result.output).toContain("***");
   });
 
   it("test_secure_storage_wins_over_legacy_toml", async () => {
-    // ~/.ebx/.env (and the process env) outrank the legacy TOML copy.
+    // ~/.abx/.env (and the process env) outrank the legacy TOML copy.
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, "config.toml"), `[transport]\nllm_api_key = "${LEGACY_LLM_KEY}"\n`);
-    fs.writeFileSync(path.join(tmp, ".env"), "EBX_LLM_API_KEY=sk-secure-key-654321\n");
+    fs.writeFileSync(path.join(tmp, "config.toml"), '[transport]\nllm_api_key = "sk-placeholder-legacy456"\n');
+    fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-secure-key-654321\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
       runner().invoke(cli, ["--json", "config", "get", "llm_api_key"]),
     );
@@ -91,9 +88,9 @@ describe("TestConfigLLMApiKey", () => {
     // `config set llm_api_key ""` clears .env AND the legacy TOML copy.
     const tmp = tmpPath();
     const configFile = path.join(tmp, "config.toml");
-    fs.writeFileSync(configFile, `[transport]\nllm_api_key = "${LEGACY_LLM_KEY}"\nregion = "cn-shanghai"\n`);
+    fs.writeFileSync(configFile, '[transport]\nllm_api_key = "sk-placeholder-legacy456"\nregion = "cn-shanghai"\n');
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "EBX_LLM_API_KEY=sk-secure-key-654321\n");
+    fs.writeFileSync(envFile, "ABX_LLM_API_KEY=sk-secure-key-654321\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "set", "llm_api_key", ""]));
 
     expect(result.exit_code).toBe(0);
@@ -106,7 +103,7 @@ describe("TestConfigLLMApiKey", () => {
 
   it("test_get_llm_api_key_masked", async () => {
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, ".env"), "EBX_LLM_API_KEY=sk-test123abcdef\n");
+    fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-test123abcdef\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "llm_api_key"]));
 
     expect(result.exit_code).toBe(0);
@@ -206,11 +203,11 @@ describe("TestConfigListLLM", () => {
 });
 
 describe("TestCredentialPriority", () => {
-  // Process environment wins over ~/.ebx; the stored value is the fallback.
+  // Process environment wins over ~/.abx; the stored value is the fallback.
 
   it("test_env_api_key_beats_stored_file", async () => {
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, ".env"), "EBX_LLM_API_KEY=sk-stored-key-aaa111\n");
+    fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-stored-key-aaa111\n");
     iso.monkeypatch.setenv("DASHSCOPE_API_KEY", "sk-env-key-bbb222");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
@@ -221,7 +218,7 @@ describe("TestCredentialPriority", () => {
 
   it("test_stored_api_key_when_env_unset", async () => {
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, ".env"), "EBX_LLM_API_KEY=sk-stored-key-aaa111\n");
+    fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-stored-key-aaa111\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
     expect(result.exit_code).toBe(0);
@@ -252,26 +249,5 @@ describe("ConfigDefaultsGuard", () => {
     expect(_businessDefault("llm_model")).toBe(qwen._DEFAULT_OPENAI_MODEL);
     expect(qwen._DEFAULT_OPENAI_BASE_URL).toBe("https://dashscope.aliyuncs.com/compatible-mode/v1");
     expect(qwen._DEFAULT_OPENAI_MODEL).toBe("qwen3-coder-plus");
-  });
-});
-
-describe("ConfigImportOrder", () => {
-  it("config_cmd loads before main without touching main", async () => {
-    vi.resetModules();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const errs = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    try {
-      const cfg = await import("../../src/cli/commands/config_cmd.js");
-      expect(typeof cfg.loadShortcuts).toBe("function");
-      expect(typeof cfg._configFileExists).toBe("function");
-      expect(typeof cfg._createDefaultConfig).toBe("function");
-      const main = await import("../../src/cli/main.js");
-      await main.cli.whenReady();
-      const output = [...warn.mock.calls, ...errs.mock.calls].flat().join("\n");
-      expect(output).not.toContain("before initialization");
-    } finally {
-      warn.mockRestore();
-      errs.mockRestore();
-    }
   });
 });

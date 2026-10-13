@@ -1,14 +1,14 @@
 #!/bin/bash
 # Deploy remaining templates using stepped approach to avoid OOM
 # Each step is a separate process
-# Templates live in the SSOT repo Easy-Sandbox/awesome-templates (this repo keeps
+# Templates live in the SSOT repo alibaba-agent-sandbox/awesome-templates (this repo keeps
 # only the python-hello fixture); they are fetched into the cache on demand.
 #
-# The CLI steps call the `ebx` executable (EBX_BIN overrides, default: ebx).  The
+# The CLI steps call the `abx` executable (ABX_BIN overrides, default: abx).  The
 # docker-login / official-template steps use the Python SDK API directly, so they
-# need a Python with `easy-sandbox` installed (PYTHON overrides, default: python3).
+# need a Python with `agent-sandbox` installed (PYTHON overrides, default: python3).
 # The wheel to inject is built from the python-sdk repository (WHEEL overrides;
-# default: the newest dist/easy_sandbox-*.whl there).
+# default: the newest dist/agent_sandbox-*.whl there).
 # Other environment: ACR_NAMESPACE (required, your ACR namespace), TAG (image tag,
 # default: dev), ACR_REGISTRY / REGION (default: cn-hangzhou), DOCKER_PLATFORM
 # (default: linux/amd64, the sandbox runtime architecture), RESULTS_FILE (summary
@@ -16,7 +16,7 @@
 set -euo pipefail
 
 WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EBX_BIN="${EBX_BIN:-ebx}"
+ABX_BIN="${ABX_BIN:-abx}"
 PYTHON="${PYTHON:-python3}"
 EXAMPLES_TEMPLATES_DIR="${EXAMPLES_TEMPLATES_DIR:-$WORKDIR/../python-sdk/examples/templates}"
 TAG="${TAG:-dev}"
@@ -25,12 +25,12 @@ ACR_NS="$ACR_NAMESPACE"
 REGION="${REGION:-cn-hangzhou}"
 ACR_REGISTRY="${ACR_REGISTRY:-registry.$REGION.aliyuncs.com}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
-RESULTS_FILE="${RESULTS_FILE:-$(mktemp "${TMPDIR:-/tmp}/ebx_deploy_results.XXXXXX")}"
+RESULTS_FILE="${RESULTS_FILE:-$(mktemp "${TMPDIR:-/tmp}/abx_deploy_results.XXXXXX")}"
 if [ -z "${WHEEL:-}" ]; then
-    WHEEL="$(ls -t "$WORKDIR"/../python-sdk/dist/easy_sandbox-*.whl 2>/dev/null | head -n 1 || true)"
+    WHEEL="$(ls -t "$WORKDIR"/../python-sdk/dist/agent_sandbox-*.whl 2>/dev/null | head -n 1 || true)"
 fi
 [ -f "${WHEEL:-}" ] || { echo "No wheel found; build one in the python-sdk repo or set WHEEL=<path>" >&2; exit 1; }
-CATALOG_CACHE="$HOME/.ebx/templates/Easy-Sandbox/awesome-templates/default"
+CATALOG_CACHE="$HOME/.abx/templates/alibaba-agent-sandbox/awesome-templates/default"
 
 resolve_template_dir() {
     local name="$1"
@@ -39,8 +39,8 @@ resolve_template_dir() {
         return
     fi
     if [ ! -d "$CATALOG_CACHE/$name" ]; then
-        echo "Fetching $name from Easy-Sandbox/awesome-templates..." >&2
-        "$EBX_BIN" --region "$REGION" \
+        echo "Fetching $name from alibaba-agent-sandbox/awesome-templates..." >&2
+        "$ABX_BIN" --region "$REGION" \
             template install "$name" --download-only >&2
     fi
     echo "$CATALOG_CACHE/$name"
@@ -69,7 +69,7 @@ deploy_template() {
     echo "[2/4] Building Docker image..."
     docker build -t "$name:$TAG" --platform "$DOCKER_PLATFORM" "$tdir" 2>&1 | tail -5
     local build_exit=$?
-    rm -f "$tdir/easy_sandbox-"*.whl
+    rm -f "$tdir/agent_sandbox-"*.whl
     if [ $build_exit -ne 0 ]; then
         echo "FAIL: Docker build failed for $name"
         echo "$name|FAIL|N/A|$acr_ref|docker-build-failed|$(($(date +%s)-start_ts))s" >> "$RESULTS_FILE"
@@ -82,9 +82,9 @@ deploy_template() {
     docker tag "$name:$TAG" "$acr_ref"
     # Login via project code
     $PYTHON -c "
-from easy_sandbox.api.docker_builder import DockerBuilder
+from agent_sandbox.api.docker_builder import DockerBuilder
 b = DockerBuilder()
-from easy_sandbox.transport.config import load_config
+from agent_sandbox.transport.config import load_config
 cfg = load_config(region='$REGION')
 creds = b.login_acr_with_aksk('$ACR_REGISTRY', cfg.access_key_id, cfg.access_key_secret, region='$REGION')
 print('ACR login OK, temp user:', creds.get('tempUserName', 'N/A')[:8] + '...')
@@ -100,9 +100,9 @@ print('ACR login OK, temp user:', creds.get('tempUserName', 'N/A')[:8] + '...')
     # Step 4: Create/Update template via official API
     echo "[4/4] Creating/Updating template via official API..."
     $PYTHON -c "
-from easy_sandbox.api.fc_template import create_official_template
-from easy_sandbox.transport.config import load_config
-from easy_sandbox.api.docker_builder import DockerBuilder
+from agent_sandbox.api.fc_template import create_official_template
+from agent_sandbox.transport.config import load_config
+from agent_sandbox.api.docker_builder import DockerBuilder
 
 cfg = load_config(region='$REGION')
 b = DockerBuilder()

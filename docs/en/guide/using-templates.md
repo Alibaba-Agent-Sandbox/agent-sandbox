@@ -19,7 +19,7 @@ A template that omits `capabilities` gets the default capability set `{shell, fi
 
 ## List Available Templates
 
-Currently, the template list comes from locally installed templates (located in `~/.ebx/templates/`). Use `ebx template install` to install templates.
+Currently, the template list comes from locally installed templates (located in `~/.abx/templates/`). Use `abx template install` to install templates.
 
 ---
 
@@ -29,39 +29,39 @@ Currently, the template list comes from locally installed templates (located in 
 
 ```bash
 # Basic format: owner/repo
-ebx template install owner/repo
+abx template install owner/repo
 
 # Specify a version tag
-ebx template install owner/repo@v1.0
+abx template install owner/repo@v1.0
 
 # Specify a subdirectory
-ebx template install owner/repo//path/to/template
+abx template install owner/repo//path/to/template
 
 # Use an alias
-ebx template install owner/repo --alias my-python
+abx template install owner/repo --alias my-python
 
 # Private repository / higher rate limit: save the token once (masked asterisk prompt)
-ebx config set github_token
-ebx template install owner/private-repo
+abx config set github_token
+abx template install owner/private-repo
 
 # One-off override for a single command (may leak into shell history or the process list)
-ebx template install owner/private-repo --token ghp_xxx
+abx template install owner/private-repo --token ghp_xxx
 ```
 
-Anonymous GitHub downloads are limited to 60 requests/hour; a saved token raises the limit to 5000/hour. Prefer `ebx config set github_token` over `--token` — the latter is a one-off override that may leak into shell history or the process list. Resolution priority: `--token` > `GITHUB_TOKEN` > `./.env` > stored `github_token`. When no token is configured and the anonymous limit is hit, interactive terminals offer a guided one-shot setup (`--token` is never required).
+Anonymous GitHub downloads are limited to 60 requests/hour; a saved token raises the limit to 5000/hour. Prefer `abx config set github_token` over `--token` — the latter is a one-off override that may leak into shell history or the process list. Resolution priority: `--token` > `GITHUB_TOKEN` > `./.env` > stored `github_token`. When no token is configured and the anonymous limit is hit, interactive terminals offer a guided one-shot setup (`--token` is never required).
 
 ### Install from a Local Directory
 
 ```bash
-ebx template install ./my-template --registry-type local
+abx template install ./my-template --registry-type local
 ```
 
 ### Shortcut
 
-`ebx install` is a top-level shortcut for `ebx template install`:
+Install with `abx template install`:
 
 ```bash
-ebx install owner/repo
+abx template install owner/repo
 ```
 
 ---
@@ -69,7 +69,7 @@ ebx install owner/repo
 ## Create a Sandbox from a Template
 
 ```bash
-ebx create --template my-python
+abx create --template my-python
 ```
 
 ---
@@ -79,10 +79,10 @@ ebx create --template my-python
 When you are unsure which template to use, you can describe your needs in natural language:
 
 ```bash
-ebx create "a Python data analysis environment with pandas and matplotlib"
+abx create "a Python data analysis environment with pandas and matplotlib"
 ```
 
-`ebx create "<description>"` (without an explicit `--template`) takes the AI path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`easy_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
+`abx create "<description>"` (without an explicit `--template`) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
 
 ---
 
@@ -92,7 +92,7 @@ ebx create "a Python data analysis environment with pandas and matplotlib"
 |----------|-------------|----------------------|
 | `base` | Basic Ubuntu environment | `shell`, `files`, `code` |
 
-> **Tip**: You can install more templates from the community via `ebx template install`, or create your own by following [Authoring Templates](authoring-templates.md). A project that already has source code can be adapted in place with `ebx template init --adopt`.
+> **Tip**: You can install more templates from the community via `abx template install`, or create your own by following [Authoring Templates](authoring-templates.md). A project that already has source code can be adapted in place with `abx template init --adopt`.
 
 ---
 
@@ -114,10 +114,10 @@ When a template does not declare `capabilities`, the default capability set `{sh
 
 ## Custom Commands
 
-Templates can define custom commands, invoked by users with `ebx run`:
+Templates can define custom commands, invoked by users with `abx run`:
 
 ```bash
-ebx run sbx-xxxx dev --arg port=8080
+abx run sbx-xxxx dev --arg port=8080
 ```
 
 ---
@@ -131,4 +131,4 @@ ebx run sbx-xxxx dev --arg port=8080
 
 ## Related SDK documentation
 
-Creating sandboxes from templates in Python (`Sandbox.create(template=...)`, `sandbox.custom()`, `sandbox.list_commands()`) is covered by the SDK's [SDK Usage Guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md). The `template.yaml` field reference is the [Template YAML Spec](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
+Creating sandboxes from templates in Python (`Sandbox.create(template=...)`, `sandbox.custom()`, `sandbox.list_commands()`) is covered by the SDK's [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md). The `template.yaml` field reference is the [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).

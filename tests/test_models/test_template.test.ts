@@ -14,7 +14,6 @@ describe("TestSandboxTemplate", () => {
     expect(tmpl.env).toEqual({});
     expect(tmpl.ports).toEqual([]);
     expect(tmpl.capabilities).toBeNull();
-    expect(tmpl.custom_commands).toEqual({});
   });
 
   it("test_full_template", () => {

@@ -1,7 +1,7 @@
 /**
- * Interactive REPL helpers for `ebx connect` (port of `cli/repl.py`).
+ * Interactive REPL helpers for `abx connect` (port of `cli/repl.py`).
  *
- * `ebx connect` is deliberately a *line-based* command REPL -- not a PTY and not an SSH session: every entered line is
+ * `abx connect` is deliberately a *line-based* command REPL -- not a PTY and not an SSH session: every entered line is
  * executed as its own process and no shell state survives between lines. This module owns the behaviours that are
  * specific to that loop:
  *
@@ -23,21 +23,22 @@ import { PassThrough } from "node:stream";
 import * as nodeReadline from "node:readline";
 
 import { shlexSplit } from "../api/_shlex.js";
-import { EOFError, KeyboardInterrupt, sys } from "../framework/index.js";
-import { cpSlice, len, rstrip, sortedStrings, splitWhitespace } from "../framework/py.js";
-import { getCloseMatches } from "../framework/difflib.js";
+import { EOFError, KeyboardInterrupt } from "./errors.js";
+import { sys } from "./io.js";
+import { cpSlice, len, rstrip, sortedStrings, splitWhitespace } from "../utils/_py.js";
+import { closeMatches } from "../utils/suggest.js";
 import { CommandTimeoutError, EnvdRpcError, SandboxError } from "../models/errors.js";
 import { AsyncioTimeoutError } from "../transport/ws.js";
 import { pyStr, pyStripChars } from "../utils/_pyformat.js";
 import * as httpx from "../transport/_httpx.js";
 
-/** Wall-clock limit applied to every REPL line; `ebx exec --timeout` accepts larger values for long-running commands. */
+/** Wall-clock limit applied to every REPL line; `abx exec --timeout` accepts larger values for long-running commands. */
 export const REPL_TIMEOUT = 30;
 
 /** Short form used inside suggestions (the real sandbox id would be noise). */
-const _EXEC_HINT = "ebx exec <SANDBOX_ID>";
+const _EXEC_HINT = "abx exec <SANDBOX_ID>";
 
-const _STATUS_HINT = "Check the sandbox status with 'ebx info <SANDBOX_ID>' and retry.";
+const _STATUS_HINT = "Check the sandbox status with 'abx info <SANDBOX_ID>' and retry.";
 
 const _MAX_MESSAGE_LEN = 240;
 
@@ -513,7 +514,7 @@ function _oneEditAway(candidateIn: string, nameIn: string): boolean {
 function _spellSuggestion(name: string, known: Iterable<string>): string {
   const candidates = sortedStrings(new Set([...known].filter((c) => c && c !== name)));
   if (!name || candidates.length === 0) return "";
-  const matches = getCloseMatches(name, candidates, 1, 0.7);
+  const matches = closeMatches(name, candidates, 1, 0.7);
   if (matches.length) return matches[0] as string;
   const near = candidates.filter((c) => _oneEditAway(name, c));
   if (near.length) {
@@ -620,7 +621,7 @@ export function describeCommandFailure(
     return new CommandFailure({
       message,
       suggestion:
-        "The sandbox may have stopped or hit its lifetime limit - " + "check 'ebx info <SANDBOX_ID>' and retry.",
+        "The sandbox may have stopped or hit its lifetime limit - " + "check 'abx info <SANDBOX_ID>' and retry.",
       code: "E5003",
     });
   }
@@ -644,6 +645,6 @@ export function describeCommandFailure(
   const detail = _clip(sanitizeText(pyStr(exc))) || _typeName(exc);
   return new CommandFailure({
     message: `Unexpected error while running this line: ${detail}`,
-    suggestion: "Run 'ebx -v connect <SANDBOX_ID>' for DEBUG diagnostics.",
+    suggestion: "Run 'abx -v connect <SANDBOX_ID>' for DEBUG diagnostics.",
   });
 }

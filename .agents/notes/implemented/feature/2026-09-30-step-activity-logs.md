@@ -15,7 +15,7 @@ tool returned. The terminal looked frozen.
 ## Decision
 
 - Long deploy steps use the same block as agent generation: a
-  `message... 12s` header, and under it the last `EBX_ACTIVITY_LINES`
+  `message... 12s` header, and under it the last `ABX_ACTIVITY_LINES`
   (default 4) log lines in grey, scrolling by line.
 - `docker build` / `docker push` lines are that log. BuildKit is asked for
   `--progress=plain` (stdout is a pipe; the tty progress UI would be cursor
@@ -43,12 +43,12 @@ The same header now covers steps outside deploy. `OutputManager.spinner` is that
 
 Grey lines are added only where the text is safe:
 
-- upload and `ebx create --upload` list relative paths, never file bytes
+- upload and `abx create --upload` list relative paths, never file bytes
 - the coding-agent install lists milestones (mirror, checksum, extract)
-- `ebx kill --all` lists `i/N <id>`
+- `abx kill --all` lists `i/N <id>`
 - the legacy template build wait appends `status  Ns` through `on_output`, without restarting the phase
 
-Download, template fetch, and `ebx template create` have no line log; the header is enough. `--build-arg` values are redacted in the docker command info log. ACR token response bodies are not debug-logged.
+Download, template fetch, and `abx template create` have no line log; the header is enough. `--build-arg` values are redacted in the docker command info log. ACR token response bodies are not debug-logged.
 
 ## Test strategy
 
@@ -72,9 +72,9 @@ Download, template fetch, and `ebx template create` have no line log; the header
 
 ## Files changed
 
-- `src/easy_sandbox/cli/output.py`, `src/easy_sandbox/cli/commands/template.py`,
-  `src/easy_sandbox/cli/commands/sandbox.py`, `src/easy_sandbox/cli/commands/_coding_agent.py`,
-  `src/easy_sandbox/api/docker_builder.py`, `src/easy_sandbox/protocol/template.py`,
-  `src/easy_sandbox/agent/qwen_code.py`
+- `src/agent_sandbox/cli/output.py`, `src/agent_sandbox/cli/commands/template.py`,
+  `src/agent_sandbox/cli/commands/sandbox.py`, `src/agent_sandbox/cli/commands/_coding_agent.py`,
+  `src/agent_sandbox/api/docker_builder.py`, `src/agent_sandbox/protocol/template.py`,
+  `src/agent_sandbox/agent/qwen_code.py`
 - `docs/{en,zh}/design/cli-design.md`, `docs/{en,zh}/guide/deploy-and-build.md`,
   `docs/{en,zh}/reference/cli-reference.md`, `CHANGELOG.md`

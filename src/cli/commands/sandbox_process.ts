@@ -1,10 +1,12 @@
-/** Sandbox process-management CLI commands: list, start, info, signal (port of `cli/commands/sandbox_process.py`). */
+/** Sandbox process-inspection CLI commands: list, info, signal (port of `cli/commands/sandbox_process.py`). */
 
 import type { Sandbox } from "../../api/sandbox.js";
 import type { ProcessResult } from "../../models/process.js";
-import { PY_WHITESPACE } from "../../framework/py.js";
+import { PY_WHITESPACE } from "../../utils/_py.js";
 import { pyStrip, pySplitlines } from "../../utils/_pyformat.js";
-import { INT, PyFloat, argument, command, echo, group, option, sysExit } from "../../framework/index.js";
+import { argument, command, group, option } from "../kit.js";
+import { INT } from "../types.js";
+import { sysExit } from "../errors.js";
 import { getFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
 
@@ -47,15 +49,15 @@ export const process_list = command("list", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox process list abc123\n" +
+    "    abx sandbox process list abc123\n" +
     "\n" +
-    "    ebx --json sandbox process list abc123\n" +
+    "    abx --json sandbox process list abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox process info SANDBOX_ID PID\n" +
-    "  ebx sandbox process start SANDBOX_ID --command CMD\n" +
-    "  ebx sandbox system metrics SANDBOX_ID",
+    "  abx sandbox process info SANDBOX_ID PID\n" +
+    "  abx exec SANDBOX_ID --background -- CMD\n" +
+    "  abx sandbox system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -90,68 +92,6 @@ export const process_list = command("list", {
 });
 
 // ---------------------------------------------------------------------------
-// process start
-// ---------------------------------------------------------------------------
-
-export const process_start = command("start", {
-  help:
-    "Execute a command synchronously and wait for completion.\n" +
-    "\n" +
-    "Output is collected and displayed after the command finishes.\n" +
-    "\n" +
-    "Examples:\n" +
-    "\n" +
-    "    ebx sandbox process start abc123 --command \"python app.py\"\n" +
-    "\n" +
-    "    ebx sandbox process start abc123 -c \"node server.js\" --cwd /app\n" +
-    "\n" +
-    "\b\n" +
-    "Related commands:\n" +
-    "  ebx sandbox process list SANDBOX_ID\n" +
-    "  ebx sandbox shell-stream SANDBOX_ID --command CMD\n" +
-    "  ebx exec SANDBOX_ID CMD",
-  params: [
-    argument(["sandbox_id"]),
-    option(["--command", "-c", "cmd"], { required: true, help: "Command to execute" }),
-    option(["--timeout", "-t", "cmd_timeout"], {
-      type: INT,
-      default: 300,
-      help: "Command timeout in seconds (positive integer; default: 300)",
-    }),
-    option(["--cwd"], { default: "", help: "Working directory" }),
-  ],
-  callback: handleErrors(async (ctx, params) => {
-    const sandbox_id = params["sandbox_id"] as string;
-    const cmd = params["cmd"] as string;
-    const cmd_timeout = params["cmd_timeout"] as number;
-    const cwd = params["cwd"] as string;
-
-    const fmt = getFormatter(ctx);
-    const sandbox = await _connectSandbox(sandbox_id);
-
-    const result = (await sandbox.commands.run(cmd, { timeout: cmd_timeout, cwd })) as ProcessResult;
-
-    if (fmt.use_json) {
-      fmt.printData(
-        new Map<string, unknown>([
-          ["stdout", result.stdout],
-          ["stderr", result.stderr],
-          ["exit_code", result.exit_code],
-          ["execution_time", new PyFloat(result.execution_time)],
-        ]),
-      );
-    } else {
-      if (result.stdout) echo(result.stdout, { nl: false });
-      if (result.stderr) echo(result.stderr, { err: true, nl: false });
-      if (result.exit_code === 0) fmt.printSuccess("Process completed successfully.");
-      else fmt.printError(`Process exited with code ${result.exit_code}.`);
-    }
-
-    sysExit(result.exit_code);
-  }),
-});
-
-// ---------------------------------------------------------------------------
 // process info
 // ---------------------------------------------------------------------------
 
@@ -163,15 +103,15 @@ export const process_info = command("info", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox process info abc123 1234\n" +
+    "    abx sandbox process info abc123 1234\n" +
     "\n" +
-    "    ebx --json sandbox process info abc123 1234\n" +
+    "    abx --json sandbox process info abc123 1234\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox process list SANDBOX_ID\n" +
-    "  ebx sandbox process signal SANDBOX_ID PID\n" +
-    "  ebx sandbox system metrics SANDBOX_ID",
+    "  abx sandbox process list SANDBOX_ID\n" +
+    "  abx sandbox process signal SANDBOX_ID PID\n" +
+    "  abx sandbox system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"]), argument(["pid"], { type: INT })],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -221,15 +161,15 @@ export const process_signal = command("signal", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    ebx sandbox process signal abc123 1234\n" +
+    "    abx sandbox process signal abc123 1234\n" +
     "\n" +
-    "    ebx sandbox process signal abc123 1234 --signal 9\n" +
+    "    abx sandbox process signal abc123 1234 --signal 9\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx sandbox process info SANDBOX_ID PID\n" +
-    "  ebx sandbox process list SANDBOX_ID\n" +
-    "  ebx sandbox process start SANDBOX_ID --command CMD",
+    "  abx sandbox process info SANDBOX_ID PID\n" +
+    "  abx sandbox process list SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID --background -- CMD",
   params: [
     argument(["sandbox_id"]),
     argument(["pid"], { type: INT }),
@@ -258,25 +198,22 @@ export const process_signal = command("signal", {
 
 export const process = group("process", {
   help:
-    "Inspect, run, and signal processes inside a sandbox.\n" +
+    "Inspect and signal processes inside a sandbox (to start one: abx exec --background).\n" +
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  ebx sandbox process list abc123\n" +
-    "  ebx sandbox process start abc123 --command \"python app.py\"\n" +
-    "  ebx sandbox process info abc123 1234\n" +
+    "  abx sandbox process list abc123\n" +
+    "  abx sandbox process info abc123 1234\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  ebx exec SANDBOX_ID CMD\n" +
-    "  ebx sandbox shell-stream SANDBOX_ID --command CMD\n" +
-    "  ebx sandbox system metrics SANDBOX_ID",
+    "  abx exec SANDBOX_ID --background -- CMD\n" +
+    "  abx sandbox system metrics SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);
   },
 });
 
 process.addCommand(process_list, "list");
-process.addCommand(process_start, "start");
 process.addCommand(process_info, "info");
 process.addCommand(process_signal, "signal");

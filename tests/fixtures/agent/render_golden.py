@@ -1,11 +1,11 @@
 """Regenerate ``golden.json``: prompts rendered by the original Python modules.
 
-Usage (``PYTHONPATH`` must expose the original ``easy_sandbox`` package, which must be the pristine v0.2.0 source):
+Usage (``PYTHONPATH`` must expose the original ``agent_sandbox`` package, which must be the pristine v0.2.0 source):
 
     python3 render_golden.py > golden.json
 
 ``tests/test_agent/*.test.ts`` compare the TypeScript renderers with these strings. The only intentional difference
-is the template-guide install hint (``easy-sandbox`` -> ``easy-sandbox-server``), applied in the tests (see
+is the template-guide install hint (``agent-sandbox`` -> ``agent-sandbox-server``), applied in the tests (see
 ``parity/KNOWN-GAPS.md``).
 """
 
@@ -14,8 +14,8 @@ from __future__ import annotations
 import json
 import sys
 
-from easy_sandbox.agent import adopt, clarify, codegen
-from easy_sandbox.agent import template_guide as tg
+from agent_sandbox.agent import adopt, clarify, codegen
+from agent_sandbox.agent import template_guide as tg
 
 ASCII_DESC = "Run a Python data analysis job"
 TRICKY_DESC = "  返回 {'a': {b}} 作为 json \u3000\n含 $dollar 与 %s \\n  "
@@ -47,8 +47,8 @@ def qwen_golden() -> dict:
     import tempfile
     from pathlib import Path
 
-    from easy_sandbox.agent import qwen_code as qc
-    from easy_sandbox.models.errors import QwenCodeCredentialError
+    from agent_sandbox.agent import qwen_code as qc
+    from agent_sandbox.models.errors import QwenCodeCredentialError
 
     res: dict = {}
 
@@ -237,7 +237,7 @@ def main() -> None:
     out["required_template_files"] = list(tg.REQUIRED_TEMPLATE_FILES)
 
     out["codegen"] = [
-        {"description": d, "name": "ebx-nl-sandbox-abc123", "prompt": codegen.build_codegen_prompt(d, "ebx-nl-sandbox-abc123")}
+        {"description": d, "name": "abx-nl-sandbox-abc123", "prompt": codegen.build_codegen_prompt(d, "abx-nl-sandbox-abc123")}
         for d in (ASCII_DESC, TRICKY_DESC, "x", "用 playwright 截图")
     ]
 

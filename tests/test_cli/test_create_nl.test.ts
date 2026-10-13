@@ -1,5 +1,5 @@
 /**
- * Tests for the `ebx create "<description>"` AI generation routing.
+ * Tests for the `abx create "<description>"` AI generation routing.
  *
  * The natural-language path now drives Qwen Code codegen behind a research-first clarification loop (plain research
  * round on a native session, then the structured assessment, then one question per round); `--template` keeps the
@@ -29,7 +29,6 @@ import { cli } from "../../src/cli/main.js";
 import { AICodegenError, DockerBuildError, QwenCodeCredentialError } from "../../src/models/errors.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
 
 const cfg = vi.hoisted(() => ({ writeEnvVar: vi.fn() }));
 
@@ -38,12 +37,7 @@ vi.mock("../../src/cli/commands/config_cmd.js", () => ({
   _effectiveValue: async () => [null, "default"],
   writeEnvVar: (...a: unknown[]) => cfg.writeEnvVar(...a),
   _removeTomlKey: async () => undefined,
-  loadShortcuts: () => ({}),
-  _configFileExists: () => true,
-  _createDefaultConfig: () => undefined,
 }));
-
-useDefaultShortcutsOnly();
 
 const runner = (): CliRunner => new CliRunner();
 
@@ -73,7 +67,7 @@ type Mock = ReturnType<typeof vi.fn>;
 // ---------------------------------------------------------------------------
 
 /** Build a mock Sandbox object. */
-function _makeSandbox(sandbox_id = "sbx-nl-001", template_ = "ebx-nl-sandbox-abc123", status = "running"): Sandbox {
+function _makeSandbox(sandbox_id = "sbx-nl-001", template_ = "abx-nl-sandbox-abc123", status = "running"): Sandbox {
   const sbInfo = SandboxInfo.modelValidate({
     sandboxID: sandbox_id,
     templateID: template_,
@@ -93,7 +87,7 @@ function _makeSandbox(sandbox_id = "sbx-nl-001", template_ = "ebx-nl-sandbox-abc
 }
 
 /** Build a `CodegenResult` whose files exist on disk. */
-function _makeCodegenResult(tmpPath: string, name = "ebx-nl-sandbox-abc123"): CodegenResult {
+function _makeCodegenResult(tmpPath: string, name = "abx-nl-sandbox-abc123"): CodegenResult {
   const workdir = path.join(tmpPath, "generated");
   fs.mkdirSync(workdir, { recursive: true });
   const dockerfile = path.join(workdir, "Dockerfile");
@@ -125,7 +119,7 @@ const savedSeams = {
 
 /** `_isolated_cwd` + `qwen_env`: hermetic defaults for every AI-path test (individual tests override as needed). */
 beforeEach(() => {
-  tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ebx-create-nl-")));
+  tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "abx-create-nl-")));
   savedCwd = process.cwd();
   process.chdir(tmp);
   cfg.writeEnvVar.mockReset();
@@ -137,9 +131,9 @@ beforeEach(() => {
   qwenCode.seams.resolveQwenCodeCredentials = vi.fn(() => _CREDS);
   vi.spyOn(template, "resolve_acr_namespace").mockReturnValue("test-acr-ns");
   // The generation workspace is prepared before clarification so both phases share one cwd (Qwen sessions are stored per
-  // working directory); fake it so tests never create directories under the real ~/.ebx.
+  // working directory); fake it so tests never create directories under the real ~/.abx.
   const generated = path.join(tmp, "generated-workspace");
-  const prepareWorkdir = vi.fn(async () => [generated, "ebx-nl-sandbox-abc123"] as [string, string]);
+  const prepareWorkdir = vi.fn(async () => [generated, "abx-nl-sandbox-abc123"] as [string, string]);
   codegen.seams.prepareWorkdir = prepareWorkdir as unknown as typeof codegen.seams.prepareWorkdir;
   // Deterministic native session id for the resume assertions.
   clarify.seams.newSessionId = () => _SESSION;
@@ -204,7 +198,7 @@ function _patchClarifyEvaluate(outcomes: Array<ClarifyAssessment | null>): Mock 
   return mock;
 }
 
-/** `Sandbox.create` -> a mock sandbox (`patch("easy_sandbox.api.sandbox.Sandbox.create", AsyncMock(return_value=sb))`). */
+/** `Sandbox.create` -> a mock sandbox (`patch("agent_sandbox.api.sandbox.Sandbox.create", AsyncMock(return_value=sb))`). */
 function patchCreate(sb: Sandbox = _makeSandbox()) {
   return vi.spyOn(Sandbox, "create").mockResolvedValue(sb);
 }
@@ -217,7 +211,7 @@ class _FakePhaseOut {
   progress_messages: string[] = [];
   spinner_messages: string[] = [];
   constructor(
-    readonly useRichSpinner: boolean,
+    readonly useLiveStatus: boolean,
     readonly quiet = false,
   ) {}
 
@@ -243,7 +237,7 @@ describe("TestCreateRouting", () => {
     const result = await runner().invoke(cli, ["create", "-y", "a python data science env"]);
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("AI generated template");
+    expect(result.output).toContain("Generated template");
     expect(result.output).toContain("sbx-nl-001");
 
     expect(genMock).toHaveBeenCalledTimes(1);
@@ -272,7 +266,7 @@ describe("TestCreateRouting", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     expect(genMock).not.toHaveBeenCalled();
-    expect(result.output).not.toContain("AI generated template");
+    expect(result.output).not.toContain("Generated template");
   });
 
   it.each(["--template", "-T"])("test_description_with_explicit_template_is_rejected [%s]", async (templateFlag) => {
@@ -284,7 +278,7 @@ describe("TestCreateRouting", () => {
 
     const result = await runner().invoke(cli, ["create", "python", templateFlag, "custom"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("cannot be combined");
     expect(result.output).toContain("--template");
     expect(genMock).not.toHaveBeenCalled();
@@ -299,13 +293,13 @@ describe("TestCreateRouting", () => {
 
     const result = await runner().invoke(cli, ["create", "--template", "base", "python"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("cannot be combined");
     expect(genMock).not.toHaveBeenCalled();
   });
 
   it("test_no_description_no_template_is_usage_error", async () => {
-    // Bare `ebx create` requires an explicit route (task 210).
+    // Bare `abx create` requires an explicit route (task 210).
     const genMock = vi.fn();
     codegen.seams.generateTemplateFiles = genMock as never;
 
@@ -313,7 +307,7 @@ describe("TestCreateRouting", () => {
 
     expect(result.exit_code, result.output).toBe(2);
     expect(result.output).toContain("No DESCRIPTION or --template given");
-    expect(result.output).toContain("ebx create --template base");
+    expect(result.output).toContain("abx create --template base");
     expect(genMock).not.toHaveBeenCalled();
   });
 
@@ -324,7 +318,7 @@ describe("TestCreateRouting", () => {
     const result = await runner().invoke(cli, ["--json", "create", "-y", "python env"]);
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).not.toContain("AI generated template");
+    expect(result.output).not.toContain("Generated template");
   });
 });
 
@@ -427,7 +421,7 @@ describe("TestQwenCodeCredentialGate", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     expect(cfg.writeEnvVar).toHaveBeenCalledTimes(1);
-    expect(cfg.writeEnvVar).toHaveBeenCalledWith("EBX_LLM_API_KEY", "sk-user-key");
+    expect(cfg.writeEnvVar).toHaveBeenCalledWith("ABX_LLM_API_KEY", "sk-user-key");
     expect(result.output).toContain("Stored llm_api_key");
     expect(resolveMock).toHaveBeenCalledTimes(2);
     // The second resolve must reuse the freshly entered key.
@@ -461,9 +455,9 @@ describe("TestConfirmationAndFailures", () => {
     // confirmation gate.
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required");
-    expect(result.output + (result.stderr || "")).toContain('ebx template init "');
+    expect(result.output + (result.stderr || "")).toContain('abx template init "');
     expect(deploy).not.toHaveBeenCalled();
   });
 
@@ -500,7 +494,7 @@ describe("TestDescriptionClarification", () => {
   // The research-first loop that guards Qwen Code generation.
   //
   // Research, evaluation, and questions all come from Qwen Code itself; these tests fake the thin adapters
-  // (`clarify.runResearch` and `clarify.evaluate`) and verify the Easy Sandbox surface only: the research round before the
+  // (`clarify.runResearch` and `clarify.evaluate`) and verify the Agent Sandbox surface only: the research round before the
   // first assessment, one question per round, the 80% threshold gate, one native session for every round, non-interactive
   // fail-fast, cancel/EOF handling, and graceful degradation.
 
@@ -510,7 +504,7 @@ describe("TestDescriptionClarification", () => {
 
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required");
     expect(result.output).not.toContain("/5"); // the internal round cap is never shown
     expect(result.output).not.toContain("Question 1");
@@ -545,7 +539,7 @@ describe("TestDescriptionClarification", () => {
     expect(result.output).toContain("Example description:");
     expect(result.output).toContain("Python 3.12 with pandas, expose port 8888");
     expect(result.output).toContain("--yes/-y");
-    expect(result.output).toContain("ebx create --template <name>");
+    expect(result.output).toContain("abx create --template <name>");
     expect(genMock).not.toHaveBeenCalled();
     expect(deploy).not.toHaveBeenCalled();
   });
@@ -712,7 +706,7 @@ describe("TestDescriptionClarification", () => {
 describe("TestResearchFirstFlow", () => {
   // Round 1 = plain research run, then the structured assessment.
   //
-  // Both phases come from Qwen Code itself on ONE native session; Easy Sandbox only wires them together and never echoes
+  // Both phases come from Qwen Code itself on ONE native session; Agent Sandbox only wires them together and never echoes
   // the research output.
 
   it("test_round1_research_then_assessment_on_one_session", async () => {
@@ -721,7 +715,7 @@ describe("TestResearchFirstFlow", () => {
 
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(1); // stopped at the confirm gate
+    expect(result.exit_code, result.output).toBe(2); // stopped at the confirm gate
     const research = qwen.research;
     expect(research).toHaveBeenCalledTimes(1);
     // Phase R: the research prompt embeds the description.
@@ -742,7 +736,7 @@ describe("TestResearchFirstFlow", () => {
 
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(1);
+    expect(result.exit_code, result.output).toBe(2);
     expect(result.output).toContain("could not research the public facts");
     // No session came out of research, so the assessment pins it itself.
     expect(opts(evaluateMock)["sessionId"]).toBe(_SESSION);
@@ -769,7 +763,7 @@ describe("TestResearchFirstFlow", () => {
 
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(1);
+    expect(result.exit_code, result.output).toBe(2);
     expect(opts(qwen.research)["sessionId"]).toBe(_SESSION);
     expect(opts(evaluateMock)["sessionId"]).toBe(second);
     expect(opts(evaluateMock)["sessionId"]).not.toBe(_SESSION);
@@ -790,7 +784,7 @@ describe("TestResearchFirstFlow", () => {
 
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(1); // stopped at the confirm gate
+    expect(result.exit_code, result.output).toBe(2); // stopped at the confirm gate
     expect(result.output).toContain("could not research the public facts");
     expect(result.output).toContain(hintFragment);
     expect(result.output).not.toContain("raw internal detail");
@@ -810,7 +804,7 @@ describe("TestResearchFirstFlow", () => {
 
     const result = await runner().invoke(cli, ["create", description]);
 
-    expect(result.exit_code, result.output).toBe(1); // reached the confirm gate
+    expect(result.exit_code, result.output).toBe(2); // reached the confirm gate
     const research = qwen.research;
     expect(research).toHaveBeenCalledTimes(1);
     expect(callArg(research, -1, 0)).toContain("Serverless Devs CLI");
@@ -895,7 +889,7 @@ describe("TestAntiRepetition", () => {
     // returning it.
     expect(result.output).toContain("Question 1: Which port should the service expose?");
     expect(result.output).not.toContain("Question 2:");
-    expect(result.output).toContain("The agent repeated an already-answered question");
+    expect(result.output).toContain("The generator repeated an already-answered question");
     expect(result.output).toContain("Generating anyway.");
     expect(evaluateMock).toHaveBeenCalledTimes(2);
     // Generation still continues the session with the collected answers.
@@ -958,7 +952,7 @@ describe("TestPhaseStatusChannels", () => {
 
     const result = await runner().invoke(cli, ["create", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(1);
+    expect(result.exit_code, result.output).toBe(2);
     expect(result.stderr).toContain("Assessing description");
     expect(result.stderr).toContain("Generating template");
     expect(result.stdout).not.toContain("Assessing description");
@@ -1041,7 +1035,7 @@ describe("TestTemplateOnlySwitch", () => {
 });
 
 describe("TestTemplateInitNaturalLanguage", () => {
-  // `ebx template init "DESCRIPTION"` generates files and stops.
+  // `abx template init "DESCRIPTION"` generates files and stops.
 
   it("test_description_writes_local_files_without_deploy", async () => {
     const [gen, genMock, deploy] = _patchSuccessPipeline(tmp);
@@ -1067,7 +1061,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     expect(result.exit_code, result.output).toBe(0);
     const yamlText = fs.readFileSync(path.join(tmp, "myapp", "template.yaml"), "utf-8");
     expect(yamlText).toContain("name: myapp");
-    expect(fs.existsSync(path.join(tmp, "ebx-nl-sandbox-abc123"))).toBe(false);
+    expect(fs.existsSync(path.join(tmp, "abx-nl-sandbox-abc123"))).toBe(false);
   });
 
   it("test_existing_files_need_force", async () => {
@@ -1101,7 +1095,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
   it("test_top_level_init_shortcut_accepts_a_description", async () => {
     const [gen, , deploy] = _patchSuccessPipeline(tmp);
 
-    const result = await runner().invoke(cli, ["init", "-y", "一个数据分析环境"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "一个数据分析环境"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(deploy).not.toHaveBeenCalled();
@@ -1113,7 +1107,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     const [gen, , deploy] = _patchSuccessPipeline(tmp);
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["init", "a python data science env"], { input: "\n" });
+    const result = await runner().invoke(cli, ["template", "init", "a python data science env"], { input: "\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     const shown = result.output + (result.stderr || "");
@@ -1144,7 +1138,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     const blocked = path.join(tmp, "not-a-dir");
     fs.writeFileSync(blocked, "x", "utf-8");
 
-    const result = await runner().invoke(cli, ["init", "a python data science env"], { input: `${blocked}\n` });
+    const result = await runner().invoke(cli, ["template", "init", "a python data science env"], { input: `${blocked}\n` });
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("not a directory");
@@ -1159,7 +1153,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     fs.mkdirSync(chosen);
     fs.writeFileSync(path.join(chosen, "Dockerfile"), "kept\n", "utf-8");
 
-    const result = await runner().invoke(cli, ["init", "a python data science env"], { input: `${chosen}\n` });
+    const result = await runner().invoke(cli, ["template", "init", "a python data science env"], { input: `${chosen}\n` });
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("already exist");
@@ -1250,7 +1244,7 @@ describe("TestOutputDir", () => {
 
     const result = await runner().invoke(cli, ["create", "-y", "--dir", path.join(locked, "sub"), "python env"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("not writable");
     expect(fs.existsSync(path.join(locked, "sub"))).toBe(false);
   });
@@ -1258,7 +1252,7 @@ describe("TestOutputDir", () => {
   it("test_dir_without_description_is_a_usage_error", async () => {
     const result = await runner().invoke(cli, ["create", "--template", "base", "--dir", tmp]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("--dir only applies");
   });
 
@@ -1269,7 +1263,7 @@ describe("TestOutputDir", () => {
 
     const result = await runner().invoke(cli, ["create", "-y", "--dir", aFile, "python env"]);
 
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("not a directory");
   });
 });

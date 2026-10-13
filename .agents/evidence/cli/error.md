@@ -5,7 +5,7 @@
 ### create 无参数（显式用法错误，不再默认 base）
 
 ```
-$ ebx create
+$ abx create
 Exit code: 2
 ```
 
@@ -14,15 +14,15 @@ Exit code: 2
 ```
 Error: No DESCRIPTION or --template given. Choose one of:
 
-  ebx create --template base       launch the explicit base template
-  ebx create --template <NAME>     launch an existing template (no AI)
-  ebx create "<DESCRIPTION>"      AI-generate, build, deploy, create
+  abx create --template base       launch the explicit base template
+  abx create --template <NAME>     launch an existing template (no AI)
+  abx create "<DESCRIPTION>"      AI-generate, build, deploy, create
 ```
 
 ### 未知顶层命令（拼写建议）
 
 ```
-$ ebx crate
+$ abx crate
 Exit code: 2
 ```
 
@@ -35,10 +35,10 @@ Try 'cli --help' for help.
 Error: No such command 'crate'. Did you mean 'create'?
 ```
 
-### 未知顶层命令（custom_commands / ebx run 引导）
+### 未知顶层命令（custom_commands / abx run 引导）
 
 ```
-$ ebx frobnicate
+$ abx frobnicate
 Exit code: 2
 ```
 
@@ -48,13 +48,13 @@ Exit code: 2
 Usage: cli [OPTIONS] [COMMAND] [ARGS]...
 Try 'cli --help' for help.
 
-Error: No such command 'frobnicate'. No similar command. To add a shortcut, use the command path without the "ebx" prefix, for example: ebx config set shortcuts.NAME "template init". A custom command inside a sandbox is declared in template.yaml (custom_commands) and run with 'ebx run COMMAND'.
+Error: No such command 'frobnicate'. No similar command. To add a shortcut, use the command path without the "abx" prefix, for example: abx config set shortcuts.NAME "template init". A custom command inside a sandbox is declared in template.yaml (custom_commands) and run with 'abx run COMMAND'.
 ```
 
 ### AuthenticationError
 
 ```
-$ ebx create --template base
+$ abx create --template base
 Exit code: 3
 ```
 
@@ -67,7 +67,7 @@ Exit code: 3
 ### TemplateNotFoundError
 
 ```
-$ ebx create --template bad
+$ abx create --template bad
 Exit code: 4
 ```
 
@@ -75,13 +75,13 @@ Exit code: 4
 
 ```
 [E2001] Template 'bad' not found
-  Suggestion: Run 'ebx template list' to see available templates.
+  Suggestion: Run 'abx template list' to see available templates.
 ```
 
 ### QuotaExceededError
 
 ```
-$ ebx create --template base
+$ abx create --template base
 Exit code: 6
 ```
 
@@ -95,7 +95,7 @@ Exit code: 6
 ### CommandTimeoutError
 
 ```
-$ ebx exec sbx-ev-001 "sleep 999"
+$ abx exec sbx-ev-001 "sleep 999"
 Exit code: 5
 ```
 

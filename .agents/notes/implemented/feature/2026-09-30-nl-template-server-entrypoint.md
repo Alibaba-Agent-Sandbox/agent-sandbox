@@ -5,14 +5,14 @@ Implemented: 2026-09-30
 
 ## Problem
 
-`ebx create "DESCRIPTION"` and `ebx template init "DESCRIPTION"` asked the
+`abx create "DESCRIPTION"` and `abx template init "DESCRIPTION"` asked the
 coding agent for two files, `Dockerfile` and `template.yaml`, and told it to
 create nothing else. A deployed sandbox is reached over HTTP(S)
 (`https://<port>-<sandbox_id>.<domain>`), so an image with no long-running
 server has nothing to answer: the generated template could be built and
 deployed but not used. Every reference template in
-`Easy-Sandbox/awesome-templates` (all eleven) instead ships a `commands.py`
-that starts the container-side `easy_sandbox.server.SandboxServer` on port
+`alibaba-agent-sandbox/awesome-templates` (all eleven) instead ships a `commands.py`
+that starts the container-side `agent_sandbox.server.SandboxServer` on port
 9000, plus a README. The agent also had no description of that SDK, so it
 could not have written one.
 
@@ -24,20 +24,20 @@ could not have written one.
    them; unrelated files are not. Unchanged: no docker, no installs, no
    secret files.
 2. **The server SDK reference is part of the prompt.**
-   `src/easy_sandbox/agent/template_guide.py` holds `TEMPLATE_GUIDE`, a
+   `src/agent_sandbox/agent/template_guide.py` holds `TEMPLATE_GUIDE`, a
    condensed form of `docs/en/design/server-api.md` and the awesome-templates
    conventions: why a server is needed, the Dockerfile rules (python3 + the
    `COPY *.whl` / PyPI install pattern, `COPY commands.py`, `EXPOSE 9000`,
-   `CMD ["python3", "commands.py"]`), the `easy_sandbox.server` API
+   `CMD ["python3", "commands.py"]`), the `agent_sandbox.server` API
    (`CapabilityGroup` and its default-disabled groups, `CommandRegistry`,
    `RouteTable.route`, `ServerResponse`, `SSEResponse`, auth via
-   `EBX_SERVER_TOKEN` / `X-Access-Token`), how to run a business web service
+   `ABX_SERVER_TOKEN` / `X-Access-Token`), how to run a business web service
    next to the server, the `template.yaml` fields (`capabilities` mapped to
    the enabled groups, `ports` including 9000, `custom_commands`, `env`
    names only) and a complete minimal `commands.py`.
 3. **Fail closed on Dockerfile-only output.** `generate_template_files`
    raises `AICodegenError` when `commands.py` is missing, is not valid
-   Python, never imports `easy_sandbox.server` / calls `serve()` (or
+   Python, never imports `agent_sandbox.server` / calls `serve()` (or
    `start()`), or when the Dockerfile never references `commands.py`.
 4. **Every deliverable travels.** `CodegenResult.commands_py` and
    `CodegenResult.files` (workspace-relative, dot-files other than
@@ -52,12 +52,12 @@ could not have written one.
 
 ## Not changed
 
-- `ebx deploy` has no AI step (an earlier `--agent` design was dropped, see
+- `abx deploy` has no AI step (an earlier `--agent` design was dropped, see
   `2026-09-30-deploy-fixed-pipeline-agent-flag.md`): publishing only reads
   the template directory, so this generator is the one place a description
   turns into template files.
 - The Dockerfile SDK-install pattern is the established one from the
-  scaffolds and awesome-templates. It relies on `ebx template deploy`
+  scaffolds and awesome-templates. It relies on `abx template deploy`
   injecting the SDK wheel, falling back to PyPI as documented there.
 
 ## Alternatives considered
@@ -75,7 +75,7 @@ could not have written one.
 
 The Dockerfile snippet (`COPY *.whl` + PyPI fallback) assumes the builder puts
 a matching SDK wheel into the context. `inject_sdk_wheel` used to only build
-from a source checkout, so an installed `ebx` (PyPI or the PyInstaller binary,
+from a source checkout, so an installed `abx` (PyPI or the PyInstaller binary,
 which cannot run `pip`) injected nothing. It now downloads the released wheel of
 the running version from PyPI (SHA-256 verified, no `pip` needed) and only then
 falls back to the Dockerfile's PyPI install. Verified that BuildKit accepts a
@@ -85,7 +85,7 @@ falls back to the Dockerfile's PyPI install. Verified that BuildKit accepts a
 ## Test Strategy
 
 - `tests/test_agent/test_template_guide.py`: keeps the guide honest — every
-  imported name is in `easy_sandbox.server.__all__`, every named
+  imported name is in `agent_sandbox.server.__all__`, every named
   `CapabilityGroup` exists, capability tokens equal `STANDARD_CAPABILITIES`,
   the port equals `SandboxServer.serve`'s default, and the reference
   `commands.py` executes (with `serve` patched), registers its command and
@@ -116,10 +116,10 @@ falls back to the Dockerfile's PyPI install. Verified that BuildKit accepts a
 
 ## Files changed
 
-- `src/easy_sandbox/agent/template_guide.py` (new)
-- `src/easy_sandbox/agent/codegen.py`, `src/easy_sandbox/agent/clarify.py`
-- `src/easy_sandbox/cli/commands/sandbox.py`,
-  `src/easy_sandbox/cli/commands/template.py` (help text, local copy)
+- `src/agent_sandbox/agent/template_guide.py` (new)
+- `src/agent_sandbox/agent/codegen.py`, `src/agent_sandbox/agent/clarify.py`
+- `src/agent_sandbox/cli/commands/sandbox.py`,
+  `src/agent_sandbox/cli/commands/template.py` (help text, local copy)
 - Tests above; help goldens (`help-create`, `help-template-init`,
   `help-init-alias`) and `.agents/evidence/cli/help.md`
 - Docs (en/zh): `design/cli-design.md`, `reference/cli-reference.md`

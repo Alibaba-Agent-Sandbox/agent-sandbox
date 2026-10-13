@@ -299,3 +299,25 @@ describe("TestNotFoundMapping", () => {
     expect(err).not.toBeInstanceOf(SandboxNotFoundError);
   });
 });
+
+describe("TestUnknownIfAbsent", () => {
+  const bare = { sandboxID: "sbx-1", templateID: "base", status: "running" };
+
+  it("test_platform_default_keeps_the_builtin_region_and_timeout", async () => {
+    const protocol = makeProtocol();
+    httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-1`, method: "GET", json: bare });
+    const info = await protocol.getInfo("sbx-1");
+    expect([info.region, info.timeout]).toEqual(["cn-hangzhou", 300]);
+  });
+
+  it("test_plugin_wire_leaves_absent_region_and_timeout_unknown", async () => {
+    const http = new HttpClient(new TransportConfig({ api_url: BASE, http2: false }), new ApiKeyAuth("k"));
+    const protocol = new SandboxProtocol(http, { unknownIfAbsent: true });
+    httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-1`, method: "GET", json: bare });
+    httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-2`, method: "GET", json: { ...bare, sandboxID: "sbx-2", region: "eu-1", timeout: 60 } });
+    const a = await protocol.getInfo("sbx-1");
+    expect([a.region, a.timeout]).toEqual(["", 0]);
+    const b = await protocol.getInfo("sbx-2");
+    expect([b.region, b.timeout]).toEqual(["eu-1", 60]);
+  });
+});

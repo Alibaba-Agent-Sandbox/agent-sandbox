@@ -18,7 +18,7 @@ import {
   templateSeams,
 } from "../../src/cli/commands/template.js";
 import { cli } from "../../src/cli/main.js";
-import { Context, UsageError } from "../../src/framework/index.js";
+import { UsageError } from "../../src/cli/errors.js";
 import { RegistryClient } from "../../src/utils/registry.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import {
@@ -52,7 +52,7 @@ describe("TestTemplateGroup", () => {
   it("test_template_list_subcommands", async () => {
     const result = await runner().invoke(cli, ["template", "--help"]);
     expect(result.exit_code).toBe(0);
-    for (const sub of ["install", "list", "build", "delete", "info", "create"]) expect(result.output).toContain(sub);
+    for (const sub of ["template", "install", "list", "build", "delete", "info", "create"]) expect(result.output).toContain(sub);
   });
 });
 
@@ -72,7 +72,7 @@ describe("TestInstallCommand", () => {
   });
 
   it("test_install_shortcut_help", async () => {
-    const result = await runner().invoke(cli, ["install", "--help"]);
+    const result = await runner().invoke(cli, ["template", "install", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("TEMPLATE_REF") || result.output.toLowerCase().includes("template_ref")).toBe(true);
   });
@@ -86,7 +86,7 @@ describe("TestInstallCommand", () => {
   });
 
   it("test_install_shortcut_help_discloses_cloud_costs", async () => {
-    const result = await runner().invoke(cli, ["install", "--help"]);
+    const result = await runner().invoke(cli, ["template", "install", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Alibaba Cloud");
     expect(result.output.toLowerCase()).toContain("cost");
@@ -94,7 +94,7 @@ describe("TestInstallCommand", () => {
   });
 
   it("test_install_shortcut_builtin", async () => {
-    const result = await runner().invoke(cli, ["install", "base"]);
+    const result = await runner().invoke(cli, ["template", "install", "base"]);
     expect(result.exit_code).toBe(0);
     expect(builtinOk(result.output)).toBe(true);
   });
@@ -114,7 +114,7 @@ describe("TestInstallSubdirFormat", () => {
   });
 
   it("test_install_shortcut_subdir_help", async () => {
-    const result = await runner().invoke(cli, ["install", "--help"]);
+    const result = await runner().invoke(cli, ["template", "install", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("TEMPLATE_REF") || result.output.toLowerCase().includes("template_ref")).toBe(true);
   });
@@ -130,7 +130,7 @@ describe("TestInstallRegistryType", () => {
   });
 
   it("test_install_shortcut_has_registry_type", async () => {
-    const result = await runner().invoke(cli, ["install", "--help"]);
+    const result = await runner().invoke(cli, ["template", "install", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("--registry-type");
   });
@@ -142,7 +142,7 @@ describe("TestInstallRegistryType", () => {
     patchTransport(mockHttp({ json: { templateID: "tpl-123", buildID: "bld-456" } }));
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
-    expect([0, 1, 3]).toContain(result.exit_code);
+    expect(result.exit_code).toBe(2);
   });
 
   it("test_install_invalid_registry_type", async () => {
@@ -164,7 +164,7 @@ describe("TestInstallRegistryType", () => {
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local", "--download-only"]);
 
     expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("ebx template build");
+    expect(result.output).toContain("abx template build");
     expect(result.output.includes("installed-locally") || result.output.includes("installed locally")).toBe(true);
   });
 });
@@ -219,7 +219,7 @@ describe("TestTemplateBuildHelp", () => {
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("automation/CI");
     expect(result.output).toContain("ACR_NAMESPACE");
-    expect(result.output).toContain("EBX_TEMPLATE_DIR");
+    expect(result.output).toContain("ABX_TEMPLATE_DIR");
   });
 
   it("test_deploy_help_discloses_cloud_costs", async () => {
@@ -238,9 +238,9 @@ describe("TestTemplateBuildHelp", () => {
   });
 
   it("test_deploy_preserves_all_build_parameters", () => {
-    const buildParams = templateGroup.commands.get("build")!.params;
-    const deployParams = templateGroup.commands.get("deploy")!.params;
-    const info = (params: typeof buildParams) => params.map((p) => p.toInfoDict());
+    const buildParams = templateGroup.commands!.get("build")!.params;
+    const deployParams = templateGroup.commands!.get("deploy")!.params;
+    const info = (params: typeof buildParams) => params.map((p) => ({ kind: p.kind, decls: p.decls, attrs: p.attrs }));
     expect(info(deployParams)).toEqual(info(buildParams));
   });
 
@@ -293,7 +293,7 @@ describe("TestSandboxYamlAlias", () => {
     patchTransport(mockHttp({ json: { templateID: "tpl-alias-1", buildID: "bld-alias-1" } }));
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
-    expect([0, 1, 3]).toContain(result.exit_code);
+    expect(result.exit_code).toBe(2);
   });
 
   it("test_install_prefers_template_yaml", async () => {
@@ -304,7 +304,7 @@ describe("TestSandboxYamlAlias", () => {
     patchTransport(mockHttp({ json: { templateID: "tpl-pref-1", buildID: "bld-pref-1" } }));
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
-    expect([0, 1, 3]).toContain(result.exit_code);
+    expect(result.exit_code).toBe(2);
   });
 
   it("test_install_no_yaml_mentions_both_names", async () => {
@@ -411,7 +411,7 @@ describe("TestTemplateDeployOfficialAPI", () => {
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
 
-    const result = await runner().invoke(cli, ["template", "deploy", "--acr-namespace", "test-ns"], { env: { EBX_TEMPLATE_DIR: tp } });
+    const result = await runner().invoke(cli, ["template", "deploy", "--acr-namespace", "test-ns"], { env: { ABX_TEMPLATE_DIR: tp } });
 
     expect(result.exit_code).toBe(1);
     expect(result.output).not.toContain("Missing argument");
@@ -564,10 +564,10 @@ describe("TestTemplateBuildCommand", () => {
 });
 
 describe("TestResolveAcrNamespace", () => {
-  it("test_from_ebx_home_dotenv", () => {
+  it("test_from_abx_home_dotenv", () => {
     const tp = tmpPath();
-    fs.mkdirSync(path.join(tp, ".ebx"));
-    writeText(path.join(tp, ".ebx", ".env"), "ACR_NAMESPACE=ns-from-home\n");
+    fs.mkdirSync(path.join(tp, ".abx"));
+    writeText(path.join(tp, ".abx", ".env"), "ACR_NAMESPACE=ns-from-home\n");
     const workdir = path.join(tp, "work");
     fs.mkdirSync(workdir);
     process.chdir(workdir);
@@ -579,8 +579,8 @@ describe("TestResolveAcrNamespace", () => {
 
   it("test_cwd_dotenv_wins_over_home", () => {
     const tp = tmpPath();
-    fs.mkdirSync(path.join(tp, ".ebx"));
-    writeText(path.join(tp, ".ebx", ".env"), "ACR_NAMESPACE=ns-from-home\n");
+    fs.mkdirSync(path.join(tp, ".abx"));
+    writeText(path.join(tp, ".abx", ".env"), "ACR_NAMESPACE=ns-from-home\n");
     const workdir = path.join(tp, "work");
     fs.mkdirSync(workdir);
     writeText(path.join(workdir, ".env"), "ACR_NAMESPACE=ns-from-cwd\n");
@@ -648,7 +648,7 @@ describe("TestTemplateInitCommand", () => {
 
   it("test_top_level_init_shortcut_works", async () => {
     const target = path.join(tmpPath(), "topshortcut");
-    const result = await runner().invoke(cli, ["init", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
     expect(fs.existsSync(path.join(target, "Dockerfile"))).toBe(true);
@@ -673,10 +673,10 @@ describe("TestTemplateInitCommand", () => {
   });
 });
 
-describe("TestTopLevelInitSharesTemplateInit", () => {
-  it("test_same_command_object", async () => {
-    expect(await cli.getCommand(new Context(cli), "init")).toBe(templateInit);
-    expect(await templateGroup.getCommand(new Context(templateGroup), "init")).toBe(templateInit);
+describe("TestTemplateInitCommandObject", () => {
+  it("test_template_group_exposes_init", async () => {
+    expect(await templateGroup.getCommand("init")).toBe(templateInit);
+    expect(await cli.getCommand("init")).toBeNull();
   });
 });
 
@@ -732,7 +732,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_json_mode_never_prompts", async () => {
     process.chdir(tmpPath());
     const result = await runner().invoke(cli, ["--json", "template", "init"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
     expect(selectMock).toHaveBeenCalledTimes(0);
   });
@@ -741,7 +741,7 @@ describe("TestInitInteractivePicker", () => {
     setenv("CI", "true");
     process.chdir(tmpPath());
     const result = await runner().invoke(cli, ["template", "init"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
     expect(selectMock).toHaveBeenCalledTimes(0);
   });
@@ -849,7 +849,7 @@ describe("TestStartReadyWarning", () => {
     patchOfficialApi({ create: { templateID: "tpl-w2", statusCode: 200 } });
     const warning = vi.fn();
     const mockOut = new Proxy(
-      { verbose: false, use_rich_spinner: false, warning } as Record<string, unknown>,
+      { verbose: false, use_live_status: false, warning } as Record<string, unknown>,
       {
         get(target, prop: string) {
           if (!(prop in target)) target[prop] = vi.fn();
@@ -1027,7 +1027,7 @@ describe("TestInstallDirOption", () => {
     const tp = tmpPath();
     const source = _src("sc-test", tp);
     const dest = path.join(tp, "scdir");
-    const result = await runner().invoke(cli, ["install", source, "--registry-type", "local", "--download-only", "--dir", dest]);
+    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local", "--download-only", "--dir", dest]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(dest, "template.yaml"))).toBe(true);
   });

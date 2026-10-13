@@ -3,13 +3,14 @@
 
 import { collectSources, ProviderSchema, selectProviderId, setSchemaLookup } from "../transport/config_layers.js";
 import { BUILTIN_PROVIDER_ID, validateProviderId } from "../utils/config_keys.js";
-import { Provider } from "./base.js";
+import { Provider, orderedFeatures } from "./base.js";
 import { AlicloudExpressProvider } from "./builtin.js";
 import { ExecProvider } from "./exec_provider.js";
 import { ProviderConflictError, ProviderNotFoundError } from "./errors.js";
 import { loadManifest } from "./manifest.js";
 import { RestProvider } from "./rest_provider.js";
 import * as store from "./store.js";
+import { similarity } from "../utils/suggest.js";
 
 export interface ProviderSummary {
   id: string;
@@ -18,6 +19,8 @@ export interface ProviderSummary {
   version: string;
   kind: string;
   trust: string;
+  /** Declared feature ids, registry order (`FEATURES`). */
+  features: string[];
   error?: string;
 }
 
@@ -92,30 +95,6 @@ export function getProvider(providerId?: string | null): Provider {
   }
 }
 
-/** `difflib.SequenceMatcher.ratio()` for short ids. */
-function ratio(a: string, b: string): number {
-  const matches = (x: string, y: string): number => {
-    if (!x || !y) return 0;
-    let best = 0;
-    let bi = 0;
-    let bj = 0;
-    for (let i = 0; i < x.length; i++) {
-      for (let j = 0; j < y.length; j++) {
-        let k = 0;
-        while (i + k < x.length && j + k < y.length && x[i + k] === y[j + k]) k++;
-        if (k > best) {
-          best = k;
-          bi = i;
-          bj = j;
-        }
-      }
-    }
-    if (best === 0) return 0;
-    return best + matches(x.slice(0, bi), y.slice(0, bj)) + matches(x.slice(bi + best), y.slice(bj + best));
-  };
-  return a.length + b.length === 0 ? 1 : (2 * matches(a, b)) / (a.length + b.length);
-}
-
 function hint(wanted: string): string {
   let known: string[];
   try {
@@ -126,13 +105,13 @@ function hint(wanted: string): string {
   let close: string | null = null;
   let top = 0.6;
   for (const k of known) {
-    const r = ratio(wanted, k);
+    const r = similarity(wanted, k);
     if (r >= top && (close === null || r > top)) {
       close = k;
       top = r;
     }
   }
-  const base = "Run 'ebx provider list'; install with 'ebx provider install <path-or-git-url>'.";
+  const base = "Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.";
   return close ? `Did you mean '${close}'? ${base}` : base;
 }
 
@@ -144,6 +123,7 @@ function summary(provider: Provider, trust: string): ProviderSummary {
     version: provider.version,
     kind: provider.kind,
     trust,
+    features: orderedFeatures(provider.features),
   };
 }
 
@@ -172,6 +152,7 @@ export function listProviders(): ProviderSummary[] {
         version: String(receipt["version"] ?? ""),
         kind: "exec",
         trust,
+        features: [],
         error: exc instanceof Error ? exc.message : String(exc),
       });
     }
@@ -181,7 +162,7 @@ export function listProviders(): ProviderSummary[] {
   return [...out, ...others];
 }
 
-/** explicit > `EBX_PROVIDER` > `./.env` > `~/.ebx/.env` > `[core]` > built-in. */
+/** explicit > `ABX_PROVIDER` > `./.env` > `~/.abx/.env` > `[core]` > built-in. */
 export function resolveProviderId(explicit?: string | null): string {
   const overrides = explicit ? { provider: explicit } : {};
   return selectProviderId(collectSources(overrides));

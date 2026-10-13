@@ -2,6 +2,7 @@
 node_modules/
 dist/
 build/
+.ki-dist/
 *.tgz
 dist-pack/
 npm-debug.log*

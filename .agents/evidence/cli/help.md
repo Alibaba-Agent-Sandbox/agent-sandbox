@@ -2,30 +2,30 @@
 
 # CLI Evidence: Help
 
-### ebx --help
+### abx --help
 
 ```
-$ ebx --help
+$ abx --help
 Usage: cli [OPTIONS] [COMMAND] [ARGS]...
 
-  ebx — Easy Sandbox CLI
+  abx — Agent Sandbox CLI
 
   Create, manage, and interact with cloud sandboxes.
 
   Setup, create, or scaffold:
-    ebx config init               Guided credentials setup (run first)
-    ebx create [DESCRIPTION]      Create a cloud sandbox (AI or --template)
-    ebx template init [DIR]       Scaffold a local template project
+    abx config init               Guided credentials setup (run first)
+    abx create [DESCRIPTION]      Create a cloud sandbox (AI or --template)
+    abx template init [DIR]       Scaffold a local template project
 
   Examples:
-    ebx create --template base
-    ebx list --status running
-    ebx template search python
+    abx create --template base
+    abx list --status running
+    abx template search python
 
   Related commands:
-    ebx config --help    Configure credentials and endpoints
-    ebx sandbox --help   Manage sandbox lifecycle and resources
-    ebx template --help  Discover, build, and deploy templates
+    abx config --help    Configure credentials and endpoints
+    abx sandbox --help   Manage sandbox lifecycle and resources
+    abx template --help  Discover, build, and deploy templates
 
 Options:
   -j, --json                      Output as JSON
@@ -50,10 +50,10 @@ Commands:
   exec      Execute one command in a sandbox and return its exit code.
   info      Show status, template, region, timeout, and URL for a sandbox.
   init      Scaffold a new sandbox template project.
-  install   Install a template from TEMPLATE_REF (shortcut for 'ebx...
+  install   Install a template from TEMPLATE_REF (shortcut for 'abx...
   kill      Permanently destroy one sandbox or all running sandboxes.
   list      List sandboxes, optionally filtered by lifecycle status.
-  mcp       Configure and run Easy Sandbox as an MCP server.
+  mcp       Configure and run Agent Sandbox as an MCP server.
   run       Run a named custom command or registered command.
   sandbox   Manage sandbox lifecycle, files, processes, and system details.
   template  Discover, scaffold, build, and manage sandbox templates.
@@ -64,16 +64,16 @@ Exit code: 0
 ### create --help
 
 ```
-$ ebx create --help
+$ abx create --help
 Usage: cli create [OPTIONS] [DESCRIPTION]
 
   Create a new sandbox.
 
   Exactly one route is taken, and it must be explicit:
 
-    ebx create --template base  →  launch the 'base' template
-    ebx create --template NAME  →  launch NAME directly (no AI)
-    ebx create "DESCRIPTION"    →  Qwen Code generates a template, builds
+    abx create --template base  →  launch the 'base' template
+    abx create --template NAME  →  launch NAME directly (no AI)
+    abx create "DESCRIPTION"    →  Qwen Code generates a template, builds
                                   and deploys it, then launches a sandbox;
                                   the agent researches public facts first
                                   and asks only for details it cannot infer.
@@ -85,17 +85,17 @@ Usage: cli create [OPTIONS] [DESCRIPTION]
   instead of silently ignoring one of them.
 
   Examples:
-    ebx create --template base              # explicit 'base' template
-    ebx create --template python-hello      # named template (no AI)
-    ebx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
-    ebx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
-    ebx create "a python data science env"  # AI-generate, build, deploy, create
-    ebx create -y "a node.js api server"    # non-interactive full pipeline
-    ebx template init "a python data science env"  # template files only
+    abx create --template base              # explicit 'base' template
+    abx create --template python-hello      # named template (no AI)
+    abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
+    abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
+    abx create "a python data science env"  # AI-generate, build, deploy, create
+    abx create -y "a node.js api server"    # non-interactive full pipeline
+    abx template init "a python data science env"  # template files only
 
   Notes:
     AI generation needs the Qwen Code CLI and a DashScope/ModelStudio key
-    ('ebx config init'). The agent researches publicly verifiable facts
+    ('abx config init'). The agent researches publicly verifiable facts
     itself (tool stack, official install method, common dependencies) and
     only asks for private preferences or business decisions it cannot
     infer — one question at a time in interactive sessions. Non-interactive
@@ -106,12 +106,12 @@ Usage: cli create [OPTIONS] [DESCRIPTION]
     question and runs the full pipeline.
 
   Related commands:
-    ebx list                 List existing sandboxes
-    ebx info SANDBOX_ID      Inspect a created sandbox
-    ebx template init DIR    Scaffold a new template project (local)
-    ebx template init "DESC" AI-scaffold a template only (no build)
-    ebx template search KEY  Find reusable templates
-    ebx config init          Configure platform and Qwen Code credentials
+    abx list                 List existing sandboxes
+    abx info SANDBOX_ID      Inspect a created sandbox
+    abx template init DIR    Scaffold a new template project (local)
+    abx template init "DESC" AI-scaffold a template only (no build)
+    abx template search KEY  Find reusable templates
+    abx config init          Configure platform and Qwen Code credentials
 
 Options:
   -T, --template TEXT      Template ID or alias to launch (e.g. 'base', 'python-
@@ -138,7 +138,7 @@ Options:
   --dir DIRECTORY          Parent directory for the AI-generated template files
                            (Dockerfile, commands.py, template.yaml); a new
                            <name>-<timestamp>-<id> subfolder is created inside
-                           it. Default: ~/.ebx/generated (an interactive
+                           it. Default: ~/.abx/generated (an interactive
                            terminal is asked when omitted).
   -v, --verbose            Verbose output (DEBUG level)
   -h, --help               Show this message and exit.
@@ -148,21 +148,21 @@ Exit code: 0
 ### list --help
 
 ```
-$ ebx list --help
+$ abx list --help
 Usage: cli list [OPTIONS]
 
   List sandboxes, optionally filtered by lifecycle status.
 
   Examples:
-    ebx list
-    ebx list --status running
-    ebx list --status error --limit 50
-    ebx list --region cn-shanghai
+    abx list
+    abx list --status running
+    abx list --status error --limit 50
+    abx list --region cn-shanghai
 
   Related commands:
-    ebx info SANDBOX_ID  Show one sandbox in detail
-    ebx create           Create a new sandbox
-    ebx kill SANDBOX_ID  Destroy a sandbox
+    abx info SANDBOX_ID  Show one sandbox in detail
+    abx create           Create a new sandbox
+    abx kill SANDBOX_ID  Destroy a sandbox
 
 Options:
   -s, --status [running|stopped|creating|paused|error]
@@ -170,7 +170,7 @@ Options:
   -l, --limit INTEGER             Maximum results (positive integer; default:
                                   20)
   -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
+                                  'abx config set region' value, else cn-
                                   hangzhou)
   -h, --help                      Show this message and exit.
 Exit code: 0
@@ -179,19 +179,19 @@ Exit code: 0
 ### info --help
 
 ```
-$ ebx info --help
+$ abx info --help
 Usage: cli info [OPTIONS] SANDBOX_ID
 
   Show status, template, region, timeout, and URL for a sandbox.
 
   Examples:
-    ebx info abc123
-    ebx --json info abc123
+    abx info abc123
+    abx --json info abc123
 
   Related commands:
-    ebx list                  Find sandbox IDs
-    ebx sandbox capabilities  Show declared capability groups
-    ebx exec SANDBOX_ID CMD   Run a command in the sandbox
+    abx list                  Find sandbox IDs
+    abx sandbox capabilities  Show declared capability groups
+    abx exec SANDBOX_ID CMD   Run a command in the sandbox
 
 Options:
   -h, --help  Show this message and exit.
@@ -201,7 +201,7 @@ Exit code: 0
 ### kill --help
 
 ```
-$ ebx kill --help
+$ abx kill --help
 Usage: cli kill [OPTIONS] [SANDBOX_ID]
 
   Permanently destroy one sandbox or all running sandboxes.
@@ -210,20 +210,20 @@ Usage: cli kill [OPTIONS] [SANDBOX_ID]
   other non-interactive environments.
 
   Examples:
-    ebx kill abc123
-    ebx kill abc123 --yes
-    ebx kill --all --yes
-    ebx kill --all --yes --region cn-shanghai
+    abx kill abc123
+    abx kill abc123 --yes
+    abx kill --all --yes
+    abx kill --all --yes --region cn-shanghai
 
   Related commands:
-    ebx list              Find running sandbox IDs
-    ebx info SANDBOX_ID   Verify a sandbox before deletion
-    ebx create            Create a replacement sandbox
+    abx list              Find running sandbox IDs
+    abx info SANDBOX_ID   Verify a sandbox before deletion
+    abx create            Create a replacement sandbox
 
 Options:
   --all              Kill all running sandboxes
   -y, --yes          Skip confirmation
-  -r, --region TEXT  Region override for this command (default: 'ebx config set
+  -r, --region TEXT  Region override for this command (default: 'abx config set
                      region' value, else cn-hangzhou)
   -h, --help         Show this message and exit.
 Exit code: 0
@@ -232,7 +232,7 @@ Exit code: 0
 ### exec --help
 
 ```
-$ ebx exec --help
+$ abx exec --help
 Usage: cli exec [OPTIONS] SANDBOX_ID COMMAND
 
   Execute one command in a sandbox and return its exit code.
@@ -241,14 +241,14 @@ Usage: cli exec [OPTIONS] SANDBOX_ID COMMAND
   remote working directory and --timeout for long-running commands.
 
   Examples:
-    ebx exec abc123 "python --version"
-    ebx exec abc123 "pytest -q" --cwd /app --timeout 300
-    ebx --json exec abc123 "echo ready"
+    abx exec abc123 "python --version"
+    abx exec abc123 "pytest -q" --cwd /app --timeout 300
+    abx --json exec abc123 "echo ready"
 
   Related commands:
-    ebx connect SANDBOX_ID  Open the command REPL
-    ebx sandbox shell-stream SANDBOX_ID -c CMD
-    ebx run SANDBOX_ID NAME  Run a registered custom command
+    abx connect SANDBOX_ID  Open the command REPL
+    abx sandbox shell-stream SANDBOX_ID -c CMD
+    abx run SANDBOX_ID NAME  Run a registered custom command
 
 Options:
   -t, --timeout INTEGER  Command timeout in seconds (positive integer; default:
@@ -262,31 +262,31 @@ Exit code: 0
 ### run --help
 
 ```
-$ ebx run --help
+$ abx run --help
 Usage: cli run [OPTIONS] SANDBOX_ID COMMAND_NAME
 
   Run a named custom command or registered command.
 
   Supports two argument styles:
 
-  Legacy:  ebx run <id> <cmd> --arg key=value
-  New:     ebx run <id> <cmd> --key value
+  Legacy:  abx run <id> <cmd> --arg key=value
+  New:     abx run <id> <cmd> --key value
 
   When the command comes from @sandbox.register, typed options (--x, --y, ...)
   are derived automatically from the function signature.
 
   Examples:
 
-      ebx run abc123 dev
+      abx run abc123 dev
 
-      ebx run abc123 test --arg file=tests/
+      abx run abc123 test --arg file=tests/
 
-      ebx run abc123 demo --x 1 --y hello
+      abx run abc123 demo --x 1 --y hello
 
   Related commands:
-    ebx exec SANDBOX_ID CMD  Run an arbitrary shell command
-    ebx info SANDBOX_ID      Inspect the target sandbox
-    ebx template info ID     Inspect a template definition
+    abx exec SANDBOX_ID CMD  Run an arbitrary shell command
+    abx info SANDBOX_ID      Inspect the target sandbox
+    abx template info ID     Inspect a template definition
 
 Options:
   -a, --arg TEXT  Command argument as key=value (repeatable, legacy style)
@@ -297,7 +297,7 @@ Exit code: 0
 ### connect --help
 
 ```
-$ ebx connect --help
+$ abx connect --help
 Usage: cli connect [OPTIONS] SANDBOX_ID
 
   Open an interactive command REPL for a sandbox.
@@ -305,7 +305,7 @@ Usage: cli connect [OPTIONS] SANDBOX_ID
   This is a line-based REPL, not a PTY or a full SSH session: every entered line
   runs in a new process with a 30-second timeout, and no shell state survives
   between lines - ``cd``, environment variables and aliases are gone after each
-  command (use ``cd /path && <cmd>`` on one line, or ``ebx exec --cwd``,
+  command (use ``cd /path && <cmd>`` on one line, or ``abx exec --cwd``,
   instead).
 
   On interactive terminals basic line editing and command history are enabled
@@ -314,13 +314,13 @@ Usage: cli connect [OPTIONS] SANDBOX_ID
   commands are reported as one friendly message - never as raw HTTP errors.
 
   Examples:
-    ebx connect abc123
-    ebx sandbox connect abc123
+    abx connect abc123
+    abx sandbox connect abc123
 
   Related commands:
-    ebx exec SANDBOX_ID CMD  Run one command with a custom timeout
-    ebx info SANDBOX_ID      Inspect connection details
-    ebx sandbox shell-stream SANDBOX_ID -c CMD
+    abx exec SANDBOX_ID CMD  Run one command with a custom timeout
+    abx info SANDBOX_ID      Inspect connection details
+    abx sandbox shell-stream SANDBOX_ID -c CMD
 
 Options:
   -h, --help  Show this message and exit.
@@ -330,21 +330,21 @@ Exit code: 0
 ### upload --help
 
 ```
-$ ebx upload --help
+$ abx upload --help
 Usage: cli upload [OPTIONS] SANDBOX_ID LOCAL_PATH REMOTE_PATH
 
   Upload a local file or directory to the sandbox.
 
   Examples:
 
-      ebx upload abc123 ./script.py /app/script.py
+      abx upload abc123 ./script.py /app/script.py
 
-      ebx upload abc123 ./data/ /app/data/
+      abx upload abc123 ./data/ /app/data/
 
   Related commands:
-    ebx download SANDBOX_ID REMOTE_PATH LOCAL_PATH
-    ebx sandbox files list SANDBOX_ID --path /app
-    ebx exec SANDBOX_ID CMD
+    abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH
+    abx sandbox files list SANDBOX_ID --path /app
+    abx exec SANDBOX_ID CMD
 
 Options:
   -h, --help  Show this message and exit.
@@ -354,21 +354,21 @@ Exit code: 0
 ### download --help
 
 ```
-$ ebx download --help
+$ abx download --help
 Usage: cli download [OPTIONS] SANDBOX_ID REMOTE_PATH LOCAL_PATH
 
   Download a file from the sandbox to local.
 
   Examples:
 
-      ebx download abc123 /app/result.csv ./result.csv
+      abx download abc123 /app/result.csv ./result.csv
 
-      ebx download abc123 /app/output.log .
+      abx download abc123 /app/output.log .
 
   Related commands:
-    ebx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
-    ebx sandbox files stat SANDBOX_ID --path REMOTE_PATH
-    ebx sandbox files list SANDBOX_ID --path REMOTE_DIR
+    abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
+    abx sandbox files stat SANDBOX_ID --path REMOTE_PATH
+    abx sandbox files list SANDBOX_ID --path REMOTE_DIR
 
 Options:
   -h, --help  Show this message and exit.
@@ -378,15 +378,15 @@ Exit code: 0
 ### install --help
 
 ```
-$ ebx install --help
+$ abx install --help
 Usage: cli install [OPTIONS] TEMPLATE_REF
 
-  Install a template from TEMPLATE_REF (shortcut for 'ebx template install').
+  Install a template from TEMPLATE_REF (shortcut for 'abx template install').
 
   Downloads and (by default) builds + deploys a template: local docker build,
   ACR push, and CreateTemplate registration — cloud-side steps that can incur
   Alibaba Cloud costs. Use --download-only to only fetch it into the local cache
-  (~/.ebx/templates/) without building.
+  (~/.abx/templates/) without building.
 
   TEMPLATE_REF formats:
     <name>                Template name from the official index
@@ -396,23 +396,23 @@ Usage: cli install [OPTIONS] TEMPLATE_REF
     ./path/to/template    Local directory
 
   Examples:
-    ebx install python-hello --download-only       # install by index name
-    ebx install owner/repo --acr-namespace my-ns  # download + build + deploy
-    ebx install owner/repo --acr-namespace my-ns --region cn-shanghai
-    ebx install owner/repo --download-only         # download only
-    ebx install ./my-template --acr-namespace ns   # local dir + deploy
+    abx install python-hello --download-only       # install by index name
+    abx install owner/repo --acr-namespace my-ns  # download + build + deploy
+    abx install owner/repo --acr-namespace my-ns --region cn-shanghai
+    abx install owner/repo --download-only         # download only
+    abx install ./my-template --acr-namespace ns   # local dir + deploy
 
   Related commands:
-    ebx template search QUERY
-    ebx template list
-    ebx create --template TEMPLATE
+    abx template search QUERY
+    abx template list
+    abx create --template TEMPLATE
 
 Options:
   --registry-url TEXT             Registry URL (default: GitHub)
   --registry-type [github|local]  Registry type (auto-detected if not specified)
   --token TEXT                    GitHub token for private repos / higher rate
-                                  limits. Prefer 'ebx config set github_token'
-                                  (masked input, stored once in ~/.ebx/.env);
+                                  limits. Prefer 'abx config set github_token'
+                                  (masked input, stored once in ~/.abx/.env);
                                   --token is a temporary override that may leak
                                   into shell history and the process list (env:
                                   GITHUB_TOKEN).
@@ -426,7 +426,7 @@ Options:
   --memory INTEGER                Memory in MB
   -y, --yes                       Skip confirmation prompt
   -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
+                                  'abx config set region' value, else cn-
                                   hangzhou)
   -h, --help                      Show this message and exit.
 Exit code: 0
@@ -435,27 +435,27 @@ Exit code: 0
 ### config --help
 
 ```
-$ ebx config --help
+$ abx config --help
 Usage: cli config [OPTIONS] COMMAND [ARGS]...
 
   Manage persistent credentials and CLI defaults.
 
-  Values are read from ~/.ebx/config.toml and ~/.ebx/.env. Environment variables
+  Values are read from ~/.abx/config.toml and ~/.abx/.env. Environment variables
   can still override the stored configuration at runtime.
 
   Examples:
-    ebx config init
-    ebx config list
-    ebx config get region
-    ebx config set http_timeout 120
-    ebx config set github_token     Prompt for the token (masked input)
-    ebx config delete region   Remove one stored value
+    abx config init
+    abx config list
+    abx config get region
+    abx config set http_timeout 120
+    abx config set github_token     Prompt for the token (masked input)
+    abx config delete region   Remove one stored value
 
   Related commands:
-    ebx config init           Guided setup (credentials, region, ACR, LLM)
-    ebx config get            Read one effective value
-    ebx config set            Store or update one value
-    ebx config delete KEY     Remove one stored value
+    abx config init           Guided setup (credentials, region, ACR, LLM)
+    abx config get            Read one effective value
+    abx config set            Store or update one value
+    abx config delete KEY     Remove one stored value
 
 Options:
   -h, --help  Show this message and exit.
@@ -472,26 +472,26 @@ Exit code: 0
 ### config-get --help
 
 ```
-$ ebx config get --help
+$ abx config get --help
 Usage: cli config get [OPTIONS] KEY
 
   Get a configuration value by KEY.
 
   Prints the effective value: the process environment wins, then the value
-  stored by ``ebx config set``, then the built-in default. Keys without any of
+  stored by ``abx config set``, then the built-in default. Keys without any of
   these print ``(not set)``. Sensitive keys are masked.
 
   Available keys:
     sandbox_api_key    Sandbox service API key (E2B-compatible; env vars
-                       E2B_API_KEY > SANDBOX_API_KEY; stored in ~/.ebx/.env,
+                       E2B_API_KEY > SANDBOX_API_KEY; stored in ~/.abx/.env,
                        shown masked). ``api_key`` is accepted as an alias.
     access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth
-                       (template deploy, ACR push; stored in ~/.ebx/.env)
+                       (template deploy, ACR push; stored in ~/.abx/.env)
     access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth
-                       (template deploy, ACR push; stored in ~/.ebx/.env,
+                       (template deploy, ACR push; stored in ~/.abx/.env,
                        shown masked)
     acr_namespace      ACR namespace for template build, push, and install
-                       (stored in ~/.ebx/.env as ACR_NAMESPACE)
+                       (stored in ~/.abx/.env as ACR_NAMESPACE)
     api_url            Platform API URL
     domain             Envd data-plane domain
     region             Default region (e.g. cn-hangzhou)
@@ -499,28 +499,28 @@ Usage: cli config get [OPTIONS] KEY
     http2              Enable HTTP/2 (true/false)
     max_retries        Maximum retry attempts
     llm_api_key        LLM API key for NL inference and the coding agent
-                       (stored in ~/.ebx/.env as EBX_LLM_API_KEY, shown
+                       (stored in ~/.abx/.env as ABX_LLM_API_KEY, shown
                        masked; a legacy config.toml value is still readable)
     llm_model          LLM model name (default: qwen3-coder-plus)
     llm_base_url       LLM API base URL, OpenAI-compatible
                        (default: DashScope compatible-mode)
     github_token       GitHub token for template downloads (stored in
-                       ~/.ebx/.env, shown masked)
+                       ~/.abx/.env, shown masked)
     shortcuts          All top-level shortcuts configured in
-                       ~/.ebx/config.toml
+                       ~/.abx/config.toml
     shortcuts.<name>   Target command of one configured shortcut
 
   Examples:
-    ebx config get sandbox_api_key
-    ebx config get region
-    ebx config list          # show all values at once
-    ebx config get shortcuts           # all configured aliases
-    ebx config get shortcuts.list      # target of one alias
+    abx config get sandbox_api_key
+    abx config get region
+    abx config list          # show all values at once
+    abx config get shortcuts           # all configured aliases
+    abx config get shortcuts.list      # target of one alias
 
   Related commands:
-    ebx config list          Show every effective value and its source
-    ebx config set KEY VALUE
-    ebx config set KEY ""    Clear one stored value
+    abx config list          Show every effective value and its source
+    abx config set KEY VALUE
+    abx config set KEY ""    Clear one stored value
 
 Options:
   -h, --help  Show this message and exit.
@@ -530,23 +530,23 @@ Exit code: 0
 ### config-set --help
 
 ```
-$ ebx config set --help
+$ abx config set --help
 Usage: cli config set [OPTIONS] KEY [VALUE]
 
   Set a configuration value: KEY [VALUE].
 
-  Settings are stored in ~/.ebx/config.toml, except credentials
+  Settings are stored in ~/.abx/config.toml, except credentials
   (sandbox_api_key, access_key_id, access_key_secret, acr_namespace,
-  llm_api_key, github_token) which are written to ~/.ebx/.env using their
+  llm_api_key, github_token) which are written to ~/.abx/.env using their
   environment-variable names. Setting llm_api_key also removes any legacy
-  config.toml copy of it (the secret migrates to the 0600-protected ~/.ebx/.env
+  config.toml copy of it (the secret migrates to the 0600-protected ~/.abx/.env
   storage).
 
   Passing an empty VALUE clears the stored value for KEY instead: the key falls
   back to its built-in default or becomes not set. An empty string is never
   stored as a credential or override. Environment variables that are still
   exported keep overriding the key at runtime; their values are never printed.
-  Clearing llm_api_key removes both the ~/.ebx/.env entry and any legacy
+  Clearing llm_api_key removes both the ~/.abx/.env entry and any legacy
   config.toml copy.
 
   In an interactive terminal VALUE may be omitted: sensitive keys (github_token,
@@ -564,7 +564,7 @@ Usage: cli config set [OPTIONS] KEY [VALUE]
     access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth, used by
                        template deploy and ACR push (string)
     acr_namespace      ACR namespace for template build, push, and install
-                       (string; stored in ~/.ebx/.env as ACR_NAMESPACE)
+                       (string; stored in ~/.abx/.env as ACR_NAMESPACE)
     api_url            Platform API URL (e.g. https://api.cn-hangzhou.e2b.fc.aliyuncs.com)
     domain             Envd data-plane domain (e.g. cn-hangzhou.e2b.fc.aliyuncs.com)
     region             Default region (e.g. cn-hangzhou, cn-shanghai)
@@ -573,40 +573,40 @@ Usage: cli config set [OPTIONS] KEY [VALUE]
     max_retries        Maximum retry attempts (integer, e.g. 3)
     llm_api_key        LLM API key for NL inference and the coding agent,
                        e.g. a DashScope/ModelStudio key (string; stored in
-                       ~/.ebx/.env as EBX_LLM_API_KEY)
+                       ~/.abx/.env as ABX_LLM_API_KEY)
     llm_model          LLM model name (default: qwen3-coder-plus)
     llm_base_url       LLM API base URL, OpenAI-compatible (string;
                        default: DashScope compatible-mode)
     github_token       GitHub token for template downloads, used by
-                       'ebx template install' / 'ebx template search'
-                       (string; stored in ~/.ebx/.env)
+                       'abx template install' / 'abx template search'
+                       (string; stored in ~/.abx/.env)
     shortcuts.<name>   Top-level shortcut. The value is the command path
-                       without the "ebx" prefix, for example
-                       "template init" (not "ebx template init"):
-                       'ebx config set shortcuts.ps "sandbox process list"';
+                       without the "abx" prefix, for example
+                       "template init" (not "abx template init"):
+                       'abx config set shortcuts.ps "sandbox process list"';
                        an empty VALUE removes the shortcut
 
   Examples:
-    ebx config set sandbox_api_key YOUR_API_KEY
-    ebx config set access_key_id YOUR_ACCESS_KEY_ID
-    ebx config set access_key_secret YOUR_ACCESS_KEY_SECRET
-    ebx config set acr_namespace YOUR_ACR_NAMESPACE
-    ebx config set region cn-hangzhou
-    ebx config set http_timeout 120
-    ebx config set http2 false
-    ebx config set llm_api_key YOUR_DASHSCOPE_OR_LLM_KEY
-    ebx config set region ""          # clear the stored region
-    ebx config set sandbox_api_key ""  # remove the stored sandbox API key
-    ebx config set github_token      # masked prompt (VALUE omitted)
-    ebx config set github_token YOUR_GITHUB_TOKEN
-    ebx config set github_token ""    # remove the stored token
-    ebx config set shortcuts.ps "sandbox process list"
-    ebx config set shortcuts.ps ""    # remove the 'ps' shortcut
+    abx config set sandbox_api_key YOUR_API_KEY
+    abx config set access_key_id YOUR_ACCESS_KEY_ID
+    abx config set access_key_secret YOUR_ACCESS_KEY_SECRET
+    abx config set acr_namespace YOUR_ACR_NAMESPACE
+    abx config set region cn-hangzhou
+    abx config set http_timeout 120
+    abx config set http2 false
+    abx config set llm_api_key YOUR_DASHSCOPE_OR_LLM_KEY
+    abx config set region ""          # clear the stored region
+    abx config set sandbox_api_key ""  # remove the stored sandbox API key
+    abx config set github_token      # masked prompt (VALUE omitted)
+    abx config set github_token YOUR_GITHUB_TOKEN
+    abx config set github_token ""    # remove the stored token
+    abx config set shortcuts.ps "sandbox process list"
+    abx config set shortcuts.ps ""    # remove the 'ps' shortcut
 
   Related commands:
-    ebx config get KEY       Verify the effective value
-    ebx config list          Review effective values and sources
-    ebx config delete KEY    Remove one stored value
+    abx config get KEY       Verify the effective value
+    abx config list          Review effective values and sources
+    abx config delete KEY    Remove one stored value
 
 Options:
   -h, --help  Show this message and exit.
@@ -616,7 +616,7 @@ Exit code: 0
 ### config-list --help
 
 ```
-$ ebx config list --help
+$ abx config list --help
 Usage: cli config list [OPTIONS]
 
   List all effective configuration values and their sources.
@@ -627,21 +627,21 @@ Usage: cli config list [OPTIONS]
   the bare key names, and ``--json`` output stays a flat ``{key: value}`` map.
 
   Sources: ``(env)`` a process environment variable, ``(user)`` a value in
-  ``./.env`` or stored with ``ebx config set``, ``(default)`` a built-in
+  ``./.env`` or stored with ``abx config set``, ``(default)`` a built-in
   default, and ``(not set)`` when no value exists anywhere. A set environment
-  variable wins over either file. ``./.env`` wins over ``~/.ebx`` for a key it
-  sets; a key it omits still comes from ``~/.ebx``. Sensitive values are always
+  variable wins over either file. ``./.env`` wins over ``~/.abx`` for a key it
+  sets; a key it omits still comes from ``~/.abx``. Sensitive values are always
   masked.
 
   Examples:
-    ebx config list
-    ebx --json config list
-    ebx config get http_timeout
+    abx config list
+    abx --json config list
+    abx config get http_timeout
 
   Related commands:
-    ebx config get KEY        Inspect one effective value
-    ebx config set KEY VALUE
-    ebx config delete KEY     Remove one stored value
+    abx config get KEY        Inspect one effective value
+    abx config set KEY VALUE
+    abx config delete KEY     Remove one stored value
 
 Options:
   -h, --help  Show this message and exit.
@@ -651,36 +651,36 @@ Exit code: 0
 ### config-init --help
 
 ```
-$ ebx config init --help
+$ abx config init --help
 Usage: cli config init [OPTIONS]
 
   Guided setup: credentials, region, ACR namespace, and the LLM API key.
 
   In a terminal this prompts for the platform API key, the default region, the
-  LLM API key used for AI template generation and NL inference (``ebx create
+  LLM API key used for AI template generation and NL inference (``abx create
   "<description>"``; consumed by Qwen Code), the ACR namespace, and the Alibaba
-  Cloud AccessKey pair. The last three are what ``ebx install`` and ``ebx
+  Cloud AccessKey pair. The last three are what ``abx install`` and ``abx
   template deploy`` need in order to build and push an image. Press Enter to
   skip a prompt. Secrets are typed with asterisk feedback (never echoed) when
-  the terminal supports it, and stored in ~/.ebx/.env; the region goes to
-  ~/.ebx/config.toml. The namespace is stored as ``ACR_NAMESPACE``.
+  the terminal supports it, and stored in ~/.abx/.env; the region goes to
+  ~/.abx/config.toml. The namespace is stored as ``ACR_NAMESPACE``.
 
   In non-TTY environments (CI, piped input) the wizard never blocks: it prints
-  the equivalent non-interactive ``ebx config set ...`` commands and exits
+  the equivalent non-interactive ``abx config set ...`` commands and exits
   successfully. ``--yes`` behaves the same way.
 
   ``--reset-shortcuts`` restores the default ``[shortcuts]`` section of
-  ~/.ebx/config.toml (and nothing else), then exits.
+  ~/.abx/config.toml (and nothing else), then exits.
 
   Examples:
-    ebx config init
-    ebx config init --yes     # print non-interactive commands
-    ebx config init --reset-shortcuts    # restore default shortcuts only
+    abx config init
+    abx config init --yes     # print non-interactive commands
+    abx config init --reset-shortcuts    # restore default shortcuts only
 
   Related commands:
-    ebx config list           Review effective values and sources
-    ebx config set KEY VALUE  Set one value directly
-    ebx config set KEY ""     Clear one stored value
+    abx config list           Review effective values and sources
+    abx config set KEY VALUE  Set one value directly
+    abx config set KEY ""     Clear one stored value
 
 Options:
   -y, --yes          Non-interactive: print the equivalent commands instead of
@@ -693,20 +693,20 @@ Exit code: 0
 ### template --help
 
 ```
-$ ebx template --help
+$ abx template --help
 Usage: cli template [OPTIONS] COMMAND [ARGS]...
 
   Discover, scaffold, build, and manage sandbox templates.
 
   Examples:
-    ebx template search python
-    ebx template init --template python --name my-template
-    ebx template list
+    abx template search python
+    abx template init --template python --name my-template
+    abx template list
 
   Related commands:
-    ebx create --template TEMPLATE  Launch a sandbox from a template
-    ebx install TEMPLATE_REF        Install shortcut
-    ebx config --help               Configure credentials and region
+    abx create --template TEMPLATE  Launch a sandbox from a template
+    abx install TEMPLATE_REF        Install shortcut
+    abx config --help               Configure credentials and region
 
 Options:
   -h, --help  Show this message and exit.
@@ -728,7 +728,7 @@ Exit code: 0
 ### template-list --help
 
 ```
-$ ebx template list --help
+$ abx template list --help
 Usage: cli template list [OPTIONS]
 
   List custom templates registered for the current account.
@@ -738,20 +738,20 @@ Usage: cli template list [OPTIONS]
   search the community template index.
 
   Examples:
-    ebx template list
-    ebx template list --official-api
-    ebx template list --region cn-shanghai
-    ebx --json template list
+    abx template list
+    abx template list --official-api
+    abx template list --region cn-shanghai
+    abx --json template list
 
   Related commands:
-    ebx template info TEMPLATE_ID
-    ebx template search QUERY
-    ebx template install TEMPLATE_REF
+    abx template info TEMPLATE_ID
+    abx template search QUERY
+    abx template install TEMPLATE_REF
 
 Options:
   --official-api     Query templates via the official Alibaba Cloud FCSandbox
                      API (AK/SK).
-  -r, --region TEXT  Region override for this command (default: 'ebx config set
+  -r, --region TEXT  Region override for this command (default: 'abx config set
                      region' value, else cn-hangzhou)
   -h, --help         Show this message and exit.
 Exit code: 0
@@ -760,7 +760,7 @@ Exit code: 0
 ### template-info --help
 
 ```
-$ ebx template info --help
+$ abx template info --help
 Usage: cli template info [OPTIONS] TEMPLATE_ID
 
   Show details for a template ID.
@@ -769,20 +769,20 @@ Usage: cli template info [OPTIONS] TEMPLATE_ID
   mode requires configured AccessKey credentials.
 
   Examples:
-    ebx template info tmpl-abc123
-    ebx template info tmpl-abc123 --official-api
-    ebx template info tmpl-abc123 --region cn-shanghai
-    ebx --json template info tmpl-abc123
+    abx template info tmpl-abc123
+    abx template info tmpl-abc123 --official-api
+    abx template info tmpl-abc123 --region cn-shanghai
+    abx --json template info tmpl-abc123
 
   Related commands:
-    ebx template list
-    ebx create --template TEMPLATE_ID
-    ebx template delete TEMPLATE_ID
+    abx template list
+    abx create --template TEMPLATE_ID
+    abx template delete TEMPLATE_ID
 
 Options:
   --official-api     Query the template via the official Alibaba Cloud FCSandbox
                      API (AK/SK).
-  -r, --region TEXT  Region override for this command (default: 'ebx config set
+  -r, --region TEXT  Region override for this command (default: 'abx config set
                      region' value, else cn-hangzhou)
   -h, --help         Show this message and exit.
 Exit code: 0
@@ -791,7 +791,7 @@ Exit code: 0
 ### template-build --help
 
 ```
-$ ebx template build --help
+$ abx template build --help
 Usage: cli template build [OPTIONS] TEMPLATE_DIR
 
   Build Docker image locally, push to ACR, and create a sandbox template.
@@ -804,7 +804,7 @@ Usage: cli template build [OPTIONS] TEMPLATE_DIR
 
   --official-api (default):
     local docker build → ACR push → official CreateTemplate API (envdInject).
-    Requires AK/SK credentials and 'easy-sandbox[alicloud]' extra.
+    Requires AK/SK credentials and 'agent-sandbox[alicloud]' extra.
 
   --legacy-api:
     local docker build → ACR push → legacy v3/v2 platform API.
@@ -812,24 +812,24 @@ Usage: cli template build [OPTIONS] TEMPLATE_DIR
 
   Requires Docker daemon running and ACR credentials. In automation/CI, pass
   --acr-namespace and TEMPLATE_DIR explicitly instead of relying on
-  ACR_NAMESPACE / EBX_TEMPLATE_DIR environment variables or .env files, so the
+  ACR_NAMESPACE / ABX_TEMPLATE_DIR environment variables or .env files, so the
   build cannot drift with the surrounding environment.
 
   Examples:
-    ebx template build ./examples/templates/python-hello \
+    abx template build ./examples/templates/python-hello \
       --acr-namespace my-ns --acr-repo python-hello
-    ebx template build ./my-template \
+    abx template build ./my-template \
       --acr-namespace prod --acree-instance-id cri-xxx
-    ebx template build ./my-template \
+    abx template build ./my-template \
       --acr-namespace prod --disk-size 10240 --internet-access
-    ebx template build ./my-template \
+    abx template build ./my-template \
       --acr-namespace prod --legacy-api
-    ebx template build ./my-template --acr-namespace prod --region cn-shanghai
+    abx template build ./my-template --acr-namespace prod --region cn-shanghai
 
   Related commands:
-    ebx template init DIRECTORY    Scaffold template source files
-    ebx template push IMAGE        Push an existing local image only
-    ebx create --template ID       Launch the completed template
+    abx template init DIRECTORY    Scaffold template source files
+    abx template push IMAGE        Push an existing local image only
+    abx create --template ID       Launch the completed template
 
 Options:
   --acr-registry TEXT             ACR registry host
@@ -874,7 +874,7 @@ Options:
   -y, --yes                       Skip confirmation prompt
   -v, --verbose                   Verbose output (DEBUG level)
   -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
+                                  'abx config set region' value, else cn-
                                   hangzhou)
   -h, --help                      Show this message and exit.
 Exit code: 0
@@ -883,7 +883,7 @@ Exit code: 0
 ### template-init --help
 
 ```
-$ ebx template init --help
+$ abx template init --help
 Usage: cli template init [OPTIONS] [DIRECTORY]
 
   Scaffold a new sandbox template project.
@@ -907,21 +907,21 @@ Usage: cli template init [OPTIONS] [DIRECTORY]
   or deployed.
 
   Examples:
-    ebx template init --list                     # List built-in cases
-    ebx template init -t python                  # Creates ./python/
-    ebx template init -t python --name myapp     # Creates ./myapp/
-    ebx template init -t python ./my-template    # Explicit directory
-    ebx template init --from owner/repo          # Creates ./<template-name>/
-    ebx template init "a python data science env"  # AI files only, no build
-    ebx template init -y "a node.js api server"    # non-interactive AI files
-    ebx template init --adopt . --hint "port 8080" # adapt this project
-    ebx template init --adopt ./app --dry-run      # show what would be sent
+    abx template init --list                     # List built-in cases
+    abx template init -t python                  # Creates ./python/
+    abx template init -t python --name myapp     # Creates ./myapp/
+    abx template init -t python ./my-template    # Explicit directory
+    abx template init --from owner/repo          # Creates ./<template-name>/
+    abx template init "a python data science env"  # AI files only, no build
+    abx template init -y "a node.js api server"    # non-interactive AI files
+    abx template init --adopt . --hint "port 8080" # adapt this project
+    abx template init --adopt ./app --dry-run      # show what would be sent
 
   Related commands:
-    ebx template deploy DIRECTORY
-    ebx template install TEMPLATE_REF
-    ebx create --template TEMPLATE
-    ebx create "DESCRIPTION"   # generate, build, deploy, and create
+    abx template deploy DIRECTORY
+    abx template install TEMPLATE_REF
+    abx create --template TEMPLATE
+    abx create "DESCRIPTION"   # generate, build, deploy, and create
 
 Options:
   -t, --template TEXT  Built-in scaffold case (python, node, minimal)
@@ -952,7 +952,7 @@ Exit code: 0
 ### template-delete --help
 
 ```
-$ ebx template delete --help
+$ abx template delete --help
 Usage: cli template delete [OPTIONS] TEMPLATE_ID
 
   Delete a custom template from the remote platform.
@@ -961,17 +961,17 @@ Usage: cli template delete [OPTIONS] TEMPLATE_ID
   Confirmation is required unless --yes is supplied.
 
   Examples:
-    ebx template delete tmpl-abc123
-    ebx template delete tmpl-abc123 --yes --region cn-shanghai
+    abx template delete tmpl-abc123
+    abx template delete tmpl-abc123 --yes --region cn-shanghai
 
   Related commands:
-    ebx template info TEMPLATE_ID  Verify the target before deletion
-    ebx template list              Confirm the template was removed
-    ebx template install REF       Reinstall a template
+    abx template info TEMPLATE_ID  Verify the target before deletion
+    abx template list              Confirm the template was removed
+    abx template install REF       Reinstall a template
 
 Options:
   -y, --yes          Skip confirmation prompt
-  -r, --region TEXT  Region override for this command (default: 'ebx config set
+  -r, --region TEXT  Region override for this command (default: 'abx config set
                      region' value, else cn-hangzhou)
   -h, --help         Show this message and exit.
 Exit code: 0
@@ -980,7 +980,7 @@ Exit code: 0
 ### template-install --help
 
 ```
-$ ebx template install --help
+$ abx template install --help
 Usage: cli template install [OPTIONS] TEMPLATE_REF
 
   Download a template and (by default) build + deploy it.
@@ -989,7 +989,7 @@ Usage: cli template install [OPTIONS] TEMPLATE_REF
   ACR, and creates a sandbox template via the official API — cloud-side
   operations that can incur Alibaba Cloud costs (ACR storage/traffic, template
   resources). Use --download-only to skip the build/deploy step and only
-  download to the local cache (~/.ebx/templates/).
+  download to the local cache (~/.abx/templates/).
 
   Use --dir <path> to download into a specific directory instead of the cache.
 
@@ -1000,27 +1000,27 @@ Usage: cli template install [OPTIONS] TEMPLATE_REF
 
   A GitHub token (private repos / higher rate limits) is taken from --token,
   then the GITHUB_TOKEN environment variable, then ./.env, then the stored
-  github_token; prefer 'ebx config set github_token' - --token may leak into
+  github_token; prefer 'abx config set github_token' - --token may leak into
   shell history and process listings.
 
   Examples:
-    ebx template install python-hello --download-only   # install by index name
-    ebx template install owner/repo --acr-namespace my-ns
-    ebx template install owner/repo@v1.0 --download-only
-    ebx template install owner/repo//subdir --dir ./local-copy
-    ebx template install owner/repo --acr-namespace my-ns --region cn-shanghai
+    abx template install python-hello --download-only   # install by index name
+    abx template install owner/repo --acr-namespace my-ns
+    abx template install owner/repo@v1.0 --download-only
+    abx template install owner/repo//subdir --dir ./local-copy
+    abx template install owner/repo --acr-namespace my-ns --region cn-shanghai
 
   Related commands:
-    ebx template search QUERY  Find a template in the index
-    ebx template list          List registered templates
-    ebx create --template ID   Launch the installed template
+    abx template search QUERY  Find a template in the index
+    abx template list          List registered templates
+    abx create --template ID   Launch the installed template
 
 Options:
   --registry-url TEXT             Registry URL (default: GitHub)
   --registry-type [github|local]  Registry type (auto-detected if not specified)
   --token TEXT                    GitHub token for private repos / higher rate
-                                  limits. Prefer 'ebx config set github_token'
-                                  (masked input, stored once in ~/.ebx/.env);
+                                  limits. Prefer 'abx config set github_token'
+                                  (masked input, stored once in ~/.abx/.env);
                                   --token is a temporary override that may leak
                                   into shell history and the process list (env:
                                   GITHUB_TOKEN).
@@ -1036,7 +1036,7 @@ Options:
                                   2048)
   -y, --yes                       Skip confirmation prompt
   -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
+                                  'abx config set region' value, else cn-
                                   hangzhou)
   -h, --help                      Show this message and exit.
 Exit code: 0
@@ -1045,25 +1045,25 @@ Exit code: 0
 ### mcp --help
 
 ```
-$ ebx mcp --help
+$ abx mcp --help
 Usage: cli mcp [OPTIONS] COMMAND [ARGS]...
 
-  Configure and run Easy Sandbox as an MCP server.
+  Configure and run Agent Sandbox as an MCP server.
 
   Use local STDIO transport for IDE integrations, or generate a Streamable HTTP
   deployment artifact for manual deployment to Alibaba Cloud FC.
 
   Examples:
-    ebx mcp install --target cursor
-    ebx mcp start
-    ebx mcp start --http --background
-    ebx mcp stop
-    ebx mcp deploy --generate-token --output-dir ./mcp-artifact
+    abx mcp install --target cursor
+    abx mcp start
+    abx mcp start --http --background
+    abx mcp stop
+    abx mcp deploy --generate-token --output-dir ./mcp-artifact
 
   Related commands:
-    ebx config set sandbox_api_key VALUE  Configure sandbox authentication
-    ebx mcp status                Inspect local MCP configuration
-    ebx mcp stop                  Stop the local MCP server
+    abx config set sandbox_api_key VALUE  Configure sandbox authentication
+    abx mcp status                Inspect local MCP configuration
+    abx mcp stop                  Stop the local MCP server
 
 Options:
   -h, --help  Show this message and exit.
@@ -1073,14 +1073,14 @@ Commands:
   install  Install MCP Server configuration to a target IDE.
   start    Start the MCP server and print its configuration to stderr.
   status   Show MCP tools, authentication state, and IDE installation status.
-  stop     Stop the local MCP server started by 'ebx mcp start'.
+  stop     Stop the local MCP server started by 'abx mcp start'.
 Exit code: 0
 ```
 
 ### mcp-deploy --help
 
 ```
-$ ebx mcp deploy --help
+$ abx mcp deploy --help
 Usage: cli mcp deploy [OPTIONS]
 
   Generate an Alibaba Cloud FC deployment artifact.
@@ -1093,7 +1093,7 @@ Usage: cli mcp deploy [OPTIONS]
   environment variables).
 
   ``--region`` overrides the FC region for this invocation; without it the
-  region comes from ``ebx config set region`` / the ``SANDBOX_REGION``
+  region comes from ``abx config set region`` / the ``SANDBOX_REGION``
   environment variable and defaults to ``cn-hangzhou``.
 
   A non-empty Bearer token is required (--generate-token or --auth-token-file).
@@ -1102,19 +1102,19 @@ Usage: cli mcp deploy [OPTIONS]
   selected region.
 
   Examples:
-    ebx mcp deploy --generate-token --api-key $E2B_API_KEY
-    ebx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
-    ebx mcp deploy --generate-token --output-dir ./deploy-artifact
+    abx mcp deploy --generate-token --api-key $E2B_API_KEY
+    abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
+    abx mcp deploy --generate-token --output-dir ./deploy-artifact
 
   Related commands:
-    ebx mcp start                 Run the local STDIO server
-    ebx mcp status                Inspect MCP authentication state
-    ebx config set sandbox_api_key VALUE  Configure sandbox authentication
+    abx mcp start                 Run the local STDIO server
+    abx mcp status                Inspect MCP authentication state
+    abx config set sandbox_api_key VALUE  Configure sandbox authentication
 
 Options:
   --name TEXT                     FC function name for the artifact.
   -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
+                                  'abx config set region' value, else cn-
                                   hangzhou)
   --template TEXT                 Default sandbox template for MCP sessions.
   --memory INTEGER                FC function memory (MB).
@@ -1136,7 +1136,7 @@ Exit code: 0
 ### mcp-install --help
 
 ```
-$ ebx mcp install --help
+$ abx mcp install --help
 Usage: cli mcp install [OPTIONS]
 
   Install MCP Server configuration to a target IDE.
@@ -1145,14 +1145,14 @@ Usage: cli mcp install [OPTIONS]
   configuration file. Supported targets are cursor, claude, and vscode.
 
   Examples:
-    ebx mcp install --target cursor
-    ebx mcp install --target claude
-    ebx mcp install --target vscode
+    abx mcp install --target cursor
+    abx mcp install --target claude
+    abx mcp install --target vscode
 
   Related commands:
-    ebx mcp status  Verify installed IDE configurations
-    ebx mcp start   Run the configured STDIO server
-    ebx config get sandbox_api_key
+    abx mcp status  Verify installed IDE configurations
+    abx mcp start   Run the configured STDIO server
+    abx config get sandbox_api_key
 
 Options:
   --target [cursor|claude|vscode]
@@ -1164,29 +1164,29 @@ Exit code: 0
 ### mcp-start --help
 
 ```
-$ ebx mcp start --help
+$ abx mcp start --help
 Usage: cli mcp start [OPTIONS]
 
   Start the MCP server and print its configuration to stderr.
 
   The default transport is STDIO: an IDE writes JSON-RPC to stdin and reads
   responses from stdout. Run it in a terminal to see the configuration and stop
-  it with Ctrl-C or 'ebx mcp stop'.
+  it with Ctrl-C or 'abx mcp stop'.
 
   --http listens for Streamable HTTP. --background detaches that HTTP server;
   STDIO cannot keep a client attached after detach, so --background starts HTTP.
 
   Examples:
-    ebx mcp start
-    ebx mcp start --template python-hello
-    ebx mcp start --http --port 9000
-    ebx mcp start --http --background
-    ebx mcp stop
+    abx mcp start
+    abx mcp start --template python-hello
+    abx mcp start --http --port 9000
+    abx mcp start --http --background
+    abx mcp stop
 
   Related commands:
-    ebx mcp install --target cursor  Register the STDIO command in an IDE
-    ebx mcp stop                     Stop the local MCP server
-    ebx mcp status                   Check authentication and IDE setup
+    abx mcp install --target cursor  Register the STDIO command in an IDE
+    abx mcp stop                     Stop the local MCP server
+    abx mcp status                   Check authentication and IDE setup
 
 Options:
   --template TEXT    Default sandbox template ID or alias (default: code-
@@ -1199,7 +1199,7 @@ Options:
   --port INTEGER     HTTP bind port.  [default: 9000]
   --auth-token TEXT  Bearer token for the HTTP server. Required when --host is
                      not loopback.
-  --background       Detach an HTTP server. Stop it later with 'ebx mcp stop'.
+  --background       Detach an HTTP server. Stop it later with 'abx mcp stop'.
   -h, --help         Show this message and exit.
 Exit code: 0
 ```
@@ -1207,22 +1207,22 @@ Exit code: 0
 ### mcp-stop --help
 
 ```
-$ ebx mcp stop --help
+$ abx mcp stop --help
 Usage: cli mcp stop [OPTIONS]
 
-  Stop the local MCP server started by 'ebx mcp start'.
+  Stop the local MCP server started by 'abx mcp start'.
 
   Sends SIGTERM to the recorded pid (STDIO foreground or HTTP background) and
   waits for it to exit. Sandboxes owned by that server are destroyed during its
   shutdown.
 
   Examples:
-    ebx mcp stop
+    abx mcp stop
 
   Related commands:
-    ebx mcp start            Start STDIO in the foreground
-    ebx mcp start --http --background
-    ebx mcp status           Inspect configuration and whether a server is running
+    abx mcp start            Start STDIO in the foreground
+    abx mcp start --http --background
+    abx mcp status           Inspect configuration and whether a server is running
 
 Options:
   -h, --help  Show this message and exit.
@@ -1232,19 +1232,19 @@ Exit code: 0
 ### mcp-status --help
 
 ```
-$ ebx mcp status --help
+$ abx mcp status --help
 Usage: cli mcp status [OPTIONS]
 
   Show MCP tools, authentication state, and IDE installation status.
 
   Examples:
-    ebx mcp status
-    ebx --json mcp status
+    abx mcp status
+    abx --json mcp status
 
   Related commands:
-    ebx mcp install --target cursor
-    ebx mcp start
-    ebx config get sandbox_api_key
+    abx mcp install --target cursor
+    abx mcp start
+    abx config get sandbox_api_key
 
 Options:
   -h, --help  Show this message and exit.
@@ -1254,7 +1254,7 @@ Exit code: 0
 ### deploy --help
 
 ```
-$ ebx deploy --help
+$ abx deploy --help
 Usage: cli deploy [OPTIONS] [PATH]
 
   Publish a template project: build, push to ACR, register the template.
@@ -1264,28 +1264,28 @@ Usage: cli deploy [OPTIONS] [PATH]
   directory (default: .). It must contain a Dockerfile; template.yaml supplies
   the template name and resources.
 
-  To author the files first, use 'ebx template init': --adopt for an existing
+  To author the files first, use 'abx template init': --adopt for an existing
   project, a natural-language description to let the AI write the files, or -t
   for a scaffold.
 
-  Accepts every option of 'ebx template deploy' (--acr-namespace, --alias,
+  Accepts every option of 'abx template deploy' (--acr-namespace, --alias,
   --yes, -v/--verbose, ...).
 
   Examples:
-    ebx deploy --acr-namespace my-ns           # publish ./ as a template
-    ebx deploy ./my-template --yes             # non-interactive
-    ebx deploy ./my-template -v                # with debug logs
+    abx deploy --acr-namespace my-ns           # publish ./ as a template
+    abx deploy ./my-template --yes             # non-interactive
+    abx deploy ./my-template -v                # with debug logs
 
   Typical flow:
-    ebx template init --adopt .                      # 1a. author from a project
-    ebx template init "a python data science env"   # 1b. author from a description
-    ebx deploy ./<name> --acr-namespace my-ns       # 2. publish
-    ebx create --template <TEMPLATE_ID>             # 3. launch a sandbox
+    abx template init --adopt .                      # 1a. author from a project
+    abx template init "a python data science env"   # 1b. author from a description
+    abx deploy ./<name> --acr-namespace my-ns       # 2. publish
+    abx create --template <TEMPLATE_ID>             # 3. launch a sandbox
 
   Related commands:
-    ebx template init          Author Dockerfile / template.yaml (AI optional)
-    ebx template deploy DIR    The same pipeline with a required DIRECTORY
-    ebx create "DESCRIPTION"   Author + publish + launch in one go
+    abx template init          Author Dockerfile / template.yaml (AI optional)
+    abx template deploy DIR    The same pipeline with a required DIRECTORY
+    abx create "DESCRIPTION"   Author + publish + launch in one go
 
 Options:
   --acr-registry TEXT             ACR registry host
@@ -1330,16 +1330,16 @@ Options:
   -y, --yes                       Skip confirmation prompt
   -v, --verbose                   Verbose output (DEBUG level)
   -r, --region TEXT               Region override for this command (default:
-                                  'ebx config set region' value, else cn-
+                                  'abx config set region' value, else cn-
                                   hangzhou)
   -h, --help                      Show this message and exit.
 Exit code: 0
 ```
 
-### 顶层 init（ebx template init 快捷别名）
+### 顶层 init（abx template init 快捷别名）
 
 ```
-$ ebx init --help
+$ abx init --help
 Usage: cli init [OPTIONS] [DIRECTORY]
 
   Scaffold a new sandbox template project.
@@ -1363,21 +1363,21 @@ Usage: cli init [OPTIONS] [DIRECTORY]
   or deployed.
 
   Examples:
-    ebx template init --list                     # List built-in cases
-    ebx template init -t python                  # Creates ./python/
-    ebx template init -t python --name myapp     # Creates ./myapp/
-    ebx template init -t python ./my-template    # Explicit directory
-    ebx template init --from owner/repo          # Creates ./<template-name>/
-    ebx template init "a python data science env"  # AI files only, no build
-    ebx template init -y "a node.js api server"    # non-interactive AI files
-    ebx template init --adopt . --hint "port 8080" # adapt this project
-    ebx template init --adopt ./app --dry-run      # show what would be sent
+    abx template init --list                     # List built-in cases
+    abx template init -t python                  # Creates ./python/
+    abx template init -t python --name myapp     # Creates ./myapp/
+    abx template init -t python ./my-template    # Explicit directory
+    abx template init --from owner/repo          # Creates ./<template-name>/
+    abx template init "a python data science env"  # AI files only, no build
+    abx template init -y "a node.js api server"    # non-interactive AI files
+    abx template init --adopt . --hint "port 8080" # adapt this project
+    abx template init --adopt ./app --dry-run      # show what would be sent
 
   Related commands:
-    ebx template deploy DIRECTORY
-    ebx template install TEMPLATE_REF
-    ebx create --template TEMPLATE
-    ebx create "DESCRIPTION"   # generate, build, deploy, and create
+    abx template deploy DIRECTORY
+    abx template install TEMPLATE_REF
+    abx create --template TEMPLATE
+    abx create "DESCRIPTION"   # generate, build, deploy, and create
 
 Options:
   -t, --template TEXT  Built-in scaffold case (python, node, minimal)

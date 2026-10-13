@@ -9,7 +9,7 @@
 //
 // The cases need module-level mocks (spies on the API / transport / seam objects), so the capture runs inside vitest
 // (config: scripts/capture-cli-evidence.vitest.config.mjs). Golden snapshots are refreshed with
-//   EBX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence
+//   ABX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +35,6 @@ for (let i = 0; i < args.length; i++) {
 const run = spawnSync("npx", ["vitest", "run", "--config", "scripts/capture-cli-evidence.vitest.config.mjs", "--reporter=dot"], {
   cwd: root,
   stdio: "inherit",
-  env: { ...process.env, EBX_CAPTURE_OPTIONS: JSON.stringify(options) },
+  env: { ...process.env, ABX_CAPTURE_OPTIONS: JSON.stringify(options) },
 });
 process.exit(run.status ?? 1);

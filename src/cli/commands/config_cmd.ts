@@ -1,11 +1,11 @@
 /**
  * Configuration management CLI commands: init, get, set, list, delete (port of `cli/commands/config_cmd.py`).
  *
- * Credentials live in `~/.ebx/.env` (owner-only), everything else in `~/.ebx/config.toml` (`[transport]` and
- * `[shortcuts]`). The TOML file is read with a port of CPython's `tomllib` (`../../utils/_tomllib.ts`) and written by the same
+ * Credentials live in `~/.abx/.env` (owner-only), everything else in `~/.abx/config.toml` (`[transport]` and
+ * other sections). The TOML file is read with a port of CPython's `tomllib` (`../../utils/_tomllib.ts`) and written by the same
  * hand-rolled serialiser as the Python CLI, so files and error texts are interchangeable between the two CLIs.
  *
- * Seams: Python tests monkeypatch module attributes of `config_cmd` (`_CONFIG_FILE`, `_EBX_DIR`, `_ENV_FILE`, `sys`,
+ * Seams: Python tests monkeypatch module attributes of `config_cmd` (`_CONFIG_FILE`, `_ABX_DIR`, `_ENV_FILE`, `sys`,
  * `_prompt_secret`, `load_config_dict`, `read_env_var`, `write_env_var`, ...). ESM bindings are read-only, so those
  * attributes live on the mutable {@link configSeams} object and every internal call (and every exported wrapper of the
  * seamed functions) reads them at call time.
@@ -17,27 +17,16 @@ import * as path from "node:path";
 import * as tty from "node:tty";
 import { StringDecoder } from "node:string_decoder";
 
-import {
-  Abort,
-  EOFError,
-  KeyboardInterrupt,
-  argument,
-  command,
-  echo,
-  group,
-  option,
-  prompt,
-  sys,
-  sysExit,
-  type Context,
-} from "../../framework/index.js";
-import { cpSlice, len, ljust } from "../../framework/py.js";
+import { argument, command, group, option, type Context } from "../kit.js";
+import { Abort, EOFError, KeyboardInterrupt, sysExit } from "../errors.js";
+import { echo, sys } from "../io.js";
+import { prompt } from "../prompts.js";
+import { cpSlice, len, ljust } from "../../utils/_py.js";
 import { TransportConfig, projectDotenvValue } from "../../transport/config.js";
 import { _DEFAULT_OPENAI_BASE_URL, _DEFAULT_OPENAI_MODEL } from "../../agent/qwen_code.js";
 import { PyFloat, pyFloatParse, pyFloatRepr, pyStr, pyStrRepr, pyStrip, pySorted, pySplitlines } from "../../utils/_pyformat.js";
-import { OSError as PyOSError, isFile, toOSError, writeTextPy } from "../../utils/_pyos.js";
+import { isFile, toOSError, writeTextPy } from "../../utils/_pyos.js";
 import { type OutputFormatter, getFormatter } from "../formatters.js";
-import { RESERVED_NAMES, _DEFAULT_SHORTCUTS, _SHORTCUT_TARGET_MAP, _describeInvalidShortcutTarget } from "../_shortcut_table.js";
 import { decodeUtf8Strict, loadBytes, type Table } from "../../utils/_tomllib.js";
 import { providersInUse } from "../../providers/in_use.js";
 import { cliProvider } from "../../providers/selection.js";
@@ -51,7 +40,7 @@ type Params = Record<string, any>;
 
 /**
  * `main.handleErrors`, resolved when a command runs. `main` is imported lazily so loading this module never loads
- * `main` (which would create an import cycle with the shortcut merge that imports this module).
+ * `main`.
  */
 function _handleErrors<A extends unknown[], R>(func: (...args: A) => R | Promise<R>): (...args: A) => Promise<R> {
   return async (...args: A): Promise<R> => {
@@ -67,7 +56,7 @@ const _env = (name: string): string | undefined => process.env[name];
 // Storage locations & seams
 // ---------------------------------------------------------------------------------------------------------------------
 
-const _defaultEbxDir = path.join(os.homedir(), ".ebx");
+const _defaultAbxDir = path.join(os.homedir(), ".abx");
 
 /** The slice of Python's `sys` module this file uses (`sys.stdin`, `sys.stdout`). */
 export interface ConfigSys {
@@ -77,11 +66,11 @@ export interface ConfigSys {
 }
 
 /**
- * Patch points (Python: module attributes of `config_cmd`). `sys: null` means "the framework `sys`" (the streams
+ * Patch points (Python: module attributes of `config_cmd`). `sys: null` means "the process streams in `io.ts`" (the streams
  * `CliRunner` swaps); tests set `{ stdin: { isatty: () => true } }` to fake a terminal like Python's `_FakeSys`.
  */
 export const configSeams: {
-  _EBX_DIR: string;
+  _ABX_DIR: string;
   _CONFIG_FILE: string;
   _ENV_FILE: string;
   sys: ConfigSys | null;
@@ -89,21 +78,15 @@ export const configSeams: {
   readEnvVar: (envVar: string) => string | null;
   writeEnvVar: (envVar: string, value: string) => void;
   _promptSecret: (promptText: string) => Promise<string>;
-  loadShortcuts: () => Map<string, string>;
-  _configFileExists: () => boolean;
-  _createDefaultConfig: () => void;
 } = {
-  _EBX_DIR: _defaultEbxDir,
-  _CONFIG_FILE: path.join(_defaultEbxDir, "config.toml"),
-  _ENV_FILE: path.join(_defaultEbxDir, ".env"),
+  _ABX_DIR: _defaultAbxDir,
+  _CONFIG_FILE: path.join(_defaultAbxDir, "config.toml"),
+  _ENV_FILE: path.join(_defaultAbxDir, ".env"),
   sys: null,
   loadConfigDict: (): Record<string, unknown> => _loadConfigDictImpl(),
   readEnvVar: (envVar) => _readEnvVarImpl(envVar),
   writeEnvVar: (envVar, value) => _writeEnvVarImpl(envVar, value),
   _promptSecret: (promptText) => _promptSecretImpl(promptText),
-  loadShortcuts: () => _loadShortcutsImpl(),
-  _configFileExists: () => _configFileExistsImpl(),
-  _createDefaultConfig: () => _createDefaultConfigImpl(),
 };
 
 function _stdin(): ConfigSys["stdin"] {
@@ -116,7 +99,7 @@ function _stdout(): { write(text: string): void; flush(): void } {
 
 /** Keys that users can configure (key -> help). */
 export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
-  ["sandbox_api_key", "Sandbox service API key (env: EBX_SANDBOX_API_KEY)"],
+  ["sandbox_api_key", "Sandbox service API key (env: ABX_SANDBOX_API_KEY)"],
   ["access_key_id", "Alibaba Cloud AccessKey ID for template deploy / ACR push"],
   ["access_key_secret", "Alibaba Cloud AccessKey Secret for template deploy / ACR push"],
   ["acr_namespace", "ACR namespace for template build, push, and install (env: ACR_NAMESPACE)"],
@@ -126,19 +109,19 @@ export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
   ["http2", "Enable HTTP/2 for platform connections (true/false)"],
   ["max_retries", "Maximum retry attempts"],
   ["domain", "Envd domain"],
-  ["llm_api_key", "LLM API key for NL inference and the coding agent (stored in ~/.ebx/.env)"],
+  ["llm_api_key", "LLM API key for template generation (stored in ~/.abx/.env)"],
   ["llm_model", "LLM model name (default: qwen3-coder-plus)"],
   ["llm_base_url", "LLM API base URL, OpenAI-compatible (default: DashScope compatible-mode)"],
-  ["github_token", "GitHub token for template downloads / rate limits (stored in ~/.ebx/.env)"],
+  ["github_token", "GitHub token for template downloads / rate limits (stored in ~/.abx/.env)"],
 ]);
 
-/** Keys stored in `~/.ebx/.env` (mapped to their env-var name) rather than `config.toml`. */
+/** Keys stored in `~/.abx/.env` (mapped to their env-var name) rather than `config.toml`. */
 export const _ENV_STORED_KEYS: ReadonlyMap<string, string> = new Map([
-  ["sandbox_api_key", "EBX_SANDBOX_API_KEY"],
+  ["sandbox_api_key", "ABX_SANDBOX_API_KEY"],
   ["access_key_id", "ALICLOUD_ACCESS_KEY_ID"],
   ["access_key_secret", "ALICLOUD_ACCESS_KEY_SECRET"],
   ["acr_namespace", "ACR_NAMESPACE"],
-  ["llm_api_key", "EBX_LLM_API_KEY"],
+  ["llm_api_key", "ABX_LLM_API_KEY"],
   ["github_token", "GITHUB_TOKEN"],
 ]);
 
@@ -171,7 +154,6 @@ const _REMOVED_KEYS: ReadonlyMap<string, string> = new Map([
 ]);
 
 /** Storage written by older releases, read only when the unified key is unset. */
-const _LEGACY_ENV_FALLBACKS: ReadonlyMap<string, readonly string[]> = new Map([["llm_api_key", ["EBX_QWEN_CODE_API_KEY"]]]);
 const _LEGACY_TOML_FALLBACKS: ReadonlyMap<string, string> = new Map([
   ["llm_base_url", "qwen_code_base_url"],
   ["llm_model", "qwen_code_model"],
@@ -194,20 +176,17 @@ const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_ap
 
 /** Environment variables that override each key at runtime, in priority order. */
 const _ENV_OVERRIDES: ReadonlyMap<string, readonly string[]> = new Map([
-  ["sandbox_api_key", ["EBX_SANDBOX_API_KEY"]],
+  ["sandbox_api_key", ["ABX_SANDBOX_API_KEY"]],
   ["access_key_id", ["ALICLOUD_ACCESS_KEY_ID"]],
   ["access_key_secret", ["ALICLOUD_ACCESS_KEY_SECRET"]],
   ["acr_namespace", ["ACR_NAMESPACE"]],
-  ["api_url", ["EBX_SANDBOX_BASE_URL"]],
-  ["domain", ["EBX_SANDBOX_DOMAIN"]],
+  ["api_url", ["ABX_SANDBOX_BASE_URL"]],
+  ["domain", ["ABX_SANDBOX_DOMAIN"]],
   ["region", ["ALIBABA_CLOUD_REGION_ID"]],
-  ["http_timeout", ["EBX_HTTP_TIMEOUT"]],
-  [
-    "llm_api_key",
-    ["EBX_LLM_API_KEY", "BAILIAN_CODING_PLAN_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY", "EBX_QWEN_CODE_API_KEY"],
-  ],
-  ["llm_base_url", ["EBX_LLM_BASE_URL", "OPENAI_BASE_URL"]],
-  ["llm_model", ["EBX_LLM_MODEL", "OPENAI_MODEL"]],
+  ["http_timeout", ["ABX_HTTP_TIMEOUT"]],
+  ["llm_api_key", ["ABX_LLM_API_KEY", "BAILIAN_CODING_PLAN_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]],
+  ["llm_base_url", ["ABX_LLM_BASE_URL", "OPENAI_BASE_URL"]],
+  ["llm_model", ["ABX_LLM_MODEL", "OPENAI_MODEL"]],
   ["github_token", ["GITHUB_TOKEN"]],
 ]);
 
@@ -360,7 +339,7 @@ function _writeTable(lines: string[], name: string, table: Table): void {
 
 /** Write the whole config `data` back to the TOML file, section by section. */
 function _saveFullConfig(data: Table): void {
-  _mkdirParents(configSeams._EBX_DIR);
+  _mkdirParents(configSeams._ABX_DIR);
   const lines: string[] = [];
   for (const [key, value] of data) {
     if (!_isTable(value)) lines.push(`${key} = ${_tomlValue(value)}`);
@@ -419,324 +398,7 @@ function _saveConfigDict(data: Record<string, unknown>): void {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Shortcuts ([shortcuts] section)
-// ---------------------------------------------------------------------------------------------------------------------
-
-const _PY_WS = "\\t\\n\\v\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
-const _SHORTCUTS_HEADER_RE = new RegExp(`^[${_PY_WS}]*\\[shortcuts\\][${_PY_WS}]*(?:#.*)?$`);
-const _TABLE_HEADER_RE = new RegExp(`^[${_PY_WS}]*\\[`);
-const _SHORTCUT_NAME_RE = /^[A-Za-z0-9_-]+\n?$/;
-
-/** Display comments for the aliases written into the generated section. */
-const _SHORTCUT_COMMENTS: ReadonlyMap<string, string> = new Map([
-  ["create", "Create a new sandbox"],
-  ["list", "List all sandboxes"],
-  ["info", "Show sandbox details"],
-  ["kill", "Terminate a sandbox"],
-  ["exec", "Execute a command in sandbox"],
-  ["connect", "Connect to a sandbox"],
-  ["upload", "Upload files to sandbox"],
-  ["download", "Download files from sandbox"],
-  ["run", "Run a custom command in sandbox"],
-  ["install", "Install a template from registry"],
-  ["init", "Scaffold a new template project"],
-  ["deploy", "Deploy a template"],
-  ["files", "List files in sandbox"],
-  ["ps", "List processes in sandbox"],
-  ["sys", "Show sandbox system info"],
-  ["logs", "View process logs"],
-  ["build", "Build a template image"],
-  ["search", "Search template registry"],
-]);
-
-/** Additional aliases shipped commented out in the generated section. */
-const _SHORTCUT_SUGGESTIONS: ReadonlyArray<readonly [string, string]> = [
-  ["files", "sandbox files list"],
-  ["ps", "sandbox process list"],
-  ["sys", "sandbox system info"],
-  ["logs", "sandbox process logs"],
-  ["build", "template build"],
-  ["search", "template search"],
-];
-
-function _readShortcutsSection(data: Table): Map<string, string> {
-  const shortcuts = data.get("shortcuts");
-  const result = new Map<string, string>();
-  if (!_isTable(shortcuts)) return result;
-  for (const [alias, target] of shortcuts) {
-    if (typeof alias === "string" && typeof target === "string") result.set(alias, target);
-  }
-  return result;
-}
-
-/** `load_shortcuts()` implementation. */
-function _loadShortcutsImpl(): Map<string, string> {
-  const [data, error] = _loadFullConfigWithError();
-  if (error !== null) {
-    _warnCorruptedConfig(error);
-    return new Map();
-  }
-  return _readShortcutsSection(data);
-}
-
-/**
- * Load the `[shortcuts]` section of the config file.
- *
- * The config file is the single source of truth: only the aliases actually present in the file are returned. A
- * corrupted file yields a stderr warning (with repair options) and an empty mapping; the CLI keeps working.
- */
-export function loadShortcuts(): Map<string, string> {
-  return configSeams.loadShortcuts();
-}
-
-function _warnCorruptedConfig(error: Error): void {
-  echo(
-    "⚠ Warning: ~/.ebx/config.toml is corrupted and cannot be parsed.\n" +
-      `  Error: ${pyStr(error)}\n` +
-      "\n" +
-      "  Options:\n" +
-      "    • Fix manually: edit ~/.ebx/config.toml\n" +
-      "    • Reset config: ebx config init (re-run guided setup)\n" +
-      "    • Reset shortcuts only: ebx config init --reset-shortcuts\n" +
-      "\n" +
-      "  Shortcuts are unavailable; the built-in commands " +
-      "(sandbox/config/mcp/template) still work.",
-    { err: true },
-  );
-}
-
-function _hasShortcutsSection(text: string): boolean {
-  return pySplitlines(text).some((line) => _SHORTCUTS_HEADER_RE.test(line));
-}
-
-function _shortcutLine(alias: string, target: string, enabled: boolean): string {
-  let line = `${alias} = "${target}"`;
-  if (!enabled) line = `# ${line}`;
-  const comment = _SHORTCUT_COMMENTS.get(alias) ?? "";
-  if (!comment) return line;
-  return `${ljust(line, 36)}# ${comment}`;
-}
-
-/** Render the default `[shortcuts]` TOML block (dead targets are skipped, extra commands are commented out). */
-function _generateShortcutsSection(): string {
-  const sandboxLines: string[] = [];
-  const otherLines: string[] = [];
-  for (const [alias, target] of Object.entries(_DEFAULT_SHORTCUTS)) {
-    if (!Object.prototype.hasOwnProperty.call(_SHORTCUT_TARGET_MAP, target)) continue;
-    const line = _shortcutLine(alias, target, true);
-    if (target.startsWith("sandbox ")) sandboxLines.push(line);
-    else otherLines.push(line);
-  }
-  const suggestionLines = _SHORTCUT_SUGGESTIONS.map(([alias, target]) => _shortcutLine(alias, target, false));
-  const lines = [
-    "[shortcuts]",
-    "# === Sandbox shortcuts (enabled by default) ===",
-    ...sandboxLines,
-    "",
-    "# === Template shortcuts (enabled by default) ===",
-    ...otherLines,
-    "",
-    "# === More commands (uncomment to enable) ===",
-    ...suggestionLines,
-  ];
-  return lines.join("\n") + "\n";
-}
-
-/** Append the default `[shortcuts]` block to an existing config file. */
-function _appendShortcutsSection(): void {
-  let text: string;
-  try {
-    text = _readText(configSeams._CONFIG_FILE);
-  } catch (e) {
-    if (e instanceof PyOSError) return;
-    throw e;
-  }
-  if (text && !text.endsWith("\n")) text += "\n";
-  if (pyStrip(text)) text += "\n";
-  writeTextPy(configSeams._CONFIG_FILE, text + _generateShortcutsSection());
-}
-
-/** `text` without its `[shortcuts]` block (header to next table header; the blank separator before it goes too). */
-function _stripShortcutsSection(text: string): string {
-  const kept: string[] = [];
-  let inShortcuts = false;
-  for (const line of pySplitlines(text)) {
-    if (_SHORTCUTS_HEADER_RE.test(line)) {
-      inShortcuts = true;
-      while (kept.length && !pyStrip(kept[kept.length - 1] as string)) kept.pop();
-      continue;
-    }
-    if (inShortcuts) {
-      if (!_TABLE_HEADER_RE.test(line)) continue;
-      inShortcuts = false;
-    }
-    kept.push(line);
-  }
-  const result = kept.join("\n");
-  if (!pyStrip(result)) return "";
-  return result + "\n";
-}
-
-/** `_config_file_exists()` implementation. */
-function _configFileExistsImpl(): boolean {
-  if (!isFile(configSeams._CONFIG_FILE)) return false;
-  let text: string;
-  try {
-    text = _readText(configSeams._CONFIG_FILE);
-  } catch (e) {
-    if (e instanceof PyOSError) return true;
-    throw e;
-  }
-  if (_hasShortcutsSection(text)) return true;
-  const [, error] = _loadFullConfigWithError();
-  return error !== null;
-}
-
-/**
- * Whether the config file exists *and* carries a `[shortcuts]` section.
- *
- * `false` makes the CLI bootstrap call {@link _createDefaultConfig}. A corrupted file reports `true` so the automatic
- * defaults never overwrite content the user may still want to repair.
- */
-export function _configFileExists(): boolean {
-  return configSeams._configFileExists();
-}
-
-/** `_create_default_config()` implementation. */
-function _createDefaultConfigImpl(): void {
-  if (isFile(configSeams._CONFIG_FILE)) {
-    let text: string;
-    try {
-      text = _readText(configSeams._CONFIG_FILE);
-    } catch (e) {
-      if (e instanceof PyOSError) return;
-      throw e;
-    }
-    if (_hasShortcutsSection(text)) return;
-    const [, error] = _loadFullConfigWithError();
-    if (error !== null) return;
-    _appendShortcutsSection();
-    return;
-  }
-  _mkdirParents(configSeams._EBX_DIR);
-  writeTextPy(configSeams._CONFIG_FILE, "[transport]\n\n" + _generateShortcutsSection());
-}
-
-/**
- * Materialise the default config: whole file, or missing section.
- *
- * Missing file -> fresh config (empty `[transport]` + default `[shortcuts]`); existing file without `[shortcuts]` ->
- * the default block is appended; corrupted file -> left untouched.
- */
-export function _createDefaultConfig(): void {
-  configSeams._createDefaultConfig();
-}
-
-function _ensureShortcutsSection(fmt: OutputFormatter): void {
-  if (!isFile(configSeams._CONFIG_FILE) || configSeams._configFileExists()) return;
-  _appendShortcutsSection();
-  fmt.printSuccess("Added default shortcuts to ~/.ebx/config.toml");
-}
-
-function _resetShortcutsSection(fmt: OutputFormatter): void {
-  let text = "";
-  if (isFile(configSeams._CONFIG_FILE)) {
-    try {
-      text = _readText(configSeams._CONFIG_FILE);
-    } catch (e) {
-      if (!(e instanceof PyOSError)) throw e;
-      text = "";
-    }
-  }
-  const remaining = _stripShortcutsSection(text);
-  _mkdirParents(configSeams._EBX_DIR);
-  const prefix = remaining ? remaining + "\n" : "";
-  writeTextPy(configSeams._CONFIG_FILE, prefix + _generateShortcutsSection());
-  fmt.printSuccess("Reset [shortcuts] in ~/.ebx/config.toml to defaults");
-}
-
-/** `config get shortcuts` / `config get shortcuts.NAME`. */
-function _getShortcuts(fmt: OutputFormatter, key: string): void {
-  configSeams._createDefaultConfig();
-  const shortcuts = configSeams.loadShortcuts();
-
-  if (key === "shortcuts") {
-    if (!shortcuts.size) fmt.printData("(no shortcuts configured)");
-    else fmt.printDict(new Map(shortcuts));
-    return;
-  }
-
-  const alias = key.slice(key.indexOf(".") + 1);
-  if (!shortcuts.has(alias)) {
-    fmt.printError(`Unknown shortcut: ${pyStrRepr(alias)}`, {
-      suggestion: "See the configured shortcuts with 'ebx config get shortcuts'.",
-    });
-    return sysExit(2);
-  }
-  fmt.printData(shortcuts.get(alias));
-}
-
-/** Indent continuation lines under the `Suggestion:` label. */
-function _alignSuggestion(text: string): string {
-  const lines = pySplitlines(text);
-  if (lines.length <= 1) return text;
-  const indent = " ".repeat("  Suggestion: ".length);
-  return (lines[0] as string) + "\n" + lines.slice(1).map((line) => indent + line).join("\n");
-}
-
-/** `config set shortcuts.NAME VALUE` (`""` removes it). */
-function _setShortcut(fmt: OutputFormatter, alias: string, value: string): void {
-  if (RESERVED_NAMES.has(alias)) {
-    fmt.printError(`Invalid shortcut name: ${pyStrRepr(alias)}`, {
-      suggestion:
-        `${pyStrRepr(alias)} is a built-in command group and cannot be overridden. ` +
-        `Reserved names: ${pySorted(RESERVED_NAMES).join(", ")}.`,
-    });
-    return sysExit(2);
-  }
-  if (!_SHORTCUT_NAME_RE.test(alias)) {
-    fmt.printError(`Invalid shortcut name: ${pyStrRepr(alias)}`, {
-      suggestion: "Shortcut names may contain letters, digits, '-' and '_'.",
-    });
-    return sysExit(2);
-  }
-
-  configSeams._createDefaultConfig();
-  const [data, error] = _loadFullConfigWithError();
-  if (error !== null) {
-    _warnCorruptedConfig(error);
-    return sysExit(2);
-  }
-  const shortcuts = _readShortcutsSection(data);
-
-  let message: string;
-  if (pyStrip(value) === "") {
-    if (!shortcuts.has(alias)) {
-      fmt.printSuccess(`No shortcut named ${pyStrRepr(alias)} (already not set).`);
-      return;
-    }
-    shortcuts.delete(alias);
-    message = `Removed shortcut ${pyStrRepr(alias)}`;
-  } else {
-    const target = pyStrip(value);
-    if (!Object.prototype.hasOwnProperty.call(_SHORTCUT_TARGET_MAP, target)) {
-      const hint = _describeInvalidShortcutTarget(target, { alias });
-      fmt.printError(`Invalid shortcut target: ${pyStrRepr(target)}`, {
-        suggestion: !fmt.use_json ? _alignSuggestion(hint) : hint,
-      });
-      return sysExit(2);
-    }
-    shortcuts.set(alias, target);
-    message = `Set shortcut ${alias} = ${target}`;
-  }
-
-  data.set("shortcuts", shortcuts);
-  _saveFullConfig(data);
-  fmt.printSuccess(message);
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Credential storage (~/.ebx/.env)
+// Credential storage (~/.abx/.env)
 // ---------------------------------------------------------------------------------------------------------------------
 
 /** Mask a sensitive value, showing only the first and last 3 characters (<= 8 characters: masked completely). */
@@ -748,7 +410,7 @@ export function _maskValue(value: unknown): string {
 
 /** `write_env_var()` implementation (owner-only permissions are enforced after every write). */
 function _writeEnvVarImpl(envVar: string, value: string): void {
-  _mkdirParents(configSeams._EBX_DIR);
+  _mkdirParents(configSeams._ABX_DIR);
   const prefix = `${envVar}=`;
   const lines: string[] = [];
   let found = false;
@@ -771,7 +433,7 @@ function _writeEnvVarImpl(envVar: string, value: string): void {
   }
 }
 
-/** Write or update `envVar` in the `~/.ebx/.env` file. */
+/** Write or update `envVar` in the `~/.abx/.env` file. */
 export function writeEnvVar(envVar: string, value: string): void {
   configSeams.writeEnvVar(envVar, value);
 }
@@ -785,12 +447,12 @@ function _readEnvVarImpl(envVar: string): string | null {
   return null;
 }
 
-/** Read `envVar` from the `~/.ebx/.env` file. */
+/** Read `envVar` from the `~/.abx/.env` file. */
 export function readEnvVar(envVar: string): string | null {
   return configSeams.readEnvVar(envVar);
 }
 
-/** Remove `envVar` from `~/.ebx/.env`; the file is deleted once no entries remain. Returns whether a line was removed. */
+/** Remove `envVar` from `~/.abx/.env`; the file is deleted once no entries remain. Returns whether a line was removed. */
 export function removeEnvVar(envVar: string): boolean {
   if (!isFile(configSeams._ENV_FILE)) return false;
   const prefix = `${envVar}=`;
@@ -806,7 +468,7 @@ export function removeEnvVar(envVar: string): boolean {
  * Resolve the effective GitHub token for template downloads.
  *
  * Precedence: explicit `--token`; process `GITHUB_TOKEN`; `GITHUB_TOKEN` in the project `.env`; the stored
- * `github_token` (`~/.ebx/.env`); none. The token value is never printed, logged, or persisted by this helper.
+ * `github_token` (`~/.abx/.env`); none. The token value is never printed, logged, or persisted by this helper.
  */
 export function resolveGithubToken(explicit: string | null | undefined = null): string | null {
   if (explicit && pyStrip(explicit)) return pyStrip(explicit);
@@ -824,11 +486,11 @@ function _echoName(typed: string, canonical: string): string {
   return typed === "api_key" ? canonical : typed;
 }
 
-/** `extras` reads `~/.ebx` through `config_layers.paths`; follow the seams when tests (or callers) moved them. */
+/** `extras` reads `~/.abx` through `config_layers.paths`; follow the seams when tests (or callers) moved them. */
 function _syncPaths(): void {
-  if (configSeams._CONFIG_FILE !== path.join(_defaultEbxDir, "config.toml")) {
+  if (configSeams._CONFIG_FILE !== path.join(_defaultAbxDir, "config.toml")) {
     _setPaths({
-      ebxDir: configSeams._EBX_DIR,
+      abxDir: configSeams._ABX_DIR,
       configFile: configSeams._CONFIG_FILE,
       envFiles: [".env", configSeams._ENV_FILE],
     });
@@ -887,7 +549,7 @@ function _rejectUnknownKey(fmt: OutputFormatter, key: string): never {
   if (replacement !== undefined) {
     fmt.printError(`Config key ${pyStrRepr(key)} was removed.`, {
       suggestion:
-        `Use ${pyStrRepr(replacement)}. NL inference and the coding agent share one ` +
+        `Use ${pyStrRepr(replacement)}. Template generation uses one ` +
         "LLM profile: llm_api_key, llm_base_url, llm_model.",
     });
     return sysExit(2);
@@ -933,7 +595,7 @@ function _envOverrideName(key: string): string | null {
 
 /**
  * `(value, source)` for `key`. `source` is `"env"`, `"user"`, `"default"` or `"unset"`; an empty string is never a
- * valid stored value. Order: process environment, `./.env`, the value stored under `~/.ebx`, a built-in default.
+ * valid stored value. Order: process environment, `./.env`, the value stored under `~/.abx`, a built-in default.
  */
 export function _effectiveValue(key: string): [unknown, string] {
   const envName = _envOverrideName(key);
@@ -947,12 +609,6 @@ export function _effectiveValue(key: string): [unknown, string] {
     if (_LEGACY_TOML_ENV_KEYS.has(key)) {
       const legacy = configSeams.loadConfigDict()[key];
       if (legacy !== undefined && legacy !== null && legacy !== "") return [legacy, "user"];
-    }
-    for (const legacyEnv of _LEGACY_ENV_FALLBACKS.get(key) ?? []) {
-      const processValue = _env(legacyEnv);
-      if (processValue) return [processValue, "env"];
-      const legacyStored = configSeams.readEnvVar(legacyEnv);
-      if (legacyStored) return [legacyStored, "user"];
     }
     return [null, "unset"];
   }
@@ -996,7 +652,6 @@ function _clearStoredValue(fmt: OutputFormatter, key: string, echoKey: string = 
   if (envVar !== undefined) {
     removed = removeEnvVar(envVar);
     if (_LEGACY_TOML_ENV_KEYS.has(key)) removed = _removeTomlKey(key) || removed;
-    for (const legacyEnv of _LEGACY_ENV_FALLBACKS.get(key) ?? []) removed = removeEnvVar(legacyEnv) || removed;
   } else {
     removed = _removeTomlKey(key);
     const legacyToml = _LEGACY_TOML_FALLBACKS.get(key);
@@ -1036,24 +691,24 @@ function _clearExtraValue(fmt: OutputFormatter, target: extras.ExtraTarget): voi
 const CONFIG_HELP = [
   "Manage persistent credentials and CLI defaults.",
   "",
-  "    Values are read from ~/.ebx/config.toml and ~/.ebx/.env. Environment",
+  "    Values are read from ~/.abx/config.toml and ~/.abx/.env. Environment",
   "    variables can still override the stored configuration at runtime.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config init",
-  "      ebx config list",
-  "      ebx config get region",
-  "      ebx config set http_timeout 120",
-  "      ebx config set github_token     Prompt for the token (masked input)",
-  "      ebx config delete region   Remove one stored value",
+  "      abx config init",
+  "      abx config list",
+  "      abx config get region",
+  "      abx config set http_timeout 120",
+  "      abx config set github_token     Prompt for the token (masked input)",
+  "      abx config delete region   Remove one stored value",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config init           Guided setup (credentials, region, ACR, LLM)",
-  "      ebx config get            Read one effective value",
-  "      ebx config set            Store or update one value",
-  "      ebx config delete KEY     Remove one stored value",
+  "      abx config init           Guided setup (credentials, region, ACR, LLM)",
+  "      abx config get            Read one effective value",
+  "      abx config set            Store or update one value",
+  "      abx config delete KEY     Remove one stored value",
   "    ",
 ].join("\n");
 
@@ -1061,70 +716,65 @@ const GET_HELP = [
   "Get a configuration value by KEY.",
   "",
   "    Prints the effective value: the process environment wins, then the",
-  "    value stored by ``ebx config set``, then the built-in default. Keys",
+  "    value stored by ``abx config set``, then the built-in default. Keys",
   "    without any of these print ``(not set)``. Sensitive keys are masked.",
   "",
   "    \b",
   "    Available keys:",
-  "      sandbox_api_key    Sandbox service API key (env var EBX_SANDBOX_API_KEY;",
-  "                         stored in ~/.ebx/.env,",
+  "      sandbox_api_key    Sandbox service API key (env var ABX_SANDBOX_API_KEY;",
+  "                         stored in ~/.abx/.env,",
   "                         shown masked). ``api_key`` is accepted as an alias.",
   "      access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth",
-  "                         (template deploy, ACR push; stored in ~/.ebx/.env)",
+  "                         (template deploy, ACR push; stored in ~/.abx/.env)",
   "      access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth",
-  "                         (template deploy, ACR push; stored in ~/.ebx/.env,",
+  "                         (template deploy, ACR push; stored in ~/.abx/.env,",
   "                         shown masked)",
   "      acr_namespace      ACR namespace for template build, push, and install",
-  "                         (stored in ~/.ebx/.env as ACR_NAMESPACE)",
+  "                         (stored in ~/.abx/.env as ACR_NAMESPACE)",
   "      api_url            Platform API URL",
   "      domain             Envd data-plane domain",
   "      region             Default region (e.g. cn-hangzhou)",
   "      http_timeout       HTTP request timeout in seconds",
   "      http2              Enable HTTP/2 (true/false)",
   "      max_retries        Maximum retry attempts",
-  "      llm_api_key        LLM API key for NL inference and the coding agent",
-  "                         (stored in ~/.ebx/.env as EBX_LLM_API_KEY, shown",
+  "      llm_api_key        LLM API key for template generation",
+  "                         (stored in ~/.abx/.env as ABX_LLM_API_KEY, shown",
   "                         masked; a legacy config.toml value is still readable)",
   "      llm_model          LLM model name (default: qwen3-coder-plus)",
   "      llm_base_url       LLM API base URL, OpenAI-compatible",
   "                         (default: DashScope compatible-mode)",
   "      github_token       GitHub token for template downloads (stored in",
-  "                         ~/.ebx/.env, shown masked)",
-  "      shortcuts          All top-level shortcuts configured in",
-  "                         ~/.ebx/config.toml",
-  "      shortcuts.<name>   Target command of one configured shortcut",
+  "                         ~/.abx/.env, shown masked)",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config get sandbox_api_key",
-  "      ebx config get region",
-  "      ebx config list          # show all values at once",
-  "      ebx config get shortcuts           # all configured aliases",
-  "      ebx config get shortcuts.list      # target of one alias",
+  "      abx config get sandbox_api_key",
+  "      abx config get region",
+  "      abx config list          # show all values at once",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config list          Show every effective value and its source",
-  "      ebx config set KEY VALUE",
-  "      ebx config set KEY \"\"    Clear one stored value",
+  "      abx config list          Show every effective value and its source",
+  "      abx config set KEY VALUE",
+  "      abx config set KEY \"\"    Clear one stored value",
   "    ",
 ].join("\n");
 
 const SET_HELP = [
   "Set a configuration value: KEY [VALUE].",
   "",
-  "    Settings are stored in ~/.ebx/config.toml, except credentials",
+  "    Settings are stored in ~/.abx/config.toml, except credentials",
   "    (sandbox_api_key, access_key_id, access_key_secret, acr_namespace,",
   "    llm_api_key, github_token) which are",
-  "    written to ~/.ebx/.env using their environment-variable names. Setting",
+  "    written to ~/.abx/.env using their environment-variable names. Setting",
   "    llm_api_key also removes any legacy config.toml copy of it (the secret",
-  "    migrates to the 0600-protected ~/.ebx/.env storage).",
+  "    migrates to the 0600-protected ~/.abx/.env storage).",
   "",
   "    Passing an empty VALUE clears the stored value for KEY instead: the key",
   "    falls back to its built-in default or becomes not set. An empty string",
   "    is never stored as a credential or override. Environment variables that",
   "    are still exported keep overriding the key at runtime; their values are",
-  "    never printed. Clearing llm_api_key removes both the ~/.ebx/.env entry",
+  "    never printed. Clearing llm_api_key removes both the ~/.abx/.env entry",
   "    and any legacy config.toml copy.",
   "",
   "    In an interactive terminal VALUE may be omitted: sensitive keys",
@@ -1137,84 +787,73 @@ const SET_HELP = [
   "    \b",
   "    Available keys (expected value):",
   "      sandbox_api_key    Sandbox service API key (string; env var",
-  "                         EBX_SANDBOX_API_KEY).",
+  "                         ABX_SANDBOX_API_KEY).",
   "                         ``api_key`` is accepted as an alias.",
   "      access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth, used by",
   "                         template deploy and ACR push (string)",
   "      access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth, used by",
   "                         template deploy and ACR push (string)",
   "      acr_namespace      ACR namespace for template build, push, and install",
-  "                         (string; stored in ~/.ebx/.env as ACR_NAMESPACE)",
+  "                         (string; stored in ~/.abx/.env as ACR_NAMESPACE)",
   "      api_url            Platform API URL (e.g. https://api.cn-hangzhou.e2b.fc.aliyuncs.com)",
   "      domain             Envd data-plane domain (e.g. cn-hangzhou.e2b.fc.aliyuncs.com)",
   "      region             Default region (e.g. cn-hangzhou, cn-shanghai)",
   "      http_timeout       HTTP request timeout in seconds (number, e.g. 120)",
   "      http2              Enable HTTP/2 (true/false)",
   "      max_retries        Maximum retry attempts (integer, e.g. 3)",
-  "      llm_api_key        LLM API key for NL inference and the coding agent,",
+  "      llm_api_key        LLM API key for template generation,",
   "                         e.g. a DashScope/ModelStudio key (string; stored in",
-  "                         ~/.ebx/.env as EBX_LLM_API_KEY)",
+  "                         ~/.abx/.env as ABX_LLM_API_KEY)",
   "      llm_model          LLM model name (default: qwen3-coder-plus)",
   "      llm_base_url       LLM API base URL, OpenAI-compatible (string;",
   "                         default: DashScope compatible-mode)",
   "      github_token       GitHub token for template downloads, used by",
-  "                         'ebx template install' / 'ebx template search'",
-  "                         (string; stored in ~/.ebx/.env)",
-  "      shortcuts.<name>   Top-level shortcut. The value is the command path",
-  "                         without the \"ebx\" prefix, for example",
-  "                         \"template init\" (not \"ebx template init\"):",
-  "                         'ebx config set shortcuts.ps \"sandbox process list\"';",
-  "                         an empty VALUE removes the shortcut",
+  "                         'abx template install' / 'abx template search'",
+  "                         (string; stored in ~/.abx/.env)",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config set sandbox_api_key YOUR_API_KEY",
-  "      ebx config set access_key_id YOUR_ACCESS_KEY_ID",
-  "      ebx config set access_key_secret YOUR_ACCESS_KEY_SECRET",
-  "      ebx config set acr_namespace YOUR_ACR_NAMESPACE",
-  "      ebx config set region cn-hangzhou",
-  "      ebx config set http_timeout 120",
-  "      ebx config set http2 false",
-  "      ebx config set llm_api_key YOUR_DASHSCOPE_OR_LLM_KEY",
-  "      ebx config set region \"\"          # clear the stored region",
-  "      ebx config set sandbox_api_key \"\"  # remove the stored sandbox API key",
-  "      ebx config set github_token      # masked prompt (VALUE omitted)",
-  "      ebx config set github_token YOUR_GITHUB_TOKEN",
-  "      ebx config set github_token \"\"    # remove the stored token",
-  "      ebx config set shortcuts.ps \"sandbox process list\"",
-  "      ebx config set shortcuts.ps \"\"    # remove the 'ps' shortcut",
+  "      abx config set sandbox_api_key YOUR_API_KEY",
+  "      abx config set access_key_id YOUR_ACCESS_KEY_ID",
+  "      abx config set access_key_secret YOUR_ACCESS_KEY_SECRET",
+  "      abx config set acr_namespace YOUR_ACR_NAMESPACE",
+  "      abx config set region cn-hangzhou",
+  "      abx config set http_timeout 120",
+  "      abx config set http2 false",
+  "      abx config set llm_api_key YOUR_DASHSCOPE_OR_LLM_KEY",
+  "      abx config set region \"\"          # clear the stored region",
+  "      abx config set sandbox_api_key \"\"  # remove the stored sandbox API key",
+  "      abx config set github_token      # masked prompt (VALUE omitted)",
+  "      abx config set github_token YOUR_GITHUB_TOKEN",
+  "      abx config set github_token \"\"    # remove the stored token",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config get KEY       Verify the effective value",
-  "      ebx config list          Review effective values and sources",
-  "      ebx config delete KEY    Remove one stored value",
+  "      abx config get KEY       Verify the effective value",
+  "      abx config list          Review effective values and sources",
+  "      abx config delete KEY    Remove one stored value",
   "    ",
 ].join("\n");
 
 const DELETE_HELP = [
   "Remove one stored configuration value.",
   "",
-  "    Deletes the value written by ``ebx config set``. The key then falls",
+  "    Deletes the value written by ``abx config set``. The key then falls",
   "    back to its built-in default or becomes not set. An environment",
   "    variable that still overrides the key is left in place and named in",
-  "    the result, without printing its value. ``~/.ebx`` itself is not",
-  "    removed. ``ebx config set KEY \"\"`` does the same thing.",
-  "",
-  "    ``shortcuts.<name>`` removes that one alias. Built-in command names",
-  "    (``sandbox``, ``template``, ``config``, ``mcp``) cannot be deleted.",
+  "    the result, without printing its value. ``~/.abx`` itself is not",
+  "    removed. ``abx config set KEY \"\"`` does the same thing.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config delete acr_namespace",
-  "      ebx config delete access_key_secret",
-  "      ebx config delete shortcuts.ps",
+  "      abx config delete acr_namespace",
+  "      abx config delete access_key_secret",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config list          See what is still stored",
-  "      ebx config set KEY VALUE Store a value again",
-  "      ebx config set KEY \"\"    The same removal, via set",
+  "      abx config list          See what is still stored",
+  "      abx config set KEY VALUE Store a value again",
+  "      abx config set KEY \"\"    The same removal, via set",
   "    ",
 ].join("\n");
 
@@ -1222,63 +861,67 @@ const LIST_HELP = [
   "List all effective configuration values and their sources.",
   "",
   "    Values are grouped by function — Sandbox authentication, Alibaba",
-  "    Cloud credentials, connection, LLM, integrations, and shortcuts —",
+  "    Cloud credentials, connection, LLM and integrations —",
   "    in a stable order. Group titles are",
   "    display-only: ``config get`` and ``config set`` keep taking the bare",
   "    key names, and ``--json`` output stays a flat ``{key: value}`` map.",
   "",
   "    Sources: ``(env)`` a process environment variable, ``(user)`` a value",
-  "    in ``./.env`` or stored with ``ebx config set``, ``(default)`` a",
+  "    in ``./.env`` or stored with ``abx config set``, ``(default)`` a",
   "    built-in default, and ``(not set)`` when no value exists anywhere.",
   "    A set environment variable wins over either file. ``./.env`` wins",
-  "    over ``~/.ebx`` for a key it sets; a key it omits still comes from",
-  "    ``~/.ebx``. Sensitive values are always masked.",
+  "    over ``~/.abx`` for a key it sets; a key it omits still comes from",
+  "    ``~/.abx``. Sensitive values are always masked.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config list",
-  "      ebx --json config list",
-  "      ebx config get http_timeout",
+  "      abx config list",
+  "      abx --json config list",
+  "      abx config get http_timeout",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config get KEY        Inspect one effective value",
-  "      ebx config set KEY VALUE",
-  "      ebx config delete KEY     Remove one stored value",
+  "      abx config get KEY        Inspect one effective value",
+  "      abx config set KEY VALUE",
+  "      abx config delete KEY     Remove one stored value",
   "    ",
 ].join("\n");
 
 const INIT_HELP = [
-  "Guided setup: credentials, region, ACR namespace, and the LLM API key.",
+  "Guided setup: credentials and region (add --build / --llm for the rest).",
   "",
-  "    In a terminal this prompts for the platform API key, the default",
-  "    region, the LLM API key used for AI template generation and NL",
-  "    inference (``ebx create \"<description>\"``; consumed by Qwen Code),",
-  "    the ACR namespace, and the Alibaba Cloud AccessKey pair. The last",
-  "    three are what ``ebx install`` and ``ebx template deploy`` need in",
-  "    order to build and push an image. Press Enter to skip a prompt.",
-  "    Secrets are typed with asterisk feedback (never echoed) when the",
-  "    terminal supports it, and stored in ~/.ebx/.env; the region goes to",
-  "    ~/.ebx/config.toml. The namespace is stored as ``ACR_NAMESPACE``.",
+  "    The default flow asks only what every command needs: the platform API",
+  "    key and the default region. Press Enter to skip a prompt. Secrets are",
+  "    typed with asterisk feedback (never echoed) when the terminal supports",
+  "    it and stored in ~/.abx/.env; the region goes to ~/.abx/config.toml.",
+  "",
+  "    ``--build`` adds the template build & push settings: the ACR namespace",
+  "    and the Alibaba Cloud AccessKey pair (needed by ``abx template",
+  "    install``, ``build``, ``push`` and ``deploy``).",
+  "",
+  "    ``--llm`` adds the LLM API key used for template generation",
+  "    (``abx create \"<description>\"``, ``abx template init \"<description>\"``).",
+  "",
+  "    Features that need those settings print a pointer to ``abx config init",
+  "    --build`` / ``--llm`` when they are missing; nothing asks for them up",
+  "    front.",
   "",
   "    In non-TTY environments (CI, piped input) the wizard never blocks: it",
-  "    prints the equivalent non-interactive ``ebx config set ...`` commands",
+  "    prints the equivalent non-interactive ``abx config set ...`` commands",
   "    and exits successfully. ``--yes`` behaves the same way.",
-  "",
-  "    ``--reset-shortcuts`` restores the default ``[shortcuts]`` section of",
-  "    ~/.ebx/config.toml (and nothing else), then exits.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config init",
-  "      ebx config init --yes     # print non-interactive commands",
-  "      ebx config init --reset-shortcuts    # restore default shortcuts only",
+  "      abx config init                 # credentials + region",
+  "      abx config init --build         # ... plus ACR namespace and AccessKey",
+  "      abx config init --llm           # ... plus the LLM API key",
+  "      abx config init --yes           # print non-interactive commands",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config list           Review effective values and sources",
-  "      ebx config set KEY VALUE  Set one value directly",
-  "      ebx config set KEY \"\"     Clear one stored value",
+  "      abx config list           Review effective values and sources",
+  "      abx config set KEY VALUE  Set one value directly",
+  "      abx config set KEY \"\"     Clear one stored value",
   "    ",
 ].join("\n");
 
@@ -1295,11 +938,6 @@ export const get = command("get", {
   callback: _handleErrors(async (ctx: Context, params: Params) => {
     const fmt = getFormatter(ctx);
     const key = _canonicalizeKey(params["key"] as string);
-
-    if (key === "shortcuts" || key.startsWith("shortcuts.")) {
-      _getShortcuts(fmt, key);
-      return;
-    }
 
     const extra = _extraFor(params["key"] as string, key);
     if (extra !== null) {
@@ -1327,16 +965,6 @@ export const set_value = command("set", {
     const fmt = getFormatter(ctx);
     let key = params["key"] as string;
     let value = (params["value"] ?? null) as string | null;
-
-    if (key.startsWith("shortcuts.")) {
-      const alias = key.slice(key.indexOf(".") + 1);
-      if (value === null) {
-        value = await _promptMissingValue(fmt, key);
-        if (value === null) return;
-      }
-      _setShortcut(fmt, alias, value);
-      return;
-    }
 
     const typedKey = key;
     key = _canonicalizeKey(key);
@@ -1377,12 +1005,8 @@ export const set_value = command("set", {
     if (envVar !== undefined) {
       configSeams.writeEnvVar(envVar, value);
       if (_LEGACY_TOML_ENV_KEYS.has(key)) {
-        // After this write the secret lives only in the 0600-protected ~/.ebx/.env storage, never in two places.
+        // After this write the secret lives only in the 0600-protected ~/.abx/.env storage, never in two places.
         _removeTomlKey(key);
-      }
-      for (const legacyEnv of _LEGACY_ENV_FALLBACKS.get(key) ?? []) {
-        // The unified key replaces the older Qwen Code secret.
-        removeEnvVar(legacyEnv);
       }
       const displayValue = _SENSITIVE_KEYS.has(key) ? _maskValue(value) : value;
       fmt.printSuccess(`Set ${echoKey} = ${displayValue}`);
@@ -1435,12 +1059,6 @@ export const delete_value = command("delete", {
   callback: _handleErrors(async (ctx: Context, params: Params) => {
     const fmt = getFormatter(ctx);
     let key = params["key"] as string;
-
-    if (key.startsWith("shortcuts.")) {
-      const alias = key.slice(key.indexOf(".") + 1);
-      _setShortcut(fmt, alias, "");
-      return;
-    }
 
     const typedKey = key;
     key = _canonicalizeKey(key);
@@ -1517,7 +1135,7 @@ export const list_config = command("list", {
   ],
   callback: _handleErrors(async (ctx: Context, params: Params) => {
     const fmt = getFormatter(ctx);
-    const legacyFlag = ["1", "true", "yes", "on"].includes(pyStrip(_env("EBX_CONFIG_LEGACY_NAMES") ?? "").toLowerCase());
+    const legacyFlag = ["1", "true", "yes", "on"].includes(pyStrip(_env("ABX_CONFIG_LEGACY_NAMES") ?? "").toLowerCase());
     const canonicalNames = _surfaceActive() && extras.configFormat() === 2 && !params["legacy_names"] && !legacyFlag;
     const shown = (key: string): string => (canonicalNames ? (_CANONICAL_LIST_NAMES.get(key) ?? key) : key);
     const extra = _extraListGroups(Boolean(params["show_all"]));
@@ -1548,20 +1166,6 @@ export const list_config = command("list", {
     };
     const sensitive = (key: string): boolean => extra.targets.has(key) ? Boolean(extra.targets.get(key)?.key?.secret) : _SENSITIVE_KEYS.has(key);
 
-    // Configured shortcuts: the file is the single source of truth, each alias is annotated default/user-defined.
-    configSeams._createDefaultConfig();
-    const shortcuts = configSeams.loadShortcuts();
-    const shortcutRows: Array<[string, string]> = [];
-    if (shortcuts.size) {
-      for (const [alias, target] of shortcuts) {
-        const shortcutSource =
-          Object.prototype.hasOwnProperty.call(_DEFAULT_SHORTCUTS, alias) && _DEFAULT_SHORTCUTS[alias] === target
-            ? "default"
-            : "user";
-        shortcutRows.push([`shortcuts.${alias}`, `${target} (${shortcutSource})`]);
-      }
-    }
-
     const render = (key: string): string => {
       const [value, source] = effectiveOf(key);
       if (value === null || value === undefined) return "(not set)";
@@ -1578,14 +1182,12 @@ export const list_config = command("list", {
         else if (sensitive(key)) resultJson.set(shown(key), _maskValue(pyStr(value)));
         else resultJson.set(shown(key), extra.targets.get(key)?.key?.type === "float" && typeof value === "number" ? new PyFloat(value) : value);
       }
-      resultJson.set("shortcuts", configSeams.loadShortcuts());
       fmt.printDict(resultJson);
       return;
     }
 
     if (fmt.quiet) {
       for (const [, keys] of grouped) for (const key of keys) echo(render(key));
-      for (const [, rendered] of shortcutRows) echo(rendered);
       return;
     }
 
@@ -1596,38 +1198,47 @@ export const list_config = command("list", {
       echo(header + "─".repeat(Math.max(0, 64 - len(header))));
       for (const key of keys) echo(`${ljust(shown(key), maxKeyLen)}  ${render(key)}`);
     });
-
-    if (shortcutRows.length) {
-      if (grouped.length) echo();
-      const header = "── Shortcuts ";
-      echo(header + "─".repeat(Math.max(0, 64 - len(header))));
-      const shortcutWidth = shortcutRows.reduce((m, [alias]) => Math.max(m, len(alias)), 0);
-      for (const [alias, rendered] of shortcutRows) echo(`${ljust(alias, shortcutWidth)}  ${rendered}`);
-    }
   }),
 });
 
 /** Print the non-interactive commands equivalent to the guided wizard. */
-function _printNoninteractiveSetup(): void {
+function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }): void {
   const lines = [
-    "Non-interactive setup. Run these commands to configure ebx:",
+    "Non-interactive setup. Run these commands to configure abx:",
     "",
-    "  ebx config set sandbox_api_key <EBX_SANDBOX_API_KEY>",
-    "  ebx config set region cn-hangzhou",
-    "  ebx config set llm_api_key <DASHSCOPE_OR_MODELSTUDIO_KEY>",
-    "",
-    "  # Required to build, push, and install templates:",
-    "  ebx config set acr_namespace <ACR_NAMESPACE>",
-    "  ebx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>",
-    "  ebx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>",
-    "",
-    "  # Optional overrides:",
-    "  ebx config set llm_base_url <OPENAI_COMPATIBLE_BASE_URL>",
-    "  ebx config set llm_model qwen3-coder-plus",
-    "",
-    "Environment variables (EBX_SANDBOX_API_KEY, EBX_LLM_API_KEY, ACR_NAMESPACE,",
-    "ALICLOUD_ACCESS_KEY_ID, ALICLOUD_ACCESS_KEY_SECRET) override stored values.",
+    "  abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>",
+    "  abx config set region cn-hangzhou",
   ];
+  if (opts.build) {
+    lines.push(
+      "",
+      "  # Template build, push and install:",
+      "  abx config set acr_namespace <ACR_NAMESPACE>",
+      "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>",
+      "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>",
+    );
+  }
+  if (opts.llm) {
+    lines.push(
+      "",
+      "  # template generation:",
+      "  abx config set llm_api_key <DASHSCOPE_OR_MODELSTUDIO_KEY>",
+      "",
+      "  # Optional overrides:",
+      "  abx config set llm_base_url <OPENAI_COMPATIBLE_BASE_URL>",
+      "  abx config set llm_model qwen3-coder-plus",
+    );
+  }
+  const env = ["ABX_SANDBOX_API_KEY"];
+  if (opts.llm) env.push("ABX_LLM_API_KEY");
+  if (opts.build) env.push("ACR_NAMESPACE", "ALICLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_SECRET");
+  lines.push("", `Environment variables (${env.join(", ")}) override stored values.`);
+  if (!opts.build || !opts.llm) {
+    const more: string[] = [];
+    if (!opts.build) more.push("template build/push: 'abx config init --build'");
+    if (!opts.llm) more.push("template generation: 'abx config init --llm'");
+    lines.push(`More settings: ${more.join("; ")}.`);
+  }
   for (const line of lines) echo(line);
 }
 
@@ -1635,111 +1246,122 @@ export const init = command("init", {
   help: INIT_HELP,
   params: [
     option(["--yes", "-y"], { is_flag: true, help: "Non-interactive: print the equivalent commands instead of prompting" }),
-    option(["--reset-shortcuts"], { is_flag: true, help: "Reset [shortcuts] section to defaults" }),
+    option(["--build"], { is_flag: true, help: "Also ask for the template build & push settings (ACR namespace, AccessKey)" }),
+    option(["--llm"], { is_flag: true, help: "Also ask for the LLM API key used for template generation" }),
   ],
   callback: _handleErrors(async (ctx: Context, params: Params) => {
     const fmt = getFormatter(ctx);
-
-    if (params["reset_shortcuts"]) {
-      _resetShortcutsSection(fmt);
-      return;
-    }
+    const build = Boolean(params["build"]);
+    const llm = Boolean(params["llm"]);
 
     // Never block in CI / piped sessions.
     if (params["yes"] || !_stdin().isatty()) {
-      _printNoninteractiveSetup();
+      _printNoninteractiveSetup({ build, llm });
       return;
     }
 
-    echo("ebx guided configuration (press Enter to keep the current value or skip):");
+    const total = 2 + (build ? 3 : 0) + (llm ? 1 : 0);
+    let step = 0;
+    const label = (text: string): string => `${++step}/${total} ${text}`;
+
+    echo("abx guided configuration (press Enter to keep the current value or skip):");
     echo();
 
-    const apiKey = await configSeams._promptSecret("1/6 Sandbox API key (sandbox_api_key / EBX_SANDBOX_API_KEY, input masked)");
+    const apiKey = await configSeams._promptSecret(label("Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)"));
     if (pyStrip(apiKey)) {
-      configSeams.writeEnvVar("EBX_SANDBOX_API_KEY", pyStrip(apiKey));
-      fmt.printSuccess("Stored sandbox_api_key in ~/.ebx/.env");
+      configSeams.writeEnvVar("ABX_SANDBOX_API_KEY", pyStrip(apiKey));
+      fmt.printSuccess("Stored sandbox_api_key in ~/.abx/.env");
     }
 
     const data = configSeams.loadConfigDict();
     const currentRegion = pyStr(data["region"] || "cn-hangzhou");
-    const region = (await prompt("2/6 Region", { default: currentRegion, show_default: true })) as string;
+    const region = (await prompt(label("Region"), { default: currentRegion, show_default: true })) as string;
     if (pyStrip(region)) {
       data["region"] = pyStrip(region);
       _saveConfigDict(data);
       fmt.printSuccess(`Set region = ${pyStrip(region)}`);
     }
-    _ensureShortcutsSection(fmt);
 
-    const llmKey = await configSeams._promptSecret("3/6 LLM API key (DashScope/ModelStudio, input masked)");
-    if (pyStrip(llmKey)) {
-      configSeams.writeEnvVar("EBX_LLM_API_KEY", pyStrip(llmKey));
-      // Same migration as `ebx config set llm_api_key`: drop any legacy plaintext copy in config.toml.
-      _removeTomlKey("llm_api_key");
-      fmt.printSuccess("Stored llm_api_key in ~/.ebx/.env");
+    if (build) {
+      const [currentNs] = _effectiveValue("acr_namespace");
+      const namespace = (await prompt(label("ACR namespace (needed by abx template install / build / deploy)"), {
+        default: currentNs ? pyStr(currentNs) : "",
+        show_default: Boolean(currentNs),
+      })) as string;
+      if (pyStrip(namespace)) {
+        configSeams.writeEnvVar("ACR_NAMESPACE", pyStrip(namespace));
+        fmt.printSuccess(`Set acr_namespace = ${pyStrip(namespace)}`);
+      }
+
+      const accessKeyId = (await prompt(label("Alibaba Cloud AccessKey ID (template deploy / ACR push)"), {
+        default: "",
+        show_default: false,
+      })) as string;
+      if (pyStrip(accessKeyId)) {
+        configSeams.writeEnvVar("ALICLOUD_ACCESS_KEY_ID", pyStrip(accessKeyId));
+        fmt.printSuccess("Stored access_key_id in ~/.abx/.env");
+      }
+
+      const accessKeySecret = await configSeams._promptSecret(label("Alibaba Cloud AccessKey Secret (input masked)"));
+      if (pyStrip(accessKeySecret)) {
+        configSeams.writeEnvVar("ALICLOUD_ACCESS_KEY_SECRET", pyStrip(accessKeySecret));
+        fmt.printSuccess("Stored access_key_secret in ~/.abx/.env");
+      }
     }
 
-    const [currentNs] = _effectiveValue("acr_namespace");
-    const namespace = (await prompt("4/6 ACR namespace (needed by ebx install / template deploy)", {
-      default: currentNs ? pyStr(currentNs) : "",
-      show_default: Boolean(currentNs),
-    })) as string;
-    if (pyStrip(namespace)) {
-      configSeams.writeEnvVar("ACR_NAMESPACE", pyStrip(namespace));
-      fmt.printSuccess(`Set acr_namespace = ${pyStrip(namespace)}`);
-    }
-
-    const accessKeyId = (await prompt("5/6 Alibaba Cloud AccessKey ID (template deploy / ACR push)", {
-      default: "",
-      show_default: false,
-    })) as string;
-    if (pyStrip(accessKeyId)) {
-      configSeams.writeEnvVar("ALICLOUD_ACCESS_KEY_ID", pyStrip(accessKeyId));
-      fmt.printSuccess("Stored access_key_id in ~/.ebx/.env");
-    }
-
-    const accessKeySecret = await configSeams._promptSecret("6/6 Alibaba Cloud AccessKey Secret (input masked)");
-    if (pyStrip(accessKeySecret)) {
-      configSeams.writeEnvVar("ALICLOUD_ACCESS_KEY_SECRET", pyStrip(accessKeySecret));
-      fmt.printSuccess("Stored access_key_secret in ~/.ebx/.env");
+    if (llm) {
+      const llmKey = await configSeams._promptSecret(label("LLM API key (DashScope/ModelStudio, input masked)"));
+      if (pyStrip(llmKey)) {
+        configSeams.writeEnvVar("ABX_LLM_API_KEY", pyStrip(llmKey));
+        // Same migration as `abx config set llm_api_key`: drop any legacy plaintext copy in config.toml.
+        _removeTomlKey("llm_api_key");
+        fmt.printSuccess("Stored llm_api_key in ~/.abx/.env");
+      }
     }
 
     echo();
-    fmt.printSuccess("Configuration complete. Review it with 'ebx config list'.");
+    fmt.printSuccess("Configuration complete. Review it with 'abx config list'.");
+    if (!build || !llm) {
+      const more: string[] = [];
+      if (!build) more.push("template build/push: 'abx config init --build'");
+      if (!llm) more.push("template generation: 'abx config init --llm'");
+      echo(`More settings: ${more.join("; ")}.`);
+    }
   }),
 });
 
 const CHECK_HELP = [
   "Report legacy names in use and their canonical replacements.",
   "",
-  "    Looks at the process environment, ./.env, ~/.ebx/.env and",
-  "    ~/.ebx/config.toml. Only names are shown, never values. E2B_* and",
+  "    Looks at the process environment, ./.env, ~/.abx/.env and",
+  "    ~/.abx/config.toml. Only names are shown, never values. E2B_* and",
   "    provider-native names (ALICLOUD_ACCESS_KEY_ID, ...) are not reported.",
   "    With --strict the exit code is 1 when anything is found.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config check",
-  "      ebx --json config check --strict",
+  "      abx config check",
+  "      abx --json config check --strict",
   "",
   "    \b",
   "    Related commands:",
-  "      ebx config migrate       Rewrite stored names to the canonical ones",
+  "      abx config migrate       Rewrite stored names to the canonical ones",
   "    ",
 ].join("\n");
 
 const MIGRATE_HELP = [
   "Rewrite stored names to the canonical names (config_format = 2).",
   "",
-  "    Renames entries in ~/.ebx/config.toml and ~/.ebx/.env, keeps",
+  "    Renames entries in ~/.abx/config.toml and ~/.abx/.env, keeps",
   "    config.toml.bak and .env.bak (mode 0600) and sets [core] config_format = 2.",
-  "    Older ebx / easy-sandbox versions no longer read the migrated values.",
+  "    Older abx / agent-sandbox versions no longer read the migrated values.",
   "    Without --yes a confirmation is required (not possible without a",
   "    terminal: exit code 2). --dry-run prints the plan and changes nothing.",
   "",
   "    \b",
   "    Examples:",
-  "      ebx config migrate --dry-run",
-  "      ebx config migrate --yes",
+  "      abx config migrate --dry-run",
+  "      abx config migrate --yes",
   "    ",
 ].join("\n");
 
@@ -1808,13 +1430,13 @@ export const migrate_config = command("migrate", {
       }
       if (!interactive || fmt.use_json || fmt.quiet) {
         fmt.printError("Refusing to rewrite the configuration without confirmation.", {
-          suggestion: "Review it with 'ebx config migrate --dry-run', then re-run with --yes.",
+          suggestion: "Review it with 'abx config migrate --dry-run', then re-run with --yes.",
         });
         return sysExit(2);
       }
       for (const item of plan) echo(`will ${describe(item)}`);
-      const { confirm } = await import("../../framework/termui.js");
-      if (!(await confirm("Rewrite ~/.ebx/config.toml and ~/.ebx/.env now? Older versions will not read the migrated values", { default: false }))) {
+      const { confirm } = await import("../prompts.js");
+      if (!(await confirm("Rewrite ~/.abx/config.toml and ~/.abx/.env now? Older versions will not read the migrated values", { default: false }))) {
         fmt.printSuccess("Cancelled; nothing was changed.");
         return;
       }
@@ -1864,7 +1486,7 @@ export function _maskSupported(): boolean {
 
 /**
  * Run `fn` with a reader returning the next characters typed on the TTY (raw mode: no echo, no line buffering; Ctrl-C
- * arrives as `\x03`). The terminal state and the framework's own stdin listeners are always restored afterwards.
+ * arrives as `\x03`). The terminal state and any other stdin listeners are always restored afterwards.
  */
 async function _withTtyCharReader<T>(fn: (read: () => Promise<string>) => Promise<T>): Promise<T> {
   let fd = 0;
@@ -2012,7 +1634,7 @@ export function _promptSecret(promptText: string): Promise<string> {
 }
 
 /**
- * Prompt for a VALUE omitted from `ebx config set KEY`.
+ * Prompt for a VALUE omitted from `abx config set KEY`.
  *
  * Sensitive keys reuse the asterisk-masked input; other keys use a visible prompt. Returns the entered value, or
  * `null` when the user pressed Enter without typing anything (nothing changes: clearing needs an explicit `""`).
@@ -2027,7 +1649,7 @@ async function _promptMissingValue(fmt: OutputFormatter, key: string, sensitive 
   }
 
   if (!interactive) {
-    let suggestion = `Pass the value explicitly: 'ebx config set ${key} <VALUE>'.`;
+    let suggestion = `Pass the value explicitly: 'abx config set ${key} <VALUE>'.`;
     const envVar = _ENV_STORED_KEYS.get(key);
     if (envVar !== undefined) {
       suggestion +=

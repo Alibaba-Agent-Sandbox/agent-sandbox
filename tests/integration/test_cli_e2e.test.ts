@@ -22,12 +22,9 @@ import * as transportConfig from "../../src/transport/config.js";
 import { resetConfig } from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "../test_cli/conftest.js";
 
 const SANDBOX_ID = "sbx-cli-test-001";
 const ENVD_TOKEN = "test-envd-token-cli";
-
-useDefaultShortcutsOnly();
 
 type Spy = ReturnType<typeof vi.fn>;
 const spyAny = (o: object, k: string) => vi.spyOn(o as Record<string, (...a: unknown[]) => unknown>, k);
@@ -86,25 +83,26 @@ const combinedOutput = (result: { output: string; stderr: string }): string => r
 // ---------------------------------------------------------------------------
 
 it("test_cli_create_exec_kill", async () => {
-  // Exercise: ebx create -> ebx exec -> ebx kill.
+  // Exercise: abx create -> abx exec -> abx kill.
   const mock_sb = _make_mock_sandbox();
   vi.spyOn(Sandbox, "create").mockResolvedValue(asSandbox(mock_sb));
   vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(mock_sb));
+  const killById = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
 
-  // --- ebx create ---
+  // --- abx create ---
   let result = await runner().invoke(cli, ["create", "--template", "python-base"]);
   expect(result.exit_code, `create failed: ${result.output}\n${result.stderr}`).toBe(0);
   expect(result.output).toContain(SANDBOX_ID);
 
-  // --- ebx exec ---
+  // --- abx exec ---
   result = await runner().invoke(cli, ["exec", SANDBOX_ID, "echo hello"]);
   expect(result.exit_code, `exec failed: ${result.output}\n${result.stderr}`).toBe(0);
   expect(result.output).toContain("hello");
 
-  // --- ebx kill ---
+  // --- abx kill ---
   result = await runner().invoke(cli, ["kill", SANDBOX_ID, "--yes"]);
   expect(result.exit_code, `kill failed: ${result.output}\n${result.stderr}`).toBe(0);
-  expect(mock_sb.kill).toHaveBeenCalled();
+  expect(killById).toHaveBeenCalledWith(SANDBOX_ID);
 });
 
 // ---------------------------------------------------------------------------
@@ -172,7 +170,7 @@ it("test_cli_error_auth", async () => {
 // ---------------------------------------------------------------------------
 
 it("test_cli_list_sandboxes", async () => {
-  // ebx list shows sandboxes in table format.
+  // abx list shows sandboxes in table format.
   const sb1_info = SandboxInfo.modelValidate({ sandboxID: "sbx-list-001", templateID: "python-base", status: "running", region: "cn-hangzhou" });
   const sb2_info = SandboxInfo.modelValidate({ sandboxID: "sbx-list-002", templateID: "node-base", status: "stopped", region: "cn-shanghai" });
 
@@ -196,7 +194,7 @@ it("test_cli_list_sandboxes", async () => {
 // ---------------------------------------------------------------------------
 
 it("test_cli_info_command", async () => {
-  // ebx info <id> shows sandbox details.
+  // abx info <id> shows sandbox details.
   vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(_make_mock_sandbox()));
 
   const result = await runner().invoke(cli, ["info", SANDBOX_ID]);
@@ -210,7 +208,7 @@ it("test_cli_info_command", async () => {
 // ---------------------------------------------------------------------------
 
 it("test_cli_quiet_mode", async () => {
-  // ebx --quiet suppresses non-essential output.
+  // abx --quiet suppresses non-essential output.
   vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(_make_mock_sandbox()));
 
   const result = await runner().invoke(cli, ["--quiet", "info", SANDBOX_ID]);
@@ -223,7 +221,7 @@ it("test_cli_quiet_mode", async () => {
 // ---------------------------------------------------------------------------
 
 it("test_cli_exec_nonzero_exit", async () => {
-  // ebx exec propagates non-zero exit code.
+  // abx exec propagates non-zero exit code.
   const mock_sb = _make_mock_sandbox();
   mock_sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "", stderr: "command not found\n", exit_code: 127, execution_time: 0.05 }));
   vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(mock_sb));

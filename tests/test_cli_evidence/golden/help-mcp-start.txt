@@ -1,37 +1,39 @@
-Usage: cli mcp start [OPTIONS]
+Usage: abx mcp start [options]
 
-  Start the MCP server and print its configuration to stderr.
+Start the MCP server and print its configuration to stderr.
 
-  The default transport is STDIO: an IDE writes JSON-RPC to stdin and reads
-  responses from stdout. Run it in a terminal to see the configuration and stop
-  it with Ctrl-C or 'ebx mcp stop'.
+The default transport is STDIO: an IDE writes JSON-RPC to stdin and reads
+responses from stdout. Run it in a terminal to see the configuration and
+stop it with Ctrl-C or 'abx mcp stop'.
 
-  --http listens for Streamable HTTP. --background detaches that HTTP server;
-  STDIO cannot keep a client attached after detach, so --background starts HTTP.
+--http listens for Streamable HTTP. --background detaches that HTTP
+server; STDIO cannot keep a client attached after detach, so --background
+starts HTTP.
 
-  Examples:
-    ebx mcp start
-    ebx mcp start --template python-hello
-    ebx mcp start --http --port 9000
-    ebx mcp start --http --background
-    ebx mcp stop
+Examples:
+  abx mcp start
+  abx mcp start --template python-hello
+  abx mcp start --http --port 9000
+  abx mcp start --http --background
+  abx mcp stop
 
-  Related commands:
-    ebx mcp install --target cursor  Register the STDIO command in an IDE
-    ebx mcp stop                     Stop the local MCP server
-    ebx mcp status                   Check authentication and IDE setup
+Related commands:
+  abx mcp install --target cursor  Register the STDIO command in an IDE
+  abx mcp stop                     Stop the local MCP server
+  abx mcp status                   Check authentication and IDE setup
 
 Options:
-  --template TEXT    Default sandbox template ID or alias (default: code-
-                     interpreter-v1).
-  --api-key TEXT     API key override.
-  --api-url TEXT     API URL override.
-  --domain TEXT      Domain override.
-  --http             Serve Streamable HTTP instead of STDIO.
-  --host TEXT        HTTP bind address.  [default: 127.0.0.1]
-  --port INTEGER     HTTP bind port.  [default: 9000]
-  --auth-token TEXT  Bearer token for the HTTP server. Required when --host is
-                     not loopback.
-  --background       Detach an HTTP server. Stop it later with 'ebx mcp stop'.
-  -h, --help         Show this message and exit.
+  --template <TEMPLATE>      Default sandbox template ID or alias (default:
+                             code-interpreter-v1).
+  --api-key <API_KEY>        API key override.
+  --api-url <API_URL>        API URL override.
+  --domain <DOMAIN>          Domain override.
+  --http                     Serve Streamable HTTP instead of STDIO.
+  --host <HOST>              HTTP bind address. [default: 127.0.0.1]
+  --port <INTEGER>           HTTP bind port. [default: 9000]
+  --auth-token <AUTH_TOKEN>  Bearer token for the HTTP server. Required when
+                             --host is not loopback.
+  --background               Detach an HTTP server. Stop it later with 'abx mcp
+                             stop'.
+  -h, --help                 Show this message and exit.
 [exit_code:0]

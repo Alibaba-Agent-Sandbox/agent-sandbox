@@ -1,4 +1,4 @@
-/** Extra branch coverage for `ebx mcp` (JSON round-trip fidelity, state file, HTTP server lifecycle). */
+/** Extra branch coverage for `abx mcp` (JSON round-trip fidelity, state file, HTTP server lifecycle). */
 
 import "../_support/isolatedHome.js";
 
@@ -14,11 +14,8 @@ import * as mcpMod from "../../src/cli/commands/mcp.js";
 import { cli } from "../../src/cli/main.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
 
 const iso = useIsolatedEnv();
-useDefaultShortcutsOnly();
-
 const originalIdeMap = mcpMod._IDE_CONFIG_MAP;
 const originalSeams = { ...mcpMod.mcpSeams };
 
@@ -56,7 +53,7 @@ describe("TestMcpInstallJsonFidelity", () => {
     expect(text).toContain('"u": "é"');
     expect(text.indexOf('"10"')).toBeLessThan(text.indexOf('"2"'));
     expect(text).toContain('"other"');
-    expect(text).toContain('"easy-sandbox"');
+    expect(text).toContain('"agent-sandbox"');
   });
 
   it("rejects a config whose top level is not an object", async () => {
@@ -115,11 +112,11 @@ function freePort(): Promise<number> {
   });
 }
 
-function runEbx(args: string[], runtime: string): Promise<{ code: number | null; stdout: string; stderr: string }> {
+function runAbx(args: string[], runtime: string): Promise<{ code: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, ["--import", "tsx", "src/bin/ebx.ts", ...args], {
+    const child = spawn(process.execPath, ["--import", "tsx", "src/bin/abx.ts", ...args], {
       cwd: CLI_ROOT,
-      env: { ...process.env, HOME: runtime, USERPROFILE: runtime, EBX_MCP_RUNTIME_DIR: runtime, EBX_NO_KEYCHAIN: "1" },
+      env: { ...process.env, HOME: runtime, USERPROFILE: runtime, ABX_MCP_RUNTIME_DIR: runtime, ABX_NO_KEYCHAIN: "1" },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
@@ -137,7 +134,7 @@ describe("TestMcpStartHttpLifecycle", () => {
     await new Promise<void>((resolve) => blocker.listen(port, "127.0.0.1", resolve));
     const runtime = fs.mkdtempSync(path.join(iso.tmp_path, "run-"));
     try {
-      const result = await runEbx(["mcp", "start", "--http", "--port", String(port), "--api-key", "k"], runtime);
+      const result = await runAbx(["mcp", "start", "--http", "--port", String(port), "--api-key", "k"], runtime);
       expect(result.code).toBe(3);
       expect(result.stderr).toContain(
         `ERROR:    [Errno 98] error while attempting to bind on address ('127.0.0.1', ${port}): address already in use`,
@@ -154,10 +151,10 @@ describe("TestMcpStartHttpLifecycle", () => {
     const runtime = fs.mkdtempSync(path.join(iso.tmp_path, "run-"));
     const child = spawn(
       process.execPath,
-      ["--import", "tsx", "src/bin/ebx.ts", "mcp", "start", "--http", "--port", String(port), "--api-key", "k"],
+      ["--import", "tsx", "src/bin/abx.ts", "mcp", "start", "--http", "--port", String(port), "--api-key", "k"],
       {
         cwd: CLI_ROOT,
-        env: { ...process.env, HOME: runtime, USERPROFILE: runtime, EBX_MCP_RUNTIME_DIR: runtime, EBX_NO_KEYCHAIN: "1" },
+        env: { ...process.env, HOME: runtime, USERPROFILE: runtime, ABX_MCP_RUNTIME_DIR: runtime, ABX_NO_KEYCHAIN: "1" },
         stdio: ["ignore", "pipe", "pipe"],
       },
     );

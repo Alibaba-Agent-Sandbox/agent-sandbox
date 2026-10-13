@@ -3,7 +3,7 @@
  * `shlex.split`, `shlex.quote` and `shlex.join`.
  *
  * Not a mirror of a Python package module: shared seam so that command quoting/splitting in the Node port is
- * byte-for-byte identical to the Python CLI (custom command placeholder substitution, `sh -c` auto-wrapping, ...).
+ * byte-for-byte identical to the Python CLI (`abx exec` argv quoting, `sh -c` auto-wrapping, ...).
  */
 
 import { ValueError } from "./_pyerrors.js";

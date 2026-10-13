@@ -1,6 +1,6 @@
 /**
  * Shared fixtures for CLI tests (port of `tests/test_cli/conftest.py` plus the per-file autouse fixtures the CLI tests
- * repeat: `_pristine_logging`, `_default_shortcuts_only`, pytest's `capsys`).
+ * repeat: `_pristine_logging`, pytest's `capsys`).
  *
  * Every helper that needs setup/teardown registers `beforeEach`/`afterEach` hooks when called at module level.
  */
@@ -10,10 +10,9 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach } from "vitest";
 
-import { _CORE_COMMANDS, _DEFAULT_SHORTCUTS, cli, mainSeams, type ShortcutConfigApi } from "../../src/cli/main.js";
 import { outputSeams } from "../../src/cli/output.js";
-import { sys } from "../../src/framework/io.js";
-import type { TextOutput } from "../../src/framework/io.js";
+import { sys } from "../../src/cli/io.js";
+import type { TextOutput } from "../../src/cli/io.js";
 import { _isConfigured, _setConfigured, logging } from "../../src/utils/logging.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
@@ -48,7 +47,7 @@ export interface CapSys {
   readouterr(): { out: string; err: string };
 }
 
-/** pytest `capsys`: replaces the framework `sys.stdout` / `sys.stderr` for the duration of each test. */
+/** pytest `capsys`: replaces `sys.stdout` / `sys.stderr` for the duration of each test. */
 export function useCapsys(): CapSys {
   let out = new TTYBuffer(false);
   let err = new TTYBuffer(false);
@@ -77,7 +76,7 @@ export function useCapsys(): CapSys {
 }
 
 /**
- * `_pristine_logging` autouse fixture: every test starts with an empty root / `easy_sandbox` handler list and a
+ * `_pristine_logging` autouse fixture: every test starts with an empty root / `agent_sandbox` handler list and a
  * not-yet-configured SDK logger; the saved state is restored afterwards.
  */
 export function usePristineLogging(): void {
@@ -90,7 +89,7 @@ export function usePristineLogging(): void {
   } | null = null;
   beforeEach(() => {
     const root = logging.getLogger();
-    const pkg = logging.getLogger("easy_sandbox");
+    const pkg = logging.getLogger("agent_sandbox");
     state = {
       rootHandlers: [...root.handlers],
       packageHandlers: [...pkg.handlers],
@@ -106,7 +105,7 @@ export function usePristineLogging(): void {
   afterEach(() => {
     if (!state) return;
     const root = logging.getLogger();
-    const pkg = logging.getLogger("easy_sandbox");
+    const pkg = logging.getLogger("agent_sandbox");
     root.handlers.length = 0;
     pkg.handlers.length = 0;
     pkg.setLevel(state.packageLevel);
@@ -114,31 +113,6 @@ export function usePristineLogging(): void {
     root.handlers.push(...(state.rootHandlers as typeof root.handlers));
     root.setLevel(state.rootLevel);
     _setConfigured(state.configured);
-  });
-}
-
-/**
- * `_default_shortcuts_only` autouse fixture: pin the root CLI to the built-in default shortcuts (the real
- * `~/.ebx/config.toml` never leaks in); the previous merge result is restored afterwards.
- */
-export function useDefaultShortcutsOnly(): void {
-  let original = new Map<string, string>();
-  let originalSeam: ShortcutConfigApi | null = null;
-  beforeEach(async () => {
-    await cli.whenReady();
-    original = new Map(cli._lazy_subcommands);
-    originalSeam = mainSeams.configCmd;
-    mainSeams.configCmd = {
-      loadShortcuts: () => ({ ..._DEFAULT_SHORTCUTS }),
-      _configFileExists: () => true,
-      _createDefaultConfig: () => undefined,
-    };
-    cli._lazy_subcommands = new Map(Object.entries(_CORE_COMMANDS));
-    await cli._mergeUserShortcuts();
-  });
-  afterEach(() => {
-    mainSeams.configCmd = originalSeam;
-    cli._lazy_subcommands = original;
   });
 }
 

@@ -5,8 +5,7 @@ import { describe, expect, it } from "vitest";
 import { RuntimeError } from "../../src/api/_pyerrors.js";
 import * as outputMod from "../../src/cli/output.js";
 import { OutputManager, outputSeams } from "../../src/cli/output.js";
-import { Console } from "../../src/cli/_rich.js";
-import { sys } from "../../src/framework/io.js";
+import { sys } from "../../src/cli/io.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { TTYBuffer, useCapsys, useOutputSeams } from "./conftest.js";
 
@@ -68,7 +67,7 @@ describe("TestAvailability", () => {
   it("test_available_under_verbose_where_the_spinner_is_not", () => {
     ttyStderr();
     const out = new OutputManager({ verbose: true });
-    expect(out.useRichSpinner).toBe(false);
+    expect(out.useLiveStatus).toBe(false);
     expect(out.useActivityLine).toBe(true);
   });
 });
@@ -130,7 +129,7 @@ describe("TestTransientLine", () => {
 
   it("test_line_count_is_configurable", async () => {
     const buf = ttyStderr();
-    iso.monkeypatch.setenv("EBX_ACTIVITY_LINES", "3");
+    iso.monkeypatch.setenv("ABX_ACTIVITY_LINES", "3");
     await new OutputManager({ verbose: true }).activity("Working", (update) => {
       expect(update).not.toBeNull();
       update!("a\nb\nc\nd");
@@ -148,7 +147,7 @@ describe("TestTransientLine", () => {
     ["5", 5],
     ["99", 10],
   ])("test_line_count_parsing [%s-%s]", (raw, expected) => {
-    iso.monkeypatch.setenv("EBX_ACTIVITY_LINES", raw as string);
+    iso.monkeypatch.setenv("ABX_ACTIVITY_LINES", raw as string);
     expect(outputMod._activityLineCount()).toBe(expected);
   });
 
@@ -261,14 +260,13 @@ describe("TestTransientLine", () => {
   });
 });
 
-describe("TestRichStatus", () => {
-  // Normal colour TTY: a Rich status, refreshed in place.
+describe("TestLiveStatus", () => {
+  // Normal colour TTY: the status block, refreshed in place.
 
-  function richOut(buf: TTYBuffer, width = 100): OutputManager {
+  function richOut(_buf: TTYBuffer): OutputManager {
     seams.isTty = () => true;
-    seams.Console = () => new Console({ file: buf, force_terminal: true, width });
     const out = new OutputManager();
-    expect(out.useRichSpinner).toBe(true);
+    expect(out.useLiveStatus).toBe(true);
     return out;
   }
 
@@ -308,14 +306,19 @@ describe("TestRichStatus", () => {
 
   it("test_long_lines_are_cut_not_wrapped", async () => {
     const buf = ttyStderr();
-    const out = richOut(buf, 30);
-    await out.activity("Working", (update) => {
-      expect(update).not.toBeNull();
-      update!("y".repeat(200) + "\n" + "z".repeat(200));
-    });
-    const shown = buf.getvalue().split("\x1b[?25h")[0]!;
-    expect(shown.trim().split("\n").length - 1).toBe(2); // header + two rows, nothing wrapped
-    expect(shown.split("…").length - 1).toBe(2);
+    const out = richOut(buf);
+    const columns = process.env["COLUMNS"];
+    process.env["COLUMNS"] = "30";
+    try {
+      await out.activity("Working", (update) => {
+        expect(update).not.toBeNull();
+        update!("y".repeat(200) + "\n" + "z".repeat(200));
+      });
+    } finally {
+      if (columns === undefined) delete process.env["COLUMNS"];
+      else process.env["COLUMNS"] = columns;
+    }
+    expect(buf.getvalue().split("…").length - 1).toBe(2); // both detail rows cut, nothing wrapped
   });
 });
 

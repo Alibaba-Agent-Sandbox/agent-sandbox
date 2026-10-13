@@ -1,7 +1,7 @@
 /**
- * Pluggable coding-agent backend boundary for `ebx create "<description>"`.
+ * Pluggable coding-agent backend boundary for `abx create "<description>"`.
  *
- * Port of `easy_sandbox/agent/coding_agent.py`. The natural-language create path drives a *coding agent* on the host
+ * Port of `agent_sandbox/agent/coding_agent.py`. The natural-language create path drives a *coding agent* on the host
  * to turn one free-form description into a Dockerfile + `template.yaml` (and, for interactive sessions, to assess the
  * description's completeness first). Today that agent is Qwen Code; the future may plug in Qoder CLI, Codex, Claude
  * Code, or a user-defined command.
@@ -19,7 +19,7 @@
  *   headless dialect (positional prompt + `--json-schema` / `--session-id` / `--resume`); a second backend implements
  *   {@link CodingAgentBackend.research}, {@link CodingAgentBackend.assess} and {@link CodingAgentBackend.generate}
  *   natively, or those protocols get factored into shared helpers first;
- * - `ebx config init` / `ebx config set` use the unified `llm_*` keys (`llm_api_key` / `llm_model` /
+ * - `abx config init` / `abx config set` use the unified `llm_*` keys (`llm_api_key` / `llm_model` /
  *   `llm_base_url`), so the backend fields here and the config wizard agree on the same names.
  *
  * **Lazy delegation (ESM port note).** Adapters import their implementation modules lazily inside each method, so
@@ -34,7 +34,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import {
   AICodegenError,
   QwenCodeCredentialError,
@@ -69,7 +69,7 @@ export interface CodingAgentCredentials {
 export type CreationErrorClass = new (message: string, options?: { suggestion?: string | null }) => SandboxCreationError;
 
 /**
- * What `ebx create "<description>"` needs from a coding agent.
+ * What `abx create "<description>"` needs from a coding agent.
  *
  * The interface covers the five phases the create pipeline runs before deployment: locating/installing the agent,
  * resolving model credentials, researching the public facts behind the description ({@link research}), completing
@@ -82,7 +82,7 @@ export interface CodingAgentBackend {
   readonly displayName: string;
   /** Configuration/credential name (e.g. `llm_api_key`). */
   readonly configKey: string;
-  /** Environment variable storing the credential (`EBX_LLM_API_KEY`). */
+  /** Environment variable storing the credential (`ABX_LLM_API_KEY`). */
   readonly envVar: string;
   /** Config key holding the OpenAI-compatible base URL override. */
   readonly baseUrlConfigKey: string;
@@ -123,8 +123,8 @@ export interface CodingAgentBackend {
    *
    * The clarification phase and the generation run share this directory: native agent sessions are keyed by the
    * working directory, so both phases must use the same `cwd` for the session pair (`--session-id` / `--resume`) to
-   * line up. `baseDir` is the **parent** directory (`ebx create --dir`); a fresh `<slug>-<timestamp>-<token>`
-   * subdirectory is created inside it. `null`/omitted selects the backend's default location (`~/.ebx/generated`).
+   * line up. `baseDir` is the **parent** directory (`abx create --dir`); a fresh `<slug>-<timestamp>-<token>`
+   * subdirectory is created inside it. `null`/omitted selects the backend's default location (`~/.abx/generated`).
    */
   prepareWorkdir(description: string, opts?: { baseDir?: string | null }): MaybePromise<[string, string]>;
 
@@ -193,7 +193,7 @@ export interface CodingAgentBackend {
   /**
    * Run `prompt` in `workdir` and return the agent's final text.
    *
-   * Used by `ebx template init --adopt`. The backend does not validate or write into the user's project; the caller
+   * Used by `abx template init --adopt`. The backend does not validate or write into the user's project; the caller
    * does. The child environment must not inherit cloud credentials.
    */
   runInWorkspace(
@@ -221,7 +221,7 @@ export class QwenCodeBackend implements CodingAgentBackend {
   readonly name = "qwen-code";
   readonly displayName = "Qwen Code";
   readonly configKey = "llm_api_key";
-  readonly envVar = "EBX_LLM_API_KEY";
+  readonly envVar = "ABX_LLM_API_KEY";
   readonly baseUrlConfigKey = "llm_base_url";
   readonly modelConfigKey = "llm_model";
   readonly credentialPrompt = "LLM API key (DashScope/ModelStudio, hidden; leave empty to cancel)";
@@ -231,19 +231,19 @@ export class QwenCodeBackend implements CodingAgentBackend {
   async quickSetupLines(opts: { reason: string }): Promise<string[]> {
     const qwenCode = await import("./qwen_code.js");
 
-    const lines = [`Quick Setup - AI template generation (${this.displayName}):`];
+    const lines = [`Quick Setup - template generation (${this.displayName}):`];
     if (opts.reason === "not-installed") {
       lines.push(
         `  1. Install the ${this.displayName} CLI (official standalone build):`,
         `       ${qwenCode.seams.officialInstallCommand()}`,
-        "     or re-run 'ebx create \"<description>\"' and accept the install prompt",
-        "     or bypass AI generation with:  ebx create --template base",
+        "     or re-run 'abx create \"<description>\"' and accept the install prompt",
+        "     or bypass template generation with:  abx create --template base",
       );
     } else {
       lines.push(
         "  1. Configure the LLM API key for Qwen Code (DashScope/ModelStudio):",
-        `       ebx config set ${this.configKey} <KEY>   (stored in ~/.ebx/.env)`,
-        "       or run the guided wizard:  ebx config init",
+        `       abx config set ${this.configKey} <KEY>   (stored in ~/.abx/.env)`,
+        "       or run the guided wizard:  abx config init --llm",
         "       (exported OPENAI_API_KEY / DASHSCOPE_API_KEY also work)",
       );
     }

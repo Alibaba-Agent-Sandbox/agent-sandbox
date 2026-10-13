@@ -10,8 +10,8 @@ const STATE_DIR = join(E2E_DIR, '.state');
 export const RUN_ID = `${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${Math.random().toString(16).slice(2, 8)}`;
 
 function preflightDocker() {
-  if (process.env.EBX_E2E_DOCKER !== '1') {
-    return 'opt-in: set EBX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources)';
+  if (process.env.ABX_E2E_DOCKER !== '1') {
+    return 'opt-in: set ABX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources)';
   }
   const r = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], { encoding: 'utf8', timeout: 20_000 });
   if (r.error || r.status !== 0) return `docker daemon unusable (${(r.error?.message ?? r.stderr ?? '').trim().split('\n')[0] || `exit ${r.status}`})`;
@@ -22,7 +22,7 @@ async function preflightGithub() {
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 10_000);
-    const res = await fetch('https://raw.githubusercontent.com/Easy-Sandbox/awesome-templates/main/awesome-templates.yaml', { method: 'HEAD', signal: ctl.signal });
+    const res = await fetch('https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml', { method: 'HEAD', signal: ctl.signal });
     clearTimeout(t);
     return res.ok ? null : `template index not reachable (HTTP ${res.status})`;
   } catch (e) {
@@ -44,15 +44,15 @@ export async function loadSuites(only) {
 }
 
 export async function main(opts) {
-  const binSpec = process.env.EBX_BIN || 'ebx';
+  const binSpec = process.env.ABX_BIN || 'abx';
   const bin = parseBin(binSpec);
   const creds = loadCredentials();
   const mask = makeMasker(creds);
   const cloudOk = hasCloudCredentials(creds);
   const suites = await loadSuites(opts.suites);
-  const timeoutDefault = Number(process.env.EBX_E2E_TIMEOUT_MS || 120_000);
+  const timeoutDefault = Number(process.env.ABX_E2E_TIMEOUT_MS || 120_000);
 
-  const root = makeSandboxDir('ebx-e2e-');
+  const root = makeSandboxDir('abx-e2e-');
   const tracker = { sandboxes: new Set(), killed: new Set() };
   mkdirSync(STATE_DIR, { recursive: true });
   const ledger = join(STATE_DIR, `run-${RUN_ID}.json`);
@@ -62,7 +62,7 @@ export async function main(opts) {
     cloud: cloudOk ? null : `real-cloud credentials missing (${missingCloudCredentials(creds).join(', ')}); provide them via environment or the gitignored cli/.env`,
     github: null,
     docker: preflightDocker(),
-    killall: process.env.EBX_E2E_ALLOW_KILL_ALL === '1' ? null : 'opt-in: set EBX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account)',
+    killall: process.env.ABX_E2E_ALLOW_KILL_ALL === '1' ? null : 'opt-in: set ABX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account)',
   };
   if (suites.some((s) => (s.needs ?? []).includes('github'))) skipReasons.github = await preflightGithub();
 
@@ -72,11 +72,11 @@ export async function main(opts) {
   const probe = await runBinary({ bin, argv: ['--version'], env: baseEnv({ home: root, creds: {} }), cwd: root, timeoutMs: 60_000 });
   meta.version = probe.spawnError ? `UNRUNNABLE (${mask(probe.stderr).trim()})` : mask(probe.stdout || probe.stderr).trim().split('\n')[0];
   if (probe.spawnError) {
-    console.error(`EBX_BIN is not runnable: ${meta.version}`);
+    console.error(`ABX_BIN is not runnable: ${meta.version}`);
     process.exitCode = 2;
     return;
   }
-  console.log(`ebx e2e run ${RUN_ID}\n  binary : ${binSpec}\n  version: ${meta.version}\n  cloud  : ${cloudOk ? 'credentials present' : 'NO credentials (cloud suites skip)'}`);
+  console.log(`abx e2e run ${RUN_ID}\n  binary : ${binSpec}\n  version: ${meta.version}\n  cloud  : ${cloudOk ? 'credentials present' : 'NO credentials (cloud suites skip)'}`);
 
   const cleanup = async () => {
     const env = baseEnv({ home: join(root, 'home-cleanup'), creds });
@@ -144,7 +144,7 @@ export async function main(opts) {
     console.log(`\n  ${leak.status.toUpperCase().padEnd(5)} ${leak.id}${leak.reason ? ` - ${leak.reason}` : ''}`);
   } finally {
     await cleanup();
-    if (!process.env.EBX_E2E_KEEP) rmSync(root, { recursive: true, force: true });
+    if (!process.env.ABX_E2E_KEEP) rmSync(root, { recursive: true, force: true });
     if (tracker.sandboxes.size === tracker.killed.size && existsSync(ledger)) rmSync(ledger, { force: true });
   }
 
@@ -187,7 +187,7 @@ export function makeContext({ bin, creds, mask, home, cwd, root, tracker, persis
     track(id) { tracker.sandboxes.add(id); persist(); },
     untrack(id) { tracker.killed.add(id); persist(); },
     env(extra = {}, { withCreds = true } = {}) { return baseEnv({ home: ctx.home, creds: withCreds ? creds : {}, extra }); },
-    async ebx(argv, o = {}) {
+    async abx(argv, o = {}) {
       const home2 = o.home ?? ctx.home;
       const env = baseEnv({ home: home2, creds: o.creds === false ? {} : { ...creds, ...(o.creds || {}) }, extra: o.env });
       const res = await runBinary({ bin, argv, env, cwd: o.cwd ?? ctx.cwd, stdin: o.stdin, timeoutMs: o.timeoutMs ?? timeoutDefault });
@@ -199,7 +199,7 @@ export function makeContext({ bin, creds, mask, home, cwd, root, tracker, persis
       res.rawJson = () => parseJsonLoose(res.maskedStdout);
       return res;
     },
-    async rawEbx(argv, o = {}) {
+    async rawAbx(argv, o = {}) {
       const home2 = o.home ?? ctx.home;
       const env = baseEnv({ home: home2, creds: o.creds === false ? {} : { ...creds, ...(o.creds || {}) }, extra: o.env });
       return runBinary({ bin, argv, env, cwd: o.cwd ?? ctx.cwd, stdin: o.stdin, timeoutMs: o.timeoutMs ?? timeoutDefault });
@@ -248,8 +248,8 @@ async function runOnce(sc, ctx) {
     cwd: sc.cwd ? sc.cwd(ctx) : undefined,
     timeoutMs: sc.timeoutMs,
   };
-  const res = await ctx.ebx(argv, o);
-  if (res.timedOut) fail(`command timed out after ${sc.timeoutMs ?? 'default'}ms: ebx ${argv.join(' ')}`);
+  const res = await ctx.abx(argv, o);
+  if (res.timedOut) fail(`command timed out after ${sc.timeoutMs ?? 'default'}ms: abx ${argv.join(' ')}`);
   const want = sc.exit ?? 0;
   const ok = want === 'nonzero' ? res.code !== 0 : [].concat(want).includes(res.code);
   if (!ok) fail(`exit code ${res.code}, expected ${JSON.stringify(want)}\n--- stdout ---\n${excerpt(res.stdout)}\n--- stderr ---\n${excerpt(res.stderr)}`);

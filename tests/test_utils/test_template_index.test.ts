@@ -38,25 +38,25 @@ const iso = useIsolatedEnv();
 const httpx_mock = useHttpxMock();
 
 const INDEX_URL =
-  "https://raw.githubusercontent.com/Easy-Sandbox/awesome-templates/main/awesome-templates.yaml";
+  "https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml";
 
 const INDEX_YAML = `\
 schema_version: 1
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
     tags: [qwen, ai-agent]
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code]
     status: official
   - name: node-web
     description: "Node.js web service"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: node-web
     tags: [nodejs, web, deploy]
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code]
     status: official
 `;
@@ -108,7 +108,7 @@ describe("TestParseIndex", () => {
     const qwen = index.entries[0]!;
     expect(qwen.description).toBe("Qwen Code agent harness");
     expect(qwen.tags).toEqual(["qwen", "ai-agent"]);
-    expect(qwen.author).toBe("Easy-Sandbox");
+    expect(qwen.author).toBe("alibaba-agent-sandbox");
     expect(qwen.capabilities).toEqual(["shell", "files", "code"]);
     expect(qwen.status).toBe("official");
   });
@@ -129,7 +129,7 @@ describe("TestParseIndex", () => {
     }
     expect(err).toBeInstanceOf(TemplateParseError);
     expect(String(err)).toContain("newer than supported");
-    expect((err as TemplateParseError).suggestion || "").toContain("Upgrade easy-sandbox");
+    expect((err as TemplateParseError).suggestion || "").toContain("Upgrade agent-sandbox");
   });
 
   it("test_non_integer_schema_version_is_rejected", () => {
@@ -141,7 +141,7 @@ describe("TestParseIndex", () => {
   it("test_duplicate_names_are_rejected", () => {
     const entry = `\
   - name: dup
-    repo: Easy-Sandbox/awesome-templates
+    repo: alibaba-agent-sandbox/awesome-templates
     path: dup
 `;
     const text = `schema_version: 1\ntemplates:\n${entry}${entry}`;
@@ -150,7 +150,7 @@ describe("TestParseIndex", () => {
   });
 
   it("test_missing_name_is_rejected", () => {
-    const text = "schema_version: 1\ntemplates:\n  - repo: Easy-Sandbox/awesome-templates\n";
+    const text = "schema_version: 1\ntemplates:\n  - repo: alibaba-agent-sandbox/awesome-templates\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/missing the required 'name'/);
   });
@@ -171,7 +171,7 @@ describe("TestParseIndex", () => {
   it("test_tags_must_be_a_string_list", () => {
     const text =
       "schema_version: 1\ntemplates:\n" +
-      "  - name: x\n    repo: Easy-Sandbox/awesome-templates\n" +
+      "  - name: x\n    repo: alibaba-agent-sandbox/awesome-templates\n" +
       "    path: x\n    tags: [1, 2]\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/'tags' must be a list of strings/);
@@ -197,18 +197,18 @@ describe("TestInstallRef", () => {
   };
 
   it("test_with_path", () => {
-    const entry = _entry("  - name: x\n    repo: Easy-Sandbox/awesome-templates\n    path: x\n");
-    expect(entry.install_ref).toBe("Easy-Sandbox/awesome-templates//x");
+    const entry = _entry("  - name: x\n    repo: alibaba-agent-sandbox/awesome-templates\n    path: x\n");
+    expect(entry.install_ref).toBe("alibaba-agent-sandbox/awesome-templates//x");
   });
 
   it("test_without_path", () => {
-    const entry = _entry("  - name: x\n    repo: Easy-Sandbox/awesome-templates\n");
-    expect(entry.install_ref).toBe("Easy-Sandbox/awesome-templates");
+    const entry = _entry("  - name: x\n    repo: alibaba-agent-sandbox/awesome-templates\n");
+    expect(entry.install_ref).toBe("alibaba-agent-sandbox/awesome-templates");
   });
 
   it("test_with_ref_pin", () => {
-    const entry = _entry("  - name: x\n    repo: Easy-Sandbox/awesome-templates\n    path: x\n    ref: v1.2.0\n");
-    expect(entry.install_ref).toBe("Easy-Sandbox/awesome-templates//x@v1.2.0");
+    const entry = _entry("  - name: x\n    repo: alibaba-agent-sandbox/awesome-templates\n    path: x\n    ref: v1.2.0\n");
+    expect(entry.install_ref).toBe("alibaba-agent-sandbox/awesome-templates//x@v1.2.0");
   });
 
   it("test_github_url_repo_is_normalised", () => {
@@ -230,7 +230,7 @@ describe("TestLookup", () => {
     const index = parse_index(INDEX_YAML);
     expect(index.filter("web").map((e) => e.name)).toEqual(["node-web"]);
     expect(index.filter("qwen").map((e) => e.name)).toEqual(["qwen-code"]);
-    expect(index.filter("easy-sandbox").map((e) => e.name)).toEqual(["qwen-code", "node-web"]);
+    expect(index.filter("agent-sandbox").map((e) => e.name)).toEqual(["qwen-code", "node-web"]);
   });
 
   it("test_filter_by_tag_and_status", () => {
@@ -360,7 +360,7 @@ describe("TestFetchIndexNetwork", () => {
     const tmp_path = iso.tmp_path;
     const local = path.join(tmp_path, "env-index.yaml");
     fs.writeFileSync(local, INDEX_YAML, "utf-8");
-    iso.monkeypatch.setenv("EBX_TEMPLATE_INDEX_URL", local);
+    iso.monkeypatch.setenv("ABX_TEMPLATE_INDEX_URL", local);
 
     const index = await fetch_index(null, { cache_dir: path.join(tmp_path, "cache") });
 
@@ -387,7 +387,7 @@ describe("TestFetchIndexDegradedModes", () => {
     expect(exc).toBeInstanceOf(NetworkError);
     expect(String(exc)).toMatch(/Could not reach the template index/);
     // The persistent config flow is the recommended remedy (task 206).
-    expect((exc as NetworkError).suggestion || "").toContain("ebx config set github_token");
+    expect((exc as NetworkError).suggestion || "").toContain("abx config set github_token");
   });
 
   it("test_network_error_with_cache_serves_stale", async () => {
@@ -432,7 +432,7 @@ describe("TestFetchIndexDegradedModes", () => {
     expect(String(exc)).toContain("while fetching the template index");
     const suggestion = (exc as GitHubRateLimitError).suggestion || "";
     // Persistent, masked config first; leak-prone --token stays documented.
-    expect(suggestion).toContain("ebx config set github_token");
+    expect(suggestion).toContain("abx config set github_token");
     expect(suggestion).toContain(FINE_GRAINED_PAT_URL);
     expect(suggestion).toContain("may leak");
     // CI sessions are pointed at secret injection…

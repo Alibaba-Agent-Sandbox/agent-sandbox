@@ -3,10 +3,10 @@
  *
  * Covers the region-as-command-option design (task 159):
  *
- *  - the root `ebx` group no longer accepts `--region/-r`;
+ *  - the root `abx` group no longer accepts `--region/-r`;
  *  - regional commands (`list`/`kill`, the `template` control plane, and `mcp deploy`) accept a local `--region` and
  *    forward it to `loadConfig` / `resolveRegion`;
- *  - priority everywhere: command `--region` > `ALIBABA_CLOUD_REGION_ID` env / `ebx config set region` (`~/.ebx/config.toml`) >
+ *  - priority everywhere: command `--region` > `ALIBABA_CLOUD_REGION_ID` env / `abx config set region` (`~/.abx/config.toml`) >
  *    default `cn-hangzhou`;
  *  - purely local commands reject `--region` with the standard Click error;
  *  - the `template deploy` alias and the top-level `install` / `deploy` shortcuts expose/forward `--region` like the
@@ -31,7 +31,7 @@ import * as transportHttp from "../../src/transport/http.js";
 import * as protocolSandbox from "../../src/protocol/sandbox.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
-import { ALL_COMMANDS, useDefaultShortcutsOnly } from "./conftest.js";
+import { ALL_COMMANDS } from "./conftest.js";
 
 const iso = useIsolatedEnv();
 
@@ -61,9 +61,9 @@ function useIsolatedRegionEnv(): { readonly dir: string } {
     transportConfig._setEnvFileCandidates([path.join(state.dir, ".env")]);
     for (const v of [
       "ALIBABA_CLOUD_REGION_ID",
-      "EBX_SANDBOX_API_KEY",
-      "EBX_SANDBOX_BASE_URL",
-      "EBX_SANDBOX_DOMAIN",
+      "ABX_SANDBOX_API_KEY",
+      "ABX_SANDBOX_BASE_URL",
+      "ABX_SANDBOX_DOMAIN",
       "E2B_API_KEY",
       "E2B_API_URL",
       "SANDBOX_API_KEY",
@@ -72,7 +72,7 @@ function useIsolatedRegionEnv(): { readonly dir: string } {
       "ALICLOUD_ACCESS_KEY_SECRET",
       "AccessKey",
       "AccessSecret",
-      "EBX_MCP_AUTH_TOKEN",
+      "ABX_MCP_AUTH_TOKEN",
     ]) {
       iso.monkeypatch.delenv(v);
     }
@@ -87,7 +87,6 @@ function useIsolatedRegionEnv(): { readonly dir: string } {
 }
 
 const region_env = useIsolatedRegionEnv();
-useDefaultShortcutsOnly();
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -99,7 +98,7 @@ const writeConfig = (region: string): void => fs.writeFileSync(path.join(region_
 // ---------------------------------------------------------------------------
 
 describe("TestRootOptionRemoved", () => {
-  // The root `ebx` group must not expose a global --region.
+  // The root `abx` group must not expose a global --region.
 
   // BLOCKED-ON: cli/commands/* (the root --help listing loads every command module)
   it.skipIf(!ALL_COMMANDS)("test_root_help_has_no_region", async () => {
@@ -109,7 +108,7 @@ describe("TestRootOptionRemoved", () => {
   });
 
   it("test_old_global_region_fails_with_click_error", async () => {
-    // `ebx --region ... list` now fails with the standard Click error.
+    // `abx --region ... list` now fails with the standard Click error.
     const result = await runner().invoke(cli, ["--region", "cn-shanghai", "list"]);
     expect(result.exit_code).toBe(2);
     expect(combinedOutput(result)).toContain("No such option");
@@ -139,7 +138,7 @@ const REGIONAL_COMMANDS: string[][] = [
   ["template", "install", "--help"],
   ["template", "delete", "--help"],
   ["template", "deploy", "--help"], // alias inherits build's params
-  ["install", "--help"], // top-level shortcut
+  ["template", "install", "--help"], // top-level shortcut
   ["deploy", "--help"], // top-level shortcut of the template build pipeline
   ["mcp", "deploy", "--help"],
 ];
@@ -232,7 +231,7 @@ function patchTransport(opts: { protocol?: boolean; loadConfig?: boolean } = {})
   return spies;
 }
 
-/** `patch("easy_sandbox.utils.async_bridge.run_sync", return_value=[])` for `template list`: the platform call yields `[]`. */
+/** `patch("agent_sandbox.utils.async_bridge.run_sync", return_value=[])` for `template list`: the platform call yields `[]`. */
 function platformReturnsEmptyList(httpCls: ReturnType<typeof vi.fn>): void {
   httpCls.mockImplementation(function () {
     return { platformRequest: async () => ({ json: () => [] }), close: async () => undefined };
@@ -395,8 +394,8 @@ describe("TestShortcutForwarding", () => {
   // Top-level shortcuts / group aliases must keep --region working.
 
   it("test_top_level_install_accepts_region", async () => {
-    // `ebx install ./missing --region ...` parses (fails on the path, not the flag).
-    const result = await runner().invoke(cli, ["install", "./definitely-missing", "--region", "cn-shanghai"]);
+    // `abx template install ./missing --region ...` parses (fails on the path, not the flag).
+    const result = await runner().invoke(cli, ["template", "install", "./definitely-missing", "--region", "cn-shanghai"]);
     // EXIT_NOT_FOUND from install's early local-path validation.
     expect(result.exit_code).toBe(4);
     expect(combinedOutput(result)).not.toContain("No such option");
@@ -407,7 +406,7 @@ describe("TestShortcutForwarding", () => {
       install: { callback: (...a: unknown[]) => unknown };
     };
     const installCmd = vi.spyOn(tpl.install, "callback").mockResolvedValue(undefined as never);
-    const result = await runner().invoke(cli, ["install", "owner/repo", "--yes", "--region", "cn-shanghai"]);
+    const result = await runner().invoke(cli, ["template", "install", "owner/repo", "--yes", "--region", "cn-shanghai"]);
     expect(result.exit_code, result.output).toBe(0);
     const params = installCmd.mock.calls.at(-1)![1] as Record<string, unknown>;
     expect(params["region"]).toBe("cn-shanghai");
@@ -421,7 +420,7 @@ describe("TestShortcutForwarding", () => {
   });
 
   it("test_kill_all_accepts_region_flag", async () => {
-    // `ebx kill --all --yes --region ...` is accepted (mocked transport).
+    // `abx kill --all --yes --region ...` is accepted (mocked transport).
     patchTransport();
     const result = await runner().invoke(cli, ["kill", "--all", "--yes", "--region", "cn-shanghai"]);
     expect(result.exit_code, result.output).toBe(0);

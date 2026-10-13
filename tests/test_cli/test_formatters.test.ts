@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import { OutputFormatter, getFormatter } from "../../src/cli/formatters.js";
-import { type Command, command } from "../../src/framework/index.js";
+import { type Command, command } from "../../src/cli/kit.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIsolatedEnv } from "../_support/env.js";
 
@@ -175,9 +175,9 @@ describe("TestGetFormatter", () => {
     const cmd = command("cmd", {
       callback: (ctx) => {
         ctx.ensureObject(Object);
-        ctx.obj["json"] = true;
-        ctx.obj["quiet"] = false;
-        ctx.obj["no_color"] = true;
+        ctx.obj!["json"] = true;
+        ctx.obj!["quiet"] = false;
+        ctx.obj!["no_color"] = true;
         const fmt = getFormatter(ctx);
         expect(fmt.use_json).toBe(true);
         expect(fmt.quiet).toBe(false);

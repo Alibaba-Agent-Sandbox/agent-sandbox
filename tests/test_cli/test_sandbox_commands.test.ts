@@ -19,9 +19,6 @@ import * as transportAuth from "../../src/transport/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
-
-useDefaultShortcutsOnly();
 
 const runner = (): CliRunner => new CliRunner();
 
@@ -86,7 +83,7 @@ function patchTransport(listed: unknown[] | (() => Promise<unknown[]>)) {
 
 let tmp = "";
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-sbxcmd-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-sbxcmd-"));
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -219,7 +216,7 @@ describe("TestConnect", () => {
 
   it("test_connect_eof", async () => {
     // Ctrl+D (EOF) should disconnect.
-    const { EOFError } = await import("../../src/framework/utils.js");
+    const { EOFError } = await import("../../src/cli/errors.js");
     patchConnect({ id: "sbx-cli-test-001", commands: {} });
     patchInput(new EOFError());
 
@@ -299,12 +296,26 @@ describe("TestInfo", () => {
 
 describe("TestKill", () => {
   it("test_kill_with_yes", async () => {
-    patchConnect(_makeSandbox());
+    const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
 
     const result = await runner().invoke(cli, ["kill", "sbx-cli-test-001", "--yes"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output.toLowerCase()).toContain("killed");
+    expect(kill).toHaveBeenCalledWith("sbx-cli-test-001");
+  });
+
+  it("test_kill_of_a_missing_sandbox_is_idempotent", async () => {
+    // A vanished sandbox must not be looked up first: connect/get 404s, and `abx kill` is documented to stay idempotent.
+    const connect = vi.spyOn(Sandbox, "connect").mockRejectedValue(new Error("connect must not run"));
+    const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
+
+    const result = await runner().invoke(cli, ["kill", "sbx-gone", "--yes"]);
+
+    expect(result.exit_code).toBe(0);
+    expect(result.output.toLowerCase()).toContain("killed");
+    expect(kill).toHaveBeenCalledWith("sbx-gone");
+    expect(connect).not.toHaveBeenCalled();
   });
 
   it("test_kill_abort", async () => {
@@ -329,16 +340,16 @@ describe("TestKill", () => {
   });
 
   it("test_kill_all_with_sandboxes", async () => {
-    // --all should kill listed sandboxes.
-    const sb = _makeSandbox();
+    // --all should kill listed sandboxes without connecting first.
+    const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
     patchTransport([infoOf("sbx-1")]);
-    patchConnect(sb);
 
     const result = await runner().invoke(cli, ["kill", "--all", "--yes"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Killed");
-    expect(sb.kill).toHaveBeenCalledTimes(1);
+    expect(kill).toHaveBeenCalledTimes(1);
+    expect(kill).toHaveBeenCalledWith("sbx-1");
   });
 });
 

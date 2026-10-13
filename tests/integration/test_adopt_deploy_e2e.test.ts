@@ -1,5 +1,5 @@
 /**
- * Offline end-to-end: `ebx template init --adopt` then `ebx deploy`.
+ * Offline end-to-end: `abx template init --adopt` then `abx deploy`.
  *
  * The coding agent is the real `QwenCodeBackend`, with only the `qwen` subprocess replaced. Docker, ACR and
  * `CreateTemplate` are mocked. The assertions are the ones a real publish depends on: the registered payload matches
@@ -30,9 +30,7 @@ import { cli } from "../../src/cli/main.js";
 import { DockerIgnore } from "../../src/utils/dockerignore.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { fakeConfig, patchLoadConfig, setenv, spyAny, useMockBuilder, useTmpPath } from "../helpers/templateSupport.js";
-import { useDefaultShortcutsOnly } from "../test_cli/conftest.js";
 
-useDefaultShortcutsOnly();
 const tmpPath = useTmpPath();
 const mockBuilder = useMockBuilder();
 
@@ -44,7 +42,7 @@ const _CREDS = new QwenCodeCredentials({
 });
 
 const _COMMANDS = `\
-from easy_sandbox.server import CommandRegistry, SandboxServer
+from agent_sandbox.server import CommandRegistry, SandboxServer
 
 registry = CommandRegistry()
 registry.freeze()
@@ -106,7 +104,7 @@ function _dockerfile(sources: string[]): string {
   return (
     "FROM python:3.12-slim\n" +
     "COPY *.whl /tmp/\n" +
-    "RUN pip install --no-cache-dir easy-sandbox\n" +
+    "RUN pip install --no-cache-dir agent-sandbox\n" +
     "WORKDIR /app\n" +
     "COPY commands.py .\n" +
     `${copies}\n` +
@@ -132,7 +130,7 @@ function _templateYaml(sample: Sample): string {
 afterEach(() => {
   const root = fs.realpathSync(os.tmpdir());
   for (const name of fs.readdirSync(root)) {
-    if (name.startsWith("ebx-adopt-")) fs.rmSync(path.join(root, name), { recursive: true, force: true });
+    if (name.startsWith("abx-adopt-")) fs.rmSync(path.join(root, name), { recursive: true, force: true });
   }
 });
 
@@ -212,7 +210,7 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
   expect(seen.clean_env).toBe(true);
   expect(seen.max_session_turns).toBe(40);
   expect(seen.cwd).not.toBe(project);
-  expect(path.basename(seen.cwd!).startsWith("ebx-adopt-")).toBe(true);
+  expect(path.basename(seen.cwd!).startsWith("abx-adopt-")).toBe(true);
   expect(seen.prompt).toContain(sample.hint);
   expect(seen.prompt).not.toContain(".env");
   expect(seen.staged_files).not.toContain(".env");
@@ -233,7 +231,7 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
   expect(manifest["description"]).toBe(`${sample.name} demo`);
   const ignore = DockerIgnore.fromText(read(path.join(project, ".dockerignore")));
   expect(ignore.excludes(".env")).toBe(true);
-  expect(ignore.excludes("easy_sandbox-0.0.0-py3-none-any.whl")).toBe(false);
+  expect(ignore.excludes("agent_sandbox-0.0.0-py3-none-any.whl")).toBe(false);
 
   patchLoadConfig(fakeConfig());
   const { builder } = mockBuilder();

@@ -1,19 +1,25 @@
 # Mock-vs-oracle differential harness
 
-Runs **identical argv** against two `ebx` binaries and diffs everything observable: exit code,
+Runs **identical argv** against two `abx` binaries and diffs everything observable: exit code,
 normalised stdout/stderr, files written (config, MCP configs, downloads) and the **HTTP traffic** each
 binary sends to a deterministic stub of the cloud. It answers "does the port behave exactly like the
 Python oracle?" without a cloud account, in under a minute.
 
+> **Oracle scope.** The oracle is the Python CLI as it was before the command-surface redesign. Cases for spellings that
+> no longer exist (user shortcuts, top-level `init`/`install`, `process start`, `shell-stream`, global `--timeout`/`--profile`,
+> `template.yaml` `custom_commands`) were removed; everything else still compares against it. The harness needs a
+> checkout of that oracle and cannot run from this repository alone. The stubs also set the oracle's `E2B_*` / `SANDBOX_*` environment names, which the
+> CLI no longer reads (it reads `ABX_*`), so treat the harness as historical tooling, not as a CI gate.
+
 > 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
 ```bash
-EBX_ORACLE=/path/to/python/venv/bin/ebx \
-EBX_BIN="node dist/bin/ebx.js" \
+ABX_ORACLE=/path/to/python/venv/bin/abx \
+ABX_BIN="node dist/bin/abx.js" \
 node parity/diff/diff.mjs [--filter regex] [--fast] [--verbose] [--show] [--out reports/dir] [--list]
 
-EBX_ORACLE=... node parity/diff/selftest.mjs     # proves the harness catches deliberate regressions
-EBX_ORACLE=X EBX_BIN=X node parity/diff/diff.mjs # oracle vs itself: must report 0 differences
+ABX_ORACLE=... node parity/diff/selftest.mjs     # proves the harness catches deliberate regressions
+ABX_ORACLE=X ABX_BIN=X node parity/diff/diff.mjs # oracle vs itself: must report 0 differences
 ```
 
 | File | Role |
@@ -32,3 +38,12 @@ long-running output timing, TLS/HTTP2 behaviour of the real gateway. Use the rea
 
 Reports (`--out`) are written as `diff-report.json` and `diff-report.md` and contain only normalised
 output (the stub credentials are fake).
+
+## Framework / output-layer harnesses
+
+Self-contained scripts that need only `ORACLE_VENV` (a venv with the original package; no stub server). They render or
+run the same input in-process on both implementations and diff the results.
+
+| Script | Covers |
+|---|---|
+| `orjson_gen.py` | Generates `orjson_cases.json` with the oracle's orjson; consumed by `tests/test_cli/test_orjson_dumps.test.ts` |

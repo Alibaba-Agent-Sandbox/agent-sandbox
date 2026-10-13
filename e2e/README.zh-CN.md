@@ -1,7 +1,7 @@
-# ebx 黑盒 E2E 测试套件
+# abx 黑盒 E2E 测试套件
 
-与语言无关的 `ebx` CLI 黑盒端到端套件。它像真实用户一样启动被测二进制(argv、环境变量、stdin、退出码、
-stdout/stderr、磁盘文件),并连接**真实云端**。用 `EBX_BIN` 指定要测的 `ebx` 二进制。
+与语言无关的 `abx` CLI 黑盒端到端套件。它像真实用户一样启动被测二进制(argv、环境变量、stdin、退出码、
+stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定要测的 `abx` 二进制。
 
 > English version: [README.md](README.md).
 
@@ -9,12 +9,12 @@ stdout/stderr、磁盘文件),并连接**真实云端**。用 `EBX_BIN` 指定�
 
 ```bash
 # 1. 凭据:环境变量或 git 忽略的 cli/.env(绝不提交、绝不打印)
-#    E2B_API_KEY, E2B_API_URL, E2B_DOMAIN, AccessKey/AccessSecret, ACR_NAMESPACE, OPENAI_API_KEY, OPENAI_BASE_URL
+#    ABX_SANDBOX_API_KEY, ABX_SANDBOX_BASE_URL, ABX_SANDBOX_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
 cp .env.example .env   # 然后填入真实值
 
-# 2. 对 ebx 二进制运行
-EBX_BIN=ebx                           npm run e2e          # PATH 上的 `ebx`(默认)
-EBX_BIN="node dist/bin/ebx.js"        npm run e2e          # `npm run build` 之后
+# 2. 对 abx 二进制运行
+ABX_BIN=abx                           npm run e2e          # PATH 上的 `abx`(默认)
+ABX_BIN="node dist/bin/abx.js"        npm run e2e          # `npm run build` 之后
 
 npm run e2e:offline                   # 仅无需凭据的套件(几秒)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
@@ -40,9 +40,9 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 | 套件 | 依赖 | 内容 |
 |---|---|---|
-| `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、shortcuts、向临时 HOME 写入 MCP `install/status/stop`、`template init`、本地 `template search --index-url` |
+| `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、固定的顶层命令集（已移除的写法退出码 2）、向临时 HOME 写入 MCP `install/status/stop`、`template init`、本地 `template search --index-url` |
 | `cloud-readonly` | 云端 | 错误 API Key(`E1000`,退出码 3)、`template list/info/delete` 与 not-found 信封(退出码 4,`E2001`/`E5000`)、`list` 输出结构、`config list` 密钥脱敏 |
-| `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、`--json`、`-q`、`--ci`、`CI=true`、超时→退出码 5)→ `upload`/`download`(二进制往返)→ `sandbox files/process/system/capabilities/shell-stream` → `connect` → `run` 自定义命令 → 创建时注入 env/上传 → `kill` |
+| `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、`--json`、`-q`、`--ci`、`CI=true`、超时→退出码 5)→ `upload`/`download`(二进制往返)→ `exec --background/--stream/--env` → `sandbox files/process/system/capabilities` → `connect` → `sandbox command list` / `run` 具名命令 → 创建时注入 env/上传 → `kill` |
 | `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template install --download-only` |
 | `docker-deploy` | 云端 + Docker,需主动开启 | `template init` → `template deploy`(docker build、ACR push、CreateTemplate)→ `create` → `exec` → `template delete` |
 
@@ -51,7 +51,7 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 场景是 `scenarios/*.mjs` 中的普通对象(表格风格),常用字段:`id`、`title`、`requires`(依赖场景通过才运行)、
 `argv`(数组或函数)、`env`、`stdin`、`creds:false`、`freshHome`、`exit`(数字 | 数组 | `'nonzero'`)、
 `stdout`/`stderr`/`output`(字符串、正则、`{ not: ... }`)、`jsonShape`/`json`(JSON 断言)、`retries`/`retryReason`、
-`timeoutMs`、`needs`。多步骤场景使用 `run(ctx)`:`ctx.ebx`(脱敏+规范化结果)、`ctx.rawEbx`(仅脱敏)、
+`timeoutMs`、`needs`。多步骤场景使用 `run(ctx)`:`ctx.abx`(脱敏+规范化结果)、`ctx.rawAbx`(仅脱敏)、
 `ctx.track/untrack`(登记待清理沙箱)、`ctx.eventually`、`ctx.fail`。详见英文版示例。
 
 ## Provider 分级
@@ -60,27 +60,27 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 提供商插件（`e2e/providers/run.sh`）
 
-一个 bash 脚本：把参考插件安装到一次性的 `HOME`，并通过 CLI 驱动真实沙箱。运行方式：`npm run e2e:providers` 或 `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`。`local-process` 与 `e2b-compatible` 来自 `python-sdk/examples/providers`。`opensandbox` 从 [awesome-providers](https://github.com/Easy-Sandbox/awesome-providers) 克隆（`opensandbox/` 目录）。
+一个 bash 脚本：把参考插件安装到一次性的 `HOME`，并通过 CLI 驱动真实沙箱。运行方式：`npm run e2e:providers` 或 `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`。`local-process` 与 `e2b-compatible` 来自 `python-sdk/examples/providers`。`opensandbox` 从 [awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers) 克隆（`opensandbox/` 目录）。
 
 | 目标 | 依赖 | 检查内容 |
 |---|---|---|
 | `offline` | 无（git、python3） | “用到才出现”的 `provider` 命令组、同意界面与 `--yes` 规则（`E8012`）、从路径安装与从钉住 commit 的本地 git 仓库安装、`E8003` 冲突与 `--force`、`doctor`/`info`、`E8001`、`E8002`（命令行传密钥）、`provider default`、`E8030`、篡改检测（`E8011`）、卸载 |
 | `local-process` | python3 | `create`、`list`、`exec`（退出码透传）、`upload`/`download` 往返、`sandbox files list`、`kill`、终止后返回退出码 4，全程使用限定 id |
-| `opensandbox` | 运行中的 OpenSandbox：`python-sdk/e2e/opensandbox/local-up.sh`（Docker；密钥 `local-dev-key`，`127.0.0.1:8080`） | 按路径与按 git 安装、`doctor`、`provider default opensandbox`、带与不带 `--provider` 的完整沙箱往返、密钥掩码，以及 `ebx provider test`（契约套件） |
+| `opensandbox` | 运行中的 OpenSandbox：`python-sdk/e2e/opensandbox/local-up.sh`（Docker；密钥 `local-dev-key`，`127.0.0.1:8080`） | 按路径与按 git 安装、`doctor`、`provider default opensandbox`、带与不带 `--provider` 的完整沙箱往返、密钥掩码，以及 `abx provider test`（契约套件） |
 | `e2b-compatible` | 环境中的 `E2B_API_KEY`（及 `E2B_API_URL`、`E2B_DOMAIN`） | REST 插件继承通用 `sandbox_*` 键，在真实云上跑同一往返；没有密钥时报告为 `SKIP` |
 
-变量：`EBX_BIN`（被测二进制，检出仓库中默认为 `tsx src/bin/ebx.ts`）、`PROVIDERS_DIR`（仅 local-process 与 e2b-compatible）、`OSB_SRC` 或 `EBX_OPENSANDBOX_PLUGIN` 或 `EBX_AWESOME_PROVIDERS`（opensandbox 检出；否则脚本克隆目录仓库）、`OSB_URL`、`OSB_KEY`、`OSB_IMAGE`。脚本会清理子进程环境，从不打印凭证，退出时终止它创建的所有沙箱，任何步骤失败都以非零退出。
+变量：`ABX_BIN`（被测二进制，检出仓库中默认为 `tsx src/bin/abx.ts`）、`PROVIDERS_DIR`（仅 local-process 与 e2b-compatible）、`OSB_SRC` 或 `ABX_OPENSANDBOX_PLUGIN` 或 `ABX_AWESOME_PROVIDERS`（opensandbox 检出；否则脚本克隆目录仓库）、`OSB_URL`、`OSB_KEY`、`OSB_IMAGE`。脚本会清理子进程环境，从不打印凭证，退出时终止它创建的所有沙箱，任何步骤失败都以非零退出。
 
 ## 环境变量
 
 | 变量 | 含义 |
 |---|---|
-| `EBX_BIN` | 被测二进制(默认 `ebx`),可带参数,如 `"node dist/bin/ebx.js"` |
-| `EBX_E2E_TEMPLATE` | 生命周期套件使用的模板(默认 `python-hello`) |
-| `EBX_E2E_TIMEOUT_MS` | 每条命令默认超时(默认 120000) |
-| `EBX_E2E_DOCKER=1` | 启用 Docker/ACR 套件(慢,会消耗真实资源) |
-| `EBX_E2E_ALLOW_KILL_ALL=1` | 启用 `kill --all` 确认保护场景(共享账号下危险) |
-| `EBX_E2E_KEEP=1` | 保留临时工作目录以便调试(可能含命令输出,不含凭据) |
+| `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node dist/bin/abx.js"` |
+| `ABX_E2E_TEMPLATE` | 生命周期套件使用的模板(默认 `python-hello`) |
+| `ABX_E2E_TIMEOUT_MS` | 每条命令默认超时(默认 120000) |
+| `ABX_E2E_DOCKER=1` | 启用 Docker/ACR 套件(慢,会消耗真实资源) |
+| `ABX_E2E_ALLOW_KILL_ALL=1` | 启用 `kill --all` 确认保护场景(共享账号下危险) |
+| `ABX_E2E_KEEP=1` | 保留临时工作目录以便调试(可能含命令输出,不含凭据) |
 
 ## 结果与基线
 

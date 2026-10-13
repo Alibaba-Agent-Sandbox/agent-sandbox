@@ -6,7 +6,7 @@ Task: #98, #105, #118
 
 ## Problem
 Users need to register Python functions as named commands invokable through
-`ebx run`. Currently custom commands can only be declared via YAML (the
+`abx run`. Currently custom commands can only be declared via YAML (the
 `custom_commands:` section of `template.yaml`); there is no way to register them
 directly from Python code. A decorator API is needed that maps a function name
 to a command name and the function signature to CLI options.
@@ -21,15 +21,15 @@ HTTP.
 > execute it) and explicitly did not introduce a new in-container server. That
 > decision has been reversed. Reasons: (1) every invocation required the full
 > files.write + commands.run chain, with high latency; (2) it could not support
-> persistent state; (3) the new `easy_sandbox.server` module (see
-> [`2026-09-05-sandbox-server-module.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md)) has been added and provides a
+> persistent state; (3) the new `agent_sandbox.server` module (see
+> [`2026-09-05-sandbox-server-module.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md)) has been added and provides a
 > persistent HTTP server to host registered commands.
 
 ### Core design
 
 1. **Commands are registered as persistent HTTP server endpoints**: functions
    decorated with `@sandbox.register` are registered as HTTP endpoints on the
-   `easy_sandbox.server` module. Clients invoke them via
+   `agent_sandbox.server` module. Clients invoke them via
    `POST /commands/{name}` with a JSON kwargs body; the response is
    `{"result": ...}` or `{"error": ..., "type": ...}`.
 
@@ -68,7 +68,7 @@ def demo(x: int, y: str = "hello") -> str:
     return f"{x}: {y}"
 
 # SDK: await sandbox.server.call("demo", x=42, y="world")
-# CLI: ebx run <sandbox_id> demo -a x=42 -a y="world"
+# CLI: abx run <sandbox_id> demo -a x=42 -a y="world"
 # Discovery: GET /commands
 ```
 
@@ -81,7 +81,7 @@ def demo(x: int, y: str = "hello") -> str:
 ## Dependencies
 - `declarative/decorator.py`
 - `models/template.py` (`CustomCommand`, `CustomCommandArg`)
-- [`2026-09-05-sandbox-server-module.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md) (server-module architecture)
+- [`2026-09-05-sandbox-server-module.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md) (server-module architecture)
 
 ## Test Strategy
 - After `@sandbox.register`, the function name becomes a discoverable command name.
@@ -96,11 +96,11 @@ def demo(x: int, y: str = "hello") -> str:
 - ✅ WIRE CONTRACT: the `POST /commands/{name}` + JSON body protocol is in effect.
 
 ## Implementation
-- **Decorator**: `src/easy_sandbox/declarative/decorator.py` (`_SandboxFactory` class + `register` method)
-- **Server routes**: `src/easy_sandbox/server/routes.py` (`GET /commands`, `POST /commands/{name}`)
-- **Command registry**: `src/easy_sandbox/server/registry.py` (`CommandRegistry`, `RegisteredCommand`)
-- **CLI integration**: `src/easy_sandbox/cli/commands/sandbox.py` (`ebx run` auto-scans `@sandbox.register`)
-- **Model**: `src/easy_sandbox/models/template.py` (`CustomCommand`, `CustomCommandArg` include a `type` field)
+- **Decorator**: `src/agent_sandbox/declarative/decorator.py` (`_SandboxFactory` class + `register` method)
+- **Server routes**: `src/agent_sandbox/server/routes.py` (`GET /commands`, `POST /commands/{name}`)
+- **Command registry**: `src/agent_sandbox/server/registry.py` (`CommandRegistry`, `RegisteredCommand`)
+- **CLI integration**: `src/agent_sandbox/cli/commands/sandbox.py` (`abx run` auto-scans `@sandbox.register`)
+- **Model**: `src/agent_sandbox/models/template.py` (`CustomCommand`, `CustomCommandArg` include a `type` field)
 
 ## Evidence
-- [`.agents/evidence/research/2026-09-04-container-serve-boundary.md`](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-container-serve-boundary.md) §5, §6.1–§6.3, §7 O7
+- [`.agents/evidence/research/2026-09-04-container-serve-boundary.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/evidence/research/2026-09-04-container-serve-boundary.md) §5, §6.1–§6.3, §7 O7

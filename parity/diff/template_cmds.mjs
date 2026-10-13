@@ -2,11 +2,11 @@
 /**
  * Differential test of the `template` commands (`list|info|delete|create|push|build|deploy|search|install|init`), the
  * top-level `install` / `deploy` / `init` shortcuts and `init --adopt`: the original Python CLI
- * (`$ORACLE_VENV/bin/ebx`) versus the Node CLI, run with the same argv in an isolated HOME and a per-run working
+ * (`$ORACLE_VENV/bin/abx`) versus the Node CLI, run with the same argv in an isolated HOME and a per-run working
  * directory, no real credentials, a local stub server (platform REST, template index, GitHub tarball API) and a fake
  * `docker` executable on PATH that records its argv.
  *
- *   ORACLE_VENV=/path/to/venv-for-original-ebx node parity/diff/template_cmds.mjs [--verbose] [--only <substr>]
+ *   ORACLE_VENV=/path/to/venv-for-original-abx node parity/diff/template_cmds.mjs [--verbose] [--only <substr>]
  *
  * Compared per case: exit code, stdout, stderr (ports / temp paths normalised), the stub request log, the fake docker
  * invocation log and a snapshot of the working directory afterwards (relative path + content hash). Exit code 0 =
@@ -31,12 +31,12 @@ const verbose = process.argv.includes("--verbose");
 const onlyIdx = process.argv.indexOf("--only");
 const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
 
-if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "ebx"))) {
-  console.error("ORACLE_VENV must point to a venv with the original easy-sandbox installed (see docs/PORTING.md).");
+if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "abx"))) {
+  console.error("ORACLE_VENV must point to a venv with the original agent-sandbox installed (see docs/PORTING.md).");
   process.exit(2);
 }
 
-const scratch = realpathSync(mkdtempSync(join(tmpdir(), "ebx-tpldiff-")));
+const scratch = realpathSync(mkdtempSync(join(tmpdir(), "abx-tpldiff-")));
 
 // ---------------------------------------------------------------------------------------------------------------
 // Fixtures
@@ -50,19 +50,19 @@ const INDEX_YAML = `schema_version: 1
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
     tags: [qwen, ai-agent]
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code]
     status: official
   - name: node-web
     description: "Node.js web service"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: node-web
     ref: v1.2.0
     tags: [nodejs, web, deploy]
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code]
     status: community
 `;
@@ -129,9 +129,7 @@ for (const path of [
   add(`help template ${path.join(" ")}`.trim(), [...T, ...path, "--help"]);
   if (path.length) add(`help -h template ${path.join(" ")}`, [...T, ...path, "-h"]);
 }
-add("help top install", ["install", "--help"]);
 add("help top deploy", ["deploy", "--help"]);
-add("help top init", ["init", "--help"]);
 add("template bare", [...T]);
 add("template unknown sub", [...T, "build-local", "--help"]);
 add("template typo", [...T, "lst"]);
@@ -201,7 +199,7 @@ add("build docker daemon down", [...T, "build", "{work}/tpl", "--acr-namespace",
 add("build docker fails", [...T, "build", "{work}/tpl", "--acr-namespace", "ns", "--yes"], { files: { "tpl/Dockerfile": DOCKERFILE }, env: { ...CREDS, DOCKER_FAIL_BUILD: "1" }, docker: true });
 add("build non tty no yes", [...T, "build", "{work}/tpl", "--acr-namespace", "ns"], { files: TPL_IN("tpl"), env: CREDS, docker: true });
 add("build decline", [...T, "build", "{work}/tpl", "--acr-namespace", "ns"], { files: TPL_IN("tpl"), env: CREDS, docker: true, input: "n\n" });
-add("build template dir env", [...T, "build", "--acr-namespace", "ns", "--yes"], { files: TPL_IN("tpl"), env: { ...CREDS, EBX_TEMPLATE_DIR: "{work}/tpl" }, docker: true });
+add("build template dir env", [...T, "build", "--acr-namespace", "ns", "--yes"], { files: TPL_IN("tpl"), env: { ...CREDS, ABX_TEMPLATE_DIR: "{work}/tpl" }, docker: true });
 add("build no dir arg", [...T, "build", "--acr-namespace", "ns", "--yes"], { env: CREDS });
 add("build namespace from env", [...T, "build", "{work}/tpl", "--yes"], { files: TPL_IN("tpl"), env: { ...CREDS, ACR_NAMESPACE: "envns" }, docker: true });
 add("build namespace from dotenv", [...T, "build", "{work}/tpl", "--yes"], { files: { ...TPL_IN("tpl"), ".env": "ACR_NAMESPACE=dotns\n" }, env: CREDS, docker: true });
@@ -219,7 +217,6 @@ add("deploy envd inject", [...T, "deploy", "{work}/tpl", "--acr-namespace", "ns"
 add("top deploy no dockerfile", ["deploy", "{work}/tpl", "--acr-namespace", "ns"], { files: { "tpl/template.yaml": TEMPLATE_YAML } });
 add("top deploy missing path", ["deploy", "{work}/nothing", "--acr-namespace", "ns"]);
 add("top deploy no namespace", ["deploy", "{work}/tpl"], { files: { "tpl/Dockerfile": DOCKERFILE } });
-add("top deploy traditional", ["deploy", "{work}/tpl", "--acr-namespace", "ns", "--traditional", "--yes"], { files: TPL_IN("tpl"), env: CREDS, docker: true });
 add("top deploy full", ["deploy", "{work}/tpl", "--acr-namespace", "ns", "-y"], { files: TPL_IN("tpl"), env: CREDS, docker: true });
 add("top deploy verbose", ["deploy", "{work}/tpl", "--acr-namespace", "ns", "-y", "-v"], { files: TPL_IN("tpl"), env: CREDS, docker: true });
 add("top deploy extra arg", ["deploy", "{work}/tpl", "some description"], { files: TPL_IN("tpl") });
@@ -246,7 +243,7 @@ add("search json no match", ["--json", ...T, "search", "zzz", ...IDX_URL], IDX);
 add("search quiet", ["--quiet", ...T, "search", "qwen", ...IDX_URL], IDX);
 add("search refresh", [...T, "search", "qwen", "--refresh", ...IDX_URL], IDX);
 add("search token", [...T, "search", "qwen", "--token", "gh-secret-token", ...IDX_URL], IDX);
-add("search env index url", [...T, "search", "qwen"], { ...IDX, env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("search env index url", [...T, "search", "qwen"], { ...IDX, env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
 add("search local file index", [...T, "search", "qwen", "--index-url", "{work}/idx.yaml"], { files: { "idx.yaml": INDEX_YAML } });
 add("search missing local index", [...T, "search", "qwen", "--index-url", "{work}/nope.yaml"]);
 add("search 404", [...T, "search", "qwen", ...IDX_URL], { index: text(404, "not found") });
@@ -266,19 +263,16 @@ add("install builtin", [...T, "install", "base"]);
 add("install builtin json", ["--json", ...T, "install", "base"]);
 add("install builtin quiet", ["--quiet", ...T, "install", "base"]);
 add("install builtin code-interpreter", [...T, "install", "code-interpreter-v1"]);
-add("install shortcut builtin", ["install", "base"]);
 add("install no ref", [...T, "install"]);
 add("install invalid registry type", [...T, "install", "owner/repo", "--registry-type", "invalid"]);
 add("install local missing", [...T, "install", "./definitely-missing", "--registry-type", "local"]);
 add("install local missing auto", [...T, "install", "./definitely-missing"]);
-add("install shortcut region missing", ["install", "./definitely-missing", "--region", "cn-shanghai"]);
 add("install local download only", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only"], { files: TPL_IN("src") });
 add("install local download only json", ["--json", ...T, "install", "{work}/src", "--registry-type", "local", "--download-only"], { files: TPL_IN("src") });
 add("install local download only quiet", ["--quiet", ...T, "install", "{work}/src", "--registry-type", "local", "--download-only"], { files: TPL_IN("src") });
 add("install local auto detect", [...T, "install", "{work}/src", "--download-only"], { files: TPL_IN("src") });
 add("install local dir", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only", "--dir", "{work}/out"], { files: TPL_IN("src") });
 add("install local dir nonempty", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only", "--dir", "{work}/out"], { files: { ...TPL_IN("src"), "out/x.txt": "x\n" } });
-add("install shortcut dir", ["install", "{work}/src", "--registry-type", "local", "--download-only", "--dir", "{work}/out"], { files: TPL_IN("src") });
 add("install sandbox yaml only", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only", "--dir", "{work}/out"], { files: { "src/sandbox.yaml": "name: test-alias\nversion: '1.0.0'\n", "src/Dockerfile": DOCKERFILE } });
 add("install both yaml", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only", "--dir", "{work}/out"], { files: { "src/template.yaml": "name: canonical\n", "src/sandbox.yaml": "name: alias\n", "src/Dockerfile": DOCKERFILE } });
 add("install no yaml", [...T, "install", "{work}/src", "--registry-type", "local", "--download-only", "--dir", "{work}/out"], { files: { "src/Dockerfile": DOCKERFILE } });
@@ -310,12 +304,12 @@ add("install github no yaml", [...T, "install", "owner/repo", ...REG, "--downloa
 add("install github deploy yes", [...T, "install", "owner/repo", ...REG, "--yes"], { ...GH(TPL), env: { ...CREDS, ACR_NAMESPACE: "ns" }, docker: true });
 add("install github bare owner", [...T, "install", "owner", ...REG, "--download-only"], GH(TPL));
 add("install github bad ref chars", [...T, "install", "owner/repo@bad ref!", ...REG, "--download-only"], GH(TPL));
-add("install bare name via index", [...T, "install", "qwen-code", ...REG, "--download-only"], { ...IDX, ...GH(TPL), env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
-add("install bare name pinned via index", [...T, "install", "node-web", ...REG, "--download-only"], { ...IDX, ...GH(TPL), env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
-add("install bare name unknown", [...T, "install", "no-such", "--download-only"], { ...IDX, env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
-add("install bare name unknown json", ["--json", ...T, "install", "no-such", "--download-only"], { ...IDX, env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
-add("install bare name index 500", [...T, "install", "no-such", "--download-only"], { index: text(500, "boom"), env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
-add("install bare name rate limited", [...T, "install", "no-such", "--download-only"], { index: { status: 403, type: "application/json", headers: { "x-ratelimit-remaining": "0" }, body: Buffer.from("{}") }, env: { EBX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("install bare name via index", [...T, "install", "qwen-code", ...REG, "--download-only"], { ...IDX, ...GH(TPL), env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("install bare name pinned via index", [...T, "install", "node-web", ...REG, "--download-only"], { ...IDX, ...GH(TPL), env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("install bare name unknown", [...T, "install", "no-such", "--download-only"], { ...IDX, env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("install bare name unknown json", ["--json", ...T, "install", "no-such", "--download-only"], { ...IDX, env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("install bare name index 500", [...T, "install", "no-such", "--download-only"], { index: text(500, "boom"), env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
+add("install bare name rate limited", [...T, "install", "no-such", "--download-only"], { index: { status: 403, type: "application/json", headers: { "x-ratelimit-remaining": "0" }, body: Buffer.from("{}") }, env: { ABX_TEMPLATE_INDEX_URL: "http://127.0.0.1:{port}/index.yaml" } });
 
 // ---- init
 add("init list", [...T, "init", "--list"]);
@@ -339,7 +333,6 @@ add("init existing nonempty", [...T, "init", "{work}/proj", "-t", "python"], { f
 add("init existing files conflict", [...T, "init", "{work}/proj", "-t", "python"], { files: { "proj/Dockerfile": "FROM scratch\n" } });
 add("init existing force", [...T, "init", "{work}/proj", "-t", "python", "--force"], { files: { "proj/Dockerfile": "FROM scratch\n" } });
 add("init existing dir via name", [...T, "init", "-t", "python"], { files: { "python/Dockerfile": "FROM scratch\n" } });
-add("init top shortcut", ["init", "{work}/proj", "-t", "python"]);
 add("init template and from", [...T, "init", "-t", "python", "--from", "owner/repo"]);
 add("init from local", [...T, "init", "{work}/dest", "--from", "{work}/src"], { files: TPL_IN("src") });
 add("init from local no dir", [...T, "init", "--from", "{work}/src"], { files: TPL_IN("src") });
@@ -431,7 +424,7 @@ function startStub(testCase) {
 mkdirSync(join(scratch, "bin"), { recursive: true });
 writeFileSync(join(scratch, "bin", "docker"), FAKE_DOCKER);
 chmodSync(join(scratch, "bin", "docker"), 0o755);
-const nodeEntry = join(CLI_ROOT, "src/bin/ebx.ts");
+const nodeEntry = join(CLI_ROOT, "src/bin/abx.ts");
 
 function snapshot(root) {
   const out = [];
@@ -464,7 +457,7 @@ function run(kind, testCase, port) {
     PATH: testCase.docker ? `${join(scratch, "bin")}:${process.env.PATH}` : process.env.PATH.split(":").filter((d) => !existsSync(join(d, "docker"))).join(":"),
     HOME: home,
     USERPROFILE: home,
-    EBX_NO_KEYCHAIN: "1",
+    ABX_NO_KEYCHAIN: "1",
     E2B_API_KEY: "stub-key",
     E2B_API_URL: `http://127.0.0.1:${port}`,
     NO_PROXY: "*",
@@ -477,7 +470,7 @@ function run(kind, testCase, port) {
   const argv = testCase.argv.map(sub);
   const [cmd, args] =
     kind === "py"
-      ? [join(ORACLE_VENV, "bin", "ebx"), argv]
+      ? [join(ORACLE_VENV, "bin", "abx"), argv]
       : [process.execPath, ["--import", pathToFileURL(join(CLI_ROOT, "node_modules", "tsx", "dist", "esm", "index.mjs")).href, nodeEntry, ...argv]];
   return new Promise((ok) => {
     const proc = spawn(cmd, args, { cwd: work, env, stdio: ["pipe", "pipe", "pipe"] });
@@ -509,9 +502,9 @@ function normalise(text, ctx) {
   t = t.replace(/ListTeams API call failed: Error: [^"]*/g, "ListTeams API call failed: <aliyun-error>");
   t = t.replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>");
   t = t.replace(new RegExp(`${esc(scratch)}/[A-Za-z0-9._-]+`, "g"), "<scratch>");
-  t = t.replace(/ebx-adopt-[A-Za-z0-9_]+/g, "ebx-adopt-<rand>");
+  t = t.replace(/abx-adopt-[A-Za-z0-9_]+/g, "abx-adopt-<rand>");
   t = t.replace(/\d+\.\d+s\b/g, "<t>s");
-  t = t.replace(/WARNING: (Failed to build SDK wheel|Could not fetch easy-sandbox-server)[^\n]*\n(\n)?/g, "<sdk-wheel-warning>\n");
+  t = t.replace(/WARNING: (Failed to build SDK wheel|Could not fetch agent-sandbox-server)[^\n]*\n(\n)?/g, "<sdk-wheel-warning>\n");
   // httpx's HTTPStatusError text spans two lines; the oracle's release wheel is published on PyPI, the Node build's (bumped) one may not be.
   t = t.replace(/<sdk-wheel-warning>\nFor more information check: [^\n]*\n/g, "<sdk-wheel-warning>\n");
   t = t.replace(/\[E5000\] ListTeams API call failed: [^\n]*/g, "[E5000] ListTeams API call failed: <aliyun-error>");

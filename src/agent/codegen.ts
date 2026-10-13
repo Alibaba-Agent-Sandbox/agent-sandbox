@@ -1,8 +1,8 @@
 /**
- * AI code generation for `ebx create "<description>"`.
+ * AI code generation for `abx create "<description>"`.
  *
- * Port of `easy_sandbox/agent/codegen.py`. Orchestrates a Qwen Code headless run that produces a *usable* template
- * inside a dedicated workspace: a `Dockerfile`, a `commands.py` that starts the container-side `easy_sandbox.server`
+ * Port of `agent_sandbox/agent/codegen.py`. Orchestrates a Qwen Code headless run that produces a *usable* template
+ * inside a dedicated workspace: a `Dockerfile`, a `commands.py` that starts the container-side `agent_sandbox.server`
  * HTTP server (without it a deployed sandbox has nothing to answer requests), and a `template.yaml`. The prompt
  * carries the server SDK reference from {@link ./template_guide.ts}. All artifacts are validated (the manifest with
  * the very same schema used by `parseTemplateData`) and the workspace is handed over to the existing build/deploy
@@ -40,7 +40,7 @@ import {
   writeTextUtf8,
 } from "./_pycompat.js";
 import { pyRepr as pyReprStr } from "./_py.js";
-import { flattenRich, safeDump, safeLoadRich, YAMLError } from "./_pyyaml.js";
+import { YAMLError, dumpYaml, isMapping, loadYaml } from "../utils/yaml_io.js";
 import { type QwenCodeRunResult, type RunHeadlessOptions, excStr, runQwenCodeHeadless } from "./qwen_code.js";
 import { buildTemplateGuide, REQUIRED_TEMPLATE_FILES, SERVER_ENTRYPOINT, SERVER_PORT } from "./template_guide.js";
 import {
@@ -57,7 +57,7 @@ const logger = getLogger("agent.codegen");
 export const DEFAULT_CODEGEN_TIMEOUT = 600.0;
 
 /** Prefix for AI-generated template names (marks provenance, avoids clashes). */
-export const TEMPLATE_NAME_PREFIX = "ebx-nl";
+export const TEMPLATE_NAME_PREFIX = "abx-nl";
 
 const FROM_INSTRUCTION_RE = new RegExp(`(?:^|\\n)[${PY_WHITESPACE}]*FROM[${PY_WHITESPACE}]+[^${PY_WHITESPACE}]`, "i");
 const SLUG_RE = /[^a-z0-9]+/g;
@@ -65,7 +65,7 @@ const SERVE_CALL_RE = /\.serve\s*\(|\bstart\s*\(/;
 
 function dockerfilePromptLines(profile: TemplateProfile, serverPort: number): string {
   const common = `- 必须以 FROM ${profile.base_image} 开始
-   - 安装满足上述需求所需的系统包与依赖，并安装 easy-sandbox-server（写法见下方规范）
+   - 安装满足上述需求所需的系统包与依赖，并安装 agent-sandbox-server（写法见下方规范）
    - \`WORKDIR ${profile.workdir}\`，\`COPY commands.py\`，\`EXPOSE ${serverPort}\``;
   if (profile.server_start === "platform_start_cmd") {
     return `${common}
@@ -83,7 +83,7 @@ const codegenPromptTemplate = (fields: {
 }): string => {
   const f = fields;
   const notice = f.profile.missing_profile ? `${f.profile.notice}\n\n` : "";
-  return `你是 Easy Sandbox 的模板生成器。请根据下面的自然语言需求，在当前工作目录中生成一个
+  return `你是 Agent Sandbox 的模板生成器。请根据下面的自然语言需求，在当前工作目录中生成一个
 **部署后可以通过 HTTP(S) 直接使用**的沙箱模板（不是只有 Dockerfile 的镜像）。
 
 用户需求：${f.description}
@@ -92,7 +92,7 @@ ${notice}必须创建的文件：
 1. \`Dockerfile\`：
    ${dockerfilePromptLines(f.profile, f.server_port)}
    - 保持精简、可直接执行 docker build
-2. \`commands.py\`：基于 \`easy_sandbox.server\` 的 HTTP 服务入口，监听 ${f.server_port} 端口，
+2. \`commands.py\`：基于 \`agent_sandbox.server\` 的 HTTP 服务入口，监听 ${f.server_port} 端口，
    \`serve()\` 放在 \`if __name__ == "__main__"\` 下，
    注册与需求相关的命令 / 路由（至少一个有意义的命令，不要只留 hello）
 3. \`template.yaml\`：
@@ -118,7 +118,7 @@ ${f.guide}
 export class CodegenResult {
   /** Workspace containing the generated `Dockerfile` / `template.yaml`. */
   workdir: string;
-  /** Deterministic template name (`ebx-nl-<slug>-<token>`). */
+  /** Deterministic template name (`abx-nl-<slug>-<token>`). */
   templateName: string;
   dockerfile: string;
   templateYaml: string;
@@ -151,14 +151,14 @@ export class CodegenResult {
   }
 }
 
-/** Root directory for generated workspaces: `~/.ebx/generated`. */
+/** Root directory for generated workspaces: `~/.abx/generated`. */
 export function defaultGeneratedDir(): string {
   return seams.defaultGeneratedDir();
 }
 
-/** Timeout used for code generation, overridable via `EBX_QWEN_CODEGEN_TIMEOUT` (positive seconds). */
+/** Timeout used for code generation, overridable via `ABX_QWEN_CODEGEN_TIMEOUT` (positive seconds). */
 export function defaultCodegenTimeout(): number {
-  const raw = process.env.EBX_QWEN_CODEGEN_TIMEOUT;
+  const raw = process.env.ABX_QWEN_CODEGEN_TIMEOUT;
   if (raw) {
     const value = parsePyFloat(raw);
     if (value === null) return DEFAULT_CODEGEN_TIMEOUT;
@@ -209,21 +209,21 @@ function hasFromInstruction(dockerfile: string): boolean {
 }
 
 function defaultRetryHint(workdir: string): string {
-  return `Inspect the generated workspace: ${workdir} — then retry, or fall back to 'ebx create --template <name>'.`;
+  return `Inspect the generated workspace: ${workdir} — then retry, or fall back to 'abx create --template <name>'.`;
 }
 
-function loadTemplateYaml(templateYaml: string, retry?: string | null): Map<unknown, unknown> {
+function loadTemplateYaml(templateYaml: string, retry?: string | null): Record<string, unknown> {
   const hint = retry !== undefined && retry !== null ? retry : defaultRetryHint(path.dirname(templateYaml));
   let data: unknown;
   try {
-    data = safeLoadRich(readTextStrict(templateYaml));
+    data = loadYaml(readTextStrict(templateYaml));
   } catch (exc) {
     if (exc instanceof YAMLError || (exc instanceof Error && "code" in exc)) {
       throw new AICodegenError(`Generated template.yaml could not be parsed: ${excStr(exc)}`, { suggestion: hint });
     }
     throw exc;
   }
-  if (!(data instanceof Map)) {
+  if (!isMapping(data)) {
     throw new AICodegenError("Generated template.yaml is not a YAML mapping.", { suggestion: hint });
   }
   return data;
@@ -231,7 +231,7 @@ function loadTemplateYaml(templateYaml: string, retry?: string | null): Map<unkn
 
 /** Names never treated as template deliverables (agent scratch / build junk). */
 const SKIP_DIR_NAMES: ReadonlySet<string> = new Set(["__pycache__", "node_modules"]);
-const SKIP_SUFFIXES: readonly string[] = [".pyc", ".whl", ".ebx-bak"];
+const SKIP_SUFFIXES: readonly string[] = [".pyc", ".whl", ".abx-bak"];
 const LIST_MAX_FILES = 200;
 
 /**
@@ -512,7 +512,7 @@ export function lexicalSyntaxCheck(source: string, filename: string): SyntaxVerd
 export const seams = {
   runQwenCodeHeadless: runQwenCodeHeadless as (prompt: string, opts?: RunHeadlessOptions) => Promise<QwenCodeRunResult>,
   pythonSyntaxCheck: pythonSyntaxCheck as (source: Uint8Array, filename: string) => SyntaxVerdict | null,
-  defaultGeneratedDir: (() => path.join(homeDir(), ".ebx", "generated")) as () => string,
+  defaultGeneratedDir: (() => path.join(homeDir(), ".abx", "generated")) as () => string,
   prepareWorkdir: undefined as unknown as typeof prepareWorkdir,
   generateTemplateFiles: undefined as unknown as typeof generateTemplateFiles,
 };
@@ -540,10 +540,10 @@ function validateServerEntrypoint(
 ): void {
   const hint = retry !== undefined && retry !== null ? retry : defaultRetryHint(workdir);
   const source = checkPythonSyntax(commandsPy, hint);
-  if (!source.includes("easy_sandbox.server") || !SERVE_CALL_RE.test(source)) {
+  if (!source.includes("agent_sandbox.server") || !SERVE_CALL_RE.test(source)) {
     throw new AICodegenError(
-      `Generated ${SERVER_ENTRYPOINT} does not start an easy_sandbox.server ` +
-        "SandboxServer (expected an import from easy_sandbox.server and a " +
+      `Generated ${SERVER_ENTRYPOINT} does not start an agent_sandbox.server ` +
+        "SandboxServer (expected an import from agent_sandbox.server and a " +
         `serve()/start() call on port ${SERVER_PORT}).`,
       { suggestion: hint },
     );
@@ -581,15 +581,14 @@ function validateServerEntrypoint(
 /**
  * Validate a generated template workspace and return its manifest data.
  *
- * Shared by `ebx create "<description>"` and `ebx template init --adopt`. Checks, fail-closed: the Dockerfile has a
- * `FROM`; `commands.py` parses and starts `easy_sandbox.server`; the Dockerfile references it; `template.yaml` is a
+ * Shared by `abx create "<description>"` and `abx template init --adopt`. Checks, fail-closed: the Dockerfile has a
+ * `FROM`; `commands.py` parses and starts `agent_sandbox.server`; the Dockerfile references it; `template.yaml` is a
  * mapping that passes the capability schema. Nothing is written; the returned manifest carries `templateName` as
  * its `name`.
  *
- * The manifest is returned as the "rich" YAML tree (a `Map` that keeps key order/types, with `PyFloat` floats) so a
- * later {@link safeDump} reproduces what `yaml.safe_dump` writes; {@link flattenRich} keeps those types for the schema check.
+ * The manifest is returned as plain data (key order kept) so it can be dumped back with `dumpYaml`.
  *
- * `retry` replaces the default "inspect the workspace / fall back to `ebx create --template`" suggestion on every
+ * `retry` replaces the default "inspect the workspace / fall back to `abx create --template`" suggestion on every
  * error.
  *
  * Throws `AICodegenError` when any check fails.
@@ -598,7 +597,7 @@ export function validateTemplateWorkspace(
   workdir: string,
   templateName: string,
   opts: { retry?: string | null; providerId?: string | null } = {},
-): Map<unknown, unknown> {
+): Record<string, unknown> {
   const dockerfile = path.join(workdir, "Dockerfile");
   const templateYaml = path.join(workdir, "template.yaml");
   const commandsPy = path.join(workdir, SERVER_ENTRYPOINT);
@@ -617,9 +616,9 @@ export function validateTemplateWorkspace(
   validateServerEntrypoint(workdir, dockerfile, commandsPy, profile, hint);
 
   const data = loadTemplateYaml(templateYaml, hint);
-  data.set("name", templateName);
+  data["name"] = templateName;
   try {
-    parseTemplateData({ ...(flattenRich(data) as Record<string, unknown>) });
+    parseTemplateData({ ...data });
   } catch (exc) {
     throw new AICodegenError(`Generated template.yaml failed schema validation: ${excStr(exc)}`, { suggestion: hint });
   }
@@ -663,7 +662,7 @@ export interface GenerateTemplateFilesOptions {
  *
  * The files are written into a workspace: `workdir` when the caller already prepared one (the create command does,
  * so the clarification loop and this run share one native session), otherwise a fresh
- * `~/.ebx/generated/<slug>-<timestamp>/` directory under `baseDir`. The workspace is kept on failure so users can
+ * `~/.abx/generated/<slug>-<timestamp>/` directory under `baseDir`. The workspace is kept on failure so users can
  * inspect what the agent produced.
  *
  * `resumeSession` continues the native Qwen Code session created by the clarification loop, so the model keeps the
@@ -727,15 +726,15 @@ async function generateTemplateFilesImpl(
       {
         suggestion:
           `Inspect the generated workspace: ${work} — then retry ` +
-          `'ebx create "${description}"', or fall back to ` +
-          "'ebx create --template <name>'.",
+          `'abx create "${description}"', or fall back to ` +
+          "'abx create --template <name>'.",
       },
     );
   }
 
   const data = validateTemplateWorkspace(work, tmplName);
 
-  writeTextUtf8(templateYaml, safeDump(data));
+  writeTextUtf8(templateYaml, dumpYaml(data));
   logger.debug("Generated template workspace ready: %s", work);
 
   return new CodegenResult({

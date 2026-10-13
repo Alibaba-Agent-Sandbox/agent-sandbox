@@ -13,16 +13,13 @@ import { describe, expect, it } from "vitest";
 
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "../test_cli/conftest.js";
-
-useDefaultShortcutsOnly();
 
 const runner = (): CliRunner => new CliRunner();
 
 describe("TestCLICompleteness", () => {
   // Verify that all expected commands are registered and accessible.
-  it("test_ebx_help_contains_all_commands", async () => {
-    // ebx --help should list all expected subcommands.
+  it("test_abx_help_contains_all_commands", async () => {
+    // abx --help should list all expected subcommands.
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
     const output = result.output;
@@ -44,24 +41,24 @@ describe("TestCLICompleteness", () => {
       "template",
       "upload",
     ];
-    for (const cmd of expected_commands) expect(output, `Command '${cmd}' not found in ebx --help output`).toContain(cmd);
+    for (const cmd of expected_commands) expect(output, `Command '${cmd}' not found in abx --help output`).toContain(cmd);
   });
 
   it("test_template_help", async () => {
-    // ebx template --help should show subcommands.
+    // abx template --help should show subcommands.
     const result = await runner().invoke(cli, ["template", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.toLowerCase()).toContain("template");
   });
 
   it("test_config_list_runs", async () => {
-    // ebx config list should run without errors.
+    // abx config list should run without errors.
     const result = await runner().invoke(cli, ["config", "list"]);
     expect(result.exit_code).toBe(0);
   });
 
   it("test_version_option", async () => {
-    // ebx --version should print package version.
+    // abx --version should print package version.
     const result = await runner().invoke(cli, ["--version"]);
     expect(result.exit_code).toBe(0);
   });

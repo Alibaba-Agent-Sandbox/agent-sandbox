@@ -5,7 +5,7 @@
 ### kill sbx-ev-001 --yes
 
 ```
-$ ebx kill sbx-ev-001 --yes
+$ abx kill sbx-ev-001 --yes
 Sandbox sbx-ev-001 killed.
 Exit code: 0
 ```
@@ -13,7 +13,7 @@ Exit code: 0
 ### kill --all --yes
 
 ```
-$ ebx kill --all --yes
+$ abx kill --all --yes
 Killed 2/2 sandbox(es).
 Exit code: 0
 ```
@@ -21,7 +21,7 @@ Exit code: 0
 ### kill（无 ID 错误）
 
 ```
-$ ebx kill
+$ abx kill
 Exit code: 2
 ```
 
@@ -29,5 +29,5 @@ Exit code: 2
 
 ```
 Either provide a sandbox ID or use --all.
-  Suggestion: Usage: ebx kill <sandbox-id> or ebx kill --all
+  Suggestion: Usage: abx kill <sandbox-id> or abx kill --all
 ```

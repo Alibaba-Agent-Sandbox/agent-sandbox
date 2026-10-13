@@ -24,9 +24,22 @@ export interface ListOptions {
 /** Typed wrapper for Platform API sandbox operations. */
 export class SandboxProtocol {
   _http: HttpClient;
+  /** A plugin provider speaks this wire format but is not the platform: an absent region/timeout stays "unknown" ("" and 0). */
+  _unknownIfAbsent: boolean;
 
-  constructor(http_client: HttpClient) {
+  constructor(http_client: HttpClient, opts: { unknownIfAbsent?: boolean } = {}) {
     this._http = http_client;
+    this._unknownIfAbsent = opts.unknownIfAbsent ?? false;
+  }
+
+  _info(data: unknown): SandboxInfo {
+    if (this._unknownIfAbsent && data !== null && typeof data === "object" && !Array.isArray(data)) {
+      const d = { ...(data as Record<string, unknown>) };
+      if (!("region" in d)) d["region"] = "";
+      if (!("timeout" in d)) d["timeout"] = 0;
+      return SandboxInfo.modelValidate(d);
+    }
+    return SandboxInfo.modelValidate(data);
   }
 
   /** Request `/sandboxes/{id}{suffix}`; a 404 raises {@link SandboxNotFoundError}. */
@@ -50,7 +63,7 @@ export class SandboxProtocol {
    * 响应体使用 camelCase: sandboxID, templateID, envdAccessToken, envdVersion, clientID
    *
    * `request_timeout`: per-request HTTP timeout override in seconds for this single create call. When `null`, the
-   * client-level default (`http_timeout` / `SANDBOX_HTTP_TIMEOUT`) is used. This is independent of `config.timeout`
+   * client-level default (`http_timeout` / `ABX_HTTP_TIMEOUT`) is used. This is independent of `config.timeout`
    * (the sandbox TTL).
    */
   async create(config: SandboxConfig, opts: { request_timeout?: number | null } = {}): Promise<SandboxInfo> {
@@ -61,7 +74,7 @@ export class SandboxProtocol {
       // 已实测验证：路径无 /api/v1 前缀
       const response = await this._http.platformRequest("POST", "/sandboxes", { json: payload, request_timeout });
       const data = response.json();
-      return SandboxInfo.modelValidate(data);
+      return this._info(data);
     } catch (exc) {
       if (exc instanceof HTTPStatusError) {
         this._handleCreateError(exc);
@@ -85,7 +98,7 @@ export class SandboxProtocol {
     const data = response.json();
     // API may return list directly or wrapped in a data field
     const items = Array.isArray(data) ? data : dictGet(data, "data", dictGet(data, "sandboxes", []));
-    return (items as unknown[]).map((item) => SandboxInfo.modelValidate(item));
+    return (items as unknown[]).map((item) => this._info(item));
   }
 
   /**
@@ -101,7 +114,7 @@ export class SandboxProtocol {
     const response = await this._http.platformRequest("GET", "/v2/sandboxes", { params });
     const data = response.json();
     const items = Array.isArray(data) ? data : dictGet(data, "data", dictGet(data, "sandboxes", []));
-    return (items as unknown[]).map((item) => SandboxInfo.modelValidate(item));
+    return (items as unknown[]).map((item) => this._info(item));
   }
 
   /**
@@ -112,7 +125,7 @@ export class SandboxProtocol {
   async getInfo(sandbox_id: string): Promise<SandboxInfo> {
     const response = await this._sandboxRequest("GET", sandbox_id);
     const data = response.json();
-    return SandboxInfo.modelValidate(data);
+    return this._info(data);
   }
 
   /**
@@ -152,7 +165,7 @@ export class SandboxProtocol {
   async connect(sandbox_id: string): Promise<SandboxInfo> {
     const response = await this._sandboxRequest("GET", sandbox_id);
     const data = response.json();
-    return SandboxInfo.modelValidate(data);
+    return this._info(data);
   }
 
   /** Check if a sandbox is currently running. Calls getInfo and checks status. */

@@ -1,4 +1,4 @@
-/** Tests for sandbox capabilities and shell-stream CLI commands. */
+/** Tests for sandbox capabilities CLI command. */
 
 import "../_support/isolatedHome.js";
 
@@ -6,8 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
-import { CommandTimeoutError } from "../../src/models/errors.js";
-import { ProcessChunk, ProcessChunkType, ProcessResult } from "../../src/models/process.js";
+import { ProcessChunk, ProcessResult } from "../../src/models/process.js";
 import * as httpx from "../../src/transport/_httpx.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
@@ -31,7 +30,7 @@ function _patchConnect(sb: ReturnType<typeof _makeSandbox>) {
   return vi.spyOn(Sandbox, "connect").mockResolvedValue(sb as unknown as Sandbox);
 }
 
-/** Wrap a list of chunks into an async iterator for shell-stream mock. */
+/** Wrap a list of chunks into an async iterator for a streaming-exec mock. */
 class _AsyncIter implements AsyncIterableIterator<ProcessChunk> {
   private readonly _chunks: ProcessChunk[];
 
@@ -261,90 +260,5 @@ describe("TestCapabilities", () => {
     const data = JSON.parse(result.output);
     expect("capabilities" in data).toBe(true);
     expect([...data.capabilities].sort()).toEqual(["files", "shell"]);
-  });
-});
-
-// ===================================================================
-// sandbox shell-stream
-// ===================================================================
-
-describe("TestShellStream", () => {
-  it("test_stream_multi_chunk", async () => {
-    // STDOUT + STDERR + EXIT(0) streamed in order.
-    const sb = _makeSandbox();
-    const chunks = [
-      new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "hello " }),
-      new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "world\n" }),
-      new ProcessChunk({ type: ProcessChunkType.STDERR, data: "warn\n" }),
-      new ProcessChunk({ type: ProcessChunkType.EXIT, exit_code: 0 }),
-    ];
-    sb.commands.stream = vi.fn().mockReturnValue(new _AsyncIter(chunks));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "shell-stream", "sbx-test-001", "-c", "echo hello"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("hello ");
-  });
-
-  it("test_stream_nonzero_exit", async () => {
-    // Non-zero exit code from stream is propagated.
-    const sb = _makeSandbox();
-    const chunks = [
-      new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "partial\n" }),
-      new ProcessChunk({ type: ProcessChunkType.EXIT, exit_code: 1 }),
-    ];
-    sb.commands.stream = vi.fn().mockReturnValue(new _AsyncIter(chunks));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "shell-stream", "sbx-test-001", "-c", "bad_cmd"]);
-    expect(result.exit_code).toBe(1);
-  });
-
-  it("test_stream_json", async () => {
-    // --json outputs exit_code after stream completes.
-    const sb = _makeSandbox();
-    const chunks = [new ProcessChunk({ type: ProcessChunkType.EXIT, exit_code: 0 })];
-    sb.commands.stream = vi.fn().mockReturnValue(new _AsyncIter(chunks));
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "shell-stream", "sbx-test-001", "-c", "true"]);
-    expect(result.exit_code).toBe(0);
-    const data = JSON.parse(result.output);
-    expect(data.exit_code).toBe(0);
-  });
-
-  it("test_stream_timeout_cwd", async () => {
-    // --timeout and --cwd forwarded to commands.stream.
-    const sb = _makeSandbox();
-    const chunks = [new ProcessChunk({ type: ProcessChunkType.EXIT, exit_code: 0 })];
-    sb.commands.stream = vi.fn().mockReturnValue(new _AsyncIter(chunks));
-    _patchConnect(sb);
-    await runner().invoke(cli, [
-      "sandbox",
-      "shell-stream",
-      "sbx-test-001",
-      "-c",
-      "make",
-      "--timeout",
-      "60",
-      "--cwd",
-      "/app",
-    ]);
-    expect(sb.commands.stream).toHaveBeenCalledTimes(1);
-    expect(sb.commands.stream).toHaveBeenCalledWith("make", { timeout: 60, cwd: "/app" });
-  });
-
-  it("test_stream_missing_command", async () => {
-    // --command is required -> exit 2.
-    const result = await runner().invoke(cli, ["sandbox", "shell-stream", "sbx-test-001"]);
-    expect(result.exit_code).toBe(2);
-  });
-
-  it("test_stream_timeout_error", async () => {
-    // CommandTimeoutError -> exit 5.
-    const sb = _makeSandbox();
-    sb.commands.stream = vi.fn().mockImplementation(() => {
-      throw new CommandTimeoutError("timed out");
-    });
-    _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "shell-stream", "sbx-test-001", "-c", "sleep 9999"]);
-    expect(result.exit_code).toBe(5);
   });
 });

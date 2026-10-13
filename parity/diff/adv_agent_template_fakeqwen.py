@@ -37,8 +37,8 @@ except Exception:
 
 argv = sys.argv[1:]
 prompt = argv[0] if argv else ""
-# Documented intentional deviation (KNOWN-GAPS.md, template_guide): the SDK install hint names `easy-sandbox-server`.
-prompt = prompt.replace("安装 easy-sandbox-server，", "安装 easy-sandbox SDK，").replace("easy-sandbox-server wheel", "SDK wheel").replace("pip install --no-cache-dir easy-sandbox-server;", "pip install --no-cache-dir easy-sandbox;")
+# Documented intentional deviation (KNOWN-GAPS.md, template_guide): the SDK install hint names `agent-sandbox-server`.
+prompt = prompt.replace("安装 agent-sandbox-server，", "安装 agent-sandbox SDK，").replace("agent-sandbox-server wheel", "SDK wheel").replace("pip install --no-cache-dir agent-sandbox-server;", "pip install --no-cache-dir agent-sandbox;")
 prompt = "\n".join(sorted(prompt.split("\n")))
 stream = "stream-json" in argv
 cwd = os.getcwd()

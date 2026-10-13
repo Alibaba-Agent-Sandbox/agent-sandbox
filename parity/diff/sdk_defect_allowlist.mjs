@@ -1,4 +1,4 @@
-// Allow-list of the places where the Node CLI legitimately differs from the original Python `ebx` 0.2.0 oracle
+// Allow-list of the places where the Node CLI legitimately differs from the original Python `abx` 0.2.0 oracle
 // because the Node port fixed the SDK defects KI-001 .. KI-008 (parity/sdk-defect-fixes.md).
 //
 // Every allowed divergence is keyed by harness + case id (sdk_defect_ids.json) AND a KI number (the family in

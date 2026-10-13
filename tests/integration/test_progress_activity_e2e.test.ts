@@ -24,8 +24,8 @@ import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import { cli } from "../../src/cli/main.js";
 import { outputSeams } from "../../src/cli/output.js";
-import { ClickException } from "../../src/framework/exceptions.js";
-import { sys } from "../../src/framework/io.js";
+import { CliError } from "../../src/cli/errors.js";
+import { sys } from "../../src/cli/io.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import * as protocolSandbox from "../../src/protocol/sandbox.js";
 import * as transportAuth from "../../src/transport/auth.js";
@@ -35,13 +35,11 @@ import * as templateIndexMod from "../../src/utils/template_index.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { _CI_ENV_VARS, useIsolatedEnv } from "../_support/env.js";
 import { fakeConfig, patchLoadConfig, spyAny, useMockBuilder } from "../helpers/templateSupport.js";
-import { TTYBuffer, useDefaultShortcutsOnly, useOutputSeams } from "../test_cli/conftest.js";
+import { TTYBuffer, useOutputSeams } from "../test_cli/conftest.js";
 
 const iso = useIsolatedEnv();
 const seams = useOutputSeams();
 const mockBuilder = useMockBuilder();
-useDefaultShortcutsOnly();
-
 const _SECRET = "super-secret-file-bytes";
 const _TOKEN = "acr-placeholder-token";
 
@@ -49,7 +47,7 @@ const runner = (): CliRunner => new CliRunner();
 
 let tmp = "";
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-progress-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-progress-"));
   for (const v of _CI_ENV_VARS) iso.monkeypatch.delenv(v);
 });
 afterEach(() => {
@@ -260,6 +258,7 @@ it("test_kill_all_lists_ids_under_the_header", async () => {
     return { list: async () => infos };
   } as never);
   vi.spyOn(Sandbox, "connect").mockResolvedValue(_sandbox() as unknown as Sandbox);
+  vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
 
   const result = await runner().invoke(cli, ["kill", "--all", "--yes"]);
 
@@ -312,12 +311,12 @@ it("test_install_milestones_show_under_the_header", async () => {
       opts.onProgress?.("Downloading qwen-code from github mirror...");
       opts.onProgress?.("Verifying SHA256 checksum...");
       opts.onProgress?.("Extracting archive...");
-      return path.join(tmp, "qwen-ebx-test");
+      return path.join(tmp, "qwen-abx-test");
     },
   };
   const saved = codingAgentSeams.resolveBackend;
   codingAgentSeams.resolveBackend = (() => backend) as never;
-  vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockRejectedValue(new ClickException("stop-after-install"));
+  vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockRejectedValue(new CliError("stop-after-install"));
   try {
     const result = await runner().invoke(cli, ["create", "a small http server", "--yes"]);
 

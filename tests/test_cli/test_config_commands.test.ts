@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { cli } from "../../src/cli/main.js";
 import { resolveGithubToken } from "../../src/cli/commands/config_cmd.js";
-import { Abort } from "../../src/framework/index.js";
+import { Abort } from "../../src/cli/errors.js";
 import { _ENV_VAR_MAP } from "../../src/transport/config.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
@@ -148,13 +148,13 @@ describe("TestConfigApiKey", () => {
     expect(result.output).toContain("***");
     // Env file should contain the key
     expect(fs.statSync(envFile).isFile()).toBe(true);
-    expect(readText(envFile)).toContain("EBX_SANDBOX_API_KEY=e2b_test1234abcdc1");
+    expect(readText(envFile)).toContain("ABX_SANDBOX_API_KEY=e2b_test1234abcdc1");
   });
 
   it("test_get_api_key_from_env_file", async () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "EBX_SANDBOX_API_KEY=e2b_mykey12345dc1\n");
+    fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=e2b_mykey12345dc1\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "api_key"]));
 
     expect(result.exit_code).toBe(0);
@@ -167,7 +167,7 @@ describe("TestConfigApiKey", () => {
   it("test_get_api_key_not_set", async () => {
     const tmp = tmpPath();
     const env = { ...process.env } as Record<string, string>;
-    delete env["EBX_SANDBOX_API_KEY"];
+    delete env["ABX_SANDBOX_API_KEY"];
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
       withEnv(env, () => runner().invoke(cli, ["config", "get", "api_key"])),
     );
@@ -179,7 +179,7 @@ describe("TestConfigApiKey", () => {
   it("test_list_shows_masked_api_key", async () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "EBX_SANDBOX_API_KEY=e2b_testkey123dc1\n");
+    fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=e2b_testkey123dc1\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
     expect(result.exit_code).toBe(0);
@@ -311,7 +311,7 @@ describe("TestConfigAlicloudCredentials", () => {
 });
 
 describe("TestConfigSetEmpty", () => {
-  // `ebx config set KEY ""` clears the stored value (empty is never stored).
+  // `abx config set KEY ""` clears the stored value (empty is never stored).
 
   it("test_clear_toml_value_falls_back_to_default", async () => {
     const tmp = tmpPath();
@@ -352,7 +352,7 @@ describe("TestConfigSetEmpty", () => {
   it("test_clear_credential_removes_env_entry", async () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "EBX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
+    fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
     const [result, getResult] = await withConfig(storagePatch(tmp, { env: true }), () =>
       withEnv(cleanEnv(), async () => [
         await runner().invoke(cli, ["config", "set", "api_key", ""]),
@@ -371,14 +371,14 @@ describe("TestConfigSetEmpty", () => {
   it("test_clear_keeps_other_env_entries", async () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "EBX_SANDBOX_API_KEY=sk-test-abcdef123456\nGITHUB_TOKEN=gh-token-12345678\n");
+    fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\nGITHUB_TOKEN=gh-token-12345678\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
       withEnv(cleanEnv(), () => runner().invoke(cli, ["config", "set", "api_key", ""])),
     );
 
     expect(result.exit_code).toBe(0);
     const content = readText(envFile);
-    expect(content).not.toContain("EBX_SANDBOX_API_KEY");
+    expect(content).not.toContain("ABX_SANDBOX_API_KEY");
     expect(content).toContain("GITHUB_TOKEN=gh-token-12345678");
   });
 
@@ -415,12 +415,12 @@ describe("TestConfigResetRemoved", () => {
 });
 
 describe("TestConfigDelete", () => {
-  // ``ebx config delete KEY`` removes one stored value.
+  // ``abx config delete KEY`` removes one stored value.
 
   it("test_delete_removes_one_credential_and_keeps_the_rest", async () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "EBX_SANDBOX_API_KEY=sk-test-abcdef123456\nACR_NAMESPACE=my-ns\n");
+    fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\nACR_NAMESPACE=my-ns\n");
     const [result, remaining] = await withConfig(storagePatch(tmp, { env: true }), () =>
       withEnv(cleanEnv(), async () => [
         await runner().invoke(cli, ["config", "delete", "sandbox_api_key"]),
@@ -431,7 +431,7 @@ describe("TestConfigDelete", () => {
     expect(result!.exit_code, result!.output).toBe(0);
     expect(result!.output).toContain("Cleared sandbox_api_key");
     expect(result!.output).not.toContain("sk-test-abcdef123456");
-    expect(readText(envFile)).not.toContain("EBX_SANDBOX_API_KEY");
+    expect(readText(envFile)).not.toContain("ABX_SANDBOX_API_KEY");
     expect(readText(envFile)).toContain("ACR_NAMESPACE=my-ns");
     expect(remaining!.output).toContain("my-ns");
   });
@@ -473,17 +473,6 @@ describe("TestConfigDelete", () => {
     expect(result.output).toContain("ALIBABA_CLOUD_REGION_ID still overrides");
     expect(result.output).not.toContain("cn-zhangjiakou");
   });
-
-  it("test_delete_removes_one_shortcut", async () => {
-    const tmp = tmpPath();
-    const configFile = path.join(tmp, "config.toml");
-    fs.writeFileSync(configFile, '[shortcuts]\nps = "sandbox process list"\n');
-    const result = await withConfig(storagePatch(tmp), () => runner().invoke(cli, ["config", "delete", "shortcuts.ps"]));
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("Removed shortcut 'ps'");
-    expect(readText(configFile)).not.toContain("ps");
-  });
 });
 
 describe("TestConfigListSources", () => {
@@ -496,7 +485,7 @@ describe("TestConfigListSources", () => {
 
     expect(result.exit_code).toBe(0);
     const titles = lines(result.output).filter((ln) => ln.startsWith("── "));
-    const expectedTitles = ["Sandbox authentication", "Alibaba Cloud credentials", "Connection", "LLM", "Integrations", "Shortcuts"];
+    const expectedTitles = ["Sandbox authentication", "Alibaba Cloud credentials", "Connection", "LLM", "Integrations"];
     expect(titles.map((t) => t.slice(3).replace(/─+$/, "").trim())).toEqual(expectedTitles);
     // Every group header renders as a full 64-character rule.
     expect(titles.every((t) => [...t].length === 64)).toBe(true);
@@ -538,7 +527,7 @@ describe("TestConfigListSources", () => {
 
   it("test_list_masks_secret_with_user_source", async () => {
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, ".env"), "EBX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
+    fs.writeFileSync(path.join(tmp, ".env"), "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => withEnv(cleanEnv(), () => runner().invoke(cli, ["config", "list"])));
 
     expect(result.exit_code).toBe(0);
@@ -631,7 +620,7 @@ describe("TestConfigGithubToken", () => {
   it("test_clear_removes_stored_token_but_keeps_others", async () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "GITHUB_TOKEN=ghp_stored1234567890\nEBX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
+    fs.writeFileSync(envFile, "GITHUB_TOKEN=ghp_stored1234567890\nABX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
     const [result, getResult] = await withConfig(storagePatch(tmp, { env: true }), () =>
       withEnv(cleanEnv(), async () => [
         await runner().invoke(cli, ["config", "set", "github_token", ""]),
@@ -645,7 +634,7 @@ describe("TestConfigGithubToken", () => {
     expect(getResult!.output).toContain("not set");
     const content = readText(envFile);
     expect(content).not.toContain("GITHUB_TOKEN");
-    expect(content).toContain("EBX_SANDBOX_API_KEY=sk-test-abcdef123456");
+    expect(content).toContain("ABX_SANDBOX_API_KEY=sk-test-abcdef123456");
   });
 
   it("test_clear_reports_env_override_without_value", async () => {
@@ -669,7 +658,7 @@ describe("TestResolveGithubToken", () => {
     const envFile = path.join(tmp, ".env");
     if (opts.stored !== undefined) fs.writeFileSync(envFile, `GITHUB_TOKEN=${opts.stored}\n`);
     const overrides = opts.env !== undefined ? cleanEnv({ GITHUB_TOKEN: opts.env }) : cleanEnv();
-    return await withConfig({ _EBX_DIR: tmp, _ENV_FILE: envFile }, () => withEnv(overrides, fn));
+    return await withConfig({ _ABX_DIR: tmp, _ENV_FILE: envFile }, () => withEnv(overrides, fn));
   }
 
   it("test_explicit_flag_beats_env_and_stored", async () => {
@@ -707,7 +696,7 @@ describe("TestResolveGithubToken", () => {
 });
 
 describe("TestConfigSetMissingValue", () => {
-  // ``ebx config set KEY`` without VALUE: masked prompt in a TTY, exit 2 otherwise.
+  // ``abx config set KEY`` without VALUE: masked prompt in a TTY, exit 2 otherwise.
 
   it("test_non_tty_exits_2_with_ci_secret_hint", async () => {
     const tmp = tmpPath();
@@ -716,7 +705,7 @@ describe("TestConfigSetMissingValue", () => {
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Missing VALUE");
     const stderr = result.stderr || "";
-    expect(stderr).toContain("ebx config set github_token <VALUE>");
+    expect(stderr).toContain("abx config set github_token <VALUE>");
     // Env-stored keys point CI users at secret injection.
     expect(stderr).toContain("GITHUB_TOKEN");
     expect(stderr.toLowerCase()).toContain("secret");
@@ -729,7 +718,7 @@ describe("TestConfigSetMissingValue", () => {
 
     expect(result.exit_code).toBe(2);
     const stderr = result.stderr || "";
-    expect(stderr).toContain("ebx config set region <VALUE>");
+    expect(stderr).toContain("abx config set region <VALUE>");
     expect(stderr.toLowerCase()).not.toContain("secret");
   });
 

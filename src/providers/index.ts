@@ -2,7 +2,7 @@
  * Sandbox providers (backends): contract, registry, built-in provider and plugin management.
  *
  * The default provider is `alicloud-express` (Alibaba Cloud Express Edition, 阿里云极速版). Third-party providers are
- * installed from a directory or git URL and selected with `--provider`, `EBX_PROVIDER` or `[core] provider`.
+ * installed from a directory or git URL and selected with `--provider`, `ABX_PROVIDER` or `[core] provider`.
  */
 
 export { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";

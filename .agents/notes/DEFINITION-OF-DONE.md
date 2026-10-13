@@ -27,7 +27,7 @@ mocks" are not states a task may be reported in; report it as *in progress* or *
 | # | Requirement | Where / how to prove it |
 |---|---|---|
 | 1 | **Unit tests** cover the change and pass | `make test`; `make ci` is the local CI equivalent |
-| 2 | **E2E executed against real components** (real cloud, real binary, real filesystem), with the result recorded | `EBX_BIN=<binary> npm run e2e` (suite in [`e2e/`](../../e2e/README.md)); for a ported command also `node parity/diff/diff.mjs` vs the Python oracle. Add or extend a scenario when the change introduces new behaviour. Record the run in item 3 |
+| 2 | **E2E executed against real components** (real cloud, real binary, real filesystem), with the result recorded | `ABX_BIN=<binary> npm run e2e` (suite in [`e2e/`](../../e2e/README.md)); for a ported command also `node parity/diff/diff.mjs` vs the Python oracle. Add or extend a scenario when the change introduces new behaviour. Record the run in item 3 |
 | 3 | **Verification evidence file**, no secrets | `.agents/evidence/verify/YYYY-MM-DD-<topic>.md` using the [template below](#evidence-file-template) |
 | 4 | **ADR / note** in the correct state directory | `.agents/notes/{proposed,implemented}/<architecture\|feature\|process>/YYYY-MM-DD-<slug>.md` using the [ADR template](#adr-template); `Status:` must equal the directory; move it when the work lands |
 | 5 | **Docs updated, English and Chinese** | `docs/en/...` and `docs/zh/...` (plus `README.md` / `README.zh-CN.md` if user-visible); both languages in the same PR |
@@ -46,7 +46,7 @@ And the gates that must stay green: `bash scripts/check-repo-health.sh` (documen
    mask it too. Before committing run `git check-ignore cli/.env` and `git status` and make sure no
    secret is staged.
 3. **Clean up.** Every sandbox/template a test creates must be destroyed, also on failure; verify with
-   `ebx list` afterwards and state "none leaked" in the evidence file.
+   `abx list` afterwards and state "none leaked" in the evidence file.
 4. **Deterministic and independent.** No test may depend on another test's leftovers; retries only for
    operations that are known to be eventually consistent, and say so in the scenario.
 5. **Honest results.** Record failures and skips with their exact reason. A skipped scenario is not a
@@ -85,7 +85,7 @@ once merged, add a new dated file instead of editing it.
 |---|---|---|
 
 ## Cleanup
-<How leaks were checked, e.g. `ebx list` after the run: none left>
+<How leaks were checked, e.g. `abx list` after the run: none left>
 
 ## Problems found
 <Defects, platform quirks, links to follow-ups; "none" if none>
@@ -155,7 +155,7 @@ Status: proposed
 | # | 要求 | 位置 / 证明方式 |
 |---|---|---|
 | 1 | **单元测试**覆盖变更且通过 | `make test`;`make ci` 为本地 CI 等价命令 |
-| 2 | **针对真实组件执行 E2E**(真实云端、真实二进制、真实文件系统)并记录结果 | `EBX_BIN=<二进制> npm run e2e`(套件见 [`e2e/`](../../e2e/README.zh-CN.md));移植命令还需对 Python oracle 运行 `node parity/diff/diff.mjs`。引入新行为时新增或扩展场景;运行结果记录到第 3 项 |
+| 2 | **针对真实组件执行 E2E**(真实云端、真实二进制、真实文件系统)并记录结果 | `ABX_BIN=<二进制> npm run e2e`(套件见 [`e2e/`](../../e2e/README.zh-CN.md));移植命令还需对 Python oracle 运行 `node parity/diff/diff.mjs`。引入新行为时新增或扩展场景;运行结果记录到第 3 项 |
 | 3 | **验证证据文件**,不含任何密钥 | `.agents/evidence/verify/YYYY-MM-DD-<topic>.md`,使用[下方模板](#证据文件模板) |
 | 4 | **ADR / 笔记**位于正确状态目录 | `.agents/notes/{proposed,implemented}/<architecture\|feature\|process>/YYYY-MM-DD-<slug>.md`,使用 [ADR 模板](#adr-模板);`Status:` 必须与目录一致,工作落地时移动文件 |
 | 5 | **中英文文档同步更新** | `docs/en/...` 与 `docs/zh/...`(用户可见变化还需 `README.md` / `README.zh-CN.md`);同一 PR 内完成两种语言 |
@@ -170,7 +170,7 @@ Status: proposed
 2. **凭据**只存放在被 git 忽略的 `.env`(`cli/.env`,绝不提交)或环境变量中。**绝不在任何地方打印、记录、提交或写入它们**:
    不写入报告、证据文件、快照、会话记录或测试输出。套件已做脱敏;若新增输出捕获,同样必须脱敏。提交前运行
    `git check-ignore cli/.env` 与 `git status`,确认没有密钥被暂存。
-3. **清理。** 测试创建的每个沙箱/模板即使在失败时也必须销毁;事后用 `ebx list` 核对,并在证据文件中写明"无泄漏"。
+3. **清理。** 测试创建的每个沙箱/模板即使在失败时也必须销毁;事后用 `abx list` 核对,并在证据文件中写明"无泄漏"。
 4. **确定且相互独立。** 测试不得依赖其他测试遗留的状态;仅对已知最终一致的操作重试,并在场景中说明。
 5. **如实记录。** 失败与跳过必须附确切原因;跳过不等于通过。
 

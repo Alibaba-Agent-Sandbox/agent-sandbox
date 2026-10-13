@@ -1,5 +1,5 @@
 /**
- * `ebx template init --adopt` orchestration (port of `cli/commands/_adopt.py`).
+ * `abx template init --adopt` orchestration (port of `cli/commands/_adopt.py`).
  *
  * The agent work and the safety checks live in `agent/adopt.ts`. This module only talks to the user: consent, the
  * preview, and translating rejections into Click errors.
@@ -8,9 +8,12 @@
 import fs from "node:fs";
 import nodePath from "node:path";
 
-import { Abort, ClickException, UsageError, confirm, getCurrentContext, sys, type Context } from "../../framework/index.js";
-import { SequenceMatcher } from "../../framework/difflib.js";
-import { isatty } from "../../framework/io.js";
+import { getCurrentContext, type Context } from "../kit.js";
+import { Abort, CliError, UsageError } from "../errors.js";
+import { sys } from "../io.js";
+import { confirm } from "../prompts.js";
+import { structuredPatch } from "diff";
+import { isatty } from "../io.js";
 import {
   ADOPT_SESSION_TURNS,
   AdoptRejectedError,
@@ -61,8 +64,8 @@ export interface RunAdoptOptions {
 
 /** Phase status for the generation flow: a progress line when no spinner is drawn, then the live activity block. */
 async function _phaseStatus<T>(out: Any, message: string, fn: (update: ((summary: string) => void) | null) => Promise<T>): Promise<T> {
-  const richSpinner = out.useRichSpinner ?? out.use_rich_spinner;
-  if (!richSpinner && !out.quiet) out.progress(message);
+  const liveStatus = out.useLiveStatus ?? out.use_live_status;
+  if (!liveStatus && !out.quiet) out.progress(message);
   return await out.activity(message, fn);
 }
 
@@ -158,7 +161,7 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
       replaced: [...plan.replaces],
       backed_up: [...result.backedUp],
       not_applied: [...plan.notApplied],
-      next_steps: [`ebx deploy ${dirArg} --acr-namespace <ns>`],
+      next_steps: [`abx deploy ${dirArg} --acr-namespace <ns>`],
     });
   } finally {
     if (cleanup) fs.rmSync(staged.stagingDir, { recursive: true, force: true });
@@ -172,7 +175,7 @@ export function _isInteractive(fmt: Any): boolean {
 
 function _reraise(exc: AdoptRejectedError): never {
   if (exc.usage) throw usageError(exc.message);
-  throw new ClickException(exc.message);
+  throw new CliError(exc.message);
 }
 
 /** `urllib.parse.urlparse(base).netloc`. */
@@ -298,95 +301,15 @@ export function splitlinesKeepends(text: string): string[] {
   if (start < text.length) lines.push(text.slice(start));
   return lines;
 }
-
-type Opcode = [tag: string, i1: number, i2: number, j1: number, j2: number];
-
-function _getOpcodes(sm: SequenceMatcher): Opcode[] {
-  let i = 0;
-  let j = 0;
-  const answer: Opcode[] = [];
-  for (const { a: ai, b: bj, size } of sm.getMatchingBlocks()) {
-    let tag = "";
-    if (i < ai && j < bj) tag = "replace";
-    else if (i < ai) tag = "delete";
-    else if (j < bj) tag = "insert";
-    if (tag) answer.push([tag, i, ai, j, bj]);
-    i = ai + size;
-    j = bj + size;
-    if (size) answer.push(["equal", ai, i, bj, j]);
-  }
-  return answer;
-}
-
-function _getGroupedOpcodes(sm: SequenceMatcher, n = 3): Opcode[][] {
-  let codes = _getOpcodes(sm);
-  if (codes.length === 0) codes = [["equal", 0, 1, 0, 1]];
-  const first = codes[0] as Opcode;
-  if (first[0] === "equal") {
-    const [tag, i1, i2, j1, j2] = first;
-    codes[0] = [tag, Math.max(i1, i2 - n), i2, Math.max(j1, j2 - n), j2];
-  }
-  const lastIdx = codes.length - 1;
-  const last = codes[lastIdx] as Opcode;
-  if (last[0] === "equal") {
-    const [tag, i1, i2, j1, j2] = last;
-    codes[lastIdx] = [tag, i1, Math.min(i2, i1 + n), j1, Math.min(j2, j1 + n)];
-  }
-  const nn = n + n;
-  const groups: Opcode[][] = [];
-  let group: Opcode[] = [];
-  for (const code of codes) {
-    const [tag, i1Start, i2, j1Start, j2] = code;
-    let i1 = i1Start;
-    let j1 = j1Start;
-    // End the current group and start a new one whenever there is a large range with no changes.
-    if (tag === "equal" && i2 - i1 > nn) {
-      group.push([tag, i1, Math.min(i2, i1 + n), j1, Math.min(j2, j1 + n)]);
-      groups.push(group);
-      group = [];
-      i1 = Math.max(i1, i2 - n);
-      j1 = Math.max(j1, j2 - n);
-    }
-    group.push([tag, i1, i2, j1, j2]);
-  }
-  if (group.length > 0 && !(group.length === 1 && (group[0] as Opcode)[0] === "equal")) groups.push(group);
-  return groups;
-}
-
-function _formatRangeUnified(start: number, stop: number): string {
-  let beginning = start + 1;
-  const length = stop - start;
-  if (length === 1) return String(beginning);
-  if (!length) beginning -= 1;
-  return `${beginning},${length}`;
-}
-
-/** `difflib.unified_diff(a, b, fromfile=..., tofile=...)` with the default context of 3 lines. */
+/** Unified diff of two line lists (lines keep their terminators), as an array of output lines. */
 export function unifiedDiff(a: string[], b: string[], fromfile: string, tofile: string, n = 3): string[] {
-  const out: string[] = [];
-  const sm = new SequenceMatcher(null, a, b);
-  let started = false;
-  for (const group of _getGroupedOpcodes(sm, n)) {
-    if (!started) {
-      started = true;
-      out.push(`--- ${fromfile}\n`);
-      out.push(`+++ ${tofile}\n`);
-    }
-    const first = group[0] as Opcode;
-    const last = group[group.length - 1] as Opcode;
-    out.push(`@@ -${_formatRangeUnified(first[1], last[2])} +${_formatRangeUnified(first[3], last[4])} @@\n`);
-    for (const [tag, i1, i2, j1, j2] of group) {
-      if (tag === "equal") {
-        for (const line of a.slice(i1, i2)) out.push(` ${line}`);
-        continue;
-      }
-      if (tag === "replace" || tag === "delete") {
-        for (const line of a.slice(i1, i2)) out.push(`-${line}`);
-      }
-      if (tag === "replace" || tag === "insert") {
-        for (const line of b.slice(j1, j2)) out.push(`+${line}`);
-      }
-    }
+  const patch = structuredPatch(fromfile, tofile, a.join(""), b.join(""), undefined, undefined, { context: n });
+  if (patch.hunks.length === 0) return [];
+  const out = [`--- ${fromfile}\n`, `+++ ${tofile}\n`];
+  for (const h of patch.hunks) {
+    const range = (start: number, len: number): string => (len === 1 ? `${start}` : `${len === 0 ? start - 1 : start},${len}`);
+    out.push(`@@ -${range(h.oldStart, h.oldLines)} +${range(h.newStart, h.newLines)} @@\n`);
+    for (const line of h.lines) out.push(`${line}\n`);
   }
   return out;
 }

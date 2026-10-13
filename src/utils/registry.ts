@@ -5,21 +5,21 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { randomBytes } from "node:crypto";
 import { GitHubRateLimitError, NetworkError, SandboxError, TemplateNotFoundError } from "../models/errors.js";
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { SandboxTemplate, TemplateRef } from "../models/template.js";
 import { asyncWith, HTTPStatusError, httpx } from "../transport/_httpx.js";
 import { PyFloat, pyStripChars } from "./_pyformat.js";
 import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, readTextPy, toOSError } from "./_pyos.js";
 import { openTarGz } from "./_tar.js";
-import { PyDate, flattenRich, safeLoadRich } from "./_pyyaml.js";
+import { isMapping, loadYaml } from "./yaml_io.js";
 import { FINE_GRAINED_PAT_URL, rateLimitMessage, rateLimitSuggestion } from "./github_token.js";
 import { getLogger } from "./logging.js";
 
 const logger = getLogger("utils.registry");
 
-export let TEMPLATE_CACHE_DIR: string = path.join(os.homedir(), ".ebx", "templates");
+export let TEMPLATE_CACHE_DIR: string = path.join(os.homedir(), ".abx", "templates");
 
-/** Test seam for `patch("easy_sandbox.utils.registry.TEMPLATE_CACHE_DIR", tmp_path)`. */
+/** Test seam for `patch("agent_sandbox.utils.registry.TEMPLATE_CACHE_DIR", tmp_path)`. */
 export function _setTemplateCacheDir(dir: string): string {
   const prev = TEMPLATE_CACHE_DIR;
   TEMPLATE_CACHE_DIR = dir;
@@ -122,7 +122,7 @@ export class RegistryClient {
    * 对于 GitHub 模板：
    * 1. 检查本地缓存
    * 2. 通过 GitHub tarball API 按 tag/branch/sha 拉取源码（无需 Release）
-   * 3. 下载并解压到 ~/.ebx/templates/owner/repo/ref/[path/]
+   * 3. 下载并解压到 ~/.abx/templates/owner/repo/ref/[path/]
    * 4. 如果指定了 path，只提取子目录内容
    * 5. 返回本地路径
    */
@@ -255,7 +255,7 @@ export class RegistryClient {
       return new NetworkError(`GitHub API returned 403 Forbidden for '${target}'.`, {
         suggestion:
           "The repository may be private. Store a token that can read it " +
-          "with 'ebx config set github_token' (masked input), or pass " +
+          "with 'abx config set github_token' (masked input), or pass " +
           "--token <value> as a one-off override - note that --token may " +
           "leak into shell history and process listings.",
       });
@@ -267,8 +267,8 @@ export class RegistryClient {
           "The token may be invalid, expired, or malformed. Create a " +
           "fine-grained token with contents:read " +
           `(${FINE_GRAINED_PAT_URL}) and store it with ` +
-          "'ebx config set github_token', or clear the stored value " +
-          "with 'ebx config set github_token \"\"'.",
+          "'abx config set github_token', or clear the stored value " +
+          "with 'abx config set github_token \"\"'.",
       });
     }
 
@@ -382,7 +382,7 @@ export class RegistryClient {
     }
   }
 
-  /** 构建缓存路径：~/.ebx/templates/owner/repo/tag[/path]。 */
+  /** 构建缓存路径：~/.abx/templates/owner/repo/tag[/path]。 */
   static _cachePath(owner: string, repo: string, tag: string, subpath: string | null = null): string {
     const base = pyJoin(TEMPLATE_CACHE_DIR, owner, repo, tag);
     if (subpath) {
@@ -433,55 +433,21 @@ function _isStrictParent(parent: string, child: string): boolean {
   return child.startsWith(withSep);
 }
 
-/** The exception of `data.pop("resources", {})` when `yaml.safe_load` produced something other than a dict. */
-function _popFailure(value: unknown): Error {
-  if (Array.isArray(value)) return new PyTypeError("pop expected at most 1 argument, got 2");
-  if (value instanceof Set) return new PyTypeError("set.pop() takes no arguments (2 given)");
-  let name: string;
-  if (value instanceof PyDate) name = value.text.includes(":") ? "datetime.datetime" : "datetime.date";
-  else if (value instanceof Uint8Array) name = "bytes";
-  else if (value instanceof PyFloat) name = "float";
-  else name = pyTypeNameOf(value);
-  return new AttributeError(`'${name}' object has no attribute 'pop'`);
-}
-
 /** 从 YAML 文件加载模板定义。 */
 export function loadTemplateFromYaml(file: string): SandboxTemplate {
-  const rich = safeLoadRich(readTextPy(file), file);
+  const data = loadYaml(readTextPy(file));
+  if (!isMapping(data)) {
+    throw new ValueError(`${file} must be a YAML mapping`);
+  }
   // 映射 resources 嵌套结构到扁平字段
-  if (!(rich instanceof Map)) throw _popFailure(rich);
-  const data = flattenRich(rich);
-  const d = data as Record<string, unknown>;
-  const popped = Object.prototype.hasOwnProperty.call(d, "resources") ? d["resources"] : {};
-  delete d["resources"];
-  const falsy = (v: unknown): boolean =>
-    v === null || v === undefined || v === false || v === 0 || v === "" || (Array.isArray(v) && v.length === 0) ||
-    (typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length === 0);
-  const resources: unknown = falsy(popped) ? {} : popped;
-  const has = (key: string): boolean => {
-    if (resources !== null && typeof resources === "object" && !Array.isArray(resources)) {
-      return Object.prototype.hasOwnProperty.call(resources, key);
-    }
-    if (typeof resources === "string") return resources.includes(key);
-    if (Array.isArray(resources)) return resources.includes(key);
-    throw new PyTypeError(`argument of type '${pyTypeNameOf(resources)}' is not iterable`);
-  };
-  const get = (key: string): unknown => {
-    if (resources !== null && typeof resources === "object" && !Array.isArray(resources)) {
-      return (resources as Record<string, unknown>)[key];
-    }
-    throw new PyTypeError(
-      typeof resources === "string"
-        ? "string indices must be integers, not 'str'"
-        : "list indices must be integers or slices, not str",
-    );
-  };
-  if (has("cpu") && !("cpu_count" in d)) {
-    d["cpu_count"] = get("cpu");
+  const { resources, ...rest } = data;
+  const flat: Record<string, unknown> = rest;
+  if (resources !== null && typeof resources === "object" && !Array.isArray(resources)) {
+    const res = resources as Record<string, unknown>;
+    if ("cpu" in res && !("cpu_count" in flat)) flat["cpu_count"] = res["cpu"];
+    if ("memory" in res && !("memory_mb" in flat)) flat["memory_mb"] = res["memory"];
   }
-  if (has("memory") && !("memory_mb" in d)) {
-    d["memory_mb"] = get("memory");
-  }
-  return SandboxTemplate.modelValidate(d);
+  return SandboxTemplate.modelValidate(flat);
 }
+
 

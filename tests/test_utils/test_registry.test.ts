@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ValueError } from "../../src/models/_pydantic.js";
+import { ValueError } from "../../src/models/value_error.js";
 import { GitHubRateLimitError, NetworkError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { TemplateRef } from "../../src/models/template.js";
 import { Request, Response } from "../../src/transport/_httpx.js";
@@ -587,7 +587,7 @@ describe("TestTarballFetchErrors", () => {
     // The user-facing ref shape is preserved on the rate-limit message too.
     expect(String(err)).toContain("owner/repo");
     // …while the suggestion recommends the persistent config flow first.
-    expect(err.suggestion).toContain("ebx config set github_token");
+    expect(err.suggestion).toContain("abx config set github_token");
     expect(err.suggestion).toContain(FINE_GRAINED_PAT_URL);
     expect(err.suggestion).toContain("public repositories need no extra permissions");
     // The --token flag stays documented, explicitly marked as leak-prone.
@@ -604,16 +604,16 @@ describe("TestTarballFetchErrors", () => {
     let caught: unknown;
     try {
       await client._downloadAndExtract(
-        "https://api.github.com/repos/Easy-Sandbox/awesome-templates/tarball/v1.0",
+        "https://api.github.com/repos/alibaba-agent-sandbox/awesome-templates/tarball/v1.0",
         tmp_path,
-        { subdir: "codex-agent-api", owner: "Easy-Sandbox", repo: "awesome-templates", gh_ref: "v1.0" },
+        { subdir: "codex-agent-api", owner: "alibaba-agent-sandbox", repo: "awesome-templates", gh_ref: "v1.0" },
       );
     } catch (e) {
       caught = e;
     }
     expect(caught).toBeInstanceOf(GitHubRateLimitError);
     // The original owner/repo//subdir@ref shape stays visible in the message.
-    expect(String(caught)).toContain("Easy-Sandbox/awesome-templates//codex-agent-api@v1.0");
+    expect(String(caught)).toContain("alibaba-agent-sandbox/awesome-templates//codex-agent-api@v1.0");
   });
 
   it("test_tarball_403_private_repo", async () => {
@@ -625,9 +625,9 @@ describe("TestTarballFetchErrors", () => {
     let caught: unknown;
     try {
       await client._downloadAndExtract(
-        "https://api.github.com/repos/Easy-Sandbox/awesome-templates/tarball/v1.0",
+        "https://api.github.com/repos/alibaba-agent-sandbox/awesome-templates/tarball/v1.0",
         tmp_path,
-        { subdir: "codex-agent-api", owner: "Easy-Sandbox", repo: "awesome-templates", gh_ref: "v1.0" },
+        { subdir: "codex-agent-api", owner: "alibaba-agent-sandbox", repo: "awesome-templates", gh_ref: "v1.0" },
       );
     } catch (e) {
       caught = e;
@@ -636,9 +636,9 @@ describe("TestTarballFetchErrors", () => {
     const err = caught as NetworkError;
     expect(String(err)).toContain("403");
     // The original owner/repo//subdir@ref shape is preserved verbatim.
-    expect(String(err)).toContain("Easy-Sandbox/awesome-templates//codex-agent-api@v1.0");
+    expect(String(err)).toContain("alibaba-agent-sandbox/awesome-templates//codex-agent-api@v1.0");
     // Persistent config is the recommendation; --token is the leaky fallback.
-    expect(err.suggestion).toContain("ebx config set github_token");
+    expect(err.suggestion).toContain("abx config set github_token");
     expect(err.suggestion).toContain("--token");
     expect(err.suggestion).toContain("may leak");
   });
@@ -652,9 +652,9 @@ describe("TestTarballFetchErrors", () => {
     let caught: unknown;
     try {
       await client._downloadAndExtract(
-        "https://api.github.com/repos/Easy-Sandbox/awesome-templates/tarball/v1.0",
+        "https://api.github.com/repos/alibaba-agent-sandbox/awesome-templates/tarball/v1.0",
         tmp_path,
-        { subdir: "codex-agent-api", owner: "Easy-Sandbox", repo: "awesome-templates", gh_ref: "v1.0" },
+        { subdir: "codex-agent-api", owner: "alibaba-agent-sandbox", repo: "awesome-templates", gh_ref: "v1.0" },
       );
     } catch (e) {
       caught = e;
@@ -662,9 +662,9 @@ describe("TestTarballFetchErrors", () => {
     expect(caught).toBeInstanceOf(NetworkError);
     const err = caught as NetworkError;
     expect(String(err)).toContain("401");
-    expect(String(err)).toContain("Easy-Sandbox/awesome-templates//codex-agent-api@v1.0");
+    expect(String(err)).toContain("alibaba-agent-sandbox/awesome-templates//codex-agent-api@v1.0");
     expect(err.suggestion).toContain(FINE_GRAINED_PAT_URL);
-    expect(err.suggestion).toContain("ebx config set github_token");
+    expect(err.suggestion).toContain("abx config set github_token");
     // Clearing the stored value is offered and the token is never echoed.
     expect(err.suggestion).toContain('github_token ""');
     expect(String(err) + err.suggestion).not.toContain("ghp-secret-value");

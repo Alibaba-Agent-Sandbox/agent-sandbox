@@ -1,44 +1,18 @@
 /**
- * ebx CLI -- command-line interface for Easy Sandbox (port of `cli/main.py`).
+ * abx CLI entry: the root command, the global options, the error-to-exit-code mapping and `main()`.
  *
- * Uses lazy loading to keep `ebx --help` fast: command modules are only imported when a command is looked up. The root
- * group, the global options, the shortcut merge, the unknown-command hints and the exit-code mapping live here.
+ * Command modules are imported lazily (only the one the command line names), so `abx --help` stays fast. The top-level
+ * command set is the fixed table in `command_surface.ts`.
  *
  * ## Writing a command module
  *
- * See `src/cli/commands/README.md`. In short: a module under `src/cli/commands/` exports click commands/groups (built
- * with `command()` / `group()` / `option()` / `argument()` from `../../framework/index.js`) under the *same attribute
- * names the Python module used* (`create`, `list_cmd`, `exec_cmd`, `files_list`, ...). They are registered here as
- * lazy import specs `"commands/<module>:<attr>"` ({@link _CORE_COMMANDS}, {@link _SHORTCUT_TARGET_MAP}). Wrap every
- * callback with {@link handleErrors} so exceptions map to the documented exit codes.
+ * See `src/cli/commands/README.md`. In short: a module under `src/cli/commands/` exports commands/groups built with
+ * `command()` / `group()` / `option()` / `argument()` from `../kit.js` under the attribute names `command_surface.ts`
+ * lists. Wrap every callback with {@link handleErrors} so exceptions map to the documented exit codes.
  */
 
 import { readFileSync } from "node:fs";
 
-import { getCloseMatches } from "../framework/difflib.js";
-import {
-  Abort,
-  Choice,
-  Command,
-  type Context,
-  EOFError,
-  Exit,
-  Group,
-  type GroupAttrs,
-  INT,
-  KeyboardInterrupt,
-  type Params,
-  SystemExit,
-  UsageError,
-  ClickException,
-  echo,
-  getCurrentContext,
-  option,
-  sys,
-  sysExit,
-  versionOption,
-} from "../framework/index.js";
-import { cmpStr } from "../framework/py.js";
 import { CommandTimeoutError, AuthenticationError, FileNotFoundError_, QuotaExceededError, SandboxError, TemplateNotFoundError } from "../models/errors.js";
 import { closeOpenInfra, resetActiveProvider } from "../providers/active.js";
 import { addCliOptions, extractProviderFlags, resetCliSelection, setCliProvider } from "../providers/selection.js";
@@ -48,40 +22,19 @@ import { AsyncioTimeoutError } from "../transport/ws.js";
 import { AttributeError, FileNotFoundError, OSError as PyOSError, toOSError } from "../utils/_pyos.js";
 import { injectedPackageVersion } from "../utils/package_version.js";
 import { pyStr } from "../utils/_pyformat.js";
-import { OSError as FrameworkOSError } from "../framework/utils.js";
+import { Abort, CliError, Exit, KeyboardInterrupt, SystemExit, sysExit } from "./errors.js";
 import { OutputFormatter } from "./formatters.js";
+import { type Command, type Context, type LazyEntry, type Params, getCurrentContext, group, option, runCommand } from "./kit.js";
 import { OUTPUT_META_KEY, OutputManager, isCiEnv } from "./output.js";
+import { Choice } from "./types.js";
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Command registry & shortcuts
-// ---------------------------------------------------------------------------------------------------------------------
-
-import {
-  RESERVED_NAMES,
-  _CORE_COMMANDS,
-  _DEFAULT_SHORTCUTS,
-  _SHORTCUT_TARGET_MAP,
-  _describeInvalidShortcutTarget,
-  _formatShortcutTargets,
-} from "./_shortcut_table.js";
-
-export { RESERVED_NAMES, _CORE_COMMANDS, _DEFAULT_SHORTCUTS, _SHORTCUT_TARGET_MAP, _describeInvalidShortcutTarget, _formatShortcutTargets };
+import { GROUP_COMMANDS, SHORTCUTS } from "./command_surface.js";
 
 const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Seams
 // ---------------------------------------------------------------------------------------------------------------------
-
-/** The slice of `commands/config_cmd` the root group needs to merge `[shortcuts]` from `~/.ebx/config.toml`. */
-export interface ShortcutConfigApi {
-  /** Alias -> target string map read from the `[shortcuts]` section (`{}` for a corrupted file). */
-  loadShortcuts(): Record<string, string> | Map<string, string>;
-  /** `true` when `~/.ebx/config.toml` exists. */
-  _configFileExists(): boolean;
-  /** Materialise the default config file (fresh install). */
-  _createDefaultConfig(): void;
-}
 
 /** Command modules the root group loads lazily. A fixed map so the binary bundler includes every one. */
 const COMMAND_MODULES: Record<string, () => Promise<Record<string, unknown>>> = {
@@ -102,181 +55,31 @@ function loadCommandModule(modPath: string): Promise<Record<string, unknown>> {
   return load();
 }
 
-/**
- * Patch points. Python tests monkeypatch module attributes (`config_cmd.load_shortcuts`, `importlib.import_module`);
- * ESM bindings are read-only, so the same points live on this mutable object and are read at call time.
- */
+/** Patch point for tests: the module loader (`modPath` is relative to `src/cli`, e.g. `"commands/sandbox"`). */
 export const mainSeams: {
-  /**
-   * Replacement for the `config_cmd` module as seen by the shortcut merge (`null` -> import
-   * `./commands/config_cmd.js` lazily). Tests set `{ loadShortcuts, _configFileExists, _createDefaultConfig }`.
-   */
-  configCmd: ShortcutConfigApi | null;
-  /** `importlib.import_module`: `modPath` is relative to `src/cli` (e.g. `"commands/sandbox"`). */
   importModule: (modPath: string) => Promise<Record<string, unknown>>;
 } = {
-  configCmd: null,
   importModule: (modPath) => loadCommandModule(modPath),
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Lazy Group
+// Lazy subcommands
 // ---------------------------------------------------------------------------------------------------------------------
 
-export interface LazyGroupAttrs extends GroupAttrs {
-  /** Alias -> `"commands/<module>:<attr>"` spec (a plain object or a Map). */
-  lazy_subcommands?: Record<string, string> | Map<string, string> | null;
-  /** Root group only: merge the user shortcuts of `~/.ebx/config.toml`. */
-  merge_shortcuts?: boolean;
-}
-
-const _asEntries = (v: Record<string, string> | Map<string, string>): Array<[string, string]> =>
-  v instanceof Map ? [...v.entries()] : Object.entries(v);
-
-/**
- * Click group that lazily loads subcommands.
- *
- * Subcommands are registered as import specs and only loaded when actually looked up, keeping `--help` fast.
- *
- * When `merge_shortcuts` is enabled (root CLI group only), the user shortcuts configured in `~/.ebx/config.toml` are
- * merged in as well. The merge starts in the constructor (like Python's `__init__`) and is awaited by
- * {@link listCommands} / {@link getCommand} / {@link resolveCommand}; {@link whenReady} exposes it. When the config
- * helpers are supplied through {@link mainSeams.configCmd} the merge runs synchronously inside the constructor, so a
- * test's patch scope covers it.
- */
-export class LazyGroup extends Group {
-  /** alias -> import spec. Replace it wholesale (tests do) and call {@link _mergeUserShortcuts} to re-merge. */
-  _lazy_subcommands: Map<string, string>;
-  private _ready: Promise<void> = Promise.resolve();
-
-  constructor(name: string | null = null, attrs: LazyGroupAttrs = {}) {
-    const { lazy_subcommands, merge_shortcuts, ...rest } = attrs;
-    super(name, rest);
-    this._lazy_subcommands = new Map(lazy_subcommands ? _asEntries(lazy_subcommands) : []);
-    if (merge_shortcuts) this._ready = this._mergeUserShortcuts();
-  }
-
-  /** Resolves once the shortcut merge started by the constructor has finished (it never rejects). */
-  whenReady(): Promise<void> {
-    return this._ready;
-  }
-
-  /**
-   * Merge the user-configured shortcuts into lazy subcommands.
-   *
-   * `~/.ebx/config.toml` is the single source of truth: on a fresh install the default config file is created first,
-   * then the `[shortcuts]` section is honoured as-is -- remapped or deleted defaults included, there is no implicit
-   * fallback to the built-in defaults. A corrupted config only disables shortcuts (with a stderr warning): the core
-   * command groups keep working, the CLI never breaks.
-   */
-  async _mergeUserShortcuts(): Promise<void> {
-    try {
-      const api: ShortcutConfigApi =
-        mainSeams.configCmd ?? ((await mainSeams.importModule("commands/config_cmd")) as unknown as ShortcutConfigApi);
-
-      if (!api._configFileExists()) {
-        // Fresh install: materialise the default config file so the shortcut list always has a single, inspectable source.
-        api._createDefaultConfig();
-      }
-
-      const shortcuts = api.loadShortcuts();
-
-      for (const [alias, target] of _asEntries(shortcuts)) {
-        if (RESERVED_NAMES.has(alias)) {
-          echo(`⚠ Warning: Shortcut '${alias} = "${target}"' conflicts with built-in command '${alias}', ignored.`, { err: true });
-          continue;
-        }
-        if (_hasOwn(_CORE_COMMANDS, alias)) continue;
-        const importPath = _hasOwn(_SHORTCUT_TARGET_MAP, target) ? (_SHORTCUT_TARGET_MAP[target] as string) : undefined;
-        if (importPath === undefined) {
-          const hint = _describeInvalidShortcutTarget(target, { alias });
-          const detail = hint
-            .split("\n")
-            .map((line) => `  ${line}`)
-            .join("\n");
-          echo(`⚠ Warning: Invalid shortcut ignored: '${alias} = "${target}"' in ~/.ebx/config.toml\n${detail}`, { err: true });
-          continue;
-        }
-        this._lazy_subcommands.set(alias, importPath);
-      }
-    } catch (exc) {
-      // Corrupted config (or missing config helpers): warn and keep going without shortcuts -- the CLI must never break.
-      echo(
-        `⚠ Warning: Failed to load shortcuts from config: ${pyStr(exc)}\n` +
-          "  Shortcuts are unavailable for this session; the built-in " +
-          "commands (sandbox/config/mcp/template) still work.\n" +
-          "  Options:\n" +
-          "    • Fix manually: edit ~/.ebx/config.toml\n" +
-          "    • Reset config: ebx config init (re-run guided setup)\n" +
-          "    • Reset shortcuts only: ebx config init --reset-shortcuts",
-        { err: true },
-      );
-    }
-  }
-
-  override async listCommands(ctx: Context): Promise<string[]> {
-    await this._ready;
-    const base = await super.listCommands(ctx);
-    const lazy = [...this._lazy_subcommands.keys()].sort(cmpStr);
-    return [...base, ...lazy];
-  }
-
-  override async getCommand(ctx: Context, cmdName: string): Promise<Command | null> {
-    await this._ready;
-    if (this._lazy_subcommands.has(cmdName)) return this._loadCommand(cmdName);
-    return super.getCommand(ctx, cmdName);
-  }
-
-  async _loadCommand(cmdName: string): Promise<Command> {
-    const spec = this._lazy_subcommands.get(cmdName) as string;
-    // format: "commands/sandbox:create"
-    const idx = spec.lastIndexOf(":");
-    const modPath = spec.slice(0, idx);
-    const attrName = spec.slice(idx + 1);
-    const mod = await mainSeams.importModule(modPath);
-    if (!_hasOwn(mod, attrName) && !(attrName in mod)) {
-      throw new AttributeError(`module '${modPath}' has no attribute '${attrName}'`);
-    }
-    return mod[attrName] as Command;
-  }
-
-  /**
-   * Enrich the unknown-top-level-command error with a targeted hint.
-   *
-   *  - A high-confidence spelling candidate (difflib, cutoff 0.6) gets only a "Did you mean" correction suggestion.
-   *  - With no plausible candidate, the user is pointed to template `custom_commands` (declared in template.yaml and
-   *    invoked via `ebx run COMMAND`) and to a shortcut example whose target is the command path without the `ebx`
-   *    prefix (`ebx config set shortcuts.NAME "template init"`).
-   *
-   * Contract preserved: Click `UsageError` semantics -- exit code 2, message on stderr. Only the root group is
-   * affected.
-   */
-  override async resolveCommand(ctx: Context, args: string[]): Promise<[string | null, Command | null, string[]]> {
-    await this._ready;
-    try {
-      return await super.resolveCommand(ctx, args);
-    } catch (e) {
-      if (!(e instanceof UsageError)) throw e;
-      // Only the root group gets the hint; nested groups keep the stock Click message.
-      if (ctx.parent !== null || !args.length) throw e;
-      const cmdName = args[0] as string;
-      const candidates = getCloseMatches(cmdName, await this.listCommands(ctx), 3, 0.6);
-      let hint: string;
-      if (candidates.length) {
-        hint = "Did you mean " + candidates.map((c) => `'${c}'`).join(", ") + "?";
-      } else {
-        hint =
-          "No similar command. " +
-          'To add a shortcut, use the command path without the "ebx" ' +
-          "prefix, for example: " +
-          'ebx config set shortcuts.NAME "template init". ' +
-          "A custom command inside a sandbox is declared in " +
-          "template.yaml (custom_commands) and run with " +
-          "'ebx run COMMAND'.";
-      }
-      throw new UsageError(`No such command '${cmdName}'. ${hint}`, ctx);
-    }
-  }
+/** A top-level command described by a `"commands/<module>:<attr>"` spec, imported when the command line names it. */
+function lazyEntry(spec: string, help: string, heading: string): LazyEntry {
+  return {
+    help,
+    heading,
+    load: async () => {
+      const idx = spec.lastIndexOf(":");
+      const modPath = spec.slice(0, idx);
+      const attrName = spec.slice(idx + 1);
+      const mod = await mainSeams.importModule(modPath);
+      if (!(attrName in mod)) throw new AttributeError(`module '${modPath}' has no attribute '${attrName}'`);
+      return mod[attrName] as Command;
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -293,8 +96,8 @@ export const EXIT_QUOTA = 6;
 /**
  * Wrap a command callback so that `SandboxError`s and remote exceptions are mapped to exit codes.
  *
- * `SystemExit`, click's `Exit` / `Abort` and `KeyboardInterrupt` pass through untouched (`EOFError` does not: in Python it is
- * an `Exception`, so it ends up as "Unexpected error: " / exit 1); anything else is
+ * `SystemExit`, `Exit` / `Abort` and `KeyboardInterrupt` pass through untouched (`EOFError` does not: it ends up as
+ * "Unexpected error: " / exit 1); anything else is
  * rendered through an {@link OutputFormatter} built from `ctx.obj` (`json` / `quiet` / `no_color`) and turned into
  * `SystemExit(code)` (1 general, 3 auth, 4 not found, 5 timeout, 6 quota). The wrapper preserves the callback's
  * arguments and return value (`(ctx, params) => ...` for click callbacks) and is async.
@@ -341,7 +144,7 @@ export function handleErrors<A extends unknown[], R>(func: (...args: A) => R | P
 
 /** Node `fs`/`net` errors (`ENOENT`, `EACCES`, ...) are the counterparts of Python's `OSError` family. */
 function _asOsError(exc: unknown): Error | null {
-  if (exc instanceof PyOSError || exc instanceof FrameworkOSError) return exc;
+  if (exc instanceof PyOSError) return exc;
   if (exc instanceof Error) {
     const e = exc as NodeJS.ErrnoException;
     if (typeof e.code === "string" && /^E[A-Z0-9]+$/.test(e.code) && typeof e.syscall === "string") {
@@ -364,7 +167,7 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
     if (status === 401) {
       fmt.printError(`Authentication failed (HTTP ${status}).`, {
         code: "E1000",
-        suggestion: "Check your API key or AK/SK credentials (ebx config set sandbox_api_key <KEY>).",
+        suggestion: "Check your API key or AK/SK credentials (abx config set sandbox_api_key <KEY>).",
       });
       return sysExit(EXIT_AUTH);
     } else if (status === 404) {
@@ -388,7 +191,7 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
     }
     fmt.printError(`Remote request failed (HTTP ${status}): ${pyStr(excVal)}`, {
       code: "E5000",
-      suggestion: "Check the platform status and retry. Use 'ebx -v <command>' for details.",
+      suggestion: "Check the platform status and retry. Use 'abx -v <command>' for details.",
     });
     return sysExit(EXIT_GENERAL);
   }
@@ -398,8 +201,8 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
       code: "E3001",
       suggestion:
         "The HTTP request timed out. Try:\n" +
-        "  1. Increase HTTP timeout: ebx config set http_timeout 120\n" +
-        "  2. Or set env: export SANDBOX_HTTP_TIMEOUT=120\n" +
+        "  1. Increase HTTP timeout: abx config set http_timeout 120\n" +
+        "  2. Or set env: export ABX_HTTP_TIMEOUT=120\n" +
         "  3. Check network connectivity",
     });
     return sysExit(EXIT_TIMEOUT);
@@ -421,9 +224,9 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
       suggestion:
         "The platform closed the connection before responding. This usually " +
         "means the operation took too long (e.g., sandbox cold start). Try:\n" +
-        "  1. Increase HTTP timeout: ebx config set http_timeout 120\n" +
+        "  1. Increase HTTP timeout: abx config set http_timeout 120\n" +
         "  2. Retry the command\n" +
-        "  3. Disable HTTP/2: ebx config set http2 false",
+        "  3. Disable HTTP/2: abx config set http2 false",
     });
     return sysExit(EXIT_GENERAL);
   }
@@ -434,8 +237,8 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
       code: "E3001",
       suggestion:
         "The operation exceeded its time limit. Try:\n" +
-        "  1. Increase HTTP timeout: ebx config set http_timeout 120\n" +
-        "  2. Or set env: export SANDBOX_HTTP_TIMEOUT=120\n" +
+        "  1. Increase HTTP timeout: abx config set http_timeout 120\n" +
+        "  2. Or set env: export ABX_HTTP_TIMEOUT=120\n" +
         "  3. Check if the service is responding",
     });
     return sysExit(EXIT_TIMEOUT);
@@ -457,15 +260,15 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
     return sysExit(EXIT_GENERAL);
   }
 
-  // click.ClickException (pass through message cleanly)
-  if (excVal instanceof ClickException) {
+  // CliError (pass the message through cleanly); a UsageError keeps click's exit code 2.
+  if (excVal instanceof CliError) {
     fmt.printError(excVal.formatMessage());
-    return sysExit(EXIT_GENERAL);
+    return sysExit(excVal.exit_code);
   }
 
   // Last resort: unknown exception -> friendly message
   fmt.printError(`Unexpected error: ${pyStr(excVal)}`, {
-    suggestion: "Use 'ebx -v <command>' for more details, or report this issue.",
+    suggestion: "Use 'abx -v <command>' for more details, or report this issue.",
   });
   return sysExit(EXIT_GENERAL);
 }
@@ -474,7 +277,7 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
 // CLI root
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Package version (`click.version_option(package_name="easy-sandbox")` read the distribution metadata). */
+/** Package version (`click.version_option(package_name="agent-sandbox")` read the distribution metadata). */
 export const VERSION: string = (() => {
   // Standalone binaries set this in the esbuild banner; there is no package.json beside the executable.
   const injected = injectedPackageVersion();
@@ -489,48 +292,40 @@ export const VERSION: string = (() => {
 })();
 
 const ROOT_HELP = [
-  "ebx — Easy Sandbox CLI",
+  "abx — Agent Sandbox CLI",
   "",
   "Create, manage, and interact with cloud sandboxes.",
   "",
   "\b",
-  "Setup, create, or scaffold:",
-  "  ebx config init               Guided credentials setup (run first)",
-  "  ebx create [DESCRIPTION]      Create a cloud sandbox (AI or --template)",
-  "  ebx template init [DIR]       Scaffold a local template project",
+  "Get started:",
+  "  abx config init               Set credentials and region (run first)",
+  "  abx create --template base    Create a sandbox",
+  "  abx exec SANDBOX -- CMD...    Run a command in it",
   "",
   "\b",
   "Examples:",
-  "  ebx create --template base",
-  "  ebx list --status running",
-  "  ebx template search python",
+  "  abx list --status running",
+  "  abx template search python",
+  "  abx template init --template python && abx deploy",
   "",
-  "\b",
-  "Related commands:",
-  "  ebx config --help    Configure credentials and endpoints",
-  "  ebx sandbox --help   Manage sandbox lifecycle and resources",
-  "  ebx template --help  Discover, build, and deploy templates",
+  "Every action has one canonical path (abx GROUP VERB); the shortcuts below are a",
+  "fixed set and cannot be changed in the configuration.",
 ].join("\n");
 
 /**
- * The root `ebx` group.
+ * The root `abx` command.
  *
- * Global options: `--json/-j`, `--quiet/-q`, `--verbose/-v`, `--no-color`, `--log-level`, `--ci`, `--timeout/-t`,
- * `--profile/-p`, `--version`, `-h/--help`. The callback publishes an {@link OutputManager} in
- * `ctx.meta["ebx.output"]` (`getOutput(ctx)`) and the backward-compatible `ctx.obj` keys `json`, `quiet`, `verbose`,
- * `no_color`, `timeout`, `profile`.
+ * Global options: `--json/-j`, `--quiet/-q`, `--verbose/-v`, `--no-color`, `--log-level`, `--ci`, `--version`,
+ * `-h/--help`. The callback publishes an {@link OutputManager} in `ctx.meta["abx.output"]` (`getOutput(ctx)`) and the
+ * context keys `json`, `quiet`, `verbose`, `no_color` in `ctx.obj`.
  */
-export const cli = new LazyGroup("cli", {
-  invoke_without_command: true,
-  // Single source of truth for the `-h` alias: Click inherits `help_option_names` from the parent Context down the
-  // whole command tree (lazy groups, nested sub-groups and leaf commands). Commands that define a `-h` parameter of
-  // their own are protected by Click's built-in conflict guard.
-  context_settings: { help_option_names: ["-h", "--help"] },
-  // Core command groups are always registered; the top-level shortcuts are merged dynamically from
-  // `~/.ebx/config.toml` by `LazyGroup`.
-  lazy_subcommands: { ..._CORE_COMMANDS },
-  merge_shortcuts: true,
+export const cli: Command = group("abx", {
   help: ROOT_HELP,
+  version: VERSION,
+  lazy: {
+    ...Object.fromEntries(Object.entries(GROUP_COMMANDS).map(([name, { spec, help }]) => [name, lazyEntry(spec, help, name === "provider" ? "Providers:" : "Command groups:")])),
+    ...Object.fromEntries(Object.entries(SHORTCUTS).map(([name, { spec, target }]) => [name, lazyEntry(spec, `Same as 'abx ${target}'.`, "Sandbox shortcuts:")])),
+  },
   params: [
     option(["--json", "-j", "output_json"], { is_flag: true, help: "Output as JSON" }),
     option(["--quiet", "-q"], { is_flag: true, help: "Minimal output" }),
@@ -539,18 +334,12 @@ export const cli = new LazyGroup("cli", {
     option(["--log-level"], {
       type: new Choice(["DEBUG", "INFO", "WARNING", "ERROR"], { case_sensitive: false }),
       default: null,
-      help: "Set log level explicitly",
+      metavar: "LEVEL",
+      help: "Set log level explicitly (DEBUG, INFO, WARNING, ERROR)",
     }),
     option(["--ci"], { is_flag: true, help: "CI/CD mode (quiet + no-color + json)" }),
-    option(["--timeout", "-t"], {
-      type: INT,
-      default: 300,
-      help: "Default sandbox lifetime in seconds (positive integer; default: 300)",
-    }),
-    option(["--profile", "-p"], { default: null, help: "[Reserved] Configuration profile" }),
-    versionOption(null, { package_name: "easy-sandbox", version: VERSION }),
   ],
-  callback: async (ctx: Context, params: Params) => {
+  callback: (ctx: Context, params: Params) => {
     // Auto-detect CI environment
     const effectiveCi = Boolean(params["ci"]) || isCiEnv();
 
@@ -566,23 +355,16 @@ export const cli = new LazyGroup("cli", {
     ctx.ensureObject(Object);
     // Store OutputManager in ctx.meta (not ctx.obj) so that ctx.obj stays JSON-serializable.
     ctx.meta[OUTPUT_META_KEY] = output;
-    // Backward-compatible context keys (used by getFormatter / handleErrors)
-    ctx.obj["json"] = output.jsonMode;
-    ctx.obj["quiet"] = output.quiet;
-    ctx.obj["verbose"] = output.verbose;
-    ctx.obj["no_color"] = output.noColor;
-    ctx.obj["timeout"] = params["timeout"];
-    ctx.obj["profile"] = params["profile"];
-    if (ctx.invoked_subcommand === null) echo(await ctx.getHelp());
+    // Context keys read by getFormatter / handleErrors
+    ctx.obj!["json"] = output.jsonMode;
+    ctx.obj!["quiet"] = output.quiet;
+    ctx.obj!["verbose"] = output.verbose;
+    ctx.obj!["no_color"] = output.noColor;
   },
 });
 
-/**
- * Entry point for the CLI (`main()` of the Python module): run `cli` in standalone mode and return the process exit
- * code. `bin/ebx.ts` passes it to `process.exit`.
- */
+/** Entry point for the CLI: run `cli` and return the process exit code (`bin/abx.ts` passes it to `process.exit`). */
 export async function main(opts: { args?: readonly string[]; prog_name?: string } = {}): Promise<number> {
-  await cli.whenReady();
   let args: readonly string[] | undefined = opts.args ?? undefined;
   resetCliSelection();
   resetActiveProvider();
@@ -600,16 +382,7 @@ export async function main(opts: { args?: readonly string[]; prog_name?: string 
         return exitCodeFor(e);
       }
     }
-    await cli.main({ args, prog_name: opts.prog_name ?? "ebx" });
-    return 0;
-  } catch (e) {
-    if (e instanceof SystemExit) {
-      if (e.code === null) return 0;
-      if (typeof e.code === "number") return e.code;
-      sys.stderr.write(`${e.code}\n`);
-      return 1;
-    }
-    throw e;
+    return await runCommand(cli, args ?? process.argv.slice(2), { prog_name: opts.prog_name ?? "abx" });
   } finally {
     await closeOpenInfra();
   }

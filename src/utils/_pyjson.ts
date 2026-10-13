@@ -10,7 +10,7 @@
  * renders as a float); integers outside the safe range are `bigint`; objects are ordinary objects.
  */
 
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { PY_KEY_ORDER, PyFloat } from "./_pyformat.js";
 import { UnicodeDecodeError, _utf8DecodeError } from "./_pyos.js";
 

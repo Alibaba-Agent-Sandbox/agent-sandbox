@@ -1,5 +1,5 @@
 {
-  "server": "easy-sandbox",
+  "server": "agent-sandbox",
   "transport": "stdio",
   "tools_count": 7,
   "tools": [

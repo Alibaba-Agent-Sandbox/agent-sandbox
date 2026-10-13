@@ -26,7 +26,7 @@ const iso = useIso();
 let tmp = "";
 
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-inst-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-inst-"));
 });
 afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
@@ -186,7 +186,7 @@ describe("TestLocalInstall", () => {
 
   it("test_requires_incompatible_sdk", async () => {
     const src = writePlugin(T("src"));
-    const file = path.join(src, "ebx-provider.toml");
+    const file = path.join(src, "abx-provider.toml");
     fs.writeFileSync(file, fs.readFileSync(file, "utf-8").replace('cli = ">=0.3"', 'cli = ">=99"'));
     await rejectsWith(inst(src), ProviderVersionError);
   });
@@ -634,6 +634,23 @@ describe("TestGitInstall", () => {
     expect((await updateGit("demo-prov", { ...base, allowInsecureTransport: true, check: true })).status).toBe("available");
     await updateGit("demo-prov", { ...base, allowInsecureTransport: true });
     expect(store.readReceipt("demo-prov")?.["version"]).toBe("1.1.0");
+  });
+
+  it("test_catalog_ref_uses_double_slash_for_the_subdirectory", () => {
+    expect(installer.expandCatalogRef("alibaba-agent-sandbox/awesome-providers//opensandbox")).toEqual({
+      source: "https://github.com/alibaba-agent-sandbox/awesome-providers.git",
+      ref: null,
+      subdir: "opensandbox",
+    });
+    expect(installer.expandCatalogRef("acme/plugins//providers/one@v1.2.0")).toEqual({
+      source: "https://github.com/acme/plugins.git",
+      ref: "v1.2.0",
+      subdir: "providers/one",
+    });
+    const url = "https://github.com/acme/plugins.git";
+    expect(installer.expandCatalogRef(url, null, "opensandbox")).toEqual({ source: url, ref: null, subdir: "opensandbox" });
+    expect(() => installer.expandCatalogRef("acme/plugins//one", null, "two")).toThrow(/--subdir/);
+    expect(() => installer.expandCatalogRef("acme/plugins//one@v1", "v2")).toThrow(/--ref/);
   });
 
   it("test_update_of_local_install_is_an_error", async () => {

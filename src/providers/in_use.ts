@@ -1,6 +1,6 @@
 /**
  * "Providers in use": true once the user installed a plugin or selected a non-built-in default. Until then the provider
- * surface stays out of the way (`ebx --help` and the config help look exactly like they did before providers existed).
+ * surface stays out of the way (`abx --help` and the config help look exactly like they did before providers existed).
  */
 
 import { collectSources, quietly, selectProviderId } from "../transport/config_layers.js";

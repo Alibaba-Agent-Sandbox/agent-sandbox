@@ -186,7 +186,7 @@ export class CodeContextModule {
 
     const interpreter = lookup(_LANGUAGE_COMMANDS, language, language);
     const ext = lookup(_LANGUAGE_EXTENSIONS, language, "");
-    const tmp_path = `/tmp/_ebx_code_${_seams.uuid4Hex()}${ext}`;
+    const tmp_path = `/tmp/_abx_code_${_seams.uuid4Hex()}${ext}`;
 
     try {
       // Step 1 — write code to temp file via base64 (quoting-safe)

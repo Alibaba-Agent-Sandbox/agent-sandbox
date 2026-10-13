@@ -9,7 +9,8 @@ import type { AuthProvider } from "../transport/auth.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient } from "../transport/http.js";
 import { providerEnvName } from "../utils/config_keys.js";
-import { Provider, type ProviderInfra } from "./base.js";
+import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
+import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import type { Manifest } from "./manifest.js";
 
 /** Platform authentication with a bearer token or a custom API-key header. */
@@ -55,10 +56,7 @@ export class RestProvider extends Provider {
     this.features = new Set(manifest.features);
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
-    const consented = new Set<string>(
-      receipt === null ? manifest.inherit : (((receipt["consented"] as Dict | undefined)?.["inherit"] as string[] | undefined) ?? []),
-    );
-    this.inherit = new Set(manifest.inherit.filter((k) => consented.has(k)));
+    this.inherit = consentedInherit(manifest.inherit, receipt);
     const ep = manifest.endpoint;
     const defaults: Record<string, string> = {};
     if (ep["base_url"]) defaults["sandbox_base_url"] = String(ep["base_url"]);
@@ -79,14 +77,15 @@ export class RestProvider extends Provider {
     }
     const auth = new HeaderKeyAuth(String(key), String(this.authCfg["scheme"] ?? "bearer"), String(this.authCfg["header"] ?? "X-API-Key"));
     const http = new HttpClient(config.toTransportConfig(), auth);
+    const gate = <T extends object>(protocol: T, rules: Parameters<typeof gateProtocol>[2]): T => gateProtocol(protocol, this.id, rules, this.features);
     return {
       config,
       auth,
       http_client: http,
-      sandbox_protocol: new SandboxProtocol(http),
-      process_protocol: new ProcessProtocol(http),
-      filesystem_protocol: new FilesystemProtocol(http),
-      code_interpreter_protocol: new CodeInterpreterProtocol(http),
+      sandbox_protocol: gate(new SandboxProtocol(http, { unknownIfAbsent: true }), SANDBOX_RULES),
+      process_protocol: gate(new ProcessProtocol(http), PROCESS_RULES),
+      filesystem_protocol: gate(new FilesystemProtocol(http), FILESYSTEM_RULES),
+      code_interpreter_protocol: gate(new CodeInterpreterProtocol(http), CODE_RULES),
       close: () => http.close(),
     };
   }

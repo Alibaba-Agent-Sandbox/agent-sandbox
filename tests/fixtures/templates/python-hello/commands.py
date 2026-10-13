@@ -8,7 +8,7 @@
 """
 from __future__ import annotations
 
-from easy_sandbox.server import (
+from agent_sandbox.server import (
     CapabilityGroup,
     CommandRegistry,
     SandboxServer,

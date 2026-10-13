@@ -22,7 +22,7 @@
 >
 > **Status of content:**
 > - Chapter 1 (CLI final command tree, 43 commands) — **superseded** by
->   `.agents/notes/implemented/feature/2026-09-23-cli-command-reduction.md`.
+>   `.agents/notes/superseded/2026-09-23-cli-command-reduction.md`.
 > - Chapter 4 (MCP Server FC deployment plan) — related to
 >   `.agents/notes/implemented/feature/2026-09-23-mcp-fc-streamable-http.md`.
 > - Chapter 6 (.agents directory conventions) — superseded by
@@ -43,7 +43,7 @@
 - Type: feature (design reference)
 - Created: 2026-09-23
 - Author: AI Agent
-- Related ADRs: [2026-09-03-sdk-capability-surface](https://github.com/Easy-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md),
+- Related ADRs: [2026-09-03-sdk-capability-surface](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md),
   2026-09-23-cli-command-reduction, 2026-09-23-mcp-fc-streamable-http
 
 ---
@@ -65,7 +65,7 @@
 ### 1.1 完整命令树
 
 ```
-ebx
+abx
 ├── create              # 顶层快捷 → sandbox create
 ├── list                # 顶层快捷 → sandbox list
 ├── info                # 顶层快捷 → sandbox info
@@ -139,17 +139,17 @@ ebx
 
 | # | 命令 | 参数 | 实现状态 | 能力组 |
 |---|------|------|---------|--------|
-| 1 | `ebx create [DESCRIPTION]` | `--template -T`, `--upload -u`, `--timeout -t`, `--env -e`(多值), `--metadata -m`(多值) | 可用已测试 | sandbox |
-| 2 | `ebx list` | `--status -s`(choice), `--limit -l` | 可用已测试 | sandbox |
-| 3 | `ebx info SANDBOX_ID` | — | 可用已测试 | sandbox |
-| 4 | `ebx kill [SANDBOX_ID]` | `--all`, `--yes -y` | 可用已测试 | sandbox |
-| 5 | `ebx exec SANDBOX_ID COMMAND` | `--timeout -t`, `--cwd` | 可用已测试 | sandbox |
-| 6 | `ebx connect SANDBOX_ID` | — | 可用已测试 | sandbox |
-| 7 | `ebx run SANDBOX_ID COMMAND_NAME` | `--arg -a`(多值), 支持 `--key value` 透传 | 可用已测试 | sandbox |
-| 8 | `ebx upload SANDBOX_ID LOCAL REMOTE` | — | 可用已测试 | sandbox |
-| 9 | `ebx download SANDBOX_ID REMOTE LOCAL` | — | 可用已测试 | sandbox |
-| 10 | `ebx deploy [PATH] [INSTRUCTION]` | `--instruction -i`, `--max-wall-time`, `--max-tool-calls`, `--alias -a`, `--watch`, `--traditional` | 可用已测试 | deploy |
-| 11 | `ebx install TEMPLATE_REF` | `--registry-url`, `--registry-type`, `--token`, `--alias -a` | 可用已测试 | template |
+| 1 | `abx create [DESCRIPTION]` | `--template -T`, `--upload -u`, `--timeout -t`, `--env -e`(多值), `--metadata -m`(多值) | 可用已测试 | sandbox |
+| 2 | `abx list` | `--status -s`(choice), `--limit -l` | 可用已测试 | sandbox |
+| 3 | `abx info SANDBOX_ID` | — | 可用已测试 | sandbox |
+| 4 | `abx kill [SANDBOX_ID]` | `--all`, `--yes -y` | 可用已测试 | sandbox |
+| 5 | `abx exec SANDBOX_ID COMMAND` | `--timeout -t`, `--cwd` | 可用已测试 | sandbox |
+| 6 | `abx connect SANDBOX_ID` | — | 可用已测试 | sandbox |
+| 7 | `abx run SANDBOX_ID COMMAND_NAME` | `--arg -a`(多值), 支持 `--key value` 透传 | 可用已测试 | sandbox |
+| 8 | `abx upload SANDBOX_ID LOCAL REMOTE` | — | 可用已测试 | sandbox |
+| 9 | `abx download SANDBOX_ID REMOTE LOCAL` | — | 可用已测试 | sandbox |
+| 10 | `abx deploy [PATH] [INSTRUCTION]` | `--instruction -i`, `--max-wall-time`, `--max-tool-calls`, `--alias -a`, `--watch`, `--traditional` | 可用已测试 | deploy |
+| 11 | `abx install TEMPLATE_REF` | `--registry-url`, `--registry-type`, `--token`, `--alias -a` | 可用已测试 | template |
 
 #### 1.2.2 sandbox 子组（17 个）
 
@@ -260,12 +260,12 @@ ebx
 
 ### 2.1 需求
 
-用户希望自定义 `ebx <shortcut>` 映射到哪个子命令，甚至添加自己的快捷方式。
+用户希望自定义 `abx <shortcut>` 映射到哪个子命令，甚至添加自己的快捷方式。
 
 ### 2.2 config.toml 中 `[shortcuts]` 段设计
 
 ```toml
-# ~/.ebx/config.toml
+# ~/.abx/config.toml
 
 [transport]
 api_key = "..."
@@ -332,8 +332,8 @@ class LazyGroup(click.Group):
         self._load_user_shortcuts()
 
     def _load_user_shortcuts(self):
-        """读取 ~/.ebx/config.toml [shortcuts] 段，动态注册别名命令。"""
-        config_path = Path.home() / ".ebx" / "config.toml"
+        """读取 ~/.abx/config.toml [shortcuts] 段，动态注册别名命令。"""
+        config_path = Path.home() / ".abx" / "config.toml"
         if not config_path.is_file():
             return
         try:
@@ -361,9 +361,9 @@ class LazyGroup(click.Group):
         """将 'sandbox create' 形式的目标解析为 lazy import 路径。"""
         # 预定义映射表
         SHORTCUT_MAP = {
-            "sandbox create": "easy_sandbox.cli.commands.sandbox:create",
-            "sandbox list": "easy_sandbox.cli.commands.sandbox:list_cmd",
-            "sandbox info": "easy_sandbox.cli.commands.sandbox:info",
+            "sandbox create": "agent_sandbox.cli.commands.sandbox:create",
+            "sandbox list": "agent_sandbox.cli.commands.sandbox:list_cmd",
+            "sandbox info": "agent_sandbox.cli.commands.sandbox:info",
             # ... 完整映射
         }
         return SHORTCUT_MAP.get(target)
@@ -379,9 +379,9 @@ class LazyGroup(click.Group):
 3. 与现有 `config.toml` 文件共存，无需新增配置文件
 
 **替代方案**：
-- 通过环境变量 `EBX_ALIASES` 配置 → 拒绝：不适合多条映射，不持久化
+- 通过环境变量 `ABX_ALIASES` 配置 → 拒绝：不适合多条映射，不持久化
 - 通过插件机制 → 拒绝：过度设计，当前阶段不需要
-- 放在 `~/.ebx/shortcuts.yaml` 单独文件 → 拒绝：多一个文件增加复杂度
+- 放在 `~/.abx/shortcuts.yaml` 单独文件 → 拒绝：多一个文件增加复杂度
 
 ---
 
@@ -398,7 +398,7 @@ class LazyGroup(click.Group):
 | **需要能力** | `shell` | `ports` + SandboxServer 运行中 |
 | **参数类型** | 字符串占位符 | 带类型的 `CommandArg`（string/integer/float/boolean） |
 | **发现机制** | `template.yaml` 文件解析 | `registry.freeze()` 锁定注册表 |
-| **沙箱内依赖** | 无（直接 Shell） | 需要 `easy_sandbox.server` 包 |
+| **沙箱内依赖** | 无（直接 Shell） | 需要 `agent_sandbox.server` 包 |
 
 ### 3.2 注册→执行→测试完整链路
 
@@ -422,7 +422,7 @@ graph TB
     end
 
     subgraph CLI 调用
-        E1["ebx run SANDBOX_ID CMD_NAME"] --> F1{"先尝试机制 A"}
+        E1["abx run SANDBOX_ID CMD_NAME"] --> F1{"先尝试机制 A"}
         F1 -->|成功| G1[输出 ProcessResult]
         F1 -->|"ValueError: Unknown custom command"| F2{"再尝试机制 B"}
         F2 -->|"@sandbox._registry 中找到"| G2[HTTP 调用 run_command]
@@ -443,13 +443,13 @@ graph TB
    ```
 2. **解析**：`Sandbox.create()` / `Sandbox.connect()` 时解析 `template.yaml`
 3. **执行**：`sandbox.run("test", file="tests/test_api.py")` → 替换为 `pytest tests/test_api.py -v` → `sandbox.commands.run(replaced_cmd)`
-4. **CLI**：`ebx run <id> test --arg file=tests/test_api.py`
+4. **CLI**：`abx run <id> test --arg file=tests/test_api.py`
 
 #### 3.2.2 机制 B 完整流程
 
 1. **注册**：Python 代码中使用装饰器
    ```python
-   from easy_sandbox.server.registry import registry
+   from agent_sandbox.server.registry import registry
 
    @registry.command("greet")
    def greet(name: str) -> str:
@@ -459,8 +459,8 @@ graph TB
    ```
 2. **服务启动**：`SandboxServer.serve()` → 注册路由 `POST /commands/{cmd_name}`
 3. **SDK 调用**：`sandbox.run_command("greet", name="World")` → `HTTP POST :9000/commands/greet {"name": "World"}`
-4. **CLI 调用**：`ebx run <id> greet --name World`
-5. **回退逻辑**：`ebx run` 先尝试机制 A（`sandbox.run()`），捕获 `ValueError("Unknown custom command")` 后尝试机制 B（`sandbox.run_command()`）
+4. **CLI 调用**：`abx run <id> greet --name World`
+5. **回退逻辑**：`abx run` 先尝试机制 A（`sandbox.run()`），捕获 `ValueError("Unknown custom command")` 后尝试机制 B（`sandbox.run_command()`）
 
 ### 3.3 自定义命令测试方案
 
@@ -503,8 +503,8 @@ class TestRunCustomCommand:
 class TestCustomCommandsIntegration:
     async def test_registry_command_roundtrip(self):
         """真实 Server 启动 + HTTP 调用。"""
-        from easy_sandbox.server.registry import CommandRegistry
-        from easy_sandbox.server.app import SandboxServer
+        from agent_sandbox.server.registry import CommandRegistry
+        from agent_sandbox.server.app import SandboxServer
 
         reg = CommandRegistry()
         @reg.command("add")
@@ -522,15 +522,15 @@ class TestCustomCommandsIntegration:
 
 ```bash
 # scripts/e2e_custom_commands.py
-# 1. ebx create --template python-hello
+# 1. abx create --template python-hello
 # 2. 写入带 @registry.command 的 Python 文件
-# 3. ebx run <id> <custom_cmd> --arg key=value
+# 3. abx run <id> <custom_cmd> --arg key=value
 # 4. 验证输出
 ```
 
 ### 3.4 设计决策
 
-**决策**：保留两种机制并在 `ebx run` 中实现自动回退。
+**决策**：保留两种机制并在 `abx run` 中实现自动回退。
 
 **理由**：
 1. 机制 A 零门槛——只需 YAML 配置
@@ -550,7 +550,7 @@ class TestCustomCommandsIntegration:
 
 #### 4.1.1 CLI 命令层
 
-现有 3 个 MCP 命令（`src/easy_sandbox/cli/commands/mcp.py`）：
+现有 3 个 MCP 命令（`src/agent_sandbox/cli/commands/mcp.py`）：
 
 | 命令 | 行为 | 传输方式 |
 |------|------|---------|
@@ -560,7 +560,7 @@ class TestCustomCommandsIntegration:
 
 #### 4.1.2 MCP Server 核心 (`SandboxMCPServer`)
 
-文件：`src/easy_sandbox/agent/mcp.py`
+文件：`src/agent_sandbox/agent/mcp.py`
 
 - **协议**：自包含 JSON-RPC 2.0，不依赖官方 `mcp` SDK
 - **协议版本**：`2024-11-05`
@@ -571,7 +571,7 @@ class TestCustomCommandsIntegration:
 
 #### 4.1.3 注册的工具（7 个 P0 工具）
 
-文件：`src/easy_sandbox/agent/tools.py`
+文件：`src/agent_sandbox/agent/tools.py`
 
 | Tool | 后端 API | 必填参数 |
 |------|----------|----------|
@@ -598,7 +598,7 @@ class TestCustomCommandsIntegration:
 - 基于 MCP 2025-03-26/2025-06-18 规范，通过 `Mcp-Session-Id` 响应头做实例亲和路由
 - FC HTTP 触发器需开启 `GET/POST/DELETE`
 - 单实例可绑定 20-200 个 session；session 默认 6h 生命周期，30min idle 回收
-- 与 Easy Sandbox 现有架构兼容（项目本身即部署在 `*.e2b.fc.aliyuncs.com`）
+- 与 Agent Sandbox 现有架构兼容（项目本身即部署在 `*.e2b.fc.aliyuncs.com`）
 
 #### 4.2.2 传输协议方案对比
 
@@ -615,18 +615,18 @@ class TestCustomCommandsIntegration:
 
 ```mermaid
 graph TB
-    CLI["ebx mcp deploy → 打包 → FC CreateFunction + CreateTrigger"]
-    FC["FC Function: easy-sandbox-mcp-server"]
+    CLI["abx mcp deploy → 打包 → FC CreateFunction + CreateTrigger"]
+    FC["FC Function: agent-sandbox-mcp-server"]
     Sandbox["Envd Sandbox (另一个 FC 实例)"]
 
     CLI --> FC
     FC --> Sandbox
 
     subgraph FC Function
-        ASGI["easy_sandbox.agent.mcp_http:asgi_app"]
+        ASGI["agent_sandbox.agent.mcp_http:asgi_app"]
         Trigger["HTTP Trigger: POST/GET/DELETE /mcp"]
         Session["会话亲和: Mcp-Session-Id"]
-        Env["环境变量: EBX_API_KEY / EBX_API_URL / EBX_TEMPLATE"]
+        Env["环境变量: ABX_API_KEY / ABX_API_URL / ABX_TEMPLATE"]
     end
 ```
 
@@ -636,11 +636,11 @@ graph TB
 2. **打包结构**：
    ```
    deploy-artifact/
-   ├── requirements.txt   (easy-sandbox + uvicorn/starlette)
+   ├── requirements.txt   (agent-sandbox + uvicorn/starlette)
    ├── app.py             (ASGI 入口，暴露 /mcp)
    └── config.yaml        (function memory, timeout, env)
    ```
-3. **HTTP 端点**：新增 `src/easy_sandbox/agent/mcp_http.py`，Starlette ASGI 应用：
+3. **HTTP 端点**：新增 `src/agent_sandbox/agent/mcp_http.py`，Starlette ASGI 应用：
    - `POST /mcp` → 解析 JSON-RPC → 复用 `SandboxMCPServer.handle_request`；初始化响应回写 `Mcp-Session-Id`
    - `GET /mcp`（可选）→ SSE 升级，服务端推送通知
    - `DELETE /mcp` → 触发 `SandboxManager.shutdown()` 清理沙箱、释放 session
@@ -653,9 +653,9 @@ graph TB
 | 层 | 传递方式 | 存储 |
 |----|----------|------|
 | Client → MCP HTTP Server | `Authorization: Bearer <token>` | 部署时生成随机 token，写入 IDE 的 mcpServers 配置 |
-| MCP Server → Easy Sandbox 后端 | 进程环境变量 `E2B_API_KEY` | FC 函数环境变量（可选 KMS 加密） |
+| MCP Server → Agent Sandbox 后端 | 进程环境变量 `E2B_API_KEY` | FC 函数环境变量（可选 KMS 加密） |
 
-**替代方案**（多租户）：Header 传 `X-EBX-AK` / `X-EBX-SK`，MCP Server 转发到 Sandbox。v1 用单租户环境变量，v2 再考虑多租户。
+**替代方案**（多租户）：Header 传 `X-ABX-AK` / `X-ABX-SK`，MCP Server 转发到 Sandbox。v1 用单租户环境变量，v2 再考虑多租户。
 
 ### 4.4 沙箱生命周期在 FC 环境下的挑战
 
@@ -666,11 +666,11 @@ graph TB
 | 沙箱残留 | 崩溃后残留 | FC 冷启新实例 | 沙箱创建时打 `mcp_session_id` metadata，定期 `Sandbox.list()` 清理 |
 | 跨实例共享 | N/A | FC 亲和满时开新实例 | 依赖 FC 亲和承诺（单 session 单实例） |
 
-### 4.5 `ebx mcp deploy` 命令设计
+### 4.5 `abx mcp deploy` 命令设计
 
 ```
-ebx mcp deploy \
-  --name easy-sandbox-mcp \            # FC 函数名
+abx mcp deploy \
+  --name agent-sandbox-mcp \            # FC 函数名
   --region cn-hangzhou \
   --template python-base \             # 默认沙箱模板
   --memory 512 --timeout 600 \         # FC 函数配置
@@ -686,7 +686,7 @@ ebx mcp deploy \
    ```json
    {
      "mcpServers": {
-       "easy-sandbox-remote": {
+       "agent-sandbox-remote": {
          "url": "https://<fc-endpoint>/mcp",
          "headers": {"Authorization": "Bearer <token>"}
        }
@@ -701,9 +701,9 @@ ebx mcp deploy \
 ### 4.6 分阶段实施计划
 
 **Phase 1（1 个 sprint）**：
-1. 新增 `src/easy_sandbox/agent/mcp_http.py` — Starlette ASGI app
+1. 新增 `src/agent_sandbox/agent/mcp_http.py` — Starlette ASGI app
 2. 升级 `MCP_PROTOCOL_VERSION = "2025-06-18"`
-3. 新增 `ebx mcp deploy` 命令（初版：手动开启亲和）
+3. 新增 `abx mcp deploy` 命令（初版：手动开启亲和）
 4. `mcp install` 增加 `--mode remote --url ...` 分支
 
 **Phase 2**：
@@ -747,7 +747,7 @@ ebx mcp deploy \
 |------|------|
 | `click.testing.CliRunner` | 全部测试入口 `runner.invoke(cli, [...])` |
 | `_make_sandbox()` 辅助 | 构造带 `.id/.status/.url/.files/.commands/.kill` 的 MagicMock |
-| `Sandbox.connect` mock | `patch("easy_sandbox.api.sandbox.Sandbox.connect", new_callable=AsyncMock)` |
+| `Sandbox.connect` mock | `patch("agent_sandbox.api.sandbox.Sandbox.connect", new_callable=AsyncMock)` |
 | `run_sync` | 让真实 `run_sync` 运行，只 mock `Sandbox.connect` |
 | 输出验证 | 文本模式：子串断言；JSON 模式：`json.loads(result.output)` |
 | 退出码 | 0=成功, 1=通用错误, 2=参数错误, 3=认证, 4=未找到, 5=超时, 6=配额 |
@@ -935,7 +935,7 @@ class _AsyncIter:
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from click.testing import CliRunner
-from easy_sandbox.models.process import ProcessChunk, ProcessChunkType
+from agent_sandbox.models.process import ProcessChunk, ProcessChunkType
 
 
 @pytest.fixture
@@ -993,7 +993,7 @@ class AsyncIterHelper:
 def patch_connect(sb):
     """Patch Sandbox.connect 返回指定 mock。"""
     return patch(
-        "easy_sandbox.api.sandbox.Sandbox.connect",
+        "agent_sandbox.api.sandbox.Sandbox.connect",
         new_callable=AsyncMock,
         return_value=sb,
     )
@@ -1153,12 +1153,12 @@ YYYY-MM-DD-<slug>.md
 #### Phase 3: P2 — MCP FC 部署（3 天）
 
 5. **mcp_http.py**：
-   - 新增 `src/easy_sandbox/agent/mcp_http.py`
+   - 新增 `src/agent_sandbox/agent/mcp_http.py`
    - 实现 Starlette ASGI 应用（POST/GET/DELETE /mcp）
    - 复用 `SandboxMCPServer.handle_request`
    - 实现 `Mcp-Session-Id` 生成与传递
 
-6. **ebx mcp deploy**：
+6. **abx mcp deploy**：
    - 在 `cli/commands/mcp.py` 新增 `deploy` 子命令
    - 实现 FC 函数打包 + 创建逻辑
    - `mcp install` 增加 `--mode remote` 分支

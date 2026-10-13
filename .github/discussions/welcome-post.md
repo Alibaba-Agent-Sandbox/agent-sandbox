@@ -1,10 +1,10 @@
-# 👋 Welcome to Easy Sandbox Community!
+# 👋 Welcome to Agent Sandbox Community!
 
-Hey everyone! Welcome to the **Easy Sandbox** community — we're thrilled to have you here! 🎉
+Hey everyone! Welcome to the **Agent Sandbox** community — we're thrilled to have you here! 🎉
 
-## What is Easy Sandbox?
+## What is Agent Sandbox?
 
-Easy Sandbox is a CLI (`ebx`; the Python SDK lives in the `python-sdk` repository) for creating, managing, and interacting with cloud sandboxes designed for AI agents. It's E2B-protocol compatible with powerful extensions for the Alibaba Cloud ecosystem. Whether you're building autonomous agents, code interpreters, or secure execution environments, Easy Sandbox gives you the tools to do it with zero-config simplicity.
+Agent Sandbox is a CLI (`abx`; the Python SDK lives in the `python-sdk` repository) for creating, managing, and deploying cloud sandboxes for AI agents. The Python SDK's method names are E2B-shaped to ease migration; this is not an E2B-protocol drop-in.
 
 ## 🗂️ How to Use This Community
 
@@ -12,19 +12,19 @@ We want to keep things organized so everyone can find what they need:
 
 | What you need | Where to go |
 |---------------|-------------|
-| 💡 **Feature Requests** | [Discussions → Ideas](https://github.com/Easy-Sandbox/easy-sandbox/discussions/categories/ideas) — suggest new features or improvements |
-| 🐛 **Bug Reports** | [Issues](https://github.com/Easy-Sandbox/easy-sandbox/issues/new/choose) — report bugs using our issue templates |
-| 💬 **Q&A / Help** | [Discussions → Q&A](https://github.com/Easy-Sandbox/easy-sandbox/discussions/categories/q-a) — ask questions and get help |
-| 🎉 **Show and Tell** | [Discussions → Show and Tell](https://github.com/Easy-Sandbox/easy-sandbox/discussions/categories/show-and-tell) — share what you've built! |
+| 💡 **Feature Requests** | [Discussions → Ideas](https://github.com/alibaba-agent-sandbox/agent-sandbox/discussions/categories/ideas) — suggest new features or improvements |
+| 🐛 **Bug Reports** | [Issues](https://github.com/alibaba-agent-sandbox/agent-sandbox/issues/new/choose) — report bugs using our issue templates |
+| 💬 **Q&A / Help** | [Discussions → Q&A](https://github.com/alibaba-agent-sandbox/agent-sandbox/discussions/categories/q-a) — ask questions and get help |
+| 🎉 **Show and Tell** | [Discussions → Show and Tell](https://github.com/alibaba-agent-sandbox/agent-sandbox/discussions/categories/show-and-tell) — share what you've built! |
 
 ## 🚀 Quick Start
 
 ```bash
-pip install easy-sandbox   # Python SDK (python-sdk repository)
+pip install agent-sandbox   # Python SDK (python-sdk repository)
 ```
 
 ```python
-from easy_sandbox import Sandbox
+from agent_sandbox import Sandbox
 
 async def main():
     async with await Sandbox.create(template="python-base") as sb:
@@ -35,25 +35,25 @@ async def main():
 Or use the CLI:
 
 ```bash
-npm install -g @easy-sandbox/cli
-ebx create --template python-base
-ebx exec <sandbox-id> "echo hello"
+npm install -g @agent-sandbox/cli
+abx create --template python-base
+abx exec <sandbox-id> "echo hello"
 ```
 
 ## 📚 Key Links
 
-- 📖 **[README & Docs](https://github.com/Easy-Sandbox/easy-sandbox#readme)**
-- 🏗️ **[Design Document](https://github.com/Easy-Sandbox/easy-sandbox/blob/main/docs/zh/DESIGN.md)**
-- 📦 **[Community Templates](https://github.com/Easy-Sandbox/awesome-templates)**
-- 📝 **[Contributing Guide](https://github.com/Easy-Sandbox/easy-sandbox/blob/main/.github/CONTRIBUTING.md)**
-- 🔒 **[Security Policy](https://github.com/Easy-Sandbox/easy-sandbox/blob/main/.github/SECURITY.md)**
+- 📖 **[README & Docs](https://github.com/alibaba-agent-sandbox/agent-sandbox#readme)**
+- 🏗️ **[Design Document](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/zh/DESIGN.md)**
+- 📦 **[Community Templates](https://github.com/alibaba-agent-sandbox/awesome-templates)**
+- 📝 **[Contributing Guide](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/.github/CONTRIBUTING.md)**
+- 🔒 **[Security Policy](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/.github/SECURITY.md)**
 
 ## 🤝 Code of Conduct
 
-We're committed to fostering a welcoming and inclusive environment. Please take a moment to review our [Code of Conduct](https://github.com/Easy-Sandbox/easy-sandbox/blob/main/.github/CODE_OF_CONDUCT.md). Be kind, be constructive, and help us build something great together.
+We're committed to fostering a welcoming and inclusive environment. Please take a moment to review our [Code of Conduct](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/.github/CODE_OF_CONDUCT.md). Be kind, be constructive, and help us build something great together.
 
 ---
 
-We'd love to hear what you're building with Easy Sandbox — feel free to introduce yourself and share your use case in the replies! 👇
+We'd love to hear what you're building with Agent Sandbox — feel free to introduce yourself and share your use case in the replies! 👇
 
 Happy sandboxing! 🏖️

@@ -2,13 +2,13 @@
 
 > 模板目录采用**单一事实来源（SSOT）**架构：官方与社区模板的内容、机器可读索引
 > （`awesome-templates.yaml`）、发布与 CI 全部收敛到独立仓库
-> [`Easy-Sandbox/awesome-templates`](https://github.com/Easy-Sandbox/awesome-templates)。
+> [`alibaba-agent-sandbox/awesome-templates`](https://github.com/alibaba-agent-sandbox/awesome-templates)。
 > 主仓库**不再维护可发布模板集合**，仅在 `examples/templates/` 保留一个最小
 > `python-hello` **离线测试夹具（fixture）**，并显式标记为 fixture。
 >
-> 相关文档：[CLI 设计](./cli-design.md)（`ebx template search` / `install` / `deploy`）；
+> 相关文档：[CLI 设计](./cli-design.md)（`abx template search` / `install` / `deploy`）；
 > 模板契约（分层、名称解析、`template.yaml`）见 SDK 的
-> [模板体系设计](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/template-system.md)。
+> [模板体系设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md)。
 
 ---
 
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Easy-Sandbox/awesome-templates（唯一真源）                      │
+│  alibaba-agent-sandbox/awesome-templates（唯一真源）                      │
 │  ├── awesome-templates.yaml   ← 机器可读索引（search/install 数据源）│
 │  ├── README.md / CONTRIBUTING.md  ← 人类索引 + 贡献规范           │
 │  ├── <template>/              ← 模板内容（template.yaml + Dockerfile
@@ -25,9 +25,9 @@
 │  └── .github/workflows/ci.yml ← Py3.10–3.13 矩阵 CI              │
 └─────────────────────────────────────────────────────────────────┘
           ▲ raw.githubusercontent.com（CDN，无 API 限流）
-          │ fetchIndex()：缓存 ~/.ebx/index/ + ETag 条件请求
+          │ fetchIndex()：缓存 ~/.abx/index/ + ETag 条件请求
 ┌─────────┴───────────────────────────────────────────────────────┐
-│  主仓库 easy-sandbox                                             │
+│  主仓库 agent-sandbox                                             │
 │  ├── src/utils/template_index.ts               ← 远程索引客户端   │
 │  ├── src/cli/commands/template.ts              ← search/install  │
 │  ├── examples/templates/python-hello/          ← 最小离线夹具     │
@@ -68,11 +68,11 @@ schema_version: 1
 templates:
   - name: node-web                       # 必填；唯一；kebab-case
     description: "Node.js Web 服务运行环境"  # 人类可读描述（搜索命中源）
-    repo: https://github.com/Easy-Sandbox/awesome-templates  # 必填；仅支持 github.com
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates  # 必填；仅支持 github.com
     path: node-web                       # 仓库内子目录；省略则整个仓库是一个模板
     ref: v1.0.0                          # 可选；锁定 tag/branch/sha
     tags: [nodejs, web, express, api]    # 搜索标签
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code, ports]
     status: official                     # official | community | experimental
 ```
@@ -97,10 +97,10 @@ templates:
 
 | 项 | 值 |
 |----|-----|
-| 默认索引 URL | `https://raw.githubusercontent.com/Easy-Sandbox/awesome-templates/main/awesome-templates.yaml` |
-| 环境变量覆盖 | `EBX_TEMPLATE_INDEX_URL`（HTTP(S) URL 或本地文件路径） |
-| CLI 覆盖 | `ebx template search/install --index-url <URL或路径>` |
-| 认证 | `--token` > `GITHUB_TOKEN` > `./.env` > 持久化 `github_token`（`ebx config set github_token`；私有镜像、提升限流额度） |
+| 默认索引 URL | `https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml` |
+| 环境变量覆盖 | `ABX_TEMPLATE_INDEX_URL`（HTTP(S) URL 或本地文件路径） |
+| CLI 覆盖 | `abx template search/install --index-url <URL或路径>` |
+| 认证 | `--token` > `GITHUB_TOKEN` > `./.env` > 持久化 `github_token`（`abx config set github_token`；私有镜像、提升限流额度） |
 
 选择 `raw.githubusercontent.com` 而非 `api.github.com` 是刻意的：raw 文件由 CDN
 提供服务，**不受** API 匿名 60 次/小时的限流约束；本地文件路径则让企业内网镜像
@@ -108,7 +108,7 @@ templates:
 
 ### 3.2 缓存与条件请求
 
-- 缓存目录 `~/.ebx/index/`（与 `~/.ebx/templates/` 隔离，避免被误认为已安装模板）；
+- 缓存目录 `~/.abx/index/`（与 `~/.abx/templates/` 隔离，避免被误认为已安装模板）；
   文件为索引正文 + `awesome-templates.meta.json`（`source_url` / `etag` / `fetched_at`）。
 - TTL `INDEX_MAX_AGE_SECONDS = 3600`：新鲜缓存**不发网络请求**（`search`/`install` 的
   常规路径零网络开销）。
@@ -121,11 +121,11 @@ templates:
 | 场景 | 有缓存 | 无缓存 |
 |------|--------|--------|
 | 网络不可达（DNS/超时/拒连） | 过期缓存 + `stale=True` + warning「使用缓存的索引」 | `NetworkError`，建议检查网络 / `GITHUB_TOKEN` / `--index-url` |
-| GitHub 限流（403 且 `X-RateLimit-Remaining: 0`，或 429） | 同上 + warning 提示 `GITHUB_TOKEN` / `ebx config set github_token` | `GitHubRateLimitError`（E5000），包含经官方核验的 fine-grained PAT 预填 URL、`ebx config set github_token` / `GITHUB_TOKEN` 修复建议、`--token` 泄漏提醒与镜像提示；交互终端下还会引导一次性脱敏配置并只重试一次 |
+| GitHub 限流（403 且 `X-RateLimit-Remaining: 0`，或 429） | 同上 + warning 提示 `GITHUB_TOKEN` / `abx config set github_token` | `GitHubRateLimitError`（E5000），包含经官方核验的 fine-grained PAT 预填 URL、`abx config set github_token` / `GITHUB_TOKEN` 修复建议、`--token` 泄漏提醒与镜像提示；交互终端下还会引导一次性脱敏配置并只重试一次 |
 | `404` | 落入通用网络错误路径 | `NetworkError`，suggestion 提示校验索引 URL（`--index-url`） |
 | 服务端错误（5xx） | 过期缓存 + warning | `NetworkError` |
 | 其他非 2xx | 过期缓存 + warning | `NetworkError`，报告具体状态码 |
-| `schema_version` 过新 | 不降级 | `TemplateParseError`，提示 `npm install -g @easy-sandbox/cli@latest` |
+| `schema_version` 过新 | 不降级 | `TemplateParseError`，提示 `npm install -g @agent-sandbox/cli@latest` |
 | 索引无 `templates` 列表 / 非法 YAML | 不降级 | `TemplateParseError`（含来源 URL） |
 
 降级呈现统一走 `TemplateIndex.stale` + `notice` 两个字段：CLI 在结果前打印
@@ -133,17 +133,17 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
 
 ---
 
-## 4. CLI 行为（`ebx template search` / `install`）
+## 4. CLI 行为（`abx template search` / `install`）
 
-### 4.1 `ebx template search <query>`
+### 4.1 `abx template search <query>`
 
 - 查询远程索引，按 `name` / `description` / `tags` / `author` 做子串匹配；
   `--tag` / `--status` 精确过滤；`--refresh` 强制刷新；`-j` 输出 JSON。
 - 输出表格（Name / Description / Tags / Status）+ 安装提示
-  `Install one with: ebx template install <name> (index: <source_url>)`。
+  `Install one with: abx template install <name> (index: <source_url>)`。
 - 降级时先打印 `notice` warning 再输出结果。
 
-### 4.2 `ebx template install <name>` 的裸名解析顺序
+### 4.2 `abx template install <name>` 的裸名解析顺序
 
 ```
 <name> 是本地路径？           → 直接使用（不打桩、不触网）
@@ -154,7 +154,7 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
                                 命中 → 得到 install_ref（可能带 ref 锁定）→ 继续常规安装
                                 未命中且缓存非 stale → force 刷新一次给新发布模板机会
                                 仍未命中 → TemplateNotFoundError
-                                  suggestion: 'ebx template search' / 直接 owner/repo//subdir
+                                  suggestion: 'abx template search' / 直接 owner/repo//subdir
 ```
 
 命中索引时打印 `Resolved '<name>' via the template index: <owner>/<repo>//<path>[@ref]`，
@@ -163,7 +163,7 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
 ### 4.3 版本锁定与缓存分目录
 
 `ref` 锁定（条目声明或用户显式 `@ref`）最终体现在缓存路径
-`~/.ebx/templates/<owner>/<repo>/<ref|default>/<path>`，不同 ref 的模板互不串味。
+`~/.abx/templates/<owner>/<repo>/<ref|default>/<path>`，不同 ref 的模板互不串味。
 未声明 `ref` 的条目跟随真源仓库默认分支——「跟随最新」与「锁定版本」都是显式选择。
 
 ---
@@ -179,7 +179,7 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
   2. `python-hello/template.yaml` 顶部 `FIXTURE` banner 注释；
   3. `python-hello/README.md` fixture 提示块。
 - fixture 自身仍须通过全部模板契约校验（真实加载器解析、capabilities 合法、
-  Dockerfile 有 `FROM`、custom_commands 占位符与 args 双向覆盖等）——它代表
+  Dockerfile 有 `FROM` 等）——它代表
   「模板规范」的可执行样本。
 - `python-hello` 同时被多个集成测试与 golden 文件引用（CLI help、workflow E2E），
   因此**不删除、不改名**。
@@ -194,7 +194,7 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
 |------|------|
 | `tests/test_utils/test_template_index.test.ts` | 索引解析/校验、`install_ref` 构造、缓存生命周期（新鲜短路/强制刷新/304）、降级矩阵（断网/限流/404/5xx/损坏缓存）、token 与 env 覆盖 |
 | `tests/test_cli/test_template_index_commands.test.ts` | `search` 输出/过滤/JSON/降级 notice/参数透传；`install` 裸名经索引解析、`@ref` 锁定、内置名不触索引、未命中报错与强制刷新 |
-| `tests/test_templates/test_template_catalog.test.ts` | fixture 边界（唯一性/标记/README 契约）+ fixture 的 YAML/Dockerfile/custom_commands 契约 |
+| `tests/test_templates/test_template_catalog.test.ts` | fixture 边界（唯一性/标记/README 契约）+ fixture 的 YAML/Dockerfile 契约 |
 | `tests/test_templates/test_local_install.test.ts` | 真实 CLI install 链路（本地 tarball 打桩，网络绊线保证零外网） |
 
 网络拦截全部通过 HTTP 测试接缝（打桩的 `fetch`）或 `fetchIndex` 打桩完成；
@@ -205,7 +205,7 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
 `tests/test_catalog.py`（32 用例）+ `tests/test_index.py`（11 用例）+
 `tests/test_commands_e2e.py`（10 用例）：目录契约、索引对账、README 表格
 逐字段比对、qwen-code `max_session_turns` 契约守卫等。CI 在 Python
-3.10–3.13 矩阵上运行，依赖 `requirements-dev.txt`（`easy-sandbox[cli]` git main +
+3.10–3.13 矩阵上运行，依赖 `requirements-dev.txt`（`agent-sandbox[cli]` git main +
 pytest + pyyaml）。
 
 > 真源仓库与主仓库测试的分工：**内容正确性**归真源仓库（模板改动必须同 PR 更新
@@ -222,7 +222,7 @@ pytest + pyyaml）。
 2. **发布**：合并到 `main` 即生效（索引随仓库内容原子更新）；需要稳定引用时打
    git tag（`v1.0.0`），用户通过 `@v1.0.0` 锁定。**无需 GitHub Release**——
    `RegistryClient` 走 tarball API，tag/branch/sha 均可解析。
-3. **消费**：用户 `ebx template search` 发现 → `ebx template install <name>` 安装；
+3. **消费**：用户 `abx template search` 发现 → `abx template install <name>` 安装；
    新发布模板在缓存未命中时会被一次强制刷新立即发现，无需等待 TTL。
 4. **回滚**：索引条目 `ref` 指向已知良好版本；紧急下线移除条目（新用户不可见，
    已安装缓存不受影响）。
@@ -246,7 +246,7 @@ pytest + pyyaml）。
 
 ## 9. 设计备忘：模板命令面
 
-以下内容从 SDK 的[模板体系设计](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/design/template-system.md)迁入；该文档负责模板契约（分层、名称解析、`template.yaml`、版本管理）。这里记录 CLI 侧的部分：下列命令是模板市场与本地缓存的设计备忘，目前已实现的命令以 [CLI 命令体系设计](cli-design.md#ebx-template) 为准。
+以下内容从 SDK 的[模板体系设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md)迁入；该文档负责模板契约（分层、名称解析、`template.yaml`、版本管理）。这里记录 CLI 侧的部分：下列命令是模板市场与本地缓存的设计备忘，目前已实现的命令以 [CLI 命令体系设计](cli-design.md#abx-template) 为准。
 
 ### 9.1 本地缓存管理命令
 
@@ -254,52 +254,52 @@ pytest + pyyaml）。
 
 ```bash
 # 查看缓存的模板
-ebx template cache list
+abx template cache list
 
 # 清理所有缓存
-ebx template cache clean
+abx template cache clean
 
 # 清理指定模板的缓存
-ebx template cache clean hello/world
+abx template cache clean hello/world
 
 # 强制重新下载（创建时跳过缓存）
-ebx create hello/world --no-cache
+abx create hello/world --no-cache
 ```
 
 ### 9.2 命令总览
 
 ```bash
 # ── 创建沙箱 ─────────────────────────────
-ebx create python-base                       # 内置模板
-ebx create hello/world                       # GitHub 默认分支
-ebx create hello/world --tag v1.2.0          # GitHub 指定 ref（tag/branch/sha）
-ebx create ./my-template                     # 本地模板
-ebx create hello/world --no-cache            # 跳过缓存，强制重新下载
+abx create python-base                       # 内置模板
+abx create hello/world                       # GitHub 默认分支
+abx create hello/world --tag v1.2.0          # GitHub 指定 ref（tag/branch/sha）
+abx create ./my-template                     # 本地模板
+abx create hello/world --no-cache            # 跳过缓存，强制重新下载
 
 # ── 模板构建与推送 ────────────────────────
-ebx template build . --name my-app --tag v1.0
-ebx template push my-app:v1.0
-ebx template init my-template                # 初始化模板脚手架
+abx template build . --name my-app --tag v1.0
+abx template push my-app:v1.0
+abx template init my-template                # 初始化模板脚手架
 
 # ── 模板信息与搜索 ────────────────────────
-ebx template info python-data-science
-ebx template list --market
-ebx template list --market --category data-science --sort stars
-ebx template search "machine learning gpu"
+abx template info python-data-science
+abx template list --market
+abx template list --market --category data-science --sort stars
+abx template search "machine learning gpu"
 
 # ── 模板拉取 ──────────────────────────────
-ebx template pull community/awesome-ml-env:latest
-ebx template pull hello/world@v1.0.0
+abx template pull community/awesome-ml-env:latest
+abx template pull hello/world@v1.0.0
 
 # ── 模板发布 ──────────────────────────────
-ebx template push my-template --publish --category web-development
+abx template push my-template --publish --category web-development
 
 # ── 本地缓存管理 ──────────────────────────
-ebx template cache list                      # 查看缓存的 GitHub tarball 模板（按 tag/branch/sha 拉取，无需 Release）
-ebx template cache clean                     # 清理所有缓存
-ebx template cache clean hello/world         # 清理指定模板缓存
+abx template cache list                      # 查看缓存的 GitHub tarball 模板（按 tag/branch/sha 拉取，无需 Release）
+abx template cache clean                     # 清理所有缓存
+abx template cache clean hello/world         # 清理指定模板缓存
 
 # ── 配置管理 ──────────────────────────────
-ebx config set github_token            # GitHub token：星号脱敏输入，保存到 ~/.ebx/.env（私有仓库 + 限流）
-ebx config set github_token ""         # 清除已保存的 token
+abx config set github_token            # GitHub token：星号脱敏输入，保存到 ~/.abx/.env（私有仓库 + 限流）
+abx config set github_token ""         # 清除已保存的 token
 ```

@@ -1,4 +1,4 @@
-# Writing `ebx` command modules
+# Writing `abx` command modules
 
 This directory holds the command modules of the CLI (`sandbox.ts`, `sandbox_files.ts`, `sandbox_process.ts`,
 `sandbox_system.ts`, `template.ts`, `config_cmd.ts`, `mcp.ts`, `deploy.ts`, ...). The framework they build on is a
@@ -11,39 +11,32 @@ byte-for-byte port of **Click 8.5.0** (`src/framework/`); the output layer is a 
 `"commands/<module>:<attr>"` (module path relative to `src/cli`, no extension). When the root group needs the command
 (help listing, resolution, invocation) it runs `import("./commands/<module>.js")` and reads the export called `<attr>`.
 
-So: **a module exports each click command/group under the attribute name the Python module used** (these are data
-keys in `_CORE_COMMANDS` / `_SHORTCUT_TARGET_MAP`, so do not rename them to camelCase):
+The registry is static code in `src/cli/command_surface.ts`: `GROUP_COMMANDS` (the command groups) and `SHORTCUTS` (the
+fixed top-level shortcuts). It is not configurable; `tests/test_cli/test_command_surface.test.ts` checks it against
+`abx --help` and against `docs/en/reference/cli-commands.md`. A module exports each click command/group under the
+attribute name used in its spec (these are data keys, do not rename them to camelCase):
 
-| spec (registered in `main.ts`)                   | the module must export                                            |
+| spec                                             | the module must export                                            |
 | ------------------------------------------------ | ----------------------------------------------------------------- |
 | `commands/sandbox:sandbox`                       | `export const sandbox = group("sandbox", ...)`                    |
 | `commands/config_cmd:config`                     | `export const config = group("config", ...)`                      |
 | `commands/mcp:mcp`                               | `export const mcp = group("mcp", ...)`                            |
 | `commands/template:template`                     | `export const template = group("template", ...)`                  |
-| `commands/sandbox:create` / `list_cmd` / `info` / `kill` / `exec_cmd` / `connect` / `upload` / `download` / `run_cmd` | the shortcut targets (`ebx create`, `ebx list`, ...) |
-| `commands/template:install_shortcut` / `init` / `build` / `search` | idem                                    |
+| `commands/provider:provider`                     | `export const provider = group("provider", ...)`                  |
+| `commands/sandbox:create` / `list_cmd` / `info` / `kill` / `exec_cmd` / `connect` / `upload` / `download` / `run_cmd` | the shortcut targets (`abx create`, `abx list`, ...) |
 | `commands/deploy:deploy_shortcut`                | idem                                                              |
-| `commands/sandbox_files:files_list`, `commands/sandbox_process:process_list`, `commands/sandbox_system:system_info` | idem |
 
 Rules:
 
-* The same `Command` object may be exported under several names / attached to several groups (Python does this for
-  `ebx init` == `ebx template init`).
-* Sub-groups (`sandbox files`, `sandbox process`, ...) are ordinary `Group`s registered with `parent.addCommand(cmd)`.
-  `sandbox.ts` has to `import` `sandbox_files.js` & co. itself if it attaches them eagerly (Python did so).
-* **`config_cmd.ts` must additionally export** the three helpers the root group uses to merge `[shortcuts]` from
-  `~/.ebx/config.toml` (they are synchronous):
-  * `loadShortcuts(): Record<string, string> | Map<string, string>` (`{}` for a corrupted file),
-  * `_configFileExists(): boolean`,
-  * `_createDefaultConfig(): void`.
-  If the module or an export is missing, `main.ts` prints the standard "Failed to load shortcuts from config" warning
-  and continues with the four core groups.
-* Do not import `main.ts` for anything except `handleErrors`, the `EXIT_*` constants, `_DEFAULT_SHORTCUTS`,
-  `_SHORTCUT_TARGET_MAP`, `_CORE_COMMANDS` (a static import is fine: `main.ts` only imports command modules
-  dynamically, there is no top-level await, so the cycle is harmless).
-* Tests that need to substitute a command module (Python: `patch("easy_sandbox.cli.commands.x.y")` or
-  `importlib`) use the seams on `mainSeams` in `main.ts`: `mainSeams.importModule(modPath)` (module loader) and
-  `mainSeams.configCmd` (replacement for the three config helpers above).
+* The same `Command` object may be exported under several names / attached to several groups: a top-level shortcut is
+  the very command object of its canonical path (`abx exec` is `abx sandbox exec`).
+* Sub-groups (`sandbox files`, `sandbox process`, `sandbox command`, ...) are ordinary `Group`s registered with
+  `parent.addCommand(cmd)`. `sandbox.ts` imports `sandbox_files.js` & co. itself because it attaches them eagerly.
+* Adding a top-level command means editing `command_surface.ts` **and** `docs/{en,zh}/reference/cli-commands.md`; the
+  surface test fails until both agree.
+* Do not import `main.ts` for anything except `handleErrors` and the `EXIT_*` constants (a static import is fine:
+  `main.ts` only imports command modules dynamically, there is no top-level await, so the cycle is harmless).
+* Tests that need to substitute a command module use the seam `mainSeams.importModule(modPath)` in `main.ts`.
 
 ## 2. Framework API cheat-sheet (`src/framework/index.ts`)
 
@@ -62,7 +55,7 @@ import { regionOption, resolveRegion } from "../region.js";
 import { handleErrors, EXIT_AUTH } from "../main.js";
 
 export const create = command("create", {
-  help: "Create a new sandbox.\n\n\b\nExamples:\n  ebx create --template base",   // Python docstring, cleandoc'd, \b kept
+  help: "Create a new sandbox.\n\n\b\nExamples:\n  abx create --template base",   // Python docstring, cleandoc'd, \b kept
   params: [
     argument(["description"], { required: false }),
     option(["--template", "-t"], { default: null, help: "Template name" }),
@@ -114,7 +107,7 @@ export const create = command("create", {
 
 ## 3. Output (`src/cli/output.ts`)
 
-`getOutput(ctx?)` returns the `OutputManager` the root group stored in `ctx.meta["ebx.output"]` (falls back to a default
+`getOutput(ctx?)` returns the `OutputManager` the root group stored in `ctx.meta["abx.output"]` (falls back to a default
 manager when called outside a context). Channel policy: **stdout** = results (`data`, `table`, `success`),
 **stderr** = everything else (`info`, `progress`, `warning`, `error`, `debug`, and every `logging` record).
 

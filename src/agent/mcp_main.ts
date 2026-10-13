@@ -1,5 +1,5 @@
 /**
- * Entry point equivalent to `python -m easy_sandbox.agent.mcp`.
+ * Entry point equivalent to `python -m agent_sandbox.agent.mcp`.
  *
  * Reads the sandbox connection settings from the environment and serves the
  * MCP STDIO transport until stdin closes or SIGINT/SIGTERM arrives.
@@ -18,10 +18,10 @@ export function serverOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): {
   template: string;
 } {
   return {
-    api_key: env.EBX_SANDBOX_API_KEY || null,
-    api_url: env.EBX_SANDBOX_BASE_URL || null,
-    domain: env.EBX_SANDBOX_DOMAIN || null,
-    template: env.EBX_DEFAULT_TEMPLATE || "base",
+    api_key: env.ABX_SANDBOX_API_KEY || null,
+    api_url: env.ABX_SANDBOX_BASE_URL || null,
+    domain: env.ABX_SANDBOX_DOMAIN || null,
+    template: env.ABX_DEFAULT_TEMPLATE || "base",
   };
 }
 

@@ -18,30 +18,30 @@ const bigWorld = () => {
 for (const cmd of [`list`, `--json list`, `--json info ${SB}`, `info ${SB}`, `exec ${SB} 'echo hi'`, `--json exec ${SB} 'echo hi'`, `--quiet list`, `config list`, `--help`, `list --limit 1000`, `kill ${SB} --yes`, `info sbx-nope`, `bogus`]) {
   const w = bigWorld();
   const base = { world: w };
-  sh(`stdout closed: ${cmd}`, `eval "$EBX ${cmd}" >&-; echo "rc=$?" >&2`, base);
-  sh(`stderr closed: ${cmd}`, `eval "$EBX ${cmd}" 2>&-; echo "rc=$?"`, base);
-  sh(`both closed: ${cmd}`, `eval "$EBX ${cmd}" >&- 2>&-; echo "rc=$?" > /dev/tty 2>/dev/null || echo rc=$? >> rc.txt; cat rc.txt`, base);
-  sh(`stdout full: ${cmd}`, `eval "$EBX ${cmd}" >/dev/full; echo "rc=$?"`, base);
-  sh(`stderr full: ${cmd}`, `eval "$EBX ${cmd}" 2>/dev/full; echo "rc=$?"`, base);
-  sh(`stdout pipe head -c1: ${cmd}`, `eval "$EBX ${cmd}" | head -c1 >/dev/null; echo "rc=\${PIPESTATUS[0]}"`, base);
-  sh(`stdout pipe head -n1: ${cmd}`, `eval "$EBX ${cmd}" | head -n1; echo "rc=\${PIPESTATUS[0]}"`, base);
-  sh(`stderr pipe closed early: ${cmd}`, `eval "$EBX ${cmd}" 2>&1 >/dev/null | head -c1; echo "rc=\${PIPESTATUS[0]}"`, base);
-  sh(`stdin closed: ${cmd}`, `eval "$EBX ${cmd}" <&-; echo "rc=$?"`, base);
-  sh(`stdin /dev/null: ${cmd}`, `eval "$EBX ${cmd}" </dev/null; echo "rc=$?"`, base);
-  sh(`stdin dir: ${cmd}`, `eval "$EBX ${cmd}" <.; echo "rc=$?"`, base);
+  sh(`stdout closed: ${cmd}`, `eval "$ABX ${cmd}" >&-; echo "rc=$?" >&2`, base);
+  sh(`stderr closed: ${cmd}`, `eval "$ABX ${cmd}" 2>&-; echo "rc=$?"`, base);
+  sh(`both closed: ${cmd}`, `eval "$ABX ${cmd}" >&- 2>&-; echo "rc=$?" > /dev/tty 2>/dev/null || echo rc=$? >> rc.txt; cat rc.txt`, base);
+  sh(`stdout full: ${cmd}`, `eval "$ABX ${cmd}" >/dev/full; echo "rc=$?"`, base);
+  sh(`stderr full: ${cmd}`, `eval "$ABX ${cmd}" 2>/dev/full; echo "rc=$?"`, base);
+  sh(`stdout pipe head -c1: ${cmd}`, `eval "$ABX ${cmd}" | head -c1 >/dev/null; echo "rc=\${PIPESTATUS[0]}"`, base);
+  sh(`stdout pipe head -n1: ${cmd}`, `eval "$ABX ${cmd}" | head -n1; echo "rc=\${PIPESTATUS[0]}"`, base);
+  sh(`stderr pipe closed early: ${cmd}`, `eval "$ABX ${cmd}" 2>&1 >/dev/null | head -c1; echo "rc=\${PIPESTATUS[0]}"`, base);
+  sh(`stdin closed: ${cmd}`, `eval "$ABX ${cmd}" <&-; echo "rc=$?"`, base);
+  sh(`stdin /dev/null: ${cmd}`, `eval "$ABX ${cmd}" </dev/null; echo "rc=$?"`, base);
+  sh(`stdin dir: ${cmd}`, `eval "$ABX ${cmd}" <.; echo "rc=$?"`, base);
 }
 // big output
-sh("exec 100KB arg", `eval "$EBX exec ${SB} 'echo $(head -c 100000 /dev/zero | tr '\\0' a)'" | wc -c`);
-sh("exec unicode out", `$(echo true); eval "$EBX exec ${SB} 'echo 日本語🎉 é'"`);
+sh("exec 100KB arg", `eval "$ABX exec ${SB} 'echo $(head -c 100000 /dev/zero | tr '\\0' a)'" | wc -c`);
+sh("exec unicode out", `$(echo true); eval "$ABX exec ${SB} 'echo 日本語🎉 é'"`);
 // locale / encoding
 for (const env of [{ LANG: "C", LC_ALL: "C" }, { LANG: "POSIX", LC_ALL: "POSIX" }, { LC_ALL: "en_US.ISO-8859-1" }, { PYTHONIOENCODING: "ascii" }, { PYTHONUTF8: "0", LC_ALL: "C" }, { LANG: "zh_CN.GBK", LC_ALL: "zh_CN.GBK" }, { LC_ALL: "" , LANG: ""}]) {
   for (const argv of [["exec", SB, "echo 日本語🎉 é"], ["--json", "exec", SB, "echo 日本語🎉 é"], ["list"], ["--help"], ["info", "sbx-é"], ["config", "list"], ["template", "list"]]) cases.push({ name: `locale ${JSON.stringify(env)} ${argv.join(" ")}`, argv, env });
 }
 // args with invalid UTF-8 / surrogate-escapes
-sh("invalid utf8 argv", `eval "$EBX info $'sbx-\\xff\\xfe'"; echo rc=$?`);
-sh("invalid utf8 exec", `eval "$EBX exec ${SB} $'echo \\xff'"; echo rc=$?`);
+sh("invalid utf8 argv", `eval "$ABX info $'sbx-\\xff\\xfe'"; echo rc=$?`);
+sh("invalid utf8 exec", `eval "$ABX exec ${SB} $'echo \\xff'"; echo rc=$?`);
 // stdin variants for exec (stdin never forwarded)
-sh("exec stdin piped data", `printf 'abc\\n' | eval "$EBX exec ${SB} 'echo hi'"; echo rc=$?`);
+sh("exec stdin piped data", `printf 'abc\\n' | eval "$ABX exec ${SB} 'echo hi'"; echo rc=$?`);
 // signals during hanging request
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGQUIT", "SIGUSR1"]) {
   for (const [label, argv] of [["exec", ["exec", SB, "sleep 100"]], ["json exec", ["--json", "exec", SB, "sleep 100"]], ["list-hang", ["list"]]]) {

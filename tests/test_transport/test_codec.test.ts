@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ValueError } from "../../src/models/_pydantic.js";
+import { ValueError } from "../../src/models/value_error.js";
 import {
   CONNECT_CONTENT_TYPE,
   ConnectCodec,

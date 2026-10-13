@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ADV-commands: interactive (pseudo-terminal) behaviour of `ebx connect` (REPL) and of Rich/Click output on a TTY:
+ * ADV-commands: interactive (pseudo-terminal) behaviour of `abx connect` (REPL) and of Rich/Click output on a TTY:
  * line editing, history, Ctrl-C / Ctrl-D, long lines, bracketed paste, unicode, spinners / tables on a TTY, colour env
  * (NO_COLOR / FORCE_COLOR / TERM=dumb / CI), width via COLUMNS. Oracle vs Node.
  *   ORACLE_VENV=... node parity/diff/adv_commands_pty.mjs [--only substr] [--jobs N]
@@ -9,7 +9,7 @@ import { argOf, requireOracle, runAll } from "./adv_commands_lib.mjs";
 requireOracle();
 const SB = "sbx-ev-001";
 const cases = [];
-const P = "ebx:sbx-ev-0> ";
+const P = "abx:sbx-ev-0> ";
 const pty = (name, argv, steps, extra = {}) => cases.push({ name, argv, keepAnsi: true, pty: { steps, timeout: 30 }, env: { TERM: "dumb", NO_COLOR: null, ...(extra.env ?? {}) }, ...extra, env2: undefined });
 const replSteps = (...lines) => lines.flatMap((l) => [{ expect: P, send: l }]);
 for (const term of ["dumb", "xterm-256color"]) {
@@ -43,7 +43,7 @@ for (const term of ["dumb", "xterm-256color"]) {
   pty(t("404"), ["connect", "sbx-nope"], [], { env });
 }
 // Rich/Click output on a TTY under env permutations
-const envs = [{ NO_COLOR: null }, { NO_COLOR: "1" }, { NO_COLOR: "" }, { FORCE_COLOR: "1", NO_COLOR: null }, { FORCE_COLOR: "0", NO_COLOR: null }, { FORCE_COLOR: "", NO_COLOR: null }, { CI: "true", NO_COLOR: null }, { CLICOLOR: "0", NO_COLOR: null }, { CLICOLOR_FORCE: "1", NO_COLOR: null }, { COLORTERM: "truecolor", NO_COLOR: null }, { TERM: "xterm-256color", NO_COLOR: null }, { TERM: "xterm-256color", COLORTERM: "truecolor", NO_COLOR: null }, { TERM: "linux", NO_COLOR: null }, { TERM: "", NO_COLOR: null }, { TERM: null, NO_COLOR: null }, { TERM: "dumb", NO_COLOR: null }, { COLUMNS: "40", NO_COLOR: null, TERM: "xterm" }, { COLUMNS: "300", NO_COLOR: null, TERM: "xterm" }, { COLUMNS: "10", NO_COLOR: null, TERM: "xterm" }, { LINES: "5", NO_COLOR: null, TERM: "xterm" }, { TTY_COMPATIBLE: "1", NO_COLOR: null, TERM: "xterm" }, { TERM_PROGRAM: "vscode", NO_COLOR: null, TERM: "xterm" }, { WT_SESSION: "x", NO_COLOR: null, TERM: "xterm" }, { JUPYTER_COLUMNS: "20", NO_COLOR: null }, { EBX_NO_COLOR: "1", NO_COLOR: null }];
+const envs = [{ NO_COLOR: null }, { NO_COLOR: "1" }, { NO_COLOR: "" }, { FORCE_COLOR: "1", NO_COLOR: null }, { FORCE_COLOR: "0", NO_COLOR: null }, { FORCE_COLOR: "", NO_COLOR: null }, { CI: "true", NO_COLOR: null }, { CLICOLOR: "0", NO_COLOR: null }, { CLICOLOR_FORCE: "1", NO_COLOR: null }, { COLORTERM: "truecolor", NO_COLOR: null }, { TERM: "xterm-256color", NO_COLOR: null }, { TERM: "xterm-256color", COLORTERM: "truecolor", NO_COLOR: null }, { TERM: "linux", NO_COLOR: null }, { TERM: "", NO_COLOR: null }, { TERM: null, NO_COLOR: null }, { TERM: "dumb", NO_COLOR: null }, { COLUMNS: "40", NO_COLOR: null, TERM: "xterm" }, { COLUMNS: "300", NO_COLOR: null, TERM: "xterm" }, { COLUMNS: "10", NO_COLOR: null, TERM: "xterm" }, { LINES: "5", NO_COLOR: null, TERM: "xterm" }, { TTY_COMPATIBLE: "1", NO_COLOR: null, TERM: "xterm" }, { TERM_PROGRAM: "vscode", NO_COLOR: null, TERM: "xterm" }, { WT_SESSION: "x", NO_COLOR: null, TERM: "xterm" }, { JUPYTER_COLUMNS: "20", NO_COLOR: null }, { ABX_NO_COLOR: "1", NO_COLOR: null }];
 for (const env of envs) {
   const nm = JSON.stringify(env);
   for (const argv of [["list"], ["info", SB], ["--help"], ["info", "sbx-nope"], ["exec", SB, "echo hi"], ["--no-color", "list"], ["--json", "list"], ["--quiet", "list"], ["--ci", "list"], ["--verbose", "list"], ["kill", SB], ["config", "list"], ["template", "list"], ["sandbox", "files", "list", SB], ["sandbox", "system", "info", SB]]) {

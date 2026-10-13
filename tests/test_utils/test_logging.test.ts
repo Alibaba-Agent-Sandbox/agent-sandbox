@@ -20,12 +20,12 @@ function withEnv<T>(patch: Record<string, string>, fn: () => T): T {
 describe("TestGetLogger", () => {
   it("test_returns_namespaced_logger", () => {
     const logger = getLogger("transport.http");
-    expect(logger.name).toBe("easy_sandbox.transport.http");
+    expect(logger.name).toBe("agent_sandbox.transport.http");
   });
 
   it("test_already_prefixed", () => {
-    const logger = getLogger("easy_sandbox.session");
-    expect(logger.name).toBe("easy_sandbox.session");
+    const logger = getLogger("agent_sandbox.session");
+    expect(logger.name).toBe("agent_sandbox.session");
   });
 
   it("test_returns_logging_logger", () => {
@@ -42,13 +42,13 @@ describe("TestGetLogger", () => {
     try {
       withEnv({ SANDBOX_LOG_LEVEL: "DEBUG" }, () => {
         getLogger("envtest");
-        const pkg = logging.getLogger("easy_sandbox");
+        const pkg = logging.getLogger("agent_sandbox");
         expect(pkg.level).toBe(DEBUG);
       });
     } finally {
       for (const handler of saved_handlers) root_logger.addHandler(handler);
       log_module._setConfigured(false);
-      logging.getLogger("easy_sandbox").setLevel(WARNING);
+      logging.getLogger("agent_sandbox").setLevel(WARNING);
     }
   });
 
@@ -61,7 +61,7 @@ describe("TestGetLogger", () => {
       withEnv({}, () => {
         delete process.env["SANDBOX_LOG_LEVEL"];
         getLogger("default_test");
-        const pkg = logging.getLogger("easy_sandbox");
+        const pkg = logging.getLogger("agent_sandbox");
         expect(pkg.level).toBe(WARNING);
       });
     } finally {
@@ -79,12 +79,12 @@ describe("TestGetLogger", () => {
     try {
       withEnv({ SANDBOX_LOG_LEVEL: "WARNING" }, () => {
         getLogger("hosted");
-        expect(logging.getLogger("easy_sandbox").level).toBe(NOTSET);
+        expect(logging.getLogger("agent_sandbox").level).toBe(NOTSET);
       });
     } finally {
       root_logger.removeHandler(handler);
       log_module._setConfigured(false);
-      logging.getLogger("easy_sandbox").setLevel(WARNING);
+      logging.getLogger("agent_sandbox").setLevel(WARNING);
     }
   });
 });

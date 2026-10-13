@@ -7,13 +7,13 @@ Date: 2026-09-29
 ## Problem
 
 AI coding tools and agents working in *other* projects (not this repository) need a
-portable, tool-neutral description of how to operate Easy Sandbox: which interface to
-pick (MCP vs Python SDK vs `ebx` CLI), how to install, how to keep credentials safe,
+portable, tool-neutral description of how to operate Agent Sandbox: which interface to
+pick (MCP vs Python SDK vs `abx` CLI), how to install, how to keep credentials safe,
 how to run the sandbox lifecycle, and how to diagnose common errors.
 
 Prior to this decision the repository had only research conclusions — the skills
 *system* design (`docs/*/design/skills-system.md`) had been deleted as unimplemented
-(ADR 2026-09-29 skills-design-removal), and the `ebx skill` CLI command group had
+(ADR 2026-09-29 skills-design-removal), and the `abx skill` CLI command group had
 been removed (ADR 2026-09-23 CLI command reduction). Nothing shippable existed for
 external agents to consume, and `llms.txt` contained API drift: a non-existent
 `sb.filesystem` attribute, a non-existent `python-base` template, and six dead
@@ -29,7 +29,7 @@ Scope boundaries, made explicit inside the file:
 
 1. **Static guide only.** The file is not executed, parsed, or registered by Easy
    Sandbox at runtime.
-2. **No restoration** of the removed `ebx skill` command group, Skills registry,
+2. **No restoration** of the removed `abx skill` command group, Skills registry,
    skill runtime, or template skill configuration.
 3. **Tool-neutral.** It documents one shared surface (CLI / SDK / MCP) and briefly
    explains how MCP-capable tools (Cursor, Claude, VS Code, Qoder, …),
@@ -52,7 +52,7 @@ Supporting changes:
 
 - **sdist: include.** SKILL.md is a top-level distribution document like README.md;
   source-distribution consumers (including AI tooling unpacking the tarball) get it.
-- **wheel: exclude.** The wheel ships only the `easy_sandbox` Python package; a
+- **wheel: exclude.** The wheel ships only the `agent_sandbox` Python package; a
   repo-root usage guide does not belong in `site-packages`.
 - Evidence: `tests/test_packaging.py` builds both artifacts with the real backend
   (hatchling, `python -m hatchling build`) in a temporary repo copy and asserts
@@ -62,16 +62,16 @@ Supporting changes:
 ### Guide/code consistency (with test evidence)
 
 `tests/test_agent_guide.py` asserts: frontmatter format and size limits, the
-required topic coverage, the static-guide/no-restore disclaimer, that `ebx skill`
+required topic coverage, the static-guide/no-restore disclaimer, that `abx skill`
 mentions appear only as removal disclaimers, that the MCP tool names cited match
 `agent/tools.py` `TOOL_SCHEMAS`, that cited error codes exist in `models/errors.py`
 (or CLI HTTP mappings), that repo paths cited in SKILL.md exist, that `llms.txt`
-references SKILL.md, that `llms.txt` Links resolve on disk, and that every `ebx …`
+references SKILL.md, that `llms.txt` Links resolve on disk, and that every `abx …`
 example in `llms.txt` names a command registered in `cli/main.py`.
 
 ## Alternatives considered
 
-- **Restore `ebx skill search/install/...`** — Rejected: re-introduces the
+- **Restore `abx skill search/install/...`** — Rejected: re-introduces the
   unimplemented skills system removed by ADR 2026-09-23; a static file delivers the
   value (teaching agents) without any runtime surface.
 - **Put the guide only under `docs/`** — Rejected: agents in other repositories
@@ -95,7 +95,7 @@ minimal environments can still run the suite.
 
 - `pytest tests/test_packaging.py tests/test_agent_guide.py` — 15 passed.
 - Real-build evidence: sdist tar listing contains `SKILL.md`; wheel zip listing does
-  not; wheel still contains `easy_sandbox/…`.
+  not; wheel still contains `agent_sandbox/…`.
 - llms.txt link/command checks caught and now guard the six previously dead
   `docs/design/` links and any future command drift.
 

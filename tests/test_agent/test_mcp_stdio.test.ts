@@ -1,7 +1,7 @@
 /**
  * STDIO process checks for the MCP server.
  *
- * These start the real `ebx mcp start` process (`src/bin/ebx.ts`). The sandbox
+ * These start the real `abx mcp start` process (`src/bin/abx.ts`). The sandbox
  * API is a local stub, so the tests do not create a cloud sandbox.
  */
 
@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-const ENTRY = fileURLToPath(new URL("../../src/bin/ebx.ts", import.meta.url));
+const ENTRY = fileURLToPath(new URL("../../src/bin/abx.ts", import.meta.url));
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -68,12 +68,12 @@ function watchMcp(proc: ChildProcessWithoutNullStreams, runtime: string): Mcp {
 }
 
 function startMcp(apiUrl: string): Mcp {
-  const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "ebx-mcp-stdio-"));
+  const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "abx-mcp-stdio-"));
   const env = { ...process.env };
-  env.EBX_MCP_RUNTIME_DIR = runtime;
+  env.ABX_MCP_RUNTIME_DIR = runtime;
   env.HOME = runtime;
   env.USERPROFILE = runtime;
-  env.EBX_NO_KEYCHAIN = "1";
+  env.ABX_NO_KEYCHAIN = "1";
   const proc = spawn(
     process.execPath,
     [
@@ -224,13 +224,13 @@ describe("TestStdioProcess", () => {
       "};",
       "await main();",
     ].join("\n");
-    const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "ebx-mcp-stdio-"));
+    const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "abx-mcp-stdio-"));
     const env = { ...process.env };
-    env.EBX_SANDBOX_API_KEY = "stdio-e2e-placeholder";
-    env.EBX_MCP_RUNTIME_DIR = runtime;
+    env.ABX_SANDBOX_API_KEY = "stdio-e2e-placeholder";
+    env.ABX_MCP_RUNTIME_DIR = runtime;
     env.HOME = runtime;
     env.USERPROFILE = runtime;
-    env.EBX_NO_KEYCHAIN = "1";
+    env.ABX_NO_KEYCHAIN = "1";
     const proc = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e", probe], {
       cwd: ROOT,
       env,

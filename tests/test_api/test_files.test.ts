@@ -11,7 +11,7 @@ import { TEST_ENVD_URL, makeFilesModule } from "./conftest.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const tmpPath = () => fs.mkdtempSync(path.join(os.tmpdir(), "ebx-files-"));
+const tmpPath = () => fs.mkdtempSync(path.join(os.tmpdir(), "abx-files-"));
 
 describe("TestFilesRead", () => {
   // Test FilesModule.read() and read_bytes().

@@ -1,14 +1,14 @@
-# Easy Sandbox CLI — Design Document Index
+# Agent Sandbox CLI — Design Document Index
 
 > **Version**: v3.0 | **Last Updated**: 2026-10-12
 >
-> Entry point and index for the design documentation of the `ebx` CLI (this repository). Detailed designs live in the topic documents under [`design/`](design/). The Python SDK has its own design set in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk); see [Related SDK documentation](#related-sdk-documentation).
+> Entry point and index for the design documentation of the `abx` CLI (this repository). Detailed designs live in the topic documents under [`design/`](design/). The Python SDK has its own design set in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk); see [Related SDK documentation](#related-sdk-documentation).
 
 ---
 
 ## Project Overview
 
-**`ebx`** (npm package `@easy-sandbox/cli`) is the command-line client for the Alibaba Cloud FC Agent Sandbox service, designed for both human developers and AI Agents. It is implemented in Node.js / TypeScript. It also hosts the MCP server that exposes sandboxes to IDE agents.
+**`abx`** (npm package `@agent-sandbox/cli`) is the command-line client for the Alibaba Cloud FC Agent Sandbox service, designed for both human developers and AI Agents. It is implemented in Node.js / TypeScript. It also hosts the MCP server that exposes sandboxes to IDE agents.
 
 ### Core Principles
 
@@ -19,10 +19,10 @@
 ### Quick Start
 
 ```bash
-npm install -g @easy-sandbox/cli   # ebx CLI (Node.js 20+)
-export EBX_SANDBOX_API_KEY=your-api-key
-ebx create --template base
-ebx list
+npm install -g @agent-sandbox/cli   # abx CLI (Node.js 20+)
+export ABX_SANDBOX_API_KEY=your-api-key
+abx create --template base
+abx list
 ```
 
 ---
@@ -33,7 +33,7 @@ The CLI follows a strict layered structure — lower layers never import upper l
 
 ```mermaid
 graph TB
-    BIN["bin — ebx entry"]
+    BIN["bin — abx entry"]
     subgraph Front["Command line"]
         FW["framework — click-compatible command framework"]
         CLI["cli — main, OutputManager, formatters"]
@@ -76,7 +76,7 @@ graph TB
 | Topic | Document | Summary |
 |-------|----------|---------|
 | **MCP Server** | [mcp-server.md](design/mcp-server.md) | 7 P0 MCP tools, STDIO + Streamable HTTP transports, FC deployment artifact, session binding |
-| **BYO Agent Integration** | [byo-agent-integration.md](guide/byo-agent-integration.md) | How a user brings their own agent CLI into a sandbox template: responsibility boundary, `custom_commands`, credential whitelist, version locking |
+| **Agents API** | [agents-api.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/agents-api.md) | In-sandbox agent sessions. Codex and Qwen Code today; more CLIs on the same routes later |
 
 ### Port, Layout and Provider Drafts
 
@@ -98,7 +98,7 @@ These are English-only maintainer documents under [`docs/design/`](../design/) a
 | CLI (45 commands) | **Implemented** | See [cli-design.md](design/cli-design.md) |
 | MCP Server (STDIO) | **Implemented** | 7 P0 tools |
 | MCP Server (Streamable HTTP) | **Implemented** | `agent/mcp_http.ts` |
-| `ebx mcp deploy` (FC artifact generation) | **Implemented** | Generates deploy artifact; manual FC deployment steps printed. See [mcp-server.md](design/mcp-server.md#7-fc-deployment) |
+| `abx mcp deploy` (FC artifact generation) | **Implemented** | Generates deploy artifact; manual FC deployment steps printed. See [mcp-server.md](design/mcp-server.md#7-fc-deployment) |
 | Template build/push/create pipeline | **Implemented** | Via official CreateTemplate API |
 | Single-file binary (Node SEA) | **Implemented** | See [Binary Installation](guide/binary-installation.md) |
 | Provider layer | **Planned** | Applied after the parity gate; see the provider drafts above |
@@ -111,16 +111,16 @@ These are English-only maintainer documents under [`docs/design/`](../design/) a
 |----------|----------|
 | Architecture Decision Records (ADR) | [`.agents/notes/`](../../.agents/notes/README.md) |
 | CLI golden-file evidence | [`.agents/evidence/`](../../.agents/evidence/) |
-| BYO agent integration guide | [`docs/en/guide/byo-agent-integration.md`](guide/byo-agent-integration.md) |
+| Agents API | [python-sdk `docs/en/guide/agents-api.md`](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/agents-api.md) |
 | User guides | [`docs/en/guide/`](guide/) |
 | CLI reference | [`docs/en/reference/`](reference/) |
 | Chinese (中文) design index | [`docs/zh/DESIGN.md`](../zh/DESIGN.md) |
 
 ## Related SDK documentation
 
-The Python SDK (`easy-sandbox`), the in-sandbox server SDK and the platform contracts are documented in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk). The pages a CLI reader most often needs:
+The Python SDK (`agent-sandbox`), the in-sandbox server SDK and the platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The pages a CLI reader most often needs:
 
-- [Architecture](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture, which the CLI's client core mirrors
-- [SDK API Design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md) and [Sandbox Types](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)
-- [Template System](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and [template.yaml Spec](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — the `template.yaml` contract
-- [Built-in Agents](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/built-in-agents.md) and [Server API](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
+- [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture, which the CLI's client core mirrors
+- [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md) and [Sandbox Types](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)
+- [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and [template.yaml Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — the `template.yaml` contract
+- [Built-in Agents](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/built-in-agents.md) and [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)

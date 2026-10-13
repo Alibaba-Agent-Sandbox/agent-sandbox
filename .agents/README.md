@@ -8,9 +8,9 @@ Maintainer and AI-agent facing records of **why** the CLI looks the way it does.
 A record lives in the repository that owns the code the decision changed. ADRs for the CLI (command surface,
 credential resolution, templates deploy flow, MCP integration, providers) live here; ADRs for the Python SDK, the
 server runtime and the `template.yaml` schema live in
-[`easy-sandbox/python-sdk`](https://github.com/Easy-Sandbox/python-sdk/tree/main/.agents). Records are never
+[`agent-sandbox/python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk/tree/main/.agents). Records are never
 copied between repositories: link with an absolute URL
-(`https://github.com/Easy-Sandbox/<repo>/blob/main/<path>`), never with `../python-sdk`, never with a bare slug.
+(`https://github.com/alibaba-agent-sandbox/<repo>/blob/main/<path>`), never with `../python-sdk`, never with a bare slug.
 
 ## Layout
 
@@ -40,7 +40,7 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 ## Research and evidence
 
 - **Research** answers "what is out there" before a design exists; it is not updated afterwards.
-- **Evidence** is immutable once written. Captures of the original Python `ebx` keep the behaviour of v0.2.0; a
+- **Evidence** is immutable once written. Captures of the original Python `abx` keep the behaviour of v0.2.0; a
   capture of the Node CLI is a new file. Never paste credentials, tokens or machine-local paths.
 - Removals of obsolete files (Python leftovers and similar) are recorded as ADRs under `notes/implemented/process/`.
 

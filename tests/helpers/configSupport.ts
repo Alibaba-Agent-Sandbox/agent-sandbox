@@ -7,14 +7,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { configSeams } from "../../src/cli/commands/config_cmd.js";
-import { sys } from "../../src/framework/io.js";
+import { sys } from "../../src/cli/io.js";
 
 /** `_CONFIG_ENV_VARS` of `test_config_commands.py`: every variable that changes an effective config value. */
 export const CONFIG_ENV_VARS = [
-  "EBX_SANDBOX_API_KEY",
-  "EBX_SANDBOX_BASE_URL",
-  "EBX_SANDBOX_DOMAIN",
-  "EBX_HTTP_TIMEOUT",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_SANDBOX_DOMAIN",
+  "ABX_HTTP_TIMEOUT",
   "ALIBABA_CLOUD_REGION_ID",
   "E2B_API_KEY",
   "SANDBOX_API_KEY",
@@ -27,10 +27,9 @@ export const CONFIG_ENV_VARS = [
   "ALICLOUD_ACCESS_KEY_SECRET",
   "AccessKey",
   "AccessSecret",
-  "EBX_LLM_API_KEY",
-  "EBX_QWEN_CODE_API_KEY",
-  "EBX_LLM_BASE_URL",
-  "EBX_LLM_MODEL",
+  "ABX_LLM_API_KEY",
+  "ABX_LLM_BASE_URL",
+  "ABX_LLM_MODEL",
   "BAILIAN_CODING_PLAN_API_KEY",
   "DASHSCOPE_API_KEY",
   "OPENAI_API_KEY",
@@ -74,11 +73,11 @@ export function patchConfig(overrides: Partial<Seams>): () => void {
   };
 }
 
-/** The three storage patches every command test applies: `_CONFIG_FILE`, `_EBX_DIR` (and `_ENV_FILE` when given). */
+/** The three storage patches every command test applies: `_CONFIG_FILE`, `_ABX_DIR` (and `_ENV_FILE` when given). */
 export function storagePatch(tmp: string, opts: { env?: boolean | string } = {}): Partial<Seams> {
   const patch: Partial<Seams> = {
     _CONFIG_FILE: path.join(tmp, "config.toml"),
-    _EBX_DIR: tmp,
+    _ABX_DIR: tmp,
   };
   if (opts.env) patch._ENV_FILE = typeof opts.env === "string" ? opts.env : path.join(tmp, ".env");
   return patch;

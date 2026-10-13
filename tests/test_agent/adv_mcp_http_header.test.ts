@@ -60,8 +60,8 @@ describe("ADV-agent-template: mcp start --http", () => {
       env: {
         PATH: process.env.PATH ?? "",
         HOME: sb.home,
-        EBX_NO_KEYCHAIN: "1",
-        EBX_MCP_RUNTIME_DIR: run,
+        ABX_NO_KEYCHAIN: "1",
+        ABX_MCP_RUNTIME_DIR: run,
         LANG: "C.UTF-8",
         NO_PROXY: "*",
       },

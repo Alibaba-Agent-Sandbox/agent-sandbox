@@ -3,7 +3,7 @@
  *
  *  - integers and floats keep their Python distinction (`60` vs `60.0`),
  *  - tables keep file order (`Map`, also for integer-like keys),
- *  - error messages for a corrupted `~/.ebx/config.toml` are the exact `TOMLDecodeError` texts the Python CLI prints
+ *  - error messages for a corrupted `~/.abx/config.toml` are the exact `TOMLDecodeError` texts the Python CLI prints
  *    ("Invalid statement (at line 1, column 4)"), including the `UnicodeDecodeError` for non UTF-8 files.
  *
  * Value model: `str` -> string, `bool` -> boolean, `int` -> number (safe range) or bigint, `float` -> {@link PyFloat},

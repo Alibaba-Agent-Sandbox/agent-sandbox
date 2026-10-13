@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ValidationError } from "../../src/models/_pydantic.js";
+import { ValidationError } from "../../src/models/base.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
 
 describe("TestSandboxStatus", () => {

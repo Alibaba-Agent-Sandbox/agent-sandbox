@@ -1,6 +1,6 @@
 # Testing and the Definition of Done
 
-How `ebx` is verified end to end, and the rule that decides when a change counts as finished.
+How `abx` is verified end to end, and the rule that decides when a change counts as finished.
 
 > 中文版本:[../../zh/guide/testing-e2e.md](../../zh/guide/testing-e2e.md)
 
@@ -18,12 +18,12 @@ Only the third layer can close the "E2E" item of the Definition of Done.
 
 ```bash
 cp .env.example .env            # fill in real credentials; .env is gitignored
-EBX_BIN="node dist/bin/ebx.js" npm run e2e     # after npm run build
+ABX_BIN="node dist/bin/abx.js" npm run e2e     # after npm run build
 npm run e2e:offline                            # no credentials needed
 npm run e2e:cleanup                            # dry-run janitor for leaked sandboxes
 ```
 
-The suite is language-neutral: it runs any binary selected by `EBX_BIN` with an isolated HOME, no CI
+The suite is language-neutral: it runs any binary selected by `ABX_BIN` with an isolated HOME, no CI
 variables, masked output and tracked cleanup. Every sandbox it creates is destroyed, and a final
 `leak-check` scenario fails the run if one survives. See [`e2e/README.md`](../../../e2e/README.md) for
 suites, scenario format and environment variables. Recorded results are in
@@ -32,7 +32,7 @@ suites, scenario format and environment variables. Recorded results are in
 ## Compare two binaries
 
 ```bash
-EBX_ORACLE=ebx EBX_BIN="node dist/bin/ebx.js" node parity/diff/diff.mjs --verbose
+ABX_ORACLE=abx ABX_BIN="node dist/bin/abx.js" node parity/diff/diff.mjs --verbose
 ```
 
 Identical argv runs against both binaries and a stub cloud; exit codes, normalised output, written files
@@ -40,8 +40,8 @@ and the HTTP traffic are diffed. Details: [`parity/diff/README.md`](../../../par
 
 ## Credentials
 
-Real credentials live only in gitignored `.env` files or environment variables (`EBX_SANDBOX_API_KEY`,
-`EBX_SANDBOX_BASE_URL`, `EBX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`, `ACR_NAMESPACE`, `EBX_LLM_API_KEY`,
+Real credentials live only in gitignored `.env` files or environment variables (`ABX_SANDBOX_API_KEY`,
+`ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`, `ACR_NAMESPACE`, `ABX_LLM_API_KEY`,
 `OPENAI_BASE_URL`). Never print, log or commit them; the suites mask them in everything they capture.
 
 ## Definition of Done

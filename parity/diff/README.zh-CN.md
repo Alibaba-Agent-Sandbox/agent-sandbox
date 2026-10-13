@@ -1,18 +1,21 @@
 # mock 对比 oracle 差分工具
 
-对两个 `ebx` 二进制运行**完全相同的 argv**,并比较所有可观察结果:退出码、规范化后的 stdout/stderr、写入的文件
+对两个 `abx` 二进制运行**完全相同的 argv**,并比较所有可观察结果:退出码、规范化后的 stdout/stderr、写入的文件
 (配置、MCP 配置、下载文件),以及各自发往确定性云端 stub 的 **HTTP 流量**。无需云账号,一分钟内即可回答
 "移植版的行为是否与 Python oracle 完全一致"。
 
 > English version: [README.md](README.md).
 
+
+> **Oracle 范围。** oracle 是命令面重新设计之前的 Python CLI。已不存在的写法(用户快捷方式、顶层 `init`/`install`、`process start`、`shell-stream`、全局 `--timeout`/`--profile`、`template.yaml` 的 `custom_commands`)对应的用例已删除;其余用例仍与它对比。运行需要该 oracle 的检出,仅凭本仓库无法运行。stub 还设置了 oracle 使用的 `E2B_*` / `SANDBOX_*` 环境变量名,而 CLI 已不再读取它们(改读 `ABX_*`),因此该工具仅作历史参考,不是 CI 门禁。
+
 ```bash
-EBX_ORACLE=/path/to/python/venv/bin/ebx \
-EBX_BIN="node dist/bin/ebx.js" \
+ABX_ORACLE=/path/to/python/venv/bin/abx \
+ABX_BIN="node dist/bin/abx.js" \
 node parity/diff/diff.mjs [--filter regex] [--fast] [--verbose] [--show] [--out reports/dir] [--list]
 
-EBX_ORACLE=... node parity/diff/selftest.mjs     # 证明工具能发现故意引入的回归
-EBX_ORACLE=X EBX_BIN=X node parity/diff/diff.mjs # oracle 对比自身:必须 0 差异
+ABX_ORACLE=... node parity/diff/selftest.mjs     # 证明工具能发现故意引入的回归
+ABX_ORACLE=X ABX_BIN=X node parity/diff/diff.mjs # oracle 对比自身:必须 0 差异
 ```
 
 | 文件 | 作用 |

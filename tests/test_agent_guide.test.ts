@@ -6,7 +6,7 @@
  * - SKILL.md follows the common Agent Skills frontmatter format (name/description).
  * - SKILL.md covers the required usage topics (install, credentials, MCP vs SDK, lifecycle, files, cleanup, error
  *   diagnosis, credential-leak rules).
- * - SKILL.md is explicitly a static guide and documents that it does not restore the removed `ebx skill` command group.
+ * - SKILL.md is explicitly a static guide and documents that it does not restore the removed `abx skill` command group.
  * - MCP tool names cited in SKILL.md match `agent/tools.ts` TOOL_SCHEMAS.
  * - Repository paths cited in SKILL.md / llms.txt exist.
  * - llms.txt references SKILL.md and only names commands the CLI really registers.
@@ -20,9 +20,8 @@ import { describe, expect, it } from "vitest";
 
 import { TOOL_SCHEMAS } from "../src/agent/tools.js";
 import { cli } from "../src/cli/main.js";
-import { Context } from "../src/framework/index.js";
 import * as errMod from "../src/models/errors.js";
-import { safeLoad } from "../src/utils/_yaml.js";
+import { loadYaml as safeLoad } from "../src/utils/yaml_io.js";
 import { REPO_ROOT, exists, read } from "./helpers/docsSupport.js";
 
 const SKILL_MD = path.join(REPO_ROOT, "SKILL.md");
@@ -40,7 +39,7 @@ function _frontmatter(text: string): Record<string, unknown> {
 describe("TestSkillFrontmatter", () => {
   it("test_name_and_description_present", () => {
     const fm = _frontmatter(read(SKILL_MD));
-    expect(fm["name"]).toBe("easy-sandbox");
+    expect(fm["name"]).toBe("agent-sandbox");
     expect(typeof fm["description"] === "string" && (fm["description"] as string).trim().length > 0).toBe(true);
   });
 
@@ -89,8 +88,8 @@ describe("TestSkillCoverage", () => {
   it("test_skill_command_mentions_are_disclaimers_only", () => {
     const normalized = read(SKILL_MD).replaceAll("**", "");
     for (const line of normalized.split(/\r?\n/)) {
-      if (line.toLowerCase().includes("ebx skill")) {
-        expect(line.toLowerCase().includes("removed"), "mentions of `ebx skill` must reference its removal, not usage").toBe(true);
+      if (line.toLowerCase().includes("abx skill")) {
+        expect(line.toLowerCase().includes("removed"), "mentions of `abx skill` must reference its removal, not usage").toBe(true);
       }
     }
   });
@@ -151,8 +150,8 @@ describe("TestLlmsTxt", () => {
   });
 
   it("test_cli_examples_use_registered_commands", async () => {
-    const registered = new Set(await cli.listCommands(new Context(cli)));
-    const used = new Set([...read(LLMS_TXT).matchAll(/^\s*ebx\s+(\S+)/gm)].map((m) => m[1] as string));
+    const registered = new Set(cli.listCommands());
+    const used = new Set([...read(LLMS_TXT).matchAll(/^\s*abx\s+(\S+)/gm)].map((m) => m[1] as string));
     const unknown = [...used].filter((c) => !registered.has(c));
     expect(unknown, "llms.txt references unknown CLI commands").toEqual([]);
   });

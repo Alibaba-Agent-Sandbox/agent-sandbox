@@ -33,8 +33,8 @@ has no live consumers, so no backward-compatibility shims are needed.
 
 | Item | Files removed | Files modified |
 |------|--------------|----------------|
-| integrations/ | `src/easy_sandbox/integrations/` (2 files), `tests/test_integrations/` | 4 docs files |
-| SessionStore ABC | `src/easy_sandbox/session/base.py` | `session/local.py`, `session/__init__.py`, `api/session_manager.py`, 4 docs |
+| integrations/ | `src/agent_sandbox/integrations/` (2 files), `tests/test_integrations/` | 4 docs files |
+| SessionStore ABC | `src/agent_sandbox/session/base.py` | `session/local.py`, `session/__init__.py`, `api/session_manager.py`, 4 docs |
 | TEMPLATE_CATALOG phantoms | — | `agent/infer.py`, 3 test files, 4 docs |
 | check_capability gating | — | `api/capability.py`, `api/commands.py`, `api/files.py`, `api/code.py`, `api/network.py`, `api/sandbox.py`, 3 test files |
 | PICKLE/MSGPACK serializer | — | `declarative/serializer.py`, `declarative/decorator.py`, 2 test files |
@@ -100,7 +100,7 @@ Additional doc/config/test alignment performed after adversarial review:
 
 ### Test/example alignment
 - `e2e_capability_validation.py` E2B-05: changed from negative gate test (expect CapabilityNotSupportedError) to positive port-access test (verify get_host returns valid string)
-- `benchmarks/bench_import.py`: removed `easy_sandbox.integrations` import
+- `benchmarks/bench_import.py`: removed `agent_sandbox.integrations` import
 - `test_config.py`: pickle/msgpack test values → json
 
 ### Code robustness

@@ -1,18 +1,18 @@
-Usage: cli mcp stop [OPTIONS]
+Usage: abx mcp stop [options]
 
-  Stop the local MCP server started by 'ebx mcp start'.
+Stop the local MCP server started by 'abx mcp start'.
 
-  Sends SIGTERM to the recorded pid (STDIO foreground or HTTP background) and
-  waits for it to exit. Sandboxes owned by that server are destroyed during its
-  shutdown.
+Sends SIGTERM to the recorded pid (STDIO foreground or HTTP background)
+and waits for it to exit. Sandboxes owned by that server are destroyed
+during its shutdown.
 
-  Examples:
-    ebx mcp stop
+Examples:
+  abx mcp stop
 
-  Related commands:
-    ebx mcp start            Start STDIO in the foreground
-    ebx mcp start --http --background
-    ebx mcp status           Inspect configuration and whether a server is running
+Related commands:
+  abx mcp start            Start STDIO in the foreground
+  abx mcp start --http --background
+  abx mcp status           Inspect configuration and whether a server is running
 
 Options:
   -h, --help  Show this message and exit.

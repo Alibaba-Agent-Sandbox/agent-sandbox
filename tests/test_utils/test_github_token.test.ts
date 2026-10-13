@@ -54,8 +54,8 @@ describe("TestRateLimitMessage", () => {
 describe("TestRateLimitSuggestion", () => {
   it("test_recommends_config_set_over_token_flag", () => {
     const suggestion = rate_limit_suggestion();
-    expect(suggestion).toContain("ebx config set github_token");
-    expect(suggestion).toContain("~/.ebx/.env");
+    expect(suggestion).toContain("abx config set github_token");
+    expect(suggestion).toContain("~/.abx/.env");
   });
 
   it("test_token_flag_documented_as_leak_prone", () => {

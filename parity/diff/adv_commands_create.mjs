@@ -42,13 +42,11 @@ add("desc whitespace", ["create", "   "]);
 add("desc whitespace + template", ["create", "   ", ...T]);
 add("desc huge", ["create", "-y", "x".repeat(100000)]);
 for (const t of ["1", "300", "86400", "86401", "0", "-1", "3600"]) add(`create timeout ${t}`, ["create", ...T, "--timeout", t]);
-for (const t of ["1", "300", "86400", "86401", "0", "-1"]) add(`root timeout ${t} create`, ["--timeout", t, "create", ...T]);
-add("root timeout and create timeout", ["--timeout", "10", "create", ...T, "--timeout", "20"]);
 add("root -t", ["-t", "10", "create", ...T]);
 add("create -t", ["create", ...T, "-t", "10"]);
 for (const t of ["0.5", "1", "1e2", "inf", "nan", "-1", "0", "1_0", ".5", "5.", "+5", "1e-3"]) add(`request-timeout ${t}`, ["create", ...T, "--request-timeout", t]);
-add("config http_timeout 500", ["create", ...T], { setup: (h) => { mkdirSync(join(h, ".ebx"), { recursive: true }); writeFileSync(join(h, ".ebx", "config.toml"), "[transport]\nhttp_timeout = 500\n"); } });
-add("config http_timeout 10", ["create", ...T], { setup: (h) => { mkdirSync(join(h, ".ebx"), { recursive: true }); writeFileSync(join(h, ".ebx", "config.toml"), "[transport]\nhttp_timeout = 10\n"); } });
+add("config http_timeout 500", ["create", ...T], { setup: (h) => { mkdirSync(join(h, ".abx"), { recursive: true }); writeFileSync(join(h, ".abx", "config.toml"), "[transport]\nhttp_timeout = 500\n"); } });
+add("config http_timeout 10", ["create", ...T], { setup: (h) => { mkdirSync(join(h, ".abx"), { recursive: true }); writeFileSync(join(h, ".abx", "config.toml"), "[transport]\nhttp_timeout = 10\n"); } });
 add("env http_timeout", ["create", ...T], { env: { SANDBOX_HTTP_TIMEOUT: "777" } });
 // upload on create
 add("create upload file", ["create", ...T, "--upload", "f.txt"], { setup: (h, c) => put(c, "f.txt", "hello") });
@@ -117,10 +115,10 @@ for (const l of ["1", "0", "-1", "100", "101", "1000", "5.5", "x"]) add(`list li
 add("list region", ["list", "--region", "cn-shanghai"]);
 add("list region empty", ["list", "--region", ""]);
 add("list region bad", ["list", "--region", "mars"]);
-add("list region env", ["list"], { env: { EBX_REGION: "cn-beijing" } });
+add("list region env", ["list"], { env: { ABX_REGION: "cn-beijing" } });
 add("list region env2", ["list"], { env: { SANDBOX_REGION: "cn-beijing" } });
 add("list region env3", ["list"], { env: { E2B_REGION: "cn-beijing" } });
-add("list region opt+env", ["list", "--region", "cn-shanghai"], { env: { EBX_REGION: "cn-beijing" } });
+add("list region opt+env", ["list", "--region", "cn-shanghai"], { env: { ABX_REGION: "cn-beijing" } });
 add("list empty", ["list"], { world: { sandboxes: {} } });
 add("list empty json", ["--json", "list"], { world: { sandboxes: {} } });
 add("list empty quiet", ["--quiet", "list"], { world: { sandboxes: {} } });

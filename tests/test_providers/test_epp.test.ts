@@ -22,7 +22,7 @@ const INIT = { protocol: "epp/1", host: { name: "test", version: "0" }, provider
 
 let tmp = "";
 beforeEach(() => {
-  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "ebx-epp-"));
+  tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-epp-"));
 });
 afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
@@ -216,14 +216,14 @@ describe("TestScrubbedEnv", () => {
       PATH: "/bin",
       HOME: "/h",
       LC_ALL: "C",
-      EBX_SANDBOX_API_KEY: "secret",
+      ABX_SANDBOX_API_KEY: "secret",
       E2B_API_KEY: "secret",
       AWS_SECRET_ACCESS_KEY: "secret",
       MY_PASS: "yes",
       RANDOM: "x",
     });
-    expect(new Set(Object.keys(env))).toEqual(new Set(["PATH", "HOME", "LC_ALL", "MY_PASS", "EBX_PROVIDER_DATA_DIR", "PYTHONDONTWRITEBYTECODE"]));
-    expect(env["EBX_PROVIDER_DATA_DIR"]).toBe(tmp);
+    expect(new Set(Object.keys(env))).toEqual(new Set(["PATH", "HOME", "LC_ALL", "MY_PASS", "ABX_PROVIDER_DATA_DIR", "PYTHONDONTWRITEBYTECODE"]));
+    expect(env["ABX_PROVIDER_DATA_DIR"]).toBe(tmp);
   });
 
   it("test_resolve_command_confines_dot_slash", () => {
@@ -284,7 +284,7 @@ describe("TestMapError", () => {
 describe.skipIf(!pythonAvailable())("reference plugin", () => {
   it("test_reference_plugin_env_is_scrubbed_and_config_arrives_via_initialize", async () => {
     await installer.install(LOCAL_PROCESS, { yes: true, hostVersion: TEST_HOST_VERSION });
-    iso.setenv("EBX_SANDBOX_API_KEY", "parent-secret-1");
+    iso.setenv("ABX_SANDBOX_API_KEY", "parent-secret-1");
     iso.setenv("E2B_API_KEY", "parent-secret-2");
     iso.setenv("AWS_SECRET_ACCESS_KEY", "parent-secret-3");
     const provider = registry.getProvider("local-process");
@@ -296,9 +296,9 @@ describe.skipIf(!pythonAvailable())("reference plugin", () => {
       const blob = JSON.stringify(res);
       expect(blob).not.toContain("parent-secret");
       expect(blob).not.toContain("tok-abcdefgh");
-      expect(res.env["EBX_PROVIDER_DATA_DIR"]).toBe(store.dataDir("local-process"));
+      expect(res.env["ABX_PROVIDER_DATA_DIR"]).toBe(store.dataDir("local-process"));
       expect(res.env["PYTHONDONTWRITEBYTECODE"]).toBe("1");
-      expect(Object.keys(res.env).some((k) => /^(EBX_SANDBOX|E2B_|AWS_)/.test(k))).toBe(false);
+      expect(Object.keys(res.env).some((k) => /^(ABX_SANDBOX|E2B_|AWS_)/.test(k))).toBe(false);
       expect(new Set(res.config_keys)).toEqual(new Set(["debug", "token"]));
       await c.call("debug.leak", {});
       await new Promise((r) => setTimeout(r, 200));

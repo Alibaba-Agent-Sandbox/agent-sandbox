@@ -20,14 +20,14 @@
 
 2. **检查超时配置**：增大 HTTP 超时
    ```bash
-   ebx config set http_timeout 60
+   abx config set http_timeout 60
    ```
 
 3. **检查代理**：如果在代理环境中，确保 `https_proxy` 正确配置
 
 4. **检查区域**：确认区域设置正确
    ```bash
-   ebx config get region
+   abx config get region
    ```
 
 ---
@@ -38,19 +38,19 @@
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **解决**：
 ```bash
 # 检查配置状态
-ebx config get sandbox_api_key
+abx config get sandbox_api_key
 
 # 重新设置 API Key
-ebx config set sandbox_api_key your-api-key
+abx config set sandbox_api_key your-api-key
 
 # 或设置环境变量
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
 ### E1003 — AK/SK 凭证无效
@@ -81,7 +81,7 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
 
 ```text
 [E2001] Template 'my-template' not found
-  Suggestion: Run 'ebx template list' to see available templates.
+  Suggestion: Run 'abx template list' to see available templates.
 ```
 
 **解决**：
@@ -89,11 +89,11 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
 1. 检查模板名称拼写
 2. 确认模板已安装：
    ```bash
-   ebx template install owner/repo
+   abx template install owner/repo
    ```
 3. 使用默认模板测试：
    ```bash
-   ebx create --template base
+   abx create --template base
    ```
 
 ---
@@ -109,7 +109,7 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
 
 ### 解释
 
-Easy Sandbox 使用能力模型控制沙箱功能。每个能力需要在模板中显式声明：
+Agent Sandbox 使用能力模型控制沙箱功能。每个能力需要在模板中显式声明：
 
 | 能力 | 默认包含 | 需要显式声明 |
 |------|----------|-------------|
@@ -151,13 +151,13 @@ capabilities:
 
 ```bash
 # 查看运行中的沙箱
-ebx list --status running
+abx list --status running
 
 # 销毁不需要的沙箱
-ebx kill sbx-xxxx
+abx kill sbx-xxxx
 
 # 批量销毁
-ebx kill --all --yes
+abx kill --all --yes
 ```
 
 ---
@@ -178,7 +178,7 @@ ebx kill --all --yes
 result = await sandbox.commands.run("long-command", timeout=300)
 
 # CLI 中增加超时
-ebx exec sbx-xxxx "long-command" --timeout 300
+abx exec sbx-xxxx "long-command" --timeout 300
 ```
 
 ---
@@ -187,7 +187,7 @@ ebx exec sbx-xxxx "long-command" --timeout 300
 
 ### E7001 — 缺少 LLM Key
 
-> 仅 SDK 的 `Sandbox.deploy()` 会抛出。`ebx deploy` 不需要 LLM Key；CLI 的 AI 步骤（`ebx create "..."`、`ebx template init "..."`、`ebx template init --adopt`）使用 `ebx config` 中的 Qwen Code 凭据。
+> `abx deploy` 不需要 LLM Key；CLI 的 AI 步骤（`abx create "..."`、`abx template init "..."`、`abx template init --adopt`）使用 `abx config` 中的 Qwen Code 凭据。
 
 ```text
 [E7001] No LLM API key found for the qwen-code agent.
@@ -198,19 +198,18 @@ ebx exec sbx-xxxx "long-command" --timeout 300
 
 ```bash
 export DASHSCOPE_API_KEY="your-key"
-# 或向 Sandbox.deploy(...) 传入 llm_api_key=
-# CLI（create / template init）：ebx config set llm_api_key your-key
+# CLI（create / template init）：abx config set llm_api_key your-key
 ```
 
 ### 没有 Dockerfile
 
-目录里没有 `Dockerfile` 时，`ebx deploy` 会停下，并给出三条编写命令：已有源码用 `ebx template init --adopt .`，用一句话新建项目用 `ebx template init "描述"`，脚手架用 `ebx template init -t python`。文件写好之后再执行 `ebx deploy`。
+目录里没有 `Dockerfile` 时，`abx deploy` 会停下，并给出三条编写命令：已有源码用 `abx template init --adopt .`，用一句话新建项目用 `abx template init "描述"`，脚手架用 `abx template init -t python`。文件写好之后再执行 `abx deploy`。
 
 非交互的 `--adopt` 如果没带 `-y`，会停在 “Confirmation required before project files are sent to the model.”。加上 `-y` 即同时批准两次确认；`--dry-run` 只列出文件，不发送。
 
 ### 长时间步骤看起来停住了
 
-终端上标题应持续走动（`Building Docker image locally... 12s`，然后 `13s`）。最近六行日志以灰色显示在标题下方。如果只看到一行、没有耗时，当前会话是 `--quiet`、`--json`、`--ci`、`TERM=dumb`，或者不是终端。去掉这些选项就能看到动态块。`--verbose` 改为打印完整的部署日志。`EBX_ACTIVITY_LINES`（1–10，默认 6）决定保留几行灰色文字。灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏。
+终端上标题应持续走动（`Building Docker image locally... 12s`，然后 `13s`）。最近六行日志以灰色显示在标题下方。如果只看到一行、没有耗时，当前会话是 `--quiet`、`--json`、`--ci`、`TERM=dumb`，或者不是终端。去掉这些选项就能看到动态块。`--verbose` 改为打印完整的部署日志。`ABX_ACTIVITY_LINES`（1–10，默认 6）决定保留几行灰色文字。灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏。
 
 ### E7003 — 部署超时
 
@@ -240,19 +239,19 @@ entries = await sandbox.files.list("/home/user")
 
 ## 快捷方式目标无效
 
-快捷方式的目标是命令路径，不是带 `ebx` 的完整调用。下面的写法会被拒绝，且不会保存：
+快捷方式的目标是命令路径，不是带 `abx` 的完整调用。下面的写法会被拒绝，且不会保存：
 
 ```bash
-ebx config set shortcuts.aaaaa "ebx template init"
+abx config set shortcuts.aaaaa "abx template init"
 ```
 
 ```text
-Invalid shortcut target: 'ebx template init'
-  Suggestion: Drop the leading "ebx". The target is the command path only, for example "template init".
-              Try: ebx config set shortcuts.aaaaa "template init"
+Invalid shortcut target: 'abx template init'
+  Suggestion: Drop the leading "abx". The target is the command path only, for example "template init".
+              Try: abx config set shortcuts.aaaaa "template init"
 ```
 
-按提示里的命令重试即可。如果 `~/.ebx/config.toml` 里已经写了 `aaaaa = "ebx template init"`，下次启动 `ebx` 会警告 `Invalid shortcut ignored` 并跳过这一条，其他快捷方式仍然可用。不认识的路径（例如 `"not-a-command"`）同样会被拒绝，并按命令分组列出合法目标。
+按提示里的命令重试即可。如果 `~/.abx/config.toml` 里已经写了 `aaaaa = "abx template init"`，下次启动 `abx` 会警告 `Invalid shortcut ignored` 并跳过这一条，其他快捷方式仍然可用。不认识的路径（例如 `"not-a-command"`）同样会被拒绝，并按命令分组列出合法目标。
 
 ---
 
@@ -262,20 +261,20 @@ Invalid shortcut target: 'ebx template init'
 
 ```bash
 # 确保使用正确的包名
-npm install -g @easy-sandbox/cli
+npm install -g @agent-sandbox/cli
 
 # 如果遇到依赖冲突
-npm install -g @easy-sandbox/cli --force
+npm install -g @agent-sandbox/cli --force
 ```
 
-### ebx 命令未找到
+### abx 命令未找到
 
 确认 npm 的全局 bin 目录在 PATH 中：
 
 ```bash
-npx @easy-sandbox/cli --version
+npx @agent-sandbox/cli --version
 # 或
-npm ls -g @easy-sandbox/cli
+npm ls -g @agent-sandbox/cli
 ```
 
 ---

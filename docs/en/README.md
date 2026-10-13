@@ -1,6 +1,6 @@
-# Easy Sandbox CLI — Documentation
+# Agent Sandbox CLI — Documentation
 
-`ebx` is the command-line client for the Easy Sandbox cloud sandbox service (Alibaba Cloud Function Compute): create and manage sandboxes, run code and commands, author and deploy templates, and expose sandboxes to IDE agents through an MCP server. This page indexes the documentation of the CLI (`@easy-sandbox/cli`). The Python SDK is documented in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk); see [Related SDK documentation](#related-sdk-documentation).
+`abx` is the command-line client for the Agent Sandbox cloud sandbox service (Alibaba Cloud Function Compute): create and manage sandboxes, run code and commands, author and deploy templates, and expose sandboxes to IDE agents through an MCP server. This page indexes the documentation of the CLI (`@agent-sandbox/cli`). The Python SDK is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk); see [Related SDK documentation](#related-sdk-documentation).
 
 ---
 
@@ -22,25 +22,30 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 | Guide | Description |
 |-------|-------------|
 | [Getting Started](guide/getting-started.md) | Install, configure, first sandbox |
-| [Binary Installation](guide/binary-installation.md) | Single-file `ebx` binary (Node SEA), no Node.js required |
-| [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `ebx config` |
+| [Best Practices](guide/best-practices.md) | When to use `--provider`, `--model`, `llm_model`, credentials, and the standalone binary |
+| [Operations](guide/operations.md) | Every command group and the one command for that job |
+| [Binary Installation](guide/binary-installation.md) | Single-file `abx` binary (Node SEA), no Node.js required |
+| [Providers](guide/providers.md) | Install, select, and configure sandbox providers |
+| [Authoring Providers](guide/authoring-providers.md) | Write an EPP/1 provider plugin, including `[template]` and install-from-git |
+| [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `abx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |
 | [Using Templates](guide/using-templates.md) | Official and community templates |
-| [Authoring Templates](guide/authoring-templates.md) | Custom templates, including `ebx template init --adopt` for an existing project |
+| [Authoring Templates](guide/authoring-templates.md) | Custom templates, including `abx template init --adopt` for an existing project |
 | [Deploy & Build](guide/deploy-and-build.md) | Template lifecycle (`template init` / `--adopt` → `deploy` → `create`) |
 | [E2E Template Workflow](guide/e2e-template-workflow.md) | Complete guide from building a template to using sandboxes |
 | [MCP Integration](guide/mcp-integration.md) | Cursor / Claude Desktop / VS Code integration |
 | [Environment Variables](guide/environment-variables.md) | Sandbox env var scopes, injection, and direct-exec semantics |
 | [Troubleshooting](guide/troubleshooting.md) | Common issues and solutions |
 | [Agent Skill Installation](guide/agent-skill-installation.md) | Install the static SKILL.md agent guide into Qoder / Claude Code / Cursor / Qwen Code / Codex |
-| [BYO Agent Integration](guide/byo-agent-integration.md) | Bring your own agent CLI inside a sandbox: responsibility boundary, `custom_commands` contract, credential whitelist, version locking, license boundaries |
+| [Agents API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/agents-api.md) | Run Codex, Qwen Code, and later agent CLIs inside the sandbox. The server parses sessions, turns, and items |
 | [Testing & Definition of Done](guide/testing-e2e.md) | Three verification layers (unit, differential, real-cloud E2E) and the Definition of Done |
-| [Command and SDK map](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/command-map.md) | `ebx` and the Python SDK next to the E2B and OpenSandbox commands and methods |
+| [Command and SDK map](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/command-map.md) | `abx` and the Python SDK next to the E2B and OpenSandbox commands and methods |
 
 ### [`reference/`](reference/) — CLI / Configuration Reference
 
 | Document | Description |
 |----------|-------------|
+| [CLI Command Reference](reference/cli-commands.md) | Canonical command tree, the fixed top-level shortcuts, removed spellings |
 | [CLI Reference](reference/cli-reference.md) | All CLI commands quick reference |
 | [Configuration](reference/configuration.md) | CLI environment variables, config file, priority |
 | [Error Codes](reference/error-codes.md) | E1xxx–E6xxx error codes and CLI exit codes |
@@ -58,28 +63,28 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 
 ### By role
 
-- **CLI user**: [Getting Started](guide/getting-started.md) → [CLI Tutorial](guide/cli-tutorial.md) → [CLI Command System](design/cli-design.md)
+- **CLI user**: [Getting Started](guide/getting-started.md) → [Operations](guide/operations.md) → [Best Practices](guide/best-practices.md) → [CLI Tutorial](guide/cli-tutorial.md)
 - **Template author**: [Authoring Templates](guide/authoring-templates.md) → [Deploy & Build](guide/deploy-and-build.md) → [E2E Template Workflow](guide/e2e-template-workflow.md)
-- **AI Agent developer**: [BYO Agent Integration](guide/byo-agent-integration.md) → [MCP Integration](guide/mcp-integration.md) → [MCP Server](design/mcp-server.md)
+- **AI Agent developer**: [Agents API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/agents-api.md) → [MCP Integration](guide/mcp-integration.md) → [MCP Server](design/mcp-server.md)
 - **CLI contributor**: [CLI Architecture](design/architecture.md) → [Python to Node port](../PORTING.md)
 
 ### By feature
 
 - **Natural language sandbox creation**: [CLI](design/cli-design.md#3-natural-language-creation-ai-template-generation)
-- **Deploy a project**: [CLI deploy command](design/cli-design.md#ebx-deploy) (`ebx deploy` is a fixed build + push + create-template pipeline; templates are authored with `ebx template init` — scaffold, one-sentence description, or `--adopt`)
+- **Deploy a project**: [CLI deploy command](design/cli-design.md#abx-deploy) (`abx deploy` is a fixed build + push + create-template pipeline; templates are authored with `abx template init` — scaffold, one-sentence description, or `--adopt`)
 - **MCP integration (Cursor/Claude)**: [MCP Server](design/mcp-server.md#5-installation-and-cli)
 
 ### Other resources
 
-- **Template source of truth (awesome-templates):** [Easy-Sandbox/awesome-templates](https://github.com/Easy-Sandbox/awesome-templates) — the single source of truth for official & community template content, the index (`awesome-templates.yaml`), and publishing; consumed via `ebx template search` / `ebx template install`
+- **Template source of truth (awesome-templates):** [alibaba-agent-sandbox/awesome-templates](https://github.com/alibaba-agent-sandbox/awesome-templates) — the single source of truth for official & community template content, the index (`awesome-templates.yaml`), and publishing; consumed via `abx template search` / `abx template install`
 - **中文文档**: [Chinese docs](../zh/README.md)
 
 ## Related SDK documentation
 
-The Python SDK, the in-sandbox server SDK and the shared platform contracts are documented in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk):
+The Python SDK, the in-sandbox server SDK and the shared platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk):
 
-- [Documentation index](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/README.md)
-- [SDK Usage Guide](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) and [SDK API Design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md)
-- [Architecture](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture
-- [Template System](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and [template.yaml Spec](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
-- [Declarative Usage](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md), [Session Persistence](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/session-persistence.md), [Migrate from E2B](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md)
+- [Documentation index](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/README.md)
+- [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) and [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md)
+- [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture
+- [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and [template.yaml Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
+- [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md), [Session Persistence](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/session-persistence.md), [Migrate from E2B](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md)

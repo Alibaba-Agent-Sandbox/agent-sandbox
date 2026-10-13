@@ -21,7 +21,7 @@
  * Session affinity requires platform routing based on the `Mcp-Session-Id`
  * response header.
  *
- * Port of `easy_sandbox/agent/mcp_http.py`. The Python app is Starlette on
+ * Port of `agent_sandbox/agent/mcp_http.py`. The Python app is Starlette on
  * uvicorn; this one is `node:http` with the same routes, status codes,
  * header names, and body bytes.
  */
@@ -264,7 +264,7 @@ export class MCPAuthConfigError extends Error {
  * on a loopback STDIO or HTTP process the operator started themselves. A
  * function deployed for remote clients must not boot in that mode.
  *
- * @param value `EBX_MCP_AUTH_TOKEN` or an equivalent setting.
+ * @param value `ABX_MCP_AUTH_TOKEN` or an equivalent setting.
  * @returns The stripped token.
  * @throws MCPAuthConfigError when the token is missing or only whitespace.
  */
@@ -272,7 +272,7 @@ export function requireAuthToken(value: string | null | undefined): string {
   const token = pyStrip(value ?? "");
   if (!token) {
     throw new MCPAuthConfigError(
-      "EBX_MCP_AUTH_TOKEN is empty. Refusing to start a remote MCP " +
+      "ABX_MCP_AUTH_TOKEN is empty. Refusing to start a remote MCP " +
         "server with client authentication disabled.",
     );
   }
@@ -786,28 +786,28 @@ async function respond(
  * Create a default app reading configuration from environment variables.
  *
  * Environment variables:
- * - `EBX_MCP_AUTH_TOKEN` — Bearer token for client auth (optional)
- * - `EBX_SANDBOX_API_KEY` — Sandbox backend API key
- * - `EBX_SANDBOX_BASE_URL` — API URL override
- * - `EBX_SANDBOX_DOMAIN` — Domain override
- * - `EBX_DEFAULT_TEMPLATE` — Default template
- * - `EBX_MCP_ALLOWED_ORIGINS` — comma separated extra `Origin` values
+ * - `ABX_MCP_AUTH_TOKEN` — Bearer token for client auth (optional)
+ * - `ABX_SANDBOX_API_KEY` — Sandbox backend API key
+ * - `ABX_SANDBOX_BASE_URL` — API URL override
+ * - `ABX_SANDBOX_DOMAIN` — Domain override
+ * - `ABX_DEFAULT_TEMPLATE` — Default template
+ * - `ABX_MCP_ALLOWED_ORIGINS` — comma separated extra `Origin` values
  */
 export function _createDefaultApp(env: NodeJS.ProcessEnv = process.env): McpHttpApp {
-  const rawOrigins = env.EBX_MCP_ALLOWED_ORIGINS ?? "";
+  const rawOrigins = env.ABX_MCP_ALLOWED_ORIGINS ?? "";
   const allowedOrigins = new Set(
     rawOrigins
       .split(",")
       .map((part) => pyStrip(part))
       .filter((part) => part),
   );
-  // Python: os.environ.get("SANDBOX_TEMPLATE") or os.environ.get("EBX_TEMPLATE", "base")
-  const template = env.EBX_DEFAULT_TEMPLATE ?? "base";
+  // Python: os.environ.get("SANDBOX_TEMPLATE") or os.environ.get("ABX_TEMPLATE", "base")
+  const template = env.ABX_DEFAULT_TEMPLATE ?? "base";
   return createMcpApp({
-    auth_token: env.EBX_MCP_AUTH_TOKEN ?? null,
-    api_key: env.EBX_SANDBOX_API_KEY || null,
-    api_url: env.EBX_SANDBOX_BASE_URL || null,
-    domain: env.EBX_SANDBOX_DOMAIN || null,
+    auth_token: env.ABX_MCP_AUTH_TOKEN ?? null,
+    api_key: env.ABX_SANDBOX_API_KEY || null,
+    api_url: env.ABX_SANDBOX_BASE_URL || null,
+    domain: env.ABX_SANDBOX_DOMAIN || null,
     template,
     allowed_origins: allowedOrigins,
   });

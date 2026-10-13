@@ -1,4 +1,4 @@
 [exit_code:2]
 [stderr]
 Either provide a sandbox ID or use --all.
-  Suggestion: Usage: ebx kill <sandbox-id> or ebx kill --all
+  Suggestion: Usage: abx kill <sandbox-id> or abx kill --all

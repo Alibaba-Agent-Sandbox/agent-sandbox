@@ -16,7 +16,7 @@ export const CLI_ROOT = resolve(HERE, "..", "..");
 export const FIXTURES = join(CLI_ROOT, "tests", "fixtures", "agent");
 
 /** Fresh temp dir (realpath'd, like pytest's `tmp_path` on macOS). */
-export function makeTmp(prefix = "ebx-agent-"): string {
+export function makeTmp(prefix = "abx-agent-"): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));
 }
 
@@ -45,12 +45,12 @@ export function findPython(): string | null {
 }
 
 /**
- * `PYTHONPATH` that makes the container-side `easy_sandbox.server` importable: `EBX_SERVER_SDK_SRC` (a
+ * `PYTHONPATH` that makes the container-side `agent_sandbox.server` importable: `ABX_SERVER_SDK_SRC` (a
  * path-delimited list), else `$ORIG_REPO/src` / `$ORIG_REPO/python-sdk/*\/src`, else `<repo>/python-sdk/*\/src`.
  */
 export function serverSdkPythonPath(python: string): string | null {
   const roots: string[] = [];
-  if (process.env.EBX_SERVER_SDK_SRC) roots.push(process.env.EBX_SERVER_SDK_SRC);
+  if (process.env.ABX_SERVER_SDK_SRC) roots.push(process.env.ABX_SERVER_SDK_SRC);
   const repos = [process.env.ORIG_REPO, resolve(CLI_ROOT, "..")].filter((p): p is string => !!p);
   for (const repo of repos) {
     roots.push(join(repo, "src"));
@@ -58,7 +58,7 @@ export function serverSdkPythonPath(python: string): string | null {
   }
   for (const candidate of roots) {
     if (!candidate.split(delimiter).every((p) => existsSync(p))) continue;
-    const r = spawnSync(python, ["-c", "import easy_sandbox.server"], {
+    const r = spawnSync(python, ["-c", "import agent_sandbox.server"], {
       encoding: "utf8",
       env: { ...process.env, PYTHONPATH: candidate },
     });
@@ -69,7 +69,7 @@ export function serverSdkPythonPath(python: string): string | null {
 
 export interface PythonReference {
   python: string;
-  /** `PYTHONPATH` that makes `easy_sandbox.server` importable; `null` when only the interpreter is available. */
+  /** `PYTHONPATH` that makes `agent_sandbox.server` importable; `null` when only the interpreter is available. */
   sdk: string | null;
 }
 
@@ -77,7 +77,7 @@ let cachedReference: PythonReference | null | undefined;
 
 /**
  * The optional Python reference used by a handful of cross-checks (`python3` for `ast.parse`, the container-side
- * `easy_sandbox.server` package for the template guide). `golden.json` stays the default oracle: when the reference is
+ * `agent_sandbox.server` package for the template guide). `golden.json` stays the default oracle: when the reference is
  * absent the dependent tests are skipped (see {@link itWithPython} / {@link itWithServerSdk}) with a one-time notice.
  */
 export function pythonReference(): PythonReference | null {
@@ -104,12 +104,12 @@ export function itWithPython(it: TestFn): TestFn {
   return it.skip as TestFn;
 }
 
-/** `it` when `easy_sandbox.server` is importable by `python3`, otherwise `it.skip`. */
+/** `it` when `agent_sandbox.server` is importable by `python3`, otherwise `it.skip`. */
 export function itWithServerSdk(it: TestFn): TestFn {
   if (pythonReference()?.sdk) return it;
   announceSkip(
     "server SDK cross-checks",
-    "python3 cannot import easy_sandbox.server (keep python-sdk/server-sdk next to cli/, or set EBX_SERVER_SDK_SRC or ORIG_REPO); golden.json fixtures remain the oracle",
+    "python3 cannot import agent_sandbox.server (keep python-sdk/server-sdk next to cli/, or set ABX_SERVER_SDK_SRC or ORIG_REPO); golden.json fixtures remain the oracle",
   );
   return it.skip as TestFn;
 }

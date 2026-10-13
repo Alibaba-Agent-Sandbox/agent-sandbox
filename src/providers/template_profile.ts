@@ -1,13 +1,13 @@
 /**
- * Template image profile owned by the CLI provider, not by `easy_sandbox.server`.
+ * Template image profile owned by the CLI provider, not by `agent_sandbox.server`.
  *
  * The server listens on port 9000 either way. Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a
  * platform `start_cmd` / `ready_cmd`, arch, workdir, reserved ports, and the registry note come from the selected
  * provider. Built-in `alicloud-express` has a profile constant here. A plugin may declare the same fields in
- * `ebx-provider.toml` under `[template]`. An unknown id, or a plugin with no `[template]` table, uses the generic
+ * `abx-provider.toml` under `[template]`. An unknown id, or a plugin with no `[template]` table, uses the generic
  * Docker profile and the generator says so. That fallback is never the Function Compute image.
  *
- * Provider id resolution matches the rest of `ebx`: explicit id, else `--provider` / `EBX_PROVIDER` / config /
+ * Provider id resolution matches the rest of `abx`: explicit id, else `--provider` / `ABX_PROVIDER` / config /
  * `alicloud-express` (`resolveProviderId`).
  */
 
@@ -55,12 +55,12 @@ interface ProfileFields {
   registry: string;
 }
 
-/** Wheel install used by the guide and by `ebx template init`. The package is `easy-sandbox-server`, not the client. */
-export const EASY_SANDBOX_SERVER_INSTALL = `COPY *.whl /tmp/
+/** Wheel install used by the guide and by `abx template init`. The package is `agent-sandbox-server`, not the client. */
+export const ABX_SERVER_INSTALL = `COPY *.whl /tmp/
 RUN if ls /tmp/*.whl 1>/dev/null 2>&1; then \\
         pip install --no-cache-dir /tmp/*.whl && rm -f /tmp/*.whl; \\
     else \\
-        pip install --no-cache-dir easy-sandbox-server; \\
+        pip install --no-cache-dir agent-sandbox-server; \\
     fi`;
 
 /** FC Agent Sandbox profile (section 2 of the template/provider boundary review). */
@@ -69,8 +69,8 @@ const ALICLOUD_EXPRESS_FIELDS: ProfileFields = {
   entrypoint_replaceable: false,
   server_start: "platform_start_cmd",
   cmd: null,
-  start_cmd: "easy-sandbox-server serve --port 9000 --commands /home/user/app/commands.py",
-  ready_cmd: "easy-sandbox-server healthcheck --port 9000",
+  start_cmd: "agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py",
+  ready_cmd: "agent-sandbox-server healthcheck --port 9000",
   arch: "linux/amd64",
   user: "user",
   workdir: "/home/user/app",
@@ -140,7 +140,7 @@ function isTable(v: unknown): v is Record<string, unknown> {
 }
 
 function profileError(msg: string): ProviderManifestError {
-  return new ProviderManifestError(`Invalid ebx-provider.toml: [template] ${msg}.`);
+  return new ProviderManifestError(`Invalid abx-provider.toml: [template] ${msg}.`);
 }
 
 function optionalString(table: Record<string, unknown>, key: string): string | null {
@@ -234,10 +234,10 @@ export function profileForProvider(providerId: string): TemplateProfile {
 }
 
 /**
- * Profile for the provider `ebx` would use.
+ * Profile for the provider `abx` would use.
  *
  * `explicit` is the `--provider` id when the caller already has one. Omit it to use `cliProvider()` /
- * `EBX_PROVIDER` / the configured default (`alicloud-express`).
+ * `ABX_PROVIDER` / the configured default (`alicloud-express`).
  */
 export function resolveTemplateProfile(explicit?: string | null): TemplateProfile {
   const id = explicit !== undefined && explicit !== null && explicit.trim() ? explicit.trim() : resolveProviderId(cliProvider());

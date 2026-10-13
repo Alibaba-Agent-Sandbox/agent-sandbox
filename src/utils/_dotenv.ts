@@ -1,5 +1,5 @@
 /**
- * Port of the parts of `python-dotenv` 1.2.4 that `easy_sandbox` uses: `dotenv_values(path)` (parser, escape decoding,
+ * Port of the parts of `python-dotenv` 1.2.4 that `agent_sandbox` uses: `dotenv_values(path)` (parser, escape decoding,
  * `${VAR:-default}` interpolation with `override=True`, BOM strip, universal-newline reading, FIFO-aware file check).
  *
  * The returned mapping is a `Map` so that Python's `values.get(name)` / iteration order carry over unchanged.

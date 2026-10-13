@@ -9,7 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { SessionManager } from "../../src/api/session_manager.js";
 import { SessionAlreadyExistsError, SessionNotFoundError } from "../../src/models/errors.js";
-import { PyDatetime } from "../../src/models/_pydantic.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { SessionInfo } from "../../src/models/session.js";
 import { LocalSessionStore } from "../../src/session/local.js";
@@ -20,7 +19,7 @@ let store: LocalSessionStore;
 let manager: SessionManager;
 
 beforeEach(() => {
-  const tmp_path = mkdtempSync(join(tmpdir(), "ebx-mgr-"));
+  const tmp_path = mkdtempSync(join(tmpdir(), "abx-mgr-"));
   store = new LocalSessionStore(join(tmp_path, "sessions"));
   manager = new SessionManager(store);
 });
@@ -77,7 +76,7 @@ describe("TestConnect", () => {
       sandbox_id: "sbx-saved-001",
       template: "python3",
       status: "running",
-      created_at: PyDatetime.fromDate(new Date()),
+      created_at: new Date(),
     });
     await store.save("saved-session", session);
 

@@ -40,7 +40,7 @@
 .agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md	
 .agents/notes/implemented/architecture/2026-09-04-envd-container-service-model.md	CHANGED	python-sdk/.agents/notes/implemented/architecture/2026-09-04-envd-container-service-model.md	-1/+1
 .agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-05-sandbox-server-module.md	
-.agents/notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-ebx.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-ebx.md	
+.agents/notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-abx.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-09-brand-rename-sbox-to-abx.md	
 .agents/notes/implemented/architecture/2026-09-09-layer-violation-fix.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-09-layer-violation-fix.md	
 .agents/notes/implemented/architecture/2026-09-09-server-command-registry.md	SAME	python-sdk/.agents/notes/implemented/architecture/2026-09-09-server-command-registry.md	
 .agents/notes/implemented/architecture/2026-09-23-overdesign-cleanup.md	SAME	cli/.agents/notes/implemented/architecture/2026-09-23-overdesign-cleanup.md	
@@ -271,111 +271,111 @@ scripts/deploy_remaining.sh	CHANGED	cli/scripts/deploy_remaining.sh	-16/+34
 scripts/e2e_build_and_test.py	RELOCATED	python-sdk/scripts/e2e/e2e_build_and_test.py	
 scripts/evidence_cases.py	RELOCATED	cli/tests/test_cli_evidence/evidence_cases.ts	
 scripts/quick_build_test.py	RELOCATED	python-sdk/scripts/e2e/quick_build_test.py	
-src/easy_sandbox/__init__.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/__init__.py	-1/+7
-src/easy_sandbox/_version.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/_version.py	-1/+1
-src/easy_sandbox/agent/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/__init__.py	
-src/easy_sandbox/agent/adopt.py	PORTED	cli/src/agent/adopt.ts	
-src/easy_sandbox/agent/builtin.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/builtin.py	
-src/easy_sandbox/agent/clarify.py	PORTED	cli/src/agent/clarify.ts	
-src/easy_sandbox/agent/codegen.py	PORTED	cli/src/agent/codegen.ts	
-src/easy_sandbox/agent/coding_agent.py	PORTED	cli/src/agent/coding_agent.ts	
-src/easy_sandbox/agent/dockerfile_sources.py	PORTED	cli/src/agent/dockerfile_sources.ts	
-src/easy_sandbox/agent/infer.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/infer.py	
-src/easy_sandbox/agent/mcp.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/agent/mcp.py, cli/src/agent/mcp.ts	-1/+1
-src/easy_sandbox/agent/mcp_http.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/mcp_http.py, cli/src/agent/mcp_http.ts	
-src/easy_sandbox/agent/qwen_code.py	PORTED	cli/src/agent/qwen_code.ts	
-src/easy_sandbox/agent/template_guide.py	PORTED	cli/src/agent/template_guide.ts	
-src/easy_sandbox/agent/tools.py	SAME	python-sdk/client-sdk/src/easy_sandbox/agent/tools.py, cli/src/agent/tools.ts	
-src/easy_sandbox/api/__init__.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/__init__.py	-0/+4
-src/easy_sandbox/api/capability.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/capability.py, cli/src/api/capability.ts	
-src/easy_sandbox/api/code.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/code.py, cli/src/api/code.ts	
-src/easy_sandbox/api/commands.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/commands.py, cli/src/api/commands.ts	-4/+4
-src/easy_sandbox/api/deploy.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/deploy.py	
-src/easy_sandbox/api/docker_builder.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/docker_builder.py, cli/src/api/docker_builder.ts	-23/+38
-src/easy_sandbox/api/fc_template.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/fc_template.py, cli/src/api/fc_template.ts	
-src/easy_sandbox/api/files.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/files.py, cli/src/api/files.ts	
-src/easy_sandbox/api/image.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/image.py, cli/src/api/image.ts	-0/+26
-src/easy_sandbox/api/network.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/network.py, cli/src/api/network.ts	-0/+22
-src/easy_sandbox/api/sandbox.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/api/sandbox.py, cli/src/api/sandbox.ts	-17/+500
-src/easy_sandbox/api/session_manager.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/session_manager.py, cli/src/api/session_manager.ts	
-src/easy_sandbox/api/template.py	SAME	python-sdk/client-sdk/src/easy_sandbox/api/template.py, cli/src/api/template.ts	
-src/easy_sandbox/cli/__init__.py	MISSING		
-src/easy_sandbox/cli/commands/__init__.py	MISSING		
-src/easy_sandbox/cli/commands/_adopt.py	PORTED	cli/src/cli/commands/_adopt.ts	
-src/easy_sandbox/cli/commands/_coding_agent.py	PORTED	cli/src/cli/commands/_coding_agent.ts	
-src/easy_sandbox/cli/commands/config_cmd.py	PORTED	cli/src/cli/commands/config_cmd.ts	
-src/easy_sandbox/cli/commands/deploy.py	PORTED	cli/src/cli/commands/deploy.ts	
-src/easy_sandbox/cli/commands/mcp.py	PORTED	cli/src/cli/commands/mcp.ts	
-src/easy_sandbox/cli/commands/sandbox.py	PORTED	cli/src/cli/commands/sandbox.ts	
-src/easy_sandbox/cli/commands/sandbox_files.py	PORTED	cli/src/cli/commands/sandbox_files.ts	
-src/easy_sandbox/cli/commands/sandbox_process.py	PORTED	cli/src/cli/commands/sandbox_process.ts	
-src/easy_sandbox/cli/commands/sandbox_system.py	PORTED	cli/src/cli/commands/sandbox_system.ts	
-src/easy_sandbox/cli/commands/template.py	PORTED	cli/src/cli/commands/template.ts	
-src/easy_sandbox/cli/formatters.py	PORTED	cli/src/cli/formatters.ts	
-src/easy_sandbox/cli/main.py	PORTED	cli/src/cli/main.ts	
-src/easy_sandbox/cli/output.py	PORTED	cli/src/cli/output.ts	
-src/easy_sandbox/cli/region.py	PORTED	cli/src/cli/region.ts	
-src/easy_sandbox/cli/repl.py	PORTED	cli/src/cli/repl.ts	
-src/easy_sandbox/cli/scaffold.py	PORTED	cli/src/cli/scaffold.ts	
-src/easy_sandbox/compat/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/compat/__init__.py	
-src/easy_sandbox/compat/sandbox.py	SAME	python-sdk/client-sdk/src/easy_sandbox/compat/sandbox.py	
-src/easy_sandbox/declarative/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/declarative/__init__.py	
-src/easy_sandbox/declarative/config.py	SAME	python-sdk/client-sdk/src/easy_sandbox/declarative/config.py	
-src/easy_sandbox/declarative/decorator.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/declarative/decorator.py	-12/+29
-src/easy_sandbox/declarative/serializer.py	SAME	python-sdk/client-sdk/src/easy_sandbox/declarative/serializer.py	
-src/easy_sandbox/extensions/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/__init__.py	
-src/easy_sandbox/extensions/domain.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/domain.py	
-src/easy_sandbox/extensions/oss.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/oss.py	
-src/easy_sandbox/extensions/vpc.py	SAME	python-sdk/client-sdk/src/easy_sandbox/extensions/vpc.py	
-src/easy_sandbox/models/__init__.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/__init__.py	-0/+14
-src/easy_sandbox/models/config.py	SAME	python-sdk/client-sdk/src/easy_sandbox/models/config.py, cli/src/models/config.ts	
-src/easy_sandbox/models/errors.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/errors.py, cli/src/models/errors.ts	-0/+258
-src/easy_sandbox/models/filesystem.py	SAME	python-sdk/client-sdk/src/easy_sandbox/models/filesystem.py, cli/src/models/filesystem.ts	
-src/easy_sandbox/models/process.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/process.py, cli/src/models/process.ts	-1/+1
-src/easy_sandbox/models/sandbox.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/sandbox.py, cli/src/models/sandbox.ts	-0/+10
-src/easy_sandbox/models/session.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/session.py, cli/src/models/session.ts	-0/+1
-src/easy_sandbox/models/template.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/models/template.py, cli/src/models/template.ts	-0/+74
-src/easy_sandbox/protocol/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/__init__.py	
-src/easy_sandbox/protocol/code_interpreter.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/code_interpreter.py, cli/src/protocol/code_interpreter.ts	
-src/easy_sandbox/protocol/filesystem.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/filesystem.py, cli/src/protocol/filesystem.ts	
-src/easy_sandbox/protocol/port.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/port.py, cli/src/protocol/port.ts	
-src/easy_sandbox/protocol/process.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/protocol/process.py, cli/src/protocol/process.ts	-6/+6
-src/easy_sandbox/protocol/sandbox.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/sandbox.py, cli/src/protocol/sandbox.ts	
-src/easy_sandbox/protocol/template.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/template.py, cli/src/protocol/template.ts	
-src/easy_sandbox/protocol/terminal.py	SAME	python-sdk/client-sdk/src/easy_sandbox/protocol/terminal.py, cli/src/protocol/terminal.ts	
-src/easy_sandbox/py.typed	SAME	python-sdk/client-sdk/src/easy_sandbox/py.typed	
-src/easy_sandbox/server/__init__.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/__init__.py	-0/+5
-src/easy_sandbox/server/_compat.py	SAME	python-sdk/server-sdk/src/easy_sandbox/server/_compat.py	
-src/easy_sandbox/server/app.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/app.py	-30/+260
-src/easy_sandbox/server/registry.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/registry.py	-0/+8
-src/easy_sandbox/server/router.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/router.py	-2/+22
-src/easy_sandbox/server/routes.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes.py	-33/+168
-src/easy_sandbox/server/routes_browser.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_browser.py	-0/+46
-src/easy_sandbox/server/routes_devtools.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_devtools.py	-8/+48
-src/easy_sandbox/server/routes_files.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_files.py	-59/+326
-src/easy_sandbox/server/routes_process.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_process.py	-15/+209
-src/easy_sandbox/server/routes_pty.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_pty.py	-12/+149
-src/easy_sandbox/server/routes_system.py	CHANGED	python-sdk/server-sdk/src/easy_sandbox/server/routes_system.py	-3/+85
-src/easy_sandbox/server/types.py	SAME	python-sdk/server-sdk/src/easy_sandbox/server/types.py	
-src/easy_sandbox/session/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/session/__init__.py	
-src/easy_sandbox/session/local.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/session/local.py, cli/src/session/local.ts	-0/+2
-src/easy_sandbox/transport/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/__init__.py	
-src/easy_sandbox/transport/auth.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/auth.py, cli/src/transport/auth.ts	
-src/easy_sandbox/transport/codec.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/codec.py, cli/src/transport/codec.ts	
-src/easy_sandbox/transport/config.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/transport/config.py, cli/src/transport/config.ts	-194/+664
-src/easy_sandbox/transport/http.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/http.py, cli/src/transport/http.ts	
-src/easy_sandbox/transport/streaming.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/streaming.py, cli/src/transport/streaming.ts	
-src/easy_sandbox/transport/ws.py	SAME	python-sdk/client-sdk/src/easy_sandbox/transport/ws.py, cli/src/transport/ws.ts	
-src/easy_sandbox/utils/__init__.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/__init__.py	
-src/easy_sandbox/utils/async_bridge.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/async_bridge.py	
-src/easy_sandbox/utils/coerce.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/utils/coerce.py, cli/src/utils/coerce.ts	-4/+6
-src/easy_sandbox/utils/dockerignore.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/dockerignore.py, cli/src/utils/dockerignore.ts	
-src/easy_sandbox/utils/github_token.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/github_token.py, cli/src/utils/github_token.ts	
-src/easy_sandbox/utils/keychain.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/keychain.py, cli/src/utils/keychain.ts	
-src/easy_sandbox/utils/logging.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/utils/logging.py, cli/src/utils/logging.ts	-4/+6
-src/easy_sandbox/utils/registry.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/registry.py, cli/src/utils/registry.ts	
-src/easy_sandbox/utils/retry.py	SAME	python-sdk/client-sdk/src/easy_sandbox/utils/retry.py, cli/src/utils/retry.ts	
-src/easy_sandbox/utils/template_index.py	CHANGED	python-sdk/client-sdk/src/easy_sandbox/utils/template_index.py, cli/src/utils/template_index.ts	-1/+1
+src/agent_sandbox/__init__.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/__init__.py	-1/+7
+src/agent_sandbox/_version.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/_version.py	-1/+1
+src/agent_sandbox/agent/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/agent/__init__.py	
+src/agent_sandbox/agent/adopt.py	PORTED	cli/src/agent/adopt.ts	
+src/agent_sandbox/agent/builtin.py	SAME	python-sdk/client-sdk/src/agent_sandbox/agent/builtin.py	
+src/agent_sandbox/agent/clarify.py	PORTED	cli/src/agent/clarify.ts	
+src/agent_sandbox/agent/codegen.py	PORTED	cli/src/agent/codegen.ts	
+src/agent_sandbox/agent/coding_agent.py	PORTED	cli/src/agent/coding_agent.ts	
+src/agent_sandbox/agent/dockerfile_sources.py	PORTED	cli/src/agent/dockerfile_sources.ts	
+src/agent_sandbox/agent/infer.py	SAME	python-sdk/client-sdk/src/agent_sandbox/agent/infer.py	
+src/agent_sandbox/agent/mcp.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/agent/mcp.py, cli/src/agent/mcp.ts	-1/+1
+src/agent_sandbox/agent/mcp_http.py	SAME	python-sdk/client-sdk/src/agent_sandbox/agent/mcp_http.py, cli/src/agent/mcp_http.ts	
+src/agent_sandbox/agent/qwen_code.py	PORTED	cli/src/agent/qwen_code.ts	
+src/agent_sandbox/agent/template_guide.py	PORTED	cli/src/agent/template_guide.ts	
+src/agent_sandbox/agent/tools.py	SAME	python-sdk/client-sdk/src/agent_sandbox/agent/tools.py, cli/src/agent/tools.ts	
+src/agent_sandbox/api/__init__.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/api/__init__.py	-0/+4
+src/agent_sandbox/api/capability.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/capability.py, cli/src/api/capability.ts	
+src/agent_sandbox/api/code.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/code.py, cli/src/api/code.ts	
+src/agent_sandbox/api/commands.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/api/commands.py, cli/src/api/commands.ts	-4/+4
+src/agent_sandbox/api/deploy.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/deploy.py	
+src/agent_sandbox/api/docker_builder.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/api/docker_builder.py, cli/src/api/docker_builder.ts	-23/+38
+src/agent_sandbox/api/fc_template.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/fc_template.py, cli/src/api/fc_template.ts	
+src/agent_sandbox/api/files.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/files.py, cli/src/api/files.ts	
+src/agent_sandbox/api/image.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/api/image.py, cli/src/api/image.ts	-0/+26
+src/agent_sandbox/api/network.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/api/network.py, cli/src/api/network.ts	-0/+22
+src/agent_sandbox/api/sandbox.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/api/sandbox.py, cli/src/api/sandbox.ts	-17/+500
+src/agent_sandbox/api/session_manager.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/session_manager.py, cli/src/api/session_manager.ts	
+src/agent_sandbox/api/template.py	SAME	python-sdk/client-sdk/src/agent_sandbox/api/template.py, cli/src/api/template.ts	
+src/agent_sandbox/cli/__init__.py	MISSING		
+src/agent_sandbox/cli/commands/__init__.py	MISSING		
+src/agent_sandbox/cli/commands/_adopt.py	PORTED	cli/src/cli/commands/_adopt.ts	
+src/agent_sandbox/cli/commands/_coding_agent.py	PORTED	cli/src/cli/commands/_coding_agent.ts	
+src/agent_sandbox/cli/commands/config_cmd.py	PORTED	cli/src/cli/commands/config_cmd.ts	
+src/agent_sandbox/cli/commands/deploy.py	PORTED	cli/src/cli/commands/deploy.ts	
+src/agent_sandbox/cli/commands/mcp.py	PORTED	cli/src/cli/commands/mcp.ts	
+src/agent_sandbox/cli/commands/sandbox.py	PORTED	cli/src/cli/commands/sandbox.ts	
+src/agent_sandbox/cli/commands/sandbox_files.py	PORTED	cli/src/cli/commands/sandbox_files.ts	
+src/agent_sandbox/cli/commands/sandbox_process.py	PORTED	cli/src/cli/commands/sandbox_process.ts	
+src/agent_sandbox/cli/commands/sandbox_system.py	PORTED	cli/src/cli/commands/sandbox_system.ts	
+src/agent_sandbox/cli/commands/template.py	PORTED	cli/src/cli/commands/template.ts	
+src/agent_sandbox/cli/formatters.py	PORTED	cli/src/cli/formatters.ts	
+src/agent_sandbox/cli/main.py	PORTED	cli/src/cli/main.ts	
+src/agent_sandbox/cli/output.py	PORTED	cli/src/cli/output.ts	
+src/agent_sandbox/cli/region.py	PORTED	cli/src/cli/region.ts	
+src/agent_sandbox/cli/repl.py	PORTED	cli/src/cli/repl.ts	
+src/agent_sandbox/cli/scaffold.py	PORTED	cli/src/cli/scaffold.ts	
+src/agent_sandbox/compat/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/compat/__init__.py	
+src/agent_sandbox/compat/sandbox.py	SAME	python-sdk/client-sdk/src/agent_sandbox/compat/sandbox.py	
+src/agent_sandbox/declarative/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/declarative/__init__.py	
+src/agent_sandbox/declarative/config.py	SAME	python-sdk/client-sdk/src/agent_sandbox/declarative/config.py	
+src/agent_sandbox/declarative/decorator.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/declarative/decorator.py	-12/+29
+src/agent_sandbox/declarative/serializer.py	SAME	python-sdk/client-sdk/src/agent_sandbox/declarative/serializer.py	
+src/agent_sandbox/extensions/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/extensions/__init__.py	
+src/agent_sandbox/extensions/domain.py	SAME	python-sdk/client-sdk/src/agent_sandbox/extensions/domain.py	
+src/agent_sandbox/extensions/oss.py	SAME	python-sdk/client-sdk/src/agent_sandbox/extensions/oss.py	
+src/agent_sandbox/extensions/vpc.py	SAME	python-sdk/client-sdk/src/agent_sandbox/extensions/vpc.py	
+src/agent_sandbox/models/__init__.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/models/__init__.py	-0/+14
+src/agent_sandbox/models/config.py	SAME	python-sdk/client-sdk/src/agent_sandbox/models/config.py, cli/src/models/config.ts	
+src/agent_sandbox/models/errors.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/models/errors.py, cli/src/models/errors.ts	-0/+258
+src/agent_sandbox/models/filesystem.py	SAME	python-sdk/client-sdk/src/agent_sandbox/models/filesystem.py, cli/src/models/filesystem.ts	
+src/agent_sandbox/models/process.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/models/process.py, cli/src/models/process.ts	-1/+1
+src/agent_sandbox/models/sandbox.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/models/sandbox.py, cli/src/models/sandbox.ts	-0/+10
+src/agent_sandbox/models/session.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/models/session.py, cli/src/models/session.ts	-0/+1
+src/agent_sandbox/models/template.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/models/template.py, cli/src/models/template.ts	-0/+74
+src/agent_sandbox/protocol/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/__init__.py	
+src/agent_sandbox/protocol/code_interpreter.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/code_interpreter.py, cli/src/protocol/code_interpreter.ts	
+src/agent_sandbox/protocol/filesystem.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/filesystem.py, cli/src/protocol/filesystem.ts	
+src/agent_sandbox/protocol/port.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/port.py, cli/src/protocol/port.ts	
+src/agent_sandbox/protocol/process.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/protocol/process.py, cli/src/protocol/process.ts	-6/+6
+src/agent_sandbox/protocol/sandbox.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/sandbox.py, cli/src/protocol/sandbox.ts	
+src/agent_sandbox/protocol/template.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/template.py, cli/src/protocol/template.ts	
+src/agent_sandbox/protocol/terminal.py	SAME	python-sdk/client-sdk/src/agent_sandbox/protocol/terminal.py, cli/src/protocol/terminal.ts	
+src/agent_sandbox/py.typed	SAME	python-sdk/client-sdk/src/agent_sandbox/py.typed	
+src/agent_sandbox/server/__init__.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/__init__.py	-0/+5
+src/agent_sandbox/server/_compat.py	SAME	python-sdk/server-sdk/src/agent_sandbox/server/_compat.py	
+src/agent_sandbox/server/app.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/app.py	-30/+260
+src/agent_sandbox/server/registry.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/registry.py	-0/+8
+src/agent_sandbox/server/router.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/router.py	-2/+22
+src/agent_sandbox/server/routes.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes.py	-33/+168
+src/agent_sandbox/server/routes_browser.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes_browser.py	-0/+46
+src/agent_sandbox/server/routes_devtools.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes_devtools.py	-8/+48
+src/agent_sandbox/server/routes_files.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes_files.py	-59/+326
+src/agent_sandbox/server/routes_process.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes_process.py	-15/+209
+src/agent_sandbox/server/routes_pty.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes_pty.py	-12/+149
+src/agent_sandbox/server/routes_system.py	CHANGED	python-sdk/server-sdk/src/agent_sandbox/server/routes_system.py	-3/+85
+src/agent_sandbox/server/types.py	SAME	python-sdk/server-sdk/src/agent_sandbox/server/types.py	
+src/agent_sandbox/session/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/session/__init__.py	
+src/agent_sandbox/session/local.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/session/local.py, cli/src/session/local.ts	-0/+2
+src/agent_sandbox/transport/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/transport/__init__.py	
+src/agent_sandbox/transport/auth.py	SAME	python-sdk/client-sdk/src/agent_sandbox/transport/auth.py, cli/src/transport/auth.ts	
+src/agent_sandbox/transport/codec.py	SAME	python-sdk/client-sdk/src/agent_sandbox/transport/codec.py, cli/src/transport/codec.ts	
+src/agent_sandbox/transport/config.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/transport/config.py, cli/src/transport/config.ts	-194/+664
+src/agent_sandbox/transport/http.py	SAME	python-sdk/client-sdk/src/agent_sandbox/transport/http.py, cli/src/transport/http.ts	
+src/agent_sandbox/transport/streaming.py	SAME	python-sdk/client-sdk/src/agent_sandbox/transport/streaming.py, cli/src/transport/streaming.ts	
+src/agent_sandbox/transport/ws.py	SAME	python-sdk/client-sdk/src/agent_sandbox/transport/ws.py, cli/src/transport/ws.ts	
+src/agent_sandbox/utils/__init__.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/__init__.py	
+src/agent_sandbox/utils/async_bridge.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/async_bridge.py	
+src/agent_sandbox/utils/coerce.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/utils/coerce.py, cli/src/utils/coerce.ts	-4/+6
+src/agent_sandbox/utils/dockerignore.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/dockerignore.py, cli/src/utils/dockerignore.ts	
+src/agent_sandbox/utils/github_token.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/github_token.py, cli/src/utils/github_token.ts	
+src/agent_sandbox/utils/keychain.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/keychain.py, cli/src/utils/keychain.ts	
+src/agent_sandbox/utils/logging.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/utils/logging.py, cli/src/utils/logging.ts	-4/+6
+src/agent_sandbox/utils/registry.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/registry.py, cli/src/utils/registry.ts	
+src/agent_sandbox/utils/retry.py	SAME	python-sdk/client-sdk/src/agent_sandbox/utils/retry.py, cli/src/utils/retry.ts	
+src/agent_sandbox/utils/template_index.py	CHANGED	python-sdk/client-sdk/src/agent_sandbox/utils/template_index.py, cli/src/utils/template_index.ts	-1/+1
 tests/__init__.py	SAME	python-sdk/client-sdk/tests/__init__.py, python-sdk/server-sdk/tests/__init__.py	
 tests/conftest.py	CHANGED	python-sdk/client-sdk/tests/conftest.py, python-sdk/server-sdk/tests/conftest.py	-42/+6
 tests/integration/__init__.py	SAME	python-sdk/client-sdk/tests/integration/__init__.py	
@@ -505,7 +505,7 @@ tests/test_cli_evidence/golden/help-connect.txt	SAME	cli/tests/test_cli_evidence
 tests/test_cli_evidence/golden/help-create.txt	SAME	cli/tests/test_cli_evidence/golden/help-create.txt	
 tests/test_cli_evidence/golden/help-deploy.txt	SAME	cli/tests/test_cli_evidence/golden/help-deploy.txt	
 tests/test_cli_evidence/golden/help-download.txt	SAME	cli/tests/test_cli_evidence/golden/help-download.txt	
-tests/test_cli_evidence/golden/help-ebx.txt	SAME	cli/tests/test_cli_evidence/golden/help-ebx.txt	
+tests/test_cli_evidence/golden/help-abx.txt	SAME	cli/tests/test_cli_evidence/golden/help-abx.txt	
 tests/test_cli_evidence/golden/help-exec.txt	SAME	cli/tests/test_cli_evidence/golden/help-exec.txt	
 tests/test_cli_evidence/golden/help-info.txt	SAME	cli/tests/test_cli_evidence/golden/help-info.txt	
 tests/test_cli_evidence/golden/help-init-alias.txt	SAME	cli/tests/test_cli_evidence/golden/help-init-alias.txt	

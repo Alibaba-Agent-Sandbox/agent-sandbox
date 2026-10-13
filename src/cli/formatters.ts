@@ -1,7 +1,7 @@
 /**
  * Output formatters for CLI commands (port of `cli/formatters.py`).
  *
- * Supports three modes: table (rich), JSON, and quiet.
+ * Supports three modes: table, JSON, and quiet.
  *
  * ```ts
  * const fmt = getFormatter(ctx);
@@ -9,11 +9,13 @@
  * ```
  */
 
-import { type Context, echo, style } from "../framework/index.js";
+import { type Context } from "./kit.js";
+import { echo } from "./io.js";
 import { pyEntries, pyStr } from "../utils/_pyformat.js";
 import { orjsonDumps } from "./_orjson.js";
-import { len } from "../framework/py.js";
-import { Console, Table } from "./_rich.js";
+import { len } from "../utils/_py.js";
+import { paint } from "./color.js";
+import { renderTable } from "./table.js";
 import { OUTPUT_META_KEY, type OutputManager } from "./output.js";
 
 export interface OutputFormatterOptions {
@@ -58,7 +60,7 @@ export class OutputFormatter {
     }
   }
 
-  /** Print data as a table (rich), JSON, or quiet tab-separated. */
+  /** Print data as a table, JSON, or quiet tab-separated. */
   printTable(headers: string[], rows: string[][]): void {
     if (this.use_json) {
       const items = rows.map((row) => {
@@ -74,11 +76,7 @@ export class OutputFormatter {
       for (const row of rows) echo(row.join("\t"));
       return;
     }
-    const console = new Console({ no_color: this.no_color });
-    const table = new Table();
-    for (const h of headers) table.addColumn(h, { style: "bold" });
-    for (const row of rows) table.addRow(...row);
-    console.print(table);
+    echo(renderTable(headers, rows, this.no_color ? undefined : (text) => paint(text, "bold")));
   }
 
   /** Print a dict as key-value pairs, JSON, or quiet values. */
@@ -118,12 +116,12 @@ export class OutputFormatter {
 
 export function _clickEchoGreen(msg: string, noColor = false): void {
   if (noColor) echo(msg);
-  else echo(style(msg, { fg: "green" }));
+  else echo(paint(msg, "green"));
 }
 
 export function _clickEchoRed(msg: string, noColor = false): void {
   if (noColor) echo(msg, { err: true });
-  else echo(style(msg, { fg: "red" }), { err: true });
+  else echo(paint(msg, "red"), { err: true });
 }
 
 /**

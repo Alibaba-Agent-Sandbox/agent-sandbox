@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { parseIntStrict } from "../../src/framework/py.js";
+import { parseIntStrict } from "../../src/utils/_py.js";
 
 const fixture = JSON.parse(
   readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../parity/diff/int_parse_cases.json"), "utf8"),

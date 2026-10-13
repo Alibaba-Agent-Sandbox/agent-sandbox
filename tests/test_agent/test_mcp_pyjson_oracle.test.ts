@@ -19,7 +19,7 @@ const CASES = JSON.parse(
   fs.readFileSync(path.join(ROOT, "parity", "diff", "mcp_pyjson_cases.json"), "utf-8"),
 ) as { cases: Array<[string, string | null]> };
 
-const home = fs.mkdtempSync(path.join(os.tmpdir(), "ebx-mcp-pyjson-"));
+const home = fs.mkdtempSync(path.join(os.tmpdir(), "abx-mcp-pyjson-"));
 afterAll(() => fs.rmSync(home, { recursive: true, force: true }));
 
 async function drive(): Promise<Array<string | null>> {
@@ -29,10 +29,10 @@ async function drive(): Promise<Array<string | null>> {
       ...process.env,
       HOME: home,
       USERPROFILE: home,
-      EBX_NO_KEYCHAIN: "1",
-      EBX_SANDBOX_API_KEY: "stub-key",
-      EBX_SANDBOX_BASE_URL: "http://127.0.0.1:1",
-      EBX_DEFAULT_TEMPLATE: "stub-template",
+      ABX_NO_KEYCHAIN: "1",
+      ABX_SANDBOX_API_KEY: "stub-key",
+      ABX_SANDBOX_BASE_URL: "http://127.0.0.1:1",
+      ABX_DEFAULT_TEMPLATE: "stub-template",
       NO_PROXY: "*",
       no_proxy: "*",
     },
@@ -69,7 +69,7 @@ describe("MCP stdio JSON fidelity vs the Python server", () => {
   it("answers every recorded request line exactly like the oracle", async () => {
     const got = await drive();
     const unversion = (line: string | null | undefined): string | null | undefined =>
-      line?.replace(/("serverInfo": \{"name": "easy-sandbox", "version": )"[^"]*"/, '$1"<version>"');
+      line?.replace(/("serverInfo": \{"name": "agent-sandbox", "version": )"[^"]*"/, '$1"<version>"');
     CASES.cases.forEach(([req, res], i) => expect({ req, res: unversion(got[i]) }).toEqual({ req, res: unversion(res) }));
   }, 120_000);
 });

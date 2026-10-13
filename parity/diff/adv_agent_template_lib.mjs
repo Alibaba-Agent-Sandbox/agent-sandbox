@@ -1,7 +1,7 @@
 /**
  * Shared runner of the adversarial `agent-template` differential harnesses (adv_agent_template_*.mjs).
  *
- * Runs identical argv against the Python oracle (`$ORACLE_VENV/bin/ebx`) and the Node CLI (`src/bin/ebx.ts` through tsx) in
+ * Runs identical argv against the Python oracle (`$ORACLE_VENV/bin/abx`) and the Node CLI (`src/bin/abx.ts` through tsx) in
  * an isolated HOME / work directory, against a scripted stub server (platform REST, template index, GitHub tarballs) and a
  * fake `docker` on PATH, then compares exit code, stdout, stderr, stub request log, docker argv log, the work-dir tree and
  * the HOME tree (relative path, size, hash, permission bits).
@@ -33,13 +33,13 @@ const onlyIdx = process.argv.indexOf("--only");
 export const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
 
 export function requireOracle() {
-  if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "ebx"))) {
-    console.error("ORACLE_VENV must point to a venv with the original easy-sandbox installed; skipping.");
+  if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "abx"))) {
+    console.error("ORACLE_VENV must point to a venv with the original agent-sandbox installed; skipping.");
     process.exit(0);
   }
 }
 
-export const scratch = realpathSync(mkdtempSync(join(tmpdir(), "ebx-advtpl-")));
+export const scratch = realpathSync(mkdtempSync(join(tmpdir(), "abx-advtpl-")));
 
 export const DOCKERFILE = 'FROM python:3.12-slim\nWORKDIR /app\nCOPY . .\nCMD ["python3", "commands.py"]\n';
 export const TEMPLATE_YAML = 'name: demo-tpl\nversion: "1.0.0"\ndescription: demo\nresources:\n  cpu: 1\n  memory: 512\n';
@@ -92,7 +92,7 @@ export const D = (name) => ({ name, type: "dir" });
 mkdirSync(join(scratch, "bin"), { recursive: true });
 writeFileSync(join(scratch, "bin", "docker"), FAKE_DOCKER);
 chmodSync(join(scratch, "bin", "docker"), 0o755);
-const nodeEntry = join(CLI_ROOT, "src/bin/ebx.ts");
+const nodeEntry = join(CLI_ROOT, "src/bin/abx.ts");
 
 export function startStub(testCase) {
   const log = [];
@@ -188,7 +188,7 @@ function runOnce(kind, testCase, port, ctx) {
     PATH: testCase.docker ? `${join(scratch, "bin")}:${process.env.PATH}` : process.env.PATH.split(":").filter((d) => !existsSync(join(d, "docker"))).join(":"),
     HOME: home,
     USERPROFILE: home,
-    EBX_NO_KEYCHAIN: "1",
+    ABX_NO_KEYCHAIN: "1",
     E2B_API_KEY: "stub-key",
     E2B_API_URL: `http://127.0.0.1:${port}`,
     NO_PROXY: "*",
@@ -205,7 +205,7 @@ function runOnce(kind, testCase, port, ctx) {
   const argv = testCase.argv.map(sub);
   const [cmd, args] =
     kind === "py"
-      ? [join(ORACLE_VENV, "bin", "ebx"), argv]
+      ? [join(ORACLE_VENV, "bin", "abx"), argv]
       : [process.execPath, ["--import", pathToFileURL(join(CLI_ROOT, "node_modules", "tsx", "dist", "esm", "index.mjs")).href, nodeEntry, ...argv]];
   return new Promise((ok) => {
     let proc;
@@ -320,10 +320,10 @@ function normalise(text, ctx) {
   t = t.replace(/ListTeams API call failed: Error: [^"]*/g, "ListTeams API call failed: <aliyun-error>");
   t = t.replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>");
   t = t.replace(new RegExp(`${esc(scratch)}/[A-Za-z0-9._-]+`, "g"), "<scratch>");
-  t = t.replace(/ebx-adopt-[A-Za-z0-9_]+/g, "ebx-adopt-<rand>");
+  t = t.replace(/abx-adopt-[A-Za-z0-9_]+/g, "abx-adopt-<rand>");
   t = t.replace(/tmp[a-z0-9_]{8}\.tar\.gz/g, "<tmp>.tar.gz");
   t = t.replace(/\d+\.\d+s\b/g, "<t>s");
-  t = t.replace(/WARNING: (Failed to build SDK wheel|Could not fetch easy-sandbox-server)[^\n]*\n(\n)?/g, "<sdk-wheel-warning>\n");
+  t = t.replace(/WARNING: (Failed to build SDK wheel|Could not fetch agent-sandbox-server)[^\n]*\n(\n)?/g, "<sdk-wheel-warning>\n");
   // httpx's HTTPStatusError text spans two lines; the oracle's wheel is on PyPI, the Node build's (bumped) one may not be.
   t = t.replace(/<sdk-wheel-warning>\nFor more information check: [^\n]*\n/g, "<sdk-wheel-warning>\n");
   t = t.replace(/\[E5000\] ListTeams API call failed: [^\n]*/g, "[E5000] ListTeams API call failed: <aliyun-error>");

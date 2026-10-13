@@ -6,8 +6,8 @@ Related: [2026-09-29-nl-create-qwen-code-integration.md](../feature/2026-09-29-n
 
 ## Problem
 
-The natural-language create path (`ebx create "<description>"`) was hard-wired
-to Qwen Code at every level of `src/easy_sandbox/cli/commands/sandbox.py`:
+The natural-language create path (`abx create "<description>"`) was hard-wired
+to Qwen Code at every level of `src/agent_sandbox/cli/commands/sandbox.py`:
 
 - the helpers themselves were named for the agent
   (`_print_qwen_quick_setup`, `_ensure_qwen_code_binary`,
@@ -15,7 +15,7 @@ to Qwen Code at every level of `src/easy_sandbox/cli/commands/sandbox.py`:
 - every user-facing sentence contained the literal string `Qwen Code` (install
   prompt, missing-binary error, credential error, stored-key confirmation,
   Quick Setup guide);
-- credential resolution hard-coded `EBX_QWEN_CODE_API_KEY` / `qwen_code_api_key`
+- credential resolution hard-coded `ABX_QWEN_CODE_API_KEY` / `qwen_code_api_key`
   / `qwen_code_base_url` / `qwen_code_model`;
 - the gate errors were hard-coded to `QwenCodeNotInstalledError` (E2005) and
   `QwenCodeCredentialError` (E2006).
@@ -28,7 +28,7 @@ near-duplicate messages.
 
 ## Decision
 
-Introduce one seam, no plugin framework: `src/easy_sandbox/agent/coding_agent.py`.
+Introduce one seam, no plugin framework: `src/agent_sandbox/agent/coding_agent.py`.
 
 ### Boundary contract
 
@@ -37,7 +37,7 @@ Introduce one seam, no plugin framework: `src/easy_sandbox/agent/coding_agent.py
 | Member | Purpose |
 | --- | --- |
 | `name`, `display_name` | identifier + every user-facing message |
-| `config_key`, `env_var` | credential storage (`ebx config set <config_key>`) and environment variable |
+| `config_key`, `env_var` | credential storage (`abx config set <config_key>`) and environment variable |
 | `base_url_config_key`, `model_config_key` | optional model endpoint overrides |
 | `credential_prompt` | interactive prompt label when a key must be entered |
 | `credential_error`, `not_installed_error` | the E-code error types the CLI raises for this backend |
@@ -62,11 +62,11 @@ the flow never silently falls back to a different agent than requested.
 above (so every CLI message is *derived*, not duplicated) and every method
 delegates to the verified modules — **imported lazily inside the method**:
 
-- `easy_sandbox.agent.qwen_code.find_qwen_code_binary` /
+- `agent_sandbox.agent.qwen_code.find_qwen_code_binary` /
   `download_and_install_standalone` / `resolve_qwen_code_credentials` /
   `official_install_command`;
-- `easy_sandbox.agent.codegen.prepare_workdir` / `generate_template_files`;
-- `easy_sandbox.agent.clarify.evaluate`.
+- `agent_sandbox.agent.codegen.prepare_workdir` / `generate_template_files`;
+- `agent_sandbox.agent.clarify.evaluate`.
 
 The lazy imports exist specifically so the existing patch points on those
 *source modules* keep intercepting every call — the whole CLI test suite
@@ -83,7 +83,7 @@ The lazy imports exist specifically so the existing patch points on those
 - `_generate_and_deploy_template` resolves the backend, then
   `find_binary → resolve_credentials → prepare_workdir → clarify → generate`.
 
-`_clarify_requirements` still imports `easy_sandbox.agent.clarify` directly for
+`_clarify_requirements` still imports `agent_sandbox.agent.clarify` directly for
 the loop's *agent-neutral* surface (threshold, prompt builders, `ClarifyOutcome`
 shape, round budget); the model-dependent parts go through `backend.assess`.
 The displayed degradation warning interpolates `backend.display_name`.
@@ -92,7 +92,7 @@ The displayed degradation warning interpolates `backend.display_name`.
 
 - Qwen Code remains the default and its output is **byte-identical**:
   the Quick Setup evidence golden (`create-nl-not-installed`), `help-create`,
-  and all 28 `ebx create` CLI tests pass unchanged against the refactor.
+  and all 28 `abx create` CLI tests pass unchanged against the refactor.
 - `--yes`, TTY detection, install consent, credential prompting, and the
   build/deploy confirmation behave exactly as before (same tests, same order).
 - A backend whose `assess` returns `None` never blocks: the CLI warns and
@@ -116,7 +116,7 @@ Recorded so the next step is mechanical, not exploratory:
    `assess`/`generate` natively (e.g. Claude Code `--output-format json`),
    or those two methods get factored into shared helpers once a real second
    implementation shows the common shape.
-4. **`ebx config init` / `ebx config set` still name the Qwen keys** in the
+4. **`abx config init` / `abx config set` still name the Qwen keys** in the
    guided wizard. The backend class variables are the single source for the
    *create path* only; generalising the wizard is follow-up work.
 5. **In-sandbox agent axis untouched.** The example templates
@@ -149,7 +149,7 @@ None new — `typing.Protocol` and `ClassVar` are stdlib.
 - Existing suites green: `tests/test_agent/` 276 passed,
   `tests/test_cli/test_create_nl.py` 28 passed,
   evidence golden `create-nl-not-installed` byte-identical; `ruff` and
-  `mypy src/easy_sandbox/` clean.
+  `mypy src/agent_sandbox/` clean.
 
 ## Acceptance criteria
 
@@ -166,9 +166,9 @@ None new — `typing.Protocol` and `ClassVar` are stdlib.
 
 ## Files changed
 
-- `src/easy_sandbox/agent/coding_agent.py` (new) — protocols, `QwenCodeBackend`,
+- `src/agent_sandbox/agent/coding_agent.py` (new) — protocols, `QwenCodeBackend`,
   `resolve_coding_agent_backend`, `_BACKENDS`
-- `src/easy_sandbox/cli/commands/sandbox.py` — backend-driven helpers and
+- `src/agent_sandbox/cli/commands/sandbox.py` — backend-driven helpers and
   generate flow (message templating via class variables)
 - `tests/test_agent/test_coding_agent.py` (new)
 - `tests/test_cli/test_create_backend.py` (new)

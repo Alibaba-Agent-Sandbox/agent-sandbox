@@ -1,15 +1,15 @@
-Usage: cli info [OPTIONS] SANDBOX_ID
+Usage: abx info [options] <SANDBOX_ID>
 
-  Show status, template, region, timeout, and URL for a sandbox.
+Show status, template, region, timeout, and URL for a sandbox.
 
-  Examples:
-    ebx info abc123
-    ebx --json info abc123
+Examples:
+  abx info abc123
+  abx --json info abc123
 
-  Related commands:
-    ebx list                  Find sandbox IDs
-    ebx sandbox capabilities  Show declared capability groups
-    ebx exec SANDBOX_ID CMD   Run a command in the sandbox
+Related commands:
+  abx list                  Find sandbox IDs
+  abx sandbox capabilities  Show declared capability groups
+  abx exec SANDBOX_ID -- CMD  Run a command in the sandbox
 
 Options:
   -h, --help  Show this message and exit.

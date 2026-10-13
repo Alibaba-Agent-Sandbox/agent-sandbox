@@ -1,6 +1,6 @@
 /**
  * Provider contract: identity, feature matrix, config schema, infrastructure factory
- * (port of `easy_sandbox/providers/base.py`).
+ * (port of `agent_sandbox/providers/base.py`).
  */
 
 import { InvalidCredentialsError } from "../models/errors.js";
@@ -43,6 +43,27 @@ export const FEATURES = [
   "sessions",
 ] as const;
 export type ProviderFeature = (typeof FEATURES)[number];
+
+/** Feature ids in registry order; ids the host does not know come last, sorted. */
+export function orderedFeatures(features: Iterable<string>): string[] {
+  const have = new Set(features);
+  const known = FEATURES.filter((f) => have.has(f));
+  const extra = [...have].filter((f) => !(FEATURES as readonly string[]).includes(f)).sort();
+  return [...known, ...extra];
+}
+
+/** `sandbox.lifecycle, sandbox.pause, pty` -> `sandbox(lifecycle,pause) pty`: one line per provider in listings. */
+export function compactFeatures(features: Iterable<string>): string {
+  const groups = new Map<string, string[]>();
+  for (const feature of orderedFeatures(features)) {
+    const dot = feature.indexOf(".");
+    const head = dot < 0 ? feature : feature.slice(0, dot);
+    const list = groups.get(head) ?? [];
+    if (dot >= 0) list.push(feature.slice(dot + 1));
+    groups.set(head, list);
+  }
+  return [...groups].map(([head, tails]) => (tails.length ? `${head}(${tails.join(",")})` : head)).join(" ");
+}
 
 /** Template capability token implied by a provider feature (design section 7.2). */
 export const FEATURE_TO_CAPABILITY: Readonly<Record<string, string>> = {
@@ -98,6 +119,13 @@ export function configFieldToKey(field: ConfigField, providerId: string): Config
     required: Boolean(field.required),
     description_zh: field.description_zh ?? "",
   };
+}
+
+/** Generic endpoint keys a manifest-driven provider may read: declared in `[core] inherit` and consented to at install. */
+export function consentedInherit(declared: readonly string[], receipt: Readonly<Record<string, unknown>> | null): Set<string> {
+  if (receipt === null) return new Set(declared);
+  const consented = ((receipt["consented"] as { inherit?: string[] } | undefined)?.inherit ?? []) as string[];
+  return new Set(declared.filter((k) => consented.includes(k)));
 }
 
 type Loose<T> = Omit<T, "_http" | "_handleCreateError">;
@@ -182,8 +210,8 @@ export abstract class Provider {
         const names = [providerEnvName(this.id, f.key), ...(f.env ?? [])].join(", ");
         const Cls = f.credential ? InvalidCredentialsError : ProviderConfigError;
         throw new Cls(
-          `Provider '${this.id}' needs '${f.key}' (set ${names} or 'ebx config set providers.${this.id}.${f.key} ...').`,
-          { suggestion: `Run 'ebx provider info ${this.id}' for all options.` },
+          `Provider '${this.id}' needs '${f.key}' (set ${names} or 'abx config set providers.${this.id}.${f.key} ...').`,
+          { suggestion: `Run 'abx provider info ${this.id}' for all options.` },
         );
       }
     }
@@ -192,7 +220,7 @@ export abstract class Provider {
         .map((grp) => grp.map((n) => (GENERIC_ENDPOINT_KEYS.includes(n) ? n : providerEnvName(this.id, n))).join(" + "))
         .join(" or ");
       throw new InvalidCredentialsError(`Provider '${this.id}' is missing credentials (set ${wanted}).`, {
-        suggestion: `Run 'ebx provider info ${this.id}' for details.`,
+        suggestion: `Run 'abx provider info ${this.id}' for details.`,
       });
     }
   }
@@ -209,7 +237,7 @@ export abstract class Provider {
     return new Set(Object.entries(FEATURE_TO_CAPABILITY).filter(([f]) => this.features.has(f)).map(([, c]) => c));
   }
 
-  /** JSON-friendly summary (`ebx provider info --json`). */
+  /** JSON-friendly summary (`abx provider info --json`). */
   describe(): ProviderDescription {
     return {
       id: this.id,

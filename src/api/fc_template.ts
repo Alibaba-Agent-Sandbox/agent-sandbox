@@ -1,5 +1,5 @@
 /**
- * Official Alibaba Cloud FCSandbox CreateTemplate API adapter (port of `easy_sandbox/api/fc_template.py`).
+ * Official Alibaba Cloud FCSandbox CreateTemplate API adapter (port of `agent_sandbox/api/fc_template.py`).
  *
  * This module wraps the `@alicloud/fcsandbox20260509` SDK (Node counterpart of the Python
  * `alibabacloud-fcsandbox20260509` wheel) to provide a clean, SDK-independent interface for creating sandbox templates

@@ -1,6 +1,6 @@
 # Provider wiring plan (follow-up edits to existing CLI modules)
 
-> Status: **handoff note**. The new layers are built and tested as stand-alone modules; no existing command module was edited. This file lists the exact edits that remain, in the order they should be applied after the review fixes land. Grammar, help text and JSON shapes are owned by [`providers-and-credentials-cli.md`](providers-and-credentials-cli.md); this file only says *where* each piece plugs in.
+> Status (2026-10-13): **wiring is done for the sandbox path; this file is now the record of the plan plus the list of what is still open**. `provider` is a command group, `--provider` / `--opt` / `--all-providers` and qualified ids work, `Sandbox.create/connect/list/killById` select the provider, `SandboxNotFoundError` (`E2009`) exists, `network.resolve` routes through `ports.url`, and an OpenSandbox server was driven end to end from the CLI ([evidence](../../.agents/evidence/verify/2026-10-13-opensandbox-provider-e2e.md)). Sections 1 to 8 below are kept as the original plan; ignore any item that the code already does. The open items are in the section "10. Known gaps". Earlier status: handoff note, no existing command module edited. Grammar, help text and JSON shapes are owned by [`providers-and-credentials-cli.md`](providers-and-credentials-cli.md); this file only says *where* each piece plugs in.
 >
 > 中文版: [`../zh/design/provider-wiring-plan.md`](../zh/design/provider-wiring-plan.md)
 
@@ -41,15 +41,15 @@ Edits:
 
 `api/commands.ts`: no routing change; `Commands.run/start/...` already take the `ProcessProtocol` from the sandbox. Only needed: accept string pids in `kill/connect/send_stdin` signatures (follows the `ProcessInfo.pid` widening).
 
-## 3. `src/cli/main.ts` and `_shortcut_table.ts`
+## 3. `src/cli/main.ts` and `command_surface.ts`
 
-1. Register the command group: in `_CORE_COMMANDS` (`src/cli/_shortcut_table.ts`) add `provider: "commands/provider:provider"`. `RESERVED_NAMES` then protects the name automatically.
+1. Register the command group: in `GROUP_COMMANDS` (`src/cli/command_surface.ts`) add `provider: "commands/provider:provider"`; `abx --help` lists it under its own **Providers** heading.
 2. Root group options (root-level and leaf-level, leaf wins; spec §4):
-   - `--provider ID` (`envvar: "EBX_PROVIDER"`), validated with the id grammar; stored on the click context as `ctx.obj.provider`.
+   - `--provider ID` (`envvar: "ABX_PROVIDER"`), validated with the id grammar; stored on the click context as `ctx.obj.provider`.
    - `--opt KEY=VALUE` (repeatable). Parse with `parseProviderOptions` from `src/providers/testing.ts` (move it to `providers/options.ts` if you prefer; it is re-exported from the barrel). Refuse secret fields (`ConfigField.secret`) with the spec's exit-2 text.
-3. `ebx --help` epilog: add the `Related commands` line (spec §0) — regenerate the root help golden.
+3. `abx --help` epilog: add the `Related commands` line (spec §0) — regenerate the root help golden.
 4. Top-level error handler: replace the existing status-code switch with `exitCodeFor(err)` **only for provider-typed errors**; keep the current mapping for the rest (so goldens stay unchanged): auth 3, not-found 4 (now includes `SandboxNotFoundError`), timeouts 5, quota 6, config/trust/mismatch 2, otherwise 1.
-5. `EBX_WARN_DEPRECATED=1`: nothing to do in `main.ts`; `warnLegacyOnce` reads the env at call time. Make sure `_resetDeprecationWarnings()` is called from the test setup used by the CLI test suites.
+5. `ABX_WARN_DEPRECATED=1`: nothing to do in `main.ts`; `warnLegacyOnce` reads the env at call time. Make sure `_resetDeprecationWarnings()` is called from the test setup used by the CLI test suites.
 
 ## 4. New file `src/cli/commands/provider.ts`
 
@@ -62,7 +62,7 @@ One group `provider` and subcommands, each a thin wrapper over the library (name
 | `install SOURCE [--ref --sha256 --subdir --link --yes --allow-insecure-transport --force]` | `install(source, { confirm, verify: verifyHandshake, … })` | `confirm` prints `InstallPlan` consent screen; non-TTY without `--yes` → exit 2 |
 | `uninstall ID [--purge]` | `uninstall` | `data/` kept unless `--purge`; if default → reset with message |
 | `update [ID \| --all] [--check] [--yes] [--allow-insecure-transport]` | `update` | `--check` is read-only; re-consent on risk aspects (`diffAspects`) |
-| `default [ID]` | write `[core] provider` in config.toml (use `toml_write.ts`) | show effective value and source; note when `EBX_PROVIDER` overrides |
+| `default [ID]` | write `[core] provider` in config.toml (use `toml_write.ts`) | show effective value and source; note when `ABX_PROVIDER` overrides |
 | `config ID [KEY [VALUE]]` | provider schema via `providerSchema(id)` | storage rules per spec §3.3 |
 | `doctor [ID]` | `doctor(id, { handshake: true })` | renders checks installed/integrity/config/handshake; exit 1 on any failure |
 | `test ID [--opt …] [-k FILTER]` | `runContractSuite(id, { options, filter })` + `summarizeContract` | prints per-case ok/skip/fail; exit 1 on failure; `SkipContractTest` → skipped |
@@ -75,11 +75,11 @@ Errors raised by the library are `ProviderError` subclasses carrying `code` (`E8
 
 1. Key resolution (`get/set/delete KEY`): the layer-first `resolveKey` looks up the one environment variable for the key. Qualified `providers.<id>.<key>` and `--provider` select the provider. An unknown key exits 2 and lists the keys that exist (spec §3.2).
 2. Reading values: `loadLayeredConfig()`/`explainConfig()` for `get`/`list` (source labels). Output channel/format unchanged.
-3. Writing: `config set` writes the one environment variable for the key (secrets in `~/.ebx/.env`, other keys under their config key in `config.toml`). `delete` removes that stored value.
+3. Writing: `config set` writes the one environment variable for the key (secrets in `~/.abx/.env`, other keys under their config key in `config.toml`). `delete` removes that stored value.
 4. `get/set/delete/list` accept `--provider` and `--all`. `config list` shows `sandbox_base_url`, `sandbox_domain`, and the other keys from the registry.
 5. `explainConfig()` reports the one variable that decided each key. Secrets are masked.
 6. `config list` shows the one name for each key and masks secrets. There is no second name to audit or rewrite.
-7. Provider-scoped keys (`acr_*`, `team_id`, `region`, plugin fields) — `config set <provider>:<key>` or with `--provider`; secrets go to `~/.ebx/.env` (0600).
+7. Provider-scoped keys (`acr_*`, `team_id`, `region`, plugin fields) — `config set <provider>:<key>` or with `--provider`; secrets go to `~/.abx/.env` (0600).
 
 Gap to close first: `config-keys.json` has no `description_zh`/`required`; if `config list` needs zh descriptions, regenerate the fixture from the Python repo (the drift test will force the update).
 
@@ -98,14 +98,14 @@ Edit sites (line numbers drift; use the command names):
 
 ## 7. `src/cli/commands/mcp.ts`
 
-- The server env (`_spawnBackground`, around the `env` build for `mcp start`) must forward `EBX_PROVIDER` and any `EBX_<P>_*` provider-scoped variables only when explicitly present in the process env; it must **never** forward LLM/GitHub keys to providers (the registry already enforces this at provider construction — nothing extra to do).
+- The server env (`_spawnBackground`, around the `env` build for `mcp start`) must forward `ABX_PROVIDER` and any `ABX_<P>_*` provider-scoped variables only when explicitly present in the process env; it must **never** forward LLM/GitHub keys to providers (the registry already enforces this at provider construction — nothing extra to do).
 - `loadConfig().api_key` at the auth-token helper (≈ line 162) stays: it is the built-in key lookup used for MCP auth.
 - MCP tools that create/list/kill sandboxes: add optional `provider` argument (string) to `sandbox_create`, `sandbox_list`, `sandbox_kill`, `sandbox_connect` tool schemas; accept qualified ids. JSON results add `provider` only for non-builtin.
-- `mcp install` copy rules (spec §4.3): the generated client config keeps provider selection through `EBX_PROVIDER` only, never secrets.
+- `mcp install` copy rules (spec §4.3): the generated client config keeps provider selection through `ABX_PROVIDER` only, never secrets.
 
 ## 8. Documentation and goldens
 
-- Regenerate goldens: `config list` (text/JSON), `config --help`, `ebx --help`; add goldens for `provider` commands.
+- Regenerate goldens: `config list` (text/JSON), `config --help`, `abx --help`; add goldens for `provider` commands.
 - Update `docs/en/reference`, `docs/en/guide/{environment-variables,authentication,troubleshooting}.md`, add `docs/{en,zh}/guide/providers.md`; keep zh mirrors in lockstep; `SKILL.md`, `llms.txt`, `README*.md`.
 - Docs must not contain absolute local paths (`scripts/check-no-local-paths.sh`).
 
@@ -114,10 +114,21 @@ Edit sites (line numbers drift; use the command names):
 1. `npx tsc -p tsconfig.json --noEmit` and `npm run lint`.
 2. `npx vitest run tests/test_providers tests/test_transport/test_config_names.test.ts tests/test_utils` (currently 338 passed, 2 todo in providers).
 3. Differential cases under `parity/diff/` with the built-in provider only: every case byte-identical except the `config list` ones.
-4. `ebx provider test <id>` against `local-process`, `e2b-compatible`, and (if a local OpenSandbox server is running) `opensandbox`; the last is skipped politely otherwise.
+4. `abx provider test <id>` against `local-process`, `e2b-compatible`, and (if a local OpenSandbox server is running) `opensandbox`; the last is skipped politely otherwise.
 5. Cross-implementation: install a plugin with the Node installer, load it with the Python SDK (digests equal), and vice versa.
 
 ## 10. Known gaps (carry into the review)
+
+Open after the 2026-10-13 OpenSandbox run (each has a verified symptom):
+
+- **`template` commands ignore `--provider`.** `abx --provider opensandbox template deploy ...` runs the Alibaba Cloud ACR flow (`ACR credentials missing`). They should check `templates.read` / `templates.build` and answer `E8004` like every other feature-gated command.
+- **The capability set is not derived from provider features.** `abx sandbox capabilities` and `sandbox.capabilities` report `code, files, shell` for OpenSandbox, which declares no `code.interpret`; `Provider.capabilities()` and `FEATURE_TO_CAPABILITY` exist but nothing calls them. Image-based providers also log `Could not resolve capabilities for template '<image>'` on every create.
+- **`abx sandbox command run` on a plugin without an HTTP data plane** fails with `this._http_client._createEnvdClient is not a function`. The Python SDK has `_require_data_plane("named commands")` and answers `E8004`; port that guard to `_callServerCommand` in `src/api/sandbox.ts`.
+- **`SandboxInfo` defaults** (`region = "cn-hangzhou"`, `timeout = 300`) belong to the built-in platform. `recordToInfo` now overrides them for plugins, so a plugin that reports no region and no lifetime shows an empty Region row and the requested timeout; the model should make both optional.
+- **No CLI for pause/resume**: `Sandbox.pause()` / `resume()` work (verified from Python), but there is no `abx sandbox pause` command in this tree.
+- **The catalog still ships `ebx-provider.toml`.** Apply `e2e/providers/awesome-providers-abx-rename.patch` in `alibaba-agent-sandbox/awesome-providers`; until then `abx provider install` of the catalog fails with `E8014` (no `abx-provider.toml` at the plugin root).
+
+Older gaps:
 
 - `FilesystemProtocol.watchDir` is native-only; exec providers return `E8004` for `files.watch` unless hybrid.
 - `models/errors` provider classes live in `providers/errors.ts`; move or re-export if the framework wants one error module.

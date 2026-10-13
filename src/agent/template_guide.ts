@@ -1,13 +1,13 @@
 /**
  * Reference material handed to the coding agent when it generates a template.
  *
- * The HTTP server (`easy_sandbox.server`, port 9000) does not depend on a sandbox provider. The Dockerfile base
+ * The HTTP server (`agent_sandbox.server`, port 9000) does not depend on a sandbox provider. The Dockerfile base
  * image and start style come from the selected provider's template profile (`providers/template_profile.ts`): one
  * profile, one prompt. `commands.py` stays provider-free and calls `serve()` only under `if __name__ == "__main__"`.
  */
 
 import {
-  EASY_SANDBOX_SERVER_INSTALL,
+  ABX_SERVER_INSTALL,
   dockerfileCmdLine,
   resolveTemplateProfile,
   type TemplateProfile,
@@ -35,7 +35,7 @@ export const SERVER_PORT = 9000;
 export const REFERENCE_COMMANDS_PY = `"""<template-name> — sandbox command server."""
 from __future__ import annotations
 
-from easy_sandbox.server import (
+from agent_sandbox.server import (
     CapabilityGroup,
     CommandRegistry,
     SandboxServer,
@@ -86,7 +86,7 @@ const _FILES_ADOPT = `### 2. 模板必须包含的文件（适配已有项目）
 - \`Dockerfile\`
 - \`commands.py\`：服务入口，见下文
 - \`template.yaml\`
-\`.dockerignore\` 由 ebx 自动生成，你不要创建或修改它。
+\`.dockerignore\` 由 abx 自动生成，你不要创建或修改它。
 不要创建 \`README.md\`，也不要新增业务代码或依赖清单：需要的依赖直接在 Dockerfile 里安装。
 项目自己的代码按原样保留，用**明确的路径**逐项 COPY（例如 \`COPY app/ ./app/\`），
 不要用 \`COPY . .\`。如果项目里已经有 Dockerfile，请在它的基础上修改（保留它的依赖安装步骤），
@@ -102,9 +102,9 @@ function selectedProfile(profile?: TemplateProfile | string | null): TemplatePro
 function howItIsUsed(profile: TemplateProfile): string {
   const common = `沙箱部署后，调用方只能通过 HTTP(S) 访问它：\`https://<端口>-<sandbox_id>.<domain>\`
 （SDK 里是 \`sandbox.network.get_url(port)\`）。所以镜像里**必须有一个常驻的 HTTP 服务**，
-仅有 Dockerfile 的模板部署后无法被使用。Easy Sandbox 的标准做法是：\`commands.py\`
-用 \`easy_sandbox.server\`（纯标准库、零第三方依赖的 HTTP 服务）在 **${SERVER_PORT}** 端口对外服务。
-\`commands.py\` 只从 \`easy_sandbox.server\` 导入，并在 \`if __name__ == "__main__"\` 里调用 \`serve(port=${SERVER_PORT})\`。`;
+仅有 Dockerfile 的模板部署后无法被使用。Agent Sandbox 的标准做法是：\`commands.py\`
+用 \`agent_sandbox.server\`（纯标准库、零第三方依赖的 HTTP 服务）在 **${SERVER_PORT}** 端口对外服务。
+\`commands.py\` 只从 \`agent_sandbox.server\` 导入，并在 \`if __name__ == "__main__"\` 里调用 \`serve(port=${SERVER_PORT})\`。`;
   if (profile.server_start === "platform_start_cmd") {
     return `${common}
 这个 provider 的基础镜像入口保持为 PID 1。平台执行 start_cmd 加载 \`commands.py\`，不要把 \`serve()\` 写在导入时会执行的位置。`;
@@ -122,7 +122,7 @@ function dockerfileRules(profile: TemplateProfile): string {
     ? `ENTRYPOINT 可以替换。`
     : `不要写 ENTRYPOINT 指令（基础镜像的入口不可替换）。`;
   const installIntro =
-    "- 安装 easy-sandbox-server，固定使用下面这段（`ebx` 部署时会把 easy-sandbox-server wheel 注入构建上下文，" +
+    "- 安装 agent-sandbox-server，固定使用下面这段（`abx` 部署时会把 agent-sandbox-server wheel 注入构建上下文，" +
     "没有 wheel 时回退到 PyPI）：";
   const secrets = "- 不要在镜像里写入任何密钥；需要的密钥在 template.yaml 的 `env` 里只列名字（空值或非敏感默认值）。";
   if (profile.server_start === "platform_start_cmd") {
@@ -138,7 +138,7 @@ function dockerfileRules(profile: TemplateProfile): string {
 - 仓库：${profile.registry}
 ${installIntro}
 \`\`\`
-${EASY_SANDBOX_SERVER_INSTALL}
+${ABX_SERVER_INSTALL}
 \`\`\`
 - \`COPY commands.py .\`（以及业务代码），\`EXPOSE ${SERVER_PORT}\`（业务端口一并 EXPOSE）。
 ${secrets}`;
@@ -155,7 +155,7 @@ ${secrets}`;
 - 仓库：${profile.registry}
 ${installIntro}
 \`\`\`
-${EASY_SANDBOX_SERVER_INSTALL}
+${ABX_SERVER_INSTALL}
 \`\`\`
 ${secrets}`;
 }
@@ -167,8 +167,8 @@ ${secrets}`;
  * or `"adopt"` (an existing project is adapted: only the four reserved files are written and the project's own code
  * is never touched).
  *
- * `profile` is a resolved {@link TemplateProfile}, a provider id, or omitted to use the same provider `ebx` already
- * selected (`--provider` / `EBX_PROVIDER` / default `alicloud-express`). The text describes that one profile.
+ * `profile` is a resolved {@link TemplateProfile}, a provider id, or omitted to use the same provider `abx` already
+ * selected (`--provider` / `ABX_PROVIDER` / default `alicloud-express`). The text describes that one profile.
  */
 export function buildTemplateGuide(mode: string = "create", profile?: TemplateProfile | string | null): string {
   if (mode !== "create" && mode !== "adopt") {
@@ -177,7 +177,7 @@ export function buildTemplateGuide(mode: string = "create", profile?: TemplatePr
   const selected = selectedProfile(profile);
   const filesSection = (mode === "adopt" ? _FILES_ADOPT : _FILES_CREATE).replace(/\n+$/, "");
   const notice = selected.missing_profile ? `${selected.notice}\n\n` : "";
-  return `## Easy Sandbox 模板规范（必须遵守）
+  return `## Agent Sandbox 模板规范（必须遵守）
 
 ${notice}### 1. 沙箱怎么被使用
 ${howItIsUsed(selected)}
@@ -186,9 +186,9 @@ ${filesSection}
 
 ${dockerfileRules(selected)}
 
-### 4. commands.py 规则（\`easy_sandbox.server\` API）
+### 4. commands.py 规则（\`agent_sandbox.server\` API）
 \`\`\`python
-from easy_sandbox.server import (
+from agent_sandbox.server import (
     CapabilityGroup, CommandRegistry, SandboxServer, ServerResponse, SSEResponse, default_table,
 )
 \`\`\`
@@ -211,7 +211,7 @@ from easy_sandbox.server import (
   迭代器逐个产出 \`"event: <名>\\ndata: <json>\\n\\n"\` 字符串。
 - 内置接口总是存在（无需自己实现）：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、
   \`POST /commands/<名字>\`，以及已开启能力组对应的文件、shell、系统接口。
-- 鉴权：设置了环境变量 \`EBX_SERVER_TOKEN\` 时，请求必须带 \`X-Access-Token\`（\`/health\` 与
+- 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，请求必须带 \`X-Access-Token\`（\`/health\` 与
   \`/capabilities\` 免鉴权）。不要在代码里写死 token。
 - 需求是一个 Web/API 服务（例如 Express、FastAPI、Flask）时：业务服务由 \`commands.py\`
   在 \`serve()\` 之前用 \`subprocess.Popen([...])\` 作为子进程拉起并监听自己的端口（该端口写进
@@ -232,9 +232,8 @@ from easy_sandbox.server import (
 - \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
 - \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
 - \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
-- \`custom_commands\`（可选，供 \`ebx run <sandbox_id> <命令>\` 使用）：
-  \`<名字>: {cmd: "python3 {file}", description, cwd: "${selected.workdir}", timeout: 60, args: [{name, default, required, description, type}]}\`，
-  \`cmd\` 里的 \`{占位符}\` 由 \`args\` 填充，\`type\` 取 string | integer | float | boolean。
+- 具名命令只在 commands.py 里用 \`@registry.command\` 注册，不要写进 template.yaml；用户用
+  \`abx run <sandbox_id> <名字>\` 调用。
 - \`tags\`、\`author\` 可省略。
 
 ### 6. 完整参考：commands.py 的最小形态
@@ -243,5 +242,5 @@ ${REFERENCE_COMMANDS_PY}\`\`\`
 `;
 }
 
-/** Guide used by `ebx create "<description>"` for the provider selected at import time. */
+/** Guide used by `abx create "<description>"` for the provider selected at import time. */
 export const TEMPLATE_GUIDE: string = buildTemplateGuide("create");

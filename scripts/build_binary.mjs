@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build a standalone `ebx` binary (esbuild bundle + Node.js single executable).
+ * Build a standalone `abx` binary (esbuild bundle + Node.js single executable).
  *
  * Produces a single-file executable that embeds the Node.js runtime and the
  * whole CLI (every lazily-imported subcommand and all runtime dependencies)
@@ -9,7 +9,7 @@
  *
  * Output naming convention:
  *
- *     ebx-{version}-{platform}-{arch}[.exe]
+ *     abx-{version}-{platform}-{arch}[.exe]
  *
  * where `platform` is one of `linux` / `darwin` / `windows` and `arch` is one
  * of `x64` / `arm64`. Both are detected from the running Node.js, so the
@@ -29,12 +29,12 @@
  *
  * - Sources are bundled with esbuild (`format: esm`, which keeps top-level await).
  *   `import.meta.url` is rewritten to the file URL of the executable, and the
- *   package version is assigned to `globalThis.__EBX_VERSION` because the
+ *   package version is assigned to `globalThis.__ABX_VERSION` because the
  *   executable has no `package.json` beside it.
  * - On macOS the copied `node` binary has its signature removed before the
  *   blob is injected and is re-signed ad hoc afterwards.
  *
- * After the build, a smoke test runs `ebx --version` against the produced
+ * After the build, a smoke test runs `abx --version` against the produced
  * binary and the SHA256 digest is printed for verification.
  */
 
@@ -57,10 +57,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST_DIR = join(REPO_ROOT, "dist", "binary");
 const BUILD_DIR = join(REPO_ROOT, "build", "sea");
-const ENTRY_POINT = join(REPO_ROOT, "src", "bin", "ebx.ts");
-const BUNDLE_PATH = join(BUILD_DIR, "ebx.cjs");
+const ENTRY_POINT = join(REPO_ROOT, "src", "bin", "abx.ts");
+const BUNDLE_PATH = join(BUILD_DIR, "abx.cjs");
 const SEA_CONFIG_PATH = join(BUILD_DIR, "sea-config.json");
-const BLOB_PATH = join(BUILD_DIR, "ebx.blob");
+const BLOB_PATH = join(BUILD_DIR, "abx.blob");
 
 // Fixed sentinel documented by Node.js; postject flips it when the blob is injected.
 const SEA_SENTINEL_FUSE = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2";
@@ -148,17 +148,17 @@ async function bundleCli(esbuild, version) {
     legalComments: "none",
     logLevel: "warning",
     // Point import.meta.url at the executable. The SEA bundle is not a file the CLI can read beside.
-    define: { "import.meta.url": "__ebx_import_meta_url" },
+    define: { "import.meta.url": "__abx_import_meta_url" },
     banner: {
       js: [
-        // Runs before any bundled require, including node:http, matching src/bin/ebx.ts.
-        "const __ebxEmitWarning = process.emitWarning;",
+        // Runs before any bundled require, including node:http, matching src/bin/abx.ts.
+        "const __abxEmitWarning = process.emitWarning;",
         "process.emitWarning = function(warning, ...rest) {",
         "  if (typeof warning === 'string' && warning.startsWith(\"The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR'\")) return;",
-        "  return __ebxEmitWarning.call(process, warning, ...rest);",
+        "  return __abxEmitWarning.call(process, warning, ...rest);",
         "};",
-        'const __ebx_import_meta_url = require("node:url").pathToFileURL(process.execPath).href;',
-        `globalThis.__EBX_VERSION = ${JSON.stringify(version)};`,
+        'const __abx_import_meta_url = require("node:url").pathToFileURL(process.execPath).href;',
+        `globalThis.__ABX_VERSION = ${JSON.stringify(version)};`,
       ].join("\n"),
     },
   });
@@ -210,7 +210,7 @@ function runVersion(binary) {
   });
 }
 
-/** Run `ebx --version` against the produced binary. */
+/** Run `abx --version` against the produced binary. */
 function smokeTest(binary, version) {
   console.log(`\nsmoke test: ${binary} --version`);
   let result = runVersion(binary);
@@ -233,16 +233,16 @@ function smokeTest(binary, version) {
   }
 }
 
-/** Build, rename, and smoke-test the standalone ebx binary. */
+/** Build, rename, and smoke-test the standalone abx binary. */
 async function main() {
   const system = detectPlatform();
   const arch = detectArch();
   const version = getVersion();
 
   const exeSuffix = system === "windows" ? ".exe" : "";
-  const finalPath = join(DIST_DIR, `ebx-${version}-${system}-${arch}${exeSuffix}`);
+  const finalPath = join(DIST_DIR, `abx-${version}-${system}-${arch}${exeSuffix}`);
 
-  console.log(`Building ebx ${version} for ${system}-${arch}`);
+  console.log(`Building abx ${version} for ${system}-${arch}`);
   console.log(`Output: ${finalPath}\n`);
 
   const esbuild = await loadEsbuild();
@@ -256,7 +256,7 @@ async function main() {
   await bundleCli(esbuild, version);
   generateBlob();
 
-  const builtPath = join(DIST_DIR, `ebx${exeSuffix}`);
+  const builtPath = join(DIST_DIR, `abx${exeSuffix}`);
   await injectBlob(inject, builtPath, system);
   if (!existsSync(builtPath) || !statSync(builtPath).isFile()) {
     throw new Error(`SEA injection did not produce ${builtPath}`);

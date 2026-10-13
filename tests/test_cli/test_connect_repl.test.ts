@@ -1,11 +1,11 @@
 /**
- * Focused tests for the `ebx connect` REPL (task 185).
+ * Focused tests for the `abx connect` REPL (task 185).
  *
  * Two layers are covered:
  *
  * - `cli/repl.ts` -- failure mapping (missing-command extraction from `EnvdRpcError.envd_error`, timeouts, sanitised
  *   remote errors), spelling hints limited to session-verified commands, and the readline gate.
- * - the `ebx connect` command itself -- one friendly notice per failure with no sandbox URL / MDN link / duplicate
+ * - the `abx connect` command itself -- one friendly notice per failure with no sandbox URL / MDN link / duplicate
  *   WARNING, every exit path (`exit`, `quit`, Ctrl+D and Ctrl+C) and the "state does not persist" banner.
  */
 
@@ -24,18 +24,19 @@ import {
   replSeams,
   sanitizeText,
 } from "../../src/cli/repl.js";
-import { EOFError, KeyboardInterrupt, sys } from "../../src/framework/index.js";
-import type { TextInput } from "../../src/framework/io.js";
+import { EOFError, KeyboardInterrupt } from "../../src/cli/errors.js";
+import { sys } from "../../src/cli/io.js";
+import type { TextInput } from "../../src/cli/io.js";
 import { CommandTimeoutError, ConnectionError_, EnvdRpcError } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import * as httpx from "../../src/transport/_httpx.js";
 import { getLogger } from "../../src/utils/logging.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
-import { commandModuleExists, usePristineLogging } from "./conftest.js";
+import { usePristineLogging } from "./conftest.js";
 
 const _SANDBOX_ID = "sbx-cli-test-001";
 const _ENVD_MESSAGE = "envd rejected process.Process/Start with HTTP 500";
-const _STATUS_HINT = "Check the sandbox status with 'ebx info <SANDBOX_ID>' and retry.";
+const _STATUS_HINT = "Check the sandbox status with 'abx info <SANDBOX_ID>' and retry.";
 
 // `_pristine_logging` (autouse): isolate global logging state.
 usePristineLogging();
@@ -178,7 +179,7 @@ describe("TestDescribeCommandFailure", () => {
 
     expect(failure.message).toBe(`Command timed out after ${REPL_TIMEOUT}s.`);
     expect(failure.code).toBe("E3001");
-    expect(failure.suggestion).toContain("ebx exec");
+    expect(failure.suggestion).toContain("abx exec");
   });
 
   it("test_sandbox_error_url_is_scrubbed", () => {
@@ -249,7 +250,7 @@ describe("TestReplHelpers", () => {
 });
 
 describe("TestEnableLineEditing", () => {
-  // `monkeypatch.setattr("sys.stdin", ...)`: swap the framework stdin and restore it (and the editing state) afterwards.
+  // `monkeypatch.setattr("sys.stdin", ...)`: swap the stdin stream and restore it (and the editing state) afterwards.
   let savedStdin: TextInput;
   beforeEach(() => {
     savedStdin = sys.stdin;
@@ -281,7 +282,7 @@ describe("TestEnableLineEditing", () => {
 });
 
 // ---------------------------------------------------------------------------
-// `ebx connect` session
+// `abx connect` session
 // ---------------------------------------------------------------------------
 
 describe("TestConnectSession", () => {
@@ -299,7 +300,7 @@ describe("TestConnectSession", () => {
   });
 
   /**
-   * `patch("easy_sandbox.api.sandbox.Sandbox.connect", ...)` + `patch("builtins.input", side_effect=inputs)`:
+   * `patch("agent_sandbox.api.sandbox.Sandbox.connect", ...)` + `patch("builtins.input", side_effect=inputs)`:
    * `inputs` is either a list (strings are returned, exceptions are raised, in order) or a single exception.
    */
   async function invoke(r: CliRunner, inputs: Array<string | Error> | Error, run: RunMock): Promise<Result> {

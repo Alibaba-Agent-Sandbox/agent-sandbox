@@ -5,35 +5,35 @@
 
 ## Project Overview
 
-**Easy Sandbox** (`@easy-sandbox/cli` on npm, CLI command `ebx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It is **E2B-protocol compatible** with extensions for the Alibaba Cloud ecosystem (OSS, VPC, custom domains). The Python SDK (`easy-sandbox` on PyPI) and the in-sandbox runtime (`easy-sandbox-server`) live in the `python-sdk` repository.
+**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox` on PyPI) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)
 - **Package:** `src/`
-- **Entry point:** `ebx` → `src/bin/ebx.ts` (built to `dist/bin/ebx.js`)
+- **Entry point:** `abx` → `src/bin/abx.ts` (built to `dist/bin/abx.js`)
 
 ---
 
 ## Directory Structure
 
 ```
-easy-sandbox/
+agent-sandbox/
 ├── src/                       # CLI source (TypeScript, ESM)
 │   ├── models/                # Data models: config, errors, sandbox, template, session, filesystem, process
 │   ├── transport/             # HTTP/WS transport, auth, codec, retry, streaming
 │   ├── protocol/              # Protocol abstractions: sandbox, filesystem, process, terminal, port, code_interpreter
 │   ├── api/                   # High-level API: Sandbox, files, code, commands, network, image, capability, session_manager, template
-│   ├── cli/                   # `ebx` CLI: main, output/formatters, command modules
+│   ├── cli/                   # `abx` CLI: main, output/formatters, command modules
 │   │   └── commands/          # Subcommands: config_cmd, deploy, mcp, sandbox, sandbox_files, sandbox_process, sandbox_system, template
 │   ├── framework/             # Mini click-compatible command framework (groups, options, help rendering, lazy subcommands)
 │   ├── agent/                 # AI agent tooling: MCP server, tool definitions, template authoring/adoption
 │   ├── session/               # Session persistence: local (LocalSessionStore)
 │   ├── utils/                 # Async bridge, secret store, logging, registry, retry
-│   └── bin/                   # `ebx.ts` executable entry point
+│   └── bin/                   # `abx.ts` executable entry point
 ├── tests/                     # Mirrors src/ structure (test_api/, test_cli/, test_models/, …); vitest
 ├── parity/                    # Python-test ledger used by `npm run parity:coverage`
 ├── docs/
-│   ├── PORTING.md             # Porting contract: Python `ebx` -> Node.js `ebx`
+│   ├── PORTING.md             # Porting contract: Python `abx` -> Node.js `abx`
 │   ├── en/
 │   │   ├── design/            # CLI design documents (English): architecture, cli-design, mcp-server, templates-catalog
 │   │   ├── guide/             # User tutorials & how-to guides
@@ -60,7 +60,7 @@ The CLI follows a strict layered structure — **lower layers never import upper
 
 ```mermaid
 graph TB
-    BIN["bin — ebx entry"]
+    BIN["bin — abx entry"]
     subgraph Front["Command line"]
         FW["framework — click-compatible command framework"]
         CLI["cli — main, OutputManager, formatters"]
@@ -86,7 +86,7 @@ graph TB
     API --> PRO --> TRA --> MOD
 ```
 
-The client core mirrors the Python SDK's layers one-to-one; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
+The client core mirrors the Python SDK's layers one-to-one; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
 
 ---
 
@@ -99,7 +99,7 @@ The client core mirrors the Python SDK's layers one-to-one; the SDK's own archit
 npm ci
 
 # Run the CLI from source
-npm run dev -- --help        # tsx src/bin/ebx.ts --help
+npm run dev -- --help        # tsx src/bin/abx.ts --help
 ```
 
 ### Day-to-Day
@@ -156,18 +156,18 @@ Defined in [`models/template.ts`](src/models/template.ts), resolved by [`api/cap
 ### Capability Resolution Priority
 
 1. Explicit `local_yaml_path` (programmatic override)
-2. Local template cache scan (`~/.ebx/templates/`)
+2. Local template cache scan (`~/.abx/templates/`)
 3. *(Phase 2, TODO)* Online fallback — `GET /templates/{id}`
 4. Fall back to `DEFAULT_CAPABILITIES` + warning
 
 ### CLI Command Resolution Priority
 
-When `ebx create` resolves a template:
+When `abx create` resolves a template:
 - Programmatic specification → local project `template.yaml` → installed template cache → *(Phase 2)* online registry → `DEFAULT`
 
 ### Template Definition
 
-Templates use `template.yaml` (not `manifest.yaml` for capability purposes). Key fields: `name`, `capabilities`, `custom_commands`, `alias`/`aliases`.
+Templates use `template.yaml` (not `manifest.yaml` for capability purposes). Key fields: `name`, `capabilities`, `alias`/`aliases`. Named commands are not declared in `template.yaml`; they are registered on the in-sandbox server (`abx sandbox command list|run`).
 
 ---
 
@@ -187,7 +187,7 @@ The original auto-generated golden-file set (every CLI command's input→output 
 **Regenerate:**
 ```bash
 # Update golden files when tests use snapshot comparison
-EBX_UPDATE_EVIDENCE=1 npm test
+ABX_UPDATE_EVIDENCE=1 npm test
 ```
 
 The offline/live evidence *capture* script lives in this repository as `scripts/capture-cli-evidence.mjs` (`--live`, `--command <group>`, `--out <dir>`; see [`tests/test_cli_evidence/README.md`](tests/test_cli_evidence/README.md)). It replaced the Python `scripts/capture_cli_evidence.py` driver and writes the Markdown evidence under `.agents/evidence/cli/`. Snapshot tests still compare against `tests/test_cli_evidence/golden/`.
@@ -208,7 +208,7 @@ The offline/live evidence *capture* script lives in this repository as `scripts/
 | Design index (EN)     | [`docs/en/DESIGN.md`](docs/en/DESIGN.md)                            |
 | Design index (ZH)     | [`docs/zh/DESIGN.md`](docs/zh/DESIGN.md)                            |
 | CLI evidence            | [`.agents/evidence/`](.agents/evidence/README.md) (golden files) |
-| SDK documentation       | [`python-sdk` docs](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/README.md) (SDK, server SDK, `template.yaml` contract) |
+| SDK documentation       | [`python-sdk` docs](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/README.md) (SDK, server SDK, `template.yaml` contract) |
 | Changelog               | [`CHANGELOG.md`](CHANGELOG.md)                                      |
 
 ### ADR System (`.agents/notes/`)
@@ -239,7 +239,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 **MUST follow:**
 
 1. **Never auto-commit.** Make changes; let the human review and commit.
-2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `EBX_UPDATE_EVIDENCE=1 npm test`.
+2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `ABX_UPDATE_EVIDENCE=1 npm test`.
 3. **After modifying any CLI command**, regenerate the affected evidence files and verify they look correct.
 4. **Respect template capability declarations.** If `resolveCapabilities()` fails or a capability is missing, the fix is to declare it in the template YAML — not to bypass the resolution.
 5. **Never fabricate FC/envd API endpoints.** If you're unsure about a real backend API, flag it as a TODO rather than inventing a placeholder.

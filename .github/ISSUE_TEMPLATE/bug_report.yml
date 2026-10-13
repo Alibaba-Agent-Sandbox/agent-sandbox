@@ -8,9 +8,9 @@ body:
       value: |
         Thanks for taking the time to fill out this bug report!
 
-        This repository is the ebx CLI: https://github.com/Easy-Sandbox/easy-sandbox
-        Python SDK bugs belong in https://github.com/Easy-Sandbox/python-sdk
-        Node.js SDK bugs belong in https://github.com/Easy-Sandbox/nodejs-sdk
+        This repository is the abx CLI: https://github.com/alibaba-agent-sandbox/agent-sandbox
+        Python SDK bugs belong in https://github.com/alibaba-agent-sandbox/python-sdk
+        Node.js SDK bugs belong in https://github.com/alibaba-agent-sandbox/nodejs-sdk
   - type: textarea
     id: description
     attributes:
@@ -25,8 +25,8 @@ body:
       label: Steps to Reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        1. Install the CLI `npm install -g @easy-sandbox/cli`
-        2. Run `ebx create base`
+        1. Install the CLI `npm install -g @agent-sandbox/cli`
+        2. Run `abx create base`
         3. See error...
     validations:
       required: true

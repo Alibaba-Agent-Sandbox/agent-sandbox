@@ -1,8 +1,8 @@
 /**
- * CLI tests for `ebx template init --adopt`.
+ * CLI tests for `abx template init --adopt`.
  *
  * The coding agent is a fake that writes a valid template into its cwd. No model, Docker or cloud call is made.
- * `ebx deploy` is then checked only as far as the fixed pipeline hand-off.
+ * `abx deploy` is then checked only as far as the fixed pipeline hand-off.
  */
 
 import "../_support/isolatedHome.js";
@@ -17,7 +17,7 @@ import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import { deploySeams } from "../../src/cli/commands/deploy.js";
 import { build as realBuild } from "../../src/cli/commands/template.js";
 import { cli } from "../../src/cli/main.js";
-import { command } from "../../src/framework/index.js";
+import { command } from "../../src/cli/kit.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { adoptSeams } from "../../src/cli/commands/_adopt.js";
 import { useTmpPath, writeText } from "../helpers/templateSupport.js";
@@ -27,7 +27,7 @@ const runner = (): CliRunner => new CliRunner();
 const tmpPath = useTmpPath();
 
 const COMMANDS = `\
-from easy_sandbox.server import CommandRegistry, SandboxServer
+from agent_sandbox.server import CommandRegistry, SandboxServer
 
 registry = CommandRegistry()
 registry.freeze()
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 const DOCKER = `\
 FROM python:3.12-slim
 COPY *.whl /tmp/
-RUN pip install --no-cache-dir easy-sandbox
+RUN pip install --no-cache-dir agent-sandbox
 WORKDIR /app
 COPY commands.py .
 COPY app.py .
@@ -69,7 +69,7 @@ const exists = (p: string): boolean => fs.existsSync(p);
 
 afterEach(() => {
   for (const name of fs.readdirSync(os.tmpdir())) {
-    if (name.startsWith("ebx-adopt-")) fs.rmSync(path.join(os.tmpdir(), name), { recursive: true, force: true });
+    if (name.startsWith("abx-adopt-")) fs.rmSync(path.join(os.tmpdir(), name), { recursive: true, force: true });
   }
 });
 
@@ -107,7 +107,7 @@ describe("TestFlags", () => {
   it("test_hint_and_dry_run_require_adopt", async () => {
     for (const args of [["--hint", "redis"], ["--dry-run"]]) {
       const result = await runner().invoke(cli, ["template", "init", ...args]);
-      expect(result.exit_code).toBe(1);
+      expect(result.exit_code).toBe(2);
       expect(_text(result)).toContain("--adopt");
     }
   });
@@ -115,13 +115,13 @@ describe("TestFlags", () => {
   it("test_adopt_rejects_scaffold_and_from", async () => {
     const project = _project();
     const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-t", "python"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("cannot be combined");
   });
 
   it("test_a_sentence_is_not_a_directory", async () => {
     const result = await runner().invoke(cli, ["template", "init", "--adopt", "a python app", "-y"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("--hint");
   });
 
@@ -129,7 +129,7 @@ describe("TestFlags", () => {
     const agent = useAgent();
     const project = _project();
     const result = await runner().invoke(cli, ["template", "init", "--adopt", project]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("Confirmation required");
     expect(agent.calls).toBe(0);
     expect(exists(path.join(project, "Dockerfile"))).toBe(false);
@@ -183,7 +183,7 @@ describe("TestAdopt", () => {
     expect(read(path.join(project, "template.yaml"))).toContain("name: my-app");
     expect(fs.statSync(path.join(project, ".dockerignore")).isFile()).toBe(true);
     expect(read(path.join(project, "app.py"))).toBe("print('hi')\n");
-    expect(text).toContain("ebx deploy");
+    expect(text).toContain("abx deploy");
 
     const calls: Array<Record<string, unknown>> = [];
     const savedBuild = deploySeams.build;
@@ -243,7 +243,7 @@ describe("TestAdopt", () => {
     const project = _project();
     writeText(path.join(project, "Dockerfile"), "FROM scratch\n");
     const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-y"]);
-    expect(result.exit_code).toBe(1);
+    expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("without a preview");
     expect(agent.calls).toBe(0);
     expect(read(path.join(project, "Dockerfile"))).toBe("FROM scratch\n");
@@ -256,7 +256,7 @@ describe("TestAdopt", () => {
     const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "--force", "-y"]);
     expect(result.exit_code, _text(result)).toBe(0);
     expect(read(path.join(project, "Dockerfile"))).not.toBe("FROM scratch\n");
-    expect(read(path.join(project, "Dockerfile.ebx-bak"))).toBe("FROM scratch\n");
+    expect(read(path.join(project, "Dockerfile.abx-bak"))).toBe("FROM scratch\n");
   });
 
   it("test_failed_generation_leaves_the_project_and_keeps_staging", async () => {
@@ -275,7 +275,7 @@ describe("TestAdopt", () => {
     const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-y"]);
     expect(result.exit_code).toBe(1);
     expect(_text(result)).toContain("symlink");
-    expect(_text(result)).toContain("ebx-adopt-");
+    expect(_text(result)).toContain("abx-adopt-");
     expect(read(path.join(project, "app.py"))).toBe(before);
     expect(exists(path.join(project, "Dockerfile"))).toBe(false);
   });
@@ -285,7 +285,7 @@ describe("TestAdopt", () => {
     deploySeams.resolve_acr_namespace = () => "ns";
     try {
       const result = await runner().invoke(cli, ["deploy", tmpPath()]);
-      expect(result.exit_code).toBe(1);
+      expect(result.exit_code).toBe(2);
       expect(_text(result)).toContain("init --adopt");
     } finally {
       deploySeams.resolve_acr_namespace = saved;

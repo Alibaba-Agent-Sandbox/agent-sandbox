@@ -1,7 +1,7 @@
 /**
  * Shared coding-agent helpers for the `create` and `deploy` commands (port of `cli/commands/_coding_agent.py`).
  *
- * Both `ebx create "<description>"` and the agent-driven `ebx deploy` route drive the same pluggable backend
+ * Both `abx create "<description>"` and the agent-driven `abx deploy` route drive the same pluggable backend
  * (`agent/coding_agent.ts`): they must locate (or install) the agent executable and resolve model credentials
  * identically -- same prompts, same non-interactive behaviour, same error codes, same secret handling. This internal
  * module is the single home of that front half of the flow; the command modules keep the orchestration and the
@@ -23,11 +23,13 @@
  *
  * Port notes: Python's module-level `sys` (`monkeypatch.setattr("...._coding_agent.sys", _FakeSys())`) is the
  * {@link codingAgentSeams} object -- `stdinIsatty` is the single place the TTY decision is made, and
- * `resolveBackend` stands in for `easy_sandbox.agent.coding_agent.resolve_coding_agent_backend` (patched by the
+ * `resolveBackend` stands in for `agent_sandbox.agent.coding_agent.resolve_coding_agent_backend` (patched by the
  * Python tests).
  */
 
-import { type Context, confirm, prompt, sys } from "../../framework/index.js";
+import { type Context } from "../kit.js";
+import { sys } from "../io.js";
+import { confirm, prompt } from "../prompts.js";
 import {
   type CodingAgentBackend,
   type CodingAgentCredentials,
@@ -42,7 +44,7 @@ export const __all__ = ["ensureCodingAgentBinary", "resolveCodingAgentBackend", 
 export const codingAgentSeams: {
   /** `sys.stdin.isatty()` of the Python module. */
   stdinIsatty: () => boolean;
-  /** `easy_sandbox.agent.coding_agent.resolve_coding_agent_backend`. */
+  /** `agent_sandbox.agent.coding_agent.resolve_coding_agent_backend`. */
   resolveBackend: (name?: string) => CodingAgentBackend;
 } = {
   stdinIsatty: () => sys.stdin.isatty(),
@@ -86,22 +88,22 @@ export async function ensureCodingAgentBinary(ctx: Context, opts: { yes: boolean
 
   const out = getOutput(ctx);
   const interactive = codingAgentSeams.stdinIsatty();
-  out.warning(`${backend.displayName} CLI was not found on PATH or in ~/.ebx/bin.`);
+  out.warning(`${backend.displayName} CLI was not found on PATH or in ~/.abx/bin.`);
   await _printQuickSetup(out, { backend, reason: "not-installed" });
 
   const notInstalled = backend.notInstalledError;
   if (!yes && !interactive) {
-    throw new notInstalled(`${backend.displayName} CLI is required for AI template generation but is not installed.`, {
+    throw new notInstalled(`${backend.displayName} CLI is required for template generation but is not installed.`, {
       suggestion:
         "Install it with the official command from Quick Setup above, then retry \u2014 " +
-        "or use 'ebx create --template <name>' to skip AI generation.",
+        "or use 'abx create --template <name>' to skip template generation.",
     });
   }
   if (interactive && !yes) {
-    const proceed = await confirm(`Install the official ${backend.displayName} standalone build into ~/.ebx/bin now?`, { default: true });
+    const proceed = await confirm(`Install the official ${backend.displayName} standalone build into ~/.abx/bin now?`, { default: true });
     if (!proceed) {
-      throw new notInstalled(`Declined to install ${backend.displayName}; AI template generation cannot continue.`, {
-        suggestion: "Install it manually (see Quick Setup above) and retry, or use 'ebx create --template <name>'.",
+      throw new notInstalled(`Declined to install ${backend.displayName}; template generation cannot continue.`, {
+        suggestion: "Install it manually (see Quick Setup above) and retry, or use 'abx create --template <name>'.",
       });
     }
   }
@@ -137,9 +139,9 @@ export async function ensureCodingAgentBinary(ctx: Context, opts: { yes: boolean
 /**
  * Resolve coding-agent credentials, prompting once when allowed.
  *
- * Same order as `ebx config list`: a process environment variable (`EBX_LLM_API_KEY`, then vendor
- * `BAILIAN_CODING_PLAN_API_KEY` / `DASHSCOPE_API_KEY` / `OPENAI_API_KEY`, then a legacy `EBX_QWEN_CODE_API_KEY`) wins
- * over the value stored in ~/.ebx. Endpoint and model follow that same env-then-file order. Without `--yes` and on an
+ * Same order as `abx config list`: a process environment variable (`ABX_LLM_API_KEY`, then vendor
+ * `BAILIAN_CODING_PLAN_API_KEY` / `DASHSCOPE_API_KEY` / `OPENAI_API_KEY`) wins
+ * over the value stored in ~/.abx. Endpoint and model follow that same env-then-file order. Without `--yes` and on an
  * interactive terminal, one hidden prompt stores the entered key for future runs.
  *
  * @throws SandboxCreationError `backend.credentialError` when nothing usable is found (or the user declined /
@@ -152,7 +154,7 @@ export async function resolveCodingAgentCredentials(
   const { yes, backend } = opts;
   const configCmd = await import("./config_cmd.js");
 
-  // Same resolution `ebx config list` uses. Process environment wins over ~/.ebx; endpoint and model follow llm_* and
+  // Same resolution `abx config list` uses. Process environment wins over ~/.abx; endpoint and model follow llm_* and
   // fall back to a previously stored qwen_code_* value. Built-in defaults are left for the backend.
   const [storedKeyRaw] = await configCmd._effectiveValue("llm_api_key");
   const [baseUrl, baseSource] = await configCmd._effectiveValue(backend.baseUrlConfigKey);
@@ -177,24 +179,24 @@ export async function resolveCodingAgentCredentials(
   if (yes || !codingAgentSeams.stdinIsatty()) {
     throw new backend.credentialError(`${backend.displayName} is installed but no model credentials were found.`, {
       suggestion:
-        `Store a key with 'ebx config set ${backend.configKey} <KEY>' (or export ` +
+        `Store a key with 'abx config set ${backend.configKey} <KEY>' (or export ` +
         "OPENAI_API_KEY / DASHSCOPE_API_KEY), then retry. Guided setup: " +
-        "'ebx config init'.",
+        "'abx config init --llm'.",
     });
   }
   await _printQuickSetup(out, { backend, reason: "no-credentials" });
   const key: string = await prompt(backend.credentialPrompt, { hide_input: true, default: "", show_default: false });
   if (!pyStrip(key)) {
-    throw new backend.credentialError(`No ${backend.displayName} API key provided; AI template generation cannot continue.`, {
+    throw new backend.credentialError(`No ${backend.displayName} API key provided; template generation cannot continue.`, {
       suggestion:
-        `Store one with 'ebx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'ebx create --template <name>'.",
+        `Store one with 'abx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'abx create --template <name>'.",
     });
   }
   await configCmd.writeEnvVar(backend.envVar, pyStrip(key));
-  // Same migration as `ebx config set llm_api_key`: drop any legacy [transport] copy once the secure storage is
+  // Same migration as `abx config set llm_api_key`: drop any legacy [transport] copy once the secure storage is
   // written.
   await configCmd._removeTomlKey("llm_api_key");
-  out.success(`Stored ${backend.configKey} in ~/.ebx/.env`);
+  out.success(`Stored ${backend.configKey} in ~/.abx/.env`);
   return backend.resolveCredentials({
     storedApiKey: pyStrip(key),
     storedBaseUrl,

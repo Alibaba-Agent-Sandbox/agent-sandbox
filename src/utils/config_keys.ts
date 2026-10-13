@@ -2,11 +2,16 @@
  * Canonical configuration-key registry (GENERATED - do not edit).
  *
  * Source of truth: docs/design/fixtures/config-keys.json (exported by the Python SDK with
- * `python -m easy_sandbox.utils.config_keys --json`). Regenerate with `node scripts/gen-config-keys.mjs`;
+ * `python -m agent_sandbox.utils.config_keys --json`). Regenerate with `node scripts/gen-config-keys.mjs`;
  * `tests/test_utils/test_config_keys.test.ts` fails when this file drifts from the JSON.
  *
  * The pure layered resolver lives in `./config_resolver.ts`.
+ *
+ * Keys only the CLI reads (`llm_*`, `acr_*`, `team_id`) are declared by hand in `./cli_config_keys.ts` and appended
+ * to the shared keys at load time; `exportSchema()` and the JSON contain the shared keys only.
  */
+
+import { CLI_BUILTIN_KEYS, CLI_CORE_KEYS } from "./cli_config_keys.js";
 
 const SCHEMA: ConfigKeysSchema = {
   "schema_version": 1,
@@ -28,7 +33,7 @@ const SCHEMA: ConfigKeysSchema = {
     "e2b"
   ],
   "reserved_provider_prefixes": [
-    "ebx-",
+    "abx-",
     "alicloud-",
     "shortcuts"
   ],
@@ -55,10 +60,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_PROVIDER",
+      "env": "ABX_PROVIDER",
       "aliases": [],
       "env_names": [
-        "EBX_PROVIDER"
+        "ABX_PROVIDER"
       ],
       "toml_section": "core",
       "storage_phase1": {
@@ -74,7 +79,7 @@ const SCHEMA: ConfigKeysSchema = {
       "default": "alicloud-express",
       "choices": [],
       "group": "Provider",
-      "description": "Default provider id (see 'ebx provider list')"
+      "description": "Default provider id (see 'abx provider list')"
     },
     {
       "key": "sandbox_api_key",
@@ -83,24 +88,24 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": true,
       "credential": true,
       "settable": true,
-      "env": "EBX_SANDBOX_API_KEY",
+      "env": "ABX_SANDBOX_API_KEY",
       "aliases": [],
       "env_names": [
-        "EBX_SANDBOX_API_KEY"
+        "ABX_SANDBOX_API_KEY"
       ],
       "toml_section": null,
       "storage_phase1": {
         "file": "env",
-        "name": "EBX_SANDBOX_API_KEY"
+        "name": "ABX_SANDBOX_API_KEY"
       },
       "storage_phase2": {
         "file": "env",
-        "name": "EBX_SANDBOX_API_KEY"
+        "name": "ABX_SANDBOX_API_KEY"
       },
       "default": null,
       "choices": [],
       "group": "Sandbox authentication",
-      "description": "Sandbox API key (any E2B-protocol endpoint)"
+      "description": "Agent Sandbox API key of the active provider"
     },
     {
       "key": "sandbox_base_url",
@@ -109,10 +114,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_SANDBOX_BASE_URL",
+      "env": "ABX_SANDBOX_BASE_URL",
       "aliases": [],
       "env_names": [
-        "EBX_SANDBOX_BASE_URL"
+        "ABX_SANDBOX_BASE_URL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -128,7 +133,7 @@ const SCHEMA: ConfigKeysSchema = {
       "default": "https://api.cn-hangzhou.e2b.fc.aliyuncs.com",
       "choices": [],
       "group": "Connection",
-      "description": "Platform API URL, any E2B-protocol endpoint"
+      "description": "Agent Sandbox API endpoint of the active provider"
     },
     {
       "key": "sandbox_domain",
@@ -137,10 +142,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_SANDBOX_DOMAIN",
+      "env": "ABX_SANDBOX_DOMAIN",
       "aliases": [],
       "env_names": [
-        "EBX_SANDBOX_DOMAIN"
+        "ABX_SANDBOX_DOMAIN"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -165,10 +170,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_HTTP_TIMEOUT",
+      "env": "ABX_HTTP_TIMEOUT",
       "aliases": [],
       "env_names": [
-        "EBX_HTTP_TIMEOUT"
+        "ABX_HTTP_TIMEOUT"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -193,10 +198,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_HTTP2",
+      "env": "ABX_HTTP2",
       "aliases": [],
       "env_names": [
-        "EBX_HTTP2"
+        "ABX_HTTP2"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -221,10 +226,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_MAX_RETRIES",
+      "env": "ABX_MAX_RETRIES",
       "aliases": [],
       "env_names": [
-        "EBX_MAX_RETRIES"
+        "ABX_MAX_RETRIES"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -249,10 +254,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_MAX_CONNECTIONS",
+      "env": "ABX_MAX_CONNECTIONS",
       "aliases": [],
       "env_names": [
-        "EBX_MAX_CONNECTIONS"
+        "ABX_MAX_CONNECTIONS"
       ],
       "toml_section": "transport",
       "storage_phase1": null,
@@ -269,10 +274,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_MAX_KEEPALIVE_CONNECTIONS",
+      "env": "ABX_MAX_KEEPALIVE_CONNECTIONS",
       "aliases": [],
       "env_names": [
-        "EBX_MAX_KEEPALIVE_CONNECTIONS"
+        "ABX_MAX_KEEPALIVE_CONNECTIONS"
       ],
       "toml_section": "transport",
       "storage_phase1": null,
@@ -289,10 +294,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_KEEPALIVE_EXPIRY",
+      "env": "ABX_KEEPALIVE_EXPIRY",
       "aliases": [],
       "env_names": [
-        "EBX_KEEPALIVE_EXPIRY"
+        "ABX_KEEPALIVE_EXPIRY"
       ],
       "toml_section": "transport",
       "storage_phase1": null,
@@ -309,10 +314,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_WS_PING_INTERVAL",
+      "env": "ABX_WS_PING_INTERVAL",
       "aliases": [],
       "env_names": [
-        "EBX_WS_PING_INTERVAL"
+        "ABX_WS_PING_INTERVAL"
       ],
       "toml_section": "transport",
       "storage_phase1": null,
@@ -329,10 +334,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_RETRY_BASE_DELAY",
+      "env": "ABX_RETRY_BASE_DELAY",
       "aliases": [],
       "env_names": [
-        "EBX_RETRY_BASE_DELAY"
+        "ABX_RETRY_BASE_DELAY"
       ],
       "toml_section": "transport",
       "storage_phase1": null,
@@ -349,10 +354,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_LOG_LEVEL",
+      "env": "ABX_LOG_LEVEL",
       "aliases": [],
       "env_names": [
-        "EBX_LOG_LEVEL"
+        "ABX_LOG_LEVEL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -383,10 +388,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "EBX_DEFAULT_TEMPLATE",
+      "env": "ABX_DEFAULT_TEMPLATE",
       "aliases": [],
       "env_names": [
-        "EBX_DEFAULT_TEMPLATE"
+        "ABX_DEFAULT_TEMPLATE"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -403,88 +408,6 @@ const SCHEMA: ConfigKeysSchema = {
       "choices": [],
       "group": "",
       "description": "Template used when none is given"
-    },
-    {
-      "key": "llm_api_key",
-      "scope": "core",
-      "type": "str",
-      "secret": true,
-      "credential": false,
-      "settable": true,
-      "env": "EBX_LLM_API_KEY",
-      "aliases": [],
-      "env_names": [
-        "EBX_LLM_API_KEY"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "EBX_LLM_API_KEY"
-      },
-      "storage_phase2": {
-        "file": "env",
-        "name": "EBX_LLM_API_KEY"
-      },
-      "default": null,
-      "choices": [],
-      "group": "LLM",
-      "description": "LLM API key for AI codegen"
-    },
-    {
-      "key": "llm_base_url",
-      "scope": "core",
-      "type": "url",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "EBX_LLM_BASE_URL",
-      "aliases": [],
-      "env_names": [
-        "EBX_LLM_BASE_URL"
-      ],
-      "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "llm_base_url",
-        "section": "transport"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "llm_base_url",
-        "section": "transport"
-      },
-      "default": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-      "choices": [],
-      "group": "LLM",
-      "description": "LLM endpoint (OpenAI-compatible)"
-    },
-    {
-      "key": "llm_model",
-      "scope": "core",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "EBX_LLM_MODEL",
-      "aliases": [],
-      "env_names": [
-        "EBX_LLM_MODEL"
-      ],
-      "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "llm_model",
-        "section": "transport"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "llm_model",
-        "section": "transport"
-      },
-      "default": "qwen3-coder-plus",
-      "choices": [],
-      "group": "LLM",
-      "description": "LLM model name"
     },
     {
       "key": "github_token",
@@ -519,10 +442,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_TEMPLATE_INDEX_URL",
+      "env": "ABX_TEMPLATE_INDEX_URL",
       "aliases": [],
       "env_names": [
-        "EBX_TEMPLATE_INDEX_URL"
+        "ABX_TEMPLATE_INDEX_URL"
       ],
       "toml_section": null,
       "storage_phase1": null,
@@ -539,10 +462,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_TEMPLATE_DIR",
+      "env": "ABX_TEMPLATE_DIR",
       "aliases": [],
       "env_names": [
-        "EBX_TEMPLATE_DIR"
+        "ABX_TEMPLATE_DIR"
       ],
       "toml_section": null,
       "storage_phase1": null,
@@ -559,10 +482,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": true,
       "credential": false,
       "settable": false,
-      "env": "EBX_MCP_AUTH_TOKEN",
+      "env": "ABX_MCP_AUTH_TOKEN",
       "aliases": [],
       "env_names": [
-        "EBX_MCP_AUTH_TOKEN"
+        "ABX_MCP_AUTH_TOKEN"
       ],
       "toml_section": null,
       "storage_phase1": null,
@@ -579,10 +502,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_MCP_ALLOWED_ORIGINS",
+      "env": "ABX_MCP_ALLOWED_ORIGINS",
       "aliases": [],
       "env_names": [
-        "EBX_MCP_ALLOWED_ORIGINS"
+        "ABX_MCP_ALLOWED_ORIGINS"
       ],
       "toml_section": null,
       "storage_phase1": null,
@@ -599,10 +522,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": false,
-      "env": "EBX_MCP_RUNTIME_DIR",
+      "env": "ABX_MCP_RUNTIME_DIR",
       "aliases": [],
       "env_names": [
-        "EBX_MCP_RUNTIME_DIR"
+        "ABX_MCP_RUNTIME_DIR"
       ],
       "toml_section": null,
       "storage_phase1": null,
@@ -691,282 +614,6 @@ const SCHEMA: ConfigKeysSchema = {
       "choices": [],
       "group": "Alibaba Cloud credentials",
       "description": "Alibaba Cloud AccessKey secret"
-    },
-    {
-      "key": "acr_namespace",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_NAMESPACE",
-      "aliases": [],
-      "env_names": [
-        "ACR_NAMESPACE"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "ACR_NAMESPACE"
-      },
-      "storage_phase2": {
-        "file": "env",
-        "name": "ACR_NAMESPACE"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud credentials",
-      "description": "ACR namespace"
-    },
-    {
-      "key": "acr_registry",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_REGISTRY",
-      "aliases": [],
-      "env_names": [
-        "ACR_REGISTRY"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_registry",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_registry",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR registry host"
-    },
-    {
-      "key": "acr_repo",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_REPO",
-      "aliases": [],
-      "env_names": [
-        "ACR_REPO"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_repo",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_repo",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR repository"
-    },
-    {
-      "key": "acr_username",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_USERNAME",
-      "aliases": [],
-      "env_names": [
-        "ACR_USERNAME"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_username",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_username",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR username"
-    },
-    {
-      "key": "acr_password",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": true,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_PASSWORD",
-      "aliases": [],
-      "env_names": [
-        "ACR_PASSWORD"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "ACR_PASSWORD"
-      },
-      "storage_phase2": {
-        "file": "env",
-        "name": "ACR_PASSWORD"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR password"
-    },
-    {
-      "key": "acr_instance_id",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACREE_INSTANCE_ID",
-      "aliases": [],
-      "env_names": [
-        "ACREE_INSTANCE_ID"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_instance_id",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_instance_id",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR Enterprise instance id"
-    },
-    {
-      "key": "acr_vpc_id",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_VPC_ID",
-      "aliases": [],
-      "env_names": [
-        "ACR_VPC_ID"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_vpc_id",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_vpc_id",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR VPC id"
-    },
-    {
-      "key": "acr_vswitch_ids",
-      "scope": "alicloud-express",
-      "type": "csv",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_VSWITCH_IDS",
-      "aliases": [],
-      "env_names": [
-        "ACR_VSWITCH_IDS"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_vswitch_ids",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_vswitch_ids",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR vSwitch ids (comma-separated)"
-    },
-    {
-      "key": "acr_security_group_id",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ACR_SECURITY_GROUP_ID",
-      "aliases": [],
-      "env_names": [
-        "ACR_SECURITY_GROUP_ID"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "acr_security_group_id",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "acr_security_group_id",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "ACR security group id"
-    },
-    {
-      "key": "team_id",
-      "scope": "alicloud-express",
-      "type": "str",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "EBX_ALICLOUD_EXPRESS_TEAM_ID",
-      "aliases": [],
-      "env_names": [
-        "EBX_ALICLOUD_EXPRESS_TEAM_ID"
-      ],
-      "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "team_id",
-        "section": "providers.alicloud-express"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "team_id",
-        "section": "providers.alicloud-express"
-      },
-      "default": null,
-      "choices": [],
-      "group": "Alibaba Cloud registry (ACR)",
-      "description": "Team id"
     }
   ]
 } as ConfigKeysSchema;
@@ -1036,11 +683,15 @@ export const KEY_TYPES: readonly KeyType[] = ["str", "url", "int", "float", "boo
 export const ALIAS_KINDS: readonly AliasKind[] = ["compat", "native", "legacy"];
 export const ALIAS_SURFACES: readonly AliasSurface[] = ["env", "config", "kwarg", "flag"];
 
-export const CORE_KEYS: readonly ConfigKey[] = SCHEMA.keys.filter((k) => k.scope === "core");
-export const ALICLOUD_EXPRESS_KEYS: readonly ConfigKey[] = SCHEMA.keys.filter((k) => k.scope === BUILTIN_PROVIDER_ID);
+/** Shared keys followed by the CLI-only keys (`cli_config_keys.ts`). */
+export const CORE_KEYS: readonly ConfigKey[] = [...SCHEMA.keys.filter((k) => k.scope === "core"), ...CLI_CORE_KEYS];
+export const ALICLOUD_EXPRESS_KEYS: readonly ConfigKey[] = [
+  ...SCHEMA.keys.filter((k) => k.scope === BUILTIN_PROVIDER_ID),
+  ...CLI_BUILTIN_KEYS,
+];
 export const CORE_KEY_NAMES: readonly string[] = CORE_KEYS.map((k) => k.key);
 
-const BY_KEY = new Map<string, ConfigKey>(SCHEMA.keys.map((k) => [`${k.scope}\u0000${k.key}`, k]));
+const BY_KEY = new Map<string, ConfigKey>([...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS, ...SCHEMA.keys.filter((k) => k.scope !== "core" && k.scope !== BUILTIN_PROVIDER_ID)].map((k) => [`${k.scope}\u0000${k.key}`, k]));
 
 export function getKey(key: string, scope = "core"): ConfigKey | undefined {
   return BY_KEY.get(`${scope}\u0000${key}`);
@@ -1051,7 +702,7 @@ export function builtinKeys(): readonly ConfigKey[] {
 }
 
 export function providerEnvPrefix(providerId: string): string {
-  return "EBX_" + providerId.toUpperCase().replaceAll("-", "_") + "_";
+  return "ABX_" + providerId.toUpperCase().replaceAll("-", "_") + "_";
 }
 
 export function providerEnvName(providerId: string, key: string): string {
@@ -1095,7 +746,7 @@ export function envNames(key: ConfigKey, opts: { scopedFor?: string | null } = {
   return [...new Set(names)];
 }
 
-/** Language-neutral schema export (identical to docs/design/fixtures/config-keys.json). */
+/** Language-neutral schema export of the shared keys (identical to docs/design/fixtures/config-keys.json). */
 export function exportSchema(extraProviderKeys: readonly ConfigKey[] = []): ConfigKeysSchema {
   return {
     ...SCHEMA,

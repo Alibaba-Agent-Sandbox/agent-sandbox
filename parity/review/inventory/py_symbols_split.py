@@ -40,7 +40,7 @@ def collect(path):
     return out
 
 res = {"absent": [], "removed": [], "sigchanges": [], "same_modules": 0, "compared": 0}
-for f in sorted((O / "easy_sandbox").rglob("*.py")):
+for f in sorted((O / "agent_sandbox").rglob("*.py")):
     rel = f.relative_to(O)
     cand = [r / rel for r in roots if (r / rel).exists()]
     if not cand: res["absent"].append(str(rel)); continue

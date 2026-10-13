@@ -57,7 +57,7 @@ jobs:
       - name: Check out the Python server SDK
         uses: actions/checkout@v4
         with:
-          repository: Easy-Sandbox/python-sdk
+          repository: alibaba-agent-sandbox/python-sdk
           path: vendor/python-sdk
           sparse-checkout: server-sdk/src
           sparse-checkout-cone-mode: false
@@ -70,12 +70,12 @@ jobs:
 
       - name: Run tests
         env:
-          EBX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
+          ABX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
         run: npm test
 
       - name: Parity coverage check
         env:
-          EBX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
+          ABX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
         run: npm run parity:coverage
 
   build:
@@ -102,13 +102,13 @@ jobs:
           mkdir -p dist-pack
           npm pack --pack-destination dist-pack
 
-      - name: Verify the ebx entry point is in the package
+      - name: Verify the abx entry point is in the package
         run: |
           tarball=$(ls dist-pack/*.tgz)
-          if tar -tzf "$tarball" | grep -q '^package/dist/bin/ebx.js$'; then
-            echo "✓ dist/bin/ebx.js found in package"
+          if tar -tzf "$tarball" | grep -q '^package/dist/bin/abx.js$'; then
+            echo "✓ dist/bin/abx.js found in package"
           else
-            echo "✗ dist/bin/ebx.js NOT found in package" >&2
+            echo "✗ dist/bin/abx.js NOT found in package" >&2
             exit 1
           fi
 

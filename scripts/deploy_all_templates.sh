@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deploy all 10 templates one by one via CLI deploy
-# Templates live in the SSOT repo Easy-Sandbox/awesome-templates; the python-hello
+# Templates live in the SSOT repo alibaba-agent-sandbox/awesome-templates; the python-hello
 # offline fixture lives in the python-sdk repository (examples/templates/).
 # Non-fixture templates are fetched into the local cache first via
-# `ebx template install <name> --download-only`.
+# `abx template install <name> --download-only`.
 # Usage: bash scripts/deploy_all_templates.sh
-# Environment: EBX_BIN overrides the ebx executable (default: ebx);
+# Environment: ABX_BIN overrides the abx executable (default: abx);
 # ACR_NAMESPACE (required) is your ACR namespace, TAG the image tag (default: dev),
 # REGION the region (default: cn-hangzhou), RESULTS_FILE the summary file
 # (default: a fresh mktemp file);
@@ -13,14 +13,14 @@
 # (default: ../python-sdk/examples/templates).
 set -euo pipefail
 
-EBX_BIN="${EBX_BIN:-ebx}"
+ABX_BIN="${ABX_BIN:-abx}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXAMPLES_TEMPLATES_DIR="${EXAMPLES_TEMPLATES_DIR:-$ROOT/../python-sdk/examples/templates}"
 REGION="${REGION:-cn-hangzhou}"
 : "${ACR_NAMESPACE:?set ACR_NAMESPACE to your ACR namespace}"
 ACR_NS="$ACR_NAMESPACE"
 TAG="${TAG:-dev}"
-CATALOG_CACHE="$HOME/.ebx/templates/Easy-Sandbox/awesome-templates/default"
+CATALOG_CACHE="$HOME/.abx/templates/alibaba-agent-sandbox/awesome-templates/default"
 
 # Template name -> cpu memory
 declare -A TEMPLATES
@@ -39,7 +39,7 @@ TEMPLATES=(
 
 ORDER=(python-hello node-web browser-automation claude-code codex deepseek-harness hermes-agent openclaw qoder qwen-code)
 
-RESULTS_FILE="${RESULTS_FILE:-$(mktemp "${TMPDIR:-/tmp}/ebx_deploy_results.XXXXXX")}"
+RESULTS_FILE="${RESULTS_FILE:-$(mktemp "${TMPDIR:-/tmp}/abx_deploy_results.XXXXXX")}"
 echo "Template | ExitCode | Status" > "$RESULTS_FILE"
 
 for name in "${ORDER[@]}"; do
@@ -54,14 +54,14 @@ for name in "${ORDER[@]}"; do
   if [[ -d "$EXAMPLES_TEMPLATES_DIR/$name" ]]; then
     SRC="$EXAMPLES_TEMPLATES_DIR/$name"
   else
-    echo "Fetching $name from Easy-Sandbox/awesome-templates..."
-    "$EBX_BIN" --region "$REGION" template install "$name" --download-only
+    echo "Fetching $name from alibaba-agent-sandbox/awesome-templates..."
+    "$ABX_BIN" --region "$REGION" template install "$name" --download-only
     SRC="$CATALOG_CACHE/$name"
   fi
 
   START_TIME=$(date +%s)
   
-  "$EBX_BIN" --region "$REGION" template deploy \
+  "$ABX_BIN" --region "$REGION" template deploy \
     "$SRC" \
     --acr-namespace "$ACR_NS" \
     --acr-repo "$name" \

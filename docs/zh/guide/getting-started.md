@@ -6,21 +6,21 @@
 
 ## 前置条件
 
-- Node.js 20 或更高版本（用于 `ebx` CLI）
-- 一个有效的 API Key（从 Easy Sandbox 平台获取）
+- Node.js 20 或更高版本（用于 `abx` CLI）
+- 一个有效的 API Key（从 Agent Sandbox 平台获取）
 - 网络可访问阿里云杭州区域（默认 `cn-hangzhou`）
 
 ## 1. 安装
 
 ```bash
 # 从 npm 全局安装 CLI
-npm install -g @easy-sandbox/cli
+npm install -g @agent-sandbox/cli
 
 # 或免安装直接运行
-npx @easy-sandbox/cli --version
+npx @agent-sandbox/cli --version
 
 # 验证安装
-ebx --version
+abx --version
 ```
 
 ### 独立二进制（无需 Node.js）
@@ -29,10 +29,10 @@ ebx --version
 
 ```bash
 # 示例：在 macOS（Apple Silicon）上安装 v0.3.0
-curl -fsSL -o "$HOME/ebx" \
-  "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v0.3.0/ebx-0.3.0-darwin-arm64"
-chmod +x "$HOME/ebx"
-sudo mv "$HOME/ebx" /usr/local/bin/ebx
+curl -fsSL -o "$HOME/abx" \
+  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v0.3.0/abx-0.3.0-darwin-arm64"
+chmod +x "$HOME/abx"
+sudo mv "$HOME/abx" /usr/local/bin/abx
 ```
 
 其他平台的安装命令、校验和验证以及与 npm 安装的对比，请参阅[二进制安装](binary-installation.md)。
@@ -44,22 +44,22 @@ sudo mv "$HOME/ebx" /usr/local/bin/ebx
 ### 方式一：环境变量（推荐用于 CI/CD）
 
 ```bash
-export EBX_SANDBOX_API_KEY="your-api-key-here"
+export ABX_SANDBOX_API_KEY="your-api-key-here"
 ```
 
-### 方式二：`ebx config set`（推荐用于本地开发）
+### 方式二：`abx config set`（推荐用于本地开发）
 
 环境变量和项目 `.env` 都没写这个键时，才用这里保存的值。
 
 ```bash
-ebx config set sandbox_api_key your-api-key
-# 写入到 ~/.ebx/.env（权限 600）
+abx config set sandbox_api_key your-api-key
+# 写入到 ~/.abx/.env（权限 600）
 ```
 
 验证配置状态：
 
 ```bash
-ebx config get sandbox_api_key
+abx config get sandbox_api_key
 ```
 
 ## 3. 创建第一个 Sandbox
@@ -67,7 +67,7 @@ ebx config get sandbox_api_key
 ### 使用 CLI
 
 ```bash
-ebx create --template base
+abx create --template base
 ```
 
 ## 4. 执行代码
@@ -75,7 +75,7 @@ ebx create --template base
 ### CLI
 
 ```bash
-ebx exec <sandbox-id> "echo 'Hello from sandbox'"
+abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ```
 
 ## 5. 运行 Shell 命令
@@ -83,7 +83,7 @@ ebx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-ebx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. 文件操作
@@ -92,16 +92,16 @@ ebx exec <sandbox-id> "pip install requests && python -c 'import requests; print
 
 ```bash
 # 上传
-ebx upload <sandbox-id> ./data.csv /home/user/data.csv
+abx upload <sandbox-id> ./data.csv /home/user/data.csv
 
 # 下载
-ebx download <sandbox-id> /home/user/result.csv ./result.csv
+abx download <sandbox-id> /home/user/result.csv ./result.csv
 ```
 
 ## 7. 列出目录内容
 
 ```bash
-ebx sandbox files list <sandbox-id> --path /home/user
+abx sandbox files list <sandbox-id> --path /home/user
 ```
 
 ## 8. 销毁 Sandbox
@@ -109,24 +109,24 @@ ebx sandbox files list <sandbox-id> --path /home/user
 ### CLI
 
 ```bash
-ebx kill <sandbox-id>
+abx kill <sandbox-id>
 
 # 销毁所有运行中的沙箱
-ebx kill --all --yes
+abx kill --all --yes
 ```
 
 ## 9. 完整示例
 
 ```bash
 # 创建沙箱并上传项目
-ebx create --template base --upload ./project
+abx create --template base --upload ./project
 
 # 在沙箱内运行
-ebx exec <sandbox-id> "python /home/user/project/main.py"
+abx exec <sandbox-id> "python /home/user/project/main.py"
 
 # 取回结果并销毁沙箱
-ebx download <sandbox-id> /home/user/result.csv ./result.csv
-ebx kill <sandbox-id> --yes
+abx download <sandbox-id> /home/user/result.csv ./result.csv
+abx kill <sandbox-id> --yes
 ```
 
 ---
@@ -141,4 +141,4 @@ ebx kill <sandbox-id> --yes
 
 ## 相关 SDK 文档
 
-如需使用 Python SDK（替代或配合 CLI）：见 `python-sdk` 仓库的[快速开始（SDK）](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/getting-started.md)与 [SDK 使用指南](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md)。
+如需使用 Python SDK（替代或配合 CLI）：见 `python-sdk` 仓库的[快速开始（SDK）](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/getting-started.md)与 [SDK 使用指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md)。

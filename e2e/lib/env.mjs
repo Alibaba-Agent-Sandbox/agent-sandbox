@@ -10,16 +10,16 @@ export const CLI_ROOT = join(E2E_DIR, '..');
 
 /** Variables forwarded to the binary under test (credentials + endpoints). */
 export const CRED_KEYS = [
-  'E2B_API_KEY', 'E2B_API_URL', 'E2B_DOMAIN',
-  'AccessKey', 'AccessSecret', 'ACR_NAMESPACE',
-  'OPENAI_API_KEY', 'OPENAI_BASE_URL',
+  'ABX_SANDBOX_API_KEY', 'ABX_SANDBOX_BASE_URL', 'ABX_SANDBOX_DOMAIN',
+  'ACR_NAMESPACE',
+  'ABX_LLM_API_KEY', 'ABX_LLM_BASE_URL',
   'ALICLOUD_ACCESS_KEY_ID', 'ALICLOUD_ACCESS_KEY_SECRET',
 ];
 const SECRET_KEYS = new Set([
-  'E2B_API_KEY', 'AccessKey', 'AccessSecret', 'OPENAI_API_KEY',
+  'ABX_SANDBOX_API_KEY', 'ABX_LLM_API_KEY',
   'ALICLOUD_ACCESS_KEY_ID', 'ALICLOUD_ACCESS_KEY_SECRET', 'ACR_NAMESPACE',
 ]);
-const HOST_KEYS = new Set(['E2B_API_URL', 'E2B_DOMAIN', 'OPENAI_BASE_URL']);
+const HOST_KEYS = new Set(['ABX_SANDBOX_BASE_URL', 'ABX_SANDBOX_DOMAIN', 'ABX_LLM_BASE_URL']);
 
 export function parseDotenv(text) {
   const out = {};
@@ -49,11 +49,11 @@ export function loadCredentials() {
 }
 
 export function hasCloudCredentials(creds) {
-  return Boolean(creds.E2B_API_KEY && (creds.E2B_API_URL || creds.E2B_DOMAIN));
+  return Boolean(creds.ABX_SANDBOX_API_KEY && (creds.ABX_SANDBOX_BASE_URL || creds.ABX_SANDBOX_DOMAIN));
 }
 
 export function missingCloudCredentials(creds) {
-  return ['E2B_API_KEY', 'E2B_API_URL'].filter((k) => !creds[k]);
+  return ['ABX_SANDBOX_API_KEY', 'ABX_SANDBOX_BASE_URL'].filter((k) => !creds[k]);
 }
 
 /** Build a masker that replaces every secret / host value (and short derived forms). */
@@ -63,7 +63,7 @@ export function makeMasker(creds, extraSecrets = []) {
     if (!v || v.length < 4) continue;
     if (SECRET_KEYS.has(k)) secrets.push([v, '<SECRET>']);
     else if (HOST_KEYS.has(k)) {
-      secrets.push([v, k === 'E2B_DOMAIN' ? '<DOMAIN>' : '<API_URL>']);
+      secrets.push([v, k === 'ABX_SANDBOX_DOMAIN' ? '<DOMAIN>' : '<API_URL>']);
       try { const h = new URL(v.includes('://') ? v : `https://${v}`).host; if (h.length > 4) secrets.push([h, '<HOST>']); } catch { /* not a URL */ }
     }
   }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Adversarial differential: Python `easy_sandbox.transport.ws.WebSocketClient` (websockets) vs
+ * Adversarial differential: Python `agent_sandbox.transport.ws.WebSocketClient` (websockets) vs
  * `src/transport/ws.ts` (ws), driven against one local misbehaving server.
  *
  *   ORACLE_VENV=/path/to/venv node parity/diff/adv_core_ws.mjs [--filter re] [--verbose] [--list]
@@ -34,8 +34,8 @@ const VERBOSE = flag("--verbose");
 
 const PY_RUNNER = String.raw`
 import asyncio, json, sys, hashlib
-from easy_sandbox.transport.config import TransportConfig
-from easy_sandbox.transport.ws import WebSocketClient
+from agent_sandbox.transport.config import TransportConfig
+from agent_sandbox.transport.ws import WebSocketClient
 sc = json.loads(sys.argv[1])
 def fmt(m):
     if isinstance(m, bytes): return ["bin", len(m), hashlib.md5(m).hexdigest()[:8]]
@@ -147,7 +147,7 @@ function runPy(sc) {
 function runTs(sc) {
   return new Promise((res) => {
     import("node:child_process").then(({ spawn }) => {
-      const p = spawn(tsx, [tsFile, JSON.stringify(sc)], { cwd: CLI_ROOT, env: { ...process.env, HOME: tmp, EBX_NO_KEYCHAIN: "1" } });
+      const p = spawn(tsx, [tsFile, JSON.stringify(sc)], { cwd: CLI_ROOT, env: { ...process.env, HOME: tmp, ABX_NO_KEYCHAIN: "1" } });
       let o = "", e = "";
       p.stdout.on("data", (d) => (o += d));
       p.stderr.on("data", (d) => (e += d));

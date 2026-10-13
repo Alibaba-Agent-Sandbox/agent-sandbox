@@ -19,7 +19,7 @@ basename fallback, content diffstat). Complete row-by-row mapping (original path
 |---|---|---|
 | `.aicoding-chat-workspace` | dropped | empty editor artefact |
 | `benchmarks/__init__.py` | dropped | package marker for a directory that is no longer a Python package |
-| `src/easy_sandbox/cli/__init__.py`, `cli/commands/__init__.py` | dropped | CLI moved to Node (`cli/src/cli/index.ts`, `cli/src/cli/commands/index.ts`); user-approved |
+| `src/agent_sandbox/cli/__init__.py`, `cli/commands/__init__.py` | dropped | CLI moved to Node (`cli/src/cli/index.ts`, `cli/src/cli/commands/index.ts`); user-approved |
 | `tests/test_cli/__init__.py` | dropped | pytest package marker |
 | `tests/test_cli_evidence/__init__.py`, `conftest.py` | dropped | replaced by `cli/tests/test_cli_evidence/{evidence_cases.ts,capture_cli_evidence.capture.ts}` + vitest |
 | `benchmarks/bench_cli_startup.py` | relocated | `cli/benchmarks/bench_cli_startup.mjs` |
@@ -34,10 +34,10 @@ basename fallback, content diffstat). Complete row-by-row mapping (original path
 
 | Original area | Files | Destination |
 |---|---|---|
-| `src/easy_sandbox/{agent,api,compat,declarative,extensions,models,protocol,session,transport,utils}` (non-CLI-only modules) | see `split-files.tsv` | `python-sdk/client-sdk/src/easy_sandbox/**`; the CLI-reachable ones are *also* ported 1:1 to `cli/src/**` |
-| `src/easy_sandbox/server/**` | 13 (2 SAME, 11 CHANGED) | `python-sdk/server-sdk/src/easy_sandbox/server/**` (namespace package) |
-| `src/easy_sandbox/cli/**` + 7 `agent/*` CLI-only modules (`adopt, clarify, codegen, coding_agent, dockerfile_sources, qwen_code, template_guide`) | 25 | `cli/src/cli/**`, `cli/src/agent/**` (PORTED) |
-| `src/easy_sandbox/py.typed` | 1 | client-sdk, server-sdk (own `py.typed`) |
+| `src/agent_sandbox/{agent,api,compat,declarative,extensions,models,protocol,session,transport,utils}` (non-CLI-only modules) | see `split-files.tsv` | `python-sdk/client-sdk/src/agent_sandbox/**`; the CLI-reachable ones are *also* ported 1:1 to `cli/src/**` |
+| `src/agent_sandbox/server/**` | 13 (2 SAME, 11 CHANGED) | `python-sdk/server-sdk/src/agent_sandbox/server/**` (namespace package) |
+| `src/agent_sandbox/cli/**` + 7 `agent/*` CLI-only modules (`adopt, clarify, codegen, coding_agent, dockerfile_sources, qwen_code, template_guide`) | 25 | `cli/src/cli/**`, `cli/src/agent/**` (PORTED) |
+| `src/agent_sandbox/py.typed` | 1 | client-sdk, server-sdk (own `py.typed`) |
 | `tests/**` | 244 | 1647 collected test ids -> `python-sdk/*/tests`; 1333 -> `cli/tests` (see section 3) |
 | `docs/{en,zh}/**` | 77 | 17 SAME + 60 CHANGED, none missing (section 5) |
 | `examples/**` | 22 | all 22 under `python-sdk/examples/` (8 CHANGED: CLI->Node wording, repo URLs) |
@@ -54,7 +54,7 @@ basename fallback, content diffstat). Complete row-by-row mapping (original path
 * Node: `npm run parity:coverage` -> **999 ledger base ids (1333 raw parametrised ids): 999 passed, 0 failed/skipped, 0 missing, 18 moved to python-sdk (verified present there)**. `inventory/out/ledger-params.txt`: every ledger id has >= as many Node test instances as Python had parameters (1333/1333).
 * Accounting of the 2980 original ids (`inventory/run_all.sh` + `/tmp` id join): **1351 are in the CLI ledger, 1647 exist unchanged in the new SDK test trees, 18 are in both, 0 are in neither.**
 * Function-level body comparison (`py_test_bodies.py`, `ast.dump` equality): 1673 test functions identical, 13 modified, 7 removed from the SDK copies, 47 files not in the SDK (CLI-owned, ported).
-  * 13 modified: `TestDeclarativeServerBridge`/`TestServerProxy`/`TestRegisterUploadDownload` (server moved to `easy-sandbox-server`), `TestInjectSdkWheel` x3 (wheel injection semantic changed to 2-dist), `TestErrorsAll.test_all_list_contains_all_classes` (new `E8xxx` errors).
+  * 13 modified: `TestDeclarativeServerBridge`/`TestServerProxy`/`TestRegisterUploadDownload` (server moved to `agent-sandbox-server`), `TestInjectSdkWheel` x3 (wheel injection semantic changed to 2-dist), `TestErrorsAll.test_all_list_contains_all_classes` (new `E8xxx` errors).
   * 7 removed: 4 x `TestCLICompleteness::*` (in the Node ledger: `cli/tests/integration/test_workflow_e2e.test.ts`), 3 x sdist/wheel tests about `SKILL.md`/`llms.txt` (SKILL.md now ships in the npm package; `npm pack --dry-run` lists `SKILL.md`, `README*.md`, `LICENSE`, `NOTICE`, `dist/**` and no tests; `package.json#files`).
 * Node total in this run: 2909 passing tests + the 5 adversarial tests added by this review (which fail on purpose).
 
@@ -71,14 +71,14 @@ No public symbol of the original SDK was removed.
 
 | Item | Original | New | Verdict |
 |---|---|---|---|
-| distributions | `easy-sandbox` 0.2.0 | `easy-sandbox` 0.3.0 (hard dependency `easy-sandbox-server==0.3.0`) + `easy-sandbox-server` | by design |
-| extras | `cli`, `mcp`, `fast`, `declarative`, `session`, `alicloud`, `binary`, `all` | `fast`, `session`, `mcp`, `declarative`, `alicloud`, `server` (empty alias), `all` | `cli`, `binary` removed - user-approved (CLI moved to Node), documented in `docs/en/guide/migrating-from-0.2.md`; `server` is a new empty alias (`easy-sandbox-server` is now a hard dependency); `all` rewritten to `fast,session,mcp,declarative,alicloud,server` |
-| entry points | `ebx = easy_sandbox.cli.main:cli` | none in client; `easy-sandbox-server = easy_sandbox.server.__main__:main` in server; `ebx` -> `cli/package.json#bin` | by design |
+| distributions | `agent-sandbox` 0.2.0 | `agent-sandbox` 0.3.0 (hard dependency `agent-sandbox-server==0.3.0`) + `agent-sandbox-server` | by design |
+| extras | `cli`, `mcp`, `fast`, `declarative`, `session`, `alicloud`, `binary`, `all` | `fast`, `session`, `mcp`, `declarative`, `alicloud`, `server` (empty alias), `all` | `cli`, `binary` removed - user-approved (CLI moved to Node), documented in `docs/en/guide/migrating-from-0.2.md`; `server` is a new empty alias (`agent-sandbox-server` is now a hard dependency); `all` rewritten to `fast,session,mcp,declarative,alicloud,server` |
+| entry points | `abx = agent_sandbox.cli.main:cli` | none in client; `agent-sandbox-server = agent_sandbox.server.__main__:main` in server; `abx` -> `cli/package.json#bin` | by design |
 | package data | `py.typed` (wheel artifact) | `py.typed` in client and server wheels | present |
 | sdist content | `src/`, `tests/`, README, SKILL.md, LICENSE, NOTICE, CHANGELOG | `src/`, `tests/`, README, LICENSE (+ per-dist) | `SKILL.md` ships in the npm package; tests rewritten (`test_packaging.py`) |
 | templates / schemas | none shipped as package data (only `py.typed`) | same | n/a |
 | `llms.txt` | repo root, excluded from sdist by test | `cli/llms.txt`, `python-sdk/llms.txt`, still excluded | same |
-| npm package | - | `bin.ebx`, files `dist`, `README.md`, `SKILL.md`, `LICENSE`, `NOTICE` (342 files by `npm pack --dry-run`) | complete |
+| npm package | - | `bin.abx`, files `dist`, `README.md`, `SKILL.md`, `LICENSE`, `NOTICE` (342 files by `npm pack --dry-run`) | complete |
 
 ## 6. GitHub / CI / hygiene
 

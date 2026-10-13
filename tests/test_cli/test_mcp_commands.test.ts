@@ -15,11 +15,8 @@ import { cli } from "../../src/cli/main.js";
 import * as region from "../../src/cli/region.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { useDefaultShortcutsOnly } from "./conftest.js";
 
 const iso = useIsolatedEnv();
-useDefaultShortcutsOnly();
-
 const originalIdeMap = mcpMod._IDE_CONFIG_MAP;
 const originalSeams = { ...mcpMod.mcpSeams };
 
@@ -56,7 +53,7 @@ const readJson = (file: string): any => JSON.parse(fs.readFileSync(file, "utf8")
 // ---------------------------------------------------------------------------
 
 describe("TestMcpInstall", () => {
-  // Test `ebx mcp install` command.
+  // Test `abx mcp install` command.
 
   it("test_install_cursor", async () => {
     const configPath = path.join(tmpPath(), ".cursor", "mcp.json");
@@ -67,11 +64,11 @@ describe("TestMcpInstall", () => {
     expect(fs.statSync(configPath).isFile()).toBe(true);
     const config = readJson(configPath);
     expect(config).toHaveProperty("mcpServers");
-    expect(config.mcpServers).toHaveProperty("easy-sandbox");
-    const srv = config.mcpServers["easy-sandbox"];
+    expect(config.mcpServers).toHaveProperty("agent-sandbox");
+    const srv = config.mcpServers["agent-sandbox"];
     expect(srv.args.slice(-2)).toEqual(["mcp", "start"]);
     expect(srv.command).toBeTruthy();
-    expect(srv.env.EBX_SANDBOX_API_KEY).toBe("test-key-1234");
+    expect(srv.env.ABX_SANDBOX_API_KEY).toBe("test-key-1234");
   });
 
   it("test_install_claude", async () => {
@@ -82,7 +79,7 @@ describe("TestMcpInstall", () => {
     expect(result.exit_code, result.output).toBe(0);
     const config = readJson(configPath);
     expect(config).toHaveProperty("mcpServers");
-    expect(config.mcpServers).toHaveProperty("easy-sandbox");
+    expect(config.mcpServers).toHaveProperty("agent-sandbox");
   });
 
   it("test_install_vscode", async () => {
@@ -93,10 +90,10 @@ describe("TestMcpInstall", () => {
     expect(result.exit_code, result.output).toBe(0);
     const config = readJson(configPath);
     expect(config).toHaveProperty("servers");
-    const srv = config.servers["easy-sandbox"];
+    const srv = config.servers["agent-sandbox"];
     expect(srv.type).toBe("stdio");
     expect(srv.args.slice(-2)).toEqual(["mcp", "start"]);
-    expect(srv.env ?? {}).not.toHaveProperty("EBX_SANDBOX_API_KEY");
+    expect(srv.env ?? {}).not.toHaveProperty("ABX_SANDBOX_API_KEY");
   });
 
   it("test_install_refuses_to_overwrite_jsonc", async () => {
@@ -123,7 +120,7 @@ describe("TestMcpInstall", () => {
     const config = readJson(configPath);
     // Both servers should be present
     expect(config.mcpServers).toHaveProperty("other-server");
-    expect(config.mcpServers).toHaveProperty("easy-sandbox");
+    expect(config.mcpServers).toHaveProperty("agent-sandbox");
   });
 
   it("test_install_without_api_key", async () => {
@@ -133,9 +130,9 @@ describe("TestMcpInstall", () => {
     const result = await runner().invoke(cli, ["mcp", "install", "--target", "cursor"]);
     expect(result.exit_code).toBe(0);
     const config = readJson(configPath);
-    const srv = config.mcpServers["easy-sandbox"];
+    const srv = config.mcpServers["agent-sandbox"];
     // No env block if no key
-    expect(!("env" in srv) || !("EBX_SANDBOX_API_KEY" in (srv.env ?? {}))).toBe(true);
+    expect(!("env" in srv) || !("ABX_SANDBOX_API_KEY" in (srv.env ?? {}))).toBe(true);
   });
 
   it("test_install_requires_target", async () => {
@@ -159,14 +156,14 @@ describe("TestMcpInstall", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestMcpStatus", () => {
-  // Test `ebx mcp status` command.
+  // Test `abx mcp status` command.
 
   it("test_status_json", async () => {
     patchApiKey("test-key");
     const result = await runner().invoke(cli, ["--json", "mcp", "status"]);
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
-    expect(data.server).toBe("easy-sandbox");
+    expect(data.server).toBe("agent-sandbox");
     expect(data.tools_count).toBe(7);
     expect(data.auth_configured).toBe(true);
   });
@@ -191,7 +188,7 @@ function fakeServer(): ReturnType<typeof vi.spyOn> {
 }
 
 describe("TestMcpStart", () => {
-  // Test `ebx mcp start` command options.
+  // Test `abx mcp start` command options.
 
   it("test_start_help", async () => {
     // start --help should describe logs, HTTP, background, and stop.
@@ -199,33 +196,33 @@ describe("TestMcpStart", () => {
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("--http");
     expect(result.output).toContain("--background");
-    expect(result.output).toContain("ebx mcp stop");
+    expect(result.output).toContain("abx mcp stop");
   });
 
   it("test_stdio_banner_hides_the_api_key", async () => {
     // Foreground STDIO prints configuration to stderr and never the secret.
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
     fakeServer();
     const result = await runner().invoke(cli, ["mcp", "start", "--api-key", "super-secret-key", "--template", "python-hello"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("Easy Sandbox MCP server");
+    expect(result.output).toContain("Agent Sandbox MCP server");
     expect(result.output).toContain("python-hello");
     expect(result.output).toContain("configured");
     expect(result.output).toContain("Waiting for JSON-RPC on stdin");
-    expect(result.output).toContain("ebx mcp stop");
+    expect(result.output).toContain("abx mcp stop");
     expect(result.output).not.toContain("super-secret-key");
   });
 
   it("test_quiet_suppresses_the_banner", async () => {
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
     fakeServer();
     const result = await runner().invoke(cli, ["--quiet", "mcp", "start", "--api-key", "k"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).not.toContain("Easy Sandbox MCP server");
+    expect(result.output).not.toContain("Agent Sandbox MCP server");
   });
 
   it("test_start_refuses_a_live_server", async () => {
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
     const proc: ChildProcess = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30000)"], { stdio: "ignore" });
     try {
       fs.writeFileSync(path.join(tmpPath(), "mcp-server.json"), JSON.stringify({ pid: proc.pid, mode: "stdio" }));
@@ -239,22 +236,22 @@ describe("TestMcpStart", () => {
   });
 
   it("test_non_loopback_http_requires_a_token", async () => {
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
-    iso.monkeypatch.delenv("EBX_MCP_AUTH_TOKEN");
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.delenv("ABX_MCP_AUTH_TOKEN");
     const result = await runner().invoke(cli, ["mcp", "start", "--http", "--host", "0.0.0.0", "--auth-token", ""]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("auth-token");
   });
 
   it("test_background_detaches_http_without_putting_secrets_on_argv", async () => {
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
 
     const popen = vi.fn(async (command: string[], opts: { env: Record<string, string>; logFd: number }) => {
       expect(command).toContain("--http");
       expect(command).not.toContain("--api-key");
       expect(command).not.toContain("--auth-token");
-      expect(opts.env["EBX_SANDBOX_API_KEY"]).toBe("super-secret-key");
-      expect(opts.env["EBX_MCP_AUTH_TOKEN"]).toBe("bearer-token");
+      expect(opts.env["ABX_SANDBOX_API_KEY"]).toBe("super-secret-key");
+      expect(opts.env["ABX_MCP_AUTH_TOKEN"]).toBe("bearer-token");
       fs.writeFileSync(path.join(tmpPath(), "mcp-server.json"), JSON.stringify({ pid: 424242, mode: "http" }));
       return { pid: 424242, poll: () => null };
     });
@@ -274,13 +271,13 @@ describe("TestMcpStart", () => {
     expect(popen).toHaveBeenCalledOnce();
     expect(result.output).toContain("424242");
     expect(result.output).toContain("9011");
-    expect(result.output).toContain("ebx mcp stop");
+    expect(result.output).toContain("abx mcp stop");
     expect(result.output).not.toContain("super-secret-key");
     expect(result.output).not.toContain("bearer-token");
   });
 
   it("test_stop_signals_the_recorded_pid", async () => {
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
     fs.writeFileSync(path.join(tmpPath(), "mcp-server.json"), JSON.stringify({ pid: 4242, mode: "http" }));
     const alive = { value: true };
     const sent: Array<[number, NodeJS.Signals | number]> = [];
@@ -298,7 +295,7 @@ describe("TestMcpStart", () => {
   });
 
   it("test_stop_when_nothing_is_running", async () => {
-    iso.monkeypatch.setenv("EBX_MCP_RUNTIME_DIR", tmpPath());
+    iso.monkeypatch.setenv("ABX_MCP_RUNTIME_DIR", tmpPath());
     const result = await runner().invoke(cli, ["mcp", "stop"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("not running");
@@ -310,7 +307,7 @@ describe("TestMcpStart", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestMcpDeploy", () => {
-  // Test `ebx mcp deploy` command.
+  // Test `abx mcp deploy` command.
 
   it("test_deploy_help", async () => {
     // deploy --help should work.
@@ -335,11 +332,11 @@ describe("TestMcpDeploy", () => {
     expect(fs.statSync(path.join(out, "config.yaml")).isFile()).toBe(true);
     // Verify config.yaml content
     const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.function_name).toBe("easy-sandbox-mcp");
+    expect(cfg.function_name).toBe("agent-sandbox-mcp");
     expect(cfg.region).toBe("cn-hangzhou");
     expect(cfg.memory).toBe(512);
-    expect(cfg.environment_variables).toHaveProperty("EBX_SANDBOX_API_KEY");
-    expect(cfg.environment_variables).toHaveProperty("EBX_MCP_AUTH_TOKEN");
+    expect(cfg.environment_variables).toHaveProperty("ABX_SANDBOX_API_KEY");
+    expect(cfg.environment_variables).toHaveProperty("ABX_MCP_AUTH_TOKEN");
   });
 
   it("test_deploy_custom_name_region", async () => {
@@ -369,9 +366,9 @@ describe("TestMcpDeploy", () => {
     expect(cfg.region).toBe("cn-shanghai");
     expect(cfg.memory).toBe(1024);
     expect(cfg.timeout).toBe(300);
-    expect(cfg.environment_variables.EBX_DEFAULT_TEMPLATE).toBe("python-base");
+    expect(cfg.environment_variables.ABX_DEFAULT_TEMPLATE).toBe("python-base");
     expect(cfg.environment_variables.ALIBABA_CLOUD_REGION_ID).toBe("cn-shanghai");
-    expect(cfg.environment_variables.EBX_MCP_AUTH_TOKEN).toBeTruthy();
+    expect(cfg.environment_variables.ABX_MCP_AUTH_TOKEN).toBeTruthy();
   });
 
   it("test_deploy_auth_token_file", async () => {
@@ -383,7 +380,7 @@ describe("TestMcpDeploy", () => {
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--auth-token-file", tokenFile]);
     expect(result.exit_code, result.output).toBe(0);
     const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.environment_variables.EBX_MCP_AUTH_TOKEN).toBe("my-fixed-token-value");
+    expect(cfg.environment_variables.ABX_MCP_AUTH_TOKEN).toBe("my-fixed-token-value");
     expect(result.output).not.toContain("my-fixed-token-value");
     expect(result.output).toContain("Bearer <BEARER_TOKEN>");
   });
@@ -405,7 +402,7 @@ describe("TestMcpDeploy", () => {
     // Omitting the Bearer token must not disable client authentication.
     const out = path.join(tmpPath(), "artifact");
     patchApiKey("k");
-    iso.monkeypatch.setenv("EBX_MCP_AUTH_TOKEN", "");
+    iso.monkeypatch.setenv("ABX_MCP_AUTH_TOKEN", "");
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out]);
 
     expect(result.exit_code).not.toBe(0);
@@ -420,7 +417,7 @@ describe("TestMcpDeploy", () => {
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
     expect(result.exit_code, result.output).toBe(0);
     const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    const token = cfg.environment_variables.EBX_MCP_AUTH_TOKEN ?? "";
+    const token = cfg.environment_variables.ABX_MCP_AUTH_TOKEN ?? "";
     expect(token.length).toBeGreaterThan(16); // urlsafe_b64 tokens are long
   });
 
@@ -428,11 +425,11 @@ describe("TestMcpDeploy", () => {
     // deploy without API key shows warning.
     const out = path.join(tmpPath(), "artifact");
     patchApiKey(null);
-    iso.monkeypatch.delenv("EBX_SANDBOX_API_KEY");
+    iso.monkeypatch.delenv("ABX_SANDBOX_API_KEY");
     iso.monkeypatch.delenv("E2B_API_KEY");
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("EBX_SANDBOX_API_KEY");
+    expect(result.output).toContain("ABX_SANDBOX_API_KEY");
   });
 
   it("test_deploy_explicit_api_key", async () => {
@@ -444,7 +441,7 @@ describe("TestMcpDeploy", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(readApiKey).not.toHaveBeenCalled();
     const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.environment_variables.EBX_SANDBOX_API_KEY).toBe("cli-api-key");
+    expect(cfg.environment_variables.ABX_SANDBOX_API_KEY).toBe("cli-api-key");
   });
 
   it("test_deploy_session_affinity_flag", async () => {

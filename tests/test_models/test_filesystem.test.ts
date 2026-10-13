@@ -2,7 +2,6 @@
 
 import { describe, expect, it } from "vitest";
 
-import { PyDatetime } from "../../src/models/_pydantic.js";
 import { FileInfo, FileType, WatchEvent, WatchEventType } from "../../src/models/filesystem.js";
 
 describe("TestFileType", () => {
@@ -18,7 +17,7 @@ describe("TestFileType", () => {
 
 describe("TestFileInfo", () => {
   it("test_all_fields", () => {
-    const now = PyDatetime.fromDate(new Date());
+    const now = new Date();
     const info = new FileInfo({
       name: "test.py",
       path: "/home/user/test.py",
@@ -31,8 +30,7 @@ describe("TestFileInfo", () => {
     expect(info.type).toBe(FileType.FILE);
     expect(info.size).toBe(1234);
     expect(info.modified).not.toBeNull();
-    expect((info.modified as PyDatetime).valueOf()).toBe(now.valueOf());
-    expect((info.modified as PyDatetime).microsecond).toBe(now.microsecond);
+    expect((info.modified as Date).valueOf()).toBe(now.valueOf());
   });
 
   it("test_defaults", () => {

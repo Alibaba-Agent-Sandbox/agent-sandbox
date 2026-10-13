@@ -1,6 +1,6 @@
-# 2026-10-13 差分分组（相对 Python ebx 0.2.0）
+# 2026-10-13 差分分组（相对 Python abx 0.2.0）
 
-Oracle：Python ebx 0.2.0（本地 venv 的 `bin/ebx`）。对照日志在 `/tmp/diff-fast/`，本文件不改那五份日志。
+Oracle：`/tmp/venv-orig/bin/abx`（Python abx 0.2.0）。对照日志在 `/tmp/diff-fast/`，本文件不改那五份日志。
 
 | 套件 | 日志里的 DIFF | 组1 保留 | 组2 该补 |
 |---|---:|---:|---:|
@@ -20,9 +20,9 @@ Oracle：Python ebx 0.2.0（本地 venv 的 `bin/ebx`）。对照日志在 `/tmp
 文档和当前 Python 错误码表都把无效 API key 定为 E1001，创建失败的基类才是 E2000：
 
 - `cli/docs/zh/reference/error-codes.md`：E1001 = `InvalidAPIKeyError`；E2000 = `SandboxCreationError`（创建失败基类）。
-- `cli/src/models/errors.ts` 与 `python-sdk/client-sdk/src/easy_sandbox/models/errors.py`：`InvalidAPIKeyError.code = "E1001"`，`SandboxCreationError.code = "E2000"`。
+- `cli/src/models/errors.ts` 与 `python-sdk/client-sdk/src/agent_sandbox/models/errors.py`：`InvalidAPIKeyError.code = "E1001"`，`SandboxCreationError.code = "E2000"`。
 
-旧 ebx 0.2.0 把平台 HTTP 401 印成 `[E2000] Invalid API key`（退出码 1），或直接抛 httpx 原文。这是 KI-006 要修的误分类。Node 报 E1001、退出码 3，与文档一致。条件「文档和 Python 错误码表规定无效 key 是 E2000」不成立，**不把 Node 改回 E2000**。
+旧 abx 0.2.0 把平台 HTTP 401 印成 `[E2000] Invalid API key`（退出码 1），或直接抛 httpx 原文。这是 KI-006 要修的误分类。Node 报 E1001、退出码 3，与文档一致。条件「文档和 Python 错误码表规定无效 key 是 E2000」不成立，**不把 Node 改回 E2000**。
 
 这些条目因此留在组1。日志里的 suggestion 仍是旧句 `Check your E2B_API_KEY environment variable or pass api_key parameter.`，那一句按组2改掉，错误码不动。
 
@@ -175,14 +175,14 @@ Node 按键重读 `.env`，同一行解析失败打很多次；桥接安装前�
 
 `InvalidAPIKeyError` 的默认 suggestion 从 `Check your E2B_API_KEY environment variable or pass api_key parameter.` 改为：
 
-`Check your EBX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.`
+`Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.`
 
 与现有 authentication 指南同一句（没有多余的 “parameter”）。MCP `_formatToolError` 和 CLI 都抄这个类字段，所以 401 的 CLI 与 MCP 一起改。错误码仍是 E1001。
 
 落点：
 
 - `cli/src/models/errors.ts`
-- `python-sdk/client-sdk/src/easy_sandbox/models/errors.py`（当前 SDK，不是 0.2.0 oracle；共享夹具要和活的异常类一致）
+- `python-sdk/client-sdk/src/agent_sandbox/models/errors.py`（当前 SDK，不是 0.2.0 oracle；共享夹具要和活的异常类一致）
 - 三份必须字节相同的 `epp-error-mapping.json`：`cli/tests/fixtures/`、`cli/docs/design/fixtures/`、`python-sdk/client-sdk/tests/fixtures/`
 - `cli/tests/fixtures/error_str_oracle.json` 里 InvalidAPIKeyError 的最小变体
 - `cli/parity/diff/sdk_defect_entries.mjs` 的 `AUTH_SUGG_NODE`（KI-006 匹配串跟上新句子，没有新增豁免 id）
@@ -206,7 +206,7 @@ Node 按键重读 `.env`，同一行解析失败打很多次；桥接安装前�
 - `cli/tests/test_cli/test_config_toml_transport.test.ts`
   - `warns once for a corrupt file; the layered loader does not repeat it`
   - `warns once, with a WARNING prefix, when .env cannot be parsed`
-- `cli/tests/test_models/test_errors.test.ts` 的 `test_invalid_api_key`：suggestion 含 `EBX_SANDBOX_API_KEY` 与 `sandbox_api_key`。
+- `cli/tests/test_models/test_errors.test.ts` 的 `test_invalid_api_key`：suggestion 含 `ABX_SANDBOX_API_KEY` 与 `sandbox_api_key`。
 
 本轮执行：
 

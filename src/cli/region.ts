@@ -9,17 +9,17 @@
  *
  * 1. Command `--region/-r` value
  * 2. `ALIBABA_CLOUD_REGION_ID` process environment (then the same name in `./.env`)
- * 3. `ebx config set region` (`~/.ebx/config.toml` or `~/.ebx/.env`)
+ * 3. `abx config set region` (`~/.abx/config.toml` or `~/.abx/.env`)
  * 4. Default `cn-hangzhou`
  */
 
-import { type Option, option } from "../framework/index.js";
+import { type Option, option } from "./kit.js";
 import { loadConfig } from "../transport/config.js";
 
 /** Fallback region when nothing is configured. */
 export const DEFAULT_REGION = "cn-hangzhou";
 
-export const _REGION_HELP = "Region override for this command (default: 'ebx config set region' value, else cn-hangzhou)";
+export const _REGION_HELP = "Region override for this command (default: 'abx config set region' value, else cn-hangzhou)";
 
 /**
  * The shared command-level `--region/-r` option. Add it to a command's `params`:
@@ -33,7 +33,7 @@ export function regionOption(): Option {
 /**
  * Return the effective region for a command invocation.
  *
- * Priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `ebx config set region` > `cn-hangzhou`. Commands that build the
+ * Priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`. Commands that build the
  * full transport config should instead call `loadConfig({ region: cliRegion })` directly -- the same priority
  * applies.
  */

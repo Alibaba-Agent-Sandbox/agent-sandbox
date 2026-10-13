@@ -2,6 +2,6 @@
 [stderr]
 Error: No DESCRIPTION or --template given. Choose one of:
 
-  ebx create --template base       launch the explicit base template
-  ebx create --template <NAME>     launch an existing template (no AI)
-  ebx create "<DESCRIPTION>"      AI-generate, build, deploy, create
+  abx create --template base       launch the explicit base template
+  abx create --template <NAME>     launch an existing template (no generation)
+  abx create "<DESCRIPTION>"      generate the template, build, deploy, create

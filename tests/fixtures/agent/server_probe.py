@@ -1,7 +1,7 @@
-"""Probe of the container-side ``easy_sandbox.server`` package for tests/test_agent/test_template_guide.test.ts.
+"""Probe of the container-side ``agent_sandbox.server`` package for tests/test_agent/test_template_guide.test.ts.
 
 Usage: ``python3 server_probe.py facts`` or ``python3 server_probe.py reference < commands.py``
-(``PYTHONPATH`` must make ``easy_sandbox.server`` importable).
+(``PYTHONPATH`` must make ``agent_sandbox.server`` importable).
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from unittest.mock import patch
 
 
 def facts() -> dict:
-    import easy_sandbox.server as server_pkg
-    from easy_sandbox.server import CapabilityGroup, SandboxServer
+    import agent_sandbox.server as server_pkg
+    from agent_sandbox.server import CapabilityGroup, SandboxServer
 
     default_port = inspect.signature(SandboxServer.serve).parameters["port"].default
     return {
@@ -26,21 +26,21 @@ def facts() -> dict:
 
 
 def reference(source: str) -> dict:
-    import easy_sandbox.server as server_pkg
-    from easy_sandbox.server import RouteTable, SandboxServer
+    import agent_sandbox.server as server_pkg
+    from agent_sandbox.server import RouteTable, SandboxServer
 
     ast.parse(source)
     imported = [
         alias.name
         for node in ast.walk(ast.parse(source))
-        if isinstance(node, ast.ImportFrom) and node.module == "easy_sandbox.server"
+        if isinstance(node, ast.ImportFrom) and node.module == "agent_sandbox.server"
         for alias in node.names
     ]
     table = RouteTable()
     namespace: dict[str, object] = {"__name__": "reference_commands"}
     with (
         patch.object(SandboxServer, "serve", autospec=True) as serve,
-        patch("easy_sandbox.server.default_table", return_value=table),
+        patch("agent_sandbox.server.default_table", return_value=table),
     ):
         exec(compile(source, "commands.py", "exec"), namespace)
 

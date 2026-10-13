@@ -87,7 +87,7 @@ const isExecutable = (file: string): boolean => {
 };
 
 let tmpPath = "";
-const envKeys = ["EBX_QWEN_CODE_BIN", "COMSPEC", "FAKE_QWEN_MODE", "FAKE_QWEN_PIDFILE", "FAKE_QWEN_COUNTER"];
+const envKeys = ["ABX_QWEN_CODE_BIN", "COMSPEC", "FAKE_QWEN_MODE", "FAKE_QWEN_PIDFILE", "FAKE_QWEN_COUNTER"];
 let savedEnv: Record<string, string | undefined> = {};
 beforeEach(() => {
   tmpPath = makeTmp();
@@ -173,17 +173,17 @@ describe("TestFindBinary", () => {
   it("test_env_override_wins", () => {
     const exe = path.join(tmpPath, "custom-qwen");
     fs.writeFileSync(exe, "#!/bin/sh\n");
-    process.env.EBX_QWEN_CODE_BIN = exe;
+    process.env.ABX_QWEN_CODE_BIN = exe;
     expect(findQwenCodeBinary({ binDir: path.join(tmpPath, "empty") })).toBe(exe);
   });
 
   it("test_env_override_missing_file", () => {
-    process.env.EBX_QWEN_CODE_BIN = path.join(tmpPath, "missing");
+    process.env.ABX_QWEN_CODE_BIN = path.join(tmpPath, "missing");
     expect(findQwenCodeBinary({ binDir: path.join(tmpPath, "empty") })).toBeNull();
   });
 
   it("test_managed_dir_found", () => {
-    delete process.env.EBX_QWEN_CODE_BIN;
+    delete process.env.ABX_QWEN_CODE_BIN;
     const binDir = path.join(tmpPath, "bin");
     fs.mkdirSync(binDir);
     const managed = path.join(binDir, "qwen");
@@ -194,7 +194,7 @@ describe("TestFindBinary", () => {
   });
 
   it("test_managed_dir_skips_non_executable", () => {
-    delete process.env.EBX_QWEN_CODE_BIN;
+    delete process.env.ABX_QWEN_CODE_BIN;
     const binDir = path.join(tmpPath, "bin");
     fs.mkdirSync(binDir);
     fs.writeFileSync(path.join(binDir, "qwen"), "not executable");
@@ -203,7 +203,7 @@ describe("TestFindBinary", () => {
   });
 
   it("test_windows_cmd_name", () => {
-    delete process.env.EBX_QWEN_CODE_BIN;
+    delete process.env.ABX_QWEN_CODE_BIN;
     const binDir = path.join(tmpPath, "bin");
     fs.mkdirSync(binDir);
     fs.writeFileSync(path.join(binDir, "qwen.cmd"), "@echo off\n");
@@ -211,7 +211,7 @@ describe("TestFindBinary", () => {
   });
 
   it("test_path_lookup", () => {
-    delete process.env.EBX_QWEN_CODE_BIN;
+    delete process.env.ABX_QWEN_CODE_BIN;
     const found = path.join(tmpPath, "usr-bin-qwen");
     vi.spyOn(qwenCode.seams, "which").mockReturnValue(found);
     expect(findQwenCodeBinary({ binDir: path.join(tmpPath, "empty") })).toBe(found);
@@ -1488,7 +1488,7 @@ describe("TestHttpHelpers", () => {
     const dest = path.join(tmpPath, "out.bin");
     await qwenCode._downloadToFile(`${base}/redirect`, dest, { timeout: 5 });
     expect([...fs.readFileSync(dest)]).toEqual([0, 1, 2, 255, 254]);
-    expect(seenHeaders[0]!["user-agent"]).toBe("easy-sandbox-qwen-code/1.0");
+    expect(seenHeaders[0]!["user-agent"]).toBe("agent-sandbox-qwen-code/1.0");
   });
 
   it("decodes text with replacement characters like bytes.decode('utf-8', 'replace')", async () => {

@@ -1,5 +1,5 @@
 /**
- * Provider-aware `ebx config` keys: `provider`, `providers.<id>.<key>`, bare keys of the effective provider (the built-in
+ * Provider-aware `abx config` keys: `provider`, `providers.<id>.<key>`, bare keys of the effective provider (the built-in
  * `acr_*` / `team_id` keys, or a plugin's options) and the audit/migration helpers. Grammar and storage rules:
  * `docs/design/providers-and-credentials-cli.md` sections 2 and 3.
  *
@@ -119,9 +119,9 @@ export function readExtra(target: ExtraTarget): ExtraValue {
   if (target.kind === "default_provider") {
     const resolved = selectProviderId(collectSources());
     const sources = collectSources();
-    const env = sources.environ?.["EBX_PROVIDER"];
+    const env = sources.environ?.["ABX_PROVIDER"];
     const source = env && env.trim() ? "env" : resolved === BUILTIN_PROVIDER_ID ? "default" : "user";
-    return { value: resolved, name: source === "env" ? "EBX_PROVIDER" : "", source };
+    return { value: resolved, name: source === "env" ? "ABX_PROVIDER" : "", source };
   }
   const key = target.key as ConfigKey;
   const res = resolveKey(key, collectSources(), { scopedFor: target.provider_id });

@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import {
   DOCKERFILE,
   TEMPLATE_YAML,
-  ebx,
+  abx,
   localInstall,
   put,
   sandbox,
@@ -32,7 +32,7 @@ describe("ADV-agent-template: template install / init / build", () => {
     await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
     try {
       const { port } = srv.address() as { port: number };
-      const r = await ebx(sb, [
+      const r = await abx(sb, [
         "template",
         "install",
         "owner/repo",
@@ -50,7 +50,7 @@ describe("ADV-agent-template: template install / init / build", () => {
     const sb = sandbox();
     put(sb.work, "src/Dockerfile", DOCKERFILE);
     put(sb.work, "src/template.yaml", TEMPLATE_YAML);
-    const r = await ebx(sb, [
+    const r = await abx(sb, [
       "template",
       "install",
       path.join(sb.work, "src"),
@@ -62,19 +62,17 @@ describe("ADV-agent-template: template install / init / build", () => {
     ]);
     expect(r.code).toBe(0);
     expect(r.stdout).toContain(
-      `Cached  ${sb.home}/.ebx/templates/../../escape\n`,
+      `Cached  ${sb.home}/.abx/templates/../../escape\n`,
     );
-    expect(existsSync(path.join(sb.home, ".ebx", "templates"))).toBe(true);
+    expect(existsSync(path.join(sb.home, ".abx", "templates"))).toBe(true);
     expect(existsSync(path.join(sb.home, "escape", "Dockerfile"))).toBe(true);
   });
 
-  it("ADV-agent-template-03 a list-valued template.yaml fails with Python's TypeError text from dict.pop(k, default)", async () => {
+  it("ADV-agent-template-03 a list-valued template.yaml is rejected as not a mapping", async () => {
     const sb = sandbox();
     const r = await localInstall(sb, "- a\n- b\n");
     expect(r.code).toBe(1);
-    expect(r.stderr.split("\n")[0]).toBe(
-      "Unexpected error: pop expected at most 1 argument, got 2",
-    );
+    expect(r.stderr.split("\n")[0]).toMatch(/^Unexpected error: .*template\.yaml must be a YAML mapping$/);
   });
 
   it("ADV-agent-template-04 safe_load accepts !!binary / !!omap / !!set tags in template.yaml", async () => {
@@ -96,7 +94,7 @@ describe("ADV-agent-template: template install / init / build", () => {
     const sb = sandbox();
     put(sb.work, "tpl/Dockerfile", DOCKERFILE);
     put(sb.work, "tpl/template.yaml", "name: [a]\nversion: '1'\n");
-    const r = await ebx(
+    const r = await abx(
       sb,
       [
         "template",
@@ -121,7 +119,7 @@ describe("ADV-agent-template: template install / init / build", () => {
     put(sb.work, "src/Dockerfile", DOCKERFILE);
     put(sb.work, "src/template.yaml", TEMPLATE_YAML);
     put(sb.work, "src/commands.py", "print(1)\n");
-    const r = await ebx(sb, [
+    const r = await abx(sb, [
       "template",
       "init",
       path.join(sb.work, "src", "dest"),
@@ -143,7 +141,7 @@ describe("ADV-agent-template: template install / init / build", () => {
       put(sb.work, "src/template.yaml", TEMPLATE_YAML);
       put(sb.work, "src/commands.py", "print(1)\n");
       chmodSync(path.join(sb.work, "src", "commands.py"), 0o000);
-      const r = await ebx(sb, [
+      const r = await abx(sb, [
         "template",
         "init",
         path.join(sb.work, "dest"),

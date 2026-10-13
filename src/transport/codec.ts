@@ -9,7 +9,7 @@
  * behaviour (`HAS_ORJSON = true`).
  */
 
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { PyFloat, pyJsonDumps, pyStrip } from "../utils/_pyformat.js";
 import { getLogger } from "../utils/logging.js";
 

@@ -5,8 +5,8 @@
  *
  * - One canonical remedy for both the registry tarball client (`utils/registry`) and the template-index client
  *   (`utils/template_index`) — see {@link rate_limit_message} / {@link rate_limit_suggestion}.
- * - The persistent `ebx config set github_token` flow is the recommended fix (masked input, stored in
- *   `~/.ebx/.env`, reused automatically). The explicit `--token` flag keeps working as a temporary override but is
+ * - The persistent `abx config set github_token` flow is the recommended fix (masked input, stored in
+ *   `~/.abx/.env`, reused automatically). The explicit `--token` flag keeps working as a temporary override but is
  *   documented as leak-prone (shell history / process list).
  * - {@link FINE_GRAINED_PAT_URL} is GitHub's officially documented pre-filled fine-grained PAT form.
  *   `contents=read` implicitly grants the required `metadata:read` and public repositories need no other permissions;
@@ -24,7 +24,7 @@
  */
 export const GITHUB_TOKEN_ENV_VAR = "GITHUB_TOKEN";
 
-/** Config key for `ebx config set github_token` (stored in `~/.ebx/.env` under {@link GITHUB_TOKEN_ENV_VAR}). */
+/** Config key for `abx config set github_token` (stored in `~/.abx/.env` under {@link GITHUB_TOKEN_ENV_VAR}). */
 export const GITHUB_TOKEN_CONFIG_KEY = "github_token";
 
 /**
@@ -38,8 +38,8 @@ export const GITHUB_TOKEN_CONFIG_KEY = "github_token";
  */
 export const FINE_GRAINED_PAT_URL =
   "https://github.com/settings/personal-access-tokens/new" +
-  "?name=ebx-template-token" +
-  "&description=Read-only+access+for+ebx+template+installs" +
+  "?name=abx-template-token" +
+  "&description=Read-only+access+for+abx+template+installs" +
   "&expires_in=90" +
   "&contents=read";
 
@@ -58,7 +58,7 @@ export function rateLimitMessage(options: { operation?: string } = {}): string {
 /**
  * Return the unified remediation for an anonymous rate limit.
  *
- * Recommends the persistent `ebx config set github_token` flow first (interactive, masked input), points at the
+ * Recommends the persistent `abx config set github_token` flow first (interactive, masked input), points at the
  * officially verified fine-grained PAT prefill URL (public repositories need no extra permissions; 90-day lifetime
  * recommended), keeps `--token` as an explicit temporary override with a leak warning, and covers non-TTY / CI
  * sessions by pointing at secret injection.
@@ -69,8 +69,8 @@ export function rateLimitSuggestion(options: { extra?: string } = {}): string {
   const extra = options.extra ?? "";
   const parts = [
     "Authenticate to raise the limit to 5000/hour: run " +
-      "'ebx config set github_token' in an interactive terminal " +
-      "(masked input; stored in ~/.ebx/.env and reused automatically).",
+      "'abx config set github_token' in an interactive terminal " +
+      "(masked input; stored in ~/.abx/.env and reused automatically).",
     "Create a fine-grained token here - public repositories need no " +
       "extra permissions and a 90-day expiry is recommended: " +
       `${FINE_GRAINED_PAT_URL}`,

@@ -1,6 +1,6 @@
 // Black-box checks for CLI capabilities that stay local: version, help, provider list,
 // --model on create/template init, template-profile Dockerfiles, and llm_model config.
-// Spawns the ebx process only. No command-handler imports, no DashScope, no cloud sandbox.
+// Spawns the abx process only. No command-handler imports, no DashScope, no cloud sandbox.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -16,17 +16,17 @@ export default {
       title: '--version prints 0.3.0',
       argv: ['--version'],
       creds: false,
-      stdout: /^ebx, version 0\.3\.0$/m,
+      stdout: /^abx, version 0\.3\.0$/m,
     },
     {
       id: 'help-root-and-provider',
-      title: 'ebx --help and ebx provider --help exit 0',
+      title: 'abx --help and abx provider --help exit 0',
       creds: false,
       async run(ctx) {
         for (const argv of [['--help'], ['provider', '--help']]) {
-          const r = await ctx.ebx(argv, { creds: false });
-          if (r.code !== 0) ctx.fail(`ebx ${argv.join(' ')} exit ${r.code}\n--- stdout ---\n${ctx.excerpt(r.stdout)}\n--- stderr ---\n${ctx.excerpt(r.stderr)}`);
-          ctx.check(argv.join(' '), r.stdout, /Usage: ebx/);
+          const r = await ctx.abx(argv, { creds: false });
+          if (r.code !== 0) ctx.fail(`abx ${argv.join(' ')} exit ${r.code}\n--- stdout ---\n${ctx.excerpt(r.stdout)}\n--- stderr ---\n${ctx.excerpt(r.stderr)}`);
+          ctx.check(argv.join(' '), r.stdout, /Usage: abx/);
         }
       },
     },
@@ -54,7 +54,7 @@ export default {
     },
     {
       // `--adopt --dry-run` lists files that would be sent; it does not print Dockerfile guidance.
-      // `template init --template` is local: EBX_PROVIDER stays unset (the runner does not forward it)
+      // `template init --template` is local: ABX_PROVIDER stays unset (the runner does not forward it)
       // and `--provider` names an id with no installed profile, so the generic Docker profile is written.
       id: 'template-profile-no-network',
       title: 'template init for a provider id with no profile writes the generic Dockerfile and does not call the network',
@@ -62,8 +62,8 @@ export default {
       async run(ctx) {
         const home = ctx.newHome('profile');
         const cwd = ctx.newCwd('profile');
-        const env = { EBX_PROVIDER: undefined };
-        const r = await ctx.ebx(
+        const env = { ABX_PROVIDER: undefined };
+        const r = await ctx.abx(
           ['--provider', NO_PROFILE, 'template', 'init', 'noprof', '--template', 'python', '--name', 'nop-tpl'],
           { home, cwd, creds: false, env },
         );
@@ -90,14 +90,14 @@ export default {
       async run(ctx) {
         const home = ctx.newHome('llm');
         const model = 'qwen-test-e2e';
-        let r = await ctx.ebx(['config', 'set', 'llm_model', model], { home, creds: false });
+        let r = await ctx.abx(['config', 'set', 'llm_model', model], { home, creds: false });
         if (r.code !== 0) ctx.fail(`set exit ${r.code}\n${r.out}`);
         ctx.check('set', r.out, `Set llm_model = ${model}`);
-        const toml = join(home, '.ebx', 'config.toml');
-        if (!existsSync(toml)) ctx.fail('~/.ebx/config.toml was not created');
+        const toml = join(home, '.abx', 'config.toml');
+        if (!existsSync(toml)) ctx.fail('~/.abx/config.toml was not created');
         const stored = readFileSync(toml, 'utf8');
         if (!/llm_model\s*=\s*"qwen-test-e2e"/.test(stored)) ctx.fail(`config.toml missing llm_model:\n${stored}`);
-        r = await ctx.ebx(['config', 'get', 'llm_model'], { home, creds: false });
+        r = await ctx.abx(['config', 'get', 'llm_model'], { home, creds: false });
         if (r.code !== 0) ctx.fail(`get exit ${r.code}\n${r.out}`);
         ctx.check('get', r.stdout, /^qwen-test-e2e$/m);
       },

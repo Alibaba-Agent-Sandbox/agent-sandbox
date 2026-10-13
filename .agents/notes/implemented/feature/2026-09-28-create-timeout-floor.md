@@ -4,10 +4,10 @@ Status: implemented
 Implemented: 2026-09-28
 
 ## Problem
-Users who set `http_timeout = 30` in `~/.ebx/config.toml` (a reasonable value
+Users who set `http_timeout = 30` in `~/.abx/config.toml` (a reasonable value
 for most API calls) unknowingly override the cold-start protection on sandbox
 creation. FC sandbox cold starts can take 60–90s for image pulls, so a 30s
-timeout causes `ebx create` to fail silently with a generic timeout error,
+timeout causes `abx create` to fail silently with a generic timeout error,
 leaving users confused about whether the template or the platform is broken.
 
 ## Decision
@@ -36,9 +36,9 @@ create_timeout = max(configured_timeout, 120.0)
   Rejected.
 
 ## Files changed
-- `src/easy_sandbox/cli/commands/sandbox.py` — `create` command timeout logic
+- `src/agent_sandbox/cli/commands/sandbox.py` — `create` command timeout logic
 
 ## Acceptance criteria
-- ✅ `ebx create` with `http_timeout=30` uses 120s for the creation request
-- ✅ `ebx create --timeout 180` uses 180s (exceeds floor)
+- ✅ `abx create` with `http_timeout=30` uses 120s for the creation request
+- ✅ `abx create --timeout 180` uses 180s (exceeds floor)
 - ✅ Other commands still respect the configured `http_timeout` as-is

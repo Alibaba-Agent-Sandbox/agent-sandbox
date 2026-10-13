@@ -12,7 +12,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ValueError } from "../models/_pydantic.js";
+import { ValueError } from "../models/value_error.js";
 import { PyFloat, pyStrRepr } from "./_pyformat.js";
 
 const ERRNO_TABLE: Record<string, [number, string]> = {

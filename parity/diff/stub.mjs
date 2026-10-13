@@ -1,4 +1,4 @@
-// Deterministic stub of the Easy Sandbox cloud: platform REST API + envd (Connect) data plane, on ONE
+// Deterministic stub of the Agent Sandbox cloud: platform REST API + envd (Connect) data plane, on ONE
 // plain-HTTP port. Sandbox/template responses carry `envdUrl` pointing back at this server, which both
 // the Python oracle and the Node port honour. Every request is recorded so wire traffic can be diffed.
 import http from 'node:http';

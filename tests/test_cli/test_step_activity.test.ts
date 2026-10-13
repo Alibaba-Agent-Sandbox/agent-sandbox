@@ -76,7 +76,7 @@ describe("TestStepReporter", () => {
       reporter.log("  #1 [internal] load build definition");
       reporter.log("");
       reporter.log("#2 [1/4] FROM python:3.12-slim");
-      reporter.log("#3 [2/4] RUN pip install easy-sandbox");
+      reporter.log("#3 [2/4] RUN pip install agent-sandbox");
     } finally {
       reporter.close();
     }
@@ -85,7 +85,7 @@ describe("TestStepReporter", () => {
     expect(out.updates[out.updates.length - 1]!.split("\n")).toEqual([
       "#1 [internal] load build definition",
       "#2 [1/4] FROM python:3.12-slim",
-      "#3 [2/4] RUN pip install easy-sandbox",
+      "#3 [2/4] RUN pip install agent-sandbox",
     ]);
     expect(out.info_lines).toEqual([]);
     expect(out.closed).toBe(1);

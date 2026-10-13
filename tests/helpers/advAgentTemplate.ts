@@ -1,7 +1,7 @@
 /**
  * Shared harness of the `adv_*.test.ts` files (adversarial review of the agent/template area): runs the CLI in an
  * isolated HOME and work directory. Expected values in those tests were captured from the Python oracle; setting
- * `ADV_ORACLE_BIN=$ORACLE_VENV/bin/ebx` runs the CLI-level tests against the Python CLI instead (they must all pass there).
+ * `ADV_ORACLE_BIN=$ORACLE_VENV/bin/abx` runs the CLI-level tests against the Python CLI instead (they must all pass there).
  */
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -17,7 +17,7 @@ export const CLI_ROOT = path.resolve(
 export const TSX = pathToFileURL(
   path.join(CLI_ROOT, "node_modules/tsx/dist/esm/index.mjs"),
 ).href;
-export const ENTRY = path.join(CLI_ROOT, "src/bin/ebx.ts");
+export const ENTRY = path.join(CLI_ROOT, "src/bin/abx.ts");
 export const ORACLE_BIN = process.env.ADV_ORACLE_BIN ?? "";
 
 const scratch: string[] = [];
@@ -51,7 +51,7 @@ export interface Run {
   stderr: string;
 }
 
-export function ebx(
+export function abx(
   sb: Sandbox,
   args: string[],
   env: Record<string, string> = {},
@@ -64,7 +64,7 @@ export function ebx(
       env: {
         PATH: process.env.PATH ?? "/usr/bin:/bin",
         HOME: sb.home,
-        EBX_NO_KEYCHAIN: "1",
+        ABX_NO_KEYCHAIN: "1",
         NO_COLOR: "1",
         TERM: "dumb",
         COLUMNS: "80",
@@ -110,7 +110,7 @@ export async function localInstall(
 ): Promise<Run> {
   put(sb.work, "src/Dockerfile", DOCKERFILE);
   put(sb.work, "src/template.yaml", yaml);
-  return ebx(sb, [
+  return abx(sb, [
     "template",
     "install",
     path.join(sb.work, "src"),

@@ -14,7 +14,7 @@
  *    network) are triggered;
  *  - guarding against a future command defining a `-h` parameter of its own -- Click would then silently drop the alias
  *    for that command, so the guard makes the conflict explicit and deliberate;
- *  - covering the `ebx run` passthrough command: before this task, `ebx run <id> <cmd> -h` failed with "Unexpected
+ *  - covering the `abx run` passthrough command: before this task, `abx run <id> <cmd> -h` failed with "Unexpected
  *    positional argument" (`-h` was never a passthrough token there); it now shows help without dialling the sandbox,
  *    and the `--key value` extra-arg contract is unchanged.
  *
@@ -28,22 +28,20 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
-import { type Command, Context, Group } from "../../src/framework/index.js";
+import { type Command } from "../../src/cli/kit.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { ALL_COMMANDS } from "./conftest.js";
 
 /**
  * Yield `[path, command]` for every command reachable from *cmd*.
  *
- * Resolution goes through `Group.getCommand` -- the same entry point argument parsing uses -- so lazily registered
- * subcommands are loaded and included exactly as they are at runtime.
+ * Resolution goes through `Command.getCommand`, which imports lazily registered subcommands exactly as a run does.
  */
 async function iterCommands(cmd: Command, path: string[] = []): Promise<Array<[string[], Command]>> {
   const out: Array<[string[], Command]> = [];
-  if (!(cmd instanceof Group)) return out;
-  const ctx = new Context(cmd);
-  for (const name of await cmd.listCommands(ctx)) {
-    const sub = await cmd.getCommand(ctx, name);
+  if (cmd.commands === null) return out;
+  for (const name of cmd.listCommands()) {
+    const sub = await cmd.getCommand(name);
     if (sub === null) continue; // defensive (broken lazy import)
     const subpath = [...path, name];
     out.push([subpath, sub]);
@@ -55,7 +53,6 @@ async function iterCommands(cmd: Command, path: string[] = []): Promise<Array<[s
 /** Root plus every reachable command, keyed by its path. */
 const COMMANDS = new Map<string, [string[], Command]>([["", [[], cli]]]);
 if (ALL_COMMANDS) {
-  await cli.whenReady();
   for (const [p, c] of await iterCommands(cli)) COMMANDS.set(p.join("\u0000"), [p, c]);
 }
 const PATHS: string[][] = [...COMMANDS.values()].map(([p]) => p).sort((a, b) => a.join("\u0000").localeCompare(b.join("\u0000")));
@@ -74,15 +71,15 @@ it.skipIf(!ALL_COMMANDS).each(CASES)("test_dash_h_matches_double_dash_help [%s]"
   // Both spellings exit 0 and print identical help for every command.
   const [short, long] = await invokePair(new CliRunner(), path);
 
-  expect(short.exit_code, `\`ebx ${path.join(" ")} -h\` exited ${short.exit_code}: ${JSON.stringify(short.output)}`).toBe(0);
-  expect(long.exit_code, `\`ebx ${path.join(" ")} --help\` exited ${long.exit_code}: ${JSON.stringify(long.output)}`).toBe(0);
+  expect(short.exit_code, `\`abx ${path.join(" ")} -h\` exited ${short.exit_code}: ${JSON.stringify(short.output)}`).toBe(0);
+  expect(long.exit_code, `\`abx ${path.join(" ")} --help\` exited ${long.exit_code}: ${JSON.stringify(long.output)}`).toBe(0);
   expect(short.output).toBe(long.output);
   expect(short.output.startsWith("Usage:")).toBe(true);
 });
 
 it.skipIf(!ALL_COMMANDS).each(CASES)("test_help_never_runs_the_target_callback [%s]", async (_id, path) => {
   // Showing help must not execute the target command (no side effects). Ancestor group callbacks may run -- that is
-  // Click's standard resolution flow and they are side-effect-free context initialisers. The *target* command itself
+  // the normal resolution flow and they are side-effect-free context initialisers. The *target* command itself
   // must never be invoked.
   const tgt = target(path);
   const calls: string[][] = [];
@@ -103,7 +100,7 @@ it.skipIf(!ALL_COMMANDS).each(CASES)("test_help_never_runs_the_target_callback [
 
   expect(short.exit_code).toBe(0);
   expect(long.exit_code).toBe(0);
-  expect(calls, `help executed the callback of \`ebx ${path.join(" ")}\``).toEqual([]);
+  expect(calls, `help executed the callback of \`abx ${path.join(" ")}\``).toEqual([]);
 });
 
 // BLOCKED-ON: cli/commands/* (every command module)
@@ -115,8 +112,7 @@ it.skipIf(!ALL_COMMANDS)("test_no_command_reserves_dash_h_for_itself", () => {
   const offenders: string[] = [];
   for (const [path, cmd] of [...COMMANDS.values()].sort((a, b) => a[0].join(" ").localeCompare(b[0].join(" ")))) {
     for (const param of cmd.params) {
-      const names = [...param.opts, ...param.secondary_opts];
-      if (names.includes("-h")) offenders.push(`\`ebx ${path.join(" ") || "<root>"}\` parameter ${JSON.stringify(param.name)}`);
+      if (param.decls.includes("-h")) offenders.push(`\`abx ${path.join(" ") || "<root>"}\` parameter ${JSON.stringify(param.name)}`);
     }
   }
   expect(offenders, "Commands reserving '-h' (the help alias would be dropped there): " + offenders.join(", ")).toEqual([]);
@@ -125,15 +121,15 @@ it.skipIf(!ALL_COMMANDS)("test_no_command_reserves_dash_h_for_itself", () => {
 // BLOCKED-ON: cli/commands/* (every command module)
 it.skipIf(!ALL_COMMANDS)("test_every_lazy_subcommand_is_covered", () => {
   // Every lazily registered top-level name resolves and is tested above.
-  const lazy = new Set(cli._lazy_subcommands.keys());
+  const lazy = new Set(cli.lazy.keys());
   const topLevel = new Set(PATHS.filter((p) => p.length === 1).map((p) => p[0] as string));
   for (const name of lazy) expect(topLevel.has(name), name).toBe(true);
 });
 
 describe("TestRunPassthroughCompatibility", () => {
-  // `ebx run` keeps its extra-arg contract while gaining `-h`.
+  // `abx run` keeps its extra-arg contract while gaining `-h`.
   //
-  // Before task 191, `ebx run <id> <cmd> -h` was rejected with "Unexpected positional argument" -- `-h` was never
+  // Before task 191, `abx run <id> <cmd> -h` was rejected with "Unexpected positional argument" -- `-h` was never
   // forwarded to the remote command. It now shows help, and the sandbox is not dialled on the help path.
 
   it("test_dash_h_shows_help_without_connecting", async () => {
@@ -141,7 +137,7 @@ describe("TestRunPassthroughCompatibility", () => {
     const result = await new CliRunner().invoke(cli, ["run", "sbx-1", "build", "-h"]);
 
     expect(result.exit_code).toBe(0);
-    expect(result.output.startsWith("Usage: cli run")).toBe(true);
+    expect(result.output.startsWith("Usage: abx run")).toBe(true);
     expect(connect).not.toHaveBeenCalled();
     connect.mockRestore();
   });
@@ -151,26 +147,20 @@ describe("TestRunPassthroughCompatibility", () => {
     const result = await new CliRunner().invoke(cli, ["run", "sbx-1", "build", "--help"]);
 
     expect(result.exit_code).toBe(0);
-    expect(result.output.startsWith("Usage: cli run")).toBe(true);
+    expect(result.output.startsWith("Usage: abx run")).toBe(true);
     expect(connect).not.toHaveBeenCalled();
     connect.mockRestore();
   });
 
-  it("test_extra_args_still_forwarded", async () => {
-    // `--key value` extra args keep working after the alias change.
-    const mockResult = { value: "deployed", stdout: "deployed\n", stderr: "", exit_code: 0, execution_time: 1.0, source: "template" };
-    const custom = vi.fn(async () => mockResult);
-    const mockSandbox = { custom };
-    const connect = vi.spyOn(Sandbox, "connect").mockImplementation((async () => mockSandbox) as never);
+  it("test_unknown_option_is_rejected", async () => {
+    // Named-command arguments are passed with --arg KEY=VALUE or --json-args; stray options are usage errors.
+    const connect = vi.spyOn(Sandbox, "connect");
 
     const result = await new CliRunner().invoke(cli, ["run", "sbx-1", "deploy", "--target", "staging"]);
 
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("deployed");
-    expect(custom).toHaveBeenCalledTimes(1);
-    const call = custom.mock.calls[0] as unknown as [string, Record<string, unknown>];
-    expect(call[0]).toBe("deploy");
-    expect(call[1]["target"]).toBe("staging");
+    expect(result.exit_code).toBe(2);
+    expect(result.output).toContain("No such option");
+    expect(connect).not.toHaveBeenCalled();
     connect.mockRestore();
   });
 });

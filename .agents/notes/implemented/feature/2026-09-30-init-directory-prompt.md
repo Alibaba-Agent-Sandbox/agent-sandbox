@@ -5,14 +5,14 @@ Implemented: 2026-09-30
 
 ## Problem
 
-`ebx init "DESCRIPTION"` has only one positional, and that positional is the
+`abx init "DESCRIPTION"` has only one positional, and that positional is the
 description, so there is no way to pass a directory. The project was always
 created as `./<name>/` under the current directory. A long generation then
 left the files somewhere the user had not chosen.
 
 ## Decision
 
-- On an interactive terminal, natural-language `ebx init` / `ebx template init`
+- On an interactive terminal, natural-language `abx init` / `abx template init`
   asks `Directory for the template project` **before** generation. The default
   is `./<name>` (or `./<--name>` when `--name` is set). Enter accepts it.
 - Any other answer is the project directory itself, not a parent that grows
@@ -31,7 +31,7 @@ left the files somewhere the user had not chosen.
 
 ## Alternatives considered
 
-- **A second positional** (`ebx init "DESCRIPTION" ./dir`) — rejected: the
+- **A second positional** (`abx init "DESCRIPTION" ./dir`) — rejected: the
   description already occupies the only positional, and a second one is
   refused so a sentence cannot be mistaken for a path.
 - **Ask after generation**, once the name is known — rejected: the user would
@@ -47,6 +47,6 @@ left the files somewhere the user had not chosen.
 
 ## Files changed
 
-- `src/easy_sandbox/cli/commands/sandbox.py`, `src/easy_sandbox/cli/commands/template.py`
+- `src/agent_sandbox/cli/commands/sandbox.py`, `src/agent_sandbox/cli/commands/template.py`
 - `docs/{en,zh}/reference/cli-reference.md`, `docs/{en,zh}/design/cli-design.md`,
   `CHANGELOG.md`

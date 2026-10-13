@@ -35,6 +35,20 @@ void logger;
  */
 export const _HTTP_TIMEOUT_BUFFER = 5.0;
 
+/** envd lists `config.cmd` / `config.args`; the CLI table column is `command`. */
+function withCommand(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw;
+  const row = raw as Record<string, unknown>;
+  if (typeof row.command === "string" && row.command.trim()) return raw;
+  const config = row.config;
+  const cfg = typeof config === "object" && config !== null ? (config as Record<string, unknown>) : {};
+  const cmd = typeof cfg.cmd === "string" ? cfg.cmd : typeof row.cmd === "string" ? row.cmd : "";
+  const argsRaw = Array.isArray(cfg.args) ? cfg.args : Array.isArray(row.args) ? row.args : [];
+  const args = argsRaw.map((item) => String(item)).filter((item) => item !== cmd);
+  const command = [cmd, ...args].filter(Boolean).join(" ");
+  return { ...row, command };
+}
+
 const _codec = new ConnectCodec();
 
 // RPC paths（已实测验证）
@@ -219,7 +233,7 @@ export class ProcessProtocol {
       }
       let detail = `no output for ${_formatG(opts.http_timeout)}s`;
       if (pid !== null) detail += `; pid ${pid} was asked to stop`;
-      throw new CommandTimeoutError(`Command did not finish within ${opts.timeout}s (${detail}).`);
+      throw new CommandTimeoutError(`Command timed out: did not finish within ${opts.timeout}s (${detail}).`);
     }
   }
 
@@ -248,7 +262,7 @@ export class ProcessProtocol {
     const response = await this._unary(envd_url, envd_token, _LIST, {});
 
     const processes: unknown[] = dictGet(response, "processes", dictGet(dictGet(response, "result", {}), "processes", []));
-    return processes.map((p) => ProcessInfo.modelValidate(p));
+    return processes.map((p) => ProcessInfo.modelValidate(withCommand(p)));
   }
 
   /**

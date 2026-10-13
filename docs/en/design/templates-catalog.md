@@ -3,15 +3,15 @@
 > The template catalog follows a **single source of truth (SSOT)** architecture:
 > official & community template content, the machine-readable index
 > (`awesome-templates.yaml`), releases and CI all converge on the dedicated
-> repository [`Easy-Sandbox/awesome-templates`](https://github.com/Easy-Sandbox/awesome-templates).
+> repository [`alibaba-agent-sandbox/awesome-templates`](https://github.com/alibaba-agent-sandbox/awesome-templates).
 > This repository **no longer maintains a publishable template collection** — it
 > keeps only a minimal `python-hello` **offline fixture** under
 > `examples/templates/`, explicitly marked as a fixture.
 >
 > Related documents: [CLI Design](./cli-design.md)
-> (`ebx template search` / `install` / `deploy`); the template contract (tiers,
+> (`abx template search` / `install` / `deploy`); the template contract (tiers,
 > name resolution, `template.yaml`) is in the SDK's
-> [Template System Design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md).
+> [Template System Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md).
 
 ---
 
@@ -19,7 +19,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Easy-Sandbox/awesome-templates (single source of truth)        │
+│  alibaba-agent-sandbox/awesome-templates (single source of truth)        │
 │  ├── awesome-templates.yaml   ← machine-readable index          │
 │  │                              (data source for search/install)│
 │  ├── README.md / CONTRIBUTING.md  ← human index + contribution  │
@@ -31,9 +31,9 @@
 │  └── .github/workflows/ci.yml ← Py3.10–3.13 matrix CI           │
 └─────────────────────────────────────────────────────────────────┘
           ▲ raw.githubusercontent.com (CDN, no API rate limit)
-          │ fetchIndex(): cache in ~/.ebx/index/ + ETag revalidation
+          │ fetchIndex(): cache in ~/.abx/index/ + ETag revalidation
 ┌─────────┴───────────────────────────────────────────────────────┐
-│  main repository easy-sandbox                                    │
+│  main repository agent-sandbox                                    │
 │  ├── src/utils/template_index.ts               ← index client    │
 │  ├── src/cli/commands/template.ts              ← search/install  │
 │  ├── examples/templates/python-hello/          ← minimal fixture │
@@ -77,11 +77,11 @@ schema_version: 1
 templates:
   - name: node-web                       # required; unique; kebab-case
     description: "Node.js web service runtime"  # human-readable (search hit source)
-    repo: https://github.com/Easy-Sandbox/awesome-templates  # required; github.com only
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates  # required; github.com only
     path: node-web                       # in-repo subdir; omit if the whole repo is one template
     ref: v1.0.0                          # optional; pins a tag/branch/sha
     tags: [nodejs, web, express, api]    # searchable tags
-    author: Easy-Sandbox
+    author: alibaba-agent-sandbox
     capabilities: [shell, files, code, ports]
     status: official                     # official | community | experimental
 ```
@@ -111,10 +111,10 @@ Conventions:
 
 | Item | Value |
 |------|-------|
-| Default index URL | `https://raw.githubusercontent.com/Easy-Sandbox/awesome-templates/main/awesome-templates.yaml` |
-| Env override | `EBX_TEMPLATE_INDEX_URL` (HTTP(S) URL or local file path) |
-| CLI override | `ebx template search/install --index-url <URL-or-path>` |
-| Auth | `--token` > `GITHUB_TOKEN` > `./.env` > stored `github_token` (`ebx config set github_token`; private mirrors, higher rate limits) |
+| Default index URL | `https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml` |
+| Env override | `ABX_TEMPLATE_INDEX_URL` (HTTP(S) URL or local file path) |
+| CLI override | `abx template search/install --index-url <URL-or-path>` |
+| Auth | `--token` > `GITHUB_TOKEN` > `./.env` > stored `github_token` (`abx config set github_token`; private mirrors, higher rate limits) |
 
 Choosing `raw.githubusercontent.com` over `api.github.com` is deliberate: raw
 files are served by a CDN and are **not** subject to the 60 req/hour anonymous
@@ -123,7 +123,7 @@ deployments first-class.
 
 ### 3.2 Caching & conditional requests
 
-- Cache lives in `~/.ebx/index/` (kept separate from `~/.ebx/templates/` so it
+- Cache lives in `~/.abx/index/` (kept separate from `~/.abx/templates/` so it
   can never be mistaken for an installed template): the index body plus
   `awesome-templates.meta.json` (`source_url` / `etag` / `fetched_at`).
 - TTL `INDEX_MAX_AGE_SECONDS = 3600`: a fresh cache **makes no network call**
@@ -139,11 +139,11 @@ deployments first-class.
 | Scenario | With cache | Without cache |
 |----------|------------|---------------|
 | Network unreachable (DNS/timeout/refused) | Stale cache + `stale=True` + warning ("using cached index") | `NetworkError` suggesting network / `GITHUB_TOKEN` / `--index-url` checks |
-| GitHub rate limit (403 with `X-RateLimit-Remaining: 0`, or 429) | Same as above + warning pointing at `GITHUB_TOKEN` / `ebx config set github_token` | `GitHubRateLimitError` (E5000) with the verified fine-grained PAT URL, `ebx config set github_token` / `GITHUB_TOKEN` remediation, the `--token` leak warning, and a mirror hint; an interactive terminal is also offered a masked one-shot setup + exactly one retry |
+| GitHub rate limit (403 with `X-RateLimit-Remaining: 0`, or 429) | Same as above + warning pointing at `GITHUB_TOKEN` / `abx config set github_token` | `GitHubRateLimitError` (E5000) with the verified fine-grained PAT URL, `abx config set github_token` / `GITHUB_TOKEN` remediation, the `--token` leak warning, and a mirror hint; an interactive terminal is also offered a masked one-shot setup + exactly one retry |
 | `404` | Falls into the generic network-error path | `NetworkError` suggesting verifying the index URL (`--index-url`) |
 | Server errors (5xx) | Stale cache + warning | `NetworkError` |
 | Other non-2xx | Stale cache + warning | `NetworkError` reporting the concrete status |
-| `schema_version` too new | No degradation | `TemplateParseError` with `npm install -g @easy-sandbox/cli@latest` |
+| `schema_version` too new | No degradation | `TemplateParseError` with `npm install -g @agent-sandbox/cli@latest` |
 | Missing `templates` list / invalid YAML | No degradation | `TemplateParseError` (includes the source URL) |
 
 Degradation is surfaced uniformly through `TemplateIndex.stale` + `notice`: the
@@ -152,18 +152,18 @@ is still usable, just visibly stale.
 
 ---
 
-## 4. CLI Behaviour (`ebx template search` / `install`)
+## 4. CLI Behaviour (`abx template search` / `install`)
 
-### 4.1 `ebx template search <query>`
+### 4.1 `abx template search <query>`
 
 - Queries the remote index; substring match across `name` / `description` /
   `tags` / `author`; `--tag` / `--status` exact filters; `--refresh` forces a
   re-fetch; `-j` emits JSON.
 - Prints a table (Name / Description / Tags / Status) plus the install hint
-  `Install one with: ebx template install <name> (index: <source_url>)`.
+  `Install one with: abx template install <name> (index: <source_url>)`.
 - On degradation the `notice` warning is printed before the results.
 
-### 4.2 Bare-name resolution order for `ebx template install <name>`
+### 4.2 Bare-name resolution order for `abx template install <name>`
 
 ```
 <name> is a local path?       → use it directly (no network, no index)
@@ -175,7 +175,7 @@ otherwise (bare name)         → query the remote index:
                                 miss and cache is not stale → one forced refresh,
                                   giving freshly published templates a chance
                                 still a miss → TemplateNotFoundError with a
-                                  suggestion to run 'ebx template search' or
+                                  suggestion to run 'abx template search' or
                                   install directly from owner/repo//subdir
 ```
 
@@ -186,7 +186,7 @@ eventual source and version are auditable.
 ### 4.3 Version pinning & per-ref cache layout
 
 A pinned `ref` (declared by the entry or passed explicitly with `@ref`) ends up
-in the cache path `~/.ebx/templates/<owner>/<repo>/<ref|default>/<path>`, so
+in the cache path `~/.abx/templates/<owner>/<repo>/<ref|default>/<path>`, so
 different refs never bleed into each other. Entries without a `ref` follow the
 source-of-truth default branch — "track latest" and "pin a version" are both
 explicit choices.
@@ -207,8 +207,7 @@ explicit choices.
   2. a `FIXTURE` banner comment at the top of `python-hello/template.yaml`;
   3. a fixture notice block in `python-hello/README.md`.
 - The fixture itself must still pass every template contract (real loader
-  parse, valid capabilities, Dockerfile `FROM`, custom_commands
-  placeholder↔args bidirectional coverage) — it is the executable sample of the
+  parse, valid capabilities, Dockerfile `FROM`) — it is the executable sample of the
   template specification.
 - `python-hello` is also referenced by integration tests and golden files (CLI
   help, workflow E2E), so it is **never deleted or renamed**.
@@ -223,7 +222,7 @@ explicit choices.
 |-------|----------|
 | `tests/test_utils/test_template_index.test.ts` | Index parsing/validation, `install_ref` construction, cache lifecycle (fresh short-circuit / force / 304), degraded matrix (offline / rate limit / 404 / 5xx / corrupt cache), token and env overrides |
 | `tests/test_cli/test_template_index_commands.test.ts` | `search` output/filters/JSON/degraded notice/option passthrough; `install` bare-name index resolution, `@ref` pinning, builtin names never touching the index, friendly not-found with forced refresh |
-| `tests/test_templates/test_template_catalog.test.ts` | Fixture boundary (uniqueness/markers/README contract) + fixture YAML/Dockerfile/custom_commands contracts |
+| `tests/test_templates/test_template_catalog.test.ts` | Fixture boundary (uniqueness/markers/README contract) + fixture YAML/Dockerfile contracts |
 | `tests/test_templates/test_local_install.test.ts` | The real CLI install pipeline (local tarball stubs, network tripwire guaranteeing zero egress) |
 
 Network interception is done exclusively through the HTTP test seam (a stubbed
@@ -236,7 +235,7 @@ Network interception is done exclusively through the HTTP test seam (a stubbed
 `tests/test_commands_e2e.py` (10 cases): directory contracts, index
 reconciliation, README table compared field by field, and the qwen-code
 `max_session_turns` contract guard. CI runs on a Python 3.10–3.13 matrix
-against `requirements-dev.txt` (`easy-sandbox[cli]` git main + pytest + pyyaml).
+against `requirements-dev.txt` (`agent-sandbox[cli]` git main + pytest + pyyaml).
 
 > Division of labour: **content correctness** belongs to the source-of-truth
 > repo (a template change must update the index and README table in the same
@@ -256,8 +255,8 @@ against `requirements-dev.txt` (`easy-sandbox[cli]` git main + pytest + pyyaml).
    with the content); tag `v1.0.0` for stable references, which users pin via
    `@v1.0.0`. **No GitHub Release needed** — `RegistryClient` resolves
    tags/branches/shas through the tarball API.
-3. **Consume**: users discover via `ebx template search` and install with
-   `ebx template install <name>`; a freshly published template is found
+3. **Consume**: users discover via `abx template search` and install with
+   `abx template install <name>`; a freshly published template is found
    immediately thanks to the single forced refresh on a cache miss, no TTL wait.
 4. **Rollback**: point the entry `ref` at a known-good version; to pull a
    template urgently, remove its entry (invisible to new users; installed
@@ -282,10 +281,10 @@ against `requirements-dev.txt` (`easy-sandbox[cli]` git main + pytest + pyyaml).
 
 ## 9. Design Notes: Template Command Surface
 
-These notes were carried over from the SDK's [Template System design](https://github.com/Easy-Sandbox/python-sdk/blob/main/docs/en/design/template-system.md), which owns the
+These notes were carried over from the SDK's [Template System design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md), which owns the
 template contract (tiers, name resolution, `template.yaml`, versioning). They describe the CLI side: the commands
 below are design notes for the template marketplace and local cache; the commands implemented today are the ones in
-[CLI Command System](cli-design.md#ebx-template).
+[CLI Command System](cli-design.md#abx-template).
 
 ### 9.1 Local cache management commands
 
@@ -294,52 +293,52 @@ client). CLI cache management commands:
 
 ```bash
 # View cached templates
-ebx template cache list
+abx template cache list
 
 # Clean all caches
-ebx template cache clean
+abx template cache clean
 
 # Clean a specific template's cache
-ebx template cache clean hello/world
+abx template cache clean hello/world
 
 # Force re-download (skip cache when creating)
-ebx create hello/world --no-cache
+abx create hello/world --no-cache
 ```
 
 ### 9.2 Command overview
 
 ```bash
 # ── Create Sandbox ─────────────────────────────
-ebx create python-base                       # Built-in template
-ebx create hello/world                       # GitHub default branch
-ebx create hello/world --tag v1.2.0          # GitHub specific ref (tag/branch/sha)
-ebx create ./my-template                     # Local template
-ebx create hello/world --no-cache            # Skip cache, force re-download
+abx create python-base                       # Built-in template
+abx create hello/world                       # GitHub default branch
+abx create hello/world --tag v1.2.0          # GitHub specific ref (tag/branch/sha)
+abx create ./my-template                     # Local template
+abx create hello/world --no-cache            # Skip cache, force re-download
 
 # ── Template Build and Push ────────────────────────
-ebx template build . --name my-app --tag v1.0
-ebx template push my-app:v1.0
-ebx template init my-template                # Initialize template scaffolding
+abx template build . --name my-app --tag v1.0
+abx template push my-app:v1.0
+abx template init my-template                # Initialize template scaffolding
 
 # ── Template Info and Search ────────────────────────
-ebx template info python-data-science
-ebx template list --market
-ebx template list --market --category data-science --sort stars
-ebx template search "machine learning gpu"
+abx template info python-data-science
+abx template list --market
+abx template list --market --category data-science --sort stars
+abx template search "machine learning gpu"
 
 # ── Template Pull ──────────────────────────────
-ebx template pull community/awesome-ml-env:latest
-ebx template pull hello/world@v1.0.0
+abx template pull community/awesome-ml-env:latest
+abx template pull hello/world@v1.0.0
 
 # ── Template Publish ──────────────────────────────
-ebx template push my-template --publish --category web-development
+abx template push my-template --publish --category web-development
 
 # ── Local Cache Management ──────────────────────────
-ebx template cache list                      # View cached GitHub tarball templates (fetched by tag/branch/sha, no Release needed)
-ebx template cache clean                     # Clean all caches
-ebx template cache clean hello/world         # Clean specific template cache
+abx template cache list                      # View cached GitHub tarball templates (fetched by tag/branch/sha, no Release needed)
+abx template cache clean                     # Clean all caches
+abx template cache clean hello/world         # Clean specific template cache
 
 # ── Configuration ──────────────────────────────
-ebx config set github_token            # GitHub token: masked input, stored in ~/.ebx/.env (private repos + rate limits)
-ebx config set github_token ""         # Remove the stored token
+abx config set github_token            # GitHub token: masked input, stored in ~/.abx/.env (private repos + rate limits)
+abx config set github_token ""         # Remove the stored token
 ```

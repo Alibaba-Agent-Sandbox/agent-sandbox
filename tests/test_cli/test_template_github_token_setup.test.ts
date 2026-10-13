@@ -1,7 +1,7 @@
 /**
  * CLI tests for the one-shot GitHub-token onboarding (task 206).
  *
- * `ebx template search` / `ebx template install` hit GitHub's anonymous rate limit; in an interactive terminal the user
+ * `abx template search` / `abx template install` hit GitHub's anonymous rate limit; in an interactive terminal the user
  * is offered a masked `github_token` setup and the failed operation is retried exactly once. Everything runs offline:
  * the index client and the registry client are mocked.
  */
@@ -34,7 +34,7 @@ schema_version: 1
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"
-    repo: https://github.com/Easy-Sandbox/awesome-templates
+    repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
     tags: [qwen, ai-agent]
     status: official
@@ -54,14 +54,14 @@ const FIXTURE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "f
 
 /** `_config_storage`: point config_cmd's `config.toml` / `.env` / dir at the tmp path. */
 beforeEach(() => {
-  const saved = { dir: configSeams._EBX_DIR, file: configSeams._CONFIG_FILE, env: configSeams._ENV_FILE, prompt: configSeams._promptSecret, tty: templateSeams.stdinIsatty };
+  const saved = { dir: configSeams._ABX_DIR, file: configSeams._CONFIG_FILE, env: configSeams._ENV_FILE, prompt: configSeams._promptSecret, tty: templateSeams.stdinIsatty };
   const tp = tmpPath();
-  configSeams._EBX_DIR = tp;
+  configSeams._ABX_DIR = tp;
   configSeams._CONFIG_FILE = path.join(tp, "config.toml");
   configSeams._ENV_FILE = path.join(tp, ".env");
   delenv(GITHUB_TOKEN_ENV_VAR);
   return () => {
-    configSeams._EBX_DIR = saved.dir;
+    configSeams._ABX_DIR = saved.dir;
     configSeams._CONFIG_FILE = saved.file;
     configSeams._ENV_FILE = saved.env;
     configSeams._promptSecret = saved.prompt;
@@ -108,7 +108,7 @@ describe("TestSearchOnboarding", () => {
     const combined = result.output + (result.stderr || "");
     expect(combined.toLowerCase()).toContain("rate limit");
     expect(combined).toContain(FINE_GRAINED_PAT_URL);
-    expect(combined).toContain("ebx config set github_token");
+    expect(combined).toContain("abx config set github_token");
     expect(mocked).toHaveBeenCalledTimes(1);
     expect(fs.existsSync(path.join(tmpPath(), ".env"))).toBe(false);
   });
@@ -149,7 +149,7 @@ describe("TestSearchOnboarding", () => {
     const combined = result.output + (result.stderr || "");
     expect(combined).toContain("GITHUB_TOKEN");
     expect(combined.toLowerCase()).toContain("secret");
-    expect(combined).toContain("ebx config set github_token");
+    expect(combined).toContain("abx config set github_token");
   });
 
   it("test_json_mode_never_prompts", async () => {
@@ -265,6 +265,6 @@ describe("TestInstallOnboarding", () => {
     expect(result.output).not.toContain("Configure github_token now?");
     const combined = result.output + (result.stderr || "");
     expect(combined).toContain(FINE_GRAINED_PAT_URL);
-    expect(combined).toContain("ebx config set github_token");
+    expect(combined).toContain("abx config set github_token");
   });
 });

@@ -1,19 +1,19 @@
 # 二进制安装
 
-`ebx` 同时以**预编译独立二进制**的形式发布 —— 单个可执行文件内嵌了
-Node.js 运行时、Easy Sandbox CLI 以及其全部依赖。**无需安装
+`abx` 同时以**预编译独立二进制**的形式发布 —— 单个可执行文件内嵌了
+Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装
 Node.js 环境。**
 
 二进制文件随每个版本发布在
-[GitHub Releases](https://github.com/Easy-Sandbox/easy-sandbox/releases)：
+[GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases)：
 
 | 平台 | 文件 |
 |------|------|
-| Linux (x64) | `ebx-{version}-linux-x64` |
-| Linux (arm64) | `ebx-{version}-linux-arm64` |
-| macOS (Apple Silicon) | `ebx-{version}-darwin-arm64` |
-| macOS (Intel) | `ebx-{version}-darwin-x64` |
-| Windows (x64) | `ebx-{version}-windows-x64.exe` |
+| Linux (x64) | `abx-{version}-linux-x64` |
+| Linux (arm64) | `abx-{version}-linux-arm64` |
+| macOS (Apple Silicon) | `abx-{version}-darwin-arm64` |
+| macOS (Intel) | `abx-{version}-darwin-x64` |
+| Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 ---
 
@@ -33,10 +33,10 @@ ARCH=$(uname -m); case "$ARCH" in
 esac
 
 # 先下载到当前用户可写的目录，再安装到 PATH 上。
-curl -fsSL -o "$HOME/ebx" \
-  "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v${VERSION}/ebx-${VERSION}-${OS}-${ARCH}"
-chmod +x "$HOME/ebx"
-sudo mv "$HOME/ebx" /usr/local/bin/ebx
+curl -fsSL -o "$HOME/abx" \
+  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v${VERSION}/abx-${VERSION}-${OS}-${ARCH}"
+chmod +x "$HOME/abx"
+sudo mv "$HOME/abx" /usr/local/bin/abx
 ```
 
 > 直接写入 `/usr/local/bin` 会因没有权限而失败（`curl: (56) Failure writing
@@ -47,17 +47,17 @@ sudo mv "$HOME/ebx" /usr/local/bin/ebx
 
 ```powershell
 $VERSION = "0.3.0"
-$asset = "ebx-$VERSION-windows-x64.exe"
+$asset = "abx-$VERSION-windows-x64.exe"
 
 # 下载 Release 资产
 Invoke-WebRequest `
-  -Uri "https://github.com/Easy-Sandbox/easy-sandbox/releases/download/v$VERSION/$asset" `
+  -Uri "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v$VERSION/$asset" `
   -OutFile $asset
 
 # 移动到 PATH 中的目录（不存在则先创建）
-$installDir = "$env:LOCALAPPDATA\Programs\ebx"
+$installDir = "$env:LOCALAPPDATA\Programs\abx"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item $asset "$installDir\ebx.exe"
+Move-Item $asset "$installDir\abx.exe"
 ```
 
 > 如果 `$installDir` 尚不在 `PATH` 中，请通过
@@ -66,14 +66,14 @@ Move-Item $asset "$installDir\ebx.exe"
 
 ## 手动下载
 
-1. 打开 [GitHub Releases](https://github.com/Easy-Sandbox/easy-sandbox/releases) 页面。
+1. 打开 [GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases) 页面。
 2. 选择目标版本（通常是最新的）。
 3. 按上表选择匹配当前平台的资产下载。
 4. 添加可执行权限（仅 macOS/Linux）并放到 `PATH` 中：
 
 ```bash
-chmod +x ./ebx-0.3.0-darwin-arm64
-mkdir -p ~/.local/bin && mv ./ebx-0.3.0-darwin-arm64 ~/.local/bin/ebx
+chmod +x ./abx-0.3.0-darwin-arm64
+mkdir -p ~/.local/bin && mv ./abx-0.3.0-darwin-arm64 ~/.local/bin/abx
 ```
 
 ## 校验 SHA256
@@ -82,47 +82,47 @@ mkdir -p ~/.local/bin && mv ./ebx-0.3.0-darwin-arm64 ~/.local/bin/ebx
 
 ```bash
 # macOS
-shasum -a 256 -c ebx-0.3.0-darwin-arm64.sha256
+shasum -a 256 -c abx-0.3.0-darwin-arm64.sha256
 
 # Linux
-sha256sum -c ebx-0.3.0-linux-x64.sha256
+sha256sum -c abx-0.3.0-linux-x64.sha256
 ```
 
 Windows（`certutil`）：
 
 ```powershell
 # 将打印出的摘要与 .sha256 文件中的内容进行比对
-certutil -hashfile ebx-0.3.0-windows-x64.exe SHA256
+certutil -hashfile abx-0.3.0-windows-x64.exe SHA256
 
 # 或使用 PowerShell：
-Get-FileHash ebx-0.3.0-windows-x64.exe -Algorithm SHA256
+Get-FileHash abx-0.3.0-windows-x64.exe -Algorithm SHA256
 ```
 
 ## 验证安装
 
 ```bash
-ebx --version
-# ebx, version 0.3.0
+abx --version
+# abx, version 0.3.0
 ```
 
 > **macOS Gatekeeper 提示：** 二进制文件未做代码签名，首次运行可能被
 > Gatekeeper 拦截。如遇到该情况，先移除隔离属性再运行：
 >
 > ```bash
-> sudo xattr -d com.apple.quarantine /usr/local/bin/ebx
+> sudo xattr -d com.apple.quarantine /usr/local/bin/abx
 > ```
 >
 > 也可以在 Finder 中右键点击二进制文件，选择**打开**一次即可放行。
 
 ## 二进制与 npm install 对比
 
-| | 独立二进制 | `npm install -g @easy-sandbox/cli` |
+| | 独立二进制 | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
 | 是否需要 Node.js | 否 | 需要（20+） |
 | 安装方式 | 下载单个文件 | npm 或任意 Node.js 包管理器 |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
-| 更新方式 | 从 Releases 重新下载 | `npm update -g @easy-sandbox/cli` |
-| Python SDK（`import easy_sandbox`） | 不包含 | 不包含（`pip install easy-sandbox`，见 [`python-sdk` 仓库](https://github.com/Easy-Sandbox/python-sdk)） |
+| 更新方式 | 从 Releases 重新下载 | `npm update -g @agent-sandbox/cli` |
+| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
 | 可选扩展（`alicloud`、`mcp` 等） | 无需单独安装 —— 已内置 | 无需单独安装 —— 已内置 |
 
 ## 说明与限制
@@ -132,12 +132,12 @@ ebx --version
   extras。如果更希望通过包管理器管理 CLI，请改用 npm 安装：
 
   ```bash
-  npm install -g @easy-sandbox/cli
+  npm install -g @agent-sandbox/cli
   ```
 
-- 二进制仅提供 `ebx` CLI。如需使用 Python SDK
-  （`from easy_sandbox.api.sandbox import Sandbox`），请通过 pip 安装 Python 包
-  （`pip install easy-sandbox`）。
+- 二进制仅提供 `abx` CLI。如需使用 Python SDK
+  （`from agent_sandbox.api.sandbox import Sandbox`），请通过 pip 安装 Python 包
+  （`pip install agent-sandbox`）。
 
 ---
 
@@ -150,7 +150,7 @@ npm ci
 npm run build:binary
 ```
 
-命令会在当前机器上生成 `dist/binary/ebx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。
+命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。
 
 ## 后续步骤
 

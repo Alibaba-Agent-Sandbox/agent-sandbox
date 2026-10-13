@@ -23,7 +23,7 @@ export class PyFloat {
 }
 
 /** Hidden insertion-order record of a parsed JSON object whose integer-like keys JS would iterate first. */
-export const PY_KEY_ORDER: unique symbol = Symbol.for("ebx.pyKeyOrder") as never;
+export const PY_KEY_ORDER: unique symbol = Symbol.for("abx.pyKeyOrder") as never;
 
 /**
  * `dict.items()` of a plain-object dict in Python (insertion) order. JS objects iterate integer-like keys first;

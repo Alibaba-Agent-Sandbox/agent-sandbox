@@ -5,7 +5,7 @@
 ### mcp install --target cursor
 
 ```
-$ ebx mcp install --target cursor
+$ abx mcp install --target cursor
 MCP Server config written to /var/folders/cb/925wcj8128gf6p6bn1hp1cgc0000gn/T/tmpb4e5gk1w/.cursor/mcp.json
 
 Registered tools:
@@ -24,8 +24,8 @@ Exit code: 0
 ### mcp status
 
 ```
-$ ebx mcp status
-server            easy-sandbox
+$ abx mcp status
+server            agent-sandbox
 transport         stdio
 tools_count       7
 tools             ['create_sandbox', 'run_code', 'run_command', 'read_file', 'write_file', 'list_files', 'kill_sandbox']
@@ -40,9 +40,9 @@ Exit code: 0
 ### mcp status --json
 
 ```
-$ ebx --json mcp status
+$ abx --json mcp status
 {
-  "server": "easy-sandbox",
+  "server": "agent-sandbox",
   "transport": "stdio",
   "tools_count": 7,
   "tools": [

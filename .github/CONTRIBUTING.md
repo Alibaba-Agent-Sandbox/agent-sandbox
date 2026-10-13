@@ -1,4 +1,4 @@
-# Contributing to Easy Sandbox
+# Contributing to Agent Sandbox
 
 Thank you for your interest in contributing! This guide will help you get started.
 
@@ -71,7 +71,7 @@ make test
 ## Definition of Done
 
 A change is done only when it is verified end to end against real components and recorded under
-`.agents/`. Every PR must provide: unit tests, an E2E run against the real cloud (`EBX_BIN=ebx npm run e2e`,
+`.agents/`. Every PR must provide: unit tests, an E2E run against the real cloud (`ABX_BIN=abx npm run e2e`,
 see [`e2e/README.md`](../e2e/README.md)) recorded in `.agents/evidence/verify/<date>-<topic>.md` (never
 containing credentials), an ADR/note under `.agents/notes/`, English and Chinese docs, and a
 `CHANGELOG.md` entry. Real credentials live only in gitignored `.env` files and must never be printed,
@@ -143,15 +143,15 @@ npx vitest run --reporter=verbose
 
 ## Template Contributions
 
-Sandbox templates — content, the machine-readable index (`awesome-templates.yaml`), releases and CI — live in the dedicated repository **[Easy-Sandbox/awesome-templates](https://github.com/Easy-Sandbox/awesome-templates)**. It is the single source of truth for official & community templates; this repository no longer bundles a template collection (it keeps only a minimal `python-hello` offline fixture for tests).
+Sandbox templates — content, the machine-readable index (`awesome-templates.yaml`), releases and CI — live in the dedicated repository **[alibaba-agent-sandbox/awesome-templates](https://github.com/alibaba-agent-sandbox/awesome-templates)**. It is the single source of truth for official & community templates; this repository no longer bundles a template collection (it keeps only a minimal `python-hello` offline fixture for tests).
 
 ### Contributing a Template
 
-1. **Read** the catalog repository's [CONTRIBUTING.md](https://github.com/Easy-Sandbox/awesome-templates/blob/main/CONTRIBUTING.md) — it defines the template anatomy, capability-group rules, and local dev workflow.
-2. **Open a PR** against [Easy-Sandbox/awesome-templates](https://github.com/Easy-Sandbox/awesome-templates) that adds your template folder and updates `awesome-templates.yaml` (plus the README template table) in the same PR.
+1. **Read** the catalog repository's [CONTRIBUTING.md](https://github.com/alibaba-agent-sandbox/awesome-templates/blob/main/CONTRIBUTING.md) — it defines the template anatomy, capability-group rules, and local dev workflow.
+2. **Open a PR** against [alibaba-agent-sandbox/awesome-templates](https://github.com/alibaba-agent-sandbox/awesome-templates) that adds your template folder and updates `awesome-templates.yaml` (plus the README template table) in the same PR.
 3. **Required index fields**: `name`, `description`, `repo`, `tags`, `author`, `capabilities`, `status` (optional: `path` for subdirectory templates, `ref` to pin a version).
 4. **Status values**:
-   - `official` — maintained by the Easy-Sandbox team (do not use for community PRs)
+   - `official` — maintained by the alibaba-agent-sandbox team (do not use for community PRs)
    - `community` — community-contributed and maintained
    - `experimental` — early-stage or proof-of-concept
 5. **Ensure** your repo contains a valid `template.yaml` at the specified path. The catalog CI validates every folder and the index offline.
@@ -167,9 +167,9 @@ Your template repository should include:
 
 Use the CLI to search the remote index:
 ```bash
-ebx template search python      # search by tag or keyword
-ebx template search ai-agent    # find AI agent templates
-ebx template search browser     # find browser automation templates
+abx template search python      # search by tag or keyword
+abx template search ai-agent    # find AI agent templates
+abx template search browser     # find browser automation templates
 ```
 
 ## Commit Message Convention
@@ -188,12 +188,12 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/Easy-Sandbox/cli/issues/new/choose) with our templates
+- Use [GitHub Issues](https://github.com/alibaba-agent-sandbox/agent-sandbox/issues/new/choose) with our templates
 - For security vulnerabilities, see our [Security Policy](SECURITY.md)
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/Easy-Sandbox/cli/discussions) for general questions
+- Open a [Discussion](https://github.com/alibaba-agent-sandbox/agent-sandbox/discussions) for general questions
 - Check existing issues and discussions before creating new ones
 
 ## License
