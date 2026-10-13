@@ -119,7 +119,7 @@ add("files list 401", [...S, "files", "list", SBX], { rpc: { "Filesystem/ListDir
 add("files list reset", [...S, "files", "list", SBX], { rpc: { "Filesystem/ListDir": RESET } });
 add("files list garbage", [...S, "files", "list", SBX], { rpc: { "Filesystem/ListDir": raw(200, "application/json", "garbage") } });
 add("files list unicode name", [...S, "files", "list", SBX], { rpc: { "Filesystem/ListDir": fileEntries([E("日本語.txt", "/home/user/日本語.txt", { size: 12 })]) } });
-add("files list recursive", [...S, "files", "list", SBX, "-r", "-p", "/my dir"], { start: "/home/user\n/home/user/a\n" && ((c) => proc({ out: ["/my dir\n/my dir/a\n"] })) });
+add("files list recursive", [...S, "files", "list", SBX, "-r", "-p", "/my dir"], { start: () => proc({ out: ["/my dir\n/my dir/a\n"] }) });
 add("files list recursive json", ["--json", ...S, "files", "list", SBX, "-r"], { start: () => proc({ out: ["/home/user\n\n/home/user/a b\n"] }) });
 add("files list recursive empty", [...S, "files", "list", SBX, "--recursive"], { start: () => proc({ out: ["  \n"] }) });
 add("files list recursive empty json", ["--json", ...S, "files", "list", SBX, "-r"], { start: () => proc({}) });
@@ -570,7 +570,7 @@ async function runCase(testCase) {
     let stderr = normalise(r.stderr, port);
     if (kind === "node" && !configCmdReady) {
       // `main.ts` merges the shortcuts at import time, before an entry can install an inert config seam.
-      stderr = stderr.replace(/⚠ Warning: Failed to load shortcuts from config:[^\n]*\n(  [^\n]*\n)*/, "");
+      stderr = stderr.replace(/⚠ Warning: Failed to load shortcuts from config:[^\n]*\n( {2}[^\n]*\n)*/, "");
     }
     stderr = stderr
       .split("\n")

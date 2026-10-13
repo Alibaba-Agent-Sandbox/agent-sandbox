@@ -193,7 +193,7 @@ print(json.dumps(o))`], { encoding: "utf8", env: { ...process.env, HOME: tmp, EB
     ["CustomCommand", { cmd: "x", args: "nope", env: [] }],
     ["CustomCommandArg", { name: "x", type: "STRING" }],
     ["CustomCommandArg", { name: "x", type: 5 }],
-    ["CustomCommandArg", { name: "x", type: "bad\'quote\"" }],
+    ["CustomCommandArg", { name: "x", type: "bad'quote\"" }],
     ["CustomCommandArg", { name: "x", default: 5, required: "yes" }],
     ["CustomCommandArg", { name: "x", default: true }],
   ];

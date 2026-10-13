@@ -29,7 +29,7 @@ function parseCommands(text) {
       if (cmds.length) break;
       continue;
     }
-    const m = /^  ([a-zA-Z][a-zA-Z0-9-]*)\s{2,}/.exec(line);
+    const m = /^ {2}([a-zA-Z][a-zA-Z0-9-]*)\s{2,}/.exec(line);
     if (m) cmds.push(m[1]);
     else if (cmds.length && /^\s+/.test(line)) continue;
     else break;

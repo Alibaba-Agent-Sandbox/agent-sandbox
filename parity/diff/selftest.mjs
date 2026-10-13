@@ -20,7 +20,7 @@ const run = (bin) => spawnSync('node', [join(here, 'diff.mjs'), '--fast', '--fil
 const clean = run(oracle);
 const mutant = run(wrapper);
 rmSync(dir, { recursive: true, force: true });
-const ok = clean.status === 0 && mutant.status === 1 && /DIFF  list/.test(mutant.stdout) && /DIFF  info-missing/.test(mutant.stdout) && /same  version/.test(mutant.stdout);
+const ok = clean.status === 0 && mutant.status === 1 && /DIFF {2}list/.test(mutant.stdout) && /DIFF {2}info-missing/.test(mutant.stdout) && /same {2}version/.test(mutant.stdout);
 console.log(`oracle vs oracle: exit ${clean.status}\nmutant: exit ${mutant.status}\n${mutant.stdout.split('\n').filter((l) => /^(DIFF|same)/.test(l)).join('\n')}`);
 console.log(ok ? 'selftest OK: mutations were detected, clean run stayed clean' : 'selftest FAILED');
 process.exit(ok ? 0 : 1);

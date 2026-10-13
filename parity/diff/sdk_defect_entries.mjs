@@ -50,14 +50,14 @@ const textPairs = {
     swap(new RegExp(jsonErr('Resource not found \\(HTTP 404\\)\\.', 'E5000', SUGG_404)), new RegExp(jsonErr('File or directory not found in the sandbox: [^\\n]*', 'E4001', NODE_FILE_SUGG))),
   ],
   file403: [
-    swap(/\[E1000\] Access denied \(HTTP 403\)\.\n  Suggestion: Check your credentials and permissions\.\n/, new RegExp(`\\[E4002\\] Permission denied in the sandbox: [^\\n]*\\n  Suggestion: Check file permissions in the sandbox\\.\\n`)),
+    swap(/\[E1000\] Access denied \(HTTP 403\)\.\n {2}Suggestion: Check your credentials and permissions\.\n/, new RegExp(`\\[E4002\\] Permission denied in the sandbox: [^\\n]*\\n  Suggestion: Check file permissions in the sandbox\\.\\n`)),
     swap(/\[E1000\] Access denied \(HTTP 403\)\.\n/, /\[E4002\] Permission denied in the sandbox: [^\n]*\n/),
   ],
   fileOther: [
-    swap(/\[E5000\] Remote request failed \(HTTP (?<status>\d+)\): [^\n]*\n(?:For more information check: [^\n]*\n)?  Suggestion: Check the platform status and retry\. Use 'ebx -v <command>' for details\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>\d+)\) for [^\n]*\n/),
+    swap(/\[E5000\] Remote request failed \(HTTP (?<status>\d+)\): [^\n]*\n(?:For more information check: [^\n]*\n)? {2}Suggestion: Check the platform status and retry\. Use 'ebx -v <command>' for details\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>\d+)\) for [^\n]*\n/),
     swap(/\[E5000\] Remote request failed \(HTTP (?<status>\d+)\): [^\n]*\n(?:For more information check: [^\n]*\n)?/, /\[E4000\] envd file operation failed \(HTTP (?<status>\d+)\) for [^\n]*\n/),
-    swap(/\[E1000\] Authentication failed \(HTTP (?<status>401)\)\.\n  Suggestion: Check your API key or AK\/SK credentials \(ebx config set sandbox_api_key <KEY>\)\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>401)\) for [^\n]*\n/),
-    swap(/\[E2002\] Rate limit exceeded \(HTTP (?<status>429)\)\.\n  Suggestion: Wait a moment and retry, or request a quota increase\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>429)\) for [^\n]*\n/),
+    swap(/\[E1000\] Authentication failed \(HTTP (?<status>401)\)\.\n {2}Suggestion: Check your API key or AK\/SK credentials \(ebx config set sandbox_api_key <KEY>\)\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>401)\) for [^\n]*\n/),
+    swap(/\[E2002\] Rate limit exceeded \(HTTP (?<status>429)\)\.\n {2}Suggestion: Wait a moment and retry, or request a quota increase\.\n/, /\[E4000\] envd file operation failed \(HTTP (?<status>429)\) for [^\n]*\n/),
   ],
   auth401: [
     swap(new RegExp(`\\[E1000\\] Authentication failed \\(HTTP 401\\)\\.\\n  Suggestion: ${AUTH_SUGG_PY}\\n`), new RegExp(`\\[E1001\\] ${NODE_AUTH_MSG}\\n  Suggestion: ${AUTH_SUGG_NODE}\\n`)),
@@ -68,11 +68,11 @@ const textPairs = {
   ],
   create401: [
     swap(/\[E2000\] [^\n]*\n/, new RegExp(`\\[E1001\\] ${NODE_AUTH_MSG}\\n  Suggestion: ${AUTH_SUGG_NODE}\\n`)),
-    swap(/\{\n  "status": "error",\n  "message": "[^"\n]*",\n  "code": "E2000"\n\}\n/, new RegExp(jsonErr(NODE_AUTH_MSG, 'E1001', AUTH_SUGG_NODE))),
+    swap(/\{\n {2}"status": "error",\n {2}"message": "[^"\n]*",\n {2}"code": "E2000"\n\}\n/, new RegExp(jsonErr(NODE_AUTH_MSG, 'E1001', AUTH_SUGG_NODE))),
   ],
   envdRpc: [
-    swap(/\[E5000\] Resource not found \(HTTP 404\)\.\n  Suggestion: Verify the sandbox ID, template ID, or endpoint URL\.\n/, /\[E3006\] envd RPC \/process\.Process\/(?:List|SendSignal) failed \(HTTP 404\): [^\n]*\n  Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'ebx -v' for the raw error response\.\n/),
-    swap(/\[E5000\] Remote request failed \(HTTP 500\): [^\n]*for url '[^'\n]*?(?<path>\/process\.Process\/(?:List|SendSignal))'\n(?:For more information check: [^\n]*\n)?  Suggestion: Check the platform status and retry\. Use 'ebx -v <command>' for details\.\n/, /\[E3006\] envd RPC (?<path>\/process\.Process\/(?:List|SendSignal)) failed \(HTTP 500\): [^\n]*\n  Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'ebx -v' for the raw error response\.\n/),
+    swap(/\[E5000\] Resource not found \(HTTP 404\)\.\n {2}Suggestion: Verify the sandbox ID, template ID, or endpoint URL\.\n/, /\[E3006\] envd RPC \/process\.Process\/(?:List|SendSignal) failed \(HTTP 404\): [^\n]*\n {2}Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'ebx -v' for the raw error response\.\n/),
+    swap(/\[E5000\] Remote request failed \(HTTP 500\): [^\n]*for url '[^'\n]*?(?<path>\/process\.Process\/(?:List|SendSignal))'\n(?:For more information check: [^\n]*\n)? {2}Suggestion: Check the platform status and retry\. Use 'ebx -v <command>' for details\.\n/, /\[E3006\] envd RPC (?<path>\/process\.Process\/(?:List|SendSignal)) failed \(HTTP 500\): [^\n]*\n {2}Suggestion: The sandbox envd rejected this RPC call\. Check the command and arguments, or run with 'ebx -v' for the raw error response\.\n/),
   ],
 };
 
@@ -132,7 +132,7 @@ export const FAMILIES = {
   'ki002-stat-entry': {
     ki: 'KI-002',
     why: 'Stat answers with a nested `entry`: a flat answer next to an empty `entry` object now renders the (empty) entry, like the fixed Python SDK',
-    fields: { stdout: (py, node) => /^Name  app\.py\nPath  \/home\/user\/app\.py\nType  file\nSize  2048\n$/.test(py) && node === 'Name  \nPath  \nType  file\nSize  0\n' },
+    fields: { stdout: (py, node) => /^Name {2}app\.py\nPath {2}\/home\/user\/app\.py\nType {2}file\nSize {2}2048\n$/.test(py) && node === 'Name  \nPath  \nType  file\nSize  0\n' },
   },
   'ki004-signal-body': { ki: 'KI-004', why: 'SendSignal body is `{"process":{"pid":N},"signal":"SIGNAL_SIGTERM"|"SIGNAL_SIGKILL"}`', fields: { req: reqSignal } },
   'ki004-signal-rejected': {
@@ -158,7 +158,7 @@ export const FAMILIES = {
     why: 'a signal beyond 64 bits is rejected with the envd message instead of the orjson overflow text',
     fields: {
       stderr: (py, node) => {
-        const m = /^((?:[^\n]*\n)*?)Unexpected error: Integer exceeds 64-bit range\n  Suggestion: Use 'ebx -v <command>' for more details, or report this issue\.\n$/.exec(py);
+        const m = /^((?:[^\n]*\n)*?)Unexpected error: Integer exceeds 64-bit range\n {2}Suggestion: Use 'ebx -v <command>' for more details, or report this issue\.\n$/.exec(py);
         const n = /Unexpected error: envd can only deliver SIGTERM \(15\) and SIGKILL \(9\) to a process; got (\d+)\n/.exec(node)?.[1];
         return !!m && !!n && node === `${m[1]}${SIG_REJECT_NODE(n)}`;
       },
@@ -206,7 +206,7 @@ export const FAMILIES = {
       },
       stderr: (py, node) => {
         const [a, b] = [py, node];
-        const m = /\[E4001\] File or directory not found in the sandbox: [^\n]*\n(?:  Suggestion: Use files\.list\(\) to check available files, or files\.exists\(\) to verify path\.\n)?$/.exec(b);
+        const m = /\[E4001\] File or directory not found in the sandbox: [^\n]*\n(?: {2}Suggestion: Use files\.list\(\) to check available files, or files\.exists\(\) to verify path\.\n)?$/.exec(b);
         return !!m && b.slice(0, m.index) === a;
       },
     },

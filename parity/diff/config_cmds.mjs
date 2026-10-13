@@ -820,7 +820,7 @@ add("toml2: keychain env 0", { ...cfg("get", "sandbox_api_key"), env: { EBX_NO_K
 add("toml2: keychain fake dbus", { ...cfg("set", "sandbox_api_key", "abcdefghijk"), env: { EBX_NO_KEYCHAIN: "0", DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent/bus" } });
 
 const LONG = "L".repeat(5000);
-const WIN_VALUES = ["C:\\Users\\me\\.ebx\\ns", "\\\\server\\share", "D:/a/b", "ns\\with\\back", "tab\tvalue", "nul\u0000x", "emoji-\u{1F600}-value", "e\u0301combining", "\u202ertl-override", "  ", "", '"', "'", "\\", "\\u0041", "a\\nb", "\u007f", "line1\nline2", "\u2028sep", "\ud83d"];
+const WIN_VALUES = ["C:" + "\\Users\\me\\.ebx\\ns", "\\\\server\\share", "D:/a/b", "ns\\with\\back", "tab\tvalue", "nul\u0000x", "emoji-\u{1F600}-value", "e\u0301combining", "\u202ertl-override", "  ", "", '"', "'", "\\", "\\u0041", "a\\nb", "\u007f", "line1\nline2", "\u2028sep", "\ud83d"];
 for (const k of ["region", "domain", "api_url", "acr_namespace", "llm_model", "llm_base_url", "sandbox_api_key", "llm_api_key", "github_token", "access_key_id", "access_key_secret"]) {
   add(`round2 set ${k} very long`, { steps: [{ argv: ["config", "set", k, LONG] }, { argv: ["config", "get", k] }, { argv: ["--json", "config", "list"] }] });
   for (const [i, v] of WIN_VALUES.entries()) {

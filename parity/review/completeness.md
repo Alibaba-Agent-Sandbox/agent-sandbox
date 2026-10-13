@@ -44,8 +44,8 @@ Counts: 0 BUG in the CLI behaviour; 2 GAP-UNJUSTIFIED (F-01, F-07); 5 doc/stale-
 
 ### F-07 - GAP-UNJUSTIFIED (medium): canonical client variables documented for "SDK and CLI" are ignored by the CLI
 
-* Repro: `HOME=$(mktemp -d) EBX_NO_KEYCHAIN=1 EBX_SANDBOX_API_KEY=sk-adv-canonical-123456 node cli/dist/bin/ebx.js config get sandbox_api_key` ->
-  prints the built-in default `e2b***dc1`; with `E2B_API_KEY=sk-adv-canonical-123456` it prints `sk-***456`.
+* Repro: `HOME=$(mktemp -d) EBX_NO_KEYCHAIN=1 EBX_SANDBOX_API_KEY=sk-example-key node cli/dist/bin/ebx.js config get sandbox_api_key` ->
+  prints the built-in default `e2b***dc1`; with `E2B_API_KEY=sk-example-key` it prints a masked form of that key.
 * Evidence of the claim: `python-sdk/docs/en/guide/environment-variables.md:277,318`, `reference/configuration.md` (names `EBX_SANDBOX_API_KEY`,
   `EBX_SANDBOX_BASE_URL`, `EBX_SANDBOX_DOMAIN`, `EBX_PROVIDER`, `EBX_ALICLOUD_EXPRESS_*`, `EBX_HTTP_TIMEOUT`, `EBX_MAX_RETRIES`, `EBX_LOG_LEVEL`, ... ~30 names) and the Python
   `utils/config_keys.py` docstring ("The Node.js CLI implements the same algorithm"). `grep EBX_SANDBOX cli/src` -> 0 hits.

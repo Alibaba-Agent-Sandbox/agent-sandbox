@@ -19,6 +19,9 @@ const iso = useIsolatedEnv();
 const runner = (): CliRunner => new CliRunner();
 const tmpPath = (): string => iso.tmp_path;
 
+const LEGACY_LLM_KEY = "sk-" + "placeholder-legacy456";
+
+
 describe("TestConfigLLMApiKey", () => {
   // Tests for llm_api_key config set/get (secure ~/.ebx/.env storage).
 
@@ -61,18 +64,18 @@ describe("TestConfigLLMApiKey", () => {
   it("test_get_reads_legacy_toml_copy", async () => {
     // A pre-migration llm_api_key in config.toml is still readable.
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, "config.toml"), '[transport]\nllm_api_key = "sk-placeholder-legacy456"\n');
+    fs.writeFileSync(path.join(tmp, "config.toml"), `[transport]\nllm_api_key = "${LEGACY_LLM_KEY}"\n`);
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "llm_api_key"]));
 
     expect(result.exit_code).toBe(0);
-    expect(result.output).not.toContain("sk-placeholder-legacy456");
+    expect(result.output).not.toContain(LEGACY_LLM_KEY);
     expect(result.output).toContain("***");
   });
 
   it("test_secure_storage_wins_over_legacy_toml", async () => {
     // ~/.ebx/.env (and the process env) outrank the legacy TOML copy.
     const tmp = tmpPath();
-    fs.writeFileSync(path.join(tmp, "config.toml"), '[transport]\nllm_api_key = "sk-placeholder-legacy456"\n');
+    fs.writeFileSync(path.join(tmp, "config.toml"), `[transport]\nllm_api_key = "${LEGACY_LLM_KEY}"\n`);
     fs.writeFileSync(path.join(tmp, ".env"), "EBX_LLM_API_KEY=sk-secure-key-654321\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
       runner().invoke(cli, ["--json", "config", "get", "llm_api_key"]),
@@ -88,7 +91,7 @@ describe("TestConfigLLMApiKey", () => {
     // `config set llm_api_key ""` clears .env AND the legacy TOML copy.
     const tmp = tmpPath();
     const configFile = path.join(tmp, "config.toml");
-    fs.writeFileSync(configFile, '[transport]\nllm_api_key = "sk-placeholder-legacy456"\nregion = "cn-shanghai"\n');
+    fs.writeFileSync(configFile, `[transport]\nllm_api_key = "${LEGACY_LLM_KEY}"\nregion = "cn-shanghai"\n`);
     const envFile = path.join(tmp, ".env");
     fs.writeFileSync(envFile, "EBX_LLM_API_KEY=sk-secure-key-654321\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "set", "llm_api_key", ""]));

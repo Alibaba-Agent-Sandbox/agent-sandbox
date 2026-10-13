@@ -155,7 +155,7 @@ suite_offline() {
   ebx provider install "file://$repo" --allow-insecure-transport --ref "$sha" --yes; expect_rc 0 && expect_out "local-process" && ok
 
   step "tampering is detected by doctor (E8011)"
-  printf '# tampered\n' >> "$WORK/home/.ebx/providers/local-process/provider.py"
+  printf '# tampered\n' >> "$WORK/home"/.ebx/providers/local-process/provider.py
   ebx provider doctor local-process; expect_rc 1 && ok
 
   step "uninstall"

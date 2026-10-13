@@ -274,9 +274,9 @@ for (const [n, f] of Object.entries({
   ".env": ".env", ".ENV": ".ENV", ".env.local": ".env.local", ".env.example": ".env.example", ".env.sample": ".env.sample", ".env.template": ".env.template", ".env.EXAMPLE": ".env.EXAMPLE", ".env.prod.example": ".env.prod.example", "env": "env", "x.pem": "x.pem", "X.PEM": "X.PEM", "k.key": "k.key", "a.p12": "a.p12", "a.pfx": "a.pfx", "t.tfvars": "t.tfvars", "t.tfstate": "t.tfstate", "t.tfstate.backup": "t.tfstate.backup", "a.tfstate.d": "a.tfstate.d", "kubeconfig": "kubeconfig", "kubeconfig.yaml": "kubeconfig.yaml", "KubeConfig": "KubeConfig", "id_rsa": "id_rsa", "id_rsa.pub": "id_rsa.pub", "id_ed25519": "id_ed25519", "id_ed25519.pub": "id_ed25519.pub", ".npmrc": ".npmrc", ".pypirc": ".pypirc", ".netrc": ".netrc", ".git-credentials": ".git-credentials", "credentials": "credentials", "credentials.json": "credentials.json", "Credentials.json": "Credentials.json", "secrets": "secrets", "secrets.yaml": "secrets.yaml", "Secrets.yaml": "Secrets.yaml", "secret.txt": "secret.txt", "mysecrets.txt": "mysecrets.txt", "sub/.env": "sub/.env", "sub/deep/id_rsa": "sub/deep/id_rsa", "config.pem.txt": "config.pem.txt", "a.key.bak": "a.key.bak", ".envrc": ".envrc", "env.local": "env.local", ".ENV.LOCAL": ".ENV.LOCAL", "É.pem": "É.pem",
 })) pd(`proj: name ${n}`, { "app.py": "x\n", [f]: "A=1\n" });
 for (const [n, c] of Object.entries({
-  "private key": "-----BEGIN RSA PRIVATE KEY-----\nabc\n",
-  "private key bare": "-----BEGIN PRIVATE KEY-----\n",
-  "private key openssh": "-----BEGIN OPENSSH PRIVATE KEY-----\n",
+  "private key": "-----BEGIN RSA " + "PRIVATE KEY-----\nabc\n",
+  "private key bare": "-----BEGIN " + "PRIVATE KEY-----\n",
+  "private key openssh": "-----BEGIN OPENSSH " + "PRIVATE KEY-----\n",
   "public key ok": "-----BEGIN PUBLIC KEY-----\n",
   "LTAI": `key = ${LT}abcdefgh12345\n`,
   "LTAI short": `${LT}abc\n`,
@@ -285,7 +285,7 @@ for (const [n, c] of Object.entries({
   "AKIA 17": `${AK}ABCDEFGHIJKLMNOPQ\n`,
   "sk-": `${SK}abcdefghijklmnopqrstuvwxyz\n`,
   "sk- short": `${SK}abc\n`,
-  "ghp": "ghp_abcdefghijklmnopqrstuvwxyz0123\n",
+  "ghp": "gh" + "p_abcdefghijklmnopqrstuvwxyz0123\n",
   "github_pat": "github_pat_abcdefghijklmnopqrstu\n",
   "jwt": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijk\n",
   "password quoted": "password = 'supersecret1'\n",

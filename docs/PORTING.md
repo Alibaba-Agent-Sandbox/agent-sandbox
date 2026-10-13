@@ -5,17 +5,21 @@ Python package. This repository is the Node.js replacement for that CLI. **Hard 
 degrade, or silently change any CLI behaviour.** The only intended differences are the ones the task asked for
 (implementation language, split of repositories, Python-specific install/packaging story).
 
-## Reference material (this VM)
+## Reference material
+
+Keep a local checkout of `https://github.com/easy-sandbox/easy-sandbox` at commit `b15b88f` and install it with
+`pip install -e ".[dev]"` into a virtualenv. That checkout is the Python source of truth; its venv `bin/ebx` is the
+oracle.
 
 | What | Where |
 |------|-------|
-| Original Python source (pristine checkout) | `/tmp/easy-sandbox/src/easy_sandbox/` |
-| Original Python tests (incl. golden CLI snapshots) | `/tmp/easy-sandbox/tests/` |
-| Python **oracle** CLI (original behaviour, runnable) | `/tmp/venv-orig/bin/ebx` (always run with an isolated `HOME`, see below) |
+| Original Python source (pristine checkout) | `<python-checkout>/src/easy_sandbox/` |
+| Original Python tests (incl. golden CLI snapshots) | `<python-checkout>/tests/` |
+| Python **oracle** CLI (original behaviour, runnable) | `<oracle-venv>/bin/ebx` (always run with an isolated `HOME`, see below) |
 | Ledger of Python CLI/agent tests that must be ported | `parity/python-tests-to-port.txt` |
-| Original docs | `/tmp/easy-sandbox/docs/` |
+| Original docs | `<python-checkout>/docs/` |
 
-If any of the `/tmp` paths is gone, re-clone `https://github.com/easy-sandbox/easy-sandbox` at commit `b15b88f` and
+If the checkout is missing, re-clone `https://github.com/easy-sandbox/easy-sandbox` at commit `b15b88f` and
 `pip install -e ".[dev]"` it into a venv.
 
 Always run the oracle with `HOME=$(mktemp -d) EBX_NO_KEYCHAIN=1 ...` (and no CI env vars) so it never touches real

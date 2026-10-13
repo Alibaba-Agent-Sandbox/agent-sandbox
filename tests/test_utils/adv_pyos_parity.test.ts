@@ -125,9 +125,9 @@ describe("pyExpandUser (Path.expanduser)", () => {
   });
 
   it("expands ~ and ~/x through $HOME and keeps '..'", () => {
-    process.env["HOME"] = "/home/someone/";
-    expect(pyExpandUser("~")).toBe("/home/someone");
-    expect(pyExpandUser("~/a//b/../c")).toBe("/home/someone/a/b/../c");
+    process.env["HOME"] = "/home/user/";
+    expect(pyExpandUser("~")).toBe("/home/user");
+    expect(pyExpandUser("~/a//b/../c")).toBe("/home/user/a/b/../c");
     expect(pyExpandUser("plain/x")).toBe("plain/x");
     expect(pyExpandUser("/abs/~x")).toBe("/abs/~x");
   });

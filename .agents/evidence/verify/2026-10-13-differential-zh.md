@@ -1,6 +1,6 @@
 # 2026-10-13 差分分组（相对 Python ebx 0.2.0）
 
-Oracle：`/tmp/venv-orig/bin/ebx`（Python ebx 0.2.0）。对照日志在 `/tmp/diff-fast/`，本文件不改那五份日志。
+Oracle：Python ebx 0.2.0（本地 venv 的 `bin/ebx`）。对照日志在 `/tmp/diff-fast/`，本文件不改那五份日志。
 
 | 套件 | 日志里的 DIFF | 组1 保留 | 组2 该补 |
 |---|---:|---:|---:|

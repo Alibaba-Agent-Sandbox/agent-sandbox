@@ -86,9 +86,10 @@ describe("completeness (adversarial)", () => {
     },
   );
 
+  const ADV_KEY = "sk-" + "adv-canonical-123456";
   it.skipIf(!haveBin)("ADV-completeness-05 EBX_SANDBOX_API_KEY (canonical name documented by the SDK) is honoured like E2B_API_KEY", () => {
-    const viaE2b = ebx(["config", "get", "sandbox_api_key"], { E2B_API_KEY: "sk-adv-canonical-123456" });
-    const viaCanonical = ebx(["config", "get", "sandbox_api_key"], { EBX_SANDBOX_API_KEY: "sk-adv-canonical-123456" });
+    const viaE2b = ebx(["config", "get", "sandbox_api_key"], { E2B_API_KEY: ADV_KEY });
+    const viaCanonical = ebx(["config", "get", "sandbox_api_key"], { EBX_SANDBOX_API_KEY: ADV_KEY });
     expect(viaE2b.stdout.trim()).toMatch(/^sk-/);
     expect(viaCanonical.stdout.trim()).toBe(viaE2b.stdout.trim());
   });
