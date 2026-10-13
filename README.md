@@ -230,20 +230,6 @@ The Python SDK, the in-sandbox server SDK and the shared platform contracts are 
 | Contributing Guide | [CONTRIBUTING.md](.github/CONTRIBUTING.md) |
 | License | [Apache-2.0](LICENSE) |
 
-## Differences from the Python CLI
-
-Previously the CLI shipped inside the Python package (`pip install "easy-sandbox[cli]"`). It is now a standalone
-Node.js / TypeScript package. The differences below are forced by that switch and intentional; **everything else —
-commands, flags, output, exit codes, configuration and file locations — is identical**.
-
-| Aspect | Python CLI (before) | Node.js CLI (now) |
-|--------|---------------------|-------------------|
-| Implementation language | Python 3.10+ (Click / Rich) | TypeScript on Node.js >= 20 (ESM) |
-| Install channel | `pip install "easy-sandbox[cli]"` | `npm install -g @easy-sandbox/cli` / `npx @easy-sandbox/cli` |
-| Standalone binary | PyInstaller | Node SEA (esbuild bundle + single-executable); same release assets `ebx-{version}-{os}-{arch}[.exe]` |
-| Package | `easy-sandbox` on PyPI (`[cli]`, `[alicloud]` extras) | `@easy-sandbox/cli` on npm (Alibaba Cloud template API included, no extras) |
-| Repository | one repo with the SDK | this repo; the Python SDK moved to [the `python-sdk` repository](https://github.com/Easy-Sandbox/python-sdk) |
-
 ## Contributing
 
 We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUTING.md) to get started.

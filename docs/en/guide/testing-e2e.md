@@ -18,8 +18,7 @@ Only the third layer can close the "E2E" item of the Definition of Done.
 
 ```bash
 cp .env.example .env            # fill in real credentials; .env is gitignored
-EBX_BIN="node dist/bin/ebx.js" npm run e2e     # the Node port (after npm run build)
-EBX_BIN=/path/to/python/ebx    npm run e2e     # the Python oracle
+EBX_BIN="node dist/bin/ebx.js" npm run e2e     # after npm run build
 npm run e2e:offline                            # no credentials needed
 npm run e2e:cleanup                            # dry-run janitor for leaked sandboxes
 ```
@@ -27,13 +26,13 @@ npm run e2e:cleanup                            # dry-run janitor for leaked sand
 The suite is language-neutral: it runs any binary selected by `EBX_BIN` with an isolated HOME, no CI
 variables, masked output and tracked cleanup. Every sandbox it creates is destroyed, and a final
 `leak-check` scenario fails the run if one survives. See [`e2e/README.md`](../../../e2e/README.md) for
-suites, scenario format and environment variables, and [`e2e/BASELINE.md`](../../../e2e/BASELINE.md) for
-the results against the Python oracle.
+suites, scenario format and environment variables. Recorded results are in
+[`e2e/BASELINE.md`](../../../e2e/BASELINE.md).
 
-## Compare a port with the oracle
+## Compare two binaries
 
 ```bash
-EBX_ORACLE=/path/to/python/ebx EBX_BIN="node dist/bin/ebx.js" node parity/diff/diff.mjs --verbose
+EBX_ORACLE=ebx EBX_BIN="node dist/bin/ebx.js" node parity/diff/diff.mjs --verbose
 ```
 
 Identical argv runs against both binaries and a stub cloud; exit codes, normalised output, written files

@@ -8,11 +8,11 @@
 
 ## Project Overview
 
-**`ebx`** (npm package `@easy-sandbox/cli`) is the command-line client for the Alibaba Cloud FC Agent Sandbox service, designed for both human developers and AI Agents. It is implemented in Node.js / TypeScript and is behaviourally identical to the original Python `ebx` (the parity contract is [`PORTING.md`](../PORTING.md)). It also hosts the MCP server that exposes sandboxes to IDE agents.
+**`ebx`** (npm package `@easy-sandbox/cli`) is the command-line client for the Alibaba Cloud FC Agent Sandbox service, designed for both human developers and AI Agents. It is implemented in Node.js / TypeScript. It also hosts the MCP server that exposes sandboxes to IDE agents.
 
 ### Core Principles
 
-1. **Parity first** — command names, options, help text, error text, output channels and exit codes (0–6) match the Python `ebx`; golden files guard it
+1. **Stable command surface** — command names, options, help text, error text, output channels and exit codes (0–6) stay stable; golden files guard them
 2. **AI-first** — natural language sandbox creation, `--json` / `--quiet` / `--ci` output modes, the MCP server as a first-class citizen
 3. **Zero configuration defaults** — install, export an API key, create a sandbox
 

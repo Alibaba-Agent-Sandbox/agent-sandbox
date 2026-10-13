@@ -18,20 +18,19 @@
 
 ```bash
 cp .env.example .env            # 填入真实凭据;.env 已被 git 忽略
-EBX_BIN="node dist/bin/ebx.js" npm run e2e     # Node 移植版(先 npm run build)
-EBX_BIN=/path/to/python/ebx    npm run e2e     # Python oracle
+EBX_BIN="node dist/bin/ebx.js" npm run e2e     # 先 npm run build
 npm run e2e:offline                            # 无需凭据
 npm run e2e:cleanup                            # 清理遗留沙箱的 dry-run janitor
 ```
 
 套件与语言无关:它以隔离的 HOME、无 CI 变量、脱敏输出和可追踪的清理来运行 `EBX_BIN` 指定的任意二进制。创建的每个沙箱都会被销毁,
 最后的 `leak-check` 场景会在有沙箱残留时使运行失败。套件、场景格式与环境变量见
-[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md),针对 Python oracle 的结果见 [`e2e/BASELINE.md`](../../../e2e/BASELINE.md)。
+[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)。已记录的结果见 [`e2e/BASELINE.md`](../../../e2e/BASELINE.md)。
 
-## 将移植版与 oracle 对比
+## 对比两个二进制
 
 ```bash
-EBX_ORACLE=/path/to/python/ebx EBX_BIN="node dist/bin/ebx.js" node parity/diff/diff.mjs --verbose
+EBX_ORACLE=ebx EBX_BIN="node dist/bin/ebx.js" node parity/diff/diff.mjs --verbose
 ```
 
 相同的 argv 会在两个二进制和 stub 云端上运行;比较退出码、规范化输出、写入的文件与 HTTP 流量。详见

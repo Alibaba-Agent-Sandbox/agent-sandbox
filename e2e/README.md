@@ -2,8 +2,7 @@
 
 A language-neutral, black-box end-to-end suite for the `ebx` CLI. It spawns the binary under test
 exactly like a user would (argv, environment, stdin, exit code, stdout/stderr, files on disk) against
-the **real cloud**, so it validates any implementation: the original Python CLI (the behavioural
-oracle), the Node.js/TypeScript port, or a future rewrite.
+the **real cloud**. Point `EBX_BIN` at the `ebx` binary you want to test.
 
 > 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -14,10 +13,9 @@ oracle), the Node.js/TypeScript port, or a future rewrite.
 #    E2B_API_KEY, E2B_API_URL, E2B_DOMAIN, AccessKey/AccessSecret, ACR_NAMESPACE, OPENAI_API_KEY, OPENAI_BASE_URL
 cp .env.example .env   # then fill in real values
 
-# 2. run against any binary
+# 2. run against the ebx binary
 EBX_BIN=ebx                           npm run e2e          # `ebx` on PATH (default)
-EBX_BIN="node dist/bin/ebx.js"        npm run e2e          # the Node port after `npm run build`
-EBX_BIN=/path/to/venv/bin/ebx         npm run e2e          # the Python oracle
+EBX_BIN="node dist/bin/ebx.js"        npm run e2e          # after `npm run build`
 
 npm run e2e:offline                   # only the no-credential suite (seconds)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
@@ -66,6 +64,27 @@ Scenarios are plain objects in `scenarios/*.mjs` (table style). Common fields:
 Multi-step scenarios use `run(ctx)` with `ctx.ebx(argv, opts)` (masked + normalised result),
 `ctx.rawEbx` (masked only, for checks that must see real bytes), `ctx.track(id)`/`ctx.untrack(id)`
 (register sandboxes for cleanup), `ctx.eventually(fn)`, `ctx.fail(msg)`.
+
+## Provider tiers
+
+Every provider, including OpenSandbox, is tested in the same six tiers (T0 plugin unit tests through T5 the real Alibaba Cloud platform). The table, the rules, and the commands are in [providers/PLAN.md](providers/PLAN.md) ([中文](providers/PLAN.zh-CN.md)).
+
+## Provider plugins (`e2e/providers/run.sh`)
+
+A bash script that installs the reference plugins into a throwaway `HOME` and drives
+real sandboxes through the CLI: `npm run e2e:providers` or `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`.
+`local-process` and `e2b-compatible` come from `python-sdk/examples/providers`. `opensandbox` is cloned from
+[awesome-providers](https://github.com/Easy-Sandbox/awesome-providers) (`opensandbox/`).
+
+| Target | Needs | What it checks |
+|---|---|---|
+| `offline` | nothing (git, python3) | hidden-until-used `provider` group, consent and `--yes` rules (`E8012`), install from a path and from a local git repo pinned to a commit, `E8003` conflict and `--force`, `doctor`/`info`, `E8001`, `E8002` (secret on the command line), `provider default`, `E8030`, tamper detection (`E8011`), uninstall |
+| `local-process` | python3 | `create`, `list`, `exec` (exit-code propagation), `upload`/`download` round trip, `sandbox files list`, `kill`, E4 after kill, all with qualified ids |
+| `opensandbox` | a live OpenSandbox: `python-sdk/e2e/opensandbox/local-up.sh` (Docker; key `local-dev-key`, `127.0.0.1:8080`) | install by path and by git, `doctor`, `provider default opensandbox`, the full sandbox round trip with and without `--provider`, secret masking, and `ebx provider test` (the contract suite) |
+| `e2b-compatible` | `E2B_API_KEY` (+ `E2B_API_URL`, `E2B_DOMAIN`) in the environment | the REST plugin inheriting the generic `sandbox_*` keys runs the same round trip on the live cloud; without the key it is reported as `SKIP` |
+
+Variables: `EBX_BIN` (binary under test, default `tsx src/bin/ebx.ts` in a checkout), `PROVIDERS_DIR` (local-process and e2b-compatible only), `OSB_SRC` or `EBX_OPENSANDBOX_PLUGIN` or `EBX_AWESOME_PROVIDERS` (opensandbox checkout; otherwise the script clones the catalog), `OSB_URL`, `OSB_KEY`, `OSB_IMAGE`.
+The script scrubs the child environment, never prints credentials, kills every sandbox it created on exit, and exits non-zero on any failed step.
 
 ## Environment variables
 

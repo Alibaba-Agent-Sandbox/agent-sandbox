@@ -8,11 +8,11 @@
 
 ## 项目概述
 
-**`ebx`**（npm 包名 `@easy-sandbox/cli`）是面向阿里云 FC Agent 沙箱服务的命令行客户端，同时服务人类开发者和 AI Agent。它以 Node.js / TypeScript 实现，行为与原 Python `ebx` 一致（一致性契约见 [`PORTING.md`](../PORTING.md)），并承载向 IDE Agent 暴露沙箱的 MCP Server。
+**`ebx`**（npm 包名 `@easy-sandbox/cli`）是面向阿里云 FC Agent 沙箱服务的命令行客户端，同时服务人类开发者和 AI Agent。它以 Node.js / TypeScript 实现，并承载向 IDE Agent 暴露沙箱的 MCP Server。
 
 ### 核心设计原则
 
-1. **一致性优先** — 命令名、选项、帮助文本、错误文本、输出通道和退出码（0–6）与 Python `ebx` 一致，并由黄金文件守护
+1. **命令面保持稳定** — 命令名、选项、帮助文本、错误文本、输出通道和退出码（0–6）保持稳定，并由黄金文件守护
 2. **AI-First** — 自然语言创建沙箱、`--json` / `--quiet` / `--ci` 输出模式、MCP Server 是一等公民
 3. **零配置默认** — 安装、导出 API Key、创建沙箱
 

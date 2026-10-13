@@ -1,8 +1,7 @@
 # ebx 黑盒 E2E 测试套件
 
 与语言无关的 `ebx` CLI 黑盒端到端套件。它像真实用户一样启动被测二进制(argv、环境变量、stdin、退出码、
-stdout/stderr、磁盘文件),并连接**真实云端**,因此可以验证任意实现:原版 Python CLI(行为基准 / oracle)、
-Node.js/TypeScript 移植版,或未来的重写版本。
+stdout/stderr、磁盘文件),并连接**真实云端**。用 `EBX_BIN` 指定要测的 `ebx` 二进制。
 
 > English version: [README.md](README.md).
 
@@ -13,10 +12,9 @@ Node.js/TypeScript 移植版,或未来的重写版本。
 #    E2B_API_KEY, E2B_API_URL, E2B_DOMAIN, AccessKey/AccessSecret, ACR_NAMESPACE, OPENAI_API_KEY, OPENAI_BASE_URL
 cp .env.example .env   # 然后填入真实值
 
-# 2. 对任意二进制运行
+# 2. 对 ebx 二进制运行
 EBX_BIN=ebx                           npm run e2e          # PATH 上的 `ebx`(默认)
-EBX_BIN="node dist/bin/ebx.js"        npm run e2e          # `npm run build` 之后的 Node 移植版
-EBX_BIN=/path/to/venv/bin/ebx         npm run e2e          # Python oracle
+EBX_BIN="node dist/bin/ebx.js"        npm run e2e          # `npm run build` 之后
 
 npm run e2e:offline                   # 仅无需凭据的套件(几秒)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
@@ -56,6 +54,23 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 `timeoutMs`、`needs`。多步骤场景使用 `run(ctx)`:`ctx.ebx`(脱敏+规范化结果)、`ctx.rawEbx`(仅脱敏)、
 `ctx.track/untrack`(登记待清理沙箱)、`ctx.eventually`、`ctx.fail`。详见英文版示例。
 
+## Provider 分级
+
+每个 provider，包括 OpenSandbox，都按同一套六级测试（T0 插件单测，直到 T5 真实阿里云）。表格、规则和命令见 [providers/PLAN.zh-CN.md](providers/PLAN.zh-CN.md)（[English](providers/PLAN.md)）。
+
+## 提供商插件（`e2e/providers/run.sh`）
+
+一个 bash 脚本：把参考插件安装到一次性的 `HOME`，并通过 CLI 驱动真实沙箱。运行方式：`npm run e2e:providers` 或 `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`。`local-process` 与 `e2b-compatible` 来自 `python-sdk/examples/providers`。`opensandbox` 从 [awesome-providers](https://github.com/Easy-Sandbox/awesome-providers) 克隆（`opensandbox/` 目录）。
+
+| 目标 | 依赖 | 检查内容 |
+|---|---|---|
+| `offline` | 无（git、python3） | “用到才出现”的 `provider` 命令组、同意界面与 `--yes` 规则（`E8012`）、从路径安装与从钉住 commit 的本地 git 仓库安装、`E8003` 冲突与 `--force`、`doctor`/`info`、`E8001`、`E8002`（命令行传密钥）、`provider default`、`E8030`、篡改检测（`E8011`）、卸载 |
+| `local-process` | python3 | `create`、`list`、`exec`（退出码透传）、`upload`/`download` 往返、`sandbox files list`、`kill`、终止后返回退出码 4，全程使用限定 id |
+| `opensandbox` | 运行中的 OpenSandbox：`python-sdk/e2e/opensandbox/local-up.sh`（Docker；密钥 `local-dev-key`，`127.0.0.1:8080`） | 按路径与按 git 安装、`doctor`、`provider default opensandbox`、带与不带 `--provider` 的完整沙箱往返、密钥掩码，以及 `ebx provider test`（契约套件） |
+| `e2b-compatible` | 环境中的 `E2B_API_KEY`（及 `E2B_API_URL`、`E2B_DOMAIN`） | REST 插件继承通用 `sandbox_*` 键，在真实云上跑同一往返；没有密钥时报告为 `SKIP` |
+
+变量：`EBX_BIN`（被测二进制，检出仓库中默认为 `tsx src/bin/ebx.ts`）、`PROVIDERS_DIR`（仅 local-process 与 e2b-compatible）、`OSB_SRC` 或 `EBX_OPENSANDBOX_PLUGIN` 或 `EBX_AWESOME_PROVIDERS`（opensandbox 检出；否则脚本克隆目录仓库）、`OSB_URL`、`OSB_KEY`、`OSB_IMAGE`。脚本会清理子进程环境，从不打印凭证，退出时终止它创建的所有沙箱，任何步骤失败都以非零退出。
+
 ## 环境变量
 
 | 变量 | 含义 |
@@ -69,8 +84,8 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 结果与基线
 
-[`BASELINE.md`](BASELINE.md) 记录了针对 Python oracle 在真实云端上每个场景的通过/失败/抖动情况。移植某个命令时,
-请对两个二进制都运行套件并与基线比较;oracle 通过而移植版失败即为一致性缺陷(或场景过度约束,此时请在同一变更中修正场景)。
+[`BASELINE.md`](BASELINE.md) 记录了每个场景在真实云端上的通过、失败和抖动情况。改一个命令时,
+对要发布的二进制再跑一遍套件,并和基线比较。
 
 mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/README.zh-CN.md)。
 

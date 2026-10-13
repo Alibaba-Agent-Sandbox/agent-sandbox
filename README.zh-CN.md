@@ -225,19 +225,6 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 | 贡献指南 | [CONTRIBUTING.md](.github/CONTRIBUTING.md) |
 | 许可证 | [Apache-2.0](LICENSE) |
 
-## 与 Python 版 CLI 的差异
-
-此前 CLI 随 Python 包一起发布（`pip install "easy-sandbox[cli]"`），现为独立的 Node.js / TypeScript 包。
-下表差异均由此切换所必然引起且为有意为之；**其余一切——命令、参数、输出、退出码、配置及文件位置——均保持一致**。
-
-| 方面 | Python 版 CLI（此前） | Node.js 版 CLI（现在） |
-|------|----------------------|------------------------|
-| 实现语言 | Python 3.10+（Click / Rich） | Node.js >= 20 上的 TypeScript（ESM） |
-| 安装渠道 | `pip install "easy-sandbox[cli]"` | `npm install -g @easy-sandbox/cli` / `npx @easy-sandbox/cli` |
-| 独立二进制 | PyInstaller | Node SEA（esbuild 打包 + 单可执行文件）；Release 资产名不变 `ebx-{version}-{os}-{arch}[.exe]` |
-| 软件包 | PyPI 上的 `easy-sandbox`（`[cli]`、`[alicloud]` extras） | npm 上的 `@easy-sandbox/cli`（已含阿里云模板 API，无 extras） |
-| 仓库 | 与 SDK 同一仓库 | 本仓库；Python SDK 已迁至 [`python-sdk` 仓库](https://github.com/Easy-Sandbox/python-sdk) |
-
 ## 贡献
 
 欢迎贡献！请阅读 [贡献指南](.github/CONTRIBUTING.md) 了解详情。
