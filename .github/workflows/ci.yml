@@ -74,6 +74,8 @@ jobs:
         run: npm test
 
       - name: Parity coverage check
+        env:
+          EBX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
         run: npm run parity:coverage
 
   build:
