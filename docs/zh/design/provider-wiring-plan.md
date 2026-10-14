@@ -126,7 +126,7 @@
 - **在没有 HTTP 数据面的插件上执行 `abx sandbox command run`** 会以 `this._http_client._createEnvdClient is not a function` 失败。Python SDK 有 `_require_data_plane("named commands")`，并返回 `E8004`；应把同样的保护移植到 `src/api/sandbox.ts` 的 `_callServerCommand`。
 - **`SandboxInfo` 的默认值**（`region = "cn-hangzhou"`、`timeout = 300`）属于内置平台。`recordToInfo` 现在对插件覆盖了这两个值，所以既不报告区域也不报告生命周期的插件会显示空的 Region 行和请求时的 timeout；模型应当把二者改为可选。
 - **没有 pause/resume 的 CLI 命令**：`Sandbox.pause()` / `resume()` 可用（已在 Python 中验证），但这个树里没有 `abx sandbox pause`。
-- **目录仓库仍带着 `ebx-provider.toml`。** 需要在 `alibaba-agent-sandbox/awesome-providers` 中应用 `e2e/providers/awesome-providers-abx-rename.patch`；在此之前，从目录执行 `abx provider install` 会以 `E8014`（插件根目录没有 `abx-provider.toml`）失败。
+- **目录改名已经完成。** 目录仓库带的是 `abx-provider.toml`。`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container` 都是 `runtime.kind = "node"`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装。旧的 `ebx-provider.toml` 改名补丁不在这棵树里。
 
 更早的缺口：
 

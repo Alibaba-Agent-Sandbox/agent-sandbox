@@ -17,6 +17,8 @@
 
 T0 到 T3 不需要云账号。T4 不需要阿里云。T5 不安装第三方插件。
 
+四个目录提供方（`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container`）都是 `runtime.kind = "node"`（`provider.mjs`，`create(kit)`）。`run.sh catalog` 和 `run.sh opensandbox` 安装这份检出，并用 `abx` 驱动。`local-process` 是用 Python 写的 `exec` 示例。`e2b-compatible` 是一份 `rest` 清单。这两个示例不是目录插件。
+
 ## 规则
 
 - 每次运行使用一次性的 `HOME`。不读写真实的 `~/.abx`。

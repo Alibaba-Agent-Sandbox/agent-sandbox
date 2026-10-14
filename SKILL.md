@@ -30,7 +30,7 @@ slower and costs quota. Local execution is fine when the code is trusted and sim
 | You are writing Python that creates or drives a sandbox | **Python SDK** (the `agent-sandbox-sdk` skill) |
 | One-off shell operations, CI steps, or environments without Python orchestration | **CLI** (`abx …`) |
 
-Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and the CLI both drive `alicloud-express` (and an installed plugin). The Python SDK also drives `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b`. Pick one surface for a task.
+Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and the CLI both drive `alicloud-express` and any installed `node`, `exec` or `rest` plugin. The catalog providers `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins and run from the CLI and from the Python SDK (the SDK uses the local engine). Pick one surface for a task.
 
 ## Installation
 
@@ -57,7 +57,7 @@ abx --version
 
 Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Shortcuts, in this order, are `create`, `list`, `info`, `kill`, `exec`, `connect`, `upload`, `download`, `run`, and `deploy`. Nothing in config adds a top-level command.
 
-`abx` loads the built-in provider `alicloud-express`, plus an installed `exec` or `rest` plugin (`abx provider install <path-or-git-url>`). `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b` are `python` plugins in `awesome-providers`. Install them with `python -m agent_sandbox.providers install registry:<id> --yes` and call them from the Python SDK. The CLI manifest parser rejects `kind = "python"`, so `abx --provider` does not start those four. `abx --provider` of an id that is not installed exits `E8001`.
+`abx` loads the built-in provider `alicloud-express`, plus installed `node`, `exec` and `rest` plugins. The catalog providers `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins (ES module `provider.mjs`, `create(kit)`). Install one with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` (a local path or a git URL also works) and run `abx --provider <id> ...`. An id that is neither built in nor installed exits `E8001`. A manifest with `kind = "python"` cannot be installed. In-code Python `Provider` subclasses still work in the Python SDK. That SDK runs the same `node` plugins through the local engine, `abx provider engine serve` (`abx` on `PATH` or `ABX_BIN`). `python -m agent_sandbox.providers install registry:<id> --yes` is the SDK installer and fetches the catalog index. `exec` (EPP/1 over stdio, any language, optional `pty.*`) remains for third-party plugins.
 
 ## Credentials and security
 

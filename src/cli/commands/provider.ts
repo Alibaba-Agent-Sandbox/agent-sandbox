@@ -300,7 +300,7 @@ const install_cmd = command("install", {
     "    Examples:",
     "      abx provider install ./my-provider",
     "      abx provider install ./my-provider --link --yes     # development: use in place",
-    "      # python catalog ids: python -m agent_sandbox.providers install registry:opensandbox --yes",
+    "      abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox",
     "      abx provider install https://github.com/acme/abx-provider-acme.git --ref <commit>",
     "    ",
   ].join("\n"),

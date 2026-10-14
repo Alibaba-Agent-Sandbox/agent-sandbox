@@ -1,6 +1,6 @@
 # 提供商（Providers）
 
-**提供商** 是一个沙箱后端。`abx` 内置一个提供商，并可通过可安装的插件驱动更多后端。官网是 <https://www.agent-sandbox.com>。提供方注册站是 <https://registry.agent-sandbox.com>。目录安装仍然拉取 `https://registry.agent-sandbox.cn/providers/index.json`。本页是 CLI 视角：如何在命令行安装、选择、配置并使用提供商。共享概念（清单、信任模型、EPP/1 协议、能力矩阵）只在 Python SDK 仓库中记录一次：[Providers 指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/providers.md) 与 [提供商与凭证设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md)。编写插件请见 [编写提供商](authoring-providers.md)。
+**提供商** 是一个沙箱后端。`abx` 内置一个提供商，并可通过可安装的插件驱动更多后端。官网是 <https://www.agent-sandbox.com>。提供方注册站是 <https://registry.agent-sandbox.com>。CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`（`ABX_PROVIDER_REGISTRY` 可以改这个地址）。本页是 CLI 视角：如何在命令行安装、选择、配置并使用提供商。共享概念（清单、信任模型、EPP/1 协议、能力矩阵）只在 Python SDK 仓库中记录一次：[Providers 指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/providers.md) 与 [提供商与凭证设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md)。编写插件请见 [编写提供商](authoring-providers.md)。
 
 | Id | 名称 | 类型 | 默认 |
 |---|---|---|---|
@@ -122,12 +122,14 @@ CLI 如何跟随当前提供商：
 - `opensandbox`、`e2b`、`cubesandbox`、`alicloud-container` 都是 `node` 插件：一个 ES 模块，由宿主在进程内通过一个小的 kit 加载（见 [编写提供商](authoring-providers.md)）。
 
 ```bash
-abx provider install registry:e2b
-abx provider install registry:cubesandbox
-abx provider install registry:alicloud-container
-abx provider install registry:opensandbox
+abx provider install alibaba-agent-sandbox/awesome-providers//e2b
+abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
+abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
+abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
 abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
 ```
+
+非交互安装需要 `--yes`。未钉扎的 git ref 还要 `--allow-unpinned`，或者写成 40 位十六进制的 `--ref`。Python SDK 安装器是 `python -m agent_sandbox.providers install registry:<id> --yes`。
 
 Python SDK（以及之后的 Node、Go、Java SDK）通过本地引擎 `abx provider engine serve` 使用同一批插件，引擎按需启动。见 [引擎 HTTP API](../reference/engine-api.md)。
 

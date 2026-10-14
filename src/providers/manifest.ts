@@ -220,8 +220,8 @@ export function parseManifest(data: Uint8Array | string): Manifest {
   const kind = str(runtime, "kind", "runtime", { required: true });
   if (kind === "python") {
     throw err(
-      "runtime.kind 'python' is loaded by the Python SDK. " +
-        `Install with 'python -m agent_sandbox.providers install registry:${pid} --yes'`,
+      "runtime.kind 'python' is not supported. " +
+        "Use 'node' (an ES module, create(kit)), 'exec' (EPP/1 on stdio) or 'rest'.",
     );
   }
   if (kind !== "exec" && kind !== "rest" && kind !== "node") throw err("runtime.kind must be 'exec', 'rest' or 'node'");

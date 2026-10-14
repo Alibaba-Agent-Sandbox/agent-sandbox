@@ -73,8 +73,8 @@ Every provider, including OpenSandbox, is tested in the same six tiers (T0 plugi
 
 A bash script that installs the reference plugins into a throwaway `HOME` and drives
 real sandboxes through the CLI: `npm run e2e:providers` or `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`.
-`local-process` and `e2b-compatible` come from `python-sdk/examples/providers`. `opensandbox` is cloned from
-[awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers) (`opensandbox/`).
+`local-process` (an `exec` plugin, Python) and `e2b-compatible` (a `rest` manifest) come from `python-sdk/examples/providers`. `opensandbox` is a catalog `node` plugin (`provider.mjs`, `create(kit)`), cloned from
+[awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers) (`opensandbox/`). The other catalog ids (`e2b`, `cubesandbox`, `alicloud-container`) are `node` plugins in that same tree. The `catalog` target installs `awesome-providers//opensandbox`.
 
 | Target | Needs | What it checks |
 |---|---|---|

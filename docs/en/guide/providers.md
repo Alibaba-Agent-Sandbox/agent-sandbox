@@ -1,6 +1,6 @@
 # Providers
 
-A **provider** is a sandbox backend. `abx` ships one built-in provider and can drive more through installable plugins. The official site is <https://www.agent-sandbox.com>. The registry website is <https://registry.agent-sandbox.com>. Catalog installs still fetch `https://registry.agent-sandbox.cn/providers/index.json`. This page is the CLI view: install, select, configure and use providers from the command line. The shared concepts (manifest, trust model, EPP/1 protocol, capability matrix) are documented once in the Python SDK repository: [Providers guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/providers.md) and [Providers and credentials design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md). To write a plugin see [Authoring providers](authoring-providers.md).
+A **provider** is a sandbox backend. `abx` ships one built-in provider and can drive more through installable plugins. The official site is <https://www.agent-sandbox.com>. The registry website is <https://registry.agent-sandbox.com>. The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json` (`ABX_PROVIDER_REGISTRY` overrides that URL). This page is the CLI view: install, select, configure and use providers from the command line. The shared concepts (manifest, trust model, EPP/1 protocol, capability matrix) are documented once in the Python SDK repository: [Providers guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/providers.md) and [Providers and credentials design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md). To write a plugin see [Authoring providers](authoring-providers.md).
 
 | Id | Name | Kind | Default |
 |---|---|---|---|
@@ -122,12 +122,14 @@ All four catalog providers run from the CLI and from every SDK, because they run
 - `opensandbox`, `e2b`, `cubesandbox` and `alicloud-container` are all `node` plugins: an ES module the host loads in-process through a small kit (see [Authoring providers](authoring-providers.md)).
 
 ```bash
-abx provider install registry:e2b
-abx provider install registry:cubesandbox
-abx provider install registry:alicloud-container
-abx provider install registry:opensandbox
+abx provider install alibaba-agent-sandbox/awesome-providers//e2b
+abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
+abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
+abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
 abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
 ```
+
+A non-interactive install needs `--yes`. An unpinned git ref also needs `--allow-unpinned`, or a 40-hex `--ref`. The Python SDK installer is `python -m agent_sandbox.providers install registry:<id> --yes`.
 
 The Python SDK (and later the Node, Go and Java SDKs) reach the same plugins through the local engine, `abx provider engine serve`, which starts on demand. See [Engine HTTP API](../reference/engine-api.md).
 

@@ -2,7 +2,7 @@
 
 引擎是一个本机进程，把提供商这一层只实现一次，让 CLI 和所有 SDK（现在是 Python，之后是 Node、Go、Java）调用同一份提供商代码。它就是运行 `abx provider engine serve` 的 Node.js CLI。SDK 找不到引擎时会自己启动一个，并通过回环地址上的 HTTP、SSE 和 WebSocket 与它通信。这套 API 不需要 gRPC，也不需要代码生成：任何带 HTTP 客户端的语言都能用。
 
-官网：<https://www.agent-sandbox.com>。提供方注册站：<https://registry.agent-sandbox.com>。目录安装拉取 `https://registry.agent-sandbox.cn/providers/index.json`。
+官网：<https://www.agent-sandbox.com>。提供方注册站：<https://registry.agent-sandbox.com>。CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`。
 
 ## 启动、发现与停止
 
@@ -76,4 +76,4 @@ abx provider engine stop
 
 引擎承载 `builtin`（`alicloud-express`）、`rest`（`e2b-rest/1`）、`exec`（第三方插件的 EPP/1 子进程）和 `node`（进程内的 `node/1` 模块：`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container`）提供商。客户端看不出区别。
 
-`agent_sandbox.engine` 里的 Python gRPC 引擎，对提供商插件而言已被这个引擎取代。
+`agent_sandbox.engine` 里的 Python gRPC 引擎，对目录提供方而言已被这个引擎取代。Python 内置的 `alicloud-express` 仍保留自己的一份。

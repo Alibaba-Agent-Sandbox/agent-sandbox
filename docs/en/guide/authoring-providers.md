@@ -61,7 +61,7 @@ Working examples (copy one):
 |---|---|---|---|
 | `e2b-compatible` | `rest` | A manifest only: any E2B-protocol endpoint, consented `inherit` of the generic `sandbox_*` keys | `python-sdk/examples/providers/e2b-compatible/` |
 | `local-process` | `exec`, Python stdlib | lifecycle, exec (buffered and streamed), files, a secret and a bool option | `python-sdk/examples/providers/local-process/` |
-| `opensandbox` | `node`, EPP methods in process | OpenSandbox HTTP, execd SSE, and PTY through `kit.epp.infra`. `python -m agent_sandbox.providers install registry:opensandbox --yes` | [awesome-providers/opensandbox](../../../awesome-providers/opensandbox) |
+| `opensandbox` | `node`, EPP methods in process | OpenSandbox HTTP, execd SSE, and PTY through `kit.epp.infra`. `abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox` (SDK alternative: `python -m agent_sandbox.providers install registry:opensandbox --yes`) | [awesome-providers/opensandbox](../../../awesome-providers/opensandbox) |
 
 ## 1. The manifest
 
@@ -156,7 +156,7 @@ abx --provider my-cloud create --template base
 
 ### `node/1` plugins (in-process)
 
-When the backend speaks the E2B wire shape (REST control plane plus an envd data plane), you do not need a child process. A `node` plugin is an ES module the host loads in its own process through a small kit, so the CLI, the engine and every SDK run the same code. `e2b`, `cubesandbox` and `alicloud-container` in [`awesome-providers`](https://github.com/Alibaba-Agent-Sandbox/awesome-providers) are examples.
+When the backend speaks the E2B wire shape (REST control plane plus an envd data plane), you do not need a child process. A `node` plugin is an ES module the host loads in its own process through a small kit, so the CLI, the engine and every SDK run the same code. `e2b`, `cubesandbox` and `alicloud-container` in [`awesome-providers`](https://github.com/Alibaba-Agent-Sandbox/awesome-providers) are examples. `opensandbox` is `node` as well: its EPP methods run in this process through `kit.epp.infra`.
 
 ```toml
 [compat]
@@ -193,11 +193,11 @@ export default function create(kit) {
 - `kit` has `SandboxProtocol`, `ProcessProtocol`, `FilesystemProtocol`, `CodeInterpreterProtocol`, `errors`, `hostVersion`, `e2b { resumeConnect, withDefault, overlay, parseExecution }` and `epp.infra(ctx, factory)` (run a module that exports an EPP/1 dispatcher in the host process and adapt it to the protocol objects; OpenSandbox does this). Subclass a protocol or wrap one with `kit.e2b.overlay(inner, { method })` to change one call.
 - Ask the host for two E2B quirks in the `buildInfra` result: `envd_dial: [host, port]` (connect to this TCP target while the `Host` header stays the virtual name) and `envd_auth: { allow_missing, basic_user }` (an optional envd token, and the Basic user to send with it).
 - The host checks the plugin tree digest on every load (unless installed with `--link`), and gates each protocol by the features you declared. A plugin runs with the host's privileges, so install only what you trust; `[security]` is advisory.
-- Use `exec` instead when the plugin must be isolated, written in another language, or reuse an existing SDK (a third-party plugin does; OpenSandbox's own methods also run in process through `kit.epp.infra`).
+- Use `exec` when the plugin must be isolated, written in another language, or reuse an existing SDK. Third-party plugins use that kind and speak EPP/1 on stdio, including optional `pty.*`. OpenSandbox stays a `node` plugin and runs its methods in process through `kit.epp.infra`.
 
 ### Authoring checklist
 
-1. `abx-provider.toml`: `manifest_version = 1`, a valid id, `[compat] protocol = "epp/1"` and `requires`, `[runtime] kind = "exec"` with a `command` that runs from the plugin directory. `abx provider install ./dir --link --yes` fails with an `E8014` message that names the broken field.
+1. `abx-provider.toml`: `manifest_version = 1`, a valid id, and `requires`. An `exec` plugin sets `[compat] protocol = "epp/1"` and `[runtime] kind = "exec"` with a `command` that runs from the plugin directory. A `node` plugin sets `protocol = "node/1"`, `kind = "node"` and `entry = "provider.mjs"`. `abx provider install ./dir --link --yes` fails with an `E8014` message that names the broken field.
 2. Required methods: `initialize` (return the features you implement) and `shutdown`. Then one group per feature you declare (table in section 2). `sandbox.connect` and the `ports.url` / `files.*` extras are optional.
 3. Feature flags: declare exactly what works. The host never calls a method of an undeclared feature and answers `E8004` itself. Do not declare a feature "for later".
 4. Errors: answer `-32003` for a feature you know you lack, `-32002` for a missing sandbox, and put an `sdk_code` on anything that has an SDK error class. Never put credentials in an error message; the host redacts declared secrets, but not your own copies.

@@ -678,7 +678,7 @@ export interface UpdateResult {
   changes: string[];
 }
 
-/** Update one installed provider from its recorded git source. `local`/`link` installs throw `ProviderInstallError`. A catalog receipt names the Python updater. */
+/** Update one installed provider from its recorded git source. `local`/`link` installs throw `ProviderInstallError`. A catalog receipt is reinstalled with the CLI git spelling. */
 export async function update(providerId: string, opts: UpdateOptions = {}): Promise<UpdateResult> {
   const receipt = store.readReceipt(providerId);
   if (receipt === null) throw new ProviderNotFoundError(`Provider '${providerId}' is not installed.`);
@@ -686,7 +686,7 @@ export async function update(providerId: string, opts: UpdateOptions = {}): Prom
   if (src.type === "catalog") {
     const catalogId = typeof src.id === "string" && src.id !== "" ? src.id : providerId;
     throw new ProviderInstallError(
-      `Provider '${providerId}' was installed from the catalog. Update it with 'python -m agent_sandbox.providers update ${catalogId}'.`,
+      `Provider '${providerId}' was installed from the catalog. Reinstall it with 'abx provider install alibaba-agent-sandbox/awesome-providers//${catalogId} --force'.`,
     );
   }
   if (src.type !== "git") {

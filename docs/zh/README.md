@@ -9,7 +9,7 @@
 | 官网 | https://www.agent-sandbox.com |
 | 提供方注册站 | https://registry.agent-sandbox.com |
 
-安装器拉取的目录索引是 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改这个地址。
+CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改 SDK 安装器使用的这个地址。
 
 ---
 
@@ -24,7 +24,7 @@
 | [操作指南](guide/operations.md) | 每个命令组，以及做这件事时要运行的那一条命令 |
 | [二进制安装](guide/binary-installation.md) | 单文件 `abx` 二进制（Node SEA），无需 Node.js |
 | [提供商](guide/providers.md) | 安装、选择并配置沙箱提供商 |
-| [编写提供商](guide/authoring-providers.md) | 编写 EPP/1 提供商插件，含 `[template]` 与从 git 安装 |
+| [编写提供商](guide/authoring-providers.md) | 编写 `node` 或 EPP/1 `exec` 提供商插件，含 `[template]` 与从 git 安装 |
 | [认证配置](guide/authentication.md) | API Key / AK-SK 认证与 `abx config` |
 | [CLI 教程](guide/cli-tutorial.md) | 命令行快速上手 |
 | [模板使用](guide/using-templates.md) | 官方与社区模板使用 |

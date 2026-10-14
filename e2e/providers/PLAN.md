@@ -17,6 +17,8 @@ The same table is the contract for `cli/e2e`, `python-sdk/e2e`, and [awesome-pro
 
 T0–T3 do not need a cloud account. T4 does not need Alibaba Cloud. T5 does not install a third-party plugin.
 
+The four catalog providers (`opensandbox`, `e2b`, `cubesandbox`, `alicloud-container`) are `runtime.kind = "node"` (`provider.mjs`, `create(kit)`). `run.sh catalog` and `run.sh opensandbox` install that checkout and drive it with `abx`. `local-process` is an `exec` example written in Python. `e2b-compatible` is a `rest` manifest. Those two examples are not the catalog.
+
 ## Rules
 
 - Each run uses a throwaway `HOME`. The real `~/.abx` is not read or written.

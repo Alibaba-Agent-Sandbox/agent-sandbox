@@ -9,7 +9,7 @@
 | Official site | https://www.agent-sandbox.com |
 | Provider registry | https://registry.agent-sandbox.com |
 
-The installer fetches the catalog index at `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL.
+The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL for the SDK installer.
 
 ---
 
@@ -24,7 +24,7 @@ The installer fetches the catalog index at `https://registry.agent-sandbox.cn/pr
 | [Operations](guide/operations.md) | Every command group and the one command for that job |
 | [Binary Installation](guide/binary-installation.md) | Single-file `abx` binary (Node SEA), no Node.js required |
 | [Providers](guide/providers.md) | Install, select, and configure sandbox providers |
-| [Authoring Providers](guide/authoring-providers.md) | Write an EPP/1 provider plugin, including `[template]` and install-from-git |
+| [Authoring Providers](guide/authoring-providers.md) | Write a `node` or EPP/1 `exec` provider plugin, including `[template]` and install-from-git |
 | [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `abx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |
 | [Using Templates](guide/using-templates.md) | Official and community templates |

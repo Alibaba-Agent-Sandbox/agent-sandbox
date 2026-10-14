@@ -10,7 +10,7 @@
 
 > Cloud sandboxes for AI agents — create, execute, and manage isolated environments in seconds.
 
-**Agent Sandbox** is the command-line interface (`abx`). The default provider is Alibaba Cloud Express (`alicloud-express`). OpenSandbox, the container edition, CubeSandbox, and E2B are catalog `python` plugins. This CLI does not load `kind = "python"`, so `abx --provider` with one of those ids exits `E8001`.
+**Agent Sandbox** is the command-line interface (`abx`). The default provider is Alibaba Cloud Express (`alicloud-express`). The CLI also loads installed `node`, `exec` and `rest` plugins. The catalog providers `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins: an ES module `provider.mjs` that exports `create(kit)`. Install one with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` (a local path or a git URL also works) and run `abx --provider <id>`. An id that is neither built in nor installed exits `E8001`. A manifest with `runtime.kind = "python"` cannot be installed. In-code Python `Provider` subclasses still work in the Python SDK, which reaches the same `node` plugins through the local engine (`abx provider engine serve`; `abx` on `PATH` or `ABX_BIN`). `exec` (EPP/1 over stdio, any language, optional `pty.*`) remains for third-party plugins.
 The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk) (see [Python SDK](#python-sdk)).
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; neither the CLI nor the SDK is an E2B-protocol drop-in.
 
@@ -21,7 +21,7 @@ Template build and deploy live in this CLI. The runtime client is the Python SDK
 | Official site | https://www.agent-sandbox.com |
 | Provider registry | https://registry.agent-sandbox.com |
 
-The installer fetches the catalog index at `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL.
+The CLI installs those catalog providers from the git tree `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer (`python -m agent_sandbox.providers install registry:<id> --yes`) fetches `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL for the SDK installer.
 
 ---
 

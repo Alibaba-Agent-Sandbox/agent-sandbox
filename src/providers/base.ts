@@ -168,8 +168,9 @@ export interface ProviderDescription {
 }
 
 /**
- * A sandbox backend. The built-in provider and the manifest-driven `rest`/`exec` providers are implemented by this
- * package; SDK-side objects (`kind = "python"` in the reference) are plain subclasses registered programmatically.
+ * A sandbox backend. This package implements the built-in provider and the manifest-driven `node`, `rest` and `exec`
+ * providers. A manifest with `kind = "python"` is rejected. In-code subclasses may still set `kind` to `"python"` and
+ * register programmatically; that is not an installable catalog plugin.
  */
 export abstract class Provider {
   abstract readonly id: string;

@@ -10,7 +10,7 @@
 
 > 为 AI Agent 打造的云沙箱 —— 秒级创建、执行、管理隔离环境。
 
-**Agent Sandbox** 是命令行工具（`abx`）。默认提供方是阿里云极速版（`alicloud-express`）。OpenSandbox、容器版、CubeSandbox 和 E2B 是目录里的 `python` 插件。本 CLI 不加载 `kind = "python"`，对这些 id 使用 `abx --provider` 会以 `E8001` 退出。
+**Agent Sandbox** 是命令行工具（`abx`）。默认提供方是阿里云极速版（`alicloud-express`）。CLI 还会加载已安装的 `node`、`exec` 和 `rest` 插件。目录提供方 `opensandbox`、`alicloud-container`、`cubesandbox` 和 `e2b` 都是 `node` 插件：导出 `create(kit)` 的 ES 模块 `provider.mjs`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装（本地路径或 git URL 也可以），再用 `abx --provider <id>` 运行。既不是内置也未安装的 id 以 `E8001` 退出。`runtime.kind = "python"` 的清单不能安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用；SDK 通过本机引擎（`abx provider engine serve`；`abx` 在 `PATH` 上或由 `ABX_BIN` 指定）使用同一批 `node` 插件。`exec`（stdio 上的 EPP/1，任意语言，可选 `pty.*`）留给第三方插件。
 Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)（见 [Python SDK](#python-sdk)）。
 模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；CLI 和 SDK 都不是 E2B 协议的直接替代。
 
@@ -21,7 +21,7 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 | 官网 | https://www.agent-sandbox.com |
 | 提供方注册站 | https://registry.agent-sandbox.com |
 
-安装器拉取的目录索引是 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改这个地址。
+CLI 从 git 树 `alibaba-agent-sandbox/awesome-providers//<id>` 安装这些目录提供方。Python SDK 安装器（`python -m agent_sandbox.providers install registry:<id> --yes`）拉取 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改 SDK 安装器使用的这个地址。
 
 ---
 
