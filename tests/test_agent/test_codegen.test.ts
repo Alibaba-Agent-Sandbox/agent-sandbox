@@ -135,8 +135,8 @@ describe("TestPrompt", () => {
     for (const required of [
       "commands.py",
       "agent_sandbox.server",
-      "SandboxServer",
-      "CommandRegistry",
+      '@command("',
+      "start(",
       "EXPOSE 9000",
       "HTTP",
       "FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>",
@@ -149,10 +149,12 @@ describe("TestPrompt", () => {
 
   it("test_prompt_carries_the_sdk_reference_and_the_reference_example", () => {
     const prompt = buildCodegenPrompt("x", "abx-nl-sandbox-abc123");
-    expect(prompt).toContain("@registry.command");
+    expect(prompt).toContain('@command("');
     expect(prompt).toContain("@table.route");
     expect(prompt).toContain("CapabilityGroup");
-    expect(prompt).toContain("registry.freeze()");
+    expect(prompt).toContain("start(");
+    expect(prompt).not.toContain("@registry.command");
+    expect(prompt).not.toContain("registry.freeze()");
     expect(prompt).toContain("X-Access-Token");
   });
 

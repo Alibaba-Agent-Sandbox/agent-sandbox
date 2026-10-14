@@ -16,6 +16,7 @@ import * as installer from "../../src/providers/installer.js";
 import { getProvider } from "../../src/providers/registry.js";
 import { doctor } from "../../src/providers/doctor.js";
 import { runContractSuite, summarizeContract, type ContractResult } from "../../src/providers/testing.js";
+import { Sandbox } from "../../src/api/sandbox.js";
 import { SandboxConfig } from "../../src/models/sandbox.js";
 import { loadLayeredConfig } from "../../src/transport/config_layers.js";
 import { useIso } from "../_support/iso.js";
@@ -120,7 +121,7 @@ describe("e2b-compatible (rest provider) over a local E2B-style server", () => {
 
 const hasOpenSandbox = OPENSANDBOX !== null;
 
-describe.skipIf(!hasOpenSandbox)("opensandbox (exec provider, Node plugin)", () => {
+describe.skipIf(!hasOpenSandbox)("opensandbox (node provider, EPP methods in process)", () => {
   let tmp = "";
   beforeEach(() => {
     tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-osb-"));
@@ -134,7 +135,7 @@ describe.skipIf(!hasOpenSandbox)("opensandbox (exec provider, Node plugin)", () 
     fs.cpSync(OPENSANDBOX as string, src, { recursive: true, filter: (p) => !p.includes(`${path.sep}tests${path.sep}`) && !p.endsWith(`${path.sep}tests`) && !p.includes("node_modules") });
     await install(src);
     const prov = getProvider("opensandbox");
-    expect(prov.kind).toBe("exec");
+    expect(prov.kind).toBe("node");
     expect(prov.inherit.size).toBe(0);
     expect(prov.supports("files.rw") && prov.supports("sandbox.pause") && prov.supports("sessions")).toBe(true);
 
@@ -150,6 +151,37 @@ describe.skipIf(!hasOpenSandbox)("opensandbox (exec provider, Node plugin)", () 
       await mock.close();
     }
   }, 300_000);
+
+  it("opens a terminal through the plugin's pty methods", async (ctx) => {
+    if (typeof WebSocket !== "function") return ctx.skip();
+    const mockModule = pathToFileURL(path.join(OPENSANDBOX as string, "tests", "mock", "mock-opensandbox.mjs")).href;
+    const { startMock } = (await import(/* @vite-ignore */ mockModule)) as {
+      startMock: (o?: object) => Promise<{ origin: string; apiKey: string; pty: { resizes: number[][] }; close: () => Promise<void> }>;
+    };
+    const src = path.join(tmp, "opensandbox");
+    fs.cpSync(OPENSANDBOX as string, src, { recursive: true, filter: (p) => !p.includes(`${path.sep}tests${path.sep}`) && !p.endsWith(`${path.sep}tests`) && !p.includes("node_modules") });
+    await install(src);
+    const mock = await startMock();
+    try {
+      const options = { base_url: mock.origin, api_key: mock.apiKey, ready_timeout: 20 };
+      const sb = await Sandbox.create({ provider: "opensandbox", provider_options: options, template: "base", timeout: 120 });
+      try {
+        const term = await sb.getTerminal({ cols: 90, rows: 20 });
+        await term.send("ls\n");
+        let seen = "";
+        while (!seen.includes("echo:ls")) seen += Buffer.from((await term.receive(10)) as Uint8Array).toString();
+        await term.resize(100, 30);
+        for (let i = 0; i < 100 && mock.pty.resizes.length < 2; i++) await new Promise((r) => setTimeout(r, 20));
+        expect(mock.pty.resizes).toEqual([[90, 20], [100, 30]]);
+        await term.close();
+      } finally {
+        await sb.kill();
+        await sb.close();
+      }
+    } finally {
+      await mock.close();
+    }
+  }, 120_000);
 
   it("runs the contract kit against a live local OpenSandbox server when one answers", async (ctx) => {
     const base = process.env["OPENSANDBOX_URL"] ?? process.env["ABX_OPENSANDBOX_BASE_URL"] ?? "http://127.0.0.1:8080";

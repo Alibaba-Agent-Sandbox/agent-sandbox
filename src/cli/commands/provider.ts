@@ -28,6 +28,7 @@ import { BUILTIN_PROVIDER_ID, getKey, providerEnvName } from "../../utils/config
 import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
+import { engine } from "./provider_engine.js";
 
 type Params = Record<string, unknown>;
 
@@ -299,7 +300,7 @@ const install_cmd = command("install", {
     "    Examples:",
     "      abx provider install ./my-provider",
     "      abx provider install ./my-provider --link --yes     # development: use in place",
-    "      abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox",
+    "      # python catalog ids: python -m agent_sandbox.providers install registry:opensandbox --yes",
     "      abx provider install https://github.com/acme/abx-provider-acme.git --ref <commit>",
     "    ",
   ].join("\n"),
@@ -758,4 +759,5 @@ provider.addCommand(default_cmd, "default");
 provider.addCommand(config_cmd, "config");
 provider.addCommand(doctor_cmd, "doctor");
 provider.addCommand(test_cmd, "test");
+provider.addCommand(engine, "engine");
 

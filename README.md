@@ -10,9 +10,18 @@
 
 > Cloud sandboxes for AI agents — create, execute, and manage isolated environments in seconds.
 
-**Agent Sandbox** is the command-line interface (`abx`) for the Alibaba Cloud FC Agent Sandbox service.
+**Agent Sandbox** is the command-line interface (`abx`). The default provider is Alibaba Cloud Express (`alicloud-express`). OpenSandbox, the container edition, CubeSandbox, and E2B are catalog `python` plugins. This CLI does not load `kind = "python"`, so `abx --provider` with one of those ids exits `E8001`.
 The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk) (see [Python SDK](#python-sdk)).
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; neither the CLI nor the SDK is an E2B-protocol drop-in.
+
+## Sites
+
+| Site | URL |
+|---|---|
+| Official site | https://www.agent-sandbox.com |
+| Provider registry | https://registry.agent-sandbox.com |
+
+The installer fetches the catalog index at `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL.
 
 ---
 
@@ -103,7 +112,8 @@ abx config init                          # credentials + region (--build / --llm
 abx config set sandbox_api_key <YOUR_API_KEY>   # or set one key directly
 
 # Sandbox lifecycle
-abx create --template python-base       # create a sandbox
+abx create --template base             # default template
+abx create --template python-base      # Python image from the catalog
 abx list                                 # list running sandboxes
 abx info <sandbox-id>                    # inspect a sandbox
 abx exec <sandbox-id> -- echo hello       # run a command (--cwd/--env/--timeout/--stream/--background)
@@ -163,7 +173,7 @@ fixture contract and index behaviour (caching, offline fallback, pinned refs).
 
 ## Python SDK
 
-The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The quick start, the execution API (`sandbox.run()` / `sandbox.run_code()` / `sandbox.custom()`) and the architecture documentation are maintained there.
+The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The quick start, the execution API (`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`) and the architecture documentation are maintained there.
 
 ```bash
 # Client SDK (import agent_sandbox)
@@ -209,6 +219,7 @@ pip install agent-sandbox-server
 | CLI command tree (canonical paths, fixed shortcuts) | [CLI Command Reference](docs/en/reference/cli-commands.md) |
 | CLI Reference | [CLI Reference](docs/en/reference/cli-reference.md) |
 | Configuration | [Configuration](docs/en/reference/configuration.md) |
+| Engine HTTP API (SDKs reach providers through it) | [Engine HTTP API](docs/en/reference/engine-api.md) |
 | Error Codes | [Error Codes](docs/en/reference/error-codes.md) |
 
 ### Design & Architecture
@@ -218,6 +229,7 @@ pip install agent-sandbox-server
 | Design Index | [Design Index](docs/en/DESIGN.md) |
 | CLI Architecture | [CLI Architecture](docs/en/design/architecture.md) |
 | CLI Design | [CLI Design](docs/en/design/cli-design.md) |
+| Node provider architecture | [Node provider architecture](docs/en/design/node-provider-architecture.md) |
 | MCP Server | [MCP Server](docs/en/design/mcp-server.md) |
 | Templates Catalog | [Templates Catalog](docs/en/design/templates-catalog.md) |
 

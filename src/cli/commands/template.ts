@@ -47,6 +47,7 @@ import { FINE_GRAINED_PAT_URL, GITHUB_TOKEN_ENV_VAR } from "../../utils/github_t
 import * as registryMod from "../../utils/registry.js";
 import { BUILTIN_TEMPLATES, RegistryClient, loadTemplateFromYaml } from "../../utils/registry.js";
 import { fetchIndex } from "../../utils/template_index.js";
+import { BuildModeError, resolveBuildPlan, type BuildPlan } from "../../template/build_plan.js";
 
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -68,6 +69,29 @@ function pyStrip(text: string): string {
 function usageError(message: string): UsageError {
   return new UsageError(message, getCurrentContext(true));
 }
+
+/** True when this process was started with `--acr-namespace` (an env value does not count). */
+export function explicitAcrNamespaceArgv(argv: readonly string[] = process.argv): boolean {
+  return argv.some((arg) => arg === "--acr-namespace" || arg.startsWith("--acr-namespace="));
+}
+
+/**
+ * True when the parsed command passed `--acr-namespace`.
+ * An `ACR_NAMESPACE` environment value is not explicit.
+ */
+export function acrNamespacePassedOnCli(): boolean {
+  const ctx = getCurrentContext(true);
+  for (const cmd of [ctx?.cmd, ctx?.parent?.cmd]) {
+    if (cmd?.getOptionValueSource("acrNamespace") === "cli") return true;
+  }
+  return explicitAcrNamespaceArgv();
+}
+
+const IGNORED_PLATFORM_STEPS =
+  "A Dockerfile is selected, so template.yaml build steps were not sent. Pass --build steps to register those steps instead.";
+
+const STEPS_WITH_ACR = "--acr-namespace cannot be used with platform build steps.";
+const STEPS_WITH_LEGACY = "--legacy-api cannot be used with platform build steps.";
 
 /** `dict.get(key, default)`: only a missing key falls back (a stored `null` stays `null`). */
 function _get(obj: Record<string, Any>, key: string, dflt: Any): Any {
@@ -688,6 +712,10 @@ export interface DoDeployOptions {
   region?: string | null;
   ctx?: Context | null;
   verbose?: boolean;
+  /** `auto` (default), `dockerfile`, or `steps`. A flag of `auto` still honors `build.mode` in template.yaml. */
+  build?: string | null;
+  /** Set when the user passed `--acr-namespace`. An ambient `ACR_NAMESPACE` must stay false. */
+  explicit_acr_namespace?: boolean;
 }
 
 /**
@@ -726,6 +754,8 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     region = null,
     ctx = null,
     verbose = false,
+    build = null,
+    explicit_acr_namespace = false,
   } = opts;
 
   const config = templateSeams.loadConfig({ region });
@@ -737,6 +767,65 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
   const resolvedAcrUsername = acr_username || config.access_key_id || "";
   const resolvedAcrPassword = acr_password || config.access_key_secret || "";
   const resolvedRepo = acr_repo || yamlDefaults["name"] || nodePath.basename(pyResolve(String(template_dir)));
+  const templateName = alias || resolvedRepo;
+
+  let plan: BuildPlan;
+  try {
+    plan = resolveBuildPlan(template_dir, { mode: build ?? "auto", dockerfile });
+  } catch (e) {
+    if (e instanceof BuildModeError) throw usageError(e.message);
+    throw e;
+  }
+
+  const out = templateSeams.getOutput(ctx);
+  if (plan.kind === "steps") {
+    if (explicit_acr_namespace) throw usageError(STEPS_WITH_ACR);
+    if (!use_official) throw usageError(STEPS_WITH_LEGACY);
+    if (!config.access_key_id || !config.access_key_secret) {
+      throw new CliError(
+        "Alibaba Cloud credentials missing. Run 'abx config init --build', or " +
+          "'abx config set access_key_id' / 'abx config set access_key_secret'.",
+      );
+    }
+    const reporter = new _StepReporter(out, { verbose });
+    try {
+      reporter.phase(`Creating template from platform steps: ${templateName}`);
+      const apiResult = await fcTemplate.createOfficialTemplate({
+        name: templateName,
+        image: plan.image,
+        steps: plan.steps,
+        access_key_id: config.access_key_id,
+        access_key_secret: config.access_key_secret,
+        region: config.region,
+        team_id,
+        cpu: resolvedCpu,
+        memory_size: resolvedMemory,
+        disk_size,
+        internet_access,
+        generation: resolvedGeneration,
+        start_command: start_cmd,
+        ready_command: ready_cmd,
+        envd_inject: false,
+      });
+      const templateId = pyStr(apiResult["templateID"] ?? "");
+      if (!templateId) {
+        throw new TemplateBuildError("CreateTemplate returned no template ID.", {
+          suggestion: "Check the official API response and retry.",
+        });
+      }
+      reporter.done(`Template registration submitted: ${templateId}`);
+      return {
+        TemplateID: templateId,
+        BuildID: "N/A",
+        "ACR Image": "N/A",
+        "Build mode": "steps",
+        Status: "submitted",
+        _build_logs: [],
+      };
+    } finally {
+      reporter.close();
+    }
+  }
 
   if (!resolvedAcrUsername || !resolvedAcrPassword) {
     throw new CliError(
@@ -760,12 +849,11 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     vswitch_ids,
     security_group_id,
   });
-  const templateName = alias || resolvedRepo;
   const finalRegion: string = config.region;
 
-  const out = templateSeams.getOutput(ctx);
   const reporter = new _StepReporter(out, { verbose });
   try {
+    if (plan.ignoredSteps) out.warning(IGNORED_PLATFORM_STEPS);
     return await _runReportedDeploy(reporter, {
       out,
       config,
@@ -780,7 +868,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
       start_cmd,
       ready_cmd,
       timeout,
-      dockerfile,
+      dockerfile: plan.dockerfile,
       disk_size,
       internet_access,
       use_official,
@@ -1050,21 +1138,29 @@ export const install = template.command("install", {
 
     // --- Build + deploy precheck ---
     const missing: string[] = [];
-
-    // Docker available?
-    const dockerPath = which("docker");
-    if (!dockerPath) {
-      missing.push("Docker not found in PATH. Install Docker or start Docker Desktop.");
+    let plan: BuildPlan | null = null;
+    try {
+      plan = resolveBuildPlan(String(cachedPath));
+    } catch (exc) {
+      if (!(exc instanceof BuildModeError)) throw exc;
+      missing.push(exc.message);
     }
 
-    // ACR namespace resolvable?
-    let resolvedNs: string | null;
-    try {
-      resolvedNs = _resolveAcrNamespace(acrNamespace);
-    } catch (exc) {
-      if (!(exc instanceof UsageError)) throw exc;
-      missing.push(exc.message);
-      resolvedNs = null;
+    let resolvedNs: string | null = null;
+    if (plan?.kind === "steps") {
+      if (acrNamespacePassedOnCli()) throw usageError(STEPS_WITH_ACR);
+    } else if (plan?.kind === "dockerfile") {
+      const dockerPath = which("docker");
+      if (!dockerPath) {
+        missing.push("Docker not found in PATH. Install Docker or start Docker Desktop.");
+      }
+      try {
+        resolvedNs = _resolveAcrNamespace(acrNamespace);
+      } catch (exc) {
+        if (!(exc instanceof UsageError)) throw exc;
+        missing.push(exc.message);
+        resolvedNs = null;
+      }
     }
 
     // AK/SK credentials?
@@ -1087,7 +1183,7 @@ export const install = template.command("install", {
     }
 
     // ensured by precheck above
-    if (resolvedNs === null) throw new Error("unreachable: ACR namespace resolved by the precheck");
+    if (plan?.kind === "dockerfile" && resolvedNs === null) throw new Error("unreachable: ACR namespace resolved by the precheck");
 
     // Confirmation
     if (!yes) {
@@ -1100,12 +1196,13 @@ export const install = template.command("install", {
     // Run deploy via shared helper
     out.info(`Building and deploying template '${installName}' from ${cachedPath}`);
     const deployData = await templateSeams._doDeploy(String(cachedPath), {
-      acr_namespace: resolvedNs,
+      acr_namespace: plan?.kind === "steps" ? "" : (resolvedNs ?? ""),
       cpu,
       memory,
       alias,
       region,
       ctx,
+      build: plan?.kind ?? "auto",
     });
 
     const buildStatus = _get(deployData, "Status", "unknown");
@@ -1116,6 +1213,9 @@ export const install = template.command("install", {
       fmt.printDict(deployData);
       if (buildStatus === "ready") {
         fmt.printSuccess("Template installed, built, and ready!");
+        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(deployData, "TemplateID", null))}`);
+      } else if (_get(deployData, "Build mode", null) === "steps" && buildStatus === "submitted") {
+        fmt.printSuccess("Template registration submitted from platform build steps.");
         fmt.printSuccess(`Use: abx create --template ${pyStr(_get(deployData, "TemplateID", null))}`);
       } else if (buildStatus === "pushed" || buildStatus === "submitted") {
         fmt.printSuccess("Template downloaded and image pushed; registration submitted.");
@@ -1557,11 +1657,22 @@ export const build = template.command("build", {
     can incur Alibaba Cloud costs (ACR storage/traffic, template
     resources).
 
-    Supports two modes:
+    Publish path (--build, default auto):
+
+    \b
+    auto: a Dockerfile publishes that image. Otherwise template.yaml build
+      steps are sent as CreateTemplate sandboxConfig.steps.
+    dockerfile: local docker build → ACR push → CreateTemplate. template.yaml
+      build steps are not sent.
+    steps: no local Docker and no ACR push. sandboxConfig.image is base.image
+      and sandboxConfig.steps is the expanded build block. Official API only.
+
+    \b
+    Registration API:
 
     \b
     --official-api (default):
-      local docker build → ACR push → official CreateTemplate API (envdInject).
+      dockerfile mode: local docker build → ACR push → official CreateTemplate API.
       Requires AK/SK credentials (set with 'abx config init --build').
 
     \b
@@ -1585,6 +1696,7 @@ export const build = template.command("build", {
       abx template build ./my-template \\
         --acr-namespace prod --legacy-api
       abx template build ./my-template --acr-namespace prod --region cn-shanghai
+      abx template build ./my-template --build steps --yes
 
     \b
     Related commands:
@@ -1637,6 +1749,12 @@ export const build = template.command("build", {
     option(["--ready-cmd"], { default: null, help: "Container readiness check command" }),
     option(["--timeout"], { type: INT, default: 600, help: "Build timeout in seconds" }),
     option(["--dockerfile", "-f"], { default: null, type: new ClickPath({ exists: true }), help: "Custom Dockerfile path" }),
+    option(["--build"], {
+      type: new Choice(["auto", "dockerfile", "steps"]),
+      default: "auto",
+      show_default: true,
+      help: "Publish path: auto (Dockerfile if present, otherwise template.yaml build steps), dockerfile, or steps",
+    }),
     option(["--disk-size"], { type: INT, default: null, help: "Disk size in MB (official API only)" }),
     option(["--internet-access/--no-internet-access"], {
       default: null,
@@ -1673,8 +1791,21 @@ export const build = template.command("build", {
     const fmt = getFormatter(ctx);
     const out = templateSeams.getOutput(ctx);
 
-    // Resolve ACR namespace: CLI > env > .env file
-    const resolvedNamespace = _resolveAcrNamespace(params["acr_namespace"]);
+    let plan: BuildPlan;
+    try {
+      plan = resolveBuildPlan(templateDir, { mode: params["build"] ?? "auto", dockerfile: params["dockerfile"] });
+    } catch (e) {
+      if (e instanceof BuildModeError) throw usageError(e.message);
+      throw e;
+    }
+    const explicitAcr = acrNamespacePassedOnCli();
+    if (plan.kind === "steps") {
+      if (explicitAcr) throw usageError(STEPS_WITH_ACR);
+      if (!params["use_official"]) throw usageError(STEPS_WITH_LEGACY);
+    }
+
+    // Resolve ACR namespace: CLI > env > .env file. Platform steps do not push an image.
+    const resolvedNamespace = plan.kind === "dockerfile" ? _resolveAcrNamespace(params["acr_namespace"]) : "";
     const yamlDefaults = _readYamlDefaults(templateDir);
     const resolvedRepo: Any = pyTruthy(params["acr_repo"])
       ? params["acr_repo"]
@@ -1690,7 +1821,14 @@ export const build = template.command("build", {
     const config = templateSeams.loadConfig({ region: params["region"] });
     const resolvedAcrUsername = params["acr_username"] || config.access_key_id || "";
     const resolvedAcrPassword = params["acr_password"] || config.access_key_secret || "";
-    if (!resolvedAcrUsername || !resolvedAcrPassword) {
+    if (plan.kind === "steps") {
+      if (!config.access_key_id || !config.access_key_secret) {
+        fmt.printError("Alibaba Cloud credentials missing.", {
+          suggestion: "Run 'abx config init --build', or 'abx config set access_key_id' / 'abx config set access_key_secret'.",
+        });
+        sysExit(1);
+      }
+    } else if (!resolvedAcrUsername || !resolvedAcrPassword) {
       fmt.printError("ACR credentials missing.", {
         suggestion:
           "Run 'abx config init --build', or " +
@@ -1702,7 +1840,14 @@ export const build = template.command("build", {
 
     // Show the resolved configuration so users can see the effective values.
     echo(`Template: ${pyStr(templateName)}`);
-    echo(`ACR: ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]}`);
+    if (plan.kind === "steps") {
+      echo(`Build mode: steps`);
+      echo(`Base image: ${plan.image}`);
+      echo(`Platform steps: ${plan.steps.length}`);
+    } else {
+      echo(`ACR: ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]}`);
+      if (plan.ignoredSteps) echo(IGNORED_PLATFORM_STEPS);
+    }
     echo(`Resources: cpu=${resolvedCpu}, memory=${resolvedMemory}MB`);
 
     // Confirmation before destructive cloud operations.
@@ -1710,10 +1855,11 @@ export const build = template.command("build", {
       if (!templateSeams.stdinIsatty()) {
         throw usageError("Confirmation required for deploying to cloud. " + "Use --yes/-y to skip in non-interactive mode.");
       }
-      await confirm(
-        `\nPush image to ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]} ` + `and register template '${pyStr(templateName)}'?`,
-        { abort: true },
-      );
+      const prompt =
+        plan.kind === "steps"
+          ? `\nRegister template '${pyStr(templateName)}' with ${plan.steps.length} platform build steps?`
+          : `\nPush image to ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]} ` + `and register template '${pyStr(templateName)}'?`;
+      await confirm(prompt, { abort: true });
     }
 
     const data = await templateSeams._doDeploy(templateDir, {
@@ -1745,6 +1891,8 @@ export const build = template.command("build", {
       region: params["region"],
       ctx,
       verbose: out.verbose,
+      build: params["build"],
+      explicit_acr_namespace: explicitAcr,
     });
 
     const buildStatus = _get(data, "Status", "unknown");
@@ -1756,6 +1904,9 @@ export const build = template.command("build", {
       fmt.printDict(data);
       if (buildStatus === "ready") {
         fmt.printSuccess("Template built and ready!");
+        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(data, "TemplateID", null))}`);
+      } else if (_get(data, "Build mode", null) === "steps" && buildStatus === "submitted") {
+        fmt.printSuccess("Template registration submitted from platform build steps.");
         fmt.printSuccess(`Use: abx create --template ${pyStr(_get(data, "TemplateID", null))}`);
       } else if (buildStatus === "pushed" || buildStatus === "submitted") {
         fmt.printSuccess("Image pushed to ACR; template registration submitted.");
@@ -1779,11 +1930,11 @@ export const deploy = template.command("deploy", {
     "template. The ACR push and the remote template registration are " +
     "cloud-side operations that can incur Alibaba Cloud costs (ACR " +
     "storage/traffic, template resources).\n\n" +
-    "Requires: Docker daemon running, ACR credentials, and an ACR namespace " +
-    "(--acr-namespace, 'abx config set acr_namespace', or ACR_NAMESPACE in " +
-    "the environment / .env). AK/SK credentials come from 'abx config init --build' " +
-    "(access_key_id / access_key_secret) when --acr-username/--acr-password " +
-    "are omitted.\n\n" +
+    "Requires AK/SK credentials from 'abx config init --build' " +
+    "(access_key_id / access_key_secret). dockerfile mode also needs a Docker " +
+    "daemon and an ACR namespace (--acr-namespace, 'abx config set acr_namespace', " +
+    "or ACR_NAMESPACE). --build steps skips Docker and ACR. " +
+    "--acr-username/--acr-password override the AccessKey used to push.\n\n" +
     "\b\n" +
     "Examples:\n" +
     "  abx template deploy ./examples/templates/python-hello \\\n" +

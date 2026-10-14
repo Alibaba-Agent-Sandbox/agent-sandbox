@@ -248,6 +248,34 @@ describe("TestDoctor", () => {
     expect(names(report)).toEqual(["installed", "integrity"]);
   });
 
+  it("test_missing_rest_key_is_config_not_handshake", async () => {
+    const src = path.join(tmp, "rest-no-key");
+    fs.mkdirSync(src);
+    fs.writeFileSync(
+      path.join(src, "abx-provider.toml"),
+      [
+        "manifest_version = 1",
+        "[provider]",
+        'id = "rest-no-key"',
+        'version = "0.1.0"',
+        "[runtime]",
+        'kind = "rest"',
+        "[endpoint]",
+        'base_url = "https://api.example.com"',
+        "[features]",
+        'supported = ["sandbox.lifecycle"]',
+        "",
+      ].join("\n"),
+    );
+    await installPlugin(src);
+    const report = await doctor.doctor("rest-no-key");
+    expect(report.ok).toBe(false);
+    expect(report.checks.at(-1)).toMatchObject({ name: "config", ok: false });
+    expect(names(report)).not.toContain("handshake");
+    await doctor.verifyHandshake("rest-no-key");
+    expect(store.listInstalledIds()).toEqual(["rest-no-key"]);
+  });
+
   it("test_missing_config_stops_before_spawn", async () => {
     const src = writePlugin(path.join(tmp, "s"), {
       extra: '[config.fields.token]\ntype = "string"\nsecret = true\ncredential = true\nrequired = true\n',

@@ -3,7 +3,7 @@
  *
  * The HTTP server (`agent_sandbox.server`, port 9000) does not depend on a sandbox provider. The Dockerfile base
  * image and start style come from the selected provider's template profile (`providers/template_profile.ts`): one
- * profile, one prompt. `commands.py` stays provider-free and calls `serve()` only under `if __name__ == "__main__"`.
+ * profile, one prompt. `commands.py` stays provider-free and calls `start()` only under `if __name__ == "__main__"`.
  */
 
 import {
@@ -28,48 +28,26 @@ export const REQUIRED_TEMPLATE_FILES: readonly string[] = ["Dockerfile", "comman
 /** Container entry point the Dockerfile must start. */
 export const SERVER_ENTRYPOINT = "commands.py";
 
-/** Port the SandboxServer listens on (`SandboxServer.serve` default). */
+/** Port `start()` listens on (`SandboxServer.serve` default). */
 export const SERVER_PORT = 9000;
 
 /** Minimal, complete `commands.py` shown to the agent as the shape to follow. */
 export const REFERENCE_COMMANDS_PY = `"""<template-name> — sandbox command server."""
 from __future__ import annotations
 
-from agent_sandbox.server import (
-    CapabilityGroup,
-    CommandRegistry,
-    SandboxServer,
-    ServerResponse,
-    default_table,
-)
+import os
 
-# 1. Route table: switch built-in capability groups on/off.
-table = default_table()
-table.enable_group(CapabilityGroup.FILE_OPS)   # upload / download / file ops
-table.enable_group(CapabilityGroup.PROCESS)    # shell + background processes
-table.enable_group(CapabilityGroup.SYSTEM)     # system info + port detection
-
-# 2. Command registry: named commands, callable via POST /commands/<name>.
-registry = CommandRegistry()
+from agent_sandbox.server import command, start
 
 
-@registry.command("hello", description="Say hello.")
+@command("hello", description="Say hello.")
 def hello(name: str = "World") -> str:
     return f"Hello, {name}!"
 
 
-# 3. Custom HTTP route (optional): the business API of this template.
-@table.route("GET", "/hello/{name}", group=CapabilityGroup.COMMANDS)
-def hello_route(request: object) -> ServerResponse:
-    name = getattr(request, "path_params", {}).get("name", "World")
-    return ServerResponse.ok({"greeting": f"Hello, {name}!"})
-
-
-# 4. Freeze on import. serve() runs only as main, so --commands import does not bind the port.
-registry.freeze()
-server = SandboxServer(registry=registry)
+# Bind the port only when run as main, so a platform --commands import does not serve.
 if __name__ == "__main__":
-    server.serve(port=9000)
+    start(int(os.environ.get("ABX_SERVER_PORT", "${SERVER_PORT}")))
 `;
 
 const _FILES_CREATE = `### 2. 模板必须包含的文件
@@ -104,10 +82,10 @@ function howItIsUsed(profile: TemplateProfile): string {
 （SDK 里是 \`sandbox.network.get_url(port)\`）。所以镜像里**必须有一个常驻的 HTTP 服务**，
 仅有 Dockerfile 的模板部署后无法被使用。Agent Sandbox 的标准做法是：\`commands.py\`
 用 \`agent_sandbox.server\`（纯标准库、零第三方依赖的 HTTP 服务）在 **${SERVER_PORT}** 端口对外服务。
-\`commands.py\` 只从 \`agent_sandbox.server\` 导入，并在 \`if __name__ == "__main__"\` 里调用 \`serve(port=${SERVER_PORT})\`。`;
+\`commands.py\` 只从 \`agent_sandbox.server\` 导入，并在 \`if __name__ == "__main__"\` 里调用 \`start(${SERVER_PORT})\`。`;
   if (profile.server_start === "platform_start_cmd") {
     return `${common}
-这个 provider 的基础镜像入口保持为 PID 1。平台执行 start_cmd 加载 \`commands.py\`，不要把 \`serve()\` 写在导入时会执行的位置。`;
+这个 provider 的基础镜像入口保持为 PID 1。平台执行 start_cmd 加载 \`commands.py\`，不要把 \`start()\` 写在导入时会执行的位置。`;
   }
   return `${common}
 容器主进程是 \`python3 commands.py\`（镜像 \`CMD\`）。`;
@@ -189,50 +167,44 @@ ${dockerfileRules(selected)}
 ### 4. commands.py 规则（\`agent_sandbox.server\` API）
 \`\`\`python
 from agent_sandbox.server import (
-    CapabilityGroup, CommandRegistry, SandboxServer, ServerResponse, SSEResponse, default_table,
+    CapabilityGroup, command, default_table, start,
 )
 \`\`\`
-- \`table = default_table()\`：路由表（全局单例）。\`table.enable_group(CapabilityGroup.X)\` 开启能力组。
-  能力组：CORE（常开）、COMMANDS（默认开）、FILE_OPS（文件上传/下载/列表/搜索/打包）、
-  PROCESS（\`/shell\`、\`/shell/stream\`、后台进程）、TERMINAL（PTY，WebSocket 在 9001）、
-  SYSTEM（系统信息、\`/env\`、\`/ports\`）、DEV_TOOLS（\`/code/run\`、git，**默认关闭**）、
-  BROWSER（Playwright 浏览器自动化，**默认关闭**，需镜像里装好 playwright 与浏览器）。
-  只开启需求用得到的组，攻击面越小越好。
-- \`registry = CommandRegistry()\`；\`@registry.command("名字", description="…")\` 注册命令，
-  通过 \`POST /commands/<名字>\` 调用，body 是 JSON 参数，返回 \`{"result": <返回值>}\`。
+- 具名命令用模块级 \`@command("名字", description="…")\`，注册在默认 registry 上。
+  通过 \`POST /commands/<名字>\` 调用，body 是扁平 JSON，返回 \`{"result": <返回值>}\`。
   参数类型从函数签名推断（int→integer，float→float，bool→boolean，其余 string；无默认值即必填）。
   返回值必须可 JSON 序列化；出错直接 \`raise\`（服务返回 500）。\`hidden=True\` 的命令可调用但不在
-  \`GET /commands\` 里列出。
+  \`GET /commands\` 里列出。不要自己创建 registry。命令装饰器只有 \`@command\`。
+- \`table = default_table()\` 后，\`table.enable_group(CapabilityGroup.X)\` 打开可选组。参数是
+  \`CapabilityGroup\`，不是字符串。能力组：CORE（常开）、COMMANDS（默认开）、
+  FILE_OPS（文件上传/下载/列表/搜索/打包，默认开）、PROCESS（\`/shell\`、后台进程，默认开）、
+  TERMINAL（PTY，默认开）、SYSTEM（系统信息、\`/env\`、\`/ports\`，默认开）、
+  DEV_TOOLS（\`/code/run\`、git，**默认关闭**）、BROWSER（Playwright，**默认关闭**）、
+  AGENTS（Agents API，**默认关闭**）。只打开需求用得到的可选组。
 - 自定义 HTTP 路由：\`@table.route("GET"|"POST"|"DELETE", "/path/{param}", group=CapabilityGroup.COMMANDS)\`，
-  处理函数接收 \`request\`（属性：\`method\`、\`path\`、\`query\`（值是列表）、\`headers\`、\`body\`（已解析的 JSON
-  dict 或 None）、\`path_params\`），返回 \`ServerResponse.ok({...})\` 或
-  \`ServerResponse.error(status, message)\`。只实现了 GET / POST / DELETE。
-  \`auth_required=False\` 表示免鉴权；\`streaming=True\` 时返回 \`SSEResponse(event_iterator=…)\`，
-  迭代器逐个产出 \`"event: <名>\\ndata: <json>\\n\\n"\` 字符串。
-- 内置接口总是存在（无需自己实现）：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、
-  \`POST /commands/<名字>\`，以及已开启能力组对应的文件、shell、系统接口。
+  处理函数接收 \`request\`，返回 \`ServerResponse.ok({...})\`。需求不是自定义 HTTP 时不要写。
+- 内置接口总是存在：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、\`POST /commands/<名字>\`。
 - 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，请求必须带 \`X-Access-Token\`（\`/health\` 与
   \`/capabilities\` 免鉴权）。不要在代码里写死 token。
-- 需求是一个 Web/API 服务（例如 Express、FastAPI、Flask）时：业务服务由 \`commands.py\`
-  在 \`serve()\` 之前用 \`subprocess.Popen([...])\` 作为子进程拉起并监听自己的端口（该端口写进
-  template.yaml 的 \`ports\` 与 Dockerfile 的 EXPOSE），或者干脆做成 \`@registry.command\`/\`@table.route\`。
-  不要让业务服务替代 SandboxServer——${SERVER_PORT} 端口必须始终由 SandboxServer 提供。
-- 文件末尾：\`registry.freeze()\`，然后在 \`if __name__ == "__main__":\` 里
-  \`SandboxServer(registry=registry).serve(port=${SERVER_PORT})\`。
-  导入 \`commands.py\` 时不要调用 \`serve()\`。
+- 需求是一个 Web/API 服务时：在 \`start()\` 之前用 \`subprocess.Popen([...])\` 拉起业务进程并监听自己的端口
+  （该端口写进 template.yaml 的 \`ports\` 与 Dockerfile 的 EXPOSE），或者做成 \`@command\`。
+  ${SERVER_PORT} 端口必须由 \`start()\` 提供。
+- 文件末尾只在 \`if __name__ == "__main__":\` 里调用 \`start(${SERVER_PORT})\`。
+  导入 \`commands.py\` 时不要调用 \`start()\` 或 \`serve()\`。平台 \`--commands\` 会 import 这个文件。
 - 只使用上面列出的 API，不要臆造 SDK 里不存在的类、函数或接口。
 
 ### 5. template.yaml 规则
 必填：\`name\`（使用给定的模板名）、\`version: "1.0.0"\`、\`description\`（一句话中文，不超过 50 字）、
 \`capabilities\`、\`ports\`、\`resources\`。
-- \`capabilities\` 取自 \`shell | files | code | terminal | ports\`，要与 commands.py 开启的能力组一致：
+- \`capabilities\` 取自 \`shell | files | code | terminal | ports\`，要与实际用到的能力组一致：
   \`files\`↔FILE_OPS，\`shell\`↔PROCESS，\`code\`↔DEV_TOOLS，\`terminal\`↔TERMINAL，
   \`ports\`↔SYSTEM（端口检测）与对外端口。\`terminal\` 和 \`ports\` 必须显式声明才会生效。
-  参考示例开启了 FILE_OPS/PROCESS/SYSTEM，对应 \`shell, files, ports\`。
+  最小参考对应 \`shell, files, code\`。
 - \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
 - \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
 - \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
-- 具名命令只在 commands.py 里用 \`@registry.command\` 注册，不要写进 template.yaml；用户用
+- 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
+- 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
   \`abx run <sandbox_id> <名字>\` 调用。
 - \`tags\`、\`author\` 可省略。
 

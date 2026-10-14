@@ -2,12 +2,13 @@
 
 
 import { collectSources, ProviderSchema, selectProviderId, setSchemaLookup } from "../transport/config_layers.js";
-import { BUILTIN_PROVIDER_ID, validateProviderId } from "../utils/config_keys.js";
+import { BUILTIN_PROVIDER_ID, OFFICIAL_CATALOG_IDS, validateProviderId } from "../utils/config_keys.js";
 import { Provider, orderedFeatures } from "./base.js";
 import { AlicloudExpressProvider } from "./builtin.js";
 import { ExecProvider } from "./exec_provider.js";
 import { ProviderConflictError, ProviderNotFoundError } from "./errors.js";
 import { loadManifest } from "./manifest.js";
+import { NodeProvider } from "./node_provider.js";
 import { RestProvider } from "./rest_provider.js";
 import * as store from "./store.js";
 import { similarity } from "../utils/suggest.js";
@@ -73,6 +74,7 @@ export function loadInstalled(providerId: string): Provider {
     if (receipt["trust"] !== "link") store.verifyIntegrity(providerId);
     return new RestProvider(manifest, receipt as Record<string, unknown>);
   }
+  if (manifest.kind === "node") return new NodeProvider(manifest, root, receipt as Record<string, unknown>);
   return new ExecProvider(manifest, root, receipt as Record<string, unknown>);
 }
 
@@ -111,7 +113,9 @@ function hint(wanted: string): string {
       top = r;
     }
   }
-  const base = "Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.";
+  const base = (OFFICIAL_CATALOG_IDS as readonly string[]).includes(wanted)
+    ? `This is a catalog provider. Install it with 'abx provider install alibaba-agent-sandbox/awesome-providers//${wanted}'.`
+    : "Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.";
   return close ? `Did you mean '${close}'? ${base}` : base;
 }
 

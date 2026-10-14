@@ -26,6 +26,8 @@ my-template/
 
 `template.yaml` 是唯一必需的文件。
 
+用 `abx deploy` 发布。`--build auto`（默认）在目录里有 Dockerfile 时走本地构建。否则把 `base.image` 和 `build:`（`apt_install`、`pip_install`、`npm_install`、`env`、`run`、`steps`）作为平台构建步骤提交，不在本地跑 Docker，也不推 ACR。`--build dockerfile` 和 `--build steps` 强制选择其中一条。见 [模板构建模式](../design/template-build-modes.md)。
+
 ---
 
 ## template.yaml 基础示例
@@ -57,32 +59,15 @@ ports:
 
 ## 字段参考、能力声明与具名命令
 
-`template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：在沙箱内服务器上用 `@registry.command` 注册，用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
+`template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：用 `@command` 注册，并且只在 `if __name__ == "__main__"` 里调用 `start()`。用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
 
 ## Dockerfile 自定义
 
-实际构建流程直接使用 `Dockerfile` + 语言原生依赖文件（`requirements.txt` / `package.json`）：
-
-```dockerfile
-FROM python:3.11-slim
-
-RUN apt-get update && apt-get install -y \
-    curl git \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir \
-    pandas matplotlib numpy
-
-WORKDIR /app
-
-ENV PYTHONUNBUFFERED=1
-```
-
-模板目录中的 `Dockerfile` 是构建镜像的唯一来源。`template.yaml` 只定义运行时配置（能力、命令、环境变量、资源），不包含构建指令。
+目录里有 `Dockerfile` 时，镜像就是这个文件。`template.yaml` 不安装软件包。额外的包写成下一节提供者配置上的 `RUN`。默认提供者是 `alicloud-express`：FC 基础镜像，不写 `CMD` 或 `ENTRYPOINT`，工作目录 `/home/user/app`。`FROM python:3.11-slim` 不是这张镜像。
 
 ## 提供者模板配置
 
-镜像里的 HTTP 服务不依赖沙箱提供者。`commands.py` 只导入 `agent_sandbox.server`，并在 `if __name__ == "__main__"` 下调用 `serve(port=9000)`。9000 是服务端自己的默认端口。
+镜像里的 HTTP 服务不依赖沙箱提供者。`commands.py` 只导入 `agent_sandbox.server`，并在 `if __name__ == "__main__"` 下调用 `start(port)`。导入时调用 `start()` 或 `serve()` 会打断平台的 `--commands` 导入。9000 是服务端自己的默认端口。
 
 `FROM`、`ENTRYPOINT` 是否可替换、用 `CMD` 还是平台的 `start_cmd` / `ready_cmd`、架构、工作目录、保留端口和仓库说明，来自**当前所选提供者的模板配置**。`abx` 用与其他命令相同的方式解析提供者：`--provider`，然后 `ABX_PROVIDER`，然后配置里的默认值（`alicloud-express`）。模板指南、代码生成提示和 `abx template init` 只描述这一份配置。
 

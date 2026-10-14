@@ -70,6 +70,8 @@ graph TB
 | **CLI Architecture** | [architecture.md](design/architecture.md) | Layers, `src/` directory structure, command groups, output and exit codes, config/credentials, build / SEA binary / release, parity contract |
 | **CLI Command System** | [cli-design.md](design/cli-design.md) | Command tree (45 commands), global options, natural language creation, OutputManager, AI-friendly design |
 | **Templates Catalog** | [templates-catalog.md](design/templates-catalog.md) | Single source of truth (SSOT): the awesome-templates catalog repo, the remote index client, caching/degradation behaviour, the fixture boundary, and the template command surface |
+| **Template build modes** | [template-build-modes.md](design/template-build-modes.md) | One publish path per invocation: local Dockerfile or `template.yaml` `build:` expanded into `CreateTemplate` `sandboxConfig.steps` |
+| **Node provider architecture** | [node-provider-architecture.md](design/node-provider-architecture.md) | One Node/TypeScript provider layer: four kinds, the kit, CLI in-process vs the local engine vs exec, and the HTTP/SSE/WebSocket contract |
 
 ### AI and Agent Integration
 
@@ -78,16 +80,16 @@ graph TB
 | **MCP Server** | [mcp-server.md](design/mcp-server.md) | 7 P0 MCP tools, STDIO + Streamable HTTP transports, FC deployment artifact, session binding |
 | **Agents API** | [agents-api.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/agents-api.md) | In-sandbox agent sessions. Codex and Qwen Code today; more CLIs on the same routes later |
 
-### Port, Layout and Provider Drafts
+### Port, layout, and provider spec
 
-These are English-only maintainer documents under [`docs/design/`](../design/) and [`docs/PORTING.md`](../PORTING.md).
+[`PORTING.md`](../PORTING.md) and [`repository-layout.md`](../design/repository-layout.md) are English. The provider spec the tests read is English at [`docs/design/providers-and-credentials-cli.md`](../design/providers-and-credentials-cli.md). The Chinese copy is [`docs/zh/design/providers-and-credentials-cli.md`](../zh/design/providers-and-credentials-cli.md). The wiring record is the same pair: [English](../design/provider-wiring-plan.md), [中文](../zh/design/provider-wiring-plan.md).
 
 | Topic | Document | Summary |
 |-------|----------|---------|
 | **Python to Node port** | [PORTING.md](../PORTING.md) | Module-by-module port rules, the parity gate, test ledger |
 | **Repository layout** | [repository-layout.md](../design/repository-layout.md) | CLI repository layout review and docs-ownership rule |
-| **Providers and credentials (CLI spec)** | [providers-and-credentials-cli.md](../design/providers-and-credentials-cli.md) | Draft: CLI grammar, JSON shapes and tests for the provider layer, applied after parity |
-| **Providers review log** | [providers-and-credentials-cli-review.md](../design/providers-and-credentials-cli-review.md) | Review log for the draft above |
+| **Providers and credentials (CLI spec)** | [providers-and-credentials-cli.md](../design/providers-and-credentials-cli.md) | CLI grammar, JSON shapes and tests for the provider layer |
+| **Providers review log** | [providers-and-credentials-cli-review.md](../design/providers-and-credentials-cli-review.md) | Review log for the spec above |
 
 ---
 
@@ -101,7 +103,7 @@ These are English-only maintainer documents under [`docs/design/`](../design/) a
 | `abx mcp deploy` (FC artifact generation) | **Implemented** | Generates deploy artifact; manual FC deployment steps printed. See [mcp-server.md](design/mcp-server.md#7-fc-deployment) |
 | Template build/push/create pipeline | **Implemented** | Via official CreateTemplate API |
 | Single-file binary (Node SEA) | **Implemented** | See [Binary Installation](guide/binary-installation.md) |
-| Provider layer | **Planned** | Applied after the parity gate; see the provider drafts above |
+| Provider commands | **Implemented** for `alicloud-express` and installed `node`, `exec` and `rest` providers (`opensandbox`, `e2b`, `cubesandbox`, `alicloud-container`) | `abx --provider <id>` loads an installed plugin; an id that is neither built in nor installed exits `E8001`. See [Providers](guide/providers.md) and [Node provider architecture](design/node-provider-architecture.md) |
 
 ---
 

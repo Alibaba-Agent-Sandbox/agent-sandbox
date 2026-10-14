@@ -2,18 +2,16 @@
 
 `abx` 是 Agent Sandbox 云端沙箱服务（阿里云函数计算）的命令行客户端：创建与管理沙箱、执行代码与命令、编写与部署模板，并通过 MCP Server 向 IDE Agent 暴露沙箱。本页索引 CLI（`@agent-sandbox/cli`）的文档。Python SDK 的文档位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)，见 [相关 SDK 文档](#相关-sdk-文档)。
 
+## 网站
+
+| 网站 | 地址 |
+|---|---|
+| 官网 | https://www.agent-sandbox.com |
+| 提供方注册站 | https://registry.agent-sandbox.com |
+
+安装器拉取的目录索引是 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改这个地址。
+
 ---
-
-## 设计文档
-
-| # | 文档 | 说明 |
-|---|------|------|
-| 1 | [CLI 架构](design/architecture.md) | 分层、`src/` 结构、命令组、输出与退出码、构建 / SEA 二进制 / 发布、一致性契约 |
-| 2 | [CLI 命令体系](design/cli-design.md) | 命令树、全局选项、自然语言创建、OutputManager、AI Friendly 原则 |
-| 3 | [MCP Server](design/mcp-server.md) | 7 个 P0 工具定义、会话绑定、STDIO 与 Streamable HTTP 传输、IDE 配置、FC 部署 |
-| 4 | [模板目录](design/templates-catalog.md) | 官方模板集合形态契约、发布流程、离线校验、模板命令面 |
-
-汇总索引见 [DESIGN.md](DESIGN.md)。仅有英文的维护者文档（移植规则、仓库布局、provider 草案）在该索引中列出，位于 [`docs/design/`](../design/) 与 [`docs/PORTING.md`](../PORTING.md)。
 
 ## 用户文档
 
@@ -48,7 +46,23 @@
 | [CLI 命令参考](reference/cli-commands.md) | 规范命令树、固定的顶层快捷方式、已移除写法 |
 | [CLI 参考](reference/cli-reference.md) | 所有 CLI 命令速查 |
 | [配置参考](reference/configuration.md) | CLI 环境变量、配置文件、优先级 |
-| [错误码](reference/error-codes.md) | E1xxx–E6xxx 错误码与 CLI 退出码 |
+| [引擎 HTTP API](reference/engine-api.md) | 让所有 SDK 共用同一批提供商的本地引擎：发现文件、令牌、路由、错误 |
+| [错误码](reference/error-codes.md) | 本页为 E1xxx–E7xxx。提供方错误 E8001–E8030 在 [Python SDK 索引](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/error-codes.md) |
+
+## 设计文档
+
+改 CLI 时再看这里。日常使用从上面的用户文档进入。
+
+| # | 文档 | 说明 |
+|---|------|------|
+| 1 | [CLI 架构](design/architecture.md) | 分层、`src/` 结构、命令组、输出与退出码、构建 / SEA 二进制 / 发布、一致性契约 |
+| 2 | [CLI 命令体系](design/cli-design.md) | 命令树、全局选项、自然语言创建、OutputManager、AI Friendly 原则 |
+| 3 | [MCP Server](design/mcp-server.md) | 7 个 P0 工具定义、会话绑定、STDIO 与 Streamable HTTP 传输、IDE 配置、FC 部署 |
+| 4 | [模板目录](design/templates-catalog.md) | 官方模板集合形态契约、发布流程、离线校验、模板命令面 |
+| 5 | [模板构建模式](design/template-build-modes.md) | `--build auto\|dockerfile\|steps`：本地 Dockerfile 发布，或把 `template.yaml` 作为平台步骤 |
+| 6 | [Node 提供方架构](design/node-provider-architecture.md) | 四种提供方类型、kit、进程内 / 引擎 / exec，以及引擎为什么是 HTTP、SSE 和 WebSocket |
+
+汇总索引见 [DESIGN.md](DESIGN.md)。测试读取的提供方规格是 [providers-and-credentials-cli.md](../design/providers-and-credentials-cli.md)。中文副本是 [providers-and-credentials-cli.md](design/providers-and-credentials-cli.md)。移植规则在 [PORTING.md](../PORTING.md)。
 
 ## 项目规划
 
@@ -70,9 +84,9 @@
 
 ### 按功能
 
-- **自然语言创建沙箱**：[CLI](design/cli-design.md#3-自然语言创建ai-模板生成)
-- **项目直接部署**：[CLI 部署命令](design/cli-design.md#abx-deploy)（`abx deploy` 为固定的 build+push+创建模板流水线；模板由 `abx template init` 编写，可用脚手架、一句描述或 `--adopt`）
-- **MCP 集成（Cursor/Claude）**：[MCP Server](design/mcp-server.md#5-安装方式与-cli)
+- **自然语言创建沙箱**：[CLI 教程](guide/cli-tutorial.md)
+- **项目直接部署**：[部署与构建](guide/deploy-and-build.md)
+- **MCP 集成（Cursor/Claude）**：[MCP 集成](guide/mcp-integration.md)
 
 ### 其他资源
 

@@ -36,6 +36,7 @@ dated file; do not regenerate these.
 - [`verify/2026-09-08-template-deploy-e2e.md`](verify/2026-09-08-template-deploy-e2e.md)
 - [`verify/2026-10-12-e2e-foundation.md`](verify/2026-10-12-e2e-foundation.md)
 - [`verify/2026-10-12-cli-capability-e2e.md`](verify/2026-10-12-cli-capability-e2e.md)
+- [`verify/2026-10-14-node-providers-engine.md`](verify/2026-10-14-node-providers-engine.md)
 
 Evidence for the Python SDK and server lives in the
 [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/tree/main/.agents/evidence).

@@ -239,6 +239,24 @@ describe("TestBuildCreateTemplateRequestMap", () => {
     expect(sandbox["startCommand"]).toBe("/start.sh");
     expect(sandbox["readyCommand"]).toBe("/ready.sh");
   });
+
+  it("test_platform_steps_are_sent_and_omitted_when_empty", () => {
+    const withSteps = buildCreateTemplateRequestMap({
+      name: "test-steps",
+      image: "python:3.12-slim",
+      team_id: "t",
+      steps: [{ type: "RUN", args: ["pip install cowsay"] }],
+    });
+    const sandbox = withSteps["body"]["runtimeConfig"]["sandboxConfig"];
+    expect(sandbox["steps"]).toEqual([{ type: "RUN", args: ["pip install cowsay"] }]);
+
+    const without = buildCreateTemplateRequestMap({
+      name: "test-no-steps",
+      image: "img",
+      team_id: "t",
+    });
+    expect(without["body"]["runtimeConfig"]["sandboxConfig"]["steps"]).toBeUndefined();
+  });
 });
 
 describe("TestCreateOfficialTemplate", () => {

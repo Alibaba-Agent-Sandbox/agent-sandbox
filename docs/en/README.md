@@ -2,18 +2,16 @@
 
 `abx` is the command-line client for the Agent Sandbox cloud sandbox service (Alibaba Cloud Function Compute): create and manage sandboxes, run code and commands, author and deploy templates, and expose sandboxes to IDE agents through an MCP server. This page indexes the documentation of the CLI (`@agent-sandbox/cli`). The Python SDK is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk); see [Related SDK documentation](#related-sdk-documentation).
 
+## Sites
+
+| Site | URL |
+|---|---|
+| Official site | https://www.agent-sandbox.com |
+| Provider registry | https://registry.agent-sandbox.com |
+
+The installer fetches the catalog index at `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL.
+
 ---
-
-## Design Documents
-
-| # | Document | Description |
-|---|----------|-------------|
-| 1 | [CLI Architecture](design/architecture.md) | Layers, `src/` structure, command groups, output and exit codes, build / SEA binary / release, parity contract |
-| 2 | [CLI Command System](design/cli-design.md) | Command tree, global options, natural language creation, OutputManager, AI-friendly design |
-| 3 | [MCP Server](design/mcp-server.md) | 7 P0 tools, session binding, STDIO and Streamable HTTP transports, IDE configuration, FC deployment |
-| 4 | [Templates Catalog](design/templates-catalog.md) | Official template catalog contract, publishing flow, offline validation, template command surface |
-
-The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer documents (port rules, repository layout, provider drafts) are listed there and live in [`docs/design/`](../design/) and [`docs/PORTING.md`](../PORTING.md).
 
 ## User Guides
 
@@ -48,7 +46,23 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 | [CLI Command Reference](reference/cli-commands.md) | Canonical command tree, the fixed top-level shortcuts, removed spellings |
 | [CLI Reference](reference/cli-reference.md) | All CLI commands quick reference |
 | [Configuration](reference/configuration.md) | CLI environment variables, config file, priority |
-| [Error Codes](reference/error-codes.md) | E1xxx–E6xxx error codes and CLI exit codes |
+| [Engine HTTP API](reference/engine-api.md) | The local engine that gives every SDK the same providers: discovery file, token, routes, errors |
+| [Error Codes](reference/error-codes.md) | E1xxx–E7xxx on this page. Provider errors E8001–E8030 are in the [Python SDK index](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/error-codes.md) |
+
+## Design Documents
+
+Read these when you are changing the CLI. Day-to-day use is in the guides above.
+
+| # | Document | Description |
+|---|----------|-------------|
+| 1 | [CLI Architecture](design/architecture.md) | Layers, `src/` structure, command groups, output and exit codes, build / SEA binary / release, parity contract |
+| 2 | [CLI Command System](design/cli-design.md) | Command tree, global options, natural language creation, OutputManager, AI-friendly design |
+| 3 | [MCP Server](design/mcp-server.md) | 7 P0 tools, session binding, STDIO and Streamable HTTP transports, IDE configuration, FC deployment |
+| 4 | [Templates Catalog](design/templates-catalog.md) | Official template catalog contract, publishing flow, offline validation, template command surface |
+| 5 | [Template build modes](design/template-build-modes.md) | `--build auto\|dockerfile\|steps`: local Dockerfile publish or `template.yaml` platform steps |
+| 6 | [Node provider architecture](design/node-provider-architecture.md) | Four provider kinds, the kit, in-process vs the engine vs exec, and why the engine is HTTP, SSE and WebSocket |
+
+The consolidated index is [DESIGN.md](DESIGN.md). The provider spec the tests read is [providers-and-credentials-cli.md](../design/providers-and-credentials-cli.md). The Chinese copy is [providers-and-credentials-cli.md](../zh/design/providers-and-credentials-cli.md). Port rules are [PORTING.md](../PORTING.md).
 
 ## Project Planning
 
@@ -70,9 +84,9 @@ The consolidated index is [DESIGN.md](DESIGN.md). English-only maintainer docume
 
 ### By feature
 
-- **Natural language sandbox creation**: [CLI](design/cli-design.md#3-natural-language-creation-ai-template-generation)
-- **Deploy a project**: [CLI deploy command](design/cli-design.md#abx-deploy) (`abx deploy` is a fixed build + push + create-template pipeline; templates are authored with `abx template init` — scaffold, one-sentence description, or `--adopt`)
-- **MCP integration (Cursor/Claude)**: [MCP Server](design/mcp-server.md#5-installation-and-cli)
+- **Natural language sandbox creation**: [CLI Tutorial](guide/cli-tutorial.md)
+- **Deploy a project**: [Deploy & Build](guide/deploy-and-build.md)
+- **MCP integration (Cursor/Claude)**: [MCP Integration](guide/mcp-integration.md)
 
 ### Other resources
 

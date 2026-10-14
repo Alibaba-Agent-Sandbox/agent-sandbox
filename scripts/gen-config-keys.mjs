@@ -92,6 +92,9 @@ export const GENERIC_ENDPOINT_KEYS: readonly string[] = SCHEMA.generic_endpoint_
 /** Core keys whose value reaches every provider (non-secret tuning). */
 export const TUNING_KEYS: readonly string[] = SCHEMA.tuning_keys;
 
+/** Official catalog ids. Must match Python \`OFFICIAL_CATALOG_IDS\`. */
+export const OFFICIAL_CATALOG_IDS: readonly string[] = ["opensandbox", "cubesandbox", "e2b", "alicloud-container"];
+
 export const PROVIDER_ID_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const FIELD_KEY_RE = /^[a-z][a-z0-9_]*$/;
 
@@ -130,6 +133,7 @@ export function validateProviderId(providerId: string): string | null {
   if (providerId.length < 2 || providerId.length > 40 || !PROVIDER_ID_RE.test(providerId)) {
     return "provider id must be 2-40 chars of lowercase letters, digits and single hyphens, starting with a letter";
   }
+  if (OFFICIAL_CATALOG_IDS.includes(providerId)) return null;
   if (RESERVED_PROVIDER_IDS.includes(providerId) || RESERVED_PROVIDER_PREFIXES.some((p) => providerId.startsWith(p))) {
     return \`provider id '\${providerId}' is reserved\`;
   }

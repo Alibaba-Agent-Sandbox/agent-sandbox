@@ -3,10 +3,13 @@ Usage: abx deploy [options] [PATH]
 Publish a template project: build, push to ACR, register the template (same as
 'abx template deploy').
 
-Runs the fixed pipeline: docker build, push the image to ACR, register
-the template, and wait until it is ready. No LLM is involved.
-PATH is the template directory (default: .). It must contain a
-Dockerfile; template.yaml supplies the template name and resources.
+Runs one publish path. No LLM is involved.
+PATH is the template directory (default: .). --build auto (the default)
+uses a Dockerfile when one is present, and otherwise template.yaml build
+steps. dockerfile mode builds and pushes an image, then waits until the
+template is ready. steps mode sends base.image and sandboxConfig.steps
+and does not use Docker or ACR. template.yaml supplies the template name
+and resources.
 
 To author the files first, use 'abx template init': --adopt for an existing
 project, a natural-language description to generate the files, or
@@ -52,6 +55,7 @@ Options:
   --ready-cmd <READY_CMD>                  Container readiness check command
   --timeout <INTEGER>                      Build timeout in seconds
   -f, --dockerfile <PATH>                  Custom Dockerfile path
+  --build <BUILD>                          Publish path: auto (Dockerfile if present, otherwise template.yaml build steps), dockerfile, or steps [default: auto] (choices: "auto", "dockerfile", "steps")
   --disk-size <INTEGER>                    Disk size in MB (official API only)
   --internet-access                        Internet access (default: platform decides; official API only)
   --no-internet-access                     Opposite of --internet-access.

@@ -22,7 +22,7 @@ graph TB
     end
     subgraph Services["宿主侧服务"]
         AG["agent — MCP 服务、编码 Agent 适配器、模板创作/改造"]
-        PRV["provider 层 — 规划中（见第 8 节）"]
+        PRV["provider 层 — alicloud-express（见第 8 节）"]
         SES["session — LocalSessionStore"]
     end
     subgraph Core["客户端核心（对应 SDK 概念）"]
@@ -131,10 +131,9 @@ MCP 的行为（工具、会话绑定、传输、FC 部署）见 [MCP Server 设
 - `utils/github_token.ts` 保存 registry 客户端与模板索引客户端共用的 GitHub token 提示文案；`utils/template_index.ts` 是[模板目录设计](templates-catalog.md)中描述的远程目录客户端。
 - 凭据永不打印：`abx config list` 对密钥做掩码，测试夹具只使用占位符。
 
-## 8. Provider 层（规划中）
+## 8. Provider 层
 
-Provider 层（选择控制面后端、规范化配置键注册表、`abx provider` 命令、可安装的 provider 插件）由
-[Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md)（英文）规定，在 Python 到 Node 的移植达到一致后落地。它位于命令组与 `api` 层之间，并新增一个由共享键注册表生成的模块 `src/utils/config_keys.ts`。在此之前 CLI 只对接内置的阿里云 provider，现有键名与行为不变。
+`abx provider` 和 `--provider` 已对 `alicloud-express` 实现。语法见 [Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md)（英文；中文副本在本目录的 `providers-and-credentials-cli.md`）。这一层位于命令组与 `api` 层之间。`src/utils/config_keys.ts` 由共享键注册表生成。其余内置 id（`opensandbox`、`alicloud-container`、`cubesandbox`、`e2b`）只在 Python SDK；本 CLI 对它们以 `E8001` 退出。使用步骤见[提供商](../guide/providers.md)。
 
 ## 9. 目录结构
 

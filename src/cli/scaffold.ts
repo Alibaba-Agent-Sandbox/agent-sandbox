@@ -26,30 +26,18 @@ const _CASES: ReadonlyArray<readonly [string, string]> = [
 const _COMMANDS = `"""Named commands for {name}."""
 from __future__ import annotations
 
-from agent_sandbox.server import (
-    CapabilityGroup,
-    CommandRegistry,
-    SandboxServer,
-    default_table,
-)
+import os
 
-table = default_table()
-table.enable_group(CapabilityGroup.FILE_OPS)
-table.enable_group(CapabilityGroup.PROCESS)
-table.enable_group(CapabilityGroup.SYSTEM)
-
-registry = CommandRegistry()
+from agent_sandbox.server import command, start
 
 
-@registry.command("hello", description="Say hello.")
+@command("hello", description="Say hello.")
 def hello(name: str = "World") -> str:
     return f"Hello, {{name}}!"
 
 
-registry.freeze()
 if __name__ == "__main__":
-    server = SandboxServer(registry=registry)
-    server.serve(port=9000)
+    start(int(os.environ.get("ABX_SERVER_PORT", "9000")))
 `;
 
 function quoted(value: string): string {

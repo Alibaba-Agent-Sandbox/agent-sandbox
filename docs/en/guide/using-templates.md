@@ -131,4 +131,4 @@ abx run sbx-xxxx dev --arg port=8080
 
 ## Related SDK documentation
 
-Creating sandboxes from templates in Python (`Sandbox.create(template=...)`, `sandbox.custom()`, `sandbox.list_commands()`) is covered by the SDK's [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md). The `template.yaml` field reference is the [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
+Creating sandboxes from templates in Python (`Sandbox.create(template=...)`, `sandbox.run()`, `sandbox.list_commands()`) is covered by the SDK's [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md). The `template.yaml` field reference is the [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).

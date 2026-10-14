@@ -1,5 +1,7 @@
 # 提供方与凭证 —— CLI 规格（Node.js `abx`）
 
+> **状态：对目录提供方已被取代**——本页把 gRPC 传输列为以后的工作时，以这句为准。现行设计是 Node 引擎：`127.0.0.1` 上的 HTTP、SSE 和 WebSocket，协议 `abx-engine/1`。见 [cli/docs/zh/reference/engine-api.md](../reference/engine-api.md) 和 [Node 提供方架构](node-provider-architecture.md)。下面清单里的对应条目作为历史保留。
+
 > **读者**：落实本规格的 CLI 实现。
 >
 > **设计的规范性来源**：`python-sdk/docs/en/design/providers-and-credentials.md`（命名方案、优先级、提供方契约、安全模型）。本文把它落实为精确的 CLI 语法、帮助文本、JSON 形状、退出码、模块布局和测试。
@@ -426,7 +428,7 @@ export interface Provider {
 7. 更新 CLI 文档（`cli-design`、`cli-reference`、`configuration`、`environment-variables`、`authentication`，新的 `providers` 指南）及其 zh 镜像；`SKILL.md`；`llms.txt`；CHANGELOG。
 8. 让 `mcp install` 的复制规则（§4.3）和 MCP server 环境（`ABX_PROVIDER` 会被转发）保持一致。
 9. 由没有编写该切片的对抗者进行一轮评审（按 PORTING.md），把发现追加到 `parity/review-log.md`。
-10. 留待以后的事项（现在不要做）：OS 级的插件约束、钥匙串密钥存储、注册表 / 市场来源、长期运行的插件守护进程（EPP/2）、gRPC 传输。
+10. 留待以后的事项（现在不要做）：OS 级的插件约束、钥匙串密钥存储、注册表 / 市场来源、长期运行的插件守护进程（EPP/2）。gRPC 作为 SDK 到提供方的传输已经评估过，目录提供方没有采用（见本页顶部的状态；现行设计是 Node 引擎，HTTP / SSE / WebSocket，[cli/docs/zh/reference/engine-api.md](../reference/engine-api.md)）。
 
 ---
 

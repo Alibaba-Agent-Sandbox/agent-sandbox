@@ -18,7 +18,7 @@ import { ProviderManifestError, ProviderVersionError } from "./errors.js";
 export const MANIFEST_NAME = "abx-provider.toml";
 /** Manifest names used before the product rename; recognised only to explain what to change. */
 export const MANIFEST_MAX_BYTES = 256 * 1024;
-export const SUPPORTED_PROTOCOLS: Readonly<Record<string, string>> = { exec: "epp/1", rest: "e2b-rest/1" };
+export const SUPPORTED_PROTOCOLS: Readonly<Record<string, string>> = { exec: "epp/1", rest: "e2b-rest/1", node: "node/1" };
 export const FIELD_TYPES = ["string", "int", "float", "bool", "enum", "path", "url", "csv"] as const;
 export const FILESYSTEM_SCOPES = ["data_dir", "cwd", "home", "any"] as const;
 const FORBIDDEN_ENV_PREFIXES = ["ABX_", "E2B_", "ALICLOUD_"];
@@ -37,10 +37,12 @@ export interface Manifest {
   name_zh: string;
   version: string;
   description: string;
-  kind: "exec" | "rest";
+  kind: "exec" | "rest" | "node";
   protocol: string;
   requires: Record<string, string>;
   command: readonly string[];
+  /** `node` providers: the ES module (relative to the plugin root) that `abx` loads in process. */
+  entry: string;
   startup_timeout_ms: number;
   call_timeout_ms: number;
   platforms: readonly string[];
@@ -67,7 +69,7 @@ export interface ManifestSummary {
 /** Fields shown in the consent screen and compared on update. */
 export function manifestSummary(m: Manifest): ManifestSummary {
   return {
-    runtime: m.kind === "exec" ? [...m.command] : ["rest", String(m.endpoint["base_url"] ?? "")],
+    runtime: m.kind === "exec" ? [...m.command] : m.kind === "node" ? ["node", m.entry] : ["rest", String(m.endpoint["base_url"] ?? "")],
     security: m.security,
     features: [...m.features].sort(),
     inherit: [...m.inherit].sort(),
@@ -216,7 +218,13 @@ export function parseManifest(data: Uint8Array | string): Manifest {
 
   const runtime = table(doc, "runtime", true);
   const kind = str(runtime, "kind", "runtime", { required: true });
-  if (kind !== "exec" && kind !== "rest") throw err("runtime.kind must be 'exec' or 'rest'");
+  if (kind === "python") {
+    throw err(
+      "runtime.kind 'python' is loaded by the Python SDK. " +
+        `Install with 'python -m agent_sandbox.providers install registry:${pid} --yes'`,
+    );
+  }
+  if (kind !== "exec" && kind !== "rest" && kind !== "node") throw err("runtime.kind must be 'exec', 'rest' or 'node'");
   const expected = SUPPORTED_PROTOCOLS[kind] as string;
   const compat = table(doc, "compat");
   const protocol = str(compat, "protocol", "compat", { default: expected });
@@ -239,7 +247,15 @@ export function parseManifest(data: Uint8Array | string): Manifest {
 
   let command: string[] = [];
   let endpoint: Tbl = {};
-  if (kind === "exec") {
+  let entry = "";
+  if (kind === "node") {
+    entry = str(runtime, "entry", "runtime", { required: true });
+    const normalized = path.posix.normalize(entry.replace(/\\/g, "/"));
+    if (path.posix.isAbsolute(normalized) || normalized === ".." || normalized.startsWith("../") || !/\.(mjs|js)$/.test(normalized)) {
+      throw err("runtime.entry must be a relative .mjs or .js file inside the plugin directory");
+    }
+    entry = normalized;
+  } else if (kind === "exec") {
     const cmd = runtime["command"];
     if (!Array.isArray(cmd) || cmd.length === 0 || !cmd.every((c) => typeof c === "string" && c !== "" && !c.includes("\0"))) {
       throw err("runtime.command must be a non-empty array of non-empty strings");
@@ -364,6 +380,7 @@ export function parseManifest(data: Uint8Array | string): Manifest {
     protocol,
     requires: { ...(requiresRaw as Record<string, string>) },
     command,
+    entry,
     startup_timeout_ms: ms("startup_timeout_ms", 10_000),
     call_timeout_ms: ms("call_timeout_ms", 60_000),
     platforms,

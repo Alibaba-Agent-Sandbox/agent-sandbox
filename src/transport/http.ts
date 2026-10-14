@@ -147,17 +147,53 @@ export interface EnvdHttpRequestOptions {
  * A single long-lived client is used for the Platform API. Envd clients are created on demand (different sandboxes
  * may have different base URLs) and tracked for proper cleanup.
  */
+export interface HttpClientOptions {
+  /** Frame Connect streaming requests in the 5-byte envelope; unary RPCs go out as plain JSON. */
+  envelope_connect?: boolean;
+  /** Open envd connections to `[host, port]` and keep the sandbox host name in `Host`. */
+  envd_dial?: readonly [string, number] | null;
+  /** Headers added to every envd request. */
+  envd_headers?: Record<string, string> | null;
+}
+
 export class HttpClient {
   _config: TransportConfig;
   _auth: AuthProvider;
   _codec: ConnectCodec;
   _platform_client: AsyncClient | null = null;
   _envd_clients: Map<string, AsyncClient> = new Map();
+  private readonly _envelope: boolean;
+  readonly _dial: readonly [string, number] | null;
+  private readonly _envd_headers: Record<string, string>;
 
-  constructor(config: TransportConfig, auth: AuthProvider) {
+  constructor(config: TransportConfig, auth: AuthProvider, opts: HttpClientOptions = {}) {
     this._config = config;
     this._auth = auth;
     this._codec = new ConnectCodec();
+    this._envelope = opts.envelope_connect ?? false;
+    this._dial = opts.envd_dial ?? null;
+    this._envd_headers = { ...(opts.envd_headers ?? {}) };
+  }
+
+  /** The request body and extra headers of a Connect call: framed only when the backend wants the envelope. */
+  _connectBody(payload: Record<string, unknown> | null): { body: Buffer; framed: Record<string, string> } {
+    const raw = this._codec.encodeRequest(payload || {});
+    if (!this._envelope) return { body: raw, framed: {} };
+    const head = Buffer.alloc(5);
+    head.writeUInt8(0, 0);
+    head.writeUInt32BE(raw.length, 1);
+    return {
+      body: Buffer.concat([head, raw]),
+      framed: { "Connect-Protocol-Version": "1", "Connect-Content-Encoding": "identity" },
+    };
+  }
+
+  /** `url` aimed at the dial target, plus the `Host` header that keeps the sandbox name; unchanged without a dial. */
+  _dialed(url: string): { url: string; host: Record<string, string> } {
+    if (this._dial === null) return { url, host: {} };
+    const u = new URL(url);
+    const target = `${u.protocol}//${this._dial[0]}:${this._dial[1]}${u.pathname === "/" ? "" : u.pathname}${u.search}`;
+    return { url: target, host: { Host: u.host } };
   }
 
   /** Get or create the Platform API client. */
@@ -184,7 +220,7 @@ export class HttpClient {
       return existing;
     }
     const client = new httpx.AsyncClient({
-      base_url: envd_url,
+      base_url: this._dialed(envd_url).url,
       http2: this._config.http2,
       timeout: new httpx.Timeout(this._config.http_timeout),
     });
@@ -261,9 +297,12 @@ export class HttpClient {
     const client = this._createEnvdClient(envd_url);
     const auth_headers = envd_token.getHeaders();
 
+    // Unary RPCs are plain JSON on a backend that frames its streams; the envelope is for streams only.
     const all_headers: Record<string, string> = {
-      "Content-Type": CONNECT_CONTENT_TYPE,
+      "Content-Type": this._envelope ? "application/json" : CONNECT_CONTENT_TYPE,
       ...auth_headers,
+      ...this._envd_headers,
+      ...this._dialed(envd_url).host,
     };
     if (headers) Object.assign(all_headers, headers);
 
@@ -342,13 +381,17 @@ export class HttpClient {
     const { payload = null, envd_token, headers = null, request_timeout = null } = opts;
     const auth_headers = envd_token.getHeaders();
 
+    const { body, framed } = this._connectBody(payload);
+    const dialed = this._dialed(envd_url);
     const all_headers: Record<string, string> = {
       "Content-Type": CONNECT_CONTENT_TYPE,
+      ...framed,
       ...auth_headers,
+      ...this._envd_headers,
+      ...dialed.host,
     };
     if (headers) Object.assign(all_headers, headers);
 
-    const body = this._codec.encodeRequest(payload || {});
     const effective_timeout =
       request_timeout !== null && request_timeout !== undefined ? request_timeout : this._config.http_timeout;
 
@@ -363,7 +406,7 @@ export class HttpClient {
         http2: this._config.http2,
         timeout: new httpx.Timeout(effective_timeout),
       });
-      const url = envd_url.replace(/\/+$/, "") + rpc_path;
+      const url = dialed.url.replace(/\/+$/, "") + rpc_path;
       streamCm = client.stream("POST", url, { content: body, headers: all_headers });
       const response = await streamCm.__aenter__();
       entered = true;
@@ -418,7 +461,7 @@ export class HttpClient {
     const client = this._createEnvdClient(envd_url);
     const auth_headers = envd_token.getHeaders();
 
-    const all_headers: Record<string, string> = { ...auth_headers };
+    const all_headers: Record<string, string> = { ...auth_headers, ...this._envd_headers, ...this._dialed(envd_url).host };
     if (headers) Object.assign(all_headers, headers);
 
     logger.debug("envd HTTP %s %s%s", method, envd_url, path);

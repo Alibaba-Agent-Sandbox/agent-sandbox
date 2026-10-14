@@ -1,5 +1,7 @@
 # Providers and Credentials — CLI spec (for the Node.js `abx`)
 
+> **Status: superseded for catalog providers** wherever this page lists a gRPC transport as future work. The current design is the Node engine: HTTP, SSE and WebSocket on `127.0.0.1`, protocol `abx-engine/1`. See [cli/docs/en/reference/engine-api.md](../en/reference/engine-api.md) and [Node provider architecture](../en/design/node-provider-architecture.md). The checklist item below is kept as history.
+
 > **Audience**: the CLI worker who applies this spec.
 >
 > **Normative source of the design**: `python-sdk/docs/en/design/providers-and-credentials.md` (naming scheme, precedence, provider contract, security model). This file turns it into exact CLI grammar, help text, JSON shapes, exit codes, module layout and tests.
@@ -424,7 +426,7 @@ Naming follows the port rules (`tests/<path>.test.ts`, `describe("<Class>")`, `i
 7. Update the CLI docs (`cli-design`, `cli-reference`, `configuration`, `environment-variables`, `authentication`, new `providers` guide) and zh mirrors; `SKILL.md`; `llms.txt`; CHANGELOG.
 8. Make the `mcp install` copy rules (§4.3) and the MCP server env (`ABX_PROVIDER` is forwarded) consistent.
 9. Review round with an adversary who did not write the slice (per PORTING.md), appending findings to `parity/review-log.md`.
-10. Open items for later (do not build now): OS-level plugin confinement, keychain secret storage, registry/marketplace source, long-lived plugin daemons (EPP/2), gRPC transport.
+10. Open items for later (do not build now): OS-level plugin confinement, keychain secret storage, registry/marketplace source, long-lived plugin daemons (EPP/2). gRPC as an SDK-to-provider transport was evaluated and was not adopted for catalog providers (see the status at the top of this page; current design is the Node engine, HTTP / SSE / WebSocket, [cli/docs/en/reference/engine-api.md](../en/reference/engine-api.md)).
 
 ---
 

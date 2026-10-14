@@ -7,7 +7,7 @@ This tutorial walks you through the complete sandbox lifecycle, from installatio
 ## Prerequisites
 
 - Node.js 20 or later (for the `abx` CLI)
-- A valid API Key (obtained from the Agent Sandbox platform)
+- For the default provider (`alicloud-express`): an API key from the [Agent Sandbox product docs](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox). The variable is `ABX_SANDBOX_API_KEY`. The CLI does not read `E2B_API_KEY`.
 - Network access to the Alibaba Cloud Hangzhou region (default `cn-hangzhou`)
 
 ## 1. Installation
@@ -72,6 +72,8 @@ abx config get sandbox_api_key
 abx create --template base
 ```
 
+`base` is the default template. The repository README uses `python-base`, the Python image in the catalog.
+
 ## 4. Execute Code
 
 ### CLI
@@ -85,7 +87,7 @@ abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-abx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> -- sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. File Operations

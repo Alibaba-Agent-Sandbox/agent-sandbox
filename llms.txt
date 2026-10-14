@@ -60,6 +60,12 @@ abx kill <id>                       # destroy sandbox
 - src/agent/ — MCP server, tool definitions, template authoring
 - src/bin/abx.ts — executable entry point
 
+## Sites
+
+- Official site: https://www.agent-sandbox.com
+- Provider registry: https://registry.agent-sandbox.com
+- Installer index: https://registry.agent-sandbox.cn/providers/index.json (`ABX_PROVIDER_REGISTRY` overrides it)
+
 ## Links
 
 - Agent usage skill: SKILL.md
@@ -69,6 +75,7 @@ abx kill <id>                       # destroy sandbox
 - Design index: docs/en/DESIGN.md
 - CLI architecture: docs/en/design/architecture.md
 - CLI design: docs/en/design/cli-design.md
+- Node provider architecture (provider kinds, kit, engine): docs/en/design/node-provider-architecture.md
 - Templates catalog: docs/en/design/templates-catalog.md
 - MCP server: docs/en/design/mcp-server.md
 - Python to Node port contract: docs/PORTING.md

@@ -153,7 +153,9 @@ describe("scaffold dockerfiles", () => {
     expect(docker).not.toMatch(/pip install --no-cache-dir agent-sandbox(?!-server)/);
     expect(docker).toContain("WORKDIR /home/user/app");
     expect(commands).toContain('if __name__ == "__main__":');
-    expect(commands).toContain("serve(port=9000)");
+    expect(commands).toContain("start(int(os.environ.get(\"ABX_SERVER_PORT\", \"9000\")))");
+    expect(commands).toContain('@command("hello"');
+    expect(commands).not.toContain(".serve(");
     expect(commands).toContain("agent_sandbox.server");
     expect(commands).not.toMatch(/alicloud|opensandbox/);
   });

@@ -7,10 +7,19 @@ local-only, but the ACR push and the remote template registration
 can incur Alibaba Cloud costs (ACR storage/traffic, template
 resources).
 
-Supports two modes:
+Publish path (--build, default auto):
+
+auto: a Dockerfile publishes that image. Otherwise template.yaml build
+  steps are sent as CreateTemplate sandboxConfig.steps.
+dockerfile: local docker build → ACR push → CreateTemplate. template.yaml
+  build steps are not sent.
+steps: no local Docker and no ACR push. sandboxConfig.image is base.image
+  and sandboxConfig.steps is the expanded build block. Official API only.
+
+Registration API:
 
 --official-api (default):
-  local docker build → ACR push → official CreateTemplate API (envdInject).
+  dockerfile mode: local docker build → ACR push → official CreateTemplate API.
   Requires AK/SK credentials (set with 'abx config init --build').
 
 --legacy-api:
@@ -32,6 +41,7 @@ Examples:
   abx template build ./my-template \
     --acr-namespace prod --legacy-api
   abx template build ./my-template --acr-namespace prod --region cn-shanghai
+  abx template build ./my-template --build steps --yes
 
 Related commands:
   abx template init DIRECTORY    Scaffold template source files
@@ -57,6 +67,7 @@ Options:
   --ready-cmd <READY_CMD>                  Container readiness check command
   --timeout <INTEGER>                      Build timeout in seconds
   -f, --dockerfile <PATH>                  Custom Dockerfile path
+  --build <BUILD>                          Publish path: auto (Dockerfile if present, otherwise template.yaml build steps), dockerfile, or steps [default: auto] (choices: "auto", "dockerfile", "steps")
   --disk-size <INTEGER>                    Disk size in MB (official API only)
   --internet-access                        Internet access (default: platform decides; official API only)
   --no-internet-access                     Opposite of --internet-access.

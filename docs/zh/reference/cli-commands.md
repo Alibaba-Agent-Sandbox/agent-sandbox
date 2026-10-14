@@ -43,7 +43,7 @@ abx
 ├── template     init | search | info | list | build | push | create | delete | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
 ```
 
 `abx provider --help` 由 Provider 文档负责（见[Providers](../guide/providers.md)）；本页只涉及固定命令面中的 `provider` 组本身。

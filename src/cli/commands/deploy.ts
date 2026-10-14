@@ -12,7 +12,6 @@
  */
 
 import fs from "node:fs";
-import nodePath from "node:path";
 
 import { Argument, Option, argument, command, getCurrentContext, type Context } from "../kit.js";
 import { UsageError } from "../errors.js";
@@ -21,7 +20,8 @@ import { pyExpandUser, pyResolve } from "../../utils/_pyos.js";
 import { handleErrors } from "../main.js";
 import { enableVerbose } from "../output.js";
 import { requireTemplateFeature } from "../template_provider.js";
-import { build, resolve_acr_namespace } from "./template.js";
+import { BuildModeError, resolveBuildPlan } from "../../template/build_plan.js";
+import { build, acrNamespacePassedOnCli, resolve_acr_namespace } from "./template.js";
 
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -48,21 +48,16 @@ function isDirectory(p: string): boolean {
   }
 }
 
-function isFileAt(p: string): boolean {
-  try {
-    return fs.statSync(p).isFile();
-  } catch {
-    return false;
-  }
-}
-
 export const deploy_shortcut = command("deploy", {
   help: cleandoc(`Publish a template project: build, push to ACR, register the template (same as 'abx template deploy').
 
-    Runs the fixed pipeline: docker build, push the image to ACR, register
-    the template, and wait until it is ready. No LLM is involved.
-    PATH is the template directory (default: .). It must contain a
-    Dockerfile; template.yaml supplies the template name and resources.
+    Runs one publish path. No LLM is involved.
+    PATH is the template directory (default: .). --build auto (the default)
+    uses a Dockerfile when one is present, and otherwise template.yaml build
+    steps. dockerfile mode builds and pushes an image, then waits until the
+    template is ready. steps mode sends base.image and sandboxConfig.steps
+    and does not use Docker or ACR. template.yaml supplies the template name
+    and resources.
 
     To author the files first, use 'abx template init': --adopt for an existing
     project, a natural-language description to generate the files, or
@@ -108,17 +103,26 @@ export const deploy_shortcut = command("deploy", {
       throw new UsageError(`Path '${path}' is not an existing directory.`, getCurrentContext(true));
     }
 
-    // Fail fast, before any docker or cloud call.
-    deploySeams.resolve_acr_namespace(kwargs["acr_namespace"] ?? null);
+    let plan;
+    try {
+      plan = resolveBuildPlan(projectPath, { mode: kwargs["build"] ?? "auto", dockerfile: kwargs["dockerfile"] ?? null });
+    } catch (e) {
+      if (e instanceof BuildModeError) {
+        const hint = e.message.startsWith("No Dockerfile")
+          ? " Author the template first: 'abx template init --adopt .' (adapt this project), " +
+            "'abx template init \"DESCRIPTION\"' (generate) or " +
+            "'abx template init --template python' (scaffold)."
+          : "";
+        throw new UsageError(e.message + hint, getCurrentContext(true));
+      }
+      throw e;
+    }
 
-    if (!isFileAt(nodePath.join(projectPath, "Dockerfile")) && !kwargs["dockerfile"]) {
-      throw new UsageError(
-        `No Dockerfile found in ${projectPath}. Pass --dockerfile, or author the ` +
-          "template first: 'abx template init --adopt .' (adapt this project), " +
-          "'abx template init \"DESCRIPTION\"' (generate) or " +
-          "'abx template init --template python' (scaffold).",
-        getCurrentContext(true),
-      );
+    // Fail fast, before any docker or cloud call.
+    if (plan.kind === "dockerfile") {
+      deploySeams.resolve_acr_namespace(kwargs["acr_namespace"] ?? null);
+    } else if (acrNamespacePassedOnCli()) {
+      throw new UsageError("--acr-namespace cannot be used with platform build steps.", getCurrentContext(true));
     }
 
     await ctx.invoke(deploySeams.build, { template_dir: String(projectPath), ...kwargs });

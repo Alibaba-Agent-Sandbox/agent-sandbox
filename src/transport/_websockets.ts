@@ -1345,6 +1345,8 @@ interface ConnectOptions {
   pingTimeout: number | null;
   closeTimeout: number | null;
   openTimeout: number | null;
+  /** TCP target when it differs from the URL's host (the Host header and TLS name stay the URL's). */
+  dial?: readonly [string, number] | null;
 }
 
 export class Connection {
@@ -1611,7 +1613,7 @@ interface ConnectState {
 
 async function openTcpConnection(state: ConnectState, opts: ConnectOptions): Promise<Connection> {
   const wsUri = state.wsUri;
-  const proxyStr = getProxy(wsUri);
+  const proxyStr = opts.dial ? null : getProxy(wsUri);
   const connection = new Connection(wsUri, opts);
   const track = (s: net.Socket): void => {
     state.activeSocket = s;
@@ -1630,7 +1632,7 @@ async function openTcpConnection(state: ConnectState, opts: ConnectOptions): Pro
     connection.attach(sock, isTls);
     return connection;
   }
-  let sock: net.Socket = await connectTcp(wsUri.host, wsUri.port);
+  let sock: net.Socket = await connectTcp(opts.dial?.[0] ?? wsUri.host, opts.dial?.[1] ?? wsUri.port);
   track(sock);
   let isTls = false;
   if (wsUri.secure) {
@@ -1678,6 +1680,7 @@ export async function connect(
     pingTimeout: number | null;
     closeTimeout?: number | null;
     openTimeout?: number | null;
+    dial?: readonly [string, number] | null;
   },
 ): Promise<Connection> {
   const wsUri = parseUri(uri);
@@ -1694,6 +1697,7 @@ export async function connect(
     pingTimeout: opts.pingTimeout,
     closeTimeout: opts.closeTimeout === undefined ? 10 : opts.closeTimeout,
     openTimeout: opts.openTimeout === undefined ? 10 : opts.openTimeout,
+    dial: opts.dial ?? null,
   };
   const run = async (): Promise<Connection> => {
     for (let i = 0; i < MAX_REDIRECTS; i++) {

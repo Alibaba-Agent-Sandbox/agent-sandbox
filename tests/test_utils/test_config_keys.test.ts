@@ -103,7 +103,7 @@ describe("TestRegistry", () => {
   });
 
   it.each([
-    ["my-provider", true], ["e2b", false], ["e2b-compat", true], ["a", false], ["My-Provider", false], ["-x", false],
+    ["my-provider", true], ["e2b", true], ["alicloud-container", true], ["e2b-compat", true], ["a", false], ["My-Provider", false], ["-x", false],
     ["a--b", false], ["alicloud-express", false], ["alicloud-foo", false], ["abx-foo", false], ["x".repeat(41), false],
     ["1abc", false], ["a_b", false],
   ] as Array<[string, boolean]>)("test_validate_provider_id[%s]", (pid, ok) => {

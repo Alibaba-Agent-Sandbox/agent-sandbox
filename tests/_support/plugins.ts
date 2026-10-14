@@ -25,12 +25,13 @@ export function openSandboxFromEnv(): string | null {
   if (direct && manifestDir(direct)) return direct;
   const root = process.env["ABX_AWESOME_PROVIDERS"];
   if (root && manifestDir(path.join(root, "opensandbox"))) return path.join(root, "opensandbox");
-  return null;
+  const inRepo = path.resolve(here, "..", "..", "..", "awesome-providers", "opensandbox");
+  return manifestDir(inRepo) ? inRepo : null;
 }
 
 /**
  * The opensandbox plugin from the awesome-providers catalog.
- * Uses ABX_OPENSANDBOX_PLUGIN / ABX_AWESOME_PROVIDERS, else clones the catalog once under the temp dir.
+ * Uses ABX_OPENSANDBOX_PLUGIN / ABX_AWESOME_PROVIDERS, then the `awesome-providers` directory of this repository, else clones the catalog once under the temp dir.
  * Returns null when the catalog cannot be fetched (callers skip).
  */
 export function ensureOpenSandboxPlugin(): string | null {

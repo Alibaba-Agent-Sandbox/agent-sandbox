@@ -376,7 +376,7 @@ it("test_nl_init_delivers_a_usable_template_not_just_a_dockerfile", async () => 
 
   // The agent was told to build a server and given the SDK reference.
   expect(prompts.length).toBe(1);
-  for (const needle of ["commands.py", "SandboxServer", "CommandRegistry", "EXPOSE 9000"]) expect(prompts[0], needle).toContain(needle);
+  for (const needle of ["commands.py", '@command("', "start(", "EXPOSE 9000"]) expect(prompts[0], needle).toContain(needle);
 
   // Every deliverable, and only deliverables, reached ./<name>/.
   const target = path.join(tmp, _TEMPLATE_NAME);

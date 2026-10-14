@@ -26,7 +26,7 @@ graph TB
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, coding-agent adapter, template authoring/adoption"]
-        PRV["provider layer — planned (see section 8)"]
+        PRV["provider layer — alicloud-express (see section 8)"]
         SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core (mirrors the SDK concepts)"]
@@ -164,14 +164,9 @@ MCP behaviour (tools, session binding, transports, FC deployment) is specified i
   [Templates Catalog](templates-catalog.md).
 - Credentials are never printed: secrets are masked in `abx config list`, and test fixtures use placeholders.
 
-## 8. Provider layer (planned)
+## 8. Provider layer
 
-A provider layer (selecting the control-plane backend, canonical config-key registry, `abx provider` commands,
-installable provider plugins) is specified in
-[Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md) and is applied after the
-Python-to-Node port reaches parity. It will sit between the command groups and the `api` layer and will add one
-module, `src/utils/config_keys.ts`, generated from the shared key registry. Until then the CLI talks to the built-in
-Alibaba Cloud provider only, and existing key names and behaviour are unchanged.
+`abx provider` and `--provider` are implemented for `alicloud-express`. The grammar is [Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md). The layer sits between the command groups and the `api` layer. `src/utils/config_keys.ts` is generated from the shared key registry. The other builtin ids (`opensandbox`, `alicloud-container`, `cubesandbox`, `e2b`) are Python SDK only; this CLI exits `E8001` for them. User steps are [Providers](../guide/providers.md).
 
 ## 9. Directory structure
 

@@ -244,4 +244,4 @@ classDiagram
 
 ## Related SDK documentation
 
-The Python import paths for these exception classes (`from agent_sandbox.models.errors import ...`) are listed in the SDK's [Error Codes reference](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/error-codes.md#imports) in the `python-sdk` repository.
+The Python import paths for these exception classes (`from agent_sandbox.models.errors import ...`) are listed in the SDK's [Error Codes reference](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/error-codes.md#imports) in the `python-sdk` repository. Provider errors `E8001`–`E8030` are on that page under E8xxx. This CLI page stops at E7xxx.

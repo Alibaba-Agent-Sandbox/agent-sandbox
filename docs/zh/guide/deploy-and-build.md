@@ -34,23 +34,27 @@ abx create --template <TEMPLATE_ID>               # 3. 启动沙箱
 
 ### abx deploy — 发布步骤
 
-`abx deploy` 是一条**固定、确定性的流水线**，**不需要 LLM，也不需要 LLM Key**：
+`abx deploy` 是一次**固定、确定性的发布**，**不需要 LLM，也不需要 LLM Key**。`--build` 选择路径（默认 `auto`）：
 
-1. `docker build` 项目的 `Dockerfile`
-2. 把镜像推送到阿里云 ACR
-3. 注册为模板（`CreateTemplate`）
-4. 等待模板就绪
+| `--build` | 实际执行 |
+|-----------|----------|
+| `dockerfile` | `docker build`，推到 ACR，用推上去的镜像调用 `CreateTemplate`，等到就绪 |
+| `steps` | 不跑本地 Docker，不推 ACR。`CreateTemplate` 收到 `base.image` 和 `sandboxConfig.steps` |
+| `auto` | 有 Dockerfile 走 `dockerfile`。否则有 `build:` 就走 `steps` |
+
+`steps` 读取 `template.yaml` 的 `build.apt_install`、`pip_install`、`npm_install`、`env`、`run` 和原始 `build.steps`。需要 `base.image`，并且只能走官方 API。`--build steps` 再加 `--acr-namespace` 是用法错误。只出现在环境变量里的 `ACR_NAMESPACE` 会被忽略。规范见 [模板构建模式](../design/template-build-modes.md)。
 
 它与 `abx template deploy DIR` 是同一条流水线，只是 `PATH` 默认为 `.`，并接受后者的全部选项（`--acr-namespace`、`--alias`、`--yes`、`-v/--verbose`、`--region` 等）。它从 `template.yaml` 读取模板 `name`（未指定 `--acr-repo` 时用作 ACR 仓库名）、`resources.cpu`、`resources.memory` 和 `generation`；命令行选项优先。
 
 交互式终端上，构建、推送和等待 READY 各自显示 `message... 12s` 标题，标题下方以灰色滚动最近六行日志，长时间的 `docker build` 不会只剩一个停住的转圈。某一步暂时没有输出时，耗时仍每秒刷新。`--verbose` 改为逐行打印完整日志。`--json`、`--quiet`、CI 和非 TTY 仍只留一行 progress。创建沙箱、上传、下载、拉取模板、用镜像注册模板、安装 coding-agent，以及 `abx kill --all`，在终端上使用同一套会走动的标题。Agent 工作时，灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）；其余时候是路径、阶段和构建输出。文件内容、思考内容和凭证保持隐藏。这些命令在非终端上不为标题打印任何内容。
 
 ```bash
-abx deploy --acr-namespace my-ns          # 发布 ./（需要 ./Dockerfile）
+abx deploy --acr-namespace my-ns          # 用 ./Dockerfile 发布 ./
+abx deploy ./my-template --build steps --yes
 abx deploy ./my-template --yes -v         # 非交互，输出调试日志
 ```
 
-目录里没有 `Dockerfile` 时命令会停下，并提示使用 `abx template init --adopt`（已有项目）、`abx template init "描述"`，或 `abx template init -t`。
+目录里既没有 `Dockerfile` 也没有 `build:` 步骤时，命令会停下，并提示使用 `abx template init --adopt`（已有项目）、`abx template init "描述"`，或 `abx template init -t`。
 
 
 ---

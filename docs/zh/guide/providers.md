@@ -1,6 +1,6 @@
 # 提供商（Providers）
 
-**提供商** 是一个沙箱后端。`abx` 内置一个提供商，并可通过可安装的插件驱动更多后端。本页是 CLI 视角：如何在命令行安装、选择、配置并使用提供商。共享概念（清单、信任模型、EPP/1 协议、能力矩阵）只在 Python SDK 仓库中记录一次：[Providers 指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/providers.md) 与 [提供商与凭证设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md)。编写插件请见 [编写提供商](authoring-providers.md)。
+**提供商** 是一个沙箱后端。`abx` 内置一个提供商，并可通过可安装的插件驱动更多后端。官网是 <https://www.agent-sandbox.com>。提供方注册站是 <https://registry.agent-sandbox.com>。目录安装仍然拉取 `https://registry.agent-sandbox.cn/providers/index.json`。本页是 CLI 视角：如何在命令行安装、选择、配置并使用提供商。共享概念（清单、信任模型、EPP/1 协议、能力矩阵）只在 Python SDK 仓库中记录一次：[Providers 指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/providers.md) 与 [提供商与凭证设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md)。编写插件请见 [编写提供商](authoring-providers.md)。
 
 | Id | 名称 | 类型 | 默认 |
 |---|---|---|---|
@@ -90,7 +90,7 @@ abx kill local-process:sbx-1 --yes
 | `sandbox.pause` | `sandbox pause`、`sandbox resume` | `pause`、`resume` |
 | `exec.run` | `exec`、`run` | `commands.run`、`sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/start/info/signal` | `commands.list`、`kill`、`send_stdin` |
+| `process.manage` | `sandbox process list/info/signal`；用 `exec --background` 启动 | `commands.list`、`kill`、`send_stdin` |
 | `pty` | PTY 会话（`connect` 仍是按行 REPL） | `get_terminal` |
 | `files.rw` | `upload`、`download`、`sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
@@ -113,28 +113,32 @@ CLI 如何跟随当前提供商：
 - `abx sandbox capabilities` 由提供商声明的特性推导 `shell`、`files`、`code`、`terminal`、`ports`（内置提供商从沙箱模板读取）。
 - 提供商没有上报区域或超时时，`abx info` 和 `abx list` 显示 `-`。
 
-进程内注册的 `python` 提供商只给 SDK 用；`exec` 和 `rest` 插件两边都能用。
+`kind = "python"` 的清单不可安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用，但从磁盘安装的插件不会以 Python 运行。
 
-### OpenSandbox
+### 目录里的提供方
+
+四个目录提供方都能在 CLI 和所有 SDK 里使用，因为它们都跑在 Node.js 里，由 CLI 宿主承载：
+
+- `opensandbox`、`e2b`、`cubesandbox`、`alicloud-container` 都是 `node` 插件：一个 ES 模块，由宿主在进程内通过一个小的 kit 加载（见 [编写提供商](authoring-providers.md)）。
 
 ```bash
-abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx provider info opensandbox
-abx --provider opensandbox create --template base
-abx exec opensandbox:<id> "echo hello"
+abx provider install registry:e2b
+abx provider install registry:cubesandbox
+abx provider install registry:alicloud-container
+abx provider install registry:opensandbox
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
 ```
 
-`//opensandbox` 是目录仓库里的子目录，和 `abx template install alibaba-agent-sandbox/awesome-templates//python-hello` 的 `//` 是同一写法。目录后面的 `@ref` 用来固定 tag、分支或提交：`alibaba-agent-sandbox/awesome-providers//opensandbox@<ref>`。
+Python SDK（以及之后的 Node、Go、Java SDK）通过本地引擎 `abx provider engine serve` 使用同一批插件，引擎按需启动。见 [引擎 HTTP API](../reference/engine-api.md)。
 
-2026-10-13 已在真实的本地服务器（`opensandbox-server` 1.1.1，Docker 运行时）上，通过本 CLI 和 `Sandbox.create(provider="opensandbox")` 验证：安装、doctor、18 个用例的 `abx provider test`、create、info、list、exec（退出码、stderr）、3000 字节二进制文件上传下载（逐字节一致）、300 KB 文件往返、设置超时、暂停、恢复、按 id 连接、kill，以及对已 kill 的沙箱返回 `E2009`。目录中的插件目前仍带着改名前的 `ebx-provider.toml`，所以直接从 GitHub 安装会以 `E8014`（插件根目录没有 `abx-provider.toml`）失败，直到目录完成迁移；`e2e/providers/awesome-providers-abx-rename.patch` 就是这次迁移。
-
-OpenSandbox 声明了 `sandbox.lifecycle`、`sandbox.timeout`、`sandbox.pause`、`exec.run`、`exec.stream`、`process.manage`、`files.rw`、`ports.url`、`sessions`。这些在 CLI 和 `Sandbox.create(provider="opensandbox")` 里都能用：
-
-| 能用 | 不能用（E8004） | 部分可用 |
+| Id | 类型 | 页面 |
 |---|---|---|
-| 创建、列出、查看、销毁、连接；同步和流式 exec；文件读写、列出、stat、建目录、删除、移动、上传、下载；修改超时；暂停和恢复；端口的公网 URL；按 id 再次连接 | PTY、`run_code`、模板的列出/构建/部署/安装、文件监听、签名传输 URL、自定义域名、OSS 挂载、VPC | `sandbox process`：列出、终止、发信号可用；向进程 stdin 写入返回 E8004。对 execd 命令 id 的 `process.kill` 只能发 SIGKILL |
+| `opensandbox` | `node` | [OpenSandbox 提供方](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/opensandbox) |
+| `alicloud-container` | `node` | [容器版](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/alicloud-container) |
+| `cubesandbox` | `node` | [CubeSandbox 提供方](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/cubesandbox) |
+| `e2b` | `node` | [E2B 提供方](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/e2b) |
 
-插件是 Node.js 程序（没有 npm 依赖）。Python SDK 启动它时，`PATH` 上要有 `node`。服务地址用 `abx config set providers.opensandbox.base_url http://127.0.0.1:8080`（这是默认值）；服务要求密钥时再设 `providers.opensandbox.api_key`。模板名是容器镜像：`base` 在未设置 `default_image` 时使用 `python:3.12-slim`。字段说明见 [opensandbox/README.md](https://github.com/alibaba-agent-sandbox/awesome-providers/blob/main/opensandbox/README.zh-CN.md)。
+OpenSandbox 连接本机服务。设置 `ABX_OPENSANDBOX_BASE_URL`（默认 `http://127.0.0.1:8080`）；服务要求密钥时再设 `ABX_OPENSANDBOX_API_KEY`。能力对照以该页为准，包括会返回 `E8004` 的调用。
 
 ---
 

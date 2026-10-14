@@ -74,7 +74,7 @@ export const FEATURE_TO_CAPABILITY: Readonly<Record<string, string>> = {
   "ports.url": "ports",
 };
 
-export type ProviderKind = "builtin" | "rest" | "exec" | "python";
+export type ProviderKind = "builtin" | "rest" | "exec" | "node" | "python";
 
 /** One provider-scoped configuration field (`[config.fields.<key>]`). */
 export interface ConfigField {
@@ -141,6 +141,8 @@ export interface ProviderInfra {
   code_interpreter_protocol: Loose<CodeInterpreterProtocol> | null;
   /** Releases the plugin process / HTTP client; call on every exit path. */
   close?: () => Promise<void>;
+  /** How this backend wants its envd token handled (a missing token, a Basic user other than `user`). */
+  envd_auth?: { allow_missing?: boolean; basic_user?: string };
 }
 
 export interface ProviderDescription {

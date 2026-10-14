@@ -185,7 +185,9 @@ export class ProcessProtocol {
     if (cwd) process_obj["cwd"] = cwd;
     if (user) process_obj["user"] = user;
 
-    const payload: Record<string, unknown> = { process: process_obj };
+    // StartRequest.stdin sits beside process. A missing flag defaults to true, so a reader waits until the HTTP
+    // timeout. Proto JSON drops an unknown field nested under process.
+    const payload: Record<string, unknown> = { process: process_obj, stdin: false };
 
     // Derive the HTTP read timeout from the process-level timeout so that long-running commands (e.g. `pip install`)
     // are not killed prematurely by the HTTP layer's default 30 s timeout.

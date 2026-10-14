@@ -98,6 +98,7 @@ export class SandboxInfo extends defineModel(
     timeout: lax.int().default(300),
     region: z.string().default("cn-hangzhou"),
     envd_url: z.string().nullable().default(null),
+    reported_domain: z.string().nullable().default(null),
   }),
   {
     aliases: {
@@ -116,6 +117,7 @@ export class SandboxInfo extends defineModel(
       memory_mb: "memoryMB",
       disk_size_mb: "diskSizeMB",
       envd_url: "envdUrl",
+      reported_domain: "domain",
     },
   },
 ) {}

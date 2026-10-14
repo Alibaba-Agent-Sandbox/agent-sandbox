@@ -1,19 +1,13 @@
 ---
 name: agent-sandbox
-description: Operate Alibaba Cloud FC Agent Sandbox cloud sandboxes — create isolated Linux environments, run untrusted code and shell commands, transfer files, and clean up — via the abx CLI, the agent_sandbox Python SDK, or MCP tools. Use this when a coding task needs a disposable, isolated cloud environment for building, testing, or running untrusted code instead of the local machine.
+description: Operate an Agent Sandbox with the abx CLI or MCP. Use when the task is to create a sandbox, run a command in it, copy files, kill it, or deploy a template with abx. Do not use this to write a Python client, template.yaml, a Dockerfile, or commands.py; that skill is agent-sandbox-sdk.
 ---
 
-# Agent Sandbox — Agent Usage Guide
+# Operate an Agent Sandbox
 
-This file is a **static usage guide** for AI coding tools and agents. It follows the
-common Agent Skills convention (YAML frontmatter + Markdown instructions) so any
-skills-aware tool can load it as-is. It is **not** executed, parsed, or registered by
-Agent Sandbox at runtime, and it does **not** restore the removed `abx skill` CLI
-command group, Skills registry, or any runtime/template skill configuration
-(see ADR 2026-09-23 CLI command reduction and ADR 2026-09-29 skills-design removal).
-
-> This guide is tool-neutral: Qoder, Claude, Cursor, Codex, Qwen Code, and any other
-> agent consume the same commands below. See [How AI tools consume this guide](#how-ai-tools-consume-this-guide).
+This file is a static usage guide for a coding agent. It is not executed, parsed, or registered by Agent Sandbox, and it does not restore the removed `abx skill` command group.
+Writing a Python client or a template is the `agent-sandbox-sdk` skill.
+The npm package ships this file at the repository root. A tool loads it only from a directory named `agent-sandbox`, so install it as `<skills-dir>/agent-sandbox/SKILL.md`.
 
 ## When to use
 
@@ -33,12 +27,10 @@ slower and costs quota. Local execution is fine when the code is trusted and sim
 | Situation | Use |
 |---|---|
 | You are an agent inside an MCP client (Cursor, Claude Desktop/Code, VS Code, Qoder, …) and want sandbox tools without writing Python | **MCP** (`abx mcp install`) |
-| You are writing/running Python and need precise control: streaming output, multiple sandboxes, named commands, terminals, binary transfers, structured error handling | **Python SDK** |
+| You are writing Python that creates or drives a sandbox | **Python SDK** (the `agent-sandbox-sdk` skill) |
 | One-off shell operations, CI steps, or environments without Python orchestration | **CLI** (`abx …`) |
 
-Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** The three
-surfaces expose the same sandbox service — pick one, do not mix for the same task
-unless crossing contexts (e.g. an SDK script inspecting a sandbox created via MCP).
+Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and the CLI both drive `alicloud-express` (and an installed plugin). The Python SDK also drives `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b`. Pick one surface for a task.
 
 ## Installation
 
@@ -50,12 +42,11 @@ npx @agent-sandbox/cli --help       # or run it without installing
 pip install agent-sandbox           # Python SDK only (lives in the `python-sdk` repository)
 ```
 
-If npm reports no matching version (no public npm release as of 2026-09-29 —
-check with `npm view @agent-sandbox/cli versions`), install from source:
+If npm reports no matching version, install from the CLI repository. The clone root is the CLI; do not look for a nested cli directory:
 
 ```bash
-git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd cli
-npm ci && npm run build && npm install -g .
+git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git
+cd agent-sandbox && npm ci && npm run build && npm install -g .
 ```
 
 Verify:
@@ -63,6 +54,10 @@ Verify:
 ```bash
 abx --version
 ```
+
+Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Shortcuts, in this order, are `create`, `list`, `info`, `kill`, `exec`, `connect`, `upload`, `download`, `run`, and `deploy`. Nothing in config adds a top-level command.
+
+`abx` loads the built-in provider `alicloud-express`, plus an installed `exec` or `rest` plugin (`abx provider install <path-or-git-url>`). `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b` are `python` plugins in `awesome-providers`. Install them with `python -m agent_sandbox.providers install registry:<id> --yes` and call them from the Python SDK. The CLI manifest parser rejects `kind = "python"`, so `abx --provider` does not start those four. `abx --provider` of an id that is not installed exits `E8001`.
 
 ## Credentials and security
 
@@ -97,25 +92,19 @@ abx config get sandbox_api_key                   # shows a masked value
 CLI (default template is `base`; DESCRIPTION and `--template` are mutually exclusive):
 
 ```bash
-abx create                              # 'base' template
+abx create                              # template 'base'; --timeout is the lifetime in seconds (default 300)
 abx create --template python-hello      # named template, no AI involved
 abx create --template base -e API_KEY=x -e DEBUG=1 --timeout 600
 abx list                                # find sandbox IDs
 abx info <SANDBOX_ID>
+abx connect <SANDBOX_ID>                # one command per line; cd and env do not persist
 ```
 
 `abx create "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
 CLI plus a DashScope/ModelStudio key via `abx config init`) — prefer `--template`
 when you just need a runtime.
 
-Python SDK (async-first; the context manager destroys the sandbox on exit):
-
-```python
-from agent_sandbox import Sandbox
-
-async with await Sandbox.create(template="python-hello", timeout=300) as sb:
-    print(sb.id, sb.url)
-```
+Writing that client, or a template's `commands.py`, is the `agent-sandbox-sdk` skill. The import is `from agent_sandbox import Sandbox`. `timeout` on `create` is the sandbox lifetime in seconds.
 
 MCP tool (inside any MCP client):
 
@@ -130,25 +119,6 @@ that omits `sandbox_id` before any create lazily creates that default.
 
 ## Executing code and commands
 
-Code execution (needs a template with the `code` capability; returns
-`stdout`, `stderr`, `exit_code`, `output_files`):
-
-```python
-result = await sb.run_code("print(sum(range(10)))")          # Python default
-result = await sb.run_code("console.log(1)", language="javascript", timeout=30)
-```
-
-Shell commands (any template; `timeout` bounds the run):
-
-```python
-result = await sb.commands.run("pip install -q httpx", timeout=60)   # cwd option available
-result = await sb.commands.run("ls /app | head -5")                    # auto-wrapped in sh -c
-```
-
-Commands containing unquoted shell operators (`| ; && || > < ( ) $( )`) are
-auto-wrapped in `sh -c`. For variables, backticks, or globs, wrap explicitly:
-`sh -c 'echo $HOME'`.
-
 CLI one-shot (exit code is passed through, so CI fails correctly):
 
 ```bash
@@ -158,25 +128,21 @@ abx exec <SANDBOX_ID> --stream -- pip install httpx      # live output
 abx exec <SANDBOX_ID> --background -- python -m http.server 8000   # prints the pid
 ```
 
-MCP tools: `run_code` (`code`, `language`, `timeout`, `sandbox_id`) and
-`run_command` (`command`, `cwd` default `/app`, `timeout`, `sandbox_id`).
-`run_command` is a bare command (argv or command line), not a named command.
+`--timeout` here bounds the command (default 60). It is not the sandbox lifetime. `--cwd` defaults to the image workdir. Arguments after `--` are the command. A pipeline or a shell variable needs an explicit shell: `abx exec <SANDBOX_ID> -- sh -c 'echo $HOME'`. A background process is `abx sandbox process list <SANDBOX_ID>`. `abx sandbox process signal` accepts only signal 15 (SIGTERM) or 9 (SIGKILL).
 
-Named commands registered on the in-sandbox server (`@registry.command`) are listed with
+`run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` needs a template whose capabilities include `code`.
+
+MCP tools are exactly these seven: `create_sandbox`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`.
+
+`run_command` runs the string with `sh -c`. Omitted `cwd` is the image workdir, not `/app`. `timeout` defaults to 60. It is a shell command, not a named command.
+
+Named commands registered in the template with `@command` (see the `agent-sandbox-sdk` skill) are listed with
 `abx sandbox command list <SANDBOX_ID>` and run with `abx run <SANDBOX_ID> NAME --arg k=v`
 (`--json-args '{"k": 1}'` for typed values).
 
 ## File operations
 
-Python SDK (`sb.files`): `read`, `read_bytes`, `write` (str or bytes), `list`,
-`exists`, `remove`, `make_dir`, `upload(local, remote)`, `download(remote, local)`.
-
-```python
-await sb.files.write("/app/main.py", "print('hi')\n")
-text = await sb.files.read("/app/main.py")
-entries = await sb.files.list("/app")
-await sb.files.download("/app/report.csv", "./report.csv")
-```
+`sb.files` (`read`, `read_bytes`, `write`, `list`, `exists`, `remove`, `make_dir`, `upload`, `download`) is the `agent-sandbox-sdk` skill.
 
 CLI:
 
@@ -186,9 +152,9 @@ abx download <SANDBOX_ID> /app/result.csv .
 abx sandbox files list <SANDBOX_ID> --path /app
 ```
 
-MCP tools: `read_file` (`path`, `encoding`, `sandbox_id`), `write_file` (`path`,
-`content`, `sandbox_id`), `list_files` (`path` default `/app`, `sandbox_id`).
-`write_file` takes text content; for binary data use the SDK or CLI.
+MCP: `read_file` (`path`, `encoding`, `sandbox_id`), `write_file` (`path`,
+`content`, `sandbox_id`), `list_files` (`path` default `/`, `sandbox_id`).
+`write_file` takes text content; for binary data use the CLI upload.
 
 ## Destroying resources
 
@@ -199,13 +165,22 @@ abx kill <SANDBOX_ID> --yes        # --yes skips confirmation (use in scripts)
 abx kill --all --yes               # destroy every running sandbox
 ```
 
-```python
-await sb.kill()                          # or rely on the async context manager
-await Sandbox.kill_by_id("<SANDBOX_ID>") # destroy by ID without connecting
+The Python client's `async with` block kills the sandbox on exit. That client is the `agent-sandbox-sdk` skill.
+
+Killing an id that is already gone succeeds. Do not treat that as a failure.
+
+MCP: `kill_sandbox` with `sandbox_id`. Omitting it destroys the session default.
+Omitting it when the session has no default is an error. MCP session sandboxes
+are also destroyed when the client disconnects.
+
+## Deploy a template
+
+```bash
+abx template deploy ./my-template --acr-namespace "$ACR_NAMESPACE" --acr-repo my-template --alias my-template --yes
+abx deploy ./my-template --yes
 ```
 
-MCP: `kill_sandbox` with `sandbox_id` (omitting it destroys the session's default
-sandbox). MCP session sandboxes are also destroyed when the client disconnects.
+`--yes` is required when stdin is not a terminal. `--build auto` (the default) uses the Dockerfile when one exists and then needs Docker and ACR. `--build steps` sends `template.yaml` `base.image` and `build:` and does not use Docker; combining it with `--acr-namespace` is a usage error (exit 2). Writing the Dockerfile and `commands.py` is the `agent-sandbox-sdk` skill.
 
 ## Diagnosing common errors
 
@@ -219,7 +194,8 @@ and `docs_url`. CLI exit codes: 1 general, 3 auth, 4 not found, 5 timeout, 6 quo
 | `E2001` / HTTP 404 | Template not found | `abx template list`, fix the template name |
 | `E2002` / HTTP 429 | Quota exceeded | `abx kill --all --yes`, retry or request quota |
 | `E2003` | Region unavailable | `abx config set region <region>`, retry |
-| `E3001` | Command/code timeout | Raise the `timeout` argument; check for hangs |
+| `E2009` / exit 4 | Sandbox id not found on info, exec, or connect | Check `abx list`. `abx kill` of a missing id still exits 0 |
+| `E3001` | Command/code timeout | Raise the command `timeout`; check for hangs |
 | `E3004` | Missing `code` capability | Use a template whose `template.yaml` declares `code` |
 | `E5003` / create hangs then fails | Cold start longer than client timeout | Retry; `abx config set http_timeout 120`; `abx config set http2 false` |
 
@@ -231,7 +207,7 @@ a bug. Full error table: `docs/en/reference/error-codes.md`.
 1. Never leak credentials (see [Credential rules](#credentials-and-security)).
 2. Always destroy sandboxes you create (`kill` / context manager) — quota is shared.
 3. Prefer `--template NAME` over template generation unless the user asks for it.
-4. Quote shell commands; rely on the auto `sh -c` wrap only for simple operators.
+4. Pass `abx exec` arguments after `--`. Use `sh -c` when the command needs a shell.
 5. Treat sandbox code as untrusted: never pipe sandbox output into a local shell.
 
 ## Installing this guide into your tool
@@ -264,7 +240,7 @@ The guide and the MCP surface are tool-neutral:
 - **MCP-capable tools** (Cursor, Claude Desktop/Code, VS Code, Qoder, …):
   run `abx mcp install --target cursor|claude|vscode`, or register
   `abx mcp start` (STDIO) manually in your tool's MCP config. All clients get the
-  same 7 tools. A manual `abx mcp start` prints configuration on stderr and
+  same 7 tools listed above. A manual `abx mcp start` prints configuration on stderr and
   waits on stdin; stop it with Ctrl-C or `abx mcp stop`. `abx mcp start --http --background`
   detaches a local HTTP server.
 - **Skills-aware tools** (Qoder, Claude Code, Cursor, Qwen Code, Codex, …):

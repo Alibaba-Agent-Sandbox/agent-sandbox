@@ -1,9 +1,9 @@
 /** Provider health checks: integrity, configuration and the plugin `initialize` handshake. */
 
-import { SandboxError } from "../models/errors.js";
+import { InvalidAPIKeyError, InvalidCredentialsError, SandboxError } from "../models/errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";
-import { ProviderInstallError } from "./errors.js";
+import { ProviderConfigError, ProviderInstallError } from "./errors.js";
 import * as registry from "./registry.js";
 import * as store from "./store.js";
 
@@ -68,6 +68,11 @@ export async function doctor(providerId: string, opts: { handshake?: boolean; op
       infra = await provider.buildInfra(config);
     } catch (exc) {
       if (!(exc instanceof SandboxError)) throw exc;
+      // A missing key is configuration. Install keeps the plugin; create reports it.
+      if (exc instanceof InvalidAPIKeyError || exc instanceof InvalidCredentialsError || exc instanceof ProviderConfigError) {
+        checks.push(check("config", false, exc.message));
+        return finish();
+      }
       checks.push(check("handshake", false, exc.message));
       return finish();
     }
