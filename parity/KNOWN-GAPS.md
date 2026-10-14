@@ -17,6 +17,9 @@ used for everything that did not change.
 * Differences from the Python client for named commands: `run` prints JSON for non-string results; `--server-port` is an
   explicit option; there is no extra `--key value` passthrough (use `--arg KEY=VALUE` or `--json-args`).
 * `abx exec` with several words uses exact argv quoting; use `sh -c '...'` for shell syntax.
+* Ledger rows for Python tests whose TypeScript counterpart was renamed or whose behavior was removed (`TestRichStatus` is now
+  `TestLiveStatus`; `TestLazyGroup` list-sorting; the legacy `QWEN_API_KEY` fallback; the `commands.py` registry-frozen and
+  group-enabling checks) were renamed or removed in `python-tests-to-port.txt` so `parity:coverage` reports no missing rows.
 
 
 ## agent/mcp, agent/mcp_http, agent/tools (builder agent-B)

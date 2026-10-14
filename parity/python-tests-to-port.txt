@@ -12,7 +12,6 @@ tests/integration/test_cli_e2e.py::test_cli_list_sandboxes
 tests/integration/test_cli_e2e.py::test_cli_quiet_mode
 tests/integration/test_credential_priority_e2e.py::TestCredentialPriorityEndToEnd::test_acr_namespace_follows_the_same_order
 tests/integration/test_credential_priority_e2e.py::TestCredentialPriorityEndToEnd::test_blank_values_fall_through
-tests/integration/test_credential_priority_e2e.py::TestCredentialPriorityEndToEnd::test_legacy_qwen_key_when_llm_key_is_absent
 tests/integration/test_credential_priority_e2e.py::TestCredentialPriorityEndToEnd::test_process_env_beats_system_config
 tests/integration/test_credential_priority_e2e.py::TestCredentialPriorityEndToEnd::test_project_dotenv_beats_system_and_loses_to_process_env
 tests/integration/test_credential_priority_e2e.py::TestCredentialPriorityEndToEnd::test_same_layer_order_explicit_region_and_mcp_region
@@ -323,13 +322,9 @@ tests/test_agent/test_template_guide.py::TestGuideText::test_explains_why_a_serv
 tests/test_agent/test_template_guide.py::TestGuideText::test_imports_shown_in_the_guide_exist
 tests/test_agent/test_template_guide.py::TestGuideText::test_no_clarification_wording_leaks_into_the_prompt
 tests/test_agent/test_template_guide.py::TestGuideText::test_sdk_install_pattern_is_the_established_one
-tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_enables_the_groups_the_capabilities_example_relies_on[FILE_OPS]
-tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_enables_the_groups_the_capabilities_example_relies_on[PROCESS]
-tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_enables_the_groups_the_capabilities_example_relies_on[SYSTEM]
 tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_is_valid_python
 tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_loads_registers_a_command_and_serves_on_the_documented_port
 tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_only_imports_public_server_names
-tests/test_agent/test_template_guide.py::TestReferenceCommandsPy::test_registry_is_frozen_before_serving
 tests/test_cli_evidence/test_evidence_snapshots.py::test_evidence_snapshot[config-get-apikey-env]
 tests/test_cli_evidence/test_evidence_snapshots.py::test_evidence_snapshot[config-get-apikey-set]
 tests/test_cli_evidence/test_evidence_snapshots.py::test_evidence_snapshot[config-get-apikey-unset]
@@ -497,8 +492,6 @@ tests/test_cli/test_config_init.py::TestConfigInitWizard::test_existing_region_b
 tests/test_cli/test_config_init.py::TestConfigInitWizard::test_sensitive_values_are_not_echoed
 tests/test_cli/test_config_init.py::TestConfigInitWizard::test_wizard_stores_platform_and_qwen_keys
 tests/test_cli/test_config_init.py::TestLegacyQwenConfig::test_legacy_endpoint_is_listed_as_llm_base_url
-tests/test_cli/test_config_init.py::TestLegacyQwenConfig::test_legacy_qwen_key_is_listed_as_llm_api_key
-tests/test_cli/test_config_init.py::TestLegacyQwenConfig::test_llm_api_key_wins_over_legacy_qwen_key
 tests/test_cli/test_config_init.py::TestLegacyQwenConfig::test_removed_qwen_key_points_at_llm_api_key
 tests/test_cli/test_config_llm.py::TestConfigListLLM::test_list_includes_llm_keys
 tests/test_cli/test_config_llm.py::TestConfigListLLM::test_list_shows_user_llm_values
@@ -831,9 +824,8 @@ tests/test_cli/test_main.py::TestCLIRoot::test_context_options_stored
 tests/test_cli/test_main.py::TestCLIRoot::test_help
 tests/test_cli/test_main.py::TestCLIRoot::test_no_args_shows_help
 tests/test_cli/test_main.py::TestCLIRoot::test_version
-tests/test_cli/test_main.py::TestLazyGroup::test_lazy_group_list_commands_sorted
-tests/test_cli/test_main.py::TestLazyGroup::test_lazy_group_loads_on_demand
-tests/test_cli/test_main.py::TestLazyGroup::test_lazy_group_returns_none_for_unknown
+tests/test_cli/test_main.py::TestLazyGroup::test_lazy_subcommand_loads_on_demand
+tests/test_cli/test_main.py::TestLazyGroup::test_lazy_lookup_returns_null_for_unknown
 tests/test_cli/test_main.py::TestLazyGroup::test_list_commands_includes_lazy
 tests/test_cli/test_main.py::TestVerboseSubcommandFlag::test_enable_verbose_creates_obj_when_missing
 tests/test_cli/test_main.py::TestVerboseSubcommandFlag::test_enable_verbose_sets_context_and_manager
@@ -879,9 +871,9 @@ tests/test_cli/test_output_activity.py::TestHelpers::test_activity_head
 tests/test_cli/test_output_activity.py::TestHelpers::test_activity_lines_keep_the_last_n_clean_lines
 tests/test_cli/test_output_activity.py::TestHelpers::test_fit_cells_is_cjk_aware
 tests/test_cli/test_output_activity.py::TestHelpers::test_fit_cells_leaves_short_text_alone
-tests/test_cli/test_output_activity.py::TestRichStatus::test_lines_sit_below_the_header_not_beside_it
-tests/test_cli/test_output_activity.py::TestRichStatus::test_long_lines_are_cut_not_wrapped
-tests/test_cli/test_output_activity.py::TestRichStatus::test_status_shows_header_and_the_latest_lines
+tests/test_cli/test_output_activity.py::TestLiveStatus::test_lines_sit_below_the_header_not_beside_it
+tests/test_cli/test_output_activity.py::TestLiveStatus::test_long_lines_are_cut_not_wrapped
+tests/test_cli/test_output_activity.py::TestLiveStatus::test_status_shows_header_and_the_latest_lines
 tests/test_cli/test_output_activity.py::TestTransientLine::test_control_characters_and_markup_are_rendered_literally
 tests/test_cli/test_output_activity.py::TestTransientLine::test_erased_even_when_the_block_raises
 tests/test_cli/test_output_activity.py::TestTransientLine::test_four_lines_are_shown_by_default_and_they_scroll
