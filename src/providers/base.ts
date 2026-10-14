@@ -74,7 +74,7 @@ export const FEATURE_TO_CAPABILITY: Readonly<Record<string, string>> = {
   "ports.url": "ports",
 };
 
-export type ProviderKind = "builtin" | "rest" | "exec" | "python";
+export type ProviderKind = "builtin" | "rest" | "exec" | "node" | "python";
 
 /** One provider-scoped configuration field (`[config.fields.<key>]`). */
 export interface ConfigField {
@@ -141,6 +141,8 @@ export interface ProviderInfra {
   code_interpreter_protocol: Loose<CodeInterpreterProtocol> | null;
   /** Releases the plugin process / HTTP client; call on every exit path. */
   close?: () => Promise<void>;
+  /** How this backend wants its envd token handled (a missing token, a Basic user other than `user`). */
+  envd_auth?: { allow_missing?: boolean; basic_user?: string };
 }
 
 export interface ProviderDescription {
@@ -166,8 +168,9 @@ export interface ProviderDescription {
 }
 
 /**
- * A sandbox backend. The built-in provider and the manifest-driven `rest`/`exec` providers are implemented by this
- * package; SDK-side objects (`kind = "python"` in the reference) are plain subclasses registered programmatically.
+ * A sandbox backend. This package implements the built-in provider and the manifest-driven `node`, `rest` and `exec`
+ * providers. A manifest with `kind = "python"` is rejected. In-code subclasses may still set `kind` to `"python"` and
+ * register programmatically; that is not an installable catalog plugin.
  */
 export abstract class Provider {
   abstract readonly id: string;

@@ -244,4 +244,4 @@ classDiagram
 
 ## 相关 SDK 文档
 
-这些异常类的 Python 导入路径（`from agent_sandbox.models.errors import ...`）列在 `python-sdk` 仓库中 SDK 的[错误码参考](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/error-codes.md#导入)里。
+这些异常类的 Python 导入路径（`from agent_sandbox.models.errors import ...`）列在 `python-sdk` 仓库中 SDK 的[错误码参考](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/error-codes.md#导入)里。提供方错误 `E8001`–`E8030` 在该页的 E8xxx 一节。本 CLI 页面到 E7xxx 为止。

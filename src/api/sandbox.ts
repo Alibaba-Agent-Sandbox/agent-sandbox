@@ -693,7 +693,7 @@ export class Sandbox {
         provider_options: { ...(p.build.provider_options ?? {}) },
       });
       const info = await infra.sandbox_protocol.create(sandbox_config, { request_timeout: p.request_timeout });
-      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
+      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id, infra.envd_auth);
       logger.info("Sandbox created: %s (provider %s)", info.sandbox_id, prov.id);
       const resolved = providerCapabilities(prov);
       return new Sandbox({
@@ -723,7 +723,7 @@ export class Sandbox {
     const closer = new InfraCloser(infra);
     try {
       const info = await infra.sandbox_protocol.connect(sandbox_id);
-      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
+      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id, infra.envd_auth);
       logger.info("Connected to sandbox: %s (provider %s)", sandbox_id, prov.id);
       const resolved = providerCapabilities(prov);
       return new Sandbox({
@@ -809,7 +809,12 @@ export class Sandbox {
   /** Open an interactive PTY terminal session (WebSocket). */
   async getTerminal(opts: { cols?: number; rows?: number; shell?: string } = {}): Promise<TerminalSession> {
     const { cols = 80, rows = 24, shell = "/bin/bash" } = opts;
-    return TerminalSession.create(this.url, this._envd_token, this._config, { cols, rows, shell });
+    const hosted = (this._process_protocol as { openTerminal?: (url: string, o: { cols: number; rows: number }) => Promise<unknown> }).openTerminal;
+    if (typeof hosted === "function" && this.url.startsWith("epp://")) {
+      return (await hosted.call(this._process_protocol, this.url, { cols, rows })) as TerminalSession;
+    }
+    const hc = this._http_client instanceof InfraCloser ? this._http_client.httpClient : this._http_client;
+    return TerminalSession.create(this.url, this._envd_token, this._config, { cols, rows, shell, dial: hc?._dial ?? null });
   }
 
   // ---- Named commands (registered on the in-sandbox SandboxServer) ----

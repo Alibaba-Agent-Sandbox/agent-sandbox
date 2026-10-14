@@ -49,7 +49,10 @@ export class WebSocketClient {
   _connected = false;
   _closed = false;
 
-  constructor(url: string, opts: { config: TransportConfig; extra_headers?: Record<string, string> | null }) {
+  _dial: readonly [string, number] | null;
+
+  constructor(url: string, opts: { config: TransportConfig; extra_headers?: Record<string, string> | null; dial?: readonly [string, number] | null }) {
+    this._dial = opts.dial ?? null;
     this._url = url;
     this._config = opts.config;
     this._extra_headers = opts.extra_headers || {};
@@ -68,6 +71,7 @@ export class WebSocketClient {
         pingInterval: interval || null,
         pingTimeout: interval ? interval * 2 : null,
         closeTimeout: 10,
+        dial: this._dial,
       });
       this._connected = true;
       this._closed = false;

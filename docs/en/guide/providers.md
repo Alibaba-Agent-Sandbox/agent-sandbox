@@ -1,6 +1,6 @@
 # Providers
 
-A **provider** is a sandbox backend. `abx` ships one built-in provider and can drive more through installable plugins. This page is the CLI view: install, select, configure and use providers from the command line. The shared concepts (manifest, trust model, EPP/1 protocol, capability matrix) are documented once in the Python SDK repository: [Providers guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/providers.md) and [Providers and credentials design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md). To write a plugin see [Authoring providers](authoring-providers.md).
+A **provider** is a sandbox backend. `abx` ships one built-in provider and can drive more through installable plugins. The official site is <https://www.agent-sandbox.com>. The registry website is <https://registry.agent-sandbox.com>. The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json` (`ABX_PROVIDER_REGISTRY` overrides that URL). This page is the CLI view: install, select, configure and use providers from the command line. The shared concepts (manifest, trust model, EPP/1 protocol, capability matrix) are documented once in the Python SDK repository: [Providers guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/providers.md) and [Providers and credentials design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/providers-and-credentials.md). To write a plugin see [Authoring providers](authoring-providers.md).
 
 | Id | Name | Kind | Default |
 |---|---|---|---|
@@ -90,7 +90,7 @@ Installing a provider does not enable every `abx` command. The CLI and the Pytho
 | `sandbox.pause` | `sandbox pause`, `sandbox resume` | `pause`, `resume` |
 | `exec.run` | `exec`, `run` | `commands.run`, `sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/start/info/signal` | `commands.list`, `kill`, `send_stdin` |
+| `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_stdin` |
 | `pty` | a PTY session (`connect` stays a line REPL) | `get_terminal` |
 | `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
@@ -113,28 +113,34 @@ How the CLI follows the active provider:
 - `abx sandbox capabilities` derives `shell`, `files`, `code`, `terminal` and `ports` from the provider's declared features (the built-in provider reads them from the sandbox template).
 - `abx info` and `abx list` print `-` for a region or timeout the provider does not report.
 
-A `python` provider registered in-process is SDK-only; `exec` and `rest` plugins work from both.
+A manifest with `kind = "python"` is not installable. Programmatic Python `Provider` subclasses still work in the Python SDK, but nothing installed from disk runs as Python.
 
-### OpenSandbox
+### Catalog providers
+
+All four catalog providers run from the CLI and from every SDK, because they run in Node.js, inside the CLI host:
+
+- `opensandbox`, `e2b`, `cubesandbox` and `alicloud-container` are all `node` plugins: an ES module the host loads in-process through a small kit (see [Authoring providers](authoring-providers.md)).
 
 ```bash
+abx provider install alibaba-agent-sandbox/awesome-providers//e2b
+abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
+abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx provider info opensandbox
-abx --provider opensandbox create --template base
-abx exec opensandbox:<id> "echo hello"
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
 ```
 
-`//opensandbox` is the provider directory inside the catalog, the same `//` as `abx template install alibaba-agent-sandbox/awesome-templates//python-hello`. `@ref` after the directory pins a tag, branch, or commit: `alibaba-agent-sandbox/awesome-providers//opensandbox@<ref>`.
+A non-interactive install needs `--yes`. An unpinned git ref also needs `--allow-unpinned`, or a 40-hex `--ref`. The Python SDK installer is `python -m agent_sandbox.providers install registry:<id> --yes`.
 
-Verified 2026-10-13 against a real local server (`opensandbox-server` 1.1.1, Docker runtime) from this CLI and from `Sandbox.create(provider="opensandbox")`: install, doctor, the 18-case `abx provider test`, create, info, list, exec (exit code, stderr), a 3000-byte binary upload and download (byte-identical), a 300 KB file round trip, set timeout, pause, resume, connect by id, kill, and `E2009` for a killed sandbox. The catalog directory still carries the pre-rename `ebx-provider.toml`, so installing it straight from GitHub fails with `E8014` (no `abx-provider.toml` at the plugin root) until the catalog is migrated; `e2e/providers/awesome-providers-abx-rename.patch` is that migration.
+The Python SDK (and later the Node, Go and Java SDKs) reach the same plugins through the local engine, `abx provider engine serve`, which starts on demand. See [Engine HTTP API](../reference/engine-api.md).
 
-OpenSandbox declares `sandbox.lifecycle`, `sandbox.timeout`, `sandbox.pause`, `exec.run`, `exec.stream`, `process.manage`, `files.rw`, `ports.url`, and `sessions`. These work from the CLI and from `Sandbox.create(provider="opensandbox")`:
-
-| Works | Does not (E8004) | Partial |
+| Id | Kind | Page |
 |---|---|---|
-| create, list, info, kill, connect; exec and streamed exec; file read/write/list/stat/mkdir/remove/move, upload, download; timeout; pause and resume; a public URL for a port; connect again by id | PTY, `run_code`, template list/build/deploy/install, file watch, signed transfer URLs, custom domains, OSS mounts, VPC | `sandbox process`: list, kill, and signal work; writing to a process stdin returns E8004. `process.kill` of an execd command id is SIGKILL only |
+| `opensandbox` | `node` | [OpenSandbox provider](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/opensandbox) |
+| `alicloud-container` | `node` | [Container edition](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/alicloud-container) |
+| `cubesandbox` | `node` | [CubeSandbox provider](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/cubesandbox) |
+| `e2b` | `node` | [E2B provider](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/e2b) |
 
-The plugin is Node.js (no npm packages). The Python SDK needs `node` on `PATH` to start it. Point it at a server with `abx config set providers.opensandbox.base_url http://127.0.0.1:8080` (default) and, when the server requires one, `abx config set providers.opensandbox.api_key`. The template name is a container image: `base` uses `python:3.12-slim` unless you set `default_image`. Full field list: [opensandbox/README.md](https://github.com/alibaba-agent-sandbox/awesome-providers/blob/main/opensandbox/README.md).
+OpenSandbox talks to a local server. Set `ABX_OPENSANDBOX_BASE_URL` (default `http://127.0.0.1:8080`) and, when the server requires a key, `ABX_OPENSANDBOX_API_KEY`. The capability table on each page is the one to follow, including calls that return `E8004`.
 
 ---
 

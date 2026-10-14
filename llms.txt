@@ -2,7 +2,7 @@
 
 > CLI (`abx`, Node.js/TypeScript) for the Alibaba Cloud FC Agent Sandbox service;
 > the Python SDK lives in the `python-sdk` repository.
-> E2B-protocol compatible with Alibaba Cloud extensions (OSS, VPC, custom domains).
+> Method names are E2B-shaped. The CLI and the SDK are not an E2B-protocol drop-in.
 
 ## Purpose
 
@@ -34,6 +34,13 @@ Python SDK's layers, whose own architecture lives in the `python-sdk` repository
 - api: Sandbox, files, code, commands, network, image, template
 - protocol / transport: E2B-compatible REST + WebSocket, HTTP/2, API Key / AK-SK auth
 - models / utils: typed models, error hierarchy, config, secret store, logging, retry
+- providers: built-in `alicloud-express`, plus installed `node`, `exec` and `rest` plugins.
+  Catalog ids `opensandbox`, `e2b`, `cubesandbox`, `alicloud-container` are `node`
+  (`provider.mjs`, `create(kit)`). Install with
+  `abx provider install alibaba-agent-sandbox/awesome-providers//<id>`.
+  An unknown id exits E8001. `kind = "python"` manifests are rejected.
+  The Python SDK uses the same plugins through `abx provider engine serve`
+  (HTTP/SSE/WebSocket on 127.0.0.1). `exec` remains for third-party plugins.
 
 Details: docs/en/design/architecture.md
 
@@ -60,6 +67,13 @@ abx kill <id>                       # destroy sandbox
 - src/agent/ — MCP server, tool definitions, template authoring
 - src/bin/abx.ts — executable entry point
 
+## Sites
+
+- Official site: https://www.agent-sandbox.com
+- Provider registry: https://registry.agent-sandbox.com
+- CLI catalog install: `abx provider install alibaba-agent-sandbox/awesome-providers//<id>`
+- Python SDK catalog index: https://registry.agent-sandbox.cn/providers/index.json (`python -m agent_sandbox.providers install registry:<id> --yes`; `ABX_PROVIDER_REGISTRY` overrides the URL)
+
 ## Links
 
 - Agent usage skill: SKILL.md
@@ -69,6 +83,7 @@ abx kill <id>                       # destroy sandbox
 - Design index: docs/en/DESIGN.md
 - CLI architecture: docs/en/design/architecture.md
 - CLI design: docs/en/design/cli-design.md
+- Node provider architecture (provider kinds, kit, engine): docs/en/design/node-provider-architecture.md
 - Templates catalog: docs/en/design/templates-catalog.md
 - MCP server: docs/en/design/mcp-server.md
 - Python to Node port contract: docs/PORTING.md

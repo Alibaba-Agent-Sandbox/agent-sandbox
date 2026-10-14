@@ -19,7 +19,7 @@ import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient } from "../transport/http.js";
 import { StreamReader } from "../transport/streaming.js";
 import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
-import { EppClient, PROTOCOL, isMethodNotFound, resolveCommand, scrubbedEnv, type AsyncQueue, type Notification } from "./epp.js";
+import { EppClient, PROTOCOL, isMethodNotFound, resolveCommand, scrubbedEnv, type AsyncQueue, type EppPeer, type Notification } from "./epp.js";
 import { ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "./errors.js";
 import { hostVersion } from "./host.js";
 import type { Manifest } from "./manifest.js";
@@ -102,7 +102,7 @@ export class ExecSandboxProtocol {
   private readonly pid: string;
 
   constructor(
-    private readonly client: EppClient,
+    private readonly client: EppPeer,
     private readonly features: ReadonlySet<string>,
     private readonly secretOptionKeys: ReadonlySet<string> = new Set(),
   ) {
@@ -242,12 +242,84 @@ export interface ProcessStartOpts {
   user?: string;
 }
 
+/**
+ * An interactive terminal that a plugin hosts (`pty.*`). It has the shape of `TerminalSession`: output arrives as
+ * `pty.output` notifications (`data_b64`), input and resize go out as calls, and `pty.exit` ends the stream.
+ */
+export class ExecTerminal {
+  private open = true;
+
+  constructor(
+    private readonly client: EppPeer,
+    private readonly sandboxId: string,
+    private readonly ptyId: string,
+    private readonly queue: AsyncQueue<Notification | null>,
+  ) {}
+
+  get is_connected(): boolean {
+    return this.open;
+  }
+
+  async send(data: string): Promise<void> {
+    await this.sendBytes(Buffer.from(data, "utf-8"));
+  }
+
+  async sendBytes(data: Uint8Array): Promise<void> {
+    await this.client.call("pty.write", { sandbox_id: this.sandboxId, process_id: this.ptyId, data_b64: Buffer.from(data).toString("base64") });
+  }
+
+  async resize(cols: number, rows: number): Promise<void> {
+    await this.client.call("pty.resize", { sandbox_id: this.sandboxId, process_id: this.ptyId, cols, rows });
+  }
+
+  private async next(timeoutMs: number | null): Promise<Uint8Array | null> {
+    for (;;) {
+      const note = timeoutMs === null ? await this.queue.get() : await this.queue.getWithin(timeoutMs);
+      if (note === undefined) throw new CommandTimeoutError("No terminal output arrived in time.");
+      if (note === null || note["method"] === "pty.exit") {
+        this.open = false;
+        return null;
+      }
+      if (note["method"] === "pty.output") return Buffer.from(String(note["data_b64"] ?? ""), "base64");
+    }
+  }
+
+  async receive(timeout: number | null = null): Promise<string | Uint8Array> {
+    const chunk = await this.next(timeout === null ? null : timeout * 1000);
+    if (chunk === null) throw new SandboxError("terminal stream closed");
+    return chunk;
+  }
+
+  async *outputStream(): AsyncGenerator<string | Uint8Array> {
+    for (;;) {
+      const chunk = await this.next(null);
+      if (chunk === null) return;
+      yield chunk;
+    }
+  }
+
+  async close(): Promise<void> {
+    const wasOpen = this.open;
+    this.open = false;
+    this.client.closeStream(this.ptyId);
+    if (wasOpen) await this.client.call("pty.close", { sandbox_id: this.sandboxId, process_id: this.ptyId }).catch(() => undefined);
+  }
+
+  async __aenter__(): Promise<this> {
+    return this;
+  }
+
+  async __aexit__(): Promise<void> {
+    await this.close();
+  }
+}
+
 /** `ProcessProtocol` over EPP; delegates to the native envd transport in hybrid mode. */
 export class ExecProcessProtocol {
   private readonly pid: string;
 
   constructor(
-    private readonly client: EppClient,
+    private readonly client: EppPeer,
     private readonly features: ReadonlySet<string>,
     private readonly native: ProcessProtocol | null,
   ) {
@@ -311,6 +383,15 @@ export class ExecProcessProtocol {
     }
   }
 
+  /** Open a plugin-hosted terminal (`pty` feature). */
+  async openTerminal(envdUrl: string, opts: { cols?: number; rows?: number } = {}): Promise<ExecTerminal> {
+    if (!this.features.has("pty")) throw new ProviderFeatureNotSupportedError(this.pid, "pty");
+    const sandboxId = sandboxIdFrom(envdUrl);
+    const res = asDict(await this.client.call("pty.open", { sandbox_id: sandboxId, cols: opts.cols ?? 80, rows: opts.rows ?? 24 }));
+    const ptyId = String(res["process_id"]);
+    return new ExecTerminal(this.client, sandboxId, ptyId, this.client.openStream(ptyId));
+  }
+
   async listProcesses(envdUrl: string, envdToken: EnvdTokenManager): Promise<ProcessInfo[]> {
     if (!isEppUrl(envdUrl)) return this.nativeOr().listProcesses(envdUrl, envdToken);
     this.needManage();
@@ -371,7 +452,7 @@ export class ExecFilesystemProtocol {
   private readonly pid: string;
 
   constructor(
-    private readonly client: EppClient,
+    private readonly client: EppPeer,
     private readonly features: ReadonlySet<string>,
     private readonly native: FilesystemProtocol | null,
   ) {

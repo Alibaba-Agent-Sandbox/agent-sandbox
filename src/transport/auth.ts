@@ -166,13 +166,25 @@ export class AkSkAuth implements AuthProvider {
  * - E2b-Sandbox-Port: 49983
  * - Authorization: Basic {base64("user:")}
  */
+export interface EnvdTokenOptions {
+  /** Send envd requests without `X-Access-Token` (a backend that issues no envd token). */
+  allow_missing?: boolean;
+  /** User name in the Basic header; `user` unless the backend expects another account. */
+  basic_user?: string;
+}
+
 export class EnvdTokenManager {
   _token: string | null;
   _sandbox_id: string | null;
+  private readonly _allow_missing: boolean;
+  private readonly _basic: string;
 
-  constructor(token: string | null = null, sandbox_id: string | null = null) {
+  constructor(token: string | null = null, sandbox_id: string | null = null, opts: EnvdTokenOptions = {}) {
     this._token = token;
     this._sandbox_id = sandbox_id;
+    this._allow_missing = opts.allow_missing ?? false;
+    const user = opts.basic_user || "user";
+    this._basic = user === "user" ? _ENVD_BASIC_AUTH : Buffer.from(`${user}:`, "latin1").toString("base64");
   }
 
   get token(): string | null {
@@ -199,15 +211,13 @@ export class EnvdTokenManager {
    * and Authorization (Basic) headers.
    */
   getHeaders(): Record<string, string> {
-    if (this._token === null) {
+    if (this._token === null && !this._allow_missing) {
       throw new TokenExpiredError("envdAccessToken not available. Sandbox may not be created or connected.", {
         suggestion: "Create or connect to a sandbox first.",
       });
     }
-    const headers: Record<string, string> = {
-      [ENVD_AUTH_HEADER]: this._token,
-      Authorization: `Basic ${_ENVD_BASIC_AUTH}`,
-    };
+    const headers: Record<string, string> = { Authorization: `Basic ${this._basic}` };
+    if (this._token !== null) headers[ENVD_AUTH_HEADER] = this._token;
     if (this._sandbox_id !== null) {
       headers[ENVD_SANDBOX_ID_HEADER] = this._sandbox_id;
     }

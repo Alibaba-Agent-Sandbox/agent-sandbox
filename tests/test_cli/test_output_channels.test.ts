@@ -400,6 +400,7 @@ describe("TestDeployDiagnosticsChannel", () => {
 
   it("test_start_cmd_warning_is_one_stderr_line", async () => {
     const tmp = fs.mkdtempSync(path.join(iso.tmp_path, "deploy-"));
+    fs.writeFileSync(path.join(tmp, "Dockerfile"), "FROM ubuntu:22.04\n");
     await patchPipeline();
     const result = await new CliRunner().invoke(await deployCmd(tmp), []);
 
@@ -412,6 +413,7 @@ describe("TestDeployDiagnosticsChannel", () => {
 
   it("test_start_cmd_warning_suppressed_in_quiet_mode", async () => {
     const tmp = fs.mkdtempSync(path.join(iso.tmp_path, "deploy-"));
+    fs.writeFileSync(path.join(tmp, "Dockerfile"), "FROM ubuntu:22.04\n");
     await patchPipeline();
     const result = await new CliRunner().invoke(await deployCmd(tmp), ["--quiet"]);
 

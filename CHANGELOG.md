@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- **`node/1` provider kind.** A plugin is an ES module (`provider.mjs`, `export default create(kit)`) that the CLI host loads in-process through a small kit. `e2b`, `cubesandbox` and `alicloud-container` are now `node` plugins, so they run from the CLI as well as from the SDKs. `opensandbox` is a `node` plugin too (0.3.0): its EPP/1 methods run in the host process through `kit.epp.infra` (no child process), `node provider.mjs` still serves EPP/1 on stdio, and it gained a terminal (`pty.open/write/resize/close`, Node 22+). The `exec` kind remains for third-party plugins in any language.
+- **Provider engine.** `abx provider engine serve|status|stop` runs the provider layer once for every SDK: HTTP, SSE and WebSocket on `127.0.0.1`, a bearer token in `~/.abx/engine.json`, one engine per user, idle exit. See [Engine HTTP API](docs/en/reference/engine-api.md).
+- **Terminals through a proxy.** `Sandbox.getTerminal` honors the plugin's envd dial target, and a plugin can host its own terminal.
+- **Official site and registry website.** READMEs and the docs index name https://www.agent-sandbox.com and https://registry.agent-sandbox.com. The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json`.
+
 ### Changed
+
+- **CLI skill stays on operating a sandbox.** `SKILL.md` is a static usage guide at the repository root; tools load it from a directory named `agent-sandbox`. It lists the fixed command surface, the seven MCP tools, deploy `--build`, and the fact that `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b` are `node` plugins the CLI and the Python SDK both run. It does not restore the removed `abx skill` command. Writing `Sandbox.create`, `template.yaml`, a Dockerfile, or `commands.py` is the `agent-sandbox-sdk` skill. `abx template init` scaffolds `@command` and `start()` under `if __name__ == "__main__"`.
 
 - **Grey activity rows default to six and show a short tool detail.** While Qwen Code researches, assesses, or generates, each tool row is `tool: <name> <detail>` with a short redacted detail (command, url, query, or path). The block shows the last 6 lines (`ABX_ACTIVITY_LINES`, 1–10). File bytes, thinking, and credentials stay hidden.
 
@@ -16,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- **Doctor treats a missing provider key as configuration.** `buildInfra` raising `InvalidAPIKeyError`, `InvalidCredentialsError`, or `ProviderConfigError` is a `config` check, so install keeps the plugin. `abx provider update` on a catalog receipt tells you to reinstall with `abx provider install alibaba-agent-sandbox/awesome-providers//<id> --force`.
 - **SDK defects found by the real-cloud E2E suite, ported to the Node CLI** (present since 0.2.0 in the Python `abx`; ids from `python-sdk/e2e/KNOWN-ISSUES.md`; the wire behaviour now matches the fixed Python SDK; each is pinned by `tests/test_known_issues/ki00N_*.test.ts` and verified against the real platform by `e2e/known-issues/`; the places where the harness against the original Python `abx` legitimately differs are the documented allow-list in [`parity/sdk-defect-fixes.md`](parity/sdk-defect-fixes.md)):
   - **KI-001** per-call environment variables (`abx run` of a template command that declares `env`, the SDK `commands.run/start/stream({ env })`, MCP `run_command`) were sent as `process.envVars`; envd's `ProcessConfig` field is `envs`, so they were silently dropped. They now reach the command (sandbox-create `envVars` is unchanged).
   - **KI-002** `abx files list` / `files stat` understand envd's `EntryInfo`: the numeric `type` (`2` = directory; `FILE_TYPE_DIRECTORY` and a string `size` are accepted too) and the `entry` object of `Stat`. Directories were listed as `file` and `files stat` printed a blank name and path.
@@ -28,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   - **KI-010** has no counterpart in the Node CLI (no declarative `@sandbox` decorator); KI-009 and KI-011 need no change.
 
 ### Added
+
+- **Template publish can use platform build steps.** `abx template build`, `abx template deploy`, and `abx deploy` take `--build auto|dockerfile|steps` (default `auto`). `auto` publishes a Dockerfile when one is present. Otherwise it expands `template.yaml` `build:` (`apt_install`, `pip_install`, `npm_install`, `env`, `run`, `steps`) into official `CreateTemplate` `sandboxConfig.steps`, using `base.image` and skipping local Docker and ACR. `--build steps` with `--acr-namespace` or `--legacy-api` is a usage error. Spec: [Template build modes](docs/en/design/template-build-modes.md).
 
 - **Black-box E2E suite, differential harness and the Definition of Done.** `npm run e2e` (`e2e/`) runs any `abx` binary (`ABX_BIN`) with an isolated HOME against the real cloud: 132 scenarios across offline, read-only cloud, full sandbox lifecycle, template catalog and an opt-in Docker deploy flow, with masked output, tracked cleanup and a final leak check. `npm run e2e:offline` needs no credentials; `npm run e2e:cleanup` is the janitor. `parity/diff/` compares two binaries wire for wire against a stub platform and envd (120 cases seeded from the evidence registry). The baseline against the Python `abx` is recorded in `e2e/BASELINE.md`. New rules in `.agents/notes/DEFINITION-OF-DONE.md` (English and Chinese, with ADR and evidence templates): a feature is done only after real-component verification, recorded evidence and complete en/zh docs; linked from `CONTRIBUTING.md` and the PR template. Guide: [Testing & Definition of Done](docs/en/guide/testing-e2e.md) ([中文](docs/zh/guide/testing-e2e.md)).
 

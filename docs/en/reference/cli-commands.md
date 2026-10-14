@@ -46,7 +46,7 @@ abx
 ├── template     init | search | info | list | build | push | create | delete | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
 ```
 
 `abx provider --help` is owned by the provider documentation ([Providers](../guide/providers.md)); only the group

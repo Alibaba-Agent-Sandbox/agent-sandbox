@@ -32,6 +32,7 @@ Commands:
   default     Show or set the default provider.
   doctor      Check a provider: installed, integrity, configuration and (for
               plugins) the handshake.
+  engine      Run or inspect the local provider engine.
   info        Show a provider's manifest, features and configuration.
   install     Install a provider plugin from a directory or a git URL.
   list        List built-in and installed providers.

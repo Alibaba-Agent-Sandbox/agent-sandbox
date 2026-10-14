@@ -45,6 +45,7 @@ const REJECTIONS: Array<[string, string]> = [
   [mutate('id = "demo-prov"', 'id = "abx-thing"'), "reserved"],
   [mutate('version = "1.2.3"', 'version = "banana"'), "version"],
   [mutate('kind = "exec"', 'kind = "docker"'), "runtime.kind"],
+  [mutate('kind = "exec"', 'kind = "python"'), "not supported"],
   [mutate('command = ["python3", "./p.py"]', "command = []"), "runtime.command"],
   [mutate('command = ["python3", "./p.py"]', 'command = ["run.bat"]'), "launcher"],
   [mutate('command = ["python3", "./p.py"]', 'command = ["../evil"]'), "inside the plugin"],
@@ -64,6 +65,22 @@ const REJECTIONS: Array<[string, string]> = [
   [`${BASE}\n[compat]\nprotocol = "epp/9"\n`, "protocol"],
   [`${BASE}\n[compat]\nrequires = { sdk = "~~1" }\n`, "compat.requires"],
 ];
+
+it("test_python_kind_names_node_exec_and_rest", () => {
+  let caught: unknown;
+  try {
+    parseManifest(mutate('kind = "exec"', 'kind = "python"'));
+  } catch (e) {
+    caught = e;
+  }
+  const message = String((caught as Error).message);
+  expect(caught).toBeInstanceOf(ProviderManifestError);
+  expect(message).toContain("not supported");
+  expect(message).toContain("'node'");
+  expect(message).toContain("'exec'");
+  expect(message).toContain("'rest'");
+  expect(message).not.toContain("Python SDK");
+});
 
 it.each(REJECTIONS)("test_rejections[%#]", (text, needle) => {
   let caught: unknown;

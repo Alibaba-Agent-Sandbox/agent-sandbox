@@ -26,6 +26,8 @@ my-template/
 
 `template.yaml` is the only required file.
 
+Publish with `abx deploy`. `--build auto` (the default) uses the Dockerfile when that file exists. Otherwise it sends `base.image` and the `build:` block (`apt_install`, `pip_install`, `npm_install`, `env`, `run`, `steps`) as platform build steps, with no local Docker build and no ACR push. `--build dockerfile` and `--build steps` force one path. See [Template build modes](../design/template-build-modes.md).
+
 ---
 
 ## template.yaml Basic Example
@@ -57,32 +59,15 @@ ports:
 
 ## Field Reference, Capabilities and Named Commands
 
-The `template.yaml` fields and the `capabilities` vocabulary (`shell`, `files`, `code`, `terminal`, `ports`) are part of the shared template contract. Named commands are not declared in `template.yaml`: register them on the in-sandbox server (`@registry.command`) and call them with `abx run <id> <name> --arg k=v` (list them with `abx sandbox command list <id>`). The fields and capabilities are specified in the SDK documentation listed in [Related SDK documentation](#related-sdk-documentation).
+The `template.yaml` fields and the `capabilities` vocabulary (`shell`, `files`, `code`, `terminal`, `ports`) are part of the shared template contract. Named commands are not declared in `template.yaml`: register them with `@command` and call `start()` only under `if __name__ == "__main__"`. Call one with `abx run <id> <name> --arg k=v` (list them with `abx sandbox command list <id>`). The fields and capabilities are specified in the SDK documentation listed in [Related SDK documentation](#related-sdk-documentation).
 
 ## Dockerfile Customization
 
-The actual build process uses `Dockerfile` directly along with language-native dependency files (`requirements.txt` / `package.json`):
-
-```dockerfile
-FROM python:3.11-slim
-
-RUN apt-get update && apt-get install -y \
-    curl git \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir \
-    pandas matplotlib numpy
-
-WORKDIR /app
-
-ENV PYTHONUNBUFFERED=1
-```
-
-The `Dockerfile` in the template directory is the sole source for building images. `template.yaml` only defines runtime configuration (capabilities, commands, environment variables, resources) and does not contain build instructions.
+The `Dockerfile` in the template directory is the image when one is present. `template.yaml` does not install packages. Extra packages are `RUN` lines on the provider profile in the next section. The default provider is `alicloud-express`: the FC base image, no `CMD` or `ENTRYPOINT`, workdir `/home/user/app`. `FROM python:3.11-slim` is not that image.
 
 ## Provider template profile
 
-The HTTP server inside the image does not depend on a sandbox provider. `commands.py` imports only `agent_sandbox.server` and calls `serve(port=9000)` under `if __name__ == "__main__"`. Port 9000 is the server default.
+The HTTP server inside the image does not depend on a sandbox provider. `commands.py` imports only `agent_sandbox.server` and calls `start(port)` under `if __name__ == "__main__"`. A `start()` or `serve()` call at import time breaks the platform `--commands` import. Port 9000 is the server default.
 
 Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `start_cmd` / `ready_cmd`, architecture, workdir, reserved ports, and registry notes come from the **selected provider's template profile**. `abx` resolves that provider the same way as every other command: `--provider`, then `ABX_PROVIDER`, then the configured default (`alicloud-express`). The template guide, the codegen prompt, and `abx template init` describe that one profile.
 

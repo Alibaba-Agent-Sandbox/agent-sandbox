@@ -28,6 +28,7 @@ import { BUILTIN_PROVIDER_ID, getKey, providerEnvName } from "../../utils/config
 import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
+import { engine } from "./provider_engine.js";
 
 type Params = Record<string, unknown>;
 
@@ -758,4 +759,5 @@ provider.addCommand(default_cmd, "default");
 provider.addCommand(config_cmd, "config");
 provider.addCommand(doctor_cmd, "doctor");
 provider.addCommand(test_cmd, "test");
+provider.addCommand(engine, "engine");
 

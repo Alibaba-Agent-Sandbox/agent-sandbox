@@ -148,11 +148,25 @@ describe("TestFixedPipeline", () => {
     expect(buildCalls).toEqual([]);
   });
 
+  it("test_steps_template_skips_the_dockerfile_and_acr_checks", async () => {
+    writeText(
+      path.join(tmpPath(), "template.yaml"),
+      "name: steps-only\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['true']\n",
+    );
+
+    const result = await runner().invoke(cli, ["deploy", tmpPath(), "--build", "steps", "-y"]);
+
+    expect(result.exit_code, result.output).toBe(0);
+    expect(buildCalls.length).toBe(1);
+    expect(buildCalls[0]!["build"]).toBe("steps");
+    expect(deploySeams.resolve_acr_namespace).not.toHaveBeenCalled();
+  });
+
   it("test_missing_dockerfile_points_at_template_init", async () => {
     const result = await runner().invoke(cli, ["deploy", tmpPath()]);
 
     expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("No Dockerfile found");
+    expect(result.output).toContain("No Dockerfile and no template.yaml build steps");
     expect(result.output).toContain("abx template init");
     expect(buildCalls).toEqual([]);
   });

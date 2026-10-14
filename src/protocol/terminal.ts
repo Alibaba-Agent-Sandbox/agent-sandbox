@@ -25,7 +25,7 @@ export class TerminalSession {
     envd_url: string,
     envd_token: EnvdTokenManager,
     config: TransportConfig,
-    opts: { cols?: number; rows?: number; shell?: string } = {},
+    opts: { cols?: number; rows?: number; shell?: string; dial?: readonly [string, number] | null } = {},
   ): Promise<TerminalSession> {
     const { cols = 80, rows = 24, shell = "/bin/bash" } = opts;
     // Convert HTTP URL to WebSocket URL
@@ -34,7 +34,7 @@ export class TerminalSession {
 
     const headers = { ...envd_token.getHeaders() };
 
-    const ws_client = new WebSocketClient(ws_url, { config, extra_headers: headers });
+    const ws_client = new WebSocketClient(ws_url, { config, extra_headers: headers, dial: opts.dial ?? null });
     await ws_client.connect();
 
     const session = new TerminalSession(ws_client);

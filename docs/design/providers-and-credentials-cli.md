@@ -1,5 +1,7 @@
 # Providers and Credentials — CLI spec (for the Node.js `abx`)
 
+> **Status: superseded for catalog providers** wherever this page lists a gRPC transport as future work. The current design is the Node engine: HTTP, SSE and WebSocket on `127.0.0.1`, protocol `abx-engine/1`. See [cli/docs/en/reference/engine-api.md](../en/reference/engine-api.md) and [Node provider architecture](../en/design/node-provider-architecture.md). The checklist item below is kept as history.
+
 > **Audience**: the CLI worker who applies this spec.
 >
 > **Normative source of the design**: `python-sdk/docs/en/design/providers-and-credentials.md` (naming scheme, precedence, provider contract, security model). This file turns it into exact CLI grammar, help text, JSON shapes, exit codes, module layout and tests.
@@ -369,8 +371,10 @@ Runs without side effects: manifest valid, digest matches receipt, `requires` OK
 | `src/providers/builtin.ts` | `alicloud-express` wrapping today's code paths (no behaviour change) |
 | `src/providers/manifest.ts` | TOML parse (`smol-toml`) + all validation rules + version comparator |
 | `src/providers/store.ts`, `installer.ts` | layout, lock, receipt, **tree digest**, git clone hardening, fs-safety checks, consent screen, update/rollback |
-| `src/providers/exec_provider.ts` | EPP/1 client (NDJSON JSON-RPC over `child_process.spawn`, `shell:false`, scrubbed env, process-group kill), error mapping table |
+| `src/providers/exec_provider.ts` | EPP/1 client (NDJSON JSON-RPC over `child_process.spawn`, `shell:false`, scrubbed env, process-group kill), error mapping table. Third-party plugins; optional `pty.*` |
+| `src/providers/node_provider.ts` | in-process `node/1` module (`provider.mjs`, `create(kit)`). Catalog providers `opensandbox`, `e2b`, `cubesandbox`, `alicloud-container` |
 | `src/providers/rest_provider.ts` | manifest-driven endpoint preset on top of the existing envd transport |
+| `src/engine/server.ts` | local engine for other languages: HTTP, SSE and WebSocket on `127.0.0.1`, protocol `abx-engine/1` |
 | `src/cli/commands/provider.ts` | the commands of §5 |
 | `src/cli/commands/config_cmd.ts` | deltas of §3 |
 
@@ -379,7 +383,7 @@ Interface (wire fields stay `snake_case`):
 ```ts
 export interface Provider {
   id: string; displayName: string; displayNameZh: string; version: string;
-  kind: "builtin" | "rest" | "exec";
+  kind: "builtin" | "node" | "rest" | "exec";
   features: ReadonlySet<ProviderFeature>;
   configFields: readonly ConfigField[];
   usesCore: readonly string[];
@@ -424,7 +428,7 @@ Naming follows the port rules (`tests/<path>.test.ts`, `describe("<Class>")`, `i
 7. Update the CLI docs (`cli-design`, `cli-reference`, `configuration`, `environment-variables`, `authentication`, new `providers` guide) and zh mirrors; `SKILL.md`; `llms.txt`; CHANGELOG.
 8. Make the `mcp install` copy rules (§4.3) and the MCP server env (`ABX_PROVIDER` is forwarded) consistent.
 9. Review round with an adversary who did not write the slice (per PORTING.md), appending findings to `parity/review-log.md`.
-10. Open items for later (do not build now): OS-level plugin confinement, keychain secret storage, registry/marketplace source, long-lived plugin daemons (EPP/2), gRPC transport.
+10. Open items for later (do not build now): OS-level plugin confinement, keychain secret storage, registry/marketplace source, long-lived plugin daemons (EPP/2). gRPC as an SDK-to-provider transport was evaluated and was not adopted for catalog providers (see the status at the top of this page; current design is the Node engine, HTTP / SSE / WebSocket, [cli/docs/en/reference/engine-api.md](../en/reference/engine-api.md)).
 
 ---
 
@@ -440,6 +444,6 @@ The Python SDK side was implemented after this spec was reviewed. These points a
 6. **Process cleanup**: after the plugin exits (cleanly or not) the host still kills the process group, so grandchildren cannot outlive a session (`EppClient.close`).
 7. **`close()`**: provider processes are owned by the sandbox object; the Python API gained `Sandbox.close()`. A CLI invocation must close its provider on every exit path (including `Ctrl-C`).
 8. **Storage**: `abx config set sandbox_api_key` writes `ABX_SANDBOX_API_KEY` in `~/.abx/.env` (mode 0600). `sandbox_base_url` is stored as `[transport] sandbox_base_url`. Each key has that one stored name.
-9. **`python -m agent_sandbox.providers`** is the SDK-only twin of `abx provider` (same layout, same receipts, same digest). A provider installed by one tool must load in the other (§7 item 11).
+9. **`python -m agent_sandbox.providers`** is the SDK-side twin of `abx provider` (same layout, same receipts, same digest). A `node` plugin installed by one tool loads in the other: the CLI imports `provider.mjs`, and the Python SDK reaches it through `abx provider engine serve`. A manifest with `kind = "python"` is rejected (`node`, `exec` or `rest`). In-code `Provider` subclasses still register in the Python SDK. They are not installable catalog plugins.
 10. **Not implemented in Python (follow-ups, same for the CLI)**: `sandbox.yaml` `provider:` / `provider_options:` and `@sandbox(provider=...)`; OS confinement; `list --all-providers` aggregation helper in the SDK (the SDK exposes `Sandbox.list(provider=...)` per provider only).
 

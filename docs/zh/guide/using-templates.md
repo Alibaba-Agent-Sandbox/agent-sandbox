@@ -131,4 +131,4 @@ abx run sbx-xxxx dev --arg port=8080
 
 ## 相关 SDK 文档
 
-在 Python 中按模板创建沙箱（`Sandbox.create(template=...)`、`sandbox.custom()`、`sandbox.list_commands()`）见 SDK 的 [SDK 使用指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md)。`template.yaml` 字段参考见[模板 YAML 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)。
+在 Python 中按模板创建沙箱（`Sandbox.create(template=...)`、`sandbox.run()`、`sandbox.list_commands()`）见 SDK 的 [SDK 使用指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md)。`template.yaml` 字段参考见[模板 YAML 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)。

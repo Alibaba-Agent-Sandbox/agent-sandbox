@@ -507,6 +507,11 @@ export async function _updateExistingTemplate(opts: UpdateExistingTemplateOption
   return result;
 }
 
+function _platformSteps(m: any, steps?: Array<{ type: string; args: string[] }> | null): any[] | undefined {
+  if (!steps?.length) return undefined;
+  return steps.map((step) => new m["CreateTemplateStep"]({ type: step.type, args: step.args }));
+}
+
 // ---------------------------------------------------------------------------
 // Core: create_official_template
 // ---------------------------------------------------------------------------
@@ -535,6 +540,7 @@ export interface CreateOfficialTemplateOptions {
   registry_vswitch_id?: string | null;
   registry_security_group_id?: string | null;
   target_image?: string | null;
+  steps?: Array<{ type: string; args: string[] }> | null;
 }
 
 /**
@@ -569,6 +575,7 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
     registry_vswitch_id = null,
     registry_security_group_id = null,
     target_image = null,
+    steps = null,
   } = opts;
   let team_id = opts.team_id ?? null;
   const sdk = _requireSdk();
@@ -615,6 +622,7 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
     startCommand: start_command ?? undefined,
     readyCommand: ready_command ?? undefined,
     registryConfig: registry_config ?? undefined,
+    steps: _platformSteps(m, steps),
   });
 
   const runtime_config = new m["CreateTemplateRuntimeConfig"]({
@@ -761,6 +769,7 @@ export interface BuildCreateTemplateRequestMapOptions {
   registry_username?: string | null;
   registry_password?: string | null;
   target_image?: string | null;
+  steps?: Array<{ type: string; args: string[] }> | null;
 }
 
 /**
@@ -787,6 +796,7 @@ export function buildCreateTemplateRequestMap(opts: BuildCreateTemplateRequestMa
     registry_username = null,
     registry_password = null,
     target_image = null,
+    steps = null,
   } = opts;
   const sdk = _requireSdk();
   const m = sdk.models;
@@ -814,6 +824,7 @@ export function buildCreateTemplateRequestMap(opts: BuildCreateTemplateRequestMa
     startCommand: start_command ?? undefined,
     readyCommand: ready_command ?? undefined,
     registryConfig: registry_config ?? undefined,
+    steps: _platformSteps(m, steps),
   });
 
   const runtime_config = new m["CreateTemplateRuntimeConfig"]({

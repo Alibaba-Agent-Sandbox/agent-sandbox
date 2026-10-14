@@ -10,9 +10,18 @@
 
 > 为 AI Agent 打造的云沙箱 —— 秒级创建、执行、管理隔离环境。
 
-**Agent Sandbox** 是基于阿里云函数计算（FC）Agent Sandbox 服务的命令行工具（`abx`）。
+**Agent Sandbox** 是命令行工具（`abx`）。默认提供方是阿里云极速版（`alicloud-express`）。CLI 还会加载已安装的 `node`、`exec` 和 `rest` 插件。目录提供方 `opensandbox`、`alicloud-container`、`cubesandbox` 和 `e2b` 都是 `node` 插件：导出 `create(kit)` 的 ES 模块 `provider.mjs`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装（本地路径或 git URL 也可以），再用 `abx --provider <id>` 运行。既不是内置也未安装的 id 以 `E8001` 退出。`runtime.kind = "python"` 的清单不能安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用；SDK 通过本机引擎（`abx provider engine serve`；`abx` 在 `PATH` 上或由 `ABX_BIN` 指定）使用同一批 `node` 插件。`exec`（stdio 上的 EPP/1，任意语言，可选 `pty.*`）留给第三方插件。
 Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)（见 [Python SDK](#python-sdk)）。
 模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；CLI 和 SDK 都不是 E2B 协议的直接替代。
+
+## 网站
+
+| 网站 | 地址 |
+|---|---|
+| 官网 | https://www.agent-sandbox.com |
+| 提供方注册站 | https://registry.agent-sandbox.com |
+
+CLI 从 git 树 `alibaba-agent-sandbox/awesome-providers//<id>` 安装这些目录提供方。Python SDK 安装器（`python -m agent_sandbox.providers install registry:<id> --yes`）拉取 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改 SDK 安装器使用的这个地址。
 
 ---
 
@@ -100,7 +109,8 @@ abx config init                          # 凭证 + 区域（--build / --llm 追
 abx config set sandbox_api_key <YOUR_API_KEY>   # 或直接设置单个密钥
 
 # 沙箱生命周期
-abx create --template python-base       # 创建沙箱
+abx create --template base             # 默认模板
+abx create --template python-base      # 目录里的 Python 镜像
 abx list                                 # 列出运行中的沙箱
 abx info <sandbox-id>                    # 查看沙箱详情
 abx exec <sandbox-id> -- echo hello       # 执行命令（--cwd/--env/--timeout/--stream/--background）
@@ -158,7 +168,7 @@ $ abx template install alibaba-agent-sandbox/awesome-templates//node-web@v1.0.0 
 
 ## Python SDK
 
-Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.run()` / `sandbox.run_code()` / `sandbox.custom()`）与架构文档均在该仓库维护。
+Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`）与架构文档均在该仓库维护。
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
@@ -204,6 +214,7 @@ pip install agent-sandbox-server
 | CLI 命令体系（规范命令树） | [CLI 命令参考](docs/zh/reference/cli-commands.md) |
 | CLI 参考 | [CLI 参考](docs/zh/reference/cli-reference.md) |
 | 配置说明 | [配置说明](docs/zh/reference/configuration.md) |
+| 引擎 HTTP API（各 SDK 通过它使用提供商） | [引擎 HTTP API](docs/zh/reference/engine-api.md) |
 | 错误码 | [错误码](docs/zh/reference/error-codes.md) |
 
 ### 设计与架构

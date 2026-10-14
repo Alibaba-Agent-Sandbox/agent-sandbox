@@ -1,5 +1,7 @@
 # 提供方与凭证 —— CLI 规格（Node.js `abx`）
 
+> **状态：对目录提供方已被取代**——本页把 gRPC 传输列为以后的工作时，以这句为准。现行设计是 Node 引擎：`127.0.0.1` 上的 HTTP、SSE 和 WebSocket，协议 `abx-engine/1`。见 [cli/docs/zh/reference/engine-api.md](../reference/engine-api.md) 和 [Node 提供方架构](node-provider-architecture.md)。下面清单里的对应条目作为历史保留。
+
 > **读者**：落实本规格的 CLI 实现。
 >
 > **设计的规范性来源**：`python-sdk/docs/en/design/providers-and-credentials.md`（命名方案、优先级、提供方契约、安全模型）。本文把它落实为精确的 CLI 语法、帮助文本、JSON 形状、退出码、模块布局和测试。
@@ -371,8 +373,10 @@ abx provider config ID init           # guided prompts from the schema (as §3.7
 | `src/providers/builtin.ts` | 包装今天代码路径的 `alicloud-express`（行为不变） |
 | `src/providers/manifest.ts` | TOML 解析（`smol-toml`）+ 全部校验规则 + 版本比较器 |
 | `src/providers/store.ts`、`installer.ts` | 布局、锁、回执、**目录树摘要**、git clone 加固、文件系统安全检查、同意界面、更新 / 回滚 |
-| `src/providers/exec_provider.ts` | EPP/1 客户端（基于 `child_process.spawn` 的 NDJSON JSON-RPC，`shell:false`，清理过的环境，进程组终止），错误映射表 |
+| `src/providers/exec_provider.ts` | EPP/1 客户端（基于 `child_process.spawn` 的 NDJSON JSON-RPC，`shell:false`，清理过的环境，进程组终止），错误映射表。第三方插件；可选 `pty.*` |
+| `src/providers/node_provider.ts` | 进程内的 `node/1` 模块（`provider.mjs`，`create(kit)`）。目录提供方 `opensandbox`、`e2b`、`cubesandbox`、`alicloud-container` |
 | `src/providers/rest_provider.ts` | 基于现有 envd 传输、由清单驱动的端点预设 |
+| `src/engine/server.ts` | 给其他语言用的本机引擎：`127.0.0.1` 上的 HTTP、SSE 和 WebSocket，协议 `abx-engine/1` |
 | `src/cli/commands/provider.ts` | §5 的命令 |
 | `src/cli/commands/config_cmd.ts` | §3 的增量 |
 
@@ -381,7 +385,7 @@ abx provider config ID init           # guided prompts from the schema (as §3.7
 ```ts
 export interface Provider {
   id: string; displayName: string; displayNameZh: string; version: string;
-  kind: "builtin" | "rest" | "exec";
+  kind: "builtin" | "node" | "rest" | "exec";
   features: ReadonlySet<ProviderFeature>;
   configFields: readonly ConfigField[];
   usesCore: readonly string[];
@@ -426,7 +430,7 @@ export interface Provider {
 7. 更新 CLI 文档（`cli-design`、`cli-reference`、`configuration`、`environment-variables`、`authentication`，新的 `providers` 指南）及其 zh 镜像；`SKILL.md`；`llms.txt`；CHANGELOG。
 8. 让 `mcp install` 的复制规则（§4.3）和 MCP server 环境（`ABX_PROVIDER` 会被转发）保持一致。
 9. 由没有编写该切片的对抗者进行一轮评审（按 PORTING.md），把发现追加到 `parity/review-log.md`。
-10. 留待以后的事项（现在不要做）：OS 级的插件约束、钥匙串密钥存储、注册表 / 市场来源、长期运行的插件守护进程（EPP/2）、gRPC 传输。
+10. 留待以后的事项（现在不要做）：OS 级的插件约束、钥匙串密钥存储、注册表 / 市场来源、长期运行的插件守护进程（EPP/2）。gRPC 作为 SDK 到提供方的传输已经评估过，目录提供方没有采用（见本页顶部的状态；现行设计是 Node 引擎，HTTP / SSE / WebSocket，[cli/docs/zh/reference/engine-api.md](../reference/engine-api.md)）。
 
 ---
 
@@ -442,5 +446,5 @@ Python SDK 一侧是在本规格评审之后实现的。以下几点是实现时
 6. **进程清理**：插件退出之后（无论是否正常），宿主仍会终止进程组，所以孙进程不能活过一次会话（`EppClient.close`）。
 7. **`close()`**：提供方进程由 sandbox 对象持有；Python API 增加了 `Sandbox.close()`。CLI 调用必须在每条退出路径（包括 `Ctrl-C`）上关闭其提供方。
 8. **存储**：`abx config set sandbox_api_key` 把 `ABX_SANDBOX_API_KEY` 写入 `~/.abx/.env`（权限 0600）。`sandbox_base_url` 存为 `[transport] sandbox_base_url`。每个键只有这一个存储名。
-9. **`python -m agent_sandbox.providers`** 是 `abx provider` 只用 SDK 的孪生版本（相同布局、相同回执、相同摘要）。一个工具安装的提供方必须能被另一个加载（§7 第 11 项）。
+9. **`python -m agent_sandbox.providers`** 是 `abx provider` 在 SDK 一侧的孪生版本（相同布局、相同回执、相同摘要）。一个工具安装的 `node` 插件能被另一个加载：CLI 导入 `provider.mjs`，Python SDK 通过 `abx provider engine serve` 使用它。`kind = "python"` 的清单会被拒绝（用 `node`、`exec` 或 `rest`）。进程内的 `Provider` 子类在 Python SDK 里仍然可以登记。它们不是可安装的目录插件。
 10. **Python 中未实现（后续事项，CLI 同样适用）**：`sandbox.yaml` 的 `provider:` / `provider_options:` 和 `@sandbox(provider=...)`；OS 约束；SDK 中的 `list --all-providers` 聚合辅助（SDK 只提供按提供方的 `Sandbox.list(provider=...)`）。

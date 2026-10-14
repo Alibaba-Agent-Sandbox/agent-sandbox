@@ -168,26 +168,20 @@ describe("TestReferenceCommandsPy", () => {
     const ran = runProbe("reference", REFERENCE_COMMANDS_PY);
     expect(ran.hello_registered).toBe(true);
     expect(ran.hello_result).toBe("Hello, Ada!");
-    // Imported as a module: serve() is under __main__ so --commands does not bind the port.
+    // Imported as a module: start() is under __main__ so --commands does not bind the port.
     expect(ran.serve_call_count).toBe(0);
     expect(REFERENCE_COMMANDS_PY).toContain('if __name__ == "__main__":');
-    expect(REFERENCE_COMMANDS_PY).toContain(`server.serve(port=${SERVER_PORT})`);
-    expect(ran.route_found).toBe(true);
-    expect(ran.params).toEqual({ name: "Ada" });
+    expect(REFERENCE_COMMANDS_PY).toContain("start(");
+    expect(REFERENCE_COMMANDS_PY).not.toContain(".serve(");
+    expect(REFERENCE_COMMANDS_PY.indexOf('if __name__ == "__main__":')).toBeLessThan(
+      REFERENCE_COMMANDS_PY.indexOf("start("),
+    );
   });
 
-  it("test_registry_is_frozen_before_serving", () => {
-    const source = REFERENCE_COMMANDS_PY;
-    expect(source.indexOf("registry.freeze()")).toBeGreaterThanOrEqual(0);
-    expect(source.indexOf("registry.freeze()")).toBeLessThan(source.indexOf(".serve("));
-    expect(source.indexOf('if __name__ == "__main__":')).toBeLessThan(source.indexOf(".serve("));
+  it("test_does_not_open_groups_that_already_start_enabled", () => {
+    expect(REFERENCE_COMMANDS_PY).not.toContain("enable_group");
+    expect(REFERENCE_COMMANDS_PY).toContain('@command("hello"');
   });
-
-  for (const marker of ["FILE_OPS", "PROCESS", "SYSTEM"]) {
-    it(`test_enables_the_groups_the_capabilities_example_relies_on [${marker}]`, () => {
-      expect(REFERENCE_COMMANDS_PY).toContain(`CapabilityGroup.${marker}`);
-    });
-  }
 });
 
 describe("TestGuideGolden", () => {
@@ -201,8 +195,8 @@ describe("TestGuideGolden", () => {
     expect(REFERENCE_COMMANDS_PY).toContain("from agent_sandbox.server import");
     expect(REFERENCE_COMMANDS_PY).not.toMatch(/alicloud|opensandbox|agent_sandbox\.providers/);
     expect(REFERENCE_COMMANDS_PY).toContain('if __name__ == "__main__":');
-    const serveAt = REFERENCE_COMMANDS_PY.indexOf("server.serve(port=9000)");
-    expect(serveAt).toBeGreaterThan(REFERENCE_COMMANDS_PY.indexOf('if __name__ == "__main__":'));
+    const startAt = REFERENCE_COMMANDS_PY.indexOf("start(");
+    expect(startAt).toBeGreaterThan(REFERENCE_COMMANDS_PY.indexOf('if __name__ == "__main__":'));
   });
 
   it("rejects unknown modes like the Python ValueError", () => {

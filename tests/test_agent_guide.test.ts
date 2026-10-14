@@ -21,6 +21,7 @@ import { describe, expect, it } from "vitest";
 import { TOOL_SCHEMAS } from "../src/agent/tools.js";
 import { cli } from "../src/cli/main.js";
 import * as errMod from "../src/models/errors.js";
+import * as providerErr from "../src/providers/errors.js";
 import { loadYaml as safeLoad } from "../src/utils/yaml_io.js";
 import { REPO_ROOT, exists, read } from "./helpers/docsSupport.js";
 
@@ -124,9 +125,11 @@ describe("TestSkillMatchesCode", () => {
     const cited = new Set(read(SKILL_MD).match(/\bE\d{4}\b/g) ?? []);
     expect(cited.size, "expected SKILL.md to cite error codes").toBeGreaterThan(0);
     const defined = new Set<string>();
-    for (const attr of Object.values(errMod)) {
-      if (typeof attr === "function" && attr.prototype instanceof Error) {
-        for (const m of String((attr as unknown as { code?: unknown }).code ?? "").match(/\bE\d{4}\b/g) ?? []) defined.add(m);
+    for (const mod of [errMod, providerErr]) {
+      for (const attr of Object.values(mod)) {
+        if (typeof attr === "function" && attr.prototype instanceof Error) {
+          for (const m of String((attr as unknown as { code?: unknown }).code ?? "").match(/\bE\d{4}\b/g) ?? []) defined.add(m);
+        }
       }
     }
     for (const c of ["E1000", "E2002", "E3001", "E5000", "E5001", "E5003"]) defined.add(c);

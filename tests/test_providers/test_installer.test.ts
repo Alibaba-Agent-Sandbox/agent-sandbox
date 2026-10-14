@@ -658,6 +658,16 @@ describe("TestGitInstall", () => {
     await rejectsWith(installer.update("demo-prov", { yes: true }), ProviderInstallError);
   });
 
+  it("test_update_of_catalog_install_points_at_cli_reinstall", async () => {
+    await inst(writePlugin(T("src")));
+    const receipt = store.readReceipt("demo-prov");
+    expect(receipt).not.toBeNull();
+    receipt!["source"] = { type: "catalog", id: "opensandbox", registry: "https://registry.agent-sandbox.cn/providers/index.json" };
+    store.writeReceipt(store.providerDir("demo-prov"), receipt!);
+    const exc = await rejectsWith(installer.update("demo-prov", { yes: true }), ProviderInstallError);
+    expect(exc.message).toContain("abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox --force");
+  });
+
   it("test_receipt_never_contains_credentials", async () => {
     await installGit(url(), GIT_KW);
     const text = JSON.stringify(store.readReceipt("demo-prov"));

@@ -70,6 +70,8 @@ graph TB
 | **CLI 架构** | [architecture.md](design/architecture.md) | 分层、`src/` 目录结构、命令组、输出与退出码、配置/凭证、构建 / SEA 二进制 / 发布、一致性契约 |
 | **CLI 命令体系** | [cli-design.md](design/cli-design.md) | 命令树（45 个命令）、全局选项、自然语言创建、OutputManager、AI Friendly 设计 |
 | **模板目录** | [templates-catalog.md](design/templates-catalog.md) | 单一真源（SSOT）：awesome-templates 目录仓库、远程索引客户端、缓存/降级行为、fixture 边界、模板命令面 |
+| **模板构建模式** | [template-build-modes.md](design/template-build-modes.md) | 一次发布只走一条路：本地 Dockerfile，或把 `template.yaml` 的 `build:` 展开成 `CreateTemplate` 的 `sandboxConfig.steps` |
+| **Node 提供方架构** | [node-provider-architecture.md](design/node-provider-architecture.md) | 一份 Node/TypeScript 提供方层：四种类型、kit、CLI 进程内与本机引擎与 exec，以及 HTTP/SSE/WebSocket 契约 |
 
 ### AI 与 Agent 集成
 
@@ -78,16 +80,16 @@ graph TB
 | **MCP Server** | [mcp-server.md](design/mcp-server.md) | 7 个 P0 MCP 工具、STDIO 与 Streamable HTTP 传输、FC 部署产物、会话绑定 |
 | **Agents API** | [agents-api.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/agents-api.md) | 沙箱内的 Agent 会话。目前是 Codex 和 Qwen Code，之后在同一组路由上扩充 |
 
-### 移植、布局与 Provider 草案
+### 移植、布局与提供方规格
 
-以下为仅有英文的维护者文档，位于 [`docs/design/`](../design/) 与 [`docs/PORTING.md`](../PORTING.md)。
+[`PORTING.md`](../PORTING.md) 和 [`repository-layout.md`](../design/repository-layout.md) 是英文。测试读取的提供方规格英文原稿在 [`docs/design/providers-and-credentials-cli.md`](../design/providers-and-credentials-cli.md)。中文副本是 [`docs/zh/design/providers-and-credentials-cli.md`](design/providers-and-credentials-cli.md)。接线记录同样成对：[英文](../design/provider-wiring-plan.md)、[中文](design/provider-wiring-plan.md)。
 
 | 专题 | 文档 | 摘要 |
 |------|------|------|
 | **Python 到 Node 移植** | [PORTING.md](../PORTING.md) | 逐模块移植规则、一致性门禁、测试台账 |
 | **仓库布局** | [repository-layout.md](../design/repository-layout.md) | CLI 仓库布局评审与文档归属规则 |
-| **Provider 与凭证（CLI 规格）** | [providers-and-credentials-cli.md](../design/providers-and-credentials-cli.md) | 草案：provider 层的 CLI 语法、JSON 形态与测试，一致性达成后实施 |
-| **Provider 评审记录** | [providers-and-credentials-cli-review.md](../design/providers-and-credentials-cli-review.md) | 上述草案的评审记录 |
+| **Provider 与凭证（CLI 规格）** | [providers-and-credentials-cli.md](design/providers-and-credentials-cli.md) | provider 层的 CLI 语法、JSON 形态与测试 |
+| **Provider 评审记录** | [providers-and-credentials-cli-review.md](design/providers-and-credentials-cli-review.md) | 上述规格的评审记录 |
 
 ---
 
@@ -101,7 +103,7 @@ graph TB
 | `abx mcp deploy`（FC 产物生成） | **已实现** | 生成部署产物并打印手动 FC 部署步骤。详见 [mcp-server.md](design/mcp-server.md#7-fc-部署) |
 | 模板 build/push/create 流水线 | **已实现** | 通过官方 CreateTemplate API |
 | 单文件二进制（Node SEA） | **已实现** | 详见 [二进制安装](guide/binary-installation.md) |
-| Provider 层 | **规划中** | 一致性门禁后实施，见上方 provider 草案 |
+| Provider 命令 | **已实现**（`alicloud-express`，以及已安装的 `node`、`exec`、`rest` 提供商：`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container`） | `abx --provider <id>` 加载已安装的插件；既不是内置也未安装的 id 以 `E8001` 退出。见[提供商](guide/providers.md)和[Node 提供商架构](design/node-provider-architecture.md) |
 
 ---
 

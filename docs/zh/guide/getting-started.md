@@ -7,7 +7,7 @@
 ## 前置条件
 
 - Node.js 20 或更高版本（用于 `abx` CLI）
-- 一个有效的 API Key（从 Agent Sandbox 平台获取）
+- 默认提供方是 `alicloud-express`。API Key 从[智能体沙箱产品文档](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox)获取。变量名是 `ABX_SANDBOX_API_KEY`。CLI 不读取 `E2B_API_KEY`。
 - 网络可访问阿里云杭州区域（默认 `cn-hangzhou`）
 
 ## 1. 安装
@@ -70,6 +70,8 @@ abx config get sandbox_api_key
 abx create --template base
 ```
 
+`base` 是默认模板。仓库 README 里的 `python-base` 是目录中的 Python 镜像。
+
 ## 4. 执行代码
 
 ### CLI
@@ -83,7 +85,7 @@ abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-abx exec <sandbox-id> "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> -- sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. 文件操作

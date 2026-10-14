@@ -26,7 +26,7 @@ graph TB
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, coding-agent adapter, template authoring/adoption"]
-        PRV["provider layer — planned (see section 8)"]
+        PRV["provider layer — alicloud-express plus installed node, exec and rest (see section 8)"]
         SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core (mirrors the SDK concepts)"]
@@ -164,14 +164,9 @@ MCP behaviour (tools, session binding, transports, FC deployment) is specified i
   [Templates Catalog](templates-catalog.md).
 - Credentials are never printed: secrets are masked in `abx config list`, and test fixtures use placeholders.
 
-## 8. Provider layer (planned)
+## 8. Provider layer
 
-A provider layer (selecting the control-plane backend, canonical config-key registry, `abx provider` commands,
-installable provider plugins) is specified in
-[Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md) and is applied after the
-Python-to-Node port reaches parity. It will sit between the command groups and the `api` layer and will add one
-module, `src/utils/config_keys.ts`, generated from the shared key registry. Until then the CLI talks to the built-in
-Alibaba Cloud provider only, and existing key names and behaviour are unchanged.
+`abx provider` and `--provider` load the built-in `alicloud-express` and installed `node`, `exec` and `rest` plugins. The catalog ids `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins (`provider.mjs`, `create(kit)`), installed with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` (or a path or git URL). An id that is neither built in nor installed exits `E8001`. A manifest with `kind = "python"` is rejected. The grammar is [Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md). The layer sits between the command groups and the `api` layer. `src/utils/config_keys.ts` is generated from the shared key registry. The Python SDK reaches the same `node` plugins through `abx provider engine serve`. User steps are [Providers](../guide/providers.md).
 
 ## 9. Directory structure
 
@@ -181,8 +176,10 @@ cli/
 │   ├── bin/               # abx.ts — executable entry point
 │   ├── framework/         # click-compatible command framework
 │   ├── cli/               # main, output, formatters, region, _rich*
-│   │   └── commands/      # config_cmd, deploy, mcp, sandbox, sandbox_files, sandbox_process, sandbox_system, template
+│   │   └── commands/      # config_cmd, deploy, mcp, provider, sandbox, sandbox_files, sandbox_process, sandbox_system, template
 │   ├── agent/             # MCP server, coding-agent adapter, template authoring/adoption
+│   ├── providers/         # builtin, node, exec, rest, installer, manifest
+│   ├── engine/            # local engine: HTTP, SSE and WebSocket on 127.0.0.1
 │   ├── session/           # LocalSessionStore
 │   ├── api/               # Sandbox, files, code, commands, network, image, template, capability, session_manager
 │   ├── protocol/          # platform + envd protocol wrappers

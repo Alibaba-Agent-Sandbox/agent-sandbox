@@ -658,3 +658,6 @@ export class EppClient {
 }
 
 class TimeoutMarker extends Error {}
+
+/** What the exec adapters need from a plugin connection: a spawned process (`EppClient`) or an in-process module. */
+export type EppPeer = Pick<EppClient, "provider_id" | "features" | "failure" | "call" | "openStream" | "closeStream" | "close">;

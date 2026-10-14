@@ -39,12 +39,14 @@ export const fsHooks = {
 export type Receipt = store.Receipt;
 
 export interface SourceInfo {
-  type: "local" | "git" | "link";
+  type: "local" | "git" | "link" | "catalog";
   path?: string;
   url?: string;
   ref?: string;
   commit?: string;
   subdir?: string;
+  id?: string;
+  registry?: string;
 }
 
 /** Everything the consent screen shows. */
@@ -69,7 +71,7 @@ export class InstallPlan {
       source: this.source,
       tree_sha256: this.tree_sha256,
       trust: this.trust,
-      runtime: m.kind === "exec" ? [...m.command] : ["rest", String(m.endpoint["base_url"] ?? "")],
+      runtime: m.kind === "exec" ? [...m.command] : m.kind === "node" ? ["node", m.entry] : ["rest", String(m.endpoint["base_url"] ?? "")],
       kind: m.kind,
       features: [...m.features].sort(),
       security: m.security,
@@ -676,11 +678,17 @@ export interface UpdateResult {
   changes: string[];
 }
 
-/** Update one installed provider from its recorded source. `local`/`link` installs throw `ProviderInstallError`. */
+/** Update one installed provider from its recorded git source. `local`/`link` installs throw `ProviderInstallError`. A catalog receipt is reinstalled with the CLI git spelling. */
 export async function update(providerId: string, opts: UpdateOptions = {}): Promise<UpdateResult> {
   const receipt = store.readReceipt(providerId);
   if (receipt === null) throw new ProviderNotFoundError(`Provider '${providerId}' is not installed.`);
   const src = (receipt["source"] ?? {}) as SourceInfo;
+  if (src.type === "catalog") {
+    const catalogId = typeof src.id === "string" && src.id !== "" ? src.id : providerId;
+    throw new ProviderInstallError(
+      `Provider '${providerId}' was installed from the catalog. Reinstall it with 'abx provider install alibaba-agent-sandbox/awesome-providers//${catalogId} --force'.`,
+    );
+  }
   if (src.type !== "git") {
     throw new ProviderInstallError(
       `Provider '${providerId}' was installed from a local directory; reinstall it with 'abx provider install --force <path>'.`,

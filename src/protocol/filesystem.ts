@@ -142,9 +142,23 @@ const WATCH_TYPE_MAP: Record<string, WatchEventType> = {
   rename: WatchEventType.RENAMED,
 };
 
+const _ENVD_WATCH_TYPES: Readonly<Record<string, WatchEventType>> = {
+  EVENT_TYPE_CREATE: WatchEventType.CREATED,
+  EVENT_TYPE_WRITE: WatchEventType.MODIFIED,
+  EVENT_TYPE_REMOVE: WatchEventType.DELETED,
+  EVENT_TYPE_RENAME: WatchEventType.RENAMED,
+  EVENT_TYPE_CHMOD: WatchEventType.MODIFIED,
+};
+
 /** Parse a streaming watch event frame. */
 export function _parseWatchEvent(frame: Record<string, any>): WatchEvent {
   const data = dictGet(frame, "result", frame);
+  const filesystem = data !== null && typeof data === "object" ? dictGet(data, "filesystem") : null;
+  if (filesystem !== null && typeof filesystem === "object" && !Array.isArray(filesystem)) {
+    const raw = String(dictGet(filesystem, "type", "") || "");
+    const event_type = Object.prototype.hasOwnProperty.call(_ENVD_WATCH_TYPES, raw) ? _ENVD_WATCH_TYPES[raw]! : WatchEventType.MODIFIED;
+    return new WatchEvent({ type: event_type, path: String(dictGet(filesystem, "name", "") || "") });
+  }
   const event_type_str = dictGet(data, "type", dictGet(data, "eventType", "modified"));
   const event_type =
     typeof event_type_str === "string" && Object.prototype.hasOwnProperty.call(WATCH_TYPE_MAP, event_type_str)

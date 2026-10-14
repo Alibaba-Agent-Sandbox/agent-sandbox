@@ -1,6 +1,6 @@
 # 编写提供商
 
-提供商插件是一个目录，包含 `abx-provider.toml` 清单；对于 `exec` 类型，还包含一个使用 **EPP/1**（JSON-RPC 2.0，stdin/stdout，每行一个 JSON 对象）通信的程序。同一个插件可同时用于 Node CLI 与 Python SDK，使用任意语言编写。本页是面向 CLI 的简明路径；协议与信任模型的规范见 [Python SDK 设计文档](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md)，用户侧见 [提供商](providers.md)。
+提供商插件是一个目录，包含 `abx-provider.toml` 清单；对于 `exec` 类型，还包含一个使用 **EPP/1**（JSON-RPC 2.0，stdin/stdout，每行一个 JSON 对象）通信的程序；`node` 类型则是宿主加载的一个 ES 模块。同一个插件可同时用于 Node CLI 与所有 SDK（经由[引擎](../reference/engine-api.md)）；`exec` 插件可用任意语言编写。本页是面向 CLI 的简明路径；协议与信任模型的规范见 [Python SDK 设计文档](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/providers-and-credentials.md)，用户侧见 [提供商](providers.md)。
 
 插件发布到 [alibaba-agent-sandbox/awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers)，每个提供商一个目录。不要放进 SDK 或 CLI 仓库。该目录仓库还有贡献指南（`docs/authoring.md`）和给 AI 用的 skill（`SKILL.md`）。
 
@@ -60,7 +60,7 @@ Python 里的 `Sandbox.create(template="base", provider="my-cloud")` 从第 2 �
 |---|---|---|---|
 | `e2b-compatible` | `rest` | 仅清单：任意 E2B 协议端点，对通用 `sandbox_*` 键的 `inherit` 授权 | `python-sdk/examples/providers/e2b-compatible/` |
 | `local-process` | `exec`，Python 标准库 | 生命周期、exec（缓冲与流式）、文件、一个密钥选项与一个布尔选项 | `python-sdk/examples/providers/local-process/` |
-| `opensandbox` | `exec`，无依赖的 Node ESM | 完整的真实后端：生命周期、暂停/恢复、流式 exec、文件、端口 URL，以及单元/mock/live/契约测试 | [awesome-providers/opensandbox](https://github.com/alibaba-agent-sandbox/awesome-providers/tree/main/opensandbox) |
+| `opensandbox` | `node`，EPP 方法在宿主进程内 | 经 `kit.epp.infra` 的 OpenSandbox HTTP、execd SSE 和 PTY。`abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox`（SDK 的另一种安装：`python -m agent_sandbox.providers install registry:opensandbox --yes`） | [awesome-providers/opensandbox](https://github.com/alibaba-agent-sandbox/awesome-providers/tree/main/opensandbox) |
 
 ## 1. 清单
 
@@ -153,9 +153,50 @@ abx --provider my-cloud create --template base
 
 `abx provider test` 运行参考插件通过的同一套契约套件：生命周期、exec、流式输出、文件、进程控制、超时、错误映射。要在不依赖 CLI 的情况下对插件做单元测试，可以直接用 NDJSON 驱动其进程的 stdin。
 
+### `node/1` 插件（进程内）
+
+后端若说 E2B 的线协议（REST 控制面加 envd 数据面），就不需要子进程。`node` 插件是一个 ES 模块，由宿主在自己的进程里通过一个小 kit 加载，所以 CLI、引擎和所有 SDK 运行的是同一份代码。[`awesome-providers`](https://github.com/Alibaba-Agent-Sandbox/awesome-providers) 里的 `e2b`、`cubesandbox`、`alicloud-container` 就是例子。`opensandbox` 同样是 `node`：它的 EPP 方法经 `kit.epp.infra` 在本进程内运行。
+
+```toml
+[compat]
+protocol = "node/1"
+requires = { sdk = ">=0.3", cli = ">=0.3" }
+
+[runtime]
+kind  = "node"
+entry = "provider.mjs"            # 插件目录内
+```
+
+```js
+export default function create(kit) {
+  return {
+    async buildInfra(ctx) {
+      const base_url = String(ctx.options.base_url || "https://api.example.com");
+      const auth = ctx.headerKeyAuth(String(ctx.options.api_key), "X-API-Key");
+      const http = ctx.http({ base_url, domain: "example.app", auth });
+      return {
+        auth,
+        http_client: http,
+        endpoint: { base_url, domain: "example.app" },
+        sandbox_protocol: new kit.SandboxProtocol(http),
+        process_protocol: new kit.ProcessProtocol(http),
+        filesystem_protocol: new kit.FilesystemProtocol(http),
+        code_interpreter_protocol: new kit.CodeInterpreterProtocol(http),
+      };
+    },
+  };
+}
+```
+
+- `ctx` 有 `id`、`features`、`options`（只含你声明过的字段）、`core`（你经同意获得的通用键）、`http(opts)`、`headerKeyAuth(key, header)` 和 `noAuth()`。
+- `kit` 有 `SandboxProtocol`、`ProcessProtocol`、`FilesystemProtocol`、`CodeInterpreterProtocol`、`errors`、`hostVersion`、`e2b { resumeConnect, withDefault, overlay, parseExecution }` 和 `epp.infra(ctx, factory)`（把一个导出 EPP/1 分发器的模块在宿主进程内运行，并适配成协议对象；OpenSandbox 就这样）。要改某一个调用，可以继承协议类，或用 `kit.e2b.overlay(inner, { method })` 包一层。
+- E2B 的两个特例通过 `buildInfra` 的返回值向宿主提出：`envd_dial: [host, port]`（连接这个 TCP 目标，`Host` 头仍是虚拟主机名）和 `envd_auth: { allow_missing, basic_user }`（envd 令牌可有可无，以及随令牌发送的 Basic 用户名）。
+- 宿主每次加载都会校验插件目录摘要（`--link` 安装除外），并按你声明的能力给每个协议加闸。插件以宿主的权限运行，所以只装你信任的；`[security]` 只是提示。
+- 需要隔离、需要其他语言、或要复用现成 SDK 时，改用 `exec`。第三方插件用这种类型，在 stdio 上说 EPP/1，可选 `pty.*`。OpenSandbox 保持 `node` 插件，方法经 `kit.epp.infra` 在本进程内运行。
+
 ### 编写检查清单
 
-1. `abx-provider.toml`：`manifest_version = 1`、合法的 id、`[compat] protocol = "epp/1"` 和 `requires`、`[runtime] kind = "exec"` 以及可在插件目录下运行的 `command`。`abx provider install ./dir --link --yes` 在清单有错时返回 `E8014`，信息里会指出出错的字段。
+1. `abx-provider.toml`：`manifest_version = 1`、合法的 id，以及 `requires`。`exec` 插件设置 `[compat] protocol = "epp/1"` 和 `[runtime] kind = "exec"`，并给出可在插件目录下运行的 `command`。`node` 插件设置 `protocol = "node/1"`、`kind = "node"` 和 `entry = "provider.mjs"`。`abx provider install ./dir --link --yes` 在清单有错时返回 `E8014`，信息里会指出出错的字段。
 2. 必须实现的方法：`initialize`（返回你实现的特性）和 `shutdown`；然后为每个声明的特性实现对应的一组方法（见第 2 节的表）。`sandbox.connect`、`ports.url` 和 `files.*` 的扩展方法是可选的。
 3. 特性开关：只声明确实可用的特性。宿主不会调用未声明特性的方法，而是自己返回 `E8004`。不要为了「以后会做」而提前声明。
 4. 错误：明知缺少某特性时返回 `-32003`，沙箱不存在时返回 `-32002`，凡是有对应 SDK 错误类的都带上 `sdk_code`。不要把凭证写进错误信息；宿主会脱敏已声明的密钥，但不会脱敏你自己拷贝的副本。
