@@ -15,6 +15,12 @@ export const PY_PROVIDER_EXAMPLES = path.resolve(here, "..", "..", "..", "python
 export const AWESOME_PROVIDERS_URL =
   process.env["ABX_AWESOME_PROVIDERS_URL"] ?? "https://github.com/alibaba-agent-sandbox/awesome-providers.git";
 
+/** The awesome-providers checkout: `ABX_AWESOME_PROVIDERS`, else the sibling `awesome-providers` directory of this repository. */
+export function catalogDir(...sub: string[]): string {
+  const root = process.env["ABX_AWESOME_PROVIDERS"] || path.resolve(here, "..", "..", "..", "awesome-providers");
+  return path.join(root, ...sub);
+}
+
 function manifestDir(dir: string): boolean {
   return fs.existsSync(path.join(dir, "abx-provider.toml"));
 }
@@ -25,7 +31,7 @@ export function openSandboxFromEnv(): string | null {
   if (direct && manifestDir(direct)) return direct;
   const root = process.env["ABX_AWESOME_PROVIDERS"];
   if (root && manifestDir(path.join(root, "opensandbox"))) return path.join(root, "opensandbox");
-  const inRepo = path.resolve(here, "..", "..", "..", "awesome-providers", "opensandbox");
+  const inRepo = catalogDir("opensandbox");
   return manifestDir(inRepo) ? inRepo : null;
 }
 

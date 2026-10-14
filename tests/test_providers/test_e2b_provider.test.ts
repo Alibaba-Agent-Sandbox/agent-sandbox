@@ -17,11 +17,11 @@ import * as installer from "../../src/providers/installer.js";
 import { getProvider } from "../../src/providers/registry.js";
 import { useIso } from "../_support/iso.js";
 import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
-import { TEST_HOST_VERSION } from "../_support/plugins.js";
+import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 
 const iso = useIso();
 const here = path.dirname(fileURLToPath(import.meta.url));
-const E2B = path.resolve(here, "..", "..", "..", "awesome-providers", "e2b");
+const E2B = catalogDir("e2b");
 const haveCatalog = fs.existsSync(path.join(E2B, "abx-provider.toml"));
 
 describe.skipIf(!haveCatalog)("e2b node provider", () => {

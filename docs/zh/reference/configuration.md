@@ -103,7 +103,7 @@ Python SDK 是运行时客户端，不声明这些键；CLI 在 `src/utils/cli_c
 |---------------------|---------|-------------|
 | `ABX_ACTIVITY_LINES` | `4` | `message... 12s` 标题下方的灰色行数（整数 1–10）。部署、创建、上传、下载、拉取模板、用镜像注册模板、安装 coding-agent 和 `abx kill --all` 都会用到。 |
 
-`--json`、`--quiet`、`--ci`、`TERM=dumb` 和非 TTY 不绘制该标题。见[命令运行期间](../guide/cli-tutorial.md#命令运行期间)。
+`--json`、`--quiet`、`--ci`、`TERM=dumb` 和非 TTY 不绘制该标题。见[命令运行期间](../guide/cli-tutorial.md#命令执行时看到什么)。
 
 ## config.toml 配置
 

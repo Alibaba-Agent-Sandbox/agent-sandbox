@@ -139,6 +139,7 @@ describe("TestInstallRegistryType", () => {
     const tp = tmpPath();
     writeText(path.join(tp, "template.yaml"), "name: test-local\nversion: '1.0.0'\n");
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
+    setenv("ACR_NAMESPACE", "test-namespace");
     patchTransport(mockHttp({ json: { templateID: "tpl-123", buildID: "bld-456" } }));
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
@@ -290,6 +291,7 @@ describe("TestSandboxYamlAlias", () => {
     const tp = tmpPath();
     writeText(path.join(tp, "sandbox.yaml"), "name: test-alias\nversion: '1.0.0'\n");
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
+    setenv("ACR_NAMESPACE", "test-namespace");
     patchTransport(mockHttp({ json: { templateID: "tpl-alias-1", buildID: "bld-alias-1" } }));
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
@@ -301,6 +303,7 @@ describe("TestSandboxYamlAlias", () => {
     writeText(path.join(tp, "template.yaml"), "name: canonical\nversion: '1.0.0'\n");
     writeText(path.join(tp, "sandbox.yaml"), "name: alias-version\nversion: '2.0.0'\n");
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
+    setenv("ACR_NAMESPACE", "test-namespace");
     patchTransport(mockHttp({ json: { templateID: "tpl-pref-1", buildID: "bld-pref-1" } }));
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);

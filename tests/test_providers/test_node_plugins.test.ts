@@ -16,11 +16,11 @@ import * as installer from "../../src/providers/installer.js";
 import { getProvider } from "../../src/providers/registry.js";
 import { useIso } from "../_support/iso.js";
 import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
-import { TEST_HOST_VERSION } from "../_support/plugins.js";
+import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 
 const iso = useIso();
 const here = path.dirname(fileURLToPath(import.meta.url));
-const CATALOG = path.resolve(here, "..", "..", "..", "awesome-providers");
+const CATALOG = catalogDir();
 const haveCatalog = fs.existsSync(path.join(CATALOG, "e2b", "abx-provider.toml"));
 
 describe.skipIf(!haveCatalog)("node plugins from the catalog", () => {

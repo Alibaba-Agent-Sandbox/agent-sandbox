@@ -61,7 +61,7 @@ Working examples (copy one):
 |---|---|---|---|
 | `e2b-compatible` | `rest` | A manifest only: any E2B-protocol endpoint, consented `inherit` of the generic `sandbox_*` keys | `python-sdk/examples/providers/e2b-compatible/` |
 | `local-process` | `exec`, Python stdlib | lifecycle, exec (buffered and streamed), files, a secret and a bool option | `python-sdk/examples/providers/local-process/` |
-| `opensandbox` | `node`, EPP methods in process | OpenSandbox HTTP, execd SSE, and PTY through `kit.epp.infra`. `abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox` (SDK alternative: `python -m agent_sandbox.providers install registry:opensandbox --yes`) | [awesome-providers/opensandbox](../../../awesome-providers/opensandbox) |
+| `opensandbox` | `node`, EPP methods in process | OpenSandbox HTTP, execd SSE, and PTY through `kit.epp.infra`. `abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox` (SDK alternative: `python -m agent_sandbox.providers install registry:opensandbox --yes`) | [awesome-providers/opensandbox](https://github.com/alibaba-agent-sandbox/awesome-providers/tree/main/opensandbox) |
 
 ## 1. The manifest
 

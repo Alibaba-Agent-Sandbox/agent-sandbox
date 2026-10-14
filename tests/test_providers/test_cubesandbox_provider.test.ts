@@ -5,6 +5,7 @@
 
 import "../_support/isolatedHome.js";
 
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,13 +20,14 @@ import { ProviderConfigError } from "../../src/providers/errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
 import { useIso } from "../_support/iso.js";
-import { TEST_HOST_VERSION } from "../_support/plugins.js";
+import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 import { useCapsys } from "../test_cli/conftest.js";
 
 const iso = useIso();
 const cap = useCapsys();
 const here = path.dirname(fileURLToPath(import.meta.url));
-const CUBE = path.resolve(here, "..", "..", "..", "awesome-providers", "cubesandbox");
+const CUBE = catalogDir("cubesandbox");
+const haveCatalog = fs.existsSync(path.join(CUBE, "abx-provider.toml"));
 
 async function abx(...args: string[]): Promise<{ code: number; out: string; err: string }> {
   const code = await main({ args });
@@ -38,7 +40,7 @@ function basicUser(header: string | undefined): string {
   return Buffer.from(token, "base64").toString();
 }
 
-describe("cubesandbox through the host and CLI", () => {
+describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
   let mock: E2BMock;
   let origin = "";
   let port = 0;
@@ -328,7 +330,7 @@ describe("cubesandbox through the host and CLI", () => {
   }, 30_000);
 });
 
-describe("cubesandbox through the engine", () => {
+describe.skipIf(!haveCatalog)("cubesandbox through the engine", () => {
   let mock: E2BMock;
   let engine: EngineHandle;
   let base = "";

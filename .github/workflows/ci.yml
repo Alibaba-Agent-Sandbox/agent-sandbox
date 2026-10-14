@@ -62,6 +62,12 @@ jobs:
           sparse-checkout: server-sdk/src
           sparse-checkout-cone-mode: false
 
+      - name: Check out the provider catalog
+        uses: actions/checkout@v4
+        with:
+          repository: alibaba-agent-sandbox/awesome-providers
+          path: vendor/awesome-providers
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -71,6 +77,7 @@ jobs:
       - name: Run tests
         env:
           ABX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
+          ABX_AWESOME_PROVIDERS: ${{ github.workspace }}/vendor/awesome-providers
         run: npm test
 
       - name: Parity coverage check

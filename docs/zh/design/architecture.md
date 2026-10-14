@@ -126,7 +126,7 @@ MCP 的行为（工具、会话绑定、传输、FC 部署）见 [MCP Server 设
 
 ## 7. 配置与凭据
 
-- 每个凭据的解析顺序：显式选项 → 进程环境 → `./.env` → `~/.abx`（先 `.env` 后 `config.toml`）→ 内置默认值。空白值不计入。完整表格见[配置参考](../reference/configuration.md#credential-resolution)。
+- 每个凭据的解析顺序：显式选项 → 进程环境 → `./.env` → `~/.abx`（先 `.env` 后 `config.toml`）→ 内置默认值。空白值不计入。完整表格见[配置参考](../reference/configuration.md#凭证解析)。
 - 磁盘状态位于 `~/.abx/`：`config.toml`、`.env`（凭据，权限 600）、`sessions/`、`templates/`、`index/`（远程模板索引缓存）、`bin/`（已安装的编码 Agent）、`generated/`（自然语言生成产物）以及 `secrets.json`（明文，权限 600，仅限本地开发）。
 - `utils/github_token.ts` 保存 registry 客户端与模板索引客户端共用的 GitHub token 提示文案；`utils/template_index.ts` 是[模板目录设计](templates-catalog.md)中描述的远程目录客户端。
 - 凭据永不打印：`abx config list` 对密钥做掩码，测试夹具只使用占位符。

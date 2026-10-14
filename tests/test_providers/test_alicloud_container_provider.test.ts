@@ -6,6 +6,7 @@
  * `POST /execute` only; context RPCs are refused on purpose.
  */
 
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,11 +33,12 @@ import { HTTPStatusError } from "../../src/transport/http.js";
 import { loadLayeredConfig } from "../../src/transport/config_layers.js";
 import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
 import { useIso } from "../_support/iso.js";
-import { TEST_HOST_VERSION } from "../_support/plugins.js";
+import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 
 const iso = useIso();
 const here = path.dirname(fileURLToPath(import.meta.url));
-const PLUGIN = path.resolve(here, "..", "..", "..", "awesome-providers", "alicloud-container");
+const PLUGIN = catalogDir("alicloud-container");
+const haveCatalog = fs.existsSync(path.join(PLUGIN, "abx-provider.toml"));
 
 /** Features the toml advertises and this file actually drives. */
 const ADVERTISED = [
@@ -51,7 +53,7 @@ const ADVERTISED = [
   "ports.url",
 ] as const;
 
-describe("alicloud-container provider", () => {
+describe.skipIf(!haveCatalog)("alicloud-container provider", () => {
   let mock: E2BMock;
   let origin = "";
   let seen: Seen[] = [];

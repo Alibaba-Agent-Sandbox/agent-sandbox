@@ -8,7 +8,7 @@
 
 1. [Command Tree](#1-command-tree)
 2. [Global Options](#2-global-options)
-3. [Natural Language Creation](#3-natural-language-creation)
+3. [Natural Language Creation](#3-natural-language-creation-ai-template-generation)
 4. [Core Command Details](#4-core-command-details)
 5. [Configuration Management](#5-configuration-management)
 6. [Core Workflows](#6-core-workflows)

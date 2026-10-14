@@ -1,6 +1,6 @@
 # 提供方接线计划（对现有 CLI 模块的后续修改）
 
-> 状态（2026-10-13）：**沙箱路径的接线已经完成；本文现在是原计划的记录，加上仍未解决的事项清单**。`provider` 已是命令组，`--provider` / `--opt` / `--all-providers` 和带前缀的 id 可用，`Sandbox.create/connect/list/killById` 会选择提供商，`SandboxNotFoundError`（`E2009`）已存在，`network.resolve` 走 `ports.url`，并且已从 CLI 端到端驱动过一个 OpenSandbox 服务器（[验证记录](../../.agents/evidence/verify/2026-10-13-opensandbox-provider-e2e.md)）。下面第 1 到 8 节保留为原计划，代码已经做到的条目请忽略。未解决事项见「10. 已知缺口」。此前的状态：交接说明，没有修改任何现有命令模块。本文按评审修复合入之后的应用顺序，列出剩余的精确修改。语法、帮助文本和 JSON 形状由 [`providers-and-credentials-cli.md`](providers-and-credentials-cli.md) 负责；本文只说明每一部分**接在哪里**。
+> 状态（2026-10-13）：**沙箱路径的接线已经完成；本文现在是原计划的记录，加上仍未解决的事项清单**。`provider` 已是命令组，`--provider` / `--opt` / `--all-providers` 和带前缀的 id 可用，`Sandbox.create/connect/list/killById` 会选择提供商，`SandboxNotFoundError`（`E2009`）已存在，`network.resolve` 走 `ports.url`，并且已从 CLI 端到端驱动过一个 OpenSandbox 服务器（[验证记录](../../../.agents/evidence/verify/2026-10-13-opensandbox-provider-e2e.md)）。下面第 1 到 8 节保留为原计划，代码已经做到的条目请忽略。未解决事项见「10. 已知缺口」。此前的状态：交接说明，没有修改任何现有命令模块。本文按评审修复合入之后的应用顺序，列出剩余的精确修改。语法、帮助文本和 JSON 形状由 [`providers-and-credentials-cli.md`](providers-and-credentials-cli.md) 负责；本文只说明每一部分**接在哪里**。
 >
 > 这是[英文版](../../design/provider-wiring-plan.md)的中文版，章节编号一致。命令名、键名、错误码和代码标识符保持英文原样；两者有差异时以英文版为准。
 

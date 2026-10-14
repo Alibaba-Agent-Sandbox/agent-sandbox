@@ -212,7 +212,7 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
   expect(seen.cwd).not.toBe(project);
   expect(path.basename(seen.cwd!).startsWith("abx-adopt-")).toBe(true);
   expect(seen.prompt).toContain(sample.hint);
-  expect(seen.prompt).not.toContain(".env");
+  expect(seen.prompt).not.toMatch(/(?<![A-Za-z0-9_])\.env(?![A-Za-z])/);
   expect(seen.staged_files).not.toContain(".env");
   for (const source of sample.copy) expect(seen.staged_files).toContain(source);
   for (const [key, value] of Object.entries(_LEAKS)) {

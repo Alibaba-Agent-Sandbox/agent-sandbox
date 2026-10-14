@@ -15,11 +15,11 @@ import { startEngine, type EngineHandle } from "../../src/engine/server.js";
 import * as installer from "../../src/providers/installer.js";
 import { type E2BMock, startE2BMock } from "../_support/e2b_mock.js";
 import { useIso } from "../_support/iso.js";
-import { TEST_HOST_VERSION } from "../_support/plugins.js";
+import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 
 const iso = useIso();
 const here = path.dirname(fileURLToPath(import.meta.url));
-const CUBE = path.resolve(here, "..", "..", "..", "awesome-providers", "cubesandbox");
+const CUBE = catalogDir("cubesandbox");
 const haveCatalog = fs.existsSync(path.join(CUBE, "abx-provider.toml"));
 
 describe.skipIf(!haveCatalog)("engine", () => {

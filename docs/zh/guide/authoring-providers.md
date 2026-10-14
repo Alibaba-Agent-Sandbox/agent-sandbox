@@ -60,7 +60,7 @@ Python 里的 `Sandbox.create(template="base", provider="my-cloud")` 从第 2 �
 |---|---|---|---|
 | `e2b-compatible` | `rest` | 仅清单：任意 E2B 协议端点，对通用 `sandbox_*` 键的 `inherit` 授权 | `python-sdk/examples/providers/e2b-compatible/` |
 | `local-process` | `exec`，Python 标准库 | 生命周期、exec（缓冲与流式）、文件、一个密钥选项与一个布尔选项 | `python-sdk/examples/providers/local-process/` |
-| `opensandbox` | `node`，EPP 方法在宿主进程内 | 经 `kit.epp.infra` 的 OpenSandbox HTTP、execd SSE 和 PTY。`abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox`（SDK 的另一种安装：`python -m agent_sandbox.providers install registry:opensandbox --yes`） | [awesome-providers/opensandbox](../../../awesome-providers/opensandbox) |
+| `opensandbox` | `node`，EPP 方法在宿主进程内 | 经 `kit.epp.infra` 的 OpenSandbox HTTP、execd SSE 和 PTY。`abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox`（SDK 的另一种安装：`python -m agent_sandbox.providers install registry:opensandbox --yes`） | [awesome-providers/opensandbox](https://github.com/alibaba-agent-sandbox/awesome-providers/tree/main/opensandbox) |
 
 ## 1. 清单
 
