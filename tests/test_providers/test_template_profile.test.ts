@@ -150,7 +150,10 @@ describe("scaffold dockerfiles", () => {
     expect(docker.startsWith(`${FC_FROM}\n`)).toBe(true);
     expect(docker).not.toMatch(CMD_INSTRUCTION);
     expect(docker).not.toMatch(/(?:^|\n)[ \t]*ENTRYPOINT[ \t]/);
-    expect(docker).toContain("pip install --no-cache-dir agent-sandbox-server");
+    expect(docker).toContain(
+      'RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"',
+    );
+    expect(docker).not.toContain("COPY *.whl");
     expect(docker).not.toMatch(/pip install --no-cache-dir agent-sandbox(?!-server)/);
     expect(docker).toContain("WORKDIR /home/user/app");
     expect(commands).toContain('if __name__ == "__main__":');

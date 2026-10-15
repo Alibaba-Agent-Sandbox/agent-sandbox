@@ -21,6 +21,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { injectedPackageVersion } from "../utils/package_version.js";
+import { SERVER_SDK_ARCHIVE_URL, SERVER_SDK_PIP_SPEC } from "../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../models/errors.js";
 import { TemplateProtocol } from "../protocol/template.js";
@@ -36,22 +37,66 @@ import { ValueError, dictGet, pyExcStr } from "./_pyerrors.js";
 
 const logger = getLogger("api.docker_builder");
 
-/** Fill `<region>` / `<tag>` in a scaffold Dockerfile so `docker build` gets a pullable FROM. */
+const _WHEEL_NAME = /^[A-Za-z0-9._+-]+\.whl$/;
+
+function contextWheelNames(context: string): string[] {
+  try {
+    return readdirSync(context).filter((name) => _WHEEL_NAME.test(name)).sort();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Make the Dockerfile installable by the legacy builder.
+ *
+ * With wheel files in the context, a pinned archive `RUN` is replaced by `COPY` of those exact names.
+ * With no wheel, `COPY *.whl` is removed (the legacy builder rejects an empty glob) and a bare
+ * `pip install agent-sandbox-server` becomes the pinned archive URL.
+ */
+export function rewriteDockerfileForServerInstall(text: string, wheelNames: readonly string[]): string {
+  const wheels = wheelNames.filter((name) => _WHEEL_NAME.test(name));
+  if (wheels.length > 0) {
+    if (!text.includes(SERVER_SDK_ARCHIVE_URL)) return text;
+    const copies = wheels.map((name) => `COPY ${name} /tmp/${name}`).join("\n");
+    const paths = wheels.map((name) => `/tmp/${name}`).join(" ");
+    const block = `${copies}\nRUN pip install --no-cache-dir ${paths} && rm -f ${paths}`;
+    return text
+      .split("\n")
+      .map((line) => (line.includes(SERVER_SDK_ARCHIVE_URL) ? block : line))
+      .join("\n");
+  }
+  const stripped = text
+    .split("\n")
+    .filter((line) => !/^\s*COPY\s+\*\.whl(\s|$)/.test(line))
+    .join("\n");
+  return stripped.replace(
+    /pip install --no-cache-dir agent-sandbox-server(?! @)/g,
+    `pip install --no-cache-dir "${SERVER_SDK_PIP_SPEC}"`,
+  );
+}
+
+/** Fill `<region>` / `<tag>` and the server install so `docker build` does not need BuildKit. */
 function materializedDockerfile(context: string, dockerfile: string | null): string | null {
   const source = dockerfile ?? join(context, "Dockerfile");
   if (!existsSync(source)) return dockerfile;
-  const text = readFileSync(source, "utf8");
-  if (!text.includes("<region>") && !text.includes("<tag>")) return dockerfile;
-  const region = process.env.ABX_BASE_IMAGE_REGION || process.env.ALIBABA_CLOUD_REGION_ID || "cn-hangzhou";
-  const tag = process.env.ABX_BASE_IMAGE_TAG || "v0.0.49";
-  if (!/^[a-z0-9-]+$/.test(region)) {
-    throw new DockerBuildError(`Base image region ${region} is not a lowercase DNS label.`);
+  let text = readFileSync(source, "utf8");
+  const original = text;
+  if (text.includes("<region>") || text.includes("<tag>")) {
+    const region = process.env.ABX_BASE_IMAGE_REGION || process.env.ALIBABA_CLOUD_REGION_ID || "cn-hangzhou";
+    const tag = process.env.ABX_BASE_IMAGE_TAG || "v0.0.49";
+    if (!/^[a-z0-9-]+$/.test(region)) {
+      throw new DockerBuildError(`Base image region ${region} is not a lowercase DNS label.`);
+    }
+    if (!/^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag)) {
+      throw new DockerBuildError(`Base image tag ${tag} is not a Docker tag.`);
+    }
+    text = text.replaceAll("<region>", region).replaceAll("<tag>", tag);
   }
-  if (!/^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag)) {
-    throw new DockerBuildError(`Base image tag ${tag} is not a Docker tag.`);
-  }
+  text = rewriteDockerfileForServerInstall(text, contextWheelNames(context));
+  if (text === original) return dockerfile;
   const out = join(context, "Dockerfile.abx-build");
-  writeFileSync(out, text.replaceAll("<region>", region).replaceAll("<tag>", tag));
+  writeFileSync(out, text);
   return out;
 }
 
@@ -237,6 +282,21 @@ interface RunResult {
   returncode: number;
   stdout: string;
   stderr: string;
+}
+
+/**
+ * `true` when `docker build` can take buildx-only flags (`--provenance`, `--progress=plain`).
+ * `DOCKER_BUILDKIT=0` forces the legacy builder. A missing `buildx` plugin is also the legacy builder.
+ */
+export async function dockerBuildxAvailable(docker = "docker"): Promise<boolean> {
+  if ((process.env["DOCKER_BUILDKIT"] ?? "1") === "0") return false;
+  try {
+    const result = await runCaptured([docker, "buildx", "version"], { timeout: 10 });
+    return result.returncode === 0;
+  } catch (err) {
+    if (isFileNotFound(err) || err instanceof TimeoutExpired) return false;
+    throw err;
+  }
 }
 
 /** `subprocess.run(cmd, input=..., capture_output=True, text=True, timeout=...)`. Rejects with ENOENT / TimeoutExpired. */
@@ -463,14 +523,7 @@ export class DockerBuilder {
 
   /** `true` when this daemon accepts buildx-only `docker build` flags. */
   private async _buildxFlags(): Promise<boolean> {
-    if ((process.env["DOCKER_BUILDKIT"] ?? "1") === "0") return false;
-    try {
-      const result = await runCaptured([this._docker, "buildx", "version"], { timeout: 10 });
-      return result.returncode === 0;
-    } catch (err) {
-      if (isFileNotFound(err) || err instanceof TimeoutExpired) return false;
-      throw err;
-    }
+    return dockerBuildxAvailable(this._docker);
   }
 
   /** Verify Docker daemon is reachable: `true` if `docker info` exits successfully. */
@@ -498,6 +551,10 @@ export class DockerBuilder {
     const { dockerfile = null, platform = "linux/amd64", build_args = null, on_output = null } = opts;
     const context = resolve(String(context_dir));
     const resolvedDockerfile = materializedDockerfile(context, dockerfile);
+    const ephemeralDockerfile =
+      resolvedDockerfile !== null &&
+      basename(resolvedDockerfile) === "Dockerfile.abx-build" &&
+      resolvedDockerfile !== (dockerfile ? resolve(dockerfile) : null);
     const cmd: string[] = [this._docker, "build", "--platform", platform, "-t", tag];
     // --provenance and --progress=plain are buildx flags. The legacy builder rejects them.
     // DOCKER_BUILDKIT=0 forces the legacy builder; otherwise probe `docker buildx version`.
@@ -533,6 +590,8 @@ export class DockerBuilder {
         });
       }
       throw err;
+    } finally {
+      if (ephemeralDockerfile && resolvedDockerfile) rmSync(resolvedDockerfile, { force: true });
     }
   }
 
@@ -709,7 +768,7 @@ export class DockerBuilder {
     } catch (exc) {
       if (!isWheelFetchError(exc)) throw exc;
       logger.warning(
-        "Could not fetch %s %s from PyPI (%s); the Dockerfile will install from PyPI",
+        "Could not fetch %s %s from PyPI (%s); the image will use the Dockerfile's pinned install",
         _SDK_DIST_NAME,
         version,
         pyExcStr(exc),
@@ -723,15 +782,14 @@ export class DockerBuilder {
   /**
    * Put a server-sdk wheel into the Docker build context.
    *
-   * This allows templates to `COPY *.whl /tmp/` in their Dockerfile and `pip install /tmp/*.whl` to get the
-   * `agent-sandbox-server` version that matches this CLI:
+   * This allows a template to install the server SDK that matches a local tree:
    *
    * - when a server-sdk source tree is given explicitly (`project_root`, or the `ABX_SERVER_SDK_SOURCE` environment
    *   variable): build a wheel from it with `pip wheel`, so unreleased changes reach the image;
    * - otherwise: download the released wheel of the same version from PyPI (see `_downloadReleaseWheel`).
    *
-   * When neither works nothing is injected and the Dockerfile falls back to `pip install agent-sandbox-server` (the
-   * `COPY *.whl` line matches nothing, which BuildKit accepts).
+   * When neither works nothing is injected. The scaffold Dockerfile installs a pinned GitHub archive, and
+   * `rewriteDockerfileForServerInstall` drops a legacy `COPY *.whl` so the legacy builder can still run.
    *
    * @returns List of wheel file paths copied into the context.
    */

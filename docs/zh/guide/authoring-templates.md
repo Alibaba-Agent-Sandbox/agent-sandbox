@@ -75,7 +75,7 @@ ports:
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
 - 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像安装的是 `agent-sandbox-server`，不是客户端包。
+- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template init` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"`。这个包不在 PyPI 上。`ABX_SERVER_SDK_SOURCE` 用本地 wheel 覆盖它。
 
 ---
 
@@ -123,7 +123,7 @@ Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR
 
 - Dockerfile 没有 `FROM`，或 `commands.py` 没有启动 `agent_sandbox.server`
 - `template.yaml` 的 `ports` 或 `EXPOSE` 里没有端口 9000
-- `COPY` / `ADD` 指向缺失或被忽略的文件（`COPY *.whl` 是 `abx deploy` 构建时注入的 wheel，允许不存在）
+- `COPY` / `ADD` 指向缺失或被忽略的文件（`COPY *.whl` 仍然允许：只有 `ABX_SERVER_SDK_SOURCE` 或 PyPI 上的正式 wheel 存在时 `abx template deploy` 才会注入；否则会在 `docker build` 之前去掉这一行）
 - 应用 `.dockerignore` 和 `Dockerfile.dockerignore` 之后，仍有按文件名识别的密钥会进入 Docker 构建上下文
 - 忽略文件排除了 `*.whl`，导致 SDK wheel 无法注入
 

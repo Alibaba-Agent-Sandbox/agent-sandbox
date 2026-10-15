@@ -278,15 +278,9 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install the agent-sandbox-server runtime.
-# When building locally via `abx template deploy`, the agent-sandbox-server
-# wheel is automatically injected into the build context as .whl file.
-COPY *.whl /tmp/
-RUN if ls /tmp/*.whl 1>/dev/null 2>&1; then \
-        pip install --no-cache-dir /tmp/*.whl && rm -f /tmp/*.whl; \
-    else \
-        pip install --no-cache-dir agent-sandbox-server; \
-    fi
+# agent-sandbox-server is not on PyPI. This archive is the server-sdk directory
+# of a pinned python-sdk commit. ABX_SERVER_SDK_SOURCE replaces it with a local wheel.
+RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"
 
 WORKDIR /app
 COPY commands.py .
@@ -295,7 +289,7 @@ EXPOSE 9000
 CMD ["python3", "commands.py"]
 ```
 
-> **The `.whl` injection pattern**: When you run `abx template deploy`, `abx` automatically injects the released `agent-sandbox-server` wheel of the matching version into the Docker build context, ensuring the container runs the same runtime version as the host. The released wheel is downloaded from PyPI and its SHA-256 verified. If that is not possible (an unreleased build, or PyPI is unreachable), nothing is injected and the fallback `pip install agent-sandbox-server` runs inside the image. The `COPY *.whl` + fallback pattern above is the recommended way to consume it.
+> **Server install**: `agent-sandbox-server` is not published on PyPI. The PyPI project named `agent-sandbox` is a different package. The line above installs `server-sdk` from a pinned public commit archive, which `docker build` can run without BuildKit and without a local wheel. Set `ABX_SERVER_SDK_SOURCE` to a `server-sdk` tree when you need that checkout instead; `abx template deploy` then copies the built wheel by its exact filename. A Dockerfile that still has `COPY *.whl` is rewritten for that build when no wheel is present, because the legacy builder rejects an empty glob.
 
 ### Named commands (optional)
 
@@ -329,7 +323,7 @@ docker build --platform linux/amd64 --provenance=false -t my-app:test ./my-templ
 docker run --rm my-app:test python3 -c "print('OK')"
 ```
 
-> **About `--provenance=false`**: Docker Buildx adds an attestation manifest by default, which makes Alibaba Cloud FC image optimization fail (the template gets stuck in the `error` state). It appears in the manual `docker build` above only because that command bypasses the SDK. When you deploy via `abx template deploy`, **the SDK auto-injects `--provenance=false` for you whenever BuildKit is enabled**, so you normally do **not** need to add it yourself. Set `DOCKER_BUILDKIT=0` to skip the auto-injection.
+> **About `--provenance=false`**: Docker Buildx adds an attestation manifest by default, which makes Alibaba Cloud FC image optimization fail (the template gets stuck in the `error` state). It appears in the manual `docker build` above only because that command bypasses the CLI. `abx template deploy` adds `--provenance=false` only when `docker buildx version` succeeds, and only then prints the auto-added notice. A daemon without the buildx plugin does not get the flag and does not print that notice (the legacy builder does not attach provenance). Set `DOCKER_BUILDKIT=0` to force the legacy builder.
 
 ---
 
@@ -352,7 +346,7 @@ The `deploy` command performs 5 steps internally:
 
 > ⚠️ **Cost & safety**: `abx template deploy` (and the default `abx template install`) push images to your ACR registry and call the official `CreateTemplate` API on your Alibaba Cloud account — these operations may incur charges. Only deploy templates you intend to run.
 
-During the build step, when BuildKit is enabled the SDK auto-injects `--provenance=false` and prints a notice — you don't need to add the flag yourself (set `DOCKER_BUILDKIT=0` to skip):
+During the build step, when `docker buildx version` succeeds the CLI adds `--provenance=false` and prints a notice. Without buildx it does not add the flag and does not print the notice (set `DOCKER_BUILDKIT=0` to force that path):
 
 ```
 ℹ 已自动添加 --provenance=false（避免 FC 镜像优化失败；设置 DOCKER_BUILDKIT=0 可跳过）

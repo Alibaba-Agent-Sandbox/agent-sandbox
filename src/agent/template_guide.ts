@@ -100,8 +100,8 @@ function dockerfileRules(profile: TemplateProfile): string {
     ? `ENTRYPOINT 可以替换。`
     : `不要写 ENTRYPOINT 指令（基础镜像的入口不可替换）。`;
   const installIntro =
-    "- 安装 agent-sandbox-server，固定使用下面这段（`abx` 部署时会把 agent-sandbox-server wheel 注入构建上下文，" +
-    "没有 wheel 时回退到 PyPI）：";
+    "- 安装 agent-sandbox-server，固定使用下面这一行（包不在 PyPI 上；这是钉死的 python-sdk 归档。" +
+    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx template deploy` 改用本地 wheel）：";
   const secrets = "- 不要在镜像里写入任何密钥；需要的密钥在 template.yaml 的 `env` 里只列名字（空值或非敏感默认值）。";
   if (profile.server_start === "platform_start_cmd") {
     return `### 3. Dockerfile 规则（provider \`${profile.provider_id}\`）

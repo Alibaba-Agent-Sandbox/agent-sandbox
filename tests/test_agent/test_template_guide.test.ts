@@ -92,8 +92,9 @@ describe("TestGuideText", () => {
   });
 
   it("test_sdk_install_pattern_is_the_established_one", () => {
-    expect(TEMPLATE_GUIDE).toContain("COPY *.whl /tmp/");
-    expect(TEMPLATE_GUIDE).toContain("pip install --no-cache-dir agent-sandbox-server");
+    expect(TEMPLATE_GUIDE).toContain("subdirectory=server-sdk");
+    expect(TEMPLATE_GUIDE).toContain("b6e71fa4b6127e94a0da0aa96642ee96f69ad87a");
+    expect(TEMPLATE_GUIDE).not.toContain("COPY *.whl");
   });
 
   it("test_no_clarification_wording_leaks_into_the_prompt", () => {
