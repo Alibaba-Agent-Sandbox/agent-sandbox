@@ -76,7 +76,8 @@ Options:
   --team-id <TEAM_ID>                      Team ID for official API (or env TEAM_ID / E2B_TEAM_ID)
   --envd-inject                            Enable envd injection (default False)
   --no-envd-inject                         Opposite of --envd-inject.
-  --generation <INTEGER>                   Sandbox generation (default: template.yaml 'generation', otherwise 1). 1=first-gen (rund), 2=second-gen MicroVM.
+  --generation <INTEGER>                   Sandbox generation (default: template.yaml 'generation'; else 2 when the provider starts the server and commands.py exists; else 1). 1=first-gen (rund), 2=second-gen MicroVM.
+  --force                                  If a generation-1 template with this name already exists, delete it and create it again. Without --force, deploy stops and prints 'abx template delete <id> -y'.
   --target-image <TARGET_IMAGE>            Destination image ref for envd copy (auto-derived with random suffix if omitted)
   -y, --yes                                Skip confirmation prompt
   -v, --verbose                            Verbose output (DEBUG level)

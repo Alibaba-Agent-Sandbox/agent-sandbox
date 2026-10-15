@@ -148,6 +148,20 @@ export function parseTemplateData(data: Record<string, any>): SandboxTemplate {
  * 3. TODO(Phase2): `GET /templates/{id}` metadata fallback.
  * 4. Fall back to `DEFAULT_CAPABILITIES` and emit a warning.
  */
+/**
+ * Remember a deployed template under `~/.abx/templates/<templateId>/template.yaml`.
+ *
+ * `abx create --template <id>` resolves capabilities by that directory name (and by the yaml `name`).
+ */
+export function cacheDeployedTemplate(yamlPath: string, templateId: string): void {
+  const id = templateId.trim();
+  if (!id || id === "N/A") return;
+  if (!fs.existsSync(yamlPath)) return;
+  const destDir = path.join(_seams.TEMPLATE_CACHE_DIR, id);
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.copyFileSync(yamlPath, path.join(destDir, "template.yaml"));
+}
+
 export async function resolveCapabilities(
   template_id: string | null = null,
   opts: { local_yaml_path?: string | null } = {},
@@ -188,7 +202,9 @@ export async function resolveCapabilities(
   // 4. Fallback
   if (template === null) {
     logger.warning(
-      "Could not resolve capabilities for template %r; falling back to DEFAULT_CAPABILITIES",
+      "Could not resolve capabilities for template %r; no matching template.yaml in ~/.abx/templates. " +
+        "Using default capabilities shell, files, code. " +
+        "Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
       template_id,
     );
     return new ResolvedCapabilities();

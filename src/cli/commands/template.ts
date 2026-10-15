@@ -24,6 +24,7 @@ import { enableVerbose, getOutput, isCiEnv } from "../output.js";
 import { regionOption } from "../region.js";
 import { availableCases, renderScaffold } from "../scaffold.js";
 import { ACRConfig, DockerBuilder } from "../../api/docker_builder.js";
+import { cacheDeployedTemplate } from "../../api/capability.js";
 import * as fcTemplate from "../../api/fc_template.js";
 import { ValueError } from "../../api/_pyerrors.js";
 import { formatFixed0, homeDir, which } from "../../agent/_pycompat.js";
@@ -47,6 +48,7 @@ import { FINE_GRAINED_PAT_URL, GITHUB_TOKEN_ENV_VAR } from "../../utils/github_t
 import * as registryMod from "../../utils/registry.js";
 import { BUILTIN_TEMPLATES, RegistryClient, loadTemplateFromYaml } from "../../utils/registry.js";
 import { fetchIndex } from "../../utils/template_index.js";
+import { resolveTemplateProfile, type TemplateProfile } from "../../providers/template_profile.js";
 import { BuildModeError, resolveBuildPlan, type BuildPlan } from "../../template/build_plan.js";
 
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -186,11 +188,70 @@ export function _readYamlDefaults(template_dir: string): Record<string, Any> {
       cpu: get(resources, "cpu") !== null ? get(resources, "cpu") : get(yamlData, "cpu_count"),
       memory: get(resources, "memory") !== null ? get(resources, "memory") : get(yamlData, "memory_mb"),
       generation: get(yamlData, "generation"),
+      start_cmd: get(yamlData, "start_cmd"),
+      ready_cmd: get(yamlData, "ready_cmd"),
     };
   } catch (e) {
     if (e instanceof OSError || _isNodeOsError(e)) return {};
     echo(`Warning: Failed to parse template.yaml: ${e instanceof Error ? pyStr(e) : String(e)}`, { err: true });
     return {};
+  }
+}
+
+export interface DeployRuntime {
+  generation: number;
+  start_cmd: string | null;
+  ready_cmd: string | null;
+}
+
+function _yamlString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  return text ? text : null;
+}
+
+/**
+ * Generation and platform start/ready commands for a deploy.
+ *
+ * A flag wins, then `template.yaml`, then the provider profile when that profile starts the server and `commands.py`
+ * is in the directory. The profile default is generation 2 plus `start_cmd` / `ready_cmd`. Other templates stay on
+ * generation 1 with no start command.
+ */
+export function resolveDeployRuntime(
+  templateDir: string,
+  flags: { generation?: number | null; start_cmd?: string | null; ready_cmd?: string | null } = {},
+  profile?: TemplateProfile | null,
+): DeployRuntime {
+  const yaml = _readYamlDefaults(templateDir);
+  const resolvedProfile = profile ?? resolveTemplateProfile(null);
+  const platform = resolvedProfile.server_start === "platform_start_cmd" && pathExists(nodePath.join(templateDir, "commands.py"));
+  const yamlGeneration = yaml["generation"];
+  const generation =
+    flags.generation !== null && flags.generation !== undefined
+      ? flags.generation
+      : yamlGeneration !== null && yamlGeneration !== undefined
+        ? _coerceInt(yamlGeneration, platform ? 2 : 1)
+        : platform
+          ? 2
+          : 1;
+  const useProfile = generation === 2 && platform;
+  return {
+    generation,
+    start_cmd: _yamlString(flags.start_cmd) ?? _yamlString(yaml["start_cmd"]) ?? (useProfile ? resolvedProfile.start_cmd : null),
+    ready_cmd: _yamlString(flags.ready_cmd) ?? _yamlString(yaml["ready_cmd"]) ?? (useProfile ? resolvedProfile.ready_cmd : null),
+  };
+}
+
+function _rememberTemplate(templateDir: string, templateId: unknown, out: Any): void {
+  const id = pyStr(templateId ?? "").trim();
+  if (!id || id === "N/A") return;
+  try {
+    const yaml = _findTemplateYaml(templateDir);
+    if (yaml) cacheDeployedTemplate(yaml, id);
+  } catch (e) {
+    out.warning(
+      `Could not cache template.yaml under ~/.abx/templates/${id}: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
 }
 
@@ -554,6 +615,7 @@ interface RunReportedDeployOptions {
   team_id: string | null;
   envd_inject: boolean;
   resolved_generation: number;
+  force: boolean;
   target_image: string | null;
   platform_ak: string;
   platform_sk: string;
@@ -613,6 +675,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
       generation: o.resolved_generation,
       start_command: start_cmd,
       ready_command: ready_cmd,
+      force: o.force,
       envd_inject: o.envd_inject,
       registry_type: registryType,
       acr_instance_id: acr.acree_instance_id || null,
@@ -708,6 +771,8 @@ export interface DoDeployOptions {
   team_id?: string | null;
   envd_inject?: boolean;
   generation?: number | null;
+  /** Delete a generation-1 template of the same name and create a generation-2 template. */
+  force?: boolean;
   target_image?: string | null;
   region?: string | null;
   ctx?: Context | null;
@@ -750,6 +815,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     team_id = null,
     envd_inject = false,
     generation = null,
+    force = false,
     target_image = null,
     region = null,
     ctx = null,
@@ -763,7 +829,10 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
   const yamlDefaults = _readYamlDefaults(template_dir);
   const resolvedCpu: number = cpu !== null ? cpu : _coerceInt(yamlDefaults["cpu"], 2);
   const resolvedMemory: number = memory !== null ? memory : _coerceInt(yamlDefaults["memory"], 2048);
-  const resolvedGeneration: number = generation !== null ? generation : _coerceInt(yamlDefaults["generation"], 1);
+  const runtime = resolveDeployRuntime(template_dir, { generation, start_cmd, ready_cmd });
+  const resolvedGeneration = runtime.generation;
+  const resolvedStart = runtime.start_cmd;
+  const resolvedReady = runtime.ready_cmd;
   const resolvedAcrUsername = acr_username || config.access_key_id || "";
   const resolvedAcrPassword = acr_password || config.access_key_secret || "";
   const resolvedRepo = acr_repo || yamlDefaults["name"] || nodePath.basename(pyResolve(String(template_dir)));
@@ -803,8 +872,9 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
         disk_size,
         internet_access,
         generation: resolvedGeneration,
-        start_command: start_cmd,
-        ready_command: ready_cmd,
+        start_command: resolvedStart,
+        ready_command: resolvedReady,
+        force,
         envd_inject: false,
       });
       const templateId = pyStr(apiResult["templateID"] ?? "");
@@ -814,6 +884,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
         });
       }
       reporter.done(`Template registration submitted: ${templateId}`);
+      _rememberTemplate(template_dir, templateId, out);
       return {
         TemplateID: templateId,
         BuildID: "N/A",
@@ -854,7 +925,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
   const reporter = new _StepReporter(out, { verbose });
   try {
     if (plan.ignoredSteps) out.warning(IGNORED_PLATFORM_STEPS);
-    return await _runReportedDeploy(reporter, {
+    const reported = await _runReportedDeploy(reporter, {
       out,
       config,
       template_dir,
@@ -865,8 +936,8 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
       platform,
       resolved_cpu: resolvedCpu,
       resolved_memory: resolvedMemory,
-      start_cmd,
-      ready_cmd,
+      start_cmd: resolvedStart,
+      ready_cmd: resolvedReady,
       timeout,
       dockerfile: plan.dockerfile,
       disk_size,
@@ -875,10 +946,13 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
       team_id,
       envd_inject,
       resolved_generation: resolvedGeneration,
+      force,
       target_image,
       platform_ak: platformAk,
       platform_sk: platformSk,
     });
+    _rememberTemplate(template_dir, reported["TemplateID"], out);
+    return reported;
   } finally {
     reporter.close();
   }
@@ -1447,7 +1521,12 @@ export const create_template = template.command("create", {
     option(["--generation"], {
       type: INT,
       default: null,
-      help: "Sandbox generation (default: template.yaml 'generation', otherwise 1). " + "1=first-gen (rund), 2=second-gen MicroVM.",
+      help: "Sandbox generation (default 1). 1=first-gen (rund), 2=second-gen MicroVM.",
+    }),
+    option(["--force"], {
+      is_flag: true,
+      default: false,
+      help: "If a generation-1 template with this name already exists, delete it and create it again.",
     }),
     option(["--envd-inject/--no-envd-inject"], { default: false, help: "Enable envd injection in build" }),
     option(["--target-image"], {
@@ -1510,6 +1589,7 @@ export const create_template = template.command("create", {
         generation: resolvedGeneration,
         start_command: startCmd,
         ready_command: readyCmd,
+        force: Boolean(params["force"]),
         envd_inject: envdInject,
         registry_type: registryType,
         acr_instance_id: acreeInstanceId,
@@ -1773,7 +1853,16 @@ export const build = template.command("build", {
     option(["--generation"], {
       type: INT,
       default: null,
-      help: "Sandbox generation (default: template.yaml 'generation', otherwise 1). " + "1=first-gen (rund), 2=second-gen MicroVM.",
+      help:
+        "Sandbox generation (default: template.yaml 'generation'; else 2 when the provider starts the server and commands.py exists; else 1). " +
+        "1=first-gen (rund), 2=second-gen MicroVM.",
+    }),
+    option(["--force"], {
+      is_flag: true,
+      default: false,
+      help:
+        "If a generation-1 template with this name already exists, delete it and create it again. " +
+        "Without --force, deploy stops and prints 'abx template delete <id> -y'.",
     }),
     option(["--target-image"], {
       default: null,
@@ -1814,7 +1903,11 @@ export const build = template.command("build", {
         : nodePath.basename(pyResolve(templateDir));
     const resolvedCpu: number = params["cpu"] !== null ? params["cpu"] : _coerceInt(yamlDefaults["cpu"], 2);
     const resolvedMemory: number = params["memory"] !== null ? params["memory"] : _coerceInt(yamlDefaults["memory"], 2048);
-    const resolvedGeneration: number = params["generation"] !== null ? params["generation"] : _coerceInt(yamlDefaults["generation"], 1);
+    const runtime = resolveDeployRuntime(templateDir, {
+      generation: params["generation"],
+      start_cmd: params["start_cmd"],
+      ready_cmd: params["ready_cmd"],
+    });
     const templateName: Any = params["alias"] || resolvedRepo;
 
     // Early credential check (before confirmation prompt)
@@ -1848,7 +1941,8 @@ export const build = template.command("build", {
       echo(`ACR: ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]}`);
       if (plan.ignoredSteps) echo(IGNORED_PLATFORM_STEPS);
     }
-    echo(`Resources: cpu=${resolvedCpu}, memory=${resolvedMemory}MB`);
+    echo(`Resources: cpu=${resolvedCpu}, memory=${resolvedMemory}MB, generation=${runtime.generation}`);
+    if (runtime.start_cmd) echo(`Start command: ${runtime.start_cmd}`);
 
     // Confirmation before destructive cloud operations.
     if (!params["yes"]) {
@@ -1877,8 +1971,8 @@ export const build = template.command("build", {
       platform: params["platform"],
       cpu: params["cpu"],
       memory: params["memory"],
-      start_cmd: params["start_cmd"],
-      ready_cmd: params["ready_cmd"],
+      start_cmd: runtime.start_cmd,
+      ready_cmd: runtime.ready_cmd,
       timeout: params["timeout"],
       dockerfile: params["dockerfile"],
       disk_size: params["disk_size"],
@@ -1886,7 +1980,8 @@ export const build = template.command("build", {
       use_official: params["use_official"],
       team_id: params["team_id"],
       envd_inject: params["envd_inject"],
-      generation: resolvedGeneration,
+      generation: runtime.generation,
+      force: Boolean(params["force"]),
       target_image: params["target_image"],
       region: params["region"],
       ctx,
@@ -2494,8 +2589,8 @@ export function _printInitSummary(
     return;
   }
   const dirArg = String(target) !== process.cwd() ? String(target) : ".";
-  out.info(`  abx template deploy ${dirArg} --acr-namespace <ns>`);
-  out.info(`  abx template install ${dirArg} --acr-namespace <ns>`);
+  out.info(`  abx template deploy ${dirArg} -y`);
+  out.info("  # ACR namespace: ACR_NAMESPACE, 'abx config set acr_namespace', or --acr-namespace");
 }
 
 /** Python `sorted()` order for strings (code point order, not UTF-16 unit order). */

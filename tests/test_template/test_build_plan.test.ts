@@ -107,4 +107,19 @@ describe("resolveBuildPlan", () => {
     write(noImage, "template.yaml", "build:\n  run: ['true']\n");
     expect(() => resolveBuildPlan(noImage, { mode: "steps" })).toThrow(/base\.image/);
   });
+
+  it("accepts a string base as the image", () => {
+    const dir = tempDir();
+    write(dir, "template.yaml", 'base: "python:3.12-slim"\nbuild:\n  run: ["true"]\n');
+
+    const plan = resolveBuildPlan(dir, { mode: "steps" });
+
+    expect(plan).toMatchObject({ kind: "steps", image: "python:3.12-slim" });
+  });
+
+  it("still rejects a base that is neither a string nor a mapping", () => {
+    const dir = tempDir();
+    write(dir, "template.yaml", "base: [python]\nbuild:\n  run: ['true']\n");
+    expect(() => resolveBuildPlan(dir, { mode: "steps" })).toThrow(/base must be a mapping/);
+  });
 });

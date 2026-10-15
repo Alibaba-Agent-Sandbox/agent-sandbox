@@ -13,6 +13,7 @@ import {
   _readYamlDefaults,
   _resolveAcrNamespace,
   _doDeploy,
+  resolveDeployRuntime,
   init as templateInit,
   template as templateGroup,
   templateSeams,
@@ -972,6 +973,65 @@ describe("TestBuildYamlGeneration", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(mockDeploy).toHaveBeenCalled();
     expect((mockDeploy.mock.calls[0]![1] as unknown as Record<string, unknown>)["generation"]).toBe(2);
+  });
+
+  it("test_express_commands_py_defaults_generation_and_start", async () => {
+    const tdir = path.join(tmpPath(), "express");
+    writeText(path.join(tdir, "template.yaml"), "name: express-demo\nbase: python:3.12\n");
+    writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
+    writeText(path.join(tdir, "commands.py"), "print('hi')\n");
+    delenv("ABX_PROVIDER");
+    envAliyun();
+    const mockDeploy = patchDoDeploy({ TemplateID: "tpl-express" });
+
+    const result = await runner().invoke(cli, ["template", "build", tdir, "--yes"]);
+
+    expect(result.exit_code, result.output).toBe(0);
+    const kw = mockDeploy.mock.calls[0]![1] as unknown as Record<string, unknown>;
+    expect(kw["generation"]).toBe(2);
+    expect(kw["start_cmd"]).toBe("agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py");
+    expect(kw["ready_cmd"]).toBe("agent-sandbox-server healthcheck --port 9000");
+  });
+
+  it("test_generation_flag_wins_over_express_default", async () => {
+    const tdir = path.join(tmpPath(), "express-flag");
+    writeText(path.join(tdir, "template.yaml"), "name: express-flag\n");
+    writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
+    writeText(path.join(tdir, "commands.py"), "print('hi')\n");
+    delenv("ABX_PROVIDER");
+    envAliyun();
+    const mockDeploy = patchDoDeploy({ TemplateID: "tpl-flag" });
+
+    const result = await runner().invoke(cli, ["template", "build", tdir, "--generation", "1", "--yes"]);
+
+    expect(result.exit_code, result.output).toBe(0);
+    const kw = mockDeploy.mock.calls[0]![1] as unknown as Record<string, unknown>;
+    expect(kw["generation"]).toBe(1);
+    expect(kw["start_cmd"]).toBeNull();
+  });
+
+  it("test_yaml_start_cmd_is_used_when_the_flag_is_omitted", () => {
+    const tdir = path.join(tmpPath(), "yaml-start");
+    writeText(path.join(tdir, "template.yaml"), 'name: yaml-start\ngeneration: 2\nstart_cmd: "serve"\nready_cmd: "health"\n');
+    const runtime = resolveDeployRuntime(tdir, {}, { server_start: "image_cmd" } as never);
+    expect(runtime).toEqual({ generation: 2, start_cmd: "serve", ready_cmd: "health" });
+  });
+
+  it("test_generic_provider_does_not_default_to_generation_2", () => {
+    const tdir = path.join(tmpPath(), "generic");
+    writeText(path.join(tdir, "commands.py"), "print('hi')\n");
+    writeText(path.join(tdir, "template.yaml"), "name: generic\n");
+    const runtime = resolveDeployRuntime(
+      tdir,
+      {},
+      {
+        server_start: "image_cmd",
+        start_cmd: null,
+        ready_cmd: null,
+      } as never,
+    );
+    expect(runtime.generation).toBe(1);
+    expect(runtime.start_cmd).toBeNull();
   });
 });
 

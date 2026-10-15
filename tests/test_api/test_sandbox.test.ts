@@ -546,7 +546,33 @@ describe("TestSandboxRunCommand", () => {
     expect(mock_client.post).toHaveBeenCalledTimes(1);
     expect(mock_client.post).toHaveBeenCalledWith("/commands/add", {
       json: { x: 1, y: 2 },
-      headers: mock_client.post.mock.calls[0][1].headers,
+      headers: { "Content-Type": "application/json", "X-Access-Token": TEST_ENVD_TOKEN },
+    });
+  });
+
+  it("retries a named command without the access token when the server rejects it", async () => {
+    const mock_client = {
+      post: vi
+        .fn()
+        .mockResolvedValueOnce({
+          is_success: false,
+          status_code: 401,
+          json: vi.fn(() => ({ error: "unauthorized", type: "AuthError" })),
+        })
+        .mockResolvedValueOnce({ is_success: true, json: vi.fn(() => ({ result: "Hello, Bob!" })) }),
+    };
+    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
+
+    const result = await fx.sandbox.runCommand("hello", { name: "Bob" });
+
+    expect(result.value).toBe("Hello, Bob!");
+    expect(mock_client.post).toHaveBeenNthCalledWith(1, "/commands/hello", {
+      json: { name: "Bob" },
+      headers: { "Content-Type": "application/json", "X-Access-Token": TEST_ENVD_TOKEN },
+    });
+    expect(mock_client.post).toHaveBeenNthCalledWith(2, "/commands/hello", {
+      json: { name: "Bob" },
+      headers: { "Content-Type": "application/json" },
     });
   });
 
@@ -583,7 +609,7 @@ describe("TestSandboxRunCommand", () => {
     expect(result.value).toBe("Hello World");
     expect(mock_client.post).toHaveBeenCalledWith("/commands/hello", {
       json: { name: "World" },
-      headers: mock_client.post.mock.calls[0][1].headers,
+      headers: { "Content-Type": "application/json", "X-Access-Token": TEST_ENVD_TOKEN },
     });
   });
 

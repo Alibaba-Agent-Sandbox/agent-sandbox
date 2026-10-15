@@ -61,6 +61,8 @@ ports:
 
 `template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：用 `@command` 注册，并且只在 `if __name__ == "__main__"` 里调用 `start()`。用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
 
+`base` 可以是镜像字符串，也可以是 `{ image: ... }`。阿里云 Express 还要写 `generation: 2`、`start_cmd` 和 `ready_cmd`（由平台启动 `agent-sandbox-server`，镜像入口不会启动它）。`abx template init -t python` 会写入这些键。`abx run` 和 `abx sandbox command list` / `run` 向 9000 端口发送沙箱的 `X-Access-Token`。若服务返回 HTTP 401，会不带凭证再试一次：Express 不设置 `ABX_SERVER_TOKEN`，对不上的 token 会被拒绝。`abx template deploy` 成功后把清单缓存在 `~/.abx/templates/<template-id>/template.yaml`，之后 `abx create --template <id>` 才能解析能力。缺这个文件时，警告会写出这条路径。
+
 ## Dockerfile 自定义
 
 目录里有 `Dockerfile` 时，镜像就是这个文件。`template.yaml` 不安装软件包。额外的包写成下一节提供者配置上的 `RUN`。默认提供者是 `alicloud-express`：FC 基础镜像，不写 `CMD` 或 `ENTRYPOINT`，工作目录 `/home/user/app`。`FROM python:3.11-slim` 不是这张镜像。
