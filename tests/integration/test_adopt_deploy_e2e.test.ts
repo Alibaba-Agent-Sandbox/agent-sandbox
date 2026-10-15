@@ -130,7 +130,7 @@ function _templateYaml(sample: Sample): string {
 afterEach(() => {
   const root = fs.realpathSync(os.tmpdir());
   for (const name of fs.readdirSync(root)) {
-    if (name.startsWith("abx-adopt-")) fs.rmSync(path.join(root, name), { recursive: true, force: true });
+    if (name.startsWith(`abx-adopt-${process.pid}`)) fs.rmSync(path.join(root, name), { recursive: true, force: true });
   }
 });
 

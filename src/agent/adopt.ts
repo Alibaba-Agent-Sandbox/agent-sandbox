@@ -490,10 +490,10 @@ export function stageProject(project: string, opts: { stagingRoot?: string | nul
 
   let staging: string;
   if (opts.stagingRoot === undefined || opts.stagingRoot === null) {
-    staging = fs.mkdtempSync(path.join(os.tmpdir(), "abx-adopt-"));
+    staging = fs.mkdtempSync(path.join(os.tmpdir(), `abx-adopt-${process.pid}`));
   } else {
     fs.mkdirSync(opts.stagingRoot, { recursive: true });
-    staging = fs.mkdtempSync(path.join(opts.stagingRoot, "abx-adopt-"));
+    staging = fs.mkdtempSync(path.join(opts.stagingRoot, `abx-adopt-${process.pid}`));
   }
 
   const manifest = new Map<string, string>();

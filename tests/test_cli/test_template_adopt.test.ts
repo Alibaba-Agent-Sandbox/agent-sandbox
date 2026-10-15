@@ -69,7 +69,7 @@ const exists = (p: string): boolean => fs.existsSync(p);
 
 afterEach(() => {
   for (const name of fs.readdirSync(os.tmpdir())) {
-    if (name.startsWith("abx-adopt-")) fs.rmSync(path.join(os.tmpdir(), name), { recursive: true, force: true });
+    if (name.startsWith(`abx-adopt-${process.pid}`)) fs.rmSync(path.join(os.tmpdir(), name), { recursive: true, force: true });
   }
 });
 
