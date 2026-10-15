@@ -515,6 +515,23 @@ describe("TestInjectSdkWheel", () => {
     delete process.env[SERVER_SDK_SOURCE_ENV];
   });
 
+  it("test_pinned_dockerfile_does_not_query_pypi", async () => {
+    const tmp_path = mkTmp();
+    writeFileSync(
+      join(tmp_path, "Dockerfile"),
+      'FROM scratch\nRUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tar.gz#subdirectory=server-sdk"\n',
+    );
+    const download = vi.spyOn(DockerBuilder, "_downloadReleaseWheel");
+    const seen: string[] = [];
+    stubFetch((url) => {
+      seen.push(url);
+      return new Response(null, { status: 404 });
+    });
+    expect(await DockerBuilder.injectSdkWheel(tmp_path)).toEqual([]);
+    expect(download).not.toHaveBeenCalled();
+    expect(seen).toEqual([]);
+  });
+
   it("test_installed_sdk_downloads_the_matching_release", async () => {
     // Outside a source checkout the released wheel is injected into the context.
     const tmp_path = mkTmp();
@@ -629,6 +646,14 @@ describe("rewriteDockerfileForServerInstall", () => {
     const out = rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.3.0-py3-none-any.whl"]);
     expect(out).toContain("COPY agent_sandbox_server-0.3.0-py3-none-any.whl /tmp/agent_sandbox_server-0.3.0-py3-none-any.whl");
     expect(out).not.toContain("github.com");
+  });
+
+  it("replaces a different archive SHA when a wheel is injected", () => {
+    const text =
+      'FROM scratch\nRUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"\n';
+    const out = rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.3.0-py3-none-any.whl"]);
+    expect(out).toContain("COPY agent_sandbox_server-0.3.0-py3-none-any.whl");
+    expect(out).not.toContain("b6e71fa4b6127e94a0da0aa96642ee96f69ad87a");
   });
 });
 

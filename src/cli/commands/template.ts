@@ -23,7 +23,7 @@ import { requireTemplateFeature } from "../template_provider.js";
 import { enableVerbose, getOutput, isCiEnv } from "../output.js";
 import { regionOption } from "../region.js";
 import { availableCases, renderScaffold } from "../scaffold.js";
-import { ACRConfig, DockerBuilder, dockerBuildxAvailable } from "../../api/docker_builder.js";
+import { ACRConfig, DockerBuilder, contextHasPinnedServerArchive, dockerBuildxAvailable } from "../../api/docker_builder.js";
 import { cacheDeployedTemplate } from "../../api/capability.js";
 import * as fcTemplate from "../../api/fc_template.js";
 import { ValueError } from "../../api/_pyerrors.js";
@@ -549,8 +549,13 @@ export async function _buildImage(template_dir: string, opts: BuildImageOptions)
     });
   }
 
-  on_progress("[2/3] Injecting SDK wheel into build context...");
-  const injectedWheels = await templateSeams.DockerBuilder.injectSdkWheel(tdir);
+  let injectedWheels: string[] = [];
+  if (!process.env.ABX_SERVER_SDK_SOURCE && contextHasPinnedServerArchive(tdir, dockerfile)) {
+    on_progress("[2/3] Using the Dockerfile's pinned agent-sandbox-server archive");
+  } else {
+    on_progress("[2/3] Injecting SDK wheel into build context...");
+    injectedWheels = await templateSeams.DockerBuilder.injectSdkWheel(tdir, null, dockerfile);
+  }
 
   on_progress(`[3/3] Building Docker image locally: ${localTag}`);
   try {

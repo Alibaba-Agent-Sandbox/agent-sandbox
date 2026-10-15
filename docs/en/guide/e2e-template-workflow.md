@@ -280,7 +280,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # agent-sandbox-server is not on PyPI. This archive is the server-sdk directory
 # of a pinned python-sdk commit. ABX_SERVER_SDK_SOURCE replaces it with a local wheel.
-RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"
+RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"
 
 WORKDIR /app
 COPY commands.py .
@@ -289,7 +289,7 @@ EXPOSE 9000
 CMD ["python3", "commands.py"]
 ```
 
-> **Server install**: `agent-sandbox-server` is not published on PyPI. The PyPI project named `agent-sandbox` is a different package. The line above installs `server-sdk` from a pinned public commit archive, which `docker build` can run without BuildKit and without a local wheel. Set `ABX_SERVER_SDK_SOURCE` to a `server-sdk` tree when you need that checkout instead; `abx template deploy` then copies the built wheel by its exact filename. A Dockerfile that still has `COPY *.whl` is rewritten for that build when no wheel is present, because the legacy builder rejects an empty glob.
+> **Server install**: `agent-sandbox-server` is not published on PyPI. The PyPI project named `agent-sandbox` is a different package. Deploy does not query PyPI when this pin, or any other 40-hex `python-sdk` archive pin of `server-sdk`, is already in the Dockerfile. The line above installs `server-sdk` from a pinned public commit archive, which `docker build` can run without BuildKit and without a local wheel. Set `ABX_SERVER_SDK_SOURCE` to a `server-sdk` tree when you need that checkout instead; `abx template deploy` then copies the built wheel by its exact filename. A Dockerfile that still has `COPY *.whl` is rewritten for that build when no wheel is present, because the legacy builder rejects an empty glob.
 
 ### Named commands (optional)
 

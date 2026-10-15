@@ -15,6 +15,7 @@ import { renderScaffold } from "../../src/cli/scaffold.js";
 import * as installer from "../../src/providers/installer.js";
 import { resetCliSelection, setCliProvider } from "../../src/providers/selection.js";
 import { resolveTemplateProfile } from "../../src/providers/template_profile.js";
+import { ABX_SERVER_INSTALL } from "../../src/utils/server_sdk_pin.js";
 import { resetLayeredConfig } from "../../src/transport/config_layers.js";
 import { useIso } from "../_support/iso.js";
 import { TEST_HOST_VERSION, writePlugin } from "../_support/plugins.js";
@@ -150,9 +151,7 @@ describe("scaffold dockerfiles", () => {
     expect(docker.startsWith(`${FC_FROM}\n`)).toBe(true);
     expect(docker).not.toMatch(CMD_INSTRUCTION);
     expect(docker).not.toMatch(/(?:^|\n)[ \t]*ENTRYPOINT[ \t]/);
-    expect(docker).toContain(
-      'RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"',
-    );
+    expect(docker).toContain(ABX_SERVER_INSTALL);
     expect(docker).not.toContain("COPY *.whl");
     expect(docker).not.toMatch(/pip install --no-cache-dir agent-sandbox(?!-server)/);
     expect(docker).toContain("WORKDIR /home/user/app");

@@ -280,7 +280,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # agent-sandbox-server 不在 PyPI 上。这一行安装钉死的 python-sdk 提交里的 server-sdk。
 # ABX_SERVER_SDK_SOURCE 会在构建时改成本地 wheel。
-RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"
+RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"
 
 WORKDIR /app
 COPY commands.py .
@@ -289,7 +289,7 @@ EXPOSE 9000
 CMD ["python3", "commands.py"]
 ```
 
-> **服务端安装**：`agent-sandbox-server` 没有发布到 PyPI。PyPI 上名为 `agent-sandbox` 的项目是另一个包。上面这一行从钉死的公开提交归档安装 `server-sdk`，普通 `docker build` 不需要 BuildKit，也不需要本地 wheel。需要用某个检出目录时设置 `ABX_SERVER_SDK_SOURCE` 指向 `server-sdk`，`abx template deploy` 会按 wheel 的真实文件名复制它。Dockerfile 里如果还留着 `COPY *.whl` 且没有 wheel，这次构建会先去掉该行，因为旧构建器拒绝空通配符。
+> **服务端安装**：`agent-sandbox-server` 没有发布到 PyPI。PyPI 上名为 `agent-sandbox` 的项目是另一个包。Dockerfile 里已经有这一行，或任何其他 40 位十六进制的 `python-sdk` `server-sdk` 归档钉时，部署不会请求 PyPI。上面这一行从钉死的公开提交归档安装 `server-sdk`，普通 `docker build` 不需要 BuildKit，也不需要本地 wheel。需要用某个检出目录时设置 `ABX_SERVER_SDK_SOURCE` 指向 `server-sdk`，`abx template deploy` 会按 wheel 的真实文件名复制它。Dockerfile 里如果还留着 `COPY *.whl` 且没有 wheel，这次构建会先去掉该行，因为旧构建器拒绝空通配符。
 
 ### 具名命令（可选）
 
