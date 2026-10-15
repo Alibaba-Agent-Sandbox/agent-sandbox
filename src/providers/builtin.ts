@@ -58,7 +58,9 @@ export class AlicloudExpressProvider extends Provider {
       access_key_secret: config.access_key_secret,
       region: config.region,
     });
-    const http = new HttpClient(transport, auth);
+    // Express envd reads streaming RPCs as Connect envelopes. Plain JSON is parsed as a length prefix
+    // (`{"pro...` → "promised N bytes") and the command's stdout never arrives.
+    const http = new HttpClient(transport, auth, { envelope_connect: true });
     return {
       config,
       auth,

@@ -1108,7 +1108,7 @@ Consequences:
 `OutputManager` installs one `_LogBridgeHandler` on the **root** logger (format `LEVELNAME: message`, level = the CLI log level) and drops the standalone handler installed by `utils/logging` (the SDK installs the equivalent one in `agent_sandbox.utils.logging`). That is what keeps a library warning such as the capability-resolver fallback from being printed twice:
 
 ```
-WARNING: Could not resolve capabilities for template 'base'; falling back to DEFAULT_CAPABILITIES
+WARNING: Could not resolve capabilities for template 'base'; no matching template.yaml in ~/.abx/templates. Using default capabilities shell, files, code. Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.
 ```
 
 Log propagation stays enabled, so test log capture and embedding applications keep seeing records. During a CLI run the verbosity flags (`--verbose` / `--quiet` / `--log-level`, plus CI auto-detection) are the single source of truth for the log level; `ABX_LOG_LEVEL` applies to standalone SDK use, where the SDK owns logging.

@@ -482,3 +482,103 @@ describe("TestWaitForTemplateReady", () => {
   });
 });
 
+function generationClient(generation: number | null, opts: { updateError?: string } = {}) {
+  let creates = 0;
+  const mock_client = {
+    createTemplate: vi.fn(async () => {
+      creates += 1;
+      if (creates === 1) throw new Error("TemplateAlreadyExists 409");
+      return { body: { templateID: "tpl-new", requestId: "req-new" }, statusCode: 200 };
+    }),
+    listTemplates: vi.fn().mockResolvedValue({
+      body: { templates: [{ name: "test", templateID: "tpl-old" }], nextToken: null },
+    }),
+    getTemplate: vi.fn(async () => {
+      if (generation === null) throw new Error("get failed");
+      return {
+        body: { toMap: () => ({ runtimeConfig: { sandboxConfig: { generation } } }) },
+        statusCode: 200,
+      };
+    }),
+    updateTemplate: vi.fn(async () => {
+      if (opts.updateError) throw new Error(opts.updateError);
+      return { body: { requestId: "req-u" }, statusCode: 200 };
+    }),
+    deleteTemplate: vi.fn().mockResolvedValue({ statusCode: 200 }),
+  };
+  patchClient(mock_client);
+  return mock_client;
+}
+
+describe("TestGeneration1StartCommand", () => {
+  const create = (force = false) =>
+    createOfficialTemplate({
+      name: "test",
+      image: "registry/ns/repo:v1",
+      access_key_id: "AK",
+      access_key_secret: "SK",
+      team_id: "team-x",
+      generation: 2,
+      start_command: "agent-sandbox-server serve --port 9000",
+      ready_command: "agent-sandbox-server healthcheck --port 9000",
+      force,
+    });
+
+  it("refuses to update a generation-1 template and names the delete command", async () => {
+    const client = generationClient(1);
+    await expect(create()).rejects.toThrow(
+      /sandboxConfig.startCommand is only supported when updating a generation 2 sandbox template/,
+    );
+    expect(client.updateTemplate).not.toHaveBeenCalled();
+    expect(client.deleteTemplate).not.toHaveBeenCalled();
+  });
+
+  it("includes the delete command on the suggestion", async () => {
+    generationClient(1);
+    try {
+      await create();
+      throw new Error("expected TemplateBuildError");
+    } catch (exc) {
+      expect(exc).toBeInstanceOf(TemplateBuildError);
+      expect((exc as TemplateBuildError).suggestion).toContain("abx template delete tpl-old -y");
+      expect((exc as TemplateBuildError).suggestion).toContain("abx template deploy . -y");
+      expect((exc as TemplateBuildError).suggestion).toContain("--force");
+    }
+  });
+
+  it("deletes a generation-1 template and recreates it when force is set", async () => {
+    const client = generationClient(1);
+    const result = await create(true);
+    expect(result["templateID"]).toBe("tpl-new");
+    expect(client.deleteTemplate).toHaveBeenCalledTimes(1);
+    expect(client.updateTemplate).not.toHaveBeenCalled();
+    expect(client.createTemplate).toHaveBeenCalledTimes(2);
+  });
+
+  it("updates a generation-2 template in place", async () => {
+    const client = generationClient(2);
+    const result = await create();
+    expect(result["templateID"]).toBe("tpl-old");
+    expect(client.updateTemplate).toHaveBeenCalledTimes(1);
+    expect(client.deleteTemplate).not.toHaveBeenCalled();
+  });
+
+  it("turns the platform generation-1 update error into the delete command", async () => {
+    const client = generationClient(null, {
+      updateError: "sandboxConfig.startCommand is only supported when updating a generation 2 sandbox template",
+    });
+    try {
+      await create();
+      throw new Error("expected TemplateBuildError");
+    } catch (exc) {
+      expect(exc).toBeInstanceOf(TemplateBuildError);
+      expect((exc as TemplateBuildError).message).toContain(
+        "sandboxConfig.startCommand is only supported when updating a generation 2 sandbox template",
+      );
+      expect((exc as TemplateBuildError).suggestion).toContain("abx template delete tpl-old -y");
+    }
+    expect(client.updateTemplate).toHaveBeenCalled();
+    expect(client.deleteTemplate).not.toHaveBeenCalled();
+  });
+});
+

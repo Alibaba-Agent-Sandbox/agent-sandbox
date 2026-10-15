@@ -44,6 +44,15 @@ function quoted(value: string): string {
   return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
+function platformRuntime(profile: TemplateProfile): string {
+  if (profile.server_start !== "platform_start_cmd" || !profile.start_cmd) return "";
+  return `
+generation: 2
+start_cmd: ${quoted(profile.start_cmd)}
+ready_cmd: ${quoted(profile.ready_cmd ?? "")}
+`;
+}
+
 function templateYaml(profile: TemplateProfile, description: string, cpu: number): string {
   return `name: {name}
 version: "1.0.0"
@@ -52,7 +61,7 @@ description: ${quoted(description)}
 base: ${quoted(profile.base_image)}
 user: ${quoted(profile.user)}
 workdir: ${quoted(profile.workdir)}
-
+${platformRuntime(profile)}
 capabilities:
   - shell
   - files
@@ -123,8 +132,10 @@ Default user: \`${who}\`. Working directory: \`${profile.workdir}\`.
 
 ## Deploy
 
+The ACR namespace comes from \`ACR_NAMESPACE\` or \`abx config set acr_namespace\`. \`--acr-namespace\` overrides it.
+
 \`\`\`bash
-abx template deploy . --acr-namespace <your-namespace>
+abx template deploy . -y
 abx create --template {name}
 abx run <SANDBOX_ID> hello --arg name=Ada
 \`\`\`

@@ -133,6 +133,7 @@ describe("template guide text", () => {
     expect(alicloud).not.toContain("python:3.12-slim");
     expect(alicloud).toContain("agent-sandbox-server");
     expect(alicloud).toContain("/home/user/app");
+    expect(alicloud).toContain("generation: 2");
     expect(generic).toContain("FROM python:3.12-slim");
     expect(generic).toContain('CMD ["python3", "commands.py"]');
     expect(generic).toContain("no-such-provider");
@@ -158,6 +159,13 @@ describe("scaffold dockerfiles", () => {
     expect(commands).not.toContain(".serve(");
     expect(commands).toContain("agent_sandbox.server");
     expect(commands).not.toMatch(/alicloud|opensandbox/);
+    const yaml = files.get("template.yaml") ?? "";
+    expect(yaml).toContain("generation: 2");
+    expect(yaml).toContain('start_cmd: "agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py"');
+    expect(yaml).toContain('ready_cmd: "agent-sandbox-server healthcheck --port 9000"');
+    const minimal = renderScaffold("minimal", "demo").get("template.yaml") ?? "";
+    expect(minimal).not.toContain("generation:");
+    expect(minimal).not.toContain("start_cmd:");
   });
 
   it("uses the generic base and CMD when the selected provider has no profile", () => {
@@ -169,6 +177,9 @@ describe("scaffold dockerfiles", () => {
     expect(docker).toContain("WORKDIR /app");
     expect(docker).not.toContain("fc-e2b-registry");
     expect(docker).toContain("agent-sandbox-server");
+    const yaml = files.get("template.yaml") ?? "";
+    expect(yaml).not.toContain("generation:");
+    expect(yaml).not.toContain("start_cmd:");
   });
 });
 

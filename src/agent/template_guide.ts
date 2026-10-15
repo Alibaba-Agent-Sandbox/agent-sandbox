@@ -207,6 +207,11 @@ from agent_sandbox.server import (
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
   \`abx run <sandbox_id> <名字>\` 调用。
 - \`tags\`、\`author\` 可省略。
+${
+  selected.server_start === "platform_start_cmd"
+    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx template deploy\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
+    : ""
+}
 
 ### 6. 完整参考：commands.py 的最小形态
 \`\`\`python

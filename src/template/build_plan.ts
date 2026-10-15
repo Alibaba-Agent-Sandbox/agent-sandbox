@@ -70,7 +70,7 @@ function _readTemplate(templateDir: string): FileBuild {
   const data = loadYaml(fs.readFileSync(file, "utf8"));
   if (!isMapping(data)) throw new BuildModeError(`${file} must be a YAML mapping`);
   const root = data as Record<string, unknown>;
-  const base = _mapping(root["base"], "base");
+  const base = _base(root["base"]);
   const image = typeof base["image"] === "string" && base["image"].trim() ? base["image"].trim() : null;
   const build = _mapping(root["build"], "build");
   const mode = build["mode"] === undefined ? null : _mode(build["mode"], "build.mode");
@@ -130,6 +130,15 @@ function _mode(value: unknown, where: string): BuildMode {
     throw new BuildModeError(`${where} must be auto, dockerfile, or steps`);
   }
   return value as BuildMode;
+}
+
+/** `base: "image:tag"` is the image. A mapping uses `base.image`. Anything else is an error. */
+function _base(value: unknown): Record<string, unknown> {
+  if (typeof value === "string") {
+    const image = value.trim();
+    return image ? { image } : {};
+  }
+  return _mapping(value, "base");
 }
 
 function _mapping(value: unknown, where: string): Record<string, unknown> {

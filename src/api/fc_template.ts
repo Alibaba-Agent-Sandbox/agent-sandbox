@@ -364,6 +364,61 @@ export async function _findTemplateByName(client: any, team_id: string, name: st
   return null;
 }
 
+/** Platform text when UpdateTemplate is given a start command for a generation-1 template. */
+export const GEN1_START_COMMAND =
+  "sandboxConfig.startCommand is only supported when updating a generation 2 sandbox template";
+
+export function generation1UpdateMessage(name: string, templateId: string): string {
+  return (
+    `Template '${name}' (${templateId}) is generation 1. ${GEN1_START_COMMAND}. ` +
+    "A generation-1 template cannot be updated to generation 2."
+  );
+}
+
+export function generation1UpdateSuggestion(templateId: string): string {
+  return (
+    `abx template delete ${templateId} -y\n` +
+    `abx template deploy . -y\n` +
+    "Or rerun the same deploy with --force to delete that template and create it again."
+  );
+}
+
+function _generationOf(value: unknown): number | null {
+  if (value === null || typeof value !== "object") return null;
+  const rec = value as Record<string, unknown>;
+  const direct = rec["generation"];
+  if (typeof direct === "number" && Number.isFinite(direct)) return Math.trunc(direct);
+  if (typeof direct === "string" && /^\d+$/.test(direct.trim())) return Number(direct.trim());
+  const runtime = rec["runtimeConfig"] ?? rec["runtime_config"];
+  if (runtime !== null && typeof runtime === "object") {
+    const sandbox = (runtime as Record<string, unknown>)["sandboxConfig"] ?? (runtime as Record<string, unknown>)["sandbox_config"];
+    return _generationOf(sandbox);
+  }
+  return null;
+}
+
+async function _templateGeneration(client: any, sdk: FcSdk, templateId: string, teamId: string): Promise<number | null> {
+  if (typeof client.getTemplate !== "function") return null;
+  try {
+    const resp = await client.getTemplate(templateId, new sdk.models["GetTemplateRequest"]({ teamID: teamId }));
+    const body = resp?.body;
+    const map = body && typeof body.toMap === "function" ? body.toMap() : body;
+    return _generationOf(map);
+  } catch {
+    return null;
+  }
+}
+
+async function _deleteTemplate(client: any, sdk: FcSdk, templateId: string, teamId: string): Promise<void> {
+  try {
+    await client.deleteTemplate(templateId, new sdk.models["DeleteTemplateRequest"]({ teamID: teamId }));
+  } catch (exc) {
+    throw new TemplateBuildError(`Could not delete generation-1 template ${templateId}: ${sdkErrStr(exc)}`, {
+      suggestion: generation1UpdateSuggestion(templateId),
+    });
+  }
+}
+
 export interface UpdateExistingTemplateOptions {
   client: any;
   name: string;
@@ -541,6 +596,10 @@ export interface CreateOfficialTemplateOptions {
   registry_security_group_id?: string | null;
   target_image?: string | null;
   steps?: Array<{ type: string; args: string[] }> | null;
+  /** Delete a generation-1 template of the same name and create it again. */
+  force?: boolean;
+  /** Internal: a generation-1 template was already deleted once for this call. */
+  _replaced?: boolean;
 }
 
 /**
@@ -577,6 +636,7 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
     target_image = null,
     steps = null,
   } = opts;
+  const force = opts.force ?? false;
   let team_id = opts.team_id ?? null;
   const sdk = _requireSdk();
   const m = sdk.models;
@@ -704,28 +764,67 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
     // Handle 409 TemplateAlreadyExists by falling back to UpdateTemplate
     if (exc_str.includes("TemplateAlreadyExists") || exc_str.includes("409")) {
       logger.info("Template '%s' already exists, attempting UpdateTemplate...", name);
-      return _updateExistingTemplate({
-        client,
-        name,
-        team_id: team_id || "",
-        image,
-        cpu,
-        memory_size,
-        disk_size,
-        internet_access,
-        generation,
-        start_command,
-        ready_command,
-        envd_inject,
-        effective_registry_type,
-        acr_instance_id,
-        registry_username,
-        registry_password,
-        registry_vpc_id,
-        registry_vswitch_id,
-        registry_security_group_id,
-        target_image: resolved_target,
-      });
+      const team = team_id || "";
+      if ((start_command || ready_command) && !opts._replaced) {
+        const existing = await _findTemplateByName(client, team, name, sdk);
+        if (existing) {
+          const existingGeneration = await _templateGeneration(client, sdk, existing, team);
+          if (existingGeneration !== null && existingGeneration !== 2) {
+            if (!force) {
+              throw new TemplateBuildError(generation1UpdateMessage(name, existing), {
+                suggestion: generation1UpdateSuggestion(existing),
+              });
+            }
+            logger.info("Deleting generation-%s template %s before recreating it", existingGeneration, existing);
+            await _deleteTemplate(client, sdk, existing, team);
+            return createOfficialTemplate({ ...opts, team_id: team, _replaced: true });
+          }
+        }
+      }
+      try {
+        return await _updateExistingTemplate({
+          client,
+          name,
+          team_id: team,
+          image,
+          cpu,
+          memory_size,
+          disk_size,
+          internet_access,
+          generation,
+          start_command,
+          ready_command,
+          envd_inject,
+          effective_registry_type,
+          acr_instance_id,
+          registry_username,
+          registry_password,
+          registry_vpc_id,
+          registry_vswitch_id,
+          registry_security_group_id,
+          target_image: resolved_target,
+        });
+      } catch (updateErr) {
+        const updateText = updateErr instanceof Error ? updateErr.message : String(updateErr);
+        if (
+          (start_command || ready_command) &&
+          !opts._replaced &&
+          updateText.includes("startCommand is only supported when updating a generation 2")
+        ) {
+          const existing = await _findTemplateByName(client, team, name, sdk);
+          if (existing && force) {
+            logger.info("UpdateTemplate rejected a start command; deleting %s and recreating", existing);
+            await _deleteTemplate(client, sdk, existing, team);
+            return createOfficialTemplate({ ...opts, team_id: team, _replaced: true });
+          }
+          if (existing) {
+            throw new TemplateBuildError(generation1UpdateMessage(name, existing), {
+              suggestion: generation1UpdateSuggestion(existing),
+            });
+          }
+        }
+        throw updateErr;
+      }
     }
 
     throw new TemplateBuildError(`CreateTemplate API call failed: ${exc_str}`, {

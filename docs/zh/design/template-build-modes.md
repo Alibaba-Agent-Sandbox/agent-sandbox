@@ -22,6 +22,8 @@
 
 已经生效的字段保持不变（`name`、`capabilities`、`ports`、`resources`、`server`、`env`）。具名命令仍在 `commands.py`，不是构建步骤。
 
+`base` 可以是映射，也可以是字符串。字符串就是镜像引用（`base: python:3.12-slim` 与 `base.image` 相同）。`generation`、`start_cmd`、`ready_cmd` 可选。`abx template deploy` 会把它们发给 `CreateTemplate`。命令行（`--generation`、`--start-cmd`、`--ready-cmd`）覆盖文件。当前提供者用平台命令启动服务，且目录里有 `commands.py` 时，缺省的 `generation` 为 `2`，缺省的 `start_cmd` / `ready_cmd` 取该提供者配置。其他模板默认 generation 1，不带启动命令。generation 1 拒绝 start command。同名模板若已是 generation 1，deploy 会停下来并打印 `abx template delete <id> -y`，然后再部署一次。`--force` 会删掉那个模板再创建。`-y` 不会删。
+
 ```yaml
 name: python-data
 base:

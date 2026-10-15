@@ -22,6 +22,8 @@ When `auto` finds both a `Dockerfile` and build declarations, the Dockerfile pat
 
 Fields that already take effect stay as they are (`name`, `capabilities`, `ports`, `resources`, `server`, `env`). Named commands stay in `commands.py`. They are not build steps.
 
+`base` is either a mapping or a string. A string is the image reference (`base: python:3.12-slim` is the same as `base.image`). `generation`, `start_cmd`, and `ready_cmd` are optional. `abx template deploy` sends them on `CreateTemplate`. A flag (`--generation`, `--start-cmd`, `--ready-cmd`) overrides the file. When the selected provider starts the server with a platform command and the directory contains `commands.py`, a missing `generation` defaults to `2` and a missing `start_cmd` / `ready_cmd` defaults to that provider profile. Other templates default to generation 1 and no start command. Generation 1 rejects a start command. If a generation-1 template of the same name already exists, deploy stops and prints `abx template delete <id> -y` followed by a redeploy. `--force` deletes that template and creates it again. `-y` does not.
+
 ```yaml
 name: python-data
 base:

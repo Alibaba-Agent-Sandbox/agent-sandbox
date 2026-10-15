@@ -1105,7 +1105,7 @@ abx create --template my-ml-env
 `OutputManager` 在 **root** logger 上安装唯一的 `_LogBridgeHandler`（格式 `LEVELNAME: message`，级别跟随 CLI 日志级别），并移除 `utils/logging` 为独立使用安装的 handler（SDK 在 `agent_sandbox.utils.logging` 中安装对应的 handler）。这正是同一条库告警不会被打印两次的原因：
 
 ```
-WARNING: Could not resolve capabilities for template 'base'; falling back to DEFAULT_CAPABILITIES
+WARNING: Could not resolve capabilities for template 'base'; no matching template.yaml in ~/.abx/templates. Using default capabilities shell, files, code. Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.
 ```
 
 日志传播（propagate）保持开启，因此测试的日志捕获与嵌入式宿主仍然能看到记录。CLI 运行期间，日志级别以 `--verbose` / `--quiet` / `--log-level`（含 CI 自动检测）为唯一依据；`ABX_LOG_LEVEL` 适用于由 SDK 自己掌控日志的独立使用场景。

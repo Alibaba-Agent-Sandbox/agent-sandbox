@@ -6,7 +6,8 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ResolvedCapabilities, _seams as capability_seams, resolveCapabilities } from "../../src/api/capability.js";
+import { ResolvedCapabilities, _seams as capability_seams, cacheDeployedTemplate, resolveCapabilities } from "../../src/api/capability.js";
+import { getLogger } from "../../src/utils/logging.js";
 import { CodeContextModule } from "../../src/api/code.js";
 import { CommandsModule } from "../../src/api/commands.js";
 import { FilesModule } from "../../src/api/files.js";
@@ -187,8 +188,22 @@ describe("TestResolveCapabilities", () => {
 
   it("test_resolve_fallback_to_defaults", async () => {
     // When template is not found, use DEFAULT_CAPABILITIES.
+    const warning = vi.spyOn(getLogger("api.capability"), "warning");
     const result = await resolveCapabilities("nonexistent-template-xyz");
     setEq(result.capabilities, DEFAULT_CAPABILITIES);
+    expect(String(warning.mock.calls.at(-1)?.[0])).toContain("~/.abx/templates");
+    expect(String(warning.mock.calls.at(-1)?.[0])).toContain("abx template deploy");
+  });
+
+  it("test_cache_deployed_template_matches_by_id", async () => {
+    const root = mkTmp();
+    const cache = join(root, "templates");
+    capability_seams.TEMPLATE_CACHE_DIR = cache;
+    const src = join(root, "template.yaml");
+    writeFileSync(src, "name: friendly\ncapabilities:\n  - shell\n  - files\n  - code\n");
+    cacheDeployedTemplate(src, "tpl-123");
+    const result = await resolveCapabilities("tpl-123");
+    setEq(result.capabilities, ["shell", "files", "code"]);
   });
 
   it("test_resolve_none_capabilities_uses_defaults", async () => {

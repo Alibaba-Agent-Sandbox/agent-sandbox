@@ -93,7 +93,12 @@ function mockSandbox(sandboxId = "sbx-chan-001", template = "base"): Record<stri
 async function invokeCreate(runner: CliRunner, args: string[], template = "base") {
   const mockSb = mockSandbox(undefined, template);
   const create = vi.spyOn(Sandbox, "create").mockImplementation((async () => {
-    getLogger("api.capability").warning("Could not resolve capabilities for template %r; falling back to DEFAULT_CAPABILITIES", template);
+    getLogger("api.capability").warning(
+      "Could not resolve capabilities for template %r; no matching template.yaml in ~/.abx/templates. " +
+        "Using default capabilities shell, files, code. " +
+        "Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
+      template,
+    );
     return mockSb as unknown as Sandbox;
   }) as never);
   try {
@@ -302,12 +307,16 @@ describe("TestCreateChannelSeparation", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stdout).toContain("sbx-chan-001");
     expect(result.stdout).toContain("created successfully");
-    expect(result.stdout).not.toContain("falling back to DEFAULT_CAPABILITIES");
+    expect(result.stdout).not.toContain("default capabilities shell, files, code");
     // Exactly one rendered warning line -- the duplicate-handler regression.
     expect(
       result.stderr
         .split("\n")
-        .filter((l) => l === "WARNING: Could not resolve capabilities for template 'base'; falling back to DEFAULT_CAPABILITIES").length,
+        .filter(
+          (l) =>
+            l ===
+            "WARNING: Could not resolve capabilities for template 'base'; no matching template.yaml in ~/.abx/templates. Using default capabilities shell, files, code. Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
+        ).length,
     ).toBe(1);
     expect(result.stderr).not.toContain("sbx-chan-001");
   });
@@ -319,7 +328,7 @@ describe("TestCreateChannelSeparation", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload["ID"]).toBe("sbx-chan-001");
     expect(payload["Status"]).toBe("running");
-    expect(result.stderr).toContain("falling back");
+    expect(result.stderr).toContain("~/.abx/templates");
   });
 
   it("test_quiet_mode_prints_values_only", async () => {
