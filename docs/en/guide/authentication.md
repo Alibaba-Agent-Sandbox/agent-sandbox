@@ -28,7 +28,7 @@ API Key is the most common authentication method, sent to the platform API via t
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-`ABX_SANDBOX_API_KEY` is the only environment variable for the sandbox API key.
+`ABX_SANDBOX_API_KEY` is the only environment variable for the sandbox API key. `E2B_API_KEY` is not read. The base URL is `ABX_SANDBOX_BASE_URL` and the domain is `ABX_SANDBOX_DOMAIN` (`E2B_API_URL` and `E2B_DOMAIN` are not read).
 
 #### 2. abx config set (persisted to local file)
 
@@ -79,6 +79,8 @@ AK/SK mode uses an Alibaba Cloud AccessKey pair to obtain a temporary API Key vi
 export ALICLOUD_ACCESS_KEY_ID="your-access-key-id"
 export ALICLOUD_ACCESS_KEY_SECRET="your-access-key-secret"
 ```
+
+`ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET` are the only AccessKey environment variables that are read (process environment, `./.env`, or `~/.abx/.env`). `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing-credential error names `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`.
 
 #### 2. abx config set (persisted to local file)
 

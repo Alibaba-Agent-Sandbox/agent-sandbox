@@ -148,18 +148,35 @@ export function parseTemplateData(data: Record<string, any>): SandboxTemplate {
  * 3. TODO(Phase2): `GET /templates/{id}` metadata fallback.
  * 4. Fall back to `DEFAULT_CAPABILITIES` and emit a warning.
  */
+/** A cache directory name: no separators, so the copy stays inside `~/.abx/templates`. */
+function _cacheDirName(raw: string): string | null {
+  const name = raw.trim();
+  if (!name || name === "N/A" || name === "." || name === "..") return null;
+  if (name.includes("/") || name.includes("\\") || name.includes("\0")) return null;
+  return name;
+}
+
 /**
  * Remember a deployed template under `~/.abx/templates/<templateId>/template.yaml`.
  *
- * `abx create --template <id>` resolves capabilities by that directory name (and by the yaml `name`).
+ * `also` copies the same file under extra directory names (the `--alias`, and the
+ * template name when it differs). `abx create --template <id-or-alias>` matches that
+ * directory name, the yaml `name`, or an `alias` field.
  */
-export function cacheDeployedTemplate(yamlPath: string, templateId: string): void {
-  const id = templateId.trim();
-  if (!id || id === "N/A") return;
+export function cacheDeployedTemplate(yamlPath: string, templateId: string, also: readonly string[] = []): void {
+  const id = _cacheDirName(templateId);
+  if (!id) return;
   if (!fs.existsSync(yamlPath)) return;
-  const destDir = path.join(_seams.TEMPLATE_CACHE_DIR, id);
-  fs.mkdirSync(destDir, { recursive: true });
-  fs.copyFileSync(yamlPath, path.join(destDir, "template.yaml"));
+  const names = new Set<string>([id]);
+  for (const extra of also) {
+    const name = _cacheDirName(extra);
+    if (name) names.add(name);
+  }
+  for (const name of names) {
+    const destDir = path.join(_seams.TEMPLATE_CACHE_DIR, name);
+    fs.mkdirSync(destDir, { recursive: true });
+    fs.copyFileSync(yamlPath, path.join(destDir, "template.yaml"));
+  }
 }
 
 export async function resolveCapabilities(

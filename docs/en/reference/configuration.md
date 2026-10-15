@@ -16,7 +16,7 @@ Configuration is loaded in the following priority order (highest to lowest):
 5. Built-in defaults                                  ← Lowest
 ```
 
-Each key has exactly one environment variable. The first layer that sets that variable wins.
+Each key has exactly one environment variable. The first layer that sets that variable wins. The built-in provider reads `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. It does not read `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, or `ALIBABA_CLOUD_ACCESS_KEY_SECRET`.
 
 `.env` files are merged **per key**. `./.env` overrides `~/.abx/.env` when both set the same key. A key that the project file does not set still comes from `~/.abx/.env`.
 

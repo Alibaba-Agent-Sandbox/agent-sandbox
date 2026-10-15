@@ -187,7 +187,7 @@ abx config list --provider my-cloud                          # the provider's ke
 
 A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx provider config <id> list|get|set|unset|init` is the same surface scoped to one provider.
 
-`abx config list` prints the names in the table above. A name that is not in the table is not read.
+`abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
 
 ---
 

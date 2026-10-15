@@ -334,6 +334,9 @@ docker run --rm my-app:test python3 -c "print('OK')"
 ```bash
 # 确保 .env 中已配置 ACR_NAMESPACE
 abx template deploy ./my-template
+
+# 非交互。stdout 是一个 JSON 对象，模板 id 在 TemplateID 字段。
+abx --json template deploy ./my-template -y
 ```
 
 `deploy` 命令内部执行 5 个步骤：

@@ -105,6 +105,36 @@ describe("TestDeployConfirmation", () => {
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("ACR credentials missing.");
     expect(result.output).toContain("--acr-username/--acr-password");
+    expect(result.output).toContain("ALICLOUD_ACCESS_KEY_ID");
+    expect(result.output).toContain("ALICLOUD_ACCESS_KEY_SECRET");
+    expect(result.output).not.toContain("AccessKey / AccessSecret");
+  });
+
+  it("test_deploy_json_prints_template_id_on_stdout", async () => {
+    patchLoadConfig(fakeConfig());
+    const deployed = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({
+      TemplateID: "tpl-json-alias",
+      BuildID: "bld-1",
+      "ACR Image": "registry/ns/repo:latest",
+      Status: "ready",
+      _build_logs: ["noise"],
+    });
+    const result = await runner().invoke(cli, [
+      "--json",
+      "template",
+      "deploy",
+      templateDir(),
+      "--alias",
+      "uniq-alias",
+      "-y",
+      "--acr-namespace",
+      "ns",
+    ]);
+    expect(result.exit_code, result.output).toBe(0);
+    const payload = JSON.parse(result.stdout) as { TemplateID?: string };
+    expect(payload.TemplateID).toBe("tpl-json-alias");
+    expect(result.stdout).not.toContain("Template: ");
+    deployed.mockRestore();
   });
 
   it("test_deploy_without_yes_in_non_interactive_mode_is_usage_error", async () => {

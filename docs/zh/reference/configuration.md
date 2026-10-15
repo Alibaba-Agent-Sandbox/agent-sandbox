@@ -16,7 +16,7 @@
 5. 内置默认值                                  ← 最低
 ```
 
-每个键只有一个环境变量。第一个设置了该变量的层决定结果。
+每个键只有一个环境变量。第一个设置了该变量的层决定结果。内置提供方读取 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`。
 
 `.env` 文件按**键**合并。同一个键两边都有时，`./.env` 优先于 `~/.abx/.env`。项目文件里没有的键，仍然来自 `~/.abx/.env`。
 

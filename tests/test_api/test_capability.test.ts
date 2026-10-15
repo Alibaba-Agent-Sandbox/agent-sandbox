@@ -1,6 +1,6 @@
 /** Tests for capability model, gating, and resolver. */
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -204,6 +204,33 @@ describe("TestResolveCapabilities", () => {
     cacheDeployedTemplate(src, "tpl-123");
     const result = await resolveCapabilities("tpl-123");
     setEq(result.capabilities, ["shell", "files", "code"]);
+  });
+
+  it("test_cache_deployed_template_matches_by_alias", async () => {
+    const root = mkTmp();
+    const cache = join(root, "templates");
+    capability_seams.TEMPLATE_CACHE_DIR = cache;
+    const src = join(root, "template.yaml");
+    writeFileSync(src, "name: friendly\ncapabilities:\n  - shell\n  - terminal\n");
+    const warning = vi.spyOn(getLogger("api.capability"), "warning");
+    cacheDeployedTemplate(src, "tpl-123", ["unique-alias", "friendly"]);
+    const byAlias = await resolveCapabilities("unique-alias");
+    setEq(byAlias.capabilities, ["shell", "terminal"]);
+    const byId = await resolveCapabilities("tpl-123");
+    setEq(byId.capabilities, ["shell", "terminal"]);
+    expect(warning).not.toHaveBeenCalled();
+  });
+
+  it("test_cache_deployed_template_ignores_path_like_alias", () => {
+    const root = mkTmp();
+    const cache = join(root, "templates");
+    capability_seams.TEMPLATE_CACHE_DIR = cache;
+    const src = join(root, "template.yaml");
+    writeFileSync(src, "name: friendly\ncapabilities:\n  - shell\n");
+    cacheDeployedTemplate(src, "tpl-123", ["../escape", "ok-alias"]);
+    expect(existsSync(join(cache, "tpl-123", "template.yaml"))).toBe(true);
+    expect(existsSync(join(cache, "ok-alias", "template.yaml"))).toBe(true);
+    expect(existsSync(join(root, "escape", "template.yaml"))).toBe(false);
   });
 
   it("test_resolve_none_capabilities_uses_defaults", async () => {

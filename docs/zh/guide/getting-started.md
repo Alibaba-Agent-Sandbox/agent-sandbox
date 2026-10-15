@@ -7,7 +7,7 @@
 ## 前置条件
 
 - Node.js 20 或更高版本（用于 `abx` CLI）
-- 默认提供方是 `alicloud-express`。API Key 从[智能体沙箱产品文档](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox)获取。变量名是 `ABX_SANDBOX_API_KEY`。CLI 不读取 `E2B_API_KEY`。
+- 默认提供方是 `alicloud-express`。API Key 从[智能体沙箱产品文档](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox)获取。变量名是 `ABX_SANDBOX_API_KEY`。AccessKey 是 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET`。CLI 不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`。
 - 网络可访问阿里云杭州区域（默认 `cn-hangzhou`）
 
 ## 1. 安装

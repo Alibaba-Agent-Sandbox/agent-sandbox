@@ -17,6 +17,7 @@ import {
   TokenExpiredError,
 } from "../models/errors.js";
 import { PyFloat, pyRepr, pyStrip, pyTruncate } from "../utils/_pyformat.js";
+import { AKSK_ENV_SUGGESTION, CREDENTIAL_ENV_SUGGESTION } from "../utils/credential_names.js";
 import { getLogger } from "../utils/logging.js";
 import { asyncWith, ConnectError, httpx, TimeoutException } from "./_httpx.js";
 
@@ -87,7 +88,7 @@ export class AkSkAuth implements AuthProvider {
   constructor(access_key_id: string, access_key_secret: string) {
     if (!access_key_id || !access_key_secret) {
       throw new InvalidCredentialsError("AccessKey ID and Secret cannot be empty", {
-        suggestion: "Set ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables.",
+        suggestion: AKSK_ENV_SUGGESTION,
       });
     }
     this._ak = pyStrip(access_key_id);
@@ -464,7 +465,7 @@ export function createAuthProvider(opts: CreateAuthProviderOptions = {}): AuthPr
   }
 
   throw new InvalidAPIKeyError("No authentication credentials provided", {
-    suggestion: "Set ABX_SANDBOX_API_KEY or both ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET.",
+    suggestion: CREDENTIAL_ENV_SUGGESTION,
   });
 }
 

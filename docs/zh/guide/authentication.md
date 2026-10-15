@@ -28,7 +28,7 @@ API Key 是最常用的认证方式，通过 `Authorization: Bearer {api_key}` �
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-`ABX_SANDBOX_API_KEY` 是沙箱 API Key 唯一的环境变量。
+`ABX_SANDBOX_API_KEY` 是沙箱 API Key 唯一的环境变量。不读取 `E2B_API_KEY`。API 地址是 `ABX_SANDBOX_BASE_URL`，数据平面域名是 `ABX_SANDBOX_DOMAIN`（不读取 `E2B_API_URL` 和 `E2B_DOMAIN`）。
 
 #### 2. abx config set（持久化到本地文件）
 
@@ -79,6 +79,8 @@ AK/SK 模式使用阿里云 AccessKey 对，通过 token 交换获取临时 API 
 export ALICLOUD_ACCESS_KEY_ID="your-access-key-id"
 export ALICLOUD_ACCESS_KEY_SECRET="your-access-key-secret"
 ```
+
+读取的 AccessKey 环境变量只有 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET`（进程环境、`./.env` 或 `~/.abx/.env`）。不读取 `AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`。缺少凭证时，错误信息会写出 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET`。
 
 #### 2. abx config set（持久化到本地文件）
 

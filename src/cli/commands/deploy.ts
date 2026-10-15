@@ -71,6 +71,7 @@ export const deploy_shortcut = command("deploy", {
     Examples:
       abx deploy --acr-namespace my-ns           # publish ./ as a template
       abx deploy ./my-template --yes             # non-interactive
+      abx --json deploy ./my-template -y         # JSON on stdout; id is TemplateID
       abx deploy ./my-template -v                # with debug logs
 
     \b
