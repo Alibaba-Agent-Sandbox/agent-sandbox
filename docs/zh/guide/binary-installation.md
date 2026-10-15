@@ -1,11 +1,10 @@
 # 二进制安装
 
 `abx` 同时以**预编译独立二进制**的形式发布 —— 单个可执行文件内嵌了
-Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装
-Node.js 环境。**
+Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Node.js。**
 
-二进制文件随每个版本发布在
-[GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases)：
+二进制随每个 GitHub Release 发布
+（[Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases)）：
 
 | 平台 | 文件 |
 |------|------|
@@ -15,70 +14,49 @@ Node.js 环境。**
 | macOS (Intel) | `abx-{version}-darwin-x64` |
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
+每个文件都有同名的 `.sha256`（SHA-256，`sha256sum` / `shasum -a 256` 的文本格式）。
+**v0.2.0** 附带的是 `ebx-*` 文件。本安装脚本不使用那些名字。目前还没有 **v0.3.0** Release；在它发布之前，下面的一行命令下不到二进制。在那之前请用[从源码安装](#从源码安装)。
+
+网站以后可以把同一份脚本放在自己的域名上（例如 `https://www.agent-sandbox.com/install.sh` 和 `https://www.agent-sandbox.com/install.ps1`）。命令仍然是一行，只改 URL。
+
 ---
 
-## 快速安装
+## 安装
 
-### macOS / Linux（curl）
+### macOS 与 Linux
 
 ```bash
-# 设置要安装的版本
-VERSION=0.3.0
-
-# 自动检测平台
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')   # darwin 或 linux
-ARCH=$(uname -m); case "$ARCH" in
-  x86_64) ARCH=x64 ;;
-  arm64|aarch64) ARCH=arm64 ;;
-esac
-
-# 先下载到当前用户可写的目录，再安装到 PATH 上。
-curl -fsSL -o "$HOME/abx" \
-  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v${VERSION}/abx-${VERSION}-${OS}-${ARCH}"
-chmod +x "$HOME/abx"
-sudo mv "$HOME/abx" /usr/local/bin/abx
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
-> 直接写入 `/usr/local/bin` 会因没有权限而失败（`curl: (56) Failure writing
-> output to destination`），文件也不会留下来。先下到 `$HOME`，再用
-> `sudo mv` 放到默认 `PATH` 上。
+脚本是 POSIX `sh`。它识别操作系统和 CPU，包括 Apple Silicon 上的 Rosetta shell（安装原生 `darwin-arm64`）和 `aarch64` Linux（`linux-arm64`）。默认版本来自 GitHub API 的最新 Release；API 失败时改用 `releases/latest` 的重定向。脚本下载二进制和 `.sha256`，用 `sha256sum` 或 `shasum` 校验，并且不需要 `sudo`。
+
+目标目录在 `/usr/local/bin` 可写时用它，否则用 `$HOME/.local/bin`。目录不在 `PATH` 上时，脚本打印需要添加的那一行 `export PATH=...`，然后执行 `abx --version`。
+
+```bash
+# 可选
+ABX_VERSION=0.3.0 curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+ABX_INSTALL_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+```
+
+`ABX_VERSION` 可以是 `0.3.0` 或 `v0.3.0`。不支持的系统或 CPU 会直接退出，并写明支持的平台。Windows 请用 PowerShell 安装脚本。
 
 ### Windows（PowerShell）
 
 ```powershell
-$VERSION = "0.3.0"
-$asset = "abx-$VERSION-windows-x64.exe"
-
-# 下载 Release 资产
-Invoke-WebRequest `
-  -Uri "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v$VERSION/$asset" `
-  -OutFile $asset
-
-# 移动到 PATH 中的目录（不存在则先创建）
-$installDir = "$env:LOCALAPPDATA\Programs\abx"
-New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item $asset "$installDir\abx.exe"
+irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
 ```
 
-> 如果 `$installDir` 尚不在 `PATH` 中，请通过
-> *设置 → 系统 → 关于 → 高级系统设置 → 环境变量* 添加，
-> 然后重新打开终端。
+仅 Windows x64。脚本检查架构，下载 `abx-<version>-windows-x64.exe` 和对应的 `.sha256`，用 `Get-FileHash -Algorithm SHA256` 校验，把二进制复制到 `%LOCALAPPDATA%\Programs\abx\abx.exe`，并把该目录加入用户 `PATH`。安装前已经打开的终端仍是旧的 `PATH`，请新开一个终端。脚本随后执行 `abx --version`。
+
+`ABX_VERSION` 和 `ABX_INSTALL_DIR` 与 `install.sh` 相同。
 
 ## 手动下载
 
-1. 打开 [GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases) 页面。
-2. 选择目标版本（通常是最新的）。
-3. 按上表选择匹配当前平台的资产下载。
-4. 添加可执行权限（仅 macOS/Linux）并放到 `PATH` 中：
-
-```bash
-chmod +x ./abx-0.3.0-darwin-arm64
-mkdir -p ~/.local/bin && mv ./abx-0.3.0-darwin-arm64 ~/.local/bin/abx
-```
-
-## 校验 SHA256
-
-每个 Release 资产都附带 `*.sha256` 校验文件。下载后请校验二进制文件的完整性：
+1. 打开 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases)。
+2. 选择资产名为 `abx-*` 的版本（通常是最新的）。
+3. 按下表下载对应平台的文件，以及匹配的 `.sha256`。
+4. 校验摘要。macOS/Linux 加上可执行权限，再放到 `PATH` 中：
 
 ```bash
 # macOS
@@ -86,17 +64,45 @@ shasum -a 256 -c abx-0.3.0-darwin-arm64.sha256
 
 # Linux
 sha256sum -c abx-0.3.0-linux-x64.sha256
+
+chmod +x ./abx-0.3.0-darwin-arm64
+mkdir -p ~/.local/bin && mv ./abx-0.3.0-darwin-arm64 ~/.local/bin/abx
 ```
 
-Windows（`certutil`）：
+Windows：
 
 ```powershell
-# 将打印出的摘要与 .sha256 文件中的内容进行比对
-certutil -hashfile abx-0.3.0-windows-x64.exe SHA256
-
-# 或使用 PowerShell：
 Get-FileHash abx-0.3.0-windows-x64.exe -Algorithm SHA256
+# 与 .sha256 文件的第一列比对。
+
+$installDir = "$env:LOCALAPPDATA\Programs\abx"
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 ```
+
+`certutil -hashfile abx-0.3.0-windows-x64.exe SHA256` 打印同一摘要。
+
+## npm（即将提供）
+
+`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。包名还没有定，需要仓库所有者决定。不要把它当作当前的安装方式。
+
+部分 npm 镜像（包括 npmmirror）上有一个同名但无关的 `@agent-sandbox/cli@0.2.2`。它的 bin 是 `agent-sandbox`，不是 `abx`。装上它也不会出现 `abx` 命令。见 [故障排查：abx: command not found](#故障排查abx-command-not-found)。
+
+## 从源码安装
+
+需要 Node.js 20 或更新版本。2026-10-15 在 Linux x64、Node.js 22.14.0 上验证过：`npm pack` 生成 `agent-sandbox-cli-0.3.0.tgz`，`npm install -g` 安装该 tarball 后执行 `abx --version`，输出为 `abx, version 0.3.0`。
+
+```bash
+git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
+cd agent-sandbox
+npm ci
+npm run build
+npm pack
+npm install -g ./agent-sandbox-cli-<version>.tgz
+abx --version
+```
+
+`npm pack` 的文件名是 `agent-sandbox-cli-<version>.tgz`（当前树是 `agent-sandbox-cli-0.3.0.tgz`）。
 
 ## 验证安装
 
@@ -105,52 +111,63 @@ abx --version
 # abx, version 0.3.0
 ```
 
-> **macOS Gatekeeper 提示：** 二进制文件未做代码签名，首次运行可能被
-> Gatekeeper 拦截。如遇到该情况，先移除隔离属性再运行：
+> **macOS Gatekeeper：** Release 二进制只做了 ad-hoc 签名，没有公证。浏览器下载可能带上隔离属性。如果首次启动被拦截：
 >
 > ```bash
-> sudo xattr -d com.apple.quarantine /usr/local/bin/abx
+> xattr -d com.apple.quarantine ~/.local/bin/abx
 > ```
 >
-> 也可以在 Finder 中右键点击二进制文件，选择**打开**一次即可放行。
+> 存在 `xattr` 时，`install.sh` 会去掉该属性。也可以在 Finder 中右键二进制，选择**打开**一次。
 
 ## 二进制与 npm install 对比
 
 | | 独立二进制 | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
+| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（0.3.0 尚未发布） | 即将提供，包尚未发布 |
 | 是否需要 Node.js | 否 | 需要（20+） |
-| 安装方式 | 下载单个文件 | npm 或任意 Node.js 包管理器 |
+| 安装方式 | `install.sh` / `install.ps1`，或从 Releases 下载单个文件 | 包发布之后用 npm |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
-| 更新方式 | 从 Releases 重新下载 | `npm update -g @agent-sandbox/cli` |
+| 更新方式 | 重新运行安装脚本 | 发布后 `npm update -g @agent-sandbox/cli` |
 | Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
 | 可选扩展（`alicloud`、`mcp` 等） | 无需单独安装 —— 已内置 | 无需单独安装 —— 已内置 |
 
-## 说明与限制
+## 故障排查：abx: command not found
 
-- 二进制文件捆绑了完整的 CLI **以及**其全部运行时依赖，包括阿里云模板 API
-  客户端和 MCP 服务（STDIO 与 Streamable HTTP），没有需要另行安装的可选
-  extras。如果更希望通过包管理器管理 CLI，请改用 npm 安装：
+1. **安装目录不在 `PATH` 上。** `install.sh` 安装到 `/usr/local/bin` 或 `$HOME/.local/bin`。目录不在 `PATH` 中时，会打印类似下面的一行：
 
-  ```bash
-  npm install -g @agent-sandbox/cli
-  ```
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
 
-- 二进制仅提供 `abx` CLI。如需使用 Python SDK
-  （`from agent_sandbox.api.sandbox import Sandbox`），请通过 pip 安装 Python 包
-  （`pip install agent-sandbox`）。
+   把打印出来的那一行写进 `~/.profile`（如果终端读的是 `~/.bashrc` 或 `~/.zshrc`，也写进那个文件）。新开一个终端。用 `command -v abx` 和 `echo "$PATH"` 确认。在 Windows 上，`install.ps1` 把 `%LOCALAPPDATA%\Programs\abx` 加到用户 `PATH`；安装前已经打开的终端仍是旧值。
 
----
+2. **镜像上的包是另一个程序。** 对 npmmirror 这类镜像执行 `npm install -g @agent-sandbox/cli`，可能装上 `@agent-sandbox/cli@0.2.2`。那个包的 bin 是 `agent-sandbox`，不是 `abx`，所以 shell 仍然报 `abx: command not found`。卸载：
+
+   ```bash
+   npm uninstall -g @agent-sandbox/cli
+   npm ls -g --depth=0
+   command -v agent-sandbox   # 若 0.2.2 留下了可执行文件，这里还能看到
+   ```
+
+   卸载之后如果 `command -v` 仍能找到 `agent-sandbox`，从 npm 全局 bin 目录里删掉这个剩余文件。本 CLI 的 npm 包还没有发布；请用二进制安装脚本或[从源码安装](#从源码安装)。
+
+3. **最新 Release 没有 `abx-*` 资产。** v0.2.0 的文件名是 `ebx-*`。`install.sh` 会以 HTTP 404 停止，并且不会留下半截二进制。请从源码安装，或把 `ABX_VERSION` 设成已经发布 `abx-*` 文件的版本。
+
+## 说明
+
+- 二进制包含 CLI 及其运行时依赖，包括阿里云模板 API 客户端和 MCP 服务（STDIO 与 Streamable HTTP）。
+- 二进制只提供 `abx` CLI。Python SDK 是单独的包：`pip install agent-sandbox`（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
 
 ## 自己构建二进制
 
-在检出的仓库里，需要 Node.js 20 或更新版本：
+在检出的仓库里，需要 Node.js 20 或更新的官方构建（去掉了 Node SEA fuse 的发行版构建不能用）：
 
 ```bash
 npm ci
 npm run build:binary
 ```
 
-命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。
+命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。发布 Release 会运行 [`.github/workflows/release-binary.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。推送 `v*` tag 还会运行 [`.github/workflows/release.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)；只有仓库变量 `NPM_PUBLISH` 为 `true` 时才会发布到 npm。
 
 ## 后续步骤
 

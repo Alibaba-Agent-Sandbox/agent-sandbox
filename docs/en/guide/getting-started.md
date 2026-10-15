@@ -6,38 +6,27 @@ This tutorial walks you through the complete sandbox lifecycle, from installatio
 
 ## Prerequisites
 
-- Node.js 20 or later (for the `abx` CLI)
+- Node.js 20 or later only for a from-source install. The binary installer does not need Node.js.
 - For the default provider (`alicloud-express`): an API key from the [Agent Sandbox product docs](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox). The variable is `ABX_SANDBOX_API_KEY`. The AccessKey pair is `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. The CLI does not read `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, or `AccessSecret`.
 - Network access to the Alibaba Cloud Hangzhou region (default `cn-hangzhou`)
 
 ## 1. Installation
 
+macOS and Linux:
+
 ```bash
-# Install the CLI globally from npm
-npm install -g @agent-sandbox/cli
-
-# Or run it without installing
-npx @agent-sandbox/cli --version
-
-# Verify the installation
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 abx --version
 ```
 
-### Standalone binary (no Node.js required)
+Windows (PowerShell):
 
-If you'd rather not set up a Node.js environment, `abx` is also available as a
-precompiled standalone binary for Linux, macOS, and Windows:
-
-```bash
-# Example: install v0.3.0 on macOS (Apple Silicon)
-curl -fsSL -o "$HOME/abx" \
-  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v0.3.0/abx-0.3.0-darwin-arm64"
-chmod +x "$HOME/abx"
-sudo mv "$HOME/abx" /usr/local/bin/abx
+```powershell
+irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
+abx --version
 ```
 
-For other platforms, checksum verification, and a comparison with the npm
-install, see the [Binary Installation](binary-installation.md) guide.
+`npm install -g @agent-sandbox/cli` is coming soon, package not yet published. From source (`git clone`, `npm ci`, `npm run build`, `npm pack`, `npm install -g ./agent-sandbox-cli-<version>.tgz`), manual downloads, and `abx: command not found`: [Binary Installation](binary-installation.md). The v0.2.0 release assets are named `ebx-*`; the installer uses `abx-*` and needs the v0.3.0 release (not published yet).
 
 ## 2. Configure the API Key
 

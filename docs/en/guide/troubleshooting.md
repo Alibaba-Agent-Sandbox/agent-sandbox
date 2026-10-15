@@ -267,15 +267,24 @@ npm install -g @agent-sandbox/cli
 npm install -g @agent-sandbox/cli --force
 ```
 
-### abx Command Not Found
+### abx: command not found
 
-Confirm that npm's global bin directory is in your PATH:
+The binary installer prints the exact line to add when its directory is not on `PATH`:
 
 ```bash
-npx @agent-sandbox/cli --version
-# Or
-npm ls -g @agent-sandbox/cli
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+Open a new terminal afterwards. On Windows, `install.ps1` updates the user `PATH`; a terminal that was already open does not see it.
+
+`npm install -g @agent-sandbox/cli` is coming soon, package not yet published. Mirrors such as npmmirror may still serve an unrelated `@agent-sandbox/cli@0.2.2` whose bin is `agent-sandbox`, not `abx`. Uninstall it:
+
+```bash
+npm uninstall -g @agent-sandbox/cli
+command -v agent-sandbox
+```
+
+Full notes: [Binary Installation — Troubleshooting: abx: command not found](binary-installation.md#troubleshooting-abx-command-not-found).
 
 ---
 

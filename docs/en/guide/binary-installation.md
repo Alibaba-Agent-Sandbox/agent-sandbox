@@ -1,11 +1,11 @@
 # Binary Installation
 
-`abx` is also distributed as a **precompiled standalone binary** — a single
+`abx` is distributed as a **precompiled standalone binary** — a single
 executable that bundles the Node.js runtime, the Agent Sandbox CLI, and all
 of its dependencies. **No Node.js installation is required.**
 
-Binaries are published for every release on
-[GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases):
+Binaries are attached to each GitHub Release
+([releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases)):
 
 | Platform | File |
 |----------|------|
@@ -15,71 +15,49 @@ Binaries are published for every release on
 | macOS (Intel) | `abx-{version}-darwin-x64` |
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
+Each file has a sibling `.sha256` (SHA-256, `sha256sum` / `shasum -a 256` text).
+Release **v0.2.0** attached `ebx-*` files instead. This installer does not use those names. There is no **v0.3.0** release yet; until one is published, the one-liners below cannot download a binary. Use [Install from source](#install-from-source) until then.
+
+The site can host the same scripts on its own domain later (for example `https://www.agent-sandbox.com/install.sh` and `https://www.agent-sandbox.com/install.ps1`). The command stays one line; only the URL changes.
+
 ---
 
-## Quick Install
+## Install
 
-### macOS / Linux (curl)
+### macOS and Linux
 
 ```bash
-# Set the version you want to install
-VERSION=0.3.0
-
-# Detect the platform
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')   # darwin or linux
-ARCH=$(uname -m); case "$ARCH" in
-  x86_64) ARCH=x64 ;;
-  arm64|aarch64) ARCH=arm64 ;;
-esac
-
-# Download somewhere the current user can write, then install onto PATH.
-curl -fsSL -o "$HOME/abx" \
-  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v${VERSION}/abx-${VERSION}-${OS}-${ARCH}"
-chmod +x "$HOME/abx"
-sudo mv "$HOME/abx" /usr/local/bin/abx
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
-> Writing straight to `/usr/local/bin` fails without permission (`curl: (56)
-> Failure writing output to destination`). The download goes to `$HOME`
-> first; `sudo mv` is what places it on the default `PATH`.
+The script is POSIX `sh`. It detects the OS and CPU, including a Rosetta shell on Apple Silicon (it installs native `darwin-arm64`) and `aarch64` Linux (`linux-arm64`). It resolves the latest release from the GitHub API and, if that request fails, from the `releases/latest` redirect. It downloads the binary and the `.sha256`, checks the digest with `sha256sum` or `shasum`, and installs without `sudo`.
+
+The destination is `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. If the directory is not on `PATH`, the script prints the exact `export PATH=...` line to add. It then runs `abx --version`.
+
+```bash
+# optional
+ABX_VERSION=0.3.0 curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+ABX_INSTALL_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+```
+
+`ABX_VERSION` accepts `0.3.0` or `v0.3.0`. An unsupported OS or CPU exits with an error that names the supported platforms. On Windows, use the PowerShell installer.
 
 ### Windows (PowerShell)
 
 ```powershell
-$VERSION = "0.3.0"
-$asset = "abx-$VERSION-windows-x64.exe"
-
-# Download the release asset
-Invoke-WebRequest `
-  -Uri "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v$VERSION/$asset" `
-  -OutFile $asset
-
-# Move it to a directory on your PATH (create it first if needed)
-$installDir = "$env:LOCALAPPDATA\Programs\abx"
-New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item $asset "$installDir\abx.exe"
+irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
 ```
 
-> If `$installDir` is not on your `PATH` yet, add it via
-> *Settings → System → About → Advanced system settings → Environment
-> Variables*, then reopen the terminal.
+Windows x64 only. The script checks the architecture, downloads `abx-<version>-windows-x64.exe` and its `.sha256`, verifies the digest with `Get-FileHash -Algorithm SHA256`, copies the binary to `%LOCALAPPDATA%\Programs\abx\abx.exe`, and adds that directory to the user `PATH`. Open a new terminal if the current one was started before the install. It then runs `abx --version`.
 
-## Manual Download
+`ABX_VERSION` and `ABX_INSTALL_DIR` work the same way as in `install.sh`.
 
-1. Open the [GitHub Releases](https://github.com/alibaba-agent-sandbox/agent-sandbox/releases) page.
-2. Pick the release you want (usually the latest).
-3. Download the asset matching your platform from the table above.
-4. Make it executable (macOS/Linux only) and place it on your `PATH`:
+## Manual download
 
-```bash
-chmod +x ./abx-0.3.0-darwin-arm64
-mkdir -p ~/.local/bin && mv ./abx-0.3.0-darwin-arm64 ~/.local/bin/abx
-```
-
-## Verify the SHA256 Checksum
-
-Every release asset ships with a `*.sha256` checksum file. After
-downloading, verify the binary's integrity:
+1. Open the [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) page.
+2. Pick the release (usually the latest) whose assets are named `abx-*`.
+3. Download the asset for your platform from the table above, and the matching `.sha256`.
+4. Check the digest, mark it executable on macOS/Linux, and place it on your `PATH`:
 
 ```bash
 # macOS
@@ -87,74 +65,110 @@ shasum -a 256 -c abx-0.3.0-darwin-arm64.sha256
 
 # Linux
 sha256sum -c abx-0.3.0-linux-x64.sha256
+
+chmod +x ./abx-0.3.0-darwin-arm64
+mkdir -p ~/.local/bin && mv ./abx-0.3.0-darwin-arm64 ~/.local/bin/abx
 ```
 
-Windows (`certutil`):
+Windows:
 
 ```powershell
-# Compare the printed digest against the content of the .sha256 file
-certutil -hashfile abx-0.3.0-windows-x64.exe SHA256
-
-# Or with PowerShell:
 Get-FileHash abx-0.3.0-windows-x64.exe -Algorithm SHA256
+# Compare the hash with the first field of the .sha256 file.
+
+$installDir = "$env:LOCALAPPDATA\Programs\abx"
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 ```
 
-## Verify the Installation
+`certutil -hashfile abx-0.3.0-windows-x64.exe SHA256` prints the same digest.
+
+## npm (coming soon)
+
+`npm install -g @agent-sandbox/cli` is **coming soon, package not yet published**. The package name is not final; the owner has to decide it. Do not use that command as the install path.
+
+An unrelated package also named `@agent-sandbox/cli` at version **0.2.2** shows up on some npm mirrors (including npmmirror). Its bin is `agent-sandbox`, not `abx`. Installing it does not provide the `abx` command. See [Troubleshooting: abx: command not found](#troubleshooting-abx-command-not-found).
+
+## Install from source
+
+Node.js 20 or newer. Verified 2026-10-15 on Linux x64 with Node.js 22.14.0: `npm pack` wrote `agent-sandbox-cli-0.3.0.tgz`, and installing that tarball with `npm install -g` then running `abx --version` printed `abx, version 0.3.0`.
+
+```bash
+git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
+cd agent-sandbox
+npm ci
+npm run build
+npm pack
+npm install -g ./agent-sandbox-cli-<version>.tgz
+abx --version
+```
+
+`npm pack` names the file `agent-sandbox-cli-<version>.tgz` (the current tree is `agent-sandbox-cli-0.3.0.tgz`).
+
+## Verify the installation
 
 ```bash
 abx --version
 # abx, version 0.3.0
 ```
 
-> **macOS Gatekeeper note:** the binaries are not code-signed, so the first
-> launch may be blocked by Gatekeeper. If that happens, remove the
-> quarantine attribute before running:
+> **macOS Gatekeeper:** the release binaries are ad-hoc signed, not notarized. A browser download can be quarantined. If the first launch is blocked:
 >
 > ```bash
-> sudo xattr -d com.apple.quarantine /usr/local/bin/abx
+> xattr -d com.apple.quarantine ~/.local/bin/abx
 > ```
 >
-> Alternatively, right-click the binary in Finder and choose **Open** once.
+> `install.sh` removes that attribute when `xattr` is present. You can also right-click the binary in Finder and choose **Open** once.
 
 ## Binary vs. npm install
 
 | | Standalone binary | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
+| Status | Install script above; needs an `abx-*` GitHub Release (not published for 0.3.0 yet) | Coming soon, package not yet published |
 | Node.js required | No | Yes (20+) |
-| Install method | Download one file | npm / any Node.js package manager |
+| Install method | `install.sh` / `install.ps1`, or one file from Releases | npm, after the package is published |
 | Startup time | Single pre-bundled executable | Loads the compiled modules from `node_modules` |
-| Update | Re-download from Releases | `npm update -g @agent-sandbox/cli` |
+| Update | Re-run the installer | `npm update -g @agent-sandbox/cli` (after publish) |
 | Python SDK (`import agent_sandbox`) | Not included | Not included (`pip install agent-sandbox`, see [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk)) |
 | Optional extensions (`alicloud`, `mcp`, ...) | Not needed — built in | Not needed — built in |
 
-## Notes & Limitations
+## Troubleshooting: abx: command not found
 
-- The binary bundles the full CLI **plus** all of its runtime dependencies,
-  including the Alibaba Cloud template API client and the MCP servers (STDIO
-  and Streamable HTTP). There are no optional extras to install separately.
-  If you prefer to manage the CLI through a package manager, install it via
-  npm instead:
+1. **The install directory is not on `PATH`.** `install.sh` installs to `/usr/local/bin` or `$HOME/.local/bin` and, when that directory is missing from `PATH`, prints a line like:
 
-  ```bash
-  npm install -g @agent-sandbox/cli
-  ```
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
 
-- The binary only provides the `abx` CLI. To use the Python SDK
-  (`from agent_sandbox.api.sandbox import Sandbox`), install the Python
-  package with pip (`pip install agent-sandbox`).
+   Add the printed line to `~/.profile` (and `~/.bashrc` or `~/.zshrc` if that is the file your terminal reads). Open a new terminal. Check with `command -v abx` and `echo "$PATH"`. On Windows, `install.ps1` appends `%LOCALAPPDATA%\Programs\abx` to the user `PATH`; a terminal that was already open keeps the old value.
 
----
+2. **The mirror package is a different program.** `npm install -g @agent-sandbox/cli` against a mirror such as npmmirror can install `@agent-sandbox/cli@0.2.2`. That package's bin is `agent-sandbox`, not `abx`, so the shell still reports `abx: command not found`. Uninstall it:
+
+   ```bash
+   npm uninstall -g @agent-sandbox/cli
+   npm ls -g --depth=0
+   command -v agent-sandbox   # leftover binary from 0.2.2, if any
+   ```
+
+   Remove a leftover `agent-sandbox` shim from npm's global bin directory if `command -v` still finds it after uninstall. The published npm package for this CLI does not exist yet; use the binary installer or [install from source](#install-from-source).
+
+3. **The latest release has no `abx-*` asset.** v0.2.0's files are named `ebx-*`. `install.sh` stops with HTTP 404 and does not leave a partial binary. Install from source, or set `ABX_VERSION` to a release that publishes `abx-*` files.
+
+## Notes
+
+- The binary bundles the CLI and its runtime dependencies, including the Alibaba Cloud template API client and the MCP servers (STDIO and Streamable HTTP).
+- The binary is only the `abx` CLI. The Python SDK is a separate package: `pip install agent-sandbox` ([`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)).
 
 ## Build the binary yourself
 
-From a checkout, with Node.js 20 or newer:
+From a checkout, with Node.js 20 or newer (official builds; distro builds that strip the Node SEA fuse cannot be used):
 
 ```bash
 npm ci
 npm run build:binary
 ```
 
-The command writes `dist/binary/abx-<version>-<os>-<arch>` for the machine it runs on. On Windows the file name ends in `.exe`. A release builds that matrix on GitHub Actions (Linux x64, Linux arm64, macOS Apple Silicon, macOS Intel, Windows x64) and attaches the files, plus a `.sha256` for each, to the GitHub Release.
+The command writes `dist/binary/abx-<version>-<os>-<arch>` for the machine it runs on. On Windows the file name ends in `.exe`. A release builds that matrix on GitHub Actions (Linux x64, Linux arm64, macOS Apple Silicon, macOS Intel, Windows x64) and attaches the files, plus a `.sha256` for each, to the GitHub Release. Publishing the release runs [`.github/workflows/release-binary.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml). Pushing the `v*` tag also runs [`.github/workflows/release.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which publishes to npm only when the repository variable `NPM_PUBLISH` is `true`.
 
 ## Next Steps
 

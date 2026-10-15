@@ -23,6 +23,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run --exclude 'tests/integration/test_{cli,nl_template_init}_e2e.test.ts'",
+    "test:install": "node --test tests/install/install.test.mjs",
     "test:integration": "vitest run tests/integration",
     "dev": "tsx src/bin/abx.ts",
     "parity:coverage": "node scripts/parity-coverage.mjs",

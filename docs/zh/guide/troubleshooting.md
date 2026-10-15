@@ -267,15 +267,24 @@ npm install -g @agent-sandbox/cli
 npm install -g @agent-sandbox/cli --force
 ```
 
-### abx 命令未找到
+### abx: command not found
 
-确认 npm 的全局 bin 目录在 PATH 中：
+二进制安装脚本在目录不在 `PATH` 上时，会打印需要添加的那一行：
 
 ```bash
-npx @agent-sandbox/cli --version
-# 或
-npm ls -g @agent-sandbox/cli
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+然后新开一个终端。在 Windows 上，`install.ps1` 会更新用户 `PATH`；安装前已经打开的终端看不到这次更新。
+
+`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。npmmirror 等镜像上可能仍有无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。卸载：
+
+```bash
+npm uninstall -g @agent-sandbox/cli
+command -v agent-sandbox
+```
+
+完整说明：[二进制安装 — 故障排查：abx: command not found](binary-installation.md#故障排查abx-command-not-found)。
 
 ---
 
