@@ -371,8 +371,8 @@ in IDE configs and the items below.
   on a bind failure, graceful shutdown on the first SIGINT/SIGTERM, immediate exit on the second. After SIGTERM the process
   re-raises the signal (as uvicorn does), so the pid file stays behind exactly like the original; SIGINT removes it.
   Bind failures other than EADDRINUSE/EACCES/EADDRNOTAVAIL/ENOTFOUND/EAI_AGAIN use the generic OSError text.
-* **Deploy artifact.** `runtime: python3.10`, handler `app.app` and `requirements.txt` (`agent-sandbox[mcp]`, `uvicorn>=0.29`)
-  are unchanged on purpose: the FC function runs the Python SDK from PyPI, not the Node CLI.
+* **Deploy artifact.** `runtime: python3.10`, handler `app.app` and `requirements.txt` (`agent-sandbox-client[mcp]`, `uvicorn>=0.29`)
+  stay a Python install: the FC function runs the client SDK from PyPI, not the Node CLI. The distribution name is `agent-sandbox-client`.
 * **Huge `--memory`.** `INT` yields an exact `bigint` beyond 2**53; the generated `config.yaml` is not differential-tested for
   such values (not reachable with real FC memory sizes).
 * **Background readiness race.** When the child dies on a bind error right after claiming the pid file, whether the 0.1 s poll

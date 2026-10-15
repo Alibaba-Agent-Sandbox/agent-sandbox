@@ -122,7 +122,7 @@ abx --version
 | 安装方式 | 下载单个文件 | npm 或任意 Node.js 包管理器 |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
 | 更新方式 | 从 Releases 重新下载 | `npm update -g @agent-sandbox/cli` |
-| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
+| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox-client`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
 | 可选扩展（`alicloud`、`mcp` 等） | 无需单独安装 —— 已内置 | 无需单独安装 —— 已内置 |
 
 ## 说明与限制
@@ -137,7 +137,8 @@ abx --version
 
 - 二进制仅提供 `abx` CLI。如需使用 Python SDK
   （`from agent_sandbox.api.sandbox import Sandbox`），请通过 pip 安装 Python 包
-  （`pip install agent-sandbox`）。
+  （`pip install agent-sandbox-client`）。
+  `pip install agent-sandbox` 会安装一个无关的项目。
 
 ---
 

@@ -120,7 +120,7 @@ graph TB
 
 ## Related SDK documentation
 
-The Python SDK (`agent-sandbox`), the in-sandbox server SDK and the platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The pages a CLI reader most often needs:
+The Python SDK (`agent-sandbox-client` on PyPI, import `agent_sandbox`), the in-sandbox server SDK and the platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The pages a CLI reader most often needs:
 
 - [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture, which the CLI's client core mirrors
 - [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md) and [Sandbox Types](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)

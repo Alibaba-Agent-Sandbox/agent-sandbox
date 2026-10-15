@@ -124,7 +124,7 @@ abx --version
 | Install method | Download one file | npm / any Node.js package manager |
 | Startup time | Single pre-bundled executable | Loads the compiled modules from `node_modules` |
 | Update | Re-download from Releases | `npm update -g @agent-sandbox/cli` |
-| Python SDK (`import agent_sandbox`) | Not included | Not included (`pip install agent-sandbox`, see [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk)) |
+| Python SDK (`import agent_sandbox`) | Not included | Not included (`pip install agent-sandbox-client`, see [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk)) |
 | Optional extensions (`alicloud`, `mcp`, ...) | Not needed — built in | Not needed — built in |
 
 ## Notes & Limitations
@@ -141,7 +141,8 @@ abx --version
 
 - The binary only provides the `abx` CLI. To use the Python SDK
   (`from agent_sandbox.api.sandbox import Sandbox`), install the Python
-  package with pip (`pip install agent-sandbox`).
+  package with pip (`pip install agent-sandbox-client`).
+  `pip install agent-sandbox` installs an unrelated project.
 
 ---
 

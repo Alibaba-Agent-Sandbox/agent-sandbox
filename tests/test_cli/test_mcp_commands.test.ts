@@ -326,7 +326,9 @@ describe("TestMcpDeploy", () => {
     vi.spyOn(region, "resolveRegion").mockReturnValue("cn-hangzhou");
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(fs.statSync(path.join(out, "requirements.txt")).isFile()).toBe(true);
+    const requirements = fs.readFileSync(path.join(out, "requirements.txt"), "utf8");
+    expect(requirements).toContain("agent-sandbox-client[mcp]");
+    expect(requirements).not.toMatch(/^agent-sandbox\[/m);
     expect(fs.statSync(path.join(out, "app.py")).isFile()).toBe(true);
     expect(fs.readFileSync(path.join(out, "app.py"), "utf8")).toContain("require_auth_token");
     expect(fs.statSync(path.join(out, "config.yaml")).isFile()).toBe(true);

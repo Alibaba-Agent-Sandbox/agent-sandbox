@@ -20,7 +20,8 @@ We want to keep things organized so everyone can find what they need:
 ## 🚀 Quick Start
 
 ```bash
-pip install agent-sandbox   # Python SDK (python-sdk repository)
+pip install agent-sandbox-client   # Python SDK (import agent_sandbox; python-sdk repository)
+# pip install agent-sandbox installs an unrelated project
 ```
 
 ```python

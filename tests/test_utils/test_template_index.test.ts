@@ -129,7 +129,7 @@ describe("TestParseIndex", () => {
     }
     expect(err).toBeInstanceOf(TemplateParseError);
     expect(String(err)).toContain("newer than supported");
-    expect((err as TemplateParseError).suggestion || "").toContain("Upgrade agent-sandbox");
+    expect((err as TemplateParseError).suggestion || "").toContain("pip install -U agent-sandbox-client");
   });
 
   it("test_non_integer_schema_version_is_rejected", () => {

@@ -195,7 +195,7 @@ The artifact directory contains:
 
 | File | Content |
 |------|---------|
-| `requirements.txt` | `agent-sandbox[mcp]`, `uvicorn>=0.29` |
+| `requirements.txt` | `agent-sandbox-client[mcp]`, `uvicorn>=0.29` |
 | `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
 | `config.yaml` | YAML manifest with function name, region, runtime `python3.10`, handler `app.app`, memory/timeout, env vars, HTTP trigger (POST/GET/DELETE), session affinity |
 

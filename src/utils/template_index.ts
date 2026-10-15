@@ -359,7 +359,7 @@ export function parseIndex(text: string, opts: ParseIndexOptions = {}): Template
     throw new TemplateParseError(
       `Template index schema_version ${schema_version} is newer than supported ` +
         `schema_version ${INDEX_SCHEMA_VERSION}.`,
-      { suggestion: "Upgrade agent-sandbox (`pip install -U agent-sandbox`) to read this index." },
+      { suggestion: "Upgrade agent-sandbox-client (`pip install -U agent-sandbox-client`) to read this index." },
     );
   }
 

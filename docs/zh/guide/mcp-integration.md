@@ -195,7 +195,7 @@ abx mcp deploy \
 
 | 文件 | 内容 |
 |------|------|
-| `requirements.txt` | `agent-sandbox[mcp]`、`uvicorn>=0.29` |
+| `requirements.txt` | `agent-sandbox-client[mcp]`、`uvicorn>=0.29` |
 | `app.py` | ASGI 入口，读取 FC 环境变量（`ABX_MCP_AUTH_TOKEN`、`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ABX_DEFAULT_TEMPLATE`） |
 | `config.yaml` | YAML 清单：函数名、地域、运行时 `python3.10`、handler `app.app`、内存/超时、环境变量、HTTP 触发器（POST/GET/DELETE）、会话亲和 |
 

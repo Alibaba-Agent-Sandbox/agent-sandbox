@@ -289,7 +289,7 @@ EXPOSE 9000
 CMD ["python3", "commands.py"]
 ```
 
-> **Server install**: `agent-sandbox-server` is not published on PyPI. The PyPI project named `agent-sandbox` is a different package. The line above installs `server-sdk` from a pinned public commit archive, which `docker build` can run without BuildKit and without a local wheel. Set `ABX_SERVER_SDK_SOURCE` to a `server-sdk` tree when you need that checkout instead; `abx template deploy` then copies the built wheel by its exact filename. A Dockerfile that still has `COPY *.whl` is rewritten for that build when no wheel is present, because the legacy builder rejects an empty glob.
+> **Server install**: `agent-sandbox-server` is not published on PyPI. The PyPI project named `agent-sandbox` is an unrelated package. The client distribution is `agent-sandbox-client`. The line above installs `server-sdk` from a pinned public commit archive, which `docker build` can run without BuildKit and without a local wheel. Set `ABX_SERVER_SDK_SOURCE` to a `server-sdk` tree when you need that checkout instead; `abx template deploy` then copies the built wheel by its exact filename. A Dockerfile that still has `COPY *.whl` is rewritten for that build when no wheel is present, because the legacy builder rejects an empty glob.
 
 ### Named commands (optional)
 
