@@ -17,11 +17,11 @@ import { spawn } from "node:child_process";
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, copyFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { injectedPackageVersion } from "../utils/package_version.js";
-import { SERVER_SDK_ARCHIVE_URL, SERVER_SDK_PIP_SPEC } from "../utils/server_sdk_pin.js";
+import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC } from "../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../models/errors.js";
 import { TemplateProtocol } from "../protocol/template.js";
@@ -38,6 +38,39 @@ import { ValueError, dictGet, pyExcStr } from "./_pyerrors.js";
 const logger = getLogger("api.docker_builder");
 
 const _WHEEL_NAME = /^[A-Za-z0-9._+-]+\.whl$/;
+
+function resolvedDockerfile(context: string, dockerfile: string | null | undefined): string {
+  if (!dockerfile) return join(context, "Dockerfile");
+  return isAbsolute(dockerfile) ? dockerfile : join(context, dockerfile);
+}
+
+/** True when the build context Dockerfile already pins a python-sdk server archive. */
+export function contextHasPinnedServerArchive(context: string, dockerfile: string | null = null): boolean {
+  const source = resolvedDockerfile(context, dockerfile);
+  if (!existsSync(source)) return false;
+  try {
+    return dockerfilePinsServerArchive(readFileSync(source, "utf8"));
+  } catch {
+    return false;
+  }
+}
+
+async function _injectOrKeepPin(
+  context: string,
+  dockerfile: string | null,
+  progress: (msg: string) => void,
+  step: string,
+): Promise<string[]> {
+  if (!process.env[SERVER_SDK_SOURCE_ENV] && contextHasPinnedServerArchive(context, dockerfile)) {
+    progress(`${step} Using the Dockerfile's pinned agent-sandbox-server archive`);
+    return [];
+  }
+  progress(`${step} Injecting SDK wheel into build context...`);
+  const injected = await DockerBuilder.injectSdkWheel(context, null, dockerfile);
+  if (injected.length) progress(`  Injected ${injected.length} wheel(s)`);
+  else progress("  No SDK wheel injected (may install from PyPI)");
+  return injected;
+}
 
 function contextWheelNames(context: string): string[] {
   try {
@@ -57,13 +90,13 @@ function contextWheelNames(context: string): string[] {
 export function rewriteDockerfileForServerInstall(text: string, wheelNames: readonly string[]): string {
   const wheels = wheelNames.filter((name) => _WHEEL_NAME.test(name));
   if (wheels.length > 0) {
-    if (!text.includes(SERVER_SDK_ARCHIVE_URL)) return text;
+    if (!dockerfilePinsServerArchive(text)) return text;
     const copies = wheels.map((name) => `COPY ${name} /tmp/${name}`).join("\n");
     const paths = wheels.map((name) => `/tmp/${name}`).join(" ");
     const block = `${copies}\nRUN pip install --no-cache-dir ${paths} && rm -f ${paths}`;
     return text
       .split("\n")
-      .map((line) => (line.includes(SERVER_SDK_ARCHIVE_URL) ? block : line))
+      .map((line) => (dockerfilePinsServerArchive(line) ? block : line))
       .join("\n");
   }
   const stripped = text
@@ -78,7 +111,7 @@ export function rewriteDockerfileForServerInstall(text: string, wheelNames: read
 
 /** Fill `<region>` / `<tag>` and the server install so `docker build` does not need BuildKit. */
 function materializedDockerfile(context: string, dockerfile: string | null): string | null {
-  const source = dockerfile ?? join(context, "Dockerfile");
+  const source = resolvedDockerfile(context, dockerfile);
   if (!existsSync(source)) return dockerfile;
   let text = readFileSync(source, "utf8");
   const original = text;
@@ -786,17 +819,24 @@ export class DockerBuilder {
    *
    * - when a server-sdk source tree is given explicitly (`project_root`, or the `ABX_SERVER_SDK_SOURCE` environment
    *   variable): build a wheel from it with `pip wheel`, so unreleased changes reach the image;
+   * - otherwise, when the Dockerfile already pins a python-sdk server archive: inject nothing and do not query PyPI;
    * - otherwise: download the released wheel of the same version from PyPI (see `_downloadReleaseWheel`).
    *
-   * When neither works nothing is injected. The scaffold Dockerfile installs a pinned GitHub archive, and
-   * `rewriteDockerfileForServerInstall` drops a legacy `COPY *.whl` so the legacy builder can still run.
+   * When neither a source tree nor a PyPI wheel is available, nothing is injected. The scaffold Dockerfile installs a
+   * pinned GitHub archive, and `rewriteDockerfileForServerInstall` drops a legacy `COPY *.whl` so the legacy builder
+   * can still run. A local wheel replaces any archive SHA, not only the scaffold pin.
    *
    * @returns List of wheel file paths copied into the context.
    */
-  static async injectSdkWheel(context_dir: string, project_root: string | null = null): Promise<string[]> {
+  static async injectSdkWheel(
+    context_dir: string,
+    project_root: string | null = null,
+    dockerfile: string | null = null,
+  ): Promise<string[]> {
     if (project_root === null || project_root === undefined) {
       const fromEnv = process.env[SERVER_SDK_SOURCE_ENV];
       if (!fromEnv) {
+        if (contextHasPinnedServerArchive(context_dir, dockerfile)) return [];
         return DockerBuilder._downloadReleaseWheel(context_dir);
       }
       project_root = fromEnv;
@@ -899,14 +939,8 @@ export class DockerBuilder {
       });
     }
 
-    // Step 1.5: Inject SDK wheel into docker context
-    _progress("[1.5/5] Injecting SDK wheel into build context...");
-    const injected_wheels = await DockerBuilder.injectSdkWheel(tdir);
-    if (injected_wheels.length) {
-      _progress(`  Injected ${injected_wheels.length} wheel(s)`);
-    } else {
-      _progress("  No SDK wheel injected (may install from PyPI)");
-    }
+    // Step 1.5: Inject SDK wheel into docker context, unless the Dockerfile already pins an archive.
+    const injected_wheels = await _injectOrKeepPin(tdir, dockerfile, _progress, "[1.5/5]");
 
     // Step 2: Build locally
     const local_tag = `${template_name}:${tag}`;
@@ -1059,14 +1093,8 @@ export class DockerBuilder {
       });
     }
 
-    // Step 1.5: Inject SDK wheel into docker context
-    _progress("[1.5/5] Injecting SDK wheel into build context...");
-    const injected_wheels = await DockerBuilder.injectSdkWheel(tdir);
-    if (injected_wheels.length) {
-      _progress(`  Injected ${injected_wheels.length} wheel(s)`);
-    } else {
-      _progress("  No SDK wheel injected (may install from PyPI)");
-    }
+    // Step 1.5: Inject SDK wheel into docker context, unless the Dockerfile already pins an archive.
+    const injected_wheels = await _injectOrKeepPin(tdir, dockerfile, _progress, "[1.5/5]");
 
     // Step 2: Build locally
     const local_tag = `${template_name}:${tag}`;

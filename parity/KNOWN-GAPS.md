@@ -108,8 +108,9 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
   `sys.frozen`. Node has neither; `pip wheel` is only used for an explicit `project_root` option or
   `ABX_SERVER_SDK_SOURCE`, otherwise the released `agent-sandbox-server` wheel is downloaded from PyPI through the httpx
   shim (`trust_env`: `HTTP(S)_PROXY` / `ALL_PROXY` / `NO_PROXY` and `SSL_CERT_FILE` / `SSL_CERT_DIR`, SHA-256 verified;
-  stubbed in tests). A failed fetch still falls back to the Dockerfile's `pip install` only after that request fails,
-  the same as Python; the download is not skipped in favour of an unpinned install when a proxy or private CA is set.
+  stubbed in tests), unless the Dockerfile already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk`.
+  That pin is used as written and PyPI is not queried. A failed fetch of an unpinned Dockerfile still falls back to the
+  Dockerfile's `pip install` only after that request fails. A local wheel replaces any such archive SHA.
   "frozen binary" -> "no explicit source => never spawns pip"; "checkout is detected" -> resolves
   `../../python-sdk/server-sdk` through the env/option.
 * `test_fc_template.py::TestRequireSDK`: module reload with `sys.modules[...] = None` is replaced by making

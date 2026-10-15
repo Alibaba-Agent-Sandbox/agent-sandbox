@@ -23,6 +23,7 @@ import {
   buildTemplateGuide,
 } from "../../src/agent/template_guide.js";
 import { STANDARD_CAPABILITIES } from "../../src/models/template.js";
+import { SERVER_SDK_GIT_SHA } from "../../src/utils/server_sdk_pin.js";
 import { FIXTURES, findPython, itWithPython, itWithServerSdk, readGolden, serverSdkPythonPath } from "../helpers/agentSupport.js";
 
 const serverIt = itWithServerSdk(it);
@@ -93,7 +94,7 @@ describe("TestGuideText", () => {
 
   it("test_sdk_install_pattern_is_the_established_one", () => {
     expect(TEMPLATE_GUIDE).toContain("subdirectory=server-sdk");
-    expect(TEMPLATE_GUIDE).toContain("b6e71fa4b6127e94a0da0aa96642ee96f69ad87a");
+    expect(TEMPLATE_GUIDE).toContain(SERVER_SDK_GIT_SHA);
     expect(TEMPLATE_GUIDE).not.toContain("COPY *.whl");
   });
 
