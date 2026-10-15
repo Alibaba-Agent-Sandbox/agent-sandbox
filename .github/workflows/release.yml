@@ -13,6 +13,12 @@ concurrency:
 jobs:
   publish:
     name: Build & publish to npm
+    # A v* tag also fires this workflow. Leave the repository variable
+    # NPM_PUBLISH unset (or any value other than true) for a binary-only
+    # release: this job is skipped, so a missing NPM_API_TOKEN does not fail
+    # the run. Set NPM_PUBLISH to the string true after the npm package name
+    # is decided and NPM_API_TOKEN (or trusted publishing) is configured.
+    if: vars.NPM_PUBLISH == 'true'
     runs-on: ubuntu-latest
     environment: npm
     permissions:
