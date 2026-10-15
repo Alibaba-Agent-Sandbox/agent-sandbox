@@ -71,6 +71,7 @@ graph TB
 | **CLI 命令体系** | [cli-design.md](design/cli-design.md) | 命令树（45 个命令）、全局选项、自然语言创建、OutputManager、AI Friendly 设计 |
 | **模板目录** | [templates-catalog.md](design/templates-catalog.md) | 单一真源（SSOT）：awesome-templates 目录仓库、远程索引客户端、缓存/降级行为、fixture 边界、模板命令面 |
 | **模板构建模式** | [template-build-modes.md](design/template-build-modes.md) | 一次发布只走一条路：本地 Dockerfile，或把 `template.yaml` 的 `build:` 展开成 `CreateTemplate` 的 `sandboxConfig.steps` |
+| **提供方模板部署** | [provider-template-deploy.md](design/provider-template-deploy.md) | 仅设计：按提供方做 `abx template deploy`。极速版的构建/推送/注册层、四个目录 API，以及提议的 `template.deploy` 功能。[英文](../design/provider-template-deploy.md) |
 | **Node 提供方架构** | [node-provider-architecture.md](design/node-provider-architecture.md) | 一份 Node/TypeScript 提供方层：四种类型、kit、CLI 进程内与本机引擎与 exec，以及 HTTP/SSE/WebSocket 契约 |
 
 ### AI 与 Agent 集成
