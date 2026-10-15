@@ -6,36 +6,27 @@
 
 ## 前置条件
 
-- Node.js 20 或更高版本（用于 `abx` CLI）
+- 只有从源码安装才需要 Node.js 20 或更高版本。二进制安装脚本不需要 Node.js。
 - 默认提供方是 `alicloud-express`。API Key 从[智能体沙箱产品文档](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox)获取。变量名是 `ABX_SANDBOX_API_KEY`。AccessKey 是 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET`。CLI 不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`。
 - 网络可访问阿里云杭州区域（默认 `cn-hangzhou`）
 
 ## 1. 安装
 
+macOS 与 Linux：
+
 ```bash
-# 从 npm 全局安装 CLI
-npm install -g @agent-sandbox/cli
-
-# 或免安装直接运行
-npx @agent-sandbox/cli --version
-
-# 验证安装
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 abx --version
 ```
 
-### 独立二进制（无需 Node.js）
+Windows（PowerShell）：
 
-如果不想安装 Node.js 环境，也可以使用预编译的独立二进制版本（支持 Linux、macOS 和 Windows）：
-
-```bash
-# 示例：在 macOS（Apple Silicon）上安装 v0.3.0
-curl -fsSL -o "$HOME/abx" \
-  "https://github.com/alibaba-agent-sandbox/agent-sandbox/releases/download/v0.3.0/abx-0.3.0-darwin-arm64"
-chmod +x "$HOME/abx"
-sudo mv "$HOME/abx" /usr/local/bin/abx
+```powershell
+irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
+abx --version
 ```
 
-其他平台的安装命令、校验和验证以及与 npm 安装的对比，请参阅[二进制安装](binary-installation.md)。
+`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。从源码安装（`git clone`、`npm ci`、`npm run build`、`npm pack`、`npm install -g ./agent-sandbox-cli-<version>.tgz`）、手动下载，以及 `abx: command not found`，见[二进制安装](binary-installation.md)。v0.2.0 的 Release 资产名是 `ebx-*`；安装脚本使用 `abx-*`，需要尚未发布的 v0.3.0 Release。
 
 ## 2. 配置 API Key
 
