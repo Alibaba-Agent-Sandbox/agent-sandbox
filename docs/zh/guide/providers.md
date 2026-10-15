@@ -187,7 +187,7 @@ abx config list --provider my-cloud                          # 该提供商的�
 
 仅存在于另一个已安装提供商中的裸键会被拒绝，并提示 `Did you mean 'providers.<id>.<key>'?`。`abx provider config <id> list|get|set|unset|init` 是限定到单个提供商的同一套能力。
 
-`abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。
+`abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
 
 ---
 

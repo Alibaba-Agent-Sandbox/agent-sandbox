@@ -36,6 +36,7 @@ import {
   TemplateBuildError,
   TemplateNotFoundError,
 } from "../../models/errors.js";
+import { AKSK_ENV_SUGGESTION } from "../../utils/credential_names.js";
 import { createAuthProvider } from "../../transport/auth.js";
 import { loadConfig } from "../../transport/config.js";
 import { HttpClient } from "../../transport/http.js";
@@ -242,12 +243,16 @@ export function resolveDeployRuntime(
   };
 }
 
-function _rememberTemplate(templateDir: string, templateId: unknown, out: Any): void {
+function _rememberTemplate(templateDir: string, templateId: unknown, out: Any, also: readonly string[] = []): void {
   const id = pyStr(templateId ?? "").trim();
   if (!id || id === "N/A") return;
   try {
     const yaml = _findTemplateYaml(templateDir);
-    if (yaml) cacheDeployedTemplate(yaml, id);
+    if (!yaml) return;
+    const names = [...also];
+    const yamlName = _readYamlDefaults(templateDir)["name"];
+    if (typeof yamlName === "string" && yamlName.trim()) names.push(yamlName.trim());
+    cacheDeployedTemplate(yaml, id, names);
   } catch (e) {
     out.warning(
       `Could not cache template.yaml under ~/.abx/templates/${id}: ${e instanceof Error ? e.message : String(e)}`,
@@ -852,7 +857,8 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     if (!config.access_key_id || !config.access_key_secret) {
       throw new CliError(
         "Alibaba Cloud credentials missing. Run 'abx config init --build', or " +
-          "'abx config set access_key_id' / 'abx config set access_key_secret'.",
+          "'abx config set access_key_id' / 'abx config set access_key_secret'. " +
+          AKSK_ENV_SUGGESTION,
       );
     }
     const reporter = new _StepReporter(out, { verbose });
@@ -883,7 +889,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
         });
       }
       reporter.done(`Template registration submitted: ${templateId}`);
-      _rememberTemplate(template_dir, templateId, out);
+      _rememberTemplate(template_dir, templateId, out, [alias ?? "", templateName].filter((n) => Boolean(n)));
       return {
         TemplateID: templateId,
         BuildID: "N/A",
@@ -901,7 +907,8 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     throw new CliError(
       "ACR credentials missing. Run 'abx config init --build', or " +
         "'abx config set access_key_id' / 'abx config set access_key_secret', " +
-        "or pass --acr-username/--acr-password.",
+        "or pass --acr-username/--acr-password. " +
+        AKSK_ENV_SUGGESTION,
     );
   }
 
@@ -950,7 +957,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
       platform_ak: platformAk,
       platform_sk: platformSk,
     });
-    _rememberTemplate(template_dir, reported["TemplateID"], out);
+    _rememberTemplate(template_dir, reported["TemplateID"], out, [alias ?? "", templateName].filter((n) => Boolean(n)));
     return reported;
   } finally {
     reporter.close();
@@ -1243,7 +1250,7 @@ export const install = template.command("install", {
         "Alibaba Cloud AK/SK credentials not found. Run 'abx config init --build', or:\n" +
           "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>\n" +
           "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>\n" +
-          "  Or set ALICLOUD_ACCESS_KEY_ID / ALICLOUD_ACCESS_KEY_SECRET in the environment.",
+          "  " + AKSK_ENV_SUGGESTION,
       );
     }
 
@@ -1559,8 +1566,7 @@ export const create_template = template.command("create", {
         suggestion:
           "Run 'abx config init --build', or " +
           "'abx config set access_key_id' / 'abx config set access_key_secret'. " +
-          "ALICLOUD_ACCESS_KEY_ID / ALICLOUD_ACCESS_KEY_SECRET " +
-          "(or AccessKey / AccessSecret) in the environment also work.",
+          AKSK_ENV_SUGGESTION,
       });
       sysExit(1);
     }
@@ -1648,12 +1654,12 @@ export const push = template.command("push", {
     option(["--acr-username"], {
       envvar: "ACR_USERNAME",
       default: null,
-      help: "ACR login username (defaults to AccessKey from .env)",
+      help: "ACR login username (default: ALICLOUD_ACCESS_KEY_ID)",
     }),
     option(["--acr-password"], {
       envvar: "ACR_PASSWORD",
       default: null,
-      help: "ACR login password (defaults to AccessSecret from .env)",
+      help: "ACR login password (default: ALICLOUD_ACCESS_KEY_SECRET)",
     }),
     option(["--acree-instance-id"], { envvar: "ACREE_INSTANCE_ID", default: "", help: "ACR EE instance ID (cri-...)" }),
     regionOption(),
@@ -1687,7 +1693,8 @@ export const push = template.command("push", {
         suggestion:
           "Run 'abx config init --build', or " +
           "'abx config set access_key_id' / 'abx config set access_key_secret', " +
-          "or pass --acr-username/--acr-password.",
+          "or pass --acr-username/--acr-password. " +
+          AKSK_ENV_SUGGESTION,
       });
     }
 
@@ -1800,12 +1807,12 @@ export const build = template.command("build", {
     option(["--acr-username"], {
       envvar: "ACR_USERNAME",
       default: null,
-      help: "ACR login username (defaults to AccessKey from .env)",
+      help: "ACR login username (default: ALICLOUD_ACCESS_KEY_ID)",
     }),
     option(["--acr-password"], {
       envvar: "ACR_PASSWORD",
       default: null,
-      help: "ACR login password (defaults to AccessSecret from .env)",
+      help: "ACR login password (default: ALICLOUD_ACCESS_KEY_SECRET)",
     }),
     option(["--acree-instance-id"], { envvar: "ACREE_INSTANCE_ID", default: "", help: "ACR EE instance ID (cri-...)" }),
     option(["--vpc-id"], { envvar: "ACR_VPC_ID", default: "", help: "VPC ID for ACR EE" }),
@@ -1916,7 +1923,9 @@ export const build = template.command("build", {
     if (plan.kind === "steps") {
       if (!config.access_key_id || !config.access_key_secret) {
         fmt.printError("Alibaba Cloud credentials missing.", {
-          suggestion: "Run 'abx config init --build', or 'abx config set access_key_id' / 'abx config set access_key_secret'.",
+          suggestion:
+            "Run 'abx config init --build', or 'abx config set access_key_id' / 'abx config set access_key_secret'. " +
+            AKSK_ENV_SUGGESTION,
         });
         sysExit(1);
       }
@@ -1925,23 +1934,29 @@ export const build = template.command("build", {
         suggestion:
           "Run 'abx config init --build', or " +
           "'abx config set access_key_id' / 'abx config set access_key_secret', " +
-          "or pass --acr-username/--acr-password.",
+          "or pass --acr-username/--acr-password. " +
+          AKSK_ENV_SUGGESTION,
       });
       sysExit(1);
     }
 
     // Show the resolved configuration so users can see the effective values.
-    echo(`Template: ${pyStr(templateName)}`);
-    if (plan.kind === "steps") {
-      echo(`Build mode: steps`);
-      echo(`Base image: ${plan.image}`);
-      echo(`Platform steps: ${plan.steps.length}`);
-    } else {
-      echo(`ACR: ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]}`);
-      if (plan.ignoredSteps) echo(IGNORED_PLATFORM_STEPS);
+    // `--json` keeps stdout as one object (`TemplateID` included); the summary stays on stderr via progress.
+    if (!fmt.use_json) {
+      echo(`Template: ${pyStr(templateName)}`);
+      if (plan.kind === "steps") {
+        echo(`Build mode: steps`);
+        echo(`Base image: ${plan.image}`);
+        echo(`Platform steps: ${plan.steps.length}`);
+      } else {
+        echo(`ACR: ${resolvedNamespace}/${pyStr(resolvedRepo)}:${params["tag"]}`);
+        if (plan.ignoredSteps) echo(IGNORED_PLATFORM_STEPS);
+      }
+      echo(`Resources: cpu=${resolvedCpu}, memory=${resolvedMemory}MB, generation=${runtime.generation}`);
+      if (runtime.start_cmd) echo(`Start command: ${runtime.start_cmd}`);
+    } else if (plan.kind !== "steps" && plan.ignoredSteps) {
+      out.warning(IGNORED_PLATFORM_STEPS);
     }
-    echo(`Resources: cpu=${resolvedCpu}, memory=${resolvedMemory}MB, generation=${runtime.generation}`);
-    if (runtime.start_cmd) echo(`Start command: ${runtime.start_cmd}`);
 
     // Confirmation before destructive cloud operations.
     if (!params["yes"]) {
@@ -2033,7 +2048,9 @@ export const deploy = template.command("deploy", {
     "Examples:\n" +
     "  abx template deploy ./examples/templates/python-hello \\\n" +
     "    --acr-namespace my-ns --acr-repo python-hello\n" +
-    "  abx template deploy ./my-template --acr-namespace prod --yes\n\n" +
+    "  abx template deploy ./my-template --acr-namespace prod --yes\n" +
+    "  abx --json template deploy ./my-template -y\n" +
+    "    # one JSON object on stdout; the id is the TemplateID field\n\n" +
     "\b\n" +
     "Related commands:\n" +
     "  abx template init DIRECTORY  Scaffold a template project\n" +

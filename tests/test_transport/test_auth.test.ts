@@ -307,8 +307,15 @@ describe("TestCreateAuthProvider", () => {
       caught = e;
     }
     expect(caught).toBeInstanceOf(InvalidAPIKeyError);
-    expect((caught as InvalidAPIKeyError).suggestion).toContain("ABX_SANDBOX_API_KEY");
-    expect((caught as InvalidAPIKeyError).suggestion).not.toContain("E2B_API_KEY");
+    const suggestion = (caught as InvalidAPIKeyError).suggestion ?? "";
+    expect(suggestion).toContain("ABX_SANDBOX_API_KEY");
+    expect(suggestion).toContain("ALICLOUD_ACCESS_KEY_ID");
+    expect(suggestion).toContain("ALICLOUD_ACCESS_KEY_SECRET");
+    expect(suggestion).toContain("ABX_SANDBOX_BASE_URL");
+    expect(suggestion).toContain("ABX_SANDBOX_DOMAIN");
+    expect(suggestion).toContain("ALIBABA_CLOUD_REGION_ID");
+    expect(suggestion).not.toContain("E2B_API_KEY");
+    expect(suggestion).not.toContain("AccessKey");
   });
 });
 

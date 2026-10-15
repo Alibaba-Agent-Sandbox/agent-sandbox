@@ -22,6 +22,7 @@ set with 'abx config init --build'.
 Examples:
   abx deploy --acr-namespace my-ns           # publish ./ as a template
   abx deploy ./my-template --yes             # non-interactive
+  abx --json deploy ./my-template -y         # JSON on stdout; id is TemplateID
   abx deploy ./my-template -v                # with debug logs
 
 Typical flow:
@@ -40,8 +41,8 @@ Options:
   --acr-registry <ACR_REGISTRY>            ACR registry host
   --acr-namespace <ACR_NAMESPACE>          ACR namespace (env: ACR_NAMESPACE, or set in .env file)
   --acr-repo <ACR_REPO>                    ACR repository name (defaults to template.yaml name or dir name)
-  --acr-username <ACR_USERNAME>            ACR login username (defaults to AccessKey from .env)
-  --acr-password <ACR_PASSWORD>            ACR login password (defaults to AccessSecret from .env)
+  --acr-username <ACR_USERNAME>            ACR login username (default: ALICLOUD_ACCESS_KEY_ID)
+  --acr-password <ACR_PASSWORD>            ACR login password (default: ALICLOUD_ACCESS_KEY_SECRET)
   --acree-instance-id <ACREE_INSTANCE_ID>  ACR EE instance ID (cri-...)
   --vpc-id <VPC_ID>                        VPC ID for ACR EE
   --vswitch-ids <VSWITCH_IDS>              Comma-separated VSwitch IDs
