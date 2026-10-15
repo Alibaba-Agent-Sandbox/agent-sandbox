@@ -18,6 +18,8 @@ import { cliProvider } from "./selection.js";
 import { pluginRoot, resolveProviderId } from "./registry.js";
 import * as store from "./store.js";
 
+export { ABX_SERVER_INSTALL } from "../utils/server_sdk_pin.js";
+
 export type ServerStart = "image_cmd" | "platform_start_cmd";
 
 /** Image contract the template generator renders. `registry` is a pull/push note, not credentials. */
@@ -54,14 +56,6 @@ interface ProfileFields {
   reserved_ports: readonly number[];
   registry: string;
 }
-
-/** Wheel install used by the guide and by `abx template init`. The package is `agent-sandbox-server`, not the client. */
-export const ABX_SERVER_INSTALL = `COPY *.whl /tmp/
-RUN if ls /tmp/*.whl 1>/dev/null 2>&1; then \\
-        pip install --no-cache-dir /tmp/*.whl && rm -f /tmp/*.whl; \\
-    else \\
-        pip install --no-cache-dir agent-sandbox-server; \\
-    fi`;
 
 /** FC Agent Sandbox profile (section 2 of the template/provider boundary review). */
 const ALICLOUD_EXPRESS_FIELDS: ProfileFields = {

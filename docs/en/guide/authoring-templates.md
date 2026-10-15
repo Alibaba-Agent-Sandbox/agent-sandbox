@@ -75,7 +75,7 @@ Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `sta
 
 - `alicloud-express` uses `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`, does not set `CMD` or `ENTRYPOINT`, and starts the server with the platform `start_cmd` / `ready_cmd`. Workdir is `/home/user/app`. Ports 49983, 5000, and 49999 are reserved by that profile.
 - Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `abx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
-- The image installs `agent-sandbox-server`, not the client package.
+- The image installs `agent-sandbox-server`, not the client package. `abx template init` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"`. That distribution is not on PyPI. `ABX_SERVER_SDK_SOURCE` overrides it with a local wheel.
 
 ---
 
@@ -123,7 +123,7 @@ abx rejects the result, leaves the project unchanged, and prints the staging pat
 
 - the Dockerfile has no `FROM`, or `commands.py` does not start `agent_sandbox.server`
 - port 9000 is missing from `template.yaml` `ports` or from `EXPOSE`
-- a `COPY` / `ADD` names a file that is missing or ignored (`COPY *.whl` is the wheel `abx deploy` injects at build time, so it is allowed)
+- a `COPY` / `ADD` names a file that is missing or ignored (`COPY *.whl` is still allowed: `abx template deploy` injects a wheel only when `ABX_SERVER_SDK_SOURCE` or a PyPI release supplies one, and otherwise drops that line before `docker build`)
 - a secret-named file would still be in the Docker build context after `.dockerignore` and `Dockerfile.dockerignore`
 - an ignore file excludes `*.whl`, which would block the SDK wheel
 

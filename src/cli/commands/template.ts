@@ -23,7 +23,7 @@ import { requireTemplateFeature } from "../template_provider.js";
 import { enableVerbose, getOutput, isCiEnv } from "../output.js";
 import { regionOption } from "../region.js";
 import { availableCases, renderScaffold } from "../scaffold.js";
-import { ACRConfig, DockerBuilder } from "../../api/docker_builder.js";
+import { ACRConfig, DockerBuilder, dockerBuildxAvailable } from "../../api/docker_builder.js";
 import { cacheDeployedTemplate } from "../../api/capability.js";
 import * as fcTemplate from "../../api/fc_template.js";
 import { ValueError } from "../../api/_pyerrors.js";
@@ -510,12 +510,11 @@ export class _StepReporter {
   }
 }
 
-/** Print a friendly notice when `--provenance=false` will be auto-injected. */
-export function _provenanceNotice(out: Any): void {
+/** Print a notice only when `--provenance=false` will actually be added to `docker build`. */
+export async function _provenanceNotice(out: Any): Promise<void> {
   if (out.json_mode || out.jsonMode || out.quiet) return;
-  if ((process.env["DOCKER_BUILDKIT"] ?? "1") !== "0") {
-    out.info("\u2139 Auto-added --provenance=false" + " (prevents FC image optimization failure; set DOCKER_BUILDKIT=0 to skip)");
-  }
+  if (!(await dockerBuildxAvailable())) return;
+  out.info("\u2139 Auto-added --provenance=false" + " (prevents FC image optimization failure; set DOCKER_BUILDKIT=0 to skip)");
 }
 
 export interface BuildImageOptions {
@@ -631,8 +630,8 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
     out.warning("--start-cmd / --ready-cmd only take effect with --generation 2 (MicroVM).");
   }
 
-  // Provenance notice (Task #9)
-  _provenanceNotice(out);
+  // Provenance notice only when buildx will accept the flag.
+  await _provenanceNotice(out);
 
   let templateId: string;
   let buildId: string;

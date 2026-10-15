@@ -16,9 +16,13 @@ import {
   SERVER_SDK_SOURCE_ENV,
   _getAcrAuthToken,
   _seams,
+  dockerBuildxAvailable,
   getAcrAuthToken,
+  rewriteDockerfileForServerInstall,
   serverSdkVersion,
 } from "../../src/api/docker_builder.js";
+import { ABX_SERVER_INSTALL } from "../../src/utils/server_sdk_pin.js";
+import { _provenanceNotice } from "../../src/cli/commands/template.js";
 import { DockerBuildError } from "../../src/models/errors.js";
 import {
   ConnectError,
@@ -606,6 +610,28 @@ describe("TestInjectSdkWheel", () => {
   });
 });
 
+describe("rewriteDockerfileForServerInstall", () => {
+  it("drops an empty wheel glob and pins the archive install", () => {
+    const text = "FROM scratch\nCOPY *.whl /tmp/\nRUN if ls /tmp/*.whl; then pip install /tmp/*.whl; else pip install --no-cache-dir agent-sandbox-server; fi\n";
+    const out = rewriteDockerfileForServerInstall(text, []);
+    expect(out).not.toContain("COPY *.whl");
+    expect(out).toContain('pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/');
+    expect(out).not.toMatch(/pip install --no-cache-dir agent-sandbox-server(?! @)/);
+  });
+
+  it("keeps a scaffold install line when no wheel is present", () => {
+    const text = `FROM scratch\n${ABX_SERVER_INSTALL}\n`;
+    expect(rewriteDockerfileForServerInstall(text, [])).toBe(text);
+  });
+
+  it("replaces the archive install with the injected wheel", () => {
+    const text = `FROM scratch\n${ABX_SERVER_INSTALL}\n`;
+    const out = rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.3.0-py3-none-any.whl"]);
+    expect(out).toContain("COPY agent_sandbox_server-0.3.0-py3-none-any.whl /tmp/agent_sandbox_server-0.3.0-py3-none-any.whl");
+    expect(out).not.toContain("github.com");
+  });
+});
+
 describe("TestBuildProgress", () => {
   it("test_buildkit_build_streams_plain_progress", async () => {
     const tmp_path = mkTmp();
@@ -618,6 +644,43 @@ describe("TestBuildProgress", () => {
     expect(command).toContain("--provenance=false");
     expect(command).toContain("--progress=plain");
     expect(seen).toEqual(["#2 [1/2] FROM python:3.12"]);
+  });
+
+  it("test_legacy_builder_omits_provenance_when_buildx_is_missing", async () => {
+    const tmp_path = mkTmp();
+    vi.stubEnv("DOCKER_BUILDKIT", "1");
+    h.spawn.mockImplementation((_cmd: string, args: string[]) => {
+      if (args[0] === "buildx") return fakeChild({ code: 1, stdout: ["docker: 'buildx' is not a docker command\n"] });
+      return fakeChild({ stdout: ["ok\n"], code: 0 });
+    });
+    await new DockerBuilder().build(tmp_path, "app:latest");
+    const call = h.spawn.mock.calls.find((c) => Array.isArray(c[1]) && c[1].includes("build") && c[1].includes("-t"))!;
+    const command: string[] = [call[0], ...call[1]];
+    expect(command).not.toContain("--provenance=false");
+    expect(command).not.toContain("--progress=plain");
+    expect(await dockerBuildxAvailable()).toBe(false);
+    const info = vi.fn();
+    await _provenanceNotice({ info });
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it("test_build_rewrites_an_empty_wheel_glob_for_the_legacy_builder", async () => {
+    const tmp_path = mkTmp();
+    writeFileSync(
+      join(tmp_path, "Dockerfile"),
+      "FROM scratch\nCOPY *.whl /tmp/\nRUN pip install --no-cache-dir agent-sandbox-server\n",
+    );
+    let seen = "";
+    h.spawn.mockImplementation((_cmd: string, args: string[]) => {
+      if (args[0] === "buildx") return fakeChild({ code: 1 });
+      if (args.includes("-f")) seen = readFileSync(args[args.indexOf("-f") + 1]!, "utf8");
+      return fakeChild({ code: 0 });
+    });
+    await new DockerBuilder().build(tmp_path, "app:latest");
+    expect(seen).not.toContain("COPY *.whl");
+    expect(seen).toContain("subdirectory=server-sdk");
+    expect(existsSync(join(tmp_path, "Dockerfile.abx-build"))).toBe(false);
+    expect(readFileSync(join(tmp_path, "Dockerfile"), "utf8")).toContain("COPY *.whl");
   });
 
   it("test_build_arg_values_are_redacted_in_the_info_log", async () => {

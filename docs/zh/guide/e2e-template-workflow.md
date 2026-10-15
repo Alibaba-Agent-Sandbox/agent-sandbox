@@ -278,15 +278,9 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install the agent-sandbox-server runtime.
-# When building locally via `abx template deploy`, the agent-sandbox-server
-# wheel is automatically injected into the build context as .whl file.
-COPY *.whl /tmp/
-RUN if ls /tmp/*.whl 1>/dev/null 2>&1; then \
-        pip install --no-cache-dir /tmp/*.whl && rm -f /tmp/*.whl; \
-    else \
-        pip install --no-cache-dir agent-sandbox-server; \
-    fi
+# agent-sandbox-server 不在 PyPI 上。这一行安装钉死的 python-sdk 提交里的 server-sdk。
+# ABX_SERVER_SDK_SOURCE 会在构建时改成本地 wheel。
+RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"
 
 WORKDIR /app
 COPY commands.py .
@@ -295,7 +289,7 @@ EXPOSE 9000
 CMD ["python3", "commands.py"]
 ```
 
-> **`.whl` 注入机制**：执行 `abx template deploy` 时，`abx` 会自动将同版本已发布的 `agent-sandbox-server` wheel 注入到 Docker 构建上下文中，确保容器内运行与宿主一致版本的运行时。已发布的 wheel 从 PyPI 下载并校验 SHA-256。无法做到（未发布的版本、或无法访问 PyPI）时不注入任何文件，由镜像内的 `pip install agent-sandbox-server` 兜底。上面的 `COPY *.whl` + fallback 模式是推荐写法。
+> **服务端安装**：`agent-sandbox-server` 没有发布到 PyPI。PyPI 上名为 `agent-sandbox` 的项目是另一个包。上面这一行从钉死的公开提交归档安装 `server-sdk`，普通 `docker build` 不需要 BuildKit，也不需要本地 wheel。需要用某个检出目录时设置 `ABX_SERVER_SDK_SOURCE` 指向 `server-sdk`，`abx template deploy` 会按 wheel 的真实文件名复制它。Dockerfile 里如果还留着 `COPY *.whl` 且没有 wheel，这次构建会先去掉该行，因为旧构建器拒绝空通配符。
 
 ### 具名命令（可选）
 
@@ -329,7 +323,7 @@ docker build --platform linux/amd64 --provenance=false -t my-app:test ./my-templ
 docker run --rm my-app:test python3 -c "print('OK')"
 ```
 
-> **关于 `--provenance=false`**：Docker Buildx 默认会生成 attestation manifest，导致阿里云 FC 镜像优化失败（模板会卡在 `error` 状态）。上面的手动 `docker build` 里之所以要带它，是因为该命令绕过了 SDK。通过 `abx template deploy` 部署时，**只要启用了 BuildKit，SDK 就会自动为你注入 `--provenance=false`**，因此你通常**无需**手动添加。设置 `DOCKER_BUILDKIT=0` 可跳过该自动注入。
+> **关于 `--provenance=false`**：Docker Buildx 默认会生成 attestation manifest，导致阿里云 FC 镜像优化失败（模板会卡在 `error` 状态）。上面的手动 `docker build` 里之所以要带它，是因为该命令绕过了 CLI。`abx template deploy` 只在 `docker buildx version` 成功时添加 `--provenance=false`，并且只在那时打印自动添加的提示。没有 buildx 插件时不加这个参数，也不打印那条提示（旧构建器不会附带 provenance）。设置 `DOCKER_BUILDKIT=0` 会强制使用旧构建器。
 
 ---
 
@@ -352,7 +346,7 @@ abx template deploy ./my-template
 
 > ⚠️ **成本与安全**：`abx template deploy`（以及默认的 `abx template install`）会向你的 ACR 镜像仓库推送镜像并在你的阿里云账号上调用官方 `CreateTemplate` API——这些操作可能产生费用。仅部署你确实要运行的模板。
 
-在构建步骤中，只要启用了 BuildKit，SDK 就会自动注入 `--provenance=false` 并打印一条提示——你无需自己添加该参数（设置 `DOCKER_BUILDKIT=0` 可跳过）：
+在构建步骤中，只有 `docker buildx version` 成功时 CLI 才会添加 `--provenance=false` 并打印提示。没有 buildx 时不加参数，也不打印提示（设置 `DOCKER_BUILDKIT=0` 会走这条路径）：
 
 ```
 ℹ 已自动添加 --provenance=false（避免 FC 镜像优化失败；设置 DOCKER_BUILDKIT=0 可跳过）
