@@ -45,7 +45,7 @@ abx provider engine stop
 | `GET /providers/:provider/commands` | 静态发现：`{commands: descriptor[]}` |
 | `GET /providers/:provider/commands/:command` | 单个管理命令的描述，包括输入/输出 schema 和 effect |
 | `POST /providers/:provider/commands/:command` | 调用已声明的管理命令：`{input: object, confirm?: boolean}`；返回命令结果 |
-| `POST /sandboxes` | 创建（`template`、`timeout`、`envs`、`metadata`、`cpu`、`memory`、`disk`、`gpu`、`secure` 等）；返回 `201` 和沙箱记录 |
+| `POST /sandboxes` | 创建（`template`、`timeout`、`envs`、`metadata`、`cpu`、`memory`、`disk`、`gpu`、`secure`，以及可选的 FC `volume_mounts` 路径到 Volume 名称映射等）；返回 `201` 和沙箱记录 |
 | `GET /sandboxes?status=&limit=&offset=` | 列表：`{sandboxes: […]}` |
 | `POST /sandboxes/:id/connect` | 接入已有沙箱 |
 | `GET /sandboxes/:id` · `DELETE /sandboxes/:id` | 查看 · 终止 |

@@ -5,8 +5,34 @@
  */
 
 import { z } from "zod";
+import { posix } from "node:path";
 
-import { defineModel, lax } from "./base.js";
+import { defineModel, lax, ValidationError } from "./base.js";
+
+// The published mount contract requires normalized absolute Unix paths. These are
+// the system roots explicitly prohibited by the official OSS Volume guide.
+const prohibitedMountRoots = new Set(["bin", "opt", "var", "dev"]);
+const unsafeMountKeys = new Set(["__proto__", "constructor", "prototype"]);
+const volumeMountsSchema = z.custom<Record<string, string>>((value) => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  return Object.entries(value).every(([mountPath, name]) => {
+    const segments = mountPath.split("/").slice(1);
+    return !unsafeMountKeys.has(mountPath) && mountPath.startsWith("/") && mountPath !== "/"
+      && !mountPath.includes("\0") && mountPath.trim() === mountPath && posix.normalize(mountPath) === mountPath
+      && !segments.some((segment) => !segment || segment.startsWith(".")) && !prohibitedMountRoots.has(segments[0])
+      && typeof name === "string" && name.length > 0 && name.trim() === name && !name.includes("\0");
+  });
+}, "Expected Volume names mapped from normalized absolute Unix mount paths outside system/hidden directories")
+  .transform((value) => Object.fromEntries(Object.entries(value)));
+
+/** Validate and snapshot mount-path → Volume-name references before creating infrastructure. */
+export function validateVolumeMounts(input: unknown): Record<string, string> {
+  const result = volumeMountsSchema.safeParse(input);
+  if (!result.success) throw new ValidationError("Volume mounts", result.error);
+  return result.data;
+}
 
 /** Sandbox lifecycle status. */
 export const SandboxStatus = {
@@ -32,6 +58,7 @@ export class SandboxConfig extends defineModel(
     auto_pause: lax.bool().default(false), // 是否自动暂停
     metadata: lax.stringMap().default(() => ({})),
     env_vars: lax.stringMap().default(() => ({})), // 环境变量键值对（已实测验证）
+    volume_mounts: volumeMountsSchema.default(() => ({})),
 
     // Resource configuration (optional — only sent when explicitly set)
     cpu: lax.int().nullable().default(null), // CPU 核数
@@ -45,7 +72,7 @@ export class SandboxConfig extends defineModel(
   }),
   {
     aliases: { template: "templateID", auto_pause: "autoPause", env_vars: "envVars" },
-    internal: ["secure", "provider_options"],
+    internal: ["secure", "provider_options", "volume_mounts"],
   },
 ) {
   /** Build the camelCase request payload for sandbox creation（已实测验证）. */
@@ -61,6 +88,8 @@ export class SandboxConfig extends defineModel(
     if (this.memory !== null) payload["memoryMB"] = this.memory;
     if (this.disk !== null) payload["diskSizeMB"] = this.disk;
     if (this.gpu !== null) payload["gpu"] = this.gpu;
+    const mounts = validateVolumeMounts(this.volume_mounts);
+    if (Object.keys(mounts).length) payload["volumeMounts"] = Object.entries(mounts).map(([path, name]) => ({ name, path }));
     return payload;
   }
 }

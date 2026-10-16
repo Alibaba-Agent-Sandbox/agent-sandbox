@@ -23,6 +23,15 @@ requires an exclusive local secret file with mode 0600; no raw secret appears in
 Custom-domain automation remains unavailable until a documented callable Agent Sandbox API
 is established. Do not substitute ordinary FC Function domain APIs or fabricate endpoints.
 
+Final review found that Volume creation did not provide a way to mount it: the existing
+sandbox-create model silently omitted mount configuration. Add an optional `volume_mounts`
+path-to-Volume-name map and repeatable create flag `--volume-mount PATH=NAME`. The built-in
+FC request serializes the documented `volumeMounts: [{name, path}]`; defaults keep the previous
+payload. Validate before infrastructure setup, reject unsupported provider mappings and duplicate
+CLI paths, and preserve the distinction from an unimplemented dynamic `storage.mount` protocol.
+An opt-in real mount scenario must verify the actual mount before exclusive sentinel-file I/O
+and clean up only its own file and sandbox. This remains blocked without real test storage.
+
 ## API Design
 
 - Contract: `src/providers/command_contract.ts`; optional manifest `[commands]` protocol/entries.
@@ -48,6 +57,9 @@ Direct locked Ajv 8 dependency; existing official FCSandbox SDK and Zod. Python 
 and client are tracked in [python-sdk #34](https://github.com/Alibaba-Agent-Sandbox/python-sdk/issues/34).
 CLI owner Issue: [#30](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/30).
 Domain API prerequisite: [#32](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/32).
+Review delivery: [CLI PR #35](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35)
+and [Python PR #38](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38). Both remain
+drafts until required acceptance checks are complete; shared contracts land before consumers.
 
 ## Test Strategy
 
@@ -67,10 +79,13 @@ Cloud writes, storage prerequisites, full repository gates and consumer parity a
 - Writes require explicit frontend confirmation; no management invocation is automatically replayed.
 - Every owned resource is independently closed with a bounded cleanup deadline.
 - Published FC operations match official request models; unsupported domain APIs are explicit.
+- FC create-time Volume mounts reach the documented request field; real acceptance verifies
+  a mount rather than treating an ordinary local directory as storage.
 - Python contract/consent and real engine integration agree with this host.
 - Required local, real-component and remote checks pass, and the scoped PR is reviewed before merge.
 
 ## Evidence
 
 [Verification](../../../evidence/verify/2026-10-16-provider-management-commands.md).
+[Final review and mount verification](../../../evidence/verify/2026-10-16-provider-management-final-review.md).
 This decision remains proposed while required verification or API prerequisites are outstanding.

@@ -12,6 +12,9 @@ script that did not survive the rewrite to Node.js; they are the behavioural ora
 it. The original index also listed `connect.md` and `run.md`; those two files are not present in this tree. To record the Node CLI, add a new
 dated file; do not regenerate these.
 
+Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
+[create-time Volume mount help](cli/2026-10-16-volume-mount.md).
+
 - [`cli/config/config.md`](cli/config/config.md)
 - [`cli/create.md`](cli/create.md)
 - [`cli/download.md`](cli/download.md)
@@ -34,6 +37,7 @@ dated file; do not regenerate these.
 ## `verify/` — E2E runs
 
 - [`verify/2026-10-16-provider-management-commands.md`](verify/2026-10-16-provider-management-commands.md)
+- [`verify/2026-10-16-provider-management-final-review.md`](verify/2026-10-16-provider-management-final-review.md)
 
 - [`verify/2026-09-08-template-deploy-e2e.md`](verify/2026-09-08-template-deploy-e2e.md)
 - [`verify/2026-10-12-e2e-foundation.md`](verify/2026-10-12-e2e-foundation.md)

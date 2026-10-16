@@ -97,6 +97,26 @@ const infoOf = (id: string) => SandboxInfo.modelValidate({ sandboxID: id, templa
 // ---------------------------------------------------------------------------
 
 describe("TestCreate", () => {
+  it("accepts repeatable named Volume mounts on both create routes", async () => {
+    const create = patchCreate(_makeSandbox());
+    for (const prefix of [["create"], ["sandbox", "create"]]) {
+      const result = await runner().invoke(cli, [...prefix, "--template", "base", "--volume-mount", "/mnt/oss=workspace", "--volume-mount", "/data/input=input"]);
+      expect(result.exit_code).toBe(0);
+      expect((create.mock.calls.at(-1)![0] as Record<string, unknown>).volume_mounts).toEqual({ "/mnt/oss": "workspace", "/data/input": "input" });
+    }
+  });
+
+  it.each([
+    ["--volume-mount", "relative=workspace"], ["--volume-mount", "/mnt/oss"],
+    ["--volume-mount", "/mnt/oss=workspace", "--volume-mount", "/mnt/oss=other"],
+    ["--provider", "uninstalled-mount-provider", "--volume-mount", "/mnt/oss=workspace"],
+  ].map((args) => ({ args })))("rejects invalid or unsupported mounts before create %#", async ({ args }) => {
+    const create = patchCreate(_makeSandbox());
+    const result = await runner().invoke(cli, ["create", "--template", "base", ...args]);
+    expect(result.exit_code).not.toBe(0);
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("test_create_basic", async () => {
     const sb = _makeSandbox();
     patchCreate(sb);

@@ -97,6 +97,14 @@ Key values are checked in temporary mode-0600 files and never printed. Team/Volu
 the explicit plan/resource-group and additional opt-ins documented in the scenario source; missing prerequisites
 are reported as skips. No subscription plan, existing storage or Volume state transition is guessed.
 
+Actual mount acceptance is separate: run `--suite volume-mount-cloud` with
+`ABX_E2E_VOLUME_MOUNT=1`, `ABX_E2E_VOLUME_NAME` naming an existing writable test Volume,
+and `ABX_E2E_VOLUME_MOUNT_PATH` set to a dedicated normalized path below `/mnt/abx-e2e/`.
+The configured sandbox API key must belong to that Volume's Team, with a valid storage role.
+The scenario verifies the exact mount in `/proc/self/mountinfo` before exclusive sentinel-file
+write/read/delete, then destroys only its own sandbox. It never deletes the existing Volume
+or storage. Missing prerequisites produce a skip, not proof that mounting works.
+
 | Variable | Meaning |
 |---|---|
 | `ABX_BIN` | Binary under test (default `abx`); may contain arguments, e.g. `"node dist/bin/abx.js"` |

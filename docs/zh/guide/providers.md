@@ -100,7 +100,7 @@ abx kill local-process:sbx-1 --yes
 | `templates.build` | `template build/push/create/deploy/install/delete`、`deploy`、`install` | 镜像构建和模板注册 |
 | `ports.url` | `sandbox url` | `network.get_url` |
 | `ports.domain` | 无标准命令；内置提供方不声明此能力 | 无标准域名管理 API |
-| `storage.mount` | 无标准挂载命令；Volume 管理通过 provider command | 无标准挂载 API |
+| `storage.mount` | 无动态挂载命令；FC 创建时使用 `create --volume-mount PATH=NAME` | 无动态挂载 API |
 | `network.vpc` | 无标准 VPC 参数 | 使用已公开的云控制面配置入口 |
 | `sessions` | `connect <provider:id>` 重新连接 | 对已有 id 调用 `Sandbox.connect` |
 
@@ -224,3 +224,7 @@ abx --json provider command run alicloud-express volume.list --input '{"max_resu
 ```
 
 写入和删除要求 `--yes`。凭证通过配置提供，`--opt` 拒绝密钥字段；复杂输入使用 `--input-file`。发现命令不需要云凭证。FC 管理操作要求阿里云 AK/SK，不能用沙箱 API Key 鉴权。完整规范见[命令契约](../design/provider-commands.md)和[阿里云能力矩阵](../design/alicloud-provider-commands.md)，包含域名能力边界和 API Key 安全导出。
+
+挂载已有 FC Volume 时，使用 `abx create --template base --volume-mount /mnt/workspace=workspace`。
+按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
+角色配置和挂载验证见能力矩阵。

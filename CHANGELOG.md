@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 
 - **Typed provider management commands.** `abx provider command list|info|run` discovers static schemas and invokes declared Node/exec commands through shared validation and authenticated engine routes. Includes 20 official FC Volume, Team, API Key and quota operations; key creation/rotation securely writes a new local file. Custom-domain automation remains unsupported pending a verified public Agent Sandbox API.
+- **FC Volume mounts at sandbox creation.** `abx create --volume-mount PATH=NAME` and `Sandbox.create({volume_mounts: {...}})` serialize the official `volumeMounts` request. Invalid paths and unsupported providers fail before execution; real storage access still requires an existing Volume, its Team's API key and a storage role.
 
 - **Installers for the standalone binary.** `install.sh` (macOS and Linux) and `install.ps1` (Windows x64) download `abx-<version>-<os>-<arch>[.exe]` plus its `.sha256` from the latest GitHub Release, verify the checksum, and install without sudo. `ABX_VERSION` and `ABX_INSTALL_DIR` override the release and the destination. The npm package `@agent-sandbox/cli` is not published yet.
 

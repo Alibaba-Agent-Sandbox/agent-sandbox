@@ -9,7 +9,8 @@ ACS/ACK OpenKruise edition. A provider's command catalog describes its own
 management API; the global sandbox commands retain their existing contracts.
 This design implements FC management operations using the repository's locked
 `@alicloud/fcsandbox20260509` 1.5.1 SDK and its generated request models.
-It does not change the sandbox runtime API or borrow its API key.
+Management uses AK/SK credentials. The separate sandbox-create mount option uses
+the sandbox API key of the Team that owns the Volume.
 
 ## Discovery and invocation
 
@@ -76,9 +77,33 @@ Example `volume.json` (the underlying Bucket must already exist):
     "bucket_path": "/workspace",
     "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",
     "read_only": false
+  },
+  "mount_config": {
+    "role": "acs:ram::ACCOUNT-ID:role/EXISTING-STORAGE-ROLE"
   }
 }
 ```
+
+The role must already exist and grant access to the intended storage. Creating
+Volume metadata alone does not establish those permissions. Mount the existing
+Volume by **name** when creating a sandbox:
+
+```bash
+abx create --template base --volume-mount /mnt/workspace=workspace
+```
+
+`Sandbox.create({volume_mounts: {"/mnt/workspace": "workspace"}})` uses the same
+path-to-name map. The FC request encodes `volumeMounts: [{name: "workspace", path:
+"/mnt/workspace"}]`; omission keeps the previous payload. Paths and names are
+validated before transport creation; a provider without this mapping is rejected
+before plugin execution. This create-time extension does not claim a dynamic
+`storage.mount` protocol. Repeated CLI mount paths are rejected rather than replaced.
+
+The sandbox API key must belong to the Volume's Team. The role may instead be
+supplied through sandbox metadata `fc.sandbox.auth.role`; it takes precedence over
+the Volume's `mount_config.role`, and an empty role disables this authorization.
+Mount acceptance still requires real storage and an independently verified mount;
+successful request serialization is not evidence of successful storage access.
 
 API-key create/reset input additionally requires `secret_file`, for example
 `"secret_file": "/absolute/private/new-api-key"`; this must be an absolute path on
@@ -154,6 +179,8 @@ permissions remain explicit blocked gates; no mocked run is called cloud E2E.
 - [Official newer SDK package](https://www.npmjs.com/package/@alicloud/sandbox20260820), audited release 1.2.0.
 - [Volume concepts and storage lifecycle](https://help.aliyun.com/zh/agent-sandbox/persistence-storage/).
 - [OSS Volume creation, authentication and permissions](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).
+- [Mounting an OSS Volume](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1).
+- [RAM role and create-time role precedence](https://help.aliyun.com/zh/agent-sandbox/create-ram-role).
 - [AgenticBucket fields and VPC restrictions](https://help.aliyun.com/zh/agent-sandbox/create-agenticbucket-volume).
 - [Team quota contract](https://help.aliyun.com/zh/agent-sandbox/team-quota-management).
 - [Express custom domains](https://help.aliyun.com/zh/agent-sandbox/custom-domain-name).

@@ -73,6 +73,13 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 环境变量
 
+实际挂载验收单独运行 `--suite volume-mount-cloud`，设置 `ABX_E2E_VOLUME_MOUNT=1`、
+指向已有可写测试 Volume 的 `ABX_E2E_VOLUME_NAME`，以及 `/mnt/abx-e2e/` 下专用的规范
+挂载路径 `ABX_E2E_VOLUME_MOUNT_PATH`。配置的沙箱 API Key 必须属于 Volume 所在 Team，
+并具有有效存储角色。场景先通过 `/proc/self/mountinfo` 确认精确挂载，再独占创建、读写、
+删除自己的哨兵文件，最后销毁自己的沙箱，不删除既有 Volume 或底层存储。缺少条件标为
+skip，不代表挂载已通过。
+
 管理命令检查可运行 `--suite provider-commands-offline,provider-management-cloud`。
 前者无需凭证，后者用 AK/SK 验证四类 FC 只读 API，均不创建资源。
 临时 API Key 生命周期使用 `--suite provider-management-lifecycle --filter existing-team-api-key-lifecycle`，

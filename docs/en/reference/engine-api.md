@@ -45,7 +45,7 @@ All paths start with `/v1`. Bodies are JSON unless noted. `:id` is the provider'
 | `GET /providers/:provider/commands` | static discovery: `{commands: descriptor[]}` |
 | `GET /providers/:provider/commands/:command` | one management command descriptor, including input/output schemas and effect |
 | `POST /providers/:provider/commands/:command` | invoke a declared management command: `{input: object, confirm?: boolean}`; returns its result |
-| `POST /sandboxes` | create (`template`, `timeout`, `envs`, `metadata`, `cpu`, `memory`, `disk`, `gpu`, `secure`, …); `201` with the sandbox record |
+| `POST /sandboxes` | create (`template`, `timeout`, `envs`, `metadata`, `cpu`, `memory`, `disk`, `gpu`, `secure`, optional FC `volume_mounts` path-to-Volume-name map, …); `201` with the sandbox record |
 | `GET /sandboxes?status=&limit=&offset=` | list: `{sandboxes: […]}` |
 | `POST /sandboxes/:id/connect` | attach to an existing sandbox |
 | `GET /sandboxes/:id` · `DELETE /sandboxes/:id` | info · kill |

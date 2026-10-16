@@ -39,6 +39,19 @@ const _SANDBOX_RESPONSE = {
 const bodyOf = (request: { content: Uint8Array }) => JSON.parse(Buffer.from(request.content).toString("utf-8"));
 
 describe("TestCreate", () => {
+  it("sends named Volume mounts and role metadata in the real create request", async () => {
+    const protocol = makeProtocol();
+    httpx_mock.add_response({ url: `${BASE}/sandboxes`, method: "POST", json: _SANDBOX_RESPONSE });
+    await protocol.create(new SandboxConfig({
+      volume_mounts: { "/mnt/oss": "workspace" },
+      metadata: { "fc.sandbox.auth.role": "acs:ram::123456:role/example" },
+    }));
+    expect(bodyOf(httpx_mock.get_request())).toMatchObject({
+      volumeMounts: [{ name: "workspace", path: "/mnt/oss" }],
+      metadata: { "fc.sandbox.auth.role": "acs:ram::123456:role/example" },
+    });
+  });
+
   // Test SandboxProtocol.create().
   it("test_create_minimal_config", async () => {
     const protocol = makeProtocol();

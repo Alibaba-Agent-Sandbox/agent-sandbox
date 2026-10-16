@@ -100,7 +100,7 @@ Installing a provider does not enable every `abx` command. The CLI and the Pytho
 | `templates.build` | `template build/push/create/deploy/install/delete`, `deploy`, `install` | image build and template registration |
 | `ports.url` | `sandbox url` | `network.get_url` |
 | `ports.domain` | No standard command; not declared by the built-in provider | No standard management API |
-| `storage.mount` | No standard command; Volume management uses provider commands | No standard mount API |
+| `storage.mount` | No dynamic mount command; FC create-time mounts use `create --volume-mount PATH=NAME` | No dynamic mount API |
 | `network.vpc` | No standard VPC flags | Configure through the documented cloud control plane |
 | `sessions` | re-attach with `connect <provider:id>` | `Sandbox.connect` on an existing id |
 
@@ -224,3 +224,7 @@ abx --json provider command run alicloud-express volume.list --input '{"max_resu
 ```
 
 Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.
+
+To mount an existing FC Volume, use `abx create --template base --volume-mount /mnt/workspace=workspace`.
+This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
+It does not create underlying storage. See the capability matrix for role configuration and mount verification.

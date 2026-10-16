@@ -7,7 +7,8 @@
 `alicloud-express` 对应函数计算 FC 极速版；`alicloud-container` 对应
 ACS/ACK OpenKruise 容器版。provider 自己的命令目录描述其管理接口，全局沙箱
 命令保持已有契约。本设计使用项目已锁定的 `@alicloud/fcsandbox20260509` 1.5.1
-及官方生成请求模型，不改变沙箱运行时接口，也不借用沙箱 API Key。
+及官方生成请求模型。管理接口使用 AK/SK；独立的创建沙箱挂载选项使用 Volume
+所属 Team 的沙箱 API Key。
 
 ## 发现与调用契约
 
@@ -64,9 +65,29 @@ abx provider command run alicloud-express volume.create --input-file volume.json
     "bucket_path": "/workspace",
     "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",
     "read_only": false
+  },
+  "mount_config": {
+    "role": "acs:ram::ACCOUNT-ID:role/EXISTING-STORAGE-ROLE"
   }
 }
 ```
+
+角色必须已经存在，并授权访问目标存储。创建 Volume 元数据不会自动建立这些权限。
+创建沙箱时按 Volume **名称**挂载：
+
+```bash
+abx create --template base --volume-mount /mnt/workspace=workspace
+```
+
+`Sandbox.create({volume_mounts: {"/mnt/workspace": "workspace"}})` 使用相同的路径到名称
+映射，FC 请求序列化为 `volumeMounts: [{name: "workspace", path: "/mnt/workspace"}]`。
+未指定时保持原有请求体；路径和名称在建立传输前校验，不支持该映射的 provider 在执行
+插件前拒绝请求。这是创建时选项，不表示已实现动态 `storage.mount` 协议。
+CLI 重复指定相同挂载路径会报错，不静默覆盖。
+
+沙箱 API Key 必须属于 Volume 的 Team。也可通过沙箱 metadata 的
+`fc.sandbox.auth.role` 指定角色，其优先于 Volume 的 `mount_config.role`；空值会禁用
+此授权。挂载验收仍需真实存储，并独立确认挂载成立；请求正确序列化不证明存储访问成功。
 
 API Key 创建、轮换额外必填 `secret_file`，例如
 `"secret_file": "/absolute/private/new-api-key"`。必须使用本机引擎宿主上的绝对路径，
@@ -122,6 +143,8 @@ FCSandbox SDK 1.5.1 虽然含域名模型，但没有客户端方法；进一步
 - [官方新版 SDK](https://www.npmjs.com/package/@alicloud/sandbox20260820)，本次审计 1.2.0。
 - [持久化存储概念](https://help.aliyun.com/zh/agent-sandbox/persistence-storage/)。
 - [OSS Volume、认证与权限](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)。
+- [挂载 OSS Volume](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。
+- [RAM 角色与创建时角色优先级](https://help.aliyun.com/zh/agent-sandbox/create-ram-role)。
 - [AgenticBucket 字段与 VPC 限制](https://help.aliyun.com/zh/agent-sandbox/create-agenticbucket-volume)。
 - [Team 配额](https://help.aliyun.com/zh/agent-sandbox/team-quota-management)。
 - [极速版自定义域名](https://help.aliyun.com/zh/agent-sandbox/custom-domain-name)。
