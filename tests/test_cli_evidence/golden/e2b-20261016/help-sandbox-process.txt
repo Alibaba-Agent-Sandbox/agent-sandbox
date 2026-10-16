@@ -8,7 +8,7 @@ Examples:
   abx sandbox process info abc123 1234
 
 Related commands:
-  abx exec SANDBOX_ID --background -- CMD
+  abx exec --background SANDBOX_ID CMD
   abx sandbox system metrics SANDBOX_ID
 
 Options:
