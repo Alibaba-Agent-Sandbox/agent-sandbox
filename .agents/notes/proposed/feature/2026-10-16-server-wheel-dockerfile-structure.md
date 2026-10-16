@@ -78,3 +78,12 @@ The first actual production image workflow passed both Docker builds and all
 installed-source/runtime assertions at `3781054`; the separate
 [runtime and cloud follow-up record](../../../evidence/verify/2026-10-16-server-wheel-docker-runtime.md)
 preserves that result and the still-pending exported-image cloud acceptance.
+
+The completed [production cloud verification](../../../evidence/verify/2026-10-16-server-wheel-production-cloud.md)
+records the actual exported production image, six SDK/HTTP/CLI calls, 56 module
+byte comparisons, all 21 external HTTP checks, preserved controller failures and
+owned cleanup. Formal template-catalog canonical L2 is a separate open gate.
+
+The full Docker deploy wrapper has not run on a Docker-capable cloud controller.
+The successful production build plus separate cloud image acceptance advances
+that gate but does not close it; keep this ADR proposed and PR draft.
