@@ -45,3 +45,9 @@ then verify installability and the deployed MCP service against real components.
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-10-16-mcp-client-distribution.md)
+
+## Delivery follow-up
+
+[Health synchronization and remaining public/hosted gates](../../../evidence/verify/2026-10-16-client-health-delivery.md)
+records the accepted health dependency without converting source implementation
+into a package-publication claim. The decision remains proposed.
