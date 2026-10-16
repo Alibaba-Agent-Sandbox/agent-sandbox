@@ -51,4 +51,16 @@ jobs:
         env:
           ABX_REVIEW_TEMPLATES: ${{ github.workspace }}/vendor/awesome-templates
           ABX_REVIEW_SERVER_SDK: ${{ github.workspace }}/vendor/python-sdk/server-sdk
+          ABX_REVIEW_IMAGE_ARCHIVE: ${{ runner.temp }}/python-hello-image.tar
         run: node scripts/verify-server-wheel-image.mjs
+      - name: Retain one reviewed production image for separate local cloud acceptance
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-python-hello-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/python-hello-image.tar
+            ${{ runner.temp }}/python-hello-image.tar.sha256
+            ${{ runner.temp }}/python-hello-image-metadata.json
+          retention-days: 1
+          compression-level: 1
+          if-no-files-found: error

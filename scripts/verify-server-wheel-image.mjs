@@ -67,6 +67,32 @@ try {
     ].join('\n');
     console.log(docker(['run', '--rm', '--network', 'none', '--entrypoint', 'python3', tag, '-c', code, JSON.stringify(expectedSources)]));
     console.log('PASS real production DockerBuilder: ' + mode);
+    if (mode === 'conditional' && process.env.ABX_REVIEW_IMAGE_ARCHIVE) {
+      const archive = resolve(process.env.ABX_REVIEW_IMAGE_ARCHIVE);
+      const saved = spawnSync('docker', ['image', 'save', '--output', archive, tag], { encoding: 'utf8', timeout: 180000 });
+      assert.equal(saved.status, 0, saved.stderr);
+      const checksum = createHash('sha256');
+      // Hash without buffering the full image archive in memory.
+      const { createReadStream } = await import('node:fs');
+      for await (const chunk of createReadStream(archive)) checksum.update(chunk);
+      const digest = checksum.digest('hex');
+      writeFileSync(archive + '.sha256', digest + '  python-hello-image.tar\n');
+      const commit = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
+      assert.equal(commit.status, 0);
+      writeFileSync(join(resolve(archive, '..'), 'python-hello-image-metadata.json'), JSON.stringify({
+        format: 'docker-archive', template: 'python-hello',
+        repository: process.env.GITHUB_REPOSITORY,
+        checkout_commit: commit.stdout.trim(), workflow_run_id: process.env.GITHUB_RUN_ID,
+        server_sdk_commit: 'e2cb27e24fde0a67112f82b8d44af463445a5d1a',
+        template_source_commit: '7cb0d9430768eec22f500ebb80b3fe9517ab1cbc',
+        base_image: 'fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49',
+        local_image_id: docker(['image', 'inspect', '--format', '{{.Id}}', tag]).trim(),
+        archive_sha256: digest,
+        builder: 'production DockerBuilder.injectSdkWheel and DockerBuilder.build',
+        acceptance: 'real production materialization/Docker runtime; cloud acceptance is separate',
+      }, null, 2) + '\n');
+      console.log('PASS exported the already built production image and provenance; no registry credentials');
+    }
   }
 } finally {
   for (const tag of tags) {

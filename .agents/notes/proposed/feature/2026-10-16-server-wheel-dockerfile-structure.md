@@ -73,3 +73,8 @@ remain mandatory product gates; report them BLOCKED when Docker is unavailable a
 A separate [production builder image regression](../../../evidence/verify/2026-10-16-server-wheel-image-ci.md)
 uses the available GitHub Docker runner to advance the missing image gate without
 uploading cloud credentials. Its preparation record does not claim a remote pass.
+
+The first actual production image workflow passed both Docker builds and all
+installed-source/runtime assertions at `3781054`; the separate
+[runtime and cloud follow-up record](../../../evidence/verify/2026-10-16-server-wheel-docker-runtime.md)
+preserves that result and the still-pending exported-image cloud acceptance.
