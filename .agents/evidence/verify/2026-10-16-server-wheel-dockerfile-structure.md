@@ -39,6 +39,15 @@ all failing test identities produced identical sets: 37 failures in each, no add
 The baseline-only health diagnostic is its intentionally reused dependency symlink; the
 contribution worktree has a normal lockfile installation and does not trigger that diagnostic.
 
+## Independent source review
+
+A separate contributor reviewed the changed builder implementation and all ten new regression
+cases line by line. The review covered complete instruction boundaries, quoted operands,
+conditional branches, other package requirements, multi-stage copies and heredoc preservation;
+no blocking defect was identified within this scope. The reviewer confirmed that the actual
+system-shell syntax check exercises the original failure. This is independent source review,
+not a Docker image build or deployment result.
+
 ## Results
 
 | Scenario/test | Result | Notes |
