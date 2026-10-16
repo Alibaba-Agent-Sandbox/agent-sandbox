@@ -509,7 +509,8 @@ describe("TestMcpHttpApp", () => {
     });
     expect(resp2.status_code).toBe(200);
     const tools = resp2.json().result.tools;
-    expect(tools.length).toBe(7);
+    expect(tools.length).toBe(10);
+    expect(tools.map((tool: { name: string }) => tool.name)).toEqual(expect.arrayContaining(["list_sandboxes", "get_sandbox", "set_sandbox_timeout"]));
     const names = new Set(tools.map((t: any) => t.name));
     expect(names.has("create_sandbox")).toBe(true);
     expect(names.has("run_code")).toBe(true);

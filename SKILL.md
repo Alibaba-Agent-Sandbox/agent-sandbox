@@ -134,7 +134,9 @@ abx exec <SANDBOX_ID> --background -- python -m http.server 8000   # prints the 
 
 `run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` needs a template whose capabilities include `code`.
 
-MCP tools are exactly these seven: `create_sandbox`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`.
+MCP tools are: `create_sandbox`, `list_sandboxes`, `get_sandbox`, `set_sandbox_timeout`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`.
+
+`list_sandboxes` lists authorized visibility without adopting instances. `get_sandbox` refreshes only safe metadata without renewing TTL. `set_sandbox_timeout` sets 1–86400 seconds from now. Get/set require an existing default when ID is omitted; external IDs are never added to session cleanup. `create_sandbox` also accepts provider, region, positive CPU and memory (MB) controls.
 
 `run_command` runs the string with `sh -c`. Omitted `cwd` is the image workdir, not `/app`. `timeout` defaults to 60. It is a shell command, not a named command.
 
@@ -242,7 +244,7 @@ The guide and the MCP surface are tool-neutral:
 - **MCP-capable tools** (Cursor, Claude Desktop/Code, VS Code, Qoder, …):
   run `abx mcp install --target cursor|claude|vscode`, or register
   `abx mcp start` (STDIO) manually in your tool's MCP config. All clients get the
-  same 7 tools listed above. A manual `abx mcp start` prints configuration on stderr and
+  same 10 tools listed above. A manual `abx mcp start` prints configuration on stderr and
   waits on stdin; stop it with Ctrl-C or `abx mcp stop`. `abx mcp start --http --background`
   detaches a local HTTP server.
 - **Skills-aware tools** (Qoder, Claude Code, Cursor, Qwen Code, Codex, …):

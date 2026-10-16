@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- **MCP lifecycle controls.** `list_sandboxes`, `get_sandbox`, and `set_sandbox_timeout` share STDIO/HTTP handlers, validate bounded inputs, expose only safe metadata, and never adopt external instances for session destruction. `create_sandbox` accepts provider, region, CPU and memory options.
+
 - **Installers for the standalone binary.** `install.sh` (macOS and Linux) and `install.ps1` (Windows x64) download `abx-<version>-<os>-<arch>[.exe]` plus its `.sha256` from the latest GitHub Release, verify the checksum, and install without sudo. `ABX_VERSION` and `ABX_INSTALL_DIR` override the release and the destination. The npm package `@agent-sandbox/cli` is not published yet.
 
 - **`node/1` provider kind.** A plugin is an ES module (`provider.mjs`, `export default create(kit)`) that the CLI host loads in-process through a small kit. `e2b`, `cubesandbox` and `alicloud-container` are now `node` plugins, so they run from the CLI as well as from the SDKs. `opensandbox` is a `node` plugin too (0.3.0): its EPP/1 methods run in the host process through `kit.epp.infra` (no child process), `node provider.mjs` still serves EPP/1 on stdio, and it gained a terminal (`pty.open/write/resize/close`, Node 22+). The `exec` kind remains for third-party plugins in any language.
@@ -30,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Open-source hygiene.** The deploy and benchmark scripts no longer contain developer-machine paths, a personal ACR namespace or fixed e2e tags: `abx` is resolved from `PATH` (override with `ABX_BIN`), `scripts/build_hermes.sh`, `deploy_all_templates.sh` and `deploy_remaining.sh` take `ACR_NAMESPACE` (required), `TAG` (default `dev`) and `REGION` from the environment, and `.env.example` uses the `<your-namespace>` placeholder. New regression guard `npm run check:hygiene` (`scripts/check-no-local-paths.sh`, allowlist in `scripts/local-paths.allowlist`) runs in CI and fails on user-home paths, Windows user paths, `.venv/bin` assumptions, personal identifiers and key-like strings.
 
 ### Fixed
+
+- **Stacked pull request validation.** The complete CI matrix now runs for pull requests targeting feature branches as well as `main`; push validation remains limited to `main`.
 
 - **MCP deployment uses the Python client distribution.** Generated `requirements.txt` now requests `agent-sandbox-client[mcp]` instead of the previous `agent-sandbox[mcp]` package name.
 - Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.

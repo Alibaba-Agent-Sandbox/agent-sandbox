@@ -4,7 +4,7 @@
 
 **Implemented surface** (kept in sync with `src/agent/`):
 
-- 7 P0 tools (`agent/tools.ts`)
+- 10 tools (7 execution/file tools plus 3 lifecycle tools) (`agent/tools.ts`)
 - STDIO transport (`agent/mcp.ts`) — `abx mcp start`
 - Streamable HTTP transport (`agent/mcp_http.ts`) — HTTP application
 - CLI: `abx mcp install / start / status / deploy`
@@ -13,7 +13,7 @@
 
 ## 1. Tools Definition
 
-All 7 tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_id` targets the default sandbox (see Section 2).
+All 10 tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_id` targets the default sandbox (see Section 2).
 
 ### create_sandbox
 
@@ -31,14 +31,19 @@ All 7 tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_
       "timeout": {
         "type": "integer",
         "description": "Sandbox timeout in seconds, default 300",
-        "default": 300
+        "default": 300, "minimum": 1, "maximum": 86400
       },
+      "provider": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "region": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "cpu": { "type": "integer", "minimum": 1 },
+      "memory": { "type": "integer", "minimum": 1 },
       "envs": {
         "type": "object",
         "description": "Environment variable key-value pairs",
         "additionalProperties": { "type": "string" }
       }
-    }
+    },
+    "additionalProperties": false
   },
   "returns": {
     "sandbox_id": "string — Sandbox ID",
@@ -47,6 +52,34 @@ All 7 tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_
   }
 }
 ```
+
+### Lifecycle controls
+
+`create_sandbox` also accepts `provider`, `region`, positive integer `cpu`, and
+positive integer `memory` (MB). `provider` and `region` must be non-empty strings;
+`timeout` is an integer from 1 to 86400 seconds. Environment values must be strings.
+Unsupported arguments, including team/account selectors, return an error before
+accessing the SDK. Provider configuration determines the authorized account.
+
+| Tool | Arguments | Behavior |
+| --- | --- | --- |
+| `list_sandboxes` | Optional `status`, `limit` (1–100, default 100), `offset` (>=0, default 0), `provider`, `region` | Lists platform-visible sandboxes without changing the default or taking ownership. Visibility can be eventually consistent. |
+| `get_sandbox` | Optional non-empty `sandbox_id` | Refreshes metadata without renewing TTL. Without an ID, requires an existing default. |
+| `set_sandbox_timeout` | Required integer `timeout` (1–86400), optional `sandbox_id` | Sets remaining lifetime from now. Managed sandboxes use the new value for subsequent automatic renewal. Without an ID, requires an existing default. |
+
+List/get return only `sandbox_id`, `template`, `status`, `region`, `started_at`,
+`end_at`, `cpu_count`, `memory_mb`, and `disk_size_mb`. They omit credentials,
+URLs, environment variables and user metadata. Lifecycle failures use fixed safe
+categories rather than raw provider exception text, suggestions or URLs.
+
+Inspecting or renewing an external ID uses direct `Sandbox.getInfoById` /
+`Sandbox.setTimeoutById` control-plane methods and closes temporary infrastructure
+in `finally`. It never invokes provider connect/resume; metadata reads retain
+the provider-reported paused state. It never adds that sandbox to session shutdown cleanup.
+Both STDIO and Streamable HTTP route these tools through the same handlers.
+These operations never implicitly create a sandbox. Creation still makes the
+created sandbox the default; the existing execution/file tools keep their
+implicit default creation behavior.
 
 ### run_code
 

@@ -15,6 +15,7 @@
  * Port of `agent_sandbox/agent/mcp.py`.
  */
 
+import type { SandboxInfo, SandboxStatus } from "../models/sandbox.js";
 import type { Readable, Writable } from "node:stream";
 
 import { pyExcStr } from "../api/_pyerrors.js";
@@ -32,7 +33,7 @@ import {
   pyTruthy,
   type JsonObject,
 } from "./_py.js";
-import { TOOL_SCHEMAS, TOOL_SCHEMA_MAP, dispatchTool } from "./tools.js";
+import { TOOL_SCHEMAS, TOOL_SCHEMA_MAP, ToolInputError, dispatchTool } from "./tools.js";
 
 const logger = getLogger("agent.mcp");
 
@@ -61,7 +62,10 @@ type SandboxInstance = any;
 
 interface SandboxStatic {
   create(options: Record<string, unknown>): Promise<SandboxInstance>;
+  list(options: Record<string, unknown>): Promise<SandboxInfo[]>;
   connect(options: Record<string, unknown>): Promise<SandboxInstance>;
+  getInfoById(sandboxId: string, options?: Record<string, unknown>): Promise<SandboxInfo>;
+  setTimeoutById(sandboxId: string, timeout: number, options?: Record<string, unknown>): Promise<void>;
   killById(sandboxId: string, options?: Record<string, unknown>): Promise<void>;
 }
 
@@ -95,6 +99,19 @@ export interface CreateSandboxOptions {
   template?: string | null;
   timeout?: number;
   envs?: Record<string, string> | null;
+  provider?: string | null;
+  region?: string | null;
+  cpu?: number;
+  memory?: number;
+}
+
+/** Platform list filters; these never change session resource ownership. */
+export interface ListSandboxesOptions {
+  status?: SandboxStatus | null;
+  limit?: number;
+  offset?: number;
+  provider?: string | null;
+  region?: string | null;
 }
 
 export interface SandboxManagerOptions {
@@ -172,13 +189,13 @@ export class SandboxManager {
       await setter.call(sandbox, seconds);
     } catch (exc) {
       if (exc instanceof CancelledError) throw exc;
-      logger.warning("Could not extend sandbox %s lifetime", sandboxId || "?", new ExcInfo(exc));
+      logger.warning("Could not extend sandbox lifetime");
     }
   }
 
   /** Create a sandbox and make it the session default. */
   async createSandbox(options: CreateSandboxOptions = {}): Promise<SandboxInstance> {
-    const { template = null, timeout = 300, envs = null } = options;
+    const { template = null, timeout = 300, envs = null, provider, region, cpu, memory } = options;
     const Sandbox = await sdk.loadSandbox();
     const epoch = this._epoch;
 
@@ -187,14 +204,18 @@ export class SandboxManager {
       timeout,
       envs: envs || {},
     });
+    if (provider !== undefined && provider !== null) kwargs.provider = provider;
+    if (region !== undefined && region !== null) kwargs.provider_options = { region };
+    if (cpu !== undefined) kwargs.cpu = cpu;
+    if (memory !== undefined) kwargs.memory = memory;
     const sandbox = await Sandbox.create(kwargs);
     if (epoch !== this._epoch) {
       // The session was shut down while this create was in flight. Python
       // cancels the pending call; here the sandbox exists already, so remove it.
       try {
         await sandbox.kill();
-      } catch (exc) {
-        logger.warning("Failed to kill sandbox %s created during shutdown", sandbox.id, new ExcInfo(exc));
+      } catch {
+        logger.warning("Failed to kill sandbox created during shutdown");
       }
       throw new CancelledError();
     }
@@ -240,6 +261,50 @@ export class SandboxManager {
     });
     await this._refreshLifetime(sandbox);
     return sandbox;
+  }
+
+  /** Query platform visibility without creating, renewing, or managing listed instances. */
+  async listSandboxes(options: ListSandboxesOptions = {}): Promise<SandboxInfo[]> {
+    const Sandbox = await sdk.loadSandbox();
+    const kwargs: Record<string, unknown> = { limit: options.limit ?? 100, offset: options.offset ?? 0 };
+    if (options.status) kwargs.status = options.status;
+    if (this._api_key) kwargs.api_key = this._api_key;
+    if (this._api_url) kwargs.api_url = this._api_url;
+    if (options.provider) kwargs.provider = options.provider;
+    // TS core accepts region through its existing provider option, not a top-level kwarg.
+    if (options.region) kwargs.provider_options = { region: options.region };
+    return Sandbox.list(kwargs);
+  }
+
+  /** Find an existing handle without implicit creation or automatic TTL renewal. */
+  private async _existingSandbox(sandboxId: string | null): Promise<SandboxInstance> {
+    const existing = await this._state_lock.runExclusive(() =>
+      sandboxId ? this._sandboxes.get(sandboxId) : this._default_sandbox);
+    if (!existing && !sandboxId) throw new ToolInputError("No default sandbox. Call create_sandbox or specify sandbox_id.");
+    return existing ?? null;
+  }
+
+  /** Refresh safe metadata; an external ID is a temporary client, never adopted. */
+  async inspectSandbox(sandboxId: string | null = null): Promise<SandboxInfo> {
+    const cached = await this._existingSandbox(sandboxId);
+    if (cached) return cached.refreshInfo();
+    const Sandbox = await sdk.loadSandbox();
+    return Sandbox.getInfoById(sandboxId as string, this._connectKwargs());
+  }
+
+  /** Update a managed TTL policy, or only renew an external instance without adoption. */
+  async setSandboxTimeout(timeout: number, sandboxId: string | null = null): Promise<string> {
+    const cached = await this._existingSandbox(sandboxId);
+    if (cached) {
+      await cached.setTimeout(timeout);
+      await this._state_lock.runExclusive(() => {
+        if (this._sandboxes.get(cached.id) === cached) this._lifetimes.set(cached.id, timeout);
+      });
+      return String(cached.id);
+    }
+    const Sandbox = await sdk.loadSandbox();
+    await Sandbox.setTimeoutById(sandboxId as string, timeout, this._connectKwargs());
+    return sandboxId as string;
   }
 
   /**
@@ -306,8 +371,8 @@ export class SandboxManager {
       try {
         await sb.kill();
         logger.info("Shutdown: killed sandbox %s", sid);
-      } catch (exc) {
-        logger.warning("Failed to kill sandbox %s during shutdown", sid, new ExcInfo(exc));
+      } catch {
+        logger.warning("Failed to kill sandbox during shutdown");
       }
     }
   }

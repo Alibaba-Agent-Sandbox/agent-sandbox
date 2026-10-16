@@ -4,7 +4,7 @@
 
 **已实现面**（与 `src/agent/` 保持同步）：
 
-- 7 个 P0 工具（`agent/tools.ts`）
+- 10 个工具（7 个执行/文件工具及 3 个生命周期工具）（`agent/tools.ts`）
 - STDIO 传输（`agent/mcp.ts`）— `abx mcp start`
 - Streamable HTTP 传输（`agent/mcp_http.ts`）— HTTP 应用
 - CLI：`abx mcp install / start / status / deploy`
@@ -13,7 +13,7 @@
 
 ## 1. Tools 定义
 
-全部 7 个工具定义于 `TOOL_SCHEMAS`（`agent/tools.ts`）。省略 `sandbox_id` 时作用于默认沙箱（见第 2 章）。
+全部 10 个工具定义于 `TOOL_SCHEMAS`（`agent/tools.ts`）。省略 `sandbox_id` 时作用于默认沙箱（见第 2 章）。
 
 ### create_sandbox
 
@@ -31,14 +31,19 @@
       "timeout": {
         "type": "integer",
         "description": "沙箱超时时间（秒），默认 300",
-        "default": 300
+        "default": 300, "minimum": 1, "maximum": 86400
       },
+      "provider": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "region": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "cpu": { "type": "integer", "minimum": 1 },
+      "memory": { "type": "integer", "minimum": 1 },
       "envs": {
         "type": "object",
         "description": "环境变量键值对",
         "additionalProperties": { "type": "string" }
       }
-    }
+    },
+    "additionalProperties": false
   },
   "returns": {
     "sandbox_id": "string — 沙箱 ID",
@@ -47,6 +52,28 @@
   }
 }
 ```
+
+### 生命周期控制
+
+`create_sandbox` 还支持 `provider`、`region`、正整数 `cpu` 与正整数 `memory`（MB）。
+`provider` 和 `region` 必须是非空字符串；`timeout` 为 1–86400 秒的整数。
+环境变量值必须为字符串。不支持的参数（包括团队/账户选择器）会在调用 SDK 前报错；
+授权账户由现有 provider 配置决定。
+
+| 工具 | 参数 | 行为 |
+| --- | --- | --- |
+| `list_sandboxes` | 可选 `status`、`limit`（1–100，默认 100）、`offset`（>=0，默认 0）、`provider`、`region` | 列出平台可见沙箱，不改变默认沙箱或接管资源；列表可能最终一致。 |
+| `get_sandbox` | 可选非空 `sandbox_id` | 刷新元数据，不自动续期；省略 ID 时必须已有默认沙箱。 |
+| `set_sandbox_timeout` | 必填整数 `timeout`（1–86400），可选 `sandbox_id` | 从现在起设置剩余生命周期；已管理沙箱后续自动续期使用新值；省略 ID 时必须已有默认沙箱。 |
+
+list/get 仅返回 `sandbox_id`、`template`、`status`、`region`、`started_at`、
+`end_at`、`cpu_count`、`memory_mb` 与 `disk_size_mb`，不返回凭据、URL、环境变量或用户元数据。
+生命周期错误使用固定安全分类，不透传 provider 原始异常、建议或 URL。
+
+外部 ID 直接使用 `Sandbox.getInfoById` / `Sandbox.setTimeoutById` 控制面方法，在 `finally` 中关闭临时基础设施；
+不调用 provider connect/resume，查询保留 provider 返回的暂停状态，资源不加入会话结束销毁集合。
+STDIO 与 Streamable HTTP 使用相同处理器。这三个工具均不隐式创建沙箱。
+创建操作仍将新沙箱设为默认；原有执行/文件工具仍保留隐式创建默认沙箱的行为。
 
 ### run_code
 

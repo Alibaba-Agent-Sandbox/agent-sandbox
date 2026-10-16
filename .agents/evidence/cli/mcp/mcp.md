@@ -6,16 +6,19 @@
 
 ```
 $ abx mcp install --target cursor
-MCP Server config written to /tmp/abx-evidence-wfh0yH/.cursor/mcp.json
+MCP Server config written to /tmp/abx-evidence-MBVosL/.cursor/mcp.json
 
 Registered tools:
-  • create_sandbox     — Create a cloud sandbox
-  • run_code           — Execute code
-  • run_command        — Execute a command
-  • read_file          — Read a file
-  • write_file         — Write a file
-  • list_files         — List files
-  • kill_sandbox       — Destroy a sandbox
+  • create_sandbox      — Create a cloud sandbox
+  • list_sandboxes      — List visible sandboxes
+  • get_sandbox         — Refresh sandbox metadata
+  • set_sandbox_timeout — Set sandbox lifetime
+  • run_code            — Execute code
+  • run_command         — Execute a command
+  • read_file           — Read a file
+  • write_file          — Write a file
+  • list_files          — List files
+  • kill_sandbox        — Destroy a sandbox
 
 Please restart Cursor to apply changes.
 Exit code: 0
@@ -27,8 +30,8 @@ Exit code: 0
 $ abx mcp status
 server            agent-sandbox
 transport         stdio
-tools_count       7
-tools             ['create_sandbox', 'run_code', 'run_command', 'read_file', 'write_file', 'list_files', 'kill_sandbox']
+tools_count       10
+tools             ['create_sandbox', 'list_sandboxes', 'get_sandbox', 'set_sandbox_timeout', 'run_code', 'run_command', 'read_file', 'write_file', 'list_files', 'kill_sandbox']
 auth_configured   False
 mcp_running       False
 installed_cursor  True
@@ -44,9 +47,12 @@ $ abx --json mcp status
 {
   "server": "agent-sandbox",
   "transport": "stdio",
-  "tools_count": 7,
+  "tools_count": 10,
   "tools": [
     "create_sandbox",
+    "list_sandboxes",
+    "get_sandbox",
+    "set_sandbox_timeout",
     "run_code",
     "run_command",
     "read_file",

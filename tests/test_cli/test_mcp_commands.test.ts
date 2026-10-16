@@ -146,6 +146,9 @@ describe("TestMcpInstall", () => {
     patchApiKey("k");
     const result = await runner().invoke(cli, ["mcp", "install", "--target", "cursor"]);
     expect(result.output).toContain("create_sandbox");
+    expect(result.output).toContain("list_sandboxes");
+    expect(result.output).toContain("get_sandbox");
+    expect(result.output).toContain("set_sandbox_timeout");
     expect(result.output).toContain("run_code");
     expect(result.output).toContain("kill_sandbox");
   });
@@ -164,7 +167,7 @@ describe("TestMcpStatus", () => {
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect(data.server).toBe("agent-sandbox");
-    expect(data.tools_count).toBe(7);
+    expect(data.tools_count).toBe(10);
     expect(data.auth_configured).toBe(true);
   });
 
