@@ -284,33 +284,20 @@ Grey rows include a short redacted tool detail (command, url, query, or path), a
 
 ## Global Options
 
-Project extension commands support the following global options. Standard E2B commands use their own fixed options, such as --format json:
+Project extensions support --json/-j, --quiet/-q, --no-color, --verbose and --ci as documented by their help. Standard E2B commands retain their fixed options, such as list/info --format json. Use E2B_API_URL/E2B_DOMAIN for the standard endpoint; region flags apply only to project administration commands that explicitly offer them.
 
-| Option | Description |
-|--------|-------------|
-| `--json` / `-j` | Output in JSON format for easy script parsing |
-| `--quiet` / `-q` | Minimize output |
-| `--no-color` | Disable colored output |
-| `--ci` | CI/CD mode (equivalent to `--quiet --no-color --json`) |
-
-For a detailed list of global options (including `--verbose` and `--log-level`), see [CLI Reference — Global Options](../reference/cli-reference.md#global-options). Note that `--region`/`-r` is a command-level option (accepted by `abx list`, `abx kill`, the template control-plane commands, and `abx mcp deploy`), not a global one; set the persistent default via `abx config set region`.
-
----
+See [CLI Reference — Global Options](../reference/cli-reference.md#global-options).
 
 ## CI/CD Mode
 
-Use standard detached creation and explicit format in automation. Project extension commands retain --ci:
+Use detached creation and explicit standard JSON output in automation:
 
 ```bash
 abx create base --detach --timeout 300
-# Equivalent to --quiet --no-color --json
-```
-
-Combined with `--json` for machine-readable output:
-
-```bash
 abx list --format json | jq '.[].sandboxId'
 ```
+
+The project extension --ci flag selects its own JSON/quiet interface; it is not required to migrate an existing E2B CLI script. Keep remote exec arguments after the sandbox ID.
 
 ---
 

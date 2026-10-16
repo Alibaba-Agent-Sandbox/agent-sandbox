@@ -284,35 +284,20 @@ Building Docker image locally: my-template:latest... 12s
 
 ## 全局选项
 
-以下是项目扩展的全局选项；标准命令使用固定 E2B 参数，例如 --format json。
+项目扩展按帮助支持 --json/-j、--quiet/-q、--no-color、--verbose、--ci。标准 E2B 命令保留固定参数，例如 list/info --format json。标准后端地址使用 E2B_API_URL/E2B_DOMAIN；region 参数仅适用于帮助中明确提供它的项目管理命令。
 
-`abx` 命令支持以下全局选项，可在任何子命令前使用：
-
-| 选项 | 说明 |
-|------|------|
-| `--json` / `-j` | 以 JSON 格式输出，方便脚本解析 |
-| `--quiet` / `-q` | 最小化输出 |
-| `--no-color` | 禁用彩色输出 |
-| `--ci` | CI/CD 模式（等同 `--quiet --no-color --json`） |
-
-详细全局选项列表（含 `--verbose`、`--log-level`、`--timeout` 等）参见 [CLI 参考手册 — 全局选项](../reference/cli-reference.md#全局选项)。注意 `--region`/`-r` 是命令级选项（`abx list`、`abx kill`、模板控制面命令与 `abx mcp deploy` 支持），并非全局选项；持久默认值请通过 `abx config set region` 设置。
-
----
+见 [CLI 参考 — 全局选项](../reference/cli-reference.md#全局选项)。
 
 ## CI/CD 模式
 
-在自动化环境中使用 `--ci` 标志：
+自动化使用后台创建和明确的标准 JSON 格式：
 
 ```bash
 abx create base --detach --timeout 300
-# 等同于 --quiet --no-color --json
-```
-
-结合 `--json` 可获取机器可读的输出：
-
-```bash
 abx list --format json | jq '.[].sandboxId'
 ```
+
+项目扩展的 --ci 选择自身 JSON/静默接口，不是迁移已有 E2B CLI 脚本的必要步骤。远程 exec 命令参数保留在沙箱 ID 后。
 
 ---
 
