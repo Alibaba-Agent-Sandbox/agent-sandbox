@@ -12,7 +12,7 @@
 |------|------|------|-----------|
 | 1. 编写 | `abx template scaffold` / `abx template scaffold --prompt "描述"` / `abx template scaffold --adopt [目录]` | 脚手架 case、一句描述，或一个已有项目 | 可选 |
 | 2. 发布 | `abx deploy [PATH]` | 模板目录（`Dockerfile`、`template.yaml` 等） | 从不 |
-| 3. 启动 | `abx create --template <TEMPLATE_ID>` | 模板 ID | 从不 |
+| 3. 启动 | `abx create <TEMPLATE_ID>` | 模板 ID | 从不 |
 
 `abx create --prompt "描述"` 是 1 + 2 + 3 合在一条命令里（推送任何东西之前都会先确认）。
 
@@ -25,7 +25,7 @@ abx deploy ./app --acr-namespace my-ns
 abx template scaffold --prompt "一个 Python 数据分析环境"
 abx deploy ./<name> --acr-namespace my-ns
 
-abx create --template <TEMPLATE_ID>               # 3. 启动沙箱
+abx create <TEMPLATE_ID>               # 3. 启动沙箱
 ```
 
 `--adopt` 会把项目源码的一份副本发给模型（密钥已排除），写回的只有模板文件。规则、预览和 `--dry-run` 见 [编写模板 — 适配已有项目](authoring-templates.md#适配已有项目)。

@@ -101,13 +101,13 @@ abx config init                          # credentials + region (--build / --llm
 abx config set sandbox_api_key <YOUR_API_KEY>   # or set one key directly
 
 # Sandbox lifecycle
-abx create --template base             # default template
-abx create --template python-base      # Python image from the catalog
+abx create base --detach  # default template
+abx create python-base --detach  # Python image from the catalog
 abx list                                 # list running sandboxes
 abx info <sandbox-id>                    # inspect a sandbox
-abx exec <sandbox-id> -- echo hello       # run a command (--cwd/--env/--timeout/--stream/--background)
+abx exec <sandbox-id> echo hello       # run a command (put --cwd/--env/--background before the ID)
 abx run <sandbox-id> <name> --arg k=v    # named command registered on the in-sandbox server
-abx connect <sandbox-id>                 # line-based command REPL
+abx connect <sandbox-id>                 # real PTY; shell state persists
 
 # File transfer
 abx upload <sandbox-id> ./local.txt /remote/path.txt
@@ -127,7 +127,7 @@ abx template deploy ./examples/templates/python-hello \
 abx template scaffold --adopt ./app --hint "port 8080" # 1a. adapt an existing project
 abx template scaffold "a python web server"             # 1b. template generation writes ./<name>/ (optional)
 abx deploy ./app --acr-namespace my-ns              # 2. build, push to ACR, register (no LLM)
-abx create --template <TEMPLATE_ID>                 # 3. launch a sandbox
+abx create <TEMPLATE_ID> --detach  # 3. launch a sandbox
 
 # MCP server
 abx mcp start                            # start MCP tool server

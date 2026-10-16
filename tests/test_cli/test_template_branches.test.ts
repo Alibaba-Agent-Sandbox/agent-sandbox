@@ -239,7 +239,7 @@ describe("TestInstallPipelineStatuses", () => {
   it("test_install_ready_status_prints_usage_hint", async () => {
     const out = await install("ready");
     expect(out).toContain("Template installed, built, and ready!");
-    expect(out).toContain("Use: abx create --template tpl-9");
+    expect(out).toContain("Use: abx create tpl-9");
   });
 
   it("test_install_pushed_status_message", async () => {
@@ -278,7 +278,7 @@ describe("TestInstallPipelineStatuses", () => {
 
 describe("TestInitFlagCombinations", () => {
   it("test_nl_description_cannot_combine_with_template_flag", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "a python web service that serves files", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--prompt", "a python web service that serves files", "-t", "python"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("A natural-language description cannot be combined with --template/-t or --from.");
   });

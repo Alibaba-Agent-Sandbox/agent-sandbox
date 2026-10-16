@@ -144,7 +144,7 @@ The CLI automatically detects CI environments (`CI`, `GITHUB_ACTIONS`, `GITLAB_C
 | Invocation | Path |
 |-----------|------|
 | `abx create` (no arguments) | **Rejected** — explicit usage error (exit code 2) listing the three valid routes; bare create never defaults to `base` silently |
-| `abx create --template <name>` | Direct template path (no template generation) |
+| `abx create <name>` | Direct template path (no template generation) |
 | `abx create --prompt "natural language description"` | generation path (the focus of this section) |
 | `abx create --prompt "description" --template <name>` | Rejected — `DESCRIPTION` and `--template` are mutually exclusive (usage error, exit code 2) |
 
@@ -197,7 +197,7 @@ graph TD
 # abx create -y "a node.js api server"
 
 # Explicit template bypasses template generation
-# abx create --template codex
+# abx create codex
 # abx create -T browser-automation
 
 # Non-interactive with an incomplete description → E2008 (missing details + example)
@@ -260,7 +260,7 @@ Options:
 Examples:
   abx create --prompt "python data analysis"       # generated template → build & deploy → create
   abx create -y "node.js api server"     # Non-interactive generation path
-  abx create --template code-interpreter # Direct template path
+  abx create code-interpreter # Direct template path
   abx create --prompt "Node.js API" -e PORT=3000
   abx create --prompt "Analyze data" --upload ./data.csv
 ```
@@ -326,7 +326,7 @@ Options:
 Examples:
   abx kill sb-abc123
   abx kill sb-abc123 --yes
-  abx kill --all --yes
+  abx kill --all
 ```
 
 ### abx exec
@@ -410,7 +410,7 @@ Error handling:
 The same header is the progress display for every other step that can sit still: creating a sandbox, uploading or downloading files, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, and `abx kill --all`. Where a step has a safe log — relative paths, install milestones (mirror, checksum, extract), docker lines, or a poll status — the last six lines sit under the header (`ABX_ACTIVITY_LINES`, 1–10). Grey rows include a short redacted tool detail (command, url, query, or path). File bytes, thinking, and credentials stay hidden; ACR tokens and `--build-arg` values are not part of that log; the info line that records the docker command redacts build-arg values. `--verbose` still prints the full deploy log and does not draw the deploy block. Other commands keep the moving header on a terminal, including under `--verbose` and `--no-color`. `--json`, `--quiet`, CI, `TERM=dumb`, and a non-TTY stay silent for these headers.
 
 ```text
-abx template scaffold ["DESCRIPTION" | --adopt DIR]  →  abx deploy [PATH]  →  abx create --template ID
+abx template scaffold ["DESCRIPTION" | --adopt DIR]  →  abx deploy [PATH]  →  abx create ID
   author (scaffold, a sentence, or an existing project)   publish (fixed)        launch
 abx create --prompt "DESCRIPTION"  =  all three, with a confirmation before anything is pushed
 ```
@@ -1062,7 +1062,7 @@ abx template build -f ./Dockerfile --alias my-ml-env
 abx template list
 
 # Use custom template
-abx create --template my-ml-env
+abx create my-ml-env
 ```
 
 ***
@@ -1164,7 +1164,7 @@ abx exec sb-abc123 "echo hello" --json
 
 ```bash
 # --yes skips confirmation (supported by kill, etc.)
-abx kill --all --yes
+abx kill --all
 
 # --quiet minimizes output
 abx create --prompt "python environment" --quiet

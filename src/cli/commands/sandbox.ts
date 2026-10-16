@@ -97,8 +97,8 @@ const CREATE_HELP = `Create a new sandbox.
 
     \b
     Examples:
-      abx create --template base              # explicit 'base' template
-      abx create --template python-hello      # named template
+      abx create base              # explicit 'base' template
+      abx create python-hello      # named template
       abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
       abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
       abx create --prompt "a python data science env"  # generate, build, deploy, create
@@ -479,7 +479,7 @@ export async function _clarifyRequirements(
     if (assessment.example) parts.push(`Example description: "${assessment.example}".`);
     parts.push(
       "Add them to DESCRIPTION, pass --yes/-y to generate from the current " +
-        "description anyway, or use 'abx create --template <name>'.",
+        "description anyway, or use 'abx create <name>'.",
     );
     return parts.join(" ");
   };

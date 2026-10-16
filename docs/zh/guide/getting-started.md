@@ -58,7 +58,7 @@ abx config get sandbox_api_key
 ### 使用 CLI
 
 ```bash
-abx create --template base
+abx create base
 ```
 
 `base` 是默认模板。仓库 README 里的 `python-base` 是目录中的 Python 镜像。
@@ -105,14 +105,14 @@ abx sandbox files list <sandbox-id> --path /home/user
 abx kill <sandbox-id>
 
 # 销毁所有运行中的沙箱
-abx kill --all --yes
+abx kill --all
 ```
 
 ## 9. 完整示例
 
 ```bash
 # 创建沙箱并上传项目
-abx create --template base --upload ./project
+abx create base --upload ./project
 
 # 在沙箱内运行
 abx exec <sandbox-id> "python /home/user/project/main.py"

@@ -163,7 +163,7 @@ abx config set sandbox_api_key your-api-key
 创建沙箱时通过 `--env` 参数注入密钥：
 
 ```bash
-abx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
+abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
 ```
 
 > **历史说明**：macOS Keychain 集成已在过度设计清理中移除（ADR 2026-09-23）。`abx secret` CLI 命令组也已被移除。所有密钥管理现通过环境变量、`.env` 文件或 `abx config set` 完成。

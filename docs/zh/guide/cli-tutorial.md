@@ -50,7 +50,7 @@ export E2B_API_KEY="your-api-key"
 ### 使用默认模板
 
 ```bash
-abx create --template base
+abx create base
 # 输出类似：
 # ✓ Sandbox created: sbx-xxxx
 ```
@@ -85,7 +85,7 @@ Question 1: Which region and resource size should the sandbox use?
 # abx create --prompt "run python"    # 非交互、描述不完整 → E2008
 ```
 
-显式 `--template` 会跳过 模板生成，走直接模板路径（`abx create --template <名称>`）。`DESCRIPTION` 与 `--template` 互斥 —— 同时提供会被拒绝（用法错误），而不是静默忽略其中一个：
+显式 `--template` 会跳过 模板生成，走直接模板路径（`abx create <名称>`）。`DESCRIPTION` 与 `--template` 互斥 —— 同时提供会被拒绝（用法错误），而不是静默忽略其中一个：
 
 ```bash
 # abx create --prompt "a node.js api server" --template base   # 拒绝执行（退出码 2）
@@ -94,7 +94,7 @@ Question 1: Which region and resource size should the sandbox use?
 ### 创建时上传文件
 
 ```bash
-abx create --template base --upload ./project/ --env MY_KEY=value
+abx create base --upload ./project/ --env MY_KEY=value
 ```
 
 ---
@@ -208,7 +208,7 @@ abx kill sbx-xxxx
 abx kill --all
 
 # 跳过确认
-abx kill --all --yes
+abx kill --all
 ```
 
 ---
@@ -226,7 +226,7 @@ abx template install owner/repo//subdir
 ### 使用已安装的模板
 
 ```bash
-abx create --template my-template
+abx create my-template
 ```
 
 ### 本地脚手架生成模板

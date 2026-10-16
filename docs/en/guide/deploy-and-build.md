@@ -12,7 +12,7 @@ A sandbox template goes through three steps. Each has one job, and **what a temp
 |------|---------|-------|-----|
 | 1. Author | `abx template scaffold` / `abx template scaffold --prompt "DESCRIPTION"` / `abx template scaffold --adopt [DIR]` | a scaffold case, a description, or an existing project | optional |
 | 2. Publish | `abx deploy [PATH]` | the template directory (`Dockerfile`, `template.yaml`, ...) | never |
-| 3. Launch | `abx create --template <TEMPLATE_ID>` | the template ID | never |
+| 3. Launch | `abx create <TEMPLATE_ID>` | the template ID | never |
 
 `abx create --prompt "DESCRIPTION"` is steps 1 + 2 + 3 in one command (with a confirmation before anything is pushed).
 
@@ -25,7 +25,7 @@ abx deploy ./app --acr-namespace my-ns
 abx template scaffold --prompt "a python data science env"
 abx deploy ./<name> --acr-namespace my-ns
 
-abx create --template <TEMPLATE_ID>               # 3. launch a sandbox
+abx create <TEMPLATE_ID>               # 3. launch a sandbox
 ```
 
 `--adopt` sends a copy of the project source to the model (secrets excluded) and writes back only the template files. The rules, the preview, and `--dry-run` are in [Authoring Templates — Adapt an existing project](authoring-templates.md#adapt-an-existing-project).

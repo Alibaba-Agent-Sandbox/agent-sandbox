@@ -46,7 +46,7 @@ Examples:
 Related commands:
   abx template scaffold DIRECTORY    Scaffold template source files
   abx template push IMAGE        Push an existing local image only
-  abx create --template ID       Launch the completed template
+  abx create ID       Launch the completed template
 
 Options:
   --acr-registry <ACR_REGISTRY>            ACR registry host

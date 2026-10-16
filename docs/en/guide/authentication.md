@@ -163,7 +163,7 @@ abx config set sandbox_api_key your-api-key
 Inject secrets when creating a sandbox via `--env` parameters:
 
 ```bash
-abx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
+abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
 ```
 
 > **Historical note**: macOS Keychain integration was removed in the overdesign cleanup (ADR 2026-09-23). The `abx secret` CLI command group has also been removed. All secret management is now done through environment variables, `.env` files, or `abx config set`.

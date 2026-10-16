@@ -93,7 +93,7 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
    ```
 3. 使用默认模板测试：
    ```bash
-   abx create --template base
+   abx create base
    ```
 
 ---
@@ -157,7 +157,7 @@ abx list --status running
 abx kill sbx-xxxx
 
 # 批量销毁
-abx kill --all --yes
+abx kill --all
 ```
 
 ---

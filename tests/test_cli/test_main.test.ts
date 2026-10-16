@@ -116,7 +116,7 @@ describe("TestTopLevelInitRemoved", () => {
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("abx config init");
-    expect(result.output).toContain("abx create --template base");
+    expect(result.output).toContain("abx create base");
     expect(result.output).toContain("abx template scaffold --template python");
   });
 

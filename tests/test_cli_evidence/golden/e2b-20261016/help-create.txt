@@ -14,8 +14,8 @@ selects a template; the default is base. Natural language uses --prompt.
 --timeout is the sandbox lifetime in seconds (default: 300).
 
 Examples:
-  abx create --template base              # explicit 'base' template
-  abx create --template python-hello      # named template
+  abx create base              # explicit 'base' template
+  abx create python-hello      # named template
   abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
   abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
   abx create --prompt "a python data science env"  # generate, build, deploy,

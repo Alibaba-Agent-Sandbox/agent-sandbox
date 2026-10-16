@@ -286,7 +286,7 @@ describe("TestAdopt", () => {
     try {
       const result = await runner().invoke(cli, ["deploy", tmpPath()]);
       expect(result.exit_code).toBe(2);
-      expect(_text(result)).toContain("init --adopt");
+      expect(_text(result)).toContain("scaffold --adopt");
     } finally {
       deploySeams.resolve_acr_namespace = saved;
     }

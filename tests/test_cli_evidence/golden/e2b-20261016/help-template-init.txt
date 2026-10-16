@@ -38,7 +38,7 @@ generation
 Related commands:
   abx template deploy DIRECTORY
   abx template install TEMPLATE_REF
-  abx create --template TEMPLATE
+  abx create TEMPLATE
   abx create --prompt "DESCRIPTION"   # generate, build, deploy, and create
 
 Options:

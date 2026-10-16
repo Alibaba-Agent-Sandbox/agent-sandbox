@@ -17,11 +17,7 @@ cleanup. It never invokes an installed E2B CLI. Platform minimum TTL may round t
 one-second post-terminal request to about 60 seconds; the probe waits for that
 known asynchronous reclamation. Errors are masked before reporting.
 
-The older scenario collection below includes the project's native extension
-contracts and historical Python-CLI assertions. It is being aligned with the
-selected standard behavior; a passing focused suite does not mean that whole
-collection or the complete CI matrix passed. Standard template init creates E2B
-SDK files; project template.yaml workflows use template scaffold.
+The normal runner includes standard-contract plus project extension scenarios. Old parser and terminal assumptions have been migrated: local exec options precede the ID, stdin is piped only when a scenario supplies it, cleanup uses standard kill/list, and the command walk understands standard aliases and embedded extension help. The runtime standard template init creates SDK files; project template.yaml workflows use template scaffold. A focused pass does not mean the full CI matrix passed.
 
 ## Quick start
 
@@ -58,11 +54,12 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 
 | Suite | Needs | Content |
 |---|---|---|
-| `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template init`, local `template search --index-url` |
+| `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template scaffold`, local `template search --index-url` |
+| `standard-contract` | cloud + Python 3/local PTY | Fixed E2B lifecycle, remote status, real PTY/connect ownership, automatic expiry and cleanup |
 | `cloud-readonly` | cloud | wrong API key (`E1000`, exit 3), `template list/info/delete` and not-found envelopes (exit 4, `E2001`/`E5000`), `list` shapes, secret masking of `config list` |
 | `cloud-lifecycle` | cloud | `create` -> `list` -> `info` -> `exec` (exit-code propagation, `--cwd`, `--json`, `-q`, `--ci`, `CI=true`, timeout -> exit 5) -> `upload`/`download` (binary round-trip) -> `exec --background/--stream/--env` -> `sandbox files/process/system/capabilities` -> `connect` -> `sandbox command list` / `run` named commands -> env/upload at create -> `kill` |
 | `catalog` | outbound GitHub | `template search` and `template install --download-only` against the remote index |
-| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template deploy` (docker build, ACR push, CreateTemplate) -> `create` -> `exec` -> `template delete` |
+| `docker-deploy` | cloud + Docker, opt-in | `template scaffold` -> `template deploy` (docker build, ACR push, CreateTemplate) -> `create` -> `exec` -> `template delete` |
 
 ## Scenario format
 

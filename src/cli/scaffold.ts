@@ -136,7 +136,7 @@ The ACR namespace comes from \`ACR_NAMESPACE\` or \`abx config set acr_namespace
 
 \`\`\`bash
 abx template deploy . -y
-abx create --template {name}
+abx create {name}
 abx run <SANDBOX_ID> hello --arg name=Ada
 \`\`\`
 

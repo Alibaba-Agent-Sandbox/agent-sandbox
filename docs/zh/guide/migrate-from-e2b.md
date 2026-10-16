@@ -29,3 +29,5 @@ Python 导入及行为见[Python 迁移指南](https://github.com/Alibaba-Agent-
 
 
 `template init` 保留固定 E2B 版本的本地脚手架行为。Python 同步／异步脚手架导入 `agent_sandbox`；TypeScript 输出保留上游包，因为本次不迁移 Node SDK。模板资源内嵌于独立二进制。项目的 template.yaml／Server 脚手架改为 `template scaffold`，自然语言使用 `--prompt`，已有项目使用 `--adopt`。
+
+在已验证的 python-hello 模板上，后端宣称支持 stdin-close，但 EOF/closeStdin 返回 HTTP 404/unimplemented。真实空管道对照验证中，固定上游 CLI 与 abx 均保留 stdout 并退出 1。这是原有后端不兼容点，迁移时保留同样行为。无需输入时不要创建 stdin 管道；依赖 EOF 的流程需要实现该接口的后端/模板。Python SDK 向固定读取一行的进程发送 stdin 已单独验证。

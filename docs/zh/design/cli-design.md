@@ -144,7 +144,7 @@ CLI 会自动检测 CI 环境（`CI`、`GITHUB_ACTIONS`、`GITLAB_CI`、`JENKINS
 | 调用方式 | 路径 |
 |---------|------|
 | `abx create`（无参数） | **拒绝执行** —— 显式用法错误（退出码 2），列出三条合法路由；裸 create 不会静默默认 `base` |
-| `abx create --template <名称>` | 直接模板路径（不经过 模板生成） |
+| `abx create <名称>` | 直接模板路径（不经过 模板生成） |
 | `abx create --prompt "自然语言描述"` | 生成路径（本节重点） |
 | `abx create --prompt "描述" --template <名称>` | 拒绝执行 —— `DESCRIPTION` 与 `--template` 互斥（用法错误，退出码 2） |
 
@@ -197,7 +197,7 @@ graph TD
 # abx create -y "a node.js api server"
 
 # 显式模板绕过 模板生成
-# abx create --template codex
+# abx create codex
 # abx create -T browser-automation
 
 # 非交互下描述不完整 → E2008（缺失项 + 示例）
@@ -257,7 +257,7 @@ abx create [DESCRIPTION] [选项]
 示例：
   abx create --prompt "python 数据分析"            # 模板生成 → 构建部署 → 创建
   abx create -y "node.js api server"    # 非交互 生成路径
-  abx create --template code-interpreter # 直接模板路径
+  abx create code-interpreter # 直接模板路径
   abx create --prompt "Node.js API" -e PORT=3000
   abx create --prompt "分析数据" --upload ./data.csv
 ```
@@ -323,7 +323,7 @@ abx kill --all [选项]
 示例：
   abx kill sb-abc123
   abx kill sb-abc123 --yes
-  abx kill --all --yes
+  abx kill --all
 ```
 
 ### abx exec
@@ -407,7 +407,7 @@ abx sandbox command list <sandbox-id>
 创建沙箱、上传或下载文件、拉取模板或模板索引、用镜像注册模板、安装 coding-agent CLI，以及 `abx kill --all`，这些可能停住的步骤使用同一套标题。某一步若有安全的日志——相对路径、安装阶段（镜像源、校验和、解压）、docker 输出或轮询状态——最近六行显示在标题下方（`ABX_ACTIVITY_LINES`，1–10）。灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏；ACR token 和 `--build-arg` 的值不会进入这几行；记录 docker 命令的 info 日志会把 build-arg 的值写成 `***`。`--verbose` 仍会打印完整的部署日志，并且不画部署区块。其余命令在终端上保留会走动的标题，包括 `--verbose` 和 `--no-color`。`--json`、`--quiet`、CI、`TERM=dumb` 和非 TTY 对这些标题保持沉默。
 
 ```text
-abx template scaffold ["描述" | --adopt 目录]  →  abx deploy [PATH]  →  abx create --template ID
+abx template scaffold ["描述" | --adopt 目录]  →  abx deploy [PATH]  →  abx create ID
   编写（脚手架、一句话，或已有项目）            发布（固定流程）        启动
 abx create --prompt "描述"  =  以上三步合一，推送任何东西之前先确认
 ```
@@ -1059,7 +1059,7 @@ abx template build -f ./Dockerfile --alias my-ml-env
 abx template list
 
 # 使用自定义模板
-abx create --template my-ml-env
+abx create my-ml-env
 ```
 
 ***
@@ -1161,7 +1161,7 @@ abx exec sb-abc123 "echo hello" --json
 
 ```bash
 # --yes 跳过确认（kill 等命令支持）
-abx kill --all --yes
+abx kill --all
 
 # --quiet 最小化输出
 abx create --prompt "python 环境" --quiet

@@ -1020,7 +1020,7 @@ export const template = group("template", {
 
     \b
     Related commands:
-      abx create --template TEMPLATE  Launch a sandbox from a template
+      abx create TEMPLATE  Launch a sandbox from a template
       abx deploy [PATH]               Same as 'template deploy'
       abx config --help               Configure credentials and region
     `),
@@ -1091,7 +1091,7 @@ export const install = template.command("install", {
     Related commands:
       abx template search QUERY  Find a template in the index
       abx template list          List registered templates
-      abx create --template ID   Launch the installed template
+      abx create ID   Launch the installed template
     `),
   params: _installParams({
     acrNamespaceHelp: "ACR namespace for deploy (env: ACR_NAMESPACE, or set in .env file)",
@@ -1144,7 +1144,7 @@ export const install = template.command("install", {
       if (ref.is_builtin) {
         if (BUILTIN_TEMPLATES.has(templateRef)) {
           fmt.printSuccess(`'${templateRef}' is a built-in template. No installation needed.`);
-          fmt.printSuccess(`Use it directly: abx create --template ${templateRef}`);
+          fmt.printSuccess(`Use it directly: abx create ${templateRef}`);
           return [ref, null];
         }
         // Bare name that is not built-in: resolve it through the remote template index (single source of truth),
@@ -1298,10 +1298,10 @@ export const install = template.command("install", {
       fmt.printDict(deployData);
       if (buildStatus === "ready") {
         fmt.printSuccess("Template installed, built, and ready!");
-        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(deployData, "TemplateID", null))}`);
+        fmt.printSuccess(`Use: abx create ${pyStr(_get(deployData, "TemplateID", null))}`);
       } else if (_get(deployData, "Build mode", null) === "steps" && buildStatus === "submitted") {
         fmt.printSuccess("Template registration submitted from platform build steps.");
-        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(deployData, "TemplateID", null))}`);
+        fmt.printSuccess(`Use: abx create ${pyStr(_get(deployData, "TemplateID", null))}`);
       } else if (buildStatus === "pushed" || buildStatus === "submitted") {
         fmt.printSuccess("Template downloaded and image pushed; registration submitted.");
       } else {
@@ -1417,7 +1417,7 @@ export const info = template.command("info", {
     \b
     Related commands:
       abx template list
-      abx create --template TEMPLATE_ID
+      abx create TEMPLATE_ID
       abx template delete TEMPLATE_ID
     `),
   params: [
@@ -1510,7 +1510,7 @@ export const create_template = template.command("from-image", {
     Related commands:
       abx template push IMAGE       Push a local image to ACR first
       abx template info TEMPLATE_ID Inspect the created template
-      abx create --template ID      Launch a sandbox from the template
+      abx create ID      Launch a sandbox from the template
     `),
   params: [
     argument(["image"]),
@@ -1621,7 +1621,7 @@ export const create_template = template.command("from-image", {
       fmt.printDict(data);
       const templateId = result["templateID"];
       if (pyTruthy(templateId)) {
-        fmt.printSuccess(`Template created! Use: abx create --template ${templateId}`);
+        fmt.printSuccess(`Template created! Use: abx create ${templateId}`);
       }
     }
   }),
@@ -1793,7 +1793,7 @@ export const build = template.command("build", {
     Related commands:
       abx template scaffold DIRECTORY    Scaffold template source files
       abx template push IMAGE        Push an existing local image only
-      abx create --template ID       Launch the completed template
+      abx create ID       Launch the completed template
     `),
   params: [
     argument(["template_dir"], { type: new ClickPath({ exists: true }), envvar: "ABX_TEMPLATE_DIR" }),
@@ -2018,10 +2018,10 @@ export const build = template.command("build", {
       fmt.printDict(data);
       if (buildStatus === "ready") {
         fmt.printSuccess("Template built and ready!");
-        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(data, "TemplateID", null))}`);
+        fmt.printSuccess(`Use: abx create ${pyStr(_get(data, "TemplateID", null))}`);
       } else if (_get(data, "Build mode", null) === "steps" && buildStatus === "submitted") {
         fmt.printSuccess("Template registration submitted from platform build steps.");
-        fmt.printSuccess(`Use: abx create --template ${pyStr(_get(data, "TemplateID", null))}`);
+        fmt.printSuccess(`Use: abx create ${pyStr(_get(data, "TemplateID", null))}`);
       } else if (buildStatus === "pushed" || buildStatus === "submitted") {
         fmt.printSuccess("Image pushed to ACR; template registration submitted.");
       } else {
@@ -2060,7 +2060,7 @@ export const deploy = template.command("deploy", {
     "Related commands:\n" +
     "  abx template scaffold DIRECTORY  Scaffold a template project\n" +
     "  abx template list            Verify the registered template\n" +
-    "  abx create --template ID     Launch a sandbox from the template",
+    "  abx create ID     Launch a sandbox from the template",
   callback: async (ctx: Context, params: Any): Promise<void> => {
     await ctx.invoke(build, { ...params });
   },
@@ -2328,7 +2328,7 @@ export const init = template.command("scaffold", {
     Related commands:
       abx template deploy DIRECTORY
       abx template install TEMPLATE_REF
-      abx create --template TEMPLATE
+      abx create TEMPLATE
       abx create --prompt "DESCRIPTION"   # generate, build, deploy, and create
     `),
   params: [

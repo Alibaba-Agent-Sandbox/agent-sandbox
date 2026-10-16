@@ -61,7 +61,7 @@ ports:
 
 `template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：用 `@command` 注册，并且只在 `if __name__ == "__main__"` 里调用 `start()`。用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
 
-`base` 可以是镜像字符串，也可以是 `{ image: ... }`。阿里云 Express 还要写 `generation: 2`、`start_cmd` 和 `ready_cmd`（由平台启动 `agent-sandbox-server`，镜像入口不会启动它）。`abx template scaffold -t python` 会写入这些键。`abx run` 和 `abx sandbox command list` / `run` 向 9000 端口发送沙箱的 `X-Access-Token`。若服务返回 HTTP 401，会不带凭证再试一次：Express 不设置 `ABX_SERVER_TOKEN`，对不上的 token 会被拒绝。`abx template deploy` 成功后把清单缓存在 `~/.abx/templates/<template-id>/template.yaml`。带了 `--alias` 时，同一份文件也会写到 `~/.abx/templates/<alias>/template.yaml`，所以 `abx create --template <id>` 和 `abx create --template <alias>` 都能解析能力。两处都没有时，警告会写出 `~/.abx/templates`。
+`base` 可以是镜像字符串，也可以是 `{ image: ... }`。阿里云 Express 还要写 `generation: 2`、`start_cmd` 和 `ready_cmd`（由平台启动 `agent-sandbox-server`，镜像入口不会启动它）。`abx template scaffold -t python` 会写入这些键。`abx run` 和 `abx sandbox command list` / `run` 向 9000 端口发送沙箱的 `X-Access-Token`。若服务返回 HTTP 401，会不带凭证再试一次：Express 不设置 `ABX_SERVER_TOKEN`，对不上的 token 会被拒绝。`abx template deploy` 成功后把清单缓存在 `~/.abx/templates/<template-id>/template.yaml`。带了 `--alias` 时，同一份文件也会写到 `~/.abx/templates/<alias>/template.yaml`，所以 `abx create <id>` 和 `abx create <alias>` 都能解析能力。两处都没有时，警告会写出 `~/.abx/templates`。
 
 ## Dockerfile 自定义
 

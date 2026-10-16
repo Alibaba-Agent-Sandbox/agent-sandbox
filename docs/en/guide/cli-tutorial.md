@@ -50,7 +50,7 @@ export E2B_API_KEY="your-api-key"
 ### Using the Default Template
 
 ```bash
-abx create --template base
+abx create base
 # Output similar to:
 # ✓ Sandbox created: sbx-xxxx
 ```
@@ -86,7 +86,7 @@ Non-interactive environments (CI, piped input) must pass `-y` to skip confirmati
 # abx create --prompt "run python"    # non-interactive, incomplete → E2008
 ```
 
-An explicit `--template` skips template generation and takes the direct template path (`abx create --template <name>`). `DESCRIPTION` and `--template` are mutually exclusive — passing both is rejected with a usage error instead of silently ignoring one of them:
+An explicit `--template` skips template generation and takes the direct template path (`abx create <name>`). `DESCRIPTION` and `--template` are mutually exclusive — passing both is rejected with a usage error instead of silently ignoring one of them:
 
 ```bash
 # abx create --prompt "a node.js api server" --template base   # rejected (exit code 2)
@@ -95,7 +95,7 @@ An explicit `--template` skips template generation and takes the direct template
 ### Upload Files on Creation
 
 ```bash
-abx create --template base --upload ./project/ --env MY_KEY=value
+abx create base --upload ./project/ --env MY_KEY=value
 ```
 
 ---
@@ -210,7 +210,7 @@ abx kill sbx-xxxx
 abx kill --all
 
 # Skip confirmation
-abx kill --all --yes
+abx kill --all
 ```
 
 ---
@@ -228,7 +228,7 @@ abx template install owner/repo//subdir
 ### Use an Installed Template
 
 ```bash
-abx create --template my-template
+abx create my-template
 ```
 
 ### Scaffold a Template Locally

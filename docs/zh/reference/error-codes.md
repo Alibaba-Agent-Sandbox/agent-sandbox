@@ -41,10 +41,10 @@ except SandboxError as e:
 | E2002 | `QuotaExceededError` | 配额超限 | 销毁空闲沙箱或申请提升配额 | 运行中的沙箱数量超过账户配额 |
 | E2003 | `RegionUnavailableError` | 区域不可用 | 尝试其他区域或检查服务可用性 | 请求的区域暂时不可用或不存在 |
 | E2004 | `TemplateParseError` | 模板解析失败 | 修复 template.yaml（见校验错误）；能力不会被授予直到模板解析成功 | template.yaml 格式错误或字段无效 |
-| E2005 | `QwenCodeNotInstalledError` | 未安装 Qwen Code | 按 Quick Setup 安装官方 standalone（或 `abx config init`），或用 `abx create --template <名称>` 跳过 模板生成 | `abx create --prompt "描述"` 且 PATH 与 `~/.abx/bin` 均无 Qwen Code，且用户拒绝安装或非 TTY 未传 `-y` |
+| E2005 | `QwenCodeNotInstalledError` | 未安装 Qwen Code | 按 Quick Setup 安装官方 standalone（或 `abx config init`），或用 `abx create <名称>` 跳过 模板生成 | `abx create --prompt "描述"` 且 PATH 与 `~/.abx/bin` 均无 Qwen Code，且用户拒绝安装或非 TTY 未传 `-y` |
 | E2006 | `QwenCodeCredentialError` | Qwen Code 凭证缺失 | `abx config set llm_api_key <KEY>` 或 `abx config init`；也可导出 `DASHSCOPE_API_KEY`/`OPENAI_API_KEY` | 生成路径下 `llm_api_key`、环境变量与 `~/.qwen/settings.json` 均无可用凭证 |
-| E2007 | `AICodegenError` | 模板生成失败 | 查看保留的生成目录（`~/.abx/generated/<名称>`，或 `--dir` 指定位置下）后重试，或改用 `abx create --template <名称>` | Qwen Code 生成失败/超时，或产出的 Dockerfile、template.yaml 缺失或未通过校验 |
-| E2008 | `DescriptionClarificationError` | 描述信息量不足以进行 模板生成 | 把建议中列出的缺失项（或示例描述）补进 `DESCRIPTION`；或传 `--yes`/`-y` 直接按当前描述生成；或改用 `abx create --template <名称>` | Agent 自行检索可公开查证的事实后，描述完整度仍低于 80%（缺失的是用户偏好 / 私有约束 / 业务决策）且当前会话无法提问（非 TTY / CI 未传 `-y`），或交互式澄清被取消 / 中断（EOF） |
+| E2007 | `AICodegenError` | 模板生成失败 | 查看保留的生成目录（`~/.abx/generated/<名称>`，或 `--dir` 指定位置下）后重试，或改用 `abx create <名称>` | Qwen Code 生成失败/超时，或产出的 Dockerfile、template.yaml 缺失或未通过校验 |
+| E2008 | `DescriptionClarificationError` | 描述信息量不足以进行 模板生成 | 把建议中列出的缺失项（或示例描述）补进 `DESCRIPTION`；或传 `--yes`/`-y` 直接按当前描述生成；或改用 `abx create <名称>` | Agent 自行检索可公开查证的事实后，描述完整度仍低于 80%（缺失的是用户偏好 / 私有约束 / 业务决策）且当前会话无法提问（非 TTY / CI 未传 `-y`），或交互式澄清被取消 / 中断（EOF） |
 | E2009 | `SandboxNotFoundError` | 不存在该 ID 的沙箱 | 运行 `abx list` 查看运行中的沙箱；已销毁或已过期的沙箱无法重新连接 | `abx info/connect/pause/resume/set-timeout`（以及所有需要连接沙箱的命令）使用平台返回 HTTP 404 的 ID；退出码 4（`abx kill` 仍保持幂等） |
 
 ### 排查步骤
@@ -52,7 +52,7 @@ except SandboxError as e:
 1. 确认模板名称正确（`abx template list`）
 2. 对于 E2002，检查 `abx list` 是否有大量闲置沙箱
 3. 对于 E2004，检查 template.yaml 的 YAML 语法和字段值
-4. 对于 E2005–E2008（生成路径），按输出中的 Quick Setup 操作；不想使用 模板生成时可显式传 `abx create --template <名称>`。其中 E2008 需把缺失项（或示例描述）补进参数，或传 `-y` 跳过澄清直接生成
+4. 对于 E2005–E2008（生成路径），按输出中的 Quick Setup 操作；不想使用 模板生成时可显式传 `abx create <名称>`。其中 E2008 需把缺失项（或示例描述）补进参数，或传 `-y` 跳过澄清直接生成
 
 ---
 

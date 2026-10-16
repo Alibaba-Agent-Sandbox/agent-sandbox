@@ -58,7 +58,7 @@ abx config get sandbox_api_key
 ### Using the CLI
 
 ```bash
-abx create --template base
+abx create base
 ```
 
 `base` is the default template. The repository README uses `python-base`, the Python image in the catalog.
@@ -105,14 +105,14 @@ abx sandbox files list <sandbox-id> --path /home/user
 abx kill <sandbox-id>
 
 # Destroy all running sandboxes
-abx kill --all --yes
+abx kill --all
 ```
 
 ## 9. Complete Example
 
 ```bash
 # Create a sandbox and upload a project
-abx create --template base --upload ./project
+abx create base --upload ./project
 
 # Run something inside it
 abx exec <sandbox-id> "python /home/user/project/main.py"

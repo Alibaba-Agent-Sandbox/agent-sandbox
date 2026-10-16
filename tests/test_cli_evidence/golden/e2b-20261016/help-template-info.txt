@@ -13,7 +13,7 @@ Examples:
 
 Related commands:
   abx template list
-  abx create --template TEMPLATE_ID
+  abx create TEMPLATE_ID
   abx template delete TEMPLATE_ID
 
 Options:

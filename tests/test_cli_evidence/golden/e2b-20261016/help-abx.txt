@@ -6,7 +6,7 @@ Create, manage, and interact with cloud sandboxes.
 
 Get started:
   abx config init               Set credentials and region (run first)
-  abx create --template base    Create a sandbox
+  abx create base    Create a sandbox
   abx exec SANDBOX -- CMD...    Run a command in it
 
 Examples:

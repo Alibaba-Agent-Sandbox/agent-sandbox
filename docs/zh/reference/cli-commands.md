@@ -34,7 +34,7 @@
 ```
 abx
 ├── sandbox
-│   ├── create [DESCRIPTION]            list            info SANDBOX_ID        kill [SANDBOX_ID]
+│   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
 │   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID
 │   ├── upload SANDBOX_ID LOCAL REMOTE  download SANDBOX_ID REMOTE LOCAL
 │   ├── capabilities SANDBOX_ID
@@ -42,7 +42,7 @@ abx
 │   ├── process  list | info | signal            （只查看/控制；启动进程用 exec --background）
 │   ├── command  list | run                      （沙箱内服务端注册的具名命令）
 │   └── system   env | info | metrics | packages | ports
-├── template     init | search | info | list | build | push | create | delete | deploy | install
+├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
@@ -54,7 +54,7 @@ abx
 
 | 命令 | 用法 |
 |---|---|
-| `abx sandbox create` | `create [OPTIONS] [DESCRIPTION]` |
+| `abx sandbox create` | `create [options] [template]` |
 | `abx sandbox list` | `list [OPTIONS]` |
 | `abx sandbox info` | `info [OPTIONS] SANDBOX_ID` |
 | `abx sandbox kill` | `kill [OPTIONS] [SANDBOX_ID]` |
@@ -87,30 +87,17 @@ abx
 `--version`、`-h/--help`。它们写在命令之前（`abx --json list`）。
 
 没有全局 `--timeout`，也没有 `--profile`。沙箱**生命周期**是 `abx create` 独有的 `--timeout SECONDS`；
-命令超时是 `abx exec` 的 `--timeout SECONDS`。
+标准 exec 没有本地命令超时参数。
 
-## 运行命令：`abx exec`
+## 标准执行与终端
 
 ```bash
-abx exec SANDBOX_ID -- python --version                 # 等待完成，退出码即远端退出码
-abx exec SANDBOX_ID --cwd /app --env DEBUG=1 --timeout 300 -- pytest -q
-abx exec SANDBOX_ID --stream -- pip install numpy        # 实时输出 stdout/stderr
-abx exec SANDBOX_ID --background -- python -m http.server 8000   # 打印 pid 后立即返回
-abx exec SANDBOX_ID "ls /app | wc -l"                    # 单个带引号的参数按命令行处理（支持管道）
+abx exec --cwd /app --env MODE=test SANDBOX_ID pytest -q
+abx exec --background SANDBOX_ID python -m http.server 8000
+abx connect SANDBOX_ID
 ```
 
-| 选项 | 含义 |
-|---|---|
-| `--cwd PATH` | 工作目录（为空表示容器默认） |
-| `-e/--env KEY=VALUE` | 环境变量，可重复 |
-| `-t/--timeout SECONDS` | 命令超时（默认 60） |
-| `--stream` | 命令运行时实时打印 stdout/stderr |
-| `--background` | 启动命令、打印 pid、不等待（不能与 `--stream` 同用） |
-
-`--` 之后的命令按原样执行，不经过 shell；单个带引号的参数按命令行解析，仅当含管道或重定向时才套 shell。
-需要变量展开时使用 `sh -c '...'`。后台进程用 `abx sandbox process list|info|signal` 查看或发信号。
-
-`abx connect SANDBOX_ID` 打开逐行 REPL：每一行都是一个新进程（`cd`、导出的变量等状态不会保留），它不是 PTY。
+exec 的本地选项全部放在沙箱 ID 前，默认流式输出，返回远程退出码；后台 PID 写入 stderr。标准入口没有本地 --stream、--timeout。connect 使用真实 PTY，工作目录、环境变量跨命令保持；退出 connect 后沙箱仍运行。交互 create 使用参考版本生命周期；后续需要 ID 时传 --detach。见[完整标准参考](cli-reference.md)。
 
 ## 具名命令：`abx run` / `abx sandbox command`
 
@@ -150,9 +137,11 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 |---|---|
 | 顶层 `abx init`、`abx install` | `abx template scaffold`、`abx template install` |
 | `abx sandbox process start` | `abx exec --background` |
-| `abx sandbox shell-stream` | `abx exec --stream` |
+| `abx sandbox shell-stream` | `abx exec`（默认流式） |
 | `abx sandbox run` | `abx run` / `abx sandbox command run` |
-| 全局 `-t/--timeout`、全局 `-p/--profile` | `abx create --timeout`、`abx exec --timeout`；`--profile` 无替代 |
+| 全局 `-t/--timeout`、全局 `-p/--profile` | `abx create --timeout`；`--profile` 无替代 |
 | `config.toml` 中的 `[shortcuts]`、`abx config set shortcuts.<name>` | 无（快捷方式固定） |
 | `template.yaml` 中的 `custom_commands` | 在沙箱内服务端注册具名命令 |
 | `abx deploy --traditional` | 无（流水线固定） |
+
+[标准生命周期、终端、参数和退出码参考](cli-reference.md)。标准本地选项放在沙箱 ID 前。

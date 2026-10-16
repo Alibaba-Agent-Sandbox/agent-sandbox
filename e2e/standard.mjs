@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { loadCredentials, makeMasker } from "./lib/env.mjs";
+import { parseBin } from "./lib/exec.mjs";
 
 const credentials = loadCredentials();
 Object.assign(process.env, credentials);
@@ -24,12 +25,12 @@ function execute(file, args, options = {}) {
     });
   });
 }
-const binary = process.env.ABX_BIN ?? "abx";
+const [binary, ...binaryPrefix] = parseBin(process.env.ABX_BIN ?? "abx");
 const created = new Set();
 
 async function run(args, expected = 0) {
   try {
-    const result = await execute(binary, args, { timeout: 90_000, maxBuffer: 4 * 1024 * 1024 });
+    const result = await execute(binary, [...binaryPrefix, ...args], { timeout: 90_000, maxBuffer: 4 * 1024 * 1024 });
     assert.equal(expected, 0, "expected a failing command");
     return result.stdout;
   } catch (error) {
@@ -40,10 +41,10 @@ async function run(args, expected = 0) {
 
 // A real local PTY is necessary to test stateful terminal sessions and raw stdin.
 const terminalProbe = String.raw`
-import errno, fcntl, os, pty, re, select, signal, struct, sys, termios, time
+import errno, fcntl, json, os, pty, re, select, signal, struct, sys, termios, time
 pid, master = pty.fork()
 if pid == 0:
-    os.execv(sys.argv[1], [sys.argv[1], 'sandbox', sys.argv[2], sys.argv[3]])
+    os.execvp(sys.argv[1], [sys.argv[1], *json.loads(sys.argv[4]), 'sandbox', sys.argv[2], sys.argv[3]])
 fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 0, 0))
 output = b''
 sent = False
@@ -94,13 +95,13 @@ try {
   const templates = JSON.parse(await run(["template", "list", "--format", "json"]));
   assert.ok(Array.isArray(templates));
   console.log("PASS: template list");
-  const terminal = await execute("python3", ["-c", terminalProbe, binary, "connect", id], { timeout: 60_000 });
+  const terminal = await execute("python3", ["-c", terminalProbe, binary, "connect", id, JSON.stringify(binaryPrefix)], { timeout: 60_000 });
   assert.match(terminal.stdout, /PTY state and exit: PASS/);
   // Connect must preserve the existing sandbox after the shell exits.
   assert.equal(await run(["sandbox", "exec", id, "printf", "still-alive"]), "still-alive");
   let automatic;
   try {
-    const result = await execute("python3", ["-c", terminalProbe, binary, "create", "code-interpreter-v1"], { timeout: 60_000 });
+    const result = await execute("python3", ["-c", terminalProbe, binary, "create", "code-interpreter-v1", JSON.stringify(binaryPrefix)], { timeout: 60_000 });
     automatic = /RESOURCE ([A-Za-z0-9_-]+)/.exec(result.stdout)?.[1];
     assert.ok(automatic, "create must report its sandbox ID");
     created.add(automatic);
@@ -112,7 +113,7 @@ try {
   // Reference create requests one second; Express currently rounds this to its minimum lease.
   let removed = false;
   for (let attempt = 0; attempt < 90; attempt++) {
-    const response = await fetch(`${apiUrl}/sandboxes/${automatic}`, { headers: { "X-API-Key": process.env.E2B_API_KEY } });
+    const response = await fetch(`${apiUrl}/sandboxes/${automatic}`, { headers: { "X-API-Key": process.env.E2B_API_KEY }, signal: AbortSignal.timeout(15_000) });
     if (response.status === 404) { removed = true; break; }
     assert.equal(response.status, 200);
     const detail = await response.json();

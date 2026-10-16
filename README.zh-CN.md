@@ -101,13 +101,13 @@ abx config init                          # 凭证 + 区域（--build / --llm 追
 abx config set sandbox_api_key <YOUR_API_KEY>   # 或直接设置单个密钥
 
 # 沙箱生命周期
-abx create --template base             # 默认模板
-abx create --template python-base      # 目录里的 Python 镜像
+abx create base --detach  # 默认模板
+abx create python-base --detach  # 目录里的 Python 镜像
 abx list                                 # 列出运行中的沙箱
 abx info <sandbox-id>                    # 查看沙箱详情
-abx exec <sandbox-id> -- echo hello       # 执行命令（--cwd/--env/--timeout/--stream/--background）
+abx exec <sandbox-id> echo hello       # 执行命令（--cwd/--env/--background 放在 ID 前）
 abx run <sandbox-id> <name> --arg k=v    # 调用沙箱内服务器上注册的具名命令
-abx connect <sandbox-id>                 # 逐行命令 REPL（每行一个新进程，不是 PTY）
+abx connect <sandbox-id>                 # 真实 PTY；shell 状态持续（每行一个新进程，不是 PTY）
 
 # 文件传输
 abx upload <sandbox-id> ./local.txt /remote/path.txt
@@ -127,7 +127,7 @@ abx template deploy ./examples/templates/python-hello \
 abx template scaffold --adopt ./app --hint "端口 8080"     # 1a. 适配已有项目
 abx template scaffold "一个 Python Web 服务"               # 1b. 模板生成写出 ./<name>/（可选）
 abx deploy ./app --acr-namespace my-ns                 # 2. 构建、推送 ACR、注册（无需 LLM）
-abx create --template <TEMPLATE_ID>                    # 3. 启动沙箱
+abx create <TEMPLATE_ID> --detach  # 3. 启动沙箱
 
 # MCP 服务
 abx mcp start                            # 启动 MCP 工具服务

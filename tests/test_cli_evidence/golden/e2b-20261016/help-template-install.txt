@@ -32,7 +32,7 @@ Examples:
 Related commands:
   abx template search QUERY  Find a template in the index
   abx template list          List registered templates
-  abx create --template ID   Launch the installed template
+  abx create ID   Launch the installed template
 
 Options:
   --registry-url <REGISTRY_URL>    Registry URL (default: GitHub)

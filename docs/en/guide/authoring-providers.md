@@ -240,7 +240,7 @@ Document the `[security]` block honestly: it is the user's only summary of what 
 
 ## 5. Template profile
 
-The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template scaffold` / `deploy`). It does not decide what `abx create --template X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
+The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template scaffold` / `deploy`). It does not decide what `abx create X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
 
 Optional `[template]` table. When the table is absent, template generation uses the generic Docker profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) and says this provider had no profile. It does not use the Alibaba Cloud Express FC image. OpenSandbox stays on that generic profile; its create `entrypoint` is unchanged.
 

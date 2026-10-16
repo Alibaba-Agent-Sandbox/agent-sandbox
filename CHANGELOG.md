@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Resolve Alibaba envd process handles before OS PID inspection in the CLI process info extension; keep standard exec option boundaries and remote status semantics. / CLI 进程详情优先解析阿里云 envd 句柄，保留标准 exec 参数边界与远程退出码。
+
 - Align Alibaba Express standard lifecycle, process, file and interpreter behavior with the pinned E2B contract; use canonical `E2B_*` connection settings.
 - Reserve create positional arguments for templates and natural language for `--prompt` in the CLI; document migration, source attribution and backend capability limits.
 

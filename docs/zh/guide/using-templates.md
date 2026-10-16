@@ -69,7 +69,7 @@ abx template install owner/repo
 ## 按模板创建沙箱
 
 ```bash
-abx create --template my-python
+abx create my-python
 ```
 
 ---

@@ -170,7 +170,7 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 ### What to do after `--download-only`
 
 - **Deploy it to your own platform account**: run `abx template deploy <cache-path>` on the cached directory (or `abx template build` for a step-by-step build & push) — the workflow is identical to Step 3 below.
-- **The template is already deployed on the platform**: skip install entirely and create a sandbox by template name (`abx create --template python-hello`).
+- **The template is already deployed on the platform**: skip install entirely and create a sandbox by template name (`abx create python-hello`).
 - **Iterate locally**: the cache directory is plain template source — copy it out, modify it, and follow the full workflow in this guide.
 
 ---
@@ -434,7 +434,7 @@ CLI flags > declarations in `template.yaml` > hardcoded defaults. See the [CLI R
 **① Create a sandbox**
 
 ```bash
-$ abx create --template base
+$ abx create base
 ID           sbx-00000000-0000-4000-8000-000000000000
 Status       running
 Template     base
@@ -557,7 +557,7 @@ No sandboxes found.
 `--template` accepts either a template **name** or an **ID**, but only a template that is `ready` and whose image starts successfully can be created. Below is the real output when creating `python-hello` — even though `abx template list --official-api` shows a `ready` `python-hello`, this create attempt had its connection reset by the platform during cold start:
 
 ```bash
-$ abx create --template python-hello
+$ abx create python-hello
 [E5003] Connection reset by remote: <StreamReset stream_id:1, error_code:2, remote_reset:True>
   Suggestion: The platform closed the connection before responding. This usually means the operation took too long (e.g., sandbox cold start). Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -568,7 +568,7 @@ $ abx create --template python-hello
 Retrying multiple times under `http_timeout=120` and `http2=false` still failed, eventually reporting a request timeout:
 
 ```bash
-$ abx create --template python-hello
+$ abx create python-hello
 [E3001] Request timed out: 
   Suggestion: The HTTP request timed out. Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -593,7 +593,7 @@ To drive the sandbox from Python (create, run commands, read and write files, th
 abx kill <sandbox-id>
 
 # Kill all running sandboxes
-abx kill --all --yes
+abx kill --all
 ```
 
 > ⚠️ **Data loss warning**: `abx kill --all` destroys **every** running sandbox in your account, and their in-memory/ephemeral data is lost permanently. Without `--yes` the CLI asks for confirmation first — only add `-y/--yes` in automation where you're certain no sandbox needs to survive.

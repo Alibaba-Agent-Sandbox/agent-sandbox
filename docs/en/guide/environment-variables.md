@@ -30,7 +30,7 @@ The two scopes never leak into each other: a variable written through the server
 inherited by all later commands for the lifetime of the sandbox:
 
 ```bash
-abx create --template base --env MY_KEY=value --env LOG_LEVEL=debug
+abx create base --env MY_KEY=value --env LOG_LEVEL=debug
 ```
 
 There is no CLI command that changes envd variables after creation. To use a different value for one command, wrap

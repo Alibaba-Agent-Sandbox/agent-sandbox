@@ -539,7 +539,7 @@ describe("TestDescriptionClarification", () => {
     expect(result.output).toContain("Example description:");
     expect(result.output).toContain("Python 3.12 with pandas, expose port 8888");
     expect(result.output).toContain("--yes/-y");
-    expect(result.output).toContain("abx create --template <name>");
+    expect(result.output).toContain("abx create <name>");
     expect(genMock).not.toHaveBeenCalled();
     expect(deploy).not.toHaveBeenCalled();
   });

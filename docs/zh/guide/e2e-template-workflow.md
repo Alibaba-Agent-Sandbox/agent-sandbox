@@ -170,7 +170,7 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 ### `--download-only` 之后如何使用
 
 - **部署到自己的平台账号**：对缓存目录执行 `abx template deploy <缓存路径>`（或 `abx template build` 分步构建推送），流程与下文第三步完全一致。
-- **模板已在平台上部署过**：无需 install，直接用模板名创建沙箱即可（`abx create --template python-hello`）。
+- **模板已在平台上部署过**：无需 install，直接用模板名创建沙箱即可（`abx create python-hello`）。
 - **本地二次开发**：缓存目录就是普通模板源码，可复制出来修改后按本文完整流程走一遍。
 
 ---
@@ -434,7 +434,7 @@ CLI 参数 > `template.yaml` 中的声明 > 硬编码默认值。详见 [CLI 参
 **① 创建沙箱**
 
 ```bash
-$ abx create --template base
+$ abx create base
 ID           sbx-00000000-0000-4000-8000-000000000000
 Status       running
 Template     base
@@ -557,7 +557,7 @@ No sandboxes found.
 `--template` 既可传模板**名称**也可传**ID**，但只有状态为 `ready` 且镜像可正常拉起的模板才能成功创建。下面是对 `python-hello` 执行创建时的真实输出——尽管 `abx template list --official-api` 中有一个 `ready` 的 `python-hello`，但本次创建在冷启动阶段被平台重置连接：
 
 ```bash
-$ abx create --template python-hello
+$ abx create python-hello
 [E5003] Connection reset by remote: <StreamReset stream_id:1, error_code:2, remote_reset:True>
   Suggestion: The platform closed the connection before responding. This usually means the operation took too long (e.g., sandbox cold start). Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -568,7 +568,7 @@ $ abx create --template python-hello
 在 `http_timeout=120`、`http2=false` 配置下多次重试仍持续失败，最终报请求超时：
 
 ```bash
-$ abx create --template python-hello
+$ abx create python-hello
 [E3001] Request timed out: 
   Suggestion: The HTTP request timed out. Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -593,7 +593,7 @@ $ abx create --template python-hello
 abx kill <sandbox-id>
 
 # 销毁所有运行中的沙箱
-abx kill --all --yes
+abx kill --all
 ```
 
 > ⚠️ **数据丢失警告**：`abx kill --all` 会销毁账号下**所有**运行中的沙箱，其内存/临时数据将永久丢失。不带 `--yes` 时 CLI 会先要求确认——只在确定没有沙箱需要保留的自动化场景下才加 `-y/--yes`。

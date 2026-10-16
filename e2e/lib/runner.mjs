@@ -83,7 +83,7 @@ export async function main(opts) {
     mkdirSync(env.HOME, { recursive: true });
     for (const id of [...tracker.sandboxes]) {
       if (tracker.killed.has(id)) continue;
-      const r = await runBinary({ bin, argv: ['kill', id, '--yes'], env, cwd: root, timeoutMs: 90_000 });
+      const r = await runBinary({ bin, argv: ['sandbox', 'kill', id], env, cwd: root, timeoutMs: 90_000 });
       if (r.code === 0 || /not found|404/i.test(r.stdout + r.stderr)) tracker.killed.add(id);
     }
     persist();
@@ -167,13 +167,13 @@ async function leakCheck({ bin, creds, root, tracker, mask, cloudOk, skipOnlyOff
   const env = baseEnv({ home: join(root, 'home-leak'), creds });
   mkdirSync(env.HOME, { recursive: true });
   for (let i = 0; i < 4; i++) {
-    const r = await runBinary({ bin, argv: ['--json', 'list'], env, cwd: root, timeoutMs: 90_000 });
+    const r = await runBinary({ bin, argv: ['sandbox', 'list', '--format', 'json'], env, cwd: root, timeoutMs: 90_000 });
     const j = parseJsonLoose(r.stdout);
     if (r.code !== 0 || j === undefined) { rec.status = 'fail'; rec.reason = `could not list sandboxes: exit ${r.code}`; return rec; }
-    const ids = Array.isArray(j) ? j.map((x) => x.ID ?? x.id) : [];
+    const ids = Array.isArray(j) ? j.map((x) => x.sandboxId ?? x.sandboxID ?? x.ID ?? x.id) : [];
     const leaked = [...tracker.sandboxes].filter((id) => ids.includes(id));
     if (!leaked.length) return rec;
-    for (const id of leaked) await runBinary({ bin, argv: ['kill', id, '--yes'], env, cwd: root, timeoutMs: 90_000 });
+    for (const id of leaked) await runBinary({ bin, argv: ['sandbox', 'kill', id], env, cwd: root, timeoutMs: 90_000 });
     rec.status = 'fail';
     rec.reason = `${leaked.length} sandbox(es) were still listed after cleanup (killed now): ${leaked.join(', ')}`;
     await new Promise((r) => setTimeout(r, 3000));

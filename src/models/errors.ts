@@ -159,7 +159,7 @@ export class TemplateParseError extends SandboxCreationError {
  */
 export class QwenCodeNotInstalledError extends SandboxCreationError {
   static override code = "E2005";
-  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create --template <name>'.";
+  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create <name>'.";
 }
 
 /**
@@ -175,7 +175,7 @@ export class QwenCodeCredentialError extends SandboxCreationError {
  */
 export class AICodegenError extends SandboxCreationError {
   static override code = "E2007";
-  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.";
+  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.";
 }
 
 /**
@@ -210,7 +210,7 @@ export class QwenCodeStartupError extends AICodegenError {
  */
 export class DescriptionClarificationError extends SandboxCreationError {
   static override code = "E2008";
-  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create --template <name>'.";
+  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create <name>'.";
 }
 
 /** No sandbox with the given ID exists (never created, expired or already killed). */

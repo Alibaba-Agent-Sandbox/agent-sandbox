@@ -79,13 +79,13 @@ export const deploy_shortcut = command("deploy", {
       abx template scaffold --adopt .                      # 1a. author from a project
       abx template scaffold --prompt "a python data science env"   # 1b. generate from a description
       abx deploy ./<name> --acr-namespace my-ns       # 2. publish
-      abx create --template <TEMPLATE_ID>             # 3. launch a sandbox
+      abx create <TEMPLATE_ID>             # 3. launch a sandbox
 
     \b
     Related commands:
       abx template scaffold          Author Dockerfile / template.yaml
       abx template deploy DIR    The same pipeline with a required DIRECTORY
-      abx create "DESCRIPTION"   Generate + publish + launch in one go
+      abx create --prompt "DESCRIPTION"   Generate + publish + launch in one go
     `),
   params: [
     argument(["path"], { default: ".", required: false }) as Argument,

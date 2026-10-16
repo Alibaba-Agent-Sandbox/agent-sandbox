@@ -299,7 +299,7 @@ const ROOT_HELP = [
   "\b",
   "Get started:",
   "  abx config init               Set credentials and region (run first)",
-  "  abx create --template base    Create a sandbox",
+  "  abx create base    Create a sandbox",
   "  abx exec SANDBOX -- CMD...    Run a command in it",
   "",
   "\b",

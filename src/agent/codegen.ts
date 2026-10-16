@@ -209,7 +209,7 @@ function hasFromInstruction(dockerfile: string): boolean {
 }
 
 function defaultRetryHint(workdir: string): string {
-  return `Inspect the generated workspace: ${workdir} — then retry, or fall back to 'abx create --template <name>'.`;
+  return `Inspect the generated workspace: ${workdir} — then retry, or fall back to 'abx create <name>'.`;
 }
 
 function loadTemplateYaml(templateYaml: string, retry?: string | null): Record<string, unknown> {
@@ -727,7 +727,7 @@ async function generateTemplateFilesImpl(
         suggestion:
           `Inspect the generated workspace: ${work} — then retry ` +
           `'abx create "${description}"', or fall back to ` +
-          "'abx create --template <name>'.",
+          "'abx create <name>'.",
       },
     );
   }

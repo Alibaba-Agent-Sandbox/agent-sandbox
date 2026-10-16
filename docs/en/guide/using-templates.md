@@ -69,7 +69,7 @@ abx template install owner/repo
 ## Create a Sandbox from a Template
 
 ```bash
-abx create --template my-python
+abx create my-python
 ```
 
 ---

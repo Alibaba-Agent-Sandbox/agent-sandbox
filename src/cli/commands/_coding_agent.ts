@@ -96,14 +96,14 @@ export async function ensureCodingAgentBinary(ctx: Context, opts: { yes: boolean
     throw new notInstalled(`${backend.displayName} CLI is required for template generation but is not installed.`, {
       suggestion:
         "Install it with the official command from Quick Setup above, then retry \u2014 " +
-        "or use 'abx create --template <name>' to skip template generation.",
+        "or use 'abx create <name>' to skip template generation.",
     });
   }
   if (interactive && !yes) {
     const proceed = await confirm(`Install the official ${backend.displayName} standalone build into ~/.abx/bin now?`, { default: true });
     if (!proceed) {
       throw new notInstalled(`Declined to install ${backend.displayName}; template generation cannot continue.`, {
-        suggestion: "Install it manually (see Quick Setup above) and retry, or use 'abx create --template <name>'.",
+        suggestion: "Install it manually (see Quick Setup above) and retry, or use 'abx create <name>'.",
       });
     }
   }
@@ -189,7 +189,7 @@ export async function resolveCodingAgentCredentials(
   if (!pyStrip(key)) {
     throw new backend.credentialError(`No ${backend.displayName} API key provided; template generation cannot continue.`, {
       suggestion:
-        `Store one with 'abx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'abx create --template <name>'.",
+        `Store one with 'abx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'abx create <name>'.",
     });
   }
   await configCmd.writeEnvVar(backend.envVar, pyStrip(key));
