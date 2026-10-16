@@ -429,7 +429,9 @@ describe("TestAdoptPromptGolden", () => {
   });
 
   it("keeps the generated .dockerignore byte-identical", () => {
-    expect(GENERATED_DOCKERIGNORE).toBe(readGolden().generated_dockerignore);
+    // Preserve the original Python capture; current scaffold output has its own fixture.
+    const current = fs.readFileSync(new URL("../fixtures/agent/scaffold-generated.dockerignore", import.meta.url), "utf8");
+    expect(GENERATED_DOCKERIGNORE).toBe(current);
   });
 });
 
