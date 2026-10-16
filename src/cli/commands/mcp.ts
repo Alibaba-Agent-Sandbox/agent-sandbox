@@ -1159,7 +1159,7 @@ mcp.addCommand(status);
 // deploy command
 // ---------------------------------------------------------------------------
 
-export const _DEPLOY_REQUIREMENTS = "agent-sandbox[mcp]\nuvicorn>=0.29\n";
+export const _DEPLOY_REQUIREMENTS = "agent-sandbox-client[mcp]\nuvicorn>=0.29\n";
 
 export const _DEPLOY_APP_PY =
   '"""ASGI entry point for the FC MCP server."""\n' +

@@ -204,6 +204,21 @@ export default {
       },
     },
 
+    {
+      id: 'mcp-deploy-client-requirements', title: 'mcp deploy writes the Python client MCP distribution into requirements.txt', creds: false,
+      async run(ctx) {
+        const cwd = ctx.newCwd('mcp-artifact');
+        const out = join(cwd, 'artifact');
+        const r = await ctx.abx(['mcp', 'deploy', '--output-dir', out, '--api-key', 'placeholder', '--region', 'cn-hangzhou'], {
+          cwd, creds: false, env: { ABX_MCP_AUTH_TOKEN: 'placeholder' },
+        });
+        if (r.code !== 0) ctx.fail(`mcp deploy exit ${r.code}\n${r.out}`);
+        const requirements = readFileSync(join(out, 'requirements.txt'), 'utf8');
+        if (requirements !== 'agent-sandbox-client[mcp]\nuvicorn>=0.29\n') ctx.fail('artifact must install agent-sandbox-client[mcp] and uvicorn');
+        for (const file of ['app.py', 'config.yaml']) if (!existsSync(join(out, file))) ctx.fail(`missing artifact file ${file}`);
+      },
+    },
+
     // ---- template scaffolding -------------------------------------------------------------------
     {
       id: 'template-init-python', title: 'template init DIR --template python --name N scaffolds Dockerfile/commands.py/template.yaml', creds: false,
