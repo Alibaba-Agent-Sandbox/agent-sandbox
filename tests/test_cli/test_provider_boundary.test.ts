@@ -35,7 +35,7 @@ describe("provider template boundary", () => {
   it("blocks internal deployment before loading Express credentials or reading a project", async () => {
     selectForeign();
     const config = vi.spyOn(templateSeams, "loadConfig");
-    await expect(_doDeploy("nonexistent-project", {})).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
+    await expect(_doDeploy("nonexistent-project", { acr_namespace: "placeholder" })).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
     expect(config).not.toHaveBeenCalled();
   });
 

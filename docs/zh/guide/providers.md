@@ -102,27 +102,27 @@ abx kill local-process:sbx-1 --yes
 
 ## 安装之后能用什么
 
-安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。没有选择插件时，内置提供商 `alicloud-express` 声明了下表的全部能力，命令集和以前一样。
+安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。没有选择插件时，内置 Provider 仅声明自身适配器已实现的能力；全局注册不代表 CLI 入口已接通或当前账号实际可用。
 
 | 提供商必须声明的能力 | CLI 命令 | Python SDK |
 |---|---|---|
 | `sandbox.lifecycle` | `create`、`list`、`info`、`kill`、`connect` | `Sandbox.create`、`connect`、`list`、`kill`、`info` |
-| `sandbox.timeout` | `sandbox timeout` | `set_timeout` |
-| `sandbox.pause` | `sandbox pause`、`sandbox resume` | `pause`、`resume` |
+| `sandbox.timeout` | 创建时的生命周期参数；无通用 timeout 命令 | `set_timeout` |
+| `sandbox.pause` | 极速版标准 pause/resume；通用 Provider CLI 入口尚未接入 | ProviderSandbox `pause`、`resume` |
 | `exec.run` | `exec`、`run` | `commands.run`、`sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
 | `process.manage` | `sandbox process list/info/signal`；用 `exec --background` 启动 | `commands.list`、`kill`、`send_stdin` |
-| `pty` | PTY 会话（`connect` 仍是按行 REPL） | `get_terminal` |
+| `pty` | 极速版 connect 为 PTY；项目 Provider connect 仍是逐行 REPL | `get_terminal` |
 | `files.rw` | `upload`、`download`、`sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
 | `files.transfer` | — | 带签名的上传和下载 URL |
-| `code.interpret` | `sandbox code` | `run_code` |
+| `code.interpret` | 无通用 code 命令；MCP/解释器入口各有契约 | `run_code` |
 | `templates.read` | `template list`、`template info` | 模板读取 API |
 | `templates.build` | `template build/push/create/deploy/install/delete`、`deploy`、`install` | 镜像构建和模板注册 |
-| `ports.url` | `sandbox url` | `network.get_url` |
-| `ports.domain` | — | 自定义域名 |
-| `storage.mount` | — | OSS 挂载 |
-| `network.vpc` | `--vpc-id` 及相关参数 | VPC 配置 |
+| `ports.url` | 无独立 URL 命令 | Provider 感知的 `network.resolve` / `resolve_url` |
+| `ports.domain` | 当前适配器未实现 | 需要已验证的后端专有适配器 |
+| `storage.mount` | 本次没有通用挂载命令 | 独立挂载集成，本次未实现 |
+| `network.vpc` | 仅 FC 模板参数，不是通用 Provider 操作 | 独立的 Provider 专有配置 |
 | `sessions` | `connect <provider:id>` 重新连接 | 对已有 id 调用 `Sandbox.connect` |
 
 `abx provider list` 只显示每个提供商声明了多少项特性（表格要在 80 列下保持可读）；`--json` 里是完整列表的单个字符串，例如 `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`。`abx provider info <id>` 打印完整清单。

@@ -102,27 +102,27 @@ A command that needs a feature the provider does not declare (for example `abx s
 
 ## What you can run after installing
 
-Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. With no plugin selected, the built-in provider `alicloud-express` declares every feature in the table, so the full command set works as before.
+Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. The built-in provider declares its own implemented adapter set; global feature registration does not establish CLI coverage or live account availability.
 
 | Feature the provider must declare | CLI commands | Python SDK |
 |---|---|---|
 | `sandbox.lifecycle` | `create`, `list`, `info`, `kill`, `connect` | `Sandbox.create`, `connect`, `list`, `kill`, `info` |
-| `sandbox.timeout` | `sandbox timeout` | `set_timeout` |
-| `sandbox.pause` | `sandbox pause`, `sandbox resume` | `pause`, `resume` |
+| `sandbox.timeout` | Creation lifetime options; no generic timeout command | `set_timeout` |
+| `sandbox.pause` | Express standard pause/resume; generic provider CLI entry still missing | ProviderSandbox `pause`, `resume` |
 | `exec.run` | `exec`, `run` | `commands.run`, `sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
 | `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_stdin` |
-| `pty` | a PTY session (`connect` stays a line REPL) | `get_terminal` |
+| `pty` | Express connect uses a PTY; project provider connect is still a line REPL | `get_terminal` |
 | `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
 | `files.transfer` | — | signed upload and download URLs |
-| `code.interpret` | `sandbox code` | `run_code` |
+| `code.interpret` | No generic code command; MCP/interpreter entry points have their own contract | `run_code` |
 | `templates.read` | `template list`, `template info` | template read APIs |
 | `templates.build` | `template build/push/create/deploy/install/delete`, `deploy`, `install` | image build and template registration |
-| `ports.url` | `sandbox url` | `network.get_url` |
-| `ports.domain` | — | custom domain configuration |
-| `storage.mount` | — | OSS mount |
-| `network.vpc` | `--vpc-id` and the related flags | VPC configuration |
+| `ports.url` | No dedicated URL command | Provider-aware `network.resolve` / `resolve_url` |
+| `ports.domain` | Not implemented by this adapter | Requires a verified backend-specific adapter |
+| `storage.mount` | No generic mount command in this change | Separate mount integration, not implemented here |
+| `network.vpc` | FC template flags only; no generic provider operation | Separate provider-specific configuration |
 | `sessions` | re-attach with `connect <provider:id>` | `Sandbox.connect` on an existing id |
 
 `abx provider list` shows how many features each provider declares (the table has to stay readable at 80 columns); `--json` has the full list as one string, for example `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`. `abx provider info <id>` prints the list.
