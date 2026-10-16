@@ -403,7 +403,7 @@ describe("TestDefaultSetting", () => {
 });
 
 describe("TestClassifySource", () => {
-  it.each(["ext::sh -c 'x'", "http://example.com/r.git", "git://example.com/r.git", "file:///tmp/r", "ftp://x/y"])("test_insecure_rejected[%s]", (src) => {
+  it.each(["ext::sh -c 'x'", "http://example.com/r.git", "git://example.com/r.git", "file://localhost/nonexistent-installer-fixture", "ftp://x/y"])("test_insecure_rejected[%s]", (src) => {
     expect(() => installer.classifySource(src)).toThrow(ProviderTrustError);
   });
 
@@ -422,7 +422,7 @@ describe("TestClassifySource", () => {
   );
 
   it("test_insecure_allowed_with_flag", () => {
-    expect(installer.classifySource("file:///tmp/r", { allowInsecure: true })[0]).toBe("git");
+    expect(installer.classifySource("file://localhost/nonexistent-installer-fixture", { allowInsecure: true })[0]).toBe("git");
   });
 
   it("test_garbage", () => {
