@@ -30,7 +30,8 @@ FC request serializes the documented `volumeMounts: [{name, path}]`; defaults ke
 payload. Validate before infrastructure setup, reject unsupported provider mappings and duplicate
 CLI paths, and preserve the distinction from an unimplemented dynamic `storage.mount` protocol.
 An opt-in real mount scenario must verify the actual mount before exclusive sentinel-file I/O
-and clean up only its own file and sandbox. This remains blocked without real test storage.
+and clean up only its own file and sandbox. Authorized temporary infrastructure now verifies
+this path against real OSS storage, with independent object readback and complete cleanup.
 
 ## API Design
 
@@ -63,6 +64,10 @@ drafts until required acceptance checks are complete; shared contracts land befo
 
 ## Test Strategy
 
+Storage acceptance also destroys the writing sandbox, verifies its absence, creates a
+different sandbox mounting the same Volume, and requires the exclusive file contents to
+survive before deleting the file and both test sandboxes.
+
 Independent audits covered CLI registration, authoritative cloud interfaces, and cross-language
 contracts before implementation. Disjoint implementation ownership and independent review found
 and corrected cleanup hangs, skipped resource cleanup, secret-bearing object keys, schema-cache
@@ -94,3 +99,5 @@ authorization boundary, as clarified in both language versions of the specificat
 [Independent recheck and accepted-main integration](../../../evidence/verify/2026-10-16-provider-management-recheck.md).
 [Completed aggregate and additional baseline reproduction](../../../evidence/verify/2026-10-16-provider-management-aggregate-recheck.md).
 This decision remains proposed while required verification or API prerequisites are outstanding.
+
+[Authorized real storage and cleanup acceptance](../../../evidence/verify/2026-10-16-provider-volume-live.md).

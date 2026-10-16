@@ -229,3 +229,5 @@ abx --json provider command run alicloud-express volume.list --input '{"max_resu
 按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
 Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
 角色配置和挂载验证见能力矩阵。
+应选择支持挂载的模板；自定义 MicroVM 源镜像须预装 ossfs2 2.0.10 或以上版本，
+参见[官方挂载指南](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。

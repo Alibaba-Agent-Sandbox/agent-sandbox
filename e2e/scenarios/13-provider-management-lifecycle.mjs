@@ -24,7 +24,8 @@ function prerequisites(ctx, extraFlag) {
 }
 
 function stateFor(ctx) {
-  const name = `abx-cmdtest-${randomUUID().replace(/-/g, '')}`;
+  // Use the short alphanumeric form verified by the real CreateTeam API.
+  const name = `abx${randomUUID().replace(/-/g, '').slice(0, 16)}`;
   const directory = join(ctx.cwd, name);
   mkdirSync(directory, { mode: 0o700 });
   return {

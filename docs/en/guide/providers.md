@@ -230,3 +230,5 @@ This selects the Volume by name and requires its Team's sandbox API key and a st
 It does not create underlying storage. Volume currently requires invitation access; confirm it through
 an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).
 See the capability matrix for role configuration and mount verification.
+Choose a mount-capable template; custom MicroVM source images must include ossfs2 2.0.10
+or newer, as required by the [official mount guide](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1).

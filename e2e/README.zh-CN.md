@@ -80,6 +80,13 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 删除自己的哨兵文件，最后销毁自己的沙箱，不删除既有 Volume 或底层存储。缺少条件标为
 skip，不代表挂载已通过。
 
+请显式设置 `ABX_E2E_TEMPLATE`，选择支持挂载的模板。自定义 MicroVM 源镜像必须预装
+ossfs2 2.0.10 或以上版本，参见[官方挂载指南](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。
+明确授权创建测试基础设施后，可用临时私有 Bucket、仅有该 Bucket 权限且信任 FC 的专用
+RAM 角色、同一 Team 的测试 API Key 和 Volume 准备前提。沙箱清理后，依次停用并删除测试
+Key、删除 Volume、清空并删除测试 Bucket、解绑并删除自定义策略、删除测试角色，逐项查询
+确认不存在。这些创建与清理步骤独立于挂载套件，套件本身不创建存储或删除已有 Volume。
+
 管理命令检查可运行 `--suite provider-commands-offline,provider-management-cloud`。
 前者无需凭证，后者用 AK/SK 验证四类 FC 只读 API，均不创建资源。
 临时 API Key 生命周期使用 `--suite provider-management-lifecycle --filter existing-team-api-key-lifecycle`，
@@ -90,7 +97,7 @@ skip，不代表挂载已通过。
 
 | 变量 | 含义 |
 |---|---|
-| `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node dist/bin/abx.js"` |
+| `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node $PWD/dist/bin/abx.js"`；临时场景工作目录要求脚本使用绝对路径 |
 | `ABX_E2E_TEMPLATE` | 生命周期套件使用的模板(默认 `python-hello`) |
 | `ABX_E2E_TIMEOUT_MS` | 每条命令默认超时(默认 120000) |
 | `ABX_E2E_DOCKER=1` | 启用 Docker/ACR 套件(慢,会消耗真实资源) |

@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Document mount-capable template selection, the custom MicroVM ossfs2 minimum version, and verified real OSS Volume acceptance with complete temporary-resource cleanup.
+
 - Clarify the current Volume invitation-access prerequisite in the English and Chinese management and mounting guides; an empty list does not prove create or mount access.
 - Use an absolute built CLI path in both E2E quick starts so the executable still resolves from isolated scenario directories.
 
@@ -34,6 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Open-source hygiene.** The deploy and benchmark scripts no longer contain developer-machine paths, a personal ACR namespace or fixed e2e tags: `abx` is resolved from `PATH` (override with `ABX_BIN`), `scripts/build_hermes.sh`, `deploy_all_templates.sh` and `deploy_remaining.sh` take `ACR_NAMESPACE` (required), `TAG` (default `dev`) and `REGION` from the environment, and `.env.example` uses the `<your-namespace>` placeholder. New regression guard `npm run check:hygiene` (`scripts/check-no-local-paths.sh`, allowlist in `scripts/local-paths.allowlist`) runs in CI and fails on user-home paths, Windows user paths, `.venv/bin` assumptions, personal identifiers and key-like strings.
 
 ### Fixed
+
+- Generate short alphanumeric Team names in opt-in provider-management E2E lifecycles, fixing real CreateTeam rejection of the previous fixture.
 
 - Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.
 
