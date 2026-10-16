@@ -1,3 +1,5 @@
+> Historical workflow capture: this page preserves the earlier CLI commands and recorded output verbatim. For current standard commands use [Migrate from E2B](migrate-from-e2b.md) and the [CLI reference](../reference/cli-reference.md). Standard create uses a positional template and --detach for an ID; standard kill --all acts immediately, with no --yes confirmation. Project template.yaml generation now uses template scaffold.
+
 # From Template to Production Sandbox: End-to-End Guide
 
 This guide walks you through the complete workflow of a custom sandbox template, from authoring to production use.
@@ -170,7 +172,7 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 ### What to do after `--download-only`
 
 - **Deploy it to your own platform account**: run `abx template deploy <cache-path>` on the cached directory (or `abx template build` for a step-by-step build & push) — the workflow is identical to Step 3 below.
-- **The template is already deployed on the platform**: skip install entirely and create a sandbox by template name (`abx create python-hello`).
+- **The template is already deployed on the platform**: skip install entirely and create a sandbox by template name (`abx create --template python-hello`).
 - **Iterate locally**: the cache directory is plain template source — copy it out, modify it, and follow the full workflow in this guide.
 
 ---
@@ -179,14 +181,14 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 
 ### Scaffold a new template (recommended)
 
-The fastest way to start is the built-in scaffold. `abx template scaffold` generates a ready-to-edit template directory, so you no longer have to hand-write `template.yaml` / `Dockerfile` / `commands.py` from memory.
+The fastest way to start is the built-in scaffold. `abx template init` generates a ready-to-edit template directory, so you no longer have to hand-write `template.yaml` / `Dockerfile` / `commands.py` from memory.
 
 When the `DIRECTORY` argument is omitted, the scaffold creates a new subdirectory `./<name>` in the current working directory. The `<name>` is resolved by priority: `--name` > scaffold case name (the `-t` value) > template name from `--from`.
 
 List the available scaffold cases:
 
 ```bash
-$ abx template scaffold --list
+$ abx template init --list
   python       Python 3.11 sandbox with shell, files, and code capabilities
   node         Node.js 20 sandbox with shell, files, and code capabilities
   minimal      Bare-minimum template with only template.yaml + Dockerfile
@@ -195,7 +197,7 @@ $ abx template scaffold --list
 Scaffold a Python template into `./my-template`:
 
 ```bash
-$ abx template scaffold -t python ./my-template
+$ abx template init -t python ./my-template
 ✅ Template 'my-template' created in ./my-template
 Created files:
   Dockerfile
@@ -208,21 +210,21 @@ Next steps:
   abx template install ./my-template --acr-namespace <ns>
 ```
 
-> Scaffolding and credentials setup are separate commands: `abx template scaffold` (this section) writes local files only, while `abx config init` stores credentials and `abx create` launches a cloud sandbox. There is no top-level `abx init`.
+> Scaffolding and credentials setup are separate commands: `abx template init` (this section) writes local files only, while `abx config init` stores credentials and `abx create` launches a cloud sandbox. There is no top-level `abx init`.
 
 ### Adapt a project that already has source code
 
 When the directory is an application (Flask, Express, a script) and has no `Dockerfile` / `template.yaml`, use `--adopt`. Qwen Code sees a copy; abx writes `Dockerfile`, `commands.py`, `template.yaml`, and a `.dockerignore` when you don't already have one, into that same directory.
 
 ```bash
-$ abx template scaffold --adopt ./my-app --hint "listens on 8080"
+$ abx template init --adopt ./my-app --hint "listens on 8080"
 # review the preview, then:
 $ abx deploy ./my-app --acr-namespace my-ns
 ```
 
 `--dry-run` lists every file that would be sent and contacts no model. `-y` is required outside an interactive terminal. Secrets (`.env`, keys, secret-looking files) stay out of the copy, and the agent process does not inherit cloud credentials. The full rules — backups, `--force`, and what is rejected before a write — are in [Authoring Templates — Adapt an existing project](authoring-templates.md#adapt-an-existing-project).
 
-`abx template scaffold --prompt "DESCRIPTION"` is the other generation path: it creates a **new** directory from a sentence. `--adopt` fills in the project you already have.
+`abx template init "DESCRIPTION"` is the other generation path: it creates a **new** directory from a sentence. `--adopt` fills in the project you already have.
 
 ### Understand the generated files
 
@@ -434,7 +436,7 @@ CLI flags > declarations in `template.yaml` > hardcoded defaults. See the [CLI R
 **① Create a sandbox**
 
 ```bash
-$ abx create base
+$ abx create --template base
 ID           sbx-00000000-0000-4000-8000-000000000000
 Status       running
 Template     base
@@ -557,7 +559,7 @@ No sandboxes found.
 `--template` accepts either a template **name** or an **ID**, but only a template that is `ready` and whose image starts successfully can be created. Below is the real output when creating `python-hello` — even though `abx template list --official-api` shows a `ready` `python-hello`, this create attempt had its connection reset by the platform during cold start:
 
 ```bash
-$ abx create python-hello
+$ abx create --template python-hello
 [E5003] Connection reset by remote: <StreamReset stream_id:1, error_code:2, remote_reset:True>
   Suggestion: The platform closed the connection before responding. This usually means the operation took too long (e.g., sandbox cold start). Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -568,7 +570,7 @@ $ abx create python-hello
 Retrying multiple times under `http_timeout=120` and `http2=false` still failed, eventually reporting a request timeout:
 
 ```bash
-$ abx create python-hello
+$ abx create --template python-hello
 [E3001] Request timed out: 
   Suggestion: The HTTP request timed out. Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -593,7 +595,7 @@ To drive the sandbox from Python (create, run commands, read and write files, th
 abx kill <sandbox-id>
 
 # Kill all running sandboxes
-abx kill --all
+abx kill --all --yes
 ```
 
 > ⚠️ **Data loss warning**: `abx kill --all` destroys **every** running sandbox in your account, and their in-memory/ephemeral data is lost permanently. Without `--yes` the CLI asks for confirmation first — only add `-y/--yes` in automation where you're certain no sandbox needs to survive.
@@ -622,7 +624,7 @@ abx template delete <template-id>
 
 | Symptom | Possible cause | Solution |
 |---------|---------------|----------|
-| No Dockerfile | The directory is application source, not a template yet | `abx template scaffold --adopt .`, then `abx deploy` |
+| No Dockerfile | The directory is application source, not a template yet | `abx template init --adopt .`, then `abx deploy` |
 | Confirmation required before project files are sent | Non-interactive `--adopt` without `-y` | Pass `-y`, or `--dry-run` to list the files without sending them |
 | Docker build failed | Dockerfile syntax / network issue | Add `-v` to see detailed logs |
 | ACR login failed | AK/SK expired or insufficient permissions | Verify credentials in `.env` |

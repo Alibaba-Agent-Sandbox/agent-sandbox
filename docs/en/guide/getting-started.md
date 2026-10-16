@@ -58,7 +58,7 @@ abx config get sandbox_api_key
 ### Using the CLI
 
 ```bash
-abx create base
+abx create base --detach
 ```
 
 `base` is the default template. The repository README uses `python-base`, the Python image in the catalog.
@@ -76,7 +76,7 @@ abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-abx exec <sandbox-id> -- sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. File Operations
@@ -112,14 +112,15 @@ abx kill --all
 
 ```bash
 # Create a sandbox and upload a project
-abx create base --upload ./project
+abx create base --detach
+abx upload <sandbox-id> ./project /home/user/project
 
 # Run something inside it
 abx exec <sandbox-id> "python /home/user/project/main.py"
 
 # Fetch the result and tear the sandbox down
 abx download <sandbox-id> /home/user/result.csv ./result.csv
-abx kill <sandbox-id> --yes
+abx kill <sandbox-id>
 ```
 
 ---

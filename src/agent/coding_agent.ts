@@ -1,5 +1,5 @@
 /**
- * Pluggable coding-agent backend boundary for `abx create "<description>"`.
+ * Pluggable coding-agent backend boundary for `abx create --prompt "<description>"`.
  *
  * Port of `agent_sandbox/agent/coding_agent.py`. The natural-language create path drives a *coding agent* on the host
  * to turn one free-form description into a Dockerfile + `template.yaml` (and, for interactive sessions, to assess the
@@ -69,7 +69,7 @@ export interface CodingAgentCredentials {
 export type CreationErrorClass = new (message: string, options?: { suggestion?: string | null }) => SandboxCreationError;
 
 /**
- * What `abx create "<description>"` needs from a coding agent.
+ * What `abx create --prompt "<description>"` needs from a coding agent.
  *
  * The interface covers the five phases the create pipeline runs before deployment: locating/installing the agent,
  * resolving model credentials, researching the public facts behind the description ({@link research}), completing
@@ -193,7 +193,7 @@ export interface CodingAgentBackend {
   /**
    * Run `prompt` in `workdir` and return the agent's final text.
    *
-   * Used by `abx template init --adopt`. The backend does not validate or write into the user's project; the caller
+   * Used by `abx template scaffold --adopt`. The backend does not validate or write into the user's project; the caller
    * does. The child environment must not inherit cloud credentials.
    */
   runInWorkspace(

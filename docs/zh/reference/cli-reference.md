@@ -611,7 +611,7 @@ abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir .
 
 ## 部署命令 — abx deploy
 
-发布模板项目：`docker build` → 推送 ACR → 注册模板 → 等待就绪。固定流水线，**没有描述参数，无需 LLM，也无需 LLM Key**。它是模板生命周期的第 2 步（`abx template scaffold` → **`abx deploy`** → `abx create --template`）；“模板是什么”写在 `template.yaml` 里。
+发布模板项目：`docker build` → 推送 ACR → 注册模板 → 等待就绪。固定流水线，**没有描述参数，无需 LLM，也无需 LLM Key**。它是模板生命周期的第 2 步（`abx template scaffold` → **`abx deploy`** → `abx create <template>`）；“模板是什么”写在 `template.yaml` 里。
 
 ```bash
 abx deploy [PATH] [选项]

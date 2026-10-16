@@ -1,3 +1,5 @@
+> 历史工作流记录：本页原样保留较早 CLI 的命令及实测输出。当前标准命令见[从 E2B 迁移](migrate-from-e2b.md)及[CLI 参考](../reference/cli-reference.md)。标准 create 使用位置模板参数，--detach 输出 ID；标准 kill --all 立即执行，没有 --yes 确认。项目 template.yaml 生成入口现为 template scaffold。
+
 # 从零构建模板到沙箱使用：端到端指南
 
 本指南带你完成一个自定义沙箱模板从编写到生产使用的完整工作流。
@@ -170,7 +172,7 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 ### `--download-only` 之后如何使用
 
 - **部署到自己的平台账号**：对缓存目录执行 `abx template deploy <缓存路径>`（或 `abx template build` 分步构建推送），流程与下文第三步完全一致。
-- **模板已在平台上部署过**：无需 install，直接用模板名创建沙箱即可（`abx create python-hello`）。
+- **模板已在平台上部署过**：无需 install，直接用模板名创建沙箱即可（`abx create --template python-hello`）。
 - **本地二次开发**：缓存目录就是普通模板源码，可复制出来修改后按本文完整流程走一遍。
 
 ---
@@ -179,14 +181,14 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 
 ### 脚手架生成新模板（推荐）
 
-最快的起步方式是内置脚手架。`abx template scaffold` 会生成一个开箱即用的模板目录，你不再需要凭记忆手写 `template.yaml` / `Dockerfile` / `commands.py`。
+最快的起步方式是内置脚手架。`abx template init` 会生成一个开箱即用的模板目录，你不再需要凭记忆手写 `template.yaml` / `Dockerfile` / `commands.py`。
 
 省略 `DIRECTORY` 参数时，脚手架会在当前工作目录下新建 `./<name>` 子目录。`<name>` 按优先级解析：`--name` > 脚手架案例名（`-t` 的值） > `--from` 拉取到的模板名。
 
 列出可用的脚手架案例：
 
 ```bash
-$ abx template scaffold --list
+$ abx template init --list
   python       Python 3.11 sandbox with shell, files, and code capabilities
   node         Node.js 20 sandbox with shell, files, and code capabilities
   minimal      Bare-minimum template with only template.yaml + Dockerfile
@@ -195,7 +197,7 @@ $ abx template scaffold --list
 将 Python 模板脚手架生成到 `./my-template`：
 
 ```bash
-$ abx template scaffold -t python ./my-template
+$ abx template init -t python ./my-template
 ✅ Template 'my-template' created in ./my-template
 Created files:
   Dockerfile
@@ -208,21 +210,21 @@ Next steps:
   abx template install ./my-template --acr-namespace <ns>
 ```
 
-> 脚手架与凭证配置是两条独立命令：`abx template scaffold`（本节）只写本地文件，`abx config init` 存储凭证，`abx create` 启动云端沙箱。不存在顶层 `abx init`。
+> 脚手架与凭证配置是两条独立命令：`abx template init`（本节）只写本地文件，`abx config init` 存储凭证，`abx create` 启动云端沙箱。不存在顶层 `abx init`。
 
 ### 适配已有源码的项目
 
 目录里已经是一个应用（Flask、Express、一段脚本），还没有 `Dockerfile` / `template.yaml` 时，用 `--adopt`。Qwen Code 只看到一份副本；abx 把 `Dockerfile`、`commands.py`、`template.yaml`，以及在你还没有时生成的 `.dockerignore`，写回同一目录。
 
 ```bash
-$ abx template scaffold --adopt ./my-app --hint "监听 8080"
+$ abx template init --adopt ./my-app --hint "监听 8080"
 # 看过预览之后：
 $ abx deploy ./my-app --acr-namespace my-ns
 ```
 
 `--dry-run` 列出将要发送的全部文件，不调用模型。非交互终端必须带 `-y`。`.env`、密钥、以及内容看起来像密钥的文件不会进入副本，Agent 进程也不会继承云凭证。备份、`--force`、写入前会拒绝哪些结果，见 [编写模板 — 适配已有项目](authoring-templates.md#适配已有项目)。
 
-`abx template scaffold --prompt "描述"` 是另一条 生成路径：根据一句话**新建**目录。`--adopt` 补的是你已经有的项目。
+`abx template init "描述"` 是另一条 生成路径：根据一句话**新建**目录。`--adopt` 补的是你已经有的项目。
 
 ### 理解生成的文件
 
@@ -434,7 +436,7 @@ CLI 参数 > `template.yaml` 中的声明 > 硬编码默认值。详见 [CLI 参
 **① 创建沙箱**
 
 ```bash
-$ abx create base
+$ abx create --template base
 ID           sbx-00000000-0000-4000-8000-000000000000
 Status       running
 Template     base
@@ -557,7 +559,7 @@ No sandboxes found.
 `--template` 既可传模板**名称**也可传**ID**，但只有状态为 `ready` 且镜像可正常拉起的模板才能成功创建。下面是对 `python-hello` 执行创建时的真实输出——尽管 `abx template list --official-api` 中有一个 `ready` 的 `python-hello`，但本次创建在冷启动阶段被平台重置连接：
 
 ```bash
-$ abx create python-hello
+$ abx create --template python-hello
 [E5003] Connection reset by remote: <StreamReset stream_id:1, error_code:2, remote_reset:True>
   Suggestion: The platform closed the connection before responding. This usually means the operation took too long (e.g., sandbox cold start). Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -568,7 +570,7 @@ $ abx create python-hello
 在 `http_timeout=120`、`http2=false` 配置下多次重试仍持续失败，最终报请求超时：
 
 ```bash
-$ abx create python-hello
+$ abx create --template python-hello
 [E3001] Request timed out: 
   Suggestion: The HTTP request timed out. Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
@@ -593,7 +595,7 @@ $ abx create python-hello
 abx kill <sandbox-id>
 
 # 销毁所有运行中的沙箱
-abx kill --all
+abx kill --all --yes
 ```
 
 > ⚠️ **数据丢失警告**：`abx kill --all` 会销毁账号下**所有**运行中的沙箱，其内存/临时数据将永久丢失。不带 `--yes` 时 CLI 会先要求确认——只在确定没有沙箱需要保留的自动化场景下才加 `-y/--yes`。
@@ -622,7 +624,7 @@ abx template delete <template-id>
 
 | 症状 | 可能原因 | 解决方案 |
 |------|---------|---------|
-| 没有 Dockerfile | 目录还是应用源码，不是模板 | `abx template scaffold --adopt .`，然后 `abx deploy` |
+| 没有 Dockerfile | 目录还是应用源码，不是模板 | `abx template init --adopt .`，然后 `abx deploy` |
 | Confirmation required before project files are sent | 非交互的 `--adopt` 没有带 `-y` | 加上 `-y`，或用 `--dry-run` 只看文件列表 |
 | Docker build 失败 | Dockerfile 语法错误 / 网络问题 | 加 `-v` 查看详细日志 |
 | ACR login 失败 | AK/SK 过期或权限不足 | 检查 `.env` 中的凭证配置 |

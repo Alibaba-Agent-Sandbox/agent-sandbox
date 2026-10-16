@@ -82,7 +82,7 @@ When you are unsure which template to use, you can describe your needs in natura
 abx create --prompt "a Python data analysis environment with pandas and matplotlib"
 ```
 
-`abx create --prompt "<description>"` (without an explicit `--template`) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
+`abx create --prompt "<description>"` (without an existing template positional argument) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
 
 ---
 

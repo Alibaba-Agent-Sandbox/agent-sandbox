@@ -1,7 +1,7 @@
 /**
  * Shared coding-agent helpers for the `create` and `deploy` commands (port of `cli/commands/_coding_agent.py`).
  *
- * Both `abx create "<description>"` and the agent-driven `abx deploy` route drive the same pluggable backend
+ * Both `abx create --prompt "<description>"` and the agent-driven `abx deploy` route drive the same pluggable backend
  * (`agent/coding_agent.ts`): they must locate (or install) the agent executable and resolve model credentials
  * identically -- same prompts, same non-interactive behaviour, same error codes, same secret handling. This internal
  * module is the single home of that front half of the flow; the command modules keep the orchestration and the

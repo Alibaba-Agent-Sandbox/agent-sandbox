@@ -178,7 +178,7 @@ abx kill --all
 result = await sandbox.commands.run("long-command", timeout=300)
 
 # CLI 中增加超时
-abx exec sbx-xxxx "long-command" --timeout 300
+abx exec sbx-xxxx "long-command"  # no local command timeout / 无本地命令超时参数
 ```
 
 ---

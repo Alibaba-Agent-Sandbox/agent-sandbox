@@ -7,10 +7,13 @@
 ## 第一步：安装
 
 ```bash
-npm install -g @agent-sandbox/cli
+# 新版本发布前从当前检出目录构建
+npm ci
+npm run build
+node dist/bin/abx.js --version
 ```
 
-安装后即可使用 `abx` 命令：
+以下示例使用已安装二进制的 abx 名称；从检出目录运行时，将前缀替换为 `node /绝对路径/dist/bin/abx.js`：
 
 ```bash
 abx --version
@@ -38,116 +41,47 @@ export E2B_API_KEY="your-api-key"
 
 ## 第三步：创建沙箱
 
-### 快速区分：`config init`、`template init` 与 `create`
-
-| 我想要…… | 命令 |
-|----------|------|
-| 存储凭证与端点（首次使用先执行） | `abx config init` —— 交互式引导向导 |
-| 创建云端沙箱（默认模板、已有模板或 模板生成） | `abx create [DESCRIPTION]` |
-| 脚手架生成本地可编辑的模板工程 | `abx template scaffold [DIRECTORY]` 或 `abx template scaffold --prompt "描述"` —— 只写本地文件，不构建、不部署。描述会先询问项目目录（回车保持 `./<name>/`） |
-| 把已有项目变成模板 | `abx template scaffold --adopt [DIRECTORY]` —— 在原目录补上模板文件；不构建、不部署 |
-
-### 使用默认模板
+极速版标准命令遵循[固定 E2B 契约](migrate-from-e2b.md)。位置参数是模板，默认 base。为便于后续操作，创建后台沙箱并保存打印的 ID：
 
 ```bash
-abx create base
-# 输出类似：
-# ✓ Sandbox created: sbx-xxxx
+abx create base --detach --timeout 300
 ```
 
-### 自然语言创建（模板生成）
+不传 --detach 时 create 打开真实 PTY；默认退出策略会缩短租期（阿里云最短 TTL 仍适用）。连接已有沙箱时，connect 打开真实 PTY，退出终端后沙箱继续运行。
+
+自然语言是显式项目扩展：
 
 ```bash
-# 首次使用：凭证与区域（`--build` 追加 ACR，`--llm` 追加此处用到的 LLM Key）
-# abx config init --llm --build
-
-# Qwen Code 生成 Dockerfile、commands.py（HTTP 服务）与 template.yaml → 构建部署 → 创建沙箱。
-# 交互式终端会先询问是否改走 template init（只留本地文件）。--yes 保持完整流程。
 abx create --prompt "一个 Python 数据分析环境"
-
-# 只生成模板文件 —— 不构建、不推送、不部署、不创建沙箱
+abx create --prompt "一个 Node.js API 服务" -y
 abx template scaffold --prompt "一个 Python 数据分析环境"
 ```
 
-生成之前，Agent 会先自行检索描述中**可公开查证的事实**——工具是否基于 Node.js、官方安装方式、常见运行时与依赖——再评估描述完整度（目标 80%）。只有用户偏好、私有约束和无法推断的业务决策才会成为问题，**每次只问一个**，以 `Question 1`、`Question 2` 逐次编号（不显示总数）；直接回车即可取消：
-
-```text
-Description is about 40% complete. I'll ask for the missing details one question at a time — press Enter to cancel.
-Question 1: Which region and resource size should the sandbox use?
-```
-
-回答“你自己决定”“采用默认”等即视为授权 Agent 处理（采用安全合理默认值），已回答过的主题不会再次提问。
-
-非交互环境（CI、管道输入）必须加 `-y` 跳过确认与澄清评估，否则安装/凭证/构建环节会直接报错并打印 Quick Setup；描述低于完整度阈值时则以 `E2008` 快速失败（附带缺失项与可直接套用的示例描述）：
+项目生成路径可以调研需求、询问缺失的用户偏好，并在确认后构建/部署。scaffold 只写本地文件；template init --name demo --language python-sync 则生成标准 SDK 构建文件，Python 使用 agent_sandbox。已有模板无需 LLM 或 --template。文件单独上传：
 
 ```bash
-# abx create -y "a node.js api server"
-# abx create --prompt "run python"    # 非交互、描述不完整 → E2008
+abx upload <sandbox-id> ./project /home/user/project
 ```
 
-显式 `--template` 会跳过 模板生成，走直接模板路径（`abx create <名称>`）。`DESCRIPTION` 与 `--template` 互斥 —— 同时提供会被拒绝（用法错误），而不是静默忽略其中一个：
+## 第四步：查看和管理沙箱
 
 ```bash
-# abx create --prompt "a node.js api server" --template base   # 拒绝执行（退出码 2）
+abx list --state running --limit 5 --format json
+abx info <sandbox-id> --format json
 ```
 
-### 创建时上传文件
-
-```bash
-abx create base --upload ./project/ --env MY_KEY=value
-```
-
----
-
-## 第四步：查看与管理沙箱
-
-### 列出所有沙箱
-
-```bash
-abx list
-abx list --status running
-abx list --limit 5
-```
-
-### 查看详情
-
-```bash
-abx info sbx-xxxx
-```
-
----
+标准输出使用 E2B 模型与 --format，项目全局 JSON 信封是另一个扩展接口。保留已配置的 E2B_API_KEY、E2B_API_URL、E2B_DOMAIN。
 
 ## 第五步：在沙箱中执行命令
 
-### 执行单条命令
-
 ```bash
-abx exec sbx-xxxx -- echo Hello World
-abx exec sbx-xxxx --timeout 120 -- pip install flask
-abx exec sbx-xxxx --stream -- pip install flask         # 实时输出
-abx exec sbx-xxxx --background -- python -m http.server 8000   # 打印 pid
+abx exec <sandbox-id> echo Hello World
+abx exec --cwd /tmp --env MODE=test <sandbox-id> sh -c 'printf "$MODE"; exit 7'
+abx exec --background <sandbox-id> python -m http.server 8000
+abx connect <sandbox-id>
 ```
 
-### 交互式连接
-
-```bash
-abx connect sbx-xxxx
-```
-
-这是逐行 REPL，不是 PTY 也不是 SSH 会话：每行命令在独立进程中执行（30 秒
-超时），`cd`、环境变量和 shell 状态不会跨行保持（请使用
-`cd /path && <cmd>` 单行写法，或 `abx exec --cwd`）。交互式终端支持基础行编辑
-与历史快捷键（Up/Down、Ctrl+R、Ctrl+A/E）。输入 `exit`、`quit` 或按
-`Ctrl+D` 退出；`Ctrl+C` 也会断开。命令失败时只给出一条友好提示。
-
-```text
-abx:sbx-xxxx> ls /app
-main.py  data/
-abx:sbx-xxxx> cd /app && python main.py
-Hello from main.py
-abx:sbx-xxxx> exit
-Disconnected.
-```
+本地选项放在沙箱 ID 前，之后所有参数归远程命令。默认流式输出；前台返回远程退出码，后台 PID 写入 stderr。固定版本没有本地 --timeout、--stream。connect 使用真实终端，cwd 与环境变量跨命令保持。依赖管道 EOF 的输入需要后端支持，见迁移指南。
 
 ---
 
@@ -201,15 +135,10 @@ abx run sbx-xxxx add --json-args '{"x": 1, "y": 2}'
 ## 第八步：销毁沙箱
 
 ```bash
-# 销毁单个沙箱
-abx kill sbx-xxxx
-
-# 销毁所有沙箱（需确认）
-abx kill --all
-
-# 跳过确认
-abx kill --all
+abx kill <sandbox-id>
 ```
+
+标准 kill 没有确认提示或 --yes。--all 会立即删除筛选出的运行中沙箱；清理时使用 ID 或严格的状态/元数据筛选。暂停、快照成功路径需要已启用的函数和受支持的运行时/账号。
 
 ---
 
@@ -226,7 +155,7 @@ abx template install owner/repo//subdir
 ### 使用已安装的模板
 
 ```bash
-abx create my-template
+abx create my-template --detach
 ```
 
 ### 本地脚手架生成模板
@@ -355,6 +284,8 @@ Building Docker image locally: my-template:latest... 12s
 
 ## 全局选项
 
+以下是项目扩展的全局选项；标准命令使用固定 E2B 参数，例如 --format json。
+
 `abx` 命令支持以下全局选项，可在任何子命令前使用：
 
 | 选项 | 说明 |
@@ -373,14 +304,14 @@ Building Docker image locally: my-template:latest... 12s
 在自动化环境中使用 `--ci` 标志：
 
 ```bash
-abx --ci create --template base
+abx create base --detach --timeout 300
 # 等同于 --quiet --no-color --json
 ```
 
 结合 `--json` 可获取机器可读的输出：
 
 ```bash
-abx --json list | jq '.[] | .sandbox_id'
+abx list --format json | jq '.[].sandboxId'
 ```
 
 ---

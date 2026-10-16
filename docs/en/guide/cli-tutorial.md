@@ -7,10 +7,13 @@ This tutorial walks you through mastering the `abx` CLI step by step, covering t
 ## Step 1: Installation
 
 ```bash
-npm install -g @agent-sandbox/cli
+# Build this checkout until the new release is published
+npm ci
+npm run build
+node dist/bin/abx.js --version
 ```
 
-After installation, the `abx` command is available:
+Examples below use the installed binary name abx. From this checkout, replace that prefix with `node /absolute/path/dist/bin/abx.js`:
 
 ```bash
 abx --version
@@ -38,118 +41,47 @@ export E2B_API_KEY="your-api-key"
 
 ## Step 3: Create a Sandbox
 
-### Quick Orientation: `config init` vs `template init` vs `create`
-
-| I want to... | Command |
-|--------------|---------|
-| Store credentials / endpoints (run first) | `abx config init` — guided interactive wizard |
-| Create a cloud sandbox (default, existing template, or generated from a description) | `abx create [DESCRIPTION]` |
-| Scaffold an editable local template project | `abx template scaffold [DIRECTORY]` or `abx template scaffold --prompt "DESCRIPTION"` — writes files only, no build or deploy. A description asks for the project directory first (Enter keeps `./<name>/`) |
-| Turn an existing project into a template | `abx template scaffold --adopt [DIRECTORY]` — adds the template files in place; no build or deploy |
-
-### Using the Default Template
+The standard Express commands follow the [fixed E2B contract](migrate-from-e2b.md). The positional argument is a template, defaulting to base. For the remaining steps create a detached sandbox and retain its printed ID:
 
 ```bash
-abx create base
-# Output similar to:
-# ✓ Sandbox created: sbx-xxxx
+abx create base --detach --timeout 300
 ```
 
-### Natural Language Creation (template generation)
+Without --detach create opens a real PTY; its default exit policy shortens the lease (Alibaba minimum TTL applies). For an existing sandbox, connect opens a PTY and leaves that sandbox alive after terminal exit.
+
+Natural language is an explicit project extension:
 
 ```bash
-# First run: credentials + region (`--build` adds ACR, `--llm` adds the LLM key used here)
-# abx config init --llm --build
-
-# Qwen Code generates Dockerfile + commands.py (HTTP server) + template.yaml → build & deploy → create sandbox.
-# An interactive terminal first asks whether to switch to template init
-# (local files only). --yes keeps the full pipeline.
 abx create --prompt "a Python data analysis environment"
-
-# Template files only — no build, push, deploy, or sandbox
+abx create --prompt "a Node.js API server" -y
 abx template scaffold --prompt "a Python data analysis environment"
 ```
 
-Before generating, the agent first researches the publicly verifiable facts itself — whether the tool is Node.js-based, its official install method, common runtimes and dependencies — then assesses the description for completeness (target: 80%). Only user preferences, private constraints, and business decisions it cannot infer become questions, asked **one at a time** and numbered `Question 1`, `Question 2`, … with no total shown; press Enter to cancel:
-
-```text
-Description is about 40% complete. I'll ask for the missing details one question at a time — press Enter to cancel.
-Question 1: Which region and resource size should the sandbox use?
-```
-
-Answers like "you decide" / "use the default" delegate the choice back to the agent (safe defaults apply), and already-answered topics are never asked again.
-
-Non-interactive environments (CI, piped input) must pass `-y` to skip confirmations and the clarification assessment; otherwise the install/credential/build steps fail fast with a Quick Setup guide, and a description below the completeness threshold fails fast with `E2008` (missing details + a ready-to-use example description):
+The project generation path may research requirements and ask for missing user choices, then build/deploy after confirmation. The scaffold command writes local files. `template init --name demo --language python-sync` instead generates standard SDK build files; Python output imports agent_sandbox. Existing template creation needs neither LLM nor --template. Upload files separately:
 
 ```bash
-# abx create -y "a node.js api server"
-# abx create --prompt "run python"    # non-interactive, incomplete → E2008
+abx upload <sandbox-id> ./project /home/user/project
 ```
-
-An explicit `--template` skips template generation and takes the direct template path (`abx create <name>`). `DESCRIPTION` and `--template` are mutually exclusive — passing both is rejected with a usage error instead of silently ignoring one of them:
-
-```bash
-# abx create --prompt "a node.js api server" --template base   # rejected (exit code 2)
-```
-
-### Upload Files on Creation
-
-```bash
-abx create base --upload ./project/ --env MY_KEY=value
-```
-
----
 
 ## Step 4: View and Manage Sandboxes
 
-### List All Sandboxes
-
 ```bash
-abx list
-abx list --status running
-abx list --limit 5
+abx list --state running --limit 5 --format json
+abx info <sandbox-id> --format json
 ```
 
-### View Details
-
-```bash
-abx info sbx-xxxx
-```
-
----
+Standard output uses E2B models and --format; the project's global JSON envelope is a separate extension interface. Keep E2B_API_KEY, E2B_API_URL and E2B_DOMAIN configured.
 
 ## Step 5: Execute Commands in a Sandbox
 
-### Execute a Single Command
-
 ```bash
-abx exec sbx-xxxx -- echo Hello World
-abx exec sbx-xxxx --timeout 120 -- pip install flask
-abx exec sbx-xxxx --stream -- pip install flask         # live output
-abx exec sbx-xxxx --background -- python -m http.server 8000   # prints the pid
+abx exec <sandbox-id> echo Hello World
+abx exec --cwd /tmp --env MODE=test <sandbox-id> sh -c 'printf "$MODE"; exit 7'
+abx exec --background <sandbox-id> python -m http.server 8000
+abx connect <sandbox-id>
 ```
 
-### Interactive Connection
-
-```bash
-abx connect sbx-xxxx
-```
-
-This is a line-based REPL, not a PTY or an SSH session: each line runs in its own
-process with a 30-second timeout, so `cd`, environment variables and shell state
-do not persist between lines (use `cd /path && <cmd>` on one line, or
-`abx exec --cwd`). Interactive terminals get basic line editing and history
-(Up/Down, Ctrl+R, Ctrl+A/E). Type `exit`, `quit`, or `Ctrl+D` to leave; `Ctrl+C`
-also disconnects. Failed commands are reported as a single friendly message.
-
-```text
-abx:sbx-xxxx> ls /app
-main.py  data/
-abx:sbx-xxxx> cd /app && python main.py
-Hello from main.py
-abx:sbx-xxxx> exit
-Disconnected.
-```
+Local options precede the sandbox ID. All later flags belong to the remote command. Output streams by default; a foreground command returns its remote exit code, and a background PID is written to stderr. The fixed version has no local --timeout or --stream. Connect uses a real terminal with persistent cwd and environment. EOF-dependent piped stdin requires backend support, as described in the migration guide.
 
 ---
 
@@ -203,15 +135,10 @@ abx run sbx-xxxx add --json-args '{"x": 1, "y": 2}'
 ## Step 8: Destroy a Sandbox
 
 ```bash
-# Destroy a single sandbox
-abx kill sbx-xxxx
-
-# Destroy all sandboxes (requires confirmation)
-abx kill --all
-
-# Skip confirmation
-abx kill --all
+abx kill <sandbox-id>
 ```
+
+Standard kill has no confirmation or --yes flag. --all deletes every selected running sandbox immediately; use IDs or narrow state/metadata filters for cleanup. Conditional pause/snapshot operations require enabled functions and supported runtimes/accounts.
 
 ---
 
@@ -228,7 +155,7 @@ abx template install owner/repo//subdir
 ### Use an Installed Template
 
 ```bash
-abx create my-template
+abx create my-template --detach
 ```
 
 ### Scaffold a Template Locally
@@ -349,7 +276,7 @@ Building Docker image locally: my-template:latest... 12s
 #5 DONE 0.1s
 ```
 
-The header's elapsed time moves about once a second, including while the tool is silent. The grey rows are the last six lines (`ABX_ACTIVITY_LINES`, from 1 to 10). The same block is used for creating a sandbox, upload, download, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, `abx kill --all`, and each deploy phase (build, push, wait until READY).
+The header's elapsed time moves about once a second, including while the tool is silent. The grey rows are the last six lines (`ABX_ACTIVITY_LINES`, from 1 to 10). Project extensions use this block for transfer, template/catalog operations, agent installation and deploy phases. Standard commands retain their pinned E2B output.
 
 Grey rows include a short redacted tool detail (command, url, query, or path), along with relative paths, install milestones (mirror, checksum, extract), docker or poll lines, and `i/N <id>` while killing. File bytes, thinking, and credentials stay hidden. ACR tokens and `--build-arg` values are not shown.
 
@@ -357,7 +284,7 @@ Grey rows include a short redacted tool detail (command, url, query, or path), a
 
 ## Global Options
 
-The `abx` command supports the following global options, which can be used before any subcommand:
+Project extension commands support the following global options. Standard E2B commands use their own fixed options, such as --format json:
 
 | Option | Description |
 |--------|-------------|
@@ -366,23 +293,23 @@ The `abx` command supports the following global options, which can be used befor
 | `--no-color` | Disable colored output |
 | `--ci` | CI/CD mode (equivalent to `--quiet --no-color --json`) |
 
-For a detailed list of global options (including `--verbose`, `--log-level`, `--timeout`, etc.), see [CLI Reference — Global Options](../reference/cli-reference.md#global-options). Note that `--region`/`-r` is a command-level option (accepted by `abx list`, `abx kill`, the template control-plane commands, and `abx mcp deploy`), not a global one; set the persistent default via `abx config set region`.
+For a detailed list of global options (including `--verbose` and `--log-level`), see [CLI Reference — Global Options](../reference/cli-reference.md#global-options). Note that `--region`/`-r` is a command-level option (accepted by `abx list`, `abx kill`, the template control-plane commands, and `abx mcp deploy`), not a global one; set the persistent default via `abx config set region`.
 
 ---
 
 ## CI/CD Mode
 
-Use the `--ci` flag in automation environments:
+Use standard detached creation and explicit format in automation. Project extension commands retain --ci:
 
 ```bash
-abx --ci create --template base
+abx create base --detach --timeout 300
 # Equivalent to --quiet --no-color --json
 ```
 
 Combined with `--json` for machine-readable output:
 
 ```bash
-abx --json list | jq '.[] | .sandbox_id'
+abx list --format json | jq '.[].sandboxId'
 ```
 
 ---

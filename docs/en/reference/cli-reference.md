@@ -611,7 +611,7 @@ abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir .
 
 ## Deploy Command — abx deploy
 
-Publish a template project: `docker build` → push to ACR → register the template → wait until ready. Fixed pipeline; **no description, no LLM, no LLM key**. It is step 2 of the template lifecycle (`abx template scaffold` → **`abx deploy`** → `abx create --template`); what the template is lives in `template.yaml`.
+Publish a template project: `docker build` → push to ACR → register the template → wait until ready. Fixed pipeline; **no description, no LLM, no LLM key**. It is step 2 of the template lifecycle (`abx template scaffold` → **`abx deploy`** → `abx create <template>`); what the template is lives in `template.yaml`.
 
 ```bash
 abx deploy [PATH] [options]
