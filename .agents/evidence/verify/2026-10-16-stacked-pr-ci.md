@@ -26,7 +26,12 @@ results are recorded below after publication.
 - `git diff --check`: PASS.
 - `bash scripts/check-no-local-paths.sh`: PASS.
 - Repository health: FAIL; 94 PASS, five warnings, ten pre-existing failures. New records did not add failures.
-- Remote matrix execution pending publication; no remote pass claimed yet.
+- [Full CI run 38846246188](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/38846246188)
+  on commit `f7efe191091d5742cac837b1172e4734fac6833c`: PASS. Node 20 and Node 22
+  tests/parity, typecheck/lint/hygiene, installer and package build all succeeded.
+- The separate Markdown workflow also passed on that commit: six successful checks total.
+- This evidence update changes no product code or workflow; the latest PR head's
+  required checks are inspected again after publishing it.
 
 ## Cleanup
 
