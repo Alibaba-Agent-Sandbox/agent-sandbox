@@ -69,3 +69,7 @@ remain mandatory product gates; report them BLOCKED when Docker is unavailable a
 ## Evidence
 
 [Verification](../../../evidence/verify/2026-10-16-server-wheel-dockerfile-structure.md).
+
+A separate [production builder image regression](../../../evidence/verify/2026-10-16-server-wheel-image-ci.md)
+uses the available GitHub Docker runner to advance the missing image gate without
+uploading cloud credentials. Its preparation record does not claim a remote pass.
