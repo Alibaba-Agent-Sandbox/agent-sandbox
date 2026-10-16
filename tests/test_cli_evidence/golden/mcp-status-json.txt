@@ -1,9 +1,12 @@
 {
   "server": "agent-sandbox",
   "transport": "stdio",
-  "tools_count": 7,
+  "tools_count": 10,
   "tools": [
     "create_sandbox",
+    "list_sandboxes",
+    "get_sandbox",
+    "set_sandbox_timeout",
     "run_code",
     "run_command",
     "read_file",

@@ -70,6 +70,22 @@ describe("MCP stdio JSON fidelity vs the Python server", () => {
     const got = await drive();
     const unversion = (line: string | null | undefined): string | null | undefined =>
       line?.replace(/("serverInfo": \{"name": "agent-sandbox", "version": )"[^"]*"/, '$1"<version>"');
-    CASES.cases.forEach(([req, res], i) => expect({ req, res: unversion(got[i]) }).toEqual({ req, res: unversion(res) }));
+    CASES.cases.forEach(([req, res], i) => {
+      let actual = unversion(got[i]);
+      let expected = unversion(res);
+      if (/"method"\s*:\s*"tools\/list"/.test(req) && actual && expected) {
+        // The catalog intentionally evolved after the historical Python capture.
+        // Preserve byte-for-byte envelope/number checks and every unchanged tool;
+        // lifecycle schemas and strict creation inputs have dedicated regressions.
+        const catalog = /("tools": )\[.*\]/;
+        const oldTools = JSON.parse(expected).result.tools as Array<{ name: string }>;
+        const newTools = JSON.parse(actual).result.tools as Array<{ name: string }>;
+        const unchanged = oldTools.filter((tool) => tool.name !== "create_sandbox");
+        expect(newTools.filter((tool) => unchanged.some((old) => old.name === tool.name))).toEqual(unchanged);
+        actual = actual.replace(catalog, '$1"<versioned-catalog>"');
+        expected = expected.replace(catalog, '$1"<versioned-catalog>"');
+      }
+      expect({ req, res: actual }).toEqual({ req, res: expected });
+    });
   }, 120_000);
 });

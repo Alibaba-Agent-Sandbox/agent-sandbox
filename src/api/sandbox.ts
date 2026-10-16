@@ -637,6 +637,37 @@ export class Sandbox {
     }
   }
 
+  /** Fetch metadata directly without connecting, resuming, renewing, or adopting a sandbox. */
+  static async getInfoById(sandbox_id: string, options: BuildInfraOptions = {}): Promise<SandboxInfo> {
+    return this._controlPlaneById(sandbox_id, options, (protocol, id) => protocol.getInfo(id));
+  }
+
+  /** Set an existing sandbox's timeout directly; never connect or implicitly resume it. */
+  static async setTimeoutById(sandbox_id: string, timeout: number, options: BuildInfraOptions = {}): Promise<void> {
+    await this._controlPlaneById(sandbox_id, options, (protocol, id) => protocol.setTimeout(id, timeout));
+  }
+
+  private static async _controlPlaneById<T>(sandbox_id: string, options: BuildInfraOptions,
+    operation: (protocol: Pick<SandboxProtocol, "getInfo" | "setTimeout">, id: string) => Promise<T>): Promise<T> {
+    const [provider, bare] = _selectProvider(options.provider, sandbox_id);
+    const id = bare ?? sandbox_id;
+    const resolved = { ...options, provider_options: _effectiveOptions(provider, options.provider_options) };
+    if (provider !== null) {
+      const infra = await _providerInfra(provider, resolved);
+      try {
+        return await operation(infra.sandbox_protocol, id);
+      } finally {
+        await new InfraCloser(infra).close();
+      }
+    }
+    const [, , http, protocol] = _buildInfra(resolved);
+    try {
+      return await operation(protocol, id);
+    } finally {
+      await http.close();
+    }
+  }
+
   /** Kill a sandbox by ID (class method, no instance required). */
   static async killById(sandbox_id: string, options: BuildInfraOptions = {}): Promise<void> {
     const { api_key = null, api_url = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = options;

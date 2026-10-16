@@ -396,6 +396,9 @@ export const mcp = group("mcp", {
 
 const _INSTALL_TOOL_NAMES: [string, string][] = [
   ["create_sandbox", "Create a cloud sandbox"],
+  ["list_sandboxes", "List visible sandboxes"],
+  ["get_sandbox", "Refresh sandbox metadata"],
+  ["set_sandbox_timeout", "Set sandbox lifetime"],
   ["run_code", "Execute code"],
   ["run_command", "Execute a command"],
   ["read_file", "Read a file"],
@@ -468,7 +471,7 @@ export const install = command("install", {
       echo();
       echo("Registered tools:");
       for (const [name, desc] of _INSTALL_TOOL_NAMES) {
-        echo(`  • ${name.padEnd(18)} — ${desc}`);
+        echo(`  • ${name.padEnd(19)} — ${desc}`);
       }
       echo();
       if (target === "cursor") {

@@ -1,7 +1,7 @@
 server            agent-sandbox
 transport         stdio
-tools_count       7
-tools             ['create_sandbox', 'run_code', 'run_command', 'read_file', 'write_file', 'list_files', 'kill_sandbox']
+tools_count       10
+tools             ['create_sandbox', 'list_sandboxes', 'get_sandbox', 'set_sandbox_timeout', 'run_code', 'run_command', 'read_file', 'write_file', 'list_files', 'kill_sandbox']
 auth_configured   False
 mcp_running       False
 installed_cursor  True
