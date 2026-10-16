@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- **Stacked pull request validation.** The complete CI matrix now runs for pull requests targeting feature branches as well as `main`; push validation remains limited to `main`.
+
 - **MCP deployment uses the Python client distribution.** Generated `requirements.txt` now requests `agent-sandbox-client[mcp]` instead of the previous `agent-sandbox[mcp]` package name.
 
 - **Pinned server archive skips PyPI.** `abx template init` pins python-sdk `61c43e0be65a1f57aa09186d578e7b399e48429b` (PR #21; the `server-sdk` tree matches PR #20, and later commits through PR #24 do not change server runtime). A Dockerfile that already pins any `python-sdk/archive/<sha>.tar.gz#subdirectory=server-sdk` is built as written, and deploy does not request `agent-sandbox-server` from PyPI. `ABX_SERVER_SDK_SOURCE` still injects a wheel and replaces that pin whatever SHA it uses. Fixes #24.
