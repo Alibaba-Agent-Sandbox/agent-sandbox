@@ -158,6 +158,10 @@ $ abx template install alibaba-agent-sandbox/awesome-templates//node-web@v1.0.0 
 See [examples/templates/README.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/examples/templates/README.md) for the
 fixture contract and index behaviour (caching, offline fallback, pinned refs).
 
+For a local server SDK checkout, `ABX_SERVER_SDK_SOURCE` injects its wheel while preserving
+complete shell-form Docker RUN instructions and conditional installs. See
+[server wheel injection](docs/en/guide/authoring-templates.md#local-server-wheel-injection).
+
 ## Python SDK
 
 The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The quick start, the execution API (`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`) and the architecture documentation are maintained there.
