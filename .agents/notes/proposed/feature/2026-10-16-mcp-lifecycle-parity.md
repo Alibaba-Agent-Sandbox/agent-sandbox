@@ -70,3 +70,9 @@ its own sandbox and performs a readonly absence check.
 
 See [verification](../../../evidence/verify/2026-10-16-mcp-lifecycle-parity.md).
 The decision remains proposed until review and required gates pass.
+
+## Delivery follow-up
+
+[Accepted health synchronization](../../../evidence/verify/2026-10-16-mcp-health-delivery.md)
+records the resolved repository gate and the remaining upstream public-install
+and hosted-MCP boundaries. The decision remains proposed pending those gates.
