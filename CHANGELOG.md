@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- **Client distribution name.** Install docs, the template-index upgrade hint, and the `requirements.txt` from `abx mcp deploy` use `agent-sandbox-client` (extras such as `[mcp]` stay on that name). The import name is still `agent_sandbox`. `pip install agent-sandbox` installs an unrelated project. `scripts/deploy_remaining.sh` prefers `agent_sandbox_client-*.whl` and still accepts `agent_sandbox-*.whl`. Template images still install `agent-sandbox-server` from the pinned git archive.
+
 - **npm publish is opt-in.** `.github/workflows/release.yml` skips the publish job unless the repository variable `NPM_PUBLISH` is `true`. A binary-only `v*` tag stays green when `NPM_API_TOKEN` is absent.
 
 - **CLI skill stays on operating a sandbox.** `SKILL.md` is a static usage guide at the repository root; tools load it from a directory named `agent-sandbox`. It lists the fixed command surface, the seven MCP tools, deploy `--build`, and the fact that `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b` are `node` plugins the CLI and the Python SDK both run. It does not restore the removed `abx skill` command. Writing `Sandbox.create`, `template.yaml`, a Dockerfile, or `commands.py` is the `agent-sandbox-sdk` skill. `abx template init` scaffolds `@command` and `start()` under `if __name__ == "__main__"`.

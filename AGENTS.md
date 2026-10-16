@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox` on PyPI) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
+**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)

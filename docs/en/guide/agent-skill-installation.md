@@ -267,4 +267,4 @@ Uninstall means removing exactly one folder — for example `~/.qoder/skills/age
 - Cursor — [Agent Skills](https://cursor.com/docs/skills), [Plugins](https://cursor.com/docs/plugins)
 - Qwen Code — [Agent Skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md)
 - Codex — [Build skills](https://developers.openai.com/codex/skills)
-- PyPI status (Python SDK) — `pip index versions agent-sandbox` returned no matching distribution on 2026-09-29
+- PyPI status (Python SDK) — `pip index versions agent-sandbox` returned no matching distribution on 2026-09-29. The client distribution is `agent-sandbox-client`. `pip install agent-sandbox` installs an unrelated project.

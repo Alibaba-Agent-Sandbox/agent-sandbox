@@ -164,13 +164,13 @@ The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` dec
 
 ```bash
 # Client SDK (import agent_sandbox)
-pip install agent-sandbox
+pip install agent-sandbox-client
 
 # Server runtime used inside template images (import agent_sandbox.server)
 pip install agent-sandbox-server
 ```
 
-`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with `pip install agent-sandbox-server`. The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
+`pip install agent-sandbox` installs an unrelated project. `agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with `pip install agent-sandbox-server`. The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
 
 ## Documentation
 

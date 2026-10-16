@@ -121,7 +121,7 @@ graph TB
 
 ## 相关 SDK 文档
 
-Python SDK（`agent-sandbox`）、沙箱内 Server SDK 与平台契约的文档位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。CLI 读者最常需要的页面：
+Python SDK（PyPI 上的 `agent-sandbox-client`，导入名 `agent_sandbox`）、沙箱内 Server SDK 与平台契约的文档位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。CLI 读者最常需要的页面：
 
 - [系统架构](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/architecture.md) — SDK 的六层架构，CLI 的客户端核心与之对应
 - [SDK API 设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sdk-api-design.md) 与 [沙箱类型体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sandbox-types.md)
