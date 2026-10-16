@@ -10,7 +10,7 @@
 #
 # Requires: bash, node >= 20.  See docs/design/repository-layout.md
 # ("Definition of done") for the rationale behind every check.
-set -u
+set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 2
@@ -121,10 +121,18 @@ if [ -f .github/workflows/release.yml ]; then
   need_grep .github/workflows/release.yml 'provenance|id-token' "release.yml publishes with provenance (OIDC)"
 fi
 
+if ! node --input-type=module -e 'await import("typescript")' >/dev/null 2>&1; then
+  fail "repository-health requires the lockfile development toolchain; run npm ci"
+  exit 1
+fi
+
 section "npm package (package.json)"
-node - <<'JS' | tally
+node --input-type=module - <<'JS' | tally || fail "Node repository-health analysis failed"
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 const fs = require("fs");
 const path = require("path");
+const { imports, canonicalRepository, productPython, removedCli } = await import("./scripts/lib/repository-health.mjs");
 const out = [];
 const R = (k, m) => out.push(`[${k}] ${m}`);
 let pkg;
@@ -135,9 +143,9 @@ chk(pkg.bin && pkg.bin.abx === "dist/bin/abx.js", "bin.abx -> dist/bin/abx.js", 
 chk(pkg.type === "module", "type: module (ESM)", "package.json should declare type: module");
 chk(pkg.license === "Apache-2.0", "license is Apache-2.0", "license must be Apache-2.0");
 chk(pkg.engines && /20/.test(pkg.engines.node || ""), "engines.node >= 20", "engines.node must pin Node >= 20");
-chk(pkg.repository && /alibaba-agent-sandbox\/cli(\.git)?$/.test(pkg.repository.url || ""), "repository.url points at agent-sandbox/agent-sandbox", `repository.url is ${pkg.repository && pkg.repository.url} (expected github.com/agent-sandbox/agent-sandbox.git)`);
+chk(pkg.repository && canonicalRepository(pkg.repository.url), "repository.url points at agent-sandbox/agent-sandbox", `repository.url is ${pkg.repository && pkg.repository.url} (expected github.com/agent-sandbox/agent-sandbox.git)`);
 chk(!!pkg.homepage, "homepage set", "homepage missing");
-chk(pkg.bugs && pkg.bugs.url && /alibaba-agent-sandbox\/cli/.test(pkg.bugs.url), "bugs.url points at agent-sandbox/agent-sandbox", "bugs.url missing or not agent-sandbox/agent-sandbox");
+chk(pkg.bugs && canonicalRepository(pkg.bugs.url, true), "bugs.url points at agent-sandbox/agent-sandbox", "bugs.url missing or not agent-sandbox/agent-sandbox");
 chk(Array.isArray(pkg.keywords) && pkg.keywords.length > 0, "keywords set", "keywords missing", "WARN");
 chk(pkg.publishConfig && pkg.publishConfig.access === "public", "publishConfig.access = public (required for a scoped package)", "publishConfig.access must be 'public' for @agent-sandbox/cli");
 chk(Array.isArray(pkg.files) && pkg.files.includes("dist"), "files whitelist includes dist", "files must whitelist dist");
@@ -159,12 +167,11 @@ const files = walk(root);
 const declared = new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {}), ...Object.keys(pkg.optionalDependencies || {}), ...Object.keys(pkg.peerDependencies || {})]);
 const builtins = new Set(require("module").builtinModules);
 const missingRuntime = new Map(), missingDev = new Map();
-for (const f of files.filter((f) => /\.(ts|mts|cts|js|mjs)$/.test(f) && /\/(src|tests|scripts)\//.test(f))) {
+for (const f of files.filter((f) => /\.(ts|mts|cts|js|mjs|cjs)$/.test(f) && /\/(src|tests|scripts)\//.test(f))) {
   const rel = path.relative(root, f);
   const isRuntime = rel.startsWith("src/");
   const text = fs.readFileSync(f, "utf8");
-  for (const m of text.matchAll(/(?:from\s+|import\s*\(\s*|require\s*\(\s*|import\s+)["']([^"']+)["']/g)) {
-    const spec = m[1];
+  for (const spec of imports(text, f)) {
     if (spec.startsWith(".") || spec.startsWith("node:") || spec.startsWith("#")) continue;
     const name = spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0];
     if (builtins.has(name)) continue;
@@ -190,9 +197,9 @@ const tests = files.filter((f) => /\.test\.ts$/.test(f) && f.includes(`${path.se
 chk(tests.length > 0, `tests/ has ${tests.length} test files`, "no *.test.ts files under tests/");
 const scratch = tests.filter((f) => /(^|\/)_|tmp|scratch|fuzz/i.test(path.relative(root, f)));
 chk(scratch.length === 0, "no scratch/temporary test files", `scratch test files must not be committed: ${scratch.map((f) => path.relative(root, f)).join(", ")}`);
-const py = files.filter((f) => /\.py$/.test(f) && !path.relative(root, f).startsWith(".agents/"));
-chk(py.length === 0, "no Python files outside .agents/", `Python leftovers in a Node repo: ${py.map((f) => path.relative(root, f)).slice(0, 4).join(", ")}`);
-const stale = files.filter((f) => /\.(sh|mjs|js|ts|yml|yaml)$/.test(f) && /scripts\/|\.github\//.test(f)).filter((f) => !f.endsWith("check-repo-health.sh")).filter((f) => /agent_sandbox\.cli|\.venv\/bin\/python|python3? -m agent_sandbox/.test(fs.readFileSync(f, "utf8")));
+const py = files.filter((f) => productPython(path.relative(root, f).split(path.sep).join("/")));
+chk(py.length === 0, "no product Python files outside engineering records and parity oracles", `Python leftovers in a Node repo: ${py.map((f) => path.relative(root, f)).slice(0, 4).join(", ")}`);
+const stale = files.filter((f) => /\.(sh|mjs|cjs|js|ts|yml|yaml)$/.test(f) && /^(?:scripts|\.github)\//.test(path.relative(root, f))).filter((f) => !f.endsWith("check-repo-health.sh")).filter((f) => removedCli(fs.readFileSync(f, "utf8"), f));
 chk(stale.length === 0, "no script invokes the removed Python CLI", `scripts still call the Python CLI (agent_sandbox.cli / .venv/bin/python): ${stale.map((f) => path.relative(root, f)).join(", ")}`);
 console.log(out.join("\n"));
 JS
@@ -224,7 +231,9 @@ else
 fi
 
 section "Content hygiene (links, ADRs, leaked paths)"
-node - <<'JS' | tally
+node --input-type=module - <<'JS' | tally || fail "Node repository-health analysis failed"
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 const fs = require("fs");
 const path = require("path");
 const root = process.cwd();
@@ -241,6 +250,14 @@ const rel = (p) => path.relative(root, p).split(path.sep).join("/");
 const out = [];
 const R = (k, m) => out.push(`[${k}] ${m}`);
 const read = (p) => fs.readFileSync(p, "utf8");
+const { historicalContext } = await import("./scripts/lib/repository-health.mjs");
+const historical = JSON.parse(read("scripts/repository-health-history.json"));
+const contexts = new Set();
+const captured = (p, kind, finding) => {
+  const okay = historicalContext(historical, rel(p), fs.readFileSync(p), kind, finding);
+  if (okay) contexts.add(rel(p));
+  return okay;
+};
 const stripCode = (t) => t.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "");
 
 const broken = [], escaping = [];
@@ -252,7 +269,7 @@ for (const p of files.filter((f) => f.endsWith(".md"))) {
     if (link.startsWith("file://")) { broken.push([p, link]); continue; }
     const target = path.resolve(path.dirname(p), link);
     if (path.relative(root, target).startsWith("..")) { escaping.push([p, link]); continue; }
-    if (!fs.existsSync(target)) broken.push([p, link]);
+    if (!fs.existsSync(target) && !captured(p, "links", link)) broken.push([p, link]);
   }
 }
 if (escaping.length) R("FAIL", `${escaping.length} relative links leave the repository (cross-repo links must be absolute https URLs); e.g. ` + escaping.slice(0, 4).map(([p, l]) => `${rel(p)} -> ${l}`).join("; "));
@@ -266,11 +283,11 @@ if (broken.length) {
 const LEAK = /(\/Users\/[A-Za-z0-9_.-]+\/|file:\/\/\/|\/home\/ubuntu\/|\/tmp\/(?:agent-sandbox|parity|venv)[A-Za-z0-9_-]*|Qoder\/20\d\d|\bthis VM\b)/g;
 const leaks = new Map();
 for (const p of files) {
-  if (!/\.(md|txt|ya?ml|toml|json|sh|mjs|js|ts|py)$/.test(p)) continue;
+  if (!/\.(md|txt|ya?ml|toml|json|sh|mjs|cjs|js|ts|py)$/.test(p)) continue;
   const r = rel(p);
   if (r === "scripts/check-repo-health.sh" || r === "docs/design/repository-layout.md" || r === "package-lock.json") continue;
   const n = (read(p).match(LEAK) || []).length;
-  if (n) leaks.set(r, n);
+  if (n && !captured(p, "localPaths", "captured-paths")) leaks.set(r, n);
 }
 if (leaks.size) R("FAIL", `${leaks.size} files leak machine-local paths (/Users/..., file:///, /tmp/parity, 'this VM'): ` + [...leaks.keys()].sort().slice(0, 6).join(", ") + (leaks.size > 6 ? " ..." : ""));
 else R("PASS", "no machine-local paths in text files");
@@ -297,13 +314,15 @@ const dangling = new Map();
 for (const p of files.filter((f) => /\.(md|txt)$/.test(f) && rel(f) !== "docs/design/repository-layout.md")) {
   const t = read(p).replace(/\[[^\]]*\]\(https?:\/\/[^)]*\)|https?:\/\/\S+/g, "");
   for (const m of t.matchAll(/(?<![0-9A-Za-z-])(\d{4}-\d{2}-\d{2}-[a-z][a-z0-9-]*[a-z0-9])(?![0-9A-Za-z-])/g)) {
-    if (!stems.has(m[1])) (dangling.get(m[1]) || dangling.set(m[1], new Set()).get(m[1])).add(rel(p));
+    if (!stems.has(m[1]) && !captured(p, "slugs", m[1])) (dangling.get(m[1]) || dangling.set(m[1], new Set()).get(m[1])).add(rel(p));
   }
 }
 if (dangling.size) {
   const nf = new Set([...dangling.values()].flatMap((s) => [...s])).size;
   R("FAIL", `${dangling.size} ADR/evidence slugs are referenced in ${nf} files but absent from this repo (cross-repo refs must be absolute URLs): ` + [...dangling.keys()].sort().slice(0, 4).join(", ") + (dangling.size > 4 ? " ..." : ""));
 } else R("PASS", "no dangling ADR references");
+
+for (const file of [...contexts].sort()) R("WARN", `immutable historical context registered with exact SHA256: ${file}; see scripts/repository-health-history.json (unavailable captures remain unavailable)`);
 
 const set = (lang) => new Set(files.map(rel).filter((r) => r.startsWith(`docs/${lang}/`) && r.endsWith(".md")).map((r) => r.slice(`docs/${lang}/`.length)));
 const en = set("en"), zh = set("zh");
