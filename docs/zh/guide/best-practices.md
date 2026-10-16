@@ -4,7 +4,7 @@
 
 ## `--provider`：这一条命令用哪个后端
 
-只在这一次调用要走插件、或要走当前默认以外的后端时，加上 `--provider <id>`。它可以出现在任意位置（`abx create --provider my-cloud --template base`）。
+只在这一次调用要走插件、或要走当前默认以外的后端时，加上 `--provider <id>`。exec 中将它放在沙箱 ID 前，其他命令保持全局选项位置（`abx create --provider my-cloud --template base`）。
 
 每条命令都用内置的 `alicloud-express` 时，不要加这个旗标。那是默认值，沙箱 id 保持裸 id。整个 shell 都要换后端时，用 `abx provider default <id>` 或 `ABX_PROVIDER` 设成持久默认。沙箱 id 已经带已知提供者前缀（`my-cloud:sbx-1`）时，它自己就选中了那个提供者；`--provider` 必须写同一个 id。
 

@@ -11,7 +11,7 @@
 ```text
 abx --provider my-cloud create --template base
         │
-        │  1. main() 从参数里取出 --provider 和 --opt（任意位置）
+        │  1. main() 从参数里取出 --provider 和 --opt（exec 放在沙箱 ID 前）
         │     只在本次进程内保存。
         ▼
 Sandbox.create({ template: "base", ... })

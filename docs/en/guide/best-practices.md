@@ -4,7 +4,7 @@ Which knob to turn, and when. Command syntax stays in the [CLI reference](../ref
 
 ## `--provider`: one command, one backend
 
-Pass `--provider <id>` on a single invocation when that invocation should use a plugin or a backend other than the current default. It is accepted in any position (`abx create --provider my-cloud --template base`).
+Pass `--provider <id>` on a single invocation when that invocation should use a plugin or a backend other than the current default. It is accepted before the sandbox ID for exec; other commands retain their global option positions (`abx create --provider my-cloud --template base`).
 
 Leave it off when every command should use the built-in `alicloud-express`. That is the default, and sandbox ids stay bare. Set a lasting default with `abx provider default <id>` or `ABX_PROVIDER` when the whole shell should switch. A sandbox id that already starts with a known provider (`my-cloud:sbx-1`) selects that provider by itself; `--provider` must name the same id.
 

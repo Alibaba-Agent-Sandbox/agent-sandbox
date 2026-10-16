@@ -102,3 +102,7 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/README.zh-CN.md)。
 
 `run.mjs` 退出码:0 = 无失败(允许跳过),1 = 至少一个失败,2 = 二进制不可运行。
+
+## 无云端前提的 Provider 归属验证
+
+`ABX_BIN=<构建后的可执行文件> node e2e/provider-boundary.mjs` 向临时 HOME 安装本地测试插件，检查带前缀资源、冲突/未知/空前缀、远程 Provider 参数，以及模板/部署的拒绝路径。它使用真实可执行文件和文件系统，不创建云端资源；它不等同于真实 OpenSandbox 部署验证。

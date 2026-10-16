@@ -67,7 +67,7 @@ Highest priority first:
 | Where | Example |
 |---|---|
 | Qualified reference | `abx kill my-cloud:sbx-1` |
-| Flag (any position) | `abx create --provider my-cloud --template base` |
+| Flag (before the sandbox ID for exec) | `abx create --provider my-cloud --template base` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx provider default my-cloud`, `abx config set provider my-cloud`) |
@@ -79,7 +79,7 @@ abx provider default my-cloud          # persist it
 abx provider default --unset           # back to alicloud-express
 ```
 
-An unknown id exits with 4 (`E8001`). Provider options for one command are given with `--opt KEY=VALUE` (repeatable, any position); options marked `secret` in the manifest are refused on the command line (`E8002`) so that secrets never reach shell history, set them with `abx config set providers.<id>.<key>` instead.
+An unknown id exits with 4 (`E8001`). Provider options for one command are given with `--opt KEY=VALUE` (repeatable; before the sandbox ID for exec); options marked `secret` in the manifest are refused on the command line (`E8002`) so that secrets never reach shell history, set them with `abx config set providers.<id>.<key>` instead.
 
 ### Sandbox ids are qualified
 

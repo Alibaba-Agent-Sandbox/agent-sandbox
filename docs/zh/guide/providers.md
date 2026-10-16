@@ -67,7 +67,7 @@ abx provider test my-cloud -o region=eu # 通过 CLI 使用的同一批适配器
 | 位置 | 示例 |
 |---|---|
 | 限定引用 | `abx kill my-cloud:sbx-1` |
-| 标志（任意位置） | `abx create --provider my-cloud --template base` |
+| 标志（exec 放在沙箱 ID 前） | `abx create --provider my-cloud --template base` |
 | 进程环境变量 | `export ABX_PROVIDER=my-cloud` |
 | `./.env`，然后 `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx provider default my-cloud`、`abx config set provider my-cloud`） |
@@ -79,7 +79,7 @@ abx provider default my-cloud          # 持久化
 abx provider default --unset           # 恢复为 alicloud-express
 ```
 
-未知 id 以退出码 4 结束（`E8001`）。单条命令的提供商选项用 `--opt KEY=VALUE` 传入（可重复、任意位置）；清单中标记为 `secret` 的选项在命令行上会被拒绝（`E8002`），避免密钥进入 shell 历史，请改用 `abx config set providers.<id>.<key>`。
+未知 id 以退出码 4 结束（`E8001`）。单条命令的提供商选项用 `--opt KEY=VALUE` 传入（可重复；exec 放在沙箱 ID 前）；清单中标记为 `secret` 的选项在命令行上会被拒绝（`E8002`），避免密钥进入 shell 历史，请改用 `abx config set providers.<id>.<key>`。
 
 ### 沙箱 ID 是限定的
 

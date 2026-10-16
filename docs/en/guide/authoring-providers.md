@@ -11,7 +11,7 @@ Publish plugins in [alibaba-agent-sandbox/awesome-providers](https://github.com/
 ```text
 abx --provider my-cloud create --template base
         │
-        │  1. main() pulls --provider and --opt out of the argv (any position)
+        │  1. main() pulls --provider and --opt out of argv (before the sandbox ID for exec)
         │     and stores them for this process only.
         ▼
 Sandbox.create({ template: "base", ... })

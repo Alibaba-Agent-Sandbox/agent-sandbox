@@ -121,3 +121,7 @@ scenario that over-specifies, in which case fix the scenario in the same change)
 The mock-vs-oracle differential harness lives in [`../parity/diff/`](../parity/diff/README.md).
 
 Exit code of `run.mjs`: 0 = no failures (skips allowed), 1 = at least one failure, 2 = binary not runnable.
+
+## Provider ownership without cloud prerequisites
+
+`ABX_BIN=<built-executable> node e2e/provider-boundary.mjs` installs a local fixture into a temporary HOME and checks qualified references, conflicting/unknown/empty namespaces, remote provider flags and template/deploy refusal. It exercises the actual executable and filesystem, creates no cloud resource, and is not a real OpenSandbox deployment test.
