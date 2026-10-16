@@ -1,0 +1,155 @@
+{
+  ".agents/evidence/research/2026-09-04-qwencli-and-agents-doc-audit.md": {
+    "sha256": "069afe38b83c6d1191f70364c14e9a60d190d8aab400b23c23b95ec990cb6401",
+    "context": [
+      {
+        "finding": "2026-09-02-dual-auth-mode",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-dual-auth-mode.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-02-self-implement-e2b-protocol",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-self-implement-e2b-protocol.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-02-session-pluggable-storage",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-session-pluggable-storage.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-02-snapshot-hibernate-deferred",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-02-snapshot-hibernate-deferred.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-03-capability-model",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-03-capability-model.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-03-capability-model-alternatives",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/rejected/2026-09-03-capability-model-alternatives.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-03-custom-commands-schema",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/feature/2026-09-03-custom-commands-schema.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-03-no-backward-compat-capability",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-03-no-backward-compat-capability.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-03-release-publish-flow",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/proposed/process/2026-09-03-release-publish-flow.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "2026-09-03-sdk-capability-surface",
+        "owner": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/implemented/architecture/2026-09-03-sdk-capability-surface.md",
+        "status": "relocated-owner"
+      },
+      {
+        "finding": "../../notes/implemented/feature/2026-09-23-cli-command-reduction.md",
+        "target": ".agents/notes/superseded/2026-09-23-cli-command-reduction.md",
+        "status": "superseded-decision-moved"
+      }
+    ],
+    "slugs": [
+      "2026-09-02-dual-auth-mode",
+      "2026-09-02-self-implement-e2b-protocol",
+      "2026-09-02-session-pluggable-storage",
+      "2026-09-02-snapshot-hibernate-deferred",
+      "2026-09-03-capability-model",
+      "2026-09-03-capability-model-alternatives",
+      "2026-09-03-custom-commands-schema",
+      "2026-09-03-no-backward-compat-capability",
+      "2026-09-03-release-publish-flow",
+      "2026-09-03-sdk-capability-surface"
+    ],
+    "links": [
+      "../../notes/implemented/feature/2026-09-23-cli-command-reduction.md"
+    ]
+  },
+  ".agents/notes/implemented/feature/2026-09-23-mcp-fc-streamable-http.md": {
+    "sha256": "9df4a1f7726eecf17955890aa7858c020efe06f3fcf6c3f5e959649a87b6ead1",
+    "context": [
+      {
+        "finding": "2026-09-29-mcp-e2e",
+        "status": "historical-capture-unavailable",
+        "explanation": "The implemented historical note references a capture absent from the current repository and available Git history. This is missing historical evidence, not proof of a passing current gate. Keep this limitation visible."
+      }
+    ],
+    "slugs": [
+      "2026-09-29-mcp-e2e"
+    ]
+  },
+  ".agents/notes/implemented/architecture/2026-09-29-template-catalog-single-source-of-truth.md": {
+    "sha256": "83ef6e5bf67ae1a99c5eeda5c1c8b115eab4831bef36f47753ec8a818881cb1c",
+    "context": [
+      {
+        "finding": "2026-09-29-template-ssot-verification",
+        "status": "historical-capture-unavailable",
+        "explanation": "The implemented historical note references a capture absent from the current repository and available Git history. This is missing historical evidence, not proof of a passing current gate. Keep this limitation visible."
+      }
+    ],
+    "slugs": [
+      "2026-09-29-template-ssot-verification"
+    ]
+  },
+  ".agents/evidence/research/2026-09-04-overdesign-audit.md": {
+    "sha256": "aacda9286e4f7603e45ae3f709734ffd95b24214a9e4af43d473ae80c3b38189",
+    "context": [
+      {
+        "finding": "../../notes/implemented/feature/2026-09-23-cli-command-reduction.md",
+        "target": ".agents/notes/superseded/2026-09-23-cli-command-reduction.md",
+        "status": "superseded-decision-moved"
+      }
+    ],
+    "links": [
+      "../../notes/implemented/feature/2026-09-23-cli-command-reduction.md"
+    ]
+  },
+  ".agents/evidence/verify/2026-10-12-differential-fast.md": {
+    "sha256": "c252d49ac59c32dfb7d0284a3d4c36c8d183fa6159760d6b64b87ce095f7d8ca",
+    "context": [
+      {
+        "finding": "captured-paths",
+        "status": "immutable-temporary-fixture-capture",
+        "explanation": "Temporary oracle/install/test locations were captured when the run occurred. They are not current setup instructions or reusable configured paths. Historical bytes remain unchanged; any edit invalidates this context."
+      }
+    ],
+    "localPaths": [
+      "captured-paths"
+    ]
+  },
+  ".agents/evidence/verify/2026-10-13-differential-zh.md": {
+    "sha256": "2f992b9b7526cfa6d67d6f6f208b8e4a8f8fcbfe408ca5f22f08846463a85d50",
+    "context": [
+      {
+        "finding": "captured-paths",
+        "status": "immutable-temporary-fixture-capture",
+        "explanation": "Temporary oracle/install/test locations were captured when the run occurred. They are not current setup instructions or reusable configured paths. Historical bytes remain unchanged; any edit invalidates this context."
+      }
+    ],
+    "localPaths": [
+      "captured-paths"
+    ]
+  },
+  ".agents/evidence/verify/2026-10-13-opensandbox-provider-e2e.md": {
+    "sha256": "68400ba3c945992a7cd3034016ef2b07acbafd770356c154a16ae02c2310c8c5",
+    "context": [
+      {
+        "finding": "captured-paths",
+        "status": "immutable-temporary-fixture-capture",
+        "explanation": "Temporary oracle/install/test locations were captured when the run occurred. They are not current setup instructions or reusable configured paths. Historical bytes remain unchanged; any edit invalidates this context."
+      }
+    ],
+    "localPaths": [
+      "captured-paths"
+    ]
+  }
+}
