@@ -22,7 +22,7 @@ import { getProvider, parseSandboxRef, registerProvider, resolveProviderId } fro
 import { BUILTIN_PROVIDER_ID, providerEnvName } from "../utils/config_keys.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { CodeResult, CommandResult, ProcessResult, type ProcessChunk } from "../models/process.js";
-import { SandboxConfig, SandboxInfo, type SandboxStatus } from "../models/sandbox.js";
+import { SandboxConfig, SandboxInfo, validateVolumeMounts, type SandboxStatus } from "../models/sandbox.js";
 import { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
 import { FilesystemProtocol } from "../protocol/filesystem.js";
 import { ProcessProtocol } from "../protocol/process.js";
@@ -240,6 +240,8 @@ export interface CreateOptions extends BuildInfraOptions {
   timeout?: number;
   request_timeout?: number | null;
   metadata?: Record<string, string> | null;
+  /** Built-in Express only: normalized absolute Unix mount paths mapped to existing same-Team Volume names. */
+  volume_mounts?: Record<string, string> | null;
   envs?: Record<string, string> | null;
   cpu?: number | null;
   memory?: number | null;
@@ -491,6 +493,13 @@ export class Sandbox {
       provider = null,
       provider_options = null,
     } = opts;
+    let volume_mounts: Record<string, string>;
+    try { volume_mounts = validateVolumeMounts(opts.volume_mounts ?? {}); }
+    catch { throw new ProviderConfigError("Invalid volume_mounts: use Volume names mapped from normalized absolute Unix mount paths outside system/hidden directories."); }
+    if (Object.keys(volume_mounts).length) {
+      const selected = resolveProviderId(typeof provider === "object" && provider !== null ? provider.id : provider ?? cliProvider());
+      if (selected !== BUILTIN_PROVIDER_ID) throw new ProviderFeatureNotSupportedError(selected, "volume_mounts");
+    }
     const secure_hint: boolean | null = opts.secure === undefined ? null : opts.secure;
 
     if (request_timeout !== null && request_timeout <= 0) {
@@ -541,6 +550,7 @@ export class Sandbox {
         memory: effective_memory,
         disk,
         gpu,
+        volume_mounts,
       });
       const info = await sandbox_protocol.create(sandbox_config, { request_timeout });
 

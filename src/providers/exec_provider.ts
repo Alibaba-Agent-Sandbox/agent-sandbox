@@ -582,6 +582,8 @@ export class ExecProvider extends Provider {
     this.displayNameZh = manifest.name_zh;
     this.version = manifest.version;
     this.features = new Set(manifest.features);
+    this.commands = manifest.commands;
+    this.commandTimeoutMs = manifest.call_timeout_ms;
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
     this.inherit = consentedInherit(manifest.inherit, receipt);
@@ -645,6 +647,15 @@ export class ExecProvider extends Provider {
       config,
       auth,
       http_client: httpClient,
+      provider_commands: {
+        run: async (command, input) => {
+          try { return await client.call("provider.commands.run", { command, input }); }
+          catch (exc) {
+            if (exc instanceof ProviderProtocolError && exc.rpc_code === -32601) throw new ProviderFeatureNotSupportedError(this.id, `command:${command}`);
+            throw exc;
+          }
+        },
+      },
       sandbox_protocol: new ExecSandboxProtocol(client, supported, new Set(this.configFields.filter((f) => f.secret).map((f) => f.key))) as never,
       process_protocol: new ExecProcessProtocol(client, supported, nativeProcess) as never,
       filesystem_protocol: new ExecFilesystemProtocol(client, supported, nativeFiles) as never,

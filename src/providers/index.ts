@@ -8,6 +8,7 @@
 export { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";
 export { FEATURES, Provider, configFieldToKey, type ConfigField, type ProviderFeature, type ProviderInfra } from "./base.js";
 export { AlicloudExpressProvider } from "./builtin.js";
+export { listProviderCommands, getProviderCommand, runProviderCommand, type ProviderCommand, type ProviderCommandOptions } from "./commands.js";
 export { doctor, verifyHandshake, type DoctorReport } from "./doctor.js";
 export * from "./errors.js";
 export { ExecProvider } from "./exec_provider.js";

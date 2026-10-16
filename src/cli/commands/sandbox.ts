@@ -34,7 +34,8 @@ import { confirm, prompt } from "../prompts.js";
 import { cpSlice } from "../../utils/_py.js";
 import { CommandNotFoundError, DescriptionClarificationError } from "../../models/errors.js";
 import { ProcessChunkType, type CommandResult } from "../../models/process.js";
-import { SandboxStatus } from "../../models/sandbox.js";
+import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
+import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
 import { SandboxProtocol } from "../../protocol/sandbox.js";
 import { createAuthProvider } from "../../transport/auth.js";
 import { loadConfig } from "../../transport/config.js";
@@ -1069,6 +1070,7 @@ export const create = command("create", {
     }),
     option(["--env", "-e"], { multiple: true, help: "Environment variable for the sandbox, format KEY=VALUE (repeatable)" }),
     option(["--metadata", "-m"], { multiple: true, help: "Metadata key-value pair, format KEY=VALUE (repeatable)" }),
+    option(["--volume-mount"], { multiple: true, metavar: "PATH=NAME", help: "Mount an existing same-Team Volume by name at an absolute Unix path (Express only; repeatable)" }),
     option(["--yes", "-y"], {
       is_flag: true,
       default: false,
@@ -1107,11 +1109,29 @@ export const create = command("create", {
     const requestTimeout: number | null = params["request_timeout"];
     const env: string[] = params["env"];
     const metadata: string[] = params["metadata"];
+    const volumeMountPairs: string[] = params["volume_mount"];
     const yes: boolean = params["yes"];
     const model: string | null = params["model"];
     const acrNamespace: string | null = params["acr_namespace"];
     const outputDir: string | null = params["output_dir"];
     const verboseFlag: boolean = params["verbose_flag"];
+
+    const mountEntries: Array<[string, string]> = [];
+    const mountPaths = new Set<string>();
+    for (const pair of volumeMountPairs) {
+      const separator = pair.indexOf("=");
+      if (separator < 1 || mountPaths.has(pair.slice(0, separator))) throw new UsageError("--volume-mount requires PATH=NAME with a unique mount path.");
+      const mountPath = pair.slice(0, separator);
+      mountPaths.add(mountPath);
+      mountEntries.push([mountPath, pair.slice(separator + 1)]);
+    }
+    let volumeMounts: Record<string, string>;
+    try { volumeMounts = validateVolumeMounts(Object.fromEntries(mountEntries)); }
+    catch { throw new UsageError("--volume-mount requires a nonempty Volume name and a normalized absolute Unix path outside system/hidden directories."); }
+    if (mountEntries.length) {
+      const selected = providerView().effective;
+      if (selected !== BUILTIN_PROVIDER_ID) throw new ProviderFeatureNotSupportedError(selected, "volume_mounts");
+    }
 
     if (verboseFlag) enableVerbose(ctx);
 
@@ -1190,6 +1210,7 @@ export const create = command("create", {
     const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout };
     if (Object.keys(envs).length > 0) createKwargs["envs"] = envs;
     if (Object.keys(meta).length > 0) createKwargs["metadata"] = meta;
+    if (mountEntries.length) createKwargs["volume_mounts"] = volumeMounts;
 
     // HTTP timeout for the create call: sandbox creation (cold start) is known to be slow, so we always enforce a floor of
     // 120s. If the user configured a *larger* http_timeout (e.g. 300s) that is respected; if they configured a *smaller*

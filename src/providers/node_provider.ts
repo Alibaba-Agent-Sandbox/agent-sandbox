@@ -19,7 +19,7 @@ import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
 import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
 import { unsupportedAdapter } from "./exec_provider.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError } from "./errors.js";
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import { hostVersion } from "./host.js";
 import { eppInfra, type EppFactory } from "./node_epp.js";
@@ -31,6 +31,8 @@ type Dict = Record<string, unknown>;
 
 /** What a plugin module returns from `buildInfra`. Missing protocols answer `E8004`. */
 export interface NodeInfra {
+  /** Provider management operations; only manifest-declared command ids are callable. */
+  provider_commands?: ProviderInfra["provider_commands"];
   sandbox_protocol: object;
   process_protocol?: object | null;
   filesystem_protocol?: object | null;
@@ -237,6 +239,8 @@ export class NodeProvider extends Provider {
     this.displayNameZh = manifest.name_zh;
     this.version = manifest.version;
     this.features = new Set(manifest.features);
+    this.commands = manifest.commands;
+    this.commandTimeoutMs = manifest.call_timeout_ms;
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
     this.inherit = consentedInherit(manifest.inherit, receipt);
@@ -287,11 +291,21 @@ export class NodeProvider extends Provider {
       noAuth: () => new NoAuth(),
     };
 
-    const built = await plugin.buildInfra(ctx);
+    let built: NodeInfra;
+    try {
+      built = await plugin.buildInfra(ctx);
+      if (built === null || typeof built !== "object" || Array.isArray(built)) {
+        throw new ProviderProtocolError(`Provider '${this.id}' returned invalid infrastructure.`);
+      }
+    } catch (exc) {
+      await Promise.allSettled(clients.map((client) => client.close()));
+      throw exc;
+    }
     const gate = <T extends object>(protocol: T | null | undefined, rules: Parameters<typeof gateProtocol>[2], feature: string): T =>
       protocol ? gateProtocol(protocol, this.id, rules, this.features) : (unsupportedAdapter(this.id, feature) as unknown as T);
     const own = built.http_client ?? null;
     return {
+      provider_commands: built.provider_commands,
       config: transport(built.endpoint ?? {}),
       auth: built.auth ?? null,
       http_client: own,
@@ -301,9 +315,12 @@ export class NodeProvider extends Provider {
       code_interpreter_protocol: gate(built.code_interpreter_protocol, CODE_RULES, "code.interpret") as never,
       envd_auth: built.envd_auth,
       close: async () => {
-        if (built.close) await built.close();
-        for (const client of clients) await client.close();
-        if (own !== null && !clients.includes(own)) await own.close();
+        const cleanup = await Promise.allSettled([
+          ...(built.close ? [Promise.resolve().then(() => built.close!())] : []),
+          ...clients.map((client) => Promise.resolve().then(() => client.close())),
+          ...(own !== null && !clients.includes(own) ? [Promise.resolve().then(() => own.close())] : []),
+        ]);
+        if (cleanup.some((result) => result.status === "rejected")) throw new ProviderProtocolError(`Provider '${this.id}' resource cleanup failed.`);
       },
     };
   }

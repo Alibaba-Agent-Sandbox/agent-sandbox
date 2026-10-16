@@ -229,6 +229,8 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 | 贡献指南 | [CONTRIBUTING.md](.github/CONTRIBUTING.md) |
 | 许可证 | [Apache-2.0](LICENSE) |
 
+Provider 专属云管理：`abx provider command list alicloud-express`。参数规范、写入确认和云 API 边界见[提供方指南](docs/zh/guide/providers.md)。
+
 ## 贡献
 
 欢迎贡献！请阅读 [贡献指南](.github/CONTRIBUTING.md) 了解详情。

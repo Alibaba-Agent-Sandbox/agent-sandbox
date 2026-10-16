@@ -99,6 +99,25 @@ describe("TestSandboxProperties", () => {
 });
 
 describe("TestSandboxCreate", () => {
+  it("forwards validated Volume names and paths to the built-in create payload", async () => {
+    const proto = protoWith("create", make_sandbox_info());
+    patchInfra(proto);
+    await Sandbox.create({ template: "base", volume_mounts: { "/mnt/oss": "workspace" } });
+    expect(proto.create.mock.calls[0][0].toCreatePayload().volumeMounts).toEqual([{ name: "workspace", path: "/mnt/oss" }]);
+  });
+
+  it("rejects invalid mounts before constructing transport", async () => {
+    patchInfra(protoWith("create", make_sandbox_info()));
+    await expect(Sandbox.create({ volume_mounts: { relative: "workspace" } })).rejects.toMatchObject({ code: "E8002" });
+    expect(h.HttpClient).not.toHaveBeenCalled();
+  });
+
+  it("rejects unverified provider mount mappings before loading plugins or transport", async () => {
+    patchInfra(protoWith("create", make_sandbox_info()));
+    await expect(Sandbox.create({ provider: "uninstalled-mount-provider", volume_mounts: { "/mnt/oss": "workspace" } })).rejects.toMatchObject({ code: "E8004", feature: "volume_mounts" });
+    expect(h.HttpClient).not.toHaveBeenCalled();
+  });
+
   // Test Sandbox.create() classmethod.
   it("test_create_returns_sandbox", async () => {
     const info = make_sandbox_info();

@@ -17,6 +17,8 @@ import {
 } from "../utils/config_keys.js";
 import { hostVersion } from "./host.js";
 import { FEATURES, Provider, type ConfigField, type ProviderInfra } from "./base.js";
+import type { ProviderCommandRunner } from "./command_contract.js";
+import { ALICLOUD_COMMANDS, runAlicloudCommand } from "./alicloud_commands.js";
 
 function fields(): ConfigField[] {
   return ALICLOUD_EXPRESS_KEYS.map((k) => ({
@@ -41,13 +43,19 @@ export class AlicloudExpressProvider extends Provider {
     this.displayNameZh = BUILTIN_PROVIDER_NAME_ZH;
     this.kind = "builtin";
     this.version = hostVersion();
-    this.features = new Set(FEATURES);
+    // Cloud control-plane operations are discovered as commands, not placeholder sandbox protocols.
+    this.features = new Set(FEATURES.filter((feature) => !["ports.domain", "storage.mount", "network.vpc"].includes(feature)));
+    this.commands = ALICLOUD_COMMANDS;
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
     this.configFields = fields();
   }
 
   override configKeys(): typeof ALICLOUD_EXPRESS_KEYS {
     return ALICLOUD_EXPRESS_KEYS;
+  }
+
+  override async buildCommandRunner(config: LayeredConfig): Promise<ProviderCommandRunner> {
+    return { run: (command, input) => runAlicloudCommand(config, command, input) };
   }
 
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {

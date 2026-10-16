@@ -20,6 +20,7 @@ import {
   type Storage,
 } from "../utils/config_keys.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError } from "./errors.js";
+import type { ProviderCommand, ProviderCommandRunner } from "./command_contract.js";
 
 /** Feature registry (design section 7.2). Values are the stable wire/manifest ids. */
 export const FEATURES = [
@@ -132,6 +133,8 @@ type Loose<T> = Omit<T, "_http" | "_handleCreateError">;
 
 /** What a sandbox needs from a provider (the protocol objects of the built-in transport or EPP adapters). */
 export interface ProviderInfra {
+  /** Optional dispatcher for management commands declared in static metadata. */
+  provider_commands?: Omit<ProviderCommandRunner, "close">;
   config: LayeredConfig;
   auth: AuthProvider | null;
   http_client: HttpClient | null;
@@ -179,6 +182,8 @@ export abstract class Provider {
   version = "0.0.0";
   kind: ProviderKind = "python";
   features: ReadonlySet<string> = new Set();
+  commands: readonly ProviderCommand[] = [];
+  commandTimeoutMs = 60_000;
   configFields: readonly ConfigField[] = [];
   /** Generic keys (`sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`) it reads. */
   inherit: ReadonlySet<string> = new Set();
@@ -234,6 +239,20 @@ export abstract class Provider {
 
   /** Build the protocol objects for `config` (already resolved for this provider). */
   abstract buildInfra(config: LayeredConfig): Promise<ProviderInfra>;
+
+  /** Management resources are closed independently of sandbox sessions. */
+  async buildCommandRunner(config: LayeredConfig): Promise<ProviderCommandRunner> {
+    const infra = await this.buildInfra(config);
+    try {
+      const dispatcher = infra.provider_commands;
+      const run = dispatcher?.run;
+      if (typeof run !== "function") throw new ProviderFeatureNotSupportedError(this.id, "provider.commands");
+      return { run: run.bind(dispatcher), close: infra.close };
+    } catch (exc) {
+      await infra.close?.();
+      throw exc;
+    }
+  }
 
   /** Template capability tokens implied by this provider's features. */
   capabilities(): ReadonlySet<string> {

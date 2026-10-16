@@ -13,7 +13,7 @@ import type { HttpClient } from "../transport/http.js";
 import { getLogger } from "../utils/logging.js";
 import { AsyncQueue, PROTOCOL, mapError, sanitizeText, type EppPeer, type Notification } from "./epp.js";
 import { ExecFilesystemProtocol, ExecProcessProtocol, ExecSandboxProtocol } from "./exec_provider.js";
-import { ProviderProcessError, ProviderProtocolError, ProviderTimeoutError } from "./errors.js";
+import { ProviderFeatureNotSupportedError, ProviderProcessError, ProviderProtocolError, ProviderTimeoutError } from "./errors.js";
 import { hostVersion } from "./host.js";
 import type { NodeContext, NodeInfra } from "./node_provider.js";
 
@@ -107,7 +107,7 @@ export class InProcessEppClient implements EppPeer {
           afterResponse: (fn) => after.push(fn),
           shutdown: () => undefined,
         });
-        return result ?? {};
+        return result === undefined ? {} : result;
       } catch (exc) {
         if (exc instanceof SandboxError) throw exc;
         if (isRpcError(exc)) throw mapError({ code: exc.code, message: exc.message, data: exc.data }, this.provider_id, this.secrets);
@@ -171,15 +171,20 @@ export async function eppInfra(ctx: NodeContext, factory: EppFactory): Promise<N
 
   const plugin = factory({ log: (message) => logger.debug("[%s] %s", ctx.id, sanitizeText(message, secrets)) });
   const client = new InProcessEppClient(ctx.id, plugin, secrets, ctx.callTimeout);
-  await client.start({
-    protocol: PROTOCOL,
-    host: { name: "abx", version: hostVersion() },
-    provider_id: ctx.id,
-    config: ctx.options,
-    core: ctx.core,
-    locale: "en",
-    data_dir: "",
-  });
+  try {
+    await client.start({
+      protocol: PROTOCOL,
+      host: { name: "abx", version: hostVersion() },
+      provider_id: ctx.id,
+      config: ctx.options,
+      core: ctx.core,
+      locale: "en",
+      data_dir: "",
+    });
+  } catch (exc) {
+    await client.close();
+    throw exc;
+  }
 
   const supported = new Set([...ctx.features].filter((f) => client.features.size === 0 || client.features.has(f)));
   let http: HttpClient | null = null;
@@ -189,6 +194,15 @@ export async function eppInfra(ctx: NodeContext, factory: EppFactory): Promise<N
   const nativeFiles = http === null ? null : new FilesystemProtocol(http);
 
   return {
+    provider_commands: {
+      run: async (command, input) => {
+        try { return await client.call("provider.commands.run", { command, input }); }
+        catch (exc) {
+          if (exc instanceof ProviderProtocolError && exc.rpc_code === -32601) throw new ProviderFeatureNotSupportedError(ctx.id, `command:${command}`);
+          throw exc;
+        }
+      },
+    },
     sandbox_protocol: new ExecSandboxProtocol(client, supported, secretKeys),
     process_protocol: new ExecProcessProtocol(client, supported, nativeProcess),
     filesystem_protocol: new ExecFilesystemProtocol(client, supported, nativeFiles),

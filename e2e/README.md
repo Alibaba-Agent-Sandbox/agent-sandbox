@@ -15,7 +15,7 @@ cp .env.example .env   # then fill in real values
 
 # 2. run against the abx binary
 ABX_BIN=abx                           npm run e2e          # `abx` on PATH (default)
-ABX_BIN="node dist/bin/abx.js"        npm run e2e          # after `npm run build`
+ABX_BIN="node $PWD/dist/bin/abx.js"   npm run e2e          # after `npm run build`
 
 npm run e2e:offline                   # only the no-credential suite (seconds)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
@@ -88,9 +88,35 @@ The script scrubs the child environment, never prints credentials, kills every s
 
 ## Environment variables
 
+Provider management checks are available as `--suite provider-commands-offline,provider-management-cloud`.
+The first suite needs no credentials; the second uses AK/SK for four read-only FC APIs. No resources are created.
+For the isolated API-key lifecycle, select `--suite provider-management-lifecycle --filter existing-team-api-key-lifecycle`
+and set `ABX_E2E_PROVIDER_MANAGEMENT_WRITE=1` plus `ABX_E2E_MANAGEMENT_EXISTING_TEAM_ID`.
+Only a new randomly named test key is updated, rotated, deactivated and deleted; the existing Team is never changed.
+Key values are checked in temporary mode-0600 files and never printed. Team/Volume/quota write scenarios require
+the explicit plan/resource-group and additional opt-ins documented in the scenario source; missing prerequisites
+are reported as skips. No subscription plan, existing storage or Volume state transition is guessed.
+
+Actual mount acceptance is separate: run `--suite volume-mount-cloud` with
+`ABX_E2E_VOLUME_MOUNT=1`, `ABX_E2E_VOLUME_NAME` naming an existing writable test Volume,
+and `ABX_E2E_VOLUME_MOUNT_PATH` set to a dedicated normalized path below `/mnt/abx-e2e/`.
+The configured sandbox API key must belong to that Volume's Team, with a valid storage role.
+Set `ABX_E2E_TEMPLATE` explicitly to a mount-capable template. Custom MicroVM source images
+must include ossfs2 2.0.10 or newer; see the [official mount guide](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1).
+The scenario verifies the exact mount in `/proc/self/mountinfo` before exclusive sentinel-file
+write/read/delete, then destroys only its own sandbox. It never deletes the existing Volume
+or storage. Missing prerequisites produce a skip, not proof that mounting works.
+
+When test infrastructure creation is explicitly authorized, a temporary private Bucket, a
+dedicated FC-trusted RAM role with access limited to that Bucket, a same-Team test API key and
+Volume can supply these prerequisites. After sandbox cleanup, deactivate/delete the test key,
+delete the Volume, empty/delete the test Bucket, detach/delete the custom policy and delete
+the test role. Verify each resource is absent. Resource creation is separate from this runner;
+the mount scenario does not provision storage or delete an existing Volume.
+
 | Variable | Meaning |
 |---|---|
-| `ABX_BIN` | Binary under test (default `abx`); may contain arguments, e.g. `"node dist/bin/abx.js"` |
+| `ABX_BIN` | Binary under test (default `abx`); may contain arguments, e.g. `"node $PWD/dist/bin/abx.js"`; script paths must be absolute for isolated scenario directories |
 | `ABX_E2E_TEMPLATE` | Template for the lifecycle suite (default `python-hello`) |
 | `ABX_E2E_TIMEOUT_MS` | Default per-command timeout (default 120000) |
 | `ABX_E2E_DOCKER=1` | Enable the Docker/ACR suite (slow, costs real resources) |

@@ -37,7 +37,7 @@ export {
   ProcessInfo,
   ProcessResult,
 } from "./process.js";
-export { SandboxConfig, SandboxInfo, SandboxStatus } from "./sandbox.js";
+export { SandboxConfig, SandboxInfo, SandboxStatus, validateVolumeMounts } from "./sandbox.js";
 export { SessionConfig, SessionInfo } from "./session.js";
 export {
   DEFAULT_CAPABILITIES,
@@ -81,6 +81,7 @@ export const __all__ = [
   "SandboxStatus",
   "SandboxConfig",
   "SandboxInfo",
+  "validateVolumeMounts",
   // Process
   "ProcessChunkType",
   "ProcessChunk",

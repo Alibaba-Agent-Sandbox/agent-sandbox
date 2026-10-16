@@ -83,6 +83,12 @@ abx [全局选项] <子命令> [子命令选项]
 
 > 没有全局 `--timeout`，也没有 `--profile`。沙箱生命周期是 `abx create` 的 `--timeout`；命令超时是 `abx exec` 的 `--timeout`。
 
+FC 创建支持可重复的 `--volume-mount PATH=NAME`，例如
+`abx create --template base --volume-mount /mnt/workspace=workspace`。
+Volume 必须已存在于配置的沙箱 API Key 所属 Team，并配置存储访问角色。
+路径必须是合法的沙箱内绝对路径，不能重复。尚无已验证映射的 provider 会拒绝此创建选项。
+配置要求见[FC Volume 设计](../design/alicloud-provider-commands.md)。
+
 > **`-h` / `--help` 在每个层级均可用**：别名在根命令处集中启用一次，并由整棵命令树继承，因此 `abx -h`、`abx sandbox -h`、`abx sandbox files list -h` 都会显示所指向命令的帮助。若某命令自身占用了 `-h` 参数，该参数保持不变——Click 只在那一处移除别名，`--help` 仍然可用。
 
 > **区域是命令级选项，而非全局选项**：只有访问区域控制面的命令才接受 `--region`/`-r` —— [`abx list`](#abx-list)、[`abx kill`](#abx-kill)、模板控制面命令（`list`/`info`/`create`/`push`/`build`/`install`/`delete`）以及 [`abx mcp deploy`](#abx-mcp-deploy)。解析优先级：命令 `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`。凭证顺序见 [凭证解析](configuration.md#凭证解析)。持久默认值请通过 `abx config set region` 设置。
