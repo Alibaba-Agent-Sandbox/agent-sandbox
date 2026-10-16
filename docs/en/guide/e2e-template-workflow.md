@@ -179,14 +179,14 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 
 ### Scaffold a new template (recommended)
 
-The fastest way to start is the built-in scaffold. `abx template init` generates a ready-to-edit template directory, so you no longer have to hand-write `template.yaml` / `Dockerfile` / `commands.py` from memory.
+The fastest way to start is the built-in scaffold. `abx template scaffold` generates a ready-to-edit template directory, so you no longer have to hand-write `template.yaml` / `Dockerfile` / `commands.py` from memory.
 
 When the `DIRECTORY` argument is omitted, the scaffold creates a new subdirectory `./<name>` in the current working directory. The `<name>` is resolved by priority: `--name` > scaffold case name (the `-t` value) > template name from `--from`.
 
 List the available scaffold cases:
 
 ```bash
-$ abx template init --list
+$ abx template scaffold --list
   python       Python 3.11 sandbox with shell, files, and code capabilities
   node         Node.js 20 sandbox with shell, files, and code capabilities
   minimal      Bare-minimum template with only template.yaml + Dockerfile
@@ -195,7 +195,7 @@ $ abx template init --list
 Scaffold a Python template into `./my-template`:
 
 ```bash
-$ abx template init -t python ./my-template
+$ abx template scaffold -t python ./my-template
 ✅ Template 'my-template' created in ./my-template
 Created files:
   Dockerfile
@@ -208,21 +208,21 @@ Next steps:
   abx template install ./my-template --acr-namespace <ns>
 ```
 
-> Scaffolding and credentials setup are separate commands: `abx template init` (this section) writes local files only, while `abx config init` stores credentials and `abx create` launches a cloud sandbox. There is no top-level `abx init`.
+> Scaffolding and credentials setup are separate commands: `abx template scaffold` (this section) writes local files only, while `abx config init` stores credentials and `abx create` launches a cloud sandbox. There is no top-level `abx init`.
 
 ### Adapt a project that already has source code
 
 When the directory is an application (Flask, Express, a script) and has no `Dockerfile` / `template.yaml`, use `--adopt`. Qwen Code sees a copy; abx writes `Dockerfile`, `commands.py`, `template.yaml`, and a `.dockerignore` when you don't already have one, into that same directory.
 
 ```bash
-$ abx template init --adopt ./my-app --hint "listens on 8080"
+$ abx template scaffold --adopt ./my-app --hint "listens on 8080"
 # review the preview, then:
 $ abx deploy ./my-app --acr-namespace my-ns
 ```
 
 `--dry-run` lists every file that would be sent and contacts no model. `-y` is required outside an interactive terminal. Secrets (`.env`, keys, secret-looking files) stay out of the copy, and the agent process does not inherit cloud credentials. The full rules — backups, `--force`, and what is rejected before a write — are in [Authoring Templates — Adapt an existing project](authoring-templates.md#adapt-an-existing-project).
 
-`abx template init "DESCRIPTION"` is the other generation path: it creates a **new** directory from a sentence. `--adopt` fills in the project you already have.
+`abx template scaffold --prompt "DESCRIPTION"` is the other generation path: it creates a **new** directory from a sentence. `--adopt` fills in the project you already have.
 
 ### Understand the generated files
 
@@ -622,7 +622,7 @@ abx template delete <template-id>
 
 | Symptom | Possible cause | Solution |
 |---------|---------------|----------|
-| No Dockerfile | The directory is application source, not a template yet | `abx template init --adopt .`, then `abx deploy` |
+| No Dockerfile | The directory is application source, not a template yet | `abx template scaffold --adopt .`, then `abx deploy` |
 | Confirmation required before project files are sent | Non-interactive `--adopt` without `-y` | Pass `-y`, or `--dry-run` to list the files without sending them |
 | Docker build failed | Dockerfile syntax / network issue | Add `-v` to see detailed logs |
 | ACR login failed | AK/SK expired or insufficient permissions | Verify credentials in `.env` |

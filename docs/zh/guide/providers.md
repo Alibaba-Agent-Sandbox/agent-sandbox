@@ -151,9 +151,9 @@ OpenSandbox 连接本机服务。设置 `ABX_OPENSANDBOX_BASE_URL`（默认 `htt
 | 键 | 环境变量 | 为什么是这个名字 |
 |---|---|---|
 | `provider` | `ABX_PROVIDER` | 产品自己的设置 |
-| `sandbox_api_key` | `ABX_SANDBOX_API_KEY` | 产品自己的沙箱密钥 |
-| `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | 产品自己的平台地址 |
-| `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | 产品自己的数据面域名 |
+| `sandbox_api_key` | `E2B_API_KEY` | 产品自己的沙箱密钥 |
+| `sandbox_base_url` | `E2B_API_URL` | 产品自己的平台地址 |
+| `sandbox_domain` | `E2B_DOMAIN` | 产品自己的数据面域名 |
 | `llm_api_key` | `ABX_LLM_API_KEY` | 产品自己的代码生成密钥。启动 Qwen Code 时会写进子进程的 `OPENAI_API_KEY`，因为 `qwen` 程序读的是这个变量 |
 | `github_token` | `GITHUB_TOKEN` | GitHub 官方变量 |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | 阿里云官方地域变量 |
@@ -187,7 +187,7 @@ abx config list --provider my-cloud                          # 该提供商的�
 
 仅存在于另一个已安装提供商中的裸键会被拒绝，并提示 `Did you mean 'providers.<id>.<key>'?`。`abx provider config <id> list|get|set|unset|init` 是限定到单个提供商的同一套能力。
 
-`abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
+`abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
 
 ---
 

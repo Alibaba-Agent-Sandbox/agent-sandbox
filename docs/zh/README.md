@@ -28,7 +28,7 @@ CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。
 | [认证配置](guide/authentication.md) | API Key / AK-SK 认证与 `abx config` |
 | [CLI 教程](guide/cli-tutorial.md) | 命令行快速上手 |
 | [模板使用](guide/using-templates.md) | 官方与社区模板使用 |
-| [模板编写](guide/authoring-templates.md) | 自定义模板；已有项目用 `abx template init --adopt` |
+| [模板编写](guide/authoring-templates.md) | 自定义模板；已有项目用 `abx template scaffold --adopt` |
 | [部署与构建](guide/deploy-and-build.md) | 模板生命周期（`template init` / `--adopt` → `deploy` → `create`） |
 | [端到端模板工作流](guide/e2e-template-workflow.md) | 从零构建模板到沙箱使用完整指南 |
 | [MCP 集成](guide/mcp-integration.md) | Cursor / Claude Desktop / VS Code 集成 |
@@ -102,3 +102,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 - [系统架构](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/architecture.md) — SDK 的六层架构
 - [模板体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与 [template.yaml 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)
 - [声明式用法](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md)、[会话持久化](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/session-persistence.md)、[E2B 迁移](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/migrate-from-e2b.md)
+
+标准命令行为以[E2B 迁移契约](guide/migrate-from-e2b.md)为准；现有命令参考中不同的接口属于项目扩展。

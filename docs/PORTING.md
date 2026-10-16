@@ -26,7 +26,7 @@ If you do not have a checkout yet, clone `https://github.com/alibaba-agent-sandb
 venv and `pip install -e ".[dev]"` it there.
 
 Always run the oracle with an isolated `HOME=$(mktemp -d)` (and no CI env vars) so it never touches real config;
-point it at a local stub HTTP server through `ABX_SANDBOX_BASE_URL`/`ABX_SANDBOX_DOMAIN` like the Python tests
+point it at a local stub HTTP server through `E2B_API_URL`/`E2B_DOMAIN` like the Python tests
 do. Neither this CLI (`cli/src`) nor the Python oracle reads `ABX_NO_KEYCHAIN`.
 
 ## Module mirroring

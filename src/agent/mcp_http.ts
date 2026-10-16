@@ -787,9 +787,9 @@ async function respond(
  *
  * Environment variables:
  * - `ABX_MCP_AUTH_TOKEN` — Bearer token for client auth (optional)
- * - `ABX_SANDBOX_API_KEY` — Sandbox backend API key
- * - `ABX_SANDBOX_BASE_URL` — API URL override
- * - `ABX_SANDBOX_DOMAIN` — Domain override
+ * - `E2B_API_KEY` — Sandbox backend API key
+ * - `E2B_API_URL` — API URL override
+ * - `E2B_DOMAIN` — Domain override
  * - `ABX_DEFAULT_TEMPLATE` — Default template
  * - `ABX_MCP_ALLOWED_ORIGINS` — comma separated extra `Origin` values
  */
@@ -805,9 +805,9 @@ export function _createDefaultApp(env: NodeJS.ProcessEnv = process.env): McpHttp
   const template = env.ABX_DEFAULT_TEMPLATE ?? "base";
   return createMcpApp({
     auth_token: env.ABX_MCP_AUTH_TOKEN ?? null,
-    api_key: env.ABX_SANDBOX_API_KEY || null,
-    api_url: env.ABX_SANDBOX_BASE_URL || null,
-    domain: env.ABX_SANDBOX_DOMAIN || null,
+    api_key: env.E2B_API_KEY || null,
+    api_url: env.E2B_API_URL || null,
+    domain: env.E2B_DOMAIN || null,
     template,
     allowed_origins: allowedOrigins,
   });

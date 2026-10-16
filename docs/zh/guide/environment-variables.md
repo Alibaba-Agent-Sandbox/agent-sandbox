@@ -2,7 +2,7 @@
 
 本指南说明如何通过 `abx` CLI 在沙箱内设置和读取环境变量，以及发送给沙箱的命令适用哪些执行规则。底层模型——每个沙箱内有两个相互独立的进程作用域——对 CLI 和 Python SDK 是一致的；包含 SDK 与沙箱内 Server 代码示例的完整说明见文末链接的 SDK 文档。
 
-> **想了解 CLI 自身的配置变量**（`ABX_SANDBOX_API_KEY`、`ALIBABA_CLOUD_REGION_ID`、`ABX_LLM_API_KEY` 等）？这些变量用于配置 `abx` 本身，而不是沙箱。每个键只有一个变量。见[配置参考](../reference/configuration.md)。
+> **想了解 CLI 自身的配置变量**（`E2B_API_KEY`、`ALIBABA_CLOUD_REGION_ID`、`ABX_LLM_API_KEY` 等）？这些变量用于配置 `abx` 本身，而不是沙箱。每个键只有一个变量。见[配置参考](../reference/configuration.md)。
 
 ---
 

@@ -50,7 +50,7 @@ Sandbox.create({ template: "base", ... })
 这两条路径**不会**进入你的插件：
 
 - 没有 `--provider`、没有 `ABX_PROVIDER`、配置里也没有默认值时，`abx create` 仍走 `alicloud-express`。
-- `abx create "一个 node 服务"`（有描述、没有 `--template`）会先走内置的模板编写流程（生成、构建、部署）。只有最后一次 `Sandbox.create` 使用选中的 provider。没有 `templates.build` 的 provider 用 `abx --provider my-cloud create --template <镜像或名称>` 来启动。
+- `abx create --prompt "一个 node 服务"`（有描述、没有 `--template`）会先走内置的模板编写流程（生成、构建、部署）。只有最后一次 `Sandbox.create` 使用选中的 provider。没有 `templates.build` 的 provider 用 `abx --provider my-cloud create --template <镜像或名称>` 来启动。
 
 Python 里的 `Sandbox.create(template="base", provider="my-cloud")` 从第 2 步开始，不经过 CLI。它用的仍是已安装的 `~/.abx/providers/my-cloud`。
 
@@ -239,7 +239,7 @@ abx provider install https://github.com/you/abx-provider-my-cloud.git \
 
 ## 5. 模板配置
 
-`[template]` 表**只用于模板创作**（`abx template init` / `deploy` 的 Dockerfile 和代码生成）。它不决定 `abx create --template X` 的含义：那个字符串会在 `sandbox.create` 里原样交给你的插件，由你来映射。OpenSandbox 把它当作容器镜像 URI（`python:3.12-slim`），并提供 `default_image` 和 `image_aliases` 选项来使用短名；它没有 `[template]` 表，使用通用配置。
+`[template]` 表**只用于模板创作**（`abx template scaffold` / `deploy` 的 Dockerfile 和代码生成）。它不决定 `abx create --template X` 的含义：那个字符串会在 `sandbox.create` 里原样交给你的插件，由你来映射。OpenSandbox 把它当作容器镜像 URI（`python:3.12-slim`），并提供 `default_image` 和 `image_aliases` 选项来使用短名；它没有 `[template]` 表，使用通用配置。
 
 可选的 `[template]` 表。没有这张表时，模板生成使用通用 Docker 配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`），并说明该提供者没有模板配置。它不会使用阿里云极速版 FC 镜像。OpenSandbox 保持通用配置；其 create `entrypoint` 在这一轮不改。
 

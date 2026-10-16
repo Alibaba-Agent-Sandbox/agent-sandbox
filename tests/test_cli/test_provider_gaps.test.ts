@@ -41,7 +41,7 @@ describe("template commands honour the active provider", () => {
     ["deploy", ["template", "deploy", "."]],
     ["deploy shortcut", ["deploy", "."]],
     ["push", ["template", "push", "registry.example/ns/img:1"]],
-    ["create", ["template", "create", "registry.example/ns/img:1", "--name", "t"]],
+    ["create", ["template", "from-image", "registry.example/ns/img:1", "--name", "t"]],
     ["install", ["template", "install", "owner/repo"]],
     ["delete", ["template", "delete", "tpl-1", "--yes"]],
     ["list", ["template", "list"]],

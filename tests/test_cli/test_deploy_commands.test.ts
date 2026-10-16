@@ -3,7 +3,7 @@
  *
  * `abx deploy` is the fixed *publish* step of the template lifecycle (docker build -> push -> register) and delegates
  * to `template build`. It takes no description and no LLM: what a template is lives in `template.yaml`, authored
- * earlier by `abx template init`. The pipeline itself is covered by the `template` tests, so here `build` is replaced by
+ * earlier by `abx template scaffold`. The pipeline itself is covered by the `template` tests, so here `build` is replaced by
  * a recorder that keeps its real option set.
  */
 
@@ -115,7 +115,7 @@ describe("TestFixedPipeline", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("--verbose");
     expect(result.output).toContain("--acr-namespace");
-    expect(result.output).toContain("abx template init");
+    expect(result.output).toContain("abx template scaffold");
     for (const gone of ["--agent", "--instruction", "--max-wall-time", "--max-session-turns"]) expect(result.output).not.toContain(gone);
     expect(result.output).not.toContain("--traditional");
   });
@@ -167,7 +167,7 @@ describe("TestFixedPipeline", () => {
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("No Dockerfile and no template.yaml build steps");
-    expect(result.output).toContain("abx template init");
+    expect(result.output).toContain("abx template scaffold");
     expect(buildCalls).toEqual([]);
   });
 

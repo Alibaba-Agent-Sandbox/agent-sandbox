@@ -230,7 +230,7 @@ describe("TestEnvdTokenManager", () => {
 
 describe("TestCreateAuthProvider", () => {
   // Test create_auth_provider factory.
-  const credentialEnv = ["ABX_SANDBOX_API_KEY", "E2B_API_KEY", "SANDBOX_API_KEY"] as const;
+  const credentialEnv = ["E2B_API_KEY", "E2B_API_KEY", "SANDBOX_API_KEY"] as const;
   const saved: Partial<Record<(typeof credentialEnv)[number], string | undefined>> = {};
 
   beforeEach(() => {
@@ -290,7 +290,7 @@ describe("TestCreateAuthProvider", () => {
   });
 
   it("test_env_sandbox_api_key_is_used", async () => {
-    process.env["ABX_SANDBOX_API_KEY"] = "env-key-123";
+    process.env["E2B_API_KEY"] = "env-key-123";
     const auth = create_auth_provider();
     expect(auth).toBeInstanceOf(ApiKeyAuth);
     expect((auth as ApiKeyAuth)._api_key).toBe("env-key-123");
@@ -298,7 +298,7 @@ describe("TestCreateAuthProvider", () => {
   });
 
   it("test_retired_api_key_names_are_not_read", () => {
-    process.env["E2B_API_KEY"] = "retired-e2b";
+    process.env["ABX_SANDBOX_API_KEY"] = "retired-project";
     process.env["SANDBOX_API_KEY"] = "retired-sandbox";
     let caught: unknown;
     try {
@@ -308,13 +308,13 @@ describe("TestCreateAuthProvider", () => {
     }
     expect(caught).toBeInstanceOf(InvalidAPIKeyError);
     const suggestion = (caught as InvalidAPIKeyError).suggestion ?? "";
-    expect(suggestion).toContain("ABX_SANDBOX_API_KEY");
+    expect(suggestion).toContain("E2B_API_KEY");
     expect(suggestion).toContain("ALICLOUD_ACCESS_KEY_ID");
     expect(suggestion).toContain("ALICLOUD_ACCESS_KEY_SECRET");
-    expect(suggestion).toContain("ABX_SANDBOX_BASE_URL");
-    expect(suggestion).toContain("ABX_SANDBOX_DOMAIN");
+    expect(suggestion).toContain("E2B_API_URL");
+    expect(suggestion).toContain("E2B_DOMAIN");
     expect(suggestion).toContain("ALIBABA_CLOUD_REGION_ID");
-    expect(suggestion).not.toContain("E2B_API_KEY");
+    expect(suggestion).not.toContain("ABX_SANDBOX_API_KEY");
     expect(suggestion).not.toContain("AccessKey");
   });
 });

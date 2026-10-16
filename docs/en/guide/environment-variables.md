@@ -5,7 +5,7 @@ execution rules apply to the commands you send. The underlying model — two ind
 sandbox — is the same for the CLI and the Python SDK; the full description, with code examples for the SDK and the
 in-sandbox server, is in the SDK documentation linked at the bottom.
 
-> **Looking for the CLI's own configuration variables** (`ABX_SANDBOX_API_KEY`, `ALIBABA_CLOUD_REGION_ID`, `ABX_LLM_API_KEY`, …)?
+> **Looking for the CLI's own configuration variables** (`E2B_API_KEY`, `ALIBABA_CLOUD_REGION_ID`, `ABX_LLM_API_KEY`, …)?
 > Those configure `abx` itself, not the sandbox. Each key has one variable. See the [Configuration Reference](../reference/configuration.md).
 
 ---

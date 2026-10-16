@@ -2,6 +2,8 @@
 
 **English** | [中文](README.zh-CN.md)
 
+[Standard E2B migration contract](docs/en/guide/migrate-from-e2b.md)
+
 <!-- badges -->
 [![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
@@ -12,7 +14,7 @@
 
 **Agent Sandbox** is the command-line interface (`abx`). The default provider is Alibaba Cloud Express (`alicloud-express`). The CLI also loads installed `node`, `exec` and `rest` plugins. The catalog providers `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins: an ES module `provider.mjs` that exports `create(kit)`. Install one with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` (a local path or a git URL also works) and run `abx --provider <id>`. An id that is neither built in nor installed exits `E8001`. A manifest with `runtime.kind = "python"` cannot be installed. In-code Python `Provider` subclasses still work in the Python SDK, which reaches the same `node` plugins through the local engine (`abx provider engine serve`; `abx` on `PATH` or `ABX_BIN`). `exec` (EPP/1 over stdio, any language, optional `pty.*`) remains for third-party plugins.
 The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk) (see [Python SDK](#python-sdk)).
-Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; neither the CLI nor the SDK is an E2B-protocol drop-in.
+Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; the standard Express command path follows the pinned E2B CLI behavior contract. See [migration](docs/en/guide/migrate-from-e2b.md).
 
 ## Sites
 
@@ -33,7 +35,7 @@ The CLI installs those catalog providers from the git tree `alibaba-agent-sandbo
 - **Agent skill** — a static Agent Skills guide ([`SKILL.md`](SKILL.md)) for Qoder, Claude Code, Cursor, Qwen Code, and Codex.
 - **Standalone binary, or Node.js >= 20 from source** — the release binary needs no Node.js. The npm package is not published yet.
 
-The SDK-side features (async-first `Sandbox` API, the `run` / `run_code` execution primitives, the `@sandbox` declarative decorator, session persistence, and the E2B compatibility layer) are documented in the [Python SDK](#python-sdk) section.
+The SDK-side features (synchronous `Sandbox` / asynchronous `AsyncSandbox` API, the `run` / `run_code` execution primitives, the `@sandbox` declarative decorator, session persistence, and the E2B compatibility layer) are documented in the [Python SDK](#python-sdk) section.
 
 ## Installation
 
@@ -117,13 +119,13 @@ abx template info python-base            # template details
 abx template install owner/repo          # install from GitHub
 
 # Template deployment (Alibaba Cloud template API, bundled with the CLI)
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
 abx template deploy ./examples/templates/python-hello \
     --acr-namespace my-ns --acr-repo python-hello
 
 # Template lifecycle: author -> publish -> launch
-abx template init --adopt ./app --hint "port 8080" # 1a. adapt an existing project
-abx template init "a python web server"             # 1b. template generation writes ./<name>/ (optional)
+abx template scaffold --adopt ./app --hint "port 8080" # 1a. adapt an existing project
+abx template scaffold "a python web server"             # 1b. template generation writes ./<name>/ (optional)
 abx deploy ./app --acr-namespace my-ns              # 2. build, push to ACR, register (no LLM)
 abx create --template <TEMPLATE_ID>                 # 3. launch a sandbox
 
@@ -160,7 +162,7 @@ fixture contract and index behaviour (caching, offline fallback, pinned refs).
 
 ## Python SDK
 
-The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The quick start, the execution API (`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`) and the architecture documentation are maintained there.
+The Python SDK — the synchronous `Sandbox` / asynchronous `AsyncSandbox` API, the declarative `@sandbox` decorator, session persistence, the E2B compatibility layer, and the layered architecture behind them — lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The quick start, the execution API (`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`) and the architecture documentation are maintained there.
 
 ```bash
 # Client SDK (import agent_sandbox)

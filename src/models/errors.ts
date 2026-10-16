@@ -83,7 +83,7 @@ export class AuthenticationError extends SandboxError {
  */
 export class InvalidAPIKeyError extends AuthenticationError {
   static override code = "E1001";
-  static override suggestion = "Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.";
+  static override suggestion = "Check your E2B_API_KEY environment variable or pass sandbox_api_key.";
 }
 
 /**
@@ -107,7 +107,7 @@ export class InvalidCredentialsError extends AuthenticationError {
  */
 export class TokenExchangeError extends AuthenticationError {
   static override code = "E1004";
-  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use ABX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.";
+  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use E2B_API_KEY directly, or check AK/SK credentials and network connectivity.";
 }
 
 /**

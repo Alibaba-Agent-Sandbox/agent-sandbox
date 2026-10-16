@@ -289,7 +289,7 @@ it("test_template_create_shows_a_header_and_hides_the_password", async () => {
   const create = spyAny(fcTemplate, "createOfficialTemplate").mockResolvedValue({ templateID: "tpl-from-image", statusCode: 200 });
 
   const result = await runner().invoke(cli, [
-    "template", "create", "registry.example/ns/app:latest", "--name", "from-image", "--registry-password", password,
+    "template", "from-image", "registry.example/ns/app:latest", "--name", "from-image", "--registry-password", password,
   ]);
 
   expect(result.exit_code, result.output).toBe(0);
@@ -318,7 +318,7 @@ it("test_install_milestones_show_under_the_header", async () => {
   codingAgentSeams.resolveBackend = (() => backend) as never;
   vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockRejectedValue(new CliError("stop-after-install"));
   try {
-    const result = await runner().invoke(cli, ["create", "a small http server", "--yes"]);
+    const result = await runner().invoke(cli, ["create", "--prompt", "a small http server", "--yes"]);
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("stop-after-install");

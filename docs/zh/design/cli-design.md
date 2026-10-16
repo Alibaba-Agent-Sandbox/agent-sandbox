@@ -1,3 +1,5 @@
+> 极速版标准命令以[E2B 迁移契约](../guide/migrate-from-e2b.md)为准：create 位置参数为模板，--prompt 请求生成，template create 使用 E2B 构建语义，from-image 创建阿里云镜像模板。
+
 # CLI 命令体系设计
 
 > `abx` CLI 是 Agent Sandbox 的命令行入口，兼顾人类开发者和 AI Agent 两种使用场景。CLI 的终极目标：**用户不需要知道模板、资源规格、配置参数，只需要描述想做什么，sandbox 自动搞定一切。**
@@ -111,7 +113,7 @@ abx list --json --quiet
 abx list --ci
 
 # 指定日志级别
-abx create "python 环境" --log-level DEBUG
+abx create --prompt "python 环境" --log-level DEBUG
 ```
 
 `--region`/`-r` 是**命令级选项**，而非全局选项。只有访问区域控制面的命令才接受它：
@@ -143,8 +145,8 @@ CLI 会自动检测 CI 环境（`CI`、`GITHUB_ACTIONS`、`GITLAB_CI`、`JENKINS
 |---------|------|
 | `abx create`（无参数） | **拒绝执行** —— 显式用法错误（退出码 2），列出三条合法路由；裸 create 不会静默默认 `base` |
 | `abx create --template <名称>` | 直接模板路径（不经过 模板生成） |
-| `abx create "自然语言描述"` | 生成路径（本节重点） |
-| `abx create "描述" --template <名称>` | 拒绝执行 —— `DESCRIPTION` 与 `--template` 互斥（用法错误，退出码 2） |
+| `abx create --prompt "自然语言描述"` | 生成路径（本节重点） |
+| `abx create --prompt "描述" --template <名称>` | 拒绝执行 —— `DESCRIPTION` 与 `--template` 互斥（用法错误，退出码 2） |
 
 任一输入都不会被静默丢弃：两者同时提供时命令直接拒绝执行。
 
@@ -152,7 +154,7 @@ CLI 会自动检测 CI 环境（`CI`、`GITHUB_ACTIONS`、`GITLAB_CI`、`JENKINS
 
 ```mermaid
 graph TD
-    Input["abx create '描述'"] --> Scope{"交互式终端<br/>且未传 --yes?"}
+    Input["abx create --prompt '描述'"] --> Scope{"交互式终端<br/>且未传 --yes?"}
     Scope -- "切换到 init" --> Find
     Scope -- "继续 / --yes / 非 TTY" --> Find{"检测 Qwen Code<br/>PATH / ~/.abx/bin"}
     Find -- 未安装 --> Install{"交互式终端且未传 --yes?"}
@@ -176,7 +178,7 @@ graph TD
     Verify -- 不通过 --> E2007
 ```
 
-**范围确认。** 在安装或生成之前，交互式终端会先说明自然语言 create 会生成模板、构建并推送镜像、部署模板、再创建沙箱，并询问是否改走 template init。回答「是」时，与 `abx template init "描述"` 相同：只在 `./<名称>/` 写下 `Dockerfile`、`commands.py`、`template.yaml` 与 `README.md`，然后停止——不构建、不推送、不部署、不创建沙箱。默认是继续完整的 create。`--yes` 与 `--json` 跳过这个问题并走完整流程。非交互终端只打印同一句提醒然后继续；后面的构建确认仍然生效。
+**范围确认。** 在安装或生成之前，交互式终端会先说明自然语言 create 会生成模板、构建并推送镜像、部署模板、再创建沙箱，并询问是否改走 template init。回答「是」时，与 `abx template scaffold --prompt "描述"` 相同：只在 `./<名称>/` 写下 `Dockerfile`、`commands.py`、`template.yaml` 与 `README.md`，然后停止——不构建、不推送、不部署、不创建沙箱。默认是继续完整的 create。`--yes` 与 `--json` 跳过这个问题并走完整流程。非交互终端只打印同一句提醒然后继续；后面的构建确认仍然生效。
 
 1. **可执行文件检测**：先查 `PATH`，再查 `~/.abx/bin`（Windows 识别 `.cmd`/`.exe` 后缀）。
 2. **安装引导**：未安装时，交互式终端询问是否安装官方 standalone 版本（经 SHA256 校验后原子安装到 `~/.abx/bin`，Unix 设置执行权限）；非 TTY 或用户拒绝时抛出 `E2005` 并打印 Quick Setup，不阻塞、不降级。
@@ -189,7 +191,7 @@ graph TD
 
 ```bash
 # 交互式：模板生成 → 构建部署 → 创建
-# abx create "运行 python 数据分析，预装 pandas 和 jupyter"
+# abx create --prompt "运行 python 数据分析，预装 pandas 和 jupyter"
 
 # 非交互（CI）：必须显式 -y，否则安装/凭证/确认环节直接报错
 # abx create -y "a node.js api server"
@@ -199,13 +201,13 @@ graph TD
 # abx create -T browser-automation
 
 # 非交互下描述不完整 → E2008（缺失项 + 示例）
-# abx create "run python"
+# abx create --prompt "run python"
 
 # 拒绝：DESCRIPTION 与 --template 互斥（退出码 2）
-# abx create "a node.js api" --template base
+# abx create --prompt "a node.js api" --template base
 
 # 带文件上传
-# abx create "分析这个 CSV 文件" --upload data.csv
+# abx create --prompt "分析这个 CSV 文件" --upload data.csv
 ```
 
 ### 安装与凭证引导
@@ -253,11 +255,11 @@ abx create [DESCRIPTION] [选项]
   --acr-namespace <ns>      模板生成构建推送的 ACR 命名空间
 
 示例：
-  abx create "python 数据分析"            # 模板生成 → 构建部署 → 创建
+  abx create --prompt "python 数据分析"            # 模板生成 → 构建部署 → 创建
   abx create -y "node.js api server"    # 非交互 生成路径
   abx create --template code-interpreter # 直接模板路径
-  abx create "Node.js API" -e PORT=3000
-  abx create "分析数据" --upload ./data.csv
+  abx create --prompt "Node.js API" -e PORT=3000
+  abx create --prompt "分析数据" --upload ./data.csv
 ```
 
 ### abx list
@@ -405,9 +407,9 @@ abx sandbox command list <sandbox-id>
 创建沙箱、上传或下载文件、拉取模板或模板索引、用镜像注册模板、安装 coding-agent CLI，以及 `abx kill --all`，这些可能停住的步骤使用同一套标题。某一步若有安全的日志——相对路径、安装阶段（镜像源、校验和、解压）、docker 输出或轮询状态——最近六行显示在标题下方（`ABX_ACTIVITY_LINES`，1–10）。灰色行会带上一小段已脱敏的工具详情（命令、url、查询或路径）。文件内容、思考内容和凭证保持隐藏；ACR token 和 `--build-arg` 的值不会进入这几行；记录 docker 命令的 info 日志会把 build-arg 的值写成 `***`。`--verbose` 仍会打印完整的部署日志，并且不画部署区块。其余命令在终端上保留会走动的标题，包括 `--verbose` 和 `--no-color`。`--json`、`--quiet`、CI、`TERM=dumb` 和非 TTY 对这些标题保持沉默。
 
 ```text
-abx template init ["描述" | --adopt 目录]  →  abx deploy [PATH]  →  abx create --template ID
+abx template scaffold ["描述" | --adopt 目录]  →  abx deploy [PATH]  →  abx create --template ID
   编写（脚手架、一句话，或已有项目）            发布（固定流程）        启动
-abx create "描述"  =  以上三步合一，推送任何东西之前先确认
+abx create --prompt "描述"  =  以上三步合一，推送任何东西之前先确认
 ```
 
 ```bash
@@ -422,7 +424,7 @@ abx deploy [PATH] [选项]
 
 设计说明：
 
-- **描述属于编写阶段，而不是发布阶段。** 模板*是什么*——名称、描述、端口、能力、资源、环境变量、自定义命令，以及让部署后的沙箱可用的 `commands.py` 服务——都由 `abx template init` 写进 `template.yaml` / `Dockerfile` / `commands.py`（脚手架、一句描述，或对已有项目使用 `--adopt`），可以审阅、可以纳入版本管理。`abx deploy` 只*读取* `template.yaml`（`name`、`resources.cpu`、`resources.memory`、`generation`）。在部署时再提供一处项目描述，就是再多一个永远不会落进 `template.yaml` 的“真相来源”。`--adopt` 的规格见 ADR `2026-09-30-template-init-adopt-existing-project.md`。
+- **描述属于编写阶段，而不是发布阶段。** 模板*是什么*——名称、描述、端口、能力、资源、环境变量、自定义命令，以及让部署后的沙箱可用的 `commands.py` 服务——都由 `abx template scaffold` 写进 `template.yaml` / `Dockerfile` / `commands.py`（脚手架、一句描述，或对已有项目使用 `--adopt`），可以审阅、可以纳入版本管理。`abx deploy` 只*读取* `template.yaml`（`name`、`resources.cpu`、`resources.memory`、`generation`）。在部署时再提供一处项目描述，就是再多一个永远不会落进 `template.yaml` 的“真相来源”。`--adopt` 的规格见 ADR `2026-09-30-template-init-adopt-existing-project.md`。
 - 因此 `deploy` **没有 INSTRUCTION 参数，也没有 AI 开关**（之前的 `--agent` 设计正是因此被撤销，见 ADR `2026-09-30-deploy-fixed-pipeline-agent-flag.md`）。
 
 ### abx connect
@@ -690,7 +692,7 @@ abx sandbox capabilities <sandbox-id>
 #### template init
 
 ```bash
-abx template init [DIRECTORY] [选项]
+abx template scaffold [DIRECTORY] [选项]
 
 选项：
   -t, --template <案例>      内置脚手架案例（python、node、minimal）
@@ -704,24 +706,24 @@ abx template init [DIRECTORY] [选项]
   -y, --yes                  跳过确认（描述澄清，以及 --adopt 的两次确认）
 
 示例：
-  abx template init --list
-  abx template init -t python            # 创建 ./python/
-  abx template init -t python ./my-app   # 指定目录
-  abx template init --from owner/repo
-  abx template init "一个 Python 数据分析环境"   # 只生成文件，不构建
-  abx template init -y "a node.js api server"     # 非交互，只生成文件
-  abx template init --adopt ./app --hint "监听 8080"
-  abx template init --adopt ./app --dry-run
+  abx template scaffold --list
+  abx template scaffold -t python            # 创建 ./python/
+  abx template scaffold -t python ./my-app   # 指定目录
+  abx template scaffold --from owner/repo
+  abx template scaffold --prompt "一个 Python 数据分析环境"   # 只生成文件，不构建
+  abx template scaffold -y --prompt "a node.js api server"     # 非交互，只生成文件
+  abx template scaffold --adopt ./app --hint "监听 8080"
+  abx template scaffold --adopt ./app --dry-run
 ```
 
-在本地生成可编辑的模板工程，不构建、不推送、不部署、也不创建沙箱——准备好后执行 `abx template deploy <目录>`。路径记号（`my-app`、`./my app`）仍表示目录。含空白或中文的文本是自然语言描述：Qwen Code 把 `Dockerfile`、`commands.py`（SandboxServer 入口）、`template.yaml` 与 `README.md` 写到 `./<名称>/` 后停止。交互式终端会先询问目录（`Directory for the template project`）：直接回车保持 `./<名称>/`（或 `./<--name>/`），其他输入就是项目目录本身。`--yes`、`--json` 和非交互终端跳过这个问题。路径是文件，或目录里已经有模板文件时，会在生成之前拒绝（`--force` 才覆盖）。这与 `abx create "描述"` 在交互下询问是否切换到 init 时的停止线相同。`--adopt` 是第三条编写路径：DIRECTORY 是已有项目，Agent 在临时副本里运行（密钥被排除），写回的只有 `Dockerfile`、`commands.py`、`template.yaml` 和自动生成的 `.dockerignore`。`--adopt` 与 `-t`、`--from`、`--list` 互斥。本地 `--from` 目录如果没有 `template.yaml` 会被拒绝，错误信息指向 `--adopt`。顶层 `abx init` 快捷方式与它是同一个命令对象；引导式凭证配置是 `abx config init`。
+在本地生成可编辑的模板工程，不构建、不推送、不部署、也不创建沙箱——准备好后执行 `abx template deploy <目录>`。路径记号（`my-app`、`./my app`）仍表示目录。含空白或中文的文本是自然语言描述：Qwen Code 把 `Dockerfile`、`commands.py`（SandboxServer 入口）、`template.yaml` 与 `README.md` 写到 `./<名称>/` 后停止。交互式终端会先询问目录（`Directory for the template project`）：直接回车保持 `./<名称>/`（或 `./<--name>/`），其他输入就是项目目录本身。`--yes`、`--json` 和非交互终端跳过这个问题。路径是文件，或目录里已经有模板文件时，会在生成之前拒绝（`--force` 才覆盖）。这与 `abx create --prompt "描述"` 在交互下询问是否切换到 init 时的停止线相同。`--adopt` 是第三条编写路径：DIRECTORY 是已有项目，Agent 在临时副本里运行（密钥被排除），写回的只有 `Dockerfile`、`commands.py`、`template.yaml` 和自动生成的 `.dockerignore`。`--adopt` 与 `-t`、`--from`、`--list` 互斥。本地 `--from` 目录如果没有 `template.yaml` 会被拒绝，错误信息指向 `--adopt`。顶层 `abx init` 快捷方式与它是同一个命令对象；引导式凭证配置是 `abx config init`。
 
 ##### 固定的顶层快捷方式
 
 - 顶层快捷方式是**静态代码**：`src/cli/command_surface.ts` 列出命令组与快捷方式表（`create`、`list`、`info`、`kill`、`exec`、`connect`、`upload`、`download` → `sandbox <verb>`，`run` → `sandbox command run`，`deploy` → `template deploy`）；`src/cli/main.ts` 懒加载注册它们，并在 `abx --help` 的 **Sandbox shortcuts** 下列出。没有配置层：`config.toml` 没有 `[shortcuts]` 段，也没有 `abx config set shortcuts.*`。
 - 测试（`tests/test_cli/test_command_surface.test.ts`）在顶层命令列表与[命令参考](../reference/cli-commands.md)记录的集合不一致时失败。
 - 命名命令在**沙箱内**运行（`abx run`），与 CLI 路由无关。
-- 未知顶层命令会得到针对性提示：拼写相近（difflib，cutoff 0.6）时给出 `Did you mean '…'?`；无合理候选时，错误信息指向 `abx --help`、`abx template init|install` 与 `abx run SANDBOX NAME`。退出码 2 与仅 stderr 输出保持不变；只影响根命令组。
+- 未知顶层命令会得到针对性提示：拼写相近（difflib，cutoff 0.6）时给出 `Did you mean '…'?`；无合理候选时，错误信息指向 `abx --help`、`abx template scaffold|install` 与 `abx run SANDBOX NAME`。退出码 2 与仅 stderr 输出保持不变；只影响根命令组。
 - `provider` 是命令组，在帮助中单独列为 **Providers**。
 
 #### template deploy
@@ -782,7 +784,7 @@ abx template push <image> [选项]
 #### template create
 
 ```bash
-abx template create <image> [选项]
+abx template from-image <image> [选项]
 
 选项：
   --name, -n <name>         模板名称（必填）
@@ -795,7 +797,7 @@ abx template create <image> [选项]
   ... (完整选项见 --help)
 
 示例：
-  abx template create registry.cn-hangzhou.aliyuncs.com/ns/img:v1 -n my-template
+  abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/img:v1 -n my-template
 ```
 
 对已在 ACR 中的镜像调用 CreateTemplate API 注册模板。适用于镜像已推送的场景。
@@ -894,9 +896,9 @@ abx mcp start [选项]
 
 选项：
   --template <name>         默认沙箱模板 (默认: code-interpreter-v1)
-  --sandbox-api-key <key>   API Key 覆盖 (环境变量: ABX_SANDBOX_API_KEY)
-  --sandbox-base-url <url>  API URL 覆盖 (环境变量: ABX_SANDBOX_BASE_URL)
-  --sandbox-domain <domain> Domain 覆盖 (环境变量: ABX_SANDBOX_DOMAIN)
+  --sandbox-api-key <key>   API Key 覆盖 (环境变量: E2B_API_KEY)
+  --sandbox-base-url <url>  API URL 覆盖 (环境变量: E2B_API_URL)
+  --sandbox-domain <domain> Domain 覆盖 (环境变量: E2B_DOMAIN)
 ```
 
 以 STDIO 模式启动 MCP Server。通常由 IDE 自动调用，不需要手动执行。
@@ -930,7 +932,7 @@ abx mcp deploy [选项]
   --output-dir <path>       产物输出目录
 
 示例：
-  abx mcp deploy --generate-token --sandbox-api-key $ABX_SANDBOX_API_KEY --output-dir ./artifact
+  abx mcp deploy --generate-token --sandbox-api-key $E2B_API_KEY --output-dir ./artifact
   abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
 ```
 
@@ -946,12 +948,12 @@ abx mcp deploy [选项]
 
 | 配置键          | 说明                                  | 默认值                    |
 | --------------- | ------------------------------------- | ------------------------- |
-| `sandbox_api_key` | 沙箱服务 API Key（存为 `ABX_SANDBOX_API_KEY`） | (未设置)                  |
-| `sandbox_base_url` | 平台 API URL（环境变量 `ABX_SANDBOX_BASE_URL`） | (自动)                    |
+| `sandbox_api_key` | 沙箱服务 API Key（存为 `E2B_API_KEY`） | (未设置)                  |
+| `sandbox_base_url` | 平台 API URL（环境变量 `E2B_API_URL`） | (自动)                    |
 | `region`        | 默认区域（环境变量 `ALIBABA_CLOUD_REGION_ID`） | `cn-hangzhou`             |
 | `http_timeout`  | HTTP 请求超时（秒）                    | (自动)                    |
 | `max_retries`   | 最大重试次数                           | (自动)                    |
-| `sandbox_domain` | Envd 域名（环境变量 `ABX_SANDBOX_DOMAIN`） | (自动)                    |
+| `sandbox_domain` | Envd 域名（环境变量 `E2B_DOMAIN`） | (自动)                    |
 | `llm_api_key`   | LLM API Key，供自然语言推理和编码代理使用 | (未设置) |
 | `llm_model`     | LLM 模型名称                          | `qwen3-coder-plus`       |
 | `llm_base_url`  | LLM API Base URL（OpenAI 兼容）       | DashScope 兼容端点        |
@@ -990,7 +992,7 @@ abx config set region ""
 
 ```bash
 # 一行命令，从描述到可用环境
-abx create "python 数据分析，需要 pandas 和 matplotlib"
+abx create --prompt "python 数据分析，需要 pandas 和 matplotlib"
 # → sb-abc123
 
 abx exec sb-abc123 "python -c 'import pandas; print(pandas.__version__)'"
@@ -1162,14 +1164,14 @@ abx exec sb-abc123 "echo hello" --json
 abx kill --all --yes
 
 # --quiet 最小化输出
-abx create "python 环境" --quiet
+abx create --prompt "python 环境" --quiet
 ```
 
 ### 原则 4：可组合管道
 
 ```bash
 # 创建后直接获取 ID
-ID=$(abx create "python 环境" --quiet)
+ID=$(abx create --prompt "python 环境" --quiet)
 
 # 管道组合
 abx list --json | jq '.[].sandbox_id'

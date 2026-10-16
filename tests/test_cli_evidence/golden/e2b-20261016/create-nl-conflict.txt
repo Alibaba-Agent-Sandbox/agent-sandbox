@@ -1,0 +1,3 @@
+[exit_code:2]
+[stderr]
+DESCRIPTION and --template cannot be combined. Drop --template to generate a template from the description, or drop DESCRIPTION to launch an existing template directly.

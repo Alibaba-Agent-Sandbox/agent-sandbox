@@ -67,7 +67,7 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
   }
 
   it("treats a missing key and domain as defaults, and rejects an unknown option", async () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "express-key");
+    iso.setenv("E2B_API_KEY", "express-key");
     const sb = await Sandbox.create({
       provider: "cubesandbox",
       provider_options: { base_url: origin, proxy: `127.0.0.1:${port}` },

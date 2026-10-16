@@ -12,7 +12,7 @@ MCP (Model Context Protocol) is an open protocol that allows AI models to intera
 
 ```bash
 npm install -g @agent-sandbox/cli   # abx CLI + MCP STDIO server
-export ABX_SANDBOX_API_KEY=your-api-key     # or: abx config set sandbox_api_key your-api-key
+export E2B_API_KEY=your-api-key     # or: abx config set sandbox_api_key your-api-key
 ```
 
 ---
@@ -43,7 +43,7 @@ abx mcp install --target vscode
 
 Writes the workspace `.vscode/mcp.json` `servers` entry (`type: stdio`), then reload the VS Code window. That file is often committed, so the installer does not copy the API key into it; `abx mcp start` reads the key from the environment or `~/.abx`.
 
-All targets register the same STDIO command: `abx mcp start`. The command is the absolute path of the running `abx` executable (or `node <absolute path of abx.js>` when `abx` cannot be found), so an IDE with a minimal PATH can still start the server. The installer merges into existing config files — other MCP servers you have configured are preserved. A config file that is not strict JSON (comments or trailing commas) is left untouched. Cursor and Claude user-level configs embed the API key in `env` when one is available. That key follows [Credential resolution](../reference/configuration.md#credential-resolution): the process environment, then `./.env`, then `~/.abx`. `ABX_SANDBOX_BASE_URL` and `SANDBOX_REGION` are copied only when the process environment sets them; a region saved with `abx config set region` is read again when `abx mcp start` runs.
+All targets register the same STDIO command: `abx mcp start`. The command is the absolute path of the running `abx` executable (or `node <absolute path of abx.js>` when `abx` cannot be found), so an IDE with a minimal PATH can still start the server. The installer merges into existing config files — other MCP servers you have configured are preserved. A config file that is not strict JSON (comments or trailing commas) is left untouched. Cursor and Claude user-level configs embed the API key in `env` when one is available. That key follows [Credential resolution](../reference/configuration.md#credential-resolution): the process environment, then `./.env`, then `~/.abx`. `E2B_API_URL` and `SANDBOX_REGION` are copied only when the process environment sets them; a region saved with `abx config set region` is read again when `abx mcp start` runs.
 
 ### Check Installation Status
 
@@ -95,9 +95,9 @@ abx mcp stop
 | Option | Description |
 |--------|-------------|
 | `--template` | Default template (default code-interpreter-v1) |
-| `--api-key` | API Key override (env: `ABX_SANDBOX_API_KEY`) |
-| `--api-url` | API URL override (env: `ABX_SANDBOX_BASE_URL`) |
-| `--domain` | Domain override (env: `ABX_SANDBOX_DOMAIN`) |
+| `--api-key` | API Key override (env: `E2B_API_KEY`) |
+| `--api-url` | API URL override (env: `E2B_API_URL`) |
+| `--domain` | Domain override (env: `E2B_DOMAIN`) |
 | `--http` | Serve Streamable HTTP instead (default `127.0.0.1:9000`) |
 | `--host` / `--port` | HTTP bind address and port. A non-loopback host requires a non-empty `--auth-token` |
 | `--auth-token` | HTTP Bearer token (env: `ABX_MCP_AUTH_TOKEN`) |
@@ -134,7 +134,7 @@ Run the Streamable HTTP server from the CLI (`abx mcp start --http`, options in 
 
 ```bash
 export ABX_MCP_AUTH_TOKEN=replace_me   # Bearer token (omit on loopback to disable auth)
-export ABX_SANDBOX_API_KEY=your-api-key
+export E2B_API_KEY=your-api-key
 
 abx mcp start --http --host 0.0.0.0 --port 9000
 ```
@@ -147,7 +147,7 @@ The three entry points use different credentials:
 
 | Entry | Client authentication | How to configure |
 |-------|----------------------|------------------|
-| `abx mcp start` (STDIO) | No Bearer token. The IDE starts a local process; it does not listen on the network | Sandbox calls use `ABX_SANDBOX_API_KEY` / `abx config set sandbox_api_key` |
+| `abx mcp start` (STDIO) | No Bearer token. The IDE starts a local process; it does not listen on the network | Sandbox calls use `E2B_API_KEY` / `abx config set sandbox_api_key` |
 | `abx mcp start --http` | Bearer token. Loopback may omit it (the process warns). A non-loopback `--host` requires a non-empty `--auth-token` | `--auth-token` or `ABX_MCP_AUTH_TOKEN` |
 | Remote function on Alibaba Cloud FC | Bearer token is required. The artifact `app.py` refuses to start when the token is empty, so a remote process cannot boot with authentication disabled | `abx mcp deploy --generate-token` writes `ABX_MCP_AUTH_TOKEN` into the function environment. The FC HTTP trigger uses `anonymous` so an MCP client does not need an Alibaba Cloud signature; the application Bearer token is the check. `GET /health` returns status and protocol only, with no token check and no secrets |
 
@@ -187,7 +187,7 @@ Tokens are compared with constant-time comparison. Generate one with `openssl ra
 ```bash
 abx mcp deploy \
   --generate-token \
-  --api-key $ABX_SANDBOX_API_KEY \
+  --api-key $E2B_API_KEY \
   --output-dir ./mcp-artifact
 ```
 
@@ -196,7 +196,7 @@ The artifact directory contains:
 | File | Content |
 |------|---------|
 | `requirements.txt` | `agent-sandbox-client[mcp]`, `uvicorn>=0.29` |
-| `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
+| `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
 | `config.yaml` | YAML manifest with function name, region, runtime `python3.10`, handler `app.app`, memory/timeout, env vars, HTTP trigger (POST/GET/DELETE), session affinity |
 
 Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The distribution must be available from your configured Python package index before installing the artifact requirements.
@@ -280,8 +280,8 @@ curl -s -X DELETE http://localhost:9000/mcp \
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | IDE shows the server as failed / no tools | `abx` not on the IDE's `PATH` | Use an absolute command path in the IDE config, e.g. `/usr/local/bin/abx` (see `npm prefix -g` for the npm global bin directory) |
-| Tools list works but every call errors | API key missing or invalid | `abx mcp status` → `auth_configured`; set `ABX_SANDBOX_API_KEY` or `abx config set sandbox_api_key` |
-| `create_sandbox` fails after IDE restart | Backend API URL/region mismatch | Pass `--api-url` (or set `ABX_SANDBOX_BASE_URL`) in the server args/env block |
+| Tools list works but every call errors | API key missing or invalid | `abx mcp status` → `auth_configured`; set `E2B_API_KEY` or `abx config set sandbox_api_key` |
+| `create_sandbox` fails after IDE restart | Backend API URL/region mismatch | Pass `--api-url` (or set `E2B_API_URL`) in the server args/env block |
 | HTTP 401 on every request | Empty `ABX_MCP_AUTH_TOKEN` (fails closed) | Set a non-empty token. A local loopback server can omit the variable to disable auth. The FC artifact will not start without a token |
 | HTTP 404 Unknown session | `Mcp-Session-Id` expired (idle TTL 3600 s) or instance restarted | Re-send `initialize` to create a new session |
 | HTTP 503 session limit | More than 100 concurrent sessions in the process | Close idle sessions (`DELETE /mcp`) or raise `max_sessions` via `create_mcp_app()` |

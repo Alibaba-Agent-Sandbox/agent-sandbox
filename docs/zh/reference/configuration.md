@@ -16,7 +16,7 @@
 5. 内置默认值                                  ← 最低
 ```
 
-每个键只有一个环境变量。第一个设置了该变量的层决定结果。内置提供方读取 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`。
+每个键只有一个环境变量。第一个设置了该变量的层决定结果。内置提供方读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。不读取旧的 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`。
 
 `.env` 文件按**键**合并。同一个键两边都有时，`./.env` 优先于 `~/.abx/.env`。项目文件里没有的键，仍然来自 `~/.abx/.env`。
 
@@ -30,9 +30,9 @@
 
 | 要用的值 | 键 | 环境变量 |
 |---|---|---|
-| 沙箱 API Key | `sandbox_api_key` | `ABX_SANDBOX_API_KEY` |
-| 沙箱 API 地址 | `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` |
-| 数据平面域名 | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` |
+| 沙箱 API Key | `sandbox_api_key` | `E2B_API_KEY` |
+| 沙箱 API 地址 | `sandbox_base_url` | `E2B_API_URL` |
+| 数据平面域名 | `sandbox_domain` | `E2B_DOMAIN` |
 | 地域 | `region` | `ALIBABA_CLOUD_REGION_ID` |
 | 阿里云 AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
 | ACR 命名空间 / 密码 | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
@@ -49,7 +49,7 @@
 - `abx template install` / `abx template search`（GitHub token）
 - `abx mcp install`（写入编辑器配置的沙箱 API Key）
 
-`abx mcp install` 把 `ABX_SANDBOX_API_KEY` 写入 Cursor 和 Claude 的配置。`ABX_SANDBOX_BASE_URL` 和 `ALIBABA_CLOUD_REGION_ID` 只有在进程环境变量里设置了才会写进同一份文件。`abx mcp start` 会再次读取 `~/.abx`，所以用 `abx config set region` 保存的区域在编辑器启动 server 时仍然生效。
+`abx mcp install` 把 `E2B_API_KEY` 写入 Cursor 和 Claude 的配置。`E2B_API_URL` 和 `ALIBABA_CLOUD_REGION_ID` 只有在进程环境变量里设置了才会写进同一份文件。`abx mcp start` 会再次读取 `~/.abx`，所以用 `abx config set region` 保存的区域在编辑器启动 server 时仍然生效。
 
 `abx config list` 把进程环境变量标成 `(env)`，把 `./.env` 和 `~/.abx` 标成 `(user)`。表里命中的那一列就是命令真正会用的值。
 
@@ -62,9 +62,9 @@
 | 环境变量 | 配置键 | 说明 |
 |---------------------|-------------|-------------|
 | `ABX_PROVIDER` | `provider` | 默认提供方 id |
-| `ABX_SANDBOX_API_KEY` | `sandbox_api_key` | 沙箱 API Key |
-| `ABX_SANDBOX_BASE_URL` | `sandbox_base_url` | 平台 API URL |
-| `ABX_SANDBOX_DOMAIN` | `sandbox_domain` | 数据平面域名 |
+| `E2B_API_KEY` | `sandbox_api_key` | 沙箱 API Key |
+| `E2B_API_URL` | `sandbox_base_url` | 平台 API URL |
+| `E2B_DOMAIN` | `sandbox_domain` | 数据平面域名 |
 | `ALIBABA_CLOUD_REGION_ID` | `region` | 地域 |
 | `ABX_HTTP_TIMEOUT` | `http_timeout` | HTTP 超时秒数 |
 | `ABX_LOG_LEVEL` | `log_level` | SDK 日志级别 |
@@ -158,12 +158,12 @@ abx config set github_token ""
 
 | 配置键 | 环境变量 | 说明 |
 |-----------|-------------|-------------|
-| `sandbox_api_key` | `ABX_SANDBOX_API_KEY` | 沙箱服务 API Key（存在 `~/.abx/.env`） |
-| `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | 平台 API URL |
+| `sandbox_api_key` | `E2B_API_KEY` | 沙箱服务 API Key（存在 `~/.abx/.env`） |
+| `sandbox_base_url` | `E2B_API_URL` | 平台 API URL |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | 地域 |
 | `http_timeout` | `ABX_HTTP_TIMEOUT` | HTTP 超时秒数 |
 | `max_retries` | `ABX_MAX_RETRIES` | 最大重试次数 |
-| `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | 数据平面域名 |
+| `sandbox_domain` | `E2B_DOMAIN` | 数据平面域名 |
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API Key，供自然语言推理和编码代理使用 |
 | `llm_model` | `ABX_LLM_MODEL` | LLM 模型名称（默认 `qwen3-coder-plus`） |
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API Base URL（默认 DashScope compatible-mode） |
@@ -199,11 +199,11 @@ CLI 会读取这两个 `.env` 并按键合并：
 `.env` 文件格式。每个键使用它那一个变量：
 
 ```bash
-ABX_SANDBOX_API_KEY=your-api-key
+E2B_API_KEY=your-api-key
 ALIBABA_CLOUD_REGION_ID=cn-beijing
 ```
 
-`abx config set sandbox_api_key <KEY>` 命令将 API Key 以 `ABX_SANDBOX_API_KEY` 保存到 `~/.abx/.env`（文件权限 600）。`github_token` 存为 `GITHUB_TOKEN`。
+`abx config set sandbox_api_key <KEY>` 命令将 API Key 以 `E2B_API_KEY` 保存到 `~/.abx/.env`（文件权限 600）。`github_token` 存为 `GITHUB_TOKEN`。
 
 ---
 

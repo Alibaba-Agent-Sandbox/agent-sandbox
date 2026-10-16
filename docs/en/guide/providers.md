@@ -151,9 +151,9 @@ Every key has one name. Settings that belong to Agent Sandbox use `ABX_`. When a
 | Key | Environment variable | Why this name |
 |---|---|---|
 | `provider` | `ABX_PROVIDER` | product setting |
-| `sandbox_api_key` | `ABX_SANDBOX_API_KEY` | product sandbox key |
-| `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | product platform URL |
-| `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | product data-plane domain |
+| `sandbox_api_key` | `E2B_API_KEY` | product sandbox key |
+| `sandbox_base_url` | `E2B_API_URL` | product platform URL |
+| `sandbox_domain` | `E2B_DOMAIN` | product data-plane domain |
 | `llm_api_key` | `ABX_LLM_API_KEY` | product codegen key. The Qwen Code child receives it as `OPENAI_API_KEY`, because that is the variable the `qwen` program reads |
 | `github_token` | `GITHUB_TOKEN` | GitHub's variable |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | Alibaba Cloud region variable |
@@ -187,7 +187,7 @@ abx config list --provider my-cloud                          # the provider's ke
 
 A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx provider config <id> list|get|set|unset|init` is the same surface scoped to one provider.
 
-`abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
+`abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
 
 ---
 

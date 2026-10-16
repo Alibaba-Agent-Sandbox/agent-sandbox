@@ -14,7 +14,7 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs
 ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki003' --json out.json
 ```
 
-Credentials come from the environment or the gitignored `cli/.env` (`ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`);
+Credentials come from the environment or the gitignored `cli/.env` (`E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`);
 they are never printed (all captured output is masked). Without credentials the script prints `SKIP: ...` and
 exits 0. `ABX_E2E_TEMPLATE` selects the template (default `python-hello`).
 

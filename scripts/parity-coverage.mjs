@@ -52,7 +52,7 @@ const allEntries = readFileSync(join(root, "parity", "python-tests-to-port.txt")
 const ledger = allEntries.filter((l) => !moved.has(l));
 const movedEntries = allEntries.filter((l) => moved.has(l));
 
-const pythonSdkRoot = resolve(root, "..", "python-sdk");
+const pythonSdkRoot = process.env.PYTHON_SDK_ROOT ?? resolve(root, "..", "python-sdk");
 const movedMissing = [];
 if (existsSync(pythonSdkRoot)) {
   for (const entry of movedEntries) {
@@ -85,11 +85,14 @@ for (const file of report.testResults) {
   }
 }
 
+// Keep the historical Python ledger immutable; trace intentionally replaced contracts.
+const replacements = JSON.parse(readFileSync(join(root, "parity", "changed-contracts.json"), "utf8")).replacements;
 const missing = [];
 const bad = [];
 let ok = 0;
 for (const entry of ledger) {
-  const [pyFile, ...rest] = entry.split("::");
+  const mappedEntry = replacements[entry]?.target ?? entry;
+  const [pyFile, ...rest] = mappedEntry.split("::");
   const name = rest[rest.length - 1];
   const classes = rest.slice(0, -1);
   const nodeFile = pyFile.replace(/\.py$/, ".test.ts");
@@ -107,6 +110,7 @@ for (const entry of ledger) {
 const movedNote = movedEntries.length
   ? `  moved to python-sdk: ${movedEntries.length}${existsSync(pythonSdkRoot) ? ` (verified, ${movedMissing.length} not found there)` : " (python-sdk checkout not present: not verified)"}`
   : "";
+console.log(`contract replacements: ${Object.keys(replacements).length} (parity/changed-contracts.json)`);
 console.log(`\nparity ledger entries: ${ledger.length}  passed: ${ok}  failed/skipped: ${bad.length}  missing: ${missing.length}${movedNote}`);
 if (movedMissing.length) console.log(`\nMOVED BUT NOT FOUND IN python-sdk:\n${movedMissing.join("\n")}`);
 if (bad.length) console.log(`\nFAILED/SKIPPED:\n${bad.join("\n")}`);

@@ -139,7 +139,7 @@ export default {
       async run(ctx) {
         const home = ctx.newHome('cfg-env');
         await ctx.abx(['config', 'set', 'region', 'cn-shanghai'], { home, creds: false });
-        const r = await ctx.abx(['--json', 'config', 'get', 'api_url'], { home, creds: false, env: { ABX_SANDBOX_BASE_URL: 'https://example.invalid' } });
+        const r = await ctx.abx(['--json', 'config', 'get', 'api_url'], { home, creds: false, env: { E2B_API_URL: 'https://example.invalid' } });
         ctx.check('api_url', r.stdout, 'example.invalid');
       },
     },
@@ -168,7 +168,7 @@ export default {
         const home = ctx.newHome('mcp');
         const cwd = ctx.newCwd('mcp');
         const key = 'e2e-fake-api-key-0123456789';
-        const env = { ABX_SANDBOX_API_KEY: key, ABX_SANDBOX_BASE_URL: 'https://api.example.invalid' };
+        const env = { E2B_API_KEY: key, E2B_API_URL: 'https://api.example.invalid' };
         const targets = [['cursor', join(home, '.cursor', 'mcp.json')], ['claude', join(home, '.config', 'claude', 'claude_desktop_config.json')], ['vscode', join(cwd, '.vscode', 'mcp.json')]];
         for (const [t, file] of targets) {
           const r = await ctx.abx(['mcp', 'install', '--target', t], { home, cwd, creds: false, env });
@@ -186,7 +186,7 @@ export default {
         const j = ctx.parseJsonLoose(r.stdout);
         if (!j?.installed_cursor || !j?.installed_claude || !j?.installed_vscode) ctx.fail(`status after install: ${JSON.stringify({ c: j?.installed_cursor, cl: j?.installed_claude, v: j?.installed_vscode })}`);
         const cursorCfg = JSON.parse(readFileSync(targets[0][1], 'utf8'));
-        if (cursorCfg.mcpServers['agent-sandbox'].env?.ABX_SANDBOX_API_KEY !== key) ctx.fail('cursor config should carry the ABX_SANDBOX_API_KEY from the environment');
+        if (cursorCfg.mcpServers['agent-sandbox'].env?.E2B_API_KEY !== key) ctx.fail('cursor config should carry the E2B_API_KEY from the environment');
         const again = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, cwd, creds: false, env });
         if (again.code !== 0) ctx.fail('re-install (merge) must be idempotent');
       },
@@ -197,7 +197,7 @@ export default {
         const home = ctx.newHome('mcp-merge');
         mkdirSync(join(home, '.cursor'), { recursive: true });
         writeFileSync(join(home, '.cursor', 'mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'x', args: [] } } }));
-        const r = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, creds: false, env: { ABX_SANDBOX_API_KEY: 'e2e-fake-api-key-0123456789' } });
+        const r = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, creds: false, env: { E2B_API_KEY: 'e2e-fake-api-key-0123456789' } });
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         const cfg = JSON.parse(readFileSync(join(home, '.cursor', 'mcp.json'), 'utf8'));
         if (!cfg.mcpServers.other || !cfg.mcpServers['agent-sandbox']) ctx.fail(`merge lost an entry: ${Object.keys(cfg.mcpServers).join(',')}`);

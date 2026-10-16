@@ -2,6 +2,8 @@
 
 [English](README.md) | **中文**
 
+[标准 E2B 迁移契约](docs/zh/guide/migrate-from-e2b.md)
+
 <!-- badges -->
 [![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
@@ -12,7 +14,7 @@
 
 **Agent Sandbox** 是命令行工具（`abx`）。默认提供方是阿里云极速版（`alicloud-express`）。CLI 还会加载已安装的 `node`、`exec` 和 `rest` 插件。目录提供方 `opensandbox`、`alicloud-container`、`cubesandbox` 和 `e2b` 都是 `node` 插件：导出 `create(kit)` 的 ES 模块 `provider.mjs`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装（本地路径或 git URL 也可以），再用 `abx --provider <id>` 运行。既不是内置也未安装的 id 以 `E8001` 退出。`runtime.kind = "python"` 的清单不能安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用；SDK 通过本机引擎（`abx provider engine serve`；`abx` 在 `PATH` 上或由 `ABX_BIN` 指定）使用同一批 `node` 插件。`exec`（stdio 上的 EPP/1，任意语言，可选 `pty.*`）留给第三方插件。
 Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)（见 [Python SDK](#python-sdk)）。
-模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；CLI 和 SDK 都不是 E2B 协议的直接替代。
+模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；标准 CLI 与 SDK 遵循阿里云支持版本的 E2B 行为契约，后端条件能力见[迁移指南](docs/zh/guide/migrate-from-e2b.md)。
 
 ## 网站
 
@@ -33,7 +35,7 @@ CLI 从 git 树 `alibaba-agent-sandbox/awesome-providers//<id>` 安装这些目�
 - **Agent Skill** —— 静态 Agent Skills 指南（[`SKILL.md`](SKILL.md)），适用于 Qoder、Claude Code、Cursor、Qwen Code、Codex。
 - **独立二进制，或 Node.js >= 20 从源码构建** —— Release 二进制不需要 Node.js。npm 包尚未发布。
 
-SDK 侧特性（异步优先的 `Sandbox` API、`run` / `run_code` 执行原语、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层）见 [Python SDK](#python-sdk) 一节。
+SDK 侧特性（同步 `Sandbox`／异步 `AsyncSandbox` API、`run` / `run_code` 执行原语、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层）见 [Python SDK](#python-sdk) 一节。
 
 ## 安装
 
@@ -117,13 +119,13 @@ abx template info python-base            # 模板详情
 abx template install owner/repo          # 从 GitHub 安装
 
 # 模板部署（阿里云模板 API，已内置于 CLI）
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
 abx template deploy ./examples/templates/python-hello \
     --acr-namespace my-ns --acr-repo python-hello
 
 # 模板生命周期：编写 -> 发布 -> 启动
-abx template init --adopt ./app --hint "端口 8080"     # 1a. 适配已有项目
-abx template init "一个 Python Web 服务"               # 1b. 模板生成写出 ./<name>/（可选）
+abx template scaffold --adopt ./app --hint "端口 8080"     # 1a. 适配已有项目
+abx template scaffold "一个 Python Web 服务"               # 1b. 模板生成写出 ./<name>/（可选）
 abx deploy ./app --acr-namespace my-ns                 # 2. 构建、推送 ACR、注册（无需 LLM）
 abx create --template <TEMPLATE_ID>                    # 3. 启动沙箱
 
@@ -158,7 +160,7 @@ $ abx template install alibaba-agent-sandbox/awesome-templates//node-web@v1.0.0 
 
 ## Python SDK
 
-Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`）与架构文档均在该仓库维护。
+Python SDK —— 同步 `Sandbox`／异步 `AsyncSandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`）与架构文档均在该仓库维护。
 
 ```bash
 # 客户端 SDK（import agent_sandbox）

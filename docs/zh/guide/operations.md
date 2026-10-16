@@ -11,7 +11,7 @@
 | 要做的事 | 命令 | 参考 |
 |---|---|---|
 | 用模板创建沙箱 | `abx create --template base` | [abx create](../reference/cli-reference.md#abx-create) |
-| 用一句话创建（先生成模板，再创建沙箱） | `abx create "一个带 pandas 的 Python 环境"` | [abx create](../reference/cli-reference.md#abx-create) |
+| 用一句话创建（先生成模板，再创建沙箱） | `abx create --prompt "一个带 pandas 的 Python 环境"` | [abx create](../reference/cli-reference.md#abx-create) |
 | 列出沙箱 | `abx list` | [abx list](../reference/cli-reference.md#abx-list) |
 | 查看一个沙箱 | `abx info <SANDBOX_ID>` | [abx info](../reference/cli-reference.md#abx-info) |
 | 销毁沙箱 | `abx kill <SANDBOX_ID>` | [abx kill](../reference/cli-reference.md#abx-kill) |
@@ -32,20 +32,20 @@
 
 | 要做的事 | 命令 | 参考 |
 |---|---|---|
-| 脚手架生成一个模板目录 | `abx template init -t python ./my-template` | [template init](../reference/cli-reference.md#abx-template-init) |
-| 用一句话写出模板文件，然后停 | `abx template init "一个 Python 数据分析环境"` | [template init](../reference/cli-reference.md#abx-template-init) |
-| 给已有源码的项目补上模板文件 | `abx template init --adopt .` | [template init](../reference/cli-reference.md#abx-template-init) |
+| 脚手架生成一个模板目录 | `abx template scaffold -t python ./my-template` | [template init](../reference/cli-reference.md#abx-template-init) |
+| 用一句话写出模板文件，然后停 | `abx template scaffold --prompt "一个 Python 数据分析环境"` | [template init](../reference/cli-reference.md#abx-template-init) |
+| 给已有源码的项目补上模板文件 | `abx template scaffold --adopt .` | [template init](../reference/cli-reference.md#abx-template-init) |
 | 构建、推送并注册 | `abx template deploy ./my-template` | [template deploy](../reference/cli-reference.md#abx-template-deploy) |
 | 只构建镜像 | `abx template build ./my-template` | [template build](../reference/cli-reference.md#abx-template-build) |
 | 推送镜像 | `abx template push <IMAGE>` | [template push](../reference/cli-reference.md#abx-template-push) |
-| 注册已经在仓库里的镜像 | `abx template create <IMAGE> --name <NAME>` | [template create](../reference/cli-reference.md#abx-template-create) |
+| 注册已经在仓库里的镜像 | `abx template from-image <IMAGE> --name <NAME>` | [template create](../reference/cli-reference.md#abx-template-create) |
 | 搜索目录 | `abx template search pandas` | [template search](../reference/cli-reference.md#abx-template-search) |
 | 安装目录里的模板 | `abx template install python-hello` | [template install](../reference/cli-reference.md#abx-template-install) |
 | 列出已注册的模板 | `abx template list` | [template list](../reference/cli-reference.md#abx-template-list) |
 | 查看一个模板 | `abx template info <NAME>` | [template info](../reference/cli-reference.md#abx-template-info) |
 | 删除模板 | `abx template delete <NAME>` | [template delete](../reference/cli-reference.md#abx-template-delete) |
 
-没有顶层 `abx init` 或 `abx install`；请使用 `abx template init` 与 `abx template install`。
+没有顶层 `abx init` 或 `abx install`；请使用 `abx template scaffold` 与 `abx template install`。
 
 ## `deploy` — 构建、推送、注册的快捷方式
 

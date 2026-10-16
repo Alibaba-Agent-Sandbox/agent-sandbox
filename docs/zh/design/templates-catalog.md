@@ -279,7 +279,7 @@ abx create hello/world --no-cache            # 跳过缓存，强制重新下载
 # ── 模板构建与推送 ────────────────────────
 abx template build . --name my-app --tag v1.0
 abx template push my-app:v1.0
-abx template init my-template                # 初始化模板脚手架
+abx template scaffold my-template                # 初始化模板脚手架
 
 # ── 模板信息与搜索 ────────────────────────
 abx template info python-data-science

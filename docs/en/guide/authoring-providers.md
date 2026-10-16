@@ -51,7 +51,7 @@ Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The ho
 Two paths do **not** go through your plugin:
 
 - `abx create` with no `--provider`, no `ABX_PROVIDER`, and no config default stays on `alicloud-express`.
-- `abx create "a node api"` (a description, no `--template`) first runs the built-in template authoring pipeline (generate, build, deploy). Only the final `Sandbox.create` uses the selected provider. A provider without `templates.build` should be launched with `abx --provider my-cloud create --template <image-or-name>`.
+- `abx create --prompt "a node api"` (a description, no `--template`) first runs the built-in template authoring pipeline (generate, build, deploy). Only the final `Sandbox.create` uses the selected provider. A provider without `templates.build` should be launched with `abx --provider my-cloud create --template <image-or-name>`.
 
 `Sandbox.create(template="base", provider="my-cloud")` in Python is step 2 onward. It does not pass through the CLI. The installed plugin is still `~/.abx/providers/my-cloud`.
 
@@ -240,7 +240,7 @@ Document the `[security]` block honestly: it is the user's only summary of what 
 
 ## 5. Template profile
 
-The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template init` / `deploy`). It does not decide what `abx create --template X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
+The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template scaffold` / `deploy`). It does not decide what `abx create --template X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
 
 Optional `[template]` table. When the table is absent, template generation uses the generic Docker profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) and says this provider had no profile. It does not use the Alibaba Cloud Express FC image. OpenSandbox stays on that generic profile; its create `entrypoint` is unchanged.
 

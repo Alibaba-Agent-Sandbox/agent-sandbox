@@ -1,3 +1,5 @@
+> For standard Express commands use the [E2B migration contract](../guide/migrate-from-e2b.md): create takes a template, --prompt requests generation, template create uses E2B build semantics, and from-image creates an Alibaba image template.
+
 # CLI Command Reference (canonical tree)
 
 Every action has **one canonical path**, written `abx GROUP VERB`. On top of that there is a small, **fixed** set of
@@ -27,7 +29,7 @@ that list and this page disagree.
 | `abx run` | `abx sandbox command run` |
 | `abx deploy` | `abx template deploy` |
 
-There is no top-level `abx init` or `abx install`: use `abx template init` and `abx template install`
+There is no top-level `abx init` or `abx install`: use `abx template scaffold` and `abx template install`
 (credentials are `abx config init`).
 
 ## Canonical tree
@@ -71,7 +73,7 @@ Usage lines (from `abx … --help`):
 | `abx sandbox command list` | `command list [OPTIONS] SANDBOX_ID` |
 | `abx sandbox command run` | `command run [OPTIONS] SANDBOX_ID COMMAND_NAME` |
 | `abx sandbox system env\|info\|metrics\|packages\|ports` | `system <verb> [OPTIONS] SANDBOX_ID` |
-| `abx template init` | `init [OPTIONS] [DIRECTORY]` |
+| `abx template scaffold` | `init [OPTIONS] [DIRECTORY]` |
 | `abx template search` | `search [OPTIONS] QUERY` |
 | `abx template info` / `delete` | `<verb> [OPTIONS] TEMPLATE_ID` |
 | `abx template list` | `list [OPTIONS]` |
@@ -144,7 +146,7 @@ fails on the server exits 1; an unknown name exits 2; a sandbox without a runnin
 | Flag | Adds |
 |---|---|
 | `--build` | ACR namespace and Alibaba Cloud AccessKey (needed by `template build`/`deploy`/`install`) |
-| `--llm` | LLM API key used for template generation (`abx create "DESCRIPTION"`, `abx template init "DESCRIPTION"`) |
+| `--llm` | LLM API key used for template generation (`abx create --prompt "DESCRIPTION"`, `abx template scaffold --prompt "DESCRIPTION"`) |
 
 Features that need a missing setting print a one-line pointer to `abx config init --build` or
 `abx config init --llm`. Without a terminal (or with `--yes`/`--ci`) the command prints the equivalent
@@ -154,7 +156,7 @@ Features that need a missing setting print a one-line pointer to `abx config ini
 
 | Removed | Use |
 |---|---|
-| top-level `abx init`, `abx install` | `abx template init`, `abx template install` |
+| top-level `abx init`, `abx install` | `abx template scaffold`, `abx template install` |
 | `abx sandbox process start` | `abx exec --background` |
 | `abx sandbox shell-stream` | `abx exec --stream` |
 | `abx sandbox run` | `abx run` / `abx sandbox command run` |

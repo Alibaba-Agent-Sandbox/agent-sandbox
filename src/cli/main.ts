@@ -306,7 +306,7 @@ const ROOT_HELP = [
   "Examples:",
   "  abx list --status running",
   "  abx template search python",
-  "  abx template init --template python && abx deploy",
+  "  abx template scaffold --template python && abx deploy",
   "",
   "Every action has one canonical path (abx GROUP VERB); the shortcuts below are a",
   "fixed set and cannot be changed in the configuration.",

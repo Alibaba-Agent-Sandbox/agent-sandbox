@@ -1,0 +1,25 @@
+Usage: abx sandbox files [options] [command]
+
+Inspect and modify files inside a sandbox.
+
+Examples:
+  abx sandbox files list abc123 --path /app
+  abx sandbox files stat abc123 --path /app/main.py
+  abx sandbox files search abc123 --path /app --pattern "*.py"
+
+Related commands:
+  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
+  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH
+  abx sandbox process --help
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  list        List directory contents in a sandbox.
+  mkdir       Create a directory (including parent directories).
+  mv          Move or rename a file/directory in the sandbox.
+  rm          Delete a file or directory in the sandbox.
+  search      Search for files matching a glob pattern.
+  stat        Get file or directory information.
+[exit_code:0]

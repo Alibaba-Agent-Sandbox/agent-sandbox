@@ -1,0 +1,23 @@
+Usage: abx sandbox command [options] [command]
+
+List and run the named commands registered in a sandbox.
+
+The commands come from the SandboxServer running inside the sandbox
+(CommandRegistry; ``GET /commands``, ``POST /commands/NAME``). A sandbox
+without a server has none.
+
+Examples:
+  abx sandbox command list abc123
+  abx sandbox command run abc123 build --arg target=release
+
+Related commands:
+  abx run SANDBOX_ID NAME    Shortcut for 'sandbox command run'
+  abx exec SANDBOX_ID -- CMD Run an arbitrary command
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  list        List the named commands registered in a sandbox.
+  run         Run a named command registered in the sandbox.
+[exit_code:0]

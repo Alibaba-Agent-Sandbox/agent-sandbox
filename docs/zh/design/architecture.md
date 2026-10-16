@@ -118,8 +118,8 @@ CLI 的客户端核心镜像 Python SDK 的分层，使行为、错误码和线�
 | `mcp_main.ts` | 等价于 `python -m agent_sandbox.agent.mcp` 的入口 |
 | `tools.ts` | 7 个 P0 工具的 schema（`TOOL_SCHEMAS`）与处理函数 |
 | `coding_agent.ts`、`qwen_code.ts` | 可插拔的宿主侧编码 Agent 边界与 Qwen Code 适配器（定位或安装 Agent、以 headless 方式运行） |
-| `clarify.ts`、`codegen.ts`、`template_guide.ts` | 自然语言 `abx create "<描述>"`：先调研的需求澄清、模板生成、提供给 Agent 的参考资料 |
-| `adopt.ts`、`dockerfile_sources.ts` | `abx template init --adopt`：暂存已有项目、仅回写审查通过的白名单文件、校验 Dockerfile 的 `COPY`/`ADD` 源路径 |
+| `clarify.ts`、`codegen.ts`、`template_guide.ts` | 自然语言 `abx create --prompt "<描述>"`：先调研的需求澄清、模板生成、提供给 Agent 的参考资料 |
+| `adopt.ts`、`dockerfile_sources.ts` | `abx template scaffold --adopt`：暂存已有项目、仅回写审查通过的白名单文件、校验 Dockerfile 的 `COPY`/`ADD` 源路径 |
 | `_archive.ts`、`_http.ts` | 面向 Qwen Code 独立安装器的安全 tar/zip 解压与支持代理的下载器 |
 
 MCP 的行为（工具、会话绑定、传输、FC 部署）见 [MCP Server 设计](mcp-server.md)。

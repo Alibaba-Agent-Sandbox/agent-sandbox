@@ -16,9 +16,9 @@ Full order and install steps: [Providers](providers.md). Writing a plugin: [Auth
 
 `--model <id>` is a flag on the commands that ask the coding agent to write a template:
 
-- `abx create "<description>" --model <id>`
-- `abx template init "<description>" --model <id>`
-- `abx template init --adopt <directory> --model <id>`
+- `abx create --prompt "<description>" --model <id>`
+- `abx template scaffold --prompt "<description>" --model <id>`
+- `abx template scaffold --adopt <directory> --model <id>`
 
 It overrides `llm_model`, `ABX_LLM_MODEL`, and `OPENAI_MODEL` for that command only. Use it when the endpoint rejects the stored model, or when one description should be drafted with a different id. An interactive terminal can offer a replacement and store the choice; a non-interactive run keeps the flag you passed.
 
@@ -38,7 +38,7 @@ For one shell, export `ABX_LLM_MODEL` (then `OPENAI_MODEL` if that is unset). A 
 
 | What you are calling | Store it as | Command |
 |---|---|---|
-| The sandbox control plane | `sandbox_api_key` (`ABX_SANDBOX_API_KEY`) | `abx config set sandbox_api_key` |
+| The sandbox control plane | `sandbox_api_key` (`E2B_API_KEY`) | `abx config set sandbox_api_key` |
 | Template build and deploy (AccessKey) | `access_key_id`, `access_key_secret` | `abx config set access_key_id` and `access_key_secret` |
 | Natural-language template generation | `llm_api_key` (`ABX_LLM_API_KEY`, then Bailian, DashScope, and OpenAI names) | `abx config set llm_api_key` |
 | A provider plugin secret | `providers.<id>.<key>` in `~/.abx/.env` | `abx config set providers.<id>.<key>` |

@@ -1015,7 +1015,7 @@ export const template = group("template", {
     \b
     Examples:
       abx template search python
-      abx template init --template python --name my-template
+      abx template scaffold --template python --name my-template
       abx template list
 
     \b
@@ -1489,7 +1489,7 @@ function _stringifyValues(data: Record<string, Any>): Record<string, string> {
   return result;
 }
 
-export const create_template = template.command("create", {
+export const create_template = template.command("from-image", {
   help: cleandoc(`Create a sandbox template from an existing container image.
 
     Uses the official Alibaba Cloud FCSandbox CreateTemplate API.
@@ -1497,13 +1497,13 @@ export const create_template = template.command("create", {
 
     \b
     Examples:
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --team-id team-xxx --cpu 4 --memory 4096
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --envd-inject --generation 1
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --region cn-shanghai
 
     \b
@@ -1644,7 +1644,7 @@ export const push = template.command("push", {
     \b
     Related commands:
       abx template build TEMPLATE_DIR  Build, push, and register a template
-      abx template create IMAGE        Register an existing image
+      abx template from-image IMAGE        Register an existing image
       abx config set access_key_id KEY
     `),
   params: [
@@ -1791,7 +1791,7 @@ export const build = template.command("build", {
 
     \b
     Related commands:
-      abx template init DIRECTORY    Scaffold template source files
+      abx template scaffold DIRECTORY    Scaffold template source files
       abx template push IMAGE        Push an existing local image only
       abx create --template ID       Launch the completed template
     `),
@@ -2058,7 +2058,7 @@ export const deploy = template.command("deploy", {
     "    # one JSON object on stdout; the id is the TemplateID field\n\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx template init DIRECTORY  Scaffold a template project\n" +
+    "  abx template scaffold DIRECTORY  Scaffold a template project\n" +
     "  abx template list            Verify the registered template\n" +
     "  abx create --template ID     Launch a sandbox from the template",
   callback: async (ctx: Context, params: Any): Promise<void> => {
@@ -2263,7 +2263,7 @@ export async function _tryArrowCasePicker(cases: Array<[string, string]>): Promi
 /**
  * Return whether `value` is a sentence rather than a directory path.
  *
- * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template init [DIRECTORY]` invocations
+ * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template scaffold [DIRECTORY]` invocations
  * are unchanged. Whitespace or CJK text is a natural-language description. Prefix a directory that contains spaces
  * with `./`.
  */
@@ -2290,7 +2290,7 @@ export async function _selectScaffoldCase(cases: Array<[string, string]>): Promi
   return (cases[Number(choice) - 1] as [string, string])[0];
 }
 
-export const init = template.command("init", {
+export const init = template.command("scaffold", {
   help: cleandoc(`Scaffold a new sandbox template project.
 
     Creates a ready-to-build template directory with template.yaml,
@@ -2300,8 +2300,8 @@ export const init = template.command("init", {
     When DIRECTORY is omitted a new ./<name> subdirectory is created
     (derived from --name, the scaffold case, or the fetched template).
 
-    A DIRECTORY that contains whitespace or CJK text is a natural-language
-    description: template generation (Qwen Code, needs 'abx config init --llm')
+    --prompt requests natural-language template generation; DIRECTORY always
+    names a directory. Template generation (Qwen Code, needs 'abx config init --llm')
     writes Dockerfile, commands.py (the HTTP server) and template.yaml into
     ./<name>/ and stops. An interactive
     terminal is asked for that directory first (Enter keeps ./<name>/).
@@ -2314,25 +2314,26 @@ export const init = template.command("init", {
 
     \b
     Examples:
-      abx template init --list                     # List built-in cases
-      abx template init -t python                  # Creates ./python/
-      abx template init -t python --name myapp     # Creates ./myapp/
-      abx template init -t python ./my-template    # Explicit directory
-      abx template init --from owner/repo          # Creates ./<template-name>/
-      abx template init "a python data science env"  # generate files only, no build
-      abx template init -y "a node.js api server"    # non-interactive generation
-      abx template init --adopt . --hint "port 8080" # adapt this project
-      abx template init --adopt ./app --dry-run      # show what would be sent
+      abx template scaffold --list                     # List built-in cases
+      abx template scaffold -t python                  # Creates ./python/
+      abx template scaffold -t python --name myapp     # Creates ./myapp/
+      abx template scaffold -t python ./my-template    # Explicit directory
+      abx template scaffold --from owner/repo          # Creates ./<template-name>/
+      abx template scaffold --prompt "a python data science env"  # generate files only, no build
+      abx template scaffold -y --prompt "a node.js api server"    # non-interactive generation
+      abx template scaffold --adopt . --hint "port 8080" # adapt this project
+      abx template scaffold --adopt ./app --dry-run      # show what would be sent
 
     \b
     Related commands:
       abx template deploy DIRECTORY
       abx template install TEMPLATE_REF
       abx create --template TEMPLATE
-      abx create "DESCRIPTION"   # generate, build, deploy, and create
+      abx create --prompt "DESCRIPTION"   # generate, build, deploy, and create
     `),
   params: [
     argument(["directory"], { default: null, required: false, type: new ClickPath() }),
+    option(["--prompt"], { default: null, help: "Generate a template from a natural-language description" }),
     option(["--template", "-t", "case"], { default: null, help: "Built-in scaffold case (python, node, minimal)" }),
     option(["--from", "from_ref"], {
       default: null,
@@ -2422,7 +2423,7 @@ export const init = template.command("init", {
 
     // A sentence is a description, not a directory name. Generate the template files and stop — no build, push, deploy,
     // or sandbox.
-    if (directory !== null && _isNlDescription(directory)) {
+    if (params["prompt"] !== null) {
       if (caseName || fromRef) {
         throw usageError(
           "A natural-language description cannot be combined with " +
@@ -2433,7 +2434,7 @@ export const init = template.command("init", {
       }
       const sandboxMod: Any = await _lazyModule("./sandbox.js");
       const generate = sandboxMod._generateLocalTemplate;
-      await generate(ctx, directory, { yes, name, force, ask_directory: true, model: params["model"] });
+      await generate(ctx, params["prompt"], { yes, name, force, ask_directory: true, model: params["model"], ...(directory ? { directory } : {}) });
       return;
     }
 
@@ -2464,7 +2465,7 @@ export const init = template.command("init", {
       // .git. Remote refs stay tolerant.
       if ((ref.registry_type ?? "") === "local" && _findTemplateYaml(source) === null) {
         throw new CliError(
-          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template init --adopt ${fromRef}`,
+          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template scaffold --adopt ${fromRef}`,
         );
       }
 

@@ -1,0 +1,4 @@
+[exit_code:1]
+[stderr]
+[E5001] No SandboxServer reachable in sandbox sbx-XXXXX on port 9000 (connection refused).
+  Suggestion: Named commands are registered on the SandboxServer inside the sandbox; use a template that starts it, or pass --server-port if it listens elsewhere.

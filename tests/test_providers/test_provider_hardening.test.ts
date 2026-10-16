@@ -123,7 +123,7 @@ describe("rest provider feature gate", () => {
     fs.mkdirSync(dir);
     fs.writeFileSync(path.join(dir, "abx-provider.toml"), REST_MANIFEST);
     await installer.install(dir, { ...HV, yes: true });
-    iso.setenv("ABX_SANDBOX_API_KEY", "k");
+    iso.setenv("E2B_API_KEY", "k");
     const infra = await registry.getProvider("rest-lite").buildInfra(loadLayeredConfig({ provider: "rest-lite", http2: false }));
     try {
       const process = infra.process_protocol as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;

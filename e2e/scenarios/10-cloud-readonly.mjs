@@ -1,3 +1,5 @@
+// Invalid authentication sentinel used only for negative E2E cases; not a credential.
+const INVALID_API_KEY = `e2b_${"0".repeat(40)}`;
 // Real-cloud scenarios that do not create sandboxes: auth, templates, not-found errors.
 export default {
   id: 'cloud-readonly',
@@ -9,21 +11,21 @@ export default {
       async run(ctx) {
         const r = await ctx.rawAbx(['config', 'list']);
         const all = r.stdout + r.stderr;
-        for (const k of ['ABX_SANDBOX_API_KEY', 'ALICLOUD_ACCESS_KEY_SECRET', 'ABX_LLM_API_KEY']) if (ctx.creds[k] && all.includes(ctx.creds[k])) ctx.fail(`config list leaked ${k}`);
+        for (const k of ['E2B_API_KEY', 'ALICLOUD_ACCESS_KEY_SECRET', 'ABX_LLM_API_KEY']) if (ctx.creds[k] && all.includes(ctx.creds[k])) ctx.fail(`config list leaked ${k}`);
         const j = await ctx.rawAbx(['--json', 'config', 'list']);
-        for (const k of ['ABX_SANDBOX_API_KEY', 'ALICLOUD_ACCESS_KEY_SECRET', 'ABX_LLM_API_KEY']) if (ctx.creds[k] && (j.stdout + j.stderr).includes(ctx.creds[k])) ctx.fail(`config list --json leaked ${k}`);
+        for (const k of ['E2B_API_KEY', 'ALICLOUD_ACCESS_KEY_SECRET', 'ABX_LLM_API_KEY']) if (ctx.creds[k] && (j.stdout + j.stderr).includes(ctx.creds[k])) ctx.fail(`config list --json leaked ${k}`);
         if (r.code !== 0 || j.code !== 0) ctx.fail('config list failed');
       },
     },
     {
-      id: 'auth-wrong-key', title: 'wrong API key: exit 3, E1000 (original) / E1001 (KI-006 fix), 401', argv: ['list'], env: { ABX_SANDBOX_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 3, output: [/E100[01]/, /Authentication failed|rejected the API key/, '401'],
+      id: 'auth-wrong-key', title: 'wrong API key: exit 3, E1000 (original) / E1001 (KI-006 fix), 401', argv: ['list'], env: { E2B_API_KEY: INVALID_API_KEY }, exit: 3, output: [/E100[01]/, /Authentication failed|rejected the API key/, '401'],
     },
     {
-      id: 'auth-wrong-key-json', title: 'wrong API key under --json: error envelope with code E1000 (original) / E1001 (KI-006 fix)', argv: ['--json', 'info', 'sbx-00000000-0000-0000-0000-000000000000'], env: { ABX_SANDBOX_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 3,
+      id: 'auth-wrong-key-json', title: 'wrong API key under --json: error envelope with code E1000 (original) / E1001 (KI-006 fix)', argv: ['--json', 'info', 'sbx-00000000-0000-0000-0000-000000000000'], env: { E2B_API_KEY: INVALID_API_KEY }, exit: 3,
       jsonShape: { status: 'string', message: 'string', code: 'string', suggestion: 'string' },
       json: (j) => { if (j.status !== 'error' || !['E1000', 'E1001'].includes(j.code)) throw new Error(`unexpected envelope ${JSON.stringify(j)}`); },
     },
-    { id: 'auth-wrong-key-template-list', title: 'wrong API key on template list fails (non-zero) and mentions 401', argv: ['template', 'list'], env: { ABX_SANDBOX_API_KEY: 'e2b_0000000000000000000000000000000000000000' }, exit: 'nonzero', output: '401' },
+    { id: 'auth-wrong-key-template-list', title: 'wrong API key on template list fails (non-zero) and mentions 401', argv: ['template', 'list'], env: { E2B_API_KEY: INVALID_API_KEY }, exit: 'nonzero', output: '401' },
     {
       id: 'list-json-shape', title: 'list --json: array of {ID,Template,Status,Region} or a {status,message} note when empty', argv: ['--json', 'list'],
       json: (j) => {

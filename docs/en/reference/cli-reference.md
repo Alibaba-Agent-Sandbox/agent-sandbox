@@ -1,3 +1,5 @@
+> For standard Express commands use the [E2B migration contract](../guide/migrate-from-e2b.md): create takes a template, --prompt requests generation, template create uses E2B build semantics, and from-image creates an Alibaba image template.
+
 # CLI Reference
 
 ## Command Overview
@@ -19,7 +21,7 @@ abx
 └── provider   (see the Providers guide)
 ```
 
-> The shortcuts are **hard-coded, not configurable**: each one is documented in `abx --help` as "Same as 'abx …'" (`abx run` = `abx sandbox command run`, `abx deploy` = `abx template deploy`). There is no `[shortcuts]` configuration and no top-level `abx init` / `abx install`; use `abx template init` and `abx template install`.
+> The shortcuts are **hard-coded, not configurable**: each one is documented in `abx --help` as "Same as 'abx …'" (`abx run` = `abx sandbox command run`, `abx deploy` = `abx template deploy`). There is no `[shortcuts]` configuration and no top-level `abx init` / `abx install`; use `abx template scaffold` and `abx template install`.
 
 ### Removed command groups (pre-0.1.0 migration)
 
@@ -27,7 +29,7 @@ The following command groups from earlier pre-releases were removed before the f
 
 | Removed | Replacement |
 |---------|-------------|
-| `abx auth login/logout/status/switch` | `abx config set sandbox_api_key <value>` to persist credentials, or the `ABX_SANDBOX_API_KEY` environment variable; check the effective state with `abx config list` |
+| `abx auth login/logout/status/switch` | `abx config set sandbox_api_key <value>` to persist credentials, or the `E2B_API_KEY` environment variable; check the effective state with `abx config list` |
 | `abx secret create/list/delete/inject` | Environment variables or `.env` files for credentials and secrets; sandbox environment injection via `abx create --env KEY=VALUE` |
 | `abx session` / `abx sessions list/info/rename/export/import/clean` | Session data is still stored locally in `~/.abx/sessions/` by `LocalSessionStore`; use the SDK's `Sandbox.connect()` programmatically (the interactive REPL `abx connect <SANDBOX_ID>` remains available) |
 | `abx skill search/install/list/create/publish` | Templates are the current capability-distribution mechanism (`abx template search` / `abx template install`); the repository-root `SKILL.md` documents agent-facing usage |
@@ -39,8 +41,8 @@ See the `Unreleased` section of the repository `CHANGELOG.md` for the full break
 | Goal | Command | What it does | Talks to the cloud? |
 |------|---------|--------------|---------------------|
 | Store credentials / endpoints before first use | `abx config init` | Interactive guided wizard (platform API key and region; `--build` adds the ACR/AccessKey section, `--llm` adds the LLM key for template generation); on non-TTY or with `--yes` it prints the equivalent `abx config set` commands | No |
-| Scaffold a local template project | `abx template init [DIRECTORY]` / `abx template init "DESCRIPTION"` / `abx template init --adopt [DIRECTORY]` | A path scaffolds an editable `template.yaml` + `Dockerfile` (+ `commands.py`). A description (whitespace or CJK) starts template generation (Qwen Code writes a usable template): `Dockerfile`, `commands.py` (the `SandboxServer` HTTP entry point), `template.yaml` and `README.md`. `--adopt` does the same for a project that already has source code: the agent sees a copy, and only those template files (plus a generated `.dockerignore`) are written back. Nothing is built, pushed, deployed, or launched | No |
-| Create a cloud sandbox | `abx create --template <NAME>` / `abx create "DESCRIPTION"` | `--template NAME` launches an existing template (`base` for the default sandbox); a DESCRIPTION alone goes through the research-first clarification flow (the agent researches public facts itself, then asks one question per round when interactive), then Qwen Code template generation → build & deploy → create. An interactive terminal is first asked whether to switch to `abx template init` and stop after the local files. Bare `abx create` (no `--template`, no DESCRIPTION) is an explicit usage error, not an implicit `base` launch | Yes |
+| Scaffold a local template project | `abx template scaffold [DIRECTORY]` / `abx template scaffold --prompt "DESCRIPTION"` / `abx template scaffold --adopt [DIRECTORY]` | A path scaffolds an editable `template.yaml` + `Dockerfile` (+ `commands.py`). A description (whitespace or CJK) starts template generation (Qwen Code writes a usable template): `Dockerfile`, `commands.py` (the `SandboxServer` HTTP entry point), `template.yaml` and `README.md`. `--adopt` does the same for a project that already has source code: the agent sees a copy, and only those template files (plus a generated `.dockerignore`) are written back. Nothing is built, pushed, deployed, or launched | No |
+| Create a cloud sandbox | `abx create --template <NAME>` / `abx create --prompt "DESCRIPTION"` | `--template NAME` launches an existing template (`base` for the default sandbox); a DESCRIPTION alone goes through the research-first clarification flow (the agent researches public facts itself, then asks one question per round when interactive), then Qwen Code template generation → build & deploy → create. An interactive terminal is first asked whether to switch to `abx template scaffold` and stop after the local files. Bare `abx create` (no `--template`, no DESCRIPTION) is an explicit usage error, not an implicit `base` launch | Yes |
 
 ```bash
 # 1. Guided credentials setup (run first)
@@ -53,13 +55,13 @@ abx create
 abx create --template python-hello
 
 # 4. Create from natural language (template generation: Qwen Code writes + deploys the template)
-abx create "a Python data analysis environment with pandas and jupyter"
+abx create --prompt "a Python data analysis environment with pandas and jupyter"
 
 # 5. Scaffold a local template project to edit and deploy yourself
-abx template init -t python ./my-template
+abx template scaffold -t python ./my-template
 
 # 6. Natural language, template files only (no build, push, or sandbox)
-abx template init "a Python data analysis environment with pandas and jupyter"
+abx template scaffold --prompt "a Python data analysis environment with pandas and jupyter"
 ```
 
 ---
@@ -101,8 +103,8 @@ Create a new sandbox.
 |-----------|------|
 | `abx create` (no arguments) | **Rejected** — explicit usage error (exit code 2) with the three valid routing options; bare create no longer defaults to `base` |
 | `abx create --template <name>` | Direct template path (no template generation) |
-| `abx create "natural language description"` | generation path: an interactive terminal is first asked whether to switch to template init (local files only). Otherwise: research-first clarification (the agent researches public facts on its own native session, then asks one question per round when interactive — only for details it cannot infer) → Qwen Code generates Dockerfile + commands.py (SandboxServer) + template.yaml → build & deploy → create sandbox. `--yes` skips the switch and runs this full pipeline |
-| `abx create "description" --template <name>` | **Rejected** — `DESCRIPTION` and `--template` are mutually exclusive; a usage error is raised (exit code 2) and the description is never silently ignored |
+| `abx create --prompt "natural language description"` | generation path: an interactive terminal is first asked whether to switch to template init (local files only). Otherwise: research-first clarification (the agent researches public facts on its own native session, then asks one question per round when interactive — only for details it cannot infer) → Qwen Code generates Dockerfile + commands.py (SandboxServer) + template.yaml → build & deploy → create sandbox. `--yes` skips the switch and runs this full pipeline |
+| `abx create --prompt "description" --template <name>` | **Rejected** — `DESCRIPTION` and `--template` are mutually exclusive; a usage error is raised (exit code 2) and the description is never silently ignored |
 
 Mutual exclusion is deliberate: either the description or the template would have to be silently dropped, so the CLI refuses the combination instead.
 
@@ -132,17 +134,17 @@ abx create [DESCRIPTION] [options]
 abx create --template base
 
 # generated template and create (interactive; add -y for non-interactive use)
-abx create "a python data analysis environment"
+abx create --prompt "a python data analysis environment"
 abx create -y "a node.js api server"
 
 # Non-interactive with an incomplete description → E2008 (missing details + example)
-# abx create "run python"
+# abx create --prompt "run python"
 
 # Create and upload files
 abx create --upload ./app --timeout 600 --env MY_KEY=value
 
 # Rejected: DESCRIPTION and --template cannot be combined (exit code 2)
-# abx create "a node.js api server" --template base
+# abx create --prompt "a node.js api server" --template base
 
 # Rejected: bare `abx create` without --template or DESCRIPTION (exit code 2)
 # abx create
@@ -325,7 +327,7 @@ Available config keys:
 
 | Key | Description |
 |-----|-------------|
-| `sandbox_api_key` | Sandbox service API key (stored in `~/.abx/.env` as `ABX_SANDBOX_API_KEY`, shown masked) |
+| `sandbox_api_key` | Sandbox service API key (stored in `~/.abx/.env` as `E2B_API_KEY`, shown masked) |
 | `access_key_id` | Alibaba Cloud AccessKey ID (template deploy, ACR push) |
 | `access_key_secret` | Alibaba Cloud AccessKey Secret (shown masked) |
 | `acr_namespace` | ACR namespace for template build, push, and install (stored as `ACR_NAMESPACE`) |
@@ -351,14 +353,14 @@ abx config init --llm           # + LLM API key (template generation)
 abx config init --yes           # Non-interactive: print the equivalent abx config set commands
 ```
 
-- Interactive terminals prompt in order; sensitive values (API keys and the AccessKey secret) are typed with asterisk feedback (one `*` per character, never echoed) when the terminal supports it — otherwise a no-echo fallback is used with an explicit notice. Press Enter to skip a prompt. Secrets are stored in `~/.abx/.env` (`ABX_SANDBOX_API_KEY`, `ABX_LLM_API_KEY`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`); the ACR namespace is stored there as `ACR_NAMESPACE`; the region is written to `~/.abx/config.toml`.
+- Interactive terminals prompt in order; sensitive values (API keys and the AccessKey secret) are typed with asterisk feedback (one `*` per character, never echoed) when the terminal supports it — otherwise a no-echo fallback is used with an explicit notice. Press Enter to skip a prompt. Secrets are stored in `~/.abx/.env` (`E2B_API_KEY`, `ABX_LLM_API_KEY`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`); the ACR namespace is stored there as `ACR_NAMESPACE`; the region is written to `~/.abx/config.toml`.
 - Features that need a setting you have not made (ACR namespace, AccessKey, LLM key) print a one-line pointer to `abx config init --build` or `abx config init --llm`, and `config init` itself ends with the same pointer for the sections it skipped.
 - Enter accepts the current value / skips the prompt, Backspace edits, and Ctrl-C / EOF (Ctrl-D) abort the wizard cleanly.
 - Non-TTY environments (CI, piped input), `--yes` and `--ci` never block: they print the equivalent non-interactive `abx config set` commands and exit 0.
 
 ```bash
 abx config init --build --llm
-# 1/6 Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)
+# 1/6 Sandbox API key (sandbox_api_key / E2B_API_KEY, input masked)
 # 2/6 Region (default cn-hangzhou)
 # 3/6 ACR namespace (needed by abx template install / build / deploy)
 # 4/6 Alibaba Cloud AccessKey ID (template deploy / ACR push)
@@ -418,12 +420,12 @@ abx config delete access_key_secret
 
 Discover, scaffold, build, and manage sandbox templates.
 
-### abx template init
+### abx template scaffold
 
 Scaffold a new sandbox template project from a built-in case, from a natural-language description, or from an existing project (`--adopt`). None of these paths builds, pushes, deploys, or creates a sandbox.
 
 ```bash
-abx template init [DIRECTORY] [options]
+abx template scaffold [DIRECTORY] [options]
 ```
 
 | Option | Short | Description |
@@ -441,26 +443,26 @@ abx template init [DIRECTORY] [options]
 
 **DIRECTORY behaviour**: when omitted, a new subdirectory `./<name>` is created. `<name>` is resolved by priority: `--name` > scaffold case name > fetched template name > generated name.
 
-A path token (`my-app`, `./my app`) is a directory. Whitespace or CJK text is a description: Qwen Code writes `Dockerfile` + `template.yaml` into `./<name>/` and stops. An interactive terminal asks `Directory for the template project` first; Enter keeps `./<name>/` (or `./<--name>/` when `--name` is set), and any other path is the project directory itself. `--yes`, `--json`, and a non-interactive shell skip the question. That is the same result as answering yes to the switch question on `abx create "DESCRIPTION"` (the switch does not ask again; it writes `./<name>/`).
+A path token (`my-app`, `./my app`) is a directory. Whitespace or CJK text is a description: Qwen Code writes `Dockerfile` + `template.yaml` into `./<name>/` and stops. An interactive terminal asks `Directory for the template project` first; Enter keeps `./<name>/` (or `./<--name>/` when `--name` is set), and any other path is the project directory itself. `--yes`, `--json`, and a non-interactive shell skip the question. That is the same result as answering yes to the switch question on `abx create --prompt "DESCRIPTION"` (the switch does not ask again; it writes `./<name>/`).
 
 ```bash
-abx template init --list
-abx template init -t python
-abx template init -t python --name myapp
-abx template init -t python ./my-template
-abx template init --from owner/repo
-abx template init "a python data science env"
-abx template init -y "a node.js api server"
-abx template init --adopt . --hint "listens on 8080"
-abx template init --adopt ./app --dry-run
-abx template init --adopt ./app -y          # non-interactive; then abx deploy ./app
+abx template scaffold --list
+abx template scaffold -t python
+abx template scaffold -t python --name myapp
+abx template scaffold -t python ./my-template
+abx template scaffold --from owner/repo
+abx template scaffold --prompt "a python data science env"
+abx template scaffold -y --prompt "a node.js api server"
+abx template scaffold --adopt . --hint "listens on 8080"
+abx template scaffold --adopt ./app --dry-run
+abx template scaffold --adopt ./app -y          # non-interactive; then abx deploy ./app
 ```
 
-`--adopt` copies candidate files to a temp directory and asks before sending them to the model. Secrets (`.env`, keys, secret-looking files) are left out of that copy. The agent cannot modify the project: only `Dockerfile`, `commands.py`, `template.yaml` and, when you don't already have one, a generated `.dockerignore` are written, and only after a second confirmation (or `--yes`). Replaced files are kept as `*.abx-bak`. The model process does not inherit cloud credentials (`ALICLOUD_*`, `E2B_*`, `ACR_*`, …). This shows the model your project source; it is a larger exposure than `abx template init "DESCRIPTION"`, which only sends the sentence you typed.
+`--adopt` copies candidate files to a temp directory and asks before sending them to the model. Secrets (`.env`, keys, secret-looking files) are left out of that copy. The agent cannot modify the project: only `Dockerfile`, `commands.py`, `template.yaml` and, when you don't already have one, a generated `.dockerignore` are written, and only after a second confirmation (or `--yes`). Replaced files are kept as `*.abx-bak`. The model process does not inherit cloud credentials (`ALICLOUD_*`, `E2B_*`, `ACR_*`, …). This shows the model your project source; it is a larger exposure than `abx template scaffold --prompt "DESCRIPTION"`, which only sends the sentence you typed.
 
 > Guided credentials setup is `abx config init`; there is no top-level `abx init`.
 >
-> Unknown top-level commands produce a targeted hint: a close spelling match gets a `Did you mean '…'?` suggestion; otherwise the error points to the command list (`abx --help`), `abx template init|install`, and `abx run SANDBOX NAME` for named commands.
+> Unknown top-level commands produce a targeted hint: a close spelling match gets a `Did you mean '…'?` suggestion; otherwise the error points to the command list (`abx --help`), `abx template scaffold|install`, and `abx run SANDBOX NAME` for named commands.
 
 ### abx template deploy
 
@@ -558,12 +560,12 @@ abx template push <IMAGE> [options]
 abx template push python-hello:latest --acr-namespace my-ns
 ```
 
-### abx template create
+### abx template from-image
 
 Create a sandbox template from an existing container image. Uses the official Alibaba Cloud FCSandbox CreateTemplate API (requires AK/SK and the bundled `@alicloud/fcsandbox20260509` client).
 
 ```bash
-abx template create <IMAGE> --name <NAME> [options]
+abx template from-image <IMAGE> --name <NAME> [options]
 ```
 
 | Option | Short | Description |
@@ -586,9 +588,9 @@ abx template create <IMAGE> --name <NAME> [options]
 | `--region` | `-r` | Region override for this command (default: `abx config set region` value, else `cn-hangzhou`) |
 
 ```bash
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
 
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
   --name my-tpl --cpu 4 --memory 4096 --disk-size 10240 --internet-access
 ```
 
@@ -768,12 +770,12 @@ abx mcp deploy [options]
 | `--auth-token-file` | Path to a Bearer token file |
 | `--generate-token` | Auto-generate a random Bearer token |
 | `--enable-session-affinity/--no-session-affinity` | Mcp-Session-Id affinity (default: enabled) |
-| `--api-key` | ABX_SANDBOX_API_KEY to inject into FC function env |
+| `--api-key` | E2B_API_KEY to inject into FC function env |
 | `--custom-domain` | Custom domain for the MCP endpoint |
 | `--output-dir` | Write the deployment artifact to this directory |
 
 ```bash
-abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY --output-dir ./deploy-artifact
+abx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./deploy-artifact
 abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir ./artifact
 ```
 
@@ -781,7 +783,7 @@ abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir .
 
 ## Deploy Command — abx deploy
 
-Publish a template project: `docker build` → push to ACR → register the template → wait until ready. Fixed pipeline; **no description, no LLM, no LLM key**. It is step 2 of the template lifecycle (`abx template init` → **`abx deploy`** → `abx create --template`); what the template is lives in `template.yaml`.
+Publish a template project: `docker build` → push to ACR → register the template → wait until ready. Fixed pipeline; **no description, no LLM, no LLM key**. It is step 2 of the template lifecycle (`abx template scaffold` → **`abx deploy`** → `abx create --template`); what the template is lives in `template.yaml`.
 
 ```bash
 abx deploy [PATH] [options]
@@ -792,7 +794,7 @@ abx deploy [PATH] [options]
 `abx deploy` accepts **every option of `abx template deploy`** (`--acr-registry`, `--acr-namespace`, `--acr-repo`, `--alias -a`, `--tag -t`, `--cpu`, `--memory`, `--dockerfile -f`, `--yes -y`, `--verbose -v`, `--region -r`, ...; see `abx deploy --help`).
 
 ```bash
-abx template init "a python data science env"   # 1. author (AI optional)
+abx template scaffold --prompt "a python data science env"   # 1. author (AI optional)
 abx deploy ./<name> --acr-namespace my-ns       # 2. publish
 abx create --template <TEMPLATE_ID>             # 3. launch
 ```

@@ -1,3 +1,5 @@
+> 极速版标准命令以[E2B 迁移契约](../guide/migrate-from-e2b.md)为准：create 位置参数为模板，--prompt 请求生成，template create 使用 E2B 构建语义，from-image 创建阿里云镜像模板。
+
 # CLI 参考手册
 
 ## 命令总览
@@ -19,7 +21,7 @@ abx
 └── provider   （见 Provider 指南）
 ```
 
-> 快捷方式是**硬编码的，不可配置**：`abx --help` 把每一个标注为“Same as 'abx …'”（`abx run` = `abx sandbox command run`，`abx deploy` = `abx template deploy`）。不存在 `[shortcuts]` 配置，也没有顶层 `abx init` / `abx install`；请使用 `abx template init` 与 `abx template install`。
+> 快捷方式是**硬编码的，不可配置**：`abx --help` 把每一个标注为“Same as 'abx …'”（`abx run` = `abx sandbox command run`，`abx deploy` = `abx template deploy`）。不存在 `[shortcuts]` 配置，也没有顶层 `abx init` / `abx install`；请使用 `abx template scaffold` 与 `abx template install`。
 
 ### 已移除的命令组（0.1.0 之前迁移）
 
@@ -27,7 +29,7 @@ abx
 
 | 已移除 | 替代路径 |
 |--------|----------|
-| `abx auth login/logout/status/switch` | 用 `abx config set sandbox_api_key <value>` 持久化凭证，或直接使用 `ABX_SANDBOX_API_KEY` 环境变量；用 `abx config list` 查看生效状态 |
+| `abx auth login/logout/status/switch` | 用 `abx config set sandbox_api_key <value>` 持久化凭证，或直接使用 `E2B_API_KEY` 环境变量；用 `abx config list` 查看生效状态 |
 | `abx secret create/list/delete/inject` | 用环境变量或 `.env` 文件管理凭证与密钥；沙箱环境注入用 `abx create --env KEY=VALUE` |
 | `abx session` / `abx sessions list/info/rename/export/import/clean` | 会话数据仍由 `LocalSessionStore` 存储在本地 `~/.abx/sessions/`；在程序中用 SDK 的 `Sandbox.connect()`（交互式 REPL `abx connect <SANDBOX_ID>` 仍可用） |
 | `abx skill search/install/list/create/publish` | 模板是当前的能力分发机制（`abx template search` / `abx template install`）；仓库根目录的 `SKILL.md` 面向 Agent 使用说明 |
@@ -39,8 +41,8 @@ abx
 | 目标 | 命令 | 做什么 | 访问云端？ |
 |------|------|--------|-----------|
 | 首次使用前存储凭证与端点 | `abx config init` | 交互式引导向导（平台 API Key 与区域；`--build` 增加 ACR/AccessKey 部分，`--llm` 增加模板生成用的 LLM Key）；非 TTY 或加 `--yes` 时打印等效的 `abx config set` 命令 | 否 |
-| 脚手架生成本地模板工程 | `abx template init [DIRECTORY]` / `abx template init "描述"` / `abx template init --adopt [DIRECTORY]` | 路径参数脚手架生成可编辑的 `template.yaml` + `Dockerfile`（及 `commands.py`）。含空白或中文的描述则由 Qwen Code 生成可直接使用的模板：`Dockerfile`、`commands.py`（`SandboxServer` HTTP 入口）、`template.yaml` 与 `README.md`。`--adopt` 用于**已有源码**的项目：Agent 只看到一份副本，写回的只有这些模板文件（外加自动生成的 `.dockerignore`）。不构建、不推送、不部署、不启动沙箱 | 否 |
-| 创建云端沙箱 | `abx create --template <名称>` / `abx create "描述"` | `--template 名称` 直接启动已有模板（默认沙箱用 `base`）；仅提供自然语言描述时先走 research-first 澄清流程（Agent 自行检索公开事实，交互下每轮只问一个无法自行推断的问题），再走 Qwen Code 生成模板 → 构建部署 → 创建。交互式终端会先询问是否改走 `abx template init`，只留下本地文件。裸 `abx create`（无 `--template` 也无描述）会报显式用法错误，不会隐式启动 `base` | 是 |
+| 脚手架生成本地模板工程 | `abx template scaffold [DIRECTORY]` / `abx template scaffold --prompt "描述"` / `abx template scaffold --adopt [DIRECTORY]` | 路径参数脚手架生成可编辑的 `template.yaml` + `Dockerfile`（及 `commands.py`）。含空白或中文的描述则由 Qwen Code 生成可直接使用的模板：`Dockerfile`、`commands.py`（`SandboxServer` HTTP 入口）、`template.yaml` 与 `README.md`。`--adopt` 用于**已有源码**的项目：Agent 只看到一份副本，写回的只有这些模板文件（外加自动生成的 `.dockerignore`）。不构建、不推送、不部署、不启动沙箱 | 否 |
+| 创建云端沙箱 | `abx create --template <名称>` / `abx create --prompt "描述"` | `--template 名称` 直接启动已有模板（默认沙箱用 `base`）；仅提供自然语言描述时先走 research-first 澄清流程（Agent 自行检索公开事实，交互下每轮只问一个无法自行推断的问题），再走 Qwen Code 生成模板 → 构建部署 → 创建。交互式终端会先询问是否改走 `abx template scaffold`，只留下本地文件。裸 `abx create`（无 `--template` 也无描述）会报显式用法错误，不会隐式启动 `base` | 是 |
 
 ```bash
 # 1. 引导式凭证配置（首次使用先执行）
@@ -53,13 +55,13 @@ abx create
 abx create --template python-hello
 
 # 4. 用自然语言创建（模板生成：Qwen Code 写出并部署模板）
-abx create "一个预装 pandas 和 jupyter 的 Python 数据分析环境"
+abx create --prompt "一个预装 pandas 和 jupyter 的 Python 数据分析环境"
 
 # 5. 脚手架生成本地模板工程，自行编辑与部署
-abx template init -t python ./my-template
+abx template scaffold -t python ./my-template
 
 # 6. 自然语言，只生成模板文件（不构建、不推送、不创建沙箱）
-abx template init "一个预装 pandas 和 jupyter 的 Python 数据分析环境"
+abx template scaffold --prompt "一个预装 pandas 和 jupyter 的 Python 数据分析环境"
 ```
 
 ---
@@ -101,8 +103,8 @@ abx [全局选项] <子命令> [子命令选项]
 |---------|------|
 | `abx create`（无参数） | **拒绝执行** —— 显式用法错误（退出码 2），列出三种合法路由选项；裸 create 不再默认 `base` |
 | `abx create --template <名称>` | 直接模板路径（不经过 模板生成） |
-| `abx create "自然语言描述"` | 生成路径：交互式终端会先询问是否改走 template init（只留本地文件）。否则：research-first 澄清（Agent 在自身原生会话上先检索公开事实，交互下每轮只问一个无法自行推断的问题）→ Qwen Code 生成 Dockerfile + commands.py（SandboxServer）+ template.yaml → 构建部署 → 创建沙箱。`--yes` 跳过这次询问并走完整流程 |
-| `abx create "描述" --template <名称>` | **拒绝执行** —— `DESCRIPTION` 与 `--template` 互斥；抛出用法错误（退出码 2），绝不静默忽略描述 |
+| `abx create --prompt "自然语言描述"` | 生成路径：交互式终端会先询问是否改走 template init（只留本地文件）。否则：research-first 澄清（Agent 在自身原生会话上先检索公开事实，交互下每轮只问一个无法自行推断的问题）→ Qwen Code 生成 Dockerfile + commands.py（SandboxServer）+ template.yaml → 构建部署 → 创建沙箱。`--yes` 跳过这次询问并走完整流程 |
+| `abx create --prompt "描述" --template <名称>` | **拒绝执行** —— `DESCRIPTION` 与 `--template` 互斥；抛出用法错误（退出码 2），绝不静默忽略描述 |
 
 互斥是有意设计：否则必须静默丢弃描述或模板中的一个，因此 CLI 直接拒绝该组合。
 
@@ -132,17 +134,17 @@ abx create [DESCRIPTION] [选项]
 abx create --template base
 
 # 模板生成并创建（交互式；非交互环境需 -y）
-abx create "一个 Python 数据分析环境"
+abx create --prompt "一个 Python 数据分析环境"
 abx create -y "a node.js api server"
 
 # 非交互下描述不完整 → E2008（缺失项 + 示例）
-# abx create "run python"
+# abx create --prompt "run python"
 
 # 创建并上传文件
 abx create --upload ./app --timeout 600 --env MY_KEY=value
 
 # 拒绝：DESCRIPTION 与 --template 不能同时提供（退出码 2）
-# abx create "a node.js api server" --template base
+# abx create --prompt "a node.js api server" --template base
 
 # 拒绝：裸 `abx create`（无 --template 也无描述，退出码 2）
 # abx create
@@ -325,7 +327,7 @@ abx config get <KEY>
 
 | 键 | 说明 |
 |---|------|
-| `sandbox_api_key` | 沙箱服务 API Key（存 `~/.abx/.env` 的 `ABX_SANDBOX_API_KEY`，输出时脱敏） |
+| `sandbox_api_key` | 沙箱服务 API Key（存 `~/.abx/.env` 的 `E2B_API_KEY`，输出时脱敏） |
 | `access_key_id` | 阿里云 AccessKey ID（模板部署、ACR 推送） |
 | `access_key_secret` | 阿里云 AccessKey Secret（输出时脱敏） |
 | `acr_namespace` | 模板构建、推送、安装用的 ACR 命名空间（存为 `ACR_NAMESPACE`） |
@@ -351,14 +353,14 @@ abx config init --llm           # + LLM API Key（模板生成）
 abx config init --yes           # 非交互：打印等效的 abx config set 命令
 ```
 
-- 交互式终端中依次提示；敏感值（API Key 与 AccessKey Secret）在终端支持时以星号反馈（每个字符一个 `*`，绝不回显原文），不支持时安全降级为无回显输入并明确提示。直接回车跳过该项。密钥存储到 `~/.abx/.env`（`ABX_SANDBOX_API_KEY`、`ABX_LLM_API_KEY`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）；ACR 命名空间也存在该文件，变量名为 `ACR_NAMESPACE`；区域写入 `~/.abx/config.toml`。
+- 交互式终端中依次提示；敏感值（API Key 与 AccessKey Secret）在终端支持时以星号反馈（每个字符一个 `*`，绝不回显原文），不支持时安全降级为无回显输入并明确提示。直接回车跳过该项。密钥存储到 `~/.abx/.env`（`E2B_API_KEY`、`ABX_LLM_API_KEY`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）；ACR 命名空间也存在该文件，变量名为 `ACR_NAMESPACE`；区域写入 `~/.abx/config.toml`。
 - 需要尚未配置的设置（ACR 命名空间、AccessKey、LLM Key）的功能，会打印一行指向 `abx config init --build` 或 `abx config init --llm` 的提示；`config init` 结束时也会对跳过的部分打印同样的提示。
 - Enter 接受当前值/跳过提示，退格编辑，Ctrl-C / EOF（Ctrl-D）干净地中止向导。
 - 非 TTY 环境（CI、管道输入）、`--yes` 与 `--ci` 不阻塞：打印等效的非交互 `abx config set` 命令并以 0 退出。
 
 ```bash
 abx config init --build --llm
-# 1/6 Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)
+# 1/6 Sandbox API key (sandbox_api_key / E2B_API_KEY, input masked)
 # 2/6 Region (默认 cn-hangzhou)
 # 3/6 ACR namespace (needed by abx template install / build / deploy)
 # 4/6 Alibaba Cloud AccessKey ID (template deploy / ACR push)
@@ -418,12 +420,12 @@ abx config delete access_key_secret
 
 发现、脚手架、构建和管理沙箱模板。
 
-### abx template init
+### abx template scaffold
 
 从内置案例脚手架生成新模板目录，根据自然语言描述生成模板文件，或用 `--adopt` 适配一个已有项目。这些路径都不构建、不推送、不部署、不创建沙箱。
 
 ```bash
-abx template init [DIRECTORY] [选项]
+abx template scaffold [DIRECTORY] [选项]
 ```
 
 | 选项 | 简写 | 说明 |
@@ -441,26 +443,26 @@ abx template init [DIRECTORY] [选项]
 
 **DIRECTORY 行为**：省略时在当前目录下新建 `./<name>` 子目录。`<name>` 按优先级：`--name` > 脚手架案例名 > `--from` 拉取到的模板名 > 生成名。
 
-路径记号（`my-app`、`./my app`）表示目录。含空白或中文的文本是描述：Qwen Code 把 `Dockerfile` 与 `template.yaml` 写到 `./<name>/` 后停止。交互式终端会先问 `Directory for the template project`：回车保持 `./<name>/`（设置了 `--name` 时是 `./<--name>/`），其他路径就是项目目录本身。`--yes`、`--json` 和非交互终端跳过这个问题。这与在 `abx create "描述"` 的切换问题上回答「是」的结果相同（切换路径不会再问一次，直接写到 `./<name>/`）。
+路径记号（`my-app`、`./my app`）表示目录。含空白或中文的文本是描述：Qwen Code 把 `Dockerfile` 与 `template.yaml` 写到 `./<name>/` 后停止。交互式终端会先问 `Directory for the template project`：回车保持 `./<name>/`（设置了 `--name` 时是 `./<--name>/`），其他路径就是项目目录本身。`--yes`、`--json` 和非交互终端跳过这个问题。这与在 `abx create --prompt "描述"` 的切换问题上回答「是」的结果相同（切换路径不会再问一次，直接写到 `./<name>/`）。
 
 ```bash
-abx template init --list
-abx template init -t python
-abx template init -t python --name myapp
-abx template init -t python ./my-template
-abx template init --from owner/repo
-abx template init "一个 Python 数据分析环境"
-abx template init -y "a node.js api server"
-abx template init --adopt . --hint "监听 8080"
-abx template init --adopt ./app --dry-run
-abx template init --adopt ./app -y          # 非交互；然后 abx deploy ./app
+abx template scaffold --list
+abx template scaffold -t python
+abx template scaffold -t python --name myapp
+abx template scaffold -t python ./my-template
+abx template scaffold --from owner/repo
+abx template scaffold --prompt "一个 Python 数据分析环境"
+abx template scaffold -y --prompt "a node.js api server"
+abx template scaffold --adopt . --hint "监听 8080"
+abx template scaffold --adopt ./app --dry-run
+abx template scaffold --adopt ./app -y          # 非交互；然后 abx deploy ./app
 ```
 
-`--adopt` 会把候选文件复制到临时目录，并在发送给模型之前征求确认。`.env`、密钥、以及内容看起来像密钥的文件不会进入这份副本。Agent 不能修改项目本身：确认之后（或加 `--yes`）只会写回 `Dockerfile`、`commands.py`、`template.yaml`，以及在你还没有 `.dockerignore` 时自动生成的那一份。被替换的文件保留为 `*.abx-bak`。模型进程不会继承云凭证（`ALICLOUD_*`、`E2B_*`、`ACR_*` 等）。这会把项目源码发给模型，暴露面比 `abx template init "描述"`（只发送你输入的那句话）更大。
+`--adopt` 会把候选文件复制到临时目录，并在发送给模型之前征求确认。`.env`、密钥、以及内容看起来像密钥的文件不会进入这份副本。Agent 不能修改项目本身：确认之后（或加 `--yes`）只会写回 `Dockerfile`、`commands.py`、`template.yaml`，以及在你还没有 `.dockerignore` 时自动生成的那一份。被替换的文件保留为 `*.abx-bak`。模型进程不会继承云凭证（`ALICLOUD_*`、`E2B_*`、`ACR_*` 等）。这会把项目源码发给模型，暴露面比 `abx template scaffold --prompt "描述"`（只发送你输入的那句话）更大。
 
 > 引导式凭证配置是 `abx config init`；不存在顶层 `abx init`。
 >
-> 未知顶层命令会得到针对性提示：拼写相近时给出 `Did you mean '…'?` 建议；否则错误信息指向命令列表（`abx --help`）、`abx template init|install`，以及具名命令的 `abx run SANDBOX NAME`。
+> 未知顶层命令会得到针对性提示：拼写相近时给出 `Did you mean '…'?` 建议；否则错误信息指向命令列表（`abx --help`）、`abx template scaffold|install`，以及具名命令的 `abx run SANDBOX NAME`。
 
 ### abx template deploy
 
@@ -558,12 +560,12 @@ abx template push <IMAGE> [选项]
 abx template push python-hello:latest --acr-namespace my-ns
 ```
 
-### abx template create
+### abx template from-image
 
 从已有容器镜像创建沙箱模板。使用阿里云 FCSandbox 官方 CreateTemplate API（需 AK/SK 和已内置的 `@alicloud/fcsandbox20260509` 客户端）。
 
 ```bash
-abx template create <IMAGE> --name <NAME> [选项]
+abx template from-image <IMAGE> --name <NAME> [选项]
 ```
 
 | 选项 | 简写 | 说明 |
@@ -586,9 +588,9 @@ abx template create <IMAGE> --name <NAME> [选项]
 | `--region` | `-r` | 本次调用的区域覆盖（默认：`abx config set region` 值，否则 cn-hangzhou） |
 
 ```bash
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
 
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
   --name my-tpl --cpu 4 --memory 4096 --disk-size 10240 --internet-access
 ```
 
@@ -768,12 +770,12 @@ abx mcp deploy [选项]
 | `--auth-token-file` | Bearer Token 文件路径 |
 | `--generate-token` | 自动生成随机 Bearer Token |
 | `--enable-session-affinity/--no-session-affinity` | Mcp-Session-Id 会话亲和（默认开启） |
-| `--api-key` | 注入到 FC 环境变量的 ABX_SANDBOX_API_KEY |
+| `--api-key` | 注入到 FC 环境变量的 E2B_API_KEY |
 | `--custom-domain` | 自定义域名 |
 | `--output-dir` | 部署产物输出目录 |
 
 ```bash
-abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY --output-dir ./deploy-artifact
+abx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./deploy-artifact
 abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir ./artifact
 ```
 
@@ -781,7 +783,7 @@ abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir .
 
 ## 部署命令 — abx deploy
 
-发布模板项目：`docker build` → 推送 ACR → 注册模板 → 等待就绪。固定流水线，**没有描述参数，无需 LLM，也无需 LLM Key**。它是模板生命周期的第 2 步（`abx template init` → **`abx deploy`** → `abx create --template`）；“模板是什么”写在 `template.yaml` 里。
+发布模板项目：`docker build` → 推送 ACR → 注册模板 → 等待就绪。固定流水线，**没有描述参数，无需 LLM，也无需 LLM Key**。它是模板生命周期的第 2 步（`abx template scaffold` → **`abx deploy`** → `abx create --template`）；“模板是什么”写在 `template.yaml` 里。
 
 ```bash
 abx deploy [PATH] [选项]
@@ -792,7 +794,7 @@ abx deploy [PATH] [选项]
 `abx deploy` 接受 **`abx template deploy` 的全部选项**（`--acr-registry`、`--acr-namespace`、`--acr-repo`、`--alias -a`、`--tag -t`、`--cpu`、`--memory`、`--dockerfile -f`、`--yes -y`、`--verbose -v`、`--region -r` 等，见 `abx deploy --help`）。
 
 ```bash
-abx template init "一个 Python 数据分析环境"     # 1. 编写（AI 可选）
+abx template scaffold --prompt "一个 Python 数据分析环境"     # 1. 编写（AI 可选）
 abx deploy ./<name> --acr-namespace my-ns       # 2. 发布
 abx create --template <TEMPLATE_ID>             # 3. 启动
 ```

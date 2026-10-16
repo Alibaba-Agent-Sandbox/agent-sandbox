@@ -278,13 +278,13 @@ describe("TestInstallPipelineStatuses", () => {
 
 describe("TestInitFlagCombinations", () => {
   it("test_nl_description_cannot_combine_with_template_flag", async () => {
-    const result = await runner().invoke(cli, ["template", "init", "a python web service that serves files", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "a python web service that serves files", "-t", "python"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("A natural-language description cannot be combined with --template/-t or --from.");
   });
 
   it("test_from_builtin_template_is_rejected", async () => {
-    const result = await runner().invoke(cli, ["template", "init", "--from", "base"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--from", "base"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("'base' is a built-in template and cannot be used with --from.");
   });

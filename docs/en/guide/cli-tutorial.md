@@ -29,7 +29,7 @@ abx config set sandbox_api_key your-api-key
 ### Or via Environment Variable
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 ```
 
 > For more authentication methods (AK/SK, .env files, config.toml, etc.), see [Authentication](authentication.md).
@@ -44,8 +44,8 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 |--------------|---------|
 | Store credentials / endpoints (run first) | `abx config init` — guided interactive wizard |
 | Create a cloud sandbox (default, existing template, or generated from a description) | `abx create [DESCRIPTION]` |
-| Scaffold an editable local template project | `abx template init [DIRECTORY]` or `abx template init "DESCRIPTION"` — writes files only, no build or deploy. A description asks for the project directory first (Enter keeps `./<name>/`) |
-| Turn an existing project into a template | `abx template init --adopt [DIRECTORY]` — adds the template files in place; no build or deploy |
+| Scaffold an editable local template project | `abx template scaffold [DIRECTORY]` or `abx template scaffold --prompt "DESCRIPTION"` — writes files only, no build or deploy. A description asks for the project directory first (Enter keeps `./<name>/`) |
+| Turn an existing project into a template | `abx template scaffold --adopt [DIRECTORY]` — adds the template files in place; no build or deploy |
 
 ### Using the Default Template
 
@@ -64,10 +64,10 @@ abx create --template base
 # Qwen Code generates Dockerfile + commands.py (HTTP server) + template.yaml → build & deploy → create sandbox.
 # An interactive terminal first asks whether to switch to template init
 # (local files only). --yes keeps the full pipeline.
-abx create "a Python data analysis environment"
+abx create --prompt "a Python data analysis environment"
 
 # Template files only — no build, push, deploy, or sandbox
-abx template init "a Python data analysis environment"
+abx template scaffold --prompt "a Python data analysis environment"
 ```
 
 Before generating, the agent first researches the publicly verifiable facts itself — whether the tool is Node.js-based, its official install method, common runtimes and dependencies — then assesses the description for completeness (target: 80%). Only user preferences, private constraints, and business decisions it cannot infer become questions, asked **one at a time** and numbered `Question 1`, `Question 2`, … with no total shown; press Enter to cancel:
@@ -83,13 +83,13 @@ Non-interactive environments (CI, piped input) must pass `-y` to skip confirmati
 
 ```bash
 # abx create -y "a node.js api server"
-# abx create "run python"    # non-interactive, incomplete → E2008
+# abx create --prompt "run python"    # non-interactive, incomplete → E2008
 ```
 
 An explicit `--template` skips template generation and takes the direct template path (`abx create --template <name>`). `DESCRIPTION` and `--template` are mutually exclusive — passing both is rejected with a usage error instead of silently ignoring one of them:
 
 ```bash
-# abx create "a node.js api server" --template base   # rejected (exit code 2)
+# abx create --prompt "a node.js api server" --template base   # rejected (exit code 2)
 ```
 
 ### Upload Files on Creation
@@ -235,10 +235,10 @@ abx create --template my-template
 
 ```bash
 # Create ./python/ from the built-in 'python' case
-abx template init -t python
+abx template scaffold -t python
 
 # Or scaffold into an explicit directory
-abx template init -t python ./my-template
+abx template scaffold -t python ./my-template
 ```
 
 Guided credentials setup is `abx config init`; there is no top-level `abx init`.
@@ -247,10 +247,10 @@ Guided credentials setup is `abx config init`; there is no top-level `abx init`.
 
 ```bash
 # Qwen Code adds Dockerfile, commands.py and template.yaml to ./my-app
-abx template init --adopt ./my-app --hint "listens on 8080"
+abx template scaffold --adopt ./my-app --hint "listens on 8080"
 
 # List what would be sent. No model call, no files written
-abx template init --adopt ./my-app --dry-run
+abx template scaffold --adopt ./my-app --dry-run
 
 # Then publish (no LLM)
 abx deploy ./my-app --acr-namespace my-ns
@@ -260,14 +260,14 @@ abx deploy ./my-app --acr-namespace my-ns
 
 #### Interactive case selection
 
-- **TTY**: running `abx template init` without `-t` shows an arrow-key (Up/Down) selector over the built-in cases; `Enter` confirms, `Ctrl+C` aborts without writing anything.
+- **TTY**: running `abx template scaffold` without `-t` shows an arrow-key (Up/Down) selector over the built-in cases; `Enter` confirms, `Ctrl+C` aborts without writing anything.
 - **Non-TTY / CI / `--json`**: the selector never blocks — the command fails fast with the list of valid cases (use `-t python|node|minimal` or `--list`), keeping scripts deterministic.
 
 #### The fixed top-level shortcuts
 
 `abx --help` lists a fixed set of shortcuts under **Sandbox shortcuts**: `create`, `list`, `info`, `kill`, `exec`, `connect`, `upload`, `download`, `run` and `deploy`. Each is documented as "Same as 'abx …'" (`abx create` = `abx sandbox create`, `abx run` = `abx sandbox command run`, `abx deploy` = `abx template deploy`). They are hard-coded: there is no configuration for them, and no top-level `init` or `install`.
 
-Unknown top-level commands get targeted hints: `abx crate` → `Did you mean 'create'?`; with no close match the error points to `abx --help`, `abx template init|install` and `abx run SANDBOX NAME`. See the [CLI command reference](../reference/cli-commands.md) for the full tree.
+Unknown top-level commands get targeted hints: `abx crate` → `Did you mean 'create'?`; with no close match the error points to `abx --help`, `abx template scaffold|install` and `abx run SANDBOX NAME`. See the [CLI command reference](../reference/cli-commands.md) for the full tree.
 
 ### One-Click Deploy Custom Templates
 
@@ -329,7 +329,7 @@ Generate a Streamable HTTP MCP artifact for manual deployment to Alibaba Cloud F
 
 ```bash
 # Generate files with a new Bearer token
-abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY \
+abx mcp deploy --generate-token --api-key $E2B_API_KEY \
   --output-dir ./deploy-artifact
 ```
 

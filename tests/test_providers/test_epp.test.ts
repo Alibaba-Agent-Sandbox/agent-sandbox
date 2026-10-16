@@ -172,10 +172,10 @@ describe("EppClient", () => {
   });
 
   it("test_secret_values_are_redacted_everywhere", async () => {
-    const secret = "s3cr3t-token-value";
+    const secret = "s3cr3t-token-value"; // placeholder for the redaction regression
     const c = client(
       serve(`
-        fs.writeSync(2, "token=" + ${JSON.stringify(secret)} + "\\n");
+        fs.writeSync(2, "token=" + ${JSON.stringify(secret)} + "\\n"); // placeholder redaction payload
         send({ jsonrpc: "2.0", id: msg.id, error: { code: -32000, message: "bad " + ${JSON.stringify(secret)} } });
       `),
       { secrets: [secret] },
@@ -216,8 +216,8 @@ describe("TestScrubbedEnv", () => {
       PATH: "/bin",
       HOME: "/h",
       LC_ALL: "C",
-      ABX_SANDBOX_API_KEY: "secret",
       E2B_API_KEY: "secret",
+      ABX_SANDBOX_API_KEY: "secret",
       AWS_SECRET_ACCESS_KEY: "secret",
       MY_PASS: "yes",
       RANDOM: "x",
@@ -284,7 +284,7 @@ describe("TestMapError", () => {
 describe.skipIf(!pythonAvailable())("reference plugin", () => {
   it("test_reference_plugin_env_is_scrubbed_and_config_arrives_via_initialize", async () => {
     await installer.install(LOCAL_PROCESS, { yes: true, hostVersion: TEST_HOST_VERSION });
-    iso.setenv("ABX_SANDBOX_API_KEY", "parent-secret-1");
+    iso.setenv("E2B_API_KEY", "parent-secret-1");
     iso.setenv("E2B_API_KEY", "parent-secret-2");
     iso.setenv("AWS_SECRET_ACCESS_KEY", "parent-secret-3");
     const provider = registry.getProvider("local-process");

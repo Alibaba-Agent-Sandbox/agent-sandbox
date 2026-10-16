@@ -65,7 +65,7 @@ Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Short
 
 Authentication options (first available wins):
 
-1. API key — environment variable `ABX_SANDBOX_API_KEY`
+1. API key — environment variable `E2B_API_KEY`
 2. Alibaba Cloud AK/SK — `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`
 
 Persist them locally instead of exporting in every shell:
@@ -102,7 +102,7 @@ abx info <SANDBOX_ID>
 abx connect <SANDBOX_ID>                # one command per line; cd and env do not persist
 ```
 
-`abx create "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
+`abx create --prompt "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
 CLI plus a DashScope/ModelStudio key via `abx config init`) — prefer `--template`
 when you just need a runtime.
 
@@ -191,7 +191,7 @@ and `docs_url`. CLI exit codes: 1 general, 3 auth, 4 not found, 5 timeout, 6 quo
 
 | Symptom / code | Cause | Fix |
 |---|---|---|
-| `E1001` / HTTP 401 | Missing or invalid API key | Check `ABX_SANDBOX_API_KEY` env or `abx config get sandbox_api_key` |
+| `E1001` / HTTP 401 | Missing or invalid API key | Check `E2B_API_KEY` env or `abx config get sandbox_api_key` |
 | `E1003` / HTTP 403 | Invalid AK/SK or no permission | Check `ALICLOUD_ACCESS_KEY_ID` / `..._SECRET` |
 | `E2001` / HTTP 404 | Template not found | `abx template list`, fix the template name |
 | `E2002` / HTTP 429 | Quota exceeded | `abx kill --all --yes`, retry or request quota |

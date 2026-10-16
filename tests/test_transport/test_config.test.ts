@@ -151,7 +151,7 @@ describe("TestLoadConfig", () => {
 
   it("test_env_var_api_key", () => {
     reset_config();
-    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "test-key-from-env");
+    iso.monkeypatch.setenv("E2B_API_KEY", "test-key-from-env");
     const cfg = load_config();
     expect(cfg.api_key).toBe("test-key-from-env");
   });
@@ -165,7 +165,7 @@ describe("TestLoadConfig", () => {
 
   it("test_env_var_base_url", () => {
     reset_config();
-    iso.monkeypatch.setenv("ABX_SANDBOX_BASE_URL", "https://custom.api.com");
+    iso.monkeypatch.setenv("E2B_API_URL", "https://custom.api.com");
     const cfg = load_config();
     expect(cfg.api_url).toBe("https://custom.api.com");
   });
@@ -195,14 +195,14 @@ describe("TestLoadConfig", () => {
 
   it("test_none_override_does_not_clobber", () => {
     reset_config();
-    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "env-key");
+    iso.monkeypatch.setenv("E2B_API_KEY", "env-key");
     const cfg = load_config({ api_key: null });
     expect(cfg.api_key).toBe("env-key");
   });
 
   it("test_retired_api_key_names_are_ignored", () => {
     reset_config();
-    iso.monkeypatch.setenv("E2B_API_KEY", "e2b-test-key");
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "retired-test-key");
     iso.monkeypatch.setenv("SANDBOX_API_KEY", "sandbox-key");
     const cfg = load_config();
     expect(cfg.api_key).toBeNull();
@@ -210,9 +210,9 @@ describe("TestLoadConfig", () => {
 
   it("test_retired_url_and_domain_names_are_ignored", () => {
     reset_config();
-    iso.monkeypatch.setenv("E2B_API_URL", "https://e2b-custom.api.com");
+    iso.monkeypatch.setenv("ABX_SANDBOX_BASE_URL", "https://retired.api.com");
     iso.monkeypatch.setenv("SANDBOX_API_BASE_URL", "https://sandbox.api.com");
-    iso.monkeypatch.setenv("E2B_DOMAIN", "custom.e2b.domain");
+    iso.monkeypatch.setenv("ABX_SANDBOX_DOMAIN", "retired.domain");
     const cfg = load_config();
     expect(cfg.api_url).toBe("https://api.cn-hangzhou.e2b.fc.aliyuncs.com");
     expect(cfg.domain).toBe("cn-hangzhou.e2b.fc.aliyuncs.com");
@@ -222,9 +222,9 @@ describe("TestLoadConfig", () => {
     reset_config();
     iso.monkeypatch.setenv("SANDBOX_API_KEY", "sandbox-key");
     iso.monkeypatch.setenv("E2B_API_KEY", "e2b-key");
-    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "canon-key");
+    iso.monkeypatch.setenv("E2B_API_KEY", "canon-key");
     iso.monkeypatch.setenv("E2B_API_URL", "https://e2b.api.com");
-    iso.monkeypatch.setenv("ABX_SANDBOX_BASE_URL", "https://canon.api.com");
+    iso.monkeypatch.setenv("E2B_API_URL", "https://canon.api.com");
     const cfg = load_config();
     expect(cfg.api_key).toBe("canon-key");
     expect(cfg.api_url).toBe("https://canon.api.com");
@@ -254,7 +254,7 @@ describe("TestDotenvIsolation", () => {
     const cwd_env = path.join(tmp_path, ".env");
     fs.writeFileSync(
       cwd_env,
-      "ABX_SANDBOX_API_KEY=fake-should-not-load\n" + "ALICLOUD_ACCESS_KEY_ID=fake-ak\n" + "ALICLOUD_ACCESS_KEY_SECRET=fake-sk\n",
+      "E2B_API_KEY=fake-should-not-load\n" + "ALICLOUD_ACCESS_KEY_ID=fake-ak\n" + "ALICLOUD_ACCESS_KEY_SECRET=fake-sk\n",
       "utf-8",
     );
     iso.monkeypatch.chdir(tmp_path);
@@ -283,7 +283,7 @@ describe("TestDotenvIsolation", () => {
     const project = path.join(iso.tmp_path, "project.env");
     const system = path.join(iso.tmp_path, "system.env");
     fs.writeFileSync(project, "ALIBABA_CLOUD_REGION_ID=from-project\n", "utf-8");
-    fs.writeFileSync(system, "ABX_SANDBOX_API_KEY=from-system\n", "utf-8");
+    fs.writeFileSync(system, "E2B_API_KEY=from-system\n", "utf-8");
     _setEnvFileCandidates([project, system]);
     reset_config();
 
@@ -295,8 +295,8 @@ describe("TestDotenvIsolation", () => {
   it("test_project_dotenv_key_beats_system_file", () => {
     const project = path.join(iso.tmp_path, "project.env");
     const system = path.join(iso.tmp_path, "system.env");
-    fs.writeFileSync(project, "ABX_SANDBOX_API_KEY=from-project\n", "utf-8");
-    fs.writeFileSync(system, "ABX_SANDBOX_API_KEY=from-system\n", "utf-8");
+    fs.writeFileSync(project, "E2B_API_KEY=from-project\n", "utf-8");
+    fs.writeFileSync(system, "E2B_API_KEY=from-system\n", "utf-8");
     _setEnvFileCandidates([project, system]);
     reset_config();
 
@@ -319,12 +319,12 @@ describe("TestDotenvIsolation", () => {
   it("test_blank_process_env_and_override_fall_through", () => {
     // Whitespace does not hide a key stored in .env or config.toml.
     const dotenv = path.join(iso.tmp_path, "system.env");
-    fs.writeFileSync(dotenv, "ABX_SANDBOX_API_KEY=from-dotenv\n", "utf-8");
+    fs.writeFileSync(dotenv, "E2B_API_KEY=from-dotenv\n", "utf-8");
     const toml = path.join(iso.tmp_path, "config.toml");
     fs.writeFileSync(toml, '[transport]\nregion = "cn-beijing"\n', "utf-8");
     _setEnvFileCandidates([dotenv]);
     _setConfigFile(toml);
-    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "   ");
+    iso.monkeypatch.setenv("E2B_API_KEY", "   ");
     iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "  ");
     reset_config();
 

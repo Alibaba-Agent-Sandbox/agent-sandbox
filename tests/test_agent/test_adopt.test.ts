@@ -1,5 +1,5 @@
 /**
- * Tests for adapting an existing project (`abx template init --adopt`).
+ * Tests for adapting an existing project (`abx template scaffold --adopt`).
  *
  * Port of `tests/test_agent/test_adopt.py`. The agent is never executed here. Staging, validation and promote are
  * deterministic; a misbehaving writer is simulated by editing the staging directory directly.

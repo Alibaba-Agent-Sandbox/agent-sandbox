@@ -29,7 +29,7 @@ abx config set sandbox_api_key your-api-key
 ### 或通过环境变量
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 ```
 
 > 更多认证方式（AK/SK、.env 文件、config.toml 等）详见 [认证详解](authentication.md)。
@@ -44,8 +44,8 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 |----------|------|
 | 存储凭证与端点（首次使用先执行） | `abx config init` —— 交互式引导向导 |
 | 创建云端沙箱（默认模板、已有模板或 模板生成） | `abx create [DESCRIPTION]` |
-| 脚手架生成本地可编辑的模板工程 | `abx template init [DIRECTORY]` 或 `abx template init "描述"` —— 只写本地文件，不构建、不部署。描述会先询问项目目录（回车保持 `./<name>/`） |
-| 把已有项目变成模板 | `abx template init --adopt [DIRECTORY]` —— 在原目录补上模板文件；不构建、不部署 |
+| 脚手架生成本地可编辑的模板工程 | `abx template scaffold [DIRECTORY]` 或 `abx template scaffold --prompt "描述"` —— 只写本地文件，不构建、不部署。描述会先询问项目目录（回车保持 `./<name>/`） |
+| 把已有项目变成模板 | `abx template scaffold --adopt [DIRECTORY]` —— 在原目录补上模板文件；不构建、不部署 |
 
 ### 使用默认模板
 
@@ -63,10 +63,10 @@ abx create --template base
 
 # Qwen Code 生成 Dockerfile、commands.py（HTTP 服务）与 template.yaml → 构建部署 → 创建沙箱。
 # 交互式终端会先询问是否改走 template init（只留本地文件）。--yes 保持完整流程。
-abx create "一个 Python 数据分析环境"
+abx create --prompt "一个 Python 数据分析环境"
 
 # 只生成模板文件 —— 不构建、不推送、不部署、不创建沙箱
-abx template init "一个 Python 数据分析环境"
+abx template scaffold --prompt "一个 Python 数据分析环境"
 ```
 
 生成之前，Agent 会先自行检索描述中**可公开查证的事实**——工具是否基于 Node.js、官方安装方式、常见运行时与依赖——再评估描述完整度（目标 80%）。只有用户偏好、私有约束和无法推断的业务决策才会成为问题，**每次只问一个**，以 `Question 1`、`Question 2` 逐次编号（不显示总数）；直接回车即可取消：
@@ -82,13 +82,13 @@ Question 1: Which region and resource size should the sandbox use?
 
 ```bash
 # abx create -y "a node.js api server"
-# abx create "run python"    # 非交互、描述不完整 → E2008
+# abx create --prompt "run python"    # 非交互、描述不完整 → E2008
 ```
 
 显式 `--template` 会跳过 模板生成，走直接模板路径（`abx create --template <名称>`）。`DESCRIPTION` 与 `--template` 互斥 —— 同时提供会被拒绝（用法错误），而不是静默忽略其中一个：
 
 ```bash
-# abx create "a node.js api server" --template base   # 拒绝执行（退出码 2）
+# abx create --prompt "a node.js api server" --template base   # 拒绝执行（退出码 2）
 ```
 
 ### 创建时上传文件
@@ -233,10 +233,10 @@ abx create --template my-template
 
 ```bash
 # 基于内置 python 案例生成 ./python/
-abx template init -t python
+abx template scaffold -t python
 
 # 或生成到指定目录
-abx template init -t python ./my-template
+abx template scaffold -t python ./my-template
 ```
 
 引导式凭证配置是 `abx config init`；不存在顶层 `abx init`。
@@ -245,10 +245,10 @@ abx template init -t python ./my-template
 
 ```bash
 # Qwen Code 给 ./my-app 补上 Dockerfile、commands.py 和 template.yaml
-abx template init --adopt ./my-app --hint "监听 8080"
+abx template scaffold --adopt ./my-app --hint "监听 8080"
 
 # 列出将要发送的文件。不调用模型，也不写文件
-abx template init --adopt ./my-app --dry-run
+abx template scaffold --adopt ./my-app --dry-run
 
 # 然后发布（无需 LLM）
 abx deploy ./my-app --acr-namespace my-ns
@@ -258,14 +258,14 @@ abx deploy ./my-app --acr-namespace my-ns
 
 #### 交互式案例选择
 
-- **TTY**：不带 `-t` 执行 `abx template init` 时，会出现内置案例的上下键（↑/↓）选择器；`Enter` 确认，`Ctrl+C` 中止且不写任何文件。
+- **TTY**：不带 `-t` 执行 `abx template scaffold` 时，会出现内置案例的上下键（↑/↓）选择器；`Enter` 确认，`Ctrl+C` 中止且不写任何文件。
 - **非 TTY / CI / `--json`**：选择器绝不阻塞——命令快速失败并列出可用案例（请使用 `-t python|node|minimal` 或 `--list`），保证脚本行为确定。
 
 #### 固定的顶层快捷方式
 
 `abx --help` 在 **Sandbox shortcuts** 下列出一组固定的快捷方式：`create`、`list`、`info`、`kill`、`exec`、`connect`、`upload`、`download`、`run`、`deploy`。每一个都标注为“Same as 'abx …'”（`abx create` = `abx sandbox create`，`abx run` = `abx sandbox command run`，`abx deploy` = `abx template deploy`）。它们是硬编码的：没有配置项，也没有顶层 `init` 或 `install`。
 
-未知顶层命令会得到针对性提示：`abx crate` → `Did you mean 'create'?`；无相近候选时，错误信息指向 `abx --help`、`abx template init|install` 与 `abx run SANDBOX NAME`。完整命令树见 [CLI 命令参考](../reference/cli-commands.md)。
+未知顶层命令会得到针对性提示：`abx crate` → `Did you mean 'create'?`；无相近候选时，错误信息指向 `abx --help`、`abx template scaffold|install` 与 `abx run SANDBOX NAME`。完整命令树见 [CLI 命令参考](../reference/cli-commands.md)。
 
 ### 一键部署自定义模板
 
@@ -327,7 +327,7 @@ abx mcp start --template code-interpreter-v1
 
 ```bash
 # 使用新生成的 Bearer Token 创建产物
-abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY \
+abx mcp deploy --generate-token --api-key $E2B_API_KEY \
   --output-dir ./deploy-artifact
 ```
 

@@ -11,7 +11,7 @@ The top-level names `abx create`, `list`, `info`, `kill`, `exec`, `connect`, `up
 | Job | Command | Reference |
 |---|---|---|
 | Create a sandbox from a template | `abx create --template base` | [abx create](../reference/cli-reference.md#abx-create) |
-| Create from a sentence (generates a template, then a sandbox) | `abx create "a Python environment with pandas"` | [abx create](../reference/cli-reference.md#abx-create) |
+| Create from a sentence (generates a template, then a sandbox) | `abx create --prompt "a Python environment with pandas"` | [abx create](../reference/cli-reference.md#abx-create) |
 | List sandboxes | `abx list` | [abx list](../reference/cli-reference.md#abx-list) |
 | Show one sandbox | `abx info <SANDBOX_ID>` | [abx info](../reference/cli-reference.md#abx-info) |
 | Destroy a sandbox | `abx kill <SANDBOX_ID>` | [abx kill](../reference/cli-reference.md#abx-kill) |
@@ -32,20 +32,20 @@ The top-level names `abx create`, `list`, `info`, `kill`, `exec`, `connect`, `up
 
 | Job | Command | Reference |
 |---|---|---|
-| Scaffold a new template directory | `abx template init -t python ./my-template` | [template init](../reference/cli-reference.md#abx-template-init) |
-| Write template files from a sentence, and stop | `abx template init "a Python data analysis environment"` | [template init](../reference/cli-reference.md#abx-template-init) |
-| Add template files to a project that already has source | `abx template init --adopt .` | [template init](../reference/cli-reference.md#abx-template-init) |
+| Scaffold a new template directory | `abx template scaffold -t python ./my-template` | [template init](../reference/cli-reference.md#abx-template-init) |
+| Write template files from a sentence, and stop | `abx template scaffold --prompt "a Python data analysis environment"` | [template init](../reference/cli-reference.md#abx-template-init) |
+| Add template files to a project that already has source | `abx template scaffold --adopt .` | [template init](../reference/cli-reference.md#abx-template-init) |
 | Build, push, and register | `abx template deploy ./my-template` | [template deploy](../reference/cli-reference.md#abx-template-deploy) |
 | Build the image only | `abx template build ./my-template` | [template build](../reference/cli-reference.md#abx-template-build) |
 | Push an image | `abx template push <IMAGE>` | [template push](../reference/cli-reference.md#abx-template-push) |
-| Register an image that is already in the registry | `abx template create <IMAGE> --name <NAME>` | [template create](../reference/cli-reference.md#abx-template-create) |
+| Register an image that is already in the registry | `abx template from-image <IMAGE> --name <NAME>` | [template create](../reference/cli-reference.md#abx-template-create) |
 | Search the catalog | `abx template search pandas` | [template search](../reference/cli-reference.md#abx-template-search) |
 | Install a catalog template | `abx template install python-hello` | [template install](../reference/cli-reference.md#abx-template-install) |
 | List registered templates | `abx template list` | [template list](../reference/cli-reference.md#abx-template-list) |
 | Show one template | `abx template info <NAME>` | [template info](../reference/cli-reference.md#abx-template-info) |
 | Delete a template | `abx template delete <NAME>` | [template delete](../reference/cli-reference.md#abx-template-delete) |
 
-There is no top-level `abx init` or `abx install`; use `abx template init` and `abx template install`.
+There is no top-level `abx init` or `abx install`; use `abx template scaffold` and `abx template install`.
 
 ## `deploy` — shortcut for build, push, and register
 

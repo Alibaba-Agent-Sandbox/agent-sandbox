@@ -179,14 +179,14 @@ abx template install alibaba-agent-sandbox/awesome-templates//python-hello --acr
 
 ### 脚手架生成新模板（推荐）
 
-最快的起步方式是内置脚手架。`abx template init` 会生成一个开箱即用的模板目录，你不再需要凭记忆手写 `template.yaml` / `Dockerfile` / `commands.py`。
+最快的起步方式是内置脚手架。`abx template scaffold` 会生成一个开箱即用的模板目录，你不再需要凭记忆手写 `template.yaml` / `Dockerfile` / `commands.py`。
 
 省略 `DIRECTORY` 参数时，脚手架会在当前工作目录下新建 `./<name>` 子目录。`<name>` 按优先级解析：`--name` > 脚手架案例名（`-t` 的值） > `--from` 拉取到的模板名。
 
 列出可用的脚手架案例：
 
 ```bash
-$ abx template init --list
+$ abx template scaffold --list
   python       Python 3.11 sandbox with shell, files, and code capabilities
   node         Node.js 20 sandbox with shell, files, and code capabilities
   minimal      Bare-minimum template with only template.yaml + Dockerfile
@@ -195,7 +195,7 @@ $ abx template init --list
 将 Python 模板脚手架生成到 `./my-template`：
 
 ```bash
-$ abx template init -t python ./my-template
+$ abx template scaffold -t python ./my-template
 ✅ Template 'my-template' created in ./my-template
 Created files:
   Dockerfile
@@ -208,21 +208,21 @@ Next steps:
   abx template install ./my-template --acr-namespace <ns>
 ```
 
-> 脚手架与凭证配置是两条独立命令：`abx template init`（本节）只写本地文件，`abx config init` 存储凭证，`abx create` 启动云端沙箱。不存在顶层 `abx init`。
+> 脚手架与凭证配置是两条独立命令：`abx template scaffold`（本节）只写本地文件，`abx config init` 存储凭证，`abx create` 启动云端沙箱。不存在顶层 `abx init`。
 
 ### 适配已有源码的项目
 
 目录里已经是一个应用（Flask、Express、一段脚本），还没有 `Dockerfile` / `template.yaml` 时，用 `--adopt`。Qwen Code 只看到一份副本；abx 把 `Dockerfile`、`commands.py`、`template.yaml`，以及在你还没有时生成的 `.dockerignore`，写回同一目录。
 
 ```bash
-$ abx template init --adopt ./my-app --hint "监听 8080"
+$ abx template scaffold --adopt ./my-app --hint "监听 8080"
 # 看过预览之后：
 $ abx deploy ./my-app --acr-namespace my-ns
 ```
 
 `--dry-run` 列出将要发送的全部文件，不调用模型。非交互终端必须带 `-y`。`.env`、密钥、以及内容看起来像密钥的文件不会进入副本，Agent 进程也不会继承云凭证。备份、`--force`、写入前会拒绝哪些结果，见 [编写模板 — 适配已有项目](authoring-templates.md#适配已有项目)。
 
-`abx template init "描述"` 是另一条 生成路径：根据一句话**新建**目录。`--adopt` 补的是你已经有的项目。
+`abx template scaffold --prompt "描述"` 是另一条 生成路径：根据一句话**新建**目录。`--adopt` 补的是你已经有的项目。
 
 ### 理解生成的文件
 
@@ -622,7 +622,7 @@ abx template delete <template-id>
 
 | 症状 | 可能原因 | 解决方案 |
 |------|---------|---------|
-| 没有 Dockerfile | 目录还是应用源码，不是模板 | `abx template init --adopt .`，然后 `abx deploy` |
+| 没有 Dockerfile | 目录还是应用源码，不是模板 | `abx template scaffold --adopt .`，然后 `abx deploy` |
 | Confirmation required before project files are sent | 非交互的 `--adopt` 没有带 `-y` | 加上 `-y`，或用 `--dry-run` 只看文件列表 |
 | Docker build 失败 | Dockerfile 语法错误 / 网络问题 | 加 `-v` 查看详细日志 |
 | ACR login 失败 | AK/SK 过期或权限不足 | 检查 `.env` 中的凭证配置 |

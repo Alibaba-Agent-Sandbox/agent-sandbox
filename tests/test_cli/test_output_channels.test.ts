@@ -360,7 +360,7 @@ describe("TestCreateChannelSeparation", () => {
     const genMock = vi.spyOn(codegen, "generateTemplateFiles" as never).mockImplementation((() => undefined) as never);
     const createMock = vi.spyOn(Sandbox, "create").mockImplementation((() => undefined) as never);
 
-    const result = await new CliRunner().invoke(cli, ["create", "python", "--template", "base"]);
+    const result = await new CliRunner().invoke(cli, ["create", "--prompt", "python", "--template", "base"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.stdout).toBe("");

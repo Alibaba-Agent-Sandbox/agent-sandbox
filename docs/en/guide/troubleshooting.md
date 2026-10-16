@@ -38,7 +38,7 @@
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **Solution**:
@@ -50,7 +50,7 @@ abx config get sandbox_api_key
 abx config set sandbox_api_key your-api-key
 
 # Or set the environment variable
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 ```
 
 ### E1003 — Invalid AK/SK Credentials
@@ -187,7 +187,7 @@ abx exec sbx-xxxx "long-command" --timeout 300
 
 ### E7001 — Missing LLM Key
 
-> `abx deploy` never needs an LLM key; the CLI's AI steps (`abx create "..."`, `abx template init "..."`, `abx template init --adopt`) use the Qwen Code credentials from `abx config`.
+> `abx deploy` never needs an LLM key; the CLI's AI steps (`abx create --prompt "..."`, `abx template scaffold --prompt "..."`, `abx template scaffold --adopt`) use the Qwen Code credentials from `abx config`.
 
 ```text
 [E7001] No LLM API key found for the qwen-code agent.
@@ -203,7 +203,7 @@ export DASHSCOPE_API_KEY="your-key"
 
 ### No Dockerfile
 
-`abx deploy` stops when the directory has no `Dockerfile` and names the three authoring commands: `abx template init --adopt .` for a project that already has source code, `abx template init "DESCRIPTION"` for a new project from a sentence, and `abx template init -t python` for a scaffold. After the files exist, run `abx deploy` again.
+`abx deploy` stops when the directory has no `Dockerfile` and names the three authoring commands: `abx template scaffold --adopt .` for a project that already has source code, `abx template scaffold --prompt "DESCRIPTION"` for a new project from a sentence, and `abx template scaffold -t python` for a scaffold. After the files exist, run `abx deploy` again.
 
 A non-interactive `--adopt` without `-y` stops with "Confirmation required before project files are sent to the model." Pass `-y` to approve both prompts, or `--dry-run` to list the files without sending them.
 
@@ -242,16 +242,16 @@ Check file permissions. The default user in the sandbox is `user`; you can speci
 A shortcut target is the command path, not the full invocation. This is rejected and nothing is saved:
 
 ```bash
-abx config set shortcuts.aaaaa "abx template init"
+abx config set shortcuts.aaaaa "abx template scaffold"
 ```
 
 ```text
-Invalid shortcut target: 'abx template init'
+Invalid shortcut target: 'abx template scaffold'
   Suggestion: Drop the leading "abx". The target is the command path only, for example "template init".
               Try: abx config set shortcuts.aaaaa "template init"
 ```
 
-Use the printed command. If `~/.abx/config.toml` already contains `aaaaa = "abx template init"`, the next `abx` warns `Invalid shortcut ignored` and skips that alias; the other shortcuts still work. An unknown path (for example `"not-a-command"`) is rejected with the legal targets grouped by command.
+Use the printed command. If `~/.abx/config.toml` already contains `aaaaa = "abx template scaffold"`, the next `abx` warns `Invalid shortcut ignored` and skips that alias; the other shortcuts still work. An unknown path (for example `"not-a-command"`) is rejected with the legal targets grouped by command.
 
 ---
 

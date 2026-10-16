@@ -145,8 +145,8 @@ identical:
 | `mcp_main.ts` | Entry point equivalent to `python -m agent_sandbox.agent.mcp` |
 | `tools.ts` | The 7 P0 tool schemas (`TOOL_SCHEMAS`) and their handlers |
 | `coding_agent.ts`, `qwen_code.ts` | Pluggable host-side coding-agent boundary and the Qwen Code adapter (locate or install the agent, run it headless) |
-| `clarify.ts`, `codegen.ts`, `template_guide.ts` | Natural-language `abx create "<description>"`: research-first clarification, template generation, the reference material given to the agent |
-| `adopt.ts`, `dockerfile_sources.ts` | `abx template init --adopt`: stage an existing project, write back only the reviewed whitelist, validate Dockerfile `COPY`/`ADD` sources |
+| `clarify.ts`, `codegen.ts`, `template_guide.ts` | Natural-language `abx create --prompt "<description>"`: research-first clarification, template generation, the reference material given to the agent |
+| `adopt.ts`, `dockerfile_sources.ts` | `abx template scaffold --adopt`: stage an existing project, write back only the reviewed whitelist, validate Dockerfile `COPY`/`ADD` sources |
 | `_archive.ts`, `_http.ts` | Safe tar/zip extraction and a proxy-aware downloader for the Qwen Code standalone installer |
 
 MCP behaviour (tools, session binding, transports, FC deployment) is specified in [MCP Server](mcp-server.md).

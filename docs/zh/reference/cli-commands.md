@@ -1,3 +1,5 @@
+> 极速版标准命令以[E2B 迁移契约](../guide/migrate-from-e2b.md)为准：create 位置参数为模板，--prompt 请求生成，template create 使用 E2B 构建语义，from-image 创建阿里云镜像模板。
+
 # CLI 命令参考（规范命令树）
 
 每个操作只有**一个规范路径**，写作 `abx 组 动词`。在此之上只有一小组**固定**的顶层快捷方式，对应最常用的命令。
@@ -25,7 +27,7 @@
 | `abx run` | `abx sandbox command run` |
 | `abx deploy` | `abx template deploy` |
 
-没有顶层的 `abx init` 和 `abx install`：请用 `abx template init`、`abx template install`（凭证配置是 `abx config init`）。
+没有顶层的 `abx init` 和 `abx install`：请用 `abx template scaffold`、`abx template install`（凭证配置是 `abx config init`）。
 
 ## 规范命令树
 
@@ -67,7 +69,7 @@ abx
 | `abx sandbox command list` | `command list [OPTIONS] SANDBOX_ID` |
 | `abx sandbox command run` | `command run [OPTIONS] SANDBOX_ID COMMAND_NAME` |
 | `abx sandbox system env\|info\|metrics\|packages\|ports` | `system <动词> [OPTIONS] SANDBOX_ID` |
-| `abx template init` | `init [OPTIONS] [DIRECTORY]` |
+| `abx template scaffold` | `init [OPTIONS] [DIRECTORY]` |
 | `abx template search` | `search [OPTIONS] QUERY` |
 | `abx template info` / `delete` | `<动词> [OPTIONS] TEMPLATE_ID` |
 | `abx template list` | `list [OPTIONS]` |
@@ -137,7 +139,7 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 | 选项 | 追加内容 |
 |---|---|
 | `--build` | ACR 命名空间与阿里云 AccessKey（`template build`/`deploy`/`install` 需要） |
-| `--llm` | 模板生成使用的 LLM API Key（`abx create "描述"`、`abx template init "描述"`） |
+| `--llm` | 模板生成使用的 LLM API Key（`abx create --prompt "描述"`、`abx template scaffold --prompt "描述"`） |
 
 缺少相应设置时，功能会打印一行指向 `abx config init --build` 或 `abx config init --llm` 的提示。
 无终端（或带 `--yes`/`--ci`）时命令不会提示输入，而是打印等价的 `abx config set …`。
@@ -146,7 +148,7 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 
 | 已移除 | 替代 |
 |---|---|
-| 顶层 `abx init`、`abx install` | `abx template init`、`abx template install` |
+| 顶层 `abx init`、`abx install` | `abx template scaffold`、`abx template install` |
 | `abx sandbox process start` | `abx exec --background` |
 | `abx sandbox shell-stream` | `abx exec --stream` |
 | `abx sandbox run` | `abx run` / `abx sandbox command run` |

@@ -6,7 +6,7 @@
  * it (`--acr-namespace`, `--alias`, `--yes`, `-v/--verbose`, ...).
  *
  * It takes no description and needs no LLM: everything about *what* the template is (name, resources, ports,
- * capabilities) is authored earlier — by hand, from `abx template init`, or by `abx template init "DESCRIPTION"` (template
+ * capabilities) is authored earlier — by hand, from `abx template scaffold`, or by `abx template scaffold --prompt "DESCRIPTION"` (template
  * generation) — and lives in `template.yaml`, which `deploy` only reads. It does not create a sandbox, so it has no
  * `--timeout` option.
  */
@@ -59,7 +59,7 @@ export const deploy_shortcut = command("deploy", {
     and does not use Docker or ACR. template.yaml supplies the template name
     and resources.
 
-    To author the files first, use 'abx template init': --adopt for an existing
+    To author the files first, use 'abx template scaffold': --adopt for an existing
     project, a natural-language description to generate the files, or
     --template for a scaffold.
 
@@ -76,14 +76,14 @@ export const deploy_shortcut = command("deploy", {
 
     \b
     Typical flow:
-      abx template init --adopt .                      # 1a. author from a project
-      abx template init "a python data science env"   # 1b. generate from a description
+      abx template scaffold --adopt .                      # 1a. author from a project
+      abx template scaffold --prompt "a python data science env"   # 1b. generate from a description
       abx deploy ./<name> --acr-namespace my-ns       # 2. publish
       abx create --template <TEMPLATE_ID>             # 3. launch a sandbox
 
     \b
     Related commands:
-      abx template init          Author Dockerfile / template.yaml
+      abx template scaffold          Author Dockerfile / template.yaml
       abx template deploy DIR    The same pipeline with a required DIRECTORY
       abx create "DESCRIPTION"   Generate + publish + launch in one go
     `),
@@ -110,9 +110,9 @@ export const deploy_shortcut = command("deploy", {
     } catch (e) {
       if (e instanceof BuildModeError) {
         const hint = e.message.startsWith("No Dockerfile")
-          ? " Author the template first: 'abx template init --adopt .' (adapt this project), " +
-            "'abx template init \"DESCRIPTION\"' (generate) or " +
-            "'abx template init --template python' (scaffold)."
+          ? " Author the template first: 'abx template scaffold --adopt .' (adapt this project), " +
+            "'abx template scaffold \"DESCRIPTION\"' (generate) or " +
+            "'abx template scaffold --template python' (scaffold)."
           : "";
         throw new UsageError(e.message + hint, getCurrentContext(true));
       }

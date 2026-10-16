@@ -10,7 +10,7 @@ the **real cloud**. Point `ABX_BIN` at the `abx` binary you want to test.
 
 ```bash
 # 1. credentials: environment variables or the gitignored cli/.env (never committed, never printed)
-#    ABX_SANDBOX_API_KEY, ABX_SANDBOX_BASE_URL, ABX_SANDBOX_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
+#    E2B_API_KEY, E2B_API_URL, E2B_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
 cp .env.example .env   # then fill in real values
 
 # 2. run against the abx binary

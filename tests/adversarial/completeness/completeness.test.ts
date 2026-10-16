@@ -58,10 +58,10 @@ describe("completeness (adversarial)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("ADV-completeness-03 the canonical sandbox key is ABX_SANDBOX_API_KEY and retired names are not aliases", () => {
+  it("ADV-completeness-03 the canonical sandbox key is E2B_API_KEY and retired names are not aliases", () => {
     const keys = read("docs/design/fixtures/config-keys.json");
-    expect(keys).toContain('"env": "ABX_SANDBOX_API_KEY"');
-    expect(keys).not.toMatch(/"E2B_API_KEY"/);
+    expect(keys).toContain('"env": "E2B_API_KEY"');
+    expect(keys).not.toMatch(/"ABX_SANDBOX_API_KEY"/);
     expect(keys).not.toMatch(/"SANDBOX_API_KEY"/);
     expect(keys).toContain('"env": "ALIBABA_CLOUD_REGION_ID"');
     expect(keys).toContain('"env": "ALICLOUD_ACCESS_KEY_ID"');
@@ -92,9 +92,9 @@ describe("completeness (adversarial)", () => {
   );
 
   const ADV_KEY = "sk-" + "adv-canonical-123456";
-  it.skipIf(!haveBin)("ADV-completeness-05 only ABX_SANDBOX_API_KEY is honoured", () => {
-    const viaRetired = abx(["config", "get", "sandbox_api_key"], { E2B_API_KEY: ADV_KEY });
-    const viaCanonical = abx(["config", "get", "sandbox_api_key"], { ABX_SANDBOX_API_KEY: ADV_KEY });
+  it.skipIf(!haveBin)("ADV-completeness-05 only E2B_API_KEY is honoured", () => {
+    const viaRetired = abx(["config", "get", "sandbox_api_key"], { ABX_SANDBOX_API_KEY: ADV_KEY });
+    const viaCanonical = abx(["config", "get", "sandbox_api_key"], { E2B_API_KEY: ADV_KEY });
     expect(viaRetired.stdout.trim()).toBe("(not set)");
     expect(viaCanonical.stdout.trim()).toMatch(/^sk-/);
     expect(viaCanonical.stdout).not.toContain(ADV_KEY);

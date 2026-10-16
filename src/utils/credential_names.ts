@@ -7,9 +7,9 @@
  * names so an error can quote them without importing the generator.
  */
 
-export const SANDBOX_API_KEY_ENV = "ABX_SANDBOX_API_KEY";
-export const SANDBOX_BASE_URL_ENV = "ABX_SANDBOX_BASE_URL";
-export const SANDBOX_DOMAIN_ENV = "ABX_SANDBOX_DOMAIN";
+export const SANDBOX_API_KEY_ENV = "E2B_API_KEY";
+export const SANDBOX_BASE_URL_ENV = "E2B_API_URL";
+export const SANDBOX_DOMAIN_ENV = "E2B_DOMAIN";
 export const ACCESS_KEY_ID_ENV = "ALICLOUD_ACCESS_KEY_ID";
 export const ACCESS_KEY_SECRET_ENV = "ALICLOUD_ACCESS_KEY_SECRET";
 export const REGION_ENV = "ALIBABA_CLOUD_REGION_ID";

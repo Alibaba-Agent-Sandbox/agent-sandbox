@@ -125,9 +125,9 @@ export class TransportConfig extends defineModel(
 // callers that still unpack the triple keep working. Vendor-official names are
 // not wrapped in ABX_.
 export const _ENV_VAR_MAP: [string, string, boolean][] = [
-  ["ABX_SANDBOX_API_KEY", "api_key", true],
-  ["ABX_SANDBOX_BASE_URL", "api_url", true],
-  ["ABX_SANDBOX_DOMAIN", "domain", true],
+  ["E2B_API_KEY", "api_key", true],
+  ["E2B_API_URL", "api_url", true],
+  ["E2B_DOMAIN", "domain", true],
   ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", true],
   ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", true],
   ["ALIBABA_CLOUD_REGION_ID", "region", true],
@@ -450,7 +450,7 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
   const _explicit_url =
     "api_url" in applied_overrides ||
     "api_base_url" in applied_overrides ||
-    _envPresent("ABX_SANDBOX_BASE_URL");
+    _envPresent("E2B_API_URL");
   if (!_explicit_url && "region" in merged) {
     if (!("api_url" in merged)) merged["api_url"] = `https://api.${pyStr(merged["region"])}.e2b.fc.aliyuncs.com`;
     if (!("domain" in merged)) merged["domain"] = `${pyStr(merged["region"])}.e2b.fc.aliyuncs.com`;

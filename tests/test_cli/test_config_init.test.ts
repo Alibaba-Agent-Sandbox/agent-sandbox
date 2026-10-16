@@ -86,7 +86,7 @@ describe("TestConfigInitWizard", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     const envContent = readText(envFile);
-    expect(envContent).toContain("ABX_SANDBOX_API_KEY=sk-platform");
+    expect(envContent).toContain("E2B_API_KEY=sk-platform");
     expect(envContent).toContain("ABX_LLM_API_KEY=sk-qwen");
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexampleAk");
@@ -117,7 +117,7 @@ describe("TestConfigInitWizard", () => {
     expect(result.output).not.toContain("LLM API key");
     expect(result.output).toContain("abx config init --build");
     expect(result.output).toContain("abx config init --llm");
-    expect(readText(envFile)).toBe("ABX_SANDBOX_API_KEY=sk-platform\n");
+    expect(readText(envFile)).toBe("E2B_API_KEY=sk-platform\n");
   });
 
   it("test_llm_section_only", async () => {
@@ -202,7 +202,7 @@ describe("TestConfigInitMaskedInput", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(mockPrompt).toHaveBeenCalledTimes(3);
     const envContent = readText(envFile);
-    expect(envContent).toContain("ABX_SANDBOX_API_KEY=sk-platform");
+    expect(envContent).toContain("E2B_API_KEY=sk-platform");
     expect(envContent).toContain("ABX_LLM_API_KEY=sk-qwen");
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexample");

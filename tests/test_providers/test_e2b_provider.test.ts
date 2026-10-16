@@ -65,7 +65,7 @@ describe.skipIf(!haveCatalog)("e2b node provider", () => {
   });
 
   it("rejects a missing key before any request and ignores the Express key", async () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "express-key");
+    iso.setenv("E2B_API_KEY", "express-key");
     await expect(Sandbox.create({ provider: "e2b", provider_options: { base_url: origin }, template: "base" })).rejects.toBeInstanceOf(InvalidCredentialsError);
     try {
       await Sandbox.create({ provider: "e2b", provider_options: { base_url: origin }, template: "base" });
