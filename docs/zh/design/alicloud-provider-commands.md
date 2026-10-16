@@ -1,0 +1,129 @@
+# 阿里云 provider 管理命令
+
+状态：设计提案；实现与真实云端验收分别记录。
+
+## 范围与产品对应
+
+`alicloud-express` 对应函数计算 FC 极速版；`alicloud-container` 对应
+ACS/ACK OpenKruise 容器版。provider 自己的命令目录描述其管理接口，全局沙箱
+命令保持已有契约。本设计使用项目已锁定的 `@alicloud/fcsandbox20260509` 1.5.1
+及官方生成请求模型，不改变沙箱运行时接口，也不借用沙箱 API Key。
+
+## 发现与调用契约
+
+加载凭据前即可列出命令描述。每个命令声明稳定 ID、中英文说明、严格的输入和输出
+JSON Schema、作用类型 `read` / `write` / `delete` 与幂等性。命令位于 provider
+命名空间，插件不能覆盖全局命令。宿主先检查输入和修改确认，FC 适配器再检查业务
+约束，随后才构造 SDK 客户端。
+
+输入使用 snake_case，SDK 使用官方 camelCase 字段。未知字段、空标识符、无效分页、
+互斥存储配置均在 SDK 加载和网络请求前失败。执行只调用明确映射的 SDK 方法，
+不接受任意方法名或路径。列表返回单页及分页信息，由调用者决定是否继续读取。
+关闭 SDK 自动重试，尤其不自动重放创建和 API Key 轮换。幂等声明不代表自动重试授权。
+
+删除 API Key 前必须先停用。显式调用 `api-key.update` 并设置
+`"status": "inactive"`，再调用 `api-key.delete`。真实云端对仍 active 的密钥
+返回 `InvalidApiKeyStatus`（HTTP 400）；适配器将其映射为 E8002 配置错误并提示
+上述步骤，不在删除命令背后自动停用密钥或附加其他修改。生命周期测试只停用、删除
+自己创建的临时密钥；清理时先读状态，active 才停用，inactive 或已经不存在均可清理，
+未知状态则明确失败，不猜测转换。
+
+## 能力矩阵
+
+| 命令 ID | 官方 SDK 接口 | 边界 |
+| --- | --- | --- |
+| `volume.create/get/list/update/delete` | CreateVolume、GetVolume、ListVolumes、UpdateVolume、DeleteVolume | 已实现适配；仍需账号、地域开通 |
+| `team.create/get/list/update/delete` | CreateTeam、GetTeam、ListTeams、UpdateTeam、DeleteTeam | 已实现适配 |
+| `api-key.create/get/list/update/reset/delete` | CreateApiKey、DescribeApiKey、ListApiKeys、UpdateApiKey、ResetApiKey、DeleteApiKey | 已实现适配；所有返回密钥值均脱敏 |
+| `quota.get/list/update/delete` | DescribeQuota、ListQuota、UpdateQuota、DeleteQuota | 已实现适配；可能需要邀测白名单 |
+| 模板管理 | 现有 template 命令 | 继续使用现有入口 |
+| `domain.*` | 已核实的两套 SDK 均没有客户端方法 | 不注册；使用官方控制台流程 |
+| JuiceFS 配置 | 已锁 SDK 1.5.1 没有该字段 | 不接受；需独立完成 SDK 迁移 |
+
+创建 Volume 必须且只能选择 `oss_volume_config`、`agentic_fs_volume_config`、
+`agentic_bucket_volume_config` 之一，可附带 `mount_config`。创建、删除 Volume
+只操作挂载配置，不创建、删除底层存储。更新只映射公开的 `status` 与 Team 标识，
+不提供任意存储重配置。将 Volume 挂入沙箱是独立运行时操作，创建成功不代表挂载成功。
+
+先发现命令并查询准确 Schema，再准备输入文件：
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.create
+abx provider command run alicloud-express volume.create --input-file volume.json --yes
+```
+
+`volume.json` 示例（Bucket 必须已存在）：
+
+```json
+{
+  "team_id": "TEAM-ID",
+  "volume_name": "workspace",
+  "oss_volume_config": {
+    "bucket_name": "example-bucket",
+    "bucket_path": "/workspace",
+    "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",
+    "read_only": false
+  }
+}
+```
+
+API Key 创建、轮换额外必填 `secret_file`，例如
+`"secret_file": "/absolute/private/new-api-key"`。必须使用本机引擎宿主上的绝对路径，
+避免引擎与 SDK 调用者工作目录不同。先创建私有目录，选取尚不存在的文件名；
+生成文件保存新密钥，不能提交到版本库。查询、列表、更新不会导出密钥值。
+
+## 凭据、结果与错误
+
+每次执行读取同一个已解析 `LayeredConfig` 快照中的 `access_key_id`、
+`access_key_secret`、`region` 与 `http_timeout`。AK/SK 必须同时存在，禁止用沙箱
+API Key 代替。SDK 负责 AK 签名并使用 FCSandbox 地域端点。请求输入不能覆盖凭据、
+端点；关闭 SDK 自动重试。
+当前已解析配置没有 STS session token 字段，因此不宣称支持缺少 token 的临时凭据。
+
+统一结果为 `{request_id, data}`。资源只投影公开的 snake_case 字段，列表包含分页
+元数据，丢弃未知响应字段。包括创建、重置和查询在内，`api_key_value` 一律替换为
+`[REDACTED]`。创建与轮换必须提供 `secret_file`，请求云端之前以 `wx` 和 0600
+权限独占创建新文件，拒绝覆盖现有文件与符号链接。云端返回的新密钥只写入该文件并
+刷盘，结构化结果返回绝对路径；文件路径不发送至云端。云端失败时仅清理本次创建、
+仍为空且 inode 一致的文件。若远端已创建或轮换但本地写入失败，明确提示远端已变更、
+需要恢复，不输出密钥或自动重试。已写入部分内容的文件保留为 0600 便于恢复。
+不接受命令行密钥值输入；将来的证书、私钥输入也必须来自文件。
+
+SDK 错误保留经过清理的云服务错误码、数字 HTTP 状态和请求 ID，不直接输出可能含
+密钥的 SDK message、请求体或原始 response。认证、资源不存在、配额错误映射到已有
+错误类别。HTTP 成功但业务错误的响应也必须失败，不能包装成空资源成功。
+
+## 域名边界
+
+官方文档将极速版自定义域名称为云扩展，并提供控制台、DNS、证书配置流程。
+FCSandbox SDK 1.5.1 虽然含域名模型，但没有客户端方法；进一步实际审计官方
+`@alicloud/sandbox20260820` 1.2.0 的 client 源码，同样没有域名方法。模型存在
+不证明接口可调用。FC、AgentRun 的域名接口属于其他产品，缺少其支持 Agent Sandbox
+域名的公开依据时，不能复用它们的路由。因此不注册 `domain.*`，明确记录上游阻塞。
+
+容器版上游 `/volumes` 路由明确停用；CSI 挂载通过现有 PV 和领取时 metadata。
+其域名通过 Kubernetes Ingress/TLS 部署管理，均不等同于 FC Volume 或域名 CRUD。
+
+## 验收
+
+单测验证所有 SDK 映射、三类存储、请求前严格校验、凭据隔离、单页分页、零配额、
+响应字段投影、密钥脱敏、错误清理和关闭重试。使用真实生成模型与假客户端，
+不将其称为真实云验证。宿主测试覆盖发现、provider 分发、修改确认、文件 JSON
+输入及输出 Schema 校验。
+
+真实云验收先验证正确账号、地域下的只读列表和详情，再在具备权限与开通能力的账号
+创建、修改、删除本次测试专属资源。API Key 轮换只针对可丢弃测试密钥。Volume 还需
+在实际沙箱挂载后验证读写。只清理本次资源。缺少凭据、白名单或权限均明确记录阻塞。
+
+## 一手依据
+
+- [官方 SDK client 源码](https://github.com/aliyun/alibabacloud-typescript-sdk/blob/master/fcsandbox-20260509/src/client.ts)，本次审计已安装的 1.5.1。
+- [官方新版 SDK](https://www.npmjs.com/package/@alicloud/sandbox20260820)，本次审计 1.2.0。
+- [持久化存储概念](https://help.aliyun.com/zh/agent-sandbox/persistence-storage/)。
+- [OSS Volume、认证与权限](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)。
+- [AgenticBucket 字段与 VPC 限制](https://help.aliyun.com/zh/agent-sandbox/create-agenticbucket-volume)。
+- [Team 配额](https://help.aliyun.com/zh/agent-sandbox/team-quota-management)。
+- [极速版自定义域名](https://help.aliyun.com/zh/agent-sandbox/custom-domain-name)。
+- [容器版路由源码](https://github.com/openkruise/agents/blob/7dc85e9491d8ca6203abd24b0a24b9612ea9d00b/pkg/servers/e2b/routes.go)。
+- [容器版 CSI 挂载](https://openkruise.io/kruiseagents/user-manuals/ondemand-volume-mount)。

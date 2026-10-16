@@ -88,6 +88,15 @@ The script scrubs the child environment, never prints credentials, kills every s
 
 ## Environment variables
 
+Provider management checks are available as `--suite provider-commands-offline,provider-management-cloud`.
+The first suite needs no credentials; the second uses AK/SK for four read-only FC APIs. No resources are created.
+For the isolated API-key lifecycle, select `--suite provider-management-lifecycle --filter existing-team-api-key-lifecycle`
+and set `ABX_E2E_PROVIDER_MANAGEMENT_WRITE=1` plus `ABX_E2E_MANAGEMENT_EXISTING_TEAM_ID`.
+Only a new randomly named test key is updated, rotated, deactivated and deleted; the existing Team is never changed.
+Key values are checked in temporary mode-0600 files and never printed. Team/Volume/quota write scenarios require
+the explicit plan/resource-group and additional opt-ins documented in the scenario source; missing prerequisites
+are reported as skips. No subscription plan, existing storage or Volume state transition is guessed.
+
 | Variable | Meaning |
 |---|---|
 | `ABX_BIN` | Binary under test (default `abx`); may contain arguments, e.g. `"node dist/bin/abx.js"` |

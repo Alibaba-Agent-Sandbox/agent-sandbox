@@ -28,10 +28,10 @@ A running engine writes `~/.abx/engine.json` (mode 0600) and holds `~/.abx/engin
 The engine keeps no account of its own. Each request carries the connection the client resolved (its own config, env and `.env` layers):
 
 ```json
-{ "provider": "e2b", "provider_options": { "base_url": "…" }, "api_key": "…", "api_url": "…", "domain": "…", "access_key_id": "…", "access_key_secret": "…" }
+{ "provider": "e2b", "provider_options": { "base_url": "…" }, "region": "cn-hangzhou", "api_key": "…", "api_url": "…", "domain": "…", "access_key_id": "…", "access_key_secret": "…" }
 ```
 
-Send it as the header `X-Abx-Connection` (base64url of the JSON, no padding) or, on `POST` bodies, as the same fields. Sessions are keyed by a fingerprint of the connection plus the sandbox id, so two accounts never share a session. A session that the backend no longer knows is rebuilt through `connect` once.
+Send it as the header `X-Abx-Connection` (base64url of the JSON, no padding) or as the `connection` object in a `POST` body. `region` selects the cloud region for this invocation. Sessions are keyed by a fingerprint of the connection plus the sandbox id, so two accounts never share a session. A session that the backend no longer knows is rebuilt through `connect` once.
 
 ## Routes
 
@@ -42,6 +42,9 @@ All paths start with `/v1`. Bodies are JSON unless noted. `:id` is the provider'
 | `GET /health` | `{protocol, version, pid, uptime_s, sessions}` |
 | `POST /shutdown` | stop the engine |
 | `GET /providers` | installed providers: id, name, version, kind, trust, features, error |
+| `GET /providers/:provider/commands` | static discovery: `{commands: descriptor[]}` |
+| `GET /providers/:provider/commands/:command` | one management command descriptor, including input/output schemas and effect |
+| `POST /providers/:provider/commands/:command` | invoke a declared management command: `{input: object, confirm?: boolean}`; returns its result |
 | `POST /sandboxes` | create (`template`, `timeout`, `envs`, `metadata`, `cpu`, `memory`, `disk`, `gpu`, `secure`, …); `201` with the sandbox record |
 | `GET /sandboxes?status=&limit=&offset=` | list: `{sandboxes: […]}` |
 | `POST /sandboxes/:id/connect` | attach to an existing sandbox |
@@ -63,6 +66,31 @@ All paths start with `/v1`. Bodies are JSON unless noted. `:id` is the provider'
 | `GET /sandboxes/:id/terminal?cols=&rows=&shell=` | WebSocket PTY: binary frames are bytes in and out; text frames `{"type":"resize","cols":…,"rows":…}` resize |
 
 A feature the provider did not declare answers `501`, the same condition the CLI reports as `E8004`.
+
+## Provider management commands
+
+These routes manage provider resources; `/sandboxes/:id/commands/run` executes a process inside a sandbox.
+Discovery reads static metadata without importing plugin code or contacting the cloud. Invocation uses the same
+validated dispatcher as `abx provider command run`. The path's `:provider` must agree with any provider in the
+connection header and body. Each invocation receives its own resolved connection; management calls do not create
+or reuse sandbox sessions.
+
+For a descriptor with `effect: "write"` or `"delete"`, the POST body must contain the literal boolean
+`confirm: true`. Reads do not require confirmation. Omitted `input` means `{}`; supplied input must satisfy the
+descriptor's schema and 1 MiB JSON limit. Keep account credentials in the connection, and avoid logging request
+bodies containing sensitive material.
+
+| Condition | HTTP status and code |
+|---|---|
+| Unknown command or missing handler | `501`, `E8004` |
+| Invalid command input or configuration | `400`, `E8002` |
+| Required mutation confirmation missing | `400`, `E8012` |
+| Path and connection providers differ | `400`, `E8030` |
+
+Command invocation is never retried automatically, including commands marked idempotent. Clients must not replay
+a management POST after a connection failure or timeout: the cloud mutation may already have succeeded. Abort and
+resource cleanup are best effort. See the [command contract](../design/provider-commands.md) for registration and
+validation details.
 
 ## Errors
 

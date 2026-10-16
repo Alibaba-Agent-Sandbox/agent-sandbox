@@ -46,7 +46,7 @@ abx
 ├── template     init | search | info | list | build | push | create | delete | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command
 ```
 
 `abx provider --help` is owned by the provider documentation ([Providers](../guide/providers.md)); only the group
@@ -82,6 +82,9 @@ Usage lines (from `abx … --help`):
 | `abx config get\|delete` | `<verb> [OPTIONS] KEY` |
 | `abx config set` | `set [OPTIONS] KEY [VALUE]` |
 | `abx mcp deploy\|install\|start\|status\|stop` | `<verb> [OPTIONS]` |
+| `abx provider command list` | `list [OPTIONS] ID` |
+| `abx provider command info` | `info [OPTIONS] ID COMMAND` |
+| `abx provider command run` | `run [OPTIONS] ID COMMAND` |
 
 ## Global options
 
@@ -90,6 +93,40 @@ Usage lines (from `abx … --help`):
 
 There is no global `--timeout` and no `--profile`. A sandbox **lifetime** is `--timeout SECONDS` on `abx create` only;
 a command timeout is `--timeout SECONDS` on `abx exec`.
+
+## Provider management: `abx provider command`
+
+`ID` is the provider ID; `COMMAND` is one of its declared management commands. `list` discovers static metadata;
+`info` shows the input/output schemas, effect and idempotency. These calls need no cloud connection. Use
+`abx --json provider command list ID` for JSON descriptors or `--quiet` for command IDs only.
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.list
+abx --json provider command run alicloud-express volume.list --input '{}'
+```
+
+`run` accepts:
+
+| Option | Meaning |
+|---|---|
+| `--input JSON` | JSON input object; defaults to `{}` when neither input option is supplied |
+| `--input-file FILE` | Read a regular JSON file; mutually exclusive with `--input` |
+| `-o/--opt KEY=VALUE` | Provider configuration override; repeatable |
+| `--region REGION` | Cloud region for this invocation |
+| `--yes` | Required for commands with `effect: write` or `delete` |
+| `-h/--help` | Show usage |
+
+Both input forms are limited to 1 MiB of UTF-8 bytes. Relative file paths resolve from the current directory.
+Use `--input-file request.json` for certificate material or other sensitive request fields, and keep that file out
+of version control. Store account credentials through `abx config set providers.ID.KEY` or the provider's
+environment variables; secret configuration fields are refused in `--opt`. Parsing errors do not print input
+contents. Inspect the schema before running a command; unknown commands fail with E8004, invalid input with
+E8002, missing write confirmation with E8012, and conflicting explicit provider selections with E8030.
+
+Management calls are never automatically retried. A timeout or connection error can leave the cloud operation's
+outcome unknown. Command names stay under the provider namespace; `abx sandbox command` continues to address
+application commands registered inside a sandbox. See [Providers](../guide/providers.md) for supported operations.
 
 ## Running commands: `abx exec`
 

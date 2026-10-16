@@ -29,6 +29,7 @@ import { compactFeatures, configFieldToKey, type ConfigField } from "../../provi
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
 import { engine } from "./provider_engine.js";
+import { provider_commands } from "./provider_commands.js";
 
 type Params = Record<string, unknown>;
 
@@ -127,6 +128,8 @@ function renderConsent(plan: installer.InstallPlan): void {
   if (s["tree_sha256"]) rows.push(["Digest", `sha256:${s["tree_sha256"]}`]);
   rows.push(["Runs", (s["runtime"] as string[]).join(" ")]);
   rows.push(["Features", (s["features"] as string[]).join(", ")]);
+  const commands = s["commands"] as Array<{ id: string; effect: string }> | undefined;
+  if (commands?.length) rows.push(["Commands", commands.map((entry) => `${entry.id} (${entry.effect})`).join(", ")]);
   rows.push(["Security", `${securityLine(s["security"])}  (declared by the plugin, not enforced)`]);
   if ((s["fields"] as Array<{ key: string; secret: boolean }>).length) {
     rows.push(["Config", (s["fields"] as Array<{ key: string; secret: boolean }>).map((f) => (f.secret ? `${f.key} (secret)` : f.key)).join(", ")]);
@@ -760,4 +763,4 @@ provider.addCommand(config_cmd, "config");
 provider.addCommand(doctor_cmd, "doctor");
 provider.addCommand(test_cmd, "test");
 provider.addCommand(engine, "engine");
-
+provider.addCommand(provider_commands, "command");

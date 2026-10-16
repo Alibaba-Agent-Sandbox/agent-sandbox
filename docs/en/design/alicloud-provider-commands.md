@@ -1,0 +1,161 @@
+# Alibaba Cloud provider management commands
+
+Status: proposed; implementation and cloud verification are tracked separately.
+
+## Scope and product identity
+
+`alicloud-express` is the FC-backed Express Edition. `alicloud-container` is the
+ACS/ACK OpenKruise edition. A provider's command catalog describes its own
+management API; the global sandbox commands retain their existing contracts.
+This design implements FC management operations using the repository's locked
+`@alicloud/fcsandbox20260509` 1.5.1 SDK and its generated request models.
+It does not change the sandbox runtime API or borrow its API key.
+
+## Discovery and invocation
+
+The host lists descriptors before loading credentials. Each descriptor contains a
+stable ID, English and Chinese descriptions, strict input and output JSON schemas,
+an effect (`read`, `write`, `delete`), and an idempotency declaration. Commands stay
+under the provider command namespace; plugins cannot replace global commands.
+The host applies input validation and mutation confirmation before execution.
+The FC adapter repeats semantic validation before constructing a client.
+
+Inputs use snake_case; generated SDK request models use their documented camelCase
+names. Unknown properties, empty identifiers, invalid pagination and incompatible
+storage configurations fail before SDK loading or network access. Execution calls
+one explicitly selected SDK method; there is no arbitrary method/path passthrough.
+List operations return a single page and its pagination metadata. Callers decide
+whether to fetch another page. Mutation retries are disabled, including create and
+API-key rotation. An idempotent descriptor is not permission to retry automatically.
+
+API-key deletion requires an inactive key. Change the selected key explicitly with
+`api-key.update` and `"status": "inactive"`, then call `api-key.delete`.
+The observed cloud rejection for an active key is `InvalidApiKeyStatus` (HTTP 400),
+mapped to configuration error E8002 with these next steps. The adapter does not
+silently disable a key or add another mutation behind a delete command. Lifecycle
+tests disable only their own disposable key before deleting it; cleanup reads its
+status, disables an active test-created key, accepts inactive or already missing
+keys, and refuses to guess a transition for an unknown status.
+
+## Capability matrix
+
+| Command IDs | Public SDK methods | Result |
+| --- | --- | --- |
+| `volume.create`, `volume.get`, `volume.list`, `volume.update`, `volume.delete` | CreateVolume, GetVolume, ListVolumes, UpdateVolume, DeleteVolume | Implemented adapter; account/region access still required |
+| `team.create`, `team.get`, `team.list`, `team.update`, `team.delete` | CreateTeam, GetTeam, ListTeams, UpdateTeam, DeleteTeam | Implemented adapter |
+| `api-key.create`, `api-key.get`, `api-key.list`, `api-key.update`, `api-key.reset`, `api-key.delete` | CreateApiKey, DescribeApiKey, ListApiKeys, UpdateApiKey, ResetApiKey, DeleteApiKey | Implemented adapter; returned key values always redacted |
+| `quota.get`, `quota.list`, `quota.update`, `quota.delete` | DescribeQuota, ListQuota, UpdateQuota, DeleteQuota | Implemented adapter; quota service may require allowlisting |
+| Template operations | Existing template commands | Retained in the existing template surface |
+| `domain.*` | No methods in either audited sandbox SDK | Not registered; use the documented console workflow |
+| JuiceFS configuration | Absent from locked SDK 1.5.1 | Not accepted; SDK migration requires its own compatibility work |
+
+Volume creation accepts exactly one of `oss_volume_config`,
+`agentic_fs_volume_config`, and `agentic_bucket_volume_config`, plus optional
+`mount_config`. Creating/deleting Volume metadata does not create/delete the
+underlying storage. Updating a Volume uses only the published `status` field and
+Team identifier; it is not an arbitrary storage reconfiguration operation.
+Mounting an existing Volume into a sandbox is a separate runtime operation and is
+not implied by successful Volume creation.
+
+Discover and inspect the exact schemas before preparing an input file:
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.create
+abx provider command run alicloud-express volume.create --input-file volume.json --yes
+```
+
+Example `volume.json` (the underlying Bucket must already exist):
+
+```json
+{
+  "team_id": "TEAM-ID",
+  "volume_name": "workspace",
+  "oss_volume_config": {
+    "bucket_name": "example-bucket",
+    "bucket_path": "/workspace",
+    "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",
+    "read_only": false
+  }
+}
+```
+
+API-key create/reset input additionally requires `secret_file`, for example
+`"secret_file": "/absolute/private/new-api-key"`; this must be an absolute path on
+the local engine host (which can have a different working directory from the SDK caller). Create the private directory first and
+choose a filename that does not exist. The secret file contains the new key and
+must not be added to source control. Get/list/update never export secret values.
+
+## Credentials, results and failures
+
+Execution uses one resolved `LayeredConfig` snapshot: `access_key_id`,
+`access_key_secret`, `region`, and `http_timeout`. Both AccessKey fields are
+required; the sandbox API key is never substituted. The generated SDK signs AK
+requests and uses its FCSandbox regional endpoint. No request can supply an
+arbitrary endpoint or credentials. SDK automatic retries are disabled.
+STS session tokens are not represented by the current resolved configuration;
+this adapter does not claim support for temporary credentials without that token.
+
+The public result is `{request_id, data}`. Resources are projected to documented
+snake_case fields, with list pagination included in `data`. Unrecognized response
+fields are dropped. `api_key_value` is replaced with `[REDACTED]` even for create,
+reset and detail responses. Create and reset require `secret_file`: before the
+cloud request, the adapter exclusively creates a new file with `wx` and mode
+0600, refusing existing files and symlinks. The newly returned key is written
+and flushed to that file; the structured result includes its absolute path.
+The file path is never sent to the cloud. A cloud failure removes only this
+invocation's still-empty reservation, checking its inode before removal. A
+local write failure after remote creation/rotation reports that the remote key
+has changed and requires recovery, without printing its value or retrying.
+Partially written files are retained with mode 0600 for recovery. No secret
+values are accepted on the command line. Future certificate/key input must
+likewise come from files.
+
+SDK failures preserve a sanitized service error code, numeric HTTP status and
+request ID, while omitting raw messages, request bodies and SDK response objects
+which can include credentials. Authentication, not-found and quota failures map
+to the existing provider error families. Application-level error envelopes also
+fail instead of being reported as successful empty resources.
+
+## Domain boundary
+
+The official product documents custom domains as an Express cloud extension and
+describe console binding, DNS and certificate configuration. The audited
+FCSandbox SDK 1.5.1 contains domain model classes but exposes no client methods.
+The newer official `@alicloud/sandbox20260820` 1.2.0 package also exposes no domain
+client methods. Models alone do not prove a callable API. FC and AgentRun domain
+APIs are separate products; their routes must not be reused without public proof
+that they manage Agent Sandbox domains. Consequently `domain.*` remains absent,
+with this concrete upstream blocker documented instead of guessed endpoints.
+
+For the container edition, upstream `/volumes` routes are explicitly disabled;
+CSI mounting uses an existing PV and claim-time metadata. Its domain management
+is a Kubernetes Ingress/TLS deployment task. Neither is FC Volume/domain CRUD.
+
+## Verification and acceptance
+
+Unit tests exercise every SDK mapping, all three supported storage shapes, strict
+validation before I/O, isolated credentials, single-page pagination, zero-valued
+quotas, response projection, key redaction, sanitized failures and disabled
+retries. Tests inject a fake client while retaining real generated model classes;
+they do not establish cloud compatibility. Host tests cover discovery, selected
+provider dispatch, confirmation, JSON file input and output-schema validation.
+
+Cloud acceptance requires read-only list/get against the correct account and
+region, followed by isolated create/update/delete of test-owned resources when
+the account has the required access. API-key rotation must use a disposable key.
+Volume acceptance also requires independently verifying an actual sandbox mount.
+Clean up only resources created by that run. Missing credentials, allowlisting or
+permissions remain explicit blocked gates; no mocked run is called cloud E2E.
+
+## Primary sources
+
+- [Official SDK client source](https://github.com/aliyun/alibabacloud-typescript-sdk/blob/master/fcsandbox-20260509/src/client.ts), audited installed release 1.5.1.
+- [Official newer SDK package](https://www.npmjs.com/package/@alicloud/sandbox20260820), audited release 1.2.0.
+- [Volume concepts and storage lifecycle](https://help.aliyun.com/zh/agent-sandbox/persistence-storage/).
+- [OSS Volume creation, authentication and permissions](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).
+- [AgenticBucket fields and VPC restrictions](https://help.aliyun.com/zh/agent-sandbox/create-agenticbucket-volume).
+- [Team quota contract](https://help.aliyun.com/zh/agent-sandbox/team-quota-management).
+- [Express custom domains](https://help.aliyun.com/zh/agent-sandbox/custom-domain-name).
+- [Container routing source](https://github.com/openkruise/agents/blob/7dc85e9491d8ca6203abd24b0a24b9612ea9d00b/pkg/servers/e2b/routes.go).
+- [Container CSI mounting](https://openkruise.io/kruiseagents/user-manuals/ondemand-volume-mount).

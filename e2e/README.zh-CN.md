@@ -73,6 +73,14 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 环境变量
 
+管理命令检查可运行 `--suite provider-commands-offline,provider-management-cloud`。
+前者无需凭证，后者用 AK/SK 验证四类 FC 只读 API，均不创建资源。
+临时 API Key 生命周期使用 `--suite provider-management-lifecycle --filter existing-team-api-key-lifecycle`，
+并设置 `ABX_E2E_PROVIDER_MANAGEMENT_WRITE=1` 与明确的 `ABX_E2E_MANAGEMENT_EXISTING_TEAM_ID`。
+只创建、更新、轮换、停用和删除本次随机命名的 key，不修改已有 Team；密钥仅写入临时 0600 文件，不打印。
+新 Team、Volume、配额的写入场景还要求源码注明的计划、资源组和额外开关；缺前提会报告跳过，
+不会猜测订阅计划、创建底层存储或尝试未公开的 Volume 状态转换。
+
 | 变量 | 含义 |
 |---|---|
 | `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node dist/bin/abx.js"` |

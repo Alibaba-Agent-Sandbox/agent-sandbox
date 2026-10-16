@@ -63,6 +63,8 @@ graph TB
 
 ## 设计专题索引
 
+[Provider 管理命令契约](design/provider-commands.md) · [阿里云能力矩阵](design/alicloud-provider-commands.md)
+
 ### 架构与命令
 
 | 专题 | 文档 | 摘要 |

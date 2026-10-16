@@ -28,10 +28,10 @@ abx provider engine stop
 引擎自己不保存账号。每个请求带上客户端解析好的连接（客户端自己的 config、环境变量和 `.env` 层）：
 
 ```json
-{ "provider": "e2b", "provider_options": { "base_url": "…" }, "api_key": "…", "api_url": "…", "domain": "…", "access_key_id": "…", "access_key_secret": "…" }
+{ "provider": "e2b", "provider_options": { "base_url": "…" }, "region": "cn-hangzhou", "api_key": "…", "api_url": "…", "domain": "…", "access_key_id": "…", "access_key_secret": "…" }
 ```
 
-放在请求头 `X-Abx-Connection`（JSON 的 base64url，无填充），或者在 `POST` 请求体里用同名字段。会话以“连接指纹 + 沙箱 id”为键，所以两个账号不会共用会话。后端不再认识的会话，会通过 `connect` 重建一次。
+放在请求头 `X-Abx-Connection`（JSON 的 base64url，无填充），或放进 `POST` 请求体的 `connection` 对象。`region` 指定本次调用的云区域。会话以“连接指纹 + 沙箱 id”为键，所以两个账号不会共用会话。后端不再认识的会话，会通过 `connect` 重建一次。
 
 ## 路由
 
@@ -42,6 +42,9 @@ abx provider engine stop
 | `GET /health` | `{protocol, version, pid, uptime_s, sessions}` |
 | `POST /shutdown` | 停止引擎 |
 | `GET /providers` | 已安装的提供商：id、name、version、kind、trust、features、error |
+| `GET /providers/:provider/commands` | 静态发现：`{commands: descriptor[]}` |
+| `GET /providers/:provider/commands/:command` | 单个管理命令的描述，包括输入/输出 schema 和 effect |
+| `POST /providers/:provider/commands/:command` | 调用已声明的管理命令：`{input: object, confirm?: boolean}`；返回命令结果 |
 | `POST /sandboxes` | 创建（`template`、`timeout`、`envs`、`metadata`、`cpu`、`memory`、`disk`、`gpu`、`secure` 等）；返回 `201` 和沙箱记录 |
 | `GET /sandboxes?status=&limit=&offset=` | 列表：`{sandboxes: […]}` |
 | `POST /sandboxes/:id/connect` | 接入已有沙箱 |
@@ -63,6 +66,27 @@ abx provider engine stop
 | `GET /sandboxes/:id/terminal?cols=&rows=&shell=` | WebSocket PTY：二进制帧是双向字节；文本帧 `{"type":"resize","cols":…,"rows":…}` 调整大小 |
 
 提供商没有声明的能力返回 `501`，即 CLI 报告的 `E8004` 同一情形。
+
+## 提供方管理命令
+
+这些路由管理提供方资源；`/sandboxes/:id/commands/run` 用于在沙箱内运行进程。发现操作只读取静态元数据，
+不导入插件代码、不请求云端。调用与 `abx provider command run` 复用同一个校验与分发入口。
+路径中的 `:provider` 必须与连接头、请求体中指定的提供方一致。每次调用使用各自解析的连接，
+管理命令不创建或复用沙箱会话。
+
+描述中的 `effect` 为 `"write"` 或 `"delete"` 时，POST 请求体必须包含布尔值 `confirm: true`；
+读取操作无需确认。省略 `input` 等价于 `{}`；显式输入须满足命令 schema 和 1 MiB JSON 限制。
+账号凭据放在连接配置中，包含敏感材料的请求体应避免写入日志。
+
+| 情形 | HTTP 状态与错误码 |
+|---|---|
+| 未知命令或缺少处理器 | `501`、`E8004` |
+| 命令输入或配置无效 | `400`、`E8002` |
+| 缺少必要的写入确认 | `400`、`E8012` |
+| 路径和连接的提供方不同 | `400`、`E8030` |
+
+命令调用不会自动重试，包括标记为幂等的命令。连接失败或超时后，客户端不得自动重放管理 POST：
+云端变更可能已经成功。取消与资源清理尽力执行。注册与校验细节见[命令契约](../design/provider-commands.md)。
 
 ## 错误
 

@@ -232,6 +232,8 @@ The Python SDK, the in-sandbox server SDK and the shared platform contracts are 
 | Contributing Guide | [CONTRIBUTING.md](.github/CONTRIBUTING.md) |
 | License | [Apache-2.0](LICENSE) |
 
+Provider-specific cloud management: `abx provider command list alicloud-express`. See the [provider guide](docs/en/guide/providers.md) for typed commands, explicit write confirmation and current cloud API limits.
+
 ## Contributing
 
 We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUTING.md) to get started.

@@ -1,4 +1,5 @@
 export class ScenarioFailure extends Error {}
+export class ScenarioSkip extends Error {}
 
 export function fail(msg) { throw new ScenarioFailure(msg); }
 
