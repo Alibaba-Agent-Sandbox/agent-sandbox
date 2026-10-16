@@ -799,6 +799,7 @@ export interface DoDeployOptions {
  * TemplateID, Status, etc.
  */
 export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
+  requireTemplateFeature("templates.build");
   const {
     acr_namespace,
     acr_registry = "registry.cn-hangzhou.aliyuncs.com",

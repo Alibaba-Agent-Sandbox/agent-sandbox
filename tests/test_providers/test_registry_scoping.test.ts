@@ -48,7 +48,10 @@ describe("TestRegistry", () => {
     expect(p.displayName).toBe("Alibaba Cloud Express Edition");
     expect(p.displayNameZh).toBe("阿里云极速版");
     expect(p.kind).toBe("builtin");
-    expect(p.supports("files.rw") && p.supports("storage.mount")).toBe(true);
+    expect(p.supports("files.rw")).toBe(true);
+    expect(p.supports("storage.mount")).toBe(false);
+    expect(p.supports("network.vpc")).toBe(false);
+    expect(p.supports("ports.domain")).toBe(false);
   });
 
   it("test_register_and_conflicts", () => {
@@ -96,8 +99,8 @@ describe("TestRegistry", () => {
     await installPlugin(LOCAL_PROCESS);
     expect(parseSandboxRef("local-process:abc")).toEqual(["local-process", "abc"]);
     expect(parseSandboxRef("abc")).toEqual([null, "abc"]);
-    expect(parseSandboxRef("unknown-prov:abc")).toEqual([null, "unknown-prov:abc"]);
-    expect(parseSandboxRef("local-process:")).toEqual([null, "local-process:"]);
+    expect(() => parseSandboxRef("unknown-prov:abc")).toThrow(E.ProviderNotFoundError);
+    expect(() => parseSandboxRef("local-process:")).toThrow(E.ProviderConfigError);
     expect(qualify("alicloud-express", "sb1", { ambient: "alicloud-express" })).toBe("sb1");
     expect(qualify("alicloud-express", "sb1", { ambient: "local-process" })).toBe("alicloud-express:sb1");
     expect(qualify("local-process", "sb1", { ambient: "alicloud-express" })).toBe("local-process:sb1");

@@ -16,7 +16,7 @@ import {
   envNames,
 } from "../utils/config_keys.js";
 import { hostVersion } from "./host.js";
-import { FEATURES, Provider, type ConfigField, type ProviderInfra } from "./base.js";
+import { Provider, type ConfigField, type ProviderInfra } from "./base.js";
 
 function fields(): ConfigField[] {
   return ALICLOUD_EXPRESS_KEYS.map((k) => ({
@@ -41,7 +41,14 @@ export class AlicloudExpressProvider extends Provider {
     this.displayNameZh = BUILTIN_PROVIDER_NAME_ZH;
     this.kind = "builtin";
     this.version = hostVersion();
-    this.features = new Set(FEATURES);
+    // Per-adapter declarations: new host feature ids must never enable Express implicitly.
+    // FC storage/VPC/custom-domain administration is separate from this sandbox protocol adapter.
+    this.features = new Set([
+      "sandbox.lifecycle", "sandbox.timeout", "sandbox.pause",
+      "exec.run", "exec.stream", "process.manage", "pty",
+      "files.rw", "files.watch", "files.transfer", "code.interpret",
+      "templates.read", "templates.build", "ports.url", "sessions",
+    ]);
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
     this.configFields = fields();
   }

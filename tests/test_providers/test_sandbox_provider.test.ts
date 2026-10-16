@@ -262,8 +262,9 @@ describe("provider-level behaviour that needs no plugin runtime", () => {
       expect((exc as E.ProviderError).code).toBe("E8030");
       expect(E.exitCodeFor(exc as Error)).toBe(2);
     }
-    await expect(Sandbox.connect("other:sbx-9", { provider: "fake-ref" })).resolves.toBeInstanceOf(Sandbox);
-    expect(connected.at(-1)).toBe("other:sbx-9");
+    const beforeUnknown = connected.length;
+    await expect(Sandbox.connect("other:sbx-9", { provider: "fake-ref" })).rejects.toBeInstanceOf(E.ProviderNotFoundError);
+    expect(connected.length).toBe(beforeUnknown);
   });
 
   it("test_builtin_default_path_is_untouched", async () => {

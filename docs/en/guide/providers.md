@@ -10,6 +10,27 @@ A **provider** is a sandbox backend. `abx` ships one built-in provider and can d
 
 ---
 
+## Provider boundaries and unequal capabilities
+
+Selecting a provider chooses its configuration and protocol adapter. Unsupported operations must fail with E8004 on that provider; they must never retry against alicloud-express. Explicit provider:sandbox-id references retain ownership even when the default changes. An unknown namespace raises E8001 and an empty sandbox id raises E8002 before backend requests. Explicit provider/reference conflicts raise E8030.
+
+The standard E2B command frontend is used only for Express. Qualified sandbox references enter the provider router. Other providers currently retain the project CLI syntax; selecting one does not promise that every E2B-specific option or result model is implemented there. Local generation with template scaffold can use a generic Docker profile; that changes the image contract, not the cloud backend.
+
+A feature declaration is permission to use an implemented adapter, not an implementation. Native FC/ACR template handlers are bound to Express. Other providers return E8004 even if a plugin declares templates.read/build, until a provider-aware template adapter is delivered. This guard also covers natural-language cloud deployment and internal deployment helpers, before code generation, Docker, credential loading or cloud work.
+
+The built-in provider lists its own implemented adapter features explicitly; adding a host feature must not implicitly advertise it on Express. This adapter does not advertise storage.mount, network.vpc or ports.domain as generic sandbox operations. That does not mean Alibaba lacks those cloud capabilities: resource administration and mount integration need their own implemented, verified entry points. Pause also depends on runtime/function enablement; a declaration alone is not account availability.
+
+| Capability situation | Required behavior |
+|---|---|
+| Selected provider implements a common operation | Invoke its adapter, even when Express has no equivalent |
+| Selected provider lacks the operation | E8004, with no cross-provider fallback |
+| Only another provider implements it | Explicitly select that provider; do not silently borrow its backend |
+| Backend/account/template/version prerequisite is unmet | Report the unmet prerequisite or original backend error; do not report success |
+| Provider-specific cloud management | Use a declared, typed command and its actual provider handler |
+
+The [provider command registration proposal](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) supplies discovery, schemas and an explicit provider-bound invocation path for differing management capabilities. It is separate, currently unmerged work. Registration does not create handlers, normalize all existing CLI entry points or prove backend permissions/E2E success. The [SDK companion](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) must be integrated consistently. The fixed feature registry and provider management commands serve different purposes.
+
+
 ## Install, inspect, remove
 
 ```bash
@@ -212,3 +233,5 @@ Full list: [Error codes](../reference/error-codes.md). Every `provider` subcomma
 ## Try it locally
 
 The repository ships an end-to-end script that installs the reference plugins and drives a real sandbox through them: [`e2e/README.md`](../../../e2e/README.md) (`e2e/providers/run.sh`).
+
+For project-provider exec, put --provider/--opt before the sandbox ID, and use `--` before remote commands containing options. Remote flags never change the selected backend; unsupported local parsing fails before backend work.

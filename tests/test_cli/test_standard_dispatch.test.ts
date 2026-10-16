@@ -39,4 +39,18 @@ describe("standard command routing", () => {
     expect(standardArguments(["template", "from-image", "registry.example/image"])).toBeNull();
     expect(standardArguments(["template", "dl", "template-id"])).toEqual(["template", "dl", "template-id"]);
   });
+
+  it("keeps qualified resources in provider routing instead of the Express client", () => {
+    for (const verb of ["exec", "info", "connect", "kill", "pause", "resume"]) {
+      expect(standardArguments(["sandbox", verb, "opensandbox:resource-id"])).toBeNull();
+      expect(standardArguments([verb, "opensandbox:resource-id"])).toBeNull();
+    }
+    expect(standardArguments(["exec", "--cwd", "/tmp", "opensandbox:resource-id", "true"])).toBeNull();
+    expect(standardArguments(["kill", "one", "opensandbox:two"])).toBeNull();
+    expect(standardArguments(["exec", "plain-id", "curl", "https://example.invalid"]))
+      .toEqual(["sandbox", "exec", "plain-id", "curl", "https://example.invalid"]);
+    expect(standardArguments(["create", "image:tag", "--detach"]))
+      .toEqual(["sandbox", "create", "image:tag", "--detach"]);
+  });
+
 });

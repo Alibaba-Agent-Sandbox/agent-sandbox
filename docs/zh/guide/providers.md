@@ -10,6 +10,27 @@
 
 ---
 
+## Provider 边界与不同的能力集合
+
+选择 Provider 就是选择它的配置和协议适配器。不支持的操作应在该 Provider 上返回 E8004，不能改用极速版重试。provider:sandbox-id 引用保留资源归属，不受默认 Provider 切换影响。未知前缀在后端请求前返回 E8001，空沙箱 ID 返回 E8002；显式 Provider 与资源前缀冲突返回 E8030。
+
+标准 E2B 命令前端仅用于极速版，带 Provider 前缀的沙箱引用进入 Provider 路由。其他 Provider 目前仍使用项目 CLI 参数；选择它们不代表全部 E2B 专有选项和返回模型都已适配。template scaffold 的本地生成可以采用通用 Docker profile，但这只是镜像约定，不是切换云端后端。
+
+能力声明不是实现。原生 FC/ACR 模板处理器明确属于极速版；其他 Provider 即使声明 templates.read/build，在真正的 Provider 模板适配器交付前仍返回 E8004。这一检查也覆盖自然语言云端部署和内部部署辅助函数，并发生在代码生成、Docker、凭据读取和云端操作之前。
+
+内置 Provider 明确列出自身已实现的适配能力；增加全局能力不能自动把极速版标记为支持。当前适配器不把 storage.mount、network.vpc、ports.domain 宣称为通用沙箱操作。这不代表阿里云没有对应能力：资源管理和挂载集成需要各自已实现、已验证的入口。暂停还受运行时/函数开通条件限制，静态声明不等于账号实际可用。
+
+| 能力情况 | 必须采取的行为 |
+|---|---|
+| 当前 Provider 实现了通用操作 | 调用它自己的适配器，即使极速版没有同类能力 |
+| 当前 Provider 没有该操作 | 返回 E8004，不跨 Provider 回退 |
+| 只有其他 Provider 实现 | 用户显式选择那个 Provider，不静默借用后端 |
+| 后端/账号/模板/版本前提未满足 | 报告前提条件或保留后端错误，不伪装成功 |
+| Provider 特有云端管理能力 | 使用已声明类型的命令及其真实 Provider handler |
+
+[Provider 命令注册方案](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) 为差异化管理能力提供发现、schema 和显式绑定 Provider 的调用链；这是独立且尚未合并的工作。注册不会自动生成 handler、统一既有 CLI 入口，也不能证明后端权限和 E2E 成功。[SDK 配套](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) 需要一起集成。固定通用能力表与 Provider 管理命令各有用途。
+
+
 ## 安装、查看、移除
 
 ```bash
@@ -212,3 +233,5 @@ abx config list --provider my-cloud                          # 该提供商的�
 ## 本地试用
 
 仓库提供了一个端到端脚本，安装参考插件并通过它们驱动真实沙箱：[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)（`e2e/providers/run.sh`）。
+
+项目 Provider 的 exec 将 --provider/--opt 放在沙箱 ID 前；远程命令含选项时在命令前使用 `--`。远程参数不能切换后端；不受支持的本地参数解析会在后端操作前报错。

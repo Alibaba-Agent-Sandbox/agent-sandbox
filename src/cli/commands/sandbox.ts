@@ -47,6 +47,7 @@ import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
 import { enableVerbose, getOutput, type OutputManager } from "../output.js";
 import { REPL_TIMEOUT, describeCommandFailure, enableLineEditing, input, inputInterrupts, programName } from "../repl.js";
+import { requireTemplateFeature } from "../template_provider.js";
 import { regionOption } from "../region.js";
 import { printedId, providerView, scopedFlagOptions } from "../provider_view.js";
 import { providersInUse } from "../../providers/in_use.js";
@@ -1006,6 +1007,7 @@ export async function _generateAndDeployTemplate(
   description: string,
   opts: { yes: boolean; acr_namespace: string | null; verbose: boolean; output_dir?: string | null; model?: string | null },
 ): Promise<string> {
+  requireTemplateFeature("templates.build");
   const { yes, verbose } = opts;
   const template = await import("./template.js");
 

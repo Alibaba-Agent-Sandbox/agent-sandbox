@@ -45,6 +45,15 @@ describe("extractProviderFlags", () => {
     });
   });
 
+  it("does not let remote exec flags replace the selected provider", () => {
+    expect(extractProviderFlags(["--provider", "opensandbox", "exec", "id", "agent", "--provider", "alicloud-express"]))
+      .toEqual({ provider: "opensandbox", options: [], args: ["exec", "id", "agent", "--provider", "alicloud-express"] });
+    expect(extractProviderFlags(["--log-level", "DEBUG", "--provider", "opensandbox", "exec", "id", "agent", "--provider=alicloud-express"]))
+      .toEqual({ provider: "opensandbox", options: [], args: ["--log-level", "DEBUG", "exec", "id", "agent", "--provider=alicloud-express"] });
+    expect(extractProviderFlags(["sandbox", "exec", "--cwd", "/tmp", "--provider", "opensandbox", "id", "agent", "--provider=alicloud-express"]))
+      .toEqual({ provider: "opensandbox", options: [], args: ["sandbox", "exec", "--cwd", "/tmp", "id", "agent", "--provider=alicloud-express"] });
+  });
+
   it("test_tokens_after_double_dash_are_left_alone", () => {
     expect(extractProviderFlags(["exec", "sbx", "--", "echo", "--provider", "x"]).args).toEqual(["exec", "sbx", "--", "echo", "--provider", "x"]);
   });

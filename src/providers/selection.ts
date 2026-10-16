@@ -46,7 +46,7 @@ export function resetCliSelection(): void {
 
 /**
  * Pull `--provider ID` / `--provider=ID` / `--opt K=V` / `--opt=K=V` out of `args` (any position before a `--`
- * terminator) and return the remaining arguments. Not applied to the `provider` command group, whose subcommands
+ * terminator, or the sandbox ID of exec) and return the remaining arguments. Not applied to the `provider` command group, whose subcommands
  * (`provider test`) own an `--opt` of their own.
  */
 export function extractProviderFlags(args: readonly string[]): { args: string[]; provider: string | null; options: string[] } {
@@ -54,14 +54,36 @@ export function extractProviderFlags(args: readonly string[]): { args: string[];
   const options: string[] = [];
   let provider: string | null = null;
   let firstWord: string | null = null;
+  let execResourceExpected = false;
+  let execOptionValueExpected = false;
+  const execValuedOptions = new Set(["--cwd", "-c", "--env", "-e", "--timeout", "-t", "--user", "-u"]);
   for (let i = 0; i < args.length; i++) {
     const a = args[i] as string;
     if (a === "--") {
       out.push(...args.slice(i));
       break;
     }
+    if (firstWord === null && a === "--log-level" && args[i + 1] !== undefined) {
+      out.push(a, args[++i]!);
+      continue;
+    }
     if (firstWord === null && !a.startsWith("-")) firstWord = a;
     if (firstWord === "provider") {
+      out.push(...args.slice(i));
+      break;
+    }
+    if (execOptionValueExpected) {
+      out.push(a);
+      execOptionValueExpected = false;
+      continue;
+    }
+    if (execResourceExpected && execValuedOptions.has(a)) {
+      out.push(a);
+      execOptionValueExpected = true;
+      continue;
+    }
+    if (execResourceExpected && !a.startsWith("-")) {
+      // Provider selection ends at the sandbox ID. Remote agent flags cannot select a backend.
       out.push(...args.slice(i));
       break;
     }
@@ -85,6 +107,9 @@ export function extractProviderFlags(args: readonly string[]): { args: string[];
       continue;
     }
     out.push(a);
+    if (a === "exec" && (firstWord === "exec" || firstWord === "sandbox" && out.at(-2) === "sandbox")) {
+      execResourceExpected = true;
+    }
   }
   return { args: out, provider, options };
 }

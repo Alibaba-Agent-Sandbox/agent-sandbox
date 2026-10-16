@@ -8,6 +8,26 @@ const shortcuts = new Set(["create", "list", "info", "kill", "exec", "connect", 
 const sandboxExtensions = new Set(["upload", "download", "capabilities", "files", "process", "command", "system"]);
 const templateExtensions = new Set(["from-image", "build", "deploy", "scaffold", "install", "push", "search", "info"]);
 
+
+/** A qualified resource belongs to the provider router, including install/mismatch errors. */
+function hasQualifiedSandboxReference(args: readonly string[]): boolean {
+  const commandIndex = args[0] === "sandbox" ? 1 : 0;
+  const verb = args[commandIndex] ?? "";
+  if (!["exec", "ex", "info", "in", "connect", "cn", "kill", "kl", "pause", "resume"].includes(verb)) return false;
+  const valued = new Set(["-u", "--user", "-c", "--cwd", "-e", "--env", "-f", "--format", "-t", "--timeout", "-s", "--state", "-m", "--metadata"]);
+  let optionsEnded = false;
+  for (let index = commandIndex + 1; index < args.length; index++) {
+    const value = args[index]!;
+    if (!optionsEnded && value === "--") { optionsEnded = true; continue; }
+    if (!optionsEnded && valued.has(value)) { index++; continue; }
+    if (!optionsEnded && value.startsWith("-")) continue;
+    if (/^[a-z][a-z0-9-]*:/.test(value)) return true;
+    // Anything after the exec ID is remote command input, never a provider reference.
+    if (!["kill", "kl"].includes(verb)) return false;
+  }
+  return false;
+}
+
 /** Return standard argv, or null for an explicit project extension/provider invocation. */
 export function standardArguments(input: readonly string[]): string[] | null {
   const args = [...input];
@@ -36,6 +56,7 @@ export function standardArguments(input: readonly string[]): string[] | null {
       }
     }
   }
+  if (hasQualifiedSandboxReference(args)) return null;
   const isCreate = args[0] === "create" || args[0] === "sandbox" && ["create", "cr", "spawn", "sp"].includes(args[1] ?? "");
   if (isCreate && args.some((a) => a === "--prompt" || a.startsWith("--prompt="))) return null;
   if (args[0] && shortcuts.has(args[0])) return ["sandbox", ...args];
