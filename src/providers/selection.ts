@@ -107,7 +107,9 @@ export function extractProviderFlags(args: readonly string[]): { args: string[];
       continue;
     }
     out.push(a);
-    if (a === "exec" && (firstWord === "exec" || firstWord === "sandbox" && out.at(-2) === "sandbox")) {
+    const sandboxGroup = firstWord === "sandbox" || firstWord === "sbx";
+    if ((a === "exec" && firstWord === "exec") ||
+      (sandboxGroup && (a === "exec" || a === "ex") && out.at(-2) === firstWord)) {
       execResourceExpected = true;
     }
   }

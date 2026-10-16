@@ -105,6 +105,12 @@ describe("TestRegistry", () => {
     expect(qualify("alicloud-express", "sb1", { ambient: "local-process" })).toBe("alicloud-express:sb1");
     expect(qualify("local-process", "sb1", { ambient: "alicloud-express" })).toBe("local-process:sb1");
   });
+
+  it.each(["default:id", "none:id", "alicloud-compute:id", "OpenSandbox:id", "bad_name:id", ":id", "x:id", "alicloud-express:"])(
+    "rejects an invalid explicit namespace or empty ID: %s", (ref) => {
+      expect(() => parseSandboxRef(ref)).toThrow(E.ProviderConfigError);
+    },
+  );
 });
 
 describe("TestProviderSelection", () => {

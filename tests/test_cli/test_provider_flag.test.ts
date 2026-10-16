@@ -54,6 +54,15 @@ describe("extractProviderFlags", () => {
       .toEqual({ provider: "opensandbox", options: [], args: ["sandbox", "exec", "--cwd", "/tmp", "id", "agent", "--provider=alicloud-express"] });
   });
 
+  it.each([["exec"], ["sandbox", "exec"], ["sbx", "exec"], ["sandbox", "ex"], ["sbx", "ex"]])(
+    "preserves the remote boundary for the existing exec spelling %j", (...command) => {
+      const args = [...command, "--cwd", "/tmp", "id", "agent", "--provider", "alicloud-express", "--opt=remote=value"];
+      expect(extractProviderFlags(args)).toEqual({ args, provider: null, options: [] });
+      expect(extractProviderFlags(["--provider", "opensandbox", ...args]))
+        .toEqual({ args, provider: "opensandbox", options: [] });
+    },
+  );
+
   it("test_tokens_after_double_dash_are_left_alone", () => {
     expect(extractProviderFlags(["exec", "sbx", "--", "echo", "--provider", "x"]).args).toEqual(["exec", "sbx", "--", "echo", "--provider", "x"]);
   });

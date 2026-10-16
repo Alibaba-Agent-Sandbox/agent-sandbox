@@ -24,6 +24,25 @@ async function run(args: string[]): Promise<{ code: number; stdout: string; stde
 }
 
 describe("standard executable contract", () => {
+  it("retains identified package licenses and prebundled copyright notices", async () => {
+    const sources = JSON.parse(readFileSync(new URL("../../vendor/e2b-cli/sources.json", import.meta.url), "utf8")) as Array<{ name: string; version: string; license: string }>;
+    expect(sources.length).toBeGreaterThan(30);
+    const licenses = await run(["--licenses"]);
+    expect(licenses.code).toBe(0);
+    expect(licenses.stdout).not.toContain("undefined@undefined");
+    for (const source of sources) {
+      expect(source.name).toBeTypeOf("string");
+      expect(source.version).toBeTypeOf("string");
+      expect(source.license).toBeTypeOf("string");
+      expect(licenses.stdout).toContain(`${source.name}@${source.version}`);
+    }
+    for (const name of ["@inquirer/prompts", "@inquirer/core", "inquirer", "signal-exit"]) {
+      expect(sources.some((source) => source.name === name)).toBe(true);
+    }
+    expect(licenses.stdout).toContain("Copyright 2014-2020 Benjamin Tan");
+    expect(licenses.stdout).toContain("Copyright(c) 2014 Jonathan Ong");
+  });
+
   it("documents positional template, default base and detached creation", async () => {
     const result = await run(["sandbox", "create", "--help"]);
     expect(result.code).toBe(0);

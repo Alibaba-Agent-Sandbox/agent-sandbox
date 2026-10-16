@@ -183,12 +183,11 @@ export function parseSandboxRef(ref: string): [string | null, string] {
   if (idx >= 0) {
     const prefix = ref.slice(0, idx);
     const rest = ref.slice(idx + 1);
-    const valid = prefix === BUILTIN_PROVIDER_ID || validateProviderId(prefix) === null;
-    if (valid) {
-      if (!rest) throw new ProviderConfigError(`Sandbox reference '${ref}' is missing its sandbox id.`);
-      getProvider(prefix);
-      return [prefix, rest];
-    }
+    if (!rest) throw new ProviderConfigError(`Sandbox reference '${ref}' is missing its sandbox id.`);
+    const problem = prefix === BUILTIN_PROVIDER_ID ? null : validateProviderId(prefix);
+    if (problem !== null) throw new ProviderConfigError(`Invalid provider namespace '${prefix}': ${problem}.`);
+    getProvider(prefix);
+    return [prefix, rest];
   }
   return [null, ref];
 }
@@ -206,4 +205,3 @@ setSchemaLookup((providerId) => {
     ...provider.endpointDefaults,
   });
 });
-

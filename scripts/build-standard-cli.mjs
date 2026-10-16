@@ -74,21 +74,28 @@ const packages = new Set();
 for (const input of Object.keys(result.metafile.inputs)) {
   let dir = path.dirname(path.resolve(base, input));
   while (dir.startsWith(path.join(base, "node_modules"))) {
-    if (fs.existsSync(path.join(dir, "package.json"))) { packages.add(dir); break; }
+    const metadata = path.join(dir, "package.json");
+    if (fs.existsSync(metadata)) {
+      const pkg = JSON.parse(fs.readFileSync(metadata, "utf8"));
+      // ESM/CJS subdirectories can contain only {"type":"module"}; attribution belongs to the package root.
+      if (typeof pkg.name === "string" && typeof pkg.version === "string") { packages.add(dir); break; }
+    }
     dir = path.dirname(dir);
   }
+  if (!packages.has(dir)) throw new Error(`Cannot identify bundled source package: ${input}`);
 }
 let notice = "Pinned CLI source port: @e2b/cli 2.20.0, e2b 2.50.0.\n\n";
 const manifest = [];
 for (const dir of [...packages].sort()) {
   const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+  const licenseFiles = fs.readdirSync(dir).filter((name) => /^licen[cs]e|^copying|^notice/i.test(name) && fs.statSync(path.join(dir, name)).isFile()).sort();
+  if (!pkg.license || licenseFiles.length === 0) throw new Error(`Missing license attribution: ${pkg.name}@${pkg.version}`);
   manifest.push({ name: pkg.name, version: pkg.version, license: pkg.license });
   notice += `\n--- ${pkg.name}@${pkg.version} (${pkg.license ?? "see source"}) ---\n`;
-  for (const name of fs.readdirSync(dir).filter((n) => /^licen[cs]e|^copying|^notice/i.test(n))) {
-    const file = path.join(dir, name);
-    if (fs.statSync(file).isFile()) notice += fs.readFileSync(file, "utf8") + "\n";
-  }
+  for (const name of licenseFiles) notice += fs.readFileSync(path.join(dir, name), "utf8") + "\n";
 }
+// Retain legal comments from the upstream prebundled input when the final SEA build strips comments.
+notice += "\n--- Retained bundled source notices ---\n" + fs.readFileSync(`${runtimeFile}.LEGAL.txt`, "utf8");
 fs.writeFileSync(path.join(output, "THIRD_PARTY_NOTICES.txt"), notice);
 const licenses = fs.readFileSync(path.join(root, "LICENSE"), "utf8") + "\n" + fs.readFileSync(path.join(root, "NOTICE"), "utf8") + "\n" + notice;
 fs.writeFileSync(path.join(output, "notices.ts"), "// Generated license text; rebuild with npm run vendor:e2b.\nexport const STANDARD_LICENSES = " + JSON.stringify(licenses) + ";\n");

@@ -107,7 +107,7 @@ npm run dev -- --help        # tsx src/bin/abx.ts --help
 | Command                           | What it does                                                                 |
 |-----------------------------------|------------------------------------------------------------------------------|
 | `make test` / `npm test`          | `vitest run` (integration tests excluded)                                    |
-| `make lint`                       | Static check of `src/` and `tests/` (alias of `make typecheck`; no separate linter) |
+| `make lint`                       | Run ESLint (`npm run lint`); type checking is a separate gate |
 | `make typecheck` / `npm run typecheck` | `tsc -p tsconfig.json --noEmit` (strict)                                |
 | `make build` / `npm run build`    | `tsc -p tsconfig.build.json` (emits `dist/`)                                 |
 | `make binary`                     | `node scripts/build_binary.mjs` — standalone binary for the current platform |

@@ -4,6 +4,8 @@ The standard command path targets Alibaba's documented `@e2b/cli@2.20.0`, with i
 
 Install/build this checkout as described in the root README until the release is published. Keep your existing `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`; replace the executable prefix `e2b` with `abx`. Project/home configuration also works. Authentication uses the configured Alibaba API key; E2B browser login and Team administration are not required.
 
+Standard command output options follow each command's help, such as `--format json` where supported. Native root switches such as `--json` / `--quiet` do not select a different lifecycle implementation; unsupported combinations fail explicitly. Check the standard command's `--help` for supported options.
+
 ```bash
 abx sandbox create code-interpreter-v1 --detach
 abx sandbox list --format json
@@ -23,7 +25,7 @@ Pause/resume depends on runtime/allowlist. Snapshot creation/restoration/deletio
 
 The bundled standard command source is a maintained MIT source port, not a runtime dependency or external executable invocation. `vendor/e2b-cli/package-lock.json` fixes build inputs; `npm ci --prefix vendor/e2b-cli && npm run vendor:e2b` reproduces it. Licenses and source manifest accompany the port. The npm and standalone builds both embed it. Contract tests and real-cloud evidence are recorded in `.agents/`.
 
-`abx --licenses` prints bundled license notices, including from a standalone executable.
+`abx --licenses` displays the licenses and notices retained with the embedded standard implementation, including from a standalone executable. This does not establish a complete dependency/SBOM audit of the entire executable or dependencies already bundled upstream.
 
 `abx template from-image <image> --name <name>` preserves Alibaba image-template creation as a project extension. `template create` uses the pinned E2B Dockerfile-build semantics.
 

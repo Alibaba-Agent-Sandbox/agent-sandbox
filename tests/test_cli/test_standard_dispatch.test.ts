@@ -12,6 +12,21 @@ describe("standard command routing", () => {
     expect(standardArguments(["list", "--format", "json"])).toEqual(["sandbox", "list", "--format", "json"]);
   });
 
+  it("keeps native root flags on the standard path for explicit parser rejection", () => {
+    for (const flag of ["--json", "-j", "--quiet", "-q", "--verbose", "-v", "--no-color", "--ci", "-qv"]) {
+      expect(standardArguments([flag, "create", "base"]))
+        .toEqual([flag, "sandbox", "create", "base"]);
+    }
+    expect(standardArguments(["--log-level", "INFO", "sbx", "create", "base"]))
+      .toEqual(["--log-level", "INFO", "sandbox", "create", "base"]);
+    expect(standardArguments(["--provider=alicloud-express", "--json", "create", "base"]))
+      .toEqual(["--json", "sandbox", "create", "base"]);
+    expect(standardArguments(["--json", "--provider", "alicloud-express", "exec", "id", "agent", "--provider", "remote"]))
+      .toEqual(["--json", "sandbox", "exec", "id", "agent", "--provider", "remote"]);
+    expect(standardArguments(["--json", "create", "--prompt", "test environment"])).toBeNull();
+    expect(standardArguments(["--json", "create", "base", "--provider", "opensandbox"])).toBeNull();
+  });
+
   it("reserves natural language for the explicit prompt option", () => {
     expect(standardArguments(["sandbox", "create", "--prompt", "a Python sandbox"])).toBeNull();
     expect(standardArguments(["create", "--prompt=a Python sandbox"])).toBeNull();
@@ -47,6 +62,10 @@ describe("standard command routing", () => {
     }
     expect(standardArguments(["exec", "--cwd", "/tmp", "opensandbox:resource-id", "true"])).toBeNull();
     expect(standardArguments(["kill", "one", "opensandbox:two"])).toBeNull();
+    for (const ref of ["default:id", "none:id", "alicloud-compute:id", "UPPER:id", ":id"]) {
+      expect(standardArguments(["info", ref])).toBeNull();
+      expect(standardArguments(["exec", ref, "curl", "https://example.invalid"])).toBeNull();
+    }
     expect(standardArguments(["exec", "plain-id", "curl", "https://example.invalid"]))
       .toEqual(["sandbox", "exec", "plain-id", "curl", "https://example.invalid"]);
     expect(standardArguments(["create", "image:tag", "--detach"]))

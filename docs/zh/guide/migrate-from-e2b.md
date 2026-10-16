@@ -4,6 +4,8 @@
 
 新版本发布前，按根 README 从当前检出构建安装。保留现有 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，把可执行文件前缀 `e2b` 改为 `abx`。项目与用户配置文件也可使用。使用阿里云 API Key，不需要 E2B 浏览器登录或 Team 管理。
 
+标准命令的输出选项以各命令帮助为准，例如支持时使用 `--format json`。原生根选项 `--json`／`--quiet` 等不会切换生命周期实现；不支持的组合会明确报错。具体可用选项请查看该标准命令的 `--help`。
+
 ```bash
 abx sandbox create code-interpreter-v1 --detach
 abx sandbox list --format json
@@ -23,7 +25,7 @@ Python 导入及行为见[Python 迁移指南](https://github.com/Alibaba-Agent-
 
 标准命令由项目维护固定版本 MIT 源码，不在运行时依赖或调用外部 E2B。`vendor/e2b-cli/package-lock.json` 固定构建输入，执行 `npm ci --prefix vendor/e2b-cli && npm run vendor:e2b` 可重建。源码清单和许可证随代码保留，npm 与独立二进制均内嵌标准实现。接口测试和真实云端结果在 `.agents/` 记录。
 
-`abx --licenses` 可查看完整内嵌许可证，独立二进制也支持。
+`abx --licenses` 可查看随内嵌标准实现保留的许可证与声明，独立二进制也支持。这不代表整个可执行程序及上游已打包依赖的全量许可证／SBOM 审计已经完成。
 
 `abx template from-image <image> --name <name>` 保留阿里云镜像建模板扩展；`template create` 使用固定 E2B 版本的 Dockerfile 构建语义。
 
