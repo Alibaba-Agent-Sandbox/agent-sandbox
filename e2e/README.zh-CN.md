@@ -14,7 +14,7 @@ cp .env.example .env   # 然后填入真实值
 
 # 2. 对 abx 二进制运行
 ABX_BIN=abx                           npm run e2e          # PATH 上的 `abx`(默认)
-ABX_BIN="node dist/bin/abx.js"        npm run e2e          # `npm run build` 之后
+ABX_BIN="node $PWD/dist/bin/abx.js"   npm run e2e          # `npm run build` 之后
 
 npm run e2e:offline                   # 仅无需凭据的套件(几秒)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'

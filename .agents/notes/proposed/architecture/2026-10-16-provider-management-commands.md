@@ -91,4 +91,5 @@ authorization boundary, as clarified in both language versions of the specificat
 
 [Verification](../../../evidence/verify/2026-10-16-provider-management-commands.md).
 [Final review and mount verification](../../../evidence/verify/2026-10-16-provider-management-final-review.md).
+[Independent recheck and accepted-main integration](../../../evidence/verify/2026-10-16-provider-management-recheck.md).
 This decision remains proposed while required verification or API prerequisites are outstanding.

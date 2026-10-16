@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Clarify the current Volume invitation-access prerequisite in the English and Chinese management and mounting guides; an empty list does not prove create or mount access.
+- Use an absolute built CLI path in both E2E quick starts so the executable still resolves from isolated scenario directories.
+
 - **npm publish is opt-in.** `.github/workflows/release.yml` skips the publish job unless the repository variable `NPM_PUBLISH` is `true`. A binary-only `v*` tag stays green when `NPM_API_TOKEN` is absent.
 
 - **CLI skill stays on operating a sandbox.** `SKILL.md` is a static usage guide at the repository root; tools load it from a directory named `agent-sandbox`. It lists the fixed command surface, the seven MCP tools, deploy `--build`, and the fact that `opensandbox`, `alicloud-container`, `cubesandbox`, and `e2b` are `node` plugins the CLI and the Python SDK both run. It does not restore the removed `abx skill` command. Writing `Sandbox.create`, `template.yaml`, a Dockerfile, or `commands.py` is the `agent-sandbox-sdk` skill. `abx template init` scaffolds `@command` and `start()` under `if __name__ == "__main__"`.

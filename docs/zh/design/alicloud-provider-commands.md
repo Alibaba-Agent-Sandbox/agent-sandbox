@@ -45,6 +45,8 @@ JSON Schema、作用类型 `read` / `write` / `delete` 与幂等性。命令位�
 `agentic_bucket_volume_config` 之一，可附带 `mount_config`。创建、删除 Volume
 只操作挂载配置，不创建、删除底层存储。更新只映射公开的 `status` 与 Team 标识，
 不提供任意存储重配置。将 Volume 挂入沙箱是独立运行时操作，创建成功不代表挂载成功。
+官方 OSS Volume 指南目前要求提交阿里云工单申请邀测。准备存储前，应确认目标账号、
+地域和 Team 已开通 Volume 能力；成功返回空列表不能证明已有创建或挂载权限。
 
 先发现命令并查询准确 Schema，再准备输入文件：
 

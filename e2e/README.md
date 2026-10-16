@@ -15,7 +15,7 @@ cp .env.example .env   # then fill in real values
 
 # 2. run against the abx binary
 ABX_BIN=abx                           npm run e2e          # `abx` on PATH (default)
-ABX_BIN="node dist/bin/abx.js"        npm run e2e          # after `npm run build`
+ABX_BIN="node $PWD/dist/bin/abx.js"   npm run e2e          # after `npm run build`
 
 npm run e2e:offline                   # only the no-credential suite (seconds)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'

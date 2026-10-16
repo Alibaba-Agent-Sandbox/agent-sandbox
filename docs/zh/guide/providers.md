@@ -227,4 +227,5 @@ abx --json provider command run alicloud-express volume.list --input '{"max_resu
 
 挂载已有 FC Volume 时，使用 `abx create --template base --volume-mount /mnt/workspace=workspace`。
 按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
+Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
 角色配置和挂载验证见能力矩阵。

@@ -36,6 +36,7 @@ Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
 
 ## `verify/` — E2E runs
 
+- [`verify/2026-10-16-provider-management-recheck.md`](verify/2026-10-16-provider-management-recheck.md)
 - [`verify/2026-10-16-provider-management-commands.md`](verify/2026-10-16-provider-management-commands.md)
 - [`verify/2026-10-16-provider-management-final-review.md`](verify/2026-10-16-provider-management-final-review.md)
 - [`verify/2026-10-16-provider-command-spec-review.md`](verify/2026-10-16-provider-command-spec-review.md)

@@ -56,7 +56,10 @@ Volume creation accepts exactly one of `oss_volume_config`,
 underlying storage. Updating a Volume uses only the published `status` field and
 Team identifier; it is not an arbitrary storage reconfiguration operation.
 Mounting an existing Volume into a sandbox is a separate runtime operation and is
-not implied by successful Volume creation.
+not implied by successful Volume creation. The official OSS Volume guide currently
+requires invitation access through an Alibaba Cloud support ticket. Confirm that
+the target account, region and Team have Volume access before preparing storage;
+a successful empty list does not establish permission to create or mount a Volume.
 
 Discover and inspect the exact schemas before preparing an input file:
 

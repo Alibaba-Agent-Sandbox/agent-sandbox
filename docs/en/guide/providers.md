@@ -227,4 +227,6 @@ Writes and deletes require `--yes`. Supply credentials through configuration; `-
 
 To mount an existing FC Volume, use `abx create --template base --volume-mount /mnt/workspace=workspace`.
 This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
-It does not create underlying storage. See the capability matrix for role configuration and mount verification.
+It does not create underlying storage. Volume currently requires invitation access; confirm it through
+an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).
+See the capability matrix for role configuration and mount verification.
