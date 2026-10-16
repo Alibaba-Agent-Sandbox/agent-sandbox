@@ -2,7 +2,7 @@
 // the binary. Each node gets `--help` (exit 0, usage names the command) and one local
 // invocation that does not create a sandbox and does not call the cloud or DashScope:
 // a usage error when a required argument or option is missing, or a local operation
-// (config get/set/list/init, provider list/default/doctor/update, template init of the
+// (config get/set/list/init, provider list/default/doctor/update, template scaffold of the
 // built-in python case, mcp --help/status/stop).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,11 +25,13 @@ function parseCommands(text) {
   const cmds = [];
   let inSection = false;
   for (const line of lines) {
+    const extensions = /^Agent Sandbox extensions: ([^.]+)/.exec(line.trim());
+    if (extensions) cmds.push(...extensions[1].split(',').map((name) => name.trim()));
     if (COMMAND_HEADINGS.has(line.trim())) { inSection = true; continue; }
     if (!inSection) continue;
     if (!line.trim()) { inSection = false; continue; }
-    const m = /^  ([a-zA-Z][a-zA-Z0-9-]*)\s{2,}/.exec(line);
-    if (m) cmds.push(m[1]);
+    const m = /^  ([a-zA-Z][a-zA-Z0-9-]*)(?:\||\s{2,}|\s+\[|\s+<)/.exec(line);
+    if (m && m[1] !== 'help') cmds.push(m[1]);
     else if (!/^\s+/.test(line)) inSection = false;
   }
   return cmds;
@@ -82,11 +84,19 @@ function planSafe(path, { isGroup, usage }) {
   if (key === 'provider list' || key === 'provider default') return { argv: [...path], code: 0, match: /alicloud-express/ };
   if (key === 'provider doctor') return { argv: [...path], code: 0, match: /installed/ };
   if (key === 'provider update') return { argv: [...path], code: 0, match: /up to date/ };
-  if (key === 'template init') return { kind: 'scaffold', argv: [...path] };
+  if (key === 'template scaffold') return { kind: 'scaffold', argv: [...path] };
   if (key === 'mcp') return { argv: ['mcp', '--help'], code: 0, match: /Usage: abx mcp/ };
   if (key === 'mcp status') return { argv: [...path], code: 0, match: /agent-sandbox/ };
   if (key === 'mcp stop') return { argv: [...path], code: 0, match: /not running/i };
-  if (key === 'create' || key === 'sandbox create') return { argv: [...path], code: 2, match: /No DESCRIPTION or --template/ };
+  const rootShortcuts = ['create', 'list', 'info', 'kill', 'exec', 'connect', 'pause', 'resume'];
+  const nativeSandbox = ['upload', 'download', 'capabilities', 'files', 'process', 'command', 'system'];
+  const nativeTemplate = ['from-image', 'build', 'deploy', 'scaffold', 'install', 'push', 'search', 'info'];
+  const standard = rootShortcuts.includes(path[0])
+    || path[0] === 'sandbox' && !nativeSandbox.includes(path[1])
+    || path[0] === 'template' && !nativeTemplate.includes(path[1]);
+  if (standard) return isGroup
+    ? { argv: [...path, '--help'], code: 0, match: /Usage: abx/ }
+    : { argv: [...path, UNKNOWN], code: 1, match: /unknown option/i };
   if (key === 'kill' || key === 'sandbox kill') return { argv: [...path], code: 2, match: /sandbox ID/ };
   if (isGroup) return { argv: [...path], code: 2, match: /Usage: abx/ };
   if (requiredPositionals(usage, path).length) return { argv: [...path], code: 2, match: /Missing argument/ };
@@ -167,7 +177,7 @@ export default {
           const work = path[0] === 'config' ? cfgHome : home;
 
           if (plan.kind === 'scaffold') {
-            const slot = 'template-init-python';
+            const slot = 'template-scaffold-python';
             const dir = ctx.newCwd(slot);
             const argv = [...plan.argv, 'python-case', '--template', 'python', '--name', 'python-case'];
             refuseUnsafe(argv);

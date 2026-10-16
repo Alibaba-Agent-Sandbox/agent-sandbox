@@ -47,6 +47,7 @@ import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../main.js";
 import { enableVerbose, getOutput, type OutputManager } from "../output.js";
 import { REPL_TIMEOUT, describeCommandFailure, enableLineEditing, input, inputInterrupts, programName } from "../repl.js";
+import { requireTemplateFeature } from "../template_provider.js";
 import { regionOption } from "../region.js";
 import { printedId, providerView, scopedFlagOptions } from "../provider_view.js";
 import { providersInUse } from "../../providers/in_use.js";
@@ -83,34 +84,27 @@ export const sandboxSeams: {
 
 const CREATE_HELP = `Create a new sandbox.
 
-    'abx create' is the shortcut of 'abx sandbox create'. Exactly one route is
-    taken, and it must be explicit:
+    'abx create' is the shortcut of 'abx sandbox create'. A positional argument
+    selects a template; the default is base. Natural language uses --prompt.
 
     \b
-      abx create --template base  →  launch the 'base' template
-      abx create --template NAME  →  launch NAME directly
-      abx create "DESCRIPTION"    →  template generation: Qwen Code writes a
-                                    template from the description, then it is
-                                    built, deployed and launched. It researches
-                                    public facts first and asks only for details
-                                    it cannot infer. An interactive terminal is
-                                    first asked whether to stop after writing
-                                    the files (same as template init)
+      abx create base                        launch the base template
+      abx create code-interpreter-v1         launch an existing template
+      abx create --prompt "DESCRIPTION"      generate a template, build and launch
 
-    DESCRIPTION and --template are mutually exclusive: passing both is
-    rejected instead of silently ignoring one of them.
+    --prompt and an explicit template cannot be combined.
 
     --timeout is the sandbox lifetime in seconds (default: 300).
 
     \b
     Examples:
-      abx create --template base              # explicit 'base' template
-      abx create --template python-hello      # named template
+      abx create base              # explicit 'base' template
+      abx create python-hello      # named template
       abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
       abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
-      abx create "a python data science env"  # generate, build, deploy, create
-      abx create -y "a node.js api server"    # non-interactive full pipeline
-      abx template init "a python data science env"  # template files only
+      abx create --prompt "a python data science env"  # generate, build, deploy, create
+      abx create -y --prompt "a node.js api server"    # non-interactive full pipeline
+      abx template scaffold --prompt "a python data science env"  # template files only
 
     \b
     Notes:
@@ -130,8 +124,8 @@ const CREATE_HELP = `Create a new sandbox.
     Related commands:
       abx list                 List existing sandboxes
       abx info SANDBOX_ID      Inspect a created sandbox
-      abx template init DIR    Scaffold a new template project (local)
-      abx template init "DESC" Generate a template only (no build)
+      abx template scaffold DIR    Scaffold a new template project (local)
+      abx template scaffold --prompt "DESC" Generate a template only (no build)
       abx template search KEY  Find reusable templates
       abx config init          Set credentials and region
     `;
@@ -383,7 +377,7 @@ export function _rollingNote(update: ((summary: string) => void) | null, limit: 
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// AI template generation helpers for `abx create "<description>"`
+// AI template generation helpers for `abx create --prompt "<description>"`
 //
 // The pipeline talks to a pluggable coding-agent backend (see `agent/coding_agent.ts`); Qwen Code is the only shipped
 // backend today, so every default message stays byte-identical to the Qwen Code wording. Backend resolution, binary
@@ -486,7 +480,7 @@ export async function _clarifyRequirements(
     if (assessment.example) parts.push(`Example description: "${assessment.example}".`);
     parts.push(
       "Add them to DESCRIPTION, pass --yes/-y to generate from the current " +
-        "description anyway, or use 'abx create --template <name>'.",
+        "description anyway, or use 'abx create <name>'.",
     );
     return parts.join(" ");
   };
@@ -694,8 +688,8 @@ function _withModelHint(exc: unknown, creds: { asEnv(): Record<string, string> }
   const model = _modelInUse(creds);
   const suggestion =
     `The endpoint rejected model '${model}'. ` +
-    "Pass a model this key can call: abx create \"<description>\" --model <id> " +
-    "(or abx template init --model <id>). " +
+    "Pass a model this key can call: abx create --prompt \"<description>\" --model <id> " +
+    "(or abx template scaffold --model <id>). " +
     "Persist it with: abx config set llm_model <id>. " +
     "ABX_LLM_MODEL and OPENAI_MODEL also work.";
   if (exc !== null && typeof exc === "object" && "suggestion" in exc) {
@@ -927,7 +921,7 @@ export function _validateProjectDirectory(chosen: string, opts: { force: boolean
 }
 
 /**
- * Ask where `abx template init "DESCRIPTION"` should write the project.
+ * Ask where `abx template scaffold --prompt "DESCRIPTION"` should write the project.
  *
  * Returns the chosen directory, or `null` to keep `./<name>/` (or `./<--name>/`). `--yes`, `--json`, and a
  * non-interactive terminal skip the prompt. Enter accepts the default. Nothing is created here.
@@ -948,14 +942,14 @@ export async function _promptProjectDirectory(
 /**
  * Generate a local template project and stop.
  *
- * Shared by `abx template init "DESCRIPTION"` and by the create-path switch that opts out of build, push, deploy, and
+ * Shared by `abx template scaffold --prompt "DESCRIPTION"` and by the create-path switch that opts out of build, push, deploy, and
  * sandbox creation. `ask_directory` prompts for the project directory before generation (init). The create switch
  * keeps `./<name>/`.
  */
 export async function _generateLocalTemplate(
   ctx: Context,
   description: string,
-  opts: { yes: boolean; name?: string | null; force?: boolean; ask_directory?: boolean; model?: string | null },
+  opts: { yes: boolean; name?: string | null; force?: boolean; ask_directory?: boolean; model?: string | null; directory?: string | null },
 ): Promise<void> {
   const { yes } = opts;
   const name = opts.name ?? null;
@@ -963,7 +957,7 @@ export async function _generateLocalTemplate(
   const askDirectory = opts.ask_directory ?? false;
   const template = await import("./template.js");
 
-  const projectDir = askDirectory ? await _promptProjectDirectory(ctx, { yes, name, force }) : null;
+  const projectDir = opts.directory ? _validateProjectDirectory(opts.directory, { force }) : (askDirectory ? await _promptProjectDirectory(ctx, { yes, name, force }) : null);
   const gen = await _generateTemplateWorkspace(ctx, description, { yes, model: opts.model ?? null });
   const [target, created] = _materializeLocalTemplate(gen, { name, force, directory: projectDir });
   template._printInitSummary(getFormatter(ctx), getOutput(ctx), target, created, name || gen.templateName);
@@ -983,7 +977,7 @@ export async function _wantsTemplateOnly(ctx: Context, description: string, opts
   const hint =
     "Natural-language create generates a template, then builds and pushes " +
     "the image, deploys it, and creates a sandbox. " +
-    `Template only: abx template init "${description}"`;
+    `Template only: abx template scaffold --prompt "${description}"`;
   if (!sandboxSeams.stdinIsatty()) {
     getOutput(ctx).info(hint);
     return false;
@@ -1013,6 +1007,7 @@ export async function _generateAndDeployTemplate(
   description: string,
   opts: { yes: boolean; acr_namespace: string | null; verbose: boolean; output_dir?: string | null; model?: string | null },
 ): Promise<string> {
+  requireTemplateFeature("templates.build");
   const { yes, verbose } = opts;
   const template = await import("./template.js");
 
@@ -1055,7 +1050,8 @@ function _parsePairs(items: readonly string[], onInvalid: (item: string) => neve
 export const create = command("create", {
   help: CREATE_HELP,
   params: [
-    argument(["description"], { required: false, default: null }),
+    argument(["template_name"], { required: false, default: null }),
+    option(["--prompt"], { default: null, help: "Generate, build and deploy a sandbox from a natural-language description. Mutually exclusive with a template." }),
     option(["--template", "-T"], { default: null, help: "Template ID or alias to launch (e.g. 'base', 'python-hello'). " + "Defaults to 'base' when omitted. Cannot be combined with DESCRIPTION." }),
     option(["--upload", "-u"], { type: new Path({ exists: true }), default: null, help: "Local file or directory to upload after creation" }),
     option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: 300, help: "Sandbox lifetime in seconds (positive integer; default: 300)" }),
@@ -1100,8 +1096,8 @@ export const create = command("create", {
     option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
   ],
   callback: handleErrors(async (ctx: Context, params) => {
-    const description: string | null = params["description"];
-    const template: string | null = params["template"];
+    const description: string | null = params["prompt"];
+    const template: string | null = params["template"] ?? params["template_name"] ?? (description ? null : "base");
     const upload: string | null = params["upload"];
     const cmdTimeout: number = params["cmd_timeout"];
     const requestTimeout: number | null = params["request_timeout"];
@@ -1114,21 +1110,6 @@ export const create = command("create", {
     const verboseFlag: boolean = params["verbose_flag"];
 
     if (verboseFlag) enableVerbose(ctx);
-
-    // Routing guard: one of the three routes must be explicit. An implicit 'base' fallback made `abx create` with no
-    // arguments easy to trigger by accident (e.g. a dropped argument), so require an explicit choice and show all three
-    // paths instead. Emitted directly on stderr with exit code 2 (usage-error contract) instead of raising
-    // `UsageError`, which `handleErrors` would re-wrap to exit 1.
-    if (!description && !template) {
-      echo(
-        "Error: No DESCRIPTION or --template given. Choose one of:\n\n" +
-          "  abx create --template base       launch the explicit base template\n" +
-          "  abx create --template <NAME>     launch an existing template (no generation)\n" +
-          '  abx create "<DESCRIPTION>"      generate the template, build, deploy, create',
-        { err: true },
-      );
-      sysExit(2);
-    }
 
     // Routing guard: DESCRIPTION and --template are mutually exclusive. Accepting both while silently dropping one of them
     // would be surprising, so reject the combination before any AI generation or network call.

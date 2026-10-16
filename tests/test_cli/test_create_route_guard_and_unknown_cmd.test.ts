@@ -19,8 +19,6 @@ import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
-const THREE_ROUTES = ["abx create --template base", "--template <NAME>", "DESCRIPTION"];
-
 // `runner` fixture
 const runner = (): CliRunner => new CliRunner();
 
@@ -29,17 +27,16 @@ const runner = (): CliRunner => new CliRunner();
 // ---------------------------------------------------------------------------
 
 describe("TestCreateRequiresExplicitRoute", () => {
-  it("test_bare_create_is_a_usage_error", async () => {
-    const result = await runner().invoke(cli, ["create"]);
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No DESCRIPTION or --template given");
-  });
-
-  it("test_error_lists_all_three_routes", async () => {
-    const result = await runner().invoke(cli, ["create"]);
-    for (const fragment of THREE_ROUTES) {
-      expect(result.output).toContain(fragment);
-    }
+  it("bare create and positional templates use the standard defaults", async () => {
+    const mockSb = { commands: {}, id: "sbx-mock", status: "running", url: "https://sbx-mock.example", info: { template: "base", envd_version: null } };
+    const spy = vi.spyOn(Sandbox, "create").mockResolvedValue(mockSb as unknown as Sandbox);
+    try {
+      for (const args of [["create"], ["create", "base"]]) {
+        const result = await runner().invoke(cli, args);
+        expect(result.exit_code, result.output).toBe(0);
+      }
+      expect(spy).toHaveBeenCalledTimes(2);
+    } finally { spy.mockRestore(); }
   });
 
   // Python patches `Sandbox.create` and `run_sync`; here `Sandbox.create` is spied on (no `run_sync` bridge in the Node port).
@@ -94,7 +91,7 @@ describe("TestUnknownCommandHints", () => {
       const result = await runner().invoke(cli, [name]);
       expect(result.exit_code).toBe(2);
       expect(result.output).toContain(`No such command '${name}'`);
-      expect(result.output).toContain("abx template init|install");
+      expect(result.output).toContain("abx template scaffold|install");
     }
   });
 

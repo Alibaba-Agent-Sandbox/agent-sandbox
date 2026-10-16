@@ -1,0 +1,13 @@
+[exit_code:1]
+[stderr]
+Natural-language create generates a template, then builds and pushes the image, deploys it, and creates a sandbox. Template only: abx template scaffold --prompt "运行 python"
+Warning: Qwen Code CLI was not found on PATH or in ~/.abx/bin.
+
+Quick Setup - template generation (Qwen Code):
+  1. Install the Qwen Code CLI (official standalone build):
+       curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh | bash
+     or re-run 'abx create --prompt "<description>"' and accept the install prompt
+     or bypass template generation with:  abx create base
+  2. Docs: https://github.com/QwenLM/qwen-code
+[E2005] Qwen Code CLI is required for template generation but is not installed.
+  Suggestion: Install it with the official command from Quick Setup above, then retry — or use 'abx create <name>' to skip template generation.

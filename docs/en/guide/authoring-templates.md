@@ -6,9 +6,9 @@ Three ways to start, all of them local files only (publish later with `abx deplo
 
 | Starting point | Command |
 |----------------|---------|
-| Built-in scaffold | `abx template init -t python ./my-template` |
-| A sentence (Qwen Code writes a new directory) | `abx template init "a Python data analysis environment"` |
-| A project that already has source code | `abx template init --adopt ./app` — see [Adapt an existing project](#adapt-an-existing-project) |
+| Built-in scaffold | `abx template scaffold -t python ./my-template` |
+| A sentence (Qwen Code writes a new directory) | `abx template scaffold --prompt "a Python data analysis environment"` |
+| A project that already has source code | `abx template scaffold --adopt ./app` — see [Adapt an existing project](#adapt-an-existing-project) |
 
 ---
 
@@ -61,7 +61,7 @@ ports:
 
 The `template.yaml` fields and the `capabilities` vocabulary (`shell`, `files`, `code`, `terminal`, `ports`) are part of the shared template contract. Named commands are not declared in `template.yaml`: register them with `@command` and call `start()` only under `if __name__ == "__main__"`. Call one with `abx run <id> <name> --arg k=v` (list them with `abx sandbox command list <id>`). The fields and capabilities are specified in the SDK documentation listed in [Related SDK documentation](#related-sdk-documentation).
 
-`base` may be a string image or `{ image: ... }`. For Alibaba Cloud Express, also set `generation: 2`, `start_cmd`, and `ready_cmd` (the platform starts `agent-sandbox-server`; the image entrypoint does not). `abx template init -t python` writes those keys. `abx run` and `abx sandbox command list` / `run` send the sandbox `X-Access-Token` to port 9000. If that credential is rejected (HTTP 401), they retry once with no credential: Express does not set `ABX_SERVER_TOKEN`, and a token that matches nothing is unauthorized. After `abx template deploy`, the manifest is cached at `~/.abx/templates/<template-id>/template.yaml`. A deploy that passes `--alias` also caches it at `~/.abx/templates/<alias>/template.yaml`, so `abx create --template <id>` and `abx create --template <alias>` both resolve capabilities. If neither file is present, the warning names `~/.abx/templates`.
+`base` may be a string image or `{ image: ... }`. For Alibaba Cloud Express, also set `generation: 2`, `start_cmd`, and `ready_cmd` (the platform starts `agent-sandbox-server`; the image entrypoint does not). `abx template scaffold -t python` writes those keys. `abx run` and `abx sandbox command list` / `run` send the sandbox `X-Access-Token` to port 9000. If that credential is rejected (HTTP 401), they retry once with no credential: Express does not set `ABX_SERVER_TOKEN`, and a token that matches nothing is unauthorized. After `abx template deploy`, the manifest is cached at `~/.abx/templates/<template-id>/template.yaml`. A deploy that passes `--alias` also caches it at `~/.abx/templates/<alias>/template.yaml`, so `abx create <id>` and `abx create <alias>` both resolve capabilities. If neither file is present, the warning names `~/.abx/templates`.
 
 ## Dockerfile Customization
 
@@ -71,22 +71,22 @@ The `Dockerfile` in the template directory is the image when one is present. `te
 
 The HTTP server inside the image does not depend on a sandbox provider. `commands.py` imports only `agent_sandbox.server` and calls `start(port)` under `if __name__ == "__main__"`. A `start()` or `serve()` call at import time breaks the platform `--commands` import. Port 9000 is the server default.
 
-Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `start_cmd` / `ready_cmd`, architecture, workdir, reserved ports, and registry notes come from the **selected provider's template profile**. `abx` resolves that provider the same way as every other command: `--provider`, then `ABX_PROVIDER`, then the configured default (`alicloud-express`). The template guide, the codegen prompt, and `abx template init` describe that one profile.
+Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `start_cmd` / `ready_cmd`, architecture, workdir, reserved ports, and registry notes come from the **selected provider's template profile**. `abx` resolves that provider the same way as every other command: `--provider`, then `ABX_PROVIDER`, then the configured default (`alicloud-express`). The template guide, the codegen prompt, and `abx template scaffold` describe that one profile.
 
 - `alicloud-express` uses `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`, does not set `CMD` or `ENTRYPOINT`, and starts the server with the platform `start_cmd` / `ready_cmd`. Workdir is `/home/user/app`. Ports 49983, 5000, and 49999 are reserved by that profile.
 - Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `abx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
-- The image installs `agent-sandbox-server`, not the client package. `abx template init` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`. That distribution is not on PyPI. A Dockerfile that already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` is used as written, and deploy does not query PyPI. `ABX_SERVER_SDK_SOURCE` replaces that pin with a local wheel, whatever SHA it names.
+- The image installs `agent-sandbox-server`, not the client package. `abx template scaffold` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`. That distribution is not on PyPI. A Dockerfile that already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` is used as written, and deploy does not query PyPI. `ABX_SERVER_SDK_SOURCE` replaces that pin with a local wheel, whatever SHA it names.
 
 ---
 
 ## Adapt an existing project
 
-`abx template init --adopt` is for a directory that already has application code and is missing the sandbox template files. Qwen Code reads a copy of that project and abx writes the template files back into the same directory. Nothing is built, pushed, or launched; publish with `abx deploy` afterwards.
+`abx template scaffold --adopt` is for a directory that already has application code and is missing the sandbox template files. Qwen Code reads a copy of that project and abx writes the template files back into the same directory. Nothing is built, pushed, or launched; publish with `abx deploy` afterwards.
 
 ```bash
-abx template init --adopt . --hint "the API listens on 8080"
-abx template init --adopt ./app --dry-run          # list the files; send nothing
-abx template init --adopt ./app --name my-api -y   # non-interactive
+abx template scaffold --adopt . --hint "the API listens on 8080"
+abx template scaffold --adopt ./app --dry-run          # list the files; send nothing
+abx template scaffold --adopt ./app --name my-api -y   # non-interactive
 abx deploy ./app --acr-namespace my-ns
 ```
 
@@ -115,7 +115,7 @@ Left out of the copy: `.git`, `node_modules`, virtualenvs, and similar heavy dir
 
 The agent process does not inherit cloud or registry credentials (`ALICLOUD_*`, `E2B_*`, `ACR_*`, `AWS_*`, `GITHUB_TOKEN`). It does receive the Qwen Code key from `abx config`.
 
-This sends your project source to the model. `abx template init "DESCRIPTION"` sends only the sentence you typed.
+This sends your project source to the model. `abx template scaffold --prompt "DESCRIPTION"` sends only the sentence you typed.
 
 ### Checks before anything is written
 
@@ -137,7 +137,7 @@ An existing `.dockerignore` that does not exclude `.env` (including one re-inclu
 | `commands.py` that does not import `agent_sandbox.server` | Needs `--force` |
 | `Dockerfile`, or an Agent Sandbox `commands.py` | An interactive preview can replace it. `-y`, `--json`, and CI need `--force` because there is no preview |
 
-`abx template init --from <local directory>` requires a `template.yaml` in that directory. A source tree without one is refused and the message points at `--adopt`, so `.env` and `.git` are not copied as template source.
+`abx template scaffold --from <local directory>` requires a `template.yaml` in that directory. A source tree without one is refused and the message points at `--adopt`, so `.env` and `.git` are not copied as template source.
 
 If generation fails, the project is unchanged and the error includes the staging directory. Delete that `abx-adopt-…` directory after you have inspected it.
 
@@ -200,7 +200,7 @@ abx template deploy ./my-template \
 If the image is already pushed to ACR, you can create a template directly without local building:
 
 ```bash
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
 ```
 
 ---

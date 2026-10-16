@@ -1,7 +1,8 @@
 /** Sandbox process-inspection CLI commands: list, info, signal (port of `cli/commands/sandbox_process.py`). */
 
 import type { Sandbox } from "../../api/sandbox.js";
-import type { ProcessResult } from "../../models/process.js";
+import { CapabilityNotSupportedError } from "../../models/errors.js";
+import type { ProcessInfo, ProcessResult } from "../../models/process.js";
 import { PY_WHITESPACE } from "../../utils/_py.js";
 import { pyStrip, pySplitlines } from "../../utils/_pyformat.js";
 import { argument, command, group, option } from "../kit.js";
@@ -56,7 +57,7 @@ export const process_list = command("list", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox process info SANDBOX_ID PID\n" +
-    "  abx exec SANDBOX_ID --background -- CMD\n" +
+    "  abx exec --background SANDBOX_ID CMD\n" +
     "  abx sandbox system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
@@ -99,7 +100,7 @@ export const process_info = command("info", {
   help:
     "Get details of a process by PID.\n" +
     "\n" +
-    "Uses ps to query process information from the sandbox.\n" +
+    "Resolves envd process IDs through the process list; falls back to ps for OS PIDs.\n" +
     "\n" +
     "Examples:\n" +
     "\n" +
@@ -120,7 +121,23 @@ export const process_info = command("info", {
     const fmt = getFormatter(ctx);
     const sandbox = await _connectSandbox(sandbox_id);
 
-    // Use ps for process info
+    // Alibaba can expose envd IDs that are different from OS PIDs. Resolve known
+    // handles through the same API that produced them before querying /proc via ps.
+    let processes: ProcessInfo[] = [];
+    try {
+      processes = await sandbox.commands.list();
+    } catch (error) {
+      if (!(error instanceof CapabilityNotSupportedError)) throw error;
+    }
+    const known = processes.find((item) => String(item.pid) === String(pid));
+    if (known) {
+      fmt.printDict(new Map<string, unknown>([
+        ["PID", String(known.pid)], ["Command", known.command], ["State", known.status],
+      ]));
+      return;
+    }
+
+    // An OS PID not tracked by envd can still be inspected through ps.
     const result = (await sandbox.commands.run(`ps -p ${pid} -o pid=,ppid=,user=,stat=,rss=,etime=,comm= 2>/dev/null`, {
       timeout: 10,
     })) as ProcessResult;
@@ -169,7 +186,7 @@ export const process_signal = command("signal", {
     "Related commands:\n" +
     "  abx sandbox process info SANDBOX_ID PID\n" +
     "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx exec SANDBOX_ID --background -- CMD",
+    "  abx exec --background SANDBOX_ID CMD",
   params: [
     argument(["sandbox_id"]),
     argument(["pid"], { type: INT }),
@@ -207,7 +224,7 @@ export const process = group("process", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx exec SANDBOX_ID --background -- CMD\n" +
+    "  abx exec --background SANDBOX_ID CMD\n" +
     "  abx sandbox system metrics SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);

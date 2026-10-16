@@ -1,3 +1,5 @@
+> Historical workflow capture: this page preserves the earlier CLI commands and recorded output verbatim. For current standard commands use [Migrate from E2B](migrate-from-e2b.md) and the [CLI reference](../reference/cli-reference.md). Standard create uses a positional template and --detach for an ID; standard kill --all acts immediately, with no --yes confirmation. Project template.yaml generation now uses template scaffold.
+
 # From Template to Production Sandbox: End-to-End Guide
 
 This guide walks you through the complete workflow of a custom sandbox template, from authoring to production use.

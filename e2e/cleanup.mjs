@@ -31,7 +31,7 @@ for (const f of files) {
   for (const id of rec.sandboxes ?? []) {
     leaked++;
     if (!yes) { console.log(`[dry-run] would kill ${id} (run ${rec.runId})`); continue; }
-    const r = await runBinary({ bin, argv: ['kill', id, '--yes'], env, cwd: home });
+    const r = await runBinary({ bin, argv: ['sandbox', 'kill', id], env, cwd: home });
     const gone = r.code === 0 || /404|not found/i.test(r.stdout + r.stderr);
     console.log(`${gone ? 'killed' : 'FAILED'} ${id}`);
     if (gone) rec.sandboxes = rec.sandboxes.filter((x) => x !== id);

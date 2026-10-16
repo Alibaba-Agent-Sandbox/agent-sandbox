@@ -21,7 +21,7 @@ function _sandbox() {
     id: "sbx-test-001",
     capabilities: new Set<string>(["shell", "files"]),
     files: { list: vi.fn(), getInfo: vi.fn(), makeDir: vi.fn(), remove: vi.fn(), move: vi.fn() },
-    commands: { run: vi.fn() as Mock, list: vi.fn(), sendSignal: vi.fn(), stream: vi.fn() },
+    commands: { run: vi.fn() as Mock, list: vi.fn().mockResolvedValue([]), sendSignal: vi.fn(), stream: vi.fn() },
   };
 }
 

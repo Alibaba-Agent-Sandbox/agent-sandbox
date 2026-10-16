@@ -121,7 +121,7 @@ describe("ADV-agent-template: template install / init / build", () => {
     put(sb.work, "src/commands.py", "print(1)\n");
     const r = await abx(sb, [
       "template",
-      "init",
+      "scaffold",
       path.join(sb.work, "src", "dest"),
       "--from",
       path.join(sb.work, "src"),
@@ -143,7 +143,7 @@ describe("ADV-agent-template: template install / init / build", () => {
       chmodSync(path.join(sb.work, "src", "commands.py"), 0o000);
       const r = await abx(sb, [
         "template",
-        "init",
+        "scaffold",
         path.join(sb.work, "dest"),
         "--from",
         path.join(sb.work, "src"),

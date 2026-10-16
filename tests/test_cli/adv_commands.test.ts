@@ -1,3 +1,5 @@
+// These regressions cover the native project extension framework. Standard executable behavior
+// is covered by test_standard_executable.test.ts and e2e/standard.mjs.
 // Regression tests for the findings of the adversarial review of the command framework / output / REPL / sandbox commands area
 // (parity/review/commands.md, C-01..C-11). Every expected value is the behaviour of the Python oracle (the original
 // `abx`) and is hard-coded, so no oracle is needed to run them.
@@ -12,7 +14,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { startStub } from "../../parity/diff/stub.mjs";
 
 const CLI_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const ENTRY = path.join(CLI_ROOT, "src/bin/abx.ts");
+const ENTRY = path.join(CLI_ROOT, "tests/helpers/native_cli.ts");
 const TSX = pathToFileURL(path.join(CLI_ROOT, "node_modules/tsx/dist/esm/index.mjs")).href;
 const PTY_RUN = path.join(CLI_ROOT, "parity/diff/pty_run.py");
 const SB = "sbx-ev-001";
@@ -36,7 +38,7 @@ function baseEnv(home: string, url: string | null, extra: Record<string, string 
     COLUMNS: "100",
     ABX_NO_KEYCHAIN: "1",
   };
-  if (url) Object.assign(env, { ABX_SANDBOX_API_KEY: "k-adversarial-stub", ABX_SANDBOX_BASE_URL: url, ABX_SANDBOX_DOMAIN: "stub.invalid" });
+  if (url) Object.assign(env, { E2B_API_KEY: "k-adversarial-stub", E2B_API_URL: url, E2B_DOMAIN: "stub.invalid" });
   for (const [k, v] of Object.entries(extra)) {
     if (v === null) delete env[k];
     else env[k] = v;
@@ -179,7 +181,7 @@ describe("commands (review regressions)", () => {
     });
   });
 
-  it("ADV-commands-09 a scheme-less ABX_SANDBOX_BASE_URL reports the httpx protocol message", async () => {
+  it("ADV-commands-09 a scheme-less E2B_API_URL reports the httpx protocol message", async () => {
     await withStub(async ({ home, cwd }) => {
       const r = await runAbx(["list"], { home, cwd, url: "127.0.0.1:9" });
       expect(r.stderr).toContain("Request URL is missing an 'http://' or 'https://' protocol.");

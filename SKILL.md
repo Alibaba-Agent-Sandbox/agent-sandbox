@@ -65,7 +65,7 @@ Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Short
 
 Authentication options (first available wins):
 
-1. API key — environment variable `ABX_SANDBOX_API_KEY`
+1. API key — environment variable `E2B_API_KEY`
 2. Alibaba Cloud AK/SK — `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`
 
 Persist them locally instead of exporting in every shell:
@@ -91,19 +91,19 @@ abx config get sandbox_api_key                   # shows a masked value
 
 ## Creating a sandbox
 
-CLI (default template is `base`; DESCRIPTION and `--template` are mutually exclusive):
+CLI (default template is `base`; the positional argument names a template; natural language uses `--prompt`):
 
 ```bash
-abx create                              # template 'base'; --timeout is the lifetime in seconds (default 300)
-abx create --template python-hello      # named template, no AI involved
-abx create --template base -e API_KEY=x -e DEBUG=1 --timeout 600
+abx create base --detach                 # print the ID; --timeout is lifetime in seconds
+abx create python-hello --detach        # named template, no AI involved
+abx create base --detach --timeout 600
 abx list                                # find sandbox IDs
 abx info <SANDBOX_ID>
-abx connect <SANDBOX_ID>                # one command per line; cd and env do not persist
+abx connect <SANDBOX_ID>                # real PTY; cd and env persist; exit preserves this sandbox
 ```
 
-`abx create "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
-CLI plus a DashScope/ModelStudio key via `abx config init`) — prefer `--template`
+`abx create --prompt "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
+CLI plus a DashScope/ModelStudio key via `abx config init`) — use a positional template
 when you just need a runtime.
 
 Writing that client, or a template's `commands.py`, is the `agent-sandbox-sdk` skill. The import is `from agent_sandbox import Sandbox`. `timeout` on `create` is the sandbox lifetime in seconds.
@@ -114,8 +114,7 @@ MCP tool (inside any MCP client):
 { "tool": "create_sandbox", "arguments": { "template": "code-interpreter-v1", "timeout": 300 } }
 ```
 
-Note: sandbox creation involves a cold start; the CLI enforces a ≥120 s client HTTP
-timeout floor for `create` automatically. In MCP sessions, `create_sandbox` becomes
+Note: sandbox creation involves a cold start; the standard request and lifecycle settings follow the pinned E2B CLI. An interactive create expires after terminal exit (Alibaba minimum TTL applies); use --detach for subsequent commands. In MCP sessions, `create_sandbox` becomes
 the default sandbox, so later tool calls can omit `sandbox_id`. A first tool call
 that omits `sandbox_id` before any create lazily creates that default.
 
@@ -124,13 +123,13 @@ that omits `sandbox_id` before any create lazily creates that default.
 CLI one-shot (exit code is passed through, so CI fails correctly):
 
 ```bash
-abx exec <SANDBOX_ID> -- python --version
-abx exec <SANDBOX_ID> --cwd /app --env CI=1 --timeout 300 -- pytest -q
-abx exec <SANDBOX_ID> --stream -- pip install httpx      # live output
-abx exec <SANDBOX_ID> --background -- python -m http.server 8000   # prints the pid
+abx exec <SANDBOX_ID> python --version
+abx exec --cwd /app --env CI=1 <SANDBOX_ID> pytest -q
+abx exec <SANDBOX_ID> pip install httpx      # live output
+abx exec --background <SANDBOX_ID> python -m http.server 8000   # prints the pid
 ```
 
-`--timeout` here bounds the command (default 60). It is not the sandbox lifetime. `--cwd` defaults to the image workdir. Arguments after `--` are the command. A pipeline or a shell variable needs an explicit shell: `abx exec <SANDBOX_ID> -- sh -c 'echo $HOME'`. A background process is `abx sandbox process list <SANDBOX_ID>`. `abx sandbox process signal` accepts only signal 15 (SIGTERM) or 9 (SIGKILL).
+Standard exec streams by default and has no local `--timeout` or `--stream` option. All local options precede the sandbox ID; everything after the ID belongs to the remote command. Background PID is written to stderr. A pipeline or a shell variable needs an explicit shell: `abx exec <SANDBOX_ID> sh -c 'echo $HOME'`. A background process is `abx sandbox process list <SANDBOX_ID>`. `abx sandbox process signal` accepts only signal 15 (SIGTERM) or 9 (SIGKILL).
 
 `run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` needs a template whose capabilities include `code`.
 
@@ -163,11 +162,11 @@ MCP: `read_file` (`path`, `encoding`, `sandbox_id`), `write_file` (`path`,
 Sandboxes consume quota while alive. Always clean up when done.
 
 ```bash
-abx kill <SANDBOX_ID> --yes        # --yes skips confirmation (use in scripts)
-abx kill --all --yes               # destroy every running sandbox
+abx kill <SANDBOX_ID>              # immediate deletion; no --yes flag
+abx kill --all               # destroy every running sandbox
 ```
 
-The Python client's `async with` block kills the sandbox on exit. That client is the `agent-sandbox-sdk` skill.
+Use Python `Sandbox`/`AsyncSandbox` context management or explicit finally/kill for cleanup. That client is the `agent-sandbox-sdk` skill.
 
 Killing an id that is already gone succeeds. Do not treat that as a failure.
 
@@ -191,10 +190,10 @@ and `docs_url`. CLI exit codes: 1 general, 3 auth, 4 not found, 5 timeout, 6 quo
 
 | Symptom / code | Cause | Fix |
 |---|---|---|
-| `E1001` / HTTP 401 | Missing or invalid API key | Check `ABX_SANDBOX_API_KEY` env or `abx config get sandbox_api_key` |
+| `E1001` / HTTP 401 | Missing or invalid API key | Check `E2B_API_KEY` env or `abx config get sandbox_api_key` |
 | `E1003` / HTTP 403 | Invalid AK/SK or no permission | Check `ALICLOUD_ACCESS_KEY_ID` / `..._SECRET` |
 | `E2001` / HTTP 404 | Template not found | `abx template list`, fix the template name |
-| `E2002` / HTTP 429 | Quota exceeded | `abx kill --all --yes`, retry or request quota |
+| `E2002` / HTTP 429 | Quota exceeded | `abx kill --all`, retry or request quota |
 | `E2003` | Region unavailable | `abx config set region <region>`, retry |
 | `E2009` / exit 4 | Sandbox id not found on info, exec, or connect | Check `abx list`. `abx kill` of a missing id still exits 0 |
 | `E3001` | Command/code timeout | Raise the command `timeout`; check for hangs |

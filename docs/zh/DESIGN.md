@@ -20,8 +20,8 @@
 
 ```bash
 npm install -g @agent-sandbox/cli   # abx CLI（需要 Node.js 20+）
-export ABX_SANDBOX_API_KEY=your-api-key
-abx create --template base
+export E2B_API_KEY=your-api-key
+abx create base
 abx list
 ```
 

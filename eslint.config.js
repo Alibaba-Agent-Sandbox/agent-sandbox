@@ -25,7 +25,7 @@ const nodeGlobals = {
 // style rules that fire on that code base are warnings; real bug classes stay errors.
 export default tseslint.config(
   {
-    ignores: ["dist/**", "dist-pack/**", "build/**", "coverage/**", "node_modules/**"],
+    ignores: ["dist/**", "dist-pack/**", "build/**", "coverage/**", "node_modules/**", "vendor/**", "src/standard_cli/runtime.mjs"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

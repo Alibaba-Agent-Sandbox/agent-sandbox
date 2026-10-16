@@ -1,9 +1,11 @@
 /**
  * Per-class oracle check of `str(SandboxError)` and friends.
  *
- * `tests/fixtures/error_str_oracle.json` is generated from the ORIGINAL Python `models/errors.py` by
+ * The immutable `tests/fixtures/error_str_oracle.json` is generated from the ORIGINAL Python `models/errors.py` by
  * `parity/diff/error_str_gen.py` (every SandboxError subclass x 3 constructor variants). Root cause of an MCP parity bug:
- * the tool logger / JSON-RPC error text used `exc.message` where Python formats `str(exc)` (`[E2000] msg\n  Suggestion: ...`).
+ * The current error_str_contract_e2b.json preserves that baseline with the documented
+ * positional-template/--prompt hint updates; its metadata records the source hash.
+ * The tool logger / JSON-RPC error text used `exc.message` where Python formats `str(exc)` (`[E2000] msg\n  Suggestion: ...`).
  */
 
 import { readFileSync } from "node:fs";
@@ -35,7 +37,7 @@ interface Case {
 }
 
 const fixture = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "error_str_oracle.json"), "utf8"),
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "error_str_contract_e2b.json"), "utf8"),
 ) as { classes: string[]; cases: Case[] };
 
 const registry = errors as unknown as Record<string, new (...args: unknown[]) => errors.SandboxError>;

@@ -92,7 +92,7 @@ async function loadSdk() {
 }
 async function connectSdk(id) {
   const { Sandbox } = await loadSdk();
-  return Sandbox.connect(id, { api_key: creds.ABX_SANDBOX_API_KEY, api_url: creds.ABX_SANDBOX_BASE_URL, domain: creds.ABX_SANDBOX_DOMAIN });
+  return Sandbox.connect(id, { api_key: creds.E2B_API_KEY, api_url: creds.E2B_API_URL, domain: creds.E2B_DOMAIN });
 }
 
 const state = { id: null, sb: null, dir: '/tmp/ki-e2e' };
@@ -167,10 +167,10 @@ scenario('ki005-missing-sandbox', 'KI-005', 'info/exec of a missing sandbox: exi
 
 // KI-006 authentication
 scenario('ki006-bad-api-key', 'KI-006', 'wrong API key: exit 3, E1001 (list and create)', async () => {
-  const bad = { ABX_SANDBOX_API_KEY: 'e2e-invalid-key-0000000000000000' };
+  const bad = { E2B_API_KEY: 'e2e-invalid-key-0000000000000000' };
   const list = await abx(['list'], { env: bad });
   must(list.code === 3 && list.text.includes('E1001'), `list: exit ${list.code}: ${excerpt(list.text)}`);
-  must(!list.text.includes(bad.ABX_SANDBOX_API_KEY), 'the key leaked into the output');
+  must(!list.text.includes(bad.E2B_API_KEY), 'the key leaked into the output');
   const create = await abx(['create', '--template', TEMPLATE], { env: bad });
   must(create.code === 3 && create.text.includes('E1001'), `create: exit ${create.code}: ${excerpt(create.text)}`);
 });

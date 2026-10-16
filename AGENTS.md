@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
+**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. The standard Express command path follows the pinned Alibaba-supported E2B behavior contract; project provider/build/MCP extensions remain explicit. Read the bilingual migration guide before changing either path.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)
@@ -107,7 +107,7 @@ npm run dev -- --help        # tsx src/bin/abx.ts --help
 | Command                           | What it does                                                                 |
 |-----------------------------------|------------------------------------------------------------------------------|
 | `make test` / `npm test`          | `vitest run` (integration tests excluded)                                    |
-| `make lint`                       | Static check of `src/` and `tests/` (alias of `make typecheck`; no separate linter) |
+| `make lint`                       | Run ESLint (`npm run lint`); type checking is a separate gate |
 | `make typecheck` / `npm run typecheck` | `tsc -p tsconfig.json --noEmit` (strict)                                |
 | `make build` / `npm run build`    | `tsc -p tsconfig.build.json` (emits `dist/`)                                 |
 | `make binary`                     | `node scripts/build_binary.mjs` — standalone binary for the current platform |
@@ -251,3 +251,11 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 11. **Layer dependency constraint.** Lower layers must never import upper layers (L0 must not import L1+, L1 must not import L2+, etc.). If you need a type from a higher layer, refactor it downward or use dependency injection.
 12. **Maintain module exports.** When adding or removing any public symbol that a package re-exports (its `index.ts`, if present), update the export list to match.
 13. **Wire-name alias convention.** Model fields that map to camelCase API responses are exposed under their snake_case names (`sandbox_id`, `exit_code`, …, as in the Python models), and parsing accepts both the camelCase wire alias and the snake_case name. See [`docs/PORTING.md`](docs/PORTING.md).
+
+## Standard migration contract
+
+Read `docs/en/guide/migrate-from-e2b.md` before changing standard APIs. Preserve the pinned behavior, synchronous/asynchronous distinction, pagination, return models, errors and terminal semantics. Project extensions use explicit entry points. Generated/source-ported code has provenance and licenses; update its reproducible source process when changing it. Do not imply unsupported Alibaba capabilities work because a client symbol exists.
+
+Standard commands are owned under `src/standard_cli/`; regenerate with the pinned `vendor/e2b-cli` lockfile. Standard template init and create keep E2B meanings; project workflows use template scaffold (--prompt/--adopt) and template from-image. Keep embedded scaffold assets and license notices working in npm and SEA artifacts.
+
+Provider ownership is resolved before backend requests. Qualified references and remote exec flags must never switch an invocation to Express implicitly. A feature declaration is not a protocol implementation: native FC/ACR template handlers are Express-only until an adapter exists. Keep each provider's feature set independent of the host registry, and distinguish declaration from account/runtime availability. See docs/en/guide/providers.md.

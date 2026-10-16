@@ -25,10 +25,10 @@ API Key 是最常用的认证方式，通过 `Authorization: Bearer {api_key}` �
 #### 1. 环境变量（优先于 `~/.abx`）
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 ```
 
-`ABX_SANDBOX_API_KEY` 是沙箱 API Key 唯一的环境变量。不读取 `E2B_API_KEY`。API 地址是 `ABX_SANDBOX_BASE_URL`，数据平面域名是 `ABX_SANDBOX_DOMAIN`（不读取 `E2B_API_URL` 和 `E2B_DOMAIN`）。
+`E2B_API_KEY` 是沙箱 API Key 唯一的环境变量。不读取旧的 `ABX_SANDBOX_API_KEY`。API 地址是 `E2B_API_URL`，数据平面域名是 `E2B_DOMAIN`（不读取旧的 `ABX_SANDBOX_BASE_URL` 和 `ABX_SANDBOX_DOMAIN`）。
 
 #### 2. abx config set（持久化到本地文件）
 
@@ -38,14 +38,14 @@ abx config set sandbox_api_key your-api-key
 # 文件权限: 600（仅所有者可读写）
 ```
 
-存储格式为 `ABX_SANDBOX_API_KEY=your-key`，位于 `~/.abx/.env`。
+存储格式为 `E2B_API_KEY=your-key`，位于 `~/.abx/.env`。
 
 #### 3. .env 文件
 
 在项目根目录创建 `.env` 文件：
 
 ```dotenv
-ABX_SANDBOX_API_KEY=your-api-key
+E2B_API_KEY=your-api-key
 ```
 
 CLI 按键合并 `.env`。`./.env` 写了该键时优先；没写的键仍然来自 `~/.abx/.env`。
@@ -63,7 +63,7 @@ sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 ```
 
-沙箱 API Key 存在 `~/.abx/.env` 的 `ABX_SANDBOX_API_KEY`，不放在 `config.toml`。
+沙箱 API Key 存在 `~/.abx/.env` 的 `E2B_API_KEY`，不放在 `config.toml`。
 
 ## AK/SK 阿里云扩展认证 🧪
 
@@ -120,7 +120,7 @@ LLM 密钥、GitHub token 和区域走同一条链。空白或只含空格的值
 
 在同一层级内，API Key 优先于 AK/SK：
 - 若同时提供了 `sandbox_api_key` 和 `access_key_id`，使用 API Key
-- 若同时设置了 `ABX_SANDBOX_API_KEY` 和 `ALICLOUD_ACCESS_KEY_ID`，使用 `ABX_SANDBOX_API_KEY`
+- 若同时设置了 `E2B_API_KEY` 和 `ALICLOUD_ACCESS_KEY_ID`，使用 `E2B_API_KEY`
 
 ---
 
@@ -154,7 +154,7 @@ abx config get access_key_id
 
 ```bash
 # 通过环境变量设置 API Key（推荐）
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 
 # 或通过 abx config 持久化
 abx config set sandbox_api_key your-api-key
@@ -163,7 +163,7 @@ abx config set sandbox_api_key your-api-key
 创建沙箱时通过 `--env` 参数注入密钥：
 
 ```bash
-abx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
+abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
 ```
 
 > **历史说明**：macOS Keychain 集成已在过度设计清理中移除（ADR 2026-09-23）。`abx secret` CLI 命令组也已被移除。所有密钥管理现通过环境变量、`.env` 文件或 `abx config set` 完成。
@@ -176,7 +176,7 @@ abx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **解决**：确保通过上述任一方式配置了有效的 API Key。

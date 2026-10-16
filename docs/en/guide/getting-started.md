@@ -7,7 +7,7 @@ This tutorial walks you through the complete sandbox lifecycle, from installatio
 ## Prerequisites
 
 - Node.js 20 or later only for a from-source install. The binary installer does not need Node.js.
-- For the default provider (`alicloud-express`): an API key from the [Agent Sandbox product docs](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox). The variable is `ABX_SANDBOX_API_KEY`. The AccessKey pair is `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. The CLI does not read `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, or `AccessSecret`.
+- For the default provider (`alicloud-express`): an API key from the [Agent Sandbox product docs](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox). The variable is `E2B_API_KEY`. The AccessKey pair is `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. The CLI does not read retired `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `AccessKey`, or `AccessSecret`.
 - Network access to the Alibaba Cloud Hangzhou region (default `cn-hangzhou`)
 
 ## 1. Installation
@@ -35,7 +35,7 @@ There are two ways to configure credentials. When a call actually needs the key,
 ### Option 1: Environment variable (recommended for CI/CD)
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key-here"
+export E2B_API_KEY="your-api-key-here"
 ```
 
 ### Option 2: `abx config set` (recommended for local development)
@@ -58,7 +58,7 @@ abx config get sandbox_api_key
 ### Using the CLI
 
 ```bash
-abx create --template base
+abx create base --detach
 ```
 
 `base` is the default template. The repository README uses `python-base`, the Python image in the catalog.
@@ -76,7 +76,7 @@ abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-abx exec <sandbox-id> -- sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. File Operations
@@ -105,21 +105,22 @@ abx sandbox files list <sandbox-id> --path /home/user
 abx kill <sandbox-id>
 
 # Destroy all running sandboxes
-abx kill --all --yes
+abx kill --all
 ```
 
 ## 9. Complete Example
 
 ```bash
 # Create a sandbox and upload a project
-abx create --template base --upload ./project
+abx create base --detach
+abx upload <sandbox-id> ./project /home/user/project
 
 # Run something inside it
 abx exec <sandbox-id> "python /home/user/project/main.py"
 
 # Fetch the result and tear the sandbox down
 abx download <sandbox-id> /home/user/result.csv ./result.csv
-abx kill <sandbox-id> --yes
+abx kill <sandbox-id>
 ```
 
 ---

@@ -219,5 +219,5 @@ ${REFERENCE_COMMANDS_PY}\`\`\`
 `;
 }
 
-/** Guide used by `abx create "<description>"` for the provider selected at import time. */
+/** Guide used by `abx create --prompt "<description>"` for the provider selected at import time. */
 export const TEMPLATE_GUIDE: string = buildTemplateGuide("create");

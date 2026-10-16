@@ -6,9 +6,9 @@
 
 | 起点 | 命令 |
 |------|------|
-| 内置脚手架 | `abx template init -t python ./my-template` |
-| 一句话（Qwen Code 新建目录） | `abx template init "一个 Python 数据分析环境"` |
-| 已有源码的项目 | `abx template init --adopt ./app` — 见 [适配已有项目](#适配已有项目) |
+| 内置脚手架 | `abx template scaffold -t python ./my-template` |
+| 一句话（Qwen Code 新建目录） | `abx template scaffold --prompt "一个 Python 数据分析环境"` |
+| 已有源码的项目 | `abx template scaffold --adopt ./app` — 见 [适配已有项目](#适配已有项目) |
 
 ---
 
@@ -61,7 +61,7 @@ ports:
 
 `template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：用 `@command` 注册，并且只在 `if __name__ == "__main__"` 里调用 `start()`。用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
 
-`base` 可以是镜像字符串，也可以是 `{ image: ... }`。阿里云 Express 还要写 `generation: 2`、`start_cmd` 和 `ready_cmd`（由平台启动 `agent-sandbox-server`，镜像入口不会启动它）。`abx template init -t python` 会写入这些键。`abx run` 和 `abx sandbox command list` / `run` 向 9000 端口发送沙箱的 `X-Access-Token`。若服务返回 HTTP 401，会不带凭证再试一次：Express 不设置 `ABX_SERVER_TOKEN`，对不上的 token 会被拒绝。`abx template deploy` 成功后把清单缓存在 `~/.abx/templates/<template-id>/template.yaml`。带了 `--alias` 时，同一份文件也会写到 `~/.abx/templates/<alias>/template.yaml`，所以 `abx create --template <id>` 和 `abx create --template <alias>` 都能解析能力。两处都没有时，警告会写出 `~/.abx/templates`。
+`base` 可以是镜像字符串，也可以是 `{ image: ... }`。阿里云 Express 还要写 `generation: 2`、`start_cmd` 和 `ready_cmd`（由平台启动 `agent-sandbox-server`，镜像入口不会启动它）。`abx template scaffold -t python` 会写入这些键。`abx run` 和 `abx sandbox command list` / `run` 向 9000 端口发送沙箱的 `X-Access-Token`。若服务返回 HTTP 401，会不带凭证再试一次：Express 不设置 `ABX_SERVER_TOKEN`，对不上的 token 会被拒绝。`abx template deploy` 成功后把清单缓存在 `~/.abx/templates/<template-id>/template.yaml`。带了 `--alias` 时，同一份文件也会写到 `~/.abx/templates/<alias>/template.yaml`，所以 `abx create <id>` 和 `abx create <alias>` 都能解析能力。两处都没有时，警告会写出 `~/.abx/templates`。
 
 ## Dockerfile 自定义
 
@@ -71,22 +71,22 @@ ports:
 
 镜像里的 HTTP 服务不依赖沙箱提供者。`commands.py` 只导入 `agent_sandbox.server`，并在 `if __name__ == "__main__"` 下调用 `start(port)`。导入时调用 `start()` 或 `serve()` 会打断平台的 `--commands` 导入。9000 是服务端自己的默认端口。
 
-`FROM`、`ENTRYPOINT` 是否可替换、用 `CMD` 还是平台的 `start_cmd` / `ready_cmd`、架构、工作目录、保留端口和仓库说明，来自**当前所选提供者的模板配置**。`abx` 用与其他命令相同的方式解析提供者：`--provider`，然后 `ABX_PROVIDER`，然后配置里的默认值（`alicloud-express`）。模板指南、代码生成提示和 `abx template init` 只描述这一份配置。
+`FROM`、`ENTRYPOINT` 是否可替换、用 `CMD` 还是平台的 `start_cmd` / `ready_cmd`、架构、工作目录、保留端口和仓库说明，来自**当前所选提供者的模板配置**。`abx` 用与其他命令相同的方式解析提供者：`--provider`，然后 `ABX_PROVIDER`，然后配置里的默认值（`alicloud-express`）。模板指南、代码生成提示和 `abx template scaffold` 只描述这一份配置。
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
 - 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template init` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。这个包不在 PyPI 上。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
+- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template scaffold` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。这个包不在 PyPI 上。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
 
 ---
 
 ## 适配已有项目
 
-`abx template init --adopt` 用于**已经有应用代码、还没有沙箱模板文件**的目录。Qwen Code 读取该项目的一份副本，abx 再把模板文件写回同一目录。这一步不构建、不推送、不启动沙箱；写完后用 `abx deploy` 发布。
+`abx template scaffold --adopt` 用于**已经有应用代码、还没有沙箱模板文件**的目录。Qwen Code 读取该项目的一份副本，abx 再把模板文件写回同一目录。这一步不构建、不推送、不启动沙箱；写完后用 `abx deploy` 发布。
 
 ```bash
-abx template init --adopt . --hint "API 监听 8080"
-abx template init --adopt ./app --dry-run          # 只列出文件，不发送
-abx template init --adopt ./app --name my-api -y   # 非交互
+abx template scaffold --adopt . --hint "API 监听 8080"
+abx template scaffold --adopt ./app --dry-run          # 只列出文件，不发送
+abx template scaffold --adopt ./app --name my-api -y   # 非交互
 abx deploy ./app --acr-namespace my-ns
 ```
 
@@ -115,7 +115,7 @@ abx 把候选文件复制到临时目录（系统临时目录下的 `abx-adopt-�
 
 Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR_*`、`AWS_*`、`GITHUB_TOKEN`）。它会拿到 `abx config` 里的 Qwen Code Key。
 
-这会把项目源码发给模型。`abx template init "描述"` 只发送你输入的那句话。
+这会把项目源码发给模型。`abx template scaffold --prompt "描述"` 只发送你输入的那句话。
 
 ### 写入前的检查
 
@@ -137,7 +137,7 @@ Agent 进程不会继承云或镜像仓库凭证（`ALICLOUD_*`、`E2B_*`、`ACR
 | 没有 `import agent_sandbox.server` 的 `commands.py` | 需要 `--force` |
 | `Dockerfile`，或已是 Agent Sandbox 入口的 `commands.py` | 交互式预览可以替换。`-y`、`--json` 和 CI 没有预览，需要 `--force` |
 
-`abx template init --from <本地目录>` 要求该目录里已有 `template.yaml`。没有的源码树会被拒绝，错误信息指向 `--adopt`，避免把 `.env` 和 `.git` 整份当作模板源码复制走。
+`abx template scaffold --from <本地目录>` 要求该目录里已有 `template.yaml`。没有的源码树会被拒绝，错误信息指向 `--adopt`，避免把 `.env` 和 `.git` 整份当作模板源码复制走。
 
 生成失败时项目不变，错误信息里带有暂存目录。看完之后删掉那个 `abx-adopt-…` 目录即可。
 
@@ -200,7 +200,7 @@ abx template deploy ./my-template \
 如果镜像已经推送到 ACR，可以直接创建模板，不需要本地构建：
 
 ```bash
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-template
 ```
 
 ---

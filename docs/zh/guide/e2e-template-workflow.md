@@ -1,3 +1,5 @@
+> 历史工作流记录：本页原样保留较早 CLI 的命令及实测输出。当前标准命令见[从 E2B 迁移](migrate-from-e2b.md)及[CLI 参考](../reference/cli-reference.md)。标准 create 使用位置模板参数，--detach 输出 ID；标准 kill --all 立即执行，没有 --yes 确认。项目 template.yaml 生成入口现为 template scaffold。
+
 # 从零构建模板到沙箱使用：端到端指南
 
 本指南带你完成一个自定义沙箱模板从编写到生产使用的完整工作流。

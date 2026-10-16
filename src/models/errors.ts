@@ -83,7 +83,7 @@ export class AuthenticationError extends SandboxError {
  */
 export class InvalidAPIKeyError extends AuthenticationError {
   static override code = "E1001";
-  static override suggestion = "Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.";
+  static override suggestion = "Check your E2B_API_KEY environment variable or pass sandbox_api_key.";
 }
 
 /**
@@ -107,7 +107,7 @@ export class InvalidCredentialsError extends AuthenticationError {
  */
 export class TokenExchangeError extends AuthenticationError {
   static override code = "E1004";
-  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use ABX_SANDBOX_API_KEY directly, or check AK/SK credentials and network connectivity.";
+  static override suggestion = "Token exchange from AK/SK to Platform API key failed. Use E2B_API_KEY directly, or check AK/SK credentials and network connectivity.";
 }
 
 /**
@@ -159,7 +159,7 @@ export class TemplateParseError extends SandboxCreationError {
  */
 export class QwenCodeNotInstalledError extends SandboxCreationError {
   static override code = "E2005";
-  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create --template <name>'.";
+  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create <name>'.";
 }
 
 /**
@@ -175,7 +175,7 @@ export class QwenCodeCredentialError extends SandboxCreationError {
  */
 export class AICodegenError extends SandboxCreationError {
   static override code = "E2007";
-  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create \"<description>\"' or fall back to 'abx create --template <name>'.";
+  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.";
 }
 
 /**
@@ -210,7 +210,7 @@ export class QwenCodeStartupError extends AICodegenError {
  */
 export class DescriptionClarificationError extends SandboxCreationError {
   static override code = "E2008";
-  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create --template <name>'.";
+  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create <name>'.";
 }
 
 /** No sandbox with the given ID exists (never created, expired or already killed). */

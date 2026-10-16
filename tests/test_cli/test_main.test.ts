@@ -89,7 +89,7 @@ describe("TestCLIRoot", () => {
 });
 
 describe("TestTopLevelInitRemoved", () => {
-  // `init` is not a top-level shortcut: scaffolding is `abx template init`, credentials are `abx config init`.
+  // `init` is not a top-level shortcut: scaffolding is `abx template scaffold`, credentials are `abx config init`.
 
   it("test_top_level_init_is_not_a_command", async () => {
     expect(await cli.getCommand("init")).toBeNull();
@@ -98,7 +98,7 @@ describe("TestTopLevelInitRemoved", () => {
 
   it("test_invoking_init_without_case_requires_explicit_choice", async () => {
     // Non-TTY (CliRunner) never blocks: an explicit case or --from is required.
-    const result = await runner().invoke(cli, ["template", "init"]);
+    const result = await runner().invoke(cli, ["template", "scaffold"]);
     // A UsageError raised inside a callback keeps click's usage exit code (2), like a parse error.
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
@@ -106,7 +106,7 @@ describe("TestTopLevelInitRemoved", () => {
   });
 
   it("test_init_help_shows_scaffold_help", async () => {
-    const result = await runner().invoke(cli, ["template", "init", "--help"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Scaffold a new sandbox template project");
   });
@@ -116,8 +116,8 @@ describe("TestTopLevelInitRemoved", () => {
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("abx config init");
-    expect(result.output).toContain("abx create --template base");
-    expect(result.output).toContain("abx template init --template python");
+    expect(result.output).toContain("abx create base");
+    expect(result.output).toContain("abx template scaffold --template python");
   });
 
   // BLOCKED-ON: cli/commands/config_cmd (init)
@@ -129,7 +129,7 @@ describe("TestTopLevelInitRemoved", () => {
 
   // BLOCKED-ON: cli/commands/template (init)
   it.skipIf(!commandModuleExists("template"))("test_template_init_still_exists_with_scaffold_help", async () => {
-    const result = await runner().invoke(cli, ["template", "init", "--help"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Scaffold a new sandbox template project");
   });

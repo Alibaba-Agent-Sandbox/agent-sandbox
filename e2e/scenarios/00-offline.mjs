@@ -32,7 +32,7 @@ export default {
     { id: 'version', title: '--version prints "abx, version X.Y.Z"', argv: ['--version'], creds: false, stdout: /^abx, version \d+\.\d+\.\d+/m },
     { id: 'help-root', title: 'root --help lists every command', argv: ['--help'], creds: false, stdout: ['Usage: abx', '--json', '--quiet', '--ci', 'Command groups:', 'Providers:', 'Sandbox shortcuts:', "Same as 'abx sandbox exec'.", ...ROOT_COMMANDS.map((c) => new RegExp(`^\\s+${c}\\s`, 'm')), ...['--profile', '--timeout'].map((o) => ({ not: o }))] },
     ...REMOVED_ROOT_COMMANDS.map((c) => ({ id: `removed-root-${c}`, title: `top-level \`${c}\` is gone (use \`abx template ${c}\`)`, argv: [c], creds: false, exit: 2, output: 'No such command' })),
-    { id: 'removed-shell-stream', title: '`sandbox shell-stream` is gone (use `exec --stream`)', argv: ['sandbox', 'shell-stream', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },
+    { id: 'removed-shell-stream', title: 'standard sandbox parser rejects the removed shell-stream command', argv: ['sandbox', 'shell-stream', 'sbx-x'], creds: false, exit: 1, output: "unknown command 'shell-stream'" },
     { id: 'removed-process-start', title: '`sandbox process start` is gone (use `exec --background`)', argv: ['sandbox', 'process', 'start', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },
     { id: 'removed-global-timeout', title: 'there is no global --timeout', argv: ['--timeout', '5', 'list'], creds: false, exit: 2, output: 'No such option' },
     { id: 'help-no-args', title: 'bare `abx` prints usage/help and does not crash', argv: [], creds: false, exit: [0, 2], output: /Usage: abx/ },
@@ -44,31 +44,31 @@ export default {
     { id: 'help-template', title: 'template --help', argv: ['template', '--help'], creds: false, stdout: ['build', 'create', 'delete', 'deploy', 'info', 'init', 'install', 'list', 'push', 'search'] },
     { id: 'help-config', title: 'config --help', argv: ['config', '--help'], creds: false, stdout: ['delete', 'get', 'init', 'list', 'set'] },
     { id: 'help-mcp', title: 'mcp --help', argv: ['mcp', '--help'], creds: false, stdout: ['deploy', 'install', 'start', 'status', 'stop'] },
-    { id: 'help-exec', title: 'exec --help documents --cwd/--env/--timeout/--background/--stream', argv: ['exec', '--help'], creds: false, stdout: ['SANDBOX_ID', 'COMMAND', '--cwd', '--env', '--timeout', '--background', '--stream'] },
+    { id: 'help-exec', title: 'standard exec help documents pass-through and local options', argv: ['exec', '--help'], creds: false, stdout: ['<sandboxID>', '<command...>', '--cwd', '--env', '--background', 'Everything after the sandbox ID'] },
     { id: 'help-run', title: 'run --help documents --arg/--json-args', argv: ['run', '--help'], creds: false, stdout: ['SANDBOX_ID', 'COMMAND_NAME', '--arg', '--json-args'] },
-    { id: 'exec-background-stream-conflict', title: 'exec --background and --stream cannot be combined', argv: ['exec', 'sbx-x', '--background', '--stream', '--', 'true'], creds: false, exit: 2, output: 'cannot be combined' },
-    { id: 'help-kill', title: 'kill --help documents --all/--yes', argv: ['kill', '--help'], creds: false, stdout: ['--all', '--yes'] },
-    { id: 'help-create', title: 'create --help documents --template/--env/--upload', argv: ['create', '--help'], creds: false, stdout: ['--template', '--env', '--upload'] },
+    { id: 'exec-unknown-local-option', title: 'exec rejects unknown options before the sandbox ID', argv: ['exec', '--unknown-local-option', 'sbx-x', 'true'], creds: false, exit: 1, output: 'unknown option' },
+    { id: 'help-kill', title: 'standard kill supports multiple IDs and --all', argv: ['kill', '--help'], creds: false, stdout: ['[sandboxIDs...]', '--all'] },
+    { id: 'help-create', title: 'standard create takes an optional template and lifecycle flags', argv: ['create', '--help'], creds: false, stdout: ['[template]', 'Defaults to base', '--detach', '--timeout', '--lifecycle.ontimeout'] },
 
     { id: 'unknown-command', title: 'unknown command exits 2 with "No such command"', argv: ['nosuchcmd'], creds: false, exit: 2, output: 'No such command' },
     { id: 'unknown-command-json', title: 'unknown command under --json still exits 2', argv: ['--json', 'nosuchcmd'], creds: false, exit: 2 },
-    { id: 'missing-args-exec', title: 'exec without args exits 2 (usage error)', argv: ['exec'], creds: false, exit: 2, output: /Missing argument/ },
+    { id: 'missing-args-exec', title: 'standard exec requires a sandbox ID', argv: ['exec'], creds: false, exit: 1, output: "missing required argument 'sandboxID'" },
     { id: 'missing-args-run', title: 'run without COMMAND_NAME exits 2', argv: ['run', 'sbx-x'], creds: false, exit: 2, output: 'Missing argument' },
     { id: 'invalid-log-level', title: 'invalid --log-level exits 2', argv: ['--log-level', 'bogus', 'list'], creds: false, exit: 2, output: /not one of/ },
-    { id: 'invalid-list-status', title: 'invalid list --status exits 2', argv: ['list', '--status', 'bogus'], creds: false, exit: 2, output: /not one of/ },
-    { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of/ },
+    { id: 'invalid-list-status', title: 'standard list rejects retired --status spelling', argv: ['list', '--status', 'bogus'], creds: false, exit: 1, output: "unknown option '--status'" },
+    { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of|Allowed choices/ },
     { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ['upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
-    { id: 'create-needs-route', title: '`create` with neither DESCRIPTION nor --template exits 2', argv: ['create'], creds: false, exit: 2, output: ['--template base'] },
-    { id: 'create-conflict', title: 'DESCRIPTION and --template are mutually exclusive', argv: ['create', 'a thing', '--template', 'base'], creds: false, exit: 'nonzero', output: 'cannot be combined' },
-    { id: 'kill-needs-target', title: '`kill` with neither id nor --all exits 2', argv: ['kill'], creds: false, exit: 2, output: 'Either provide a sandbox ID or use --all' },
+    { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ['create'], creds: false, exit: 1, output: /logged in|API key/i },
+    { id: 'create-retired-template-option', title: 'create rejects --template; the template is positional', argv: ['create', 'base', '--template', 'base'], creds: false, exit: 1, output: "unknown option '--template'" },
+    { id: 'kill-auth-preflight', title: 'standard kill checks authentication before choosing targets', argv: ['kill'], creds: false, exit: 1, output: /logged in|API key/i },
 
-    { id: 'no-credentials-list', title: 'list without credentials: exit 3, E1001', argv: ['list'], creds: false, exit: 3, output: ['E1001', 'No authentication credentials'] },
+    { id: 'no-credentials-list', title: 'standard list requires a configured key', argv: ['list'], creds: false, exit: 1, output: /logged in|API key/i },
     {
       id: 'no-credentials-list-json', title: '--json error envelope without credentials', argv: ['--json', 'list'], creds: false, exit: 3,
       jsonShape: { status: 'string', message: 'string', code: 'string', suggestion: 'string' }, json: (j) => { if (j.status !== 'error' || j.code !== 'E1001') throw new Error(`unexpected envelope ${JSON.stringify(j)}`); },
     },
-    { id: 'no-credentials-exec', title: 'exec without credentials: exit 3', argv: ['exec', 'sbx-x', 'echo hi'], creds: false, exit: 3, output: 'E1001' },
-    { id: 'no-credentials-template-list', title: 'template list without credentials: exit 3', argv: ['template', 'list'], creds: false, exit: 3, output: 'E1001' },
+    { id: 'no-credentials-exec', title: 'standard exec requires a configured key', argv: ['exec', 'sbx-x', 'echo hi'], creds: false, exit: 1, output: /logged in|API key/i },
+    { id: 'no-credentials-template-list', title: 'standard template list requires a configured key', argv: ['template', 'list'], creds: false, exit: 1, output: /logged in|API key/i },
 
     // ---- config store (fresh HOME per scenario) -------------------------------------------------
     {
@@ -139,7 +139,7 @@ export default {
       async run(ctx) {
         const home = ctx.newHome('cfg-env');
         await ctx.abx(['config', 'set', 'region', 'cn-shanghai'], { home, creds: false });
-        const r = await ctx.abx(['--json', 'config', 'get', 'api_url'], { home, creds: false, env: { ABX_SANDBOX_BASE_URL: 'https://example.invalid' } });
+        const r = await ctx.abx(['--json', 'config', 'get', 'api_url'], { home, creds: false, env: { E2B_API_URL: 'https://example.invalid' } });
         ctx.check('api_url', r.stdout, 'example.invalid');
       },
     },
@@ -147,7 +147,7 @@ export default {
     { id: 'config-init-yes-build-llm', title: 'config init --yes --build --llm prints the ACR, AccessKey and LLM commands too', argv: ['config', 'init', '--yes', '--build', '--llm'], creds: false, freshHome: true, stdin: '', timeoutMs: 30000, stdout: ['abx config set acr_namespace', 'abx config set access_key_id', 'abx config set llm_api_key'] },
     { id: 'config-init-non-tty', title: 'config init with piped stdin (no TTY) does not prompt', argv: ['config', 'init'], creds: false, freshHome: true, stdin: '', timeoutMs: 30000, stdout: 'abx config set' },
     { id: 'config-init-reset-shortcuts-gone', title: 'config init --reset-shortcuts is gone', argv: ['config', 'init', '--reset-shortcuts'], creds: false, freshHome: true, exit: 2, output: 'No such option' },
-    { id: 'config-set-shortcut-key-rejected', title: 'config set shortcuts.NAME is rejected (no shortcut configuration)', argv: ['config', 'set', 'shortcuts.scaf', 'template init'], creds: false, freshHome: true, exit: 2 },
+    { id: 'config-set-shortcut-key-rejected', title: 'config set shortcuts.NAME is rejected (no shortcut configuration)', argv: ['config', 'set', 'shortcuts.scaf', 'template scaffold'], creds: false, freshHome: true, exit: 2 },
     { id: 'config-init-pointers', title: 'config init (default) asks for credentials + region only and points to --build / --llm', argv: ['config', 'init', '--yes'], creds: false, freshHome: true, stdin: '', stdout: ["abx config init --build", "abx config init --llm"] },
 
     // ---- MCP config ------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ export default {
         const home = ctx.newHome('mcp');
         const cwd = ctx.newCwd('mcp');
         const key = 'e2e-fake-api-key-0123456789';
-        const env = { ABX_SANDBOX_API_KEY: key, ABX_SANDBOX_BASE_URL: 'https://api.example.invalid' };
+        const env = { E2B_API_KEY: key, E2B_API_URL: 'https://api.example.invalid' };
         const targets = [['cursor', join(home, '.cursor', 'mcp.json')], ['claude', join(home, '.config', 'claude', 'claude_desktop_config.json')], ['vscode', join(cwd, '.vscode', 'mcp.json')]];
         for (const [t, file] of targets) {
           const r = await ctx.abx(['mcp', 'install', '--target', t], { home, cwd, creds: false, env });
@@ -186,7 +186,7 @@ export default {
         const j = ctx.parseJsonLoose(r.stdout);
         if (!j?.installed_cursor || !j?.installed_claude || !j?.installed_vscode) ctx.fail(`status after install: ${JSON.stringify({ c: j?.installed_cursor, cl: j?.installed_claude, v: j?.installed_vscode })}`);
         const cursorCfg = JSON.parse(readFileSync(targets[0][1], 'utf8'));
-        if (cursorCfg.mcpServers['agent-sandbox'].env?.ABX_SANDBOX_API_KEY !== key) ctx.fail('cursor config should carry the ABX_SANDBOX_API_KEY from the environment');
+        if (cursorCfg.mcpServers['agent-sandbox'].env?.E2B_API_KEY !== key) ctx.fail('cursor config should carry the E2B_API_KEY from the environment');
         const again = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, cwd, creds: false, env });
         if (again.code !== 0) ctx.fail('re-install (merge) must be idempotent');
       },
@@ -197,7 +197,7 @@ export default {
         const home = ctx.newHome('mcp-merge');
         mkdirSync(join(home, '.cursor'), { recursive: true });
         writeFileSync(join(home, '.cursor', 'mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'x', args: [] } } }));
-        const r = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, creds: false, env: { ABX_SANDBOX_API_KEY: 'e2e-fake-api-key-0123456789' } });
+        const r = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, creds: false, env: { E2B_API_KEY: 'e2e-fake-api-key-0123456789' } });
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         const cfg = JSON.parse(readFileSync(join(home, '.cursor', 'mcp.json'), 'utf8'));
         if (!cfg.mcpServers.other || !cfg.mcpServers['agent-sandbox']) ctx.fail(`merge lost an entry: ${Object.keys(cfg.mcpServers).join(',')}`);
@@ -221,10 +221,10 @@ export default {
 
     // ---- template scaffolding -------------------------------------------------------------------
     {
-      id: 'template-init-python', title: 'template init DIR --template python --name N scaffolds Dockerfile/commands.py/template.yaml', creds: false,
+      id: 'template-scaffold-python', title: 'template scaffold DIR --template python --name N scaffolds Dockerfile/commands.py/template.yaml', creds: false,
       async run(ctx) {
         const cwd = ctx.newCwd('tinit');
-        const r = await ctx.abx(['template', 'init', 'my-tpl-dir', '--template', 'python', '--name', 'my-tpl'], { cwd, creds: false });
+        const r = await ctx.abx(['template', 'scaffold', 'my-tpl-dir', '--template', 'python', '--name', 'my-tpl'], { cwd, creds: false });
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         for (const f of ['Dockerfile', 'commands.py', 'template.yaml', 'README.md']) if (!existsSync(join(cwd, 'my-tpl-dir', f))) ctx.fail(`missing scaffold file ${f}`);
         const yaml = readFileSync(join(cwd, 'my-tpl-dir', 'template.yaml'), 'utf8');
@@ -233,12 +233,12 @@ export default {
       },
     },
     {
-      id: 'template-init-refuses-overwrite', title: 'template init into a non-empty dir does not silently clobber existing files', creds: false,
+      id: 'template-scaffold-refuses-overwrite', title: 'template scaffold into a non-empty dir does not silently clobber existing files', creds: false,
       async run(ctx) {
         const cwd = ctx.newCwd('tinit2');
         mkdirSync(join(cwd, 'exists'), { recursive: true });
         writeFileSync(join(cwd, 'exists', 'Dockerfile'), '# mine\n');
-        await ctx.abx(['template', 'init', 'exists', '--template', 'python', '--name', 'x'], { cwd, creds: false, stdin: 'n\n' });
+        await ctx.abx(['template', 'scaffold', 'exists', '--template', 'python', '--name', 'x'], { cwd, creds: false, stdin: 'n\n' });
         if (readFileSync(join(cwd, 'exists', 'Dockerfile'), 'utf8') !== '# mine\n') ctx.fail('existing Dockerfile was overwritten without consent');
       },
     },

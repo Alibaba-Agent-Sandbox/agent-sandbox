@@ -1,0 +1,17 @@
+{
+  "decision": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/33",
+  "replacements": {
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_no_description_no_template_is_usage_error": {
+      "target": "tests/test_cli/test_create_nl.py::TestCreateRouting::test_no_description_no_template_uses_base",
+      "reason": "E2B default template is base; no explicit-route usage error"
+    },
+    "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::test_bare_create_is_a_usage_error": {
+      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::bare create and positional templates use the standard defaults",
+      "reason": "E2B default template is base"
+    },
+    "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::test_error_lists_all_three_routes": {
+      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::bare create and positional templates use the standard defaults",
+      "reason": "The old route guard is replaced by default-base and positional-template assertions"
+    }
+  }
+}

@@ -87,19 +87,19 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": true,
       "credential": true,
       "settable": true,
-      "env": "ABX_SANDBOX_API_KEY",
+      "env": "E2B_API_KEY",
       "aliases": [],
       "env_names": [
-        "ABX_SANDBOX_API_KEY"
+        "E2B_API_KEY"
       ],
       "toml_section": null,
       "storage_phase1": {
         "file": "env",
-        "name": "ABX_SANDBOX_API_KEY"
+        "name": "E2B_API_KEY"
       },
       "storage_phase2": {
         "file": "env",
-        "name": "ABX_SANDBOX_API_KEY"
+        "name": "E2B_API_KEY"
       },
       "default": null,
       "choices": [],
@@ -113,10 +113,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "ABX_SANDBOX_BASE_URL",
+      "env": "E2B_API_URL",
       "aliases": [],
       "env_names": [
-        "ABX_SANDBOX_BASE_URL"
+        "E2B_API_URL"
       ],
       "toml_section": "transport",
       "storage_phase1": {
@@ -141,10 +141,10 @@ const SCHEMA: ConfigKeysSchema = {
       "secret": false,
       "credential": false,
       "settable": true,
-      "env": "ABX_SANDBOX_DOMAIN",
+      "env": "E2B_DOMAIN",
       "aliases": [],
       "env_names": [
-        "ABX_SANDBOX_DOMAIN"
+        "E2B_DOMAIN"
       ],
       "toml_section": "transport",
       "storage_phase1": {

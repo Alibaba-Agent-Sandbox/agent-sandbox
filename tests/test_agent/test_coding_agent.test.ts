@@ -135,8 +135,8 @@ describe("TestQuickSetupWording", () => {
       "Quick Setup - template generation (Qwen Code):",
       "  1. Install the Qwen Code CLI (official standalone build):",
       "       curl -fsSL https://example.test/install.sh | bash",
-      "     or re-run 'abx create \"<description>\"' and accept the install prompt",
-      "     or bypass template generation with:  abx create --template base",
+      "     or re-run 'abx create --prompt \"<description>\"' and accept the install prompt",
+      "     or bypass template generation with:  abx create base",
       "  2. Docs: https://github.com/QwenLM/qwen-code",
     ]);
   });

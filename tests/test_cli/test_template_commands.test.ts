@@ -361,20 +361,20 @@ describe("TestTemplateCommandErrorHandling", () => {
 
 describe("TestTemplateCreateCommand", () => {
   it("test_create_help", async () => {
-    const result = await runner().invoke(cli, ["template", "create", "--help"]);
+    const result = await runner().invoke(cli, ["template", "from-image", "--help"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["IMAGE", "--name", "--team-id", "--cpu", "--memory", "--generation", "--envd-inject"]) expect(result.output).toContain(s);
   });
 
   it("test_create_requires_name", async () => {
-    const result = await runner().invoke(cli, ["template", "create", "img:latest"]);
+    const result = await runner().invoke(cli, ["template", "from-image", "img:latest"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output.includes("--name") || result.output.includes("Missing")).toBe(true);
   });
 
   it("test_create_missing_aksk", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
-    const result = await runner().invoke(cli, ["template", "create", "img:tag", "--name", "test"]);
+    const result = await runner().invoke(cli, ["template", "from-image", "img:tag", "--name", "test"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output.includes("AK/SK") || result.output.toLowerCase().includes("credentials")).toBe(true);
   });
@@ -385,7 +385,7 @@ describe("TestTemplateCreateCommand", () => {
       create: { templateID: "tpl-test-001", requestId: "req-001", code: "200", message: "", statusCode: 200 },
     });
 
-    const result = await runner().invoke(cli, ["template", "create", "img:tag", "--name", "test-tpl"]);
+    const result = await runner().invoke(cli, ["template", "from-image", "img:tag", "--name", "test-tpl"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("tpl-test-001");
@@ -396,7 +396,7 @@ describe("TestTemplateCreateCommand", () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     patchOfficialApi({ create: { templateID: "tpl-json-001", requestId: "req-json", code: "200", message: "", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, ["--json", "template", "create", "img:tag", "--name", "test"]);
+    const result = await runner().invoke(cli, ["--json", "template", "from-image", "img:tag", "--name", "test"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("tpl-json-001");
@@ -623,28 +623,28 @@ const listDir = (d: string): Set<string> =>
 
 describe("TestTemplateInitCommand", () => {
   it("test_list_shows_all_cases", async () => {
-    const result = await runner().invoke(cli, ["template", "init", "--list"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--list"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["python", "node", "minimal"]) expect(result.output).toContain(s);
   });
 
   it("test_python_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "pyproj");
-    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md"]));
   });
 
   it("test_node_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "nodeproj");
-    const result = await runner().invoke(cli, ["template", "init", target, "-t", "node"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "node"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md"]));
   });
 
   it("test_minimal_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "minproj");
-    const result = await runner().invoke(cli, ["template", "init", target, "-t", "minimal"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "minimal"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "README.md"]));
     expect(fs.existsSync(path.join(target, "commands.py"))).toBe(false);
@@ -652,7 +652,7 @@ describe("TestTemplateInitCommand", () => {
 
   it("test_top_level_init_shortcut_works", async () => {
     const target = path.join(tmpPath(), "topshortcut");
-    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
     expect(fs.existsSync(path.join(target, "Dockerfile"))).toBe(true);
@@ -669,7 +669,7 @@ describe("TestTemplateInitCommand", () => {
     } as never);
     vi.spyOn(RegistryClient.prototype, "fetch").mockResolvedValue(source);
 
-    const result = await runner().invoke(cli, ["template", "init", target, "--from", source]);
+    const result = await runner().invoke(cli, ["template", "scaffold", target, "--from", source]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
@@ -679,8 +679,8 @@ describe("TestTemplateInitCommand", () => {
 
 describe("TestTemplateInitCommandObject", () => {
   it("test_template_group_exposes_init", async () => {
-    expect(await templateGroup.getCommand("init")).toBe(templateInit);
-    expect(await cli.getCommand("init")).toBeNull();
+    expect(await templateGroup.getCommand("scaffold")).toBe(templateInit);
+    expect(await cli.getCommand("scaffold")).toBeNull();
   });
 });
 
@@ -700,7 +700,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_arrow_picker_selects_case", async () => {
     selectMock.mockResolvedValue("node");
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init"]);
+    const result = await runner().invoke(cli, ["template", "scaffold"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(selectMock).toHaveBeenCalledTimes(1);
     expect(fs.existsSync(path.join(tmpPath(), "node", "template.yaml"))).toBe(true);
@@ -710,7 +710,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_numbered_fallback_when_questionary_missing", async () => {
     vi.spyOn(templateSeams, "_tryArrowCasePicker").mockResolvedValue(null);
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init"], { input: "2\n" });
+    const result = await runner().invoke(cli, ["template", "scaffold"], { input: "2\n" });
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(tmpPath(), "node", "template.yaml"))).toBe(true);
     expect(result.output).toContain("1. python");
@@ -719,7 +719,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_numbered_fallback_when_picker_raises", async () => {
     selectMock.mockRejectedValue(new Error("no terminal"));
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init"], { input: "1\n" });
+    const result = await runner().invoke(cli, ["template", "scaffold"], { input: "1\n" });
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(tmpPath(), "python", "template.yaml"))).toBe(true);
   });
@@ -727,7 +727,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_picker_cancel_aborts", async () => {
     selectMock.mockResolvedValue(null);
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init"]);
+    const result = await runner().invoke(cli, ["template", "scaffold"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Aborted");
     expect(fs.existsSync(path.join(tmpPath(), "python"))).toBe(false);
@@ -735,7 +735,7 @@ describe("TestInitInteractivePicker", () => {
 
   it("test_json_mode_never_prompts", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["--json", "template", "init"]);
+    const result = await runner().invoke(cli, ["--json", "template", "scaffold"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
     expect(selectMock).toHaveBeenCalledTimes(0);
@@ -744,7 +744,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_ci_env_never_prompts", async () => {
     setenv("CI", "true");
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init"]);
+    const result = await runner().invoke(cli, ["template", "scaffold"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
     expect(selectMock).toHaveBeenCalledTimes(0);
@@ -874,7 +874,7 @@ describe("TestStartReadyWarning", () => {
 describe("TestInitDefaultDirectory", () => {
   it("test_init_no_dir_creates_subdir", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     const subdir = path.join(tmpPath(), "python");
     expect(fs.statSync(subdir).isDirectory()).toBe(true);
@@ -884,7 +884,7 @@ describe("TestInitDefaultDirectory", () => {
 
   it("test_init_no_dir_with_name", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init", "-t", "python", "--name", "myapp"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "python", "--name", "myapp"]);
     expect(result.exit_code, result.output).toBe(0);
     const subdir = path.join(tmpPath(), "myapp");
     expect(fs.statSync(subdir).isDirectory()).toBe(true);
@@ -894,14 +894,14 @@ describe("TestInitDefaultDirectory", () => {
 
   it("test_init_explicit_dir_still_works", async () => {
     const target = path.join(tmpPath(), "custom");
-    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
   });
 
   it("test_init_name_precedence_name_over_case", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init", "-t", "node", "--name", "webapp"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "node", "--name", "webapp"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.statSync(path.join(tmpPath(), "webapp")).isDirectory()).toBe(true);
     expect(fs.existsSync(path.join(tmpPath(), "node"))).toBe(false);
@@ -909,14 +909,14 @@ describe("TestInitDefaultDirectory", () => {
 
   it("test_init_name_precedence_case_over_default", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init", "-t", "minimal"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "minimal"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.statSync(path.join(tmpPath(), "minimal")).isDirectory()).toBe(true);
   });
 
   it("test_template_init_no_dir_creates_subdir", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "init", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(tmpPath(), "python", "template.yaml"))).toBe(true);
   });
@@ -935,7 +935,7 @@ describe("TestInitFromDefaultDirectory", () => {
     vi.spyOn(RegistryClient.prototype, "resolve").mockResolvedValue(refFor(source, { path: "test" }));
     vi.spyOn(RegistryClient.prototype, "fetch").mockResolvedValue(source);
 
-    const result = await runner().invoke(cli, ["template", "init", "--from", source]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--from", source]);
 
     expect(result.exit_code, result.output).toBe(0);
     const subdir = path.join(tp, "from-yaml-name");
@@ -952,7 +952,7 @@ describe("TestInitFromDefaultDirectory", () => {
     vi.spyOn(RegistryClient.prototype, "resolve").mockResolvedValue(refFor(source, { repo: "my-ref-repo", path: "owner/my-ref-repo" }));
     vi.spyOn(RegistryClient.prototype, "fetch").mockResolvedValue(source);
 
-    const result = await runner().invoke(cli, ["template", "init", "--from", source]);
+    const result = await runner().invoke(cli, ["template", "scaffold", "--from", source]);
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("--adopt");

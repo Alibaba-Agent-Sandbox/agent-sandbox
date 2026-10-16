@@ -45,3 +45,13 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 - Removals of obsolete files (Python leftovers and similar) are recorded as ADRs under `notes/implemented/process/`.
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
+
+## Standard E2B behavior work
+
+The active [proposed contract](notes/proposed/architecture/2026-10-16-e2b-behavior-contract.md) defines the pinned Alibaba migration surface and project extension boundary. Verification evidence is point-in-time; read the latest E2B run before reporting completion.
+
+The provider ownership review is recorded in [verification](evidence/verify/2026-10-16-provider-boundary-review.md); do not conflate typed command registration with complete backend adaptation.
+
+The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal: feature gates, resume error handling, generic CLI coverage, conditional availability and full artifact auditing still have open work.
+
+See the [multi-agent findings and scoped verification](evidence/verify/2026-10-16-multi-agent-architecture-review.md) for fixed defects, remaining priorities and artifact limitations.

@@ -4,7 +4,7 @@
 
 ## `--provider`：这一条命令用哪个后端
 
-只在这一次调用要走插件、或要走当前默认以外的后端时，加上 `--provider <id>`。它可以出现在任意位置（`abx create --provider my-cloud --template base`）。
+只在这一次调用要走插件、或要走当前默认以外的后端时，加上 `--provider <id>`。exec 中将它放在沙箱 ID 前，其他命令保持全局选项位置（`abx create --provider my-cloud --template base`）。
 
 每条命令都用内置的 `alicloud-express` 时，不要加这个旗标。那是默认值，沙箱 id 保持裸 id。整个 shell 都要换后端时，用 `abx provider default <id>` 或 `ABX_PROVIDER` 设成持久默认。沙箱 id 已经带已知提供者前缀（`my-cloud:sbx-1`）时，它自己就选中了那个提供者；`--provider` 必须写同一个 id。
 
@@ -16,9 +16,9 @@
 
 `--model <id>` 只出现在让编码代理写模板的命令上：
 
-- `abx create "<描述>" --model <id>`
-- `abx template init "<描述>" --model <id>`
-- `abx template init --adopt <目录> --model <id>`
+- `abx create --prompt "<描述>" --model <id>`
+- `abx template scaffold --prompt "<描述>" --model <id>`
+- `abx template scaffold --adopt <目录> --model <id>`
 
 它只覆盖这一次命令的 `llm_model`、`ABX_LLM_MODEL` 和 `OPENAI_MODEL`。端点拒绝了已保存的模型，或这一句描述要用另一个 id 起草时，用它。交互终端可以给出替换项并保存选择；非交互运行沿用你传入的旗标。
 
@@ -38,7 +38,7 @@ abx config set llm_model qwen3-coder-plus
 
 | 你在调用什么 | 存成什么 | 命令 |
 |---|---|---|
-| 沙箱控制面 | `sandbox_api_key`（`ABX_SANDBOX_API_KEY`） | `abx config set sandbox_api_key` |
+| 沙箱控制面 | `sandbox_api_key`（`E2B_API_KEY`） | `abx config set sandbox_api_key` |
 | 模板构建与部署（AccessKey） | `access_key_id`、`access_key_secret` | `abx config set access_key_id` 和 `access_key_secret` |
 | 自然语言生成模板 | `llm_api_key`（`ABX_LLM_API_KEY`，然后是百炼、DashScope、OpenAI 的名字） | `abx config set llm_api_key` |
 | 提供者插件的密钥 | `~/.abx/.env` 里的 `providers.<id>.<key>` | `abx config set providers.<id>.<key>` |

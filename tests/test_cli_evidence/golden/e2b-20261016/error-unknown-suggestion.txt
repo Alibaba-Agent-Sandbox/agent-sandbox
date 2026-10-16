@@ -1,0 +1,6 @@
+[exit_code:2]
+[stderr]
+Usage: abx [options] [command]
+Try 'abx -h' for help.
+
+Error: No such command 'crate'. Did you mean 'create'?

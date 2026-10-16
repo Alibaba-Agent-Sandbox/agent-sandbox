@@ -1,7 +1,7 @@
 /**
  * Minimal `COPY` / `ADD` source extraction from a Dockerfile.
  *
- * Port of `agent_sandbox/agent/dockerfile_sources.py`. `abx template init --adopt` validates AI-written Dockerfiles
+ * Port of `agent_sandbox/agent/dockerfile_sources.py`. `abx template scaffold --adopt` validates AI-written Dockerfiles
  * *before* `docker build` runs for minutes. The check that matters most is "does every path the Dockerfile copies
  * actually exist in the build context?". This module extracts those source paths; deciding whether they exist is
  * the caller's job.

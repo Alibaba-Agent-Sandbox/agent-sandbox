@@ -4,17 +4,21 @@
 > [CLI 命令体系设计](cli-design.md)；MCP 服务见 [MCP Server 设计](mcp-server.md)；模板目录客户端见
 > [模板目录设计](templates-catalog.md)。
 >
-> CLI 是 Agent Sandbox 平台的客户端。它用 TypeScript 重新实现了命令行所需的客户端分层（模型、传输、协议、高层 API、会话存储），这些分层与 Python SDK 的概念一一对应；SDK 自身的设计记录在 SDK 仓库中（见本文末尾的[相关 SDK 文档](#相关-sdk-文档)）。
+> 可执行程序分发到两套命令前端。阿里云极速版的标准命令使用 `src/standard_cli/` 中固定版本、MIT 许可的源码移植；Provider 与项目扩展使用下文描述的原生 TypeScript 分层。两套前端仍有不同的参数解析、输出和终端实现。标准契约见[从 E2B 迁移](../guide/migrate-from-e2b.md)，适配器覆盖见[提供商](../guide/providers.md)。
+
+后端请求发出之前必须确定 Provider 归属。全局选项不能让标准命令静默切入原生实现；标准解析器明确拒绝不支持的选项。这约束了归属和语义边界，不表示两套前端已经统一。
 
 ---
 
 ## 1. 分层结构
 
-下层永不 import 上层。CLI 仓库只实现命令行需要的那几层；它不包含 Compat、Declarative、Extensions、Integrations 以及沙箱内 Server 层。
+原生分层遵循向下依赖规则。标准源码移植有自己的协议实现，不经原生 `api`／`protocol` 层执行；CLI 不包含沙箱内 Server 的实现。
 
 ```mermaid
 graph TB
     BIN["bin — abx 可执行入口 (src/bin/abx.ts)"]
+    DIS["standard_cli/dispatch — Provider 与命令归属"]
+    STD["standard_cli/runtime — 固定标准前端与协议"]
     subgraph Front["命令行"]
         FW["framework — click 兼容命令框架"]
         CLI["cli — main、OutputManager、formatters、region 选项"]
@@ -33,7 +37,9 @@ graph TB
         UTL["utils — registry、模板索引、github token、密钥存储、日志、重试、dockerignore"]
     end
 
-    BIN --> CLI
+    BIN --> DIS
+    DIS --> STD
+    DIS --> CLI
     CLI --> FW
     CLI --> CMD
     CMD --> AG
@@ -51,7 +57,8 @@ graph TB
 | 层 | 目录 | 职责 |
 |----|------|------|
 | 入口 | `src/bin/` | `abx.ts`，可执行入口（构建为 `dist/bin/abx.js`，即 npm 包的 `bin` 目标） |
-| 命令框架 | `src/framework/` | click 兼容的迷你框架（`Context`、`Command`、`Group`、`Option`、`Argument`、参数类型、帮助格式化、`termui` 交互提示、懒加载子命令），目的是让 Node CLI 在参数解析、帮助文本、错误文本和退出码上与 Click 逐字节一致 |
+| 标准命令 | `src/standard_cli/` | 分发边界、维护的固定版本 CLI／协议源码移植、内嵌脚手架与声明 |
+| 原生命令框架 | `src/framework/` | click 兼容的迷你框架（`Context`、`Command`、`Group`、`Option`、`Argument`、参数类型、帮助格式化、`termui` 交互提示、懒加载子命令），用于保留原生项目扩展的 Python CLI 行为；标准前端使用其固定版本解析器 |
 | CLI | `src/cli/` | `main`（根命令组、全局选项）、`output`（`OutputManager`）、`formatters`（表格 / JSON / quiet）、`region`（共享的命令级 `--region` 选项）、`_rich*`（终端表格渲染辅助） |
 | 命令组 | `src/cli/commands/` | 每个命令组一个模块，见第 4 节 |
 | Agent / MCP | `src/agent/` | MCP 服务（`mcp`、`mcp_http`、`mcp_main`、`tools`）、宿主侧编码 Agent 适配（`coding_agent`、`qwen_code`、`clarify`、`codegen`、`template_guide`）、模板创作/改造（`adopt`、`dockerfile_sources`） |
@@ -64,7 +71,7 @@ graph TB
 
 以下划线开头的文件（例如 `src/api/_yaml.ts`、`src/utils/_pyformat.ts`、`src/agent/_pycompat.ts`）是内部兼容辅助模块，用来复刻原实现所依赖的 Python 标准库调用的精确语义，使线上协议输出、`--json` 输出和磁盘文件保持逐字节一致。
 
-## 2. 命令框架（`src/framework/`）
+## 2. 原生命令框架（`src/framework/`）
 
 - 参数与命令属性沿用 Click 的 snake_case 命名（`is_flag`、`help_option_names`）；方法使用 camelCase（`ctx.getHelp()`、`group.addCommand()`）。
 - Python 的 `None` 对应 `null`；"尚无值"使用 `UNSET` 哨兵。
@@ -72,9 +79,11 @@ graph TB
 - 子命令可以懒注册，使 `abx --version` 与 `abx --help` 不必加载所有命令模块（启动耗时由 `benchmarks/` 跟踪）。
 - 测试使用 `CliRunner` 辅助类（`tests/helpers/cliRunner.ts`），对应 `click.testing.CliRunner`。
 
-## 3. 输出与格式化（`src/cli/output.ts`、`src/cli/formatters.ts`）
+## 3. 原生输出与格式化（`src/cli/output.ts`、`src/cli/formatters.ts`）
 
-- `OutputManager` 是唯一决定内容输出到 stdout 还是 stderr 的地方：结果走 stdout；诊断、进度和警告走 stderr（通道策略见 [CLI 命令体系设计 §7](cli-design.md)）。
+本节适用于原生命令。标准命令使用固定版本前端的格式、选项名称和退出行为（含远程命令退出码），不通过 `OutputManager` 统一处理。
+
+- `OutputManager` 决定原生命令输出到 stdout 还是 stderr：结果走 stdout；诊断、进度和警告走 stderr（通道策略见 [CLI 命令体系设计 §7](cli-design.md)）。
 - 全局开关 `--json`、`--quiet`、`--ci`、`--no-color`、`--verbose` 只解析一次并保存在 click 上下文中（`ctx.meta["abx.output"]`），formatters（表格、JSON、quiet）由它获得。
 - CI 与 TTY 检测（`isCiEnv`、`isTty`）：通过一组固定的 CI 环境变量识别 CI；CI 下自动启用 quiet、无颜色、适合 JSON 的输出。非 TTY、`TERM=dumb`、`--json`、`--quiet`、`--ci` 都不绘制瞬态"运行中"标题。
 - 长耗时步骤会绘制瞬态标题和滚动的灰色活动行（`ABX_ACTIVITY_LINES`，1–10）。
@@ -82,7 +91,7 @@ graph TB
 
 ## 4. 命令组（`src/cli/commands/`）
 
-命令树定义见 [CLI 命令体系设计](cli-design.md)。模块划分遵循移植契约（`cli/commands/<name>.py` 对应 `src/cli/commands/<name>.ts`）：
+下表描述原生命令模块，不等于最终分发树。极速版优先走标准命令：`template init`／`template create` 保持 E2B 语义；项目生成／改造使用 `template scaffold --prompt/--adopt`，镜像创建使用 `template from-image`。其他 Provider 和显式项目扩展使用原生生命周期处理器。调用语法见 [CLI 命令体系设计](cli-design.md) 与迁移指南。原生模块划分遵循移植契约（`cli/commands/<name>.py` 对应 `src/cli/commands/<name>.ts`）：
 
 | 模块 | 命令组 |
 |------|--------|
@@ -91,17 +100,17 @@ graph TB
 | `sandbox_files` | `abx sandbox files`（`list`、`stat`、`mkdir`、`rm`、`mv`、`search`） |
 | `sandbox_process` | `abx sandbox process`（`list`、`start`、`info`、`signal`） |
 | `sandbox_system` | `abx sandbox system`（`info`、`env`、`ports`、`packages`、`metrics`） |
-| `template` | `abx template`（`init`、`deploy`、`build`、`push`、`create`、`install`、`list`、`info`、`delete`、`search`） |
+| `template` | `abx template`（`scaffold`、`from-image`、`deploy`、`build`、`push`、`install`、`list`、`info`、`delete`、`search`） |
 | `deploy` | `abx deploy` |
 | `mcp` | `abx mcp`（`install`、`start`、`status`、`deploy`） |
 
 `abx sandbox capabilities`、`abx sandbox command` 与固定的顶层快捷方式（`src/cli/command_surface.ts`）同属该命令树，具体参数见 [CLI 命令体系设计](cli-design.md)。
 
-命令只负责编排：通过框架解析选项、加载配置、调用 `api` 层（自然语言创建和 MCP 则调用 `agent` 层），并通过 `OutputManager` 输出。
+原生命令负责编排：通过框架解析选项、加载配置、调用 `api` 层（自然语言创建和 MCP 则调用 `agent` 层），并通过 `OutputManager` 输出。
 
 ## 5. 客户端核心：api、protocol、transport、session、models
 
-CLI 的客户端核心镜像 Python SDK 的分层，使行为、错误码和线上格式保持一致：
+原生客户端核心对应 Python SDK 的 Provider／Server 扩展分层；标准命令使用内嵌的协议客户端：
 
 - **Transport**（`src/transport/`）：`HttpClient`（重试、超时、连接管理）、WebSocket 辅助、流式解码器，`AuthProvider` 接口背后的 `ApiKeyAuth` / `AkSkAuth`，以及 `config.ts`——按代码参数、进程环境（`ABX_*` 与厂商官方的 `ALICLOUD_*` / `ALIBABA_CLOUD_*` 名称）、`.env`（逐 key 合并）、`~/.abx/config.toml` 的顺序解析配置的分层加载器。
 - **Protocol**（`src/protocol/`）：每种线上接口一个类（`SandboxProtocol`、`ProcessProtocol`、`FilesystemProtocol`、`CodeInterpreterProtocol`、`TerminalSession`、`PortClient`、`TemplateProtocol`）。
@@ -118,8 +127,8 @@ CLI 的客户端核心镜像 Python SDK 的分层，使行为、错误码和线�
 | `mcp_main.ts` | 等价于 `python -m agent_sandbox.agent.mcp` 的入口 |
 | `tools.ts` | 7 个 P0 工具的 schema（`TOOL_SCHEMAS`）与处理函数 |
 | `coding_agent.ts`、`qwen_code.ts` | 可插拔的宿主侧编码 Agent 边界与 Qwen Code 适配器（定位或安装 Agent、以 headless 方式运行） |
-| `clarify.ts`、`codegen.ts`、`template_guide.ts` | 自然语言 `abx create "<描述>"`：先调研的需求澄清、模板生成、提供给 Agent 的参考资料 |
-| `adopt.ts`、`dockerfile_sources.ts` | `abx template init --adopt`：暂存已有项目、仅回写审查通过的白名单文件、校验 Dockerfile 的 `COPY`/`ADD` 源路径 |
+| `clarify.ts`、`codegen.ts`、`template_guide.ts` | 自然语言 `abx create --prompt "<描述>"`：先调研的需求澄清、模板生成、提供给 Agent 的参考资料 |
+| `adopt.ts`、`dockerfile_sources.ts` | `abx template scaffold --adopt`：暂存已有项目、仅回写审查通过的白名单文件、校验 Dockerfile 的 `COPY`/`ADD` 源路径 |
 | `_archive.ts`、`_http.ts` | 面向 Qwen Code 独立安装器的安全 tar/zip 解压与支持代理的下载器 |
 
 MCP 的行为（工具、会话绑定、传输、FC 部署）见 [MCP Server 设计](mcp-server.md)。
@@ -135,13 +144,16 @@ MCP 的行为（工具、会话绑定、传输、FC 部署）见 [MCP Server 设
 
 `abx provider` 和 `--provider` 加载内置的 `alicloud-express`，以及已安装的 `node`、`exec` 和 `rest` 插件。目录 id `opensandbox`、`alicloud-container`、`cubesandbox`、`e2b` 是 `node` 插件（`provider.mjs`，`create(kit)`），用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装（或本地路径、git URL）。既不是内置也未安装的 id 以 `E8001` 退出。`kind = "python"` 的清单会被拒绝。语法见 [Providers and Credentials — CLI spec](../../design/providers-and-credentials-cli.md)（英文；中文副本在本目录的 `providers-and-credentials-cli.md`）。这一层位于命令组与 `api` 层之间。`src/utils/config_keys.ts` 由共享键注册表生成。Python SDK 通过 `abx provider engine serve` 使用同一批 `node` 插件。使用步骤见[提供商](../guide/providers.md)。
 
+注册表描述适配器能力，不会自动提供 CLI 命令，也不证明账号／运行时已启用该能力。原生 FC／ACR 模板处理器在对应适配器实现之前只用于极速版。通用暂停／恢复命令及 Provider PTY 语义尚未在两套前端之间完全统一。Python 标准 `Sandbox`／`AsyncSandbox` 不随 `ABX_PROVIDER` 切换协议，SDK 的 Provider 路径使用 `ProviderSandbox`。
+
 ## 9. 目录结构
 
 ```
 cli/
 ├── src/
 │   ├── bin/               # abx.ts — 可执行入口
-│   ├── framework/         # click 兼容命令框架
+│   ├── standard_cli/      # 分发、固定标准前端／协议移植、资源与声明
+│   ├── framework/         # 原生 click 兼容命令框架
 │   ├── cli/               # main、output、formatters、region、_rich*
 │   │   └── commands/      # config_cmd、deploy、mcp、provider、sandbox、sandbox_files、sandbox_process、sandbox_system、template
 │   ├── agent/             # MCP 服务、编码 Agent 适配器、模板创作/改造
@@ -163,14 +175,15 @@ cli/
 
 ## 10. 构建、打包与独立二进制
 
-- **npm 包**：`npm run build` 执行 `tsc -p tsconfig.build.json` 并输出 `dist/`；`package.json#bin` 将 `abx` 映射到 `dist/bin/abx.js`；`files` 为白名单（`dist`、`README.md`、`SKILL.md`、`LICENSE`、`NOTICE`）。要求 Node.js ≥ 20；CI 在 Node 20 与 22 上运行测试矩阵。
-- **发布**：推送 `vX.Y.Z` 标签会触发 `release.yml`，校验标签与 `package.json#version` 一致后，带 provenance 发布 `@agent-sandbox/cli` 到 npm。
-- **独立二进制**：`scripts/build_binary.mjs` 用 esbuild 将 `src/bin/abx.ts` 及全部依赖打成单个 CommonJS 文件，再通过 Node.js 单一可执行应用（SEA）机制（`postject`；macOS 上做 ad-hoc 重签名）注入 `node` 二进制的副本。产物命名为 `abx-{version}-{platform}-{arch}[.exe]`（`linux`/`darwin`/`windows`，`x64`/`arm64`），以 `abx --version` 做冒烟测试，并由 `release-binary.yml` 在四平台构建矩阵上发布并附带 SHA256 校验和。安装方式见[二进制安装](../guide/binary-installation.md)。
+- **标准源码移植**：`vendor/e2b-cli/package-lock.json` 固定再生成输入，使用 `npm ci --prefix vendor/e2b-cli && npm run vendor:e2b` 重建维护的标准 bundle；脚手架资源内嵌以供独立二进制使用。
+- **npm 包**：`npm run build` 执行 `tsc -p tsconfig.build.json`，输出 `dist/` 并复制标准运行时资源与声明；`package.json#bin` 将 `abx` 映射到 `dist/bin/abx.js`；`files` 为白名单（`dist`、`README.md`、`SKILL.md`、`LICENSE`、`NOTICE`）。要求 Node.js ≥ 20；CI 在 Node 20 与 22 上运行测试矩阵。
+- **发布**：推送 `vX.Y.Z` 标签触发 `release.yml`；仅在 `NPM_PUBLISH=true` 时执行 npm 发布，校验标签与 `package.json#version` 一致并使用 provenance。工作流配置不代表包已经发布。
+- **独立二进制**：`scripts/build_binary.mjs` 用 esbuild 将 `src/bin/abx.ts` 及全部依赖打成单个 CommonJS 文件，再通过 Node.js 单一可执行应用（SEA）机制（`postject`；macOS 上做 ad-hoc 重签名）注入 `node` 二进制的副本。产物命名为 `abx-{version}-{platform}-{arch}[.exe]`（`linux`/`darwin`/`windows`，`x64`/`arm64`），以 `abx --version` 做冒烟测试，并由 `release-binary.yml` 在五目标构建矩阵上发布并附带 SHA256 校验和。安装方式见[二进制安装](../guide/binary-installation.md)。
 - **开发命令**：`make test`、`make typecheck`、`make lint`、`make build`、`make binary`、`make ci`；`npm run dev -- --help` 通过 `tsx` 从源码运行 CLI。
 
 ## 11. 与 Python 保持一致的契约
 
-Node CLI 取代原单包 Python 项目中的 CLI，不得丢失、降级或悄悄改变任何行为。契约及其保障手段：
+Python 移植台账继续作为保留的原生项目扩展的回归基线。极速版标准命令按固定 E2B 契约实现，当前 golden 集合及行为变化另行记录。历史 Python golden 保留为证据，不定义这些标准命令的当前行为。原生移植检查如下：
 
 | 项 | 位置 |
 |----|------|
@@ -181,13 +194,13 @@ Node CLI 取代原单包 Python 项目中的 CLI，不得丢失、降级或悄�
 | CLI 输出 golden 采集 | `.agents/evidence/cli/` 与 `tests/` 下的 golden 文件 |
 | 两个 `abx` 二进制的差分测试 | `parity/diff/`（见 PORTING.md） |
 
-阅读或修改代码时要记住：模块放在 `src/<pkg>/<mod>.ts`；函数使用 camelCase，线上/JSON 数据字段保持 `snake_case`；所有面向用户的字符串逐字保留；stdout/stderr 路由与退出码属于契约的一部分。
+原生移植规则保留模块归属、camelCase 函数与 snake_case 线上／JSON 字段。输出通道和退出码属于各自前端的契约。除原生辅助测试外，还须验证实际可执行入口；仅通过 parity coverage 不能证明标准命令行为。
 
 ## 相关 SDK 文档
 
 Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记录在 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)中：
 
-- [系统架构](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/architecture.md) — 本 CLI 所镜像的客户端分层所属的六层架构
+- [系统架构](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/architecture.md) — 标准客户端与原生 Provider 扩展分层
 - [SDK API 设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sdk-api-design.md)
 - [沙箱类型](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sandbox-types.md)
 - [模板系统](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与

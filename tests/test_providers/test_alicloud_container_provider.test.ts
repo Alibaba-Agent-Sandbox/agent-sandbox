@@ -89,7 +89,7 @@ describe.skipIf(!haveCatalog)("alicloud-container provider", () => {
   });
 
   it("rejects a missing key, a missing domain, a bad protocol, and a base URL with no scheme", async () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "express-secret");
+    iso.setenv("E2B_API_KEY", "express-secret");
     await expect(open({ domain: "acs.test" })).rejects.toThrow(/ABX_ALICLOUD_CONTAINER_API_KEY/);
     await expect(open({ domain: "acs.test" })).rejects.toBeInstanceOf(InvalidCredentialsError);
     await expect(open({ api_key: "k" })).rejects.toThrow(/domain or a base URL/);
@@ -156,7 +156,7 @@ describe.skipIf(!haveCatalog)("alicloud-container provider", () => {
     iso.setenv("ABX_ALICLOUD_CONTAINER_BASE_URL", origin);
     iso.setenv("ABX_ALICLOUD_CONTAINER_DOMAIN", "https://acs.test");
     iso.setenv("ABX_ALICLOUD_CONTAINER_API_KEY", "from-env");
-    iso.setenv("ABX_SANDBOX_API_KEY", "express-secret");
+    iso.setenv("E2B_API_KEY", "express-secret");
     const sb = await Sandbox.create({ provider: "alicloud-container", template: "code-interpreter" });
     try {
       expect(sb.url).toBe("https://49983-sbx-1.acs.test");

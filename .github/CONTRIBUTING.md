@@ -48,14 +48,14 @@ make test
 3. **Make your changes** — write code, tests, and docs
 4. **Run checks** before committing:
    ```bash
-   make lint      # Static check (alias of make typecheck; no separate linter)
+   make lint      # Run ESLint (npm run lint)
    make typecheck # Type-check with tsc (npm run typecheck)
    make test      # Run tests with vitest (npm test)
    ```
 
    Or run the full local CI equivalent in one command:
    ```bash
-   make ci        # tsc --noEmit + build + vitest (not integration) + parity coverage check
+   make ci        # Hygiene + typecheck + ESLint + build + tests + parity + package check
    ```
 
    > **Note:** `make ci` runs on your single local Node.js version. It does **not** replace the Node.js 20 / 22 test matrix enforced by GitHub Actions CI — the matrix can only be fully covered by CI itself.

@@ -46,9 +46,9 @@ interface ConfigKey {
 | key | type | secret | environment variable | storage | default |
 |---|---|---|---|---|---|
 | `provider` | str | no | `ABX_PROVIDER` | toml `[core] provider` | `alicloud-express` |
-| `sandbox_api_key` | str | yes | `ABX_SANDBOX_API_KEY` | env `ABX_SANDBOX_API_KEY` | — |
+| `sandbox_api_key` | str | yes | `E2B_API_KEY` | env `E2B_API_KEY` | — |
 | `sandbox_base_url` | url | no | `ABX_SANDBOX_BASE_URL` | toml `[transport] sandbox_base_url` | derived from region |
-| `sandbox_domain` | str | no | `ABX_SANDBOX_DOMAIN` | toml `[transport] sandbox_domain` | derived from region |
+| `sandbox_domain` | str | no | `E2B_DOMAIN` | toml `[transport] sandbox_domain` | derived from region |
 | `http_timeout` | float | no | `ABX_HTTP_TIMEOUT` | toml `[transport]` | 30.0 |
 | `http2` | bool | no | `ABX_HTTP2` | toml | true |
 | `max_retries` | int | no | `ABX_MAX_RETRIES` | toml | 3 |
@@ -151,16 +151,16 @@ resolve(key K, provider P, sources S):
 
 ### 3.4 `abx config init`
 
-With the built-in provider the wizard prompts for the sandbox API key (`ABX_SANDBOX_API_KEY`), the region (`ALIBABA_CLOUD_REGION_ID`), the LLM API key (`ABX_LLM_API_KEY`), and the AccessKey pair (`ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`). With a non-built-in default provider (or `--provider ID`), the wizard is generated from the provider's schema: one prompt per field in manifest order (`i/N Description (key, ENV_NAME)`, secrets masked, required marked `*`), then `Stored <key> in ~/.abx/.env` / `Set <key> = <value>`, then `Configuration complete. Review it with 'abx config list --provider ID'.`
+With the built-in provider the wizard prompts for the sandbox API key (`E2B_API_KEY`), the region (`ALIBABA_CLOUD_REGION_ID`), the LLM API key (`ABX_LLM_API_KEY`), and the AccessKey pair (`ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`). With a non-built-in default provider (or `--provider ID`), the wizard is generated from the provider's schema: one prompt per field in manifest order (`i/N Description (key, ENV_NAME)`, secrets masked, required marked `*`), then `Stored <key> in ~/.abx/.env` / `Set <key> = <value>`, then `Configuration complete. Review it with 'abx config list --provider ID'.`
 
 ### 3.5 Help text
 
 `abx config get --help` / `set --help` list the keys from §1. Wording:
 
 ```
-sandbox_api_key    Sandbox API key (env: ABX_SANDBOX_API_KEY).
+sandbox_api_key    Sandbox API key (env: E2B_API_KEY).
 sandbox_base_url   Platform API URL (env: ABX_SANDBOX_BASE_URL).
-sandbox_domain     Envd data-plane domain (env: ABX_SANDBOX_DOMAIN).
+sandbox_domain     Envd data-plane domain (env: E2B_DOMAIN).
 provider           Default provider id (see 'abx provider list'; default:
                    alicloud-express).
 providers.<id>.<key>
@@ -188,12 +188,12 @@ Sets a provider-scoped key for this invocation (override layer). `KEY` ∈ the e
 
 | Flag | Environment variable | Commands |
 |---|---|---|
-| `--sandbox-api-key` | `ABX_SANDBOX_API_KEY` | `mcp install`, `mcp start` |
+| `--sandbox-api-key` | `E2B_API_KEY` | `mcp install`, `mcp start` |
 | `--sandbox-base-url` | `ABX_SANDBOX_BASE_URL` | same |
-| `--sandbox-domain` | `ABX_SANDBOX_DOMAIN` | same |
+| `--sandbox-domain` | `E2B_DOMAIN` | same |
 | `--acr-instance-id` | `ACREE_INSTANCE_ID` | template commands |
 
-`abx mcp install` copies `ABX_SANDBOX_API_KEY` into the editor config. It copies `ABX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` into that file only when the process environment sets them, under those same names.
+`abx mcp install` copies `E2B_API_KEY` into the editor config. It copies `ABX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` into that file only when the process environment sets them, under those same names.
 
 ### 4.4 Qualified sandbox references
 
@@ -443,7 +443,7 @@ The Python SDK side was implemented after this spec was reviewed. These points a
 5. **Plugin environment** additionally carries `PYTHONDONTWRITEBYTECODE=1` (interpreters must not write into the digest-verified directory). Top-level `data/` is reserved for plugin state and excluded from the tree digest; `update` carries `data/` over.
 6. **Process cleanup**: after the plugin exits (cleanly or not) the host still kills the process group, so grandchildren cannot outlive a session (`EppClient.close`).
 7. **`close()`**: provider processes are owned by the sandbox object; the Python API gained `Sandbox.close()`. A CLI invocation must close its provider on every exit path (including `Ctrl-C`).
-8. **Storage**: `abx config set sandbox_api_key` writes `ABX_SANDBOX_API_KEY` in `~/.abx/.env` (mode 0600). `sandbox_base_url` is stored as `[transport] sandbox_base_url`. Each key has that one stored name.
+8. **Storage**: `abx config set sandbox_api_key` writes `E2B_API_KEY` in `~/.abx/.env` (mode 0600). `sandbox_base_url` is stored as `[transport] sandbox_base_url`. Each key has that one stored name.
 9. **`python -m agent_sandbox.providers`** is the SDK-side twin of `abx provider` (same layout, same receipts, same digest). A `node` plugin installed by one tool loads in the other: the CLI imports `provider.mjs`, and the Python SDK reaches it through `abx provider engine serve`. A manifest with `kind = "python"` is rejected (`node`, `exec` or `rest`). In-code `Provider` subclasses still register in the Python SDK. They are not installable catalog plugins.
 10. **Not implemented in Python (follow-ups, same for the CLI)**: `sandbox.yaml` `provider:` / `provider_options:` and `@sandbox(provider=...)`; OS confinement; `list --all-providers` aggregation helper in the SDK (the SDK exposes `Sandbox.list(provider=...)` per provider only).
 

@@ -1,0 +1,35 @@
+Usage: abx sandbox command run [options] <SANDBOX_ID> <COMMAND_NAME>
+
+Run a named command registered in the sandbox.
+
+'abx run' is the shortcut of 'abx sandbox command run'.
+
+Named commands are functions the template registers on the SandboxServer
+that runs inside the sandbox (``POST /commands/NAME``). List them with
+'abx sandbox command list SANDBOX_ID'. Arguments are validated and
+converted by the server according to the registered signature.
+
+Pass arguments with --arg KEY=VALUE (repeatable) and/or --json-args
+'{"key": value}' for typed values. The command's return value is printed
+(JSON with --json). Fails with a clear error when the sandbox has no
+server.
+
+Examples:
+  abx run abc123 build
+  abx run abc123 test --arg file=tests/
+  abx run abc123 add --json-args '{"x": 1, "y": 2}'
+  abx --json run abc123 greet --arg name=Ada
+
+Related commands:
+  abx sandbox command list SANDBOX_ID   List the registered commands
+  abx exec SANDBOX_ID -- CMD            Run an arbitrary command
+  abx info SANDBOX_ID                   Inspect the target sandbox
+
+Options:
+  -a, --arg <ARGS>         Command argument, format KEY=VALUE (repeatable)
+  --json-args <JSON_ARGS>  Command arguments as a JSON object, e.g. '{"x": 1}'
+                           (for typed values)
+  --server-port <INTEGER>  Port of the SandboxServer inside the sandbox
+                           (default: 9000)
+  -h, --help               Show this message and exit.
+[exit_code:0]

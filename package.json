@@ -1,7 +1,7 @@
 {
   "name": "@agent-sandbox/cli",
   "version": "0.3.0",
-  "description": "abx — the Agent Sandbox command-line interface (Node.js)",
+  "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -18,7 +18,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-standard-cli.mjs",
     "build:binary": "node scripts/build_binary.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -29,10 +29,12 @@
     "parity:coverage": "node scripts/parity-coverage.mjs",
     "check:hygiene": "bash scripts/check-no-local-paths.sh",
     "e2e": "node e2e/run.mjs",
+    "e2e:standard": "node e2e/standard.mjs",
     "e2e:offline": "node e2e/run.mjs --suite offline",
     "e2e:known-issues": "node e2e/known-issues/run.mjs",
     "e2e:providers": "bash e2e/providers/run.sh",
-    "e2e:cleanup": "node e2e/cleanup.mjs"
+    "e2e:cleanup": "node e2e/cleanup.mjs",
+    "vendor:e2b": "node scripts/build-standard-cli.mjs"
   },
   "repository": {
     "type": "git",

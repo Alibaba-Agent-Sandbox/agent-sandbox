@@ -28,7 +28,7 @@ The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers
 | [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `abx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |
 | [Using Templates](guide/using-templates.md) | Official and community templates |
-| [Authoring Templates](guide/authoring-templates.md) | Custom templates, including `abx template init --adopt` for an existing project |
+| [Authoring Templates](guide/authoring-templates.md) | Custom templates, including `abx template scaffold --adopt` for an existing project |
 | [Deploy & Build](guide/deploy-and-build.md) | Template lifecycle (`template init` / `--adopt` → `deploy` → `create`) |
 | [E2E Template Workflow](guide/e2e-template-workflow.md) | Complete guide from building a template to using sandboxes |
 | [MCP Integration](guide/mcp-integration.md) | Cursor / Claude Desktop / VS Code integration |
@@ -102,3 +102,5 @@ The Python SDK, the in-sandbox server SDK and the shared platform contracts are 
 - [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and [template.yaml Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
 - [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md), [Session Persistence](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/session-persistence.md), [Migrate from E2B](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md)
+
+The [E2B migration contract](guide/migrate-from-e2b.md) is authoritative for standard command behavior. Existing command references describe project extensions where they differ.

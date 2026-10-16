@@ -25,10 +25,10 @@ API Key is the most common authentication method, sent to the platform API via t
 #### 1. Environment variable (wins over `~/.abx`)
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 ```
 
-`ABX_SANDBOX_API_KEY` is the only environment variable for the sandbox API key. `E2B_API_KEY` is not read. The base URL is `ABX_SANDBOX_BASE_URL` and the domain is `ABX_SANDBOX_DOMAIN` (`E2B_API_URL` and `E2B_DOMAIN` are not read).
+`E2B_API_KEY` is the only environment variable for the sandbox API key. `E2B_API_KEY` is not read. The base URL is `E2B_API_URL` and the domain is `E2B_DOMAIN` (`E2B_API_URL` and `E2B_DOMAIN` are not read).
 
 #### 2. abx config set (persisted to local file)
 
@@ -38,14 +38,14 @@ abx config set sandbox_api_key your-api-key
 # File permissions: 600 (owner read/write only)
 ```
 
-Stored as `ABX_SANDBOX_API_KEY=your-key` in `~/.abx/.env`.
+Stored as `E2B_API_KEY=your-key` in `~/.abx/.env`.
 
 #### 3. .env file
 
 Create a `.env` file in the project root directory:
 
 ```dotenv
-ABX_SANDBOX_API_KEY=your-api-key
+E2B_API_KEY=your-api-key
 ```
 
 The CLI merges `.env` files per key. `./.env` wins for a key it sets. A key it omits still comes from `~/.abx/.env`.
@@ -63,7 +63,7 @@ sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 ```
 
-The sandbox API key is stored in `~/.abx/.env` as `ABX_SANDBOX_API_KEY`, not in `config.toml`.
+The sandbox API key is stored in `~/.abx/.env` as `E2B_API_KEY`, not in `config.toml`.
 
 ## AK/SK Alibaba Cloud Extended Authentication 🧪
 
@@ -120,7 +120,7 @@ LLM keys, the GitHub token, and the region use this same chain. A blank or white
 
 Within the same level, API Key takes precedence over AK/SK:
 - If both `sandbox_api_key` and `access_key_id` are provided, API Key is used
-- If both `ABX_SANDBOX_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, `ABX_SANDBOX_API_KEY` is used
+- If both `E2B_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, `E2B_API_KEY` is used
 
 ---
 
@@ -154,7 +154,7 @@ Manage secrets via environment variables or configuration:
 
 ```bash
 # Set API Key via environment variable (recommended)
-export ABX_SANDBOX_API_KEY="your-api-key"
+export E2B_API_KEY="your-api-key"
 
 # Or persist via abx config
 abx config set sandbox_api_key your-api-key
@@ -163,7 +163,7 @@ abx config set sandbox_api_key your-api-key
 Inject secrets when creating a sandbox via `--env` parameters:
 
 ```bash
-abx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
+abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
 ```
 
 > **Historical note**: macOS Keychain integration was removed in the overdesign cleanup (ADR 2026-09-23). The `abx secret` CLI command group has also been removed. All secret management is now done through environment variables, `.env` files, or `abx config set`.
@@ -176,7 +176,7 @@ abx create --template base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **Solution**: Ensure a valid API Key is configured via any of the methods above.

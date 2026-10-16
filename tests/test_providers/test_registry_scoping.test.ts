@@ -48,7 +48,10 @@ describe("TestRegistry", () => {
     expect(p.displayName).toBe("Alibaba Cloud Express Edition");
     expect(p.displayNameZh).toBe("阿里云极速版");
     expect(p.kind).toBe("builtin");
-    expect(p.supports("files.rw") && p.supports("storage.mount")).toBe(true);
+    expect(p.supports("files.rw")).toBe(true);
+    expect(p.supports("storage.mount")).toBe(false);
+    expect(p.supports("network.vpc")).toBe(false);
+    expect(p.supports("ports.domain")).toBe(false);
   });
 
   it("test_register_and_conflicts", () => {
@@ -96,12 +99,18 @@ describe("TestRegistry", () => {
     await installPlugin(LOCAL_PROCESS);
     expect(parseSandboxRef("local-process:abc")).toEqual(["local-process", "abc"]);
     expect(parseSandboxRef("abc")).toEqual([null, "abc"]);
-    expect(parseSandboxRef("unknown-prov:abc")).toEqual([null, "unknown-prov:abc"]);
-    expect(parseSandboxRef("local-process:")).toEqual([null, "local-process:"]);
+    expect(() => parseSandboxRef("unknown-prov:abc")).toThrow(E.ProviderNotFoundError);
+    expect(() => parseSandboxRef("local-process:")).toThrow(E.ProviderConfigError);
     expect(qualify("alicloud-express", "sb1", { ambient: "alicloud-express" })).toBe("sb1");
     expect(qualify("alicloud-express", "sb1", { ambient: "local-process" })).toBe("alicloud-express:sb1");
     expect(qualify("local-process", "sb1", { ambient: "alicloud-express" })).toBe("local-process:sb1");
   });
+
+  it.each(["default:id", "none:id", "alicloud-compute:id", "OpenSandbox:id", "bad_name:id", ":id", "x:id", "alicloud-express:"])(
+    "rejects an invalid explicit namespace or empty ID: %s", (ref) => {
+      expect(() => parseSandboxRef(ref)).toThrow(E.ProviderConfigError);
+    },
+  );
 });
 
 describe("TestProviderSelection", () => {
@@ -131,8 +140,8 @@ describe("TestCredentialIsolation", () => {
   });
 
   it("test_generic_keys_only_reach_builtin_and_consented_inheritors", () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "generic-key-1234");
-    iso.setenv("ABX_SANDBOX_BASE_URL", "https://generic.example");
+    iso.setenv("E2B_API_KEY", "generic-key-1234");
+    iso.setenv("E2B_API_URL", "https://generic.example");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).sandbox_api_key).toBe("generic-key-1234");
     expect(loadLayeredConfig({ provider: "local-process" }).sandbox_api_key).toBeNull();
     expect(loadLayeredConfig({ provider: "local-process" }).sandbox_base_url).not.toBe("https://generic.example");
@@ -141,7 +150,7 @@ describe("TestCredentialIsolation", () => {
   });
 
   it("test_inherit_without_consent_is_dropped", async () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "generic-key-1234");
+    iso.setenv("E2B_API_KEY", "generic-key-1234");
     const file = path.join(store.providerDir("e2b-compatible"), ".abx-install.json");
     const receipt = JSON.parse(fs.readFileSync(file, "utf-8"));
     receipt.consented.inherit = [];
@@ -151,7 +160,7 @@ describe("TestCredentialIsolation", () => {
   });
 
   it("test_scoped_env_beats_generic_for_inheritor", () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "generic");
+    iso.setenv("E2B_API_KEY", "generic");
     iso.setenv("ABX_E2B_COMPATIBLE_SANDBOX_API_KEY", "scoped");
     expect(loadLayeredConfig({ provider: "e2b-compatible" }).sandbox_api_key).toBe("scoped");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).sandbox_api_key).toBe("generic");
@@ -198,7 +207,7 @@ describe("TestRestProvider", () => {
 
   it("test_build_infra_uses_inherited_key", async () => {
     await installPlugin(E2B_COMPATIBLE);
-    iso.setenv("ABX_SANDBOX_API_KEY", "abcd1234");
+    iso.setenv("E2B_API_KEY", "abcd1234");
     const prov = getProvider("e2b-compatible");
     expect(prov).toBeInstanceOf(RestProvider);
     const infra = await prov.buildInfra(loadLayeredConfig({ provider: "e2b-compatible" }));

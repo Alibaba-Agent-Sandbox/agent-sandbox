@@ -69,7 +69,7 @@ abx template install owner/repo
 ## 按模板创建沙箱
 
 ```bash
-abx create --template my-python
+abx create my-python
 ```
 
 ---
@@ -79,10 +79,10 @@ abx create --template my-python
 当不确定使用哪个模板时，可以用自然语言描述需求：
 
 ```bash
-abx create "一个支持 pandas 和 matplotlib 的 Python 数据分析环境"
+abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析环境"
 ```
 
-`abx create "<描述>"`（未显式传 `--template` 时）走 生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
+`abx create --prompt "<描述>"`（未显式传 `--template` 时）走 生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
 
 ---
 
@@ -92,7 +92,7 @@ abx create "一个支持 pandas 和 matplotlib 的 Python 数据分析环境"
 |--------|------|----------|
 | `base` | 基础 Ubuntu 环境 | `shell`, `files`, `code` |
 
-> **提示**：可通过 `abx template install` 从社区获取更多模板，或参考 [编写模板](authoring-templates.md) 创建自己的模板。已有源码的项目可以用 `abx template init --adopt` 就地补成模板。
+> **提示**：可通过 `abx template install` 从社区获取更多模板，或参考 [编写模板](authoring-templates.md) 创建自己的模板。已有源码的项目可以用 `abx template scaffold --adopt` 就地补成模板。
 
 ---
 

@@ -13,7 +13,7 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs
 ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki003' --json out.json
 ```
 
-凭据来自环境变量或被 git 忽略的 `cli/.env`(`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`),绝不打印(所有捕获的输出
+凭据来自环境变量或被 git 忽略的 `cli/.env`(`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`),绝不打印(所有捕获的输出
 都会脱敏)。没有凭据时脚本打印 `SKIP: ...` 并以 0 退出。`ABX_E2E_TEMPLATE` 指定模板(默认 `python-hello`)。
 
 ## 做了什么

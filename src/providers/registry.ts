@@ -6,7 +6,7 @@ import { BUILTIN_PROVIDER_ID, OFFICIAL_CATALOG_IDS, validateProviderId } from ".
 import { Provider, orderedFeatures } from "./base.js";
 import { AlicloudExpressProvider } from "./builtin.js";
 import { ExecProvider } from "./exec_provider.js";
-import { ProviderConflictError, ProviderNotFoundError } from "./errors.js";
+import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError } from "./errors.js";
 import { loadManifest } from "./manifest.js";
 import { NodeProvider } from "./node_provider.js";
 import { RestProvider } from "./rest_provider.js";
@@ -177,22 +177,17 @@ export function ambientProviderId(): string {
   return resolveProviderId(null);
 }
 
-/** Split `provider:sandbox_id`; the prefix counts only if it names a known provider. */
+/** Split `provider:sandbox_id`; an explicit namespace must resolve or fail before backend work. */
 export function parseSandboxRef(ref: string): [string | null, string] {
   const idx = ref.indexOf(":");
   if (idx >= 0) {
     const prefix = ref.slice(0, idx);
     const rest = ref.slice(idx + 1);
-    const valid = prefix === BUILTIN_PROVIDER_ID || validateProviderId(prefix) === null;
-    if (rest && valid) {
-      try {
-        getProvider(prefix);
-      } catch (exc) {
-        if (exc instanceof ProviderNotFoundError) return [null, ref];
-        throw exc;
-      }
-      return [prefix, rest];
-    }
+    if (!rest) throw new ProviderConfigError(`Sandbox reference '${ref}' is missing its sandbox id.`);
+    const problem = prefix === BUILTIN_PROVIDER_ID ? null : validateProviderId(prefix);
+    if (problem !== null) throw new ProviderConfigError(`Invalid provider namespace '${prefix}': ${problem}.`);
+    getProvider(prefix);
+    return [prefix, rest];
   }
   return [null, ref];
 }
@@ -210,4 +205,3 @@ setSchemaLookup((providerId) => {
     ...provider.endpointDefaults,
   });
 });
-

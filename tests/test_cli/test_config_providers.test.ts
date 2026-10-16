@@ -242,7 +242,7 @@ describe("config migrate", () => {
     await abx("config", "migrate", "--yes");
     expect((await abx("config", "get", "api_url")).output.trim()).toBe("https://api.cn-hangzhou.e2b.fc.aliyuncs.com");
     expect((await abx("config", "get", "region")).output.trim()).toBe("cn-beijing");
-    expect((await abx("config", "get", "sandbox_api_key")).output).toContain("not set");
+    expect((await abx("config", "get", "sandbox_api_key")).output).toContain("old***lue");
 
     const listing = await abx("config", "list");
     expect(listing.output).toContain("sandbox_base_url");
@@ -267,7 +267,7 @@ describe("legacy names", () => {
     const warn = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
     try {
       iso.setenv("SANDBOX_REGION", "cn-beijing");
-      iso.setenv("E2B_API_URL", "https://compat.example");
+      iso.setenv("ABX_SANDBOX_BASE_URL", "https://retired.example");
       iso.setenv("ABX_WARN_DEPRECATED", "1");
       _resetDeprecationWarnings();
       const values = _readEnvVars();
@@ -282,7 +282,7 @@ describe("legacy names", () => {
   it("test_canonical_env_names_win_over_retired_ones", () => {
     iso.setenv("SANDBOX_REGION", "cn-beijing");
     iso.setenv("ALIBABA_CLOUD_REGION_ID", "cn-shanghai");
-    iso.setenv("ABX_SANDBOX_BASE_URL", "https://canon.example");
+    iso.setenv("E2B_API_URL", "https://canon.example");
     iso.setenv("SANDBOX_API_BASE_URL", "https://legacy.example");
     const values = _readEnvVars();
     expect(values["region"]).toBe("cn-shanghai");

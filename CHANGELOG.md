@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Resolve Alibaba envd process handles before OS PID inspection in the CLI process info extension; keep standard exec option boundaries and remote status semantics. / CLI 进程详情优先解析阿里云 envd 句柄，保留标准 exec 参数边界与远程退出码。
+
+- Align Alibaba Express standard lifecycle, process, file and interpreter behavior with the pinned E2B contract; use canonical `E2B_*` connection settings.
+- Reserve create positional arguments for templates and natural language for `--prompt` in the CLI; document migration, source attribution and backend capability limits.
+
+
 ### Added
 
 - **Installers for the standalone binary.** `install.sh` (macOS and Linux) and `install.ps1` (Windows x64) download `abx-<version>-<os>-<arch>[.exe]` plus its `.sha256` from the latest GitHub Release, verify the checksum, and install without sudo. `ABX_VERSION` and `ABX_INSTALL_DIR` override the release and the destination. The npm package `@agent-sandbox/cli` is not published yet.
@@ -30,6 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Open-source hygiene.** The deploy and benchmark scripts no longer contain developer-machine paths, a personal ACR namespace or fixed e2e tags: `abx` is resolved from `PATH` (override with `ABX_BIN`), `scripts/build_hermes.sh`, `deploy_all_templates.sh` and `deploy_remaining.sh` take `ACR_NAMESPACE` (required), `TAG` (default `dev`) and `REGION` from the environment, and `.env.example` uses the `<your-namespace>` placeholder. New regression guard `npm run check:hygiene` (`scripts/check-no-local-paths.sh`, allowlist in `scripts/local-paths.allowlist`) runs in CI and fails on user-home paths, Windows user paths, `.venv/bin` assumptions, personal identifiers and key-like strings.
 
 ### Fixed
+
+- Preserve standard command ownership with native root output flags; resolve Express scoped credentials/endpoints together, reject malformed/reserved resource namespaces, and retain missing dependency and bundled-source license notices.
+
+- Fix provider ownership at E2B dispatch and qualified references; block foreign providers from the FC template pipeline and stop auto-advertising every host feature on Express.
 
 - **MCP deployment uses the Python client distribution.** Generated `requirements.txt` now requests `agent-sandbox-client[mcp]` instead of the previous `agent-sandbox[mcp]` package name.
 - Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.

@@ -1,5 +1,5 @@
 /**
- * Tests for adapting an existing project (`abx template init --adopt`).
+ * Tests for adapting an existing project (`abx template scaffold --adopt`).
  *
  * Port of `tests/test_agent/test_adopt.py`. The agent is never executed here. Staging, validation and promote are
  * deterministic; a misbehaving writer is simulated by editing the staging directory directly.
@@ -429,7 +429,9 @@ describe("TestAdoptPromptGolden", () => {
   });
 
   it("keeps the generated .dockerignore byte-identical", () => {
-    expect(GENERATED_DOCKERIGNORE).toBe(readGolden().generated_dockerignore);
+    // Preserve the original Python capture; current scaffold output has its own fixture.
+    const current = fs.readFileSync(new URL("../fixtures/agent/scaffold-generated.dockerignore", import.meta.url), "utf8");
+    expect(GENERATED_DOCKERIGNORE).toBe(current);
   });
 });
 

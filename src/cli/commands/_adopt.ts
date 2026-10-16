@@ -1,5 +1,5 @@
 /**
- * `abx template init --adopt` orchestration (port of `cli/commands/_adopt.py`).
+ * `abx template scaffold --adopt` orchestration (port of `cli/commands/_adopt.py`).
  *
  * The agent work and the safety checks live in `agent/adopt.ts`. This module only talks to the user: consent, the
  * preview, and translating rejections into Click errors.

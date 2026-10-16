@@ -62,7 +62,7 @@ There is no `CMD` or `ENTRYPOINT` on this platform. The profile `server_start` i
 | `ports` | Not sent to `CreateTemplate`. Cached in `template.yaml` for capability lookup. |
 | `env` | Not a `CreateTemplate` field on this path. |
 
-Credentials: `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET` (also the default ACR username and password), `ACR_NAMESPACE`, `ALIBABA_CLOUD_REGION_ID`, plus `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN` for create and run. The plugin must not read `E2B_*`.
+Credentials: `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET` (also the default ACR username and password), `ACR_NAMESPACE`, `ALIBABA_CLOUD_REGION_ID`, plus `E2B_API_KEY`, `ABX_SANDBOX_BASE_URL`, `E2B_DOMAIN` for create and run. The plugin must not read `E2B_*`.
 
 Verified: the pipeline in `template.ts` / `fc_template.ts` / `build_plan.ts`, and the feature gate. Live Express deploys of this CLI are recorded on earlier changes; this design did not run a new one.
 
@@ -90,7 +90,7 @@ A Dockerfile is parsed on the client by `Template.fromDockerfile` into those ste
 | `env` | `ENV` becomes a step. Create-time env vars are not visible to `startCmd`, because that process already ran. |
 | `build.steps` / `build.run` | The CLI already emits `{type, args}` steps. The provider maps `RUN`/`ENV` onto E2B `TemplateStep`. The exact step JSON was not copied into this doc; confirm against the live OpenAPI when implementing. |
 
-Credentials: `ABX_E2B_API_KEY` only for a public base image. A private `fromImage` also needs registry credentials in `fromImageRegistry`. The plugin does not read `ABX_SANDBOX_API_KEY` or `E2B_API_KEY`.
+Credentials: `ABX_E2B_API_KEY` only for a public base image. A private `fromImage` also needs registry credentials in `fromImageRegistry`. The plugin does not read `E2B_API_KEY` or `E2B_API_KEY`.
 
 Verified: plugin source, manifest, and the E2B doc pages linked above. Unverified: a live build, the `TemplateStep` schema, and how `COPY`/`ADD` upload file bytes (the start-build page shows `steps` but not a file-upload body).
 
