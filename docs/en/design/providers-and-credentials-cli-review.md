@@ -35,4 +35,3 @@ Open for the CLI worker: confirm Node `smol-toml` handles every manifest in `exa
 | I6 | `Sandbox` had no way to release a plugin process | `Sandbox.close()`; spec §9.7 |
 | I7 | Migration left an empty `[transport]` table | Dropped; `migration-vectors.json` covers it; spec §9.8 |
 | I8 | `sandbox.yaml`/`@sandbox` provider plumbing lives in a file owned by another workstream | Deferred; listed in §9.10 and the CLI checklist |
-
