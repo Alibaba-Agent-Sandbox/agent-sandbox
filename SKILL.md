@@ -39,8 +39,10 @@ Node.js 20+ is required for the CLI.
 ```bash
 npm install -g @agent-sandbox/cli   # abx CLI + MCP STDIO and Streamable HTTP servers (most agents want this)
 npx @agent-sandbox/cli --help       # or run it without installing
-pip install agent-sandbox           # Python SDK only (lives in the `python-sdk` repository)
+pip install agent-sandbox-client    # Python SDK only (import agent_sandbox; lives in the `python-sdk` repository)
 ```
+
+`pip install agent-sandbox` installs an unrelated project.
 
 If npm reports no matching version, install from the CLI repository. The clone root is the CLI; do not look for a nested cli directory:
 

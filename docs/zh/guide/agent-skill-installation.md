@@ -266,4 +266,4 @@ abx exec <sandbox-id> "echo hi"   # 脚本用 CLI
 - Cursor——[Agent Skills](https://cursor.com/docs/skills)、[Plugins](https://cursor.com/docs/plugins)
 - Qwen Code——[Agent Skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md)
 - Codex——[Build skills](https://developers.openai.com/codex/skills)
-- PyPI 状态（Python SDK）——`pip index versions agent-sandbox` 在 2026-09-29 无匹配分发
+- PyPI 状态（Python SDK）——`pip index versions agent-sandbox` 在 2026-09-29 无匹配分发。客户端分发包是 `agent-sandbox-client`。`pip install agent-sandbox` 会安装一个无关的项目。

@@ -205,7 +205,7 @@ warning，退出码保持成功——过期的索引仍然可用，只是可见�
 `tests/test_catalog.py`（32 用例）+ `tests/test_index.py`（11 用例）+
 `tests/test_commands_e2e.py`（10 用例）：目录契约、索引对账、README 表格
 逐字段比对、qwen-code `max_session_turns` 契约守卫等。CI 在 Python
-3.10–3.13 矩阵上运行，依赖 `requirements-dev.txt`（`agent-sandbox[cli]` git main +
+3.10–3.13 矩阵上运行，依赖 `requirements-dev.txt`（`agent-sandbox-client[cli]` git main +
 pytest + pyyaml）。
 
 > 真源仓库与主仓库测试的分工：**内容正确性**归真源仓库（模板改动必须同 PR 更新

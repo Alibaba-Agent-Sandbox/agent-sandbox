@@ -162,13 +162,13 @@ Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器�
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
-pip install agent-sandbox
+pip install agent-sandbox-client
 
 # 模板镜像内使用的服务端运行时（import agent_sandbox.server）
 pip install agent-sandbox-server
 ```
 
-`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 `pip install agent-sandbox-server` 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
+`pip install agent-sandbox` 会安装一个无关项目。`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 `pip install agent-sandbox-server` 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
 
 ## 文档
 

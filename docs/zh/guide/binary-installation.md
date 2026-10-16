@@ -123,12 +123,12 @@ abx --version
 
 | | 独立二进制 | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
-| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（0.3.0 尚未发布） | 即将提供，包尚未发布 |
+| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（v0.3.0 资产已于 2026-10-16 核实可下载） | 即将提供，包尚未发布 |
 | 是否需要 Node.js | 否 | 需要（20+） |
 | 安装方式 | `install.sh` / `install.ps1`，或从 Releases 下载单个文件 | 包发布之后用 npm |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
 | 更新方式 | 重新运行安装脚本 | 发布后 `npm update -g @agent-sandbox/cli` |
-| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
+| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox-client`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
 | 可选扩展（`alicloud`、`mcp` 等） | 无需单独安装 —— 已内置 | 无需单独安装 —— 已内置 |
 
 ## 故障排查：abx: command not found
@@ -156,7 +156,7 @@ abx --version
 ## 说明
 
 - 二进制包含 CLI 及其运行时依赖，包括阿里云模板 API 客户端和 MCP 服务（STDIO 与 Streamable HTTP）。
-- 二进制只提供 `abx` CLI。Python SDK 是单独的包：`pip install agent-sandbox`（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
+- 二进制只提供 `abx` CLI。Python SDK 是单独的包：`pip install agent-sandbox-client`（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
 
 ## 自己构建二进制
 
