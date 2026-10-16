@@ -2,6 +2,12 @@
 /** Real Express migration checks. ABX_BIN points to the built standalone executable. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { loadCredentials, makeMasker } from "./lib/env.mjs";
+
+const credentials = loadCredentials();
+Object.assign(process.env, credentials);
+const mask = makeMasker(credentials);
+const apiUrl = credentials.E2B_API_URL ?? `https://api.${credentials.E2B_DOMAIN}`;
 
 function execute(file, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -74,6 +80,7 @@ finally:
     except ProcessLookupError: pass
 `;
 
+async function main() {
 try {
   assert.ok(process.env.E2B_API_KEY, "E2B_API_KEY is required");
   const output = await run(["sandbox", "create", "code-interpreter-v1", "--detach", "--timeout", "300"]);
@@ -105,7 +112,7 @@ try {
   // Reference create requests one second; Express currently rounds this to its minimum lease.
   let removed = false;
   for (let attempt = 0; attempt < 90; attempt++) {
-    const response = await fetch(`${process.env.E2B_API_URL}/sandboxes/${automatic}`, { headers: { "X-API-Key": process.env.E2B_API_KEY } });
+    const response = await fetch(`${apiUrl}/sandboxes/${automatic}`, { headers: { "X-API-Key": process.env.E2B_API_KEY } });
     if (response.status === 404) { removed = true; break; }
     assert.equal(response.status, 200);
     const detail = await response.json();
@@ -124,5 +131,13 @@ try {
   assert.ok(!list.some((item) => item.sandboxId === id || item.sandboxID === id));
   console.log("PASS: detached create, stdout, command failure, templates, stateful PTY, connect retention, create expiry, kill and cleanup");
 } finally {
-  for (const id of created) await run(["sandbox", "kill", id]);
+  const cleanup = await Promise.allSettled([...created].map((id) => run(["sandbox", "kill", id])));
+  assert.equal(cleanup.filter((result) => result.status === "rejected").length, 0, "tracked sandbox cleanup failed");
+}
+
+}
+
+try { await main(); } catch (error) {
+  console.error(mask(error.stack ?? String(error)));
+  process.exitCode = 1;
 }

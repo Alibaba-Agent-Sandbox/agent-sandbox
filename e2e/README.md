@@ -6,6 +6,23 @@ the **real cloud**. Point `ABX_BIN` at the `abx` binary you want to test.
 
 > 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
+## Standard E2B migration contract
+
+Run `ABX_BIN=<standalone-executable> npm run e2e:standard` with E2B_API_KEY and
+E2B_API_URL/E2B_DOMAIN in the environment or ignored .env. This focused suite uses
+the real Express backend and a real local PTY (Linux/macOS, Python 3 required).
+It verifies detached and interactive create, stdout/remote exit status, template
+JSON listing, persistent shell state, connect ownership, automatic expiry and
+cleanup. It never invokes an installed E2B CLI. Platform minimum TTL may round the
+one-second post-terminal request to about 60 seconds; the probe waits for that
+known asynchronous reclamation. Errors are masked before reporting.
+
+The older scenario collection below includes the project's native extension
+contracts and historical Python-CLI assertions. It is being aligned with the
+selected standard behavior; a passing focused suite does not mean that whole
+collection or the complete CI matrix passed. Standard template init creates E2B
+SDK files; project template.yaml workflows use template scaffold.
+
 ## Quick start
 
 ```bash

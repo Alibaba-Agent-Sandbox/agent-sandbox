@@ -5,6 +5,19 @@ stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定�
 
 > English version: [README.md](README.md).
 
+## 标准 E2B 迁移契约
+
+使用 `ABX_BIN=<独立可执行文件> npm run e2e:standard`，通过环境变量或被忽略的
+.env 配置 E2B_API_KEY、E2B_API_URL/E2B_DOMAIN。这个专项测试使用真实极速版后端和
+本地 PTY（Linux/macOS，需 Python 3），覆盖后台及交互创建、stdout/远程退出码、
+模板 JSON 列表、持续 shell 状态、connect 所有权、自动到期与清理。它不会调用外部
+E2B CLI。平台会把退出终端后的一秒超时请求取整到约 60 秒，测试会等待这一已知异步
+回收过程。错误在输出前脱敏。
+
+下面较早的场景集合还包含项目扩展契约和历史 Python CLI 断言，正在按选定的标准行为
+调整；专项通过不代表该集合或完整 CI 矩阵全部通过。标准 template init 生成 E2B SDK
+文件，项目 template.yaml 工作流使用 template scaffold。
+
 ## 快速开始
 
 ```bash
