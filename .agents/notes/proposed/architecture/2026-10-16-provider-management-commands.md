@@ -70,6 +70,9 @@ retention and unsafe key-rotation output. Tests cover bounded schemas, legacy ma
 consent, real Node/EPP execution, CLI/loopback routes, errors, cleanup and official model mapping.
 New black-box scenarios exercise static discovery/guards and actual FC management reads.
 Cloud writes, storage prerequisites, full repository gates and consumer parity are separate checks.
+Verification must isolate sockets and temporary roots per run and serialize suites sharing
+fixed ports. Effect metadata does not sandbox trusted provider code; IAM/RAM remains an
+authorization boundary, as clarified in both language versions of the specification.
 
 ## Acceptance criteria
 

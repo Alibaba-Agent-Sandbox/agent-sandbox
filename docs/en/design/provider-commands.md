@@ -69,6 +69,11 @@ outcome of a cloud mutation may be unknown: abort and cleanup are best effort an
 prove that the remote operation was cancelled. Management invocations are never replayed
 automatically, including operations marked idempotent.
 
+Provider handlers execute as trusted host code. Schemas, declared effects and confirmation
+protect the invocation contract; they do not sandbox plugin code or prove which cloud actions
+a handler performs. Installation trust and cloud IAM/RAM permissions remain the authority
+boundaries. Metadata must not be presented as a restriction on a malicious handler.
+
 ## CLI and SDK transport
 
 ```text
@@ -118,6 +123,10 @@ files/worktrees. Cross-review checks naming, credential boundaries, input reject
 mutation replay, cleanup and declared-versus-callable capability claims. The coordinator owns
 integration and verifies actual test results, remote checks and merge state; agent conclusions
 and mocks cannot substitute for cloud evidence.
+
+Verification runs must also isolate sockets, temporary roots and cloud-resource ownership.
+Process IDs alone can collide across tool namespaces. Suites using a fixed port run
+sequentially; independent suites may run in parallel only when their resources are disjoint.
 
 Acceptance covers legacy manifests, malformed/duplicate descriptors, consent changes, static
 discovery, Node and exec dispatch, schema rejection before I/O, CLI/engine/Python parity,
