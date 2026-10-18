@@ -18,3 +18,19 @@ SHA256，并注明迁移后的归属或确实缺失的历史采集。每项仍�
 每个发生变更的仓库分别保留 note、验证证据、中英文文档与 changelog。
 合并前核对最新 head 的完整 CI 与所需真实组件验收。
 [English](../../en/guide/contributing-code.md)
+
+## 依赖主版本升级
+
+CLI 继续支持 Node 20、22。Commander、TypeScript、Node 类型的补丁和次版本
+自动更新继续保留；主版本升级需要单独迁移 PR，证明受支持运行版本矩阵、解析/
+帮助/退出行为、类型与 lint 工具 peer 兼容性和产物验收，再解除对应 bot 忽略。
+当前保留 Commander 14、TypeScript 5.9、Node 22 类型。Commander 15 要求
+Node >=22.12，且改变参数诊断；TypeScript 7 超出当前 typescript-eslint 的
+peer 范围；Node 26 类型引入 Buffer 签名不兼容。这些升级是拒绝采用，不是
+CI 测试通过。对应 PR：[7](https://github.com/alibaba-agent-sandbox/agent-sandbox/pull/7)、
+[9](https://github.com/alibaba-agent-sandbox/agent-sandbox/pull/9)、
+[10](https://github.com/alibaba-agent-sandbox/agent-sandbox/pull/10)。
+
+GitHub action 自身的运行版本与它通过 `node-version` 安装的版本不同：
+`actions/setup-node@v7` 仍按 CI 明确配置安装 Node 20/22，发布使用 Node 22。
+此更新没有请求发布包。
