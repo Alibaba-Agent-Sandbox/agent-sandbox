@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const SandboxMock = vi.hoisted(() => ({
   list: vi.fn(),
-  getInfoById: vi.fn(),
+  setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn(),
   create: vi.fn(),
   connect: vi.fn(),
   killById: vi.fn(),

@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Reserve create positional arguments for templates and natural language for `--prompt` in the CLI; document migration, source attribution and backend capability limits.
 ### Fixed
 
+- Install generated MCP applications from a tested matching client/server source pair instead of unavailable/unrelated PyPI distributions. Preserve the current provider workflow tools while routing metadata and TTL directly to the control plane, removing retired renewal state and sanitizing lifecycle failures.
+
+### Fixed
+
 - Reconcile provider isolation with accepted native transport, explicit-key authentication and retired-module cleanup; preserve canonical compatibility aliases and pure configuration metadata.
 
 ### Documentation
@@ -51,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- **MCP lifecycle controls.** `list_sandboxes`, `get_sandbox`, and `set_sandbox_timeout` share STDIO/HTTP handlers, validate bounded inputs, expose only safe metadata, and never adopt external instances for session destruction. `create_sandbox` accepts provider, region, CPU and memory options.
 - **Typed provider management commands.** `abx provider command list|info|run` discovers static schemas and invokes declared Node/exec commands through shared validation and authenticated engine routes. Includes 20 official FC Volume, Team, API Key and quota operations; key creation/rotation securely writes a new local file. Custom-domain automation remains unsupported pending a verified public Agent Sandbox API.
 - **FC Volume mounts at sandbox creation.** `abx create --volume-mount PATH=NAME` and `Sandbox.create({volume_mounts: {...}})` serialize the official `volumeMounts` request. Invalid paths and unsupported providers fail before execution; real storage access still requires an existing Volume, its Team's API key and a storage role.
 
@@ -89,6 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Preserve standard command ownership with native root output flags; resolve Express scoped credentials/endpoints together, reject malformed/reserved resource namespaces, and retain missing dependency and bundled-source license notices.
 
 - Fix provider ownership at E2B dispatch and qualified references; block foreign providers from the FC template pipeline and stop auto-advertising every host feature on Express.
+- **Stacked pull request validation.** The complete CI matrix now runs for pull requests targeting feature branches as well as `main`; push validation remains limited to `main`.
 
 - **MCP deployment uses the Python client distribution.** Generated `requirements.txt` now requests `agent-sandbox-client[mcp]` instead of the previous `agent-sandbox[mcp]` package name.
 - Load cold registry/official-SDK test fixtures before per-test deadlines; preserve timeout budgets and avoid late asynchronous registry resets after fixture teardown.

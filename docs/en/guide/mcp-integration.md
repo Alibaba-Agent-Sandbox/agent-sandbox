@@ -195,11 +195,11 @@ The artifact directory contains:
 
 | File | Content |
 |------|---------|
-| `requirements.txt` | `agent-sandbox-client[mcp]`, `uvicorn>=0.29` |
-| `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
+| `requirements.txt` | paired pinned client/server source, `uvicorn>=0.54.0` |
+| `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
 | `config.yaml` | YAML manifest with function name, region, runtime `python3.10`, handler `app.app`, memory/timeout, env vars, HTTP trigger (POST/GET/DELETE), session affinity |
 
-Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The distribution must be available from your configured Python package index before installing the artifact requirements.
+Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The generated requirements install the matching client and server from one tested GitHub commit archive; no unpublished PyPI release is required.
 
 The command prints: manual FC deployment steps (package → create function → create HTTP trigger → enable `Mcp-Session-Id` affinity if supported) and an IDE config template pointing at `<FC_HTTP_TRIGGER_URL>/mcp` with a masked Bearer token.
 
@@ -312,3 +312,24 @@ More general issues: see the [Troubleshooting guide](troubleshooting.md) and [er
 ## Related SDK documentation
 
 Running the Python implementation of the MCP server — `python -m agent_sandbox.agent.mcp`, the ASGI entry point (`uvicorn agent_sandbox.agent.mcp_http:asgi_app`) and `create_mcp_app()` — is covered by the SDK's [MCP Integration guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/mcp-integration.md) and [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) in the `python-sdk` repository.
+
+Workflow tools: `get_capabilities`, `list_sandboxes`, `get_sandbox`, `set_sandbox_timeout`, `retain_sandbox`, `upload_file`, `download_file`, `start_task`, `get_task`, `cancel_task`, `verify_sandbox`; Alibaba template adapter: `submit_template_build`, `get_template_build`, `validate_template`. See [Skill best practices](sandbox-skill-best-practices.md) for actual completion checks, lifecycle and provider limits.
+
+Connected external resources and retained/background sandboxes survive client disconnect until platform expiry or explicit deletion. Only session-created ephemeral resources auto-delete. Observation does not renew TTL.
+
+
+### Generated artifact installation and lifecycle boundary
+
+`abx mcp deploy` generates an ASGI artifact and manual FC steps. Its requirements
+pin both `agent-sandbox-client[mcp]` and `agent-sandbox-server` to SDK commit
+`13b214b334b1dba26c46f94feea6f4699d5038cb`; install with
+`python -m pip install -r requirements.txt`. Python imports remain `agent_sandbox`.
+The generated Python HTTP server and Node CLI MCP server are separate surfaces:
+inspect each server's `tools/list` rather than assuming identical tool catalogs.
+
+The CLI lifecycle tools use explicit sandbox IDs. List/metadata never adopt,
+connect, resume or renew an external sandbox. `set_sandbox_timeout` calls the
+control plane directly and reports acceptance separately from observed timeout.
+Observation and ordinary execution do not silently extend lifetime. Borrowed
+resources survive session shutdown. Lifecycle failures retain safe categories and
+HTTP status without provider credentials, response bodies or stack traces.

@@ -128,3 +128,6 @@ mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/READ
 ## 无云端前提的 Provider 归属验证
 
 `ABX_BIN=<构建后的可执行文件> node e2e/provider-boundary.mjs` 向临时 HOME 安装本地测试插件，检查带前缀资源、冲突/未知/空前缀、远程 Provider 参数，以及模板/部署的拒绝路径。它使用真实可执行文件和文件系统，不创建云端资源；它不等同于真实 OpenSandbox 部署验证。
+## MCP 生命周期真实验证
+
+构建后运行 `node e2e/mcp-lifecycle.mjs`。凭据仅经环境变量传入。脚本启动真实 CLI STDIO 进程，验证创建、列表、元数据、续期、文件与命令，以及外部观察者退出不销毁资源；finally 仅清理本次创建的 ID 并只读核对无残留。仅列表的已知最终一致可见性会重试。

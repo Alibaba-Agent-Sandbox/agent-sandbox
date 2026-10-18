@@ -18,7 +18,7 @@ Provider ownership is resolved before backend work. Qualified resource reference
 
 ## API Design
 
-Standard API shapes, errors, pagination and handles follow the fixed reference. Project extensions have explicit entry points. Connection settings are canonical E2B_* names; Python timeouts use seconds. CLI options after the sandbox ID in exec are forwarded to the command. No compatibility switch or Node SDK export is introduced. The process-info extension resolves envd handles through process listing before querying OS PIDs; it reports only known metadata for virtual handles. Public migration details are in `docs/en/guide/migrate-from-e2b.md` and its Chinese counterpart.
+Standard API shapes, errors, pagination and handles follow the fixed reference. Project extensions have explicit entry points. Standard connection settings use E2B_* names; native provider configuration keeps canonical ABX_* names; Python timeouts use seconds. CLI options after the sandbox ID in exec are forwarded to the command. No compatibility switch or Node SDK export is introduced. The process-info extension resolves envd handles through process listing before querying OS PIDs; it reports only known metadata for virtual handles. Public migration details are in `docs/en/guide/migrate-from-e2b.md` and its Chinese counterpart.
 
 ## Alternatives considered
 

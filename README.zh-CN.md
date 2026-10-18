@@ -164,13 +164,15 @@ Python SDK —— 同步 `Sandbox`／异步 `AsyncSandbox` API、`@sandbox` 声�
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
-pip install agent-sandbox-client
+python -m pip install \
+  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk" \
+  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=client-sdk"
 
 # 模板镜像内使用的服务端运行时（import agent_sandbox.server）
 pip install agent-sandbox-server
 ```
 
-`pip install agent-sandbox` 会安装一个无关项目。`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 `pip install agent-sandbox-server` 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
+`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
 
 ## 文档
 

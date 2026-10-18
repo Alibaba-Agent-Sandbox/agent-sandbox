@@ -220,7 +220,7 @@ graph TD
 1. `create_sandbox` 创建沙箱，并把它设为默认沙箱。随后省略 `sandbox_id` 的调用使用这只沙箱；更早创建的沙箱仍存活，直到被 `kill_sandbox` 或会话结束
 2. 还没有默认沙箱时，第一次省略 `sandbox_id` 的工具调用懒创建一只。并发的懒创建只会创建一只
 3. 默认模板：经 `abx mcp start` 启动时为 `code-interpreter-v1`（CLI 默认值）；编程式构造 `SandboxMCPServer` / HTTP `SessionStore` 且未显式指定模板时为 `base`。`create_sandbox` 省略 `template` 时用的就是这个模板
-4. 省略 `sandbox_id` 的 `kill_sandbox` 销毁默认沙箱；当前没有默认沙箱时返回错误。会话结束时销毁该会话里的全部沙箱 — STDIO EOF / server 关闭，或 HTTP `DELETE /mcp` / 空闲会话 TTL 到期
+4. 省略 `sandbox_id` 的 `kill_sandbox` 销毁默认沙箱；当前没有默认沙箱时返回错误。会话结束时仅销毁本会话拥有的临时沙箱，保留与借用资源继续存活 — STDIO EOF / server 关闭，或 HTTP `DELETE /mcp` / 空闲会话 TTL 到期
 5. 显式传入 `sandbox_id` 时寻址那只沙箱，不改变默认沙箱。每次使用前按创建时的 timeout 调用 `Sandbox.setTimeout` 延长存活时间
 
 ```mermaid
@@ -284,7 +284,7 @@ graph LR
 - **会话**：进程内 `SessionStore`；空闲 TTL 默认 3600 秒、并发会话上限默认 100；容量满时返回 503 与 JSON-RPC 错误 `-32000`
 - **版本协商**：`initialize` 在请求版本受支持时原样回显；本传输仅支持 `2025-06-18`，与 `GET /health` 一致。请求缺失或不支持的版本时协商到 `2025-06-18` —— 按 MCP 规范，服务器回复自己支持的版本，无法接受的客户端可自行断开。STDIO 传输独立保持 `2024-11-05`
 - **适用场景**：远程服务、团队共享、多客户端；用 `abx mcp deploy` 产物部署到阿里云 FC，或本地以 uvicorn 运行
-- **可选依赖**：`abx mcp start --http` 无需任何可选依赖；FC 产物 / uvicorn 的 Python ASGI 运行时需要 Starlette + uvicorn（`pip install 'agent-sandbox-client[mcp]'`）
+- **可选依赖**：`abx mcp start --http` 无需任何可选依赖；FC 产物 / uvicorn 的 Python ASGI 运行时需要 Starlette + uvicorn（`pip install -r requirements.txt`）
 
 ### 认证
 
@@ -484,8 +484,8 @@ abx mcp deploy \
 
 | 文件 | 内容 |
 |------|------|
-| `requirements.txt` | `agent-sandbox-client[mcp]`、`uvicorn>=0.29` |
-| `app.py` | ASGI 入口，从 FC 函数环境变量读取 `ABX_MCP_AUTH_TOKEN`、`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`ABX_DEFAULT_TEMPLATE` |
+| `requirements.txt` | 固定提交的 Python SDK 客户端/服务器源码、`uvicorn>=0.54.0` |
+| `app.py` | ASGI 入口，从 FC 函数环境变量读取 `ABX_MCP_AUTH_TOKEN`、`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ABX_DEFAULT_TEMPLATE` |
 | `config.yaml` | YAML 部署清单（非 FC API 载荷）：`function_name`、`region`、`runtime`（`python3.10`）、`handler`（`app.app`）、`memory`、`timeout`、`environment_variables`、`http_trigger`（POST/GET/DELETE 方法 + `enable_session_affinity`）、可选 `custom_domain` |
 
 `abx mcp deploy` 还会打印手动部署步骤（打包产物、经 FC 控制台或 SDK 创建函数、创建 HTTP 触发器、如支持则启用 `Mcp-Session-Id` 亲和）以及 Bearer token 打码的 IDE 配置模板。
@@ -506,3 +506,13 @@ abx mcp deploy \
 ## 相关 SDK 文档
 
 Python SDK 自带 `python -m agent_sandbox.agent.mcp` 入口与 `create_mcp_app` ASGI 工厂，见 SDK 的 [MCP Server 设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/mcp-server.md) 与 [MCP 集成指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/mcp-integration.md)。本页描述 `abx mcp` 命令与 Node.js 实现。
+
+
+### 当前安装与生命周期实现
+
+产物的成对源码定义统一归属 `src/utils/mcp_sdk_pin.ts`，公开用法见
+[安装指南](../guide/mcp-integration.md)。元数据和显式超时操作直接调用控制面，
+不连接或恢复目标沙箱。旧自动续期状态和空操作钩子已删除；生命周期错误及资源
+归属拒绝使用固定的安全信息，不输出厂商原始异常。Node CLI 与生成的 Python
+HTTP 工具目录应分别发现。干净安装、真实 HTTP/STDIO、后端操作及清理记录见
+[验证证据](../../../.agents/evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)。

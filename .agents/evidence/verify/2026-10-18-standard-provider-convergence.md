@@ -22,3 +22,14 @@ locked npm10 install. The current work preserves original standard runtime and n
 No native E2B credentials were substituted with Express values. Original draft
 pause/snapshot and whole-artifact attribution prerequisites remain outstanding.
 No package publication or new hosted cloud/model acceptance workflow is introduced.
+
+Accepted-main convergence ad704f41 (MCP31, provider metadata61) is retained.
+Typecheck/build PASS; final full local3940 PASS/10 preserved raw-network FAIL/56
+SKIP. No new behavior failure remains. Eslintzero errors; hygienePASS; health105
+PASS/11 immutable-history WARN/zero FAIL. New dated115 captures PASS.
+
+Actual built CLI Express standard scenario PASS: detached create, stdout and
+exit7 propagation, template list, real stateful PTY, borrowed connect retention,
+interactive create's shortened lease and eventual404, exact owned kill and list
+absence. Tracked resources cleaned in finally; zero residuals. This is separate
+from installed fixture coverage, and does not prove native E2B or enabled snapshots.

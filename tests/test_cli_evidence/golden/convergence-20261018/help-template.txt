@@ -4,7 +4,7 @@ Discover, scaffold, build, publish and install sandbox templates.
 
 Examples:
   abx template search python
-  abx template init --template python --name my-template
+  abx template scaffold --template python --name my-template
   abx template list
 
 Related commands:

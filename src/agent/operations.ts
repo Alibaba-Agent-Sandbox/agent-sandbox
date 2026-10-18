@@ -62,13 +62,13 @@ export async function handleOperation(name: keyof typeof operationInputs, raw: J
   if (name === "list_sandboxes") return { sandboxes: (await manager.listSandboxes(p)).map(safeInfo) };
   const id = p.sandbox_id as string;
   if (name === "get_sandbox") return { sandbox: safeInfo(await manager.observeSandbox(id)) };
-  const sandbox = await manager.getSandbox(id);
-  if (name === "retain_sandbox") { manager.retainSandbox(id, p.retain as boolean); return { sandbox_id: id, retained: p.retain }; }
   if (name === "set_sandbox_timeout") {
-    await sandbox.setTimeout(p.timeout);
+    await manager.setSandboxTimeout(p.timeout as number, id);
     const info = safeInfo(await manager.observeSandbox(id));
     return { accepted: true, requested_timeout: p.timeout, sandbox: info, timeout_verified: info.timeout === p.timeout };
   }
+  const sandbox = await manager.getSandbox(id);
+  if (name === "retain_sandbox") { manager.retainSandbox(id, p.retain as boolean); return { sandbox_id: id, retained: p.retain }; }
   if (name === "upload_file") {
     const encoded = p.content_base64 as string;
     const data = Buffer.from(encoded, "base64");

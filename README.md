@@ -166,13 +166,15 @@ The Python SDK — the synchronous `Sandbox` / asynchronous `AsyncSandbox` API, 
 
 ```bash
 # Client SDK (import agent_sandbox)
-pip install agent-sandbox-client
+python -m pip install \
+  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk" \
+  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=client-sdk"
 
 # Server runtime used inside template images (import agent_sandbox.server)
 pip install agent-sandbox-server
 ```
 
-`pip install agent-sandbox` installs an unrelated project. `agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with `pip install agent-sandbox-server`. The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
+`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md). The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
 
 ## Documentation
 

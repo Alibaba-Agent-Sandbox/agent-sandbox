@@ -1,3 +1,8 @@
+import { BorrowedSandboxError } from "./lifecycle_errors.js";
+import { ValidationError } from "../models/base.js";
+import { AuthenticationError, SandboxError, SandboxNotFoundError, QuotaExceededError, TemplateNotFoundError } from "../models/errors.js";
+import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "../providers/errors.js";
+import { HTTPStatusError, TimeoutException, RequestError } from "../transport/http.js";
 /**
  * MCP tool definitions: seven compatible core tools and fourteen workflow operations.
  *
@@ -426,9 +431,42 @@ export async function dispatchTool(
     return await handler!(params, manager);
   } catch (exc) {
     if (isCancellation(exc)) throw exc;
+    if (["create_sandbox", "list_sandboxes", "get_sandbox", "set_sandbox_timeout", "retain_sandbox"].includes(name)) {
+      const payload = formatLifecycleError(exc);
+      logger.error("Tool %s failed: %s", name, payload.error);
+      return payload;
+    }
     logger.error("Tool %s failed: %s", name, errorText(exc), new ExcInfo(exc));
     return _formatToolError(exc);
   }
+}
+
+/** Fixed failure categories: provider messages/suggestions/URLs can contain secrets. */
+function formatLifecycleError(exc: unknown): ToolResult {
+  if (exc instanceof BorrowedSandboxError) return { error: "Connected sandboxes are borrowed; retention cannot transfer cleanup ownership." };
+  if (exc instanceof z.ZodError) return { error: "Invalid sandbox lifecycle arguments. Check the tool schema." };
+  if (exc instanceof ValidationError) return { error: "The platform returned invalid sandbox metadata." };
+  if (exc instanceof HTTPStatusError) return { error: `Sandbox lifecycle request failed (HTTP ${exc.response.status_code}).` };
+  if (exc instanceof TimeoutException) return { error: "Sandbox lifecycle request timed out." };
+  if (exc instanceof RequestError) return { error: "Sandbox lifecycle request could not reach the platform." };
+  if (exc instanceof SandboxError) {
+    let message = "Sandbox lifecycle operation failed.";
+    let suggestion = "Check the sandbox, provider configuration, and platform permissions.";
+    if (exc instanceof AuthenticationError) {
+      message = "Sandbox authentication failed."; suggestion = "Check the authorized provider credential configuration.";
+    } else if (exc instanceof SandboxNotFoundError || exc instanceof ProviderResourceNotFoundError) {
+      message = "Sandbox was not found."; suggestion = "List sandboxes and use an existing sandbox ID.";
+    } else if (exc instanceof ProviderFeatureNotSupportedError) {
+      message = "The provider does not support this lifecycle operation."; suggestion = "Choose a provider that supports this operation.";
+    } else if (exc instanceof QuotaExceededError) {
+      message = "Sandbox quota exceeded."; suggestion = "Remove unused sandboxes or request additional quota.";
+    } else if (exc instanceof TemplateNotFoundError) {
+      message = "Sandbox template was not found."; suggestion = "Choose an available template.";
+    }
+    if (/^E[0-9]{4}$/.test(exc.code)) message = `[${exc.code}] ${message}`;
+    return { error: message, suggestion };
+  }
+  return { error: "Sandbox lifecycle operation failed." };
 }
 
 function isCancellation(exc: unknown): boolean {

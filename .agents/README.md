@@ -55,7 +55,7 @@ The provider ownership review is recorded in [verification](evidence/verify/2026
 The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal: feature gates, resume error handling, generic CLI coverage, conditional availability and full artifact auditing still have open work.
 
 See the [multi-agent findings and scoped verification](evidence/verify/2026-10-16-multi-agent-architecture-review.md) for fixed defects, remaining priorities and artifact limitations.
-- [Provider portability and updates](notes/proposed/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
+- [Provider portability and updates](notes/implemented/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
 
 - [Provider isolation verification](evidence/verify/2026-10-18-provider-complete-isolation.md)
 
@@ -73,3 +73,9 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Provider port and file URL boundary checkpoint](evidence/verify/2026-10-18-provider-port-url-boundaries.md)
 
 - [Standard/provider convergence](notes/proposed/feature/2026-10-18-standard-provider-convergence.md) · [verification](evidence/verify/2026-10-18-standard-provider-convergence.md)
+- [MCP source/lifecycle delivery](notes/proposed/feature/2026-10-18-mcp-source-and-lifecycle.md) · [verification](evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)
+- [Current provider isolation and Express acceptance](evidence/verify/2026-10-18-provider-isolation-acceptance.md)
+
+- [Final provider convergence acceptance](evidence/verify/2026-10-18-provider-convergence-acceptance.md)
+
+- [Provider-owned metadata follow-up](evidence/verify/2026-10-18-provider-owned-metadata-followup.md)

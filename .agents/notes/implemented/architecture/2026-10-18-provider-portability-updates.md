@@ -1,6 +1,6 @@
 # Decision: Keep provider ownership and update outcomes explicit
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -60,3 +60,20 @@ Asynchronous-only discovery fails closed in synchronous helpers. Neutral Python 
 remain lazy; a fresh-process regression prevents built-in auth/wire loading.
 
 [Port and file URL boundary checkpoint](../../../evidence/verify/2026-10-18-provider-port-url-boundaries.md).
+
+Current host/adapter acceptance is complete for the tested Express configuration; see
+[final verification](../../../evidence/verify/2026-10-18-provider-isolation-acceptance.md). Hosted checks pass on the tested
+implementation revisions. The evidence-only PR head must pass its gates before merge.
+Native image factories and unconfigured backend E2E remain separate acceptance work.
+
+A subsequent ordinary merge preserves the independent wheel/auth-preflight repairs.
+Provider configuration/image/legacy URL metadata remains in the pure L0 owned metadata
+module; core compatibility formatters consume declared templates rather than hard-code
+wire addresses. Shared E2B adapters retain their own URL implementation.
+
+[Convergence verification](../../../evidence/verify/2026-10-18-provider-convergence-acceptance.md) records the ordinary remote
+merges, provider-owned pure metadata restoration and current Express smoke results.
+
+The final owner follow-up is tracked in https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/60 and
+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/61; [negative controls](../../../evidence/verify/2026-10-18-provider-owned-metadata-followup.md)
+prove both merged-main failures and repaired adapter-rule delegation.

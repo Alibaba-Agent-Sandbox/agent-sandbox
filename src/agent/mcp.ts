@@ -1,3 +1,4 @@
+import { BorrowedSandboxError } from "./lifecycle_errors.js";
 import { qualify } from "../providers/registry.js";
 /**
  * Agent Sandbox MCP Server。
@@ -65,6 +66,7 @@ interface SandboxStatic {
   list(options?: Record<string, unknown>): Promise<any[]>;
   getInfoById(id: string, options?: Record<string, unknown>): Promise<any>;
   connect(options: Record<string, unknown>): Promise<SandboxInstance>;
+  setTimeoutById(sandboxId: string, timeout: number, options?: Record<string, unknown>): Promise<void>;
   killById(sandboxId: string, options?: Record<string, unknown>): Promise<void>;
 }
 
@@ -124,7 +126,6 @@ export class SandboxManager {
   _default_template: string;
   _default_sandbox: SandboxInstance = null;
   _sandboxes: Map<string, SandboxInstance> = new Map();
-  _lifetimes: Map<string, number> = new Map();
   private readonly preserved = new Set<string>();
   private readonly borrowed = new Set<string>();
   _state_lock = new AsyncLock();
@@ -155,7 +156,7 @@ export class SandboxManager {
 
   /** Explicit retention only; observation never refreshes TTL. */
   retainSandbox(id: string, retain = true): void {
-    if (!retain && this.borrowed.has(id)) throw new Error("Connected sandbox is borrowed; retention cannot transfer cleanup ownership. Use kill_sandbox explicitly to delete it.");
+    if (!retain && this.borrowed.has(id)) throw new BorrowedSandboxError();
     if (retain) this.preserved.add(id);
     else this.preserved.delete(id);
   }
@@ -165,13 +166,28 @@ export class SandboxManager {
     return (await sdk.loadSandbox()).getInfoById(id, this._connectKwargs());
   }
 
+  private existingReference(id: string | null): string {
+    if (id) return id;
+    if (this._default_sandbox) return this.reference(this._default_sandbox);
+    throw new Error("No default sandbox; create one or specify sandbox_id.");
+  }
+
+  /** Compatibility metadata helper; never connects or adopts the target. */
+  async inspectSandbox(id: string | null = null): Promise<Record<string, unknown>> {
+    return this.observeSandbox(this.existingReference(id));
+  }
+
+  /** Explicit control-plane TTL mutation; it does not connect or resume a target. */
+  async setSandboxTimeout(timeout: number, id: string | null = null): Promise<string> {
+    const reference = this.existingReference(id);
+    await (await sdk.loadSandbox()).setTimeoutById(reference, timeout, this._connectKwargs());
+    return reference;
+  }
+
   /** List without adopting any returned resource. */
   async listSandboxes(options: Record<string, unknown> = {}): Promise<Record<string, unknown>[]> {
     return (await sdk.loadSandbox()).list(this._connectKwargs(options));
   }
-
-  /** Kept as an internal compatibility seam; lifetime changes must now be explicit. */
-  async _refreshLifetime(_sandbox: SandboxInstance): Promise<void> {}
 
   /** Create a sandbox and make it the session default. */
   async createSandbox(options: CreateSandboxOptions = {}): Promise<SandboxInstance> {
@@ -194,13 +210,12 @@ export class SandboxManager {
       try {
         await sandbox.kill();
       } catch (exc) {
-        logger.warning("Failed to kill sandbox %s created during shutdown", sandbox.id, new ExcInfo(exc));
+        logger.warning("Failed to kill sandbox created during shutdown");
       }
       throw new CancelledError();
     }
     await this._state_lock.runExclusive(() => {
       this._sandboxes.set(this.reference(sandbox), sandbox);
-      this._lifetimes.set(this.reference(sandbox), timeout);
       if (options.retain) this.preserved.add(this.reference(sandbox));
       this._default_sandbox = sandbox;
     });
@@ -213,7 +228,6 @@ export class SandboxManager {
     if (sandboxId) {
       const cached = await this._state_lock.runExclusive(() => this._sandboxes.get(sandboxId));
       if (cached !== undefined && cached !== null) {
-        await this._refreshLifetime(cached);
         return cached;
       }
       const Sandbox = await sdk.loadSandbox();
@@ -224,9 +238,7 @@ export class SandboxManager {
         this._sandboxes.set(sandboxId, sb);
         this.borrowed.add(sandboxId);
         this.preserved.add(sandboxId);
-        if (!this._lifetimes.has(sb.id)) this._lifetimes.set(sb.id, 300);
       });
-      await this._refreshLifetime(sb);
       return sb;
     }
 
@@ -241,7 +253,6 @@ export class SandboxManager {
       }
       return this._default_sandbox;
     });
-    await this._refreshLifetime(sandbox);
     return sandbox;
   }
 
@@ -266,7 +277,6 @@ export class SandboxManager {
     await this._state_lock.runExclusive(() => {
       if (this._sandboxes.get(id) === sb) {
         this._sandboxes.delete(id);
-        this._lifetimes.delete(id);
         this.preserved.delete(id);
         this.borrowed.delete(id);
       }
@@ -283,7 +293,6 @@ export class SandboxManager {
       this._sandboxes.clear();
       this.borrowed.clear();
       this.preserved.clear();
-      this._lifetimes.clear();
       this._default_sandbox = null;
       this._epoch += 1;
       return snapshot;
@@ -294,7 +303,7 @@ export class SandboxManager {
         else await sb.kill();
         logger.info("Shutdown: released sandbox %s", sid);
       } catch (exc) {
-        logger.warning("Failed to kill sandbox %s during shutdown", sid, new ExcInfo(exc));
+        logger.warning("Failed to kill sandbox during shutdown");
       }
     }
   }

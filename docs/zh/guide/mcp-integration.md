@@ -195,11 +195,11 @@ abx mcp deploy \
 
 | 文件 | 内容 |
 |------|------|
-| `requirements.txt` | `agent-sandbox-client[mcp]`、`uvicorn>=0.29` |
-| `app.py` | ASGI 入口，读取 FC 环境变量（`ABX_MCP_AUTH_TOKEN`、`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`ABX_DEFAULT_TEMPLATE`） |
+| `requirements.txt` | 固定提交的客户端/服务器源码、`uvicorn>=0.54.0` |
+| `app.py` | ASGI 入口，读取 FC 环境变量（`ABX_MCP_AUTH_TOKEN`、`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ABX_DEFAULT_TEMPLATE`） |
 | `config.yaml` | YAML 清单：函数名、地域、运行时 `python3.10`、handler `app.app`、内存/超时、环境变量、HTTP 触发器（POST/GET/DELETE）、会话亲和 |
 
-安装依赖使用 Python 客户端发行包 `agent-sandbox-client` 的 `mcp` extra；Python 导入命名空间仍为 `agent_sandbox`。安装产物依赖前，应确认配置的 Python 包索引已经提供该发行包。
+安装依赖使用 Python 客户端发行包 `agent-sandbox-client` 的 `mcp` extra；Python 导入命名空间仍为 `agent_sandbox`。生成的依赖从同一已验收 GitHub 提交归档安装匹配的客户端与服务器，无需尚未发布的 PyPI 版本。
 
 命令还会打印：手动 FC 部署步骤（打包 → 创建函数 → 创建 HTTP 触发器 → 如支持则启用 `Mcp-Session-Id` 亲和）以及指向 `<FC_HTTP_TRIGGER_URL>/mcp`、Bearer token 打码的 IDE 配置模板。
 
@@ -312,3 +312,22 @@ curl -s -X DELETE http://localhost:9000/mcp \
 ## 相关 SDK 文档
 
 MCP 服务的 Python 实现——`python -m agent_sandbox.agent.mcp`、ASGI 入口（`uvicorn agent_sandbox.agent.mcp_http:asgi_app`）以及 `create_mcp_app()`——见 `python-sdk` 仓库中 SDK 的 [MCP 集成指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/mcp-integration.md)与 [SDK 使用指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md)。
+
+闭环工具：`get_capabilities`、`list_sandboxes`、`get_sandbox`、`set_sandbox_timeout`、`retain_sandbox`、`upload_file`、`download_file`、`start_task`、`get_task`、`cancel_task`、`verify_sandbox`；Alibaba 模板适配器：`submit_template_build`、`get_template_build`、`validate_template`。实际验收方法、生命周期及 Provider 边界见 [Skill 最佳实践](sandbox-skill-best-practices.md)。
+
+连接的用户资源、显式保留以及后台任务沙箱在客户端断连后继续存在，直到平台到期或显式删除；仅会话创建的临时沙箱自动删除。只读查询不自动续期。
+
+
+### 生成产物的安装与生命周期边界
+
+`abx mcp deploy` 生成 ASGI 产物和手动 FC 部署步骤。依赖将
+`agent-sandbox-client[mcp]` 与 `agent-sandbox-server` 同时固定到 SDK 提交
+`13b214b334b1dba26c46f94feea6f4699d5038cb`；使用
+`python -m pip install -r requirements.txt` 安装，导入名称仍为 `agent_sandbox`。
+生成的 Python HTTP 服务器与 Node CLI MCP 服务器是两个独立入口，应查询各自的
+`tools/list`，不要假设工具目录相同。
+
+CLI 生命周期工具使用显式沙箱 ID。列表和元数据查询不会接管、连接、恢复或续期
+外部沙箱；`set_sandbox_timeout` 直接请求控制面，分别报告请求是否被接受及能否
+观察到目标超时。只读查询与普通执行不隐式续期，借用资源在会话结束后保留。
+生命周期错误保留安全分类和 HTTP 状态，不输出厂商凭据、响应正文或异常堆栈。
