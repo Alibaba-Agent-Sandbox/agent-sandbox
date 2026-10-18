@@ -78,3 +78,16 @@ Dockerfile `POST /templates` build path stays removed; project deployment uses t
 provider-owned CLI extension, and prebuilt-image registration uses the current adapter.
 Missing optional template methods return E8004. Tool discovery preserves its public
 ordering while recomputing schemas for the selected provider.
+
+## Port and file URL ownership
+
+The selected adapter implements synchronous port access and project-server gateway
+headers. An adapter exposing only asynchronous port discovery must be called through
+`await sandbox.network.resolve(port)`; synchronous helpers fail E8004 instead of
+guessing an Express/E2B address or sending a foreign token. Direct standalone network
+constructors keep their documented bundled compatibility behavior. File transfer URLs
+are optional filesystem adapter hooks; missing hooks fail E8004 even if the session
+URL happens to use HTTP. The core never constructs `/files` routes for foreign providers.
+
+Neutral Python transport/protocol imports do not load built-in authentication or wire
+adapters. Public compatibility imports resolve lazily when explicitly requested.

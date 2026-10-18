@@ -319,7 +319,7 @@ export class Sandbox {
     this._killed = false;
     this._auth = init.auth;
     this._envd_token = init.envd_token;
-    this._domain = init.domain ?? "e2b.dev";
+    this._domain = init.domain ?? init.config.domain;
     this._secure = init.secure ?? true;
     const needsDefaults = [init.sandbox_protocol, init.process_protocol, init.filesystem_protocol, init.code_interpreter_protocol].some((p) => p === undefined || p === null);
     const defaults = needsDefaults ? getProvider(this._provider_id).buildSessionProtocols(init.http_client) : null;
@@ -390,6 +390,7 @@ export class Sandbox {
         this._sandbox_protocol,
         this.id,
         this._capabilities,
+        this._provider_id,
       );
     }
     return this._files;
@@ -416,6 +417,8 @@ export class Sandbox {
         access_token: this._envd_token ? this._envd_token.token : null,
         capabilities: this._capabilities,
         port_resolver: this._portResolver(),
+        port_access: getProvider(this._provider_id).createPortAccess({ sandbox_id: this.id,
+          domain: this._domain, secure: this._secure, access_token: this._envd_token?.token ?? null }, this._sandbox_protocol),
       });
     }
     return this._network;

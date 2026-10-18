@@ -7,7 +7,7 @@
  * 当 CodeInterpreter 服务不可用（HTTP 404）时，自动降级为通过 ProcessProtocol 写文件 + shell 执行的模式（与 @sandbox
  * 装饰器同一机制），对调用方透明。
  *
- * 注意：RPC 路径基于 E2B SDK 逆向推断，阿里云官方文档未公开 Code Interpreter 的底层传输细节。需实测验证。
+ * The selected adapter owns the interpreter wire protocol.
  */
 
 import { randomUUID } from "node:crypto";

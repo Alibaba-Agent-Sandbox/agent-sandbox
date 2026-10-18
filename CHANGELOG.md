@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Keep port addresses, gateway headers and file-transfer URLs in selected provider adapters; reject missing hooks instead of guessing native routes. Resolve Python compatibility imports lazily.
+
+
 - Integrate provider isolation with current host cleanup/authentication; keep URL conventions and template work in adapters, synchronize AI schema/handler discovery, preserve choice diagnostics and verbose configuration reporting. Minimal Python images support process inspection without procps and valid typed metrics collection.
 
 - Align current CLI/Skill installation instructions with published v0.3.0 binary assets and the Python SDK paired-source distribution; retire unavailable npm/index commands.

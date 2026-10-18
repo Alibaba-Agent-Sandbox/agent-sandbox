@@ -2,6 +2,7 @@
 import { CONFIG_METADATA } from "./alicloud_express/metadata.js";
 // Historical TransportConfig URL helpers delegate through distribution composition.
 export { ENVD_PORT as legacyDataPlanePort, envdUrl as legacyDataPlaneUrl } from "./shared/e2b/url.js";
+export { legacyPortAccess } from "./shared/e2b/ports.js";
 import type { ConfigKey } from "../utils/config_keys.js";
 export interface BundledConfig {
   templateProfile?: import("./template_profile.js").ProfileFields;

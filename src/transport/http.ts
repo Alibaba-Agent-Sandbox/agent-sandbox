@@ -4,7 +4,7 @@
  * Uses an httpx-compatible AsyncClient with HTTP/2 support. A long-lived client is kept for the Platform API; envd
  * clients are created on demand per sandbox URL.
  *
- * envd URL 格式: https://49983-{sandbox_id}.{domain}（已实测验证）
+ * The selected adapter supplies the data-plane URL and authentication.
  */
 
 import { ConnectionError_, EnvdRpcError, InvalidAPIKeyError, InvalidCredentialsError } from "../models/errors.js";

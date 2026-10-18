@@ -140,6 +140,27 @@ supported = ["templates.read"]
   it("selects a real provider for the distribution default", () => {
     expect(getProvider("alicloud-express")).toBeInstanceOf(Provider);
   });
+  it("never invents a native port address or token header for an async provider", async () => {
+    const provider = new IsolatedProvider();
+    provider.features.add("ports.url");
+    Object.assign(provider, { createSessionAuth: () => ({ token: "opaque-token", sandbox_id: "owned",
+      getHeaders: () => ({}), setToken: () => undefined, clear: () => undefined }) });
+    const build = provider.buildInfra.bind(provider);
+    vi.spyOn(provider, "buildInfra").mockImplementation(async (config) => {
+      const infra = await build(config);
+      Object.assign(infra.sandbox_protocol, { hasPortUrl: true, portUrl: async () =>
+        ["https://gateway.example/owned/service", { "Provider-Gateway": "placeholder" }] });
+      return infra;
+    });
+    registerProvider(provider);
+    const sandbox = await Sandbox.create({ provider: provider.id });
+    try {
+      expect(() => sandbox.network.getUrl(8080)).toThrow(/does not support/);
+      expect(() => sandbox.network.getAccessHeaders()).toThrow(/does not support/);
+      expect(await sandbox.network.resolve(8080)).toEqual(
+        ["https://gateway.example/owned/service", { "Provider-Gateway": "placeholder" }]);
+    } finally { await sandbox.kill(); }
+  });
   it("keeps concrete backend imports out of core implementation modules", () => {
     const composition = new Set(["cli/provider_extensions.ts", "agent/provider_template_extensions.ts",
       "utils/cli_config_keys.ts"]);
