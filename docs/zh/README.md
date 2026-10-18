@@ -102,3 +102,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 - [系统架构](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/architecture.md) — SDK 的六层架构
 - [模板体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与 [template.yaml 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)
 - [声明式用法](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md)、[会话持久化](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/session-persistence.md)、[E2B 迁移](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/migrate-from-e2b.md)
+
+- [Sandbox Skill best practices](guide/sandbox-skill-best-practices.md)

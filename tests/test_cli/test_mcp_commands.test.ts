@@ -164,7 +164,7 @@ describe("TestMcpStatus", () => {
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect(data.server).toBe("agent-sandbox");
-    expect(data.tools_count).toBe(7);
+    expect(data.tools_count).toBe(21);
     expect(data.auth_configured).toBe(true);
   });
 

@@ -1393,7 +1393,12 @@ export const list_templates = template.command("list", {
 
     if (Array.isArray(templates)) {
       const headers = ["TemplateID", "Alias", "Status"];
-      const rows = templates.map((t: Any) => [_get(t, "templateID", "N/A"), _get(t, "alias", "N/A"), _get(t, "status", "N/A")]);
+      const rows = templates.map((t: Any) => {
+        const aliases = Array.isArray(t["aliases"]) ? t["aliases"].join(", ") : _get(t, "aliases", "N/A");
+        // Preserve an explicit state; builds[0] is the backend's current build.
+        const status = t["status"] ?? (Array.isArray(t["builds"]) ? t["builds"][0]?.status : undefined) ?? "N/A";
+        return [_get(t, "templateID", "N/A"), t["alias"] ?? aliases, _isDict(status) ? _get(status, "state", "N/A") : status];
+      });
       fmt.printTable(headers, rows);
     } else {
       fmt.printData(templates);

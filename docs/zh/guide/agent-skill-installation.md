@@ -121,9 +121,9 @@ npx skills remove agent-sandbox -g                 # 从用户级移除
 
 ---
 
-## 4. 方式 B —— 复制或下载单个文件
+## 4. 方式 B —— 复制 Skill 和流程参考
 
-`SKILL.md` 是自包含的单文件，手工复制是受支持的完整安装方式。
+从同一固定版本复制 `SKILL.md` **以及 `references/` 目录**到 `agent-sandbox` 技能目录。参考文件包含任务验收、Provider 边界和逐次调用记录规则；仅复制入口文件并不完整。npm 包同时包含二者。不要整体复制包含凭据的工作副本。
 
 1. 打开 <https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/SKILL.md>，使用 **Raw** / **Download** 下载，然后按下表把你所用工具的目录放成 `agent-sandbox/SKILL.md`（见第 2 节）。例如：
 
@@ -164,6 +164,8 @@ npx skills remove agent-sandbox -g                 # 从用户级移除
 | Codex | 自动检测技能变更；若未出现更新则重启 |
 
 ---
+
+入口文件还需要同版本的 `references/task-workflows.md`、`references/provider-contracts.md`、`references/template-workflows.md`，请保持相对目录。仓库安装可复制整个 `references/`；逐文件下载也需要下载这三个文件。
 
 ## 5. 方式 C —— `git clone` / 稀疏检出
 

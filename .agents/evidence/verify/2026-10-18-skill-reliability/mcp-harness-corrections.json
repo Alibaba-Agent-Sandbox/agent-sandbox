@@ -1,0 +1,74 @@
+[
+  {
+    "action": "corrected_harness_assertion",
+    "sent": {
+      "check": "task_running_before_disconnect_corrected",
+      "source_rpc_id": 18
+    },
+    "returned": {
+      "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+      "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+      "state": "running",
+      "started_at": 1792290951.224037,
+      "pid": 506,
+      "pid_start": "4947",
+      "stdout": "",
+      "stdout_truncated": false,
+      "stderr": "",
+      "stderr_truncated": false
+    },
+    "expected_effect": "Use actual task contract field state and terminal value succeeded",
+    "observed_effect": {
+      "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+      "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+      "state": "running",
+      "started_at": 1792290951.224037,
+      "pid": 506,
+      "pid_start": "4947",
+      "stdout": "",
+      "stdout_truncated": false,
+      "stderr": "",
+      "stderr_truncated": false
+    },
+    "result": "PASS",
+    "correction": "Original harness incorrectly used status/completed; prior failed assertions are retained."
+  },
+  {
+    "action": "corrected_harness_assertion",
+    "sent": {
+      "check": "original_task_recovered_after_restart_corrected",
+      "source_rpc_id": 20
+    },
+    "returned": {
+      "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+      "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+      "state": "succeeded",
+      "started_at": 1792290951.224037,
+      "pid": 506,
+      "pid_start": "4947",
+      "exit_code": 0,
+      "finished_at": 1792290971.2682333,
+      "stdout": "{\"row_count\": 3, \"total_amount\": \"31.50\", \"total_qty\": 6}",
+      "stdout_truncated": false,
+      "stderr": "",
+      "stderr_truncated": false
+    },
+    "expected_effect": "Use actual task contract field state and terminal value succeeded",
+    "observed_effect": {
+      "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+      "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+      "state": "succeeded",
+      "started_at": 1792290951.224037,
+      "pid": 506,
+      "pid_start": "4947",
+      "exit_code": 0,
+      "finished_at": 1792290971.2682333,
+      "stdout": "{\"row_count\": 3, \"total_amount\": \"31.50\", \"total_qty\": 6}",
+      "stdout_truncated": false,
+      "stderr": "",
+      "stderr_truncated": false
+    },
+    "result": "PASS",
+    "correction": "Original harness incorrectly used status/completed; prior failed assertions are retained."
+  }
+]

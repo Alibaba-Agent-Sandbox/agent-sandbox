@@ -1,0 +1,127 @@
+{
+  "checks": [
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "cancel_effect_and_output_stopped"
+      },
+      "returned": null,
+      "expected_effect": "cancel_effect_and_output_stopped",
+      "observed_effect": {
+        "sandbox_id": "sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9",
+        "task_id": "14df1f59-00bf-40c1-8447-9e253057ce2f",
+        "task_state": {
+          "sandbox_id": "sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9",
+          "task_id": "14df1f59-00bf-40c1-8447-9e253057ce2f",
+          "state": "cancelled",
+          "started_at": 1792291019.9129453,
+          "pid": 502,
+          "pid_start": "1188",
+          "exit_code": -15,
+          "finished_at": 1792291022.001688,
+          "stdout": "",
+          "stdout_truncated": false,
+          "stderr": "",
+          "stderr_truncated": false
+        },
+        "get_task_isError": true,
+        "cancel_task_isError": true,
+        "before": {
+          "stdout": "8\n",
+          "stderr": "",
+          "exit_code": 0
+        },
+        "after_signal": {
+          "stdout": "15\n11\n",
+          "stderr": "",
+          "exit_code": 0
+        },
+        "later": {
+          "stdout": "11\n",
+          "stderr": "",
+          "exit_code": 0
+        },
+        "proc_absent": true
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "timeout_changed_observed"
+      },
+      "returned": null,
+      "expected_effect": "timeout_changed_observed",
+      "observed_effect": {
+        "before": {
+          "sandbox": {
+            "sandbox_id": "sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9",
+            "template": "e2e-template-review-601d707c1e6c",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-10-18T02:36:58.290Z",
+            "end_at": "2026-10-18T02:46:58.290Z"
+          }
+        },
+        "changed": {
+          "accepted": true,
+          "requested_timeout": 300,
+          "sandbox": {
+            "sandbox_id": "sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9",
+            "template": "e2e-template-review-601d707c1e6c",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-10-18T02:36:58.290Z",
+            "end_at": "2026-10-18T02:42:07.000Z"
+          },
+          "timeout_verified": false
+        },
+        "after": {
+          "sandbox": {
+            "sandbox_id": "sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9",
+            "template": "e2e-template-review-601d707c1e6c",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-10-18T02:36:58.290Z",
+            "end_at": "2026-10-18T02:42:07.000Z"
+          }
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "second_cleanup"
+      },
+      "returned": null,
+      "expected_effect": "second_cleanup",
+      "observed_effect": {
+        "kill": {
+          "success": true,
+          "sandbox_id": "sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9"
+        },
+        "get": {
+          "error": "[E2009] Sandbox 'sbx-51e97dd2-149b-44e4-aa06-8d49a8895ef9' was not found.",
+          "suggestion": "Run 'abx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected."
+        },
+        "get_isError": true,
+        "list": {
+          "sandboxes": []
+        }
+      },
+      "result": "PASS"
+    }
+  ],
+  "all_effects_passed": true,
+  "api_observation": "cancel_task/get_task for cancelled task set isError=true because exit_code=-15; retained as limitation"
+}

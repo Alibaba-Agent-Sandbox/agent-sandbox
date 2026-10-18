@@ -121,9 +121,9 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
 
 ---
 
-## 4. Option B — copy or download the single file
+## 4. Option B — copy the Skill and workflow references
 
-`SKILL.md` is one self-contained file; a manual copy is a fully supported install.
+Copy `SKILL.md` **and `references/`** from the same pinned revision into the `agent-sandbox` skill directory. The references contain task verification, provider boundaries and per-action evidence rules; copying only the entrypoint is incomplete. The npm package includes both. Never copy a credential-bearing checkout wholesale.
 
 1. Open <https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/SKILL.md> and use **Raw** / **Download**, then place the file as `agent-sandbox/SKILL.md` under the directory for your tool (section 2). For example:
 
@@ -164,6 +164,8 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
 | Codex | Skill changes are detected automatically; restart if an update does not appear |
 
 ---
+
+Copy these files from the same revision alongside the entrypoint: `references/task-workflows.md`, `references/provider-contracts.md`, `references/template-workflows.md`. Preserve the relative directory. Repository checkouts can copy the complete `references/` directory; download-only installation must download all three as well.
 
 ## 5. Option C — `git clone` / sparse checkout
 

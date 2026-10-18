@@ -616,6 +616,21 @@ export class Sandbox {
     }
   }
 
+  /** Query a resource without connecting its data plane, resolving a template or changing lifetime. */
+  static async getInfoById(sandbox_id: string, options: BuildInfraOptions = {}): Promise<SandboxInfo> {
+    const { api_key = null, api_url = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = options;
+    const [prov, bare_id] = _selectProvider(provider, sandbox_id);
+    const popts = _effectiveOptions(prov, provider_options);
+    if (prov !== null) {
+      const infra = await _providerInfra(prov, { api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
+      try { return await infra.sandbox_protocol.getInfo(bare_id as string); }
+      finally { await new InfraCloser(infra).close(); }
+    }
+    const [, , http_client, sandbox_protocol] = _buildInfra({ api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
+    try { return await sandbox_protocol.getInfo(bare_id as string); }
+    finally { await http_client.close(); }
+  }
+
   /** List sandboxes (class method, no instance required). */
   static async list(options: ListOptions = {}): Promise<SandboxInfo[]> {
     const { status = null, limit = 100, offset = 0, api_key = null, api_url = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = options;

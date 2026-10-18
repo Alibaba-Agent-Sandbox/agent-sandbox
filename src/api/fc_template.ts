@@ -598,6 +598,8 @@ export interface CreateOfficialTemplateOptions {
   steps?: Array<{ type: string; args: string[] }> | null;
   /** Delete a generation-1 template of the same name and create it again. */
   force?: boolean;
+  /** Refuse name conflicts instead of updating an existing template (including a concurrent create race). */
+  update_existing?: boolean;
   /** Internal: a generation-1 template was already deleted once for this call. */
   _replaced?: boolean;
 }
@@ -763,6 +765,11 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
     const exc_str = sdkErrStr(exc);
     // Handle 409 TemplateAlreadyExists by falling back to UpdateTemplate
     if (exc_str.includes("TemplateAlreadyExists") || exc_str.includes("409")) {
+      if (opts.update_existing === false) {
+        throw new TemplateBuildError(`Template '${name}' already exists; choose a new version name.`, {
+          suggestion: "Existing template was not updated or deleted.",
+        });
+      }
       logger.info("Template '%s' already exists, attempting UpdateTemplate...", name);
       const team = team_id || "";
       if ((start_command || ready_command) && !opts._replaced) {

@@ -9,6 +9,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, vi } from "vitest";
 
+import * as pycompat from "../../src/agent/_pycompat.js";
 import * as fcTemplate from "../../src/api/fc_template.js";
 import { templateSeams } from "../../src/cli/commands/template.js";
 import { DockerBuilder } from "../../src/api/docker_builder.js";
@@ -87,6 +88,8 @@ export function useMockBuilder(): () => MockBuilder {
   let current: MockBuilder | null = null;
   beforeEach(() => {
     original = templateSeams.DockerBuilder;
+    // Unit deploy stubs do not depend on an installed Docker binary.
+    vi.spyOn(pycompat, "which").mockImplementation(command => command === "docker" ? "/mock/docker" : null);
     current = null;
   });
   afterEach(() => {

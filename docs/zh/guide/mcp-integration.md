@@ -58,7 +58,7 @@ abx --json mcp status
 
 ## 可用工具
 
-MCP Server 提供 7 个工具：
+MCP Server 提供 21 个工具：下面保留七个兼容核心工具，其后列出新增闭环工具。
 
 | 工具名 | 说明 | 参数 |
 |--------|------|------|
@@ -310,3 +310,7 @@ curl -s -X DELETE http://localhost:9000/mcp \
 ## 相关 SDK 文档
 
 MCP 服务的 Python 实现——`python -m agent_sandbox.agent.mcp`、ASGI 入口（`uvicorn agent_sandbox.agent.mcp_http:asgi_app`）以及 `create_mcp_app()`——见 `python-sdk` 仓库中 SDK 的 [MCP 集成指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/mcp-integration.md)与 [SDK 使用指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md)。
+
+闭环工具：`get_capabilities`、`list_sandboxes`、`get_sandbox`、`set_sandbox_timeout`、`retain_sandbox`、`upload_file`、`download_file`、`start_task`、`get_task`、`cancel_task`、`verify_sandbox`；Alibaba 模板适配器：`submit_template_build`、`get_template_build`、`validate_template`。实际验收方法、生命周期及 Provider 边界见 [Skill 最佳实践](sandbox-skill-best-practices.md)。
+
+连接的用户资源、显式保留以及后台任务沙箱在客户端断连后继续存在，直到平台到期或显式删除；仅会话创建的临时沙箱自动删除。只读查询不自动续期。

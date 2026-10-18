@@ -98,3 +98,5 @@ abx kill <id>                       # destroy sandbox
 - Template system: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md
 - template.yaml spec: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md
 - SDK usage: https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md
+
+- Sandbox Skill best practices: docs/en/guide/sandbox-skill-best-practices.md
