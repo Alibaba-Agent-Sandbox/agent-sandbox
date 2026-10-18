@@ -12,3 +12,18 @@ it('records unavailable management prerequisites as a skip without replaying the
   expect(run).toHaveBeenCalledTimes(1);
   expect(record.attempts).toBe(1);
 });
+
+
+it('keeps offline region configuration isolated from the caller', async () => {
+  const modulePath = '../../e2e/lib/exec.mjs';
+  const { baseEnv } = await import(modulePath);
+  vi.stubEnv('ALIBABA_CLOUD_REGION_ID', 'caller-region');
+  try {
+    const offline = baseEnv({ home: '/tmp/abx-env-fixture', creds: {} });
+    expect(offline.ALIBABA_CLOUD_REGION_ID).toBeUndefined();
+    const cloud = baseEnv({ home: '/tmp/abx-env-fixture', creds: { ALIBABA_CLOUD_REGION_ID: 'selected-region' } });
+    expect(cloud.ALIBABA_CLOUD_REGION_ID).toBe('selected-region');
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});

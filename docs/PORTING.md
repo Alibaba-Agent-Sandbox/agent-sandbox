@@ -138,3 +138,8 @@ checkout location; regenerate fixtures with
 The frozen Python error oracle is retained. Provider isolation deliberately changes only
 `InvalidCredentialsError`'s default suggestion to provider-neutral configuration guidance;
 explicit suggestions and all other recorded variants retain exact formatting parity.
+
+Provider isolation also replaces the historical create-routing expectation that a missing
+provider deployment ID can be guessed from a display name. The historical ledger name
+`test_create_falls_back_to_template_name_when_no_id` remains; its corrected regression
+requires a clear error and proves that sandbox creation is never attempted with a fabricated ID.

@@ -64,6 +64,7 @@ export interface ProcessProtocol {
 }
 
 export interface FilesystemProtocol {
+    transferUrl?(url: string, token: EnvdTokenManager, opts: { path: string; operation: string }): Promise<string>;
     stat(envd_url: string, envd_token: EnvdTokenManager, opts: {
         path: string;
     }): Promise<FileInfo>;

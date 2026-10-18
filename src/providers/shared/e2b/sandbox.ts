@@ -10,6 +10,8 @@
 import type { TransportConfig } from "../../../transport/config.js";
 import { EnvdTokenManager } from "./auth.js";
 import { envdUrl } from "./url.js";
+import { createPortAccess } from "./ports.js";
+import type { PortContext } from "../../../protocol/port_contract.js";
 import { QuotaExceededError, SandboxCreationError, SandboxNotFoundError, TemplateNotFoundError } from "../../../models/errors.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../../models/sandbox.js";
 import { HTTPStatusError, type HttpClient } from "../../../transport/http.js";
@@ -38,6 +40,8 @@ export class SandboxProtocol {
   resolveSessionUrl(info: SandboxInfo, config: TransportConfig): string {
     return info.envd_url || envdUrl(info.sandbox_id, config.domain);
   }
+
+  createPortAccess(context: PortContext) { return createPortAccess(context); }
 
   /** Session authentication belongs to this explicitly selected wire adapter. */
   createSessionAuth(info: SandboxInfo): EnvdTokenManager {

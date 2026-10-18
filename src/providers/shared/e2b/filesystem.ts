@@ -184,6 +184,11 @@ export class FilesystemProtocol {
     this._http = http_client;
   }
 
+  /** Legacy envd URL; callers must also send the data-plane auth headers. */
+  async transferUrl(url: string, _token: EnvdTokenManager, opts: { path: string; operation: string }): Promise<string> {
+    return `${url}/files?path=${opts.path}&username=user`;
+  }
+
   // --- Connect RPC methods（已实测验证）---
 
   /** Unary envd call; HTTP errors become SDK filesystem errors for `path`. */

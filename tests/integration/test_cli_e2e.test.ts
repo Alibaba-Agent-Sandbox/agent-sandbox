@@ -16,7 +16,7 @@ import { cli } from "../../src/cli/main.js";
 import { AuthenticationError, QuotaExceededError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/protocol/sandbox.js";
+import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
 import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { resetConfig } from "../../src/transport/config.js";
@@ -177,7 +177,7 @@ it("test_cli_list_sandboxes", async () => {
   spyAny(transportConfig, "loadConfig").mockReturnValue({ api_key: "test-key", access_key_id: null, access_key_secret: null, region: "cn-hangzhou" });
   spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
   spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-    return {};
+    return { close: vi.fn(async () => undefined) };
   });
   spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
     return { list: vi.fn(async () => [sb1_info, sb2_info]) };

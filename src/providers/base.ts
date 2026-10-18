@@ -1,4 +1,6 @@
 import { unsupportedProtocol } from "./unsupported.js";
+import type { PortAccess, PortContext } from "../protocol/port_contract.js";
+export type { PortAccess, PortContext } from "../protocol/port_contract.js";
 import type { ProviderTemplateManager } from "./template_contract.js";
 /**
  * Provider contract: identity, feature matrix, config schema, infrastructure factory
@@ -296,6 +298,15 @@ export abstract class Provider {
 
   async resolveSessionCapabilities(_template: string, _info: SandboxInfo): Promise<{ capabilities: Set<string> } | null> {
     return null;
+  }
+
+  createPortAccess(context: PortContext, protocol?: ProviderInfra["sandbox_protocol"]): PortAccess {
+    const factory = protocol as { createPortAccess?: (context: PortContext) => PortAccess } | undefined;
+    if (typeof factory?.createPortAccess === "function") return factory.createPortAccess(context);
+    const unsupported = (): never => { throw new ProviderFeatureNotSupportedError(this.id, "ports.url", {
+      suggestion: "Use await sandbox.network.resolve(port) for providers with asynchronous port discovery.",
+    }); };
+    return { getHost: unsupported, getUrl: unsupported, getAccessHeaders: unsupported, getServerHeaders: unsupported };
   }
 
   async openTerminal(context: TerminalContext, opts: { cols: number; rows: number; shell: string }): Promise<TerminalSession> {
