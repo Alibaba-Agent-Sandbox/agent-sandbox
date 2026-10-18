@@ -17,7 +17,7 @@ import { echo, sys } from "../io.js";
 import { confirm, prompt } from "../prompts.js";
 import { isatty } from "../io.js";
 import { cleandoc } from "../../utils/_py.js";
-import { EXIT_NOT_FOUND, handleErrors } from "../main.js";
+import { EXIT_NOT_FOUND, handleErrors } from "../error_handler.js";
 import { getFormatter } from "../formatters.js";
 import { requireTemplateFeature } from "../template_provider.js";
 import { enableVerbose, getOutput, isCiEnv } from "../output.js";
@@ -26,7 +26,7 @@ import { availableCases, renderScaffold } from "../scaffold.js";
 import { ACRConfig, DockerBuilder, contextHasPinnedServerArchive, dockerBuildxAvailable } from "../../api/docker_builder.js";
 import { cacheDeployedTemplate } from "../../api/capability.js";
 import * as fcTemplate from "../../api/fc_template.js";
-import { ValueError } from "../../api/_pyerrors.js";
+import { ValueError } from "../../utils/_pyerrors.js";
 import { formatFixed0, homeDir, which } from "../../agent/_pycompat.js";
 import {
   ACRLoginError,

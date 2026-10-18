@@ -6,7 +6,7 @@
  * `httpx.RemoteProtocolError(str(exc))` (CLI code E5003), with texts such as `illegal status line: bytearray(b'...')`.
  */
 
-import { pyBytesRepr } from "../api/_pyerrors.js";
+import { pyBytesRepr } from "../utils/_pyerrors.js";
 
 /** httpcore's `MAX_INCOMPLETE_EVENT_SIZE`. */
 export const H11_MAX_INCOMPLETE_EVENT_SIZE = 100 * 1024;

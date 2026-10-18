@@ -20,7 +20,7 @@ import { StreamReader } from "../transport/streaming.js";
 import { FileNotFoundError_, FileOperationError, PermissionDeniedError } from "../models/errors.js";
 import type { EnvdTokenManager } from "../transport/auth.js";
 import { HTTPStatusError, TimeoutException, type HttpClient } from "../transport/http.js";
-import { dictGet } from "../api/_pyerrors.js";
+import { dictGet } from "../utils/_pyerrors.js";
 import { PyFloat, pyStr } from "../utils/_pyformat.js";
 import { getLogger } from "../utils/logging.js";
 

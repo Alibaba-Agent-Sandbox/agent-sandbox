@@ -227,3 +227,5 @@ The Python SDK, the in-sandbox server runtime and the shared `template.yaml` con
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and
   [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
+
+Command callbacks import error rendering from `cli/error_handler.ts`; the root re-exports its old names for compatibility and loads commands without a reverse command-to-root import. Shared Python-compatible exception helpers live in `utils/_pyerrors.ts`, provider error values in `models/provider_errors.ts`. Old deep import paths re-export the same class objects.

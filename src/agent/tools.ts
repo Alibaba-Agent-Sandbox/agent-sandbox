@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { TEMPLATE_SCHEMAS, templateInputs, handleTemplateOperation } from "./template_operations.js";
 import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
-import { pyExcStr } from "../api/_pyerrors.js";
+import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { KeyError, ValueError, isDict, pyStrip, pyTruthy, pyTypeName, type JsonObject } from "./_py.js";
 import type { SandboxManager } from "./mcp.js";

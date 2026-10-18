@@ -16,7 +16,7 @@
 import { ConnectCodec } from "../transport/codec.js";
 import type { EnvdTokenManager } from "../transport/auth.js";
 import type { HttpClient } from "../transport/http.js";
-import { dictGet } from "../api/_pyerrors.js";
+import { dictGet } from "../utils/_pyerrors.js";
 import { pyFloat } from "../utils/coerce.js";
 import { getLogger } from "../utils/logging.js";
 
