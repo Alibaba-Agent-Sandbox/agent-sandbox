@@ -1,0 +1,4 @@
+{
+  "error": "{\"error\": \"[E7010] CreateTemplate API call failed: Error: InvalidParameter code: 400, runtimeConfig.sandboxConfig.startCommand is only supported when creating a generation 2 sandbox template request id: 01A14CE2-58B3-5266-82CA-C42248A06B7A Response: {'success': False, 'code': 'InvalidParameter', 'message': 'runtimeConfig.sandboxConfig.startCommand is only supported when creating a generation 2 sandbox template', 'httpStatusCode': 400, 'requestId': '01A14CE2-58B3-5266-82CA-C42248A06B7A', 'statusCode': 400}\", \"suggestion\": \"Check AK/SK credentials, image URL, and network. Ensure the image is accessible from the FC sandbox platform.\"}",
+  "owned_template_id": null
+}

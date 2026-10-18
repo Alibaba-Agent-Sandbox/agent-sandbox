@@ -13,8 +13,8 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 # 1. Fork and clone the repository
-git clone https://github.com/<your-username>/cli.git
-cd cli
+git clone https://github.com/<your-username>/agent-sandbox.git
+cd agent-sandbox
 
 # 2. Install dependencies (includes the test / type-check / build tooling)
 npm ci
@@ -48,14 +48,14 @@ make test
 3. **Make your changes** — write code, tests, and docs
 4. **Run checks** before committing:
    ```bash
-   make lint      # Static check (alias of make typecheck; no separate linter)
+   make lint      # Run ESLint
    make typecheck # Type-check with tsc (npm run typecheck)
    make test      # Run tests with vitest (npm test)
    ```
 
    Or run the full local CI equivalent in one command:
    ```bash
-   make ci        # tsc --noEmit + build + vitest (not integration) + parity coverage check
+   make ci        # hygiene + tsc --noEmit + ESLint + build + vitest (not integration) + parity coverage check
    ```
 
    > **Note:** `make ci` runs on your single local Node.js version. It does **not** replace the Node.js 20 / 22 test matrix enforced by GitHub Actions CI — the matrix can only be fully covered by CI itself.
@@ -199,3 +199,16 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [Apache-2.0 License](../LICENSE).
+
+## Stacked pull requests / 堆叠式拉取请求
+
+The complete CI workflow runs on pull requests targeting any branch, including a
+feature branch. Wait for the runtime, typecheck, test and build jobs on the latest
+head; a Markdown-only result does not establish product validation. Push events
+remain limited to `main`. Real-component evidence and all other definition-of-done
+requirements still apply.
+
+完整 CI 会验证目标为任意分支的拉取请求，包括以功能分支为基底的堆叠 PR。
+须确认最新提交的运行、类型、测试和构建任务实际完成；仅 Markdown 检查通过
+不能证明产品验证完成。直接推送仍仅在 `main` 触发；真实组件证据和其余完成
+标准继续适用。

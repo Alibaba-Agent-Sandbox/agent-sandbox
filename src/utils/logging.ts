@@ -11,7 +11,7 @@
  * ## API cheat-sheet
  *
  * ```ts
- * import { getLogger, logging, ExcInfo } from "../utils/logging.js";
+ * import { getLogger, logging, ExcInfo } from "./logging.js";
  *
  * const logger = getLogger("transport.http");          // SDK logger  -> "agent_sandbox.transport.http"
  * logger.debug("Sending request to %s", url);          // %-style lazy formatting (%s %r %d %f %(key)s ...)

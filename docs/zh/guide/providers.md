@@ -81,7 +81,7 @@ abx kill local-process:sbx-1 --yes
 
 ## 安装之后能用什么
 
-安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。没有选择插件时，内置提供商 `alicloud-express` 声明了下表的全部能力，命令集和以前一样。
+安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。内置提供商只声明已接入的沙箱能力。云资源管理命令通过 `abx provider command list ID` 单独发现；feature token 不证明管理 API 已实现。
 
 | 提供商必须声明的能力 | CLI 命令 | Python SDK |
 |---|---|---|
@@ -99,9 +99,9 @@ abx kill local-process:sbx-1 --yes
 | `templates.read` | `template list`、`template info` | 模板读取 API |
 | `templates.build` | `template build/push/create/deploy/install/delete`、`deploy`、`install` | 镜像构建和模板注册 |
 | `ports.url` | `sandbox url` | `network.get_url` |
-| `ports.domain` | — | 自定义域名 |
-| `storage.mount` | — | OSS 挂载 |
-| `network.vpc` | `--vpc-id` 及相关参数 | VPC 配置 |
+| `ports.domain` | 无标准命令；内置提供方不声明此能力 | 无标准域名管理 API |
+| `storage.mount` | 无动态挂载命令；FC 创建时使用 `create --volume-mount PATH=NAME` | 无动态挂载 API |
+| `network.vpc` | 无标准 VPC 参数 | 使用已公开的云控制面配置入口 |
 | `sessions` | `connect <provider:id>` 重新连接 | 对已有 id 调用 `Sandbox.connect` |
 
 `abx provider list` 只显示每个提供商声明了多少项特性（表格要在 80 列下保持可读）；`--json` 里是完整列表的单个字符串，例如 `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`。`abx provider info <id>` 打印完整清单。
@@ -213,5 +213,27 @@ abx config list --provider my-cloud                          # 该提供商的�
 
 仓库提供了一个端到端脚本，安装参考插件并通过它们驱动真实沙箱：[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)（`e2e/providers/run.sh`）。
 
+## Provider 专属管理命令
 
-[可选的已推送镜像模板工厂](provider-image-deployment.md) 使用独立的 `templates.deploy` 声明；安装提供方不代表支持该能力。
+Provider 可在固定命名空间下声明带参数类型的管理命令，与沙箱内的应用命令区分。
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.create
+abx --json provider command run alicloud-express volume.list --input '{"max_results":10}'
+```
+
+写入和删除要求 `--yes`。凭证通过配置提供，`--opt` 拒绝密钥字段；复杂输入使用 `--input-file`。发现命令不需要云凭证。FC 管理操作要求阿里云 AK/SK，不能用沙箱 API Key 鉴权。完整规范见[命令契约](../design/provider-commands.md)和[阿里云能力矩阵](../design/alicloud-provider-commands.md)，包含域名能力边界和 API Key 安全导出。
+
+挂载已有 FC Volume 时，使用 `abx create --template base --volume-mount /mnt/workspace=workspace`。
+按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
+Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
+角色配置和挂载验证见能力矩阵。
+应选择支持挂载的模板；自定义 MicroVM 源镜像须预装 ossfs2 2.0.10 或以上版本，
+参见[官方挂载指南](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。
+
+## 迁移与 provider 更新
+
+见[迁移、职责及更新设计](../design/provider-portability-and-updates.md)：已有资源接入边界、旧 FC 模板保护、provider 镜像工厂，以及 Git、手动与内置更新的区别。
+
+已推送镜像入口是 `abx --provider PROVIDER template from-image IMAGE --name NAME -y`，要求独立的 `templates.deploy` 能力。E2B 可选宿主 SDK 需 Node22+；厂商 manifest 仍以真实后端验收为门槛，安装宿主的本地测试不代表云端已支持。

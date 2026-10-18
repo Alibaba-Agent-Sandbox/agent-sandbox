@@ -7,7 +7,7 @@ This tutorial walks you through mastering the `abx` CLI step by step, covering t
 ## Step 1: Installation
 
 ```bash
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
 After installation, the `abx` command is available:
@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-> For more authentication methods (AK/SK, .env files, config.toml, etc.), see [Authentication](authentication.md).
+> For runtime API-key configuration (.env files, config.toml) and separate control-plane AK/SK, see [Authentication](authentication.md).
 
 ---
 
@@ -333,7 +333,7 @@ abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY \
   --output-dir ./deploy-artifact
 ```
 
-Install `agent-sandbox[mcp]` in the HTTP runtime. Then use the official Alibaba Cloud FC console or SDK to package the artifact and create the function and HTTP trigger. Treat `config.yaml` as a provider-neutral checklist—not an FC API payload—and translate its settings through the official interface. Replace the URL and token placeholders in the printed IDE template with the deployment values.
+Install `agent-sandbox-client[mcp]` in the HTTP runtime. Then use the official Alibaba Cloud FC console or SDK to package the artifact and create the function and HTTP trigger. Treat `config.yaml` as a provider-neutral checklist—not an FC API payload—and translate its settings through the official interface. Replace the URL and token placeholders in the printed IDE template with the deployment values.
 
 Clients should call `DELETE /mcp` when a session ends. `GET /mcp` returns 405 until SSE server notifications exist. `abx mcp deploy` refuses to write an artifact without a non-empty Bearer token. `config.yaml` may contain plaintext credentials, so do not commit the artifact or completed IDE configuration to version control.
 

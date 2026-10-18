@@ -1,3 +1,4 @@
+import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
 /**
  * Layered configuration with provider selection (port of the layered half of
  * `agent_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).
@@ -12,9 +13,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { ProviderConfigError } from "../providers/errors.js";
+import { ProviderConfigError } from "../models/provider_errors.js";
 import {
-  ALICLOUD_EXPRESS_KEYS,
   BUILTIN_PROVIDER_ID,
   CORE_KEYS,
   GENERIC_ENDPOINT_KEYS,
@@ -30,13 +30,8 @@ import { dumpsToml } from "../utils/toml_write.js";
 import { TransportConfig, _setLegacyNameHook, clearCachedConfigBytes, readCachedConfigBytes } from "./config.js";
 
 export const ENVD_PORT = 49983;
-export const DEFAULT_BASE_URL = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com";
-export const DEFAULT_DOMAIN = "cn-hangzhou.e2b.fc.aliyuncs.com";
-
-const BUILTIN_DERIVE: Readonly<Record<string, string>> = {
-  sandbox_base_url: "https://api.{region}.e2b.fc.aliyuncs.com",
-  sandbox_domain: "{region}.e2b.fc.aliyuncs.com",
-};
+export const DEFAULT_BASE_URL = defaultConfig.endpointDefaults.sandbox_base_url;
+export const DEFAULT_DOMAIN = defaultConfig.endpointDefaults.sandbox_domain;
 
 const LEGACY_FIELD_NAMES: Readonly<Record<string, string>> = {};
 
@@ -80,7 +75,7 @@ export function warnLegacyOnce(name: string, canonical: string, where: string, e
 }
 
 _setLegacyNameHook((name, where) => {
-  for (const key of [...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS]) {
+  for (const key of [...CORE_KEYS, ...bundledKeys]) {
     if (key.aliases.some((a) => a.surface === "env" && a.kind === "legacy" && a.name === name)) {
       warnLegacyOnce(name, key.env, where);
       return;
@@ -159,9 +154,9 @@ export class LayeredConfig {
   constructor(init: LayeredConfigInit = {}) {
     const data = mergeLegacyKwargs({ ...init } as Record<string, unknown>, "LayeredConfig") as LayeredConfigInit;
     this.provider = data.provider ?? BUILTIN_PROVIDER_ID;
-    this.sandbox_base_url = data.sandbox_base_url ?? DEFAULT_BASE_URL;
-    this.sandbox_domain = data.sandbox_domain ?? DEFAULT_DOMAIN;
-    this.region = data.region ?? "cn-hangzhou";
+    this.sandbox_base_url = data.sandbox_base_url ?? bundledConfig(this.provider)?.endpointDefaults["sandbox_base_url"] ?? "";
+    this.sandbox_domain = data.sandbox_domain ?? bundledConfig(this.provider)?.endpointDefaults["sandbox_domain"] ?? "";
+    this.region = data.region ?? (bundledConfig(this.provider)?.keys.find((key) => key.key === "region")?.default as string | undefined) ?? "";
     this.sandbox_api_key = data.sandbox_api_key ?? null;
     this.access_key_id = data.access_key_id ?? null;
     this.access_key_secret = data.access_key_secret ?? null;
@@ -218,7 +213,7 @@ export class LayeredConfig {
   }
 
   buildEnvdUrl(sandboxId: string): string {
-    return `https://${ENVD_PORT}-${sandboxId}.${this.sandbox_domain}`;
+    return legacyDataPlaneUrl(sandboxId, this.sandbox_domain);
   }
   build_envd_url(sandboxId: string): string {
     return this.buildEnvdUrl(sandboxId);
@@ -328,15 +323,22 @@ export class ProviderSchema {
     public readonly inherit: ReadonlySet<string>,
     public readonly derive: Readonly<Record<string, string>> = {},
     public readonly endpoint_defaults: Readonly<Record<string, string>> = {},
+    public readonly legacy_fields: ReadonlySet<string> = bundledConfig(provider_id)?.legacyFields ?? new Set(),
+    public readonly omit_default_options: boolean = bundledConfig(provider_id)?.omitDefaultOptions ?? false,
   ) {}
 
   get builtin(): boolean {
-    return this.provider_id === BUILTIN_PROVIDER_ID;
+    return bundledConfig(this.provider_id) !== undefined;
   }
 }
 
 export function builtinSchema(): ProviderSchema {
-  return new ProviderSchema(BUILTIN_PROVIDER_ID, ALICLOUD_EXPRESS_KEYS, new Set(GENERIC_ENDPOINT_KEYS), BUILTIN_DERIVE);
+  return metadataSchema(defaultConfig);
+}
+
+function metadataSchema(metadata: import("../utils/bundled_config.js").BundledConfig): ProviderSchema {
+  return new ProviderSchema(metadata.id, metadata.keys, metadata.inherit, metadata.derive,
+    metadata.endpointDefaults, metadata.legacyFields, metadata.omitDefaultOptions);
 }
 
 type SchemaLookup = (providerId: string) => ProviderSchema;
@@ -348,7 +350,8 @@ export function setSchemaLookup(fn: SchemaLookup | null): void {
 }
 
 export function providerSchema(providerId: string): ProviderSchema {
-  if (providerId === BUILTIN_PROVIDER_ID) return builtinSchema();
+  const metadata = bundledConfig(providerId);
+  if (metadata) return metadataSchema(metadata);
   if (!schemaLookup) {
     throw new ProviderConfigError(`Provider '${providerId}' is not available (no provider registry is loaded).`);
   }
@@ -385,7 +388,7 @@ function pyFormatTemplate(template: string, fields: Record<string, string>): str
 function applyDerive(sources: Sources, schema: ProviderSchema, out: Map<string, Resolved>): void {
   const baseKey = getKey("sandbox_base_url");
   if (!baseKey) throw new Error("config registry has no 'sandbox_base_url' key");
-  if (schema.inherit.has("sandbox_base_url") || schema.builtin) {
+  if (schema.inherit.has("sandbox_base_url")) {
     const explicit = resolveKey(
       baseKey,
       { overrides: sources.overrides ?? {}, environ: sources.environ ?? {} },
@@ -415,7 +418,7 @@ export function resolveAll(sources: Sources, schemaIn?: ProviderSchema): { schem
     if (key.key === "provider") continue;
     const generic = GENERIC_ENDPOINT_KEYS.includes(key.key);
     if (generic && !schema.inherit.has(key.key)) continue;
-    let res = resolveKey(key, sources, { scopedFor: generic ? pid : null, useDefault: schema.builtin || !generic });
+    let res = resolveKey(key, sources, { scopedFor: generic ? pid : null, useDefault: !generic });
     if (res === null && key.key in schema.endpoint_defaults) {
       res = { key: key.key, value: schema.endpoint_defaults[key.key], layer: "default", name: "", layer_index: 0 };
     }
@@ -490,13 +493,13 @@ function loadUncached(overrides: Record<string, unknown>, opts: LoadOptions): La
     });
   }
 
-  const fieldScoped = schema.builtin ? new Set(["region", "access_key_id", "access_key_secret"]) : new Set<string>();
+  const fieldScoped = schema.legacy_fields;
   const values: Record<string, unknown> = { provider: schema.provider_id };
   const opt: Record<string, unknown> = {};
   for (const [name, res] of resolved) {
     if (scoped.has(name)) {
       if (fieldScoped.has(name)) values[name] = res.value;
-      else if (!schema.builtin || res.layer !== "default") opt[name] = res.value;
+      else if (!schema.omit_default_options || res.layer !== "default") opt[name] = res.value;
     } else if (CONFIG_FIELD_NAMES.has(name)) {
       values[name] = res.value;
     }
@@ -562,7 +565,7 @@ export interface AuditFinding {
 
 function legacyEnvIndex(): Map<string, { key: ConfigKey; kind: string }> {
   const idx = new Map<string, { key: ConfigKey; kind: string }>();
-  for (const key of [...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS]) {
+  for (const key of [...CORE_KEYS, ...bundledKeys]) {
     for (const a of key.aliases) if (a.surface === "env" && a.kind === "legacy") idx.set(a.name, { key, kind: a.kind });
   }
   return idx;
@@ -570,7 +573,7 @@ function legacyEnvIndex(): Map<string, { key: ConfigKey; kind: string }> {
 
 function tomlLegacyIndex(): Map<string, ConfigKey> {
   const idx = new Map<string, ConfigKey>();
-  for (const key of [...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS]) {
+  for (const key of [...CORE_KEYS, ...bundledKeys]) {
     for (const a of key.aliases) {
       if ((a.surface === "config" || a.surface === "kwarg") && a.kind === "legacy" && !idx.has(a.name)) idx.set(a.name, key);
     }
@@ -657,8 +660,9 @@ export function planMigrationData(toml: Readonly<Record<string, unknown>>, env: 
       }
     }
     const providers = toml["providers"];
-    const provTable = isRecord(providers) ? providers[BUILTIN_PROVIDER_ID] : undefined;
-    for (const key of ALICLOUD_EXPRESS_KEYS) {
+    for (const metadata of bundledConfigs) {
+    const provTable = isRecord(providers) ? providers[metadata.id] : undefined;
+    for (const key of metadata.keys) {
       const p2 = key.storage_phase2;
       if (key.key in transport && p2 !== null && p2.file === "toml") {
         const exists = isRecord(provTable) && key.key in provTable;
@@ -666,12 +670,13 @@ export function planMigrationData(toml: Readonly<Record<string, unknown>>, env: 
           file: "toml",
           action: exists ? "drop" : "rename",
           from: `transport.${key.key}`,
-          to: `providers.${BUILTIN_PROVIDER_ID}.${key.key}`,
+          to: `providers.${metadata.id}.${key.key}`,
         });
       }
     }
+    }
   }
-  for (const key of [...CORE_KEYS, ...ALICLOUD_EXPRESS_KEYS]) {
+  for (const key of [...CORE_KEYS, ...bundledKeys]) {
     const p2 = key.storage_phase2;
     const targetEnv = p2 && p2.file === "env" ? p2.name : key.env;
     const movable = new Set(key.aliases.filter((a) => a.surface === "env" && a.kind === "legacy").map((a) => a.name));

@@ -20,7 +20,7 @@ graph LR
 - 安装 CLI：
 
 ```bash
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
 > **无需额外安装扩展**：本指南用到的 CLI 特性——从 `template.yaml` 读取默认值（YAML 解析）、解析 `.env` 文件、从 registry 安装模板、阿里云模板 API——均已内置于 `@agent-sandbox/cli`。

@@ -1,7 +1,7 @@
 {
   "name": "@agent-sandbox/cli",
   "version": "0.3.0",
-  "description": "abx — the Agent Sandbox command-line interface (Node.js)",
+  "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -11,6 +11,7 @@
     "dist",
     "README.md",
     "SKILL.md",
+    "references",
     "LICENSE",
     "NOTICE"
   ],
@@ -18,7 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-build-output.mjs && tsc -p tsconfig.build.json",
     "build:binary": "node scripts/build_binary.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -32,7 +33,8 @@
     "e2e:offline": "node e2e/run.mjs --suite offline",
     "e2e:known-issues": "node e2e/known-issues/run.mjs",
     "e2e:providers": "bash e2e/providers/run.sh",
-    "e2e:cleanup": "node e2e/cleanup.mjs"
+    "e2e:cleanup": "node e2e/cleanup.mjs",
+    "e2e:provider-image": "node e2e/providers/template-image.mjs"
   },
   "repository": {
     "type": "git",
@@ -59,6 +61,7 @@
     "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/openapi-core": "^1.0.8",
     "@inquirer/prompts": "^8.7.3",
+    "ajv": "8.17.1",
     "commander": "^14.0.3",
     "diff": "^9.0.0",
     "picocolors": "^1.1.1",
@@ -76,8 +79,8 @@
     "postject": "^1.0.0-alpha.6",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.3"
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
   },
   "optionalDependencies": {
     "e2b": "2.55.0"

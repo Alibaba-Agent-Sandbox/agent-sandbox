@@ -16,7 +16,8 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { Sandbox } from "../api/sandbox.js";
 import { SandboxError, SandboxNotFoundError, SandboxCreationError, TemplateNotFoundError, QuotaExceededError, AuthenticationError, CapabilityNotSupportedError } from "../models/errors.js";
 import { ValueError } from "../models/value_error.js";
-import { ProviderNotFoundError, ProviderConfigError } from "../providers/errors.js";
+import { ProviderNotFoundError, ProviderConfigError, ProviderMismatchError, ProviderTrustError, ProviderResourceNotFoundError } from "../providers/errors.js";
+import { getProviderCommand, listProviderCommands, runProviderCommand } from "../providers/commands.js";
 import * as registry from "../providers/registry.js";
 import { hostVersion } from "../providers/host.js";
 import { ENGINE_PROTOCOL, acquireLock, removeRecord, writeRecord, type EngineRecord } from "./discovery.js";
@@ -32,6 +33,7 @@ export interface Connection {
   domain?: string | null;
   access_key_id?: string | null;
   access_key_secret?: string | null;
+  region?: string;
 }
 
 export interface EngineOptions {
@@ -67,10 +69,10 @@ const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
 function statusFor(exc: unknown): number {
   if (exc instanceof HttpError) return exc.status;
   if (exc instanceof SandboxNotFoundError) return 404;
-  if (exc instanceof ProviderNotFoundError) return 404;
+  if (exc instanceof ProviderNotFoundError || exc instanceof ProviderResourceNotFoundError) return 404;
   if (exc instanceof AuthenticationError) return 401;
   if (exc instanceof CapabilityNotSupportedError) return 501;
-  if (exc instanceof ProviderConfigError || exc instanceof ValueError) return 400;
+  if (exc instanceof ProviderConfigError || exc instanceof ProviderMismatchError || exc instanceof ProviderTrustError || exc instanceof ValueError) return 400;
   if (exc instanceof TemplateNotFoundError) return 404;
   if (exc instanceof QuotaExceededError) return 429;
   if (exc instanceof SandboxCreationError) return 400;
@@ -224,6 +226,28 @@ class Engine {
     r("GET", "/v1/providers", async () => ({
       providers: registry.listProviders().map((p) => ({ id: p.id, name: p.name, version: p.version, kind: p.kind, trust: p.trust, features: p.features, error: p.error ?? null })),
     }));
+    r("GET", "/v1/providers/:provider/commands", async (c) => {
+      const provider = this.commandProvider(c);
+      return { commands: listProviderCommands(provider) };
+    });
+    r("GET", "/v1/providers/:provider/commands/:command", async (c) => {
+      const provider = this.commandProvider(c);
+      return getProviderCommand(provider, c.params[1] as string);
+    });
+    r("POST", "/v1/providers/:provider/commands/:command", async (c) => {
+      const body = await c.json();
+      const connection = this.connectionOf(c, body);
+      const provider = this.commandProvider(c, connection);
+      const command = c.params[1] as string;
+      const descriptor = getProviderCommand(provider, command);
+      if (descriptor.effect !== "read" && body["confirm"] !== true) {
+        throw new ProviderTrustError(`Command '${command}' requires confirm: true (${descriptor.effect}).`);
+      }
+      const { provider: _provider, provider_options, ...options } = connection;
+      void _provider;
+      const input = Object.hasOwn(body, "input") ? body["input"] : {};
+      return runProviderCommand(provider, command, input, { ...options, provider_options: provider_options ?? undefined });
+    });
 
     r("POST", "/v1/sandboxes", async (c) => {
       const body = await c.json();
@@ -396,6 +420,16 @@ class Engine {
     const inline = body?.["connection"];
     if (inline !== null && inline !== undefined && typeof inline === "object") return cleanConnection(inline as Dict);
     return c.connection;
+  }
+
+  private commandProvider(c: Ctx, connection: Connection = c.connection): string {
+    const provider = c.params[0] as string;
+    for (const selected of [c.connection.provider, connection.provider]) {
+      if (selected !== undefined && selected !== null && selected !== provider) {
+        throw new ProviderMismatchError(`Provider '${provider}' conflicts with connection provider '${selected}'.`);
+      }
+    }
+    return provider;
   }
 
   /** Stream `source` as server-sent events until it ends or the client goes away. */
@@ -600,7 +634,7 @@ class Reply {
 }
 
 function cleanConnection(raw: Dict): Connection {
-  const keys = ["provider", "provider_options", "api_key", "api_url", "domain", "access_key_id", "access_key_secret"] as const;
+  const keys = ["provider", "provider_options", "api_key", "api_url", "domain", "access_key_id", "access_key_secret", "region"] as const;
   const out: Dict = {};
   for (const k of keys) if (raw[k] !== undefined && raw[k] !== null && raw[k] !== "") out[k] = raw[k];
   return out as Connection;

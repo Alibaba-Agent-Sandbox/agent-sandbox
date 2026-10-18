@@ -7,7 +7,7 @@
 ## 第一步：安装
 
 ```bash
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
 安装后即可使用 `abx` 命令：
@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-> 更多认证方式（AK/SK、.env 文件、config.toml 等）详见 [认证详解](authentication.md)。
+> 运行时 API Key 配置（.env、config.toml）与独立控制面 AK/SK详见 [认证详解](authentication.md)。
 
 ---
 
@@ -331,7 +331,7 @@ abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY \
   --output-dir ./deploy-artifact
 ```
 
-HTTP 运行时需安装 `agent-sandbox[mcp]`。随后使用阿里云 FC 官方控制台或 SDK 打包产物、创建函数与 HTTP Trigger。`config.yaml` 是与平台 API 无关的检查清单，不是 FC API 请求体；请通过官方界面转换其中的设置。将输出的 IDE 模板中的 URL 与 token 占位符替换为部署后的实际值。
+HTTP 运行时需安装 `agent-sandbox-client[mcp]`。随后使用阿里云 FC 官方控制台或 SDK 打包产物、创建函数与 HTTP Trigger。`config.yaml` 是与平台 API 无关的检查清单，不是 FC API 请求体；请通过官方界面转换其中的设置。将输出的 IDE 模板中的 URL 与 token 占位符替换为部署后的实际值。
 
 客户端结束会话时应调用 `DELETE /mcp`。`GET /mcp` 返回 405，SSE 服务端通知尚未实现。`abx mcp deploy` 在没有非空 Bearer token 时会拒绝生成产物。`config.yaml` 可能包含明文凭证，请勿将部署产物或填入凭证后的 IDE 配置提交到版本库。
 

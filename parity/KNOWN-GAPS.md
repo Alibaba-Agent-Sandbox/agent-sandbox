@@ -124,9 +124,9 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
 
 ### Behavioural differences
 
-* **File locking**: Python `filelock.FileLock` (flock) -> a `mkdir`-based lock with stale-lock recovery in
-  `src/session/local.ts`; same mutual-exclusion semantics, but not released automatically if the process is SIGKILLed
-  (stale detection takes over after the timeout).
+* **Named-session persistence**: the unused CLI session-store port has been retired; persistence belongs to the
+  Python SDK. This does not remove interactive `abx connect`. See the
+  [retirement boundary](../docs/en/design/cli-module-retirement.md) for ownership and migration.
 * **YAML**: the `yaml` package (YAML 1.1 rules) in `src/utils/yaml_io.ts`; PyYAML's exception text is not reproduced.
 * **Alibaba Cloud FC SDK**: npm `@alicloud/fcsandbox20260509` is 1.5.1, the Python wheel is 1.6.0. Request/response
   models used by `fc_template` (CreateTemplate/UpdateTemplate/GetTemplate/ListTemplates/ListTeams) are identical in both;
@@ -372,8 +372,8 @@ in IDE configs and the items below.
   on a bind failure, graceful shutdown on the first SIGINT/SIGTERM, immediate exit on the second. After SIGTERM the process
   re-raises the signal (as uvicorn does), so the pid file stays behind exactly like the original; SIGINT removes it.
   Bind failures other than EADDRINUSE/EACCES/EADDRNOTAVAIL/ENOTFOUND/EAI_AGAIN use the generic OSError text.
-* **Deploy artifact.** `runtime: python3.10`, handler `app.app` and `requirements.txt` (`agent-sandbox[mcp]`, `uvicorn>=0.29`)
-  are unchanged on purpose: the FC function runs the Python SDK from PyPI, not the Node CLI.
+* **Deploy artifact.** `runtime: python3.10`, handler `app.app` and `requirements.txt` (`agent-sandbox-client[mcp]`, `uvicorn>=0.29`)
+  stay a Python install: the FC function runs the client SDK from PyPI, not the Node CLI. The distribution name is `agent-sandbox-client`.
 * **Huge `--memory`.** `INT` yields an exact `bigint` beyond 2**53; the generated `config.yaml` is not differential-tested for
   such values (not reachable with real FC memory sizes).
 * **Background readiness race.** When the child dies on a bind error right after claiming the pid file, whether the 0.1 s poll

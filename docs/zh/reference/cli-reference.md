@@ -29,7 +29,7 @@ abx
 |--------|----------|
 | `abx auth login/logout/status/switch` | 用 `abx config set sandbox_api_key <value>` 持久化凭证，或直接使用 `ABX_SANDBOX_API_KEY` 环境变量；用 `abx config list` 查看生效状态 |
 | `abx secret create/list/delete/inject` | 用环境变量或 `.env` 文件管理凭证与密钥；沙箱环境注入用 `abx create --env KEY=VALUE` |
-| `abx session` / `abx sessions list/info/rename/export/import/clean` | 会话数据仍由 `LocalSessionStore` 存储在本地 `~/.abx/sessions/`；在程序中用 SDK 的 `Sandbox.connect()`（交互式 REPL `abx connect <SANDBOX_ID>` 仍可用） |
+| `abx session` / `abx sessions list/info/rename/export/import/clean` | 命名会话持久化归 Python SDK 所有；在程序中用其 `LocalSessionStore` 和 `Sandbox.connect()`（交互式 REPL `abx connect <SANDBOX_ID>` 仍可用） |
 | `abx skill search/install/list/create/publish` | 模板是当前的能力分发机制（`abx template search` / `abx template install`）；仓库根目录的 `SKILL.md` 面向 Agent 使用说明 |
 
 完整的 breaking change 清单与迁移说明见仓库 `CHANGELOG.md` 的 `Unreleased` 节。
@@ -82,6 +82,12 @@ abx [全局选项] <子命令> [子命令选项]
 | `--help` | `-h` | 显示帮助并退出（所有命令与子命令组均可用） |
 
 > 没有全局 `--timeout`，也没有 `--profile`。沙箱生命周期是 `abx create` 的 `--timeout`；命令超时是 `abx exec` 的 `--timeout`。
+
+FC 创建支持可重复的 `--volume-mount PATH=NAME`，例如
+`abx create --template base --volume-mount /mnt/workspace=workspace`。
+Volume 必须已存在于配置的沙箱 API Key 所属 Team，并配置存储访问角色。
+路径必须是合法的沙箱内绝对路径，不能重复。尚无已验证映射的 provider 会拒绝此创建选项。
+配置要求见[FC Volume 设计](../design/alicloud-provider-commands.md)。
 
 > **`-h` / `--help` 在每个层级均可用**：别名在根命令处集中启用一次，并由整棵命令树继承，因此 `abx -h`、`abx sandbox -h`、`abx sandbox files list -h` 都会显示所指向命令的帮助。若某命令自身占用了 `-h` 参数，该参数保持不变——Click 只在那一处移除别名，`--help` 仍然可用。
 

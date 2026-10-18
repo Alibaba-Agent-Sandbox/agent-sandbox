@@ -55,8 +55,8 @@ export default {
     { id: 'missing-args-exec', title: 'exec without args exits 2 (usage error)', argv: ['exec'], creds: false, exit: 2, output: /Missing argument/ },
     { id: 'missing-args-run', title: 'run without COMMAND_NAME exits 2', argv: ['run', 'sbx-x'], creds: false, exit: 2, output: 'Missing argument' },
     { id: 'invalid-log-level', title: 'invalid --log-level exits 2', argv: ['--log-level', 'bogus', 'list'], creds: false, exit: 2, output: /not one of/ },
-    { id: 'invalid-list-status', title: 'invalid list --status exits 2', argv: ['list', '--status', 'bogus'], creds: false, exit: 2, output: /not one of/ },
-    { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of/ },
+    { id: 'invalid-list-status', title: 'invalid list --status exits 2', argv: ['list', '--status', 'bogus'], creds: false, exit: 2, output: /Invalid value for '--status': 'bogus' is not one of 'running', 'stopped', 'creating', 'paused', 'error'\./ },
+    { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /Invalid value for '--target': 'bogus' is not one of 'cursor', 'claude', 'vscode'\./ },
     { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ['upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
     { id: 'create-needs-route', title: '`create` with neither DESCRIPTION nor --template exits 2', argv: ['create'], creds: false, exit: 2, output: ['--template base'] },
     { id: 'create-conflict', title: 'DESCRIPTION and --template are mutually exclusive', argv: ['create', 'a thing', '--template', 'base'], creds: false, exit: 'nonzero', output: 'cannot be combined' },
@@ -201,6 +201,21 @@ export default {
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n${r.out}`);
         const cfg = JSON.parse(readFileSync(join(home, '.cursor', 'mcp.json'), 'utf8'));
         if (!cfg.mcpServers.other || !cfg.mcpServers['agent-sandbox']) ctx.fail(`merge lost an entry: ${Object.keys(cfg.mcpServers).join(',')}`);
+      },
+    },
+
+    {
+      id: 'mcp-deploy-client-requirements', title: 'mcp deploy writes the Python client MCP distribution into requirements.txt', creds: false,
+      async run(ctx) {
+        const cwd = ctx.newCwd('mcp-artifact');
+        const out = join(cwd, 'artifact');
+        const r = await ctx.abx(['mcp', 'deploy', '--output-dir', out, '--api-key', 'placeholder', '--region', 'cn-hangzhou'], {
+          cwd, creds: false, env: { ABX_MCP_AUTH_TOKEN: 'placeholder' },
+        });
+        if (r.code !== 0) ctx.fail(`mcp deploy exit ${r.code}\n${r.out}`);
+        const requirements = readFileSync(join(out, 'requirements.txt'), 'utf8');
+        if (requirements !== 'agent-sandbox-client[mcp]\nuvicorn>=0.29\n') ctx.fail('artifact must install agent-sandbox-client[mcp] and uvicorn');
+        for (const file of ['app.py', 'config.yaml']) if (!existsSync(join(out, file))) ctx.fail(`missing artifact file ${file}`);
       },
     },
 

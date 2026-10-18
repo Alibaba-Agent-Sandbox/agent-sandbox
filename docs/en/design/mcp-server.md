@@ -13,7 +13,7 @@
 
 ## 1. Tools Definition
 
-All 7 tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_id` targets the default sandbox (see Section 2).
+The seven core tools and fourteen workflow tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_id` targets the default sandbox (see Section 2).
 
 ### create_sandbox
 
@@ -220,7 +220,7 @@ graph TD
 1. `create_sandbox` creates a sandbox and makes it the default. Later calls that omit `sandbox_id` use that sandbox. Earlier sandboxes stay alive until `kill_sandbox` or the session ends
 2. When there is no default yet, the first tool call that omits `sandbox_id` lazily creates one. Concurrent lazy creates share a single sandbox
 3. Default template: `code-interpreter-v1` when started via `abx mcp start` (the CLI default); `base` when constructing `SandboxMCPServer` / the HTTP `SessionStore` programmatically without an explicit template. `create_sandbox` uses that server template when `template` is omitted
-4. `kill_sandbox` without `sandbox_id` destroys the default sandbox, and returns an error when there is no default. Session end destroys every sandbox in the session — STDIO EOF / server shutdown, or HTTP `DELETE /mcp` / idle session TTL expiry
+4. `kill_sandbox` without `sandbox_id` destroys the default sandbox, and returns an error when there is no default. Session end destroys only session-owned ephemeral sandboxes; retained and borrowed resources stay alive — STDIO EOF / server shutdown, or HTTP `DELETE /mcp` / idle session TTL expiry
 5. An explicit `sandbox_id` addresses that sandbox and does not change the default. Each use calls `Sandbox.setTimeout` with the timeout from create, extending the lifetime
 
 ```mermaid
@@ -284,7 +284,7 @@ graph LR
 - **Sessions**: in-process `SessionStore`; idle TTL 3600 s (default), max 100 concurrent sessions (default); capacity exhaustion returns 503 with JSON-RPC error `-32000`
 - **Version negotiation**: `initialize` echoes the client-requested `protocolVersion` when supported; this transport supports `2025-06-18` only, matching `GET /health`. Missing or unsupported requested versions negotiate to `2025-06-18` — per the MCP spec the server responds with a version it supports, and clients that cannot accept it may disconnect. The STDIO transport independently keeps `2024-11-05`
 - **Use case**: remote service, team sharing, multiple clients; deploy to Alibaba Cloud FC via the artifact from `abx mcp deploy`, or run locally with uvicorn
-- **Optional dependency**: none for `abx mcp start --http`; the Python ASGI runtime of the FC artifact / uvicorn needs Starlette + uvicorn (`pip install 'agent-sandbox[mcp]'`)
+- **Optional dependency**: none for `abx mcp start --http`; the Python ASGI runtime of the FC artifact / uvicorn needs Starlette + uvicorn (`pip install -r requirements.txt`)
 
 ### Authentication
 
@@ -484,7 +484,7 @@ Options: `--name` (default `agent-sandbox-mcp`), `--region` (command `--region` 
 
 | File | Content |
 |------|---------|
-| `requirements.txt` | `agent-sandbox[mcp]`, `uvicorn>=0.29` |
+| `requirements.txt` | paired pinned Python SDK source, `uvicorn>=0.54.0` |
 | `app.py` | ASGI entry point reading `ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE` from the FC function environment |
 | `config.yaml` | YAML deployment manifest (not an FC API payload): `function_name`, `region`, `runtime` (`python3.10`), `handler` (`app.app`), `memory`, `timeout`, `environment_variables`, `http_trigger` (methods POST/GET/DELETE + `enable_session_affinity`), optional `custom_domain` |
 
@@ -506,3 +506,15 @@ See [CLI Design — mcp deploy](cli-design.md#mcp-deploy) for the full parameter
 ## Related SDK documentation
 
 The Python SDK ships its own `python -m agent_sandbox.agent.mcp` entry point and the `create_mcp_app` ASGI factory; see the SDK's [MCP Server design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/mcp-server.md) and [MCP Integration guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/mcp-integration.md). This page covers the `abx mcp` commands and the Node.js implementation.
+
+
+### Current installation and lifecycle implementation
+
+The artifact source pair is defined once in `src/utils/mcp_sdk_pin.ts`; the
+[installation guide](../guide/mcp-integration.md) documents its public usage.
+Metadata and explicit timeout use control-plane methods without connect/resume.
+The retired automatic-renewal state/hook is removed. Lifecycle error categories
+and ownership refusal use fixed safe messages rather than raw provider traces.
+Node CLI and generated Python HTTP catalogs are discovered independently.
+See the [verification record](../../../.agents/evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)
+for clean installation, real HTTP/STDIO, backend use and cleanup evidence.

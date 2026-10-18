@@ -337,13 +337,13 @@
     "code": "E1003",
     "docs_url": "",
     "message": "something went wrong",
-    "str": "[E1003] something went wrong\n  Suggestion: Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables.",
-    "suggestion": "Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables.",
+    "str": "[E1003] something went wrong\n  Suggestion: Check the selected provider authentication configuration (abx provider info).",
+    "suggestion": "Check the selected provider authentication configuration (abx provider info).",
     "to_dict": {
      "code": "E1003",
      "docs_url": "",
      "message": "something went wrong",
-     "suggestion": "Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables."
+     "suggestion": "Check the selected provider authentication configuration (abx provider info)."
     }
    },
    "kwargs": {},

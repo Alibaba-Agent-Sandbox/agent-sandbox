@@ -75,7 +75,21 @@ ports:
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
 - 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template init` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。这个包不在 PyPI 上。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
+- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template init` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。这个包不在 PyPI 上。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 可按下面的 shell 形式安装约定，用本地 wheel 替换服务端依赖，不论 SHA 是哪一个。
+
+### 本地服务端 wheel 注入
+
+需要模板镜像使用本地检出代码时，将 `ABX_SERVER_SDK_SOURCE` 指向 `server-sdk` 目录。
+对于通过 `pip install`、`pip3 install` 或 `python3 -m pip install` 安装的 shell 形式
+`RUN`，部署会按真实文件名在完整 `RUN` 之前复制 wheel，只替换被钉住的服务端依赖。
+前后的命令、续行和 `if`/`then`/`else` wheel 回退逻辑保持原样，也兼容已有的
+`COPY *.whl /tmp/`。其他软件包参数及明确的 PyPI 版本钉不变。
+原始 Dockerfile 和 `template.yaml` 中的启动、就绪配置不会修改。
+
+没有 wheel 时，为兼容旧构建器，部署会移除顶层的空 `COPY *.whl`，并只为未指定版本的
+`agent-sandbox-server` pip 参数补上归档钉。注释、被引用的示例文字、heredoc 和 JSON
+exec 形式指令不会被当作 pip 安装解析。如果使用嵌入式脚本或 exec 形式安装运行时，
+请明确声明相应的 wheel 复制及安装步骤；自动源码 wheel 替换不会改写这些程序。
 
 ---
 

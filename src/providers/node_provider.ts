@@ -1,3 +1,7 @@
+import type { ProviderTemplateManager } from "./template_contract.js";
+import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
+import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
+import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
 /**
  * `node` providers: an ES module that `abx` loads in process (`[runtime] kind = "node"`, `protocol = "node/1"`).
  *
@@ -10,16 +14,16 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { InvalidAPIKeyError } from "../models/errors.js";
-import { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
-import { FilesystemProtocol } from "../protocol/filesystem.js";
-import { ProcessProtocol } from "../protocol/process.js";
-import { SandboxProtocol } from "../protocol/sandbox.js";
-import type { AuthProvider } from "../transport/auth.js";
+import { CodeInterpreterProtocol } from "./shared/e2b/code_interpreter.js";
+import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
+import { ProcessProtocol } from "./shared/e2b/process.js";
+import { SandboxProtocol } from "./shared/e2b/sandbox.js";
+import type { AuthProvider } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
 import { Provider, consentedInherit, type ProviderInfra, type ProviderTemplates } from "./base.js";
 import { unsupportedAdapter } from "./exec_provider.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderTemplateHostError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderTemplateHostError } from "./errors.js";
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import { hostVersion } from "./host.js";
 import { eppInfra, type EppFactory } from "./node_epp.js";
@@ -31,6 +35,8 @@ type Dict = Record<string, unknown>;
 
 /** What a plugin module returns from `buildInfra`. Missing protocols answer `E8004`. */
 export interface NodeInfra {
+  /** Provider management operations; only manifest-declared command ids are callable. */
+  provider_commands?: ProviderInfra["provider_commands"];
   sandbox_protocol: object;
   process_protocol?: object | null;
   filesystem_protocol?: object | null;
@@ -69,8 +75,10 @@ export interface NodeContext {
 }
 
 export interface NodePlugin {
-  buildInfra(ctx: NodeContext): Promise<NodeInfra>;
   buildTemplates?(ctx: NodeContext): Promise<ProviderTemplates>;
+  buildInfra(ctx: NodeContext): Promise<NodeInfra>;
+  /** Optional template factory; authentication, API mapping and polling stay in the plugin. */
+  buildTemplateManager?(ctx: NodeContext): Promise<ProviderTemplateManager>;
 }
 
 /** Building blocks handed to `create(kit)`. */
@@ -234,6 +242,12 @@ async function loadPlugin(id: string, root: string, entry: string, digest: strin
 
 /** A provider whose backend code is an installed ES module. */
 export class NodeProvider extends Provider {
+  override createSessionAuth(info: SessionInfo, infra?: SessionInfra) { return e2bSessionAuth(info, infra); }
+  override async openTerminal(context: SessionTerminalContext, opts: { cols: number; rows: number; shell: string }) {
+    this.require("pty");
+    if (context.url.startsWith("epp://")) return super.openTerminal(context, opts);
+    return e2bOpenTerminal(context, opts);
+  }
   override kind = "node" as const;
   readonly id: string;
 
@@ -248,69 +262,18 @@ export class NodeProvider extends Provider {
     this.displayNameZh = manifest.name_zh;
     this.version = manifest.version;
     this.features = new Set(manifest.features);
+    this.commands = manifest.commands;
+    this.commandTimeoutMs = manifest.call_timeout_ms;
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
     this.inherit = consentedInherit(manifest.inherit, receipt);
   }
 
-  override async buildTemplates(config: LayeredConfig): Promise<ProviderTemplates> {
-    this.require("templates.deploy");
-    this.validateConfig(config);
-    if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
-    const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, String(this.receipt?.["tree_sha256"] ?? ""), true);
-    if (typeof plugin.buildTemplates !== "function") throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
-    const clients: HttpClient[] = [];
-    let built: ProviderTemplates | undefined;
-    let closed = false;
-    const close = async (): Promise<void> => {
-      if (closed) return;
-      closed = true;
-      const results = await Promise.allSettled([
-        Promise.resolve().then(() => built?.close?.()),
-        ...clients.map((client) => Promise.resolve().then(() => client.close())),
-      ]);
-      if (results.some((result) => result.status === "rejected")) throw new ProviderConfigError("Provider template resources could not be closed.");
-    };
-    const options: Dict = {};
-    for (const field of this.configFields) {
-      const value = config.provider_options[field.key];
-      if (value !== undefined && value !== null) options[field.key] = value;
-    }
-    const core: Dict = { http_timeout: config.http_timeout, max_retries: config.max_retries };
-    for (const key of this.inherit) {
-      const value = (config as unknown as Dict)[key];
-      if (value !== undefined && value !== null) core[key] = value;
-    }
-    const ctx: NodeContext = {
-      id: this.id, features: this.features, options, core,
-      secretKeys: this.configFields.filter((field) => field.secret).map((field) => field.key),
-      callTimeout: this.manifest.call_timeout_ms / 1000,
-      http: (opts) => {
-        const transport = Object.assign(config.toTransportConfig(), { api_url: opts.base_url, domain: opts.domain });
-        const client = new HttpClient(transport, opts.auth ?? new NoAuth(), {
-          envelope_connect: opts.envelope_connect ?? false, envd_dial: opts.envd_dial ?? null,
-        });
-        clients.push(client);
-        return client;
-      },
-      headerKeyAuth: (key, header = "X-API-Key") => new HeaderKeyAuth(key, "header", header),
-      noAuth: () => new NoAuth(),
-    };
-    try {
-      built = await plugin.buildTemplates(ctx);
-      if (!built || typeof built.deploy !== "function") throw new ProviderConfigError("Provider returned an invalid template factory.");
-      return { deploy: (input) => built!.deploy(input), close };
-    } catch (error) {
-      await close().catch(() => undefined);
-      throw error;
-    }
-  }
-
-  async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+  private async context(config: LayeredConfig, templates = false) {
     this.validateConfig(config);
     if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
     const digest = String(this.receipt?.["tree_sha256"] ?? "");
-    const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, digest);
+    const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, digest, templates);
 
     const options: Dict = {};
     for (const f of this.configFields) {
@@ -351,11 +314,79 @@ export class NodeProvider extends Provider {
       noAuth: () => new NoAuth(),
     };
 
-    const built = await plugin.buildInfra(ctx);
+    return { plugin, ctx, transport, clients };
+  }
+
+  override async buildTemplates(config: LayeredConfig): Promise<ProviderTemplates> {
+    this.require("templates.deploy");
+    const { plugin, ctx, clients } = await this.context(config, true);
+    let built: ProviderTemplates | undefined;
+    let closed = false;
+    const close = async (): Promise<void> => {
+      if (closed) return;
+      closed = true;
+      const results = await Promise.allSettled([
+        Promise.resolve().then(() => built?.close?.()),
+        ...clients.map(client => Promise.resolve().then(() => client.close())),
+      ]);
+      if (results.some(result => result.status === "rejected")) throw new ProviderConfigError("Provider template resources could not be closed.");
+    };
+    try {
+      if (!plugin.buildTemplates) throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
+      built = await plugin.buildTemplates(ctx);
+      if (!built || typeof built.deploy !== "function") throw new ProviderConfigError("Provider returned an invalid template factory.");
+      return { deploy: input => built!.deploy(input), close };
+    } catch (error) {
+      await close().catch(() => undefined);
+      throw error;
+    }
+  }
+
+  override async buildTemplateManager(config: LayeredConfig, feature = "templates.build"): Promise<ProviderTemplateManager> {
+    this.require(feature);
+    const { plugin, ctx, clients } = await this.context(config);
+    let manager: ProviderTemplateManager | undefined;
+    const close = async () => {
+      const results = await Promise.allSettled([
+        ...(manager?.close ? [Promise.resolve().then(() => manager!.close!())] : []),
+        ...clients.map(client => Promise.resolve().then(() => client.close())),
+      ]);
+      if (results.some(result => result.status === "rejected")) throw new ProviderProtocolError(`Provider '${this.id}' resource cleanup failed.`);
+    };
+    try {
+      if (!plugin.buildTemplateManager) throw new ProviderFeatureNotSupportedError(this.id, feature);
+      const result = await plugin.buildTemplateManager(ctx);
+      if (!result || typeof result !== "object" || Array.isArray(result)) throw new ProviderProtocolError(`Provider '${this.id}' returned invalid template infrastructure.`);
+      manager = result;
+      const gated = gateProtocol(manager, this.id, {
+        list: ["templates.read"], get: ["templates.read"],
+        build: ["templates.build"], buildProject: ["templates.build"],
+        delete: ["templates.build"], create: ["templates.build"], push: ["templates.build"],
+      }, this.features);
+      return new Proxy(gated, { get(target, key) { return key === "close" ? close : Reflect.get(target, key); } });
+    } catch (error) {
+      await close();
+      throw error;
+    }
+  }
+
+  async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+    const { plugin, ctx, transport, clients } = await this.context(config);
+    let built: NodeInfra;
+    try {
+      built = await plugin.buildInfra(ctx);
+      if (built === null || typeof built !== "object" || Array.isArray(built)) {
+        throw new ProviderProtocolError(`Provider '${this.id}' returned invalid infrastructure.`);
+      }
+    } catch (exc) {
+      await Promise.allSettled(clients.map((client) => client.close()));
+      throw exc;
+    }
     const gate = <T extends object>(protocol: T | null | undefined, rules: Parameters<typeof gateProtocol>[2], feature: string): T =>
       protocol ? gateProtocol(protocol, this.id, rules, this.features) : (unsupportedAdapter(this.id, feature) as unknown as T);
     const own = built.http_client ?? null;
     return {
+      provider_commands: built.provider_commands,
       config: transport(built.endpoint ?? {}),
       auth: built.auth ?? null,
       http_client: own,
@@ -365,9 +396,12 @@ export class NodeProvider extends Provider {
       code_interpreter_protocol: gate(built.code_interpreter_protocol, CODE_RULES, "code.interpret") as never,
       envd_auth: built.envd_auth,
       close: async () => {
-        if (built.close) await built.close();
-        for (const client of clients) await client.close();
-        if (own !== null && !clients.includes(own)) await own.close();
+        const cleanup = await Promise.allSettled([
+          ...(built.close ? [Promise.resolve().then(() => built.close!())] : []),
+          ...clients.map((client) => Promise.resolve().then(() => client.close())),
+          ...(own !== null && !clients.includes(own) ? [Promise.resolve().then(() => own.close())] : []),
+        ]);
+        if (cleanup.some((result) => result.status === "rejected")) throw new ProviderProtocolError(`Provider '${this.id}' resource cleanup failed.`);
       },
     };
   }

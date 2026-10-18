@@ -3,6 +3,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const SandboxMock = vi.hoisted(() => ({
+  list: vi.fn(),
+  setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn(),
   create: vi.fn(),
   connect: vi.fn(),
   killById: vi.fn(),
@@ -210,7 +212,7 @@ describe("TestSandboxMCPServer", () => {
     });
     expect(resp).not.toBeNull();
     const tools = resp.result.tools;
-    expect(tools.length).toBe(7);
+    expect(tools.length).toBe(21);
     const names = new Set(tools.map((t: any) => t.name));
     expect(names.has("run_code")).toBe(true);
     expect(names.has("create_sandbox")).toBe(true);

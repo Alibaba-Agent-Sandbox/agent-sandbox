@@ -79,9 +79,9 @@ function collect(cmd: string, args: string[], opts: { cwd: string; env: Record<s
   });
 }
 
-function runAbx(args: string[], opts: { home: string; cwd: string; url: string | null; env?: Record<string, string | null>; shell?: string }): Promise<Run> {
+function runAbx(args: string[], opts: { home: string; cwd: string; url: string | null; env?: Record<string, string | null>; shell?: string; built?: boolean }): Promise<Run> {
   const env = baseEnv(opts.home, opts.url, opts.env);
-  const argv = ["--import", TSX, ENTRY, ...args];
+  const argv = opts.built ? [path.join(CLI_ROOT, "dist/bin/abx.js"), ...args] : ["--import", TSX, ENTRY, ...args];
   if (opts.shell) {
     env.ABX = [process.execPath, ...argv].map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(" ");
     return collect("bash", ["-c", opts.shell], { cwd: opts.cwd, env, timeoutMs: 30000 });
@@ -174,7 +174,10 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-08 FORCE_COLOR together with NO_COLOR does not leak a Node warning on stderr", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runAbx(["config", "list"], { home, cwd, url: stub.url, env: { FORCE_COLOR: "1", NO_COLOR: "1" } });
+      // tsx can emit Node's color warning before the CLI shim is evaluated.
+      // Check the actual shipped entrypoint, not a loader's earlier side effect.
+      const r = await runAbx(["config", "list"], { home, cwd, url: stub.url, built: true, env: { FORCE_COLOR: "1", NO_COLOR: "1" } });
+      expect(r.status, r.stderr).toBe(0);
       expect(r.stderr).not.toContain("ignored due to the 'FORCE_COLOR'");
     });
   });

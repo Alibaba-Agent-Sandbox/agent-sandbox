@@ -131,7 +131,7 @@ describe("TestAuthenticationErrors", () => {
     const err = new InvalidCredentialsError("bad creds");
     expect(err).toBeInstanceOf(AuthenticationError);
     expect(err.code).toBe("E1003");
-    expect(err.suggestion).toContain("ALICLOUD");
+    expect(err.suggestion).toContain("selected provider");
   });
 });
 

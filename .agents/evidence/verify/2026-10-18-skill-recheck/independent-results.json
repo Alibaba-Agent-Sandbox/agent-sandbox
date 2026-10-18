@@ -1,0 +1,56 @@
+[
+  {
+    "scenario": "qualified-default-and-collision",
+    "result": "PASS",
+    "creates": 3,
+    "deletions": [
+      1,
+      1,
+      1
+    ],
+    "cacheEmpty": true
+  },
+  {
+    "scenario": "delete-retry",
+    "result": "PASS",
+    "attempts": 2,
+    "cacheEmpty": true
+  },
+  {
+    "scenario": "borrowed-ownership",
+    "result": "PASS",
+    "borrowedKills": 0,
+    "borrowedCloses": 1
+  },
+  {
+    "scenario": "identity-mismatch-refuses-signal",
+    "result": "PASS",
+    "state": "unknown",
+    "cancelMarkerAbsent": true
+  },
+  {
+    "scenario": "resistant-descendant-zombie-and-repeat-cancel",
+    "result": "PASS",
+    "first": "cancelling",
+    "next": "cancelling",
+    "repeated": "cancelling",
+    "leaderState": "Z",
+    "outputBefore": 40,
+    "outputAfter": 80
+  },
+  {
+    "scenario": "resistant-task-final-after-explicit-kill",
+    "result": "PASS",
+    "state": "cancelled",
+    "outputStable": true
+  },
+  {
+    "scenario": "leader-exits-before-descendant",
+    "result": "PASS",
+    "initial": "running",
+    "leaderState": "Z",
+    "final": "succeeded",
+    "exit": 0,
+    "stdout": "child-complete"
+  }
+]

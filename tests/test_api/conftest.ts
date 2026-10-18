@@ -114,6 +114,7 @@ export function mockProcessProtocol(): any {
 
 export function mockFilesystemProtocol(): any {
   return {
+    transferUrl: vi.fn(async (url: string, _token: unknown, opts: { path: string }) => `${url}/files?path=${opts.path}&username=user`),
     readText: vi.fn(async () => "file content"),
     read: vi.fn(async () => new TextEncoder().encode("file bytes")),
     write: vi.fn(async () => null),

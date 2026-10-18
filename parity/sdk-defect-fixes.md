@@ -182,3 +182,12 @@ http_timeout) or transfer smaller chunks.` The timeout value itself is unchanged
   `docs/{en,zh}/reference/error-codes.md`).
 * After the gate, re-run the cli E2E (`cli/e2e`) differential harness: the baseline records KI-002 as an oracle
   defect (`files stat` prints a blank name/path), so those expectations flip with this change.
+
+## MCP lifecycle catalog extension (2026-10-16)
+
+The historical JSON-number oracle keeps its captured seven-tool catalog intact.
+The current catalog adds `list_sandboxes`, `get_sandbox` and
+`set_sandbox_timeout`, and adds strict creation controls. The oracle test compares
+every unchanged tool and the exact surrounding JSON envelope/ID number bytes,
+while dedicated lifecycle tests verify the new schemas and behavior. CLI status
+and install golden outputs are regenerated for the ten-tool catalog.

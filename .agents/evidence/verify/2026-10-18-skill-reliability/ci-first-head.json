@@ -1,0 +1,57 @@
+{
+  "pr": {
+    "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/44",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "mergeable": true,
+    "mergeable_state": "clean",
+    "head": "3ad94be1bef2025c0f801b3a1dc18fcf27918aea"
+  },
+  "checks": [
+    {
+      "id": 117569966989,
+      "name": "Build package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654429/job/117569966989"
+    },
+    {
+      "id": 117569506673,
+      "name": "Installer script",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654429/job/117569506673"
+    },
+    {
+      "id": 117569506648,
+      "name": "Typecheck (tsc)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654429/job/117569506648"
+    },
+    {
+      "id": 117569506534,
+      "name": "Test (Node 22)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654429/job/117569506534"
+    },
+    {
+      "id": 117569506463,
+      "name": "Markdown links",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654430/job/117569506463"
+    },
+    {
+      "id": 117569506462,
+      "name": "Test (Node 20)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654429/job/117569506462"
+    }
+  ],
+  "statuses": [],
+  "protection_status": 404
+}

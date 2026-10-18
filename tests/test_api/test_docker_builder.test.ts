@@ -1,8 +1,9 @@
 /** Tests for DockerBuilder, ACRConfig, and ACR auth helpers. */
 
 import { EventEmitter } from "node:events";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,9 +21,9 @@ import {
   getAcrAuthToken,
   rewriteDockerfileForServerInstall,
   serverSdkVersion,
-} from "../../src/api/docker_builder.js";
+} from "../../src/providers/alicloud_express/docker_builder.js";
 import { ABX_SERVER_INSTALL } from "../../src/utils/server_sdk_pin.js";
-import { _provenanceNotice } from "../../src/cli/commands/template.js";
+import { _provenanceNotice } from "../../src/providers/alicloud_express/cli/template.js";
 import { DockerBuildError } from "../../src/models/errors.js";
 import {
   ConnectError,
@@ -40,8 +41,8 @@ const h = vi.hoisted(() => ({
   realSpawn: null as any,
 }));
 
-vi.mock("../../src/api/fc_template.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../src/api/fc_template.js")>()),
+vi.mock("../../src/providers/alicloud_express/fc_template.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/providers/alicloud_express/fc_template.js")>()),
   createOfficialTemplate: h.createOfficialTemplate,
 }));
 
@@ -79,13 +80,13 @@ describe("TestACRAuthTokenAlias", () => {
 
   it("test_importable_via_old_name", async () => {
     // Scripts can ``from ... import _get_acr_auth_token``.
-    const mod = await import("../../src/api/docker_builder.js");
+    const mod = await import("../../src/providers/alicloud_express/docker_builder.js");
     expect(mod._getAcrAuthToken).toBe(getAcrAuthToken);
   });
 
   it("test_importable_via_new_name", async () => {
     // The canonical public name is importable.
-    const mod = await import("../../src/api/docker_builder.js");
+    const mod = await import("../../src/providers/alicloud_express/docker_builder.js");
     expect(typeof mod.getAcrAuthToken).toBe("function");
   });
 
@@ -724,5 +725,38 @@ describe("TestBuildProgress", () => {
     const text = cap.messages().join("\n");
     expect(text).not.toContain("s3cret-value");
     expect(text).toContain("ACR_PASSWORD=***");
+  });
+});
+
+
+describe("legacy registration authentication preflight", () => {
+  it("refuses AK/SK-only before Docker or push in an isolated real process", () => {
+    const home = mkTmp();
+    const source = new URL("../../src/api/docker_builder.ts", import.meta.url).href;
+    const loader = fileURLToPath(new URL("../../node_modules/tsx/dist/loader.mjs", import.meta.url));
+    const code = `
+      import { DockerBuilder, ACRConfig } from ${JSON.stringify(source)};
+      const builder = new DockerBuilder();
+      builder.checkDocker = async () => { throw new Error("unexpected-docker-side-effect"); };
+      const acr = new ACRConfig({ registry: "example.invalid", namespace: "fixture", repo: "fixture", username: "ak", password: "sk" });
+      try {
+        await builder.buildAndRegister(".", acr, { access_key_id: "ak", access_key_secret: "sk" });
+        throw new Error("missing-refusal");
+      } catch (error) {
+        if (error.name !== "InvalidAPIKeyError") throw error;
+        console.log("REFUSED_BEFORE_SIDE_EFFECTS");
+      }
+    `;
+    try {
+      const output = execFileSync(process.execPath, ["--import", loader, "--input-type=module", "-e", code], {
+        cwd: home,
+        env: { PATH: process.env.PATH ?? "", HOME: home, ABX_PROVIDER_UPDATE_CHECK: "0" },
+        encoding: "utf8",
+        timeout: 15000,
+      });
+      expect(output.trim()).toBe("REFUSED_BEFORE_SIDE_EFFECTS");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 });

@@ -43,7 +43,7 @@ abx
 ├── template     init | search | info | list | build | push | create | delete | deploy | from-image | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command
 ```
 
 `abx provider --help` 由 Provider 文档负责（见[Providers](../guide/providers.md)）；本页只涉及固定命令面中的 `provider` 组本身。
@@ -78,6 +78,9 @@ abx
 | `abx config get\|delete` | `<动词> [OPTIONS] KEY` |
 | `abx config set` | `set [OPTIONS] KEY [VALUE]` |
 | `abx mcp deploy\|install\|start\|status\|stop` | `<动词> [OPTIONS]` |
+| `abx provider command list` | `list [OPTIONS] ID` |
+| `abx provider command info` | `info [OPTIONS] ID COMMAND` |
+| `abx provider command run` | `run [OPTIONS] ID COMMAND` |
 
 ## 全局选项
 
@@ -86,6 +89,39 @@ abx
 
 没有全局 `--timeout`，也没有 `--profile`。沙箱**生命周期**是 `abx create` 独有的 `--timeout SECONDS`；
 命令超时是 `abx exec` 的 `--timeout SECONDS`。
+
+## 提供方管理：`abx provider command`
+
+`ID` 是提供方 ID，`COMMAND` 是该提供方声明的管理命令。`list` 发现静态元数据，
+`info` 展示输入/输出 schema、effect 和幂等性；两者均无需连接云端。
+`abx --json provider command list ID` 输出 JSON 描述，`--quiet` 仅输出命令 ID。
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.list
+abx --json provider command run alicloud-express volume.list --input '{}'
+```
+
+`run` 支持以下选项：
+
+| 选项 | 含义 |
+|---|---|
+| `--input JSON` | JSON 输入对象；未指定任一输入选项时默认 `{}` |
+| `--input-file FILE` | 读取普通 JSON 文件；与 `--input` 互斥 |
+| `-o/--opt KEY=VALUE` | 本次提供方配置覆盖，可重复 |
+| `--region REGION` | 本次调用的云区域 |
+| `--yes` | `effect` 为 `write` 或 `delete` 时必须指定 |
+| `-h/--help` | 显示用法 |
+
+两种输入均限制为 1 MiB UTF-8 字节。相对文件路径从当前目录解析。证书等敏感请求字段使用
+`--input-file request.json`，并将该文件排除在版本控制之外。账号凭据通过
+`abx config set providers.ID.KEY` 或提供方环境变量设置；`--opt` 不接受机密配置字段。
+解析错误不会回显输入内容。执行前先查看 schema：未知命令报 E8004，输入无效报 E8002，
+缺少写入确认报 E8012，显式提供方选择冲突报 E8030。
+
+管理命令不会自动重试。超时或连接错误后，云端操作结果可能仍不确定。
+命令名称位于提供方命名空间下；`abx sandbox command` 仍用于沙箱内注册的应用命令。
+支持的操作见[Providers](../guide/providers.md)。
 
 ## 运行命令：`abx exec`
 

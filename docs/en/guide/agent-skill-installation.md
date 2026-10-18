@@ -13,8 +13,8 @@ The skill is plain text (YAML frontmatter + Markdown instructions). Installing i
 The skill and the `abx` / SDK installation are deliberately decoupled:
 
 1. **Install the skill** into your tool (this guide). No Python required.
-2. **Install the package** when the agent (or you) is ready to actually run sandboxes: `npm install -g @agent-sandbox/cli` — see [section 7](#7-after-the-skill-install-agent-sandboxcli-configure-credentials-choose-an-interface).
-3. **Configure credentials** (`abx config set sandbox_api_key …`, or AK/SK).
+2. **Install the CLI binary or a source-built package** when the agent (or you) is ready to run sandboxes — see [section 7](#7-after-the-skill-install-agent-sandboxcli-configure-credentials-choose-an-interface).
+3. **Configure credentials** (`abx config set sandbox_api_key …`); configure AK/SK separately for official template operations.
 4. **Pick an interface** — MCP for chat agents, CLI for scripts, SDK for Python code (see `SKILL.md` → "Choosing an interface").
 
 The agent reads the skill's instructions and drives steps 2–4 itself; nothing in step 1 depends on them.
@@ -51,21 +51,21 @@ The [`skills` CLI](https://github.com/vercel-labs/skills) (npm package `skills`,
 ### Preview first (changes nothing on disk)
 
 ```bash
-npx skills add agent-sandbox/agent-sandbox --list
+npx skills add alibaba-agent-sandbox/agent-sandbox --list
 ```
 
 ### Install
 
 ```bash
 # One agent, project scope (default), non-interactive:
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 
 # The same skill to several agents at once:
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox \
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox \
   -a qoder -a claude-code -a cursor -a qwen-code -y
 
 # User-level instead of project-level:
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
 ```
 
 `--agent` names (from `npx skills --help` and the CLI README): `qoder`, `qoder-cn`, `claude-code`, `cursor`, `qwen-code`, `codex`; use `'*'` for every detected agent.
@@ -121,9 +121,9 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
 
 ---
 
-## 4. Option B — copy or download the single file
+## 4. Option B — copy the Skill and workflow references
 
-`SKILL.md` is one self-contained file; a manual copy is a fully supported install.
+Copy `SKILL.md` **and `references/`** from the same pinned revision into the `agent-sandbox` skill directory. The references contain task verification, provider boundaries and per-action evidence rules; copying only the entrypoint is incomplete. The npm package includes both. Never copy a credential-bearing checkout wholesale.
 
 1. Open <https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/SKILL.md> and use **Raw** / **Download**, then place the file as `agent-sandbox/SKILL.md` under the directory for your tool (section 2). For example:
 
@@ -133,12 +133,16 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
    # ~/.qoder/skills/agent-sandbox/SKILL.md
    ```
 
-2. Or download directly with `curl` — a single file, **never piped into a shell**:
+2. Or download all four files directly with `curl`, **never piped into a shell**:
 
    ```bash
-   mkdir -p ~/.claude/skills/agent-sandbox
-   curl -fsSL "https://raw.githubusercontent.com/agent-sandbox/agent-sandbox/<TAG-OR-COMMIT>/SKILL.md" \
-     -o ~/.claude/skills/agent-sandbox/SKILL.md
+   skill_revision='<TAG-OR-COMMIT>'
+   skill_destination="$HOME/.claude/skills/agent-sandbox"
+   mkdir -p "$skill_destination/references"
+   for skill_file in SKILL.md references/task-workflows.md references/provider-contracts.md references/template-workflows.md; do
+     curl -fsSL "https://raw.githubusercontent.com/alibaba-agent-sandbox/agent-sandbox/$skill_revision/$skill_file" \
+       -o "$skill_destination/$skill_file" || exit 1
+   done
    ```
 
    Replace `<TAG-OR-COMMIT>` with a release tag or a full commit SHA. Avoid a moving branch (`main`) when you need a reproducible version.
@@ -165,6 +169,8 @@ Requires Node.js (`npx`). If you do not want to run Node tooling, use one of the
 
 ---
 
+Copy these files from the same revision alongside the entrypoint: `references/task-workflows.md`, `references/provider-contracts.md`, `references/template-workflows.md`. Preserve the relative directory. Repository checkouts can copy the complete `references/` directory; download-only installation must download all three as well.
+
 ## 5. Option C — `git clone` / sparse checkout
 
 Use Git when you want the file to come from a tracked, verifiable revision.
@@ -174,19 +180,23 @@ Full clone (then copy just the skill folder you need):
 ```bash
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git
 mkdir -p ~/.qwen/skills/agent-sandbox
-cp cli/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp agent-sandbox/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp -R agent-sandbox/references ~/.qwen/skills/agent-sandbox/
 ```
 
-Sparse checkout (only `SKILL.md`, no other repository content):
+Sparse checkout (the entrypoint and its required references):
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse \
   https://github.com/alibaba-agent-sandbox/agent-sandbox.git
-cd cli
-git sparse-checkout set --no-cone /SKILL.md
+cd agent-sandbox
+git sparse-checkout set --no-cone /SKILL.md /references/
+mkdir -p ~/.qwen/skills/agent-sandbox
+cp SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp -R references ~/.qwen/skills/agent-sandbox/
 ```
 
-Pin a version at any point with `git checkout <TAG-OR-COMMIT>`; the sparse working tree follows the checkout, so re-copying `SKILL.md` from a tag gives you that exact revision. Delete the clone directory when you are done.
+Pin a version with `git checkout <TAG-OR-COMMIT>`; for shallow clones, fetch the selected revision first. Re-copy `SKILL.md` and `references/` together after checkout. Delete the clone directory when you are done.
 
 ---
 
@@ -206,17 +216,17 @@ If a marketplace listing for Agent Sandbox appears later, prefer it only after c
 
 ## 7. After the skill: install `@agent-sandbox/cli`, configure credentials, choose an interface
 
+Public `npm install -g @agent-sandbox/cli` is unavailable until publication. Use the source recipe below or the [binary guide](binary-installation.md).
+
 The skills guide the agent loads (`SKILL.md`) contains the operational details; the summary:
 
 ```bash
-# 1. Install the package (CLI + MCP STDIO server; requires Node.js 20+)
-npm install -g @agent-sandbox/cli
+# 1. Install the standalone CLI (source-package alternative below needs Node.js20+)
+# Standalone binary alternative: see binary-installation.md; use the source recipe below.
 
-# If npm reports no matching version (no public npm release was
-# available at the time of writing — check with the command below), install
-# from source instead:
-npm view @agent-sandbox/cli versions
-git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd cli
+# Check available versions; if npm has no matching version, install from source:
+# Diagnostic only: npm view @agent-sandbox/cli versions (public metadata currently404).
+git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 
 # 2. Verify
@@ -228,12 +238,12 @@ abx config set region cn-hangzhou
 
 # 4. Choose an interface
 abx mcp install --target cursor   # MCP for chat agents (or --target claude / vscode)
-abx exec <sandbox-id> "echo hi"   # CLI for scripts
+abx exec <sandbox-id> -- echo hi   # CLI for scripts
 ```
 
 - **Credential rules** — never paste real keys into a skill, a repository, a chat message, or a sandbox file; the full rules live in `SKILL.md` → "Credentials and security".
 - **Interface selection** — MCP for chat agents, CLI for scripts, SDK for Python orchestration; see `SKILL.md` → "Choosing an interface" and the [MCP Integration guide](mcp-integration.md).
-- Authenticating with Alibaba Cloud AK/SK instead of an API key is covered in the [Authentication guide](authentication.md).
+- Using Alibaba Cloud AK/SK for official template operations, separately from the runtime API key is covered in the [Authentication guide](authentication.md).
 
 ---
 
@@ -267,4 +277,4 @@ Uninstall means removing exactly one folder — for example `~/.qoder/skills/age
 - Cursor — [Agent Skills](https://cursor.com/docs/skills), [Plugins](https://cursor.com/docs/plugins)
 - Qwen Code — [Agent Skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md)
 - Codex — [Build skills](https://developers.openai.com/codex/skills)
-- PyPI status (Python SDK) — `pip index versions agent-sandbox` returned no matching distribution on 2026-09-29
+- PyPI status (Python SDK) — `pip index versions agent-sandbox` (historical probe of an old name; the current source distribution is `agent-sandbox-client`) returned no matching distribution on 2026-09-29

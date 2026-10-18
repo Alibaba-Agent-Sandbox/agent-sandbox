@@ -13,7 +13,7 @@ import { CodeResult } from "../../src/models/process.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
 import { TerminalSession } from "../../src/protocol/terminal.js";
 import { ConnectError, JSONDecodeError } from "../../src/transport/_httpx.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import {
   TEST_API_KEY,
@@ -38,16 +38,16 @@ vi.mock("../../src/transport/config.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/transport/config.js")>()),
   loadConfig: h.loadConfig,
 }));
-vi.mock("../../src/transport/auth.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../src/transport/auth.js")>()),
+vi.mock("../../src/providers/alicloud_express/auth.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/providers/alicloud_express/auth.js")>()),
   createAuthProvider: h.createAuthProvider,
 }));
 vi.mock("../../src/transport/http.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/transport/http.js")>()),
   HttpClient: h.HttpClient,
 }));
-vi.mock("../../src/protocol/sandbox.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../src/protocol/sandbox.js")>()),
+vi.mock("../../src/providers/shared/e2b/sandbox.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/providers/shared/e2b/sandbox.js")>()),
   SandboxProtocol: h.SandboxProtocol,
 }));
 
@@ -99,6 +99,25 @@ describe("TestSandboxProperties", () => {
 });
 
 describe("TestSandboxCreate", () => {
+  it("forwards validated Volume names and paths to the built-in create payload", async () => {
+    const proto = protoWith("create", make_sandbox_info());
+    patchInfra(proto);
+    await Sandbox.create({ template: "base", volume_mounts: { "/mnt/oss": "workspace" } });
+    expect(proto.create.mock.calls[0][0].toCreatePayload().volumeMounts).toEqual([{ name: "workspace", path: "/mnt/oss" }]);
+  });
+
+  it("rejects invalid mounts before constructing transport", async () => {
+    patchInfra(protoWith("create", make_sandbox_info()));
+    await expect(Sandbox.create({ volume_mounts: { relative: "workspace" } })).rejects.toMatchObject({ code: "E8002" });
+    expect(h.HttpClient).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown provider before transport or a default-backend fallback", async () => {
+    patchInfra(protoWith("create", make_sandbox_info()));
+    await expect(Sandbox.create({ provider: "uninstalled-mount-provider", volume_mounts: { "/mnt/oss": "workspace" } })).rejects.toMatchObject({ code: "E8001" });
+    expect(h.HttpClient).not.toHaveBeenCalled();
+  });
+
   // Test Sandbox.create() classmethod.
   it("test_create_returns_sandbox", async () => {
     const info = make_sandbox_info();

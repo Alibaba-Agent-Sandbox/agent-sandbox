@@ -190,17 +190,20 @@ describe("TestConfigInitMaskedInput", () => {
   });
 
   it("test_init_uses_masked_prompt_when_supported", async () => {
-    // The wizard must route the three secrets through _prompt_secret.
+    // Platform, both build credentials and LLM input use the masked prompt.
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    const answers = ["sk-platform", "sk-cloud", "sk-qwen"];
+    const answers = ["sk-platform", "LTAIexample", "sk-cloud", "sk-qwen"];
     const mockPrompt = vi.fn(async (_text: string) => answers.shift()!);
     const result = await withConfig({ ...storagePatch(tmp, { env: true }), sys: fakeTtySys(), _promptSecret: mockPrompt }, () =>
-      runner().invoke(cli, ["config", "init", "--build", "--llm"], { input: "\nmy-ns\nLTAIexample\n" }),
+      runner().invoke(cli, ["config", "init", "--build", "--llm"], { input: "\nmy-ns\n" }),
     );
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(mockPrompt).toHaveBeenCalledTimes(3);
+    expect(mockPrompt).toHaveBeenCalledTimes(4);
+    for (const credential of ["sk-platform", "LTAIexample", "sk-cloud", "sk-qwen"]) {
+      expect(result.output).not.toContain(credential);
+    }
     const envContent = readText(envFile);
     expect(envContent).toContain("ABX_SANDBOX_API_KEY=sk-platform");
     expect(envContent).toContain("ABX_LLM_API_KEY=sk-qwen");

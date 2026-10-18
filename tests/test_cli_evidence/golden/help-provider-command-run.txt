@@ -1,0 +1,14 @@
+Usage: abx provider command run [options] <ID> <COMMAND>
+
+Run a declared management command. Write/delete commands require --yes.
+
+Use --input-file for JSON containing certificates or other sensitive values.
+
+Options:
+  --input <JSON>         JSON input object (default: {})
+  --input-file <FILE>    Read JSON input from a file
+  -o, --opt <KEY=VALUE>  Provider option (repeatable)
+  --region <REGION>      Cloud region for this command
+  --yes                  Confirm a write or delete operation
+  -h, --help             Show this message and exit.
+[exit_code:0]

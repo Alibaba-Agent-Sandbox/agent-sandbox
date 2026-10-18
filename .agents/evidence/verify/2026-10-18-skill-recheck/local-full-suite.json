@@ -1,0 +1,108 @@
+{
+  "tested_source_head": "6a93e73bcb11c019d59cbf6759529cfa16ad89bb",
+  "command": "umask 022; npm test",
+  "exit": 1,
+  "duration_seconds": 726.14,
+  "files": {
+    "failed": 4,
+    "passed": 147,
+    "skipped": 5,
+    "total": 156
+  },
+  "tests": {
+    "failed": 11,
+    "passed": 3745,
+    "skipped": 56,
+    "total": 3812
+  },
+  "failures": [
+    {
+      "test": " tests/test_cli/adv_commands.test.ts > commands (review regressions) > ADV-commands-13 the REPL keeps working after a very long (5000 char) line",
+      "result": "FAIL locally",
+      "classification": "local cold CLI startup exceeds the test window; no prompt at 15s, same interaction exits0 in 18.006s",
+      "controls": "repl-controls.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected true to be false // Object.is equality\n\n- Expected\n+ Received\n\n- false\n+ true\n"
+    },
+    {
+      "test": " tests/test_transport/test_node_transport_integration.test.ts > TestNodeTransportLoopback > reports a refused TCP connection like anyio/httpx (All connection attempts failed)",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected RemoteProtocolError: Server disconnected \u2026 { _request: Request{ \u2026(7) } } to be an instance of ConnectError"
+    },
+    {
+      "test": " tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-20 garbage status line -> RemoteProtocolError \"illegal status line: bytearray(b'garbage')\"",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected { status: 502, \u2026(1) } to deeply equal { name: 'RemoteProtocolError', \u2026(1) }\n\n- Expected\n+ Received\n\n  {\n-   \"message\": \"illegal status line: bytearray(b'garbage')\",\n-   \"name\": \"RemoteProtocolError\",\n+   \"status\": 502,\n+   \"text\": \"<html>\n+ <head>\n+     <title>502 Bad Gateway</title>\n+ </head>\n+ <body>\n+     <h1>502 Bad Gateway</h1>\n+     <p>Cannot parse HTTP response: Bad HTTP response line: b&#x27;garbage&#x27;</p>\n+ </body>\n+ </html>\",\n  }\n"
+    },
+    {
+      "test": " tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-21 TCP RST before any response byte -> ReadError with empty message",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected { status: 502, \u2026(1) } to deeply equal { name: 'ReadError', message: '' }\n\n- Expected\n+ Received\n\n  {\n-   \"message\": \"\",\n-   \"name\": \"ReadError\",\n+   \"status\": 502,\n+   \"text\": \"<html>\n+ <head>\n+     <title>502 Bad Gateway</title>\n+ </head>\n+ <body>\n+     <h1>502 Bad Gateway</h1>\n+     <p>server closed connection</p>\n+ </body>\n+ </html>\",\n  }\n"
+    },
+    {
+      "test": " tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-23 h11 accepts: both Transfer-Encoding and Content-Length",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected { status: 502, \u2026(1) } to deeply equal { status: 200, text: 'ok' }\n\n- Expected\n+ Received\n\n  {\n-   \"status\": 200,\n-   \"text\": \"ok\",\n+   \"status\": 502,\n+   \"text\": \"<html>\n+ <head>\n+     <title>502 Bad Gateway</title>\n+ </head>\n+ <body>\n+     <h1>502 Bad Gateway</h1>\n+     <p>Received message with both transfer-encoding and content-length headers from server, refusing to prevent request smuggling attacks. Disable the validate_inbound_headers option to skip this security check.</p>\n+ </body>\n+ </html>\",\n  }\n"
+    },
+    {
+      "test": " tests/adversarial/core/transport_net.test.ts > ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) > ADV-core-25 SSL_CERT_FILE pointing at the server's self-signed cert makes the request succeed",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected { name: 'ConnectError', \u2026(1) } to deeply equal { status: 200, text: 'ok' }\n\n- Expected\n+ Received\n\n  {\n-   \"status\": 200,\n-   \"text\": \"ok\",\n+   \"message\": \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1006)\",\n+   \"name\": \"ConnectError\",\n  }\n"
+    },
+    {
+      "test": " tests/adversarial/core/transport_net.test.ts > ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) > ADV-core-26 SSL_CERT_DIR (hashed dir) is honoured",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected { name: 'ConnectError', \u2026(1) } to deeply equal { status: 200, text: 'ok' }\n\n- Expected\n+ Received\n\n  {\n-   \"status\": 200,\n-   \"text\": \"ok\",\n+   \"message\": \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1006)\",\n+   \"name\": \"ConnectError\",\n  }\n"
+    },
+    {
+      "test": " tests/adversarial/core/transport_net.test.ts > ADV-core plain `fetch` call sites bypass the httpx shim > ADV-core-30 ACR GetAuthorizationToken honours HTTPS_PROXY (httpx trust_env) instead of dialing directly",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected false to be true // Object.is equality\n\n- Expected\n+ Received\n\n- true\n+ false\n"
+    },
+    {
+      "test": " tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient close / error text > ADV-core-54 invalid UTF-8 in a text frame closes with 1007 and the reason text 'invalid start byte at position 0'",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected '[E5001] WebSocket receive error: rece\u2026' to be '[E5001] WebSocket receive error: sent\u2026' // Object.is equality\n\n- Expected\n+ Received\n\n- [E5001] WebSocket receive error: sent 1007 (invalid frame payload data) invalid start byte at position 0; no close frame received\n+ [E5001] WebSocket receive error: received 1007 (invalid frame payload data) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte; then sent 1007 (invalid frame payload data) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n    Suggestion: Check network connectivity and firewall rules.\n"
+    },
+    {
+      "test": " tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient connect semantics > ADV-core-56 HTTP_PROXY / HTTPS_PROXY from the environment are honoured (websockets proxy=True): CONNECT is sent to the proxy",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected '[E5001] Failed to establish WebSocket\u2026' to contain 'did not receive a valid HTTP response\u2026'\n\n- Expected\n+ Received\n\n- did not receive a valid HTTP response from proxy\n+ [E5001] Failed to establish WebSocket connection: proxy rejected connection: HTTP 400\n+   Suggestion: Check WebSocket URL and network connectivity.\n"
+    },
+    {
+      "test": " tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient connect semantics > ADV-core-58 a server that closes the socket during the handshake: 'did not receive a valid HTTP response'",
+      "result": "FAIL locally",
+      "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+      "controls": "network-controls.json; ws-control.json; ci-first-head.json",
+      "assertion_excerpt": "AssertionError: expected '[E5001] Failed to establish WebSocket\u2026' to be '[E5001] Failed to establish WebSocket\u2026' // Object.is equality\n\n- Expected\n+ Received\n\n- [E5001] Failed to establish WebSocket connection: did not receive a valid HTTP response\n+ [E5001] Failed to establish WebSocket connection: server rejected WebSocket connection: HTTP 502\n    Suggestion: Check WebSocket URL and network connectivity.\n"
+    }
+  ],
+  "skips": {
+    "provider_catalog_unconfigured_files": [
+      "tests/test_engine/test_engine.test.ts",
+      "tests/test_providers/test_alicloud_container_provider.test.ts",
+      "tests/test_providers/test_cubesandbox_provider.test.ts",
+      "tests/test_providers/test_e2b_provider.test.ts",
+      "tests/test_providers/test_node_plugins.test.ts"
+    ],
+    "server_sdk": "ABX_SERVER_SDK_SRC not supplied in the full isolated-checkout invocation; separate configured run passed18/18",
+    "note": "All 56 skips stay skips in this run. Normal CI supplies the catalog/server SDK and separately reports156 files passing with 3/2 skipped tests on Node20/22."
+  }
+}

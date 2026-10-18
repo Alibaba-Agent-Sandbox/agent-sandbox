@@ -6,9 +6,10 @@
 #
 # The CLI steps call the `abx` executable (ABX_BIN overrides, default: abx).  The
 # docker-login / official-template steps use the Python SDK API directly, so they
-# need a Python with `agent-sandbox` installed (PYTHON overrides, default: python3).
+# need a Python with the client SDK installed (PyPI name `agent-sandbox-client`,
+# import `agent_sandbox`; PYTHON overrides, default: python3).
 # The wheel to inject is built from the python-sdk repository (WHEEL overrides;
-# default: the newest dist/agent_sandbox-*.whl there).
+# default: the newest dist/agent_sandbox_client-*.whl, else dist/agent_sandbox-*.whl).
 # Other environment: ACR_NAMESPACE (required, your ACR namespace), TAG (image tag,
 # default: dev), ACR_REGISTRY / REGION (default: cn-hangzhou), DOCKER_PLATFORM
 # (default: linux/amd64, the sandbox runtime architecture), RESULTS_FILE (summary
@@ -27,7 +28,10 @@ ACR_REGISTRY="${ACR_REGISTRY:-registry.$REGION.aliyuncs.com}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
 RESULTS_FILE="${RESULTS_FILE:-$(mktemp "${TMPDIR:-/tmp}/abx_deploy_results.XXXXXX")}"
 if [ -z "${WHEEL:-}" ]; then
-    WHEEL="$(ls -t "$WORKDIR"/../python-sdk/dist/agent_sandbox-*.whl 2>/dev/null | head -n 1 || true)"
+    WHEEL="$(ls -t "$WORKDIR"/../python-sdk/dist/agent_sandbox_client-*.whl 2>/dev/null | head -n 1 || true)"
+    if [ -z "$WHEEL" ]; then
+        WHEEL="$(ls -t "$WORKDIR"/../python-sdk/dist/agent_sandbox-*.whl 2>/dev/null | head -n 1 || true)"
+    fi
 fi
 [ -f "${WHEEL:-}" ] || { echo "No wheel found; build one in the python-sdk repo or set WHEEL=<path>" >&2; exit 1; }
 CATALOG_CACHE="$HOME/.abx/templates/alibaba-agent-sandbox/awesome-templates/default"
@@ -69,7 +73,7 @@ deploy_template() {
     echo "[2/4] Building Docker image..."
     docker build -t "$name:$TAG" --platform "$DOCKER_PLATFORM" "$tdir" 2>&1 | tail -5
     local build_exit=$?
-    rm -f "$tdir/agent_sandbox-"*.whl
+    rm -f "$tdir"/agent_sandbox-*.whl "$tdir"/agent_sandbox_client-*.whl
     if [ $build_exit -ne 0 ]; then
         echo "FAIL: Docker build failed for $name"
         echo "$name|FAIL|N/A|$acr_ref|docker-build-failed|$(($(date +%s)-start_ts))s" >> "$RESULTS_FILE"

@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cli } from "../../src/cli/main.js";
 import { configSeams } from "../../src/cli/commands/config_cmd.js";
-import { templateSeams } from "../../src/cli/commands/template.js";
+import { templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import { GitHubRateLimitError } from "../../src/models/errors.js";
 import { TemplateRef } from "../../src/models/template.js";
 import { FINE_GRAINED_PAT_URL, GITHUB_TOKEN_ENV_VAR, rateLimitMessage, rateLimitSuggestion } from "../../src/utils/github_token.js";
