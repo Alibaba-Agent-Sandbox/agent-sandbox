@@ -1,9 +1,10 @@
+import { bundledConfig, defaultConfig } from "./bundled_config.js";
 /**
  * Template image profile owned by the CLI provider, not by `agent_sandbox.server`.
  *
  * The server listens on port 9000 either way. Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a
  * platform `start_cmd` / `ready_cmd`, arch, workdir, reserved ports, and the registry note come from the selected
- * provider. Built-in `alicloud-express` has a profile constant here. A plugin may declare the same fields in
+ * provider. Bundled providers supply their own profile metadata. A plugin may declare the same fields in
  * `abx-provider.toml` under `[template]`. An unknown id, or a plugin with no `[template]` table, uses the generic
  * Docker profile and the generator says so. That fallback is never the Function Compute image.
  *
@@ -11,7 +12,6 @@
  * `alicloud-express` (`resolveProviderId`).
  */
 
-import { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";
 import { ProviderManifestError } from "./errors.js";
 import { loadManifest } from "./manifest.js";
 import { cliProvider } from "./selection.js";
@@ -43,7 +43,7 @@ export interface TemplateProfile {
   readonly registry: string;
 }
 
-interface ProfileFields {
+export interface ProfileFields {
   base_image: string;
   entrypoint_replaceable: boolean;
   server_start: ServerStart;
@@ -56,22 +56,6 @@ interface ProfileFields {
   reserved_ports: readonly number[];
   registry: string;
 }
-
-/** FC Agent Sandbox profile (section 2 of the template/provider boundary review). */
-const ALICLOUD_EXPRESS_FIELDS: ProfileFields = {
-  base_image: "fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>",
-  entrypoint_replaceable: false,
-  server_start: "platform_start_cmd",
-  cmd: null,
-  start_cmd: "agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py",
-  ready_cmd: "agent-sandbox-server healthcheck --port 9000",
-  arch: "linux/amd64",
-  user: "user",
-  workdir: "/home/user/app",
-  reserved_ports: [49983, 5000, 49999],
-  registry:
-    "public pull; image region must equal the sandbox region; a non-matching FROM takes platform copy + envdInject; no ACR image acceleration",
-};
 
 /** Generic Docker profile. OpenSandbox and any provider without `[template]` use this, not the FC image. */
 const GENERIC_FIELDS: ProfileFields = {
@@ -86,13 +70,13 @@ const GENERIC_FIELDS: ProfileFields = {
   workdir: "/app",
   reserved_ports: [],
   registry:
-    "pull by image URI; no region-locked FC registry; no envdInject; private-registry auth stays in provider config",
+    "Pull an image URI; private-registry authentication belongs to the provider configuration.",
 };
 
 export function missingProfileNotice(providerId: string): string {
   return (
     `Provider '${providerId}' has no template profile; using the generic Docker profile ` +
-    `(FROM ${GENERIC_FIELDS.base_image}), not the Alibaba Cloud Express FC image.`
+    `(FROM ${GENERIC_FIELDS.base_image}).`
   );
 }
 
@@ -117,7 +101,7 @@ function bind(fields: ProfileFields, providerId: string, missing: boolean): Temp
 
 /** Built-in profile for `alicloud-express`. */
 export function alicloudExpressProfile(): TemplateProfile {
-  return bind(ALICLOUD_EXPRESS_FIELDS, BUILTIN_PROVIDER_ID, false);
+  return bind(defaultConfig.templateProfile, defaultConfig.id, false);
 }
 
 /** Generic Docker profile bound to `providerId` (not a fallback). */
@@ -221,7 +205,8 @@ function declaredProfile(providerId: string): TemplateProfile | null {
  * `[template]` table names that image itself.
  */
 export function profileForProvider(providerId: string): TemplateProfile {
-  if (providerId === BUILTIN_PROVIDER_ID) return alicloudExpressProfile();
+  const metadata = bundledConfig(providerId);
+  if (metadata?.templateProfile) return bind(metadata.templateProfile, providerId, false);
   const declared = declaredProfile(providerId);
   if (declared) return declared;
   return genericFallback(providerId);

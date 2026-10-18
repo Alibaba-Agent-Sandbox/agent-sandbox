@@ -20,7 +20,7 @@ import path from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { parse as yamlParse } from "yaml";
 
-import * as fcTemplate from "../../src/api/fc_template.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import { QwenCodeBackend } from "../../src/agent/coding_agent.js";
 import * as qwenCode from "../../src/agent/qwen_code.js";
 import { QwenCodeCredentials, QwenCodeRunResult, scrubbedEnviron } from "../../src/agent/qwen_code.js";

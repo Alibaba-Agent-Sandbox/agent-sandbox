@@ -1,2 +1,2 @@
-/** Compatibility exports; shared exception helpers live in the utility layer. */
+/** Compatibility exports for the shared Python-value helpers. */
 export * from "../utils/_pyerrors.js";

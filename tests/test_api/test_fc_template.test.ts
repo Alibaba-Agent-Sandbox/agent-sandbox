@@ -1,6 +1,6 @@
 /** Tests for the official FCSandbox CreateTemplate API adapter. */
 
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   _SDK_INSTALL_HINT,
@@ -15,22 +15,21 @@ import {
   listOfficialTemplates,
   waitForTemplateReady,
   type FcSdk,
-} from "../../src/api/fc_template.js";
+} from "../../src/providers/alicloud_express/fc_template.js";
 import { SandboxError, TemplateBuildError } from "../../src/models/errors.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const realLoad = _sdkLoader.load;
-// These are request-map/model assertions. Account for the generated SDK's cold
-// model loading in dependency readiness, rather than spending each assertion's deadline on it.
-beforeAll(() => { realLoad(); }, 60000);
+// Real generated classes are a fixture, not part of a mocked cloud-call deadline.
+const realSdk = realLoad();
 
 /**
  * Equivalent of `patch("alibabacloud_fcsandbox20260509.client.Client")`: keeps the real model classes but swaps the
  * `Client` class for one returning `mockClient`.
  */
 function patchClient(mockClient: any): { clientCls: ReturnType<typeof vi.fn> } {
-  const real = realLoad();
+  const real = realSdk;
   const clientCls = vi.fn(function () {
     return mockClient;
   });

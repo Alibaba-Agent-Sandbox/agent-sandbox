@@ -83,6 +83,13 @@ abx [global-options] <subcommand> [subcommand-options]
 
 > There is no global `--timeout` and no `--profile`. A sandbox lifetime is `--timeout` on `abx create`; a command timeout is `--timeout` on `abx exec`.
 
+FC creation accepts repeatable `--volume-mount PATH=NAME`, for example
+`abx create --template base --volume-mount /mnt/workspace=workspace`.
+The Volume must already exist in the configured sandbox API key's Team; a storage-access
+role is also required. Paths must be valid absolute sandbox paths and cannot be repeated.
+This create-time option is rejected for providers without a verified mapping. See
+[FC Volume configuration](../design/alicloud-provider-commands.md).
+
 > **`-h` / `--help` work at every level**: the alias is enabled once on the root group and inherited by the whole command tree, so `abx -h`, `abx sandbox -h`, `abx sandbox files list -h` all print the help of the addressed command. A command that reserves `-h` for its own parameter keeps it — Click then drops only the alias there and `--help` keeps working.
 
 > **Region is a command-level option, not a global one**: only commands that talk to a regional control plane accept `--region`/`-r` — [`abx list`](#abx-list), [`abx kill`](#abx-kill), the template control-plane commands (`list`/`info`/`create`/`push`/`build`/`install`/`delete`), and [`abx mcp deploy`](#abx-mcp-deploy). Resolution priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`. Credential order is in [Credential resolution](configuration.md#credential-resolution). Use `abx config set region` for the persistent default.

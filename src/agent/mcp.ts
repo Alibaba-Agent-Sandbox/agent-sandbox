@@ -1,3 +1,4 @@
+import { qualify } from "../providers/registry.js";
 /**
  * Agent Sandbox MCP Server。
  *
@@ -149,7 +150,7 @@ export class SandboxManager {
 
   /** Provider-qualified identity prevents collisions across backends. */
   reference(sandbox: SandboxInstance): string {
-    return sandbox.provider && sandbox.provider !== "alicloud-express" ? `${sandbox.provider}:${sandbox.id}` : sandbox.id;
+    return sandbox.provider ? qualify(sandbox.provider, sandbox.id) : sandbox.id;
   }
 
   /** Explicit retention only; observation never refreshes TTL. */

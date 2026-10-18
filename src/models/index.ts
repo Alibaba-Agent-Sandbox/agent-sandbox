@@ -36,7 +36,7 @@ export {
   ProcessInfo,
   ProcessResult,
 } from "./process.js";
-export { SandboxConfig, SandboxInfo, SandboxStatus } from "./sandbox.js";
+export { SandboxConfig, SandboxInfo, SandboxStatus, validateVolumeMounts } from "./sandbox.js";
 export {
   DEFAULT_CAPABILITIES,
   STANDARD_CAPABILITIES,

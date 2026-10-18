@@ -49,7 +49,9 @@ describe("TestRegistry", () => {
     expect(p.displayNameZh).toBe("阿里云极速版");
     expect(p.kind).toBe("builtin");
     expect(p.supports("files.rw")).toBe(true);
-    expect(p.supports("storage.mount")).toBe(false);
+    expect(p.supports("storage.mount") || p.supports("ports.domain") || p.supports("network.vpc")).toBe(false);
+    expect(p.commands.some((command) => command.id === "volume.create")).toBe(true);
+    expect(p.supports("sandbox.pause")).toBe(false);
   });
 
   it("test_register_and_conflicts", () => {

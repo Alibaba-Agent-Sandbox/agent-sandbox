@@ -157,6 +157,9 @@ $ abx template install alibaba-agent-sandbox/awesome-templates//node-web@v1.0.0 
 **测试夹具（fixture）**用于离线测试，并非模板发布真源。夹具契约与索引行为
 （缓存、离线回退、锁定版本）详见 [examples/templates/README.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/examples/templates/README.md)。
 
+使用本地服务端 SDK 时，`ABX_SERVER_SDK_SOURCE` 会注入 wheel，并保留完整的 shell 形式
+Docker RUN 指令和条件安装逻辑。详见[服务端 wheel 注入](docs/zh/guide/authoring-templates.md#本地服务端-wheel-注入)。
+
 ## Python SDK
 
 Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`）与架构文档均在该仓库维护。
@@ -231,6 +234,8 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 | 更新日志 | [CHANGELOG.md](CHANGELOG.md) |
 | 贡献指南 | [CONTRIBUTING.md](.github/CONTRIBUTING.md) |
 | 许可证 | [Apache-2.0](LICENSE) |
+
+Provider 专属云管理：`abx provider command list alicloud-express`。参数规范、写入确认和云 API 边界见[提供方指南](docs/zh/guide/providers.md)。
 
 ## 贡献
 

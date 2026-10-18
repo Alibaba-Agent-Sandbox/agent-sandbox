@@ -40,6 +40,18 @@ const fixture = JSON.parse(
 
 const registry = errors as unknown as Record<string, new (...args: unknown[]) => errors.SandboxError>;
 
+// Keep the historical oracle immutable. Provider isolation intentionally replaces
+// its native-only default suggestion; explicit suggestions retain exact parity.
+const currentCases = fixture.cases.map((c): Case => {
+  if (c.cls !== "InvalidCredentialsError" || c.variant !== "minimal") return c;
+  const suggestion = "Check the selected provider authentication configuration (abx provider info).";
+  return { ...c, expected: { ...c.expected,
+    suggestion,
+    str: `[${c.expected.code}] ${c.expected.message}\n  Suggestion: ${suggestion}`,
+    to_dict: { ...c.expected.to_dict, suggestion },
+  } };
+});
+
 describe("TestSandboxErrorStrOracle", () => {
   it("test_every_python_error_class_is_exported", () => {
     const missing = fixture.classes.filter((name) => typeof registry[name] !== "function");
@@ -53,7 +65,7 @@ describe("TestSandboxErrorStrOracle", () => {
     expect(extra).toEqual([]);
   });
 
-  it.each(fixture.cases.map((c) => [`${c.cls} ${c.variant}`, c] as const))("test_str_matches_python [%s]", (_label, c) => {
+  it.each(currentCases.map((c) => [`${c.cls} ${c.variant}`, c] as const))("test_str_matches_python [%s]", (_label, c) => {
     const Cls = registry[c.cls]!;
     const exc = Object.keys(c.kwargs).length ? new Cls(...c.args, c.kwargs) : new Cls(...c.args);
     expect(String(exc)).toBe(c.expected.str);
@@ -69,7 +81,7 @@ describe("TestSandboxErrorStrOracle", () => {
     }
   });
 
-  it.each(fixture.cases.map((c) => [`${c.cls} ${c.variant}`, c] as const))(
+  it.each(currentCases.map((c) => [`${c.cls} ${c.variant}`, c] as const))(
     "test_tool_error_payload_and_log_use_str [%s]",
     async (_label, c) => {
       const Cls = registry[c.cls]!;

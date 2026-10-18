@@ -17,7 +17,7 @@ import { confirm } from "../prompts.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
-import { ProviderConfigError, ProviderConflictError, ProviderInstallError, ProviderNotFoundError, ProviderTrustError } from "../../providers/errors.js";
+import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError, ProviderTrustError } from "../../providers/errors.js";
 import * as registry from "../../providers/registry.js";
 import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
 import * as store from "../../providers/store.js";
@@ -29,6 +29,7 @@ import { compactFeatures, configFieldToKey, type ConfigField } from "../../provi
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../error_handler.js";
 import { engine } from "./provider_engine.js";
+import { provider_commands } from "./provider_commands.js";
 
 type Params = Record<string, unknown>;
 
@@ -127,6 +128,8 @@ function renderConsent(plan: installer.InstallPlan): void {
   if (s["tree_sha256"]) rows.push(["Digest", `sha256:${s["tree_sha256"]}`]);
   rows.push(["Runs", (s["runtime"] as string[]).join(" ")]);
   rows.push(["Features", (s["features"] as string[]).join(", ")]);
+  const commands = s["commands"] as Array<{ id: string; effect: string }> | undefined;
+  if (commands?.length) rows.push(["Commands", commands.map((entry) => `${entry.id} (${entry.effect})`).join(", ")]);
   rows.push(["Security", `${securityLine(s["security"])}  (declared by the plugin, not enforced)`]);
   if ((s["fields"] as Array<{ key: string; secret: boolean }>).length) {
     rows.push(["Config", (s["fields"] as Array<{ key: string; secret: boolean }>).map((f) => (f.secret ? `${f.key} (secret)` : f.key)).join(", ")]);
@@ -417,6 +420,8 @@ const update_cmd = command("update", {
     "    fields or inherited credentials ask for consent again. A failed handshake",
     "    rolls back to the previous version (the data directory is preserved).",
     "    Directory and --link installs cannot be updated: reinstall with --force.",
+    "    The bundled alicloud-express provider follows abx releases. Naming it",
+    "    reports upgrade guidance, without replacing abx or checking host releases.",
     "    ",
   ].join("\n"),
   params: [
@@ -435,48 +440,55 @@ const update_cmd = command("update", {
     const results: installer.UpdateResult[] = [];
     const interactive = isInteractive(fmt);
     for (const id of ids) {
-      try {
-        results.push(
-          await installer.update(id, {
-            ref: (params["ref"] as string | null) ?? null,
-            check: Boolean(params["check"]),
-            yes: Boolean(params["yes"]),
-            allowUnpinned: Boolean(params["allow_unpinned"]),
-            allowInsecureTransport: Boolean(params["allow_insecure_transport"]),
-            confirm: params["yes"] ? undefined : async (plan) => {
-              const ok = await askConsent(fmt, plan, "Apply the update?");
-              if (!ok && !interactive) {
-                throw new ProviderTrustError("Updating a provider requires confirmation.", { suggestion: `Re-run with --yes after reviewing: abx provider update ${id}` });
-              }
-              return ok;
-            },
-            verify: verifyHandshake,
-          }),
-        );
-        registry.forget(id);
-      } catch (exc) {
-        if (!given && exc instanceof ProviderInstallError) continue;
-        throw exc;
+      const receipt = store.readReceipt(id);
+      const source = receipt?.["source"] as Record<string, unknown> | undefined;
+      if (!given && source && source["type"] !== "git") {
+        results.push({ id, status: "manual", installed: String(receipt?.["version"] ?? ""), available: null, changes: [],
+          message: `Provider '${id}' uses a ${String(source["type"])} source; use its original installer or reinstall from the reviewed source with --force.` });
+        continue;
       }
+      results.push(
+        await installer.update(id, {
+          ref: (params["ref"] as string | null) ?? null,
+          check: Boolean(params["check"]),
+          yes: Boolean(params["yes"]),
+          allowUnpinned: Boolean(params["allow_unpinned"]),
+          allowInsecureTransport: Boolean(params["allow_insecure_transport"]),
+          confirm: params["yes"] ? undefined : async (plan) => {
+            const ok = await askConsent(fmt, plan, "Apply the update?");
+            if (!ok && !interactive) {
+              throw new ProviderTrustError("Updating a provider requires confirmation.", { suggestion: `Re-run with --yes after reviewing: abx provider update ${id}` });
+            }
+            return ok;
+          },
+          verify: verifyHandshake,
+        }),
+      );
+      registry.forget(id);
     }
     if (fmt.use_json) {
-      fmt.printData(results.map((r) => pairsToMap([["id", r.id], ["status", r.status], ["installed", r.installed], ["available", r.available], ["changes", r.changes]])));
+      fmt.printData(results.map((r) => pairsToMap([["id", r.id], ["status", r.status], ["installed", r.installed], ["available", r.available], ["changes", r.changes], ...(r.message ? [["message", r.message] as [string, unknown]] : [])])));
       return;
     }
     if (params["check"]) {
       const pending = results.filter((r) => r.status === "available");
+      for (const r of results) {
+        if (r.message) fmt.printSuccess(r.message);
+        else if (r.status === "pinned") fmt.printSuccess(`Provider '${r.id}' is pinned; pass --ref <commit> to check another revision.`);
+      }
       if (!pending.length) {
-        fmt.printSuccess("All providers are up to date.");
+        if (results.every((r) => r.status === "up-to-date")) fmt.printSuccess("No updates found among the checked Git providers. The bundled provider follows abx releases.");
         return;
       }
       table(fmt, ["ID", "Installed", "Available", "Changes"], pending.map((r) => [r.id, short(r.installed), short(r.available), r.changes.join(", ")]));
       return;
     }
     if (!results.length || results.every((r) => r.status === "up-to-date")) {
-      fmt.printSuccess("All providers are up to date.");
+      fmt.printSuccess("No updates found among the checked Git providers. The bundled provider follows abx releases.");
       return;
     }
     for (const r of results) {
+      if (r.message) fmt.printSuccess(r.message);
       if (r.status === "updated") fmt.printSuccess(`Updated provider '${r.id}' (${short(r.installed)} -> ${short(r.available)})`);
       else if (r.status === "pinned") fmt.printSuccess(`Provider '${r.id}' is pinned; pass --ref <commit> to move it.`);
     }
@@ -760,4 +772,4 @@ provider.addCommand(config_cmd, "config");
 provider.addCommand(doctor_cmd, "doctor");
 provider.addCommand(test_cmd, "test");
 provider.addCommand(engine, "engine");
-
+provider.addCommand(provider_commands, "command");

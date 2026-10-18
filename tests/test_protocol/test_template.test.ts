@@ -2,7 +2,8 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { TemplateBuildError, TemplateBuildTimeoutError, TemplateProtocol, _seams } from "../../src/protocol/template.js";
+import { SandboxError } from "../../src/models/errors.js";
+import { TemplateBuildError, TemplateBuildTimeoutError, TemplateProtocol, _seams } from "../../src/providers/alicloud_express/template_protocol.js";
 import { ApiKeyAuth } from "../../src/transport/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { HttpClient } from "../../src/transport/http.js";

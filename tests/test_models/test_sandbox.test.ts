@@ -21,6 +21,25 @@ describe("TestSandboxStatus", () => {
 });
 
 describe("TestSandboxConfig", () => {
+  it("serializes named Volume mounts using the official create wire format", () => {
+    const cfg = new SandboxConfig({ volume_mounts: { "/mnt/oss": "oss-workspace" } });
+    expect(cfg.toCreatePayload().volumeMounts).toEqual([{ name: "oss-workspace", path: "/mnt/oss" }]);
+    expect(new SandboxConfig().toCreatePayload()).not.toHaveProperty("volumeMounts");
+    expect(new SandboxConfig({ volume_mounts: {} }).toCreatePayload()).not.toHaveProperty("volumeMounts");
+  });
+
+  it.each([
+    { relative: "workspace" }, { "/": "workspace" }, { "/mnt//oss": "workspace" },
+    { "/mnt/../oss": "workspace" }, { "/mnt/./oss": "workspace" }, { "/mnt/oss/": "workspace" },
+    { " /mnt/oss": "workspace" }, { "/mnt/oss ": "workspace" }, { "/mnt/.cache": "workspace" },
+    { "/bin/oss": "workspace" }, { "/opt": "workspace" }, { "/var/oss": "workspace" }, { "/dev/oss": "workspace" },
+    { "/mnt/oss\u0000": "workspace" }, { "/mnt/oss": "" }, { "/mnt/oss": " " },
+    { "/mnt/oss": " workspace" }, { "/mnt/oss": "workspace\u0000" }, { "/mnt/oss": 1 },
+    [], "invalid", JSON.parse('{"__proto__":"workspace"}'),
+  ])("rejects invalid Volume maps before creating a payload %#", (volume_mounts) => {
+    expect(() => new SandboxConfig({ volume_mounts })).toThrow(ValidationError);
+  });
+
   it("test_defaults", () => {
     const cfg = new SandboxConfig();
     expect(cfg.template).toBe("base");

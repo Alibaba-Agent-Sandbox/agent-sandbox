@@ -2,8 +2,8 @@
 
 import { ProcessChunk, ProcessChunkType, ProcessInfo, ProcessResult } from "../models/process.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
-import type { ProcessProtocol } from "../protocol/process.js";
-import type { EnvdTokenManager } from "../transport/auth.js";
+import type { ProcessProtocol } from "../protocol/contracts.js";
+import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { StreamReader } from "../transport/streaming.js";
 import { getLogger } from "../utils/logging.js";
 import { ValueError } from "./_pyerrors.js";

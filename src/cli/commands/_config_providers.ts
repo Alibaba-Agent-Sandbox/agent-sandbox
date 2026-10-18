@@ -13,7 +13,7 @@ import { cliProvider } from "../../providers/selection.js";
 import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
 import { collectSources, loadTomlFile, paths, quietly, readDotenv, resetLayeredConfig, selectProviderId } from "../../transport/config_layers.js";
 import { coerce, resolveKey } from "../../utils/config_resolver.js";
-import { BUILTIN_PROVIDER_ID, getKey, providerEnvName, type ConfigKey } from "../../utils/config_keys.js";
+import { BUILTIN_PROVIDER_ID, getKey, type ConfigKey } from "../../utils/config_keys.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -91,10 +91,14 @@ const _REGISTRY_NAMES: Readonly<Record<string, string>> = { api_url: "sandbox_ba
  */
 export function coreTarget(internal: string, typed: string): ExtraTarget | null {
   const name = _REGISTRY_NAMES[internal] ?? internal;
+  const providerId = effectiveProviderId();
+  const provider = registry.getProvider(providerId);
+  const own = findProviderKey(providerId, name);
+  if (own) return { kind: "key", provider_id: providerId, key: own, scoped: false, typed };
   const core = getKey(name);
-  if (core) return { kind: "key", provider_id: BUILTIN_PROVIDER_ID, key: core, scoped: false, typed };
-  const own = findProviderKey(BUILTIN_PROVIDER_ID, name);
-  return own ? { kind: "key", provider_id: BUILTIN_PROVIDER_ID, key: own, scoped: false, typed } : null;
+  if (!core || core.scope !== "core") return null;
+  if (["sandbox_api_key", "sandbox_base_url", "sandbox_domain"].includes(name) && !provider.inherit.has(name)) return null;
+  return { kind: "key", provider_id: providerId, key: core, scoped: false, typed };
 }
 
 export function configFormat(): number {
@@ -138,9 +142,7 @@ type Where = { file: "env" | "toml"; name: string; section?: string };
 
 function primaryStorage(target: ExtraTarget): Where {
   const key = target.key as ConfigKey;
-  const builtinOrCore = key.scope === "core" || key.scope === BUILTIN_PROVIDER_ID;
-  if (target.scoped || !builtinOrCore) {
-    if (key.secret && !target.scoped) return { file: "env", name: providerEnvName(target.provider_id, key.key) };
+  if (target.scoped) {
     return { file: "toml", name: key.key, section: `providers.${target.provider_id}` };
   }
   const storage = configFormat() === 2 ? key.storage_phase2 : key.storage_phase1;
@@ -152,16 +154,13 @@ function primaryStorage(target: ExtraTarget): Where {
 function allStorages(target: ExtraTarget): Where[] {
   const key = target.key as ConfigKey;
   const out: Where[] = [primaryStorage(target)];
-  if (!target.scoped && (key.scope === "core" || key.scope === BUILTIN_PROVIDER_ID)) {
+  if (!target.scoped) {
     for (const s of [key.storage_phase1, key.storage_phase2]) if (s) out.push(s as Where);
     for (const a of key.aliases) {
       if (a.kind !== "legacy") continue;
       if (a.surface === "env") out.push({ file: "env", name: a.name });
       if (a.surface === "config" || a.surface === "kwarg") out.push({ file: "toml", name: a.name, section: "transport" });
     }
-  } else if (!target.scoped) {
-    out.push({ file: "env", name: providerEnvName(target.provider_id, key.key) });
-    out.push({ file: "toml", name: key.key, section: `providers.${target.provider_id}` });
   }
   const seen = new Set<string>();
   return out.filter((w) => {

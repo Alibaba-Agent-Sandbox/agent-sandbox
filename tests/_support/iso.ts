@@ -11,6 +11,7 @@ import { afterEach, beforeEach } from "vitest";
 
 import { _resetPaths, _setPaths, resetLayeredConfig } from "../../src/transport/config_layers.js";
 import { ALICLOUD_EXPRESS_KEYS, CORE_KEYS, envNames } from "../../src/utils/config_keys.js";
+import { resetRegistry } from "../../src/providers/registry.js";
 
 const PREFIXES = ["ABX_", "SANDBOX_", "E2B_", "ALICLOUD_", "ALIBABA_CLOUD_", "OPENAI_"];
 
@@ -37,7 +38,6 @@ export function useIso(): Iso {
   let home = "";
   const saved = new Map<string, string | undefined>();
   let cwd = "";
-  let resetRegistry: () => void = () => undefined;
 
   const iso: Iso = {
     get home() {
@@ -67,7 +67,7 @@ export function useIso(): Iso {
     },
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     const names = allEnvNames();
     for (const name of Object.keys(process.env)) {
       if (PREFIXES.some((p) => name.startsWith(p)) || names.has(name)) {
@@ -82,13 +82,9 @@ export function useIso(): Iso {
     process.chdir(root);
     _setPaths({ abxDir: home, configFile: path.join(home, "config.toml"), envFiles: [path.join(home, ".env")] });
     resetLayeredConfig();
-    try {
-      const reg = await import("../../src/providers/registry.js");
-      resetRegistry = () => reg.resetRegistry();
-      reg.resetRegistry();
-    } catch {
-      resetRegistry = () => undefined;
-    }
+    // Load modules before test hooks run. Slow cold imports must not leave an
+    // asynchronous registry reset running after this fixture has been torn down.
+    resetRegistry();
   });
 
   afterEach(() => {

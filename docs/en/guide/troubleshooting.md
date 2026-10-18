@@ -293,3 +293,12 @@ Full notes: [Binary Installation — Troubleshooting: abx: command not found](bi
 - [Authentication](authentication.md) — Authentication configuration
 - [Configuration Reference](../reference/configuration.md) — All configuration options
 - [Error Codes Reference](../reference/error-codes.md) — Complete error code list
+
+
+## Process inspection and metrics in minimal images
+
+Process inspection first uses `ps`, then Python 3 and `/proc` when procps is absent.
+The fallback reports actual kernel data and still fails for an inaccessible process.
+System metrics uses a quoted multiline Python script; unavailable load averages are
+`null`, not fabricated zeroes. Images without Python retain the existing shell fallback.
+For AI clients prefer `--json sandbox system metrics ID` and inspect the returned fields.

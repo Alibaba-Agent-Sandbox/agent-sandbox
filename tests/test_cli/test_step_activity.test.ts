@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ActivityHandle, ActivityUpdate } from "../../src/cli/output.js";
 
-const TEMPLATE_MODULE = "../../src/cli/commands/template.js";
+const TEMPLATE_MODULE = "../../src/providers/alicloud_express/cli/template.js";
 
 interface StepReporterLike {
   phase(message: string): void;

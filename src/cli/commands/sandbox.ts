@@ -34,11 +34,11 @@ import { confirm, prompt } from "../prompts.js";
 import { cpSlice } from "../../utils/_py.js";
 import { CommandNotFoundError, DescriptionClarificationError } from "../../models/errors.js";
 import { ProcessChunkType, type CommandResult } from "../../models/process.js";
-import { SandboxStatus } from "../../models/sandbox.js";
-import { SandboxProtocol } from "../../protocol/sandbox.js";
-import { createAuthProvider } from "../../transport/auth.js";
-import { loadConfig } from "../../transport/config.js";
-import { HttpClient } from "../../transport/http.js";
+import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
+import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
+import { loadLayeredConfig } from "../../transport/config_layers.js";
+import { getProvider } from "../../providers/registry.js";
+import { providerCliExtension } from "../provider_extensions.js";
 import { getLogger } from "../../utils/logging.js";
 import { PyFloat, pyRepr, pyStr, pyStrip } from "../../utils/_pyformat.js";
 import { formatFixed0 } from "../../agent/_pycompat.js";
@@ -51,7 +51,6 @@ import { regionOption } from "../region.js";
 import { printedId, providerView, scopedFlagOptions } from "../provider_view.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
-import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";
 import { ValueError } from "../../models/value_error.js";
 import { files } from "./sandbox_files.js";
 import { process as process_ } from "./sandbox_process.js";
@@ -1011,10 +1010,9 @@ export async function _wantsTemplateOnly(ctx: Context, description: string, opts
 export async function _generateAndDeployTemplate(
   ctx: Context,
   description: string,
-  opts: { yes: boolean; acr_namespace: string | null; verbose: boolean; output_dir?: string | null; model?: string | null },
+  opts: { yes: boolean; verbose: boolean; output_dir?: string | null; model?: string | null; provider_options?: Record<string, unknown>; [key: string]: unknown },
 ): Promise<string> {
   const { yes, verbose } = opts;
-  const template = await import("./template.js");
 
   const gen = await _generateTemplateWorkspace(ctx, description, {
     yes,
@@ -1032,10 +1030,11 @@ export async function _generateAndDeployTemplate(
     await confirm(`Build and deploy template '${gen.templateName}' now?`, { abort: true });
   }
 
-  const namespace = await template.resolve_acr_namespace(opts.acr_namespace);
-  const data = await template.do_deploy(String(gen.workdir), { acr_namespace: namespace, ctx, verbose });
-  let templateRef = pyStrip(String((data as Record<string, unknown>)["TemplateID"] || ""));
-  if (!templateRef || templateRef === "N/A") templateRef = gen.templateName;
+  const extension = providerCliExtension();
+  if (!extension?.deployGenerated) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
+  const data = await extension.deployGenerated(String(gen.workdir), { ...opts, ...opts.provider_options }, ctx);
+  const templateRef = pyStrip(String(data["template_id"] ?? ""));
+  if (!templateRef) throw new CliError("Provider deployment did not return a template id. Inspect its build state before creating a sandbox.");
   return templateRef;
 }
 
@@ -1054,7 +1053,7 @@ function _parsePairs(items: readonly string[], onInvalid: (item: string) => neve
 
 export const create = command("create", {
   help: CREATE_HELP,
-  params: [
+  params: () => [
     argument(["description"], { required: false, default: null }),
     option(["--template", "-T"], { default: null, help: "Template ID or alias to launch (e.g. 'base', 'python-hello'). " + "Defaults to 'base' when omitted. Cannot be combined with DESCRIPTION." }),
     option(["--upload", "-u"], { type: new Path({ exists: true }), default: null, help: "Local file or directory to upload after creation" }),
@@ -1069,6 +1068,7 @@ export const create = command("create", {
     }),
     option(["--env", "-e"], { multiple: true, help: "Environment variable for the sandbox, format KEY=VALUE (repeatable)" }),
     option(["--metadata", "-m"], { multiple: true, help: "Metadata key-value pair, format KEY=VALUE (repeatable)" }),
+    option(["--volume-mount"], { multiple: true, metavar: "PATH=NAME", help: "Mount an existing same-Team Volume by name at an absolute Unix path (Express only; repeatable)" }),
     option(["--yes", "-y"], {
       is_flag: true,
       default: false,
@@ -1084,11 +1084,7 @@ export const create = command("create", {
         "Overrides llm_model / ABX_LLM_MODEL / OPENAI_MODEL for this command. " +
         "When the endpoint rejects the model, an interactive terminal offers coding and chat models with the arrow keys.",
     }),
-    option(["--acr-namespace"], {
-      envvar: "ACR_NAMESPACE",
-      default: null,
-      help: "ACR namespace for building the generated template " + "(env: ACR_NAMESPACE, or set in .env file)",
-    }),
+    ...(providerCliExtension()?.createParams ?? []),
     option(["--dir", "output_dir"], {
       default: null,
       metavar: "DIRECTORY",
@@ -1107,11 +1103,28 @@ export const create = command("create", {
     const requestTimeout: number | null = params["request_timeout"];
     const env: string[] = params["env"];
     const metadata: string[] = params["metadata"];
+    const volumeMountPairs: string[] = params["volume_mount"];
     const yes: boolean = params["yes"];
     const model: string | null = params["model"];
-    const acrNamespace: string | null = params["acr_namespace"];
     const outputDir: string | null = params["output_dir"];
     const verboseFlag: boolean = params["verbose_flag"];
+
+    const mountEntries: Array<[string, string]> = [];
+    const mountPaths = new Set<string>();
+    for (const pair of volumeMountPairs) {
+      const separator = pair.indexOf("=");
+      if (separator < 1 || mountPaths.has(pair.slice(0, separator))) throw new UsageError("--volume-mount requires PATH=NAME with a unique mount path.");
+      const mountPath = pair.slice(0, separator);
+      mountPaths.add(mountPath);
+      mountEntries.push([mountPath, pair.slice(separator + 1)]);
+    }
+    let volumeMounts: Record<string, string>;
+    try { volumeMounts = validateVolumeMounts(Object.fromEntries(mountEntries)); }
+    catch { throw new UsageError("--volume-mount requires a nonempty Volume name and a normalized absolute Unix path outside system/hidden directories."); }
+    if (mountEntries.length) {
+      const selected = providerView().effective;
+      if (!getProvider(selected).createOptions.has("volume_mounts")) throw new ProviderFeatureNotSupportedError(selected, "volume_mounts");
+    }
 
     if (verboseFlag) enableVerbose(ctx);
 
@@ -1160,7 +1173,7 @@ export const create = command("create", {
       }
       effectiveTemplate = await _generateAndDeployTemplate(ctx, description, {
         yes,
-        acr_namespace: acrNamespace,
+        provider_options: params,
         verbose: verboseFlag,
         output_dir: outputDir,
         model,
@@ -1190,6 +1203,7 @@ export const create = command("create", {
     const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout };
     if (Object.keys(envs).length > 0) createKwargs["envs"] = envs;
     if (Object.keys(meta).length > 0) createKwargs["metadata"] = meta;
+    if (mountEntries.length) createKwargs["volume_mounts"] = volumeMounts;
 
     // HTTP timeout for the create call: sandbox creation (cold start) is known to be slow, so we always enforce a floor of
     // 120s. If the user configured a *larger* http_timeout (e.g. 300s) that is respected; if they configured a *smaller*
@@ -1197,7 +1211,7 @@ export const create = command("create", {
     if (requestTimeout !== null) {
       createKwargs["request_timeout"] = requestTimeout;
     } else {
-      const configured = loadConfig().http_timeout;
+      const configured = loadLayeredConfig().http_timeout;
       createKwargs["request_timeout"] = Math.max(configured, _CREATE_REQUEST_TIMEOUT_FLOOR);
     }
 
@@ -1287,28 +1301,10 @@ export const list_cmd = command("list", {
       return;
     }
     const view = providerView();
-    if (view.effective !== BUILTIN_PROVIDER_ID) {
-      const found = await Sandbox.list({
-        status: status ? (status as SandboxStatus) : null,
-        limit,
-        provider: view.effective,
-        provider_options: scopedFlagOptions("--region", "region", region, view),
-      });
-      _printSandboxList(fmt, view, found.map((sb) => ({ provider: view.effective, info: sb })));
-      return;
-    }
-
-    const config = loadConfig({ region });
-    const auth = createAuthProvider({
-      api_key: config.api_key,
-      access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret,
+    const sandboxes = await Sandbox.list({
+      status: status ? (status as SandboxStatus) : null, limit, provider: view.effective,
+      provider_options: scopedFlagOptions("--region", "region", region, view),
     });
-    const httpClient = new HttpClient(config, auth);
-    const proto = new SandboxProtocol(httpClient);
-
-    const sbStatus = status ? (status as SandboxStatus) : null;
-    const sandboxes = await proto.list({ status: sbStatus, limit });
 
     if (!sandboxes.length) {
       fmt.printSuccess("No sandboxes found.");
@@ -1316,7 +1312,7 @@ export const list_cmd = command("list", {
     }
 
     if (!view.legacy) {
-      _printSandboxList(fmt, view, sandboxes.map((sb) => ({ provider: BUILTIN_PROVIDER_ID, info: sb })));
+      _printSandboxList(fmt, view, sandboxes.map((sb) => ({ provider: view.effective, info: sb })));
       return;
     }
     const headers = ["ID", "Template", "Status", "Region"];
@@ -1449,25 +1445,9 @@ export const kill = command("kill", {
     if (killAll) {
       const killView = providerView();
       let sandboxes: Array<{ sandbox_id: string }>;
-      if (killView.effective !== BUILTIN_PROVIDER_ID) {
-        sandboxes = (
-          await Sandbox.list({
-            status: SandboxStatus.RUNNING,
-            provider: killView.effective,
-            provider_options: scopedFlagOptions("--region", "region", region, killView),
-          })
-        ).map((sb) => ({ sandbox_id: `${killView.effective}:${sb.sandbox_id}` }));
-      } else {
-        const config = loadConfig({ region });
-        const auth = createAuthProvider({
-          api_key: config.api_key,
-          access_key_id: config.access_key_id,
-          access_key_secret: config.access_key_secret,
-        });
-        const httpClient = new HttpClient(config, auth);
-        const proto = new SandboxProtocol(httpClient);
-        sandboxes = await proto.list({ status: SandboxStatus.RUNNING });
-      }
+      sandboxes = (await Sandbox.list({ status: SandboxStatus.RUNNING, provider: killView.effective,
+        provider_options: scopedFlagOptions("--region", "region", region, killView),
+      })).map((sandbox) => ({ sandbox_id: printedId(killView, sandbox.sandbox_id, killView.effective) }));
 
       if (!sandboxes.length) {
         fmt.printSuccess("No running sandboxes to kill.");

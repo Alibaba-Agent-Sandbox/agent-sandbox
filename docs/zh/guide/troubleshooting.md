@@ -293,3 +293,11 @@ command -v agent-sandbox
 - [认证详解](authentication.md) — 认证配置
 - [配置参考](../reference/configuration.md) — 所有配置项
 - [错误码参考](../reference/error-codes.md) — 完整错误码列表
+
+
+## 精简镜像中的进程和指标查询
+
+进程查询先使用 `ps`，缺少 procps 时通过 Python 3 和 `/proc` 读取相同的内核数据；
+进程不存在或无法读取时仍返回失败。资源指标使用正确引用的多行 Python 脚本，无法
+获取的负载值为 `null`，不会伪造为零；没有 Python 的镜像保留原来的 shell 回退。
+AI 调用优先使用 `--json sandbox system metrics ID` 并检查实际返回字段。

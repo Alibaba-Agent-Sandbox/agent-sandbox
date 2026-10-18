@@ -14,7 +14,7 @@ cp .env.example .env   # 然后填入真实值
 
 # 2. 对 abx 二进制运行
 ABX_BIN=abx                           npm run e2e          # PATH 上的 `abx`(默认)
-ABX_BIN="node dist/bin/abx.js"        npm run e2e          # `npm run build` 之后
+ABX_BIN="node $PWD/dist/bin/abx.js"   npm run e2e          # `npm run build` 之后
 
 npm run e2e:offline                   # 仅无需凭据的套件(几秒)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
@@ -73,9 +73,31 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 环境变量
 
+实际挂载验收单独运行 `--suite volume-mount-cloud`，设置 `ABX_E2E_VOLUME_MOUNT=1`、
+指向已有可写测试 Volume 的 `ABX_E2E_VOLUME_NAME`，以及 `/mnt/abx-e2e/` 下专用的规范
+挂载路径 `ABX_E2E_VOLUME_MOUNT_PATH`。配置的沙箱 API Key 必须属于 Volume 所在 Team，
+并具有有效存储角色。场景先通过 `/proc/self/mountinfo` 确认精确挂载，再独占创建、读写、
+删除自己的哨兵文件，最后销毁自己的沙箱，不删除既有 Volume 或底层存储。缺少条件标为
+skip，不代表挂载已通过。
+
+请显式设置 `ABX_E2E_TEMPLATE`，选择支持挂载的模板。自定义 MicroVM 源镜像必须预装
+ossfs2 2.0.10 或以上版本，参见[官方挂载指南](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。
+明确授权创建测试基础设施后，可用临时私有 Bucket、仅有该 Bucket 权限且信任 FC 的专用
+RAM 角色、同一 Team 的测试 API Key 和 Volume 准备前提。沙箱清理后，依次停用并删除测试
+Key、删除 Volume、清空并删除测试 Bucket、解绑并删除自定义策略、删除测试角色，逐项查询
+确认不存在。这些创建与清理步骤独立于挂载套件，套件本身不创建存储或删除已有 Volume。
+
+管理命令检查可运行 `--suite provider-commands-offline,provider-management-cloud`。
+前者无需凭证，后者用 AK/SK 验证四类 FC 只读 API，均不创建资源。
+临时 API Key 生命周期使用 `--suite provider-management-lifecycle --filter existing-team-api-key-lifecycle`，
+并设置 `ABX_E2E_PROVIDER_MANAGEMENT_WRITE=1` 与明确的 `ABX_E2E_MANAGEMENT_EXISTING_TEAM_ID`。
+只创建、更新、轮换、停用和删除本次随机命名的 key，不修改已有 Team；密钥仅写入临时 0600 文件，不打印。
+新 Team、Volume、配额的写入场景还要求源码注明的计划、资源组和额外开关；缺前提会报告跳过，
+不会猜测订阅计划、创建底层存储或尝试未公开的 Volume 状态转换。
+
 | 变量 | 含义 |
 |---|---|
-| `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node dist/bin/abx.js"` |
+| `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node $PWD/dist/bin/abx.js"`；临时场景工作目录要求脚本使用绝对路径 |
 | `ABX_E2E_TEMPLATE` | 生命周期套件使用的模板(默认 `python-hello`) |
 | `ABX_E2E_TIMEOUT_MS` | 每条命令默认超时(默认 120000) |
 | `ABX_E2E_DOCKER=1` | 启用 Docker/ACR 套件(慢,会消耗真实资源) |
