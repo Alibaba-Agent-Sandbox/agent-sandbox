@@ -51,21 +51,21 @@ The [`skills` CLI](https://github.com/vercel-labs/skills) (npm package `skills`,
 ### Preview first (changes nothing on disk)
 
 ```bash
-npx skills add agent-sandbox/agent-sandbox --list
+npx skills add alibaba-agent-sandbox/agent-sandbox --list
 ```
 
 ### Install
 
 ```bash
 # One agent, project scope (default), non-interactive:
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 
 # The same skill to several agents at once:
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox \
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox \
   -a qoder -a claude-code -a cursor -a qwen-code -y
 
 # User-level instead of project-level:
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
 ```
 
 `--agent` names (from `npx skills --help` and the CLI README): `qoder`, `qoder-cn`, `claude-code`, `cursor`, `qwen-code`, `codex`; use `'*'` for every detected agent.
@@ -133,12 +133,16 @@ Copy `SKILL.md` **and `references/`** from the same pinned revision into the `ag
    # ~/.qoder/skills/agent-sandbox/SKILL.md
    ```
 
-2. Or download directly with `curl` — a single file, **never piped into a shell**:
+2. Or download all four files directly with `curl`, **never piped into a shell**:
 
    ```bash
-   mkdir -p ~/.claude/skills/agent-sandbox
-   curl -fsSL "https://raw.githubusercontent.com/agent-sandbox/agent-sandbox/<TAG-OR-COMMIT>/SKILL.md" \
-     -o ~/.claude/skills/agent-sandbox/SKILL.md
+   skill_revision='<TAG-OR-COMMIT>'
+   skill_destination="$HOME/.claude/skills/agent-sandbox"
+   mkdir -p "$skill_destination/references"
+   for skill_file in SKILL.md references/task-workflows.md references/provider-contracts.md references/template-workflows.md; do
+     curl -fsSL "https://raw.githubusercontent.com/alibaba-agent-sandbox/agent-sandbox/$skill_revision/$skill_file" \
+       -o "$skill_destination/$skill_file" || exit 1
+   done
    ```
 
    Replace `<TAG-OR-COMMIT>` with a release tag or a full commit SHA. Avoid a moving branch (`main`) when you need a reproducible version.
@@ -176,19 +180,23 @@ Full clone (then copy just the skill folder you need):
 ```bash
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git
 mkdir -p ~/.qwen/skills/agent-sandbox
-cp cli/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp agent-sandbox/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp -R agent-sandbox/references ~/.qwen/skills/agent-sandbox/
 ```
 
-Sparse checkout (only `SKILL.md`, no other repository content):
+Sparse checkout (the entrypoint and its required references):
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse \
   https://github.com/alibaba-agent-sandbox/agent-sandbox.git
-cd cli
-git sparse-checkout set --no-cone /SKILL.md
+cd agent-sandbox
+git sparse-checkout set --no-cone /SKILL.md /references/
+mkdir -p ~/.qwen/skills/agent-sandbox
+cp SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp -R references ~/.qwen/skills/agent-sandbox/
 ```
 
-Pin a version at any point with `git checkout <TAG-OR-COMMIT>`; the sparse working tree follows the checkout, so re-copying `SKILL.md` from a tag gives you that exact revision. Delete the clone directory when you are done.
+Pin a version with `git checkout <TAG-OR-COMMIT>`; for shallow clones, fetch the selected revision first. Re-copy `SKILL.md` and `references/` together after checkout. Delete the clone directory when you are done.
 
 ---
 
@@ -214,11 +222,9 @@ The skills guide the agent loads (`SKILL.md`) contains the operational details; 
 # 1. Install the package (CLI + MCP STDIO server; requires Node.js 20+)
 npm install -g @agent-sandbox/cli
 
-# If npm reports no matching version (no public npm release was
-# available at the time of writing — check with the command below), install
-# from source instead:
+# Check available versions; if npm has no matching version, install from source:
 npm view @agent-sandbox/cli versions
-git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd cli
+git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 
 # 2. Verify
@@ -230,7 +236,7 @@ abx config set region cn-hangzhou
 
 # 4. Choose an interface
 abx mcp install --target cursor   # MCP for chat agents (or --target claude / vscode)
-abx exec <sandbox-id> "echo hi"   # CLI for scripts
+abx exec <sandbox-id> -- echo hi   # CLI for scripts
 ```
 
 - **Credential rules** — never paste real keys into a skill, a repository, a chat message, or a sandbox file; the full rules live in `SKILL.md` → "Credentials and security".
@@ -269,4 +275,4 @@ Uninstall means removing exactly one folder — for example `~/.qoder/skills/age
 - Cursor — [Agent Skills](https://cursor.com/docs/skills), [Plugins](https://cursor.com/docs/plugins)
 - Qwen Code — [Agent Skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md)
 - Codex — [Build skills](https://developers.openai.com/codex/skills)
-- PyPI status (Python SDK) — `pip index versions agent-sandbox` returned no matching distribution on 2026-09-29
+- PyPI status (Python SDK) — `pip index versions agent-sandbox` (historical probe of an old name; the current source distribution is `agent-sandbox-client`) returned no matching distribution on 2026-09-29

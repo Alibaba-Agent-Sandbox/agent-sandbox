@@ -125,6 +125,7 @@ export class SandboxManager {
   _sandboxes: Map<string, SandboxInstance> = new Map();
   _lifetimes: Map<string, number> = new Map();
   private readonly preserved = new Set<string>();
+  private readonly borrowed = new Set<string>();
   _state_lock = new AsyncLock();
   _default_lock = new AsyncLock();
   /** Bumped by `shutdown()` so a create still in flight can clean up after itself. */
@@ -153,6 +154,7 @@ export class SandboxManager {
 
   /** Explicit retention only; observation never refreshes TTL. */
   retainSandbox(id: string, retain = true): void {
+    if (!retain && this.borrowed.has(id)) throw new Error("Connected sandbox is borrowed; retention cannot transfer cleanup ownership. Use kill_sandbox explicitly to delete it.");
     if (retain) this.preserved.add(id);
     else this.preserved.delete(id);
   }
@@ -219,6 +221,7 @@ export class SandboxManager {
       if (epoch !== this._epoch) throw new CancelledError();
       await this._state_lock.runExclusive(() => {
         this._sandboxes.set(sandboxId, sb);
+        this.borrowed.add(sandboxId);
         this.preserved.add(sandboxId);
         if (!this._lifetimes.has(sb.id)) this._lifetimes.set(sb.id, 300);
       });
@@ -248,60 +251,45 @@ export class SandboxManager {
    * sandbox to kill.
    */
   async killSandbox(sandboxId: string | null = null): Promise<string | null> {
-    if (sandboxId) {
-      const sb = await this._state_lock.runExclusive(() => {
-        const found = this._sandboxes.get(sandboxId);
-        this._sandboxes.delete(sandboxId);
-        this._lifetimes.delete(sandboxId);
-        if (
-          this._default_sandbox !== null &&
-          this._default_sandbox !== undefined &&
-          this._default_sandbox.id === sandboxId
-        ) {
-          this._default_sandbox = null;
-        }
-        return found;
-      });
-      if (sb !== undefined && sb !== null) {
-        await sb.kill();
-        logger.info("Killed sandbox: %s", sandboxId);
-        return sandboxId;
-      }
-      const Sandbox = await sdk.loadSandbox();
-      const kwargs = this._connectKwargs();
-      await Sandbox.killById(sandboxId, kwargs);
+    const sb = await this._state_lock.runExclusive(() => sandboxId
+      ? this._sandboxes.get(sandboxId)
+      : this._default_sandbox);
+    if (sb === null || sb === undefined) {
+      if (!sandboxId) return null;
+      await (await sdk.loadSandbox()).killById(sandboxId, this._connectKwargs());
       return sandboxId;
     }
-
-    const sb = await this._state_lock.runExclusive(() => {
-      const current = this._default_sandbox;
-      this._default_sandbox = null;
-      if (current !== null && current !== undefined) {
-        this._sandboxes.delete(current.id);
-        this._lifetimes.delete(current.id);
-      }
-      return current;
-    });
-    if (sb === null || sb === undefined) return null;
-    const sid = sb.id;
+    const id = sandboxId ?? this.reference(sb);
+    // Keep the handle/default until deletion succeeds, so failures remain retryable.
     await sb.kill();
-    logger.info("Killed default sandbox: %s", sid);
-    return String(sid);
+    await this._state_lock.runExclusive(() => {
+      if (this._sandboxes.get(id) === sb) {
+        this._sandboxes.delete(id);
+        this._lifetimes.delete(id);
+        this.preserved.delete(id);
+        this.borrowed.delete(id);
+      }
+      if (this._default_sandbox === sb) this._default_sandbox = null;
+    });
+    logger.info("Killed sandbox: %s", id);
+    return id;
   }
 
   /** Kill all sandboxes. */
   async shutdown(): Promise<void> {
     const items = await this._state_lock.runExclusive(() => {
-      const snapshot = [...this._sandboxes.entries()];
+      const snapshot = [...this._sandboxes.entries()].map(([sid, sb]) => ({ sid, sb, preserve: this.borrowed.has(sid) || this.preserved.has(sid) }));
       this._sandboxes.clear();
+      this.borrowed.clear();
+      this.preserved.clear();
       this._lifetimes.clear();
       this._default_sandbox = null;
       this._epoch += 1;
       return snapshot;
     });
-    for (const [sid, sb] of items) {
+    for (const { sid, sb, preserve } of items) {
       try {
-        if (this.preserved.has(sid)) await sb.close?.();
+        if (preserve) await sb.close?.();
         else await sb.kill();
         logger.info("Shutdown: released sandbox %s", sid);
       } catch (exc) {

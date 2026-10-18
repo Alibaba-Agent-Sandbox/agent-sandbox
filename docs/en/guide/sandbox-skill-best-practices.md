@@ -66,3 +66,10 @@ Use the [action record contract](../../../references/task-workflows.md): agent/m
 Separate code/unit, real-cloud, natural-language agent and installed-client acceptance. Template submission needs ready state plus a real test sandbox/command/file/cleanup. Ordinary file I/O is not persistent storage. Mounts, cache/warm pools, billing, hibernation, snapshots, network policy, expiring previews, desktop handoff and hosted MCP require provider APIs and their own real acceptance. Missing prerequisites remain coverage gaps.
 
 Parent-agent follow-up completed the remaining three template tools: authenticated Team discovery, image submission, ready-state query, real runtime command/binary acceptance and independently verified sandbox/template deletion. The first attempt exposed a generation-1 startup-parameter rejection; default generation 2 plus preflight validation fixed it. Combined tool exercise is 21/21 across the independent and parent runs; the broader requirement coverage remains explicitly partial.
+
+
+## Second verification and known boundaries
+
+A second independent review found installation examples using the wrong repository/checkout directory and omitting required references. The updated installation guide uses the canonical Alibaba-Agent-Sandbox repository and copies the complete bundle. Runtime edge cases also required repairs: SIGTERM-resistant descendants must keep a task `cancelling`; a shell exiting before its group finishes cannot establish completion; provider-qualified deletion must clear the default/cache; failed deletion must remain retryable; disabling retention on a connected resource must not transfer cleanup ownership. Task management covers the original Linux process group/session. Explicit `setsid`/daemonization can escape it.
+
+See the [new verification record](../../../.agents/evidence/verify/2026-10-18-skill-recheck.md) for fresh inputs, returns, effects and remaining gaps. The previous 21-tool live run does not establish complete original requirement coverage.

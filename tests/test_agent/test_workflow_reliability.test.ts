@@ -59,9 +59,87 @@ describe("real Linux task lifecycle", () => {
   it("never manufactures a completed result for an unknown task", async () => {
     await expect(queryTask(local, "12345678-1234-1234-1234-123456789012")).rejects.toThrow("Task control failed");
   });
+  it("keeps cancelling while a SIGTERM-resistant descendant still produces output", async () => {
+    const source = "import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN)\nwhile True: print('tick',flush=True); time.sleep(.03)";
+    const encoded = Buffer.from(source).toString("base64");
+    const started = await startTask(local, `python3 -u -c "import base64; exec(base64.b64decode('${encoded}'))"; wait`);
+    const id = started.task_id as string; ids.push(id);
+    try {
+      let ready = false;
+      for (let i = 0; i < 100; i++) {
+        if (String((await queryTask(local, id)).stdout).includes("tick")) { ready = true; break; }
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      expect(ready).toBe(true);
+      const cancelled = await queryTask(local, id, true);
+      await new Promise(resolve => setTimeout(resolve, 120));
+      const after = await queryTask(local, id);
+      expect(after.state).toBe("cancelling");
+      expect((await queryTask(local, id, true)).state).toBe("cancelling");
+      expect(after).not.toHaveProperty("exit_code");
+      expect(String(after.stdout).length).toBeGreaterThan(String(cancelled.stdout).length);
+    } finally {
+      try { process.kill(-(started.pid as number), "SIGKILL"); } catch { /* Already stopped. */ }
+    }
+    const finished = await terminal(id);
+    expect(finished.state).toBe("cancelled");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect((await queryTask(local, id)).stdout).toBe(finished.stdout);
+  });
+  it("waits for remaining group members when a successful shell leader exits first", async () => {
+    const started = await startTask(local, "(sleep .5; printf descendant-finished) &");
+    const id = started.task_id as string; ids.push(id);
+    expect(started.state).toBe("running");
+    expect(await queryTask(local, id)).toMatchObject({ state: "running" });
+    expect(await terminal(id)).toMatchObject({ state: "succeeded", exit_code: 0, stdout: "descendant-finished" });
+  });
 });
 
 describe("workflow evidence and ownership", () => {
+  it("refuses to transfer disconnect-cleanup ownership by changing retention on a borrowed sandbox", async () => {
+    const sandbox = { id: "borrowed", kill: vi.fn(), close: vi.fn() };
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn(), connect: vi.fn().mockResolvedValue(sandbox), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    const manager = new SandboxManager();
+    await manager.getSandbox("borrowed");
+    const result = await dispatchTool("retain_sandbox", { sandbox_id: "borrowed", retain: false }, manager);
+    await manager.shutdown();
+    expect(result.error).toMatch(/connected|borrowed/i);
+    expect(sandbox.kill).not.toHaveBeenCalled();
+    expect(sandbox.close).toHaveBeenCalledOnce();
+  });
+  it("removes a provider-qualified default and never reuses or deletes its dead handle", async () => {
+    const sandbox = { id: "same-id", provider: "test-provider", kill: vi.fn() };
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    const manager = new SandboxManager();
+    await manager.createSandbox();
+    await manager.killSandbox("test-provider:same-id");
+    expect(manager._default_sandbox).toBeNull();
+    expect(manager._sandboxes.size).toBe(0);
+    await manager.shutdown();
+    expect(sandbox.kill).toHaveBeenCalledOnce();
+  });
+  it("removes the qualified cache entry when killing the default without an ID", async () => {
+    const sandbox = { id: "same-id", provider: "test-provider", kill: vi.fn() };
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    const manager = new SandboxManager();
+    await manager.createSandbox();
+    expect(await manager.killSandbox()).toBe("test-provider:same-id");
+    expect(manager._sandboxes.size).toBe(0);
+    await manager.shutdown();
+    expect(sandbox.kill).toHaveBeenCalledOnce();
+  });
+  it("keeps a failed deletion available for cleanup retry", async () => {
+    const sandbox = { id: "retry", kill: vi.fn().mockRejectedValueOnce(new Error("temporary delete failure")).mockResolvedValue(undefined) };
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    const manager = new SandboxManager();
+    await manager.createSandbox();
+    await expect(manager.killSandbox("retry")).rejects.toThrow("temporary delete failure");
+    expect(manager._default_sandbox).toBe(sandbox);
+    expect(manager._sandboxes.get("retry")).toBe(sandbox);
+    await manager.killSandbox("retry");
+    expect(sandbox.kill).toHaveBeenCalledTimes(2);
+    expect(manager._sandboxes.size).toBe(0);
+  });
   it("does not modify lifetime or kill a resource connected by ID", async () => {
     const sandbox = { id: "existing", setTimeout: vi.fn(), kill: vi.fn(), close: vi.fn() };
     const connect = vi.fn().mockResolvedValue(sandbox);

@@ -1,0 +1,34 @@
+{
+  "lockfile_install": "PASS",
+  "baseline_new_regressions": {
+    "failed": 5,
+    "unselected": 8
+  },
+  "first_corrected_focused": {
+    "passed": 54
+  },
+  "independent_candidate_focused": {
+    "passed": 38
+  },
+  "independent_controls": {
+    "passed": 7
+  },
+  "typecheck": "PASS",
+  "build": "PASS",
+  "lint": {
+    "errors": 0,
+    "warnings": 222
+  },
+  "hygiene": "PASS",
+  "health": {
+    "pass": 105,
+    "warn": 11,
+    "fail": 0
+  },
+  "candidate_package": {
+    "required_files_present": true,
+    "files": 462
+  },
+  "local_full_suite": "PENDING",
+  "remote_ci": "PENDING"
+}
