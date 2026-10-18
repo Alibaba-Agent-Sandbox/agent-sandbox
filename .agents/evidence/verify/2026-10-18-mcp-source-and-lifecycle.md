@@ -40,3 +40,8 @@ FAIL; scoped diff check PASS. A prose slash sequence initially triggered the
 local-path scanner; rewriting that sentence fixed it without an allowlist entry.
 The lifecycle controller's14 real STDIO checks and the generated app's32 real
 HTTP/component checks passed independently, with zero residual owned sandboxes.
+
+Main convergence: ordinarily merged accepted provider-owned metadata follow-up
+10a2d688; preserved its implementations and immutable acceptance records. Re-ran
+strict typecheck/build and54 focused lifecycle/artifact/provider-isolation tests:
+PASS. Re-ran the actual built STDIO Express lifecycle:14 PASS, zero owned residuals.

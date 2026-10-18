@@ -46,7 +46,7 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
 
-- [Provider portability and updates](notes/proposed/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
+- [Provider portability and updates](notes/implemented/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
 
 - [Provider isolation verification](evidence/verify/2026-10-18-provider-complete-isolation.md)
 
@@ -64,3 +64,8 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Provider port and file URL boundary checkpoint](evidence/verify/2026-10-18-provider-port-url-boundaries.md)
 
 - [MCP source/lifecycle delivery](notes/proposed/feature/2026-10-18-mcp-source-and-lifecycle.md) · [verification](evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)
+- [Current provider isolation and Express acceptance](evidence/verify/2026-10-18-provider-isolation-acceptance.md)
+
+- [Final provider convergence acceptance](evidence/verify/2026-10-18-provider-convergence-acceptance.md)
+
+- [Provider-owned metadata follow-up](evidence/verify/2026-10-18-provider-owned-metadata-followup.md)
