@@ -11,8 +11,11 @@ remain. AST graph144 modules:no strongly connected component contains cli/main.
 No command-to-root import remains; transport/protocol import utils helpers.
 Standard real-cloud built CLI lifecycle slice:7 PASS, one created/zero leaked.
 Create/info/exec/text+JSON/100KiB binary upload+download/kill/leak-check all pass.
-Full local normal suite started with unchanged locked dependencies; its report
-is still pending at this record point. No green full-local claim is made.
+Full local normal suite:3651 PASS /12 FAIL /56 SKIP. All12 failed identities
+match the same-environment baseline; no new failed identity. The local launcher
+omitted paired provider/server source configuration for optional checks;
+latest-head hosted matrix and a configured targeted repeat remain required.
+No green full-local claim is made.
 Golden/parity path byte changes versus45479ea:none. Health105 PASS /11 existing
 WARN /0 FAIL; hygiene PASS. The earlier health failure was an existing merged
 auth-capture directory slug lacking an index; a new capture index resolves it
