@@ -1012,6 +1012,8 @@ export async function _generateAndDeployTemplate(
   description: string,
   opts: { yes: boolean; verbose: boolean; output_dir?: string | null; model?: string | null; provider_options?: Record<string, unknown>; [key: string]: unknown },
 ): Promise<string> {
+  const extension = providerCliExtension();
+  if (!extension?.deployGenerated) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
   const { yes, verbose } = opts;
 
   const gen = await _generateTemplateWorkspace(ctx, description, {
@@ -1030,8 +1032,6 @@ export async function _generateAndDeployTemplate(
     await confirm(`Build and deploy template '${gen.templateName}' now?`, { abort: true });
   }
 
-  const extension = providerCliExtension();
-  if (!extension?.deployGenerated) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
   const data = await extension.deployGenerated(String(gen.workdir), { ...opts, ...opts.provider_options }, ctx);
   const templateRef = pyStrip(String(data["template_id"] ?? ""));
   if (!templateRef) throw new CliError("Provider deployment did not return a template id. Inspect its build state before creating a sandbox.");

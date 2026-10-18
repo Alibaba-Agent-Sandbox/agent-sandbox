@@ -236,3 +236,12 @@ or newer, as required by the [official mount guide](https://help.aliyun.com/zh/a
 ## Portability and provider updates
 
 See [migration, ownership and updates](../design/provider-portability-and-updates.md) for the existing-resource adoption boundary, legacy FC template guards, provider-owned image factories and the distinction between Git/manual/bundled updates.
+
+### Preflight and backend failures
+
+Native terminal access checks the selected provider's PTY declaration before wire
+work. Internal Express template deployment checks ownership before credentials or
+project files; natural-language deployment requires its matching adapter before
+generation. Declaring templates.build alone does not authorize FC/ACR operations.
+Resume/connect fallback applies only to404/405 endpoint absence; permission, conflict,
+quota and service errors propagate instead of becoming successful metadata reads.

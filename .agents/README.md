@@ -69,3 +69,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Final provider convergence acceptance](evidence/verify/2026-10-18-provider-convergence-acceptance.md)
 
 - [Provider-owned metadata follow-up](evidence/verify/2026-10-18-provider-owned-metadata-followup.md)
+
+- [Provider preflight](notes/proposed/feature/2026-10-18-provider-preflight.md) · [verification](evidence/verify/2026-10-18-provider-preflight.md)
