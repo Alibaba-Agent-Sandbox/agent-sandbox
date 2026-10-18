@@ -29,3 +29,23 @@ leaks. The two choice regressions now require exact current Commander messages,
 including the complete allowed-choice lists and exit2; invalid input is not
 accepted and no checks were removed. Focused549 PASS includes the final AK/SK
 rejection wording. Current remote source must pass all normal CI jobs.
+
+Final convergence includes remote e46e0db/12f0d69 through ordinary merges. Provider
+port/file addressing and lazy exports remain, and lower configuration continues
+to consume pure data. The active native template factory retains supported
+v3/v2 image operations; the retired metadata-only create method remains absent.
+
+Initial real CLI Express run:71 PASS/6 SKIP/2 FAIL, created2/leaked0. Minimal
+images lacked ps/uptime. Retaining the remote portable /proc/Python fallback
+repairs these without manufacturing metrics; actual real Express create/process
+info/metrics/leak-check rerun:4 PASS, created1/leaked0. Native local fallback
+regressions use actual kernel/filesystem data. Fresh provider/port/file suite33
+PASS. The earlier configuration log expectation was updated to layered loading.
+
+PR37's production wheel image change is integrated at the active provider-owned
+DockerBuilder. Initial merge regression detected credentials being checked after
+Docker side effects; preserving accepted preflight while applying only the RUN
+parser change fixes it. Fresh wheel/auth-preflight/isolation suite59 PASS,
+typecheck PASS, lintzero errors/253 warnings, health105 PASS/11 WARN/zero FAIL,
+hygienePASS. PR37's separately recorded real production-image cloud acceptance
+and cleanup remain historical evidence; no new local Docker run is claimed.

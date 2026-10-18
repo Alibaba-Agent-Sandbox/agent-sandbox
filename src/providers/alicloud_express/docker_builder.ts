@@ -80,33 +80,143 @@ function contextWheelNames(context: string): string[] {
   }
 }
 
+interface ShellWord {
+  value: string;
+  start: number;
+  end: number;
+  operator?: boolean;
+}
+
+/** Token offsets let requirement edits retain original quoting, commands and continuations. */
+function shellWords(source: string, escape: string): ShellWord[] {
+  const words: ShellWord[] = [];
+  let i = 0;
+  while (i < source.length) {
+    if (/\s/.test(source[i]!)) { i++; continue; }
+    if (source[i] === "#") {
+      while (i < source.length && source[i] !== "\n") i++;
+      continue;
+    }
+    if (source[i] === escape && /\r?\n/.test(source.slice(i + 1, i + 3))) {
+      i += source[i + 1] === "\r" ? 3 : 2;
+      continue;
+    }
+    const start = i;
+    if (";&|()".includes(source[i]!)) {
+      words.push({ value: source[i++]!, start, end: i, operator: true });
+      continue;
+    }
+    let value = "";
+    let quote = "";
+    while (i < source.length) {
+      const ch = source[i]!;
+      if (!quote && (/\s/.test(ch) || ";&|()".includes(ch))) break;
+      if (ch === quote) { quote = ""; i++; continue; }
+      if (!quote && (ch === "'" || ch === '"')) { quote = ch; i++; continue; }
+      if (quote !== "'" && (ch === "\\" || ch === escape) && source[i + 1] === "\n") { i += 2; continue; }
+      if (quote !== "'" && (ch === "\\" || ch === escape) && source.slice(i + 1, i + 3) === "\r\n") { i += 3; continue; }
+      if (quote !== "'" && ch === "\\" && i + 1 < source.length) { value += source[i + 1]; i += 2; continue; }
+      value += ch;
+      i++;
+    }
+    if (quote) return []; // Leave unsupported/malformed shell quoting alone.
+    words.push({ value, start, end: i });
+  }
+  return words;
+}
+
+/** Rewrite real direct pip invocations, never echoed/commented requirements or other packages. */
+function rewriteServerRequirements(source: string, wheels: readonly string[], escape: string): string {
+  const words = shellWords(source, escape);
+  const edits: Array<{ start: number; end: number; value: string }> = [];
+  let commandStart = true;
+  let pipInstall = false;
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]!;
+    const keyword = commandStart && !/["'\\]/.test(source[word.start]!) &&
+      ["if", "then", "else", "elif", "do", "!"].includes(word.value);
+    if (word.operator || keyword) {
+      commandStart = true;
+      pipInstall = false;
+      continue;
+    }
+    if (commandStart) {
+      if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word.value) || word.value.startsWith("--")) continue;
+      let pip = i;
+      if (/^python(?:\d+(?:\.\d+)*)?$/.test(word.value) && words[i + 1]?.value === "-m") pip += 2;
+      pipInstall = /^(?:pip|pip3)$/.test(words[pip]?.value ?? "") && words[pip + 1]?.value === "install";
+      commandStart = false;
+      if (pipInstall) i = pip + 1;
+      continue;
+    }
+    if (!pipInstall) continue;
+    const archive = /^(?:agent-sandbox-server\s*@\s*)?https:\/\/github\.com\/alibaba-agent-sandbox\/python-sdk\/archive\/[0-9a-f]{40}\.tar\.gz#subdirectory=server-sdk$/i.test(word.value);
+    if (wheels.length && archive) {
+      edits.push({ start: word.start, end: word.end, value: wheels.map((name) => `/tmp/${name}`).join(" ") });
+    } else if (!wheels.length && word.value === "agent-sandbox-server") {
+      edits.push({ start: word.start, end: word.end, value: `"${SERVER_SDK_PIP_SPEC}"` });
+    }
+  }
+  for (const edit of edits.reverse()) source = source.slice(0, edit.start) + edit.value + source.slice(edit.end);
+  return source;
+}
+
 /**
- * Make the Dockerfile installable by the legacy builder.
- *
- * With wheel files in the context, a pinned archive `RUN` is replaced by `COPY` of those exact names.
- * With no wheel, `COPY *.whl` is removed (the legacy builder rejects an empty glob) and a bare
- * `pip install agent-sandbox-server` becomes the pinned archive URL.
+ * Materialize SDK installation without inserting Docker instructions inside shell RUN bodies.
+ * Exact wheel COPY instructions precede the complete RUN; only its server requirement changes.
+ * No-wheel builds drop a top-level empty wheel glob and pin only a bare server package operand.
+ * Heredocs and exec-form instructions are retained verbatim rather than guessed at.
  */
 export function rewriteDockerfileForServerInstall(text: string, wheelNames: readonly string[]): string {
   const wheels = wheelNames.filter((name) => _WHEEL_NAME.test(name));
-  if (wheels.length > 0) {
-    if (!dockerfilePinsServerArchive(text)) return text;
-    const copies = wheels.map((name) => `COPY ${name} /tmp/${name}`).join("\n");
-    const paths = wheels.map((name) => `/tmp/${name}`).join(" ");
-    const block = `${copies}\nRUN pip install --no-cache-dir ${paths} && rm -f ${paths}`;
-    return text
-      .split("\n")
-      .map((line) => (dockerfilePinsServerArchive(line) ? block : line))
-      .join("\n");
+  const lines = text.split("\n");
+  let escape = "\\";
+  for (const line of lines) {
+    const directive = /^\s*#\s*(syntax|escape|check)\s*=\s*(.*?)\s*$/i.exec(line);
+    if (!directive) break;
+    if (directive[1]!.toLowerCase() === "escape") escape = directive[2]!;
   }
-  const stripped = text
-    .split("\n")
-    .filter((line) => !/^\s*COPY\s+\*\.whl(\s|$)/.test(line))
-    .join("\n");
-  return stripped.replace(
-    /pip install --no-cache-dir agent-sandbox-server(?! @)/g,
-    `pip install --no-cache-dir "${SERVER_SDK_PIP_SPEC}"`,
-  );
+  const output: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const first = lines[i]!;
+    const instruction = /^\s*([A-Za-z]+)\s+(.*)/.exec(first);
+    if (!instruction) { output.push(first); continue; }
+    const block = [first];
+    let continued = first.trimEnd().endsWith(escape);
+    while (continued && i + 1 < lines.length) {
+      const next = lines[++i]!;
+      block.push(next);
+      if (!next.trim() || /^\s*#/.test(next)) continue;
+      continued = next.trimEnd().endsWith(escape);
+    }
+    const original = block.join("\n");
+    const kind = instruction[1]!.toUpperCase();
+    const heredocs = ["RUN", "COPY", "ADD"].includes(kind) ? shellWords(original, escape).flatMap((word) => {
+      const match = /^<<(-?)\s*(["']?)([A-Za-z_][A-Za-z0-9_]*)\2(?=\s|$)/.exec(original.slice(word.start));
+      return match ? [match] : [];
+    }) : [];
+    if (heredocs.length) {
+      output.push(original);
+      for (const match of heredocs) {
+        while (i + 1 < lines.length) {
+          const next = lines[++i]!;
+          output.push(next);
+          const delimiter = match[1] ? next.replace(/^\t+/, "") : next;
+          if (delimiter.replace(/\r$/, "") === match[3]) break;
+        }
+      }
+      continue;
+    }
+    if (!wheels.length && kind === "COPY" && /^\s*COPY\s+\*\.whl(?:\s|$)/i.test(original)) continue;
+    if (kind !== "RUN" || instruction[2]!.trimStart().startsWith("[")) { output.push(original); continue; }
+    const prefix = /^\s*RUN\s+/i.exec(original)![0];
+    const rewritten = prefix + rewriteServerRequirements(original.slice(prefix.length), wheels, escape);
+    if (rewritten !== original && wheels.length) {
+      for (const wheel of wheels) output.push(`COPY ${wheel} /tmp/${wheel}${first.endsWith("\r") ? "\r" : ""}`);
+    }
+    output.push(rewritten);
+  }
+  return output.join("\n");
 }
 
 /** Fill `<region>` / `<tag>` and the server install so `docker build` does not need BuildKit. */
