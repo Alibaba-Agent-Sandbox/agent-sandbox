@@ -23,6 +23,6 @@ Python SDK 在 https://github.com/alibaba-agent-sandbox/python-sdk。
 
 只删除专门验证退役实现的测试。原始 CLI parity 台账、黄金快照和历史证据全部
 保留。测试数量减少表示实现覆盖随实现退役，不能算作这些删除用例测试通过。
-新验证见[仓库记录](../../../.agents/notes/proposed/architecture/2026-10-18-retire-orphan-cli.md)。
+新验证见[仓库记录](../../../.agents/notes/implemented/architecture/2026-10-18-retire-orphan-cli.md)。
 
 [English](../../en/design/cli-module-retirement.md)

@@ -1,5 +1,5 @@
 # Decision: Retire CLI implementations with no executable consumer
-Status: proposed
+Status: implemented
 
 ## Problem
 

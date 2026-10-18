@@ -13,7 +13,7 @@
 Skill 与 `abx` / SDK 的安装刻意解耦：
 
 1. **先安装 Skill**（本指南），无需 Python 环境。
-2. 当 Agent（或你）准备真正运行沙箱时，**再安装软件包**：`npm install -g @agent-sandbox/cli`——见第 7 节。
+2. 当 Agent（或你）准备真正运行沙箱时，**再安装 CLI 二进制或源码构建的包**——见第 7 节。
 3. **配置凭证**（`abx config set sandbox_api_key …`）；官方模板控制面另配 AK/SK。
 4. **选择接口**——对话类 Agent 用 MCP，脚本用 CLI，Python 代码用 SDK（见 `SKILL.md` 的 "Choosing an interface"）。
 
@@ -216,14 +216,16 @@ cp -R references ~/.qwen/skills/agent-sandbox/
 
 ## 7. 装完 Skill 之后：安装 @agent-sandbox/cli、配置凭证、选择接口
 
+公开的 `npm install -g @agent-sandbox/cli` 在发布前尚不可用。使用下方源码安装步骤，或参见[二进制指南](binary-installation.md)。
+
 Agent 加载的技能指南（`SKILL.md`）中有完整操作细节；要点如下：
 
 ```bash
 # 1. 安装软件包（CLI + MCP STDIO 服务；需要 Node.js 20+）
-npm install -g @agent-sandbox/cli
+# Standalone binary alternative: see binary-installation.md; use the source recipe below.
 
 # 先查询可用版本；若没有匹配版本，则使用源码安装：
-npm view @agent-sandbox/cli versions
+# Diagnostic only: npm view @agent-sandbox/cli versions (public metadata currently404).
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 

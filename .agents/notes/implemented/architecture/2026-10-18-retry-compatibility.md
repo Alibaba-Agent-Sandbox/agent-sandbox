@@ -1,5 +1,5 @@
 # Decision: Clarify CLI legacy retry configuration
-Status: proposed
+Status: implemented
 
 ## Problem
 

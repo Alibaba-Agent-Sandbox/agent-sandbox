@@ -29,6 +29,6 @@ Only tests dedicated to the removed implementations are retired. The original
 CLI parity ledger, golden snapshots and historical evidence are retained. A
 smaller test count here is removed implementation coverage, not a new passing
 result for the deleted tests. New validation is recorded in the
-[owner note](../../../.agents/notes/proposed/architecture/2026-10-18-retire-orphan-cli.md).
+[owner note](../../../.agents/notes/implemented/architecture/2026-10-18-retire-orphan-cli.md).
 
 [中文](../../zh/design/cli-module-retirement.md)

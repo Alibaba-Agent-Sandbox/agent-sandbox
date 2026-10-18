@@ -39,3 +39,5 @@ not recorded as passing CI. See PRs [7](https://github.com/alibaba-agent-sandbox
 The GitHub action's own runtime is separate from the `node-version` it installs:
 `actions/setup-node@v7` still installs the explicitly selected Node 20/22 used by
 CI and Node 22 used by releases. No package release is requested by this update.
+
+Compatible dev-tool patch upgrades must also pass against current main as a combined lockfile. This review retains Vitest5.0.4 and typescript-eslint8.71.2 on Node20/22; a passing old bot head does not validate a later combined tree.

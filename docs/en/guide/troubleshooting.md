@@ -260,11 +260,11 @@ Use the printed command. If `~/.abx/config.toml` already contains `aaaaa = "abx 
 ### npm install Fails
 
 ```bash
-# Ensure the correct package name
-npm install -g @agent-sandbox/cli
+# Use the published standalone binary; public npm installation is unavailable
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 
-# If dependency conflicts occur
-npm install -g @agent-sandbox/cli --force
+# Verify the installed executable
+abx --version
 ```
 
 ### abx: command not found

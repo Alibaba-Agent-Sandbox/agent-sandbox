@@ -34,3 +34,5 @@ CI 测试通过。对应 PR：[7](https://github.com/alibaba-agent-sandbox/agent
 GitHub action 自身的运行版本与它通过 `node-version` 安装的版本不同：
 `actions/setup-node@v7` 仍按 CI 明确配置安装 Node 20/22，发布使用 Node 22。
 此更新没有请求发布包。
+
+兼容的开发工具补丁升级也要在当前主线、合并后的锁文件上验收。本次保持 Node20/22，采用 Vitest5.0.4 与 typescript-eslint8.71.2；旧机器人分支通过不代表更新后的组合已通过。

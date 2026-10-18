@@ -260,11 +260,11 @@ Invalid shortcut target: 'abx template init'
 ### npm install 失败
 
 ```bash
-# 确保使用正确的包名
-npm install -g @agent-sandbox/cli
+# 使用已发布的独立二进制；公开 npm 安装尚不可用
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 
-# 如果遇到依赖冲突
-npm install -g @agent-sandbox/cli --force
+# 检查已安装的可执行文件
+abx --version
 ```
 
 ### abx: command not found
