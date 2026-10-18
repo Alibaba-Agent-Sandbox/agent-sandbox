@@ -1,0 +1,68 @@
+name: Server wheel Docker regression
+
+on:
+  pull_request:
+    paths:
+      - src/api/docker_builder.ts
+      - src/providers/alicloud_express/docker_builder.ts
+      - src/utils/server_sdk_pin.ts
+      - scripts/verify-server-wheel-image.mjs
+      - .github/workflows/server-wheel-image.yml
+  push:
+    branches: [main]
+    paths:
+      - src/api/docker_builder.ts
+      - src/providers/alicloud_express/docker_builder.ts
+      - src/utils/server_sdk_pin.ts
+      - scripts/verify-server-wheel-image.mjs
+      - .github/workflows/server-wheel-image.yml
+
+permissions:
+  contents: read
+
+jobs:
+  real-docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/checkout@v4
+        with:
+          repository: Alibaba-Agent-Sandbox/python-sdk
+          ref: e2cb27e24fde0a67112f82b8d44af463445a5d1a
+          path: vendor/python-sdk
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Alibaba-Agent-Sandbox/awesome-templates
+          ref: 7cb0d9430768eec22f500ebb80b3fe9517ab1cbc
+          path: vendor/awesome-templates
+          persist-credentials: false
+      - run: npm ci
+      - run: npm run build
+      - name: Build through the actual production DockerBuilder and run both images
+        env:
+          ABX_REVIEW_TEMPLATES: ${{ github.workspace }}/vendor/awesome-templates
+          ABX_REVIEW_SERVER_SDK: ${{ github.workspace }}/vendor/python-sdk/server-sdk
+          ABX_REVIEW_IMAGE_ARCHIVE: ${{ runner.temp }}/python-hello-image.tar
+        run: node scripts/verify-server-wheel-image.mjs
+      - name: Retain one reviewed production image for separate local cloud acceptance
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-python-hello-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/python-hello-image.tar
+            ${{ runner.temp }}/python-hello-image.tar.sha256
+            ${{ runner.temp }}/python-hello-image-metadata.json
+          retention-days: 1
+          compression-level: 1
+          if-no-files-found: error

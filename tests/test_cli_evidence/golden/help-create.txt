@@ -66,6 +66,9 @@ Options:
                                    KEY=VALUE (repeatable)
   -m, --metadata <METADATA>        Metadata key-value pair, format KEY=VALUE
                                    (repeatable)
+  --volume-mount <PATH=NAME>       Mount an existing same-Team Volume by name at
+                                   an absolute Unix path (Express only;
+                                   repeatable)
   -y, --yes                        Skip interactive prompts (the template-only
                                    switch, Qwen Code install, credentials,
                                    description clarification, build/deploy

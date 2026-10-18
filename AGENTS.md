@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
+**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)
@@ -19,16 +19,15 @@
 ```
 agent-sandbox/
 ├── src/                       # CLI source (TypeScript, ESM)
-│   ├── models/                # Data models: config, errors, sandbox, template, session, filesystem, process
+│   ├── models/                # Data models: errors, sandbox, template, filesystem, process
 │   ├── transport/             # HTTP/WS transport, auth, codec, retry, streaming
-│   ├── protocol/              # Protocol abstractions: sandbox, filesystem, process, terminal, port, code_interpreter
-│   ├── api/                   # High-level API: Sandbox, files, code, commands, network, image, capability, session_manager, template
+│   ├── protocol/              # Protocol abstractions: sandbox, filesystem, process, terminal, code_interpreter
+│   ├── api/                   # High-level API and provider-neutral protocol contracts; legacy template exports are aliases
 │   ├── cli/                   # `abx` CLI: main, output/formatters, command modules
 │   │   └── commands/          # Subcommands: config_cmd, deploy, mcp, sandbox, sandbox_files, sandbox_process, sandbox_system, template
-│   ├── framework/             # Mini click-compatible command framework (groups, options, help rendering, lazy subcommands)
+│   ├── providers/             # Backend adapters; Express UI/build/auth; shared E2B/envd wire adapters
 │   ├── agent/                 # AI agent tooling: MCP server, tool definitions, template authoring/adoption
-│   ├── session/               # Session persistence: local (LocalSessionStore)
-│   ├── utils/                 # Async bridge, secret store, logging, registry, retry
+│   ├── utils/                 # Logging, registry, configuration, archive and compatibility helpers
 │   └── bin/                   # `abx.ts` executable entry point
 ├── tests/                     # Mirrors src/ structure (test_api/, test_cli/, test_models/, …); vitest
 ├── parity/                    # Python-test ledger used by `npm run parity:coverage`
@@ -62,13 +61,12 @@ The CLI follows a strict layered structure — **lower layers never import upper
 graph TB
     BIN["bin — abx entry"]
     subgraph Front["Command line"]
-        FW["framework — click-compatible command framework"]
+        FW["cli/kit — Commander command adapter"]
         CLI["cli — main, OutputManager, formatters"]
         CMD["cli/commands — command groups"]
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, template authoring"]
-        SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core"]
         API["api — Sandbox, files, code, commands, template"]
@@ -79,14 +77,12 @@ graph TB
     BIN --> CLI --> FW
     CLI --> CMD
     CMD --> AG
-    CMD --> SES
     CMD --> API
     AG --> API
-    SES --> API
     API --> PRO --> TRA --> MOD
 ```
 
-The client core mirrors the Python SDK's layers one-to-one; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
+The client core keeps only the services used by CLI commands; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
 
 ---
 
@@ -107,7 +103,7 @@ npm run dev -- --help        # tsx src/bin/abx.ts --help
 | Command                           | What it does                                                                 |
 |-----------------------------------|------------------------------------------------------------------------------|
 | `make test` / `npm test`          | `vitest run` (integration tests excluded)                                    |
-| `make lint`                       | Static check of `src/` and `tests/` (alias of `make typecheck`; no separate linter) |
+| `make lint`                       | ESLint checks for source, tests and tooling |
 | `make typecheck` / `npm run typecheck` | `tsc -p tsconfig.json --noEmit` (strict)                                |
 | `make build` / `npm run build`    | `tsc -p tsconfig.build.json` (emits `dist/`)                                 |
 | `make binary`                     | `node scripts/build_binary.mjs` — standalone binary for the current platform |
@@ -238,7 +234,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 
 **MUST follow:**
 
-1. **Never auto-commit.** Make changes; let the human review and commit.
+1. **Deliver authorized work through a scoped PR.** Preserve unrelated work and merge only after required checks/reviews; honor explicit local-only or no-merge limits.
 2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `ABX_UPDATE_EVIDENCE=1 npm test`.
 3. **After modifying any CLI command**, regenerate the affected evidence files and verify they look correct.
 4. **Respect template capability declarations.** If `resolveCapabilities()` fails or a capability is missing, the fix is to declare it in the template YAML — not to bypass the resolution.

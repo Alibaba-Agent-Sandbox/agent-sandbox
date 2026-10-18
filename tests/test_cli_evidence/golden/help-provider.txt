@@ -28,6 +28,7 @@ Options:
   -h, --help  Show this message and exit.
 
 Commands:
+  command     Discover and run provider-specific management commands.
   config      Show or edit one provider's configuration.
   default     Show or set the default provider.
   doctor      Check a provider: installed, integrity, configuration and (for

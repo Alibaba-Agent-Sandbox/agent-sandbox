@@ -14,6 +14,7 @@ import {
 import { parseTomlText } from "../utils/toml_plain.js";
 import { FEATURES, type ConfigField } from "./base.js";
 import { ProviderManifestError, ProviderVersionError } from "./errors.js";
+import { parseCommandSection, type ProviderCommand } from "./command_contract.js";
 
 export const MANIFEST_NAME = "abx-provider.toml";
 /** Manifest names used before the product rename; recognised only to explain what to change. */
@@ -47,6 +48,8 @@ export interface Manifest {
   call_timeout_ms: number;
   platforms: readonly string[];
   features: readonly string[];
+  /** Optional separately versioned management command descriptors. */
+  commands: readonly ProviderCommand[];
   security: SecuritySection;
   inherit: readonly string[];
   auth_any_of: ReadonlyArray<readonly string[]>;
@@ -62,6 +65,7 @@ export interface ManifestSummary {
   runtime: string[];
   security: SecuritySection;
   features: string[];
+  commands: readonly ProviderCommand[];
   inherit: string[];
   fields: string[];
 }
@@ -72,6 +76,7 @@ export function manifestSummary(m: Manifest): ManifestSummary {
     runtime: m.kind === "exec" ? [...m.command] : m.kind === "node" ? ["node", m.entry] : ["rest", String(m.endpoint["base_url"] ?? "")],
     security: m.security,
     features: [...m.features].sort(),
+    commands: [...m.commands].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
     inherit: [...m.inherit].sort(),
     fields: m.fields.map((f) => f.key).sort(),
   };
@@ -385,6 +390,7 @@ export function parseManifest(data: Uint8Array | string): Manifest {
     call_timeout_ms: ms("call_timeout_ms", 60_000),
     platforms,
     features: supported,
+    commands: parseCommandSection(unfloat(doc["commands"]), kind),
     security,
     inherit,
     auth_any_of: anyOf,

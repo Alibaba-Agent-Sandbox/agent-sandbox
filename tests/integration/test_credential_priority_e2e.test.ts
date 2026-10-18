@@ -30,7 +30,7 @@ import { QwenCodeBackend } from "../../src/agent/coding_agent.js";
 import { resolveCodingAgentCredentials } from "../../src/cli/commands/_coding_agent.js";
 import { resolveGithubToken } from "../../src/cli/commands/config_cmd.js";
 import { _buildMcpServerConfig, _readApiKey } from "../../src/cli/commands/mcp.js";
-import { _resolveAcrNamespace } from "../../src/cli/commands/template.js";
+import { _resolveAcrNamespace } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { resolveRegion } from "../../src/cli/region.js";
 import { Command, Context } from "../../src/cli/kit.js";
@@ -44,6 +44,7 @@ import {
   loadConfig,
   resetConfig,
 } from "../../src/transport/config.js";
+import { paths, _setPaths } from "../../src/transport/config_layers.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { patchConfig, storagePatch } from "../helpers/configSupport.js";
@@ -88,6 +89,7 @@ interface CredentialHome {
 
 let home: CredentialHome = { abx: "", project: "" };
 let undoConfig: (() => void) | null = null;
+let savedPaths: typeof paths;
 let savedTransport: { config: string; candidates: string[]; project: string } | null = null;
 
 /** Point every credential reader at one temporary home and project file (`credential_home` fixture). */
@@ -95,6 +97,8 @@ beforeEach(() => {
   const abx = path.join(iso.tmp_path, "abx");
   fs.mkdirSync(abx);
   const project = path.join(iso.tmp_path, "project.env");
+  savedPaths = { ...paths, envFiles: [...paths.envFiles] };
+  _setPaths({ abxDir: abx, configFile: path.join(abx, "config.toml"), envFiles: [project, path.join(abx, ".env")] });
   home = { abx, project };
   undoConfig = patchConfig(storagePatch(abx, { env: true }));
   savedTransport = { config: _CONFIG_FILE, candidates: _ENV_FILE_CANDIDATES, project: _PROJECT_ENV_FILE };
@@ -108,6 +112,7 @@ beforeEach(() => {
 afterEach(() => {
   resetConfig();
   undoConfig?.();
+  _setPaths(savedPaths);
   if (savedTransport) {
     _setConfigFile(savedTransport.config);
     _setEnvFileCandidates(savedTransport.candidates);

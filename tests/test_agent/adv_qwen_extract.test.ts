@@ -36,7 +36,14 @@ describe("ADV-agent-template: qwen-code standalone extraction", () => {
         ),
       );
       const dest = path.join(sb.root, "out");
-      _extractTar(archive, dest);
+      // data_filter leaves directory modes to normal creation permissions. Pin the
+      // oracle's umask so a restricted caller umask does not change this assertion.
+      const savedUmask = process.umask(0o022);
+      try {
+        _extractTar(archive, dest);
+      } finally {
+        process.umask(savedUmask);
+      }
       const mode = (p: string) => (statSync(p).mode & 0o777).toString(8);
       expect([
         mode(path.join(dest, "qwen-code")),

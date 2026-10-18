@@ -7,7 +7,7 @@ This tutorial walks you through mastering the `abx` CLI step by step, covering t
 ## Step 1: Installation
 
 ```bash
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
 After installation, the `abx` command is available:
@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-> For more authentication methods (AK/SK, .env files, config.toml, etc.), see [Authentication](authentication.md).
+> For runtime API-key configuration (.env files, config.toml) and separate control-plane AK/SK, see [Authentication](authentication.md).
 
 ---
 

@@ -1,6 +1,5 @@
 /**
- * Adversarial review, area `core`: httpx shim (`src/transport/_httpx.ts`), plain `fetch` call sites and the local
- * session store, driven by raw TCP/TLS servers. Expected behaviour was captured from Python httpx 0.28.1 / h11 /
+ * Adversarial review, area `core`: httpx shim (`src/transport/_httpx.ts`), plain `fetch` call sites driven by raw TCP/TLS servers. Expected behaviour was captured from Python httpx 0.28.1 / h11 /
  * `filelock` and is frozen in the assertions. Tests FAIL while the port differs. Full matrix:
  * `parity/diff/adv_core_net.mjs` (needs ORACLE_VENV).
  */
@@ -13,8 +12,7 @@ import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { AsyncClient } from "../../../src/transport/_httpx.js";
-import { _getAcrAuthTokenPersonal } from "../../../src/api/docker_builder.js";
-import { LocalSessionStore } from "../../../src/session/local.js";
+import { _getAcrAuthTokenPersonal } from "../../../src/providers/alicloud_express/docker_builder.js";
 
 const cleanups: (() => void | Promise<void>)[] = [];
 afterEach(async () => {
@@ -175,16 +173,4 @@ describe("ADV-core plain `fetch` call sites bypass the httpx shim", () => {
     }
     expect(seen.some((l) => l.startsWith("CONNECT cr.cn-hangzhou.aliyuncs.com:443"))).toBe(true);
   }, 20000);
-});
-
-describe("ADV-core local session store (session/local.py)", () => {
-  it("ADV-core-40 a session file that is not valid UTF-8 is skipped by list_all and makes load() raise", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "adv-core-sess-"));
-    cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
-    writeFileSync(join(dir, "bad.json"), Buffer.concat([Buffer.from('{"name":"x'), Buffer.from([0xff]), Buffer.from('","sandbox_id":"sid"}')]));
-    writeFileSync(join(dir, "good.json"), '{"name":"ok","sandbox_id":"sid"}');
-    const store = new LocalSessionStore(dir);
-    expect((await store.listAll()).map((s) => s.name)).toEqual(["ok"]);
-    await expect(store.load("bad")).rejects.toThrow();
-  });
 });

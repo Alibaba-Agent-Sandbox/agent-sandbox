@@ -29,7 +29,7 @@ The following command groups from earlier pre-releases were removed before the f
 |---------|-------------|
 | `abx auth login/logout/status/switch` | `abx config set sandbox_api_key <value>` to persist credentials, or the `ABX_SANDBOX_API_KEY` environment variable; check the effective state with `abx config list` |
 | `abx secret create/list/delete/inject` | Environment variables or `.env` files for credentials and secrets; sandbox environment injection via `abx create --env KEY=VALUE` |
-| `abx session` / `abx sessions list/info/rename/export/import/clean` | Session data is still stored locally in `~/.abx/sessions/` by `LocalSessionStore`; use the SDK's `Sandbox.connect()` programmatically (the interactive REPL `abx connect <SANDBOX_ID>` remains available) |
+| `abx session` / `abx sessions list/info/rename/export/import/clean` | Named session persistence belongs to the Python SDK; use its `LocalSessionStore` and `Sandbox.connect()` programmatically (the interactive REPL `abx connect <SANDBOX_ID>` remains available) |
 | `abx skill search/install/list/create/publish` | Templates are the current capability-distribution mechanism (`abx template search` / `abx template install`); the repository-root `SKILL.md` documents agent-facing usage |
 
 See the `Unreleased` section of the repository `CHANGELOG.md` for the full breaking-change list and migration notes.
@@ -82,6 +82,13 @@ abx [global-options] <subcommand> [subcommand-options]
 | `--help` | `-h` | Show help and exit (available on every command and sub-group) |
 
 > There is no global `--timeout` and no `--profile`. A sandbox lifetime is `--timeout` on `abx create`; a command timeout is `--timeout` on `abx exec`.
+
+FC creation accepts repeatable `--volume-mount PATH=NAME`, for example
+`abx create --template base --volume-mount /mnt/workspace=workspace`.
+The Volume must already exist in the configured sandbox API key's Team; a storage-access
+role is also required. Paths must be valid absolute sandbox paths and cannot be repeated.
+This create-time option is rejected for providers without a verified mapping. See
+[FC Volume configuration](../design/alicloud-provider-commands.md).
 
 > **`-h` / `--help` work at every level**: the alias is enabled once on the root group and inherited by the whole command tree, so `abx -h`, `abx sandbox -h`, `abx sandbox files list -h` all print the help of the addressed command. A command that reserves `-h` for its own parameter keeps it — Click then drops only the alias there and `--help` keeps working.
 

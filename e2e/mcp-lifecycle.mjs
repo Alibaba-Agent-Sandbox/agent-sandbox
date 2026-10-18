@@ -81,9 +81,9 @@ try {
   const created = await owner.tool('create_sandbox', { timeout: 600, cpu: 2, memory: 1024 });
   owned = created.payload.sandbox_id;
   check('real create with CPU and memory', !created.error && typeof owned === 'string' && owned.length > 0);
-  const info = await owner.tool('get_sandbox');
-  const allowed = ['sandbox_id', 'template', 'status', 'region', 'started_at', 'end_at', 'cpu_count', 'memory_mb', 'disk_size_mb'];
-  check('default refresh returns only safe metadata', !info.error && info.payload.sandbox_id === owned && Object.keys(info.payload).length === allowed.length && Object.keys(info.payload).every((k) => allowed.includes(k)));
+  const info = await owner.tool('get_sandbox', { sandbox_id: owned });
+  const allowed = ['sandbox_id', 'template', 'status', 'region', 'timeout', 'started_at', 'end_at', 'cpu_count', 'memory_mb'];
+  check('default refresh returns only safe metadata', !info.error && info.payload.sandbox.sandbox_id === owned && Object.keys(info.payload.sandbox).length === allowed.length && Object.keys(info.payload.sandbox).every((k) => allowed.includes(k)));
   let listed = false;
   // List visibility is the only intentionally retried platform operation.
   for (let n = 0; n < 10; n++) {
@@ -95,14 +95,14 @@ try {
   }
   check('eventually consistent list contains owned sandbox', listed);
   const external = await observer.tool('get_sandbox', { sandbox_id: owned });
-  check('external ID refresh over STDIO', !external.error && external.payload.sandbox_id === owned);
+  check('external ID refresh over STDIO', !external.error && external.payload.sandbox.sandbox_id === owned);
   const renewed = await observer.tool('set_sandbox_timeout', { sandbox_id: owned, timeout: 720 });
-  check('external ID TTL update over STDIO', !renewed.error && renewed.payload.success);
+  check('external ID TTL update over STDIO', !renewed.error && renewed.payload.accepted);
   await observer.close();
-  const alive = await owner.tool('get_sandbox');
-  check('observer EOF preserves external sandbox', !alive.error && alive.payload.status === 'running');
-  const ttl = await owner.tool('set_sandbox_timeout', { timeout: 600 });
-  check('default TTL update over STDIO', !ttl.error && ttl.payload.success);
+  const alive = await owner.tool('get_sandbox', { sandbox_id: owned });
+  check('observer EOF preserves external sandbox', !alive.error && alive.payload.sandbox.status === 'running');
+  const ttl = await owner.tool('set_sandbox_timeout', { sandbox_id: owned, timeout: 600 });
+  check('default TTL update over STDIO', !ttl.error && ttl.payload.accepted);
   const write = await owner.tool('write_file', { path: '/tmp/mcp-node-lifecycle.txt', content: 'lifecycle roundtrip\n' });
   const read = await owner.tool('read_file', { path: '/tmp/mcp-node-lifecycle.txt' });
   check('MCP real file roundtrip', !write.error && !read.error && read.payload.content === 'lifecycle roundtrip\n');

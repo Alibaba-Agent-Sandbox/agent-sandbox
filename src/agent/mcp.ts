@@ -1,3 +1,5 @@
+import { BorrowedSandboxError } from "./lifecycle_errors.js";
+import { qualify } from "../providers/registry.js";
 /**
  * Agent Sandbox MCP Server。
  *
@@ -15,10 +17,9 @@
  * Port of `agent_sandbox/agent/mcp.py`.
  */
 
-import type { SandboxInfo, SandboxStatus } from "../models/sandbox.js";
 import type { Readable, Writable } from "node:stream";
 
-import { pyExcStr } from "../api/_pyerrors.js";
+import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import {
   AsyncLock,
@@ -33,7 +34,7 @@ import {
   pyTruthy,
   type JsonObject,
 } from "./_py.js";
-import { TOOL_SCHEMAS, TOOL_SCHEMA_MAP, ToolInputError, dispatchTool } from "./tools.js";
+import { TOOL_SCHEMAS, TOOL_SCHEMA_MAP, dispatchTool } from "./tools.js";
 
 const logger = getLogger("agent.mcp");
 
@@ -62,9 +63,9 @@ type SandboxInstance = any;
 
 interface SandboxStatic {
   create(options: Record<string, unknown>): Promise<SandboxInstance>;
-  list(options: Record<string, unknown>): Promise<SandboxInfo[]>;
+  list(options?: Record<string, unknown>): Promise<any[]>;
+  getInfoById(id: string, options?: Record<string, unknown>): Promise<any>;
   connect(options: Record<string, unknown>): Promise<SandboxInstance>;
-  getInfoById(sandboxId: string, options?: Record<string, unknown>): Promise<SandboxInfo>;
   setTimeoutById(sandboxId: string, timeout: number, options?: Record<string, unknown>): Promise<void>;
   killById(sandboxId: string, options?: Record<string, unknown>): Promise<void>;
 }
@@ -83,35 +84,14 @@ export const sdk = {
   },
 };
 
-/**
- * Import the SDK's sandbox layer before the server starts reading.
- *
- * The first tool call imports this layer lazily. That import is CPU-bound
- * (hundreds of milliseconds on a busy host) and runs on the event loop, so a
- * `ping` sent right behind the first `tools/call` would wait for it. Paying
- * the cost at startup keeps the loop responsive.
- */
-async function _preloadSdk(): Promise<void> {
-  await sdk.loadSandbox();
-}
-
 export interface CreateSandboxOptions {
   template?: string | null;
   timeout?: number;
   envs?: Record<string, string> | null;
-  provider?: string | null;
-  region?: string | null;
   cpu?: number;
   memory?: number;
-}
-
-/** Platform list filters; these never change session resource ownership. */
-export interface ListSandboxesOptions {
-  status?: SandboxStatus | null;
-  limit?: number;
-  offset?: number;
-  provider?: string | null;
-  region?: string | null;
+  region?: string;
+  retain?: boolean;
 }
 
 export interface SandboxManagerOptions {
@@ -146,7 +126,8 @@ export class SandboxManager {
   _default_template: string;
   _default_sandbox: SandboxInstance = null;
   _sandboxes: Map<string, SandboxInstance> = new Map();
-  _lifetimes: Map<string, number> = new Map();
+  private readonly preserved = new Set<string>();
+  private readonly borrowed = new Set<string>();
   _state_lock = new AsyncLock();
   _default_lock = new AsyncLock();
   /** Bumped by `shutdown()` so a create still in flight can clean up after itself. */
@@ -168,34 +149,49 @@ export class SandboxManager {
     return kwargs;
   }
 
-  /**
-   * Best-effort extend of the sandbox TTL before a tool uses it.
-   *
-   * `Sandbox.setTimeout` posts the platform timeout endpoint that has
-   * been verified against the service. A refresh failure is logged and
-   * the tool call continues; the tool's own error is what the agent sees
-   * if the sandbox is already gone.
-   */
-  async _refreshLifetime(sandbox: SandboxInstance): Promise<void> {
-    const setter = sandbox?.setTimeout;
-    if (setter === undefined || setter === null) return;
-    const sandboxId: string = sandbox.id ?? "";
-    const timeout = this._lifetimes.get(sandboxId) ?? 300;
-    try {
-      const seconds = Math.trunc(Number(timeout));
-      if (!Number.isFinite(seconds)) {
-        throw new ValueError(`invalid literal for int() with base 10: '${String(timeout)}'`);
-      }
-      await setter.call(sandbox, seconds);
-    } catch (exc) {
-      if (exc instanceof CancelledError) throw exc;
-      logger.warning("Could not extend sandbox lifetime");
-    }
+  /** Provider-qualified identity prevents collisions across backends. */
+  reference(sandbox: SandboxInstance): string {
+    return sandbox.provider ? qualify(sandbox.provider, sandbox.id) : sandbox.id;
+  }
+
+  /** Explicit retention only; observation never refreshes TTL. */
+  retainSandbox(id: string, retain = true): void {
+    if (!retain && this.borrowed.has(id)) throw new BorrowedSandboxError();
+    if (retain) this.preserved.add(id);
+    else this.preserved.delete(id);
+  }
+
+  /** Query without adopting or extending the resource. */
+  async observeSandbox(id: string): Promise<Record<string, unknown>> {
+    return (await sdk.loadSandbox()).getInfoById(id, this._connectKwargs());
+  }
+
+  private existingReference(id: string | null): string {
+    if (id) return id;
+    if (this._default_sandbox) return this.reference(this._default_sandbox);
+    throw new Error("No default sandbox; create one or specify sandbox_id.");
+  }
+
+  /** Compatibility metadata helper; never connects or adopts the target. */
+  async inspectSandbox(id: string | null = null): Promise<Record<string, unknown>> {
+    return this.observeSandbox(this.existingReference(id));
+  }
+
+  /** Explicit control-plane TTL mutation; it does not connect or resume a target. */
+  async setSandboxTimeout(timeout: number, id: string | null = null): Promise<string> {
+    const reference = this.existingReference(id);
+    await (await sdk.loadSandbox()).setTimeoutById(reference, timeout, this._connectKwargs());
+    return reference;
+  }
+
+  /** List without adopting any returned resource. */
+  async listSandboxes(options: Record<string, unknown> = {}): Promise<Record<string, unknown>[]> {
+    return (await sdk.loadSandbox()).list(this._connectKwargs(options));
   }
 
   /** Create a sandbox and make it the session default. */
   async createSandbox(options: CreateSandboxOptions = {}): Promise<SandboxInstance> {
-    const { template = null, timeout = 300, envs = null, provider, region, cpu, memory } = options;
+    const { template = null, timeout = 300, envs = null } = options;
     const Sandbox = await sdk.loadSandbox();
     const epoch = this._epoch;
 
@@ -204,24 +200,23 @@ export class SandboxManager {
       timeout,
       envs: envs || {},
     });
-    if (provider !== undefined && provider !== null) kwargs.provider = provider;
-    if (region !== undefined && region !== null) kwargs.provider_options = { region };
-    if (cpu !== undefined) kwargs.cpu = cpu;
-    if (memory !== undefined) kwargs.memory = memory;
+    if (options.cpu !== undefined) kwargs.cpu = options.cpu;
+    if (options.memory !== undefined) kwargs.memory = options.memory;
+    if (options.region !== undefined) kwargs.provider_options = { region: options.region };
     const sandbox = await Sandbox.create(kwargs);
     if (epoch !== this._epoch) {
       // The session was shut down while this create was in flight. Python
       // cancels the pending call; here the sandbox exists already, so remove it.
       try {
         await sandbox.kill();
-      } catch {
+      } catch (exc) {
         logger.warning("Failed to kill sandbox created during shutdown");
       }
       throw new CancelledError();
     }
     await this._state_lock.runExclusive(() => {
-      this._sandboxes.set(sandbox.id, sandbox);
-      this._lifetimes.set(sandbox.id, timeout);
+      this._sandboxes.set(this.reference(sandbox), sandbox);
+      if (options.retain) this.preserved.add(this.reference(sandbox));
       this._default_sandbox = sandbox;
     });
     logger.info("Created sandbox: %s", sandbox.id);
@@ -233,7 +228,6 @@ export class SandboxManager {
     if (sandboxId) {
       const cached = await this._state_lock.runExclusive(() => this._sandboxes.get(sandboxId));
       if (cached !== undefined && cached !== null) {
-        await this._refreshLifetime(cached);
         return cached;
       }
       const Sandbox = await sdk.loadSandbox();
@@ -241,10 +235,10 @@ export class SandboxManager {
       const sb = await Sandbox.connect(this._connectKwargs({ sandbox_id: sandboxId }));
       if (epoch !== this._epoch) throw new CancelledError();
       await this._state_lock.runExclusive(() => {
-        this._sandboxes.set(sb.id, sb);
-        if (!this._lifetimes.has(sb.id)) this._lifetimes.set(sb.id, 300);
+        this._sandboxes.set(sandboxId, sb);
+        this.borrowed.add(sandboxId);
+        this.preserved.add(sandboxId);
       });
-      await this._refreshLifetime(sb);
       return sb;
     }
 
@@ -259,52 +253,7 @@ export class SandboxManager {
       }
       return this._default_sandbox;
     });
-    await this._refreshLifetime(sandbox);
     return sandbox;
-  }
-
-  /** Query platform visibility without creating, renewing, or managing listed instances. */
-  async listSandboxes(options: ListSandboxesOptions = {}): Promise<SandboxInfo[]> {
-    const Sandbox = await sdk.loadSandbox();
-    const kwargs: Record<string, unknown> = { limit: options.limit ?? 100, offset: options.offset ?? 0 };
-    if (options.status) kwargs.status = options.status;
-    if (this._api_key) kwargs.api_key = this._api_key;
-    if (this._api_url) kwargs.api_url = this._api_url;
-    if (options.provider) kwargs.provider = options.provider;
-    // TS core accepts region through its existing provider option, not a top-level kwarg.
-    if (options.region) kwargs.provider_options = { region: options.region };
-    return Sandbox.list(kwargs);
-  }
-
-  /** Find an existing handle without implicit creation or automatic TTL renewal. */
-  private async _existingSandbox(sandboxId: string | null): Promise<SandboxInstance> {
-    const existing = await this._state_lock.runExclusive(() =>
-      sandboxId ? this._sandboxes.get(sandboxId) : this._default_sandbox);
-    if (!existing && !sandboxId) throw new ToolInputError("No default sandbox. Call create_sandbox or specify sandbox_id.");
-    return existing ?? null;
-  }
-
-  /** Refresh safe metadata; an external ID is a temporary client, never adopted. */
-  async inspectSandbox(sandboxId: string | null = null): Promise<SandboxInfo> {
-    const cached = await this._existingSandbox(sandboxId);
-    if (cached) return cached.refreshInfo();
-    const Sandbox = await sdk.loadSandbox();
-    return Sandbox.getInfoById(sandboxId as string, this._connectKwargs());
-  }
-
-  /** Update a managed TTL policy, or only renew an external instance without adoption. */
-  async setSandboxTimeout(timeout: number, sandboxId: string | null = null): Promise<string> {
-    const cached = await this._existingSandbox(sandboxId);
-    if (cached) {
-      await cached.setTimeout(timeout);
-      await this._state_lock.runExclusive(() => {
-        if (this._sandboxes.get(cached.id) === cached) this._lifetimes.set(cached.id, timeout);
-      });
-      return String(cached.id);
-    }
-    const Sandbox = await sdk.loadSandbox();
-    await Sandbox.setTimeoutById(sandboxId as string, timeout, this._connectKwargs());
-    return sandboxId as string;
   }
 
   /**
@@ -314,64 +263,46 @@ export class SandboxManager {
    * sandbox to kill.
    */
   async killSandbox(sandboxId: string | null = null): Promise<string | null> {
-    if (sandboxId) {
-      const sb = await this._state_lock.runExclusive(() => {
-        const found = this._sandboxes.get(sandboxId);
-        this._sandboxes.delete(sandboxId);
-        this._lifetimes.delete(sandboxId);
-        if (
-          this._default_sandbox !== null &&
-          this._default_sandbox !== undefined &&
-          this._default_sandbox.id === sandboxId
-        ) {
-          this._default_sandbox = null;
-        }
-        return found;
-      });
-      if (sb !== undefined && sb !== null) {
-        await sb.kill();
-        logger.info("Killed sandbox: %s", sandboxId);
-        return sandboxId;
-      }
-      const Sandbox = await sdk.loadSandbox();
-      const kwargs: Record<string, unknown> = {};
-      if (this._api_key) kwargs.api_key = this._api_key;
-      if (this._api_url) kwargs.api_url = this._api_url;
-      await Sandbox.killById(sandboxId, kwargs);
+    const sb = await this._state_lock.runExclusive(() => sandboxId
+      ? this._sandboxes.get(sandboxId)
+      : this._default_sandbox);
+    if (sb === null || sb === undefined) {
+      if (!sandboxId) return null;
+      await (await sdk.loadSandbox()).killById(sandboxId, this._connectKwargs());
       return sandboxId;
     }
-
-    const sb = await this._state_lock.runExclusive(() => {
-      const current = this._default_sandbox;
-      this._default_sandbox = null;
-      if (current !== null && current !== undefined) {
-        this._sandboxes.delete(current.id);
-        this._lifetimes.delete(current.id);
-      }
-      return current;
-    });
-    if (sb === null || sb === undefined) return null;
-    const sid = sb.id;
+    const id = sandboxId ?? this.reference(sb);
+    // Keep the handle/default until deletion succeeds, so failures remain retryable.
     await sb.kill();
-    logger.info("Killed default sandbox: %s", sid);
-    return String(sid);
+    await this._state_lock.runExclusive(() => {
+      if (this._sandboxes.get(id) === sb) {
+        this._sandboxes.delete(id);
+        this.preserved.delete(id);
+        this.borrowed.delete(id);
+      }
+      if (this._default_sandbox === sb) this._default_sandbox = null;
+    });
+    logger.info("Killed sandbox: %s", id);
+    return id;
   }
 
   /** Kill all sandboxes. */
   async shutdown(): Promise<void> {
     const items = await this._state_lock.runExclusive(() => {
-      const snapshot = [...this._sandboxes.entries()];
+      const snapshot = [...this._sandboxes.entries()].map(([sid, sb]) => ({ sid, sb, preserve: this.borrowed.has(sid) || this.preserved.has(sid) }));
       this._sandboxes.clear();
-      this._lifetimes.clear();
+      this.borrowed.clear();
+      this.preserved.clear();
       this._default_sandbox = null;
       this._epoch += 1;
       return snapshot;
     });
-    for (const [sid, sb] of items) {
+    for (const { sid, sb, preserve } of items) {
       try {
-        await sb.kill();
-        logger.info("Shutdown: killed sandbox %s", sid);
-      } catch {
+        if (preserve) await sb.close?.();
+        else await sb.kill();
+        logger.info("Shutdown: released sandbox %s", sid);
+      } catch (exc) {
         logger.warning("Failed to kill sandbox during shutdown");
       }
     }
@@ -604,7 +535,10 @@ export class SandboxMCPServer {
     const exitCode = result.exit_code;
     const isError =
       "error" in result ||
-      (typeof exitCode === "number" && Number.isInteger(exitCode) && exitCode !== 0);
+      result.verified === false || result.cleanup_verified === false ||
+      // A successful status query/cancel can report a nonzero task exit. The query itself succeeded.
+      ((toolName === "run_code" || toolName === "run_command") &&
+        typeof exitCode === "number" && Number.isInteger(exitCode) && exitCode !== 0);
     return {
       content: [
         {
@@ -706,7 +640,7 @@ export class SandboxMCPServer {
     const output: Writable = options.stdout ?? process.stdout;
     const handleSignals = options.handleSignals ?? true;
     logger.info("Starting MCP Server (STDIO mode)");
-    await _preloadSdk();
+    // Protocol discovery and ping must work before the cloud SDK is needed.
 
     let stopped = false;
     let resolveStop!: () => void;

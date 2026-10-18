@@ -3,10 +3,11 @@
 import * as fs from "node:fs";
 
 import type { FileInfo, WatchEvent } from "../models/filesystem.js";
+import { ProviderFeatureNotSupportedError } from "../providers/errors.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
-import type { FilesystemProtocol } from "../protocol/filesystem.js";
-import type { SandboxProtocol } from "../protocol/sandbox.js";
-import type { EnvdTokenManager } from "../transport/auth.js";
+import type { FilesystemProtocol } from "../protocol/contracts.js";
+import type { SandboxProtocol } from "../protocol/contracts.js";
+import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { StreamReader } from "../transport/streaming.js";
 import { getLogger } from "../utils/logging.js";
 import { toOSError } from "../utils/_pyos.js";
@@ -26,6 +27,7 @@ export class FilesModule {
   _sandbox_protocol: SandboxProtocol | null;
   _sandbox_id: string | null;
   _capabilities: Set<string>;
+  _provider_id: string;
 
   constructor(
     envd_url: string,
@@ -34,7 +36,9 @@ export class FilesModule {
     sandbox_protocol: SandboxProtocol | null = null,
     sandbox_id: string | null = null,
     capabilities: Set<string> | null = null,
+    provider_id: string = "provider",
   ) {
+    this._provider_id = provider_id;
     this._envd_url = envd_url;
     this._envd_token = envd_token;
     this._fs = filesystem_protocol;
@@ -121,21 +125,20 @@ export class FilesModule {
     return this._fs.getInfo(this._envd_url, this._envd_token, { path });
   }
 
-  /**
-   * Get a pre-signed upload URL for a file. Kept for backward compatibility.
-   *
-   * Warning: returns a URL that requires an `X-Access-Token` header for access.
-   */
+  /** Ask the filesystem adapter for an upload URL and its access requirements. */
   async uploadUrl(path: string): Promise<string> {
-    return `${this._envd_url}/files?path=${path}&username=user`;
+    return this._transferUrl(path, "upload");
   }
 
-  /**
-   * Get a download URL for a file. Kept for backward compatibility.
-   *
-   * Warning: returns a URL that requires an `X-Access-Token` header for access.
-   */
+  /** Ask the filesystem adapter for a download URL. */
   async downloadUrl(path: string): Promise<string> {
-    return `${this._envd_url}/files?path=${path}&username=user`;
+    return this._transferUrl(path, "download");
+  }
+
+  private async _transferUrl(path: string, operation: string): Promise<string> {
+    if (typeof this._fs.transferUrl !== "function") {
+      throw new ProviderFeatureNotSupportedError(this._provider_id, "files.transfer");
+    }
+    return this._fs.transferUrl(this._envd_url, this._envd_token, { path, operation });
   }
 }

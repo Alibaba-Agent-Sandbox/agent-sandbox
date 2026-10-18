@@ -1,0 +1,144 @@
+{
+  "tested_revision": "3f9faaf575d2d4304e6241406260ba6da7ff1d8e",
+  "raw_url_controls": [
+    {
+      "owner": "agent-sandbox",
+      "file": "SKILL.md",
+      "status": 404,
+      "sha256": null
+    },
+    {
+      "owner": "agent-sandbox",
+      "file": "references/task-workflows.md",
+      "status": 404,
+      "sha256": null
+    },
+    {
+      "owner": "agent-sandbox",
+      "file": "references/provider-contracts.md",
+      "status": 404,
+      "sha256": null
+    },
+    {
+      "owner": "agent-sandbox",
+      "file": "references/template-workflows.md",
+      "status": 404,
+      "sha256": null
+    },
+    {
+      "owner": "alibaba-agent-sandbox",
+      "file": "SKILL.md",
+      "status": 200,
+      "sha256": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d"
+    },
+    {
+      "owner": "alibaba-agent-sandbox",
+      "file": "references/task-workflows.md",
+      "status": 200,
+      "sha256": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b"
+    },
+    {
+      "owner": "alibaba-agent-sandbox",
+      "file": "references/provider-contracts.md",
+      "status": 200,
+      "sha256": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83"
+    },
+    {
+      "owner": "alibaba-agent-sandbox",
+      "file": "references/template-workflows.md",
+      "status": 200,
+      "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+    }
+  ],
+  "routes": {
+    "manual": [
+      {
+        "file": "SKILL.md",
+        "present": true,
+        "sha256": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d"
+      },
+      {
+        "file": "references/task-workflows.md",
+        "present": true,
+        "sha256": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b"
+      },
+      {
+        "file": "references/provider-contracts.md",
+        "present": true,
+        "sha256": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83"
+      },
+      {
+        "file": "references/template-workflows.md",
+        "present": true,
+        "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+      }
+    ],
+    "skills-cli-1.7.0": [
+      {
+        "file": "SKILL.md",
+        "present": true,
+        "sha256": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d"
+      },
+      {
+        "file": "references/task-workflows.md",
+        "present": true,
+        "sha256": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b"
+      },
+      {
+        "file": "references/provider-contracts.md",
+        "present": true,
+        "sha256": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83"
+      },
+      {
+        "file": "references/template-workflows.md",
+        "present": true,
+        "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+      }
+    ],
+    "sparse-checkout": [
+      {
+        "file": "SKILL.md",
+        "present": true,
+        "sha256": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d"
+      },
+      {
+        "file": "references/task-workflows.md",
+        "present": true,
+        "sha256": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b"
+      },
+      {
+        "file": "references/provider-contracts.md",
+        "present": true,
+        "sha256": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83"
+      },
+      {
+        "file": "references/template-workflows.md",
+        "present": true,
+        "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+      }
+    ]
+  },
+  "candidate_skills_cli": {
+    "revision": "6a93e73bcb11c019d59cbf6759529cfa16ad89bb",
+    "version": "1.7.0",
+    "result": "PASS",
+    "files": [
+      {
+        "file": "SKILL.md",
+        "sha256": "a421a4d2a74bd1ebf0acb487e4444d7daed7e4fa41b2f97ceb45341353f8ab31"
+      },
+      {
+        "file": "references/task-workflows.md",
+        "sha256": "f5c94327d98b0396cd89a9c9fc74d07d1f544e38e3b0658e7a05b91012853c18"
+      },
+      {
+        "file": "references/provider-contracts.md",
+        "sha256": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83"
+      },
+      {
+        "file": "references/template-workflows.md",
+        "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+      }
+    ]
+  }
+}

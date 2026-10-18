@@ -22,9 +22,9 @@ import type { SandboxManager } from "../../src/agent/mcp.js";
 // ---------------------------------------------------------------------------
 
 describe("TestToolSchemas", () => {
-  it("test_all_10_tools_defined", () => {
-    // All 10 core tools should be defined.
-    expect(TOOL_SCHEMAS.length).toBe(10);
+  it("test_core_and_workflow_tools_defined", () => {
+    // All 7 P0 core tools should be defined.
+    expect(TOOL_SCHEMAS.length).toBe(21);
   });
 
   it("test_tool_names", () => {
@@ -32,15 +32,15 @@ describe("TestToolSchemas", () => {
     const names = new Set(TOOL_SCHEMAS.map((t) => t.name));
     const expected = new Set([
       "create_sandbox",
-      "list_sandboxes",
-      "get_sandbox",
-      "set_sandbox_timeout",
       "run_code",
       "run_command",
       "read_file",
       "write_file",
       "list_files",
       "kill_sandbox",
+      "get_capabilities", "list_sandboxes", "get_sandbox", "set_sandbox_timeout", "retain_sandbox",
+      "upload_file", "download_file", "start_task", "get_task", "cancel_task", "verify_sandbox",
+      "submit_template_build", "get_template_build", "validate_template",
     ]);
     expect(names).toEqual(expected);
   });

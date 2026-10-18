@@ -45,3 +45,22 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 - Removals of obsolete files (Python leftovers and similar) are recorded as ADRs under `notes/implemented/process/`.
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
+
+- [Provider portability and updates](notes/proposed/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
+
+- [Provider isolation verification](evidence/verify/2026-10-18-provider-complete-isolation.md)
+
+Accepted cleanup: [retire unused CLI ports](notes/implemented/architecture/2026-10-18-retire-orphan-cli.md).
+Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-10-18-data-plane-auth-contract.md).
+
+- [Legacy retry compatibility](notes/implemented/architecture/2026-10-18-retry-compatibility.md).
+- [Layer dependency cleanup](notes/implemented/architecture/2026-10-18-layer-dependencies.md).
+
+- [Compatible tool patches and accepted records](notes/proposed/process/2026-10-18-compatible-tool-patches.md).
+
+- [Provider/main integration](notes/proposed/architecture/2026-10-18-provider-main-integration.md) · [verification](evidence/verify/2026-10-18-provider-main-integration.md)
+- [Current-host provider integration](evidence/verify/2026-10-18-provider-current-host-checkpoint.md)
+
+- [Provider port and file URL boundary checkpoint](evidence/verify/2026-10-18-provider-port-url-boundaries.md)
+
+- [MCP source/lifecycle delivery](notes/proposed/feature/2026-10-18-mcp-source-and-lifecycle.md) · [verification](evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)

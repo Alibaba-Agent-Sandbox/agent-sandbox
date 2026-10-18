@@ -6,9 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Install generated MCP applications from a tested matching client/server source pair instead of unavailable/unrelated PyPI distributions. Preserve the current provider workflow tools while routing metadata and TTL directly to the control plane, removing retired renewal state and sanitizing lifecycle failures.
+
+### Fixed
+
+- Reconcile provider isolation with accepted native transport, explicit-key authentication and retired-module cleanup; preserve canonical compatibility aliases and pure configuration metadata.
+
+### Documentation
+
+- Retire the unsupported builtin automatic-retry claim. Existing retry configuration names/defaults and EPP compatibility values remain accepted; they do not enable builtin HTTP retries or backoff.
+
+### Removed
+
+- Retired unreachable SDK-port Image/TemplateManager, named-session persistence/models, GlobalConfig, SecretStore, generic retry and PortClient implementations, their dedicated tests and stale exports. Removed the unused deprecated Dockerfile `POST /templates` creation path; active v3/v2 and official template operations remain. CLI commands and the Python parity ledger are unchanged. See the bilingual module retirement guide for programmatic replacements.
+
+- Removed the unconfirmed automatic AK/SK-to-sandbox-key RPC exchange and its private signing/parser helpers. Sandbox requests now fail locally without an API Key; official template/ACR AK/SK operations remain. Explicit custom exchange adapters remain and reject empty/structured token returns. This changes AK/SK-only runtime authentication; see the bilingual migration guide.
+### Changed
+
+- Validate compatible Vitest5.0.4/typescript-eslint8.71.2 patches together on supported Node20/22; index accepted CLI cleanup decisions as implemented.
+
+- Separate command error rendering from the CLI root and place shared exception/provider error values in lower layers. Existing deep imports re-export the same values; command behavior is unchanged.
+
+- CI and release workflows use setup-node v7 while retaining explicit Node 20/22 targets. Automatic incompatible Commander/TypeScript/Node-type major bumps are deferred to explicit compatibility migrations; patch/minor updates continue.
+
+### Fixed
+
+- Keep port addresses, gateway headers and file-transfer URLs in selected provider adapters; reject missing hooks instead of guessing native routes. Resolve Python compatibility imports lazily.
+
+
+- Integrate provider isolation with current host cleanup/authentication; keep URL conventions and template work in adapters, synchronize AI schema/handler discovery, preserve choice diagnostics and verbose configuration reporting. Minimal Python images support process inspection without procps and valid typed metrics collection.
+
+- Align current CLI/Skill installation instructions with published v0.3.0 binary assets and the Python SDK paired-source distribution; retire unavailable npm/index commands.
+
+- Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.
+- 修正 Skill 安装来源和完整文件包示例；原进程组停止后才确认任务取消，保留借用沙箱所有权边界，清理带 Provider 前缀的默认资源，并保留删除失败的重试句柄；新增真实复验记录且明确高级能力缺口。
+
+- Make Sandbox Skill task recovery, binary verification and per-action acceptance evidence explicit. Preserve connected/retained resources across MCP disconnect, keep absent lifetime metadata unknown, and report successful cancellation independently from a task signal exit.
+- Display actual template aliases/current build status; include workflow references in the npm package.
+
+
 ### Added
 
 - **MCP lifecycle controls.** `list_sandboxes`, `get_sandbox`, and `set_sandbox_timeout` share STDIO/HTTP handlers, validate bounded inputs, expose only safe metadata, and never adopt external instances for session destruction. `create_sandbox` accepts provider, region, CPU and memory options.
+- **Typed provider management commands.** `abx provider command list|info|run` discovers static schemas and invokes declared Node/exec commands through shared validation and authenticated engine routes. Includes 20 official FC Volume, Team, API Key and quota operations; key creation/rotation securely writes a new local file. Custom-domain automation remains unsupported pending a verified public Agent Sandbox API.
+- **FC Volume mounts at sandbox creation.** `abx create --volume-mount PATH=NAME` and `Sandbox.create({volume_mounts: {...}})` serialize the official `volumeMounts` request. Invalid paths and unsupported providers fail before execution; real storage access still requires an existing Volume, its Team's API key and a storage role.
 
 - **Installers for the standalone binary.** `install.sh` (macOS and Linux) and `install.ps1` (Windows x64) download `abx-<version>-<os>-<arch>[.exe]` plus its `.sha256` from the latest GitHub Release, verify the checksum, and install without sudo. `ABX_VERSION` and `ABX_INSTALL_DIR` override the release and the destination. The npm package `@agent-sandbox/cli` is not published yet.
 
@@ -20,6 +63,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 
 - **Client distribution name.** Install docs, the template-index upgrade hint, and the `requirements.txt` from `abx mcp deploy` use `agent-sandbox-client` (extras such as `[mcp]` stay on that name). The import name is still `agent_sandbox`. `pip install agent-sandbox` installs an unrelated project. `scripts/deploy_remaining.sh` prefers `agent_sandbox_client-*.whl` and still accepts `agent_sandbox-*.whl`. Template images still install `agent-sandbox-server` from the pinned git archive.
+- Route bundled and external backends through the same Provider contract. Move Express authentication,
+  cloud SDK/template deployment and native session binding into provider modules; preserve public import facades.
+- Resolve provider-owned CLI/AI/config metadata per selection, reject undeclared native defaults/options,
+  and clean up newly created resources when session binding fails without deleting borrowed sandboxes.
+
+- Document mount-capable template selection, the custom MicroVM ossfs2 minimum version, and verified real OSS Volume acceptance with complete temporary-resource cleanup.
+
+- Clarify the current Volume invitation-access prerequisite in the English and Chinese management and mounting guides; an empty list does not prove create or mount access.
+- Use an absolute built CLI path in both E2E quick starts so the executable still resolves from isolated scenario directories.
 
 - **npm publish is opt-in.** `.github/workflows/release.yml` skips the publish job unless the repository variable `NPM_PUBLISH` is `true`. A binary-only `v*` tag stays green when `NPM_API_TOKEN` is absent.
 
@@ -36,6 +88,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Stacked pull request validation.** The complete CI matrix now runs for pull requests targeting feature branches as well as `main`; push validation remains limited to `main`.
 
 - **MCP deployment uses the Python client distribution.** Generated `requirements.txt` now requests `agent-sandbox-client[mcp]` instead of the previous `agent-sandbox[mcp]` package name.
+- Load cold registry/official-SDK test fixtures before per-test deadlines; preserve timeout budgets and avoid late asynchronous registry resets after fixture teardown.
+
+- Provider updates report the bundled Express host lifecycle and manual local/catalog sources; Git update failures remain visible. Legacy FC template commands reject plugin feature declarations without a dispatch adapter. Document resource reuse, migration differences, AI boundaries and pending native factory acceptance.
+
+- Generate short alphanumeric Team names in opt-in provider-management E2E lifecycles, fixing real CreateTeam rejection of the previous fixture.
+
+- **Preserve Docker RUN structure when injecting server wheels.** `ABX_SERVER_SDK_SOURCE` now copies wheels before a complete shell-form RUN and substitutes only its server requirement. Conditional wheel/archive fallbacks, surrounding continuation commands and other dependency pins remain intact; comments, heredocs and exec-form text are preserved. Refs [#36](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/36).
 - Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.
 
 - **Pinned server archive skips PyPI.** `abx template init` pins python-sdk `61c43e0be65a1f57aa09186d578e7b399e48429b` (PR #21; the `server-sdk` tree matches PR #20, and later commits through PR #24 do not change server runtime). A Dockerfile that already pins any `python-sdk/archive/<sha>.tar.gz#subdirectory=server-sdk` is built as written, and deploy does not request `agent-sandbox-server` from PyPI. `ABX_SERVER_SDK_SOURCE` still injects a wheel and replaces that pin whatever SHA it uses. Fixes #24.

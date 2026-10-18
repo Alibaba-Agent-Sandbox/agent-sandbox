@@ -1,0 +1,19 @@
+[
+  {
+    "host_test": "matching-loopback",
+    "status": 200,
+    "body": "local-handler-ok",
+    "local_handler_calls": 1
+  },
+  {
+    "host_test": "custom-host",
+    "status": 501,
+    "body": "项目网络审计已关闭",
+    "local_handler_calls": 0
+  },
+  {
+    "control": "raw-server-sent-garbage",
+    "observed_first_line": "HTTP/1.1 502 Bad Gateway",
+    "observed_contains_garbage": false
+  }
+]

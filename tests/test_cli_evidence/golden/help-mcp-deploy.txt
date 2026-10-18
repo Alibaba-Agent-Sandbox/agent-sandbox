@@ -30,9 +30,8 @@ Related commands:
 
 Options:
   --name <NAME>                    FC function name for the artifact.
-  -r, --region <TEXT>              Region override for this command (default:
-                                   'abx config set region' value, else
-                                   cn-hangzhou)
+  -r, --region <TEXT>              Region override for providers that declare
+                                   region (otherwise use the provider default)
   --template <TEMPLATE>            Default sandbox template for MCP sessions.
   --memory <INTEGER>               FC function memory (MB).
   --timeout <INTEGER>              FC function timeout (s).

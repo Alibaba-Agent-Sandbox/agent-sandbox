@@ -8,8 +8,8 @@ import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import * as fcTemplate from "../../src/api/fc_template.js";
-import { templateSeams } from "../../src/cli/commands/template.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
+import { templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { patchLoadConfig, patchOfficialApi, setenv, spyAny, useTmpPath, writeText } from "../helpers/templateSupport.js";

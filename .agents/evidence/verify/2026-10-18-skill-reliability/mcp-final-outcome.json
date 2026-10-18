@@ -1,0 +1,154 @@
+{
+  "checks": [
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "cancel_protocol_flags_fixed"
+      },
+      "returned": null,
+      "expected_effect": "cancel_protocol_flags_fixed",
+      "observed_effect": {
+        "cancel_isError": false,
+        "get_isError": false,
+        "state": {
+          "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be",
+          "task_id": "9198d192-8896-4fce-9cdd-7b92302a4a99",
+          "state": "cancelled",
+          "started_at": 1792291145.9103124,
+          "pid": 502,
+          "pid_start": "1192",
+          "exit_code": -15,
+          "finished_at": 1792291148.0206823,
+          "stdout": "",
+          "stdout_truncated": false,
+          "stderr": "",
+          "stderr_truncated": false
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "cancel_effect_and_output_stopped"
+      },
+      "returned": null,
+      "expected_effect": "cancel_effect_and_output_stopped",
+      "observed_effect": {
+        "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be",
+        "task_id": "9198d192-8896-4fce-9cdd-7b92302a4a99",
+        "task_state": {
+          "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be",
+          "task_id": "9198d192-8896-4fce-9cdd-7b92302a4a99",
+          "state": "cancelled",
+          "started_at": 1792291145.9103124,
+          "pid": 502,
+          "pid_start": "1192",
+          "exit_code": -15,
+          "finished_at": 1792291148.0206823,
+          "stdout": "",
+          "stdout_truncated": false,
+          "stderr": "",
+          "stderr_truncated": false
+        },
+        "get_task_isError": false,
+        "cancel_task_isError": false,
+        "before": {
+          "stdout": "8\n",
+          "stderr": "",
+          "exit_code": 0
+        },
+        "after_signal": {
+          "stdout": "15\n11\n",
+          "stderr": "",
+          "exit_code": 0
+        },
+        "later": {
+          "stdout": "11\n",
+          "stderr": "",
+          "exit_code": 0
+        },
+        "proc_absent": true
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "timeout_changed_observed"
+      },
+      "returned": null,
+      "expected_effect": "timeout_changed_observed",
+      "observed_effect": {
+        "before": {
+          "sandbox": {
+            "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be",
+            "template": "e2e-template-review-601d707c1e6c",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-10-18T02:39:04.278Z",
+            "end_at": "2026-10-18T02:49:04.278Z"
+          }
+        },
+        "changed": {
+          "accepted": true,
+          "requested_timeout": 300,
+          "sandbox": {
+            "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be",
+            "template": "e2e-template-review-601d707c1e6c",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-10-18T02:39:04.278Z",
+            "end_at": "2026-10-18T02:44:13.000Z"
+          },
+          "timeout_verified": false
+        },
+        "after": {
+          "sandbox": {
+            "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be",
+            "template": "e2e-template-review-601d707c1e6c",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-10-18T02:39:04.278Z",
+            "end_at": "2026-10-18T02:44:13.000Z"
+          }
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "second_cleanup"
+      },
+      "returned": null,
+      "expected_effect": "second_cleanup",
+      "observed_effect": {
+        "kill": {
+          "success": true,
+          "sandbox_id": "sbx-b004d3d4-9029-4857-ae71-9c198a0910be"
+        },
+        "get": {
+          "error": "[E2009] Sandbox 'sbx-b004d3d4-9029-4857-ae71-9c198a0910be' was not found.",
+          "suggestion": "Run 'abx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected."
+        },
+        "get_isError": true,
+        "list": {
+          "sandboxes": []
+        }
+      },
+      "result": "PASS"
+    }
+  ],
+  "all_effects_passed": true,
+  "api_observation": "Final build requires cancellation result and query isError=false, separately checked above"
+}

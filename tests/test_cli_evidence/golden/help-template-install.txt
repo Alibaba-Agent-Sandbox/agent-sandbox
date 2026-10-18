@@ -55,8 +55,7 @@ Options:
   --memory <INTEGER>               Memory in MB (default: from template.yaml or
                                    2048)
   -y, --yes                        Skip confirmation prompt
-  -r, --region <TEXT>              Region override for this command (default:
-                                   'abx config set region' value, else
-                                   cn-hangzhou)
+  -r, --region <TEXT>              Region override for providers that declare
+                                   region (otherwise use the provider default)
   -h, --help                       Show this message and exit.
 [exit_code:0]

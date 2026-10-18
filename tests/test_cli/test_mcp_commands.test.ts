@@ -146,9 +146,6 @@ describe("TestMcpInstall", () => {
     patchApiKey("k");
     const result = await runner().invoke(cli, ["mcp", "install", "--target", "cursor"]);
     expect(result.output).toContain("create_sandbox");
-    expect(result.output).toContain("list_sandboxes");
-    expect(result.output).toContain("get_sandbox");
-    expect(result.output).toContain("set_sandbox_timeout");
     expect(result.output).toContain("run_code");
     expect(result.output).toContain("kill_sandbox");
   });
@@ -167,7 +164,7 @@ describe("TestMcpStatus", () => {
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect(data.server).toBe("agent-sandbox");
-    expect(data.tools_count).toBe(10);
+    expect(data.tools_count).toBe(21);
     expect(data.auth_configured).toBe(true);
   });
 
@@ -329,9 +326,12 @@ describe("TestMcpDeploy", () => {
     vi.spyOn(region, "resolveRegion").mockReturnValue("cn-hangzhou");
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(fs.readFileSync(path.join(out, "requirements.txt"), "utf8")).toBe(
-      "agent-sandbox-client[mcp]\nuvicorn>=0.29\n",
-    );
+    expect(fs.statSync(path.join(out, "requirements.txt")).isFile()).toBe(true);
+    const requirements = fs.readFileSync(path.join(out, "requirements.txt"), "utf8");
+    expect(requirements).toContain("agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/13b214b334b1dba26c46f94feea6f4699d5038cb.tar.gz#subdirectory=server-sdk");
+    expect(requirements).toContain("agent-sandbox-client[mcp] @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/13b214b334b1dba26c46f94feea6f4699d5038cb.tar.gz#subdirectory=client-sdk");
+    expect(requirements).not.toMatch(/^agent-sandbox\[/m);
+
     expect(fs.statSync(path.join(out, "app.py")).isFile()).toBe(true);
     expect(fs.readFileSync(path.join(out, "app.py"), "utf8")).toContain("require_auth_token");
     expect(fs.statSync(path.join(out, "config.yaml")).isFile()).toBe(true);

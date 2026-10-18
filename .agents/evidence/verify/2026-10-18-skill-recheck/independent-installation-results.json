@@ -1,0 +1,39 @@
+[
+  {
+    "scenario": "full-clone",
+    "exit": 0,
+    "all_files_present": true,
+    "files": {
+      "SKILL.md": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d",
+      "references/task-workflows.md": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b",
+      "references/provider-contracts.md": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83",
+      "references/template-workflows.md": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+    }
+  },
+  {
+    "scenario": "sparse-clone",
+    "exit": 0,
+    "all_files_present": true,
+    "files": {
+      "SKILL.md": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d",
+      "references/task-workflows.md": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b",
+      "references/provider-contracts.md": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83",
+      "references/template-workflows.md": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+    }
+  },
+  {
+    "scenario": "pinned-curl",
+    "exit": 0,
+    "all_files_present": true,
+    "files": {
+      "SKILL.md": "21600794ac9ef4158e44c498d493d8eb7635d5d51a1741a0c4522a52a0ed539d",
+      "references/task-workflows.md": "5cb632f7b8e304bdf9dc20040de1f56878c94f6364dfbce8431905049deccb6b",
+      "references/provider-contracts.md": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83",
+      "references/template-workflows.md": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+    }
+  },
+  {
+    "scenario": "bilingual-clone-command-parity",
+    "result": "PASS"
+  }
+]

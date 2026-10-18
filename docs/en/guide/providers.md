@@ -81,7 +81,7 @@ A command that needs a feature the provider does not declare (for example `abx s
 
 ## What you can run after installing
 
-Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. With no plugin selected, the built-in provider `alicloud-express` declares every feature in the table, so the full command set works as before.
+Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. The built-in provider declares implemented sandbox features. Cloud management operations are discovered separately through `abx provider command list ID`; feature tokens do not prove a management API exists.
 
 | Feature the provider must declare | CLI commands | Python SDK |
 |---|---|---|
@@ -99,9 +99,9 @@ Installing a provider does not enable every `abx` command. The CLI and the Pytho
 | `templates.read` | `template list`, `template info` | template read APIs |
 | `templates.build` | `template build/push/create/deploy/install/delete`, `deploy`, `install` | image build and template registration |
 | `ports.url` | `sandbox url` | `network.get_url` |
-| `ports.domain` | — | custom domain configuration |
-| `storage.mount` | — | OSS mount |
-| `network.vpc` | `--vpc-id` and the related flags | VPC configuration |
+| `ports.domain` | No standard command; not declared by the built-in provider | No standard management API |
+| `storage.mount` | No dynamic mount command; FC create-time mounts use `create --volume-mount PATH=NAME` | No dynamic mount API |
+| `network.vpc` | No standard VPC flags | Configure through the documented cloud control plane |
 | `sessions` | re-attach with `connect <provider:id>` | `Sandbox.connect` on an existing id |
 
 `abx provider list` shows how many features each provider declares (the table has to stay readable at 80 columns); `--json` has the full list as one string, for example `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`. `abx provider info <id>` prints the list.
@@ -212,3 +212,27 @@ Full list: [Error codes](../reference/error-codes.md). Every `provider` subcomma
 ## Try it locally
 
 The repository ships an end-to-end script that installs the reference plugins and drives a real sandbox through them: [`e2e/README.md`](../../../e2e/README.md) (`e2e/providers/run.sh`).
+
+## Provider-specific management commands
+
+Providers may declare typed commands under a fixed namespace. These differ from application commands inside a sandbox.
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.create
+abx --json provider command run alicloud-express volume.list --input '{"max_results":10}'
+```
+
+Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.
+
+To mount an existing FC Volume, use `abx create --template base --volume-mount /mnt/workspace=workspace`.
+This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
+It does not create underlying storage. Volume currently requires invitation access; confirm it through
+an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).
+See the capability matrix for role configuration and mount verification.
+Choose a mount-capable template; custom MicroVM source images must include ossfs2 2.0.10
+or newer, as required by the [official mount guide](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1).
+
+## Portability and provider updates
+
+See [migration, ownership and updates](../design/provider-portability-and-updates.md) for the existing-resource adoption boundary, legacy FC template guards, provider-owned image factories and the distinction between Git/manual/bundled updates.

@@ -4,7 +4,7 @@
 
 **已实现面**（与 `src/agent/` 保持同步）：
 
-- 10 个工具（7 个执行/文件工具及 3 个生命周期工具）（`agent/tools.ts`）
+- 7 个核心工具与 14 个闭环工具（`agent/tools.ts`）
 - STDIO 传输（`agent/mcp.ts`）— `abx mcp start`
 - Streamable HTTP 传输（`agent/mcp_http.ts`）— HTTP 应用
 - CLI：`abx mcp install / start / status / deploy`
@@ -13,7 +13,7 @@
 
 ## 1. Tools 定义
 
-全部 10 个工具定义于 `TOOL_SCHEMAS`（`agent/tools.ts`）。省略 `sandbox_id` 时作用于默认沙箱（见第 2 章）。
+七个核心工具及十四个闭环工具定义于 `TOOL_SCHEMAS`（`agent/tools.ts`）。省略 `sandbox_id` 时作用于默认沙箱（见第 2 章）。
 
 ### create_sandbox
 
@@ -31,19 +31,14 @@
       "timeout": {
         "type": "integer",
         "description": "沙箱超时时间（秒），默认 300",
-        "default": 300, "minimum": 1, "maximum": 86400
+        "default": 300
       },
-      "provider": { "type": "string", "minLength": 1, "pattern": "\\S" },
-      "region": { "type": "string", "minLength": 1, "pattern": "\\S" },
-      "cpu": { "type": "integer", "minimum": 1 },
-      "memory": { "type": "integer", "minimum": 1 },
       "envs": {
         "type": "object",
         "description": "环境变量键值对",
         "additionalProperties": { "type": "string" }
       }
-    },
-    "additionalProperties": false
+    }
   },
   "returns": {
     "sandbox_id": "string — 沙箱 ID",
@@ -52,28 +47,6 @@
   }
 }
 ```
-
-### 生命周期控制
-
-`create_sandbox` 还支持 `provider`、`region`、正整数 `cpu` 与正整数 `memory`（MB）。
-`provider` 和 `region` 必须是非空字符串；`timeout` 为 1–86400 秒的整数。
-环境变量值必须为字符串。不支持的参数（包括团队/账户选择器）会在调用 SDK 前报错；
-授权账户由现有 provider 配置决定。
-
-| 工具 | 参数 | 行为 |
-| --- | --- | --- |
-| `list_sandboxes` | 可选 `status`、`limit`（1–100，默认 100）、`offset`（>=0，默认 0）、`provider`、`region` | 列出平台可见沙箱，不改变默认沙箱或接管资源；列表可能最终一致。 |
-| `get_sandbox` | 可选非空 `sandbox_id` | 刷新元数据，不自动续期；省略 ID 时必须已有默认沙箱。 |
-| `set_sandbox_timeout` | 必填整数 `timeout`（1–86400），可选 `sandbox_id` | 从现在起设置剩余生命周期；已管理沙箱后续自动续期使用新值；省略 ID 时必须已有默认沙箱。 |
-
-list/get 仅返回 `sandbox_id`、`template`、`status`、`region`、`started_at`、
-`end_at`、`cpu_count`、`memory_mb` 与 `disk_size_mb`，不返回凭据、URL、环境变量或用户元数据。
-生命周期错误使用固定安全分类，不透传 provider 原始异常、建议或 URL。
-
-外部 ID 直接使用 `Sandbox.getInfoById` / `Sandbox.setTimeoutById` 控制面方法，在 `finally` 中关闭临时基础设施；
-不调用 provider connect/resume，查询保留 provider 返回的暂停状态，资源不加入会话结束销毁集合。
-STDIO 与 Streamable HTTP 使用相同处理器。这三个工具均不隐式创建沙箱。
-创建操作仍将新沙箱设为默认；原有执行/文件工具仍保留隐式创建默认沙箱的行为。
 
 ### run_code
 
@@ -247,7 +220,7 @@ graph TD
 1. `create_sandbox` 创建沙箱，并把它设为默认沙箱。随后省略 `sandbox_id` 的调用使用这只沙箱；更早创建的沙箱仍存活，直到被 `kill_sandbox` 或会话结束
 2. 还没有默认沙箱时，第一次省略 `sandbox_id` 的工具调用懒创建一只。并发的懒创建只会创建一只
 3. 默认模板：经 `abx mcp start` 启动时为 `code-interpreter-v1`（CLI 默认值）；编程式构造 `SandboxMCPServer` / HTTP `SessionStore` 且未显式指定模板时为 `base`。`create_sandbox` 省略 `template` 时用的就是这个模板
-4. 省略 `sandbox_id` 的 `kill_sandbox` 销毁默认沙箱；当前没有默认沙箱时返回错误。会话结束时销毁该会话里的全部沙箱 — STDIO EOF / server 关闭，或 HTTP `DELETE /mcp` / 空闲会话 TTL 到期
+4. 省略 `sandbox_id` 的 `kill_sandbox` 销毁默认沙箱；当前没有默认沙箱时返回错误。会话结束时仅销毁本会话拥有的临时沙箱，保留与借用资源继续存活 — STDIO EOF / server 关闭，或 HTTP `DELETE /mcp` / 空闲会话 TTL 到期
 5. 显式传入 `sandbox_id` 时寻址那只沙箱，不改变默认沙箱。每次使用前按创建时的 timeout 调用 `Sandbox.setTimeout` 延长存活时间
 
 ```mermaid
@@ -311,7 +284,7 @@ graph LR
 - **会话**：进程内 `SessionStore`；空闲 TTL 默认 3600 秒、并发会话上限默认 100；容量满时返回 503 与 JSON-RPC 错误 `-32000`
 - **版本协商**：`initialize` 在请求版本受支持时原样回显；本传输仅支持 `2025-06-18`，与 `GET /health` 一致。请求缺失或不支持的版本时协商到 `2025-06-18` —— 按 MCP 规范，服务器回复自己支持的版本，无法接受的客户端可自行断开。STDIO 传输独立保持 `2024-11-05`
 - **适用场景**：远程服务、团队共享、多客户端；用 `abx mcp deploy` 产物部署到阿里云 FC，或本地以 uvicorn 运行
-- **可选依赖**：`abx mcp start --http` 无需任何可选依赖；FC 产物 / uvicorn 的 Python ASGI 运行时需要 Starlette + uvicorn（`pip install 'agent-sandbox-client[mcp]'`）
+- **可选依赖**：`abx mcp start --http` 无需任何可选依赖；FC 产物 / uvicorn 的 Python ASGI 运行时需要 Starlette + uvicorn（`pip install -r requirements.txt`）
 
 ### 认证
 
@@ -336,7 +309,7 @@ graph LR
 graph TD
     subgraph MCP["MCP Server"]
         TL["传输层\nSTDIO (mcp.ts) / Streamable HTTP (mcp_http.ts)"]
-        TR["工具注册表\n7 个 P0 工具 (agent/tools.ts)"]
+        TR["工具注册表\n7 个核心工具与 14 个闭环工具 (agent/tools.ts)"]
         SM["SandboxManager / SessionStore"]
         RR["JSON-RPC 路由\ninitialize / tools/list / tools/call / ping"]
         SC["沙箱客户端\nsrc/api (Sandbox)"]
@@ -511,7 +484,7 @@ abx mcp deploy \
 
 | 文件 | 内容 |
 |------|------|
-| `requirements.txt` | `agent-sandbox-client[mcp]`、`uvicorn>=0.29` |
+| `requirements.txt` | 固定提交的 Python SDK 客户端/服务器源码、`uvicorn>=0.54.0` |
 | `app.py` | ASGI 入口，从 FC 函数环境变量读取 `ABX_MCP_AUTH_TOKEN`、`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ABX_DEFAULT_TEMPLATE` |
 | `config.yaml` | YAML 部署清单（非 FC API 载荷）：`function_name`、`region`、`runtime`（`python3.10`）、`handler`（`app.app`）、`memory`、`timeout`、`environment_variables`、`http_trigger`（POST/GET/DELETE 方法 + `enable_session_affinity`）、可选 `custom_domain` |
 
@@ -533,3 +506,13 @@ abx mcp deploy \
 ## 相关 SDK 文档
 
 Python SDK 自带 `python -m agent_sandbox.agent.mcp` 入口与 `create_mcp_app` ASGI 工厂，见 SDK 的 [MCP Server 设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/mcp-server.md) 与 [MCP 集成指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/mcp-integration.md)。本页描述 `abx mcp` 命令与 Node.js 实现。
+
+
+### 当前安装与生命周期实现
+
+产物的成对源码定义统一归属 `src/utils/mcp_sdk_pin.ts`，公开用法见
+[安装指南](../guide/mcp-integration.md)。元数据和显式超时操作直接调用控制面，
+不连接或恢复目标沙箱。旧自动续期状态和空操作钩子已删除；生命周期错误及资源
+归属拒绝使用固定的安全信息，不输出厂商原始异常。Node CLI 与生成的 Python
+HTTP 工具目录应分别发现。干净安装、真实 HTTP/STDIO、后端操作及清理记录见
+[验证证据](../../../.agents/evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)。

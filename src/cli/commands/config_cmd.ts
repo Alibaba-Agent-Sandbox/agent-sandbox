@@ -1,3 +1,7 @@
+import { ProviderConfigError } from "../../providers/errors.js";
+import { providerCliExtension, bundledCliConfigurations } from "../provider_extensions.js";
+import type { ConfigPrompt } from "../provider_config_contract.js";
+import { providerSchema } from "../../transport/config_layers.js";
 /**
  * Configuration management CLI commands: init, get, set, list, delete (port of `cli/commands/config_cmd.py`).
  *
@@ -29,9 +33,7 @@ import { isFile, toOSError, writeTextPy } from "../../utils/_pyos.js";
 import { type OutputFormatter, getFormatter } from "../formatters.js";
 import { decodeUtf8Strict, loadBytes, type Table } from "../../utils/_tomllib.js";
 import { providersInUse } from "../../providers/in_use.js";
-import { cliProvider } from "../../providers/selection.js";
 import { _setPaths, applyMigration, auditConfig, planMigration } from "../../transport/config_layers.js";
-import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";
 import * as extras from "./_config_providers.js";
 import * as registry from "../../providers/registry.js";
 
@@ -44,7 +46,7 @@ type Params = Record<string, any>;
  */
 function _handleErrors<A extends unknown[], R>(func: (...args: A) => R | Promise<R>): (...args: A) => Promise<R> {
   return async (...args: A): Promise<R> => {
-    const { handleErrors } = await import("../main.js");
+    const { handleErrors } = await import("../error_handler.js");
     return handleErrors(func)(...args);
   };
 }
@@ -100,11 +102,7 @@ function _stdout(): { write(text: string): void; flush(): void } {
 /** Keys that users can configure (key -> help). */
 export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
   ["sandbox_api_key", "Sandbox service API key (env: ABX_SANDBOX_API_KEY)"],
-  ["access_key_id", "Alibaba Cloud AccessKey ID for template deploy / ACR push"],
-  ["access_key_secret", "Alibaba Cloud AccessKey Secret for template deploy / ACR push"],
-  ["acr_namespace", "ACR namespace for template build, push, and install (env: ACR_NAMESPACE)"],
-  ["api_url", "Platform API URL (e.g. https://api.cn-hangzhou.e2b.fc.aliyuncs.com)"],
-  ["region", "Default region (e.g. cn-hangzhou, cn-shanghai)"],
+  ["api_url", "Platform API URL of the selected provider"],
   ["http_timeout", "HTTP request timeout in seconds"],
   ["http2", "Enable HTTP/2 for platform connections (true/false)"],
   ["max_retries", "Maximum retry attempts"],
@@ -113,16 +111,15 @@ export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
   ["llm_model", "LLM model name (default: qwen3-coder-plus)"],
   ["llm_base_url", "LLM API base URL, OpenAI-compatible (default: DashScope compatible-mode)"],
   ["github_token", "GitHub token for template downloads / rate limits (stored in ~/.abx/.env)"],
+  ...bundledCliConfigurations().flatMap((profile) => [...profile.allowed]),
 ]);
 
 /** Keys stored in `~/.abx/.env` (mapped to their env-var name) rather than `config.toml`. */
 export const _ENV_STORED_KEYS: ReadonlyMap<string, string> = new Map([
   ["sandbox_api_key", "ABX_SANDBOX_API_KEY"],
-  ["access_key_id", "ALICLOUD_ACCESS_KEY_ID"],
-  ["access_key_secret", "ALICLOUD_ACCESS_KEY_SECRET"],
-  ["acr_namespace", "ACR_NAMESPACE"],
   ["llm_api_key", "ABX_LLM_API_KEY"],
   ["github_token", "GITHUB_TOKEN"],
+  ...bundledCliConfigurations().flatMap((profile) => [...profile.envStored]),
 ]);
 
 /** Older CLI names that still work for `config get` / `config set` but are not shown by `config list`. */
@@ -165,29 +162,25 @@ const _LEGACY_TOML_ENV_KEYS: ReadonlySet<string> = new Set(["llm_api_key"]);
 /** Functional groups for `config list`: stable order, one group per topic. */
 const _CONFIG_GROUPS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["Sandbox authentication", ["sandbox_api_key"]],
-  ["Alibaba Cloud credentials", ["access_key_id", "access_key_secret", "acr_namespace"]],
   ["Connection", ["api_url", "region", "domain", "http_timeout", "http2", "max_retries"]],
   ["LLM", ["llm_api_key", "llm_model", "llm_base_url"]],
   ["Integrations", ["github_token"]],
 ];
 
 /** Keys that are sensitive and should be masked in output. */
-const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_api_key", "access_key_secret", "github_token"]);
+const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_api_key", "github_token", ...bundledCliConfigurations().flatMap((profile) => [...profile.sensitive])]);
 
 /** Environment variables that override each key at runtime, in priority order. */
 const _ENV_OVERRIDES: ReadonlyMap<string, readonly string[]> = new Map([
   ["sandbox_api_key", ["ABX_SANDBOX_API_KEY"]],
-  ["access_key_id", ["ALICLOUD_ACCESS_KEY_ID"]],
-  ["access_key_secret", ["ALICLOUD_ACCESS_KEY_SECRET"]],
-  ["acr_namespace", ["ACR_NAMESPACE"]],
   ["api_url", ["ABX_SANDBOX_BASE_URL"]],
   ["domain", ["ABX_SANDBOX_DOMAIN"]],
-  ["region", ["ALIBABA_CLOUD_REGION_ID"]],
   ["http_timeout", ["ABX_HTTP_TIMEOUT"]],
   ["llm_api_key", ["ABX_LLM_API_KEY", "BAILIAN_CODING_PLAN_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]],
   ["llm_base_url", ["ABX_LLM_BASE_URL", "OPENAI_BASE_URL"]],
   ["llm_model", ["ABX_LLM_MODEL", "OPENAI_MODEL"]],
   ["github_token", ["GITHUB_TOKEN"]],
+  ...bundledCliConfigurations().flatMap((profile) => [...profile.envOverrides]),
 ]);
 
 /** `agent/qwen_code.ts` constants (duplicated to keep this module, which every CLI start loads, import-light). */
@@ -501,11 +494,14 @@ function _syncPaths(): void {
 function _extraFor(typed: string, canonical: string): extras.ExtraTarget | null {
   _syncPaths();
   if (typed === "provider" || typed.startsWith("providers.")) return extras.resolveExtraKey(typed);
-  const cli = cliProvider();
-  const pluginActive = (cli !== null && cli !== BUILTIN_PROVIDER_ID) || (providersInUse() && extras.effectiveProviderId() !== BUILTIN_PROVIDER_ID);
-  if (pluginActive && !_GENERIC_KEYS.has(canonical)) {
+  const active = extras.effectiveProviderId();
+  const hasLegacyProfile = Boolean(providerCliExtension(active)?.configuration);
+  if (!hasLegacyProfile && !_GENERIC_KEYS.has(canonical)) {
     const target = extras.resolveExtraKey(typed);
     if (target) return target;
+    throw new ProviderConfigError(`Provider '${active}' does not declare '${typed}'.`, {
+      suggestion: `Run 'abx provider info ${active}' to see its configuration fields.`,
+    });
   }
   if (_ALLOWED_KEYS.has(canonical)) {
     return extras.configFormat() === 2 ? extras.coreTarget(canonical, _echoName(typed, canonical)) : null;
@@ -570,11 +566,22 @@ function _rejectUnknownKey(fmt: OutputFormatter, key: string): never {
 
 /** The built-in default actually used for `key` (`null` = none). */
 export function _businessDefault(key: string): unknown {
+  const schema = providerSchema(extras.effectiveProviderId());
   if (key === "api_url" || key === "domain") {
-    const [region] = _effectiveValue("region");
-    if (key === "api_url") return `https://api.${pyStr(region)}.e2b.fc.aliyuncs.com`;
-    return `${pyStr(region)}.e2b.fc.aliyuncs.com`;
+    const canonical = key === "api_url" ? "sandbox_base_url" : "sandbox_domain";
+    const template = schema.derive[canonical];
+    if (!template) return schema.endpoint_defaults[canonical] ?? null;
+    let missing = false;
+    const result = template.replace(/\{([^}]+)\}/g, (_token, field: string) => {
+      if (!schema.keys.some((candidate) => candidate.key === field)) { missing = true; return ""; }
+      const [value] = _effectiveValue(field);
+      if (value === null || value === undefined) missing = true;
+      return String(value ?? "");
+    });
+    return missing ? schema.endpoint_defaults[canonical] ?? null : result;
   }
+  const own = schema.keys.find((candidate) => candidate.key === key);
+  if (own) return own.default;
   if (key === "llm_base_url") return _DEFAULT_OPENAI_BASE_URL;
   if (key === "llm_model") return _DEFAULT_OPENAI_MODEL;
   const instance = new TransportConfig() as unknown as Record<string, unknown>;
@@ -688,242 +695,17 @@ function _clearExtraValue(fmt: OutputFormatter, target: extras.ExtraTarget): voi
 }
 
 // Command help texts: the Python docstrings verbatim (`\b` is Click's no-rewrap marker, a literal backspace).
-const CONFIG_HELP = [
-  "Manage persistent credentials and CLI defaults.",
-  "",
-  "    Values are read from ~/.abx/config.toml and ~/.abx/.env. Environment",
-  "    variables can still override the stored configuration at runtime.",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config init",
-  "      abx config list",
-  "      abx config get region",
-  "      abx config set http_timeout 120",
-  "      abx config set github_token     Prompt for the token (masked input)",
-  "      abx config delete region   Remove one stored value",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config init           Guided setup (credentials, region, ACR, LLM)",
-  "      abx config get            Read one effective value",
-  "      abx config set            Store or update one value",
-  "      abx config delete KEY     Remove one stored value",
-  "    ",
-].join("\n");
+const CONFIG_HELP = () => providerCliExtension()?.configuration?.help["CONFIG_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
-const GET_HELP = [
-  "Get a configuration value by KEY.",
-  "",
-  "    Prints the effective value: the process environment wins, then the",
-  "    value stored by ``abx config set``, then the built-in default. Keys",
-  "    without any of these print ``(not set)``. Sensitive keys are masked.",
-  "",
-  "    \b",
-  "    Available keys:",
-  "      sandbox_api_key    Sandbox service API key (env var ABX_SANDBOX_API_KEY;",
-  "                         stored in ~/.abx/.env,",
-  "                         shown masked). ``api_key`` is accepted as an alias.",
-  "      access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth",
-  "                         (template deploy, ACR push; stored in ~/.abx/.env)",
-  "      access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth",
-  "                         (template deploy, ACR push; stored in ~/.abx/.env,",
-  "                         shown masked)",
-  "      acr_namespace      ACR namespace for template build, push, and install",
-  "                         (stored in ~/.abx/.env as ACR_NAMESPACE)",
-  "      api_url            Platform API URL",
-  "      domain             Envd data-plane domain",
-  "      region             Default region (e.g. cn-hangzhou)",
-  "      http_timeout       HTTP request timeout in seconds",
-  "      http2              Enable HTTP/2 (true/false)",
-  "      max_retries        Maximum retry attempts",
-  "      llm_api_key        LLM API key for template generation",
-  "                         (stored in ~/.abx/.env as ABX_LLM_API_KEY, shown",
-  "                         masked; a legacy config.toml value is still readable)",
-  "      llm_model          LLM model name (default: qwen3-coder-plus)",
-  "      llm_base_url       LLM API base URL, OpenAI-compatible",
-  "                         (default: DashScope compatible-mode)",
-  "      github_token       GitHub token for template downloads (stored in",
-  "                         ~/.abx/.env, shown masked)",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config get sandbox_api_key",
-  "      abx config get region",
-  "      abx config list          # show all values at once",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config list          Show every effective value and its source",
-  "      abx config set KEY VALUE",
-  "      abx config set KEY \"\"    Clear one stored value",
-  "    ",
-].join("\n");
+const GET_HELP = () => providerCliExtension()?.configuration?.help["GET_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
-const SET_HELP = [
-  "Set a configuration value: KEY [VALUE].",
-  "",
-  "    Settings are stored in ~/.abx/config.toml, except credentials",
-  "    (sandbox_api_key, access_key_id, access_key_secret, acr_namespace,",
-  "    llm_api_key, github_token) which are",
-  "    written to ~/.abx/.env using their environment-variable names. Setting",
-  "    llm_api_key also removes any legacy config.toml copy of it (the secret",
-  "    migrates to the 0600-protected ~/.abx/.env storage).",
-  "",
-  "    Passing an empty VALUE clears the stored value for KEY instead: the key",
-  "    falls back to its built-in default or becomes not set. An empty string",
-  "    is never stored as a credential or override. Environment variables that",
-  "    are still exported keep overriding the key at runtime; their values are",
-  "    never printed. Clearing llm_api_key removes both the ~/.abx/.env entry",
-  "    and any legacy config.toml copy.",
-  "",
-  "    In an interactive terminal VALUE may be omitted: sensitive keys",
-  "    (github_token, sandbox_api_key, access_key_secret, llm_api_key) are then",
-  "    read through the masked (asterisk) input and the typed value is never",
-  "    echoed; other keys use a visible prompt. Pressing Enter at the prompt",
-  "    cancels without changing anything. In CI / non-interactive sessions",
-  "    VALUE is required.",
-  "",
-  "    \b",
-  "    Available keys (expected value):",
-  "      sandbox_api_key    Sandbox service API key (string; env var",
-  "                         ABX_SANDBOX_API_KEY).",
-  "                         ``api_key`` is accepted as an alias.",
-  "      access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth, used by",
-  "                         template deploy and ACR push (string)",
-  "      access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth, used by",
-  "                         template deploy and ACR push (string)",
-  "      acr_namespace      ACR namespace for template build, push, and install",
-  "                         (string; stored in ~/.abx/.env as ACR_NAMESPACE)",
-  "      api_url            Platform API URL (e.g. https://api.cn-hangzhou.e2b.fc.aliyuncs.com)",
-  "      domain             Envd data-plane domain (e.g. cn-hangzhou.e2b.fc.aliyuncs.com)",
-  "      region             Default region (e.g. cn-hangzhou, cn-shanghai)",
-  "      http_timeout       HTTP request timeout in seconds (number, e.g. 120)",
-  "      http2              Enable HTTP/2 (true/false)",
-  "      max_retries        Maximum retry attempts (integer, e.g. 3)",
-  "      llm_api_key        LLM API key for template generation,",
-  "                         e.g. a DashScope/ModelStudio key (string; stored in",
-  "                         ~/.abx/.env as ABX_LLM_API_KEY)",
-  "      llm_model          LLM model name (default: qwen3-coder-plus)",
-  "      llm_base_url       LLM API base URL, OpenAI-compatible (string;",
-  "                         default: DashScope compatible-mode)",
-  "      github_token       GitHub token for template downloads, used by",
-  "                         'abx template install' / 'abx template search'",
-  "                         (string; stored in ~/.abx/.env)",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config set sandbox_api_key YOUR_API_KEY",
-  "      abx config set access_key_id YOUR_ACCESS_KEY_ID",
-  "      abx config set access_key_secret YOUR_ACCESS_KEY_SECRET",
-  "      abx config set acr_namespace YOUR_ACR_NAMESPACE",
-  "      abx config set region cn-hangzhou",
-  "      abx config set http_timeout 120",
-  "      abx config set http2 false",
-  "      abx config set llm_api_key YOUR_DASHSCOPE_OR_LLM_KEY",
-  "      abx config set region \"\"          # clear the stored region",
-  "      abx config set sandbox_api_key \"\"  # remove the stored sandbox API key",
-  "      abx config set github_token      # masked prompt (VALUE omitted)",
-  "      abx config set github_token YOUR_GITHUB_TOKEN",
-  "      abx config set github_token \"\"    # remove the stored token",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config get KEY       Verify the effective value",
-  "      abx config list          Review effective values and sources",
-  "      abx config delete KEY    Remove one stored value",
-  "    ",
-].join("\n");
+const SET_HELP = () => providerCliExtension()?.configuration?.help["SET_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
-const DELETE_HELP = [
-  "Remove one stored configuration value.",
-  "",
-  "    Deletes the value written by ``abx config set``. The key then falls",
-  "    back to its built-in default or becomes not set. An environment",
-  "    variable that still overrides the key is left in place and named in",
-  "    the result, without printing its value. ``~/.abx`` itself is not",
-  "    removed. ``abx config set KEY \"\"`` does the same thing.",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config delete acr_namespace",
-  "      abx config delete access_key_secret",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config list          See what is still stored",
-  "      abx config set KEY VALUE Store a value again",
-  "      abx config set KEY \"\"    The same removal, via set",
-  "    ",
-].join("\n");
+const DELETE_HELP = () => providerCliExtension()?.configuration?.help["DELETE_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
-const LIST_HELP = [
-  "List all effective configuration values and their sources.",
-  "",
-  "    Values are grouped by function — Sandbox authentication, Alibaba",
-  "    Cloud credentials, connection, LLM and integrations —",
-  "    in a stable order. Group titles are",
-  "    display-only: ``config get`` and ``config set`` keep taking the bare",
-  "    key names, and ``--json`` output stays a flat ``{key: value}`` map.",
-  "",
-  "    Sources: ``(env)`` a process environment variable, ``(user)`` a value",
-  "    in ``./.env`` or stored with ``abx config set``, ``(default)`` a",
-  "    built-in default, and ``(not set)`` when no value exists anywhere.",
-  "    A set environment variable wins over either file. ``./.env`` wins",
-  "    over ``~/.abx`` for a key it sets; a key it omits still comes from",
-  "    ``~/.abx``. Sensitive values are always masked.",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config list",
-  "      abx --json config list",
-  "      abx config get http_timeout",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config get KEY        Inspect one effective value",
-  "      abx config set KEY VALUE",
-  "      abx config delete KEY     Remove one stored value",
-  "    ",
-].join("\n");
+const LIST_HELP = () => providerCliExtension()?.configuration?.help["LIST_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
-const INIT_HELP = [
-  "Guided setup: credentials and region (add --build / --llm for the rest).",
-  "",
-  "    The default flow asks only what every command needs: the platform API",
-  "    key and the default region. Press Enter to skip a prompt. Secrets are",
-  "    typed with asterisk feedback (never echoed) when the terminal supports",
-  "    it and stored in ~/.abx/.env; the region goes to ~/.abx/config.toml.",
-  "",
-  "    ``--build`` adds the template build & push settings: the ACR namespace",
-  "    and the Alibaba Cloud AccessKey pair (needed by ``abx template",
-  "    install``, ``build``, ``push`` and ``deploy``).",
-  "",
-  "    ``--llm`` adds the LLM API key used for template generation",
-  "    (``abx create \"<description>\"``, ``abx template init \"<description>\"``).",
-  "",
-  "    Features that need those settings print a pointer to ``abx config init",
-  "    --build`` / ``--llm`` when they are missing; nothing asks for them up",
-  "    front.",
-  "",
-  "    In non-TTY environments (CI, piped input) the wizard never blocks: it",
-  "    prints the equivalent non-interactive ``abx config set ...`` commands",
-  "    and exits successfully. ``--yes`` behaves the same way.",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config init                 # credentials + region",
-  "      abx config init --build         # ... plus ACR namespace and AccessKey",
-  "      abx config init --llm           # ... plus the LLM API key",
-  "      abx config init --yes           # print non-interactive commands",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config list           Review effective values and sources",
-  "      abx config set KEY VALUE  Set one value directly",
-  "      abx config set KEY \"\"     Clear one stored value",
-  "    ",
-].join("\n");
+const INIT_HELP = () => providerCliExtension()?.configuration?.help["INIT_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1079,52 +861,43 @@ const _CANONICAL_LIST_NAMES: ReadonlyMap<string, string> = new Map([
   ["domain", "sandbox_domain"],
 ]);
 
-const _ACR_GROUP_KEYS = [
-  "acr_registry", "acr_repo", "acr_username", "acr_password", "acr_instance_id", "acr_vpc_id", "acr_vswitch_ids",
-  "acr_security_group_id", "team_id",
-];
-
-/** Extra groups (and the targets behind their keys) for the provider-aware listing. */
+/** Extra listing targets are limited to the selected provider's declared fields. */
 function _extraListGroups(showAll: boolean): { groups: Array<[string, string[]]>; targets: Map<string, extras.ExtraTarget>; dropBuiltinCreds: boolean } {
   _syncPaths();
-  const groups: Array<[string, string[]]> = [];
-  const targets = new Map<string, extras.ExtraTarget>();
+  const groups: Array<[string, string[]]> = [], targets = new Map<string, extras.ExtraTarget>();
   const eff = extras.effectiveProviderId();
-  const plugin = eff !== BUILTIN_PROVIDER_ID;
-  if (extras.configFormat() === 2) {
-    for (const name of _ALLOWED_KEYS.keys()) {
-      const target = extras.coreTarget(name, name);
-      if (target !== null) targets.set(name, target);
-    }
+  const provider = registry.getProvider(eff);
+  const profile = providerCliExtension(eff)?.configuration;
+  if (extras.configFormat() === 2) for (const name of _ALLOWED_KEYS.keys()) {
+    const target = extras.coreTarget(name, name);
+    if (target !== null) targets.set(name, target);
   }
   if (providersInUse()) {
     targets.set("provider", extras.resolveExtraKey("provider") as extras.ExtraTarget);
     groups.push(["Provider", ["provider"]]);
   }
-  if (!plugin) {
-    const acr: string[] = [];
-    let anySet = false;
-    for (const name of _ACR_GROUP_KEYS) {
-      const target = extras.resolveExtraKey(`providers.${BUILTIN_PROVIDER_ID}.${name}`) as extras.ExtraTarget;
-      targets.set(name, target);
-      acr.push(name);
-      if (extras.readExtra(target).source !== "unset") anySet = true;
+  if (profile) {
+    for (const [title, names] of profile.extraGroups) {
+      const keys: string[] = []; let anySet = false;
+      for (const name of names) {
+        const target = extras.resolveExtraKey(`providers.${eff}.${name}`);
+        if (!target) continue;
+        targets.set(name, target); keys.push(name);
+        if (extras.readExtra(target).source !== "unset") anySet = true;
+      }
+      if (anySet || showAll) groups.push([title, keys]);
+      else for (const name of keys) targets.delete(name);
     }
-    if (anySet || showAll) groups.push(["Alibaba Cloud registry (ACR)", acr]);
-    else for (const name of acr) targets.delete(name);
   } else {
-    const provider = registry.getProvider(eff);
-    const keys = provider.configKeys();
-    const name = provider.displayName || eff;
-    const creds = keys.filter((k) => k.credential || k.secret);
-    const rest = keys.filter((k) => !(k.credential || k.secret));
-    for (const [title, list] of [[`${name} credentials`, creds], [`${name} options`, rest]] as const) {
+    const keys = provider.configKeys(), name = provider.displayName || eff;
+    for (const [title, list] of [[`${name} credentials`, keys.filter((key) => key.credential || key.secret)],
+      [`${name} options`, keys.filter((key) => !(key.credential || key.secret))]] as const) {
       if (!list.length) continue;
-      for (const k of list) targets.set(k.key, extras.resolveExtraKey(`providers.${eff}.${k.key}`) as extras.ExtraTarget);
-      groups.push([title, list.map((k) => k.key)]);
+      for (const key of list) targets.set(key.key, extras.resolveExtraKey(`providers.${eff}.${key.key}`) as extras.ExtraTarget);
+      groups.push([title, list.map((key) => key.key)]);
     }
   }
-  return { groups, targets, dropBuiltinCreds: plugin };
+  return { groups, targets, dropBuiltinCreds: !profile };
 }
 
 export const list_config = command("list", {
@@ -1141,12 +914,14 @@ export const list_config = command("list", {
     const extra = _extraListGroups(Boolean(params["show_all"]));
 
     // Stable order: the functional groups, then any key the groups do not cover yet (so a new key is never invisible).
-    const grouped: Array<[string, readonly string[]]> = _CONFIG_GROUPS.filter(([, keys]) => keys.length)
-      .filter(([title]) => !(extra.dropBuiltinCreds && title === "Alibaba Cloud credentials"))
-      .map(([title, keys]) => [title, keys]);
+    const activeGroups = providerCliExtension(extras.effectiveProviderId())?.configuration?.groups ?? [];
+    const functionalGroups = [..._CONFIG_GROUPS.slice(0, 1), ...activeGroups, ..._CONFIG_GROUPS.slice(1)];
+    const grouped: Array<[string, readonly string[]]> = functionalGroups.filter(([, keys]) => keys.length)
+      .filter(([title]) => !(extra.dropBuiltinCreds && bundledCliConfigurations().some((profile) => profile.groups.some(([group]) => group === title))))
+      .map(([title, keys]) => [title, extra.dropBuiltinCreds ? keys.filter((key) => _GENERIC_KEYS.has(key)) : keys]);
     const covered = new Set<string>();
     for (const [, keys] of grouped) for (const key of keys) covered.add(key);
-    const leftover = [..._ALLOWED_KEYS.keys()].filter((k) => !covered.has(k) && !(extra.dropBuiltinCreds && ["region"].includes(k)));
+    const leftover = [..._ALLOWED_KEYS.keys()].filter((k) => !covered.has(k) && !(extra.dropBuiltinCreds && !_GENERIC_KEYS.has(k)));
     if (leftover.length) grouped.push(["Other", leftover]);
     if (extra.groups.length) {
       const providerGroups = extra.groups.filter(([title]) => title === "Provider");
@@ -1203,21 +978,12 @@ export const list_config = command("list", {
 
 /** Print the non-interactive commands equivalent to the guided wizard. */
 function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }): void {
-  const lines = [
-    "Non-interactive setup. Run these commands to configure abx:",
-    "",
-    "  abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>",
-    "  abx config set region cn-hangzhou",
+  const provider = registry.getProvider(extras.effectiveProviderId());
+  const profile = providerCliExtension(provider.id)?.configuration;
+  const lines = ["Non-interactive setup. Run these commands to configure abx:", "",
+    ...(profile?.noninteractiveInit ?? provider.configKeys().map((key) => `  abx provider config ${provider.id} set ${key.key} <${key.env}>`)),
   ];
-  if (opts.build) {
-    lines.push(
-      "",
-      "  # Template build, push and install:",
-      "  abx config set acr_namespace <ACR_NAMESPACE>",
-      "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>",
-      "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>",
-    );
-  }
+  if (opts.build) lines.push(...(profile?.noninteractiveBuild ?? ["", `  abx provider info ${provider.id}`]));
   if (opts.llm) {
     lines.push(
       "",
@@ -1229,9 +995,9 @@ function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }): void
       "  abx config set llm_model qwen3-coder-plus",
     );
   }
-  const env = ["ABX_SANDBOX_API_KEY"];
+  const env = [...(profile?.environment ?? provider.configKeys().map((key) => key.env))];
   if (opts.llm) env.push("ABX_LLM_API_KEY");
-  if (opts.build) env.push("ACR_NAMESPACE", "ALICLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_SECRET");
+  if (opts.build) env.push(...(profile?.buildEnvironment ?? []));
   lines.push("", `Environment variables (${env.join(", ")}) override stored values.`);
   if (!opts.build || !opts.llm) {
     const more: string[] = [];
@@ -1246,7 +1012,7 @@ export const init = command("init", {
   help: INIT_HELP,
   params: [
     option(["--yes", "-y"], { is_flag: true, help: "Non-interactive: print the equivalent commands instead of prompting" }),
-    option(["--build"], { is_flag: true, help: "Also ask for the template build & push settings (ACR namespace, AccessKey)" }),
+    option(["--build"], { is_flag: true, help: "Also ask for the selected provider build settings" }),
     option(["--llm"], { is_flag: true, help: "Also ask for the LLM API key used for template generation" }),
   ],
   callback: _handleErrors(async (ctx: Context, params: Params) => {
@@ -1260,53 +1026,35 @@ export const init = command("init", {
       return;
     }
 
-    const total = 2 + (build ? 3 : 0) + (llm ? 1 : 0);
+    const provider = registry.getProvider(extras.effectiveProviderId());
+    const profile = providerCliExtension(provider.id)?.configuration;
+    const declared: readonly ConfigPrompt[] = profile?.initFields ?? provider.configKeys().filter((key) => key.credential || key.required).map((key) => ({
+      key: key.key, prompt: key.description || key.key, hidden: key.secret, current: !key.secret, result: "stored" as const,
+    }));
+    const fields = [...declared, ...(build ? profile?.buildFields ?? [] : [])];
+    const total = fields.length + (llm ? 1 : 0);
     let step = 0;
     const label = (text: string): string => `${++step}/${total} ${text}`;
-
-    echo("abx guided configuration (press Enter to keep the current value or skip):");
-    echo();
-
-    const apiKey = await configSeams._promptSecret(label("Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)"));
-    if (pyStrip(apiKey)) {
-      configSeams.writeEnvVar("ABX_SANDBOX_API_KEY", pyStrip(apiKey));
-      fmt.printSuccess("Stored sandbox_api_key in ~/.abx/.env");
-    }
-
-    const data = configSeams.loadConfigDict();
-    const currentRegion = pyStr(data["region"] || "cn-hangzhou");
-    const region = (await prompt(label("Region"), { default: currentRegion, show_default: true })) as string;
-    if (pyStrip(region)) {
-      data["region"] = pyStrip(region);
-      _saveConfigDict(data);
-      fmt.printSuccess(`Set region = ${pyStrip(region)}`);
-    }
-
-    if (build) {
-      const [currentNs] = _effectiveValue("acr_namespace");
-      const namespace = (await prompt(label("ACR namespace (needed by abx template install / build / deploy)"), {
-        default: currentNs ? pyStr(currentNs) : "",
-        show_default: Boolean(currentNs),
-      })) as string;
-      if (pyStrip(namespace)) {
-        configSeams.writeEnvVar("ACR_NAMESPACE", pyStrip(namespace));
-        fmt.printSuccess(`Set acr_namespace = ${pyStrip(namespace)}`);
+    echo("abx guided configuration (press Enter to keep the current value or skip):"); echo();
+    for (const field of fields) {
+      let current: unknown = field.default ?? "";
+      if (field.current) {
+        const target = profile ? null : extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
+        current = (target ? extras.readExtra(target).value : _effectiveValue(field.key)[0]) ?? current;
       }
-
-      const accessKeyId = (await prompt(label("Alibaba Cloud AccessKey ID (template deploy / ACR push)"), {
-        default: "",
-        show_default: false,
-      })) as string;
-      if (pyStrip(accessKeyId)) {
-        configSeams.writeEnvVar("ALICLOUD_ACCESS_KEY_ID", pyStrip(accessKeyId));
-        fmt.printSuccess("Stored access_key_id in ~/.abx/.env");
-      }
-
-      const accessKeySecret = await configSeams._promptSecret(label("Alibaba Cloud AccessKey Secret (input masked)"));
-      if (pyStrip(accessKeySecret)) {
-        configSeams.writeEnvVar("ALICLOUD_ACCESS_KEY_SECRET", pyStrip(accessKeySecret));
-        fmt.printSuccess("Stored access_key_secret in ~/.abx/.env");
-      }
+      const answer = field.hidden ? await configSeams._promptSecret(label(field.prompt)) : await prompt(label(field.prompt), {
+        default: pyStr(current), show_default: Boolean(current),
+      });
+      const value = pyStrip(String(answer));
+      if (!value) continue;
+      if (!profile) {
+        const target = extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
+        if (!target) throw new ProviderConfigError(`Provider '${provider.id}' does not declare '${field.key}'.`);
+        extras.writeExtra(target, value);
+      } else if (field.env) configSeams.writeEnvVar(field.env, value);
+      else { const data = configSeams.loadConfigDict(); data[field.key] = value; _saveConfigDict(data); }
+      if (field.result === "set" && !field.hidden) fmt.printSuccess(`Set ${field.key} = ${value}`);
+      else fmt.printSuccess(`Stored ${field.key} in protected provider configuration`);
     }
 
     if (llm) {
@@ -1330,40 +1078,9 @@ export const init = command("init", {
   }),
 });
 
-const CHECK_HELP = [
-  "Report legacy names in use and their canonical replacements.",
-  "",
-  "    Looks at the process environment, ./.env, ~/.abx/.env and",
-  "    ~/.abx/config.toml. Only names are shown, never values. E2B_* and",
-  "    provider-native names (ALICLOUD_ACCESS_KEY_ID, ...) are not reported.",
-  "    With --strict the exit code is 1 when anything is found.",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config check",
-  "      abx --json config check --strict",
-  "",
-  "    \b",
-  "    Related commands:",
-  "      abx config migrate       Rewrite stored names to the canonical ones",
-  "    ",
-].join("\n");
+const CHECK_HELP = () => providerCliExtension()?.configuration?.help["CHECK_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
-const MIGRATE_HELP = [
-  "Rewrite stored names to the canonical names (config_format = 2).",
-  "",
-  "    Renames entries in ~/.abx/config.toml and ~/.abx/.env, keeps",
-  "    config.toml.bak and .env.bak (mode 0600) and sets [core] config_format = 2.",
-  "    Older abx / agent-sandbox versions no longer read the migrated values.",
-  "    Without --yes a confirmation is required (not possible without a",
-  "    terminal: exit code 2). --dry-run prints the plan and changes nothing.",
-  "",
-  "    \b",
-  "    Examples:",
-  "      abx config migrate --dry-run",
-  "      abx config migrate --yes",
-  "    ",
-].join("\n");
+const MIGRATE_HELP = () => providerCliExtension()?.configuration?.help["MIGRATE_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
 
 function _whereLabel(where: string): string {
   return where === "dotenv" ? "dotenv" : where;

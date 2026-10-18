@@ -15,8 +15,8 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
-import { deploySeams, deploy_shortcut } from "../../src/cli/commands/deploy.js";
-import { build as realBuild } from "../../src/cli/commands/template.js";
+import { deploySeams, deploy_shortcut } from "../../src/providers/alicloud_express/cli/deploy.js";
+import { build as realBuild } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { command, getCurrentContext } from "../../src/cli/kit.js";
 import { UsageError } from "../../src/cli/errors.js";

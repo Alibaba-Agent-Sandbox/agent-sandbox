@@ -112,8 +112,8 @@ it("capture CLI evidence", async () => {
   readme += "```bash\n";
   readme += "# Offline (mocked backend) — default\n";
   readme += "node scripts/capture-cli-evidence.mjs\n\n";
-  readme += "# With real backend (requires E2B_API_KEY)\n";
-  readme += "E2B_API_KEY=your-key node scripts/capture-cli-evidence.mjs --live\n\n";
+  readme += "# With real backend (configure ABX_SANDBOX_API_KEY and its endpoint first)\n";
+  readme += "node scripts/capture-cli-evidence.mjs --live\n\n";
   readme += "# Single command group\n";
   readme += "node scripts/capture-cli-evidence.mjs --command create\n";
   readme += "```\n\n";

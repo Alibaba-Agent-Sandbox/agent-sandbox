@@ -11,7 +11,7 @@
  * The Python `*_sync` variants (`make_sync`) do not exist in Node: every call is a Promise.
  */
 
-import { ResolvedCapabilities, resolveCapabilities } from "./capability.js";
+import { ResolvedCapabilities } from "./capability.js";
 import { CommandNotFoundError, ConnectionError_ } from "../models/errors.js";
 import { setActiveProvider, trackOpenInfra } from "../providers/active.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
@@ -19,17 +19,17 @@ import type { Provider, ProviderInfra } from "../providers/base.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderMismatchError } from "../providers/errors.js";
 import { cliOptions, cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, registerProvider, resolveProviderId } from "../providers/registry.js";
-import { BUILTIN_PROVIDER_ID, providerEnvName } from "../utils/config_keys.js";
+import { providerEnvName } from "../utils/config_keys.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { CodeResult, CommandResult, ProcessResult, type ProcessChunk } from "../models/process.js";
-import { SandboxConfig, SandboxInfo, type SandboxStatus } from "../models/sandbox.js";
-import { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
-import { FilesystemProtocol } from "../protocol/filesystem.js";
-import { ProcessProtocol } from "../protocol/process.js";
-import { SandboxProtocol } from "../protocol/sandbox.js";
-import { TerminalSession } from "../protocol/terminal.js";
-import { createAuthProvider, EnvdTokenManager, type AuthProvider } from "../transport/auth.js";
-import { loadConfig, type TransportConfig } from "../transport/config.js";
+import { SandboxConfig, SandboxInfo, validateVolumeMounts, type SandboxStatus } from "../models/sandbox.js";
+import type { CodeInterpreterProtocol } from "../protocol/contracts.js";
+import type { FilesystemProtocol } from "../protocol/contracts.js";
+import type { ProcessProtocol } from "../protocol/contracts.js";
+import type { SandboxProtocol } from "../protocol/contracts.js";
+import type { TerminalSession } from "../protocol/contracts.js";
+import type { AuthProvider, DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
+import type { TransportConfig } from "../transport/config.js";
 import { HttpClient, RequestError } from "../transport/http.js";
 import type { StreamReader } from "../transport/streaming.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
@@ -101,10 +101,10 @@ function _refContainsColon(sandbox_id: unknown): boolean {
 }
 
 /**
- * Resolve the effective provider; `[null, id]` is the built-in default path. Also splits a qualified `provider:sandbox_id`
+ * Resolve the effective Provider instance. Also splits a qualified `provider:sandbox_id`
  * reference. A qualified prefix that contradicts an explicit provider raises `ProviderMismatchError` (E8030).
  */
-export function _selectProvider(provider: string | Provider | null | undefined, sandbox_id?: unknown): [Provider | null, string | null] {
+export function _selectProvider(provider: string | Provider | null | undefined, sandbox_id?: unknown): [Provider, string | null] {
   let bare: unknown = sandbox_id ?? null;
   let refProvider: string | null = null;
   if (pyTruthy(sandbox_id) && _refContainsColon(sandbox_id)) {
@@ -129,7 +129,6 @@ export function _selectProvider(provider: string | Provider | null | undefined, 
   }
   const pid = resolveProviderId(explicit ?? refProvider ?? cliProvider());
   setActiveProvider(pid);
-  if (pid === BUILTIN_PROVIDER_ID) return [null, bare as string | null];
   return [getProvider(pid), bare as string | null];
 }
 
@@ -195,26 +194,8 @@ async function _providerInfra(prov: Provider, opts: BuildInfraOptions): Promise<
  * standalone infra.
  */
 export function _buildInfra(opts: BuildInfraOptions = {}): [TransportConfig, AuthProvider, HttpClient, SandboxProtocol] {
-  const { api_key = null, api_url = null, access_key_id = null, access_key_secret = null } = opts;
-  const config_overrides: Record<string, unknown> = {};
-  if (api_key !== null) config_overrides["api_key"] = api_key;
-  if (api_url !== null) config_overrides["api_url"] = api_url;
-  if (access_key_id !== null) config_overrides["access_key_id"] = access_key_id;
-  if (access_key_secret !== null) config_overrides["access_key_secret"] = access_key_secret;
-  const region = opts.provider_options?.["region"];
-  if (typeof region === "string" && region) config_overrides["region"] = region;
-
-  const config = loadConfig(config_overrides);
-  const auth = createAuthProvider({
-    api_key: config.api_key,
-    access_key_id: config.access_key_id,
-    access_key_secret: config.access_key_secret,
-  });
-  // The built-in Express envd reads streaming RPCs as Connect envelopes. Plain JSON is parsed as a
-  // length prefix and the command output is lost.
-  const http_client = new HttpClient(config, auth, { envelope_connect: true });
-  const sandbox_protocol = new SandboxProtocol(http_client);
-  return [config, auth, http_client, sandbox_protocol];
+  const [provider] = _selectProvider(opts.provider);
+  return provider.buildLegacyInfra(opts);
 }
 
 export interface SandboxInit {
@@ -240,6 +221,8 @@ export interface CreateOptions extends BuildInfraOptions {
   timeout?: number;
   request_timeout?: number | null;
   metadata?: Record<string, string> | null;
+  /** Built-in Express only: normalized absolute Unix mount paths mapped to existing same-Team Volume names. */
+  volume_mounts?: Record<string, string> | null;
   envs?: Record<string, string> | null;
   cpu?: number | null;
   memory?: number | null;
@@ -326,22 +309,24 @@ export class Sandbox {
   constructor(init: SandboxInit) {
     this._info = init.info;
     this._config = init.config;
-    this._provider_id = init.provider_id ?? BUILTIN_PROVIDER_ID;
+    this._provider_id = init.provider_id ?? resolveProviderId();
 
     // Derive envd URL when the platform response omits it (Bug 1 fix)
     if (!this._info.envd_url && this._info.sandbox_id) {
-      this._info.envd_url = this._config.buildEnvdUrl(this._info.sandbox_id);
+      this._info.envd_url = getProvider(this._provider_id).resolveSessionUrl(this._info, this._config, init.sandbox_protocol ?? undefined);
     }
     this._http_client = init.http_client;
     this._killed = false;
     this._auth = init.auth;
     this._envd_token = init.envd_token;
-    this._domain = init.domain ?? "e2b.dev";
+    this._domain = init.domain ?? init.config.domain;
     this._secure = init.secure ?? true;
-    this._sandbox_protocol = init.sandbox_protocol || new SandboxProtocol(init.http_client);
-    this._process_protocol = init.process_protocol || new ProcessProtocol(init.http_client);
-    this._filesystem_protocol = init.filesystem_protocol || new FilesystemProtocol(init.http_client);
-    this._code_interpreter_protocol = init.code_interpreter_protocol || new CodeInterpreterProtocol(init.http_client);
+    const needsDefaults = [init.sandbox_protocol, init.process_protocol, init.filesystem_protocol, init.code_interpreter_protocol].some((p) => p === undefined || p === null);
+    const defaults = needsDefaults ? getProvider(this._provider_id).buildSessionProtocols(init.http_client) : null;
+    this._sandbox_protocol = (init.sandbox_protocol === undefined || init.sandbox_protocol === null ? defaults?.sandbox_protocol : init.sandbox_protocol) as SandboxProtocol;
+    this._process_protocol = (init.process_protocol === undefined || init.process_protocol === null ? defaults?.process_protocol : init.process_protocol) as ProcessProtocol;
+    this._filesystem_protocol = (init.filesystem_protocol === undefined || init.filesystem_protocol === null ? defaults?.filesystem_protocol : init.filesystem_protocol) as FilesystemProtocol;
+    this._code_interpreter_protocol = (init.code_interpreter_protocol === undefined || init.code_interpreter_protocol === null ? defaults?.code_interpreter_protocol : init.code_interpreter_protocol) as CodeInterpreterProtocol;
 
     // Capability model
     if (init.resolved_capabilities !== undefined && init.resolved_capabilities !== null) {
@@ -405,6 +390,7 @@ export class Sandbox {
         this._sandbox_protocol,
         this.id,
         this._capabilities,
+        this._provider_id,
       );
     }
     return this._files;
@@ -431,6 +417,8 @@ export class Sandbox {
         access_token: this._envd_token ? this._envd_token.token : null,
         capabilities: this._capabilities,
         port_resolver: this._portResolver(),
+        port_access: getProvider(this._provider_id).createPortAccess({ sandbox_id: this.id,
+          domain: this._domain, secure: this._secure, access_token: this._envd_token?.token ?? null }, this._sandbox_protocol),
       });
     }
     return this._network;
@@ -491,6 +479,13 @@ export class Sandbox {
       provider = null,
       provider_options = null,
     } = opts;
+    let volume_mounts: Record<string, string>;
+    try { volume_mounts = validateVolumeMounts(opts.volume_mounts ?? {}); }
+    catch { throw new ProviderConfigError("Invalid volume_mounts: use Volume names mapped from normalized absolute Unix mount paths outside system/hidden directories."); }
+    const [prov] = _selectProvider(provider);
+    if (Object.keys(volume_mounts).length && !prov.createOptions.has("volume_mounts")) {
+      throw new ProviderFeatureNotSupportedError(prov.id, "volume_mounts");
+    }
     const secure_hint: boolean | null = opts.secure === undefined ? null : opts.secure;
 
     if (request_timeout !== null && request_timeout <= 0) {
@@ -510,10 +505,8 @@ export class Sandbox {
       );
     }
 
-    const [prov] = _selectProvider(provider);
     const popts = _effectiveOptions(prov, provider_options);
-    if (prov !== null) {
-      return this._createViaProvider(prov, {
+    return this._createViaProvider(prov, {
         template: effective_template,
         timeout,
         request_timeout,
@@ -523,49 +516,11 @@ export class Sandbox {
         memory: effective_memory,
         disk,
         gpu,
+        volume_mounts,
         secure: secure_hint,
         domain,
         build: { api_key, api_url, access_key_id, access_key_secret, provider_options: popts },
       });
-    }
-
-    const [config, auth, http_client, sandbox_protocol] = _buildInfra({ api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
-
-    try {
-      const sandbox_config = new SandboxConfig({
-        template: effective_template,
-        timeout,
-        metadata: metadata && Object.keys(metadata).length ? metadata : {},
-        env_vars: pyTruthy(envs) ? envs : {},
-        cpu: effective_cpu,
-        memory: effective_memory,
-        disk,
-        gpu,
-      });
-      const info = await sandbox_protocol.create(sandbox_config, { request_timeout });
-
-      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
-
-      logger.info("Sandbox created: %s", info.sandbox_id);
-
-      // Resolve capabilities for the template
-      const resolved = await resolveCapabilities(effective_template);
-
-      return new this({
-        info,
-        config,
-        http_client,
-        auth,
-        envd_token,
-        sandbox_protocol,
-        domain: domain || config.domain,
-        secure,
-        resolved_capabilities: resolved,
-      });
-    } catch (e) {
-      await http_client.close();
-      throw e;
-    }
   }
 
   /** Connect to an existing sandbox by ID. Accepts `connect("sbx-1", {...})` or `connect({ sandbox_id, ... })`. */
@@ -582,38 +537,10 @@ export class Sandbox {
     const { api_key = null, api_url = null, domain = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = opts;
     const [prov, bare_id] = _selectProvider(provider, sid);
     const popts = _effectiveOptions(prov, provider_options);
-    if (prov !== null) {
       return this._connectViaProvider(prov, bare_id as string, {
         domain,
         build: { api_key, api_url, access_key_id, access_key_secret, provider_options: popts },
       });
-    }
-    sid = bare_id as string;
-    const [config, auth, http_client, sandbox_protocol] = _buildInfra({ api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
-
-    try {
-      const info = await sandbox_protocol.connect(sid);
-      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
-
-      logger.info("Connected to sandbox: %s", sid);
-
-      // Resolve capabilities for the template
-      const resolved = await resolveCapabilities(info.template);
-
-      return new this({
-        info,
-        config,
-        http_client,
-        auth,
-        envd_token,
-        sandbox_protocol,
-        domain: domain || config.domain,
-        resolved_capabilities: resolved,
-      });
-    } catch (e) {
-      await http_client.close();
-      throw e;
-    }
   }
 
   /** List sandboxes (class method, no instance required). */
@@ -621,20 +548,12 @@ export class Sandbox {
     const { status = null, limit = 100, offset = 0, api_key = null, api_url = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = options;
     const [prov] = _selectProvider(provider);
     const popts = _effectiveOptions(prov, provider_options);
-    if (prov !== null) {
       const infra = await _providerInfra(prov, { api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
       try {
         return await infra.sandbox_protocol.list({ status, limit, offset });
       } finally {
         await new InfraCloser(infra).close();
       }
-    }
-    const [, , http_client, sandbox_protocol] = _buildInfra({ api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
-    try {
-      return await sandbox_protocol.list({ status, limit, offset });
-    } finally {
-      await http_client.close();
-    }
   }
 
   /** Fetch metadata directly without connecting, resuming, renewing, or adopting a sandbox. */
@@ -652,20 +571,10 @@ export class Sandbox {
     const [provider, bare] = _selectProvider(options.provider, sandbox_id);
     const id = bare ?? sandbox_id;
     const resolved = { ...options, provider_options: _effectiveOptions(provider, options.provider_options) };
-    if (provider !== null) {
-      const infra = await _providerInfra(provider, resolved);
-      try {
-        return await operation(infra.sandbox_protocol, id);
-      } finally {
-        await new InfraCloser(infra).close();
-      }
-    }
-    const [, , http, protocol] = _buildInfra(resolved);
-    try {
-      return await operation(protocol, id);
-    } finally {
-      await http.close();
-    }
+    const infra = await _providerInfra(provider, resolved);
+    try { return await operation(infra.sandbox_protocol, id); }
+    finally { await new InfraCloser(infra).close(); }
+
   }
 
   /** Kill a sandbox by ID (class method, no instance required). */
@@ -674,7 +583,6 @@ export class Sandbox {
     const [prov, bare_id] = _selectProvider(provider, sandbox_id);
     sandbox_id = bare_id as string;
     const popts = _effectiveOptions(prov, provider_options);
-    if (prov !== null) {
       const infra = await _providerInfra(prov, { api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
       try {
         await infra.sandbox_protocol.kill(sandbox_id);
@@ -683,14 +591,6 @@ export class Sandbox {
         await new InfraCloser(infra).close();
       }
       return;
-    }
-    const [, , http_client, sandbox_protocol] = _buildInfra({ api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
-    try {
-      await sandbox_protocol.kill(sandbox_id);
-      logger.info("Sandbox killed (by ID): %s", sandbox_id);
-    } finally {
-      await http_client.close();
-    }
   }
 
   private static async _createViaProvider(
@@ -705,6 +605,7 @@ export class Sandbox {
       memory: number | null;
       disk: number | null;
       gpu: string | null;
+      volume_mounts: Record<string, string>;
       secure: boolean | null;
       domain: string | null;
       build: BuildInfraOptions;
@@ -712,6 +613,7 @@ export class Sandbox {
   ): Promise<Sandbox> {
     const infra = await _providerInfra(prov, p.build);
     const closer = new InfraCloser(infra);
+    let created: SandboxInfo | null = null;
     try {
       const sandbox_config = new SandboxConfig({
         template: p.template,
@@ -722,14 +624,17 @@ export class Sandbox {
         memory: p.memory,
         disk: p.disk,
         gpu: p.gpu,
+        volume_mounts: p.volume_mounts,
         secure: p.secure,
         provider_options: { ...(p.build.provider_options ?? {}) },
       });
       const info = await infra.sandbox_protocol.create(sandbox_config, { request_timeout: p.request_timeout });
-      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id, infra.envd_auth);
+      created = info;
+      const envd_token = prov.createSessionAuth(info, infra);
       logger.info("Sandbox created: %s (provider %s)", info.sandbox_id, prov.id);
-      const resolved = providerCapabilities(prov);
-      return new Sandbox({
+      const backendResolved = await prov.resolveSessionCapabilities(p.template, info);
+      const resolved = backendResolved ?? providerCapabilities(prov);
+      return new this({
         info,
         config: infra.config.toTransportConfig(),
         http_client: closer as unknown as HttpClient,
@@ -742,10 +647,14 @@ export class Sandbox {
         domain: p.domain || infra.config.sandbox_domain,
         secure: p.secure === null ? true : p.secure,
         resolved_capabilities: resolved,
-        declared_capabilities: prov.capabilities(),
+        declared_capabilities: backendResolved ? resolved.capabilities : prov.capabilities(),
         provider_id: prov.id,
       });
     } catch (e) {
+      if (created) {
+        try { await infra.sandbox_protocol.kill(created.sandbox_id); }
+        catch { logger.warning("Created sandbox cleanup failed after session binding failed; inspect provider resources."); }
+      }
       await closer.close();
       throw e;
     }
@@ -756,10 +665,11 @@ export class Sandbox {
     const closer = new InfraCloser(infra);
     try {
       const info = await infra.sandbox_protocol.connect(sandbox_id);
-      const envd_token = new EnvdTokenManager(info.envd_access_token, info.sandbox_id, infra.envd_auth);
+      const envd_token = prov.createSessionAuth(info, infra);
       logger.info("Connected to sandbox: %s (provider %s)", sandbox_id, prov.id);
-      const resolved = providerCapabilities(prov);
-      return new Sandbox({
+      const backendResolved = await prov.resolveSessionCapabilities(info.template, info);
+      const resolved = backendResolved ?? providerCapabilities(prov);
+      return new this({
         info,
         config: infra.config.toTransportConfig(),
         http_client: closer as unknown as HttpClient,
@@ -771,7 +681,7 @@ export class Sandbox {
         code_interpreter_protocol: infra.code_interpreter_protocol as unknown as CodeInterpreterProtocol | null,
         domain: p.domain || infra.config.sandbox_domain,
         resolved_capabilities: resolved,
-        declared_capabilities: prov.capabilities(),
+        declared_capabilities: backendResolved ? resolved.capabilities : prov.capabilities(),
         provider_id: prov.id,
       });
     } catch (e) {
@@ -826,7 +736,7 @@ export class Sandbox {
     this._info = await this._sandbox_protocol.getInfo(this.id);
     // Re-derive envd URL if the platform still omits it
     if (!this._info.envd_url && this._info.sandbox_id) {
-      this._info.envd_url = this._config.buildEnvdUrl(this._info.sandbox_id);
+      this._info.envd_url = getProvider(this._provider_id).resolveSessionUrl(this._info, this._config, this._sandbox_protocol);
     }
     return this._info;
   }
@@ -842,12 +752,9 @@ export class Sandbox {
   /** Open an interactive PTY terminal session (WebSocket). */
   async getTerminal(opts: { cols?: number; rows?: number; shell?: string } = {}): Promise<TerminalSession> {
     const { cols = 80, rows = 24, shell = "/bin/bash" } = opts;
-    const hosted = (this._process_protocol as { openTerminal?: (url: string, o: { cols: number; rows: number }) => Promise<unknown> }).openTerminal;
-    if (typeof hosted === "function" && this.url.startsWith("epp://")) {
-      return (await hosted.call(this._process_protocol, this.url, { cols, rows })) as TerminalSession;
-    }
-    const hc = this._http_client instanceof InfraCloser ? this._http_client.httpClient : this._http_client;
-    return TerminalSession.create(this.url, this._envd_token, this._config, { cols, rows, shell, dial: hc?._dial ?? null });
+    const http = this._http_client instanceof InfraCloser ? this._http_client.httpClient : this._http_client;
+    return getProvider(this._provider_id).openTerminal({ url: this.url, token: this._envd_token,
+      config: this._config, http, process: this._process_protocol }, { cols, rows, shell });
   }
 
   // ---- Named commands (registered on the in-sandbox SandboxServer) ----

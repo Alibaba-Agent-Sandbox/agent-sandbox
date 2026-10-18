@@ -1,5 +1,10 @@
+import { BorrowedSandboxError } from "./lifecycle_errors.js";
+import { ValidationError } from "../models/base.js";
+import { AuthenticationError, SandboxError, SandboxNotFoundError, QuotaExceededError, TemplateNotFoundError } from "../models/errors.js";
+import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "../providers/errors.js";
+import { HTTPStatusError, TimeoutException, RequestError } from "../transport/http.js";
 /**
- * MCP execution, files, and bounded lifecycle tools.
+ * MCP tool definitions: seven compatible core tools and fourteen workflow operations.
  *
  * 每个 Tool 包含：
  * - TOOL_SCHEMA: MCP Tool schema（name, description, inputSchema）
@@ -8,21 +13,15 @@
  * Port of `agent_sandbox/agent/tools.py`.
  */
 
-import { ValidationError } from "../models/base.js";
-import { SandboxStatus, type SandboxInfo } from "../models/sandbox.js";
-import { AuthenticationError, SandboxError, SandboxNotFoundError, QuotaExceededError, TemplateNotFoundError } from "../models/errors.js";
-import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "../providers/errors.js";
-import { HTTPStatusError, TimeoutException, RequestError } from "../transport/http.js";
-import { pyExcStr } from "../api/_pyerrors.js";
+import { z } from "zod";
+import { templateSchemas, handleTemplateOperation } from "./template_operations.js";
+import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
+import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { KeyError, ValueError, isDict, pyStrip, pyTruthy, pyTypeName, type JsonObject } from "./_py.js";
 import type { SandboxManager } from "./mcp.js";
 
 const logger = getLogger("agent.tools");
-const LIFECYCLE_TOOLS = new Set(["create_sandbox", "list_sandboxes", "get_sandbox", "set_sandbox_timeout"]);
-
-/** Only application-generated messages with no untrusted values may pass through. */
-export class ToolInputError extends ValueError {}
 
 // ---------------------------------------------------------------------------
 // Tool schemas (MCP format)
@@ -34,7 +33,7 @@ export interface ToolSchema {
   inputSchema: JsonObject;
 }
 
-export const TOOL_SCHEMAS: ToolSchema[] = [
+const CORE_TOOL_SCHEMAS: ToolSchema[] = [
   {
     name: "create_sandbox",
     description:
@@ -48,61 +47,18 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
         template: {
           type: "string",
           description: "沙箱模板名称，省略时使用 server 配置的模板",
-          minLength: 1, pattern: "\\S",
         },
         timeout: {
           type: "integer",
           description: "沙箱超时时间（秒），默认 300",
-          default: 300, minimum: 1, maximum: 86400,
+          default: 300,
         },
-        provider: { type: "string", minLength: 1, pattern: "\\S" },
-        region: { type: "string", minLength: 1, pattern: "\\S" },
-        cpu: { type: "integer", minimum: 1 },
-        memory: { type: "integer", minimum: 1, description: "内存大小（MB）" },
         envs: {
           type: "object",
           description: "环境变量键值对",
           additionalProperties: { type: "string" },
         },
       },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "list_sandboxes",
-    description: "列出授权 provider/region 可见的沙箱；只返回安全元数据，不创建或改变默认沙箱。列表可能最终一致。",
-    inputSchema: {
-      type: "object",
-      properties: {
-        status: { type: "string", enum: Object.values(SandboxStatus) },
-        limit: { type: "integer", minimum: 1, maximum: 100, default: 100 },
-        offset: { type: "integer", minimum: 0, default: 0 },
-        provider: { type: "string", minLength: 1, pattern: "\\S" },
-        region: { type: "string", minLength: 1, pattern: "\\S" },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "get_sandbox",
-    description: "从平台刷新安全元数据，不自动续期或创建默认沙箱；外部 ID 不加入会话销毁集合。",
-    inputSchema: {
-      type: "object",
-      properties: { sandbox_id: { type: "string", minLength: 1, pattern: "\\S" } },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "set_sandbox_timeout",
-    description: "设置从现在起的生命周期（秒）；已管理沙箱后续自动续期使用新时长。不隐式创建或收养外部 ID。",
-    inputSchema: {
-      type: "object",
-      properties: {
-        sandbox_id: { type: "string", minLength: 1, pattern: "\\S" },
-        timeout: { type: "integer", minimum: 1, maximum: 86400 },
-      },
-      required: ["timeout"],
-      additionalProperties: false,
     },
   },
   {
@@ -217,12 +173,33 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       },
     },
   },
+  ...OPERATION_SCHEMAS,
 ];
 
+/** Live discovery view: reusing the module must not retain another provider's schemas. */
+export function toolSchemas(): ToolSchema[] { return [...CORE_TOOL_SCHEMAS, ...templateSchemas()]; }
+export const TOOL_SCHEMAS: ToolSchema[] = new Proxy([] as ToolSchema[], {
+  get(_target, key) { const current = toolSchemas(); const value = Reflect.get(current, key); return typeof value === "function" ? value.bind(current) : value; },
+});
+
+Object.assign(CORE_TOOL_SCHEMAS[0]!.inputSchema.properties as JsonObject, {
+  cpu: { type: "integer", minimum: 1 }, memory: { type: "integer", minimum: 1 },
+  region: { type: "string", minLength: 1 }, retain: { type: "boolean", default: false },
+});
+TOOL_SCHEMAS[0]!.inputSchema.additionalProperties = false;
+
+const createInput = z.strictObject({
+  template: z.string().min(1).optional(), timeout: z.number().int().min(1).max(86400).optional(),
+  envs: z.record(z.string(), z.string()).optional(), cpu: z.number().int().min(1).optional(),
+  memory: z.number().int().min(1).optional(), region: z.string().min(1).optional(), retain: z.boolean().optional(),
+});
+
 /** Quick lookup by name. */
-export const TOOL_SCHEMA_MAP: Record<string, ToolSchema> = Object.fromEntries(
-  TOOL_SCHEMAS.map((t) => [t.name, t]),
-);
+export const TOOL_SCHEMA_MAP: Record<string, ToolSchema> = new Proxy({} as Record<string, ToolSchema>, {
+  get(_target, key) { return toolSchemas().find((schema) => schema.name === key); },
+  ownKeys() { return toolSchemas().map((schema) => schema.name); },
+  getOwnPropertyDescriptor(_target, key) { const value = toolSchemas().find((schema) => schema.name === key); return value ? { value, enumerable: true, configurable: true } : undefined; },
+});
 
 // ---------------------------------------------------------------------------
 // Helpers mirroring dict / enum access in the Python handlers
@@ -269,93 +246,25 @@ export async function handleCreateSandbox(
   params: ToolParams,
   manager: SandboxManager,
 ): Promise<ToolResult> {
-  checkProperties("create_sandbox", params);
-  const template = optionalString(params, "template");
-  const timeout = integer(params, "timeout", 300, 1, 86400);
-  const envs = get(params, "envs", {});
-  if (!isDict(envs) || Object.values(envs).some((value) => typeof value !== "string")) {
-    throw new ToolInputError("envs must be an object of string values");
-  }
-  const options: Record<string, unknown> = {};
-  for (const name of ["provider", "region"]) {
-    if (Object.hasOwn(params, name)) options[name] = optionalString(params, name);
-  }
-  for (const name of ["cpu", "memory"]) {
-    if (Object.hasOwn(params, name)) options[name] = integer(params, name, undefined, 1);
-  }
+  const rawTemplate = get(params, "template");
+  const template = typeof rawTemplate === "string" && rawTemplate ? rawTemplate : null;
+  const timeout = get(params, "timeout", 300);
+  const envs = pyTruthy(get(params, "envs")) ? get(params, "envs") : {};
+
   const sandbox: SandboxHandle = await manager.createSandbox({
-    template, timeout, envs: envs as Record<string, string>, ...options,
+    template,
+    timeout: timeout as number,
+    envs: envs as Record<string, string>,
+    ...(params.cpu !== undefined ? { cpu: params.cpu as number } : {}),
+    ...(params.memory !== undefined ? { memory: params.memory as number } : {}),
+    ...(params.region !== undefined ? { region: params.region as string } : {}),
+    ...(params.retain !== undefined ? { retain: params.retain as boolean } : {}),
   });
   return {
-    sandbox_id: sandbox.id,
+    sandbox_id: typeof manager.reference === "function" ? manager.reference(sandbox) : sandbox.id,
     status: enumValue(sandbox.status),
     url: sandbox.url,
   };
-}
-
-function checkProperties(name: string, params: ToolParams): void {
-  const properties = TOOL_SCHEMA_MAP[name].inputSchema.properties as JsonObject;
-  if (Object.keys(params).some((key) => !Object.hasOwn(properties, key))) {
-    throw new ToolInputError(`Unsupported argument for ${name}; see its inputSchema`);
-  }
-}
-
-function optionalString(params: ToolParams, name: string): string | null {
-  if (!Object.hasOwn(params, name)) return null;
-  const value = params[name];
-  if (typeof value !== "string" || !value.trim()) throw new ToolInputError(`${name} must be a non-empty string`);
-  return value;
-}
-
-function integer(params: ToolParams, name: string, fallback?: number, minimum = 0, maximum?: number): number {
-  const value = Object.hasOwn(params, name) ? params[name] : fallback;
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || (maximum !== undefined && value > maximum)) {
-    throw new ToolInputError(`${name} must be an integer in ${maximum === undefined ? `>= ${minimum}` : `${minimum}..${maximum}`}`);
-  }
-  return value;
-}
-
-/** Deliberate allowlist: never serialize SDK model objects, URLs, envs, or user metadata. */
-function safeSandboxInfo(info: SandboxInfo): ToolResult {
-  return {
-    sandbox_id: info.sandbox_id,
-    template: info.template,
-    status: enumValue(info.status),
-    region: info.region,
-    started_at: info.started_at?.toISOString() ?? null,
-    end_at: info.end_at?.toISOString() ?? null,
-    cpu_count: info.cpu_count,
-    memory_mb: info.memory_mb,
-    disk_size_mb: info.disk_size_mb,
-  };
-}
-
-/** List visible instances using bounded pagination and safe metadata. */
-export async function handleListSandboxes(params: ToolParams, manager: SandboxManager): Promise<ToolResult> {
-  checkProperties("list_sandboxes", params);
-  const limit = integer(params, "limit", 100, 1, 100);
-  const offset = integer(params, "offset", 0, 0);
-  const status = optionalString(params, "status");
-  if (status !== null && !(Object.values(SandboxStatus) as string[]).includes(status)) {
-    throw new ToolInputError("status must be a supported sandbox state");
-  }
-  const infos = await manager.listSandboxes({ limit, offset, status: status as SandboxStatus | null,
-    provider: optionalString(params, "provider"), region: optionalString(params, "region") });
-  return { sandboxes: infos.map(safeSandboxInfo), limit, offset };
-}
-
-/** Refresh an existing sandbox without automatic creation or renewal. */
-export async function handleGetSandbox(params: ToolParams, manager: SandboxManager): Promise<ToolResult> {
-  checkProperties("get_sandbox", params);
-  return safeSandboxInfo(await manager.inspectSandbox(optionalString(params, "sandbox_id")));
-}
-
-/** Set a validated remaining lifetime without adopting external resources. */
-export async function handleSetSandboxTimeout(params: ToolParams, manager: SandboxManager): Promise<ToolResult> {
-  checkProperties("set_sandbox_timeout", params);
-  const timeout = integer(params, "timeout", undefined, 1, 86400);
-  const sandboxId = await manager.setSandboxTimeout(timeout, optionalString(params, "sandbox_id"));
-  return { success: true, sandbox_id: sandboxId, timeout };
 }
 
 export async function handleRunCode(
@@ -471,18 +380,33 @@ export async function handleKillSandbox(
 type ToolHandler = (params: ToolParams, manager: SandboxManager) => Promise<ToolResult>;
 
 /** Handler dispatch table. */
-export const TOOL_HANDLERS: Record<string, ToolHandler> = {
+const CORE_TOOL_HANDLERS: Record<string, ToolHandler> = {
   create_sandbox: handleCreateSandbox,
-  list_sandboxes: handleListSandboxes,
-  get_sandbox: handleGetSandbox,
-  set_sandbox_timeout: handleSetSandboxTimeout,
   run_code: handleRunCode,
   run_command: handleRunCommand,
   read_file: handleReadFile,
   write_file: handleWriteFile,
   list_files: handleListFiles,
   kill_sandbox: handleKillSandbox,
+  ...Object.fromEntries(Object.keys(operationInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleOperation(name as keyof typeof operationInputs, params, manager)])),
 };
+
+/** Handler discovery follows the selected provider without keeping stale names. */
+export const TOOL_HANDLERS: Record<string, ToolHandler> = new Proxy(CORE_TOOL_HANDLERS, {
+  get(target, key) {
+    if (typeof key === "string" && Object.hasOwn(target, key)) return target[key];
+    return templateSchemas().some(schema => schema.name === key)
+      ? (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(String(key), params, manager)
+      : undefined;
+  },
+  ownKeys(target) { return [...Object.keys(target), ...templateSchemas().map(schema => schema.name)]; },
+  getOwnPropertyDescriptor(target, key) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+    if (descriptor) return descriptor;
+    return templateSchemas().some(schema => schema.name === key)
+      ? { enumerable: true, configurable: true } : undefined;
+  },
+});
 
 /**
  * Dispatch a tool call to its handler.
@@ -495,14 +419,19 @@ export async function dispatchTool(
   manager: SandboxManager,
 ): Promise<ToolResult> {
   const handler = Object.hasOwn(TOOL_HANDLERS, name) ? TOOL_HANDLERS[name] : undefined;
-  if (handler === undefined) {
+  const operation = Object.hasOwn(operationInputs, name);
+  const template = templateSchemas().some((schema) => schema.name === name);
+  if (handler === undefined && !operation && !template) {
     throw new ValueError(`Unknown tool: ${name}`);
   }
   try {
-    return await handler(params, manager);
+    if (template) return await handleTemplateOperation(name, params, manager);
+    if (operation) return await handleOperation(name as keyof typeof operationInputs, params, manager);
+    if (name === "create_sandbox") createInput.parse(params);
+    return await handler!(params, manager);
   } catch (exc) {
     if (isCancellation(exc)) throw exc;
-    if (LIFECYCLE_TOOLS.has(name)) {
+    if (["create_sandbox", "list_sandboxes", "get_sandbox", "set_sandbox_timeout", "retain_sandbox"].includes(name)) {
       const payload = formatLifecycleError(exc);
       logger.error("Tool %s failed: %s", name, payload.error);
       return payload;
@@ -514,7 +443,8 @@ export async function dispatchTool(
 
 /** Fixed failure categories: provider messages/suggestions/URLs can contain secrets. */
 function formatLifecycleError(exc: unknown): ToolResult {
-  if (exc instanceof ToolInputError && exc.constructor === ToolInputError) return { error: exc.message };
+  if (exc instanceof BorrowedSandboxError) return { error: "Connected sandboxes are borrowed; retention cannot transfer cleanup ownership." };
+  if (exc instanceof z.ZodError) return { error: "Invalid sandbox lifecycle arguments. Check the tool schema." };
   if (exc instanceof ValidationError) return { error: "The platform returned invalid sandbox metadata." };
   if (exc instanceof HTTPStatusError) return { error: `Sandbox lifecycle request failed (HTTP ${exc.response.status_code}).` };
   if (exc instanceof TimeoutException) return { error: "Sandbox lifecycle request timed out." };

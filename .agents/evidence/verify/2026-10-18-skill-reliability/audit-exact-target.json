@@ -1,0 +1,62 @@
+[
+  {
+    "operation": "LookupEvents",
+    "event_name": "DeleteFunction",
+    "start_time": "2026-10-16T07:17:00Z",
+    "end_time": "2026-10-16T07:21:00Z",
+    "http_status": 200,
+    "event_count": 8,
+    "has_more": false,
+    "request_id": "01A14CF1-DEBB-5DFB-A119-0FA01EB58A3C",
+    "matches": [
+      {
+        "event_time": "2026-10-16T07:18:48Z",
+        "event_name": "DeleteFunction",
+        "event_source": "fc.aliyuncs.com",
+        "event_id": "dc52a248-8128-4ada-a9f4-23cb55d9bdea",
+        "actor_type": "assumed-role",
+        "actor_role_name": null,
+        "actor_invoked_by": null,
+        "request_parameter_keys": [],
+        "event_field_names": [
+          "eventId",
+          "eventVersion",
+          "responseElements",
+          "eventSource",
+          "requestParameters",
+          "sourceIpAddress",
+          "userAgent",
+          "eventRW",
+          "eventType",
+          "referencedResources",
+          "userIdentity",
+          "serviceName",
+          "additionalEventData",
+          "apiVersion",
+          "requestId",
+          "eventTime",
+          "isGlobal",
+          "acsRegion",
+          "eventName"
+        ],
+        "actor_identity_field_names": [
+          "accessKeyId",
+          "sessionContext",
+          "accountId",
+          "principalId",
+          "type",
+          "userName"
+        ],
+        "actor_access_key_matches_current": false,
+        "actor_name_mentions_fc": true,
+        "actor_session_field_names": [
+          "attributes"
+        ],
+        "actor_is_sandbox_service_role": false,
+        "target_function_match": true,
+        "error_code": null,
+        "request_id": "1-6ad1cfd8-1544ab2a-f408e621953a"
+      }
+    ]
+  }
+]

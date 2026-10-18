@@ -1,3 +1,4 @@
+import { MCP_CLIENT_PIP_SPEC, MCP_SERVER_PIP_SPEC } from "../../utils/mcp_sdk_pin.js";
 /**
  * MCP Server CLI commands: install, start, stop, status, deploy (port of `cli/commands/mcp.py`).
  *
@@ -37,7 +38,7 @@ import {
 } from "../../utils/_pyos.js";
 import { PyFloat, pyJsonDumps, pySorted, pyStr, pyStrRepr, pyStrip } from "../../utils/_pyformat.js";
 import { getFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { regionOption, resolveRegion } from "../region.js";
 import { cliProvider } from "../../providers/selection.js";
 import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";
@@ -1162,7 +1163,10 @@ mcp.addCommand(status);
 // deploy command
 // ---------------------------------------------------------------------------
 
-export const _DEPLOY_REQUIREMENTS = "agent-sandbox-client[mcp]\nuvicorn>=0.29\n";
+export const _DEPLOY_REQUIREMENTS = `${MCP_SERVER_PIP_SPEC}
+${MCP_CLIENT_PIP_SPEC}
+uvicorn>=0.54.0
+`;
 
 export const _DEPLOY_APP_PY =
   '"""ASGI entry point for the FC MCP server."""\n' +
