@@ -14,6 +14,9 @@ owners without restoring Express fallbacks. Resolve envd handles before portable
 OS inspection; keep the accepted procps-free fallback. Refuse unsupported PTY and
 template operations before side effects and preserve non-404/405 resume errors.
 
+Explicit `list --all-providers` remains the native provider-aggregation extension;
+ordinary standard list filters and remote exec arguments keep their standard route.
+
 ## API Design
 Standard parser/wire behavior stays pinned. Provider extensions retain independent
 configuration and ownership. Standard frontend and native CLI have separate tests.

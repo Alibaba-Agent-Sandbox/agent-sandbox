@@ -28,7 +28,7 @@ The built-in provider lists its own implemented adapter features explicitly; add
 | Backend/account/template/version prerequisite is unmet | Report the unmet prerequisite or original backend error; do not report success |
 | Provider-specific cloud management | Use a declared, typed command and its actual provider handler |
 
-The [provider command registration proposal](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) supplies discovery, schemas and an explicit provider-bound invocation path for differing management capabilities. It is separate, currently unmerged work. Registration does not create handlers, normalize all existing CLI entry points or prove backend permissions/E2E success. The [SDK companion](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) must be integrated consistently. The fixed feature registry and provider management commands serve different purposes.
+The accepted [CLI provider management commands](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) and [SDK companion](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) provide discovery, schemas and explicit provider handlers. Registration does not create backend permissions or replace real E2E acceptance. Management commands and the fixed feature registry have separate roles.
 
 
 ## Install, inspect, remove
@@ -94,7 +94,7 @@ abx list --all-providers                                 # every configured prov
 abx kill local-process:sbx-1 --yes
 ```
 
-`list --all-providers` skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
+`list --all-providers` is an explicit native project extension even when Express is the default; ordinary list filters follow the standard contract. It skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
 
 A command that needs a feature the provider does not declare (for example `abx sandbox process` on a provider without `process.manage`) fails with `E8004` before any request is sent.
 

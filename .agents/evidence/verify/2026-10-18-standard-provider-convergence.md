@@ -82,3 +82,24 @@ an additional delivery dependency, not proof that those migration docs shipped.
 
 Conditional successful pause/snapshot still requires an enabled Express fixture.
 No new cloud acceptance workflow or package publication is introduced.
+
+## Explicit cross-provider listing regression
+
+The documented list --all-providers extension was incorrectly sent to the
+standard parser. A new shipped-entry loopback regression failed before the fix
+(parser exit1 with no request). Dispatch now delegates only the explicit native
+list extension; normal list/create/connect and remote exec --all-providers
+arguments retain their routes. The first post-fix fixture expected the standard
+x-api-key header; native transport correctly uses Authorization:Bearer. Corrected
+the fixture to assert the native header and preserved the actual failed receipt.
+
+Final six-file entry/guide/guards53 PASS; strict typecheck, build, lint, hygiene
+and health105/11historicalWARN/0FAIL PASS. Rebuilt actual Linux SEA SHA256
+16626e5639210f3421bbad1d7a12a49286f9c12a687e62e34b3119480c9c4aa9.
+Complete license output219073 bytes still matches the source byte for byte.
+Actual standalone Express --json list --all-providers and ordinary list --format
+json both PASS from an isolated HOME with canonical ABX configuration. No resource
+created or deleted, no credentials or resource details saved. This read-only
+current-artifact acceptance supplements earlier lifecycle/PTY/large-output runs;
+it does not repeat or replace their historical receipts. Latest-head CI pending
+push; conditional enabled pause/snapshot remains blocked.

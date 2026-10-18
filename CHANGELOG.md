@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Align Alibaba Express standard lifecycle, process, file and interpreter behavior with the pinned E2B contract; use canonical `E2B_*` connection settings.
 - Reserve create positional arguments for templates and natural language for `--prompt` in the CLI; document migration, source attribution and backend capability limits.
 ### Fixed
+- Preserve explicit `list --all-providers` routing through native provider aggregation instead of rejecting it in the standard parser.
 - Correct bilingual native ABX configuration references and agent guide examples for the standard Express command entry.
 
 - Preserve the complete prebundled dependency attribution in npm/SEA, verify source replay, and finish piped license/standard output before exit. Pin generated Python installation to the tested standard implementation.

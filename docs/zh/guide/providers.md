@@ -28,7 +28,7 @@
 | 后端/账号/模板/版本前提未满足 | 报告前提条件或保留后端错误，不伪装成功 |
 | Provider 特有云端管理能力 | 使用已声明类型的命令及其真实 Provider handler |
 
-[Provider 命令注册方案](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) 为差异化管理能力提供发现、schema 和显式绑定 Provider 的调用链；这是独立且尚未合并的工作。注册不会自动生成 handler、统一既有 CLI 入口，也不能证明后端权限和 E2E 成功。[SDK 配套](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) 需要一起集成。固定通用能力表与 Provider 管理命令各有用途。
+已合并的 [CLI 提供商管理命令](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) 和 [SDK 配套变更](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) 提供发现、schema 与显式 provider 处理器。注册不会自动授予云端权限，也不能替代真实 E2E。管理命令与固定能力注册表各司其职。
 
 
 ## 安装、查看、移除
@@ -94,7 +94,7 @@ abx list --all-providers                                 # 所有已配置的提
 abx kill local-process:sbx-1 --yes
 ```
 
-`list --all-providers` 会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
+`list --all-providers` 是显式原生项目扩展，即使默认选择极速版也使用原生路由；普通 list 筛选仍遵循标准迁移契约。它会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
 
 如果命令需要提供商未声明的特性（例如在没有 `process.manage` 的提供商上使用 `abx sandbox process`），会在发出任何请求之前以 `E8004` 失败。
 

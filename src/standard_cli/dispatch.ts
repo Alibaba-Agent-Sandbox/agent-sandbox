@@ -72,6 +72,9 @@ export function standardArguments(input: readonly string[]): string[] | null {
       }
     }
   }
+  // Cross-provider listing is an explicit project extension, not an upstream filter.
+  const listPosition = args[0] === "list" ? 0 : args[0] === "sandbox" && args[1] === "list" ? 1 : -1;
+  if (listPosition >= 0 && args.slice(listPosition + 1).includes("--all-providers")) return null;
   if (hasQualifiedSandboxReference(args)) return null;
   const isCreate = args[0] === "create" || args[0] === "sandbox" && ["create", "cr", "spawn", "sp"].includes(args[1] ?? "");
   if (isCreate && args.some((a) => a === "--prompt" || a.startsWith("--prompt="))) return null;

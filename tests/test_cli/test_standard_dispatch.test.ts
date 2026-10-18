@@ -51,6 +51,10 @@ describe("standard command routing", () => {
     expect(standardArguments(["sandbox", "create", "base", "--provider", "opensandbox"])).toBeNull();
     expect(standardArguments(["sandbox", "command", "run", "id", "hello"])).toBeNull();
     expect(standardArguments(["template", "deploy"])).toBeNull();
+    expect(standardArguments(["list", "--all-providers"])).toBeNull();
+    expect(standardArguments(["--json", "sandbox", "list", "--all-providers"])).toBeNull();
+    expect(standardArguments(["exec", "plain-id", "tool", "--all-providers"]))
+      .toEqual(["sandbox", "exec", "plain-id", "tool", "--all-providers"]);
     expect(standardArguments(["template", "from-image", "registry.example/image"])).toBeNull();
     expect(standardArguments(["template", "dl", "template-id"])).toEqual(["template", "dl", "template-id"]);
   });

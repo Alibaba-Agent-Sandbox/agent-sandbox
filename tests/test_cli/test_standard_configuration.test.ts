@@ -36,6 +36,31 @@ describe("standard configuration through the shipped entry", () => {
     },
   );
 
+  it("keeps explicit cross-provider listing on the native project route", async () => {
+    const calls: Array<{ path: string; key: string | string[] | undefined }> = [];
+    const server = createServer((request, response) => {
+      calls.push({ path: request.url ?? "", key: request.headers["authorization"] });
+      response.setHeader("content-type", "application/json");
+      response.end("[]");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("Missing local fixture address");
+      const result = await run(["--json", "list", "--all-providers"], {
+        ABX_SANDBOX_API_KEY: "placeholder-native-list",
+        ABX_SANDBOX_BASE_URL: `http://127.0.0.1:${address.port}`,
+      });
+      expect(result.code, result.stderr).toBe(0);
+      expect(result.stderr).not.toContain("unknown option");
+      expect(calls).toHaveLength(1);
+      expect(calls[0].key).toBe("Bearer placeholder-native-list");
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it.each(["environment", "toml"])("uses the selected Express %s endpoint and key together", async (source) => {
     const calls: Array<{ path: string; key: string | string[] | undefined }> = [];
     const server = createServer((request, response) => {
