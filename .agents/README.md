@@ -63,6 +63,7 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Provider port and file URL boundary checkpoint](evidence/verify/2026-10-18-provider-port-url-boundaries.md)
 
+- [MCP source/lifecycle delivery](notes/proposed/feature/2026-10-18-mcp-source-and-lifecycle.md) · [verification](evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)
 - [Current provider isolation and Express acceptance](evidence/verify/2026-10-18-provider-isolation-acceptance.md)
 
 - [Final provider convergence acceptance](evidence/verify/2026-10-18-provider-convergence-acceptance.md)

@@ -112,3 +112,7 @@ Key、删除 Volume、清空并删除测试 Bucket、解绑并删除自定义策
 mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/README.zh-CN.md)。
 
 `run.mjs` 退出码:0 = 无失败(允许跳过),1 = 至少一个失败,2 = 二进制不可运行。
+
+## MCP 生命周期真实验证
+
+构建后运行 `node e2e/mcp-lifecycle.mjs`。凭据仅经环境变量传入。脚本启动真实 CLI STDIO 进程，验证创建、列表、元数据、续期、文件与命令，以及外部观察者退出不销毁资源；finally 仅清理本次创建的 ID 并只读核对无残留。仅列表的已知最终一致可见性会重试。

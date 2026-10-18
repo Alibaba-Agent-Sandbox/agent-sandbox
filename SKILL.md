@@ -254,3 +254,11 @@ The guide and the MCP surface are tool-neutral:
 
 Further reading: `llms.txt` (repo map), `README.md`, `docs/en/guide/` (tutorials),
 `docs/en/reference/` (CLI/API/error-code reference).
+
+
+Generated MCP ASGI artifacts install a matching Python client/server pair from one
+pinned accepted source archive. Use their requirements.txt; public PyPI release
+availability is not a prerequisite. Query each MCP server's tools/list because
+Node CLI and generated Python HTTP tool surfaces differ. Metadata and explicit
+TTL mutation do not connect/resume external sandboxes; only explicit TTL mutation
+changes their lifetime. No automatic FC API deployment is implemented.

@@ -89,7 +89,7 @@ export { EXIT_OK, EXIT_GENERAL, EXIT_AUTH, EXIT_NOT_FOUND, EXIT_TIMEOUT, EXIT_QU
 // CLI root
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Package version (`click.version_option(package_name="agent-sandbox")` read the distribution metadata). */
+/** Package version. The old Python CLI read `agent-sandbox` distribution metadata; the client distribution is now `agent-sandbox-client`. */
 export const VERSION: string = (() => {
   // Standalone binaries set this in the esbuild banner; there is no package.json beside the executable.
   const injected = injectedPackageVersion();

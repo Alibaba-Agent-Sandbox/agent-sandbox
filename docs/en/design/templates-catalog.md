@@ -235,7 +235,7 @@ Network interception is done exclusively through the HTTP test seam (a stubbed
 `tests/test_commands_e2e.py` (10 cases): directory contracts, index
 reconciliation, README table compared field by field, and the qwen-code
 `max_session_turns` contract guard. CI runs on a Python 3.10–3.13 matrix
-against `requirements-dev.txt` (`agent-sandbox[cli]` git main + pytest + pyyaml).
+against `requirements-dev.txt` (`agent-sandbox-client[cli]` git main + pytest + pyyaml).
 
 > Division of labour: **content correctness** belongs to the source-of-truth
 > repo (a template change must update the index and README table in the same

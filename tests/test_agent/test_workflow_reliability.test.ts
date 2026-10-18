@@ -98,7 +98,7 @@ describe("real Linux task lifecycle", () => {
 describe("workflow evidence and ownership", () => {
   it("refuses to transfer disconnect-cleanup ownership by changing retention on a borrowed sandbox", async () => {
     const sandbox = { id: "borrowed", kill: vi.fn(), close: vi.fn() };
-    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn(), connect: vi.fn().mockResolvedValue(sandbox), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn(), connect: vi.fn().mockResolvedValue(sandbox), killById: vi.fn(), list: vi.fn(), setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn() });
     const manager = new SandboxManager();
     await manager.getSandbox("borrowed");
     const result = await dispatchTool("retain_sandbox", { sandbox_id: "borrowed", retain: false }, manager);
@@ -109,7 +109,7 @@ describe("workflow evidence and ownership", () => {
   });
   it("removes a provider-qualified default and never reuses or deletes its dead handle", async () => {
     const sandbox = { id: "same-id", provider: "test-provider", kill: vi.fn() };
-    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn() });
     const manager = new SandboxManager();
     await manager.createSandbox();
     await manager.killSandbox("test-provider:same-id");
@@ -120,7 +120,7 @@ describe("workflow evidence and ownership", () => {
   });
   it("removes the qualified cache entry when killing the default without an ID", async () => {
     const sandbox = { id: "same-id", provider: "test-provider", kill: vi.fn() };
-    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn() });
     const manager = new SandboxManager();
     await manager.createSandbox();
     expect(await manager.killSandbox()).toBe("test-provider:same-id");
@@ -130,7 +130,7 @@ describe("workflow evidence and ownership", () => {
   });
   it("keeps a failed deletion available for cleanup retry", async () => {
     const sandbox = { id: "retry", kill: vi.fn().mockRejectedValueOnce(new Error("temporary delete failure")).mockResolvedValue(undefined) };
-    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValue(sandbox), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn() });
     const manager = new SandboxManager();
     await manager.createSandbox();
     await expect(manager.killSandbox("retry")).rejects.toThrow("temporary delete failure");
@@ -143,7 +143,7 @@ describe("workflow evidence and ownership", () => {
   it("does not modify lifetime or kill a resource connected by ID", async () => {
     const sandbox = { id: "existing", setTimeout: vi.fn(), kill: vi.fn(), close: vi.fn() };
     const connect = vi.fn().mockResolvedValue(sandbox);
-    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn(), connect, killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn(), connect, killById: vi.fn(), list: vi.fn(), setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn() });
     const manager = new SandboxManager();
     await manager.getSandbox("existing");
     await manager.getSandbox("existing");
@@ -154,7 +154,7 @@ describe("workflow evidence and ownership", () => {
   });
   it("retains an explicitly preserved created sandbox and kills only an ephemeral created one", async () => {
     const a = { id: "keep", kill: vi.fn(), close: vi.fn() }, b = { id: "drop", kill: vi.fn() };
-    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValueOnce(a).mockResolvedValueOnce(b), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), getInfoById: vi.fn() });
+    vi.spyOn(sdk, "loadSandbox").mockResolvedValue({ create: vi.fn().mockResolvedValueOnce(a).mockResolvedValueOnce(b), connect: vi.fn(), killById: vi.fn(), list: vi.fn(), setTimeoutById: vi.fn(async () => undefined), getInfoById: vi.fn() });
     const manager = new SandboxManager();
     await manager.createSandbox({ retain: true }); await manager.createSandbox(); await manager.shutdown();
     expect(a.kill).not.toHaveBeenCalled(); expect(a.close).toHaveBeenCalledOnce(); expect(b.kill).toHaveBeenCalledOnce();

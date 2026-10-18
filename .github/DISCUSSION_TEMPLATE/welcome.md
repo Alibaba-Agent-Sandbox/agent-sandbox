@@ -25,7 +25,7 @@ npm install -g @agent-sandbox/cli
 abx create --template python-base
 ```
 
-Or use the Python SDK (`pip install agent-sandbox`, in the `python-sdk` repository):
+Or use the Python SDK (`pip install agent-sandbox-client`, in the `python-sdk` repository). `pip install agent-sandbox` installs an unrelated project:
 
 ```python
 from agent_sandbox import Sandbox

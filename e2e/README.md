@@ -17,6 +17,8 @@ cp .env.example .env   # then fill in real values
 ABX_BIN=abx                           npm run e2e          # `abx` on PATH (default)
 ABX_BIN="node $PWD/dist/bin/abx.js"   npm run e2e          # after `npm run build`
 
+node e2e/mcp-lifecycle.mjs             # built CLI STDIO lifecycle; credentials in env, owned cleanup
+
 npm run e2e:offline                   # only the no-credential suite (seconds)
 node e2e/run.mjs --suite cloud-lifecycle --filter 'exec|files'
 node e2e/run.mjs --list               # all suites and scenarios

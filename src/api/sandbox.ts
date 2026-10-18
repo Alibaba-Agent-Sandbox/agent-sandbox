@@ -543,16 +543,6 @@ export class Sandbox {
       });
   }
 
-  /** Query a resource without connecting its data plane, resolving a template or changing lifetime. */
-  static async getInfoById(sandbox_id: string, options: BuildInfraOptions = {}): Promise<SandboxInfo> {
-    const { api_key = null, api_url = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = options;
-    const [prov, bare_id] = _selectProvider(provider, sandbox_id);
-    const popts = _effectiveOptions(prov, provider_options);
-      const infra = await _providerInfra(prov, { api_key, api_url, access_key_id, access_key_secret, provider_options: popts });
-      try { return await infra.sandbox_protocol.getInfo(bare_id as string); }
-      finally { await new InfraCloser(infra).close(); }
-  }
-
   /** List sandboxes (class method, no instance required). */
   static async list(options: ListOptions = {}): Promise<SandboxInfo[]> {
     const { status = null, limit = 100, offset = 0, api_key = null, api_url = null, access_key_id = null, access_key_secret = null, provider = null, provider_options = null } = options;
@@ -564,6 +554,27 @@ export class Sandbox {
       } finally {
         await new InfraCloser(infra).close();
       }
+  }
+
+  /** Fetch metadata directly without connecting, resuming, renewing, or adopting a sandbox. */
+  static async getInfoById(sandbox_id: string, options: BuildInfraOptions = {}): Promise<SandboxInfo> {
+    return this._controlPlaneById(sandbox_id, options, (protocol, id) => protocol.getInfo(id));
+  }
+
+  /** Set an existing sandbox's timeout directly; never connect or implicitly resume it. */
+  static async setTimeoutById(sandbox_id: string, timeout: number, options: BuildInfraOptions = {}): Promise<void> {
+    await this._controlPlaneById(sandbox_id, options, (protocol, id) => protocol.setTimeout(id, timeout));
+  }
+
+  private static async _controlPlaneById<T>(sandbox_id: string, options: BuildInfraOptions,
+    operation: (protocol: Pick<SandboxProtocol, "getInfo" | "setTimeout">, id: string) => Promise<T>): Promise<T> {
+    const [provider, bare] = _selectProvider(options.provider, sandbox_id);
+    const id = bare ?? sandbox_id;
+    const resolved = { ...options, provider_options: _effectiveOptions(provider, options.provider_options) };
+    const infra = await _providerInfra(provider, resolved);
+    try { return await operation(infra.sandbox_protocol, id); }
+    finally { await new InfraCloser(infra).close(); }
+
   }
 
   /** Kill a sandbox by ID (class method, no instance required). */
