@@ -212,3 +212,6 @@ Full list: [Error codes](../reference/error-codes.md). Every `provider` subcomma
 ## Try it locally
 
 The repository ships an end-to-end script that installs the reference plugins and drives a real sandbox through them: [`e2e/README.md`](../../../e2e/README.md) (`e2e/providers/run.sh`).
+
+
+[Optional pushed-image template factories](provider-image-deployment.md) use the independent `templates.deploy` declaration; existing provider installation does not imply support.

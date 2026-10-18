@@ -6,7 +6,7 @@
  */
 
 export { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";
-export { FEATURES, Provider, configFieldToKey, type ConfigField, type ProviderFeature, type ProviderInfra } from "./base.js";
+export { FEATURES, Provider, configFieldToKey, type ConfigField, type ProviderFeature, type ProviderInfra, type ProviderImageRequest, type ProviderImageResult, type ProviderTemplates } from "./base.js";
 export { AlicloudExpressProvider } from "./builtin.js";
 export { doctor, verifyHandshake, type DoctorReport } from "./doctor.js";
 export * from "./errors.js";

@@ -43,7 +43,7 @@ abx
 │   ├── process  list | info | signal            (inspect / control only; start a process with exec --background)
 │   ├── command  list | run                      (named commands registered on the in-sandbox server)
 │   └── system   env | info | metrics | packages | ports
-├── template     init | search | info | list | build | push | create | delete | deploy | install
+├── template     init | search | info | list | build | push | create | delete | deploy | from-image | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
@@ -162,3 +162,6 @@ Features that need a missing setting print a one-line pointer to `abx config ini
 | `[shortcuts]` in `config.toml`, `abx config set shortcuts.<name>` | none (the shortcuts are fixed) |
 | `custom_commands` in `template.yaml` | register named commands on the in-sandbox server |
 | `abx deploy --traditional` | none (the pipeline is fixed) |
+
+
+`abx template from-image IMAGE --name NAME [-y]` uses only an opted-in provider’s `templates.deploy` factory. See [provider image deployment](../guide/provider-image-deployment.md).

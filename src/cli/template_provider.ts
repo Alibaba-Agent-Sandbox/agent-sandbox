@@ -7,7 +7,7 @@ import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 
 /** `templates.read` for list/info; `templates.build` for build, push, create, deploy, install and delete. */
-export type TemplateFeature = "templates.read" | "templates.build";
+export type TemplateFeature = "templates.read" | "templates.build" | "templates.deploy";
 
 export function requireTemplateFeature(feature: TemplateFeature): void {
   getProvider(resolveProviderId(cliProvider())).require(feature);

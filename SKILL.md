@@ -173,6 +173,16 @@ MCP: `kill_sandbox` with `sandbox_id`. Omitting it destroys the session default.
 Omitting it when the session has no default is an error. MCP session sandboxes
 are also destroyed when the client disconnects.
 
+## Optional provider image factories
+
+Use `abx --provider ID template from-image IMAGE --name NAME -y` only when the
+installed provider explicitly declares `templates.deploy`; legacy `templates.build`
+does not imply support. Configure the provider's own credentials. Private pulls
+use `ABX_IMAGE_REGISTRY_USERNAME` and `ABX_IMAGE_REGISTRY_PASSWORD` from the
+environment. The E2B adapter needs Node 22+ and its optional SDK; its catalog opt-in
+and native cloud acceptance remain pending. A timeout stops waiting, and a remote
+build may still exist. See [the image guide](docs/en/guide/provider-image-deployment.md).
+
 ## Deploy a template
 
 ```bash

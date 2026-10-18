@@ -239,3 +239,6 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 ## License
 
 [Apache-2.0](LICENSE) — see [`NOTICE`](NOTICE) for copyright information.
+
+
+Experimental provider image factories are documented in [provider image deployment](docs/en/guide/provider-image-deployment.md); catalog/native cloud activation remains pending.

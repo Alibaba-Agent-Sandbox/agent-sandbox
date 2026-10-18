@@ -1,0 +1,23 @@
+Usage: abx template from-image [options] <IMAGE>
+
+Create a provider template from an already pushed OCI image.
+
+Requires templates.deploy. Configure provider credentials separately.
+Private images use ABX_IMAGE_REGISTRY_USERNAME and ABX_IMAGE_REGISTRY_PASSWORD.
+Timeout cancels waiting; an already submitted remote build may still exist.
+E2B needs Node.js 22+ and the optional e2b package; its manifest must opt in.
+
+Example:
+  abx --provider e2b template from-image docker.io/example/runtime:v1 --name
+runtime:v1 -y
+
+Options:
+  --name <NAME>            Provider template name, optionally with a tag
+  --cpu <CPU>              CPU cores
+  --memory <MEMORY>        Memory in MiB
+  --start-cmd <START_CMD>  Build-time start command; requires --ready-cmd
+  --ready-cmd <READY_CMD>  Build-time readiness command
+  --timeout <FLOAT>        Build deadline in seconds (0 < timeout <= 3600)
+  -y, --yes                Skip confirmation
+  -h, --help               Show this message and exit.
+[exit_code:0]

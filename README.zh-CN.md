@@ -236,3 +236,6 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 ## 许可证
 
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
+
+
+实验性的提供方镜像工厂见[提供方镜像部署](docs/zh/guide/provider-image-deployment.md)；目录启用和原生云验收仍待完成。

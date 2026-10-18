@@ -78,5 +78,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.1",
     "vitest": "^5.0.3"
+  },
+  "optionalDependencies": {
+    "e2b": "2.55.0"
   }
 }

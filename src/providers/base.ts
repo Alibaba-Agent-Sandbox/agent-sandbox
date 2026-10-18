@@ -36,6 +36,7 @@ export const FEATURES = [
   "code.interpret",
   "templates.read",
   "templates.build",
+  "templates.deploy",
   "ports.url",
   "ports.domain",
   "storage.mount",
@@ -145,6 +146,28 @@ export interface ProviderInfra {
   envd_auth?: { allow_missing?: boolean; basic_user?: string };
 }
 
+/** Narrow, optional pushed-image contract; legacy template build/read features do not imply this factory. */
+export interface ProviderImageRequest {
+  source: { kind: "image"; image: string };
+  name: string;
+  spec?: { cpu?: number; memory?: number; start_cmd?: string; ready_cmd?: string };
+  registry?: { username: string; password: string };
+  timeout?: number;
+  signal?: AbortSignal;
+}
+
+export interface ProviderImageResult {
+  template_id: string;
+  build_id: string;
+  status: "ready";
+  ref: string;
+}
+
+export interface ProviderTemplates {
+  deploy(input: ProviderImageRequest): Promise<ProviderImageResult>;
+  close?: () => void | Promise<void>;
+}
+
 export interface ProviderDescription {
   id: string;
   name: string;
@@ -234,6 +257,11 @@ export abstract class Provider {
 
   /** Build the protocol objects for `config` (already resolved for this provider). */
   abstract buildInfra(config: LayeredConfig): Promise<ProviderInfra>;
+
+  /** Optional image factory. Supporting legacy templates.build does not opt in. */
+  async buildTemplates(_config: LayeredConfig): Promise<ProviderTemplates> {
+    throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
+  }
 
   /** Template capability tokens implied by this provider's features. */
   capabilities(): ReadonlySet<string> {

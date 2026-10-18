@@ -40,7 +40,7 @@ abx
 │   ├── process  list | info | signal            （只查看/控制；启动进程用 exec --background）
 │   ├── command  list | run                      （沙箱内服务端注册的具名命令）
 │   └── system   env | info | metrics | packages | ports
-├── template     init | search | info | list | build | push | create | delete | deploy | install
+├── template     init | search | info | list | build | push | create | delete | deploy | from-image | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
@@ -154,3 +154,6 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 | `config.toml` 中的 `[shortcuts]`、`abx config set shortcuts.<name>` | 无（快捷方式固定） |
 | `template.yaml` 中的 `custom_commands` | 在沙箱内服务端注册具名命令 |
 | `abx deploy --traditional` | 无（流水线固定） |
+
+
+`abx template from-image IMAGE --name NAME [-y]` 仅调用明确声明 `templates.deploy` 的提供方工厂。参见[提供方镜像部署](../guide/provider-image-deployment.md)。

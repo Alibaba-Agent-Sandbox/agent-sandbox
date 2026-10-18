@@ -212,3 +212,6 @@ abx config list --provider my-cloud                          # 该提供商的�
 ## 本地试用
 
 仓库提供了一个端到端脚本，安装参考插件并通过它们驱动真实沙箱：[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)（`e2e/providers/run.sh`）。
+
+
+[可选的已推送镜像模板工厂](provider-image-deployment.md) 使用独立的 `templates.deploy` 声明；安装提供方不代表支持该能力。

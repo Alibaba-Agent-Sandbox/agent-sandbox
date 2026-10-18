@@ -17,9 +17,9 @@ import { SandboxProtocol } from "../protocol/sandbox.js";
 import type { AuthProvider } from "../transport/auth.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
-import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
+import { Provider, consentedInherit, type ProviderInfra, type ProviderTemplates } from "./base.js";
 import { unsupportedAdapter } from "./exec_provider.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderTemplateHostError } from "./errors.js";
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import { hostVersion } from "./host.js";
 import { eppInfra, type EppFactory } from "./node_epp.js";
@@ -70,6 +70,7 @@ export interface NodeContext {
 
 export interface NodePlugin {
   buildInfra(ctx: NodeContext): Promise<NodeInfra>;
+  buildTemplates?(ctx: NodeContext): Promise<ProviderTemplates>;
 }
 
 /** Building blocks handed to `create(kit)`. */
@@ -81,6 +82,7 @@ export interface ProviderKit {
   CodeInterpreterProtocol: typeof CodeInterpreterProtocol;
   errors: { InvalidAPIKeyError: typeof InvalidAPIKeyError; ProviderConfigError: typeof ProviderConfigError; ProviderFeatureNotSupportedError: typeof ProviderFeatureNotSupportedError };
   e2b: {
+    Template?: unknown;
     resumeConnect<T extends SandboxProtocol>(inner: T, paths?: readonly string[]): T;
     withDefault<T extends object>(inner: T, option: string, value: string, methods: readonly string[]): T;
     overlay<T extends object, O extends object>(inner: T, overrides: O): T & O;
@@ -186,7 +188,7 @@ export function parseExecution(raw: string): { stdout: string; stderr: string; t
   return { stdout: stdout.join(""), stderr: stderr.join(""), text: text || stdout.join("").trim(), exitCode };
 }
 
-export function providerKit(): ProviderKit {
+export function providerKit(Template?: unknown): ProviderKit {
   return {
     hostVersion: hostVersion(),
     SandboxProtocol,
@@ -194,7 +196,7 @@ export function providerKit(): ProviderKit {
     FilesystemProtocol,
     CodeInterpreterProtocol,
     errors: { InvalidAPIKeyError, ProviderConfigError, ProviderFeatureNotSupportedError },
-    e2b: { resumeConnect, withDefault, overlay, parseExecution },
+    e2b: { resumeConnect, withDefault, overlay, parseExecution, Template },
     epp: { infra: eppInfra },
   };
 }
@@ -202,9 +204,9 @@ export function providerKit(): ProviderKit {
 const loaded = new Map<string, NodePlugin>();
 
 /** Import the plugin module once per installed tree digest; an update gets a fresh module. */
-async function loadPlugin(id: string, root: string, entry: string, digest: string): Promise<NodePlugin> {
+async function loadPlugin(id: string, root: string, entry: string, digest: string, templates = false): Promise<NodePlugin> {
   const file = path.resolve(root, entry);
-  const key = `${file}#${digest}`;
+  const key = `${file}#${digest}#${templates}`;
   const cached = loaded.get(key);
   if (cached !== undefined) return cached;
   const url = `${pathToFileURL(file).href}?v=${encodeURIComponent(digest || "link")}`;
@@ -213,7 +215,16 @@ async function loadPlugin(id: string, root: string, entry: string, digest: strin
   if (typeof factory !== "function") {
     throw new ProviderConfigError(`Provider '${id}': ${entry} must export a function (default or "create") that takes the kit.`);
   }
-  const plugin = (await (factory as (kit: ProviderKit) => unknown)(providerKit())) as NodePlugin | null;
+  let Template: unknown | undefined;
+  if (templates && id === "e2b") {
+    if (Number(process.versions.node.split(".")[0]) < 22) {
+      throw new ProviderTemplateHostError("node-version");
+    }
+    const sdkPackage = "e2b";
+    try { ({ Template } = await import(sdkPackage) as { Template: unknown }); }
+    catch { throw new ProviderTemplateHostError("sdk-missing"); }
+  }
+  const plugin = (await (factory as (kit: ProviderKit) => unknown)(providerKit(Template))) as NodePlugin | null;
   if (plugin === null || typeof plugin !== "object" || typeof plugin.buildInfra !== "function") {
     throw new ProviderConfigError(`Provider '${id}': ${entry} must return an object with buildInfra(ctx).`);
   }
@@ -240,6 +251,59 @@ export class NodeProvider extends Provider {
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
     this.inherit = consentedInherit(manifest.inherit, receipt);
+  }
+
+  override async buildTemplates(config: LayeredConfig): Promise<ProviderTemplates> {
+    this.require("templates.deploy");
+    this.validateConfig(config);
+    if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
+    const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, String(this.receipt?.["tree_sha256"] ?? ""), true);
+    if (typeof plugin.buildTemplates !== "function") throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
+    const clients: HttpClient[] = [];
+    let built: ProviderTemplates | undefined;
+    let closed = false;
+    const close = async (): Promise<void> => {
+      if (closed) return;
+      closed = true;
+      const results = await Promise.allSettled([
+        Promise.resolve().then(() => built?.close?.()),
+        ...clients.map((client) => Promise.resolve().then(() => client.close())),
+      ]);
+      if (results.some((result) => result.status === "rejected")) throw new ProviderConfigError("Provider template resources could not be closed.");
+    };
+    const options: Dict = {};
+    for (const field of this.configFields) {
+      const value = config.provider_options[field.key];
+      if (value !== undefined && value !== null) options[field.key] = value;
+    }
+    const core: Dict = { http_timeout: config.http_timeout, max_retries: config.max_retries };
+    for (const key of this.inherit) {
+      const value = (config as unknown as Dict)[key];
+      if (value !== undefined && value !== null) core[key] = value;
+    }
+    const ctx: NodeContext = {
+      id: this.id, features: this.features, options, core,
+      secretKeys: this.configFields.filter((field) => field.secret).map((field) => field.key),
+      callTimeout: this.manifest.call_timeout_ms / 1000,
+      http: (opts) => {
+        const transport = Object.assign(config.toTransportConfig(), { api_url: opts.base_url, domain: opts.domain });
+        const client = new HttpClient(transport, opts.auth ?? new NoAuth(), {
+          envelope_connect: opts.envelope_connect ?? false, envd_dial: opts.envd_dial ?? null,
+        });
+        clients.push(client);
+        return client;
+      },
+      headerKeyAuth: (key, header = "X-API-Key") => new HeaderKeyAuth(key, "header", header),
+      noAuth: () => new NoAuth(),
+    };
+    try {
+      built = await plugin.buildTemplates(ctx);
+      if (!built || typeof built.deploy !== "function") throw new ProviderConfigError("Provider returned an invalid template factory.");
+      return { deploy: (input) => built!.deploy(input), close };
+    } catch (error) {
+      await close().catch(() => undefined);
+      throw error;
+    }
   }
 
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {

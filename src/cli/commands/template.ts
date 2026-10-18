@@ -26,6 +26,8 @@ import { availableCases, renderScaffold } from "../scaffold.js";
 import { ACRConfig, DockerBuilder, contextHasPinnedServerArchive, dockerBuildxAvailable } from "../../api/docker_builder.js";
 import { cacheDeployedTemplate } from "../../api/capability.js";
 import * as fcTemplate from "../../api/fc_template.js";
+import { deployProviderImage, validateProviderImage } from "../../api/provider_template.js";
+import type { ProviderImageRequest } from "../../providers/base.js";
 import { ValueError } from "../../api/_pyerrors.js";
 import { formatFixed0, homeDir, which } from "../../agent/_pycompat.js";
 import {
@@ -1398,6 +1400,49 @@ export const list_templates = template.command("list", {
     } else {
       fmt.printData(templates);
     }
+  }),
+});
+
+/** Create a template from an already pushed image using only the selected provider. */
+export const from_image = template.command("from-image", {
+  help: cleandoc(`Create a provider template from an already pushed OCI image.
+
+    Requires templates.deploy. Configure provider credentials separately.
+    Private images use ABX_IMAGE_REGISTRY_USERNAME and ABX_IMAGE_REGISTRY_PASSWORD.
+    Timeout cancels waiting; an already submitted remote build may still exist.
+    E2B needs Node.js 22+ and the optional e2b package; its manifest must opt in.
+
+    Example:
+      abx --provider e2b template from-image docker.io/example/runtime:v1 --name runtime:v1 -y
+    `),
+  params: [
+    argument(["image"]),
+    option(["--name"], { required: true, help: "Provider template name, optionally with a tag" }),
+    option(["--cpu"], { type: new IntRange({ min: 1 }), default: null, help: "CPU cores" }),
+    option(["--memory"], { type: new IntRange({ min: 1 }), default: null, help: "Memory in MiB" }),
+    option(["--start-cmd"], { default: null, help: "Build-time start command; requires --ready-cmd" }),
+    option(["--ready-cmd"], { default: null, help: "Build-time readiness command" }),
+    option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (0 < timeout <= 3600)" }),
+    option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation" }),
+  ],
+  callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    const spec: NonNullable<ProviderImageRequest["spec"]> = {};
+    for (const key of ["cpu", "memory", "start_cmd", "ready_cmd"] as const) {
+      if (params[key] !== null && params[key] !== undefined) Object.assign(spec, { [key]: params[key] });
+    }
+    const input: ProviderImageRequest = {
+      source: { kind: "image", image: params["image"] }, name: params["name"], spec, timeout: params["timeout"],
+    };
+    const username = process.env["ABX_IMAGE_REGISTRY_USERNAME"];
+    const password = process.env["ABX_IMAGE_REGISTRY_PASSWORD"];
+    if (username !== undefined || password !== undefined) input.registry = { username: username ?? "", password: password ?? "" };
+    validateProviderImage(input);
+    requireTemplateFeature("templates.deploy");
+    if (!params["yes"]) await confirm("Create this provider template? The provider may charge for the build.", { abort: true });
+    const data = await deployProviderImage(input);
+    const fmt = getFormatter(ctx);
+    if (fmt.use_json) fmt.printData(data);
+    else fmt.printDict({ ...data });
   }),
 });
 

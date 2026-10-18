@@ -22,6 +22,7 @@ Commands:
   delete      Delete a custom template from the remote platform.
   deploy      Build, push, and create template in one step (alias of 'template
               build').
+  from-image  Create a provider template from an already pushed OCI image.
   info        Show details for a template ID.
   init        Scaffold a new sandbox template project.
   install     Download a template and (by default) build + deploy it.

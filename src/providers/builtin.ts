@@ -41,7 +41,7 @@ export class AlicloudExpressProvider extends Provider {
     this.displayNameZh = BUILTIN_PROVIDER_NAME_ZH;
     this.kind = "builtin";
     this.version = hostVersion();
-    this.features = new Set(FEATURES);
+    this.features = new Set(FEATURES.filter((feature) => feature !== "templates.deploy"));
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
     this.configFields = fields();
   }

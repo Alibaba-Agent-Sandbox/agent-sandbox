@@ -152,3 +152,12 @@ export function exitCodeFor(exc: unknown): number {
   if (exc instanceof ProviderConfigError || exc instanceof ProviderTrustError || exc instanceof ProviderMismatchError) return 2;
   return 1;
 }
+
+/** Fixed host prerequisite messages; never carries third-party response text. */
+export class ProviderTemplateHostError extends ProviderConfigError {
+  constructor(reason: "node-version" | "sdk-missing") {
+    super(reason === "node-version"
+      ? "E2B image deployment requires Node.js 22 or newer."
+      : "E2B image deployment needs the optional e2b dependency; install this CLI with optional dependencies enabled.");
+  }
+}
