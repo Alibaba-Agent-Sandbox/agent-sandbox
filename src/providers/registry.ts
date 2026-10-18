@@ -4,7 +4,7 @@
 import { collectSources, ProviderSchema, selectProviderId, setSchemaLookup } from "../transport/config_layers.js";
 import { BUILTIN_PROVIDER_ID, OFFICIAL_CATALOG_IDS, validateProviderId } from "../utils/config_keys.js";
 import { Provider, orderedFeatures } from "./base.js";
-import { AlicloudExpressProvider } from "./builtin.js";
+import { AlicloudExpressProvider } from "./alicloud_express/index.js";
 import { ExecProvider } from "./exec_provider.js";
 import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError } from "./errors.js";
 import { loadManifest } from "./manifest.js";

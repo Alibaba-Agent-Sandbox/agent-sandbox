@@ -68,10 +68,10 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
 ### E1002 — Token 过期
 
 ```text
-[E1002] The SDK should auto-refresh tokens. If this persists, check system clock synchronization.
+[E1002] envdAccessToken not available. Sandbox may not be created or connected.
 ```
 
-**解决**：检查系统时钟是否准确。SDK 会自动刷新 AK/SK 临时 token（有效期 3600 秒，到期前 300 秒刷新）。
+**解决**：检查系统时钟是否准确。重新连接获取有效 envd token，或检查显式配置的自定义交换；API Key 不会被自动创建或刷新。
 
 ---
 
@@ -260,11 +260,11 @@ Invalid shortcut target: 'abx template scaffold'
 ### npm install 失败
 
 ```bash
-# 确保使用正确的包名
-npm install -g @agent-sandbox/cli
+# 使用已发布的独立二进制；公开 npm 安装尚不可用
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 
-# 如果遇到依赖冲突
-npm install -g @agent-sandbox/cli --force
+# 检查已安装的可执行文件
+abx --version
 ```
 
 ### abx: command not found
@@ -293,3 +293,11 @@ command -v agent-sandbox
 - [认证详解](authentication.md) — 认证配置
 - [配置参考](../reference/configuration.md) — 所有配置项
 - [错误码参考](../reference/error-codes.md) — 完整错误码列表
+
+
+## 精简镜像中的进程和指标查询
+
+进程查询先使用 `ps`，缺少 procps 时通过 Python 3 和 `/proc` 读取相同的内核数据；
+进程不存在或无法读取时仍返回失败。资源指标使用正确引用的多行 Python 脚本，无法
+获取的负载值为 `null`，不会伪造为零；没有 Python 的镜像保留原来的 shell 回退。
+AI 调用优先使用 `--json sandbox system metrics ID` 并检查实际返回字段。

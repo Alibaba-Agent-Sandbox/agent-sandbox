@@ -86,7 +86,7 @@ describe("TestConfigInitWizard", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     const envContent = readText(envFile);
-    expect(envContent).toContain("E2B_API_KEY=sk-platform");
+    expect(envContent).toContain("ABX_SANDBOX_API_KEY=sk-platform");
     expect(envContent).toContain("ABX_LLM_API_KEY=sk-qwen");
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexampleAk");
@@ -117,7 +117,7 @@ describe("TestConfigInitWizard", () => {
     expect(result.output).not.toContain("LLM API key");
     expect(result.output).toContain("abx config init --build");
     expect(result.output).toContain("abx config init --llm");
-    expect(readText(envFile)).toBe("E2B_API_KEY=sk-platform\n");
+    expect(readText(envFile)).toBe("ABX_SANDBOX_API_KEY=sk-platform\n");
   });
 
   it("test_llm_section_only", async () => {
@@ -190,19 +190,22 @@ describe("TestConfigInitMaskedInput", () => {
   });
 
   it("test_init_uses_masked_prompt_when_supported", async () => {
-    // The wizard must route the three secrets through _prompt_secret.
+    // Platform, both build credentials and LLM input use the masked prompt.
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
-    const answers = ["sk-platform", "sk-cloud", "sk-qwen"];
+    const answers = ["sk-platform", "LTAIexample", "sk-cloud", "sk-qwen"];
     const mockPrompt = vi.fn(async (_text: string) => answers.shift()!);
     const result = await withConfig({ ...storagePatch(tmp, { env: true }), sys: fakeTtySys(), _promptSecret: mockPrompt }, () =>
-      runner().invoke(cli, ["config", "init", "--build", "--llm"], { input: "\nmy-ns\nLTAIexample\n" }),
+      runner().invoke(cli, ["config", "init", "--build", "--llm"], { input: "\nmy-ns\n" }),
     );
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(mockPrompt).toHaveBeenCalledTimes(3);
+    expect(mockPrompt).toHaveBeenCalledTimes(4);
+    for (const credential of ["sk-platform", "LTAIexample", "sk-cloud", "sk-qwen"]) {
+      expect(result.output).not.toContain(credential);
+    }
     const envContent = readText(envFile);
-    expect(envContent).toContain("E2B_API_KEY=sk-platform");
+    expect(envContent).toContain("ABX_SANDBOX_API_KEY=sk-platform");
     expect(envContent).toContain("ABX_LLM_API_KEY=sk-qwen");
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexample");

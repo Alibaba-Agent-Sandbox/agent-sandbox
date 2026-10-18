@@ -13,8 +13,8 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 # 1. Fork and clone the repository
-git clone https://github.com/<your-username>/cli.git
-cd cli
+git clone https://github.com/<your-username>/agent-sandbox.git
+cd agent-sandbox
 
 # 2. Install dependencies (includes the test / type-check / build tooling)
 npm ci
@@ -48,14 +48,14 @@ make test
 3. **Make your changes** — write code, tests, and docs
 4. **Run checks** before committing:
    ```bash
-   make lint      # Run ESLint (npm run lint)
+   make lint      # Run ESLint
    make typecheck # Type-check with tsc (npm run typecheck)
    make test      # Run tests with vitest (npm test)
    ```
 
    Or run the full local CI equivalent in one command:
    ```bash
-   make ci        # Hygiene + typecheck + ESLint + build + tests + parity + package check
+   make ci        # hygiene + tsc --noEmit + ESLint + build + vitest (not integration) + parity coverage check
    ```
 
    > **Note:** `make ci` runs on your single local Node.js version. It does **not** replace the Node.js 20 / 22 test matrix enforced by GitHub Actions CI — the matrix can only be fully covered by CI itself.

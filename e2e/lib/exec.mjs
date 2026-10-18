@@ -36,7 +36,7 @@ export function baseEnv({ home, creds, extra = {} }) {
     PYTHONUNBUFFERED: '1',
     PYTHONIOENCODING: 'utf-8',
   };
-  for (const k of ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy', 'SSL_CERT_FILE', 'NODE_EXTRA_CA_CERTS', 'DOCKER_HOST', 'DOCKER_BUILDKIT', 'DOCKER_CONFIG', 'ABX_SERVER_SDK_SOURCE', 'ALIBABA_CLOUD_REGION_ID', 'ABX_BASE_IMAGE_TAG', 'ABX_BASE_IMAGE_REGION']) {
+  for (const k of ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy', 'SSL_CERT_FILE', 'NODE_EXTRA_CA_CERTS', 'DOCKER_HOST', 'DOCKER_BUILDKIT', 'DOCKER_CONFIG', 'ABX_SERVER_SDK_SOURCE', 'ABX_BASE_IMAGE_TAG', 'ABX_BASE_IMAGE_REGION']) {
     if (process.env[k]) env[k] = process.env[k];
   }
   Object.assign(env, creds, extra);

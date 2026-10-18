@@ -1,3 +1,4 @@
+import { defaultConfig, defaultRegion, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
 /**
  * Layered configuration loading.
  *
@@ -79,9 +80,9 @@ let _cached_config: TransportConfig | null = null;
 export class TransportConfig extends defineModel(
   z.object({
     // API endpoints
-    api_url: z.string().default("https://api.cn-hangzhou.e2b.fc.aliyuncs.com"),
-    domain: z.string().default("cn-hangzhou.e2b.fc.aliyuncs.com"),
-    region: z.string().default("cn-hangzhou"),
+    api_url: z.string().default(defaultConfig.endpointDefaults.sandbox_base_url),
+    domain: z.string().default(defaultConfig.endpointDefaults.sandbox_domain),
+    region: z.string().default(defaultRegion()),
 
     // Authentication
     api_key: z.string().nullable().default(null),
@@ -124,15 +125,7 @@ export class TransportConfig extends defineModel(
 // One environment variable per field. The third flag is unused and stays true so
 // callers that still unpack the triple keep working. Vendor-official names are
 // not wrapped in ABX_.
-export const _ENV_VAR_MAP: [string, string, boolean][] = [
-  ["E2B_API_KEY", "api_key", true],
-  ["E2B_API_URL", "api_url", true],
-  ["E2B_DOMAIN", "domain", true],
-  ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", true],
-  ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", true],
-  ["ALIBABA_CLOUD_REGION_ID", "region", true],
-  ["ABX_HTTP_TIMEOUT", "http_timeout", true],
-];
+export const _ENV_VAR_MAP: [string, string, boolean][] = [...defaultConfig.legacyEnvironment];
 
 type LegacyNameHook = (name: string, where: string) => void;
 let _legacyNameHook: LegacyNameHook | null = null;
@@ -414,7 +407,7 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
   }
   const providerTables = toml_data["providers"];
   if (providerTables && typeof providerTables === "object") {
-    const builtinTable = (providerTables as Record<string, unknown>)["alicloud-express"];
+    const builtinTable = (providerTables as Record<string, unknown>)[defaultConfig.id];
     if (builtinTable && typeof builtinTable === "object" && "region" in builtinTable) {
       const region = (builtinTable as Record<string, unknown>)["region"];
       if (typeof region === "string" && pyStrip(region)) merged["region"] = region;
@@ -450,10 +443,10 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
   const _explicit_url =
     "api_url" in applied_overrides ||
     "api_base_url" in applied_overrides ||
-    _envPresent("E2B_API_URL");
+    _envPresent("ABX_SANDBOX_BASE_URL");
   if (!_explicit_url && "region" in merged) {
-    if (!("api_url" in merged)) merged["api_url"] = `https://api.${pyStr(merged["region"])}.e2b.fc.aliyuncs.com`;
-    if (!("domain" in merged)) merged["domain"] = `${pyStr(merged["region"])}.e2b.fc.aliyuncs.com`;
+    if (!("api_url" in merged)) merged["api_url"] = defaultConfig.derive.sandbox_base_url.replace("{region}", pyStr(merged["region"]));
+    if (!("domain" in merged)) merged["domain"] = defaultConfig.derive.sandbox_domain.replace("{region}", pyStr(merged["region"]));
   }
 
   const config = new TransportConfig(merged);

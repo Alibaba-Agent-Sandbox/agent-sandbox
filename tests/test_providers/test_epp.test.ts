@@ -284,7 +284,7 @@ describe("TestMapError", () => {
 describe.skipIf(!pythonAvailable())("reference plugin", () => {
   it("test_reference_plugin_env_is_scrubbed_and_config_arrives_via_initialize", async () => {
     await installer.install(LOCAL_PROCESS, { yes: true, hostVersion: TEST_HOST_VERSION });
-    iso.setenv("E2B_API_KEY", "parent-secret-1");
+    iso.setenv("ABX_SANDBOX_API_KEY", "parent-secret-1");
     iso.setenv("E2B_API_KEY", "parent-secret-2");
     iso.setenv("AWS_SECRET_ACCESS_KEY", "parent-secret-3");
     const provider = registry.getProvider("local-process");

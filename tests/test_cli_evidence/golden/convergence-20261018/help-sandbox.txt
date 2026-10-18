@@ -1,0 +1,39 @@
+Usage: abx sandbox [options] [command]
+
+Manage sandboxes: lifecycle, files, processes, named commands, system details.
+
+create, list, info, kill, exec, connect, upload and download are also
+available as top-level shortcuts (abx create, abx list, ...), and
+'sandbox command run' as 'abx run'.
+
+Examples:
+  abx sandbox create --template base
+  abx sandbox list --status running
+  abx sandbox system info abc123
+
+Related commands:
+  abx sandbox files --help    Inspect and modify remote files
+  abx sandbox process --help  Inspect and signal processes
+  abx sandbox command --help  Run commands registered in the sandbox
+  abx sandbox system --help   Inspect runtime system details
+
+Options:
+  -h, --help    Show this message and exit.
+
+Commands:
+  capabilities  Show the capability groups available in a sandbox.
+  command       List and run the named commands registered in a sandbox.
+  connect       Open an interactive command REPL for a sandbox.
+  create        Create a new sandbox.
+  download      Download a file from the sandbox to local.
+  exec          Run a command in a sandbox.
+  files         Inspect and modify files inside a sandbox.
+  info          Show status, template, region, timeout, and URL for a sandbox.
+  kill          Permanently destroy one sandbox or all running sandboxes.
+  list          List sandboxes, optionally filtered by lifecycle status.
+  process       Inspect and signal processes inside a sandbox (to start one: abx
+                exec --background).
+  system        Inspect runtime environment, ports, packages, and resource
+                usage.
+  upload        Upload a local file or directory to the sandbox.
+[exit_code:0]

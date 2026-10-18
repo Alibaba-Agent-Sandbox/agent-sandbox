@@ -1,0 +1,5 @@
+templateID  tmpl-001
+alias       python-base
+status      ready
+dockerfile  FROM python:3.11-slim
+[exit_code:0]

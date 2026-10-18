@@ -9,7 +9,7 @@ import { INT } from "../types.js";
 import { echo } from "../io.js";
 import { confirm } from "../prompts.js";
 import { getFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 
 /** Connect to a sandbox by ID. */
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {

@@ -1,9 +1,9 @@
 /** Backend selection and cloud administration must not cross provider ownership. */
 import "../_support/isolatedHome.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { requireTemplateFeature } from "../../src/cli/template_provider.js";
+import { requireTemplateFeature } from "../../src/providers/alicloud_express/cli/selection.js";
 import { _generateAndDeployTemplate } from "../../src/cli/commands/sandbox.js";
-import { _doDeploy, templateSeams } from "../../src/cli/commands/template.js";
+import { _doDeploy, templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import type { Context } from "../../src/cli/kit.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
 import { ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
@@ -28,7 +28,7 @@ describe("provider template boundary", () => {
     selectForeign();
     for (const feature of ["templates.read", "templates.build"] as const) {
       expect(() => requireTemplateFeature(feature)).toThrow(ProviderFeatureNotSupportedError);
-      expect(() => requireTemplateFeature(feature)).toThrow("refusing the Alibaba Express pipeline");
+      expect(() => requireTemplateFeature(feature)).toThrow("foreign-template-test");
     }
   });
 

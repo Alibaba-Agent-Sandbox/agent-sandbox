@@ -69,17 +69,18 @@ describe("ADV-agent-template: mcp start --http", () => {
     });
     try {
       let up = "";
-      for (let i = 0; i < 100 && !up; i += 1) {
+      const deadline = Date.now() + 60000;
+      while (!up.startsWith("HTTP/1.1 200") && Date.now() < deadline) {
         up = await rawGet(
           port,
-          "GET /health HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n",
+          `GET /health HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: close\r\n\r\n`,
         );
-        if (!up) await new Promise((r) => setTimeout(r, 200));
+        if (!up.startsWith("HTTP/1.1 200")) await new Promise((r) => setTimeout(r, 200));
       }
-      expect(up.startsWith("HTTP/1.1 200")).toBe(true);
+      expect(up.split("\r\n")[0], up.slice(0, 500)).toBe("HTTP/1.1 200 OK");
       const big = await rawGet(
         port,
-        `GET /health HTTP/1.1\r\nHost: x\r\nX-Big: ${"a".repeat(20000)}\r\nConnection: close\r\n\r\n`,
+        `GET /health HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nX-Big: ${"a".repeat(20000)}\r\nConnection: close\r\n\r\n`,
       );
       expect(big.split("\r\n")[0]).toBe("HTTP/1.1 200 OK");
     } finally {

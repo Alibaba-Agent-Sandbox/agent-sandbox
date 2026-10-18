@@ -35,13 +35,12 @@ CLI 采用严格的分层结构——下层从不导入上层。完整说明（�
 graph TB
     BIN["bin — abx 入口"]
     subgraph Front["命令行"]
-        FW["framework — 兼容 click 的命令框架"]
+        FW["cli/kit — Commander 命令适配"]
         CLI["cli — main、OutputManager、格式化"]
         CMD["cli/commands — 命令组"]
     end
     subgraph Services["宿主侧服务"]
         AG["agent — MCP Server、模板编写"]
-        SES["session — LocalSessionStore"]
     end
     subgraph Core["客户端核心"]
         API["api — Sandbox、文件、代码、命令、模板"]
@@ -52,16 +51,16 @@ graph TB
     BIN --> CLI --> FW
     CLI --> CMD
     CMD --> AG
-    CMD --> SES
     CMD --> API
     AG --> API
-    SES --> API
     API --> PRO --> TRA --> MOD
 ```
 
 ---
 
 ## 设计专题索引
+
+[Provider 管理命令契约](design/provider-commands.md) · [阿里云能力矩阵](design/alicloud-provider-commands.md)
 
 ### 架构与命令
 
@@ -127,3 +126,5 @@ Python SDK（PyPI 上的 `agent-sandbox-client`，导入名 `agent_sandbox`）�
 - [SDK API 设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sdk-api-design.md) 与 [沙箱类型体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sandbox-types.md)
 - [模板体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与 [template.yaml 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md) — `template.yaml` 契约
 - [内置 Agent](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/built-in-agents.md) 与 [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
+
+- [Provider 迁移、职责边界与更新](design/provider-portability-and-updates.md)

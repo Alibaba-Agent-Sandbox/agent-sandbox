@@ -88,7 +88,21 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
   const expressOptions = (values: readonly string[]): number => values.filter((arg, index) => arg === "--provider=alicloud-express" || (arg === "--provider" && values[index + 1] === "alicloud-express")).length;
   const expressOverride = expressOptions(args) > expressOptions(normalized);
   if (!expressOverride && ambientProviderId() !== "alicloud-express") return false;
-  const sources = collectSources();
+  const snapshot = collectSources();
+  // Standard E2B settings are an entry-specific namespace. Core/provider config
+  // keeps its canonical ABX names and is never mutated by compatibility aliases.
+  const standardLayer = (layer: Readonly<Record<string, string>>): Record<string, string> => {
+    const normalized = { ...layer };
+    for (const [standard, project] of [["E2B_API_KEY", "ABX_SANDBOX_API_KEY"],
+      ["E2B_API_URL", "ABX_SANDBOX_BASE_URL"], ["E2B_DOMAIN", "ABX_SANDBOX_DOMAIN"]]) {
+      const value = layer[standard!];
+      if (value?.trim()) normalized[project!] = value;
+    }
+    return normalized;
+  };
+  const sources = { ...snapshot, environ: standardLayer(snapshot.environ ?? {}),
+    dotenv: (snapshot.dotenv ?? []).map(standardLayer) };
+
   const config = loadLayeredConfig({ provider: "alicloud-express" }, { sources });
   if (config.api_key) process.env["E2B_API_KEY"] = config.api_key;
   const urlSource = explainConfig({ provider: "alicloud-express" }, { sources })["sandbox_base_url"]?.source;

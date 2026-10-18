@@ -1,25 +1,14 @@
-/**
- * Shared command-level `--region` option and resolution (port of `cli/region.py`).
- *
- * `region` is not a global CLI switch (unlike `--json`/`--quiet`/`--verbose`): only commands that actually talk to a
- * regional control plane, the template pipeline (ACR / FC), or MCP deployment accept it.
- *
- * Resolution priority (implemented once in `loadConfig` of `transport/config` via its override mechanism, reused by
- * every command):
- *
- * 1. Command `--region/-r` value
- * 2. `ALIBABA_CLOUD_REGION_ID` process environment (then the same name in `./.env`)
- * 3. `abx config set region` (`~/.abx/config.toml` or `~/.abx/.env`)
- * 4. Default `cn-hangzhou`
- */
-
+/** Common region flag. Only providers declaring a region field accept it; derivation/defaults are adapter metadata. */
 import { type Option, option } from "./kit.js";
-import { loadConfig } from "../transport/config.js";
+import { loadLayeredConfig } from "../transport/config_layers.js";
+import { resolveProviderId } from "../providers/registry.js";
+import { cliProvider } from "../providers/selection.js";
+import { defaultRegion } from "../providers/bundled_config.js";
 
 /** Fallback region when nothing is configured. */
-export const DEFAULT_REGION = "cn-hangzhou";
+export const DEFAULT_REGION = defaultRegion();
 
-export const _REGION_HELP = "Region override for this command (default: 'abx config set region' value, else cn-hangzhou)";
+export const _REGION_HELP = "Region override for providers that declare region (otherwise use the provider default)";
 
 /**
  * The shared command-level `--region/-r` option. Add it to a command's `params`:
@@ -33,10 +22,9 @@ export function regionOption(): Option {
 /**
  * Return the effective region for a command invocation.
  *
- * Priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`. Commands that build the
- * full transport config should instead call `loadConfig({ region: cliRegion })` directly -- the same priority
- * applies.
+ * Priority: explicit flag, then the selected provider's resolved configuration.
  */
 export function resolveRegion(cliRegion: string | null): string {
-  return loadConfig({ region: cliRegion }).region;
+  const region = cliRegion?.trim();
+  return loadLayeredConfig({ provider: resolveProviderId(cliProvider()), provider_options: region ? { region } : {} }).region;
 }

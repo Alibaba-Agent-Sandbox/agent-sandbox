@@ -27,7 +27,7 @@ import { Sandbox } from "../../src/api/sandbox.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import { configSeams } from "../../src/cli/commands/config_cmd.js";
 import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
-import * as template from "../../src/cli/commands/template.js";
+import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";

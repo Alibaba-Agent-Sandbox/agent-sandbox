@@ -53,7 +53,7 @@ describe.skipIf(!haveCatalog)("node plugins from the catalog", () => {
 
   it("e2b: needs its own key, sends X-API-Key, and resumes through the v2 connect route", async () => {
     await install("e2b");
-    iso.setenv("E2B_API_KEY", "express-key");
+    iso.setenv("ABX_SANDBOX_API_KEY", "express-key");
     await expect(Sandbox.create({ provider: "e2b", provider_options: { base_url: origin }, template: "base" })).rejects.toThrow(/ABX_E2B_API_KEY|credentials|API key/i);
 
     const options = { base_url: origin, api_key: "e2b-key", domain: "e2b.test" };
@@ -78,7 +78,7 @@ describe.skipIf(!haveCatalog)("node plugins from the catalog", () => {
 
   it("cubesandbox: no key header, http envd, root user, framed streams, dial through the proxy, Jupyter code", async () => {
     await install("cubesandbox");
-    iso.setenv("E2B_API_KEY", "express-key");
+    iso.setenv("ABX_SANDBOX_API_KEY", "express-key");
     const sb = await Sandbox.create({
       provider: "cubesandbox",
       provider_options: { base_url: origin, domain: "cube.test", proxy: `127.0.0.1:${port}` },

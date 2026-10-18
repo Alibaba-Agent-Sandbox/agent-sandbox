@@ -116,7 +116,7 @@ describe("TestAuthenticationErrors", () => {
     expect(err).toBeInstanceOf(AuthenticationError);
     expect(err).toBeInstanceOf(SandboxError);
     expect(err.code).toBe("E1001");
-    expect(err.suggestion).toContain("E2B_API_KEY");
+    expect(err.suggestion).toContain("ABX_SANDBOX_API_KEY");
     expect(err.suggestion).toContain("sandbox_api_key");
   });
 
@@ -131,7 +131,7 @@ describe("TestAuthenticationErrors", () => {
     const err = new InvalidCredentialsError("bad creds");
     expect(err).toBeInstanceOf(AuthenticationError);
     expect(err.code).toBe("E1003");
-    expect(err.suggestion).toContain("ALICLOUD");
+    expect(err.suggestion).toContain("selected provider");
   });
 });
 

@@ -39,6 +39,19 @@ const _SANDBOX_RESPONSE = {
 const bodyOf = (request: { content: Uint8Array }) => JSON.parse(Buffer.from(request.content).toString("utf-8"));
 
 describe("TestCreate", () => {
+  it("sends named Volume mounts and role metadata in the real create request", async () => {
+    const protocol = makeProtocol();
+    httpx_mock.add_response({ url: `${BASE}/sandboxes`, method: "POST", json: _SANDBOX_RESPONSE });
+    await protocol.create(new SandboxConfig({
+      volume_mounts: { "/mnt/oss": "workspace" },
+      metadata: { "fc.sandbox.auth.role": "acs:ram::123456:role/example" },
+    }));
+    expect(bodyOf(httpx_mock.get_request())).toMatchObject({
+      volumeMounts: [{ name: "workspace", path: "/mnt/oss" }],
+      metadata: { "fc.sandbox.auth.role": "acs:ram::123456:role/example" },
+    });
+  });
+
   // Test SandboxProtocol.create().
   it("test_create_minimal_config", async () => {
     const protocol = makeProtocol();
@@ -303,11 +316,11 @@ describe("TestNotFoundMapping", () => {
 describe("TestUnknownIfAbsent", () => {
   const bare = { sandboxID: "sbx-1", templateID: "base", status: "running" };
 
-  it("test_platform_default_keeps_the_builtin_region_and_timeout", async () => {
+  it("test_platform_response_omissions_remain_unknown", async () => {
     const protocol = makeProtocol();
     httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-1`, method: "GET", json: bare });
     const info = await protocol.getInfo("sbx-1");
-    expect([info.region, info.timeout]).toEqual(["cn-hangzhou", 300]);
+    expect([info.region, info.timeout]).toEqual(["", 0]);
   });
 
   it("test_plugin_wire_leaves_absent_region_and_timeout_unknown", async () => {

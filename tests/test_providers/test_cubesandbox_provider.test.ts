@@ -16,7 +16,7 @@ import { main } from "../../src/cli/main.js";
 import { startEngine, type EngineHandle } from "../../src/engine/server.js";
 import { QuotaExceededError, SandboxCreationError, SandboxNotFoundError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { ProcessChunkType, type ProcessResult } from "../../src/models/process.js";
-import { ProviderConfigError } from "../../src/providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
 import { useIso } from "../_support/iso.js";
@@ -67,7 +67,7 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
   }
 
   it("treats a missing key and domain as defaults, and rejects an unknown option", async () => {
-    iso.setenv("E2B_API_KEY", "express-key");
+    iso.setenv("ABX_SANDBOX_API_KEY", "express-key");
     const sb = await Sandbox.create({
       provider: "cubesandbox",
       provider_options: { base_url: origin, proxy: `127.0.0.1:${port}` },
@@ -172,7 +172,7 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
     await expect(Sandbox.connect("sbx-1", { provider: "cubesandbox", provider_options: options() })).rejects.toBeInstanceOf(SandboxNotFoundError);
   }, 30_000);
 
-  it("runs and streams commands, reads and lists files, interprets code, and opens a PTY", async () => {
+  it("runs commands, files and code, and refuses the undeclared PTY", async () => {
     const sb = await create("base");
     try {
       seen.length = 0;
@@ -216,20 +216,8 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
       expect(exec?.headers["e2b-sandbox-port"]).toBe("49999");
       expect(JSON.parse(exec?.body.toString() ?? "{}")).toEqual({ code: "print(42)", language: "python", env_vars: { FOO: "bar" } });
 
-      const term = await sb.getTerminal({ cols: 80, rows: 24 });
-      try {
-        await term.send("ping\n");
-        let text = "";
-        const deadline = Date.now() + 5_000;
-        while (!text.includes("ping") && Date.now() < deadline) text += String(await term.receive(2));
-        expect(text).toContain("ping");
-      } finally {
-        await term.close();
-      }
-      const upgrade = seen.find((s) => s.method === "UPGRADE");
-      expect(upgrade?.url).toContain("/terminal");
-      expect(String(upgrade?.headers["host"] ?? "")).toContain("49983-sbx-1.reported.test");
-      expect(basicUser(String(upgrade?.headers["authorization"] ?? ""))).toBe("root:");
+      await expect(sb.getTerminal({ cols: 80, rows: 24 })).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
+      expect(seen.some((s) => s.method === "UPGRADE")).toBe(false);
     } finally {
       await sb.kill();
     }

@@ -38,7 +38,7 @@ function baseEnv(home: string, url: string | null, extra: Record<string, string 
     COLUMNS: "100",
     ABX_NO_KEYCHAIN: "1",
   };
-  if (url) Object.assign(env, { E2B_API_KEY: "k-adversarial-stub", E2B_API_URL: url, E2B_DOMAIN: "stub.invalid" });
+  if (url) Object.assign(env, { ABX_SANDBOX_API_KEY: "k-adversarial-stub", ABX_SANDBOX_BASE_URL: url, ABX_SANDBOX_DOMAIN: "stub.invalid" });
   for (const [k, v] of Object.entries(extra)) {
     if (v === null) delete env[k];
     else env[k] = v;
@@ -81,9 +81,9 @@ function collect(cmd: string, args: string[], opts: { cwd: string; env: Record<s
   });
 }
 
-function runAbx(args: string[], opts: { home: string; cwd: string; url: string | null; env?: Record<string, string | null>; shell?: string }): Promise<Run> {
+function runAbx(args: string[], opts: { home: string; cwd: string; url: string | null; env?: Record<string, string | null>; shell?: string; built?: boolean }): Promise<Run> {
   const env = baseEnv(opts.home, opts.url, opts.env);
-  const argv = ["--import", TSX, ENTRY, ...args];
+  const argv = opts.built ? [path.join(CLI_ROOT, "dist/bin/abx.js"), ...args] : ["--import", TSX, ENTRY, ...args];
   if (opts.shell) {
     env.ABX = [process.execPath, ...argv].map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(" ");
     return collect("bash", ["-c", opts.shell], { cwd: opts.cwd, env, timeoutMs: 30000 });
@@ -176,12 +176,15 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-08 FORCE_COLOR together with NO_COLOR does not leak a Node warning on stderr", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runAbx(["config", "list"], { home, cwd, url: stub.url, env: { FORCE_COLOR: "1", NO_COLOR: "1" } });
+      // tsx can emit Node's color warning before the CLI shim is evaluated.
+      // Check the actual shipped entrypoint, not a loader's earlier side effect.
+      const r = await runAbx(["config", "list"], { home, cwd, url: stub.url, built: true, env: { FORCE_COLOR: "1", NO_COLOR: "1" } });
+      expect(r.status, r.stderr).toBe(0);
       expect(r.stderr).not.toContain("ignored due to the 'FORCE_COLOR'");
     });
   });
 
-  it("ADV-commands-09 a scheme-less E2B_API_URL reports the httpx protocol message", async () => {
+  it("ADV-commands-09 a scheme-less ABX_SANDBOX_BASE_URL reports the httpx protocol message", async () => {
     await withStub(async ({ home, cwd }) => {
       const r = await runAbx(["list"], { home, cwd, url: "127.0.0.1:9" });
       expect(r.stderr).toContain("Request URL is missing an 'http://' or 'https://' protocol.");

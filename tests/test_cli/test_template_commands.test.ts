@@ -7,7 +7,7 @@ import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import * as fcTemplate from "../../src/api/fc_template.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import {
   _isNlDescription,
   _readYamlDefaults,
@@ -17,7 +17,7 @@ import {
   init as templateInit,
   template as templateGroup,
   templateSeams,
-} from "../../src/cli/commands/template.js";
+} from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { UsageError } from "../../src/cli/errors.js";
 import { RegistryClient } from "../../src/utils/registry.js";
@@ -183,6 +183,13 @@ describe("TestTemplateListCommand", () => {
     patchTransport(mockHttp({ json: [] }));
     const result = await runner().invoke(cli, ["template", "list"]);
     expect([0, 1, 3]).toContain(result.exit_code);
+  });
+
+  it("shows aliases and current build state from the actual platform response shape", async () => {
+    patchTransport(mockHttp({ json: [{ templateID: "tpl-ready", aliases: ["version-1"], builds: [{ buildID: "b1", status: "ready" }] }] }));
+    const result = await runner().invoke(cli, ["--json", "template", "list"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(JSON.parse(result.output)).toEqual([{ TemplateID: "tpl-ready", Alias: "version-1", Status: "ready" }]);
   });
 
   it("test_list_official_templates", async () => {

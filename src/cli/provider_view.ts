@@ -38,7 +38,6 @@ export function printedId(view: ProviderView, sandboxId: string, providerId: str
  */
 export function scopedFlagOptions(flag: string, key: string, value: string | null, view: ProviderView): Record<string, unknown> | null {
   if (value === null || value === undefined) return null;
-  if (view.effective === BUILTIN_PROVIDER_ID) return null;
   const declared = registry.getProvider(view.effective).configFields.some((f) => f.key === key);
   if (!declared) {
     throw new ProviderConfigError(`Option '${flag}' is not supported by provider '${view.effective}'.`, {

@@ -1,0 +1,68 @@
+{
+  "result": "PASS for requested CLI and MCP runtime workflow; template control coverage intentionally incomplete",
+  "cli_result": "PASS; 8 assertions",
+  "mcp_final_result": "PASS; cancellation protocol flags, stopped output, timeout observation and cleanup independently checked",
+  "live_tool_names": [
+    "create_sandbox",
+    "run_code",
+    "run_command",
+    "read_file",
+    "write_file",
+    "list_files",
+    "kill_sandbox",
+    "get_capabilities",
+    "list_sandboxes",
+    "get_sandbox",
+    "set_sandbox_timeout",
+    "retain_sandbox",
+    "upload_file",
+    "download_file",
+    "start_task",
+    "get_task",
+    "cancel_task",
+    "verify_sandbox"
+  ],
+  "blocked": {
+    "get_template_build": "No configured Team discovered; Team not invented. Parent separately investigating authenticated Team discovery."
+  },
+  "not_run": [
+    "submit_template_build",
+    "validate_template"
+  ],
+  "artifact": {
+    "files": [
+      "result.json",
+      "mcp-result.json"
+    ],
+    "bytes": 53,
+    "sha256": "9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8",
+    "parsed": {
+      "row_count": 3,
+      "total_amount": "31.50",
+      "total_qty": 6
+    }
+  },
+  "cleanup": "All four sequentially created sandboxes independently confirmed deleted; never more than one owned sandbox alive. Bridge left running as requested; owned resources empty.",
+  "corrected_harness_mistakes": [
+    "Initial MCP helper used status/completed; actual task contract is state/succeeded. Original failed assertions retained; saved actual response re-evaluation verifies recovery and exit0.",
+    "Initial generic helper halted on cancelled task isErrortrue, exposing an integration defect; later fixed build separately re-tested with isErrorfalse."
+  ],
+  "remaining_limits": [
+    "Provider capability declarations do not constitute live support for every declared feature.",
+    "Numeric timeout and region are absent in platform responses, returned null by MCP; timeout_verifiedfalse correctly retained despite independently observed end_at change.",
+    "Original CLI Skill SHA was not recorded at start; no retrospectively invented hash.",
+    "Historical template jjous014ebntx3qsj258 is absent; who/what removed its backing resources is unresolved."
+  ],
+  "evidence": "EVIDENCE.md; reviewed-actions.jsonl; trace.jsonl; mcp-trace.jsonl; original outcomes and final outcome retained",
+  "parent_followup": {
+    "result": "PASS",
+    "live_additional_tools": [
+      "get_template_build",
+      "submit_template_build",
+      "validate_template"
+    ],
+    "combined_tool_coverage": "21/21 exercised live; not full original requirement acceptance",
+    "build_runtime_and_cleanup": "template-after-fix.json and template-cleanup.json",
+    "first_failure": "generation 1 startup rejected HTTP400; fixed generation2 and replayed; template-before-fix.json"
+  }
+}

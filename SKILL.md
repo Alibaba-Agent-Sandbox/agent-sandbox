@@ -1,6 +1,6 @@
 ---
 name: agent-sandbox
-description: Operate an Agent Sandbox with the abx CLI or MCP. Use when the task is to create a sandbox, run a command in it, copy files, kill it, or deploy a template with abx. Do not use this to write a Python client, template.yaml, a Dockerfile, or commands.py; that skill is agent-sandbox-sdk.
+description: Operate an Agent Sandbox with the abx CLI or MCP. Use when the task is sandbox setup, task execution, reconnection, file delivery, diagnosis or template acceptance with abx. Do not use this to write a Python client, template.yaml, a Dockerfile, or commands.py; that skill is agent-sandbox-sdk.
 ---
 
 # Operate an Agent Sandbox
@@ -8,6 +8,12 @@ description: Operate an Agent Sandbox with the abx CLI or MCP. Use when the task
 This file is a static usage guide for a coding agent. It is not executed, parsed, or registered by Agent Sandbox, and it does not restore the removed `abx skill` command group.
 Writing a Python client or a template is the `agent-sandbox-sdk` skill.
 The npm package ships this file at the repository root. A tool loads it only from a directory named `agent-sandbox`, so install it as `<skills-dir>/agent-sandbox/SKILL.md`.
+
+## Verified workflows and action records
+
+Read [task workflows](references/task-workflows.md) for task submission, reconnect, cancel, binary transfer, independent artifact checks, cleanup and per-action records. Read [provider contracts](references/provider-contracts.md) when selecting a provider or diagnosing failure. Read [template workflows](references/template-workflows.md) for OCI builds and runtime validation.
+
+Every function attempted through this Skill needs a sanitized record: which agent/model used this Skill/version, the user's request, actual tool/CLI arguments, returned result/error, expected effect, independently observed effect, elapsed time and PASS/FAIL/BLOCKED/NOT_RUN. Keep a user-readable input → return → effect table with links to machine-readable events. Credentials and private logs never enter records. A response saying success is not proof that the requested effect occurred.
 
 ## When to use
 
@@ -34,15 +40,15 @@ Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and t
 
 ## Installation
 
-Node.js 20+ is required for the CLI.
+The standalone CLI binary does not require Node.js. Building/installing its source package requires Node.js20+. Public npm metadata is unavailable; use the binary installer or the source recipe below.
 
 ```bash
-npm install -g @agent-sandbox/cli   # abx CLI + MCP STDIO and Streamable HTTP servers (most agents want this)
-npx @agent-sandbox/cli --help       # or run it without installing
-pip install agent-sandbox-client    # Python SDK only (import agent_sandbox; lives in the `python-sdk` repository)
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+abx --help
+# Python SDK is separate; follow its repository release/source-install instructions.
 ```
 
-`pip install agent-sandbox` installs an unrelated project.
+The Python client distribution is `agent-sandbox-client` (import `agent_sandbox`), maintained in the `python-sdk` repository. Verify its published release or use that repository's source-install instructions; CLI/MCP use does not require installing the Python client on the host.
 
 If npm reports no matching version, install from the CLI repository. The clone root is the CLI; do not look for a nested cli directory:
 
@@ -63,10 +69,7 @@ Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Short
 
 ## Credentials and security
 
-Authentication options (first available wins):
-
-1. API key — environment variable `E2B_API_KEY`
-2. Alibaba Cloud AK/SK — `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`
+Runtime sandbox requests require `ABX_SANDBOX_API_KEY`. Official template/image/ACR control-plane operations separately require `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`. AK/SK never automatically creates or exchanges the runtime API key.
 
 Persist them locally instead of exporting in every shell:
 
@@ -91,19 +94,19 @@ abx config get sandbox_api_key                   # shows a masked value
 
 ## Creating a sandbox
 
-CLI (default template is `base`; the positional argument names a template; natural language uses `--prompt`):
+CLI (default template is `base`; DESCRIPTION and `--template` are mutually exclusive):
 
 ```bash
-abx create base --detach                 # print the ID; --timeout is lifetime in seconds
-abx create python-hello --detach        # named template, no AI involved
-abx create base --detach --timeout 600
+abx create --template base              # explicit template; --timeout is lifetime in seconds (default 300)
+abx create --template python-hello      # named template, no AI involved
+abx create --template base -e API_KEY=x -e DEBUG=1 --timeout 600
 abx list                                # find sandbox IDs
 abx info <SANDBOX_ID>
-abx connect <SANDBOX_ID>                # real PTY; cd and env persist; exit preserves this sandbox
+abx connect <SANDBOX_ID>                # one command per line; cd and env do not persist
 ```
 
-`abx create --prompt "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
-CLI plus a DashScope/ModelStudio key via `abx config init`) — use a positional template
+`abx create "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
+CLI plus a DashScope/ModelStudio key via `abx config init`) — prefer `--template`
 when you just need a runtime.
 
 Writing that client, or a template's `commands.py`, is the `agent-sandbox-sdk` skill. The import is `from agent_sandbox import Sandbox`. `timeout` on `create` is the sandbox lifetime in seconds.
@@ -114,7 +117,8 @@ MCP tool (inside any MCP client):
 { "tool": "create_sandbox", "arguments": { "template": "code-interpreter-v1", "timeout": 300 } }
 ```
 
-Note: sandbox creation involves a cold start; the standard request and lifecycle settings follow the pinned E2B CLI. An interactive create expires after terminal exit (Alibaba minimum TTL applies); use --detach for subsequent commands. In MCP sessions, `create_sandbox` becomes
+Note: sandbox creation involves a cold start; the CLI enforces a ≥120 s client HTTP
+timeout floor for `create` automatically. In MCP sessions, `create_sandbox` becomes
 the default sandbox, so later tool calls can omit `sandbox_id`. A first tool call
 that omits `sandbox_id` before any create lazily creates that default.
 
@@ -123,17 +127,17 @@ that omits `sandbox_id` before any create lazily creates that default.
 CLI one-shot (exit code is passed through, so CI fails correctly):
 
 ```bash
-abx exec <SANDBOX_ID> python --version
-abx exec --cwd /app --env CI=1 <SANDBOX_ID> pytest -q
-abx exec <SANDBOX_ID> pip install httpx      # live output
-abx exec --background <SANDBOX_ID> python -m http.server 8000   # prints the pid
+abx exec <SANDBOX_ID> -- python --version
+abx exec <SANDBOX_ID> --cwd /app --env CI=1 --timeout 300 -- pytest -q
+abx exec <SANDBOX_ID> --stream -- pip install httpx      # live output
+abx exec <SANDBOX_ID> --background -- python -m http.server 8000   # prints the pid
 ```
 
-Standard exec streams by default and has no local `--timeout` or `--stream` option. All local options precede the sandbox ID; everything after the ID belongs to the remote command. Background PID is written to stderr. A pipeline or a shell variable needs an explicit shell: `abx exec <SANDBOX_ID> sh -c 'echo $HOME'`. A background process is `abx sandbox process list <SANDBOX_ID>`. `abx sandbox process signal` accepts only signal 15 (SIGTERM) or 9 (SIGKILL).
+`--timeout` here bounds the command (default 60). It is not the sandbox lifetime. `--cwd` defaults to the image workdir. Arguments after `--` are the command. A pipeline or a shell variable needs an explicit shell: `abx exec <SANDBOX_ID> -- sh -c 'echo $HOME'`. A background process is `abx sandbox process list <SANDBOX_ID>`. `abx sandbox process signal` accepts only signal 15 (SIGTERM) or 9 (SIGKILL).
 
 `run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` needs a template whose capabilities include `code`.
 
-MCP tools are exactly these seven: `create_sandbox`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`.
+MCP exposes 21 tools in this source version. Core: `create_sandbox`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`. Workflows: `get_capabilities`, `list_sandboxes`, `get_sandbox`, `set_sandbox_timeout`, `retain_sandbox`, `upload_file`, `download_file`, `start_task`, `get_task`, `cancel_task`, `verify_sandbox`. Templates: `submit_template_build`, `get_template_build`, `validate_template`. Inspect actual tools/list on the installed server before relying on these additions. See the linked workflows for completion checks and provider boundaries.
 
 `run_command` runs the string with `sh -c`. Omitted `cwd` is the image workdir, not `/app`. `timeout` defaults to 60. It is a shell command, not a named command.
 
@@ -155,24 +159,22 @@ abx sandbox files list <SANDBOX_ID> --path /app
 
 MCP: `read_file` (`path`, `encoding`, `sandbox_id`), `write_file` (`path`,
 `content`, `sandbox_id`), `list_files` (`path` default `/`, `sandbox_id`).
-`write_file` takes text content; for binary data use the CLI upload.
+`write_file` takes text content; use `upload_file` with base64 and SHA-256 for bounded binary data, or CLI upload for larger files.
 
 ## Destroying resources
 
-Sandboxes consume quota while alive. Always clean up when done.
+Sandboxes consume quota while alive. Clean up only this task's created resources, after result verification, unless the user requested preservation. Preserve background environments until the task is complete. Record cleanup separately.
 
 ```bash
-abx kill <SANDBOX_ID>              # immediate deletion; no --yes flag
-abx kill --all               # destroy every running sandbox
+abx kill <SANDBOX_ID> --yes        # --yes skips confirmation (use in scripts)
 ```
 
-Use Python `Sandbox`/`AsyncSandbox` context management or explicit finally/kill for cleanup. That client is the `agent-sandbox-sdk` skill.
+The Python client's `async with` block kills the sandbox on exit. That client is the `agent-sandbox-sdk` skill.
 
 Killing an id that is already gone succeeds. Do not treat that as a failure.
 
 MCP: `kill_sandbox` with `sandbox_id`. Omitting it destroys the session default.
-Omitting it when the session has no default is an error. MCP session sandboxes
-are also destroyed when the client disconnects.
+Omitting it when the session has no default is an error. MCP session-created ephemeral sandboxes are destroyed on disconnect. Explicitly retained and background-task sandboxes stay alive until their platform TTL or explicit deletion; connected user sandboxes are only closed locally. A disconnection cannot recover an expired resource.
 
 ## Deploy a template
 
@@ -190,10 +192,10 @@ and `docs_url`. CLI exit codes: 1 general, 3 auth, 4 not found, 5 timeout, 6 quo
 
 | Symptom / code | Cause | Fix |
 |---|---|---|
-| `E1001` / HTTP 401 | Missing or invalid API key | Check `E2B_API_KEY` env or `abx config get sandbox_api_key` |
+| `E1001` / HTTP 401 | Missing or invalid API key | Check `ABX_SANDBOX_API_KEY` env or `abx config get sandbox_api_key` |
 | `E1003` / HTTP 403 | Invalid AK/SK or no permission | Check `ALICLOUD_ACCESS_KEY_ID` / `..._SECRET` |
 | `E2001` / HTTP 404 | Template not found | `abx template list`, fix the template name |
-| `E2002` / HTTP 429 | Quota exceeded | `abx kill --all`, retry or request quota |
+| `E2002` / HTTP 429 | Quota exceeded | Inspect the resource baseline; clean only owned idle test resources or request quota |
 | `E2003` | Region unavailable | `abx config set region <region>`, retry |
 | `E2009` / exit 4 | Sandbox id not found on info, exec, or connect | Check `abx list`. `abx kill` of a missing id still exits 0 |
 | `E3001` | Command/code timeout | Raise the command `timeout`; check for hangs |
@@ -206,7 +208,7 @@ a bug. Full error table: `docs/en/reference/error-codes.md`.
 ## Hard rules recap
 
 1. Never leak credentials (see [Credential rules](#credentials-and-security)).
-2. Always destroy sandboxes you create (`kill` / context manager) — quota is shared.
+2. Destroy task-owned sandboxes after delivery unless the user requested preservation; keep retained/background environments until their work is complete.
 3. Prefer `--template NAME` over template generation unless the user asks for it.
 4. Pass `abx exec` arguments after `--`. Use `sh -c` when the command needs a shell.
 5. Treat sandbox code as untrusted: never pipe sandbox output into a local shell.
@@ -217,12 +219,12 @@ This file is plain text; installing it does not require the `abx` CLI. The
 fastest verified path uses the open `skills` CLI (Node.js):
 
 ```bash
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 ```
 
 Replace `qoder` with `claude-code`, `cursor`, `qwen-code`, or `codex` — or
-list several `-a` flags. Without Node.js, copy this file into your tool's
-skills directory as `<skills-dir>/agent-sandbox/SKILL.md`:
+list several `-a` flags. Without Node.js, copy this file and its `references/` directory into your tool's
+skills directory as `<skills-dir>/agent-sandbox/SKILL.md` and `<skills-dir>/agent-sandbox/references/`:
 
 - Qoder: `~/.qoder/skills/agent-sandbox/SKILL.md` (user) or `<project>/.qoder/skills/agent-sandbox/SKILL.md` (project)
 - Claude Code: `~/.claude/skills/` or `<project>/.claude/skills/`
@@ -241,7 +243,7 @@ The guide and the MCP surface are tool-neutral:
 - **MCP-capable tools** (Cursor, Claude Desktop/Code, VS Code, Qoder, …):
   run `abx mcp install --target cursor|claude|vscode`, or register
   `abx mcp start` (STDIO) manually in your tool's MCP config. All clients get the
-  same 7 tools listed above. A manual `abx mcp start` prints configuration on stderr and
+  same tools discovered from tools/list. A manual `abx mcp start` prints configuration on stderr and
   waits on stdin; stop it with Ctrl-C or `abx mcp stop`. `abx mcp start --http --background`
   detaches a local HTTP server.
 - **Skills-aware tools** (Qoder, Claude Code, Cursor, Qwen Code, Codex, …):

@@ -30,7 +30,7 @@ import { QwenCodeBackend } from "../../src/agent/coding_agent.js";
 import { resolveCodingAgentCredentials } from "../../src/cli/commands/_coding_agent.js";
 import { resolveGithubToken } from "../../src/cli/commands/config_cmd.js";
 import { _buildMcpServerConfig, _readApiKey } from "../../src/cli/commands/mcp.js";
-import { _resolveAcrNamespace } from "../../src/cli/commands/template.js";
+import { _resolveAcrNamespace } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { resolveRegion } from "../../src/cli/region.js";
 import { Command, Context } from "../../src/cli/kit.js";
@@ -44,6 +44,7 @@ import {
   loadConfig,
   resetConfig,
 } from "../../src/transport/config.js";
+import { paths, _setPaths } from "../../src/transport/config_layers.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { patchConfig, storagePatch } from "../helpers/configSupport.js";
@@ -64,8 +65,8 @@ const _LEGACY_LLM = "sk-legacy-qwen-eee555";
 const _FILE_QWEN = "sk-file-qwen-fff666";
 
 const _ISOLATED_ENV = [
-  "E2B_API_KEY",
-  "E2B_API_URL",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
   "ABX_LLM_API_KEY",
   "ABX_LLM_BASE_URL",
   "ABX_LLM_MODEL",
@@ -88,6 +89,7 @@ interface CredentialHome {
 
 let home: CredentialHome = { abx: "", project: "" };
 let undoConfig: (() => void) | null = null;
+let savedPaths: typeof paths;
 let savedTransport: { config: string; candidates: string[]; project: string } | null = null;
 
 /** Point every credential reader at one temporary home and project file (`credential_home` fixture). */
@@ -95,6 +97,8 @@ beforeEach(() => {
   const abx = path.join(iso.tmp_path, "abx");
   fs.mkdirSync(abx);
   const project = path.join(iso.tmp_path, "project.env");
+  savedPaths = { ...paths, envFiles: [...paths.envFiles] };
+  _setPaths({ abxDir: abx, configFile: path.join(abx, "config.toml"), envFiles: [project, path.join(abx, ".env")] });
   home = { abx, project };
   undoConfig = patchConfig(storagePatch(abx, { env: true }));
   savedTransport = { config: _CONFIG_FILE, candidates: _ENV_FILE_CANDIDATES, project: _PROJECT_ENV_FILE };
@@ -108,6 +112,7 @@ beforeEach(() => {
 afterEach(() => {
   resetConfig();
   undoConfig?.();
+  _setPaths(savedPaths);
   if (savedTransport) {
     _setConfigFile(savedTransport.config);
     _setEnvFileCandidates(savedTransport.candidates);
@@ -118,7 +123,7 @@ afterEach(() => {
 function _write_system(abx: string): void {
   fs.writeFileSync(
     path.join(abx, ".env"),
-    `E2B_API_KEY=${_STORED_SANDBOX}\n` +
+    `ABX_SANDBOX_API_KEY=${_STORED_SANDBOX}\n` +
       "ALICLOUD_ACCESS_KEY_ID=stored-ak-id\n" +
       "ALICLOUD_ACCESS_KEY_SECRET=stored-ak-secret\n" +
       `ABX_LLM_API_KEY=${_STORED_LLM}\n` +
@@ -144,7 +149,7 @@ const embeddedEnv = (embedded: Map<string, unknown>): Map<string, string> => emb
 describe("TestCredentialPriorityEndToEnd", () => {
   it("test_process_env_beats_system_config", async () => {
     _write_system(home.abx);
-    iso.monkeypatch.setenv("E2B_API_KEY", _ENV_SANDBOX);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ENV_SANDBOX);
     iso.monkeypatch.setenv("ABX_LLM_API_KEY", _ENV_LLM);
     iso.monkeypatch.setenv("ABX_LLM_BASE_URL", "https://env.example/v1");
     iso.monkeypatch.setenv("ABX_LLM_MODEL", "env-model");
@@ -211,7 +216,7 @@ describe("TestCredentialPriorityEndToEnd", () => {
 
     // The editor config copies the resolved sandbox key. Region saved only in config.toml is not frozen into that file.
     const embedded = _buildMcpServerConfig() as Map<string, unknown>;
-    expect(embeddedEnv(embedded).get("E2B_API_KEY")).toBe(_STORED_SANDBOX);
+    expect(embeddedEnv(embedded).get("ABX_SANDBOX_API_KEY")).toBe(_STORED_SANDBOX);
     expect(embeddedEnv(embedded).has("ALIBABA_CLOUD_REGION_ID")).toBe(false);
   });
 
@@ -219,7 +224,7 @@ describe("TestCredentialPriorityEndToEnd", () => {
     _write_system(home.abx);
     fs.writeFileSync(
       home.project,
-      `E2B_API_KEY=${_PROJECT_SANDBOX}\nABX_LLM_API_KEY=sk-project-llm-ccc333\nABX_LLM_BASE_URL=https://project.example/v1\n`,
+      `ABX_SANDBOX_API_KEY=${_PROJECT_SANDBOX}\nABX_LLM_API_KEY=sk-project-llm-ccc333\nABX_LLM_BASE_URL=https://project.example/v1\n`,
       "utf-8",
     );
     resetConfig();
@@ -237,7 +242,7 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(_readApiKey()).toBe(_PROJECT_SANDBOX);
     expect((await _agent_env())["OPENAI_API_KEY"]).toBe("sk-project-llm-ccc333");
 
-    iso.monkeypatch.setenv("E2B_API_KEY", _ENV_SANDBOX);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ENV_SANDBOX);
     iso.monkeypatch.setenv("ABX_LLM_API_KEY", _ENV_LLM);
     resetConfig();
     expect(loadConfig().api_key).toBe(_ENV_SANDBOX);
@@ -249,9 +254,9 @@ describe("TestCredentialPriorityEndToEnd", () => {
 
   it("test_same_layer_order_explicit_region_and_mcp_region", async () => {
     _write_system(home.abx);
-    iso.monkeypatch.setenv("E2B_API_KEY", _ENV_SANDBOX);
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ENV_SANDBOX);
     iso.monkeypatch.setenv("SANDBOX_API_KEY", _ALIAS_SANDBOX);
-    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", _ALIAS_SANDBOX);
+    iso.monkeypatch.setenv("E2B_API_KEY", _ALIAS_SANDBOX);
     iso.monkeypatch.setenv("ABX_LLM_API_KEY", _ENV_LLM);
     iso.monkeypatch.setenv("DASHSCOPE_API_KEY", _VENDOR_LLM);
     iso.monkeypatch.setenv("ALICLOUD_ACCESS_KEY_ID", "env-alicld-ak");
@@ -268,14 +273,14 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(resolveRegion(null)).toBe("cn-shenzhen");
 
     const embedded = _buildMcpServerConfig() as Map<string, unknown>;
-    expect(embeddedEnv(embedded).get("E2B_API_KEY")).toBe(_ENV_SANDBOX);
+    expect(embeddedEnv(embedded).get("ABX_SANDBOX_API_KEY")).toBe(_ENV_SANDBOX);
     expect(embeddedEnv(embedded).get("ALIBABA_CLOUD_REGION_ID")).toBe("cn-shenzhen");
-    expect(embeddedEnv(embedded).has("E2B_API_URL")).toBe(false);
+    expect(embeddedEnv(embedded).has("ABX_SANDBOX_BASE_URL")).toBe(false);
   });
 
   it("test_blank_values_fall_through", () => {
     _write_system(home.abx);
-    iso.monkeypatch.setenv("E2B_API_KEY", "   ");
+    iso.monkeypatch.setenv("ABX_SANDBOX_API_KEY", "   ");
     iso.monkeypatch.setenv("GITHUB_TOKEN", "   ");
     iso.monkeypatch.setenv("ALIBABA_CLOUD_REGION_ID", "   ");
     resetConfig();
@@ -292,7 +297,7 @@ describe("TestCredentialPriorityEndToEnd", () => {
 
   it("test_abx_qwen_code_api_key_is_not_read", async () => {
     const abx = home.abx;
-    fs.writeFileSync(path.join(abx, ".env"), `E2B_API_KEY=${_STORED_SANDBOX}\nABX_QWEN_CODE_API_KEY=${_FILE_QWEN}\n`, "utf-8");
+    fs.writeFileSync(path.join(abx, ".env"), `ABX_SANDBOX_API_KEY=${_STORED_SANDBOX}\nABX_QWEN_CODE_API_KEY=${_FILE_QWEN}\n`, "utf-8");
     iso.monkeypatch.setenv("ABX_QWEN_CODE_API_KEY", _LEGACY_LLM);
     resetConfig();
 

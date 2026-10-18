@@ -1,7 +1,8 @@
+import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
+import { CapabilityNotSupportedError } from "../../models/errors.js";
 /** Sandbox process-inspection CLI commands: list, info, signal (port of `cli/commands/sandbox_process.py`). */
 
 import type { Sandbox } from "../../api/sandbox.js";
-import { CapabilityNotSupportedError } from "../../models/errors.js";
 import type { ProcessInfo, ProcessResult } from "../../models/process.js";
 import { PY_WHITESPACE } from "../../utils/_py.js";
 import { pyStrip, pySplitlines } from "../../utils/_pyformat.js";
@@ -9,7 +10,8 @@ import { argument, command, group, option } from "../kit.js";
 import { INT } from "../types.js";
 import { sysExit } from "../errors.js";
 import { getFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
+import { shlexQuote } from "../../api/_shlex.js";
 
 /** Connect to a sandbox by ID. */
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {
@@ -57,7 +59,7 @@ export const process_list = command("list", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox process info SANDBOX_ID PID\n" +
-    "  abx exec --background SANDBOX_ID CMD\n" +
+    "  abx exec SANDBOX_ID --background -- CMD\n" +
     "  abx sandbox system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
@@ -100,7 +102,7 @@ export const process_info = command("info", {
   help:
     "Get details of a process by PID.\n" +
     "\n" +
-    "Resolves envd process IDs through the process list; falls back to ps for OS PIDs.\n" +
+    "Uses ps to query process information from the sandbox.\n" +
     "\n" +
     "Examples:\n" +
     "\n" +
@@ -127,7 +129,7 @@ export const process_info = command("info", {
     try {
       processes = await sandbox.commands.list();
     } catch (error) {
-      if (!(error instanceof CapabilityNotSupportedError)) throw error;
+      if (!(error instanceof CapabilityNotSupportedError) && !(error instanceof ProviderFeatureNotSupportedError)) throw error;
     }
     const known = processes.find((item) => String(item.pid) === String(pid));
     if (known) {
@@ -137,10 +139,34 @@ export const process_info = command("info", {
       return;
     }
 
-    // An OS PID not tracked by envd can still be inspected through ps.
-    const result = (await sandbox.commands.run(`ps -p ${pid} -o pid=,ppid=,user=,stat=,rss=,etime=,comm= 2>/dev/null`, {
+    // Use ps for process info
+    let result = (await sandbox.commands.run(`ps -p ${pid} -o pid=,ppid=,user=,stat=,rss=,etime=,comm= 2>/dev/null`, {
       timeout: 10,
     })) as ProcessResult;
+
+    if (result.exit_code !== 0 || !pyStrip(result.stdout)) {
+      // Minimal images may have Python without procps. Read the same kernel data.
+      const source = [
+        "import os, pwd, sys",
+        "from pathlib import Path",
+        `p = Path('/proc') / ${JSON.stringify(String(pid))}`,
+        "try:",
+        "    raw = (p / 'stat').read_text()",
+        "    command = raw[raw.index('(') + 1:raw.rindex(')')].replace('\\n', ' ')",
+        "    fields = raw[raw.rindex(')') + 2:].split()",
+        "    uid = p.stat().st_uid",
+        "    try: user = pwd.getpwuid(uid).pw_name",
+        "    except KeyError: user = str(uid)",
+        "    try:",
+        "        uptime = float(Path('/proc/uptime').read_text().split()[0])",
+        "        elapsed = str(max(0, int(uptime - int(fields[19]) / os.sysconf('SC_CLK_TCK')))) + 's'",
+        "    except (OSError, ValueError): elapsed = 'N/A'",
+        "    rss = int(fields[21]) * os.sysconf('SC_PAGE_SIZE') // 1024",
+        `    print(${JSON.stringify(String(pid))}, fields[1], user, fields[0], rss, elapsed, command)`,
+        "except (OSError, ValueError, IndexError): sys.exit(1)",
+      ].join("\n");
+      result = await sandbox.commands.run(`python3 -c ${shlexQuote(source)} 2>/dev/null`, { timeout: 10 }) as ProcessResult;
+    }
 
     if (result.exit_code !== 0 || !pyStrip(result.stdout)) {
       fmt.printError(`Process ${pid} not found or not accessible.`);
@@ -186,7 +212,7 @@ export const process_signal = command("signal", {
     "Related commands:\n" +
     "  abx sandbox process info SANDBOX_ID PID\n" +
     "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx exec --background SANDBOX_ID CMD",
+    "  abx exec SANDBOX_ID --background -- CMD",
   params: [
     argument(["sandbox_id"]),
     argument(["pid"], { type: INT }),
@@ -224,7 +250,7 @@ export const process = group("process", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx exec --background SANDBOX_ID CMD\n" +
+    "  abx exec SANDBOX_ID --background -- CMD\n" +
     "  abx sandbox system metrics SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);

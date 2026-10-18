@@ -19,6 +19,7 @@ import {
 } from "../../src/transport/config.js";
 import { useIso } from "../_support/iso.js";
 import { useCapsys } from "./conftest.js";
+import { getProvider } from "../../src/providers/registry.js";
 
 const iso = useIso();
 const cap = useCapsys();
@@ -55,15 +56,15 @@ describe("sandbox id that is not a string", () => {
   });
 
   it("test_list_is_membership_and_null_is_skipped", () => {
-    expect(_selectProvider(null, null)).toEqual([null, null]);
+    expect(_selectProvider(null, null)).toEqual([getProvider("alicloud-express"), null]);
     const [prov, bare] = _selectProvider(null, ["http://x"]);
-    expect(prov).toBeNull();
+    expect(prov).toBe(getProvider("alicloud-express"));
     expect(bare).toEqual(["http://x"]);
   });
 });
 
 describe("verbose config load", () => {
-  it("test_verbose_logs_loaded_config_once", async () => {
+  it("test_verbose_layered_loading_has_no_legacy_duplicate_log", async () => {
     iso.writeToml('[transport]\nregion = "cn-hangzhou"\n');
     _setConfigFile(iso.toml);
     _setEnvFileCandidates([iso.env]);
@@ -71,6 +72,6 @@ describe("verbose config load", () => {
     await main({ args: ["-v", "list"] });
     const { err } = cap.readouterr();
     const loads = err.split("\n").filter((line) => line.includes("Loaded config"));
-    expect(loads).toEqual([`DEBUG: Loaded config from ${iso.toml}`]);
+    expect(loads).toEqual([]);
   });
 });

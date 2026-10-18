@@ -6,6 +6,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
 import { FileInfo, FileType } from "../../src/models/filesystem.js";
 import { TEST_ENVD_URL, makeFilesModule } from "./conftest.js";
 
@@ -179,4 +180,15 @@ describe("TestFilesWatch", () => {
     expect(result).toBe("mock_reader");
     expect(filesystem_protocol.watchDir).toHaveBeenCalledTimes(1);
   });
+});
+
+
+it("requires an adapter for transfer URLs and preserves its opaque addressing", async () => {
+  const { module: files } = makeFilesModule();
+  delete (files._fs as any).transferUrl;
+  await expect(files.uploadUrl("/private")).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
+  await expect(files.downloadUrl("/private")).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
+  files._fs.transferUrl = async (_url, _token, opts) => `https://foreign.example/${opts.operation}/opaque`;
+  expect(await files.uploadUrl("/private")).toBe("https://foreign.example/upload/opaque");
+  expect(await files.downloadUrl("/private")).toBe("https://foreign.example/download/opaque");
 });

@@ -29,7 +29,7 @@ const GIT_TIMEOUT_MS = 120_000;
 const GIT_OUTPUT_CAP = 160 * 1024 * 1024;
 
 /** Manifest aspects whose change forces a new consent on update. */
-export const RISK_ASPECTS = ["runtime", "security", "features", "inherit", "fields"] as const;
+export const RISK_ASPECTS = ["runtime", "security", "features", "inherit", "fields", "commands"] as const;
 
 /** Test seam: the single place a directory is atomically swapped into the store. */
 export const fsHooks = {
@@ -74,6 +74,7 @@ export class InstallPlan {
       runtime: m.kind === "exec" ? [...m.command] : m.kind === "node" ? ["node", m.entry] : ["rest", String(m.endpoint["base_url"] ?? "")],
       kind: m.kind,
       features: [...m.features].sort(),
+      commands: [...m.commands],
       security: m.security,
       fields: m.fields.map((f) => ({ key: f.key, secret: Boolean(f.secret) })),
       inherit: [...m.inherit].sort(),
@@ -411,7 +412,15 @@ function manifestFromEntries(entries: readonly store.FileEntry[]): Manifest {
 }
 
 function sameJson(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value !== null && typeof value === "object") {
+      const record = value as Record<string, unknown>;
+      return Object.fromEntries(Object.keys(record).sort().map((key) => [key, canonical(record[key])]));
+    }
+    return value;
+  };
+  return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 }
 
 /** Which risk aspects of `new` differ from what the user consented to in `old`. */
@@ -425,6 +434,7 @@ export function diffAspects(old: Receipt, next: Manifest): string[] {
   const had = new Set((consented["inherit"] as string[] | undefined) ?? []);
   if (!summary.inherit.every((k) => had.has(k))) changed.push("inherit");
   if (!sameJson(consented["fields"], summary.fields)) changed.push("fields");
+  if (!sameJson(consented["commands"] ?? [], summary.commands)) changed.push("commands");
   return changed;
 }
 
@@ -672,14 +682,22 @@ export interface UpdateOptions {
 
 export interface UpdateResult {
   id: string;
-  status: "up-to-date" | "pinned" | "available" | "updated";
+  status: "up-to-date" | "pinned" | "available" | "updated" | "bundled" | "manual";
   installed: string | null;
   available: string | null;
   changes: string[];
+  message?: string;
 }
 
 /** Update one installed provider from its recorded git source. `local`/`link` installs throw `ProviderInstallError`. A catalog receipt is reinstalled with the CLI git spelling. */
 export async function update(providerId: string, opts: UpdateOptions = {}): Promise<UpdateResult> {
+  if (providerId === BUILTIN_PROVIDER_ID) {
+    if (opts.ref) throw new ProviderInstallError("The bundled provider cannot use --ref. Select an abx release using the installation method that installed abx.");
+    return {
+      id: providerId, status: "bundled", installed: hostVersion(), available: null, changes: [],
+      message: "This provider ships with abx. Upgrade abx using its original installation method, then restart your owned Node engine. This operation does not check the latest host release or change installed software.",
+    };
+  }
   const receipt = store.readReceipt(providerId);
   if (receipt === null) throw new ProviderNotFoundError(`Provider '${providerId}' is not installed.`);
   const src = (receipt["source"] ?? {}) as SourceInfo;

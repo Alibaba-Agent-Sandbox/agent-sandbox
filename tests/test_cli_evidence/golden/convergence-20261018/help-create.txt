@@ -1,0 +1,94 @@
+Usage: abx create [options] [TEMPLATE_NAME]
+
+Create a new sandbox.
+
+'abx create' is the shortcut of 'abx sandbox create'. A positional argument
+selects a template; the default is base. Natural language uses --prompt.
+
+  abx create base                        launch the base template
+  abx create code-interpreter-v1         launch an existing template
+  abx create --prompt "DESCRIPTION"      generate a template, build and launch
+
+--prompt and an explicit template cannot be combined.
+
+--timeout is the sandbox lifetime in seconds (default: 300).
+
+Examples:
+  abx create base              # explicit 'base' template
+  abx create python-hello      # named template
+  abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
+  abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
+  abx create --prompt "a python data science env"  # generate, build, deploy,
+create
+  abx create -y --prompt "a node.js api server"    # non-interactive full
+pipeline
+  abx template scaffold --prompt "a python data science env"  # template files
+only
+
+Notes:
+  Template generation needs the Qwen Code CLI and a DashScope/ModelStudio
+  key ('abx config init --llm'); building and deploying also needs
+  'abx config init --build'. It researches publicly verifiable facts
+  itself (tool stack, official install method, common dependencies) and
+  only asks for private preferences or business decisions it cannot
+  infer — one question at a time in interactive sessions. Non-interactive
+  shells must pass --yes to generate without asking. Interactive
+  sessions are asked up front whether to switch to template init,
+  which writes Dockerfile, commands.py, and template.yaml and stops
+  before build, push, deploy, and sandbox create. --yes skips that
+  question and runs the full pipeline.
+
+Related commands:
+  abx list                 List existing sandboxes
+  abx info SANDBOX_ID      Inspect a created sandbox
+  abx template scaffold DIR    Scaffold a new template project (local)
+  abx template scaffold --prompt "DESC" Generate a template only (no build)
+  abx template search KEY  Find reusable templates
+  abx config init          Set credentials and region
+
+Options:
+  --prompt <PROMPT>                Generate a sandbox from a natural-language
+                                   description. Mutually exclusive with a
+                                   template.
+  -T, --template <TEMPLATE>        Template ID or alias to launch (e.g. 'base',
+                                   'python-hello'). Defaults to 'base' when
+                                   omitted. Cannot be combined with DESCRIPTION.
+  -u, --upload <PATH>              Local file or directory to upload after
+                                   creation
+  -t, --timeout <INTEGER>          Sandbox lifetime in seconds (positive
+                                   integer; default: 300)
+  --request-timeout <FLOAT>        HTTP request timeout in seconds for the
+                                   create call (floor: 120s for cold starts, or
+                                   your configured http_timeout if larger).
+                                   Increase for very slow sandbox creation.
+  -e, --env <ENV>                  Environment variable for the sandbox, format
+                                   KEY=VALUE (repeatable)
+  -m, --metadata <METADATA>        Metadata key-value pair, format KEY=VALUE
+                                   (repeatable)
+  --volume-mount <PATH=NAME>       Mount an existing same-Team Volume by name at
+                                   an absolute Unix path (Express only;
+                                   repeatable)
+  -y, --yes                        Skip interactive prompts (the template-only
+                                   switch, Qwen Code install, credentials,
+                                   description clarification, build/deploy
+                                   confirmation) and run the full create
+                                   pipeline. Required for template generation in
+                                   non-interactive shells.
+  --model <MODEL>                  Model id for the template generation step
+                                   (for example qwen-coder-plus). Overrides
+                                   llm_model / ABX_LLM_MODEL / OPENAI_MODEL for
+                                   this command. When the endpoint rejects the
+                                   model, an interactive terminal offers coding
+                                   and chat models with the arrow keys.
+  --acr-namespace <ACR_NAMESPACE>  ACR namespace for building the generated
+                                   template (env: ACR_NAMESPACE, or set in .env
+                                   file)
+  --dir <DIRECTORY>                Parent directory for the generated template
+                                   files (Dockerfile, commands.py,
+                                   template.yaml); a new <name>-<timestamp>-<id>
+                                   subfolder is created inside it. Default:
+                                   ~/.abx/generated (an interactive terminal is
+                                   asked when omitted).
+  -v, --verbose                    Verbose output (DEBUG level)
+  -h, --help                       Show this message and exit.
+[exit_code:0]

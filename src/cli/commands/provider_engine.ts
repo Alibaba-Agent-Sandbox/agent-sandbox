@@ -9,7 +9,7 @@ import { INT } from "../types.js";
 import { sysExit } from "../errors.js";
 import { echo } from "../io.js";
 import { getFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { engineFile, pidAlive, readRecord, type EngineRecord } from "../../engine/discovery.js";
 
 type Params = Record<string, unknown>;

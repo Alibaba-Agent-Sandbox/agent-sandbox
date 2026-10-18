@@ -20,7 +20,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
-import * as fcTemplate from "../../src/api/fc_template.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import { cli } from "../../src/cli/main.js";
 import { OutputManager, getOutput } from "../../src/cli/output.js";
 import { type Command, type Context, command, option } from "../../src/cli/kit.js";
@@ -379,7 +379,7 @@ describe("TestCreateChannelSeparation", () => {
 describe("TestDeployDiagnosticsChannel", () => {
   // `_do_deploy` warnings follow the same channel rules.
 
-  const TEMPLATE_MODULE = "../../src/cli/commands/template.js";
+  const TEMPLATE_MODULE = "../../src/providers/alicloud_express/cli/template.js";
 
   async function deployCmd(tmpPath: string): Promise<Command> {
     const { _doDeploy } = (await import(/* @vite-ignore */ TEMPLATE_MODULE as string)) as {

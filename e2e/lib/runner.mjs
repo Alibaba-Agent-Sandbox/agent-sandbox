@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { E2E_DIR, loadCredentials, hasCloudCredentials, missingCloudCredentials, makeMasker } from './env.mjs';
 import { baseEnv, makeSandboxDir, parseBin, runBinary, normalize } from './exec.mjs';
-import { check, checkShape, fail, parseJsonLoose, ScenarioFailure, excerpt } from './assert.mjs';
+import { check, checkShape, fail, parseJsonLoose, ScenarioFailure, ScenarioSkip, excerpt } from './assert.mjs';
 
 const STATE_DIR = join(E2E_DIR, '.state');
 export const RUN_ID = `${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${Math.random().toString(16).slice(2, 8)}`;
@@ -122,8 +122,8 @@ export async function main(opts) {
             await runScenario(sc, ctx, rec);
             (ctx.state.done ??= new Set()).add(sc.id);
           } catch (e) {
-            rec.reason = mask(e instanceof ScenarioFailure ? e.message : `${e.stack ?? e}`);
-            rec.status = sc.known ? 'xfail' : 'fail';
+            rec.reason = mask(e instanceof ScenarioFailure || e instanceof ScenarioSkip ? e.message : `${e.stack ?? e}`);
+            rec.status = e instanceof ScenarioSkip ? 'skip' : sc.known ? 'xfail' : 'fail';
             if (sc.known) rec.known = sc.known;
           }
           if (rec.status === 'pass' && sc.known) { rec.status = 'xpass'; rec.known = sc.known; }
@@ -215,12 +215,13 @@ export function makeContext({ bin, creds, mask, home, cwd, root, tracker, persis
         await new Promise((r) => setTimeout(r, intervalMs));
       }
     },
+    skip(reason) { throw new ScenarioSkip(reason); },
     fail, check, checkShape, parseJsonLoose, excerpt,
   };
   return ctx;
 }
 
-async function runScenario(sc, ctx, rec) {
+export async function runScenario(sc, ctx, rec) {
   const attempts = 1 + (sc.retries ?? 0);
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
@@ -230,6 +231,7 @@ async function runScenario(sc, ctx, rec) {
       if (i > 1) rec.notes.push(`passed on attempt ${i}/${attempts} (retry allowed for: ${sc.retryReason ?? 'eventually-consistent operation'})`);
       return;
     } catch (e) {
+      if (e instanceof ScenarioSkip) throw e;
       lastErr = e;
       if (i < attempts) await new Promise((r) => setTimeout(r, sc.retryDelayMs ?? 3000));
     }

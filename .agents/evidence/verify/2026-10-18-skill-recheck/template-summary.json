@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "template_tools": 3,
+  "template_id": "x9r6a621z41zwrcqz8bu",
+  "validation": {
+    "template_id": "x9r6a621z41zwrcqz8bu",
+    "checks": {
+      "command_exit": true,
+      "command_output": true,
+      "binary_round_trip": true
+    },
+    "verified": true,
+    "cleanup_verified": true
+  },
+  "scope": "Existing tested image; arbitrary external OCI inspection not run",
+  "cleanup_verified": true
+}

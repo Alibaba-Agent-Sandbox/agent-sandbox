@@ -19,7 +19,7 @@ import path from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
-import * as fcTemplate from "../../src/api/fc_template.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import { cli } from "../../src/cli/main.js";
@@ -249,14 +249,7 @@ it("test_kill_all_lists_ids_under_the_header", async () => {
   const infos = ["sbx-a", "sbx-b"].map((id) =>
     SandboxInfo.modelValidate({ sandboxID: id, templateID: "base", status: "running", region: "cn-hangzhou", timeout: 300 }),
   );
-  spyAny(transportConfig, "loadConfig").mockReturnValue(new transportConfig.TransportConfig({ region: "cn-hangzhou" }));
-  spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-  spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-    return {};
-  } as never);
-  spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
-    return { list: async () => infos };
-  } as never);
+  vi.spyOn(Sandbox, "list").mockResolvedValue(infos);
   vi.spyOn(Sandbox, "connect").mockResolvedValue(_sandbox() as unknown as Sandbox);
   vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
 

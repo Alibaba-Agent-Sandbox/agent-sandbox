@@ -8,7 +8,6 @@ import {
   TokenExchangeError,
   TokenExpiredError,
 } from "../../src/models/errors.js";
-import { ConnectError, ReadTimeout } from "../../src/transport/_httpx.js";
 import {
   AkSkAuth,
   ApiKeyAuth,
@@ -17,11 +16,10 @@ import {
   ENVD_SANDBOX_PORT_HEADER,
   EnvdTokenManager,
   PLATFORM_AUTH_HEADER,
-  _exchangeAkskForApiKey as _exchange_aksk_for_api_key,
   buildEnvdHeaders as build_envd_headers,
   createAuthProvider as create_auth_provider,
 } from "../../src/transport/auth.js";
-import { patchHttpxAsyncClient, patchedAsyncClient, restoreHttpx } from "../_support/patch.js";
+import { patchHttpxAsyncClient, restoreHttpx } from "../_support/patch.js";
 
 afterEach(() => {
   restoreHttpx();
@@ -230,7 +228,7 @@ describe("TestEnvdTokenManager", () => {
 
 describe("TestCreateAuthProvider", () => {
   // Test create_auth_provider factory.
-  const credentialEnv = ["E2B_API_KEY", "E2B_API_KEY", "SANDBOX_API_KEY"] as const;
+  const credentialEnv = ["ABX_SANDBOX_API_KEY", "E2B_API_KEY", "SANDBOX_API_KEY"] as const;
   const saved: Partial<Record<(typeof credentialEnv)[number], string | undefined>> = {};
 
   beforeEach(() => {
@@ -253,23 +251,11 @@ describe("TestCreateAuthProvider", () => {
     expect(auth).toBeInstanceOf(ApiKeyAuth);
   });
 
-  it("test_ak_sk_fallback", () => {
-    const auth = create_auth_provider({ access_key_id: "ak", access_key_secret: "sk" });
-    expect(auth).toBeInstanceOf(AkSkAuth);
-  });
-
-  it("test_ak_sk_has_exchange_func_injected", () => {
-    // When AK/SK is used, exchange function should be auto-injected.
-    const auth = create_auth_provider({ access_key_id: "ak", access_key_secret: "sk" });
-    expect(auth).toBeInstanceOf(AkSkAuth);
-    expect((auth as AkSkAuth)._exchange_func).not.toBeNull();
-  });
-
-  it("test_ak_sk_with_custom_region", () => {
-    // Exchange function should bind the provided region.
-    const auth = create_auth_provider({ access_key_id: "ak", access_key_secret: "sk", region: "cn-shanghai" });
-    expect(auth).toBeInstanceOf(AkSkAuth);
-    expect((auth as AkSkAuth)._exchange_func).not.toBeNull();
+  it.each(["cn-hangzhou", "cn-shanghai"])("AK/SK requires an API key without network (%s)", (region) => {
+    const network = patchHttpxAsyncClient({});
+    expect(() => create_auth_provider({ access_key_id: "ak", access_key_secret: "sk", region }))
+      .toThrow(InvalidAPIKeyError);
+    expect(network).not.toHaveBeenCalled();
   });
 
   it("test_no_credentials_raises", () => {
@@ -290,7 +276,7 @@ describe("TestCreateAuthProvider", () => {
   });
 
   it("test_env_sandbox_api_key_is_used", async () => {
-    process.env["E2B_API_KEY"] = "env-key-123";
+    process.env["ABX_SANDBOX_API_KEY"] = "env-key-123";
     const auth = create_auth_provider();
     expect(auth).toBeInstanceOf(ApiKeyAuth);
     expect((auth as ApiKeyAuth)._api_key).toBe("env-key-123");
@@ -298,7 +284,7 @@ describe("TestCreateAuthProvider", () => {
   });
 
   it("test_retired_api_key_names_are_not_read", () => {
-    process.env["ABX_SANDBOX_API_KEY"] = "retired-project";
+    process.env["E2B_API_KEY"] = "retired-e2b";
     process.env["SANDBOX_API_KEY"] = "retired-sandbox";
     let caught: unknown;
     try {
@@ -308,13 +294,13 @@ describe("TestCreateAuthProvider", () => {
     }
     expect(caught).toBeInstanceOf(InvalidAPIKeyError);
     const suggestion = (caught as InvalidAPIKeyError).suggestion ?? "";
-    expect(suggestion).toContain("E2B_API_KEY");
-    expect(suggestion).toContain("ALICLOUD_ACCESS_KEY_ID");
-    expect(suggestion).toContain("ALICLOUD_ACCESS_KEY_SECRET");
-    expect(suggestion).toContain("E2B_API_URL");
-    expect(suggestion).toContain("E2B_DOMAIN");
+    expect(suggestion).toContain("ABX_SANDBOX_API_KEY");
+    expect(suggestion).not.toContain("ALICLOUD_ACCESS_KEY_ID");
+    expect(suggestion).not.toContain("ALICLOUD_ACCESS_KEY_SECRET");
+    expect(suggestion).toContain("ABX_SANDBOX_BASE_URL");
+    expect(suggestion).toContain("ABX_SANDBOX_DOMAIN");
     expect(suggestion).toContain("ALIBABA_CLOUD_REGION_ID");
-    expect(suggestion).not.toContain("ABX_SANDBOX_API_KEY");
+    expect(suggestion).not.toContain("E2B_API_KEY");
     expect(suggestion).not.toContain("AccessKey");
   });
 });
@@ -329,110 +315,6 @@ describe("TestBuildEnvdHeaders", () => {
     expect(headers[ENVD_SANDBOX_PORT_HEADER]).toBe("49983");
     expect(headers["Authorization"]!.startsWith("Basic ")).toBe(true);
     expect(Object.keys(headers).length).toBe(4);
-  });
-});
-
-/** `MagicMock` response: `status_code`, `json()` (`return_value` / `side_effect`), `text`. */
-function mockResponse(opts: { status_code: number; json?: unknown; json_error?: Error; text?: string }) {
-  return {
-    status_code: opts.status_code,
-    json: vi.fn(() => {
-      if (opts.json_error) throw opts.json_error;
-      return opts.json;
-    }),
-    text: opts.text ?? "<MagicMock>",
-  };
-}
-
-describe("TestExchangeAkskForApiKey", () => {
-  // Tests for the _exchange_aksk_for_api_key function.
-
-  it("test_successful_exchange", async () => {
-    // Test successful token exchange returns API key.
-    const mock_response = mockResponse({
-      status_code: 200,
-      json: { ApiKey: "ek-test-key-123" },
-      text: '{"ApiKey": "ek-test-key-123"}',
-    });
-    const mock_client = patchedAsyncClient(mock_response);
-    patchHttpxAsyncClient(mock_client);
-
-    const result = await _exchange_aksk_for_api_key("ak-id", "sk-secret");
-    expect(result).toBe("ek-test-key-123");
-  });
-
-  it("test_exchange_with_nested_data_field", async () => {
-    // Test exchange parsing Data.ApiKey response format.
-    const mock_response = mockResponse({
-      status_code: 200,
-      json: { Data: { ApiKey: "ek-nested-key" }, RequestId: "req-123" },
-    });
-    patchHttpxAsyncClient(patchedAsyncClient(mock_response));
-
-    const result = await _exchange_aksk_for_api_key("ak-id", "sk-secret");
-    expect(result).toBe("ek-nested-key");
-  });
-
-  it("test_exchange_http_error_raises", async () => {
-    // Test that HTTP errors raise TokenExchangeError.
-    const mock_response = mockResponse({ status_code: 403, text: "Forbidden: invalid credentials" });
-    patchHttpxAsyncClient(patchedAsyncClient(mock_response));
-
-    await expectRaises(() => _exchange_aksk_for_api_key("ak-id", "sk-secret"), TokenExchangeError, /HTTP 403/);
-  });
-
-  it("test_exchange_connect_error_raises", async () => {
-    // Test that connection errors raise TokenExchangeError.
-    const mock_client = patchedAsyncClient(null);
-    mock_client.get.mockRejectedValue(new ConnectError("Connection refused"));
-    patchHttpxAsyncClient(mock_client);
-
-    await expectRaises(() => _exchange_aksk_for_api_key("ak-id", "sk-secret"), TokenExchangeError, /Failed to connect/);
-  });
-
-  it("test_exchange_timeout_raises", async () => {
-    // Test that timeout raises TokenExchangeError.
-    const mock_client = patchedAsyncClient(null);
-    mock_client.get.mockRejectedValue(new ReadTimeout("Read timed out"));
-    patchHttpxAsyncClient(mock_client);
-
-    await expectRaises(() => _exchange_aksk_for_api_key("ak-id", "sk-secret"), TokenExchangeError, /timed out/);
-  });
-
-  it("test_exchange_missing_api_key_in_response", async () => {
-    // Test that missing API key in response raises TokenExchangeError.
-    const mock_response = mockResponse({ status_code: 200, json: { RequestId: "req-123", Status: "ok" } });
-    patchHttpxAsyncClient(patchedAsyncClient(mock_response));
-
-    await expectRaises(
-      () => _exchange_aksk_for_api_key("ak-id", "sk-secret"),
-      TokenExchangeError,
-      /did not contain an API key/,
-    );
-  });
-
-  it("test_exchange_invalid_json_raises", async () => {
-    // Test that invalid JSON response raises TokenExchangeError.
-    const mock_response = mockResponse({
-      status_code: 200,
-      json_error: new Error("Invalid JSON"),
-      text: "not json at all",
-    });
-    patchHttpxAsyncClient(patchedAsyncClient(mock_response));
-
-    await expectRaises(() => _exchange_aksk_for_api_key("ak-id", "sk-secret"), TokenExchangeError, /Invalid JSON/);
-  });
-
-  it("test_exchange_uses_correct_region", async () => {
-    // Test that the exchange function uses the specified region.
-    const mock_response = mockResponse({ status_code: 200, json: { ApiKey: "ek-key" } });
-    const mock_client = patchedAsyncClient(mock_response);
-    patchHttpxAsyncClient(mock_client);
-
-    await _exchange_aksk_for_api_key("ak-id", "sk-secret", { region: "cn-shanghai" });
-    // Verify the endpoint includes the region
-    const call_args = mock_client.get.mock.calls.at(-1) as unknown[];
-    expect(call_args[0] as string).toContain("cn-shanghai");
   });
 });
 
@@ -512,17 +394,17 @@ describe("TestAkSkAuthIntegration", () => {
     await expectRaises(() => auth.getHeaders(), TokenExchangeError, /500/);
   });
 
-  it("test_create_auth_provider_injects_working_exchange", async () => {
-    // Test that create_auth_provider creates AkSkAuth with working exchange.
-    const auth = create_auth_provider({ access_key_id: "test-ak", access_key_secret: "test-sk" });
-    expect(auth).toBeInstanceOf(AkSkAuth);
+  it.each([null, "", "   ", { apiKeyValue: "placeholder" }, 42])("rejects custom non-token return %#", async (value) => {
+    const auth = new AkSkAuth("ak-id", "sk-secret");
+    auth.setExchangeFunc(async () => value as unknown as string);
+    await expect(auth.getHeaders()).rejects.toThrow("non-empty token string");
+    expect(auth._cached_token).toBeNull();
+    expect(auth._token_expires_at).toBe(0);
+  });
 
-    // The exchange func should be callable (it will fail at HTTP level in tests, but it should be set)
-    const fn = (auth as AkSkAuth)._exchange_func;
-    expect(fn).not.toBeNull();
-
-    // Verify the injected function is async and callable
-    expect(typeof fn).toBe("function");
-    expect(fn!.constructor.name).toBe("AsyncFunction");
+  it("normalizes a valid custom token before caching", async () => {
+    const auth = new AkSkAuth("ak-id", "sk-secret");
+    auth.setExchangeFunc(async () => "  custom-token  ");
+    expect(await auth.getHeaders()).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer custom-token" });
   });
 });

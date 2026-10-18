@@ -36,8 +36,7 @@ Related commands:
 Options:
   -y, --yes   Non-interactive: print the equivalent commands instead of
               prompting
-  --build     Also ask for the template build & push settings (ACR namespace,
-              AccessKey)
+  --build     Also ask for the selected provider build settings
   --llm       Also ask for the LLM API key used for template generation
   -h, --help  Show this message and exit.
 [exit_code:0]

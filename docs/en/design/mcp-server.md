@@ -13,7 +13,7 @@
 
 ## 1. Tools Definition
 
-All 7 tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_id` targets the default sandbox (see Section 2).
+The seven core tools and fourteen workflow tools are defined in `TOOL_SCHEMAS` (`agent/tools.ts`). Omitting `sandbox_id` targets the default sandbox (see Section 2).
 
 ### create_sandbox
 

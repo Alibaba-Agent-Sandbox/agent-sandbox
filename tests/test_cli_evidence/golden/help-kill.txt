@@ -19,7 +19,7 @@ Related commands:
 Options:
   --all                Kill all running sandboxes
   -y, --yes            Skip confirmation
-  -r, --region <TEXT>  Region override for this command (default: 'abx config
-                       set region' value, else cn-hangzhou)
+  -r, --region <TEXT>  Region override for providers that declare region
+                       (otherwise use the provider default)
   -h, --help           Show this message and exit.
 [exit_code:0]

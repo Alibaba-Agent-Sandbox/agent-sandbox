@@ -1,11 +1,9 @@
 /**
  * Per-class oracle check of `str(SandboxError)` and friends.
  *
- * The immutable `tests/fixtures/error_str_oracle.json` is generated from the ORIGINAL Python `models/errors.py` by
+ * `tests/fixtures/error_str_oracle.json` is generated from the ORIGINAL Python `models/errors.py` by
  * `parity/diff/error_str_gen.py` (every SandboxError subclass x 3 constructor variants). Root cause of an MCP parity bug:
- * The current error_str_contract_e2b.json preserves that baseline with the documented
- * positional-template/--prompt hint updates; its metadata records the source hash.
- * The tool logger / JSON-RPC error text used `exc.message` where Python formats `str(exc)` (`[E2000] msg\n  Suggestion: ...`).
+ * the tool logger / JSON-RPC error text used `exc.message` where Python formats `str(exc)` (`[E2000] msg\n  Suggestion: ...`).
  */
 
 import { readFileSync } from "node:fs";
@@ -37,10 +35,22 @@ interface Case {
 }
 
 const fixture = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "error_str_contract_e2b.json"), "utf8"),
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "error_str_oracle.json"), "utf8"),
 ) as { classes: string[]; cases: Case[] };
 
 const registry = errors as unknown as Record<string, new (...args: unknown[]) => errors.SandboxError>;
+
+// Keep the historical oracle immutable. Provider isolation intentionally replaces
+// its native-only default suggestion; explicit suggestions retain exact parity.
+const currentCases = fixture.cases.map((c): Case => {
+  if (c.cls !== "InvalidCredentialsError" || c.variant !== "minimal") return c;
+  const suggestion = "Check the selected provider authentication configuration (abx provider info).";
+  return { ...c, expected: { ...c.expected,
+    suggestion,
+    str: `[${c.expected.code}] ${c.expected.message}\n  Suggestion: ${suggestion}`,
+    to_dict: { ...c.expected.to_dict, suggestion },
+  } };
+});
 
 describe("TestSandboxErrorStrOracle", () => {
   it("test_every_python_error_class_is_exported", () => {
@@ -55,7 +65,7 @@ describe("TestSandboxErrorStrOracle", () => {
     expect(extra).toEqual([]);
   });
 
-  it.each(fixture.cases.map((c) => [`${c.cls} ${c.variant}`, c] as const))("test_str_matches_python [%s]", (_label, c) => {
+  it.each(currentCases.map((c) => [`${c.cls} ${c.variant}`, c] as const))("test_str_matches_python [%s]", (_label, c) => {
     const Cls = registry[c.cls]!;
     const exc = Object.keys(c.kwargs).length ? new Cls(...c.args, c.kwargs) : new Cls(...c.args);
     expect(String(exc)).toBe(c.expected.str);
@@ -71,7 +81,7 @@ describe("TestSandboxErrorStrOracle", () => {
     }
   });
 
-  it.each(fixture.cases.map((c) => [`${c.cls} ${c.variant}`, c] as const))(
+  it.each(currentCases.map((c) => [`${c.cls} ${c.variant}`, c] as const))(
     "test_tool_error_payload_and_log_use_str [%s]",
     async (_label, c) => {
       const Cls = registry[c.cls]!;

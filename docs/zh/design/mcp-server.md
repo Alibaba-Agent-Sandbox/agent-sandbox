@@ -4,7 +4,7 @@
 
 **已实现面**（与 `src/agent/` 保持同步）：
 
-- 7 个 P0 工具（`agent/tools.ts`）
+- 7 个核心工具与 14 个闭环工具（`agent/tools.ts`）
 - STDIO 传输（`agent/mcp.ts`）— `abx mcp start`
 - Streamable HTTP 传输（`agent/mcp_http.ts`）— HTTP 应用
 - CLI：`abx mcp install / start / status / deploy`
@@ -13,7 +13,7 @@
 
 ## 1. Tools 定义
 
-全部 7 个工具定义于 `TOOL_SCHEMAS`（`agent/tools.ts`）。省略 `sandbox_id` 时作用于默认沙箱（见第 2 章）。
+七个核心工具及十四个闭环工具定义于 `TOOL_SCHEMAS`（`agent/tools.ts`）。省略 `sandbox_id` 时作用于默认沙箱（见第 2 章）。
 
 ### create_sandbox
 
@@ -309,7 +309,7 @@ graph LR
 graph TD
     subgraph MCP["MCP Server"]
         TL["传输层\nSTDIO (mcp.ts) / Streamable HTTP (mcp_http.ts)"]
-        TR["工具注册表\n7 个 P0 工具 (agent/tools.ts)"]
+        TR["工具注册表\n7 个核心工具与 14 个闭环工具 (agent/tools.ts)"]
         SM["SandboxManager / SessionStore"]
         RR["JSON-RPC 路由\ninitialize / tools/list / tools/call / ping"]
         SC["沙箱客户端\nsrc/api (Sandbox)"]

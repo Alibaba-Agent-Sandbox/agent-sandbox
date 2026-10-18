@@ -1,13 +1,9 @@
-/**
- * 网络模块 — 端口 URL 计算和访问 (port of `api/network.py`).
- *
- * 端口 URL 由客户端本地计算，格式为：https://{port}-{sandbox_id}.{domain}
- * 其中 sandbox_id 已包含 "sbx-" 前缀（如 "sbx-xxxx"）。
- * 不需要服务端 API 调用。secure 模式下端口访问需要 X-Access-Token header。
- */
+/** Provider-owned port addressing and access headers. */
 
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import { getLogger } from "../utils/logging.js";
+import type { PortAccess } from "../protocol/port_contract.js";
+import { legacyPortAccess } from "../providers/bundled_config.js";
 
 const logger = getLogger("api.network");
 void logger;
@@ -20,9 +16,10 @@ export interface NetworkModuleInit {
   capabilities?: Set<string> | null;
   /** Provider `ports.url` hook: `[url, headers]` for a port; absent for providers that compute URLs locally. */
   port_resolver?: ((port: number) => Promise<[string, Record<string, string>]>) | null;
+  port_access?: PortAccess;
 }
 
-/** 高层网络接口 — 端口 URL 计算和访问 header 管理。所有方法均为本地计算，不涉及任何网络请求。 */
+/** Synchronous adapter access or asynchronous provider discovery via resolve(). */
 export class NetworkModule {
   _sandbox_id: string;
   _domain: string;
@@ -30,6 +27,7 @@ export class NetworkModule {
   _access_token: string | null;
   _capabilities: Set<string>;
   _port_resolver: ((port: number) => Promise<[string, Record<string, string>]>) | null;
+  private readonly _port_access: PortAccess;
 
   constructor(init: NetworkModuleInit) {
     this._port_resolver = init.port_resolver ?? null;
@@ -38,25 +36,23 @@ export class NetworkModule {
     this._secure = init.secure ?? true;
     this._access_token = init.access_token ?? null;
     this._capabilities = init.capabilities ?? new Set(DEFAULT_CAPABILITIES);
+    this._port_access = init.port_access ?? legacyPortAccess({ sandbox_id: this._sandbox_id,
+      domain: this._domain, secure: this._secure, access_token: this._access_token });
   }
 
-  /** 获取端口访问的 host。格式：{port}-{sandbox_id}.{domain} */
+  /** Return the host supplied by the synchronous adapter hook. */
   getHost(port: number): string {
-    return `${port}-${this._sandbox_id}.${this._domain}`;
+    return this._port_access.getHost(port);
   }
 
   /** 获取端口访问的完整 URL。 */
   getUrl(port: number): string {
-    const scheme = this._secure ? "https" : "http";
-    return `${scheme}://${this.getHost(port)}`;
+    return this._port_access.getUrl(port);
   }
 
-  /** 获取端口访问所需的 HTTP headers。secure 模式下需要 X-Access-Token header。 */
+  /** Return the access headers supplied by the selected adapter. */
   getAccessHeaders(): Record<string, string> {
-    if (this._secure && this._access_token) {
-      return { "X-Access-Token": this._access_token };
-    }
-    return {};
+    return this._port_access.getAccessHeaders();
   }
 
   /** `[url, headers]` for `port`: asks the provider when it declares `ports.url`, else the local computation. */

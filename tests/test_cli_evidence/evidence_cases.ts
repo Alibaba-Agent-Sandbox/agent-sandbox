@@ -25,7 +25,7 @@ import * as qwenCode from "../../src/agent/qwen_code.js";
 import { QwenCodeCredentials } from "../../src/agent/qwen_code.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import * as mcpMod from "../../src/cli/commands/mcp.js";
-import * as template from "../../src/cli/commands/template.js";
+import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { replSeams } from "../../src/cli/repl.js";
 import {
@@ -37,8 +37,8 @@ import {
 } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/protocol/sandbox.js";
-import * as transportAuth from "../../src/transport/auth.js";
+import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
+import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { _setProjectEnvFile, resetConfig } from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
@@ -204,14 +204,14 @@ const asSandbox = (sb: unknown): Sandbox => sb as Sandbox;
 
 /** Process-environment variables that could leak into config reads; every `_cfg()` clears them all. */
 const _CFG_ENV_VARS = [
-  "E2B_API_KEY",
-  "E2B_API_URL",
-  "E2B_DOMAIN",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_SANDBOX_DOMAIN",
   "ABX_HTTP_TIMEOUT",
   "ALIBABA_CLOUD_REGION_ID",
-  "E2B_API_KEY",
-  "E2B_API_URL",
-  "E2B_DOMAIN",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_SANDBOX_DOMAIN",
   "SANDBOX_API_KEY",
   "SANDBOX_API_BASE_URL",
   "SANDBOX_REGION",
@@ -314,14 +314,7 @@ function _connect(sb: MockSandbox): MockSetup {
 function _protoList(infos: SandboxInfo[]): MockSetup {
   return () => {
     const patches = new Patches();
-    spyAny(transportConfig, "loadConfig").mockReturnValue(_makeCfg());
-    spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-    spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-      return {};
-    });
-    spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
-      return { list: vi.fn(async () => infos) };
-    });
+    vi.spyOn(Sandbox, "list").mockResolvedValue(infos);
     return patches.handle();
   };
 }
@@ -548,14 +541,7 @@ function _killAll(): MockSetup {
       SandboxInfo.modelValidate({ sandboxID: `sbx-all-${String(i).padStart(3, "0")}`, templateID: "base", status: "running", region: "cn-hangzhou" }),
     );
     const sb = _makeSb();
-    spyAny(transportConfig, "loadConfig").mockReturnValue({ api_key: "k", access_key_id: null, access_key_secret: null, region: "cn-hangzhou" });
-    spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-    spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-      return {};
-    });
-    spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
-      return { list: vi.fn(async () => infos) };
-    });
+    vi.spyOn(Sandbox, "list").mockResolvedValue(infos);
     vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(sb));
     vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
     return patches.handle();
@@ -662,6 +648,11 @@ function _buildRegistry(): EvidenceCase[] {
     [["sandbox", "files"], "sandbox-files"],
     [["sandbox", "process"], "sandbox-process"],
     [["provider"], "provider"],
+    [["provider", "update"], "provider-update"],
+    [["provider", "command"], "provider-command"],
+    [["provider", "command", "list"], "provider-command-list"],
+    [["provider", "command", "info"], "provider-command-info"],
+    [["provider", "command", "run"], "provider-command-run"],
     [["config"], "config"],
     [["config", "get"], "config-get"],
     [["config", "set"], "config-set"],
@@ -695,14 +686,14 @@ function _buildRegistry(): EvidenceCase[] {
       ["config", "get", "sandbox_api_key"],
       "config get sandbox_api_key（已设置, masked）",
       "A",
-      _cfg("", "E2B_API_KEY=sk-test-abcdef123456\n"),
+      _cfg("", "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n"),
       "config-get-apikey-set",
     ),
     E(
       ["config", "get", "sandbox_api_key"],
       "config get sandbox_api_key（进程环境变量, masked）",
       "A",
-      _cfg("", "", { E2B_API_KEY: "sk-env-abcdef123456" }),
+      _cfg("", "", { ABX_SANDBOX_API_KEY: "sk-env-abcdef123456" }),
       "config-get-apikey-env",
     ),
     E(["config", "get", "unknown_key"], "config get unknown_key（错误）", "A", _cfg(), "config-get-unknown"),
@@ -721,7 +712,7 @@ function _buildRegistry(): EvidenceCase[] {
       ["config", "set", "sandbox_api_key", ""],
       'config set sandbox_api_key ""（清除凭证）',
       "A",
-      _cfg("", "E2B_API_KEY=sk-test-abcdef123456\n"),
+      _cfg("", "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n"),
       "config-set-empty-credential",
     ),
     E(
@@ -879,7 +870,7 @@ function _buildRegistry(): EvidenceCase[] {
     E(["create"], "create 无参数（默认 base）", "B", _create(_makeSb()), "create-default-base"),
     E(["crate"], "未知顶层命令（拼写建议）", "A", null, "error-unknown-suggestion"),
     E(["frobnicate"], "未知顶层命令（固定命令集合 + abx --help 引导）", "A", null, "error-unknown-custom-hint"),
-    E(["template", "scaffold"], "顶层 init 已移除（使用 abx template scaffold）", "A", null, "error-removed-init"),
+    E(["template", "scaffold"], "顶层 init 已移除（使用 abx template init）", "A", null, "error-removed-init"),
     E(["create", "--template", "base"], "AuthenticationError", "B", _createErr(new AuthenticationError("Invalid API key")), "error-auth"),
     E(["create", "--template", "bad"], "TemplateNotFoundError", "B", _createErr(new TemplateNotFoundError("Template 'bad' not found")), "error-template-not-found"),
     E(["create", "--template", "base"], "QuotaExceededError", "B", _createErr(new QuotaExceededError("Sandbox quota exceeded")), "error-quota"),

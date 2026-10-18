@@ -52,6 +52,6 @@ abx config set llm_model qwen3-coder-plus
 
 机器上不该依赖 Node.js 时，安装单文件 `abx` 二进制：CI 镜像、代理宿主机，或从 GitHub Release 资产复制一份。二进制里已经带上 Node 运行时和 CLI。[操作指南](operations.md)里的命令完全相同。
 
-机器上已经有 Node.js 20 或更新版本，并且要从注册表拿包时，用 npm（`npm install -g @agent-sandbox/cli`）或 `npx @agent-sandbox/cli`。
+使用二进制安装脚本，或安装从源码构建的 npm 压缩包。公开 npm 包尚未发布；源码包需要 Node.js20+，见[安装指南](binary-installation.md)。
 
 校验和、平台和安装命令见[二进制安装](binary-installation.md)。

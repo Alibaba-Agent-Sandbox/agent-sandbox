@@ -259,3 +259,15 @@ Read `docs/en/guide/migrate-from-e2b.md` before changing standard APIs. Preserve
 Standard commands are owned under `src/standard_cli/`; regenerate with the pinned `vendor/e2b-cli` lockfile. Standard template init and create keep E2B meanings; project workflows use template scaffold (--prompt/--adopt) and template from-image. Keep embedded scaffold assets and license notices working in npm and SEA artifacts.
 
 Provider ownership is resolved before backend requests. Qualified references and remote exec flags must never switch an invocation to Express implicitly. A feature declaration is not a protocol implementation: native FC/ACR template handlers are Express-only until an adapter exists. Keep each provider's feature set independent of the host registry, and distinguish declaration from account/runtime availability. See docs/en/guide/providers.md.
+
+
+## Current provider implementation boundary
+
+Core protocols and authentication are structural contracts. Backend implementations,
+Express template UI/build/authentication and shared envd adapters live under
+`src/providers/`. Historical api/protocol/auth paths are compatibility aliases.
+Retired Image/TemplateManager create, GlobalConfig, named-session persistence,
+PortClient, secret-store and generic-retry implementations remain removed. Pure
+configuration values are under utils; executable registry selection is composed
+above transport. The pinned standard CLI is a separate migration entry; maintain
+its generated source/notice provenance and explicit routing tests.

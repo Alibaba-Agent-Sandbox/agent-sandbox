@@ -1,0 +1,8 @@
+Non-interactive setup. Run these commands to configure abx:
+
+  abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>
+  abx config set region cn-hangzhou
+
+Environment variables (ABX_SANDBOX_API_KEY) override stored values.
+More settings: template build/push: 'abx config init --build'; template generation: 'abx config init --llm'.
+[exit_code:0]

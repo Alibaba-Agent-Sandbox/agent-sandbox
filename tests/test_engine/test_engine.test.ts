@@ -16,6 +16,15 @@ import * as installer from "../../src/providers/installer.js";
 import { type E2BMock, startE2BMock } from "../_support/e2b_mock.js";
 import { useIso } from "../_support/iso.js";
 import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
+import { Provider, type ProviderInfra, type TerminalContext } from "../../src/providers/base.js";
+import { registerProvider, unregisterProvider } from "../../src/providers/registry.js";
+import type { LayeredConfig } from "../../src/transport/config_layers.js";
+import { HttpClient } from "../../src/transport/http.js";
+import { ApiKeyAuth } from "../../src/transport/auth_contract.js";
+import type { SandboxInfo } from "../../src/models/sandbox.js";
+import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
+import { EnvdTokenManager } from "../../src/providers/shared/e2b/auth.js";
+import { TerminalSession } from "../../src/providers/shared/e2b/terminal.js";
 
 const iso = useIso();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +47,7 @@ describe.skipIf(!haveCatalog)("engine", () => {
     connection = { provider: "cubesandbox", provider_options: { base_url: mock.origin, domain: "cube.test", proxy: `127.0.0.1:${mock.port}` } };
   });
   afterEach(async () => {
+    unregisterProvider("engine-pty-fixture");
     await engine.close();
     await mock.close();
   });
@@ -192,6 +202,26 @@ describe.skipIf(!haveCatalog)("engine", () => {
   });
 
   it("bridges the terminal WebSocket to the sandbox PTY", async () => {
+    // Cube declares no PTY. Exercise the generic bridge with an explicit wire fixture.
+    class PtyProvider extends Provider {
+      readonly id = "engine-pty-fixture";
+      override features = new Set(["sandbox.lifecycle", "pty"]);
+      override inherit = new Set(["sandbox_base_url"]);
+      override endpointDefaults = { sandbox_base_url: mock.origin };
+      override resolveSessionUrl() { return mock.origin; }
+      override createSessionAuth(info: SandboxInfo) { return new EnvdTokenManager(info.envd_access_token, info.sandbox_id); }
+      override async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+        const auth = new ApiKeyAuth("placeholder-key");
+        const http = new HttpClient(config.toTransportConfig(), auth);
+        return { config, auth, http_client: http, sandbox_protocol: new SandboxProtocol(http),
+          process_protocol: null, filesystem_protocol: null, code_interpreter_protocol: null, close: () => http.close() };
+      }
+      override async openTerminal(context: TerminalContext, options: { cols: number; rows: number; shell: string }) {
+        return TerminalSession.create(context.url, context.token, context.config, options);
+      }
+    }
+    registerProvider(new PtyProvider());
+    connection = { provider: "engine-pty-fixture" };
     await api("POST", "/v1/sandboxes", { template: "base" });
     const ws = new WebSocket(`ws://127.0.0.1:${engine.record.port}/v1/sandboxes/sbx-1/terminal?cols=100&rows=30`, {
       headers: { Authorization: `Bearer ${token}`, "X-Abx-Connection": conn() },
@@ -208,7 +238,7 @@ describe.skipIf(!haveCatalog)("engine", () => {
     });
     ws.close();
     expect(received.some((m) => m.includes('"resize"') && m.includes("100"))).toBe(true);
-    expect(mock.seen.some((s) => s.method === "UPGRADE" && s.headers["host"] === "49983-sbx-1.reported.test")).toBe(true);
+    expect(mock.seen.some((s) => s.method === "UPGRADE" && s.headers["host"] === new URL(mock.origin).host)).toBe(true);
   });
 
   it("requires the token on the terminal WebSocket", async () => {

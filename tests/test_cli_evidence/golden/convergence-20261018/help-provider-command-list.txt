@@ -1,0 +1,7 @@
+Usage: abx provider command list [options] <ID>
+
+List a provider's management commands without connecting to the backend.
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]
