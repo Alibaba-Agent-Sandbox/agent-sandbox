@@ -33,3 +33,19 @@ exit7 propagation, template list, real stateful PTY, borrowed connect retention,
 interactive create's shortened lease and eventual404, exact owned kill and list
 absence. Tracked resources cleaned in finally; zero residuals. This is separate
 from installed fixture coverage, and does not prove native E2B or enabled snapshots.
+
+Pinned upstream generator replay:11 shipped runtime/template/notice files were
+byte-identical after a clean vendor lock install. Linux SEA build and version smoke
+PASS; SHA2564ba44e1c3d4d45f86ec112839ae29fd43e0e2d65c8a28c1f776937b9abbf6b5b.
+
+Whole-artifact attribution review remains PARTIAL. The pinned upstream source map
+has705 inputs, including610 inputs from86 exact third-party package identities.
+The [inventory](2026-10-18-prebundle-attribution-inventory.json) records exact
+identity/provenance hashes and actual current SEA notice coverage. License-source
+retrieval verified81 identities using tarball integrity or exact npm gitHead; five
+have no verified complete pinned text yet (async-listen, eastasianwidth, tiny-case,
+spdx-exceptions, spdx-license-ids). Some initial retrieval failures were corrected
+using case-sensitive license filenames and pinned source provenance. Existing
+bundled legal comments are retained; no missing license text was fabricated and
+retrieval alone does not imply the built SEA carries a complete inventory.
+Required full attribution remains blocking rather than silently waived.

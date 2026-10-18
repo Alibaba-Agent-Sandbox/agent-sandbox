@@ -52,7 +52,7 @@ The active [proposed contract](notes/proposed/architecture/2026-10-16-e2b-behavi
 
 The provider ownership review is recorded in [verification](evidence/verify/2026-10-16-provider-boundary-review.md); do not conflate typed command registration with complete backend adaptation.
 
-The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal: feature gates, resume error handling, generic CLI coverage, conditional availability and full artifact auditing still have open work.
+The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal. Accepted main and the latest convergence record resolve feature gates, resume error handling and much generic CLI coverage; conditional acceptance and whole-artifact attribution still have open work.
 
 See the [multi-agent findings and scoped verification](evidence/verify/2026-10-16-multi-agent-architecture-review.md) for fixed defects, remaining priorities and artifact limitations.
 - [Provider portability and updates](notes/implemented/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
