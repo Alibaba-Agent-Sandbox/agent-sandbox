@@ -1,7 +1,7 @@
 # Verification: retire orphan CLI ports
 
 - Date: 2026-10-18
-- Result: PARTIAL; exact final-head hosted checks and frozen-artifact cloud repeat pending
+- Result: PARTIAL; scoped frozen-artifact real-cloud acceptance passes; record-only hosted checks pending
 - Base: main 2eca074ae8ccf59ad3ce2ffd1382b97993eb3dc6
 - Scope: nine retired source modules, empty session barrel, legacy template create,
   dedicated tests/exports, clean-build step and bilingual current architecture/migration docs.
@@ -52,11 +52,20 @@
 The first standard CLI E2E overlapped clean-build output replacement: 65 PASS /
 33 FAIL / 54 SKIP, no sandbox created/leaked. Failed launches saw absent dist
 output, so this is retained as a failed orchestration run, not product acceptance.
-A fresh run starts only after the completed build, with all emitted JavaScript
-hashed and frozen. Its result/cleanup will be recorded separately. Docker is
-unavailable; Docker deployment is explicitly skipped, not passed.
+The complete frozen-artifact repeat exceeded the controller1200s limit;
+its private owned-resource ledger is empty. It is not called a full E2E pass.
+A subsequent bounded standard-runner slice ran against the same frozen build:
+create-json, info-json, exec-basic, exec-json,100KiB binary upload/download,
+kill-yes-json and built-in leak-check:7 PASS, exit0, one created/zero leaked.
+Command: `node e2e/run.mjs --suite cloud-lifecycle --filter
+'cloud-lifecycle/(create-json|info-json|exec-basic|exec-json|upload-download-binary-roundtrip|kill-yes-json) '`.
+The SDK configured full-cloud suite also executed the built CLI lifecycle.
+No runtime mutation was made during either valid acceptance run.
+Docker is unavailable; Docker deployment is skipped, not passed.
 
 ## Remaining gates
 
-Latest-head full hosted Node 20/22, links, type/lint, installer and package gates;
-frozen-artifact cloud repeat and review. Keep draft while required gates remain.
+Source head038b138:all seven hosted checks PASS, including full Node20/22,
+links, type/lint, installer and package gates. This record-only update requires
+its own latest-head checks and final review before merge. The full sweep timeout
+remains disclosed; the scoped runtime/artifact retirement acceptance is complete.
