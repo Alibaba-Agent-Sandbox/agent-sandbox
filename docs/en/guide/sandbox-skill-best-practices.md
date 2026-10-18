@@ -53,7 +53,7 @@ Connecting to an existing user sandbox does not adopt cleanup ownership. Only se
 
 ## Diagnose failures with controls
 
-The earlier `FunctionNotFound` named a missing backing function, followed by a missing sandbox. The historical template now returns 404. This establishes unavailability; it does not identify who deleted it or why. Historical deletion/termination events remain necessary. A later healthy-template pass cannot supply the missing historical event.
+The historical failure now has audit evidence: at 07:18:48 UTC on 2026-10-16, DeleteFunction succeeded for the exact backing function; task startup returned FunctionNotFound at 07:18:51. The direct cause was a deleted backing function, not business code or failure to honor the requested 600-second lifetime. The actor is assumed-role and used a different AK from the currently supplied one. The upstream initiating operation remains unidentified, so this does not establish a particular deleting user or a platform product defect. The historical template now returning 404 is corroboration.
 
 Raw platform data omitted `timeout`; the client previously displayed its default 300s. Actual start/expiration timestamps proved the requested 600s. That is a client metadata defect. The fix preserves unknown values and ISO timestamps. Losing `aliases` and `builds[].status` in template-list output is likewise a CLI mapping defect.
 

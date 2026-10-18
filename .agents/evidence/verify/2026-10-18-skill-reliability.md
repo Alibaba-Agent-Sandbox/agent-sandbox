@@ -3,14 +3,14 @@
 - Date: 2026-10-18
 - Change: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/43
 - Baseline: 62cb6c9 (isolated branch fix/skill-reliability-20261018)
-- Result: PARTIAL — live acceptance and repository checks in progress; advanced requirements remain unverified.
+- Result: PARTIAL overall original requirement coverage; PASS for the scoped 21-tool live reliability acceptance and first-head required CI. Advanced requirements remain explicitly unverified.
 - Environment: Linux, Node.js 22.22.2; real Alibaba Agent Sandbox in cn-hangzhou. Credentials loaded from environment/.env, values never recorded.
 
 ## Recovery and historical failure
 
 The recovered conversation JSON was read completely (2,122,766 bytes; SHA-256 9aaf134b1154eefd1a3c4b25fd40d15013b39b3f581d40fca475c4216c79f100). Its roles/tool calls were treated as history. The prior temporary worktree and some edit contents were unavailable; this is a fresh implementation and run from committed baseline, not a claim of byte-for-byte recovery.
 
-On 2026-10-16 the independent agent observed create/probe/upload success, then E3006 with upstream FunctionNotFound; the same sandbox later returned E2009. Its historical template jjous014ebntx3qsj258 now returns HTTP 404 (`template not found`), request ID 9a8097fc-5ad3-4091-81bf-791be100e06d. This establishes backing-resource unavailability, not the historical deleting actor/cause. No deletion/termination event was recovered. A fresh healthy-template pass does not prove that historical cause.
+On 2026-10-16 the independent agent observed create/probe/upload success, then E3006 with upstream FunctionNotFound; the same sandbox later returned E2009. Its historical template jjous014ebntx3qsj258 now returns HTTP 404 (`template not found`), request ID 9a8097fc-5ad3-4091-81bf-791be100e06d. A subsequent authenticated ActionTrail LookupEvents query recovered an exact-target successful DeleteFunction event at **2026-10-16T07:18:48Z**, before the recorded task failure at 07:18:51. Event dc52a248-8128-4ada-a9f4-23cb55d9bdea, request 1-6ad1cfd8-1544ab2a-f408e621953a, has no errorCode and references the exact missing backing function. This establishes the direct cause: the backing function was deleted before task execution. The actor is assumed-role, its AccessKey differs from the currently supplied AK, and its session name mentions FC. Those facts do not identify the upstream initiating operation or prove a platform product defect. Other DeleteFunction events in the same second failed FunctionNotFound; they are not counted as successful deletions. The filtered DeleteTemplate query returned no events, which does not prove no template deletion occurred. See [exact-target audit evidence](2026-10-18-skill-reliability/audit-exact-target.json). Query parameters follow the [official LookupEvents contract](https://www.alibabacloud.com/help/en/actiontrail/developer-reference/api-actiontrail-2020-07-06-lookupevents) and [published endpoint](https://www.alibabacloud.com/help/en/actiontrail/developer-reference/api-actiontrail-2020-07-06-endpoint); only non-sensitive correlation fields were retained.
 
 ## Verified attribution and repairs
 
@@ -95,3 +95,14 @@ Exact check outcomes and remote gate state are appended after the final scoped c
 - Repository lint: **PASS**, 0 errors (existing warnings retained). One intermediate lint accidentally included generated scratch output; the scratch build was moved outside the checkout and lint rerun over the actual repository.
 - Package dry-run: SKILL.md, all three references and dist/bin/abx.js present. npm 12 returns the package record under a package-name object; the verification reader was corrected to inspect the actual shape instead of assuming an array. This was an evaluation-reader error, not a packaging failure.
 - Repository health: **PASS**, 105 checks, 11 recommendations, 0 failures; hygiene **PASS**.
+
+
+## Final real-component and remote evidence
+
+- Standard repository E2E: `ABX_BIN="node dist/bin/abx.js" node e2e/run.mjs --suite cloud-lifecycle --filter 'cloud-lifecycle/(create-json|info-json|exec-basic|exec-exit-code-propagates|kill-yes-json|kill-twice)( |$)'`, **7 PASS**, one sandbox created and zero leaked. The first evaluation filter accidentally selected zero cases (one skip), was preserved as `official-e2e-unselected.json`, corrected and rerun; that no-op is not claimed as acceptance.
+- PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/44 ; implementation head 3ad94be1bef2025c0f801b3a1dc18fcf27918aea.
+- First-head remote CI: Node 20 and Node 22 test jobs, typecheck/lint/hygiene, installer, Markdown links and package build all **PASS**. Each Node job reports all **156 test files passing**. This validates the suite in the normal CI network environment while local interception limitations stay documented.
+- [CI run](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654429) and [docs run](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39091654430). The final documentation/evidence commit receives its own CI run before merge; no pending check is treated as passed.
+- Secret-value scan: 79 scoped files checked before the implementation commit, zero matches. Commit hook secret scan PASS; optional pre-commit framework was not installed, as permitted by the repository hook. Health/hygiene/link checks remain independently recorded.
+
+- First-head CI unit totals: Node 20 **3,803 passed / 3 skipped**; Node 22 **3,804 passed / 2 skipped**, out of 3,806 each. Both have 156 passing test files. Skips remain explicit.

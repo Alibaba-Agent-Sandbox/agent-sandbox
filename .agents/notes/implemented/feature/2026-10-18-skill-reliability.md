@@ -1,6 +1,6 @@
 # Decision: Evidence-based Sandbox Skill workflows and task recovery
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
