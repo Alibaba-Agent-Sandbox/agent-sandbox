@@ -58,4 +58,4 @@ retains those rules, uses source installation with the binary guide as an
 alternative, and describes npm as unavailable in both languages. No test/gate
 was removed or weakened; focused existing document regressions rerun below.
 
-Existing bilingual Skill-document regressions:24PASS. Health105/11/0,hygiene/whitespace PASS. Required latest-head full hosted matrix remains pending.
+Existing bilingual Skill-document regressions:20PASS. Health105/11/0,hygiene/whitespace PASS. Required latest-head full hosted matrix remains pending.
