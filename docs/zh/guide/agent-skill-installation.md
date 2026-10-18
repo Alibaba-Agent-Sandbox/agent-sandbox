@@ -14,7 +14,7 @@ Skill 与 `abx` / SDK 的安装刻意解耦：
 
 1. **先安装 Skill**（本指南），无需 Python 环境。
 2. 当 Agent（或你）准备真正运行沙箱时，**再安装软件包**：`npm install -g @agent-sandbox/cli`——见第 7 节。
-3. **配置凭证**（`abx config set sandbox_api_key …`，或 AK/SK）。
+3. **配置凭证**（`abx config set sandbox_api_key …`）；官方模板控制面另配 AK/SK。
 4. **选择接口**——对话类 Agent 用 MCP，脚本用 CLI，Python 代码用 SDK（见 `SKILL.md` 的 "Choosing an interface"）。
 
 Agent 读取 Skill 指令后会自行完成第 2–4 步；第 1 步不依赖它们中的任何一步。
@@ -241,7 +241,7 @@ abx exec <sandbox-id> -- echo hi   # 脚本用 CLI
 
 - **凭证规则**——绝不把真实密钥写进 Skill、仓库、聊天消息或沙箱文件；完整规则见 `SKILL.md` 的 "Credentials and security"。
 - **接口选择**——对话类 Agent 用 MCP，脚本用 CLI，Python 编排用 SDK；见 `SKILL.md` 的 "Choosing an interface" 与 [MCP 集成指南](mcp-integration.md)。
-- 使用阿里云 AK/SK 替代 API Key 的认证方式见[认证配置指南](authentication.md)。
+- 官方模板操作使用独立 AK/SK，运行时仍需 API Key 的配置见[认证配置指南](authentication.md)。
 
 ---
 

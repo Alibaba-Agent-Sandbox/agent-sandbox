@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-> For more authentication methods (AK/SK, .env files, config.toml, etc.), see [Authentication](authentication.md).
+> For runtime API-key configuration (.env files, config.toml) and separate control-plane AK/SK, see [Authentication](authentication.md).
 
 ---
 

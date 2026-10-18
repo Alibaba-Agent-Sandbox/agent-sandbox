@@ -47,3 +47,4 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
 
 Current cleanup proposal: [retire unused CLI ports](notes/proposed/architecture/2026-10-18-retire-orphan-cli.md).
+Auth migration: [explicit sandbox API keys](notes/proposed/architecture/2026-10-18-data-plane-auth-contract.md).

@@ -55,6 +55,8 @@ The same chain is what these calls read:
 
 ---
 
+Sandbox calls require `ABX_SANDBOX_API_KEY`; AK/SK settings configure separate official control-plane operations and cannot substitute for it. See [authentication migration](../guide/authentication.md).
+
 ## Environment Variables
 
 ### Shared with the Python SDK
@@ -167,8 +169,8 @@ The `region` key set here is the **persistent default** for regional commands. A
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API key for NL inference and the coding agent |
 | `llm_model` | `ABX_LLM_MODEL` | LLM model name (default: `qwen3-coder-plus`) |
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API base URL (default: DashScope compatible-mode) |
-| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (🧪 experimental AK/SK auth) |
-| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (🧪 experimental AK/SK auth) |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (official control-plane credential) |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (official control-plane credential) |
 | `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template install` / `abx template deploy` (set it with `abx config init --build`) |
 | `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`abx template install` / `abx template search`; stored in `~/.abx/.env`, shown masked) |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Team id. Optional. Not required. |
@@ -181,11 +183,11 @@ abx config init
 
 The interactive wizard prompts for: the sandbox API key, the default region, the LLM API key, the ACR namespace (`ACR_NAMESPACE`), the AccessKey ID, and the AccessKey secret. Press Enter to skip a prompt. Secrets and the namespace are stored in `~/.abx/.env` under the one variable for each key; the region goes to `~/.abx/config.toml`. Non-TTY environments or `--yes` never block; the equivalent `abx config set` commands are printed instead.
 
-### AK/SK Authentication Configuration (Experimental)
+### AK/SK control-plane configuration
 
-When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for AK/SK → API Key token exchange authentication.
+When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for official template/image/ACR control-plane operations, never automatic sandbox-key exchange.
 
-> **Note**: This feature is experimental. The token exchange endpoint is pending FC platform confirmation. See [Authentication](../guide/authentication.md#aksk-alibaba-cloud-extended-authentication-) for details.
+Sandbox runtime requests still require a separate API key. See [Authentication](../guide/authentication.md#aksk-alibaba-cloud-extended-authentication-) for details.
 
 ---
 
