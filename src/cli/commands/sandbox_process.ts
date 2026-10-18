@@ -8,7 +8,7 @@ import { argument, command, group, option } from "../kit.js";
 import { INT } from "../types.js";
 import { sysExit } from "../errors.js";
 import { getFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 
 /** Connect to a sandbox by ID. */
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {

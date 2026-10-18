@@ -12,7 +12,7 @@ an API of this CLI.
 ```ts
 import { command, option } from "../kit.js";
 import { getOutput } from "../output.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 
 export const example = command("example", {
   help: "Show an example.",

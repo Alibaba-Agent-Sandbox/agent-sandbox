@@ -5,7 +5,8 @@
 
 The CLI HttpClient has no max_retries/retry_base_delay scheduling read;
 ExecProvider forwards max_retries in the EPP core contract. This change touches
-only bilingual guides/changelog and this owner's records, not those source
-modules, generated schema, defaults or Node exports. Existing standard built
+bilingual guides/changelog and this owner's records. One trailing blank line
+from the accepted error-handler extraction is removed to satisfy the whitespace
+gate; executable logic, generated schema, defaults and Node exports are unchanged. Existing standard built
 CLI cloud lifecycle7 PASS is historical supporting evidence, not a new run.
 Source contract owner: https://github.com/Alibaba-Agent-Sandbox/python-sdk/issues/60.

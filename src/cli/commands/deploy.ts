@@ -17,7 +17,7 @@ import { Argument, Option, argument, command, getCurrentContext, type Context } 
 import { UsageError } from "../errors.js";
 import { cleandoc } from "../../utils/_py.js";
 import { pyExpandUser, pyResolve } from "../../utils/_pyos.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { enableVerbose } from "../output.js";
 import { requireTemplateFeature } from "../template_provider.js";
 import { BuildModeError, resolveBuildPlan } from "../../template/build_plan.js";

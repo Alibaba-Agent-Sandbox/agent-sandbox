@@ -44,7 +44,7 @@ import { PyFloat, pyRepr, pyStr, pyStrip } from "../../utils/_pyformat.js";
 import { formatFixed0 } from "../../agent/_pycompat.js";
 import { isDir, isFile, mkdirParents, pathExists, pyExpandUser, pyJoin, pyResolve, readTextPy, rglobAll, toOSError, writeTextPy } from "../../utils/_pyos.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { enableVerbose, getOutput, type OutputManager } from "../output.js";
 import { REPL_TIMEOUT, describeCommandFailure, enableLineEditing, input, inputInterrupts, programName } from "../repl.js";
 import { regionOption } from "../region.js";

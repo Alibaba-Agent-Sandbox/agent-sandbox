@@ -11,7 +11,7 @@
 
 import { SandboxError, TemplateBuildError, TemplateBuildTimeoutError } from "../models/errors.js";
 import { HTTPStatusError, type HttpClient } from "../transport/http.js";
-import { dictGet, hasBodyContent, pyBytesRepr, pyExcStr } from "../api/_pyerrors.js";
+import { dictGet, hasBodyContent, pyBytesRepr, pyExcStr } from "../utils/_pyerrors.js";
 import { getLogger } from "../utils/logging.js";
 import { pyStr } from "../utils/_pyformat.js";
 
