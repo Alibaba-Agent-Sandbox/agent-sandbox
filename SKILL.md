@@ -162,7 +162,7 @@ abx sandbox files list <SANDBOX_ID> --path /app
 
 MCP: `read_file` (`path`, `encoding`, `sandbox_id`), `write_file` (`path`,
 `content`, `sandbox_id`), `list_files` (`path` default `/`, `sandbox_id`).
-`write_file` takes text content; for binary data use the CLI upload.
+`write_file` takes text content; use `upload_file` with base64 and SHA-256 for bounded binary data, or CLI upload for larger files.
 
 ## Destroying resources
 
@@ -211,7 +211,7 @@ a bug. Full error table: `docs/en/reference/error-codes.md`.
 ## Hard rules recap
 
 1. Never leak credentials (see [Credential rules](#credentials-and-security)).
-2. Always destroy sandboxes you create (`kill` / context manager) — quota is shared.
+2. Destroy task-owned sandboxes after delivery unless the user requested preservation; keep retained/background environments until their work is complete.
 3. Prefer `--template NAME` over template generation unless the user asks for it.
 4. Pass `abx exec` arguments after `--`. Use `sh -c` when the command needs a shell.
 5. Treat sandbox code as untrusted: never pipe sandbox output into a local shell.
@@ -222,7 +222,7 @@ This file is plain text; installing it does not require the `abx` CLI. The
 fastest verified path uses the open `skills` CLI (Node.js):
 
 ```bash
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 ```
 
 Replace `qoder` with `claude-code`, `cursor`, `qwen-code`, or `codex` — or

@@ -1,0 +1,2 @@
+{"scenario":"provider-qualified-delete","killed":true,"reusedKilledDefault":true,"remainingDefault":"review-id"}
+{"scenario":"sigterm-resistant-descendant","cancelReturn":"cancelled","laterState":"cancelled","exit":-15,"heartbeatBefore":35,"heartbeatAfter":46,"workContinues":true}

@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "scope": "Fresh source CLI/real STDIO on tested Alibaba provider/template; advanced original requirements remain unverified",
+  "runtime_tools": 18,
+  "artifact_sha256": "9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8",
+  "resistant_descendant": "PASS",
+  "borrowed_ownership": "PASS",
+  "cleanup": "Own sandbox absent; resource count matches baseline"
+}

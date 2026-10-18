@@ -20,6 +20,22 @@ try:
  with open(root+'/stdout','wb') as out,open(root+'/stderr','wb') as err:
   child=subprocess.Popen(['sh','-c',command],cwd=cwd or None,stdout=out,stderr=err,start_new_session=True)
   state.update(pid=child.pid,pid_start=ticks(child.pid),state='running');save(state)
+  # Leave the leader waitable until its original process group is empty.
+  # Its unreaped PID/start time anchors identity even when descendants outlive sh.
+  while True:
+   exited=os.waitid(os.P_PID,child.pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+   if os.path.exists(root+'/cancel') and state['state']!='cancelling':
+    state['state']='cancelling';save(state)
+   if exited is not None:
+    alive=False
+    for entry in os.listdir('/proc'):
+     if not entry.isdigit(): continue
+     try:
+      parts=open('/proc/'+entry+'/stat').read().rsplit(') ',1)[1].split()
+      if parts[0] not in ('Z','X') and parts[2]==str(child.pid) and parts[3]==str(child.pid): alive=True;break
+     except (FileNotFoundError,ProcessLookupError): pass
+    if not alive: break
+   time.sleep(.02)
   code=child.wait()
  state.update(exit_code=code,state='cancelled' if os.path.exists(root+'/cancel') else ('succeeded' if code==0 else 'failed'),finished_at=time.time());save(state)
 except Exception as exc:
@@ -60,7 +76,13 @@ alive=False
 if active and 'pid' in state:
  try:
   parts=open('/proc/%s/stat'%state['pid']).read().rsplit(') ',1)[1].split()
-  alive=parts[0]!='Z' and parts[19]==state['pid_start']
+  if parts[19]==state['pid_start']:
+   for entry in os.listdir('/proc'):
+    if not entry.isdigit(): continue
+    try:
+     member=open('/proc/'+entry+'/stat').read().rsplit(') ',1)[1].split()
+     if member[0] not in ('Z','X') and member[2]==str(state['pid']) and member[3]==str(state['pid']): alive=True;break
+    except (FileNotFoundError,ProcessLookupError): pass
  except FileNotFoundError: pass
 if ${cancel ? "True" : "False"} and active and alive:
  open(root+'/cancel','w').close()
@@ -69,6 +91,8 @@ if ${cancel ? "True" : "False"} and active and alive:
  time.sleep(.05)
  state=json.load(open(root+'/state.json'))
  if state['state'] in ('starting','running'): state['state']='cancelling'
+elif active and alive and os.path.exists(root+'/cancel'):
+ state['state']='cancelling'
 elif active and not alive:
  # Supervisor may be committing exit status: re-read, never manufacture success.
  state=json.load(open(root+'/state.json'))

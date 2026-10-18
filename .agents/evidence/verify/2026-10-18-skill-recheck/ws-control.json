@@ -1,0 +1,11 @@
+{
+  "control": "invalid-UTF8-wire-close",
+  "server_sent_frame_hex": "8102fffe",
+  "server_observed_closes": [
+    {
+      "code": 1007,
+      "reason": "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+    }
+  ],
+  "client_error": "[E5001] WebSocket receive error: received 1007 (invalid frame payload data) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte; then sent 1007 (invalid frame payload data) 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n  Suggestion: Check network connectivity and firewall rules."
+}
