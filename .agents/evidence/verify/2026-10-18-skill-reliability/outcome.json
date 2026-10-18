@@ -1,0 +1,79 @@
+{
+  "results": [
+    {
+      "name": "create_one_sandbox",
+      "passed": true,
+      "detail": {
+        "sandbox_id": "sbx-06f44ab1-3a77-4cd5-810b-96220ec93e20",
+        "template": "y2of2a2kkkci2y10q0qq",
+        "requested_lifetime_s": 600
+      }
+    },
+    {
+      "name": "upload_files",
+      "passed": true,
+      "detail": "Remote list contains all three uploaded task files"
+    },
+    {
+      "name": "disconnect_while_task_running",
+      "passed": true,
+      "detail": {
+        "background_pid": 495,
+        "analysis_started": true,
+        "analysis_done": false
+      }
+    },
+    {
+      "name": "recover_background_process",
+      "passed": true,
+      "detail": {
+        "expected_pid": 495,
+        "process_list_references_pid": true
+      }
+    },
+    {
+      "name": "exact_json_bytes_and_sha256",
+      "passed": true,
+      "detail": {
+        "expected_bytes": "{\"row_count\": 3, \"total_amount\": \"31.50\", \"total_qty\": 6}",
+        "actual_bytes": "{\"row_count\": 3, \"total_amount\": \"31.50\", \"total_qty\": 6}",
+        "byte_count": 53,
+        "local_sha256": "9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8",
+        "remote_sha256": "9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8"
+      }
+    },
+    {
+      "name": "explicit_exit_7",
+      "passed": true,
+      "detail": {
+        "cli_exit_code": 7,
+        "remote_exit_code": 7
+      }
+    },
+    {
+      "name": "cancel_stops_process_and_writes",
+      "passed": true,
+      "detail": {
+        "background_pid": 500,
+        "before_lines": "95",
+        "after_signal_lines": "182",
+        "after_wait_lines": "182",
+        "signal_marker": "15",
+        "proc_absent": true,
+        "process_list": "[{\"pid\": 397, \"command\": \"/bin/bash -l -c /tmp/start.sh\", \"status\": \"running\"}]"
+      }
+    },
+    {
+      "name": "cleanup_own_sandbox",
+      "passed": true,
+      "detail": {
+        "sandbox_id": "sbx-06f44ab1-3a77-4cd5-810b-96220ec93e20",
+        "kill_exit": 0,
+        "absent_from_list": true,
+        "list_exit": 0
+      }
+    }
+  ],
+  "all_passed": true,
+  "private_access_setting": "not exposed by CLI; no ports published"
+}

@@ -239,3 +239,5 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 ## License
 
 [Apache-2.0](LICENSE) — see [`NOTICE`](NOTICE) for copyright information.
+
+- [Sandbox Skill best practices](docs/en/guide/sandbox-skill-best-practices.md)

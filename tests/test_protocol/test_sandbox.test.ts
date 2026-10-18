@@ -303,11 +303,11 @@ describe("TestNotFoundMapping", () => {
 describe("TestUnknownIfAbsent", () => {
   const bare = { sandboxID: "sbx-1", templateID: "base", status: "running" };
 
-  it("test_platform_default_keeps_the_builtin_region_and_timeout", async () => {
+  it("test_platform_response_omissions_remain_unknown", async () => {
     const protocol = makeProtocol();
     httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-1`, method: "GET", json: bare });
     const info = await protocol.getInfo("sbx-1");
-    expect([info.region, info.timeout]).toEqual(["cn-hangzhou", 300]);
+    expect([info.region, info.timeout]).toEqual(["", 0]);
   });
 
   it("test_plugin_wire_leaves_absent_region_and_timeout_unknown", async () => {

@@ -236,3 +236,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 ## 许可证
 
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
+
+- [Sandbox Skill best practices](docs/zh/guide/sandbox-skill-best-practices.md)

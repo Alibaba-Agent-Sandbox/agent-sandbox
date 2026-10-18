@@ -1,7 +1,7 @@
 {
   "name": "@agent-sandbox/cli",
   "version": "0.3.0",
-  "description": "abx — the Agent Sandbox command-line interface (Node.js)",
+  "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -11,6 +11,7 @@
     "dist",
     "README.md",
     "SKILL.md",
+    "references",
     "LICENSE",
     "NOTICE"
   ],

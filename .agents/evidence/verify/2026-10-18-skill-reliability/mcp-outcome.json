@@ -1,0 +1,221 @@
+{
+  "checks": [
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "upload_binary_roundtrip"
+      },
+      "returned": null,
+      "expected_effect": "upload_binary_roundtrip",
+      "observed_effect": {
+        "path": "/tmp/skill-mcp-acceptance/input.csv",
+        "bytes": 37,
+        "sha256": "a645706ab20e826122dba4d198525fd41fb5ad7ed9033dc1b8448d5ffeb3a19b",
+        "verified": true
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "write_read_list"
+      },
+      "returned": null,
+      "expected_effect": "write_read_list",
+      "observed_effect": {
+        "read": {
+          "content": "acceptance note: CSV order totals\n"
+        },
+        "listing": {
+          "files": [
+            {
+              "name": "input.csv",
+              "path": "/tmp/skill-mcp-acceptance/input.csv",
+              "type": "file",
+              "size": 37
+            },
+            {
+              "name": "note.txt",
+              "path": "/tmp/skill-mcp-acceptance/note.txt",
+              "type": "file",
+              "size": 34
+            }
+          ]
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "run_code_actual_interpreter"
+      },
+      "returned": null,
+      "expected_effect": "run_code_actual_interpreter",
+      "observed_effect": {
+        "result": {
+          "stdout": "42\n",
+          "stderr": "",
+          "exit_code": 0,
+          "output_files": []
+        },
+        "isError": false
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "task_running_before_disconnect"
+      },
+      "returned": null,
+      "expected_effect": "task_running_before_disconnect",
+      "observed_effect": {
+        "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+        "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+        "state": "running",
+        "started_at": 1792290951.224037,
+        "pid": 506,
+        "pid_start": "4947",
+        "stdout": "",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      },
+      "result": "FAIL"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "recover_original_task_after_restart"
+      },
+      "returned": null,
+      "expected_effect": "recover_original_task_after_restart",
+      "observed_effect": {
+        "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+        "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+        "state": "succeeded",
+        "started_at": 1792290951.224037,
+        "pid": 506,
+        "pid_start": "4947",
+        "exit_code": 0,
+        "finished_at": 1792290971.2682333,
+        "stdout": "{\"row_count\": 3, \"total_amount\": \"31.50\", \"total_qty\": 6}",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      },
+      "result": "FAIL"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "analysis_completed_exit0"
+      },
+      "returned": null,
+      "expected_effect": "analysis_completed_exit0",
+      "observed_effect": {
+        "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899",
+        "task_id": "c2c17d93-647f-4772-b177-1a9df4e37435",
+        "state": "succeeded",
+        "started_at": 1792290951.224037,
+        "pid": 506,
+        "pid_start": "4947",
+        "exit_code": 0,
+        "finished_at": 1792290971.2682333,
+        "stdout": "{\"row_count\": 3, \"total_amount\": \"31.50\", \"total_qty\": 6}",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      },
+      "result": "FAIL"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "download_exact_artifact"
+      },
+      "returned": null,
+      "expected_effect": "download_exact_artifact",
+      "observed_effect": {
+        "artifact": "<AGENT_RUN_DIR>/mcp-result.json",
+        "bytes": 53,
+        "sha256": "9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8",
+        "json": {
+          "row_count": 3,
+          "total_amount": "31.50",
+          "total_qty": 6
+        },
+        "server": {
+          "path": "/tmp/skill-mcp-acceptance/result.json",
+          "bytes": 53,
+          "sha256": "9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8",
+          "content_base64": "eyJyb3dfY291bnQiOjMsInRvdGFsX2Ftb3VudCI6IjMxLjUwIiwidG90YWxfcXR5Ijo2fQo="
+        }
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "run_command_exit7_is_error"
+      },
+      "returned": null,
+      "expected_effect": "run_command_exit7_is_error",
+      "observed_effect": {
+        "result": {
+          "stdout": "intentional-exit-seven\n",
+          "stderr": "",
+          "exit_code": 7
+        },
+        "isError": true
+      },
+      "result": "PASS"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "mcp_acceptance_execution"
+      },
+      "returned": null,
+      "expected_effect": "mcp_acceptance_execution",
+      "observed_effect": {
+        "type": "RuntimeError",
+        "message": "cancel_task failed: {\"sandbox_id\": \"sbx-f333108d-5f55-4c6e-8e9a-7671141b1899\", \"task_id\": \"59f29c5b-cd5f-4da2-8e61-eaaaa0aefa2a\", \"state\": \"cancelled\", \"started_at\": 1792290980.3721776, \"pid\": 519, \"pid_start\": \"7862\", \"exit_code\": -15, \"finished_at\": 1792290982.5151033, \"stdout\": \"\", \"stdout_truncated\": false, \"stderr\": \"\", \"stderr_truncated\": false}",
+        "traceback": "Traceback (most recent call last):\n  File \"<AGENT_RUN_DIR>/mcp_accept.py\", line 55, in <module>\n    cancelled=t('cancel_task',{'sandbox_id':SID,'task_id':long_id})\n  File \"<AGENT_RUN_DIR>/mcp_accept.py\", line 11, in t\n    if error: raise RuntimeError(name+' failed: '+json.dumps(data or raw))\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: cancel_task failed: {\"sandbox_id\": \"sbx-f333108d-5f55-4c6e-8e9a-7671141b1899\", \"task_id\": \"59f29c5b-cd5f-4da2-8e61-eaaaa0aefa2a\", \"state\": \"cancelled\", \"started_at\": 1792290980.3721776, \"pid\": 519, \"pid_start\": \"7862\", \"exit_code\": -15, \"finished_at\": 1792290982.5151033, \"stdout\": \"\", \"stdout_truncated\": false, \"stderr\": \"\", \"stderr_truncated\": false}\n"
+      },
+      "result": "FAIL"
+    },
+    {
+      "action": "independent_assertion",
+      "sent": {
+        "check": "cleanup_verified"
+      },
+      "returned": null,
+      "expected_effect": "cleanup_verified",
+      "observed_effect": {
+        "kill": {
+          "success": true,
+          "sandbox_id": "sbx-f333108d-5f55-4c6e-8e9a-7671141b1899"
+        },
+        "get_after": {
+          "error": "[E2009] Sandbox 'sbx-f333108d-5f55-4c6e-8e9a-7671141b1899' was not found.",
+          "suggestion": "Run 'abx list' to see the running sandboxes; a killed or expired sandbox cannot be reconnected."
+        },
+        "get_isError": true,
+        "listed": {
+          "sandboxes": []
+        }
+      },
+      "result": "PASS"
+    }
+  ],
+  "all_passed": false,
+  "not_run": [
+    "submit_template_build",
+    "validate_template"
+  ],
+  "blocked": {
+    "get_template_build": "No Team configured/discoverable in runtime .env; explicit Team required; not invented"
+  }
+}

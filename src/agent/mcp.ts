@@ -61,6 +61,8 @@ type SandboxInstance = any;
 
 interface SandboxStatic {
   create(options: Record<string, unknown>): Promise<SandboxInstance>;
+  list(options?: Record<string, unknown>): Promise<any[]>;
+  getInfoById(id: string, options?: Record<string, unknown>): Promise<any>;
   connect(options: Record<string, unknown>): Promise<SandboxInstance>;
   killById(sandboxId: string, options?: Record<string, unknown>): Promise<void>;
 }
@@ -79,22 +81,14 @@ export const sdk = {
   },
 };
 
-/**
- * Import the SDK's sandbox layer before the server starts reading.
- *
- * The first tool call imports this layer lazily. That import is CPU-bound
- * (hundreds of milliseconds on a busy host) and runs on the event loop, so a
- * `ping` sent right behind the first `tools/call` would wait for it. Paying
- * the cost at startup keeps the loop responsive.
- */
-async function _preloadSdk(): Promise<void> {
-  await sdk.loadSandbox();
-}
-
 export interface CreateSandboxOptions {
   template?: string | null;
   timeout?: number;
   envs?: Record<string, string> | null;
+  cpu?: number;
+  memory?: number;
+  region?: string;
+  retain?: boolean;
 }
 
 export interface SandboxManagerOptions {
@@ -130,6 +124,7 @@ export class SandboxManager {
   _default_sandbox: SandboxInstance = null;
   _sandboxes: Map<string, SandboxInstance> = new Map();
   _lifetimes: Map<string, number> = new Map();
+  private readonly preserved = new Set<string>();
   _state_lock = new AsyncLock();
   _default_lock = new AsyncLock();
   /** Bumped by `shutdown()` so a create still in flight can clean up after itself. */
@@ -151,30 +146,29 @@ export class SandboxManager {
     return kwargs;
   }
 
-  /**
-   * Best-effort extend of the sandbox TTL before a tool uses it.
-   *
-   * `Sandbox.setTimeout` posts the platform timeout endpoint that has
-   * been verified against the service. A refresh failure is logged and
-   * the tool call continues; the tool's own error is what the agent sees
-   * if the sandbox is already gone.
-   */
-  async _refreshLifetime(sandbox: SandboxInstance): Promise<void> {
-    const setter = sandbox?.setTimeout;
-    if (setter === undefined || setter === null) return;
-    const sandboxId: string = sandbox.id ?? "";
-    const timeout = this._lifetimes.get(sandboxId) ?? 300;
-    try {
-      const seconds = Math.trunc(Number(timeout));
-      if (!Number.isFinite(seconds)) {
-        throw new ValueError(`invalid literal for int() with base 10: '${String(timeout)}'`);
-      }
-      await setter.call(sandbox, seconds);
-    } catch (exc) {
-      if (exc instanceof CancelledError) throw exc;
-      logger.warning("Could not extend sandbox %s lifetime", sandboxId || "?", new ExcInfo(exc));
-    }
+  /** Provider-qualified identity prevents collisions across backends. */
+  reference(sandbox: SandboxInstance): string {
+    return sandbox.provider && sandbox.provider !== "alicloud-express" ? `${sandbox.provider}:${sandbox.id}` : sandbox.id;
   }
+
+  /** Explicit retention only; observation never refreshes TTL. */
+  retainSandbox(id: string, retain = true): void {
+    if (retain) this.preserved.add(id);
+    else this.preserved.delete(id);
+  }
+
+  /** Query without adopting or extending the resource. */
+  async observeSandbox(id: string): Promise<Record<string, unknown>> {
+    return (await sdk.loadSandbox()).getInfoById(id, this._connectKwargs());
+  }
+
+  /** List without adopting any returned resource. */
+  async listSandboxes(options: Record<string, unknown> = {}): Promise<Record<string, unknown>[]> {
+    return (await sdk.loadSandbox()).list(this._connectKwargs(options));
+  }
+
+  /** Kept as an internal compatibility seam; lifetime changes must now be explicit. */
+  async _refreshLifetime(_sandbox: SandboxInstance): Promise<void> {}
 
   /** Create a sandbox and make it the session default. */
   async createSandbox(options: CreateSandboxOptions = {}): Promise<SandboxInstance> {
@@ -187,6 +181,9 @@ export class SandboxManager {
       timeout,
       envs: envs || {},
     });
+    if (options.cpu !== undefined) kwargs.cpu = options.cpu;
+    if (options.memory !== undefined) kwargs.memory = options.memory;
+    if (options.region !== undefined) kwargs.provider_options = { region: options.region };
     const sandbox = await Sandbox.create(kwargs);
     if (epoch !== this._epoch) {
       // The session was shut down while this create was in flight. Python
@@ -199,8 +196,9 @@ export class SandboxManager {
       throw new CancelledError();
     }
     await this._state_lock.runExclusive(() => {
-      this._sandboxes.set(sandbox.id, sandbox);
-      this._lifetimes.set(sandbox.id, timeout);
+      this._sandboxes.set(this.reference(sandbox), sandbox);
+      this._lifetimes.set(this.reference(sandbox), timeout);
+      if (options.retain) this.preserved.add(this.reference(sandbox));
       this._default_sandbox = sandbox;
     });
     logger.info("Created sandbox: %s", sandbox.id);
@@ -220,7 +218,8 @@ export class SandboxManager {
       const sb = await Sandbox.connect(this._connectKwargs({ sandbox_id: sandboxId }));
       if (epoch !== this._epoch) throw new CancelledError();
       await this._state_lock.runExclusive(() => {
-        this._sandboxes.set(sb.id, sb);
+        this._sandboxes.set(sandboxId, sb);
+        this.preserved.add(sandboxId);
         if (!this._lifetimes.has(sb.id)) this._lifetimes.set(sb.id, 300);
       });
       await this._refreshLifetime(sb);
@@ -269,9 +268,7 @@ export class SandboxManager {
         return sandboxId;
       }
       const Sandbox = await sdk.loadSandbox();
-      const kwargs: Record<string, unknown> = {};
-      if (this._api_key) kwargs.api_key = this._api_key;
-      if (this._api_url) kwargs.api_url = this._api_url;
+      const kwargs = this._connectKwargs();
       await Sandbox.killById(sandboxId, kwargs);
       return sandboxId;
     }
@@ -304,8 +301,9 @@ export class SandboxManager {
     });
     for (const [sid, sb] of items) {
       try {
-        await sb.kill();
-        logger.info("Shutdown: killed sandbox %s", sid);
+        if (this.preserved.has(sid)) await sb.close?.();
+        else await sb.kill();
+        logger.info("Shutdown: released sandbox %s", sid);
       } catch (exc) {
         logger.warning("Failed to kill sandbox %s during shutdown", sid, new ExcInfo(exc));
       }
@@ -539,7 +537,10 @@ export class SandboxMCPServer {
     const exitCode = result.exit_code;
     const isError =
       "error" in result ||
-      (typeof exitCode === "number" && Number.isInteger(exitCode) && exitCode !== 0);
+      result.verified === false || result.cleanup_verified === false ||
+      // A successful status query/cancel can report a nonzero task exit. The query itself succeeded.
+      ((toolName === "run_code" || toolName === "run_command") &&
+        typeof exitCode === "number" && Number.isInteger(exitCode) && exitCode !== 0);
     return {
       content: [
         {
@@ -641,7 +642,7 @@ export class SandboxMCPServer {
     const output: Writable = options.stdout ?? process.stdout;
     const handleSignals = options.handleSignals ?? true;
     logger.info("Starting MCP Server (STDIO mode)");
-    await _preloadSdk();
+    // Protocol discovery and ping must work before the cloud SDK is needed.
 
     let stopped = false;
     let resolveStop!: () => void;

@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "runId": "20261018025219-ea3437",
+    "bin": "node <REPOSITORY>/dist/bin/abx.js",
+    "startedAt": "2026-10-18T02:52:20.023Z",
+    "cloud": true,
+    "skipReasons": {
+      "cloud": null,
+      "github": null,
+      "docker": "opt-in: set ABX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources)",
+      "killall": "opt-in: set ABX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account)"
+    },
+    "version": "abx, version 0.3.0",
+    "finishedAt": "2026-10-18T02:52:22.690Z",
+    "leakedSandboxes": 0,
+    "createdSandboxes": 0,
+    "counts": {
+      "skip": 1
+    }
+  },
+  "results": [
+    {
+      "suite": "builtin",
+      "id": "leak-check",
+      "title": "no sandbox created by this run is still listed",
+      "status": "skip",
+      "ms": 0,
+      "attempts": 1,
+      "notes": [],
+      "reason": "no cloud sandboxes were created"
+    }
+  ]
+}

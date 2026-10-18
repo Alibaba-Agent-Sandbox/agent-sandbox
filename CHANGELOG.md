@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Make Sandbox Skill task recovery, binary verification and per-action acceptance evidence explicit. Preserve connected/retained resources across MCP disconnect, keep absent lifetime metadata unknown, and report successful cancellation independently from a task signal exit.
+- Display actual template aliases/current build status; include workflow references in the npm package.
+
+
 ### Added
 
 - **Installers for the standalone binary.** `install.sh` (macOS and Linux) and `install.ps1` (Windows x64) download `abx-<version>-<os>-<arch>[.exe]` plus its `.sha256` from the latest GitHub Release, verify the checksum, and install without sudo. `ABX_VERSION` and `ABX_INSTALL_DIR` override the release and the destination. The npm package `@agent-sandbox/cli` is not published yet.
