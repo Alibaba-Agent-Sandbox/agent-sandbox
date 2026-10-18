@@ -227,3 +227,5 @@ The Python SDK, the in-sandbox server runtime and the shared `template.yaml` con
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and
   [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md)
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
+
+Builtin platform/envd HTTP uses one transport attempt. Legacy retry fields are compatibility data, with the exact boundary in [configuration](../reference/configuration.md#legacy-retry-compatibility); engine recovery remains separate.

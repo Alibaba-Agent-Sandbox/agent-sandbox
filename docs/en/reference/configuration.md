@@ -119,7 +119,7 @@ provider = "alicloud-express"
 sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 http_timeout = 30.0
-max_retries = 3
+# Legacy retry values do not enable builtin HTTP retries.
 
 [providers.alicloud-express]
 region = "cn-hangzhou"
@@ -164,7 +164,7 @@ The `region` key set here is the **persistent default** for regional commands. A
 | `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | Platform API URL |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | Region |
 | `http_timeout` | `ABX_HTTP_TIMEOUT` | HTTP timeout in seconds |
-| `max_retries` | `ABX_MAX_RETRIES` | Maximum retry count |
+| `max_retries` | `ABX_MAX_RETRIES` | Legacy compatibility value; builtin HTTP does not retry |
 | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | Data plane domain |
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API key for NL inference and the coding agent |
 | `llm_model` | `ABX_LLM_MODEL` | LLM model name (default: `qwen3-coder-plus`) |
@@ -227,3 +227,18 @@ The `TransportConfig` field table (types, defaults, automatic region derivation)
 in-sandbox server variables (`ABX_SERVER_*`, `ABX_PTY_PORT`, `ABX_MAX_UPLOAD_SIZE`) and the deploy-related LLM
 variables are documented in the SDK's [Configuration Reference](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/configuration.md)
 in the `python-sdk` repository.
+
+### Legacy retry compatibility
+
+`max_retries` (default3) and `retry_base_delay` (default1.0), including their
+existing environment/TOML names, remain accepted for configuration and extension
+compatibility. The builtin platform/envd HTTP transport does not use either
+value and performs one transport attempt. Setting them does not enable automatic
+retry or backoff. EPP connections still forward `max_retries`; a plugin's policy
+belongs to that plugin and is not a builtin transport guarantee.
+
+Provider-engine rediscovery/read recovery and explicit custom authentication
+refresh are separate mechanisms, not controlled by these settings. Applications
+that need retries must use a bounded policy for safe reads; reconcile an unknown
+write outcome before issuing the mutation again. No automatic retry feature is
+introduced by retaining the legacy configuration names.
