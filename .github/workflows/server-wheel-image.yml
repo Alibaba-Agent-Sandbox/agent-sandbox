@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - src/api/docker_builder.ts
+      - src/providers/alicloud_express/docker_builder.ts
       - src/utils/server_sdk_pin.ts
       - scripts/verify-server-wheel-image.mjs
       - .github/workflows/server-wheel-image.yml
@@ -11,6 +12,7 @@ on:
     branches: [main]
     paths:
       - src/api/docker_builder.ts
+      - src/providers/alicloud_express/docker_builder.ts
       - src/utils/server_sdk_pin.ts
       - scripts/verify-server-wheel-image.mjs
       - .github/workflows/server-wheel-image.yml

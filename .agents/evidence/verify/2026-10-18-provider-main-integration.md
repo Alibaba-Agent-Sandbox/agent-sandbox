@@ -49,3 +49,9 @@ parser change fixes it. Fresh wheel/auth-preflight/isolation suite59 PASS,
 typecheck PASS, lintzero errors/253 warnings, health105 PASS/11 WARN/zero FAIL,
 hygienePASS. PR37's separately recorded real production-image cloud acceptance
 and cleanup remain historical evidence; no new local Docker run is claimed.
+
+Final full local CLI:3854 PASS,10 FAIL,56 SKIP. All ten remaining failures are
+the disclosed platform raw TCP/TLS/WebSocket/proxy cases; provider, API, archive,
+CLI and wheel regressions pass. The actual Docker workflow watches both the
+historical alias and the active provider implementation path, so future native
+builder changes cannot evade the production-image regression.
