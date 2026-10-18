@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed
+
+- Removed the unconfirmed automatic AK/SK-to-sandbox-key RPC exchange and its private signing/parser helpers. Sandbox requests now fail locally without an API Key; official template/ACR AK/SK operations remain. Explicit custom exchange adapters remain and reject empty/structured token returns. This changes AK/SK-only runtime authentication; see the bilingual migration guide.
+
 ### Fixed
 
 - Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.

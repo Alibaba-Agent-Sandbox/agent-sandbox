@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "--json",
+    "list"
+  ],
+  "environment_names": [
+    "ALICLOUD_ACCESS_KEY_ID",
+    "ALICLOUD_ACCESS_KEY_SECRET"
+  ],
+  "sandbox_api_key_supplied": false,
+  "exit": 3,
+  "stdout": "{\n  \"status\": \"error\",\n  \"message\": \"A sandbox API Key is required; AK/SK credentials are for control-plane operations.\",\n  \"code\": \"E1001\",\n  \"suggestion\": \"Configure ABX_SANDBOX_API_KEY or pass api_key explicitly.\"\n}",
+  "stderr": "",
+  "cloud_resources_created": 0
+}
