@@ -106,3 +106,5 @@ Exact check outcomes and remote gate state are appended after the final scoped c
 - Secret-value scan: 79 scoped files checked before the implementation commit, zero matches. Commit hook secret scan PASS; optional pre-commit framework was not installed, as permitted by the repository hook. Health/hygiene/link checks remain independently recorded.
 
 - First-head CI unit totals: Node 20 **3,803 passed / 3 skipped**; Node 22 **3,804 passed / 2 skipped**, out of 3,806 each. Both have 156 passing test files. Skips remain explicit.
+
+- Final installation review removed the stale `pip install agent-sandbox` instruction. The SDK's actual source distribution is agent-sandbox-client; its PyPI JSON endpoint returned 404 in this environment. The Skill directs users to release/source-install instructions rather than claiming publication. Node CLI/MCP acceptance does not require that Python distribution. Hosted Python MCP/deploy acceptance remains outside the passed coverage.
