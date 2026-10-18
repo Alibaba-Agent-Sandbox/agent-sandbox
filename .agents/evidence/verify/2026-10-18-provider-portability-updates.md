@@ -39,3 +39,9 @@ This change creates zero cloud resources. Existing actual OSS mount, persistence
 ## Accepted-main integration
 
 Accepted main `2eca074` is retained by normal merge. Conflicting record indexes retain both entries. Builtin feature declarations use explicit implemented support instead of inheriting new registry names; management commands remain present, and unsupported domain/storage/VPC/deployment features are not granted. CLI retains main's conservative pause declaration. Current integrated validation results are recorded separately from the earlier full aggregate above.
+
+After accepted-main integration, strict typecheck and the seven-file boundary/commands/installer/SDK-template/registry selection pass: **265 PASS**, 158.86 seconds, zero skips. This checks the manually resolved builtin and real-SDK fixture plus retained main's registry behavior; it does not supersede the failed full aggregate.
+
+Integrated production build and offline runner: **6 PASS / one leak-check SKIP**, zero sandboxes/resources. The newly retained main health checker initially reports one missing dated capture index (104 pass / 11 warn / 1 fail); the generated capture folder exists, and a dated Markdown capture index now links its actual outputs. This is evidence navigation, not a health-rule exception.
+
+Final scoped ESLint passes with zero output/errors; final repository health is **105 PASS / 11 WARN / 0 FAIL**.
