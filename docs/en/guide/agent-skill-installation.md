@@ -216,14 +216,16 @@ If a marketplace listing for Agent Sandbox appears later, prefer it only after c
 
 ## 7. After the skill: install `@agent-sandbox/cli`, configure credentials, choose an interface
 
+Public `npm install -g @agent-sandbox/cli` is unavailable until publication. Use the source recipe below or the [binary guide](binary-installation.md).
+
 The skills guide the agent loads (`SKILL.md`) contains the operational details; the summary:
 
 ```bash
 # 1. Install the standalone CLI (source-package alternative below needs Node.js20+)
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+# Standalone binary alternative: see binary-installation.md; use the source recipe below.
 
 # Check available versions; if npm has no matching version, install from source:
-npm view @agent-sandbox/cli versions
+# Diagnostic only: npm view @agent-sandbox/cli versions (public metadata currently404).
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 

@@ -51,3 +51,11 @@ for CLI/NodeSDK remains404. Final install-doc health105PASS/11WARN/0FAIL and
 hygiene PASS; SDK pair/all-extras real install proof remains independently linked.
 
 Remove npm metadata-derived version/runtime badges from both current READMEs because official metadata404 cannot support them. Source Node20/22 support remains explicitly documented and tested. No runtime or dependency change.
+
+Hosted68778db failed exactly3 existing Skill-document contracts: both language
+no-curl-pipe rules and shared npm-command disclosure. The final guidance now
+retains those rules, uses source installation with the binary guide as an
+alternative, and describes npm as unavailable in both languages. No test/gate
+was removed or weakened; focused existing document regressions rerun below.
+
+Existing bilingual Skill-document regressions:24PASS. Health105/11/0,hygiene/whitespace PASS. Required latest-head full hosted matrix remains pending.

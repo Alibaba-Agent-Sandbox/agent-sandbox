@@ -216,14 +216,16 @@ cp -R references ~/.qwen/skills/agent-sandbox/
 
 ## 7. 装完 Skill 之后：安装 @agent-sandbox/cli、配置凭证、选择接口
 
+公开的 `npm install -g @agent-sandbox/cli` 在发布前尚不可用。使用下方源码安装步骤，或参见[二进制指南](binary-installation.md)。
+
 Agent 加载的技能指南（`SKILL.md`）中有完整操作细节；要点如下：
 
 ```bash
 # 1. 安装软件包（CLI + MCP STDIO 服务；需要 Node.js 20+）
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+# Standalone binary alternative: see binary-installation.md; use the source recipe below.
 
 # 先查询可用版本；若没有匹配版本，则使用源码安装：
-npm view @agent-sandbox/cli versions
+# Diagnostic only: npm view @agent-sandbox/cli versions (public metadata currently404).
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 
