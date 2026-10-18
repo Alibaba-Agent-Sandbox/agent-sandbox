@@ -73,3 +73,7 @@ wire addresses. Shared E2B adapters retain their own URL implementation.
 
 [Convergence verification](../../../evidence/verify/2026-10-18-provider-convergence-acceptance.md) records the ordinary remote
 merges, provider-owned pure metadata restoration and current Express smoke results.
+
+The final owner follow-up is tracked in https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/60 and
+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/61; [negative controls](../../../evidence/verify/2026-10-18-provider-owned-metadata-followup.md)
+prove both merged-main failures and repaired adapter-rule delegation.
