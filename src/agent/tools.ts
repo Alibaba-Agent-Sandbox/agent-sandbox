@@ -1,5 +1,5 @@
 /**
- * MCP Tools 定义 — 7 个 P0 核心工具。
+ * MCP tool definitions: seven compatible core tools and fourteen workflow operations.
  *
  * 每个 Tool 包含：
  * - TOOL_SCHEMA: MCP Tool schema（name, description, inputSchema）
@@ -8,6 +8,9 @@
  * Port of `agent_sandbox/agent/tools.py`.
  */
 
+import { z } from "zod";
+import { TEMPLATE_SCHEMAS, templateInputs, handleTemplateOperation } from "./template_operations.js";
+import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
 import { pyExcStr } from "../api/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { KeyError, ValueError, isDict, pyStrip, pyTruthy, pyTypeName, type JsonObject } from "./_py.js";
@@ -165,7 +168,21 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       },
     },
   },
+  ...OPERATION_SCHEMAS,
+  ...TEMPLATE_SCHEMAS,
 ];
+
+Object.assign(TOOL_SCHEMAS[0]!.inputSchema.properties as JsonObject, {
+  cpu: { type: "integer", minimum: 1 }, memory: { type: "integer", minimum: 1 },
+  region: { type: "string", minLength: 1 }, retain: { type: "boolean", default: false },
+});
+TOOL_SCHEMAS[0]!.inputSchema.additionalProperties = false;
+
+const createInput = z.strictObject({
+  template: z.string().min(1).optional(), timeout: z.number().int().min(1).max(86400).optional(),
+  envs: z.record(z.string(), z.string()).optional(), cpu: z.number().int().min(1).optional(),
+  memory: z.number().int().min(1).optional(), region: z.string().min(1).optional(), retain: z.boolean().optional(),
+});
 
 /** Quick lookup by name. */
 export const TOOL_SCHEMA_MAP: Record<string, ToolSchema> = Object.fromEntries(
@@ -226,9 +243,13 @@ export async function handleCreateSandbox(
     template,
     timeout: timeout as number,
     envs: envs as Record<string, string>,
+    ...(params.cpu !== undefined ? { cpu: params.cpu as number } : {}),
+    ...(params.memory !== undefined ? { memory: params.memory as number } : {}),
+    ...(params.region !== undefined ? { region: params.region as string } : {}),
+    ...(params.retain !== undefined ? { retain: params.retain as boolean } : {}),
   });
   return {
-    sandbox_id: sandbox.id,
+    sandbox_id: typeof manager.reference === "function" ? manager.reference(sandbox) : sandbox.id,
     status: enumValue(sandbox.status),
     url: sandbox.url,
   };
@@ -355,6 +376,8 @@ export const TOOL_HANDLERS: Record<string, ToolHandler> = {
   write_file: handleWriteFile,
   list_files: handleListFiles,
   kill_sandbox: handleKillSandbox,
+  ...Object.fromEntries(Object.keys(operationInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleOperation(name as keyof typeof operationInputs, params, manager)])),
+  ...Object.fromEntries(Object.keys(templateInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(name as keyof typeof templateInputs, params, manager)])),
 };
 
 /**
@@ -368,11 +391,14 @@ export async function dispatchTool(
   manager: SandboxManager,
 ): Promise<ToolResult> {
   const handler = Object.hasOwn(TOOL_HANDLERS, name) ? TOOL_HANDLERS[name] : undefined;
-  if (handler === undefined) {
+  const operation = Object.hasOwn(operationInputs, name);
+  if (handler === undefined && !operation) {
     throw new ValueError(`Unknown tool: ${name}`);
   }
   try {
-    return await handler(params, manager);
+    if (operation) return await handleOperation(name as keyof typeof operationInputs, params, manager);
+    if (name === "create_sandbox") createInput.parse(params);
+    return await handler!(params, manager);
   } catch (exc) {
     if (isCancellation(exc)) throw exc;
     logger.error("Tool %s failed: %s", name, errorText(exc), new ExcInfo(exc));

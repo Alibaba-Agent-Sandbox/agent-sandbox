@@ -35,3 +35,7 @@ After that run, the FC template test fixture preloads the real SDK before reques
 ## Cloud evidence and cleanup
 
 This change creates zero cloud resources. Existing actual OSS mount, persistence, Team/key/quota and complete cleanup evidence remains immutable in the 2026-10-16 provider-volume-live record. No new claim is made about all Express features. Domains, dynamic attach, STS/newer storage fields and Volume status-transition acceptance remain outside established coverage; native E2B/Cube/container factories need their own authorized backend. Optional host delivery remains https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/42. Local fixture trees, sockets and test-owned files are isolated; no pre-existing user sandbox or engine was adopted or killed.
+
+## Accepted-main integration
+
+Accepted main `2eca074` is retained by normal merge. Conflicting record indexes retain both entries. Builtin feature declarations use explicit implemented support instead of inheriting new registry names; management commands remain present, and unsupported domain/storage/VPC/deployment features are not granted. CLI retains main's conservative pause declaration. Current integrated validation results are recorded separately from the earlier full aggregate above.

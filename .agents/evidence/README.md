@@ -43,6 +43,7 @@ Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
 - [`verify/2026-10-16-provider-management-commands.md`](verify/2026-10-16-provider-management-commands.md)
 - [`verify/2026-10-16-provider-management-final-review.md`](verify/2026-10-16-provider-management-final-review.md)
 - [`verify/2026-10-16-provider-command-spec-review.md`](verify/2026-10-16-provider-command-spec-review.md)
+- [2026-10-18 Skill reliability](verify/2026-10-18-skill-reliability.md)
 
 - [`verify/2026-09-08-template-deploy-e2e.md`](verify/2026-09-08-template-deploy-e2e.md)
 - [`verify/2026-10-12-e2e-foundation.md`](verify/2026-10-12-e2e-foundation.md)

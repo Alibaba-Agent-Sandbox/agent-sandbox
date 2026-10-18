@@ -58,7 +58,7 @@ abx --json mcp status
 
 ## Available Tools
 
-The MCP Server provides 7 tools:
+The MCP Server provides 21 tools: the seven compatible core tools below, plus the verified workflow tools listed afterwards.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
@@ -310,3 +310,7 @@ More general issues: see the [Troubleshooting guide](troubleshooting.md) and [er
 ## Related SDK documentation
 
 Running the Python implementation of the MCP server — `python -m agent_sandbox.agent.mcp`, the ASGI entry point (`uvicorn agent_sandbox.agent.mcp_http:asgi_app`) and `create_mcp_app()` — is covered by the SDK's [MCP Integration guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/mcp-integration.md) and [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md) in the `python-sdk` repository.
+
+Workflow tools: `get_capabilities`, `list_sandboxes`, `get_sandbox`, `set_sandbox_timeout`, `retain_sandbox`, `upload_file`, `download_file`, `start_task`, `get_task`, `cancel_task`, `verify_sandbox`; Alibaba template adapter: `submit_template_build`, `get_template_build`, `validate_template`. See [Skill best practices](sandbox-skill-best-practices.md) for actual completion checks, lifecycle and provider limits.
+
+Connected external resources and retained/background sandboxes survive client disconnect until platform expiry or explicit deletion. Only session-created ephemeral resources auto-delete. Observation does not renew TTL.

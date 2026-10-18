@@ -51,21 +51,21 @@ Agent 读取 Skill 指令后会自行完成第 2–4 步；第 1 步不依赖它
 ### 先预览（不写盘）
 
 ```bash
-npx skills add agent-sandbox/agent-sandbox --list
+npx skills add alibaba-agent-sandbox/agent-sandbox --list
 ```
 
 ### 安装
 
 ```bash
 # 单个工具、项目级（默认）、非交互：
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 
 # 一次安装到多个工具：
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox \
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox \
   -a qoder -a claude-code -a cursor -a qwen-code -y
 
 # 安装到用户级（对全部项目生效）：
-npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
+npx skills add alibaba-agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -g -y
 ```
 
 `--agent` 取值（来自 `npx skills --help` 与 CLI README）：`qoder`、`qoder-cn`、`claude-code`、`cursor`、`qwen-code`、`codex`；`'*'` 表示全部已检测到的工具。
@@ -121,9 +121,9 @@ npx skills remove agent-sandbox -g                 # 从用户级移除
 
 ---
 
-## 4. 方式 B —— 复制或下载单个文件
+## 4. 方式 B —— 复制 Skill 和流程参考
 
-`SKILL.md` 是自包含的单文件，手工复制是受支持的完整安装方式。
+从同一固定版本复制 `SKILL.md` **以及 `references/` 目录**到 `agent-sandbox` 技能目录。参考文件包含任务验收、Provider 边界和逐次调用记录规则；仅复制入口文件并不完整。npm 包同时包含二者。不要整体复制包含凭据的工作副本。
 
 1. 打开 <https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/SKILL.md>，使用 **Raw** / **Download** 下载，然后按下表把你所用工具的目录放成 `agent-sandbox/SKILL.md`（见第 2 节）。例如：
 
@@ -133,12 +133,16 @@ npx skills remove agent-sandbox -g                 # 从用户级移除
    # ~/.qoder/skills/agent-sandbox/SKILL.md
    ```
 
-2. 也可以用 `curl` 直接下载——单个文件，**绝不通过管道交给 shell 执行**：
+2. 也可以用 `curl` 下载全部四个文件，**绝不通过管道交给 shell 执行**：
 
    ```bash
-   mkdir -p ~/.claude/skills/agent-sandbox
-   curl -fsSL "https://raw.githubusercontent.com/agent-sandbox/agent-sandbox/<TAG-OR-COMMIT>/SKILL.md" \
-     -o ~/.claude/skills/agent-sandbox/SKILL.md
+   skill_revision='<TAG-OR-COMMIT>'
+   skill_destination="$HOME/.claude/skills/agent-sandbox"
+   mkdir -p "$skill_destination/references"
+   for skill_file in SKILL.md references/task-workflows.md references/provider-contracts.md references/template-workflows.md; do
+     curl -fsSL "https://raw.githubusercontent.com/alibaba-agent-sandbox/agent-sandbox/$skill_revision/$skill_file" \
+       -o "$skill_destination/$skill_file" || exit 1
+   done
    ```
 
    把 `<TAG-OR-COMMIT>` 替换为发布 tag 或完整 commit SHA。需要可复现版本时，不要使用会移动的分支（`main`）。
@@ -165,6 +169,8 @@ npx skills remove agent-sandbox -g                 # 从用户级移除
 
 ---
 
+入口文件还需要同版本的 `references/task-workflows.md`、`references/provider-contracts.md`、`references/template-workflows.md`，请保持相对目录。仓库安装可复制整个 `references/`；逐文件下载也需要下载这三个文件。
+
 ## 5. 方式 C —— `git clone` / 稀疏检出
 
 当你希望文件来自可追踪、可校验的版本时，使用 Git。
@@ -174,19 +180,23 @@ npx skills remove agent-sandbox -g                 # 从用户级移除
 ```bash
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git
 mkdir -p ~/.qwen/skills/agent-sandbox
-cp cli/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp agent-sandbox/SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp -R agent-sandbox/references ~/.qwen/skills/agent-sandbox/
 ```
 
-稀疏检出（只要 `SKILL.md`，不拉取仓库其他内容）：
+稀疏检出（入口文件及其必需的参考文件）：
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse \
   https://github.com/alibaba-agent-sandbox/agent-sandbox.git
-cd cli
-git sparse-checkout set --no-cone /SKILL.md
+cd agent-sandbox
+git sparse-checkout set --no-cone /SKILL.md /references/
+mkdir -p ~/.qwen/skills/agent-sandbox
+cp SKILL.md ~/.qwen/skills/agent-sandbox/SKILL.md
+cp -R references ~/.qwen/skills/agent-sandbox/
 ```
 
-随时可用 `git checkout <TAG-OR-COMMIT>` 固定版本；稀疏工作区会跟随检出，从 tag 重新复制 `SKILL.md` 即可得到该精确版本。完成后删除克隆目录即可。
+用 `git checkout <TAG-OR-COMMIT>` 固定版本；浅克隆需先 fetch 指定版本。检出后同时重新复制 `SKILL.md` 和 `references/`。完成后删除克隆目录即可。
 
 ---
 
@@ -212,10 +222,9 @@ Agent 加载的技能指南（`SKILL.md`）中有完整操作细节；要点如�
 # 1. 安装软件包（CLI + MCP STDIO 服务；需要 Node.js 20+）
 npm install -g @agent-sandbox/cli
 
-# 若 npm 提示没有匹配的版本（撰写时 npm 尚无公开发布，
-# 可用下面的命令核实），改用源码安装：
+# 先查询可用版本；若没有匹配版本，则使用源码安装：
 npm view @agent-sandbox/cli versions
-git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd cli
+git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 
 # 2. 验证
@@ -227,7 +236,7 @@ abx config set region cn-hangzhou
 
 # 4. 选择接口
 abx mcp install --target cursor   # 对话类 Agent 用 MCP（或 --target claude / vscode）
-abx exec <sandbox-id> "echo hi"   # 脚本用 CLI
+abx exec <sandbox-id> -- echo hi   # 脚本用 CLI
 ```
 
 - **凭证规则**——绝不把真实密钥写进 Skill、仓库、聊天消息或沙箱文件；完整规则见 `SKILL.md` 的 "Credentials and security"。
@@ -266,4 +275,4 @@ abx exec <sandbox-id> "echo hi"   # 脚本用 CLI
 - Cursor——[Agent Skills](https://cursor.com/docs/skills)、[Plugins](https://cursor.com/docs/plugins)
 - Qwen Code——[Agent Skills](https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/skills.md)
 - Codex——[Build skills](https://developers.openai.com/codex/skills)
-- PyPI 状态（Python SDK）——`pip index versions agent-sandbox` 在 2026-09-29 无匹配分发
+- PyPI 状态（Python SDK）——旧名 `pip index versions agent-sandbox` 在 2026-09-29 无匹配分发；当前源码分发名是 `agent-sandbox-client`，此历史查询不能证明它的发布状态

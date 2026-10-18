@@ -513,6 +513,13 @@ function generationClient(generation: number | null, opts: { updateError?: strin
 }
 
 describe("TestGeneration1StartCommand", () => {
+  it("refuses a concurrent name collision without updating or deleting the old template", async () => {
+    const client = generationClient(2);
+    await expect(createOfficialTemplate({ name: "test", image: "example/image:1", access_key_id: "AK", access_key_secret: "SK", team_id: "test-team", update_existing: false })).rejects.toThrow("already exists");
+    expect(client.updateTemplate).not.toHaveBeenCalled();
+    expect(client.deleteTemplate).not.toHaveBeenCalled();
+    expect(client.listTemplates).not.toHaveBeenCalled();
+  });
   const create = (force = false) =>
     createOfficialTemplate({
       name: "test",

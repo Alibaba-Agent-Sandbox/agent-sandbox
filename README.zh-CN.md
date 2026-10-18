@@ -238,3 +238,5 @@ Provider 专属云管理：`abx provider command list alicloud-express`。参数
 ## 许可证
 
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
+
+- [Sandbox Skill best practices](docs/zh/guide/sandbox-skill-best-practices.md)

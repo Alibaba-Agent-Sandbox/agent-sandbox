@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "runId": "20261018025306-be77c7",
+    "bin": "node <REPOSITORY>/dist/bin/abx.js",
+    "startedAt": "2026-10-18T02:53:06.896Z",
+    "cloud": true,
+    "skipReasons": {
+      "cloud": null,
+      "github": null,
+      "docker": "opt-in: set ABX_E2E_DOCKER=1 (builds an image and pushes it to ACR; slow and costs real cloud resources)",
+      "killall": "opt-in: set ABX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account)"
+    },
+    "version": "abx, version 0.3.0",
+    "finishedAt": "2026-10-18T02:55:34.504Z",
+    "leakedSandboxes": 0,
+    "createdSandboxes": 1,
+    "counts": {
+      "pass": 7
+    }
+  },
+  "results": [
+    {
+      "suite": "cloud-lifecycle",
+      "id": "create-json",
+      "title": "create --template --json returns {ID,Status,Template,URL,EnvdVersion}",
+      "status": "pass",
+      "ms": 17819,
+      "attempts": 1,
+      "notes": []
+    },
+    {
+      "suite": "cloud-lifecycle",
+      "id": "info-json",
+      "title": "info --json shape",
+      "status": "pass",
+      "ms": 15522,
+      "attempts": 1,
+      "notes": []
+    },
+    {
+      "suite": "cloud-lifecycle",
+      "id": "exec-basic",
+      "title": "exec prints stdout, exit 0",
+      "status": "pass",
+      "ms": 16498,
+      "attempts": 1,
+      "notes": []
+    },
+    {
+      "suite": "cloud-lifecycle",
+      "id": "exec-exit-code-propagates",
+      "title": "exec propagates remote exit code (3), shows stdout+stderr",
+      "status": "pass",
+      "ms": 16116,
+      "attempts": 1,
+      "notes": []
+    },
+    {
+      "suite": "cloud-lifecycle",
+      "id": "kill-yes-json",
+      "title": "kill --yes --json: success envelope; sandbox is gone",
+      "status": "pass",
+      "ms": 46953,
+      "attempts": 1,
+      "notes": []
+    },
+    {
+      "suite": "cloud-lifecycle",
+      "id": "kill-twice",
+      "title": "killing an already-killed sandbox is idempotent",
+      "status": "pass",
+      "ms": 15586,
+      "attempts": 1,
+      "notes": []
+    },
+    {
+      "suite": "builtin",
+      "id": "leak-check",
+      "title": "no sandbox created by this run is still listed",
+      "status": "pass",
+      "ms": 0,
+      "attempts": 1,
+      "notes": []
+    }
+  ]
+}

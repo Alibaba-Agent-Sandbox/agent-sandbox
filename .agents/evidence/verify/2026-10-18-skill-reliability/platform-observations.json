@@ -1,0 +1,48 @@
+[
+  {
+    "kind": "sandboxes",
+    "id": "sbx-06f44ab1-3a77-4cd5-810b-96220ec93e20",
+    "http_status": 200,
+    "request_id": "f1c48741-586e-4d84-bf5e-cf0a762d8c1b",
+    "raw_field_names": [
+      "templateID",
+      "sandboxID",
+      "alias",
+      "clientID",
+      "accountID",
+      "userID",
+      "startedAt",
+      "endAt",
+      "cpuCount",
+      "memoryMB",
+      "diskSizeMB",
+      "state",
+      "envdVersion",
+      "envdAccessToken",
+      "domain",
+      "metadata",
+      "lifecycle"
+    ],
+    "observed": {
+      "sandboxID": "sbx-06f44ab1-3a77-4cd5-810b-96220ec93e20",
+      "templateID": "e2e-template-review-601d707c1e6c",
+      "state": "running",
+      "startedAt": "2026-10-18T02:28:20.24977Z",
+      "endAt": "2026-10-18T02:38:20.249738Z"
+    }
+  },
+  {
+    "kind": "templates",
+    "id": "jjous014ebntx3qsj258",
+    "http_status": 404,
+    "request_id": "9a8097fc-5ad3-4091-81bf-791be100e06d",
+    "raw_field_names": [
+      "code",
+      "message"
+    ],
+    "observed": {
+      "code": 404,
+      "message": "template not found"
+    }
+  }
+]

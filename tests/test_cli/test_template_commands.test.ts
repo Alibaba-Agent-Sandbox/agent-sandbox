@@ -185,6 +185,13 @@ describe("TestTemplateListCommand", () => {
     expect([0, 1, 3]).toContain(result.exit_code);
   });
 
+  it("shows aliases and current build state from the actual platform response shape", async () => {
+    patchTransport(mockHttp({ json: [{ templateID: "tpl-ready", aliases: ["version-1"], builds: [{ buildID: "b1", status: "ready" }] }] }));
+    const result = await runner().invoke(cli, ["--json", "template", "list"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(JSON.parse(result.output)).toEqual([{ TemplateID: "tpl-ready", Alias: "version-1", Status: "ready" }]);
+  });
+
   it("test_list_official_templates", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     const templates = [{ templateID: "tpl-ready", name: "demo", status: { state: "ready" } }];
