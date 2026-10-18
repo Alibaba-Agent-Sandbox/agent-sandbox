@@ -899,9 +899,9 @@ abx mcp start [options]
 
 Options:
   --template <name>         Default sandbox template (default: code-interpreter-v1)
-  --sandbox-api-key <key>   API Key override (env: E2B_API_KEY)
-  --sandbox-base-url <url>  API URL override (env: E2B_API_URL)
-  --sandbox-domain <domain> Domain override (env: E2B_DOMAIN)
+  --sandbox-api-key <key>   API Key override (env: ABX_SANDBOX_API_KEY)
+  --sandbox-base-url <url>  API URL override (env: ABX_SANDBOX_BASE_URL)
+  --sandbox-domain <domain> Domain override (env: ABX_SANDBOX_DOMAIN)
 ```
 
 Start MCP Server in STDIO mode. Usually called automatically by the IDE; manual execution is not typically needed.
@@ -935,7 +935,7 @@ Options:
   --output-dir <path>       Write the artifact to this directory
 
 Examples:
-  abx mcp deploy --generate-token --sandbox-api-key $E2B_API_KEY --output-dir ./artifact
+  abx mcp deploy --generate-token --sandbox-api-key $ABX_SANDBOX_API_KEY --output-dir ./artifact
   abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
 ```
 
@@ -951,12 +951,12 @@ The configuration file is located at `~/.abx/config.toml`, with API Keys stored 
 
 | Config Key      | Description                           | Default                   |
 | --------------- | ------------------------------------- | ------------------------- |
-| `sandbox_api_key` | Sandbox service API key (stored as `E2B_API_KEY`) | (not set)          |
-| `sandbox_base_url` | Platform API URL (env `E2B_API_URL`) | (auto)                    |
+| `sandbox_api_key` | Sandbox service API key (stored as `ABX_SANDBOX_API_KEY`) | (not set)          |
+| `sandbox_base_url` | Platform API URL (env `ABX_SANDBOX_BASE_URL`) | (auto)                    |
 | `region`        | Default region (env `ALIBABA_CLOUD_REGION_ID`) | `cn-hangzhou`             |
 | `http_timeout`  | HTTP request timeout (seconds)        | (auto)                    |
 | `max_retries`   | Max retry count                       | (auto)                    |
-| `sandbox_domain` | Envd domain (env `E2B_DOMAIN`) | (auto)                    |
+| `sandbox_domain` | Envd domain (env `ABX_SANDBOX_DOMAIN`) | (auto)                    |
 | `llm_api_key`   | LLM API key for NL inference and the coding agent | (not set) |
 | `llm_model`     | LLM model name                        | `qwen3-coder-plus`       |
 | `llm_base_url`  | LLM API base URL (OpenAI compatible)  | DashScope compatible endpoint |

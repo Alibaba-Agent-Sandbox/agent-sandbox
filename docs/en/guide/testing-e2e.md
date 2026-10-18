@@ -40,8 +40,8 @@ and the HTTP traffic are diffed. Details: [`parity/diff/README.md`](../../../par
 
 ## Credentials
 
-Real credentials live only in gitignored `.env` files or environment variables (`E2B_API_KEY`,
-`E2B_API_URL`, `E2B_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`, `ACR_NAMESPACE`, `ABX_LLM_API_KEY`,
+Real credentials live only in gitignored `.env` files or environment variables (`ABX_SANDBOX_API_KEY`,
+`ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`, `ACR_NAMESPACE`, `ABX_LLM_API_KEY`,
 `OPENAI_BASE_URL`). Never print, log or commit them; the suites mask them in everything they capture.
 
 ## Definition of Done

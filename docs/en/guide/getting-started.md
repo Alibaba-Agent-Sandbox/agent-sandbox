@@ -7,7 +7,7 @@ This tutorial walks you through the complete sandbox lifecycle, from installatio
 ## Prerequisites
 
 - Node.js 20 or later only for a from-source install. The binary installer does not need Node.js.
-- For the default provider (`alicloud-express`): an API key from the [Agent Sandbox product docs](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox). The variable is `E2B_API_KEY`. The AccessKey pair is `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. The CLI does not read retired `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `AccessKey`, or `AccessSecret`.
+- For the default provider (`alicloud-express`): an API key from the [Agent Sandbox product docs](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox). The variable is `ABX_SANDBOX_API_KEY`. The AccessKey pair is `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Native provider/MCP configuration uses the `ABX_SANDBOX_*` names. The standard Express entry also accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`; see the [migration guide](migrate-from-e2b.md). `AccessKey` and `AccessSecret` are not read.
 - Network access to the Alibaba Cloud Hangzhou region (default `cn-hangzhou`)
 
 ## 1. Installation
@@ -35,7 +35,7 @@ There are two ways to configure credentials. When a call actually needs the key,
 ### Option 1: Environment variable (recommended for CI/CD)
 
 ```bash
-export E2B_API_KEY="your-api-key-here"
+export ABX_SANDBOX_API_KEY="your-api-key-here"
 ```
 
 ### Option 2: `abx config set` (recommended for local development)

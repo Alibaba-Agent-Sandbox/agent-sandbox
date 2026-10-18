@@ -22,8 +22,12 @@ configuration and ownership. Standard frontend and native CLI have separate test
 Globally renaming native keys breaks existing providers. Restoring whole old files
 would resurrect retired ownership and discard accepted contract fixes.
 
+Native provider/MCP documentation retains canonical ABX configuration; only the
+standard entry accepts the E2B aliases. Agent-facing CLI examples use standard
+syntax while preserving all21 MCP tools and resource ownership rules.
+
 ## Dependencies
-Accepted CLI35,31,37 and SDK38; standard SDK47 is a separate consumer dependency.
+Accepted CLI35,31,37,62 and SDK38; standard SDK47 is a separate consumer dependency.
 https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/47
 
 ## Test Strategy

@@ -1,5 +1,7 @@
 # 认证详解
 
+> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+
 沙箱运行时请求需要 **API Key**；**AK/SK（阿里云 AccessKey）**用于独立的官方控制面操作。
 
 > **历史说明**：`abx auth` CLI 命令组（`login`/`logout`/`status`/`switch`）已在首个正式版 `0.1.0` 之前移除。凭证通过下方介绍的环境变量与 `abx config set sandbox_api_key` 配置；用 `abx config list` 查看生效状态。
@@ -25,10 +27,10 @@ API Key 是最常用的认证方式，通过 `Authorization: Bearer {api_key}` �
 #### 1. 环境变量（优先于 `~/.abx`）
 
 ```bash
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-`E2B_API_KEY` 是沙箱 API Key 唯一的环境变量。不读取旧的 `ABX_SANDBOX_API_KEY`。API 地址是 `E2B_API_URL`，数据平面域名是 `E2B_DOMAIN`（不读取旧的 `ABX_SANDBOX_BASE_URL` 和 `ABX_SANDBOX_DOMAIN`）。
+`ABX_SANDBOX_API_KEY` 是沙箱 API Key 唯一的环境变量。不读取 `E2B_API_KEY`。API 地址是 `ABX_SANDBOX_BASE_URL`，数据平面域名是 `ABX_SANDBOX_DOMAIN`（不读取 `E2B_API_URL` 和 `E2B_DOMAIN`）。
 
 #### 2. abx config set（持久化到本地文件）
 
@@ -38,14 +40,14 @@ abx config set sandbox_api_key your-api-key
 # 文件权限: 600（仅所有者可读写）
 ```
 
-存储格式为 `E2B_API_KEY=your-key`，位于 `~/.abx/.env`。
+存储格式为 `ABX_SANDBOX_API_KEY=your-key`，位于 `~/.abx/.env`。
 
 #### 3. .env 文件
 
 在项目根目录创建 `.env` 文件：
 
 ```dotenv
-E2B_API_KEY=your-api-key
+ABX_SANDBOX_API_KEY=your-api-key
 ```
 
 CLI 按键合并 `.env`。`./.env` 写了该键时优先；没写的键仍然来自 `~/.abx/.env`。
@@ -63,7 +65,7 @@ sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 ```
 
-沙箱 API Key 存在 `~/.abx/.env` 的 `E2B_API_KEY`，不放在 `config.toml`。
+沙箱 API Key 存在 `~/.abx/.env` 的 `ABX_SANDBOX_API_KEY`，不放在 `config.toml`。
 
 <a id="aksk-阿里云扩展认证-"></a>
 ## AK/SK 控制面与迁移
@@ -104,7 +106,7 @@ LLM 密钥、GitHub token 和区域走同一条链。空白或只含空格的值
 
 沙箱 API Key 不会由 AK/SK 自动生成。同时配置时，运行时使用 API Key：
 - 若同时提供了 `sandbox_api_key` 和 `access_key_id`，使用 API Key
-- 若同时设置了 `E2B_API_KEY` 和 `ALICLOUD_ACCESS_KEY_ID`，使用 `E2B_API_KEY`
+- 若同时设置了 `ABX_SANDBOX_API_KEY` 和 `ALICLOUD_ACCESS_KEY_ID`，使用 `ABX_SANDBOX_API_KEY`
 
 ---
 
@@ -138,13 +140,13 @@ abx config get access_key_id
 
 ```bash
 # 通过环境变量设置 API Key（推荐）
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 
 # 或通过 abx config 持久化
 abx config set sandbox_api_key your-api-key
 ```
 
-创建沙箱时通过 `--env` 参数注入密钥：
+标准交互终端可以用 `--env` 设置进程环境。这仅属于终端会话，不是沙箱级存储；脱离终端创建不会打开该会话。后续进程需要继承变量时，使用 SDK/原生 provider 的创建环境参数：
 
 ```bash
 abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
@@ -160,7 +162,7 @@ abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-va
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **解决**：确保通过上述任一方式配置了有效的 API Key。

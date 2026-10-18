@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 ### Or via Environment Variable
 
 ```bash
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
 > For more authentication methods (AK/SK, .env files, config.toml, etc.), see [Authentication](authentication.md).
@@ -256,7 +256,7 @@ Generate a Streamable HTTP MCP artifact for manual deployment to Alibaba Cloud F
 
 ```bash
 # Generate files with a new Bearer token
-abx mcp deploy --generate-token --api-key $E2B_API_KEY \
+abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY \
   --output-dir ./deploy-artifact
 ```
 

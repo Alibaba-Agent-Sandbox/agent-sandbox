@@ -1,5 +1,7 @@
 # MCP 集成
 
+> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+
 Agent Sandbox 提供 MCP（Model Context Protocol）Server，使 AI IDE 和工具能够直接操作沙箱。
 
 ---
@@ -11,8 +13,8 @@ MCP（Model Context Protocol）是一个开放协议，允许 AI 模型与外部
 ### 前置条件
 
 ```bash
-npm install -g @agent-sandbox/cli   # abx CLI + MCP STDIO server
-export E2B_API_KEY=your-api-key     # 或：abx config set sandbox_api_key your-api-key
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+export ABX_SANDBOX_API_KEY=your-api-key     # 或：abx config set sandbox_api_key your-api-key
 ```
 
 ---
@@ -43,7 +45,7 @@ abx mcp install --target vscode
 
 写入工作区 `.vscode/mcp.json` 的 `servers` 键（`type: stdio`），然后重新加载 VS Code 窗口。这个文件经常会被提交，所以安装器不把 API key 写进去；`abx mcp start` 从环境变量或 `~/.abx` 读取。
 
-所有目标注册的都是同一个 STDIO 命令：`abx mcp start`。命令写成正在运行的 `abx` 可执行文件的绝对路径（找不到时退回到 `node <abx.js 的绝对路径>`），这样 IDE 自带的精简 PATH 也能拉起 server。安装器采用合并写入 — 已配置的其他 MCP server 会被保留。配置文件如果不是严格 JSON（注释、尾逗号），安装器会拒绝覆盖。Cursor 和 Claude 的用户级配置在 API key 可用时会嵌入 `env` 块。这把密钥按 [凭证解析](../reference/configuration.md#凭证解析) 取值：进程环境变量，然后 `./.env`，然后 `~/.abx`。`E2B_API_URL` 和 `SANDBOX_REGION` 只有进程环境变量设置了才会写入；`abx config set region` 保存的区域在 `abx mcp start` 启动时再次读取。
+所有目标注册的都是同一个 STDIO 命令：`abx mcp start`。命令写成正在运行的 `abx` 可执行文件的绝对路径（找不到时退回到 `node <abx.js 的绝对路径>`），这样 IDE 自带的精简 PATH 也能拉起 server。安装器采用合并写入 — 已配置的其他 MCP server 会被保留。配置文件如果不是严格 JSON（注释、尾逗号），安装器会拒绝覆盖。Cursor 和 Claude 的用户级配置在 API key 可用时会嵌入 `env` 块。这把密钥按 [凭证解析](../reference/configuration.md#凭证解析) 取值：进程环境变量，然后 `./.env`，然后 `~/.abx`。`ABX_SANDBOX_BASE_URL` 和 `SANDBOX_REGION` 只有进程环境变量设置了才会写入；`abx config set region` 保存的区域在 `abx mcp start` 启动时再次读取。
 
 ### 查看安装状态
 
@@ -58,7 +60,7 @@ abx --json mcp status
 
 ## 可用工具
 
-MCP Server 提供 7 个工具：
+MCP Server 提供 21 个工具：下面保留七个兼容核心工具，其后列出新增闭环工具。
 
 | 工具名 | 说明 | 参数 |
 |--------|------|------|
@@ -95,9 +97,9 @@ abx mcp stop
 | 选项 | 说明 |
 |------|------|
 | `--template` | 默认模板（默认 code-interpreter-v1） |
-| `--api-key` | API Key 覆盖（环境变量: `E2B_API_KEY`） |
-| `--api-url` | API URL 覆盖（环境变量: `E2B_API_URL`） |
-| `--domain` | Domain 覆盖（环境变量: `E2B_DOMAIN`） |
+| `--api-key` | API Key 覆盖（环境变量: `ABX_SANDBOX_API_KEY`） |
+| `--api-url` | API URL 覆盖（环境变量: `ABX_SANDBOX_BASE_URL`） |
+| `--domain` | Domain 覆盖（环境变量: `ABX_SANDBOX_DOMAIN`） |
 | `--http` | 改为 Streamable HTTP（默认 `127.0.0.1:9000`） |
 | `--host` / `--port` | HTTP 绑定地址和端口。非回环地址必须带非空 `--auth-token` |
 | `--auth-token` | HTTP Bearer token（环境变量: `ABX_MCP_AUTH_TOKEN`） |
@@ -134,7 +136,7 @@ printf '%s\n' \
 
 ```bash
 export ABX_MCP_AUTH_TOKEN=replace_me   # Bearer token（回环地址下省略则关闭认证）
-export E2B_API_KEY=your-api-key
+export ABX_SANDBOX_API_KEY=your-api-key
 
 abx mcp start --http --host 0.0.0.0 --port 9000
 ```
@@ -147,7 +149,7 @@ abx mcp start --http --host 0.0.0.0 --port 9000
 
 | 入口 | 客户端鉴权 | 怎么配置 |
 |------|------------|----------|
-| `abx mcp start`（STDIO） | 没有 Bearer。进程由本机 IDE 拉起，不对外监听 | 沙箱调用用 `E2B_API_KEY` / `abx config set sandbox_api_key` |
+| `abx mcp start`（STDIO） | 没有 Bearer。进程由本机 IDE 拉起，不对外监听 | 沙箱调用用 `ABX_SANDBOX_API_KEY` / `abx config set sandbox_api_key` |
 | `abx mcp start --http` | Bearer。回环地址可以不配 token（启动时会警告）；`--host` 不是回环时必须有非空 `--auth-token` | `--auth-token` 或 `ABX_MCP_AUTH_TOKEN` |
 | 阿里云 FC 上的远程函数 | Bearer 必填。产物里的 `app.py` 在 token 为空时拒绝启动，不会变成“免认证” | `abx mcp deploy --generate-token` 写入函数环境变量 `ABX_MCP_AUTH_TOKEN`。FC HTTP 触发器使用 `anonymous`，这样 MCP 客户端不用阿里云签名；真正的鉴权是应用层 Bearer。`GET /health` 只返回状态和协议，不校验 token，也不含密钥 |
 
@@ -187,7 +189,7 @@ token 比较使用常量时间算法。可用 `openssl rand -base64 32` 生成�
 ```bash
 abx mcp deploy \
   --generate-token \
-  --api-key $E2B_API_KEY \
+  --api-key $ABX_SANDBOX_API_KEY \
   --output-dir ./mcp-artifact
 ```
 
@@ -280,8 +282,8 @@ curl -s -X DELETE http://localhost:9000/mcp \
 | 症状 | 可能原因 | 解决方法 |
 |------|----------|----------|
 | IDE 显示 server 失败 / 无工具 | `abx` 不在 IDE 的 `PATH` 中 | 在 IDE 配置中使用绝对路径，如 `/usr/local/bin/abx`（npm 全局 bin 目录见 `npm prefix -g`） |
-| 工具列表正常但每次调用报错 | API key 缺失或无效 | `abx mcp status` 看 `auth_configured`；设置 `E2B_API_KEY` 或 `abx config set sandbox_api_key` |
-| IDE 重启后 `create_sandbox` 失败 | 后端 API URL/地域不匹配 | 在 server 参数/env 块中传 `--api-url`（或设 `E2B_API_URL`） |
+| 工具列表正常但每次调用报错 | API key 缺失或无效 | `abx mcp status` 看 `auth_configured`；设置 `ABX_SANDBOX_API_KEY` 或 `abx config set sandbox_api_key` |
+| IDE 重启后 `create_sandbox` 失败 | 后端 API URL/地域不匹配 | 在 server 参数/env 块中传 `--api-url`（或设 `ABX_SANDBOX_BASE_URL`） |
 | HTTP 每个请求都 401 | `ABX_MCP_AUTH_TOKEN` 为空（fail-closed） | 设置非空 token。本机回环可以删掉该变量来关闭认证。FC 产物没有 token 时不会启动 |
 | HTTP 404 Unknown session | `Mcp-Session-Id` 已过期（空闲 TTL 3600 秒）或实例重启 | 重新发送 `initialize` 创建新会话 |
 | HTTP 503 会话上限 | 进程内并发会话超过 100 | 关闭空闲会话（`DELETE /mcp`）或经 `create_mcp_app()` 调高 `max_sessions` |

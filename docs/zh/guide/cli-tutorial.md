@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 ### 或通过环境变量
 
 ```bash
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
 > 更多认证方式（AK/SK、.env 文件、config.toml 等）详见 [认证详解](authentication.md)。
@@ -256,7 +256,7 @@ abx mcp start --template code-interpreter-v1
 
 ```bash
 # 使用新生成的 Bearer Token 创建产物
-abx mcp deploy --generate-token --api-key $E2B_API_KEY \
+abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY \
   --output-dir ./deploy-artifact
 ```
 

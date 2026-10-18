@@ -1,5 +1,7 @@
 # MCP Server 设计
 
+> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+
 > Agent Sandbox MCP Server 将沙箱能力暴露为 MCP (Model Context Protocol) Tools，让 AI Agent（Cursor、Claude Desktop、VS Code 等）可以直接操作云端沙箱。
 
 **已实现面**（与 `src/agent/` 保持同步）：
@@ -289,15 +291,15 @@ graph LR
 ### 认证
 
 - **客户端 → MCP**：`Authorization: Bearer <token>`，常量时间比较校验；经 `ABX_MCP_AUTH_TOKEN` 配置。本机回环未配置时认证关闭；配置为空时 fail-closed（所有请求返回 401）。FC 产物调用 `require_auth_token`，token 为空则进程拒绝启动
-- **MCP → 沙箱**：`E2B_API_KEY`环境变量
+- **MCP → 沙箱**：`ABX_SANDBOX_API_KEY`环境变量
 
 ### 环境变量
 
 | 变量 | 用途 |
 |------|------|
-| `E2B_API_KEY` | 沙箱后端 API Key |
-| `E2B_API_URL` | 平台 API URL |
-| `E2B_DOMAIN` | 沙箱 Domain 覆盖 |
+| `ABX_SANDBOX_API_KEY` | 沙箱后端 API Key |
+| `ABX_SANDBOX_BASE_URL` | 平台 API URL |
+| `ABX_SANDBOX_DOMAIN` | 沙箱 Domain 覆盖 |
 | `ABX_DEFAULT_TEMPLATE` | 默认沙箱模板 |
 | `ABX_MCP_AUTH_TOKEN` | 客户端认证 Bearer token（HTTP 传输） |
 
@@ -382,7 +384,7 @@ abx --json mcp status     # JSON 输出
       "command": "abx",
       "args": ["mcp", "start"],
       "env": {
-        "E2B_API_KEY": "your-api-key"
+        "ABX_SANDBOX_API_KEY": "your-api-key"
       }
     }
   }
@@ -399,7 +401,7 @@ abx --json mcp status     # JSON 输出
       "command": "abx",
       "args": ["mcp", "start"],
       "env": {
-        "E2B_API_KEY": "your-api-key"
+        "ABX_SANDBOX_API_KEY": "your-api-key"
       }
     }
   }
@@ -461,7 +463,7 @@ graph TB
         ASGI["app.py → agent_sandbox.agent.mcp_http:asgi_app"]
         Trigger["HTTP 触发器: POST/GET/DELETE /mcp"]
         Session["会话亲和: Mcp-Session-Id"]
-        Env["环境变量: E2B_API_KEY / ABX_MCP_AUTH_TOKEN / ABX_DEFAULT_TEMPLATE"]
+        Env["环境变量: ABX_SANDBOX_API_KEY / ABX_MCP_AUTH_TOKEN / ABX_DEFAULT_TEMPLATE"]
     end
 ```
 
@@ -474,11 +476,11 @@ abx mcp deploy \
   --template base \
   --memory 512 --timeout 600 \
   --generate-token \
-  --api-key $E2B_API_KEY \
+  --api-key $ABX_SANDBOX_API_KEY \
   --output-dir ./mcp-artifact
 ```
 
-选项：`--name`（默认 `agent-sandbox-mcp`）、`--region`（命令 `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`）、`--template`（默认 `base`）、`--memory`（默认 512）、`--timeout`（默认 600）、Bearer token 来源 `--auth-token-file` / `--generate-token` / 环境变量 `ABX_MCP_AUTH_TOKEN`、`--enable-session-affinity/--no-session-affinity`（默认启用）、`--sandbox-api-key`（`E2B_API_KEY`）、`--custom-domain`、`--output-dir`。
+选项：`--name`（默认 `agent-sandbox-mcp`）、`--region`（命令 `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`）、`--template`（默认 `base`）、`--memory`（默认 512）、`--timeout`（默认 600）、Bearer token 来源 `--auth-token-file` / `--generate-token` / 环境变量 `ABX_MCP_AUTH_TOKEN`、`--enable-session-affinity/--no-session-affinity`（默认启用）、`--sandbox-api-key`（`ABX_SANDBOX_API_KEY`）、`--custom-domain`、`--output-dir`。
 
 ### 产物内容
 
@@ -494,7 +496,7 @@ abx mcp deploy \
 
 - **协议**：Streamable HTTP（MCP 规范 2025-06-18）；`initialize` 协商 `2025-06-18`，与 `GET /health` 一致（STDIO 独立保持 `2024-11-05`）
 - **会话亲和**：委托 FC 平台层通过 `Mcp-Session-Id` 头实现 — 无需应用层粘性路由
-- **认证**：双层 — 客户端→MCP 使用 `Authorization: Bearer <token>`；MCP→沙箱使用 FC 环境变量中的 `E2B_API_KEY`
+- **认证**：双层 — 客户端→MCP 使用 `Authorization: Bearer <token>`；MCP→沙箱使用 FC 环境变量中的 `ABX_SANDBOX_API_KEY`
 - **生命周期**：沙箱按 MCP 会话懒创建；`DELETE /mcp` 触发清理；空闲会话 TTL 作为安全网
 - **冷启动**：FC 冷启动 (~1–3s) 可能与 MCP initialize 超时冲突；生产环境建议使用预留实例
 - **密钥**：`config.yaml` 含 API key 与 Bearer token — 切勿提交到版本控制

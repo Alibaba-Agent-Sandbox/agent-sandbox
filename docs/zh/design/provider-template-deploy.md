@@ -62,7 +62,7 @@
 | `ports` | 不传给 `CreateTemplate`。留在缓存的 `template.yaml` 里供能力查找。 |
 | `env` | 这条路径上不是 `CreateTemplate` 的字段。 |
 
-凭证：`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`（也是 ACR 用户名和密码的默认值）、`ACR_NAMESPACE`、`ALIBABA_CLOUD_REGION_ID`，再加上创建和运行用的 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`。插件不读 `E2B_*`。
+凭证：`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`（也是 ACR 用户名和密码的默认值）、`ACR_NAMESPACE`、`ALIBABA_CLOUD_REGION_ID`，再加上创建和运行用的 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。插件不读 `E2B_*`。
 
 已验证：`template.ts` / `fc_template.ts` / `build_plan.ts` 里的流水线，以及功能门闩。这个 CLI 的极速版真实部署记录在更早的改动里；本设计没有新跑一次。
 
@@ -90,7 +90,7 @@ Dockerfile 由客户端的 `Template.fromDockerfile` 解析成这些步骤。支
 | `env` | `ENV` 变成一个步骤。创建时传入的环境变量对 `startCmd` 不可见，因为那个进程已经跑过了。 |
 | `build.steps` / `build.run` | CLI 已经产出 `{type, args}` 步骤。提供方把 `RUN`/`ENV` 映射到 E2B 的 `TemplateStep`。具体步骤 JSON 没有抄进本文；实现时对照当时的 OpenAPI。 |
 
-凭证：公开基础镜像只需要 `ABX_E2B_API_KEY`。私有 `fromImage` 还要在 `fromImageRegistry` 里带仓库凭证。插件不读 `E2B_API_KEY`，也不读 `E2B_API_KEY`。
+凭证：公开基础镜像只需要 `ABX_E2B_API_KEY`。私有 `fromImage` 还要在 `fromImageRegistry` 里带仓库凭证。插件不读 `ABX_SANDBOX_API_KEY`，也不读 `E2B_API_KEY`。
 
 已验证：插件源码、清单，以及上面链接的 E2B 文档。未验证：一次真实构建、`TemplateStep` 的模式，以及 `COPY`/`ADD` 如何上传文件字节（start-build 页面有 `steps`，没有文件上传的请求体）。
 

@@ -896,9 +896,9 @@ abx mcp start [选项]
 
 选项：
   --template <name>         默认沙箱模板 (默认: code-interpreter-v1)
-  --sandbox-api-key <key>   API Key 覆盖 (环境变量: E2B_API_KEY)
-  --sandbox-base-url <url>  API URL 覆盖 (环境变量: E2B_API_URL)
-  --sandbox-domain <domain> Domain 覆盖 (环境变量: E2B_DOMAIN)
+  --sandbox-api-key <key>   API Key 覆盖 (环境变量: ABX_SANDBOX_API_KEY)
+  --sandbox-base-url <url>  API URL 覆盖 (环境变量: ABX_SANDBOX_BASE_URL)
+  --sandbox-domain <domain> Domain 覆盖 (环境变量: ABX_SANDBOX_DOMAIN)
 ```
 
 以 STDIO 模式启动 MCP Server。通常由 IDE 自动调用，不需要手动执行。
@@ -932,7 +932,7 @@ abx mcp deploy [选项]
   --output-dir <path>       产物输出目录
 
 示例：
-  abx mcp deploy --generate-token --sandbox-api-key $E2B_API_KEY --output-dir ./artifact
+  abx mcp deploy --generate-token --sandbox-api-key $ABX_SANDBOX_API_KEY --output-dir ./artifact
   abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
 ```
 
@@ -948,12 +948,12 @@ abx mcp deploy [选项]
 
 | 配置键          | 说明                                  | 默认值                    |
 | --------------- | ------------------------------------- | ------------------------- |
-| `sandbox_api_key` | 沙箱服务 API Key（存为 `E2B_API_KEY`） | (未设置)                  |
-| `sandbox_base_url` | 平台 API URL（环境变量 `E2B_API_URL`） | (自动)                    |
+| `sandbox_api_key` | 沙箱服务 API Key（存为 `ABX_SANDBOX_API_KEY`） | (未设置)                  |
+| `sandbox_base_url` | 平台 API URL（环境变量 `ABX_SANDBOX_BASE_URL`） | (自动)                    |
 | `region`        | 默认区域（环境变量 `ALIBABA_CLOUD_REGION_ID`） | `cn-hangzhou`             |
 | `http_timeout`  | HTTP 请求超时（秒）                    | (自动)                    |
 | `max_retries`   | 最大重试次数                           | (自动)                    |
-| `sandbox_domain` | Envd 域名（环境变量 `E2B_DOMAIN`） | (自动)                    |
+| `sandbox_domain` | Envd 域名（环境变量 `ABX_SANDBOX_DOMAIN`） | (自动)                    |
 | `llm_api_key`   | LLM API Key，供自然语言推理和编码代理使用 | (未设置) |
 | `llm_model`     | LLM 模型名称                          | `qwen3-coder-plus`       |
 | `llm_base_url`  | LLM API Base URL（OpenAI 兼容）       | DashScope 兼容端点        |

@@ -1,5 +1,7 @@
 # Authentication
 
+> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+
 Sandbox runtime requests require an **API Key**. **AK/SK (Alibaba Cloud AccessKey)** is configured separately for official control-plane operations.
 
 > **Historical note**: the `abx auth` CLI command group (`login`/`logout`/`status`/`switch`) was removed before the first stable release (`0.1.0`). Credentials are configured with the environment variables and `abx config set sandbox_api_key` shown below; check the effective state with `abx config list`.
@@ -25,10 +27,10 @@ API Key is the most common authentication method, sent to the platform API via t
 #### 1. Environment variable (wins over `~/.abx`)
 
 ```bash
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-`E2B_API_KEY` is the only environment variable for the sandbox API key. `E2B_API_KEY` is not read. The base URL is `E2B_API_URL` and the domain is `E2B_DOMAIN` (`E2B_API_URL` and `E2B_DOMAIN` are not read).
+`ABX_SANDBOX_API_KEY` is the only environment variable for the sandbox API key. `E2B_API_KEY` is not read. The base URL is `ABX_SANDBOX_BASE_URL` and the domain is `ABX_SANDBOX_DOMAIN` (`E2B_API_URL` and `E2B_DOMAIN` are not read).
 
 #### 2. abx config set (persisted to local file)
 
@@ -38,14 +40,14 @@ abx config set sandbox_api_key your-api-key
 # File permissions: 600 (owner read/write only)
 ```
 
-Stored as `E2B_API_KEY=your-key` in `~/.abx/.env`.
+Stored as `ABX_SANDBOX_API_KEY=your-key` in `~/.abx/.env`.
 
 #### 3. .env file
 
 Create a `.env` file in the project root directory:
 
 ```dotenv
-E2B_API_KEY=your-api-key
+ABX_SANDBOX_API_KEY=your-api-key
 ```
 
 The CLI merges `.env` files per key. `./.env` wins for a key it sets. A key it omits still comes from `~/.abx/.env`.
@@ -63,7 +65,7 @@ sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 ```
 
-The sandbox API key is stored in `~/.abx/.env` as `E2B_API_KEY`, not in `config.toml`.
+The sandbox API key is stored in `~/.abx/.env` as `ABX_SANDBOX_API_KEY`, not in `config.toml`.
 
 <a id="aksk-alibaba-cloud-extended-authentication-"></a>
 ## AK/SK control plane and migration
@@ -109,7 +111,7 @@ LLM keys, the GitHub token, and the region use this same chain. A blank or white
 
 The sandbox API key is never derived from AK/SK. When both are configured, runtime calls use the API key:
 - If both `sandbox_api_key` and `access_key_id` are provided, API Key is used
-- If both `E2B_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, `E2B_API_KEY` is used
+- If both `ABX_SANDBOX_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, `ABX_SANDBOX_API_KEY` is used
 
 ---
 
@@ -143,13 +145,13 @@ Manage secrets via environment variables or configuration:
 
 ```bash
 # Set API Key via environment variable (recommended)
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 
 # Or persist via abx config
 abx config set sandbox_api_key your-api-key
 ```
 
-Inject secrets when creating a sandbox via `--env` parameters:
+For an interactive standard terminal session, pass process environment with `--env`. This is terminal-session environment, not a sandbox-wide store; detached creation has no terminal. Use the SDK/native provider creation environment when future processes must inherit values:
 
 ```bash
 abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
@@ -165,7 +167,7 @@ abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-va
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **Solution**: Ensure a valid API Key is configured via any of the methods above.

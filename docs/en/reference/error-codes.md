@@ -1,5 +1,7 @@
 # Error Codes Reference
 
+> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+
 All SDK errors inherit from `SandboxError` and carry `code` (error code), `message`, `suggestion`, and `docs_url` attributes.
 
 ```python
@@ -19,8 +21,8 @@ except SandboxError as e:
 | Error Code | Exception Class | Meaning | Suggestion | Trigger Scenario |
 |------------|----------------|---------|------------|------------------|
 | E1000 | `AuthenticationError` | Authentication failed (base class) | — | General authentication errors |
-| E1001 | `InvalidAPIKeyError` | Invalid or missing API Key | Check the `E2B_API_KEY` environment variable or pass `sandbox_api_key` | Called an authenticated API without configuring any API Key, or the Platform API answered HTTP 401 (invalid, revoked or other-region key; the message never contains the key) |
-| E1002 | `TokenExpiredError` | Authentication token expired | SDK should auto-refresh tokens; if persistent, check system clock synchronization | AK/SK temporary token expired and auto-refresh failed |
+| E1001 | `InvalidAPIKeyError` | Invalid or missing API Key | Check the `ABX_SANDBOX_API_KEY` environment variable or pass `sandbox_api_key` | Called an authenticated API without configuring any API Key, or the Platform API answered HTTP 401 (invalid, revoked or other-region key; the message never contains the key) |
+| E1002 | `TokenExpiredError` | Authentication token expired | Reconnect for an envd token or check the custom exchange | envd token unavailable/expired, or an explicitly configured custom exchange failed |
 | E1003 | `InvalidCredentialsError` | Invalid AK/SK credentials | Check `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET` environment variables | AK/SK is empty or malformed, or the Platform API rejected the AK/SK credentials (HTTP 401) |
 
 ### Troubleshooting Steps
@@ -41,10 +43,10 @@ except SandboxError as e:
 | E2002 | `QuotaExceededError` | Quota exceeded | Destroy idle sandboxes or request a quota increase | Number of running sandboxes exceeds account quota |
 | E2003 | `RegionUnavailableError` | Region unavailable | Try another region or check service availability | Requested region is temporarily unavailable or does not exist |
 | E2004 | `TemplateParseError` | Template parse failure | Fix template.yaml (see validation errors); capabilities will not be granted until the template parses successfully | template.yaml has format errors or invalid fields |
-| E2005 | `QwenCodeNotInstalledError` | Qwen Code is not installed | Install the official standalone build per the Quick Setup (or run `abx config init`), or skip template generation with `abx create <name>` | `abx create --prompt "description"` while Qwen Code is absent from PATH and `~/.abx/bin`, and the user declines install or a non-TTY shell omits `-y` |
+| E2005 | `QwenCodeNotInstalledError` | Qwen Code is not installed | Install the official standalone build per the Quick Setup (or run `abx config init`), or skip template generation with `abx create --template <name>` | `abx create "description"` while Qwen Code is absent from PATH and `~/.abx/bin`, and the user declines install or a non-TTY shell omits `-y` |
 | E2006 | `QwenCodeCredentialError` | Qwen Code credentials missing | `abx config set llm_api_key <KEY>` or `abx config init`; exported `DASHSCOPE_API_KEY`/`OPENAI_API_KEY` also work | No usable credential in `llm_api_key`, environment variables, or `~/.qwen/settings.json` on the generation path |
-| E2007 | `AICodegenError` | template generation failed | Inspect the retained workspace (`~/.abx/generated/<name>`, or under `--dir`) and retry, or use `abx create <name>` | Qwen Code generation failed/timed out, or the produced Dockerfile/template.yaml is missing or fails validation |
-| E2008 | `DescriptionClarificationError` | Description too incomplete for template generation | Add the missing details listed in the suggestion (or a similar example description) to `DESCRIPTION`, pass `--yes`/`-y` to generate from the current description anyway, or use `abx create <name>` | After the agent researched the publicly verifiable facts itself, the description still scores below the 80% completeness threshold (missing user preferences / private constraints / business decisions) and the session cannot ask clarifying questions (non-TTY / CI without `-y`), or the interactive clarification was cancelled / interrupted (EOF) |
+| E2007 | `AICodegenError` | template generation failed | Inspect the retained workspace (`~/.abx/generated/<name>`, or under `--dir`) and retry, or use `abx create --template <name>` | Qwen Code generation failed/timed out, or the produced Dockerfile/template.yaml is missing or fails validation |
+| E2008 | `DescriptionClarificationError` | Description too incomplete for template generation | Add the missing details listed in the suggestion (or a similar example description) to `DESCRIPTION`, pass `--yes`/`-y` to generate from the current description anyway, or use `abx create --template <name>` | After the agent researched the publicly verifiable facts itself, the description still scores below the 80% completeness threshold (missing user preferences / private constraints / business decisions) and the session cannot ask clarifying questions (non-TTY / CI without `-y`), or the interactive clarification was cancelled / interrupted (EOF) |
 | E2009 | `SandboxNotFoundError` | No sandbox with this ID exists | Run `abx list` to see the running sandboxes; a killed or expired sandbox cannot be reconnected | `abx info/connect/pause/resume/set-timeout` (and every command that attaches to a sandbox) on an ID the platform answers with HTTP 404; exit code 4 (`abx kill` stays idempotent) |
 
 ### Troubleshooting Steps
@@ -52,7 +54,7 @@ except SandboxError as e:
 1. Verify the template name is correct (`abx template list`)
 2. For E2002, check `abx list` for idle sandboxes
 3. For E2004, check template.yaml YAML syntax and field values
-4. For E2005–E2008 (generation path), follow the Quick Setup printed in the output; pass `abx create <name>` explicitly to skip template generation. For E2008 specifically, add the missing details (or the example description) to the argument, or pass `-y` to generate from the current description without clarification
+4. For E2005–E2008 (generation path), follow the Quick Setup printed in the output; pass `abx create --template <name>` explicitly to skip template generation. For E2008 specifically, add the missing details (or the example description) to the argument, or pass `-y` to generate from the current description without clarification
 
 ---
 

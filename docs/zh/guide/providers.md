@@ -172,9 +172,9 @@ OpenSandbox 连接本机服务。设置 `ABX_OPENSANDBOX_BASE_URL`（默认 `htt
 | 键 | 环境变量 | 为什么是这个名字 |
 |---|---|---|
 | `provider` | `ABX_PROVIDER` | 产品自己的设置 |
-| `sandbox_api_key` | `E2B_API_KEY` | 产品自己的沙箱密钥 |
-| `sandbox_base_url` | `E2B_API_URL` | 产品自己的平台地址 |
-| `sandbox_domain` | `E2B_DOMAIN` | 产品自己的数据面域名 |
+| `sandbox_api_key` | `ABX_SANDBOX_API_KEY` | 产品自己的沙箱密钥 |
+| `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | 产品自己的平台地址 |
+| `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | 产品自己的数据面域名 |
 | `llm_api_key` | `ABX_LLM_API_KEY` | 产品自己的代码生成密钥。启动 Qwen Code 时会写进子进程的 `OPENAI_API_KEY`，因为 `qwen` 程序读的是这个变量 |
 | `github_token` | `GITHUB_TOKEN` | GitHub 官方变量 |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | 阿里云官方地域变量 |
@@ -208,7 +208,9 @@ abx config list --provider my-cloud                          # 该提供商的�
 
 仅存在于另一个已安装提供商中的裸键会被拒绝，并提示 `Did you mean 'providers.<id>.<key>'?`。`abx provider config <id> list|get|set|unset|init` 是限定到单个提供商的同一套能力。
 
-`abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
+`abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
+
+上表及规则适用于原生 provider 和 MCP。标准极速版入口还在自身边界映射 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，其余回退到项目配置；见[迁移指南](migrate-from-e2b.md)。
 
 ---
 
@@ -235,3 +237,32 @@ abx config list --provider my-cloud                          # 该提供商的�
 仓库提供了一个端到端脚本，安装参考插件并通过它们驱动真实沙箱：[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)（`e2e/providers/run.sh`）。
 
 项目 Provider 的 exec 将 --provider/--opt 放在沙箱 ID 前；远程命令含选项时在命令前使用 `--`。远程参数不能切换后端；不受支持的本地参数解析会在后端操作前报错。
+## Provider 专属管理命令
+
+Provider 可在固定命名空间下声明带参数类型的管理命令，与沙箱内的应用命令区分。
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.create
+abx --json provider command run alicloud-express volume.list --input '{"max_results":10}'
+```
+
+写入和删除要求 `--yes`。凭证通过配置提供，`--opt` 拒绝密钥字段；复杂输入使用 `--input-file`。发现命令不需要云凭证。FC 管理操作要求阿里云 AK/SK，不能用沙箱 API Key 鉴权。完整规范见[命令契约](../design/provider-commands.md)和[阿里云能力矩阵](../design/alicloud-provider-commands.md)，包含域名能力边界和 API Key 安全导出。
+
+挂载已有 FC Volume 时，使用 `abx create --template base --volume-mount /mnt/workspace=workspace`。
+按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
+Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
+角色配置和挂载验证见能力矩阵。
+应选择支持挂载的模板；自定义 MicroVM 源镜像须预装 ossfs2 2.0.10 或以上版本，
+参见[官方挂载指南](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。
+
+## 迁移与 provider 更新
+
+见[迁移、职责及更新设计](../design/provider-portability-and-updates.md)：已有资源接入边界、旧 FC 模板保护、provider 镜像工厂，以及 Git、手动与内置更新的区别。
+
+### 预检与厂商错误
+
+原生终端在访问会话或协议之前检查所选 Provider 的 PTY 声明。Express 内部模板部署在
+读取凭据或项目文件之前检查归属；自然语言部署在生成前检查对应适配器。仅声明
+`templates.build` 不会授权 FC/ACR 操作。恢复连接仅在端点返回404/405时回退；
+权限、冲突、限流和服务错误会直接保留，不会通过读取元数据伪装成成功。

@@ -54,3 +54,31 @@ Later artifact verification resolves the earlier technical attribution/replay an
 install-recipe gaps: [final artifact delivery](2026-10-18-standard-artifact-delivery.md).
 The initial inventory stays historical. Conditional enabled pause/snapshot and
 SDK47 delivery remain unmet parent gates.
+
+## Accepted preflight and documentation convergence
+
+Ordinary merge of accepted CLI62 mainb2af4949 retains its native guards.
+Corrected stale bilingual configuration/MCP references that globally renamed
+ABX keys to E2B: native config remains ABX; standard entry maps E2B per layer.
+Native configuration vectors match accepted main. Preserved current21 MCP tools,
+retention/owned cleanup, and standard positional create/real PTY/exec option
+placement. Standard create --env is explicitly terminal-session environment.
+Actual installed CLI help was checked; no unsupported standard --stream, local
+--timeout, native --yes kill, or stateless-connect claim remains in SKILL.md.
+
+Guide/standard executable/routing/configuration/native guards52 tests PASS;
+canonical config/name/generator tests247 PASS. Typecheck/lint PASS (zero lint
+errors); hygiene PASS; health105 PASS/11 historical WARN/zero FAIL. Initial test
+filter named nonexistent files, exited1 with no tests; corrected actual file set
+yielded the247-test pass. These are local checks; latest-head remote CI follows
+push. Source runtime/SEA and real cloud receipts above are unchanged.
+
+Cross-repository docs inventory finds native examples in provider/template/blog
+sources. Their current main CLI syntax and paired source pins remain valid; they
+must be coordinated with standard CLI40/SDK47 delivery, including native Python
+imports and version-scoped CLI examples. Do not publish future positional syntax
+ahead of the standard CLI or repoint a source pin to an unmerged contract. This is
+an additional delivery dependency, not proof that those migration docs shipped.
+
+Conditional successful pause/snapshot still requires an enabled Express fixture.
+No new cloud acceptance workflow or package publication is introduced.

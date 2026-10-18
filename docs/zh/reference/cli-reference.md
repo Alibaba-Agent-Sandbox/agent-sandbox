@@ -170,7 +170,7 @@ abx config get <KEY>
 
 | 键 | 说明 |
 |---|------|
-| `sandbox_api_key` | 沙箱服务 API Key（存 `~/.abx/.env` 的 `E2B_API_KEY`，输出时脱敏） |
+| `sandbox_api_key` | 沙箱服务 API Key（存 `~/.abx/.env` 的 `ABX_SANDBOX_API_KEY`，输出时脱敏） |
 | `access_key_id` | 阿里云 AccessKey ID（模板部署、ACR 推送） |
 | `access_key_secret` | 阿里云 AccessKey Secret（输出时脱敏） |
 | `acr_namespace` | 模板构建、推送、安装用的 ACR 命名空间（存为 `ACR_NAMESPACE`） |
@@ -196,14 +196,14 @@ abx config init --llm           # + LLM API Key（模板生成）
 abx config init --yes           # 非交互：打印等效的 abx config set 命令
 ```
 
-- 交互式终端中依次提示；敏感值（API Key 与 AccessKey Secret）在终端支持时以星号反馈（每个字符一个 `*`，绝不回显原文），不支持时安全降级为无回显输入并明确提示。直接回车跳过该项。密钥存储到 `~/.abx/.env`（`E2B_API_KEY`、`ABX_LLM_API_KEY`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）；ACR 命名空间也存在该文件，变量名为 `ACR_NAMESPACE`；区域写入 `~/.abx/config.toml`。
+- 交互式终端中依次提示；敏感值（API Key 与 AccessKey Secret）在终端支持时以星号反馈（每个字符一个 `*`，绝不回显原文），不支持时安全降级为无回显输入并明确提示。直接回车跳过该项。密钥存储到 `~/.abx/.env`（`ABX_SANDBOX_API_KEY`、`ABX_LLM_API_KEY`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）；ACR 命名空间也存在该文件，变量名为 `ACR_NAMESPACE`；区域写入 `~/.abx/config.toml`。
 - 需要尚未配置的设置（ACR 命名空间、AccessKey、LLM Key）的功能，会打印一行指向 `abx config init --build` 或 `abx config init --llm` 的提示；`config init` 结束时也会对跳过的部分打印同样的提示。
 - Enter 接受当前值/跳过提示，退格编辑，Ctrl-C / EOF（Ctrl-D）干净地中止向导。
 - 非 TTY 环境（CI、管道输入）、`--yes` 与 `--ci` 不阻塞：打印等效的非交互 `abx config set` 命令并以 0 退出。
 
 ```bash
 abx config init --build --llm
-# 1/6 Sandbox API key (sandbox_api_key / E2B_API_KEY, input masked)
+# 1/6 Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)
 # 2/6 Region (默认 cn-hangzhou)
 # 3/6 ACR namespace (needed by abx template install / build / deploy)
 # 4/6 Alibaba Cloud AccessKey ID (template deploy / ACR push)
@@ -598,12 +598,12 @@ abx mcp deploy [选项]
 | `--auth-token-file` | Bearer Token 文件路径 |
 | `--generate-token` | 自动生成随机 Bearer Token |
 | `--enable-session-affinity/--no-session-affinity` | Mcp-Session-Id 会话亲和（默认开启） |
-| `--api-key` | 注入到 FC 环境变量的 E2B_API_KEY |
+| `--api-key` | 注入到 FC 环境变量的 ABX_SANDBOX_API_KEY |
 | `--custom-domain` | 自定义域名 |
 | `--output-dir` | 部署产物输出目录 |
 
 ```bash
-abx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./deploy-artifact
+abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY --output-dir ./deploy-artifact
 abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir ./artifact
 ```
 

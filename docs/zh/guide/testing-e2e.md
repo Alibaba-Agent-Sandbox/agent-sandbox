@@ -38,7 +38,7 @@ ABX_ORACLE=abx ABX_BIN="node dist/bin/abx.js" node parity/diff/diff.mjs --verbos
 
 ## 凭据
 
-真实凭据只存放在被 git 忽略的 `.env` 文件或环境变量中（`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`、
+真实凭据只存放在被 git 忽略的 `.env` 文件或环境变量中（`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`/`ALICLOUD_ACCESS_KEY_SECRET`、
 `ACR_NAMESPACE`、`ABX_LLM_API_KEY`、`ABX_LLM_BASE_URL`）。绝不打印、记录或提交；套件会对捕获的所有内容脱敏。
 
 ## 完成定义

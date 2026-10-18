@@ -172,9 +172,9 @@ Every key has one name. Settings that belong to Agent Sandbox use `ABX_`. When a
 | Key | Environment variable | Why this name |
 |---|---|---|
 | `provider` | `ABX_PROVIDER` | product setting |
-| `sandbox_api_key` | `E2B_API_KEY` | product sandbox key |
-| `sandbox_base_url` | `E2B_API_URL` | product platform URL |
-| `sandbox_domain` | `E2B_DOMAIN` | product data-plane domain |
+| `sandbox_api_key` | `ABX_SANDBOX_API_KEY` | product sandbox key |
+| `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | product platform URL |
+| `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | product data-plane domain |
 | `llm_api_key` | `ABX_LLM_API_KEY` | product codegen key. The Qwen Code child receives it as `OPENAI_API_KEY`, because that is the variable the `qwen` program reads |
 | `github_token` | `GITHUB_TOKEN` | GitHub's variable |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | Alibaba Cloud region variable |
@@ -208,7 +208,9 @@ abx config list --provider my-cloud                          # the provider's ke
 
 A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx provider config <id> list|get|set|unset|init` is the same surface scoped to one provider.
 
-`abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
+`abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
+
+The preceding table and policy apply to native providers and MCP. The standard Express entry also maps `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN` at its boundary and otherwise uses project configuration; see the [migration guide](migrate-from-e2b.md).
 
 ---
 
@@ -235,3 +237,35 @@ Full list: [Error codes](../reference/error-codes.md). Every `provider` subcomma
 The repository ships an end-to-end script that installs the reference plugins and drives a real sandbox through them: [`e2e/README.md`](../../../e2e/README.md) (`e2e/providers/run.sh`).
 
 For project-provider exec, put --provider/--opt before the sandbox ID, and use `--` before remote commands containing options. Remote flags never change the selected backend; unsupported local parsing fails before backend work.
+## Provider-specific management commands
+
+Providers may declare typed commands under a fixed namespace. These differ from application commands inside a sandbox.
+
+```bash
+abx provider command list alicloud-express
+abx provider command info alicloud-express volume.create
+abx --json provider command run alicloud-express volume.list --input '{"max_results":10}'
+```
+
+Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.
+
+To mount an existing FC Volume, use `abx create --template base --volume-mount /mnt/workspace=workspace`.
+This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
+It does not create underlying storage. Volume currently requires invitation access; confirm it through
+an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).
+See the capability matrix for role configuration and mount verification.
+Choose a mount-capable template; custom MicroVM source images must include ossfs2 2.0.10
+or newer, as required by the [official mount guide](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1).
+
+## Portability and provider updates
+
+See [migration, ownership and updates](../design/provider-portability-and-updates.md) for the existing-resource adoption boundary, legacy FC template guards, provider-owned image factories and the distinction between Git/manual/bundled updates.
+
+### Preflight and backend failures
+
+Native terminal access checks the selected provider's PTY declaration before wire
+work. Internal Express template deployment checks ownership before credentials or
+project files; natural-language deployment requires its matching adapter before
+generation. Declaring templates.build alone does not authorize FC/ACR operations.
+Resume/connect fallback applies only to404/405 endpoint absence; permission, conflict,
+quota and service errors propagate instead of becoming successful metadata reads.

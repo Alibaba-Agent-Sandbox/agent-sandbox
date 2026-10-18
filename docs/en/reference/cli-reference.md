@@ -170,7 +170,7 @@ Available config keys:
 
 | Key | Description |
 |-----|-------------|
-| `sandbox_api_key` | Sandbox service API key (stored in `~/.abx/.env` as `E2B_API_KEY`, shown masked) |
+| `sandbox_api_key` | Sandbox service API key (stored in `~/.abx/.env` as `ABX_SANDBOX_API_KEY`, shown masked) |
 | `access_key_id` | Alibaba Cloud AccessKey ID (template deploy, ACR push) |
 | `access_key_secret` | Alibaba Cloud AccessKey Secret (shown masked) |
 | `acr_namespace` | ACR namespace for template build, push, and install (stored as `ACR_NAMESPACE`) |
@@ -196,14 +196,14 @@ abx config init --llm           # + LLM API key (template generation)
 abx config init --yes           # Non-interactive: print the equivalent abx config set commands
 ```
 
-- Interactive terminals prompt in order; sensitive values (API keys and the AccessKey secret) are typed with asterisk feedback (one `*` per character, never echoed) when the terminal supports it — otherwise a no-echo fallback is used with an explicit notice. Press Enter to skip a prompt. Secrets are stored in `~/.abx/.env` (`E2B_API_KEY`, `ABX_LLM_API_KEY`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`); the ACR namespace is stored there as `ACR_NAMESPACE`; the region is written to `~/.abx/config.toml`.
+- Interactive terminals prompt in order; sensitive values (API keys and the AccessKey secret) are typed with asterisk feedback (one `*` per character, never echoed) when the terminal supports it — otherwise a no-echo fallback is used with an explicit notice. Press Enter to skip a prompt. Secrets are stored in `~/.abx/.env` (`ABX_SANDBOX_API_KEY`, `ABX_LLM_API_KEY`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`); the ACR namespace is stored there as `ACR_NAMESPACE`; the region is written to `~/.abx/config.toml`.
 - Features that need a setting you have not made (ACR namespace, AccessKey, LLM key) print a one-line pointer to `abx config init --build` or `abx config init --llm`, and `config init` itself ends with the same pointer for the sections it skipped.
 - Enter accepts the current value / skips the prompt, Backspace edits, and Ctrl-C / EOF (Ctrl-D) abort the wizard cleanly.
 - Non-TTY environments (CI, piped input), `--yes` and `--ci` never block: they print the equivalent non-interactive `abx config set` commands and exit 0.
 
 ```bash
 abx config init --build --llm
-# 1/6 Sandbox API key (sandbox_api_key / E2B_API_KEY, input masked)
+# 1/6 Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)
 # 2/6 Region (default cn-hangzhou)
 # 3/6 ACR namespace (needed by abx template install / build / deploy)
 # 4/6 Alibaba Cloud AccessKey ID (template deploy / ACR push)
@@ -598,12 +598,12 @@ abx mcp deploy [options]
 | `--auth-token-file` | Path to a Bearer token file |
 | `--generate-token` | Auto-generate a random Bearer token |
 | `--enable-session-affinity/--no-session-affinity` | Mcp-Session-Id affinity (default: enabled) |
-| `--api-key` | E2B_API_KEY to inject into FC function env |
+| `--api-key` | ABX_SANDBOX_API_KEY to inject into FC function env |
 | `--custom-domain` | Custom domain for the MCP endpoint |
 | `--output-dir` | Write the deployment artifact to this directory |
 
 ```bash
-abx mcp deploy --generate-token --api-key $E2B_API_KEY --output-dir ./deploy-artifact
+abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY --output-dir ./deploy-artifact
 abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai --output-dir ./artifact
 ```
 

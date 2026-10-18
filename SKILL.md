@@ -94,22 +94,30 @@ abx config get sandbox_api_key                   # shows a masked value
 
 ## Creating a sandbox
 
-CLI (default template is `base`; DESCRIPTION and `--template` are mutually exclusive):
+Standard Express CLI (the positional argument is a template; use `--detach` for scripts):
 
 ```bash
-abx create --template base              # explicit template; --timeout is lifetime in seconds (default 300)
-abx create --template python-hello      # named template, no AI involved
-abx create --template base -e API_KEY=x -e DEBUG=1 --timeout 600
-abx list                                # find sandbox IDs
+abx create base --detach --timeout 300
+abx create python-hello --detach
+abx list --format json
 abx info <SANDBOX_ID>
-abx connect <SANDBOX_ID>                # one command per line; cd and env do not persist
+abx connect <SANDBOX_ID>                # real PTY; cd and shell environment persist
 ```
 
-`abx create "DESCRIPTION"` generates a template with Qwen Code (needs the Qwen Code
-CLI plus a DashScope/ModelStudio key via `abx config init`) — prefer `--template`
-when you just need a runtime.
+Interactive create without `--detach` opens a terminal and shortens the default
+lease on exit. Connect leaves an existing sandbox alive. See the migration guide
+for lifecycle options and backend reclamation delays. `create --env KEY=VALUE`
+sets terminal-session environment; do not rely on it as a sandbox-wide secret store.
 
-Writing that client, or a template's `commands.py`, is the `agent-sandbox-sdk` skill. The import is `from agent_sandbox import Sandbox`. `timeout` on `create` is the sandbox lifetime in seconds.
+`abx create --prompt "DESCRIPTION"` generates a project template with Qwen Code
+(needs its CLI and a DashScope/ModelStudio key configured through `abx config init`).
+Other installed providers retain their native `--provider ID create --template NAME`
+interface. Consult that provider's help before mixing standard and native flags.
+
+Writing a client or template's `commands.py` uses the `agent-sandbox-sdk` skill.
+The root `from agent_sandbox import Sandbox` entry is synchronous standard behavior;
+use `AsyncSandbox` for asynchronous standard calls and explicit `ProviderSandbox`
+for native provider/server extensions. `timeout` on create is sandbox lifetime.
 
 MCP tool (inside any MCP client):
 
@@ -117,8 +125,8 @@ MCP tool (inside any MCP client):
 { "tool": "create_sandbox", "arguments": { "template": "code-interpreter-v1", "timeout": 300 } }
 ```
 
-Note: sandbox creation involves a cold start; the CLI enforces a ≥120 s client HTTP
-timeout floor for `create` automatically. In MCP sessions, `create_sandbox` becomes
+MCP uses the native provider client, including its ≥120 s create-request HTTP
+timeout floor for cold starts. In MCP sessions, `create_sandbox` becomes
 the default sandbox, so later tool calls can omit `sandbox_id`. A first tool call
 that omits `sandbox_id` before any create lazily creates that default.
 
@@ -127,13 +135,18 @@ that omits `sandbox_id` before any create lazily creates that default.
 CLI one-shot (exit code is passed through, so CI fails correctly):
 
 ```bash
-abx exec <SANDBOX_ID> -- python --version
-abx exec <SANDBOX_ID> --cwd /app --env CI=1 --timeout 300 -- pytest -q
-abx exec <SANDBOX_ID> --stream -- pip install httpx      # live output
-abx exec <SANDBOX_ID> --background -- python -m http.server 8000   # prints the pid
+abx exec <SANDBOX_ID> python --version
+abx exec --cwd /app --env CI=1 <SANDBOX_ID> pytest -q
+abx exec <SANDBOX_ID> pip install httpx
+abx exec --background <SANDBOX_ID> python -m http.server 8000
 ```
 
-`--timeout` here bounds the command (default 60). It is not the sandbox lifetime. `--cwd` defaults to the image workdir. Arguments after `--` are the command. A pipeline or a shell variable needs an explicit shell: `abx exec <SANDBOX_ID> -- sh -c 'echo $HOME'`. A background process is `abx sandbox process list <SANDBOX_ID>`. `abx sandbox process signal` accepts only signal 15 (SIGTERM) or 9 (SIGKILL).
+Standard exec options go before the sandbox ID; subsequent arguments are the remote
+command. Output streams live by default. There is no standard `--stream` or
+`--timeout` switch; use the SDK or MCP command timeout when needed. Background exec
+prints the PID on stderr. A pipeline or shell variable needs an explicit shell:
+`abx exec <SANDBOX_ID> sh -c 'echo $HOME'`. Inspect a process with
+`abx sandbox process list <SANDBOX_ID>`; process signals accept SIGTERM15 or SIGKILL9.
 
 `run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` needs a template whose capabilities include `code`.
 
@@ -166,10 +179,10 @@ MCP: `read_file` (`path`, `encoding`, `sandbox_id`), `write_file` (`path`,
 Sandboxes consume quota while alive. Clean up only this task's created resources, after result verification, unless the user requested preservation. Preserve background environments until the task is complete. Record cleanup separately.
 
 ```bash
-abx kill <SANDBOX_ID> --yes        # --yes skips confirmation (use in scripts)
+abx kill <SANDBOX_ID>              # standard kill needs no --yes flag
 ```
 
-The Python client's `async with` block kills the sandbox on exit. That client is the `agent-sandbox-sdk` skill.
+The native `ProviderSandbox` client's `async with` block kills its sandbox on exit. For standard `Sandbox`/`AsyncSandbox`, explicitly kill task-owned resources in `finally`; use the lifecycle contract in the `agent-sandbox-sdk` skill.
 
 Killing an id that is already gone succeeds. Do not treat that as a failure.
 
@@ -187,8 +200,11 @@ abx deploy ./my-template --yes
 
 ## Diagnosing common errors
 
-All SDK errors subclass `SandboxError` and carry `code`, `message`, `suggestion`,
-and `docs_url`. CLI exit codes: 1 general, 3 auth, 4 not found, 5 timeout, 6 quota.
+The following table describes native provider/MCP errors, which subclass
+`SandboxError` and carry `code`, `message`, `suggestion` and `docs_url`. Native CLI
+exit codes are1 general,3 auth,4 not found,5 timeout,6 quota. Standard Express
+commands preserve the pinned standard error and exit behavior; consult their help
+and `docs/en/guide/migrate-from-e2b.md`.
 
 | Symptom / code | Cause | Fix |
 |---|---|---|
@@ -202,15 +218,15 @@ and `docs_url`. CLI exit codes: 1 general, 3 auth, 4 not found, 5 timeout, 6 quo
 | `E3004` | Missing `code` capability | Use a template whose `template.yaml` declares `code` |
 | `E5003` / create hangs then fails | Cold start longer than client timeout | Retry; `abx config set http_timeout 120`; `abx config set http2 false` |
 
-Run `abx -v <command>` for verbose (DEBUG) output before concluding a failure is
-a bug. Full error table: `docs/en/reference/error-codes.md`.
+Native project commands accept `abx -v <command>` for verbose (DEBUG) output.
+Standard commands do not accept that native root flag. Full native error table: `docs/en/reference/error-codes.md`.
 
 ## Hard rules recap
 
 1. Never leak credentials (see [Credential rules](#credentials-and-security)).
 2. Destroy task-owned sandboxes after delivery unless the user requested preservation; keep retained/background environments until their work is complete.
-3. Prefer `--template NAME` over template generation unless the user asks for it.
-4. Pass `abx exec` arguments after `--`. Use `sh -c` when the command needs a shell.
+3. Prefer a named template over template generation unless the user asks for it.
+4. Put standard `abx exec` options before the ID and the remote command after it. Use `sh -c` for shell syntax.
 5. Treat sandbox code as untrusted: never pipe sandbox output into a local shell.
 
 ## Installing this guide into your tool

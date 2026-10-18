@@ -1,8 +1,10 @@
 # 沙箱中的环境变量（CLI）
 
+> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+
 本指南说明如何通过 `abx` CLI 在沙箱内设置和读取环境变量，以及发送给沙箱的命令适用哪些执行规则。底层模型——每个沙箱内有两个相互独立的进程作用域——对 CLI 和 Python SDK 是一致的；包含 SDK 与沙箱内 Server 代码示例的完整说明见文末链接的 SDK 文档。
 
-> **想了解 CLI 自身的配置变量**（`E2B_API_KEY`、`ALIBABA_CLOUD_REGION_ID`、`ABX_LLM_API_KEY` 等）？这些变量用于配置 `abx` 本身，而不是沙箱。每个键只有一个变量。见[配置参考](../reference/configuration.md)。
+> **想了解 CLI 自身的配置变量**（`ABX_SANDBOX_API_KEY`、`ALIBABA_CLOUD_REGION_ID`、`ABX_LLM_API_KEY` 等）？这些变量用于配置 `abx` 本身，而不是沙箱。每个键只有一个变量。见[配置参考](../reference/configuration.md)。
 
 ---
 
@@ -24,7 +26,7 @@
 `abx create` 接受可重复的 `--env` / `-e KEY=VALUE`。这些变量会注入 envd 根进程，并在沙箱生命周期内被后续所有命令继承：
 
 ```bash
-abx create base --env MY_KEY=value --env LOG_LEVEL=debug
+abx create --template base --env MY_KEY=value --env LOG_LEVEL=debug
 ```
 
 创建之后没有任何 CLI 命令可以修改 envd 变量。如果某条命令需要不同的值，请显式包装：`abx exec <sandbox-id> "sh -c 'MY_KEY=other python app.py'"`。

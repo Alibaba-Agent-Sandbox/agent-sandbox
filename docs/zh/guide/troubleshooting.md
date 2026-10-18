@@ -38,7 +38,7 @@
 
 ```text
 [E1001] API key cannot be empty
-  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.
+  Suggestion: Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key.
 ```
 
 **解决**：
@@ -50,7 +50,7 @@ abx config get sandbox_api_key
 abx config set sandbox_api_key your-api-key
 
 # 或设置环境变量
-export E2B_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
 ### E1003 — AK/SK 凭证无效

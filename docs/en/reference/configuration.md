@@ -1,5 +1,7 @@
 # Configuration Reference
 
+> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+
 This document lists all Agent Sandbox configuration options, environment variables, default values, and priority rules.
 
 ---
@@ -16,7 +18,7 @@ Configuration is loaded in the following priority order (highest to lowest):
 5. Built-in defaults                                  ← Lowest
 ```
 
-Each key has exactly one environment variable. The first layer that sets that variable wins. The built-in provider reads `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. It does not read retired `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, or `ALIBABA_CLOUD_ACCESS_KEY_SECRET`.
+Each key has exactly one environment variable. The first layer that sets that variable wins. The built-in provider reads `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. It does not read `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, or `ALIBABA_CLOUD_ACCESS_KEY_SECRET`.
 
 `.env` files are merged **per key**. `./.env` overrides `~/.abx/.env` when both set the same key. A key that the project file does not set still comes from `~/.abx/.env`.
 
@@ -30,9 +32,9 @@ Each key has one name. Product settings use `ABX_<KEY>`. A vendor that already p
 
 | What you need | Key | Environment variable |
 |---|---|---|
-| Sandbox API key | `sandbox_api_key` | `E2B_API_KEY` |
-| Sandbox API base URL | `sandbox_base_url` | `E2B_API_URL` |
-| Data-plane domain | `sandbox_domain` | `E2B_DOMAIN` |
+| Sandbox API key | `sandbox_api_key` | `ABX_SANDBOX_API_KEY` |
+| Sandbox API base URL | `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` |
+| Data-plane domain | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` |
 | Region | `region` | `ALIBABA_CLOUD_REGION_ID` |
 | Alibaba Cloud AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
 | ACR namespace / password | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
@@ -49,11 +51,13 @@ The same chain is what these calls read:
 - `abx template install` / `abx template search` (GitHub token)
 - `abx mcp install` (the sandbox API key copied into the editor config)
 
-`abx mcp install` writes `E2B_API_KEY` into the Cursor and Claude config. `E2B_API_URL` and `ALIBABA_CLOUD_REGION_ID` are copied into the same file only when the process environment sets them. `abx mcp start` loads `~/.abx` again, so a region saved with `abx config set region` still applies when the editor starts the server.
+`abx mcp install` writes `ABX_SANDBOX_API_KEY` into the Cursor and Claude config. `ABX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` are copied into the same file only when the process environment sets them. `abx mcp start` loads `~/.abx` again, so a region saved with `abx config set region` still applies when the editor starts the server.
 
 `abx config list` marks a process variable as `(env)` and either file as `(user)`. The value in the table is the one the command will use.
 
 ---
+
+Sandbox calls require `ABX_SANDBOX_API_KEY`; AK/SK settings configure separate official control-plane operations and cannot substitute for it. See [authentication migration](../guide/authentication.md).
 
 ## Environment Variables
 
@@ -62,9 +66,9 @@ The same chain is what these calls read:
 | Environment Variable | Config key | Description |
 |---------------------|-------------|-------------|
 | `ABX_PROVIDER` | `provider` | Default provider id |
-| `E2B_API_KEY` | `sandbox_api_key` | Sandbox API key |
-| `E2B_API_URL` | `sandbox_base_url` | Platform API URL |
-| `E2B_DOMAIN` | `sandbox_domain` | Data plane domain |
+| `ABX_SANDBOX_API_KEY` | `sandbox_api_key` | Sandbox API key |
+| `ABX_SANDBOX_BASE_URL` | `sandbox_base_url` | Platform API URL |
+| `ABX_SANDBOX_DOMAIN` | `sandbox_domain` | Data plane domain |
 | `ALIBABA_CLOUD_REGION_ID` | `region` | Region |
 | `ABX_HTTP_TIMEOUT` | `http_timeout` | HTTP timeout in seconds |
 | `ABX_LOG_LEVEL` | `log_level` | SDK log level |
@@ -117,7 +121,7 @@ provider = "alicloud-express"
 sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 http_timeout = 30.0
-max_retries = 3
+# Legacy retry values do not enable builtin HTTP retries.
 
 [providers.alicloud-express]
 region = "cn-hangzhou"
@@ -158,17 +162,17 @@ The `region` key set here is the **persistent default** for regional commands. A
 
 | Config Key | Environment variable | Description |
 |-----------|-------------|-------------|
-| `sandbox_api_key` | `E2B_API_KEY` | Sandbox service API key (stored in `~/.abx/.env`) |
-| `sandbox_base_url` | `E2B_API_URL` | Platform API URL |
+| `sandbox_api_key` | `ABX_SANDBOX_API_KEY` | Sandbox service API key (stored in `~/.abx/.env`) |
+| `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | Platform API URL |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | Region |
 | `http_timeout` | `ABX_HTTP_TIMEOUT` | HTTP timeout in seconds |
-| `max_retries` | `ABX_MAX_RETRIES` | Maximum retry count |
-| `sandbox_domain` | `E2B_DOMAIN` | Data plane domain |
+| `max_retries` | `ABX_MAX_RETRIES` | Legacy compatibility value; builtin HTTP does not retry |
+| `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | Data plane domain |
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API key for NL inference and the coding agent |
 | `llm_model` | `ABX_LLM_MODEL` | LLM model name (default: `qwen3-coder-plus`) |
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API base URL (default: DashScope compatible-mode) |
-| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (🧪 experimental AK/SK auth) |
-| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (🧪 experimental AK/SK auth) |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (official control-plane credential) |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (official control-plane credential) |
 | `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template install` / `abx template deploy` (set it with `abx config init --build`) |
 | `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`abx template install` / `abx template search`; stored in `~/.abx/.env`, shown masked) |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Team id. Optional. Not required. |
@@ -181,11 +185,11 @@ abx config init
 
 The interactive wizard prompts for: the sandbox API key, the default region, the LLM API key, the ACR namespace (`ACR_NAMESPACE`), the AccessKey ID, and the AccessKey secret. Press Enter to skip a prompt. Secrets and the namespace are stored in `~/.abx/.env` under the one variable for each key; the region goes to `~/.abx/config.toml`. Non-TTY environments or `--yes` never block; the equivalent `abx config set` commands are printed instead.
 
-### AK/SK Authentication Configuration (Experimental)
+### AK/SK control-plane configuration
 
-When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for AK/SK → API Key token exchange authentication.
+When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for official template/image/ACR control-plane operations, never automatic sandbox-key exchange.
 
-> **Note**: This feature is experimental. The token exchange endpoint is pending FC platform confirmation. See [Authentication](../guide/authentication.md#aksk-alibaba-cloud-extended-authentication-) for details.
+Sandbox runtime requests still require a separate API key. See [Authentication](../guide/authentication.md#aksk-alibaba-cloud-extended-authentication-) for details.
 
 ---
 
@@ -199,11 +203,11 @@ The CLI reads both `.env` files and merges them per key:
 `.env` file format. Use the one variable for each key:
 
 ```bash
-E2B_API_KEY=your-api-key
+ABX_SANDBOX_API_KEY=your-api-key
 ALIBABA_CLOUD_REGION_ID=cn-beijing
 ```
 
-The `abx config set sandbox_api_key <KEY>` command saves the API Key to `~/.abx/.env` as `E2B_API_KEY` (file permissions 600). `github_token` is stored as `GITHUB_TOKEN`.
+The `abx config set sandbox_api_key <KEY>` command saves the API Key to `~/.abx/.env` as `ABX_SANDBOX_API_KEY` (file permissions 600). `github_token` is stored as `GITHUB_TOKEN`.
 
 ---
 
@@ -225,3 +229,18 @@ The `TransportConfig` field table (types, defaults, automatic region derivation)
 in-sandbox server variables (`ABX_SERVER_*`, `ABX_PTY_PORT`, `ABX_MAX_UPLOAD_SIZE`) and the deploy-related LLM
 variables are documented in the SDK's [Configuration Reference](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/configuration.md)
 in the `python-sdk` repository.
+
+### Legacy retry compatibility
+
+`max_retries` (default3) and `retry_base_delay` (default1.0), including their
+existing environment/TOML names, remain accepted for configuration and extension
+compatibility. The builtin platform/envd HTTP transport does not use either
+value and performs one transport attempt. Setting them does not enable automatic
+retry or backoff. EPP connections still forward `max_retries`; a plugin's policy
+belongs to that plugin and is not a builtin transport guarantee.
+
+Provider-engine rediscovery/read recovery and explicit custom authentication
+refresh are separate mechanisms, not controlled by these settings. Applications
+that need retries must use a bounded policy for safe reads; reconcile an unknown
+write outcome before issuing the mutation again. No automatic retry feature is
+introduced by retaining the legacy configuration names.

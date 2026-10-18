@@ -48,9 +48,9 @@ interface ConfigKey {
 | 键 | 类型 | 密钥 | 环境变量 | 存储 | 默认值 |
 |---|---|---|---|---|---|
 | `provider` | str | 否 | `ABX_PROVIDER` | toml `[core] provider` | `alicloud-express` |
-| `sandbox_api_key` | str | 是 | `E2B_API_KEY` | env `E2B_API_KEY` | — |
-| `sandbox_base_url` | url | 否 | `E2B_API_URL` | toml `[transport] sandbox_base_url` | 由地域推导 |
-| `sandbox_domain` | str | 否 | `E2B_DOMAIN` | toml `[transport] sandbox_domain` | 由地域推导 |
+| `sandbox_api_key` | str | 是 | `ABX_SANDBOX_API_KEY` | env `ABX_SANDBOX_API_KEY` | — |
+| `sandbox_base_url` | url | 否 | `ABX_SANDBOX_BASE_URL` | toml `[transport] sandbox_base_url` | 由地域推导 |
+| `sandbox_domain` | str | 否 | `ABX_SANDBOX_DOMAIN` | toml `[transport] sandbox_domain` | 由地域推导 |
 | `http_timeout` | float | 否 | `ABX_HTTP_TIMEOUT` | toml `[transport]` | 30.0 |
 | `http2` | bool | 否 | `ABX_HTTP2` | toml | true |
 | `max_retries` | int | 否 | `ABX_MAX_RETRIES` | toml | 3 |
@@ -153,16 +153,16 @@ resolve(key K, provider P, sources S):
 
 ### 3.4 `abx config init`
 
-内置提供方的向导提示沙箱 API Key（`E2B_API_KEY`）、地域（`ALIBABA_CLOUD_REGION_ID`）、LLM API Key（`ABX_LLM_API_KEY`）和 AccessKey 对（`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）。默认提供方不是内置的（或 `--provider ID`）时，向导由提供方 schema 生成：按清单顺序每个字段一个提示（`i/N Description (key, ENV_NAME)`，密钥脱敏，必填标 `*`），然后 `Stored <key> in ~/.abx/.env` / `Set <key> = <value>`，最后 `Configuration complete. Review it with 'abx config list --provider ID'.`。
+内置提供方的向导提示沙箱 API Key（`ABX_SANDBOX_API_KEY`）、地域（`ALIBABA_CLOUD_REGION_ID`）、LLM API Key（`ABX_LLM_API_KEY`）和 AccessKey 对（`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`）。默认提供方不是内置的（或 `--provider ID`）时，向导由提供方 schema 生成：按清单顺序每个字段一个提示（`i/N Description (key, ENV_NAME)`，密钥脱敏，必填标 `*`），然后 `Stored <key> in ~/.abx/.env` / `Set <key> = <value>`，最后 `Configuration complete. Review it with 'abx config list --provider ID'.`。
 
 ### 3.5 帮助文本
 
 `abx config get --help` / `set --help` 列出 §1 的键：
 
 ```
-sandbox_api_key    Sandbox API key (env: E2B_API_KEY).
-sandbox_base_url   Platform API URL (env: E2B_API_URL).
-sandbox_domain     Envd data-plane domain (env: E2B_DOMAIN).
+sandbox_api_key    Sandbox API key (env: ABX_SANDBOX_API_KEY).
+sandbox_base_url   Platform API URL (env: ABX_SANDBOX_BASE_URL).
+sandbox_domain     Envd data-plane domain (env: ABX_SANDBOX_DOMAIN).
 provider           Default provider id (see 'abx provider list'; default:
                    alicloud-express).
 providers.<id>.<key>
@@ -190,12 +190,12 @@ providers.<id>.<key>
 
 | 选项 | 环境变量 | 命令 |
 |---|---|---|
-| `--sandbox-api-key` | `E2B_API_KEY` | `mcp install`、`mcp start` |
-| `--sandbox-base-url` | `E2B_API_URL` | 同上 |
-| `--sandbox-domain` | `E2B_DOMAIN` | 同上 |
+| `--sandbox-api-key` | `ABX_SANDBOX_API_KEY` | `mcp install`、`mcp start` |
+| `--sandbox-base-url` | `ABX_SANDBOX_BASE_URL` | 同上 |
+| `--sandbox-domain` | `ABX_SANDBOX_DOMAIN` | 同上 |
 | `--acr-instance-id` | `ACREE_INSTANCE_ID` | 模板命令 |
 
-`abx mcp install` 把 `E2B_API_KEY` 复制进编辑器配置。只有进程环境变量设置了 `E2B_API_URL` 和 `ALIBABA_CLOUD_REGION_ID` 时，才把这两个名字写进同一份文件。
+`abx mcp install` 把 `ABX_SANDBOX_API_KEY` 复制进编辑器配置。只有进程环境变量设置了 `ABX_SANDBOX_BASE_URL` 和 `ALIBABA_CLOUD_REGION_ID` 时，才把这两个名字写进同一份文件。
 
 ### 4.4 限定的沙箱引用
 
@@ -445,6 +445,6 @@ Python SDK 一侧是在本规格评审之后实现的。以下几点是实现时
 5. **插件环境**额外带 `PYTHONDONTWRITEBYTECODE=1`（解释器不得往受摘要校验的目录里写东西）。顶层 `data/` 保留给插件状态，并排除在目录树摘要之外；`update` 会保留 `data/`。
 6. **进程清理**：插件退出之后（无论是否正常），宿主仍会终止进程组，所以孙进程不能活过一次会话（`EppClient.close`）。
 7. **`close()`**：提供方进程由 sandbox 对象持有；Python API 增加了 `Sandbox.close()`。CLI 调用必须在每条退出路径（包括 `Ctrl-C`）上关闭其提供方。
-8. **存储**：`abx config set sandbox_api_key` 把 `E2B_API_KEY` 写入 `~/.abx/.env`（权限 0600）。`sandbox_base_url` 存为 `[transport] sandbox_base_url`。每个键只有这一个存储名。
+8. **存储**：`abx config set sandbox_api_key` 把 `ABX_SANDBOX_API_KEY` 写入 `~/.abx/.env`（权限 0600）。`sandbox_base_url` 存为 `[transport] sandbox_base_url`。每个键只有这一个存储名。
 9. **`python -m agent_sandbox.providers`** 是 `abx provider` 在 SDK 一侧的孪生版本（相同布局、相同回执、相同摘要）。一个工具安装的 `node` 插件能被另一个加载：CLI 导入 `provider.mjs`，Python SDK 通过 `abx provider engine serve` 使用它。`kind = "python"` 的清单会被拒绝（用 `node`、`exec` 或 `rest`）。进程内的 `Provider` 子类在 Python SDK 里仍然可以登记。它们不是可安装的目录插件。
 10. **Python 中未实现（后续事项，CLI 同样适用）**：`sandbox.yaml` 的 `provider:` / `provider_options:` 和 `@sandbox(provider=...)`；OS 约束；SDK 中的 `list --all-providers` 聚合辅助（SDK 只提供按提供方的 `Sandbox.list(provider=...)`）。

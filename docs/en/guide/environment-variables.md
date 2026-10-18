@@ -1,11 +1,13 @@
 # Environment Variables in Sandboxes (CLI)
 
+> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+
 This guide explains how to set and read environment variables inside a sandbox from the `abx` CLI, and which
 execution rules apply to the commands you send. The underlying model — two independent process scopes inside every
 sandbox — is the same for the CLI and the Python SDK; the full description, with code examples for the SDK and the
 in-sandbox server, is in the SDK documentation linked at the bottom.
 
-> **Looking for the CLI's own configuration variables** (`E2B_API_KEY`, `ALIBABA_CLOUD_REGION_ID`, `ABX_LLM_API_KEY`, …)?
+> **Looking for the CLI's own configuration variables** (`ABX_SANDBOX_API_KEY`, `ALIBABA_CLOUD_REGION_ID`, `ABX_LLM_API_KEY`, …)?
 > Those configure `abx` itself, not the sandbox. Each key has one variable. See the [Configuration Reference](../reference/configuration.md).
 
 ---
@@ -30,7 +32,7 @@ The two scopes never leak into each other: a variable written through the server
 inherited by all later commands for the lifetime of the sandbox:
 
 ```bash
-abx create base --env MY_KEY=value --env LOG_LEVEL=debug
+abx create --template base --env MY_KEY=value --env LOG_LEVEL=debug
 ```
 
 There is no CLI command that changes envd variables after creation. To use a different value for one command, wrap

@@ -81,3 +81,4 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Provider-owned metadata follow-up](evidence/verify/2026-10-18-provider-owned-metadata-followup.md)
 
 - [Standard artifact delivery](notes/proposed/feature/2026-10-18-standard-artifact-delivery.md) · [verification](evidence/verify/2026-10-18-standard-artifact-delivery.md)
+- [Provider preflight](notes/proposed/feature/2026-10-18-provider-preflight.md) · [verification](evidence/verify/2026-10-18-provider-preflight.md)
