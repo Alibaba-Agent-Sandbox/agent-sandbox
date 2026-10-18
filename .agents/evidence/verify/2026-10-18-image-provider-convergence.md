@@ -22,3 +22,14 @@ No sandbox/template/image was created in any cloud. Local temporary provider
 stores and HTTP servers closed in finally. Native E2B requires its own independently
 configured API key; Express credentials were not sent to that provider. All public
 provider manifests remain gated; no release or native cloud success is claimed.
+
+## Accepted preflight integration
+
+Ordinary merge of accepted CLI62 mainb2af4949 retains the current image-provider
+adapter and incorporates its independent native preflight/resume corrections.
+Typecheck/build PASS; preflight/resume10 tests PASS and image-provider29 tests PASS.
+Both actual installed-host receipts were repeated: official E2B2.55 three-request
+loopback and CubeAPI two-request loopback PASS. Hygiene PASS; health105 PASS/11
+historical WARN/zero FAIL; diff whitespace PASS. No cloud resource created.
+Native E2B cloud acceptance still requires an independently configured
+ABX_E2B_API_KEY; this integration does not change the draft acceptance gate.

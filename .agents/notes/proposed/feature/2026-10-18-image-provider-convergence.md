@@ -33,5 +33,7 @@ installed host, real CubeAPI adapter loopback, safe result and cleanup assertion
 Latest CI passes. Native E2B build/create/execute/kill is required before activation;
 missing native credentials keep this candidate draft and manifests gated.
 
+Accepted native preflight corrections from https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/62 are retained without expanding public provider opt-ins.
+
 ## Evidence
 [Verification](../../../evidence/verify/2026-10-18-image-provider-convergence.md).

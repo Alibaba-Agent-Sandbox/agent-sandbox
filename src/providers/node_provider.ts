@@ -117,7 +117,7 @@ export function resumeConnect<T extends SandboxProtocol>(inner: T, paths: readon
       try {
         response = await inner._http.platformRequest("POST", pattern.replace("{id}", sandboxId), { json: {} });
       } catch (exc) {
-        if (exc instanceof HTTPStatusError) continue;
+        if (exc instanceof HTTPStatusError && [404, 405].includes(exc.response.status_code)) continue;
         throw exc;
       }
       if (response.status_code === 204 || response.content.length === 0) return inner.getInfo(sandboxId);

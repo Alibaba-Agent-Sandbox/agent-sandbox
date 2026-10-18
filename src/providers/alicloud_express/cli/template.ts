@@ -700,6 +700,7 @@ export interface DoDeployOptions {
  * TemplateID, Status, etc.
  */
 export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
+    requireTemplateFeature("templates.build");
     const { acr_namespace, acr_registry = "registry.cn-hangzhou.aliyuncs.com", acr_repo = null, acr_username = null, acr_password = null, acree_instance_id = "", vpc_id = "", vswitch_ids = "", security_group_id = "", alias = null, tag = "latest", platform = "linux/amd64", cpu = null, memory = null, start_cmd = null, ready_cmd = null, timeout = 600, dockerfile = null, disk_size = null, internet_access = null, use_official = true, team_id = null, envd_inject = false, generation = null, force = false, target_image = null, region = null, ctx = null, verbose = false, build = null, explicit_acr_namespace = false, } = opts;
     const config = templateSeams.loadConfig({ region });
     const yamlDefaults = _readYamlDefaults(template_dir);

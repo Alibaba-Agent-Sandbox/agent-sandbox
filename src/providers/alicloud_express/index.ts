@@ -86,6 +86,7 @@ export class AlicloudExpressProvider extends Provider {
   }
 
   override async openTerminal(context: TerminalContext, opts: { cols: number; rows: number; shell: string }) {
+    this.require("pty");
     return TerminalSession.create(context.url, context.token, context.config, { ...opts, dial: context.http?._dial ?? null });
   }
 
