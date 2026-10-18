@@ -29,6 +29,169 @@
     "required_files_present": true,
     "files": 462
   },
-  "local_full_suite": "PENDING",
-  "remote_ci": "PENDING"
+  "local_full_suite": {
+    "tested_source_head": "6a93e73bcb11c019d59cbf6759529cfa16ad89bb",
+    "command": "umask 022; npm test",
+    "exit": 1,
+    "duration_seconds": 726.14,
+    "files": {
+      "failed": 4,
+      "passed": 147,
+      "skipped": 5,
+      "total": 156
+    },
+    "tests": {
+      "failed": 11,
+      "passed": 3745,
+      "skipped": 56,
+      "total": 3812
+    },
+    "failures": [
+      {
+        "test": " tests/test_cli/adv_commands.test.ts > commands (review regressions) > ADV-commands-13 the REPL keeps working after a very long (5000 char) line",
+        "result": "FAIL locally",
+        "classification": "local cold CLI startup exceeds the test window; no prompt at 15s, same interaction exits0 in 18.006s",
+        "controls": "repl-controls.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/test_transport/test_node_transport_integration.test.ts > TestNodeTransportLoopback > reports a refused TCP connection like anyio/httpx (All connection attempts failed)",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-20 garbage status line -> RemoteProtocolError \"illegal status line: bytearray(b'garbage')\"",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-21 TCP RST before any response byte -> ReadError with empty message",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-23 h11 accepts: both Transfer-Encoding and Content-Length",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/transport_net.test.ts > ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) > ADV-core-25 SSL_CERT_FILE pointing at the server's self-signed cert makes the request succeed",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/transport_net.test.ts > ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) > ADV-core-26 SSL_CERT_DIR (hashed dir) is honoured",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/transport_net.test.ts > ADV-core plain `fetch` call sites bypass the httpx shim > ADV-core-30 ACR GetAuthorizationToken honours HTTPS_PROXY (httpx trust_env) instead of dialing directly",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient close / error text > ADV-core-54 invalid UTF-8 in a text frame closes with 1007 and the reason text 'invalid start byte at position 0'",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient connect semantics > ADV-core-56 HTTP_PROXY / HTTPS_PROXY from the environment are honoured (websockets proxy=True): CONNECT is sent to the proxy",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      },
+      {
+        "test": " tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient connect semantics > ADV-core-58 a server that closes the socket during the handshake: 'did not receive a valid HTTP response'",
+        "result": "FAIL locally",
+        "classification": "execution-platform raw HTTP/TLS/proxy/WebSocket interception; normal CI passes unchanged assertion",
+        "controls": "network-controls.json; ws-control.json; ci-first-head.json"
+      }
+    ],
+    "skips": {
+      "provider_catalog_unconfigured_files": [
+        "tests/test_engine/test_engine.test.ts",
+        "tests/test_providers/test_alicloud_container_provider.test.ts",
+        "tests/test_providers/test_cubesandbox_provider.test.ts",
+        "tests/test_providers/test_e2b_provider.test.ts",
+        "tests/test_providers/test_node_plugins.test.ts"
+      ],
+      "server_sdk": "ABX_SERVER_SDK_SRC not supplied in the full isolated-checkout invocation; separate configured run passed18/18",
+      "note": "All 56 skips stay skips in this run. Normal CI supplies the catalog/server SDK and separately reports156 files passing with 3/2 skipped tests on Node20/22."
+    }
+  },
+  "remote_ci": "PASS on first implementation head; final evidence-only head must pass again before merge, as verified on PR48",
+  "remote_ci_first_head": {
+    "head": "6a93e73bcb11c019d59cbf6759529cfa16ad89bb",
+    "checks": [
+      {
+        "name": "Build package",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117585056071"
+      },
+      {
+        "name": "Installer script",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665347"
+      },
+      {
+        "name": "Test (Node 20)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665199"
+      },
+      {
+        "name": "Test (Node 22)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665185"
+      },
+      {
+        "name": "Typecheck (tsc)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665103"
+      },
+      {
+        "name": "Markdown links",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738679/job/117584664678"
+      }
+    ],
+    "counts": [
+      {
+        "name": "Test (Node 20)",
+        "lines": [
+          "Test Files  156 passed (156)",
+          "Tests  3809 passed | 3 skipped (3812)"
+        ]
+      },
+      {
+        "name": "Test (Node 22)",
+        "lines": [
+          "Test Files  156 passed (156)",
+          "Tests  3810 passed | 2 skipped (3812)"
+        ]
+      }
+    ]
+  },
+  "skill_validator": "PASS after installing pinned PyYAML 6.0.2 in isolated dependency directory",
+  "standard_real_cloud_e2e": {
+    "passed": 7,
+    "created": 1,
+    "leaked": 0
+  },
+  "server_sdk_crosscheck_rerun": {
+    "passed": 18,
+    "skipped": 0
+  }
 }

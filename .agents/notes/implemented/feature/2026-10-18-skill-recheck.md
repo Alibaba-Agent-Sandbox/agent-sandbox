@@ -1,6 +1,6 @@
 # Decision: Close Skill installation and lifecycle verification gaps
 
-Status: proposed
+Status: implemented
 
 ## Problem
 

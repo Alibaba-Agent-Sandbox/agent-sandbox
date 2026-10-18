@@ -11,3 +11,19 @@ This is a new review of the delivery in PR #44. Historical evidence stays immuta
 - checks.json: actual local and remote check outcomes, including skips and execution-platform failures.
 
 The root recheck agent performed the live cloud operations. The independent reviewer only reviewed/reproduced locally; these are distinct roles, not two independent live natural-language evaluations. Exact model runtime identifier was not exposed.
+
+
+## Replay
+
+The exact successful runtime/template drivers are retained as runtime-replay.mjs and template-replay.mjs. Build the selected repository revision first. Supply a private environment-file path; its contents never belong in evidence:
+
+```bash
+node runtime-replay.mjs REPOSITORY ENV_FILE NEW_RUNTIME_OUTPUT_DIRECTORY
+node template-replay.mjs REPOSITORY ENV_FILE NEW_TEMPLATE_OUTPUT_DIRECTORY
+```
+
+Run sequentially with the documented tested-template/AK-SK/Team prerequisites. These are acceptance drivers for the recorded scenario, not hosted services or arbitrary image inspection. They create only their own short-lived resources and clean up their recorded IDs. Raw SDK/bootstrap failures must be sanitized before publication. Keep every failed run in a new output directory.
+
+network-controls.json repeats the local Host, raw-response and TLS controls in this restored environment. Raw response bytes were again rewritten into an HTTP502; its error body now includes the word garbage, so that boolean differs from the historical control without changing the demonstrated interception.
+
+local-full-suite.json retains all11 local failures and actual assertion excerpts; normal CI is recorded separately. Its56 skips remain skips. No raw full-suite logs or credentials are published.

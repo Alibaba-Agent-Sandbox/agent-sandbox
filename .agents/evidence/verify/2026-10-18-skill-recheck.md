@@ -3,7 +3,7 @@
 - Date: 2026-10-18
 - Change: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/45
 - Baseline: merged main 3f9faaf575d2d4304e6241406260ba6da7ff1d8e (PR #44).
-- Result: PARTIAL while final required gates run; original broad requirements remain PARTIAL.
+- Result: PARTIAL for original broad requirements; PASS for fresh scoped 21-tool live acceptance, independent boundary/installation controls and implementation-head CI. Final evidence-only head must pass gates before merge.
 - Environment: Linux, Node.js 22.22.2, lockfile npm ci; Alibaba cn-hangzhou. Credentials loaded at runtime from environment/.env, values excluded.
 - Skill SHA-256 used by fresh runtime/template MCP runs: a421a4d2a74bd1ebf0acb487e4444d7daed7e4fa41b2f97ceb45341353f8ab31. Exact child model identifier is not exposed.
 
@@ -68,3 +68,31 @@ Final checks and owned-resource confirmation are appended below as they finish. 
 - Corrected sparse checkout/copy example: PASS; all four files present and match the pinned merged baseline. skills@1.7.0 and manual raw download also matched that baseline. Candidate bundle inclusion is checked independently.
 - Typecheck/build: PASS. Lint: PASS, 0 errors / 222 existing warnings. Hygiene: PASS. Repository health: PASS=105, WARN=11, FAIL=0.
 - Independent candidate review: 38 focused regressions PASS plus seven separate local behavioral controls PASS, including two providers sharing a bare ID and a deliberately altered pid_start refusing cancellation. The reviewer observed leader Z, repeated cancelling with heartbeat 40→80, then stable terminal output only after SIGKILL. The ordinary leader-first-exit case remained running until its child completed.
+
+
+- Standard repository real-cloud E2E: ABX_BIN="node dist/bin/abx.js" node e2e/run.mjs --suite cloud-lifecycle --filter 'cloud-lifecycle/(create-json|info-json|exec-basic|exec-exit-code-propagates|kill-yes-json|kill-twice)( |$)' : **7 PASS**, created one sandbox, leaked zero. Run 20261018041729-be13c5. This is separate from the 21-tool Skill replay.
+- All three fresh sandboxes (runtime, template-validation, standard E2E) and the single fresh template were sequential and independently cleaned; no pre-existing resources were changed.
+- Candidate npm dry-run: 462 files; executable, SKILL.md and all three references present.
+- Skill Creator quick_validate.py: PASS after installing its missing PyYAML 6.0.2 into an isolated temporary dependency directory. The initial ModuleNotFoundError is a validator prerequisite failure, not a Skill behavior failure.
+- PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/48 . First implementation/evidence head: 6a93e73. Required latest-head CI remains a gate.
+
+
+- First-head remote CI: all six checks **PASS** on 6a93e73bcb11c019d59cbf6759529cfa16ad89bb. Node 20: **3,809 passed / 3 skipped**; Node 22: **3,810 passed / 2 skipped**; each has all **156 test files passing**, 3,812 tests total. [CI](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784), [Markdown links](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738679).
+- A pinned skills@1.7.0 installation of the actual candidate commit also PASS: SKILL.md and all references byte-match the candidate source. This verifies the revised Skill bundle itself, beyond installation of the historical baseline.
+- The optional server SDK cross-check was skipped in the full local command because the isolated checkout does not have the SDK sibling path. A separate correctly configured ABX_SERVER_SDK_SRC run of test_template_guide.test.ts **PASS, 18/18**. No skipped check is silently counted as passed.
+- Fresh network controls: matching Host reached the service (200, one handler call); custom Host returned the project-audit marker (501, zero handler calls); a raw garbage response became HTTP502; observed local TLS issuer was mitmproxy and fingerprint differed from the generated certificate. These controls identify execution-platform intervention.
+- Project knowledge lookup was unavailable because its tool requires approval while the platform policy is never; no project knowledge persistence is claimed. The reviewed findings and sources remain in these version-controlled records.
+
+
+- Local REPL timing control: the original 15-second test and an isolated retry fail before any prompt/output appears. The exact same source, stub and 5,000-character interaction given a 60-second observation window exits 0 in 18,006 ms with both prompt and subsequent hello output. This establishes a local startup/deadline limitation; it does not relabel the original timed-out assertion as PASS and does not change product/test timeouts. See repl-controls.json. Normal remote CI passes the unchanged 15-second assertion.
+
+
+## Completed full local attempt
+
+The full local npm test invocation finished exit 1: **3,745 passed / 11 failed / 56 skipped**, 3,812 total; files **147 passed / 4 failed / 5 skipped**, 156 total, 726.14 seconds. It is explicitly **not PASS**. [Exact failure inventory](2026-10-18-skill-recheck/local-full-suite.json) retains all 11 failures. Ten are raw HTTP/TLS/proxy/WebSocket wire expectations affected by the execution environment; the remaining failure is the independently demonstrated REPL startup deadline. The fresh invalid-UTF8 control captures a server-originated 1007 peer close with the external codec reason instead of this client's expected local parser failure, supporting the wire-intervention attribution.
+
+The isolated full invocation also omitted ABX_AWESOME_PROVIDERS and ABX_SERVER_SDK_SRC, so catalog-dependent files/server cross-checks skipped. This is a local verification setup gap, not product acceptance. All skips stay skips in that run; the separately configured server check passed18/18 and the normal CI explicitly supplies both prerequisites and passes all156 files. No implementation or test timeout was weakened to turn these local failures into passes.
+
+## Closure
+
+The demonstrated installation, task terminal-state, borrowed ownership, qualified-default deletion and deletion-retry defects are repaired and have source regressions, fresh controls and real runtime acceptance where applicable. User-facing instructions now explain the actual process-group boundary and complete installation bundle. Original advanced requirements and the historical deletion trigger remain unresolved as tracked in Issue46. This establishes scoped closure and evidence/documentation consistency, not universal Skill reliability.

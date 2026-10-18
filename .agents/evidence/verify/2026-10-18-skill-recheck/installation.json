@@ -117,5 +117,28 @@
         "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
       }
     ]
+  },
+  "candidate_skills_cli": {
+    "revision": "6a93e73bcb11c019d59cbf6759529cfa16ad89bb",
+    "version": "1.7.0",
+    "result": "PASS",
+    "files": [
+      {
+        "file": "SKILL.md",
+        "sha256": "a421a4d2a74bd1ebf0acb487e4444d7daed7e4fa41b2f97ceb45341353f8ab31"
+      },
+      {
+        "file": "references/task-workflows.md",
+        "sha256": "f5c94327d98b0396cd89a9c9fc74d07d1f544e38e3b0658e7a05b91012853c18"
+      },
+      {
+        "file": "references/provider-contracts.md",
+        "sha256": "8fb12f78bccbcbb49d28df156f6b1b6e6916916ff18acca7f0739f8d13070e83"
+      },
+      {
+        "file": "references/template-workflows.md",
+        "sha256": "829bd900c4015825967203854c29cac4ca1434a22429e354e100e7d4dc4958e8"
+      }
+    ]
   }
 }
