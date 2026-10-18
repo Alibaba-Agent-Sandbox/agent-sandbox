@@ -13,7 +13,7 @@ Ordinarily merge Vitest5.0.4 and typescript-eslint8.71.2 into accepted current
 main, retaining both lockfile updates. Keep production dependencies, Node20/22,
 TypeScript5.9, Commander14 and public APIs unchanged. Move the five previously
 merged cleanup/auth/layering/retry/CI decisions to implemented with current links;
-preserve every historical evidence/golden byte. No package release.
+preserve every historical evidence/golden byte. Correct current bilingual install entry points and distributed Skill: published CLI v0.3.0 binary assets, unavailable npm metadata, source fallback, and paired Python distribution names/source URLs. No naming change or package release.
 
 ## API Design
 

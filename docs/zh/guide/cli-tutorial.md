@@ -7,7 +7,7 @@
 ## 第一步：安装
 
 ```bash
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
 安装后即可使用 `abx` 命令：

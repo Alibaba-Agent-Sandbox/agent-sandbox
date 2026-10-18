@@ -7,7 +7,7 @@ This tutorial walks you through mastering the `abx` CLI step by step, covering t
 ## Step 1: Installation
 
 ```bash
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 ```
 
 After installation, the `abx` command is available:

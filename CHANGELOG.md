@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Align current CLI/Skill installation instructions with published v0.3.0 binary assets and the Python SDK paired-source distribution; retire unavailable npm/index commands.
+
 - Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.
 - 修正 Skill 安装来源和完整文件包示例；原进程组停止后才确认任务取消，保留借用沙箱所有权边界，清理带 Provider 前缀的默认资源，并保留删除失败的重试句柄；新增真实复验记录且明确高级能力缺口。
 

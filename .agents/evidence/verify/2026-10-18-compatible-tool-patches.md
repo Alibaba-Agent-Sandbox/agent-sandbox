@@ -33,3 +33,19 @@ Fresh frozen built standard lifecycle:7PASS (create/info/text and JSON exec,
 abx0.3.0 built from this combined source; no rebuild during that run. Historical
 evidence and CLI golden/ledger bytes remain unchanged. Required latest-head
 hosted Node20/22/build/installer/types/document checks pending before merge.
+
+Final current-install review also corrects CLI README/guide/Skill entry points:
+GitHub v0.3.0 exists (five binaries and five matching checksum assets); npm is
+still unavailable. Retire stale unreleased-binary claims, positive unavailable
+npm/npx instructions and unrelated Python package name. Use tested paired native
+SDK source e86cb0b and owner installation guide. This follow-up is prose only;
+source/locked dependencies and the frozen7PASS cloud artifact remain unchanged.
+Fresh install/metadata/document checks recorded separately; latest hosted gates
+rerun on the final combined head. No new release or name change.
+
+Fresh official release proof:all five v0.3.0 binaries/checksums listed; actual
+Linux-x64 binary downloaded into an isolated native temporary directory, its
+published SHA256 verified, executable --version exit0 reportsabx0.3.0. No APIkey
+or cloud call used for this check; temporary files removed. Public npm metadata
+for CLI/NodeSDK remains404. Final install-doc health105PASS/11WARN/0FAIL and
+hygiene PASS; SDK pair/all-extras real install proof remains independently linked.

@@ -13,7 +13,7 @@
 Skill 与 `abx` / SDK 的安装刻意解耦：
 
 1. **先安装 Skill**（本指南），无需 Python 环境。
-2. 当 Agent（或你）准备真正运行沙箱时，**再安装软件包**：`npm install -g @agent-sandbox/cli`——见第 7 节。
+2. 当 Agent（或你）准备真正运行沙箱时，**再安装 CLI 二进制或源码构建的包**——见第 7 节。
 3. **配置凭证**（`abx config set sandbox_api_key …`）；官方模板控制面另配 AK/SK。
 4. **选择接口**——对话类 Agent 用 MCP，脚本用 CLI，Python 代码用 SDK（见 `SKILL.md` 的 "Choosing an interface"）。
 
@@ -220,7 +220,7 @@ Agent 加载的技能指南（`SKILL.md`）中有完整操作细节；要点如�
 
 ```bash
 # 1. 安装软件包（CLI + MCP STDIO 服务；需要 Node.js 20+）
-npm install -g @agent-sandbox/cli
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 
 # 先查询可用版本；若没有匹配版本，则使用源码安装：
 npm view @agent-sandbox/cli versions

@@ -37,6 +37,8 @@ The SDK-side features (async-first `Sandbox` API, the `run` / `run_code` executi
 
 ## Installation
 
+The published binary check covers its checksum and version. Current `[Unreleased]` fixes use the source-build recipe until a matching release is published; version0.3.0 alone does not identify those later source changes.
+
 ### macOS and Linux
 
 ```bash
@@ -51,7 +53,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 The installer picks `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, or `windows-x64`, verifies the `.sha256`, and does not need `sudo`. macOS and Linux install to `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. Windows installs to `%LOCALAPPDATA%\Programs\abx` and adds it to the user `PATH`. `ABX_VERSION` selects a release (default: latest). `ABX_INSTALL_DIR` selects the directory. The site can host these scripts on its own domain later; the command stays one line and only the URL changes.
 
-These one-liners need a GitHub Release whose assets are named `abx-*`. The v0.2.0 assets are named `ebx-*`, and v0.3.0 is not published yet. Until that release exists, install from source (below).
+Release v0.3.0 provides all five platform binaries named `abx-*` and matching SHA-256 files. The installers use those assets; source installation is an alternative below.
 
 ### Manual download
 
@@ -59,7 +61,7 @@ Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from [GitH
 
 ### npm (coming soon)
 
-`npm install -g @agent-sandbox/cli` is **coming soon, package not yet published**. The package name is not final. Some npm mirrors (including npmmirror) serve an unrelated `@agent-sandbox/cli@0.2.2` whose bin is `agent-sandbox`, not `abx`.
+`npm install -g @agent-sandbox/cli` is **coming soon, package not yet published**. The current package manifest names it `@agent-sandbox/cli`. Some npm mirrors (including npmmirror) serve an unrelated `@agent-sandbox/cli@0.2.2` whose bin is `agent-sandbox`, not `abx`.
 
 ### From source
 
@@ -164,13 +166,15 @@ The Python SDK — the async-first `Sandbox` API, the declarative `@sandbox` dec
 
 ```bash
 # Client SDK (import agent_sandbox)
-pip install agent-sandbox
+python -m pip install \
+  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk" \
+  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=client-sdk"
 
 # Server runtime used inside template images (import agent_sandbox.server)
-pip install agent-sandbox-server
+python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk"
 ```
 
-`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with `pip install agent-sandbox-server`. The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
+`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md). The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
 
 ## Documentation
 
