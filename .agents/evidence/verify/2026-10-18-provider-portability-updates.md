@@ -26,9 +26,11 @@ Legacy FC read/build commands reject plugin feature declarations before FC setup
 | Scoped Markdown links, diff and staged configured-secret scan | PASS | Only the intended task paths; no credential/private resource values. |
 | Reference provider suites on this base/catalog | FAIL | 30 pass / 6 fail; engine/loopback HTTP behavior in existing providers. This does not establish native backend compatibility. |
 
-## Pending final aggregate
+## Full aggregate and final regressions
 
-The mandatory local make-ci run is being completed and its exact outcome is appended before final delivery. Existing successful remote checks and historical cloud acceptance are not relabeled as a current full aggregate pass.
+`make ci` exited 2: hygiene, strict typecheck, lint (zero errors; 221 existing warnings) and production build passed, then tests reported **3906 PASS / 58 FAIL / 2 SKIP**, 1057.62 seconds. The parity and package phases were not reached in that aggregate. A separate final `make dist-check` passes: the npm dry-run package includes `dist/bin/abx.js`. This is a failed mandatory gate, not a current full-suite pass. Failures include source-CLI subprocess timeouts, MCP/transport/engine/loopback responses and the cold official-SDK template fixture. They are not all proven baseline failures or attributable to this patch.
+
+After that run, the FC template test fixture preloads the real SDK before request assertions, using the same approach as the provider mapping suite; **34 PASS**, 29.61 seconds. No production SDK initialization or test deadline is changed. The final boundary suite also passes **7/7** after formatting cleanup. A standalone `ADV-commands-01` rerun with the declared Python development environment on PATH still times out at the unchanged 20-second budget; the other source-CLI aggregate failures remain unresolved. Earlier successful remote checks and historical cloud acceptance are not relabeled as a pass for this aggregate.
 
 ## Cloud evidence and cleanup
 

@@ -447,24 +447,24 @@ const update_cmd = command("update", {
           message: `Provider '${id}' uses a ${String(source["type"])} source; use its original installer or reinstall from the reviewed source with --force.` });
         continue;
       }
-        results.push(
-          await installer.update(id, {
-            ref: (params["ref"] as string | null) ?? null,
-            check: Boolean(params["check"]),
-            yes: Boolean(params["yes"]),
-            allowUnpinned: Boolean(params["allow_unpinned"]),
-            allowInsecureTransport: Boolean(params["allow_insecure_transport"]),
-            confirm: params["yes"] ? undefined : async (plan) => {
-              const ok = await askConsent(fmt, plan, "Apply the update?");
-              if (!ok && !interactive) {
-                throw new ProviderTrustError("Updating a provider requires confirmation.", { suggestion: `Re-run with --yes after reviewing: abx provider update ${id}` });
-              }
-              return ok;
-            },
-            verify: verifyHandshake,
-          }),
-        );
-        registry.forget(id);
+      results.push(
+        await installer.update(id, {
+          ref: (params["ref"] as string | null) ?? null,
+          check: Boolean(params["check"]),
+          yes: Boolean(params["yes"]),
+          allowUnpinned: Boolean(params["allow_unpinned"]),
+          allowInsecureTransport: Boolean(params["allow_insecure_transport"]),
+          confirm: params["yes"] ? undefined : async (plan) => {
+            const ok = await askConsent(fmt, plan, "Apply the update?");
+            if (!ok && !interactive) {
+              throw new ProviderTrustError("Updating a provider requires confirmation.", { suggestion: `Re-run with --yes after reviewing: abx provider update ${id}` });
+            }
+            return ok;
+          },
+          verify: verifyHandshake,
+        }),
+      );
+      registry.forget(id);
     }
     if (fmt.use_json) {
       fmt.printData(results.map((r) => pairsToMap([["id", r.id], ["status", r.status], ["installed", r.installed], ["available", r.available], ["changes", r.changes], ...(r.message ? [["message", r.message] as [string, unknown]] : [])])));

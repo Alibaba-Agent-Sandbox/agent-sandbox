@@ -21,13 +21,15 @@ import { SandboxError, TemplateBuildError } from "../../src/models/errors.js";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const realLoad = _sdkLoader.load;
+// Real generated classes are a fixture, not part of a mocked cloud-call deadline.
+const realSdk = realLoad();
 
 /**
  * Equivalent of `patch("alibabacloud_fcsandbox20260509.client.Client")`: keeps the real model classes but swaps the
  * `Client` class for one returning `mockClient`.
  */
 function patchClient(mockClient: any): { clientCls: ReturnType<typeof vi.fn> } {
-  const real = realLoad();
+  const real = realSdk;
   const clientCls = vi.fn(function () {
     return mockClient;
   });
@@ -581,4 +583,3 @@ describe("TestGeneration1StartCommand", () => {
     expect(client.deleteTemplate).not.toHaveBeenCalled();
   });
 });
-

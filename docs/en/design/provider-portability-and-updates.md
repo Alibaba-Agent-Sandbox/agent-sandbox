@@ -12,10 +12,16 @@ Imports, configuration names, method coverage and return/error types need review
 Using an existing sandbox also requires its same-Team credential and a live lease;
 connecting does not make the client its exclusive owner or authorize deleting it.
 
-The Python owner's [Express migration guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-alicloud-express.md)
+The Python owner's [Express migration guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/31c8b5c60badba9436e7400f75b32f6d13253a5c/docs/en/guide/migrate-from-alicloud-express.md)
 defines the source/API differences and an explicit environment mapping. Do not add
 silent `E2B_*` credential aliases: that could send another backend's key to Express.
 There is no implemented one-click migration command. Do not advertise one.
+
+Language scope also matters: the public `nodejs-sdk` currently exports configuration
+names and a port-9000 `ServerClient`, not cloud `Sandbox.create` or provider lifecycle.
+An E2B JavaScript application cannot migrate by changing its import to that package.
+The TypeScript CLI implementation is not evidence of public Node SDK parity. See the
+[Node SDK scope](https://github.com/Alibaba-Agent-Sandbox/nodejs-sdk/blob/main/README.md).
 
 ## Ownership audit
 
@@ -29,6 +35,10 @@ There is no implemented one-click migration command. Do not advertise one.
 | Image authoring defaults | Provider `[template]` profile; a Dockerfile profile does not implement deployment. |
 | Template/provider compatibility rows | Template author usage hints, intersected with adapter capabilities; neither feature flags nor these rows are native E2E evidence. |
 | Provider create examples | Provider-owned, non-executable `catalog.json`; the registry renders data instead of switching on vendor IDs. |
+
+Filtered configuration is a routing contract, not a process sandbox. Node plugins
+are trusted host code and can access host resources; declared features/effects do
+not replace cloud IAM/RAM permissions or install-time trust decisions.
 
 Legacy template read/build commands currently have only the FC implementation. Even
 a plugin declaring `templates.read` or `templates.build` must get E8004 before this

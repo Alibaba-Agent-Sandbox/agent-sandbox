@@ -10,9 +10,14 @@ Agent Sandbox 是现有云后端之上的客户端和工具层，不是另一个
 导入、配置名称、部分方法、结果和错误类型需要核对。连接现有沙箱需要同 Team 凭据和
 有效租期；连接不代表取得资源独占所有权，也不自动授权清理它。
 
-Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/migrate-from-alicloud-express.md)
+Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/31c8b5c60badba9436e7400f75b32f6d13253a5c/docs/zh/guide/migrate-from-alicloud-express.md)
 列出具体差异和显式环境变量映射。不要增加静默的 `E2B_*` 凭据别名，以免把另一后端的
 密钥发送给极速版。目前没有已实现的“一键迁移”命令，不应宣传为无需修改。
+
+还需区分语言：公开的 `nodejs-sdk` 当前只有配置名称和 9000 端口 `ServerClient`，
+没有云端 `Sandbox.create` 或 provider 生命周期。E2B JavaScript 应用不能只换成该包的
+导入。CLI 使用 TypeScript 实现不代表公开 Node SDK 已功能对齐。见
+[Node SDK 范围](https://github.com/Alibaba-Agent-Sandbox/nodejs-sdk/blob/main/README.md)。
 
 ## 职责审计
 
@@ -26,6 +31,9 @@ Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox
 | 镜像编写约定 | provider 的 `[template]` profile；它不等于部署接口。 |
 | 模板页面适配表 | 模板作者维护的使用前提，需结合适配器能力；不等于原生后端 E2E 通过。 |
 | Provider 创建示例 | provider 自己维护、不会执行的 `catalog.json`，目录只渲染数据。 |
+
+配置过滤是路由约定，不是进程沙箱。Node 插件是受信任的宿主代码，可以访问宿主资源；
+声明的能力和 effect 不能替代云端 IAM/RAM 权限或安装时的信任判断。
 
 旧模板 read/build 命令只有 FC 实现。即使插件声明 `templates.read` 或
 `templates.build`，也不能据此读取 FC 凭据、触发 Docker/ACR；没有模板适配器时在副作用
