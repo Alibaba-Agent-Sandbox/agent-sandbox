@@ -1,5 +1,4 @@
 import { CONFIG_METADATA } from "./metadata.js";
-import { TemplateManager } from "./template.js";
 /** The built-in provider: Alibaba Cloud Express Edition (`alicloud-express`). */
 
 import { CodeInterpreterProtocol } from "../shared/e2b/code_interpreter.js";
@@ -92,12 +91,6 @@ export class AlicloudExpressProvider extends Provider {
       access_key_secret: config.access_key_secret, region: config.region });
     const http = new HttpClient(config, auth, { envelope_connect: true });
     return [config, auth, http, new SandboxProtocol(http)];
-  }
-
-  override async buildTemplateManager(config: LayeredConfig) {
-    const auth = createAuthProvider({ api_key: config.sandbox_api_key, access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret, region: config.region });
-    return new TemplateManager(new HttpClient(config.toTransportConfig(), auth));
   }
 
   override configKeys(): typeof ALICLOUD_EXPRESS_KEYS {

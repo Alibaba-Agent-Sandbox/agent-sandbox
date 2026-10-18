@@ -1,3 +1,5 @@
+import type { TransportConfig } from "../../../transport/config.js";
+import { EnvdTokenManager } from "./auth.js";
 /**
  * Platform API protocol — sandbox lifecycle management (REST) (port of `protocol/sandbox.py`).
  *
@@ -7,8 +9,6 @@
  * 路径无 /api/v1 前缀（已实测验证）。
  */
 
-import type { TransportConfig } from "../../../transport/config.js";
-import { EnvdTokenManager } from "./auth.js";
 import { QuotaExceededError, SandboxCreationError, SandboxNotFoundError, TemplateNotFoundError } from "../../../models/errors.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../../models/sandbox.js";
 import { HTTPStatusError, type HttpClient } from "../../../transport/http.js";
@@ -38,7 +38,6 @@ export class SandboxProtocol {
     return info.envd_url || config.buildEnvdUrl(info.sandbox_id);
   }
 
-  /** Session authentication belongs to this explicitly selected wire adapter. */
   createSessionAuth(info: SandboxInfo): EnvdTokenManager {
     return new EnvdTokenManager(info.envd_access_token, info.sandbox_id);
   }

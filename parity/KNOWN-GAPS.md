@@ -124,9 +124,9 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
 
 ### Behavioural differences
 
-* **File locking**: Python `filelock.FileLock` (flock) -> a `mkdir`-based lock with stale-lock recovery in
-  `src/session/local.ts`; same mutual-exclusion semantics, but not released automatically if the process is SIGKILLed
-  (stale detection takes over after the timeout).
+* **Named-session persistence**: the unused CLI session-store port has been retired; persistence belongs to the
+  Python SDK. This does not remove interactive `abx connect`. See the
+  [retirement boundary](../docs/en/design/cli-module-retirement.md) for ownership and migration.
 * **YAML**: the `yaml` package (YAML 1.1 rules) in `src/utils/yaml_io.ts`; PyYAML's exception text is not reproduced.
 * **Alibaba Cloud FC SDK**: npm `@alicloud/fcsandbox20260509` is 1.5.1, the Python wheel is 1.6.0. Request/response
   models used by `fc_template` (CreateTemplate/UpdateTemplate/GetTemplate/ListTemplates/ListTeams) are identical in both;

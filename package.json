@@ -19,7 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-build-output.mjs && tsc -p tsconfig.build.json",
     "build:binary": "node scripts/build_binary.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -78,7 +78,7 @@
     "postject": "^1.0.0-alpha.6",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.3"
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
   }
 }

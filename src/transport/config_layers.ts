@@ -1,4 +1,4 @@
-import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig } from "../providers/bundled_config.js";
+import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig } from "../utils/bundled_config.js";
 /**
  * Layered configuration with provider selection (port of the layered half of
  * `agent_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).
@@ -13,7 +13,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { ProviderConfigError } from "../providers/errors.js";
+import { ProviderConfigError } from "../models/provider_errors.js";
 import {
   BUILTIN_PROVIDER_ID,
   CORE_KEYS,
@@ -336,7 +336,7 @@ export function builtinSchema(): ProviderSchema {
   return metadataSchema(defaultConfig);
 }
 
-function metadataSchema(metadata: import("../providers/bundled_config.js").BundledConfig): ProviderSchema {
+function metadataSchema(metadata: import("../utils/bundled_config.js").BundledConfig): ProviderSchema {
   return new ProviderSchema(metadata.id, metadata.keys, metadata.inherit, metadata.derive,
     metadata.endpointDefaults, metadata.legacyFields, metadata.omitDefaultOptions);
 }

@@ -37,7 +37,7 @@ import {
 } from "../../utils/_pyos.js";
 import { PyFloat, pyJsonDumps, pySorted, pyStr, pyStrRepr, pyStrip } from "../../utils/_pyformat.js";
 import { getFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { regionOption, resolveRegion } from "../region.js";
 import { cliProvider } from "../../providers/selection.js";
 import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";

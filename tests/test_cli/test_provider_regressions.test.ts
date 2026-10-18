@@ -55,15 +55,17 @@ describe("sandbox id that is not a string", () => {
   });
 
   it("test_list_is_membership_and_null_is_skipped", () => {
-    expect(_selectProvider(null, null)).toEqual([null, null]);
+    const [defaultProvider, defaultId] = _selectProvider(null, null);
+    expect(defaultProvider.id).toBe("alicloud-express");
+    expect(defaultId).toBeNull();
     const [prov, bare] = _selectProvider(null, ["http://x"]);
-    expect(prov).toBeNull();
+    expect(prov.id).toBe("alicloud-express");
     expect(bare).toEqual(["http://x"]);
   });
 });
 
 describe("verbose config load", () => {
-  it("test_verbose_logs_loaded_config_once", async () => {
+  it("test_verbose_layered_loading_does_not_duplicate_legacy_logs", async () => {
     iso.writeToml('[transport]\nregion = "cn-hangzhou"\n');
     _setConfigFile(iso.toml);
     _setEnvFileCandidates([iso.env]);
@@ -71,6 +73,7 @@ describe("verbose config load", () => {
     await main({ args: ["-v", "list"] });
     const { err } = cap.readouterr();
     const loads = err.split("\n").filter((line) => line.includes("Loaded config"));
-    expect(loads).toEqual([`DEBUG: Loaded config from ${iso.toml}`]);
+    // Provider dispatch now reads the layered configuration directly.
+    expect(loads).toEqual([]);
   });
 });

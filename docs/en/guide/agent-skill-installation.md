@@ -13,8 +13,8 @@ The skill is plain text (YAML frontmatter + Markdown instructions). Installing i
 The skill and the `abx` / SDK installation are deliberately decoupled:
 
 1. **Install the skill** into your tool (this guide). No Python required.
-2. **Install the package** when the agent (or you) is ready to actually run sandboxes: `npm install -g @agent-sandbox/cli` — see [section 7](#7-after-the-skill-install-agent-sandboxcli-configure-credentials-choose-an-interface).
-3. **Configure credentials** (`abx config set sandbox_api_key …`, or AK/SK).
+2. **Install the CLI binary or a source-built package** when the agent (or you) is ready to run sandboxes — see [section 7](#7-after-the-skill-install-agent-sandboxcli-configure-credentials-choose-an-interface).
+3. **Configure credentials** (`abx config set sandbox_api_key …`); configure AK/SK separately for official template operations.
 4. **Pick an interface** — MCP for chat agents, CLI for scripts, SDK for Python code (see `SKILL.md` → "Choosing an interface").
 
 The agent reads the skill's instructions and drives steps 2–4 itself; nothing in step 1 depends on them.
@@ -216,14 +216,16 @@ If a marketplace listing for Agent Sandbox appears later, prefer it only after c
 
 ## 7. After the skill: install `@agent-sandbox/cli`, configure credentials, choose an interface
 
+Public `npm install -g @agent-sandbox/cli` is unavailable until publication. Use the source recipe below or the [binary guide](binary-installation.md).
+
 The skills guide the agent loads (`SKILL.md`) contains the operational details; the summary:
 
 ```bash
-# 1. Install the package (CLI + MCP STDIO server; requires Node.js 20+)
-npm install -g @agent-sandbox/cli
+# 1. Install the standalone CLI (source-package alternative below needs Node.js20+)
+# Standalone binary alternative: see binary-installation.md; use the source recipe below.
 
 # Check available versions; if npm has no matching version, install from source:
-npm view @agent-sandbox/cli versions
+# Diagnostic only: npm view @agent-sandbox/cli versions (public metadata currently404).
 git clone https://github.com/alibaba-agent-sandbox/agent-sandbox.git && cd agent-sandbox
 npm ci && npm run build && npm install -g .
 
@@ -241,7 +243,7 @@ abx exec <sandbox-id> -- echo hi   # CLI for scripts
 
 - **Credential rules** — never paste real keys into a skill, a repository, a chat message, or a sandbox file; the full rules live in `SKILL.md` → "Credentials and security".
 - **Interface selection** — MCP for chat agents, CLI for scripts, SDK for Python orchestration; see `SKILL.md` → "Choosing an interface" and the [MCP Integration guide](mcp-integration.md).
-- Authenticating with Alibaba Cloud AK/SK instead of an API key is covered in the [Authentication guide](authentication.md).
+- Using Alibaba Cloud AK/SK for official template operations, separately from the runtime API key is covered in the [Authentication guide](authentication.md).
 
 ---
 

@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { templateSchemas, handleTemplateOperation } from "./template_operations.js";
 import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
-import { pyExcStr } from "../api/_pyerrors.js";
+import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { KeyError, ValueError, isDict, pyStrip, pyTruthy, pyTypeName, type JsonObject } from "./_py.js";
 import type { SandboxManager } from "./mcp.js";
@@ -375,7 +375,7 @@ export async function handleKillSandbox(
 type ToolHandler = (params: ToolParams, manager: SandboxManager) => Promise<ToolResult>;
 
 /** Handler dispatch table. */
-export const TOOL_HANDLERS: Record<string, ToolHandler> = {
+const CORE_TOOL_HANDLERS: Record<string, ToolHandler> = {
   create_sandbox: handleCreateSandbox,
   run_code: handleRunCode,
   run_command: handleRunCommand,
@@ -385,6 +385,23 @@ export const TOOL_HANDLERS: Record<string, ToolHandler> = {
   kill_sandbox: handleKillSandbox,
   ...Object.fromEntries(Object.keys(operationInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleOperation(name as keyof typeof operationInputs, params, manager)])),
 };
+
+/** Handler discovery follows the selected provider without keeping stale names. */
+export const TOOL_HANDLERS: Record<string, ToolHandler> = new Proxy(CORE_TOOL_HANDLERS, {
+  get(target, key) {
+    if (typeof key === "string" && Object.hasOwn(target, key)) return target[key];
+    return templateSchemas().some(schema => schema.name === key)
+      ? (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(String(key), params, manager)
+      : undefined;
+  },
+  ownKeys(target) { return [...Object.keys(target), ...templateSchemas().map(schema => schema.name)]; },
+  getOwnPropertyDescriptor(target, key) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+    if (descriptor) return descriptor;
+    return templateSchemas().some(schema => schema.name === key)
+      ? { enumerable: true, configurable: true } : undefined;
+  },
+});
 
 /**
  * Dispatch a tool call to its handler.

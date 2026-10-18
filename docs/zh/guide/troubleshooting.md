@@ -68,10 +68,10 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
 ### E1002 — Token 过期
 
 ```text
-[E1002] The SDK should auto-refresh tokens. If this persists, check system clock synchronization.
+[E1002] envdAccessToken not available. Sandbox may not be created or connected.
 ```
 
-**解决**：检查系统时钟是否准确。SDK 会自动刷新 AK/SK 临时 token（有效期 3600 秒，到期前 300 秒刷新）。
+**解决**：检查系统时钟是否准确。重新连接获取有效 envd token，或检查显式配置的自定义交换；API Key 不会被自动创建或刷新。
 
 ---
 
@@ -260,11 +260,11 @@ Invalid shortcut target: 'abx template init'
 ### npm install 失败
 
 ```bash
-# 确保使用正确的包名
-npm install -g @agent-sandbox/cli
+# 使用已发布的独立二进制；公开 npm 安装尚不可用
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 
-# 如果遇到依赖冲突
-npm install -g @agent-sandbox/cli --force
+# 检查已安装的可执行文件
+abx --version
 ```
 
 ### abx: command not found

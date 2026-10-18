@@ -27,7 +27,7 @@ import { resolveKey, coerce } from "../../utils/config_resolver.js";
 import { BUILTIN_PROVIDER_ID, getKey, providerEnvName } from "../../utils/config_keys.js";
 import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { engine } from "./provider_engine.js";
 import { provider_commands } from "./provider_commands.js";
 

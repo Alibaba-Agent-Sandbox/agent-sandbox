@@ -15,13 +15,15 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 每个文件都有同名的 `.sha256`（SHA-256，`sha256sum` / `shasum -a 256` 的文本格式）。
-**v0.2.0** 附带的是 `ebx-*` 文件。本安装脚本不使用那些名字。目前还没有 **v0.3.0** Release；在它发布之前，下面的一行命令下不到二进制。在那之前请用[从源码安装](#从源码安装)。
+**v0.3.0** 已提供五个平台的 `abx-*` 二进制及对应 SHA-256 文件。旧 v0.2.0 使用 `ebx-*`，本安装脚本不消费旧文件名。也可[从源码安装](#从源码安装)。
 
 网站以后可以把同一份脚本放在自己的域名上（例如 `https://www.agent-sandbox.com/install.sh` 和 `https://www.agent-sandbox.com/install.ps1`）。命令仍然是一行，只改 URL。
 
 ---
 
 ## 安装
+
+发布二进制的本次检查覆盖校验和与版本。当前 `[Unreleased]` 修复在配套版本发布前使用源码构建方式；仅看到版本0.3.0不能证明已包含之后的源码变化。
 
 ### macOS 与 Linux
 
@@ -84,7 +86,7 @@ Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 
 ## npm（即将提供）
 
-`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。包名还没有定，需要仓库所有者决定。不要把它当作当前的安装方式。
+`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。当前清单中的包名是 `@agent-sandbox/cli`。不要把它当作当前的安装方式。
 
 部分 npm 镜像（包括 npmmirror）上有一个同名但无关的 `@agent-sandbox/cli@0.2.2`。它的 bin 是 `agent-sandbox`，不是 `abx`。装上它也不会出现 `abx` 命令。见 [故障排查：abx: command not found](#故障排查abx-command-not-found)。
 
@@ -95,6 +97,7 @@ Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
+git rev-parse HEAD
 npm ci
 npm run build
 npm pack
@@ -123,12 +126,12 @@ abx --version
 
 | | 独立二进制 | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
-| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（0.3.0 尚未发布） | 即将提供，包尚未发布 |
+| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（v0.3.0 资产已提供） | 即将提供，包尚未发布 |
 | 是否需要 Node.js | 否 | 需要（20+） |
 | 安装方式 | `install.sh` / `install.ps1`，或从 Releases 下载单个文件 | 包发布之后用 npm |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
 | 更新方式 | 重新运行安装脚本 | 发布后 `npm update -g @agent-sandbox/cli` |
-| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（`pip install agent-sandbox`，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
+| Python SDK（`import agent_sandbox`） | 不包含 | 不包含（[Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md)，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
 | 可选扩展（`alicloud`、`mcp` 等） | 无需单独安装 —— 已内置 | 无需单独安装 —— 已内置 |
 
 ## 故障排查：abx: command not found
@@ -151,12 +154,12 @@ abx --version
 
    卸载之后如果 `command -v` 仍能找到 `agent-sandbox`，从 npm 全局 bin 目录里删掉这个剩余文件。本 CLI 的 npm 包还没有发布；请用二进制安装脚本或[从源码安装](#从源码安装)。
 
-3. **最新 Release 没有 `abx-*` 资产。** v0.2.0 的文件名是 `ebx-*`。`install.sh` 会以 HTTP 404 停止，并且不会留下半截二进制。请从源码安装，或把 `ABX_VERSION` 设成已经发布 `abx-*` 文件的版本。
+3. **选择的旧 Release 没有 `abx-*` 资产。** v0.2.0 的文件名是 `ebx-*`。`install.sh` 会以 HTTP 404 停止，并且不会留下半截二进制。请从源码安装，或把 `ABX_VERSION` 设成已经发布 `abx-*` 文件的版本。
 
 ## 说明
 
 - 二进制包含 CLI 及其运行时依赖，包括阿里云模板 API 客户端和 MCP 服务（STDIO 与 Streamable HTTP）。
-- 二进制只提供 `abx` CLI。Python SDK 是单独的包：`pip install agent-sandbox`（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
+- 二进制只提供 `abx` CLI。Python SDK 是单独的包：[Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md)（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
 
 ## 自己构建二进制
 

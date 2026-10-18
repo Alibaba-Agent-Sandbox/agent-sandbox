@@ -1,6 +1,5 @@
 /** Public data models for Agent Sandbox SDK (port of `models/__init__.py`). */
 
-export { GlobalConfig } from "./config.js";
 export {
   AuthenticationError,
   CapabilityNotSupportedError,
@@ -38,7 +37,6 @@ export {
   ProcessResult,
 } from "./process.js";
 export { SandboxConfig, SandboxInfo, SandboxStatus, validateVolumeMounts } from "./sandbox.js";
-export { SessionConfig, SessionInfo } from "./session.js";
 export {
   DEFAULT_CAPABILITIES,
   STANDARD_CAPABILITIES,
@@ -95,11 +93,6 @@ export const __all__ = [
   "FileInfo",
   "WatchEventType",
   "WatchEvent",
-  // Session
-  "SessionConfig",
-  "SessionInfo",
-  // Config
-  "GlobalConfig",
   // Template
   "STANDARD_CAPABILITIES",
   "DEFAULT_CAPABILITIES",

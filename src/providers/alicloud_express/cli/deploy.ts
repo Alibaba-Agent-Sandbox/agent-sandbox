@@ -17,7 +17,7 @@ import fs from "node:fs";
 import { Argument, Option, argument, command, getCurrentContext, type Context } from "../../../cli/kit.js";
 import { UsageError } from "../../../cli/errors.js";
 import { pyExpandUser, pyResolve } from "../../../utils/_pyos.js";
-import { handleErrors } from "../../../cli/main.js";
+import { handleErrors } from "../../../cli/error_handler.js";
 import { enableVerbose } from "../../../cli/output.js";
 import { requireTemplateFeature } from "./selection.js";
 import { BuildModeError, resolveBuildPlan } from "../../../template/build_plan.js";

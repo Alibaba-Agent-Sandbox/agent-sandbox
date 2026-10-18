@@ -1,4 +1,4 @@
-import { defaultConfig, defaultRegion } from "../providers/bundled_config.js";
+import { defaultConfig, defaultRegion } from "../utils/bundled_config.js";
 /**
  * Layered configuration loading.
  *

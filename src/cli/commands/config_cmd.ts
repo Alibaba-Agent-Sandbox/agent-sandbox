@@ -46,7 +46,7 @@ type Params = Record<string, any>;
  */
 function _handleErrors<A extends unknown[], R>(func: (...args: A) => R | Promise<R>): (...args: A) => Promise<R> {
   return async (...args: A): Promise<R> => {
-    const { handleErrors } = await import("../main.js");
+    const { handleErrors } = await import("../error_handler.js");
     return handleErrors(func)(...args);
   };
 }

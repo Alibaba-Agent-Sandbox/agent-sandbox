@@ -68,10 +68,10 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
 ### E1002 — Token Expired
 
 ```text
-[E1002] The SDK should auto-refresh tokens. If this persists, check system clock synchronization.
+[E1002] envdAccessToken not available. Sandbox may not be created or connected.
 ```
 
-**Solution**: Check that the system clock is accurate. The SDK auto-refreshes AK/SK temporary tokens (valid for 3600 seconds, refreshed 300 seconds before expiry).
+**Solution**: Check that the system clock is accurate. Reconnect for a current envd token or inspect an explicitly configured custom exchange; API keys are not automatically minted or refreshed.
 
 ---
 
@@ -260,11 +260,11 @@ Use the printed command. If `~/.abx/config.toml` already contains `aaaaa = "abx 
 ### npm install Fails
 
 ```bash
-# Ensure the correct package name
-npm install -g @agent-sandbox/cli
+# Use the published standalone binary; public npm installation is unavailable
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
 
-# If dependency conflicts occur
-npm install -g @agent-sandbox/cli --force
+# Verify the installed executable
+abx --version
 ```
 
 ### abx: command not found

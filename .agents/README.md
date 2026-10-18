@@ -49,3 +49,13 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 - [Provider portability and updates](notes/proposed/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
 
 - [Provider isolation verification](evidence/verify/2026-10-18-provider-complete-isolation.md)
+
+Accepted cleanup: [retire unused CLI ports](notes/implemented/architecture/2026-10-18-retire-orphan-cli.md).
+Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-10-18-data-plane-auth-contract.md).
+
+- [Legacy retry compatibility](notes/implemented/architecture/2026-10-18-retry-compatibility.md).
+- [Layer dependency cleanup](notes/implemented/architecture/2026-10-18-layer-dependencies.md).
+
+- [Compatible tool patches and accepted records](notes/proposed/process/2026-10-18-compatible-tool-patches.md).
+
+- [Provider/main integration](notes/proposed/architecture/2026-10-18-provider-main-integration.md) · [verification](evidence/verify/2026-10-18-provider-main-integration.md)

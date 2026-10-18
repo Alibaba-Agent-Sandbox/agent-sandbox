@@ -13,7 +13,7 @@ import * as pycompat from "../../src/agent/_pycompat.js";
 import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import { templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import { DockerBuilder } from "../../src/providers/alicloud_express/docker_builder.js";
-import * as transportAuth from "../../src/transport/auth.js";
+import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
 import { HTTPStatusError, Request, Response } from "../../src/transport/_httpx.js";
