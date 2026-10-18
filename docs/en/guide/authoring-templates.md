@@ -75,7 +75,23 @@ Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `sta
 
 - `alicloud-express` uses `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`, does not set `CMD` or `ENTRYPOINT`, and starts the server with the platform `start_cmd` / `ready_cmd`. Workdir is `/home/user/app`. Ports 49983, 5000, and 49999 are reserved by that profile.
 - Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `abx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
-- The image installs `agent-sandbox-server`, not the client package. `abx template init` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`. That distribution is not on PyPI. A Dockerfile that already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` is used as written, and deploy does not query PyPI. `ABX_SERVER_SDK_SOURCE` replaces that pin with a local wheel, whatever SHA it names.
+- The image installs `agent-sandbox-server`, not the client package. `abx template init` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`. That distribution is not on PyPI. A Dockerfile that already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` is used as written, and deploy does not query PyPI. `ABX_SERVER_SDK_SOURCE` can replace that server requirement with a local wheel, whatever SHA it names, using the shell-form installation below.
+
+### Local server wheel injection
+
+Set `ABX_SERVER_SDK_SOURCE` to a local `server-sdk` tree when a template image should use
+that checkout. For shell-form `RUN` instructions invoking `pip install`, `pip3 install`, or
+`python3 -m pip install`, deploy copies wheels by their exact filenames before the complete
+`RUN` and substitutes only the pinned server requirement. It preserves surrounding commands,
+line continuations and `if`/`then`/`else` wheel fallback logic, including an existing
+`COPY *.whl /tmp/`. Other package operands and explicit PyPI version pins stay as written.
+The source Dockerfile and `template.yaml` startup/readiness settings are not changed.
+
+With no wheel, deploy removes a top-level `COPY *.whl` empty glob for the legacy builder and
+pins only an unversioned `agent-sandbox-server` pip operand. Comments, quoted example text,
+heredocs and JSON exec-form instructions are not interpreted as pip installs. If you install
+the runtime through an embedded script or exec form, declare its wheel copy/install explicitly;
+automatic source-wheel substitution does not rewrite those programs.
 
 ---
 

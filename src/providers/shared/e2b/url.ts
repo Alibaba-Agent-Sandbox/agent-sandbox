@@ -1,6 +1,2 @@
-/** Address convention of the explicitly selected E2B/envd wire adapter. */
-export const ENVD_PORT = 49983;
-
-export function envdUrl(sandboxId: string, domain: string): string {
-  return `https://${ENVD_PORT}-${sandboxId}.${domain}`;
-}
+/** Pure compatibility URL implementation shared with distribution metadata. */
+export { legacyDataPlanePort as ENVD_PORT, legacyDataPlaneUrl as envdUrl } from "../../../utils/bundled_config.js";

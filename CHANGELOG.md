@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Reconcile provider isolation with accepted native transport, explicit-key authentication and retired-module cleanup; preserve canonical compatibility aliases and pure configuration metadata.
+
 ### Documentation
 
 - Retire the unsupported builtin automatic-retry claim. Existing retry configuration names/defaults and EPP compatibility values remain accepted; they do not enable builtin HTTP retries or backoff.
@@ -81,6 +85,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Generate short alphanumeric Team names in opt-in provider-management E2E lifecycles, fixing real CreateTeam rejection of the previous fixture.
 
+- **Preserve Docker RUN structure when injecting server wheels.** `ABX_SERVER_SDK_SOURCE` now copies wheels before a complete shell-form RUN and substitutes only its server requirement. Conditional wheel/archive fallbacks, surrounding continuation commands and other dependency pins remain intact; comments, heredocs and exec-form text are preserved. Refs [#36](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/36).
 - Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.
 
 - **Pinned server archive skips PyPI.** `abx template init` pins python-sdk `61c43e0be65a1f57aa09186d578e7b399e48429b` (PR #21; the `server-sdk` tree matches PR #20, and later commits through PR #24 do not change server runtime). A Dockerfile that already pins any `python-sdk/archive/<sha>.tar.gz#subdirectory=server-sdk` is built as written, and deploy does not request `agent-sandbox-server` from PyPI. `ABX_SERVER_SDK_SOURCE` still injects a wheel and replaces that pin whatever SHA it uses. Fixes #24.

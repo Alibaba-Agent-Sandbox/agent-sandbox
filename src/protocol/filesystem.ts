@@ -1,2 +1,2 @@
-/** Compatibility exports only. Runtime implementations belong to provider adapters. */
+/** Compatibility export; the E2B wire adapter owns this implementation. */
 export * from "../providers/shared/e2b/filesystem.js";

@@ -229,5 +229,9 @@ The Python SDK, the in-sandbox server runtime and the shared `template.yaml` con
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
 
 - [Provider implementation boundaries](provider-isolation.md)
+
 Builtin platform/envd HTTP uses one transport attempt. Legacy retry fields are compatibility data, with the exact boundary in [configuration](../reference/configuration.md#legacy-retry-compatibility); engine recovery remains separate.
 Command callbacks import error rendering from `cli/error_handler.ts`; the root re-exports its old names for compatibility and loads commands without a reverse command-to-root import. Shared Python-compatible exception helpers live in `utils/_pyerrors.ts`, provider error values in `models/provider_errors.ts`. Old deep import paths re-export the same class objects.
+
+
+Provider integration keeps core transport/auth contracts independent of backend implementations. Active Express template UI, Docker/FC operations and authentication live under `providers/alicloud_express/`; `providers/shared/e2b/` owns the explicitly selected envd wire implementation. Historical `api`/`protocol`/`transport.auth` paths are aliases. Retired Image/TemplateManager, named-session and port-client implementations remain removed. Lower configuration layers consume pure `utils/bundled_config.ts` metadata; executable registry selection stays in the composition root.

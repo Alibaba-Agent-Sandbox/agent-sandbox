@@ -1,4 +1,4 @@
-import { defaultConfig, defaultRegion, legacyDataPlanePort, legacyDataPlaneUrl } from "../providers/bundled_config.js";
+import { defaultConfig, defaultRegion, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
 /**
  * Layered configuration loading.
  *
@@ -24,7 +24,7 @@ import { toOSError } from "../utils/_pyos.js";
 import { loadBytes } from "../utils/_tomllib.js";
 import { dotenvValues } from "../utils/_dotenv.js";
 import { ValueError } from "../models/value_error.js";
-import { DEBUG, getLogger } from "../utils/logging.js";
+import { getLogger } from "../utils/logging.js";
 
 const logger = getLogger("transport.config");
 
@@ -45,7 +45,7 @@ function warnTomlLoadFailure(p: string, message: string): void {
 }
 
 // envd 数据平面固定端口（已实测验证）
-export const ENVD_PORT = legacyDataPlanePort;
+export const ENVD_PORT = 49983;
 
 export let _ABX_DIR: string = path.join(os.homedir(), ".abx"); // SDK extension
 export let _CONFIG_FILE: string = path.join(_ABX_DIR, "config.toml"); // SDK extension
@@ -115,7 +115,7 @@ export class TransportConfig extends defineModel(
    * 格式: https://{ENVD_PORT}-{sandbox_id}.{domain}
    */
   buildEnvdUrl(sandbox_id: string): string {
-    return legacyDataPlaneUrl(sandbox_id, this.domain);
+    return `https://${ENVD_PORT}-${sandbox_id}.${this.domain}`;
   }
   build_envd_url(sandbox_id: string): string {
     return this.buildEnvdUrl(sandbox_id);
@@ -223,18 +223,8 @@ interface CachedBytes {
 const _byteCache = new Map<string, CachedBytes>();
 
 /** Drop cached file bytes. `resetConfig` and `resetLayeredConfig` both call this. */
-const loggedConfigLoads = new Set<string>();
-
-/** Share one successful verbose load diagnostic across both configuration views. */
-export function reportConfigLoaded(p: string): void {
-  if (!logger.isEnabledFor(DEBUG) || loggedConfigLoads.has(p)) return;
-  logger.debug("Loaded config from %s", p);
-  loggedConfigLoads.add(p);
-}
-
 export function clearCachedConfigBytes(): void {
   _byteCache.clear();
-  loggedConfigLoads.clear();
 }
 
 /**
@@ -273,7 +263,7 @@ export function _loadTomlFile(p: string): Record<string, any> {
     const buf = readCachedConfigBytes(p);
     if (buf === null) return {};
     const data = _tableToObject(loadBytes(buf)) as Record<string, any>;
-    reportConfigLoaded(p);
+    logger.debug("Loaded config from %s", p);
     return { ...data };
   } catch (exc) {
     warnTomlLoadFailure(p, pyStr(exc instanceof Error ? exc.message : exc));

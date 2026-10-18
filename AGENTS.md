@@ -22,9 +22,10 @@ agent-sandbox/
 │   ├── models/                # Data models: errors, sandbox, template, filesystem, process
 │   ├── transport/             # HTTP/WS transport, auth, codec, retry, streaming
 │   ├── protocol/              # Protocol abstractions: sandbox, filesystem, process, terminal, code_interpreter
-│   ├── api/                   # High-level API: Sandbox, files, code, commands, network, capability, DockerBuilder, official templates
+│   ├── api/                   # High-level API and provider-neutral protocol contracts; legacy template exports are aliases
 │   ├── cli/                   # `abx` CLI: main, output/formatters, command modules
 │   │   └── commands/          # Subcommands: config_cmd, deploy, mcp, sandbox, sandbox_files, sandbox_process, sandbox_system, template
+│   ├── providers/             # Backend adapters; Express UI/build/auth; shared E2B/envd wire adapters
 │   ├── agent/                 # AI agent tooling: MCP server, tool definitions, template authoring/adoption
 │   ├── utils/                 # Logging, registry, configuration, archive and compatibility helpers
 │   └── bin/                   # `abx.ts` executable entry point

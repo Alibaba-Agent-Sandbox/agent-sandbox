@@ -64,7 +64,7 @@ describe("sandbox id that is not a string", () => {
 });
 
 describe("verbose config load", () => {
-  it("test_verbose_logs_loaded_config_once", async () => {
+  it("test_verbose_layered_loading_has_no_legacy_duplicate_log", async () => {
     iso.writeToml('[transport]\nregion = "cn-hangzhou"\n');
     _setConfigFile(iso.toml);
     _setEnvFileCandidates([iso.env]);
@@ -72,6 +72,6 @@ describe("verbose config load", () => {
     await main({ args: ["-v", "list"] });
     const { err } = cap.readouterr();
     const loads = err.split("\n").filter((line) => line.includes("Loaded config"));
-    expect(loads).toEqual([`DEBUG: Loaded config from ${iso.toml}`]);
+    expect(loads).toEqual([]);
   });
 });

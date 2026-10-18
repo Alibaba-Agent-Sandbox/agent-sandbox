@@ -190,5 +190,9 @@ Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
 
 - [Provider implementation boundaries](provider-isolation.md)
+
 内置平台/envd HTTP 每次执行一次传输尝试。旧重试字段作为兼容数据保留，边界见[配置说明](../reference/configuration.md#旧重试配置的兼容边界)，引擎恢复另行处理。
 命令回调从 `cli/error_handler.ts` 导入错误处理；根入口保留旧导出，并加载命令，命令不再反向导入根入口。Python 兼容异常辅助位于 `utils/_pyerrors.ts`，提供方错误值位于 `models/provider_errors.ts`。旧深层路径重新导出相同类对象。
+
+
+Provider 整合后，核心传输和认证契约独立于后端实现。极速版模板界面、Docker/FC 操作与认证归属 `providers/alicloud_express/`；显式选择的 envd 协议实现归属 `providers/shared/e2b/`。历史 `api`、`protocol`、`transport.auth` 路径只保留兼容导出。已退役的 Image/TemplateManager、命名会话和端口客户端实现不会恢复。底层配置只读取纯数据 `utils/bundled_config.ts`，可执行的注册表选择由组合入口负责。

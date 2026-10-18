@@ -386,21 +386,20 @@ const CORE_TOOL_HANDLERS: Record<string, ToolHandler> = {
   ...Object.fromEntries(Object.keys(operationInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleOperation(name as keyof typeof operationInputs, params, manager)])),
 };
 
-function toolHandlers(): Record<string, ToolHandler> {
-  return {
-    ...CORE_TOOL_HANDLERS,
-    ...Object.fromEntries(templateSchemas().map(({ name }) => [name,
-      (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(name, params, manager)])),
-  };
-}
-
-/** Live handler view shares exactly the selected provider's discovery surface. */
-export const TOOL_HANDLERS: Record<string, ToolHandler> = new Proxy({}, {
-  get(_target, key) { return typeof key === "string" ? toolHandlers()[key] : undefined; },
-  ownKeys() { return Object.keys(toolHandlers()); },
-  getOwnPropertyDescriptor(_target, key) {
-    const handler = typeof key === "string" ? toolHandlers()[key] : undefined;
-    return handler ? { value: handler, enumerable: true, configurable: true } : undefined;
+/** Handler discovery follows the selected provider without keeping stale names. */
+export const TOOL_HANDLERS: Record<string, ToolHandler> = new Proxy(CORE_TOOL_HANDLERS, {
+  get(target, key) {
+    if (typeof key === "string" && Object.hasOwn(target, key)) return target[key];
+    return templateSchemas().some(schema => schema.name === key)
+      ? (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(String(key), params, manager)
+      : undefined;
+  },
+  ownKeys(target) { return [...Object.keys(target), ...templateSchemas().map(schema => schema.name)]; },
+  getOwnPropertyDescriptor(target, key) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+    if (descriptor) return descriptor;
+    return templateSchemas().some(schema => schema.name === key)
+      ? { enumerable: true, configurable: true } : undefined;
   },
 });
 

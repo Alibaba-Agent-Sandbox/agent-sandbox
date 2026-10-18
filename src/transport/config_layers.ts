@@ -1,4 +1,4 @@
-import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig, legacyDataPlanePort, legacyDataPlaneUrl } from "../providers/bundled_config.js";
+import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
 /**
  * Layered configuration with provider selection (port of the layered half of
  * `agent_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).
@@ -27,9 +27,9 @@ import { dotenvValues } from "../utils/_dotenv.js";
 import { PyFloat, pyStrip } from "../utils/_pyformat.js";
 import { parseTomlBytes } from "../utils/toml_plain.js";
 import { dumpsToml } from "../utils/toml_write.js";
-import { TransportConfig, _setLegacyNameHook, clearCachedConfigBytes, readCachedConfigBytes, reportConfigLoaded } from "./config.js";
+import { TransportConfig, _setLegacyNameHook, clearCachedConfigBytes, readCachedConfigBytes } from "./config.js";
 
-export const ENVD_PORT = legacyDataPlanePort;
+export const ENVD_PORT = 49983;
 export const DEFAULT_BASE_URL = defaultConfig.endpointDefaults.sandbox_base_url;
 export const DEFAULT_DOMAIN = defaultConfig.endpointDefaults.sandbox_domain;
 
@@ -213,7 +213,7 @@ export class LayeredConfig {
   }
 
   buildEnvdUrl(sandboxId: string): string {
-    return legacyDataPlaneUrl(sandboxId, this.sandbox_domain);
+    return `https://${ENVD_PORT}-${sandboxId}.${this.sandbox_domain}`;
   }
   build_envd_url(sandboxId: string): string {
     return this.buildEnvdUrl(sandboxId);
@@ -275,7 +275,6 @@ export function loadTomlFile(p: string): Record<string, unknown> {
     const buf = readCachedConfigBytes(p);
     if (buf === null) return {};
     const data = parseTomlBytes(buf);
-    reportConfigLoaded(p);
     return { ...data };
   } catch {
     return {};
@@ -337,7 +336,7 @@ export function builtinSchema(): ProviderSchema {
   return metadataSchema(defaultConfig);
 }
 
-function metadataSchema(metadata: import("../providers/bundled_config.js").BundledConfig): ProviderSchema {
+function metadataSchema(metadata: import("../utils/bundled_config.js").BundledConfig): ProviderSchema {
   return new ProviderSchema(metadata.id, metadata.keys, metadata.inherit, metadata.derive,
     metadata.endpointDefaults, metadata.legacyFields, metadata.omitDefaultOptions);
 }
