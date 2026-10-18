@@ -71,7 +71,7 @@ Final checks and owned-resource confirmation are appended below as they finish. 
 
 
 - Standard repository real-cloud E2E: ABX_BIN="node dist/bin/abx.js" node e2e/run.mjs --suite cloud-lifecycle --filter 'cloud-lifecycle/(create-json|info-json|exec-basic|exec-exit-code-propagates|kill-yes-json|kill-twice)( |$)' : **7 PASS**, created one sandbox, leaked zero. Run 20261018041729-be13c5. This is separate from the 21-tool Skill replay.
-- All three fresh sandboxes (runtime, template-validation, standard E2E) and the single fresh template were sequential and independently cleaned; no pre-existing resources were changed.
+- The initial three fresh sandboxes (runtime, template-validation, standard E2E) and single fresh template were sequential and independently cleaned; no pre-existing resources were changed.
 - Candidate npm dry-run: 462 files; executable, SKILL.md and all three references present.
 - Skill Creator quick_validate.py: PASS after installing its missing PyYAML 6.0.2 into an isolated temporary dependency directory. The initial ModuleNotFoundError is a validator prerequisite failure, not a Skill behavior failure.
 - PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/48 . First implementation/evidence head: 6a93e73. Required latest-head CI remains a gate.
@@ -96,3 +96,12 @@ The isolated full invocation also omitted ABX_AWESOME_PROVIDERS and ABX_SERVER_S
 ## Closure
 
 The demonstrated installation, task terminal-state, borrowed ownership, qualified-default deletion and deletion-retry defects are repaired and have source regressions, fresh controls and real runtime acceptance where applicable. User-facing instructions now explain the actual process-group boundary and complete installation bundle. Original advanced requirements and the historical deletion trigger remain unresolved as tracked in Issue46. This establishes scoped closure and evidence/documentation consistency, not universal Skill reliability.
+
+
+## Final packaging follow-up
+
+The evidence-only head23a2cda added replay-driver source after the earlier local lint check. CI correctly failed lint with three errors: two empty protocol-line catch blocks and a throw flagged unsafe inside template cleanup finally. This is a contribution/acceptance-driver defect, **not a platform failure**. The failure is preserved in ci-archive-lint-failure.json. The scripts now explain ignored non-protocol lines, remove unused declarations and perform template cleanup through a helper outside finally. Full repository lint and a real replay of the revised template driver are rerun below; source task/manager fixes and their reviewed hashes remain unchanged.
+
+
+- Revised archive template driver real replay: **PASS**, new template tujhxy63q4ufgqkwqzgi reached ready, its temporary sandbox passed command/binary acceptance and independent deletion; official template query then confirmed absence. Seven additional actions are preserved in replay-validation-actions.jsonl, bringing this review to **54 recorded live/proof actions** across21 tool names. All four fresh sandboxes and both fresh templates created by this review were cleaned.
+- Whole repository lint after script repair: **PASS, 0 errors / 223 warnings**; one added unused capture was then removed and the archive scripts received a focused lint check. No lint rule was disabled. Head23a2cda's Node20/22 tests passed but its build was skipped due to lint failure; it is not an accepted publication head. The final head is checked again before merge.

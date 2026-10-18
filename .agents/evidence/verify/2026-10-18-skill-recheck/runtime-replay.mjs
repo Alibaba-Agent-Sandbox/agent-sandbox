@@ -1,7 +1,6 @@
 import {spawn} from 'node:child_process';
 import {readFileSync,writeFileSync,mkdirSync,appendFileSync} from 'node:fs';
 import {parseEnv} from 'node:util';
-import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {resolve,join} from 'node:path';
@@ -15,7 +14,7 @@ const sha=hash(readFileSync(join(repo,'SKILL.md')));
 function clean(v){let t=JSON.stringify(v);for(const s of [...secrets,...privateValues])t=t.split(s).join('<REDACTED>');t=t.replace(/https?:\/\/[^\s"\\]+/g,'<URL>');return JSON.parse(t);}
 function event(action,sent,returned,expected,observed,result='PASS',elapsed=0){const e=clean({at:new Date().toISOString(),agent:'root-skill-recheck',model:'runtime identifier not exposed',skill:'agent-sandbox',skill_sha256:sha,action,sent,returned,elapsed_ms:elapsed,expected_effect:expected,observed_effect:observed,result});appendFileSync(join(output,'actions.jsonl'),JSON.stringify(e)+'\n');}
 let child,sequence=0;const pending=new Map();let owned=null,newTemplate=null;
-function start(){child=spawn(process.execPath,[join(repo,'dist/bin/abx.js'),'mcp','start'],{cwd:repo,env,stdio:['pipe','pipe','pipe']});let data='';child.stdout.on('data',b=>{data+=b;let i;while((i=data.indexOf('\n'))>=0){const s=data.slice(0,i);data=data.slice(i+1);try{const j=JSON.parse(s);pending.get(j.id)?.resolve(j);pending.delete(j.id)}catch{}}});child.stderr.on('data',()=>{});child.on('exit',()=>{for(const r of pending.values())r.reject(new Error('MCP exited; outcome uncertain'));pending.clear()});}
+function start(){child=spawn(process.execPath,[join(repo,'dist/bin/abx.js'),'mcp','start'],{cwd:repo,env,stdio:['pipe','pipe','pipe']});let data='';child.stdout.on('data',b=>{data+=b;let i;while((i=data.indexOf('\n'))>=0){const s=data.slice(0,i);data=data.slice(i+1);try{const j=JSON.parse(s);pending.get(j.id)?.resolve(j);pending.delete(j.id)}catch{/* Ignore non-protocol lines; validated responses are required below. */}}});child.stderr.on('data',()=>{});child.on('exit',()=>{for(const r of pending.values())r.reject(new Error('MCP exited; outcome uncertain'));pending.clear()});}
 async function rpc(method,params={}){const id=++sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(new Error('MCP deadline; outcome uncertain'))},150000);pending.set(id,{resolve:j=>{clearTimeout(timer);resolve(j)},reject:e=>{clearTimeout(timer);reject(e)}});child.stdin.write(JSON.stringify({jsonrpc:'2.0',id,method,params})+'\n')});}
 async function init(){start();await rpc('initialize',{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'skill-recheck',version:'1'}});}
 async function stop(){if(!child||child.exitCode!==null)return;await new Promise(r=>{child.once('exit',r);child.stdin.end()});}
@@ -61,7 +60,7 @@ try{
  await ok('cancel_task',{sandbox_id:owned,task_id:resistant.task_id},d=>assert.equal(d.state,'cancelling'),'Repeated cancellation recognizes original group after shell leader exit');
  await command(`python3 -c 'import os,signal; os.killpg(${resistant.pid},signal.SIGKILL)'`);const stopped=await terminal(resistant.task_id);assert.equal(stopped.state,'cancelled');await wait(300);await ok('get_task',{sandbox_id:owned,task_id:resistant.task_id},d=>assert.equal(d.stdout,stopped.stdout),'Force-stopped owned process group has no more output');
  event('verify_resistant_descendant',{task_id:resistant.task_id},{initial_output_bytes:cr.stdout.length,later_output_bytes:growing.stdout.length,final_output_bytes:stopped.stdout.length},'No terminal cancelled state while work still runs','Stayed cancelling; repeated TERM preserved identity; explicit KILL followed by stable terminal output');
- const update=await ok('set_sandbox_timeout',{sandbox_id:owned,timeout:300},d=>{assert.equal(d.accepted,true);assert.equal(d.timeout_verified,false);assert(Date.parse(d.sandbox.end_at)<Date.parse(first.sandbox.end_at))});
+ await ok('set_sandbox_timeout',{sandbox_id:owned,timeout:300},d=>{assert.equal(d.accepted,true);assert.equal(d.timeout_verified,false);assert(Date.parse(d.sandbox.end_at)<Date.parse(first.sandbox.end_at))});
  const cleaned=owned;await ok('kill_sandbox',{sandbox_id:owned});owned=null;await tool('get_sandbox',{sandbox_id:cleaned},d=>assert(d.error),'Deleted sandbox independently returns not-found',true);
  const after=await ok('list_sandboxes',{},d=>assert(!d.sandboxes.some(x=>x.sandbox_id===cleaned)));assert.equal(after.sandboxes.length,baseline.sandboxes.length);
  summary={...summary,result:'PASS',runtime_tools:18,artifact_sha256:artifact.sha256,resistant_descendant:'PASS',borrowed_ownership:'PASS',cleanup:'Own sandbox absent; resource count matches baseline'};

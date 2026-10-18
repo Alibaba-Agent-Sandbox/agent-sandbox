@@ -15,7 +15,7 @@ The root recheck agent performed the live cloud operations. The independent revi
 
 ## Replay
 
-The exact successful runtime/template drivers are retained as runtime-replay.mjs and template-replay.mjs. Build the selected repository revision first. Supply a private environment-file path; its contents never belong in evidence:
+The successful scenario runtime/template drivers are retained as runtime-replay.mjs and template-replay.mjs. Build the selected repository revision first. Supply a private environment-file path; its contents never belong in evidence:
 
 ```bash
 node runtime-replay.mjs REPOSITORY ENV_FILE NEW_RUNTIME_OUTPUT_DIRECTORY
@@ -27,3 +27,5 @@ Run sequentially with the documented tested-template/AK-SK/Team prerequisites. T
 network-controls.json repeats the local Host, raw-response and TLS controls in this restored environment. Raw response bytes were again rewritten into an HTTP502; its error body now includes the word garbage, so that boolean differs from the historical control without changing the demonstrated interception.
 
 local-full-suite.json retains all11 local failures and actual assertion excerpts; normal CI is recorded separately. Its56 skips remain skips. No raw full-suite logs or credentials are published.
+
+replay-validation-actions.jsonl and replay-validation-summary.json retain the successful real replay of the lint-corrected template driver. actions.md includes these7 extra events (54 total). ci-archive-lint-failure.json preserves the failed packaging head and its implementation attribution.

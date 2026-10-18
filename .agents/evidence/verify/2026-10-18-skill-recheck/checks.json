@@ -193,5 +193,28 @@
   "server_sdk_crosscheck_rerun": {
     "passed": 18,
     "skipped": 0
+  },
+  "archive_lint_failure": "23a2cda failed3 ESLint rules; see ci-archive-lint-failure.json; build gate was skipped, not passed",
+  "archive_script_replay": {
+    "result": "PASS",
+    "template_tools": 3,
+    "template_id": "tujhxy63q4ufgqkwqzgi",
+    "validation": {
+      "template_id": "tujhxy63q4ufgqkwqzgi",
+      "checks": {
+        "command_exit": true,
+        "command_output": true,
+        "binary_round_trip": true
+      },
+      "verified": true,
+      "cleanup_verified": true
+    },
+    "scope": "Existing tested image; arbitrary external OCI inspection not run",
+    "cleanup_verified": true
+  },
+  "final_local_lint": {
+    "errors": 0,
+    "warnings": 223,
+    "note": "One unused archive variable subsequently removed; focused archive lint rerun separately"
   }
 }
