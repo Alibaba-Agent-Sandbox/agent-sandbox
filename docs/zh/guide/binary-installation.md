@@ -97,6 +97,7 @@ Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
+git rev-parse HEAD
 npm ci
 npm run build
 npm pack

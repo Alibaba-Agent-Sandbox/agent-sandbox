@@ -68,6 +68,7 @@ v0.3.0 Release 已提供五个平台的 `abx-*` 二进制和对应 SHA-256 文�
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
+git rev-parse HEAD
 npm ci
 npm run build
 npm pack

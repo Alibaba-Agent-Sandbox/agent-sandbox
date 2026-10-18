@@ -59,3 +59,5 @@ alternative, and describes npm as unavailable in both languages. No test/gate
 was removed or weakened; focused existing document regressions rerun below.
 
 Existing bilingual Skill-document regressions:20PASS. Health105/11/0,hygiene/whitespace PASS. Required latest-head full hosted matrix remains pending.
+
+Current source installation recipes print git rev-parse HEAD so the artifact can be tied to a commit even while its version remains0.3.0. This is a read-only provenance step; no runtime/source/dependency change.

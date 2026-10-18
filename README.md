@@ -68,6 +68,7 @@ Node.js 20 or newer. Verified 2026-10-15 on Linux x64 with Node.js 22.14.0 (`npm
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
+git rev-parse HEAD
 npm ci
 npm run build
 npm pack
