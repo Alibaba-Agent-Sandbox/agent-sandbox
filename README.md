@@ -4,8 +4,6 @@
 
 <!-- badges -->
 [![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
-[![Node 20+](https://img.shields.io/node/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
 [![License](https://img.shields.io/github/license/agent-sandbox/agent-sandbox)](LICENSE)
 
 > Cloud sandboxes for AI agents — create, execute, and manage isolated environments in seconds.
@@ -37,7 +35,7 @@ The SDK-side features (async-first `Sandbox` API, the `run` / `run_code` executi
 
 ## Installation
 
-The published binary check covers its checksum and version. Current `[Unreleased]` fixes use the source-build recipe until a matching release is published; version0.3.0 alone does not identify those later source changes.
+The published binary check covers its checksum and version. Current `[Unreleased]` fixes use the source-build recipe until a matching release is published; version 0.3.0 alone does not identify those later source changes.
 
 ### macOS and Linux
 

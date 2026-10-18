@@ -4,8 +4,6 @@
 
 <!-- badges -->
 [![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
-[![Node 20+](https://img.shields.io/node/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
 [![License](https://img.shields.io/github/license/agent-sandbox/agent-sandbox)](LICENSE)
 
 > 为 AI Agent 打造的云沙箱 —— 秒级创建、执行、管理隔离环境。

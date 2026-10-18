@@ -49,3 +49,5 @@ published SHA256 verified, executable --version exit0 reportsabx0.3.0. No APIkey
 or cloud call used for this check; temporary files removed. Public npm metadata
 for CLI/NodeSDK remains404. Final install-doc health105PASS/11WARN/0FAIL and
 hygiene PASS; SDK pair/all-extras real install proof remains independently linked.
+
+Remove npm metadata-derived version/runtime badges from both current READMEs because official metadata404 cannot support them. Source Node20/22 support remains explicitly documented and tested. No runtime or dependency change.
