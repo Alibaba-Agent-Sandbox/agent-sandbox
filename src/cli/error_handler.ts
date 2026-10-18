@@ -195,4 +195,3 @@ export function _handleRemoteException(excVal: unknown, fmt: OutputFormatter): n
   });
   return sysExit(EXIT_GENERAL);
 }
-

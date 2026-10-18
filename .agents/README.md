@@ -49,4 +49,5 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 Current cleanup proposal: [retire unused CLI ports](notes/proposed/architecture/2026-10-18-retire-orphan-cli.md).
 Auth migration: [explicit sandbox API keys](notes/proposed/architecture/2026-10-18-data-plane-auth-contract.md).
 
+- [Legacy retry compatibility](notes/proposed/architecture/2026-10-18-retry-compatibility.md).
 - [Layer dependency cleanup](notes/proposed/architecture/2026-10-18-layer-dependencies.md).

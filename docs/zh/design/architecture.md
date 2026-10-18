@@ -189,4 +189,5 @@ Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记
   [模板 YAML 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
 
+内置平台/envd HTTP 每次执行一次传输尝试。旧重试字段作为兼容数据保留，边界见[配置说明](../reference/configuration.md#旧重试配置的兼容边界)，引擎恢复另行处理。
 命令回调从 `cli/error_handler.ts` 导入错误处理；根入口保留旧导出，并加载命令，命令不再反向导入根入口。Python 兼容异常辅助位于 `utils/_pyerrors.ts`，提供方错误值位于 `models/provider_errors.ts`。旧深层路径重新导出相同类对象。

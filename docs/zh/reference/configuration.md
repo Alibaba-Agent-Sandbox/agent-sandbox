@@ -119,7 +119,7 @@ provider = "alicloud-express"
 sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 http_timeout = 30.0
-max_retries = 3
+# 旧重试配置不会启用内置 HTTP 自动重试。
 
 [providers.alicloud-express]
 region = "cn-hangzhou"
@@ -164,7 +164,7 @@ abx config set github_token ""
 | `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | 平台 API URL |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | 地域 |
 | `http_timeout` | `ABX_HTTP_TIMEOUT` | HTTP 超时秒数 |
-| `max_retries` | `ABX_MAX_RETRIES` | 最大重试次数 |
+| `max_retries` | `ABX_MAX_RETRIES` | 兼容保留值；内置 HTTP 不进行自动重试 |
 | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | 数据平面域名 |
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API Key，供自然语言推理和编码代理使用 |
 | `llm_model` | `ABX_LLM_MODEL` | LLM 模型名称（默认 `qwen3-coder-plus`） |
@@ -224,3 +224,14 @@ ALIBABA_CLOUD_REGION_ID=cn-beijing
 ## 相关 SDK 文档
 
 `TransportConfig` 字段表（类型、默认值、自动区域推导）、SDK 参数覆盖、沙箱内 Server 变量（`ABX_SERVER_*`、`ABX_PTY_PORT`、`ABX_MAX_UPLOAD_SIZE`）以及部署相关的 LLM 变量，记录在 `python-sdk` 仓库中 SDK 的[配置参考](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/configuration.md)里。
+
+### 旧重试配置的兼容边界
+
+`max_retries`（默认3）与 `retry_base_delay`（默认1.0）及其既有环境变量/TOML
+名称继续作为配置和扩展契约的兼容值保留。内置平台/envd HTTP 传输不读取这两个值，
+每次只执行一次传输尝试；设置它们不会启用自动重试或退避。EPP 连接仍转发
+`max_retries`，插件如何解释由插件决定，不代表内置传输提供重试保证。
+
+提供方引擎重新发现/读取恢复、显式自定义认证刷新是独立机制，不受这些字段控制。
+应用需要重试时应对安全读取使用有界策略；写操作结果未知时先核对远端状态，再决定
+是否重新执行。保留旧配置名称不会引入自动重试功能。
