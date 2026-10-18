@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed
+
+- Removed the unconfirmed automatic AK/SK-to-sandbox-key RPC exchange and its private signing/parser helpers. Sandbox requests now fail locally without an API Key; official template/ACR AK/SK operations remain. Explicit custom exchange adapters remain and reject empty/structured token returns. This changes AK/SK-only runtime authentication; see the bilingual migration guide.
 ### Changed
 
 - CI and release workflows use setup-node v7 while retaining explicit Node 20/22 targets. Automatic incompatible Commander/TypeScript/Node-type major bumps are deferred to explicit compatibility migrations; patch/minor updates continue.

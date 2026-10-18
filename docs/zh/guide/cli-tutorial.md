@@ -32,7 +32,7 @@ abx config set sandbox_api_key your-api-key
 export ABX_SANDBOX_API_KEY="your-api-key"
 ```
 
-> 更多认证方式（AK/SK、.env 文件、config.toml 等）详见 [认证详解](authentication.md)。
+> 运行时 API Key 配置（.env、config.toml）与独立控制面 AK/SK详见 [认证详解](authentication.md)。
 
 ---
 

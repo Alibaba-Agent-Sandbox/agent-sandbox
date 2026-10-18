@@ -69,10 +69,7 @@ Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Short
 
 ## Credentials and security
 
-Authentication options (first available wins):
-
-1. API key — environment variable `ABX_SANDBOX_API_KEY`
-2. Alibaba Cloud AK/SK — `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`
+Runtime sandbox requests require `ABX_SANDBOX_API_KEY`. Official template/image/ACR control-plane operations separately require `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`. AK/SK never automatically creates or exchanges the runtime API key.
 
 Persist them locally instead of exporting in every shell:
 

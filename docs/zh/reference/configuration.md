@@ -55,6 +55,8 @@
 
 ---
 
+沙箱调用需要 `ABX_SANDBOX_API_KEY`；AK/SK 用于独立官方控制面，不能替代沙箱密钥。见[鉴权迁移](../guide/authentication.md)。
+
 ## 环境变量
 
 ### 与 Python SDK 共用
@@ -167,8 +169,8 @@ abx config set github_token ""
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API Key，供自然语言推理和编码代理使用 |
 | `llm_model` | `ABX_LLM_MODEL` | LLM 模型名称（默认 `qwen3-coder-plus`） |
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API Base URL（默认 DashScope compatible-mode） |
-| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | 阿里云 AccessKey ID（🧪 实验性 AK/SK 认证） |
-| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret（🧪 实验性 AK/SK 认证） |
+| `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | 阿里云 AccessKey ID（官方控制面凭据） |
+| `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret（官方控制面凭据） |
 | `acr_namespace` | `ACR_NAMESPACE` | `abx template install` / `abx template deploy` 用的（用 `abx config init --build` 设置） ACR 命名空间 |
 | `github_token` | `GITHUB_TOKEN` | GitHub token（模板下载用，`abx template install` / `abx template search`；存 `~/.abx/.env`，脱敏显示） |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | 团队 id。可选。不是必填项。 |
@@ -181,11 +183,11 @@ abx config init
 
 交互式向导依次提示：沙箱 API Key、默认区域、LLM API Key、ACR 命名空间（`ACR_NAMESPACE`）、AccessKey ID、AccessKey Secret。直接回车跳过该项。密钥和命名空间以每个键唯一的变量写入 `~/.abx/.env`，区域写入 `~/.abx/config.toml`。非 TTY 环境或 `--yes` 下不阻塞，打印等效的 `abx config set` 命令。
 
-### AK/SK 认证配置（实验性）
+### AK/SK 控制面配置
 
-`access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于 AK/SK → API Key 的 token 交换认证。
+`access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，不会自动交换沙箱 API Key。
 
-> **注意**：此功能为实验性支持，token 交换端点待 FC 平台确认。详见 [认证详解](../guide/authentication.md#aksk-阿里云扩展认证-)。
+沙箱运行时仍须独立配置 API Key。详见 [认证详解](../guide/authentication.md#aksk-阿里云扩展认证-)。
 
 ---
 

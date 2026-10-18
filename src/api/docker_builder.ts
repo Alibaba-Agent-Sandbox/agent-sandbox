@@ -931,6 +931,20 @@ export class DockerBuilder {
       if (on_output !== null) on_output(line);
     };
 
+    // Legacy platform registration requires its API key before build/push side effects.
+    const config_overrides: Record<string, unknown> = {};
+    if (api_key) config_overrides["api_key"] = api_key;
+    if (api_url) config_overrides["api_url"] = api_url;
+    if (access_key_id) config_overrides["access_key_id"] = access_key_id;
+    if (access_key_secret) config_overrides["access_key_secret"] = access_key_secret;
+
+    const config = loadConfig(config_overrides);
+    const auth = createAuthProvider({
+      api_key: config.api_key,
+      access_key_id: config.access_key_id,
+      access_key_secret: config.access_key_secret,
+    });
+
     // Step 1: Check Docker
     _progress("[1/5] Checking Docker daemon...");
     if (!(await this.checkDocker())) {
@@ -971,18 +985,6 @@ export class DockerBuilder {
 
     // Step 4: Create template via v3 API
     _progress(`[4/5] Creating template on platform: ${template_name}`);
-    const config_overrides: Record<string, unknown> = {};
-    if (api_key) config_overrides["api_key"] = api_key;
-    if (api_url) config_overrides["api_url"] = api_url;
-    if (access_key_id) config_overrides["access_key_id"] = access_key_id;
-    if (access_key_secret) config_overrides["access_key_secret"] = access_key_secret;
-
-    const config = loadConfig(config_overrides);
-    const auth = createAuthProvider({
-      api_key: config.api_key,
-      access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret,
-    });
     const http_client = new HttpClient(config, auth);
 
     try {

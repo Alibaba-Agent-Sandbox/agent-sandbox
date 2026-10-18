@@ -24,8 +24,7 @@ export const API_KEY_ENV_SUGGESTION =
 export const AKSK_ENV_SUGGESTION =
   `Set ${ACCESS_KEY_ID_ENV} and ${ACCESS_KEY_SECRET_ENV}. Those are the only AccessKey environment variables that are read (${WHERE}).`;
 
-/** Suggestion when neither an API key nor an AccessKey pair was found. */
+/** Missing sandbox API key; AccessKeys are a separate control-plane credential. */
 export const CREDENTIAL_ENV_SUGGESTION =
-  `Set ${SANDBOX_API_KEY_ENV}, or both ${ACCESS_KEY_ID_ENV} and ${ACCESS_KEY_SECRET_ENV}. ` +
-  `Those are the only credential environment variables that are read (${WHERE}). ` +
-  `The base URL is ${SANDBOX_BASE_URL_ENV}, the domain is ${SANDBOX_DOMAIN_ENV}, and the region is ${REGION_ENV}.`;
+  API_KEY_ENV_SUGGESTION +
+  ` The base URL is ${SANDBOX_BASE_URL_ENV}, the domain is ${SANDBOX_DOMAIN_ENV}, and the region is ${REGION_ENV}.`;
