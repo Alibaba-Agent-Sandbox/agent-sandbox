@@ -1,5 +1,5 @@
 # Decision: Separate CLI runtime API-key and control-plane AK/SK authentication
-Status: proposed
+Status: implemented
 
 ## Problem
 

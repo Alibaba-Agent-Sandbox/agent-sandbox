@@ -1,5 +1,5 @@
 # Decision: Remove CLI root cycles and upward exception imports
-Status: proposed
+Status: implemented
 
 ## Problem
 

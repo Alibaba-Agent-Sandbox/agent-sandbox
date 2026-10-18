@@ -1,5 +1,5 @@
 # Decision: Preserve the supported CLI runtime during CI dependency updates
-Status: proposed
+Status: implemented
 
 ## Problem
 

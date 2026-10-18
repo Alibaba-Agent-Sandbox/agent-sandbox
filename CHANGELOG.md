@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Removed the unconfirmed automatic AK/SK-to-sandbox-key RPC exchange and its private signing/parser helpers. Sandbox requests now fail locally without an API Key; official template/ACR AK/SK operations remain. Explicit custom exchange adapters remain and reject empty/structured token returns. This changes AK/SK-only runtime authentication; see the bilingual migration guide.
 ### Changed
 
+- Validate compatible Vitest5.0.4/typescript-eslint8.71.2 patches together on supported Node20/22; index accepted CLI cleanup decisions as implemented.
+
 - Separate command error rendering from the CLI root and place shared exception/provider error values in lower layers. Existing deep imports re-export the same values; command behavior is unchanged.
 
 - CI and release workflows use setup-node v7 while retaining explicit Node 20/22 targets. Automatic incompatible Commander/TypeScript/Node-type major bumps are deferred to explicit compatibility migrations; patch/minor updates continue.
