@@ -1,4 +1,5 @@
 import { CONFIG_METADATA } from "./metadata.js";
+import { TemplateManager } from "./template.js";
 /** The built-in provider: Alibaba Cloud Express Edition (`alicloud-express`). */
 
 import { CodeInterpreterProtocol } from "../shared/e2b/code_interpreter.js";
@@ -11,6 +12,7 @@ import type { SandboxInfo } from "../../models/sandbox.js";
 import { loadConfig, type TransportConfig } from "../../transport/config.js";
 import { EnvdTokenManager } from "../shared/e2b/auth.js";
 import { TerminalSession } from "../shared/e2b/terminal.js";
+import { envdUrl } from "../shared/e2b/url.js";
 import type { LayeredConfig } from "../../transport/config_layers.js";
 import { HttpClient } from "../../transport/http.js";
 import {
@@ -72,7 +74,7 @@ export class AlicloudExpressProvider extends Provider {
   }
 
   override resolveSessionUrl(info: SandboxInfo, config: TransportConfig): string {
-    return info.envd_url || config.buildEnvdUrl(info.sandbox_id);
+    return info.envd_url || envdUrl(info.sandbox_id, config.domain);
   }
 
   override async resolveSessionCapabilities(template: string, _info: SandboxInfo) {
@@ -91,6 +93,12 @@ export class AlicloudExpressProvider extends Provider {
       access_key_secret: config.access_key_secret, region: config.region });
     const http = new HttpClient(config, auth, { envelope_connect: true });
     return [config, auth, http, new SandboxProtocol(http)];
+  }
+
+  override async buildTemplateManager(config: LayeredConfig) {
+    const auth = createAuthProvider({ api_key: config.sandbox_api_key, access_key_id: config.access_key_id,
+      access_key_secret: config.access_key_secret, region: config.region });
+    return new TemplateManager(new HttpClient(config.toTransportConfig(), auth));
   }
 
   override configKeys(): typeof ALICLOUD_EXPRESS_KEYS {

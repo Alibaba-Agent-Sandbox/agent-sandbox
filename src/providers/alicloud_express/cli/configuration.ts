@@ -19,7 +19,7 @@ export const CONFIGURATION_UI: ProviderConfigUi = {
   ],
   buildFields: [
     { key: "acr_namespace", env: "ACR_NAMESPACE", prompt: "ACR namespace (needed by abx template install / build / deploy)", current: true, result: "set" },
-    { key: "access_key_id", env: "ALICLOUD_ACCESS_KEY_ID", prompt: "Alibaba Cloud AccessKey ID (template deploy / ACR push)", current: true, result: "stored" },
+    { key: "access_key_id", env: "ALICLOUD_ACCESS_KEY_ID", prompt: "Alibaba Cloud AccessKey ID (template deploy / ACR push, input masked)", hidden: true, result: "stored" },
     { key: "access_key_secret", env: "ALICLOUD_ACCESS_KEY_SECRET", prompt: "Alibaba Cloud AccessKey Secret (input masked)", hidden: true, result: "stored" },
   ],
   noninteractiveInit: ["  abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>", "  abx config set region cn-hangzhou"],

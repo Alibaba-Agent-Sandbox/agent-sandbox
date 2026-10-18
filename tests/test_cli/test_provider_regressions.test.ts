@@ -19,6 +19,7 @@ import {
 } from "../../src/transport/config.js";
 import { useIso } from "../_support/iso.js";
 import { useCapsys } from "./conftest.js";
+import { getProvider } from "../../src/providers/registry.js";
 
 const iso = useIso();
 const cap = useCapsys();
@@ -55,17 +56,15 @@ describe("sandbox id that is not a string", () => {
   });
 
   it("test_list_is_membership_and_null_is_skipped", () => {
-    const [defaultProvider, defaultId] = _selectProvider(null, null);
-    expect(defaultProvider.id).toBe("alicloud-express");
-    expect(defaultId).toBeNull();
+    expect(_selectProvider(null, null)).toEqual([getProvider("alicloud-express"), null]);
     const [prov, bare] = _selectProvider(null, ["http://x"]);
-    expect(prov.id).toBe("alicloud-express");
+    expect(prov).toBe(getProvider("alicloud-express"));
     expect(bare).toEqual(["http://x"]);
   });
 });
 
 describe("verbose config load", () => {
-  it("test_verbose_layered_loading_does_not_duplicate_legacy_logs", async () => {
+  it("test_verbose_layered_loading_has_no_legacy_duplicate_log", async () => {
     iso.writeToml('[transport]\nregion = "cn-hangzhou"\n');
     _setConfigFile(iso.toml);
     _setEnvFileCandidates([iso.env]);
@@ -73,7 +72,6 @@ describe("verbose config load", () => {
     await main({ args: ["-v", "list"] });
     const { err } = cap.readouterr();
     const loads = err.split("\n").filter((line) => line.includes("Loaded config"));
-    // Provider dispatch now reads the layered configuration directly.
     expect(loads).toEqual([]);
   });
 });

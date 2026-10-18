@@ -1,37 +1,12 @@
-import { ApiKeyAuth, PLATFORM_AUTH_HEADER, type AuthProvider } from "../../transport/auth_contract.js";
-export { ApiKeyAuth, PLATFORM_AUTH_HEADER, type AuthProvider } from "../../transport/auth_contract.js";
-/**
- * Authentication providers for Platform API and Sandbox envd API.
- *
- * Sandbox requests use an explicitly configured API key as an Authorization Bearer.
- * AK/SK belongs to official control-plane APIs. AkSkAuth is an explicit custom
- * exchange adapter; no default credential-resource creation occurs.
- *
- * After sandbox creation, envd API uses envdAccessToken from create response,
- * sent via multiple headers (X-Access-Token, E2b-Sandbox-Id, etc. 已实测验证).
- */
-
-import {
-  InvalidAPIKeyError,
-  InvalidCredentialsError,
-  TokenExchangeError,
-  TokenExpiredError,
-} from "../../models/errors.js";
+/** Express authentication: explicit sandbox API keys; control-plane AK/SK remains separate. */
+import { InvalidAPIKeyError, InvalidCredentialsError, TokenExchangeError, TokenExpiredError } from "../../models/errors.js";
 import { pyStrip } from "../../utils/_pyformat.js";
 import { AKSK_ENV_SUGGESTION, CREDENTIAL_ENV_SUGGESTION } from "./credential_names.js";
 import { getLogger } from "../../utils/logging.js";
-
+import { ApiKeyAuth, PLATFORM_AUTH_HEADER, type AuthProvider } from "../../transport/auth_contract.js";
+export { ApiKeyAuth, PLATFORM_AUTH_HEADER, type AuthProvider } from "../../transport/auth_contract.js";
+export * from "../shared/e2b/auth.js";
 const logger = getLogger("transport.auth");
-
-/** Protocol for authentication providers. */
-
-/**
- * API Key authentication for Platform API.
- *
- * Uses ABX_SANDBOX_API_KEY environment variable or explicit api_key parameter.
- * Sends an Authorization Bearer header on Platform API requests.
- */
-
 export type ExchangeFunc = (access_key_id: string, access_key_secret: string) => Promise<string>;
 
 /**
@@ -40,6 +15,9 @@ export type ExchangeFunc = (access_key_id: string, access_key_secret: string) =>
  * Alibaba token exchange or CreateApiKey operation is supplied.
  */
 export class AkSkAuth implements AuthProvider {
+  authenticationError(path: string): InvalidCredentialsError {
+    return new InvalidCredentialsError(`The Platform API rejected the AK/SK credentials (HTTP 401) for ${path}.`);
+  }
   static TOKEN_TTL = 3600; // Legacy custom cache policy, not a platform TTL.
   static REFRESH_BEFORE_EXPIRY = 300;
 
@@ -112,19 +90,11 @@ export class AkSkAuth implements AuthProvider {
     await this._exchangeToken();
   }
 
-  authenticationError(path: string): InvalidCredentialsError {
-    return new InvalidCredentialsError(`The Platform API rejected the AK/SK credentials (HTTP 401) for ${path}.`);
-  }
-
   /** Set the token exchange function (called by transport layer). */
   setExchangeFunc(func: ExchangeFunc | null): void {
     this._exchange_func = func;
   }
 }
-
-export { EnvdTokenManager, ENVD_AUTH_HEADER, ENVD_SANDBOX_ID_HEADER, ENVD_SANDBOX_PORT_HEADER,
-  _ENVD_BASIC_AUTH, buildEnvdHeaders, buildEnvdHeaders as build_envd_headers } from "../shared/e2b/auth.js";
-export type { EnvdTokenOptions } from "../shared/e2b/auth.js";
 
 export interface CreateAuthProviderOptions {
   api_key?: string | null;
@@ -161,7 +131,4 @@ export function createAuthProvider(opts: CreateAuthProviderOptions = {}): AuthPr
   });
 }
 
-// snake_case aliases for the Python-named public functions (the Python module exports these names).
-export {
-  createAuthProvider as create_auth_provider,
-};
+export { createAuthProvider as create_auth_provider };

@@ -1,4 +1,5 @@
 import { sessionAuth as e2bSessionAuth, sessionProtocols as e2bSessionProtocols, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
+import { envdUrl } from "./shared/e2b/url.js";
 import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
 import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
 /** `rest` providers: a declarative endpoint preset for any E2B-protocol backend (no code). */
@@ -50,7 +51,7 @@ export class RestProvider extends Provider {
     return e2bOpenTerminal(context, opts);
   }
   override buildSessionProtocols(http: HttpClient) { return e2bSessionProtocols(http); }
-  override resolveSessionUrl(info: SessionInfo, config: import("../transport/config.js").TransportConfig) { return info.envd_url || config.buildEnvdUrl(info.sandbox_id); }
+  override resolveSessionUrl(info: SessionInfo, config: import("../transport/config.js").TransportConfig) { return info.envd_url || envdUrl(info.sandbox_id, config.domain); }
   override kind = "rest" as const;
   readonly id: string;
   private readonly authCfg: Dict;

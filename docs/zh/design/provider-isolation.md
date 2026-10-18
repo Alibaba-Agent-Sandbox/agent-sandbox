@@ -12,7 +12,7 @@
 | 认证、端点、协议映射、后端错误和状态、生命周期、可选创建参数 | 所选 Provider |
 | 模板认证、构建、注册、轮询、删除以及 Docker/镜像仓库细节 | Provider 模板实现 |
 | 模板源码搜索下载、项目生成、运行时验证 | 宿主，通过所选 Provider 的元数据和工厂调用 |
-| 极速版 SDK、AK/SK 签名和换取凭据、FC/ACR 部署、CLI 参数和提示、AI 管理工具定义 | `providers/alicloud_express/` |
+| 极速版 SDK、管理面签名、显式自定义凭据交换、FC/ACR 部署、CLI 参数和提示、AI 管理工具定义 | `providers/alicloud_express/` |
 | 可复用的 E2B/envd 协议及 token 头格式 | `providers/shared/e2b/`，由 Provider 显式选用 |
 
 发行包的组装入口注册内置适配器、配置描述、CLI 扩展和 AI 扩展。生成的配置目录属于
@@ -53,3 +53,14 @@ Provider 显式声明 `createOptions` / `create_options`，在 I/O 前检查。
 Git 插件继续使用已有的校验、授权同意和回滚更新流程，详见
 [迁移边界与更新](provider-portability-and-updates.md)。解耦不等于 SDK 零改动迁移，
 也不会升级正在运行的沙箱或使各后端自动达到相同能力。
+
+## 与当前宿主整合
+
+通用命令和 Provider 扩展均使用独立的 `cli/error_handler.ts` 渲染错误，回调不导入
+CLI 根模块。认证错误由所选认证适配器分类。极速版沙箱调用需要沙箱 API Key；
+管理面 AK/SK 不会在沙箱操作中隐式创建密钥。
+
+E2B/envd URL 格式由协议适配器维护。两种配置视图的历史 URL 方法只委托发行包的
+兼容构建器。已淘汰的原始 Dockerfile `POST /templates` 构建路径保持移除；项目发布
+使用 Provider 自己的 CLI 扩展，已推送镜像使用当前适配接口。缺失的可选模板方法
+返回 E8004。工具发现保留公共顺序，并按所选 Provider 重新生成 Schema。

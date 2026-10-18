@@ -59,3 +59,4 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Compatible tool patches and accepted records](notes/proposed/process/2026-10-18-compatible-tool-patches.md).
 
 - [Provider/main integration](notes/proposed/architecture/2026-10-18-provider-main-integration.md) · [verification](evidence/verify/2026-10-18-provider-main-integration.md)
+- [Current-host provider integration](evidence/verify/2026-10-18-provider-current-host-checkpoint.md)

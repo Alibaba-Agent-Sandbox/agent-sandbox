@@ -79,7 +79,6 @@ export const __all__ = [
   "SandboxStatus",
   "SandboxConfig",
   "SandboxInfo",
-  "validateVolumeMounts",
   // Process
   "ProcessChunkType",
   "ProcessChunk",

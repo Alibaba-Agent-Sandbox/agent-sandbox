@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Integrate provider isolation with current host cleanup/authentication; keep URL conventions and template work in adapters, synchronize AI schema/handler discovery, preserve choice diagnostics and verbose configuration reporting. Minimal Python images support process inspection without procps and valid typed metrics collection.
+
 - Align current CLI/Skill installation instructions with published v0.3.0 binary assets and the Python SDK paired-source distribution; retire unavailable npm/index commands.
 
 - Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.

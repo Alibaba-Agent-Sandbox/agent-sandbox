@@ -9,6 +9,7 @@ import { INT } from "../types.js";
 import { sysExit } from "../errors.js";
 import { getFormatter } from "../formatters.js";
 import { handleErrors } from "../error_handler.js";
+import { shlexQuote } from "../../api/_shlex.js";
 
 /** Connect to a sandbox by ID. */
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {
@@ -121,9 +122,33 @@ export const process_info = command("info", {
     const sandbox = await _connectSandbox(sandbox_id);
 
     // Use ps for process info
-    const result = (await sandbox.commands.run(`ps -p ${pid} -o pid=,ppid=,user=,stat=,rss=,etime=,comm= 2>/dev/null`, {
+    let result = (await sandbox.commands.run(`ps -p ${pid} -o pid=,ppid=,user=,stat=,rss=,etime=,comm= 2>/dev/null`, {
       timeout: 10,
     })) as ProcessResult;
+
+    if (result.exit_code !== 0 || !pyStrip(result.stdout)) {
+      // Minimal images may have Python without procps. Read the same kernel data.
+      const source = [
+        "import os, pwd, sys",
+        "from pathlib import Path",
+        `p = Path('/proc') / ${JSON.stringify(String(pid))}`,
+        "try:",
+        "    raw = (p / 'stat').read_text()",
+        "    command = raw[raw.index('(') + 1:raw.rindex(')')].replace('\\n', ' ')",
+        "    fields = raw[raw.rindex(')') + 2:].split()",
+        "    uid = p.stat().st_uid",
+        "    try: user = pwd.getpwuid(uid).pw_name",
+        "    except KeyError: user = str(uid)",
+        "    try:",
+        "        uptime = float(Path('/proc/uptime').read_text().split()[0])",
+        "        elapsed = str(max(0, int(uptime - int(fields[19]) / os.sysconf('SC_CLK_TCK')))) + 's'",
+        "    except (OSError, ValueError): elapsed = 'N/A'",
+        "    rss = int(fields[21]) * os.sysconf('SC_PAGE_SIZE') // 1024",
+        `    print(${JSON.stringify(String(pid))}, fields[1], user, fields[0], rss, elapsed, command)`,
+        "except (OSError, ValueError, IndexError): sys.exit(1)",
+      ].join("\n");
+      result = await sandbox.commands.run(`python3 -c ${shlexQuote(source)} 2>/dev/null`, { timeout: 10 }) as ProcessResult;
+    }
 
     if (result.exit_code !== 0 || !pyStrip(result.stdout)) {
       fmt.printError(`Process ${pid} not found or not accessible.`);

@@ -197,7 +197,10 @@ export default {
       json: (j) => { const k = Object.keys(j.variables).sort().join(','); if (k !== 'HOME,PATH') throw new Error(`variables: ${k}`); },
     },
     { id: 'system-ports', title: 'sandbox system ports exits 0, or 1 with an explanatory message when ss/netstat are missing', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'ports', sid(ctx)], exit: [0, 1] },
-    { id: 'system-metrics', title: 'sandbox system metrics shows uptime and filesystem usage', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'metrics', sid(ctx)], stdout: [/load average|<uptime>/, 'Filesystem'] },
+    { id: 'system-metrics', title: 'sandbox system metrics returns measured CPU load and filesystem usage', requires: ['create-json'], argv: (ctx) => ['--json', 'sandbox', 'system', 'metrics', sid(ctx)],
+      jsonShape: { cpu_load_1m: 'number', cpu_load_5m: 'number', cpu_load_15m: 'number', disk_total_gb: 'number', disk_used_gb: 'number', disk_free_gb: 'number' },
+      json: (j) => { for (const key of ['cpu_load_1m', 'cpu_load_5m', 'cpu_load_15m', 'disk_used_gb', 'disk_free_gb']) if (!Number.isFinite(j[key]) || j[key] < 0) throw new Error(`invalid measurement: ${key}`); if (!(j.disk_total_gb > 0)) throw new Error('disk capacity must be positive'); },
+    },
     { id: 'system-packages', title: 'sandbox system packages lists installed packages', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'packages', sid(ctx)], exit: [0, 1], output: /Name|packages|pip/i },
     {
       id: 'capabilities-json', title: 'sandbox capabilities --json: {capabilities:[...]} includes shell and files', requires: ['create-json'], argv: (ctx) => ['--json', 'sandbox', 'capabilities', sid(ctx)], jsonShape: { capabilities: ['string'] },

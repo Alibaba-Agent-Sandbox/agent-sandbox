@@ -1,4 +1,4 @@
-import { defaultConfig, defaultRegion } from "../utils/bundled_config.js";
+import { defaultConfig, defaultRegion, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
 /**
  * Layered configuration loading.
  *

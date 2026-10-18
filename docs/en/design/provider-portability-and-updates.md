@@ -115,3 +115,7 @@ the recorded mandatory local aggregate failures. Cold registry/SDK imports now r
 before test hooks/operation assertions without increasing timeout budgets. Verify
 exact-head remote checks/reviews, then land the shared host before consumers.
 None of these pending gates is waived by this design.
+
+The current isolation integration preserves explicit sandbox API-key authentication and
+the independent CLI error renderer. URL helpers remain compatibility facades over the
+selected wire adapter. See [provider isolation](provider-isolation.md).

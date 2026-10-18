@@ -7,7 +7,8 @@ import { describe, expect, it } from "vitest";
 import { cli, handleErrors } from "../../src/cli/main.js";
 import { OutputManager, enableVerbose, getOutput } from "../../src/cli/output.js";
 import { TOP_LEVEL_COMMANDS } from "../../src/cli/command_surface.js";
-import { Context, command } from "../../src/cli/kit.js";
+import { Context, command, argument, option } from "../../src/cli/kit.js";
+import { Choice } from "../../src/cli/types.js";
 import { UsageError } from "../../src/cli/errors.js";
 import { echo } from "../../src/cli/io.js";
 import { CliRunner } from "../helpers/cliRunner.js";
@@ -16,6 +17,19 @@ import { ALL_COMMANDS, commandModuleExists, useCapsys } from "./conftest.js";
 const capsys = useCapsys();
 
 const runner = (): CliRunner => new CliRunner();
+
+describe("choice diagnostics", () => {
+  it.each(["option", "argument"])("retains invalid %s values and allowed choices", async (kind) => {
+    const params = kind === "option"
+      ? [option(["--target"], { type: new Choice(["first", "second"]) })]
+      : [argument("target", { type: new Choice(["first", "second"]) })];
+    const cmd = command("choose", { params, callback: () => undefined });
+    const result = await runner().invoke(cmd, kind === "option" ? ["--target", "invalid"] : ["invalid"]);
+    expect(result.exit_code).toBe(2);
+    expect(result.stderr).toContain("'invalid' is not one of 'first', 'second'");
+    expect(result.stdout).toBe("");
+  });
+});
 
 describe("TestLazyGroup", () => {
   // Test the LazyGroup lazy-loading mechanism.

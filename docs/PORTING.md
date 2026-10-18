@@ -133,3 +133,8 @@ checkout location; regenerate fixtures with
    missing tests, weakened assertions. They add failing tests / diff cases first, then report.
 3. Builders fix; adversaries re-verify. Loop until an adversary finds nothing it can reproduce.
 4. Every finding and its resolution is appended to `parity/review-log.md`.
+
+
+The frozen Python error oracle is retained. Provider isolation deliberately changes only
+`InvalidCredentialsError`'s default suggestion to provider-neutral configuration guidance;
+explicit suggestions and all other recorded variants retain exact formatting parity.

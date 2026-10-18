@@ -1,4 +1,4 @@
-import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig } from "../utils/bundled_config.js";
+import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
 /**
  * Layered configuration with provider selection (port of the layered half of
  * `agent_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).

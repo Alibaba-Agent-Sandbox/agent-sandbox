@@ -17,7 +17,7 @@ import { AuthenticationError, QuotaExceededError, TemplateNotFoundError } from "
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
 import * as protocolSandbox from "../../src/protocol/sandbox.js";
-import * as transportAuth from "../../src/transport/auth.js";
+import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { resetConfig } from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";

@@ -31,6 +31,14 @@ function bytesDecodeReplace(raw: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(raw);
 }
 
+export interface TemplateCreateOptions {
+  alias?: string | null;
+  cpu_count?: number | null;
+  memory_mb?: number | null;
+  start_cmd?: string | null;
+  ready_cmd?: string | null;
+}
+
 export interface TriggerBuildV2Options {
   from_image?: string | null;
   from_image_registry?: Record<string, string> | null;
@@ -48,7 +56,7 @@ export interface WaitForBuildOptions {
   on_poll?: ((status: string, elapsed: number) => void) | null;
 }
 
-/** Typed wrapper for current Platform API template operations. */
+/** Typed wrapper for Platform API template operations. 已实测验证：POST /templates 返回 HTTP 202, templateID + buildID。 */
 export class TemplateProtocol {
   _http: HttpClient;
 
@@ -56,7 +64,6 @@ export class TemplateProtocol {
     this._http = http_client;
   }
 
-  /** List templates. GET /templates → 200 */
   async list(): Promise<Record<string, any>[]> {
     const response = await this._http.platformRequest("GET", "/templates");
     const data = response.json();

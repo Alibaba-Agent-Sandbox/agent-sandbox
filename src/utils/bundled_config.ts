@@ -13,3 +13,9 @@ export const defaultConfig = CONFIG_METADATA;
 export function bundledConfig(id: string): BundledConfig | undefined { return bundledConfigs.find((schema) => schema.id === id); }
 export const bundledKeys = bundledConfigs.flatMap((schema) => [...schema.keys]);
 export function defaultRegion(): string { return String(defaultConfig.keys.find((key) => key.key === "region")?.default ?? ""); }
+
+/** Legacy URL helpers consume explicit distribution metadata without adapter discovery. */
+export const legacyDataPlanePort = 49983;
+export function legacyDataPlaneUrl(sandboxId: string, domain: string): string {
+  return `https://${legacyDataPlanePort}-${sandboxId}.${domain}`;
+}

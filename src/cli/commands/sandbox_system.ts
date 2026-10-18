@@ -1,3 +1,4 @@
+import { shlexQuote } from "../../api/_shlex.js";
 /** Sandbox system and capabilities CLI commands (port of `cli/commands/sandbox_system.py`). */
 
 import type { Sandbox } from "../../api/sandbox.js";
@@ -492,23 +493,23 @@ export const system_metrics = command("metrics", {
     const fmt = getFormatter(ctx);
     const sandbox = await _connectSandbox(sandbox_id);
 
-    const script =
-      'python3 -c "' +
-      "import os, shutil, json;" +
-      "try:\\n" +
-      "  load1, load5, load15 = os.getloadavg()\\n" +
-      "except OSError:\\n" +
-      "  load1 = load5 = load15 = 0.0\\n" +
-      "d = shutil.disk_usage('/')\\n" +
-      "print(json.dumps({" +
-      "'cpu_load_1m': round(load1,2)," +
-      "'cpu_load_5m': round(load5,2)," +
-      "'cpu_load_15m': round(load15,2)," +
-      "'disk_total_gb': round(d.total/(1024**3),2)," +
-      "'disk_used_gb': round(d.used/(1024**3),2)," +
-      "'disk_free_gb': round(d.free/(1024**3),2)" +
-      "}))" +
-      '"';
+    const source = [
+      "import os, shutil, json",
+      "try:",
+      "    load1, load5, load15 = os.getloadavg()",
+      "except (AttributeError, OSError):",
+      "    load1 = load5 = load15 = None",
+      "d = shutil.disk_usage('/')",
+      "print(json.dumps({",
+      "    'cpu_load_1m': round(load1, 2) if load1 is not None else None,",
+      "    'cpu_load_5m': round(load5, 2) if load5 is not None else None,",
+      "    'cpu_load_15m': round(load15, 2) if load15 is not None else None,",
+      "    'disk_total_gb': round(d.total / (1024 ** 3), 2),",
+      "    'disk_used_gb': round(d.used / (1024 ** 3), 2),",
+      "    'disk_free_gb': round(d.free / (1024 ** 3), 2)",
+      "}))",
+    ].join("\n");
+    const script = `python3 -c ${shlexQuote(source)}`;
     let result = (await sandbox.commands.run(script, { timeout: 15 })) as ProcessResult;
 
     if (result.exit_code !== 0) {
