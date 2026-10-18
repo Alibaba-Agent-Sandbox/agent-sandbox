@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Removed
 
+- Retired unreachable SDK-port Image/TemplateManager, named-session persistence/models, GlobalConfig, SecretStore, generic retry and PortClient implementations, their dedicated tests and stale exports. Removed the unused deprecated Dockerfile `POST /templates` creation path; active v3/v2 and official template operations remain. CLI commands and the Python parity ledger are unchanged. See the bilingual module retirement guide for programmatic replacements.
+
 - Removed the unconfirmed automatic AK/SK-to-sandbox-key RPC exchange and its private signing/parser helpers. Sandbox requests now fail locally without an API Key; official template/ACR AK/SK operations remain. Explicit custom exchange adapters remain and reject empty/structured token returns. This changes AK/SK-only runtime authentication; see the bilingual migration guide.
 ### Changed
 
