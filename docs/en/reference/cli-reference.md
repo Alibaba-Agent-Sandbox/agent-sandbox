@@ -29,7 +29,7 @@ The following command groups from earlier pre-releases were removed before the f
 |---------|-------------|
 | `abx auth login/logout/status/switch` | `abx config set sandbox_api_key <value>` to persist credentials, or the `ABX_SANDBOX_API_KEY` environment variable; check the effective state with `abx config list` |
 | `abx secret create/list/delete/inject` | Environment variables or `.env` files for credentials and secrets; sandbox environment injection via `abx create --env KEY=VALUE` |
-| `abx session` / `abx sessions list/info/rename/export/import/clean` | Session data is still stored locally in `~/.abx/sessions/` by `LocalSessionStore`; use the SDK's `Sandbox.connect()` programmatically (the interactive REPL `abx connect <SANDBOX_ID>` remains available) |
+| `abx session` / `abx sessions list/info/rename/export/import/clean` | Named session persistence belongs to the Python SDK; use its `LocalSessionStore` and `Sandbox.connect()` programmatically (the interactive REPL `abx connect <SANDBOX_ID>` remains available) |
 | `abx skill search/install/list/create/publish` | Templates are the current capability-distribution mechanism (`abx template search` / `abx template install`); the repository-root `SKILL.md` documents agent-facing usage |
 
 See the `Unreleased` section of the repository `CHANGELOG.md` for the full breaking-change list and migration notes.

@@ -45,3 +45,5 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 - Removals of obsolete files (Python leftovers and similar) are recorded as ADRs under `notes/implemented/process/`.
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
+
+Current cleanup proposal: [retire unused CLI ports](notes/proposed/architecture/2026-10-18-retire-orphan-cli.md).

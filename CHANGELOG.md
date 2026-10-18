@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed
+
+- Retired unreachable SDK-port Image/TemplateManager, named-session persistence/models, GlobalConfig, SecretStore, generic retry and PortClient implementations, their dedicated tests and stale exports. Removed the unused deprecated Dockerfile `POST /templates` creation path; active v3/v2 and official template operations remain. CLI commands and the Python parity ledger are unchanged. See the bilingual module retirement guide for programmatic replacements.
+
 ### Fixed
 
 - Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.

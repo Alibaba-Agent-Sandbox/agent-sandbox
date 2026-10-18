@@ -31,6 +31,10 @@ do. Neither this CLI (`cli/src`) nor the Python oracle reads `ABX_NO_KEYCHAIN`.
 
 ## Module mirroring
 
+Module mirroring applies to implementations reached by the CLI, not the entire old SDK.
+The [retirement boundary](en/design/cli-module-retirement.md) lists removed SDK-only ports;
+no CLI parity-ledger entry or golden capture is removed by that retirement.
+
 Python `src/agent_sandbox/<pkg>/<mod>.py` maps to `src/<pkg>/<mod>.ts` (kebab/snake file names are kept in
 `camelCase`-free form: keep the Python file name, e.g. `session_manager.ts`, `docker_builder.ts`, `config_cmd.ts`).
 Imports use `.js` extensions (NodeNext ESM).

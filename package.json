@@ -19,7 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-build-output.mjs && tsc -p tsconfig.build.json",
     "build:binary": "node scripts/build_binary.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",

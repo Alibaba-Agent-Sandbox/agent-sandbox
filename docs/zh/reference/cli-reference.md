@@ -29,7 +29,7 @@ abx
 |--------|----------|
 | `abx auth login/logout/status/switch` | 用 `abx config set sandbox_api_key <value>` 持久化凭证，或直接使用 `ABX_SANDBOX_API_KEY` 环境变量；用 `abx config list` 查看生效状态 |
 | `abx secret create/list/delete/inject` | 用环境变量或 `.env` 文件管理凭证与密钥；沙箱环境注入用 `abx create --env KEY=VALUE` |
-| `abx session` / `abx sessions list/info/rename/export/import/clean` | 会话数据仍由 `LocalSessionStore` 存储在本地 `~/.abx/sessions/`；在程序中用 SDK 的 `Sandbox.connect()`（交互式 REPL `abx connect <SANDBOX_ID>` 仍可用） |
+| `abx session` / `abx sessions list/info/rename/export/import/clean` | 命名会话持久化归 Python SDK 所有；在程序中用其 `LocalSessionStore` 和 `Sandbox.connect()`（交互式 REPL `abx connect <SANDBOX_ID>` 仍可用） |
 | `abx skill search/install/list/create/publish` | 模板是当前的能力分发机制（`abx template search` / `abx template install`）；仓库根目录的 `SKILL.md` 面向 Agent 使用说明 |
 
 完整的 breaking change 清单与迁移说明见仓库 `CHANGELOG.md` 的 `Unreleased` 节。

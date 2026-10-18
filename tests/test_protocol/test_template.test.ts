@@ -2,7 +2,6 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SandboxError } from "../../src/models/errors.js";
 import { TemplateBuildError, TemplateBuildTimeoutError, TemplateProtocol, _seams } from "../../src/protocol/template.js";
 import { ApiKeyAuth } from "../../src/transport/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
@@ -25,7 +24,6 @@ function makeProtocol(): TemplateProtocol {
 
 // --- Sample API response payloads ---
 
-const _CREATE_RESPONSE = { templateID: "tpl-abc123", buildID: "bld-xyz789" };
 
 const _TEMPLATE_RESPONSE = {
   templateID: "tpl-abc123",
@@ -48,51 +46,6 @@ const _BUILD_STATUS_ERROR = {
 };
 
 const bodyOf = (request: { content: Uint8Array }) => JSON.parse(Buffer.from(request.content).toString("utf-8"));
-
-describe("TestCreate", () => {
-  // Test TemplateProtocol.create().
-  it("test_create_minimal", async () => {
-    const protocol = makeProtocol();
-    httpx_mock.add_response({ url: `${BASE}/templates`, method: "POST", json: _CREATE_RESPONSE });
-    const result = await protocol.create("FROM python:3.11\nRUN pip install flask");
-
-    expect(result["templateID"]).toBe("tpl-abc123");
-    expect(result["buildID"]).toBe("bld-xyz789");
-
-    const request = httpx_mock.get_request();
-    const body = bodyOf(request);
-    expect(body["dockerfile"]).toBe("FROM python:3.11\nRUN pip install flask");
-  });
-
-  it("test_create_with_options", async () => {
-    const protocol = makeProtocol();
-    httpx_mock.add_response({ url: `${BASE}/templates`, method: "POST", json: _CREATE_RESPONSE });
-    const result = await protocol.create("FROM python:3.11", {
-      alias: "my-tpl",
-      cpu_count: 2,
-      memory_mb: 4096,
-      start_cmd: "python app.py",
-      ready_cmd: "curl localhost:8080/health",
-    });
-    expect(result["templateID"]).toBe("tpl-abc123");
-
-    const request = httpx_mock.get_request();
-    const body = bodyOf(request);
-    expect(body["alias"]).toBe("my-tpl");
-    expect(body["cpuCount"]).toBe(2);
-    expect(body["memoryMB"]).toBe(4096);
-    expect(body["startCmd"]).toBe("python app.py");
-    expect(body["readyCmd"]).toBe("curl localhost:8080/health");
-  });
-
-  it("test_create_http_error", async () => {
-    const protocol = makeProtocol();
-    httpx_mock.add_response({ url: `${BASE}/templates`, method: "POST", status_code: 400, json: { message: "Invalid Dockerfile" } });
-    const p = protocol.create("INVALID");
-    await expect(p).rejects.toBeInstanceOf(SandboxError);
-    await expect(p).rejects.toThrow(/Invalid Dockerfile/);
-  });
-});
 
 describe("TestList", () => {
   // Test TemplateProtocol.list().

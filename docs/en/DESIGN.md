@@ -35,13 +35,12 @@ The CLI follows a strict layered structure — lower layers never import upper l
 graph TB
     BIN["bin — abx entry"]
     subgraph Front["Command line"]
-        FW["framework — click-compatible command framework"]
+        FW["cli/kit — Commander adapter"]
         CLI["cli — main, OutputManager, formatters"]
         CMD["cli/commands — command groups"]
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, template authoring"]
-        SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core"]
         API["api — Sandbox, files, code, commands, template"]
@@ -52,10 +51,8 @@ graph TB
     BIN --> CLI --> FW
     CLI --> CMD
     CMD --> AG
-    CMD --> SES
     CMD --> API
     AG --> API
-    SES --> API
     API --> PRO --> TRA --> MOD
 ```
 
@@ -121,7 +118,7 @@ graph TB
 
 ## Related SDK documentation
 
-The Python SDK (`agent-sandbox`), the in-sandbox server SDK and the platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The pages a CLI reader most often needs:
+The Python SDK (`agent-sandbox-client`), the in-sandbox server SDK and the platform contracts are documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk). The pages a CLI reader most often needs:
 
 - [Architecture](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md) — the SDK's six-layer architecture, which the CLI's client core mirrors
 - [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md) and [Sandbox Types](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)

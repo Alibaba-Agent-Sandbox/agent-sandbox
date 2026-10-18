@@ -5,8 +5,7 @@
 > [MCP Server](mcp-server.md); the template catalog client in [Templates Catalog](templates-catalog.md).
 >
 > The CLI is a client of the Agent Sandbox platform. It re-implements, in TypeScript, the client-side layers it needs
-> (models, transport, protocol, high-level API, session store). Those layers mirror the concepts of the Python SDK
-> one-to-one; the SDK's own design is documented in the SDK repository (see
+> (models, transport, protocol, high-level API). The CLI keeps only the core implementations its commands use; the SDK's own design is documented in the SDK repository (see
 > [Related SDK documentation](#related-sdk-documentation) at the bottom of this page).
 
 ---
@@ -20,32 +19,29 @@ line needs; it has no Compat, Declarative, Extensions, Integrations or in-sandbo
 graph TB
     BIN["bin — abx executable entry (src/bin/abx.ts)"]
     subgraph Front["Command line"]
-        FW["framework — click-compatible command framework"]
+        FW["cli/kit — Commander command adapter"]
         CLI["cli — main, OutputManager, formatters, region option"]
         CMD["cli/commands — command groups"]
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, coding-agent adapter, template authoring/adoption"]
         PRV["provider layer — alicloud-express plus installed node, exec and rest (see section 8)"]
-        SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core (mirrors the SDK concepts)"]
-        API["api — Sandbox, files, code, commands, network, image, template, capability, session_manager"]
-        PRO["protocol — sandbox, filesystem, process, terminal, port, code_interpreter, template"]
+        API["api — Sandbox, files, code, commands, network, capability, docker_builder, fc_template"]
+        PRO["protocol — sandbox, filesystem, process, terminal, code_interpreter, template"]
         TRA["transport — HTTP, WebSocket, auth, codec, streaming, config loading"]
-        MOD["models — config, errors, sandbox, template, session, filesystem, process"]
-        UTL["utils — registry, template index, github token, secret store, logging, retry, dockerignore"]
+        MOD["models — errors, sandbox, template, filesystem, process"]
+        UTL["utils — registry, template index, github token, logging, dockerignore"]
     end
 
     BIN --> CLI
     CLI --> FW
     CLI --> CMD
     CMD --> AG
-    CMD --> SES
     CMD --> API
     CMD --> PRV
     AG --> API
-    SES --> API
     PRV --> API
     API --> PRO --> TRA
     TRA --> MOD
@@ -55,32 +51,29 @@ graph TB
 | Layer | Directory | Responsibility |
 |-------|-----------|----------------|
 | Entry | `src/bin/` | `abx.ts`, the executable entry point (built to `dist/bin/abx.js`, the `bin` target of the npm package) |
-| Command framework | `src/framework/` | A click-compatible mini framework (`Context`, `Command`, `Group`, `Option`, `Argument`, parameter types, help formatting, `termui` prompts, lazy sub-commands). It exists so the Node CLI keeps Click's parsing, help text, error text and exit-code behaviour byte for byte |
-| CLI | `src/cli/` | `main` (root group, global options), `output` (`OutputManager`), `formatters` (table / JSON / quiet), `region` (the shared command-level `--region` option), `_rich*` (terminal table rendering helpers) |
+| Command definitions | `src/cli/kit.ts`, `types.ts`, `io.ts`, `errors.ts` | Declarative command adapter over Commander, validation, terminal I/O and errors |
+| CLI | `src/cli/` | `main` (root group, global options), `output` (`OutputManager`), `formatters` (table / JSON / quiet), `region` (the shared command-level `--region` option), `table` (terminal tables) |
 | Command groups | `src/cli/commands/` | One module per command group, see section 4 |
 | Agent / MCP | `src/agent/` | MCP server (`mcp`, `mcp_http`, `mcp_main`, `tools`), host-side coding-agent adapter (`coding_agent`, `qwen_code`, `clarify`, `codegen`, `template_guide`) and template authoring/adoption (`adopt`, `dockerfile_sources`) |
-| Session | `src/session/` | `LocalSessionStore`: JSON session files under `~/.abx/sessions/` |
-| API | `src/api/` | `Sandbox` and its modules (`files`, `code`, `commands`, `network`), `image`, `template` (`TemplateManager`), `fc_template` (official CreateTemplate API adapter), `docker_builder` (local `docker build` + ACR push), `capability`, `session_manager` |
-| Protocol | `src/protocol/` | Typed wrappers for the platform API and the in-sandbox envd API (`sandbox`, `filesystem`, `process`, `terminal`, `port`, `code_interpreter`, `template`) |
+| API | `src/api/` | `Sandbox` and its modules (`files`, `code`, `commands`, `network`), `fc_template` (official CreateTemplate API adapter), `docker_builder` (local `docker build` + ACR push), `capability` |
+| Protocol | `src/protocol/` | Typed wrappers for the platform API and the in-sandbox envd API (`sandbox`, `filesystem`, `process`, `terminal`, `code_interpreter`, `template`) |
 | Transport | `src/transport/` | HTTP and WebSocket clients, API Key / AK-SK auth providers, codec, streaming, and the layered configuration loader (`config`) |
 | Models | `src/models/` | Typed data models and the error hierarchy (`errors`, codes `E1xxx`–`E7xxx`) |
-| Utils | `src/utils/` | GitHub / local template registry client, remote template index client, GitHub token guidance, secret store (`keychain`), logging, retry, `.dockerignore` matcher, dotenv/tar/YAML helpers |
+| Utils | `src/utils/` | GitHub / local template registry client, remote template index client, GitHub token guidance, logging, `.dockerignore` matcher, dotenv/tar/YAML helpers |
 
 Files whose names start with an underscore (for example `src/api/_yaml.ts`, `src/utils/_pyformat.ts`,
 `src/agent/_pycompat.ts`) are internal compatibility helpers that reproduce the exact semantics of the Python
 standard-library calls the original code relied on, so that wire output, `--json` output and on-disk files stay
 byte-identical.
 
-## 2. Command framework (`src/framework/`)
+## 2. Command definitions (`src/cli/kit.ts`)
 
-- Parameters and command attributes keep Click's snake_case names (`is_flag`, `help_option_names`); methods are
-  camelCase (`ctx.getHelp()`, `group.addCommand()`).
-- Python `None` is `null`; "no value yet" is the `UNSET` sentinel.
-- Everything that may run user code or load a lazy command is `async`. A command callback has the signature
-  `(ctx, params) => unknown | Promise<unknown>`, where `params` holds the values by parameter name.
-- Sub-commands can be registered lazily so that `abx --version` and `abx --help` do not load every command module
-  (the startup cost is tracked by `benchmarks/`).
-- Tests use a `CliRunner` helper (`tests/helpers/cliRunner.ts`), the counterpart of `click.testing.CliRunner`.
+Commander parses arguments and renders help. `kit.ts` adapts declarative `command`,
+`group`, `option` and `argument` definitions to Commander and supplies the async
+callback context. `types.ts`, `io.ts` and `errors.ts` provide value validation,
+terminal I/O and usage errors. There is no `src/framework/` runtime.
+Lazy command registration keeps unrelated modules out of version/help startup.
+See [the command contributor guide](../../../src/cli/commands/README.md).
 
 ## 3. Output and formatting (`src/cli/output.ts`, `src/cli/formatters.ts`)
 
@@ -118,21 +111,18 @@ exact parameters are in [CLI Command System](cli-design.md).
 Commands only orchestrate: they parse options through the framework, load configuration, call the `api` layer (or the
 `agent` layer for natural-language creation and MCP), and print through `OutputManager`.
 
-## 5. Client core: api, protocol, transport, session, models
+## 5. Client core: api, protocol, transport and models
 
-The CLI's client core mirrors the layering of the Python SDK so that behaviour, error codes and wire formats stay
-identical:
+The CLI shares wire concepts and error codes with the Python SDK. The [retirement boundary](cli-module-retirement.md) documents SDK-only ports removed from this repository:
 
-- **Transport** (`src/transport/`): `HttpClient` (retry, timeouts, connection handling), WebSocket helper, streaming
+- **Transport** (`src/transport/`): `HttpClient` (timeouts and connection handling), WebSocket helper, streaming
   decoder, `ApiKeyAuth` / `AkSkAuth` providers behind the `AuthProvider` interface, and `config.ts`, the layered
   loader that resolves code parameters, process environment (`ABX_*` and the vendor-official `ALICLOUD_*` / `ALIBABA_CLOUD_*` names), `.env` files (merged per
   key) and `~/.abx/config.toml`.
 - **Protocol** (`src/protocol/`): one class per wire surface (`SandboxProtocol`, `ProcessProtocol`,
-  `FilesystemProtocol`, `CodeInterpreterProtocol`, `TerminalSession`, `PortClient`, `TemplateProtocol`).
-- **API** (`src/api/`): the user-facing `Sandbox` class and its modules, `TemplateManager`, `Image`, `DockerBuilder`
+  `FilesystemProtocol`, `CodeInterpreterProtocol`, `TerminalSession`, `TemplateProtocol`).
+- **API** (`src/api/`): the internal `Sandbox` class and its modules, `DockerBuilder`
   and the official template API adapter.
-- **Session** (`src/session/`): `LocalSessionStore` persists named sessions as JSON files. Concurrent access is
-  guarded with a lock directory next to each file (Node has no `flock`; see `parity/KNOWN-GAPS.md`).
 - **Models** (`src/models/`): data fields that appear on the wire or in `--json` output keep their Python `snake_case`
   names and key order; exception classes keep their names, `code` and message text.
 
@@ -156,9 +146,9 @@ MCP behaviour (tools, session binding, transports, FC deployment) is specified i
 - Resolution order for every credential: explicit option → process environment → `./.env` → `~/.abx` (`.env`, then
   `config.toml`) → built-in default. Blank values do not count. The full table is in the
   [Configuration reference](../reference/configuration.md#credential-resolution).
-- On-disk state lives under `~/.abx/`: `config.toml`, `.env` (credentials, mode 600), `sessions/`, `templates/`,
+- On-disk state lives under `~/.abx/`: `config.toml`, `.env` (credentials, mode 600), `templates/`,
   `index/` (remote template index cache), `bin/` (installed coding agent), `generated/` (natural-language output),
-  and `secrets.json` (plaintext, mode 600; local development only).
+  plus provider installation receipts and engine discovery records.
 - `utils/github_token.ts` holds the single GitHub-token remedy text shared by the registry client and the template
   index client; `utils/template_index.ts` is the remote catalog client described in
   [Templates Catalog](templates-catalog.md).
@@ -174,18 +164,16 @@ MCP behaviour (tools, session binding, transports, FC deployment) is specified i
 cli/
 ├── src/
 │   ├── bin/               # abx.ts — executable entry point
-│   ├── framework/         # click-compatible command framework
-│   ├── cli/               # main, output, formatters, region, _rich*
+│   ├── cli/               # main, Commander adapter, output, formatters, region
 │   │   └── commands/      # config_cmd, deploy, mcp, provider, sandbox, sandbox_files, sandbox_process, sandbox_system, template
 │   ├── agent/             # MCP server, coding-agent adapter, template authoring/adoption
 │   ├── providers/         # builtin, node, exec, rest, installer, manifest
 │   ├── engine/            # local engine: HTTP, SSE and WebSocket on 127.0.0.1
-│   ├── session/           # LocalSessionStore
-│   ├── api/               # Sandbox, files, code, commands, network, image, template, capability, session_manager
+│   ├── api/               # Sandbox, files, code, commands, network, capability, docker_builder, fc_template
 │   ├── protocol/          # platform + envd protocol wrappers
 │   ├── transport/         # HTTP/WS, auth, codec, streaming, config
-│   ├── models/            # data models, errors, config
-│   └── utils/             # registry, template index, github token, secret store, logging, retry, helpers
+│   ├── models/            # data models and errors
+│   └── utils/             # registry, template index, github token, logging, compatibility helpers
 ├── tests/                 # mirrors src/ (test_api/, test_cli/, test_agent/, …); vitest; helpers/, fixtures/
 ├── parity/                # Python-test ledger and known gaps
 ├── scripts/               # build_binary.mjs, parity-coverage.mjs, repo checks, template deploy helpers
@@ -196,7 +184,7 @@ cli/
 
 ## 10. Build, packaging and the standalone binary
 
-- **npm package**: `npm run build` runs `tsc -p tsconfig.build.json` and emits `dist/`; `package.json#bin` maps
+- **npm package**: `npm run build` removes previous `dist/` output, runs `tsc -p tsconfig.build.json` and emits `dist/`; `package.json#bin` maps
   `abx` to `dist/bin/abx.js`; `files` is an allow-list (`dist`, `README.md`, `SKILL.md`, `LICENSE`, `NOTICE`).
   Node.js ≥ 20; CI runs the test matrix on Node 20 and 22.
 - **Release**: pushing a `vX.Y.Z` tag runs `release.yml`, which checks the tag against `package.json#version` and

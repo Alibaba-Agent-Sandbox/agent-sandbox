@@ -35,13 +35,12 @@ CLI 采用严格的分层结构——下层从不导入上层。完整说明（�
 graph TB
     BIN["bin — abx 入口"]
     subgraph Front["命令行"]
-        FW["framework — 兼容 click 的命令框架"]
+        FW["cli/kit — Commander 命令适配"]
         CLI["cli — main、OutputManager、格式化"]
         CMD["cli/commands — 命令组"]
     end
     subgraph Services["宿主侧服务"]
         AG["agent — MCP Server、模板编写"]
-        SES["session — LocalSessionStore"]
     end
     subgraph Core["客户端核心"]
         API["api — Sandbox、文件、代码、命令、模板"]
@@ -52,10 +51,8 @@ graph TB
     BIN --> CLI --> FW
     CLI --> CMD
     CMD --> AG
-    CMD --> SES
     CMD --> API
     AG --> API
-    SES --> API
     API --> PRO --> TRA --> MOD
 ```
 
