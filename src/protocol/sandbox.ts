@@ -10,7 +10,7 @@
 import { QuotaExceededError, SandboxCreationError, SandboxNotFoundError, TemplateNotFoundError } from "../models/errors.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../models/sandbox.js";
 import { HTTPStatusError, type HttpClient } from "../transport/http.js";
-import { dictGet, pyExcStr } from "../api/_pyerrors.js";
+import { dictGet, pyExcStr } from "../utils/_pyerrors.js";
 import { getLogger } from "../utils/logging.js";
 
 const logger = getLogger("protocol.sandbox");

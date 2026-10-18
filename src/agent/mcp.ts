@@ -17,7 +17,7 @@
 
 import type { Readable, Writable } from "node:stream";
 
-import { pyExcStr } from "../api/_pyerrors.js";
+import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import {
   AsyncLock,

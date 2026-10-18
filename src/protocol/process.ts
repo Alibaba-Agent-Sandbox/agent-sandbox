@@ -19,7 +19,7 @@ import { ConnectCodec } from "../transport/codec.js";
 import { StreamReader } from "../transport/streaming.js";
 import type { EnvdTokenManager } from "../transport/auth.js";
 import { HTTPStatusError, ReadTimeout, envdStatusError, type HttpClient } from "../transport/http.js";
-import { dictGet, ValueError } from "../api/_pyerrors.js";
+import { dictGet, ValueError } from "../utils/_pyerrors.js";
 import { pyRepr } from "../utils/_pyformat.js";
 import { pyFloat } from "../utils/coerce.js";
 import { getLogger } from "../utils/logging.js";

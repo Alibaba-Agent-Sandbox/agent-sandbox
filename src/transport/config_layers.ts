@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { ProviderConfigError } from "../providers/errors.js";
+import { ProviderConfigError } from "../models/provider_errors.js";
 import {
   ALICLOUD_EXPRESS_KEYS,
   BUILTIN_PROVIDER_ID,
