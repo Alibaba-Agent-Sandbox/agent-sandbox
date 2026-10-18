@@ -1,16 +1,23 @@
+import { unsupportedProtocol } from "./unsupported.js";
+import type { ProviderTemplateManager } from "./template_contract.js";
 /**
  * Provider contract: identity, feature matrix, config schema, infrastructure factory
  * (port of `agent_sandbox/providers/base.py`).
  */
 
 import { InvalidCredentialsError } from "../models/errors.js";
-import type { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
-import type { FilesystemProtocol } from "../protocol/filesystem.js";
-import type { ProcessProtocol } from "../protocol/process.js";
-import type { SandboxProtocol } from "../protocol/sandbox.js";
-import type { AuthProvider } from "../transport/auth.js";
+import type { CodeInterpreterProtocol } from "../protocol/contracts.js";
+import type { FilesystemProtocol } from "../protocol/contracts.js";
+import type { ProcessProtocol } from "../protocol/contracts.js";
+import type { SandboxProtocol } from "../protocol/contracts.js";
+import type { AuthProvider, DataPlaneAuth } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import type { HttpClient } from "../transport/http.js";
+import type { TransportConfig } from "../transport/config.js";
+import type { SandboxInfo } from "../models/sandbox.js";
+
+import type { TerminalSession } from "../protocol/contracts.js";
+
 import {
   GENERIC_ENDPOINT_KEYS,
   providerEnvName,
@@ -148,6 +155,26 @@ export interface ProviderInfra {
   envd_auth?: { allow_missing?: boolean; basic_user?: string };
 }
 
+/** Session behavior supplied by the backend, never reconstructed by Sandbox. */
+export interface SessionProtocols {
+  sandbox_protocol: ProviderInfra["sandbox_protocol"];
+  process_protocol: ProviderInfra["process_protocol"];
+  filesystem_protocol: ProviderInfra["filesystem_protocol"];
+  code_interpreter_protocol: ProviderInfra["code_interpreter_protocol"];
+}
+export interface TerminalContext {
+  url: string;
+  token: DataPlaneAuth;
+  config: TransportConfig;
+  http: HttpClient | null;
+  process: ProviderInfra["process_protocol"];
+}
+export interface LegacyInfraOptions {
+  api_key?: string | null; api_url?: string | null;
+  access_key_id?: string | null; access_key_secret?: string | null;
+  provider_options?: Record<string, unknown> | null;
+}
+
 export interface ProviderDescription {
   id: string;
   name: string;
@@ -239,6 +266,49 @@ export abstract class Provider {
 
   /** Build the protocol objects for `config` (already resolved for this provider). */
   abstract buildInfra(config: LayeredConfig): Promise<ProviderInfra>;
+
+  /** Explicit optional create inputs; implementations opt in before any I/O. */
+  createOptions: ReadonlySet<string> = new Set();
+
+  buildSessionProtocols(_http: HttpClient): SessionProtocols {
+    return { sandbox_protocol: unsupportedProtocol(this.id, "sandbox.lifecycle"),
+      process_protocol: unsupportedProtocol(this.id, "exec.run"), filesystem_protocol: unsupportedProtocol(this.id, "files.rw"),
+      code_interpreter_protocol: unsupportedProtocol(this.id, "code.interpret") } as unknown as SessionProtocols;
+  }
+
+  /** Compatibility factory; normal Sandbox operations always use buildInfra. */
+  buildLegacyInfra(_opts: LegacyInfraOptions): [TransportConfig, AuthProvider, HttpClient, SandboxProtocol] {
+    throw new ProviderFeatureNotSupportedError(this.id, "sandbox.legacy-infra");
+  }
+
+  createSessionAuth(info: SandboxInfo, infra?: ProviderInfra): DataPlaneAuth {
+    const protocol = infra?.sandbox_protocol as { createSessionAuth?: (info: SandboxInfo) => DataPlaneAuth } | undefined;
+    if (protocol && "createSessionAuth" in protocol && typeof protocol.createSessionAuth === "function") return protocol.createSessionAuth(info);
+    return { token: info.envd_access_token, sandbox_id: info.sandbox_id,
+      getHeaders: () => ({}), setToken: () => undefined, clear: () => undefined };
+  }
+
+  resolveSessionUrl(info: SandboxInfo, config: TransportConfig, protocol?: ProviderInfra["sandbox_protocol"]): string {
+    const resolver = protocol as { resolveSessionUrl?: (info: SandboxInfo, config: TransportConfig) => string } | undefined;
+    if (resolver && "resolveSessionUrl" in resolver && typeof resolver.resolveSessionUrl === "function") return resolver.resolveSessionUrl(info, config);
+    return info.envd_url ?? "";
+  }
+
+  async resolveSessionCapabilities(_template: string, _info: SandboxInfo): Promise<{ capabilities: Set<string> } | null> {
+    return null;
+  }
+
+  async openTerminal(context: TerminalContext, opts: { cols: number; rows: number; shell: string }): Promise<TerminalSession> {
+    this.require("pty");
+    const protocol = context.process as unknown as { openTerminal?: (url: string, opts: { cols: number; rows: number }) => Promise<TerminalSession> };
+    if (typeof protocol?.openTerminal !== "function") throw new ProviderFeatureNotSupportedError(this.id, "pty");
+    return protocol.openTerminal(context.url, opts);
+  }
+
+  /** Templates are optional per provider, independent of sandbox transport. */
+  async buildTemplateManager(_config: LayeredConfig, feature = "templates.build"): Promise<ProviderTemplateManager> {
+    throw new ProviderFeatureNotSupportedError(this.id, feature);
+  }
 
   /** Management resources are closed independently of sandbox sessions. */
   async buildCommandRunner(config: LayeredConfig): Promise<ProviderCommandRunner> {

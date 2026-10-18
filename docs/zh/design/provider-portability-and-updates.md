@@ -1,6 +1,7 @@
 # Provider 迁移、职责边界与更新
 
-状态：提案。本次边界保护不代表已完成旧 FC 实现的解耦。
+状态：提案。实现已抽取到 Provider 契约之后，详见[实现边界](provider-isolation.md)，
+交付门禁以最新证据为准。
 
 ## 迁移承诺
 
@@ -25,8 +26,8 @@ Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox
 | --- | --- |
 | 命令注册、JSON、schema、校验、确认、完整性、超时和清理 | 通用 CLI/host，不应加入供应商端点分支。 |
 | 后端端点、认证签名、字段映射、轮询状态、模板/镜像含义和不支持项 | 所选 provider；只接收自身配置及明确同意继承的配置。 |
-| 极速版管理操作 | 内置 `providers/alicloud_commands.ts`、`providers/fc_sdk.ts`。 |
-| FC 模板部署及部分原生生命周期/认证 | 仍位于 `cli/commands/template.ts`、`api/fc_template.ts`、`protocol/`、`transport/`，尚未完全解耦。 |
+| 极速版管理操作 | 内置 `providers/alicloud_express/commands.ts` 和 `sdk.ts`，历史路径仅保留兼容导出。 |
+| FC 模板部署及部分原生生命周期/认证 | 归属 `providers/alicloud_express/`；共享协议位于 `providers/shared/e2b/`。 |
 | 构建计划、Docker 本地构建/推送、模板缓存 | 可复用宿主服务，参数由 provider 决定，不能默认假定 ACR/FC。 |
 | 镜像编写约定 | provider 的 `[template]` profile；它不等于部署接口。 |
 | 模板页面适配表 | 模板作者维护的使用前提，需结合适配器能力；不等于原生后端 E2E 通过。 |
@@ -35,9 +36,8 @@ Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox
 配置过滤是路由约定，不是进程沙箱。Node 插件是受信任的宿主代码，可以访问宿主资源；
 声明的能力和 effect 不能替代云端 IAM/RAM 权限或安装时的信任判断。
 
-旧模板 read/build 命令只有 FC 实现。即使插件声明 `templates.read` 或
-`templates.build`，也不能据此读取 FC 凭据、触发 Docker/ACR；没有模板适配器时在副作用
-之前返回 E8004。该保护不影响单独实现的 provider 镜像工厂。
+模板命令调用所选 Provider 的可选模板工厂或专用 CLI 扩展。缺失实现会在云端初始化
+之前返回 E8004。极速版构建和部署位于其适配器，通用代码不会回退 FC。
 
 ## 模板接口及待交付工作
 
@@ -49,7 +49,7 @@ Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox
 
 | Provider | 当前可安装版本的流程 | 补充实现及剩余门禁 |
 | --- | --- | --- |
-| 极速版 | 原模板 ID/别名、旧 FC 部署流程 | 完整抽取为内置模板适配器仍待完成。 |
+| 极速版 | 原模板 ID/别名、旧 FC 部署流程 | 已抽取到内置极速版模板适配器，真实验收单独记录。 |
 | 容器版 | 已有 sandbox-manager 模板 ID | 宿主不能凭空提供集群/SandboxSet 创建 API。 |
 | CubeSandbox | 已有集群模板 ID，未声明 PTY | [PR #10](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/10) 有尚未启用的原生镜像适配器，缺真实授权 Cube/KVM 后端验收。 |
 | E2B | 已有 E2B 模板 ID | [PR #5](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/5) 有尚未启用的官方 SDK 镜像适配器，缺原生 E2B 验收。 |
@@ -92,8 +92,8 @@ MCP 不会自动获得账号管理权限。
 
 ## 剩余验收
 
-保持公共导入兼容，将 FC 模板和原生生命周期兼容边界抽取到明确适配器，并添加配置和
-端点隔离回归。可选工厂在原生后端验收通过后启用。SDK 冷加载已移到测试准备阶段，
+抽取后的模板、生命周期和认证保留公开导出兼容层，配置、会话、CLI/AI 隔离均有回归
+覆盖，详见[实现边界](provider-isolation.md)。可选工厂在原生后端验收通过后启用。SDK 冷加载已移到测试准备阶段，
 未扩大超时预算；已记录的本机整仓失败仍须解决。核对最新提交的
 CI/review 后先合入共享宿主，再合入消费者。
 本设计不豁免任何门禁。

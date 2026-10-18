@@ -25,7 +25,7 @@ import * as qwenCode from "../../src/agent/qwen_code.js";
 import { QwenCodeCredentials } from "../../src/agent/qwen_code.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import * as mcpMod from "../../src/cli/commands/mcp.js";
-import * as template from "../../src/cli/commands/template.js";
+import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { replSeams } from "../../src/cli/repl.js";
 import {
@@ -37,8 +37,8 @@ import {
 } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/protocol/sandbox.js";
-import * as transportAuth from "../../src/transport/auth.js";
+import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
+import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { _setProjectEnvFile, resetConfig } from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
@@ -314,14 +314,7 @@ function _connect(sb: MockSandbox): MockSetup {
 function _protoList(infos: SandboxInfo[]): MockSetup {
   return () => {
     const patches = new Patches();
-    spyAny(transportConfig, "loadConfig").mockReturnValue(_makeCfg());
-    spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-    spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-      return {};
-    });
-    spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
-      return { list: vi.fn(async () => infos) };
-    });
+    vi.spyOn(Sandbox, "list").mockResolvedValue(infos);
     return patches.handle();
   };
 }
@@ -548,14 +541,7 @@ function _killAll(): MockSetup {
       SandboxInfo.modelValidate({ sandboxID: `sbx-all-${String(i).padStart(3, "0")}`, templateID: "base", status: "running", region: "cn-hangzhou" }),
     );
     const sb = _makeSb();
-    spyAny(transportConfig, "loadConfig").mockReturnValue({ api_key: "k", access_key_id: null, access_key_secret: null, region: "cn-hangzhou" });
-    spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-    spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-      return {};
-    });
-    spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
-      return { list: vi.fn(async () => infos) };
-    });
+    vi.spyOn(Sandbox, "list").mockResolvedValue(infos);
     vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(sb));
     vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
     return patches.handle();

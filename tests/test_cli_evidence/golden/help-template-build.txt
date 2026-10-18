@@ -81,6 +81,6 @@ Options:
   --target-image <TARGET_IMAGE>            Destination image ref for envd copy (auto-derived with random suffix if omitted)
   -y, --yes                                Skip confirmation prompt
   -v, --verbose                            Verbose output (DEBUG level)
-  -r, --region <TEXT>                      Region override for this command (default: 'abx config set region' value, else cn-hangzhou)
+  -r, --region <TEXT>                      Region override for providers that declare region (otherwise use the provider default)
   -h, --help                               Show this message and exit.
 [exit_code:0]

@@ -1,3 +1,7 @@
+import type { ProviderTemplateManager } from "./template_contract.js";
+import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
+import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
+import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
 /**
  * `node` providers: an ES module that `abx` loads in process (`[runtime] kind = "node"`, `protocol = "node/1"`).
  *
@@ -10,11 +14,11 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { InvalidAPIKeyError } from "../models/errors.js";
-import { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
-import { FilesystemProtocol } from "../protocol/filesystem.js";
-import { ProcessProtocol } from "../protocol/process.js";
-import { SandboxProtocol } from "../protocol/sandbox.js";
-import type { AuthProvider } from "../transport/auth.js";
+import { CodeInterpreterProtocol } from "./shared/e2b/code_interpreter.js";
+import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
+import { ProcessProtocol } from "./shared/e2b/process.js";
+import { SandboxProtocol } from "./shared/e2b/sandbox.js";
+import type { AuthProvider } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
 import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
@@ -72,6 +76,8 @@ export interface NodeContext {
 
 export interface NodePlugin {
   buildInfra(ctx: NodeContext): Promise<NodeInfra>;
+  /** Optional template factory; authentication, API mapping and polling stay in the plugin. */
+  buildTemplateManager?(ctx: NodeContext): Promise<ProviderTemplateManager>;
 }
 
 /** Building blocks handed to `create(kit)`. */
@@ -225,6 +231,12 @@ async function loadPlugin(id: string, root: string, entry: string, digest: strin
 
 /** A provider whose backend code is an installed ES module. */
 export class NodeProvider extends Provider {
+  override createSessionAuth(info: SessionInfo, infra?: SessionInfra) { return e2bSessionAuth(info, infra); }
+  override async openTerminal(context: SessionTerminalContext, opts: { cols: number; rows: number; shell: string }) {
+    this.require("pty");
+    if (context.url.startsWith("epp://")) return super.openTerminal(context, opts);
+    return e2bOpenTerminal(context, opts);
+  }
   override kind = "node" as const;
   readonly id: string;
 
@@ -246,7 +258,7 @@ export class NodeProvider extends Provider {
     this.inherit = consentedInherit(manifest.inherit, receipt);
   }
 
-  async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+  private async context(config: LayeredConfig) {
     this.validateConfig(config);
     if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
     const digest = String(this.receipt?.["tree_sha256"] ?? "");
@@ -291,6 +303,39 @@ export class NodeProvider extends Provider {
       noAuth: () => new NoAuth(),
     };
 
+    return { plugin, ctx, transport, clients };
+  }
+
+  override async buildTemplateManager(config: LayeredConfig, feature = "templates.build"): Promise<ProviderTemplateManager> {
+    this.require(feature);
+    const { plugin, ctx, clients } = await this.context(config);
+    let manager: ProviderTemplateManager | undefined;
+    const close = async () => {
+      const results = await Promise.allSettled([
+        ...(manager?.close ? [Promise.resolve().then(() => manager!.close!())] : []),
+        ...clients.map(client => Promise.resolve().then(() => client.close())),
+      ]);
+      if (results.some(result => result.status === "rejected")) throw new ProviderProtocolError(`Provider '${this.id}' resource cleanup failed.`);
+    };
+    try {
+      if (!plugin.buildTemplateManager) throw new ProviderFeatureNotSupportedError(this.id, feature);
+      const result = await plugin.buildTemplateManager(ctx);
+      if (!result || typeof result !== "object" || Array.isArray(result)) throw new ProviderProtocolError(`Provider '${this.id}' returned invalid template infrastructure.`);
+      manager = result;
+      const gated = gateProtocol(manager, this.id, {
+        list: ["templates.read"], get: ["templates.read"],
+        build: ["templates.build"], buildProject: ["templates.build"],
+        delete: ["templates.build"], create: ["templates.build"], push: ["templates.build"],
+      }, this.features);
+      return new Proxy(gated, { get(target, key) { return key === "close" ? close : Reflect.get(target, key); } });
+    } catch (error) {
+      await close();
+      throw error;
+    }
+  }
+
+  async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+    const { plugin, ctx, transport, clients } = await this.context(config);
     let built: NodeInfra;
     try {
       built = await plugin.buildInfra(ctx);

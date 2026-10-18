@@ -3,9 +3,9 @@ import fs from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import { ALICLOUD_COMMANDS, runAlicloudCommand } from "../../src/providers/alicloud_commands.js";
+import { ALICLOUD_COMMANDS, runAlicloudCommand } from "../../src/providers/alicloud_express/commands.js";
 import { parseCommandSection, validateCommandInput, validateCommandOutput } from "../../src/providers/command_contract.js";
-import { _sdkLoader } from "../../src/providers/fc_sdk.js";
+import { _sdkLoader } from "../../src/providers/alicloud_express/sdk.js";
 import { LayeredConfig } from "../../src/transport/config_layers.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

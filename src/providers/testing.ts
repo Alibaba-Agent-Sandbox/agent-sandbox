@@ -14,7 +14,7 @@ import { CapabilityNotSupportedError, FileNotFoundError_, SandboxError, SandboxN
 import { FileType } from "../models/filesystem.js";
 import { ProcessChunkType, type ProcessChunk } from "../models/process.js";
 import { SandboxConfig, type SandboxInfo } from "../models/sandbox.js";
-import { EnvdTokenManager } from "../transport/auth.js";
+import { EnvdTokenManager } from "./shared/e2b/auth.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { FEATURES, type Provider, type ProviderInfra } from "./base.js";
 import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "./errors.js";

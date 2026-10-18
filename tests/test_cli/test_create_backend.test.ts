@@ -28,7 +28,7 @@ import type { CodingAgentBackend, CodingAgentCredentials } from "../../src/agent
 import * as qwenCode from "../../src/agent/qwen_code.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
-import * as template from "../../src/cli/commands/template.js";
+import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { SandboxCreationError } from "../../src/models/errors.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";

@@ -1,6 +1,7 @@
 # Provider portability, ownership and updates
 
-Status: proposed; the safeguards in this change do not complete the legacy FC extraction.
+Status: proposed; implementation has been extracted behind provider contracts.
+See [implementation boundaries](provider-isolation.md) and the new verification record for delivery gates.
 
 ## Migration contract
 
@@ -29,8 +30,8 @@ The TypeScript CLI implementation is not evidence of public Node SDK parity. See
 | --- | --- |
 | Command registration, JSON output, schemas, validation, consent, integrity, timeouts and cleanup | Generic CLI/host. No per-vendor endpoint branches should be added here. |
 | Backend URLs, authentication/signing, wire aliases, polling/status semantics, image/template interpretation and unsupported operations | Selected provider adapter. Plugins receive only their own config and consented inherited fields. |
-| Express resource operations | Built-in `providers/alicloud_commands.ts` and `providers/fc_sdk.ts`; SDK method mapping stays here. |
-| Express template deployment and parts of native lifecycle/auth | Legacy `cli/commands/template.ts`, `api/fc_template.ts`, `protocol/` and `transport/`. These remain coupled; the provider abstraction is not complete. |
+| Express resource operations | Built-in `providers/alicloud_express/commands.ts` and `sdk.ts`; old paths are compatibility exports. |
+| Express template deployment and parts of native lifecycle/auth | `providers/alicloud_express/` owns templates, lifecycle binding, auth and specialized CLI/AI extensions; shared wire adapters live under `providers/shared/e2b/`. |
 | Docker build plans, local image build/push mechanics and template cache | Reusable host services. A shared helper must take provider-selected parameters rather than assume ACR or FC. |
 | Image authoring defaults | Provider `[template]` profile; a Dockerfile profile does not implement deployment. |
 | Template/provider compatibility rows | Template author usage hints, intersected with adapter capabilities; neither feature flags nor these rows are native E2E evidence. |
@@ -40,11 +41,9 @@ Filtered configuration is a routing contract, not a process sandbox. Node plugin
 are trusted host code and can access host resources; declared features/effects do
 not replace cloud IAM/RAM permissions or install-time trust decisions.
 
-Legacy template read/build commands currently have only the FC implementation. Even
-a plugin declaring `templates.read` or `templates.build` must get E8004 before this
-implementation resolves FC credentials or touches Docker/ACR. An advertised feature
-is not a dispatch adapter. This safeguard does not disable a separately implemented
-provider image factory.
+Template commands select the active provider's optional manager factory or specialized
+CLI extension. Missing implementations fail E8004 before cloud setup. Native template
+build/deploy lives in the Express adapter; generic code never falls back to FC.
 
 ## Template contract and pending delivery
 
@@ -58,7 +57,7 @@ start/readiness semantics. Unsupported inputs fail before I/O.
 
 | Provider | Current installed workflow | Additional implementation and remaining gate |
 | --- | --- | --- |
-| Express | Existing template ID/alias; legacy FC deploy workflow | Full extraction into a built-in template adapter remains pending. |
+| Express | Existing template ID/alias; legacy FC deploy workflow | Extracted into the bundled Express template adapter; native acceptance is recorded separately. |
 | Container edition | Existing sandbox-manager template ID | Native cluster/template provisioning is not invented by the host. |
 | CubeSandbox | Existing cluster template ID; no declared PTY | [PR #10](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/10) has an unactivated native image adapter; needs a real authorized Cube/KVM backend. |
 | E2B | Existing E2B template ID | [PR #5](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/5) has an unactivated official-SDK image adapter; needs native E2B acceptance. |
@@ -110,9 +109,8 @@ outside the replacement tree.
 
 ## Remaining acceptance
 
-Extract the FC template/lifecycle compatibility boundaries behind explicit adapters
-without changing existing public imports; migrate vendor config/endpoint logic with
-regressions. Complete native acceptance before activating optional factories. Resolve
+The extracted template/lifecycle/auth implementation preserves public export facades;
+configuration/session/CLI/AI isolation has dedicated regressions. See [boundaries](provider-isolation.md). Complete native acceptance before activating optional factories. Resolve
 the recorded mandatory local aggregate failures. Cold registry/SDK imports now run
 before test hooks/operation assertions without increasing timeout budgets. Verify
 exact-head remote checks/reviews, then land the shared host before consumers.

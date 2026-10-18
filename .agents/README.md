@@ -47,3 +47,5 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
 
 - [Provider portability and updates](notes/proposed/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
+
+- [Provider isolation verification](evidence/verify/2026-10-18-provider-complete-isolation.md)

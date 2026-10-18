@@ -1,3 +1,6 @@
+import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
+import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
+import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
 /**
  * `exec` providers: manifest-described plugin processes spoken to over EPP/1 (port of `providers/exec_provider.py`).
  *
@@ -12,9 +15,9 @@ import { CommandTimeoutError, SandboxError, SandboxNotFoundError } from "../mode
 import { FileInfo, FileType } from "../models/filesystem.js";
 import { ProcessChunk, ProcessChunkType, ProcessInfo } from "../models/process.js";
 import { SandboxInfo, SandboxStatus, type SandboxConfig } from "../models/sandbox.js";
-import { decodeBytes, FilesystemProtocol } from "../protocol/filesystem.js";
-import { ProcessProtocol } from "../protocol/process.js";
-import type { EnvdTokenManager } from "../transport/auth.js";
+import { decodeBytes, FilesystemProtocol } from "./shared/e2b/filesystem.js";
+import { ProcessProtocol } from "./shared/e2b/process.js";
+import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient } from "../transport/http.js";
 import { StreamReader } from "../transport/streaming.js";
@@ -568,6 +571,12 @@ export class NoPlatformAuth {
 
 /** A provider backed by an installed (or linked) plugin process. */
 export class ExecProvider extends Provider {
+  override createSessionAuth(info: SessionInfo, infra?: SessionInfra) { return e2bSessionAuth(info, infra); }
+  override async openTerminal(context: SessionTerminalContext, opts: { cols: number; rows: number; shell: string }) {
+    this.require("pty");
+    if (context.url.startsWith("epp://")) return super.openTerminal(context, opts);
+    return e2bOpenTerminal(context, opts);
+  }
   override kind = "exec" as const;
   readonly id: string;
 

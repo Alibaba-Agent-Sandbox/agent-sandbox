@@ -24,7 +24,7 @@ import { Sandbox } from "../../src/api/sandbox.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import * as sandboxCmd from "../../src/cli/commands/sandbox.js";
 import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
-import * as template from "../../src/cli/commands/template.js";
+import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { AICodegenError, DockerBuildError, QwenCodeCredentialError } from "../../src/models/errors.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
@@ -247,14 +247,15 @@ describe("TestCreateRouting", () => {
     expect((callArg(mockCreate as unknown as Mock, -1, 0) as Record<string, unknown>)["template"]).toBe("tmpl-ai-123");
   });
 
-  it("test_create_falls_back_to_template_name_when_no_id", async () => {
-    const [gen] = _patchSuccessPipeline(tmp, { template_id: "N/A" });
+  it("test_create_refuses_to_guess_a_template_id_when_provider_returns_none", async () => {
+    _patchSuccessPipeline(tmp, { template_id: "N/A" });
     const mockCreate = patchCreate();
 
     const result = await runner().invoke(cli, ["create", "-y", "node service"]);
 
-    expect(result.exit_code, result.output).toBe(0);
-    expect((callArg(mockCreate as unknown as Mock, -1, 0) as Record<string, unknown>)["template"]).toBe(gen.templateName);
+    expect(result.exit_code).not.toBe(0);
+    expect(result.output).toContain("did not return a template id");
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("test_explicit_template_bypasses_codegen", async () => {

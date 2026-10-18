@@ -14,9 +14,9 @@ import { randomUUID } from "node:crypto";
 
 import { CodeResult, ProcessChunkType } from "../models/process.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
-import type { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
-import type { ProcessProtocol } from "../protocol/process.js";
-import type { EnvdTokenManager } from "../transport/auth.js";
+import type { CodeInterpreterProtocol } from "../protocol/contracts.js";
+import type { ProcessProtocol } from "../protocol/contracts.js";
+import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import { HTTPStatusError } from "../transport/http.js";
 import { getLogger } from "../utils/logging.js";
 import { pyStrip } from "../utils/_pyformat.js";

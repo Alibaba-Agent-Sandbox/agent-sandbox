@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as adapter from "../../src/api/fc_template.js";
+import * as adapter from "../../src/providers/alicloud_express/fc_template.js";
 import * as config from "../../src/transport/config.js";
 import { SandboxManager } from "../../src/agent/mcp.js";
 import { handleTemplateOperation } from "../../src/agent/template_operations.js";

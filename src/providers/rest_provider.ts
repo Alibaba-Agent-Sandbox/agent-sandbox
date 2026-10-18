@@ -1,11 +1,14 @@
+import { sessionAuth as e2bSessionAuth, sessionProtocols as e2bSessionProtocols, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
+import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
+import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
 /** `rest` providers: a declarative endpoint preset for any E2B-protocol backend (no code). */
 
 import { InvalidAPIKeyError } from "../models/errors.js";
-import { CodeInterpreterProtocol } from "../protocol/code_interpreter.js";
-import { FilesystemProtocol } from "../protocol/filesystem.js";
-import { ProcessProtocol } from "../protocol/process.js";
-import { SandboxProtocol } from "../protocol/sandbox.js";
-import type { AuthProvider } from "../transport/auth.js";
+import { CodeInterpreterProtocol } from "./shared/e2b/code_interpreter.js";
+import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
+import { ProcessProtocol } from "./shared/e2b/process.js";
+import { SandboxProtocol } from "./shared/e2b/sandbox.js";
+import type { AuthProvider } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient } from "../transport/http.js";
 import { providerEnvName } from "../utils/config_keys.js";
@@ -40,6 +43,14 @@ type Dict = Record<string, unknown>;
 
 /** E2B-protocol backend described entirely by its manifest. */
 export class RestProvider extends Provider {
+  override createSessionAuth(info: SessionInfo, infra?: SessionInfra) { return e2bSessionAuth(info, infra); }
+  override async openTerminal(context: SessionTerminalContext, opts: { cols: number; rows: number; shell: string }) {
+    this.require("pty");
+    if (context.url.startsWith("epp://")) return super.openTerminal(context, opts);
+    return e2bOpenTerminal(context, opts);
+  }
+  override buildSessionProtocols(http: HttpClient) { return e2bSessionProtocols(http); }
+  override resolveSessionUrl(info: SessionInfo, config: import("../transport/config.js").TransportConfig) { return info.envd_url || config.buildEnvdUrl(info.sandbox_id); }
   override kind = "rest" as const;
   readonly id: string;
   private readonly authCfg: Dict;

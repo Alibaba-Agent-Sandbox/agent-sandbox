@@ -8,11 +8,11 @@ Bundled provider update is reported as a missing plugin; bulk update swallows Gi
 
 ## Decision
 
-Guard legacy FC template execution; return bundled lifecycle guidance without self-updating; report manual sources and propagate Git errors. Record the incomplete FC boundary and reuse the separately proposed image factory instead of implementing a competing contract.
+Route every backend through a real Provider instance. Move Express cloud/auth/template and session assembly into provider-owned modules, with shared E2B adapters selected explicitly. Keep structural core contracts and public compatibility facades. Register provider-owned CLI/config/AI extensions in explicit composition roots; resolve them per invocation. Return bundled update guidance without self-updating; retain verified plugin updates. The separate proposed image factory is not activated by this refactor.
 
 ## API Design
 
-UpdateResult adds bundled/manual statuses and optional message. Existing successful Git result fields remain. Bundled --check is offline guidance, not latest-release discovery. Legacy plugin template commands fail E8004 before FC setup.
+UpdateResult adds bundled/manual statuses and optional message. Existing successful Git result fields remain. Bundled --check is offline guidance, not latest-release discovery. Template managers are optional provider factories. Missing methods fail E8004 before FC setup; Node plugins can supply their own factory. Lifecycle binding and terminal hooks prevent native fallbacks.
 
 ## Alternatives considered
 
@@ -30,8 +30,19 @@ Negative-control regressions on the unchanged base; updated CLI/installer/provid
 
 No plugin enters FC template execution; bundled and manual updates are truthful; Git failures propagate; migration/AI/coverage and native factory limits are bilingual; mandatory gates pass before merge.
 
+Acceptance also requires no concrete backend imports in core implementation, no
+null/default-provider lifecycle bypass, provider-owned authentication/session/URL/terminal
+assembly, no foreign configuration defaults, and owned-versus-borrowed cleanup regressions.
+
 ## Evidence
 
 [Verification](../../../evidence/verify/2026-10-18-provider-portability-updates.md).
 
 Owner issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/47.
+
+## Implementation
+
+The full-isolation follow-up removes the earlier guard-only limitation. Authentication,
+cloud mappings, template orchestration, session defaults and vendor UI metadata are
+provider-owned. Historical evidence remains unchanged; acceptance is tracked in the new
+[isolation verification](../../../evidence/verify/2026-10-18-provider-complete-isolation.md).

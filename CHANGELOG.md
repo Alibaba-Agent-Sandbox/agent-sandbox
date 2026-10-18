@@ -29,6 +29,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Route bundled and external backends through the same Provider contract. Move Express authentication,
+  cloud SDK/template deployment and native session binding into provider modules; preserve public import facades.
+- Resolve provider-owned CLI/AI/config metadata per selection, reject undeclared native defaults/options,
+  and clean up newly created resources when session binding fails without deleting borrowed sandboxes.
+
 - Document mount-capable template selection, the custom MicroVM ossfs2 minimum version, and verified real OSS Volume acceptance with complete temporary-resource cleanup.
 
 - Clarify the current Volume invitation-access prerequisite in the English and Chinese management and mounting guides; an empty list does not prove create or mount access.

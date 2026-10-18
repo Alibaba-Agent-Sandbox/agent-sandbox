@@ -14,16 +14,12 @@ import { replSeams } from "../../src/cli/repl.js";
 import { AuthenticationError, CommandTimeoutError, QuotaExceededError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/protocol/sandbox.js";
-import * as transportAuth from "../../src/transport/auth.js";
-import * as transportConfig from "../../src/transport/config.js";
-import * as transportHttp from "../../src/transport/http.js";
+import * as layered from "../../src/transport/config_layers.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
 const runner = (): CliRunner => new CliRunner();
 
 type Spy = ReturnType<typeof vi.fn>;
-const spyAny = (o: object, k: string) => vi.spyOn(o as Record<string, (...a: unknown[]) => unknown>, k);
 
 interface MockSandbox {
   id: string;
@@ -67,18 +63,10 @@ function patchCreate(sb: unknown) {
   return vi.spyOn(Sandbox, "create").mockResolvedValue(asSandbox(sb));
 }
 
-/** Patches for the transport stack that `list` / `kill --all` build by hand. */
+/** CLI list and kill-all use the public lifecycle facade for every provider. */
 function patchTransport(listed: unknown[] | (() => Promise<unknown[]>)) {
-  const list = vi.fn(typeof listed === "function" ? listed : async () => listed);
-  spyAny(transportConfig, "loadConfig").mockReturnValue(new transportConfig.TransportConfig({ region: "cn-hangzhou" }));
-  spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-  spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-    return {};
-  });
-  spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
-    return { list };
-  });
-  return list;
+  return vi.spyOn(Sandbox, "list").mockImplementation(async () =>
+    (typeof listed === "function" ? await listed() : listed) as SandboxInfo[]);
 }
 
 let tmp = "";
@@ -168,7 +156,7 @@ describe("TestCreate", () => {
   it("test_create_enforces_timeout_floor_when_default", async () => {
     // Cold starts are slow: create enforces 120s floor over the 30s default.
     const create = patchCreate(_makeSandbox());
-    spyAny(transportConfig, "loadConfig").mockReturnValue({ http_timeout: 30.0 });
+    vi.spyOn(layered, "loadLayeredConfig").mockReturnValue(new layered.LayeredConfig({ http_timeout: 30.0 }));
 
     const result = await runner().invoke(cli, ["create", "--template", "python-base"]);
 
@@ -179,7 +167,7 @@ describe("TestCreate", () => {
   it("test_create_respects_large_configured_timeout", async () => {
     // When the user sets http_timeout > 120s, the larger value is used.
     const create = patchCreate(_makeSandbox());
-    spyAny(transportConfig, "loadConfig").mockReturnValue({ http_timeout: 300.0 });
+    vi.spyOn(layered, "loadLayeredConfig").mockReturnValue(new layered.LayeredConfig({ http_timeout: 300.0 }));
 
     const result = await runner().invoke(cli, ["create", "--template", "python-base"]);
 

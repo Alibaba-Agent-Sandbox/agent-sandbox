@@ -20,9 +20,9 @@ import {
   getAcrAuthToken,
   rewriteDockerfileForServerInstall,
   serverSdkVersion,
-} from "../../src/api/docker_builder.js";
+} from "../../src/providers/alicloud_express/docker_builder.js";
 import { ABX_SERVER_INSTALL } from "../../src/utils/server_sdk_pin.js";
-import { _provenanceNotice } from "../../src/cli/commands/template.js";
+import { _provenanceNotice } from "../../src/providers/alicloud_express/cli/template.js";
 import { DockerBuildError } from "../../src/models/errors.js";
 import {
   ConnectError,
@@ -40,8 +40,8 @@ const h = vi.hoisted(() => ({
   realSpawn: null as any,
 }));
 
-vi.mock("../../src/api/fc_template.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../src/api/fc_template.js")>()),
+vi.mock("../../src/providers/alicloud_express/fc_template.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/providers/alicloud_express/fc_template.js")>()),
   createOfficialTemplate: h.createOfficialTemplate,
 }));
 
@@ -79,13 +79,13 @@ describe("TestACRAuthTokenAlias", () => {
 
   it("test_importable_via_old_name", async () => {
     // Scripts can ``from ... import _get_acr_auth_token``.
-    const mod = await import("../../src/api/docker_builder.js");
+    const mod = await import("../../src/providers/alicloud_express/docker_builder.js");
     expect(mod._getAcrAuthToken).toBe(getAcrAuthToken);
   });
 
   it("test_importable_via_new_name", async () => {
     // The canonical public name is importable.
-    const mod = await import("../../src/api/docker_builder.js");
+    const mod = await import("../../src/providers/alicloud_express/docker_builder.js");
     expect(typeof mod.getAcrAuthToken).toBe("function");
   });
 

@@ -132,7 +132,7 @@ Default user: \`${who}\`. Working directory: \`${profile.workdir}\`.
 
 ## Deploy
 
-The ACR namespace comes from \`ACR_NAMESPACE\` or \`abx config set acr_namespace\`. \`--acr-namespace\` overrides it.
+${profile.registry}
 
 \`\`\`bash
 abx template deploy . -y

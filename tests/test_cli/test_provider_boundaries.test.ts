@@ -1,9 +1,9 @@
 import "../_support/isolatedHome.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "../../src/cli/main.js";
-import { requireTemplateFeature } from "../../src/cli/template_provider.js";
+
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
-import { ProviderFeatureNotSupportedError, ProviderInstallError } from "../../src/providers/errors.js";
+import { ProviderInstallError } from "../../src/providers/errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { registerProvider, unregisterProvider } from "../../src/providers/registry.js";
 import { resetCliSelection, setCliProvider } from "../../src/providers/selection.js";
@@ -22,10 +22,14 @@ class TemplateOnlyProvider extends Provider {
 }
 
 describe("provider ownership and updates", () => {
-  it.each(["templates.read", "templates.build"] as const)("does not route a plugin's %s feature into FC", (feature) => {
+  it.each([["list", []], ["build", [".", "--yes"]]] as const)("does not route a plugin's template %s into FC", async (operation, options) => {
     registerProvider(new TemplateOnlyProvider());
     setCliProvider("template-only");
-    expect(() => requireTemplateFeature(feature)).toThrow(ProviderFeatureNotSupportedError);
+    const code = await main({ args: ["--json", "--provider", "template-only", "template", operation, ...options] });
+    expect(code).not.toBe(0);
+    const { out, err } = cap.readouterr();
+    expect(out + err).toContain("E8004");
+    expect(out + err).toContain("template-only");
   });
 
   it("reports the bundled update lifecycle without reading a plugin receipt or checking the network", async () => {

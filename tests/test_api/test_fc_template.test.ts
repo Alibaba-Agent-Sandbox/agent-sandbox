@@ -15,7 +15,7 @@ import {
   listOfficialTemplates,
   waitForTemplateReady,
   type FcSdk,
-} from "../../src/api/fc_template.js";
+} from "../../src/providers/alicloud_express/fc_template.js";
 import { SandboxError, TemplateBuildError } from "../../src/models/errors.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

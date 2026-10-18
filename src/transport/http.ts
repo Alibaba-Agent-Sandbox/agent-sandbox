@@ -11,7 +11,8 @@ import { ConnectionError_, EnvdRpcError, InvalidAPIKeyError, InvalidCredentialsE
 import { pyStrip, pyTruncate } from "../utils/_pyformat.js";
 import { getLogger } from "../utils/logging.js";
 import { type AsyncClient, ConnectError, ConnectTimeout, HTTPStatusError, httpx, type RequestOptions, type Response } from "./_httpx.js";
-import { AkSkAuth, type AuthProvider, type EnvdTokenManager } from "./auth.js";
+import type { AuthProvider } from "./auth_contract.js";
+import type { DataPlaneAuth as EnvdTokenManager } from "./auth_contract.js";
 import { CONNECT_CONTENT_TYPE, ConnectCodec, EnvelopeStreamParser } from "./codec.js";
 import type { TransportConfig } from "./config.js";
 
@@ -276,9 +277,7 @@ export class HttpClient {
 
   /** The SDK error for a Platform API 401 (KI-006; the text never includes the key or the base URL). */
   _authenticationError(path: string): InvalidAPIKeyError | InvalidCredentialsError {
-    if (this._auth instanceof AkSkAuth) {
-      return new InvalidCredentialsError(`The Platform API rejected the AK/SK credentials (HTTP 401) for ${path}.`);
-    }
+    if (this._auth.authenticationError) return this._auth.authenticationError(path);
     return new InvalidAPIKeyError(
       `The Platform API rejected the API key (HTTP 401) for ${path}: it is invalid, revoked or for another region.`,
     );

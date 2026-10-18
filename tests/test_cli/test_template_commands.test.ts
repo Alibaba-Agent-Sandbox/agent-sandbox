@@ -7,7 +7,7 @@ import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import * as fcTemplate from "../../src/api/fc_template.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import {
   _isNlDescription,
   _readYamlDefaults,
@@ -17,7 +17,7 @@ import {
   init as templateInit,
   template as templateGroup,
   templateSeams,
-} from "../../src/cli/commands/template.js";
+} from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { UsageError } from "../../src/cli/errors.js";
 import { RegistryClient } from "../../src/utils/registry.js";

@@ -17,7 +17,7 @@ Options:
   -s, --status <STATUS>  Filter by status (choices: "running", "stopped",
                          "creating", "paused", "error")
   -l, --limit <INTEGER>  Maximum results (positive integer; default: 20)
-  -r, --region <TEXT>    Region override for this command (default: 'abx config
-                         set region' value, else cn-hangzhou)
+  -r, --region <TEXT>    Region override for providers that declare region
+                         (otherwise use the provider default)
   -h, --help             Show this message and exit.
 [exit_code:0]

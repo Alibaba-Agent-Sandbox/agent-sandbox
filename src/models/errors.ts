@@ -99,7 +99,7 @@ export class TokenExpiredError extends AuthenticationError {
  */
 export class InvalidCredentialsError extends AuthenticationError {
   static override code = "E1003";
-  static override suggestion = "Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables.";
+  static override suggestion = "Check the selected provider authentication configuration (abx provider info).";
 }
 
 /**

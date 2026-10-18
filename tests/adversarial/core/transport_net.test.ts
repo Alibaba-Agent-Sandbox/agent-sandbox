@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { AsyncClient } from "../../../src/transport/_httpx.js";
-import { _getAcrAuthTokenPersonal } from "../../../src/api/docker_builder.js";
+import { _getAcrAuthTokenPersonal } from "../../../src/providers/alicloud_express/docker_builder.js";
 import { LocalSessionStore } from "../../../src/session/local.js";
 
 const cleanups: (() => void | Promise<void>)[] = [];

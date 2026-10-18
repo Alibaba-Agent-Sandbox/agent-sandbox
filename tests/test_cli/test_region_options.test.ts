@@ -25,10 +25,11 @@ import { parse as yamlParse } from "yaml";
 
 import { cli } from "../../src/cli/main.js";
 import { resolveRegion } from "../../src/cli/region.js";
-import * as transportAuth from "../../src/transport/auth.js";
+import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
+import * as layered from "../../src/transport/config_layers.js";
 import * as transportHttp from "../../src/transport/http.js";
-import * as protocolSandbox from "../../src/protocol/sandbox.js";
+import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { ALL_COMMANDS } from "./conftest.js";
@@ -52,10 +53,13 @@ function runner(): CliRunner {
 function useIsolatedRegionEnv(): { readonly dir: string } {
   const state = { dir: "" };
   let savedConfigFile = "";
+  let savedPaths: typeof layered.paths;
   let savedCandidates: string[] = [];
   beforeEach(() => {
     state.dir = iso.tmp_path;
     savedConfigFile = transportConfig._CONFIG_FILE;
+    savedPaths = { ...layered.paths, envFiles: [...layered.paths.envFiles] };
+    layered._setPaths({ configFile: path.join(state.dir, "config.toml"), envFiles: [path.join(state.dir, ".env")] });
     savedCandidates = transportConfig._ENV_FILE_CANDIDATES;
     transportConfig._setConfigFile(path.join(state.dir, "config.toml"));
     transportConfig._setEnvFileCandidates([path.join(state.dir, ".env")]);
@@ -81,6 +85,7 @@ function useIsolatedRegionEnv(): { readonly dir: string } {
   afterEach(() => {
     transportConfig.resetConfig();
     transportConfig._setConfigFile(savedConfigFile);
+    layered._setPaths(savedPaths);
     transportConfig._setEnvFileCandidates(savedCandidates);
   });
   return state;
@@ -220,10 +225,24 @@ function patchTransport(opts: { protocol?: boolean; loadConfig?: boolean } = {})
   const { protocol = true, loadConfig = true } = opts;
   const spies: { loadCfg?: ReturnType<typeof vi.fn>; httpCls: ReturnType<typeof vi.fn> } = { httpCls: vi.fn() };
   const spyAny = (o: object, k: string) => vi.spyOn(o as Record<string, (...a: unknown[]) => unknown>, k);
-  if (loadConfig) spies.loadCfg = spyAny(transportConfig, "loadConfig").mockReturnValue(new transportConfig.TransportConfig({ region: "cn-hangzhou" }) as never) as never;
+  if (loadConfig) {
+    const observed = vi.fn();
+    const legacyLoad = transportConfig.loadConfig;
+    const providerLoad = layered.loadLayeredConfig;
+    vi.spyOn(transportConfig, "loadConfig").mockImplementation((options) => {
+      observed(options);
+      return legacyLoad(options);
+    });
+    vi.spyOn(layered, "loadLayeredConfig").mockImplementation((options = {}) => {
+      const own = options["provider_options"] as Record<string, unknown> | undefined;
+      observed({ region: own?.["region"] ?? options["region"] ?? null });
+      return providerLoad(options);
+    });
+    spies.loadCfg = observed;
+  }
   spyAny(transportAuth, "createAuthProvider").mockReturnValue({} as never);
   spies.httpCls = spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-    return {};
+    return { close: async () => undefined };
   } as never) as never;
   if (protocol) spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
       return { list: async () => [] };
@@ -402,7 +421,7 @@ describe("TestShortcutForwarding", () => {
   });
 
   it("test_top_level_install_forwards_region_to_template_install", async () => {
-    const tpl = (await import(/* @vite-ignore */ "../../src/cli/commands/template.js" as string)) as {
+    const tpl = (await import(/* @vite-ignore */ "../../src/providers/alicloud_express/cli/template.js" as string)) as {
       install: { callback: (...a: unknown[]) => unknown };
     };
     const installCmd = vi.spyOn(tpl.install, "callback").mockResolvedValue(undefined as never);
@@ -413,7 +432,7 @@ describe("TestShortcutForwarding", () => {
   });
 
   it("test_template_deploy_alias_inherits_region_param", async () => {
-    const tpl = (await import(/* @vite-ignore */ "../../src/cli/commands/template.js" as string)) as {
+    const tpl = (await import(/* @vite-ignore */ "../../src/providers/alicloud_express/cli/template.js" as string)) as {
       deploy: { params: Array<{ name: string }> };
     };
     expect(tpl.deploy.params.some((p) => p.name === "region")).toBe(true);

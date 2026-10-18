@@ -193,3 +193,5 @@ Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记
 - [模板系统](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与
   [模板 YAML 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
+
+- [Provider implementation boundaries](provider-isolation.md)

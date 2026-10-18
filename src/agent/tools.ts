@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { TEMPLATE_SCHEMAS, templateInputs, handleTemplateOperation } from "./template_operations.js";
+import { templateSchemas, handleTemplateOperation } from "./template_operations.js";
 import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
 import { pyExcStr } from "../api/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
@@ -28,7 +28,7 @@ export interface ToolSchema {
   inputSchema: JsonObject;
 }
 
-export const TOOL_SCHEMAS: ToolSchema[] = [
+const CORE_TOOL_SCHEMAS: ToolSchema[] = [
   {
     name: "create_sandbox",
     description:
@@ -169,10 +169,15 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     },
   },
   ...OPERATION_SCHEMAS,
-  ...TEMPLATE_SCHEMAS,
 ];
 
-Object.assign(TOOL_SCHEMAS[0]!.inputSchema.properties as JsonObject, {
+/** Live discovery view: reusing the module must not retain another provider's schemas. */
+export function toolSchemas(): ToolSchema[] { return [...CORE_TOOL_SCHEMAS, ...templateSchemas()]; }
+export const TOOL_SCHEMAS: ToolSchema[] = new Proxy([] as ToolSchema[], {
+  get(_target, key) { const current = toolSchemas(); const value = Reflect.get(current, key); return typeof value === "function" ? value.bind(current) : value; },
+});
+
+Object.assign(CORE_TOOL_SCHEMAS[0]!.inputSchema.properties as JsonObject, {
   cpu: { type: "integer", minimum: 1 }, memory: { type: "integer", minimum: 1 },
   region: { type: "string", minLength: 1 }, retain: { type: "boolean", default: false },
 });
@@ -185,9 +190,11 @@ const createInput = z.strictObject({
 });
 
 /** Quick lookup by name. */
-export const TOOL_SCHEMA_MAP: Record<string, ToolSchema> = Object.fromEntries(
-  TOOL_SCHEMAS.map((t) => [t.name, t]),
-);
+export const TOOL_SCHEMA_MAP: Record<string, ToolSchema> = new Proxy({} as Record<string, ToolSchema>, {
+  get(_target, key) { return toolSchemas().find((schema) => schema.name === key); },
+  ownKeys() { return toolSchemas().map((schema) => schema.name); },
+  getOwnPropertyDescriptor(_target, key) { const value = toolSchemas().find((schema) => schema.name === key); return value ? { value, enumerable: true, configurable: true } : undefined; },
+});
 
 // ---------------------------------------------------------------------------
 // Helpers mirroring dict / enum access in the Python handlers
@@ -377,7 +384,6 @@ export const TOOL_HANDLERS: Record<string, ToolHandler> = {
   list_files: handleListFiles,
   kill_sandbox: handleKillSandbox,
   ...Object.fromEntries(Object.keys(operationInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleOperation(name as keyof typeof operationInputs, params, manager)])),
-  ...Object.fromEntries(Object.keys(templateInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(name as keyof typeof templateInputs, params, manager)])),
 };
 
 /**
@@ -392,10 +398,12 @@ export async function dispatchTool(
 ): Promise<ToolResult> {
   const handler = Object.hasOwn(TOOL_HANDLERS, name) ? TOOL_HANDLERS[name] : undefined;
   const operation = Object.hasOwn(operationInputs, name);
-  if (handler === undefined && !operation) {
+  const template = templateSchemas().some((schema) => schema.name === name);
+  if (handler === undefined && !operation && !template) {
     throw new ValueError(`Unknown tool: ${name}`);
   }
   try {
+    if (template) return await handleTemplateOperation(name, params, manager);
     if (operation) return await handleOperation(name as keyof typeof operationInputs, params, manager);
     if (name === "create_sandbox") createInput.parse(params);
     return await handler!(params, manager);

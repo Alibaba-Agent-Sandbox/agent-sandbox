@@ -6,8 +6,8 @@
  */
 
 export { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";
-export { FEATURES, Provider, configFieldToKey, type ConfigField, type ProviderFeature, type ProviderInfra } from "./base.js";
-export { AlicloudExpressProvider } from "./builtin.js";
+export { FEATURES, Provider, configFieldToKey, type ConfigField, type ProviderFeature, type ProviderInfra, type SessionProtocols, type TerminalContext, type LegacyInfraOptions } from "./base.js";
+export { AlicloudExpressProvider } from "./alicloud_express/index.js";
 export { listProviderCommands, getProviderCommand, runProviderCommand, type ProviderCommand, type ProviderCommandOptions } from "./commands.js";
 export { doctor, verifyHandshake, type DoctorReport } from "./doctor.js";
 export * from "./errors.js";
@@ -37,3 +37,5 @@ export {
   type TemplateProfile,
 } from "./template_profile.js";
 export { defineProviderContractTests, runContractSuite, parseOptions as parseProviderOptions } from "./testing.js";
+
+export type { ProviderTemplateManager, TemplateBuildOptions, TemplateBuildRequest } from "./template_contract.js";

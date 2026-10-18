@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TemplateManager } from "../../src/api/template.js";
+import { TemplateManager } from "../../src/providers/alicloud_express/template.js";
 import { BuildStatus, TemplateInfo } from "../../src/models/template.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

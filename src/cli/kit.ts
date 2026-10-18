@@ -28,7 +28,7 @@ type Bag = Record<string, any>;
 export type Params = Bag;
 
 export interface OptionAttrs {
-  help?: string;
+  help?: string | (() => string);
   default?: unknown;
   is_flag?: boolean;
   type?: ParamType;
@@ -77,8 +77,8 @@ export interface LazyEntry {
 }
 
 export interface CommandAttrs {
-  help?: string;
-  params?: readonly Param[];
+  help?: string | (() => string);
+  params?: readonly Param[] | (() => readonly Param[]);
   callback?: Callback;
   hidden?: boolean;
   /** Printed by `--version` (root command only). */
@@ -101,8 +101,10 @@ export class Command {
     attrs: CommandAttrs = {},
     isGroup = false,
   ) {
-    this.help = attrs.help ?? "";
-    this.params = attrs.params ?? [];
+    this.help = typeof attrs.help === "function" ? "" : attrs.help ?? "";
+    if (typeof attrs.help === "function") Object.defineProperty(this, "help", { get: attrs.help });
+    this.params = typeof attrs.params === "function" ? [] : attrs.params ?? [];
+    if (typeof attrs.params === "function") Object.defineProperty(this, "params", { get: attrs.params });
     this.callback = attrs.callback ?? null;
     this.hidden = attrs.hidden ?? false;
     this.version = attrs.version ?? null;
@@ -352,7 +354,7 @@ function optionFlags(p: Option): { flags: string; pairs: string[] } {
 
 function addOption(cmd: CommanderCommand, p: Option): void {
   const { flags, pairs } = optionFlags(p);
-  let help = p.attrs.help ?? "";
+  let help = typeof p.attrs.help === "function" ? p.attrs.help() : p.attrs.help ?? "";
   const dflt = p.attrs.default;
   if (p.attrs.show_default && dflt !== undefined && dflt !== null && dflt !== false) help = `${help} [default: ${String(dflt)}]`.trim();
   const opt = new CommanderOption(flags, help || undefined);

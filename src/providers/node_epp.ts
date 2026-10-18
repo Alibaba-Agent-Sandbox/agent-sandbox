@@ -7,8 +7,8 @@
  */
 
 import { SandboxError } from "../models/errors.js";
-import { FilesystemProtocol } from "../protocol/filesystem.js";
-import { ProcessProtocol } from "../protocol/process.js";
+import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
+import { ProcessProtocol } from "./shared/e2b/process.js";
 import type { HttpClient } from "../transport/http.js";
 import { getLogger } from "../utils/logging.js";
 import { AsyncQueue, PROTOCOL, mapError, sanitizeText, type EppPeer, type Notification } from "./epp.js";

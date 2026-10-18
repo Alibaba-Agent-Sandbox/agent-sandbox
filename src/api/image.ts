@@ -15,15 +15,17 @@
 import type { TemplateInfo } from "../models/template.js";
 import { getLogger } from "../utils/logging.js";
 import { pyRepr } from "../utils/_pyformat.js";
-import { TemplateManager } from "./template.js";
-import { createAuthProvider } from "../transport/auth.js";
-import { loadConfig } from "../transport/config.js";
-import { HttpClient } from "../transport/http.js";
+import { getProvider, resolveProviderId } from "../providers/registry.js";
+import { cliProvider } from "../providers/selection.js";
+import { loadLayeredConfig } from "../transport/config_layers.js";
+import { ProviderFeatureNotSupportedError } from "../providers/errors.js";
 
 const logger = getLogger("api.image");
 void logger;
 
 export interface ImageBuildOptions {
+  provider?: string;
+  provider_options?: Record<string, unknown>;
   alias?: string | null;
   api_key?: string | null;
   api_url?: string | null;
@@ -160,20 +162,15 @@ export class Image {
     if (access_key_id !== null) config_overrides["access_key_id"] = access_key_id;
     if (access_key_secret !== null) config_overrides["access_key_secret"] = access_key_secret;
 
-    const config = loadConfig(config_overrides);
-    const auth = createAuthProvider({
-      api_key: config.api_key,
-      access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret,
-    });
-    const http_client = new HttpClient(config, auth);
-
+    const provider = getProvider(resolveProviderId(opts.provider ?? cliProvider()));
+    provider.require("templates.build");
+    const config = loadLayeredConfig({ ...config_overrides, provider: provider.id, provider_options: opts.provider_options ?? {} });
+    const manager = await provider.buildTemplateManager(config);
     try {
-      const manager = new TemplateManager(http_client);
-      const dockerfile = this.toDockerfile();
-      return await manager.build(dockerfile, { alias, timeout, cpu_count, memory_mb, start_cmd });
+      if (typeof manager.build !== "function") throw new ProviderFeatureNotSupportedError(provider.id, "templates.build");
+      return await manager.build(this.toDockerfile(), { alias, timeout, cpu_count, memory_mb, start_cmd });
     } finally {
-      await http_client.close();
+      await manager.close?.();
     }
   }
 

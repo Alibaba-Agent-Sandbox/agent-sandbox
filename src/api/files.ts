@@ -4,9 +4,9 @@ import * as fs from "node:fs";
 
 import type { FileInfo, WatchEvent } from "../models/filesystem.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
-import type { FilesystemProtocol } from "../protocol/filesystem.js";
-import type { SandboxProtocol } from "../protocol/sandbox.js";
-import type { EnvdTokenManager } from "../transport/auth.js";
+import type { FilesystemProtocol } from "../protocol/contracts.js";
+import type { SandboxProtocol } from "../protocol/contracts.js";
+import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { StreamReader } from "../transport/streaming.js";
 import { getLogger } from "../utils/logging.js";
 import { toOSError } from "../utils/_pyos.js";
