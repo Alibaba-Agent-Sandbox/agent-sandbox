@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.
+- 修正 Skill 安装来源和完整文件包示例；原进程组停止后才确认任务取消，保留借用沙箱所有权边界，清理带 Provider 前缀的默认资源，并保留删除失败的重试句柄；新增真实复验记录且明确高级能力缺口。
+
+- Make Sandbox Skill task recovery, binary verification and per-action acceptance evidence explicit. Preserve connected/retained resources across MCP disconnect, keep absent lifetime metadata unknown, and report successful cancellation independently from a task signal exit.
+- Display actual template aliases/current build status; include workflow references in the npm package.
+
+
 ### Added
 
 - **Installers for the standalone binary.** `install.sh` (macOS and Linux) and `install.ps1` (Windows x64) download `abx-<version>-<os>-<arch>[.exe]` plus its `.sha256` from the latest GitHub Release, verify the checksum, and install without sudo. `ABX_VERSION` and `ABX_INSTALL_DIR` override the release and the destination. The npm package `@agent-sandbox/cli` is not published yet.
@@ -28,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **Open-source hygiene.** The deploy and benchmark scripts no longer contain developer-machine paths, a personal ACR namespace or fixed e2e tags: `abx` is resolved from `PATH` (override with `ABX_BIN`), `scripts/build_hermes.sh`, `deploy_all_templates.sh` and `deploy_remaining.sh` take `ACR_NAMESPACE` (required), `TAG` (default `dev`) and `REGION` from the environment, and `.env.example` uses the `<your-namespace>` placeholder. New regression guard `npm run check:hygiene` (`scripts/check-no-local-paths.sh`, allowlist in `scripts/local-paths.allowlist`) runs in CI and fails on user-home paths, Windows user paths, `.venv/bin` assumptions, personal identifiers and key-like strings.
 
 ### Fixed
+
+- Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.
 
 - **Pinned server archive skips PyPI.** `abx template init` pins python-sdk `61c43e0be65a1f57aa09186d578e7b399e48429b` (PR #21; the `server-sdk` tree matches PR #20, and later commits through PR #24 do not change server runtime). A Dockerfile that already pins any `python-sdk/archive/<sha>.tar.gz#subdirectory=server-sdk` is built as written, and deploy does not request `agent-sandbox-server` from PyPI. `ABX_SERVER_SDK_SOURCE` still injects a wheel and replaces that pin whatever SHA it uses. Fixes #24.
 - **Deployed `--alias` resolves capabilities, and missing credentials name the variables that are read.** `abx template deploy --alias <name>` caches `template.yaml` under both the platform template id and that alias, so a later `abx create` / `abx run` of the alias does not warn that `~/.abx/templates` has no match. Credential lookup is unchanged: one name per key (`ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, `ALIBABA_CLOUD_REGION_ID`). `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, and `ALIBABA_CLOUD_ACCESS_KEY_ID` / `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing AccessKey or API key error lists the names that are read. `abx --json template deploy <dir> -y` prints one JSON object on stdout; the id is `TemplateID`. Fixes #20, #21.

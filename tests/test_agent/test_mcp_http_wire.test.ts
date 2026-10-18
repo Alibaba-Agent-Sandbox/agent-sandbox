@@ -9,7 +9,7 @@ import type { AddressInfo } from "node:net";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createMcpApp, serveMcpApp, type McpHttpApp } from "../../src/agent/mcp_http.js";
+import { createMcpApp, serveMcpApp, HeaderBag, type McpHttpApp } from "../../src/agent/mcp_http.js";
 
 interface Raw {
   status: number;
@@ -183,9 +183,15 @@ describe("TestMcpHttpWire", () => {
 
   it("trailing-slash paths redirect with 307 to the route", async () => {
     const port = await listen(app());
-    const r = await call(port, "POST", "/mcp/?a=b%20c", { headers: { Host: "example.test:81" } });
+    const r = await call(port, "POST", "/mcp/?a=b%20c", { headers: { Host: `127.0.0.1:${port}` } });
     expect(r.status).toBe(307);
-    expect(headers(r)).toEqual(["content-length: 0", "location: http://example.test:81/mcp?a=b%20c"]);
+    expect(headers(r)).toEqual(["content-length: 0", `location: http://127.0.0.1:${port}/mcp?a=b%20c`]);
+  });
+
+  it("preserves custom Host and escaped query in direct route dispatch", async () => {
+    const result = await app().handle({ method: "POST", path: "/mcp/", queryString: "a=b%20c", headers: new HeaderBag([["host", "example.test:81"]]), body: async () => Buffer.alloc(0), json: async () => null, baseUrl: route => `http://example.test:81${route}` });
+    expect(result.status).toBe(307);
+    expect(result.headers).toContainEqual(["location", "http://example.test:81/mcp?a=b%20c"]);
   });
 
   it("parse and shape errors use the documented bodies", async () => {

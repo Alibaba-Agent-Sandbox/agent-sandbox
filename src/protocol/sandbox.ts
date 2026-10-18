@@ -39,6 +39,13 @@ export class SandboxProtocol {
       if (!("timeout" in d)) d["timeout"] = 0;
       return SandboxInfo.modelValidate(d);
     }
+    // A response omission is not evidence that the service applied client defaults.
+    if (data !== null && typeof data === "object" && !Array.isArray(data)) {
+      const observed = { ...(data as Record<string, unknown>) };
+      if (!("timeout" in observed)) observed.timeout = 0;
+      if (!("region" in observed)) observed.region = "";
+      return SandboxInfo.modelValidate(observed);
+    }
     return SandboxInfo.modelValidate(data);
   }
 

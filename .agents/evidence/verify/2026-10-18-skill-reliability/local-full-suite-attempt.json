@@ -1,0 +1,212 @@
+{
+  "notice": "This attempt overlapped ongoing fixes and is not a final revision claim. Failed checks stay explicit; see subsequent focused evidence and remote CI.",
+  "passed": 3765,
+  "failed": 34,
+  "skipped": 2,
+  "failures": [
+    {
+      "file": "test_agent/test_workflow_reliability.test.ts",
+      "test": "real Linux task lifecycle cancels a task group, observes terminal state and no additional output",
+      "observed_failure": "AssertionError: expected true to be false // Object.is equality",
+      "attribution": "corrected_contract_or_snapshot; subsequent_regression_required"
+    },
+    {
+      "file": "test_api/test_fc_template.test.ts",
+      "test": "TestBuildCreateTemplateRequestMap test_basic_request_map",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "generated_SDK_cold_readiness; setup_corrected"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-01 int options accept Unicode decimal digits like Python int()",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-03 a timeout above 2**31-1 ms does not fire immediately (exec --timeout 2147483648)",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-08 FORCE_COLOR together with NO_COLOR does not leak a Node warning on stderr",
+      "observed_failure": "AssertionError: expected '(node:1630) Warning: The \\'NO_COLOR\\'…' not to contain 'ignored due to the \\'FORCE_COLOR\\''",
+      "attribution": "source_loader_warning; shipped_entrypoint_control_PASS"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-10 a download write failure carries no filename (OS error: [Errno 28] No space left on device)",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-11 a truncated Content-Length body reports 'received N bytes, expected M'",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-13 the REPL keeps working after a very long (5000 char) line",
+      "observed_failure": "AssertionError: expected true to be false // Object.is equality",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-16 pasted lines run in order, Ctrl+D on an empty prompt after type-ahead disconnects (C-01)",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli/adv_commands.test.ts",
+      "test": "commands (review regressions) ADV-commands-17 Ctrl+W deletes a whitespace-delimited word (kills do not merge) and Ctrl+Y yanks it back (C-11)",
+      "observed_failure": "Error: Test timed out in 20000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+      "attribution": "requires_final_isolated_or_remote_verification"
+    },
+    {
+      "file": "test_cli_evidence/test_evidence_snapshots.test.ts",
+      "test": "test_evidence_snapshot [mcp-status]",
+      "observed_failure": "AssertionError: Output mismatch for mcp-status: expected 'server            agent-sandbox\\ntran…' to be 'server            agent-sandbox\\ntran…' // Object.is equality",
+      "attribution": "corrected_contract_or_snapshot; subsequent_regression_required"
+    },
+    {
+      "file": "test_cli_evidence/test_evidence_snapshots.test.ts",
+      "test": "test_evidence_snapshot [mcp-status-json]",
+      "observed_failure": "AssertionError: Output mismatch for mcp-status-json: expected '{\\n  \"server\": \"agent-sandbox\",\\n  \"t…' to be '{\\n  \"server\": \"agent-sandbox\",\\n  \"t…' // Object.is equality",
+      "attribution": "corrected_contract_or_snapshot; subsequent_regression_required"
+    },
+    {
+      "file": "test_engine/test_engine.test.ts",
+      "test": "engine rejects a missing token, a wrong token, a foreign Host and a browser Origin",
+      "observed_failure": "AssertionError: expected 501 to be 401 // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_engine/test_engine.test.ts",
+      "test": "engine creates, runs, streams, moves files, runs code and kills",
+      "observed_failure": "AssertionError: expected 500 to be 200 // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_engine/test_engine.test.ts",
+      "test": "engine reuses one session across calls and reconnects after a restart",
+      "observed_failure": "AssertionError: expected 500 to be 200 // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_engine/test_engine.test.ts",
+      "test": "engine keeps two connections to the same id apart",
+      "observed_failure": "AssertionError: expected { error: { …(5) } } to match object { stdout: 'hi\\n' }\n(6 matching properties omitted from actual)",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_engine/test_engine.test.ts",
+      "test": "engine bridges the terminal WebSocket to the sandbox PTY",
+      "observed_failure": "Error: 500 Failed to establish WebSocket connection: server rejected WebSocket connection: HTTP 501",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_providers/test_cubesandbox_provider.test.ts",
+      "test": "cubesandbox through the host and CLI runs and streams commands, reads and lists files, interprets code, and opens a PTY",
+      "observed_failure": "EnvdRpcError: envd RPC /process.Process/Start failed (HTTP 501): 项目网络审计已关闭",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_providers/test_cubesandbox_provider.test.ts",
+      "test": "cubesandbox through the host and CLI dials envd without a token when allow_missing is set, still as root",
+      "observed_failure": "EnvdRpcError: envd RPC /process.Process/Start failed (HTTP 501): 项目网络审计已关闭",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_providers/test_cubesandbox_provider.test.ts",
+      "test": "cubesandbox through the host and CLI drives create, exec, file list, sandbox list, and kill from the CLI",
+      "observed_failure": "AssertionError: expected 1 to be +0 // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_providers/test_cubesandbox_provider.test.ts",
+      "test": "cubesandbox through the engine sets a timeout, lists files, and builds an http port URL from the reported domain",
+      "observed_failure": "AssertionError: expected 500 to be 200 // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_providers/test_node_plugins.test.ts",
+      "test": "node plugins from the catalog cubesandbox: no key header, http envd, root user, framed streams, dial through the proxy, Jupyter code",
+      "observed_failure": "EnvdRpcError: envd RPC /process.Process/Start failed (HTTP 501): 项目网络审计已关闭",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_providers/test_node_plugins.test.ts",
+      "test": "node plugins from the catalog cubesandbox: an envd with no access token gets no token header",
+      "observed_failure": "EnvdRpcError: envd RPC /process.Process/Start failed (HTTP 501): 项目网络审计已关闭",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_transport/test_node_transport_integration.test.ts",
+      "test": "TestNodeTransportLoopback reports a refused TCP connection like anyio/httpx (All connection attempts failed)",
+      "observed_failure": "AssertionError: expected RemoteProtocolError: Server disconnected … { _request: Request{ …(7) } } to be an instance of ConnectError",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "test_protocol/test_sandbox.test.ts",
+      "test": "TestUnknownIfAbsent test_platform_default_keeps_the_builtin_region_and_timeout",
+      "observed_failure": "AssertionError: expected [ '', +0 ] to deeply equal [ 'cn-hangzhou', 300 ]",
+      "attribution": "corrected_contract_or_snapshot; subsequent_regression_required"
+    },
+    {
+      "file": "adversarial/core/transport_net.test.ts",
+      "test": "ADV-core httpx shim: response parsing / error classes ADV-core-20 garbage status line -> RemoteProtocolError \"illegal status line: bytearray(b'garbage')\"",
+      "observed_failure": "AssertionError: expected { status: 502, …(1) } to deeply equal { name: 'RemoteProtocolError', …(1) }",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/transport_net.test.ts",
+      "test": "ADV-core httpx shim: response parsing / error classes ADV-core-21 TCP RST before any response byte -> ReadError with empty message",
+      "observed_failure": "AssertionError: expected { status: 502, …(1) } to deeply equal { name: 'ReadError', message: '' }",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/transport_net.test.ts",
+      "test": "ADV-core httpx shim: response parsing / error classes ADV-core-23 h11 accepts: both Transfer-Encoding and Content-Length",
+      "observed_failure": "AssertionError: expected { status: 502, …(1) } to deeply equal { status: 200, text: 'ok' }",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/transport_net.test.ts",
+      "test": "ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) ADV-core-25 SSL_CERT_FILE pointing at the server's self-signed cert makes the request succeed",
+      "observed_failure": "AssertionError: expected { name: 'ConnectError', …(1) } to deeply equal { status: 200, text: 'ok' }",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/transport_net.test.ts",
+      "test": "ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) ADV-core-26 SSL_CERT_DIR (hashed dir) is honoured",
+      "observed_failure": "AssertionError: expected { name: 'ConnectError', …(1) } to deeply equal { status: 200, text: 'ok' }",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/transport_net.test.ts",
+      "test": "ADV-core plain `fetch` call sites bypass the httpx shim ADV-core-30 ACR GetAuthorizationToken honours HTTPS_PROXY (httpx trust_env) instead of dialing directly",
+      "observed_failure": "AssertionError: expected false to be true // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/ws.test.ts",
+      "test": "ADV-core WebSocketClient close / error text ADV-core-54 invalid UTF-8 in a text frame closes with 1007 and the reason text 'invalid start byte at position 0'",
+      "observed_failure": "AssertionError: expected '[E5001] WebSocket receive error: rece…' to be '[E5001] WebSocket receive error: sent…' // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/ws.test.ts",
+      "test": "ADV-core WebSocketClient connect semantics ADV-core-56 HTTP_PROXY / HTTPS_PROXY from the environment are honoured (websockets proxy=True): CONNECT is sent to the proxy",
+      "observed_failure": "AssertionError: expected '[E5001] Failed to establish WebSocket…' to contain 'did not receive a valid HTTP response…'",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    },
+    {
+      "file": "adversarial/core/ws.test.ts",
+      "test": "ADV-core WebSocketClient connect semantics ADV-core-58 a server that closes the socket during the handshake: 'did not receive a valid HTTP response'",
+      "observed_failure": "AssertionError: expected '[E5001] Failed to establish WebSocket…' to be '[E5001] Failed to establish WebSocket…' // Object.is equality",
+      "attribution": "BLOCKED_local_network_interception; remote CI required"
+    }
+  ]
+}

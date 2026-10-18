@@ -1,0 +1,11 @@
+{
+  "expected_subject": "CN=skill-local.test",
+  "observed_subject": {
+    "CN": "skill-local.test"
+  },
+  "observed_issuer": {
+    "CN": "mitmproxy",
+    "O": "mitmproxy"
+  },
+  "fingerprint_matches": false
+}

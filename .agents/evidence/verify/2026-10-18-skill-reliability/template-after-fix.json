@@ -1,0 +1,37 @@
+{
+  "before": {
+    "template_id": "y2of2a2kkkci2y10q0qq",
+    "status": {
+      "finishedAt": "2026-10-16T08:05:13.195985Z",
+      "state": "ready"
+    },
+    "code": "200",
+    "runtime_verified": false
+  },
+  "submitted": {
+    "template_id": "3flkuk3r62835h4ydjtd",
+    "request_id": "01A14CE3-C0D6-52D2-BFF8-745A8E70607F",
+    "state": "submitted",
+    "runtime_verified": false
+  },
+  "build": {
+    "template_id": "3flkuk3r62835h4ydjtd",
+    "status": {
+      "finishedAt": "2026-10-18T02:42:37.786047Z",
+      "state": "ready"
+    },
+    "code": "200",
+    "runtime_verified": false
+  },
+  "validation": {
+    "template_id": "3flkuk3r62835h4ydjtd",
+    "checks": {
+      "command_exit": true,
+      "command_output": true,
+      "binary_round_trip": true
+    },
+    "verified": true,
+    "cleanup_verified": true
+  },
+  "passed": true
+}

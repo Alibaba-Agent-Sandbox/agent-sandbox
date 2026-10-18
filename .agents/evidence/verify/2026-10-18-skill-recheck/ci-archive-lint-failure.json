@@ -1,0 +1,25 @@
+{
+  "head": "23a2cdae4c785d11b60547976ec0fe16365c7d50",
+  "result": "FAIL",
+  "job": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39097267704/job/117586202401",
+  "stage": "Lint (not a type-system failure)",
+  "errors": [
+    {
+      "file": "runtime-replay.mjs",
+      "rule": "no-empty",
+      "count": 1
+    },
+    {
+      "file": "template-replay.mjs",
+      "rule": "no-empty",
+      "count": 1
+    },
+    {
+      "file": "template-replay.mjs",
+      "rule": "no-unsafe-finally",
+      "count": 1
+    }
+  ],
+  "attribution": "Newly archived acceptance-driver source, not the execution platform",
+  "repair": "Explain ignored non-protocol lines, remove unused declarations, move template cleanup into a helper so error propagation is checked outside finally. Re-run whole repository lint and actual template replay."
+}

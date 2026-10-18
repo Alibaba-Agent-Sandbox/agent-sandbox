@@ -1,0 +1,57 @@
+{
+  "head": "6a93e73bcb11c019d59cbf6759529cfa16ad89bb",
+  "checks": [
+    {
+      "name": "Build package",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117585056071"
+    },
+    {
+      "name": "Installer script",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665347"
+    },
+    {
+      "name": "Test (Node 20)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665199"
+    },
+    {
+      "name": "Test (Node 22)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665185"
+    },
+    {
+      "name": "Typecheck (tsc)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738784/job/117584665103"
+    },
+    {
+      "name": "Markdown links",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39096738679/job/117584664678"
+    }
+  ],
+  "counts": [
+    {
+      "name": "Test (Node 20)",
+      "lines": [
+        "Test Files  156 passed (156)",
+        "Tests  3809 passed | 3 skipped (3812)"
+      ]
+    },
+    {
+      "name": "Test (Node 22)",
+      "lines": [
+        "Test Files  156 passed (156)",
+        "Tests  3810 passed | 2 skipped (3812)"
+      ]
+    }
+  ]
+}
