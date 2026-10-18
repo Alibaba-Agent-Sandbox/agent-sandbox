@@ -19,7 +19,7 @@ import { echo, sys } from "../../../cli/io.js";
 import { confirm, prompt } from "../../../cli/prompts.js";
 import { isatty } from "../../../cli/io.js";
 import { cleandoc } from "../../../utils/_py.js";
-import { EXIT_NOT_FOUND, handleErrors } from "../../../cli/main.js";
+import { EXIT_NOT_FOUND, handleErrors } from "../../../cli/error_handler.js";
 import { getFormatter } from "../../../cli/formatters.js";
 import { requireTemplateFeature } from "./selection.js";
 import { enableVerbose, getOutput, isCiEnv } from "../../../cli/output.js";

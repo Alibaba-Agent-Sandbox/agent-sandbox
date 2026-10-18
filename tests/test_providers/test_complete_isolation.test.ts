@@ -10,7 +10,7 @@ import { Provider, type ProviderInfra } from "../../src/providers/base.js";
 import { getProvider, registerProvider, unregisterProvider } from "../../src/providers/registry.js";
 import { loadLayeredConfig, type LayeredConfig } from "../../src/transport/config_layers.js";
 import { setCliProvider, resetCliSelection } from "../../src/providers/selection.js";
-import { TOOL_SCHEMAS, dispatchTool } from "../../src/agent/tools.js";
+import { TOOL_SCHEMAS, TOOL_HANDLERS, dispatchTool } from "../../src/agent/tools.js";
 import { SandboxManager } from "../../src/agent/mcp.js";
 import { deploy_shortcut } from "../../src/cli/commands/deploy.js";
 import { main } from "../../src/cli/main.js";
@@ -67,10 +67,13 @@ describe("complete backend isolation", () => {
     setCliProvider("alicloud-express");
     expect(deploy_shortcut.help).toContain("Runs one publish path");
     expect(TOOL_SCHEMAS.some(s => s.name === "submit_template_build")).toBe(true);
+    expect(Object.hasOwn(TOOL_HANDLERS, "submit_template_build")).toBe(true);
     expect(build.params.some(p => p.name === "acr_namespace")).toBe(true);
     setCliProvider(provider.id);
     expect(deploy_shortcut.help).not.toContain("ACR");
     expect(TOOL_SCHEMAS.some(s => s.name === "submit_template_build")).toBe(false);
+    expect(Object.hasOwn(TOOL_HANDLERS, "submit_template_build")).toBe(false);
+    expect(Object.hasOwn(TOOL_HANDLERS, "validate_template")).toBe(true);
     expect(TOOL_SCHEMAS.some(s => s.name === "validate_template")).toBe(true);
     expect(build.params.some(p => p.name === "acr_namespace")).toBe(false);
     await expect(dispatchTool("submit_template_build", {}, new SandboxManager())).rejects.toThrow("Unknown tool");
@@ -129,6 +132,7 @@ supported = ["templates.read"]
     const provider = new IsolatedProvider();
     const info = new SandboxInfo({ sandbox_id: "s", envd_url: null });
     const config = new TransportConfig({ domain: "protocol.test" });
+    vi.spyOn(config, "buildEnvdUrl").mockImplementation(() => { throw new Error("legacy config URL helper used"); });
     expect(provider.resolveSessionUrl(info, config)).toBe("");
     expect(provider.resolveSessionUrl(info, config, new E2BProtocol({} as HttpClient)))
       .toBe("https://49983-s.protocol.test");

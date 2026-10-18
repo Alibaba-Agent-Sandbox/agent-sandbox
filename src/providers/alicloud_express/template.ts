@@ -8,7 +8,7 @@
  *     const http = new HttpClient(config, auth);
  *
  *     const manager = new TemplateManager(http);
- *     const info = await manager.build("FROM python:3.11\nRUN pip install flask");
+ *     const info = await manager.get("existing-template-id");
  */
 
 import { BuildStatus, TemplateInfo } from "../../models/template.js";
@@ -17,16 +17,6 @@ import type { HttpClient } from "../../transport/http.js";
 import { getLogger } from "../../utils/logging.js";
 
 const logger = getLogger("api.template");
-
-export interface TemplateBuildOptions {
-  alias?: string | null;
-  timeout?: number;
-  poll_interval?: number;
-  cpu_count?: number | null;
-  memory_mb?: number | null;
-  start_cmd?: string | null;
-  ready_cmd?: string | null;
-}
 
 export interface BuildFromImageOptions {
   name: string;
@@ -51,56 +41,6 @@ export class TemplateManager {
   }
 
   async close(): Promise<void> { await this._http.close(); }
-
-  /** Build a template (synchronously wait for completion). Returns TemplateInfo with build_status=ready. */
-  async build(dockerfile: string, opts: TemplateBuildOptions = {}): Promise<TemplateInfo> {
-    const {
-      alias = null,
-      timeout = 600,
-      poll_interval = 5,
-      cpu_count = null,
-      memory_mb = null,
-      start_cmd = null,
-      ready_cmd = null,
-    } = opts;
-    const [template_id, build_id] = await this.buildInBackground(dockerfile, {
-      alias,
-      cpu_count,
-      memory_mb,
-      start_cmd,
-      ready_cmd,
-    });
-
-    // Wait for build to complete
-    await this._protocol.waitForBuild(template_id, build_id, { timeout, poll_interval });
-
-    // Fetch final template info
-    const data = await this._protocol.get(template_id);
-    const info = TemplateInfo.modelValidate(data);
-    // Override build_status since we confirmed the build completed
-    info.build_status = BuildStatus.READY;
-    logger.info("Template built successfully: %s", template_id);
-    return info;
-  }
-
-  /** Build a template in the background. Returns `[template_id, build_id]`. */
-  async buildInBackground(
-    dockerfile: string,
-    opts: {
-      alias?: string | null;
-      cpu_count?: number | null;
-      memory_mb?: number | null;
-      start_cmd?: string | null;
-      ready_cmd?: string | null;
-    } = {},
-  ): Promise<[string, string]> {
-    const { alias = null, cpu_count = null, memory_mb = null, start_cmd = null, ready_cmd = null } = opts;
-    const data = await this._protocol.create(dockerfile, { alias, cpu_count, memory_mb, start_cmd, ready_cmd });
-    const template_id = pyKey(data, "templateID");
-    const build_id = pyKey(data, "buildID");
-    logger.info("Template build started: templateID=%s, buildID=%s", template_id, build_id);
-    return [template_id, build_id];
-  }
 
   /** List all templates. */
   async list(): Promise<TemplateInfo[]> {

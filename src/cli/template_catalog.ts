@@ -17,7 +17,7 @@ import { echo, sys } from "./io.js";
 import { confirm, prompt } from "./prompts.js";
 import { isatty } from "./io.js";
 import { cleandoc } from "../utils/_py.js";
-import { handleErrors } from "./main.js";
+import { handleErrors } from "./error_handler.js";
 import { getFormatter } from "./formatters.js";
 import { getOutput, isCiEnv } from "./output.js";
 import { availableCases, renderScaffold } from "./scaffold.js";

@@ -95,7 +95,7 @@ export class TokenExpiredError extends AuthenticationError {
 }
 
 /**
- * AK/SK credentials are invalid.
+ * The selected provider credentials are invalid.
  */
 export class InvalidCredentialsError extends AuthenticationError {
   static override code = "E1003";

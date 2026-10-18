@@ -362,12 +362,11 @@ function addOption(cmd: CommanderCommand, p: Option): void {
   const type = p.attrs.type;
   if (!p.attrs.is_flag && (type !== undefined || p.attrs.multiple)) {
     if (type instanceof Choice && type.case_sensitive && !p.attrs.multiple) opt.choices(type.choices);
-    else {
-      opt.argParser((value: string, prev: unknown) => {
-        const converted = convert(type, value);
-        return p.attrs.multiple ? [...(Array.isArray(prev) ? prev : []), converted] : converted;
-      });
-    }
+    // Keep choices for help, but use our converter for stable CLI diagnostics.
+    opt.argParser((value: string, prev: unknown) => {
+      const converted = convert(type, value);
+      return p.attrs.multiple ? [...(Array.isArray(prev) ? prev : []), converted] : converted;
+    });
   }
   cmd.addOption(opt);
   for (const neg of pairs) {
@@ -383,7 +382,7 @@ function addArgument(cmd: CommanderCommand, p: Argument): void {
   const arg = new CommanderArgument(required ? `<${label}>` : `[${label}]`);
   const type = p.attrs.type;
   if (type instanceof Choice && type.case_sensitive) arg.choices(type.choices);
-  else if (type !== undefined) {
+  if (type !== undefined) {
     arg.argParser((value: string, prev: unknown) => {
       const converted = convert(type, value);
       return variadic ? [...(Array.isArray(prev) ? prev : []), converted] : converted;

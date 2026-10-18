@@ -3,10 +3,6 @@
  *
  * Endpoints (relative to Platform API base URL):
  *
- * **Legacy (deprecated by backend)**:
- *   POST /templates → 202, returns templateID + buildID (only creates metadata stub; actual build always fails with
- *   '400, invalid image format').
- *
  * **Current v3/v2 API (aligned with E2B SDK 2.31.0)**:
  *   POST /v3/templates → creates metadata, returns templateID + buildID.
  *   POST /v2/templates/{tpl}/builds/{build} → triggers real build from an image reference (requires ACR EE registry
@@ -68,38 +64,6 @@ export class TemplateProtocol {
     this._http = http_client;
   }
 
-  /** Create a template. POST /templates → 202（已实测验证）. Returns dict with templateID and buildID. */
-  async create(dockerfile: string, opts: TemplateCreateOptions = {}): Promise<Record<string, any>> {
-    const { alias = null, cpu_count = null, memory_mb = null, start_cmd = null, ready_cmd = null } = opts;
-    const payload: Record<string, unknown> = { dockerfile };
-    if (alias !== null) payload["alias"] = alias;
-    if (cpu_count !== null) payload["cpuCount"] = cpu_count;
-    if (memory_mb !== null) payload["memoryMB"] = memory_mb;
-    if (start_cmd !== null) payload["startCmd"] = start_cmd;
-    if (ready_cmd !== null) payload["readyCmd"] = ready_cmd;
-
-    try {
-      const response = await this._http.platformRequest("POST", "/templates", { json: payload });
-      const data = response.json();
-      logger.info("Template creation started: templateID=%s, buildID=%s", dictGet(data, "templateID"), dictGet(data, "buildID"));
-      return data;
-    } catch (exc) {
-      if (exc instanceof HTTPStatusError) {
-        const status = exc.response.status_code;
-        let body: any;
-        try {
-          body = responseJson(exc);
-        } catch {
-          body = {};
-        }
-        const message = dictGet(body, "message", pyExcStr(exc));
-        throw new SandboxError(message, { code: `E7${status}` });
-      }
-      throw exc;
-    }
-  }
-
-  /** List templates. GET /templates → 200 */
   async list(): Promise<Record<string, any>[]> {
     const response = await this._http.platformRequest("GET", "/templates");
     const data = response.json();

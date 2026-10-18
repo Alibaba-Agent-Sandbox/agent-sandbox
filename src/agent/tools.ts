@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { templateSchemas, handleTemplateOperation } from "./template_operations.js";
 import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
-import { pyExcStr } from "../api/_pyerrors.js";
+import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { KeyError, ValueError, isDict, pyStrip, pyTruthy, pyTypeName, type JsonObject } from "./_py.js";
 import type { SandboxManager } from "./mcp.js";
@@ -375,7 +375,7 @@ export async function handleKillSandbox(
 type ToolHandler = (params: ToolParams, manager: SandboxManager) => Promise<ToolResult>;
 
 /** Handler dispatch table. */
-export const TOOL_HANDLERS: Record<string, ToolHandler> = {
+const CORE_TOOL_HANDLERS: Record<string, ToolHandler> = {
   create_sandbox: handleCreateSandbox,
   run_code: handleRunCode,
   run_command: handleRunCommand,
@@ -385,6 +385,24 @@ export const TOOL_HANDLERS: Record<string, ToolHandler> = {
   kill_sandbox: handleKillSandbox,
   ...Object.fromEntries(Object.keys(operationInputs).map(name => [name, (params: ToolParams, manager: SandboxManager) => handleOperation(name as keyof typeof operationInputs, params, manager)])),
 };
+
+function toolHandlers(): Record<string, ToolHandler> {
+  return {
+    ...CORE_TOOL_HANDLERS,
+    ...Object.fromEntries(templateSchemas().map(({ name }) => [name,
+      (params: ToolParams, manager: SandboxManager) => handleTemplateOperation(name, params, manager)])),
+  };
+}
+
+/** Live handler view shares exactly the selected provider's discovery surface. */
+export const TOOL_HANDLERS: Record<string, ToolHandler> = new Proxy({}, {
+  get(_target, key) { return typeof key === "string" ? toolHandlers()[key] : undefined; },
+  ownKeys() { return Object.keys(toolHandlers()); },
+  getOwnPropertyDescriptor(_target, key) {
+    const handler = typeof key === "string" ? toolHandlers()[key] : undefined;
+    return handler ? { value: handler, enumerable: true, configurable: true } : undefined;
+  },
+});
 
 /**
  * Dispatch a tool call to its handler.

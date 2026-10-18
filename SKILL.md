@@ -40,11 +40,11 @@ Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and t
 
 ## Installation
 
-Node.js 20+ is required for the CLI.
+The standalone CLI binary does not require Node.js. Building/installing its source package requires Node.js20+. Public npm metadata is unavailable; use the binary installer or the source recipe below.
 
 ```bash
-npm install -g @agent-sandbox/cli   # abx CLI + MCP STDIO and Streamable HTTP servers (most agents want this)
-npx @agent-sandbox/cli --help       # or run it without installing
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+abx --help
 # Python SDK is separate; follow its repository release/source-install instructions.
 ```
 
@@ -69,10 +69,7 @@ Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Short
 
 ## Credentials and security
 
-Authentication options (first available wins):
-
-1. API key — environment variable `ABX_SANDBOX_API_KEY`
-2. Alibaba Cloud AK/SK — `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`
+Runtime sandbox requests require `ABX_SANDBOX_API_KEY`. Official template/image/ACR control-plane operations separately require `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`. AK/SK never automatically creates or exchanges the runtime API key.
 
 Persist them locally instead of exporting in every shell:
 

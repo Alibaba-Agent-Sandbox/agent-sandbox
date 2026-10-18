@@ -5,7 +5,7 @@
  * the selected provider template profile (`{name}` is the only placeholder; `{{` / `}}` are literal braces).
  */
 
-import { ValueError } from "../api/_pyerrors.js";
+import { ValueError } from "../utils/_pyerrors.js";
 import {
   ABX_SERVER_INSTALL,
   dockerfileCmdLine,

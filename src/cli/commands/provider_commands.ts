@@ -9,7 +9,7 @@ import { cliOptions, cliProvider } from "../../providers/selection.js";
 import { getFormatter } from "../formatters.js";
 import { echo } from "../io.js";
 import { argument, command, group, option, type Context } from "../kit.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 
 type Params = Record<string, unknown>;
 const MAX_INPUT_BYTES = 1024 * 1024;

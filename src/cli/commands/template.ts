@@ -1,6 +1,6 @@
 /** Provider-neutral template commands. Native UI, authentication and cloud work belong to adapters. */
 import { argument, command, option, type Context, type Param, type Command } from "../kit.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { getFormatter } from "../formatters.js";
 import { INT } from "../types.js";
 import { providerCliExtension } from "../provider_extensions.js";

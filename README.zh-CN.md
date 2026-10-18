@@ -4,8 +4,6 @@
 
 <!-- badges -->
 [![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
-[![Node 20+](https://img.shields.io/node/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
 [![License](https://img.shields.io/github/license/agent-sandbox/agent-sandbox)](LICENSE)
 
 > 为 AI Agent 打造的云沙箱 —— 秒级创建、执行、管理隔离环境。
@@ -37,6 +35,8 @@ SDK 侧特性（异步优先的 `Sandbox` API、`run` / `run_code` 执行原语�
 
 ## 安装
 
+发布二进制的本次检查覆盖校验和与版本。当前 `[Unreleased]` 修复在配套版本发布前使用源码构建方式；仅看到版本0.3.0不能证明已包含之后的源码变化。
+
 ### macOS 与 Linux
 
 ```bash
@@ -51,7 +51,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_VERSION` 选择版本（默认最新 Release）。`ABX_INSTALL_DIR` 选择目录。网站以后可以把这两份脚本放到自己的域名上；命令仍然是一行，只改 URL。
 
-这两行命令需要资产名为 `abx-*` 的 GitHub Release。v0.2.0 的资产名是 `ebx-*`，v0.3.0 还没有发布。在那个 Release 出现之前，请从源码安装（见下）。
+v0.3.0 Release 已提供五个平台的 `abx-*` 二进制和对应 SHA-256 文件，安装脚本使用这些资产；也可按下文从源码安装。
 
 ### 手动下载
 
@@ -59,7 +59,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 ### npm（即将提供）
 
-`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。包名还没有定。部分 npm 镜像（包括 npmmirror）上有一个无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。
+`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。当前清单中的包名是 `@agent-sandbox/cli`。部分 npm 镜像（包括 npmmirror）上有一个无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。
 
 ### 从源码安装
 
@@ -68,6 +68,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
+git rev-parse HEAD
 npm ci
 npm run build
 npm pack
@@ -162,13 +163,15 @@ Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器�
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
-pip install agent-sandbox
+python -m pip install \
+  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk" \
+  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=client-sdk"
 
 # 模板镜像内使用的服务端运行时（import agent_sandbox.server）
-pip install agent-sandbox-server
+python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk"
 ```
 
-`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 `pip install agent-sandbox-server` 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
+`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
 
 ## 文档
 

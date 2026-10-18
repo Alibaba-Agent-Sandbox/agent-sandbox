@@ -46,3 +46,11 @@ The full-isolation follow-up removes the earlier guard-only limitation. Authenti
 cloud mappings, template orchestration, session defaults and vendor UI metadata are
 provider-owned. Historical evidence remains unchanged; acceptance is tracked in the new
 [isolation verification](../../../evidence/verify/2026-10-18-provider-complete-isolation.md).
+
+
+The current-host integration retains the accepted API-key-only runtime authentication,
+independent CLI error renderer and retired native gRPC slice. Provider-owned URL builders
+replace core wire-format logic. Python schema composition remains lazy and injected;
+CLI tool schemas and handler discovery are recomputed together. Earlier engine-routing
+verification remains historical, not evidence that the retired daemon is still used.
+See the [integration checkpoint](../../../evidence/verify/2026-10-18-provider-current-host-checkpoint.md).

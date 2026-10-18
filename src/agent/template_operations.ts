@@ -10,7 +10,7 @@ import { cliProvider } from "../providers/selection.js";
 const validationInput = z.strictObject({ template_id: z.string().min(1), region: z.string().optional() });
 const validationSchema = { name: "validate_template", description: "Create a temporary sandbox through the selected provider, verify its runtime, and verify owned cleanup separately.",
   inputSchema: z.toJSONSchema(validationInput, { io: "input" }) as JsonObject };
-export function templateSchemas(): Array<ProviderTemplateExtension["schemas"][number]> { return [validationSchema, ...(providerTemplateExtension()?.schemas ?? [])]; }
+export function templateSchemas(): Array<ProviderTemplateExtension["schemas"][number]> { return [...(providerTemplateExtension()?.schemas ?? []), validationSchema]; }
 export async function handleTemplateOperation(name: string, raw: JsonObject, manager: SandboxManager): Promise<JsonObject> {
   const p = name === "validate_template" ? validationInput.parse(raw) as Record<string, unknown> : raw;
   if (name === "validate_template") {

@@ -19,6 +19,7 @@ import {
 } from "../../src/transport/config.js";
 import { useIso } from "../_support/iso.js";
 import { useCapsys } from "./conftest.js";
+import { getProvider } from "../../src/providers/registry.js";
 
 const iso = useIso();
 const cap = useCapsys();
@@ -55,9 +56,9 @@ describe("sandbox id that is not a string", () => {
   });
 
   it("test_list_is_membership_and_null_is_skipped", () => {
-    expect(_selectProvider(null, null)).toEqual([null, null]);
+    expect(_selectProvider(null, null)).toEqual([getProvider("alicloud-express"), null]);
     const [prov, bare] = _selectProvider(null, ["http://x"]);
-    expect(prov).toBeNull();
+    expect(prov).toBe(getProvider("alicloud-express"));
     expect(bare).toEqual(["http://x"]);
   });
 });

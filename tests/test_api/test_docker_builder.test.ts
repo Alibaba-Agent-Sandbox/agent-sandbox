@@ -1,8 +1,9 @@
 /** Tests for DockerBuilder, ACRConfig, and ACR auth helpers. */
 
 import { EventEmitter } from "node:events";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -724,5 +725,38 @@ describe("TestBuildProgress", () => {
     const text = cap.messages().join("\n");
     expect(text).not.toContain("s3cret-value");
     expect(text).toContain("ACR_PASSWORD=***");
+  });
+});
+
+
+describe("legacy registration authentication preflight", () => {
+  it("refuses AK/SK-only before Docker or push in an isolated real process", () => {
+    const home = mkTmp();
+    const source = new URL("../../src/api/docker_builder.ts", import.meta.url).href;
+    const loader = fileURLToPath(new URL("../../node_modules/tsx/dist/loader.mjs", import.meta.url));
+    const code = `
+      import { DockerBuilder, ACRConfig } from ${JSON.stringify(source)};
+      const builder = new DockerBuilder();
+      builder.checkDocker = async () => { throw new Error("unexpected-docker-side-effect"); };
+      const acr = new ACRConfig({ registry: "example.invalid", namespace: "fixture", repo: "fixture", username: "ak", password: "sk" });
+      try {
+        await builder.buildAndRegister(".", acr, { access_key_id: "ak", access_key_secret: "sk" });
+        throw new Error("missing-refusal");
+      } catch (error) {
+        if (error.name !== "InvalidAPIKeyError") throw error;
+        console.log("REFUSED_BEFORE_SIDE_EFFECTS");
+      }
+    `;
+    try {
+      const output = execFileSync(process.execPath, ["--import", loader, "--input-type=module", "-e", code], {
+        cwd: home,
+        env: { PATH: process.env.PATH ?? "", HOME: home, ABX_PROVIDER_UPDATE_CHECK: "0" },
+        encoding: "utf8",
+        timeout: 15000,
+      });
+      expect(output.trim()).toBe("REFUSED_BEFORE_SIDE_EFFECTS");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 });

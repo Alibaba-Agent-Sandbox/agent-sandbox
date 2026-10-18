@@ -1,6 +1,6 @@
 /** Top-level deployment delegates to the active provider's template implementation. */
 import { argument, command, type Option } from "../kit.js";
-import { handleErrors } from "../main.js";
+import { handleErrors } from "../error_handler.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { build } from "./template.js";
 export const deploySeams = { build };

@@ -6,7 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Retire the unsupported builtin automatic-retry claim. Existing retry configuration names/defaults and EPP compatibility values remain accepted; they do not enable builtin HTTP retries or backoff.
+
+### Removed
+
+- Retired unreachable SDK-port Image/TemplateManager, named-session persistence/models, GlobalConfig, SecretStore, generic retry and PortClient implementations, their dedicated tests and stale exports. Removed the unused deprecated Dockerfile `POST /templates` creation path; active v3/v2 and official template operations remain. CLI commands and the Python parity ledger are unchanged. See the bilingual module retirement guide for programmatic replacements.
+
+- Removed the unconfirmed automatic AK/SK-to-sandbox-key RPC exchange and its private signing/parser helpers. Sandbox requests now fail locally without an API Key; official template/ACR AK/SK operations remain. Explicit custom exchange adapters remain and reject empty/structured token returns. This changes AK/SK-only runtime authentication; see the bilingual migration guide.
+### Changed
+
+- Validate compatible Vitest5.0.4/typescript-eslint8.71.2 patches together on supported Node20/22; index accepted CLI cleanup decisions as implemented.
+
+- Separate command error rendering from the CLI root and place shared exception/provider error values in lower layers. Existing deep imports re-export the same values; command behavior is unchanged.
+
+- CI and release workflows use setup-node v7 while retaining explicit Node 20/22 targets. Automatic incompatible Commander/TypeScript/Node-type major bumps are deferred to explicit compatibility migrations; patch/minor updates continue.
+
 ### Fixed
+
+- Integrate provider isolation with current host cleanup/authentication; keep URL conventions and template work in adapters, synchronize AI schema/handler discovery, preserve choice diagnostics and verbose configuration reporting. Minimal Python images support process inspection without procps and valid typed metrics collection.
+
+- Align current CLI/Skill installation instructions with published v0.3.0 binary assets and the Python SDK paired-source distribution; retire unavailable npm/index commands.
 
 - Correct Skill installation sources and complete bundle examples; keep tasks cancelling until their original process group stops, preserve borrowed sandbox ownership, clear provider-qualified defaults, and retain failed-delete handles for retry. Follow-up live verification records distinguish these fixes from unverified advanced requirements.
 - 修正 Skill 安装来源和完整文件包示例；原进程组停止后才确认任务取消，保留借用沙箱所有权边界，清理带 Provider 前缀的默认资源，并保留删除失败的重试句柄；新增真实复验记录且明确高级能力缺口。

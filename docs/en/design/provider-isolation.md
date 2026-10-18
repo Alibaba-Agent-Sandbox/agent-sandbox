@@ -13,7 +13,7 @@ SDK, exchange cloud credentials, derive backend URLs, or select a wire protocol.
 | Authentication, endpoints, wire mapping, backend errors/statuses, lifecycle and optional create inputs | Selected Provider |
 | Template authentication, build/register/poll/delete, Docker/registry specifics | Provider template implementation |
 | Template source search/download, project scaffolding and runtime validation | Host, using the selected provider's declared metadata and factories |
-| Express SDK, AK/SK signing/exchange, FC/ACR deployment, CLI options/prompts, AI management schemas | `providers/alicloud_express/` |
+| Express SDK, control-plane signing, explicit custom exchange, FC/ACR deployment, CLI options/prompts, AI management schemas | `providers/alicloud_express/` |
 | Reusable E2B/envd wire adapters and token formatting | `providers/shared/e2b/`, explicitly selected by a provider |
 
 The distribution composition roots register bundled adapters, configuration descriptors,
@@ -64,3 +64,17 @@ retain the existing verified/consented update and rollback workflow. See
 [portability and updates](provider-portability-and-updates.md) for command details.
 Decoupling does not make SDK migration zero-change, upgrade live sandboxes, or establish
 feature parity across providers.
+
+## Integration with the current host
+
+The independent `cli/error_handler.ts` renders errors for generic commands and owned
+provider extensions; callbacks do not import the root CLI. Authentication diagnostics
+come from the selected auth adapter. Express sandbox calls require a sandbox API key;
+control-plane AK/SK never creates an implicit key during a sandbox operation.
+
+E2B/envd URL formatting lives with the wire adapter. Compatibility URL methods in both
+configuration views delegate to the distribution's legacy builder. The retired raw
+Dockerfile `POST /templates` build path stays removed; project deployment uses the
+provider-owned CLI extension, and prebuilt-image registration uses the current adapter.
+Missing optional template methods return E8004. Tool discovery preserves its public
+ordering while recomputing schemas for the selected provider.
