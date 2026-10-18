@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Reserve create positional arguments for templates and natural language for `--prompt` in the CLI; document migration, source attribution and backend capability limits.
 ### Fixed
 
+- Preserve the complete prebundled dependency attribution in npm/SEA, verify source replay, and finish piped license/standard output before exit. Pin generated Python installation to the tested standard implementation.
+
 - Install generated MCP applications from a tested matching client/server source pair instead of unavailable/unrelated PyPI distributions. Preserve the current provider workflow tools while routing metadata and TTL directly to the control plane, removing retired renewal state and sanitizing lifecycle failures.
 
 ### Fixed

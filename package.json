@@ -35,7 +35,8 @@
     "e2e:providers": "bash e2e/providers/run.sh",
     "e2e:cleanup": "node e2e/cleanup.mjs",
     "e2e:standard": "node e2e/standard.mjs",
-    "vendor:e2b": "node scripts/build-standard-cli.mjs"
+    "vendor:e2b": "node scripts/build-standard-cli.mjs",
+    "test:standard-provenance": "node --test scripts/test-standard-provenance.mjs"
   },
   "repository": {
     "type": "git",

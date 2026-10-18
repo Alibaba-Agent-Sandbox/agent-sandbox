@@ -35,3 +35,12 @@ The bundled standard command source is a maintained MIT source port, not a runti
 On the verified python-hello template, the backend advertises stdin-close support but returns HTTP 404/unimplemented for EOF/closeStdin. A real empty-pipe probe preserved stdout and exited 1 with **both** the pinned upstream CLI and abx. This is an existing backend incompatibility, preserved during migration. Invoke commands without a stdin pipe when none is needed; EOF-dependent workflows need a backend/template that implements that API. Sending stdin to a process that reads a fixed line is separately verified in the Python SDK.
 
 Real conditional probes on the tested python-hello function returned `pauseSession is not enabled for this function` and `sandbox runtime does not support snapshot`. The APIs are implemented, but success needs an enabled function and an appropriate MicroVM runtime/account. Generic runtime documentation does not enable an existing function. See the companion SDK verification record in its PR.
+
+### Source installation and artifact notices
+
+Use the paired Python source recipe in the README; its tested implementation pin
+provides the synchronous/asynchronous standard entries shown here. Generated Python
+template READMEs use that same pair. No PyPI release is implied.
+
+`abx --licenses` includes the full upstream prebundle identity inventory and retained
+notices. Maintainers refresh and verify them using [the pinned-source workflow](../../../vendor/e2b-cli/README.md).

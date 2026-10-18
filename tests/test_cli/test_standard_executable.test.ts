@@ -29,6 +29,10 @@ describe("standard executable contract", () => {
     expect(sources.length).toBeGreaterThan(30);
     const licenses = await run(["--licenses"]);
     expect(licenses.code).toBe(0);
+    const expected = readFileSync(new URL("../../LICENSE", import.meta.url), "utf8") + "\n" +
+      readFileSync(new URL("../../NOTICE", import.meta.url), "utf8") + "\n" +
+      readFileSync(new URL("../../src/standard_cli/THIRD_PARTY_NOTICES.txt", import.meta.url), "utf8");
+    expect(licenses.stdout).toBe(expected);
     expect(licenses.stdout).not.toContain("undefined@undefined");
     for (const source of sources) {
       expect(source.name).toBeTypeOf("string");
@@ -39,6 +43,8 @@ describe("standard executable contract", () => {
     for (const name of ["@inquirer/prompts", "@inquirer/core", "inquirer", "signal-exit"]) {
       expect(sources.some((source) => source.name === name)).toBe(true);
     }
+    const prebundled = JSON.parse(readFileSync(new URL("../../vendor/e2b-cli/prebundled-sources.json", import.meta.url), "utf8")) as { packages: Array<{name: string; version: string}> };
+    for (const pkg of prebundled.packages) expect(licenses.stdout).toContain(`${pkg.name}@${pkg.version}`);
     expect(licenses.stdout).toContain("Copyright 2014-2020 Benjamin Tan");
     expect(licenses.stdout).toContain("Copyright(c) 2014 Jonathan Ong");
   });
@@ -90,7 +96,9 @@ describe("standard executable contract", () => {
     const result = await run(["template", "init", "--name", name, "--language", language]);
     expect(result.code, result.stderr).toBe(0);
     expect(readFileSync(path.join(home, name, "template.py"), "utf8")).toContain("from agent_sandbox import");
-    expect(readFileSync(path.join(home, name, "README.md"), "utf8")).toContain("pip install agent-sandbox-client");
+    const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
+    expect(readme).toContain("agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk");
+    expect(readme).toContain("agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk");
   });
 
   it("routes template list with its fixed format option", async () => {

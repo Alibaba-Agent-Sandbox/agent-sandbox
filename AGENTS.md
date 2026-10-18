@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. The standard Express command path follows the pinned Alibaba-supported E2B behavior contract; project provider/build/MCP extensions remain explicit. Read the bilingual migration guide before changing either path.
+**Agent Sandbox** (npm package name `@agent-sandbox/cli`, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (distribution name `agent-sandbox-client`, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. The standard Express command path follows the pinned Alibaba-supported E2B behavior contract; project provider/build/MCP extensions remain explicit. Read the bilingual migration guide before changing either path.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)
@@ -271,3 +271,10 @@ PortClient, secret-store and generic-retry implementations remain removed. Pure
 configuration values are under utils; executable registry selection is composed
 above transport. The pinned standard CLI is a separate migration entry; maintain
 its generated source/notice provenance and explicit routing tests.
+
+For standard source updates, read `vendor/e2b-cli/README.md`. Preserve both external
+and upstream-prebundled package inventories, retained notices and source-map hashes.
+Run `npm run test:standard-provenance` and the locked `npm run vendor:e2b` replay.
+Large license/standard output must drain through real stdout pipes before exit.
+Generated Python installation must use a tested matching client/server source pair;
+the MCP artifact has its separately verified native source pin and tool catalog.

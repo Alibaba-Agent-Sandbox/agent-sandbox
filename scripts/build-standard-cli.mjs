@@ -1,3 +1,4 @@
+import { verifyPrebundledNotices } from "./standard-provenance.mjs";
 // Reproduce the pinned standard command implementation without runtime SDK dependencies.
 // First run npm ci --prefix vendor/e2b-cli. The separate lockfile is intentional.
 import fs from "node:fs";
@@ -11,11 +12,12 @@ const { build } = await import(pathToFileURL(path.join(base, "node_modules/esbui
 const output = path.join(root, "src/standard_cli");
 fs.mkdirSync(output, { recursive: true });
 const assetDirectory = path.join(base, "node_modules/@e2b/cli/dist/templates");
+const pythonInstall = 'python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"';
 const templateAssets = Object.fromEntries(fs.readdirSync(assetDirectory).map((name) => {
   let contents = fs.readFileSync(path.join(assetDirectory, name), "utf8");
   if (name.startsWith("python-")) contents = contents.replaceAll("from e2b import", "from agent_sandbox import");
   if (name === "readme.hbs") contents = contents
-    .replaceAll("pip install e2b", "pip install agent-sandbox-client")
+    .replaceAll("pip install e2b", pythonInstall)
     .replaceAll("E2B Sandbox Template", "Agent Sandbox Template")
     .replace("- An E2B account (sign up at [e2b.dev](https://e2b.dev))", "- An Alibaba Agent Sandbox account")
     .replace("- Your E2B API key (get it from your [E2B dashboard](https://e2b.dev/dashboard))", "- A sandbox API key from the Alibaba Console")
@@ -44,7 +46,7 @@ const __dirname = typeof __filename === "string" ? abxDirname(__filename) : abxD
 const runtimeFile = path.join(output, "runtime.mjs");
 let runtime = fs.readFileSync(runtimeFile, "utf8");
 if (!/\.name\(["`]e2b["`]\)/.test(runtime)) throw new Error("Pinned program name changed; review source update");
-runtime = runtime.replaceAll("pip install e2b", "pip install agent-sandbox-client");
+runtime = runtime.replaceAll("pip install e2b", JSON.stringify(pythonInstall).slice(1, -1));
 runtime = runtime.replace(/\.name\(["`]e2b["`]\)/, '.name("abx")').replaceAll("e2b sandbox exec", "abx sandbox exec");
 if (!runtime.includes("main(), exports.pkg = pkg;")) throw new Error("Pinned command completion entry changed");
 runtime = runtime.replace("main(), exports.pkg = pkg;", "exports.completion = main(), exports.pkg = pkg;");
@@ -94,8 +96,20 @@ for (const dir of [...packages].sort()) {
   notice += `\n--- ${pkg.name}@${pkg.version} (${pkg.license ?? "see source"}) ---\n`;
   for (const name of licenseFiles) notice += fs.readFileSync(path.join(dir, name), "utf8") + "\n";
 }
+// Verify upstream prebundled inputs separately from esbuild's external package graph.
+const prebundled = JSON.parse(fs.readFileSync(path.join(base, "prebundled-sources.json"), "utf8"));
+const prebundledNotices = fs.readFileSync(path.join(base, "prebundled-notices.txt"), "utf8");
+const upstreamMap = fs.readFileSync(path.join(base, "node_modules/@e2b/cli/dist/index.js.map"), "utf8");
+for (const pkg of verifyPrebundledNotices(upstreamMap, prebundled, prebundledNotices)) {
+  if (!manifest.some(existing => existing.name === pkg.name && existing.version === pkg.version)) {
+    manifest.push({ name: pkg.name, version: pkg.version, license: pkg.license });
+  }
+}
+notice += "\n--- Pinned upstream prebundled package attributions ---\n" + prebundledNotices;
+
 // Retain legal comments from the upstream prebundled input when the final SEA build strips comments.
 notice += "\n--- Retained bundled source notices ---\n" + fs.readFileSync(`${runtimeFile}.LEGAL.txt`, "utf8");
+notice = notice.replace(/\r\n?/g, "\n").replace(/[ \t]+$/gm, "");
 fs.writeFileSync(path.join(output, "THIRD_PARTY_NOTICES.txt"), notice);
 const licenses = fs.readFileSync(path.join(root, "LICENSE"), "utf8") + "\n" + fs.readFileSync(path.join(root, "NOTICE"), "utf8") + "\n" + notice;
 fs.writeFileSync(path.join(output, "notices.ts"), "// Generated license text; rebuild with npm run vendor:e2b.\nexport const STANDARD_LICENSES = " + JSON.stringify(licenses) + ";\n");
