@@ -662,6 +662,7 @@ function _buildRegistry(): EvidenceCase[] {
     [["sandbox", "files"], "sandbox-files"],
     [["sandbox", "process"], "sandbox-process"],
     [["provider"], "provider"],
+    [["provider", "update"], "provider-update"],
     [["provider", "command"], "provider-command"],
     [["provider", "command", "list"], "provider-command-list"],
     [["provider", "command", "info"], "provider-command-info"],

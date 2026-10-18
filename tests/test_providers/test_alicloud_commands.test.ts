@@ -10,6 +10,9 @@ import { LayeredConfig } from "../../src/transport/config_layers.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const loadReal = _sdkLoader.load;
+// Module loading is fixture setup, not part of a mocked SDK request assertion.
+// Discovery tests still replace and check the loader seam, with no cloud I/O.
+const realSdk = loadReal();
 const config = new LayeredConfig({ access_key_id: "placeholder-ak", access_key_secret: "placeholder-sk", sandbox_api_key: "placeholder-runtime-key", region: "cn-hangzhou", http_timeout: 7 });
 const oss = { bucket_name: "example-bucket", bucket_path: "/workspace", endpoint: "https://oss-cn-hangzhou.aliyuncs.com", read_only: false };
 const secretDirectory = fs.mkdtempSync(join(tmpdir(), "abx-provider-secret-test-"));
@@ -17,7 +20,7 @@ const createFile = join(secretDirectory, "created-key");
 const resetFile = join(secretDirectory, "rotated-key");
 
 function fake(method: string, body: Record<string, unknown>): { call: ReturnType<typeof vi.fn>; makeClient: ReturnType<typeof vi.fn> } {
-  const real = loadReal();
+  const real = realSdk;
   const call = vi.fn().mockResolvedValue({ body });
   const makeClient = vi.fn(function () { return { [method]: call }; });
   _sdkLoader.load = () => ({ ...real, Client: makeClient as any });

@@ -129,3 +129,5 @@ The Python SDK (`agent-sandbox`), the in-sandbox server SDK and the platform con
 - [Built-in Agents](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/built-in-agents.md) and [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
 
 [Provider management commands](design/provider-commands.md)
+
+- [Provider portability, ownership and updates](design/provider-portability-and-updates.md)

@@ -129,3 +129,5 @@ Python SDK（`agent-sandbox`）、沙箱内 Server SDK 与平台契约的文档�
 - [SDK API 设计](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sdk-api-design.md) 与 [沙箱类型体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/sandbox-types.md)
 - [模板体系](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) 与 [template.yaml 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md) — `template.yaml` 契约
 - [内置 Agent](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/built-in-agents.md) 与 [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
+
+- [Provider 迁移、职责边界与更新](design/provider-portability-and-updates.md)

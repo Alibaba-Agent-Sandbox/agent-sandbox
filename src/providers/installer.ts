@@ -682,14 +682,22 @@ export interface UpdateOptions {
 
 export interface UpdateResult {
   id: string;
-  status: "up-to-date" | "pinned" | "available" | "updated";
+  status: "up-to-date" | "pinned" | "available" | "updated" | "bundled" | "manual";
   installed: string | null;
   available: string | null;
   changes: string[];
+  message?: string;
 }
 
 /** Update one installed provider from its recorded git source. `local`/`link` installs throw `ProviderInstallError`. A catalog receipt is reinstalled with the CLI git spelling. */
 export async function update(providerId: string, opts: UpdateOptions = {}): Promise<UpdateResult> {
+  if (providerId === BUILTIN_PROVIDER_ID) {
+    if (opts.ref) throw new ProviderInstallError("The bundled provider cannot use --ref. Select an abx release using the installation method that installed abx.");
+    return {
+      id: providerId, status: "bundled", installed: hostVersion(), available: null, changes: [],
+      message: "This provider ships with abx. Upgrade abx using its original installation method, then restart your owned Node engine. This operation does not check the latest host release or change installed software.",
+    };
+  }
   const receipt = store.readReceipt(providerId);
   if (receipt === null) throw new ProviderNotFoundError(`Provider '${providerId}' is not installed.`);
   const src = (receipt["source"] ?? {}) as SourceInfo;

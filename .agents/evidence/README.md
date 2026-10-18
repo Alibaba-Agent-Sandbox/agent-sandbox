@@ -51,3 +51,5 @@ Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
 
 Evidence for the Python SDK and server lives in the
 [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/tree/main/.agents/evidence).
+
+- [Provider portability and updates](../notes/proposed/architecture/2026-10-18-provider-portability-updates.md) · [verification](verify/2026-10-18-provider-portability-updates.md)

@@ -4,6 +4,13 @@ export default {
   title: 'Provider command discovery and preflight guards',
   scenarios: [
     {
+      id: 'bundled-update', title: 'builtin update describes its host lifecycle without plugin or cloud access', creds: false,
+      argv: ['--json', 'provider', 'update', 'alicloud-express', '--check'],
+      json(j) {
+        if (!Array.isArray(j) || j.length !== 1 || j[0].status !== 'bundled' || j[0].available !== null || !j[0].message?.includes('Upgrade abx')) throw new Error('bundled update did not return explicit host-upgrade guidance');
+      },
+    },
+    {
       id: 'static-discovery', title: 'builtin management discovery works without credentials', creds: false,
       argv: ['--json', 'provider', 'command', 'list', 'alicloud-express'],
       json(j) {

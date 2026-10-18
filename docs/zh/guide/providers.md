@@ -231,3 +231,7 @@ Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.
 角色配置和挂载验证见能力矩阵。
 应选择支持挂载的模板；自定义 MicroVM 源镜像须预装 ossfs2 2.0.10 或以上版本，
 参见[官方挂载指南](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1)。
+
+## 迁移与 provider 更新
+
+见[迁移、职责及更新设计](../design/provider-portability-and-updates.md)：已有资源接入边界、旧 FC 模板保护、provider 镜像工厂，以及 Git、手动与内置更新的区别。

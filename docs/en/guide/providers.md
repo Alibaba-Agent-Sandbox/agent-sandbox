@@ -232,3 +232,7 @@ an Alibaba Cloud support ticket as described in the [official OSS Volume guide](
 See the capability matrix for role configuration and mount verification.
 Choose a mount-capable template; custom MicroVM source images must include ossfs2 2.0.10
 or newer, as required by the [official mount guide](https://help.aliyun.com/zh/agent-sandbox/mount-oss-volume-1).
+
+## Portability and provider updates
+
+See [migration, ownership and updates](../design/provider-portability-and-updates.md) for the existing-resource adoption boundary, legacy FC template guards, provider-owned image factories and the distinction between Git/manual/bundled updates.

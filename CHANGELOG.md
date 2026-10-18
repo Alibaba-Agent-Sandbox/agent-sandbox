@@ -37,6 +37,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Load cold registry/official-SDK test fixtures before per-test deadlines; preserve timeout budgets and avoid late asynchronous registry resets after fixture teardown.
+
+- Provider updates report the bundled Express host lifecycle and manual local/catalog sources; Git update failures remain visible. Legacy FC template commands reject plugin feature declarations without a dispatch adapter. Document resource reuse, migration differences, AI boundaries and pending native factory acceptance.
+
 - Generate short alphanumeric Team names in opt-in provider-management E2E lifecycles, fixing real CreateTeam rejection of the previous fixture.
 
 - Make repository-health checks parse actual imports and executable commands, validate the real repository, preserve exact historical context with visible warnings, and reconcile current bilingual document paths and CLI recipes.
