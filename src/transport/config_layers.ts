@@ -213,7 +213,7 @@ export class LayeredConfig {
   }
 
   buildEnvdUrl(sandboxId: string): string {
-    return `https://${ENVD_PORT}-${sandboxId}.${this.sandbox_domain}`;
+    return legacyDataPlaneUrl(sandboxId, this.sandbox_domain);
   }
   build_envd_url(sandboxId: string): string {
     return this.buildEnvdUrl(sandboxId);

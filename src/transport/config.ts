@@ -45,7 +45,7 @@ function warnTomlLoadFailure(p: string, message: string): void {
 }
 
 // envd 数据平面固定端口（已实测验证）
-export const ENVD_PORT = 49983;
+export const ENVD_PORT = legacyDataPlanePort;
 
 export let _ABX_DIR: string = path.join(os.homedir(), ".abx"); // SDK extension
 export let _CONFIG_FILE: string = path.join(_ABX_DIR, "config.toml"); // SDK extension
@@ -115,7 +115,7 @@ export class TransportConfig extends defineModel(
    * 格式: https://{ENVD_PORT}-{sandbox_id}.{domain}
    */
   buildEnvdUrl(sandbox_id: string): string {
-    return `https://${ENVD_PORT}-${sandbox_id}.${this.domain}`;
+    return legacyDataPlaneUrl(sandbox_id, this.domain);
   }
   build_envd_url(sandbox_id: string): string {
     return this.buildEnvdUrl(sandbox_id);

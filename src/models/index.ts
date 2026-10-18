@@ -101,3 +101,5 @@ export const __all__ = [
   "SandboxTemplate",
   "TemplateRef",
 ] as const;
+
+export type { ProfileFields, ServerStart, TemplateProfile } from "./template_profile.js";

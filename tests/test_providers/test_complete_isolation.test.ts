@@ -183,3 +183,16 @@ supported = ["templates.read"]
     expect(violations).toEqual([]);
   });
 });
+
+
+it("compatibility URL views consume provider metadata without selecting a wire adapter", async () => {
+  const { CONFIG_METADATA } = await import("../../src/providers/alicloud_express/metadata.js");
+  const old = CONFIG_METADATA.legacyDataPlaneUrlTemplate;
+  try {
+    CONFIG_METADATA.legacyDataPlaneUrlTemplate = "https://{domain}/owned/{sandbox_id}";
+    expect(new TransportConfig({ domain: "owned.example" }).buildEnvdUrl("$&")).toBe("https://owned.example/owned/$&");
+    expect(loadLayeredConfig({ provider: "alicloud-express" }).buildEnvdUrl("owned")).toContain("/owned/owned");
+  } finally {
+    CONFIG_METADATA.legacyDataPlaneUrlTemplate = old;
+  }
+});
