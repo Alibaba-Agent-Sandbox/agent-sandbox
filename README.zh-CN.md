@@ -33,7 +33,7 @@ CLI 从 git 树 `alibaba-agent-sandbox/awesome-providers//<id>` 安装这些目�
 - **模板系统** —— 可复用的沙箱镜像（Python、Node、浏览器自动化、AI Agent Harness……）。
 - **MCP Server** —— 将沙箱操作暴露为 MCP 工具，供 LLM Agent 调用。
 - **Agent Skill** —— 静态 Agent Skills 指南（[`SKILL.md`](SKILL.md)），适用于 Qoder、Claude Code、Cursor、Qwen Code、Codex。
-- **独立二进制，或 Node.js >= 20 从源码构建** —— Release 二进制不需要 Node.js。npm 包尚未发布。
+- **独立二进制，或 Node.js >= 20 从源码构建** —— Release 二进制不需要 Node.js。npm 安装需要 Node.js 20+。
 
 SDK 侧特性（同步 `Sandbox`／异步 `AsyncSandbox` API、`run` / `run_code` 执行原语、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层）见 [Python SDK](#python-sdk) 一节。
 
@@ -53,15 +53,23 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_VERSION` 选择版本（默认最新 Release）。`ABX_INSTALL_DIR` 选择目录。网站以后可以把这两份脚本放到自己的域名上；命令仍然是一行，只改 URL。
 
-这两行命令需要资产名为 `abx-*` 的 GitHub Release。v0.2.0 的资产名是 `ebx-*`，v0.3.0 还没有发布。在那个 Release 出现之前，请从源码安装（见下）。
+这两行命令需要已完整上传 `abx-*` 资产及校验和的 GitHub Release。现有v0.3.0为较早实现；0.4.0是新的标准CLI发行线。草稿公开前请按下面方式构建配套源码。
 
 ### 手动下载
 
 从 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 下载 `abx-<version>-<os>-<arch>[.exe]` 和对应的 `.sha256`，校验摘要后，以 `abx` 为名放到 `PATH` 上。命令、校验和与平台表见 [二进制安装](docs/zh/guide/binary-installation.md)（[English](docs/en/guide/binary-installation.md)）。
 
-### npm（即将提供）
+### npm（Node.js 20+）
 
-`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。包名还没有定。部分 npm 镜像（包括 npmmirror）上有一个无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。
+先检查公开版本，再安装：
+
+```bash
+npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
+abx --version
+```
+
+官方索引返回HTTP404表示 npm 发布尚未完成；PR合并或构建成功并不代表已经发布。索引可读前使用二进制或源码安装。如果全局目录不可写，可用 `npm install -g --prefix "$HOME/.local" @agent-sandbox/cli`，并将 `$HOME/.local/bin` 加到 PATH；这种方式不需要 sudo。
 
 ### 从源码安装
 
@@ -73,7 +81,8 @@ cd agent-sandbox
 npm ci
 npm run build
 npm pack
-npm install -g ./agent-sandbox-cli-<version>.tgz
+npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```
 
@@ -172,7 +181,7 @@ python -m pip install \
 python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk"
 ```
 
-`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
+`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。npm 官方元数据可读后再使用上述 npm 安装方式。
 
 ## 文档
 
@@ -245,6 +254,6 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 ## 发布就绪范围
 
-当前 main 是开发候选，与已存在的 GitHub `v0.3.0` Release 不同；该标签指向较早实现。使用 `abx --version` 和命令帮助识别安装的二进制。npm 包尚未发布。新的标准行为版本需要新的版本号、标签和匹配的二进制，安装脚本才能分发当前 main 实现；不要用不同代码覆盖既有 Release 或标签。
+0.4.0是新的标准CLI发行线，现有v0.3.0指向较早实现。请分别核对 GitHub 资产与 npm 元数据；不要用不同代码覆盖旧标签。0.x CLI发行不代表所有提供方和实验模板均完成验收。
 
 极速版核心及暂停/快照验收不代表整个模板目录都已认证。各模板仍需自己当前版本的部署和模型验收；第三方提供方的 Beta 范围也单独说明。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。

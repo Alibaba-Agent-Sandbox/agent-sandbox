@@ -38,8 +38,8 @@ The destination is `/usr/local/bin` when that directory is writable, otherwise `
 
 ```bash
 # optional
-ABX_VERSION=0.3.0 curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
-ABX_INSTALL_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.4.0 sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_INSTALL_DIR="$HOME/bin" sh
 ```
 
 `ABX_VERSION` accepts `0.3.0` or `v0.3.0`. An unsupported OS or CPU exits with an error that names the supported platforms. On Windows, use the PowerShell installer.
@@ -85,11 +85,17 @@ Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 
 `certutil -hashfile abx-0.3.0-windows-x64.exe SHA256` prints the same digest.
 
-## npm (coming soon)
+## npm
 
-`npm install -g @agent-sandbox/cli` is **coming soon, package not yet published**. The current package manifest names it `@agent-sandbox/cli`. Do not use that command as the install path.
+For a published version, Node.js20+:
 
-An unrelated package also named `@agent-sandbox/cli` at version **0.2.2** shows up on some npm mirrors (including npmmirror). Its bin is `agent-sandbox`, not `abx`. Installing it does not provide the `abx` command. See [Troubleshooting: abx: command not found](#troubleshooting-abx-command-not-found).
+```bash
+npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
+abx --version
+```
+
+The public index must resolve first; HTTP404 means publication is incomplete. A CI pass, draft release, or local pack is not an npm upload. If global installation needs elevated permissions, install with `--prefix "$HOME/.local"` and put `$HOME/.local/bin` on PATH instead. Use the binary/source installation path while publication is pending.
 
 ## Install from source
 
@@ -102,11 +108,12 @@ git rev-parse HEAD
 npm ci
 npm run build
 npm pack
-npm install -g ./agent-sandbox-cli-<version>.tgz
+npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```
 
-`npm pack` names the file `agent-sandbox-cli-<version>.tgz` (the current tree is `agent-sandbox-cli-0.3.0.tgz`).
+`npm pack` names the file `agent-sandbox-cli-<version>.tgz` (the current tree is `agent-sandbox-cli-0.4.0.tgz`).
 
 ## Verify the installation
 
@@ -171,7 +178,7 @@ npm ci
 npm run build:binary
 ```
 
-The command writes `dist/binary/abx-<version>-<os>-<arch>` for the machine it runs on. On Windows the file name ends in `.exe`. A release builds that matrix on GitHub Actions (Linux x64, Linux arm64, macOS Apple Silicon, macOS Intel, Windows x64) and attaches the files, plus a `.sha256` for each, to the GitHub Release. Publishing the release runs [`.github/workflows/release-binary.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml). Pushing the `v*` tag also runs [`.github/workflows/release.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which publishes to npm only when the repository variable `NPM_PUBLISH` is `true`.
+The version tag runs [the five-platform binary workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml) and uploads checksummed assets to a draft Release. Publish the draft only after every platform succeeds. Publishing runs [the npm workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which installs the exact tarball before upload and verifies a public-registry install afterward. Manual npm retries must select the matching tag; branch refs are rejected.
 
 ## Next Steps
 

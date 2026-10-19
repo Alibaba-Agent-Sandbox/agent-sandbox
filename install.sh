@@ -138,7 +138,7 @@ download_asset() {
     if [ "$http_status" = "404" ]; then
       extra="Release v${version} has no ${asset} asset. This installer downloads abx-<version>-<os>-<arch> and a .sha256 file."
       if [ "$version" = "0.2.0" ]; then
-        extra="Release v0.2.0 published binaries named ebx-* (stale). This installer downloads abx-* only. There is no v0.3.0 GitHub Release yet; install from source until one is published."
+        extra="Release v0.2.0 published binaries named ebx-* (stale). This installer downloads abx-* only. Select a newer release with abx-* assets, or install from source."
       fi
       die "release asset not found (HTTP 404): ${url}" "$extra"
     fi

@@ -33,7 +33,7 @@ The CLI installs those catalog providers from the git tree `alibaba-agent-sandbo
 - **Template system** — reusable sandbox images (Python, Node, browser automation, AI agent harnesses, …).
 - **MCP server** — expose sandbox operations as MCP tools for LLM agents.
 - **Agent skill** — a static Agent Skills guide ([`SKILL.md`](SKILL.md)) for Qoder, Claude Code, Cursor, Qwen Code, and Codex.
-- **Standalone binary, or Node.js >= 20 from source** — the release binary needs no Node.js. The npm package is not published yet.
+- **Standalone binary, or Node.js >= 20 from source** — the release binary needs no Node.js. npm installation needs Node.js 20+.
 
 The SDK-side features (synchronous `Sandbox` / asynchronous `AsyncSandbox` API, the `run` / `run_code` execution primitives, the `@sandbox` declarative decorator, session persistence, and the E2B compatibility layer) are documented in the [Python SDK](#python-sdk) section.
 
@@ -53,15 +53,23 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 The installer picks `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, or `windows-x64`, verifies the `.sha256`, and does not need `sudo`. macOS and Linux install to `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. Windows installs to `%LOCALAPPDATA%\Programs\abx` and adds it to the user `PATH`. `ABX_VERSION` selects a release (default: latest). `ABX_INSTALL_DIR` selects the directory. The site can host these scripts on its own domain later; the command stays one line and only the URL changes.
 
-These one-liners need a GitHub Release whose assets are named `abx-*`. The v0.2.0 assets are named `ebx-*`, and v0.3.0 is not published yet. Until that release exists, install from source (below).
+These one-liners require a fully uploaded GitHub Release with `abx-*` assets and checksums. Existing v0.3.0 contains an older implementation;0.4.0 is the new standard CLI release line. Before its draft is published, use the matching source build below.
 
 ### Manual download
 
 Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases), check the digest, and put the file on `PATH` as `abx`. Commands, checksums, and the platform table: [Binary Installation](docs/en/guide/binary-installation.md) ([中文](docs/zh/guide/binary-installation.md)).
 
-### npm (coming soon)
+### npm (Node.js 20+)
 
-`npm install -g @agent-sandbox/cli` is **coming soon, package not yet published**. The package name is not final. Some npm mirrors (including npmmirror) serve an unrelated `@agent-sandbox/cli@0.2.2` whose bin is `agent-sandbox`, not `abx`.
+Check the public version, then install:
+
+```bash
+npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
+abx --version
+```
+
+An HTTP404 from the official registry means npm publication is incomplete; a merged PR or successful build is not publication. Use the binary/source path until the index resolves. If the global prefix is not writable, use `npm install -g --prefix "$HOME/.local" @agent-sandbox/cli` and add `$HOME/.local/bin` to PATH; sudo is not required with that prefix.
 
 ### From source
 
@@ -73,7 +81,8 @@ cd agent-sandbox
 npm ci
 npm run build
 npm pack
-npm install -g ./agent-sandbox-cli-<version>.tgz
+npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```
 
@@ -174,7 +183,7 @@ python -m pip install \
 python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk"
 ```
 
-`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md). The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). `npm install -g @agent-sandbox/cli` is coming soon, package not yet published.
+`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md). The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). Use npm only after its official metadata resolves, as described above.
 
 ## Documentation
 
@@ -248,6 +257,6 @@ Optional native provider extension: [templates from pushed images](docs/en/guide
 
 ## Release readiness
 
-Current main is a development candidate, distinct from the existing `v0.3.0` GitHub Release. The published tag points at an earlier implementation; use `abx --version` and command help to identify an installed binary. The npm package is not published yet. A new standard-behavior release needs a new version/tag and matching binaries before the public installer can deliver this main implementation. Do not replace an existing release/tag with different code.
+0.4.0 is the new standard CLI release line. Existing v0.3.0 points to an earlier implementation. Verify GitHub assets and npm metadata separately; never overwrite an older release tag with different code. A0.x CLI release does not certify every provider or experimental template.
 
 The Express core and conditional pause/snapshot receipts do not certify every catalog template. Templates remain experimental until their own versioned deployment/model acceptance passes; third-party provider Beta scope is separate. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
