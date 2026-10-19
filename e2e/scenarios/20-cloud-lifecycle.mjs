@@ -46,8 +46,8 @@ export default {
       },
     },
     {
-      id: 'info-text', title: 'info (text): ID/Template/Status/Region/URL/EnvdVersion rows', requires: ['create-json'], argv: (ctx) => ['info', sid(ctx)],
-      stdout: ['ID', 'Template', TEMPLATE, 'Status', 'running', 'Region', 'URL', 'https://49983-sbx-', 'EnvdVersion'],
+      id: 'info-text', title: 'standard info uses the pinned field labels', requires: ['create-json'], argv: (ctx) => ['info', sid(ctx)],
+      stdout: ['Sandbox ID', 'Template ID', 'State', 'running', 'Envd version'],
     },
     {
       id: 'info-json', title: 'info --json shape', requires: ['create-json'], argv: (ctx) => ['--json', 'info', sid(ctx)],
@@ -67,7 +67,7 @@ export default {
       id: 'exec-json-nonzero-exit', title: 'exec --json with failing command exits with that code and reports exit_code', requires: ['create-json'], argv: (ctx) => ['--json', 'exec', sid(ctx), 'echo x; exit 7'], exit: 7,
       jsonShape: { exit_code: 'number' }, json: (j) => { if (j.exit_code !== 7) throw new Error(`exit_code ${j.exit_code}`); },
     },
-    { id: 'exec-cwd', title: 'exec --cwd changes the working directory', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), 'pwd', '--cwd', '/tmp'], stdout: /^\/tmp$/m },
+    { id: 'exec-cwd', title: 'exec --cwd changes the working directory', requires: ['create-json'], argv: (ctx) => ['exec', '--cwd', '/tmp', sid(ctx), 'pwd'], stdout: /^\/tmp$/m },
     { id: 'exec-quoting', title: 'exec keeps shell quoting/pipes intact', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), `echo 'a b' "c d" | tr a-z A-Z`], stdout: /^A B C D$/m },
     { id: 'exec-unicode', title: 'exec round-trips UTF-8 output', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), 'echo 你好-é'], stdout: '你好-é' },
     { id: 'exec-quiet', title: 'exec -q prints the bare output (no decorations)', requires: ['create-json'], argv: (ctx) => ['-q', 'exec', sid(ctx), 'echo quiet-out'], stdout: /^quiet-out$/m },
@@ -76,12 +76,12 @@ export default {
       jsonShape: { stdout: 'string', exit_code: 'number' }, json: (j) => { if (j.stdout !== 'ci-out\n') throw new Error(`stdout ${JSON.stringify(j.stdout)}`); },
     },
     {
-      id: 'exec-ci-env-var', title: 'CI=true in the environment auto-enables JSON mode', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), 'echo ci-env'], env: { CI: 'true' },
-      jsonShape: { stdout: 'string', exit_code: 'number' },
+      id: 'exec-ci-env-var', title: 'standard exec keeps plain stdout under CI=true', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), 'echo ci-env'], env: { CI: 'true' },
+      stdout: /^ci-env$/m,
     },
     {
-      id: 'exec-timeout', title: 'exec --timeout shorter than the command: exit 5, E3001 "timed out"', requires: ['create-json'], timeoutMs: 240_000,
-      argv: (ctx) => ['exec', sid(ctx), 'sleep 25', '--timeout', '2'], exit: 5, output: ['E3001', /timed out/i],
+      id: 'exec-timeout', title: 'standard exec rejects a local timeout option absent from the pinned CLI', requires: ['create-json'], timeoutMs: 240_000,
+      argv: (ctx) => ['exec', '--timeout', '2', sid(ctx), 'true'], exit: 1, output: "unknown option '--timeout'",
     },
 
     // ---- upload / download ----------------------------------------------------------------------------
@@ -167,24 +167,35 @@ export default {
     },
 
     // ---- process -----------------------------------------------------------------------------------------
-    { id: 'exec-background-prints-pid', title: 'exec --background prints a numeric pid and returns before the command ends', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--background', '--', 'sleep', '30'], stdout: /^\d+$/m, timeoutMs: 60_000,
+    { id: 'exec-background-prints-pid', title: 'exec --background prints a numeric pid and returns before the command ends', requires: ['create-json'], argv: (ctx) => ['exec', '--background', sid(ctx), 'sleep', '30'], stderr: /^\d+$/m, timeoutMs: 60_000,
       async after(ctx) { const r = await ctx.abx(['sandbox', 'process', 'list', sid(ctx)]); ctx.check('listed', r.out, /sleep/); } },
     {
       id: 'exec-background-json', title: 'exec --background --json: {pid}', requires: ['create-json'], argv: (ctx) => ['--json', 'exec', sid(ctx), '--background', '--', 'sleep', '5'],
       jsonShape: { pid: 'number' },
     },
-    { id: 'exec-env-and-cwd', title: 'exec --env KEY=VAL --cwd DIR reaches the command', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--env', 'E2E_X=42', '--cwd', '/tmp', '--', 'sh', '-c', 'echo $E2E_X; pwd'], stdout: [/^42$/m, /^\/tmp$/m] },
-    { id: 'exec-exit-code-argv', title: 'exec -- CMD... propagates the remote exit code', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--', 'sh', '-c', 'echo started; exit 2'], exit: 2, output: 'started' },
+    { id: 'exec-env-and-cwd', title: 'exec --env KEY=VAL --cwd DIR reaches the command', requires: ['create-json'], argv: (ctx) => ['exec', '--env', 'E2E_X=42', '--cwd', '/tmp', sid(ctx), 'sh', '-c', 'echo $E2E_X; pwd'], stdout: [/^42$/m, /^\/tmp$/m] },
+    { id: 'exec-exit-code-argv', title: 'exec -- CMD... propagates the remote exit code', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), 'sh', '-c', 'echo started; exit 2'], exit: 2, output: 'started' },
     { id: 'process-list', title: 'sandbox process list exits 0 (table or "No processes found.")', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'list', sid(ctx)], output: /PID|No processes found\./ },
-    { id: 'process-info-pid1', title: 'sandbox process info 1 shows PID/PPID/User/State/Command', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'info', sid(ctx), '1'], stdout: ['PID', 'PPID', 'User', 'State', 'Command'] },
+    {
+      id: 'process-info-owned', title: 'process info inspects a process started by this run', requires: ['create-json'],
+      async run(ctx) {
+        const started = await ctx.abx(['exec', '--background', sid(ctx), 'sleep', '60']);
+        const pid = started.stderr.match(/^\d+$/m)?.[0];
+        if (started.code !== 0 || !pid) ctx.fail('background command did not return a PID');
+        try {
+          const info = await ctx.abx(['sandbox', 'process', 'info', sid(ctx), pid]);
+          if (info.code !== 0) ctx.fail(`owned process inspection failed: ${info.out}`);
+          ctx.check('owned process', info.stdout, ['PID', 'Command', pid]);
+        } finally {
+          await ctx.abx(['exec', sid(ctx), 'kill', pid]);
+        }
+      },
+    },
     { id: 'process-signal', title: 'sandbox process signal acknowledges the signal', requires: ['create-json'], argv: (ctx) => ['sandbox', 'process', 'signal', sid(ctx), '99999', '--signal', '15'], stdout: /Signal 15 sent to process 99999\./ },
     {
-      id: 'exec-stream', title: 'exec --stream prints lines as they arrive and propagates the exit code', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), '--stream', '--', 'sh', '-c', 'echo s1; echo s2; exit 3'], stdout: [/^s1$/m, /^s2$/m], exit: 3,
+      id: 'exec-stream', title: 'standard exec streams output and propagates the exit code', requires: ['create-json'], argv: (ctx) => ['exec', sid(ctx), 'sh', '-c', 'echo s1; echo s2; exit 3'], stdout: [/^s1$/m, /^s2$/m], exit: 3,
     },
-    {
-      id: 'connect-repl', title: 'connect REPL executes piped commands and exits on "exit"', requires: ['create-json'], stdin: 'echo hi-from-repl\nexit\n', argv: (ctx) => ['connect', sid(ctx)], timeoutMs: 120_000,
-      stdout: ['Connected to sandbox', 'hi-from-repl'],
-    },
+    // Real interactive connect/create require a local PTY; covered by e2e/standard.mjs.
 
     // ---- system / capabilities -----------------------------------------------------------------------------
     { id: 'system-info', title: 'sandbox system info: OS/Arch/Hostname/CPU_Count', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'info', sid(ctx)], stdout: ['OS', 'Linux', 'Arch', 'Hostname', 'CPU_Count'] },
@@ -197,10 +208,7 @@ export default {
       json: (j) => { const k = Object.keys(j.variables).sort().join(','); if (k !== 'HOME,PATH') throw new Error(`variables: ${k}`); },
     },
     { id: 'system-ports', title: 'sandbox system ports exits 0, or 1 with an explanatory message when ss/netstat are missing', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'ports', sid(ctx)], exit: [0, 1] },
-    { id: 'system-metrics', title: 'sandbox system metrics returns measured CPU load and filesystem usage', requires: ['create-json'], argv: (ctx) => ['--json', 'sandbox', 'system', 'metrics', sid(ctx)],
-      jsonShape: { cpu_load_1m: 'number', cpu_load_5m: 'number', cpu_load_15m: 'number', disk_total_gb: 'number', disk_used_gb: 'number', disk_free_gb: 'number' },
-      json: (j) => { for (const key of ['cpu_load_1m', 'cpu_load_5m', 'cpu_load_15m', 'disk_used_gb', 'disk_free_gb']) if (!Number.isFinite(j[key]) || j[key] < 0) throw new Error(`invalid measurement: ${key}`); if (!(j.disk_total_gb > 0)) throw new Error('disk capacity must be positive'); },
-    },
+    { id: 'system-metrics', title: 'sandbox system metrics shows uptime and filesystem usage', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'metrics', sid(ctx)], stdout: ['Filesystem', 'Mounted on'] },
     { id: 'system-packages', title: 'sandbox system packages lists installed packages', requires: ['create-json'], argv: (ctx) => ['sandbox', 'system', 'packages', sid(ctx)], exit: [0, 1], output: /Name|packages|pip/i },
     {
       id: 'capabilities-json', title: 'sandbox capabilities --json: {capabilities:[...]} includes shell and files', requires: ['create-json'], argv: (ctx) => ['--json', 'sandbox', 'capabilities', sid(ctx)], jsonShape: { capabilities: ['string'] },
@@ -252,8 +260,7 @@ export default {
     },
 
     // ---- kill ----------------------------------------------------------------------------------------------------
-    { id: 'kill-needs-confirmation', title: 'kill without --yes and answer "n": exit 1, sandbox survives', requires: ['create-json'], stdin: 'n\n', argv: (ctx) => ['kill', sid(ctx)], exit: 1, output: /Aborted|\[y\/N\]/,
-      async after(ctx) { const r = await ctx.abx(['--json', 'info', sid(ctx)]); if (r.code !== 0) ctx.fail('sandbox must still exist after declined kill'); } },
+    // Standard kill has no confirmation flag; never exercise account-wide kill here.
     {
       id: 'kill-yes-json', title: 'kill --yes --json: success envelope; sandbox is gone', requires: ['create-json'], argv: (ctx) => ['--json', 'kill', sid(ctx), '--yes'],
       jsonShape: { status: 'string', message: 'string' }, json: (j) => { if (j.status !== 'success' || !/killed/i.test(j.message)) throw new Error(JSON.stringify(j)); },
@@ -268,6 +275,6 @@ export default {
         if (Array.isArray(j) && j.some((s) => s.ID === sid(ctx))) ctx.fail('killed sandbox still listed');
       },
     },
-    { id: 'kill-twice', title: 'killing an already-killed sandbox is idempotent', requires: ['kill-yes-json'], argv: (ctx) => ['kill', sid(ctx), '--yes'], exit: 0, output: /killed/i },
+    { id: 'kill-twice', title: 'killing an already-killed sandbox is idempotent', requires: ['kill-yes-json'], argv: (ctx) => ['kill', sid(ctx)], exit: 0, output: /wasn't found/i },
   ],
 };

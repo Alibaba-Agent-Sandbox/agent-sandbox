@@ -7,7 +7,7 @@
 ## 前置条件
 
 - 只有从源码安装才需要 Node.js 20 或更高版本。二进制安装脚本不需要 Node.js。
-- 默认提供方是 `alicloud-express`。API Key 从[智能体沙箱产品文档](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox)获取。变量名是 `ABX_SANDBOX_API_KEY`。AccessKey 是 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET`。CLI 不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`。
+- 默认提供方是 `alicloud-express`。API Key 从[智能体沙箱产品文档](https://help.aliyun.com/zh/functioncompute/product-overview-of-fc-agent-sandbox)获取。变量名是 `ABX_SANDBOX_API_KEY`。AccessKey 是 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET`。原生 provider/MCP 配置使用 `ABX_SANDBOX_*` 名称。标准极速版入口还接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`；见[迁移指南](migrate-from-e2b.md)。不读取 `AccessKey`、`AccessSecret`。
 - 网络可访问阿里云杭州区域（默认 `cn-hangzhou`）
 
 ## 1. 安装
@@ -58,7 +58,7 @@ abx config get sandbox_api_key
 ### 使用 CLI
 
 ```bash
-abx create --template base
+abx create base --detach
 ```
 
 `base` 是默认模板。仓库 README 里的 `python-base` 是目录中的 Python 镜像。
@@ -76,7 +76,7 @@ abx exec <sandbox-id> "echo 'Hello from sandbox'"
 ### CLI
 
 ```bash
-abx exec <sandbox-id> -- sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
+abx exec <sandbox-id> sh -c "pip install requests && python -c 'import requests; print(requests.__version__)'"
 ```
 
 ## 6. 文件操作
@@ -105,21 +105,22 @@ abx sandbox files list <sandbox-id> --path /home/user
 abx kill <sandbox-id>
 
 # 销毁所有运行中的沙箱
-abx kill --all --yes
+abx kill --all
 ```
 
 ## 9. 完整示例
 
 ```bash
 # 创建沙箱并上传项目
-abx create --template base --upload ./project
+abx create base --detach
+abx upload <sandbox-id> ./project /home/user/project
 
 # 在沙箱内运行
 abx exec <sandbox-id> "python /home/user/project/main.py"
 
 # 取回结果并销毁沙箱
 abx download <sandbox-id> /home/user/result.csv ./result.csv
-abx kill <sandbox-id> --yes
+abx kill <sandbox-id>
 ```
 
 ---

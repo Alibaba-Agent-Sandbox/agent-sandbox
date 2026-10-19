@@ -1,7 +1,7 @@
 /**
  * Shared coding-agent helpers for the `create` and `deploy` commands (port of `cli/commands/_coding_agent.py`).
  *
- * Both `abx create "<description>"` and the agent-driven `abx deploy` route drive the same pluggable backend
+ * Both `abx create --prompt "<description>"` and the agent-driven `abx deploy` route drive the same pluggable backend
  * (`agent/coding_agent.ts`): they must locate (or install) the agent executable and resolve model credentials
  * identically -- same prompts, same non-interactive behaviour, same error codes, same secret handling. This internal
  * module is the single home of that front half of the flow; the command modules keep the orchestration and the
@@ -96,14 +96,14 @@ export async function ensureCodingAgentBinary(ctx: Context, opts: { yes: boolean
     throw new notInstalled(`${backend.displayName} CLI is required for template generation but is not installed.`, {
       suggestion:
         "Install it with the official command from Quick Setup above, then retry \u2014 " +
-        "or use 'abx create --template <name>' to skip template generation.",
+        "or use 'abx create <name>' to skip template generation.",
     });
   }
   if (interactive && !yes) {
     const proceed = await confirm(`Install the official ${backend.displayName} standalone build into ~/.abx/bin now?`, { default: true });
     if (!proceed) {
       throw new notInstalled(`Declined to install ${backend.displayName}; template generation cannot continue.`, {
-        suggestion: "Install it manually (see Quick Setup above) and retry, or use 'abx create --template <name>'.",
+        suggestion: "Install it manually (see Quick Setup above) and retry, or use 'abx create <name>'.",
       });
     }
   }
@@ -189,7 +189,7 @@ export async function resolveCodingAgentCredentials(
   if (!pyStrip(key)) {
     throw new backend.credentialError(`No ${backend.displayName} API key provided; template generation cannot continue.`, {
       suggestion:
-        `Store one with 'abx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'abx create --template <name>'.",
+        `Store one with 'abx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'abx create <name>'.",
     });
   }
   await configCmd.writeEnvVar(backend.envVar, pyStrip(key));

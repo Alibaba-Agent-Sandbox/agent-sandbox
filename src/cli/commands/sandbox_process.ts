@@ -1,7 +1,9 @@
+import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
+import { CapabilityNotSupportedError } from "../../models/errors.js";
 /** Sandbox process-inspection CLI commands: list, info, signal (port of `cli/commands/sandbox_process.py`). */
 
 import type { Sandbox } from "../../api/sandbox.js";
-import type { ProcessResult } from "../../models/process.js";
+import type { ProcessInfo, ProcessResult } from "../../models/process.js";
 import { PY_WHITESPACE } from "../../utils/_py.js";
 import { pyStrip, pySplitlines } from "../../utils/_pyformat.js";
 import { argument, command, group, option } from "../kit.js";
@@ -120,6 +122,22 @@ export const process_info = command("info", {
 
     const fmt = getFormatter(ctx);
     const sandbox = await _connectSandbox(sandbox_id);
+
+    // Alibaba can expose envd IDs that are different from OS PIDs. Resolve known
+    // handles through the same API that produced them before querying /proc via ps.
+    let processes: ProcessInfo[] = [];
+    try {
+      processes = await sandbox.commands.list();
+    } catch (error) {
+      if (!(error instanceof CapabilityNotSupportedError) && !(error instanceof ProviderFeatureNotSupportedError)) throw error;
+    }
+    const known = processes.find((item) => String(item.pid) === String(pid));
+    if (known) {
+      fmt.printDict(new Map<string, unknown>([
+        ["PID", String(known.pid)], ["Command", known.command], ["State", known.status],
+      ]));
+      return;
+    }
 
     // Use ps for process info
     let result = (await sandbox.commands.run(`ps -p ${pid} -o pid=,ppid=,user=,stat=,rss=,etime=,comm= 2>/dev/null`, {

@@ -2,15 +2,19 @@
 
 [English](README.md) | **中文**
 
+[标准 E2B 迁移契约](docs/zh/guide/migrate-from-e2b.md)
+
 <!-- badges -->
 [![CI](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/alibaba-agent-sandbox/agent-sandbox/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
+[![Node 20+](https://img.shields.io/node/v/@agent-sandbox/cli)](https://www.npmjs.com/package/@agent-sandbox/cli)
 [![License](https://img.shields.io/github/license/agent-sandbox/agent-sandbox)](LICENSE)
 
 > 为 AI Agent 打造的云沙箱 —— 秒级创建、执行、管理隔离环境。
 
 **Agent Sandbox** 是命令行工具（`abx`）。默认提供方是阿里云极速版（`alicloud-express`）。CLI 还会加载已安装的 `node`、`exec` 和 `rest` 插件。目录提供方 `opensandbox`、`alicloud-container`、`cubesandbox` 和 `e2b` 都是 `node` 插件：导出 `create(kit)` 的 ES 模块 `provider.mjs`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装（本地路径或 git URL 也可以），再用 `abx --provider <id>` 运行。既不是内置也未安装的 id 以 `E8001` 退出。`runtime.kind = "python"` 的清单不能安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用；SDK 通过本机引擎（`abx provider engine serve`；`abx` 在 `PATH` 上或由 `ABX_BIN` 指定）使用同一批 `node` 插件。`exec`（stdio 上的 EPP/1，任意语言，可选 `pty.*`）留给第三方插件。
 Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)（见 [Python SDK](#python-sdk)）。
-模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；CLI 和 SDK 都不是 E2B 协议的直接替代。
+模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；标准 CLI 与 SDK 遵循阿里云支持版本的 E2B 行为契约，后端条件能力见[迁移指南](docs/zh/guide/migrate-from-e2b.md)。
 
 ## 网站
 
@@ -31,11 +35,9 @@ CLI 从 git 树 `alibaba-agent-sandbox/awesome-providers//<id>` 安装这些目�
 - **Agent Skill** —— 静态 Agent Skills 指南（[`SKILL.md`](SKILL.md)），适用于 Qoder、Claude Code、Cursor、Qwen Code、Codex。
 - **独立二进制，或 Node.js >= 20 从源码构建** —— Release 二进制不需要 Node.js。npm 包尚未发布。
 
-SDK 侧特性（异步优先的 `Sandbox` API、`run` / `run_code` 执行原语、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层）见 [Python SDK](#python-sdk) 一节。
+SDK 侧特性（同步 `Sandbox`／异步 `AsyncSandbox` API、`run` / `run_code` 执行原语、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层）见 [Python SDK](#python-sdk) 一节。
 
 ## 安装
-
-发布二进制的本次检查覆盖校验和与版本。当前 `[Unreleased]` 修复在配套版本发布前使用源码构建方式；仅看到版本0.3.0不能证明已包含之后的源码变化。
 
 ### macOS 与 Linux
 
@@ -51,7 +53,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_VERSION` 选择版本（默认最新 Release）。`ABX_INSTALL_DIR` 选择目录。网站以后可以把这两份脚本放到自己的域名上；命令仍然是一行，只改 URL。
 
-v0.3.0 Release 已提供五个平台的 `abx-*` 二进制和对应 SHA-256 文件，安装脚本使用这些资产；也可按下文从源码安装。
+这两行命令需要资产名为 `abx-*` 的 GitHub Release。v0.2.0 的资产名是 `ebx-*`，v0.3.0 还没有发布。在那个 Release 出现之前，请从源码安装（见下）。
 
 ### 手动下载
 
@@ -59,7 +61,7 @@ v0.3.0 Release 已提供五个平台的 `abx-*` 二进制和对应 SHA-256 文�
 
 ### npm（即将提供）
 
-`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。当前清单中的包名是 `@agent-sandbox/cli`。部分 npm 镜像（包括 npmmirror）上有一个无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。
+`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。包名还没有定。部分 npm 镜像（包括 npmmirror）上有一个无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。
 
 ### 从源码安装
 
@@ -68,7 +70,6 @@ v0.3.0 Release 已提供五个平台的 `abx-*` 二进制和对应 SHA-256 文�
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
-git rev-parse HEAD
 npm ci
 npm run build
 npm pack
@@ -100,13 +101,13 @@ abx config init                          # 凭证 + 区域（--build / --llm 追
 abx config set sandbox_api_key <YOUR_API_KEY>   # 或直接设置单个密钥
 
 # 沙箱生命周期
-abx create --template base             # 默认模板
-abx create --template python-base      # 目录里的 Python 镜像
+abx create base --detach  # 默认模板
+abx create python-base --detach  # 目录里的 Python 镜像
 abx list                                 # 列出运行中的沙箱
 abx info <sandbox-id>                    # 查看沙箱详情
-abx exec <sandbox-id> -- echo hello       # 执行命令（--cwd/--env/--timeout/--stream/--background）
+abx exec <sandbox-id> echo hello       # 执行命令（--cwd/--env/--background 放在 ID 前）
 abx run <sandbox-id> <name> --arg k=v    # 调用沙箱内服务器上注册的具名命令
-abx connect <sandbox-id>                 # 逐行命令 REPL（每行一个新进程，不是 PTY）
+abx connect <sandbox-id>                 # 真实 PTY；shell 状态持续（每行一个新进程，不是 PTY）
 
 # 文件传输
 abx upload <sandbox-id> ./local.txt /remote/path.txt
@@ -118,15 +119,15 @@ abx template info python-base            # 模板详情
 abx template install owner/repo          # 从 GitHub 安装
 
 # 模板部署（阿里云模板 API，已内置于 CLI）
-abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
+abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-tpl
 abx template deploy ./examples/templates/python-hello \
     --acr-namespace my-ns --acr-repo python-hello
 
 # 模板生命周期：编写 -> 发布 -> 启动
-abx template init --adopt ./app --hint "端口 8080"     # 1a. 适配已有项目
-abx template init "一个 Python Web 服务"               # 1b. 模板生成写出 ./<name>/（可选）
+abx template scaffold --adopt ./app --hint "端口 8080"     # 1a. 适配已有项目
+abx template scaffold "一个 Python Web 服务"               # 1b. 模板生成写出 ./<name>/（可选）
 abx deploy ./app --acr-namespace my-ns                 # 2. 构建、推送 ACR、注册（无需 LLM）
-abx create --template <TEMPLATE_ID>                    # 3. 启动沙箱
+abx create <TEMPLATE_ID> --detach  # 3. 启动沙箱
 
 # MCP 服务
 abx mcp start                            # 启动 MCP 工具服务
@@ -157,21 +158,18 @@ $ abx template install alibaba-agent-sandbox/awesome-templates//node-web@v1.0.0 
 **测试夹具（fixture）**用于离线测试，并非模板发布真源。夹具契约与索引行为
 （缓存、离线回退、锁定版本）详见 [examples/templates/README.md](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/examples/templates/README.md)。
 
-使用本地服务端 SDK 时，`ABX_SERVER_SDK_SOURCE` 会注入 wheel，并保留完整的 shell 形式
-Docker RUN 指令和条件安装逻辑。详见[服务端 wheel 注入](docs/zh/guide/authoring-templates.md#本地服务端-wheel-注入)。
-
 ## Python SDK
 
-Python SDK —— 异步优先的 `Sandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`）与架构文档均在该仓库维护。
+Python SDK —— 同步 `Sandbox`／异步 `AsyncSandbox` API、`@sandbox` 声明式装饰器、会话持久化、E2B 兼容层，以及其分层架构 —— 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)。快速开始、执行 API（`sandbox.commands.run()` / `sandbox.run_code()` / `sandbox.run()`）与架构文档均在该仓库维护。
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
 python -m pip install \
-  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk" \
-  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=client-sdk"
+  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" \
+  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"
 
 # 模板镜像内使用的服务端运行时（import agent_sandbox.server）
-python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e86cb0be24e0083a27396b260298e7cf27b660d6.tar.gz#subdirectory=server-sdk"
+python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk"
 ```
 
 `agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。
@@ -235,8 +233,6 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 | 贡献指南 | [CONTRIBUTING.md](.github/CONTRIBUTING.md) |
 | 许可证 | [Apache-2.0](LICENSE) |
 
-Provider 专属云管理：`abx provider command list alicloud-express`。参数规范、写入确认和云 API 边界见[提供方指南](docs/zh/guide/providers.md)。
-
 ## 贡献
 
 欢迎贡献！请阅读 [贡献指南](.github/CONTRIBUTING.md) 了解详情。
@@ -244,5 +240,3 @@ Provider 专属云管理：`abx provider command list alicloud-express`。参数
 ## 许可证
 
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
-
-- [Sandbox Skill best practices](docs/zh/guide/sandbox-skill-best-practices.md)

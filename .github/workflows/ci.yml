@@ -103,6 +103,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify pinned standard source replay and complete attribution
+        run: |
+          npm run test:standard-provenance
+          npm ci --prefix vendor/e2b-cli
+          npm run vendor:e2b
+          git diff --exit-code -- src/standard_cli vendor/e2b-cli/sources.json
+
       - name: Pack npm tarball
         run: |
           mkdir -p dist-pack

@@ -1,0 +1,50 @@
+Usage: abx mcp deploy [options]
+
+Generate an Alibaba Cloud FC deployment artifact.
+
+Creates a Streamable HTTP ASGI application artifact and prints manual
+FC deployment steps. Automatic FC API deployment is not implemented.
+
+The artifact contains ``requirements.txt``, ``app.py`` (ASGI entry
+point), and ``config.yaml`` (a YAML deployment manifest with FC function
+settings and environment variables).
+
+``--region`` overrides the FC region for this invocation; without it the
+region comes from ``abx config set region`` / ``ALIBABA_CLOUD_REGION_ID``
+environment variable and defaults to ``cn-hangzhou``.
+
+A non-empty Bearer token is required (--generate-token or
+--auth-token-file). POST and DELETE /mcp are implemented. GET /mcp
+returns 405 until SSE server notifications exist. The function
+environment sets ALIBABA_CLOUD_REGION_ID to the selected region.
+
+Examples:
+  abx mcp deploy --generate-token --api-key $E2B_API_KEY
+  abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai
+  abx mcp deploy --generate-token --output-dir ./deploy-artifact
+
+Related commands:
+  abx mcp start                 Run the local STDIO server
+  abx mcp status                Inspect MCP authentication state
+  abx config set sandbox_api_key VALUE  Configure sandbox authentication
+
+Options:
+  --name <NAME>                    FC function name for the artifact.
+  -r, --region <TEXT>              Region override for this command (default:
+                                   'abx config set region' value, else
+                                   cn-hangzhou)
+  --template <TEMPLATE>            Default sandbox template for MCP sessions.
+  --memory <INTEGER>               FC function memory (MB).
+  --timeout <INTEGER>              FC function timeout (s).
+  --auth-token-file <PATH>         Path to a non-empty Bearer token file.
+  --generate-token                 Auto-generate a random Bearer token.
+  --enable-session-affinity        Enable Mcp-Session-Id affinity (requires FC
+                                   MCP support).
+  --no-session-affinity            Opposite of --enable-session-affinity.
+  --api-key <API_KEY>              E2B_API_KEY to inject into the FC function
+                                   env.
+  --custom-domain <CUSTOM_DOMAIN>  Custom domain for the MCP endpoint.
+  --output-dir <PATH>              Write the FC deployment artifact to this
+                                   directory.
+  -h, --help                       Show this message and exit.
+[exit_code:0]

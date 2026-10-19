@@ -1,0 +1,3554 @@
+{
+ "cases": [
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SandboxError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E0000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E0000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E0000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SandboxError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "SandboxError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E0000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E0000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E0000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "AuthenticationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E1000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E1000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E1000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "AuthenticationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "AuthenticationError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E1000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E1000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E1000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "InvalidAPIKeyError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E1001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E1001] something went wrong\n  Suggestion: Check your E2B_API_KEY environment variable or pass sandbox_api_key.",
+    "suggestion": "Check your E2B_API_KEY environment variable or pass sandbox_api_key.",
+    "to_dict": {
+     "code": "E1001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check your E2B_API_KEY environment variable or pass sandbox_api_key."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "InvalidAPIKeyError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "InvalidAPIKeyError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E1001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E1001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E1001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TokenExpiredError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E1002",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E1002] something went wrong\n  Suggestion: The SDK should auto-refresh tokens. If this persists, check system clock synchronization.",
+    "suggestion": "The SDK should auto-refresh tokens. If this persists, check system clock synchronization.",
+    "to_dict": {
+     "code": "E1002",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "The SDK should auto-refresh tokens. If this persists, check system clock synchronization."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TokenExpiredError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "TokenExpiredError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E1002",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E1002] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E1002",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "InvalidCredentialsError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E1003",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E1003] something went wrong\n  Suggestion: Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables.",
+    "suggestion": "Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables.",
+    "to_dict": {
+     "code": "E1003",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check ALICLOUD_ACCESS_KEY_ID and ALICLOUD_ACCESS_KEY_SECRET environment variables."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "InvalidCredentialsError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "InvalidCredentialsError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E1003",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E1003] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E1003",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TokenExchangeError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E1004",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E1004] something went wrong\n  Suggestion: Token exchange from AK/SK to Platform API key failed. Use E2B_API_KEY directly, or check AK/SK credentials and network connectivity.",
+    "suggestion": "Token exchange from AK/SK to Platform API key failed. Use E2B_API_KEY directly, or check AK/SK credentials and network connectivity.",
+    "to_dict": {
+     "code": "E1004",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Token exchange from AK/SK to Platform API key failed. Use E2B_API_KEY directly, or check AK/SK credentials and network connectivity."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TokenExchangeError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "TokenExchangeError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E1004",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E1004] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E1004",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SandboxCreationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E2000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SandboxCreationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "SandboxCreationError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateNotFoundError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2001] something went wrong\n  Suggestion: Run 'abx template list' to see available templates.",
+    "suggestion": "Run 'abx template list' to see available templates.",
+    "to_dict": {
+     "code": "E2001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Run 'abx template list' to see available templates."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateNotFoundError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "TemplateNotFoundError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QuotaExceededError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2002",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2002] something went wrong\n  Suggestion: Destroy idle sandboxes or request a quota increase.",
+    "suggestion": "Destroy idle sandboxes or request a quota increase.",
+    "to_dict": {
+     "code": "E2002",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Destroy idle sandboxes or request a quota increase."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QuotaExceededError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "QuotaExceededError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2002",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2002] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2002",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "RegionUnavailableError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2003",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2003] something went wrong\n  Suggestion: Try a different region or check service availability.",
+    "suggestion": "Try a different region or check service availability.",
+    "to_dict": {
+     "code": "E2003",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Try a different region or check service availability."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "RegionUnavailableError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "RegionUnavailableError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2003",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2003] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2003",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateParseError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2004",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2004] something went wrong\n  Suggestion: Fix the template.yaml (see the validation error above); capabilities are NOT granted until the template parses cleanly.",
+    "suggestion": "Fix the template.yaml (see the validation error above); capabilities are NOT granted until the template parses cleanly.",
+    "to_dict": {
+     "code": "E2004",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Fix the template.yaml (see the validation error above); capabilities are NOT granted until the template parses cleanly."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateParseError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "TemplateParseError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2004",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2004] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2004",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeNotInstalledError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2005",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2005] something went wrong\n  Suggestion: Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create <name>'.",
+    "suggestion": "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create <name>'.",
+    "to_dict": {
+     "code": "E2005",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'), or bypass AI generation with 'abx create <name>'."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeNotInstalledError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "QwenCodeNotInstalledError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2005",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2005] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2005",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeCredentialError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2006",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2006] something went wrong\n  Suggestion: Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.",
+    "suggestion": "Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY.",
+    "to_dict": {
+     "code": "E2006",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Configure the unified LLM API key for Qwen Code: 'abx config set llm_api_key <KEY>' (interactive: 'abx config init --llm'), or export DASHSCOPE_API_KEY / OPENAI_API_KEY."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeCredentialError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "QwenCodeCredentialError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2006",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2006] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2006",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "AICodegenError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2007",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.",
+    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.",
+    "to_dict": {
+     "code": "E2007",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "AICodegenError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "AICodegenError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2007",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2007] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2007",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2007",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.",
+    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.",
+    "to_dict": {
+     "code": "E2007",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "QwenCodeTimeoutError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2007",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2007] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2007",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeStartupError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2007",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2007] something went wrong\n  Suggestion: The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.",
+    "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'.",
+    "to_dict": {
+     "code": "E2007",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"' or fall back to 'abx create <name>'."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "QwenCodeStartupError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "QwenCodeStartupError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2007",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2007] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2007",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DescriptionClarificationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E2008",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E2008] something went wrong\n  Suggestion: Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create <name>'.",
+    "suggestion": "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create <name>'.",
+    "to_dict": {
+     "code": "E2008",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y to generate from the current description anyway, or use 'abx create <name>'."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DescriptionClarificationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "DescriptionClarificationError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E2008",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E2008] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E2008",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ExecutionError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E3000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E3000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E3000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ExecutionError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "ExecutionError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E3000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E3000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "CommandTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E3001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E3001] something went wrong\n  Suggestion: Increase the timeout parameter or check if the command is hanging.",
+    "suggestion": "Increase the timeout parameter or check if the command is hanging.",
+    "to_dict": {
+     "code": "E3001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Increase the timeout parameter or check if the command is hanging."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "CommandTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "CommandTimeoutError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E3001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E3001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ProcessError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {
+     "exit_code": -1,
+     "stderr": "",
+     "stdout": ""
+    },
+    "code": "E3002",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E3002] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E3002",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ProcessError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {
+     "exit_code": 7,
+     "stderr": "err",
+     "stdout": "out"
+    },
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "exit_code": 7,
+    "stderr": "err",
+    "stdout": "out",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "ProcessError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {
+     "exit_code": 7,
+     "stderr": "err",
+     "stdout": "out"
+    },
+    "code": "E3002",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E3002] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3002",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "exit_code": 7,
+    "stderr": "err",
+    "stdout": "out",
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "CodeExecutionError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E3003",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E3003] something went wrong\n  Suggestion: Check code syntax and runtime dependencies in the sandbox template.",
+    "suggestion": "Check code syntax and runtime dependencies in the sandbox template.",
+    "to_dict": {
+     "code": "E3003",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check code syntax and runtime dependencies in the sandbox template."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "CodeExecutionError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "CodeExecutionError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E3003",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E3003] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3003",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "network"
+   ],
+   "cls": "CapabilityNotSupportedError",
+   "expected": {
+    "args": [
+     "Capability 'network' is not supported by this sandbox template."
+    ],
+    "attrs": {
+     "capability": "network"
+    },
+    "code": "E3004",
+    "docs_url": "",
+    "message": "Capability 'network' is not supported by this sandbox template.",
+    "str": "[E3004] Capability 'network' is not supported by this sandbox template.\n  Suggestion: Declare 'network' in the template's capabilities list (template.yaml) or use a template that supports it.",
+    "suggestion": "Declare 'network' in the template's capabilities list (template.yaml) or use a template that supports it.",
+    "to_dict": {
+     "code": "E3004",
+     "docs_url": "",
+     "message": "Capability 'network' is not supported by this sandbox template.",
+     "suggestion": "Declare 'network' in the template's capabilities list (template.yaml) or use a template that supports it."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "network"
+   ],
+   "cls": "CapabilityNotSupportedError",
+   "expected": {
+    "args": [
+     "Capability 'network' is not supported by this sandbox template."
+    ],
+    "attrs": {
+     "capability": "network"
+    },
+    "code": "E3004",
+    "docs_url": "",
+    "message": "Capability 'network' is not supported by this sandbox template.",
+    "str": "[E3004] Capability 'network' is not supported by this sandbox template.\n  Suggestion: Declare 'network' in the template's capabilities list (template.yaml) or use a template that supports it.",
+    "suggestion": "Declare 'network' in the template's capabilities list (template.yaml) or use a template that supports it.",
+    "to_dict": {
+     "code": "E3004",
+     "docs_url": "",
+     "message": "Capability 'network' is not supported by this sandbox template.",
+     "suggestion": "Declare 'network' in the template's capabilities list (template.yaml) or use a template that supports it."
+    }
+   },
+   "kwargs": {
+    "message": "",
+    "suggestion": ""
+   },
+   "variant": "empty-overrides"
+  },
+  {
+   "args": [
+    "network"
+   ],
+   "cls": "CapabilityNotSupportedError",
+   "expected": {
+    "args": [
+     "custom message"
+    ],
+    "attrs": {
+     "capability": "network"
+    },
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "custom message",
+    "str": "[E9999] custom message\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "custom message",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "custom message",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "network"
+   ],
+   "cls": "CapabilityNotSupportedError",
+   "expected": {
+    "args": [
+     "Capability 'network' is not supported by this sandbox template."
+    ],
+    "attrs": {
+     "capability": "network"
+    },
+    "code": "E3004",
+    "docs_url": "",
+    "message": "Capability 'network' is not supported by this sandbox template.",
+    "str": "[E3004] Capability 'network' is not supported by this sandbox template.\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3004",
+     "docs_url": "",
+     "message": "Capability 'network' is not supported by this sandbox template.",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "deploy"
+   ],
+   "cls": "CommandNotFoundError",
+   "expected": {
+    "args": [
+     "Command 'deploy' not found."
+    ],
+    "attrs": {
+     "command_name": "deploy"
+    },
+    "code": "E3005",
+    "docs_url": "",
+    "message": "Command 'deploy' not found.",
+    "str": "[E3005] Command 'deploy' not found.\n  Suggestion: Check the command name against sandbox.list_commands() and make sure the SandboxServer is running (sandbox.start_server()).",
+    "suggestion": "Check the command name against sandbox.list_commands() and make sure the SandboxServer is running (sandbox.start_server()).",
+    "to_dict": {
+     "code": "E3005",
+     "docs_url": "",
+     "message": "Command 'deploy' not found.",
+     "suggestion": "Check the command name against sandbox.list_commands() and make sure the SandboxServer is running (sandbox.start_server())."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "deploy"
+   ],
+   "cls": "CommandNotFoundError",
+   "expected": {
+    "args": [
+     "Command 'deploy' not found. Server: unreachable."
+    ],
+    "attrs": {
+     "command_name": "deploy"
+    },
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "Command 'deploy' not found. Server: unreachable.",
+    "str": "[E9999] Command 'deploy' not found. Server: unreachable.\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "Command 'deploy' not found. Server: unreachable.",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "server_status": "unreachable",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "deploy"
+   ],
+   "cls": "CommandNotFoundError",
+   "expected": {
+    "args": [
+     "Command 'deploy' not found. Server: unreachable."
+    ],
+    "attrs": {
+     "command_name": "deploy"
+    },
+    "code": "E3005",
+    "docs_url": "",
+    "message": "Command 'deploy' not found. Server: unreachable.",
+    "str": "[E3005] Command 'deploy' not found. Server: unreachable.\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3005",
+     "docs_url": "",
+     "message": "Command 'deploy' not found. Server: unreachable.",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "server_status": "unreachable",
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "EnvdRpcError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {
+     "body_text": "",
+     "envd_error": null,
+     "rpc_path": "",
+     "status_code": 0
+    },
+    "code": "E3006",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E3006] something went wrong\n  Suggestion: The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'abx -v' for the raw error response.",
+    "suggestion": "The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'abx -v' for the raw error response.",
+    "to_dict": {
+     "code": "E3006",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "The sandbox envd rejected this RPC call. Check the command and arguments, or run with 'abx -v' for the raw error response."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "EnvdRpcError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {
+     "body_text": "raw",
+     "envd_error": {
+      "code": "unknown",
+      "message": "boom"
+     },
+     "rpc_path": "/process.Process/Start",
+     "status_code": 500
+    },
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "body_text": "raw",
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "envd_error": {
+     "code": "unknown",
+     "message": "boom"
+    },
+    "rpc_path": "/process.Process/Start",
+    "status_code": 500,
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "EnvdRpcError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {
+     "body_text": "raw",
+     "envd_error": {
+      "code": "unknown",
+      "message": "boom"
+     },
+     "rpc_path": "/process.Process/Start",
+     "status_code": 500
+    },
+    "code": "E3006",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E3006] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E3006",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "body_text": "raw",
+    "envd_error": {
+     "code": "unknown",
+     "message": "boom"
+    },
+    "rpc_path": "/process.Process/Start",
+    "status_code": 500,
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "FileOperationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E4000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E4000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E4000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "FileOperationError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "FileOperationError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E4000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E4000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E4000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "FileNotFoundError_",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E4001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E4001] something went wrong\n  Suggestion: Use files.list() to check available files, or files.exists() to verify path.",
+    "suggestion": "Use files.list() to check available files, or files.exists() to verify path.",
+    "to_dict": {
+     "code": "E4001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Use files.list() to check available files, or files.exists() to verify path."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "FileNotFoundError_",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "FileNotFoundError_",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E4001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E4001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E4001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "PermissionDeniedError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E4002",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E4002] something went wrong\n  Suggestion: Check file permissions in the sandbox.",
+    "suggestion": "Check file permissions in the sandbox.",
+    "to_dict": {
+     "code": "E4002",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check file permissions in the sandbox."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "PermissionDeniedError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "PermissionDeniedError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E4002",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E4002] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E4002",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SessionError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E6000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E6000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E6000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SessionError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "SessionError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E6000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E6000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E6000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SessionNotFoundError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E6001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E6001] something went wrong\n  Suggestion: Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically.",
+    "suggestion": "Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically.",
+    "to_dict": {
+     "code": "E6001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check session files in ~/.abx/sessions/ or use LocalSessionStore().list() programmatically."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SessionNotFoundError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "SessionNotFoundError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E6001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E6001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E6001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SessionAlreadyExistsError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E6002",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E6002] something went wrong\n  Suggestion: Use a different name or stop the existing session first.",
+    "suggestion": "Use a different name or stop the existing session first.",
+    "to_dict": {
+     "code": "E6002",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Use a different name or stop the existing session first."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "SessionAlreadyExistsError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "SessionAlreadyExistsError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E6002",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E6002] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E6002",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E7000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "DeployError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployLLMKeyMissingError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7001] something went wrong\n  Suggestion: Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.",
+    "suggestion": "Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy.",
+    "to_dict": {
+     "code": "E7001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Set ABX_LLM_API_KEY (or BAILIAN_CODING_PLAN_API_KEY, DASHSCOPE_API_KEY, OPENAI_API_KEY), store one with 'abx config set llm_api_key <KEY>', or pass llm_api_key= to Sandbox.deploy."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployLLMKeyMissingError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "DeployLLMKeyMissingError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployAgentError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7002",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7002] something went wrong\n  Suggestion: Check the raw_output on DeployResult for details.",
+    "suggestion": "Check the raw_output on DeployResult for details.",
+    "to_dict": {
+     "code": "E7002",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check the raw_output on DeployResult for details."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployAgentError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "DeployAgentError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7002",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7002] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7002",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7003",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7003] something went wrong\n  Suggestion: Increase max_wall_time or simplify the deployment task.",
+    "suggestion": "Increase max_wall_time or simplify the deployment task.",
+    "to_dict": {
+     "code": "E7003",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Increase max_wall_time or simplify the deployment task."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DeployTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "DeployTimeoutError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7003",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7003] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7003",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateBuildError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7010",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7010] something went wrong\n  Suggestion: Check the Dockerfile and build logs for errors.",
+    "suggestion": "Check the Dockerfile and build logs for errors.",
+    "to_dict": {
+     "code": "E7010",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check the Dockerfile and build logs for errors."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateBuildError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "TemplateBuildError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7010",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7010] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7010",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateBuildTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7011",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7011] something went wrong\n  Suggestion: Increase the build timeout or simplify the Dockerfile.",
+    "suggestion": "Increase the build timeout or simplify the Dockerfile.",
+    "to_dict": {
+     "code": "E7011",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Increase the build timeout or simplify the Dockerfile."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "TemplateBuildTimeoutError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "TemplateBuildTimeoutError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7011",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7011] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7011",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DockerBuildError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7020",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7020] something went wrong\n  Suggestion: Check the Dockerfile syntax and ensure Docker daemon is running.",
+    "suggestion": "Check the Dockerfile syntax and ensure Docker daemon is running.",
+    "to_dict": {
+     "code": "E7020",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check the Dockerfile syntax and ensure Docker daemon is running."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "DockerBuildError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "DockerBuildError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7020",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7020] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7020",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ACRPushError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7021",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7021] something went wrong\n  Suggestion: Verify ACR credentials and registry URL. Ensure the namespace and repository exist.",
+    "suggestion": "Verify ACR credentials and registry URL. Ensure the namespace and repository exist.",
+    "to_dict": {
+     "code": "E7021",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Verify ACR credentials and registry URL. Ensure the namespace and repository exist."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ACRPushError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "ACRPushError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7021",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7021] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7021",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ACRLoginError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E7022",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E7022] something went wrong\n  Suggestion: Check AccessKey/AccessSecret credentials and registry URL.",
+    "suggestion": "Check AccessKey/AccessSecret credentials and registry URL.",
+    "to_dict": {
+     "code": "E7022",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check AccessKey/AccessSecret credentials and registry URL."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ACRLoginError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "ACRLoginError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E7022",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E7022] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E7022",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "NetworkError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E5000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E5000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E5000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "NetworkError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "NetworkError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E5000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E5000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E5000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ConnectionError_",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E5001",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E5001] something went wrong\n  Suggestion: Check network connectivity and firewall rules.",
+    "suggestion": "Check network connectivity and firewall rules.",
+    "to_dict": {
+     "code": "E5001",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": "Check network connectivity and firewall rules."
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "ConnectionError_",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "ConnectionError_",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E5001",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E5001] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E5001",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "GitHubRateLimitError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E5000",
+    "docs_url": "",
+    "message": "something went wrong",
+    "str": "[E5000] something went wrong",
+    "suggestion": "",
+    "to_dict": {
+     "code": "E5000",
+     "docs_url": "",
+     "message": "something went wrong",
+     "suggestion": ""
+    }
+   },
+   "kwargs": {},
+   "variant": "minimal"
+  },
+  {
+   "args": [
+    "something went wrong"
+   ],
+   "cls": "GitHubRateLimitError",
+   "expected": {
+    "args": [
+     "something went wrong"
+    ],
+    "attrs": {},
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "message": "something went wrong",
+    "str": "[E9999] something went wrong\n  Suggestion: try again",
+    "suggestion": "try again",
+    "to_dict": {
+     "code": "E9999",
+     "docs_url": "https://example.test/doc",
+     "message": "something went wrong",
+     "suggestion": "try again"
+    }
+   },
+   "kwargs": {
+    "code": "E9999",
+    "docs_url": "https://example.test/doc",
+    "suggestion": "try again"
+   },
+   "variant": "overridden"
+  },
+  {
+   "args": [
+    "line one\nline two é 中文"
+   ],
+   "cls": "GitHubRateLimitError",
+   "expected": {
+    "args": [
+     "line one\nline two é 中文"
+    ],
+    "attrs": {},
+    "code": "E5000",
+    "docs_url": "",
+    "message": "line one\nline two é 中文",
+    "str": "[E5000] line one\nline two é 中文\n  Suggestion: step 1\nstep 2",
+    "suggestion": "step 1\nstep 2",
+    "to_dict": {
+     "code": "E5000",
+     "docs_url": "",
+     "message": "line one\nline two é 中文",
+     "suggestion": "step 1\nstep 2"
+    }
+   },
+   "kwargs": {
+    "suggestion": "step 1\nstep 2"
+   },
+   "variant": "multiline"
+  }
+ ],
+ "classes": [
+  "SandboxError",
+  "AuthenticationError",
+  "InvalidAPIKeyError",
+  "TokenExpiredError",
+  "InvalidCredentialsError",
+  "TokenExchangeError",
+  "SandboxCreationError",
+  "TemplateNotFoundError",
+  "QuotaExceededError",
+  "RegionUnavailableError",
+  "TemplateParseError",
+  "QwenCodeNotInstalledError",
+  "QwenCodeCredentialError",
+  "AICodegenError",
+  "QwenCodeTimeoutError",
+  "QwenCodeStartupError",
+  "DescriptionClarificationError",
+  "SandboxNotFoundError",
+  "ExecutionError",
+  "CommandTimeoutError",
+  "ProcessError",
+  "CodeExecutionError",
+  "CapabilityNotSupportedError",
+  "CommandNotFoundError",
+  "EnvdRpcError",
+  "FileOperationError",
+  "FileNotFoundError_",
+  "PermissionDeniedError",
+  "SessionError",
+  "SessionNotFoundError",
+  "SessionAlreadyExistsError",
+  "DeployError",
+  "DeployLLMKeyMissingError",
+  "DeployAgentError",
+  "DeployTimeoutError",
+  "TemplateBuildError",
+  "TemplateBuildTimeoutError",
+  "DockerBuildError",
+  "ACRPushError",
+  "ACRLoginError",
+  "NetworkError",
+  "ConnectionError_",
+  "GitHubRateLimitError"
+ ],
+ "migration": {
+  "baseline": "error_str_oracle.json",
+  "baseline_sha256": "185ce0f4cb7a3afae4d63b0d595a5f3d5ba0c97f50d5a586179f9c8eef19dda7",
+  "changes": "Only CLI generation hints: template is positional; natural language uses --prompt. Constructor inputs, codes and formatting remain the frozen Python contract."
+ }
+}

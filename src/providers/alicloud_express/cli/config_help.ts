@@ -207,7 +207,7 @@ export const INIT_HELP = [
     "    install``, ``build``, ``push`` and ``deploy``).",
     "",
     "    ``--llm`` adds the LLM API key used for template generation",
-    "    (``abx create \"<description>\"``, ``abx template init \"<description>\"``).",
+    "    (``abx create \"<description>\"``, ``abx template scaffold \"<description>\"``).",
     "",
     "    Features that need those settings print a pointer to ``abx config init",
     "    --build`` / ``--llm`` when they are missing; nothing asks for them up",

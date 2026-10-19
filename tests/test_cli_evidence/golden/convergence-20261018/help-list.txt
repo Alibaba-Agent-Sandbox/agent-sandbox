@@ -1,0 +1,23 @@
+Usage: abx list [options]
+
+List sandboxes, optionally filtered by lifecycle status.
+
+Examples:
+  abx list
+  abx list --status running
+  abx list --status error --limit 50
+  abx list --region cn-shanghai
+
+Related commands:
+  abx info SANDBOX_ID  Show one sandbox in detail
+  abx create           Create a new sandbox
+  abx kill SANDBOX_ID  Destroy a sandbox
+
+Options:
+  -s, --status <STATUS>  Filter by status (choices: "running", "stopped",
+                         "creating", "paused", "error")
+  -l, --limit <INTEGER>  Maximum results (positive integer; default: 20)
+  -r, --region <TEXT>    Region override for providers that declare region
+                         (otherwise use the provider default)
+  -h, --help             Show this message and exit.
+[exit_code:0]

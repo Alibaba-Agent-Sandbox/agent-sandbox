@@ -93,7 +93,7 @@ export ALICLOUD_ACCESS_KEY_SECRET="your-ak-secret"
    ```
 3. 使用默认模板测试：
    ```bash
-   abx create --template base
+   abx create base
    ```
 
 ---
@@ -157,7 +157,7 @@ abx list --status running
 abx kill sbx-xxxx
 
 # 批量销毁
-abx kill --all --yes
+abx kill --all
 ```
 
 ---
@@ -178,7 +178,7 @@ abx kill --all --yes
 result = await sandbox.commands.run("long-command", timeout=300)
 
 # CLI 中增加超时
-abx exec sbx-xxxx "long-command" --timeout 300
+abx exec sbx-xxxx "long-command"  # no local command timeout / 无本地命令超时参数
 ```
 
 ---
@@ -187,7 +187,7 @@ abx exec sbx-xxxx "long-command" --timeout 300
 
 ### E7001 — 缺少 LLM Key
 
-> `abx deploy` 不需要 LLM Key；CLI 的 AI 步骤（`abx create "..."`、`abx template init "..."`、`abx template init --adopt`）使用 `abx config` 中的 Qwen Code 凭据。
+> `abx deploy` 不需要 LLM Key；CLI 的 AI 步骤（`abx create --prompt "..."`、`abx template scaffold --prompt "..."`、`abx template scaffold --adopt`）使用 `abx config` 中的 Qwen Code 凭据。
 
 ```text
 [E7001] No LLM API key found for the qwen-code agent.
@@ -203,7 +203,7 @@ export DASHSCOPE_API_KEY="your-key"
 
 ### 没有 Dockerfile
 
-目录里没有 `Dockerfile` 时，`abx deploy` 会停下，并给出三条编写命令：已有源码用 `abx template init --adopt .`，用一句话新建项目用 `abx template init "描述"`，脚手架用 `abx template init -t python`。文件写好之后再执行 `abx deploy`。
+目录里没有 `Dockerfile` 时，`abx deploy` 会停下，并给出三条编写命令：已有源码用 `abx template scaffold --adopt .`，用一句话新建项目用 `abx template scaffold --prompt "描述"`，脚手架用 `abx template scaffold -t python`。文件写好之后再执行 `abx deploy`。
 
 非交互的 `--adopt` 如果没带 `-y`，会停在 “Confirmation required before project files are sent to the model.”。加上 `-y` 即同时批准两次确认；`--dry-run` 只列出文件，不发送。
 
@@ -242,16 +242,16 @@ entries = await sandbox.files.list("/home/user")
 快捷方式的目标是命令路径，不是带 `abx` 的完整调用。下面的写法会被拒绝，且不会保存：
 
 ```bash
-abx config set shortcuts.aaaaa "abx template init"
+abx config set shortcuts.aaaaa "abx template scaffold"
 ```
 
 ```text
-Invalid shortcut target: 'abx template init'
+Invalid shortcut target: 'abx template scaffold'
   Suggestion: Drop the leading "abx". The target is the command path only, for example "template init".
               Try: abx config set shortcuts.aaaaa "template init"
 ```
 
-按提示里的命令重试即可。如果 `~/.abx/config.toml` 里已经写了 `aaaaa = "abx template init"`，下次启动 `abx` 会警告 `Invalid shortcut ignored` 并跳过这一条，其他快捷方式仍然可用。不认识的路径（例如 `"not-a-command"`）同样会被拒绝，并按命令分组列出合法目标。
+按提示里的命令重试即可。如果 `~/.abx/config.toml` 里已经写了 `aaaaa = "abx template scaffold"`，下次启动 `abx` 会警告 `Invalid shortcut ignored` 并跳过这一条，其他快捷方式仍然可用。不认识的路径（例如 `"not-a-command"`）同样会被拒绝，并按命令分组列出合法目标。
 
 ---
 

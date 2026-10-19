@@ -30,5 +30,5 @@ export const SERVER_SDK_ARCHIVE_URL =
 export const SERVER_SDK_PIP_SPEC =
   `agent-sandbox-server @ ${SERVER_SDK_ARCHIVE_URL}#subdirectory=server-sdk`;
 
-/** The Dockerfile line `abx template init` writes. Templates copy this line. */
+/** The Dockerfile line `abx template scaffold` writes. Templates copy this line. */
 export const ABX_SERVER_INSTALL = `RUN pip install --no-cache-dir "${SERVER_SDK_PIP_SPEC}"`;

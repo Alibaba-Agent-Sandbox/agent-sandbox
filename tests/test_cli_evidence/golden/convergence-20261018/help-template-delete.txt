@@ -1,0 +1,22 @@
+Usage: abx template delete [options] <TEMPLATE_ID>
+
+Delete a custom template from the remote platform.
+
+This irreversible operation does not remove the local template cache.
+Confirmation is required unless --yes is supplied.
+
+Examples:
+  abx template delete tmpl-abc123
+  abx template delete tmpl-abc123 --yes --region cn-shanghai
+
+Related commands:
+  abx template info TEMPLATE_ID  Verify the target before deletion
+  abx template list              Confirm the template was removed
+  abx template install REF       Reinstall a template
+
+Options:
+  -y, --yes            Skip confirmation prompt
+  -r, --region <TEXT>  Region override for providers that declare region
+                       (otherwise use the provider default)
+  -h, --help           Show this message and exit.
+[exit_code:0]

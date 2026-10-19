@@ -25,3 +25,5 @@ For exact options, configuration and plugin authoring, use the
 [CLI reference](../docs/en/reference/cli-reference.md) and
 [provider guide](../docs/en/guide/providers.md). The
 [Chinese recipes](README.zh-CN.md) describe the same operations.
+
+For the standard Express migration contract, see [Migrate from E2B](../docs/en/guide/migrate-from-e2b.md). Create takes a positional template; natural language uses `abx create --prompt`. Project template.yaml scaffolds use `abx template scaffold`; `template init` generates standard SDK build files.

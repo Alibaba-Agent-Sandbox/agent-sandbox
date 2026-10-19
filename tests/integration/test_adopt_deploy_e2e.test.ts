@@ -1,5 +1,5 @@
 /**
- * Offline end-to-end: `abx template init --adopt` then `abx deploy`.
+ * Offline end-to-end: `abx template scaffold --adopt` then `abx deploy`.
  *
  * The coding agent is the real `QwenCodeBackend`, with only the `qwen` subprocess replaced. Docker, ACR and
  * `CreateTemplate` are mocked. The assertions are the ones a real publish depends on: the registered payload matches
@@ -204,7 +204,7 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
   const before = Object.fromEntries(Object.keys(sample.files).map((name) => [name, read(path.join(project, name))]));
   const seen = _agent(sample);
 
-  const adopted = await new CliRunner().invoke(cli, ["template", "init", "--adopt", project, "--name", sample.name, "--hint", sample.hint, "-y"]);
+  const adopted = await new CliRunner().invoke(cli, ["template", "scaffold", "--adopt", project, "--name", sample.name, "--hint", sample.hint, "-y"]);
   expect(adopted.exit_code, _text(adopted)).toBe(0);
   expect(seen.calls).toBe(1);
   expect(seen.clean_env).toBe(true);

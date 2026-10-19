@@ -12,3 +12,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+Standard command implementation includes pinned MIT-licensed E2B CLI 2.20.0
+and protocol client 2.50.0 sources. See dist/standard_cli/THIRD_PARTY_NOTICES.txt
+and vendor/e2b-cli for version and provenance records.

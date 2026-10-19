@@ -1,0 +1,3 @@
+[exit_code:2]
+[stderr]
+No scaffold case specified. Available cases: python, node, minimal. Use -t/--template <case> or --from <ref>.

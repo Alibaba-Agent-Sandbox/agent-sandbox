@@ -268,7 +268,7 @@ describe("TestBackendDecoupling", () => {
     const mockSb = _makeSandbox();
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(mockSb);
 
-    const result = await runner().invoke(cli, ["create", "-y", "dummy description"]);
+    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "dummy description"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Generated template: abx-nl-dummy-xyz");
@@ -299,7 +299,7 @@ describe("TestBackendDecoupling", () => {
     const deployMock = vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "a complete dummy description"]);
+    const result = await runner().invoke(cli, ["create", "--prompt", "a complete dummy description"]);
 
     // Non-interactive without --yes: generation ran, then the gate refused.
     expect(result.exit_code).toBe(2);
@@ -337,7 +337,7 @@ describe("TestBackendDecoupling", () => {
     vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "a complete dummy description"]);
+    const result = await runner().invoke(cli, ["create", "--prompt", "a complete dummy description"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required to build and deploy");
@@ -363,7 +363,7 @@ describe("TestBackendDecoupling", () => {
     vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "a complete dummy description"]);
+    const result = await runner().invoke(cli, ["create", "--prompt", "a complete dummy description"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("could not research the public facts");
@@ -383,7 +383,7 @@ describe("TestBackendDecoupling", () => {
     vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "a vague dummy description"]);
+    const result = await runner().invoke(cli, ["create", "--prompt", "a vague dummy description"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain(
@@ -403,7 +403,7 @@ describe("TestBackendDecoupling", () => {
     const backend = new _DummyBackend({ binary: null, workdir: path.join(tmp, "ws"), template_name: "abx-nl-dummy-xyz" });
     _patchBackend(backend);
 
-    const result = await runner().invoke(cli, ["create", "dummy description"]);
+    const result = await runner().invoke(cli, ["create", "--prompt", "dummy description"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Dummy Agent CLI was not found on PATH or in ~/.abx/bin.");
@@ -423,7 +423,7 @@ describe("TestBackendDecoupling", () => {
     const backend = new _RejectingBackend({ binary: dummyBackend.binary, workdir: dummyBackend.workdir, template_name: dummyBackend.template_name });
     _patchBackend(backend);
 
-    const result = await runner().invoke(cli, ["create", "-y", "dummy description"]);
+    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "dummy description"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Dummy Agent is installed but no model credentials were found.");

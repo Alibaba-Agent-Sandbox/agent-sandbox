@@ -7,14 +7,25 @@
 
 import { drainRealStreams, finalizeStreams, writeFdSync } from "../cli/io.js";
 import { main } from "../cli/main.js";
-
-process.on("SIGINT", () => {
-  writeFdSync(2, "\nAborted!\n");
-  process.exit(1);
-});
+import { STANDARD_LICENSES } from "../standard_cli/notices.js";
+import { dispatchStandard } from "../standard_cli/dispatch.js";
 
 void (async () => {
   try {
+    if (process.argv.length === 3 && process.argv[2] === "--licenses") {
+      await new Promise<void>((resolve, reject) => {
+        process.stdout.write(STANDARD_LICENSES, (error) => error ? reject(error) : resolve());
+      });
+      return;
+    }
+    if (await dispatchStandard(process.argv.slice(2))) {
+      await drainRealStreams();
+      process.exit(finalizeStreams(0));
+    }
+    process.on("SIGINT", () => {
+      writeFdSync(2, "\nAborted!\n");
+      process.exit(1);
+    });
     const code = await main();
     await drainRealStreams();
     process.exit(finalizeStreams(code));

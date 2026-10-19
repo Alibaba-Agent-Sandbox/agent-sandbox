@@ -1,0 +1,21 @@
+Usage: abx sandbox process [options] [command]
+
+Inspect and signal processes inside a sandbox (to start one: abx exec
+--background).
+
+Examples:
+  abx sandbox process list abc123
+  abx sandbox process info abc123 1234
+
+Related commands:
+  abx exec --background SANDBOX_ID CMD
+  abx sandbox system metrics SANDBOX_ID
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  info        Get details of a process by PID.
+  list        List running processes in a sandbox.
+  signal      Send a signal to a process in the sandbox.
+[exit_code:0]

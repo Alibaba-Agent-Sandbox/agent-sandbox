@@ -1,0 +1,16 @@
+Usage: abx info [options] <SANDBOX_ID>
+
+Show status, template, region, timeout, and URL for a sandbox.
+
+Examples:
+  abx info abc123
+  abx --json info abc123
+
+Related commands:
+  abx list                  Find sandbox IDs
+  abx sandbox capabilities  Show declared capability groups
+  abx exec SANDBOX_ID -- CMD  Run a command in the sandbox
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

@@ -1,3 +1,5 @@
+> 极速版标准命令以[E2B 迁移契约](../guide/migrate-from-e2b.md)为准：create 位置参数为模板，--prompt 请求生成，template create 使用 E2B 构建语义，from-image 创建阿里云镜像模板。
+
 # CLI 命令参考（规范命令树）
 
 每个操作只有**一个规范路径**，写作 `abx 组 动词`。在此之上只有一小组**固定**的顶层快捷方式，对应最常用的命令。
@@ -25,14 +27,14 @@
 | `abx run` | `abx sandbox command run` |
 | `abx deploy` | `abx template deploy` |
 
-没有顶层的 `abx init` 和 `abx install`：请用 `abx template init`、`abx template install`（凭证配置是 `abx config init`）。
+没有顶层的 `abx init` 和 `abx install`：请用 `abx template scaffold`、`abx template install`（凭证配置是 `abx config init`）。
 
 ## 规范命令树
 
 ```
 abx
 ├── sandbox
-│   ├── create [DESCRIPTION]            list            info SANDBOX_ID        kill [SANDBOX_ID]
+│   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
 │   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID
 │   ├── upload SANDBOX_ID LOCAL REMOTE  download SANDBOX_ID REMOTE LOCAL
 │   ├── capabilities SANDBOX_ID
@@ -40,10 +42,10 @@ abx
 │   ├── process  list | info | signal            （只查看/控制；启动进程用 exec --background）
 │   ├── command  list | run                      （沙箱内服务端注册的具名命令）
 │   └── system   env | info | metrics | packages | ports
-├── template     init | search | info | list | build | push | create | delete | deploy | install
+├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
 ```
 
 `abx provider --help` 由 Provider 文档负责（见[Providers](../guide/providers.md)）；本页只涉及固定命令面中的 `provider` 组本身。
@@ -52,7 +54,7 @@ abx
 
 | 命令 | 用法 |
 |---|---|
-| `abx sandbox create` | `create [OPTIONS] [DESCRIPTION]` |
+| `abx sandbox create` | `create [options] [template]` |
 | `abx sandbox list` | `list [OPTIONS]` |
 | `abx sandbox info` | `info [OPTIONS] SANDBOX_ID` |
 | `abx sandbox kill` | `kill [OPTIONS] [SANDBOX_ID]` |
@@ -67,7 +69,7 @@ abx
 | `abx sandbox command list` | `command list [OPTIONS] SANDBOX_ID` |
 | `abx sandbox command run` | `command run [OPTIONS] SANDBOX_ID COMMAND_NAME` |
 | `abx sandbox system env\|info\|metrics\|packages\|ports` | `system <动词> [OPTIONS] SANDBOX_ID` |
-| `abx template init` | `init [OPTIONS] [DIRECTORY]` |
+| `abx template scaffold` | `init [OPTIONS] [DIRECTORY]` |
 | `abx template search` | `search [OPTIONS] QUERY` |
 | `abx template info` / `delete` | `<动词> [OPTIONS] TEMPLATE_ID` |
 | `abx template list` | `list [OPTIONS]` |
@@ -78,9 +80,6 @@ abx
 | `abx config get\|delete` | `<动词> [OPTIONS] KEY` |
 | `abx config set` | `set [OPTIONS] KEY [VALUE]` |
 | `abx mcp deploy\|install\|start\|status\|stop` | `<动词> [OPTIONS]` |
-| `abx provider command list` | `list [OPTIONS] ID` |
-| `abx provider command info` | `info [OPTIONS] ID COMMAND` |
-| `abx provider command run` | `run [OPTIONS] ID COMMAND` |
 
 ## 全局选项
 
@@ -88,63 +87,17 @@ abx
 `--version`、`-h/--help`。它们写在命令之前（`abx --json list`）。
 
 没有全局 `--timeout`，也没有 `--profile`。沙箱**生命周期**是 `abx create` 独有的 `--timeout SECONDS`；
-命令超时是 `abx exec` 的 `--timeout SECONDS`。
+标准 exec 没有本地命令超时参数。
 
-## 提供方管理：`abx provider command`
-
-`ID` 是提供方 ID，`COMMAND` 是该提供方声明的管理命令。`list` 发现静态元数据，
-`info` 展示输入/输出 schema、effect 和幂等性；两者均无需连接云端。
-`abx --json provider command list ID` 输出 JSON 描述，`--quiet` 仅输出命令 ID。
+## 标准执行与终端
 
 ```bash
-abx provider command list alicloud-express
-abx provider command info alicloud-express volume.list
-abx --json provider command run alicloud-express volume.list --input '{}'
+abx exec --cwd /app --env MODE=test SANDBOX_ID pytest -q
+abx exec --background SANDBOX_ID python -m http.server 8000
+abx connect SANDBOX_ID
 ```
 
-`run` 支持以下选项：
-
-| 选项 | 含义 |
-|---|---|
-| `--input JSON` | JSON 输入对象；未指定任一输入选项时默认 `{}` |
-| `--input-file FILE` | 读取普通 JSON 文件；与 `--input` 互斥 |
-| `-o/--opt KEY=VALUE` | 本次提供方配置覆盖，可重复 |
-| `--region REGION` | 本次调用的云区域 |
-| `--yes` | `effect` 为 `write` 或 `delete` 时必须指定 |
-| `-h/--help` | 显示用法 |
-
-两种输入均限制为 1 MiB UTF-8 字节。相对文件路径从当前目录解析。证书等敏感请求字段使用
-`--input-file request.json`，并将该文件排除在版本控制之外。账号凭据通过
-`abx config set providers.ID.KEY` 或提供方环境变量设置；`--opt` 不接受机密配置字段。
-解析错误不会回显输入内容。执行前先查看 schema：未知命令报 E8004，输入无效报 E8002，
-缺少写入确认报 E8012，显式提供方选择冲突报 E8030。
-
-管理命令不会自动重试。超时或连接错误后，云端操作结果可能仍不确定。
-命令名称位于提供方命名空间下；`abx sandbox command` 仍用于沙箱内注册的应用命令。
-支持的操作见[Providers](../guide/providers.md)。
-
-## 运行命令：`abx exec`
-
-```bash
-abx exec SANDBOX_ID -- python --version                 # 等待完成，退出码即远端退出码
-abx exec SANDBOX_ID --cwd /app --env DEBUG=1 --timeout 300 -- pytest -q
-abx exec SANDBOX_ID --stream -- pip install numpy        # 实时输出 stdout/stderr
-abx exec SANDBOX_ID --background -- python -m http.server 8000   # 打印 pid 后立即返回
-abx exec SANDBOX_ID "ls /app | wc -l"                    # 单个带引号的参数按命令行处理（支持管道）
-```
-
-| 选项 | 含义 |
-|---|---|
-| `--cwd PATH` | 工作目录（为空表示容器默认） |
-| `-e/--env KEY=VALUE` | 环境变量，可重复 |
-| `-t/--timeout SECONDS` | 命令超时（默认 60） |
-| `--stream` | 命令运行时实时打印 stdout/stderr |
-| `--background` | 启动命令、打印 pid、不等待（不能与 `--stream` 同用） |
-
-`--` 之后的命令按原样执行，不经过 shell；单个带引号的参数按命令行解析，仅当含管道或重定向时才套 shell。
-需要变量展开时使用 `sh -c '...'`。后台进程用 `abx sandbox process list|info|signal` 查看或发信号。
-
-`abx connect SANDBOX_ID` 打开逐行 REPL：每一行都是一个新进程（`cd`、导出的变量等状态不会保留），它不是 PTY。
+exec 的本地选项全部放在沙箱 ID 前，默认流式输出，返回远程退出码；后台 PID 写入 stderr。标准入口没有本地 --stream、--timeout。connect 使用真实 PTY，工作目录、环境变量跨命令保持；退出 connect 后沙箱仍运行。交互 create 使用参考版本生命周期；后续需要 ID 时传 --detach。见[完整标准参考](cli-reference.md)。
 
 ## 具名命令：`abx run` / `abx sandbox command`
 
@@ -173,7 +126,7 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 | 选项 | 追加内容 |
 |---|---|
 | `--build` | ACR 命名空间与阿里云 AccessKey（`template build`/`deploy`/`install` 需要） |
-| `--llm` | 模板生成使用的 LLM API Key（`abx create "描述"`、`abx template init "描述"`） |
+| `--llm` | 模板生成使用的 LLM API Key（`abx create --prompt "描述"`、`abx template scaffold --prompt "描述"`） |
 
 缺少相应设置时，功能会打印一行指向 `abx config init --build` 或 `abx config init --llm` 的提示。
 无终端（或带 `--yes`/`--ci`）时命令不会提示输入，而是打印等价的 `abx config set …`。
@@ -182,11 +135,13 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 
 | 已移除 | 替代 |
 |---|---|
-| 顶层 `abx init`、`abx install` | `abx template init`、`abx template install` |
+| 顶层 `abx init`、`abx install` | `abx template scaffold`、`abx template install` |
 | `abx sandbox process start` | `abx exec --background` |
-| `abx sandbox shell-stream` | `abx exec --stream` |
+| `abx sandbox shell-stream` | `abx exec`（默认流式） |
 | `abx sandbox run` | `abx run` / `abx sandbox command run` |
-| 全局 `-t/--timeout`、全局 `-p/--profile` | `abx create --timeout`、`abx exec --timeout`；`--profile` 无替代 |
+| 全局 `-t/--timeout`、全局 `-p/--profile` | `abx create --timeout`；`--profile` 无替代 |
 | `config.toml` 中的 `[shortcuts]`、`abx config set shortcuts.<name>` | 无（快捷方式固定） |
 | `template.yaml` 中的 `custom_commands` | 在沙箱内服务端注册具名命令 |
 | `abx deploy --traditional` | 无（流水线固定） |
+
+[标准生命周期、终端、参数和退出码参考](cli-reference.md)。标准本地选项放在沙箱 ID 前。

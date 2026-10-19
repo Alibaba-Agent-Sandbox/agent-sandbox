@@ -1,0 +1,7 @@
+Usage: abx provider command info [options] <ID> <COMMAND>
+
+Show a management command's input/output schemas and effects.
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

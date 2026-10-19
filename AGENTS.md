@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-**Agent Sandbox** (`@agent-sandbox/cli` on npm, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (`agent-sandbox-client` on PyPI) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. Method names there are E2B-shaped to ease migration; this CLI is not an E2B-protocol drop-in, and it does not expose OSS, VPC, or custom-domain flags.
+**Agent Sandbox** (npm package name `@agent-sandbox/cli`, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (distribution name `agent-sandbox-client`, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. The standard Express command path follows the pinned Alibaba-supported E2B behavior contract; project provider/build/MCP extensions remain explicit. Read the bilingual migration guide before changing either path.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)
@@ -19,15 +19,16 @@
 ```
 agent-sandbox/
 ├── src/                       # CLI source (TypeScript, ESM)
-│   ├── models/                # Data models: errors, sandbox, template, filesystem, process
+│   ├── models/                # Data models: config, errors, sandbox, template, session, filesystem, process
 │   ├── transport/             # HTTP/WS transport, auth, codec, retry, streaming
-│   ├── protocol/              # Protocol abstractions: sandbox, filesystem, process, terminal, code_interpreter
-│   ├── api/                   # High-level API and provider-neutral protocol contracts; legacy template exports are aliases
+│   ├── protocol/              # Protocol abstractions: sandbox, filesystem, process, terminal, port, code_interpreter
+│   ├── api/                   # High-level API: Sandbox, files, code, commands, network, image, capability, session_manager, template
 │   ├── cli/                   # `abx` CLI: main, output/formatters, command modules
 │   │   └── commands/          # Subcommands: config_cmd, deploy, mcp, sandbox, sandbox_files, sandbox_process, sandbox_system, template
-│   ├── providers/             # Backend adapters; Express UI/build/auth; shared E2B/envd wire adapters
+│   ├── framework/             # Mini click-compatible command framework (groups, options, help rendering, lazy subcommands)
 │   ├── agent/                 # AI agent tooling: MCP server, tool definitions, template authoring/adoption
-│   ├── utils/                 # Logging, registry, configuration, archive and compatibility helpers
+│   ├── session/               # Session persistence: local (LocalSessionStore)
+│   ├── utils/                 # Async bridge, secret store, logging, registry, retry
 │   └── bin/                   # `abx.ts` executable entry point
 ├── tests/                     # Mirrors src/ structure (test_api/, test_cli/, test_models/, …); vitest
 ├── parity/                    # Python-test ledger used by `npm run parity:coverage`
@@ -61,12 +62,13 @@ The CLI follows a strict layered structure — **lower layers never import upper
 graph TB
     BIN["bin — abx entry"]
     subgraph Front["Command line"]
-        FW["cli/kit — Commander command adapter"]
+        FW["framework — click-compatible command framework"]
         CLI["cli — main, OutputManager, formatters"]
         CMD["cli/commands — command groups"]
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, template authoring"]
+        SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core"]
         API["api — Sandbox, files, code, commands, template"]
@@ -77,12 +79,14 @@ graph TB
     BIN --> CLI --> FW
     CLI --> CMD
     CMD --> AG
+    CMD --> SES
     CMD --> API
     AG --> API
+    SES --> API
     API --> PRO --> TRA --> MOD
 ```
 
-The client core keeps only the services used by CLI commands; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
+The client core mirrors the Python SDK's layers one-to-one; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
 
 ---
 
@@ -103,7 +107,7 @@ npm run dev -- --help        # tsx src/bin/abx.ts --help
 | Command                           | What it does                                                                 |
 |-----------------------------------|------------------------------------------------------------------------------|
 | `make test` / `npm test`          | `vitest run` (integration tests excluded)                                    |
-| `make lint`                       | ESLint checks for source, tests and tooling |
+| `make lint`                       | Run ESLint (`npm run lint`); type checking is a separate gate |
 | `make typecheck` / `npm run typecheck` | `tsc -p tsconfig.json --noEmit` (strict)                                |
 | `make build` / `npm run build`    | `tsc -p tsconfig.build.json` (emits `dist/`)                                 |
 | `make binary`                     | `node scripts/build_binary.mjs` — standalone binary for the current platform |
@@ -234,7 +238,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 
 **MUST follow:**
 
-1. **Deliver authorized work through a scoped PR.** Preserve unrelated work and merge only after required checks/reviews; honor explicit local-only or no-merge limits.
+1. **Never auto-commit.** Make changes; let the human review and commit.
 2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `ABX_UPDATE_EVIDENCE=1 npm test`.
 3. **After modifying any CLI command**, regenerate the affected evidence files and verify they look correct.
 4. **Respect template capability declarations.** If `resolveCapabilities()` fails or a capability is missing, the fix is to declare it in the template YAML — not to bypass the resolution.
@@ -247,3 +251,30 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 11. **Layer dependency constraint.** Lower layers must never import upper layers (L0 must not import L1+, L1 must not import L2+, etc.). If you need a type from a higher layer, refactor it downward or use dependency injection.
 12. **Maintain module exports.** When adding or removing any public symbol that a package re-exports (its `index.ts`, if present), update the export list to match.
 13. **Wire-name alias convention.** Model fields that map to camelCase API responses are exposed under their snake_case names (`sandbox_id`, `exit_code`, …, as in the Python models), and parsing accepts both the camelCase wire alias and the snake_case name. See [`docs/PORTING.md`](docs/PORTING.md).
+
+## Standard migration contract
+
+Read `docs/en/guide/migrate-from-e2b.md` before changing standard APIs. Preserve the pinned behavior, synchronous/asynchronous distinction, pagination, return models, errors and terminal semantics. Project extensions use explicit entry points. Generated/source-ported code has provenance and licenses; update its reproducible source process when changing it. Do not imply unsupported Alibaba capabilities work because a client symbol exists.
+
+Standard commands are owned under `src/standard_cli/`; regenerate with the pinned `vendor/e2b-cli` lockfile. Standard template init and create keep E2B meanings; project workflows use template scaffold (--prompt/--adopt) and template from-image. Keep embedded scaffold assets and license notices working in npm and SEA artifacts.
+
+Provider ownership is resolved before backend requests. Qualified references and remote exec flags must never switch an invocation to Express implicitly. A feature declaration is not a protocol implementation: native FC/ACR template handlers are Express-only until an adapter exists. Keep each provider's feature set independent of the host registry, and distinguish declaration from account/runtime availability. See docs/en/guide/providers.md.
+
+
+## Current provider implementation boundary
+
+Core protocols and authentication are structural contracts. Backend implementations,
+Express template UI/build/authentication and shared envd adapters live under
+`src/providers/`. Historical api/protocol/auth paths are compatibility aliases.
+Retired Image/TemplateManager create, GlobalConfig, named-session persistence,
+PortClient, secret-store and generic-retry implementations remain removed. Pure
+configuration values are under utils; executable registry selection is composed
+above transport. The pinned standard CLI is a separate migration entry; maintain
+its generated source/notice provenance and explicit routing tests.
+
+For standard source updates, read `vendor/e2b-cli/README.md`. Preserve both external
+and upstream-prebundled package inventories, retained notices and source-map hashes.
+Run `npm run test:standard-provenance` and the locked `npm run vendor:e2b` replay.
+Large license/standard output must drain through real stdout pipes before exit.
+Generated Python installation must use a tested matching client/server source pair;
+the MCP artifact has its separately verified native source pin and tool catalog.

@@ -10,6 +10,27 @@ A **provider** is a sandbox backend. `abx` ships one built-in provider and can d
 
 ---
 
+## Provider boundaries and unequal capabilities
+
+Selecting a provider chooses its configuration and protocol adapter. Unsupported operations must fail with E8004 on that provider; they must never retry against alicloud-express. Explicit provider:sandbox-id references retain ownership even when the default changes. An unknown namespace raises E8001 and an empty sandbox id raises E8002 before backend requests. Explicit provider/reference conflicts raise E8030.
+
+The standard E2B command frontend is used only for Express. Qualified sandbox references enter the provider router. Other providers currently retain the project CLI syntax; selecting one does not promise that every E2B-specific option or result model is implemented there. Local generation with template scaffold can use a generic Docker profile; that changes the image contract, not the cloud backend.
+
+A feature declaration is permission to use an implemented adapter, not an implementation. Native FC/ACR template handlers are bound to Express. Other providers return E8004 even if a plugin declares templates.read/build, until a provider-aware template adapter is delivered. This guard also covers natural-language cloud deployment and internal deployment helpers, before code generation, Docker, credential loading or cloud work.
+
+The built-in provider lists its own implemented adapter features explicitly; adding a host feature must not implicitly advertise it on Express. This adapter does not advertise storage.mount, network.vpc or ports.domain as generic sandbox operations. That does not mean Alibaba lacks those cloud capabilities: resource administration and mount integration need their own implemented, verified entry points. Pause also depends on runtime/function enablement; a declaration alone is not account availability.
+
+| Capability situation | Required behavior |
+|---|---|
+| Selected provider implements a common operation | Invoke its adapter, even when Express has no equivalent |
+| Selected provider lacks the operation | E8004, with no cross-provider fallback |
+| Only another provider implements it | Explicitly select that provider; do not silently borrow its backend |
+| Backend/account/template/version prerequisite is unmet | Report the unmet prerequisite or original backend error; do not report success |
+| Provider-specific cloud management | Use a declared, typed command and its actual provider handler |
+
+The accepted [CLI provider management commands](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) and [SDK companion](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) provide discovery, schemas and explicit provider handlers. Registration does not create backend permissions or replace real E2E acceptance. Management commands and the fixed feature registry have separate roles.
+
+
 ## Install, inspect, remove
 
 ```bash
@@ -46,7 +67,7 @@ Highest priority first:
 | Where | Example |
 |---|---|
 | Qualified reference | `abx kill my-cloud:sbx-1` |
-| Flag (any position) | `abx create --provider my-cloud --template base` |
+| Flag (before the sandbox ID for exec) | `abx create --provider my-cloud --template base` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx provider default my-cloud`, `abx config set provider my-cloud`) |
@@ -58,7 +79,7 @@ abx provider default my-cloud          # persist it
 abx provider default --unset           # back to alicloud-express
 ```
 
-An unknown id exits with 4 (`E8001`). Provider options for one command are given with `--opt KEY=VALUE` (repeatable, any position); options marked `secret` in the manifest are refused on the command line (`E8002`) so that secrets never reach shell history, set them with `abx config set providers.<id>.<key>` instead.
+An unknown id exits with 4 (`E8001`). Provider options for one command are given with `--opt KEY=VALUE` (repeatable; before the sandbox ID for exec); options marked `secret` in the manifest are refused on the command line (`E8002`) so that secrets never reach shell history, set them with `abx config set providers.<id>.<key>` instead.
 
 ### Sandbox ids are qualified
 
@@ -73,7 +94,7 @@ abx list --all-providers                                 # every configured prov
 abx kill local-process:sbx-1 --yes
 ```
 
-`list --all-providers` skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
+`list --all-providers` is an explicit native project extension even when Express is the default; ordinary list filters follow the standard contract. It skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
 
 A command that needs a feature the provider does not declare (for example `abx sandbox process` on a provider without `process.manage`) fails with `E8004` before any request is sent.
 
@@ -81,27 +102,27 @@ A command that needs a feature the provider does not declare (for example `abx s
 
 ## What you can run after installing
 
-Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. The built-in provider declares implemented sandbox features. Cloud management operations are discovered separately through `abx provider command list ID`; feature tokens do not prove a management API exists.
+Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. The built-in provider declares its own implemented adapter set; global feature registration does not establish CLI coverage or live account availability.
 
 | Feature the provider must declare | CLI commands | Python SDK |
 |---|---|---|
 | `sandbox.lifecycle` | `create`, `list`, `info`, `kill`, `connect` | `Sandbox.create`, `connect`, `list`, `kill`, `info` |
-| `sandbox.timeout` | `sandbox timeout` | `set_timeout` |
-| `sandbox.pause` | `sandbox pause`, `sandbox resume` | `pause`, `resume` |
+| `sandbox.timeout` | Creation lifetime options; no generic timeout command | `set_timeout` |
+| `sandbox.pause` | Express standard pause/resume; generic provider CLI entry still missing | ProviderSandbox `pause`, `resume` |
 | `exec.run` | `exec`, `run` | `commands.run`, `sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
 | `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_stdin` |
-| `pty` | a PTY session (`connect` stays a line REPL) | `get_terminal` |
+| `pty` | Express connect uses a PTY; project provider connect is still a line REPL | `get_terminal` |
 | `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
 | `files.transfer` | — | signed upload and download URLs |
-| `code.interpret` | `sandbox code` | `run_code` |
+| `code.interpret` | No generic code command; MCP/interpreter entry points have their own contract | `run_code` |
 | `templates.read` | `template list`, `template info` | template read APIs |
 | `templates.build` | `template build/push/create/deploy/install/delete`, `deploy`, `install` | image build and template registration |
-| `ports.url` | `sandbox url` | `network.get_url` |
-| `ports.domain` | No standard command; not declared by the built-in provider | No standard management API |
-| `storage.mount` | No dynamic mount command; FC create-time mounts use `create --volume-mount PATH=NAME` | No dynamic mount API |
-| `network.vpc` | No standard VPC flags | Configure through the documented cloud control plane |
+| `ports.url` | No dedicated URL command | Provider-aware `network.resolve` / `resolve_url` |
+| `ports.domain` | Not implemented by this adapter | Requires a verified backend-specific adapter |
+| `storage.mount` | No generic mount command in this change | Separate mount integration, not implemented here |
+| `network.vpc` | FC template flags only; no generic provider operation | Separate provider-specific configuration |
 | `sessions` | re-attach with `connect <provider:id>` | `Sandbox.connect` on an existing id |
 
 `abx provider list` shows how many features each provider declares (the table has to stay readable at 80 columns); `--json` has the full list as one string, for example `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`. `abx provider info <id>` prints the list.
@@ -189,6 +210,8 @@ A bare key that exists only in another installed provider is rejected with `Did 
 
 `abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
 
+The preceding table and policy apply to native providers and MCP. The standard Express entry also maps `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN` at its boundary and otherwise uses project configuration; see the [migration guide](migrate-from-e2b.md).
+
 ---
 
 ## Exit codes and errors
@@ -213,6 +236,7 @@ Full list: [Error codes](../reference/error-codes.md). Every `provider` subcomma
 
 The repository ships an end-to-end script that installs the reference plugins and drives a real sandbox through them: [`e2e/README.md`](../../../e2e/README.md) (`e2e/providers/run.sh`).
 
+For project-provider exec, put --provider/--opt before the sandbox ID, and use `--` before remote commands containing options. Remote flags never change the selected backend; unsupported local parsing fails before backend work.
 ## Provider-specific management commands
 
 Providers may declare typed commands under a fixed namespace. These differ from application commands inside a sandbox.

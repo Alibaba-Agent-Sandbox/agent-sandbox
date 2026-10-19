@@ -75,8 +75,8 @@ async function runGeneric(name: string, ctx: Context, params: Record<string, unk
     await manager.close?.();
   }
 }
-function routed(name: string): Command {
-  const cmd = command(name, {
+function routed(name: string, publicName = name): Command {
+  const cmd = command(publicName, {
     help: () => providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
     params: () => providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
     callback: handleErrors(async (ctx, params) => {
@@ -91,7 +91,7 @@ function routed(name: string): Command {
 export const install = routed("install");
 export const list_templates = routed("list");
 export const info = routed("info");
-export const create_template = routed("create");
+export const create_template = routed("create", "from-image");
 export const push = routed("push");
 export const build = routed("build");
 export const deploy = routed("deploy");

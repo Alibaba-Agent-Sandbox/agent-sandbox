@@ -1,0 +1,20 @@
+Usage: abx sandbox command list [options] <SANDBOX_ID>
+
+List the named commands registered in a sandbox.
+
+Shows each command's name, argument signature and description, read from
+the SandboxServer in the sandbox. Errors when no server is reachable.
+
+Examples:
+  abx sandbox command list abc123
+  abx --json sandbox command list abc123
+
+Related commands:
+  abx run SANDBOX_ID NAME    Run one of them
+  abx sandbox capabilities SANDBOX_ID
+
+Options:
+  --server-port <INTEGER>  Port of the SandboxServer inside the sandbox
+                           (default: 9000)
+  -h, --help               Show this message and exit.
+[exit_code:0]

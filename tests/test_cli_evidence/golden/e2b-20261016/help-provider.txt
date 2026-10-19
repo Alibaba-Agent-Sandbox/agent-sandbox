@@ -1,0 +1,43 @@
+Usage: abx provider [options] [command]
+
+Manage sandbox providers (backends).
+
+The built-in provider is 'alicloud-express' (Alibaba Cloud Express Edition,
+阿里云极速版). Install more with a directory or a git URL; nothing from a
+plugin is executed while installing.
+
+Select a provider for one command with the global '--provider ID' (any
+position) and set provider options with '--opt KEY=VALUE' (repeatable).
+Sandbox references may be qualified: 'abx kill local-process:sbx-1'.
+
+Examples:
+  abx provider list
+  abx provider install ./my-provider
+  abx provider install https://github.com/acme/abx-provider-acme.git --ref
+4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
+  abx provider default acme
+  abx create --provider acme --template base
+  abx list --all-providers
+
+Related commands:
+  abx config      Credentials and defaults (keys: provider,
+providers.<id>.<key>)
+  abx info        Show one sandbox
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  config      Show or edit one provider's configuration.
+  default     Show or set the default provider.
+  doctor      Check a provider: installed, integrity, configuration and (for
+              plugins) the handshake.
+  engine      Run or inspect the local provider engine.
+  info        Show a provider's manifest, features and configuration.
+  install     Install a provider plugin from a directory or a git URL.
+  list        List built-in and installed providers.
+  show        Show a provider's manifest, features and configuration.
+  test        Run the provider contract tests against a provider.
+  uninstall   Remove an installed provider.
+  update      Update installed providers from their recorded git source.
+[exit_code:0]

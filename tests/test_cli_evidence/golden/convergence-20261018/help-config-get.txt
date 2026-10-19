@@ -1,0 +1,47 @@
+Usage: abx config get [options] <KEY>
+
+Get a configuration value by KEY.
+
+Prints the effective value: the process environment wins, then the
+value stored by ``abx config set``, then the built-in default. Keys
+without any of these print ``(not set)``. Sensitive keys are masked.
+
+Available keys:
+  sandbox_api_key    Sandbox service API key (env var ABX_SANDBOX_API_KEY;
+                     stored in ~/.abx/.env,
+                     shown masked). ``api_key`` is accepted as an alias.
+  access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth
+                     (template deploy, ACR push; stored in ~/.abx/.env)
+  access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth
+                     (template deploy, ACR push; stored in ~/.abx/.env,
+                     shown masked)
+  acr_namespace      ACR namespace for template build, push, and install
+                     (stored in ~/.abx/.env as ACR_NAMESPACE)
+  api_url            Platform API URL
+  domain             Envd data-plane domain
+  region             Default region (e.g. cn-hangzhou)
+  http_timeout       HTTP request timeout in seconds
+  http2              Enable HTTP/2 (true/false)
+  max_retries        Maximum retry attempts
+  llm_api_key        LLM API key for template generation
+                     (stored in ~/.abx/.env as ABX_LLM_API_KEY, shown
+                     masked; a legacy config.toml value is still readable)
+  llm_model          LLM model name (default: qwen3-coder-plus)
+  llm_base_url       LLM API base URL, OpenAI-compatible
+                     (default: DashScope compatible-mode)
+  github_token       GitHub token for template downloads (stored in
+                     ~/.abx/.env, shown masked)
+
+Examples:
+  abx config get sandbox_api_key
+  abx config get region
+  abx config list          # show all values at once
+
+Related commands:
+  abx config list          Show every effective value and its source
+  abx config set KEY VALUE
+  abx config set KEY ""    Clear one stored value
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

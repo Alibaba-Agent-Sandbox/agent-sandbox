@@ -10,6 +10,27 @@
 
 ---
 
+## Provider 边界与不同的能力集合
+
+选择 Provider 就是选择它的配置和协议适配器。不支持的操作应在该 Provider 上返回 E8004，不能改用极速版重试。provider:sandbox-id 引用保留资源归属，不受默认 Provider 切换影响。未知前缀在后端请求前返回 E8001，空沙箱 ID 返回 E8002；显式 Provider 与资源前缀冲突返回 E8030。
+
+标准 E2B 命令前端仅用于极速版，带 Provider 前缀的沙箱引用进入 Provider 路由。其他 Provider 目前仍使用项目 CLI 参数；选择它们不代表全部 E2B 专有选项和返回模型都已适配。template scaffold 的本地生成可以采用通用 Docker profile，但这只是镜像约定，不是切换云端后端。
+
+能力声明不是实现。原生 FC/ACR 模板处理器明确属于极速版；其他 Provider 即使声明 templates.read/build，在真正的 Provider 模板适配器交付前仍返回 E8004。这一检查也覆盖自然语言云端部署和内部部署辅助函数，并发生在代码生成、Docker、凭据读取和云端操作之前。
+
+内置 Provider 明确列出自身已实现的适配能力；增加全局能力不能自动把极速版标记为支持。当前适配器不把 storage.mount、network.vpc、ports.domain 宣称为通用沙箱操作。这不代表阿里云没有对应能力：资源管理和挂载集成需要各自已实现、已验证的入口。暂停还受运行时/函数开通条件限制，静态声明不等于账号实际可用。
+
+| 能力情况 | 必须采取的行为 |
+|---|---|
+| 当前 Provider 实现了通用操作 | 调用它自己的适配器，即使极速版没有同类能力 |
+| 当前 Provider 没有该操作 | 返回 E8004，不跨 Provider 回退 |
+| 只有其他 Provider 实现 | 用户显式选择那个 Provider，不静默借用后端 |
+| 后端/账号/模板/版本前提未满足 | 报告前提条件或保留后端错误，不伪装成功 |
+| Provider 特有云端管理能力 | 使用已声明类型的命令及其真实 Provider handler |
+
+已合并的 [CLI 提供商管理命令](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/35) 和 [SDK 配套变更](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/38) 提供发现、schema 与显式 provider 处理器。注册不会自动授予云端权限，也不能替代真实 E2E。管理命令与固定能力注册表各司其职。
+
+
 ## 安装、查看、移除
 
 ```bash
@@ -46,7 +67,7 @@ abx provider test my-cloud -o region=eu # 通过 CLI 使用的同一批适配器
 | 位置 | 示例 |
 |---|---|
 | 限定引用 | `abx kill my-cloud:sbx-1` |
-| 标志（任意位置） | `abx create --provider my-cloud --template base` |
+| 标志（exec 放在沙箱 ID 前） | `abx create --provider my-cloud --template base` |
 | 进程环境变量 | `export ABX_PROVIDER=my-cloud` |
 | `./.env`，然后 `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx provider default my-cloud`、`abx config set provider my-cloud`） |
@@ -58,7 +79,7 @@ abx provider default my-cloud          # 持久化
 abx provider default --unset           # 恢复为 alicloud-express
 ```
 
-未知 id 以退出码 4 结束（`E8001`）。单条命令的提供商选项用 `--opt KEY=VALUE` 传入（可重复、任意位置）；清单中标记为 `secret` 的选项在命令行上会被拒绝（`E8002`），避免密钥进入 shell 历史，请改用 `abx config set providers.<id>.<key>`。
+未知 id 以退出码 4 结束（`E8001`）。单条命令的提供商选项用 `--opt KEY=VALUE` 传入（可重复；exec 放在沙箱 ID 前）；清单中标记为 `secret` 的选项在命令行上会被拒绝（`E8002`），避免密钥进入 shell 历史，请改用 `abx config set providers.<id>.<key>`。
 
 ### 沙箱 ID 是限定的
 
@@ -73,7 +94,7 @@ abx list --all-providers                                 # 所有已配置的提
 abx kill local-process:sbx-1 --yes
 ```
 
-`list --all-providers` 会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
+`list --all-providers` 是显式原生项目扩展，即使默认选择极速版也使用原生路由；普通 list 筛选仍遵循标准迁移契约。它会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
 
 如果命令需要提供商未声明的特性（例如在没有 `process.manage` 的提供商上使用 `abx sandbox process`），会在发出任何请求之前以 `E8004` 失败。
 
@@ -81,27 +102,27 @@ abx kill local-process:sbx-1 --yes
 
 ## 安装之后能用什么
 
-安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。内置提供商只声明已接入的沙箱能力。云资源管理命令通过 `abx provider command list ID` 单独发现；feature token 不证明管理 API 已实现。
+安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。没有选择插件时，内置 Provider 仅声明自身适配器已实现的能力；全局注册不代表 CLI 入口已接通或当前账号实际可用。
 
 | 提供商必须声明的能力 | CLI 命令 | Python SDK |
 |---|---|---|
 | `sandbox.lifecycle` | `create`、`list`、`info`、`kill`、`connect` | `Sandbox.create`、`connect`、`list`、`kill`、`info` |
-| `sandbox.timeout` | `sandbox timeout` | `set_timeout` |
-| `sandbox.pause` | `sandbox pause`、`sandbox resume` | `pause`、`resume` |
+| `sandbox.timeout` | 创建时的生命周期参数；无通用 timeout 命令 | `set_timeout` |
+| `sandbox.pause` | 极速版标准 pause/resume；通用 Provider CLI 入口尚未接入 | ProviderSandbox `pause`、`resume` |
 | `exec.run` | `exec`、`run` | `commands.run`、`sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
 | `process.manage` | `sandbox process list/info/signal`；用 `exec --background` 启动 | `commands.list`、`kill`、`send_stdin` |
-| `pty` | PTY 会话（`connect` 仍是按行 REPL） | `get_terminal` |
+| `pty` | 极速版 connect 为 PTY；项目 Provider connect 仍是逐行 REPL | `get_terminal` |
 | `files.rw` | `upload`、`download`、`sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
 | `files.transfer` | — | 带签名的上传和下载 URL |
-| `code.interpret` | `sandbox code` | `run_code` |
+| `code.interpret` | 无通用 code 命令；MCP/解释器入口各有契约 | `run_code` |
 | `templates.read` | `template list`、`template info` | 模板读取 API |
 | `templates.build` | `template build/push/create/deploy/install/delete`、`deploy`、`install` | 镜像构建和模板注册 |
-| `ports.url` | `sandbox url` | `network.get_url` |
-| `ports.domain` | 无标准命令；内置提供方不声明此能力 | 无标准域名管理 API |
-| `storage.mount` | 无动态挂载命令；FC 创建时使用 `create --volume-mount PATH=NAME` | 无动态挂载 API |
-| `network.vpc` | 无标准 VPC 参数 | 使用已公开的云控制面配置入口 |
+| `ports.url` | 无独立 URL 命令 | Provider 感知的 `network.resolve` / `resolve_url` |
+| `ports.domain` | 当前适配器未实现 | 需要已验证的后端专有适配器 |
+| `storage.mount` | 本次没有通用挂载命令 | 独立挂载集成，本次未实现 |
+| `network.vpc` | 仅 FC 模板参数，不是通用 Provider 操作 | 独立的 Provider 专有配置 |
 | `sessions` | `connect <provider:id>` 重新连接 | 对已有 id 调用 `Sandbox.connect` |
 
 `abx provider list` 只显示每个提供商声明了多少项特性（表格要在 80 列下保持可读）；`--json` 里是完整列表的单个字符串，例如 `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`。`abx provider info <id>` 打印完整清单。
@@ -189,6 +210,8 @@ abx config list --provider my-cloud                          # 该提供商的�
 
 `abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
 
+上表及规则适用于原生 provider 和 MCP。标准极速版入口还在自身边界映射 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，其余回退到项目配置；见[迁移指南](migrate-from-e2b.md)。
+
 ---
 
 ## 退出码与错误
@@ -213,6 +236,7 @@ abx config list --provider my-cloud                          # 该提供商的�
 
 仓库提供了一个端到端脚本，安装参考插件并通过它们驱动真实沙箱：[`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)（`e2e/providers/run.sh`）。
 
+项目 Provider 的 exec 将 --provider/--opt 放在沙箱 ID 前；远程命令含选项时在命令前使用 `--`。远程参数不能切换后端；不受支持的本地参数解析会在后端操作前报错。
 ## Provider 专属管理命令
 
 Provider 可在固定命名空间下声明带参数类型的管理命令，与沙箱内的应用命令区分。

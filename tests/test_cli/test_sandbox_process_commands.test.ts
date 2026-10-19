@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
-import { ExecutionError } from "../../src/models/errors.js";
+import { CapabilityNotSupportedError, ExecutionError } from "../../src/models/errors.js";
 import { ProcessInfo, ProcessResult } from "../../src/models/process.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
@@ -103,6 +103,30 @@ describe("TestProcessInfo", () => {
     const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "1234"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("1234");
+  });
+
+  it("resolves envd handles without treating them as OS PIDs", async () => {
+    const sb = _makeSandbox();
+    sb.commands.list = vi.fn().mockResolvedValue([
+      new ProcessInfo({ pid: 21, command: "sleep 60", status: "running" }),
+    ]);
+    sb.commands.run = vi.fn();
+    _patchConnect(sb);
+    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "21"]);
+    expect(result.exit_code).toBe(0);
+    expect(result.output).toContain("sleep 60");
+    expect(result.output).toContain("running");
+    expect(sb.commands.run).not.toHaveBeenCalled();
+  });
+
+  it("keeps OS inspection for a provider without process enumeration", async () => {
+    const sb = _makeSandbox();
+    sb.commands.list = vi.fn().mockRejectedValue(new CapabilityNotSupportedError("not supported"));
+    sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "1234 1 user S 4096 00:01 python\n", exit_code: 0 }));
+    _patchConnect(sb);
+    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "1234"]);
+    expect(result.exit_code).toBe(0);
+    expect(result.output).toContain("python");
   });
 
   it("test_info_not_found", async () => {
