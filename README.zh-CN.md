@@ -20,8 +20,8 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 
 | 网站 | 地址 |
 |---|---|
-| 官网 | https://www.agent-sandbox.com |
-| 提供方注册站 | https://registry.agent-sandbox.com |
+| 官网 | https://www.agent-sandbox.cn |
+| 提供方注册站 | https://registry.agent-sandbox.cn |
 
 CLI 从 git 树 `alibaba-agent-sandbox/awesome-providers//<id>` 安装这些目录提供方。Python SDK 安装器（`python -m agent_sandbox.providers install registry:<id> --yes`）拉取 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改 SDK 安装器使用的这个地址。
 
@@ -242,3 +242,9 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
 
 可选的原生 Provider 扩展：[从已推送镜像创建模板](docs/zh/guide/provider-image-deployment.md)。公共目录工厂保持门控和 Beta 状态。
+
+## 发布就绪范围
+
+当前 main 是开发候选，与已存在的 GitHub `v0.3.0` Release 不同；该标签指向较早实现。使用 `abx --version` 和命令帮助识别安装的二进制。npm 包尚未发布。新的标准行为版本需要新的版本号、标签和匹配的二进制，安装脚本才能分发当前 main 实现；不要用不同代码覆盖既有 Release 或标签。
+
+极速版核心及暂停/快照验收不代表整个模板目录都已认证。各模板仍需自己当前版本的部署和模型验收；第三方提供方的 Beta 范围也单独说明。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。

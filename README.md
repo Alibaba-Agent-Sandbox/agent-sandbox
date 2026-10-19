@@ -20,8 +20,8 @@ Template build and deploy live in this CLI. The runtime client is the Python SDK
 
 | Site | URL |
 |---|---|
-| Official site | https://www.agent-sandbox.com |
-| Provider registry | https://registry.agent-sandbox.com |
+| Official site | https://www.agent-sandbox.cn |
+| Provider registry | https://registry.agent-sandbox.cn |
 
 The CLI installs those catalog providers from the git tree `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer (`python -m agent_sandbox.providers install registry:<id> --yes`) fetches `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL for the SDK installer.
 
@@ -245,3 +245,9 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 [Apache-2.0](LICENSE) — see [`NOTICE`](NOTICE) for copyright information.
 
 Optional native provider extension: [templates from pushed images](docs/en/guide/provider-image-deployment.md). Public catalog factories remain gated and Beta.
+
+## Release readiness
+
+Current main is a development candidate, distinct from the existing `v0.3.0` GitHub Release. The published tag points at an earlier implementation; use `abx --version` and command help to identify an installed binary. The npm package is not published yet. A new standard-behavior release needs a new version/tag and matching binaries before the public installer can deliver this main implementation. Do not replace an existing release/tag with different code.
+
+The Express core and conditional pause/snapshot receipts do not certify every catalog template. Templates remain experimental until their own versioned deployment/model acceptance passes; third-party provider Beta scope is separate. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
