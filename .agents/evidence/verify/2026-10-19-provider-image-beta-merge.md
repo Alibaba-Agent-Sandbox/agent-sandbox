@@ -8,7 +8,7 @@ Merge candidate combines PR42 head a28d75f685922a0a49922c62646e77cbcc4937d4 with
 
 ## Verification
 - PASS: strict typecheck and build.
-- PASS: focused image/Express-boundary/standard-route/command-surface/snapshot tests: 170 passed. The image suite includes arbitrary provider-ID SDK requests, scoped credentials, validation, strict results and cleanup, plus retained Express UI.
+- PASS: focused image/Express-boundary/standard-route/command-surface/snapshot tests: initial 170 passed; final set including complete isolation: 181 passed. The image suite includes arbitrary provider-ID SDK requests, scoped credentials, validation, strict results and cleanup, plus retained Express UI.
 - PASS: actual built CLI, temporary local E2B plugin install, adapter and official locked e2b 2.55.0 SDK loopback: exactly three protocol requests, scoped provider key, private registry, CPU/memory/start/readiness mapping and safe result. Command: ABX_E2B_PROVIDER_SOURCE=<reviewed adapter> node e2e/providers/template-image.mjs.
 - PASS: actual built CLI, temporary local CubeSandbox install, native CubeAPI loopback: exactly two requests, millicore conversion, independent credentials/private registry and strict result. Command: ABX_CUBESANDBOX_PROVIDER_SOURCE=<reviewed adapter> node e2e/providers/template-image-cube.mjs. No E2B ID dispatch is involved.
 - PASS: adapter T0 with pinned official SDK: 14 passed, zero skipped.
@@ -23,6 +23,8 @@ The first attempted integration exposed duplicate from-image ownership and an Ex
 
 ## Acceptance boundary and cleanup
 The maintainer explicitly deferred third-party formal native acceptance and requested gated Beta work be merged. Independent native E2B build/create/execute/kill remains unrun and tracked in the provider Issue4. Public templates.deploy stays undeclared; only accepted Express is Stable. Express keys were not sent to E2B. No cloud/model test or cloud resource was created in this follow-up. Both installed-host fixtures closed their listeners and removed temporary HOME/provider stores in finally blocks.
+
+The first hosted run (39219149116) found one additional isolation failure in each Node matrix: the legacy compatibility module still declared a local type alongside its concrete re-export. The type now lives with the provider-owned gate and the compatibility module consists entirely of exports. The isolation gate was retained unchanged, and explicit foreign/Express compatibility checks were added. The final affected regression set passes (see next-head CI for the complete hosted matrix).
 
 Latest-head GitHub CI, review requirements and actual merge state must be checked before delivery; local environment failures are not hidden as passes.
 

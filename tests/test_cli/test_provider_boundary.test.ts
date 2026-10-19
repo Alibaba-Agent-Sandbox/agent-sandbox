@@ -2,6 +2,7 @@
 import "../_support/isolatedHome.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requireTemplateFeature } from "../../src/providers/alicloud_express/cli/selection.js";
+import { requireTemplateFeature as legacyTemplateFeature } from "../../src/cli/template_provider.js";
 import { _generateAndDeployTemplate } from "../../src/cli/commands/sandbox.js";
 import { _doDeploy, templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import type { Context } from "../../src/cli/kit.js";
@@ -29,6 +30,7 @@ describe("provider template boundary", () => {
     for (const feature of ["templates.read", "templates.build"] as const) {
       expect(() => requireTemplateFeature(feature)).toThrow(ProviderFeatureNotSupportedError);
       expect(() => requireTemplateFeature(feature)).toThrow("foreign-template-test");
+      expect(() => legacyTemplateFeature(feature)).toThrow(ProviderFeatureNotSupportedError);
     }
   });
 
@@ -50,5 +52,7 @@ describe("provider template boundary", () => {
     setCliProvider("alicloud-express");
     expect(() => requireTemplateFeature("templates.read")).not.toThrow();
     expect(() => requireTemplateFeature("templates.build")).not.toThrow();
+    expect(() => legacyTemplateFeature("templates.read")).not.toThrow();
+    expect(() => legacyTemplateFeature("templates.build")).not.toThrow();
   });
 });
