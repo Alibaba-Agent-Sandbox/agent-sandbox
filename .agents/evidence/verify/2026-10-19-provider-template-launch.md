@@ -29,3 +29,5 @@ An initial task-local cleanup harness used a nonexistent static method; the prod
 ## Final local checkpoint
 
 PASS: strict typecheck; build; lint (0 errors, 253 pre-existing warnings); provenance 7/7; repository health 106 passes, 0 failures; hygiene. Launch regressions 10/10, including rejection of a submitted build when readiness polling fails. The full local suite executed 4034 tests: 4012 passed, 21 failed, 1 skipped; one new readiness test fixture lacked an ACR namespace and was corrected, then the 10/10 focused launch suite passed. The remaining 20 failures are the existing intercepted-network transport/engine/Cube cases. Hosted Node 20/22 CI remains the authoritative complete matrix.
+
+Hosted CI run 39268814862 passed both Node 20/22 test and parity jobs, type/lint/hygiene, installer and package/provenance build. Before merge, main advanced with independently reviewed Express documentation in PR70. Integration preserves both sets of changelog/index entries; no runtime conflict exists. The integrated head must pass CI again.

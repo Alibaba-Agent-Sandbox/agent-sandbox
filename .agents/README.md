@@ -96,3 +96,4 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Npm publication recovery](notes/implemented/process/2026-10-19-npm-publication-recovery.md) · [verification](evidence/verify/2026-10-19-npm-publication-recovery.md)
 
 - [Provider-owned template launch](notes/proposed/feature/2026-10-19-provider-template-launch.md) · [verification](evidence/verify/2026-10-19-provider-template-launch.md)
+- [Express conditional support](notes/implemented/process/2026-10-19-express-conditional-support.md) · [verification](evidence/verify/2026-10-19-express-conditional-support.md)
