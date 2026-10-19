@@ -9,7 +9,10 @@ export { FilesModule } from "./files.js";
 export { NetworkModule } from "./network.js";
 export { Sandbox } from "./sandbox.js";
 
+export { deployProviderImage, type ProviderImageOptions } from "./provider_template.js";
+
 export const __all__ = [
+  "deployProviderImage",
   "Sandbox",
   "CommandsModule",
   "FilesModule",

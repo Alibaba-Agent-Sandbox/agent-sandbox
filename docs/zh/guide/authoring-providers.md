@@ -190,6 +190,7 @@ export default function create(kit) {
 
 - `ctx` 有 `id`、`features`、`options`（只含你声明过的字段）、`core`（你经同意获得的通用键）、`http(opts)`、`headerKeyAuth(key, header)` 和 `noAuth()`。
 - `kit` 有 `SandboxProtocol`、`ProcessProtocol`、`FilesystemProtocol`、`CodeInterpreterProtocol`、`errors`、`hostVersion`、`e2b { resumeConnect, withDefault, overlay, parseExecution }` 和 `epp.infra(ctx, factory)`（把一个导出 EPP/1 分发器的模块在宿主进程内运行，并适配成协议对象；OpenSandbox 就这样）。要改某一个调用，可以继承协议类，或用 `kit.e2b.overlay(inner, { method })` 包一层。
+- `kit.e2b.loadTemplate()` 显式按需申请可选的官方模板 SDK（Node.js 22+）。是否调用由插件决定，宿主不按提供方 ID 选择。参见[镜像工厂契约](provider-image-deployment.md)。
 - E2B 的两个特例通过 `buildInfra` 的返回值向宿主提出：`envd_dial: [host, port]`（连接这个 TCP 目标，`Host` 头仍是虚拟主机名）和 `envd_auth: { allow_missing, basic_user }`（envd 令牌可有可无，以及随令牌发送的 Basic 用户名）。
 - 宿主每次加载都会校验插件目录摘要（`--link` 安装除外），并按你声明的能力给每个协议加闸。插件以宿主的权限运行，所以只装你信任的；`[security]` 只是提示。
 - 需要隔离、需要其他语言、或要复用现成 SDK 时，改用 `exec`。第三方插件用这种类型，在 stdio 上说 EPP/1，可选 `pty.*`。OpenSandbox 保持 `node` 插件，方法经 `kit.epp.infra` 在本进程内运行。

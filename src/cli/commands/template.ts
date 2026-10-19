@@ -1,8 +1,12 @@
+import { cleandoc } from "../../utils/_py.js";
+import { confirm } from "../prompts.js";
+import type { ProviderImageRequest } from "../../providers/base.js";
+import { deployProviderImage, validateProviderImage } from "../../api/provider_template.js";
 /** Provider-neutral template commands. Native UI, authentication and cloud work belong to adapters. */
 import { argument, command, option, type Context, type Param, type Command } from "../kit.js";
 import { handleErrors } from "../error_handler.js";
 import { getFormatter } from "../formatters.js";
-import { INT } from "../types.js";
+import { INT, FLOAT, IntRange } from "../types.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { getProvider, resolveProviderId } from "../../providers/registry.js";
 import { cliProvider, cliOptions } from "../../providers/selection.js";
@@ -75,11 +79,54 @@ async function runGeneric(name: string, ctx: Context, params: Record<string, unk
     await manager.close?.();
   }
 }
+function usesImageFactory(name: string): boolean {
+  return name === "create" && getProvider(resolveProviderId(cliProvider())).supports("templates.deploy");
+}
+const imageHelp = cleandoc(`Create a provider template from an already pushed OCI image.
+
+    Requires templates.deploy. Configure provider credentials separately.
+    Private images use ABX_IMAGE_REGISTRY_USERNAME and ABX_IMAGE_REGISTRY_PASSWORD.
+    Timeout cancels waiting; an already submitted remote build may still exist.
+    Adapter prerequisites and supported options are documented by each provider.
+
+    Example:
+      abx --provider PROVIDER template from-image docker.io/example/runtime:v1 --name runtime:v1 -y
+    `);
+const imageParams: readonly Param[] = [
+    argument(["image"]),
+    option(["--name"], { required: true, help: "Provider template name, optionally with a tag" }),
+    option(["--cpu"], { type: new IntRange({ min: 1 }), default: null, help: "CPU cores" }),
+    option(["--memory"], { type: new IntRange({ min: 1 }), default: null, help: "Memory in MiB" }),
+    option(["--start-cmd"], { default: null, help: "Build-time start command; requires --ready-cmd" }),
+    option(["--ready-cmd"], { default: null, help: "Build-time readiness command" }),
+    option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (0 < timeout <= 3600)" }),
+    option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation" }),
+  ];
+async function runImageFactory(ctx: Context, params: Record<string, any>): Promise<void> {
+    const spec: NonNullable<ProviderImageRequest["spec"]> = {};
+    for (const key of ["cpu", "memory", "start_cmd", "ready_cmd"] as const) {
+      if (params[key] !== null && params[key] !== undefined) Object.assign(spec, { [key]: params[key] });
+    }
+    const input: ProviderImageRequest = {
+      source: { kind: "image", image: params["image"] }, name: params["name"], spec, timeout: params["timeout"],
+    };
+    const username = process.env["ABX_IMAGE_REGISTRY_USERNAME"];
+    const password = process.env["ABX_IMAGE_REGISTRY_PASSWORD"];
+    if (username !== undefined || password !== undefined) input.registry = { username: username ?? "", password: password ?? "" };
+    validateProviderImage(input);
+    if (!params["yes"]) await confirm("Create this provider template? The provider may charge for the build.", { abort: true });
+    const data = await deployProviderImage(input);
+    const fmt = getFormatter(ctx);
+    if (fmt.use_json) fmt.printData(data);
+    else fmt.printDict({ ...data });
+}
+
 function routed(name: string, publicName = name): Command {
   const cmd = command(publicName, {
-    help: () => providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
-    params: () => providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
+    help: () => usesImageFactory(name) ? imageHelp : providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
+    params: () => usesImageFactory(name) ? imageParams : providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
     callback: handleErrors(async (ctx, params) => {
+      if (usesImageFactory(name)) return runImageFactory(ctx, params);
       const target = await providerTemplateCommand(name);
       if (target) await ctx.invoke(target, params);
       else await runGeneric(name, ctx, params);
@@ -96,3 +143,7 @@ export const push = routed("push");
 export const build = routed("build");
 export const deploy = routed("deploy");
 export const delete_ = routed("delete");
+
+
+/** Public native image route; keeps existing provider-owned create UI when no image factory is declared. */
+export const from_image = create_template;

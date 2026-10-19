@@ -1,0 +1,44 @@
+Usage: abx template from-image [options] <IMAGE>
+
+Create a sandbox template from an existing container image.
+
+Uses the official Alibaba Cloud FCSandbox CreateTemplate API.
+Requires AK/SK credentials (set with 'abx config init --build').
+
+Examples:
+  abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
+    --name my-template
+  abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
+    --name my-template --team-id team-xxx --cpu 4 --memory 4096
+  abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
+    --name my-template --envd-inject --generation 1
+  abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \
+    --name my-template --region cn-shanghai
+
+Related commands:
+  abx template push IMAGE       Push a local image to ACR first
+  abx template info TEMPLATE_ID Inspect the created template
+  abx create ID      Launch a sandbox from the template
+
+Options:
+  -n, --name <NAME>                        Template name
+  --team-id <TEAM_ID>                      Team ID (or env TEAM_ID / E2B_TEAM_ID; auto-resolved if omitted)
+  --cpu <FLOAT>                            CPU cores (default 2)
+  --memory <INTEGER>                       Memory in MB (default 2048)
+  --disk-size <INTEGER>                    Disk size in MB
+  --internet-access                        Internet access (default: platform decides)
+  --no-internet-access                     Opposite of --internet-access.
+  --start-cmd <START_CMD>                  Container start command
+  --ready-cmd <READY_CMD>                  Container readiness check command
+  --generation <INTEGER>                   Sandbox generation (default 1). 1=first-gen (rund), 2=second-gen MicroVM.
+  --force                                  If a generation-1 template with this name already exists, delete it and create it again.
+  --envd-inject                            Enable envd injection in build
+  --no-envd-inject                         Opposite of --envd-inject.
+  --target-image <TARGET_IMAGE>            Destination image ref for envd copy (auto-derived with random suffix if omitted)
+  --registry-type <REGISTRY_TYPE>          Registry type (auto-detected from --acree-instance-id) (choices: "acr", "acree")
+  --acree-instance-id <ACREE_INSTANCE_ID>  ACR EE instance ID (cri-...)
+  --registry-username <REGISTRY_USERNAME>  Registry login username (for pulling image)
+  --registry-password <REGISTRY_PASSWORD>  Registry login password (for pulling image)
+  -r, --region <TEXT>                      Region override for providers that declare region (otherwise use the provider default)
+  -h, --help                               Show this message and exit.
+[exit_code:0]

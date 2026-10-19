@@ -145,3 +145,7 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 | `abx deploy --traditional` | 无（流水线固定） |
 
 [标准生命周期、终端、参数和退出码参考](cli-reference.md)。标准本地选项放在沙箱 ID 前。
+
+## 原生 Provider 镜像工厂
+
+`abx --provider PROVIDER template from-image IMAGE --name NAME -y` 是独立于标准模板构建器的原生扩展。见[提供方镜像部署](../guide/provider-image-deployment.md)。未启用的提供方返回 E8004。

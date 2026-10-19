@@ -186,13 +186,13 @@ templateUi["create"] =  { params: [
 
     \b
     Examples:
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --team-id team-xxx --cpu 4 --memory 4096
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --envd-inject --generation 1
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --region cn-shanghai
 
     \b
@@ -238,7 +238,7 @@ templateUi["push"] =  { params: [
     \b
     Related commands:
       abx template build TEMPLATE_DIR  Build, push, and register a template
-      abx template create IMAGE        Register an existing image
+      abx template from-image IMAGE        Register an existing image
       abx config set access_key_id KEY
     `) };
 templateUi["build"] =  { params: [

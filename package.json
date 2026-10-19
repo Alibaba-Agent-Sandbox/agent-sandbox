@@ -37,7 +37,8 @@
     "e2e:standard": "node e2e/standard.mjs",
     "vendor:e2b": "node scripts/build-standard-cli.mjs",
     "test:standard-provenance": "node --test scripts/test-standard-provenance.mjs",
-    "e2e:conditional": "node e2e/conditional.mjs"
+    "e2e:conditional": "node e2e/conditional.mjs",
+    "e2e:provider-image": "node e2e/providers/template-image.mjs"
   },
   "repository": {
     "type": "git",
@@ -84,5 +85,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.2",
     "vitest": "^5.0.4"
+  },
+  "optionalDependencies": {
+    "e2b": "2.55.0"
   }
 }

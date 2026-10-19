@@ -1,4 +1,5 @@
 import type { ProviderTemplateManager } from "./template_contract.js";
+import { loadTemplate } from "./shared/e2b/template_sdk.js";
 import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
 import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
 import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
@@ -21,7 +22,7 @@ import { SandboxProtocol } from "./shared/e2b/sandbox.js";
 import type { AuthProvider } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
-import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
+import { Provider, consentedInherit, type ProviderInfra, type ProviderTemplates } from "./base.js";
 import { unsupportedAdapter } from "./exec_provider.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError } from "./errors.js";
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
@@ -75,6 +76,7 @@ export interface NodeContext {
 }
 
 export interface NodePlugin {
+  buildTemplates?(ctx: NodeContext): Promise<ProviderTemplates>;
   buildInfra(ctx: NodeContext): Promise<NodeInfra>;
   /** Optional template factory; authentication, API mapping and polling stay in the plugin. */
   buildTemplateManager?(ctx: NodeContext): Promise<ProviderTemplateManager>;
@@ -89,6 +91,7 @@ export interface ProviderKit {
   CodeInterpreterProtocol: typeof CodeInterpreterProtocol;
   errors: { InvalidAPIKeyError: typeof InvalidAPIKeyError; ProviderConfigError: typeof ProviderConfigError; ProviderFeatureNotSupportedError: typeof ProviderFeatureNotSupportedError };
   e2b: {
+    loadTemplate(): Promise<unknown>;
     resumeConnect<T extends SandboxProtocol>(inner: T, paths?: readonly string[]): T;
     withDefault<T extends object>(inner: T, option: string, value: string, methods: readonly string[]): T;
     overlay<T extends object, O extends object>(inner: T, overrides: O): T & O;
@@ -202,7 +205,7 @@ export function providerKit(): ProviderKit {
     FilesystemProtocol,
     CodeInterpreterProtocol,
     errors: { InvalidAPIKeyError, ProviderConfigError, ProviderFeatureNotSupportedError },
-    e2b: { resumeConnect, withDefault, overlay, parseExecution },
+    e2b: { resumeConnect, withDefault, overlay, parseExecution, loadTemplate },
     epp: { infra: eppInfra },
   };
 }
@@ -304,6 +307,31 @@ export class NodeProvider extends Provider {
     };
 
     return { plugin, ctx, transport, clients };
+  }
+
+  override async buildTemplates(config: LayeredConfig): Promise<ProviderTemplates> {
+    this.require("templates.deploy");
+    const { plugin, ctx, clients } = await this.context(config);
+    let built: ProviderTemplates | undefined;
+    let closed = false;
+    const close = async (): Promise<void> => {
+      if (closed) return;
+      closed = true;
+      const results = await Promise.allSettled([
+        Promise.resolve().then(() => built?.close?.()),
+        ...clients.map(client => Promise.resolve().then(() => client.close())),
+      ]);
+      if (results.some(result => result.status === "rejected")) throw new ProviderConfigError("Provider template resources could not be closed.");
+    };
+    try {
+      if (!plugin.buildTemplates) throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
+      built = await plugin.buildTemplates(ctx);
+      if (!built || typeof built.deploy !== "function") throw new ProviderConfigError("Provider returned an invalid template factory.");
+      return { deploy: input => built!.deploy(input), close };
+    } catch (error) {
+      await close().catch(() => undefined);
+      throw error;
+    }
   }
 
   override async buildTemplateManager(config: LayeredConfig, feature = "templates.build"): Promise<ProviderTemplateManager> {

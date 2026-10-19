@@ -243,3 +243,5 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 ## License
 
 [Apache-2.0](LICENSE) — see [`NOTICE`](NOTICE) for copyright information.
+
+Optional native provider extension: [templates from pushed images](docs/en/guide/provider-image-deployment.md). Public catalog factories remain gated and Beta.

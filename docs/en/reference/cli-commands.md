@@ -151,3 +151,7 @@ Features that need a missing setting print a one-line pointer to `abx config ini
 | `abx deploy --traditional` | none (the pipeline is fixed) |
 
 [Standard lifecycle, terminal, parser and exit-code reference](cli-reference.md). Standard local options precede the sandbox ID.
+
+## Native provider image factory
+
+`abx --provider PROVIDER template from-image IMAGE --name NAME -y` is a native extension, independent of the standard template builder. See [provider image deployment](../guide/provider-image-deployment.md). Unopted providers return E8004.
