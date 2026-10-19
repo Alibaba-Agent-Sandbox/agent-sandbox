@@ -26,7 +26,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 abx --version
 ```
 
-`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。从源码安装（`git clone`、`npm ci`、`npm run build`、`npm pack`、`npm install -g ./agent-sandbox-cli-<version>.tgz`）、手动下载，以及 `abx: command not found`，见[二进制安装](binary-installation.md)。v0.2.0 的 Release 资产名是 `ebx-*`；安装脚本使用 `abx-*`，使用已提供资产的 v0.3.0 Release。
+npm 安装需要 Node.js20+。先执行 `npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org`，公开索引能解析版本后，使用 `npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org` 安装。从源码安装（`git clone`、`npm ci`、`npm run build`、`npm pack`、`npm install -g ./agent-sandbox-cli-<version>.tgz`）、手动下载，以及 `abx: command not found`，见[二进制安装](binary-installation.md)。v0.2.0 的 Release 资产名是 `ebx-*`；安装脚本使用 `abx-*`，使用已提供资产的 v0.4.0 Release。
 
 ## 2. 配置 API Key
 

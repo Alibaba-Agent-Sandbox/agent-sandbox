@@ -277,7 +277,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 然后新开一个终端。在 Windows 上，`install.ps1` 会更新用户 `PATH`；安装前已经打开的终端看不到这次更新。
 
-`npm install -g @agent-sandbox/cli` 即将提供，包尚未发布。npmmirror 等镜像上可能仍有无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。卸载：
+安装前用 `npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org` 核对官方索引；若暂不可用，可使用已验证的 GitHub 二进制。npmmirror 等镜像上可能仍有无关的 `@agent-sandbox/cli@0.2.2`，它的 bin 是 `agent-sandbox`，不是 `abx`。卸载：
 
 ```bash
 npm uninstall -g @agent-sandbox/cli

@@ -19,3 +19,5 @@ The initial release run https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/a
 English/Chinese binary guides and Unreleased changelog explain recovery and distinguish public binary availability from npm index availability. No source/runtime code, previous release tag or historical evidence changed. Additional repository check results and latest-head hosted gates are attached to the PR before merge. Actual recovered upload/public npm install remains tracked by Issue66.
 
 Final local repository gates: typecheck PASS; new regression-file ESLint PASS with zero warnings/errors; health105 PASS/11 registered historical WARN/0 FAIL; hygiene PASS; git diff --check PASS. Existing runtime full-suite checkpoint remains in the preceding publication record; unchanged network assertions run again in hosted Node20/22 before merge.
+
+Active EN/ZH getting-started, troubleshooting and best-practices guides now use an explicit official-index check instead of a stale permanent unpublished claim; binary references identify the verified0.4.0 release. This does not preclaim npm upload success.

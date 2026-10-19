@@ -52,6 +52,6 @@ Resolution order and the name aliases: [Configuration](../reference/configuratio
 
 Install the single-file `abx` binary when the machine should not need Node.js: a CI image, an agent host, or a copy taken from a GitHub release asset. The binary contains the Node runtime and the CLI. The commands on the [operations page](operations.md) are the same.
 
-Use the binary installer or a locally built npm archive. The public npm package is not published; the source package requires Node.js20+. See [installation](binary-installation.md).
+Use the binary installer, or follow the npm index check and installation instructions for Node.js20+. A locally built npm archive is also supported. See [installation](binary-installation.md).
 
 Checksums, platforms, and the install commands: [Binary installation](binary-installation.md).
