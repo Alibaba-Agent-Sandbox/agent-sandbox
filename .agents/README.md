@@ -52,7 +52,7 @@ The active [proposed contract](notes/proposed/architecture/2026-10-16-e2b-behavi
 
 The provider ownership review is recorded in [verification](evidence/verify/2026-10-16-provider-boundary-review.md); do not conflate typed command registration with complete backend adaptation.
 
-The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal. Accepted main and the latest convergence record resolve feature gates, resume error handling and much generic CLI coverage; conditional acceptance still has open work; the technical artifact inventory is covered by the latest artifact-delivery verification.
+The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal. Accepted main and the latest convergence record resolve feature gates, resume error handling and much generic CLI coverage; conditional local acceptance is now recorded in the 2026-10-19 conditional-acceptance receipt; the technical artifact inventory is covered by the latest artifact-delivery verification.
 
 See the [multi-agent findings and scoped verification](evidence/verify/2026-10-16-multi-agent-architecture-review.md) for fixed defects, remaining priorities and artifact limitations.
 - [Provider portability and updates](notes/implemented/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
@@ -82,3 +82,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Standard artifact delivery](notes/proposed/feature/2026-10-18-standard-artifact-delivery.md) · [verification](evidence/verify/2026-10-18-standard-artifact-delivery.md)
 - [Provider preflight](notes/proposed/feature/2026-10-18-provider-preflight.md) · [verification](evidence/verify/2026-10-18-provider-preflight.md)
+
+- [Conditional Express acceptance](notes/proposed/feature/2026-10-19-conditional-acceptance.md) · [verification](evidence/verify/2026-10-19-conditional-acceptance.md)

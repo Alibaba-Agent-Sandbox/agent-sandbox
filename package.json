@@ -36,7 +36,8 @@
     "e2e:cleanup": "node e2e/cleanup.mjs",
     "e2e:standard": "node e2e/standard.mjs",
     "vendor:e2b": "node scripts/build-standard-cli.mjs",
-    "test:standard-provenance": "node --test scripts/test-standard-provenance.mjs"
+    "test:standard-provenance": "node --test scripts/test-standard-provenance.mjs",
+    "e2e:conditional": "node e2e/conditional.mjs"
   },
   "repository": {
     "type": "git",

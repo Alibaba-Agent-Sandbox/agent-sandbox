@@ -104,3 +104,5 @@ The Python SDK, the in-sandbox server SDK and the shared platform contracts are 
 - [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md), [Session Persistence](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/session-persistence.md), [Migrate from E2B](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md)
 
 The [E2B migration contract](guide/migrate-from-e2b.md) is authoritative for standard command behavior. Existing command references describe project extensions where they differ.
+
+- [Local conditional acceptance](guide/conditional-acceptance.md)

@@ -59,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 
 ### Added
+- Add local generation2 pause/snapshot acceptance with memory/files/clone assertions, owned cleanup and bilingual provisioning guidance.
 
 - **MCP lifecycle controls.** `list_sandboxes`, `get_sandbox`, and `set_sandbox_timeout` share STDIO/HTTP handlers, validate bounded inputs, expose only safe metadata, and never adopt external instances for session destruction. `create_sandbox` accepts provider, region, CPU and memory options.
 - **Typed provider management commands.** `abx provider command list|info|run` discovers static schemas and invokes declared Node/exec commands through shared validation and authenticated engine routes. Includes 20 official FC Volume, Team, API Key and quota operations; key creation/rotation securely writes a new local file. Custom-domain automation remains unsupported pending a verified public Agent Sandbox API.

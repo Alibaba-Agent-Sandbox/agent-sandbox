@@ -104,3 +104,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 - [声明式用法](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md)、[会话持久化](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/session-persistence.md)、[E2B 迁移](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/migrate-from-e2b.md)
 
 标准命令行为以[E2B 迁移契约](guide/migrate-from-e2b.md)为准；现有命令参考中不同的接口属于项目扩展。
+
+- [本地暂停与快照验收](guide/conditional-acceptance.md)
