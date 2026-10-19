@@ -41,3 +41,5 @@ export { defineProviderContractTests, runContractSuite, parseOptions as parsePro
 export type { ProviderTemplateManager, TemplateBuildOptions, TemplateBuildRequest } from "./template_contract.js";
 
 export type { ProviderImageRequest, ProviderImageResult, ProviderTemplates } from "./base.js";
+
+export type { PreparedTemplate, ProjectTemplateOptions } from "./template_contract.js";

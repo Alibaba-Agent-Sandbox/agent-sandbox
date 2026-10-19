@@ -6,7 +6,19 @@ export interface TemplateBuildOptions {
   cpu_count?: number | null; memory_mb?: number | null;
   start_cmd?: string | null; ready_cmd?: string | null;
 }
+/** A ready, provider-owned reference handed directly to sandbox creation. Never contains credentials. */
+export interface PreparedTemplate {
+  reference: string; status: "ready";
+  startup_command?: string; ready_command?: string;
+  metadata?: Record<string, string>;
+  provider_options?: Record<string, unknown>;
+}
+export interface ProjectTemplateOptions {
+  alias: string; timeout: number;
+  template: { name: string; capabilities: string[]; cpu: number; memory: number; start_cmd: string | null; ready_cmd: string | null };
+}
 export interface ProviderTemplateManager {
+  prepareProject?(directory: string, options: ProjectTemplateOptions): Promise<PreparedTemplate>;
   create?(image: string, options: Readonly<Record<string, unknown>>): Promise<TemplateInfo>;
   push?(image: string, options: Readonly<Record<string, unknown>>): Promise<unknown>;
   buildProject?(directory: string, options: Readonly<Record<string, unknown>>): Promise<unknown>;

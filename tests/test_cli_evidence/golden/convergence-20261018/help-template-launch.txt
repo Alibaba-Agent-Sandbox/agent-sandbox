@@ -1,0 +1,14 @@
+Usage: abx template launch [options] <TEMPLATE_REF>
+
+Build/register a template with the selected provider and create a sandbox using
+its returned reference. Configure the provider first; --yes permits billable
+operations. Missing capabilities fail before build. This project extension does
+not convert IDs between clouds.
+
+Options:
+  -a, --alias <ALIAS>
+  --timeout <FLOAT>          Build deadline in seconds (maximum 3600)
+  --sandbox-timeout <FLOAT>  Sandbox lifetime in seconds
+  -y, --yes
+  -h, --help                 Show this message and exit.
+[exit_code:0]

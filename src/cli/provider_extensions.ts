@@ -1,3 +1,4 @@
+import type { PreparedTemplate, ProjectTemplateOptions } from "../providers/template_contract.js";
 import type { ProviderConfigUi } from "./provider_config_contract.js";
 /** CLI composition root: select provider-owned UI metadata; generic commands contain no backend implementation. */
 import type { Context, Command, Param } from "./kit.js";
@@ -6,6 +7,7 @@ import { resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 export interface ProviderCliExtension {
   id: string;
+  prepareProject?(directory: string, options: ProjectTemplateOptions, ctx: Context): Promise<PreparedTemplate>;
   configuration?: ProviderConfigUi;
   templateUi: Record<string, { params: readonly Param[]; help: string }>;
   createParams?: readonly Param[];

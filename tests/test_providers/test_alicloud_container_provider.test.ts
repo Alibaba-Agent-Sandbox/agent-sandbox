@@ -8,7 +8,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -79,10 +79,13 @@ describe.skipIf(!haveCatalog)("alicloud-container provider", () => {
     });
   }
 
-  it("advertises exactly the features the provider implements", () => {
+  it("advertises exactly the features the provider implements", async () => {
     const manifest = loadManifest(PLUGIN);
-    expect([...manifest.features].sort()).toEqual([...ADVERTISED].sort());
-    expect([...getProvider("alicloud-container").features].sort()).toEqual([...ADVERTISED].sort());
+    const module = await import(pathToFileURL(path.join(PLUGIN, "provider.mjs")).href);
+    const projectFactory = typeof module.default({}).buildTemplateManager === "function";
+    const expected = [...ADVERTISED, ...(projectFactory ? ["templates.build"] : [])].sort();
+    expect([...manifest.features].sort()).toEqual(expected);
+    expect([...getProvider("alicloud-container").features].sort()).toEqual(expected);
     expect(manifest.features).not.toContain("pty");
     expect(manifest.features).not.toContain("files.watch");
     expect(getProvider("alicloud-container").kind).toBe("node");

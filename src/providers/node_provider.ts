@@ -1,3 +1,4 @@
+import { stageProject, buildProjectImage, runTool } from "./shared/project.js";
 import type { ProviderTemplateManager } from "./template_contract.js";
 import { loadTemplate } from "./shared/e2b/template_sdk.js";
 import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
@@ -85,6 +86,7 @@ export interface NodePlugin {
 /** Building blocks handed to `create(kit)`. */
 export interface ProviderKit {
   hostVersion: string;
+  project: { stage: typeof stageProject; buildImage: typeof buildProjectImage; runTool: typeof runTool };
   SandboxProtocol: typeof SandboxProtocol;
   ProcessProtocol: typeof ProcessProtocol;
   FilesystemProtocol: typeof FilesystemProtocol;
@@ -200,6 +202,7 @@ export function parseExecution(raw: string): { stdout: string; stderr: string; t
 export function providerKit(): ProviderKit {
   return {
     hostVersion: hostVersion(),
+    project: { stage: stageProject, buildImage: buildProjectImage, runTool },
     SandboxProtocol,
     ProcessProtocol,
     FilesystemProtocol,
@@ -352,7 +355,7 @@ export class NodeProvider extends Provider {
       manager = result;
       const gated = gateProtocol(manager, this.id, {
         list: ["templates.read"], get: ["templates.read"],
-        build: ["templates.build"], buildProject: ["templates.build"],
+        prepareProject: ["templates.build"], build: ["templates.build"], buildProject: ["templates.build"],
         delete: ["templates.build"], create: ["templates.build"], push: ["templates.build"],
       }, this.features);
       return new Proxy(gated, { get(target, key) { return key === "close" ? close : Reflect.get(target, key); } });
