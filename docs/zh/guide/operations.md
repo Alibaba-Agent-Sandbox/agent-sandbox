@@ -10,12 +10,12 @@
 
 | 要做的事 | 命令 | 参考 |
 |---|---|---|
-| 用模板创建沙箱 | `abx create --template base` | [abx create](../reference/cli-reference.md#abx-create) |
-| 用一句话创建（先生成模板，再创建沙箱） | `abx create "一个带 pandas 的 Python 环境"` | [abx create](../reference/cli-reference.md#abx-create) |
+| 用模板创建沙箱 | `abx create base` | [abx create](../reference/cli-reference.md#abx-create) |
+| 用一句话创建（先生成模板，再创建沙箱） | `abx create --prompt "一个带 pandas 的 Python 环境"` | [abx create](../reference/cli-reference.md#abx-create) |
 | 列出沙箱 | `abx list` | [abx list](../reference/cli-reference.md#abx-list) |
 | 查看一个沙箱 | `abx info <SANDBOX_ID>` | [abx info](../reference/cli-reference.md#abx-info) |
 | 销毁沙箱 | `abx kill <SANDBOX_ID>` | [abx kill](../reference/cli-reference.md#abx-kill) |
-| 运行一条命令 | `abx exec <SANDBOX_ID> -- echo hello` | [abx exec](../reference/cli-reference.md#abx-exec) |
+| 运行一条命令 | `abx exec <SANDBOX_ID> echo hello` | [abx exec](../reference/cli-reference.md#abx-exec) |
 | 打开交互式 shell | `abx connect <SANDBOX_ID>` | [abx connect](../reference/cli-reference.md#abx-connect) |
 | 把文件拷进去 | `abx upload <SANDBOX_ID> <本地> <远程>` | [abx upload](../reference/cli-reference.md#abx-upload) |
 | 把文件拷出来 | `abx download <SANDBOX_ID> <远程> <本地>` | [abx download](../reference/cli-reference.md#abx-download) |
@@ -24,7 +24,7 @@
 | 列出进程 | `abx sandbox process list <SANDBOX_ID>` | [sandbox process](../reference/cli-reference.md#abx-sandbox-process--进程查看) |
 | 读取主机指标与环境 | `abx sandbox system info <SANDBOX_ID>` | [sandbox system](../reference/cli-reference.md#abx-sandbox-system--系统信息) |
 | 查看哪些能力组开着 | `abx sandbox capabilities <SANDBOX_ID>` | [sandbox capabilities](../reference/cli-reference.md#abx-sandbox-capabilities--能力组状态) |
-| 实时输出 / 后台启动 | `abx exec <SANDBOX_ID> --stream -- CMD` / `abx exec <SANDBOX_ID> --background -- CMD` | [abx exec](../reference/cli-reference.md#abx-exec) |
+| 实时输出 / 后台启动 | `abx exec <SANDBOX_ID> CMD` / `abx exec --background <SANDBOX_ID> CMD` | [abx exec](../reference/cli-reference.md#abx-exec) |
 
 `files` 还有 `stat`、`mkdir`、`rm`、`mv`、`search`。`process` 还有 `info`、`signal`。`system` 还有 `env`、`ports`、`packages`、`metrics`。同一页列出了这些子命令。
 
@@ -32,20 +32,20 @@
 
 | 要做的事 | 命令 | 参考 |
 |---|---|---|
-| 脚手架生成一个模板目录 | `abx template init -t python ./my-template` | [template init](../reference/cli-reference.md#abx-template-init) |
-| 用一句话写出模板文件，然后停 | `abx template init "一个 Python 数据分析环境"` | [template init](../reference/cli-reference.md#abx-template-init) |
-| 给已有源码的项目补上模板文件 | `abx template init --adopt .` | [template init](../reference/cli-reference.md#abx-template-init) |
+| 脚手架生成一个模板目录 | `abx template scaffold -t python ./my-template` | [template scaffold](../reference/cli-reference.md#abx-template-scaffold) |
+| 用一句话写出模板文件，然后停 | `abx template scaffold --prompt "一个 Python 数据分析环境"` | [template scaffold](../reference/cli-reference.md#abx-template-scaffold) |
+| 给已有源码的项目补上模板文件 | `abx template scaffold --adopt .` | [template scaffold](../reference/cli-reference.md#abx-template-scaffold) |
 | 构建、推送并注册 | `abx template deploy ./my-template` | [template deploy](../reference/cli-reference.md#abx-template-deploy) |
 | 只构建镜像 | `abx template build ./my-template` | [template build](../reference/cli-reference.md#abx-template-build) |
 | 推送镜像 | `abx template push <IMAGE>` | [template push](../reference/cli-reference.md#abx-template-push) |
-| 注册已经在仓库里的镜像 | `abx template create <IMAGE> --name <NAME>` | [template create](../reference/cli-reference.md#abx-template-create) |
+| 注册已经在仓库里的镜像 | `abx template from-image <IMAGE> --name <NAME>` | [template from-image](../reference/cli-reference.md#abx-template-from-image) |
 | 搜索目录 | `abx template search pandas` | [template search](../reference/cli-reference.md#abx-template-search) |
 | 安装目录里的模板 | `abx template install python-hello` | [template install](../reference/cli-reference.md#abx-template-install) |
 | 列出已注册的模板 | `abx template list` | [template list](../reference/cli-reference.md#abx-template-list) |
 | 查看一个模板 | `abx template info <NAME>` | [template info](../reference/cli-reference.md#abx-template-info) |
 | 删除模板 | `abx template delete <NAME>` | [template delete](../reference/cli-reference.md#abx-template-delete) |
 
-没有顶层 `abx init` 或 `abx install`；请使用 `abx template init` 与 `abx template install`。
+没有顶层 `abx init` 或 `abx install`；请使用 `abx template scaffold` 与 `abx template install`。
 
 ## `deploy` — 构建、推送、注册的快捷方式
 

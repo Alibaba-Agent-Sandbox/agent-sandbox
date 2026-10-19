@@ -209,9 +209,9 @@ const _CFG_ENV_VARS = [
   "ABX_SANDBOX_DOMAIN",
   "ABX_HTTP_TIMEOUT",
   "ALIBABA_CLOUD_REGION_ID",
-  "E2B_API_KEY",
-  "E2B_API_URL",
-  "E2B_DOMAIN",
+  "ABX_SANDBOX_API_KEY",
+  "ABX_SANDBOX_BASE_URL",
+  "ABX_SANDBOX_DOMAIN",
   "SANDBOX_API_KEY",
   "SANDBOX_API_BASE_URL",
   "SANDBOX_REGION",
@@ -663,7 +663,7 @@ function _buildRegistry(): EvidenceCase[] {
     [["template", "from-image"], "template-from-image"],
     [["template", "info"], "template-info"],
     [["template", "build"], "template-build"],
-    [["template", "init"], "template-init"],
+    [["template", "scaffold"], "template-init"],
     [["template", "delete"], "template-delete"],
     [["template", "install"], "template-install"],
     [["mcp"], "mcp"],
@@ -769,27 +769,27 @@ function _buildRegistry(): EvidenceCase[] {
   cases.push(
     E(["create", "--template", "base"], "create --template base", "B", _create(_makeSb()), "create-template-base"),
     E(["--json", "create", "--template", "base"], "--json create --template base", "B", _create(_makeSb()), "create-template-base-json"),
-    E(["create", "-y", "运行 python"], 'create NL "运行 python"（AI 生成模板）', "B", _createCodegen("运行 python", "abx-nl-python-ev001"), "create-nl-python"),
+    E(["create", "-y", "--prompt", "运行 python"], 'create NL "运行 python"（AI 生成模板）', "B", _createCodegen("运行 python", "abx-nl-python-ev001"), "create-nl-python"),
     E(
-      ["create", "-y", "启动 Node.js 服务"],
+      ["create", "-y", "--prompt", "启动 Node.js 服务"],
       'create NL "启动 Node.js 服务"（AI 生成模板）',
       "B",
       _createCodegen("启动 Node.js 服务", "abx-nl-nodejs-ev001"),
       "create-nl-nodejs",
     ),
-    E(["create", completeZh], "create NL 非交互描述完整（需确认）", "A", _createCodegen(completeZh, "abx-nl-python-ev001"), "create-nl-confirm-required"),
+    E(["create", "--prompt", completeZh], "create NL 非交互描述完整（需确认）", "A", _createCodegen(completeZh, "abx-nl-python-ev001"), "create-nl-confirm-required"),
     E(
-      ["create", "运行 python"],
+      ["create", "--prompt", "运行 python"],
       "create NL 非交互描述不完整（E2008 + 缺失项 + 示例）",
       "A",
       _createCodegen("运行 python", "abx-nl-python-ev001", incompleteAssessment),
       "create-nl-clarify-required",
     ),
-    E(["create", "运行 python"], "create NL 未安装 Qwen Code（Quick Setup）", "A", _createCodegenNotInstalled(), "create-nl-not-installed"),
+    E(["create", "--prompt", "运行 python"], "create NL 未安装 Qwen Code（Quick Setup）", "A", _createCodegenNotInstalled(), "create-nl-not-installed"),
     E(["create", "-e", "FOO=bar", "--template", "base"], "create -e FOO=bar", "B", _create(_makeSb()), "create-env"),
     E(["create", "-m", "project=demo", "--template", "base"], "create -m project=demo", "B", _create(_makeSb()), "create-metadata"),
     E(["create", "-e", "INVALID", "--template", "base"], "create -e INVALID（格式错误）", "A", null, "create-env-invalid"),
-    E(["create", "运行 python", "--template", "base"], "create 同时提供描述与 --template（拒绝）", "A", null, "create-nl-conflict"),
+    E(["create", "--prompt", "运行 python", "--template", "base"], "create 同时提供描述与 --template（拒绝）", "A", null, "create-nl-conflict"),
   );
 
   // ── List (4) ───────────────────────────────────────────────────────
@@ -868,10 +868,10 @@ function _buildRegistry(): EvidenceCase[] {
 
   // ── Error cases (8) ────────────────────────────────────────────────
   cases.push(
-    E(["create"], "create 无参数（显式用法错误，不再默认 base）", "A", null, "error-create-noargs"),
+    E(["create"], "create 无参数（默认 base）", "B", _create(_makeSb()), "create-default-base"),
     E(["crate"], "未知顶层命令（拼写建议）", "A", null, "error-unknown-suggestion"),
     E(["frobnicate"], "未知顶层命令（固定命令集合 + abx --help 引导）", "A", null, "error-unknown-custom-hint"),
-    E(["template", "init"], "顶层 init 已移除（使用 abx template init）", "A", null, "error-removed-init"),
+    E(["template", "scaffold"], "顶层 init 已移除（使用 abx template init）", "A", null, "error-removed-init"),
     E(["create", "--template", "base"], "AuthenticationError", "B", _createErr(new AuthenticationError("Invalid API key")), "error-auth"),
     E(["create", "--template", "bad"], "TemplateNotFoundError", "B", _createErr(new TemplateNotFoundError("Template 'bad' not found")), "error-template-not-found"),
     E(["create", "--template", "base"], "QuotaExceededError", "B", _createErr(new QuotaExceededError("Sandbox quota exceeded")), "error-quota"),

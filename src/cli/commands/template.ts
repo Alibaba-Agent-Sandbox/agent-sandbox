@@ -1,6 +1,5 @@
 import { cleandoc } from "../../utils/_py.js";
 import { confirm } from "../prompts.js";
-import { requireTemplateFeature } from "../template_provider.js";
 import type { ProviderImageRequest } from "../../providers/base.js";
 import { deployProviderImage, validateProviderImage } from "../../api/provider_template.js";
 /** Provider-neutral template commands. Native UI, authentication and cloud work belong to adapters. */
@@ -80,40 +79,20 @@ async function runGeneric(name: string, ctx: Context, params: Record<string, unk
     await manager.close?.();
   }
 }
-function routed(name: string): Command {
-  const cmd = command(name, {
-    help: () => providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
-    params: () => providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
-    callback: handleErrors(async (ctx, params) => {
-      const target = await providerTemplateCommand(name);
-      if (target) await ctx.invoke(target, params);
-      else await runGeneric(name, ctx, params);
-    }),
-  });
-  template.addCommand(cmd);
-  return cmd;
+function usesImageFactory(name: string): boolean {
+  return name === "create" && getProvider(resolveProviderId(cliProvider())).supports("templates.deploy");
 }
-export const install = routed("install");
-export const list_templates = routed("list");
-export const info = routed("info");
-export const create_template = routed("create");
-export const push = routed("push");
-export const build = routed("build");
-export const deploy = routed("deploy");
-export const delete_ = routed("delete");
-
-export const from_image = template.command("from-image", {
-  help: cleandoc(`Create a provider template from an already pushed OCI image.
+const imageHelp = cleandoc(`Create a provider template from an already pushed OCI image.
 
     Requires templates.deploy. Configure provider credentials separately.
     Private images use ABX_IMAGE_REGISTRY_USERNAME and ABX_IMAGE_REGISTRY_PASSWORD.
     Timeout cancels waiting; an already submitted remote build may still exist.
-    E2B needs Node.js 22+ and the optional e2b package; its manifest must opt in.
+    Adapter prerequisites and supported options are documented by each provider.
 
     Example:
-      abx --provider e2b template from-image docker.io/example/runtime:v1 --name runtime:v1 -y
-    `),
-  params: [
+      abx --provider PROVIDER template from-image docker.io/example/runtime:v1 --name runtime:v1 -y
+    `);
+const imageParams: readonly Param[] = [
     argument(["image"]),
     option(["--name"], { required: true, help: "Provider template name, optionally with a tag" }),
     option(["--cpu"], { type: new IntRange({ min: 1 }), default: null, help: "CPU cores" }),
@@ -122,8 +101,8 @@ export const from_image = template.command("from-image", {
     option(["--ready-cmd"], { default: null, help: "Build-time readiness command" }),
     option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (0 < timeout <= 3600)" }),
     option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation" }),
-  ],
-  callback: handleErrors(async (ctx: Context, params: Record<string, any>): Promise<void> => {
+  ];
+async function runImageFactory(ctx: Context, params: Record<string, any>): Promise<void> {
     const spec: NonNullable<ProviderImageRequest["spec"]> = {};
     for (const key of ["cpu", "memory", "start_cmd", "ready_cmd"] as const) {
       if (params[key] !== null && params[key] !== undefined) Object.assign(spec, { [key]: params[key] });
@@ -135,12 +114,36 @@ export const from_image = template.command("from-image", {
     const password = process.env["ABX_IMAGE_REGISTRY_PASSWORD"];
     if (username !== undefined || password !== undefined) input.registry = { username: username ?? "", password: password ?? "" };
     validateProviderImage(input);
-    requireTemplateFeature("templates.deploy");
     if (!params["yes"]) await confirm("Create this provider template? The provider may charge for the build.", { abort: true });
     const data = await deployProviderImage(input);
     const fmt = getFormatter(ctx);
     if (fmt.use_json) fmt.printData(data);
     else fmt.printDict({ ...data });
-  }),
-});
+}
 
+function routed(name: string, publicName = name): Command {
+  const cmd = command(publicName, {
+    help: () => usesImageFactory(name) ? imageHelp : providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
+    params: () => usesImageFactory(name) ? imageParams : providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
+    callback: handleErrors(async (ctx, params) => {
+      if (usesImageFactory(name)) return runImageFactory(ctx, params);
+      const target = await providerTemplateCommand(name);
+      if (target) await ctx.invoke(target, params);
+      else await runGeneric(name, ctx, params);
+    }),
+  });
+  template.addCommand(cmd);
+  return cmd;
+}
+export const install = routed("install");
+export const list_templates = routed("list");
+export const info = routed("info");
+export const create_template = routed("create", "from-image");
+export const push = routed("push");
+export const build = routed("build");
+export const deploy = routed("deploy");
+export const delete_ = routed("delete");
+
+
+/** Public native image route; keeps existing provider-owned create UI when no image factory is declared. */
+export const from_image = create_template;

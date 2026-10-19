@@ -1,7 +1,3 @@
-/** Feature discovery is generic; operation factories are selected by the template router. */
-import { getProvider, resolveProviderId } from "../providers/registry.js";
-import { cliProvider } from "../providers/selection.js";
-export type TemplateFeature = "templates.read" | "templates.build" | "templates.deploy";
-export function requireTemplateFeature(feature: TemplateFeature): void {
-  getProvider(resolveProviderId(cliProvider())).require(feature);
-}
+/** Compatibility export for legacy Express handlers; generic routes select provider factories. */
+export { requireTemplateFeature } from "../providers/alicloud_express/cli/selection.js";
+export type TemplateFeature = "templates.read" | "templates.build";

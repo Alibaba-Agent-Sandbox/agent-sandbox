@@ -431,7 +431,7 @@ describe("TestMcpDeploy", () => {
     const out = path.join(tmpPath(), "artifact");
     patchApiKey(null);
     iso.monkeypatch.delenv("ABX_SANDBOX_API_KEY");
-    iso.monkeypatch.delenv("E2B_API_KEY");
+    iso.monkeypatch.delenv("ABX_SANDBOX_API_KEY");
     const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("ABX_SANDBOX_API_KEY");

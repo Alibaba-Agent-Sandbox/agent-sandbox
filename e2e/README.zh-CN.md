@@ -5,11 +5,22 @@ stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定�
 
 > English version: [README.md](README.md).
 
+## 标准 E2B 迁移契约
+
+使用 `ABX_BIN=<独立可执行文件> npm run e2e:standard`，通过环境变量或被忽略的
+.env 配置 E2B_API_KEY、E2B_API_URL/E2B_DOMAIN。这个专项测试使用真实极速版后端和
+本地 PTY（Linux/macOS，需 Python 3），覆盖后台及交互创建、stdout/远程退出码、
+模板 JSON 列表、持续 shell 状态、connect 所有权、自动到期与清理。它不会调用外部
+E2B CLI。平台会把退出终端后的一秒超时请求取整到约 60 秒，测试会等待这一已知异步
+回收过程。错误在输出前脱敏。
+
+常规 runner 已包含 standard-contract 和项目扩展场景。旧的参数与终端假设已调整：exec 本地参数放在 ID 前，仅在场景提供输入时连接 stdin 管道，清理使用标准 kill/list，命令遍历识别标准别名与内嵌扩展帮助。标准 template init 生成 SDK 文件，项目 template.yaml 工作流使用 template scaffold。专项通过不代表完整 CI 矩阵通过。
+
 ## 快速开始
 
 ```bash
 # 1. 凭据:环境变量或 git 忽略的 cli/.env(绝不提交、绝不打印)
-#    ABX_SANDBOX_API_KEY, ABX_SANDBOX_BASE_URL, ABX_SANDBOX_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
+#    E2B_API_KEY, E2B_API_URL, E2B_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
 cp .env.example .env   # 然后填入真实值
 
 # 2. 对 abx 二进制运行
@@ -40,11 +51,12 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 | 套件 | 依赖 | 内容 |
 |---|---|---|
-| `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、固定的顶层命令集（已移除的写法退出码 2）、向临时 HOME 写入 MCP `install/status/stop`、`template init`、本地 `template search --index-url` |
+| `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、固定的顶层命令集（已移除的写法退出码 2）、向临时 HOME 写入 MCP `install/status/stop`、`template scaffold`、本地 `template search --index-url` |
+| `standard-contract` | 云端 + Python 3/本地 PTY | 固定 E2B 生命周期、远程退出码、真实 PTY/connect 所有权、自动到期及清理 |
 | `cloud-readonly` | 云端 | 错误 API Key(`E1000`,退出码 3)、`template list/info/delete` 与 not-found 信封(退出码 4,`E2001`/`E5000`)、`list` 输出结构、`config list` 密钥脱敏 |
 | `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、`--json`、`-q`、`--ci`、`CI=true`、超时→退出码 5)→ `upload`/`download`(二进制往返)→ `exec --background/--stream/--env` → `sandbox files/process/system/capabilities` → `connect` → `sandbox command list` / `run` 具名命令 → 创建时注入 env/上传 → `kill` |
 | `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template install --download-only` |
-| `docker-deploy` | 云端 + Docker,需主动开启 | `template init` → `template deploy`(docker build、ACR push、CreateTemplate)→ `create` → `exec` → `template delete` |
+| `docker-deploy` | 云端 + Docker,需主动开启 | `template scaffold` → `template deploy`(docker build、ACR push、CreateTemplate)→ `create` → `exec` → `template delete` |
 
 ## 场景格式
 
@@ -113,6 +125,9 @@ mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/READ
 
 `run.mjs` 退出码:0 = 无失败(允许跳过),1 = 至少一个失败,2 = 二进制不可运行。
 
+## 无云端前提的 Provider 归属验证
+
+`ABX_BIN=<构建后的可执行文件> node e2e/provider-boundary.mjs` 向临时 HOME 安装本地测试插件，检查带前缀资源、冲突/未知/空前缀、远程 Provider 参数，以及模板/部署的拒绝路径。它使用真实可执行文件和文件系统，不创建云端资源；它不等同于真实 OpenSandbox 部署验证。
 ## MCP 生命周期真实验证
 
 构建后运行 `node e2e/mcp-lifecycle.mjs`。凭据仅经环境变量传入。脚本启动真实 CLI STDIO 进程，验证创建、列表、元数据、续期、文件与命令，以及外部观察者退出不销毁资源；finally 仅清理本次创建的 ID 并只读核对无残留。仅列表的已知最终一致可见性会重试。

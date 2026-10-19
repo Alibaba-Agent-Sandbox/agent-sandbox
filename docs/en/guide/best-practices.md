@@ -4,7 +4,7 @@ Which knob to turn, and when. Command syntax stays in the [CLI reference](../ref
 
 ## `--provider`: one command, one backend
 
-Pass `--provider <id>` on a single invocation when that invocation should use a plugin or a backend other than the current default. It is accepted in any position (`abx create --provider my-cloud --template base`).
+Pass `--provider <id>` on a single invocation when that invocation should use a plugin or a backend other than the current default. It is accepted before the sandbox ID for exec; other commands retain their global option positions (`abx create --provider my-cloud --template base`).
 
 Leave it off when every command should use the built-in `alicloud-express`. That is the default, and sandbox ids stay bare. Set a lasting default with `abx provider default <id>` or `ABX_PROVIDER` when the whole shell should switch. A sandbox id that already starts with a known provider (`my-cloud:sbx-1`) selects that provider by itself; `--provider` must name the same id.
 
@@ -16,9 +16,9 @@ Full order and install steps: [Providers](providers.md). Writing a plugin: [Auth
 
 `--model <id>` is a flag on the commands that ask the coding agent to write a template:
 
-- `abx create "<description>" --model <id>`
-- `abx template init "<description>" --model <id>`
-- `abx template init --adopt <directory> --model <id>`
+- `abx create --prompt "<description>" --model <id>`
+- `abx template scaffold --prompt "<description>" --model <id>`
+- `abx template scaffold --adopt <directory> --model <id>`
 
 It overrides `llm_model`, `ABX_LLM_MODEL`, and `OPENAI_MODEL` for that command only. Use it when the endpoint rejects the stored model, or when one description should be drafted with a different id. An interactive terminal can offer a replacement and store the choice; a non-interactive run keeps the flag you passed.
 

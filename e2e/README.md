@@ -6,11 +6,24 @@ the **real cloud**. Point `ABX_BIN` at the `abx` binary you want to test.
 
 > 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
+## Standard E2B migration contract
+
+Run `ABX_BIN=<standalone-executable> npm run e2e:standard` with E2B_API_KEY and
+E2B_API_URL/E2B_DOMAIN in the environment or ignored .env. This focused suite uses
+the real Express backend and a real local PTY (Linux/macOS, Python 3 required).
+It verifies detached and interactive create, stdout/remote exit status, template
+JSON listing, persistent shell state, connect ownership, automatic expiry and
+cleanup. It never invokes an installed E2B CLI. Platform minimum TTL may round the
+one-second post-terminal request to about 60 seconds; the probe waits for that
+known asynchronous reclamation. Errors are masked before reporting.
+
+The normal runner includes standard-contract plus project extension scenarios. Old parser and terminal assumptions have been migrated: local exec options precede the ID, stdin is piped only when a scenario supplies it, cleanup uses standard kill/list, and the command walk understands standard aliases and embedded extension help. The runtime standard template init creates SDK files; project template.yaml workflows use template scaffold. A focused pass does not mean the full CI matrix passed.
+
 ## Quick start
 
 ```bash
 # 1. credentials: environment variables or the gitignored cli/.env (never committed, never printed)
-#    ABX_SANDBOX_API_KEY, ABX_SANDBOX_BASE_URL, ABX_SANDBOX_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
+#    E2B_API_KEY, E2B_API_URL, E2B_DOMAIN, ALICLOUD_ACCESS_KEY_ID/ALICLOUD_ACCESS_KEY_SECRET, ACR_NAMESPACE, ABX_LLM_API_KEY, ABX_LLM_BASE_URL
 cp .env.example .env   # then fill in real values
 
 # 2. run against the abx binary
@@ -43,11 +56,12 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 
 | Suite | Needs | Content |
 |---|---|---|
-| `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template init`, local `template search --index-url` |
+| `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template scaffold`, local `template search --index-url` |
+| `standard-contract` | cloud + Python 3/local PTY | Fixed E2B lifecycle, remote status, real PTY/connect ownership, automatic expiry and cleanup |
 | `cloud-readonly` | cloud | wrong API key (`E1000`, exit 3), `template list/info/delete` and not-found envelopes (exit 4, `E2001`/`E5000`), `list` shapes, secret masking of `config list` |
 | `cloud-lifecycle` | cloud | `create` -> `list` -> `info` -> `exec` (exit-code propagation, `--cwd`, `--json`, `-q`, `--ci`, `CI=true`, timeout -> exit 5) -> `upload`/`download` (binary round-trip) -> `exec --background/--stream/--env` -> `sandbox files/process/system/capabilities` -> `connect` -> `sandbox command list` / `run` named commands -> env/upload at create -> `kill` |
 | `catalog` | outbound GitHub | `template search` and `template install --download-only` against the remote index |
-| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template deploy` (docker build, ACR push, CreateTemplate) -> `create` -> `exec` -> `template delete` |
+| `docker-deploy` | cloud + Docker, opt-in | `template scaffold` -> `template deploy` (docker build, ACR push, CreateTemplate) -> `create` -> `exec` -> `template delete` |
 
 ## Scenario format
 
@@ -135,3 +149,7 @@ scenario that over-specifies, in which case fix the scenario in the same change)
 The mock-vs-oracle differential harness lives in [`../parity/diff/`](../parity/diff/README.md).
 
 Exit code of `run.mjs`: 0 = no failures (skips allowed), 1 = at least one failure, 2 = binary not runnable.
+
+## Provider ownership without cloud prerequisites
+
+`ABX_BIN=<built-executable> node e2e/provider-boundary.mjs` installs a local fixture into a temporary HOME and checks qualified references, conflicting/unknown/empty namespaces, remote provider flags and template/deploy refusal. It exercises the actual executable and filesystem, creates no cloud resource, and is not a real OpenSandbox deployment test.

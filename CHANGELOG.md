@@ -8,10 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
-- Keep pushed-image deployment behind an independent provider factory and optional E2B host SDK; preserve provider-owned session and template adapters.
+- Optional native provider `template from-image` contract with isolated authentication, strict results and cleanup. Catalog factories remain gated/Beta; plugins explicitly request SDK helpers without host provider-ID dispatch.
 
+### Changed
+
+- Resolve Alibaba envd process handles before OS PID inspection in the CLI process info extension; keep standard exec option boundaries and remote status semantics. / CLI 进程详情优先解析阿里云 envd 句柄，保留标准 exec 参数边界与远程退出码。
+
+- Align Alibaba Express standard lifecycle, process, file and interpreter behavior with the pinned E2B contract; use canonical `E2B_*` connection settings.
+- Reserve create positional arguments for templates and natural language for `--prompt` in the CLI; document migration, source attribution and backend capability limits.
 ### Fixed
+- Preserve explicit `list --all-providers` routing through native provider aggregation instead of rejecting it in the standard parser.
+- Correct bilingual native ABX configuration references and agent guide examples for the standard Express command entry.
 
+- Preserve the complete prebundled dependency attribution in npm/SEA, verify source replay, and finish piped license/standard output before exit. Pin generated Python installation to the tested standard implementation.
 - Preserve non-404/405 resume failures and reject undeclared PTY or foreign template generation/deploy before side effects.
 
 - Install generated MCP applications from a tested matching client/server source pair instead of unavailable/unrelated PyPI distributions. Preserve the current provider workflow tools while routing metadata and TTL directly to the control plane, removing retired renewal state and sanitizing lifecycle failures.
@@ -54,6 +63,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 
 ### Added
+- Add local generation2 pause/snapshot acceptance with memory/files/clone assertions, owned cleanup and bilingual provisioning guidance.
 
 - **MCP lifecycle controls.** `list_sandboxes`, `get_sandbox`, and `set_sandbox_timeout` share STDIO/HTTP handlers, validate bounded inputs, expose only safe metadata, and never adopt external instances for session destruction. `create_sandbox` accepts provider, region, CPU and memory options.
 - **Typed provider management commands.** `abx provider command list|info|run` discovers static schemas and invokes declared Node/exec commands through shared validation and authenticated engine routes. Includes 20 official FC Volume, Team, API Key and quota operations; key creation/rotation securely writes a new local file. Custom-domain automation remains unsupported pending a verified public Agent Sandbox API.
@@ -91,6 +101,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Preserve standard command ownership with native root output flags; resolve Express scoped credentials/endpoints together, reject malformed/reserved resource namespaces, and retain missing dependency and bundled-source license notices.
+
+- Fix provider ownership at E2B dispatch and qualified references; block foreign providers from the FC template pipeline and stop auto-advertising every host feature on Express.
 - **Stacked pull request validation.** The complete CI matrix now runs for pull requests targeting feature branches as well as `main`; push validation remains limited to `main`.
 
 - **MCP deployment uses the Python client distribution.** Generated `requirements.txt` now requests `agent-sandbox-client[mcp]` instead of the previous `agent-sandbox[mcp]` package name.

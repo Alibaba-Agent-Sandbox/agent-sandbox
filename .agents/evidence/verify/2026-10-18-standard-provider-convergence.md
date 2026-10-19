@@ -1,0 +1,105 @@
+# Standard/provider convergence verification — 2026-10-18
+
+Result: PARTIAL; current candidate remains draft.
+
+Ordinary merge of accepted CLI main into original PR40 b957e9a2. Node22.22.2,
+locked npm10 install. The current work preserves original standard runtime and notices.
+
+- Reproduced five resume permission/server failures being swallowed and missing
+  PTY gate:6 FAIL before;6 PASS after. Non-404/405 failures make one POST/no GET.
+- Standard frontend/configuration/executable/provider boundaries:136 PASS.
+- Native canonical-key restoration and prompt/scaffold owner migration reduce
+  initial256 local failures to the known raw-network baseline plus four identified
+  integration mismatches. These intermediate failures remain recorded as failures.
+- New dated CLI captures115 PASS; original merged captures remain immutable.
+- Scoped ownership/registry/paused-provider/process checks PASS after typed error
+  and current fixture corrections. Full final suite, artifact and cloud acceptance
+  will be appended as separate results after main convergence.
+- The companion standard Python client actually ran against Express:3 scenarios
+  PASS (sync/async lifecycle/files/process/interpreter/network enforcement), one
+  snapshot SKIP because no enabled MicroVM/allowlist fixture is available.
+
+No native E2B credentials were substituted with Express values. Original draft
+pause/snapshot and whole-artifact attribution prerequisites remain outstanding.
+No package publication or new hosted cloud/model acceptance workflow is introduced.
+
+Accepted-main convergence ad704f41 (MCP31, provider metadata61) is retained.
+Typecheck/build PASS; final full local3940 PASS/10 preserved raw-network FAIL/56
+SKIP. No new behavior failure remains. Eslintzero errors; hygienePASS; health105
+PASS/11 immutable-history WARN/zero FAIL. New dated115 captures PASS.
+
+Actual built CLI Express standard scenario PASS: detached create, stdout and
+exit7 propagation, template list, real stateful PTY, borrowed connect retention,
+interactive create's shortened lease and eventual404, exact owned kill and list
+absence. Tracked resources cleaned in finally; zero residuals. This is separate
+from installed fixture coverage, and does not prove native E2B or enabled snapshots.
+
+Pinned upstream generator replay:11 shipped runtime/template/notice files were
+byte-identical after a clean vendor lock install. Linux SEA build and version smoke
+PASS; SHA2564ba44e1c3d4d45f86ec112839ae29fd43e0e2d65c8a28c1f776937b9abbf6b5b.
+
+Whole-artifact attribution review remains PARTIAL. The pinned upstream source map
+has705 inputs, including610 inputs from86 exact third-party package identities.
+The [inventory](2026-10-18-standard-artifact-delivery/initial-inventory.json) records exact
+identity/provenance hashes and actual current SEA notice coverage. License-source
+retrieval verified81 identities using tarball integrity or exact npm gitHead; five
+have no verified complete pinned text yet (async-listen, eastasianwidth, tiny-case,
+spdx-exceptions, spdx-license-ids). Some initial retrieval failures were corrected
+using case-sensitive license filenames and pinned source provenance. Existing
+bundled legal comments are retained; no missing license text was fabricated and
+retrieval alone does not imply the built SEA carries a complete inventory.
+Required full attribution remains blocking rather than silently waived.
+
+Later artifact verification resolves the earlier technical attribution/replay and
+install-recipe gaps: [final artifact delivery](2026-10-18-standard-artifact-delivery.md).
+The initial inventory stays historical. Conditional enabled pause/snapshot and
+SDK47 delivery remain unmet parent gates.
+
+## Accepted preflight and documentation convergence
+
+Ordinary merge of accepted CLI62 mainb2af4949 retains its native guards.
+Corrected stale bilingual configuration/MCP references that globally renamed
+ABX keys to E2B: native config remains ABX; standard entry maps E2B per layer.
+Native configuration vectors match accepted main. Preserved current21 MCP tools,
+retention/owned cleanup, and standard positional create/real PTY/exec option
+placement. Standard create --env is explicitly terminal-session environment.
+Actual installed CLI help was checked; no unsupported standard --stream, local
+--timeout, native --yes kill, or stateless-connect claim remains in SKILL.md.
+
+Guide/standard executable/routing/configuration/native guards52 tests PASS;
+canonical config/name/generator tests247 PASS. Typecheck/lint PASS (zero lint
+errors); hygiene PASS; health105 PASS/11 historical WARN/zero FAIL. Initial test
+filter named nonexistent files, exited1 with no tests; corrected actual file set
+yielded the247-test pass. These are local checks; latest-head remote CI follows
+push. Source runtime/SEA and real cloud receipts above are unchanged.
+
+Cross-repository docs inventory finds native examples in provider/template/blog
+sources. Their current main CLI syntax and paired source pins remain valid; they
+must be coordinated with standard CLI40/SDK47 delivery, including native Python
+imports and version-scoped CLI examples. Do not publish future positional syntax
+ahead of the standard CLI or repoint a source pin to an unmerged contract. This is
+an additional delivery dependency, not proof that those migration docs shipped.
+
+Conditional successful pause/snapshot still requires an enabled Express fixture.
+No new cloud acceptance workflow or package publication is introduced.
+
+## Explicit cross-provider listing regression
+
+The documented list --all-providers extension was incorrectly sent to the
+standard parser. A new shipped-entry loopback regression failed before the fix
+(parser exit1 with no request). Dispatch now delegates only the explicit native
+list extension; normal list/create/connect and remote exec --all-providers
+arguments retain their routes. The first post-fix fixture expected the standard
+x-api-key header; native transport correctly uses Authorization:Bearer. Corrected
+the fixture to assert the native header and preserved the actual failed receipt.
+
+Final six-file entry/guide/guards53 PASS; strict typecheck, build, lint, hygiene
+and health105/11historicalWARN/0FAIL PASS. Rebuilt actual Linux SEA SHA256
+16626e5639210f3421bbad1d7a12a49286f9c12a687e62e34b3119480c9c4aa9.
+Complete license output219073 bytes still matches the source byte for byte.
+Actual standalone Express --json list --all-providers and ordinary list --format
+json both PASS from an isolated HOME with canonical ABX configuration. No resource
+created or deleted, no credentials or resource details saved. This read-only
+current-artifact acceptance supplements earlier lifecycle/PTY/large-output runs;
+it does not repeat or replace their historical receipts. Latest-head CI pending
+push; conditional enabled pause/snapshot remains blocked.

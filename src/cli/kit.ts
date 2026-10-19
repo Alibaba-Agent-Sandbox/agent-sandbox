@@ -540,7 +540,7 @@ function rootHint(word: string, names: string[]): string {
   const candidates = closeMatches(word, names, 3, 0.6);
   return candidates.length
     ? ` Did you mean ${candidates.map((c) => `'${c}'`).join(", ")}?`
-    : " No similar command. See 'abx --help' for the command list (templates: 'abx template init|install'; named commands in a sandbox: 'abx run SANDBOX NAME').";
+    : " No similar command. See 'abx --help' for the command list (templates: 'abx template scaffold|install'; named commands in a sandbox: 'abx run SANDBOX NAME').";
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

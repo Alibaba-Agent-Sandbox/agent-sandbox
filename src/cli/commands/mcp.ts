@@ -748,7 +748,7 @@ export const start = command("start", {
     }),
     option(["--api-key"], { default: null, envvar: "ABX_SANDBOX_API_KEY", help: "API key override." }),
     option(["--api-url"], { default: null, envvar: "ABX_SANDBOX_BASE_URL", help: "API URL override." }),
-    option(["--domain"], { default: null, envvar: "ABX_SANDBOX_DOMAIN", help: "Domain override." }),
+    option(["--domain"], { default: null, envvar: "E2B_DOMAIN", help: "Domain override." }),
     option(["--http", "use_http"], {
       is_flag: true,
       default: false,
@@ -1179,7 +1179,7 @@ export const _DEPLOY_APP_PY =
   '    auth_token=require_auth_token(os.environ.get("ABX_MCP_AUTH_TOKEN")),\n' +
   '    api_key=os.environ.get("ABX_SANDBOX_API_KEY"),\n' +
   '    api_url=os.environ.get("ABX_SANDBOX_BASE_URL"),\n' +
-  '    domain=os.environ.get("ABX_SANDBOX_DOMAIN"),\n' +
+  '    domain=os.environ.get("E2B_DOMAIN"),\n' +
   '    template=os.environ.get("ABX_DEFAULT_TEMPLATE", "base"),\n' +
   ")\n";
 

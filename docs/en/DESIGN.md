@@ -21,7 +21,7 @@
 ```bash
 npm install -g @agent-sandbox/cli   # abx CLI (Node.js 20+)
 export ABX_SANDBOX_API_KEY=your-api-key
-abx create --template base
+abx create base
 abx list
 ```
 
@@ -35,12 +35,13 @@ The CLI follows a strict layered structure — lower layers never import upper l
 graph TB
     BIN["bin — abx entry"]
     subgraph Front["Command line"]
-        FW["cli/kit — Commander adapter"]
+        FW["framework — click-compatible command framework"]
         CLI["cli — main, OutputManager, formatters"]
         CMD["cli/commands — command groups"]
     end
     subgraph Services["Host-side services"]
         AG["agent — MCP server, template authoring"]
+        SES["session — LocalSessionStore"]
     end
     subgraph Core["Client core"]
         API["api — Sandbox, files, code, commands, template"]
@@ -51,8 +52,10 @@ graph TB
     BIN --> CLI --> FW
     CLI --> CMD
     CMD --> AG
+    CMD --> SES
     CMD --> API
     AG --> API
+    SES --> API
     API --> PRO --> TRA --> MOD
 ```
 
@@ -124,7 +127,3 @@ The Python SDK (`agent-sandbox-client`), the in-sandbox server SDK and the platf
 - [SDK API Design](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sdk-api-design.md) and [Sandbox Types](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/sandbox-types.md)
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) and [template.yaml Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — the `template.yaml` contract
 - [Built-in Agents](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/built-in-agents.md) and [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
-
-[Provider management commands](design/provider-commands.md)
-
-- [Provider portability, ownership and updates](design/provider-portability-and-updates.md)

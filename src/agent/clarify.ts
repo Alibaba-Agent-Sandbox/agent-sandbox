@@ -1,5 +1,5 @@
 /**
- * Research-first requirement clarification for `abx create "<description>"`.
+ * Research-first requirement clarification for `abx create --prompt "<description>"`.
  *
  * Port of `agent_sandbox/agent/clarify.py`. The natural-language create path starts from one free-form sentence. The
  * clarification phase is **two phases on one native Qwen Code session**, and both the research and the questions come

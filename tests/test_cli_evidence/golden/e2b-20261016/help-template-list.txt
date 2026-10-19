@@ -1,0 +1,26 @@
+Usage: abx template list [options]
+
+List custom templates registered for the current account.
+
+By default this queries the configured platform endpoint. Pass
+--official-api to use the Alibaba Cloud FCSandbox API with AK/SK.
+This command does not search the community template index.
+
+Examples:
+  abx template list
+  abx template list --official-api
+  abx template list --region cn-shanghai
+  abx --json template list
+
+Related commands:
+  abx template info TEMPLATE_ID
+  abx template search QUERY
+  abx template install TEMPLATE_REF
+
+Options:
+  --official-api       Query templates via the official Alibaba Cloud FCSandbox
+                       API (AK/SK).
+  -r, --region <TEXT>  Region override for this command (default: 'abx config
+                       set region' value, else cn-hangzhou)
+  -h, --help           Show this message and exit.
+[exit_code:0]

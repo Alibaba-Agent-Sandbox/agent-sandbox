@@ -18,9 +18,9 @@ export function serverOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): {
   template: string;
 } {
   return {
-    api_key: env.ABX_SANDBOX_API_KEY || null,
-    api_url: env.ABX_SANDBOX_BASE_URL || null,
-    domain: env.ABX_SANDBOX_DOMAIN || null,
+    api_key: env.E2B_API_KEY || null,
+    api_url: env.E2B_API_URL || null,
+    domain: env.E2B_DOMAIN || null,
     template: env.ABX_DEFAULT_TEMPLATE || "base",
   };
 }

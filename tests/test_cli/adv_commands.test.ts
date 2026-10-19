@@ -1,3 +1,5 @@
+// These regressions cover the native project extension framework. Standard executable behavior
+// is covered by test_standard_executable.test.ts and e2e/standard.mjs.
 // Regression tests for the findings of the adversarial review of the command framework / output / REPL / sandbox commands area
 // (parity/review/commands.md, C-01..C-11). Every expected value is the behaviour of the Python oracle (the original
 // `abx`) and is hard-coded, so no oracle is needed to run them.
@@ -12,7 +14,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { startStub } from "../../parity/diff/stub.mjs";
 
 const CLI_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const ENTRY = path.join(CLI_ROOT, "src/bin/abx.ts");
+const ENTRY = path.join(CLI_ROOT, "tests/helpers/native_cli.ts");
 const TSX = pathToFileURL(path.join(CLI_ROOT, "node_modules/tsx/dist/esm/index.mjs")).href;
 const PTY_RUN = path.join(CLI_ROOT, "parity/diff/pty_run.py");
 const SB = "sbx-ev-001";

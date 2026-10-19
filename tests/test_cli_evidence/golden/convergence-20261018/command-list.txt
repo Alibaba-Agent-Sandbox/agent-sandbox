@@ -1,0 +1,4 @@
+Name  Arguments      Description
+add   x:int, y?:int  Add two integers
+ping                 Health check
+[exit_code:0]

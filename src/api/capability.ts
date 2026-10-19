@@ -160,7 +160,7 @@ function _cacheDirName(raw: string): string | null {
  * Remember a deployed template under `~/.abx/templates/<templateId>/template.yaml`.
  *
  * `also` copies the same file under extra directory names (the `--alias`, and the
- * template name when it differs). `abx create --template <id-or-alias>` matches that
+ * template name when it differs). `abx create <id-or-alias>` matches that
  * directory name, the yaml `name`, or an `alias` field.
  */
 export function cacheDeployedTemplate(yamlPath: string, templateId: string, also: readonly string[] = []): void {

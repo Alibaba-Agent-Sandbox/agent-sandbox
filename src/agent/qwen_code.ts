@@ -2,7 +2,7 @@
  * Host-side Qwen Code (https://github.com/QwenLM/qwen-code) adapter.
  *
  * Port of `agent_sandbox/agent/qwen_code.py`. It locates — or installs — the official Qwen Code CLI on the host and
- * runs it in headless JSON mode so that `abx create "<description>"` can generate a Dockerfile and a `template.yaml`
+ * runs it in headless JSON mode so that `abx create --prompt "<description>"` can generate a Dockerfile and a `template.yaml`
  * locally.
  *
  * Verified release facts (see the Python module for the full provenance):

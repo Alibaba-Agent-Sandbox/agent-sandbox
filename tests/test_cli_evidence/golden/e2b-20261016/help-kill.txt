@@ -1,0 +1,25 @@
+Usage: abx kill [options] [SANDBOX_ID]
+
+Permanently destroy one sandbox or all running sandboxes.
+
+Confirmation is required unless --yes is supplied. Use --yes for scripts
+and other non-interactive environments.
+
+Examples:
+  abx kill abc123
+  abx kill abc123 --yes
+  abx kill --all --yes
+  abx kill --all --yes --region cn-shanghai
+
+Related commands:
+  abx list              Find running sandbox IDs
+  abx info SANDBOX_ID   Verify a sandbox before deletion
+  abx create            Create a replacement sandbox
+
+Options:
+  --all                Kill all running sandboxes
+  -y, --yes            Skip confirmation
+  -r, --region <TEXT>  Region override for this command (default: 'abx config
+                       set region' value, else cn-hangzhou)
+  -h, --help           Show this message and exit.
+[exit_code:0]

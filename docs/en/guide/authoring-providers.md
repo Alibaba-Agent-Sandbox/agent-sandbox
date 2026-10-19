@@ -11,7 +11,7 @@ Publish plugins in [alibaba-agent-sandbox/awesome-providers](https://github.com/
 ```text
 abx --provider my-cloud create --template base
         │
-        │  1. main() pulls --provider and --opt out of the argv (any position)
+        │  1. main() pulls --provider and --opt out of argv (before the sandbox ID for exec)
         │     and stores them for this process only.
         ▼
 Sandbox.create({ template: "base", ... })
@@ -51,7 +51,7 @@ Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The ho
 Two paths do **not** go through your plugin:
 
 - `abx create` with no `--provider`, no `ABX_PROVIDER`, and no config default stays on `alicloud-express`.
-- `abx create "a node api"` (a description, no `--template`) first runs the built-in template authoring pipeline (generate, build, deploy). Only the final `Sandbox.create` uses the selected provider. A provider without `templates.build` should be launched with `abx --provider my-cloud create --template <image-or-name>`.
+- `abx create --prompt "a node api"` (a description, no `--template`) first runs the built-in template authoring pipeline (generate, build, deploy). Only the final `Sandbox.create` uses the selected provider. A provider without `templates.build` should be launched with `abx --provider my-cloud create --template <image-or-name>`.
 
 `Sandbox.create(template="base", provider="my-cloud")` in Python is step 2 onward. It does not pass through the CLI. The installed plugin is still `~/.abx/providers/my-cloud`.
 
@@ -191,6 +191,7 @@ export default function create(kit) {
 
 - `ctx` has `id`, `features`, `options` (only the fields you declared), `core` (the generic keys you consented to), `http(opts)`, `headerKeyAuth(key, header)` and `noAuth()`.
 - `kit` has `SandboxProtocol`, `ProcessProtocol`, `FilesystemProtocol`, `CodeInterpreterProtocol`, `errors`, `hostVersion`, `e2b { resumeConnect, withDefault, overlay, parseExecution }` and `epp.infra(ctx, factory)` (run a module that exports an EPP/1 dispatcher in the host process and adapt it to the protocol objects; OpenSandbox does this). Subclass a protocol or wrap one with `kit.e2b.overlay(inner, { method })` to change one call.
+- `kit.e2b.loadTemplate()` explicitly requests the optional, lazy official template SDK helper (Node.js 22+). A plugin chooses whether to call it; the host never selects it by provider ID. See [image factory contract](provider-image-deployment.md).
 - Ask the host for two E2B quirks in the `buildInfra` result: `envd_dial: [host, port]` (connect to this TCP target while the `Host` header stays the virtual name) and `envd_auth: { allow_missing, basic_user }` (an optional envd token, and the Basic user to send with it).
 - The host checks the plugin tree digest on every load (unless installed with `--link`), and gates each protocol by the features you declared. A plugin runs with the host's privileges, so install only what you trust; `[security]` is advisory.
 - Use `exec` when the plugin must be isolated, written in another language, or reuse an existing SDK. Third-party plugins use that kind and speak EPP/1 on stdio, including optional `pty.*`. OpenSandbox stays a `node` plugin and runs its methods in process through `kit.epp.infra`.
@@ -240,7 +241,7 @@ Document the `[security]` block honestly: it is the user's only summary of what 
 
 ## 5. Template profile
 
-The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template init` / `deploy`). It does not decide what `abx create --template X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
+The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template scaffold` / `deploy`). It does not decide what `abx create X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
 
 Optional `[template]` table. When the table is absent, template generation uses the generic Docker profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) and says this provider had no profile. It does not use the Alibaba Cloud Express FC image. OpenSandbox stays on that generic profile; its create `entrypoint` is unchanged.
 

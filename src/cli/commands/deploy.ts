@@ -5,7 +5,7 @@ import { providerCliExtension } from "../provider_extensions.js";
 import { build } from "./template.js";
 export const deploySeams = { build };
 export const deploy_shortcut = command("deploy", {
-  help: () => providerCliExtension()?.deployHelp ?? "Publish a template project with the selected provider (same as 'template deploy'). Create a project first with 'abx template init'.",
+  help: () => providerCliExtension()?.deployHelp ?? "Publish a template project with the selected provider (same as 'template deploy'). Create a project first with 'abx template scaffold'.",
   params: () => [argument(["path"], { default: ".", required: false }),
     ...build.params.filter((p): p is Option => p.kind === "option")],
   callback: handleErrors(async (ctx, params) => {

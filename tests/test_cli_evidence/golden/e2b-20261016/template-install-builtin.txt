@@ -1,0 +1,3 @@
+'base' is a built-in template. No installation needed.
+Use it directly: abx create base
+[exit_code:0]

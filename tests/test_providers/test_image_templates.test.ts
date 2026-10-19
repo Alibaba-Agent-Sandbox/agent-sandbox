@@ -13,6 +13,7 @@ import { addCliOptions, resetCliSelection, setCliProvider } from "../../src/prov
 import { install } from "../../src/providers/installer.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
+import * as templateSdk from "../../src/providers/shared/e2b/template_sdk.js";
 import { useIso } from "../_support/iso.js";
 
 const iso = useIso();
@@ -146,9 +147,27 @@ describe("optional image templates", () => {
       expect(close).toHaveBeenCalledOnce();
     } finally { close.mockRestore(); }
   });
+  it("lets a plugin request a shared SDK without any provider-id selection", async () => {
+    const load = vi.spyOn(templateSdk, "loadTemplate").mockResolvedValue({ fixture: true });
+    try {
+      await nodePlugin(`export default kit=>({buildInfra(){throw Error('wrong path')},async buildTemplates(){
+        const sdk=await kit.e2b.loadTemplate(); if(!sdk.fixture) throw Error('missing explicit SDK');
+        return {deploy:async(input)=>({template_id:'tpl-test',build_id:'bld-test',status:'ready',ref:input.source.image})};
+      }});`);
+      expect(await deployProviderImage(input, {provider:"image-node",provider_options:{api_key:"own-key"}})).toEqual(result);
+      expect(load).toHaveBeenCalledOnce();
+    } finally { load.mockRestore(); }
+  });
   it("requires a real buildTemplates factory even with declared metadata", async () => {
     await nodePlugin(`export default ()=>({buildInfra(){throw Error('wrong path')}});`);
     await expect(getProvider("image-node").buildTemplates(loadLayeredConfig({ provider: "image-node", provider_options: { api_key: "own-key" } }))).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
+  });
+  it("keeps Express from-image parameters owned by its existing adapter", async () => {
+    const r = await new CliRunner().invoke(cli, ["template", "from-image", "--help"]);
+    expect(r.exit_code, r.output).toBe(0);
+    expect(r.stdout).toContain("--generation");
+    expect(r.stdout).toContain("--team-id");
+    expect(r.stdout).not.toContain("Requires templates.deploy");
   });
   it("runs the CLI image route and prints its exact JSON result", async () => {
     const p = provider();

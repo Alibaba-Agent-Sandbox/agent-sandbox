@@ -84,7 +84,7 @@ templateUi["install"] =  { params: _installParams({
     Related commands:
       abx template search QUERY  Find a template in the index
       abx template list          List registered templates
-      abx create --template ID   Launch the installed template
+      abx create ID   Launch the installed template
     `) };
 templateUi["list"] =  { params: [
     option(["--official-api"], {
@@ -135,7 +135,7 @@ templateUi["info"] =  { params: [
     \b
     Related commands:
       abx template list
-      abx create --template TEMPLATE_ID
+      abx create TEMPLATE_ID
       abx template delete TEMPLATE_ID
     `) };
 templateUi["create"] =  { params: [
@@ -186,20 +186,20 @@ templateUi["create"] =  { params: [
 
     \b
     Examples:
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --team-id team-xxx --cpu 4 --memory 4096
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --envd-inject --generation 1
-      abx template create registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
+      abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag \\
         --name my-template --region cn-shanghai
 
     \b
     Related commands:
       abx template push IMAGE       Push a local image to ACR first
       abx template info TEMPLATE_ID Inspect the created template
-      abx create --template ID      Launch a sandbox from the template
+      abx create ID      Launch a sandbox from the template
     `) };
 templateUi["push"] =  { params: [
     argument(["image"]),
@@ -238,7 +238,7 @@ templateUi["push"] =  { params: [
     \b
     Related commands:
       abx template build TEMPLATE_DIR  Build, push, and register a template
-      abx template create IMAGE        Register an existing image
+      abx template from-image IMAGE        Register an existing image
       abx config set access_key_id KEY
     `) };
 templateUi["build"] =  { params: [
@@ -376,9 +376,9 @@ templateUi["build"] =  { params: [
 
     \b
     Related commands:
-      abx template init DIRECTORY    Scaffold template source files
+      abx template scaffold DIRECTORY    Scaffold template source files
       abx template push IMAGE        Push an existing local image only
-      abx create --template ID       Launch the completed template
+      abx create ID       Launch the completed template
     `) };
 templateUi["deploy"] =  { params: [...templateUi["build"]!.params], help: "Build, push, and create template in one step (alias of 'template build').\n\n" +
     "Builds a Docker image locally, pushes it to ACR, and creates a sandbox " +
@@ -399,9 +399,9 @@ templateUi["deploy"] =  { params: [...templateUi["build"]!.params], help: "Build
     "    # one JSON object on stdout; the id is the TemplateID field\n\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx template init DIRECTORY  Scaffold a template project\n" +
+    "  abx template scaffold DIRECTORY  Scaffold a template project\n" +
     "  abx template list            Verify the registered template\n" +
-    "  abx create --template ID     Launch a sandbox from the template" };
+    "  abx create ID     Launch a sandbox from the template" };
 templateUi["delete"] =  { params: [
     argument(["template_id"]),
     option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation prompt" }),
@@ -436,7 +436,7 @@ export const DEPLOY_HELP = cleandoc(`Publish a template project: build, push to 
     and does not use Docker or ACR. template.yaml supplies the template name
     and resources.
 
-    To author the files first, use 'abx template init': --adopt for an existing
+    To author the files first, use 'abx template scaffold': --adopt for an existing
     project, a natural-language description to generate the files, or
     --template for a scaffold.
 
@@ -453,14 +453,14 @@ export const DEPLOY_HELP = cleandoc(`Publish a template project: build, push to 
 
     \b
     Typical flow:
-      abx template init --adopt .                      # 1a. author from a project
-      abx template init "a python data science env"   # 1b. generate from a description
+      abx template scaffold --adopt .                      # 1a. author from a project
+      abx template scaffold --prompt "a python data science env"   # 1b. generate from a description
       abx deploy ./<name> --acr-namespace my-ns       # 2. publish
-      abx create --template <TEMPLATE_ID>             # 3. launch a sandbox
+      abx create <TEMPLATE_ID>             # 3. launch a sandbox
 
     \b
     Related commands:
-      abx template init          Author Dockerfile / template.yaml
+      abx template scaffold          Author Dockerfile / template.yaml
       abx template deploy DIR    The same pipeline with a required DIRECTORY
       abx create "DESCRIPTION"   Generate + publish + launch in one go
     `);

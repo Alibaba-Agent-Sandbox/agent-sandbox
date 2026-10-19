@@ -162,7 +162,7 @@ export const template = group("template", {
     \b
     Examples:
       abx template search python
-      abx template init --template python --name my-template
+      abx template scaffold --template python --name my-template
       abx template list
 
     \b
@@ -314,7 +314,7 @@ export async function _tryArrowCasePicker(cases: Array<[
 /**
  * Return whether `value` is a sentence rather than a directory path.
  *
- * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template init [DIRECTORY]` invocations
+ * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template scaffold [DIRECTORY]` invocations
  * are unchanged. Whitespace or CJK text is a natural-language description. Prefix a directory that contains spaces
  * with `./`.
  */
@@ -350,8 +350,8 @@ export async function _selectScaffoldCase(cases: Array<[
     ])[0];
 }
 
-export const init = template.command("init", {
-    help: cleandoc(`Scaffold a new sandbox template project.
+export const init = template.command("scaffold", {
+  help: cleandoc(`Scaffold a new sandbox template project.
 
     Creates a ready-to-build template directory with template.yaml,
     Dockerfile, and (depending on the case) a commands.py file.
@@ -360,8 +360,8 @@ export const init = template.command("init", {
     When DIRECTORY is omitted a new ./<name> subdirectory is created
     (derived from --name, the scaffold case, or the fetched template).
 
-    A DIRECTORY that contains whitespace or CJK text is a natural-language
-    description: template generation (Qwen Code, needs 'abx config init --llm')
+    --prompt requests natural-language template generation; DIRECTORY always
+    names a directory. Template generation (Qwen Code, needs 'abx config init --llm')
     writes Dockerfile, commands.py (the HTTP server) and template.yaml into
     ./<name>/ and stops. An interactive
     terminal is asked for that directory first (Enter keeps ./<name>/).
@@ -374,223 +374,244 @@ export const init = template.command("init", {
 
     \b
     Examples:
-      abx template init --list                     # List built-in cases
-      abx template init -t python                  # Creates ./python/
-      abx template init -t python --name myapp     # Creates ./myapp/
-      abx template init -t python ./my-template    # Explicit directory
-      abx template init --from owner/repo          # Creates ./<template-name>/
-      abx template init "a python data science env"  # generate files only, no build
-      abx template init -y "a node.js api server"    # non-interactive generation
-      abx template init --adopt . --hint "port 8080" # adapt this project
-      abx template init --adopt ./app --dry-run      # show what would be sent
+      abx template scaffold --list                     # List built-in cases
+      abx template scaffold -t python                  # Creates ./python/
+      abx template scaffold -t python --name myapp     # Creates ./myapp/
+      abx template scaffold -t python ./my-template    # Explicit directory
+      abx template scaffold --from owner/repo          # Creates ./<template-name>/
+      abx template scaffold --prompt "a python data science env"  # generate files only, no build
+      abx template scaffold -y --prompt "a node.js api server"    # non-interactive generation
+      abx template scaffold --adopt . --hint "port 8080" # adapt this project
+      abx template scaffold --adopt ./app --dry-run      # show what would be sent
 
     \b
     Related commands:
       abx template deploy DIRECTORY
       abx template install TEMPLATE_REF
-      abx create --template TEMPLATE
-      abx create "DESCRIPTION"   # generate, build, deploy, and create
+      abx create TEMPLATE
+      abx create --prompt "DESCRIPTION"   # generate, build, deploy, and create
     `),
-    params: [
-        argument(["directory"], { default: null, required: false, type: new ClickPath() }),
-        option(["--template", "-t", "case"], { default: null, help: "Built-in scaffold case (python, node, minimal)" }),
-        option(["--from", "from_ref"], {
-            default: null,
-            help: "Fetch template source from a registry ref (owner/repo, local path)",
-        }),
-        option(["--name"], { default: null, help: "Template name (default: case name, or fetched template name)" }),
-        option(["--list", "list_cases"], { is_flag: true, default: false, help: "List available scaffold cases" }),
-        option(["--force"], { is_flag: true, default: false, help: "Overwrite existing files" }),
-        option(["--adopt"], {
-            is_flag: true,
-            default: false,
-            help: "Adapt an existing source project: template generation adds the template files " +
-                "(Dockerfile, commands.py, template.yaml). DIRECTORY is the project (default: .).",
-        }),
-        option(["--hint"], {
-            default: null,
-            help: "With --adopt: what the code cannot tell the generator (ports, services).",
-        }),
-        option(["--dry-run"], {
-            is_flag: true,
-            default: false,
-            help: "With --adopt: list what would be sent to the model. Nothing is sent or written.",
-        }),
-        option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
-        option(["--yes", "-y"], {
-            is_flag: true,
-            default: false,
-            help: "Skip confirmation prompts: the template directory, description " +
-                "clarification, and (with --adopt) the send and write prompts. Required for " +
-                "non-interactive template generation. " +
-                "Does not build or deploy. Replacing an existing Dockerfile still needs --force " +
-                "when there is no interactive preview.",
-        }),
-        option(["--model"], {
-            default: null,
-            help: "Model id for natural-language generation. Overrides llm_model for this command. " +
-                "An interactive terminal offers coding and chat models with the arrow keys when the chosen id does not exist.",
-        }),
-    ],
-    callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
-        const directory: string | null = params["directory"];
-        const { case: caseName0, from_ref: fromRef, list_cases: listCases, force, adopt, hint, yes } = params;
-        const dryRun: boolean = params["dry_run"];
-        let caseName: string | null = caseName0;
-        let name: string | null = params["name"];
-        const fmt = getFormatter(ctx);
-        const out = getOutput(ctx);
-        if (adopt || hint !== null || dryRun) {
-            if (!adopt)
-                throw usageError("--hint and --dry-run require --adopt.");
-            if (caseName || fromRef || listCases) {
-                throw usageError("--adopt cannot be combined with --template/-t, --from or --list.");
-            }
-            const adoptMod: Any = await _lazyModule("./_adopt.js");
-            await adoptMod.runAdopt(ctx, directory, {
-                hint,
-                name,
-                dry_run: dryRun,
-                force,
-                yes,
-                verbose: params["verbose_flag"],
-            });
-            return;
-        }
-        // --list: print available cases and exit
-        if (listCases) {
-            const cases = availableCases();
-            if (fmt.use_json) {
-                fmt.printData(cases.map(([c, d]) => ({ case: c, description: d })));
-            }
-            else {
-                for (const [c, desc] of cases) {
-                    echo(`  ${c.padEnd(12)} ${desc}`);
-                }
-            }
-            return;
-        }
-        // --template and --from are mutually exclusive
-        if (caseName && fromRef) {
-            throw usageError("--template/-t and --from are mutually exclusive. Use one or the other.");
-        }
-        // A sentence is a description, not a directory name. Generate the template files and stop — no build, push, deploy,
-        // or sandbox.
-        if (directory !== null && _isNlDescription(directory)) {
-            if (caseName || fromRef) {
-                throw usageError("A natural-language description cannot be combined with " +
-                    "--template/-t or --from. Drop those flags to generate a " +
-                    "template from the description, or drop the description to " +
-                    "scaffold or fetch a template.");
-            }
-            const sandboxMod: Any = await _lazyModule("./sandbox.js");
-            const generate = sandboxMod._generateLocalTemplate;
-            await generate(ctx, directory, { yes, name, force, ask_directory: true, model: params["model"] });
-            return;
-        }
-        // Whether the user explicitly provided a DIRECTORY argument
-        const dirProvided = directory !== null;
-        // --from: fetch from registry and copy source files into DIR
-        if (fromRef) {
-            const cfgMod = await _configCmd();
-            const resolveGithubToken = cfgMod.resolveGithubToken;
-            const fetchFrom = async (active: string | null): Promise<[
-                Any,
-                string
-            ]> => {
-                const client = new RegistryClient("https://github.com", active);
-                const ref = await client.resolve(fromRef);
-                if (ref.is_builtin) {
-                    throw usageError(`'${fromRef}' is a built-in template and cannot be used with --from. ` + "Use -t/--template for built-in cases.");
-                }
-                return [ref, await out.spinner(`Fetching template from ${fromRef}`, () => client.fetch(ref))];
-            };
-            const [ref, sourcePath] = await _withGithubRateLimitRetry(fetchFrom, { token: await resolveGithubToken(), fmt, out });
-            const source = String(sourcePath);
-            // A local directory with no manifest is a source project, not a template. Copying it would also copy .env and
-            // .git. Remote refs stay tolerant.
-            if ((ref.registry_type ?? "") === "local" && _findTemplateYaml(source) === null) {
-                throw new CliError(`'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template init --adopt ${fromRef}`);
-            }
-            // Derive name: --name > template.yaml name > ref basename
-            if (name === null) {
-                const yamlPath = _findTemplateYaml(source);
-                if (yamlPath) {
-                    const tmpl = loadTemplateFromYaml(yamlPath);
-                    name = tmpl.name || "";
-                }
-                if (!name) {
-                    // Fallback: repo basename or last path component
-                    if (ref.path) {
-                        const stripped = (ref.path as string).replace(/\/+$/, "");
-                        name = stripped.slice(stripped.lastIndexOf("/") + 1);
-                    }
-                    else {
-                        name = ref.repo || nodePath.basename(fromRef);
-                    }
-                }
-            }
-            if (!name)
-                throw new Error("");
-            // Resolve target directory
-            const target = dirProvided ? pyResolve(directory as string) : pyJoin(process.cwd(), name);
-            mkdirParents(target);
-            // Check for conflicts
-            if (!force) {
-                const conflicts = scandirNames(source).filter((f) => pathExists(pyJoin(target, f)));
-                if (conflicts.length > 0) {
-                    throw new CliError(`Files already exist in ${target}: ${conflicts.slice(0, 5).join(", ")}. ` + "Use --force to overwrite.");
-                }
-            }
-            pyCopytree(source, target);
-            out.info(`Template files copied from ${fromRef} to ${target}`);
-            const created = fs
-                .readdirSync(target)
-                .filter((f) => isFile(nodePath.join(target, f)));
-            _printInitSummary(fmt, out, target, created, name);
-            return;
-        }
-        // Interactive selection when no --template/--from given
-        if (caseName === null) {
-            const cases = availableCases();
-            if (templateSeams._scaffoldPickerAvailable(fmt)) {
-                caseName = await _selectScaffoldCase(cases);
-            }
-            else {
-                const caseNames = cases.map(([c]) => c).join(", ");
-                throw usageError(`No scaffold case specified. Available cases: ${caseNames}. ` + "Use -t/--template <case> or --from <ref>.");
-            }
-        }
-        // Derive name: --name > case name > "my-template"
-        if (name === null) {
-            name = caseName || "my-template";
-        }
-        // Resolve target directory
-        const target = dirProvided ? pyResolve(directory as string) : pyJoin(process.cwd(), name);
-        // Render scaffold files
-        let files: Map<string, string>;
-        try {
-            files = renderScaffold(caseName as string, name);
-        }
-        catch (exc) {
-            if (exc instanceof ValueError)
-                throw usageError(exc.message);
-            throw exc;
-        }
-        // Check for conflicts
-        mkdirParents(target);
-        if (!force) {
-            const conflicts = [...files.keys()].filter((fn) => pathExists(pyJoin(target, fn)));
-            if (conflicts.length > 0) {
-                throw new CliError(`Files already exist in ${target}: ${conflicts.join(", ")}. ` + "Use --force to overwrite.");
-            }
-        }
-        // Write files
-        for (const [filename, content] of files) {
-            writeTextPy(pyJoin(target, filename), content);
-        }
-        _printInitSummary(fmt, out, target, [...files.keys()], name);
+  params: [
+    argument(["directory"], { default: null, required: false, type: new ClickPath() }),
+    option(["--prompt"], { default: null, help: "Generate a template from a natural-language description" }),
+    option(["--template", "-t", "case"], { default: null, help: "Built-in scaffold case (python, node, minimal)" }),
+    option(["--from", "from_ref"], {
+      default: null,
+      help: "Fetch template source from a registry ref (owner/repo, local path)",
     }),
+    option(["--name"], { default: null, help: "Template name (default: case name, or fetched template name)" }),
+    option(["--list", "list_cases"], { is_flag: true, default: false, help: "List available scaffold cases" }),
+    option(["--force"], { is_flag: true, default: false, help: "Overwrite existing files" }),
+    option(["--adopt"], {
+      is_flag: true,
+      default: false,
+      help:
+        "Adapt an existing source project: template generation adds the template files " +
+        "(Dockerfile, commands.py, template.yaml). DIRECTORY is the project (default: .).",
+    }),
+    option(["--hint"], {
+      default: null,
+      help: "With --adopt: what the code cannot tell the generator (ports, services).",
+    }),
+    option(["--dry-run"], {
+      is_flag: true,
+      default: false,
+      help: "With --adopt: list what would be sent to the model. Nothing is sent or written.",
+    }),
+    option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
+    option(["--yes", "-y"], {
+      is_flag: true,
+      default: false,
+      help:
+        "Skip confirmation prompts: the template directory, description " +
+        "clarification, and (with --adopt) the send and write prompts. Required for " +
+        "non-interactive template generation. " +
+        "Does not build or deploy. Replacing an existing Dockerfile still needs --force " +
+        "when there is no interactive preview.",
+    }),
+    option(["--model"], {
+      default: null,
+      help:
+        "Model id for natural-language generation. Overrides llm_model for this command. " +
+        "An interactive terminal offers coding and chat models with the arrow keys when the chosen id does not exist.",
+    }),
+  ],
+  callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
+    const directory: string | null = params["directory"];
+    const { case: caseName0, from_ref: fromRef, list_cases: listCases, force, adopt, hint, yes } = params;
+    const dryRun: boolean = params["dry_run"];
+    let caseName: string | null = caseName0;
+    let name: string | null = params["name"];
+
+    const fmt = getFormatter(ctx);
+    const out = getOutput(ctx);
+
+    if (adopt || hint !== null || dryRun) {
+      if (!adopt) throw usageError("--hint and --dry-run require --adopt.");
+      if (caseName || fromRef || listCases) {
+        throw usageError("--adopt cannot be combined with --template/-t, --from or --list.");
+      }
+      const adoptMod: Any = await _lazyModule("./_adopt.js");
+      await adoptMod.runAdopt(ctx, directory, {
+        hint,
+        name,
+        dry_run: dryRun,
+        force,
+        yes,
+        verbose: params["verbose_flag"],
+      });
+      return;
+    }
+
+    // --list: print available cases and exit
+    if (listCases) {
+      const cases = availableCases();
+      if (fmt.use_json) {
+        fmt.printData(cases.map(([c, d]) => ({ case: c, description: d })));
+      } else {
+        for (const [c, desc] of cases) {
+          echo(`  ${c.padEnd(12)} ${desc}`);
+        }
+      }
+      return;
+    }
+
+    // --template and --from are mutually exclusive
+    if (caseName && fromRef) {
+      throw usageError("--template/-t and --from are mutually exclusive. Use one or the other.");
+    }
+
+    // A sentence is a description, not a directory name. Generate the template files and stop — no build, push, deploy,
+    // or sandbox.
+    if (params["prompt"] !== null) {
+      if (caseName || fromRef) {
+        throw usageError(
+          "A natural-language description cannot be combined with " +
+            "--template/-t or --from. Drop those flags to generate a " +
+            "template from the description, or drop the description to " +
+            "scaffold or fetch a template.",
+        );
+      }
+      const sandboxMod: Any = await _lazyModule("./sandbox.js");
+      const generate = sandboxMod._generateLocalTemplate;
+      await generate(ctx, params["prompt"], { yes, name, force, ask_directory: true, model: params["model"], ...(directory ? { directory } : {}) });
+      return;
+    }
+
+    // Whether the user explicitly provided a DIRECTORY argument
+    const dirProvided = directory !== null;
+
+    // --from: fetch from registry and copy source files into DIR
+    if (fromRef) {
+      const cfgMod = await _configCmd();
+      const resolveGithubToken = cfgMod.resolveGithubToken;
+
+      const fetchFrom = async (active: string | null): Promise<[Any, string]> => {
+        const client = new RegistryClient("https://github.com", active);
+        const ref = await client.resolve(fromRef);
+        if (ref.is_builtin) {
+          throw usageError(
+            `'${fromRef}' is a built-in template and cannot be used with --from. ` + "Use -t/--template for built-in cases.",
+          );
+        }
+        return [ref, await out.spinner(`Fetching template from ${fromRef}`, () => client.fetch(ref))];
+      };
+
+      const [ref, sourcePath] = await _withGithubRateLimitRetry(fetchFrom, { token: await resolveGithubToken(), fmt, out });
+
+      const source = String(sourcePath);
+
+      // A local directory with no manifest is a source project, not a template. Copying it would also copy .env and
+      // .git. Remote refs stay tolerant.
+      if ((ref.registry_type ?? "") === "local" && _findTemplateYaml(source) === null) {
+        throw new CliError(
+          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template scaffold --adopt ${fromRef}`,
+        );
+      }
+
+      // Derive name: --name > template.yaml name > ref basename
+      if (name === null) {
+        const yamlPath = _findTemplateYaml(source);
+        if (yamlPath) {
+          const tmpl = loadTemplateFromYaml(yamlPath);
+          name = tmpl.name || "";
+        }
+        if (!name) {
+          // Fallback: repo basename or last path component
+          if (ref.path) {
+            const stripped = (ref.path as string).replace(/\/+$/, "");
+            name = stripped.slice(stripped.lastIndexOf("/") + 1);
+          } else {
+            name = ref.repo || nodePath.basename(fromRef);
+          }
+        }
+      }
+      if (!name) throw new Error("");
+
+      // Resolve target directory
+      const target = dirProvided ? pyResolve(directory as string) : pyJoin(process.cwd(), name);
+
+      mkdirParents(target);
+      // Check for conflicts
+      if (!force) {
+        const conflicts = scandirNames(source).filter((f) => pathExists(pyJoin(target, f)));
+        if (conflicts.length > 0) {
+          throw new CliError(`Files already exist in ${target}: ${conflicts.slice(0, 5).join(", ")}. ` + "Use --force to overwrite.");
+        }
+      }
+      pyCopytree(source, target);
+      out.info(`Template files copied from ${fromRef} to ${target}`);
+      const created = fs
+        .readdirSync(target)
+        .filter((f) => isFile(nodePath.join(target, f)));
+      _printInitSummary(fmt, out, target, created, name);
+      return;
+    }
+
+    // Interactive selection when no --template/--from given
+    if (caseName === null) {
+      const cases = availableCases();
+      if (templateSeams._scaffoldPickerAvailable(fmt)) {
+        caseName = await _selectScaffoldCase(cases);
+      } else {
+        const caseNames = cases.map(([c]) => c).join(", ");
+        throw usageError(`No scaffold case specified. Available cases: ${caseNames}. ` + "Use -t/--template <case> or --from <ref>.");
+      }
+    }
+
+    // Derive name: --name > case name > "my-template"
+    if (name === null) {
+      name = caseName || "my-template";
+    }
+
+    // Resolve target directory
+    const target = dirProvided ? pyResolve(directory as string) : pyJoin(process.cwd(), name);
+
+    // Render scaffold files
+    let files: Map<string, string>;
+    try {
+      files = renderScaffold(caseName as string, name);
+    } catch (exc) {
+      if (exc instanceof ValueError) throw usageError(exc.message);
+      throw exc;
+    }
+
+    // Check for conflicts
+    mkdirParents(target);
+    if (!force) {
+      const conflicts = [...files.keys()].filter((fn) => pathExists(pyJoin(target, fn)));
+      if (conflicts.length > 0) {
+        throw new CliError(`Files already exist in ${target}: ${conflicts.join(", ")}. ` + "Use --force to overwrite.");
+      }
+    }
+
+    // Write files
+    for (const [filename, content] of files) {
+      writeTextPy(pyJoin(target, filename), content);
+    }
+
+    _printInitSummary(fmt, out, target, [...files.keys()], name);
+  }),
 });
 
 /** Print a friendly summary after scaffold init. */

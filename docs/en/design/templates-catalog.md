@@ -318,7 +318,7 @@ abx create hello/world --no-cache            # Skip cache, force re-download
 # ── Template Build and Push ────────────────────────
 abx template build . --name my-app --tag v1.0
 abx template push my-app:v1.0
-abx template init my-template                # Initialize template scaffolding
+abx template scaffold my-template                # Initialize template scaffolding
 
 # ── Template Info and Search ────────────────────────
 abx template info python-data-science

@@ -157,7 +157,7 @@ export function exitCodeFor(exc: unknown): number {
 export class ProviderTemplateHostError extends ProviderConfigError {
   constructor(reason: "node-version" | "sdk-missing") {
     super(reason === "node-version"
-      ? "E2B image deployment requires Node.js 22 or newer."
-      : "E2B image deployment needs the optional e2b dependency; install this CLI with optional dependencies enabled.");
+      ? "The requested provider SDK helper requires Node.js 22 or newer."
+      : "The requested provider SDK helper needs an optional dependency; install this CLI with optional dependencies enabled.");
   }
 }

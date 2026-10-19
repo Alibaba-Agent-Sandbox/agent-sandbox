@@ -172,7 +172,7 @@ it("test_scaffold_init_writes_the_given_directory", async () => {
   process.chdir(tmp);
   const dest = path.join(tmp, "nested", "my-template");
 
-  const result = await runner().invoke(cli, ["template", "init", dest, "-t", "python"]);
+  const result = await runner().invoke(cli, ["template", "scaffold", dest, "-t", "python"]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(isFile(path.join(dest, "Dockerfile"))).toBe(true);
@@ -186,7 +186,7 @@ it("test_scaffold_init_defaults_to_a_subdirectory_of_cwd", async () => {
   const tmp = tmpPath();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["template", "init", "-t", "node", "--name", "myapp"]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-t", "node", "--name", "myapp"]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(isFile(path.join(tmp, "myapp", "Dockerfile"))).toBe(true);
@@ -203,7 +203,7 @@ it("test_nl_init_writes_under_cwd_and_does_not_deploy", async () => {
   process.chdir(tmp);
   const create = spyCreate();
 
-  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -219,7 +219,7 @@ it("test_nl_init_name_selects_the_subdirectory", async () => {
   const ready = agentReady();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["template", "init", "-y", "--name", "myapp", "一个数据分析环境"]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--name", "myapp", "--prompt", "一个数据分析环境"]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -231,7 +231,7 @@ it("test_nl_init_name_selects_the_subdirectory", async () => {
 it("test_nl_init_rejects_a_second_directory_argument", async () => {
   // The description occupies the only positional; a path cannot ride along.
   const tmp = tmpPath();
-  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION, path.join(tmp, "elsewhere")]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION, path.join(tmp, "elsewhere")]);
 
   expect(result.exit_code).not.toBe(0);
   expect(exists(path.join(tmp, "elsewhere"))).toBe(false);
@@ -242,7 +242,7 @@ it("test_top_level_init_matches_template_init", async () => {
   const ready = agentReady();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -260,7 +260,7 @@ it("test_create_switch_stops_after_the_local_template", async () => {
   fakeTty();
   const create = spyCreate();
 
-  const result = await runner().invoke(cli, ["create", _DESCRIPTION], { input: "y\n" });
+  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION], { input: "y\n" });
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(_shown(result)).toContain("Switch to template init");
@@ -275,7 +275,7 @@ it("test_create_yes_deploys_and_creates_a_sandbox", async () => {
   process.chdir(tmp);
   spyCreate(_sandbox());
 
-  const result = await runner().invoke(cli, ["create", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["create", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(_shown(result)).not.toContain("Switch to template init");
@@ -291,7 +291,7 @@ it("test_sandbox_create_yes_is_the_same_pipeline", async () => {
   process.chdir(tmp);
   spyCreate(_sandbox());
 
-  const result = await runner().invoke(cli, ["sandbox", "create", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["sandbox", "create", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).toHaveBeenCalledTimes(1);
@@ -304,12 +304,12 @@ it("test_noninteractive_create_reminds_about_init_and_does_not_launch", async ()
   process.chdir(tmp);
   const create = spyCreate();
 
-  const result = await runner().invoke(cli, ["create", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code).not.toBe(0);
   const shown = _shown(result);
   expect(shown).toContain("Confirmation required");
-  expect(shown).toContain("abx template init");
+  expect(shown).toContain("abx template scaffold");
   expect(ready.deploy).not.toHaveBeenCalled();
   expect(create).not.toHaveBeenCalled();
 });
@@ -369,7 +369,7 @@ it("test_nl_init_delivers_a_usable_template_not_just_a_dockerfile", async () => 
   process.chdir(tmp);
   const prompts = _fakeQwen();
 
-  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -395,7 +395,7 @@ it("test_nl_init_rejects_a_dockerfile_only_result_and_writes_nothing", async () 
   process.chdir(tmp);
   _fakeQwen(null);
 
-  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code).not.toBe(0);
   expect(_shown(result)).toContain("commands.py");
@@ -409,7 +409,7 @@ it("test_nl_init_rejects_a_commands_py_that_never_starts_the_server", async () =
   process.chdir(tmp);
   _fakeQwen("print('hello')\n");
 
-  const result = await runner().invoke(cli, ["template", "init", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code).not.toBe(0);
   expect(_shown(result)).toContain("SandboxServer");
@@ -423,7 +423,7 @@ it("test_create_yes_hands_the_whole_workspace_to_deploy", async () => {
   _fakeQwen();
   spyCreate(_sandbox());
 
-  const result = await runner().invoke(cli, ["create", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["create", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).toHaveBeenCalledTimes(1);
@@ -440,7 +440,7 @@ it("test_create_yes_with_a_dockerfile_only_result_never_deploys", async () => {
   _fakeQwen(null);
   const create = spyCreate();
 
-  const result = await runner().invoke(cli, ["create", "-y", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["create", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code).not.toBe(0);
   expect(_shown(result)).toContain("commands.py");
@@ -463,7 +463,7 @@ it("test_answers_typed_at_the_directory_prompt_leave_no_directories", async () =
 
   // switch=n, directory="pandas" (meant as a clarification answer), confirm=y
   spyCreate(_sandbox());
-  const result = await runner().invoke(cli, ["create", _DESCRIPTION], { input: "n\npandas\ny\n" });
+  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION], { input: "n\npandas\ny\n" });
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(exists(path.join(tmp, "pandas"))).toBe(false);

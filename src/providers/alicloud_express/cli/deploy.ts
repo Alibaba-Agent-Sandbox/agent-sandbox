@@ -7,7 +7,7 @@ import { DEPLOY_HELP } from "./metadata.js";
  * it (`--acr-namespace`, `--alias`, `--yes`, `-v/--verbose`, ...).
  *
  * It takes no description and needs no LLM: everything about *what* the template is (name, resources, ports,
- * capabilities) is authored earlier — by hand, from `abx template init`, or by `abx template init "DESCRIPTION"` (template
+ * capabilities) is authored earlier — by hand, from `abx template scaffold`, or by `abx template scaffold --prompt "DESCRIPTION"` (template
  * generation) — and lives in `template.yaml`, which `deploy` only reads. It does not create a sandbox, so it has no
  * `--timeout` option.
  */
@@ -73,9 +73,9 @@ export const deploy_shortcut = command("deploy", {
     } catch (e) {
       if (e instanceof BuildModeError) {
         const hint = e.message.startsWith("No Dockerfile")
-          ? " Author the template first: 'abx template init --adopt .' (adapt this project), " +
-            "'abx template init \"DESCRIPTION\"' (generate) or " +
-            "'abx template init --template python' (scaffold)."
+          ? " Author the template first: 'abx template scaffold --adopt .' (adapt this project), " +
+            "'abx template scaffold \"DESCRIPTION\"' (generate) or " +
+            "'abx template scaffold --template python' (scaffold)."
           : "";
         throw new UsageError(e.message + hint, getCurrentContext(true));
       }

@@ -1,4 +1,5 @@
 import type { ProviderTemplateManager } from "./template_contract.js";
+import { loadTemplate } from "./shared/e2b/template_sdk.js";
 import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
 import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
 import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
@@ -23,7 +24,7 @@ import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
 import { Provider, consentedInherit, type ProviderInfra, type ProviderTemplates } from "./base.js";
 import { unsupportedAdapter } from "./exec_provider.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderTemplateHostError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError } from "./errors.js";
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import { hostVersion } from "./host.js";
 import { eppInfra, type EppFactory } from "./node_epp.js";
@@ -90,7 +91,7 @@ export interface ProviderKit {
   CodeInterpreterProtocol: typeof CodeInterpreterProtocol;
   errors: { InvalidAPIKeyError: typeof InvalidAPIKeyError; ProviderConfigError: typeof ProviderConfigError; ProviderFeatureNotSupportedError: typeof ProviderFeatureNotSupportedError };
   e2b: {
-    Template?: unknown;
+    loadTemplate(): Promise<unknown>;
     resumeConnect<T extends SandboxProtocol>(inner: T, paths?: readonly string[]): T;
     withDefault<T extends object>(inner: T, option: string, value: string, methods: readonly string[]): T;
     overlay<T extends object, O extends object>(inner: T, overrides: O): T & O;
@@ -196,7 +197,7 @@ export function parseExecution(raw: string): { stdout: string; stderr: string; t
   return { stdout: stdout.join(""), stderr: stderr.join(""), text: text || stdout.join("").trim(), exitCode };
 }
 
-export function providerKit(Template?: unknown): ProviderKit {
+export function providerKit(): ProviderKit {
   return {
     hostVersion: hostVersion(),
     SandboxProtocol,
@@ -204,7 +205,7 @@ export function providerKit(Template?: unknown): ProviderKit {
     FilesystemProtocol,
     CodeInterpreterProtocol,
     errors: { InvalidAPIKeyError, ProviderConfigError, ProviderFeatureNotSupportedError },
-    e2b: { resumeConnect, withDefault, overlay, parseExecution, Template },
+    e2b: { resumeConnect, withDefault, overlay, parseExecution, loadTemplate },
     epp: { infra: eppInfra },
   };
 }
@@ -212,9 +213,9 @@ export function providerKit(Template?: unknown): ProviderKit {
 const loaded = new Map<string, NodePlugin>();
 
 /** Import the plugin module once per installed tree digest; an update gets a fresh module. */
-async function loadPlugin(id: string, root: string, entry: string, digest: string, templates = false): Promise<NodePlugin> {
+async function loadPlugin(id: string, root: string, entry: string, digest: string): Promise<NodePlugin> {
   const file = path.resolve(root, entry);
-  const key = `${file}#${digest}#${templates}`;
+  const key = `${file}#${digest}`;
   const cached = loaded.get(key);
   if (cached !== undefined) return cached;
   const url = `${pathToFileURL(file).href}?v=${encodeURIComponent(digest || "link")}`;
@@ -223,16 +224,7 @@ async function loadPlugin(id: string, root: string, entry: string, digest: strin
   if (typeof factory !== "function") {
     throw new ProviderConfigError(`Provider '${id}': ${entry} must export a function (default or "create") that takes the kit.`);
   }
-  let Template: unknown | undefined;
-  if (templates && id === "e2b") {
-    if (Number(process.versions.node.split(".")[0]) < 22) {
-      throw new ProviderTemplateHostError("node-version");
-    }
-    const sdkPackage = "e2b";
-    try { ({ Template } = await import(sdkPackage) as { Template: unknown }); }
-    catch { throw new ProviderTemplateHostError("sdk-missing"); }
-  }
-  const plugin = (await (factory as (kit: ProviderKit) => unknown)(providerKit(Template))) as NodePlugin | null;
+  const plugin = (await (factory as (kit: ProviderKit) => unknown)(providerKit())) as NodePlugin | null;
   if (plugin === null || typeof plugin !== "object" || typeof plugin.buildInfra !== "function") {
     throw new ProviderConfigError(`Provider '${id}': ${entry} must return an object with buildInfra(ctx).`);
   }
@@ -269,11 +261,11 @@ export class NodeProvider extends Provider {
     this.inherit = consentedInherit(manifest.inherit, receipt);
   }
 
-  private async context(config: LayeredConfig, templates = false) {
+  private async context(config: LayeredConfig) {
     this.validateConfig(config);
     if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
     const digest = String(this.receipt?.["tree_sha256"] ?? "");
-    const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, digest, templates);
+    const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, digest);
 
     const options: Dict = {};
     for (const f of this.configFields) {
@@ -319,7 +311,7 @@ export class NodeProvider extends Provider {
 
   override async buildTemplates(config: LayeredConfig): Promise<ProviderTemplates> {
     this.require("templates.deploy");
-    const { plugin, ctx, clients } = await this.context(config, true);
+    const { plugin, ctx, clients } = await this.context(config);
     let built: ProviderTemplates | undefined;
     let closed = false;
     const close = async (): Promise<void> => {

@@ -485,7 +485,7 @@ describe("TestValidateTemplateWorkspace", () => {
   it("default suggestion names the workspace and the fallback command", async () => {
     const exc = await raises(() => validateTemplateWorkspace(tmpPath, "n"), AICodegenError);
     expect(exc.suggestion).toBe(
-      `Inspect the generated workspace: ${tmpPath} — then retry, or fall back to 'abx create --template <name>'.`,
+      `Inspect the generated workspace: ${tmpPath} — then retry, or fall back to 'abx create <name>'.`,
     );
   });
 

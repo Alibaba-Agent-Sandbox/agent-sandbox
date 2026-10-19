@@ -1,0 +1,4 @@
+TemplateID  Alias        Status
+tmpl-001    python-base  ready
+tmpl-002    node-web     ready
+[exit_code:0]

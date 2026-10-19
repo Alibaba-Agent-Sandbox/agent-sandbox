@@ -50,7 +50,7 @@ export function runBinary({ bin, argv, env, cwd, stdin, timeoutMs = 120_000 }) {
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawn(cmd, [...pre, ...argv], { env, cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+      child = spawn(cmd, [...pre, ...argv], { env, cwd, stdio: [stdin === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'] });
     } catch (e) {
       resolve({ code: 127, signal: null, stdout: '', stderr: `spawn failed: ${e.message}`, ms: 0, timedOut: false, spawnError: true });
       return;
@@ -67,9 +67,11 @@ export function runBinary({ bin, argv, env, cwd, stdin, timeoutMs = 120_000 }) {
       clearTimeout(timer);
       resolve({ code: code ?? (timedOut ? 124 : 1), signal, stdout, stderr, ms: Date.now() - started, timedOut, spawnError });
     });
-    child.stdin.on('error', () => {});
-    if (stdin !== undefined) child.stdin.write(stdin);
-    child.stdin.end();
+    if (child.stdin) {
+      child.stdin.on('error', () => {});
+      if (stdin !== undefined) child.stdin.write(stdin);
+      child.stdin.end();
+    }
   });
 }
 

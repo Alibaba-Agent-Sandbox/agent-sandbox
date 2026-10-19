@@ -13,10 +13,10 @@ export default {
   needs: ['cloud', 'docker'],
   scenarios: [
     {
-      id: 'deploy-minimal-template', title: 'template init + deploy --acr-namespace builds, pushes and registers a template', timeoutMs: 1_500_000,
+      id: 'deploy-minimal-template', title: 'template scaffold + deploy --acr-namespace builds, pushes and registers a template', timeoutMs: 1_500_000,
       async run(ctx) {
         const dir = join(ctx.newCwd('deploy'), 'tpl');
-        let r = await ctx.abx(['template', 'init', dir, '--template', 'python', '--name', TPL]);
+        let r = await ctx.abx(['template', 'scaffold', dir, '--template', 'python', '--name', TPL]);
         if (r.code !== 0) ctx.fail(`init exit ${r.code}\n${r.out}`);
         r = await ctx.abx(['--json', 'template', 'deploy', dir, '--acr-namespace', ctx.creds.ACR_NAMESPACE, '--yes'], { timeoutMs: 1_400_000 });
         if (r.code !== 0) ctx.fail(`deploy exit ${r.code}\n${r.out}`);
@@ -41,6 +41,6 @@ export default {
     if (sid(ctx)) { await ctx.abx(['kill', sid(ctx), '--yes']); ctx.untrack(sid(ctx)); }
     const info = await ctx.abx(['template', 'info', TPL]);
     const id = /templateID\s+(\S+)/.exec(info.maskedStdout ?? '')?.[1];
-    if (id) await ctx.abx(['template', 'delete', id, '--yes']);
+    if (id) await ctx.abx(['--json', 'template', 'delete', id, '--yes']);
   },
 };

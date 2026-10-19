@@ -1,0 +1,72 @@
+Usage: abx template scaffold [options] [DIRECTORY]
+
+Scaffold a new sandbox template project.
+
+Creates a ready-to-build template directory with template.yaml,
+Dockerfile, and (depending on the case) a commands.py file.
+Nothing is built, pushed, deployed, or turned into a sandbox.
+
+When DIRECTORY is omitted a new ./<name> subdirectory is created
+(derived from --name, the scaffold case, or the fetched template).
+
+--prompt requests natural-language template generation; DIRECTORY always
+names a directory. Template generation (Qwen Code, needs 'abx config init
+--llm')
+writes Dockerfile, commands.py (the HTTP server) and template.yaml into
+./<name>/ and stops. An interactive
+terminal is asked for that directory first (Enter keeps ./<name>/).
+A path token (my-app, ./my app) stays a directory.
+
+--adopt adapts a project that already has source code and no template
+files. Template generation sees a copy, and only Dockerfile, commands.py,
+template.yaml and a generated .dockerignore are written back, after you
+confirm. Nothing is built or deployed.
+
+Examples:
+  abx template scaffold --list                     # List built-in cases
+  abx template scaffold -t python                  # Creates ./python/
+  abx template scaffold -t python --name myapp     # Creates ./myapp/
+  abx template scaffold -t python ./my-template    # Explicit directory
+  abx template scaffold --from owner/repo          # Creates ./<template-name>/
+  abx template scaffold --prompt "a python data science env"  # generate files
+only, no build
+  abx template scaffold -y --prompt "a node.js api server"    # non-interactive
+generation
+  abx template scaffold --adopt . --hint "port 8080" # adapt this project
+  abx template scaffold --adopt ./app --dry-run      # show what would be sent
+
+Related commands:
+  abx template deploy DIRECTORY
+  abx template install TEMPLATE_REF
+  abx create TEMPLATE
+  abx create --prompt "DESCRIPTION"   # generate, build, deploy, and create
+
+Options:
+  --prompt <PROMPT>      Generate a template from a natural-language description
+  -t, --template <CASE>  Built-in scaffold case (python, node, minimal)
+  --from <FROM_REF>      Fetch template source from a registry ref (owner/repo,
+                         local path)
+  --name <NAME>          Template name (default: case name, or fetched template
+                         name)
+  --list                 List available scaffold cases
+  --force                Overwrite existing files
+  --adopt                Adapt an existing source project: template generation
+                         adds the template files (Dockerfile, commands.py,
+                         template.yaml). DIRECTORY is the project (default: .).
+  --hint <HINT>          With --adopt: what the code cannot tell the generator
+                         (ports, services).
+  --dry-run              With --adopt: list what would be sent to the model.
+                         Nothing is sent or written.
+  -v, --verbose          Verbose output (DEBUG level)
+  -y, --yes              Skip confirmation prompts: the template directory,
+                         description clarification, and (with --adopt) the send
+                         and write prompts. Required for non-interactive
+                         template generation. Does not build or deploy.
+                         Replacing an existing Dockerfile still needs --force
+                         when there is no interactive preview.
+  --model <MODEL>        Model id for natural-language generation. Overrides
+                         llm_model for this command. An interactive terminal
+                         offers coding and chat models with the arrow keys when
+                         the chosen id does not exist.
+  -h, --help             Show this message and exit.
+[exit_code:0]

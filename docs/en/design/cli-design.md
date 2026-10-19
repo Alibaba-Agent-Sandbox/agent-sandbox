@@ -1,3 +1,5 @@
+> For standard Express commands use the [E2B migration contract](../guide/migrate-from-e2b.md): create takes a template, --prompt requests generation, template create uses E2B build semantics, and from-image creates an Alibaba image template.
+
 # CLI Command System Design
 
 > `abx` CLI is the command-line entry point for Agent Sandbox, designed for both human developers and AI Agents. The CLI's ultimate goal: **Users don't need to know about templates, resource specs, or configuration parameters — just describe what you want to do, and the sandbox handles everything automatically.**
@@ -111,7 +113,7 @@ abx list --json --quiet
 abx list --ci
 
 # Specify log level
-abx create "python environment" --log-level DEBUG
+abx create --prompt "python environment" --log-level DEBUG
 ```
 
 `--region`/`-r` is a **command-level option**, not a global one. Only commands that talk to a regional control plane accept it:
@@ -142,9 +144,9 @@ The CLI automatically detects CI environments (`CI`, `GITHUB_ACTIONS`, `GITLAB_C
 | Invocation | Path |
 |-----------|------|
 | `abx create` (no arguments) | **Rejected** — explicit usage error (exit code 2) listing the three valid routes; bare create never defaults to `base` silently |
-| `abx create --template <name>` | Direct template path (no template generation) |
-| `abx create "natural language description"` | generation path (the focus of this section) |
-| `abx create "description" --template <name>` | Rejected — `DESCRIPTION` and `--template` are mutually exclusive (usage error, exit code 2) |
+| `abx create <name>` | Direct template path (no template generation) |
+| `abx create --prompt "natural language description"` | generation path (the focus of this section) |
+| `abx create --prompt "description" --template <name>` | Rejected — `DESCRIPTION` and `--template` are mutually exclusive (usage error, exit code 2) |
 
 Neither input is ever silently dropped: when both are given the command refuses to run.
 
@@ -152,7 +154,7 @@ Neither input is ever silently dropped: when both are given the command refuses 
 
 ```mermaid
 graph TD
-    Input["abx create 'description'"] --> Scope{"Interactive TTY<br/>and no --yes?"}
+    Input["abx create --prompt 'description'"] --> Scope{"Interactive TTY<br/>and no --yes?"}
     Scope -- "switch to init" --> Find
     Scope -- "continue / --yes / non-TTY" --> Find{"Locate Qwen Code<br/>PATH / ~/.abx/bin"}
     Find -- not installed --> Install{"Interactive TTY and no --yes?"}
@@ -176,7 +178,7 @@ graph TD
     Verify -- fail --> E2007
 ```
 
-**Scope check.** Before any install or generation, an interactive terminal is shown that natural-language create will generate a template, build and push the image, deploy it, and create a sandbox, and is asked whether to switch to template init. Answering yes runs the same local-only generation as `abx template init "DESCRIPTION"` (`Dockerfile`, `commands.py`, `template.yaml`, and `README.md` under `./<name>/`) and stops — no build, push, deploy, or sandbox. The default is to continue the full create. `--yes` and `--json` skip the question and keep the full pipeline. A non-interactive shell prints the same reminder and continues; the build confirmation below still applies.
+**Scope check.** Before any install or generation, an interactive terminal is shown that natural-language create will generate a template, build and push the image, deploy it, and create a sandbox, and is asked whether to switch to template init. Answering yes runs the same local-only generation as `abx template scaffold --prompt "DESCRIPTION"` (`Dockerfile`, `commands.py`, `template.yaml`, and `README.md` under `./<name>/`) and stops — no build, push, deploy, or sandbox. The default is to continue the full create. `--yes` and `--json` skip the question and keep the full pipeline. A non-interactive shell prints the same reminder and continues; the build confirmation below still applies.
 
 1. **Executable discovery**: checks `PATH` first, then `~/.abx/bin` (recognizing `.cmd`/`.exe` suffixes on Windows).
 2. **Install guidance**: when missing, interactive terminals are asked whether to install the official standalone build (SHA256-verified, atomically installed into `~/.abx/bin`, executable bit set on Unix); non-TTY or a declined prompt raises `E2005` with the Quick Setup — no hang, no silent fallback.
@@ -189,23 +191,23 @@ graph TD
 
 ```bash
 # Interactive: generated template → build & deploy → create
-# abx create "run python data analysis with pandas and jupyter"
+# abx create --prompt "run python data analysis with pandas and jupyter"
 
 # Non-interactive (CI): -y is required, otherwise install/credentials/confirm steps fail fast
 # abx create -y "a node.js api server"
 
 # Explicit template bypasses template generation
-# abx create --template codex
+# abx create codex
 # abx create -T browser-automation
 
 # Non-interactive with an incomplete description → E2008 (missing details + example)
-# abx create "run python"
+# abx create --prompt "run python"
 
 # Rejected: DESCRIPTION and --template are mutually exclusive (exit code 2)
-# abx create "a node.js api" --template base
+# abx create --prompt "a node.js api" --template base
 
 # With file upload
-# abx create "analyze this CSV file" --upload data.csv
+# abx create --prompt "analyze this CSV file" --upload data.csv
 ```
 
 ### Install & Credential Guidance
@@ -256,11 +258,11 @@ Options:
   --acr-namespace <ns>      ACR namespace for building and pushing generated templates
 
 Examples:
-  abx create "python data analysis"       # generated template → build & deploy → create
+  abx create --prompt "python data analysis"       # generated template → build & deploy → create
   abx create -y "node.js api server"     # Non-interactive generation path
-  abx create --template code-interpreter # Direct template path
-  abx create "Node.js API" -e PORT=3000
-  abx create "Analyze data" --upload ./data.csv
+  abx create code-interpreter # Direct template path
+  abx create --prompt "Node.js API" -e PORT=3000
+  abx create --prompt "Analyze data" --upload ./data.csv
 ```
 
 ### abx list
@@ -324,7 +326,7 @@ Options:
 Examples:
   abx kill sb-abc123
   abx kill sb-abc123 --yes
-  abx kill --all --yes
+  abx kill --all
 ```
 
 ### abx exec
@@ -408,9 +410,9 @@ Error handling:
 The same header is the progress display for every other step that can sit still: creating a sandbox, uploading or downloading files, fetching a template or the template index, registering a template from an image, installing the coding-agent CLI, and `abx kill --all`. Where a step has a safe log — relative paths, install milestones (mirror, checksum, extract), docker lines, or a poll status — the last six lines sit under the header (`ABX_ACTIVITY_LINES`, 1–10). Grey rows include a short redacted tool detail (command, url, query, or path). File bytes, thinking, and credentials stay hidden; ACR tokens and `--build-arg` values are not part of that log; the info line that records the docker command redacts build-arg values. `--verbose` still prints the full deploy log and does not draw the deploy block. Other commands keep the moving header on a terminal, including under `--verbose` and `--no-color`. `--json`, `--quiet`, CI, `TERM=dumb`, and a non-TTY stay silent for these headers.
 
 ```text
-abx template init ["DESCRIPTION" | --adopt DIR]  →  abx deploy [PATH]  →  abx create --template ID
+abx template scaffold ["DESCRIPTION" | --adopt DIR]  →  abx deploy [PATH]  →  abx create ID
   author (scaffold, a sentence, or an existing project)   publish (fixed)        launch
-abx create "DESCRIPTION"  =  all three, with a confirmation before anything is pushed
+abx create --prompt "DESCRIPTION"  =  all three, with a confirmation before anything is pushed
 ```
 
 ```bash
@@ -425,7 +427,7 @@ Options:
 
 Design notes:
 
-- **The description belongs to authoring, not publishing.** What a template *is* — name, description, ports, capabilities, resources, env, custom commands, and the `commands.py` server that makes a deployed sandbox usable — is written into `template.yaml` / `Dockerfile` / `commands.py` by `abx template init` (a scaffold, a description, or `--adopt` on an existing project), where it can be reviewed and versioned. `abx deploy` only *reads* `template.yaml` (`name`, `resources.cpu`, `resources.memory`, `generation`). A second place to describe the project at deploy time would be a second source of truth that never lands in `template.yaml`. `--adopt` is specified in ADR `2026-09-30-template-init-adopt-existing-project.md`.
+- **The description belongs to authoring, not publishing.** What a template *is* — name, description, ports, capabilities, resources, env, custom commands, and the `commands.py` server that makes a deployed sandbox usable — is written into `template.yaml` / `Dockerfile` / `commands.py` by `abx template scaffold` (a scaffold, a description, or `--adopt` on an existing project), where it can be reviewed and versioned. `abx deploy` only *reads* `template.yaml` (`name`, `resources.cpu`, `resources.memory`, `generation`). A second place to describe the project at deploy time would be a second source of truth that never lands in `template.yaml`. `--adopt` is specified in ADR `2026-09-30-template-init-adopt-existing-project.md`.
 - Consequently `deploy` has **no INSTRUCTION argument and no AI flag** (an earlier `--agent` design was dropped for exactly this reason; see ADR `2026-09-30-deploy-fixed-pipeline-agent-flag.md`).
 
 ### abx connect
@@ -693,7 +695,7 @@ Lists capability groups supported by the sandbox (e.g., shell, files, code, term
 #### template init
 
 ```bash
-abx template init [DIRECTORY] [options]
+abx template scaffold [DIRECTORY] [options]
 
 Options:
   -t, --template <case>     Built-in scaffold case (python, node, minimal)
@@ -707,24 +709,24 @@ Options:
   -y, --yes                 Skip confirmation (clarification, and both --adopt prompts)
 
 Examples:
-  abx template init --list
-  abx template init -t python            # Creates ./python/
-  abx template init -t python ./my-app   # Explicit directory
-  abx template init --from owner/repo
-  abx template init "a python data science env"   # AI files only, no build
-  abx template init -y "a node.js api server"     # non-interactive AI files
-  abx template init --adopt ./app --hint "listens on 8080"
-  abx template init --adopt ./app --dry-run
+  abx template scaffold --list
+  abx template scaffold -t python            # Creates ./python/
+  abx template scaffold -t python ./my-app   # Explicit directory
+  abx template scaffold --from owner/repo
+  abx template scaffold --prompt "a python data science env"   # AI files only, no build
+  abx template scaffold -y --prompt "a node.js api server"     # non-interactive AI files
+  abx template scaffold --adopt ./app --hint "listens on 8080"
+  abx template scaffold --adopt ./app --dry-run
 ```
 
-Generates an editable local template project without building, pushing, deploying, or creating a sandbox — continue with `abx template deploy <dir>` when ready. A path token (`my-app`, `./my app`) selects the directory. Whitespace or CJK text is a natural-language description: Qwen Code writes `Dockerfile`, `commands.py` (the SandboxServer entry point), `template.yaml` and `README.md` into `./<name>/` and stops. An interactive terminal is asked for that directory first (`Directory for the template project`); Enter keeps `./<name>/` (or `./<--name>/`), and any other answer is the project directory itself. `--yes`, `--json`, and a non-interactive shell skip the question. A file path, or a directory that already contains template files, is rejected before generation (`--force` overwrites). That is the same stop-line offered by the interactive switch on `abx create "DESCRIPTION"`. `--adopt` is the third authoring path: DIRECTORY is an existing project, the agent runs in a temp copy (secrets excluded), and only `Dockerfile`, `commands.py`, `template.yaml` and a generated `.dockerignore` are written back. `--adopt` is mutually exclusive with `-t`, `--from` and `--list`. A local `--from` directory with no `template.yaml` is rejected and the message points at `--adopt`. `abx init` is a top-level shortcut delegating to the exact same command object; guided credentials setup is `abx config init`.
+Generates an editable local template project without building, pushing, deploying, or creating a sandbox — continue with `abx template deploy <dir>` when ready. A path token (`my-app`, `./my app`) selects the directory. Whitespace or CJK text is a natural-language description: Qwen Code writes `Dockerfile`, `commands.py` (the SandboxServer entry point), `template.yaml` and `README.md` into `./<name>/` and stops. An interactive terminal is asked for that directory first (`Directory for the template project`); Enter keeps `./<name>/` (or `./<--name>/`), and any other answer is the project directory itself. `--yes`, `--json`, and a non-interactive shell skip the question. A file path, or a directory that already contains template files, is rejected before generation (`--force` overwrites). That is the same stop-line offered by the interactive switch on `abx create --prompt "DESCRIPTION"`. `--adopt` is the third authoring path: DIRECTORY is an existing project, the agent runs in a temp copy (secrets excluded), and only `Dockerfile`, `commands.py`, `template.yaml` and a generated `.dockerignore` are written back. `--adopt` is mutually exclusive with `-t`, `--from` and `--list`. A local `--from` directory with no `template.yaml` is rejected and the message points at `--adopt`. `abx init` is a top-level shortcut delegating to the exact same command object; guided credentials setup is `abx config init`.
 
 ##### Fixed top-level shortcuts
 
 - The top-level shortcuts are **static code**: `src/cli/command_surface.ts` lists the command groups and the shortcut table (`create`, `list`, `info`, `kill`, `exec`, `connect`, `upload`, `download` → `sandbox <verb>`, `run` → `sandbox command run`, `deploy` → `template deploy`); `src/cli/main.ts` registers them lazily and prints them under **Sandbox shortcuts** in `abx --help`. There is no configuration layer: no `[shortcuts]` section in `config.toml`, no `abx config set shortcuts.*`.
 - A test (`tests/test_cli/test_command_surface.test.ts`) fails when the top-level command list differs from the set documented in the [command reference](../reference/cli-commands.md).
 - Named commands run **inside a sandbox** (`abx run`); they are unrelated to CLI routing.
-- Unknown top-level commands get a targeted hint: a close spelling match (difflib, cutoff 0.6) yields `Did you mean '…'?`; with no plausible candidate the error points to `abx --help`, to `abx template init|install`, and to `abx run SANDBOX NAME`. Exit code 2 and stderr-only output are preserved; only the root group is affected.
+- Unknown top-level commands get a targeted hint: a close spelling match (difflib, cutoff 0.6) yields `Did you mean '…'?`; with no plausible candidate the error points to `abx --help`, to `abx template scaffold|install`, and to `abx run SANDBOX NAME`. Exit code 2 and stderr-only output are preserved; only the root group is affected.
 - `provider` is a command group in its own help section (**Providers**).
 
 #### template deploy
@@ -785,7 +787,7 @@ Push an existing local Docker image to ACR without building or registering a tem
 #### template create
 
 ```bash
-abx template create <image> [options]
+abx template from-image <image> [options]
 
 Options:
   --name, -n <name>         Template name (required)
@@ -798,7 +800,7 @@ Options:
   ... (see --help for full options)
 
 Examples:
-  abx template create registry.cn-hangzhou.aliyuncs.com/ns/img:v1 -n my-template
+  abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/img:v1 -n my-template
 ```
 
 Register a template from an image already in ACR by calling the CreateTemplate API. Use this when the image is already pushed.
@@ -993,7 +995,7 @@ A process environment variable overrides `./.env`, which overrides the stored LL
 
 ```bash
 # One command, from description to usable environment
-abx create "python data analysis with pandas and matplotlib"
+abx create --prompt "python data analysis with pandas and matplotlib"
 # → sb-abc123
 
 abx exec sb-abc123 "python -c 'import pandas; print(pandas.__version__)'"
@@ -1060,7 +1062,7 @@ abx template build -f ./Dockerfile --alias my-ml-env
 abx template list
 
 # Use custom template
-abx create --template my-ml-env
+abx create my-ml-env
 ```
 
 ***
@@ -1162,17 +1164,17 @@ abx exec sb-abc123 "echo hello" --json
 
 ```bash
 # --yes skips confirmation (supported by kill, etc.)
-abx kill --all --yes
+abx kill --all
 
 # --quiet minimizes output
-abx create "python environment" --quiet
+abx create --prompt "python environment" --quiet
 ```
 
 ### Principle 4: Composable Pipelines
 
 ```bash
 # Get ID directly after creation
-ID=$(abx create "python environment" --quiet)
+ID=$(abx create --prompt "python environment" --quiet)
 
 # Pipeline composition
 abx list --json | jq '.[].sandbox_id'

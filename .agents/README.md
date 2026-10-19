@@ -46,6 +46,15 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
 
+## Standard E2B behavior work
+
+The active [proposed contract](notes/proposed/architecture/2026-10-16-e2b-behavior-contract.md) defines the pinned Alibaba migration surface and project extension boundary. Verification evidence is point-in-time; read the latest E2B run before reporting completion.
+
+The provider ownership review is recorded in [verification](evidence/verify/2026-10-16-provider-boundary-review.md); do not conflate typed command registration with complete backend adaptation.
+
+The multi-agent review proposes [operation unification](notes/proposed/architecture/2026-10-16-provider-operation-unification.md). It remains a proposal. Accepted main and the latest convergence record resolve feature gates, resume error handling and much generic CLI coverage; conditional local acceptance is now recorded in the 2026-10-19 conditional-acceptance receipt; the technical artifact inventory is covered by the latest artifact-delivery verification.
+
+See the [multi-agent findings and scoped verification](evidence/verify/2026-10-16-multi-agent-architecture-review.md) for fixed defects, remaining priorities and artifact limitations.
 - [Provider portability and updates](notes/implemented/architecture/2026-10-18-provider-portability-updates.md) · [verification](evidence/verify/2026-10-18-provider-portability-updates.md)
 
 - [Provider isolation verification](evidence/verify/2026-10-18-provider-complete-isolation.md)
@@ -63,6 +72,7 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Provider port and file URL boundary checkpoint](evidence/verify/2026-10-18-provider-port-url-boundaries.md)
 
+- [Standard/provider convergence](notes/proposed/feature/2026-10-18-standard-provider-convergence.md) · [verification](evidence/verify/2026-10-18-standard-provider-convergence.md)
 - [MCP source/lifecycle delivery](notes/proposed/feature/2026-10-18-mcp-source-and-lifecycle.md) · [verification](evidence/verify/2026-10-18-mcp-source-and-lifecycle.md)
 - [Current provider isolation and Express acceptance](evidence/verify/2026-10-18-provider-isolation-acceptance.md)
 
@@ -70,5 +80,9 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Provider-owned metadata follow-up](evidence/verify/2026-10-18-provider-owned-metadata-followup.md)
 
-- [Image/provider convergence](notes/proposed/feature/2026-10-18-image-provider-convergence.md) · [verification](evidence/verify/2026-10-18-image-provider-convergence.md)
+- [Standard artifact delivery](notes/proposed/feature/2026-10-18-standard-artifact-delivery.md) · [verification](evidence/verify/2026-10-18-standard-artifact-delivery.md)
 - [Provider preflight](notes/proposed/feature/2026-10-18-provider-preflight.md) · [verification](evidence/verify/2026-10-18-provider-preflight.md)
+
+- [Conditional Express acceptance](notes/proposed/feature/2026-10-19-conditional-acceptance.md) · [verification](evidence/verify/2026-10-19-conditional-acceptance.md)
+
+- [Provider image host merge](notes/proposed/feature/2026-10-19-provider-image-beta-merge.md) · [verification](evidence/verify/2026-10-19-provider-image-beta-merge.md)

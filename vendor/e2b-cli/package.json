@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@e2b/cli": "2.20.0",
+    "e2b": "2.50.0",
+    "esbuild": "0.28.2"
+  },
+  "overrides": {
+    "@e2b/cli": {
+      "e2b": "2.50.0"
+    }
+  }
+}
