@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-19
+
+### Changed
+
+- Release the standard Express CLI with its explicit provider/build/MCP extensions as the new 0.x preview line; preserve the historical v0.3.0 tag.
+- Build and verify all five binary targets into a draft Release before publication; publishing that Release triggers npm upload with the existing repository credential.
+- Install the exact npm tarball before upload and reinstall the public npm version afterward; reject publishing from a branch or a mismatching tag.
+- Align English/Chinese installation guidance and capture the real 0.4.0 version output without rewriting historical goldens.
+
+
 ### Documentation
 
 - Use the verified canonical website and registry links in active English/Chinese guides.

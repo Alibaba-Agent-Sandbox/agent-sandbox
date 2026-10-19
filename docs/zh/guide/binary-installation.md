@@ -37,8 +37,8 @@ curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox
 
 ```bash
 # 可选
-ABX_VERSION=0.3.0 curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
-ABX_INSTALL_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.4.0 sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_INSTALL_DIR="$HOME/bin" sh
 ```
 
 `ABX_VERSION` 可以是 `0.3.0` 或 `v0.3.0`。不支持的系统或 CPU 会直接退出，并写明支持的平台。Windows 请用 PowerShell 安装脚本。
@@ -84,11 +84,17 @@ Move-Item abx-0.3.0-windows-x64.exe "$installDir\abx.exe"
 
 `certutil -hashfile abx-0.3.0-windows-x64.exe SHA256` 打印同一摘要。
 
-## npm（即将提供）
+## npm
 
-`npm install -g @agent-sandbox/cli` **即将提供，包尚未发布**。当前清单中的包名是 `@agent-sandbox/cli`。不要把它当作当前的安装方式。
+已发布版本可通过 Node.js20+ 安装：
 
-部分 npm 镜像（包括 npmmirror）上有一个同名但无关的 `@agent-sandbox/cli@0.2.2`。它的 bin 是 `agent-sandbox`，不是 `abx`。装上它也不会出现 `abx` 命令。见 [故障排查：abx: command not found](#故障排查abx-command-not-found)。
+```bash
+npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
+abx --version
+```
+
+公开索引必须先可读；HTTP404表示发布尚未完成。CI通过、草稿Release或本地打包不代表已上传 npm。如果全局安装目录需要提权，请改用 `--prefix "$HOME/.local"`，并将 `$HOME/.local/bin` 加入 PATH。发布完成前可使用二进制或源码安装。
 
 ## 从源码安装
 
@@ -101,11 +107,12 @@ git rev-parse HEAD
 npm ci
 npm run build
 npm pack
-npm install -g ./agent-sandbox-cli-<version>.tgz
+npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```
 
-`npm pack` 的文件名是 `agent-sandbox-cli-<version>.tgz`（当前树是 `agent-sandbox-cli-0.3.0.tgz`）。
+`npm pack` 的文件名是 `agent-sandbox-cli-<version>.tgz`（当前树是 `agent-sandbox-cli-0.4.0.tgz`）。
 
 ## 验证安装
 
@@ -126,7 +133,7 @@ abx --version
 
 | | 独立二进制 | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
-| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（v0.3.0 资产已提供） | 即将提供，包尚未发布 |
+| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（v0.3.0 资产已提供） | 以公开索引验证为准 |
 | 是否需要 Node.js | 否 | 需要（20+） |
 | 安装方式 | `install.sh` / `install.ps1`，或从 Releases 下载单个文件 | 包发布之后用 npm |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
@@ -170,7 +177,7 @@ npm ci
 npm run build:binary
 ```
 
-命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。发布 Release 会运行 [`.github/workflows/release-binary.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。推送 `v*` tag 还会运行 [`.github/workflows/release.yml`](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)；只有仓库变量 `NPM_PUBLISH` 为 `true` 时才会发布到 npm。
+命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。推送版本标签会运行[二进制草稿工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。版本标签先将五平台二进制构建、校验并上传至草稿Release；所有平台与校验和通过后才公开草稿。公开Release触发[npm工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)，上传前安装实际tarball，上传后再次从公开索引安装。手动重试npm发布必须选择配套标签，分支引用会被拒绝。
 
 ## 后续步骤
 

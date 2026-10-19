@@ -1,8 +1,10 @@
 name: Release Binary
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
   workflow_dispatch:
 
 permissions:
@@ -44,8 +46,29 @@ jobs:
       - name: Install dependencies (includes the esbuild + postject build toolchain)
         run: npm ci
 
+      - name: Require the matching package version for tag uploads
+        if: github.event_name == 'push'
+        run: node -e "if ('v' + require('./package.json').version !== process.env.GITHUB_REF_NAME) throw new Error('Release tag must match package.json')"
+
+      - name: Install and verify the actual npm tarball on this platform
+        shell: bash
+        run: |
+          npm run build
+          mkdir -p "$RUNNER_TEMP/abx-npm-pack"
+          npm pack --pack-destination "$RUNNER_TEMP/abx-npm-pack"
+          npm install --global --prefix "$RUNNER_TEMP/abx-npm-install" "$RUNNER_TEMP"/abx-npm-pack/*.tgz
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            executable="$RUNNER_TEMP/abx-npm-install/abx.cmd"
+          else
+            executable="$RUNNER_TEMP/abx-npm-install/bin/abx"
+          fi
+          node scripts/check-release-artifact.mjs "$executable"
+
       - name: Build binary
         run: node scripts/build_binary.mjs
+
+      - name: Verify the actual executable and complete notices
+        run: node scripts/check-release-artifact.mjs dist/binary
 
       - name: Generate SHA256 checksums
         shell: bash
@@ -62,8 +85,8 @@ jobs:
             cat "$f.sha256"
           done
 
-      # Manual runs (workflow_dispatch) have no release to attach to, so the
-      # binaries are exposed as workflow artifacts for download instead.
+      # Manual runs expose artifacts only. A tag push uploads verified binaries
+      # to a draft release; publish the draft after every platform is complete.
       - name: Upload workflow artifacts (manual trigger)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
@@ -73,7 +96,9 @@ jobs:
           if-no-files-found: error
 
       - name: Upload binaries to GitHub Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
           files: dist/binary/abx-*

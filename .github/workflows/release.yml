@@ -1,10 +1,9 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  release:
+    types: [published]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,13 +11,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Build & publish to npm
-    # A v* tag also fires this workflow. Leave the repository variable
-    # NPM_PUBLISH unset (or any value other than true) for a binary-only
-    # release: this job is skipped, so a missing NPM_API_TOKEN does not fail
-    # the run. Set NPM_PUBLISH to the string true after the npm package name
-    # is decided and NPM_API_TOKEN (or trusted publishing) is configured.
-    if: vars.NPM_PUBLISH == 'true'
+    name: Build, verify and publish npm package
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -26,38 +19,76 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
           cache: npm
 
-      - name: Check that the tag matches package.json
+      - name: Require a matching version tag
         run: |
           pkg_version="$(node -p "require('./package.json').version")"
-          if [ "v${pkg_version}" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match package.json version ${pkg_version}" >&2
+          if [ "$GITHUB_REF_TYPE" != "tag" ] || [ "v${pkg_version}" != "$GITHUB_REF_NAME" ]; then
+            echo "Publish only from the tag matching package.json, never a branch."
             exit 1
           fi
+          if [[ "$pkg_version" == *-* ]]; then
+            echo "NPM_DIST_TAG=next" >> "$GITHUB_ENV"
+          else
+            echo "NPM_DIST_TAG=latest" >> "$GITHUB_ENV"
+          fi
 
-      - name: Install dependencies
+      - name: Install locked dependencies
         run: npm ci
-
+      - name: Check out the reviewed server test fixtures
+        uses: actions/checkout@v4
+        with:
+          repository: Alibaba-Agent-Sandbox/python-sdk
+          ref: d4d93e8cbb986f33a8868f7a4139ed0edb49eaba
+          path: vendor/python-sdk
+          sparse-checkout: server-sdk/src
+          sparse-checkout-cone-mode: false
+      - name: Check out the reviewed provider test fixtures
+        uses: actions/checkout@v4
+        with:
+          repository: Alibaba-Agent-Sandbox/awesome-providers
+          ref: bcc0016ad5285a0426d35c55085728d9ddd72141
+          path: vendor/awesome-providers
       - name: Typecheck
         run: npm run typecheck
-
       - name: Build
         run: npm run build
-
-      - name: Run tests
+      - name: Unit tests
+        env:
+          ABX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
+          ABX_AWESOME_PROVIDERS: ${{ github.workspace }}/vendor/awesome-providers
         run: npm test
-
-      - name: Verify package contents
-        run: npm pack --dry-run
-
-      - name: Publish to npm (with provenance)
+      - name: Pack and install the exact publication artifact
+        run: |
+          mkdir -p dist-pack
+          npm pack --pack-destination dist-pack
+          npm install --global --prefix "$RUNNER_TEMP/abx-candidate" dist-pack/*.tgz
+          node scripts/check-release-artifact.mjs "$RUNNER_TEMP/abx-candidate/bin/abx"
+      - name: Preserve the tested npm tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: dist-pack/*.tgz
+          if-no-files-found: error
+      - name: Publish the tested tarball with provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_API_TOKEN }}
-        run: npm publish --provenance --access public
+        run: npm publish dist-pack/*.tgz --provenance --access public --tag "$NPM_DIST_TAG"
+      - name: Install from the public npm registry
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          installed=false
+          for attempt in 1 2 3 4 5 6; do
+            if npm install --global --prefix "$RUNNER_TEMP/abx-public" "@agent-sandbox/cli@$version" --registry=https://registry.npmjs.org; then
+              installed=true
+              break
+            fi
+            sleep 5
+          done
+          [ "$installed" = true ]
+          node scripts/check-release-artifact.mjs "$RUNNER_TEMP/abx-public/bin/abx"
