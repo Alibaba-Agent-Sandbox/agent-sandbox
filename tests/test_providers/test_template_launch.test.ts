@@ -78,6 +78,9 @@ describe("provider-owned project launch", () => {
 });
 
 describe("generic staged project primitives", () => {
+  it("accepts fractional remaining deadlines without a floating point timer error", async () => {
+    expect(await runTool(process.execPath, ["-e", "process.stdout.write('prepared')"], { timeout: 8.001 })).toBe("prepared");
+  });
   it("stages immutably, handles explicitly optional build inputs and cleans temporary output", async () => {
     const directory = path.join(iso.root, "source"); fs.mkdirSync(directory);
     const original = "FROM unresolved:<tag>\nCOPY *.whl /tmp/\nRUN echo pinned-fallback\n";
