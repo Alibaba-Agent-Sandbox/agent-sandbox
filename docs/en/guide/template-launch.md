@@ -1,6 +1,8 @@
 # Launch a template without copying a cloud ID
 
 `template launch` is a native project extension. It downloads a catalog source (or accepts a local directory), checks the selected provider's declared capabilities, asks that adapter to prepare the project, and creates a sandbox using the exact returned reference. It never converts one cloud's ID into another cloud's ID.
+Image-based adapters share the remaining preparation deadline across build, push and registration; fractional remaining seconds do not prevent local tools from starting.
+
 
 ```sh
 abx --provider e2b template launch alibaba-agent-sandbox/awesome-templates//python-hello --yes

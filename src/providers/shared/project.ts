@@ -14,7 +14,7 @@ export interface ImageBuildOptions extends ProjectStageOptions {
 /** Run a local tool without a shell. Raw tool output/errors are never included in public exceptions. */
 export function runTool(command: string, args: readonly string[], options: { cwd?: string; input?: string; timeout?: number } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = execFile(command, [...args], { cwd: options.cwd, timeout: (options.timeout ?? 600) * 1000,
+    const child = execFile(command, [...args], { cwd: options.cwd, timeout: Math.ceil((options.timeout ?? 600) * 1000),
       maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (error, stdout) => {
       if (error) reject(new ProviderConfigError("Project preparation tool failed. Check the tool installation, registry access and provider configuration; a submitted operation may still exist."));
       else resolve(stdout);

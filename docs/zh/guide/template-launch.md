@@ -1,6 +1,8 @@
 # 无需复制云模板 ID 的模板启动
 
 `template launch` 是显式的项目扩展：下载目录模板或读取本地目录，检查所选提供方声明的能力，请适配器准备项目，再用它返回的真实引用创建沙箱。不会把一朵云的 ID 当作另一朵云的 ID。
+镜像适配器在构建、推送与登记之间传递剩余准备时间；剩余秒数含小数时，本地工具仍可正常启动。
+
 
 ```sh
 abx --provider e2b template launch alibaba-agent-sandbox/awesome-templates//python-hello --yes
