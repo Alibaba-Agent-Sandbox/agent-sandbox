@@ -277,7 +277,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 Open a new terminal afterwards. On Windows, `install.ps1` updates the user `PATH`; a terminal that was already open does not see it.
 
-`npm install -g @agent-sandbox/cli` is coming soon, package not yet published. Mirrors such as npmmirror may still serve an unrelated `@agent-sandbox/cli@0.2.2` whose bin is `agent-sandbox`, not `abx`. Uninstall it:
+Check `npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org` against the official index before installing; if unavailable, use the verified GitHub binary. Mirrors such as npmmirror may still serve an unrelated `@agent-sandbox/cli@0.2.2` whose bin is `agent-sandbox`, not `abx`. Uninstall it:
 
 ```bash
 npm uninstall -g @agent-sandbox/cli

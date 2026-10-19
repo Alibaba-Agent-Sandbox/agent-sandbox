@@ -16,7 +16,7 @@ Binaries are attached to each GitHub Release
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 Each file has a sibling `.sha256` (SHA-256, `sha256sum` / `shasum -a 256` text).
-Release **v0.3.0** includes all five `abx-*` platform binaries and matching SHA-256 files. Older v0.2.0 used `ebx-*`, which this installer does not consume. [Source installation](#install-from-source) remains available.
+Release **v0.4.0** includes all five `abx-*` platform binaries and matching SHA-256 files. Older v0.2.0 used `ebx-*`, which this installer does not consume. [Source installation](#install-from-source) remains available.
 
 The site can host the same scripts on its own domain later (for example `https://www.agent-sandbox.cn/install.sh` and `https://www.agent-sandbox.cn/install.ps1`). The command stays one line; only the URL changes.
 
@@ -24,7 +24,7 @@ The site can host the same scripts on its own domain later (for example `https:/
 
 ## Install
 
-The published binary check covers its checksum and version. Current `[Unreleased]` fixes use the source-build recipe until a matching release is published; version0.3.0 alone does not identify those later source changes.
+The public default-latest installer was verified against v0.4.0, including SHA-256, version, standard/native help, complete notices and eight locally initiated real Express checks with no owned resources remaining. Later `[Unreleased]` changes require their own matching release.
 
 ### macOS and Linux
 
@@ -134,7 +134,7 @@ abx --version
 
 | | Standalone binary | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
-| Status | Install script above; needs an `abx-*` GitHub Release (v0.3.0 assets available) | Coming soon, package not yet published |
+| Status | Install script above; needs an `abx-*` GitHub Release (v0.4.0 assets available) | Check the public npm index in the npm section above |
 | Node.js required | No | Yes (20+) |
 | Install method | `install.sh` / `install.ps1`, or one file from Releases | npm, after the package is published |
 | Startup time | Single pre-bundled executable | Loads the compiled modules from `node_modules` |
@@ -160,7 +160,7 @@ abx --version
    command -v agent-sandbox   # leftover binary from 0.2.2, if any
    ```
 
-   Remove a leftover `agent-sandbox` shim from npm's global bin directory if `command -v` still finds it after uninstall. The published npm package for this CLI does not exist yet; use the binary installer or [install from source](#install-from-source).
+   Remove a leftover `agent-sandbox` shim from npm's global bin directory if `command -v` still finds it after uninstall. Check the official npm index in the npm section above; the binary installer and [source installation](#install-from-source) remain available.
 
 3. **The selected older release has no `abx-*` asset.** v0.2.0's files are named `ebx-*`. `install.sh` stops with HTTP 404 and does not leave a partial binary. Install from source, or set `ABX_VERSION` to a release that publishes `abx-*` files.
 
@@ -178,7 +178,7 @@ npm ci
 npm run build:binary
 ```
 
-The version tag runs [the five-platform binary workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml) and uploads checksummed assets to a draft Release. Publish the draft only after every platform succeeds. Publishing runs [the npm workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which installs the exact tarball before upload and verifies a public-registry install afterward. Manual npm retries must select the matching tag; branch refs are rejected.
+The version tag runs [the five-platform binary workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml) and uploads checksummed assets to a draft Release. Publish the draft only after every platform succeeds. Publishing runs [the npm workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which installs the exact tarball before upload and verifies a public-registry install afterward. For recovery, run the current npm workflow from `main` using workflow_dispatch with `release_tag` set to the existing version tag (for example `v0.4.0`). It explicitly checks out `refs/tags/<release_tag>` and rejects mismatching package versions or recovery workflows run from feature branches. This repairs the publisher without moving the immutable source tag. Both install and publish use `./dist-pack/*.tgz` so npm interprets the argument as a local tarball.
 
 ## Next Steps
 

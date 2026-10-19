@@ -26,7 +26,7 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 abx --version
 ```
 
-`npm install -g @agent-sandbox/cli` is coming soon, package not yet published. From source (`git clone`, `npm ci`, `npm run build`, `npm pack`, `npm install -g ./agent-sandbox-cli-<version>.tgz`), manual downloads, and `abx: command not found`: [Binary Installation](binary-installation.md). The v0.2.0 release assets are named `ebx-*`; the installer uses `abx-*` and uses the published v0.3.0 assets.
+For npm (Node.js20+), first check `npm view @agent-sandbox/cli version --registry=https://registry.npmjs.org`, then install with `npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org` once the index resolves the version. From source (`git clone`, `npm ci`, `npm run build`, `npm pack`, `npm install -g ./agent-sandbox-cli-<version>.tgz`), manual downloads, and `abx: command not found`: [Binary Installation](binary-installation.md). The v0.2.0 release assets are named `ebx-*`; the installer uses `abx-*` and uses the published v0.4.0 assets.
 
 ## 2. Configure the API Key
 
