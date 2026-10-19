@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Identify the current-main release boundary, unpublished npm package and canonical public site URLs without claiming all templates are certified. / 明确当前 main 与既有发行版、未发布 npm 包及模板验收的边界，统一公开站点地址。
+
 ### Added
 
 - Optional native provider `template from-image` contract with isolated authentication, strict results and cleanup. Catalog factories remain gated/Beta; plugins explicitly request SDK helpers without host provider-ID dispatch.

@@ -86,3 +86,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Conditional Express acceptance](notes/proposed/feature/2026-10-19-conditional-acceptance.md) · [verification](evidence/verify/2026-10-19-conditional-acceptance.md)
 
 - [Provider image host merge](notes/proposed/feature/2026-10-19-provider-image-beta-merge.md) · [verification](evidence/verify/2026-10-19-provider-image-beta-merge.md)
+
+- [Public release boundary](notes/proposed/process/2026-10-19-public-release-boundary.md) · [verification](evidence/verify/2026-10-19-public-release-boundary.md)
