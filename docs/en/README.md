@@ -6,8 +6,8 @@
 
 | Site | URL |
 |---|---|
-| Official site | https://www.agent-sandbox.com |
-| Provider registry | https://registry.agent-sandbox.com |
+| Official site | https://www.agent-sandbox.cn |
+| Provider registry | https://registry.agent-sandbox.cn |
 
 The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json`. `ABX_PROVIDER_REGISTRY` overrides that URL for the SDK installer.
 

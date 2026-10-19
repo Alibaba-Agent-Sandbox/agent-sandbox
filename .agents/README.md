@@ -87,4 +87,6 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Provider image host merge](notes/proposed/feature/2026-10-19-provider-image-beta-merge.md) · [verification](evidence/verify/2026-10-19-provider-image-beta-merge.md)
 
-- [Public release boundary](notes/proposed/process/2026-10-19-public-release-boundary.md) · [verification](evidence/verify/2026-10-19-public-release-boundary.md)
+- [Public release boundary](notes/implemented/process/2026-10-19-public-release-boundary.md) · [verification](evidence/verify/2026-10-19-public-release-boundary.md)
+
+- [Canonical active-guide link verification](evidence/verify/2026-10-19-canonical-guide-links.md)

@@ -1,6 +1,6 @@
 # Decision: State the public CLI release boundary
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -29,3 +29,7 @@ Build/pack/install the current locked npm artifact in a fresh consumer, execute 
 ## Acceptance criteria
 
 Both languages match verified publication state and reachable canonical sites; the reviewed docs pass checks and latest-head CI. No npm publish, release tag, secret upload or model/cloud Actions.
+
+## Implementation
+
+Release-boundary documentation landed in https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/64 . A subsequent active-guide sweep corrects the remaining canonical website/registry links; historical archive/design evidence remains unchanged. Public package release remains separate and unperformed.

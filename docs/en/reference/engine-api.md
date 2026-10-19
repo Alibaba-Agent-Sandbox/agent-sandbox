@@ -2,7 +2,7 @@
 
 The engine is a local process that hosts the provider layer once, so the CLI and every SDK (Python today; Node, Go and Java later) call the same provider code. It is the Node.js CLI running `abx provider engine serve`. An SDK that finds no engine starts one and talks to it over loopback HTTP, SSE and WebSocket. Nothing in this API needs gRPC or a code generator: any language with an HTTP client can use it.
 
-Official site: <https://www.agent-sandbox.com>. Registry website: <https://registry.agent-sandbox.com>. The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json`.
+Official site: <https://www.agent-sandbox.cn>. Registry website: <https://registry.agent-sandbox.cn>. The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json`.
 
 ## Start, find and stop
 

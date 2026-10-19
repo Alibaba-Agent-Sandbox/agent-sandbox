@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Documentation
 
+- Use the verified canonical website and registry links in active English/Chinese guides.
 - Identify the current-main release boundary, unpublished npm package and canonical public site URLs without claiming all templates are certified. / 明确当前 main 与既有发行版、未发布 npm 包及模板验收的边界，统一公开站点地址。
 
 ### Added

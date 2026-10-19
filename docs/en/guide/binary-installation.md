@@ -18,7 +18,7 @@ Binaries are attached to each GitHub Release
 Each file has a sibling `.sha256` (SHA-256, `sha256sum` / `shasum -a 256` text).
 Release **v0.3.0** includes all five `abx-*` platform binaries and matching SHA-256 files. Older v0.2.0 used `ebx-*`, which this installer does not consume. [Source installation](#install-from-source) remains available.
 
-The site can host the same scripts on its own domain later (for example `https://www.agent-sandbox.com/install.sh` and `https://www.agent-sandbox.com/install.ps1`). The command stays one line; only the URL changes.
+The site can host the same scripts on its own domain later (for example `https://www.agent-sandbox.cn/install.sh` and `https://www.agent-sandbox.cn/install.ps1`). The command stays one line; only the URL changes.
 
 ---
 

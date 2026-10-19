@@ -17,7 +17,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 每个文件都有同名的 `.sha256`（SHA-256，`sha256sum` / `shasum -a 256` 的文本格式）。
 **v0.3.0** 已提供五个平台的 `abx-*` 二进制及对应 SHA-256 文件。旧 v0.2.0 使用 `ebx-*`，本安装脚本不消费旧文件名。也可[从源码安装](#从源码安装)。
 
-网站以后可以把同一份脚本放在自己的域名上（例如 `https://www.agent-sandbox.com/install.sh` 和 `https://www.agent-sandbox.com/install.ps1`）。命令仍然是一行，只改 URL。
+网站以后可以把同一份脚本放在自己的域名上（例如 `https://www.agent-sandbox.cn/install.sh` 和 `https://www.agent-sandbox.cn/install.ps1`）。命令仍然是一行，只改 URL。
 
 ---
 

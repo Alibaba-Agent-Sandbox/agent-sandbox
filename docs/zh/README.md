@@ -6,8 +6,8 @@
 
 | 网站 | 地址 |
 |---|---|
-| 官网 | https://www.agent-sandbox.com |
-| 提供方注册站 | https://registry.agent-sandbox.com |
+| 官网 | https://www.agent-sandbox.cn |
+| 提供方注册站 | https://registry.agent-sandbox.cn |
 
 CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`。`ABX_PROVIDER_REGISTRY` 可以改 SDK 安装器使用的这个地址。
 
