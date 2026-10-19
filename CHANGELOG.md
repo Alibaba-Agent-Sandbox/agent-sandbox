@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Provider-owned `template launch`: source preparation, exact reference handoff, capability preflight, service readiness and owned sandbox cleanup; generic staged filesystem/process/OCI helpers. Third-party paths remain Beta with explicit native acceptance limits.
 ### Documentation
 
 - Clarify implemented Express pause/resume and Snapshot standard interfaces, allowlist/runtime requirements and safe cleanup. / 明确极速版标准入口已实现暂停恢复与快照，以及白名单、运行时和清理要求。

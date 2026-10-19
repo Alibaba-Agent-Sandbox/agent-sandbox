@@ -1,3 +1,4 @@
+import { launchTemplate } from "../template_launch.js";
 import { cleandoc } from "../../utils/_py.js";
 import { confirm } from "../prompts.js";
 import type { ProviderImageRequest } from "../../providers/base.js";
@@ -147,3 +148,13 @@ export const delete_ = routed("delete");
 
 /** Public native image route; keeps existing provider-owned create UI when no image factory is declared. */
 export const from_image = create_template;
+
+/** Prepare the selected source and launch it without copying a cloud template ID. */
+export const launch = template.command("launch", {
+  help: "Build/register a template with the selected provider and create a sandbox using its returned reference. Configure the provider first; --yes permits billable operations. Missing capabilities fail before build. This project extension does not convert IDs between clouds.",
+  params: [argument(["template_ref"]), option(["--alias", "-a"], { default: null }),
+    option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (maximum 3600)" }),
+    option(["--sandbox-timeout"], { type: FLOAT, default: 300, help: "Sandbox lifetime in seconds" }),
+    option(["--yes", "-y"], { is_flag: true })],
+  callback: handleErrors(launchTemplate),
+});

@@ -260,3 +260,5 @@ Optional native provider extension: [templates from pushed images](docs/en/guide
 0.4.0 is the new standard CLI release line. Existing v0.3.0 points to an earlier implementation. Verify GitHub assets and npm metadata separately; never overwrite an older release tag with different code. A0.x CLI release does not certify every provider or experimental template.
 
 The Express core and conditional pause/snapshot receipts do not certify every catalog template. Templates remain experimental until their own versioned deployment/model acceptance passes; third-party provider Beta scope is separate. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
+
+[Prepare and launch catalog templates without copying cloud IDs](docs/en/guide/template-launch.md).

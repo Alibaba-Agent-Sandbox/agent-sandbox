@@ -5,7 +5,7 @@ import { ambientProviderId } from "../providers/registry.js";
 
 const shortcuts = new Set(["create", "list", "info", "kill", "exec", "connect", "pause", "resume"]);
 const sandboxExtensions = new Set(["upload", "download", "capabilities", "files", "process", "command", "system"]);
-const templateExtensions = new Set(["from-image", "build", "deploy", "scaffold", "install", "push", "search", "info"]);
+const templateExtensions = new Set(["launch", "from-image", "build", "deploy", "scaffold", "install", "push", "search", "info"]);
 const nativeRootFlags = new Set(["--json", "-j", "--quiet", "-q", "--verbose", "-v", "--no-color", "--ci"]);
 
 

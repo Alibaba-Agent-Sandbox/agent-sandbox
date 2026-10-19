@@ -288,3 +288,7 @@ availability is not a prerequisite. Query each MCP server's tools/list because
 Node CLI and generated Python HTTP tool surfaces differ. Metadata and explicit
 TTL mutation do not connect/resume external sandboxes; only explicit TTL mutation
 changes their lifetime. No automatic FC API deployment is implemented.
+
+## Automatic project preparation
+
+Use `abx --provider ID template launch SOURCE --yes` with a host build that includes this extension. Read [the guide](docs/en/guide/template-launch.md) for one-time provider prerequisites. The adapter returns the exact reference; do not invent IDs, substitute credentials or claim missing PTY/code capabilities. Third-party native acceptance remains Beta/deferred.

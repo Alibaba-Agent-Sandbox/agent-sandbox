@@ -270,3 +270,5 @@ project files; natural-language deployment requires its matching adapter before
 generation. Declaring templates.build alone does not authorize FC/ACR operations.
 Resume/connect fallback applies only to404/405 endpoint absence; permission, conflict,
 quota and service errors propagate instead of becoming successful metadata reads.
+
+See [automatic project preparation and launch](template-launch.md) for per-provider prerequisites, reference handoff, readiness and cleanup.

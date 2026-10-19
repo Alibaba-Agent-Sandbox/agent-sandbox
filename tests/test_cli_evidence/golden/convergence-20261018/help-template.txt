@@ -24,6 +24,8 @@ Commands:
   from-image  Create a sandbox template from an existing container image.
   info        Show details for a template ID.
   install     Download a template and (by default) build + deploy it.
+  launch      Build/register a template with the selected provider and create a
+              sandbox using its returned reference.
   list        List custom templates registered for the current account.
   push        Push a locally-built image to Alibaba Cloud ACR.
   scaffold    Scaffold a new sandbox template project.

@@ -661,6 +661,7 @@ function _buildRegistry(): EvidenceCase[] {
     [["template"], "template"],
     [["template", "list"], "template-list"],
     [["template", "from-image"], "template-from-image"],
+    [["template", "launch"], "template-launch"],
     [["template", "info"], "template-info"],
     [["template", "build"], "template-build"],
     [["template", "scaffold"], "template-init"],

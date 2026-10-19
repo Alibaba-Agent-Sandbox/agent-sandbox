@@ -134,7 +134,7 @@ describe("TestFixedCommandSurface", () => {
       "sandbox process": ["info", "list", "signal"],
       "sandbox command": ["list", "run"],
       "sandbox system": ["env", "info", "metrics", "packages", "ports"],
-      template: ["build", "delete", "deploy", "from-image", "info", "install", "list", "push", "scaffold", "search"],
+      template: ["build", "delete", "deploy", "from-image", "info", "install", "launch", "list", "push", "scaffold", "search"],
       config: ["delete", "get", "init", "list", "set"],
       mcp: ["deploy", "install", "start", "status", "stop"],
     };

@@ -257,3 +257,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 0.4.0是新的标准CLI发行线，现有v0.3.0指向较早实现。请分别核对 GitHub 资产与 npm 元数据；不要用不同代码覆盖旧标签。0.x CLI发行不代表所有提供方和实验模板均完成验收。
 
 极速版核心及暂停/快照验收不代表整个模板目录都已认证。各模板仍需自己当前版本的部署和模型验收；第三方提供方的 Beta 范围也单独说明。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
+
+[自动准备并启动目录模板，无需复制云 ID](docs/zh/guide/template-launch.md).
