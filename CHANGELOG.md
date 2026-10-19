@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Clarify implemented Express pause/resume and Snapshot standard interfaces, allowlist/runtime requirements and safe cleanup. / 明确极速版标准入口已实现暂停恢复与快照，以及白名单、运行时和清理要求。
+
 ### Fixed
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
