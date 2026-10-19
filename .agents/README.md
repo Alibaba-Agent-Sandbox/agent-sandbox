@@ -92,3 +92,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Canonical active-guide link verification](evidence/verify/2026-10-19-canonical-guide-links.md)
 
 - [CLI0.4.0 publication](notes/implemented/process/2026-10-19-cli-040-publication.md) · [verification](evidence/verify/2026-10-19-cli-040-publication.md)
+
+- [Npm publication recovery](notes/implemented/process/2026-10-19-npm-publication-recovery.md) · [verification](evidence/verify/2026-10-19-npm-publication-recovery.md)

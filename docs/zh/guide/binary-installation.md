@@ -15,7 +15,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 每个文件都有同名的 `.sha256`（SHA-256，`sha256sum` / `shasum -a 256` 的文本格式）。
-**v0.3.0** 已提供五个平台的 `abx-*` 二进制及对应 SHA-256 文件。旧 v0.2.0 使用 `ebx-*`，本安装脚本不消费旧文件名。也可[从源码安装](#从源码安装)。
+**v0.4.0** 已提供五个平台的 `abx-*` 二进制及对应 SHA-256 文件。旧 v0.2.0 使用 `ebx-*`，本安装脚本不消费旧文件名。也可[从源码安装](#从源码安装)。
 
 网站以后可以把同一份脚本放在自己的域名上（例如 `https://www.agent-sandbox.cn/install.sh` 和 `https://www.agent-sandbox.cn/install.ps1`）。命令仍然是一行，只改 URL。
 
@@ -23,7 +23,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 
 ## 安装
 
-发布二进制的本次检查覆盖校验和与版本。当前 `[Unreleased]` 修复在配套版本发布前使用源码构建方式；仅看到版本0.3.0不能证明已包含之后的源码变化。
+公开的默认最新版安装脚本已验证可安装 v0.4.0，覆盖 SHA-256、版本、标准及原生命令帮助、完整许可证，以及从本地发起的8项真实极速版检查，测试资源全部清理。之后的 `[Unreleased]` 变更需要对应的新版本。
 
 ### macOS 与 Linux
 
@@ -133,7 +133,7 @@ abx --version
 
 | | 独立二进制 | `npm install -g @agent-sandbox/cli` |
 |---|---|---|
-| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（v0.3.0 资产已提供） | 以公开索引验证为准 |
+| 状态 | 使用上面的安装脚本；需要名为 `abx-*` 的 GitHub Release（v0.4.0 资产已提供） | 以公开索引验证为准 |
 | 是否需要 Node.js | 否 | 需要（20+） |
 | 安装方式 | `install.sh` / `install.ps1`，或从 Releases 下载单个文件 | 包发布之后用 npm |
 | 启动速度 | 单个预打包的可执行文件 | 从 `node_modules` 加载编译后的模块 |
@@ -159,7 +159,7 @@ abx --version
    command -v agent-sandbox   # 若 0.2.2 留下了可执行文件，这里还能看到
    ```
 
-   卸载之后如果 `command -v` 仍能找到 `agent-sandbox`，从 npm 全局 bin 目录里删掉这个剩余文件。本 CLI 的 npm 包还没有发布；请用二进制安装脚本或[从源码安装](#从源码安装)。
+   卸载之后如果 `command -v` 仍能找到 `agent-sandbox`，从 npm 全局 bin 目录里删掉这个剩余文件。请先按上文 npm 章节核对官方公开索引；也可用二进制安装脚本或[从源码安装](#从源码安装)。
 
 3. **选择的旧 Release 没有 `abx-*` 资产。** v0.2.0 的文件名是 `ebx-*`。`install.sh` 会以 HTTP 404 停止，并且不会留下半截二进制。请从源码安装，或把 `ABX_VERSION` 设成已经发布 `abx-*` 文件的版本。
 
@@ -177,7 +177,7 @@ npm ci
 npm run build:binary
 ```
 
-命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。推送版本标签会运行[二进制草稿工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。版本标签先将五平台二进制构建、校验并上传至草稿Release；所有平台与校验和通过后才公开草稿。公开Release触发[npm工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)，上传前安装实际tarball，上传后再次从公开索引安装。手动重试npm发布必须选择配套标签，分支引用会被拒绝。
+命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。推送版本标签会运行[二进制草稿工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。版本标签先将五平台二进制构建、校验并上传至草稿Release；所有平台与校验和通过后才公开草稿。公开Release触发[npm工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)，上传前安装实际tarball，上传后再次从公开索引安装。恢复发布时，从 `main` 运行当前 npm 工作流的 workflow_dispatch，并将 `release_tag` 设为已有版本标签（如 `v0.4.0`）。工作流明确检出 `refs/tags/<release_tag>`，拒绝版本不匹配或从功能分支启动恢复，不移动既有源码标签。安装和发布均使用 `./dist-pack/*.tgz`，确保 npm 按本地 tarball 解析路径。
 
 ## 后续步骤
 
