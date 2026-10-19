@@ -2,7 +2,7 @@
 
 引擎是一个本机进程，把提供商这一层只实现一次，让 CLI 和所有 SDK（现在是 Python，之后是 Node、Go、Java）调用同一份提供商代码。它就是运行 `abx provider engine serve` 的 Node.js CLI。SDK 找不到引擎时会自己启动一个，并通过回环地址上的 HTTP、SSE 和 WebSocket 与它通信。这套 API 不需要 gRPC，也不需要代码生成：任何带 HTTP 客户端的语言都能用。
 
-官网：<https://www.agent-sandbox.com>。提供方注册站：<https://registry.agent-sandbox.com>。CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`。
+官网：<https://www.agent-sandbox.cn>。提供方注册站：<https://registry.agent-sandbox.cn>。CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`。
 
 ## 启动、发现与停止
 
