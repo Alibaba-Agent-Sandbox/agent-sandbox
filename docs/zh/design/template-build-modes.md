@@ -49,11 +49,11 @@ build:
 | `apt_install` | `{ "type": "RUN", "args": ["apt-get update && apt-get install -y <包> && rm -rf /var/lib/apt/lists/*"] }` |
 | `pip_install` | `{ "type": "RUN", "args": ["pip install --no-cache-dir <包>"] }` |
 | `npm_install` | `{ "type": "RUN", "args": ["npm install -g <包>"] }` |
-| `env` | 每个变量一条 `{ "type": "ENV", "args": ["KEY=VAL"] }` |
+| `env` | 每个变量一条 `{ "type": "ENV", "args": ["KEY", "VAL"] }` |
 | `run` | 每条命令一步 `{ "type": "RUN", "args": ["<命令>"] }` |
 | `steps` | 按 `{ type, args }` 原样复制 |
 
-官方类型里 `type` 的示例是 `RUN`，`args` 是字符串数组。`ENV` 用同样的形状发送。平台拒绝某个 `type` 时，CLI 退出码 1，并带上平台返回的信息。不生成 `COPY`：本地文件不在云上构建上下文里。要拷贝文件就用 `dockerfile` 模式。
+官方类型里 `type` 的示例是 `RUN`，`args` 是字符串数组。Express 的 `ENV` 要求键和值分别作为两个参数；值中的空格或等号保留在同一个参数中。平台拒绝某个 `type` 时，CLI 退出码 1，并带上平台返回的信息。平台不会可靠地把原生 `ENV` 传递给后续构建 `RUN` 或运行进程。对于显式的第二代启动/就绪命令，CLI 使用正确引用的 `/usr/bin/env` shell 包装传入最后声明的 ENV 值。值按字面保留，同名变量以后声明的值为准。没有显式运行命令时（例如第一代沙箱），运行环境行为仍由平台决定。不生成 `COPY`：本地文件不在云上构建上下文里。要拷贝文件就用 `dockerfile` 模式。
 
 `steps` 模式必须有 `base.image`，它成为 `sandboxConfig.image`。`dockerfile` 模式的基础镜像以 Dockerfile 的 `FROM` 为准，不发送 `base.image`。
 

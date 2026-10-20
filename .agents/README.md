@@ -101,3 +101,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Project tool deadline normalization](notes/proposed/feature/2026-10-19-project-tool-deadline.md) · [verification](evidence/verify/2026-10-19-project-tool-deadline.md)
 
 - [Shared conditional Provider operations](notes/implemented/architecture/2026-10-20-provider-conditional-capabilities.md) · [verification](evidence/verify/2026-10-20-provider-conditional-capabilities.md)
+
+- [Platform ENV argument pairs](notes/proposed/feature/2026-10-20-step-env-pairs.md) · [verification](evidence/verify/2026-10-20-step-env-pairs.md)

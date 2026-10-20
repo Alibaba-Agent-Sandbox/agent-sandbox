@@ -49,11 +49,11 @@ Declarations expand in this order, then raw `build.steps` are appended unchanged
 | `apt_install` | `{ "type": "RUN", "args": ["apt-get update && apt-get install -y <pkgs> && rm -rf /var/lib/apt/lists/*"] }` |
 | `pip_install` | `{ "type": "RUN", "args": ["pip install --no-cache-dir <pkgs>"] }` |
 | `npm_install` | `{ "type": "RUN", "args": ["npm install -g <pkgs>"] }` |
-| `env` | one `{ "type": "ENV", "args": ["KEY=VAL"] }` per variable |
+| `env` | one `{ "type": "ENV", "args": ["KEY", "VAL"] }` per variable |
 | `run` | one `{ "type": "RUN", "args": ["<command>"] }` per command |
 | `steps` | copied as `{ type, args }` |
 
-The official model documents `type` with the example `RUN` and `args` as a list of strings. `ENV` is sent in that same shape. If the platform rejects a type, the CLI exits 1 and includes the platform message. `COPY` is not generated: local files are not part of the cloud build context. Copying files requires `dockerfile` mode.
+The official model documents `type` with the example `RUN` and `args` as a list of strings. Express `ENV` requires separate key/value arguments; values containing spaces or equals signs remain one argument. If the platform rejects a type, the CLI exits 1 and includes the platform message. The provider does not reliably propagate native `ENV` into later build `RUN` or runtime processes. For explicit generation-2 start/readiness commands, the CLI supplies the final declared ENV values with a quoted `/usr/bin/env` shell wrapper. Literal values remain literal and later ENV declarations override earlier ones. With no explicit runtime command (for example generation1), runtime environment behavior remains provider-defined. `COPY` is not generated: local files are not part of the cloud build context. Copying files requires `dockerfile` mode.
 
 `steps` mode requires `base.image`. That value is `sandboxConfig.image`. In `dockerfile` mode the `FROM` line in the Dockerfile is the base image; `base.image` is not sent.
 

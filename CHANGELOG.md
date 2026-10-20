@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Send platform-step `build.env` values as separate Express ENV key/value arguments, preserving spaces and equals signs; explicitly supply final ENV values to generation-2 startup/readiness commands when the provider does not propagate them.
+
 - Round remaining project tool deadlines to whole milliseconds so floating point error cannot prevent Docker/kubectl startup. / 将项目工具的剩余截止时间向上取整为毫秒，避免浮点误差阻止 Docker/kubectl 启动。
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
