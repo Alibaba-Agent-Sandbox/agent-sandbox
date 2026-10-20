@@ -102,5 +102,6 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Shared conditional Provider operations](notes/implemented/architecture/2026-10-20-provider-conditional-capabilities.md) · [verification](evidence/verify/2026-10-20-provider-conditional-capabilities.md)
 
-- [Contextual Provider help and canonical runner](notes/proposed/architecture/2026-10-20-provider-context-help.md) · [Issue #83](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/83)
+- [Contextual Provider help and canonical runner](notes/implemented/architecture/2026-10-20-provider-context-help.md) · [Issue #83](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/83)
+- [Bundled Provider SDK delivery](notes/implemented/feature/2026-10-20-bundled-provider-sdk.md) · [Issue #85](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/85)
 - [Website CLI mirror installation guidance](notes/proposed/process/2026-10-20-website-cli-mirror-docs.md) · [verification](evidence/verify/2026-10-20-website-cli-mirror-docs.md)

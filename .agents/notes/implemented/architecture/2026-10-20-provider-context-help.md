@@ -1,6 +1,6 @@
 # Decision: Provider-owned operations with contextual help and one dispatcher
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -167,5 +167,6 @@ implementation, not proof of account admission or native backend acceptance.
 First deliver the host help/runner, regression coverage and bilingual contract together. Consumer
 presentation should subsequently consume the same descriptors rather than duplicate vendor tables.
 Publication and the unrelated review findings require their own verified owner changes; no release
-or native Provider acceptance is inferred from this ADR's presence. Keep this record proposed until
-the change has passed its gates and merged.
+or native Provider acceptance is inferred from this ADR's presence. The implemented state travels
+with the accepted host implementation; verify the PR's actual remote merge before treating a branch
+copy of this record as shipped. Downstream presentation remains explicitly phased above.

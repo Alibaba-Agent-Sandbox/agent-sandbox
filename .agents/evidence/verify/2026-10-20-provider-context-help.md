@@ -2,7 +2,7 @@
 
 - Date: 2026-10-20
 - Change: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/83
-- Result: PARTIAL — relevant regressions and real npm control-plane calls pass; local full-suite baseline failures and standalone packaging follow-up are recorded below. Remote gates are pending.
+- Result: PASS for scoped help/runner and real packaged behavior. Full local-suite baseline failures remain explicit below; latest-head hosted CI/review is a separate required merge gate.
 - Source: CLI base `4aec47b734be04fbadc932b0bbf4cd7ae0ac1eb4` plus the scoped Provider help/runner changes; catalog fixtures `9d2cf07467ff0e36303e4c80cbfe9fbf0fd70c6d`.
 - Environment: Linux x64, Node 22.22.2. Cloud credentials supplied only through environment from an ignored source; no values recorded.
 - Artifacts: lockfile-installed TypeScript build and Node SEA candidate. Version remains 0.4.0 for these unreleased candidates; no publication is implied.
@@ -70,6 +70,29 @@ candidate passed all four legacy real cloud lists with no resources created. The
 new/legacy eight-read candidate is verified after integration; the earlier failures above
 are retained as historical evidence.
 
+### Final combined candidate
+
+The combined implementation at `007bfcbc0a3ed85102a393ad2f81a16417c96b43` includes
+PR87's final packaging fix `2adb23a47844b22e31044ae1be041e62c7285f4b` through a
+normal merge. Only acceptance records and decision-state updates follow this executable
+implementation. The Linux x64 SEA candidate SHA256 is
+`b909c58d15f60342f0fcbc7cbd1e1f2919f1531af943270812704e2bb48ece99`.
+
+| Final scenario | Result | Scope |
+| --- | --- | --- |
+| Combined targeted suite | PASS | 12 files, 350 tests: help/old commands/SDK loaders/schemas/isolated bundles/license output/package-report compatibility |
+| Complete `e2e:offline` | PASS | 78 pass, 1 leak-check skip; real standalone, filesystem, installed fixtures, parser/config/MCP artifacts and no credentials |
+| Isolated SEA real-cloud management reads | PASS | 8 pass, 1 leak-check skip: four resource lists through old and new paths |
+| Combined npm tarball independently installed | PASS | 111 runtime packages; contextual operation help exits zero with schema visible outside the checkout |
+| Earlier source full hosted matrix | PASS | Implementation head864452b, Node20/22, package, typecheck, installer and links |
+| Final hosted matrix | Merge gate | Inspect current PR86/87 head rather than infer from the earlier successful run |
+
+Both final real-artifact suites created zero cloud resources. Initial standalone SDK failures
+and the initial five stale offline assertions above are preserved; their final reruns resolve them.
+The independent npm12 package-report repair retains strict missing-entry rejection and five
+behavioral regressions. The candidate still identifies as unreleased 0.4.0; it does not replace
+or certify the original public 0.4.0 attachment.
+
 ## Cleanup
 
 Fixture homes, plugin stores and temporary default settings were isolated and removed. Real
@@ -92,6 +115,7 @@ after the owner fix lands. Do not claim a working published standalone workflow 
 
 ## Not verified
 
-Remote CI/review and merge, publication, browser/Registry presentation, Python Node handshake
+Final remote CI/review and merge are verified as delivery gates in the PR, not predicted by this
+record. Publication, browser/Registry presentation, Python Node handshake
 repair, new shell completion/MCP generation and renewed native acceptance of every Provider.
 These are not inferred from local command discovery. No new cloud mutation handlers were added.
