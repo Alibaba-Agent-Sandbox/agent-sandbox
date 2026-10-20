@@ -46,7 +46,9 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
 
-- [Platform ENV argument pairs](notes/proposed/feature/2026-10-20-step-env-pairs.md) · [verification](evidence/verify/2026-10-20-step-env-pairs.md)
+- [Platform ENV argument pairs](notes/implemented/feature/2026-10-20-step-env-pairs.md) · [verification](evidence/verify/2026-10-20-step-env-pairs.md)
+
+- [Explicit native step entry and patch publication](notes/proposed/feature/2026-10-20-native-step-entry.md) · [verification](evidence/verify/2026-10-20-native-step-entry.md)
 
 ## Standard E2B behavior work
 

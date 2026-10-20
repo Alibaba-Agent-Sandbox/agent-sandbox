@@ -1,6 +1,6 @@
 # Decision: Preserve Express platform ENV key/value arguments
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -32,3 +32,7 @@ Existing expansion regression first fails with 1 failure/6 passes, then verifies
 - Bilingual contract/changelog and engineering records.
 - Real current-source native step acceptance with independently confirmed owned cleanup.
 - Latest-head CI and normal verified PR merge without bypass.
+
+## Evidence
+
+Accepted by https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/88 at ea744482a84e4a7061c879e3287b476ff202cd33 after all six latest-head checks passed. Issue84 is verified closed. Earlier evidence remains immutable.

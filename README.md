@@ -269,3 +269,5 @@ The Express core and conditional pause/snapshot receipts do not certify every ca
 [Prepare and launch catalog templates without copying cloud IDs](docs/en/guide/template-launch.md).
 
 Provider-owned pause/resume and Snapshot commands share one implementation across CLI and SDK; see the [registration and usage guide](docs/en/guide/provider-commands.md).
+
+For native Express template inventory and platform-step acceptance, CLI0.4.1 supports `abx --native` (first global option). See [native deployment operations](docs/en/guide/deploy-and-build.md#explicit-native-express-entry).
