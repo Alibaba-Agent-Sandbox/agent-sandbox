@@ -263,4 +263,4 @@ The Express core and conditional pause/snapshot receipts do not certify every ca
 
 [Prepare and launch catalog templates without copying cloud IDs](docs/en/guide/template-launch.md).
 
-Provider-owned pause/resume and Snapshot commands share one implementation across CLI and SDK; see the [registration and usage guide](docs/en/design/alicloud-provider-commands.md).
+Provider-owned pause/resume and Snapshot commands share one implementation across CLI and SDK; see the [registration and usage guide](docs/en/guide/provider-commands.md).

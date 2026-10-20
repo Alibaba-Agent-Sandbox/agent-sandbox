@@ -43,3 +43,5 @@ CLI PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/79
 Python PR: https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/73
 Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/78
 Latest-head hosted source/test/docs gates are read back before normal SHA-pinned merge; a draft or queued run is not a completed merge. This record does not claim npm/PyPI publication or a new released CLI version. The original v0.4.0 binary predates the new registration; use a containing CLI build.
+
+Final documentation review: consumer usage and the ownership model live in the bilingual guide/provider-commands pages, linked from the main documentation index, Provider guide and README. The management design page retains its own proposed scope and links to the delivered conditional guide.

@@ -260,4 +260,4 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 [自动准备并启动目录模板，无需复制云 ID](docs/zh/guide/template-launch.md).
 
-暂停/恢复和快照命令由 Provider 注册，CLI 与 SDK 共用实现，见[注册与使用说明](docs/zh/design/alicloud-provider-commands.md)。
+暂停/恢复和快照命令由 Provider 注册，CLI 与 SDK 共用实现，见[注册与使用说明](docs/zh/guide/provider-commands.md)。
