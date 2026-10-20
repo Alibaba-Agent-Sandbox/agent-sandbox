@@ -1,7 +1,7 @@
 /** Regenerate attribution for the official Express SDK's bundled dependency graph. */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -14,7 +14,7 @@ const bundle = await build({
   format: "cjs",
   write: false,
   metafile: true,
-  define: { "import.meta.url": '"file:///bundled-sdk.cjs"' },
+  define: { "import.meta.url": JSON.stringify(pathToFileURL(output).href) },
   logLevel: "silent",
 });
 const directories = new Set();
