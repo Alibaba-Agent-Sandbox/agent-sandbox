@@ -2,14 +2,13 @@
  * `abx provider` — manage sandbox providers (backends): install, inspect, select, update and test them.
  *
  * The built-in provider is `alicloud-express` (Alibaba Cloud Express Edition, 阿里云极速版). Further providers are
- * plugins installed from a directory or a git URL; nothing from a plugin is executed while installing. Grammar, JSON
+ * plugins installed from a directory or a git URL; default verification initializes them after consent. Grammar, JSON
  * shapes and exit codes: `docs/design/providers-and-credentials-cli.md` section 5.
  *
- * The group stays hidden from `abx --help` until a provider is installed or selected (`providersInUse()`); it is always
- * callable and documented here and in the guides.
+ * The invocation factory adds a static operation directory and an isolated runner to these host commands.
  */
 
-import { Argument, Context, argument, command, group, option } from "../kit.js";
+import { Argument, Context, argument, command, group, option, type Command } from "../kit.js";
 import { Choice } from "../types.js";
 import { sysExit } from "../errors.js";
 import { echo, sys } from "../io.js";
@@ -29,7 +28,8 @@ import { compactFeatures, configFieldToKey, type ConfigField } from "../../provi
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../error_handler.js";
 import { engine } from "./provider_engine.js";
-import { provider_commands } from "./provider_commands.js";
+import { createProviderRun, provider_commands } from "./provider_commands.js";
+import { discoverProviderOperations, providerOperationsDirectory } from "../provider_operations.js";
 
 type Params = Record<string, unknown>;
 
@@ -37,8 +37,8 @@ const PROVIDER_HELP = [
   "Manage sandbox providers (backends).",
   "",
   "    The built-in provider is 'alicloud-express' (Alibaba Cloud Express Edition,",
-  "    阿里云极速版). Install more with a directory or a git URL; nothing from a",
-  "    plugin is executed while installing.",
+  "    阿里云极速版). Install more with a directory or a git URL. Default install",
+  "    verification initializes the plugin after consent; discovery only reads metadata.",
   "",
   "    Select a provider for one command with the global '--provider ID' (any",
   "    position) and set provider options with '--opt KEY=VALUE' (repeatable).",
@@ -289,8 +289,8 @@ const install_cmd = command("install", {
     "",
     "    SOURCE is a local directory, owner/repo//subdir[@ref] (same // as",
     "    'abx template install'), or a git URL (https://, ssh://, git@host:path).",
-    "    Nothing from the plugin is executed during installation; the plugin's",
-    "    abx-provider.toml is validated and its tree digest recorded. A consent screen",
+    "    The plugin's abx-provider.toml is validated and its tree digest recorded.",
+    "    After consent, default verification may load and initialize the plugin. A consent screen",
     "    lists what the plugin runs, which features it provides and which generic",
     "    credentials it would receive. Non-interactive installs need --yes.",
     "",
@@ -773,3 +773,12 @@ provider.addCommand(doctor_cmd, "doctor");
 provider.addCommand(test_cmd, "test");
 provider.addCommand(engine, "engine");
 provider.addCommand(provider_commands, "command");
+
+/** Compose the host commands and selected operations afresh for each invocation. */
+export function createProviderGroup(): Command {
+  const catalog = discoverProviderOperations();
+  const result = group("provider", { help: PROVIDER_HELP, helpFooter: () => providerOperationsDirectory(catalog) });
+  for (const [name, child] of provider.commands!) result.addCommand(child, name);
+  result.addCommand(createProviderRun(catalog));
+  return result;
+}

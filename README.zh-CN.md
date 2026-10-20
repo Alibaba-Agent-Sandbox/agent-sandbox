@@ -196,6 +196,7 @@ python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-S
 | 无障碍 | [无障碍说明](ACCESSIBILITY.md) |
 | 操作指南 | [操作指南](docs/zh/guide/operations.md) |
 | 提供商 | [提供商](docs/zh/guide/providers.md) |
+| Provider 操作帮助与执行 | [帮助、默认值、JSON 输入与更新](docs/zh/guide/provider-commands.md) |
 | 编写提供商 | [编写提供商](docs/zh/guide/authoring-providers.md) |
 | 二进制安装 | [二进制安装](docs/zh/guide/binary-installation.md) |
 | CLI 教程 | [CLI 教程](docs/zh/guide/cli-tutorial.md) |

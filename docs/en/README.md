@@ -24,7 +24,7 @@ The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers
 | [Operations](guide/operations.md) | Every command group and the one command for that job |
 | [Binary Installation](guide/binary-installation.md) | Single-file `abx` binary (Node SEA), no Node.js required |
 | [Providers](guide/providers.md) | Install, select, and configure sandbox providers |
-| [Provider commands](guide/provider-commands.md) | One provider implementation, CLI/Python discovery and Express pause/Snapshot usage |
+| [Provider commands](guide/provider-commands.md) | Contextual help, default selection, shared CLI/Python discovery, updates and Express pause/Snapshot usage |
 | [Authoring Providers](guide/authoring-providers.md) | Write a `node` or EPP/1 `exec` provider plugin, including `[template]` and install-from-git |
 | [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `abx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |

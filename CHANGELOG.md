@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- Contextual Provider operation discovery in `abx -h`, `abx provider -h` and `abx provider run OPERATION -h`, plus default-aware `provider run` dispatch using existing JSON input and confirmation contracts. Preserve explicit-ID `provider command list/info/run` for compatibility and AI JSON discovery. / 通过标准帮助发现所选 Provider 的操作，新增使用默认 Provider 的 `provider run`，保留原有显式 ID 与 JSON 接口。
+
 - Provider-registered Express pause/resume and Snapshot create/list/restore/delete, shared by CLI and Python engine clients without backend duplication. / Provider 注册的极速版暂停恢复及快照全流程，两端共用实现。
 
 - Provider-owned `template launch`: source preparation, exact reference handoff, capability preflight, service readiness and owned sandbox cleanup; generic staged filesystem/process/OCI helpers. Third-party paths remain Beta with explicit native acceptance limits.

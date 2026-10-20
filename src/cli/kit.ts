@@ -78,6 +78,8 @@ export interface LazyEntry {
 
 export interface CommandAttrs {
   help?: string | (() => string);
+  /** Additional help evaluated only when help is rendered, never while parsing an action. */
+  helpFooter?: () => string;
   params?: readonly Param[] | (() => readonly Param[]);
   callback?: Callback;
   hidden?: boolean;
@@ -88,6 +90,7 @@ export interface CommandAttrs {
 
 export class Command {
   readonly help: string;
+  readonly helpFooter: (() => string) | undefined;
   readonly params: readonly Param[];
   callback: Callback | null;
   readonly hidden: boolean;
@@ -103,6 +106,7 @@ export class Command {
   ) {
     this.help = typeof attrs.help === "function" ? "" : attrs.help ?? "";
     if (typeof attrs.help === "function") Object.defineProperty(this, "help", { get: attrs.help });
+    this.helpFooter = attrs.helpFooter;
     this.params = typeof attrs.params === "function" ? [] : attrs.params ?? [];
     if (typeof attrs.params === "function") Object.defineProperty(this, "params", { get: attrs.params });
     this.callback = attrs.callback ?? null;
@@ -465,6 +469,7 @@ function configure(cmd: CommanderCommand, spec: Command): void {
       getErrHelpWidth: terminalWidth,
     });
   if (spec.help) cmd.description(cleanHelp(spec.help));
+  if (spec.helpFooter) cmd.addHelpText("after", () => spec.helpFooter!());
 }
 
 /** The commander command behind `spec`, with its whole subtree. `parent` only matters for the usage line. */

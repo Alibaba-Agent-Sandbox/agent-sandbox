@@ -1,5 +1,68 @@
 # Provider 能力注册与共享命令
 
+## 通过帮助发现操作
+
+Provider 安装一次后，声明的操作自动可见，不需要用户再执行“注册”。交互使用可以设置
+默认 Provider，脚本可以显式选择：
+
+```sh
+abx provider default alicloud-express
+abx --help
+abx provider --help
+abx provider run --help
+abx provider run snapshot.create --help
+abx provider run snapshot.create \
+  --input '{"sandbox_id":"<sandbox-id>","name":"checkpoint"}' --yes
+abx --provider alicloud-express provider run snapshot.list --input '{}'
+```
+
+这些上下文帮助和 `run` 入口需要包含本次变更的构建，原始 v0.4.0 发布物尚未包含。
+顶层帮助显示所选 Provider 和操作摘要；`provider --help`、`provider run --help` 显示
+完整操作目录和完整调用路径；具体操作帮助显示说明、输入字段、JSON Schema、影响和
+确认要求。`-h` 与 `--help` 等价。帮助只读取本地声明，不要求凭据、不执行插件、不访问
+云端。所选 Provider 无效时，帮助显示诊断并保留修复命令；真正执行时严格报错，不会
+悄悄切换后端。
+
+选择顺序与执行共用同一规则：`--provider ID`、`ABX_PROVIDER`、项目 `.env`、用户 `.env`、
+已保存配置、内置默认值。像上例一样，把全局选项放在 `provider` 命令组之前。
+`provider default ID` 保存偏好，环境变量仍可覆盖该值。
+
+操作 ID 是一个完整参数，包括其中的点：`snapshot.create` 不转换成 `snapshot create`。
+操作固定放在 `provider run` 下，名为 `list`、`install` 或 `default` 的操作不能覆盖宿主
+管理命令。输入继续使用有大小限制的 `--input` 或 `--input-file` JSON，不把任意 Schema
+字段变成 CLI 参数。写入和删除操作要求 `--yes`。敏感输入使用权限受限的本地 JSON
+文件，并通过 `--input-file` 传入。
+
+原有显式 ID 和机器可读接口继续兼容：
+
+```sh
+abx --json provider command list alicloud-express
+abx --json provider command info alicloud-express snapshot.create
+abx --json provider command run alicloud-express snapshot.create \
+  --input-file ./snapshot-input.json --yes
+```
+
+AI 和自动化应使用这些 JSON 接口。面向人的帮助不是稳定 JSON 响应契约。
+Provider 管理操作、沙箱应用命令（`abx sandbox command`）与模板准备
+（`abx template launch`）是不同职责。注册和查看帮助不会创建模板或云资源。
+本次变更不会自动生成 MCP 工具、Shell 补全或 SDK 类型化方法。
+
+## 职责与更新
+
+Provider 自己拥有操作 ID、说明、Schema、影响声明和处理器。Node 插件在
+`abx-provider.toml` 声明，并实现 `buildInfra(ctx).provider_commands.run`；exec 插件通过
+EPP 处理 `provider.commands.run`。REST 预设不支持非空操作目录。宿主从同一份目录
+生成帮助和 JSON 发现结果，并使用同一个执行器调度。示例见
+[编写 Provider](authoring-providers.md#provider-管理操作)。
+
+已安装插件通过 `abx provider update ID --ref <40-hex-commit>` 更新，沿用现有固定提交
+与授权规则。下一次调用自动看到新增声明，无需重新注册或生成帮助。内置极速版随宿主
+CLI 发布升级，不作为独立插件安装更新。应检查实际安装构建；`main` 已合并不代表
+npm 包或 Release 附件已经包含变更。
+
+帮助和发现不执行插件代码。安装属于另一个阶段：同意前读取静态元数据，同意后默认
+握手可能导入和初始化插件代码。详见[安装信任规则](authoring-providers.md#4-发布并从-git-安装)。
+
 ## Provider 实现一次，两端共同发现
 
 公共宿主负责配置隔离、安装/授权、受限 JSON Schema 校验、引擎认证、错误和通用调度。

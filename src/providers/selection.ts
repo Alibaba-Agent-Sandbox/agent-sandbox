@@ -46,8 +46,8 @@ export function resetCliSelection(): void {
 
 /**
  * Pull `--provider ID` / `--provider=ID` / `--opt K=V` / `--opt=K=V` out of `args` (any position before a `--`
- * terminator, or the sandbox ID of exec) and return the remaining arguments. Not applied to the `provider` command group, whose subcommands
- * (`provider test`) own an `--opt` of their own.
+ * terminator, or the sandbox ID of exec) and return the remaining arguments. Within the `provider` group,
+ * only --provider is global; its subcommands (`provider test`, `provider run`) own --opt.
  */
 export function extractProviderFlags(args: readonly string[]): { args: string[]; provider: string | null; options: string[] } {
   const out: string[] = [];
@@ -68,9 +68,9 @@ export function extractProviderFlags(args: readonly string[]): { args: string[];
       continue;
     }
     if (firstWord === null && !a.startsWith("-")) firstWord = a;
-    if (firstWord === "provider") {
-      out.push(...args.slice(i));
-      break;
+    if (firstWord === "provider" && a !== "--provider" && !a.startsWith("--provider=")) {
+      out.push(a);
+      continue;
     }
     if (execOptionValueExpected) {
       out.push(a);

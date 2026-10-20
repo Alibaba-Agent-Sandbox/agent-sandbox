@@ -27,7 +27,9 @@ export function listProviderCommands(providerId: string): ProviderCommand[] {
 
 export function getProviderCommand(providerId: string, commandId: string): ProviderCommand {
   const command = listProviderCommands(providerId).find((item) => item.id === commandId);
-  if (!command) throw new ProviderFeatureNotSupportedError(providerId, `command:${commandId}`);
+  if (!command) throw new ProviderFeatureNotSupportedError(providerId, `command:${commandId}`, {
+    suggestion: `Run 'abx --provider ${providerId} provider run --help' to see its operations.`,
+  });
   return command;
 }
 
@@ -47,7 +49,7 @@ function redact(value: unknown, secrets: readonly string[]): unknown {
 /** No automatic retry: a failed connection or timeout can leave a mutation's outcome unknown. */
 export async function runProviderCommand(providerId: string, commandId: string, input: unknown, options: ProviderCommandOptions = {}): Promise<unknown> {
   const command = getProviderCommand(providerId, commandId);
-  validateCommandInput(command, input);
+  validateCommandInput(command, input, providerId);
   const provider = getProvider(providerId);
   const config = loadLayeredConfig({ ...options, provider: providerId,
     ...(options.api_key !== undefined ? { sandbox_api_key: options.api_key } : {}),

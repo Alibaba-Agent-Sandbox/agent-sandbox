@@ -198,6 +198,7 @@ python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-S
 | Accessibility | [Accessibility](ACCESSIBILITY.md) |
 | Operations | [Operations](docs/en/guide/operations.md) |
 | Providers | [Providers](docs/en/guide/providers.md) |
+| Provider operation help and execution | [Help, defaults, JSON inputs and updates](docs/en/guide/provider-commands.md) |
 | Authoring Providers | [Authoring Providers](docs/en/guide/authoring-providers.md) |
 | Binary Installation | [Binary Installation](docs/en/guide/binary-installation.md) |
 | CLI Tutorial | [CLI Tutorial](docs/en/guide/cli-tutorial.md) |

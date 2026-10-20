@@ -35,7 +35,8 @@ Command groups:
   mcp                  Configure and run Agent Sandbox as an MCP server.
 
 Providers:
-  provider             Install, select and configure sandbox providers.
+  provider             Install, select, configure and run sandbox provider
+                       operations.
 
 Sandbox shortcuts:
   create               Same as 'abx sandbox create'.
@@ -48,4 +49,9 @@ Sandbox shortcuts:
   download             Same as 'abx sandbox download'.
   run                  Same as 'abx sandbox command run'.
   deploy               Same as 'abx template deploy'.
+
+Provider: alicloud-express (default)
+26 provider operations: api-key, quota, sandbox, snapshot, team, volume.
+Example: abx provider run api-key.create --help
+Use 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.
 [exit_code:0]
