@@ -54,7 +54,7 @@ export default {
     { id: 'unknown-command-json', title: 'unknown command under --json still exits 2', argv: ['--json', 'nosuchcmd'], creds: false, exit: 2 },
     { id: 'missing-args-exec', title: 'standard exec requires a sandbox ID', argv: ['exec'], creds: false, exit: 1, output: "missing required argument 'sandboxID'" },
     { id: 'missing-args-run', title: 'run without COMMAND_NAME exits 2', argv: ['run', 'sbx-x'], creds: false, exit: 2, output: 'Missing argument' },
-    { id: 'invalid-log-level', title: 'invalid --log-level exits 2', argv: ['--log-level', 'bogus', 'list'], creds: false, exit: 2, output: /not one of/ },
+    { id: 'invalid-log-level', title: 'standard list rejects native --log-level without changing its execution route', argv: ['--log-level', 'bogus', 'list'], creds: false, exit: 1, output: "unknown option '--log-level'" },
     { id: 'invalid-list-status', title: 'standard list rejects retired --status spelling', argv: ['list', '--status', 'bogus'], creds: false, exit: 1, output: "unknown option '--status'" },
     { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of|Allowed choices/ },
     { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ['upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
@@ -64,8 +64,8 @@ export default {
 
     { id: 'no-credentials-list', title: 'standard list requires a configured key', argv: ['list'], creds: false, exit: 1, output: /logged in|API key/i },
     {
-      id: 'no-credentials-list-json', title: '--json error envelope without credentials', argv: ['--json', 'list'], creds: false, exit: 3,
-      jsonShape: { status: 'string', message: 'string', code: 'string', suggestion: 'string' }, json: (j) => { if (j.status !== 'error' || j.code !== 'E1001') throw new Error(`unexpected envelope ${JSON.stringify(j)}`); },
+      id: 'no-credentials-list-json', title: 'standard list rejects native --json before authentication without changing routes', argv: ['--json', 'list'], creds: false, exit: 1,
+      output: "unknown option '--json'",
     },
     { id: 'no-credentials-exec', title: 'standard exec requires a configured key', argv: ['exec', 'sbx-x', 'echo hi'], creds: false, exit: 1, output: /logged in|API key/i },
     { id: 'no-credentials-template-list', title: 'standard template list requires a configured key', argv: ['template', 'list'], creds: false, exit: 1, output: /logged in|API key/i },
@@ -135,12 +135,17 @@ export default {
       },
     },
     {
-      id: 'config-env-overrides-store', title: 'environment variable overrides stored value and is reported as (env)', creds: false,
+      id: 'config-env-overrides-store', title: 'native ABX endpoint environment overrides storage while standard E2B aliases stay isolated', creds: false,
       async run(ctx) {
         const home = ctx.newHome('cfg-env');
-        await ctx.abx(['config', 'set', 'region', 'cn-shanghai'], { home, creds: false });
-        const r = await ctx.abx(['--json', 'config', 'get', 'api_url'], { home, creds: false, env: { E2B_API_URL: 'https://example.invalid' } });
-        ctx.check('api_url', r.stdout, 'example.invalid');
+        const stored = await ctx.abx(['config', 'set', 'sandbox_base_url', 'https://stored.invalid'], { home, creds: false });
+        if (stored.code !== 0) ctx.fail(`store endpoint exit ${stored.code}`);
+        const r = await ctx.abx(['--json', 'config', 'get', 'sandbox_base_url'], { home, creds: false, env: { ABX_SANDBOX_BASE_URL: 'https://example.invalid', E2B_API_URL: 'https://standard.invalid' } });
+        if (r.code !== 0) ctx.fail(`read overridden endpoint exit ${r.code}`);
+        ctx.check('sandbox_base_url', r.stdout, 'example.invalid');
+        const standardOnly = await ctx.abx(['--json', 'config', 'get', 'sandbox_base_url'], { home, creds: false, env: { E2B_API_URL: 'https://standard.invalid' } });
+        if (standardOnly.code !== 0) ctx.fail(`read stored endpoint exit ${standardOnly.code}`);
+        ctx.check('stored native endpoint', standardOnly.stdout, 'stored.invalid');
       },
     },
     { id: 'config-init-yes', title: 'config init --yes prints non-interactive commands, exit 0, never blocks', argv: ['config', 'init', '--yes'], creds: false, freshHome: true, stdin: '', timeoutMs: 30000, stdout: ['abx config set sandbox_api_key', 'abx config set region', { not: 'acr_namespace' }, { not: 'llm_api_key' }] },
@@ -168,7 +173,7 @@ export default {
         const home = ctx.newHome('mcp');
         const cwd = ctx.newCwd('mcp');
         const key = 'e2e-fake-api-key-0123456789';
-        const env = { E2B_API_KEY: key, E2B_API_URL: 'https://api.example.invalid' };
+        const env = { ABX_SANDBOX_API_KEY: key, ABX_SANDBOX_BASE_URL: 'https://api.example.invalid', E2B_API_KEY: 'standard-only-placeholder', E2B_API_URL: 'https://standard.invalid' };
         const targets = [['cursor', join(home, '.cursor', 'mcp.json')], ['claude', join(home, '.config', 'claude', 'claude_desktop_config.json')], ['vscode', join(cwd, '.vscode', 'mcp.json')]];
         for (const [t, file] of targets) {
           const r = await ctx.abx(['mcp', 'install', '--target', t], { home, cwd, creds: false, env });
@@ -181,12 +186,17 @@ export default {
           const entry = servers?.['agent-sandbox'];
           if (!entry) ctx.fail(`${t}: no agent-sandbox server entry (keys: ${Object.keys(servers ?? cfg).join(',')})`);
           if (!Array.isArray(entry.args) || !entry.args.includes('mcp') || !entry.args.includes('start')) ctx.fail(`${t}: entry.args must run "mcp start"`);
+          if (entry.env?.ABX_SANDBOX_BASE_URL !== env.ABX_SANDBOX_BASE_URL) ctx.fail(`${t}: native MCP configuration did not preserve the canonical ABX endpoint`);
+          if (t === 'vscode') {
+            if (entry.type !== 'stdio' || Object.hasOwn(entry.env ?? {}, 'ABX_SANDBOX_API_KEY') || readFileSync(file, 'utf8').includes(key)) ctx.fail('vscode: workspace configuration must use stdio without persisting the API key');
+          } else if (entry.env?.ABX_SANDBOX_API_KEY !== key) ctx.fail(`${t}: native MCP configuration did not preserve the canonical ABX credential`);
+          if (Object.hasOwn(entry.env ?? {}, 'E2B_API_KEY') || Object.hasOwn(entry.env ?? {}, 'E2B_API_URL')) ctx.fail(`${t}: standard-entry E2B aliases leaked into native MCP configuration`);
         }
         const r = await ctx.abx(['--json', 'mcp', 'status'], { home, cwd, creds: false, env });
         const j = ctx.parseJsonLoose(r.stdout);
-        if (!j?.installed_cursor || !j?.installed_claude || !j?.installed_vscode) ctx.fail(`status after install: ${JSON.stringify({ c: j?.installed_cursor, cl: j?.installed_claude, v: j?.installed_vscode })}`);
-        const cursorCfg = JSON.parse(readFileSync(targets[0][1], 'utf8'));
-        if (cursorCfg.mcpServers['agent-sandbox'].env?.E2B_API_KEY !== key) ctx.fail('cursor config should carry the E2B_API_KEY from the environment');
+        if (!j?.auth_configured || !j?.installed_cursor || !j?.installed_claude || !j?.installed_vscode) ctx.fail(`status after install: ${JSON.stringify({ auth: j?.auth_configured, c: j?.installed_cursor, cl: j?.installed_claude, v: j?.installed_vscode })}`);
+        const standardOnly = await ctx.abx(['--json', 'mcp', 'status'], { home, cwd, creds: false, env: { E2B_API_KEY: env.E2B_API_KEY, E2B_API_URL: env.E2B_API_URL } });
+        if (standardOnly.code !== 0 || ctx.parseJsonLoose(standardOnly.stdout)?.auth_configured !== false) ctx.fail('standard-entry E2B credentials must not configure native MCP authentication');
         const again = await ctx.abx(['mcp', 'install', '--target', 'cursor'], { home, cwd, creds: false, env });
         if (again.code !== 0) ctx.fail('re-install (merge) must be idempotent');
       },
@@ -205,7 +215,7 @@ export default {
     },
 
     {
-      id: 'mcp-deploy-client-requirements', title: 'mcp deploy writes the Python client MCP distribution into requirements.txt', creds: false,
+      id: 'mcp-deploy-client-requirements', title: 'mcp deploy pins a matching Python client/runtime source pair and ASGI dependency', creds: false,
       async run(ctx) {
         const cwd = ctx.newCwd('mcp-artifact');
         const out = join(cwd, 'artifact');
@@ -214,7 +224,11 @@ export default {
         });
         if (r.code !== 0) ctx.fail(`mcp deploy exit ${r.code}\n${r.out}`);
         const requirements = readFileSync(join(out, 'requirements.txt'), 'utf8');
-        if (requirements !== 'agent-sandbox-client[mcp]\nuvicorn>=0.29\n') ctx.fail('artifact must install agent-sandbox-client[mcp] and uvicorn');
+        const lines = requirements.trim().split('\n');
+        const server = lines[0]?.match(/^agent-sandbox-server @ https:\/\/github\.com\/Alibaba-Agent-Sandbox\/python-sdk\/archive\/([a-f0-9]{40})\.tar\.gz#subdirectory=server-sdk$/);
+        const client = lines[1]?.match(/^agent-sandbox-client\[mcp\] @ https:\/\/github\.com\/Alibaba-Agent-Sandbox\/python-sdk\/archive\/([a-f0-9]{40})\.tar\.gz#subdirectory=client-sdk$/);
+        if (lines.length !== 3 || !server || !client || server[1] !== client[1]) ctx.fail('artifact must install the MCP client and runtime from the same immutable source revision');
+        if (lines[2] !== 'uvicorn>=0.54.0') ctx.fail('artifact must preserve the supported uvicorn dependency constraint');
         for (const file of ['app.py', 'config.yaml']) if (!existsSync(join(out, file))) ctx.fail(`missing artifact file ${file}`);
       },
     },
