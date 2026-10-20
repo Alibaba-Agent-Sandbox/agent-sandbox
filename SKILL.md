@@ -67,6 +67,23 @@ Command groups are `sandbox`, `template`, `config`, `mcp`, and `provider`. Short
 
 `abx` loads the built-in provider `alicloud-express`, plus installed `node`, `exec` and `rest` plugins. The catalog providers `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins (ES module `provider.mjs`, `create(kit)`). Install one with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` (a local path or a git URL also works) and run `abx --provider <id> ...`. An id that is neither built in nor installed exits `E8001`. A manifest with `kind = "python"` cannot be installed. In-code Python `Provider` subclasses still work in the Python SDK. That SDK runs the same `node` plugins through the local engine, `abx provider engine serve` (`abx` on `PATH` or `ABX_BIN`). `python -m agent_sandbox.providers install registry:<id> --yes` is the SDK installer and fetches the catalog index. `exec` (EPP/1 over stdio, any language, optional `pty.*`) remains for third-party plugins.
 
+## Discovering Provider operations
+
+Use `abx -h` for the effective Provider summary, `abx provider -h` or `abx provider run -h`
+for its full operation directory, and `abx provider run OPERATION -h` for fields, schemas and effects.
+Select with `abx provider default ID` or an invocation prefix `abx --provider ID ...`; environment
+overrides still take precedence over a stored default. Install/update makes declared operations
+visible automatically. Help is local metadata discovery and must not execute plugin code or contact
+the cloud. Plugin installation may run verification code after consent.
+
+Use `abx --provider ID provider run OPERATION --input-file ./input.json` to execute; write/delete
+operations need `--yes`. Preserve the complete operation ID as one argument. For machine discovery,
+use `abx --json provider command list ID` and `abx --json provider command info ID OPERATION`;
+the explicit-ID `provider command run` interface remains compatible. Do not parse human help as JSON,
+generate arbitrary CLI flags from schema fields, or assume declared operations are MCP tools or
+typed SDK methods. This surface requires a build containing the contextual-help change; check the
+installed engine before relying on current-main documentation. See [Provider contracts](references/provider-contracts.md).
+
 ## Credentials and security
 
 Runtime sandbox requests require `ABX_SANDBOX_API_KEY`. Official template/image/ACR control-plane operations separately require `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`. AK/SK never automatically creates or exchanges the runtime API key.

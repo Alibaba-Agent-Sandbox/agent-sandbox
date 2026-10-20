@@ -8,13 +8,14 @@
 import { drainRealStreams, finalizeStreams, writeFdSync } from "../cli/io.js";
 import { main } from "../cli/main.js";
 import { STANDARD_LICENSES } from "../standard_cli/notices.js";
+import { RUNTIME_DEPENDENCY_NOTICES } from "../licenses/runtime_dependencies.js";
 import { dispatchStandard } from "../standard_cli/dispatch.js";
 
 void (async () => {
   try {
     if (process.argv.length === 3 && process.argv[2] === "--licenses") {
       await new Promise<void>((resolve, reject) => {
-        process.stdout.write(STANDARD_LICENSES, (error) => error ? reject(error) : resolve());
+        process.stdout.write(STANDARD_LICENSES + RUNTIME_DEPENDENCY_NOTICES, (error) => error ? reject(error) : resolve());
       });
       return;
     }

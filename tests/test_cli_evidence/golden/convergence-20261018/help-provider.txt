@@ -3,8 +3,9 @@ Usage: abx provider [options] [command]
 Manage sandbox providers (backends).
 
 The built-in provider is 'alicloud-express' (Alibaba Cloud Express Edition,
-阿里云极速版). Install more with a directory or a git URL; nothing from a
-plugin is executed while installing.
+阿里云极速版). Install more with a directory or a git URL. Default install
+verification initializes the plugin after consent; discovery only reads
+metadata.
 
 Select a provider for one command with the global '--provider ID' (any
 position) and set provider options with '--opt KEY=VALUE' (repeatable).
@@ -37,8 +38,41 @@ Commands:
   info        Show a provider's manifest, features and configuration.
   install     Install a provider plugin from a directory or a git URL.
   list        List built-in and installed providers.
+  run         Run an operation provided by the selected Provider.
   show        Show a provider's manifest, features and configuration.
   test        Run the provider contract tests against a provider.
   uninstall   Remove an installed provider.
   update      Update installed providers from their recorded git source.
+
+Provider: alicloud-express (default)
+Provider operations:
+  abx provider run api-key.create  [write]  Create an API key and save its secret exclusively to secret_file.
+  abx provider run api-key.delete  [delete]  Delete an inactive API key.
+  abx provider run api-key.get  [read]  Describe an API key; its secret value is redacted.
+  abx provider run api-key.list  [read]  List one page of API keys with secret values redacted.
+  abx provider run api-key.reset  [write]  Rotate an API key and save its new secret exclusively to secret_file.
+  abx provider run api-key.update  [write]  Update an API key with secret values redacted.
+  abx provider run quota.delete  [delete]  Delete a Team quota configuration.
+  abx provider run quota.get  [read]  Get a Team resource quota.
+  abx provider run quota.list  [read]  List one page of Team resource quotas.
+  abx provider run quota.update  [write]  Replace a Team CPU and memory quota, including zero limits.
+  abx provider run sandbox.pause  [write]  Pause with memory retained (account allowlist required).
+  abx provider run sandbox.resume  [write]  Resume the same sandbox through connect (account allowlist required).
+  abx provider run snapshot.create  [write]  Snapshot a running generation2 sandbox (Snapshot allowlist required).
+  abx provider run snapshot.delete  [delete]  Delete a Snapshot UUID independently of its source sandbox.
+  abx provider run snapshot.list  [read]  List one Snapshot page, optionally filtered by source sandbox or name.
+  abx provider run snapshot.restore  [write]  Create a new sandbox from a Snapshot UUID.
+  abx provider run team.create  [write]  Create a Team.
+  abx provider run team.delete  [delete]  Delete a Team.
+  abx provider run team.get  [read]  Get a Team.
+  abx provider run team.list  [read]  List one page of Teams.
+  abx provider run team.update  [write]  Update a Team.
+  abx provider run volume.create  [write]  Create a Volume mount configuration.
+  abx provider run volume.delete  [delete]  Delete Volume metadata; underlying storage is retained.
+  abx provider run volume.get  [read]  Get a Volume configuration.
+  abx provider run volume.list  [read]  List one page of Volumes.
+  abx provider run volume.update  [write]  Update Volume status.
+
+Inspect: abx provider run OPERATION --help
+AI/scripts: abx --json provider command list alicloud-express
 [exit_code:0]

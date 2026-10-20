@@ -46,6 +46,8 @@ Move the file and edit `Status:` in the same commit. Required sections and the t
 
 `scripts/check-repo-health.sh` enforces ADR naming, the `Status:`/directory match, and that no slug dangles.
 
+- [Platform ENV argument pairs](notes/proposed/feature/2026-10-20-step-env-pairs.md) · [verification](evidence/verify/2026-10-20-step-env-pairs.md)
+
 ## Standard E2B behavior work
 
 The active [proposed contract](notes/proposed/architecture/2026-10-16-e2b-behavior-contract.md) defines the pinned Alibaba migration surface and project extension boundary. Verification evidence is point-in-time; read the latest E2B run before reporting completion.
@@ -102,5 +104,6 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Shared conditional Provider operations](notes/implemented/architecture/2026-10-20-provider-conditional-capabilities.md) · [verification](evidence/verify/2026-10-20-provider-conditional-capabilities.md)
 
-- [Platform ENV argument pairs](notes/proposed/feature/2026-10-20-step-env-pairs.md) · [verification](evidence/verify/2026-10-20-step-env-pairs.md)
+- [Contextual Provider help and canonical runner](notes/implemented/architecture/2026-10-20-provider-context-help.md) · [Issue #83](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/83)
+- [Bundled Provider SDK delivery](notes/implemented/feature/2026-10-20-bundled-provider-sdk.md) · [Issue #85](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/85)
 - [Website CLI mirror installation guidance](notes/proposed/process/2026-10-20-website-cli-mirror-docs.md) · [verification](evidence/verify/2026-10-20-website-cli-mirror-docs.md)

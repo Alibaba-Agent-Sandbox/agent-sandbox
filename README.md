@@ -61,6 +61,8 @@ The website copies all five platform binaries, the npm archive and SHA-256 sidec
 
 Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from the website mirror under `https://www.agent-sandbox.cn/releases/download/v<version>/` (version/files in the [manifest](https://www.agent-sandbox.cn/releases/latest.json)), or from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases), check the digest, and put the file on `PATH` as `abx`. Commands, checksums, and the platform table: [Binary Installation](docs/en/guide/binary-installation.md) ([中文](docs/zh/guide/binary-installation.md)).
 
+The current source fixes embedded Express SDK loading outside the checkout. Existing release assets do not acquire this fix until rebuilt and published; see the installation guide for artifact validation and `abx --licenses` attribution.
+
 ### npm (Node.js 20+)
 
 Check the public version, then install:
@@ -200,6 +202,7 @@ python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-S
 | Accessibility | [Accessibility](ACCESSIBILITY.md) |
 | Operations | [Operations](docs/en/guide/operations.md) |
 | Providers | [Providers](docs/en/guide/providers.md) |
+| Provider operation help and execution | [Help, defaults, JSON inputs and updates](docs/en/guide/provider-commands.md) |
 | Authoring Providers | [Authoring Providers](docs/en/guide/authoring-providers.md) |
 | Binary Installation | [Binary Installation](docs/en/guide/binary-installation.md) |
 | CLI Tutorial | [CLI Tutorial](docs/en/guide/cli-tutorial.md) |

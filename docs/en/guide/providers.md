@@ -46,7 +46,7 @@ abx provider uninstall my-cloud                      # settings stay unless --pu
 
 What `install` does and does not do:
 
-- **Nothing from the plugin is executed while installing.** Git sources are fetched without a checkout, every tree entry is validated (regular files only, size and count limits) and the installer writes the files itself.
+- **Before consent, inspection reads static metadata without executing the plugin.** Git sources are fetched without a checkout, every tree entry is validated (regular files only, size and count limits) and the installer writes the files itself. After consent, default installation verification may import and initialize the plugin for its handshake.
 - It prints a **consent screen** (id, version, source, commit and digest, the command that will run, declared security block, features, options, and whether your generic sandbox credentials would be sent to the plugin). Without a terminal, and with `--json`, `--yes` is required (exit code 2, `E8012`).
 - A source is **pinned** with a full 40-hex `--ref` or `--sha256 <tree digest>`. A tag or branch is unpinned: it is accepted only after you read the consent screen in a terminal (no `--yes`) or with `--allow-unpinned`; `--yes` alone refuses it (`E8012`) and prints the commit to pin. `abx provider update` follows the same rule. `--link` makes an in-place development install without an integrity check. `--allow-insecure-transport` enables `file://`, `git://` and `http://` (tests and development only). URLs with embedded credentials are rejected (`E8012`).
 - The tree digest is verified every time the plugin starts (`E8011` when files changed). `--force` replaces an existing install of the same id.

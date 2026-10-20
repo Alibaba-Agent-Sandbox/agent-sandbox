@@ -16,3 +16,8 @@ limitations under the License.
 Standard command implementation includes pinned MIT-licensed E2B CLI 2.20.0
 and protocol client 2.50.0 sources. See dist/standard_cli/THIRD_PARTY_NOTICES.txt
 and vendor/e2b-cli for version and provenance records.
+
+The standalone executable also embeds the official Alibaba Cloud FCSandbox SDK
+and its runtime dependencies. Their shipped license and README notices, together
+with the original package license declarations, are available through abx --licenses.
+This additional attribution is scoped to that SDK dependency graph, not a full CLI SBOM.

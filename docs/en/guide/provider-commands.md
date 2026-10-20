@@ -1,5 +1,72 @@
 # Provider-owned capabilities and shared commands
 
+## Find operations through help
+
+Install a Provider once; its declared operations are discovered automatically. There is no separate
+registration step. Select a default for interactive work, or select explicitly for a script:
+
+```sh
+abx provider default alicloud-express
+abx --help
+abx provider --help
+abx provider run --help
+abx provider run snapshot.create --help
+abx provider run snapshot.create \
+  --input '{"sandbox_id":"<sandbox-id>","name":"checkpoint"}' --yes
+abx --provider alicloud-express provider run snapshot.list --input '{}'
+```
+
+These contextual help/run entry points require a build containing this change; the original v0.4.0
+release predates them. Root help shows the selected Provider and a compact operation summary;
+`provider --help` and `provider run --help` show its full directory with complete invocation paths.
+Operation help shows its description, input fields, JSON schemas, effect and confirmation rule.
+`-h` and `--help` work alike. Help reads local metadata without credentials, plugin execution or cloud
+requests. An invalid selected Provider produces a help diagnostic while keeping repair commands
+visible. Actual execution fails for an invalid selection rather than silently switching backends.
+
+`--provider ID` takes precedence over `ABX_PROVIDER`, project `.env`, user `.env`, stored configuration
+and the built-in default, using the same resolver as execution. Put the global option before the
+`provider` group, as above. `provider default ID` stores a preference; environment overrides still win.
+
+An operation ID is one opaque argument, including dots: `snapshot.create` is not translated into
+`snapshot create`. Provider operations stay under `provider run`, so an operation named `list`,
+`install` or `default` cannot replace host management commands. Inputs remain bounded JSON through
+`--input` or `--input-file`; schema properties do not become undocumented CLI flags. Write/delete
+operations require `--yes`. For sensitive input use a protected local JSON file and `--input-file`.
+
+Existing explicit-ID and machine-readable interfaces remain compatible:
+
+```sh
+abx --json provider command list alicloud-express
+abx --json provider command info alicloud-express snapshot.create
+abx --json provider command run alicloud-express snapshot.create \
+  --input-file ./snapshot-input.json --yes
+```
+
+Use these JSON interfaces for AI discovery and automation. Human help is presentation, not a stable
+JSON response contract. Provider management operations are distinct from sandbox application commands
+(`abx sandbox command`) and from template preparation (`abx template launch`). Neither management
+registration nor help creates a template or a cloud resource. This change does not automatically add
+MCP tools, shell completion entries or typed SDK methods.
+
+## Ownership and updates
+
+The Provider owns operation IDs, descriptions, schemas, effects and handlers. Node plugins declare
+them in `abx-provider.toml` and implement `buildInfra(ctx).provider_commands.run`; exec plugins handle
+`provider.commands.run` over EPP. Nonempty command catalogs are not supported by REST presets.
+The host reads that same catalog for help and JSON discovery and dispatches through the same executor.
+See [authoring Providers](authoring-providers.md#provider-owned-management-operations) for an example.
+
+For an installed plugin, `abx provider update ID --ref <40-hex-commit>` follows the existing pinning and
+consent rules. Newly declared operations then appear automatically on the next invocation; no manual
+registration or help generation is required. The bundled Express Provider is updated by upgrading the
+host CLI release, not by installing an independent Express plugin. Verify the actual installed build:
+a merged `main` change does not prove an npm package or Release asset contains it.
+
+Help/discovery do not run plugin code. Installation is a different phase: before consent the host
+reads static metadata; after consent the default handshake may import and initialize plugin code.
+Read the [installation trust rules](authoring-providers.md#4-publish-and-install-from-git).
+
 ## One provider implementation, shared discovery
 
 The common host owns configuration isolation, installation/consent, bounded JSON schema validation,

@@ -113,6 +113,53 @@ default = "eu-1"
 - 选项名为 `[a-z][a-z0-9_]*`。规范环境变量名按规则派生：`ABX_<PROVIDER_ID>_<KEY>`（短横线变下划线）。添加 `env = ["VENDOR_NAME"]` 即可同时接受后端的原生变量。
 - `abx provider info my-cloud` 显示用户将看到的内容；开发时用 `abx provider install ./my-cloud --link --yes` 原地安装。
 
+### Provider 管理操作
+
+在同一清单中声明管理操作，不要在运行时注册 CLI 路由。宿主从声明生成帮助和发现结果；
+安装或更新 Provider 后自动可见。以下声明可以加入 `node/1` 清单：
+
+```toml
+[commands]
+protocol = "provider-commands/1"
+
+[[commands.entries]]
+id = "health.check"
+description = "Check the adapter locally."
+description_zh = "在本地检查适配器。"
+effect = "read"
+idempotent = true
+input_schema = { type = "object", properties = {}, additionalProperties = false }
+output_schema = { type = "object", properties = { ok = { type = "boolean" } }, required = ["ok"], additionalProperties = false }
+```
+
+在已有 `buildInfra(ctx)` 返回值中加入处理器，与其实现的沙箱协议并列：
+
+```js
+provider_commands: {
+  async run(command, input, signal) {
+    if (command !== "health.check") {
+      throw new kit.errors.ProviderFeatureNotSupportedError(ctx.id, `command:${command}`);
+    }
+    return { ok: true };
+  }
+}
+```
+
+处理器接收已经校验的输入和取消信号。厂商认证、API 映射留在 Provider 内，只返回声明
+的输出字段，准确声明只读、写入或删除影响。exec 插件通过 EPP `provider.commands.run`
+处理同一操作，参数为 `{ command, input }`；REST 预设不能声明非空操作目录。
+
+```sh
+abx provider install ./my-cloud --yes
+abx --provider my-cloud provider run health.check --help
+abx --provider my-cloud provider run health.check
+abx --json provider command info my-cloud health.check
+```
+
+无需额外注册。不要用 `registerProviderCliExtension` 注册插件操作，它是宿主组合接口。
+声明不会自动生成 SDK 类型化方法或 MCP 工具。默认值、信任和更新规则见
+[操作发现与执行](provider-commands.md)。
+
 ## 2. EPP/1 方法
 
 CLI 通过 stdin/stdout 调用这些方法（权威列表见 `docs/design/fixtures/epp-methods.json`）：
@@ -228,7 +275,7 @@ abx provider install https://github.com/you/abx-provider-my-cloud.git \
 
 这条命令的行为：
 
-- Git 只取对象，不检出工作树。安装器自己写文件。安装过程中不会运行插件里的任何程序。
+- Git 只取对象，不检出工作树，安装器自己写文件。同意前只读取静态声明，不执行插件；同意后默认验证握手可能导入、初始化并关闭插件。安装不等于全过程不执行插件代码。
 - `--ref` 写成标签或分支（或不写 `--ref`）就是未钉扎。未钉扎的 ref 只有在有人于终端读过同意界面（不加 `--yes`）之后才会被接受，或者显式加 `--allow-unpinned`。单独的 `--yes` 永远不会接受会移动的 ref：它以 `E8012` 失败，并打印应当钉扎的提交（`--ref <40 位十六进制>`）。`abx provider update` 适用同一规则。
 - 同意界面显示清单摘要（运行命令、特性、安全声明、配置字段、插件将收到的通用凭证）和树摘要。没有终端又没有 `--yes` 时，安装以 `E8012` 停止，重新运行的提示里会保留 `--subdir` 和提交。
 - `--sha256 <树摘要>` 按树摘要钉扎，摘要不一致则安装失败。

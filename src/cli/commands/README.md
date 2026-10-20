@@ -29,6 +29,13 @@ SEA bundling includes it. Keep host configuration, provider selection and
 feature gating in the established paths; do not bypass them with direct cloud
 calls. `mainSeams.importModule` is the lazy-loader test seam.
 
+A lazy export may also be a zero-argument factory returning a fresh `Command`.
+`createProviderGroup` uses this to compose invocation-local operation leaves from
+static Provider metadata without mutating a shared command map. Use `helpFooter`
+for context that should be computed only when help renders. Provider operations
+belong under the fixed `provider run` namespace; their descriptors and handlers
+remain in the Provider, not in the host root command table.
+
 ## Output and errors
 
 Use `getOutput(ctx)` for result/diagnostic channels. Results go to stdout;

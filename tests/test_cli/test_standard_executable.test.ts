@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
+import { RUNTIME_DEPENDENCY_NOTICES } from "../../src/licenses/runtime_dependencies.js";
 
 const home = mkdtempSync(path.join(os.tmpdir(), "abx-standard-"));
 const entry = fileURLToPath(new URL("../../src/bin/abx.ts", import.meta.url));
@@ -31,8 +32,10 @@ describe("standard executable contract", () => {
     expect(licenses.code).toBe(0);
     const expected = readFileSync(new URL("../../LICENSE", import.meta.url), "utf8") + "\n" +
       readFileSync(new URL("../../NOTICE", import.meta.url), "utf8") + "\n" +
-      readFileSync(new URL("../../src/standard_cli/THIRD_PARTY_NOTICES.txt", import.meta.url), "utf8");
+      readFileSync(new URL("../../src/standard_cli/THIRD_PARTY_NOTICES.txt", import.meta.url), "utf8") + RUNTIME_DEPENDENCY_NOTICES;
     expect(licenses.stdout).toBe(expected);
+    expect(licenses.stdout).toContain("@alicloud/fcsandbox20260509@");
+    expect(licenses.stdout).toContain("Copyright (c) 2009-present, Alibaba Cloud All rights reserved.");
     expect(licenses.stdout).not.toContain("undefined@undefined");
     for (const source of sources) {
       expect(source.name).toBeTypeOf("string");

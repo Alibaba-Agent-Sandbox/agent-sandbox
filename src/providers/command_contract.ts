@@ -104,12 +104,14 @@ export function parseCommandSection(raw: unknown, kind: string): readonly Provid
 }
 
 /** Keep errors value-free: JSON/schema diagnostics can otherwise disclose credentials. */
-export function validateCommandInput(command: ProviderCommand, input: unknown): asserts input is Record<string, unknown> {
+export function validateCommandInput(command: ProviderCommand, input: unknown, providerId?: string): asserts input is Record<string, unknown> {
   try {
     checkJson(input, 1024 * 1024, 32);
     if (!object(input) || !validator(command.input_schema)(input)) throw new Error();
   } catch {
-    throw new ProviderConfigError(`Invalid input for provider command '${command.id}'; see its input_schema using 'abx provider command info'.`);
+    throw new ProviderConfigError(`Invalid input for provider command '${command.id}'.`, {
+      suggestion: `See 'abx ${providerId ? `--provider ${providerId} ` : ""}provider run ${command.id} --help' for its input schema.`,
+    });
   }
 }
 

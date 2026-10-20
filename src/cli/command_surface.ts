@@ -12,7 +12,7 @@ export const GROUP_COMMANDS: Readonly<Record<string, { spec: string; help: strin
   template: { spec: "commands/template:template", help: "Discover, scaffold, build, publish and install sandbox templates." },
   config: { spec: "commands/config_cmd:config", help: "Manage persistent credentials and CLI defaults." },
   mcp: { spec: "commands/mcp:mcp", help: "Configure and run Agent Sandbox as an MCP server." },
-  provider: { spec: "commands/provider:provider", help: "Install, select and configure sandbox providers." },
+  provider: { spec: "commands/provider:createProviderGroup", help: "Install, select, configure and run sandbox provider operations." },
 };
 
 /** Groups listed under the "Command groups" heading of `abx --help` (`provider` has its own heading). */

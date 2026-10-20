@@ -114,6 +114,55 @@ Rules worth knowing:
 - Option names are `[a-z][a-z0-9_]*`. Canonical environment names are derived: `ABX_<PROVIDER_ID>_<KEY>` (dashes become underscores). Add `env = ["VENDOR_NAME"]` to accept the backend's native variable too.
 - `abx provider info my-cloud` shows what the user will see; `abx provider install ./my-cloud --link --yes` installs in place while developing.
 
+### Provider-owned management operations
+
+Declare management operations in the same manifest, rather than registering CLI routes at runtime.
+The host generates help and discovery from these descriptors; installing/updating the Provider makes
+them visible automatically. Add this example to a `node/1` manifest:
+
+```toml
+[commands]
+protocol = "provider-commands/1"
+
+[[commands.entries]]
+id = "health.check"
+description = "Check the adapter locally."
+description_zh = "在本地检查适配器。"
+effect = "read"
+idempotent = true
+input_schema = { type = "object", properties = {}, additionalProperties = false }
+output_schema = { type = "object", properties = { ok = { type = "boolean" } }, required = ["ok"], additionalProperties = false }
+```
+
+Add a handler to the existing `buildInfra(ctx)` result, alongside the sandbox protocol it implements:
+
+```js
+provider_commands: {
+  async run(command, input, signal) {
+    if (command !== "health.check") {
+      throw new kit.errors.ProviderFeatureNotSupportedError(ctx.id, `command:${command}`);
+    }
+    return { ok: true };
+  }
+}
+```
+
+The handler receives validated input and an abort signal. Keep cloud authentication and API mapping
+inside the Provider, return only declared output fields and accurately declare read/write/delete
+effects. Exec plugins implement the same operation using EPP `provider.commands.run` with
+`{ command, input }`; REST presets cannot declare nonempty operation catalogs.
+
+```sh
+abx provider install ./my-cloud --yes
+abx --provider my-cloud provider run health.check --help
+abx --provider my-cloud provider run health.check
+abx --json provider command info my-cloud health.check
+```
+
+No extra registration is needed. Do not use `registerProviderCliExtension` to register plugin
+operations; it is a host composition interface. This does not generate typed SDK methods or MCP
+tools. See [operation discovery and execution](provider-commands.md) for defaults, trust and updates.
+
 ## 2. The EPP/1 methods
 
 The CLI calls these over stdin/stdout (the authoritative list is `docs/design/fixtures/epp-methods.json`):
@@ -229,7 +278,7 @@ abx provider install https://github.com/you/abx-provider-my-cloud.git \
 
 What that command does:
 
-- Git is fetched without checking the tree out. The installer writes the files itself. Nothing from the plugin runs during install.
+- Git is fetched without checking the tree out. The installer writes the files itself. Before consent, it reads static metadata without running plugin code. After consent, the default verification handshake may import, initialize and close the installed plugin; installation is not a promise that plugin code never executes.
 - A tag or branch in `--ref` (or no `--ref`) is unpinned. An unpinned ref is accepted only after a person read the consent screen in a terminal (no `--yes`), or with `--allow-unpinned`. `--yes` on its own never accepts a moving ref: it fails with `E8012` and prints the commit to pin (`--ref <40-hex>`). The same rule applies to `abx provider update`.
 - The consent screen shows the manifest summary (runtime command, features, security block, config fields, generic credentials the plugin will receive) and the tree digest. Without a terminal and without `--yes` the install stops with `E8012` and a re-run hint that keeps `--subdir` and the commit.
 - `--sha256 <tree digest>` pins the tree and fails the install when the digest differs.
