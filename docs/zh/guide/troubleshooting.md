@@ -261,7 +261,7 @@ Invalid shortcut target: 'abx template scaffold'
 
 ```bash
 # 使用已发布的独立二进制；公开 npm 安装尚不可用
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 
 # 检查已安装的可执行文件
 abx --version
