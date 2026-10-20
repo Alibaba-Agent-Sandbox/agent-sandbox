@@ -13,7 +13,7 @@ MCP（Model Context Protocol）是一个开放协议，允许 AI 模型与外部
 ### 前置条件
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 export ABX_SANDBOX_API_KEY=your-api-key     # 或：abx config set sandbox_api_key your-api-key
 ```
 

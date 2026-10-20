@@ -15,7 +15,7 @@
 macOS 与 Linux：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 abx --version
 ```
 
