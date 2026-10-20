@@ -7,9 +7,9 @@
 
 <!-- fixed-set -->
 
-顶层命令仅有这些：`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
+顶层命令仅有这些：`abx sandbox`、`abx template`、`abx app`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
 
-`abx --help` 分三段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`）、**Providers**（`provider`）、
+`abx --help` 分三段列出：**Command groups**（`sandbox`、`template`、`app`、`config`、`mcp`）、**Providers**（`provider`）、
 **Sandbox shortcuts**（十个快捷方式，每个都写作 "Same as 'abx …'"）。该列表与本页不一致时，测试会失败。
 
 ## 快捷方式
@@ -43,6 +43,7 @@ abx
 │   ├── command  list | run                      （沙箱内服务端注册的具名命令）
 │   └── system   env | info | metrics | packages | ports
 ├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
+├── app          plan | apply | status | reconcile | destroy
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
@@ -149,3 +150,5 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 ## 原生 Provider 镜像工厂
 
 `abx --provider PROVIDER template from-image IMAGE --name NAME -y` 是独立于标准模板构建器的原生扩展。见[提供方镜像部署](../guide/provider-image-deployment.md)。未启用的提供方返回 E8004。
+
+Agent 应用部署：`abx app plan [template.yaml]`、`apply PLAN --yes`、`status RECEIPT`、`reconcile RECEIPT --yes`、`plan --destroy RECEIPT`、`destroy PLAN --yes`。见 [Agent 应用](../guide/agent-applications.md)。

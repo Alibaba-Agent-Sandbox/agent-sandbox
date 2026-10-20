@@ -10,13 +10,14 @@
 export const GROUP_COMMANDS: Readonly<Record<string, { spec: string; help: string }>> = {
   sandbox: { spec: "commands/sandbox:sandbox", help: "Manage sandboxes, their files, processes and commands." },
   template: { spec: "commands/template:template", help: "Discover, scaffold, build, publish and install sandbox templates." },
+  app: { spec: "commands/app:app", help: "Plan, deploy and reconcile Agent applications from template.yaml." },
   config: { spec: "commands/config_cmd:config", help: "Manage persistent credentials and CLI defaults." },
   mcp: { spec: "commands/mcp:mcp", help: "Configure and run Agent Sandbox as an MCP server." },
   provider: { spec: "commands/provider:provider", help: "Install, select and configure sandbox providers." },
 };
 
 /** Groups listed under the "Command groups" heading of `abx --help` (`provider` has its own heading). */
-export const HELP_GROUPS: ReadonlyArray<string> = ["sandbox", "template", "config", "mcp"];
+export const HELP_GROUPS: ReadonlyArray<string> = ["sandbox", "template", "app", "config", "mcp"];
 
 /**
  * Top-level shortcuts, in help order: name -> spec and the canonical command path they are the same as. Exactly these

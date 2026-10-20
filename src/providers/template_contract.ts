@@ -9,12 +9,16 @@ export interface TemplateBuildOptions {
 /** A ready, provider-owned reference handed directly to sandbox creation. Never contains credentials. */
 export interface PreparedTemplate {
   reference: string; status: "ready";
+  /** Explicit creation proof for operations that later delete their own resources. */
+  ownership?: "created" | "borrowed";
   startup_command?: string; ready_command?: string;
   metadata?: Record<string, string>;
   provider_options?: Record<string, unknown>;
 }
 export interface ProjectTemplateOptions {
   alias: string; timeout: number;
+  /** Refuse same-name update/reuse when the caller must own cleanup. */
+  createOnly?: boolean;
   template: { name: string; capabilities: string[]; cpu: number; memory: number; start_cmd: string | null; ready_cmd: string | null };
 }
 export interface ProviderTemplateManager {

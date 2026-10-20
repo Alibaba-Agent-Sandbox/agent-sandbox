@@ -9,7 +9,7 @@ export const CLI_EXTENSION = {
   async prepareProject(directory, options, ctx) {
     const started = Date.now();
     const adapter = await import("./template.js");
-    const result = await adapter.do_deploy(directory, { alias: options.alias, timeout: options.timeout, acr_namespace: adapter.resolve_acr_namespace(null), ctx });
+    const result = await adapter.do_deploy(directory, { alias: options.alias, timeout: options.timeout, acr_namespace: adapter.resolve_acr_namespace(null), ctx, update_existing: options.createOnly ? false : undefined });
     const reference = result["TemplateID"];
     if (typeof reference !== "string" || !reference || reference === "N/A") throw new Error("Template preparation returned no reference.");
     if (String(result["Status"]).toLowerCase() !== "ready") {
@@ -18,7 +18,7 @@ export const CLI_EXTENSION = {
       await fc.waitForTemplateReady(reference, { access_key_id: config.access_key_id!, access_key_secret: config.access_key_secret!, region: config.region,
         timeout: Math.max(0.01, options.timeout - (Date.now() - started) / 1000), poll_interval: 2 });
     }
-    return { reference, status: "ready" };
+    return { reference, status: "ready", ...(options.createOnly ? { ownership: "created" as const } : {}) };
   },
   loadTemplates: () => import("./template.js"),
   loadDeploy: () => import("./deploy.js"),

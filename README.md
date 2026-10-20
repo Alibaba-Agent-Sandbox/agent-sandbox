@@ -29,6 +29,8 @@ The CLI installs those catalog providers from the git tree `alibaba-agent-sandbo
 
 ## Features
 
+- **Agent applications (preview)** — one `template.yaml` for sandbox and optional Agent runtime/deployment; explicit plans, bounded hooks and durable resource receipts. See [Agent applications](docs/en/guide/agent-applications.md). Cloud acceptance is still required before production use.
+
 - **CLI (`abx`)** — create, inspect, exec, upload/download, deploy, and manage sandboxes from the terminal.
 - **Template system** — reusable sandbox images (Python, Node, browser automation, AI agent harnesses, …).
 - **MCP server** — expose sandbox operations as MCP tools for LLM agents.

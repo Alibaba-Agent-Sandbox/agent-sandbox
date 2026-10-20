@@ -38,6 +38,7 @@ import { dotenvValues } from "../../../utils/_dotenv.js";
 import { pyRepr, pyStr, pyTruthy } from "../../../utils/_pyformat.js";
 import { AttributeError, OSError, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, pyTypeNameOf, readTextPy } from "../../../utils/_pyos.js";
 import { loadYaml as yamlSafeLoad } from "../../../utils/yaml_io.js";
+import { readTemplateContract, TemplateContractError } from "../../../utils/template_contract.js";
 import * as registryMod from "../../../utils/registry.js";
 import { BUILTIN_TEMPLATES, RegistryClient, loadTemplateFromYaml } from "../../../utils/registry.js";
 import { fetchIndex } from "../../../utils/template_index.js";
@@ -127,7 +128,7 @@ export function _readYamlDefaults(template_dir: string): Record<string, Any> {
     if (yamlPath === null)
         return {};
     try {
-        const raw = yamlSafeLoad(readTextPy(yamlPath));
+        const raw = readTemplateContract(yamlPath);
         const yamlData: Any = pyTruthy(raw) ? raw : {};
         if (!_isDict(yamlData))
             throw new AttributeError(`'${pyTypeNameOf(yamlData)}' object has no attribute 'get'`);
@@ -146,6 +147,7 @@ export function _readYamlDefaults(template_dir: string): Record<string, Any> {
         };
     }
     catch (e) {
+        if (e instanceof TemplateContractError) throw e;
         if (e instanceof OSError || _isNodeOsError(e))
             return {};
         echo(`Warning: Failed to parse template.yaml: ${e instanceof Error ? pyStr(e) : String(e)}`, { err: true });
@@ -533,6 +535,7 @@ interface RunReportedDeployOptions {
     envd_inject: boolean;
     resolved_generation: number;
     force: boolean;
+    update_existing?: boolean;
     target_image: string | null;
     platform_ak: string;
     platform_sk: string;
@@ -588,6 +591,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             start_command: start_cmd,
             ready_command: ready_cmd,
             force: o.force,
+            update_existing: o.update_existing,
             envd_inject: o.envd_inject,
             registry_type: registryType,
             acr_instance_id: acr.acree_instance_id || null,
@@ -683,6 +687,7 @@ export interface DoDeployOptions {
     generation?: number | null;
     /** Delete a generation-1 template of the same name and create a generation-2 template. */
     force?: boolean;
+    update_existing?: boolean;
     target_image?: string | null;
     region?: string | null;
     ctx?: Context | null;
@@ -753,6 +758,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
                 start_command: resolvedStart,
                 ready_command: resolvedReady,
                 force,
+                update_existing: opts.update_existing,
                 envd_inject: false,
             });
             const templateId = pyStr(apiResult["templateID"] ?? "");
@@ -822,6 +828,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
             envd_inject,
             resolved_generation: resolvedGeneration,
             force,
+            update_existing: opts.update_existing,
             target_image,
             platform_ak: platformAk,
             platform_sk: platformSk,

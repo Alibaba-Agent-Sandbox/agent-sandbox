@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- Preview single-file template v3 application plans, explicit deployment hooks, atomic FC function creation, identity-bound receipts and reconciliation; optional durable Agent runtime lives in the Python SDK. Real FC acceptance remains a required release gate. / 新增单文件模板应用计划、显式部署 hooks、FC 原子创建、身份绑定回执与核对，持久 Agent 运行时位于 Python SDK；真实 FC 验收仍是发布门槛。
 - Provider-registered Express pause/resume and Snapshot create/list/restore/delete, shared by CLI and Python engine clients without backend duplication. / Provider 注册的极速版暂停恢复及快照全流程，两端共用实现。
 
 - Provider-owned `template launch`: source preparation, exact reference handoff, capability preflight, service readiness and owned sandbox cleanup; generic staged filesystem/process/OCI helpers. Third-party paths remain Beta with explicit native acceptance limits.

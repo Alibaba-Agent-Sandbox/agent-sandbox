@@ -18,6 +18,8 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 
 ## 网站
 
+- **Agent 应用（预览）** — 单一 `template.yaml` 描述 sandbox 与可选 Agent 运行/部署，提供显式计划、有界 hooks 和资源回执。见 [Agent 应用](docs/zh/guide/agent-applications.md)。生产使用前仍需云端验收。
+
 | 网站 | 地址 |
 |---|---|
 | 官网 | https://www.agent-sandbox.cn |

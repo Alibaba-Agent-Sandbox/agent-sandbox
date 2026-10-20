@@ -41,6 +41,7 @@ const COMMAND_MODULES: Record<string, () => Promise<Record<string, unknown>>> = 
   "commands/provider": () => import("./commands/provider.js"),
   "commands/template": () => import("./commands/template.js"),
   "commands/deploy": () => import("./commands/deploy.js"),
+  "commands/app": () => import("./commands/app.js"),
   "commands/sandbox_files": () => import("./commands/sandbox_files.js"),
   "commands/sandbox_process": () => import("./commands/sandbox_process.js"),
   "commands/sandbox_system": () => import("./commands/sandbox_system.js"),
