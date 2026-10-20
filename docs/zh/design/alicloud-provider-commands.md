@@ -238,3 +238,5 @@ Python 仓库的手动验收控制器通过两端访问同一个真实 Provider�
 [快照](https://help.aliyun.com/zh/agent-sandbox/snapshot-invited-test)。
 
 跨端本地验收使用 [Python 仓库的控制器](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/e2e/README.zh-CN.md)，传入本仓库构建的独立二进制；产物不要放在其他构建会清理的目录。
+
+真实验收中，恢复后立即创建快照曾返回 HTTP503；先确认运行状态并等待服务准入稳定，再首次创建。最终验收使用30秒静置间隔，该值是验收观察，不是服务就绪 SLA。失败写入不自动重试。
