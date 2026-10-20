@@ -54,4 +54,5 @@ Provider: alicloud-express (default)
 26 provider operations: api-key, quota, sandbox, snapshot, team, volume.
 Example: abx provider run api-key.create --help
 Use 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.
+Select for one invocation: abx --provider ID provider --help
 [exit_code:0]

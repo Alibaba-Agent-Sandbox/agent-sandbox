@@ -45,7 +45,7 @@ export function providerOperationsSummary(catalog: ProviderOperations): string {
   if (catalog.error) return `\n${unavailable(catalog)}\n`;
   const groups = [...new Set(catalog.commands.map((entry) => entry.id.split(".")[0]))];
   const example = catalog.commands[0] ? `\nExample: abx provider run ${catalog.commands[0].id} --help` : "";
-  return `\n${heading(catalog)}\n${catalog.commands.length} provider operations${groups.length ? `: ${groups.join(", ")}` : " declared"}.${example}\nUse 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.\n`;
+  return `\n${heading(catalog)}\n${catalog.commands.length} provider operations${groups.length ? `: ${groups.join(", ")}` : " declared"}.${example}\nUse 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.\nSelect for one invocation: abx --provider ID provider --help\n`;
 }
 
 /** Directory shared by provider help and the isolated run namespace. */

@@ -50,6 +50,26 @@ eight real read scenarios exercised old explicit-ID and new contextual invocatio
 | Parity ledger | PASS | 907/907 mapped entries; 11 server-owned entries verified in Python repository |
 | Remote Node 20/22 and package CI | PENDING | Must inspect latest head before merge |
 
+### Integration checkpoint
+
+PR https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/86 at implementation
+head `864452b0fe2845e4599f1ef6c7330e04015a9116` passed remote Node20/22 tests,
+typecheck/lint/hygiene, package build, installer and Markdown-link checks. Later record/help
+and integration commits must pass their latest-head gates too.
+
+Running the complete offline entry initially produced 73 pass, 5 fail and 1 skipped leak
+check. The five frozen scenarios expected retired standard-root flags, standard E2B aliases
+inside native config/MCP, or an obsolete PyPI recipe. Their replacements follow the existing
+migration/config/MCP contracts and strengthen canonical-alias isolation, VSCode no-secret
+workspace behavior and matching immutable Python client/server source pins. All five pass
+against the real standalone candidate; a final combined full run remains required.
+
+The independent SDK packaging repair is
+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/87 (Issue85). Its isolated SEA
+candidate passed all four legacy real cloud lists with no resources created. The combined
+new/legacy eight-read candidate is verified after integration; the earlier failures above
+are retained as historical evidence.
+
 ## Cleanup
 
 Fixture homes, plugin stores and temporary default settings were isolated and removed. Real

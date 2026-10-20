@@ -12,7 +12,8 @@ Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx config`, 
 
 `abx --help` lists them in three sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`), **Providers**
 (`provider`) and **Sandbox shortcuts** (the ten shortcuts, each documented as "Same as 'abx …'"). A test fails when
-that list and this page disagree.
+that list and this page disagree. A contextual Provider summary follows those sections;
+installed operations remain inside the Provider namespace.
 
 ## Shortcuts
 
@@ -48,11 +49,15 @@ abx
 ├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command | run
 ```
 
-`abx provider --help` is owned by the provider documentation ([Providers](../guide/providers.md)); only the group
-is part of the fixed surface described here.
+`abx provider --help` lists management commands and the selected Provider's operations.
+Use `abx provider run OPERATION --help` for JSON fields, schemas and effects, then the
+same path to execute. Default/explicit selection, automatic discovery and the compatible
+JSON catalog are documented in [Provider operations](../guide/provider-commands.md).
+Operation IDs remain opaque and cannot replace fixed host commands. These contextual
+entries require a build containing the change; see the guide's release boundary.
 
 Usage lines (from `abx … --help`):
 

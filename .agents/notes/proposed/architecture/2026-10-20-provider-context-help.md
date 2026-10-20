@@ -99,6 +99,35 @@ Render operations as data; do not install runtime-generated top-level parser com
   owned by https://github.com/Alibaba-Agent-Sandbox/website and
   https://github.com/Alibaba-Agent-Sandbox/registry respectively.
 
+The system has three distinct catalogs: Provider control-plane operations, template resource
+definitions, and named application commands served inside a running sandbox. They must not share
+a registration lifecycle merely because each contains the word command.
+
+| Owner repository | Contract and boundary |
+| --- | --- |
+| agent-sandbox | Host selection/install/trust, generic operation dispatcher, contextual CLI help and engine catalog; bundled Express adapter remains inside its Provider tree |
+| awesome-providers | Installable manifests, native API/authentication/prepare/register/poll implementations and operation handlers |
+| python-sdk | Python API contracts and engine bridge; operation registration does not synthesize typed SDK methods; Node handshake verification tracked separately |
+| nodejs-sdk | Client of a running in-sandbox HTTP server; do not advertise cloud Provider installation or management unless implemented |
+| awesome-templates | Project/image/application resource definitions, required capabilities and startup intent; no host management-operation registration |
+| registry | Ingest versioned metadata and source provenance; distinguish declarations, native acceptance and the package users can actually install |
+| website | Official documentation and shared UI source; consume catalog data instead of authoring another vendor command table |
+| blogs | Versioned published examples; active installation tutorials must match the artifact they recommend |
+
+Consumer rollout follows contract then implementation then packaged acceptance then public guidance.
+Future Registry/help/completion consumers should read a versioned descriptor snapshot with source,
+Provider version and host compatibility rather than importing arbitrary plugin code. A source SHA
+does not identify a published artifact; released version, digest and actually exercised installation
+path are separate evidence. The current implementation preserves the existing JSON catalog and
+does not claim that this later consumer rollout or shell completion has already shipped.
+
+Independent review findings retain their owner tracking:
+
+- Python initialization verification: https://github.com/Alibaba-Agent-Sandbox/python-sdk/issues/79.
+- Registry examples and capability truthfulness: https://github.com/Alibaba-Agent-Sandbox/registry/issues/6.
+- Standalone SDK inclusion: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/85.
+- Public package delivery: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/66.
+
 ## Test Strategy
 
 Test observable help at root, Provider group, runner directory and operation level for bundled and
