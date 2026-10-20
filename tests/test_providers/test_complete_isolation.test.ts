@@ -168,7 +168,8 @@ supported = ["templates.read"]
     const root = fileURLToPath(new URL("../../src/", import.meta.url));
     for (const file of fs.readdirSync(root, { recursive: true }).filter((p): p is string => typeof p === "string" && p.endsWith(".ts"))) {
       const relative = file.split(path.sep).join("/");
-      if (relative.startsWith("providers/") || composition.has(relative)) continue;
+      // Concrete application deployment adapters are peers of sandbox provider adapters.
+      if (relative.startsWith("providers/") || relative.startsWith("application/adapters/") || composition.has(relative)) continue;
       const source = ts.createSourceFile(relative, fs.readFileSync(path.join(root, file), "utf8"), ts.ScriptTarget.Latest, true);
       // Public compatibility modules contain exports only; their implementations live in providers.
       if (source.statements.every(s => ts.isExportDeclaration(s) || (ts.isVariableStatement(s) && s.declarationList.declarations.every(d => ts.isIdentifier(d.name) && d.name.text === "__all__")))) continue;

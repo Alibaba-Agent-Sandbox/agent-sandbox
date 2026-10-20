@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-sandbox:rfc:hook-request:1",
+  "title": "Proposed host deployment hook request",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "hookId", "phase", "applicationId", "revision", "operationId", "planId", "inputDirectory", "resources"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "hookId": {"type": "string", "minLength": 1},
+    "phase": {"enum": ["beforeApply", "afterReady"]},
+    "applicationId": {"type": "string", "minLength": 1},
+    "revision": {"type": "string", "minLength": 1},
+    "operationId": {"type": "string", "minLength": 1},
+    "planId": {"type": "string", "minLength": 1},
+    "inputDirectory": {"type": "string", "minLength": 1},
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["logicalId", "nativeId", "ownership"],
+        "properties": {
+          "logicalId": {"type": "string", "minLength": 1},
+          "nativeId": {"type": "string", "minLength": 1},
+          "ownership": {"enum": ["owned", "borrowed"]}
+        }
+      }
+    }
+  }
+}

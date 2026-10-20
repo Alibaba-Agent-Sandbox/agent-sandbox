@@ -8,6 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { isMapping, loadYaml } from "../utils/yaml_io.js";
+import { readTemplateContract } from "../utils/template_contract.js";
 
 export type BuildMode = "auto" | "dockerfile" | "steps";
 
@@ -67,7 +68,7 @@ interface FileBuild {
 function _readTemplate(templateDir: string): FileBuild {
   const file = path.join(templateDir, "template.yaml");
   if (!fs.existsSync(file)) return { mode: null, image: null, steps: [] };
-  const data = loadYaml(fs.readFileSync(file, "utf8"));
+  const data = readTemplateContract(file);
   if (!isMapping(data)) throw new BuildModeError(`${file} must be a YAML mapping`);
   const root = data as Record<string, unknown>;
   const base = _base(root["base"]);

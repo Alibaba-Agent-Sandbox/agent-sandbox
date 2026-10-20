@@ -113,6 +113,8 @@ describe("Express preparation readiness", () => {
       expect(wait).toHaveBeenCalledWith("submitted-template", expect.objectContaining({ poll_interval: 2, timeout: expect.any(Number) }));
       wait.mockResolvedValue({ status: "Ready" });
       await expect(CLI_EXTENSION.prepareProject("source", options, undefined as never)).resolves.toEqual({ reference: "submitted-template", status: "ready" });
+      await expect(CLI_EXTENSION.prepareProject("source", { ...options, createOnly: true }, undefined as never)).resolves.toEqual({ reference: "submitted-template", status: "ready", ownership: "created" });
+      expect(deploy).toHaveBeenLastCalledWith("source", expect.objectContaining({ update_existing: false }));
     } finally { namespace.mockRestore(); deploy.mockRestore(); load.mockRestore(); wait.mockRestore(); }
   });
 });

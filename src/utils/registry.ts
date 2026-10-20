@@ -12,6 +12,7 @@ import { PyFloat, pyStripChars } from "./_pyformat.js";
 import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, readTextPy, toOSError } from "./_pyos.js";
 import { openTarGz } from "./_tar.js";
 import { isMapping, loadYaml } from "./yaml_io.js";
+import { readTemplateContract } from "./template_contract.js";
 import { FINE_GRAINED_PAT_URL, rateLimitMessage, rateLimitSuggestion } from "./github_token.js";
 import { getLogger } from "./logging.js";
 
@@ -435,10 +436,12 @@ function _isStrictParent(parent: string, child: string): boolean {
 
 /** 从 YAML 文件加载模板定义。 */
 export function loadTemplateFromYaml(file: string): SandboxTemplate {
+  // Keep the legacy parser's public error type and line/column diagnostics.
   const data = loadYaml(readTextPy(file));
   if (!isMapping(data)) {
     throw new ValueError(`${file} must be a YAML mapping`);
   }
+  readTemplateContract(file);
   // 映射 resources 嵌套结构到扁平字段
   const { resources, ...rest } = data;
   const flat: Record<string, unknown> = rest;
@@ -449,5 +452,3 @@ export function loadTemplateFromYaml(file: string): SandboxTemplate {
   }
   return SandboxTemplate.modelValidate(flat);
 }
-
-

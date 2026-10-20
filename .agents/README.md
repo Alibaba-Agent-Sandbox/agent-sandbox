@@ -99,3 +99,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Express conditional support](notes/implemented/process/2026-10-19-express-conditional-support.md) · [verification](evidence/verify/2026-10-19-express-conditional-support.md)
 
 - [Project tool deadline normalization](notes/proposed/feature/2026-10-19-project-tool-deadline.md) · [verification](evidence/verify/2026-10-19-project-tool-deadline.md)
+
+- [Single-template Agent applications](notes/proposed/architecture/2026-10-20-template-agent-application.md) · [verification](evidence/verify/2026-10-20-template-agent-application.md)

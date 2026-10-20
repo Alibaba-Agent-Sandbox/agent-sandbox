@@ -16,6 +16,7 @@ import { pyRepr } from "../utils/_pyformat.js";
 import { dictGet, pyExcStr } from "./_pyerrors.js";
 import { rglobName } from "../utils/_pyos.js";
 import { loadYaml as safeLoad } from "../utils/yaml_io.js";
+import { readTemplateContract, validateTemplateVersion, TemplateContractError } from "../utils/template_contract.js";
 
 const logger = getLogger("api.capability");
 
@@ -101,7 +102,7 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
     if (!_templateMatches(data, yaml_path, template_id)) continue;
 
     try {
-      return parseTemplateData(data);
+      return parseTemplateData(readTemplateContract(yaml_path, false));
     } catch (exc) {
       logger.warning(
         "Matched template at %s failed validation; refusing to fall back to DEFAULT_CAPABILITIES (fail-closed)",
@@ -124,6 +125,8 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
  * Throws `ValidationError` when the manifest fails schema validation.
  */
 export function parseTemplateData(data: Record<string, any>): SandboxTemplate {
+  validateTemplateVersion(data);
+  data = { ...data };
   const resources = dictGet(data, "resources", {}) || {};
   if ("cpu" in resources && !("cpu_count" in data)) {
     data["cpu_count"] = resources["cpu"];
@@ -191,8 +194,9 @@ export async function resolveCapabilities(
     if (fs.existsSync(local_yaml_path)) {
       let data: unknown;
       try {
-        data = safeLoad(fs.readFileSync(local_yaml_path, { encoding: "utf8" }));
+        data = readTemplateContract(local_yaml_path, false);
       } catch (e) {
+        if (e instanceof TemplateContractError) throw new TemplateParseError("Local template YAML has an invalid or unsupported contract.");
         logger.warning("Failed to read local template YAML at %s, using defaults", local_yaml_path, new ExcInfo(e));
         data = null;
       }

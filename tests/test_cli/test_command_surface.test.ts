@@ -16,7 +16,7 @@ import { CliRunner } from "../helpers/cliRunner.js";
 
 const runner = (): CliRunner => new CliRunner();
 
-const GROUPS = ["sandbox", "template", "config", "mcp", "provider"];
+const GROUPS = ["sandbox", "template", "app", "config", "mcp", "provider"];
 const SHORTCUT_NAMES = ["create", "list", "info", "kill", "exec", "connect", "upload", "download", "run", "deploy"];
 const SHORTCUT_TARGETS: Record<string, string> = {
   create: "sandbox create",
@@ -67,7 +67,7 @@ describe("TestFixedCommandSurface", () => {
   it("test_root_help_lists_groups_provider_and_shortcuts_under_headings", async () => {
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
-    expect(section(result.output, "Command groups")).toEqual(["sandbox", "template", "config", "mcp"]);
+    expect(section(result.output, "Command groups")).toEqual(["sandbox", "template", "app", "config", "mcp"]);
     expect(section(result.output, "Providers")).toEqual(["provider"]);
     expect(section(result.output, "Sandbox shortcuts")).toEqual(SHORTCUT_NAMES);
     for (const [name, target] of Object.entries(SHORTCUT_TARGETS)) {
@@ -135,6 +135,7 @@ describe("TestFixedCommandSurface", () => {
       "sandbox command": ["list", "run"],
       "sandbox system": ["env", "info", "metrics", "packages", "ports"],
       template: ["build", "delete", "deploy", "from-image", "info", "install", "launch", "list", "push", "scaffold", "search"],
+      app: ["apply", "destroy", "plan", "reconcile", "status"],
       config: ["delete", "get", "init", "list", "set"],
       mcp: ["deploy", "install", "start", "status", "stop"],
     };

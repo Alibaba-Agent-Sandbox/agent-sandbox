@@ -61,10 +61,12 @@
     "access": "public"
   },
   "dependencies": {
+    "@alicloud/fc20230330": "4.8.1",
     "@alicloud/fcsandbox20260509": "^1.5.1",
     "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/openapi-core": "^1.0.8",
     "@inquirer/prompts": "^8.7.3",
+    "@serverless-devs/credential": "0.0.10",
     "ajv": "8.17.1",
     "commander": "^14.0.3",
     "diff": "^9.0.0",

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-sandbox:rfc:hook-result:1",
+  "title": "Proposed bounded deployment hook result",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "hookId", "operationId", "status", "message"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "hookId": {"type": "string", "minLength": 1},
+    "operationId": {"type": "string", "minLength": 1},
+    "status": {"enum": ["passed", "failed"]},
+    "message": {"type": "string", "maxLength": 2048},
+    "observations": {
+      "type": "object", "maxProperties": 32,
+      "propertyNames": {"type": "string", "maxLength": 128},
+      "additionalProperties": {"type": ["string", "number", "boolean", "null"], "maxLength": 1024}
+    }
+  }
+}

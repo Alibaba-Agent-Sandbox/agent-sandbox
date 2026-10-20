@@ -31,6 +31,8 @@ Command groups:
   sandbox              Manage sandboxes, their files, processes and commands.
   template             Discover, scaffold, build, publish and install sandbox
                        templates.
+  app                  Plan, deploy and reconcile Agent applications from
+                       template.yaml.
   config               Manage persistent credentials and CLI defaults.
   mcp                  Configure and run Agent Sandbox as an MCP server.
 

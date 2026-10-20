@@ -8,9 +8,9 @@ removed through configuration, and there is no per-user alias table.
 
 <!-- fixed-set -->
 
-Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
+Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx app`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
 
-`abx --help` lists them in three sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`), **Providers**
+`abx --help` lists them in three sections: **Command groups** (`sandbox`, `template`, `app`, `config`, `mcp`), **Providers**
 (`provider`) and **Sandbox shortcuts** (the ten shortcuts, each documented as "Same as 'abx …'"). A test fails when
 that list and this page disagree.
 
@@ -46,6 +46,7 @@ abx
 │   ├── command  list | run                      (named commands registered on the in-sandbox server)
 │   └── system   env | info | metrics | packages | ports
 ├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
+├── app          plan | apply | status | reconcile | destroy
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
@@ -155,3 +156,5 @@ Features that need a missing setting print a one-line pointer to `abx config ini
 ## Native provider image factory
 
 `abx --provider PROVIDER template from-image IMAGE --name NAME -y` is a native extension, independent of the standard template builder. See [provider image deployment](../guide/provider-image-deployment.md). Unopted providers return E8004.
+
+Agent application deployment: `abx app plan [template.yaml]`, `apply PLAN --yes`, `status RECEIPT`, `reconcile RECEIPT --yes`, `plan --destroy RECEIPT`, and `destroy PLAN --yes`. See [Agent applications](../guide/agent-applications.md).
