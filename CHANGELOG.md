@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Embed the lazy official Express management/template SDK dependencies in standalone binaries; preserve dependency attribution through `--licenses` and verify copied bundles without checkout dependencies. / 独立二进制内嵌延迟加载的极速版管理与模板官方 SDK，保留依赖许可归属，并验证脱离源码依赖目录的 bundle。
+- Accept npm 12's package-name keyed dry-run report as well as older array reports in the package entry-point gate; continue rejecting packages without `dist/bin/abx.js`. / 包入口门禁兼容 npm 12 按包名组织的 dry-run 报告及旧数组格式，仍拒绝缺少 CLI 入口的包。
+
 - Round remaining project tool deadlines to whole milliseconds so floating point error cannot prevent Docker/kubectl startup. / 将项目工具的剩余截止时间向上取整为毫秒，避免浮点误差阻止 Docker/kubectl 启动。
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。

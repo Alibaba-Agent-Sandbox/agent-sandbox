@@ -43,8 +43,11 @@ export interface FcSdk {
 const nodeRequire = createRequire(import.meta.url);
 
 function defaultLoadSdk(): FcSdk {
-  const mod = nodeRequire("@alicloud/fcsandbox20260509");
-  const core = nodeRequire("@alicloud/openapi-core");
+  // Keep SDK loading lazy while exposing literal dependencies to the SEA bundler.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
+  const mod = typeof require === "function" ? require("@alicloud/fcsandbox20260509") : nodeRequire("@alicloud/fcsandbox20260509");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
+  const core = typeof require === "function" ? require("@alicloud/openapi-core") : nodeRequire("@alicloud/openapi-core");
   const Client = mod.default ?? mod.Client;
   const Config = core.$OpenApiUtil?.Config ?? core.OpenApiUtil?.Config;
   if (typeof Client !== "function" || typeof Config !== "function") {
