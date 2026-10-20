@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Provider-owned `template launch`: source preparation, exact reference handoff, capability preflight, service readiness and owned sandbox cleanup; generic staged filesystem/process/OCI helpers. Third-party paths remain Beta with explicit native acceptance limits.
 ### Documentation
 
+- Use the official website mirror in installation docs and explain checksum verification, manual downloads, explicit versions and GitHub fallbacks. / 安装文档统一使用官网镜像，补充校验、手动下载、显式版本及 GitHub 备用入口说明。
+
 - Clarify implemented Express pause/resume and Snapshot standard interfaces, allowlist/runtime requirements and safe cleanup. / 明确极速版标准入口已实现暂停恢复与快照，以及白名单、运行时和清理要求。
 
 ### Fixed

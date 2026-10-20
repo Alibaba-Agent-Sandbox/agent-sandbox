@@ -42,7 +42,7 @@ The SDK-side features (synchronous `Sandbox` / asynchronous `AsyncSandbox` API, 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 ```
 
 ### Windows (PowerShell)
@@ -51,13 +51,15 @@ curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox
 irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
 ```
 
-The installer picks `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, or `windows-x64`, verifies the `.sha256`, and does not need `sudo`. macOS and Linux install to `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. Windows installs to `%LOCALAPPDATA%\Programs\abx` and adds it to the user `PATH`. `ABX_VERSION` selects a release (default: latest). `ABX_INSTALL_DIR` selects the directory. The site can host these scripts on its own domain later; the command stays one line and only the URL changes.
+The installer picks `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, or `windows-x64`, verifies the `.sha256`, and does not need `sudo`. macOS and Linux install to `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. Windows installs to `%LOCALAPPDATA%\Programs\abx` and adds it to the user `PATH`. `ABX_INSTALL_DIR` selects the directory.
 
-These one-liners require a fully uploaded GitHub Release with `abx-*` assets and checksums. Existing v0.3.0 contains an older implementation;0.4.0 is the new standard CLI release line. Before its draft is published, use the matching source build below.
+The macOS/Linux website installer defaults to the latest fully mirrored release and downloads the binary and checksum from the website domain, without GitHub discovery. The [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) lists the available version and files. `ABX_VERSION` selects a release; an explicit older version retains the GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset base. The Windows PowerShell installer still uses GitHub.
+
+The website copies all five platform binaries, the npm archive and SHA-256 sidecars from a complete stable GitHub Release; size and checksum validation must pass before publication. A new release becomes the website default after mirror deployment. The current 0.4.0 release predates later `[Unreleased]` changes; use matching source builds for those changes.
 
 ### Manual download
 
-Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases), check the digest, and put the file on `PATH` as `abx`. Commands, checksums, and the platform table: [Binary Installation](docs/en/guide/binary-installation.md) ([中文](docs/zh/guide/binary-installation.md)).
+Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from the website mirror under `https://www.agent-sandbox.cn/releases/download/v<version>/` (version/files in the [manifest](https://www.agent-sandbox.cn/releases/latest.json)), or from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases), check the digest, and put the file on `PATH` as `abx`. Commands, checksums, and the platform table: [Binary Installation](docs/en/guide/binary-installation.md) ([中文](docs/zh/guide/binary-installation.md)).
 
 The current source fixes embedded Express SDK loading outside the checkout. Existing release assets do not acquire this fix until rebuilt and published; see the installation guide for artifact validation and `abx --licenses` attribution.
 
