@@ -26,6 +26,9 @@ verification. Existing sandbox operations do not run application deployment.
 | Focused application/contract/provider preparation run (38 tests) | PASS | Includes create-only preparation handoff; 120-second diagnostic timeout accommodates cold module loading |
 | CLI fixed surface (11 tests) | PASS | Diagnostic run with 120-second timeout; default run timed out on cold canonical command imports |
 | Final targeted regressions (4 files, 64 tests) | PASS | Application/inspection/contract/CLI focused validation after review corrections; does not replace the full suite |
+| Startup refinement: v3 contract, legacy parser and capability tests (3 files, 59 tests) | PASS | `npx vitest run tests/test_template/test_contract_v3.test.ts tests/test_utils/adv_pyos_parity.test.ts tests/test_api/test_capability.test.ts --maxWorkers=2`; normal 20-second per-test deadline, no override; exit 0 |
+| Startup refinement: `npm run typecheck` | PASS | Exit 0 after the final static-import/cached-validator change |
+| Startup refinement: `npx eslint src/utils/template_contract.ts` | PASS | Exit 0, no warnings; only the version-gate helper changed, with no build/dist mutation in this follow-up |
 | Final `npm run check:hygiene` | PASS | Exit 0; no machine-local paths or credential-like strings |
 | Final `bash scripts/check-repo-health.sh` | PASS | Exit 0; 105 pass, 11 warnings, 0 fail; includes this record and final source changes |
 | Full `npm test -- --maxWorkers=4` | FAIL | 18 test files failed, 152 passed; 83 tests failed, 4003 passed, 8 skipped. Registry error compatibility and test-isolation defects were corrected and passed later focused runs; remaining full-run failures are unclassified, not asserted to be pre-existing or unrelated |
@@ -54,6 +57,11 @@ source-edit blocking of frozen deployment cleanup, sensitive/unknown toolchain
 fields and generated-state symlink redirection. Reconciliation verifies frozen
 hook inputs before executing afterReady hooks.
 
+The shared version gate now constructs and compiles its cached Ajv validator only
+on the first v3 validation. Legacy/v2 reads skip construction and compilation.
+The Ajv class and JSON schema retain static imports for standalone bundling; this
+does not eliminate Ajv module-import cost or establish a startup-time benchmark.
+
 ## Cleanup and limitations
 
 Mock unit resources use isolated temporary directories and are removed after each
@@ -73,3 +81,22 @@ does not mark the implementation production-ready or the full suite green.
 No broad rollback, borrowed infrastructure deletion, production alias cutover,
 object-store implementation, arbitrary coding CLI remote binding or exactly-once
 external tool guarantee is claimed. Local operation locks are not a distributed lock.
+
+## Main integration
+
+Merged current main `4aec47b` after the original verification. Both Unreleased
+entries and both engineering-record links were retained when resolving append-only
+conflicts. Provider conditional-operation changes from main are preserved.
+
+Post-merge `npm run typecheck` passed. Application, FC inspector, v3 contract and
+new main Provider conditional-command tests passed together: 4 files, 72 tests
+(`--maxWorkers=2 --testTimeout=120000`). This does not clear the full-suite gate.
+
+Final static-import/cached-validator build passed after main integration. Required
+built entry points and schema assets had already passed package inspection.
+
+Full-suite provenance limitation: the long local full-suite/parity attempts
+overlapped build-output regeneration. Their failures are recorded, but they are
+not a clean baseline comparison or acceptance run. A stable build followed by
+complete CI remains required. The parity attempt has no accepted final result
+at this snapshot; it is not counted as a pass.

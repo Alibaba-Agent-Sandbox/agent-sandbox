@@ -189,3 +189,5 @@ permissions remain explicit blocked gates; no mocked run is called cloud E2E.
 - [Express custom domains](https://help.aliyun.com/zh/agent-sandbox/custom-domain-name).
 - [Container routing source](https://github.com/openkruise/agents/blob/7dc85e9491d8ca6203abd24b0a24b9612ea9d00b/pkg/servers/e2b/routes.go).
 - [Container CSI mounting](https://openkruise.io/kruiseagents/user-manuals/ondemand-volume-mount).
+
+Implemented conditional data-plane operations and shared CLI/Python usage are documented in the [Provider command guide](../guide/provider-commands.md).

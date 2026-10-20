@@ -269,3 +269,5 @@ Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.
 权限、冲突、限流和服务错误会直接保留，不会通过读取元数据伪装成成功。
 
 见[自动准备并启动项目](template-launch.md)：各后端准备条件、引用传递、就绪与清理。
+
+Provider 扩展命令的两端共同发现，以及极速版暂停/快照用法，见 [Provider 命令指南](provider-commands.md)。

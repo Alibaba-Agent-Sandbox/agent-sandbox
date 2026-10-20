@@ -29,6 +29,7 @@ import { hostVersion } from "../host.js";
 import { Provider, type ConfigField, type ProviderInfra, type LegacyInfraOptions, type TerminalContext } from "../base.js";
 import type { ProviderCommandRunner } from "../command_contract.js";
 import { ALICLOUD_COMMANDS, runAlicloudCommand } from "./commands.js";
+import { CONDITIONAL_COMMANDS, buildConditionalCommandRunner, isConditionalCommand } from "./conditional_commands.js";
 
 function fields(): ConfigField[] {
   return ALICLOUD_EXPRESS_KEYS.map((k) => ({
@@ -59,7 +60,9 @@ export class AlicloudExpressProvider extends Provider {
       "sandbox.lifecycle", "sandbox.timeout", "exec.run", "exec.stream", "process.manage", "pty",
       "files.rw", "files.watch", "files.transfer", "code.interpret", "templates.read", "templates.build", "ports.url", "sessions",
     ]);
-    this.commands = ALICLOUD_COMMANDS;
+    this.commands = [...ALICLOUD_COMMANDS, ...CONDITIONAL_COMMANDS];
+    // Snapshot create may take300 seconds; this is an outer deadline, not the sandbox TTL.
+    this.commandTimeoutMs = 360_000;
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
     this.configFields = fields();
   }
@@ -111,7 +114,15 @@ export class AlicloudExpressProvider extends Provider {
   }
 
   override async buildCommandRunner(config: LayeredConfig): Promise<ProviderCommandRunner> {
-    return { run: (command, input) => runAlicloudCommand(config, command, input) };
+    let conditional: ProviderCommandRunner | undefined;
+    return {
+      run: (command, input, signal) => {
+        if (!isConditionalCommand(command)) return runAlicloudCommand(config, command, input);
+        conditional ??= buildConditionalCommandRunner(config);
+        return conditional.run(command, input, signal);
+      },
+      close: async () => { await conditional?.close?.(); },
+    };
   }
 
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {

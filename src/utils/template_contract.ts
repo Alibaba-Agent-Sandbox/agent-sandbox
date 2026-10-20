@@ -1,6 +1,7 @@
 /** Shared manifest version gate. Reading a template never executes application hooks. */
 import fs from "node:fs";
 import path from "node:path";
+import type { ValidateFunction } from "ajv";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { parseDocument } from "yaml";
 import schema from "./template-v3.schema.json" with { type: "json" };
@@ -8,7 +9,15 @@ import { TemplateParseError } from "../models/errors.js";
 
 /** Invalid or unsupported template contract, with no raw secret values in messages. */
 export class TemplateContractError extends TemplateParseError {}
-const validate = new Ajv2020({ strict: false, allErrors: true }).compile(schema);
+let cachedValidator: ValidateFunction | undefined;
+
+/** Defer construction/compilation until v3; the static class import keeps standalone bundling intact. */
+function v3Validator(): ValidateFunction {
+  if (!cachedValidator) {
+    cachedValidator = new Ajv2020({ strict: false, allErrors: true }).compile(schema);
+  }
+  return cachedValidator;
+}
 
 type Mapping = Record<string, unknown>;
 const mapping = (value: unknown): value is Mapping => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -21,6 +30,7 @@ export function validateTemplateVersion(raw: unknown, root?: string): void {
     return;
   }
   if (raw.spec_version !== 3) throw new TemplateContractError("Unsupported template spec_version; supported versions are 2 and 3.");
+  const validate = v3Validator();
   if (!validate(raw)) throw new TemplateContractError(`Invalid template v3: ${validate.errors?.map(error => `${error.instancePath || "/"} ${error.keyword}`).join(", ")}`);
   const app = raw.application as Mapping | undefined;
   if (!app) return;
