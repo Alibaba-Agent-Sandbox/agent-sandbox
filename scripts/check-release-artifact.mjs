@@ -24,7 +24,11 @@ assert.ok(run(["--version"]).includes(version), "Installed artifact has the wron
 assert.match(run(["--help"]), /Usage:/i);
 assert.match(run(["create", "--help"]), /--detach/);
 assert.match(run(["template", "image", "--help"]), /Usage:/i);
+assert.match(run(["--native", "template", "list", "--help"]), /--official-api/);
+assert.match(run(["--native", "config", "get", "region"]), /\S/);
 const declaration = /^export const STANDARD_LICENSES = (.+);$/m.exec(readFileSync(join(root, "src/standard_cli/notices.ts"), "utf8"));
 assert.ok(declaration, "Missing complete reviewed notice declaration");
-assert.equal(run(["--licenses"]), JSON.parse(declaration[1]), "Installed artifact notices differ from the complete source");
+const runtimeDeclaration = /^export const RUNTIME_DEPENDENCY_NOTICES = (.+);$/m.exec(readFileSync(join(root, "src/licenses/runtime_dependencies.ts"), "utf8"));
+assert.ok(runtimeDeclaration, "Missing complete reviewed runtime dependency notice declaration");
+assert.equal(run(["--licenses"]), JSON.parse(declaration[1]) + JSON.parse(runtimeDeclaration[1]), "Installed artifact notices differ from the complete source");
 console.log(`PASS: installed abx ${version}: version, root/standard/native help and complete notices`);

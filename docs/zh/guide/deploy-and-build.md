@@ -68,3 +68,16 @@ abx deploy ./my-template --yes -v         # 非交互，输出调试日志
 ## 相关 SDK 文档
 
 - [SDK 使用指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/sdk-usage.md) 与 [API 参考](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)
+
+## 显式原生极速版入口
+
+CLI0.4.1 增加首个全局选项 `--native`，选择项目原生命令界面。官方极速版模板清单、状态回读、清理和规范平台 step 验收使用此入口：
+
+```bash
+abx --native --json template list --official-api
+abx --native template deploy ./my-template --build steps --yes
+# 模板目录的验收脚本使用：
+export ABX='abx --native'
+```
+
+所选 Provider 和命令参数仍执行原有原生能力/配置检查。默认入口遵循固定的标准命名空间。远程命令参数中的 `--native` 按字面保留。

@@ -1,0 +1,14 @@
+{
+  "package_version": "0.4.1",
+  "entry": "installed npm bin with first-root --native",
+  "provider": "alicloud-express",
+  "build_mode": "steps",
+  "passed": true,
+  "cleanup_verified": true,
+  "duration_s": 258.831,
+  "template": "python-hello",
+  "npm_tar_sha256": "8bce75c6772b36a602d895d8a9d9b335b8e659a1efe49e177a06761ceae9ec72",
+  "linux_x64_sea_sha256": "7be1d22e391ae4542b6b7a1a91ecea5c57525855678dab01c1b59e299f97bcf4",
+  "source_head": "5382efa1ba4aaf19f06ec06392279ca93c5796ae",
+  "publication": "pending"
+}
