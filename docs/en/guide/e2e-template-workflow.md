@@ -22,7 +22,7 @@ graph LR
 - Install the CLI:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 ```
 
 > **No extras to install**: the CLI features used throughout this guide — reading defaults from `template.yaml` (YAML parsing), parsing `.env` files, installing templates from a registry, and the Alibaba Cloud template API — are built into `@agent-sandbox/cli`.
