@@ -10,11 +10,15 @@ export interface FcManagementSdk {
   Config: new (input: Record<string, unknown>) => any;
 }
 
-const require = createRequire(import.meta.url);
+const nodeRequire = createRequire(import.meta.url);
 
 function loadSdk(): FcManagementSdk {
-  const models = require("@alicloud/fcsandbox20260509");
-  const core = require("@alicloud/openapi-core");
+  // Literal global require calls let esbuild include these lazy dependencies in SEA.
+  // Native ESM has no global require and resolves the installed packages instead.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
+  const models = typeof require === "function" ? require("@alicloud/fcsandbox20260509") : nodeRequire("@alicloud/fcsandbox20260509");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
+  const core = typeof require === "function" ? require("@alicloud/openapi-core") : nodeRequire("@alicloud/openapi-core");
   const Client = models.default ?? models.Client;
   const Config = core.$OpenApiUtil?.Config ?? core.OpenApiUtil?.Config;
   if (typeof Client !== "function" || typeof Config !== "function") throw new Error("Invalid SDK exports");

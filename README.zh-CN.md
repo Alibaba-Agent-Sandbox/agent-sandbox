@@ -59,6 +59,8 @@ irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/i
 
 从官网镜像 `https://www.agent-sandbox.cn/releases/download/v<version>/`（版本及文件见[清单](https://www.agent-sandbox.cn/releases/latest.json)）或 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 下载 `abx-<version>-<os>-<arch>[.exe]` 和对应的 `.sha256`，校验摘要后，以 `abx` 为名放到 `PATH` 上。命令、校验和与平台表见 [二进制安装](docs/zh/guide/binary-installation.md)（[English](docs/en/guide/binary-installation.md)）。
 
+当前源码修复了极速版内嵌 SDK 脱离源码目录后无法加载的问题；既有发行资产需重新构建并发布才包含修复。交付件验证及 `abx --licenses` 归属信息见安装指南。
+
 ### npm（Node.js 20+）
 
 先检查公开版本，再安装：
