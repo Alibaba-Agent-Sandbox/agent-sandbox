@@ -10,6 +10,9 @@ import { getFormatter } from "../formatters.js";
 import { echo } from "../io.js";
 import { argument, command, group, option, type Context } from "../kit.js";
 import { handleErrors } from "../error_handler.js";
+import { providerOperationDescription, providerOperationHelp, providerOperationsSummary, type ProviderOperations } from "../provider_operations.js";
+import type { ProviderCommand } from "../../providers/command_contract.js";
+import type { Command, Param } from "../kit.js";
 
 type Params = Record<string, unknown>;
 const MAX_INPUT_BYTES = 1024 * 1024;
@@ -81,7 +84,7 @@ provider_commands.addCommand(command("list", {
     const commands = listProviderCommands(providerId(params));
     if (fmt.use_json) fmt.printData(commands);
     else if (fmt.quiet) for (const entry of commands) echo(entry.id);
-    else fmt.printTable(["Command", "Effect", "Description"], commands.map((entry) => [entry.id, entry.effect, entry.description]));
+    else fmt.printTable(["Command", "Effect", "Description"], commands.map((entry) => [entry.id, entry.effect, providerOperationDescription(entry)]));
   }),
 }));
 
@@ -89,33 +92,66 @@ provider_commands.addCommand(command("info", {
   help: "Show a management command's input/output schemas and effects.",
   params: [argument("provider_id", { metavar: "ID" }), argument("command_id", { metavar: "COMMAND" })],
   callback: handleErrors(async (ctx: Context, params: Params) => {
-    getFormatter(ctx).printData(getProviderCommand(providerId(params), String(params["command_id"])));
+    const id = providerId(params);
+    const descriptor = getProviderCommand(id, String(params["command_id"]));
+    const fmt = getFormatter(ctx);
+    if (fmt.use_json) fmt.printData(descriptor);
+    else echo(providerOperationHelp(id, descriptor));
   }),
 }));
+
+function operationParams(): Param[] {
+  return [
+    option("--input", { metavar: "JSON", help: "JSON input object (default: {})" }),
+    option("--input-file", { metavar: "FILE", help: "Read JSON input from a file" }),
+    option(["--opt", "-o", "opt"], { multiple: true, metavar: "KEY=VALUE", help: "Provider option (repeatable)" }),
+    option("--region", { help: "Cloud region for this command" }),
+    option("--yes", { is_flag: true, help: "Confirm a write or delete operation" }),
+  ];
+}
+
+async function executeOperation(id: string, descriptor: ProviderCommand, ctx: Context, params: Params): Promise<void> {
+  if (descriptor.effect !== "read" && params["yes"] !== true) {
+    throw new ProviderTrustError(`Command '${descriptor.id}' requires --yes (${descriptor.effect}).`);
+  }
+  const input = await inputOf(params);
+  const options = {
+    provider_options: providerOptions(id, params),
+    ...(params["region"] !== null ? { region: String(params["region"]) } : {}),
+  };
+  getFormatter(ctx).printData(await runProviderCommand(id, descriptor.id, input, options));
+}
+
+/** New trees are invocation-local; legal operation names never overwrite installer commands. */
+export function createProviderRun(catalog: ProviderOperations): Command {
+  const run = group("run", {
+    help: "Run an operation provided by the selected Provider.\n\nUse OPERATION --help for its JSON fields and effects. Help never executes the Provider.",
+    helpFooter: () => providerOperationsSummary(catalog),
+    callback: handleErrors(() => { if (catalog.error) throw catalog.error; }),
+  });
+  for (const descriptor of catalog.commands) {
+    run.addCommand(command(descriptor.id, {
+      help: providerOperationHelp(catalog.id!, descriptor),
+      params: operationParams(),
+      callback: handleErrors(async (ctx: Context, params: Params) => {
+        await executeOperation(catalog.id!, descriptor, ctx, params);
+      }),
+    }));
+  }
+  return run;
+}
 
 provider_commands.addCommand(command("run", {
   help: "Run a declared management command. Write/delete commands require --yes.\n\nUse --input-file for JSON containing certificates or other sensitive values.",
   params: [
     argument("provider_id", { metavar: "ID" }),
     argument("command_id", { metavar: "COMMAND" }),
-    option("--input", { metavar: "JSON", help: "JSON input object (default: {})" }),
-    option("--input-file", { metavar: "FILE", help: "Read JSON input from a file" }),
-    option(["--opt", "-o", "opt"], { multiple: true, metavar: "KEY=VALUE", help: "Provider option (repeatable)" }),
-    option("--region", { help: "Cloud region for this command" }),
-    option("--yes", { is_flag: true, help: "Confirm a write or delete operation" }),
+    ...operationParams(),
   ],
   callback: handleErrors(async (ctx: Context, params: Params) => {
     const id = providerId(params);
     const commandId = String(params["command_id"]);
     const descriptor = getProviderCommand(id, commandId);
-    if (descriptor.effect !== "read" && params["yes"] !== true) {
-      throw new ProviderTrustError(`Command '${commandId}' requires --yes (${descriptor.effect}).`);
-    }
-    const input = await inputOf(params);
-    const options = {
-      provider_options: providerOptions(id, params),
-      ...(params["region"] !== null ? { region: String(params["region"]) } : {}),
-    };
-    getFormatter(ctx).printData(await runProviderCommand(id, commandId, input, options));
+    await executeOperation(id, descriptor, ctx, params);
   }),
 }));

@@ -282,3 +282,11 @@ the MCP artifact has its separately verified native source pin and tool catalog.
 ## Provider command ownership
 
 Common code owns configuration isolation, schema validation, transport and generic discovery/dispatch. Keep vendor API mappings, resource identifiers and admission conditions in the owning Provider. Prefer the existing `provider-commands/1` contract for provider-specific operations: the CLI `provider command` namespace and Python `agent_sandbox.providers.commands` discover the same engine catalog. Do not add a backend switch or duplicate cloud implementation in each consumer. Stable typed APIs may be thin wrappers; registration does not generate language methods or establish live-account readiness. Express is bundled in the CLI provider tree; catalog plugin source remains in awesome-providers. Standard compatibility clients keep their existing contract.
+
+Contextual help and `provider run OPERATION` must derive from that same catalog. Keep operation IDs
+opaque under the fixed runner namespace so plugins cannot shadow host management commands. Help must
+remain local metadata-only discovery without credentials, plugin execution or cloud requests; an
+invalid default can degrade help while preserving repair commands, but execution must fail strictly.
+Retain explicit-ID `provider command list/info/run` and JSON compatibility. Do not turn arbitrary
+JSON Schema properties into flags or imply MCP/completion/type generation. Installation's default
+post-consent verification may execute plugin code; do not confuse that phase with static help.

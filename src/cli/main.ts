@@ -26,6 +26,7 @@ import { OUTPUT_META_KEY, OutputManager, isCiEnv } from "./output.js";
 import { Choice } from "./types.js";
 
 import { GROUP_COMMANDS, SHORTCUTS } from "./command_surface.js";
+import { discoverProviderOperations, providerOperationsSummary } from "./provider_operations.js";
 
 const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
 
@@ -74,7 +75,8 @@ function lazyEntry(spec: string, help: string, heading: string): LazyEntry {
       const attrName = spec.slice(idx + 1);
       const mod = await mainSeams.importModule(modPath);
       if (!(attrName in mod)) throw new AttributeError(`module '${modPath}' has no attribute '${attrName}'`);
-      return mod[attrName] as Command;
+      const value = mod[attrName];
+      return typeof value === "function" ? (value as () => Command)() : value as Command;
     },
   };
 }
@@ -133,6 +135,7 @@ const ROOT_HELP = [
  */
 export const cli: Command = group("abx", {
   help: ROOT_HELP,
+  helpFooter: () => providerOperationsSummary(discoverProviderOperations()),
   version: VERSION,
   lazy: {
     ...Object.fromEntries(Object.entries(GROUP_COMMANDS).map(([name, { spec, help }]) => [name, lazyEntry(spec, help, name === "provider" ? "Providers:" : "Command groups:")])),

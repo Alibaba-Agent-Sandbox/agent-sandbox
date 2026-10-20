@@ -6,6 +6,34 @@ Use `get_capabilities` and `abx provider info ID` to inspect the selected provid
 
 Keep these statuses separate: implemented, unit-tested, live-tested, unsupported, blocked and not run. Storage mounts, snapshots, deep hibernation, template caches/warm pools, cost data, network/VPC policy, preview expiration, browser takeover/replay and hosted MCP need actual provider-specific APIs and per-provider acceptance. Ordinary files are not persistent volumes; a port URL is not an expiring preview; local MCP HTTP is not an official hosted service. No FC application deployment is included.
 
+## Help, execution and update contracts
+
+`abx -h` summarizes the selected Provider; `abx provider -h` and `abx provider run -h` show
+its complete declared operation directory. `abx provider run OPERATION -h` shows the bounded input
+contract and read/write/delete effect without running plugin code or requiring cloud credentials.
+For selection use `abx --provider ID ...`; otherwise normal environment, dotenv and stored-default
+resolution applies. An invalid selection can degrade help to a diagnostic and repair instructions;
+execution must fail rather than switch backends silently.
+
+Run with `abx --provider ID provider run OPERATION --input-file ./input.json`. Keep the operation ID
+opaque, pass JSON input, and use `--yes` only for the authorized write/delete operation. An operation
+named `install` cannot shadow `abx provider install`: all operation execution stays below `provider run`.
+No extra registration step follows install/update. The Provider owns descriptors and execution; the
+host derives contextual help from the same catalog used by the engine and old JSON interfaces:
+
+```sh
+abx --json provider command list ID
+abx --json provider command info ID OPERATION
+abx --json provider command run ID OPERATION --input-file ./input.json --yes
+```
+
+Treat these JSON interfaces as the AI discovery surface, not as evidence of automatically generated
+MCP tools or typed SDK methods. These operations are separate from sandbox application commands and
+template resources. Installed plugins update with `abx provider update ID --ref <40-hex-commit>`;
+the bundled Express implementation follows the host release. Verify the actual engine build rather
+than infer package availability from merged `main`. Installation may execute the default verification
+handshake after consent, even though help and catalog discovery never execute plugin code.
+
 ## Diagnose with evidence
 
 | Observation | Permitted conclusion | Required follow-up |

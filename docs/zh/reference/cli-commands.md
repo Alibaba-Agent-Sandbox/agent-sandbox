@@ -11,6 +11,7 @@
 
 `abx --help` 分三段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`）、**Providers**（`provider`）、
 **Sandbox shortcuts**（十个快捷方式，每个都写作 "Same as 'abx …'"）。该列表与本页不一致时，测试会失败。
+这些分区之后显示当前 Provider 的操作摘要；安装的操作仍位于 Provider 命名空间内。
 
 ## 快捷方式
 
@@ -45,10 +46,14 @@ abx
 ├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine
+└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command | run
 ```
 
-`abx provider --help` 由 Provider 文档负责（见[Providers](../guide/providers.md)）；本页只涉及固定命令面中的 `provider` 组本身。
+`abx provider --help` 列出管理命令和当前 Provider 的操作。使用
+`abx provider run OPERATION --help` 查看 JSON 字段、Schema 和操作影响，再通过同一路径执行。
+默认/显式选择、自动发现和兼容 JSON 目录见[Provider 操作](../guide/provider-commands.md)。
+操作 ID 保持完整，不会替换固定的宿主管理命令。这些上下文入口需要包含本次改动的构建；
+发布边界见对应指南。
 
 用法行（取自 `abx … --help`）：
 

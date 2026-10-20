@@ -1,6 +1,6 @@
 # Decision: Include lazy Express SDK dependencies in standalone artifacts
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -76,3 +76,4 @@ from passes. Remote Node 20/22 and other native platforms remain separate gates.
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-10-20-bundled-provider-sdk.md)
+- [Final combined artifact acceptance](../../../evidence/verify/2026-10-20-provider-context-help.md)
