@@ -1,6 +1,6 @@
 # Native step entry verification
 
-Result: PARTIAL — patch candidate, real installed acceptance, CI and publication pending.
+Result: PARTIAL — real installed/npm/SEA acceptance PASS; remote CI and public publication pending.
 
 Base: ea744482a84e4a7061c879e3287b476ff202cd33. Real0.4.0 compiled executable --native config get log_level exited2, No such option --native. A help-only invocation accepted unknown flags before normal parsing and is not counted as a failed reproduction.
 
@@ -15,3 +15,7 @@ Public npm registry returned404 for both scoped package routes; GitHub latest re
 New/existing routing and build-plan suites:32 PASS. Version capture regenerated into a new0.4.1 directory; historical0.4.0 evidence retained. Full local suite:4067 PASS,10 FAIL,56 SKIP; the10 existing HTTP/TLS/WebSocket transport cases fail on this host with HTTP502/proxy behavior. Removing ambient proxy variables produced the same10 failures. Those transport modules are unchanged; remote Node20/22 remain mandatory. Lint:0 errors,253 existing warnings. Typecheck PASS. Repository health105 PASS/11 warnings/0 failures; hygiene PASS.
 
 Actual npm pack/global install succeeded. The installed checker first failed because it expected only STANDARD_LICENSES while accepted main prints STANDARD_LICENSES plus RUNTIME_DEPENDENCY_NOTICES. The checker now compares the exact combined reviewed bytes and exercises explicit native list help plus a non-help config command. The actual installed0.4.1 candidate passes. A Markdown companion indexes the immutable ENV JSON receipt without changing the accepted historical evidence.
+
+## Actual installed cloud acceptance
+
+The npm-packed/global-installed0.4.1 public executable, invoked with the first root option --native, drove the canonical python-hello step harness. Real Express READY, actual Python SDK creation, CLI/SDK named smoke and independently observed sandbox/template absence all passed in258.831 seconds. No private source launcher or externally injected SDK modules supplied the executable. The [owner receipt](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/pull/152) is express-2026-10-20T150421Z.json under python-hello/evidence. Actual Linux x64 SEA passed the same package version, explicit native/standard help, non-help native config and complete notice comparisons. Binary build warnings are retained locally; the real executable exited0. Source and package are a candidate until remote publication is verified.
