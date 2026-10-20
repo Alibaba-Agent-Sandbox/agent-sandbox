@@ -190,6 +190,10 @@ GitHub 下载出现 curl error 92 或 HTTP 000 时， 使用上方 macOS/Linux �
 
 ## 自己构建二进制
 
+执行 `npm run build` 后，可用 `make dist-check` 验证 npm 包包含
+`dist/bin/abx.js`。检查兼容旧 npm 的数组报告与 npm 12 按包名组织的报告；
+缺少入口时仍会失败。
+
 在检出的仓库里，需要 Node.js 20 或更新的官方构建（去掉了 Node SEA fuse 的发行版构建不能用）：
 
 ```bash

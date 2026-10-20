@@ -191,6 +191,10 @@ If GitHub downloads fail with curl error 92 or HTTP 000, use the website macOS/L
 
 ## Build the binary yourself
 
+For npm artifact validation after `npm run build`, `make dist-check` verifies that
+the package contains `dist/bin/abx.js`. It accepts both older npm array reports and
+npm 12's package-name keyed reports; a missing entry point still fails the gate.
+
 From a checkout, with Node.js 20 or newer (official builds; distro builds that strip the Node SEA fuse cannot be used):
 
 ```bash

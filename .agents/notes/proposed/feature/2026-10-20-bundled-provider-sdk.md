@@ -9,6 +9,8 @@ an official SDK-backed operation is invoked outside the checkout. Bound
 `createRequire(import.meta.url)` calls are runtime package lookups, so esbuild does
 not embed their dependencies. Both management and template SDK loaders use this
 pattern. A version-only artifact smoke test cannot detect the failure.
+Actual package acceptance also revealed that the existing `dist-check` helper
+assumes npm's older array report, while npm 12 returns an object keyed by name.
 
 Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/85
 Release tracking: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/66
@@ -27,6 +29,8 @@ Preserve inconsistent upstream declarations verbatim; this supplement is not
 represented as a complete CLI SBOM.
 The generated text is a distribution asset in `src/licenses/`; the executable
 does not import concrete Provider implementation modules to render licenses.
+Keep the package entry-point gate effective across both npm report shapes using
+a small stdin JSON validator; missing entry points and invalid reports fail.
 
 ## API Design
 

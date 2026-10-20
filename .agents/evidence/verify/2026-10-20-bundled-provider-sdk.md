@@ -9,8 +9,9 @@
 - Pull request: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/87
 - Source: base `4aec47b734be04fbadc932b0bbf4cd7ae0ac1eb4` plus the accompanying
   loader, isolated regression and license distribution changes.
-  Final product revision: `cc8f13a236703c380d0e869b7466a489b0b35008`, including a
-  normal merge of main `eeacf9c`; the final follow-up changes verification only.
+  SDK loader revision: `cc8f13a236703c380d0e869b7466a489b0b35008`, including a
+  normal merge of main `eeacf9c`. A later scoped packaging follow-up adds the npm
+  report validator without changing the SDK implementation.
 - Environment: Linux x64, Node 22.22.2, dependencies installed with `npm ci`.
   Cloud credentials were supplied in the parent acceptance process through the
   environment, without recording values or raw cloud responses.
@@ -30,6 +31,7 @@ npm ci --ignore-scripts --no-audit --no-fund
 node node_modules/vitest/vitest.mjs run tests/test_providers/test_bundled_alicloud_sdk.test.ts
 node node_modules/vitest/vitest.mjs run tests/test_providers/test_bundled_alicloud_sdk.test.ts tests/test_providers/test_alicloud_commands.test.ts tests/test_api/test_fc_template.test.ts tests/test_cli/test_standard_executable.test.ts tests/test_providers/test_complete_isolation.test.ts
 node scripts/alicloud-sdk-notices.mjs --check
+node node_modules/vitest/vitest.mjs run tests/test_cli/test_package_entry.test.ts
 npm run build
 node scripts/build_binary.mjs
 npm pack --pack-destination "$CANDIDATE_DIR" --json
@@ -55,7 +57,9 @@ bash scripts/check-repo-health.sh
 | Final full local CI | PARTIAL | Hygiene, typecheck, lint and build pass. Full tests: 4028 pass, 20 fail, 8 skip across 169 files. The 20 failed titles exactly match the clean baseline's 20 failures, with no additional failures. CI stops at the test gate; no full-CI pass is claimed. |
 | Record/link health | PASS | 105 passes, zero failures; 11 registered historical warnings. |
 | Standard attribution provenance | PASS | Seven provenance tests pass; normal pinned-source replay only updates the generated root NOTICE prefix. |
-| Existing `make dist-check` helper | FAIL on npm 12.0.2 | The unchanged helper expects an array from `npm pack --dry-run --json`; npm 12 returns an object keyed by package name. Direct inspection confirms the actual entry point, both SDK adapters and compiled runtime attribution are included; real tarball installation already passed. The unrelated helper is not modified. |
+| Initial `make dist-check` helper | FAIL on npm 12.0.2, preserved reproduction | The old helper expected an array from `npm pack --dry-run --json`; npm 12 returns an object keyed by package name. Direct inspection confirmed all required package files. |
+| npm report-shape regressions | PASS | Five tests cover both report shapes with and without the CLI entry, plus invalid JSON rejection. |
+| Corrected `make dist-check` on actual npm 12.0.2 | PASS | The real npm dry-run report passes the same entry-point gate. No npm version change or required-file bypass. |
 | Hosted CI and other native targets | PENDING | No pass is claimed before observing those gates. |
 
 The real-cloud SEA candidate was copied outside the checkout. Its SHA-256 was
@@ -79,7 +83,9 @@ expectation were identified by the first full run and corrected without relaxing
 the isolation test.
 The existing package-content helper also assumes an older npm JSON shape; npm
 12.0.2 returns a keyed object and makes its `[0].files` lookup fail. This is an
-explicitly failed helper gate, not evidence of a missing npm entry point.
+initially failed helper gate, not evidence of a missing npm entry point. The
+follow-up fixes this packaging gate and preserves rejection of missing entries;
+the original failure remains recorded above.
 
 ## Not verified
 
