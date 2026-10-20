@@ -272,3 +272,5 @@ Resume/connect fallback applies only to404/405 endpoint absence; permission, con
 quota and service errors propagate instead of becoming successful metadata reads.
 
 See [automatic project preparation and launch](template-launch.md) for per-provider prerequisites, reference handoff, readiness and cleanup.
+
+See [Provider-owned commands](provider-commands.md) for shared CLI/Python discovery and the implemented Express pause/Snapshot extensions.

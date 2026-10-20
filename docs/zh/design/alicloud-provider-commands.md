@@ -152,3 +152,5 @@ FCSandbox SDK 1.5.1 虽然含域名模型，但没有客户端方法；进一步
 - [极速版自定义域名](https://help.aliyun.com/zh/agent-sandbox/custom-domain-name)。
 - [容器版路由源码](https://github.com/openkruise/agents/blob/7dc85e9491d8ca6203abd24b0a24b9612ea9d00b/pkg/servers/e2b/routes.go)。
 - [容器版 CSI 挂载](https://openkruise.io/kruiseagents/user-manuals/ondemand-volume-mount)。
+
+已实现的条件性数据面操作及两端用法见 [Provider 命令指南](../guide/provider-commands.md)。

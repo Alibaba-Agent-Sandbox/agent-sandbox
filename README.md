@@ -262,3 +262,5 @@ Optional native provider extension: [templates from pushed images](docs/en/guide
 The Express core and conditional pause/snapshot receipts do not certify every catalog template. Templates remain experimental until their own versioned deployment/model acceptance passes; third-party provider Beta scope is separate. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
 
 [Prepare and launch catalog templates without copying cloud IDs](docs/en/guide/template-launch.md).
+
+Provider-owned pause/resume and Snapshot commands share one implementation across CLI and SDK; see the [registration and usage guide](docs/en/guide/provider-commands.md).

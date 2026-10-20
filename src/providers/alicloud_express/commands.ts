@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import fs from "node:fs";
 import * as path from "node:path";
 import { z } from "zod";
+import { commandSchema } from "./command_schema.js";
 import { AuthenticationError, QuotaExceededError, SandboxError } from "../../models/errors.js";
 import type { LayeredConfig } from "../../transport/config_layers.js";
 import type { ProviderCommand } from "../commands.js";
@@ -134,16 +135,6 @@ function outputFor(id: CommandId): z.ZodType {
   const [group, action] = id.split(".") as [keyof typeof resourceOutputs, string];
   const data = group === "api-key" && (action === "create" || action === "reset") ? keyOutput.extend({ secret_file: z.string() }) : action === "delete" ? deletionOutput : action === "list" ? listOutputs[group] : resourceOutputs[group];
   return z.strictObject({ request_id: z.string().nullable(), data });
-}
-
-/** Host manifests intentionally exclude regex/format execution; local validation still checks them. */
-function commandSchema(schema: z.ZodType): Dict {
-  const strip = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(strip);
-    const record = object(value);
-    return record ? Object.fromEntries(Object.entries(record).filter(([key]) => key !== "pattern" && key !== "format").map(([key, child]) => [key, strip(child)])) : value;
-  };
-  return strip(z.toJSONSchema(schema, { target: "draft-7" })) as Dict;
 }
 
 /** The complete supported FC management catalog. Discovery does not access credentials or the network. */
