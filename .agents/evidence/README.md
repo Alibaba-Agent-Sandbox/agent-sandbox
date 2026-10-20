@@ -36,6 +36,8 @@ Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
 
 ## `verify/` — E2E runs
 
+- [Bundled Express SDK artifact verification](verify/2026-10-20-bundled-provider-sdk.md)
+
 - [`verify/2026-10-16-provider-volume-live.md`](verify/2026-10-16-provider-volume-live.md)
 
 - [`verify/2026-10-16-provider-management-aggregate-recheck.md`](verify/2026-10-16-provider-management-aggregate-recheck.md)

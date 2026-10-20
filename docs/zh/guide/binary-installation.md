@@ -166,6 +166,8 @@ abx --version
 ## 说明
 
 - 二进制包含 CLI 及其运行时依赖，包括阿里云模板 API 客户端和 MCP 服务（STDIO 与 Streamable HTTP）。
+- 极速版管理操作与官方模板操作在执行时才加载内嵌的阿里云 SDK；独立二进制无需另装 SDK，也不依赖外部 `node_modules`。npm 安装由 npm 解析并安装包声明的运行时依赖。仅 `--version` 成功不能证明 SDK 操作可用，发布验证还需从隔离安装执行一次只读管理请求。
+- `abx --licenses` 包含官方 SDK 依赖图随包提供的 LICENSE、README 许可说明及原始包许可声明。依赖更新后，维护者运行 `node scripts/alicloud-sdk-notices.mjs` 重新生成，使用 `--check` 校验。这是补充归属信息，并非完整 CLI SBOM。
 - 二进制只提供 `abx` CLI。Python SDK 是单独的包：[Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md)（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
 
 ## 自己构建二进制

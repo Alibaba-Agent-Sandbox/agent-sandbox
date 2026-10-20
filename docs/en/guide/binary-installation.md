@@ -167,6 +167,8 @@ abx --version
 ## Notes
 
 - The binary bundles the CLI and its runtime dependencies, including the Alibaba Cloud template API client and the MCP servers (STDIO and Streamable HTTP).
+- Express management and official template operations load their embedded Alibaba Cloud SDK only when invoked. Standalone binaries do not need a separate SDK installation or a `node_modules` directory. npm installations use the package's declared runtime dependencies installed by npm. A successful `--version` alone does not validate an SDK-backed operation; release verification also runs a read-only management request from an isolated installation.
+- `abx --licenses` includes the official SDK dependency graph's shipped license/README notices and original package license declarations. Maintainers regenerate this attribution with `node scripts/alicloud-sdk-notices.mjs` after dependency changes; `--check` verifies it. This is additional attribution, not a full CLI SBOM.
 - The binary is only the `abx` CLI. The Python SDK is a separate package: [Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) ([`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)).
 
 ## Build the binary yourself

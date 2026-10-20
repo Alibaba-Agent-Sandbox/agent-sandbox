@@ -59,6 +59,8 @@ These one-liners require a fully uploaded GitHub Release with `abx-*` assets and
 
 Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases), check the digest, and put the file on `PATH` as `abx`. Commands, checksums, and the platform table: [Binary Installation](docs/en/guide/binary-installation.md) ([中文](docs/zh/guide/binary-installation.md)).
 
+The current source fixes embedded Express SDK loading outside the checkout. Existing release assets do not acquire this fix until rebuilt and published; see the installation guide for artifact validation and `abx --licenses` attribution.
+
 ### npm (Node.js 20+)
 
 Check the public version, then install:
