@@ -20,6 +20,23 @@ export type BuildPlan =
   | { kind: "dockerfile"; dockerfile: string; ignoredSteps: boolean }
   | { kind: "steps"; image: string; steps: PlatformStep[] };
 
+/** Express native ENV does not reliably reach a generation-2 runtime process. */
+export function commandWithStepEnvironment(plan: BuildPlan, command: string | null): string | null {
+  if (plan.kind !== "steps" || command === null) return command;
+  const environment = new Map<string, string>();
+  for (const step of plan.steps) {
+    if (step.type !== "ENV" || step.args.length % 2 !== 0) continue;
+    for (let index = 0; index < step.args.length; index += 2) {
+      const key = step.args[index]!;
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) environment.set(key, step.args[index + 1]!);
+    }
+  }
+  if (!environment.size) return command;
+  const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
+  const assignments = [...environment].map(([key, value]) => quote(`${key}=${value}`));
+  return `/usr/bin/env -- ${assignments.join(" ")} /bin/sh -c ${quote(command)}`;
+}
+
 export class BuildModeError extends Error {
   constructor(message: string) {
     super(message);
@@ -93,7 +110,7 @@ function _expand(build: Record<string, unknown>): PlatformStep[] {
   const env = _mapping(build["env"], "build.env");
   for (const [key, value] of Object.entries(env)) {
     if (typeof value !== "string") throw new BuildModeError(`build.env.${key} must be a string`);
-    steps.push({ type: "ENV", args: [`${key}=${value}`] });
+    steps.push({ type: "ENV", args: [key, value] });
   }
   for (const command of _strings(build["run"], "build.run")) {
     steps.push({ type: "RUN", args: [command] });

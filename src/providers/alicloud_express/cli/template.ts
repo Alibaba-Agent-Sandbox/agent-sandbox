@@ -42,7 +42,7 @@ import * as registryMod from "../../../utils/registry.js";
 import { BUILTIN_TEMPLATES, RegistryClient, loadTemplateFromYaml } from "../../../utils/registry.js";
 import { fetchIndex } from "../../../utils/template_index.js";
 import { resolveTemplateProfile, type TemplateProfile } from "../../template_profile.js";
-import { BuildModeError, resolveBuildPlan, type BuildPlan } from "../../../template/build_plan.js";
+import { BuildModeError, commandWithStepEnvironment, resolveBuildPlan, type BuildPlan } from "../../../template/build_plan.js";
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 
@@ -750,8 +750,8 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
                 disk_size,
                 internet_access,
                 generation: resolvedGeneration,
-                start_command: resolvedStart,
-                ready_command: resolvedReady,
+                start_command: commandWithStepEnvironment(plan, resolvedStart),
+                ready_command: commandWithStepEnvironment(plan, resolvedReady),
                 force,
                 envd_inject: false,
             });

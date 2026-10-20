@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "cleanup_verified": true,
+  "runtime_env_roundtrip": true,
+  "test": "native CLI build.env separate key/value and runtime preservation",
+  "envd_environment_propagated": false,
+  "exit_code": 0,
+  "base_commit": "4aec47b734be04fbadc932b0bbf4cd7ae0ac1eb4",
+  "scope": "explicit generation2 startup/readiness and named server child process; independent envd remains provider-defined",
+  "source_sha256": {
+    "src/template/build_plan.ts": "dff4f00a0077e6a76c215349f50861cdcbb0f9961b1b762b1c0e510da8d742f2",
+    "src/providers/alicloud_express/cli/template.ts": "d3c4f2d025eacbcc77b05c8487239c3694b4c8ede09b71217454025d16a1db93"
+  }
+}

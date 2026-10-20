@@ -5,12 +5,34 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { BuildModeError, resolveBuildPlan } from "../../src/template/build_plan.js";
+import { BuildModeError, commandWithStepEnvironment, resolveBuildPlan } from "../../src/template/build_plan.js";
 
 const dirs: string[] = [];
+
+describe("generation-2 platform-step runtime environment", () => {
+  it("preserves literal values across the complete real startup shell", () => {
+    const dir = tempDir();
+    const marker = path.join(dir, "must-not-exist");
+    const value = `spaces=and 'quotes' $(touch ${marker})`;
+    const plan = { kind: "steps" as const, image: "example", steps: [
+      { type: "ENV", args: ["STEP_ENV_TEST", "earlier"] },
+      { type: "ENV", args: ["STEP_ENV_TEST", value] },
+    ] };
+    const command = commandWithStepEnvironment(plan, 'printf "%s" "$STEP_ENV_TEST"; printf "%s" "$STEP_ENV_TEST"');
+    expect(execFileSync("/bin/sh", ["-c", command!], { encoding: "utf8" })).toBe(value + value);
+    expect(fs.existsSync(marker)).toBe(false);
+  });
+
+  it("preserves a missing startup command and Dockerfile behavior", () => {
+    const plan = { kind: "steps" as const, image: "example", steps: [{ type: "ENV", args: ["KEY", "value"] }] };
+    expect(commandWithStepEnvironment(plan, null)).toBeNull();
+    expect(commandWithStepEnvironment({ kind: "dockerfile", dockerfile: "Dockerfile", ignoredSteps: false }, "server")).toBe("server");
+  });
+});
 
 function tempDir(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "abx-plan-"));
@@ -52,6 +74,7 @@ describe("resolveBuildPlan", () => {
         "  npm_install: [http-server]",
         "  env:",
         "    PYTHONUNBUFFERED: '1'",
+        "    EXAMPLE_VALUE: 'value with spaces=and equals'",
         "  run:",
         "    - python -c 'import pandas'",
         "  steps:",
@@ -68,7 +91,8 @@ describe("resolveBuildPlan", () => {
         { type: "RUN", args: ["apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*"] },
         { type: "RUN", args: ["pip install --no-cache-dir pandas>=2"] },
         { type: "RUN", args: ["npm install -g http-server"] },
-        { type: "ENV", args: ["PYTHONUNBUFFERED=1"] },
+        { type: "ENV", args: ["PYTHONUNBUFFERED", "1"] },
+        { type: "ENV", args: ["EXAMPLE_VALUE", "value with spaces=and equals"] },
         { type: "RUN", args: ["python -c 'import pandas'"] },
         { type: "RUN", args: ["echo done"] },
       ],

@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Send platform-step `build.env` values as separate Express ENV key/value arguments, preserving spaces and equals signs; explicitly supply final ENV values to generation-2 startup/readiness commands when the provider does not propagate them.
 - Embed the lazy official Express management/template SDK dependencies in standalone binaries; preserve dependency attribution through `--licenses` and verify copied bundles without checkout dependencies. / 独立二进制内嵌延迟加载的极速版管理与模板官方 SDK，保留依赖许可归属，并验证脱离源码依赖目录的 bundle。
 - Accept npm 12's package-name keyed dry-run report as well as older array reports in the package entry-point gate; continue rejecting packages without `dist/bin/abx.js`. / 包入口门禁兼容 npm 12 按包名组织的 dry-run 报告及旧数组格式，仍拒绝缺少 CLI 入口的包。
 
