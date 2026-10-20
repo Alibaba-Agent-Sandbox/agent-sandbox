@@ -43,7 +43,7 @@ Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and t
 The standalone CLI binary does not require Node.js. Building/installing its source package requires Node.js20+. Public npm metadata is unavailable; use the binary installer or the source recipe below.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 abx --help
 # Python SDK is separate; follow its repository release/source-install instructions.
 ```

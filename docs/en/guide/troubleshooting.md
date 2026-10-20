@@ -261,7 +261,7 @@ Use the printed command. If `~/.abx/config.toml` already contains `aaaaa = "abx 
 
 ```bash
 # Use the published standalone binary; public npm installation is unavailable
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 
 # Verify the installed executable
 abx --version

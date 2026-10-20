@@ -42,7 +42,7 @@ SDK 侧特性（同步 `Sandbox`／异步 `AsyncSandbox` API、`run` / `run_code
 ### macOS 与 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 ```
 
 ### Windows（PowerShell）
@@ -51,13 +51,13 @@ curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox
 irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
 ```
 
-安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_VERSION` 选择版本（默认最新 Release）。`ABX_INSTALL_DIR` 选择目录。网站以后可以把这两份脚本放到自己的域名上；命令仍然是一行，只改 URL。
+安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_INSTALL_DIR` 选择目录。macOS/Linux 官网安装入口默认使用最新已完整镜像的版本，从官网域名下载二进制和校验文件，无需访问 GitHub 查询版本。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 列出可用版本及文件。`ABX_VERSION` 选择版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 可覆盖产物下载前缀。Windows PowerShell 安装脚本仍使用 GitHub。
 
-这两行命令需要已完整上传 `abx-*` 资产及校验和的 GitHub Release。现有v0.3.0为较早实现；0.4.0是新的标准CLI发行线。草稿公开前请按下面方式构建配套源码。
+官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。当前 0.4.0 早于后续 `[Unreleased]` 变更；需要这些变更时请构建配套源码。
 
 ### 手动下载
 
-从 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 下载 `abx-<version>-<os>-<arch>[.exe]` 和对应的 `.sha256`，校验摘要后，以 `abx` 为名放到 `PATH` 上。命令、校验和与平台表见 [二进制安装](docs/zh/guide/binary-installation.md)（[English](docs/en/guide/binary-installation.md)）。
+从官网镜像 `https://www.agent-sandbox.cn/releases/download/v<version>/`（版本及文件见[清单](https://www.agent-sandbox.cn/releases/latest.json)）或 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 下载 `abx-<version>-<os>-<arch>[.exe]` 和对应的 `.sha256`，校验摘要后，以 `abx` 为名放到 `PATH` 上。命令、校验和与平台表见 [二进制安装](docs/zh/guide/binary-installation.md)（[English](docs/en/guide/binary-installation.md)）。
 
 ### npm（Node.js 20+）
 
