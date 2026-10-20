@@ -278,3 +278,7 @@ Run `npm run test:standard-provenance` and the locked `npm run vendor:e2b` repla
 Large license/standard output must drain through real stdout pipes before exit.
 Generated Python installation must use a tested matching client/server source pair;
 the MCP artifact has its separately verified native source pin and tool catalog.
+
+## Provider command ownership
+
+Common code owns configuration isolation, schema validation, transport and generic discovery/dispatch. Keep vendor API mappings, resource identifiers and admission conditions in the owning Provider. Prefer the existing `provider-commands/1` contract for provider-specific operations: the CLI `provider command` namespace and Python `agent_sandbox.providers.commands` discover the same engine catalog. Do not add a backend switch or duplicate cloud implementation in each consumer. Stable typed APIs may be thin wrappers; registration does not generate language methods or establish live-account readiness. Express is bundled in the CLI provider tree; catalog plugin source remains in awesome-providers. Standard compatibility clients keep their existing contract.
