@@ -14,7 +14,9 @@ Keep concise purpose text in the fixed shortcut metadata in
 `(alias: abx GROUP VERB)` in `src/cli/main.ts`. Preserve lazy loading and the fixed
 command set. Distinguish arbitrary execution (`exec`) from registered commands
 (`run`). Update root help snapshots, the offline scenario, both reference pages,
-both READMEs and the changelog.
+both READMEs and the changelog. Publish the correction as patch 0.4.2 through
+the existing PR CI, five-platform binary and npm workflows; preserve released
+0.4.1 artifacts and historical version captures.
 
 ## API Design
 
@@ -43,7 +45,11 @@ No cloud resources are needed to render this metadata-only help.
 - `exec` and `run` explain their different actions.
 - Command routing, order and lazy loading remain intact.
 - Root help snapshot and built CLI help checks pass; broader gates are recorded.
+- PR CI passes before merge; all five binary platforms pass before publishing
+  the new Release; npm publication and public artifact checks succeed.
 
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-10-21-shortcut-help-descriptions.md)
+
+- [Release verification](../../../evidence/verify/2026-10-21-shortcut-help-release.md)

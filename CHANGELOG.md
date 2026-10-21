@@ -21,8 +21,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
-- Describe shortcut actions directly in root help, with canonical command aliases as trailing notes. / 顶层帮助直接说明快捷命令用途，并在末尾备注完整命令。
-
 - Expose the explicit first-root-option `abx --native` entry for native Express template management and canonical step acceptance, preserving standard routing and remote argv. Prepare CLI0.4.1 with the accepted ENV propagation and bundled management SDK fixes.
 
 - Send platform-step `build.env` values as separate Express ENV key/value arguments, preserving spaces and equals signs; explicitly supply final ENV values to generation-2 startup/readiness commands when the provider does not propagate them.
@@ -32,6 +30,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Round remaining project tool deadlines to whole milliseconds so floating point error cannot prevent Docker/kubectl startup. / 将项目工具的剩余截止时间向上取整为毫秒，避免浮点误差阻止 Docker/kubectl 启动。
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
+
+## [0.4.2] - 2026-10-21
+
+### Fixed
+
+- Explain the purpose of all ten root shortcuts before their canonical alias notes. / 顶层十个快捷命令先展示用途，再备注完整命令。
+
+### Changed
+
+- Publish the help correction as a new patch using the existing PR CI, five-platform binary checks and npm artifact verification. / 通过现有 PR CI、五平台二进制和 npm 制品校验发布帮助修正补丁。
 
 ## [0.4.0] - 2026-10-19
 

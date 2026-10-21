@@ -111,3 +111,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Website CLI mirror installation guidance](notes/proposed/process/2026-10-20-website-cli-mirror-docs.md) · [verification](evidence/verify/2026-10-20-website-cli-mirror-docs.md)
 
 - [Shortcut help descriptions](notes/proposed/feature/2026-10-21-shortcut-help-descriptions.md) · [verification](evidence/verify/2026-10-21-shortcut-help-descriptions.md)
+
+- [Shortcut help patch release](evidence/verify/2026-10-21-shortcut-help-release.md) · [Issue #91](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/91)
