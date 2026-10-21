@@ -147,6 +147,8 @@ abx mcp start                            # 启动 MCP 工具服务
 abx kill <sandbox-id>
 ```
 
+`abx --help` 会先说明每个快捷命令的用途，再以 `(alias: abx …)` 备注对应的完整命令。
+
 > **环境变量：** envd 使用直接执行（direct exec）—— Shell 特性（`$VAR` 展开、管道、重定向）需要 `sh -c '...'`。用 `printenv VAR` 读取变量值。详见[环境变量指南（中文）](docs/zh/guide/environment-variables.md) | [Environment Variables (EN)](docs/en/guide/environment-variables.md)。
 
 ## 模板

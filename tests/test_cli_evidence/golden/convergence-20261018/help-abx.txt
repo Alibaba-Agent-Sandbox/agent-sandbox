@@ -39,16 +39,20 @@ Providers:
                        operations.
 
 Sandbox shortcuts:
-  create               Same as 'abx sandbox create'.
-  list                 Same as 'abx sandbox list'.
-  info                 Same as 'abx sandbox info'.
-  kill                 Same as 'abx sandbox kill'.
-  exec                 Same as 'abx sandbox exec'.
-  connect              Same as 'abx sandbox connect'.
-  upload               Same as 'abx sandbox upload'.
-  download             Same as 'abx sandbox download'.
-  run                  Same as 'abx sandbox command run'.
-  deploy               Same as 'abx template deploy'.
+  create               Create a sandbox. (alias: abx sandbox create)
+  list                 List sandboxes. (alias: abx sandbox list)
+  info                 Show sandbox details. (alias: abx sandbox info)
+  kill                 Terminate sandboxes. (alias: abx sandbox kill)
+  exec                 Run a command in a sandbox. (alias: abx sandbox exec)
+  connect              Open a terminal in a sandbox. (alias: abx sandbox
+                       connect)
+  upload               Upload files to a sandbox. (alias: abx sandbox upload)
+  download             Download a file from a sandbox. (alias: abx sandbox
+                       download)
+  run                  Run a registered sandbox command. (alias: abx sandbox
+                       command run)
+  deploy               Build and publish a template. (alias: abx template
+                       deploy)
 
 Provider: alicloud-express (default)
 26 provider operations: api-key, quota, sandbox, snapshot, team, volume.

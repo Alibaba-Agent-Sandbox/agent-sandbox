@@ -139,7 +139,7 @@ export const cli: Command = group("abx", {
   version: VERSION,
   lazy: {
     ...Object.fromEntries(Object.entries(GROUP_COMMANDS).map(([name, { spec, help }]) => [name, lazyEntry(spec, help, name === "provider" ? "Providers:" : "Command groups:")])),
-    ...Object.fromEntries(Object.entries(SHORTCUTS).map(([name, { spec, target }]) => [name, lazyEntry(spec, `Same as 'abx ${target}'.`, "Sandbox shortcuts:")])),
+    ...Object.fromEntries(Object.entries(SHORTCUTS).map(([name, { spec, target, help }]) => [name, lazyEntry(spec, `${help} (alias: abx ${target})`, "Sandbox shortcuts:")])),
   },
   params: [
     option(["--json", "-j", "output_json"], { is_flag: true, help: "Output as JSON" }),

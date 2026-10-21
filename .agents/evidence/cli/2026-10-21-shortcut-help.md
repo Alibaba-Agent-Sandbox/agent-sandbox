@@ -1,0 +1,69 @@
+# CLI capture: Shortcut help descriptions
+
+Date: 2026-10-21. Package: @agent-sandbox/cli 0.4.1. Node.js 22.22.2.
+Built with `npm run build`. Command: `node dist/bin/abx.js --help`. Exit: 0.
+
+```text
+Usage: abx [options] [command]
+
+abx — Agent Sandbox CLI
+
+Create, manage, and interact with cloud sandboxes.
+
+Get started:
+  abx config init               Set credentials and region (run first)
+  abx create base    Create a sandbox
+  abx exec SANDBOX -- CMD...    Run a command in it
+
+Examples:
+  abx list --status running
+  abx template search python
+  abx template scaffold --template python && abx deploy
+
+Every action has one canonical path (abx GROUP VERB); the shortcuts below are a
+fixed set and cannot be changed in the configuration.
+
+Options:
+  --version            Show the version and exit.
+  -j, --json           Output as JSON
+  -q, --quiet          Minimal output
+  -v, --verbose        Verbose output (DEBUG level)
+  --no-color           Disable colored output
+  --log-level <LEVEL>  Set log level explicitly (DEBUG, INFO, WARNING, ERROR)
+  --ci                 CI/CD mode (quiet + no-color + json)
+  -h, --help           Show this message and exit.
+
+Command groups:
+  sandbox              Manage sandboxes, their files, processes and commands.
+  template             Discover, scaffold, build, publish and install sandbox
+                       templates.
+  config               Manage persistent credentials and CLI defaults.
+  mcp                  Configure and run Agent Sandbox as an MCP server.
+
+Providers:
+  provider             Install, select, configure and run sandbox provider
+                       operations.
+
+Sandbox shortcuts:
+  create               Create a sandbox. (alias: abx sandbox create)
+  list                 List sandboxes. (alias: abx sandbox list)
+  info                 Show sandbox details. (alias: abx sandbox info)
+  kill                 Terminate sandboxes. (alias: abx sandbox kill)
+  exec                 Run a command in a sandbox. (alias: abx sandbox exec)
+  connect              Open a terminal in a sandbox. (alias: abx sandbox
+                       connect)
+  upload               Upload files to a sandbox. (alias: abx sandbox upload)
+  download             Download a file from a sandbox. (alias: abx sandbox
+                       download)
+  run                  Run a registered sandbox command. (alias: abx sandbox
+                       command run)
+  deploy               Build and publish a template. (alias: abx template
+                       deploy)
+
+Provider: alicloud-express (default)
+26 provider operations: api-key, quota, sandbox, snapshot, team, volume.
+Example: abx provider run api-key.create --help
+Use 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.
+Select for one invocation: abx --provider ID provider --help
+
+```

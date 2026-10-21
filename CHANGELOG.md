@@ -31,6 +31,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
 
+## [0.4.2] - 2026-10-21
+
+### Fixed
+
+- Explain the purpose of all ten root shortcuts before their canonical alias notes. / 顶层十个快捷命令先展示用途，再备注完整命令。
+
+### Changed
+
+- Publish the help correction as a new patch using the existing PR CI, five-platform binary checks and npm artifact verification. / 通过现有 PR CI、五平台二进制和 npm 制品校验发布帮助修正补丁。
+
 ## [0.4.0] - 2026-10-19
 
 ### Changed

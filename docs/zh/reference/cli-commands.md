@@ -10,7 +10,7 @@
 顶层命令仅有这些：`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
 
 `abx --help` 分三段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`）、**Providers**（`provider`）、
-**Sandbox shortcuts**（十个快捷方式，每个都写作 "Same as 'abx …'"）。该列表与本页不一致时，测试会失败。
+**Sandbox shortcuts**（十个快捷方式，每个先说明用途，再以 `(alias: abx …)` 备注等价命令）。该列表与本页不一致时，测试会失败。
 这些分区之后显示当前 Provider 的操作摘要；安装的操作仍位于 Provider 命名空间内。
 
 ## 快捷方式

@@ -11,8 +11,8 @@ removed through configuration, and there is no per-user alias table.
 Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
 
 `abx --help` lists them in three sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`), **Providers**
-(`provider`) and **Sandbox shortcuts** (the ten shortcuts, each documented as "Same as 'abx …'"). A test fails when
-that list and this page disagree. A contextual Provider summary follows those sections;
+(`provider`) and **Sandbox shortcuts** (the ten shortcuts, each showing its purpose followed by an
+`(alias: abx …)` note). A test fails when that list and this page disagree. A contextual Provider summary follows those sections;
 installed operations remain inside the Provider namespace.
 
 ## Shortcuts

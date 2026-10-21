@@ -21,7 +21,10 @@ const run = (args) => {
   return result.stdout;
 };
 assert.ok(run(["--version"]).includes(version), "Installed artifact has the wrong version");
-assert.match(run(["--help"]), /Usage:/i);
+const rootHelp = run(["--help"]);
+assert.match(rootHelp, /Usage:/i);
+assert.match(rootHelp, /create\s+Create a sandbox\.\s+\(alias: abx sandbox create\)/, "Installed artifact must explain the create shortcut");
+assert.match(rootHelp, /run\s+Run a registered sandbox command\.\s+\(alias: abx sandbox\s+command run\)/, "Installed artifact must explain registered commands before their alias");
 assert.match(run(["create", "--help"]), /--detach/);
 assert.match(run(["template", "image", "--help"]), /Usage:/i);
 assert.match(run(["--native", "template", "list", "--help"]), /--official-api/);
