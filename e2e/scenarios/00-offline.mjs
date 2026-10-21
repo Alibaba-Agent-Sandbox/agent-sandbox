@@ -52,12 +52,13 @@ export default {
     { id: 'help-create', title: 'standard create takes an optional template and lifecycle flags', argv: ['create', '--help'], creds: false, stdout: ['[template]', 'Defaults to base', '--detach', '--timeout', '--lifecycle.ontimeout'] },
 
     {
-      id: 'template-missing-project-guidance', title: 'missing deploy directories explain scaffolding without creating files', creds: false,
+      id: 'template-missing-project-guidance', title: 'yes creates missing projects and continues into provider preflight', creds: false,
       async run(ctx) {
         const cwd = ctx.newCwd('missing-project');
         const target = join(cwd, 'dev-services');
-        const r = await ctx.abx(['template', 'deploy', target, '-y'], { cwd, creds: false });
-        if (r.code !== 2 || !r.stderr.includes('abx template scaffold') || existsSync(target)) ctx.fail('missing path must give scaffold guidance without writes');
+        const r = await ctx.abx(['template', 'deploy', target, '-y', '--acr-namespace', 'onboarding-test'], { cwd, creds: false });
+        if (r.code !== 1 || !/credentials missing/i.test(r.stdout + r.stderr)) ctx.fail('missing path must continue into provider credential preflight');
+        for (const name of ['template.yaml', 'Dockerfile', 'commands.py']) if (!existsSync(join(target, name))) ctx.fail('usable template files missing');
       },
     },
     {

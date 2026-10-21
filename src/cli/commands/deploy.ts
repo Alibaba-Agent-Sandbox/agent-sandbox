@@ -4,6 +4,7 @@ import { handleErrors } from "../error_handler.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { build } from "./template.js";
 import { prepareTemplateProject } from "../template_project.js";
+import { getOutput } from "../output.js";
 export const deploySeams = { build };
 export const deploy_shortcut = command("deploy", {
   help: () => providerCliExtension()?.deployHelp ?? "Publish a template project with the selected provider (same as 'template deploy'). Create a project first with 'abx template scaffold'.",
@@ -11,7 +12,8 @@ export const deploy_shortcut = command("deploy", {
     ...build.params.filter((p): p is Option => p.kind === "option")],
   callback: handleErrors(async (ctx, params) => {
     const extension = providerCliExtension();
-    params = { ...params, path: await prepareTemplateProject(ctx, String(params["path"]), Boolean(params["yes"])) };
+    const yes = Boolean(params["yes"]) || getOutput(ctx).ci;
+    params = { ...params, yes, path: await prepareTemplateProject(ctx, String(params["path"]), yes) };
     if (extension?.loadDeploy) {
       const adapter = await extension.loadDeploy();
       await ctx.invoke(adapter.deploy_shortcut, params);

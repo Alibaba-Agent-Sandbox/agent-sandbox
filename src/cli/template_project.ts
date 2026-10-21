@@ -4,14 +4,15 @@ import path from "node:path";
 
 import { shlexQuote } from "../api/_shlex.js";
 import { pyExpandUser, pyResolve } from "../utils/_pyos.js";
-import { Exit, UsageError } from "./errors.js";
+import { UsageError } from "./errors.js";
 import { getFormatter } from "./formatters.js";
 import type { Context } from "./kit.js";
 import { getOutput } from "./output.js";
 import { confirm } from "./prompts.js";
-import { init, templateSeams } from "./template_catalog.js";
+import { availableCases } from "./scaffold.js";
+import { _selectScaffoldCase, templateSeams, writeBuiltinScaffold } from "./template_catalog.js";
 
-/** Validate a project path, optionally scaffolding a missing project for review. Never deploy generated files. */
+/** Resolve a project, creating a missing scaffold with confirmation or explicit yes/CI consent. */
 export async function prepareTemplateProject(ctx: Context, directory: string, yes: boolean): Promise<string> {
   const target = pyResolve(pyExpandUser(directory));
   if (fs.existsSync(target)) {
@@ -19,18 +20,21 @@ export async function prepareTemplateProject(ctx: Context, directory: string, ye
     return target;
   }
 
-  const argument = shlexQuote(directory);
-  const scaffold = `abx template scaffold ${argument}`;
+  const out = getOutput(ctx);
+  const automatic = yes || out.ci;
   const fmt = getFormatter(ctx);
-  if (!yes && templateSeams._scaffoldPickerAvailable(fmt) &&
-      await confirm(`Directory '${directory}' does not exist. Create a template project here?`, { default: false, err: true })) {
-    await ctx.invoke(init, { directory: target, name: path.basename(target) });
-    getOutput(ctx).info(`Review the generated files, then deploy: abx template deploy ${argument}`);
-    throw new Exit(0);
+  if (automatic || (templateSeams._scaffoldPickerAvailable(fmt) &&
+      await confirm(`Directory '${directory}' does not exist. Create a template project here and continue?`, { default: false, err: true }))) {
+    const caseName = automatic ? "python" : await _selectScaffoldCase(availableCases());
+    await writeBuiltinScaffold(ctx, { directory: target, name: path.basename(target), caseName, yes: automatic });
+    out.info(`Created template project '${directory}' using '${caseName}'. Continuing ${ctx.command.name}.`);
+    return target;
   }
+  const argument = shlexQuote(directory);
   throw new UsageError(
-    `Path '${directory}' is not an existing directory. Create the directory and template files with '${scaffold}'. ` +
-    `In scripts, choose a case explicitly, for example: abx template scaffold --template python ${argument}. ` +
+    `Path '${directory}' is not an existing directory. Create the directory and template files with 'abx template scaffold ${argument}'. ` +
+    "Or pass --yes/-y (or --ci) to create a Python template project and continue. " +
+    `For another case: abx template scaffold --template node ${argument}. ` +
     "Browse more templates: https://registry.agent-sandbox.cn/templates/",
     ctx,
   );

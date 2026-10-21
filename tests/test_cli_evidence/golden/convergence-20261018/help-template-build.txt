@@ -26,6 +26,10 @@ Registration API:
   local docker build → ACR push → legacy v3/v2 platform API.
   Use --legacy-api to keep the old behaviour.
 
+A missing directory offers interactive template creation and then continues.
+--yes/-y or CI mode creates a Python template project without prompts.
+Existing project files are kept.
+
 Requires Docker daemon running and ACR credentials. In automation/CI,
 pass --acr-namespace and TEMPLATE_DIR explicitly instead of relying
 on ACR_NAMESPACE / ABX_TEMPLATE_DIR environment variables or .env

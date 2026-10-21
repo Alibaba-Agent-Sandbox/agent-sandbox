@@ -377,6 +377,41 @@ async function confirmTemplateWrites(
   return conflicts;
 }
 
+/** Write a built-in scaffold with the same conflict checks as the standalone command. */
+export async function writeBuiltinScaffold(ctx: Context, options: {
+  directory: string; caseName: string; name: string; force?: boolean; yes?: boolean;
+}): Promise<{ created: string[]; replaced: string[] }> {
+  const { directory: target, caseName, name, force = false, yes = false } = options;
+  const fmt = getFormatter(ctx);
+  const out = getOutput(ctx);
+  let files: Map<string, string>;
+  try {
+    files = renderScaffold(caseName, name);
+  } catch (exc) {
+    if (exc instanceof ValueError) throw usageError(exc.message);
+    throw exc;
+  }
+
+  for (const filename of files.keys()) {
+    const destination = pyJoin(target, filename);
+    if (pathExists(destination)) {
+      const entry = fs.lstatSync(destination);
+      if (entry.isDirectory() || entry.isSymbolicLink()) {
+        throw new CliError(`Cannot replace directory or symbolic link '${destination}' with a template file. Choose another output directory.`);
+      }
+    }
+  }
+  const conflicts = await confirmTemplateWrites(target, [...files.keys()], force, yes, fmt, out);
+  mkdirParents(target);
+
+  // Write files
+  for (const [filename, content] of files) {
+    writeTextPy(pyJoin(target, filename), content);
+  }
+
+  return { created: [...files.keys()], replaced: conflicts };
+}
+
 export const init = template.command("scaffold", {
   help: cleandoc(`Scaffold a new sandbox template project.
 
@@ -611,33 +646,8 @@ export const init = template.command("scaffold", {
     // Resolve target directory
     const target = dirProvided ? pyResolve(directory as string) : pyJoin(process.cwd(), name);
 
-    // Render scaffold files
-    let files: Map<string, string>;
-    try {
-      files = renderScaffold(caseName as string, name);
-    } catch (exc) {
-      if (exc instanceof ValueError) throw usageError(exc.message);
-      throw exc;
-    }
-
-    for (const filename of files.keys()) {
-      const destination = pyJoin(target, filename);
-      if (pathExists(destination)) {
-        const entry = fs.lstatSync(destination);
-        if (entry.isDirectory() || entry.isSymbolicLink()) {
-          throw new CliError(`Cannot replace directory or symbolic link '${destination}' with a template file. Choose another output directory.`);
-        }
-      }
-    }
-    const conflicts = await confirmTemplateWrites(target, [...files.keys()], force, yes, fmt, out);
-    mkdirParents(target);
-
-    // Write files
-    for (const [filename, content] of files) {
-      writeTextPy(pyJoin(target, filename), content);
-    }
-
-    _printInitSummary(fmt, out, target, [...files.keys()], name, conflicts.length ? { replaced: conflicts } : {});
+    const result = await writeBuiltinScaffold(ctx, { directory: target, caseName: caseName as string, name, force, yes });
+    _printInitSummary(fmt, out, target, result.created, name, result.replaced.length ? { replaced: result.replaced } : {});
   }),
 });
 

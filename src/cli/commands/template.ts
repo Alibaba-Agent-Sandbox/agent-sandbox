@@ -7,6 +7,7 @@ import { deployProviderImage, validateProviderImage } from "../../api/provider_t
 import { argument, command, option, type Context, type Param, type Command } from "../kit.js";
 import { handleErrors } from "../error_handler.js";
 import { getFormatter } from "../formatters.js";
+import { getOutput } from "../output.js";
 import { INT, FLOAT, IntRange } from "../types.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { getProvider, resolveProviderId } from "../../providers/registry.js";
@@ -130,7 +131,8 @@ function routed(name: string, publicName = name): Command {
     callback: handleErrors(async (ctx, params) => {
       if (usesImageFactory(name)) return runImageFactory(ctx, params);
       if (name === "build" || name === "deploy") {
-        params = { ...params, template_dir: await prepareTemplateProject(ctx, String(params["template_dir"]), Boolean(params["yes"])) };
+        const yes = Boolean(params["yes"]) || getOutput(ctx).ci;
+        params = { ...params, yes, template_dir: await prepareTemplateProject(ctx, String(params["template_dir"]), yes) };
       }
       const target = await providerTemplateCommand(name);
       if (target) await ctx.invoke(target, params);

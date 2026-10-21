@@ -356,6 +356,10 @@ templateUi["build"] =  { params: [
       local docker build → ACR push → legacy v3/v2 platform API.
       Use --legacy-api to keep the old behaviour.
 
+    A missing directory offers interactive template creation and then continues.
+    --yes/-y or CI mode creates a Python template project without prompts.
+    Existing project files are kept.
+
     Requires Docker daemon running and ACR credentials. In automation/CI,
     pass --acr-namespace and TEMPLATE_DIR explicitly instead of relying
     on ACR_NAMESPACE / ABX_TEMPLATE_DIR environment variables or .env
@@ -385,6 +389,8 @@ templateUi["deploy"] =  { params: [...templateUi["build"]!.params], help: "Build
     "template. The ACR push and the remote template registration are " +
     "cloud-side operations that can incur Alibaba Cloud costs (ACR " +
     "storage/traffic, template resources).\n\n" +
+    "If TEMPLATE_DIR is missing, confirm creation and continue, or use --yes/-y " +
+    "or CI mode to create a Python template project without prompts. Existing files are kept.\n\n" +
     "Requires AK/SK credentials from 'abx config init --build' " +
     "(access_key_id / access_key_secret). dockerfile mode also needs a Docker " +
     "daemon and an ACR namespace (--acr-namespace, 'abx config set acr_namespace', " +
@@ -435,6 +441,10 @@ export const DEPLOY_HELP = cleandoc(`Publish a template project: build, push to 
     template is ready. steps mode sends base.image and sandboxConfig.steps
     and does not use Docker or ACR. template.yaml supplies the template name
     and resources.
+
+    A missing PATH offers template creation and continues after confirmation.
+    --yes/-y or CI mode creates a Python template project without prompts.
+    Existing project files are kept.
 
     To author the files first, use 'abx template scaffold': --adopt for an existing
     project, a natural-language description to generate the files, or

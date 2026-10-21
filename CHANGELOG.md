@@ -31,6 +31,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
 
+## [0.4.5] - 2026-10-21
+
+### Fixed
+
+- Create missing build/deploy project directories inline and continue after confirmation; `--yes`/`-y` or CI mode automatically scaffolds a Python project. Preserve provider/alias options, one-result JSON output and existing overwrite protections. / 构建和部署目录缺失时可确认创建并继续，`--yes`/`-y` 或 CI 模式自动生成 Python 项目；保留 Provider/别名参数、单一 JSON 结果和已有文件覆盖保护。
+
 ## [0.4.4] - 2026-10-21
 
 ### Fixed

@@ -25,12 +25,22 @@ abx create dev-services --detach
 ```
 
 内置脚手架可选择 `python`、`node`、`minimal`；其他模板源码可在 Registry 中查找。
-构建或部署目录不存在时，未传 `-y` 的交互终端会询问是否创建模板项目，创建后停下供检查文件。
-非交互或 `-y` 模式会给出准确的创建命令，保留文件系统现状。生成模板前会提示目录非空及可能覆盖的条目，
+构建或部署目录不存在时，交互终端会询问是否创建，可选择内置模板，确认后继续原来的操作。
+`--yes`/`-y`、`--ci` 或 CI 环境会自动创建 Python 模板项目并继续，保留别名和 Provider 参数。
+已有目录直接使用；非交互且未指定 yes/CI 时只提示创建命令。自动化中需要其他运行时，可先用
+`--template node` 或 `--template minimal` 生成项目。生成脚手架前仍会提示目录非空及可能覆盖的条目，
 覆盖须确认；`-y` 本身不授权覆盖，脚本须显式添加 `--force`。拒绝后保留原文件。
 标准创建命令使用 `abx create TEMPLATE`，`--template` 是生成脚手架的选项。
 
 项目命令在 `CI=true` 或 `--ci` 模式下输出 JSON：错误写入 stdout，同时返回非零退出码。文本模式的错误写入 stderr。
+
+因此可以直接部署一个新项目：
+
+```sh
+abx template deploy ./dev-services -y --alias dev-services
+# CI 模式也会确认创建和部署：
+abx --ci template deploy ./ci-services --alias ci-services
+```
 
 ## 快捷方式
 
