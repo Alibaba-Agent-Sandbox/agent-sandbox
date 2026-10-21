@@ -112,6 +112,16 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
   const explicitUrl = urlSource !== undefined && ["override", "environ", "dotenv", "toml"].includes(urlSource);
   process.env["E2B_API_URL"] = explicitUrl ? config.api_url : `https://api.${config.domain}`;
   process.env["E2B_DOMAIN"] = config.domain;
+  const sandboxIndex = normalized.indexOf("sandbox");
+  const verb = sandboxIndex >= 0 ? normalized[sandboxIndex + 1] : undefined;
+  const commandArgs = normalized.slice(sandboxIndex + 2);
+  const options = commandArgs.slice(0, commandArgs.indexOf("--") < 0 ? undefined : commandArgs.indexOf("--"));
+  if (["create", "cr", "spawn", "sp"].includes(verb ?? "") &&
+      options.some((arg) => arg === "--template" || arg.startsWith("--template=")) &&
+      !options.some((arg) => arg === "--help" || arg === "-h")) {
+    process.stderr.write("Hint: create takes a positional template: abx create TEMPLATE [--detach]. " +
+      "The --template option belongs to 'abx template scaffold'.\n");
+  }
   process.argv = [process.argv[0]!, process.argv[1]!, ...normalized];
   // An embedded, independently released CLI must not check for updates to @e2b/cli.
   process.env["NO_UPDATE_NOTIFIER"] = "1";

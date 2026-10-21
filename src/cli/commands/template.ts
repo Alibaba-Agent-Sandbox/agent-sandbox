@@ -17,6 +17,7 @@ import type { ProviderTemplateManager } from "../../providers/template_contract.
 import { UsageError } from "../errors.js";
 import { template } from "../template_catalog.js";
 import { installTemplate } from "../template_install.js";
+import { prepareTemplateProject } from "../template_project.js";
 export * from "../template_catalog.js";
 
 const exportsByCommand: Record<string, string> = { list: "list_templates", create: "create_template", delete: "delete_" };
@@ -128,6 +129,9 @@ function routed(name: string, publicName = name): Command {
     params: () => usesImageFactory(name) ? imageParams : providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
     callback: handleErrors(async (ctx, params) => {
       if (usesImageFactory(name)) return runImageFactory(ctx, params);
+      if (name === "build" || name === "deploy") {
+        params = { ...params, template_dir: await prepareTemplateProject(ctx, String(params["template_dir"]), Boolean(params["yes"])) };
+      }
       const target = await providerTemplateCommand(name);
       if (target) await ctx.invoke(target, params);
       else await runGeneric(name, ctx, params);

@@ -15,8 +15,8 @@ export const GROUP_COMMANDS: Readonly<Record<string, { spec: string; help: strin
   provider: { spec: "commands/provider:createProviderGroup", help: "Install, select, configure and run sandbox provider operations." },
 };
 
-/** Groups listed under the "Command groups" heading of `abx --help` (`provider` has its own heading). */
-export const HELP_GROUPS: ReadonlyArray<string> = ["sandbox", "template", "config", "mcp"];
+/** Groups listed together under the "Command groups" heading of `abx --help`. */
+export const HELP_GROUPS: ReadonlyArray<string> = Object.keys(GROUP_COMMANDS);
 
 /**
  * Top-level shortcuts, in help order: name -> purpose, spec and canonical command path. Exactly these

@@ -74,7 +74,7 @@ export const deploy_shortcut = command("deploy", {
       if (e instanceof BuildModeError) {
         const hint = e.message.startsWith("No Dockerfile")
           ? " Author the template first: 'abx template scaffold --adopt .' (adapt this project), " +
-            "'abx template scaffold \"DESCRIPTION\"' (generate) or " +
+            "'abx template scaffold --prompt \"DESCRIPTION\"' (generate) or " +
             "'abx template scaffold --template python' (scaffold)."
           : "";
         throw new UsageError(e.message + hint, getCurrentContext(true));

@@ -113,3 +113,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Shortcut help descriptions](notes/proposed/feature/2026-10-21-shortcut-help-descriptions.md) · [verification](evidence/verify/2026-10-21-shortcut-help-descriptions.md)
 
 - [Shortcut help patch release](evidence/verify/2026-10-21-shortcut-help-release.md) · [Issue #91](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/91)
+
+- [CLI onboarding](notes/proposed/feature/2026-10-21-cli-onboarding.md) · [verification](evidence/verify/2026-10-21-cli-onboarding.md) · [Issue #93](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/93)

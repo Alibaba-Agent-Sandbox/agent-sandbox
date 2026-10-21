@@ -30,11 +30,12 @@ export default {
   needs: [],
   scenarios: [
     { id: 'version', title: '--version prints "abx, version X.Y.Z"', argv: ['--version'], creds: false, stdout: /^abx, version \d+\.\d+\.\d+/m },
-    { id: 'help-root', title: 'root --help lists every command', argv: ['--help'], creds: false, stdout: ['Usage: abx', '--json', '--quiet', '--ci', 'Command groups:', 'Providers:', 'Sandbox shortcuts:', /exec\s+Run a command in a sandbox\.\s+\(alias: abx sandbox exec\)/, /run\s+Run a registered sandbox command\.\s+\(alias: abx sandbox\s+command run\)/, { not: "Same as 'abx" }, ...ROOT_COMMANDS.map((c) => new RegExp(`^\\s+${c}\\s`, 'm')), ...['--profile', '--timeout'].map((o) => ({ not: o }))] },
+    { id: 'help-root', title: 'root --help lists every command', argv: ['--help'], creds: false, stdout: ['Usage: abx', '--json', '--quiet', '--ci', 'Command groups:', { not: 'Providers:' }, 'https://registry.agent-sandbox.cn/templates/', 'Sandbox shortcuts:', /exec\s+Run a command in a sandbox\.\s+\(alias: abx sandbox exec\)/, /run\s+Run a registered sandbox command\.\s+\(alias: abx sandbox\s+command run\)/, { not: "Same as 'abx" }, ...ROOT_COMMANDS.map((c) => new RegExp(`^\\s+${c}\\s`, 'm')), ...['--profile', '--timeout'].map((o) => ({ not: o }))] },
     ...REMOVED_ROOT_COMMANDS.map((c) => ({ id: `removed-root-${c}`, title: `top-level \`${c}\` is gone (use \`abx template ${c}\`)`, argv: [c], creds: false, exit: 2, output: 'No such command' })),
     { id: 'removed-shell-stream', title: 'standard sandbox parser rejects the removed shell-stream command', argv: ['sandbox', 'shell-stream', 'sbx-x'], creds: false, exit: 1, output: "unknown command 'shell-stream'" },
     { id: 'removed-process-start', title: '`sandbox process start` is gone (use `exec --background`)', argv: ['sandbox', 'process', 'start', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },
     { id: 'removed-global-timeout', title: 'there is no global --timeout', argv: ['--timeout', '5', 'list'], creds: false, exit: 2, output: 'No such option' },
+    { id: 'create-template-flag-guidance', title: 'legacy create --template retains parser failure and explains positional syntax', argv: ['create', '--template', 'dev-services'], creds: false, exit: 1, stderr: ['abx create TEMPLATE', "unknown option '--template'"] },
     { id: 'help-no-args', title: 'bare `abx` prints usage/help and does not crash', argv: [], creds: false, exit: [0, 2], output: /Usage: abx/ },
     { id: 'help-sandbox', title: 'sandbox --help lists subcommands', argv: ['sandbox', '--help'], creds: false, stdout: ['capabilities', 'command', 'files', 'process', 'system', 'create', 'exec', { not: 'shell-stream' }] },
     { id: 'help-sandbox-files', title: 'sandbox files --help', argv: ['sandbox', 'files', '--help'], creds: false, stdout: ['list', 'mkdir', 'mv', 'rm', 'search', 'stat'] },
@@ -50,6 +51,31 @@ export default {
     { id: 'help-kill', title: 'standard kill supports multiple IDs and --all', argv: ['kill', '--help'], creds: false, stdout: ['[sandboxIDs...]', '--all'] },
     { id: 'help-create', title: 'standard create takes an optional template and lifecycle flags', argv: ['create', '--help'], creds: false, stdout: ['[template]', 'Defaults to base', '--detach', '--timeout', '--lifecycle.ontimeout'] },
 
+    {
+      id: 'template-missing-project-guidance', title: 'missing deploy directories explain scaffolding without creating files', creds: false,
+      async run(ctx) {
+        const cwd = ctx.newCwd('missing-project');
+        const target = join(cwd, 'dev-services');
+        const r = await ctx.abx(['template', 'deploy', target, '-y'], { cwd, creds: false });
+        if (r.code !== 2 || !r.stderr.includes('abx template scaffold') || existsSync(target)) ctx.fail('missing path must give scaffold guidance without writes');
+      },
+    },
+    {
+      id: 'template-overwrite-consent', title: 'yes alone preserves existing template files; force discloses replacement', creds: false,
+      async run(ctx) {
+        const cwd = ctx.newCwd('template-consent');
+        const target = join(cwd, 'project');
+        let r = await ctx.abx(['template', 'scaffold', '--template', 'python', target], { cwd, creds: false });
+        if (r.code !== 0) ctx.fail('initial scaffold failed');
+        writeFileSync(join(target, 'Dockerfile'), 'original template file\n');
+        writeFileSync(join(target, 'notes.txt'), 'unrelated data\n');
+        r = await ctx.abx(['template', 'scaffold', '--template', 'python', target, '-y'], { cwd, creds: false });
+        if (r.code !== 1 || readFileSync(join(target, 'Dockerfile'), 'utf8') !== 'original template file\n') ctx.fail('yes authorized an unrequested replacement');
+        r = await ctx.abx(['template', 'scaffold', '--template', 'python', target, '--force', '-y'], { cwd, creds: false });
+        if (r.code !== 0 || !r.stderr.includes('Existing entries may be overwritten')) ctx.fail('explicit replacement must succeed with disclosure');
+        if (readFileSync(join(target, 'notes.txt'), 'utf8') !== 'unrelated data\n') ctx.fail('unrelated file changed');
+      },
+    },
     { id: 'unknown-command', title: 'unknown command exits 2 with "No such command"', argv: ['nosuchcmd'], creds: false, exit: 2, output: 'No such command' },
     { id: 'unknown-command-json', title: 'unknown command under --json still exits 2', argv: ['--json', 'nosuchcmd'], creds: false, exit: 2 },
     { id: 'missing-args-exec', title: 'standard exec requires a sandbox ID', argv: ['exec'], creds: false, exit: 1, output: "missing required argument 'sandboxID'" },
