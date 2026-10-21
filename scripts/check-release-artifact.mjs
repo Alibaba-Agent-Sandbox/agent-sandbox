@@ -38,7 +38,8 @@ try {
   const project = join(projectRoot, "project");
   const missing = spawnSync(artifact, ["template", "deploy", project, "-y"], { encoding: "utf8", timeout: 60000, windowsHide: true, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
   assert.equal(missing.status, 2, "Missing project must fail before cloud deployment");
-  assert.match(missing.stderr, /abx template scaffold/);
+  // CI mode writes structured errors to stdout; ordinary text errors use stderr.
+  assert.match(missing.stdout + missing.stderr, /abx template scaffold/);
   assert.equal(existsSync(project), false, "Batch deploy must not create an unrequested project");
   run(["template", "scaffold", "--template", "python", project]);
   writeFileSync(join(project, "Dockerfile"), "keep original\n");

@@ -32,6 +32,8 @@ untouched. A scaffold displays nonempty-directory entries before writing and ask
 `-y` alone never authorizes replacement; scripts must explicitly add `--force`. Declining leaves files intact.
 Standard `create` uses `abx create TEMPLATE`, rather than the scaffold-specific `--template` option.
 
+For project commands, `CI=true` or `--ci` selects JSON output: errors are written to stdout with a nonzero exit code. Text-mode errors use stderr.
+
 ## Shortcuts
 
 | Shortcut | Same as |
