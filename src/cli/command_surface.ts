@@ -19,20 +19,20 @@ export const GROUP_COMMANDS: Readonly<Record<string, { spec: string; help: strin
 export const HELP_GROUPS: ReadonlyArray<string> = ["sandbox", "template", "config", "mcp"];
 
 /**
- * Top-level shortcuts, in help order: name -> spec and the canonical command path they are the same as. Exactly these
+ * Top-level shortcuts, in help order: name -> purpose, spec and canonical command path. Exactly these
  * ten; `deploy` is the headline publish workflow, the other nine are `abx sandbox ...` actions used constantly.
  */
-export const SHORTCUTS: Readonly<Record<string, { spec: string; target: string }>> = {
-  create: { spec: "commands/sandbox:create", target: "sandbox create" },
-  list: { spec: "commands/sandbox:list_cmd", target: "sandbox list" },
-  info: { spec: "commands/sandbox:info", target: "sandbox info" },
-  kill: { spec: "commands/sandbox:kill", target: "sandbox kill" },
-  exec: { spec: "commands/sandbox:exec_cmd", target: "sandbox exec" },
-  connect: { spec: "commands/sandbox:connect", target: "sandbox connect" },
-  upload: { spec: "commands/sandbox:upload", target: "sandbox upload" },
-  download: { spec: "commands/sandbox:download", target: "sandbox download" },
-  run: { spec: "commands/sandbox:run_cmd", target: "sandbox command run" },
-  deploy: { spec: "commands/deploy:deploy_shortcut", target: "template deploy" },
+export const SHORTCUTS: Readonly<Record<string, { spec: string; target: string; help: string }>> = {
+  create: { spec: "commands/sandbox:create", target: "sandbox create", help: "Create a sandbox." },
+  list: { spec: "commands/sandbox:list_cmd", target: "sandbox list", help: "List sandboxes." },
+  info: { spec: "commands/sandbox:info", target: "sandbox info", help: "Show sandbox details." },
+  kill: { spec: "commands/sandbox:kill", target: "sandbox kill", help: "Terminate sandboxes." },
+  exec: { spec: "commands/sandbox:exec_cmd", target: "sandbox exec", help: "Run a command in a sandbox." },
+  connect: { spec: "commands/sandbox:connect", target: "sandbox connect", help: "Open a terminal in a sandbox." },
+  upload: { spec: "commands/sandbox:upload", target: "sandbox upload", help: "Upload files to a sandbox." },
+  download: { spec: "commands/sandbox:download", target: "sandbox download", help: "Download a file from a sandbox." },
+  run: { spec: "commands/sandbox:run_cmd", target: "sandbox command run", help: "Run a registered sandbox command." },
+  deploy: { spec: "commands/deploy:deploy_shortcut", target: "template deploy", help: "Build and publish a template." },
 };
 
 /** Every top-level command name, groups first. */

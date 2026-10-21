@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Describe shortcut actions directly in root help, with canonical command aliases as trailing notes. / 顶层帮助直接说明快捷命令用途，并在末尾备注完整命令。
+
 - Expose the explicit first-root-option `abx --native` entry for native Express template management and canonical step acceptance, preserving standard routing and remote argv. Prepare CLI0.4.1 with the accepted ENV propagation and bundled management SDK fixes.
 
 - Send platform-step `build.env` values as separate Express ENV key/value arguments, preserving spaces and equals signs; explicitly supply final ENV values to generation-2 startup/readiness commands when the provider does not propagate them.

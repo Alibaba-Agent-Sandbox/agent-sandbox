@@ -70,8 +70,9 @@ describe("TestFixedCommandSurface", () => {
     expect(section(result.output, "Command groups")).toEqual(["sandbox", "template", "config", "mcp"]);
     expect(section(result.output, "Providers")).toEqual(["provider"]);
     expect(section(result.output, "Sandbox shortcuts")).toEqual(SHORTCUT_NAMES);
+    const help = result.output.replace(/\s+/g, " ");
     for (const [name, target] of Object.entries(SHORTCUT_TARGETS)) {
-      expect(result.output).toMatch(new RegExp(`^  ${name}\\s+Same as 'abx ${target}'\\.$`, "m"));
+      expect(help).toMatch(new RegExp(` ${name} [A-Z][^.]+\\. \\(alias: abx ${target}\\)`));
     }
   });
 

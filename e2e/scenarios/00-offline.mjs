@@ -30,7 +30,7 @@ export default {
   needs: [],
   scenarios: [
     { id: 'version', title: '--version prints "abx, version X.Y.Z"', argv: ['--version'], creds: false, stdout: /^abx, version \d+\.\d+\.\d+/m },
-    { id: 'help-root', title: 'root --help lists every command', argv: ['--help'], creds: false, stdout: ['Usage: abx', '--json', '--quiet', '--ci', 'Command groups:', 'Providers:', 'Sandbox shortcuts:', "Same as 'abx sandbox exec'.", ...ROOT_COMMANDS.map((c) => new RegExp(`^\\s+${c}\\s`, 'm')), ...['--profile', '--timeout'].map((o) => ({ not: o }))] },
+    { id: 'help-root', title: 'root --help lists every command', argv: ['--help'], creds: false, stdout: ['Usage: abx', '--json', '--quiet', '--ci', 'Command groups:', 'Providers:', 'Sandbox shortcuts:', /exec\s+Run a command in a sandbox\.\s+\(alias: abx sandbox exec\)/, /run\s+Run a registered sandbox command\.\s+\(alias: abx sandbox\s+command run\)/, { not: "Same as 'abx" }, ...ROOT_COMMANDS.map((c) => new RegExp(`^\\s+${c}\\s`, 'm')), ...['--profile', '--timeout'].map((o) => ({ not: o }))] },
     ...REMOVED_ROOT_COMMANDS.map((c) => ({ id: `removed-root-${c}`, title: `top-level \`${c}\` is gone (use \`abx template ${c}\`)`, argv: [c], creds: false, exit: 2, output: 'No such command' })),
     { id: 'removed-shell-stream', title: 'standard sandbox parser rejects the removed shell-stream command', argv: ['sandbox', 'shell-stream', 'sbx-x'], creds: false, exit: 1, output: "unknown command 'shell-stream'" },
     { id: 'removed-process-start', title: '`sandbox process start` is gone (use `exec --background`)', argv: ['sandbox', 'process', 'start', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },

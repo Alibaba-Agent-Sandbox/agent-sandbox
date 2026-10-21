@@ -149,6 +149,8 @@ abx mcp start                            # start MCP tool server
 abx kill <sandbox-id>
 ```
 
+`abx --help` describes what each shortcut does and shows its canonical command in a trailing `(alias: abx …)` note.
+
 > **Environment variables:** envd uses direct exec — shell features (`$VAR`, pipes, redirects) require `sh -c '...'`. Use `printenv VAR` to read a variable. See the [Environment Variables guide (EN)](docs/en/guide/environment-variables.md) | [环境变量指南 (中文)](docs/zh/guide/environment-variables.md) for details.
 
 ## Templates
