@@ -151,7 +151,7 @@ abx kill <sandbox-id>
 
 更多模板可浏览 [Registry](https://registry.agent-sandbox.cn/templates/)。`provider` 与其他命令组一起列出。
 新项目先运行 `abx template scaffold --template python ./my-template`，再运行 `abx deploy ./my-template`。
-目录不存在时可交互创建模板供检查；覆盖已有条目须确认，`-y` 本身不授权覆盖。
+构建或部署目录不存在时，可确认创建后继续；`-y` 或 CI 模式会自动创建 Python 模板项目并继续。已有项目保持原样；生成脚手架时覆盖已有条目仍须确认，`-y` 本身不授权覆盖。
 部署后使用 `abx create TEMPLATE --detach` 创建沙箱。
 
 > **环境变量：** envd 使用直接执行（direct exec）—— Shell 特性（`$VAR` 展开、管道、重定向）需要 `sh -c '...'`。用 `printenv VAR` 读取变量值。详见[环境变量指南（中文）](docs/zh/guide/environment-variables.md) | [Environment Variables (EN)](docs/en/guide/environment-variables.md)。

@@ -11,6 +11,10 @@ template is ready. steps mode sends base.image and sandboxConfig.steps
 and does not use Docker or ACR. template.yaml supplies the template name
 and resources.
 
+A missing PATH offers template creation and continues after confirmation.
+--yes/-y or CI mode creates a Python template project without prompts.
+Existing project files are kept.
+
 To author the files first, use 'abx template scaffold': --adopt for an existing
 project, a natural-language description to generate the files, or
 --template for a scaffold.

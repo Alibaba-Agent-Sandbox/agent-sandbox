@@ -26,13 +26,25 @@ abx create dev-services --detach
 ```
 
 Choose `python`, `node` or `minimal` for the built-in scaffold; use the Registry for other template sources.
-For a missing build/deploy directory, an interactive invocation without `-y` offers to scaffold a project
-and stops for file review. Batch or `-y` invocations show the exact scaffold command and leave the filesystem
-untouched. A scaffold displays nonempty-directory entries before writing and asks before replacement.
+For a missing build/deploy directory, an interactive invocation offers creation, lets you choose a
+built-in scaffold, and continues the original operation after confirmation. `--yes`/`-y`, `--ci`, or a
+CI environment creates a Python template project without prompts and continues, preserving alias and
+provider options. Existing directories are used as supplied. A noninteractive invocation without yes/CI
+gives a scaffold command without creating files. To choose another runtime in automation, scaffold it
+first with `--template node` or `--template minimal`. A scaffold displays nonempty-directory entries
+before writing and asks before replacement.
 `-y` alone never authorizes replacement; scripts must explicitly add `--force`. Declining leaves files intact.
 Standard `create` uses `abx create TEMPLATE`, rather than the scaffold-specific `--template` option.
 
 For project commands, `CI=true` or `--ci` selects JSON output: errors are written to stdout with a nonzero exit code. Text-mode errors use stderr.
+
+You can therefore deploy a new project directly:
+
+```sh
+abx template deploy ./dev-services -y --alias dev-services
+# CI mode also confirms creation and deployment:
+abx --ci template deploy ./ci-services --alias ci-services
+```
 
 ## Shortcuts
 

@@ -117,3 +117,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [CLI onboarding](notes/proposed/feature/2026-10-21-cli-onboarding.md) · [verification](evidence/verify/2026-10-21-cli-onboarding.md) · [Issue #93](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/93)
 
 - [Release CI output](notes/proposed/process/2026-10-21-release-ci-output.md) · [verification](evidence/verify/2026-10-21-release-ci-output.md) · [Issue #95](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/95)
+
+- [Inline template project creation](notes/proposed/feature/2026-10-21-template-project-autocreate.md) · [verification](evidence/verify/2026-10-21-template-project-autocreate.md) · [Issue #97](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/97)

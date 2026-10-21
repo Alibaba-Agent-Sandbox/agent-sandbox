@@ -72,13 +72,13 @@ def main():
                 os.close(master)
 
         project = root / "dev-services"
-        status, output = invoke(["template", "deploy", str(project)], [
-            ("Create a template project here?", b"y\r"), ("Select a case", b"\r"),
+        status, output = invoke(["template", "deploy", str(project), "--acr-namespace", "onboarding-test"], [
+            ("Create a template project here and continue?", b"y\r"), ("Select a case", b"\r"),
         ])
-        assert status == 0, "Project creation failed"
+        assert status == 1 and "credentials missing" in output.lower(), "Must continue into provider credential preflight"
         assert (project / "template.yaml").is_file()
-        assert "Review the generated files, then deploy:" in output
-        print("PASS: actual terminal creates a selected project and stops for review")
+        assert "Created template project" in output
+        print("PASS: actual terminal creates a selected project and continues into provider preflight")
 
         dockerfile = project / "Dockerfile"
         dockerfile.write_text("original file\n")

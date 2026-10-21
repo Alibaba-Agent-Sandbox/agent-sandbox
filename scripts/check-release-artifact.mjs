@@ -36,12 +36,23 @@ assert.match(run(["--native", "config", "get", "region"]), /\S/);
 const projectRoot = mkdtempSync(join(tmpdir(), "abx-onboarding-"));
 try {
   const project = join(projectRoot, "project");
-  const missing = spawnSync(artifact, ["template", "deploy", project, "-y"], { encoding: "utf8", timeout: 60000, windowsHide: true, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
-  assert.equal(missing.status, 2, "Missing project must fail before cloud deployment");
-  // CI mode writes structured errors to stdout; ordinary text errors use stderr.
-  assert.match(missing.stdout + missing.stderr, /abx template scaffold/);
-  assert.equal(existsSync(project), false, "Batch deploy must not create an unrequested project");
-  run(["template", "scaffold", "--template", "python", project]);
+  // Isolate credentials/config before verifying continuation into provider preflight.
+  const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+    ["path", "systemroot", "windir", "comspec", "pathext", "tmp", "temp", "lang", "lc_all", "ci", "github_actions"].includes(key.toLowerCase())));
+  environment.HOME = projectRoot;
+  environment.USERPROFILE = projectRoot;
+  environment.XDG_CONFIG_HOME = join(projectRoot, ".config");
+  const invokeProject = (args) => spawnSync(artifact, args, { encoding: "utf8", timeout: 60000, windowsHide: true,
+    cwd: projectRoot, env: environment, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
+  const missing = invokeProject(["template", "deploy", project, "-y", "--acr-namespace", "onboarding-test"]);
+  assert.equal(missing.status, 1, "New project must continue into provider credential preflight");
+  assert.match(missing.stdout + missing.stderr, /credentials missing/i);
+  for (const name of ["template.yaml", "Dockerfile", "commands.py"]) assert.ok(existsSync(join(project, name)));
+  const ciProject = join(projectRoot, "ci-project");
+  const ci = invokeProject(["--ci", "template", "deploy", ciProject, "--acr-namespace", "onboarding-test"]);
+  assert.equal(ci.status, 1);
+  assert.match(JSON.parse(ci.stdout).message, /credentials missing/i, "CI must emit one final result");
+  assert.ok(existsSync(join(ciProject, "template.yaml")));
   writeFileSync(join(project, "Dockerfile"), "keep original\n");
   const overwrite = spawnSync(artifact, ["template", "scaffold", "--template", "python", project, "-y"], { encoding: "utf8", timeout: 60000, windowsHide: true, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
   assert.equal(overwrite.status, 1, "Yes alone must not authorize replacement");

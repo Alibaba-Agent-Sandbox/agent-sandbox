@@ -154,7 +154,7 @@ abx kill <sandbox-id>
 Browse [more templates in the Registry](https://registry.agent-sandbox.cn/templates/).
 `provider` appears with the other command groups. For a new project use
 `abx template scaffold --template python ./my-template`, then `abx deploy ./my-template`.
-Missing directories offer interactive scaffolding for review; existing entries require overwrite consent.
+Missing build/deploy directories offer interactive creation and continue after confirmation. `-y` or CI mode automatically creates a Python template project and continues; existing projects are kept. Scaffolding over existing entries still requires overwrite consent.
 `-y` alone does not permit replacement. Launch with `abx create TEMPLATE --detach`.
 
 > **Environment variables:** envd uses direct exec — shell features (`$VAR`, pipes, redirects) require `sh -c '...'`. Use `printenv VAR` to read a variable. See the [Environment Variables guide (EN)](docs/en/guide/environment-variables.md) | [环境变量指南 (中文)](docs/zh/guide/environment-variables.md) for details.
