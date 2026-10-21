@@ -21,7 +21,7 @@ import { _CI_ENV_VARS } from "../_support/env.js";
 import { REGISTRY, eligibleCases, formatResult, normalize, runCase } from "./evidence_cases.js";
 
 const GOLDEN_DIR = fileURLToPath(new URL("./golden/convergence-20261018/", import.meta.url));
-const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261021-0.4.3/", import.meta.url));
+const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261021-0.4.4/", import.meta.url));
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
 /** `_suppress_ci_detection`: the CLI must never auto-enable JSON mode. */

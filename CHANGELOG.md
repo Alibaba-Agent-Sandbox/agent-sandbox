@@ -31,6 +31,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
 
+## [0.4.4] - 2026-10-21
+
+### Fixed
+
+- Accept CI JSON errors on stdout in installed-artifact onboarding checks, so the release gate verifies both output modes. Includes the CLI onboarding fixes from the unpublished 0.4.3 tag. / 安装包验收兼容 CI 模式的 stdout JSON 错误输出，包含未发布的 0.4.3 标签中的 CLI 引导修复。
+
 ## [0.4.3] - 2026-10-21
 
 ### Fixed

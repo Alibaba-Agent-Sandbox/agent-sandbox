@@ -30,6 +30,8 @@ abx create dev-services --detach
 覆盖须确认；`-y` 本身不授权覆盖，脚本须显式添加 `--force`。拒绝后保留原文件。
 标准创建命令使用 `abx create TEMPLATE`，`--template` 是生成脚手架的选项。
 
+项目命令在 `CI=true` 或 `--ci` 模式下输出 JSON：错误写入 stdout，同时返回非零退出码。文本模式的错误写入 stderr。
+
 ## 快捷方式
 
 | 快捷方式 | 等价于 |
