@@ -167,9 +167,11 @@ export const template = group("template", {
 
     \b
     Related commands:
-      abx create --template TEMPLATE  Launch a sandbox from a template
+      abx create TEMPLATE             Launch a sandbox from a template
       abx deploy [PATH]               Same as 'template deploy'
       abx config --help               Configure credentials and region
+
+    More templates: https://registry.agent-sandbox.cn/templates/
     `),
 });
 
@@ -350,6 +352,31 @@ export async function _selectScaffoldCase(cases: Array<[
     ])[0];
 }
 
+/** Disclose existing entries and obtain overwrite authorization before any writes. */
+async function confirmTemplateWrites(
+  target: string, entries: readonly string[], force: boolean, yes: boolean,
+  fmt: ReturnType<typeof getFormatter>, out: ReturnType<typeof getOutput>,
+): Promise<string[]> {
+  if (!pathExists(target)) return [];
+  if (!fs.statSync(target).isDirectory()) throw new CliError(`Path '${target}' is not a directory.`);
+  if (fs.readdirSync(target).length === 0) return [];
+  const conflicts = entries.filter((name) => pathExists(pyJoin(target, name)));
+  out.warning(`Directory '${target}' is not empty.`);
+  if (conflicts.length) {
+    out.warning(`Existing entries may be overwritten: ${conflicts.join(", ")}.`);
+  } else {
+    out.info(`Adding template files: ${entries.join(", ")}. Existing files will be kept.`);
+  }
+  if (!yes && templateSeams._scaffoldPickerAvailable(fmt)) {
+    if (!(await confirm(conflicts.length ? "Overwrite these existing entries?" : "Add template files to this directory?", { default: false, err: true }))) {
+      throw new Abort();
+    }
+  } else if (conflicts.length && !force) {
+    throw new CliError(`Files already exist in ${target}: ${conflicts.join(", ")}. Use --force to overwrite; --yes alone does not permit replacement.`);
+  }
+  return conflicts;
+}
+
 export const init = template.command("scaffold", {
   help: cleandoc(`Scaffold a new sandbox template project.
 
@@ -359,6 +386,9 @@ export const init = template.command("scaffold", {
 
     When DIRECTORY is omitted a new ./<name> subdirectory is created
     (derived from --name, the scaffold case, or the fetched template).
+    Existing nonempty directories show the affected entries before writing.
+    Interactive replacement requires confirmation; in scripts use --force
+    explicitly. --yes alone never authorizes overwriting existing entries.
 
     --prompt requests natural-language template generation; DIRECTORY always
     names a directory. Template generation (Qwen Code, needs 'abx config init --llm')
@@ -551,20 +581,14 @@ export const init = template.command("scaffold", {
       // Resolve target directory
       const target = dirProvided ? pyResolve(directory as string) : pyJoin(process.cwd(), name);
 
+      const conflicts = await confirmTemplateWrites(target, scandirNames(source), force, yes, fmt, out);
       mkdirParents(target);
-      // Check for conflicts
-      if (!force) {
-        const conflicts = scandirNames(source).filter((f) => pathExists(pyJoin(target, f)));
-        if (conflicts.length > 0) {
-          throw new CliError(`Files already exist in ${target}: ${conflicts.slice(0, 5).join(", ")}. ` + "Use --force to overwrite.");
-        }
-      }
       pyCopytree(source, target);
       out.info(`Template files copied from ${fromRef} to ${target}`);
       const created = fs
         .readdirSync(target)
         .filter((f) => isFile(nodePath.join(target, f)));
-      _printInitSummary(fmt, out, target, created, name);
+      _printInitSummary(fmt, out, target, created, name, conflicts.length ? { replaced: conflicts } : {});
       return;
     }
 
@@ -596,21 +620,24 @@ export const init = template.command("scaffold", {
       throw exc;
     }
 
-    // Check for conflicts
-    mkdirParents(target);
-    if (!force) {
-      const conflicts = [...files.keys()].filter((fn) => pathExists(pyJoin(target, fn)));
-      if (conflicts.length > 0) {
-        throw new CliError(`Files already exist in ${target}: ${conflicts.join(", ")}. ` + "Use --force to overwrite.");
+    for (const filename of files.keys()) {
+      const destination = pyJoin(target, filename);
+      if (pathExists(destination)) {
+        const entry = fs.lstatSync(destination);
+        if (entry.isDirectory() || entry.isSymbolicLink()) {
+          throw new CliError(`Cannot replace directory or symbolic link '${destination}' with a template file. Choose another output directory.`);
+        }
       }
     }
+    const conflicts = await confirmTemplateWrites(target, [...files.keys()], force, yes, fmt, out);
+    mkdirParents(target);
 
     // Write files
     for (const [filename, content] of files) {
       writeTextPy(pyJoin(target, filename), content);
     }
 
-    _printInitSummary(fmt, out, target, [...files.keys()], name);
+    _printInitSummary(fmt, out, target, [...files.keys()], name, conflicts.length ? { replaced: conflicts } : {});
   }),
 });
 

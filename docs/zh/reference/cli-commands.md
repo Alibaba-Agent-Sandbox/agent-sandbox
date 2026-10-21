@@ -9,9 +9,26 @@
 
 顶层命令仅有这些：`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
 
-`abx --help` 分三段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`）、**Providers**（`provider`）、
-**Sandbox shortcuts**（十个快捷方式，每个先说明用途，再以 `(alias: abx …)` 备注等价命令）。该列表与本页不一致时，测试会失败。
-这些分区之后显示当前 Provider 的操作摘要；安装的操作仍位于 Provider 命名空间内。
+`abx --help` 分两段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`、`provider`）和
+**Sandbox shortcuts**（十个快捷方式，先说明用途，再以 `(alias: abx …)` 备注完整命令）。
+之后显示当前 Provider 的操作摘要。更多模板可浏览 [Registry](https://registry.agent-sandbox.cn/templates/)，
+或运行 `abx template search 关键词`。
+
+## 模板项目目录
+
+先创建模板源码目录，再部署，最后通过位置参数指定已部署的模板：
+
+```sh
+abx template scaffold --template python ./dev-services --name dev-services
+abx template deploy ./dev-services -y --alias dev-services
+abx create dev-services --detach
+```
+
+内置脚手架可选择 `python`、`node`、`minimal`；其他模板源码可在 Registry 中查找。
+构建或部署目录不存在时，未传 `-y` 的交互终端会询问是否创建模板项目，创建后停下供检查文件。
+非交互或 `-y` 模式会给出准确的创建命令，保留文件系统现状。生成模板前会提示目录非空及可能覆盖的条目，
+覆盖须确认；`-y` 本身不授权覆盖，脚本须显式添加 `--force`。拒绝后保留原文件。
+标准创建命令使用 `abx create TEMPLATE`，`--template` 是生成脚手架的选项。
 
 ## 快捷方式
 

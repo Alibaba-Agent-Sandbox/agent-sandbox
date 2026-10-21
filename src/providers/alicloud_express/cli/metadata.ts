@@ -242,7 +242,7 @@ templateUi["push"] =  { params: [
       abx config set access_key_id KEY
     `) };
 templateUi["build"] =  { params: [
-    argument(["template_dir"], { type: new ClickPath({ exists: true }), envvar: "ABX_TEMPLATE_DIR" }),
+    argument(["template_dir"], { type: new ClickPath(), envvar: "ABX_TEMPLATE_DIR" }),
     option(["--acr-registry"], { envvar: "ACR_REGISTRY", default: "registry.cn-hangzhou.aliyuncs.com", help: "ACR registry host" }),
     option(["--acr-namespace"], {
         envvar: "ACR_NAMESPACE",

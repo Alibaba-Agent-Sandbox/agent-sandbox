@@ -6,13 +6,16 @@ Create, manage, and interact with cloud sandboxes.
 
 Get started:
   abx config init               Set credentials and region (run first)
-  abx create base    Create a sandbox
+  abx create base               Create a sandbox
   abx exec SANDBOX -- CMD...    Run a command in it
 
 Examples:
   abx list --status running
   abx template search python
-  abx template scaffold --template python && abx deploy
+  abx template scaffold --template python ./my-template
+  abx deploy ./my-template
+
+More templates: https://registry.agent-sandbox.cn/templates/
 
 Every action has one canonical path (abx GROUP VERB); the shortcuts below are a
 fixed set and cannot be changed in the configuration.
@@ -33,8 +36,6 @@ Command groups:
                        templates.
   config               Manage persistent credentials and CLI defaults.
   mcp                  Configure and run Agent Sandbox as an MCP server.
-
-Providers:
   provider             Install, select, configure and run sandbox provider
                        operations.
 

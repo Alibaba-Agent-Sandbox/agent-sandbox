@@ -8,9 +8,11 @@ Examples:
   abx template list
 
 Related commands:
-  abx create --template TEMPLATE  Launch a sandbox from a template
+  abx create TEMPLATE             Launch a sandbox from a template
   abx deploy [PATH]               Same as 'template deploy'
   abx config --help               Configure credentials and region
+
+More templates: https://registry.agent-sandbox.cn/templates/
 
 Options:
   -h, --help  Show this message and exit.

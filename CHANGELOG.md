@@ -31,6 +31,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Disambiguate local npm tarballs with `./` and allow the protected-default-branch publisher to recover an existing immutable version tag. / 明确本地 npm tarball 路径，并允许从默认分支恢复发布已有的不可变版本标签。
 
+## [0.4.3] - 2026-10-21
+
+### Fixed
+
+- Group provider with other command groups, show the template Registry URL and runnable scaffold/deploy/create examples. / provider 合并到命令组，补充模板 Registry 地址和可直接运行的生成、部署、创建示例。
+- Offer missing template project creation for review, disclose nonempty-directory writes and require explicit overwrite consent. `-y` alone never permits replacement. / 缺失目录可交互生成模板供检查，非空目录展示写入风险，覆盖须明确授权，`-y` 不单独授权覆盖。
+- Explain positional template syntax when standard create rejects `--template`, preserving parser semantics. / 标准 create 拒绝旧 `--template` 写法时提示使用模板位置参数。
+
 ## [0.4.2] - 2026-10-21
 
 ### Fixed

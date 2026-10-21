@@ -10,10 +10,27 @@ removed through configuration, and there is no per-user alias table.
 
 Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
 
-`abx --help` lists them in three sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`), **Providers**
-(`provider`) and **Sandbox shortcuts** (the ten shortcuts, each showing its purpose followed by an
-`(alias: abx …)` note). A test fails when that list and this page disagree. A contextual Provider summary follows those sections;
-installed operations remain inside the Provider namespace.
+`abx --help` lists two sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`, `provider`)
+and **Sandbox shortcuts** (the ten shortcuts, each showing its purpose followed by an `(alias: abx …)` note).
+A contextual Provider operation summary follows those sections. Browse more templates in the
+[Registry](https://registry.agent-sandbox.cn/templates/), or use `abx template search KEYWORD`.
+
+## Template project directories
+
+Create the source project before deploying it, then pass the deployed template as a positional argument:
+
+```sh
+abx template scaffold --template python ./dev-services --name dev-services
+abx template deploy ./dev-services -y --alias dev-services
+abx create dev-services --detach
+```
+
+Choose `python`, `node` or `minimal` for the built-in scaffold; use the Registry for other template sources.
+For a missing build/deploy directory, an interactive invocation without `-y` offers to scaffold a project
+and stops for file review. Batch or `-y` invocations show the exact scaffold command and leave the filesystem
+untouched. A scaffold displays nonempty-directory entries before writing and asks before replacement.
+`-y` alone never authorizes replacement; scripts must explicitly add `--force`. Declining leaves files intact.
+Standard `create` uses `abx create TEMPLATE`, rather than the scaffold-specific `--template` option.
 
 ## Shortcuts
 

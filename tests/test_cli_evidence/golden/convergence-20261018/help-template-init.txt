@@ -8,6 +8,9 @@ Nothing is built, pushed, deployed, or turned into a sandbox.
 
 When DIRECTORY is omitted a new ./<name> subdirectory is created
 (derived from --name, the scaffold case, or the fetched template).
+Existing nonempty directories show the affected entries before writing.
+Interactive replacement requires confirmation; in scripts use --force
+explicitly. --yes alone never authorizes overwriting existing entries.
 
 --prompt requests natural-language template generation; DIRECTORY always
 names a directory. Template generation (Qwen Code, needs 'abx config init

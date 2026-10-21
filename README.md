@@ -151,6 +151,12 @@ abx kill <sandbox-id>
 
 `abx --help` describes what each shortcut does and shows its canonical command in a trailing `(alias: abx …)` note.
 
+Browse [more templates in the Registry](https://registry.agent-sandbox.cn/templates/).
+`provider` appears with the other command groups. For a new project use
+`abx template scaffold --template python ./my-template`, then `abx deploy ./my-template`.
+Missing directories offer interactive scaffolding for review; existing entries require overwrite consent.
+`-y` alone does not permit replacement. Launch with `abx create TEMPLATE --detach`.
+
 > **Environment variables:** envd uses direct exec — shell features (`$VAR`, pipes, redirects) require `sh -c '...'`. Use `printenv VAR` to read a variable. See the [Environment Variables guide (EN)](docs/en/guide/environment-variables.md) | [环境变量指南 (中文)](docs/zh/guide/environment-variables.md) for details.
 
 ## Templates
