@@ -394,9 +394,9 @@ describe("TestMockedGithubInstall", () => {
 });
 
 describe("TestSandboxYamlAliasInstall", () => {
-  // Templates using sandbox.yaml (not template.yaml) install.
+  // Retired filenames do not supply template metadata.
   it("test_retired_sandbox_yaml_does_not_supply_template_metadata", async () => {
-    // A directory with only sandbox.yaml should install successfully.
+    // sandbox.yaml cannot replace the required canonical metadata.
     const tmpl_dir = path.join(tmpPath(), "alias-template");
     fs.mkdirSync(tmpl_dir);
     fs.writeFileSync(
@@ -423,7 +423,7 @@ describe("TestSandboxYamlAliasInstall", () => {
   });
 
   it("test_template_yaml_preferred_over_sandbox_yaml", async () => {
-    // When both files exist, template.yaml takes priority.
+    // Only template.yaml supplies metadata when a retired filename is also present.
     const tmpl_dir = path.join(tmpPath(), "both-yamls");
     fs.mkdirSync(tmpl_dir);
     fs.writeFileSync(
