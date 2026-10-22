@@ -14,7 +14,7 @@ The exact reviewed-head checks and actual remote merged state were inspected bef
 
 ## Record lifecycle
 
-Move the accepted architectural note to `implemented`, retain its original verification history, and update the local index. This follow-up changes engineering records only. Its document/link checks and normal remote CI apply.
+Move the accepted architectural note to `implemented`, retain its original verification history, and update the local index. This follow-up also corrects stale current documentation and test comments to match the accepted implementation. Its document/link checks and normal remote CI apply.
 
 ## Coordination and cleanup
 

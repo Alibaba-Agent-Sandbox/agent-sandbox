@@ -60,7 +60,7 @@ interface ConfigKey {
 | `template_index_url`, `template_dir` | url/path | no | `ABX_TEMPLATE_INDEX_URL`, `ABX_TEMPLATE_DIR` | not settable via `config set` | |
 | `mcp_auth_token`, `mcp_allowed_origins`, `mcp_runtime_dir` | | token yes | `ABX_MCP_*` | not settable via `config set` | |
 
-Pool/WS/backoff tuning (`max_connections`, `max_keepalive_connections`, `keepalive_expiry`, `ws_ping_interval`, `retry_base_delay`): file-only (`[transport]`), env `ABX_<KEY>`, not exposed by `config set`.
+Pool/WS/backoff tuning (`max_connections`, `max_keepalive_connections`, `keepalive_expiry`, `ws_ping_interval`): file-only (`[transport]`), env `ABX_<KEY>`, not exposed by `config set`.
 
 ### 1.3 Provider-scoped keys of built-in `alicloud-express`
 
@@ -80,7 +80,7 @@ Pool/WS/backoff tuning (`max_connections`, `max_keepalive_connections`, `keepali
 | `acr_security_group_id` | `ACR_SECURITY_GROUP_ID` | |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Optional. Not required. |
 
-The built-in provider implicitly consumes `sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`, `http_timeout`, `http2`, `max_retries` (plus tuning keys). **Every other provider** consumes the non-secret tuning keys only; it receives `sandbox_api_key` / `sandbox_base_url` / `sandbox_domain` solely through its manifest `[core] inherit` list **intersected with** the list the user consented to at install/update (`receipt.consented.inherit`). Switching the default provider never sends the Alibaba key to a plugin (design §4.6).
+The built-in provider implicitly consumes `sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`, `http_timeout`, `http2` (plus tuning keys). **Every other provider** consumes the non-secret tuning keys only; it receives `sandbox_api_key` / `sandbox_base_url` / `sandbox_domain` solely through its manifest `[core] inherit` list **intersected with** the list the user consented to at install/update (`receipt.consented.inherit`). Switching the default provider never sends the Alibaba key to a plugin (design §4.6).
 
 ### 1.4 Reserved words
 
@@ -121,7 +121,7 @@ resolve(key K, provider P, sources S):
 | `Sandbox authentication` | `sandbox_api_key` |
 | `Alibaba Cloud credentials` | provider keys flagged `credential`, then `acr_namespace` |
 | `Alibaba Cloud registry (ACR)` (built-in only) | `acr_registry`, `acr_repo`, `acr_username`, `acr_password`, `acr_instance_id`, `acr_vpc_id`, `acr_vswitch_ids`, `acr_security_group_id`, `team_id` |
-| `Connection` | `sandbox_base_url`, `region`, `sandbox_domain`, `http_timeout`, `http2`, `max_retries` |
+| `Connection` | `sandbox_base_url`, `region`, `sandbox_domain`, `http_timeout`, `http2` |
 | `LLM` | `llm_api_key`, `llm_model`, `llm_base_url` |
 | `Integrations` | `github_token` |
 | `Shortcuts` | unchanged |
@@ -196,7 +196,7 @@ Sets a provider-scoped key for this invocation (override layer). `KEY` ∈ the e
 
 ### 4.4 Qualified sandbox references
 
-Input grammar: `[provider:]sandbox_id` for every command that takes a sandbox id (`info`, `kill`, `exec`, `connect`, `upload`, `download`, `files`, `sandbox process/system …`). The prefix is parsed iff the part before the first `:` matches the provider-id grammar **and** equals a built-in/installed provider id; otherwise the whole string is the id. Output format rule (identical in Python/Node): the **legacy format** (bare ids, no `provider` field) is used **only if both** the ambient provider (the configured default, ignoring `--provider`) **and** the effective provider are `alicloud-express`. In every other case printed ids are qualified (`local-process:sbx-1`) in text mode (tables and `--quiet`), and `--json` rows gain `"provider"` (the bare id stays in `sandbox_id`/`ID`). Rationale: an id pasted from output must be unambiguous when the default is later changed, yet scripts using only the built-in provider see no change. `--provider P` + reference `Q:id` with `P≠Q` → exit 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
+Input grammar: `[provider:]sandbox_id` for every command that takes a sandbox id (`info`, `kill`, `exec`, `connect`, `upload`, `download`, `files`, `sandbox process/system …`). The prefix is parsed iff the part before the first `:` matches the provider-id grammar **and** equals a built-in/installed provider id; otherwise the whole string is the id. Output qualifies IDs as `provider:sandbox_id` in text and includes `provider` in JSON rows while retaining the bare ID field. `--provider P` + reference `Q:id` with `P≠Q` → exit 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
 
 `abx list --all-providers` — adds a `Provider` column/key, queries every configured provider (those whose `credential` fields resolve), skips failing providers with a stderr warning (`warning: provider 'ID' skipped: <message>`), exit 0 if at least one succeeded else the first error's exit code.
 

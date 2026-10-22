@@ -373,7 +373,7 @@ abx template deploy ./my-template --acr-namespace prod --yes
 
 > **云端副作用与成本**：默认流水线为本地 Docker 构建 → ACR 推送 → 官方 CreateTemplate API 注册模板。ACR 推送与远端注册是云端操作，可能产生阿里云费用（ACR 存储/流量、模板资源）。云端操作开始前需要交互确认（或 `--yes`）。
 
-支持两种模式：`--official-api`（默认，需 AK/SK 和已内置的 `@alicloud/fcsandbox20260509` 客户端）和 `--legacy-api`（旧 v3/v2 平台 API——保留在显式 flag 之后，非默认）。旧命令名 `abx template build-local` 已在 `0.1.0` 之前移除，替代命令为 `abx template build`（同一流水线、同一选项）。
+模板构建使用官方 CreateTemplate API，需要 AK/SK；`@alicloud/fcsandbox20260509` 客户端已内置。
 
 ```bash
 abx template build <TEMPLATE_DIR> [选项]
@@ -482,7 +482,7 @@ token 优先级：`--token` > 进程环境变量 `GITHUB_TOKEN` > `./.env` > 持
 
 ### abx template info
 
-查看模板详情。传入 `--official-api` 使用阿里云 FCSandbox GetTemplate API。
+通过阿里云官方 FCSandbox GetTemplate API 查看模板详情。
 
 ```bash
 abx template info <TEMPLATE_ID> [选项]
@@ -490,7 +490,6 @@ abx template info <TEMPLATE_ID> [选项]
 
 | 选项 | 说明 |
 |------|------|
-| `--official-api` | 使用阿里云官方 FCSandbox API（AK/SK） |
 | `--region` | 本次调用的区域覆盖（默认：`abx config set region` 值，否则 cn-hangzhou） |
 
 ### abx template delete

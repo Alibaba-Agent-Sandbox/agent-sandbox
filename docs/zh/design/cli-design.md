@@ -755,7 +755,6 @@ abx template build <template-dir> [选项]
   --cpu <n>                 CPU 核数
   --memory <mb>             内存 (MB)
   --dockerfile, -f <path>   自定义 Dockerfile 路径
- /--legacy-api   使用官方 CreateTemplate API
   ... (完整选项见 --help)
 
 示例：

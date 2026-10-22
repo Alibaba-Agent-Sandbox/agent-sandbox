@@ -240,4 +240,4 @@ The Python SDK, the in-sandbox server runtime and the shared `template.yaml` con
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/server-api.md)
 
 
-Provider composition after the main integration uses structural core contracts and provider-owned session, port and file URL adapters. Native Express implementations live under providers/alicloud_express and shared/e2b. Compatibility import paths do not duplicate runtime implementations; the retired Python gRPC engine is absent. The pinned standard migration surface is separate from explicit provider routing, and unavailable backend operations do not gain support from command registration.
+Provider composition after the main integration uses structural core contracts and provider-owned session, port and file URL adapters. Native Express implementations live under providers/alicloud_express and shared/e2b. Retired forwarding imports are removed; the retired Python gRPC engine is absent. The pinned standard migration surface is separate from explicit provider routing, and unavailable backend operations do not gain support from command registration.

@@ -222,7 +222,7 @@ abx config set http_timeout 60
 abx config set region ""
 ```
 
-可用配置键：`sandbox_api_key`、`api_url`、`region`、`http_timeout`、`max_retries`、`domain`、`llm_api_key`、`llm_model`、`llm_base_url`、`github_token`、`access_key_id`、`access_key_secret`、`acr_namespace`。`api_key` 仍可作为 `sandbox_api_key` 的别名。
+可用配置键：`sandbox_api_key`、`sandbox_base_url`、`region`、`http_timeout`、`sandbox_domain`、`llm_api_key`、`llm_model`、`llm_base_url`、`github_token`、`access_key_id`、`access_key_secret`、`acr_namespace`。
 
 > **提示：** 在使用 `abx template search` / `abx template install` 时遇到 GitHub 匿名限流？在交互式终端执行 `abx config set github_token`（星号掩码输入，存入 `~/.abx/.env`），或在 CI 中以 Secret 注入 `GITHUB_TOKEN`。`--token` 优先级说明见[认证详解](authentication.md)与 CLI 参考。
 >

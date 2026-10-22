@@ -85,7 +85,7 @@ abx provider default --unset           # 恢复为 alicloud-express
 
 每个接受沙箱 id 的命令都接受 `[provider:]sandbox_id`；只有前缀恰好是已知提供商时才算前缀。`--provider P` 与引用 `Q:id` 同时出现且 `P` 与 `Q` 不同，则以 `E8030` 失败（退出码 2）。
 
-打印 id 遵循同一条规则：只有当配置的默认提供商与实际生效的提供商都是 `alicloud-express` 时，才使用 **旧格式**（裸 id、无 `provider` 字段），因此只用内置提供商的脚本看不到任何变化。其他情况下，文本模式打印 `local-process:sbx-1`，`--json` 行增加 `"provider"`。
+所有 Provider 的文本 ID 输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。
 
 ```bash
 abx --provider local-process create --template base      # ID: local-process:sbx-1

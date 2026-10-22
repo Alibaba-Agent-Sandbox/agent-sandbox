@@ -758,7 +758,6 @@ Options:
   --cpu <n>                 CPU cores
   --memory <mb>             Memory in MB
   --dockerfile, -f <path>   Custom Dockerfile path
-    Use official CreateTemplate API
   ... (see --help for full options)
 
 Examples:

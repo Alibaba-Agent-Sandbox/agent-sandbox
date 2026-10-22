@@ -16,7 +16,7 @@
 
 `auto` 同时看到 `Dockerfile` 和构建声明时，走 Dockerfile，并说明平台步骤这次没有发送。
 
-`steps` 不读取目录里的 `Dockerfile`。环境变量里的 `ACR_NAMESPACE` 被忽略。`--build steps` 再加 `--acr-namespace` 是用法错误，退出码 2。`steps` 加 `--legacy-api` 也是用法错误：平台步骤只走官方 `CreateTemplate`。
+`steps` 不读取目录里的 `Dockerfile`。环境变量里的 `ACR_NAMESPACE` 被忽略。`--build steps` 再加 `--acr-namespace` 是用法错误，退出码 2。平台步骤只走官方 `CreateTemplate`。
 
 ## template.yaml
 
@@ -64,7 +64,7 @@ build:
 | `auto`，没有 Dockerfile，也没有构建声明 | 2 |
 | `dockerfile`，没有 Dockerfile | 2 |
 | `steps`，缺少 `base.image` 或没有任何步骤 | 2 |
-| `steps` 同时有 `--acr-namespace` 或 `--legacy-api` | 2 |
+| `steps` 同时有 `--acr-namespace` | 2 |
 | `build.mode` 不是 `auto`、`dockerfile`、`steps` | 2 |
 | 平台拒绝某个步骤 | 1 |
 

@@ -373,7 +373,7 @@ Build Docker image locally, push to ACR, and create a sandbox template.
 
 > **Cloud side effects & costs**: the default pipeline is local Docker build → ACR push → template registration via the official CreateTemplate API. The ACR push and the remote registration are cloud-side operations that can incur Alibaba Cloud costs (ACR storage/traffic, template resources). An interactive confirmation (or `--yes`) is required before the cloud operations start.
 
-Supports two modes: `--official-api` (default, requires AK/SK and the bundled `@alicloud/fcsandbox20260509` client) and `--legacy-api` (legacy v3/v2 platform API — kept behind an explicit flag, not the default). The old command name `abx template build-local` was removed before `0.1.0`; it is replaced by `abx template build` (same pipeline, same options).
+Template build uses the official CreateTemplate API with AK/SK and the bundled `@alicloud/fcsandbox20260509` client.
 
 ```bash
 abx template build <TEMPLATE_DIR> [options]
@@ -482,7 +482,7 @@ Token resolution order: `--token` > process `GITHUB_TOKEN` > `./.env` > stored `
 
 ### abx template info
 
-Show details for a template ID. Pass `--official-api` to use the Alibaba Cloud FCSandbox GetTemplate API.
+Show template details through the official Alibaba Cloud FCSandbox GetTemplate API.
 
 ```bash
 abx template info <TEMPLATE_ID> [options]
@@ -490,7 +490,6 @@ abx template info <TEMPLATE_ID> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--official-api` | Query via the official Alibaba Cloud FCSandbox API (AK/SK) |
 | `--region` | Region override for this command (default: `abx config set region` value, else `cn-hangzhou`) |
 
 ### abx template delete

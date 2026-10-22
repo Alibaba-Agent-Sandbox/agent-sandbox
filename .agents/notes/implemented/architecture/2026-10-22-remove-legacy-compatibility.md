@@ -37,3 +37,9 @@ Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/103
 Verified merged implementation: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/104. The source merge commit is `bbd7504094eee58d5126857b55d297ab0480fe92`.
 
 - [Remote acceptance](../../../evidence/verify/2026-10-22-remove-legacy-acceptance.md)
+
+## Current documentation follow-up
+
+Remove stale instructions that still advertised retired imports, credential aliases, retry settings, template selectors and server transfer routes. The current API references, provider boundary pages and contributor entry point describe the merged implementation.
+
+- [Documentation verification](../../../evidence/verify/2026-10-22-remove-legacy-docs.md)

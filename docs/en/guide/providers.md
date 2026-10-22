@@ -85,7 +85,7 @@ An unknown id exits with 4 (`E8001`). Provider options for one command are given
 
 Every command that takes a sandbox id accepts `[provider:]sandbox_id`; the prefix counts only when it names a known provider. `--provider P` together with a reference `Q:id` where `P` differs from `Q` fails with `E8030` (exit 2).
 
-Printed ids follow one rule: the **legacy format** (bare ids, no `provider` field) is used only when both the configured default and the effective provider are `alicloud-express`, so scripts that only use the built-in provider see no change. In every other case ids are printed as `local-process:sbx-1` in text mode and `--json` rows gain `"provider"`.
+Printed IDs use `provider:sandbox_id` for every provider, and JSON rows include `provider` while retaining the bare ID field.
 
 ```bash
 abx --provider local-process create --template base      # ID: local-process:sbx-1

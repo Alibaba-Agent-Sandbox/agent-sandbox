@@ -49,7 +49,6 @@ Edits:
    - `--opt KEY=VALUE` (repeatable). Parse with `parseProviderOptions` from `src/providers/testing.ts` (move it to `providers/options.ts` if you prefer; it is re-exported from the barrel). Refuse secret fields (`ConfigField.secret`) with the spec's exit-2 text.
 3. `abx --help` epilog: add the `Related commands` line (spec §0) — regenerate the root help golden.
 4. Top-level error handler: replace the existing status-code switch with `exitCodeFor(err)` **only for provider-typed errors**; keep the current mapping for the rest (so goldens stay unchanged): auth 3, not-found 4 (now includes `SandboxNotFoundError`), timeouts 5, quota 6, config/trust/mismatch 2, otherwise 1.
-5. `ABX_WARN_DEPRECATED=1`: nothing to do in `main.ts`; `warnLegacyOnce` reads the env at call time. Make sure `_resetDeprecationWarnings()` is called from the test setup used by the CLI test suites.
 
 ## 4. New file `src/cli/commands/provider.ts`
 

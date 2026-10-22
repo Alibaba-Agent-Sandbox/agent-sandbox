@@ -129,3 +129,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Remove retired project compatibility](notes/implemented/architecture/2026-10-22-remove-legacy-compatibility.md) · [verification](evidence/verify/2026-10-22-remove-legacy-compatibility.md)
 
 - [Compatibility cleanup remote acceptance](evidence/verify/2026-10-22-remove-legacy-acceptance.md)
+
+- [Current compatibility-removal documentation verification](evidence/verify/2026-10-22-remove-legacy-docs.md).
