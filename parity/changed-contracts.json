@@ -20,6 +20,66 @@
     "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::test_error_lists_all_three_routes": {
       "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::bare create and positional templates use the standard defaults",
       "reason": "The old route guard is replaced by default-base and positional-template assertions"
+    },
+    "tests/test_agent/test_clarify.py::TestOutcomeDefaults::test_research_outcome_is_bool_compatible": {
+      "target": "tests/test_agent/test_clarify.py::TestOutcomeDefaults::test_research_outcome_carries_the_gate_and_reason",
+      "reason": "Issue #103: Research now returns one structured outcome; the boolean compatibility contract is removed."
+    },
+    "tests/test_agent/test_qwen_code.py::TestCredentials::test_llm_api_key_fallback_is_compatible": {
+      "target": "tests/test_agent/test_qwen_code.py::TestCredentials::test_retired_llm_api_key_input_does_not_supply_credentials",
+      "reason": "Issue #103: The retired credential input is ignored and cannot enable an LLM credential fallback."
+    },
+    "tests/test_cli/test_config_init.py::TestLegacyQwenConfig::test_legacy_endpoint_is_listed_as_llm_base_url": {
+      "target": "tests/test_cli/test_config_init.py::TestRetiredQwenConfig::test_retired_endpoint_and_model_are_ignored",
+      "reason": "Issue #103: Retired Qwen fields no longer configure the current LLM profile."
+    },
+    "tests/test_cli/test_config_init.py::TestLegacyQwenConfig::test_removed_qwen_key_points_at_llm_api_key": {
+      "target": "tests/test_cli/test_config_init.py::TestRetiredQwenConfig::test_removed_qwen_key_points_at_llm_api_key",
+      "reason": "Issue #103: The rejection regression lives with the removed-interface tests."
+    },
+    "tests/test_cli/test_config_llm.py::TestConfigLLMApiKey::test_clear_removes_both_locations": {
+      "target": "tests/test_cli/test_config_llm.py::TestConfigLLMApiKey::test_clear_current_environment_key",
+      "reason": "Issue #103: There is one current credential store; obsolete plaintext TOML is not a supported store."
+    },
+    "tests/test_cli/test_config_llm.py::TestConfigLLMApiKey::test_get_reads_legacy_toml_copy": {
+      "target": "tests/test_cli/test_config_llm.py::TestConfigLLMApiKey::test_get_ignores_retired_toml_copy",
+      "reason": "Issue #103: The current resolver rejects the retired plaintext fallback."
+    },
+    "tests/test_cli/test_config_llm.py::TestConfigLLMApiKey::test_set_migrates_legacy_toml_copy": {
+      "target": "tests/test_cli/test_config_llm.py::TestConfigLLMApiKey::test_set_llm_api_key",
+      "reason": "Issue #103: Writes use only the secure current store; no old-storage migration mode remains."
+    },
+    "tests/test_cli/test_template_commands.py::TestSandboxYamlAlias::test_install_no_yaml_mentions_both_names": {
+      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
+      "reason": "Issue #103: The canonical missing-template error names template.yaml; retired aliases are rejected."
+    },
+    "tests/test_cli/test_template_commands.py::TestSandboxYamlAlias::test_install_prefers_template_yaml": {
+      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_template_yaml_preferred_over_sandbox_yaml",
+      "reason": "Issue #103: Only canonical metadata is read even when a retired filename is present."
+    },
+    "tests/test_cli/test_template_commands.py::TestSandboxYamlAlias::test_install_sandbox_yaml_only": {
+      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
+      "reason": "Issue #103: Retired metadata filenames cannot install as canonical templates."
+    },
+    "tests/test_cli/test_template_commands.py::TestTemplateCommandErrorHandling::test_delete_404_friendly": {
+      "target": "tests/test_cli/test_template_commands.py::TestOfficialTemplateManagementErrors::test_delete_official_error_is_reported",
+      "reason": "Issue #103: Template deletion uses the official API error contract; the old REST manager is removed."
+    },
+    "tests/test_cli/test_template_commands.py::TestTemplateCommandErrorHandling::test_info_404_friendly": {
+      "target": "tests/test_cli/test_template_commands.py::TestOfficialTemplateManagementErrors::test_info_official_error_is_reported",
+      "reason": "Issue #103: Template inspection uses the official API error contract; the old REST manager is removed."
+    },
+    "tests/test_cli/test_template_commands.py::TestTemplateCommandErrorHandling::test_list_server_error_friendly": {
+      "target": "tests/test_cli/test_template_commands.py::TestOfficialTemplateManagementErrors::test_list_official_error_is_reported",
+      "reason": "Issue #103: Template inventory uses the official API error contract; the old REST manager is removed."
+    },
+    "tests/test_cli/test_template_commands.py::TestTemplateListCommand::test_list_templates": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateListCommand::test_list_official_templates",
+      "reason": "Issue #103: Current inventory is the official control-plane list, without a legacy API selector."
+    },
+    "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_local_install_sandbox_yaml_only": {
+      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
+      "reason": "Issue #103: The old successful-alias installation is replaced by a rejection regression."
     }
   }
 }

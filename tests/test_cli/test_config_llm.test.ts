@@ -68,6 +68,20 @@ describe("TestConfigLLMApiKey", () => {
     expect(result.output).not.toContain("456");
   });
 
+  it("test_clear_current_environment_key", async () => {
+    const tmp = tmpPath();
+    const envFile = path.join(tmp, ".env");
+    fs.writeFileSync(envFile, "ABX_LLM_API_KEY=sk-current-placeholder\n");
+    await withConfig(storagePatch(tmp, { env: true }), async () => {
+      const clear = await runner().invoke(cli, ["config", "set", "llm_api_key", ""]);
+      expect(clear.exit_code, clear.output).toBe(0);
+      expect(exists(envFile)).toBe(false);
+      const read = await runner().invoke(cli, ["config", "get", "llm_api_key"]);
+      expect(read.exit_code).toBe(0);
+      expect(read.output).toContain("(not set)");
+    });
+  });
+
   it("test_get_llm_api_key_masked", async () => {
     const tmp = tmpPath();
     fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-test123abcdef\n");

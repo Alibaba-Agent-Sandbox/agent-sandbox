@@ -385,6 +385,12 @@ describe("TestCredentials", () => {
     expect(env.OPENAI_MODEL).toBe(qwenCode._DEFAULT_OPENAI_MODEL);
   });
 
+  it("test_retired_llm_api_key_input_does_not_supply_credentials", () => {
+    const options = { llmApiKey: "sk-retired", environ: {}, settingsPath: absent() };
+    expect(() => resolveQwenCodeCredentials(options as Parameters<typeof resolveQwenCodeCredentials>[0]))
+      .toThrow(QwenCodeCredentialError);
+  });
+
   it("test_custom_base_url_and_model", () => {
     const creds = resolveQwenCodeCredentials({
       storedApiKey: "sk",

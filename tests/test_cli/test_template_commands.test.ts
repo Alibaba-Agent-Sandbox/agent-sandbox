@@ -20,6 +20,7 @@ import {
   templateSeams,
 } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
+import { TemplateBuildError } from "../../src/models/errors.js";
 import { UsageError } from "../../src/cli/errors.js";
 import { RegistryClient } from "../../src/utils/registry.js";
 import { CliRunner } from "../helpers/cliRunner.js";
@@ -1032,5 +1033,35 @@ describe("TestInstallDirOption", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(mockDeploy).toHaveBeenCalled();
     expect(mockDeploy.mock.calls[0]![0]).toBe(dest);
+  });
+});
+
+
+describe("TestOfficialTemplateManagementErrors", () => {
+  it("test_list_official_error_is_reported", async () => {
+    patchLoadConfig();
+    const call = spyAny(fcTemplate, "listOfficialTemplates").mockRejectedValue(new TemplateBuildError("official list refused"));
+    const result = await runner().invoke(cli, ["template", "list"]);
+    expect(result.exit_code).toBe(1);
+    expect(result.output).toContain("official list refused");
+    expect(call).toHaveBeenCalledOnce();
+  });
+
+  it("test_info_official_error_is_reported", async () => {
+    patchLoadConfig();
+    const call = spyAny(fcTemplate, "getTemplate").mockRejectedValue(new TemplateBuildError("official info refused (HTTP 404)"));
+    const result = await runner().invoke(cli, ["template", "info", "owned-template"]);
+    expect(result.exit_code).toBe(1);
+    expect(result.output).toContain("official info refused");
+    expect(call).toHaveBeenCalledOnce();
+  });
+
+  it("test_delete_official_error_is_reported", async () => {
+    patchLoadConfig();
+    const call = spyAny(fcTemplate, "deleteTemplate").mockRejectedValue(new TemplateBuildError("official delete refused (HTTP 404)"));
+    const result = await runner().invoke(cli, ["template", "delete", "owned-template", "--yes"]);
+    expect(result.exit_code).toBe(1);
+    expect(result.output).toContain("official delete refused");
+    expect(call).toHaveBeenCalledOnce();
   });
 });

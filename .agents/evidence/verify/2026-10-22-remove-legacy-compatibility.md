@@ -44,3 +44,7 @@ The first native Docker job retained an import of the deleted forwarding module 
 
 - PASS: create a uniquely named owned template through the current official factory from the already verified public source image, wait for ready, read it back, and delete it through the current native CLI. Independent inventory absence and HTTP 404 were verified; no owned template remains. No Docker build or RUN-step acceptance is inferred from this control-plane check.
 - The first full Node20/22 CI run exposed eight stale assertions/doc references (4104 other tests passed on Node20). Fixtures now store credentials in the current environment-file location, expect structured authentication/process results, ignore retired Qwen settings, omit deleted migration vectors and link the owning base64 module. The final full CI rerun remains mandatory.
+
+## Historical parity contract migration
+
+The final Node20/22 unit suite passed, then the historical parity ledger identified 15 intentionally retired contracts. The ledger remains immutable. Explicit Issue #103 mappings now point each old expectation to its current positive/rejection regression, including official template error handling, one credential store and rejection of retired inputs. This preserves traceable coverage without restoring compatibility branches or skipping the parity gate.
