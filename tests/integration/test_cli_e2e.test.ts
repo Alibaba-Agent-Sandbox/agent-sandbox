@@ -22,6 +22,9 @@ import * as transportConfig from "../../src/transport/config.js";
 import { resetConfig } from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
 import { CliRunner } from "../helpers/cliRunner.js";
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
+
+useMockCloudConfiguration();
 
 const SANDBOX_ID = "sbx-cli-test-001";
 const ENVD_TOKEN = "test-envd-token-cli";
@@ -229,4 +232,3 @@ it("test_cli_exec_nonzero_exit", async () => {
   const result = await runner().invoke(cli, ["exec", SANDBOX_ID, "nonexistent_cmd"]);
   expect(result.exit_code).toBe(127);
 });
-

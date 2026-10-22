@@ -210,6 +210,7 @@ python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-S
 | 二进制安装 | [二进制安装](docs/zh/guide/binary-installation.md) |
 | CLI 教程 | [CLI 教程](docs/zh/guide/cli-tutorial.md) |
 | 认证配置 | [认证配置](docs/zh/guide/authentication.md) |
+| 配置引导 | [就地补填、自动化与安全继续](docs/zh/guide/guided-configuration.md) |
 | 环境变量 | [环境变量](docs/zh/guide/environment-variables.md) |
 | 使用模板 | [使用模板](docs/zh/guide/using-templates.md) |
 | 编写模板 | [编写模板](docs/zh/guide/authoring-templates.md) |

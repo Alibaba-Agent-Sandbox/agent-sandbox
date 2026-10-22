@@ -49,9 +49,9 @@
 
 - 自然语言 `abx create`（编码代理）
 - `abx template install` / `abx template search`（GitHub token）
-- `abx mcp install`（写入编辑器配置的沙箱 API Key）
+- `abx mcp install` / `abx mcp start`（解析 Sandbox 访问，不把密钥复制到 IDE 文件）
 
-`abx mcp install` 把 `ABX_SANDBOX_API_KEY` 写入 Cursor 和 Claude 的配置。`ABX_SANDBOX_BASE_URL` 和 `ALIBABA_CLOUD_REGION_ID` 只有在进程环境变量里设置了才会写进同一份文件。`abx mcp start` 会再次读取 `~/.abx`，所以用 `abx config set region` 保存的区域在编辑器启动 server 时仍然生效。
+`abx mcp install` 不把 Sandbox 凭证复制到 Cursor、Claude 或 VS Code 文件；它记录启动命令及适用的非密钥目标信息。编辑器启动 `abx mcp start` 时会重新解析用户和 Provider 配置。仅本次输入不会传到之后的进程；需要后续启动使用时应明确保存。就地补填、持久化、来源冲突和自动化边界见[配置引导](../guide/guided-configuration.md)。
 
 `abx config list` 把进程环境变量标成 `(env)`，把 `./.env` 和 `~/.abx` 标成 `(user)`。表里命中的那一列就是命令真正会用的值。
 

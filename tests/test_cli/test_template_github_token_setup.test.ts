@@ -1,3 +1,5 @@
+import "../_support/isolatedHome.js";
+import * as guidance from "../../src/cli/config_guidance.js";
 /**
  * CLI tests for the one-shot GitHub-token onboarding (task 206).
  *
@@ -6,7 +8,6 @@
  * the index client and the registry client are mocked.
  */
 
-import "../_support/isolatedHome.js";
 
 import fs from "node:fs";
 import path from "node:path";
@@ -75,6 +76,9 @@ afterEach(() => {
 
 const tty = (): void => {
   templateSeams.stdinIsatty = () => true;
+  vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
+  vi.spyOn(guidance.guidanceSeams, "interactive").mockReturnValue(true);
+  vi.spyOn(guidance.guidanceSeams, "ask").mockImplementation(async (_label, secret) => secret ? configSeams._promptSecret("GitHub token") : "2");
 };
 
 describe("TestSearchOnboarding", () => {

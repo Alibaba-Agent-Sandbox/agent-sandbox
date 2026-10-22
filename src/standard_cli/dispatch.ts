@@ -2,6 +2,7 @@
 
 import { collectSources, explainConfig, loadLayeredConfig } from "../transport/config_layers.js";
 import { ambientProviderId } from "../providers/registry.js";
+import { withGuidedConfiguration } from "../cli/config_guidance.js";
 
 const shortcuts = new Set(["create", "list", "info", "kill", "exec", "connect", "pause", "resume"]);
 const sandboxExtensions = new Set(["upload", "download", "capabilities", "files", "process", "command", "system"]);
@@ -125,7 +126,22 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
   process.argv = [process.argv[0]!, process.argv[1]!, ...normalized];
   // An embedded, independently released CLI must not check for updates to @e2b/cli.
   process.env["NO_UPDATE_NOTIFIER"] = "1";
-  const runtime = await import("./runtime.mjs");
-  await runtime.default.completion;
+  const hookKey = Symbol.for("agent-sandbox.cli.configuration");
+  const hooks = globalThis as unknown as Record<symbol, unknown>;
+  hooks[hookKey] = async ({ commandPath, options }: { commandPath: string[]; options: Record<string, unknown> }) => {
+    const overrides = { provider: "alicloud-express", sandbox_api_key: config.api_key,
+      sandbox_base_url: process.env["E2B_API_URL"], sandbox_domain: config.domain, region: config.region };
+    return withGuidedConfiguration(undefined, { operation: `abx ${commandPath.join(" ")}`,
+      provider: "alicloud-express", requirements: ["sandbox_api_key"], validateProvider: false,
+      yes: Boolean(options["yes"] || options["format"] === "json"), overrides,
+    }, async () => {
+      const effective = loadLayeredConfig({ provider: "alicloud-express" });
+      return { apiKey: effective.api_key, apiUrl: effective.api_url, domain: effective.domain };
+    });
+  };
+  try {
+    const runtime = await import("./runtime.mjs");
+    await runtime.default.completion;
+  } finally { delete hooks[hookKey]; }
   return true;
 }

@@ -7,6 +7,7 @@ import { registerProvider } from "../../src/providers/registry.js";
 import { setCliProvider, resetCliSelection } from "../../src/providers/selection.js";
 import { launchSeams } from "../../src/cli/template_launch.js";
 import { Sandbox } from "../../src/api/sandbox.js";
+import { Context, command } from "../../src/cli/kit.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIso } from "../_support/iso.js";
@@ -104,15 +105,18 @@ describe("Express preparation readiness", () => {
     const adapter = await import("../../src/providers/alicloud_express/cli/template.js");
     const fc = await import("../../src/providers/alicloud_express/fc_template.js");
     const deploy = vi.spyOn(adapter, "do_deploy").mockResolvedValue({ TemplateID: "submitted-template", Status: "submitted" });
-    const namespace = vi.spyOn(adapter, "resolve_acr_namespace").mockReturnValue("placeholder");
+    const source = path.join(iso.root, "readiness-project");
+    fs.mkdirSync(source);
+    fs.writeFileSync(path.join(source, "template.yaml"), "name: fixture\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['true']\n");
+    const ctx = new Context(command("launch")); ctx.params["yes"] = true;
     const load = vi.spyOn(adapter.templateSeams, "loadConfig").mockReturnValue({ access_key_id: "placeholder", access_key_secret: "placeholder", region: "cn-hangzhou" } as ReturnType<typeof adapter.templateSeams.loadConfig>);
     const wait = vi.spyOn(fc, "waitForTemplateReady").mockRejectedValue(new Error("build failed"));
     try {
       const options = { alias: "fixture", timeout: 30, template: { name: "fixture", capabilities: [], cpu: 2, memory: 2048, start_cmd: null, ready_cmd: null } };
-      await expect(CLI_EXTENSION.prepareProject("source", options, undefined as never)).rejects.toThrow("build failed");
+      await expect(CLI_EXTENSION.prepareProject(source, options, ctx)).rejects.toThrow("build failed");
       expect(wait).toHaveBeenCalledWith("submitted-template", expect.objectContaining({ poll_interval: 2, timeout: expect.any(Number) }));
       wait.mockResolvedValue({ status: "Ready" });
-      await expect(CLI_EXTENSION.prepareProject("source", options, undefined as never)).resolves.toEqual({ reference: "submitted-template", status: "ready" });
-    } finally { namespace.mockRestore(); deploy.mockRestore(); load.mockRestore(); wait.mockRestore(); }
+      await expect(CLI_EXTENSION.prepareProject(source, options, ctx)).resolves.toEqual({ reference: "submitted-template", status: "ready" });
+    } finally { deploy.mockRestore(); load.mockRestore(); wait.mockRestore(); }
   });
 });

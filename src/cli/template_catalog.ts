@@ -1,3 +1,5 @@
+import { canGuideConfiguration, withGuidedConfiguration } from "./config_guidance.js";
+import { getOperationConfig } from "../utils/operation_config.js";
 import { TemplateNotFoundError } from "../models/errors.js";
 /** Provider-neutral template discovery, authoring and local output. */
 /**
@@ -24,7 +26,7 @@ import { availableCases, renderScaffold } from "./scaffold.js";
 import { ValueError } from "../api/_pyerrors.js";
 import { GitHubRateLimitError } from "../models/errors.js";
 import { isFile, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, scandirNames, writeTextPy } from "../utils/_pyos.js";
-import { FINE_GRAINED_PAT_URL, GITHUB_TOKEN_ENV_VAR } from "../utils/github_token.js";
+import { FINE_GRAINED_PAT_URL } from "../utils/github_token.js";
 import { RegistryClient, loadTemplateFromYaml } from "../utils/registry.js";
 import { fetchIndex } from "../utils/template_index.js";
 import { resolveTemplateProfile } from "../providers/template_profile.js";
@@ -84,10 +86,10 @@ export function _findTemplateYaml(template_path: string): string | null {
 
 /** Whether the interactive GitHub-token onboarding can run here. */
 export function _githubRateLimitSetupAvailable(out: Any): boolean {
-    if ((out.use_json ?? out.useJson ?? out.json_mode) || templateSeams.isCiEnv())
+    if (out.quiet || out.ci || (out.use_json ?? out.useJson ?? out.json_mode ?? out.jsonMode) || templateSeams.isCiEnv() || Boolean(getCurrentContext(true)?.params["yes"]))
         return false;
     try {
-        return Boolean(templateSeams.stdinIsatty());
+        return Boolean(templateSeams.stdinIsatty()) && canGuideConfiguration(getCurrentContext(true) ?? undefined, false);
     }
     catch {
         return false;
@@ -100,33 +102,16 @@ export function _githubRateLimitSetupAvailable(out: Any): boolean {
  * Returns the stored token, or `null` when the user declines / cancels / enters nothing. The token value is never
  * echoed, printed, or logged.
  */
-export async function _offerGithubTokenSetup(fmt: Any, out: Any): Promise<string | null> {
-    const cfg = await _configCmd();
-    const promptSecret = cfg._promptSecret;
-    const writeEnvVar = cfg.writeEnvVar;
-    let entered: string;
+export async function _offerGithubTokenSetup(_fmt: Any, out: Any): Promise<string | null> {
+    out.info("GitHub anonymous rate limit reached. A token can increase the limit; no cloud credentials are required.");
+    out.info(`Create a GitHub token for the repositories you need: ${FINE_GRAINED_PAT_URL}`);
+    if (!(await confirm("Configure github_token now?", { default: true, err: true }))) return null;
     try {
-        out.info("GitHub rate limit reached and no token is configured " + "(anonymous access is limited to 60 requests/hour).");
-        out.info("Create a fine-grained token here - public repositories need no " +
-            "extra permissions; a 90-day expiry is recommended:\n" +
-            `  ${FINE_GRAINED_PAT_URL}`);
-        if (!(await confirm("Configure github_token now?", { default: true })))
-            return null;
-        entered = await promptSecret("Paste the GitHub token (input masked)");
-    }
-    catch (e) {
-        if (e instanceof Abort)
-            return null;
-        throw e;
-    }
-    const token = pyStrip(entered);
-    if (!token) {
-        out.warning("No token entered; nothing was saved.");
-        return null;
-    }
-    await writeEnvVar(GITHUB_TOKEN_ENV_VAR, token);
-    fmt.printSuccess("Stored github_token in ~/.abx/.env (input hidden); retrying once...");
-    return token;
+        return await withGuidedConfiguration(getCurrentContext(true) ?? undefined, { operation: "Read template source from GitHub", requirements: ["github_token"], validateProvider: false }, async () => {
+            out.info("Retrying the source request once. Change the saved token later: abx config set github_token");
+            return String(getOperationConfig()?.["github_token"] ?? "") || null;
+        });
+    } catch (error) { if (error instanceof Abort) return null; throw error; }
 }
 
 /**
@@ -267,10 +252,10 @@ export const search = template.command("search", {
 // ---------------------------------------------------------------------------
 /** Whether the interactive scaffold-case picker can run here. */
 export function _scaffoldPickerAvailable(fmt: Any): boolean {
-    if (fmt.use_json || templateSeams.isCiEnv())
+    if (fmt.use_json || getOutput().quiet || templateSeams.isCiEnv())
         return false;
     try {
-        return Boolean(templateSeams.stdinIsatty());
+        return Boolean(templateSeams.stdinIsatty()) && canGuideConfiguration(getCurrentContext(true) ?? undefined, false);
     }
     catch {
         return false;
@@ -294,7 +279,7 @@ export async function _tryArrowCasePicker(cases: Array<[
         answer = await inquirer.select({ message: "Select a case", choices, default: (cases[0] as [
                 string,
                 string
-            ])[0] });
+            ])[0] }, { output: process.stderr });
     }
     catch (e) {
         const err = e as {
@@ -341,11 +326,11 @@ export async function _selectScaffoldCase(cases: Array<[
     const picked = await templateSeams._tryArrowCasePicker(cases);
     if (picked !== null)
         return picked;
-    echo("Available scaffold cases:");
+    echo("Available scaffold cases:", { err: true });
     cases.forEach(([c, desc], idx) => {
-        echo(`  ${idx + 1}. ${c.padEnd(12)} ${desc}`);
+        echo(`  ${idx + 1}. ${c.padEnd(12)} ${desc}`, { err: true });
     });
-    const choice = await prompt("Select a case", { type: new IntRange({ min: 1, max: cases.length }), default: 1 });
+    const choice = await prompt("Select a case", { type: new IntRange({ min: 1, max: cases.length }), default: 1, err: true });
     return (cases[Number(choice) - 1] as [
         string,
         string
@@ -524,6 +509,7 @@ export const init = template.command("scaffold", {
         force,
         yes,
         verbose: params["verbose_flag"],
+        model: params["model"],
       });
       return;
     }

@@ -1,3 +1,5 @@
+import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
+import { getOperationConfig } from "../../utils/operation_config.js";
 import { launchTemplate } from "../template_launch.js";
 import { cleandoc } from "../../utils/_py.js";
 import { confirm } from "../prompts.js";
@@ -57,8 +59,10 @@ async function runGeneric(name: string, ctx: Context, params: Record<string, unk
   const provider = getProvider(resolveProviderId(cliProvider()));
   const feature = ["list", "info"].includes(name) ? "templates.read" : "templates.build";
   provider.require(feature);
+  if (!["list", "info"].includes(name) && !params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Review the target and pass --yes to apply this template operation.");
+  return withGuidedConfiguration(ctx, { operation: `Template ${name}`, provider: provider.id, yes: Boolean(params["yes"]) }, async () => {
   const config = loadLayeredConfig({ provider: provider.id, provider_options: cliOptions() });
-  if (!["list", "info"].includes(name) && !params["yes"]) throw new UsageError("Review the target and pass --yes to apply this template operation.");
+  if (!["list", "info"].includes(name) && !params["yes"]) await confirm("Apply this template operation? The provider may charge for cloud operations.", { abort: true, err: true });
   const manager = await provider.buildTemplateManager(config, feature);
   try {
     const fmt = getFormatter(ctx);
@@ -81,6 +85,7 @@ async function runGeneric(name: string, ctx: Context, params: Record<string, unk
   } finally {
     await manager.close?.();
   }
+  });
 }
 function usesImageFactory(name: string): boolean {
   return name === "create" && getProvider(resolveProviderId(cliProvider())).supports("templates.deploy");
@@ -116,12 +121,22 @@ async function runImageFactory(ctx: Context, params: Record<string, any>): Promi
     const username = process.env["ABX_IMAGE_REGISTRY_USERNAME"];
     const password = process.env["ABX_IMAGE_REGISTRY_PASSWORD"];
     if (username !== undefined || password !== undefined) input.registry = { username: username ?? "", password: password ?? "" };
+    const fields = username !== undefined || password !== undefined ? [
+      { key: "registry_username", label: "Private image pull username", env: "ABX_IMAGE_REGISTRY_USERNAME" },
+      { key: "registry_password", label: "Private image pull password", secret: true, env: "ABX_IMAGE_REGISTRY_PASSWORD" },
+    ] : [];
+    // Validate all non-credential request data before any secret prompt.
+    validateProviderImage({ ...input, registry: undefined });
+    return withGuidedConfiguration(ctx, { operation: "Create template from image", yes: Boolean(params["yes"]), requirements: fields,
+      values: { registry_username: username, registry_password: password } }, async () => {
+    if (fields.length) input.registry = { username: String(getOperationConfig()?.["registry_username"] ?? ""), password: String(getOperationConfig()?.["registry_password"] ?? "") };
     validateProviderImage(input);
     if (!params["yes"]) await confirm("Create this provider template? The provider may charge for the build.", { abort: true });
     const data = await deployProviderImage(input);
     const fmt = getFormatter(ctx);
     if (fmt.use_json) fmt.printData(data);
     else fmt.printDict({ ...data });
+    });
 }
 
 function routed(name: string, publicName = name): Command {
@@ -131,6 +146,7 @@ function routed(name: string, publicName = name): Command {
     callback: handleErrors(async (ctx, params) => {
       if (usesImageFactory(name)) return runImageFactory(ctx, params);
       if (name === "build" || name === "deploy") {
+        getProvider(resolveProviderId(cliProvider())).require("templates.build");
         const yes = Boolean(params["yes"]) || getOutput(ctx).ci;
         params = { ...params, yes, template_dir: await prepareTemplateProject(ctx, String(params["template_dir"]), yes) };
       }

@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Tests for `abx run` / `abx sandbox command run|list` (named commands registered on the in-sandbox server). */
 
 import "../_support/isolatedHome.js";
@@ -146,3 +147,6 @@ describe("TestCommandList", () => {
     expect(result.output).toContain("No SandboxServer reachable");
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

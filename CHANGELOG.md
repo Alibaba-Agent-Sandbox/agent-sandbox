@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Guide missing configuration by operation and Provider, with temporary or persistent input, source-aware readback, safe cancellation and follow-up modification commands. Isolate standard ABX authentication from E2B login state; preflight build requirements before side effects and keep automation/MCP protocol output noninteractive. Preserve credentials during storage migration and avoid copying Sandbox keys into IDE registrations. / 按操作和 Provider 引导补齐配置，支持仅本次或持久保存、来源核对、取消及后续修改；标准 ABX 身份与 E2B 登录态隔离，构建前检查所需配置，自动化和 MCP 协议不弹问答；存储迁移保留凭证，IDE 注册不复制 Sandbox Key。
+
 - Expose the explicit first-root-option `abx --native` entry for native Express template management and canonical step acceptance, preserving standard routing and remote argv. Prepare CLI0.4.1 with the accepted ENV propagation and bundled management SDK fixes.
 
 - Send platform-step `build.env` values as separate Express ENV key/value arguments, preserving spaces and equals signs; explicitly supply final ENV values to generation-2 startup/readiness commands when the provider does not propagate them.

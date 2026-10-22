@@ -1,6 +1,14 @@
 {
   "decision": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/33",
   "replacements": {
+    "tests/test_cli/test_create_nl.py::TestQwenCodeCredentialGate::test_tty_prompts_for_key_and_stores_it": {
+      "target": "tests/test_cli/test_create_nl.py::TestQwenCodeCredentialGate::test_tty_prompts_for_key_for_current_command",
+      "reason": "Issue #99: entered credentials default to operation-only scope; persistence requires the explicit save choice"
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_acr_namespace_failure_happens_before_the_build": {
+      "target": "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_namespace_guidance_is_owned_by_the_plan_aware_build",
+      "reason": "Issue #99: deploy delegates configuration to the plan-aware build, which distinguishes Dockerfile/ACR from platform steps before side effects"
+    },
     "tests/test_cli/test_create_nl.py::TestCreateRouting::test_no_description_no_template_is_usage_error": {
       "target": "tests/test_cli/test_create_nl.py::TestCreateRouting::test_no_description_no_template_uses_base",
       "reason": "E2B default template is base; no explicit-route usage error"

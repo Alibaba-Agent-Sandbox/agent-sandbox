@@ -1,6 +1,7 @@
 /** Tests for template CLI commands. */
 
 import "../_support/isolatedHome.js";
+import * as guidance from "../../src/cli/config_guidance.js";
 
 import fs from "node:fs";
 import path from "node:path";
@@ -383,7 +384,8 @@ describe("TestTemplateCreateCommand", () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
     const result = await runner().invoke(cli, ["template", "from-image", "img:tag", "--name", "test"]);
     expect(result.exit_code).not.toBe(0);
-    expect(result.output.includes("AK/SK") || result.output.toLowerCase().includes("credentials")).toBe(true);
+    expect(result.output).toContain("access_key_id");
+    expect(result.output).toContain("access_key_secret");
   });
 
   it("test_create_success_mock", async () => {
@@ -426,7 +428,7 @@ describe("TestTemplateDeployOfficialAPI", () => {
 
     expect(result.exit_code).toBe(1);
     expect(result.output).not.toContain("Missing argument");
-    expect(result.output.toLowerCase()).toContain("credentials missing");
+    expect(result.output.toLowerCase()).toContain("missing configuration");
   });
 
   it("test_deploy_default_is_official", async () => {
@@ -496,7 +498,7 @@ describe("TestTemplatePushCommand", () => {
     const result = await runner().invoke(cli, ["template", "push", "my-img:latest", "--acr-namespace", "test-ns"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output).not.toContain("Traceback");
-    expect(result.output.toLowerCase()).toContain("credentials");
+    expect(result.output.toLowerCase()).toContain("configuration");
   });
 
   it("test_push_success", async () => {
@@ -697,6 +699,7 @@ vi.mock("@inquirer/prompts", () => ({ select: (...a: unknown[]) => selectMock(..
 describe("TestInitInteractivePicker", () => {
   beforeEach(() => {
     selectMock.mockReset();
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const prev = templateSeams.stdinIsatty;
     templateSeams.stdinIsatty = () => true;
     return () => {

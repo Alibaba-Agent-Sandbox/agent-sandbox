@@ -42,7 +42,7 @@ function abxReadTemplateAsset(filename) {
 const require = abxCreateRequire(typeof __filename === "string" ? __filename : import.meta.url);
 const __dirname = typeof __filename === "string" ? abxDirname(__filename) : abxDirname(abxFileURLToPath(import.meta.url));` },
 });
-// Only executable branding changes; wire formats and command behavior stay pinned.
+// Project authentication/branding adapters leave wire formats and parser/terminal behavior pinned.
 const runtimeFile = path.join(output, "runtime.mjs");
 let runtime = fs.readFileSync(runtimeFile, "utf8");
 if (!/\.name\(["`]e2b["`]\)/.test(runtime)) throw new Error("Pinned program name changed; review source update");
@@ -50,6 +50,15 @@ runtime = runtime.replaceAll("pip install e2b", JSON.stringify(pythonInstall).sl
 runtime = runtime.replace(/\.name\(["`]e2b["`]\)/, '.name("abx")').replaceAll("e2b sandbox exec", "abx sandbox exec");
 if (!runtime.includes("main(), exports.pkg = pkg;")) throw new Error("Pinned command completion entry changed");
 runtime = runtime.replace("main(), exports.pkg = pkg;", "exports.completion = main(), exports.pkg = pkg;");
+// ABX uses Alibaba API-key configuration, never an unrelated E2B browser-login identity.
+const userConfigStart = runtime.indexOf("function getUserConfig() {");
+const userConfigEnd = runtime.indexOf("function isObject(", userConfigStart);
+if (userConfigStart < 0 || userConfigEnd < 0) throw new Error("Pinned user authentication boundary changed");
+runtime = runtime.slice(0, userConfigStart) + "function getUserConfig() { return null; }\n    " + runtime.slice(userConfigEnd);
+const authBoxStart = runtime.indexOf("var authErrorBox = () => boxen(");
+const authBoxEnd = runtime.indexOf("function ensureAPIKey()", authBoxStart);
+if (authBoxStart < 0 || authBoxEnd < 0) throw new Error("Pinned authentication diagnostic changed");
+runtime = runtime.slice(0, authBoxStart) + 'var authErrorBox = () => "Sandbox API key is missing. Run abx config set sandbox_api_key in a terminal, or set ABX_SANDBOX_API_KEY in automation. This is the Alibaba Agent Sandbox key; build AccessKeys do not replace it.";\n    ' + runtime.slice(authBoxEnd);
 let embeddedReads = 0;
 runtime = runtime.replace(/fs\.readFileSync\((path\.join\([^\n]*?\.hbs`[^\n]*?\)), `utf8`\)/g, (_match, filename) => {
   embeddedReads++;
@@ -64,6 +73,25 @@ templateCommand.addHelpText("after", "\\nAgent Sandbox extensions: from-image, b
 for (const abxCommand of sandboxCommand.commands) {
   if (abxCommand.name() === "create" || abxCommand.name() === "spawn") abxCommand.addHelpText("after", "\\nAgent Sandbox: --prompt <description> generates a template before creation.");
 }
+program.hook("preAction", async (_program, command) => {
+  const hook = globalThis[Symbol.for("agent-sandbox.cli.configuration")];
+  if (typeof hook !== "function") return;
+  const commandPath = [];
+  for (let current = command; current && current.parent; current = current.parent) commandPath.unshift(current.name());
+  if (commandPath[0] === "template" && ["init", "migrate"].includes(commandPath[1])) return;
+  try {
+    if (commandPath[0] === "sandbox" && ["create", "spawn"].includes(commandPath[1])) {
+      buildLifecycle(command.opts()["lifecycle.ontimeout"], command.opts()["lifecycle.autoresume"]);
+    }
+    const resolved = await hook({ commandPath, options: command.opts() });
+    apiKey = resolved.apiKey;
+    connectionConfig = new ConnectionConfig({ apiKey, apiUrl: resolved.apiUrl, domain: resolved.domain });
+    client = new ApiClient(connectionConfig, { requireApiKey: false });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message || "Configuration cancelled." : "Configuration setup failed.");
+    process.exit(1);
+  }
+});
 ${helpAnchor}`);
 fs.writeFileSync(runtimeFile, runtime);
 fs.writeFileSync(path.join(output, "runtime.d.mts"), "// Maintained declaration boundary for the pinned bundled command implementation.\ndeclare const runtime: { completion: Promise<void> };\nexport default runtime;\n");

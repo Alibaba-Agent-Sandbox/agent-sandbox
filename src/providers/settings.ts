@@ -3,24 +3,32 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { paths } from "../transport/config_layers.js";
+import { paths, resetLayeredConfig } from "../transport/config_layers.js";
+import { resetConfig } from "../transport/config.js";
+import { assertConfigFilesReadable } from "../utils/config_diagnostics.js";
+import { PyFloat, pyFloatRepr } from "../utils/_pyformat.js";
+import { dotenvValues, parseStream } from "../utils/_dotenv.js";
 import { BUILTIN_PROVIDER_ID, providerEnvPrefix } from "../utils/config_keys.js";
 
 const HEADER = /^\s*\[\[?\s*([^\]]+?)\s*\]\]?\s*(#.*)?$/;
 
-function write(file: string, text: string): void {
+/** Invalidate both legacy and layered snapshots after a successful configuration change. */
+export function resetConfigurationCaches(): void {
+  resetConfig();
+  resetLayeredConfig();
+}
+
+/** Atomically replace one configuration file with owner-only permissions and invalidate both consumers. */
+export function writeConfigurationFile(file: string, text: string): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const fd = fs.openSync(file, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC, 0o600);
+  const temporary = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
   try {
-    fs.writeSync(fd, text);
+    fs.writeFileSync(temporary, text, { mode: 0o600, flag: "wx" });
+    fs.renameSync(temporary, file);
   } finally {
-    fs.closeSync(fd);
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
   }
-  try {
-    fs.chmodSync(file, 0o600);
-  } catch {
-    /* best effort */
-  }
+  resetConfigurationCaches();
 }
 
 function readLines(file: string): string[] | null {
@@ -34,6 +42,7 @@ function readLines(file: string): string[] | null {
 /** Write `[core] provider = "<id>"` (`null` or the built-in id removes the key). */
 export function setDefaultProvider(providerId: string | null, configPath?: string): void {
   const file = configPath ?? paths.configFile;
+  assertConfigFilesReadable(file);
   const existing = readLines(file);
   const lines = existing ?? [];
   const remove = providerId === null || providerId === BUILTIN_PROVIDER_ID;
@@ -71,12 +80,13 @@ export function setDefaultProvider(providerId: string | null, configPath?: strin
     }
   }
   if (remove && existing === null) return;
-  write(file, `${out.join("\n")}\n`);
+  writeConfigurationFile(file, `${out.join("\n")}\n`);
 }
 
 /** Remove `[providers.<id>]` from config.toml and `ABX_<ID>_*` from the user `.env`. */
 export function purgeProviderSettings(providerId: string, configPath?: string, envPath?: string): void {
   const cfg = configPath ?? paths.configFile;
+  assertConfigFilesReadable(cfg, [envPath ?? path.join(path.dirname(cfg), ".env")]);
   const cfgLines = readLines(cfg);
   if (cfgLines !== null) {
     const keep: string[] = [];
@@ -87,7 +97,7 @@ export function purgeProviderSettings(providerId: string, configPath?: string, e
       if (m) skipping = (m[1] as string).replace(/ /g, "") === target;
       if (!skipping) keep.push(line);
     }
-    write(cfg, `${keep.join("\n")}\n`);
+    writeConfigurationFile(cfg, `${keep.join("\n")}\n`);
   }
   const envFile = envPath ?? path.join(path.dirname(cfg), ".env");
   const envLines = readLines(envFile);
@@ -95,11 +105,12 @@ export function purgeProviderSettings(providerId: string, configPath?: string, e
     const prefix = providerEnvPrefix(providerId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(`^\\s*(export\\s+)?${prefix}`);
     const kept = envLines.filter((ln) => !re.test(ln));
-    write(envFile, `${kept.join("\n")}${kept.length > 0 ? "\n" : ""}`);
+    writeConfigurationFile(envFile, `${kept.join("\n")}${kept.length > 0 ? "\n" : ""}`);
   }
 }
 
-function tomlLiteral(value: string | number | boolean): string {
+function tomlLiteral(value: string | number | boolean | PyFloat): string {
+  if (value instanceof PyFloat) return pyFloatRepr(value.value);
   if (typeof value === "boolean" || typeof value === "number") return String(value);
   return JSON.stringify(value);
 }
@@ -108,8 +119,9 @@ function tomlLiteral(value: string | number | boolean): string {
  * Set (or, with `null`, remove) `key` in the TOML table `[table]`, preserving everything else. The table is created on
  * demand and removed again when it becomes empty.
  */
-export function setTomlValue(table: string, key: string, value: string | number | boolean | null, configPath?: string): void {
+export function setTomlValue(table: string, key: string, value: string | number | boolean | PyFloat | null, configPath?: string): void {
   const file = configPath ?? paths.configFile;
+  assertConfigFilesReadable(file);
   const existing = readLines(file);
   if (existing === null && value === null) return;
   const lines = existing ?? [];
@@ -166,16 +178,24 @@ export function setTomlValue(table: string, key: string, value: string | number 
     }
     pruned.push(out[i] as string);
   }
-  write(file, pruned.length > 0 ? `${pruned.join("\n")}\n` : "");
+  writeConfigurationFile(file, pruned.length > 0 ? `${pruned.join("\n")}\n` : "");
 }
 
 /** Set (or, with `null`, remove) `NAME=value` in a dotenv file (default `~/.abx/.env`, mode 0600). */
 export function setEnvValue(name: string, value: string | null, envPath?: string): void {
   const file = envPath ?? path.join(path.dirname(paths.configFile), ".env");
-  const existing = readLines(file);
-  if (existing === null && value === null) return;
-  const re = new RegExp(`^\\s*(export\\s+)?${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*=`);
-  const kept = (existing ?? []).filter((ln) => !re.test(ln));
-  if (value !== null) kept.push(`${name}=${/[\s#"']/.test(value) ? JSON.stringify(value) : value}`);
-  write(file, kept.length > 0 ? `${kept.join("\n")}\n` : "");
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error("Invalid configuration variable name.");
+  assertConfigFilesReadable(paths.configFile, [file]);
+  const existing = fs.existsSync(file) ? fs.readFileSync(file, "utf-8") : "";
+  if (!existing && value === null) return;
+  const assignment = value === null ? "" : `${name}=${/[\s#"'\\]/.test(value) ? JSON.stringify(value) : value}\n`;
+  if (value !== null && dotenvValues(null, { stream: assignment }).get(name) !== value) {
+    throw new Error(`Cannot store '${name}' losslessly in dotenv format. Avoid interpolation expressions or unsupported control characters; existing configuration was not changed.`);
+  }
+  const retained = [...parseStream(existing)].filter((binding) => binding.key !== name).map((binding) => binding.original.string).join("");
+  const text = retained + (retained && !/[\r\n]$/.test(retained) && assignment ? "\n" : "") + assignment;
+  if (value !== null && dotenvValues(null, { stream: text }).get(name) !== value) {
+    throw new Error(`Cannot store '${name}' losslessly in dotenv format. Existing configuration was not changed.`);
+  }
+  writeConfigurationFile(file, text);
 }

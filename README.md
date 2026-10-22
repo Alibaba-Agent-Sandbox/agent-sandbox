@@ -215,6 +215,7 @@ python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-S
 | Binary Installation | [Binary Installation](docs/en/guide/binary-installation.md) |
 | CLI Tutorial | [CLI Tutorial](docs/en/guide/cli-tutorial.md) |
 | Authentication | [Authentication](docs/en/guide/authentication.md) |
+| Guided configuration | [Inline setup, automation and safe continuation](docs/en/guide/guided-configuration.md) |
 | Environment Variables | [Environment Variables](docs/en/guide/environment-variables.md) |
 | Using Templates | [Using Templates](docs/en/guide/using-templates.md) |
 | Authoring Templates | [Authoring Templates](docs/en/guide/authoring-templates.md) |

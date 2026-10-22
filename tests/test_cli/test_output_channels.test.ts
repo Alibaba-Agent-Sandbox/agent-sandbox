@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Channel-separation tests for the CLI output manager (task 167).
  *
@@ -432,3 +433,6 @@ describe("TestDeployDiagnosticsChannel", () => {
     vi.restoreAllMocks();
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

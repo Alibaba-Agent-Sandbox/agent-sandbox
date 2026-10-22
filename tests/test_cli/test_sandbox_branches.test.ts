@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Extra branch tests for the main sandbox commands (adversarial line-by-line pass over sandbox.py). */
 
 import "../_support/isolatedHome.js";
@@ -194,3 +195,6 @@ describe("TestConnectInterrupts", () => {
     expect(inputInterrupts.swallowFirst).toBe(false);
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

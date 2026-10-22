@@ -14,6 +14,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
+import * as sandboxCommand from "../../src/cli/commands/sandbox.js";
+import * as guidance from "../../src/cli/config_guidance.js";
 import { deploySeams } from "../../src/providers/alicloud_express/cli/deploy.js";
 import { build as realBuild } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
@@ -104,6 +106,41 @@ function useAgent(): Seen {
 }
 
 describe("TestFlags", () => {
+  it("announces only the model host without URL credentials or query values", async () => {
+    useAgent();
+    const credentials = { baseUrl: "https://user:private-fixture@models.example/v1?key=query-fixture", asEnv: () => ({}) };
+    vi.mocked(codingAgent.resolveCodingAgentCredentials).mockResolvedValue(credentials);
+    const result = await runner().invoke(cli, ["template", "scaffold", _project(), "--adopt", "-y"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(result.output).toContain("models.example");
+    expect(result.output).not.toContain("private-fixture");
+    expect(result.output).not.toContain("query-fixture");
+  });
+
+  it("offers one replacement model for adoption and keeps the change command-only", async () => {
+    useAgent();
+    const backend = codingAgent.resolveCodingAgentBackend();
+    const original = backend.runInWorkspace.bind(backend);
+    const run = vi.spyOn(backend, "runInWorkspace").mockRejectedValueOnce(new Error("model not exist")).mockImplementationOnce(original);
+    vi.spyOn(adoptSeams, "_isInteractive").mockReturnValue(true);
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
+    const pick = vi.spyOn(sandboxCommand, "_pickReplacementModel").mockResolvedValue("replacement-model");
+    const result = await runner().invoke(cli, ["template", "scaffold", _project(), "--adopt"], { input: "y\nn\ny\n" });
+    expect(result.exit_code, result.output).toBe(0);
+    expect(pick).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(codingAgent.resolveCodingAgentCredentials).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ model: "replacement-model" }));
+    expect(result.output).toContain("only for this command");
+    expect(result.output).toContain("abx config set llm_model");
+  });
+
+  it("forwards an explicit model to the adoption backend", async () => {
+    useAgent();
+    const result = await runner().invoke(cli, ["template", "scaffold", _project(), "--adopt", "--model", "chosen-model", "-y"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(codingAgent.resolveCodingAgentCredentials).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ model: "chosen-model" }));
+  });
+
   it("test_hint_and_dry_run_require_adopt", async () => {
     for (const args of [["--hint", "redis"], ["--dry-run"]]) {
       const result = await runner().invoke(cli, ["template", "scaffold", ...args]);

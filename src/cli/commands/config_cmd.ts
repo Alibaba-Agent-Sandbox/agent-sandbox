@@ -1,7 +1,7 @@
 import { ProviderConfigError } from "../../providers/errors.js";
 import { providerCliExtension, bundledCliConfigurations } from "../provider_extensions.js";
 import type { ConfigPrompt } from "../provider_config_contract.js";
-import { providerSchema } from "../../transport/config_layers.js";
+import { providerSchema, paths } from "../../transport/config_layers.js";
 /**
  * Configuration management CLI commands: init, get, set, list, delete (port of `cli/commands/config_cmd.py`).
  *
@@ -28,14 +28,23 @@ import { prompt } from "../prompts.js";
 import { cpSlice, len, ljust } from "../../utils/_py.js";
 import { TransportConfig, projectDotenvValue } from "../../transport/config.js";
 import { _DEFAULT_OPENAI_BASE_URL, _DEFAULT_OPENAI_MODEL } from "../../agent/qwen_code.js";
-import { PyFloat, pyFloatParse, pyFloatRepr, pyStr, pyStrRepr, pyStrip, pySorted, pySplitlines } from "../../utils/_pyformat.js";
-import { isFile, toOSError, writeTextPy } from "../../utils/_pyos.js";
+import { PyFloat, pyFloatParse, pyFloatRepr, pyStr, pyStrRepr, pyStrip, pySorted } from "../../utils/_pyformat.js";
+import { isFile, toOSError } from "../../utils/_pyos.js";
 import { type OutputFormatter, getFormatter } from "../formatters.js";
 import { decodeUtf8Strict, loadBytes, type Table } from "../../utils/_tomllib.js";
 import { providersInUse } from "../../providers/in_use.js";
 import { _setPaths, applyMigration, auditConfig, planMigration } from "../../transport/config_layers.js";
 import * as extras from "./_config_providers.js";
 import * as registry from "../../providers/registry.js";
+import { setEnvValue, setTomlValue, resetConfigurationCaches, writeConfigurationFile } from "../../providers/settings.js";
+import { dotenvValues, parseStream } from "../../utils/_dotenv.js";
+import { assertConfigFilesReadable, assertConfigValuesValid } from "../../utils/config_diagnostics.js";
+import { CORE_KEYS, GENERIC_ENDPOINT_KEYS } from "../../utils/config_keys.js";
+import { collectSources } from "../../transport/config_layers.js";
+import { getOperationConfig } from "../../utils/operation_config.js";
+import { canPrompt } from "../interaction.js";
+import { configurationTargetSummary } from "../config_target.js";
+import { getCurrentContext } from "../kit.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
@@ -63,7 +72,7 @@ const _defaultAbxDir = path.join(os.homedir(), ".abx");
 /** The slice of Python's `sys` module this file uses (`sys.stdin`, `sys.stdout`). */
 export interface ConfigSys {
   stdin: { isatty(): boolean; fileno?(): number };
-  stdout?: { write(text: string): void; flush(): void };
+  stdout?: { write(text: string): void; flush(): void; isatty(): boolean };
   stderr?: { isatty(): boolean };
 }
 
@@ -96,7 +105,7 @@ function _stdin(): ConfigSys["stdin"] {
 }
 
 function _stdout(): { write(text: string): void; flush(): void } {
-  return configSeams.sys?.stdout ?? sys.stdout;
+  return sys.stderr;
 }
 
 /** Keys that users can configure (key -> help). */
@@ -344,7 +353,7 @@ function _saveFullConfig(data: Table): void {
     }
   }
   const content = lines.length ? lines.join("\n") + "\n" : "";
-  writeTextPy(configSeams._CONFIG_FILE, content);
+  writeConfigurationFile(configSeams._CONFIG_FILE, content);
 }
 
 /**
@@ -376,7 +385,20 @@ export function loadConfigDict(): Record<string, unknown> {
 
 /** Save the `[transport]` dict, preserving every other section. */
 function _saveConfigDict(data: Record<string, unknown>): void {
+  assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
   let full = _loadFullConfig();
+  const rawExisting = full.get("transport");
+  const existing = _isTable(rawExisting) ? rawExisting : undefined;
+  if (existing || full.size === 0) {
+    for (const key of existing?.keys() ?? []) if (!Object.hasOwn(data, key)) setTomlValue("transport", key, null, configSeams._CONFIG_FILE);
+    for (const [key, value] of Object.entries(data)) {
+      const primitive = value;
+      if (primitive instanceof PyFloat || ["string", "number", "boolean"].includes(typeof primitive)) {
+        if (existing?.get(key) !== value) setTomlValue("transport", key, primitive as string | number | boolean | PyFloat, configSeams._CONFIG_FILE);
+      } else { full.set("transport", new Map(Object.entries(data))); _saveFullConfig(full); return; }
+    }
+    return;
+  }
   if (!full.has("transport")) {
     // Legacy flat file: keep real sections only; the root scalars are rewritten as the [transport] table.
     const sections: Table = new Map();
@@ -403,27 +425,8 @@ export function _maskValue(value: unknown): string {
 
 /** `write_env_var()` implementation (owner-only permissions are enforced after every write). */
 function _writeEnvVarImpl(envVar: string, value: string): void {
-  _mkdirParents(configSeams._ABX_DIR);
-  const prefix = `${envVar}=`;
-  const lines: string[] = [];
-  let found = false;
-  if (isFile(configSeams._ENV_FILE)) {
-    for (const line of pySplitlines(_readText(configSeams._ENV_FILE))) {
-      if (line.startsWith(prefix)) {
-        lines.push(`${prefix}${value}`);
-        found = true;
-      } else {
-        lines.push(line);
-      }
-    }
-  }
-  if (!found) lines.push(`${prefix}${value}`);
-  writeTextPy(configSeams._ENV_FILE, lines.join("\n") + "\n");
-  try {
-    fs.chmodSync(configSeams._ENV_FILE, 0o600);
-  } catch {
-    /* A failing chmod (exotic filesystems) is ignored on purpose: storing a key must never fail for a permission-only reason. */
-  }
+  assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
+  setEnvValue(envVar, value, configSeams._ENV_FILE);
 }
 
 /** Write or update `envVar` in the `~/.abx/.env` file. */
@@ -433,11 +436,7 @@ export function writeEnvVar(envVar: string, value: string): void {
 
 function _readEnvVarImpl(envVar: string): string | null {
   if (!isFile(configSeams._ENV_FILE)) return null;
-  const prefix = `${envVar}=`;
-  for (const line of pySplitlines(_readText(configSeams._ENV_FILE))) {
-    if (line.startsWith(prefix)) return pyStrip(line.slice(line.indexOf("=") + 1));
-  }
-  return null;
+  return dotenvValues(configSeams._ENV_FILE).get(envVar) ?? null;
 }
 
 /** Read `envVar` from the `~/.abx/.env` file. */
@@ -448,12 +447,14 @@ export function readEnvVar(envVar: string): string | null {
 /** Remove `envVar` from `~/.abx/.env`; the file is deleted once no entries remain. Returns whether a line was removed. */
 export function removeEnvVar(envVar: string): boolean {
   if (!isFile(configSeams._ENV_FILE)) return false;
-  const prefix = `${envVar}=`;
-  const original = pySplitlines(_readText(configSeams._ENV_FILE));
-  const kept = original.filter((line) => !line.startsWith(prefix));
-  if (kept.length === original.length) return false;
-  if (kept.some((line) => pyStrip(line))) writeTextPy(configSeams._ENV_FILE, kept.join("\n") + "\n");
-  else _unlink(configSeams._ENV_FILE);
+  assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
+  const original = _readText(configSeams._ENV_FILE);
+  if (![...parseStream(original)].some((binding) => binding.key === envVar)) return false;
+  setEnvValue(envVar, null, configSeams._ENV_FILE);
+  if (!pyStrip(_readText(configSeams._ENV_FILE))) {
+    _unlink(configSeams._ENV_FILE);
+    resetConfigurationCaches();
+  }
   return true;
 }
 
@@ -481,7 +482,7 @@ function _echoName(typed: string, canonical: string): string {
 
 /** `extras` reads `~/.abx` through `config_layers.paths`; follow the seams when tests (or callers) moved them. */
 function _syncPaths(): void {
-  if (configSeams._CONFIG_FILE !== path.join(_defaultAbxDir, "config.toml")) {
+  if (configSeams._CONFIG_FILE !== path.join(_defaultAbxDir, "config.toml") && paths.configFile !== configSeams._CONFIG_FILE) {
     _setPaths({
       abxDir: configSeams._ABX_DIR,
       configFile: configSeams._CONFIG_FILE,
@@ -605,6 +606,10 @@ function _envOverrideName(key: string): string | null {
  * valid stored value. Order: process environment, `./.env`, the value stored under `~/.abx`, a built-in default.
  */
 export function _effectiveValue(key: string): [unknown, string] {
+  const operation = getOperationConfig();
+  const operationKey = ({ api_url: "sandbox_base_url", domain: "sandbox_domain", api_key: "sandbox_api_key" } as Record<string, string>)[key] ?? key;
+  const temporary = operation?.[operationKey] ?? operation?.[key];
+  if (temporary !== undefined && temporary !== null && temporary !== "") return [temporary, "override"];
   const envName = _envOverrideName(key);
   if (envName !== null) return [process.env[envName], "env"];
   const projectValue = projectDotenvValue(_ENV_OVERRIDES.get(key) ?? []);
@@ -740,6 +745,16 @@ export const get = command("get", {
   }),
 });
 
+function _savedHint(key: string, value: string, target?: extras.ExtraTarget): void {
+  if (!canPrompt(getCurrentContext(true) ?? undefined, false, configSeams.sys ?? undefined)) return;
+  const location = target ? extras.storageLocation(target).path : _ENV_STORED_KEYS.has(key) ? configSeams._ENV_FILE : configSeams._CONFIG_FILE;
+  echo(`Saved in ${location}. Review values and sources: abx config list. Modify later: abx config set ${target?.typed ?? key} (omit VALUE for hidden secret input).`, { err: true });
+  const effective = target ? extras.readExtra(target) : { value: _effectiveValue(key)[0], source: _effectiveValue(key)[1], name: _envOverrideName(key) ?? _ENV_STORED_KEYS.get(key) ?? key };
+  const expected = target?.key ? extras.parseExtraValue(target, value) : key === "http2" ? ["true", "1", "yes", "on"].includes(value.trim().toLowerCase()) : key === "http_timeout" ? _pyFloatParse(value) : key === "max_retries" ? _pyIntParse(value) : value;
+  const actual = effective.value instanceof PyFloat ? effective.value.value : effective.value;
+  if (String(actual) !== String(expected)) echo(`The saved value is overridden by ${effective.source}: ${effective.name || "see abx config list"}. Update that source to change the effective value; its value is not shown.`, { err: true });
+}
+
 export const set_value = command("set", {
   help: SET_HELP,
   params: [argument(["key"]), argument(["value"], { required: false })],
@@ -765,6 +780,7 @@ export const set_value = command("set", {
       }
       extras.writeExtra(extra, value);
       fmt.printSuccess(`Set ${extra.typed} = ${extra.key?.secret ? _maskValue(value) : value}`);
+      _savedHint(key, value, extra);
       _legacyKeyNote(fmt, typedKey);
       return;
     }
@@ -792,6 +808,7 @@ export const set_value = command("set", {
       }
       const displayValue = _SENSITIVE_KEYS.has(key) ? _maskValue(value) : value;
       fmt.printSuccess(`Set ${echoKey} = ${displayValue}`);
+      _savedHint(key, value);
       _legacyKeyNote(fmt, typedKey);
       return;
     }
@@ -831,9 +848,57 @@ export const set_value = command("set", {
     _saveConfigDict(data);
     const displayValue = _SENSITIVE_KEYS.has(key) ? _maskValue(value) : value;
     fmt.printSuccess(`Set ${echoKey} = ${displayValue}`);
+    _savedHint(key, value);
     _legacyKeyNote(fmt, typedKey);
   }),
 });
+
+/** Save one validated setup value without printing it; return the actual persistent destination. */
+export function saveGuidedValue(key: string, value: string, providerId?: string): { path: string; key: string; section?: string } {
+  _syncPaths();
+  assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
+  const canonical = _canonicalizeKey(key);
+  const schemaName = ({ api_url: "sandbox_base_url", domain: "sandbox_domain" } as Record<string, string>)[canonical] ?? canonical;
+  const providerOwns = providerId ? registry.getProvider(providerId).configKeys().some((field) => field.key === schemaName) || registry.getProvider(providerId).inherit.has(schemaName) : false;
+  if (providerId && !providerOwns && (!["llm_api_key", "llm_base_url", "llm_model", "github_token", "http_timeout", "http2", "max_retries"].includes(canonical))) {
+    throw new ProviderConfigError(`Provider '${providerId}' does not declare or inherit '${schemaName}'; it cannot be saved for this operation.`);
+  }
+  const target = providerId && providerOwns ? extras.resolveExtraKey(`providers.${providerId}.${schemaName}`) : _extraFor(key, canonical);
+  if (target) {
+    extras.writeExtra(target, value);
+    return extras.storageLocation(target);
+  }
+  if (!_ALLOWED_KEYS.has(canonical)) throw new ProviderConfigError(`Unknown config key '${key}'.`);
+  const env = _ENV_STORED_KEYS.get(canonical);
+  if (env) {
+    configSeams.writeEnvVar(env, value);
+    if (_LEGACY_TOML_ENV_KEYS.has(canonical)) _removeTomlKey(canonical);
+    resetConfigurationCaches();
+    return { path: configSeams._ENV_FILE, key: env };
+  }
+  const data = configSeams.loadConfigDict();
+  if (canonical === "http_timeout") {
+    const parsed = _pyFloatParse(value);
+    if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) throw new ProviderConfigError("http_timeout must be a positive finite number.");
+    data[canonical] = new PyFloat(parsed);
+  } else if (canonical === "max_retries") {
+    const parsed = _pyIntParse(value);
+    if (parsed === null || parsed < 0) throw new ProviderConfigError("max_retries must be a non-negative integer.");
+    data[canonical] = parsed;
+  } else if (canonical === "http2") {
+    const boolean = value.trim().toLowerCase();
+    if (!["true", "false", "1", "0", "yes", "no", "on", "off"].includes(boolean)) throw new ProviderConfigError("http2 must be true or false.");
+    data[canonical] = ["true", "1", "yes", "on"].includes(boolean);
+  } else {
+    if (["api_url", "llm_base_url"].includes(canonical)) {
+      try { const url = new URL(value); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
+      catch { throw new ProviderConfigError(`'${canonical}' must be an HTTP(S) URL.`); }
+    }
+    data[canonical] = value;
+  }
+  _saveConfigDict(data);
+  return { path: configSeams._CONFIG_FILE, key: canonical, section: "transport" };
+}
 
 export const delete_value = command("delete", {
   help: DELETE_HELP,
@@ -977,7 +1042,7 @@ export const list_config = command("list", {
 });
 
 /** Print the non-interactive commands equivalent to the guided wizard. */
-function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }): void {
+function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }, fmt?: OutputFormatter): void {
   const provider = registry.getProvider(extras.effectiveProviderId());
   const profile = providerCliExtension(provider.id)?.configuration;
   const lines = ["Non-interactive setup. Run these commands to configure abx:", "",
@@ -1005,7 +1070,8 @@ function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }): void
     if (!opts.llm) more.push("template generation: 'abx config init --llm'");
     lines.push(`More settings: ${more.join("; ")}.`);
   }
-  for (const line of lines) echo(line);
+  if (fmt?.use_json) fmt.printData({ status: "setup_required", commands: lines.filter((line) => line.trim().startsWith("abx ")).map((line) => line.trim()), message: "Non-interactive setup; no configuration was changed." });
+  else for (const line of lines) echo(line);
 }
 
 export const init = command("init", {
@@ -1019,56 +1085,121 @@ export const init = command("init", {
     const fmt = getFormatter(ctx);
     const build = Boolean(params["build"]);
     const llm = Boolean(params["llm"]);
+    _syncPaths();
 
     // Never block in CI / piped sessions.
-    if (params["yes"] || !_stdin().isatty()) {
-      _printNoninteractiveSetup({ build, llm });
+    if (!canPrompt(ctx, Boolean(params["yes"]), configSeams.sys ?? undefined)) {
+      _printNoninteractiveSetup({ build, llm }, fmt);
       return;
     }
 
     const provider = registry.getProvider(extras.effectiveProviderId());
     const profile = providerCliExtension(provider.id)?.configuration;
-    const declared: readonly ConfigPrompt[] = profile?.initFields ?? provider.configKeys().filter((key) => key.credential || key.required).map((key) => ({
+    assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
+    assertConfigValuesValid([...CORE_KEYS.filter((key) => !GENERIC_ENDPOINT_KEYS.includes(key.key) || provider.inherit.has(key.key)), ...provider.configKeys()], collectSources(), provider.id);
+    echo(configurationTargetSummary(provider.id), { err: true });
+    const declared: readonly ConfigPrompt[] = profile?.initFields ?? (await extras.initializationKeys(provider.id, async (groups) => {
+      echo(groups.map((group, index) => `  ${index + 1}. ${group.join(" + ")}`).join("\n"), { err: true });
+      for (;;) {
+        const answer = String(await prompt("Choose an authentication method (number; Enter cancels)", { default: "", show_default: false, err: true }));
+        if (!answer) throw new Abort();
+        const index = Number(answer) - 1;
+        if (Number.isInteger(index) && index >= 0 && index < groups.length) return index;
+        echo("Choose one of the listed authentication methods.", { err: true });
+      }
+    })).map((key) => ({
       key: key.key, prompt: key.description || key.key, hidden: key.secret, current: !key.secret, result: "stored" as const,
     }));
     const fields = [...declared, ...(build ? profile?.buildFields ?? [] : [])];
     const total = fields.length + (llm ? 1 : 0);
+    const pending: Array<{ field: ConfigPrompt; value: string }> = [];
     let step = 0;
     const label = (text: string): string => `${++step}/${total} ${text}`;
-    echo("abx guided configuration (press Enter to keep the current value or skip):"); echo();
+    assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
+    echo("abx guided configuration (press Enter to keep the current value; missing required values remain incomplete):", { err: true });
     for (const field of fields) {
       let current: unknown = field.default ?? "";
       if (field.current) {
         const target = profile ? null : extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
         current = (target ? extras.readExtra(target).value : _effectiveValue(field.key)[0]) ?? current;
       }
-      const answer = field.hidden ? await configSeams._promptSecret(label(field.prompt)) : await prompt(label(field.prompt), {
-        default: pyStr(current), show_default: Boolean(current),
-      });
-      const value = pyStrip(String(answer));
-      if (!value) continue;
-      if (!profile) {
-        const target = extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
-        if (!target) throw new ProviderConfigError(`Provider '${provider.id}' does not declare '${field.key}'.`);
-        extras.writeExtra(target, value);
-      } else if (field.env) configSeams.writeEnvVar(field.env, value);
-      else { const data = configSeams.loadConfigDict(); data[field.key] = value; _saveConfigDict(data); }
-      if (field.result === "set" && !field.hidden) fmt.printSuccess(`Set ${field.key} = ${value}`);
-      else fmt.printSuccess(`Stored ${field.key} in protected provider configuration`);
-    }
-
-    if (llm) {
-      const llmKey = await configSeams._promptSecret(label("LLM API key (DashScope/ModelStudio, input masked)"));
-      if (pyStrip(llmKey)) {
-        configSeams.writeEnvVar("ABX_LLM_API_KEY", pyStrip(llmKey));
-        // Same migration as `abx config set llm_api_key`: drop any legacy plaintext copy in config.toml.
-        _removeTomlKey("llm_api_key");
-        fmt.printSuccess("Stored llm_api_key in ~/.abx/.env");
+      const question = label(field.prompt);
+      for (;;) {
+        const answer = field.hidden ? await configSeams._promptSecret(question) : await prompt(question, {
+          default: pyStr(current), show_default: Boolean(current), err: true,
+        });
+        const value = pyStrip(String(answer));
+        if (!value) break;
+        try {
+          const target = extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
+          if (target?.key) extras.parseExtraValue(target, value);
+          pending.push({ field, value });
+          break;
+        } catch (error) {
+          if (!(error instanceof ProviderConfigError)) throw error;
+          echo(error.message, { err: true });
+        }
       }
+    }
+    if (llm) {
+      const value = pyStrip(await configSeams._promptSecret(label("LLM API key (DashScope/ModelStudio, input masked)")));
+      if (value) pending.push({ field: { key: "llm_api_key", env: "ABX_LLM_API_KEY", prompt: "LLM API key", hidden: true, result: "stored" }, value });
+    }
+    const saved: string[] = [];
+    try {
+      for (const { field, value } of pending) {
+        let destination: string;
+        if (!profile && field.key !== "llm_api_key") {
+          const target = extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
+          if (!target) throw new ProviderConfigError(`Provider '${provider.id}' does not declare '${field.key}'.`);
+          extras.writeExtra(target, value);
+          destination = extras.storageLocation(target).path;
+        } else if (field.env) {
+          configSeams.writeEnvVar(field.env, value);
+          if (_LEGACY_TOML_ENV_KEYS.has(field.key)) _removeTomlKey(field.key);
+          destination = configSeams._ENV_FILE;
+        } else {
+          const data = configSeams.loadConfigDict(); data[field.key] = value; _saveConfigDict(data);
+          destination = configSeams._CONFIG_FILE;
+        }
+        saved.push(field.key);
+        if (field.result === "set" && !field.hidden) fmt.printSuccess(`Set ${field.key} = ${value}`);
+        else fmt.printSuccess(`Stored ${field.key} in ${destination}`);
+      }
+    } catch (error) {
+      if (error instanceof extras.ConfigurationCleanupError) saved.push(error.field);
+      throw new ProviderConfigError(`Configuration save failed. Saved fields: ${saved.join(", ") || "none"}; setup is incomplete.${error instanceof extras.ConfigurationCleanupError ? " A previous configuration copy could not be removed." : ""}`, {
+        suggestion: `Check permissions on ${configSeams._CONFIG_FILE} and ${configSeams._ENV_FILE}; review 'abx config list' before retrying.`,
+      });
     }
 
     echo();
-    fmt.printSuccess("Configuration complete. Review it with 'abx config list'.");
+    resetConfigurationCaches();
+    const required = profile ? ["sandbox_api_key", ...(build ? ["acr_namespace", "access_key_id", "access_key_secret"] : []), ...(llm ? ["llm_api_key"] : [])] : fields.filter((field) => provider.configKeys().find((key) => key.key === field.key)?.required).map((field) => field.key);
+    const missing = required.filter((key) => {
+      const value = profile ? _effectiveValue(key)[0] : extras.readExtra(extras.resolveExtraKey(`providers.${provider.id}.${key}`)!).value;
+      return value === null || value === undefined || value === "";
+    });
+    let authError = "";
+    if (!profile) {
+      try { provider.validateConfig((await import("../../transport/config_layers.js")).loadLayeredConfig({ provider: provider.id })); }
+      catch { authError = ` Required fields or an authentication combination for '${provider.id}' are still missing; see 'abx provider info ${provider.id}'.`; }
+    }
+    if (missing.length || authError) {
+      fmt.printError(`Configuration incomplete.${missing.length ? ` Missing: ${missing.join(", ")}.` : ""}${authError}`, { suggestion: "Run 'abx config init' again, or 'abx config set KEY' to enter a value safely." });
+      return sysExit(2);
+    }
+    const overridden: string[] = [];
+    for (const { field, value } of pending) {
+      const target = field.key === "llm_api_key" ? null : extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
+      const effective = target ? extras.readExtra(target) : { value: _effectiveValue(field.key)[0], source: _effectiveValue(field.key)[1], name: _envOverrideName(field.key) ?? field.env ?? field.key };
+      const expected = target ? extras.parseExtraValue(target, value) : value;
+      if (effective.value !== expected) overridden.push(`${field.key} (${effective.source}: ${effective.name || "see abx config list"})`);
+    }
+    if (overridden.length) echo(`Saved values overridden by another configuration source: ${overridden.join(", ")}. Update or remove that source to use the newly saved values; values are not shown.`, { err: true });
+    const destinations = [...new Set(pending.map(({ field }) => field.env ? configSeams._ENV_FILE : configSeams._CONFIG_FILE))];
+    fmt.printSuccess(`Configuration complete.${destinations.length ? ` Saved to ${destinations.join(" and ")}.` : " Existing values were kept."} Review values and sources with 'abx config list'.`);
+    echo("To change a value later: abx config set KEY (omit VALUE for masked secret input).", { err: true });
     if (!build || !llm) {
       const more: string[] = [];
       if (!build) more.push("template build/push: 'abx config init --build'");
@@ -1139,12 +1270,7 @@ export const migrate_config = command("migrate", {
       return;
     }
     if (!params["yes"]) {
-      let interactive = false;
-      try {
-        interactive = _stdin().isatty();
-      } catch {
-        interactive = false;
-      }
+      const interactive = canPrompt(ctx, false, configSeams.sys ?? undefined);
       if (!interactive || fmt.use_json || fmt.quiet) {
         fmt.printError("Refusing to rewrite the configuration without confirmation.", {
           suggestion: "Review it with 'abx config migrate --dry-run', then re-run with --yes.",
@@ -1342,7 +1468,7 @@ async function _promptSecretImpl(promptText: string): Promise<string> {
     }
   }
   echo("Note: asterisk masking is not supported by this terminal; typed input will not be echoed.", { err: true });
-  return String(await prompt(promptText, { hide_input: true, default: "", show_default: false }));
+  return String(await prompt(promptText, { hide_input: true, default: "", show_default: false, err: true }));
 }
 
 /** Prompt for a secret, showing `*` per keystroke when possible. */
@@ -1358,12 +1484,7 @@ export function _promptSecret(promptText: string): Promise<string> {
  * Without an interactive terminal the command exits with code 2 instead of blocking a CI job.
  */
 async function _promptMissingValue(fmt: OutputFormatter, key: string, sensitive = false): Promise<string | null> {
-  let interactive: boolean;
-  try {
-    interactive = _stdin().isatty();
-  } catch {
-    interactive = false;
-  }
+  const interactive = canPrompt(getCurrentContext(true) ?? undefined, false, configSeams.sys ?? undefined);
 
   if (!interactive) {
     let suggestion = `Pass the value explicitly: 'abx config set ${key} <VALUE>'.`;
@@ -1376,15 +1497,35 @@ async function _promptMissingValue(fmt: OutputFormatter, key: string, sensitive 
     return sysExit(2);
   }
 
-  let entered: string;
-  if (sensitive || _SENSITIVE_KEYS.has(key)) {
-    entered = await configSeams._promptSecret(`${key} (input masked; press Enter to cancel)`);
-  } else {
-    entered = (await prompt(key, { default: "", show_default: false })) as string;
+  echo(configurationTargetSummary(extras.effectiveProviderId()), { err: true });
+  for (;;) {
+    const entered = sensitive || _SENSITIVE_KEYS.has(key)
+      ? await configSeams._promptSecret(`${key} (input masked; press Enter to cancel)`)
+      : String(await prompt(key, { default: "", show_default: false, err: true }));
+    if (pyStrip(entered) === "") {
+      fmt.printSuccess(`No value entered; ${key} was not changed.`);
+      return null;
+    }
+    try {
+      const canonical = _canonicalizeKey(key);
+      const target = _extraFor(key, canonical);
+      if (target?.key) extras.parseExtraValue(target, entered);
+      else if (canonical === "http_timeout") {
+        const parsed = _pyFloatParse(entered);
+        if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) throw new ProviderConfigError("Invalid numeric value: expected a positive finite timeout.");
+      } else if (canonical === "max_retries") {
+        const parsed = _pyIntParse(entered);
+        if (parsed === null || parsed < 0) throw new ProviderConfigError("Invalid integer value: expected non-negative retries.");
+      } else if (canonical === "http2" && !["true", "false", "1", "0", "yes", "no", "on", "off"].includes(entered.trim().toLowerCase())) {
+        throw new ProviderConfigError("Invalid boolean value: expected true/false.");
+      } else if (["api_url", "llm_base_url"].includes(canonical)) {
+        try { const url = new URL(entered); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
+        catch { throw new ProviderConfigError(`Invalid URL for '${key}': expected an HTTP(S) URL.`); }
+      }
+      return entered;
+    } catch (error) {
+      if (!(error instanceof ProviderConfigError)) throw error;
+      echo(error.message, { err: true });
+    }
   }
-  if (pyStrip(entered) === "") {
-    fmt.printSuccess(`No value entered; ${key} was not changed.`);
-    return null;
-  }
-  return entered;
 }

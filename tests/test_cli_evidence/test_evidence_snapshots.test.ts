@@ -21,7 +21,8 @@ import { _CI_ENV_VARS } from "../_support/env.js";
 import { REGISTRY, eligibleCases, formatResult, normalize, runCase } from "./evidence_cases.js";
 
 const GOLDEN_DIR = fileURLToPath(new URL("./golden/convergence-20261018/", import.meta.url));
-const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261021-0.4.5/", import.meta.url));
+const CURRENT_GOLDEN_DIR = fileURLToPath(new URL("./golden/guided-configuration-20261022/", import.meta.url));
+const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261022-0.4.6/", import.meta.url));
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
 /** `_suppress_ci_detection`: the CLI must never auto-enable JSON mode. */
@@ -44,10 +45,14 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   const { stdout, stderr, exit_code } = await runCase(testCase);
   const actual = normalize(formatResult(stdout, stderr, exit_code));
 
-  const goldenPath = path.join(testCase.output_file === "version" ? VERSION_GOLDEN_DIR : GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const baselinePath = path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const currentPath = path.join(testCase.output_file === "version" ? VERSION_GOLDEN_DIR : CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const goldenPath = fs.existsSync(currentPath) || testCase.output_file === "version" ? currentPath : baselinePath;
   if (UPDATE) {
-    fs.mkdirSync(path.dirname(goldenPath), { recursive: true });
-    fs.writeFileSync(goldenPath, actual);
+    if (!fs.existsSync(baselinePath) || actual !== fs.readFileSync(baselinePath, "utf8") || testCase.output_file === "version") {
+      fs.mkdirSync(path.dirname(currentPath), { recursive: true });
+      fs.writeFileSync(currentPath, actual);
+    }
     return;
   }
   expect(

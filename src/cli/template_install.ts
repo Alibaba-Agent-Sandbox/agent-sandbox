@@ -1,3 +1,5 @@
+import { withGuidedConfiguration, canGuideConfiguration } from "./config_guidance.js";
+import { confirm } from "./prompts.js";
 /** Template source acquisition is host work; deployment remains behind the selected backend's factory. */
 import fs from "node:fs";
 import path from "node:path";
@@ -17,15 +19,10 @@ import { resolveGithubToken } from "./commands/config_cmd.js";
 export async function installTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
   const fmt = getFormatter(ctx), out = getOutput(ctx);
   const provider = getProvider(resolveProviderId(cliProvider()));
-  let manager: ProviderTemplateManager | null = null;
+  const owner: { manager: ProviderTemplateManager | null } = { manager: null };
   if (!params["download_only"]) {
     provider.require("templates.build");
-    if (!params["yes"]) throw new CliError("Review deployment inputs and pass --yes, or use --download-only.");
-    manager = await provider.buildTemplateManager(loadLayeredConfig({ provider: provider.id, provider_options: cliOptions() }));
-    if (!manager.buildProject) {
-      await manager.close?.();
-      throw new ProviderFeatureNotSupportedError(provider.id, "templates.build");
-    }
+    if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new CliError("Review deployment inputs and pass --yes, or use --download-only.");
   }
   try {
     let name = String(params["template_ref"]);
@@ -50,7 +47,12 @@ export async function installTemplate(ctx: Context, params: Record<string, unkno
     }
     if (params["download_only"]) fmt.printData({ Alias: alias, Cached: destination, Status: "installed-locally" });
     else {
-      fmt.printData(await manager!.buildProject!(destination, params));
+      await withGuidedConfiguration(ctx, { operation: "Build and deploy downloaded template", provider: provider.id, yes: Boolean(params["yes"]) }, async () => {
+        owner.manager = await provider.buildTemplateManager(loadLayeredConfig({ provider: provider.id, provider_options: cliOptions() }));
+        if (!owner.manager.buildProject) throw new ProviderFeatureNotSupportedError(provider.id, "templates.build");
+        if (!params["yes"]) await confirm("Build and deploy this downloaded template? The provider may charge for the operation.", { abort: true, err: true });
+        fmt.printData(await owner.manager.buildProject(destination, params));
+      });
     }
-  } finally { await manager?.close?.(); }
+  } finally { await owner.manager?.close?.(); }
 }

@@ -17,6 +17,32 @@ cleanup. It never invokes an installed E2B CLI. Platform minimum TTL may round t
 one-second post-terminal request to about 60 seconds; the probe waits for that
 known asynchronous reclamation. Errors are masked before reporting.
 
+Run `ABX_BIN=<standalone-executable> node e2e/guided-configuration.mjs` to verify
+missing-key setup through a real terminal, hidden credential input, temporary
+configuration, creation and remote execution. Supply a Sandbox API key and an
+explicit API URL/domain in the environment. The test removes the key from the
+child environment before entering it through the prompt, uses an isolated home,
+and kills its owned sandbox with an independent HTTP 404 cleanup check. Requires
+Linux/macOS and Python 3. It creates one real sandbox.
+
+Run `ABX_BIN=<standalone-executable> node e2e/guided-template-steps.mjs` after building
+the CLI to verify real platform RUN steps without ACR configuration, a Sandbox API
+key in the deploy process, or local Docker tools. Supply AccessKeys and a Sandbox
+API key/endpoint through the environment. The test reads the existing public
+`code-interpreter-v1` source and preserves its image, resources and runtime commands.
+Platform RUN steps require generation 2. If that source is generation 1, the test
+reports `BLOCKED` before any cloud write; select an already verified public generation-2
+source with `ABX_GUIDED_STEPS_SOURCE_TEMPLATE_ID` to run the full test. Sources
+requiring private registry configuration are refused. Before publishing, it creates
+and executes a sandbox from the existing source and confirms its deletion. It then
+creates one unique template and another sandbox, checks a build marker, and verifies deletion through
+independent HTTP 404 requests and final template inventory absence. `--inspect`
+performs only the source reads. `ABX_GUIDED_STEPS_SOURCE_TEMPLATE_ID` may select
+another already verified, ready public generation-2 source meeting the same constraints.
+Submission is never replayed. If cleanup cannot be confirmed, the test fails and
+retains a mode-0600 temporary recovery file containing only owned resource references;
+credentials are never written to that file.
+
 The normal runner includes standard-contract plus project extension scenarios. Old parser and terminal assumptions have been migrated: local exec options precede the ID, stdin is piped only when a scenario supplies it, cleanup uses standard kill/list, and the command walk understands standard aliases and embedded extension help. The runtime standard template init creates SDK files; project template.yaml workflows use template scaffold. A focused pass does not mean the full CI matrix passed.
 
 ## Quick start

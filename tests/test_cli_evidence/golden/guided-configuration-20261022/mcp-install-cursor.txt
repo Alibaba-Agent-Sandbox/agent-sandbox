@@ -1,0 +1,18 @@
+MCP Server config written to /TMPPATH
+
+Registered tools:
+  • create_sandbox      — Create a cloud sandbox
+  • list_sandboxes      — List visible sandboxes
+  • get_sandbox         — Refresh sandbox metadata
+  • set_sandbox_timeout — Set sandbox lifetime
+  • run_code            — Execute code
+  • run_command         — Execute a command
+  • read_file           — Read a file
+  • write_file          — Write a file
+  • list_files          — List files
+  • kill_sandbox        — Destroy a sandbox
+
+Please restart Cursor to apply changes.
+[exit_code:0]
+[stderr]
+IDE registration is complete; service readiness has not been verified. Only-this-command credentials do not survive the server's later launch. Configure persistent credentials before launch and inspect setup with 'abx mcp status'.

@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Execute the remote inspection scripts on a real minimal Python/Linux runtime. */
 import "../_support/isolatedHome.js";
 import { spawnSync } from "node:child_process";
@@ -39,3 +40,6 @@ it("collects typed metrics through valid Python without uptime or procps", async
   expect(row.disk_free_gb).toBeGreaterThanOrEqual(0);
   expect(run).toHaveBeenCalledTimes(1);
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

@@ -42096,11 +42096,7 @@ ${e.stdout}`.toLowerCase();
     var DOCS_BASE = process.env.E2B_DOCS_BASE || `https://${process.env.E2B_DOMAIN || `e2b.dev`}/docs`;
     var DASHBOARD_BASE = process.env.E2B_DASHBOARD_BASE || `https://${process.env.E2B_DOMAIN || `e2b.dev`}/dashboard`;
     var SANDBOX_INSPECT_URL = (e) => `${DASHBOARD_BASE}/inspect/sandbox/${e}`;
-    function getUserConfig() {
-      if (!fs.existsSync(USER_CONFIG_PATH)) return null;
-      let e = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, `utf8`));
-      return migrateV1UserConfig(e) || (isUserConfig(e) ? e : (deprecationWarned || (deprecationWarned = true, console.error(DEPRECATED_USER_CONFIG_MESSAGE)), null));
-    }
+    function getUserConfig() { return null; }
     function isObject(e) {
       return typeof e == `object` && !!e && !Array.isArray(e);
     }
@@ -42128,10 +42124,7 @@ ${e.stdout}`.toLowerCase();
     ConnectionConfig.setIntegration(`e2b-cli/${version$1}`);
     var apiKey = process.env.E2B_API_KEY;
     var projectId = process.env.E2B_PROJECT_ID || process.env.E2B_TEAM_ID;
-    var authErrorBox = () => boxen(`You must be logged in to use this command. Run ${asBold(`e2b auth login`)}.
-
-If you are seeing this message in CI/CD you may need to set the ${asBold(`E2B_API_KEY`)} environment variable.
-Visit ${asPrimary(`https://e2b.dev/dashboard?tab=keys`)} to get the API key.`, { width: 70, float: `center`, padding: 0.5, margin: 1, borderStyle: `round`, borderColor: `redBright` });
+    var authErrorBox = () => "Sandbox API key is missing. Run abx config set sandbox_api_key in a terminal, or set ABX_SANDBOX_API_KEY in automation. This is the Alibaba Agent Sandbox key; build AccessKeys do not replace it.";
     function ensureAPIKey() {
       if (apiKey ||= getUserConfig()?.projectApiKey, !apiKey) console.error(authErrorBox()), process.exit(1);
       else return apiKey;
@@ -55573,6 +55566,25 @@ templateCommand.addHelpText("after", "\nAgent Sandbox extensions: from-image, bu
 for (const abxCommand of sandboxCommand.commands) {
   if (abxCommand.name() === "create" || abxCommand.name() === "spawn") abxCommand.addHelpText("after", "\nAgent Sandbox: --prompt <description> generates a template before creation.");
 }
+program.hook("preAction", async (_program, command) => {
+  const hook = globalThis[Symbol.for("agent-sandbox.cli.configuration")];
+  if (typeof hook !== "function") return;
+  const commandPath = [];
+  for (let current = command; current && current.parent; current = current.parent) commandPath.unshift(current.name());
+  if (commandPath[0] === "template" && ["init", "migrate"].includes(commandPath[1])) return;
+  try {
+    if (commandPath[0] === "sandbox" && ["create", "spawn"].includes(commandPath[1])) {
+      buildLifecycle(command.opts()["lifecycle.ontimeout"], command.opts()["lifecycle.autoresume"]);
+    }
+    const resolved = await hook({ commandPath, options: command.opts() });
+    apiKey = resolved.apiKey;
+    connectionConfig = new ConnectionConfig({ apiKey, apiUrl: resolved.apiUrl, domain: resolved.domain });
+    client = new ApiClient(connectionConfig, { requireApiKey: false });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message || "Configuration cancelled." : "Configuration setup failed.");
+    process.exit(1);
+  }
+});
 var prog = program.version(version$1, void 0, `display E2B CLI version`);
     process.env.NODE_ENV === `development` && prog.addOption(new Option(`-cmd2md`).hideHelp()).on(`option:-cmd2md`, () => {
       commands2md(program.commands), process.exit(0);

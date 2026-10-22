@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Branch coverage for `sandbox files|process|system|capabilities` beyond the ported Python tests
  * (`system info/ports/packages/metrics`, JSON/quiet/error routing, quoting). Expected texts were checked against the
@@ -320,3 +321,6 @@ describe("TestSystemBranches", () => {
     expect(result.stdout).toBe("Capabilities:\n  - code\n  - files\n  - shell\n");
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

@@ -134,6 +134,13 @@ const spyAny = (o: object, k: string): Fn => vi.spyOn(o as Record<string, (...a:
 /** Collects undo actions; `restore()` runs them in reverse order. */
 class Patches {
   private undo: Array<() => void> = [];
+  constructor() {
+    for (const [name, value] of Object.entries({ ABX_SANDBOX_API_KEY: "placeholder-sandbox", ALICLOUD_ACCESS_KEY_ID: "placeholder-ak", ALICLOUD_ACCESS_KEY_SECRET: "placeholder-sk" })) {
+      const previous = process.env[name];
+      if (!previous) process.env[name] = value;
+      this.undo.push(() => { if (previous === undefined) delete process.env[name]; else process.env[name] = previous; });
+    }
+  }
   add(fn: () => void): void {
     this.undo.push(fn);
   }
@@ -372,11 +379,13 @@ function _mcpStatus(): MockSetup {
 function _createCodegen(description = "运行 python", templateName = "abx-nl-python-ev001", assessment: ClarifyAssessment | null = null): MockSetup {
   return () => {
     const patches = new Patches();
-    _cfgInto(patches);
+    _cfgInto(patches, "", "", { ABX_SANDBOX_API_KEY: "placeholder-sandbox", ALICLOUD_ACCESS_KEY_ID: "placeholder-ak", ALICLOUD_ACCESS_KEY_SECRET: "placeholder-sk" });
     const sb = _makeSb("sbx-ev-001", templateName);
     // Stable placeholder workspace so evidence output is platform-neutral (the real path is
     // ~/.abx/generated/<slug>-<stamp>-<token>).
-    const workdir = `/home/user/.abx/generated/${templateName}`;
+    const workdir = path.join(tmpDir(patches), templateName);
+    fs.mkdirSync(workdir, { recursive: true });
+    fs.writeFileSync(path.join(workdir, "template.yaml"), `name: ${templateName}\nbase:\n  image: python:3.12-slim\nbuild:\n  steps:\n    - type: RUN\n      args: ["true"]\n`);
     const gen = new CodegenResult({
       workdir,
       templateName,

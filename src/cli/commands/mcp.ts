@@ -20,13 +20,18 @@ import * as path from "node:path";
 
 import { type Context, command, group, option } from "../kit.js";
 import { Choice, INT, Path } from "../types.js";
-import { sysExit } from "../errors.js";
+import { CliError, sysExit } from "../errors.js";
 import { echo } from "../io.js";
 import { TOOL_SCHEMAS } from "../../agent/tools.js";
 import { JSONDecodeError, pyJsonLoads } from "../../agent/_py.js";
 import { dumpYaml } from "../../utils/yaml_io.js";
 import { pyPathStr, which } from "../../agent/_pycompat.js";
 import { loadConfig, resetConfig } from "../../transport/config.js";
+import { loadLayeredConfig } from "../../transport/config_layers.js";
+import { getOperationConfig } from "../../utils/operation_config.js";
+import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
+import { confirm } from "../prompts.js";
+import { getOutput } from "../output.js";
 import {
   OSError as PyOSError,
   UnicodeDecodeError,
@@ -39,8 +44,9 @@ import {
 import { PyFloat, pyJsonDumps, pySorted, pyStr, pyStrRepr, pyStrip } from "../../utils/_pyformat.js";
 import { getFormatter } from "../formatters.js";
 import { handleErrors } from "../error_handler.js";
-import { regionOption, resolveRegion } from "../region.js";
+import { regionOption } from "../region.js";
 import { cliProvider } from "../../providers/selection.js";
+import { getProvider, resolveProviderId } from "../../providers/registry.js";
 import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";
 import * as self from "./mcp.js";
 
@@ -154,7 +160,30 @@ export function _setIdeConfigMap(map: IdeConfigMap): void {
  */
 export function _readApiKey(): string | null {
   resetConfig();
-  return loadConfig().api_key as string | null;
+  return _mcpConfig().api_key;
+}
+
+function _mcpConfig() {
+  return loadLayeredConfig({ provider: resolveProviderId(cliProvider()) });
+}
+
+/** Setup is optional for offline registration/artifacts; protocol start never reads terminal answers. */
+async function _withOptionalMcpSetup<T>(ctx: Context, operation: string, action: () => Promise<T>): Promise<T> {
+  const provider = getProvider(resolveProviderId(cliProvider()));
+  let configured = provider.id === BUILTIN_PROVIDER_ID ? Boolean(self._readApiKey()) : true;
+  if (provider.id !== BUILTIN_PROVIDER_ID) {
+    try { provider.validateConfig(loadLayeredConfig({ provider: provider.id })); } catch { configured = false; }
+  }
+  if (!configured) {
+    if (canGuideConfiguration(ctx) && await confirm(`Configure Sandbox access for ${operation} now? You can also configure it later.`, { default: true, err: true })) {
+      return withGuidedConfiguration(ctx, { operation, provider: provider.id,
+        requirements: provider.id === BUILTIN_PROVIDER_ID ? ["sandbox_api_key"] : undefined,
+        validateProvider: provider.id !== BUILTIN_PROVIDER_ID,
+      }, action);
+    }
+    getOutput(ctx).info(`Sandbox access is not configured. Registration/artifact generation can continue offline; configure it later with '${provider.id === BUILTIN_PROVIDER_ID ? "abx config set sandbox_api_key" : `abx provider config ${provider.id} init`}'. This does not verify that the service is ready.`);
+  }
+  return action();
 }
 
 /** `[command, ...args]` that re-runs this very CLI (what Python spells `sys.executable -m agent_sandbox.cli.main`). */
@@ -199,7 +228,7 @@ export function _resolveMcpLaunch(): [string, string[]] {
 
 /** The non-built-in provider chosen by `--provider` or `ABX_PROVIDER` for this invocation, if any (the config default is read by the server itself). */
 export function _selectedPlugin(): string | null {
-  const id = (cliProvider() ?? process.env["ABX_PROVIDER"] ?? "").trim();
+  const id = resolveProviderId(cliProvider());
   return id && id !== BUILTIN_PROVIDER_ID ? id : null;
 }
 
@@ -215,14 +244,13 @@ export function _buildMcpServerConfig(): PyDict {
       ["env", new Map([["ABX_PROVIDER", plugin]]) as PyDict],
     ]);
   }
-  const apiKey = self._readApiKey() || "";
   const envBlock: PyDict = new Map();
-  if (apiKey) envBlock.set("ABX_SANDBOX_API_KEY", apiKey);
-
-  const apiUrl = process.env["ABX_SANDBOX_BASE_URL"];
+  // All IDEs read credentials through the CLI's configured sources instead of copying secrets into IDE files.
+  const effective = _mcpConfig();
+  const apiUrl = effective.api_url;
   if (apiUrl) envBlock.set("ABX_SANDBOX_BASE_URL", apiUrl);
-
-  const region = process.env["ALIBABA_CLOUD_REGION_ID"];
+  if (effective.domain) envBlock.set("ABX_SANDBOX_DOMAIN", effective.domain);
+  const region = effective.region;
   if (region) envBlock.set("ALIBABA_CLOUD_REGION_ID", region);
 
   const [command_, args] = _resolveMcpLaunch();
@@ -434,6 +462,7 @@ export const install = command("install", {
     }),
   ],
   callback: handleErrors(async (ctx: Context, params: Record<string, any>) => {
+    return _withOptionalMcpSetup(ctx, "MCP registration (IDE files contain no credentials)", async () => {
     const target = params["target"] as string;
     const fmt = getFormatter(ctx);
 
@@ -467,6 +496,10 @@ export const install = command("install", {
     mkdirParents(path.dirname(configPath));
     writeTextPy(configPath, pyJsonDumps(existing, { indent: 2, ensure_ascii: false }) + "\n");
 
+    if (fmt.use_json) {
+      fmt.printData({ status: "registered", config_path: configPath, credentials_embedded: false, service_verified: false });
+      return;
+    }
     fmt.printSuccess(`MCP Server config written to ${pyPathStr(configPath)}`);
     if (!(ctx.obj ?? {})["quiet"]) {
       echo();
@@ -487,6 +520,8 @@ export const install = command("install", {
         );
       }
     }
+    getOutput(ctx).info("IDE registration is complete; service readiness has not been verified. Only-this-command credentials do not survive the server's later launch. Configure persistent credentials before launch and inspect setup with 'abx mcp status'.");
+    });
   }),
 });
 mcp.addCommand(install);
@@ -770,8 +805,9 @@ export const start = command("start", {
   callback: handleErrors(async (ctx: Context, params: Record<string, any>) => {
     let apiKey: string | null = params["api_key"];
     const template: string = params["template"];
-    const apiUrl: string | null = params["api_url"];
-    const domain: string | null = params["domain"];
+    const effective = _mcpConfig();
+    const apiUrl: string | null = params["api_url"] || effective.api_url;
+    const domain: string | null = params["domain"] || effective.domain;
     let useHttp: boolean = params["use_http"];
     const background: boolean = params["background"];
 
@@ -779,16 +815,16 @@ export const start = command("start", {
     if (background) useHttp = true;
 
     if (useHttp) {
-      await _startHttp(ctx, {
+      await _withOptionalMcpSetup(ctx, "MCP HTTP server", async () => _startHttp(ctx, {
         template,
-        api_key: apiKey,
+        api_key: apiKey || self._readApiKey(),
         api_url: apiUrl,
         domain,
         host: params["host"],
         port: params["port"],
         auth_token: pyStrip((params["auth_token"] as string | null) || "") || null,
         background,
-      });
+      }));
       return;
     }
 
@@ -839,6 +875,11 @@ async function _startHttp(
   },
 ): Promise<void> {
   if (!_isLoopback(o.host) && !o.auth_token) {
+    if (canGuideConfiguration(ctx)) {
+      return withGuidedConfiguration(ctx, { operation: "non-loopback MCP HTTP authentication", validateProvider: false,
+        requirements: [{ key: "mcp_auth_token", label: "MCP Bearer token for clients", secret: true, persist: false, env: "ABX_MCP_AUTH_TOKEN", flag: "--auth-token" }],
+      }, async () => _startHttp(ctx, { ...o, auth_token: String(getOperationConfig()?.["mcp_auth_token"] ?? "") }));
+    }
     echo("Error: --host is not loopback, so a non-empty --auth-token (or ABX_MCP_AUTH_TOKEN) is required.", {
       err: true,
     });
@@ -1277,6 +1318,7 @@ export const deploy = command("deploy", {
     }),
   ],
   callback: handleErrors(async (ctx: Context, params: Record<string, any>) => {
+    if (resolveProviderId(cliProvider()) !== BUILTIN_PROVIDER_ID) throw new CliError("FC deployment artifacts require --provider alicloud-express. Other Providers keep their own deployment workflows.");
     const fmt = getFormatter(ctx);
     const name: string = params["name"];
     const template: string = params["template"];
@@ -1289,7 +1331,7 @@ export const deploy = command("deploy", {
     const customDomain: string | null = params["custom_domain"];
     const outputDir: string | null = params["output_dir"];
 
-    const region = resolveRegion(params["region"]);
+    const region = params["region"] || _mcpConfig().region;
 
     // --- Resolve auth token ---
     let authToken = "";
@@ -1301,6 +1343,11 @@ export const deploy = command("deploy", {
       authToken = pyStrip(process.env["ABX_MCP_AUTH_TOKEN"] as string);
     }
 
+    if (!authToken) {
+      if (canGuideConfiguration(ctx) && await confirm("Generate a Bearer token and write it into this MCP deployment artifact? Keep config.yaml private.", { default: true, err: true })) {
+        authToken = _generateToken();
+      }
+    }
     if (!authToken) {
       echo(
         "Error: a non-empty MCP Bearer token is required. " +
@@ -1314,6 +1361,8 @@ export const deploy = command("deploy", {
     // --- Resolve API key ---
     if (!apiKey) apiKey = self._readApiKey();
 
+    const writeArtifact = async (): Promise<void> => {
+    if (!apiKey) apiKey = self._readApiKey();
     if (!apiKey) {
       echo(
         "Warning: No ABX_SANDBOX_API_KEY provided. The generated MCP Server artifact " +
@@ -1342,8 +1391,10 @@ export const deploy = command("deploy", {
     };
     if (apiKey) envVars["ABX_SANDBOX_API_KEY"] = apiKey;
 
-    const apiUrl = process.env["ABX_SANDBOX_BASE_URL"];
+    const effective = _mcpConfig();
+    const apiUrl = effective.api_url;
     if (apiUrl) envVars["ABX_SANDBOX_BASE_URL"] = apiUrl;
+    if (effective.domain) envVars["ABX_SANDBOX_DOMAIN"] = effective.domain;
 
     const fcConfig: Record<string, unknown> = {
       function_name: name,
@@ -1361,11 +1412,21 @@ export const deploy = command("deploy", {
     if (customDomain) fcConfig["custom_domain"] = customDomain;
 
     writeTextPy(path.join(artifactDir, "config.yaml"), dumpYaml(fcConfig));
+    fs.chmodSync(path.join(artifactDir, "config.yaml"), 0o600);
 
+    if (fmt.use_json) {
+      fmt.printData({ status: "artifact-created", artifact_dir: artifactDir, deployed: false, service_verified: false, sandbox_access_configured: Boolean(apiKey), bearer_token_configured: Boolean(authToken) });
+      return;
+    }
     fmt.printSuccess(`FC deployment artifact written to ${artifactDir}`);
     _printArtifactSummary(artifactDir, fcConfig, authToken);
     _printManualDeploySteps(artifactDir, enableSessionAffinity);
     _printIdeConfig(authToken, customDomain);
+    };
+    if (!apiKey && canGuideConfiguration(ctx)) {
+      return _withOptionalMcpSetup(ctx, "MCP deployment artifact (credentials are written to config.yaml)", writeArtifact);
+    }
+    return writeArtifact();
   }),
 });
 mcp.addCommand(deploy);
@@ -1387,10 +1448,7 @@ function _printArtifactSummary(artifactDir: string, fcConfig: Record<string, unk
   echo(`  Memory:   ${pyStr(fcConfig["memory"])} MB`);
   echo(`  Timeout:  ${pyStr(fcConfig["timeout"])} s`);
   if (authToken) {
-    // Show only first 8 chars for security
-    const cps = Array.from(authToken);
-    const masked = cps.length > 8 ? cps.slice(0, 8).join("") + "..." : authToken;
-    echo(`  Token:    ${masked}`);
+    echo("  Token:    configured (stored in config.yaml; not displayed)");
   }
 }
 

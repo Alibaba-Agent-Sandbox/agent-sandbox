@@ -1,5 +1,7 @@
 /** Local project preparation shared by template build/deploy entry points. */
 import fs from "node:fs";
+import { BuildModeError, resolveBuildPlan } from "../template/build_plan.js";
+import { canGuideConfiguration } from "./config_guidance.js";
 import path from "node:path";
 
 import { shlexQuote } from "../api/_shlex.js";
@@ -8,7 +10,7 @@ import { UsageError } from "./errors.js";
 import { getFormatter } from "./formatters.js";
 import type { Context } from "./kit.js";
 import { getOutput } from "./output.js";
-import { confirm } from "./prompts.js";
+import { confirm, prompt } from "./prompts.js";
 import { availableCases } from "./scaffold.js";
 import { _selectScaffoldCase, templateSeams, writeBuiltinScaffold } from "./template_catalog.js";
 
@@ -38,4 +40,31 @@ export async function prepareTemplateProject(ctx: Context, directory: string, ye
     "Browse more templates: https://registry.agent-sandbox.cn/templates/",
     ctx,
   );
+}
+
+/** Repair only the absence of a build definition; explicit invalid paths and malformed YAML are never overwritten. */
+export async function prepareTemplateBuildInputs(ctx: Context, directory: string, yes: boolean, options: { build?: string | null; dockerfile?: string | null }): Promise<string> {
+  let target = directory;
+  for (;;) {
+    try { resolveBuildPlan(target, { mode: options.build ?? "auto", dockerfile: options.dockerfile }); return target; }
+    catch (error) {
+      if (!(error instanceof BuildModeError)) throw error;
+      if (!error.message.startsWith("No Dockerfile and no template.yaml build steps")) throw new UsageError(error.message, ctx);
+      if (!canGuideConfiguration(ctx, yes)) throw new UsageError(`${error.message} Initialize with 'abx template scaffold --template python ${shlexQuote(target)}', adapt existing code with 'abx template scaffold --adopt ${shlexQuote(target)}', or choose another project path. Existing files were preserved.`, ctx);
+      const out = getOutput(ctx);
+      out.info(`Directory '${target}' has no Dockerfile or platform build steps. Existing files will be preserved unless you explicitly approve listed replacements.`);
+      const choice = String(await prompt("Choose 1 scaffold a template, 2 adapt existing code with a model, 3 use another directory, 4 cancel", { default: "4", show_default: false, err: true })).trim();
+      if (choice === "1") {
+        const caseName = await _selectScaffoldCase(availableCases());
+        await writeBuiltinScaffold(ctx, { directory: target, name: path.basename(target), caseName, yes: false });
+      } else if (choice === "2") {
+        const { runAdopt } = await import("./commands/_adopt.js");
+        await runAdopt(ctx, target, { hint: null, name: null, dry_run: false, force: false, yes: false, verbose: out.verbose });
+      } else if (choice === "3") {
+        const entered = String(await prompt("Template project directory; Enter cancels", { default: "", show_default: false, err: true })).trim();
+        if (!entered) throw new UsageError("Project selection cancelled. Existing files were preserved.", ctx);
+        target = await prepareTemplateProject(ctx, entered, false);
+      } else throw new UsageError("Template preparation cancelled. Existing files were preserved.", ctx);
+    }
+  }
 }

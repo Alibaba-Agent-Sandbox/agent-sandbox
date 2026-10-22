@@ -64,7 +64,7 @@ export interface FakeConfig {
 
 /** `fake_config = MagicMock(); fake_config.access_key_id = ...`. */
 export function fakeConfig(over: Partial<FakeConfig> = {}): FakeConfig {
-  return { access_key_id: "platform-ak", access_key_secret: "platform-sk", region: "cn-hangzhou", api_key: "", api_url: "", ...over };
+  return { access_key_id: "platform-ak", access_key_secret: "platform-sk", region: "cn-hangzhou", api_key: "placeholder-sandbox-key", api_url: "https://api.example.test", ...over };
 }
 
 export function patchLoadConfig(config: unknown = fakeConfig()): Fn {

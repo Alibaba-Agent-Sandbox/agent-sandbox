@@ -3,6 +3,10 @@
 import { readFile, stat } from "node:fs/promises";
 
 import { getProviderCommand, listProviderCommands, runProviderCommand } from "../../providers/commands.js";
+import { validateCommandInput } from "../../providers/command_contract.js";
+import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
+import { providerCliExtension } from "../provider_extensions.js";
+import { confirm } from "../prompts.js";
 import { ProviderConfigError, ProviderMismatchError, ProviderTrustError } from "../../providers/errors.js";
 import { getProvider } from "../../providers/registry.js";
 import { cliOptions, cliProvider } from "../../providers/selection.js";
@@ -112,14 +116,20 @@ function operationParams(): Param[] {
 
 async function executeOperation(id: string, descriptor: ProviderCommand, ctx: Context, params: Params): Promise<void> {
   if (descriptor.effect !== "read" && params["yes"] !== true) {
-    throw new ProviderTrustError(`Command '${descriptor.id}' requires --yes (${descriptor.effect}).`);
+    if (!canGuideConfiguration(ctx)) throw new ProviderTrustError(`Command '${descriptor.id}' requires --yes (${descriptor.effect}).`);
   }
   const input = await inputOf(params);
+  validateCommandInput(descriptor, input, id);
   const options = {
     provider_options: providerOptions(id, params),
     ...(params["region"] !== null ? { region: String(params["region"]) } : {}),
   };
-  getFormatter(ctx).printData(await runProviderCommand(id, descriptor.id, input, options));
+  await withGuidedConfiguration(ctx, { operation: `Provider operation ${descriptor.id}`, provider: id, yes: Boolean(params["yes"]), overrides: options,
+    requirements: providerCliExtension(id)?.managementRequirements?.(descriptor.id), validateProvider: id !== "alicloud-express",
+  }, async () => {
+    if (descriptor.effect !== "read" && !params["yes"]) await confirm(`Run '${descriptor.id}' (${descriptor.effect}) with provider '${id}'?`, { default: false, abort: true, err: true });
+    getFormatter(ctx).printData(await runProviderCommand(id, descriptor.id, input, options));
+  });
 }
 
 /** New trees are invocation-local; legal operation names never overwrite installer commands. */

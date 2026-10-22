@@ -10,20 +10,24 @@
 
 import { Argument, Context, argument, command, group, option, type Command } from "../kit.js";
 import { Choice } from "../types.js";
-import { sysExit } from "../errors.js";
-import { echo, sys } from "../io.js";
+import { Abort, sysExit } from "../errors.js";
+import { echo } from "../io.js";
 import { confirm } from "../prompts.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
 import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError, ProviderTrustError } from "../../providers/errors.js";
 import * as registry from "../../providers/registry.js";
-import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
+import { setDefaultProvider } from "../../providers/settings.js";
+import * as configExtras from "./_config_providers.js";
+import { configurationTargetSummary } from "../config_target.js";
+import { canPrompt } from "../interaction.js";
+import { assertConfigFilesReadable, assertConfigValuesValid } from "../../utils/config_diagnostics.js";
 import * as store from "../../providers/store.js";
 import { runContractSuite, summarizeContract } from "../../providers/testing.js";
-import { collectSources, loadLayeredConfig, resetLayeredConfig } from "../../transport/config_layers.js";
+import { collectSources, loadLayeredConfig, resetLayeredConfig, paths } from "../../transport/config_layers.js";
 import { resolveKey, coerce } from "../../utils/config_resolver.js";
-import { BUILTIN_PROVIDER_ID, getKey, providerEnvName } from "../../utils/config_keys.js";
+import { BUILTIN_PROVIDER_ID, CORE_KEYS, GENERIC_ENDPOINT_KEYS, getKey } from "../../utils/config_keys.js";
 import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { handleErrors } from "../error_handler.js";
@@ -67,7 +71,7 @@ export const provider = group("provider", { help: PROVIDER_HELP, hidden: !provid
 // ---------------------------------------------------------------------------------------------------------------------
 
 function isInteractive(fmt: OutputFormatter): boolean {
-  return sys.stdin.isatty() && !fmt.use_json && !fmt.quiet;
+  return canPrompt() && !fmt.use_json && !fmt.quiet;
 }
 
 function ambientId(): string {
@@ -549,7 +553,9 @@ const default_cmd = command("default", {
 
 function fieldOf(id: string, key: string): ConfigField {
   const p = registry.getProvider(id);
-  const f = p.configFields.find((x) => x.key === key);
+  const declared = p.configFields.find((x) => x.key === key);
+  const inherited = p.inherit.has(key) ? getKey(key) : undefined;
+  const f: ConfigField | undefined = declared ?? (inherited ? { key: inherited.key, type: inherited.type, secret: inherited.secret, credential: inherited.credential, description: inherited.description, choices: inherited.choices } : undefined);
   if (!f) {
     throw new ProviderConfigError(`Unknown option '${key}' for provider '${id}'.`, { suggestion: `Available: ${p.configFields.map((x) => x.key).join(", ") || "(none)"}` });
   }
@@ -557,7 +563,8 @@ function fieldOf(id: string, key: string): ConfigField {
 }
 
 function validateFieldValue(id: string, field: ConfigField, text: string): string | number | boolean {
-  const ck = configFieldToKey(field, id);
+  const owner = registry.getProvider(id);
+  const ck = owner.configKeys().find((key) => key.key === field.key) ?? (owner.inherit.has(field.key) ? getKey(field.key) : undefined) ?? configFieldToKey(field, id);
   const value = coerce(ck, text);
   if (value === null) {
     const reason = field.type === "enum" ? `expected one of ${(field.choices ?? []).join(", ")}` : `expected ${field.type ?? "str"}`;
@@ -574,42 +581,55 @@ function validateFieldValue(id: string, field: ConfigField, text: string): strin
 }
 
 function configRow(f: ConfigField, id: string): string[] {
-  const raw = loadLayeredConfig({ provider: id }).provider_options[f.key];
+  const raw = configExtras.readExtra(fieldTarget(id, f)).value;
   const shown = raw === undefined || raw === null || raw === "" ? "(not set)" : f.secret ? "********" : String(raw);
   return [f.key, f.type ?? "str", shown, f.secret ? "secret" : "", f.required ? "required" : ""];
 }
 
 async function promptPlain(text: string): Promise<string> {
   const { prompt } = await import("../prompts.js");
-  return String(await prompt(text.replace(/: $/, "")));
+  return String(await prompt(text.replace(/: $/, ""), { default: "", show_default: false, err: true }));
+}
+
+function fieldTarget(id: string, f: ConfigField): configExtras.ExtraTarget {
+  const target = configExtras.resolveExtraKey(`providers.${id}.${f.key}`);
+  if (!target) throw new ProviderConfigError(`Provider '${id}' does not declare '${f.key}'.`);
+  return target;
 }
 
 function removeField(id: string, f: ConfigField): void {
-  if (f.secret) setEnvValue(providerEnvName(id, f.key), null);
-  else setTomlValue(`providers.${id}`, f.key, null);
-  resetLayeredConfig();
+  configExtras.clearExtra(fieldTarget(id, f));
 }
 
-async function readValue(id: string, f: ConfigField, given: string | null): Promise<string> {
+async function readValue(ctx: Context, id: string, f: ConfigField, given: string | null, showTarget = true): Promise<string | null> {
   if (given !== null) return given;
-  if (!sys.stdin.isatty()) {
-    throw new ProviderConfigError(`No value given for '${f.key}'.`, { suggestion: `abx provider config ${id} set ${f.key} VALUE` });
+  if (!canPrompt(ctx)) {
+    throw new ProviderConfigError(`No value given for '${f.key}'; configuration input requires an interactive terminal.`, { suggestion: `Use 'abx provider config ${id} set ${f.key} VALUE', or inject ${fieldTarget(id, f).key?.env ?? f.key} through your CI secret environment.` });
   }
   const { _promptSecret } = await import("./config_cmd.js");
-  return f.secret ? await _promptSecret(`${f.key} (input masked; press Enter to cancel)`) : await promptPlain(`${f.key}: `);
+  if (showTarget) echo(configurationTargetSummary(id), { err: true });
+  for (;;) {
+    const entered = f.secret ? await _promptSecret(`${f.key} (input masked; press Enter to keep the current value)`) : await promptPlain(`${f.key} (press Enter to keep the current value): `);
+    if (!entered.trim()) return null;
+    try { validateFieldValue(id, f, entered); return entered; }
+    catch (error) {
+      if (!(error instanceof ProviderConfigError)) throw error;
+      echo(error.message, { err: true });
+    }
+  }
 }
 
-function storeField(fmt: OutputFormatter, id: string, f: ConfigField, value: string): void {
-  if (value === "") {
-    removeField(id, f);
-    fmt.printSuccess(`Cleared ${f.key} for provider '${id}'.`);
+function storeField(fmt: OutputFormatter, id: string, f: ConfigField, value: string | null): void {
+  if (value === null || value === "") {
+    fmt.printSuccess(`No value entered; ${f.key} for provider '${id}' was not changed. Use 'abx provider config ${id} unset ${f.key}' to remove it.`);
     return;
   }
-  const typed = validateFieldValue(id, f, value);
-  if (f.secret) setEnvValue(providerEnvName(id, f.key), String(typed));
-  else setTomlValue(`providers.${id}`, f.key, typed);
-  resetLayeredConfig();
-  fmt.printSuccess(f.secret ? `Stored ${f.key} for provider '${id}' in ~/.abx/.env.` : `Set ${f.key} = ${typed} for provider '${id}'.`);
+  const target = fieldTarget(id, f);
+  configExtras.writeExtra(target, value);
+  const destination = configExtras.storageLocation(target);
+  const actual = configExtras.readExtra(target);
+  const override = actual.source === "env" || actual.value !== validateFieldValue(id, f, value) ? ` Effective value comes from ${actual.name || actual.source}; stored value may be overridden.` : "";
+  fmt.printSuccess(`Stored ${f.key} for provider '${id}' in ${destination.path}.${override} Review with 'abx provider config ${id} list'; change with 'abx provider config ${id} set ${f.key}'.`);
 }
 
 export const config_cmd = command("config", {
@@ -617,7 +637,7 @@ export const config_cmd = command("config", {
     "Show or edit one provider's configuration.",
     "",
     "    ACTION is one of list, get, set, unset, init. Secrets (fields marked secret",
-    "    in the manifest) are stored in ~/.abx/.env as ABX_<ID>_<KEY> and always",
+    "    in the manifest) are stored using their declared environment names and always",
     "    shown masked; other options go to [providers.<id>] in ~/.abx/config.toml.",
     "    The same keys are reachable as 'abx config get providers.<id>.<key>'.",
     "",
@@ -653,17 +673,50 @@ export const config_cmd = command("config", {
       return;
     }
     if (action === "init") {
-      if (!sys.stdin.isatty()) {
+      if (!canPrompt(ctx)) {
         throw new ProviderConfigError("'init' needs an interactive terminal.", { suggestion: `Use 'abx provider config ${id} set KEY VALUE' for each field.` });
       }
-      const total = p.configFields.length;
-      for (const [i, f] of p.configFields.entries()) {
+      assertConfigFilesReadable(paths.configFile, paths.envFiles);
+      assertConfigValuesValid([...CORE_KEYS.filter((field) => !GENERIC_ENDPOINT_KEYS.includes(field.key) || p.inherit.has(field.key)), ...p.configKeys()], collectSources(), id);
+      echo(configurationTargetSummary(id), { err: true });
+      const pending: Array<[ConfigField, string]> = [];
+      const setup = await configExtras.initializationKeys(id, async (groups) => {
+        echo(groups.map((group, index) => `  ${index + 1}. ${group.join(" + ")}`).join("\n"), { err: true });
+        for (;;) {
+          const answer = await promptPlain("Choose an authentication method (number; Enter cancels): ");
+          if (!answer) throw new Abort();
+          const index = Number(answer) - 1;
+          if (Number.isInteger(index) && index >= 0 && index < groups.length) return index;
+          echo("Choose one of the listed authentication methods.", { err: true });
+        }
+      });
+      const selected = new Set(setup.map((key) => key.key));
+      const authenticationFields = new Set(p.authAnyOf.flat());
+      const fields: ConfigField[] = [
+        ...p.configFields.filter((field) => !authenticationFields.has(field.key) || selected.has(field.key)),
+        ...setup.filter((key) => !p.configFields.some((field) => field.key === key.key)).map((key) => ({
+          key: key.key, type: key.type, secret: key.secret, credential: key.credential, description: key.description,
+        })),
+      ];
+      const total = fields.length;
+      for (const [i, f] of fields.entries()) {
         const label = `${i + 1}/${total} ${f.description || f.key} (${f.key})${f.required ? " *" : ""}`;
-        echo(label);
-        const entered = await readValue(id, f, null);
-        if (entered.trim() !== "") storeField(fmt, id, f, entered);
+        echo(label, { err: true });
+        const entered = await readValue(ctx, id, f, null, false);
+        if (entered !== null) pending.push([f, entered]);
       }
-      fmt.printSuccess(`Configuration complete. Review it with 'abx provider config ${id} list'.`);
+      const saved: string[] = [];
+      try {
+        for (const [field, value] of pending) { storeField(fmt, id, field, value); saved.push(field.key); }
+      } catch (error) {
+        if (error instanceof configExtras.ConfigurationCleanupError) saved.push(error.field);
+        throw new ProviderConfigError(`Configuration save failed. Saved fields: ${saved.join(", ") || "none"}; setup is incomplete.${error instanceof configExtras.ConfigurationCleanupError ? " A previous configuration copy could not be removed." : ""}`, { suggestion: `Check permissions on ${paths.configFile} and its adjacent .env; review 'abx provider config ${id} list' before retrying.` });
+      }
+      try { p.validateConfig(loadLayeredConfig({ provider: id })); }
+      catch (error) {
+        throw new ProviderConfigError(`Configuration incomplete for provider '${id}'. ${error instanceof Error ? error.message : "Required fields or an authentication combination are missing."}`, { suggestion: `Run 'abx provider config ${id} init' again, or 'abx provider config ${id} set KEY'.` });
+      }
+      fmt.printSuccess(`Configuration complete. Review values and sources with 'abx config list'; modify with 'abx provider config ${id} set KEY'.`);
       return;
     }
     if (key === null) {
@@ -671,11 +724,12 @@ export const config_cmd = command("config", {
     }
     const f = fieldOf(id, key);
     if (action === "get") {
-      const raw = loadLayeredConfig({ provider: id }).provider_options[f.key];
+      const raw = configExtras.readExtra(fieldTarget(id, f)).value;
       if (raw === undefined || raw === null || raw === "") fmt.printData("(not set)");
       else fmt.printData(f.secret ? "********" : String(raw));
     } else if (action === "set") {
-      storeField(fmt, id, f, await readValue(id, f, value));
+      assertConfigFilesReadable(paths.configFile, paths.envFiles);
+      storeField(fmt, id, f, await readValue(ctx, id, f, value));
     } else {
       removeField(id, f);
       fmt.printSuccess(`Cleared ${f.key} for provider '${id}'.`);

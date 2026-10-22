@@ -1,3 +1,5 @@
+import { isConditionalCommand } from "../conditional_commands.js";
+import { confirm } from "../../../cli/prompts.js";
 import type { ProviderCliExtension } from "../../../cli/provider_extensions.js";
 import { CONFIGURATION_UI } from "./configuration.js";
 /** Upper-layer CLI integration owned by Express. Static metadata never performs cloud I/O. */
@@ -9,7 +11,10 @@ export const CLI_EXTENSION = {
   async prepareProject(directory, options, ctx) {
     const started = Date.now();
     const adapter = await import("./template.js");
-    const result = await adapter.do_deploy(directory, { alias: options.alias, timeout: options.timeout, acr_namespace: adapter.resolve_acr_namespace(null), ctx });
+    const deployOptions = { alias: options.alias, timeout: options.timeout, yes: Boolean(ctx.params["yes"]), ctx };
+    return adapter.withDeployConfiguration(directory, deployOptions, async () => {
+      if (!deployOptions.yes) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
+    const result = await adapter.do_deploy(directory, deployOptions);
     const reference = result["TemplateID"];
     if (typeof reference !== "string" || !reference || reference === "N/A") throw new Error("Template preparation returned no reference.");
     if (String(result["Status"]).toLowerCase() !== "ready") {
@@ -19,13 +24,15 @@ export const CLI_EXTENSION = {
         timeout: Math.max(0.01, options.timeout - (Date.now() - started) / 1000), poll_interval: 2 });
     }
     return { reference, status: "ready" };
+    });
   },
+  managementRequirements: (commandId: string) => isConditionalCommand(commandId) ? ["sandbox_api_key"] : ["access_key_id", "access_key_secret"],
   loadTemplates: () => import("./template.js"),
   loadDeploy: () => import("./deploy.js"),
   async deployGenerated(directory: string, options: Record<string, unknown>, ctx: Context) {
     const adapter = await import("./template.js");
-    const namespace = adapter.resolve_acr_namespace(options["acr_namespace"] as string | null);
-    const result = await adapter.do_deploy(directory, { acr_namespace: namespace, ctx, verbose: Boolean(options["verbose"]) });
+    // All supported deployment options survive generation; plan selection happens before ACR requirements.
+    const result = await adapter.do_deploy(directory, { ...options, yes: Boolean(ctx.params["yes"]), explicit_acr_namespace: adapter.acrNamespacePassedOnCli(), ctx, verbose: Boolean(options["verbose"]) });
     const id = result["TemplateID"];
     return { template_id: id && id !== "N/A" ? id : null, status: result["Status"] };
   },

@@ -14,6 +14,25 @@ stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定�
 E2B CLI。平台会把退出终端后的一秒超时请求取整到约 60 秒，测试会等待这一已知异步
 回收过程。错误在输出前脱敏。
 
+使用 `ABX_BIN=<独立可执行文件> node e2e/guided-configuration.mjs`，验证真实终端中的
+缺少密钥引导、隐藏输入、临时配置、创建和远程执行。通过环境变量提供 Sandbox API Key
+及明确的 API URL/domain。测试先从子进程环境移除密钥，再通过提示输入，使用独立的
+用户目录；结束时删除自己创建的沙箱，并通过独立 HTTP 404 查询确认清理。需 Linux/macOS
+和 Python 3，会创建一个真实沙箱。
+
+构建 CLI 后，使用 `ABX_BIN=<独立可执行文件> node e2e/guided-template-steps.mjs`，
+验证真实平台 RUN 构建不依赖 ACR 配置、部署进程中的 Sandbox API Key 或本地 Docker
+工具。通过环境变量提供 AccessKey 和 Sandbox API Key/endpoint。测试读取现有公开
+`code-interpreter-v1` 模板，保持其镜像、资源和运行命令。平台 RUN 构建仅支持 generation 2；
+若该源为 generation 1，测试在任何云端写入前报告 `BLOCKED`。可通过
+`ABX_GUIDED_STEPS_SOURCE_TEMPLATE_ID` 选择已验证的公开 generation-2 源继续完整测试；
+需要私有镜像凭证的源会被拒绝。发布前先从现有源创建沙箱、执行命令并确认删除；随后
+创建一个唯一模板和另一个沙箱，检查构建标记后删除，并通过独立 HTTP
+404 查询和模板列表确认清理。`--inspect` 只读检查源；
+`ABX_GUIDED_STEPS_SOURCE_TEMPLATE_ID` 可指定另一个已验证、ready、满足同样约束的公开 generation-2 源。
+提交不会重放。若无法确认清理，测试失败，并保留权限为 0600、仅记录本次资源引用的
+临时恢复文件；该文件不存储凭证。
+
 常规 runner 已包含 standard-contract 和项目扩展场景。旧的参数与终端假设已调整：exec 本地参数放在 ID 前，仅在场景提供输入时连接 stdin 管道，清理使用标准 kill/list，命令遍历识别标准别名与内嵌扩展帮助。标准 template init 生成 SDK 文件，项目 template.yaml 工作流使用 template scaffold。专项通过不代表完整 CI 矩阵通过。
 
 ## 快速开始

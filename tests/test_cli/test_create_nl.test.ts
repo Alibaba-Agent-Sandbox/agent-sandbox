@@ -7,6 +7,8 @@
  */
 
 import "../_support/isolatedHome.js";
+import * as guidance from "../../src/cli/config_guidance.js";
+import { getOperationConfig } from "../../src/utils/operation_config.js";
 
 import fs from "node:fs";
 import os from "node:os";
@@ -34,7 +36,8 @@ const cfg = vi.hoisted(() => ({ writeEnvVar: vi.fn() }));
 
 // Keep the configuration sources hermetic (Python patches `config_cmd.load_config_dict` / `read_env_var`).
 vi.mock("../../src/cli/commands/config_cmd.js", () => ({
-  _effectiveValue: async () => [null, "default"],
+  _effectiveValue: () => [null, "default"],
+  _ALLOWED_KEYS: new Set(["llm_api_key", "llm_base_url", "llm_model", "sandbox_api_key", "access_key_id", "access_key_secret"]),
   writeEnvVar: (...a: unknown[]) => cfg.writeEnvVar(...a),
   _removeTomlKey: async () => undefined,
 }));
@@ -119,6 +122,9 @@ const savedSeams = {
 
 /** `_isolated_cwd` + `qwen_env`: hermetic defaults for every AI-path test (individual tests override as needed). */
 beforeEach(() => {
+  vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key");
+  vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak");
+  vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-sk");
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "abx-create-nl-")));
   savedCwd = process.cwd();
   process.chdir(tmp);
@@ -146,6 +152,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   Object.assign(qwenCode.seams, savedSeams.qwen);
   Object.assign(codegen.seams, savedSeams.codegen);
@@ -162,6 +169,8 @@ afterEach(() => {
  * install/credential prompts).
  */
 function fakeTty(opts: { sandbox?: boolean; codingAgent?: boolean }): void {
+  vi.spyOn(guidance, "canGuideConfiguration").mockImplementation((ctx, yes) => !yes && !ctx?.obj?.["json"] && !ctx?.obj?.["quiet"] && !ctx?.obj?.["ci"]);
+  vi.spyOn(guidance.guidanceSeams, "interactive").mockReturnValue(true);
   if (opts.sandbox) sandboxSeams.stdinIsatty = () => true;
   if (opts.codingAgent) codingAgentSeams.stdinIsatty = () => true;
 }
@@ -230,6 +239,31 @@ class _FakePhaseOut {
 // ---------------------------------------------------------------------------
 
 describe("TestCreateRouting", () => {
+  it("retains command-only cloud configuration through generation, deployment and final creation", async () => {
+    vi.stubEnv("ABX_SANDBOX_API_KEY", "");
+    vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "");
+    vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "");
+    fakeTty({ codingAgent: true, sandbox: true });
+    const answers = ["1", "temporary-sandbox-key", "temporary-access-id", "temporary-access-secret"];
+    vi.spyOn(guidance.guidanceSeams, "ask").mockImplementation(async () => answers.shift() ?? "");
+    _patchSuccessPipeline(tmp);
+    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
+    const create = patchCreate();
+    create.mockImplementation(async () => {
+      expect(getOperationConfig()).toMatchObject({ sandbox_api_key: "temporary-sandbox-key", access_key_id: "temporary-access-id", access_key_secret: "temporary-access-secret" });
+      return _makeSandbox();
+    });
+    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "n\n\ny\n" });
+    expect(result.exit_code, result.output).toBe(0);
+    expect(create).toHaveBeenCalledOnce();
+    expect(answers).toHaveLength(0);
+    expect(getOperationConfig()).toBeUndefined();
+    expect(cfg.writeEnvVar).not.toHaveBeenCalled();
+    expect(process.env["ABX_SANDBOX_API_KEY"]).toBe("");
+    expect(result.output).not.toContain("temporary-sandbox-key");
+    expect(result.output).not.toContain("temporary-access-secret");
+  });
+
   it("test_ai_flow_with_yes_creates_from_deployed_template", async () => {
     const [gen, genMock, deploy] = _patchSuccessPipeline(tmp);
     const mockCreate = patchCreate();
@@ -243,7 +277,7 @@ describe("TestCreateRouting", () => {
     expect(genMock).toHaveBeenCalledTimes(1);
     expect(callArg(genMock, -1, 0)).toBe("a python data science env");
     expect(deploy).toHaveBeenCalledTimes(1);
-    expect(deploy).toHaveBeenCalledWith(String(gen.workdir), { acr_namespace: "test-acr-ns", ctx: expect.anything(), verbose: false });
+    expect(deploy).toHaveBeenCalledWith(String(gen.workdir), expect.objectContaining({ acr_namespace: null, ctx: expect.anything(), verbose: false, yes: true }));
     expect((callArg(mockCreate as unknown as Mock, -1, 0) as Record<string, unknown>)["template"]).toBe("tmpl-ai-123");
   });
 
@@ -404,7 +438,7 @@ describe("TestQwenCodeCredentialGate", () => {
     expect(result.output).toContain("E2006");
   });
 
-  it("test_tty_prompts_for_key_and_stores_it", async () => {
+  it("test_tty_prompts_for_key_for_current_command", async () => {
     const resolveMock = vi
       .fn()
       .mockImplementationOnce(() => {
@@ -419,12 +453,11 @@ describe("TestQwenCodeCredentialGate", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "n\nsk-user-key\n\ny\n" });
+    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "n\n1\nsk-user-key\n\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(cfg.writeEnvVar).toHaveBeenCalledTimes(1);
-    expect(cfg.writeEnvVar).toHaveBeenCalledWith("ABX_LLM_API_KEY", "sk-user-key");
-    expect(result.output).toContain("Stored llm_api_key");
+    expect(cfg.writeEnvVar).not.toHaveBeenCalled();
+    expect(result.output).toContain("only to this command");
     expect(resolveMock).toHaveBeenCalledTimes(2);
     // The second resolve must reuse the freshly entered key.
     expect(callArg(resolveMock, -1, 0)["storedApiKey"]).toBe("sk-user-key");
@@ -439,7 +472,8 @@ describe("TestQwenCodeCredentialGate", () => {
     const result = await runner().invoke(cli, ["create", "--prompt", "python env"], { input: "\n" });
 
     expect(result.exit_code).toBe(1);
-    expect(result.output).toContain("No Qwen Code API key provided");
+    expect(result.output).toContain("Aborted!");
+    expect(cfg.writeEnvVar).not.toHaveBeenCalled();
   });
 });
 

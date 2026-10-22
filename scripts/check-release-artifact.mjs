@@ -1,7 +1,7 @@
 // Exercise an installed package or a real SEA, outside source-module imports.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync, statSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,22 +42,55 @@ try {
   environment.HOME = projectRoot;
   environment.USERPROFILE = projectRoot;
   environment.XDG_CONFIG_HOME = join(projectRoot, ".config");
-  const invokeProject = (args) => spawnSync(artifact, args, { encoding: "utf8", timeout: 60000, windowsHide: true,
-    cwd: projectRoot, env: environment, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
+  environment.ABX_NO_KEYCHAIN = "1";
+  const invokeProject = (args, extraEnvironment = {}) => {
+    const result = spawnSync(artifact, args, { encoding: "utf8", timeout: 60000, maxBuffer: 4 * 1024 * 1024, windowsHide: true,
+      cwd: projectRoot, env: { ...environment, ...extraEnvironment }, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
+    assert.ifError(result.error);
+    return result;
+  };
+  // Unrelated upstream state must never break ABX help or supply a different identity.
+  mkdirSync(join(projectRoot, ".e2b"));
+  writeFileSync(join(projectRoot, ".e2b", "config.json"), "{invalid unrelated configuration");
+  const standardHelp = invokeProject(["create", "--help"]);
+  assert.equal(standardHelp.status, 0, "A corrupt ~/.e2b/config.json must not affect ABX help");
+  assert.match(standardHelp.stdout, /Usage:/i);
+  assert.equal(readFileSync(join(projectRoot, ".e2b", "config.json"), "utf8"), "{invalid unrelated configuration", "ABX must not rewrite unrelated E2B state");
+  const missingKey = invokeProject(["create", "base"]);
+  assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
+  assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);
+  assert.match(missingKey.stdout + missingKey.stderr, /sandbox_api_key/);
+  assert.doesNotMatch(missingKey.stdout + missingKey.stderr, /e2b auth login|e2b\.dev\/dashboard/i);
+  assert.doesNotMatch(missingKey.stdout + missingKey.stderr, /Configuration scope|input hidden/i, "A subprocess without a terminal must never ask for credentials");
+  const invalid = invokeProject(["create", "--template", "base"]);
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /unknown option/i);
+  assert.doesNotMatch(invalid.stdout + invalid.stderr, /Configuration scope|Missing configuration/i, "Syntax errors precede credential setup");
+  const nativeJson = invokeProject(["--native", "--json", "create", "base"]);
+  assert.equal(nativeJson.status, 1);
+  assert.match(JSON.parse(nativeJson.stdout).message, /sandbox_api_key/);
+  assert.doesNotMatch(nativeJson.stdout + nativeJson.stderr, /Configuration scope|input hidden/i);
+  const ciCreate = invokeProject(["--native", "--ci", "create", "base"], { CI: "1" });
+  assert.equal(ciCreate.status, 1);
+  assert.match(JSON.parse(ciCreate.stdout).message, /sandbox_api_key/);
+  assert.doesNotMatch(ciCreate.stdout + ciCreate.stderr, /Configuration scope|input hidden/i);
   const missing = invokeProject(["template", "deploy", project, "-y", "--acr-namespace", "onboarding-test"]);
   assert.equal(missing.status, 1, "New project must continue into provider credential preflight");
-  assert.match(missing.stdout + missing.stderr, /credentials missing/i);
+  assert.match(missing.stdout + missing.stderr, /Missing configuration/i);
+  assert.match(missing.stdout + missing.stderr, /access_key_id/);
+  assert.match(missing.stdout + missing.stderr, /access_key_secret/);
+  assert.doesNotMatch(missing.stdout + missing.stderr, /Configuration scope|input hidden/i);
   for (const name of ["template.yaml", "Dockerfile", "commands.py"]) assert.ok(existsSync(join(project, name)));
   const ciProject = join(projectRoot, "ci-project");
   const ci = invokeProject(["--ci", "template", "deploy", ciProject, "--acr-namespace", "onboarding-test"]);
   assert.equal(ci.status, 1);
-  assert.match(JSON.parse(ci.stdout).message, /credentials missing/i, "CI must emit one final result");
+  assert.match(JSON.parse(ci.stdout).message, /Missing configuration/i, "CI must emit one final result");
   assert.ok(existsSync(join(ciProject, "template.yaml")));
   writeFileSync(join(project, "Dockerfile"), "keep original\n");
-  const overwrite = spawnSync(artifact, ["template", "scaffold", "--template", "python", project, "-y"], { encoding: "utf8", timeout: 60000, windowsHide: true, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
+  const overwrite = invokeProject(["template", "scaffold", "--template", "python", project, "-y"]);
   assert.equal(overwrite.status, 1, "Yes alone must not authorize replacement");
   assert.equal(readFileSync(join(project, "Dockerfile"), "utf8"), "keep original\n");
-  run(["template", "scaffold", "--template", "python", project, "--force", "-y"]);
+  assert.equal(invokeProject(["template", "scaffold", "--template", "python", project, "--force", "-y"]).status, 0);
   assert.match(readFileSync(join(project, "Dockerfile"), "utf8"), /FROM/);
 } finally {
   rmSync(projectRoot, { recursive: true, force: true });
@@ -67,4 +100,4 @@ assert.ok(declaration, "Missing complete reviewed notice declaration");
 const runtimeDeclaration = /^export const RUNTIME_DEPENDENCY_NOTICES = (.+);$/m.exec(readFileSync(join(root, "src/licenses/runtime_dependencies.ts"), "utf8"));
 assert.ok(runtimeDeclaration, "Missing complete reviewed runtime dependency notice declaration");
 assert.equal(run(["--licenses"]), JSON.parse(declaration[1]) + JSON.parse(runtimeDeclaration[1]), "Installed artifact notices differ from the complete source");
-console.log(`PASS: installed abx ${version}: version, root/standard/native help and complete notices`);
+console.log(`PASS: installed abx ${version}: version, isolated guidance, one JSON result, root/standard/native help and complete notices`);

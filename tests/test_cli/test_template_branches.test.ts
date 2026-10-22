@@ -1,10 +1,11 @@
+import "../_support/isolatedHome.js";
+import * as guidance from "../../src/cli/config_guidance.js";
 /**
  * Branch coverage tests added while re-reading `template.py` line by line: paths of the ported module that the Python
  * suite never exercises (legacy `build_and_register` pipeline, early credential checks, confirmation prompts, shape
  * variants of the platform responses).
  */
 
-import "../_support/isolatedHome.js";
 
 import path from "node:path";
 
@@ -78,7 +79,7 @@ describe("TestDoDeployLegacyPipeline", () => {
   it("test_missing_acr_credentials_raises_click_exception", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
     await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(CliError);
-    await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(/ACR credentials missing/);
+    await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(/Missing configuration/);
   });
 
   it("test_explicit_acr_credentials_bypass_missing_config_credentials", async () => {
@@ -103,10 +104,9 @@ describe("TestDeployConfirmation", () => {
     const tdir = templateDir();
     const result = await runner().invoke(cli, ["template", "deploy", tdir, "--acr-namespace", "ns", "--yes"]);
     expect(result.exit_code).toBe(1);
-    expect(result.output).toContain("ACR credentials missing.");
-    expect(result.output).toContain("--acr-username/--acr-password");
-    expect(result.output).toContain("ALICLOUD_ACCESS_KEY_ID");
-    expect(result.output).toContain("ALICLOUD_ACCESS_KEY_SECRET");
+    expect(result.output).toContain("Missing configuration");
+    expect(result.output).toContain("access_key_id");
+    expect(result.output).toContain("access_key_secret");
     expect(result.output).not.toContain("AccessKey / AccessSecret");
   });
 
@@ -147,6 +147,7 @@ describe("TestDeployConfirmation", () => {
   it("test_deploy_confirmation_declined_aborts", async () => {
     patchLoadConfig(fakeConfig());
     templateSeams.stdinIsatty = () => true;
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const doDeploy = vi.spyOn(templateSeams, "_doDeploy");
     const result = await runner().invoke(cli, ["template", "deploy", templateDir(), "--acr-namespace", "ns"], { input: "n\n" });
     expect(result.exit_code).toBe(1);
@@ -165,7 +166,9 @@ describe("TestDeleteConfirmation", () => {
   });
 
   it("test_delete_confirmation_declined_aborts", async () => {
+    patchLoadConfig();
     templateSeams.stdinIsatty = () => true;
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const http = mockHttp({ json: {} });
     patchTransport(http);
     const result = await runner().invoke(cli, ["template", "delete", "tpl-1"], { input: "n\n" });
@@ -264,6 +267,7 @@ describe("TestInstallPipelineStatuses", () => {
   it("test_install_confirmation_declined_aborts", async () => {
     envAliyun();
     templateSeams.stdinIsatty = () => true;
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const tp = tmpPath();
     const source = path.join(tp, "src");
     writeText(path.join(source, "template.yaml"), "name: st-test\n");

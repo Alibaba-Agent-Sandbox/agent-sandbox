@@ -13,7 +13,7 @@
 
 import "../_support/isolatedHome.js";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
@@ -21,6 +21,8 @@ import { CliRunner } from "../helpers/cliRunner.js";
 
 // `runner` fixture
 const runner = (): CliRunner => new CliRunner();
+beforeEach(() => vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key"));
+afterEach(() => vi.unstubAllEnvs());
 
 // ---------------------------------------------------------------------------
 // 1. abx create without description / template
