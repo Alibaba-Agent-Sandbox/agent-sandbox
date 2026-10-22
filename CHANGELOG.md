@@ -10,8 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Add read-only npm credential and scope diagnostics to the release recovery workflow, with sanitized output and publication explicitly disabled. / 为发布恢复工作流增加只读 npm 凭据与 scope 诊断，输出脱敏并明确跳过发布。
 
-### Added
-
 - Contextual Provider operation discovery in `abx -h`, `abx provider -h` and `abx provider run OPERATION -h`, plus default-aware `provider run` dispatch using existing JSON input and confirmation contracts. Preserve explicit-ID `provider command list/info/run` for compatibility and AI JSON discovery. / 通过标准帮助发现所选 Provider 的操作，新增使用默认 Provider 的 `provider run`，保留原有显式 ID 与 JSON 接口。
 
 - Provider-registered Express pause/resume and Snapshot create/list/restore/delete, shared by CLI and Python engine clients without backend duplication. / Provider 注册的极速版暂停恢复及快照全流程，两端共用实现。
