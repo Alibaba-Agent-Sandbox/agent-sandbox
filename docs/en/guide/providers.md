@@ -111,7 +111,7 @@ Installing a provider does not enable every `abx` command. The CLI and the Pytho
 | `sandbox.pause` | Express standard pause/resume; generic provider CLI entry still missing | ProviderSandbox `pause`, `resume` |
 | `exec.run` | `exec`, `run` | `commands.run`, `sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_stdin` |
+| `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_input` |
 | `pty` | Express connect uses a PTY; project provider connect is still a line REPL | `get_terminal` |
 | `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |

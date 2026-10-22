@@ -111,7 +111,7 @@ abx kill local-process:sbx-1 --yes
 | `sandbox.pause` | 极速版标准 pause/resume；通用 Provider CLI 入口尚未接入 | ProviderSandbox `pause`、`resume` |
 | `exec.run` | `exec`、`run` | `commands.run`、`sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/info/signal`；用 `exec --background` 启动 | `commands.list`、`kill`、`send_stdin` |
+| `process.manage` | `sandbox process list/info/signal`；用 `exec --background` 启动 | `commands.list`、`kill`、`send_input` |
 | `pty` | 极速版 connect 为 PTY；项目 Provider connect 仍是逐行 REPL | `get_terminal` |
 | `files.rw` | `upload`、`download`、`sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |

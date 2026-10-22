@@ -39,7 +39,7 @@
 6. exec 提供方返回 `envd_url` 时，继续使用现有 envd 传输做 exec / 文件 / PTY（混合模式，已在 `ExecProvider` 中实现）。
 7. 取消 `tests/test_providers/test_sandbox_provider.test.ts` 中两个 `it.todo` 的占位（`Sandbox.connect('provider:id')` 冲突 → `E8030`，以及内置默认路径）。
 
-`api/commands.ts`：路由不变；只需让 `kill/connect/send_stdin` 的签名接受字符串 pid（随 `ProcessInfo.pid` 的放宽而改）。
+`api/commands.ts`：路由不变；只需让 `kill/connect/sendInput` 的签名接受字符串 pid（随 `ProcessInfo.pid` 的放宽而改）。
 
 ## 3. `src/cli/main.ts` 与 `command_surface.ts`
 
