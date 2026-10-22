@@ -69,6 +69,7 @@ graph TB
 |-------|----------|---------|
 | **CLI Architecture** | [architecture.md](design/architecture.md) | Layers, `src/` directory structure, command groups, output and exit codes, config/credentials, build / SEA binary / release, parity contract |
 | **CLI Command System** | [cli-design.md](design/cli-design.md) | Command tree (45 commands), global options, natural language creation, OutputManager, AI-friendly design |
+| **Error reporting (proposal)** | [error-reporting.md](design/error-reporting.md) | Opt-out controls, sanitized events, bounded delivery, FC/SLS ingestion and abuse controls; design only |
 | **Templates Catalog** | [templates-catalog.md](design/templates-catalog.md) | Single source of truth (SSOT): the awesome-templates catalog repo, the remote index client, caching/degradation behaviour, the fixture boundary, and the template command surface |
 | **Template build modes** | [template-build-modes.md](design/template-build-modes.md) | One publish path per invocation: local Dockerfile or `template.yaml` `build:` expanded into `CreateTemplate` `sandboxConfig.steps` |
 | **Provider template deploy** | [provider-template-deploy.md](../design/provider-template-deploy.md) | Design only: `abx template deploy` per provider. Express's build/push/register layer, the four catalog APIs, and the proposed `template.deploy` feature. [中文](../zh/design/provider-template-deploy.md) |

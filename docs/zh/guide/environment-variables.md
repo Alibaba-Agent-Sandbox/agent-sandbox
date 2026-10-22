@@ -26,7 +26,7 @@
 `abx create` 接受可重复的 `--env` / `-e KEY=VALUE`。这些变量会注入 envd 根进程，并在沙箱生命周期内被后续所有命令继承：
 
 ```bash
-abx create --template base --env MY_KEY=value --env LOG_LEVEL=debug
+abx create base --detach --env MY_KEY=value --env LOG_LEVEL=debug
 ```
 
 创建之后没有任何 CLI 命令可以修改 envd 变量。如果某条命令需要不同的值，请显式包装：`abx exec <sandbox-id> "sh -c 'MY_KEY=other python app.py'"`。

@@ -60,6 +60,8 @@ abx config init -y
 
 The existing missing-directory exception remains: build/deploy with `-y` or CI consent may scaffold a missing Python project and continue. Existing files still have their separate conflict and overwrite protections. Creating project files is not a successful deployment.
 
+For an interactive deployment, omit `-y`: `abx template deploy ./codex --alias codex`. In a shell workflow, join preparation, deployment and creation with `&&` so a failed deployment cannot launch a second command. A directory name does not select a Registry template: fetch its source first with `abx template scaffold ./codex --from alibaba-agent-sandbox/awesome-templates//codex`. After deployment succeeds, use `abx create codex --detach`; `--template` is a scaffold option.
+
 ## Review and change saved configuration
 
 ```bash

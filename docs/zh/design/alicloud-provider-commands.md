@@ -77,9 +77,7 @@ abx provider command run alicloud-express volume.create --input-file volume.json
 角色必须已经存在，并授权访问目标存储。创建 Volume 元数据不会自动建立这些权限。
 创建沙箱时按 Volume **名称**挂载：
 
-```bash
-abx create --template base --volume-mount /mnt/workspace=workspace
-```
+默认标准极速版 CLI 未暴露 `--volume-mount`。此工作流请使用原生 Python SDK 的 [volume_mounts 创建参数](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)。
 
 `Sandbox.create({volume_mounts: {"/mnt/workspace": "workspace"}})` 使用相同的路径到名称
 映射，FC 请求序列化为 `volumeMounts: [{name: "workspace", path: "/mnt/workspace"}]`。

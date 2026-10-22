@@ -249,7 +249,7 @@ abx --json provider command run alicloud-express volume.list --input '{"max_resu
 
 写入和删除要求 `--yes`。凭证通过配置提供，`--opt` 拒绝密钥字段；复杂输入使用 `--input-file`。发现命令不需要云凭证。FC 管理操作要求阿里云 AK/SK，不能用沙箱 API Key 鉴权。完整规范见[命令契约](../design/provider-commands.md)和[阿里云能力矩阵](../design/alicloud-provider-commands.md)，包含域名能力边界和 API Key 安全导出。
 
-挂载已有 FC Volume 时，使用 `abx create --template base --volume-mount /mnt/workspace=workspace`。
+挂载已有 FC Volume 时，使用原生 Python SDK 的 `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` 参数，详见 [SDK API 参考](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)。默认标准极速版 CLI 未暴露原生 `--volume-mount` 选项。
 按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
 Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
 角色配置和挂载验证见能力矩阵。

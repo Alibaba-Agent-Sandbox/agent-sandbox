@@ -249,7 +249,7 @@ abx --json provider command run alicloud-express volume.list --input '{"max_resu
 
 Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.
 
-To mount an existing FC Volume, use `abx create --template base --volume-mount /mnt/workspace=workspace`.
+To mount an existing FC Volume, use the native Python SDK `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` argument from the [SDK API reference](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/api-reference.md). The default standard Express CLI does not expose the native `--volume-mount` option.
 This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
 It does not create underlying storage. Volume currently requires invitation access; confirm it through
 an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).

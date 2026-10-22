@@ -40,7 +40,7 @@ Callers that should share that path:
 | 6. Return an id or ref | `TemplateID`. `_rememberTemplate` caches `template.yaml` under that id, the alias, and the yaml name. | Provider result `template_id` (the string `sandbox.create` accepts) plus optional `ref`. CLI keeps the cache. |
 | 7. Delete, list, inspect | Express list/get/delete in `fc_template.ts`, gated by `templates.read` / `templates.build`. | Provider methods `template.list`, `template.get`, `template.delete`. |
 
-`[template]` in `abx-provider.toml` is the authoring profile (`src/providers/template_profile.ts`: base image, `server_start`, Dockerfile `CMD`). It is not the runtime meaning of `abx create --template`. OpenSandbox has no `[template]` table and uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`).
+`[template]` in `abx-provider.toml` is the authoring profile (`src/providers/template_profile.ts`: base image, `server_start`, Dockerfile `CMD`). It is not the runtime meaning of `abx create TEMPLATE`. OpenSandbox has no `[template]` table and uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`).
 
 ## 3. Providers
 
