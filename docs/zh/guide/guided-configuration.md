@@ -31,7 +31,7 @@ abx template deploy ./dev-services --alias dev-services
 | --- | --- |
 | 标准极速版沙箱命令 | Sandbox API Key 和实际服务目标 |
 | 官方 Dockerfile 部署 | 平台 AccessKey 对、该路径需要的 ACR namespace 和凭证，以及本机 Docker 条件 |
-| 平台 build steps | 平台凭证和实际地域；不要求本机 Docker 或 ACR |
+| 平台 build steps | 平台凭证、实际地域和二代模板；不要求本机 Docker 或 ACR |
 | 推送镜像 | 推送路径实际使用的镜像仓库配置；不会仅因其他操作需要而索要模板注册身份 |
 | 从现成镜像部署 | 对应 Provider 的平台配置；显式私有镜像模式下补齐成对的拉取凭证；不要求本机 Docker 构建 |
 | 生成模板或真实适配项目 | 编码工具与 LLM 配置；只有继续部署或创建沙箱时才追加云配置 |
@@ -89,6 +89,8 @@ TOML/dotenv 损坏或不可读时会指出来源，不展示密钥内容。显�
 缺失的构建或部署目录可以确认后创建。已有目录既没有 Dockerfile 也没有平台构建步骤时，可选择生成脚手架、让模型适配现有代码、改用另一目录或取消。显式错误的 Dockerfile 路径和损坏 YAML 会报出原因，不会覆盖；文件预览和替换授权仍保留。更多模板见[模板 Registry](https://registry.agent-sandbox.cn/templates/)。
 
 Docker 检查会区分未安装命令与 daemon/context 不可访问。修复本机环境后，可以选择重新检查，再开始构建。CLI 不会替用户执行 sudo、切换 Docker context 或启动系统服务。GitHub 限流恢复只重试安全的源读取；权限不足和引用不存在继续给出不同诊断。
+
+云平台的 build steps 仅支持二代模板。请在项目的 `template.yaml` 中设置 `generation: 2`，或传入 `--generation 2`，并使用支持该运行方式的镜像和启动配置。配置引导不会静默转换已有一代模板或更换其镜像。
 
 ## MCP 引导与离线工作
 

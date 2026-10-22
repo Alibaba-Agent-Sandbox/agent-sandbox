@@ -31,7 +31,7 @@ After saving, the flow reports the actual destination and modification command. 
 | --- | --- |
 | Standard Express sandbox commands | Sandbox API key and the effective service target |
 | Official Dockerfile deployment | Platform AccessKey pair, ACR namespace and credentials required by that path, plus local Docker prerequisites |
-| Platform build steps | Platform credentials and the effective region; no local Docker or ACR requirement |
+| Platform build steps | Platform credentials, the effective region and a generation-2 template; no local Docker or ACR requirement |
 | Image push | The registry configuration used by the push path; no template registration identity merely because other operations use one |
 | Deploy from an existing image | The selected Provider's platform configuration, and missing paired private-registry fields when that mode is requested; no local Docker build |
 | Template generation or real adoption | Coding tool and LLM configuration; cloud requirements are added only when deploying or creating a sandbox |
@@ -89,6 +89,8 @@ Malformed or unreadable TOML/dotenv files are diagnosed by source, without showi
 A missing build/deploy directory can be created after confirmation. If an existing directory has neither a Dockerfile nor platform build steps, the terminal flow offers scaffolding, adapting existing code, choosing another directory, or cancelling. Explicit invalid Dockerfile paths and malformed YAML are reported rather than overwritten. File previews and replacement consent still apply. Browse source templates in the [template Registry](https://registry.agent-sandbox.cn/templates/).
 
 Docker checks distinguish a missing executable from an inaccessible daemon or context. After fixing the local setup, you can request another check before building. The CLI does not run sudo, select a different Docker context, or start system services for you. GitHub rate-limit recovery retries the safe source read; access-denied and missing-reference errors remain distinct diagnostics.
+
+The platform accepts build steps only for generation 2. Set `generation: 2` in the project's `template.yaml` or pass `--generation 2` with an image and startup configuration that support that runtime. Configuration setup does not silently convert an existing generation-1 template or change its image.
 
 ## MCP setup and offline work
 

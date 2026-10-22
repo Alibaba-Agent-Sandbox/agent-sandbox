@@ -1,6 +1,6 @@
 # Decision: Guide operation-specific configuration before execution
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -90,8 +90,8 @@ The scenario groups retain their audit identifiers so implementation and evidenc
 | G24–G26 | Effective target/source context precedes secret collection; existing defaults avoid extra questions; optional business configuration, permission/quota/TLS/network failures are not treated as missing credentials. |
 | G27–G30 | Temporary values actually reach consumers without environment mutation/persistence; saved values are read back with source conflicts identified; no mutation replay, no aggregate login loops, no unrelated E2B login inheritance, and no silent corruption/invalid-value fallback during setup. |
 
-All applicable repository gates and real-component evidence must identify passes, failures, skips and limitations separately. This record stays proposed until required review, CI, real-component acceptance and merge status have been verified. The task coordinator records final executed evidence separately; no merge or release is claimed here.
+All applicable repository gates and real-component evidence must identify passes, failures, skips and limitations separately. Implementation acceptance is supported by three independent implementation-review rounds, the implementation-commit Node 20/22 CI gates, and recorded real terminal, filesystem, Sandbox lifecycle and platform-steps deployment evidence. Final-head checks, merge and release are separately verified by the task coordinator; this status does not assert that a PR merged or a package was published.
 
 ## Evidence
 
-- [Draft verification receipt](../../../evidence/verify/2026-10-22-guided-configuration.md) records executed checks, real-cloud cleanup and outstanding final gates without claiming merge or publication.
+- [Verification receipt](../../../evidence/verify/2026-10-22-guided-configuration.md) records executed checks, real-cloud cleanup and outstanding final gates without claiming merge or publication.

@@ -67,7 +67,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             raise AssertionError('guided terminal timed out')
         if status is None: _, status = os.waitpid(pid, 0)
         clean = re.sub(rb'\x1b\[[0-?]*[ -/]*[@-~]', b'', output).replace(b'\r', b'')
-        candidates = re.findall(rb'^([A-Za-z0-9_-]{6,})\s*$', clean, re.M)
+        candidates = re.findall(rb'^([A-Za-z0-9][A-Za-z0-9_-]{5,})\s*$', clean, re.M)
         if os.waitstatus_to_exitcode(status) == 0 and len(candidates) == 1:
             owned = candidates[0].decode()
         assert credential.encode() not in output, 'hidden input was echoed'
