@@ -181,16 +181,13 @@ abx template deploy ./my-template \
 abx template deploy ./my-template \
   --acr-namespace my-ns --cpu 4 --memory 4096 --disk-size 10240 --internet-access
 
-# Use legacy v3/v2 API (old script compatibility)
-abx template deploy ./my-template \
-  --acr-namespace my-ns
 ```
 
-**Two paths explained**:
+**Template API**:
 
-| Path | Default? | Authentication | Dependency |
-|------|----------|---------------|------------|
-| Official CreateTemplate API | ✅ Yes | AK/SK | `@alicloud/fcsandbox20260509` (bundled) |
+| API | Authentication | Dependency |
+|-----|----------------|------------|
+| Official CreateTemplate API | AK/SK | `@alicloud/fcsandbox20260509` (bundled) |
 
 > **Region note**: The official API uses the region configured via `abx config set region` (else `cn-hangzhou`). A single deployment can override it with the command-level `--region`/`-r` option on `template deploy`/`build`/`create`/`push`/`list`/`info`/`install`/`delete`. Cross-region ACR access may require VPC-related parameters.
 

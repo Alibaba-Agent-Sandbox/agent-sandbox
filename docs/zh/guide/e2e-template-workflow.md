@@ -381,7 +381,7 @@ abx template deploy ./my-template \
 
 ### 验证部署
 
-部署完成后，用 `--official-api` 列出模板可查看**真实名称与状态**（`ready` / `building` / `error`）。以下为真实运行输出（2026-09-28，cn-hangzhou，为聚焦重点已截断）：
+部署完成后，通过官方 API 列出模板可查看**真实名称与状态**（`ready` / `building` / `error`）。以下为真实运行输出（2026-09-28，cn-hangzhou，为聚焦重点已截断）：
 
 ```bash
 $ abx template list
@@ -401,19 +401,6 @@ $ abx template list
 ```
 
 > **状态含义**：只有 `ready` 的模板才能成功创建沙箱。上表中 `python-hello-v2`、`e2e-python-hello` 等处于 `error` 状态的模板（通常由镜像构建/优化失败导致，参见[故障排查](#故障排查)）无法用于 `abx create`。
-
-不带 `--official-api` 时走 E2B 兼容接口，仅返回模板 ID（无名称/状态）：
-
-```bash
-$ abx template list
-┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
-┃ TemplateID           ┃ Alias ┃ Status ┃
-┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
-│ tpl00000000000000001 │ N/A   │ N/A    │
-│ tpl00000000000000009 │ N/A   │ N/A    │
-│ …（共 36 个，此处截断）
-└──────────────────────┴───────┴────────┘
-```
 
 查看单个模板详情：
 

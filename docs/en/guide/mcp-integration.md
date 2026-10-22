@@ -72,7 +72,6 @@ The MCP Server provides 21 tools: the seven compatible core tools below, plus th
 | `list_files` | List directory contents in the sandbox | `path` (optional, default `/`), `sandbox_id` (optional) |
 | `kill_sandbox` | Destroy a sandbox | `sandbox_id` (optional; destroys the default sandbox when omitted. An error is returned when there is no default) |
 
-> **Naming clarification**: The MCP tool `run_command` runs the command via `sh -c` (`sandbox.commands.run(..., shell=True)` in the SDK). It is unrelated to the deprecated SDK method `Sandbox.run_command()`, which dispatches named custom commands — use `Sandbox.custom()` for that purpose.
 >
 > **Default sandbox**: `create_sandbox` makes that sandbox the default, so a later `write_file` / `run_code` / `kill_sandbox` that omits `sandbox_id` uses the sandbox just created. If there is no default yet, the first tool call that omits `sandbox_id` lazily creates one. An omitted `template` uses the server template (`code-interpreter-v1` for `abx mcp start`). Each use extends the sandbox lifetime by the timeout it was created with. Every sandbox in the session is destroyed when the IDE closes the server (STDIO) or on `DELETE /mcp` / idle timeout (HTTP).
 

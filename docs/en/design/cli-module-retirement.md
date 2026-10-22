@@ -17,7 +17,7 @@ paths; migrate before updating. No CLI command is removed by this cleanup.
 | `utils/keychain.ts` | CLI credential configuration; this unused SecretStore was not part of command credential resolution |
 | `utils/retry.ts` | No automatic retry replacement; retries require operation-specific safety |
 | `protocol/port.ts` | Active `api/network.ts` / provider URL methods used by CLI sandbox ports |
-| `TemplateProtocol.create(dockerfile)` | Deprecated metadata-only `POST /templates` removed; current image build v3/v2 and official template APIs remain |
+| `TemplateProtocol.create(dockerfile)` | Deprecated metadata-only `POST /templates` removed; current image build and official template APIs remain |
 
 Reachability was checked from the executable with both the TypeScript import
 graph (including type imports and literal dynamic imports) and the bundle graph.

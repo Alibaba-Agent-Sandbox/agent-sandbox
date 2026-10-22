@@ -121,7 +121,6 @@ provider = "alicloud-express"
 sandbox_base_url = "https://api.cn-hangzhou.e2b.fc.aliyuncs.com"
 sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 http_timeout = 30.0
-# Legacy retry values do not enable builtin HTTP retries.
 
 [providers.alicloud-express]
 region = "cn-hangzhou"
@@ -229,17 +228,6 @@ in-sandbox server variables (`ABX_SERVER_*`, `ABX_PTY_PORT`, `ABX_MAX_UPLOAD_SIZ
 variables are documented in the SDK's [Configuration Reference](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/configuration.md)
 in the `python-sdk` repository.
 
-### Legacy retry compatibility
+### Transport attempts
 
-`max_retries` (default3) and `retry_base_delay` (default1.0), including their
-existing environment/TOML names, remain accepted for configuration and extension
-compatibility. The builtin platform/envd HTTP transport does not use either
-value and performs one transport attempt. Setting them does not enable automatic
-retry or backoff. EPP connections still forward `max_retries`; a plugin's policy
-belongs to that plugin and is not a builtin transport guarantee.
-
-Provider-engine rediscovery/read recovery and explicit custom authentication
-refresh are separate mechanisms, not controlled by these settings. Applications
-that need retries must use a bounded policy for safe reads; reconcile an unknown
-write outcome before issuing the mutation again. No automatic retry feature is
-introduced by retaining the legacy configuration names.
+Builtin platform/envd HTTP performs one transport attempt. Provider-engine read recovery is separate. Applications that retry safe reads must bound attempts; reconcile an unknown write outcome before repeating a mutation.

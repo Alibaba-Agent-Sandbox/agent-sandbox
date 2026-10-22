@@ -1,6 +1,6 @@
 # Decision: Remove retired project compatibility
 
-Status: proposed
+Status: implemented
 
 ## Problem
 The maintainer states that the project has not formally released and requests removing old template management/API behavior and other project compatibility layers. Keeping aliases, alternate factories and fallback branches expands an API that is not meant to be supported.
@@ -31,3 +31,15 @@ Run the repository's required local checks and regressions for current observabl
 - [Verification](../../../evidence/verify/2026-10-22-remove-legacy-compatibility.md)
 
 Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/103
+
+## Acceptance
+
+Verified merged implementation: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/104. The source merge commit is `bbd7504094eee58d5126857b55d297ab0480fe92`.
+
+- [Remote acceptance](../../../evidence/verify/2026-10-22-remove-legacy-acceptance.md)
+
+## Current documentation follow-up
+
+Remove stale instructions that still advertised retired imports, credential aliases, retry settings, template selectors and server transfer routes. The current API references, provider boundary pages and contributor entry point describe the merged implementation.
+
+- [Documentation verification](../../../evidence/verify/2026-10-22-remove-legacy-docs.md)

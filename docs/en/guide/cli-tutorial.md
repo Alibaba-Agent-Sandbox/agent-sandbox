@@ -222,7 +222,7 @@ abx config set http_timeout 60
 abx config set region ""
 ```
 
-Available configuration keys: `sandbox_api_key`, `api_url`, `region`, `http_timeout`, `max_retries`, `domain`, `llm_api_key`, `llm_model`, `llm_base_url`, `github_token`, `access_key_id`, `access_key_secret`, `acr_namespace`. `api_key` is still accepted as an alias of `sandbox_api_key`.
+Available configuration keys: `sandbox_api_key`, `sandbox_base_url`, `region`, `http_timeout`, `sandbox_domain`, `llm_api_key`, `llm_model`, `llm_base_url`, `github_token`, `access_key_id`, `access_key_secret`, `acr_namespace`.
 
 > **Tip:** hit a GitHub anonymous rate limit while using `abx template search` / `abx template install`? Run `abx config set github_token` in an interactive terminal (masked input, stored in `~/.abx/.env`), or inject `GITHUB_TOKEN` as a CI secret. See [Authentication](authentication.md) and the CLI reference for the `--token` precedence notes.
 >

@@ -50,7 +50,7 @@ agent-sandbox/
 └── package.json               # Build config, dependencies, npm scripts
 ```
 
-The SDK-only modules (`compat/`, `declarative/`, `extensions/`, `integrations/`, `server/`), `examples/` and the SDK/API docs live in the `python-sdk` repository. This repository keeps its own `.agents/` (ADRs in `notes/`, golden-file `evidence/`, design notes).
+The Python client, declarative API, in-sandbox server, examples and SDK/API docs live in the `python-sdk` repository. This repository keeps its own `.agents/` (ADRs in `notes/`, golden-file `evidence/`, design notes).
 
 ---
 
@@ -86,7 +86,7 @@ graph TB
     API --> PRO --> TRA --> MOD
 ```
 
-The client core mirrors the Python SDK's layers one-to-one; the SDK's own architecture (Compat, Declarative, Extensions, Integrations and Server layers) is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
+The client core mirrors the Python SDK's layers one-to-one; the SDK's own standard-client, provider, declarative and server architecture is documented in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/architecture.md).
 
 ---
 
@@ -265,7 +265,7 @@ Provider ownership is resolved before backend requests. Qualified references and
 
 Core protocols and authentication are structural contracts. Backend implementations,
 Express template UI/build/authentication and shared envd adapters live under
-`src/providers/`. Historical api/protocol/auth paths are compatibility aliases.
+`src/providers/`. Import implementations from their owning provider modules; retired forwarding paths are removed.
 Retired Image/TemplateManager create, GlobalConfig, named-session persistence,
 PortClient, secret-store and generic-retry implementations remain removed. Pure
 configuration values are under utils; executable registry selection is composed

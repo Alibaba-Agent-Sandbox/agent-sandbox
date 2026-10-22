@@ -26,7 +26,7 @@ Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox
 | --- | --- |
 | 命令注册、JSON、schema、校验、确认、完整性、超时和清理 | 通用 CLI/host，不应加入供应商端点分支。 |
 | 后端端点、认证签名、字段映射、轮询状态、模板/镜像含义和不支持项 | 所选 provider；只接收自身配置及明确同意继承的配置。 |
-| 极速版管理操作 | 内置 `providers/alicloud_express/commands.ts` 和 `sdk.ts`，历史路径仅保留兼容导出。 |
+| 极速版管理操作 | 内置 `providers/alicloud_express/commands.ts` 和 `sdk.ts`，历史转发路径已删除。 |
 | FC 模板部署及部分原生生命周期/认证 | 归属 `providers/alicloud_express/`；共享协议位于 `providers/shared/e2b/`。 |
 | 构建计划、Docker 本地构建/推送、模板缓存 | 可复用宿主服务，参数由 provider 决定，不能默认假定 ACR/FC。 |
 | 镜像编写约定 | provider 的 `[template]` profile；它不等于部署接口。 |

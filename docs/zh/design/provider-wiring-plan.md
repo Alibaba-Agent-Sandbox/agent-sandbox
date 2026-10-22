@@ -49,7 +49,6 @@
    - `--opt KEY=VALUE`（可重复），用 `src/providers/testing.ts` 中的 `parseProviderOptions` 解析（也可挪到 `providers/options.ts`）。涉及密钥字段（`ConfigField.secret`）时按规格以退出码 2 拒绝。
 3. `abx --help` 结尾加入 `Related commands` 行（规格 §0），重新生成根帮助 golden。
 4. 顶层错误处理：**仅对提供方类型的错误**使用 `exitCodeFor(err)`，其余保持现有映射（golden 不变）：认证 3、未找到 4（现在包含 `SandboxNotFoundError`）、超时 5、配额 6、配置 / 信任 / 不匹配 2，其余 1。
-5. `ABX_WARN_DEPRECATED=1`：`main.ts` 无需改动，`warnLegacyOnce` 在调用时读取环境变量。CLI 测试的 setup 中需调用 `_resetDeprecationWarnings()`。
 
 ## 4. 新文件 `src/cli/commands/provider.ts`
 

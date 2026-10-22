@@ -18,8 +18,7 @@ SDK, exchange cloud credentials, derive backend URLs, or select a wire protocol.
 
 The distribution composition roots register bundled adapters, configuration descriptors,
 CLI extensions and AI extensions. The generated configuration catalog is declarative
-compatibility data. Historical `api`, `protocol` and `transport` imports remain export
-facades; they do not constitute a second implementation or a core fallback.
+configuration data. Retired `api`, `protocol` and `transport` forwarding imports are removed.
 The shared HTTP/Connect transport implements framing and connection reuse; providers
 choose its authentication and adapters. It never chooses a cloud backend.
 
@@ -67,8 +66,7 @@ provider extensions; callbacks do not import the root CLI. Authentication diagno
 come from the selected auth adapter. Express sandbox calls require a sandbox API key;
 control-plane AK/SK never creates an implicit key during a sandbox operation.
 
-E2B/envd URL formatting lives with the wire adapter. Compatibility URL methods in both
-configuration views delegate to the distribution's legacy builder. The retired raw
+E2B/envd URL formatting lives with the selected wire adapter. Port and file URLs require explicit provider hooks. The retired raw
 Dockerfile `POST /templates` build path stays removed; project deployment uses the
 provider-owned CLI extension, and prebuilt-image registration uses the current adapter.
 Missing optional template methods return E8004. Tool discovery preserves its public
@@ -79,15 +77,12 @@ ordering while recomputing schemas for the selected provider.
 The selected adapter implements synchronous port access and project-server gateway
 headers. An adapter exposing only asynchronous port discovery must be called through
 `await sandbox.network.resolve(port)`; synchronous helpers fail E8004 instead of
-guessing an Express/E2B address or sending a foreign token. Direct standalone network
-constructors keep their documented bundled compatibility behavior. File transfer URLs
+guessing an Express/E2B address or sending a foreign token. Standalone network
+constructors require an explicit port adapter. File transfer URLs
 are optional filesystem adapter hooks; missing hooks fail E8004 even if the session
 URL happens to use HTTP. The core never constructs `/files` routes for foreign providers.
 
 Neutral Python transport/protocol imports do not load built-in authentication or wire
-adapters. Public compatibility imports resolve lazily when explicitly requested.
+adapters. Consumers import implementations from their owning provider modules.
 
-Pure bundled configuration, image and legacy URL metadata remains provider-owned.
-Lower configuration reads its declarative data through distribution composition and
-compatibility exports; it does not import authentication or runtime adapters. Compatibility
-URL helpers delegate to declared templates or the composed owned builder.
+Provider configuration metadata remains declarative. Lower layers consume the shared schema and injected discovery; executable adapters stay in their owning provider modules. Retired forwarding imports and implicit URL builders are removed.

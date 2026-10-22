@@ -30,7 +30,7 @@ The TypeScript CLI implementation is not evidence of public Node SDK parity. See
 | --- | --- |
 | Command registration, JSON output, schemas, validation, consent, integrity, timeouts and cleanup | Generic CLI/host. No per-vendor endpoint branches should be added here. |
 | Backend URLs, authentication/signing, wire aliases, polling/status semantics, image/template interpretation and unsupported operations | Selected provider adapter. Plugins receive only their own config and consented inherited fields. |
-| Express resource operations | Built-in `providers/alicloud_express/commands.ts` and `sdk.ts`; old paths are compatibility exports. |
+| Express resource operations | Built-in `providers/alicloud_express/commands.ts` and `sdk.ts`; retired forwarding paths are removed. |
 | Express template deployment and parts of native lifecycle/auth | `providers/alicloud_express/` owns templates, lifecycle binding, auth and specialized CLI/AI extensions; shared wire adapters live under `providers/shared/e2b/`. |
 | Docker build plans, local image build/push mechanics and template cache | Reusable host services. A shared helper must take provider-selected parameters rather than assume ACR or FC. |
 | Image authoring defaults | Provider `[template]` profile; a Dockerfile profile does not implement deployment. |

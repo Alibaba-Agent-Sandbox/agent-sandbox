@@ -181,16 +181,13 @@ abx template deploy ./my-template \
 abx template deploy ./my-template \
   --acr-namespace my-ns --cpu 4 --memory 4096 --disk-size 10240 --internet-access
 
-# 使用旧 v3/v2 API（老脚本兼容）
-abx template deploy ./my-template \
-  --acr-namespace my-ns
 ```
 
-**两条路径说明**：
+**模板 API**：
 
-| 路径 | 默认？ | 认证方式 | 依赖 |
-|------|--------|----------|------|
-| 官方 CreateTemplate API | ✅ 是 | AK/SK | `@alicloud/fcsandbox20260509`（已内置） |
+| API | 认证方式 | 依赖 |
+|-----|----------|------|
+| 官方 CreateTemplate API | AK/SK | `@alicloud/fcsandbox20260509`（已内置） |
 
 > **Region 注意**：官方 API 使用的 region 来自 `abx config set region`（未设置时为 `cn-hangzhou`）。单次部署可通过 `template deploy`/`build`/`create`/`push`/`list`/`info`/`install`/`delete` 的命令级 `--region`/`-r` 选项覆盖。跨区域访问 ACR 可能需要配置 VPC 相关参数。
 

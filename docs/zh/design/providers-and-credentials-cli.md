@@ -62,7 +62,7 @@ interface ConfigKey {
 | `template_index_url`、`template_dir` | url/path | 否 | `ABX_TEMPLATE_INDEX_URL`、`ABX_TEMPLATE_DIR` | 不能用 `config set` 写入 | |
 | `mcp_auth_token`、`mcp_allowed_origins`、`mcp_runtime_dir` | | token 是 | `ABX_MCP_*` | 不能用 `config set` 写入 | |
 
-连接池 / WS / 退避调优（`max_connections`、`max_keepalive_connections`、`keepalive_expiry`、`ws_ping_interval`、`retry_base_delay`）：只在文件（`[transport]`），环境变量 `ABX_<KEY>`，`config set` 不暴露。
+连接池 / WS / 退避调优（`max_connections`、`max_keepalive_connections`、`keepalive_expiry`、`ws_ping_interval`）：只在文件（`[transport]`），环境变量 `ABX_<KEY>`，`config set` 不暴露。
 
 ### 1.3 内置 `alicloud-express` 的提供方作用域键
 
@@ -82,7 +82,7 @@ interface ConfigKey {
 | `acr_security_group_id` | `ACR_SECURITY_GROUP_ID` | |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | 可选。不是必填项。 |
 
-内置提供方隐式使用 `sandbox_api_key`、`sandbox_base_url`、`sandbox_domain`、`http_timeout`、`http2`、`max_retries`（以及调优键）。**其他每个提供方**只使用非密钥调优键；它收到 `sandbox_api_key` / `sandbox_base_url` / `sandbox_domain` 的唯一途径是清单 `[core] inherit` 与用户在安装 / 更新时同意的列表的交集（`receipt.consented.inherit`）。切换默认提供方不会把阿里云密钥发给插件（设计 §4.6）。
+内置提供方隐式使用 `sandbox_api_key`、`sandbox_base_url`、`sandbox_domain`、`http_timeout`、`http2`（以及调优键）。**其他每个提供方**只使用非密钥调优键；它收到 `sandbox_api_key` / `sandbox_base_url` / `sandbox_domain` 的唯一途径是清单 `[core] inherit` 与用户在安装 / 更新时同意的列表的交集（`receipt.consented.inherit`）。切换默认提供方不会把阿里云密钥发给插件（设计 §4.6）。
 
 ### 1.4 保留字
 
@@ -123,7 +123,7 @@ resolve(key K, provider P, sources S):
 | `Sandbox authentication` | `sandbox_api_key` |
 | `Alibaba Cloud credentials` | 标记为 `credential` 的提供方键，然后 `acr_namespace` |
 | `Alibaba Cloud registry (ACR)`（仅内置） | `acr_registry`、`acr_repo`、`acr_username`、`acr_password`、`acr_instance_id`、`acr_vpc_id`、`acr_vswitch_ids`、`acr_security_group_id`、`team_id` |
-| `Connection` | `sandbox_base_url`、`region`、`sandbox_domain`、`http_timeout`、`http2`、`max_retries` |
+| `Connection` | `sandbox_base_url`、`region`、`sandbox_domain`、`http_timeout`、`http2` |
 | `LLM` | `llm_api_key`、`llm_model`、`llm_base_url` |
 | `Integrations` | `github_token` |
 | `Shortcuts` | 不变 |
@@ -198,7 +198,7 @@ providers.<id>.<key>
 
 ### 4.4 限定的沙箱引用
 
-输入语法：每个接受沙箱 id 的命令（`info`、`kill`、`exec`、`connect`、`upload`、`download`、`files`、`sandbox process/system …`）都接受 `[provider:]sandbox_id`。只有当第一个 `:` 之前的部分符合提供方 id 语法**并且**等于某个内置 / 已安装的提供方 id 时，才解析前缀；否则整个字符串就是 id。输出格式规则（Python / Node 相同）：**旧格式**（裸 id，没有 `provider` 字段）**只有当**环境提供方（配置的默认值，忽略 `--provider`）**和**生效提供方都是 `alicloud-express` 时才使用。其他所有情况下，文本模式（表格和 `--quiet`）里打印的 id 是限定的（`local-process:sbx-1`），`--json` 的行增加 `"provider"`（裸 id 仍在 `sandbox_id`/`ID` 里）。理由：从输出里粘贴的 id 在默认提供方之后被更改时仍必须无歧义，而只用内置提供方的脚本看不到任何变化。`--provider P` + 引用 `Q:id` 且 `P≠Q` → 退出码 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
+输入语法：每个接受沙箱 id 的命令（`info`、`kill`、`exec`、`connect`、`upload`、`download`、`files`、`sandbox process/system …`）都接受 `[provider:]sandbox_id`。只有当第一个 `:` 之前的部分符合提供方 id 语法**并且**等于某个内置 / 已安装的提供方 id 时，才解析前缀；否则整个字符串就是 id。文本输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。`--provider P` + 引用 `Q:id` 且 `P≠Q` → 退出码 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
 
 `abx list --all-providers` —— 增加 `Provider` 列 / 键，查询每个已配置（其 `credential` 字段能解析）的提供方，跳过失败的提供方并向 stderr 打印警告（`warning: provider 'ID' skipped: <message>`），至少一个成功则退出码 0，否则为第一个错误的退出码。
 

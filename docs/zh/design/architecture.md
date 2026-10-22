@@ -208,4 +208,4 @@ Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记
 - [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
 
 
-主分支整合后，核心只消费结构化契约，会话、端口和文件 URL 归属所选 Provider。极速版原生实现归属 providers/alicloud_express 与 shared/e2b。兼容导出不形成第二份实现，已退役的 Python gRPC 引擎保持删除。固定版本的标准迁移入口与显式 Provider 路由独立；注册命令不会赋予后端缺失的能力。
+主分支整合后，核心只消费结构化契约，会话、端口和文件 URL 归属所选 Provider。极速版原生实现归属 providers/alicloud_express 与 shared/e2b。旧转发导入已删除，已退役的 Python gRPC 引擎保持删除。固定版本的标准迁移入口与显式 Provider 路由独立；注册命令不会赋予后端缺失的能力。

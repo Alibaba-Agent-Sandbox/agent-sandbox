@@ -381,7 +381,7 @@ Common options:
 
 ### Verify the deployment
 
-After deploying, list templates with `--official-api` to see the **real names and statuses** (`ready` / `building` / `error`). Below is real run output (2026-09-28, cn-hangzhou, truncated for brevity):
+After deploying, list templates through the official API to see the **real names and statuses** (`ready` / `building` / `error`). Below is real run output (2026-09-28, cn-hangzhou, truncated for brevity):
 
 ```bash
 $ abx template list
@@ -401,19 +401,6 @@ $ abx template list
 ```
 
 > **Status meaning**: only `ready` templates can successfully create sandboxes. Templates in the `error` state above (e.g. `python-hello-v2`, `e2e-python-hello` — usually caused by a failed image build/optimization, see [Troubleshooting](#troubleshooting)) cannot be used with `abx create`.
-
-Without `--official-api`, the E2B-compatible endpoint is used and only template IDs are returned (no name/status):
-
-```bash
-$ abx template list
-┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
-┃ TemplateID           ┃ Alias ┃ Status ┃
-┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
-│ tpl00000000000000001 │ N/A   │ N/A    │
-│ tpl00000000000000009 │ N/A   │ N/A    │
-│ … (36 total, truncated here)
-└──────────────────────┴───────┴────────┘
-```
 
 Inspect a single template:
 
