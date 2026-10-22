@@ -59,6 +59,8 @@ export default {
         const target = join(cwd, 'dev-services');
         const r = await ctx.abx(['template', 'deploy', target, '-y', '--acr-namespace', 'onboarding-test'], { cwd, creds: false });
         if (r.code !== 1 || !/Missing configuration/i.test(r.stdout + r.stderr)) ctx.fail('missing path must continue into provider credential preflight');
+        if (!r.stderr.includes('rerun this command without --yes/-y in a terminal')) ctx.fail('missing configuration must explain how to resume interactive setup');
+        if (r.stderr.includes('Configuration scope:')) ctx.fail('yes mode must not wait for configuration input');
         for (const name of ['template.yaml', 'Dockerfile', 'commands.py']) if (!existsSync(join(target, name))) ctx.fail('usable template files missing');
       },
     },

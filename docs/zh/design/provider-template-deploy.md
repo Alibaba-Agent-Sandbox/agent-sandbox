@@ -40,7 +40,7 @@
 | 6. 返回 id 或引用 | `TemplateID`。`_rememberTemplate` 把 `template.yaml` 缓存在该 id、别名和 yaml 名称下。 | 提供方结果里的 `template_id`（`sandbox.create` 接受的字符串）以及可选的 `ref`。缓存仍由 CLI 做。 |
 | 7. 删除、列出、查看 | `fc_template.ts` 里的极速版 list/get/delete，由 `templates.read` / `templates.build` 把关。 | 提供方方法 `template.list`、`template.get`、`template.delete`。 |
 
-`abx-provider.toml` 里的 `[template]` 是编写期画像（`src/providers/template_profile.ts`：基础镜像、`server_start`、Dockerfile 的 `CMD`）。它不是 `abx create --template` 的运行时含义。OpenSandbox 没有 `[template]` 表，用的是通用画像（`FROM python:3.12-slim`，`CMD ["python3", "commands.py"]`）。
+`abx-provider.toml` 里的 `[template]` 是编写期画像（`src/providers/template_profile.ts`：基础镜像、`server_start`、Dockerfile 的 `CMD`）。它不是 `abx create TEMPLATE` 的运行时含义。OpenSandbox 没有 `[template]` 表，用的是通用画像（`FROM python:3.12-slim`，`CMD ["python3", "commands.py"]`）。
 
 ## 3. 各提供方
 

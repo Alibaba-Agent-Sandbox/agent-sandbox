@@ -91,9 +91,7 @@ The role must already exist and grant access to the intended storage. Creating
 Volume metadata alone does not establish those permissions. Mount the existing
 Volume by **name** when creating a sandbox:
 
-```bash
-abx create --template base --volume-mount /mnt/workspace=workspace
-```
+The default standard Express CLI does not expose `--volume-mount`. Use the native Python SDK's [volume_mounts creation argument](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/api-reference.md) for this workflow.
 
 `Sandbox.create({volume_mounts: {"/mnt/workspace": "workspace"}})` uses the same
 path-to-name map. The FC request encodes `volumeMounts: [{name: "workspace", path:

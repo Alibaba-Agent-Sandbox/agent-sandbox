@@ -128,3 +128,5 @@ Python SDK（PyPI 上的 `agent-sandbox-client`，导入名 `agent_sandbox`）�
 - [内置 Agent](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/built-in-agents.md) 与 [Server API](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/server-api.md)
 
 - [Provider 迁移、职责边界与更新](design/provider-portability-and-updates.md)
+
+[错误上报设计提案](design/error-reporting.md)：统一采集边界、关闭方式、脱敏、异步发送、FC/SLS 与防滥用，尚未实施。

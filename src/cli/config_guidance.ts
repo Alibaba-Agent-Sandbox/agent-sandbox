@@ -141,6 +141,7 @@ export async function withGuidedConfiguration<T>(
   const out = getOutput(ctx);
   if (!guidanceSeams.interactive(ctx, request.yes)) {
     throw new CliError(`Missing configuration for ${request.operation}:\n${details}\n` +
+      (request.yes ? "--yes/-y skips configuration prompts. To enter missing values interactively, rerun this command without --yes/-y in a terminal.\n" : "") +
       "Run the configuration commands in a terminal, or supply the documented environment variables in automation. No cloud operation was submitted.");
   }
   const explanation = explainConfig(overrides);

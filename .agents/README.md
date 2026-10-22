@@ -131,3 +131,7 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Compatibility cleanup remote acceptance](evidence/verify/2026-10-22-remove-legacy-acceptance.md)
 
 - [Current compatibility-removal documentation verification](evidence/verify/2026-10-22-remove-legacy-docs.md).
+
+- [Recover interactive setup and align template commands](notes/implemented/process/2026-10-22-template-command-guidance.md) · [verification](evidence/verify/2026-10-22-template-command-guidance.md)
+
+- [Error reporting proposal](notes/proposed/architecture/2026-10-22-error-reporting.md) (design only).

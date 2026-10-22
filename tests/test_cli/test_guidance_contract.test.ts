@@ -65,6 +65,17 @@ const unchanged = (): void => {
 };
 
 describe("one-operation configuration", () => {
+  it("explains how to recover from missing configuration with --yes without asking or submitting", async () => {
+    vi.mocked(guidanceSeams.interactive).mockReturnValue(false);
+    const ask = answers();
+    const action = vi.fn();
+    await expect(withGuidedConfiguration(undefined, { ...request(["access_key_id", "access_key_secret", "acr_namespace"]), yes: true }, action))
+      .rejects.toThrow("rerun this command without --yes/-y in a terminal");
+    expect(ask).not.toHaveBeenCalled();
+    expect(action).not.toHaveBeenCalled();
+    unchanged();
+  });
+
   it("reaches both real consumers and profile readers without files or environment changes", async () => {
     answers("1", "placeholder-api", "placeholder-namespace", "placeholder-ak", "placeholder-sk");
     const environment = { ...process.env };

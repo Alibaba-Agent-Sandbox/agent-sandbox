@@ -60,6 +60,8 @@ abx config init -y
 
 已有的目录创建例外保留：build/deploy 在 `-y` 或 CI 授权下可以直接为缺失目录生成 Python 项目并继续。已有文件仍需遵守独立的冲突和覆盖确认。项目文件创建成功不代表部署成功。
 
+需要交互补填配置时，去掉 `-y`：`abx template deploy ./codex --alias codex`。连续执行准备、部署和创建时，用 `&&` 连接，避免部署失败后继续创建。目录名不会选择 Registry 模板；先获取源码：`abx template scaffold ./codex --from alibaba-agent-sandbox/awesome-templates//codex`。部署成功后执行 `abx create codex --detach`；`--template` 是 scaffold 的选项。
+
 ## 查看和修改已保存配置
 
 ```bash
