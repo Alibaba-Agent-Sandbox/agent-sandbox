@@ -1,5 +1,5 @@
 # Decision: Read-only npm credential diagnostics
-Status: proposed
+Status: implemented
 
 ## Problem
 Publishing version 0.4.6 still returned E404 after the repository npm secret was refreshed. The publication error alone does not identify invalid authentication versus account/scope/token authorization. Repeated publishing provides no additional evidence.
@@ -30,3 +30,6 @@ Execute the actual workflow diagnostic script against controlled npm responses t
 ## Evidence
 - [Verification](../../../evidence/verify/2026-10-22-npm-credential-diagnostics.md).
 - [Release delivery Issue](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/66).
+
+## Implementation
+The real CI diagnostic confirmed successful identity authentication and organization membership, with E403 on the package-access query. Npm publication itself remains blocked under Issue 66; this decision delivers diagnosis only. Final-head CI and merge state are recorded on PR 101.

@@ -21,6 +21,7 @@ concurrency:
 jobs:
   diagnose:
     name: Read-only npm credential diagnostics
+    timeout-minutes: 5
     if: github.event_name == 'workflow_dispatch' && inputs.diagnostics_only
     runs-on: ubuntu-latest
     environment: npm

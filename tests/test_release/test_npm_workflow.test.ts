@@ -73,7 +73,7 @@ describe.skipIf(process.platform === "win32")("read-only npm credential diagnost
     expect(workflow.on.workflow_dispatch.inputs.diagnostics_only.default).toBe(false);
   });
 
-  it.each(["valid", "rejected", "missing"])("reports %s credentials without leaking upstream data", (mode) => {
+  it.each(["valid", "rejected", "missing", "scope-denied", "malformed"])("reports %s credentials without leaking upstream data", (mode) => {
     const directory = temporary();
     const executable = join(directory, "npm");
     writeFileSync(executable, `#!/usr/bin/env node
@@ -83,6 +83,14 @@ fs.appendFileSync(process.env.DIAGNOSTIC_CALLS, JSON.stringify(args) + '\\n');
 if (process.env.DIAGNOSTIC_MODE === 'rejected') {
   console.log(JSON.stringify({error:{code:'E401',message:'private-account sentinel-credential'}}));
   console.error('private-account sentinel-credential');
+  process.exit(1);
+}
+if (process.env.DIAGNOSTIC_MODE === 'malformed') {
+  console.log('private-account sentinel-credential');
+  process.exit(0);
+}
+if (process.env.DIAGNOSTIC_MODE === 'scope-denied' && args[0] !== 'whoami') {
+  console.log(JSON.stringify({error:{code:args[0] === 'org' ? 'E403' : 'E404',message:'private-account sentinel-credential'}}));
   process.exit(1);
 }
 if (args[0] === 'whoami') console.log(JSON.stringify('private-account'));
@@ -104,14 +112,20 @@ else process.exit(2);
     }
     const report = JSON.parse(result.stdout.slice(0, result.stdout.lastIndexOf("}") + 1));
     expect(report.credential_present).toBe(mode !== "missing");
-    expect(report.identity_authenticated).toBe(mode === "valid");
+    expect(report.identity_authenticated).toBe(["valid", "scope-denied"].includes(mode));
     if (mode === "valid") {
       expect(report.organization_membership).toBe("confirmed");
       expect(report.target_package_access).toBe("read-write");
+    } else if (mode === "scope-denied") {
+      expect(report.organization_membership).toBe("unknown");
+      expect(report.organization_check_error).toBe("E403");
+      expect(report.target_package_access).toBe("unknown");
+      expect(report.package_check_error).toBe("E404");
     } else if (mode === "rejected") expect(report.identity_error).toBe("E401");
+    else if (mode === "malformed") expect(report.identity_error).toBe("UNKNOWN_ERROR");
     if (mode !== "missing") {
       const calls: string[][] = readFileSync(callsFile, "utf8").trim().split("\n").map((line) => JSON.parse(line));
-      expect(calls.map((args) => args[0])).toEqual(mode === "valid" ? ["whoami", "org", "access"] : ["whoami"]);
+      expect(calls.map((args) => args[0])).toEqual(["valid", "scope-denied"].includes(mode) ? ["whoami", "org", "access"] : ["whoami"]);
       expect(calls.every((args) => args.includes("--logs-max=0") && args.includes("--registry=https://registry.npmjs.org"))).toBe(true);
     }
   });
