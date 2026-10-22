@@ -165,13 +165,14 @@ describe("TestCommandsKill", () => {
   it("test_kill_calls_protocol", async () => {
     const { module: commands_module, process_protocol } = makeCommandsModule();
     await commands_module.kill(1234);
-    expect(process_protocol.kill).toHaveBeenCalledTimes(1);
-    const call_kwargs = process_protocol.kill.mock.calls[0][2];
+    expect(process_protocol.sendSignal).toHaveBeenCalledTimes(1);
+    const call_kwargs = process_protocol.sendSignal.mock.calls[0][2];
+    expect(call_kwargs["signal"]).toBe(9);
     expect(call_kwargs["pid"]).toBe(1234);
   });
 });
 
-describe("TestCommandsSendStdin", () => {
+describe("TestCommandsSendInput", () => {
   // Test CommandsModule.send_stdin().
   it("test_send_stdin_forwards_data", async () => {
     const { module: commands_module, process_protocol } = makeCommandsModule();

@@ -39,3 +39,8 @@ Read-only template inspection creates no resource. Local fixtures own their temp
 ## Remote Docker gate correction
 
 The first native Docker job retained an import of the deleted forwarding module in its verification script. It now imports DockerBuilder from the owning provider path. The obsolete standalone image-factory E2E scripts and npm entry are removed; current provider project preparation is covered by the provider T0/T4 workflows. The corrected native Docker gate is rerun remotely.
+
+## Complete native template lifecycle and CI fixture alignment
+
+- PASS: create a uniquely named owned template through the current official factory from the already verified public source image, wait for ready, read it back, and delete it through the current native CLI. Independent inventory absence and HTTP 404 were verified; no owned template remains. No Docker build or RUN-step acceptance is inferred from this control-plane check.
+- The first full Node20/22 CI run exposed eight stale assertions/doc references (4104 other tests passed on Node20). Fixtures now store credentials in the current environment-file location, expect structured authentication/process results, ignore retired Qwen settings, omit deleted migration vectors and link the owning base64 module. The final full CI rerun remains mandatory.

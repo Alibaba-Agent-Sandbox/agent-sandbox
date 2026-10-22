@@ -27,7 +27,8 @@ class MetadataProvider extends Provider {
 describe("MCP configuration guidance", () => {
   it("keeps an explicitly selected Provider's key and endpoint together despite another default", () => {
     registerProvider(new MetadataProvider());
-    iso.writeToml('[core]\nprovider="mcp-example"\n[providers.alicloud-express]\nsandbox_api_key="placeholder-express"\nsandbox_base_url="https://express.invalid"\nsandbox_domain="express.invalid"\n');
+    iso.writeToml('[core]\nprovider="mcp-example"\n[providers.alicloud-express]\nsandbox_base_url="https://express.invalid"\nsandbox_domain="express.invalid"\n');
+    iso.setenv("ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY", "placeholder-express");
     setCliProvider("alicloud-express");
     expect(mcp._readApiKey()).toBe("placeholder-express");
     const block = mcp._buildMcpServerConfig();

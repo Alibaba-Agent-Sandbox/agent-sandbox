@@ -101,7 +101,7 @@ describe("one-operation configuration", () => {
   });
 
   it("prefers the current Provider-scoped snapshot over stale adapter values", async () => {
-    iso.writeToml('[providers.alicloud-express]\nsandbox_api_key = "placeholder-current"\n');
+    iso.setenv("ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY", "placeholder-current");
     const ask = answers();
     await withGuidedConfiguration(undefined, { ...request(["sandbox_api_key"]), values: { sandbox_api_key: "placeholder-stale" } }, async () => {
       expect(transport.loadConfig().api_key).toBe("placeholder-current");

@@ -132,7 +132,7 @@ and `tests/test_session` are ports of the client-sdk tests (438 tests). Differen
   models used by `fc_template` (CreateTemplate/UpdateTemplate/GetTemplate/ListTemplates/ListTeams) are identical in both;
   newer 1.6.0-only fields are not used by the CLI. All `fc_template` functions are async (blocking in Python).
   SDK exception text (`Error: <code> <message> Response: <data>`) is reconstructed from the Tea error fields.
-* **`base64` decoding** in process streams follows CPython `binascii` semantics exactly (`src/protocol/_b64.ts`),
+* **`base64` decoding** in process streams follows CPython `binascii` semantics exactly (`src/providers/shared/e2b/_b64.ts`),
   including "Incorrect padding" errors.
 * **`DockerBuilder`**: no checkout autodetect / frozen-binary logic (see above). Proxies and `SSL_CERT_FILE` /
   `SSL_CERT_DIR` on the PyPI wheel download and ACR token fetch are honoured (not a gap).
