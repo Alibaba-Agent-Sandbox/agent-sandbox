@@ -49,9 +49,9 @@ The same chain is what these calls read:
 
 - natural-language `abx create` (the coding agent)
 - `abx template install` / `abx template search` (GitHub token)
-- `abx mcp install` (the sandbox API key copied into the editor config)
+- `abx mcp install` / `abx mcp start` (Sandbox access is resolved without copying the key into IDE files)
 
-`abx mcp install` writes `ABX_SANDBOX_API_KEY` into the Cursor and Claude config. `ABX_SANDBOX_BASE_URL` and `ALIBABA_CLOUD_REGION_ID` are copied into the same file only when the process environment sets them. `abx mcp start` loads `~/.abx` again, so a region saved with `abx config set region` still applies when the editor starts the server.
+`abx mcp install` does not copy Sandbox credentials into Cursor, Claude, or VS Code files. It records the launch command and applicable non-secret effective target settings. `abx mcp start` resolves user/Provider credentials again when the editor starts the server. Temporary setup values do not persist into that later process; save them explicitly if future launches need them. See [guided configuration](../guide/guided-configuration.md) for inline input, persistence, source conflicts, and automation boundaries.
 
 `abx config list` marks a process variable as `(env)` and either file as `(user)`. The value in the table is the one the command will use.
 

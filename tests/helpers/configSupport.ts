@@ -97,8 +97,9 @@ export async function withConfig<T>(overrides: Partial<Seams>, fn: () => Promise
 export function fakeTtySys(): Seams["sys"] {
   return {
     stdin: { isatty: () => true },
+    stderr: { isatty: () => true },
     get stdout() {
-      return sys.stdout;
+      return { write: (text: string): void => sys.stdout.write(text), flush: (): void => sys.stdout.flush(), isatty: (): boolean => true };
     },
   };
 }

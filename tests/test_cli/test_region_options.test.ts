@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Tests for command-level `--region` options and the unified priority.
  *
@@ -445,3 +446,6 @@ describe("TestShortcutForwarding", () => {
     expect(result.exit_code, result.output).toBe(0);
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

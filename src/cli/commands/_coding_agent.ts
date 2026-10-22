@@ -29,13 +29,15 @@
 
 import { type Context } from "../kit.js";
 import { sys } from "../io.js";
-import { confirm, prompt } from "../prompts.js";
+import { confirm } from "../prompts.js";
 import {
   type CodingAgentBackend,
   type CodingAgentCredentials,
   resolveCodingAgentBackend as resolveBackendImpl,
 } from "../../agent/coding_agent.js";
 import { pyStrip } from "../../utils/_pyformat.js";
+import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
+import { getOperationConfig } from "../../utils/operation_config.js";
 import { getOutput, type OutputManager } from "../output.js";
 
 export const __all__ = ["ensureCodingAgentBinary", "resolveCodingAgentBackend", "resolveCodingAgentCredentials"] as const;
@@ -87,7 +89,7 @@ export async function ensureCodingAgentBinary(ctx: Context, opts: { yes: boolean
   if (binary !== null) return binary;
 
   const out = getOutput(ctx);
-  const interactive = codingAgentSeams.stdinIsatty();
+  const interactive = canGuideConfiguration(ctx, yes) && codingAgentSeams.stdinIsatty();
   out.warning(`${backend.displayName} CLI was not found on PATH or in ~/.abx/bin.`);
   await _printQuickSetup(out, { backend, reason: "not-installed" });
 
@@ -176,30 +178,24 @@ export async function resolveCodingAgentCredentials(
   }
 
   const out = getOutput(ctx);
-  if (yes || !codingAgentSeams.stdinIsatty()) {
+  if (!canGuideConfiguration(ctx, yes) || !codingAgentSeams.stdinIsatty()) {
     throw new backend.credentialError(`${backend.displayName} is installed but no model credentials were found.`, {
       suggestion:
-        `Store a key with 'abx config set ${backend.configKey} <KEY>' (or export ` +
-        "OPENAI_API_KEY / DASHSCOPE_API_KEY), then retry. Guided setup: " +
+        `Store a key in a terminal with 'abx config set ${backend.configKey}' (hidden input), or inject ${backend.envVar} in automation. Guided setup: ` +
         "'abx config init --llm'.",
     });
   }
   await _printQuickSetup(out, { backend, reason: "no-credentials" });
-  const key: string = await prompt(backend.credentialPrompt, { hide_input: true, default: "", show_default: false });
-  if (!pyStrip(key)) {
-    throw new backend.credentialError(`No ${backend.displayName} API key provided; template generation cannot continue.`, {
-      suggestion:
-        `Store one with 'abx config set ${backend.configKey} <KEY>' and retry, ` + "or use 'abx create <name>'.",
-    });
-  }
-  await configCmd.writeEnvVar(backend.envVar, pyStrip(key));
-  // Same migration as `abx config set llm_api_key`: drop any legacy [transport] copy once the secure storage is
-  // written.
-  await configCmd._removeTomlKey("llm_api_key");
-  out.success(`Stored ${backend.configKey} in ~/.abx/.env`);
-  return backend.resolveCredentials({
-    storedApiKey: pyStrip(key),
-    storedBaseUrl,
-    storedModel,
+  let target = storedBaseUrl || null;
+  if (!target && backend.name === "qwen-code") target = (await import("../../agent/qwen_code.js"))._DEFAULT_OPENAI_BASE_URL;
+  if (target) {
+    let url: URL;
+    try { url = new URL(target); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
+    catch { throw new backend.credentialError("The configured model endpoint is invalid.", { suggestion: `Change it with 'abx config set ${backend.baseUrlConfigKey}'.` }); }
+    out.info(`Model backend: ${backend.displayName}; API host: ${url.host} (${baseSource})`);
+  } else out.info(`Model backend: ${backend.displayName}; using its default API endpoint. Configure ${backend.baseUrlConfigKey} to choose another endpoint.`);
+  return withGuidedConfiguration(ctx, { operation: "Generate template files", requirements: [{ key: backend.configKey, label: backend.credentialPrompt, secret: true, env: backend.envVar }],
+    yes, validateProvider: false, values: { [backend.baseUrlConfigKey]: storedBaseUrl, [backend.modelConfigKey]: storedModel } }, async () => {
+    return backend.resolveCredentials({ storedApiKey: String(getOperationConfig()?.[backend.configKey] ?? ""), storedBaseUrl, storedModel });
   });
 }

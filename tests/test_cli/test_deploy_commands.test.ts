@@ -181,7 +181,7 @@ describe("TestFixedPipeline", () => {
     expect(buildCalls.length).toBe(1);
   });
 
-  it("test_acr_namespace_failure_happens_before_the_build", async () => {
+  it("test_namespace_guidance_is_owned_by_the_plan_aware_build", async () => {
     const p = project();
     deploySeams.resolve_acr_namespace = vi.fn(() => {
       throw new UsageError("ACR namespace is required", getCurrentContext(true));
@@ -189,9 +189,9 @@ describe("TestFixedPipeline", () => {
 
     const result = await runner().invoke(cli, ["deploy", p]);
 
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("ACR namespace is required");
-    expect(buildCalls).toEqual([]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(deploySeams.resolve_acr_namespace).not.toHaveBeenCalled();
+    expect(buildCalls).toHaveLength(1);
   });
 
   it("test_traditional_flag_is_removed", async () => {

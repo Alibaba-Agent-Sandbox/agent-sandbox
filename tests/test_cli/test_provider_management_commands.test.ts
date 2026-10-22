@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** CLI parsing and mutation gates for provider management commands. */
 
 import fs from "node:fs";
@@ -41,6 +42,8 @@ afterEach(() => { vi.restoreAllMocks(); });
 describe("provider management commands", () => {
   it("shows command ids and effects before installation consent", async () => {
     vi.spyOn(sys.stdin, "isatty").mockReturnValue(true);
+    vi.spyOn(sys.stdout, "isatty").mockReturnValue(true);
+    vi.spyOn(sys.stderr, "isatty").mockReturnValue(true);
     vi.spyOn(prompts, "confirm").mockResolvedValue(false);
     vi.spyOn(installer, "install").mockImplementation(async (_source, options) => {
       await options?.confirm?.({ summary: () => ({
@@ -74,10 +77,10 @@ describe("provider management commands", () => {
   });
 
   it("passes parsed input, provider options and region to the common API", async () => {
-    const result = await abx("--json", "provider", "command", "run", "alicloud-express", "volumes.list", "--input", '{"limit":2}', "--opt", "endpoint=https://example.test", "--region", "cn-hangzhou");
+    const result = await abx("--json", "provider", "command", "run", "alicloud-express", "volumes.list", "--input", '{"limit":2}', "--opt", "acr_repo=example-repo", "--region", "cn-hangzhou");
     expect(result.exit_code, result.output).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({ volumes: [] });
-    expect(runProviderCommand).toHaveBeenCalledWith("alicloud-express", "volumes.list", { limit: 2 }, { provider_options: { endpoint: "https://example.test" }, region: "cn-hangzhou" });
+    expect(runProviderCommand).toHaveBeenCalledWith("alicloud-express", "volumes.list", { limit: 2 }, { provider_options: { acr_repo: "example-repo" }, region: "cn-hangzhou" });
   });
 
   it("requires --yes for both write and delete before any execution", async () => {
@@ -167,3 +170,6 @@ describe("provider management commands", () => {
     expect(runProviderCommand).not.toHaveBeenCalled();
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

@@ -127,10 +127,12 @@ describe("TestConfigInitWizard", () => {
       runner().invoke(cli, ["config", "init", "--llm"], { input: "\n\nsk-qwen\n" }),
     );
 
-    expect(result.exit_code, result.output).toBe(0);
+    expect(result.exit_code, result.output).toBe(2);
+    expect(result.output).toContain("Configuration incomplete");
+    expect(result.output).not.toContain("Configuration complete");
     expect(result.output).toContain("3/3 ");
     expect(result.output).not.toContain("ACR namespace");
-    expect(result.output).toContain("abx config init --build");
+    expect(result.output).toContain("Missing: sandbox_api_key");
     expect(result.output).not.toContain("abx config init --llm");
     expect(readText(envFile)).toContain("ABX_LLM_API_KEY=sk-qwen");
   });
@@ -141,7 +143,9 @@ describe("TestConfigInitWizard", () => {
       runner().invoke(cli, ["config", "init", "--build", "--llm"], { input: "sk-platform-secret\n\n\n\nsk-cloud-secret\nsk-qwen-secret\n" }),
     );
 
-    expect(result.exit_code, result.output).toBe(0);
+    expect(result.exit_code, result.output).toBe(2);
+    expect(result.output).toContain("Configuration incomplete");
+    expect(result.output).not.toContain("Configuration complete");
     expect(result.output).not.toContain("sk-platform-secret");
     expect(result.output).not.toContain("sk-qwen-secret");
     expect(result.output).not.toContain("sk-cloud-secret");
@@ -155,7 +159,9 @@ describe("TestConfigInitWizard", () => {
       runner().invoke(cli, ["config", "init", "--build", "--llm"], { input: "\n\n\n\n\n\n" }),
     );
 
-    expect(result.exit_code, result.output).toBe(0);
+    expect(result.exit_code, result.output).toBe(2);
+    expect(result.output).toContain("Configuration incomplete");
+    expect(result.output).not.toContain("Configuration complete");
     // No secrets were typed → the .env file must not be created.
     expect(exists(envFile)).toBe(false);
     // The region prompt accepts its default and persists it.
@@ -170,7 +176,9 @@ describe("TestConfigInitWizard", () => {
       runner().invoke(cli, ["config", "init"], { input: "\n\n\n\n\n\n" }),
     );
 
-    expect(result.exit_code, result.output).toBe(0);
+    expect(result.exit_code, result.output).toBe(2);
+    expect(result.output).toContain("Configuration incomplete");
+    expect(result.output).not.toContain("Configuration complete");
     expect(readText(configFile)).toContain('region = "cn-shanghai"');
   });
 });

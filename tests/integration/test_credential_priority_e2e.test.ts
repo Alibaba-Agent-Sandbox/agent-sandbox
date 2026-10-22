@@ -214,10 +214,10 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(resolveGithubToken()).toBe(_STORED_GITHUB);
     expect(resolveRegion(null)).toBe("cn-beijing");
 
-    // The editor config copies the resolved sandbox key. Region saved only in config.toml is not frozen into that file.
+    // IDE registration carries the effective target, while credentials remain in user configuration.
     const embedded = _buildMcpServerConfig() as Map<string, unknown>;
-    expect(embeddedEnv(embedded).get("ABX_SANDBOX_API_KEY")).toBe(_STORED_SANDBOX);
-    expect(embeddedEnv(embedded).has("ALIBABA_CLOUD_REGION_ID")).toBe(false);
+    expect(embeddedEnv(embedded).has("ABX_SANDBOX_API_KEY")).toBe(false);
+    expect(embeddedEnv(embedded).get("ALIBABA_CLOUD_REGION_ID")).toBe("cn-beijing");
   });
 
   it("test_project_dotenv_beats_system_and_loses_to_process_env", async () => {
@@ -273,9 +273,9 @@ describe("TestCredentialPriorityEndToEnd", () => {
     expect(resolveRegion(null)).toBe("cn-shenzhen");
 
     const embedded = _buildMcpServerConfig() as Map<string, unknown>;
-    expect(embeddedEnv(embedded).get("ABX_SANDBOX_API_KEY")).toBe(_ENV_SANDBOX);
+    expect(embeddedEnv(embedded).has("ABX_SANDBOX_API_KEY")).toBe(false);
     expect(embeddedEnv(embedded).get("ALIBABA_CLOUD_REGION_ID")).toBe("cn-shenzhen");
-    expect(embeddedEnv(embedded).has("ABX_SANDBOX_BASE_URL")).toBe(false);
+    expect(embeddedEnv(embedded).get("ABX_SANDBOX_BASE_URL")).toBe("https://api.cn-shenzhen.e2b.fc.aliyuncs.com");
   });
 
   it("test_blank_values_fall_through", () => {

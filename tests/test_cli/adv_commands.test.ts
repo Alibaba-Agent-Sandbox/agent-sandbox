@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 // These regressions cover the native project extension framework. Standard executable behavior
 // is covered by test_standard_executable.test.ts and e2e/standard.mjs.
 // Regression tests for the findings of the adversarial review of the command framework / output / REPL / sandbox commands area
@@ -187,7 +188,8 @@ describe("commands (review regressions)", () => {
   it("ADV-commands-09 a scheme-less ABX_SANDBOX_BASE_URL reports the httpx protocol message", async () => {
     await withStub(async ({ home, cwd }) => {
       const r = await runAbx(["list"], { home, cwd, url: "127.0.0.1:9" });
-      expect(r.stderr).toContain("Request URL is missing an 'http://' or 'https://' protocol.");
+      expect(r.stderr).toContain("Invalid url configuration");
+      expect(r.stderr).toContain("ABX_SANDBOX_BASE_URL");
       expect(r.stderr).not.toContain("Invalid URL");
     });
   });
@@ -330,3 +332,6 @@ describe("commands (review regressions)", () => {
     });
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

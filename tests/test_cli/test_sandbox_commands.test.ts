@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Tests for sandbox CLI commands: create, list, info, kill, exec, upload, download. */
 
 import "../_support/isolatedHome.js";
@@ -525,3 +526,6 @@ describe("TestDownload", () => {
     expect(fs.readFileSync(dest)).toEqual(Buffer.from("binary"));
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

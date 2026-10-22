@@ -1,4 +1,5 @@
 import { defaultConfig, defaultRegion, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
+import { getOperationConfig } from "../utils/operation_config.js";
 /**
  * Layered configuration loading.
  *
@@ -373,7 +374,13 @@ export function _envDictToFields(env_vals: Record<string, string>): Record<strin
  * A blank or whitespace-only override or environment value is ignored.
  */
 export function loadConfig(overridesIn: Record<string, unknown> = {}): TransportConfig {
-  const overrides: Record<string, unknown> = { ...overridesIn };
+  const operation = getOperationConfig();
+  const canonical: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(operation ?? {})) {
+    const legacy = ({ sandbox_api_key: "api_key", sandbox_base_url: "api_url", sandbox_domain: "domain" } as Record<string, string>)[key] ?? key;
+    if (value !== null && value !== undefined && value !== "") canonical[legacy] = value;
+  }
+  const overrides: Record<string, unknown> = { ...canonical, ...overridesIn };
   const hasOverrides = Object.keys(overrides).length > 0;
   if (_cached_config !== null && !hasOverrides) {
     return _cached_config;

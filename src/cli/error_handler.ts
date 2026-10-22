@@ -28,6 +28,12 @@ export const EXIT_QUOTA = 6;
 export function handleErrors<A extends unknown[], R>(func: (...args: A) => R | Promise<R>): (...args: A) => Promise<R> {
   const wrapper = async (...args: A): Promise<R> => {
     try {
+      const invocation = args[0];
+      const context = getCurrentContext(true);
+      if (context && invocation === context && args[1] && typeof args[1] === "object") {
+        const { withSandboxConfiguration } = await import("./sandbox_guidance.js");
+        return await withSandboxConfiguration(context, args[1] as Record<string, unknown>, async () => func(...args));
+      }
       return await func(...args);
     } catch (excVal) {
       if (excVal instanceof SystemExit || excVal instanceof Exit || excVal instanceof Abort) throw excVal;

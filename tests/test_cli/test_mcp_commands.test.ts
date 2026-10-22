@@ -68,7 +68,7 @@ describe("TestMcpInstall", () => {
     const srv = config.mcpServers["agent-sandbox"];
     expect(srv.args.slice(-2)).toEqual(["mcp", "start"]);
     expect(srv.command).toBeTruthy();
-    expect(srv.env.ABX_SANDBOX_API_KEY).toBe("test-key-1234");
+    expect(srv.env ?? {}).not.toHaveProperty("ABX_SANDBOX_API_KEY");
   });
 
   it("test_install_claude", async () => {

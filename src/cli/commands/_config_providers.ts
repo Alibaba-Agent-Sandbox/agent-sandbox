@@ -13,9 +13,10 @@ import { cliProvider } from "../../providers/selection.js";
 import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
 import { collectSources, loadTomlFile, paths, quietly, readDotenv, resetLayeredConfig, selectProviderId } from "../../transport/config_layers.js";
 import { coerce, resolveKey } from "../../utils/config_resolver.js";
-import { BUILTIN_PROVIDER_ID, getKey, type ConfigKey } from "../../utils/config_keys.js";
+import { BUILTIN_PROVIDER_ID, getKey, providerEnvName, type ConfigKey } from "../../utils/config_keys.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { getOperationConfig } from "../../utils/operation_config.js";
 
 export interface ExtraTarget {
   kind: "default_provider" | "key";
@@ -128,9 +129,11 @@ export function readExtra(target: ExtraTarget): ExtraValue {
     return { value: resolved, name: source === "env" ? "ABX_PROVIDER" : "", source };
   }
   const key = target.key as ConfigKey;
-  const res = resolveKey(key, collectSources(), { scopedFor: target.provider_id });
+  const operation = getOperationConfig();
+  const overrides = { ...operation, ...(operation?.["provider_options"] as Record<string, unknown> | undefined) };
+  const res = resolveKey(key, collectSources(overrides), { scopedFor: target.provider_id });
   if (res === null) return { value: null, name: "", source: "unset" };
-  const source = res.layer === "environ" ? "env" : res.layer === "default" || res.layer === "derived" ? "default" : "user";
+  const source = res.layer === "override" ? "override" : res.layer === "environ" ? "env" : res.layer === "default" || res.layer === "derived" ? "default" : "user";
   return { value: res.value, name: res.name, source };
 }
 
@@ -138,12 +141,12 @@ export function readExtra(target: ExtraTarget): ExtraValue {
 // write
 // ---------------------------------------------------------------------------------------------------------------------
 
-type Where = { file: "env" | "toml"; name: string; section?: string };
+export type Where = { file: "env" | "toml"; name: string; section?: string };
 
-function primaryStorage(target: ExtraTarget): Where {
+export function primaryStorage(target: ExtraTarget): Where {
   const key = target.key as ConfigKey;
   if (target.scoped) {
-    return { file: "toml", name: key.key, section: `providers.${target.provider_id}` };
+    return key.secret ? { file: "env", name: providerEnvName(target.provider_id, key.key) } : { file: "toml", name: key.key, section: `providers.${target.provider_id}` };
   }
   const storage = configFormat() === 2 ? key.storage_phase2 : key.storage_phase1;
   if (storage) return storage as Where;
@@ -154,6 +157,7 @@ function primaryStorage(target: ExtraTarget): Where {
 function allStorages(target: ExtraTarget): Where[] {
   const key = target.key as ConfigKey;
   const out: Where[] = [primaryStorage(target)];
+  if (target.scoped && key.secret) out.push({ file: "toml", name: key.key, section: `providers.${target.provider_id}` });
   if (!target.scoped) {
     for (const s of [key.storage_phase1, key.storage_phase2]) if (s) out.push(s as Where);
     for (const a of key.aliases) {
@@ -169,6 +173,13 @@ function allStorages(target: ExtraTarget): Where[] {
     seen.add(token);
     return true;
   });
+}
+
+/** Actual persistent storage location selected by this key's schema and config format. */
+export function storageLocation(target: ExtraTarget): { path: string; key: string; section?: string } {
+  if (target.kind === "default_provider") return { path: paths.configFile, key: "provider", section: "core" };
+  const where = primaryStorage(target);
+  return { path: where.file === "env" ? envFilePath() : paths.configFile, key: where.name, ...(where.section ? { section: where.section } : {}) };
 }
 
 function envFilePath(): string {
@@ -216,6 +227,19 @@ export function parseExtraValue(target: ExtraTarget, text: string): string | num
   return value as string | number | boolean;
 }
 
+/** The canonical value was written, but a previous copy could not be removed. */
+export class ConfigurationCleanupError extends ProviderConfigError {
+  readonly stored = true;
+  readonly field: string;
+  constructor(target: ExtraTarget) {
+    const location = storageLocation(target);
+    super(`Saved '${target.typed}' in '${location.path}', but cleanup of a previous configuration location failed. Review the configuration before continuing.`, {
+      suggestion: "Inspect 'abx config list' and configuration file permissions; a previous copy may remain.",
+    });
+    this.field = target.typed;
+  }
+}
+
 /** Store the value; returns the value to echo (masked for secrets by the caller). */
 export function writeExtra(target: ExtraTarget, text: string): string | number | boolean {
   if (target.kind === "default_provider") {
@@ -227,11 +251,16 @@ export function writeExtra(target: ExtraTarget, text: string): string | number |
   const typed = parseExtraValue(target, text);
   const where = primaryStorage(target);
   const keep = where;
-  if (configFormat() === 2) {
-    for (const w of allStorages(target)) if (w !== keep && !(w.file === keep.file && w.name === keep.name && w.section === keep.section)) removeWhere(w);
-  }
+  // Commit the new value before removing a legacy copy: a failed destination write must preserve working credentials.
   if (where.file === "env") setEnvValue(where.name, String(typed));
   else setTomlValue(where.section ?? "transport", where.name, typed);
+  if (configFormat() === 2 || target.scoped && target.key?.secret) {
+    try {
+      for (const w of allStorages(target)) if (!(w.file === keep.file && w.name === keep.name && w.section === keep.section)) removeWhere(w);
+    } catch {
+      throw new ConfigurationCleanupError(target);
+    }
+  }
   resetLayeredConfig();
   return typed;
 }
@@ -267,4 +296,34 @@ export function extraKeyNames(): string[] {
   if (id !== BUILTIN_PROVIDER_ID) for (const k of schemaKeys(BUILTIN_PROVIDER_ID)) names.add(k.key);
   names.add("providers.<id>.<key>");
   return [...names];
+}
+
+/** Required fields and one usable authentication combination for an explicit setup wizard. */
+export async function initializationKeys(
+  providerId: string,
+  choose: (groups: readonly (readonly string[])[]) => Promise<number>,
+): Promise<readonly ConfigKey[]> {
+  const provider = registry.getProvider(providerId);
+  const own = provider.configKeys();
+  const declared = new Map<string, ConfigKey>(own.map((key) => [key.key, key]));
+  for (const name of provider.inherit) {
+    const key = getKey(name);
+    if (key) declared.set(name, key);
+  }
+  const chosen = new Set(own.filter((key) => key.required).map((key) => key.key));
+  if (provider.authAnyOf.length) {
+    const have = (name: string): boolean => {
+      if (!declared.has(name)) return false;
+      const target = resolveExtraKey(`providers.${providerId}.${name}`);
+      const value = target ? readExtra(target).value : undefined;
+      return value !== undefined && value !== null && value !== "";
+    };
+    const complete = provider.authAnyOf.find((group) => group.every(have));
+    const possible = provider.authAnyOf.filter((group) => group.every((name) => declared.has(name)));
+    if (!complete && !possible.length) throw new ProviderConfigError(`Provider '${providerId}' declares no usable authentication combination.`, { suggestion: `Inspect 'abx provider info ${providerId}'; no configuration was changed.` });
+    const selected = complete ?? possible[possible.length > 1 ? await choose(possible) : 0];
+    if (!selected) throw new ProviderConfigError("Choose one of the listed authentication methods; no configuration was changed.");
+    for (const name of selected) chosen.add(name);
+  } else for (const key of own) if (key.credential) chosen.add(key.key);
+  return [...chosen].map((name) => declared.get(name)!).filter(Boolean);
 }

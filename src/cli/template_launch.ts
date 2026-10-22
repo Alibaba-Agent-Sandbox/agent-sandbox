@@ -1,5 +1,9 @@
+import { withGuidedConfiguration, canGuideConfiguration } from "./config_guidance.js";
+import { confirm } from "./prompts.js";
 /** Download, ask the selected adapter to prepare, then create using its returned reference. */
 import fs from "node:fs";
+import { pyExpandUser } from "../utils/_pyos.js";
+import type { Provider } from "../providers/base.js";
 import { loadYaml, isMapping } from "../utils/yaml_io.js";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -21,24 +25,8 @@ import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager 
 const requiredFeatures: Record<string, string> = { shell: "exec.run", files: "files.rw", code: "code.interpret", terminal: "pty", ports: "ports.url" };
 export const launchSeams = { create: (options: Parameters<typeof Sandbox.create>[0]) => Sandbox.create(options) };
 
-/** One explicit operation; never guesses an ID or falls back to another backend. */
-export async function launchTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
-  if (!params["yes"]) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
-  const provider = getProvider(resolveProviderId(cliProvider()));
-  provider.require("templates.build");
-  provider.require("sandbox.lifecycle");
-  const fmt = getFormatter(ctx), out = getOutput(ctx);
-  const source = String(params["template_ref"]);
-  let directory = path.resolve(source);
-  if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
-    const token = await resolveGithubToken(null);
-    directory = await _withGithubRateLimitRetry(async (active) => {
-      const registry = new RegistryClient("https://github.com", active);
-      let ref = await registry.resolve(source);
-      if (ref.is_builtin) ref = await registry.resolve(await _resolveIndexName(source, { token: active, fmt, out }));
-      return registry.fetch(ref);
-    }, { token, fmt, out });
-  }
+/** Validate a known local source before any credential prompt; remote sources are validated once after acquisition. */
+function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>) {
   const yaml = _findTemplateYaml(directory);
   if (!yaml) throw new ProviderConfigError("Template source has no template.yaml.");
   // The YAML's parent is the build context even when a repository contains several projects.
@@ -51,11 +39,45 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   for (const capability of capabilities) provider.require(requiredFeatures[capability] ?? capability);
   const alias = String(params["alias"] ?? template.name);
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(alias)) throw new ProviderConfigError("Template alias must be a lowercase name of at most 63 characters.");
-  const timeout = Number(params["timeout"] ?? 600), sandboxTimeout = Number(params["sandbox_timeout"] ?? 300);
-  if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 3600 || !Number.isFinite(sandboxTimeout) || sandboxTimeout <= 0) throw new ProviderConfigError("Build timeout must be in (0, 3600] and sandbox timeout must be positive.");
+  const timeout = Number(params["timeout"] ?? 600);
   const options: ProjectTemplateOptions = { alias, timeout, template: { name: template.name,
     capabilities, cpu: template.cpu_count ?? 2, memory: template.memory_mb ?? 2048,
     start_cmd: sourceMetadata["start_cmd"] as string | undefined ?? null, ready_cmd: sourceMetadata["ready_cmd"] as string | undefined ?? null } };
+  return { directory, template, options };
+}
+
+/** One explicit operation; never guesses an ID or falls back to another backend. */
+export async function launchTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
+  if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
+  const provider = getProvider(resolveProviderId(cliProvider()));
+  provider.require("templates.build");
+  provider.require("sandbox.lifecycle");
+  const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
+  if (!Number.isFinite(timeoutInput) || timeoutInput <= 0 || timeoutInput > 3600 || !Number.isFinite(sandboxTimeoutInput) || sandboxTimeoutInput <= 0) throw new ProviderConfigError("Build timeout must be in (0, 3600] and sandbox timeout must be positive.");
+  const source = String(params["template_ref"]);
+  const initialDirectory = path.resolve(pyExpandUser(source));
+  const exists = fs.existsSync(initialDirectory);
+  const isLocal = exists && fs.statSync(initialDirectory).isDirectory();
+  if (exists && !isLocal) throw new UsageError("Template project source is not a directory.");
+  if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template scaffold DIRECTORY' or choose an existing template source.");
+  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params) : null;
+  return withGuidedConfiguration(ctx, { operation: "Prepare template and create sandbox", provider: provider.id, yes: Boolean(params["yes"]),
+    requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
+  const fmt = getFormatter(ctx), out = getOutput(ctx);
+  let directory = initialDirectory;
+  if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
+    const token = await resolveGithubToken(null);
+    directory = await _withGithubRateLimitRetry(async (active) => {
+      const registry = new RegistryClient("https://github.com", active);
+      let ref = await registry.resolve(source);
+      if (ref.is_builtin) ref = await registry.resolve(await _resolveIndexName(source, { token: active, fmt, out }));
+      return registry.fetch(ref);
+    }, { token, fmt, out });
+  }
+  const project = localProject ?? readLaunchProject(provider, directory, params);
+  directory = project.directory;
+  const { template, options } = project;
+  const sandboxTimeout = sandboxTimeoutInput;
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
   provider.validateConfig(config);
@@ -65,6 +87,7 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     const extension = providerCliExtension(provider.id);
     if (extension?.prepareProject) prepared = await extension.prepareProject(directory, options, ctx);
     else {
+      if (!params["yes"]) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
       manager = await provider.buildTemplateManager(config);
       if (!manager.prepareProject) throw new ProviderFeatureNotSupportedError(provider.id, "templates.build");
       prepared = await manager.prepareProject(directory, options);
@@ -91,7 +114,7 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
       if (!("exit_code" in result) || result.exit_code !== 0) throw new Error("Startup failed");
     }
     if (prepared.ready_command) {
-      const deadline = Date.now() + Math.min(timeout, 60) * 1000;
+      const deadline = Date.now() + Math.min(options.timeout, 60) * 1000;
       for (;;) {
         const remaining = Math.max(0.01, Math.min(5, (deadline - Date.now()) / 1000));
         const result = await sandbox.commands.run(prepared.ready_command, { timeout: remaining });
@@ -106,4 +129,5 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     try { await sandbox.kill(); cleaned = true; } catch { /* Report the owned ID if cleanup could not be confirmed. */ }
     throw new ProviderConfigError(`Template startup failed; owned sandbox ${sandbox.id} cleanup ${cleaned ? "completed" : "could not be confirmed"}.`);
   } finally { await sandbox.close(); }
+  });
 }

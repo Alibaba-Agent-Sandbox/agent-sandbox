@@ -1,3 +1,4 @@
+import { canGuideConfiguration } from "../config_guidance.js";
 /**
  * `abx template scaffold --adopt` orchestration (port of `cli/commands/_adopt.py`).
  *
@@ -60,6 +61,7 @@ export interface RunAdoptOptions {
   force: boolean;
   yes: boolean;
   verbose: boolean;
+  model?: string | null;
 }
 
 /** Phase status for the generation flow: a progress line when no spinner is drawn, then the live activity block. */
@@ -116,7 +118,7 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
 
     const backend = codingAgent.resolveCodingAgentBackend();
     const binary = await codingAgent.ensureCodingAgentBinary(ctx, { yes, backend });
-    const credentials = await codingAgent.resolveCodingAgentCredentials(ctx, { yes, backend });
+    let credentials = await codingAgent.resolveCodingAgentCredentials(ctx, { yes, backend, model: opts.model });
     const host = _modelHost(credentials);
     _announce(out, project, templateName, staged, host);
     if (needsConfirm && !(await confirm(`Send ${staged.copied.length} files to ${host}?`, { default: true, err: true }))) {
@@ -129,7 +131,7 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
       .filter(([, digest]) => digest !== null)
       .map(([n]) => n);
     const prompt = buildAdoptPrompt(staged, { hint, templateName, existing });
-    const raw = await _phaseStatus(out, "Adapting project", async (update) =>
+    const run = () => _phaseStatus(out, "Adapting project", async (update) =>
       backend.runInWorkspace(prompt, {
         workdir: staged.stagingDir,
         binary,
@@ -138,6 +140,24 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
         ...(update !== null ? { onActivity: update } : {}),
       }),
     );
+    let raw: Awaited<ReturnType<typeof run>>;
+    try { raw = await run(); }
+    catch (error) {
+      const { modelRejectedByEndpoint } = await import("../../agent/qwen_code.js");
+      const text = error instanceof Error ? `${error.message}\n${(error as { suggestion?: string }).suggestion ?? ""}` : String(error);
+      if (!modelRejectedByEndpoint(text)) throw error;
+      const { _pickReplacementModel, _withModelHint } = await import("./sandbox.js");
+      if (opts.model || !canGuideConfiguration(ctx, yes)) throw _withModelHint(error, credentials);
+      const selected = await _pickReplacementModel(ctx, credentials);
+      if (!selected) throw _withModelHint(error, credentials);
+      if (await confirm("Save this model for future generation commands?", { default: false, err: true })) {
+        const cfg = await import("./config_cmd.js");
+        await cfg.writeEnvVar("ABX_LLM_MODEL", selected);
+        out.info("Saved llm_model in ~/.abx/.env. Change it later: abx config set llm_model");
+      } else out.info("Using the selected model only for this command. Change it later: abx config set llm_model");
+      credentials = await codingAgent.resolveCodingAgentCredentials(ctx, { yes, backend, model: selected });
+      raw = await run();
+    }
     const plan = planFromStaging(project, staged, { templateName, rawOutput: raw });
     for (const warning of plan.warnings) {
       out.warning(warning);
@@ -170,7 +190,7 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
 
 /** True only on a terminal that is not JSON and not CI. */
 export function _isInteractive(fmt: Any): boolean {
-  return adoptSeams.stdinIsatty() && !fmt.use_json && !adoptSeams.isCiEnv();
+  return canGuideConfiguration(undefined, false) && adoptSeams.stdinIsatty() && !fmt.use_json && !fmt.quiet && !adoptSeams.isCiEnv();
 }
 
 function _reraise(exc: AdoptRejectedError): never {
@@ -178,23 +198,12 @@ function _reraise(exc: AdoptRejectedError): never {
   throw new CliError(exc.message);
 }
 
-/** `urllib.parse.urlparse(base).netloc`. */
-function _netloc(value: string): string {
-  let rest = value;
-  const scheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.exec(rest);
-  if (scheme) rest = rest.slice(scheme[0].length);
-  if (!rest.startsWith("//")) return "";
-  const tail = rest.slice(2);
-  const end = tail.search(/[/?#]/);
-  return end < 0 ? tail : tail.slice(0, end);
-}
-
 function _modelHost(credentials: Any): string {
   const baseValue = credentials?.baseUrl ?? credentials?.base_url ?? "";
   const base = String(baseValue || "");
   if (!base) return "the model provider";
-  const host = _netloc(base);
-  return host || base;
+  try { return new URL(base).host || "the configured model endpoint"; }
+  catch { return "the configured model endpoint"; }
 }
 
 function _announce(out: Any, project: string, name: string, staged: StagedProject, host: string): void {

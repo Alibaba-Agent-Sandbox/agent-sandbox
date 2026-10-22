@@ -45,7 +45,7 @@ abx mcp install --target vscode
 
 写入工作区 `.vscode/mcp.json` 的 `servers` 键（`type: stdio`），然后重新加载 VS Code 窗口。这个文件经常会被提交，所以安装器不把 API key 写进去；`abx mcp start` 从环境变量或 `~/.abx` 读取。
 
-所有目标注册的都是同一个 STDIO 命令：`abx mcp start`。命令写成正在运行的 `abx` 可执行文件的绝对路径（找不到时退回到 `node <abx.js 的绝对路径>`），这样 IDE 自带的精简 PATH 也能拉起 server。安装器采用合并写入 — 已配置的其他 MCP server 会被保留。配置文件如果不是严格 JSON（注释、尾逗号），安装器会拒绝覆盖。Cursor 和 Claude 的用户级配置在 API key 可用时会嵌入 `env` 块。这把密钥按 [凭证解析](../reference/configuration.md#凭证解析) 取值：进程环境变量，然后 `./.env`，然后 `~/.abx`。`ABX_SANDBOX_BASE_URL` 和 `SANDBOX_REGION` 只有进程环境变量设置了才会写入；`abx config set region` 保存的区域在 `abx mcp start` 启动时再次读取。
+所有目标注册的都是同一个 STDIO 命令：`abx mcp start`。命令写成正在运行的 `abx` 可执行文件的绝对路径（找不到时退回到 `node <abx.js 的绝对路径>`），这样 IDE 自带的精简 PATH 也能拉起 server。安装器采用合并写入 — 已配置的其他 MCP server 会被保留。配置文件如果不是严格 JSON（注释、尾逗号），安装器会拒绝覆盖。Cursor、Claude 和 VS Code 注册均不嵌入 Sandbox API Key。安装器记录适用的非密钥生效端点、domain 和地域；`abx mcp start` 运行时按[凭证解析](../reference/configuration.md#凭证解析)读取密钥。交互式安装可以进入[配置引导](guided-configuration.md)，也可继续离线注册。IDE 注册不代表云端访问已验证，临时配置不会传给之后由 IDE 启动的进程。
 
 ### 查看安装状态
 

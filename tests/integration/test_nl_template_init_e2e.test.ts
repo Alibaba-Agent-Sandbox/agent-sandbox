@@ -11,11 +11,12 @@
  */
 
 import "../_support/isolatedHome.js";
+import * as guidance from "../../src/cli/config_guidance.js";
 
 import fs from "node:fs";
 import path from "node:path";
 
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import * as clarify from "../../src/agent/clarify.js";
 import { ClarifyAssessment } from "../../src/agent/clarify.js";
@@ -34,6 +35,11 @@ import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { useTmpPath } from "../helpers/templateSupport.js";
 
 const tmpPath = useTmpPath();
+beforeEach(() => {
+  vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key");
+  vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "placeholder-access-id");
+  vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-access-secret");
+});
 
 type Mock = ReturnType<typeof vi.fn>;
 
@@ -155,6 +161,7 @@ const exists = (p: string): boolean => fs.existsSync(p);
 
 const fakeTty = (): void => {
   sandboxSeams.stdinIsatty = () => true;
+  vi.spyOn(guidance, "canGuideConfiguration").mockImplementation((ctx, yes) => !yes && !ctx?.obj?.["json"] && !ctx?.obj?.["quiet"] && !ctx?.obj?.["ci"]);
 };
 
 const spyCreate = (value?: Sandbox) => {

@@ -1,3 +1,5 @@
+import { getProvider, resolveProviderId } from "../../providers/registry.js";
+import { cliProvider } from "../../providers/selection.js";
 /** Top-level deployment delegates to the active provider's template implementation. */
 import { argument, command, type Option } from "../kit.js";
 import { handleErrors } from "../error_handler.js";
@@ -11,6 +13,7 @@ export const deploy_shortcut = command("deploy", {
   params: () => [argument(["path"], { default: ".", required: false }),
     ...build.params.filter((p): p is Option => p.kind === "option")],
   callback: handleErrors(async (ctx, params) => {
+    getProvider(resolveProviderId(cliProvider())).require("templates.build");
     const extension = providerCliExtension();
     const yes = Boolean(params["yes"]) || getOutput(ctx).ci;
     params = { ...params, yes, path: await prepareTemplateProject(ctx, String(params["path"]), yes) };

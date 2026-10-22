@@ -12,6 +12,8 @@ export interface ProviderCliExtension {
   templateUi: Record<string, { params: readonly Param[]; help: string }>;
   createParams?: readonly Param[];
   deployHelp?: string;
+  /** Provider-owned authentication requirements for its management catalog, not a host backend switch. */
+  managementRequirements?(commandId: string): readonly string[];
   loadTemplates(): Promise<Record<string, unknown>>;
   loadDeploy?(): Promise<{ deploy_shortcut: Command }>;
   deployGenerated?(directory: string, options: Record<string, unknown>, ctx: Context): Promise<Record<string, unknown>>;

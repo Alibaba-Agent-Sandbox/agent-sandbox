@@ -6,6 +6,7 @@ import { join } from 'node:path';
 // The fixed top-level surface: command groups plus the sandbox shortcuts (see docs/en/reference/cli-commands.md).
 const ROOT_COMMANDS = ['config', 'connect', 'create', 'deploy', 'download', 'exec', 'info', 'kill', 'list', 'mcp', 'provider', 'run', 'sandbox', 'template', 'upload'];
 const REMOVED_ROOT_COMMANDS = ['init', 'install'];
+const MISSING_SANDBOX_AUTH = ['Missing configuration', 'sandbox_api_key', 'abx config set providers.alicloud-express.sandbox_api_key', { not: 'e2b auth login' }, { not: 'Configuration scope' }, { not: 'E2B_API_KEY' }];
 
 const INDEX = `templates:
   - name: alpha-py
@@ -57,7 +58,7 @@ export default {
         const cwd = ctx.newCwd('missing-project');
         const target = join(cwd, 'dev-services');
         const r = await ctx.abx(['template', 'deploy', target, '-y', '--acr-namespace', 'onboarding-test'], { cwd, creds: false });
-        if (r.code !== 1 || !/credentials missing/i.test(r.stdout + r.stderr)) ctx.fail('missing path must continue into provider credential preflight');
+        if (r.code !== 1 || !/Missing configuration/i.test(r.stdout + r.stderr)) ctx.fail('missing path must continue into provider credential preflight');
         for (const name of ['template.yaml', 'Dockerfile', 'commands.py']) if (!existsSync(join(target, name))) ctx.fail('usable template files missing');
       },
     },
@@ -85,17 +86,17 @@ export default {
     { id: 'invalid-list-status', title: 'standard list rejects retired --status spelling', argv: ['list', '--status', 'bogus'], creds: false, exit: 1, output: "unknown option '--status'" },
     { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of|Allowed choices/ },
     { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ['upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
-    { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ['create'], creds: false, exit: 1, output: /logged in|API key/i },
+    { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ['create'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
     { id: 'create-retired-template-option', title: 'create rejects --template; the template is positional', argv: ['create', 'base', '--template', 'base'], creds: false, exit: 1, output: "unknown option '--template'" },
-    { id: 'kill-auth-preflight', title: 'standard kill checks authentication before choosing targets', argv: ['kill'], creds: false, exit: 1, output: /logged in|API key/i },
+    { id: 'kill-auth-preflight', title: 'standard kill checks authentication before choosing targets', argv: ['kill'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
 
-    { id: 'no-credentials-list', title: 'standard list requires a configured key', argv: ['list'], creds: false, exit: 1, output: /logged in|API key/i },
+    { id: 'no-credentials-list', title: 'standard list requires a configured key', argv: ['list'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
     {
       id: 'no-credentials-list-json', title: 'standard list rejects native --json before authentication without changing routes', argv: ['--json', 'list'], creds: false, exit: 1,
       output: "unknown option '--json'",
     },
-    { id: 'no-credentials-exec', title: 'standard exec requires a configured key', argv: ['exec', 'sbx-x', 'echo hi'], creds: false, exit: 1, output: /logged in|API key/i },
-    { id: 'no-credentials-template-list', title: 'standard template list requires a configured key', argv: ['template', 'list'], creds: false, exit: 1, output: /logged in|API key/i },
+    { id: 'no-credentials-exec', title: 'standard exec requires a configured key', argv: ['exec', 'sbx-x', 'echo hi'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
+    { id: 'no-credentials-template-list', title: 'standard template list requires a configured key', argv: ['template', 'list'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
 
     // ---- config store (fresh HOME per scenario) -------------------------------------------------
     {
@@ -214,9 +215,8 @@ export default {
           if (!entry) ctx.fail(`${t}: no agent-sandbox server entry (keys: ${Object.keys(servers ?? cfg).join(',')})`);
           if (!Array.isArray(entry.args) || !entry.args.includes('mcp') || !entry.args.includes('start')) ctx.fail(`${t}: entry.args must run "mcp start"`);
           if (entry.env?.ABX_SANDBOX_BASE_URL !== env.ABX_SANDBOX_BASE_URL) ctx.fail(`${t}: native MCP configuration did not preserve the canonical ABX endpoint`);
-          if (t === 'vscode') {
-            if (entry.type !== 'stdio' || Object.hasOwn(entry.env ?? {}, 'ABX_SANDBOX_API_KEY') || readFileSync(file, 'utf8').includes(key)) ctx.fail('vscode: workspace configuration must use stdio without persisting the API key');
-          } else if (entry.env?.ABX_SANDBOX_API_KEY !== key) ctx.fail(`${t}: native MCP configuration did not preserve the canonical ABX credential`);
+          if (Object.hasOwn(entry.env ?? {}, 'ABX_SANDBOX_API_KEY') || readFileSync(file, 'utf8').includes(key)) ctx.fail(`${t}: IDE configuration must read credentials at launch without persisting the API key`);
+          if (t === 'vscode' && entry.type !== 'stdio') ctx.fail('vscode: workspace configuration must use stdio');
           if (Object.hasOwn(entry.env ?? {}, 'E2B_API_KEY') || Object.hasOwn(entry.env ?? {}, 'E2B_API_URL')) ctx.fail(`${t}: standard-entry E2B aliases leaked into native MCP configuration`);
         }
         const r = await ctx.abx(['--json', 'mcp', 'status'], { home, cwd, creds: false, env });
@@ -284,7 +284,7 @@ export default {
       },
     },
     {
-      id: 'template-deploy-missing-dir', title: 'template deploy of a nonexistent dir exits 2 before any cloud call', argv: ['template', 'deploy', '/nonexistent/e2e-dir'], creds: false, exit: 2, output: /does not exist/,
+      id: 'template-deploy-missing-dir', title: 'template deploy of a nonexistent dir exits 2 before any cloud call', argv: ['template', 'deploy', '/nonexistent/e2e-dir'], creds: false, exit: 2, output: ['is not an existing directory', 'abx template scaffold', '--yes/-y', 'https://registry.agent-sandbox.cn/templates/', { not: 'Configuration scope' }],
     },
     {
       id: 'template-search-local-index', title: 'template search against a local --index-url file (offline, deterministic)', creds: false,

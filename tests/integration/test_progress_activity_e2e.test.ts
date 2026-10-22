@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Offline end-to-end: long CLI steps use one moving header.
  *
@@ -282,7 +283,7 @@ it("test_template_create_shows_a_header_and_hides_the_password", async () => {
   const create = spyAny(fcTemplate, "createOfficialTemplate").mockResolvedValue({ templateID: "tpl-from-image", statusCode: 200 });
 
   const result = await runner().invoke(cli, [
-    "template", "from-image", "registry.example/ns/app:latest", "--name", "from-image", "--registry-password", password,
+    "template", "from-image", "registry.example/ns/app:latest", "--name", "from-image", "--registry-username", "registry-user", "--registry-password", password,
   ]);
 
   expect(result.exit_code, result.output).toBe(0);
@@ -325,3 +326,5 @@ it("test_install_milestones_show_under_the_header", async () => {
     codingAgentSeams.resolveBackend = saved;
   }
 });
+
+useMockCloudConfiguration();

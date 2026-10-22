@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Tests for sandbox process CLI commands: list, info, signal. */
 
 import "../_support/isolatedHome.js";
@@ -184,3 +185,6 @@ describe("TestProcessSignal", () => {
     expect(result.exit_code).toBe(1);
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

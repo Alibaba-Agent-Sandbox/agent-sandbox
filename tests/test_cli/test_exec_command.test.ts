@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Tests for `abx exec` / `abx sandbox exec`: wait (default), `--stream`, `--background`, `--env`, argv handling. */
 
 import "../_support/isolatedHome.js";
@@ -174,3 +175,6 @@ describe("TestExecBackground", () => {
     expect(result.output).toContain("cannot be combined");
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

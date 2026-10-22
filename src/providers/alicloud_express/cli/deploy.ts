@@ -1,3 +1,4 @@
+import { prepareTemplateBuildInputs } from "../../../cli/template_project.js";
 import { DEPLOY_HELP } from "./metadata.js";
 /**
  * Top-level `abx deploy` — publish a template project (same as `abx template deploy`).
@@ -20,8 +21,7 @@ import { pyExpandUser, pyResolve } from "../../../utils/_pyos.js";
 import { handleErrors } from "../../../cli/error_handler.js";
 import { enableVerbose } from "../../../cli/output.js";
 import { requireTemplateFeature } from "./selection.js";
-import { BuildModeError, resolveBuildPlan } from "../../../template/build_plan.js";
-import { build, acrNamespacePassedOnCli, resolve_acr_namespace } from "./template.js";
+import { build, resolve_acr_namespace } from "./template.js";
 
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -67,28 +67,7 @@ export const deploy_shortcut = command("deploy", {
       throw new UsageError(`Path '${path}' is not an existing directory.`, getCurrentContext(true));
     }
 
-    let plan;
-    try {
-      plan = resolveBuildPlan(projectPath, { mode: kwargs["build"] ?? "auto", dockerfile: kwargs["dockerfile"] ?? null });
-    } catch (e) {
-      if (e instanceof BuildModeError) {
-        const hint = e.message.startsWith("No Dockerfile")
-          ? " Author the template first: 'abx template scaffold --adopt .' (adapt this project), " +
-            "'abx template scaffold --prompt \"DESCRIPTION\"' (generate) or " +
-            "'abx template scaffold --template python' (scaffold)."
-          : "";
-        throw new UsageError(e.message + hint, getCurrentContext(true));
-      }
-      throw e;
-    }
-
-    // Fail fast, before any docker or cloud call.
-    if (plan.kind === "dockerfile") {
-      deploySeams.resolve_acr_namespace(kwargs["acr_namespace"] ?? null);
-    } else if (acrNamespacePassedOnCli()) {
-      throw new UsageError("--acr-namespace cannot be used with platform build steps.", getCurrentContext(true));
-    }
-
-    await ctx.invoke(deploySeams.build, { template_dir: String(projectPath), ...kwargs });
+    const prepared = await prepareTemplateBuildInputs(ctx, projectPath, Boolean(kwargs["yes"]), kwargs);
+    await ctx.invoke(deploySeams.build, { template_dir: prepared, ...kwargs });
   }),
 });

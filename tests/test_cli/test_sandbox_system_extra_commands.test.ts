@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Tests for sandbox capabilities CLI command. */
 
 import "../_support/isolatedHome.js";
@@ -262,3 +263,6 @@ describe("TestCapabilities", () => {
     expect([...data.capabilities].sort()).toEqual(["files", "shell"]);
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

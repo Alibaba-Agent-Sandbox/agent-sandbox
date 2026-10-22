@@ -1,3 +1,4 @@
+import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Focused tests for the `abx connect` REPL (task 185).
  *
@@ -431,3 +432,6 @@ describe("TestConnectSession", () => {
     expect(run).not.toHaveBeenCalled();
   });
 });
+
+// Remote APIs in this file are mocked; provide configuration without bypassing preflight.
+useMockCloudConfiguration();

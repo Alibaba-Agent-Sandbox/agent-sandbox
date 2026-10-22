@@ -1,3 +1,4 @@
+import { canGuideConfiguration, withGuidedConfiguration } from "../config_guidance.js";
 /**
  * Sandbox lifecycle CLI commands: create, list, info, kill, exec, connect, upload, download (port of
  * `cli/commands/sandbox.py`).
@@ -469,7 +470,7 @@ export async function _clarifyRequirements(
 
   if (yes) return new ClarifyOutcome({ skipped: true });
 
-  const interactive = sandboxSeams.stdinIsatty() && !fmt.use_json;
+  const interactive = sandboxSeams.stdinIsatty() && canGuideConfiguration(ctx, yes) && !fmt.use_json;
   let sessionId = clarify.newSessionId();
   const asked: string[] = [];
 
@@ -579,7 +580,7 @@ export async function _clarifyRequirements(
     asked.push(question);
     let answer: string;
     try {
-      answer = await prompt(`Question ${roundNumber}: ${question}`, { default: "", show_default: false });
+      answer = await prompt(`Question ${roundNumber}: ${question}`, { default: "", show_default: false, err: true });
     } catch (exc) {
       if (exc instanceof Abort || exc instanceof EOFError) {
         throw new DescriptionClarificationError("Clarification was interrupted (EOF) before the description was complete.", {
@@ -657,7 +658,7 @@ export async function _resolveOutputDir(
   let chosen = outputDir;
   if (chosen === null) {
     const fmt = getFormatter(ctx);
-    if (!opts.ask || opts.yes || fmt.use_json || !sandboxSeams.stdinIsatty()) return null;
+    if (!opts.ask || !canGuideConfiguration(ctx, opts.yes) || fmt.use_json || !sandboxSeams.stdinIsatty()) return null;
     const home = os.homedir();
     let shown = String(defaultDir);
     if (shown.startsWith(home)) shown = "~" + shown.slice(home.length);
@@ -682,11 +683,11 @@ function _modelInUse(creds: { asEnv(): Record<string, string> }): string {
   return creds.asEnv().OPENAI_MODEL || "qwen3-coder-plus";
 }
 
-function _withModelHint(exc: unknown, creds: { asEnv(): Record<string, string> }): unknown {
+export function _withModelHint(exc: unknown, creds: { asEnv(): Record<string, string> }): unknown {
   const model = _modelInUse(creds);
   const suggestion =
     `The endpoint rejected model '${model}'. ` +
-    "Pass a model this key can call: abx create \"<description>\" --model <id> " +
+    "Pass a model this key can call: abx create --prompt \"<description>\" --model <id> " +
     "(or abx template scaffold --model <id>). " +
     "Persist it with: abx config set llm_model <id>. " +
     "ABX_LLM_MODEL and OPENAI_MODEL also work.";
@@ -696,7 +697,7 @@ function _withModelHint(exc: unknown, creds: { asEnv(): Record<string, string> }
   return exc;
 }
 
-async function _pickReplacementModel(
+export async function _pickReplacementModel(
   ctx: Context,
   creds: { asEnv(): Record<string, string>; apiKey?: string; baseUrl?: string },
 ): Promise<string | null> {
@@ -721,7 +722,7 @@ async function _pickReplacementModel(
       message: "Select a model (up/down, Enter)",
       choices,
       default: ranked[0],
-    });
+    }, { output: process.stderr });
     if (answer === "__other__") {
       const typed = pyStrip(await prompt("Model id", { default: "", show_default: false, err: true }));
       return typed || null;
@@ -815,12 +816,14 @@ export async function _generateTemplateWorkspace(
   } catch (exc) {
     const text = exc instanceof Error ? `${exc.message}\n${(exc as { suggestion?: string }).suggestion ?? ""}` : String(exc);
     if (!qwenCode.modelRejectedByEndpoint(text)) throw exc;
-    if (modelOverride || yes || fmt.use_json || !sandboxSeams.stdinIsatty()) throw _withModelHint(exc, creds);
+    if (modelOverride || !canGuideConfiguration(ctx, yes) || !sandboxSeams.stdinIsatty()) throw _withModelHint(exc, creds);
     const picked = await _pickReplacementModel(ctx, creds);
     if (!picked) throw _withModelHint(exc, creds);
-    const configCmd = await import("./config_cmd.js");
-    configCmd.writeEnvVar("ABX_LLM_MODEL", picked);
-    out.success(`Stored llm_model ${picked} in ~/.abx/.env`);
+    if (await confirm("Save this model for future generation commands?", { default: false, err: true })) {
+      const configCmd = await import("./config_cmd.js");
+      await configCmd.writeEnvVar("ABX_LLM_MODEL", picked);
+      out.info("Saved llm_model in ~/.abx/.env. Change it later: abx config set llm_model");
+    } else out.info("Using the selected model only for this command. Change the saved model later: abx config set llm_model");
     modelOverride = picked;
     creds = await credsFor();
     const gen = await once(creds);
@@ -929,7 +932,7 @@ export async function _promptProjectDirectory(
   opts: { yes: boolean; name: string | null; force: boolean },
 ): Promise<string | null> {
   const fmt = getFormatter(ctx);
-  if (opts.yes || fmt.use_json || !sandboxSeams.stdinIsatty()) return null;
+  if (!canGuideConfiguration(ctx, opts.yes) || fmt.use_json || !sandboxSeams.stdinIsatty()) return null;
   const defaultDirectory = opts.name ? `./${opts.name}` : _AUTO_PROJECT_DIR;
   let chosen: string = await prompt("Directory for the template project", { default: defaultDirectory, err: true });
   chosen = pyStrip(chosen);
@@ -976,7 +979,7 @@ export async function _wantsTemplateOnly(ctx: Context, description: string, opts
     "Natural-language create generates a template, then builds and pushes " +
     "the image, deploys it, and creates a sandbox. " +
     `Template only: abx template scaffold --prompt "${description}"`;
-  if (!sandboxSeams.stdinIsatty()) {
+  if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
     getOutput(ctx).info(hint);
     return false;
   }
@@ -1007,7 +1010,12 @@ export async function _generateAndDeployTemplate(
 ): Promise<string> {
   const extension = providerCliExtension();
   if (!extension?.deployGenerated) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
-  const { yes, verbose } = opts;
+  const deployGenerated = extension.deployGenerated;
+  const { yes } = opts;
+  const selected = providerView().effective;
+  return withGuidedConfiguration(ctx, { operation: "Generate, deploy and create sandbox", provider: selected, yes: Boolean(ctx.params["yes"]),
+    requirements: selected === "alicloud-express" ? ["access_key_id", "access_key_secret"] : undefined,
+    validateProvider: selected !== "alicloud-express", overrides: { region: opts["region"] } }, async () => {
 
   const gen = await _generateTemplateWorkspace(ctx, description, {
     yes,
@@ -1017,18 +1025,24 @@ export async function _generateAndDeployTemplate(
   });
 
   if (!yes) {
-    if (!sandboxSeams.stdinIsatty()) {
+    if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
       throw new UsageError(
         "Confirmation required to build and deploy the generated template. " + "Use --yes/-y to skip in non-interactive mode.",
       );
     }
-    await confirm(`Build and deploy template '${gen.templateName}' now?`, { abort: true });
+    await confirm(`Build and deploy template '${gen.templateName}' now?`, { abort: true, err: true });
   }
 
-  const data = await extension.deployGenerated(String(gen.workdir), { ...opts, ...opts.provider_options }, ctx);
+  let data: Awaited<ReturnType<typeof deployGenerated>>;
+  try { data = await deployGenerated(String(gen.workdir), { ...opts, ...opts.provider_options }, ctx); }
+  catch (error) {
+    getOutput(ctx).warning(`Generated template files remain at ${gen.workdir}. Check the provider's remote build state before retrying deployment; template generation has not been repeated.`);
+    throw error;
+  }
   const templateRef = pyStrip(String(data["template_id"] ?? ""));
   if (!templateRef) throw new CliError("Provider deployment did not return a template id. Inspect its build state before creating a sandbox.");
   return templateRef;
+  });
 }
 
 /** Parse `KEY=VALUE` items; the first malformed item is reported through `onInvalid`, which exits. */
@@ -1140,30 +1154,11 @@ export const create = command("create", {
 
     const fmt = getFormatter(ctx);
 
-    // ---- AI template generation when description given and --template omitted --
-    let effectiveTemplate = template || "base";
-    if (description && !template) {
-      if (await _wantsTemplateOnly(ctx, description, { yes })) {
-        if (outputDir) {
-          getOutput(ctx).warning("--dir is ignored for template-only generation; the files are " + "written to ./<name>/.");
-        }
-        await _generateLocalTemplate(ctx, description, { yes, model });
-        return;
-      }
-      effectiveTemplate = await _generateAndDeployTemplate(ctx, description, {
-        yes,
-        provider_options: params,
-        verbose: verboseFlag,
-        output_dir: outputDir,
-        model,
-      });
-      if (!fmt.use_json) {
-        const out = getOutput(ctx);
-        if (!out.useLiveStatus) {
-          // The spinner below already announces creation in TTY mode; only print the plain progress line in degraded modes.
-          out.progress("Creating...");
-        }
-      }
+    // Local-only generation makes no cloud configuration demands.
+    if (description && !template && await _wantsTemplateOnly(ctx, description, { yes })) {
+      if (outputDir) getOutput(ctx).warning("--dir is ignored for template-only generation; the files are written to ./<name>/.");
+      await _generateLocalTemplate(ctx, description, { yes, model });
+      return;
     }
 
     // Parse env vars from "KEY=VALUE" format
@@ -1177,6 +1172,16 @@ export const create = command("create", {
       fmt.printError(`Invalid metadata format: ${pyRepr(item)} (expected KEY=VALUE)`);
       return sysExit(2);
     });
+
+    if (requestTimeout !== null && (!Number.isFinite(requestTimeout) || requestTimeout <= 0)) throw new ValueError(`request_timeout must be a positive number of seconds, got ${pyRepr(new PyFloat(requestTimeout))}`);
+    const execute = async (): Promise<void> => {
+    let effectiveTemplate = template || "base";
+    if (description && !template) {
+      effectiveTemplate = await _generateAndDeployTemplate(ctx, description, {
+        yes, provider_options: params, verbose: verboseFlag, output_dir: outputDir, model,
+      });
+      if (!fmt.use_json && !getOutput(ctx).useLiveStatus) getOutput(ctx).progress("Creating...");
+    }
 
     // Build create kwargs
     const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout };
@@ -1249,6 +1254,13 @@ export const create = command("create", {
     // mode so that stdout stays a single parseable JSON document.
     out.data(data);
     if (!out.jsonMode) out.success(`Sandbox ${printedId(createView, sandbox.id)} created successfully.`);
+    };
+    const selectedProvider = getProvider(providerView().effective);
+    selectedProvider.require("sandbox.lifecycle");
+    if (description) selectedProvider.require("templates.build");
+    return withGuidedConfiguration(ctx, { operation: "Generate, deploy and create sandbox", provider: selectedProvider.id, yes,
+      requirements: selectedProvider.id === "alicloud-express" ? ["sandbox_api_key", ...(description ? ["access_key_id", "access_key_secret"] : [])] : undefined,
+      validateProvider: selectedProvider.id !== "alicloud-express", overrides: { region: params["region"] } }, execute);
   }),
 });
 
@@ -1434,7 +1446,7 @@ export const kill = command("kill", {
       }
 
       if (!yes) {
-        if (!sandboxSeams.stdinIsatty()) {
+        if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
           throw new UsageError("Confirmation required for killing all sandboxes. " + "Use --yes/-y to skip in non-interactive mode.");
         }
         await confirm(`Kill all ${sandboxes.length} running sandbox(es)?`, { abort: true });

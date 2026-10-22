@@ -36,7 +36,8 @@ import { CliRunner } from "../helpers/cliRunner.js";
 
 // Keep the configuration sources hermetic (Python patches `config_cmd.load_config_dict` / `read_env_var`).
 vi.mock("../../src/cli/commands/config_cmd.js", () => ({
-  _effectiveValue: async () => [null, "default"],
+  _effectiveValue: () => [null, "default"],
+  _ALLOWED_KEYS: new Set(["llm_api_key", "llm_base_url", "llm_model", "sandbox_api_key", "access_key_id", "access_key_secret"]),
   writeEnvVar: async () => undefined,
   _removeTomlKey: async () => undefined,
 }));
@@ -216,6 +217,9 @@ const savedSeams = {
 };
 
 beforeEach(() => {
+  vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key");
+  vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak");
+  vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-sk");
   tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-backend-"));
   const binary = path.join(tmp, "dummy-agent");
   fs.writeFileSync(binary, "#!/bin/sh\n", "utf-8");
@@ -246,6 +250,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   codingAgentSeams.resolveBackend = savedResolver;
   Object.assign(qwenCode.seams, savedSeams.qwen);
@@ -287,7 +292,7 @@ describe("TestBackendDecoupling", () => {
     expect(genCall["env"]).toEqual({ DUMMY_AGENT_KEY: "dummy-secret" });
 
     expect(deployMock).toHaveBeenCalledTimes(1);
-    expect(deployMock).toHaveBeenCalledWith(dummyBackend.workdir, { acr_namespace: "acr-ns", ctx: expect.anything(), verbose: false });
+    expect(deployMock).toHaveBeenCalledWith(dummyBackend.workdir, expect.objectContaining({ acr_namespace: null, ctx: expect.anything(), verbose: false, yes: true }));
     expect((mockCreate.mock.calls[0]![0] as Record<string, unknown>)["template"]).toBe("tmpl-dummy-1");
     _assertNoRealAgentCalls();
   });
@@ -428,7 +433,7 @@ describe("TestBackendDecoupling", () => {
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Dummy Agent is installed but no model credentials were found.");
     expect(result.output).toContain("[E2906]");
-    expect(result.output).toContain("abx config set dummy_api_key <KEY>");
+    expect(result.output).toContain("abx config set dummy_api_key");
     _assertNoRealAgentCalls();
   });
 });

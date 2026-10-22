@@ -1,4 +1,5 @@
 import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
+import { getOperationConfig } from "../utils/operation_config.js";
 /**
  * Layered configuration with provider selection (port of the layered half of
  * `agent_sandbox/transport/config.py`; design: `docs/en/design/providers-and-credentials.md`).
@@ -427,6 +428,7 @@ export function resolveAll(sources: Sources, schemaIn?: ProviderSchema): { schem
   for (const key of schema.keys) {
     const res = resolveKey(key, sources);
     if (res !== null) out.set(key.key, res);
+    else out.delete(key.key); // An absent Provider-owned field cannot borrow a same-named core default.
   }
   if (Object.keys(schema.derive).length > 0) applyDerive(sources, schema, out);
   return { schema, resolved: out };
@@ -459,6 +461,13 @@ export interface LoadOptions {
  * `overrides.provider_options` passes provider-scoped values; canonical or legacy kwarg names are accepted.
  */
 export function loadLayeredConfig(overrides: Record<string, unknown> = {}, opts: LoadOptions = {}): LayeredConfig {
+  const operation = getOperationConfig();
+  if (operation && !opts.sources && (!overrides["provider"] || overrides["provider"] === operation["provider"])) {
+    overrides = { ...operation, ...overrides, provider_options: {
+      ...((operation["provider_options"] as Record<string, unknown> | undefined) ?? {}),
+      ...((overrides["provider_options"] as Record<string, unknown> | undefined) ?? {}),
+    } };
+  }
   const cacheable = Object.keys(overrides).length === 0 && !opts.sources;
   if (cacheable && cached !== null) return cached;
   const config = loadUncached(overrides, opts);

@@ -1,3 +1,6 @@
+import { prepareTemplateBuildInputs } from "../../../cli/template_project.js";
+import { withGuidedConfiguration, canGuideConfiguration, type GuidanceField } from "../../../cli/config_guidance.js";
+import { getOperationConfig } from "../../../utils/operation_config.js";
 import { templateUi } from "./metadata.js";
 export { _installParams, _GITHUB_TOKEN_HELP } from "./metadata.js";
 import { _printInitSummary, _GITHUB_TOKEN_HELP, _configCmd, _withGithubRateLimitRetry, usageError, _lazyModule, _isNlDescription, _findTemplateYaml, _selectScaffoldCase, _codePointCompare, _LAZY_MODULES, _githubRateLimitSetupAvailable, _offerGithubTokenSetup, _tryArrowCasePicker, _scaffoldPickerAvailable, pyStrip, templateSeams as catalogSeams, search, init } from "../../../cli/template_catalog.js";
@@ -117,7 +120,9 @@ export function _translatePlatformError(exc: Any, opts: {
         });
     }
     return new NetworkError(`${context} failed (HTTP ${status}): ${detail}`, {
-        suggestion: "Check your authentication (abx auth / API key) and the platform status, then retry.",
+        suggestion: status === 401 || status === 403
+            ? "Review the selected provider, region and API host with 'abx config list'. Change the Sandbox API key with 'abx config set sandbox_api_key'; a permission or service-admission failure may need account access changes. No automatic retry was made."
+            : "Check the platform status and reconcile any submitted operation before retrying.",
     });
 }
 
@@ -261,6 +266,8 @@ export async function _resolveIndexName(name: string, opts: {
 export function _resolveAcrNamespace(cli_value: string | null | undefined): string {
     if (cli_value && pyStrip(cli_value))
         return pyStrip(cli_value);
+    const operationNamespace = getOperationConfig()?.["acr_namespace"];
+    if (typeof operationNamespace === "string" && pyStrip(operationNamespace)) return pyStrip(operationNamespace);
     const envVal = process.env["ACR_NAMESPACE"];
     if (envVal && pyStrip(envVal))
         return pyStrip(envVal);
@@ -448,10 +455,14 @@ export async function _buildImage(template_dir: string, opts: BuildImageOptions)
     const localTag = `${imageName}:${tag}`;
     const builder = new templateSeams.DockerBuilder();
     on_progress("[1/3] Checking Docker daemon...");
-    if (!(await builder.checkDocker())) {
-        throw new DockerBuildError("Docker daemon is not running or not accessible.", {
-            suggestion: "Start Docker Desktop or the Docker daemon.",
-        });
+    while (!(await builder.checkDocker())) {
+        const ctx = getCurrentContext(true);
+        const executable = which("docker");
+        const message = executable ? "Docker is installed, but its daemon or selected context is not accessible. Start Docker Desktop/the daemon and check docker context and permissions."
+            : "Docker CLI was not found in PATH. Install Docker and start Docker Desktop/the daemon.";
+        if (!canGuideConfiguration(ctx ?? undefined, Boolean(ctx?.params["yes"]))) throw new DockerBuildError(message, { suggestion: "Run docker info to check the selected context and permissions, then retry. No build has started." });
+        getOutput(ctx).warning(message);
+        if (!(await confirm("After fixing Docker, check again?", { default: true, err: true }))) throw new DockerBuildError("Docker setup cancelled. No build has started.");
     }
     let injectedWheels: string[] = [];
     if (!process.env.ABX_SERVER_SDK_SOURCE && contextHasPinnedServerArchive(tdir, dockerfile)) {
@@ -601,7 +612,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         templateId = apiResult["templateID"] ?? "";
         if (!templateId) {
             throw new TemplateBuildError("CreateTemplate returned no template ID.", {
-                suggestion: "Check the official API response and retry.",
+                suggestion: "Inspect 'abx template list --official-api' before retrying; registration may already have been submitted.",
             });
         }
         reporter.phase(`Waiting for template to become READY: ${templateId}`);
@@ -657,7 +668,9 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
 }
 
 export interface DoDeployOptions {
-    acr_namespace: string;
+    acr_namespace?: string;
+    /** Existing batch consent; never makes missing secrets interactive. */
+    yes?: boolean;
     acr_registry?: string;
     acr_repo?: string | null;
     acr_username?: string | null;
@@ -693,6 +706,83 @@ export interface DoDeployOptions {
     explicit_acr_namespace?: boolean;
 }
 
+/** Offer a manual tool fix without installing software or changing Docker context. */
+async function ensureDockerExecutable(ctx: Context, yes: boolean): Promise<void> {
+    while (!which("docker")) {
+        const message = "Docker not found in PATH. Install Docker and start Docker Desktop/the Docker daemon.";
+        if (!canGuideConfiguration(ctx, yes)) throw new CliError(message + " Downloaded template files have been retained; use --download-only for source only.");
+        getOutput(ctx).warning(message);
+        if (!(await confirm("After installing Docker, check again?", { default: true, err: true }))) throw new CliError("Docker setup cancelled; downloaded template files have been retained.");
+    }
+}
+
+/** Keep provider-owned consumers and configuration guidance on the same effective snapshot. */
+async function withExpressConfiguration<T>(ctx: Context, params: Any, requirements: readonly (string | GuidanceField)[], action: () => Promise<T>, extra: Record<string, unknown> = {}): Promise<T> {
+    const config = templateSeams.loadConfig({ region: params["region"] });
+    return withGuidedConfiguration(ctx, { provider: "alicloud-express", validateProvider: false, operation: `Template ${ctx.command.name}`, yes: Boolean(params["yes"]), requirements,
+        values: { sandbox_api_key: config.api_key, access_key_id: config.access_key_id, access_key_secret: config.access_key_secret, region: config.region, ...extra },
+        overrides: { region: params["region"] } }, action);
+}
+
+async function withPushConfiguration<T>(ctx: Context, params: Any, action: () => Promise<T>): Promise<T> {
+    const requirements: (string | GuidanceField)[] = ["acr_namespace"];
+    const config = templateSeams.loadConfig({ region: params["region"] });
+    const extra: Record<string, unknown> = {};
+    try { extra["acr_namespace"] = _resolveAcrNamespace(params["acr_namespace"]); } catch (error) { if (!(error instanceof UsageError)) throw error; }
+    if (params["acr_username"] || params["acr_password"]) {
+        requirements.push({ key: "acr_username", label: "ACR username / AccessKey ID", env: "ACR_USERNAME", flag: "--acr-username", persist: false },
+            { key: "acr_password", label: "ACR password / AccessKey Secret", secret: true, env: "ACR_PASSWORD", flag: "--acr-password", persist: false });
+        extra["acr_username"] = params["acr_username"] || config.access_key_id;
+        extra["acr_password"] = params["acr_password"] || config.access_key_secret;
+    } else requirements.push("access_key_id", "access_key_secret");
+    if (canGuideConfiguration(ctx, Boolean(params["yes"]))) {
+        const registry = String(params["acr_registry"] || "registry.cn-hangzhou.aliyuncs.com");
+        try { getOutput(ctx).info(`Registry host: ${new URL(`https://${registry}`).host}`); } catch { throw usageError("Invalid ACR registry host."); }
+    }
+    return withExpressConfiguration(ctx, params, requirements, action, extra);
+}
+
+/** Resolve the complete operation requirements before local builds or cloud mutations. */
+export async function withDeployConfiguration<T>(directory: string, opts: DoDeployOptions, action: () => Promise<T>): Promise<T> {
+    let plan: BuildPlan;
+    try { plan = resolveBuildPlan(directory, { mode: opts.build ?? "auto", dockerfile: opts.dockerfile }); }
+    catch (error) { if (error instanceof BuildModeError) throw usageError(error.message); throw error; }
+    resolveDeployRuntime(directory, opts);
+    if (plan.kind === "steps") {
+        if (opts.explicit_acr_namespace) throw usageError(STEPS_WITH_ACR);
+        if (opts.use_official === false) throw usageError(STEPS_WITH_LEGACY);
+    }
+    const config = templateSeams.loadConfig({ region: opts.region });
+    const requirements: (string | GuidanceField)[] = opts.use_official !== false
+        ? ["access_key_id", "access_key_secret"] : ["sandbox_api_key"];
+    const values: Record<string, unknown> = { access_key_id: config.access_key_id, access_key_secret: config.access_key_secret,
+        sandbox_api_key: config.api_key, region: config.region };
+    if (plan.kind === "dockerfile") {
+        requirements.push("acr_namespace");
+        try { values["acr_namespace"] = _resolveAcrNamespace(opts.acr_namespace); } catch (error) { if (!(error instanceof UsageError)) throw error; }
+        // Explicit ACR fields can be a different identity. Preserve that choice and only complete its missing half.
+        if (opts.acr_username || opts.acr_password) {
+            requirements.push({ key: "acr_username", label: "ACR username / AccessKey ID", env: "ACR_USERNAME", flag: "--acr-username", persist: false },
+                { key: "acr_password", label: "ACR password / AccessKey Secret", secret: true, env: "ACR_PASSWORD", flag: "--acr-password", persist: false });
+            values["acr_username"] = opts.acr_username || config.access_key_id;
+            values["acr_password"] = opts.acr_password || config.access_key_secret;
+        } else if (opts.use_official === false) requirements.push("access_key_id", "access_key_secret");
+    }
+    if (plan.kind === "dockerfile" && canGuideConfiguration(opts.ctx ?? undefined, Boolean(opts.yes))) {
+        const registry = opts.acr_registry || "registry.cn-hangzhou.aliyuncs.com";
+        try { getOutput(opts.ctx).info(`Registry host: ${new URL(`https://${registry}`).host}`); } catch { throw usageError("Invalid ACR registry host."); }
+    }
+    return withGuidedConfiguration(opts.ctx ?? undefined, { operation: plan.kind === "steps" ? "Register template from platform steps" : "Build and deploy template",
+        provider: "alicloud-express", validateProvider: false, requirements, yes: opts.yes, values, overrides: { region: opts.region } }, action);
+}
+
+/** Current-command ACR fields include values collected without persisting secrets. */
+function effectiveAcrCredentials(options: Pick<DoDeployOptions, "acr_username" | "acr_password">, config: Any): [string, string] {
+    const current = getOperationConfig();
+    return [String(options.acr_username || current?.["acr_username"] || config.access_key_id || ""),
+        String(options.acr_password || current?.["acr_password"] || config.access_key_secret || "")];
+}
+
 /**
  * Shared deploy logic: docker build -> ACR push -> CreateTemplate -> poll.
  *
@@ -701,7 +791,11 @@ export interface DoDeployOptions {
  */
 export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
     requireTemplateFeature("templates.build");
-    const { acr_namespace, acr_registry = "registry.cn-hangzhou.aliyuncs.com", acr_repo = null, acr_username = null, acr_password = null, acree_instance_id = "", vpc_id = "", vswitch_ids = "", security_group_id = "", alias = null, tag = "latest", platform = "linux/amd64", cpu = null, memory = null, start_cmd = null, ready_cmd = null, timeout = 600, dockerfile = null, disk_size = null, internet_access = null, use_official = true, team_id = null, envd_inject = false, generation = null, force = false, target_image = null, region = null, ctx = null, verbose = false, build = null, explicit_acr_namespace = false, } = opts;
+    return withDeployConfiguration(template_dir, opts, () => deployConfigured(template_dir, opts));
+}
+
+async function deployConfigured(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
+    const { acr_namespace: requestedNamespace, acr_registry = "registry.cn-hangzhou.aliyuncs.com", acr_repo = null, acr_username = null, acr_password = null, acree_instance_id = "", vpc_id = "", vswitch_ids = "", security_group_id = "", alias = null, tag = "latest", platform = "linux/amd64", cpu = null, memory = null, start_cmd = null, ready_cmd = null, timeout = 600, dockerfile = null, disk_size = null, internet_access = null, use_official = true, team_id = null, envd_inject = false, generation = null, force = false, target_image = null, region = null, ctx = null, verbose = false, build = null, explicit_acr_namespace = false, } = opts;
     const config = templateSeams.loadConfig({ region });
     const yamlDefaults = _readYamlDefaults(template_dir);
     const resolvedCpu: number = cpu !== null ? cpu : _coerceInt(yamlDefaults["cpu"], 2);
@@ -710,8 +804,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     const resolvedGeneration = runtime.generation;
     const resolvedStart = runtime.start_cmd;
     const resolvedReady = runtime.ready_cmd;
-    const resolvedAcrUsername = acr_username || config.access_key_id || "";
-    const resolvedAcrPassword = acr_password || config.access_key_secret || "";
+    const [resolvedAcrUsername, resolvedAcrPassword] = effectiveAcrCredentials({ acr_username, acr_password }, config);
     const resolvedRepo = acr_repo || yamlDefaults["name"] || nodePath.basename(pyResolve(String(template_dir)));
     const templateName = alias || resolvedRepo;
     let plan: BuildPlan;
@@ -758,7 +851,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
             const templateId = pyStr(apiResult["templateID"] ?? "");
             if (!templateId) {
                 throw new TemplateBuildError("CreateTemplate returned no template ID.", {
-                    suggestion: "Check the official API response and retry.",
+                    suggestion: "Inspect 'abx template list --official-api' before retrying; registration may already have been submitted.",
                 });
             }
             reporter.done(`Template registration submitted: ${templateId}`);
@@ -784,6 +877,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
     }
     const platformAk = config.access_key_id || "";
     const platformSk = config.access_key_secret || "";
+    const acr_namespace = _resolveAcrNamespace(requestedNamespace);
     const acr = new ACRConfig({
         registry: acr_registry,
         namespace: acr_namespace,
@@ -1002,57 +1096,20 @@ export const install = template.command("install", {
             }
             return;
         }
-        // --- Build + deploy precheck ---
-        const missing: string[] = [];
-        let plan: BuildPlan | null = null;
-        try {
-            plan = resolveBuildPlan(String(cachedPath));
+        // Download is complete and retained. Only now can the actual build plan determine prerequisites.
+        let plan: BuildPlan;
+        try { plan = resolveBuildPlan(String(cachedPath)); }
+        catch (error) {
+            if (!(error instanceof BuildModeError)) throw error;
+            throw new CliError(`${error.message} Downloaded files remain at ${cachedPath}. Use --download-only to fetch without deploying.`);
         }
-        catch (exc) {
-            if (!(exc instanceof BuildModeError))
-                throw exc;
-            missing.push(exc.message);
-        }
-        let resolvedNs: string | null = null;
-        if (plan?.kind === "steps") {
-            if (acrNamespacePassedOnCli())
-                throw usageError(STEPS_WITH_ACR);
-        }
-        else if (plan?.kind === "dockerfile") {
-            const dockerPath = which("docker");
-            if (!dockerPath) {
-                missing.push("Docker not found in PATH. Install Docker or start Docker Desktop.");
-            }
-            try {
-                resolvedNs = _resolveAcrNamespace(acrNamespace);
-            }
-            catch (exc) {
-                if (!(exc instanceof UsageError))
-                    throw exc;
-                missing.push(exc.message);
-                resolvedNs = null;
-            }
-        }
-        // AK/SK credentials?
-        const config = templateSeams.loadConfig({ region });
-        if (!(config.access_key_id && config.access_key_secret)) {
-            missing.push("Alibaba Cloud AK/SK credentials not found. Run 'abx config init --build', or:\n" +
-                "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>\n" +
-                "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>\n" +
-                "  " + AKSK_ENV_SUGGESTION);
-        }
-        if (missing.length > 0) {
-            const msg = "Cannot build + deploy. Missing prerequisites:\n" +
-                missing.map((m) => `  \u2022 ${m}`).join("\n") +
-                "\n\nRun with --download-only to just download the template.";
-            throw new CliError(msg);
-        }
-        // ensured by precheck above
-        if (plan?.kind === "dockerfile" && resolvedNs === null)
-            throw new Error("unreachable: ACR namespace resolved by the precheck");
+        if (plan.kind === "steps" && acrNamespacePassedOnCli()) throw usageError(STEPS_WITH_ACR);
+        return withDeployConfiguration(String(cachedPath), { region, acr_namespace: acrNamespace ?? undefined, ctx, yes, build: plan.kind }, async () => {
+        const resolvedNs = plan.kind === "dockerfile" ? _resolveAcrNamespace(acrNamespace) : "";
+        if (plan.kind === "dockerfile") await ensureDockerExecutable(ctx, yes);
         // Confirmation
         if (!yes) {
-            if (!templateSeams.stdinIsatty()) {
+            if (!canGuideConfiguration(ctx, false) || !templateSeams.stdinIsatty()) {
                 throw usageError("Confirmation required for build + deploy. " + "Use --yes/-y to skip in non-interactive mode.");
             }
             await confirm(`Download complete. Build and deploy template '${installName}'?`, { abort: true });
@@ -1060,13 +1117,14 @@ export const install = template.command("install", {
         // Run deploy via shared helper
         out.info(`Building and deploying template '${installName}' from ${cachedPath}`);
         const deployData = await templateSeams._doDeploy(String(cachedPath), {
-            acr_namespace: plan?.kind === "steps" ? "" : (resolvedNs ?? ""),
+            acr_namespace: resolvedNs,
             cpu,
             memory,
             alias,
             region,
             ctx,
-            build: plan?.kind ?? "auto",
+            build: plan.kind,
+            yes,
         });
         const buildStatus = _get(deployData, "Status", "unknown");
         delete deployData["_build_logs"];
@@ -1090,6 +1148,12 @@ export const install = template.command("install", {
                 fmt.printError(`Build status: ${buildStatus}`);
             }
         }
+        }).catch((error: unknown) => {
+            if (error instanceof CliError && error.message.startsWith("Missing configuration")) {
+                throw new CliError(`${error.message}\nDownloaded template files remain at ${cachedPath}. Use --download-only to fetch without deploying, or deploy that directory after configuration.`);
+            }
+            throw error;
+        });
     }),
 });
 
@@ -1098,6 +1162,7 @@ export const list_templates = template.command("list", {
     params: templateUi["list"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.read");
+        return withExpressConfiguration(ctx, params, params["official_api"] ? ["access_key_id", "access_key_secret"] : ["sandbox_api_key"], async () => {
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
         if (params["official_api"]) {
@@ -1159,6 +1224,7 @@ export const list_templates = template.command("list", {
         else {
             fmt.printData(templates);
         }
+        });
     }),
 });
 
@@ -1167,6 +1233,7 @@ export const info = template.command("info", {
     params: templateUi["info"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.read");
+        return withExpressConfiguration(ctx, params, params["official_api"] ? ["access_key_id", "access_key_secret"] : ["sandbox_api_key"], async () => {
         const templateId: string = params["template_id"];
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
@@ -1215,6 +1282,7 @@ export const info = template.command("info", {
         else {
             fmt.printData(data);
         }
+        });
     }),
 });
 
@@ -1231,6 +1299,15 @@ export const create_template = template.command("create", {
     params: templateUi["create"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.build");
+        const required: (string | GuidanceField)[] = ["access_key_id", "access_key_secret"];
+        const privateFields: Record<string, unknown> = {};
+        if (params["registry_username"] || params["registry_password"]) {
+            required.push({ key: "registry_username", label: "Private image pull username", flag: "--registry-username", persist: false },
+                { key: "registry_password", label: "Private image pull password", secret: true, flag: "--registry-password", persist: false });
+            privateFields["registry_username"] = params["registry_username"];
+            privateFields["registry_password"] = params["registry_password"];
+        }
+        return withExpressConfiguration(ctx, params, required, async () => {
         const { image, name, team_id: teamId, cpu, memory, disk_size: diskSize, internet_access: internetAccess } = params;
         const { start_cmd: startCmd, ready_cmd: readyCmd, generation, envd_inject: envdInject, target_image: targetImage } = params;
         const { registry_type: registryType, acree_instance_id: acreeInstanceId } = params;
@@ -1271,8 +1348,8 @@ export const create_template = template.command("create", {
             envd_inject: envdInject,
             registry_type: registryType,
             acr_instance_id: acreeInstanceId,
-            registry_username: registryUsername,
-            registry_password: registryPassword,
+            registry_username: registryUsername || getOperationConfig()?.["registry_username"],
+            registry_password: registryPassword || getOperationConfig()?.["registry_password"],
             target_image: targetImage,
         }));
         const data = {
@@ -1291,6 +1368,7 @@ export const create_template = template.command("create", {
                 fmt.printSuccess(`Template created! Use: abx create ${templateId}`);
             }
         }
+        }, privateFields);
     }),
 });
 
@@ -1299,6 +1377,7 @@ export const push = template.command("push", {
     params: templateUi["push"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.build");
+        return withPushConfiguration(ctx, params, async () => {
         const image: string = params["image"];
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
@@ -1317,8 +1396,7 @@ export const push = template.command("push", {
         const repoName = repoPart.slice(repoPart.lastIndexOf("/") + 1);
         // Resolve ACR namespace: CLI > env > .env file (CWD, then ~/.abx/.env)
         const resolvedNamespace = _resolveAcrNamespace(params["acr_namespace"]);
-        const resolvedUsername = params["acr_username"] || config.access_key_id || "";
-        const resolvedPassword = params["acr_password"] || config.access_key_secret || "";
+        const [resolvedUsername, resolvedPassword] = effectiveAcrCredentials(params, config);
         if (!resolvedUsername || !resolvedPassword) {
             throw new ACRLoginError("ACR credentials missing.", {
                 suggestion: "Run 'abx config init --build', or " +
@@ -1361,6 +1439,7 @@ export const push = template.command("push", {
             fmt.printDict(data);
             fmt.printSuccess(`Image pushed to ACR: ${acrRef}`);
         }
+        });
     }),
 });
 
@@ -1369,7 +1448,7 @@ export const build = template.command("build", {
     params: templateUi["build"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.build");
-        const templateDir: string = params["template_dir"];
+        const templateDir = await prepareTemplateBuildInputs(ctx, String(params["template_dir"]), Boolean(params["yes"]), params);
         if (params["verbose_flag"])
             enableVerbose(ctx);
         const fmt = getFormatter(ctx);
@@ -1390,6 +1469,7 @@ export const build = template.command("build", {
             if (!params["use_official"])
                 throw usageError(STEPS_WITH_LEGACY);
         }
+        return withDeployConfiguration(templateDir, { ...params, ctx, explicit_acr_namespace: explicitAcr }, async () => {
         // Resolve ACR namespace: CLI > env > .env file. Platform steps do not push an image.
         const resolvedNamespace = plan.kind === "dockerfile" ? _resolveAcrNamespace(params["acr_namespace"]) : "";
         const yamlDefaults = _readYamlDefaults(templateDir);
@@ -1408,8 +1488,7 @@ export const build = template.command("build", {
         const templateName: Any = params["alias"] || resolvedRepo;
         // Early credential check (before confirmation prompt)
         const config = templateSeams.loadConfig({ region: params["region"] });
-        const resolvedAcrUsername = params["acr_username"] || config.access_key_id || "";
-        const resolvedAcrPassword = params["acr_password"] || config.access_key_secret || "";
+        const [resolvedAcrUsername, resolvedAcrPassword] = effectiveAcrCredentials(params, config);
         if (plan.kind === "steps") {
             if (!config.access_key_id || !config.access_key_secret) {
                 fmt.printError("Alibaba Cloud credentials missing.", {
@@ -1451,7 +1530,7 @@ export const build = template.command("build", {
         }
         // Confirmation before destructive cloud operations.
         if (!params["yes"]) {
-            if (!templateSeams.stdinIsatty()) {
+            if (!canGuideConfiguration(ctx, false) || !templateSeams.stdinIsatty()) {
                 throw usageError("Confirmation required for deploying to cloud. " + "Use --yes/-y to skip in non-interactive mode.");
             }
             const prompt = plan.kind === "steps"
@@ -1520,6 +1599,7 @@ export const build = template.command("build", {
                 }
             }
         }
+        });
     }),
 });
 
@@ -1536,9 +1616,10 @@ export const delete_ = template.command("delete", {
     params: templateUi["delete"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.build");
+        return withExpressConfiguration(ctx, params, ["sandbox_api_key"], async () => {
         const templateId: string = params["template_id"];
         if (!params["yes"]) {
-            if (!templateSeams.stdinIsatty()) {
+            if (!canGuideConfiguration(ctx, false) || !templateSeams.stdinIsatty()) {
                 throw usageError("Confirmation required for deleting template. " + "Use --yes/-y to skip in non-interactive mode.");
             }
             await confirm(`Delete template '${templateId}'? This action cannot be undone.`, { abort: true });
@@ -1564,6 +1645,7 @@ export const delete_ = template.command("delete", {
             await httpClient.close();
         }
         fmt.printSuccess(`Template ${templateId} deleted.`);
+        });
     }),
 });
 template.addCommand(search);
