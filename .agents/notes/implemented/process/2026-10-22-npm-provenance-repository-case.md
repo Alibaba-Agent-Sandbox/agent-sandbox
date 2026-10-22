@@ -29,6 +29,9 @@ Execute the actual workflow shell for canonical/no-op, lowercase normalization, 
 - Actual source/workflow commits and the new npm tarball checksum are traceable.
 - Real registry publication and installation are recorded separately from local candidate validation.
 
+## Implementation
+The normalization and pre-merge CLI/cloud verification are implemented. Final-head CI, actual normalized-package publication and clean public-registry installation remain delivery gates tracked on [PR 102](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/102) and Issue 66. This note does not claim registry publication succeeded.
+
 ## Evidence
 - [Verification](../../../evidence/verify/2026-10-22-npm-provenance-repository-case.md).
 - [Release delivery Issue](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/66).
