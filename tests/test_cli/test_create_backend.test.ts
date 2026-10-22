@@ -113,10 +113,10 @@ class _DummyBackend implements CodingAgentBackend {
   async research(
     prompt: string,
     opts: { workdir: string; binary: string; env: Readonly<Record<string, string>> | null | undefined; sessionId: string },
-  ): Promise<boolean | ResearchOutcome> {
+  ): Promise<ResearchOutcome> {
     this.research_calls.push({ prompt, workdir: opts.workdir, binary: opts.binary, env: opts.env, session_id: opts.sessionId });
     if (this.research_outcome !== null) return this.research_outcome;
-    return this.research_ok;
+    return new ResearchOutcome({ ok: this.research_ok });
   }
 
   async assess(

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ProviderNotFoundError } from "../../src/providers/errors.js";
+import { ProviderNotFoundError } from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { contractCases, defineProviderContractTests, parseOptions, runContractSuite, summarizeContract } from "../../src/providers/testing.js";
 import { useIso } from "../_support/iso.js";

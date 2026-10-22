@@ -166,7 +166,6 @@ abx config set github_token ""
 | `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | 平台 API URL |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | 地域 |
 | `http_timeout` | `ABX_HTTP_TIMEOUT` | HTTP 超时秒数 |
-| `max_retries` | `ABX_MAX_RETRIES` | 兼容保留值；内置 HTTP 不进行自动重试 |
 | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | 数据平面域名 |
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API Key，供自然语言推理和编码代理使用 |
 | `llm_model` | `ABX_LLM_MODEL` | LLM 模型名称（默认 `qwen3-coder-plus`） |

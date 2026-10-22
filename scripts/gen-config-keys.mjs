@@ -35,7 +35,7 @@ import { CLI_BUILTIN_KEYS, CLI_CORE_KEYS } from "./cli_config_keys.js";
 
 const BODY = `
 export type KeyType = "str" | "url" | "int" | "float" | "bool" | "enum" | "path" | "csv";
-export type AliasKind = "compat" | "native" | "legacy";
+export type AliasKind = "native";
 export type AliasSurface = "env" | "config" | "kwarg" | "flag";
 
 export interface Alias {
@@ -62,8 +62,7 @@ export interface ConfigKey {
   readonly aliases: readonly Alias[];
   readonly env_names: readonly string[];
   readonly toml_section: string | null;
-  readonly storage_phase1: Storage | null;
-  readonly storage_phase2: Storage | null;
+  readonly storage: Storage | null;
   readonly default: string | number | boolean | null;
   readonly choices: readonly string[];
   readonly group: string;
@@ -99,7 +98,7 @@ export const PROVIDER_ID_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const FIELD_KEY_RE = /^[a-z][a-z0-9_]*$/;
 
 export const KEY_TYPES: readonly KeyType[] = ["str", "url", "int", "float", "bool", "enum", "path", "csv"];
-export const ALIAS_KINDS: readonly AliasKind[] = ["compat", "native", "legacy"];
+export const ALIAS_KINDS: readonly AliasKind[] = ["native"];
 export const ALIAS_SURFACES: readonly AliasSurface[] = ["env", "config", "kwarg", "flag"];
 
 /** Shared keys followed by the CLI-only keys (\`cli_config_keys.ts\`). */
@@ -154,15 +153,14 @@ export function findKeyByAlias(name: string, surface: AliasSurface): ConfigKey |
 }
 
 /**
- * Environment names for \`key\`, most specific first: [provider-scoped override], canonical, compat/native, legacy.
+ * Environment names for \`key\`, most specific first: [provider-scoped override], canonical, provider-native.
  * \`scopedFor\` adds the provider-scoped override name for an inherited core key.
  */
 export function envNames(key: ConfigKey, opts: { scopedFor?: string | null } = {}): string[] {
   const names: string[] = [];
   if (opts.scopedFor && key.scope === "core") names.push(providerEnvName(opts.scopedFor, key.key));
   names.push(key.env);
-  names.push(...key.aliases.filter((a) => a.surface === "env" && (a.kind === "compat" || a.kind === "native")).map((a) => a.name));
-  names.push(...key.aliases.filter((a) => a.surface === "env" && a.kind === "legacy").map((a) => a.name));
+  names.push(...key.aliases.filter((a) => a.surface === "env" && a.kind === "native").map((a) => a.name));
   return [...new Set(names)];
 }
 

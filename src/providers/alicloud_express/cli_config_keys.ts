@@ -13,7 +13,7 @@ function provider(
     key: name,
     scope: BUILTIN,
     env: spec.env,
-    storage_phase1: storage,
+    storage: storage,
     group: spec.group,
     description: spec.description,
     type: spec.type ?? "str",

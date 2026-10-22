@@ -7,7 +7,7 @@ import { commandSchema } from "./command_schema.js";
 import { AuthenticationError, QuotaExceededError, SandboxError } from "../../models/errors.js";
 import type { LayeredConfig } from "../../transport/config_layers.js";
 import type { ProviderCommand } from "../commands.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "../errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "../../models/provider_errors.js";
 import { _requireSdk, type FcManagementSdk } from "./sdk.js";
 
 type Dict = Record<string, unknown>;

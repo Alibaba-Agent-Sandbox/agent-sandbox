@@ -16,7 +16,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { Sandbox } from "../api/sandbox.js";
 import { SandboxError, SandboxNotFoundError, SandboxCreationError, TemplateNotFoundError, QuotaExceededError, AuthenticationError, CapabilityNotSupportedError } from "../models/errors.js";
 import { ValueError } from "../models/value_error.js";
-import { ProviderNotFoundError, ProviderConfigError, ProviderMismatchError, ProviderTrustError, ProviderResourceNotFoundError } from "../providers/errors.js";
+import { ProviderNotFoundError, ProviderConfigError, ProviderMismatchError, ProviderTrustError, ProviderResourceNotFoundError } from "../models/provider_errors.js";
 import { getProviderCommand, listProviderCommands, runProviderCommand } from "../providers/commands.js";
 import * as registry from "../providers/registry.js";
 import { hostVersion } from "../providers/host.js";
@@ -348,7 +348,7 @@ class Engine {
     });
     r("POST", "/v1/sandboxes/:id/processes/:pid/stdin", async (c) => {
       const body = await c.json();
-      await (await c.sandbox()).commands.sendStdin(pid(c.params[1]), String(body["data"] ?? ""));
+      await (await c.sandbox()).commands.sendInput(pid(c.params[1]), String(body["data"] ?? ""));
       return { ok: true };
     });
     r("DELETE", "/v1/sandboxes/:id/processes/:pid", async (c) => {

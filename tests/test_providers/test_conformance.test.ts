@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { configFieldToKey, type ConfigField } from "../../src/providers/base.js";
 import { exitCodeFor, mapError } from "../../src/providers/epp.js";
 import * as store from "../../src/providers/store.js";
-import { applyMigration, planMigrationData, ProviderSchema, builtinSchema, readDotenv, resolveAll } from "../../src/transport/config_layers.js";
+import { ProviderSchema, builtinSchema, readDotenv, resolveAll } from "../../src/transport/config_layers.js";
 import { CLI_ONLY_KEYS } from "../../src/utils/cli_config_keys.js";
 import { exportSchema } from "../../src/utils/config_keys.js";
 import { parseTomlText } from "../../src/utils/toml_plain.js";
@@ -100,31 +100,6 @@ describe("epp error vectors", () => {
       expect(exc.message).toBe(exp["message"]);
       expect(exc.suggestion).toBe(exp["suggestion"]);
       for (const secret of vector["secrets"] as string[]) expect(exc.message).not.toContain(secret);
-    });
-  }
-});
-
-describe("migration vectors", () => {
-  let tmp = "";
-  beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-mig-"));
-  });
-  afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
-
-  for (const vector of load("migration-vectors.json")["vectors"] as J[]) {
-    it(`test_migration_vectors[${vector["name"]}]`, () => {
-      let envDict: Record<string, string> = {};
-      if (vector["env"]) {
-        fs.writeFileSync(path.join(tmp, "in.env"), vector["env"], "utf-8");
-        envDict = readDotenv(path.join(tmp, "in.env"));
-      }
-      expect(JSON.parse(JSON.stringify(planMigrationData(vector["toml"], envDict)))).toEqual(vector["plan"]);
-      fs.writeFileSync(path.join(tmp, "config.toml"), dumpsToml(vector["toml"]), "utf-8");
-      if (vector["env"]) fs.writeFileSync(path.join(tmp, ".env"), vector["env"], "utf-8");
-      applyMigration(path.join(tmp, "config.toml"), path.join(tmp, ".env"), { backup: false });
-      expect(parseTomlText(fs.readFileSync(path.join(tmp, "config.toml"), "utf-8"), { keepFloats: false })).toEqual(vector["toml_after"]);
-      const envFile = path.join(tmp, ".env");
-      expect(fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf-8") : "").toBe(vector["env_after"]);
     });
   }
 });

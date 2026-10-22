@@ -1,0 +1,74 @@
+Usage: abx config set [options] <KEY> [VALUE]
+
+Set a configuration value: KEY [VALUE].
+
+Settings are stored in ~/.abx/config.toml, except credentials
+(sandbox_api_key, access_key_id, access_key_secret, acr_namespace,
+llm_api_key, github_token) which are
+written to ~/.abx/.env using their environment-variable names. Setting
+llm_api_key is stored in ~/.abx/.env (the secret
+migrates to the 0600-protected ~/.abx/.env storage).
+
+Passing an empty VALUE clears the stored value for KEY instead: the key
+falls back to its built-in default or becomes not set. An empty string
+is never stored as a credential or override. Environment variables that
+are still exported keep overriding the key at runtime; their values are
+never printed. Clearing llm_api_key removes both the ~/.abx/.env entry
+
+In an interactive terminal VALUE may be omitted: sensitive keys
+(github_token, sandbox_api_key, access_key_secret, llm_api_key) are then
+read through the masked (asterisk) input and the typed value is never
+echoed; other keys use a visible prompt. Pressing Enter at the prompt
+cancels without changing anything. In CI / non-interactive sessions
+VALUE is required.
+
+Available keys (expected value):
+  sandbox_api_key    Sandbox service API key (string; env var
+                     ABX_SANDBOX_API_KEY).
+                     ``api_key`` is accepted as an alias.
+  access_key_id      Alibaba Cloud AccessKey ID for AK/SK auth, used by
+                     template deploy and ACR push (string)
+  access_key_secret  Alibaba Cloud AccessKey Secret for AK/SK auth, used by
+                     template deploy and ACR push (string)
+  acr_namespace      ACR namespace for template build, push, and install
+                     (string; stored in ~/.abx/.env as ACR_NAMESPACE)
+  api_url            Platform API URL (e.g.
+https://api.cn-hangzhou.e2b.fc.aliyuncs.com)
+  domain             Envd data-plane domain (e.g.
+cn-hangzhou.e2b.fc.aliyuncs.com)
+  region             Default region (e.g. cn-hangzhou, cn-shanghai)
+  http_timeout       HTTP request timeout in seconds (number, e.g. 120)
+  http2              Enable HTTP/2 (true/false)
+  llm_api_key        LLM API key for template generation,
+                     e.g. a DashScope/ModelStudio key (string; stored in
+                     ~/.abx/.env as ABX_LLM_API_KEY)
+  llm_model          LLM model name (default: qwen3-coder-plus)
+  llm_base_url       LLM API base URL, OpenAI-compatible (string;
+                     default: DashScope compatible-mode)
+  github_token       GitHub token for template downloads, used by
+                     'abx template install' / 'abx template search'
+                     (string; stored in ~/.abx/.env)
+
+Examples:
+  abx config set sandbox_api_key YOUR_API_KEY
+  abx config set access_key_id YOUR_ACCESS_KEY_ID
+  abx config set access_key_secret YOUR_ACCESS_KEY_SECRET
+  abx config set acr_namespace YOUR_ACR_NAMESPACE
+  abx config set region cn-hangzhou
+  abx config set http_timeout 120
+  abx config set http2 false
+  abx config set llm_api_key YOUR_DASHSCOPE_OR_LLM_KEY
+  abx config set region ""          # clear the stored region
+  abx config set sandbox_api_key ""  # remove the stored sandbox API key
+  abx config set github_token      # masked prompt (VALUE omitted)
+  abx config set github_token YOUR_GITHUB_TOKEN
+  abx config set github_token ""    # remove the stored token
+
+Related commands:
+  abx config get KEY       Verify the effective value
+  abx config list          Review effective values and sources
+  abx config delete KEY    Remove one stored value
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

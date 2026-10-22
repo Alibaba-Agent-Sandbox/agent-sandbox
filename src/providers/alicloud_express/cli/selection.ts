@@ -1,7 +1,7 @@
 /** Guard belongs to the FC adapter, never to a generic template router. */
 import { getProvider, resolveProviderId } from "../../registry.js";
 import { cliProvider } from "../../selection.js";
-import { ProviderFeatureNotSupportedError } from "../../errors.js";
+import { ProviderFeatureNotSupportedError } from "../../../models/provider_errors.js";
 import { CONFIG_METADATA } from "../metadata.js";
 export type TemplateFeature = "templates.read" | "templates.build";
 export function requireTemplateFeature(feature: string): void {

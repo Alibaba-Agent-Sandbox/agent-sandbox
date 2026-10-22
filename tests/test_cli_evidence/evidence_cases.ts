@@ -25,6 +25,7 @@ import * as qwenCode from "../../src/agent/qwen_code.js";
 import { QwenCodeCredentials } from "../../src/agent/qwen_code.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import * as mcpMod from "../../src/cli/commands/mcp.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
 import { replSeams } from "../../src/cli/repl.js";
@@ -410,7 +411,7 @@ function _createCodegen(description = "运行 python", templateName = "abx-nl-py
       generateTemplateFiles: vi.fn(async () => gen) as unknown as typeof codegen.seams.generateTemplateFiles,
     });
     seamPatch(patches, clarify.seams, {
-      runResearch: vi.fn(async () => true) as unknown as typeof clarify.seams.runResearch,
+      runResearch: vi.fn(async () => new clarify.ResearchOutcome({ ok: true })) as unknown as typeof clarify.seams.runResearch,
       evaluate: vi.fn(async () => resolved) as unknown as typeof clarify.seams.evaluate,
     });
     vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-ev-ai-001", Status: "success" });
@@ -560,12 +561,10 @@ function _killAll(): MockSetup {
 function _tmplBackend(json: unknown): MockSetup {
   return () => {
     const patches = new Patches();
-    const http = { platformRequest: vi.fn(async () => ({ json: () => json, status_code: 200 })), close: vi.fn(async () => undefined) };
-    spyAny(transportConfig, "loadConfig").mockReturnValue({ api_key: "k", access_key_id: null, access_key_secret: null, region: "cn-hangzhou" });
-    spyAny(transportAuth, "createAuthProvider").mockReturnValue({});
-    spyAny(transportHttp, "HttpClient").mockImplementation(function () {
-      return http;
-    });
+    spyAny(transportConfig, "loadConfig").mockReturnValue({ access_key_id: "fixture-ak", access_key_secret: "fixture-sk", region: "cn-hangzhou" });
+    spyAny(fcTemplate, "listOfficialTemplates").mockResolvedValue(json);
+    spyAny(fcTemplate, "getTemplate").mockResolvedValue(json);
+    spyAny(fcTemplate, "deleteTemplate").mockResolvedValue(undefined);
     return patches.handle();
   };
 }

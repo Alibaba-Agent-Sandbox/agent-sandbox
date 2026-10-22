@@ -1,4 +1,4 @@
-import { defaultConfig, defaultRegion, legacyDataPlanePort, legacyDataPlaneUrl } from "../utils/bundled_config.js";
+import { defaultConfig, defaultRegion } from "../utils/bundled_config.js";
 import { getOperationConfig } from "../utils/operation_config.js";
 /**
  * Layered configuration loading.
@@ -46,7 +46,6 @@ function warnTomlLoadFailure(p: string, message: string): void {
 }
 
 // envd 数据平面固定端口（已实测验证）
-export const ENVD_PORT = legacyDataPlanePort;
 
 export let _ABX_DIR: string = path.join(os.homedir(), ".abx"); // SDK extension
 export let _CONFIG_FILE: string = path.join(_ABX_DIR, "config.toml"); // SDK extension
@@ -101,40 +100,19 @@ export class TransportConfig extends defineModel(
     ws_ping_interval: lax.float(1.0).default(30.0),
 
     // Retry settings
-    max_retries: lax.int(0).default(3),
-    retry_base_delay: lax.float(0.1).default(1.0),
   }),
 ) {
-  /** Deprecated alias for api_url. Kept for backward compatibility. */
-  get api_base_url(): string {
-    return this.api_url;
-  }
-
   /**
    * 构建 envd 数据平面 URL（已实测验证）。
    *
    * 格式: https://{ENVD_PORT}-{sandbox_id}.{domain}
    */
-  buildEnvdUrl(sandbox_id: string): string {
-    return legacyDataPlaneUrl(sandbox_id, this.domain);
-  }
-  build_envd_url(sandbox_id: string): string {
-    return this.buildEnvdUrl(sandbox_id);
-  }
 }
 
 // One environment variable per field. The third flag is unused and stays true so
 // callers that still unpack the triple keep working. Vendor-official names are
 // not wrapped in ABX_.
-export const _ENV_VAR_MAP: [string, string, boolean][] = [...defaultConfig.legacyEnvironment];
-
-type LegacyNameHook = (name: string, where: string) => void;
-let _legacyNameHook: LegacyNameHook | null = null;
-
-/** Registered by `config_layers` (which imports this module): reports a legacy name when `ABX_WARN_DEPRECATED` is set. */
-export function _setLegacyNameHook(hook: LegacyNameHook | null): void {
-  _legacyNameHook = hook;
-}
+export const _ENV_VAR_MAP: [string, string, boolean][] = [...defaultConfig.transportEnvironment];
 
 // Fields that need numeric conversion
 export const _NUMERIC_FIELDS: Set<string> = new Set(["http_timeout"]);
@@ -229,7 +207,7 @@ export function clearCachedConfigBytes(): void {
 }
 
 /**
- * Read `p` once per mtime. The legacy loader and the provider loader share the buffer so a command that resolves a
+ * Read `p` once per mtime. The transport and provider loaders share the buffer so a command that resolves a
  * provider and then calls `loadConfig` hits the disk once. Only `_loadTomlFile` logs `Loaded config`.
  */
 export function readCachedConfigBytes(p: string): Buffer | null {
@@ -330,7 +308,6 @@ export function _readEnvVars(): Record<string, unknown> {
     if (value !== undefined) {
       const coerced = _coerceValue(field_name, value);
       if (coerced !== null) {
-        _legacyNameHook?.(env_var, "environment variable");
         result[field_name] = coerced;
         set_fields.add(field_name);
       }
@@ -353,7 +330,6 @@ export function _envDictToFields(env_vals: Record<string, string>): Record<strin
     if (!is_e2b && set_fields.has(field_name)) continue;
     const coerced = _coerceValue(field_name, env_vals[env_var] as string);
     if (coerced !== null) {
-      _legacyNameHook?.(env_var, ".env name");
       result[field_name] = coerced;
       set_fields.add(field_name);
     }
@@ -377,8 +353,8 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
   const operation = getOperationConfig();
   const canonical: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(operation ?? {})) {
-    const legacy = ({ sandbox_api_key: "api_key", sandbox_base_url: "api_url", sandbox_domain: "domain" } as Record<string, string>)[key] ?? key;
-    if (value !== null && value !== undefined && value !== "") canonical[legacy] = value;
+    const transportKey = ({ sandbox_api_key: "api_key", sandbox_base_url: "api_url", sandbox_domain: "domain" } as Record<string, string>)[key] ?? key;
+    if (value !== null && value !== undefined && value !== "") canonical[transportKey] = value;
   }
   const overrides: Record<string, unknown> = { ...canonical, ...overridesIn };
   const hasOverrides = Object.keys(overrides).length > 0;
@@ -386,29 +362,18 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
     return _cached_config;
   }
 
-  // Accept legacy 'api_base_url' key from callers and remap it
-  if ("api_base_url" in overrides && !("api_url" in overrides)) {
-    overrides["api_url"] = overrides["api_base_url"];
-    delete overrides["api_base_url"];
-  }
-
   // Layer 4 (lowest): config.toml
   const merged: Record<string, unknown> = {};
   const toml_data = _loadTomlFile(_CONFIG_FILE);
   if ("transport" in toml_data) {
-    _dictUpdate(merged, toml_data["transport"]);
-  } else {
-    Object.assign(merged, toml_data);
+    const current = { ...(toml_data["transport"] as Record<string, unknown>) };
+    for (const removed of ["api_key", "api_url", "domain"]) delete current[removed];
+    _dictUpdate(merged, current);
   }
-  // Remap legacy key from toml
-  if ("api_base_url" in merged && !("api_url" in merged)) {
-    merged["api_url"] = merged["api_base_url"];
-    delete merged["api_base_url"];
-  }
-  // Canonical names written by `abx config migrate` (config_format = 2).
-  for (const [canonical, legacy] of [["sandbox_base_url", "api_url"], ["sandbox_domain", "domain"]] as const) {
+  // Map public configuration names to internal transport fields.
+  for (const [canonical, transportKey] of [["sandbox_base_url", "api_url"], ["sandbox_domain", "domain"]] as const) {
     if (canonical in merged) {
-      if (!(legacy in merged)) merged[legacy] = merged[canonical];
+      if (!(transportKey in merged)) merged[transportKey] = merged[canonical];
       delete merged[canonical];
     }
   }

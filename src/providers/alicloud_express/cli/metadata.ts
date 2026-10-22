@@ -87,22 +87,17 @@ templateUi["install"] =  { params: _installParams({
       abx create ID   Launch the installed template
     `) };
 templateUi["list"] =  { params: [
-    option(["--official-api"], {
-        is_flag: true,
-        default: false,
-        help: "Query templates via the official Alibaba Cloud FCSandbox API (AK/SK).",
-    }),
     regionOption(),
 ], help: cleandoc(`List custom templates registered for the current account.
 
     By default this queries the configured platform endpoint. Pass
-    --official-api to use the Alibaba Cloud FCSandbox API with AK/SK.
+    to use the Alibaba Cloud FCSandbox API with AK/SK.
     This command does not search the community template index.
 
     \b
     Examples:
       abx template list
-      abx template list --official-api
+      abx template list
       abx template list --region cn-shanghai
       abx --json template list
 
@@ -114,21 +109,16 @@ templateUi["list"] =  { params: [
     `) };
 templateUi["info"] =  { params: [
     argument(["template_id"]),
-    option(["--official-api"], {
-        is_flag: true,
-        default: false,
-        help: "Query the template via the official Alibaba Cloud FCSandbox API (AK/SK).",
-    }),
     regionOption(),
 ], help: cleandoc(`Show details for a template ID.
 
-    Pass --official-api to use the Alibaba Cloud FCSandbox GetTemplate API;
+    Pass to use the Alibaba Cloud FCSandbox GetTemplate API;
     that mode requires configured AccessKey credentials.
 
     \b
     Examples:
       abx template info tmpl-abc123
-      abx template info tmpl-abc123 --official-api
+      abx template info tmpl-abc123
       abx template info tmpl-abc123 --region cn-shanghai
       abx --json template info tmpl-abc123
 
@@ -297,10 +287,6 @@ templateUi["build"] =  { params: [
         default: null,
         help: "Internet access (default: platform decides; official API only)",
     }),
-    option(["--official-api/--legacy-api", "use_official"], {
-        default: true,
-        help: "Use official CreateTemplate API (default) or legacy v3/v2",
-    }),
     option(["--team-id"], {
         envvar: ["TEAM_ID", "E2B_TEAM_ID"],
         default: null,
@@ -344,26 +330,14 @@ templateUi["build"] =  { params: [
       and sandboxConfig.steps is the expanded build block. Official API only.
 
     \b
-    Registration API:
+    Registration uses the official CreateTemplate API.
 
     \b
-    --official-api (default):
       dockerfile mode: local docker build → ACR push → official CreateTemplate API.
       Requires AK/SK credentials (set with 'abx config init --build').
 
-    \b
-    --legacy-api:
-      local docker build → ACR push → legacy v3/v2 platform API.
-      Use --legacy-api to keep the old behaviour.
-
-    A missing directory offers interactive template creation and then continues.
-    --yes/-y or CI mode creates a Python template project without prompts.
-    Existing project files are kept.
-
-    Requires Docker daemon running and ACR credentials. In automation/CI,
-    pass --acr-namespace and TEMPLATE_DIR explicitly instead of relying
-    on ACR_NAMESPACE / ABX_TEMPLATE_DIR environment variables or .env
-    files, so the build cannot drift with the surrounding environment.
+    TEMPLATE_DIR may also be supplied through ABX_TEMPLATE_DIR.
+    For automation/CI, pass --yes and configure credentials through environment variables.
 
     \b
     Examples:
@@ -374,7 +348,7 @@ templateUi["build"] =  { params: [
       abx template build ./my-template \\
         --acr-namespace prod --disk-size 10240 --internet-access
       abx template build ./my-template \\
-        --acr-namespace prod --legacy-api
+        --acr-namespace prod
       abx template build ./my-template --acr-namespace prod --region cn-shanghai
       abx template build ./my-template --build steps --yes
 

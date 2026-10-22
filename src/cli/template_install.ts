@@ -9,7 +9,7 @@ import { getOutput } from "./output.js";
 import { CliError } from "./errors.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider, cliOptions } from "../providers/selection.js";
-import { ProviderFeatureNotSupportedError } from "../providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { RegistryClient, loadTemplateFromYaml, TEMPLATE_CACHE_DIR } from "../utils/registry.js";
 import { _findTemplateYaml, _resolveIndexName, _withGithubRateLimitRetry } from "./template_catalog.js";

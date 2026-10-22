@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { LookupError, UnicodeDecodeError, decodeBytes } from "../../src/protocol/filesystem.js";
+import { LookupError, UnicodeDecodeError, decodeBytes } from "../../src/providers/shared/e2b/filesystem.js";
 
 const b = (...bytes: number[]): Uint8Array => Uint8Array.from(bytes);
 

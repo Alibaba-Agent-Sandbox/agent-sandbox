@@ -160,7 +160,7 @@ export function _setIdeConfigMap(map: IdeConfigMap): void {
  */
 export function _readApiKey(): string | null {
   resetConfig();
-  return _mcpConfig().api_key;
+  return _mcpConfig().sandbox_api_key;
 }
 
 function _mcpConfig() {
@@ -247,9 +247,9 @@ export function _buildMcpServerConfig(): PyDict {
   const envBlock: PyDict = new Map();
   // All IDEs read credentials through the CLI's configured sources instead of copying secrets into IDE files.
   const effective = _mcpConfig();
-  const apiUrl = effective.api_url;
+  const apiUrl = effective.sandbox_base_url;
   if (apiUrl) envBlock.set("ABX_SANDBOX_BASE_URL", apiUrl);
-  if (effective.domain) envBlock.set("ABX_SANDBOX_DOMAIN", effective.domain);
+  if (effective.sandbox_domain) envBlock.set("ABX_SANDBOX_DOMAIN", effective.sandbox_domain);
   const region = effective.region;
   if (region) envBlock.set("ALIBABA_CLOUD_REGION_ID", region);
 
@@ -806,8 +806,8 @@ export const start = command("start", {
     let apiKey: string | null = params["api_key"];
     const template: string = params["template"];
     const effective = _mcpConfig();
-    const apiUrl: string | null = params["api_url"] || effective.api_url;
-    const domain: string | null = params["domain"] || effective.domain;
+    const apiUrl: string | null = params["api_url"] || effective.sandbox_base_url;
+    const domain: string | null = params["domain"] || effective.sandbox_domain;
     let useHttp: boolean = params["use_http"];
     const background: boolean = params["background"];
 
@@ -1392,9 +1392,9 @@ export const deploy = command("deploy", {
     if (apiKey) envVars["ABX_SANDBOX_API_KEY"] = apiKey;
 
     const effective = _mcpConfig();
-    const apiUrl = effective.api_url;
+    const apiUrl = effective.sandbox_base_url;
     if (apiUrl) envVars["ABX_SANDBOX_BASE_URL"] = apiUrl;
-    if (effective.domain) envVars["ABX_SANDBOX_DOMAIN"] = effective.domain;
+    if (effective.sandbox_domain) envVars["ABX_SANDBOX_DOMAIN"] = effective.sandbox_domain;
 
     const fcConfig: Record<string, unknown> = {
       function_name: name,

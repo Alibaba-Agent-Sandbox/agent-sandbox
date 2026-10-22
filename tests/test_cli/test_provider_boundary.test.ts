@@ -2,12 +2,12 @@
 import "../_support/isolatedHome.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requireTemplateFeature } from "../../src/providers/alicloud_express/cli/selection.js";
-import { requireTemplateFeature as legacyTemplateFeature } from "../../src/cli/template_provider.js";
+import { requireTemplateFeature as legacyTemplateFeature } from "../../src/providers/alicloud_express/cli/selection.js";
 import { _generateAndDeployTemplate } from "../../src/cli/commands/sandbox.js";
 import { _doDeploy, templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import type { Context } from "../../src/cli/kit.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
-import { ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 import { registerProvider, unregisterProvider } from "../../src/providers/registry.js";
 import { resetCliSelection, setCliProvider } from "../../src/providers/selection.js";
 

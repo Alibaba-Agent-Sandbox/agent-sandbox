@@ -1,0 +1,31 @@
+Usage: abx config list [options]
+
+List all effective configuration values and their sources.
+
+Values are grouped by function — Sandbox authentication, Alibaba
+Cloud credentials, connection, LLM and integrations —
+in a stable order. Group titles are
+display-only: ``config get`` and ``config set`` keep taking the bare
+key names, and ``--json`` output stays a flat ``{key: value}`` map.
+
+Sources: ``(env)`` a process environment variable, ``(user)`` a value
+in ``./.env`` or stored with ``abx config set``, ``(default)`` a
+built-in default, and ``(not set)`` when no value exists anywhere.
+A set environment variable wins over either file. ``./.env`` wins
+over ``~/.abx`` for a key it sets; a key it omits still comes from
+``~/.abx``. Sensitive values are always masked.
+
+Examples:
+  abx config list
+  abx --json config list
+  abx config get http_timeout
+
+Related commands:
+  abx config get KEY        Inspect one effective value
+  abx config set KEY VALUE
+  abx config delete KEY     Remove one stored value
+
+Options:
+  --all       Also list provider keys that have no value
+  -h, --help  Show this message and exit.
+[exit_code:0]

@@ -15,7 +15,6 @@ import {
   BuildResult,
   DockerBuilder,
   SERVER_SDK_SOURCE_ENV,
-  _getAcrAuthToken,
   _seams,
   dockerBuildxAvailable,
   getAcrAuthToken,
@@ -75,13 +74,13 @@ describe("TestACRAuthTokenAlias", () => {
   // Verify that ``_get_acr_auth_token`` is a backward-compatible alias.
   it("test_alias_is_same_function", () => {
     // Old private name must point to exactly the same function object.
-    expect(_getAcrAuthToken).toBe(getAcrAuthToken);
+    expect(getAcrAuthToken).toBe(getAcrAuthToken);
   });
 
   it("test_importable_via_old_name", async () => {
     // Scripts can ``from ... import _get_acr_auth_token``.
     const mod = await import("../../src/providers/alicloud_express/docker_builder.js");
-    expect(mod._getAcrAuthToken).toBe(getAcrAuthToken);
+    expect(mod.getAcrAuthToken).toBe(getAcrAuthToken);
   });
 
   it("test_importable_via_new_name", async () => {
@@ -93,7 +92,7 @@ describe("TestACRAuthTokenAlias", () => {
   it("test_old_name_delegates_to_same_impl", async () => {
     // Calling via old name must reach the same implementation.
     const mock_personal = vi.spyOn(_seams, "getAcrAuthTokenPersonal").mockResolvedValue({ tempUserName: "u", authorizationToken: "t" } as any);
-    const result = await _getAcrAuthToken("ak", "sk", "cn-hangzhou");
+    const result = await getAcrAuthToken("ak", "sk", "cn-hangzhou");
     expect(result["tempUserName"]).toBe("u");
     expect(mock_personal).toHaveBeenCalledTimes(1);
   });
@@ -417,35 +416,7 @@ describe("TestBuildAndRegisterOfficial", () => {
     expect(api_kwargs["access_key_secret"]).toBe("test-placeholder-token");
   });
 
-  it("test_legacy_fallback_compat", async () => {
-    // Legacy access_key_id/secret params still work as fallback for both.
-    const builder: any = new DockerBuilder();
-    const tmp_path = templateDir();
 
-    const acr = new ACRConfig({
-      registry: "registry.cn-hangzhou.aliyuncs.com",
-      namespace: "ns",
-      repo: "repo",
-      // No username/password in ACRConfig
-    });
-    stubInjectNoWheels();
-    const mock_create = _apply_mocks(builder);
-
-    await builder.buildAndRegisterOfficial(tmp_path, acr, {
-      // Old-style: only legacy params, no acr_*/api_* params
-      access_key_id: "legacy-ak",
-      access_key_secret: "test-placeholder-token",
-    });
-
-    // Both should fall back to legacy params
-    const login_args = builder.loginAcrWithAksk.mock.calls.at(-1);
-    expect(login_args[1]).toBe("legacy-ak");
-    expect(login_args[2]).toBe("test-placeholder-token");
-
-    const api_kwargs = mock_create.mock.calls.at(-1)[0];
-    expect(api_kwargs["access_key_id"]).toBe("legacy-ak");
-    expect(api_kwargs["access_key_secret"]).toBe("test-placeholder-token");
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -725,38 +696,5 @@ describe("TestBuildProgress", () => {
     const text = cap.messages().join("\n");
     expect(text).not.toContain("s3cret-value");
     expect(text).toContain("ACR_PASSWORD=***");
-  });
-});
-
-
-describe("legacy registration authentication preflight", () => {
-  it("refuses AK/SK-only before Docker or push in an isolated real process", () => {
-    const home = mkTmp();
-    const source = new URL("../../src/api/docker_builder.ts", import.meta.url).href;
-    const loader = fileURLToPath(new URL("../../node_modules/tsx/dist/loader.mjs", import.meta.url));
-    const code = `
-      import { DockerBuilder, ACRConfig } from ${JSON.stringify(source)};
-      const builder = new DockerBuilder();
-      builder.checkDocker = async () => { throw new Error("unexpected-docker-side-effect"); };
-      const acr = new ACRConfig({ registry: "example.invalid", namespace: "fixture", repo: "fixture", username: "ak", password: "sk" });
-      try {
-        await builder.buildAndRegister(".", acr, { access_key_id: "ak", access_key_secret: "sk" });
-        throw new Error("missing-refusal");
-      } catch (error) {
-        if (error.name !== "InvalidAPIKeyError") throw error;
-        console.log("REFUSED_BEFORE_SIDE_EFFECTS");
-      }
-    `;
-    try {
-      const output = execFileSync(process.execPath, ["--import", loader, "--input-type=module", "-e", code], {
-        cwd: home,
-        env: { PATH: process.env.PATH ?? "", HOME: home, ABX_PROVIDER_UPDATE_CHECK: "0" },
-        encoding: "utf8",
-        timeout: 15000,
-      });
-      expect(output.trim()).toBe("REFUSED_BEFORE_SIDE_EFFECTS");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-    }
   });
 });

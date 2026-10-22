@@ -42,31 +42,15 @@ describe("TestConfigLLMApiKey", () => {
     if (process.platform !== "win32") expect(fs.statSync(envFile).mode & 0o777).toBe(0o600);
   });
 
-  it("test_set_migrates_legacy_toml_copy", async () => {
-    // Re-setting llm_api_key removes the legacy plaintext TOML copy.
-    const tmp = tmpPath();
-    const configFile = path.join(tmp, "config.toml");
-    fs.writeFileSync(configFile, '[transport]\nllm_api_key = "sk-placeholder-old"\n');
-    const envFile = path.join(tmp, ".env");
-    const result = await withConfig(storagePatch(tmp, { env: true }), () =>
-      runner().invoke(cli, ["config", "set", "llm_api_key", "sk-new-secret"]),
-    );
-
-    expect(result.exit_code).toBe(0);
-    expect(readText(envFile)).toBe("ABX_LLM_API_KEY=sk-new-secret\n");
-    // The old copy never resurrects from config.toml. An empty file is removed.
-    expect(exists(configFile)).toBe(false);
-  });
-
-  it("test_get_reads_legacy_toml_copy", async () => {
-    // A pre-migration llm_api_key in config.toml is still readable.
+  it("test_get_ignores_retired_toml_copy", async () => {
+    // Retired plaintext storage is not read.
     const tmp = tmpPath();
     fs.writeFileSync(path.join(tmp, "config.toml"), '[transport]\nllm_api_key = "sk-placeholder-legacy456"\n');
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "llm_api_key"]));
 
     expect(result.exit_code).toBe(0);
     expect(result.output).not.toContain("sk-placeholder-legacy456");
-    expect(result.output).toContain("***");
+    expect(result.output).toContain("(not set)");
   });
 
   it("test_secure_storage_wins_over_legacy_toml", async () => {
@@ -82,23 +66,6 @@ describe("TestConfigLLMApiKey", () => {
     // The masked value derives from the secure copy, not the legacy one.
     expect(result.output).toContain("sk-***321");
     expect(result.output).not.toContain("456");
-  });
-
-  it("test_clear_removes_both_locations", async () => {
-    // `config set llm_api_key ""` clears .env AND the legacy TOML copy.
-    const tmp = tmpPath();
-    const configFile = path.join(tmp, "config.toml");
-    fs.writeFileSync(configFile, '[transport]\nllm_api_key = "sk-placeholder-legacy456"\nregion = "cn-shanghai"\n');
-    const envFile = path.join(tmp, ".env");
-    fs.writeFileSync(envFile, "ABX_LLM_API_KEY=sk-secure-key-654321\n");
-    const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "set", "llm_api_key", ""]));
-
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("Cleared llm_api_key");
-    expect(exists(envFile)).toBe(false);
-    // The TOML copy is gone too, while unrelated keys survive.
-    expect(readText(configFile)).not.toContain("llm_api_key");
-    expect(readText(configFile)).toContain('region = "cn-shanghai"');
   });
 
   it("test_get_llm_api_key_masked", async () => {
@@ -188,7 +155,8 @@ describe("TestConfigListLLM", () => {
       path.join(tmp, "config.toml"),
       '[transport]\nllm_api_key = "sk-test999abc"\nllm_model = "qwen-plus"\nllm_base_url = "https://example.com/v1"\n',
     );
-    const result = await withConfig(storagePatch(tmp), () => runner().invoke(cli, ["config", "list"]));
+    fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-test999abc\n");
+    const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
     expect(result.exit_code).toBe(0);
     // llm_api_key should be masked
@@ -208,7 +176,7 @@ describe("TestCredentialPriority", () => {
   it("test_env_api_key_beats_stored_file", async () => {
     const tmp = tmpPath();
     fs.writeFileSync(path.join(tmp, ".env"), "ABX_LLM_API_KEY=sk-stored-key-aaa111\n");
-    iso.monkeypatch.setenv("DASHSCOPE_API_KEY", "sk-env-key-bbb222");
+    iso.monkeypatch.setenv("ABX_LLM_API_KEY", "sk-env-key-bbb222");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
     expect(result.exit_code).toBe(0);
@@ -231,8 +199,8 @@ describe("TestCredentialPriority", () => {
       path.join(tmp, "config.toml"),
       '[transport]\nllm_base_url = "https://stored.example/v1"\nllm_model = "stored-model"\n',
     );
-    iso.monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example/v1");
-    iso.monkeypatch.setenv("OPENAI_MODEL", "env-model");
+    iso.monkeypatch.setenv("ABX_LLM_BASE_URL", "https://env.example/v1");
+    iso.monkeypatch.setenv("ABX_LLM_MODEL", "env-model");
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
     expect(result.exit_code).toBe(0);

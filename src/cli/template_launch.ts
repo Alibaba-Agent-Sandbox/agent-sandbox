@@ -14,7 +14,7 @@ import { UsageError } from "./errors.js";
 import { providerCliExtension } from "./provider_extensions.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { RegistryClient, loadTemplateFromYaml } from "../utils/registry.js";
 import { _findTemplateYaml, _resolveIndexName, _withGithubRateLimitRetry } from "./template_catalog.js";

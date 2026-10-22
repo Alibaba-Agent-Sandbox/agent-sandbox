@@ -1,3 +1,4 @@
+import { providerNetwork } from "../helpers/networkSupport.js";
 /** Tests for capability model, gating, and resolver. */
 
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -21,7 +22,7 @@ import {
   STANDARD_CAPABILITIES,
   SandboxTemplate,
 } from "../../src/models/template.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { MockStreamReader as _MockStreamReader, TEST_ENVD_TOKEN, TEST_ENVD_URL, makeSandboxInfo as make_sandbox_info } from "./conftest.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -139,7 +140,7 @@ describe("TestCommandsAllowedPath", () => {
 describe("TestNetworkAllowedPath", () => {
   // Verify network.get_host works (no gating).
   it("test_allowed_with_ports", () => {
-    const mod = new NetworkModule({ sandbox_id: "sbx-1", domain: "example.com", capabilities: new Set(["ports"]) });
+    const mod = providerNetwork({ sandbox_id: "sbx-1", domain: "example.com", capabilities: new Set(["ports"]) });
     const host = mod.getHost(8080);
     expect(host).toContain("8080");
   });
@@ -370,7 +371,7 @@ describe("TestDefaultCapabilities", () => {
   });
 
   it("test_network_default", () => {
-    const mod = new NetworkModule({ sandbox_id: "sbx-1", domain: "example.com" });
+    const mod = providerNetwork({ sandbox_id: "sbx-1", domain: "example.com" });
     setEq(mod._capabilities, DEFAULT_CAPABILITIES);
   });
 });

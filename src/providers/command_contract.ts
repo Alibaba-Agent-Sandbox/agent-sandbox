@@ -1,7 +1,7 @@
 /** Static provider management command contract; independent of registry and transport. */
 import { Ajv, type ValidateFunction } from "ajv";
 
-import { ProviderConfigError, ProviderManifestError, ProviderProtocolError } from "./errors.js";
+import { ProviderConfigError, ProviderManifestError, ProviderProtocolError } from "../models/provider_errors.js";
 
 export const COMMAND_PROTOCOL = "provider-commands/1";
 export const COMMAND_ID = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/;

@@ -15,12 +15,12 @@ import { CapabilityNotSupportedError, InvalidCredentialsError, SandboxNotFoundEr
 import { ProcessChunkType } from "../../src/models/process.js";
 import { SandboxConfig } from "../../src/models/sandbox.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
-import * as E from "../../src/providers/errors.js";
+import * as E from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { getProvider, registerProvider, resolveProviderId } from "../../src/providers/registry.js";
 import * as settings from "../../src/providers/settings.js";
 import * as store from "../../src/providers/store.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { loadLayeredConfig, type LayeredConfig } from "../../src/transport/config_layers.js";
 import { useIso } from "../_support/iso.js";
 import { LOCAL_PROCESS, TEST_HOST_VERSION, pythonAvailable, writePlugin } from "../_support/plugins.js";
@@ -268,7 +268,7 @@ describe("provider-level behaviour that needs no plugin runtime", () => {
   });
 
   it("test_builtin_default_path_is_untouched", async () => {
-    const { SandboxProtocol } = await import("../../src/protocol/sandbox.js");
+    const { SandboxProtocol } = await import("../../src/providers/shared/e2b/sandbox.js");
     const create = vi.spyOn(SandboxProtocol.prototype, "create").mockResolvedValue({
       sandbox_id: "sbx-legacy",
       template: "base",

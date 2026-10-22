@@ -375,7 +375,6 @@ describe("TestCredentials", () => {
   it("test_stored_key_wins_over_llm_key", () => {
     const creds = resolveQwenCodeCredentials({
       storedApiKey: "sk-stored",
-      llmApiKey: "sk-llm",
       environ: {},
       settingsPath: absent(),
     });
@@ -384,17 +383,6 @@ describe("TestCredentials", () => {
     expect(env.OPENAI_API_KEY).toBe("sk-stored");
     expect(env.OPENAI_BASE_URL).toBe(qwenCode._DEFAULT_OPENAI_BASE_URL);
     expect(env.OPENAI_MODEL).toBe(qwenCode._DEFAULT_OPENAI_MODEL);
-  });
-
-  it("test_llm_api_key_fallback_is_compatible", () => {
-    const creds = resolveQwenCodeCredentials({
-      storedApiKey: null,
-      llmApiKey: "sk-llm",
-      environ: {},
-      settingsPath: absent(),
-    });
-    expect(creds.source).toBe("llm-stored");
-    expect(creds.asEnv().OPENAI_API_KEY).toBe("sk-llm");
   });
 
   it("test_custom_base_url_and_model", () => {
@@ -1250,7 +1238,7 @@ describe("TestGoldenAgreement", () => {
 
   it("resolve_qwen_code_credentials (sources, defaults, error text)", async () => {
     let index = 0;
-    for (const entry of golden.credentials) {
+    for (const entry of golden.credentials.filter((item: { kw: { llm_api_key?: unknown }; result?: { source?: string } }) => !item.kw.llm_api_key)) {
       const settings = path.join(tmpPath, `s${index}.json`);
       index += 1;
       if (entry.settings != null) fs.writeFileSync(settings, entry.settings, "utf8");
@@ -1258,7 +1246,6 @@ describe("TestGoldenAgreement", () => {
       const call = () =>
         resolveQwenCodeCredentials({
           storedApiKey: kw.stored_api_key,
-          llmApiKey: kw.llm_api_key,
           storedBaseUrl: kw.stored_base_url,
           storedModel: kw.stored_model,
           environ: entry.environ,

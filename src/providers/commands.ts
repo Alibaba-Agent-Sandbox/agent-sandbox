@@ -3,7 +3,7 @@ import { SandboxError } from "../models/errors.js";
 import { loadLayeredConfig, type LayeredConfigInit } from "../transport/config_layers.js";
 import { validateCommandInput, validateCommandOutput } from "./command_contract.js";
 import type { ProviderCommand, ProviderCommandRunner } from "./command_contract.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderTimeoutError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderTimeoutError } from "../models/provider_errors.js";
 import { BUILTIN_PROVIDER_ID, validateProviderId } from "../utils/config_keys.js";
 import { sanitizeText } from "./epp.js";
 import { getProvider } from "./registry.js";

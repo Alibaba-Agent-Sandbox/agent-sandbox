@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { RuntimeError } from "../../src/api/_pyerrors.js";
+import { RuntimeError } from "../../src/utils/_pyerrors.js";
 import * as outputMod from "../../src/cli/output.js";
 import { OutputManager, outputSeams } from "../../src/cli/output.js";
 import { sys } from "../../src/cli/io.js";
@@ -44,7 +44,7 @@ describe("TestAvailability", () => {
   });
 
   it.each([
-    ["mode0", { json_mode: true }],
+    ["mode0", { jsonMode: true }],
     ["mode1", { quiet: true }],
     ["mode2", { ci: true }],
   ])("test_none_in_machine_or_silent_modes [%s]", async (_id, mode) => {

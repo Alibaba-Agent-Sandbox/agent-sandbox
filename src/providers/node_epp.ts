@@ -13,7 +13,7 @@ import type { HttpClient } from "../transport/http.js";
 import { getLogger } from "../utils/logging.js";
 import { AsyncQueue, PROTOCOL, mapError, sanitizeText, type EppPeer, type Notification } from "./epp.js";
 import { ExecFilesystemProtocol, ExecProcessProtocol, ExecSandboxProtocol } from "./exec_provider.js";
-import { ProviderFeatureNotSupportedError, ProviderProcessError, ProviderProtocolError, ProviderTimeoutError } from "./errors.js";
+import { ProviderFeatureNotSupportedError, ProviderProcessError, ProviderProtocolError, ProviderTimeoutError } from "../models/provider_errors.js";
 import { hostVersion } from "./host.js";
 import type { NodeContext, NodeInfra } from "./node_provider.js";
 

@@ -1,0 +1,4 @@
+ID                             Template     Status   Region
+alicloud-express:sbx-XXXXX  python-base  running  cn-hangzhou
+alicloud-express:sbx-XXXXX  node-web     stopped  cn-shanghai
+[exit_code:0]

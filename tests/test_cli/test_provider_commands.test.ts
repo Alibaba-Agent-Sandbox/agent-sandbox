@@ -246,7 +246,7 @@ describe("provider config", () => {
     await abx("provider", "config", "local-process", "set", "debug", "true");
     const r = await abx("provider", "config", "local-process", "unset", "debug");
     expect(r.exit_code).toBe(0);
-    expect(fs.readFileSync(iso.toml, "utf-8")).not.toContain("debug");
+    expect(fs.existsSync(iso.toml)).toBe(false);
   });
 });
 

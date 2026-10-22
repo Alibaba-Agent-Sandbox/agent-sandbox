@@ -758,7 +758,7 @@ Options:
   --cpu <n>                 CPU cores
   --memory <mb>             Memory in MB
   --dockerfile, -f <path>   Custom Dockerfile path
-  --official-api/--legacy-api   Use official CreateTemplate API
+    Use official CreateTemplate API
   ... (see --help for full options)
 
 Examples:
@@ -834,7 +834,7 @@ Install templates from GitHub or local directories. The template directory must 
 abx template list [options]
 
 Options:
-  --official-api/--no-official-api   Use official API
+ /--no-official-api   Use official API
 ```
 
 Lists all templates (queried via Platform API).
@@ -845,7 +845,7 @@ Lists all templates (queried via Platform API).
 abx template info <template-id> [options]
 
 Options:
-  --official-api/--no-official-api   Use official API
+ /--no-official-api   Use official API
 ```
 
 View template details.
@@ -955,7 +955,6 @@ The configuration file is located at `~/.abx/config.toml`, with API Keys stored 
 | `sandbox_base_url` | Platform API URL (env `ABX_SANDBOX_BASE_URL`) | (auto)                    |
 | `region`        | Default region (env `ALIBABA_CLOUD_REGION_ID`) | `cn-hangzhou`             |
 | `http_timeout`  | HTTP request timeout (seconds)        | (auto)                    |
-| `max_retries`   | Max retry count                       | (auto)                    |
 | `sandbox_domain` | Envd domain (env `ABX_SANDBOX_DOMAIN`) | (auto)                    |
 | `llm_api_key`   | LLM API key for NL inference and the coding agent | (not set) |
 | `llm_model`     | LLM model name                        | `qwen3-coder-plus`       |

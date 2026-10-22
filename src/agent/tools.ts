@@ -1,7 +1,7 @@
 import { BorrowedSandboxError } from "./lifecycle_errors.js";
 import { ValidationError } from "../models/base.js";
 import { AuthenticationError, SandboxError, SandboxNotFoundError, QuotaExceededError, TemplateNotFoundError } from "../models/errors.js";
-import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "../providers/errors.js";
+import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "../models/provider_errors.js";
 import { HTTPStatusError, TimeoutException, RequestError } from "../transport/http.js";
 /**
  * MCP tool definitions: seven compatible core tools and fourteen workflow operations.

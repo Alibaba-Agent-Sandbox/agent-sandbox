@@ -4,7 +4,7 @@ import type { SandboxManager } from "./mcp.js";
 import type { JsonObject } from "./_py.js";
 import { handleOperation } from "./operations.js";
 import { providerTemplateExtension, type ProviderTemplateExtension } from "./provider_template_extensions.js";
-import { ProviderFeatureNotSupportedError } from "../providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 const validationInput = z.strictObject({ template_id: z.string().min(1), region: z.string().optional() });

@@ -41,7 +41,6 @@ import {
   newSessionId,
   parseAssessment,
   researchPrompt,
-  researchSucceeded,
 } from "../../src/agent/clarify.js";
 import { QwenCodeRunResult } from "../../src/agent/qwen_code.js";
 import {
@@ -362,7 +361,7 @@ describe("TestRunResearch", () => {
 
     expect(outcome).toBeInstanceOf(ResearchOutcome);
     expect(outcome.ok).toBe(true);
-    expect(researchSucceeded(outcome)).toBe(true);
+    expect(outcome.ok).toBe(true);
     expect(outcome.reason).toBe("");
     expect(outcome.detail).toBe("");
     expect(captured.prompt).toBe("research this");
@@ -602,14 +601,13 @@ describe("TestOutcomeDefaults", () => {
     expect(outcome.skipped).toBe(false);
   });
 
-  it("test_research_outcome_is_bool_compatible", () => {
-    // Legacy callers keep working: truthiness mirrors `ok` (read `.ok` / `researchSucceeded` in JS).
+  it("test_research_outcome_carries_the_gate_and_reason", () => {
     const ok = new ResearchOutcome({ ok: true });
-    expect(researchSucceeded(ok)).toBe(true);
+    expect(ok.ok).toBe(true);
     expect(ok.reason).toBe("");
     expect(ok.detail).toBe("");
     const failed = new ResearchOutcome({ ok: false, reason: RESEARCH_REASON_TIMEOUT });
-    expect(researchSucceeded(failed)).toBe(false);
+    expect(failed.ok).toBe(false);
     expect(failed.detail).toBe("");
   });
 });
@@ -655,12 +653,7 @@ describe("TestSeams", () => {
     expect(path.isAbsolute(tmpPath)).toBe(true);
   });
 
-  it("researchSucceeded accepts the legacy plain boolean and null", () => {
-    expect(researchSucceeded(true)).toBe(true);
-    expect(researchSucceeded(false)).toBe(false);
-    expect(researchSucceeded(null)).toBe(false);
-    expect(researchSucceeded(undefined)).toBe(false);
-  });
+
 });
 
 describe("TestParseAssessmentPythonSemantics", () => {

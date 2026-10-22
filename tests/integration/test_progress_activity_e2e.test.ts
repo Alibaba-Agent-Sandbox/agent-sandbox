@@ -28,8 +28,8 @@ import { outputSeams } from "../../src/cli/output.js";
 import { CliError } from "../../src/cli/errors.js";
 import { sys } from "../../src/cli/io.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/protocol/sandbox.js";
-import * as transportAuth from "../../src/transport/auth.js";
+import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
+import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
 import * as templateIndexMod from "../../src/utils/template_index.js";
@@ -259,8 +259,8 @@ it("test_kill_all_lists_ids_under_the_header", async () => {
   expect(result.exit_code, result.output).toBe(0);
   const shown = tty.getvalue();
   expect(shown).toContain("Killing 2 sandbox(es)");
-  expect(shown).toContain("1/2 sbx-a");
-  expect(shown).toContain("2/2 sbx-b");
+  expect(shown).toContain("1/2 alicloud-express:sbx-a");
+  expect(shown).toContain("2/2 alicloud-express:sbx-b");
   expect(result.output).toContain("Killed 2/2");
 });
 

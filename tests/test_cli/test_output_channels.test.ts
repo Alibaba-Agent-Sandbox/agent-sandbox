@@ -52,9 +52,9 @@ function makeCtxCmd(body: (out: OutputManager) => void | Promise<void>): Command
     callback: async (ctx: Context, params) => {
       ctx.meta["abx.output"] = new OutputManager({
         quiet: params["quiet"],
-        json_mode: params["json_flag"],
+        jsonMode: params["json_flag"],
         verbose: params["verbose_flag"],
-        no_color: true,
+        noColor: true,
       });
       await body(getOutput(ctx));
     },
@@ -337,7 +337,7 @@ describe("TestCreateChannelSeparation", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stdout.trimEnd().split("\n")).toEqual([
-      "sbx-chan-001",
+      "alicloud-express:sbx-chan-001",
       "running",
       "base",
       "https://sbx-chan-001.cn-hangzhou.e2b.fc.aliyuncs.com",
@@ -389,7 +389,7 @@ describe("TestDeployDiagnosticsChannel", () => {
     return command("deploy", {
       params: [option("--quiet", { is_flag: true }), option(["--json", "json_flag"], { is_flag: true })],
       callback: async (ctx: Context, params) => {
-        ctx.meta["abx.output"] = new OutputManager({ quiet: params["quiet"], json_mode: params["json_flag"], no_color: true });
+        ctx.meta["abx.output"] = new OutputManager({ quiet: params["quiet"], jsonMode: params["json_flag"], noColor: true });
         const out = getOutput(ctx);
         const data = await _doDeploy(tmpPath, { acr_namespace: "test-ns", start_cmd: "echo hi", ctx, verbose: false });
         out.data(data);

@@ -1,4 +1,4 @@
-/** Express legacy configuration aliases and wizard prompts. Host code only interprets these descriptors. */
+/** Express configuration fields and wizard prompts. Host code only interprets these descriptors. */
 import type { ProviderConfigUi } from "../../../cli/provider_config_contract.js";
 import { CONFIG_HELP_TEXT } from "./config_help.js";
 export const CONFIGURATION_UI: ProviderConfigUi = {

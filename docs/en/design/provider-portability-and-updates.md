@@ -47,14 +47,6 @@ build/deploy lives in the Express adapter; generic code never falls back to FC.
 
 ## Template contract and pending delivery
 
-Reuse the optional `templates.deploy` / `buildTemplates(ctx)` contract in
-[CLI PR #42](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/42), not another
-SDK or arbitrary CLI/shell passthrough. It accepts a normalized, already pushed image,
-scoped resource/start/readiness/registry inputs and returns allowlisted ready metadata.
-Provider adapters own API calls, units, polling and rejected options. A caller cannot
-assume a factory accepts a directory, Dockerfile, build steps or another provider's
-start/readiness semantics. Unsupported inputs fail before I/O.
-
 | Provider | Current installed workflow | Additional implementation and remaining gate |
 | --- | --- | --- |
 | Express | Existing template ID/alias; legacy FC deploy workflow | Extracted into the bundled Express template adapter; native acceptance is recorded separately. |

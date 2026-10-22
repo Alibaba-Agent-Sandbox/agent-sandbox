@@ -174,7 +174,7 @@ describe("TestVerboseSubcommandFlag", () => {
   });
 
   it("test_set_verbose_enables_debug_output", () => {
-    const out = new OutputManager({ no_color: true });
+    const out = new OutputManager({ noColor: true });
     out.debug("hidden");
     expect(capsys.readouterr().err).not.toContain("hidden");
 

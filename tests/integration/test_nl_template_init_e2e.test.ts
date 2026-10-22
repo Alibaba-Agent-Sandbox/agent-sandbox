@@ -138,7 +138,7 @@ function agentReady(): AgentReady {
   vi.spyOn(template, "resolve_acr_namespace").mockReturnValue("test-acr-ns");
   const workspace = path.join(tmp, "generated-workspace");
   codegen.seams.prepareWorkdir = vi.fn(() => [workspace, _TEMPLATE_NAME] as [string, string]) as unknown as typeof codegen.seams.prepareWorkdir;
-  clarify.seams.runResearch = vi.fn(async () => true) as unknown as typeof clarify.seams.runResearch;
+  clarify.seams.runResearch = vi.fn(async () => new clarify.ResearchOutcome({ ok: true })) as unknown as typeof clarify.seams.runResearch;
   clarify.seams.evaluate = vi.fn(async () => new ClarifyAssessment({ completeness: 1.0, question: null })) as unknown as typeof clarify.seams.evaluate;
   const generated = _codegenResult(tmp);
   const generate = vi.fn(async () => generated);

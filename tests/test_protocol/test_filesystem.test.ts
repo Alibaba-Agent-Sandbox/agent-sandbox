@@ -3,9 +3,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { FileInfo, FileType, WatchEvent, WatchEventType } from "../../src/models/filesystem.js";
-import { FilesystemProtocol, _nameFromPath, _parseFileInfo, _parseWatchEvent } from "../../src/protocol/filesystem.js";
+import { FilesystemProtocol, _nameFromPath, _parseFileInfo, _parseWatchEvent } from "../../src/providers/shared/e2b/filesystem.js";
 import { Request, Response } from "../../src/transport/_httpx.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -331,7 +331,7 @@ describe("TestGetInfo", () => {
   it("test_get_file_info", async () => {
     const mock_http = _makeMockHttp({ envd_request_return: { name: "app.py", path: "/app/app.py", size: 2048 } });
     const proto = new FilesystemProtocol(mock_http);
-    const info = await proto.getInfo(envd_url(), envd_token(), { path: "/app/app.py" });
+    const info = await proto.stat(envd_url(), envd_token(), { path: "/app/app.py" });
 
     expect(info).toBeInstanceOf(FileInfo);
     expect(info.name).toBe("app.py");
@@ -413,11 +413,11 @@ describe("TestRemove", () => {
 });
 
 describe("TestRename", () => {
-  // Test FilesystemProtocol.rename() — delegates to move() with source/destination.
+  // Test FilesystemProtocol.move() — delegates to move() with source/destination.
   it("test_sends_old_and_new_paths", async () => {
     const mock_http = _makeMockHttp();
     const proto = new FilesystemProtocol(mock_http);
-    await proto.rename(envd_url(), envd_token(), { old_path: "/app/a.txt", new_path: "/app/b.txt" });
+    await proto.move(envd_url(), envd_token(), { source: "/app/a.txt", destination: "/app/b.txt" });
 
     const payload = mock_http.envdRequest.mock.calls.at(-1)[2]["payload"];
     expect(payload).toEqual({ source: "/app/a.txt", destination: "/app/b.txt" });

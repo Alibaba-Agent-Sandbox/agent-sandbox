@@ -16,7 +16,7 @@ import { confirm } from "../prompts.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
-import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError, ProviderTrustError } from "../../providers/errors.js";
+import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError, ProviderTrustError } from "../../models/provider_errors.js";
 import * as registry from "../../providers/registry.js";
 import { setDefaultProvider } from "../../providers/settings.js";
 import * as configExtras from "./_config_providers.js";

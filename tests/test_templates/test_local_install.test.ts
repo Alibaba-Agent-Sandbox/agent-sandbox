@@ -395,7 +395,7 @@ describe("TestMockedGithubInstall", () => {
 
 describe("TestSandboxYamlAliasInstall", () => {
   // Templates using sandbox.yaml (not template.yaml) install.
-  it("test_local_install_sandbox_yaml_only", async () => {
+  it("test_retired_sandbox_yaml_does_not_supply_template_metadata", async () => {
     // A directory with only sandbox.yaml should install successfully.
     const tmpl_dir = path.join(tmpPath(), "alias-template");
     fs.mkdirSync(tmpl_dir);
@@ -417,9 +417,9 @@ describe("TestSandboxYamlAliasInstall", () => {
 
     const result = await runner().invoke(cli, ["template", "install", tmpl_dir, ...INSTALL_LOCAL]);
 
-    expect(result.exit_code, _combined_output(result)).toBe(0);
-    expect(result.output).toContain("Using local template from");
-    expect(isDir(path.join(cache_dir, "alias-template"))).toBe(true);
+    expect(result.exit_code).toBe(1);
+    expect(result.output).toContain("No template.yaml");
+    expect(isDir(path.join(cache_dir, "alias-template"))).toBe(false);
   });
 
   it("test_template_yaml_preferred_over_sandbox_yaml", async () => {

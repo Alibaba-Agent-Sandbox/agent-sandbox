@@ -358,7 +358,7 @@ describe("TestKill", () => {
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Killed");
     expect(kill).toHaveBeenCalledTimes(1);
-    expect(kill).toHaveBeenCalledWith("sbx-1");
+    expect(kill).toHaveBeenCalledWith("alicloud-express:sbx-1");
   });
 });
 

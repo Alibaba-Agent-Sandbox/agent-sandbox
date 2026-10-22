@@ -1,3 +1,4 @@
+import * as settings from "../../src/providers/settings.js";
 /** Public setup contract: actual layered/legacy consumers, storage, cancellation and safe continuation. */
 import "../_support/isolatedHome.js";
 import * as fs from "node:fs";
@@ -189,7 +190,7 @@ describe("persistent configuration", () => {
 
   it("never starts an operation after a failed persistent write", async () => {
     answers("2", "placeholder-llm");
-    vi.spyOn(configSeams, "writeEnvVar").mockImplementation(() => { throw new Error("not writable"); });
+    vi.spyOn(settings, "setEnvValue").mockImplementation(() => { throw new Error("not writable"); });
     const action = vi.fn(async () => undefined);
     await expect(withGuidedConfiguration(undefined, request(["llm_api_key"]), action)).rejects.toThrow("Could not finish saving");
     expect(action).not.toHaveBeenCalled();

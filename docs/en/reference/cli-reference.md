@@ -179,7 +179,6 @@ Available config keys:
 | `region` | Default region |
 | `http_timeout` | HTTP request timeout in seconds |
 | `http2` | Enable HTTP/2 (true/false) |
-| `max_retries` | Maximum retry attempts |
 | `llm_api_key` | LLM API key for NL inference and the coding agent (shown masked; stored as `ABX_LLM_API_KEY`) |
 | `llm_model` | LLM model name (default: `qwen3-coder-plus`) |
 | `llm_base_url` | LLM API base URL, OpenAI-compatible (default: DashScope compatible-mode) |
@@ -339,7 +338,6 @@ abx template deploy <TEMPLATE_DIR> [options]
 | `--dockerfile` | `-f` | Custom Dockerfile path |
 | `--disk-size` | | Disk size in MB (official API only) |
 | `--internet-access/--no-internet-access` | | Internet access (official API only) |
-| `--official-api/--legacy-api` | | Official CreateTemplate API (default) or legacy v3/v2 |
 | `--team-id` | | Team ID |
 | `--envd-inject/--no-envd-inject` | | envd injection (default off) |
 | `--generation` | | Sandbox generation (1=first-gen rund, 2=second-gen MicroVM; default: `template.yaml` → 1) |

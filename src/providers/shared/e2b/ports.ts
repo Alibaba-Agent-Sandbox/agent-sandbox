@@ -12,6 +12,3 @@ export function createPortAccess(context: PortContext, serverAuth = true): PortA
     getServerHeaders: () => serverAuth ? getAccessHeaders() : {},
   };
 }
-
-/** Compatibility constructor for the historical standalone NetworkModule. */
-export function legacyPortAccess(context: PortContext): PortAccess { return createPortAccess(context, false); }

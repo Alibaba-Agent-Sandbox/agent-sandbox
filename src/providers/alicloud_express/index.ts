@@ -1,5 +1,4 @@
 import { CONFIG_METADATA } from "./metadata.js";
-import { TemplateManager } from "./template.js";
 /** The built-in provider: Alibaba Cloud Express Edition (`alicloud-express`). */
 
 import { CodeInterpreterProtocol } from "../shared/e2b/code_interpreter.js";
@@ -26,7 +25,7 @@ import {
   envNames,
 } from "../../utils/config_keys.js";
 import { hostVersion } from "../host.js";
-import { Provider, type ConfigField, type ProviderInfra, type LegacyInfraOptions, type TerminalContext } from "../base.js";
+import { Provider, type ConfigField, type ProviderInfra, type TerminalContext } from "../base.js";
 import type { ProviderCommandRunner } from "../command_contract.js";
 import { ALICLOUD_COMMANDS, runAlicloudCommand } from "./commands.js";
 import { CONDITIONAL_COMMANDS, buildConditionalCommandRunner, isConditionalCommand } from "./conditional_commands.js";
@@ -93,22 +92,6 @@ export class AlicloudExpressProvider extends Provider {
     return TerminalSession.create(context.url, context.token, context.config, { ...opts, dial: context.http?._dial ?? null });
   }
 
-  override buildLegacyInfra(opts: LegacyInfraOptions): [TransportConfig, ReturnType<typeof createAuthProvider>, HttpClient, SandboxProtocol] {
-    const config = loadConfig({ api_key: opts.api_key, api_url: opts.api_url,
-      access_key_id: opts.access_key_id, access_key_secret: opts.access_key_secret,
-      ...(opts.provider_options?.["region"] ? { region: opts.provider_options["region"] } : {}) });
-    const auth = createAuthProvider({ api_key: config.api_key, access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret, region: config.region });
-    const http = new HttpClient(config, auth, { envelope_connect: true });
-    return [config, auth, http, new SandboxProtocol(http)];
-  }
-
-  override async buildTemplateManager(config: LayeredConfig) {
-    const auth = createAuthProvider({ api_key: config.sandbox_api_key, access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret, region: config.region });
-    return new TemplateManager(new HttpClient(config.toTransportConfig(), auth));
-  }
-
   override configKeys(): typeof ALICLOUD_EXPRESS_KEYS {
     return ALICLOUD_EXPRESS_KEYS;
   }
@@ -129,9 +112,6 @@ export class AlicloudExpressProvider extends Provider {
     const transport = config.toTransportConfig();
     const auth = createAuthProvider({
       api_key: config.sandbox_api_key,
-      access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret,
-      region: config.region,
     });
     // Express envd reads streaming RPCs as Connect envelopes. Plain JSON is parsed as a length prefix
     // (`{"pro...` → "promised N bytes") and the command's stdout never arrives.

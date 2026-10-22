@@ -1,0 +1,78 @@
+Usage: abx template build [options] [TEMPLATE_DIR]
+
+Build Docker image locally, push to ACR, and create a sandbox template.
+
+Full pipeline with cloud side effects: the local docker build is
+local-only, but the ACR push and the remote template registration
+can incur Alibaba Cloud costs (ACR storage/traffic, template
+resources).
+
+Publish path (--build, default auto):
+
+auto: a Dockerfile publishes that image. Otherwise template.yaml build
+  steps are sent as CreateTemplate sandboxConfig.steps.
+dockerfile: local docker build → ACR push → CreateTemplate. template.yaml
+  build steps are not sent.
+steps: no local Docker and no ACR push. sandboxConfig.image is base.image
+  and sandboxConfig.steps is the expanded build block. Official API only.
+
+Registration uses the official CreateTemplate API.
+
+  dockerfile mode: local docker build → ACR push → official CreateTemplate API.
+  Requires AK/SK credentials (set with 'abx config init --build').
+
+TEMPLATE_DIR may also be supplied through ABX_TEMPLATE_DIR.
+For automation/CI, pass --yes and configure credentials through environment
+variables.
+
+Examples:
+  abx template build ./examples/templates/python-hello \
+    --acr-namespace my-ns --acr-repo python-hello
+  abx template build ./my-template \
+    --acr-namespace prod --acree-instance-id cri-xxx
+  abx template build ./my-template \
+    --acr-namespace prod --disk-size 10240 --internet-access
+  abx template build ./my-template \
+    --acr-namespace prod
+  abx template build ./my-template --acr-namespace prod --region cn-shanghai
+  abx template build ./my-template --build steps --yes
+
+Related commands:
+  abx template scaffold DIRECTORY    Scaffold template source files
+  abx template push IMAGE        Push an existing local image only
+  abx create ID       Launch the completed template
+
+Options:
+  --acr-registry <ACR_REGISTRY>            ACR registry host
+  --acr-namespace <ACR_NAMESPACE>          ACR namespace (env: ACR_NAMESPACE, or set in .env file)
+  --acr-repo <ACR_REPO>                    ACR repository name (defaults to template.yaml name or dir name)
+  --acr-username <ACR_USERNAME>            ACR login username (default: ALICLOUD_ACCESS_KEY_ID)
+  --acr-password <ACR_PASSWORD>            ACR login password (default: ALICLOUD_ACCESS_KEY_SECRET)
+  --acree-instance-id <ACREE_INSTANCE_ID>  ACR EE instance ID (cri-...)
+  --vpc-id <VPC_ID>                        VPC ID for ACR EE
+  --vswitch-ids <VSWITCH_IDS>              Comma-separated VSwitch IDs
+  --security-group-id <SECURITY_GROUP_ID>  Security group ID
+  -a, --alias <ALIAS>                      Template alias
+  -t, --tag <TAG>                          Docker image tag
+  --platform <PLATFORM>                    Target platform
+  --cpu <INTEGER>                          CPU cores (default: from template.yaml resources.cpu, fallback 2)
+  --memory <INTEGER>                       Memory in MB (default: from template.yaml resources.memory, fallback 2048)
+  --start-cmd <START_CMD>                  Container start command
+  --ready-cmd <READY_CMD>                  Container readiness check command
+  --timeout <INTEGER>                      Build timeout in seconds
+  -f, --dockerfile <PATH>                  Custom Dockerfile path
+  --build <BUILD>                          Publish path: auto (Dockerfile if present, otherwise template.yaml build steps), dockerfile, or steps [default: auto] (choices: "auto", "dockerfile", "steps")
+  --disk-size <INTEGER>                    Disk size in MB (official API only)
+  --internet-access                        Internet access (default: platform decides; official API only)
+  --no-internet-access                     Opposite of --internet-access.
+  --team-id <TEAM_ID>                      Team ID for official API (or env TEAM_ID / E2B_TEAM_ID)
+  --envd-inject                            Enable envd injection (default False)
+  --no-envd-inject                         Opposite of --envd-inject.
+  --generation <INTEGER>                   Sandbox generation (default: template.yaml 'generation'; else 2 when the provider starts the server and commands.py exists; else 1). 1=first-gen (rund), 2=second-gen MicroVM.
+  --force                                  If a generation-1 template with this name already exists, delete it and create it again. Without --force, deploy stops and prints 'abx template delete <id> -y'.
+  --target-image <TARGET_IMAGE>            Destination image ref for envd copy (auto-derived with random suffix if omitted)
+  -y, --yes                                Skip confirmation prompt
+  -v, --verbose                            Verbose output (DEBUG level)
+  -r, --region <TEXT>                      Region override for providers that declare region (otherwise use the provider default)
+  -h, --help                               Show this message and exit.
+[exit_code:0]

@@ -6,7 +6,7 @@ import type { ProcessProtocol } from "../protocol/contracts.js";
 import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { StreamReader } from "../transport/streaming.js";
 import { getLogger } from "../utils/logging.js";
-import { ValueError } from "./_pyerrors.js";
+import { ValueError } from "../utils/_pyerrors.js";
 import { Shlex, shlexSplit } from "./_shlex.js";
 
 const logger = getLogger("api.commands");
@@ -202,13 +202,9 @@ export class CommandsModule {
 
   /** Kill a process by PID. */
   async kill(pid: number | string): Promise<void> {
-    await this._process.kill(this._envd_url, this._envd_token, { pid });
+    await this._process.sendSignal(this._envd_url, this._envd_token, { pid, signal: 9 });
   }
 
-  /** Send data to a process's stdin. Deprecated: use sendInput() instead. */
-  async sendStdin(pid: number | string, data: string): Promise<void> {
-    await this.sendInput(pid, data);
-  }
 
   /** Send data to a process's stdin. */
   async sendInput(pid: number | string, data: string): Promise<void> {

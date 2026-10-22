@@ -30,10 +30,6 @@ Node 插件可在 `buildInfra(ctx)` 之外实现 `buildTemplateManager(ctx)`，�
 保留自己的 receiver。缺少工厂或操作返回 E8004，单独声明 feature 不代表实现了能力。
 通用模板写操作在创建工厂之前要求明确确认。
 
-只有 Provider 实现了 `buildProject` 时才接收本地项目目录。该契约不自动激活另行提议
-的镜像专用 `buildTemplates(ctx)`，不替仅接受模板 ID 的后端创建模板，也不补造 PTY。
-每项能力仍须后端实际支持并通过其真实环境验证。
-
 ## 会话绑定与兼容
 
 Provider 提供协议构建、会话认证、URL 推导、能力解析和终端打开。代码注册的 Provider

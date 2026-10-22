@@ -16,9 +16,9 @@
 import { describe, expect, it } from "vitest";
 
 import { CommandsModule } from "../../src/api/commands.js";
-import { ValueError } from "../../src/api/_pyerrors.js";
+import { ValueError } from "../../src/utils/_pyerrors.js";
 import { EnvdRpcError } from "../../src/models/errors.js";
-import { ProcessProtocol } from "../../src/protocol/process.js";
+import { ProcessProtocol } from "../../src/providers/shared/e2b/process.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
 import { useHttpxMock } from "../helpers/httpxMock.js";
 import { ENVD, bodyOf, endEvent, makeHttp, processStream, raises, startEvent, stdoutEvent, token } from "./_helpers.js";
@@ -77,7 +77,7 @@ describe("KI-004 process control", () => {
 
   it("test_send_stdin_alias_uses_the_same_body", async () => {
     ok("SendInput");
-    await commands().sendStdin(42, "x");
+    await commands().sendInput(42, "x");
     expect(bodyOf(httpx_mock.get_request()).input).toEqual({ stdin: Buffer.from("x").toString("base64") });
   });
 

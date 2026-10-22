@@ -44,60 +44,6 @@ function envAliyun(): void {
   setenv("ALICLOUD_ACCESS_KEY_SECRET", "sk-test");
 }
 
-describe("TestDoDeployLegacyPipeline", () => {
-  it("test_legacy_api_uses_build_and_register", async () => {
-    patchLoadConfig(fakeConfig({ api_key: "key", api_url: "https://api" }));
-    const buildAndRegister = vi.fn(async () => ({
-      template_id: "tpl-legacy",
-      build_id: "b-1",
-      acr_ref: "reg/ns/repo:latest",
-      build_status: "ready",
-      logs: ["one", "two"],
-    }));
-    templateSeams.DockerBuilder = vi.fn(function () {
-      return { buildAndRegister };
-    }) as unknown as typeof DockerBuilder;
-
-    const data = await _doDeploy(templateDir(), { acr_namespace: "ns", use_official: false });
-
-    expect(data).toEqual({
-      TemplateID: "tpl-legacy",
-      BuildID: "b-1",
-      "ACR Image": "reg/ns/repo:latest",
-      Status: "ready",
-      _build_logs: ["one", "two"],
-    });
-    const kwargs = (buildAndRegister.mock.calls[0] as unknown[])[2] as Record<string, unknown>;
-    expect(kwargs["cpu_count"]).toBe(1);
-    expect(kwargs["memory_mb"]).toBe(512);
-    expect(kwargs["name"]).toBe("test-tpl");
-    expect(kwargs["tag"]).toBe("latest");
-    expect(kwargs["api_key"]).toBe("key");
-    expect(kwargs["access_key_id"]).toBe("platform-ak");
-  });
-
-  it("test_missing_acr_credentials_raises_click_exception", async () => {
-    patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
-    await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(CliError);
-    await expect(_doDeploy(templateDir(), { acr_namespace: "ns" })).rejects.toThrow(/Missing configuration/);
-  });
-
-  it("test_explicit_acr_credentials_bypass_missing_config_credentials", async () => {
-    patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
-    const buildAndRegister = vi.fn(async () => ({ template_id: "", build_id: "", acr_ref: "", build_status: "submitted", logs: [] }));
-    templateSeams.DockerBuilder = vi.fn(function () {
-      return { buildAndRegister };
-    }) as unknown as typeof DockerBuilder;
-
-    const data = await _doDeploy(templateDir(), { acr_namespace: "ns", use_official: false, acr_username: "u", acr_password: "p" });
-
-    expect(data["TemplateID"]).toBe("N/A");
-    expect(data["BuildID"]).toBe("N/A");
-    expect(data["ACR Image"]).toBe("N/A");
-    expect(data["Status"]).toBe("submitted");
-  });
-});
-
 describe("TestDeployConfirmation", () => {
   it("test_deploy_early_credential_check_exits_1", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
@@ -176,47 +122,6 @@ describe("TestDeleteConfirmation", () => {
     expect(result.output).toContain("Delete template 'tpl-1'? This action cannot be undone.");
     expect(result.output).toContain("Aborted!");
     expect(http.platformRequest).not.toHaveBeenCalled();
-  });
-});
-
-describe("TestListInfoResponseShapes", () => {
-  it("test_list_dict_response_is_printed_as_data", async () => {
-    patchTransport(mockHttp({ json: { templates: ["a"] } }));
-    const result = await runner().invoke(cli, ["template", "list"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("templates");
-    expect(result.output).not.toContain("TemplateID");
-  });
-
-  it("test_list_rows_default_to_na", async () => {
-    patchTransport(mockHttp({ json: [{ templateID: "t-1" }] }));
-    const result = await runner().invoke(cli, ["template", "list"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("t-1");
-    expect(result.output).toContain("N/A");
-  });
-
-  it("test_list_empty_response_prints_hint", async () => {
-    patchTransport(mockHttp({ json: [] }));
-    const result = await runner().invoke(cli, ["template", "list"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("No custom templates found.");
-  });
-
-  it("test_info_non_dict_response_is_printed_as_data", async () => {
-    patchTransport(mockHttp({ json: ["x", "y"] }));
-    const result = await runner().invoke(cli, ["template", "info", "tpl-1"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("x");
-  });
-
-  it("test_info_dict_values_are_stringified", async () => {
-    patchTransport(mockHttp({ json: { templateID: "tpl-1", cpuCount: 2, public: false, aliases: ["a"] } }));
-    const result = await runner().invoke(cli, ["template", "info", "tpl-1"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("cpuCount");
-    expect(result.output).toContain("False");
-    expect(result.output).toContain("['a']");
   });
 });
 

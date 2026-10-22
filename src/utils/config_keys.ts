@@ -44,12 +44,10 @@ const SCHEMA: ConfigKeysSchema = {
   "tuning_keys": [
     "http_timeout",
     "http2",
-    "max_retries",
     "max_connections",
     "max_keepalive_connections",
     "keepalive_expiry",
-    "ws_ping_interval",
-    "retry_base_delay"
+    "ws_ping_interval"
   ],
   "keys": [
     {
@@ -65,12 +63,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_PROVIDER"
       ],
       "toml_section": "core",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "provider",
-        "section": "core"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "provider",
         "section": "core"
@@ -93,11 +86,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_SANDBOX_API_KEY"
       ],
       "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "ABX_SANDBOX_API_KEY"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "env",
         "name": "ABX_SANDBOX_API_KEY"
       },
@@ -119,12 +108,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_SANDBOX_BASE_URL"
       ],
       "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "sandbox_base_url",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "sandbox_base_url",
         "section": "transport"
@@ -147,12 +131,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_SANDBOX_DOMAIN"
       ],
       "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "sandbox_domain",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "sandbox_domain",
         "section": "transport"
@@ -175,12 +154,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_HTTP_TIMEOUT"
       ],
       "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "http_timeout",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "http_timeout",
         "section": "transport"
@@ -203,12 +177,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_HTTP2"
       ],
       "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "http2",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "http2",
         "section": "transport"
@@ -217,34 +186,6 @@ const SCHEMA: ConfigKeysSchema = {
       "choices": [],
       "group": "Connection",
       "description": "Use HTTP/2"
-    },
-    {
-      "key": "max_retries",
-      "scope": "core",
-      "type": "int",
-      "secret": false,
-      "credential": false,
-      "settable": true,
-      "env": "ABX_MAX_RETRIES",
-      "aliases": [],
-      "env_names": [
-        "ABX_MAX_RETRIES"
-      ],
-      "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "max_retries",
-        "section": "transport"
-      },
-      "storage_phase2": {
-        "file": "toml",
-        "name": "max_retries",
-        "section": "transport"
-      },
-      "default": 3,
-      "choices": [],
-      "group": "Connection",
-      "description": "Maximum automatic retries"
     },
     {
       "key": "max_connections",
@@ -259,8 +200,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_MAX_CONNECTIONS"
       ],
       "toml_section": "transport",
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": 100,
       "choices": [],
       "group": "",
@@ -279,8 +219,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_MAX_KEEPALIVE_CONNECTIONS"
       ],
       "toml_section": "transport",
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": 20,
       "choices": [],
       "group": "",
@@ -299,8 +238,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_KEEPALIVE_EXPIRY"
       ],
       "toml_section": "transport",
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": 30,
       "choices": [],
       "group": "",
@@ -319,29 +257,8 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_WS_PING_INTERVAL"
       ],
       "toml_section": "transport",
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": 30,
-      "choices": [],
-      "group": "",
-      "description": ""
-    },
-    {
-      "key": "retry_base_delay",
-      "scope": "core",
-      "type": "float",
-      "secret": false,
-      "credential": false,
-      "settable": false,
-      "env": "ABX_RETRY_BASE_DELAY",
-      "aliases": [],
-      "env_names": [
-        "ABX_RETRY_BASE_DELAY"
-      ],
-      "toml_section": "transport",
-      "storage_phase1": null,
-      "storage_phase2": null,
-      "default": 1,
       "choices": [],
       "group": "",
       "description": ""
@@ -359,12 +276,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_LOG_LEVEL"
       ],
       "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "log_level",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "log_level",
         "section": "transport"
@@ -393,12 +305,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_DEFAULT_TEMPLATE"
       ],
       "toml_section": "transport",
-      "storage_phase1": {
-        "file": "toml",
-        "name": "default_template",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "default_template",
         "section": "transport"
@@ -421,11 +328,7 @@ const SCHEMA: ConfigKeysSchema = {
         "GITHUB_TOKEN"
       ],
       "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "GITHUB_TOKEN"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "env",
         "name": "GITHUB_TOKEN"
       },
@@ -447,8 +350,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_TEMPLATE_INDEX_URL"
       ],
       "toml_section": null,
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": null,
       "choices": [],
       "group": "",
@@ -467,8 +369,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_TEMPLATE_DIR"
       ],
       "toml_section": null,
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": null,
       "choices": [],
       "group": "",
@@ -487,8 +388,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_MCP_AUTH_TOKEN"
       ],
       "toml_section": null,
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": null,
       "choices": [],
       "group": "",
@@ -507,8 +407,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_MCP_ALLOWED_ORIGINS"
       ],
       "toml_section": null,
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": null,
       "choices": [],
       "group": "",
@@ -527,8 +426,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ABX_MCP_RUNTIME_DIR"
       ],
       "toml_section": null,
-      "storage_phase1": null,
-      "storage_phase2": null,
+      "storage": null,
       "default": null,
       "choices": [],
       "group": "",
@@ -547,12 +445,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ALIBABA_CLOUD_REGION_ID"
       ],
       "toml_section": null,
-      "storage_phase1": {
-        "file": "toml",
-        "name": "region",
-        "section": "transport"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "toml",
         "name": "region",
         "section": "transport"
@@ -575,11 +468,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ALICLOUD_ACCESS_KEY_ID"
       ],
       "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "ALICLOUD_ACCESS_KEY_ID"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "env",
         "name": "ALICLOUD_ACCESS_KEY_ID"
       },
@@ -601,11 +490,7 @@ const SCHEMA: ConfigKeysSchema = {
         "ALICLOUD_ACCESS_KEY_SECRET"
       ],
       "toml_section": null,
-      "storage_phase1": {
-        "file": "env",
-        "name": "ALICLOUD_ACCESS_KEY_SECRET"
-      },
-      "storage_phase2": {
+      "storage": {
         "file": "env",
         "name": "ALICLOUD_ACCESS_KEY_SECRET"
       },
@@ -618,7 +503,7 @@ const SCHEMA: ConfigKeysSchema = {
 } as ConfigKeysSchema;
 
 export type KeyType = "str" | "url" | "int" | "float" | "bool" | "enum" | "path" | "csv";
-export type AliasKind = "compat" | "native" | "legacy";
+export type AliasKind = "native";
 export type AliasSurface = "env" | "config" | "kwarg" | "flag";
 
 export interface Alias {
@@ -645,8 +530,7 @@ export interface ConfigKey {
   readonly aliases: readonly Alias[];
   readonly env_names: readonly string[];
   readonly toml_section: string | null;
-  readonly storage_phase1: Storage | null;
-  readonly storage_phase2: Storage | null;
+  readonly storage: Storage | null;
   readonly default: string | number | boolean | null;
   readonly choices: readonly string[];
   readonly group: string;
@@ -682,7 +566,7 @@ export const PROVIDER_ID_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const FIELD_KEY_RE = /^[a-z][a-z0-9_]*$/;
 
 export const KEY_TYPES: readonly KeyType[] = ["str", "url", "int", "float", "bool", "enum", "path", "csv"];
-export const ALIAS_KINDS: readonly AliasKind[] = ["compat", "native", "legacy"];
+export const ALIAS_KINDS: readonly AliasKind[] = ["native"];
 export const ALIAS_SURFACES: readonly AliasSurface[] = ["env", "config", "kwarg", "flag"];
 
 /** Shared keys followed by the CLI-only keys (`cli_config_keys.ts`). */
@@ -737,15 +621,14 @@ export function findKeyByAlias(name: string, surface: AliasSurface): ConfigKey |
 }
 
 /**
- * Environment names for `key`, most specific first: [provider-scoped override], canonical, compat/native, legacy.
+ * Environment names for `key`, most specific first: [provider-scoped override], canonical, provider-native.
  * `scopedFor` adds the provider-scoped override name for an inherited core key.
  */
 export function envNames(key: ConfigKey, opts: { scopedFor?: string | null } = {}): string[] {
   const names: string[] = [];
   if (opts.scopedFor && key.scope === "core") names.push(providerEnvName(opts.scopedFor, key.key));
   names.push(key.env);
-  names.push(...key.aliases.filter((a) => a.surface === "env" && (a.kind === "compat" || a.kind === "native")).map((a) => a.name));
-  names.push(...key.aliases.filter((a) => a.surface === "env" && a.kind === "legacy").map((a) => a.name));
+  names.push(...key.aliases.filter((a) => a.surface === "env" && a.kind === "native").map((a) => a.name));
   return [...new Set(names)];
 }
 

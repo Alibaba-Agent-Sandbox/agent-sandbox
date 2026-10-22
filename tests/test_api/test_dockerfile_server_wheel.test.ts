@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
 
-import { rewriteDockerfileForServerInstall } from "../../src/api/docker_builder.js";
+import { rewriteDockerfileForServerInstall } from "../../src/providers/alicloud_express/docker_builder.js";
 import { SERVER_SDK_PIP_SPEC } from "../../src/utils/server_sdk_pin.js";
 
 const WHEEL = "agent_sandbox_server-0.3.0-py3-none-any.whl";

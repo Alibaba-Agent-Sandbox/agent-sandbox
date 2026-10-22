@@ -125,3 +125,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Read-only npm credential diagnostics](notes/implemented/process/2026-10-22-npm-credential-diagnostics.md) · [verification](evidence/verify/2026-10-22-npm-credential-diagnostics.md)
 
 - [Npm provenance repository capitalization](notes/implemented/process/2026-10-22-npm-provenance-repository-case.md) · [verification](evidence/verify/2026-10-22-npm-provenance-repository-case.md)
+
+- [Remove retired project compatibility](notes/proposed/architecture/2026-10-22-remove-legacy-compatibility.md) · [verification](evidence/verify/2026-10-22-remove-legacy-compatibility.md)

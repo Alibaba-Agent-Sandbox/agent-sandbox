@@ -182,4 +182,4 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 
 ## 原生 Provider 镜像工厂
 
-`abx --provider PROVIDER template from-image IMAGE --name NAME -y` 是独立于标准模板构建器的原生扩展。见[提供方镜像部署](../guide/provider-image-deployment.md)。未启用的提供方返回 E8004。
+`abx --provider PROVIDER template from-image IMAGE --name NAME -y` 是独立于标准模板构建器的原生扩展。见[提供方镜像部署](../guide/template-launch.md)。未启用的提供方返回 E8004。

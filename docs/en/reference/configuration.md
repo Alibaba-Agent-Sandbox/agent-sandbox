@@ -166,7 +166,6 @@ The `region` key set here is the **persistent default** for regional commands. A
 | `sandbox_base_url` | `ABX_SANDBOX_BASE_URL` | Platform API URL |
 | `region` | `ALIBABA_CLOUD_REGION_ID` | Region |
 | `http_timeout` | `ABX_HTTP_TIMEOUT` | HTTP timeout in seconds |
-| `max_retries` | `ABX_MAX_RETRIES` | Legacy compatibility value; builtin HTTP does not retry |
 | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` | Data plane domain |
 | `llm_api_key` | `ABX_LLM_API_KEY` | LLM API key for NL inference and the coding agent |
 | `llm_model` | `ABX_LLM_MODEL` | LLM model name (default: `qwen3-coder-plus`) |

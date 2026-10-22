@@ -2,7 +2,7 @@
 
 import { expect, it } from "vitest";
 
-import { ProviderManifestError, ProviderVersionError } from "../../src/providers/errors.js";
+import { ProviderManifestError, ProviderVersionError } from "../../src/models/provider_errors.js";
 import { checkRequires, parseManifest, versionSatisfies } from "../../src/providers/manifest.js";
 
 const BASE = `
@@ -38,6 +38,7 @@ it("test_bytes_and_str_inputs_agree", () => {
 });
 
 const REJECTIONS: Array<[string, string]> = [
+  [mutate('supported = ["sandbox.lifecycle", "exec.run"]', 'supported = ["templates.deploy"]'), "unknown feature"],
   ["not toml [", "Invalid abx-provider.toml"],
   [mutate("manifest_version = 1", "manifest_version = 2"), "manifest_version"],
   [mutate('id = "demo-prov"', 'id = "Demo"'), "provider id"],
@@ -179,4 +180,3 @@ it("test_check_requires_raises_e8013", () => {
 it("test_sha_is_stable_hex", () => {
   expect(parseManifest(BASE).sha256).toMatch(/^[0-9a-f]{64}$/);
 });
-

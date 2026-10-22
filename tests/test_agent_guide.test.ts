@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 import { TOOL_SCHEMAS } from "../src/agent/tools.js";
 import { cli } from "../src/cli/main.js";
 import * as errMod from "../src/models/errors.js";
-import * as providerErr from "../src/providers/errors.js";
+import * as providerErr from "../src/models/provider_errors.js";
 import { loadYaml as safeLoad } from "../src/utils/yaml_io.js";
 import { REPO_ROOT, exists, read } from "./helpers/docsSupport.js";
 

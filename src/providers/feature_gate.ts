@@ -4,7 +4,7 @@
  * the same behaviour: a method whose feature is not declared fails with `E8004` before any request is sent.
  */
 
-import { ProviderFeatureNotSupportedError } from "./errors.js";
+import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 
 /** Method name -> features of which at least one must be supported. */
 export type FeatureRules = Readonly<Record<string, readonly string[]>>;
@@ -29,11 +29,10 @@ export const PROCESS_RULES: FeatureRules = {
   update: ["process.manage"],
   sendInput: ["process.manage"],
   sendSignal: ["process.manage"],
-  sendStdin: ["process.manage"],
   kill: ["process.manage"],
 };
 
-const FILE_METHODS = ["stat", "listDir", "makeDir", "remove", "move", "uploadFile", "downloadFile", "exists", "getInfo", "read", "readText", "write", "rename"];
+const FILE_METHODS = ["stat", "listDir", "makeDir", "remove", "move", "uploadFile", "downloadFile", "exists", "read", "readText", "write"];
 
 export const FILESYSTEM_RULES: FeatureRules = {
   ...Object.fromEntries(FILE_METHODS.map((m) => [m, ["files.rw"]])),

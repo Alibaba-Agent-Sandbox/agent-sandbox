@@ -79,6 +79,7 @@ export function coerce(key: ConfigKey, raw: unknown): unknown {
 
 /** `[display name, raw value]` candidates inside a TOML document, most specific first. */
 function tomlLookups(key: ConfigKey, toml: Readonly<Record<string, unknown>>, scopedFor: string | null): Array<[string, unknown]> {
+  if (key.secret || key.storage?.file === "env") return [];
   const out: Array<[string, unknown]> = [];
   const providers = toml["providers"];
   const provScope = key.scope !== "core" ? key.scope : scopedFor;
@@ -94,8 +95,6 @@ function tomlLookups(key: ConfigKey, toml: Readonly<Record<string, unknown>>, sc
   const tableObj = toml[section];
   if (isRecord(tableObj)) {
     for (const n of names) if (has(tableObj, n)) out.push([`${section}.${n}`, tableObj[n]]);
-  } else if (section === "transport" && !has(toml, "transport")) {
-    for (const n of names) if (has(toml, n) && !isRecord(toml[n])) out.push([n, toml[n]]);
   }
   return out;
 }

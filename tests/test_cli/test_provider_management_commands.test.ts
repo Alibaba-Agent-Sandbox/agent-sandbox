@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { main } from "../../src/cli/main.js";
 import { getProviderCommand, listProviderCommands, runProviderCommand } from "../../src/providers/commands.js";
-import { ProviderFeatureNotSupportedError, ProviderTrustError } from "../../src/providers/errors.js";
+import { ProviderFeatureNotSupportedError, ProviderTrustError } from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { sys } from "../../src/cli/io.js";
 import * as prompts from "../../src/cli/prompts.js";

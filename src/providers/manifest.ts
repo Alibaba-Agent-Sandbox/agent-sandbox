@@ -13,7 +13,7 @@ import {
 } from "../utils/config_keys.js";
 import { parseTomlText } from "../utils/toml_plain.js";
 import { FEATURES, type ConfigField } from "./base.js";
-import { ProviderManifestError, ProviderVersionError } from "./errors.js";
+import { ProviderManifestError, ProviderVersionError } from "../models/provider_errors.js";
 import { parseCommandSection, type ProviderCommand } from "./command_contract.js";
 
 export const MANIFEST_NAME = "abx-provider.toml";

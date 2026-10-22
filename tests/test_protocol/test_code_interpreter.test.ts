@@ -2,8 +2,8 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { _HTTP_TIMEOUT_BUFFER, CodeInterpreterProtocol } from "../../src/protocol/code_interpreter.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { _HTTP_TIMEOUT_BUFFER, CodeInterpreterProtocol } from "../../src/providers/shared/e2b/code_interpreter.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

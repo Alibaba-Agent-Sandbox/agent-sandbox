@@ -113,10 +113,9 @@ describe("TestParseIndex", () => {
     expect(qwen.status).toBe("official");
   });
 
-  it("test_missing_schema_version_is_legacy_compatible", () => {
+  it("test_missing_schema_version_is_rejected", () => {
     const text = INDEX_YAML.replace("schema_version: 1\n", "");
-    const index = parse_index(text);
-    expect(index.schema_version).toBe(INDEX_SCHEMA_VERSION);
+    expect(() => parse_index(text)).toThrow(TemplateParseError);
   });
 
   it("test_newer_schema_version_is_rejected", () => {
@@ -128,7 +127,7 @@ describe("TestParseIndex", () => {
       err = e;
     }
     expect(err).toBeInstanceOf(TemplateParseError);
-    expect(String(err)).toContain("newer than supported");
+    expect(String(err)).toContain("differs from supported");
     expect((err as TemplateParseError).suggestion || "").toContain("pip install -U agent-sandbox-client");
   });
 
@@ -372,7 +371,7 @@ describe("TestFetchIndexNetwork", () => {
     httpx_mock.add_response({ url: INDEX_URL, text: "schema_version: 99\ntemplates: []\n" });
     const err = await catchError(() => fetch_index(INDEX_URL, { cache_dir: path.join(tmp_path, "cache") }));
     expect(err).toBeInstanceOf(TemplateParseError);
-    expect(String(err)).toMatch(/newer than supported/);
+    expect(String(err)).toMatch(/differs from supported/);
   });
 });
 

@@ -11,8 +11,7 @@ import {
   SandboxError,
 } from "../../src/models/errors.js";
 import { SandboxConfig } from "../../src/models/sandbox.js";
-import { SandboxProtocol } from "../../src/protocol/sandbox.js";
-import { AkSkAuth } from "../../src/transport/auth.js";
+import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { HTTPError, HTTPStatusError, HttpClient } from "../../src/transport/http.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
@@ -55,11 +54,10 @@ describe("KI-006 authentication error", () => {
   });
 
   it("test_aksk_auth_maps_to_invalid_credentials", async () => {
-    class Aksk extends AkSkAuth {
-      constructor() {
-        super("id", "secret");
-      }
-      override async getHeaders(): Promise<Record<string, string>> {
+    class Aksk {
+      async refresh(): Promise<void> {}
+      authenticationError(): InvalidCredentialsError { return new InvalidCredentialsError("Custom credentials were rejected"); }
+      async getHeaders(): Promise<Record<string, string>> {
         return {};
       }
     }

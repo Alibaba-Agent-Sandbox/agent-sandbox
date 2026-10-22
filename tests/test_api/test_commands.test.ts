@@ -175,7 +175,7 @@ describe("TestCommandsSendStdin", () => {
   // Test CommandsModule.send_stdin().
   it("test_send_stdin_forwards_data", async () => {
     const { module: commands_module, process_protocol } = makeCommandsModule();
-    await commands_module.sendStdin(1234, "input data\n");
+    await commands_module.sendInput(1234, "input data\n");
     expect(process_protocol.sendInput).toHaveBeenCalledTimes(1);
     const call_kwargs = process_protocol.sendInput.mock.calls[0][2];
     expect(call_kwargs["pid"]).toBe(1234);

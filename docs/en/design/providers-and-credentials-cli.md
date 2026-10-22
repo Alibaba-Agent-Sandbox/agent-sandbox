@@ -51,7 +51,6 @@ interface ConfigKey {
 | `sandbox_domain` | str | no | `ABX_SANDBOX_DOMAIN` | toml `[transport] sandbox_domain` | derived from region |
 | `http_timeout` | float | no | `ABX_HTTP_TIMEOUT` | toml `[transport]` | 30.0 |
 | `http2` | bool | no | `ABX_HTTP2` | toml | true |
-| `max_retries` | int | no | `ABX_MAX_RETRIES` | toml | 3 |
 | `log_level` | enum | no | `ABX_LOG_LEVEL` | toml | `WARNING` |
 | `default_template` | str | no | `ABX_DEFAULT_TEMPLATE` | toml `[transport]` | `base` |
 | `llm_api_key` | str | yes | `ABX_LLM_API_KEY` | env `ABX_LLM_API_KEY` | — |

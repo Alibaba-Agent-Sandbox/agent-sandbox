@@ -1,3 +1,4 @@
+import { providerNetwork } from "../helpers/networkSupport.js";
 /** Tests for the NetworkModule API. */
 
 import { describe, expect, it } from "vitest";
@@ -31,7 +32,7 @@ describe("TestNetworkGetUrl", () => {
   });
 
   it("test_get_url_insecure", () => {
-    const mod = new NetworkModule({
+    const mod = providerNetwork({
       sandbox_id: TEST_SANDBOX_ID,
       domain: DOMAIN,
       secure: false,
@@ -51,7 +52,7 @@ describe("TestNetworkGetAccessHeaders", () => {
   });
 
   it("test_get_access_headers_no_token", () => {
-    const mod = new NetworkModule({
+    const mod = providerNetwork({
       sandbox_id: TEST_SANDBOX_ID,
       domain: DOMAIN,
       secure: true,
@@ -63,7 +64,7 @@ describe("TestNetworkGetAccessHeaders", () => {
   });
 
   it("test_get_access_headers_insecure_with_token", () => {
-    const mod = new NetworkModule({
+    const mod = providerNetwork({
       sandbox_id: TEST_SANDBOX_ID,
       domain: DOMAIN,
       secure: false,
@@ -79,13 +80,13 @@ describe("TestNetworkGetAccessHeaders", () => {
 describe("TestNetworkModuleInit", () => {
   // Test NetworkModule initialization.
   it("test_default_secure", () => {
-    const mod = new NetworkModule({ sandbox_id: "sbx-1", domain: "example.com", capabilities: new Set(["ports"]) });
+    const mod = providerNetwork({ sandbox_id: "sbx-1", domain: "example.com", capabilities: new Set(["ports"]) });
     const url = mod.getUrl(8080);
     expect(url.startsWith("https://")).toBe(true);
   });
 
   it("test_custom_domain", () => {
-    const mod = new NetworkModule({ sandbox_id: "sbx-1", domain: "custom.domain.com", capabilities: new Set(["ports"]) });
+    const mod = providerNetwork({ sandbox_id: "sbx-1", domain: "custom.domain.com", capabilities: new Set(["ports"]) });
     const host = mod.getHost(3000);
     expect(host).toContain("custom.domain.com");
   });

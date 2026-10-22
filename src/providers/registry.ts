@@ -6,7 +6,7 @@ import { BUILTIN_PROVIDER_ID, OFFICIAL_CATALOG_IDS, validateProviderId } from ".
 import { Provider, orderedFeatures } from "./base.js";
 import { AlicloudExpressProvider } from "./alicloud_express/index.js";
 import { ExecProvider } from "./exec_provider.js";
-import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError } from "./errors.js";
+import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError } from "../models/provider_errors.js";
 import { loadManifest } from "./manifest.js";
 import { NodeProvider } from "./node_provider.js";
 import { RestProvider } from "./rest_provider.js";
@@ -192,10 +192,8 @@ export function parseSandboxRef(ref: string): [string | null, string] {
   return [null, ref];
 }
 
-/** Printable sandbox reference: bare only in the legacy single-provider case. */
-export function qualify(providerId: string, sandboxId: string, opts: { ambient?: string } = {}): string {
-  const ambient = opts.ambient ?? ambientProviderId();
-  if (providerId === BUILTIN_PROVIDER_ID && ambient === BUILTIN_PROVIDER_ID) return sandboxId;
+/** Provider-qualified printable sandbox reference. */
+export function qualify(providerId: string, sandboxId: string, _opts: { ambient?: string } = {}): string {
   return `${providerId}:${sandboxId}`;
 }
 

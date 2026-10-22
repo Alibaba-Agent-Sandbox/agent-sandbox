@@ -129,9 +129,9 @@ describe("TestCoerce", () => {
   );
 
   it("test_int_and_float", () => {
-    expect(coerce(key("max_retries"), "5")).toBe(5);
-    expect(coerce(key("max_retries"), "5.0")).toBe(5);
-    expect(coerce(key("max_retries"), "x")).toBeNull();
+    expect(coerce(key("max_connections"), "5")).toBe(5);
+    expect(coerce(key("max_connections"), "5.0")).toBe(5);
+    expect(coerce(key("max_connections"), "x")).toBeNull();
     expect(coerce(key("http_timeout"), "2.5")).toBe(2.5);
   });
 
@@ -160,7 +160,7 @@ describe("TestResolvePrecedence", () => {
     s.dotenv = [{}, { ABX_SANDBOX_API_KEY: "d2" }];
     expect([val(s)?.value, val(s)?.layer_index]).toEqual(["d2", 1]);
     s.dotenv = [];
-    expect([val(s)?.value, val(s)?.layer]).toEqual(["t", "toml"]);
+    expect(val(s)).toBeNull();
   });
 
   it("test_retired_name_does_not_beat_the_canonical_name", () => {
@@ -182,10 +182,10 @@ describe("TestResolvePrecedence", () => {
     expect(val(s)?.value).toBe("plain");
   });
 
-  it("test_scoped_toml_table_beats_transport", () => {
+  it("test_plaintext_toml_does_not_supply_secrets", () => {
     const toml = { providers: { "my-prov": { sandbox_api_key: "scoped" } }, transport: { sandbox_api_key: "plain" } };
-    expect(val(src({ toml }), { scopedFor: "my-prov" })?.value).toBe("scoped");
-    expect(val(src({ toml }))?.value).toBe("plain");
+    expect(val(src({ toml }), { scopedFor: "my-prov" })).toBeNull();
+    expect(val(src({ toml }))).toBeNull();
   });
 
   it("test_toml_ignores_retired_names", () => {

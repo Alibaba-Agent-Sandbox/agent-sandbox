@@ -232,7 +232,6 @@ describe("TestDelegation", () => {
     const mock = vi.spyOn(qwenCode.seams, "resolveQwenCodeCredentials").mockReturnValue(CREDS);
     const result = await new QwenCodeBackend().resolveCredentials({
       storedApiKey: "stored",
-      llmApiKey: "llm",
       storedBaseUrl: "https://example.test/v1",
       storedModel: "qwen-test",
     });
@@ -240,7 +239,6 @@ describe("TestDelegation", () => {
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith({
       storedApiKey: "stored",
-      llmApiKey: "llm",
       storedBaseUrl: "https://example.test/v1",
       storedModel: "qwen-test",
     });

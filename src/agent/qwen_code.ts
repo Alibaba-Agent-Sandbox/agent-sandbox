@@ -122,8 +122,7 @@ export interface QwenCodeCredentialsInit {
 /**
  * Resolved Qwen Code model credentials.
  *
- * `source` is one of: `qwen-stored` (the unified `llm_api_key` persisted as `ABX_LLM_API_KEY`), `llm-stored` (legacy
- * `llm_api_key` in config.toml), `environment` (a valid variable already exists in the process environment, so the
+ * `source` is one of: `qwen-stored` (the unified `llm_api_key` persisted as `ABX_LLM_API_KEY`), `environment` (a valid variable already exists in the process environment, so the
  * child inherits it) or `qwen-settings` (`~/.qwen/settings.json` is already configured).
  */
 export class QwenCodeCredentials {
@@ -659,7 +658,6 @@ export function rankCodegenModels(ids: readonly string[]): string[] {
  * Resolve credentials for the Qwen Code headless run. First hit wins:
  *
  * 1. The abx `llm_api_key` persisted as `ABX_LLM_API_KEY` (`source="qwen-stored"`).
- * 2. A legacy `llm_api_key` still stored in config.toml (`source="llm-stored"`).
  * 3. A valid variable already present in the process environment (`source="environment"`). An explicit
  *    `storedModel` is still injected as `OPENAI_MODEL`; otherwise the child keeps the environment it already has.
  * 4. A configured `~/.qwen/settings.json` (`source="qwen-settings"`).
@@ -669,7 +667,6 @@ export function rankCodegenModels(ids: readonly string[]): string[] {
 export function resolveQwenCodeCredentials(
   opts: {
     storedApiKey?: string | null;
-    llmApiKey?: string | null;
     storedBaseUrl?: string | null;
     storedModel?: string | null;
     environ?: Readonly<Record<string, string | undefined>> | null;
@@ -682,9 +679,6 @@ export function resolveQwenCodeCredentials(
 
   if (opts.storedApiKey) {
     return new QwenCodeCredentials({ source: "qwen-stored", apiKey: opts.storedApiKey, baseUrl, model });
-  }
-  if (opts.llmApiKey) {
-    return new QwenCodeCredentials({ source: "llm-stored", apiKey: opts.llmApiKey, baseUrl, model });
   }
   for (const name of EXISTING_AUTH_ENV_VARS) {
     const value = env[name];
@@ -1581,4 +1575,3 @@ export const seams = {
   killProcessTree: _killProcessTree as (proc: HeadlessProcess) => Promise<void>,
   runQwenCodeHeadless: runQwenCodeHeadless as (prompt: string, opts?: RunHeadlessOptions) => Promise<QwenCodeRunResult>,
 };
-

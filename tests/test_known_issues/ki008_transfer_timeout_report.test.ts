@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { FilesModule } from "../../src/api/files.js";
 import { FileOperationError } from "../../src/models/errors.js";
-import { FilesystemProtocol } from "../../src/protocol/filesystem.js";
+import { FilesystemProtocol } from "../../src/providers/shared/e2b/filesystem.js";
 import { ReadTimeout, WriteTimeout } from "../../src/transport/_httpx.js";
 import { HTTPError } from "../../src/transport/http.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";

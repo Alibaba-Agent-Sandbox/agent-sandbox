@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { pyExcStr } from "../../src/api/_pyerrors.js";
+import { pyExcStr } from "../../src/utils/_pyerrors.js";
 import { dispatchTool, _formatToolError } from "../../src/agent/tools.js";
 import * as errors from "../../src/models/errors.js";
 import { getLogger, Handler, type LogRecord } from "../../src/utils/logging.js";

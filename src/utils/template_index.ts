@@ -16,8 +16,7 @@
  *   and a conditional request (`If-None-Match`) keeps refreshes cheap.
  * * Network failures degrade gracefully: when a cached copy exists it is served with `stale=true` plus a
  *   human-readable `notice`; without a cache the error is raised with explicit remediation steps.
- * * Schema evolution is explicit: the index declares `schema_version` (missing is treated as
- *   `INDEX_SCHEMA_VERSION`, i.e. legacy-compatible).  A newer version than this client understands fails loudly
+ * * Schema evolution is explicit: the index must declare the supported `schema_version`. An unsupported version fails loudly
  *   instead of being misinterpreted.
  */
 
@@ -349,15 +348,15 @@ export function parseIndex(text: string, opts: ParseIndexOptions = {}): Template
 
   const schema_version: unknown = Object.prototype.hasOwnProperty.call(data, "schema_version")
     ? data["schema_version"]
-    : INDEX_SCHEMA_VERSION;
+    : null;
   if (typeof schema_version !== "number" || !Number.isInteger(schema_version)) {
     throw new TemplateParseError(
       "Template index declares a non-integer schema_version " + `(${pyRepr(schema_version)}) at ${source_url}.`,
     );
   }
-  if (schema_version > INDEX_SCHEMA_VERSION) {
+  if (schema_version !== INDEX_SCHEMA_VERSION) {
     throw new TemplateParseError(
-      `Template index schema_version ${schema_version} is newer than supported ` +
+      `Template index schema_version ${schema_version} differs from supported ` +
         `schema_version ${INDEX_SCHEMA_VERSION}.`,
       { suggestion: "Upgrade agent-sandbox-client (`pip install -U agent-sandbox-client`) to read this index." },
     );

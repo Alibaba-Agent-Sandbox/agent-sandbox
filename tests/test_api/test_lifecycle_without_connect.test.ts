@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { SandboxManager } from "../../src/agent/mcp.js";
-import { SandboxProtocol } from "../../src/protocol/sandbox.js";
+import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
 import { HttpClient } from "../../src/transport/http.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";

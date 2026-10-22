@@ -23,7 +23,7 @@ import { handleErrors } from "./error_handler.js";
 import { getFormatter } from "./formatters.js";
 import { getOutput, isCiEnv } from "./output.js";
 import { availableCases, renderScaffold } from "./scaffold.js";
-import { ValueError } from "../api/_pyerrors.js";
+import { ValueError } from "../utils/_pyerrors.js";
 import { GitHubRateLimitError } from "../models/errors.js";
 import { isFile, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, scandirNames, writeTextPy } from "../utils/_pyos.js";
 import { FINE_GRAINED_PAT_URL } from "../utils/github_token.js";
@@ -76,7 +76,7 @@ async function _configCmd(): Promise<Any> {
 /** Return the template manifest path, or `null` if none is present. */
 export function _findTemplateYaml(template_path: string): string | null {
     const base = String(template_path);
-    for (const name of ["template.yaml", "sandbox-template.yaml", "sandbox.yaml"]) {
+    for (const name of ["template.yaml"]) {
         const candidate = nodePath.join(base, name);
         if (pathExists(candidate))
             return candidate;
@@ -86,7 +86,7 @@ export function _findTemplateYaml(template_path: string): string | null {
 
 /** Whether the interactive GitHub-token onboarding can run here. */
 export function _githubRateLimitSetupAvailable(out: Any): boolean {
-    if (out.quiet || out.ci || (out.use_json ?? out.useJson ?? out.json_mode ?? out.jsonMode) || templateSeams.isCiEnv() || Boolean(getCurrentContext(true)?.params["yes"]))
+    if (out.quiet || out.ci || out.jsonMode || templateSeams.isCiEnv() || Boolean(getCurrentContext(true)?.params["yes"]))
         return false;
     try {
         return Boolean(templateSeams.stdinIsatty()) && canGuideConfiguration(getCurrentContext(true) ?? undefined, false);

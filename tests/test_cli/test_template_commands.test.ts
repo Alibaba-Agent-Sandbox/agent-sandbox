@@ -180,25 +180,12 @@ describe("TestTemplateListCommand", () => {
     expect(result.output.toLowerCase()).not.toContain("all available");
   });
 
-  it("test_list_templates", async () => {
-    patchTransport(mockHttp({ json: [] }));
-    const result = await runner().invoke(cli, ["template", "list"]);
-    expect([0, 1, 3]).toContain(result.exit_code);
-  });
-
-  it("shows aliases and current build state from the actual platform response shape", async () => {
-    patchTransport(mockHttp({ json: [{ templateID: "tpl-ready", aliases: ["version-1"], builds: [{ buildID: "b1", status: "ready" }] }] }));
-    const result = await runner().invoke(cli, ["--json", "template", "list"]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(JSON.parse(result.output)).toEqual([{ TemplateID: "tpl-ready", Alias: "version-1", Status: "ready" }]);
-  });
-
   it("test_list_official_templates", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     const templates = [{ templateID: "tpl-ready", name: "demo", status: { state: "ready" } }];
     const mockList = spyAny(fcTemplate, "listOfficialTemplates").mockResolvedValue(templates);
 
-    const result = await runner().invoke(cli, ["template", "list", "--official-api"]);
+    const result = await runner().invoke(cli, ["template", "list"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("tpl-ready");
@@ -212,7 +199,7 @@ describe("TestTemplateBuildHelp", () => {
     const result = await runner().invoke(cli, ["template", "build", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("--dockerfile") || result.output.includes("-f")).toBe(true);
-    expect(result.output).toContain("--official-api");
+    expect(result.output).not.toContain("--legacy-api");
     expect(result.output).toContain("--acr-namespace");
   });
 
@@ -243,7 +230,7 @@ describe("TestTemplateBuildHelp", () => {
     const result = await runner().invoke(cli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Build, push, and create template in one step");
-    expect(result.output).toContain("--official-api");
+    expect(result.output).not.toContain("--legacy-api");
     expect(result.output).toContain("--acr-namespace");
   });
 
@@ -286,84 +273,12 @@ describe("TestTemplateInfoHelp", () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     const mockGet = spyAny(fcTemplate, "getTemplate").mockResolvedValue({ templateID: "tpl-ready", status: { state: "ready" } });
 
-    const result = await runner().invoke(cli, ["template", "info", "tpl-ready", "--official-api"]);
+    const result = await runner().invoke(cli, ["template", "info", "tpl-ready"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("tpl-ready");
     expect(result.output).toContain("ready");
     expect(mockGet).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("TestSandboxYamlAlias", () => {
-  it("test_install_sandbox_yaml_only", async () => {
-    const tp = tmpPath();
-    writeText(path.join(tp, "sandbox.yaml"), "name: test-alias\nversion: '1.0.0'\n");
-    writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
-    setenv("ACR_NAMESPACE", "test-namespace");
-    patchTransport(mockHttp({ json: { templateID: "tpl-alias-1", buildID: "bld-alias-1" } }));
-
-    const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
-    expect(result.exit_code).toBe(2);
-  });
-
-  it("test_install_prefers_template_yaml", async () => {
-    const tp = tmpPath();
-    writeText(path.join(tp, "template.yaml"), "name: canonical\nversion: '1.0.0'\n");
-    writeText(path.join(tp, "sandbox.yaml"), "name: alias-version\nversion: '2.0.0'\n");
-    writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
-    setenv("ACR_NAMESPACE", "test-namespace");
-    patchTransport(mockHttp({ json: { templateID: "tpl-pref-1", buildID: "bld-pref-1" } }));
-
-    const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
-    expect(result.exit_code).toBe(2);
-  });
-
-  it("test_install_no_yaml_mentions_both_names", async () => {
-    const empty = path.join(tmpPath(), "empty-tmpl");
-    fs.mkdirSync(empty);
-    writeText(path.join(empty, "Dockerfile"), "FROM ubuntu:22.04\n");
-    patchTransport(mockHttp());
-
-    const result = await runner().invoke(cli, ["template", "install", empty, "--registry-type", "local"]);
-
-    const combined = result.output + result.stderr;
-    expect(result.exit_code).not.toBe(0);
-    expect(combined).toContain("sandbox.yaml");
-  });
-});
-
-describe("TestTemplateCommandErrorHandling", () => {
-  it("test_list_server_error_friendly", async () => {
-    const http = mockHttp({ error: httpError(500, { message: "internal error" }) });
-    patchTransport(http);
-    const result = await runner().invoke(cli, ["template", "list"]);
-    expect(result.exit_code).toBe(1);
-    expect(result.output).not.toContain("Traceback");
-    expect(result.output).toContain("HTTP 500");
-    expect(http.close).toHaveBeenCalled();
-  });
-
-  it("test_info_404_friendly", async () => {
-    const http = mockHttp({ error: httpError(404, { message: "not found" }) });
-    patchTransport(http);
-    const result = await runner().invoke(cli, ["template", "info", "tpl-missing"]);
-    expect(result.exit_code).toBe(4);
-    expect(result.output).not.toContain("Traceback");
-    expect(result.output).toContain("tpl-missing");
-    expect(result.output).toContain("TEMPLATE_ID");
-    expect(http.close).toHaveBeenCalled();
-  });
-
-  it("test_delete_404_friendly", async () => {
-    const http = mockHttp({ error: httpError(404, { message: "not found" }) });
-    patchTransport(http);
-    const result = await runner().invoke(cli, ["template", "delete", "tpl-missing", "--yes"]);
-    expect(result.exit_code).toBe(4);
-    expect(result.output).not.toContain("Traceback");
-    expect(result.output).toContain("tpl-missing");
-    expect(result.output).toContain("TEMPLATE_ID");
-    expect(http.close).toHaveBeenCalled();
   });
 });
 
@@ -416,7 +331,7 @@ describe("TestTemplateDeployOfficialAPI", () => {
   it("test_deploy_help_shows_official_api", async () => {
     const result = await runner().invoke(cli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
-    for (const s of ["--official-api", "--legacy-api", "--team-id", "--envd-inject", "--generation", "--ready-cmd"]) expect(result.output).toContain(s);
+    for (const s of ["--team-id", "--envd-inject", "--generation", "--ready-cmd"]) expect(result.output).toContain(s);
   });
 
   it("test_deploy_template_dir_from_env", async () => {

@@ -329,10 +329,6 @@ export class FilesystemProtocol {
     }
   }
 
-  /** Alias for stat(). Kept for backward compatibility. */
-  async getInfo(envd_url: string, envd_token: EnvdTokenManager, opts: { path: string }): Promise<FileInfo> {
-    return this.stat(envd_url, envd_token, opts);
-  }
 
   /** Read file content via HTTP download API. */
   async read(envd_url: string, envd_token: EnvdTokenManager, opts: { path: string }): Promise<Uint8Array> {
@@ -359,14 +355,6 @@ export class FilesystemProtocol {
     await this.uploadFile(envd_url, envd_token, { path: opts.path, content: raw_bytes });
   }
 
-  /** Deprecated: use move(). Kept for backward compatibility. */
-  async rename(
-    envd_url: string,
-    envd_token: EnvdTokenManager,
-    opts: { old_path: string; new_path: string },
-  ): Promise<void> {
-    await this.move(envd_url, envd_token, { source: opts.old_path, destination: opts.new_path });
-  }
 }
 
 const UTF8_ALIASES = new Set(["utf_8", "utf8", "u8", "utf", "utf8_ucs2", "utf8_ucs4", "cp65001"]);

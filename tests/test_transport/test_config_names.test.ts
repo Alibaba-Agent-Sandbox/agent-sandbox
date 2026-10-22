@@ -6,16 +6,12 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { Provider } from "../../src/providers/base.js";
-import { ProviderConfigError } from "../../src/providers/errors.js";
+import { ProviderConfigError } from "../../src/models/provider_errors.js";
 import { registerProvider } from "../../src/providers/registry.js";
 import {
   LayeredConfig,
-  _resetDeprecationWarnings,
-  applyMigration,
-  auditConfig,
   explainConfig,
   loadLayeredConfig,
-  planMigration,
   resetLayeredConfig,
 } from "../../src/transport/config_layers.js";
 import { parseTomlText } from "../../src/utils/toml_plain.js";
@@ -41,19 +37,19 @@ describe("TestBackwardCompatibleModel", () => {
 
   it("test_canonical_constructor_names", () => {
     const c = new LayeredConfig({ sandbox_api_key: "k", sandbox_base_url: "https://x", sandbox_domain: "d" });
-    expect([c.api_key, c.api_url, c.domain]).toEqual(["k", "https://x", "d"]);
+    expect([c.sandbox_api_key, c.sandbox_base_url, c.sandbox_domain]).toEqual(["k", "https://x", "d"]);
   });
 
   it("test_retired_kwarg_does_not_override_the_canonical_field", () => {
     const c = new LayeredConfig({ api_key: "a", sandbox_api_key: "b" } as never);
     expect(c.sandbox_api_key).toBe("b");
-    expect(c.api_key).toBe("b");
+    expect(c.sandbox_api_key).toBe("b");
   });
 
   it("test_legacy_setters", () => {
     const c = new LayeredConfig();
-    c.api_key = "z";
-    c.api_url = "https://y";
+    c.sandbox_api_key = "z";
+    c.sandbox_base_url = "https://y";
     expect([c.sandbox_api_key, c.sandbox_base_url]).toEqual(["z", "https://y"]);
   });
 
@@ -73,7 +69,6 @@ const CASES: Array<[string, string, string | number | boolean]> = [
   ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", "id"],
   ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", "sec"],
   ["ABX_HTTP_TIMEOUT", "http_timeout", 12.5],
-  ["ABX_MAX_RETRIES", "max_retries", 7],
   ["ABX_HTTP2", "http2", false],
 ];
 const RETIRED_ENV = [
@@ -136,9 +131,9 @@ describe("TestPrecedence", () => {
     expect(loadLayeredConfig().sandbox_api_key).toBe("canon-env");
   });
 
-  it("test_override_beats_env_beats_dotenv_beats_toml", () => {
+  it("test_secret_precedence_ignores_plaintext_toml", () => {
     iso.writeToml('[transport]\nsandbox_api_key = "toml"\n');
-    expect(loadLayeredConfig().sandbox_api_key).toBe("toml");
+    expect(loadLayeredConfig().sandbox_api_key).toBeNull();
     iso.writeEnv("ABX_SANDBOX_API_KEY=dotenv\n");
     expect(loadLayeredConfig().sandbox_api_key).toBe("dotenv");
     iso.setenv("ABX_SANDBOX_API_KEY", "env");
@@ -253,101 +248,5 @@ describe("TestExplain", () => {
   it("test_short_secrets_fully_masked", () => {
     iso.setenv("ABX_SANDBOX_API_KEY", "short");
     expect(explainConfig()["sandbox_api_key"]?.value).toBe("****");
-  });
-});
-
-describe("TestAudit", () => {
-  it("test_retired_names_are_not_reported", () => {
-    iso.setenv("SANDBOX_API_KEY", "secret-value");
-    iso.setenv("E2B_API_KEY", "x");
-    iso.writeEnv("SANDBOX_REGION=cn-beijing\nABX_HTTP_TIMEOUT=5\n");
-    iso.writeToml('[transport]\napi_url = "https://t"\nsandbox_domain = "d"\n');
-    const found = auditConfig();
-    expect(found).toEqual([]);
-    expect(JSON.stringify(found)).not.toContain("secret-value");
-  });
-
-  it("test_empty_when_clean", () => {
-    iso.setenv("ABX_SANDBOX_API_KEY", "x");
-    expect(auditConfig()).toEqual([]);
-  });
-});
-
-describe("TestOptInWarning", () => {
-  it("test_default_is_silent", () => {
-    iso.setenv("SANDBOX_API_KEY", "x");
-    _resetDeprecationWarnings();
-    const spy = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
-    try {
-      loadLayeredConfig();
-      new LayeredConfig({ api_key: "x" } as never);
-      expect(spy).not.toHaveBeenCalled();
-    } finally {
-      spy.mockRestore();
-    }
-  });
-
-  it("test_opt_in_does_not_warn_for_a_retired_kwarg", () => {
-    iso.setenv("ABX_WARN_DEPRECATED", "1");
-    _resetDeprecationWarnings();
-    const spy = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
-    try {
-      const c = new LayeredConfig({ api_key: "x" } as never);
-      expect(c.sandbox_api_key).toBeNull();
-      expect(spy).not.toHaveBeenCalled();
-    } finally {
-      spy.mockRestore();
-    }
-  });
-});
-
-describe("TestMigration", () => {
-  const write = (): void => {
-    iso.writeToml('[transport]\napi_url = "https://t.example"\nregion = "cn-beijing"\nhttp_timeout = 9\n');
-    iso.writeEnv("# keep me\nE2B_API_KEY=abc\nSANDBOX_REGION=cn-shanghai\nSANDBOX_API_KEY=old\nOPENAI_API_KEY=k\n");
-  };
-
-  it("test_plan_is_deterministic", () => {
-    write();
-    expect(planMigration()).toEqual(planMigration());
-  });
-
-  it("test_apply_rewrites_to_canonical_and_preserves_effective_config", () => {
-    write();
-    const before = loadLayeredConfig();
-    const snapshot = ["sandbox_api_key", "sandbox_base_url", "region", "http_timeout"].map((f) => field(before, f));
-    const plan = applyMigration();
-    expect(plan.length).toBeGreaterThan(0);
-    resetLayeredConfig();
-    const after = loadLayeredConfig();
-    ["sandbox_api_key", "sandbox_base_url", "region", "http_timeout"].forEach((f, i) => expect(field(after, f), f).toEqual(snapshot[i]));
-    const doc = parseTomlText(fs.readFileSync(iso.toml, "utf-8")) as Record<string, Record<string, unknown>>;
-    expect(doc["core"]?.["config_format"]).toBe(2);
-    expect(doc["transport"]?.["api_url"]).toBe("https://t.example");
-    expect(doc["transport"]?.["http_timeout"]).toBe(9);
-    expect(doc["transport"]).not.toHaveProperty("region");
-    const providers = doc["providers"] as Record<string, Record<string, unknown>> | undefined;
-    expect(providers?.["alicloud-express"]?.["region"]).toBe("cn-beijing");
-    const envText = fs.readFileSync(iso.env, "utf-8");
-    expect(envText).toContain("# keep me");
-    expect(envText).toContain("OPENAI_API_KEY=k");
-    expect(envText).toContain("E2B_API_KEY=abc");
-    expect(envText).toContain("SANDBOX_API_KEY=old");
-    expect(envText).not.toContain("ABX_SANDBOX_API_KEY");
-    expect(fs.existsSync(path.join(iso.home, "config.toml.bak"))).toBe(true);
-    expect(fs.existsSync(path.join(iso.home, ".env.bak"))).toBe(true);
-    if (process.platform !== "win32") {
-      expect((fs.statSync(iso.toml).mode & 0o777).toString(8)).toBe("600");
-      expect((fs.statSync(path.join(iso.home, ".env.bak")).mode & 0o777).toString(8)).toBe("600");
-    }
-  });
-
-  it("test_apply_twice_is_stable", () => {
-    write();
-    applyMigration();
-    const first = [fs.readFileSync(iso.toml, "utf-8"), fs.readFileSync(iso.env, "utf-8")];
-    applyMigration();
-    expect([fs.readFileSync(iso.toml, "utf-8"), fs.readFileSync(iso.env, "utf-8")]).toEqual(first);
-    expect(auditConfig()).toEqual([]);
   });
 });

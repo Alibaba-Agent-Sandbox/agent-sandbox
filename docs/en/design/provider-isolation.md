@@ -35,11 +35,6 @@ resources on success and failure. Class methods on returned managers retain thei
 An absent factory or operation returns E8004; a feature declaration alone cannot enable it.
 Mutations require explicit confirmation before constructing generic template infrastructure.
 
-`buildProject` accepts a local project directory only when that provider implements it.
-This contract does not activate the separate proposed image-only `buildTemplates(ctx)`
-contract, provision remote templates for existing-ID-only providers, or invent PTY.
-Backend support and real-backend acceptance are still required for each feature.
-
 ## Session binding and compatibility
 
 Providers supply protocol construction, session authentication, URL derivation,

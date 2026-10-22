@@ -71,7 +71,6 @@ const IGNORED_PLATFORM_STEPS = "A Dockerfile is selected, so template.yaml build
 
 const STEPS_WITH_ACR = "--acr-namespace cannot be used with platform build steps.";
 
-const STEPS_WITH_LEGACY = "--legacy-api cannot be used with platform build steps.";
 
 /** `dict.get(key, default)`: only a missing key falls back (a stored `null` stays `null`). */
 function _get(obj: Record<string, Any>, key: string, dflt: Any): Any {
@@ -428,7 +427,7 @@ export class _StepReporter {
 
 /** Print a notice only when `--provenance=false` will actually be added to `docker build`. */
 export async function _provenanceNotice(out: Any): Promise<void> {
-    if (out.json_mode || out.jsonMode || out.quiet)
+    if (out.jsonMode || out.quiet)
         return;
     if (!(await dockerBuildxAvailable()))
         return;
@@ -539,7 +538,6 @@ interface RunReportedDeployOptions {
     dockerfile: string | null;
     disk_size: number | null;
     internet_access: boolean | null;
-    use_official: boolean;
     team_id: string | null;
     envd_inject: boolean;
     resolved_generation: number;
@@ -564,7 +562,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
     let acrRef: string;
     let buildStatus: string;
     let buildLogs: string[];
-    if (o.use_official) {
+    {
         const localTag = await templateSeams._buildImage(template_dir, {
             tag,
             repo: acr.repo,
@@ -612,7 +610,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         templateId = apiResult["templateID"] ?? "";
         if (!templateId) {
             throw new TemplateBuildError("CreateTemplate returned no template ID.", {
-                suggestion: "Inspect 'abx template list --official-api' before retrying; registration may already have been submitted.",
+                suggestion: "Inspect 'abx template list' before retrying; registration may already have been submitted.",
             });
         }
         reporter.phase(`Waiting for template to become READY: ${templateId}`);
@@ -632,38 +630,12 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         buildId = "";
         buildLogs = [];
     }
-    else {
-        const builder = new templateSeams.DockerBuilder();
-        const result = await builder.buildAndRegister(template_dir, acr, {
-            name: template_name,
-            tag,
-            platform,
-            dockerfile,
-            cpu_count: o.resolved_cpu,
-            memory_mb: o.resolved_memory,
-            start_cmd,
-            ready_cmd,
-            on_progress: (m) => reporter.phase(m),
-            on_output: (l) => reporter.log(l),
-            api_key: config.api_key,
-            api_url: config.api_url,
-            access_key_id: config.access_key_id,
-            access_key_secret: config.access_key_secret,
-            timeout,
-        });
-        reporter.done(`Template registration finished: ${result.template_id || "N/A"}`);
-        templateId = result.template_id;
-        buildId = result.build_id;
-        acrRef = result.acr_ref;
-        buildStatus = result.build_status;
-        buildLogs = result.logs;
-    }
     return {
         TemplateID: templateId || "N/A",
         BuildID: buildId || "N/A",
         "ACR Image": acrRef || "N/A",
         Status: buildStatus,
-        _build_logs: !o.use_official ? buildLogs : [],
+        _build_logs: [],
     };
 }
 
@@ -690,7 +662,6 @@ export interface DoDeployOptions {
     dockerfile?: string | null;
     disk_size?: number | null;
     internet_access?: boolean | null;
-    use_official?: boolean;
     team_id?: string | null;
     envd_inject?: boolean;
     generation?: number | null;
@@ -750,11 +721,9 @@ export async function withDeployConfiguration<T>(directory: string, opts: DoDepl
     resolveDeployRuntime(directory, opts);
     if (plan.kind === "steps") {
         if (opts.explicit_acr_namespace) throw usageError(STEPS_WITH_ACR);
-        if (opts.use_official === false) throw usageError(STEPS_WITH_LEGACY);
     }
     const config = templateSeams.loadConfig({ region: opts.region });
-    const requirements: (string | GuidanceField)[] = opts.use_official !== false
-        ? ["access_key_id", "access_key_secret"] : ["sandbox_api_key"];
+    const requirements: (string | GuidanceField)[] = ["access_key_id", "access_key_secret"];
     const values: Record<string, unknown> = { access_key_id: config.access_key_id, access_key_secret: config.access_key_secret,
         sandbox_api_key: config.api_key, region: config.region };
     if (plan.kind === "dockerfile") {
@@ -766,7 +735,7 @@ export async function withDeployConfiguration<T>(directory: string, opts: DoDepl
                 { key: "acr_password", label: "ACR password / AccessKey Secret", secret: true, env: "ACR_PASSWORD", flag: "--acr-password", persist: false });
             values["acr_username"] = opts.acr_username || config.access_key_id;
             values["acr_password"] = opts.acr_password || config.access_key_secret;
-        } else if (opts.use_official === false) requirements.push("access_key_id", "access_key_secret");
+        }
     }
     if (plan.kind === "dockerfile" && canGuideConfiguration(opts.ctx ?? undefined, Boolean(opts.yes))) {
         const registry = opts.acr_registry || "registry.cn-hangzhou.aliyuncs.com";
@@ -795,7 +764,7 @@ export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Pr
 }
 
 async function deployConfigured(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
-    const { acr_namespace: requestedNamespace, acr_registry = "registry.cn-hangzhou.aliyuncs.com", acr_repo = null, acr_username = null, acr_password = null, acree_instance_id = "", vpc_id = "", vswitch_ids = "", security_group_id = "", alias = null, tag = "latest", platform = "linux/amd64", cpu = null, memory = null, start_cmd = null, ready_cmd = null, timeout = 600, dockerfile = null, disk_size = null, internet_access = null, use_official = true, team_id = null, envd_inject = false, generation = null, force = false, target_image = null, region = null, ctx = null, verbose = false, build = null, explicit_acr_namespace = false, } = opts;
+    const { acr_namespace: requestedNamespace, acr_registry = "registry.cn-hangzhou.aliyuncs.com", acr_repo = null, acr_username = null, acr_password = null, acree_instance_id = "", vpc_id = "", vswitch_ids = "", security_group_id = "", alias = null, tag = "latest", platform = "linux/amd64", cpu = null, memory = null, start_cmd = null, ready_cmd = null, timeout = 600, dockerfile = null, disk_size = null, internet_access = null, team_id = null, envd_inject = false, generation = null, force = false, target_image = null, region = null, ctx = null, verbose = false, build = null, explicit_acr_namespace = false, } = opts;
     const config = templateSeams.loadConfig({ region });
     const yamlDefaults = _readYamlDefaults(template_dir);
     const resolvedCpu: number = cpu !== null ? cpu : _coerceInt(yamlDefaults["cpu"], 2);
@@ -820,8 +789,6 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
     if (plan.kind === "steps") {
         if (explicit_acr_namespace)
             throw usageError(STEPS_WITH_ACR);
-        if (!use_official)
-            throw usageError(STEPS_WITH_LEGACY);
         if (!config.access_key_id || !config.access_key_secret) {
             throw new CliError("Alibaba Cloud credentials missing. Run 'abx config init --build', or " +
                 "'abx config set access_key_id' / 'abx config set access_key_secret'. " +
@@ -851,7 +818,7 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
             const templateId = pyStr(apiResult["templateID"] ?? "");
             if (!templateId) {
                 throw new TemplateBuildError("CreateTemplate returned no template ID.", {
-                    suggestion: "Inspect 'abx template list --official-api' before retrying; registration may already have been submitted.",
+                    suggestion: "Inspect 'abx template list' before retrying; registration may already have been submitted.",
                 });
             }
             reporter.done(`Template registration submitted: ${templateId}`);
@@ -911,7 +878,6 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
             dockerfile: plan.dockerfile,
             disk_size,
             internet_access,
-            use_official,
             team_id,
             envd_inject,
             resolved_generation: resolvedGeneration,
@@ -1050,7 +1016,7 @@ export const install = template.command("install", {
         // Locate template.yaml
         const yamlPath = _findTemplateYaml(sourcePath);
         if (yamlPath === null) {
-            fmt.printError(`No template.yaml (or sandbox-template.yaml / sandbox.yaml) found in ${sourcePath}`, {
+            fmt.printError(`No template.yaml found in ${sourcePath}`, {
                 suggestion: "Ensure the repository contains a template.yaml at the root.",
             });
             sysExit(1);
@@ -1162,12 +1128,12 @@ export const list_templates = template.command("list", {
     params: templateUi["list"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.read");
-        return withExpressConfiguration(ctx, params, params["official_api"] ? ["access_key_id", "access_key_secret"] : ["sandbox_api_key"], async () => {
+        return withExpressConfiguration(ctx, params, ["access_key_id", "access_key_secret"], async () => {
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
-        if (params["official_api"]) {
+        {
             if (!(config.access_key_id && config.access_key_secret)) {
-                throw new CliError("--official-api requires AccessKey/AccessSecret in the environment.");
+                throw new CliError("Template management requires AccessKey/AccessSecret in the environment.");
             }
             const templates = await fcTemplate.listOfficialTemplates({
                 access_key_id: config.access_key_id,
@@ -1188,42 +1154,6 @@ export const list_templates = template.command("list", {
             fmt.printTable(headers, rows);
             return;
         }
-        const auth = createAuthProvider({
-            api_key: config.api_key,
-            access_key_id: config.access_key_id,
-            access_key_secret: config.access_key_secret,
-        });
-        const httpClient = new HttpClient(config, auth);
-        let templates: Any;
-        try {
-            const resp = await httpClient.platformRequest("GET", "/templates");
-            templates = resp.json();
-        }
-        catch (exc) {
-            if (exc instanceof HTTPStatusError)
-                throw _translatePlatformError(exc, { context: "Listing templates" });
-            throw exc;
-        }
-        finally {
-            await httpClient.close();
-        }
-        if (!pyTruthy(templates)) {
-            fmt.printSuccess("No custom templates found. Use 'abx template install <repo>' to install from GitHub.");
-            return;
-        }
-        if (Array.isArray(templates)) {
-            const headers = ["TemplateID", "Alias", "Status"];
-            const rows = templates.map((t: Any) => {
-                const aliases = Array.isArray(t["aliases"]) ? t["aliases"].join(", ") : _get(t, "aliases", "N/A");
-                // Preserve an explicit state; builds[0] is the backend's current build.
-                const status = t["status"] ?? (Array.isArray(t["builds"]) ? t["builds"][0]?.status : undefined) ?? "N/A";
-                return [_get(t, "templateID", "N/A"), t["alias"] ?? aliases, _isDict(status) ? _get(status, "state", "N/A") : status];
-            });
-            fmt.printTable(headers, rows);
-        }
-        else {
-            fmt.printData(templates);
-        }
         });
     }),
 });
@@ -1233,13 +1163,13 @@ export const info = template.command("info", {
     params: templateUi["info"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.read");
-        return withExpressConfiguration(ctx, params, params["official_api"] ? ["access_key_id", "access_key_secret"] : ["sandbox_api_key"], async () => {
+        return withExpressConfiguration(ctx, params, ["access_key_id", "access_key_secret"], async () => {
         const templateId: string = params["template_id"];
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
-        if (params["official_api"]) {
+        {
             if (!(config.access_key_id && config.access_key_secret)) {
-                throw new CliError("--official-api requires AccessKey/AccessSecret in the environment.");
+                throw new CliError("Template management requires AccessKey/AccessSecret in the environment.");
             }
             const data = await fcTemplate.getTemplate(templateId, {
                 access_key_id: config.access_key_id,
@@ -1254,33 +1184,6 @@ export const info = template.command("info", {
                 fmt.printData(data);
             }
             return;
-        }
-        const auth = createAuthProvider({
-            api_key: config.api_key,
-            access_key_id: config.access_key_id,
-            access_key_secret: config.access_key_secret,
-        });
-        const httpClient = new HttpClient(config, auth);
-        let data: Any;
-        try {
-            const resp = await httpClient.platformRequest("GET", `/templates/${templateId}`);
-            data = resp.json();
-        }
-        catch (exc) {
-            if (exc instanceof HTTPStatusError) {
-                throw _translatePlatformError(exc, { context: "Fetching template info", template_id: templateId });
-            }
-            throw exc;
-        }
-        finally {
-            await httpClient.close();
-        }
-        // BUG-09: Format as readable key-value pairs instead of raw dict.
-        if (_isDict(data)) {
-            fmt.printDict(_stringifyValues(data));
-        }
-        else {
-            fmt.printData(data);
         }
         });
     }),
@@ -1466,8 +1369,6 @@ export const build = template.command("build", {
         if (plan.kind === "steps") {
             if (explicitAcr)
                 throw usageError(STEPS_WITH_ACR);
-            if (!params["use_official"])
-                throw usageError(STEPS_WITH_LEGACY);
         }
         return withDeployConfiguration(templateDir, { ...params, ctx, explicit_acr_namespace: explicitAcr }, async () => {
         // Resolve ACR namespace: CLI > env > .env file. Platform steps do not push an image.
@@ -1559,7 +1460,6 @@ export const build = template.command("build", {
             dockerfile: params["dockerfile"],
             disk_size: params["disk_size"],
             internet_access: params["internet_access"],
-            use_official: params["use_official"],
             team_id: params["team_id"],
             envd_inject: params["envd_inject"],
             generation: runtime.generation,
@@ -1616,7 +1516,7 @@ export const delete_ = template.command("delete", {
     params: templateUi["delete"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.build");
-        return withExpressConfiguration(ctx, params, ["sandbox_api_key"], async () => {
+        return withExpressConfiguration(ctx, params, ["access_key_id", "access_key_secret"], async () => {
         const templateId: string = params["template_id"];
         if (!params["yes"]) {
             if (!canGuideConfiguration(ctx, false) || !templateSeams.stdinIsatty()) {
@@ -1626,24 +1526,9 @@ export const delete_ = template.command("delete", {
         }
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
-        const auth = createAuthProvider({
-            api_key: config.api_key,
-            access_key_id: config.access_key_id,
-            access_key_secret: config.access_key_secret,
+        await fcTemplate.deleteTemplate(templateId, {
+            access_key_id: config.access_key_id!, access_key_secret: config.access_key_secret!, region: config.region,
         });
-        const httpClient = new HttpClient(config, auth);
-        try {
-            await httpClient.platformRequest("DELETE", `/templates/${templateId}`);
-        }
-        catch (exc) {
-            if (exc instanceof HTTPStatusError) {
-                throw _translatePlatformError(exc, { context: "Deleting template", template_id: templateId });
-            }
-            throw exc;
-        }
-        finally {
-            await httpClient.close();
-        }
         fmt.printSuccess(`Template ${templateId} deleted.`);
         });
     }),

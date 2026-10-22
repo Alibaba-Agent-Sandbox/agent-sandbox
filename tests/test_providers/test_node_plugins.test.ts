@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import type { ProcessResult } from "../../src/models/process.js";
-import { ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { getProvider } from "../../src/providers/registry.js";
 import { useIso } from "../_support/iso.js";

@@ -260,9 +260,6 @@ Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.
 
 见[迁移、职责及更新设计](../design/provider-portability-and-updates.md)：已有资源接入边界、旧 FC 模板保护、provider 镜像工厂，以及 Git、手动与内置更新的区别。
 
-已推送镜像入口是 `abx --provider PROVIDER template from-image IMAGE --name NAME -y`，要求独立的 `templates.deploy` 能力。E2B 可选宿主 SDK 需 Node22+；厂商 manifest 仍以真实后端验收为门槛，安装宿主的本地测试不代表云端已支持。
-### 预检与厂商错误
-
 原生终端在访问会话或协议之前检查所选 Provider 的 PTY 声明。Express 内部模板部署在
 读取凭据或项目文件之前检查归属；自然语言部署在生成前检查对应适配器。仅声明
 `templates.build` 不会授权 FC/ACR 操作。恢复连接仅在端点返回404/405时回退；

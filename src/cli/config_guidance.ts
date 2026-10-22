@@ -53,7 +53,7 @@ const safeHost = (value: string): string => {
 };
 
 function configValue(config: LayeredConfig, key: string): unknown {
-  if (getProvider(config.provider).configFields.some((field) => field.key === key) && !bundledConfig(config.provider)?.legacyFields.has(key)) {
+  if (getProvider(config.provider).configFields.some((field) => field.key === key) && !bundledConfig(config.provider)?.transportFields.has(key)) {
     return config.provider_options[key];
   }
   return (config as unknown as Record<string, unknown>)[key] ?? config.provider_options[key];
@@ -125,7 +125,7 @@ export async function withGuidedConfiguration<T>(
   }
   const snapshot = (): Record<string, unknown> => ({ ...config, ...getOperationConfig(), ...values, ...overrides,
     provider_options: { ...config.provider_options, ...((overrides["provider_options"] as Record<string, unknown> | undefined) ?? {}),
-      ...Object.fromEntries(Object.entries(values).filter(([name]) => keys.has(name) && !bundledConfig(provider.id)?.legacyFields.has(name))) },
+      ...Object.fromEntries(Object.entries(values).filter(([name]) => keys.has(name) && !bundledConfig(provider.id)?.transportFields.has(name))) },
   });
   const execute = (): Promise<T> => {
     if (request.validateProvider !== false) provider.validateConfig(loadLayeredConfig({ provider: provider.id }));

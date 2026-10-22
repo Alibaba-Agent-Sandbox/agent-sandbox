@@ -17,7 +17,7 @@ import { SandboxConfig, type SandboxInfo } from "../models/sandbox.js";
 import { EnvdTokenManager } from "./shared/e2b/auth.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { FEATURES, type Provider, type ProviderInfra } from "./base.js";
-import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "./errors.js";
+import { ProviderFeatureNotSupportedError, ProviderResourceNotFoundError } from "../models/provider_errors.js";
 import * as registry from "./registry.js";
 
 const UNKNOWN_ID = "does-not-exist-0000";

@@ -1,0 +1,23 @@
+── Sandbox authentication ──────────────────────────────────────
+sandbox_api_key    (not set)
+
+── Alibaba Cloud credentials ───────────────────────────────────
+access_key_id      (not set)
+access_key_secret  (not set)
+acr_namespace      (not set)
+
+── Connection ──────────────────────────────────────────────────
+sandbox_base_url   https://api.cn-hangzhou.e2b.fc.aliyuncs.com (default)
+region             cn-hangzhou (default)
+sandbox_domain     cn-hangzhou.e2b.fc.aliyuncs.com (default)
+http_timeout       30.0 (default)
+http2              True (default)
+
+── LLM ─────────────────────────────────────────────────────────
+llm_api_key        (not set)
+llm_model          qwen3-coder-plus (default)
+llm_base_url       https://dashscope.aliyuncs.com/compatible-mode/v1 (default)
+
+── Integrations ────────────────────────────────────────────────
+github_token       (not set)
+[exit_code:0]

@@ -28,7 +28,7 @@ import {
   type KeyType,
   type Storage,
 } from "../utils/config_keys.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import type { ProviderCommand, ProviderCommandRunner } from "./command_contract.js";
 
 /** Feature registry (design section 7.2). Values are the stable wire/manifest ids. */
@@ -46,7 +46,6 @@ export const FEATURES = [
   "code.interpret",
   "templates.read",
   "templates.build",
-  "templates.deploy",
   "ports.url",
   "ports.domain",
   "storage.mount",
@@ -121,8 +120,7 @@ export function configFieldToKey(field: ConfigField, providerId: string): Config
     aliases,
     env_names: [],
     toml_section: null,
-    storage_phase1: storage,
-    storage_phase2: storage,
+    storage: storage,
     default: field.default ?? null,
     choices: field.choices ?? [],
     group: "",
@@ -172,34 +170,6 @@ export interface TerminalContext {
   http: HttpClient | null;
   process: ProviderInfra["process_protocol"];
 }
-export interface LegacyInfraOptions {
-  api_key?: string | null; api_url?: string | null;
-  access_key_id?: string | null; access_key_secret?: string | null;
-  provider_options?: Record<string, unknown> | null;
-}
-
-/** Narrow, optional pushed-image contract; legacy template build/read features do not imply this factory. */
-export interface ProviderImageRequest {
-  source: { kind: "image"; image: string };
-  name: string;
-  spec?: { cpu?: number; memory?: number; start_cmd?: string; ready_cmd?: string };
-  registry?: { username: string; password: string };
-  timeout?: number;
-  signal?: AbortSignal;
-}
-
-export interface ProviderImageResult {
-  template_id: string;
-  build_id: string;
-  status: "ready";
-  ref: string;
-}
-
-export interface ProviderTemplates {
-  deploy(input: ProviderImageRequest): Promise<ProviderImageResult>;
-  close?: () => void | Promise<void>;
-}
-
 export interface ProviderDescription {
   id: string;
   name: string;
@@ -301,11 +271,6 @@ export abstract class Provider {
       code_interpreter_protocol: unsupportedProtocol(this.id, "code.interpret") } as unknown as SessionProtocols;
   }
 
-  /** Compatibility factory; normal Sandbox operations always use buildInfra. */
-  buildLegacyInfra(_opts: LegacyInfraOptions): [TransportConfig, AuthProvider, HttpClient, SandboxProtocol] {
-    throw new ProviderFeatureNotSupportedError(this.id, "sandbox.legacy-infra");
-  }
-
   createSessionAuth(info: SandboxInfo, infra?: ProviderInfra): DataPlaneAuth {
     const protocol = infra?.sandbox_protocol as { createSessionAuth?: (info: SandboxInfo) => DataPlaneAuth } | undefined;
     if (protocol && "createSessionAuth" in protocol && typeof protocol.createSessionAuth === "function") return protocol.createSessionAuth(info);
@@ -356,11 +321,6 @@ export abstract class Provider {
       await infra.close?.();
       throw exc;
     }
-  }
-
-  /** Optional image factory. Supporting legacy templates.build does not opt in. */
-  async buildTemplates(_config: LayeredConfig): Promise<ProviderTemplates> {
-    throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
   }
 
   /** Template capability tokens implied by this provider's features. */

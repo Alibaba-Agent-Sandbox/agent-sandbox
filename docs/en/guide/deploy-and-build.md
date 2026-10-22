@@ -74,7 +74,7 @@ If the directory has neither a `Dockerfile` nor `build:` steps, the command stop
 CLI0.4.1 adds `--native` as the first global option for the project command surface. Use this entry for official Express template inventory/readback/cleanup and the canonical platform-step harness:
 
 ```bash
-abx --native --json template list --official-api
+abx --native --json template list
 abx --native template deploy ./my-template --build steps --yes
 # For the template catalog acceptance scripts:
 export ABX='abx --native'

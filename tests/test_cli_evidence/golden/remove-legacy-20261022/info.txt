@@ -1,0 +1,8 @@
+ID        alicloud-express:sbx-XXXXX
+Template  base
+Status    running
+Region    cn-hangzhou
+Timeout   300s
+URL       https://sbx-XXXXX.cn-hangzhou.e2b.fc.aliyuncs.com
+Provider  alicloud-express
+[exit_code:0]

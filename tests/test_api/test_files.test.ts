@@ -6,7 +6,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 import { FileInfo, FileType } from "../../src/models/filesystem.js";
 import { TEST_ENVD_URL, makeFilesModule } from "./conftest.js";
 
@@ -160,10 +160,10 @@ describe("TestFilesUploadDownloadUrls", () => {
 });
 
 describe("TestFilesRename", () => {
-  // Test FilesModule.rename().
+  // Test FilesModule.move().
   it("test_rename_calls_protocol", async () => {
     const { module: files_module, filesystem_protocol } = makeFilesModule();
-    await files_module.rename("/app/old.py", "/app/new.py");
+    await files_module.move("/app/old.py", "/app/new.py");
     expect(filesystem_protocol.move).toHaveBeenCalledTimes(1);
     const call_kwargs = filesystem_protocol.move.mock.calls[0][2];
     expect(call_kwargs["source"]).toBe("/app/old.py");

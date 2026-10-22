@@ -25,7 +25,7 @@ import {
 } from "../../src/models/errors.js";
 import type { ProcessResult } from "../../src/models/process.js";
 import { SandboxStatus } from "../../src/models/sandbox.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { loadManifest } from "../../src/providers/manifest.js";
 import { getProvider } from "../../src/providers/registry.js";

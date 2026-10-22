@@ -132,7 +132,6 @@ supported = ["templates.read"]
     const provider = new IsolatedProvider();
     const info = new SandboxInfo({ sandbox_id: "s", envd_url: null });
     const config = new TransportConfig({ domain: "protocol.test" });
-    vi.spyOn(config, "buildEnvdUrl").mockImplementation(() => { throw new Error("legacy config URL helper used"); });
     expect(provider.resolveSessionUrl(info, config)).toBe("");
     expect(provider.resolveSessionUrl(info, config, new E2BProtocol({} as HttpClient)))
       .toBe("https://49983-s.protocol.test");
@@ -163,7 +162,7 @@ supported = ["templates.read"]
   });
   it("keeps concrete backend imports out of core implementation modules", () => {
     const composition = new Set(["cli/provider_extensions.ts", "agent/provider_template_extensions.ts",
-      "utils/cli_config_keys.ts"]);
+      "utils/cli_config_keys.ts", "utils/bundled_config.ts"]);
     const violations: string[] = [];
     const root = fileURLToPath(new URL("../../src/", import.meta.url));
     for (const file of fs.readdirSync(root, { recursive: true }).filter((p): p is string => typeof p === "string" && p.endsWith(".ts"))) {
@@ -182,17 +181,4 @@ supported = ["templates.read"]
     }
     expect(violations).toEqual([]);
   });
-});
-
-
-it("compatibility URL views consume provider metadata without selecting a wire adapter", async () => {
-  const { CONFIG_METADATA } = await import("../../src/providers/alicloud_express/metadata.js");
-  const old = CONFIG_METADATA.legacyDataPlaneUrlTemplate;
-  try {
-    CONFIG_METADATA.legacyDataPlaneUrlTemplate = "https://{domain}/owned/{sandbox_id}";
-    expect(new TransportConfig({ domain: "owned.example" }).buildEnvdUrl("$&")).toBe("https://owned.example/owned/$&");
-    expect(loadLayeredConfig({ provider: "alicloud-express" }).buildEnvdUrl("owned")).toContain("/owned/owned");
-  } finally {
-    CONFIG_METADATA.legacyDataPlaneUrlTemplate = old;
-  }
 });
