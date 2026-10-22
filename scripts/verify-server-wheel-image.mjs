@@ -6,7 +6,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, wri
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { DockerBuilder } from '../dist/api/docker_builder.js';
+import { DockerBuilder } from '../dist/providers/alicloud_express/docker_builder.js';
 import { SERVER_SDK_PIP_SPEC } from '../dist/utils/server_sdk_pin.js';
 
 const templates = resolve(process.env.ABX_REVIEW_TEMPLATES);

@@ -35,3 +35,7 @@ Read-only template inspection creates no resource. Local fixtures own their temp
 
 - PASS: 535 targeted CLI/configuration/protocol-adapter/research regressions on the final source.
 - PASS: real native CLI `--json template list` and `template info` via the official control plane, with valid JSON results. Both operations are read-only.
+
+## Remote Docker gate correction
+
+The first native Docker job retained an import of the deleted forwarding module in its verification script. It now imports DockerBuilder from the owning provider path. The obsolete standalone image-factory E2E scripts and npm entry are removed; current provider project preparation is covered by the provider T0/T4 workflows. The corrected native Docker gate is rerun remotely.
