@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import * as E from "../../src/providers/errors.js";
+import * as E from "../../src/models/provider_errors.js";
 import * as epp from "../../src/providers/epp.js";
 import { EppClient, exitCodeFor, mapError, scrubbedEnv } from "../../src/providers/epp.js";
 import * as installer from "../../src/providers/installer.js";

@@ -3,7 +3,7 @@ import type { Context } from "./kit.js";
 import { withGuidedConfiguration } from "./config_guidance.js";
 import { cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, resolveProviderId } from "../providers/registry.js";
-import { ProviderMismatchError } from "../providers/errors.js";
+import { ProviderMismatchError } from "../models/provider_errors.js";
 import { UsageError } from "./errors.js";
 import { getFormatter } from "./formatters.js";
 

@@ -54,13 +54,6 @@ export interface ProcessProtocol {
         signal?: number;
         request_timeout?: number | null;
     }): Promise<void>;
-    sendStdin(envd_url: string, envd_token: EnvdTokenManager, opts: {
-        pid: number | bigint | string;
-        data: string;
-    }): Promise<void>;
-    kill(envd_url: string, envd_token: EnvdTokenManager, opts: {
-        pid: number | bigint | string;
-    }): Promise<void>;
 }
 
 export interface FilesystemProtocol {
@@ -96,9 +89,6 @@ export interface FilesystemProtocol {
     exists(envd_url: string, envd_token: EnvdTokenManager, opts: {
         path: string;
     }): Promise<boolean>;
-    getInfo(envd_url: string, envd_token: EnvdTokenManager, opts: {
-        path: string;
-    }): Promise<FileInfo>;
     read(envd_url: string, envd_token: EnvdTokenManager, opts: {
         path: string;
     }): Promise<Uint8Array>;
@@ -109,10 +99,6 @@ export interface FilesystemProtocol {
     write(envd_url: string, envd_token: EnvdTokenManager, opts: {
         path: string;
         content: string | Uint8Array;
-    }): Promise<void>;
-    rename(envd_url: string, envd_token: EnvdTokenManager, opts: {
-        old_path: string;
-        new_path: string;
     }): Promise<void>;
 }
 

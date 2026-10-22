@@ -11,8 +11,7 @@ import {
   SandboxError,
 } from "../../src/models/errors.js";
 import { SandboxConfig } from "../../src/models/sandbox.js";
-import { SandboxProtocol } from "../../src/protocol/sandbox.js";
-import { AkSkAuth } from "../../src/transport/auth.js";
+import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { HTTPError, HTTPStatusError, HttpClient } from "../../src/transport/http.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
@@ -54,20 +53,19 @@ describe("KI-006 authentication error", () => {
     await raises(() => Sandbox.list({ api_key: SECRET, api_url: API }), AuthenticationError);
   });
 
-  it("test_aksk_auth_maps_to_invalid_credentials", async () => {
-    class Aksk extends AkSkAuth {
-      constructor() {
-        super("id", "secret");
-      }
-      override async getHeaders(): Promise<Record<string, string>> {
+  it("test_custom_auth_maps_to_invalid_credentials", async () => {
+    class CustomAuth {
+      async refresh(): Promise<void> {}
+      authenticationError(): InvalidCredentialsError { return new InvalidCredentialsError("Custom credentials were rejected"); }
+      async getHeaders(): Promise<Record<string, string>> {
         return {};
       }
     }
     httpx_mock.add_response({ method: "GET", status_code: 401, content: "" });
-    const client = new HttpClient(new TransportConfig({ api_url: API, http2: false }), new Aksk());
+    const client = new HttpClient(new TransportConfig({ api_url: API, http2: false }), new CustomAuth());
     const err = await raises(() => client.platformRequest("GET", "/sandboxes"), InvalidCredentialsError);
     expect(err.code).toBe("E1003");
-    expect(err.message).toBe("The Platform API rejected the AK/SK credentials (HTTP 401) for /sandboxes.");
+    expect(err.message).toBe("Custom credentials were rejected");
   });
 
   it.each([403, 404, 429, 500])("test_other_statuses_are_left_to_the_callers(%i)", async (status) => {

@@ -144,9 +144,9 @@ beforeEach(() => {
   // Deterministic native session id for the resume assertions.
   clarify.seams.newSessionId = () => _SESSION;
   // The research round (phase R) runs before the first assessment; mock it hermetically so no test ever shells out to the
-  // stub binary above. `true` (a plain bool -- the legacy backend contract) means the public facts were researched on the
+  // stub binary above. A successful structured outcome means the public facts were researched on the
   // native session; tests that need a classified failure swap in a `ResearchOutcome`.
-  const research = vi.fn(async () => true);
+  const research = vi.fn(async () => new clarify.ResearchOutcome({ ok: true }));
   clarify.seams.runResearch = research as unknown as typeof clarify.seams.runResearch;
   qwen = { binary, workdir: generated, research, prepareWorkdir };
 });
@@ -766,7 +766,7 @@ describe("TestResearchFirstFlow", () => {
 
   it("test_research_failure_warns_and_assessment_pins_the_session", async () => {
     // A failed research round never blocks: warn, then assess from scratch.
-    qwen.research.mockResolvedValue(false);
+    qwen.research.mockResolvedValue({ ok: false, reason: "", detail: "" });
     _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 

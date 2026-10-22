@@ -14,7 +14,7 @@ import {
   ProviderNotFoundError,
   ProviderTrustError,
   ProviderVersionError,
-} from "../../src/providers/errors.js";
+} from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import * as registry from "../../src/providers/registry.js";
 import * as settings from "../../src/providers/settings.js";

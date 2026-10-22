@@ -221,10 +221,10 @@ describe("TestConfigInitMaskedInput", () => {
   });
 });
 
-describe("TestLegacyQwenConfig", () => {
-  // Older qwen_code_* storage is read as the unified llm_* profile.
+describe("TestRetiredQwenConfig", () => {
+  // Retired qwen_code_* storage cannot configure the current LLM profile.
 
-  it("test_legacy_endpoint_is_listed_as_llm_base_url", async () => {
+  it("test_retired_endpoint_and_model_are_ignored", async () => {
     const tmp = tmpPath();
     const configFile = path.join(tmp, "config.toml");
     fs.writeFileSync(
@@ -238,8 +238,9 @@ describe("TestLegacyQwenConfig", () => {
     expect(result.output).not.toContain("qwen_code_");
     const base = lines(result.output).find((ln) => ln.startsWith("llm_base_url"))!;
     const model = lines(result.output).find((ln) => ln.startsWith("llm_model"))!;
-    expect(base).toContain("https://example.test/v1 (user)");
-    expect(model).toContain("qwen3.8-plus (user)");
+    expect(base).toContain("(default)");
+    expect(base).not.toContain("https://example.test/v1");
+    expect(model).toContain("(default)");
   });
 
   it("test_removed_qwen_key_points_at_llm_api_key", async () => {

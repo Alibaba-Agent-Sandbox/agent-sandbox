@@ -23,7 +23,7 @@ import { HttpClient } from "../transport/http.js";
 import { StreamReader } from "../transport/streaming.js";
 import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
 import { EppClient, PROTOCOL, isMethodNotFound, resolveCommand, scrubbedEnv, type AsyncQueue, type EppPeer, type Notification } from "./epp.js";
-import { ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "./errors.js";
+import { ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "../models/provider_errors.js";
 import { hostVersion } from "./host.js";
 import type { Manifest } from "./manifest.js";
 import * as store from "./store.js";
@@ -432,14 +432,7 @@ export class ExecProcessProtocol {
     await this.simple("process.signal", envdUrl, { pid: opts.pid, signal: opts.signal ?? 15 });
   }
 
-  async sendStdin(envdUrl: string, envdToken: EnvdTokenManager, opts: { pid: number | string; data: string }): Promise<void> {
-    await this.sendInput(envdUrl, envdToken, opts);
-  }
 
-  async kill(envdUrl: string, envdToken: EnvdTokenManager, opts: { pid: number | string }): Promise<void> {
-    if (!isEppUrl(envdUrl)) return this.nativeOr().kill(envdUrl, envdToken, opts as { pid: number });
-    await this.simple("process.kill", envdUrl, { pid: opts.pid });
-  }
 }
 
 function toProcessInfo(p: unknown): ProcessInfo {
@@ -536,9 +529,6 @@ export class ExecFilesystemProtocol {
     }
   }
 
-  async getInfo(envdUrl: string, token: EnvdTokenManager, opts: { path: string }): Promise<FileInfo> {
-    return this.stat(envdUrl, token, opts);
-  }
 
   async read(envdUrl: string, token: EnvdTokenManager, opts: { path: string }): Promise<Uint8Array> {
     return this.downloadFile(envdUrl, token, { path: opts.path });
@@ -552,10 +542,6 @@ export class ExecFilesystemProtocol {
   async write(envdUrl: string, token: EnvdTokenManager, opts: { path: string; content: string | Uint8Array }): Promise<void> {
     const raw = typeof opts.content === "string" ? new TextEncoder().encode(opts.content) : opts.content;
     await this.uploadFile(envdUrl, token, { path: opts.path, content: raw });
-  }
-
-  async rename(envdUrl: string, token: EnvdTokenManager, opts: { old_path: string; new_path: string }): Promise<void> {
-    await this.move(envdUrl, token, { source: opts.old_path, destination: opts.new_path });
   }
 }
 
@@ -615,7 +601,6 @@ export class ExecProvider extends Provider {
       if (val !== undefined && val !== null) core[key] = val;
     }
     core["http_timeout"] = config.http_timeout;
-    core["max_retries"] = config.max_retries;
     const secretValues = [
       ...this.configFields.filter((f) => f.secret && initConfig[f.key]).map((f) => String(initConfig[f.key])),
       ...(core["sandbox_api_key"] !== undefined ? [String(core["sandbox_api_key"])] : []),

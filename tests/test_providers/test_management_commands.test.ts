@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
 import { parseCommandSection, type ProviderCommand, type ProviderCommandRunner } from "../../src/providers/command_contract.js";
 import { commandTuning, getProviderCommand, listProviderCommands, runProviderCommand } from "../../src/providers/commands.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderIntegrityError, ProviderManifestError, ProviderProtocolError, ProviderTimeoutError } from "../../src/providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderIntegrityError, ProviderManifestError, ProviderProtocolError, ProviderTimeoutError } from "../../src/models/provider_errors.js";
 import { diffAspects, install } from "../../src/providers/installer.js";
 import { manifestSummary, parseManifest } from "../../src/providers/manifest.js";
 import { registerProvider } from "../../src/providers/registry.js";

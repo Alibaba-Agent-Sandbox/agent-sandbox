@@ -267,7 +267,6 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 
 [Apache-2.0](LICENSE) — see [`NOTICE`](NOTICE) for copyright information.
 
-Optional native provider extension: [templates from pushed images](docs/en/guide/provider-image-deployment.md). Public catalog factories remain gated and Beta.
 
 ## Release readiness
 
@@ -280,3 +279,5 @@ The Express core and conditional pause/snapshot receipts do not certify every ca
 Provider-owned pause/resume and Snapshot commands share one implementation across CLI and SDK; see the [registration and usage guide](docs/en/guide/provider-commands.md).
 
 For native Express template inventory and platform-step acceptance, CLI0.4.1 supports `abx --native` (first global option). See [native deployment operations](docs/en/guide/deploy-and-build.md#explicit-native-express-entry).
+
+Current API / 当前接口: [development contract](docs/en/guide/current-api.md).

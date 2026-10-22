@@ -68,7 +68,7 @@ describe("template build modes", () => {
 
     const legacy = await runner().invoke(cli, ["template", "build", stepsDir(), "--build", "steps", "--legacy-api", "--yes"]);
     expect(legacy.exit_code).toBe(2);
-    expect(legacy.output).toContain("--legacy-api cannot be used with platform build steps");
+    expect(legacy.output).toContain("No such option");
     expect(create).not.toHaveBeenCalled();
   });
 

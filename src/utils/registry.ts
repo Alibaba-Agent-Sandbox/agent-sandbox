@@ -137,21 +137,17 @@ export class RegistryClient {
   _fetchLocal(ref: TemplateRef): string {
     const local_path = pyJoin(ref.local_path as string);
 
-    // 验证必要文件存在（template.yaml 或 sandbox-template.yaml 或 sandbox.yaml 或 Dockerfile）
+    // 验证必要文件存在（template.yaml 或 Dockerfile）
     const yaml_path = path.join(local_path, "template.yaml");
-    const alt_yaml_path = path.join(local_path, "sandbox-template.yaml");
-    const alt2_yaml_path = path.join(local_path, "sandbox.yaml");
     const dockerfile_path = path.join(local_path, "Dockerfile");
 
     if (
       !pathExists(yaml_path) &&
-      !pathExists(alt_yaml_path) &&
-      !pathExists(alt2_yaml_path) &&
       !pathExists(dockerfile_path)
     ) {
       throw new ValueError(
         `Local template at ${local_path} must contain ` +
-          "template.yaml, sandbox-template.yaml, sandbox.yaml, or Dockerfile",
+          "template.yaml or Dockerfile",
       );
     }
 
@@ -396,9 +392,7 @@ export class RegistryClient {
     const cache_path = RegistryClient._cachePath(owner, repo, tag, subpath);
     if (
       pathExists(cache_path) &&
-      (pathExists(path.join(cache_path, "template.yaml")) ||
-        pathExists(path.join(cache_path, "sandbox-template.yaml")) ||
-        pathExists(path.join(cache_path, "sandbox.yaml")))
+      pathExists(path.join(cache_path, "template.yaml"))
     ) {
       return cache_path;
     }
@@ -449,5 +443,3 @@ export function loadTemplateFromYaml(file: string): SandboxTemplate {
   }
   return SandboxTemplate.modelValidate(flat);
 }
-
-

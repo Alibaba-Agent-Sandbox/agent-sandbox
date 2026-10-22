@@ -83,8 +83,9 @@ describe("standard configuration through the shipped entry", () => {
         env["ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY"] = "placeholder-scoped";
       } else {
         mkdirSync(path.join(cwd, ".abx"));
-        writeFileSync(path.join(cwd, ".abx", "config.toml"), `[providers.alicloud-express]\nsandbox_base_url = "${endpoint}"\nsandbox_api_key = "placeholder-scoped"\n`);
-        // TOML is below environment configuration, so leave canonical endpoint/key unset.
+        writeFileSync(path.join(cwd, ".abx", "config.toml"), `[providers.alicloud-express]\nsandbox_base_url = "${endpoint}"\n`);
+        writeFileSync(path.join(cwd, ".abx", ".env"), "ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY=placeholder-scoped\n", { mode: 0o600 });
+        // Endpoints use TOML; credentials use the environment-file contract.
         env["E2B_API_URL"] = "";
         env["E2B_API_KEY"] = "";
       }

@@ -112,9 +112,9 @@ graph TB
 
 原生客户端核心对应 Python SDK 的 Provider／Server 扩展分层；标准命令使用内嵌的协议客户端：
 
-- **Transport**（`src/transport/`）：`HttpClient`（重试、超时、连接管理）、WebSocket 辅助、流式解码器，`AuthProvider` 接口背后的 `ApiKeyAuth` / `AkSkAuth`，以及 `config.ts`——按代码参数、进程环境（`ABX_*` 与厂商官方的 `ALICLOUD_*` / `ALIBABA_CLOUD_*` 名称）、`.env`（逐 key 合并）、`~/.abx/config.toml` 的顺序解析配置的分层加载器。
-- **Protocol**（`src/protocol/`）：每种线上接口一个类（`SandboxProtocol`、`ProcessProtocol`、`FilesystemProtocol`、`CodeInterpreterProtocol`、`TerminalSession`、`PortClient`、`TemplateProtocol`）。
-- **API**（`src/api/`）：面向用户的 `Sandbox` 类及其模块、`TemplateManager`、`Image`、`DockerBuilder` 与官方模板 API 适配器。
+- **Transport**（`src/transport/`）：`HttpClient` 负责超时、连接和流式处理，数据面通过 `AuthProvider` 使用 `ApiKeyAuth`。极速版官方控制面客户端单独使用 AK/SK。分层配置依次解析当前参数、环境变量、环境文件和 TOML 设置。
+- **Protocol**：`src/protocol/contracts.ts` 定义宿主接口，实现位于所属提供方模块（包括 `src/providers/shared/e2b/`）；极速版模板操作使用官方控制面适配器。
+- **API**（`src/api/`）：原生 `Sandbox` 门面、沙箱功能模块和提供方自有的模板项目准备。`DockerBuilder` 与官方模板适配器属于极速版提供方。
 - **Session**（`src/session/`）：`LocalSessionStore` 将命名会话持久化为 JSON 文件；并发访问通过每个文件旁的锁目录保护（Node 没有 `flock`，见 `parity/KNOWN-GAPS.md`）。
 - **Models**（`src/models/`）：出现在线上协议或 `--json` 输出中的数据字段保持 Python 的 `snake_case` 名称和键顺序；异常类保持名称、`code` 与消息文本。
 

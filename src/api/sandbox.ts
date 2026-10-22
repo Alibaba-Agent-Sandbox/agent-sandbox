@@ -16,7 +16,7 @@ import { CommandNotFoundError, ConnectionError_ } from "../models/errors.js";
 import { setActiveProvider, trackOpenInfra } from "../providers/active.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import type { Provider, ProviderInfra } from "../providers/base.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderMismatchError } from "../providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderMismatchError } from "../models/provider_errors.js";
 import { cliOptions, cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, registerProvider, resolveProviderId } from "../providers/registry.js";
 import { providerEnvName } from "../utils/config_keys.js";
@@ -35,7 +35,7 @@ import type { StreamReader } from "../transport/streaming.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { PyFloat, pyRepr, pySorted, pyStr, pyStrip, pyTruthy } from "../utils/_pyformat.js";
 import { AttributeError } from "../utils/_pyos.js";
-import { NotImplementedError, RuntimeError, ValueError, dictGet, pyExcStr, pyTypeName } from "./_pyerrors.js";
+import { NotImplementedError, RuntimeError, ValueError, dictGet, pyExcStr, pyTypeName } from "../utils/_pyerrors.js";
 import { CodeContextModule } from "./code.js";
 import { CommandsModule } from "./commands.js";
 import { FilesModule } from "./files.js";
@@ -187,15 +187,6 @@ async function _providerInfra(prov: Provider, opts: BuildInfraOptions): Promise<
   if (opts.access_key_id) overrides["access_key_id"] = opts.access_key_id;
   if (opts.access_key_secret) overrides["access_key_secret"] = opts.access_key_secret;
   return prov.buildInfra(loadLayeredConfig(overrides));
-}
-
-/**
- * Build config, auth, http client, and sandbox protocol from credentials. Shared helper for class methods that need
- * standalone infra.
- */
-export function _buildInfra(opts: BuildInfraOptions = {}): [TransportConfig, AuthProvider, HttpClient, SandboxProtocol] {
-  const [provider] = _selectProvider(opts.provider);
-  return provider.buildLegacyInfra(opts);
 }
 
 export interface SandboxInit {

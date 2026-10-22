@@ -6,7 +6,7 @@ import * as path from "node:path";
 
 import { paths } from "../transport/config_layers.js";
 import { validateProviderId } from "../utils/config_keys.js";
-import { ProviderInstallError, ProviderIntegrityError, ProviderNotFoundError } from "./errors.js";
+import { ProviderInstallError, ProviderIntegrityError, ProviderNotFoundError } from "../models/provider_errors.js";
 
 export const RECEIPT_NAME = ".abx-install.json";
 export const RECEIPT_VERSION = 1;

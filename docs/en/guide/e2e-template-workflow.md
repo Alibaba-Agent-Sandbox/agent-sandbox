@@ -384,7 +384,7 @@ Common options:
 After deploying, list templates with `--official-api` to see the **real names and statuses** (`ready` / `building` / `error`). Below is real run output (2026-09-28, cn-hangzhou, truncated for brevity):
 
 ```bash
-$ abx template list --official-api
+$ abx template list
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
 ┃ TemplateID           ┃ Name                        ┃ Alias ┃ Status ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
@@ -418,7 +418,7 @@ $ abx template list
 Inspect a single template:
 
 ```bash
-$ abx template info <template-id> --official-api
+$ abx template info <template-id>
 ```
 
 ### Parameter defaults priority
@@ -556,7 +556,7 @@ No sandboxes found.
 
 ### Template name resolution (real failure case)
 
-`--template` accepts either a template **name** or an **ID**, but only a template that is `ready` and whose image starts successfully can be created. Below is the real output when creating `python-hello` — even though `abx template list --official-api` shows a `ready` `python-hello`, this create attempt had its connection reset by the platform during cold start:
+`--template` accepts either a template **name** or an **ID**, but only a template that is `ready` and whose image starts successfully can be created. Below is the real output when creating `python-hello` — even though `abx template list` shows a `ready` `python-hello`, this create attempt had its connection reset by the platform during cold start:
 
 ```bash
 $ abx create --template python-hello
@@ -571,14 +571,14 @@ Retrying multiple times under `http_timeout=120` and `http2=false` still failed,
 
 ```bash
 $ abx create --template python-hello
-[E3001] Request timed out: 
+[E3001] Request timed out:
   Suggestion: The HTTP request timed out. Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
   2. Or set env: export ABX_HTTP_TIMEOUT=120
   3. Check network connectivity
 ```
 
-> **Takeaway**: before creating, confirm the target template is `ready` via `abx template list --official-api`; when several same-prefix names exist (e.g. `python-hello` / `python-hello-v2` / `python-hello-prov`), prefer the **template ID** to avoid ambiguity. If a `ready` template still times out, it is usually a slow image cold start — increase `http_timeout` or retry (see [Troubleshooting](#troubleshooting)).
+> **Takeaway**: before creating, confirm the target template is `ready` via `abx template list`; when several same-prefix names exist (e.g. `python-hello` / `python-hello-v2` / `python-hello-prov`), prefer the **template ID** to avoid ambiguity. If a `ready` template still times out, it is usually a slow image cold start — increase `http_timeout` or retry (see [Troubleshooting](#troubleshooting)).
 
 ### Use the sandbox from code
 
@@ -628,7 +628,7 @@ abx template delete <template-id>
 | Confirmation required before project files are sent | Non-interactive `--adopt` without `-y` | Pass `-y`, or `--dry-run` to list the files without sending them |
 | Docker build failed | Dockerfile syntax / network issue | Add `-v` to see detailed logs |
 | ACR login failed | AK/SK expired or insufficient permissions | Verify credentials in `.env` |
-| Template stuck in "building" | Platform-side image optimization in progress | Wait, or check with `abx template info <id> --official-api` |
+| Template stuck in "building" | Platform-side image optimization in progress | Wait, or check with `abx template info <id>` |
 | Template in error state | Docker attestation not disabled | Ensure the build uses `--provenance=false` (handled by the SDK by default) |
 | `E3001` Request timed out | HTTP timeout too short | `abx config set http_timeout 120` |
 | StreamReset / `E5003` | Slow platform cold start | Retry, or disable HTTP/2: `abx config set http2 false` |

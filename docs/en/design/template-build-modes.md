@@ -16,7 +16,7 @@ A template is published in exactly one way per invocation. The user chooses. The
 
 When `auto` finds both a `Dockerfile` and build declarations, the Dockerfile path is used and the CLI prints that the platform steps were not sent.
 
-`steps` does not read a `Dockerfile` even if one is present. An `ACR_NAMESPACE` value that comes from the environment is ignored. Passing `--acr-namespace` together with `--build steps` is a usage error (exit 2). `--legacy-api` with `steps` is a usage error: platform steps are sent only on the official `CreateTemplate` API.
+`steps` does not read a `Dockerfile` even if one is present. An `ACR_NAMESPACE` value that comes from the environment is ignored. Passing `--acr-namespace` together with `--build steps` is a usage error (exit 2). Platform steps use the official `CreateTemplate` API.
 
 ## template.yaml
 
@@ -64,7 +64,7 @@ The official model documents `type` with the example `RUN` and `args` as a list 
 | `auto`, no Dockerfile and no build declarations | 2 |
 | `dockerfile`, no Dockerfile | 2 |
 | `steps`, missing `base.image` or no steps | 2 |
-| `steps` with `--acr-namespace` or `--legacy-api` | 2 |
+| `steps` with `--acr-namespace` | 2 |
 | `build.mode` is not `auto`, `dockerfile`, or `steps` | 2 |
 | Platform rejects a step | 1 |
 

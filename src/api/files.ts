@@ -3,7 +3,7 @@
 import * as fs from "node:fs";
 
 import type { FileInfo, WatchEvent } from "../models/filesystem.js";
-import { ProviderFeatureNotSupportedError } from "../providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import type { FilesystemProtocol } from "../protocol/contracts.js";
 import type { SandboxProtocol } from "../protocol/contracts.js";
@@ -110,10 +110,6 @@ export class FilesModule {
     return this._fs.watchDir(this._envd_url, this._envd_token, { path });
   }
 
-  /** Rename or move a file/directory. Deprecated: use move() instead. */
-  async rename(old_path: string, new_path: string): Promise<void> {
-    await this.move(old_path, new_path);
-  }
 
   /** Move/rename a file or directory. */
   async move(source: string, destination: string): Promise<void> {
@@ -122,7 +118,7 @@ export class FilesModule {
 
   /** Get info about a file or directory (FileInfo with name, path, type, size). */
   async getInfo(path: string): Promise<FileInfo> {
-    return this._fs.getInfo(this._envd_url, this._envd_token, { path });
+    return this._fs.stat(this._envd_url, this._envd_token, { path });
   }
 
   /** Ask the filesystem adapter for an upload URL and its access requirements. */

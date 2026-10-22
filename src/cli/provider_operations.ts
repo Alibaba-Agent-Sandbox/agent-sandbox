@@ -2,7 +2,7 @@
 import { SandboxError } from "../models/errors.js";
 import type { ProviderCommand } from "../providers/command_contract.js";
 import { listProviderCommands } from "../providers/commands.js";
-import { ProviderProtocolError } from "../providers/errors.js";
+import { ProviderProtocolError } from "../models/provider_errors.js";
 import { resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 

@@ -127,14 +127,9 @@ Native commands orchestrate: they parse options through the framework, load conf
 
 The native client core follows the provider/server extension layers of the Python SDK. Standard commands use their bundled protocol client instead:
 
-- **Transport** (`src/transport/`): `HttpClient` (retry, timeouts, connection handling), WebSocket helper, streaming
-  decoder, `ApiKeyAuth` / `AkSkAuth` providers behind the `AuthProvider` interface, and `config.ts`, the layered
-  loader that resolves code parameters, process environment (`ABX_*` and the vendor-official `ALICLOUD_*` / `ALIBABA_CLOUD_*` names), `.env` files (merged per
-  key) and `~/.abx/config.toml`.
-- **Protocol** (`src/protocol/`): one class per wire surface (`SandboxProtocol`, `ProcessProtocol`,
-  `FilesystemProtocol`, `CodeInterpreterProtocol`, `TerminalSession`, `PortClient`, `TemplateProtocol`).
-- **API** (`src/api/`): the user-facing `Sandbox` class and its modules, `TemplateManager`, `Image`, `DockerBuilder`
-  and the official template API adapter.
+- **Transport** (`src/transport/`): `HttpClient` handles timeouts, connections and streaming; data-plane authentication uses `ApiKeyAuth` behind `AuthProvider`. Official Express control-plane clients use AK/SK separately. Layered configuration resolves canonical code parameters, environment variables, environment files and TOML settings.
+- **Protocol**: `src/protocol/contracts.ts` defines the host interfaces. Implementations live in the owning provider modules, including `src/providers/shared/e2b/`; Express template operations use its official control-plane adapter.
+- **API** (`src/api/`): the native `Sandbox` façade, sandbox modules and provider-owned template project preparation. `DockerBuilder` and the official template adapter belong to the Express provider.
 - **Session** (`src/session/`): `LocalSessionStore` persists named sessions as JSON files. Concurrent access is
   guarded with a lock directory next to each file (Node has no `flock`; see `parity/KNOWN-GAPS.md`).
 - **Models** (`src/models/`): data fields that appear on the wire or in `--json` output keep their Python `snake_case`

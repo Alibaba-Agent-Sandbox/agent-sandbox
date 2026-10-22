@@ -261,7 +261,6 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
 
-可选的原生 Provider 扩展：[从已推送镜像创建模板](docs/zh/guide/provider-image-deployment.md)。公共目录工厂保持门控和 Beta 状态。
 
 ## 发布就绪范围
 
@@ -274,3 +273,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 暂停/恢复和快照命令由 Provider 注册，CLI 与 SDK 共用实现，见[注册与使用说明](docs/zh/guide/provider-commands.md)。
 
 原生极速版模板清单与平台 step 验收从 CLI0.4.1 起可使用首个全局选项 `abx --native`，参见[原生部署操作](docs/zh/guide/deploy-and-build.md#显式原生极速版入口)。
+
+Current API / 当前接口: [development contract](docs/zh/guide/current-api.md).

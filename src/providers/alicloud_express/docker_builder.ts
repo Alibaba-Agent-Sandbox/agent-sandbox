@@ -24,11 +24,7 @@ import { injectedPackageVersion } from "../../utils/package_version.js";
 import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC } from "../../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../../models/errors.js";
-import { TemplateProtocol } from "./template_protocol.js";
-import { createAuthProvider } from "./auth.js";
 import { AsyncClient, HTTPError, asyncWith } from "../../transport/_httpx.js";
-import { loadConfig } from "../../transport/config.js";
-import { HttpClient } from "../../transport/http.js";
 import { getLogger } from "../../utils/logging.js";
 import { createOfficialTemplate } from "./fc_template.js";
 import { OSError } from "../../utils/_pyos.js";
@@ -605,24 +601,6 @@ export interface LoginAkSkOptions {
   instance_id?: string | null;
 }
 
-export interface BuildAndRegisterOptions {
-  name?: string | null;
-  tag?: string;
-  platform?: string;
-  dockerfile?: string | null;
-  cpu_count?: number;
-  memory_mb?: number;
-  start_cmd?: string | null;
-  ready_cmd?: string | null;
-  on_progress?: ((msg: string) => void) | null;
-  api_key?: string | null;
-  api_url?: string | null;
-  access_key_id?: string | null;
-  access_key_secret?: string | null;
-  timeout?: number;
-  on_output?: ((line: string) => void) | null;
-}
-
 export interface BuildAndRegisterOfficialOptions {
   name?: string | null;
   tag?: string;
@@ -643,8 +621,6 @@ export interface BuildAndRegisterOfficialOptions {
   acr_access_key_secret?: string | null;
   api_access_key_id?: string | null;
   api_access_key_secret?: string | null;
-  access_key_id?: string | null;
-  access_key_secret?: string | null;
   timeout?: number;
 }
 
@@ -999,160 +975,7 @@ export class DockerBuilder {
     }
   }
 
-  // ------------------------------------------------------------------ //
-  // Full chain: build -> push -> register template
-  // ------------------------------------------------------------------ //
-
-  /**
-   * Full chain: local Docker build -> ACR push -> platform template creation.
-   *
-   * @param template_dir Path to the template directory (must contain a Dockerfile).
-   * @param acr ACR configuration.
-   * @returns BuildResult with template_id and build status.
-   */
-  async buildAndRegister(template_dir: string, acr: ACRConfig, opts: BuildAndRegisterOptions = {}): Promise<BuildResult> {
-    const {
-      name = null,
-      tag = "latest",
-      platform = "linux/amd64",
-      dockerfile = null,
-      cpu_count = 2,
-      memory_mb = 2048,
-      start_cmd = null,
-      ready_cmd = null,
-      on_progress = null,
-      api_key = null,
-      api_url = null,
-      access_key_id = null,
-      access_key_secret = null,
-      timeout = 600,
-      on_output = null,
-    } = opts;
-    const result = new BuildResult();
-    const tdir = resolve(String(template_dir));
-    const template_name = name || acr.repo || basename(tdir);
-
-    const _progress = (msg: string): void => {
-      if (on_progress) on_progress(msg);
-      logger.info("%s", msg);
-    };
-    const _emit = (line: string): void => {
-      logger.debug("  %s", line);
-      if (on_output !== null) on_output(line);
-    };
-
-    // Legacy platform registration requires its API key before build/push side effects.
-    const config_overrides: Record<string, unknown> = {};
-    if (api_key) config_overrides["api_key"] = api_key;
-    if (api_url) config_overrides["api_url"] = api_url;
-    if (access_key_id) config_overrides["access_key_id"] = access_key_id;
-    if (access_key_secret) config_overrides["access_key_secret"] = access_key_secret;
-
-    const config = loadConfig(config_overrides);
-    const auth = createAuthProvider({
-      api_key: config.api_key,
-      access_key_id: config.access_key_id,
-      access_key_secret: config.access_key_secret,
-    });
-
-    // Step 1: Check Docker
-    _progress("[1/5] Checking Docker daemon...");
-    if (!(await this.checkDocker())) {
-      throw new DockerBuildError("Docker daemon is not running or not accessible.", {
-        suggestion: "Start Docker Desktop or the Docker daemon.",
-      });
-    }
-
-    // Step 1.5: Inject SDK wheel into docker context, unless the Dockerfile already pins an archive.
-    const injected_wheels = await _injectOrKeepPin(tdir, dockerfile, _progress, "[1.5/5]");
-
-    // Step 2: Build locally
-    const local_tag = `${template_name}:${tag}`;
-    result.local_tag = local_tag;
-    _progress(`[2/5] Building Docker image locally: ${local_tag}`);
-    try {
-      await this.build(tdir, local_tag, { platform, dockerfile, on_output: _emit });
-    } finally {
-      for (const whl of injected_wheels) {
-        try {
-          rmSync(whl, { force: true });
-        } catch {
-          /* contextlib.suppress(OSError) */
-        }
-      }
-    }
-
-    // Step 3: Login + tag + push to ACR
-    const acr_ref = acr.tagged_ref(tag);
-    result.acr_ref = acr_ref;
-    _progress(`[3/5] Pushing to ACR: ${acr_ref}`);
-    await this.loginAcrWithAksk(acr.registry, acr.username, acr.password, {
-      instance_id: acr.acree_instance_id || null,
-    });
-    await this.tag(local_tag, acr_ref);
-    await this.push(acr_ref, { on_output: _emit });
-    result.build_status = "pushed";
-
-    // Step 4: Create template via v3 API
-    _progress(`[4/5] Creating template on platform: ${template_name}`);
-    const http_client = new HttpClient(config, auth);
-
-    try {
-      const protocol = new TemplateProtocol(http_client);
-
-      // Create metadata via v3
-      const v3_data = await protocol.createV3(template_name, { cpu_count, memory_mb });
-      result.template_id = (v3_data["templateID"] as string | undefined) ?? "";
-      result.build_id = (v3_data["buildID"] as string | undefined) ?? "";
-
-      // Trigger build via v2
-      _progress(`[5/5] Triggering build: templateID=${result.template_id}, image=${acr_ref}`);
-      const acr_headers = acr.to_platform_headers();
-      await protocol.triggerBuildV2(result.template_id, result.build_id, {
-        from_image: acr_ref,
-        start_cmd,
-        ready_cmd,
-        acr_headers,
-      });
-
-      // Wait for build. Poll lines go to on_output (the grey feed); on_progress stays on the "Waiting..." phase so it
-      // is not restarted.
-      _progress("Waiting for build to complete...");
-
-      const _poll = (status: string, elapsed: number): void => {
-        _emit(`${status}  ${elapsed}s`);
-      };
-
-      try {
-        await protocol.waitForBuild(result.template_id, result.build_id, { timeout, on_poll: _poll });
-        result.build_status = "ready";
-        _progress(`Template ready: ${result.template_id}`);
-      } catch (exc) {
-        result.build_status = "error";
-        result.logs.push(pyExcStr(exc));
-        _progress(`Build failed: ${pyExcStr(exc)}`);
-      }
-    } finally {
-      await http_client.close();
-    }
-
-    return result;
-  }
-
-  /**
-   * Full chain: local Docker build -> ACR push -> official CreateTemplate API.
-   *
-   * Uses the official Alibaba Cloud FCSandbox `CreateTemplate` API instead of the legacy v3/v2 platform API.
-   *
-   * Credentials are separated into two independent sets:
-   *
-   * - ACR credentials (`acr_access_key_id`/`acr_access_key_secret`) are used for `GetAuthorizationToken` and
-   *   `docker login`. Resolution order: `acr_access_key_id` > `acr.username` > `access_key_id` (legacy fallback).
-   * - Platform API credentials (`api_access_key_id`/`api_access_key_secret`) are used for `CreateTemplate`.
-   *   Resolution order: `api_access_key_id` > `access_key_id` (legacy fallback).
-   *
-   * `timeout` is not used for the official API (kept for signature compat).
-   */
+  /** Build, push and register through the official FCSandbox API. */
   async buildAndRegisterOfficial(
     template_dir: string,
     acr: ACRConfig,
@@ -1178,19 +1001,17 @@ export class DockerBuilder {
       acr_access_key_secret = null,
       api_access_key_id = null,
       api_access_key_secret = null,
-      access_key_id = null,
-      access_key_secret = null,
     } = opts;
     const result = new BuildResult();
     const tdir = resolve(String(template_dir));
     const template_name = name || acr.repo || basename(tdir);
 
-    // ACR credentials: dedicated param > ACRConfig > legacy fallback
-    const acr_ak = acr_access_key_id || acr.username || access_key_id || "";
-    const acr_sk = acr_access_key_secret || acr.password || access_key_secret || "";
-    // Platform API credentials: dedicated param > legacy fallback
-    const api_ak = api_access_key_id || access_key_id || "";
-    const api_sk = api_access_key_secret || access_key_secret || "";
+    // ACR credentials: dedicated parameters, then ACRConfig.
+    const acr_ak = acr_access_key_id || acr.username || "";
+    const acr_sk = acr_access_key_secret || acr.password || "";
+    // Platform API credentials use dedicated parameters.
+    const api_ak = api_access_key_id || "";
+    const api_sk = api_access_key_secret || "";
 
     const _progress = (msg: string): void => {
       if (on_progress) on_progress(msg);
@@ -1474,9 +1295,3 @@ export async function getAcrAuthToken(
     suggestion: "Check AK/SK and region. For personal ACR ensure CR API is enabled.",
   });
 }
-
-/**
- * Backward-compatible alias — the function was renamed from the private `_get_acr_auth_token` to the public
- * `get_acr_auth_token` in v0.8.
- */
-export const _getAcrAuthToken = getAcrAuthToken;

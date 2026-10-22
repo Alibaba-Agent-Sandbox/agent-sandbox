@@ -1,4 +1,4 @@
-import { ProviderConfigError } from "../../providers/errors.js";
+import { ProviderConfigError } from "../../models/provider_errors.js";
 import { providerCliExtension, bundledCliConfigurations } from "../provider_extensions.js";
 import type { ConfigPrompt } from "../provider_config_contract.js";
 import { providerSchema, paths } from "../../transport/config_layers.js";
@@ -33,7 +33,7 @@ import { isFile, toOSError } from "../../utils/_pyos.js";
 import { type OutputFormatter, getFormatter } from "../formatters.js";
 import { decodeUtf8Strict, loadBytes, type Table } from "../../utils/_tomllib.js";
 import { providersInUse } from "../../providers/in_use.js";
-import { _setPaths, applyMigration, auditConfig, planMigration } from "../../transport/config_layers.js";
+import { _setPaths } from "../../transport/config_layers.js";
 import * as extras from "./_config_providers.js";
 import * as registry from "../../providers/registry.js";
 import { setEnvValue, setTomlValue, resetConfigurationCaches, writeConfigurationFile } from "../../providers/settings.js";
@@ -111,11 +111,10 @@ function _stdout(): { write(text: string): void; flush(): void } {
 /** Keys that users can configure (key -> help). */
 export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
   ["sandbox_api_key", "Sandbox service API key (env: ABX_SANDBOX_API_KEY)"],
-  ["api_url", "Platform API URL of the selected provider"],
+  ["sandbox_base_url", "Platform API URL of the selected provider"],
   ["http_timeout", "HTTP request timeout in seconds"],
   ["http2", "Enable HTTP/2 for platform connections (true/false)"],
-  ["max_retries", "Maximum retry attempts"],
-  ["domain", "Envd domain"],
+  ["sandbox_domain", "Envd domain"],
   ["llm_api_key", "LLM API key for template generation (stored in ~/.abx/.env)"],
   ["llm_model", "LLM model name (default: qwen3-coder-plus)"],
   ["llm_base_url", "LLM API base URL, OpenAI-compatible (default: DashScope compatible-mode)"],
@@ -131,25 +130,9 @@ export const _ENV_STORED_KEYS: ReadonlyMap<string, string> = new Map([
   ...bundledCliConfigurations().flatMap((profile) => [...profile.envStored]),
 ]);
 
-/** Older CLI names that still work for `config get` / `config set` but are not shown by `config list`. */
-const _KEY_ALIASES: ReadonlyMap<string, string> = new Map([
-  ["api_key", "sandbox_api_key"],
-  ["api_base_url", "api_url"],
-  ["sandbox_base_url", "api_url"],
-  ["sandbox_domain", "domain"],
-]);
-
-/** Old names that the canonical key renamed; typing one prints the interactive hint (spec section 3.4). */
-const _RENAMED_LEGACY: ReadonlyMap<string, string> = new Map([
-  ["api_key", "sandbox_api_key"],
-  ["api_url", "sandbox_base_url"],
-  ["api_base_url", "sandbox_base_url"],
-  ["domain", "sandbox_domain"],
-]);
-
 /** Keys the long-standing code handles itself for every provider (everything but the built-in provider's own keys). */
 const _GENERIC_KEYS: ReadonlySet<string> = new Set([
-  "sandbox_api_key", "api_url", "domain", "http_timeout", "http2", "max_retries", "llm_api_key", "llm_model", "llm_base_url", "github_token",
+  "sandbox_api_key", "sandbox_base_url", "sandbox_domain", "http_timeout", "http2", "llm_api_key", "llm_model", "llm_base_url", "github_token",
 ]);
 
 /** Keys removed from the config surface; `config get` / `config set` name the replacement. */
@@ -159,19 +142,10 @@ const _REMOVED_KEYS: ReadonlyMap<string, string> = new Map([
   ["qwen_code_model", "llm_model"],
 ]);
 
-/** Storage written by older releases, read only when the unified key is unset. */
-const _LEGACY_TOML_FALLBACKS: ReadonlyMap<string, string> = new Map([
-  ["llm_base_url", "qwen_code_base_url"],
-  ["llm_model", "qwen_code_model"],
-]);
-
-/** Env-stored keys whose value may still live in an old `[transport]` section of config.toml. */
-const _LEGACY_TOML_ENV_KEYS: ReadonlySet<string> = new Set(["llm_api_key"]);
-
 /** Functional groups for `config list`: stable order, one group per topic. */
 const _CONFIG_GROUPS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["Sandbox authentication", ["sandbox_api_key"]],
-  ["Connection", ["api_url", "region", "domain", "http_timeout", "http2", "max_retries"]],
+  ["Connection", ["sandbox_base_url", "region", "sandbox_domain", "http_timeout", "http2"]],
   ["LLM", ["llm_api_key", "llm_model", "llm_base_url"]],
   ["Integrations", ["github_token"]],
 ];
@@ -182,8 +156,8 @@ const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_ap
 /** Environment variables that override each key at runtime, in priority order. */
 const _ENV_OVERRIDES: ReadonlyMap<string, readonly string[]> = new Map([
   ["sandbox_api_key", ["ABX_SANDBOX_API_KEY"]],
-  ["api_url", ["ABX_SANDBOX_BASE_URL"]],
-  ["domain", ["ABX_SANDBOX_DOMAIN"]],
+  ["sandbox_base_url", ["ABX_SANDBOX_BASE_URL"]],
+  ["sandbox_domain", ["ABX_SANDBOX_DOMAIN"]],
   ["http_timeout", ["ABX_HTTP_TIMEOUT"]],
   ["llm_api_key", ["ABX_LLM_API_KEY", "BAILIAN_CODING_PLAN_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]],
   ["llm_base_url", ["ABX_LLM_BASE_URL", "OPENAI_BASE_URL"]],
@@ -368,14 +342,12 @@ const _toRecord = (table: Table): Record<string, unknown> => {
   return record;
 };
 
-/** `load_config_dict()` implementation: the `[transport]` section (or legacy flat keys) as a plain object. */
+/** `load_config_dict()` implementation: the `[transport]` section as a plain object. */
 function _loadConfigDictImpl(): Record<string, unknown> {
   const data = _loadFullConfig();
   const transport = data.get("transport");
   if (_isTable(transport)) return _toRecord(transport);
-  const flat = new Map<string, unknown>();
-  for (const [key, value] of data) if (!_isTable(value)) flat.set(key, value);
-  return _toRecord(flat);
+  return {};
 }
 
 /** Load the `[transport]` section of the config file as a plain object. */
@@ -398,12 +370,6 @@ function _saveConfigDict(data: Record<string, unknown>): void {
       } else { full.set("transport", new Map(Object.entries(data))); _saveFullConfig(full); return; }
     }
     return;
-  }
-  if (!full.has("transport")) {
-    // Legacy flat file: keep real sections only; the root scalars are rewritten as the [transport] table.
-    const sections: Table = new Map();
-    for (const [key, value] of full) if (_isTable(value)) sections.set(key, value);
-    full = sections;
   }
   const original = _keyOrder.get(data) ?? [];
   const current = Object.keys(data);
@@ -472,12 +438,12 @@ export function resolveGithubToken(explicit: string | null | undefined = null): 
 }
 
 function _canonicalizeKey(key: string): string {
-  return _KEY_ALIASES.get(key) ?? key;
+  return key;
 }
 
-/** The name echoed in `Set ...` lines: the key as typed, except the long-standing `api_key` alias (byte-compat). */
+/** The name echoed in `Set ...` lines: the canonical key as typed. */
 function _echoName(typed: string, canonical: string): string {
-  return typed === "api_key" ? canonical : typed;
+  return typed;
 }
 
 /** `extras` reads `~/.abx` through `config_layers.paths`; follow the seams when tests (or callers) moved them. */
@@ -496,8 +462,8 @@ function _extraFor(typed: string, canonical: string): extras.ExtraTarget | null 
   _syncPaths();
   if (typed === "provider" || typed.startsWith("providers.")) return extras.resolveExtraKey(typed);
   const active = extras.effectiveProviderId();
-  const hasLegacyProfile = Boolean(providerCliExtension(active)?.configuration);
-  if (!hasLegacyProfile && !_GENERIC_KEYS.has(canonical)) {
+  const hasProviderProfile = Boolean(providerCliExtension(active)?.configuration);
+  if (!hasProviderProfile && !_GENERIC_KEYS.has(canonical)) {
     const target = extras.resolveExtraKey(typed);
     if (target) return target;
     throw new ProviderConfigError(`Provider '${active}' does not declare '${typed}'.`, {
@@ -505,7 +471,7 @@ function _extraFor(typed: string, canonical: string): extras.ExtraTarget | null 
     });
   }
   if (_ALLOWED_KEYS.has(canonical)) {
-    return extras.configFormat() === 2 ? extras.coreTarget(canonical, _echoName(typed, canonical)) : null;
+    return extras.coreTarget(canonical, _echoName(typed, canonical));
   }
   return extras.resolveExtraKey(typed);
 }
@@ -513,17 +479,7 @@ function _extraFor(typed: string, canonical: string): extras.ExtraTarget | null 
 /** `true` once the provider system is in play or the user migrated to the canonical names. */
 function _surfaceActive(): boolean {
   _syncPaths();
-  return providersInUse() || extras.configFormat() === 2;
-}
-
-/** stderr hint after a successful `set` / `delete` of a renamed legacy key (interactive terminals only). */
-function _legacyKeyNote(fmt: OutputFormatter, typed: string): void {
-  const canonical = _RENAMED_LEGACY.get(typed);
-  if (canonical === undefined || fmt.use_json || fmt.quiet) return;
-  if (!(configSeams.sys?.stderr ?? sys.stderr).isatty()) return;
-  const ci = pyStrip(_env("CI") ?? "").toLowerCase();
-  if (ci && !["0", "false", "no", "off"].includes(ci)) return;
-  echo(`note: '${typed}' is now '${canonical}' (the old name keeps working).`, { err: true });
+  return true;
 }
 
 function _extraText(target: extras.ExtraTarget | undefined, value: unknown): string {
@@ -568,8 +524,8 @@ function _rejectUnknownKey(fmt: OutputFormatter, key: string): never {
 /** The built-in default actually used for `key` (`null` = none). */
 export function _businessDefault(key: string): unknown {
   const schema = providerSchema(extras.effectiveProviderId());
-  if (key === "api_url" || key === "domain") {
-    const canonical = key === "api_url" ? "sandbox_base_url" : "sandbox_domain";
+  if (key === "sandbox_base_url" || key === "sandbox_domain") {
+    const canonical = key === "sandbox_base_url" ? "sandbox_base_url" : "sandbox_domain";
     const template = schema.derive[canonical];
     if (!template) return schema.endpoint_defaults[canonical] ?? null;
     let missing = false;
@@ -618,20 +574,11 @@ export function _effectiveValue(key: string): [unknown, string] {
   if (storedEnvName !== undefined) {
     const stored = configSeams.readEnvVar(storedEnvName);
     if (stored) return [stored, "user"];
-    if (_LEGACY_TOML_ENV_KEYS.has(key)) {
-      const legacy = configSeams.loadConfigDict()[key];
-      if (legacy !== undefined && legacy !== null && legacy !== "") return [legacy, "user"];
-    }
     return [null, "unset"];
   }
   const config = configSeams.loadConfigDict();
   const storedValue = config[key];
   if (storedValue !== undefined && storedValue !== null && storedValue !== "") return [storedValue, "user"];
-  const legacyToml = _LEGACY_TOML_FALLBACKS.get(key);
-  if (legacyToml !== undefined) {
-    const legacyValue = config[legacyToml];
-    if (legacyValue !== undefined && legacyValue !== null && legacyValue !== "") return [legacyValue, "user"];
-  }
   const dflt = _businessDefault(key);
   if (dflt === null) return [null, "unset"];
   return [dflt, "default"];
@@ -663,11 +610,8 @@ function _clearStoredValue(fmt: OutputFormatter, key: string, echoKey: string = 
   const envVar = _ENV_STORED_KEYS.get(key);
   if (envVar !== undefined) {
     removed = removeEnvVar(envVar);
-    if (_LEGACY_TOML_ENV_KEYS.has(key)) removed = _removeTomlKey(key) || removed;
   } else {
     removed = _removeTomlKey(key);
-    const legacyToml = _LEGACY_TOML_FALLBACKS.get(key);
-    if (legacyToml !== undefined) removed = _removeTomlKey(legacyToml) || removed;
   }
 
   const dflt = _businessDefault(key);
@@ -750,7 +694,7 @@ function _savedHint(key: string, value: string, target?: extras.ExtraTarget): vo
   const location = target ? extras.storageLocation(target).path : _ENV_STORED_KEYS.has(key) ? configSeams._ENV_FILE : configSeams._CONFIG_FILE;
   echo(`Saved in ${location}. Review values and sources: abx config list. Modify later: abx config set ${target?.typed ?? key} (omit VALUE for hidden secret input).`, { err: true });
   const effective = target ? extras.readExtra(target) : { value: _effectiveValue(key)[0], source: _effectiveValue(key)[1], name: _envOverrideName(key) ?? _ENV_STORED_KEYS.get(key) ?? key };
-  const expected = target?.key ? extras.parseExtraValue(target, value) : key === "http2" ? ["true", "1", "yes", "on"].includes(value.trim().toLowerCase()) : key === "http_timeout" ? _pyFloatParse(value) : key === "max_retries" ? _pyIntParse(value) : value;
+  const expected = target?.key ? extras.parseExtraValue(target, value) : key === "http2" ? ["true", "1", "yes", "on"].includes(value.trim().toLowerCase()) : key === "http_timeout" ? _pyFloatParse(value) : value;
   const actual = effective.value instanceof PyFloat ? effective.value.value : effective.value;
   if (String(actual) !== String(expected)) echo(`The saved value is overridden by ${effective.source}: ${effective.name || "see abx config list"}. Update that source to change the effective value; its value is not shown.`, { err: true });
 }
@@ -775,13 +719,11 @@ export const set_value = command("set", {
       }
       if (pyStrip(value) === "") {
         _clearExtraValue(fmt, extra);
-        _legacyKeyNote(fmt, typedKey);
         return;
       }
       extras.writeExtra(extra, value);
       fmt.printSuccess(`Set ${extra.typed} = ${extra.key?.secret ? _maskValue(value) : value}`);
       _savedHint(key, value, extra);
-      _legacyKeyNote(fmt, typedKey);
       return;
     }
 
@@ -795,27 +737,18 @@ export const set_value = command("set", {
     // Empty values clear the stored override: they are never written as a credential or an empty-string override.
     if (pyStrip(value) === "") {
       _clearStoredValue(fmt, key, echoKey);
-      _legacyKeyNote(fmt, typedKey);
       return;
     }
 
     const envVar = _ENV_STORED_KEYS.get(key);
     if (envVar !== undefined) {
       configSeams.writeEnvVar(envVar, value);
-      if (_LEGACY_TOML_ENV_KEYS.has(key)) {
-        // After this write the secret lives only in the 0600-protected ~/.abx/.env storage, never in two places.
-        _removeTomlKey(key);
-      }
-      const displayValue = _SENSITIVE_KEYS.has(key) ? _maskValue(value) : value;
-      fmt.printSuccess(`Set ${echoKey} = ${displayValue}`);
+      fmt.printSuccess(`Set ${echoKey} = ${_SENSITIVE_KEYS.has(key) ? _maskValue(value) : value}`);
       _savedHint(key, value);
-      _legacyKeyNote(fmt, typedKey);
       return;
     }
 
     const data = configSeams.loadConfigDict();
-    const legacyToml = _LEGACY_TOML_FALLBACKS.get(key);
-    if (legacyToml !== undefined) delete data[legacyToml];
 
     if (key === "http_timeout") {
       const parsed = _pyFloatParse(value);
@@ -824,13 +757,6 @@ export const set_value = command("set", {
         return sysExit(2);
       }
       data[key] = new PyFloat(parsed);
-    } else if (key === "max_retries") {
-      const parsed = _pyIntParse(value);
-      if (parsed === null) {
-        fmt.printError(`Invalid integer value: ${pyStrRepr(value)}`);
-        return sysExit(2);
-      }
-      data[key] = parsed;
     } else if (key === "http2") {
       const lowered = pyStrip(value).toLowerCase();
       if (["true", "1", "yes", "on"].includes(lowered)) {
@@ -849,7 +775,6 @@ export const set_value = command("set", {
     const displayValue = _SENSITIVE_KEYS.has(key) ? _maskValue(value) : value;
     fmt.printSuccess(`Set ${echoKey} = ${displayValue}`);
     _savedHint(key, value);
-    _legacyKeyNote(fmt, typedKey);
   }),
 });
 
@@ -860,7 +785,7 @@ export function saveGuidedValue(key: string, value: string, providerId?: string)
   const canonical = _canonicalizeKey(key);
   const schemaName = ({ api_url: "sandbox_base_url", domain: "sandbox_domain" } as Record<string, string>)[canonical] ?? canonical;
   const providerOwns = providerId ? registry.getProvider(providerId).configKeys().some((field) => field.key === schemaName) || registry.getProvider(providerId).inherit.has(schemaName) : false;
-  if (providerId && !providerOwns && (!["llm_api_key", "llm_base_url", "llm_model", "github_token", "http_timeout", "http2", "max_retries"].includes(canonical))) {
+  if (providerId && !providerOwns && (!["llm_api_key", "llm_base_url", "llm_model", "github_token", "http_timeout", "http2"].includes(canonical))) {
     throw new ProviderConfigError(`Provider '${providerId}' does not declare or inherit '${schemaName}'; it cannot be saved for this operation.`);
   }
   const target = providerId && providerOwns ? extras.resolveExtraKey(`providers.${providerId}.${schemaName}`) : _extraFor(key, canonical);
@@ -872,7 +797,6 @@ export function saveGuidedValue(key: string, value: string, providerId?: string)
   const env = _ENV_STORED_KEYS.get(canonical);
   if (env) {
     configSeams.writeEnvVar(env, value);
-    if (_LEGACY_TOML_ENV_KEYS.has(canonical)) _removeTomlKey(canonical);
     resetConfigurationCaches();
     return { path: configSeams._ENV_FILE, key: env };
   }
@@ -881,16 +805,12 @@ export function saveGuidedValue(key: string, value: string, providerId?: string)
     const parsed = _pyFloatParse(value);
     if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) throw new ProviderConfigError("http_timeout must be a positive finite number.");
     data[canonical] = new PyFloat(parsed);
-  } else if (canonical === "max_retries") {
-    const parsed = _pyIntParse(value);
-    if (parsed === null || parsed < 0) throw new ProviderConfigError("max_retries must be a non-negative integer.");
-    data[canonical] = parsed;
   } else if (canonical === "http2") {
     const boolean = value.trim().toLowerCase();
     if (!["true", "false", "1", "0", "yes", "no", "on", "off"].includes(boolean)) throw new ProviderConfigError("http2 must be true or false.");
     data[canonical] = ["true", "1", "yes", "on"].includes(boolean);
   } else {
-    if (["api_url", "llm_base_url"].includes(canonical)) {
+    if (["sandbox_base_url", "llm_base_url"].includes(canonical)) {
       try { const url = new URL(value); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
       catch { throw new ProviderConfigError(`'${canonical}' must be an HTTP(S) URL.`); }
     }
@@ -912,18 +832,16 @@ export const delete_value = command("delete", {
     const extra = _extraFor(typedKey, key);
     if (extra !== null) {
       _clearExtraValue(fmt, extra);
-      _legacyKeyNote(fmt, typedKey);
       return;
     }
     if (!_ALLOWED_KEYS.has(key)) return _rejectUnknownKey(fmt, key);
     _clearStoredValue(fmt, key, _echoName(typedKey, key));
-    _legacyKeyNote(fmt, typedKey);
   }),
 });
 
 const _CANONICAL_LIST_NAMES: ReadonlyMap<string, string> = new Map([
-  ["api_url", "sandbox_base_url"],
-  ["domain", "sandbox_domain"],
+  ["sandbox_base_url", "sandbox_base_url"],
+  ["sandbox_domain", "sandbox_domain"],
 ]);
 
 /** Extra listing targets are limited to the selected provider's declared fields. */
@@ -933,7 +851,7 @@ function _extraListGroups(showAll: boolean): { groups: Array<[string, string[]]>
   const eff = extras.effectiveProviderId();
   const provider = registry.getProvider(eff);
   const profile = providerCliExtension(eff)?.configuration;
-  if (extras.configFormat() === 2) for (const name of _ALLOWED_KEYS.keys()) {
+  for (const name of _ALLOWED_KEYS.keys()) {
     const target = extras.coreTarget(name, name);
     if (target !== null) targets.set(name, target);
   }
@@ -968,13 +886,11 @@ function _extraListGroups(showAll: boolean): { groups: Array<[string, string[]]>
 export const list_config = command("list", {
   help: LIST_HELP,
   params: [
-    option(["--legacy-names"], { is_flag: true, hidden: !_surfaceActive(), help: "Print the old key names (api_url, domain) instead of the canonical ones" }),
     option(["--all", "show_all"], { is_flag: true, hidden: !_surfaceActive(), help: "Also list provider keys that have no value" }),
   ],
   callback: _handleErrors(async (ctx: Context, params: Params) => {
     const fmt = getFormatter(ctx);
-    const legacyFlag = ["1", "true", "yes", "on"].includes(pyStrip(_env("ABX_CONFIG_LEGACY_NAMES") ?? "").toLowerCase());
-    const canonicalNames = _surfaceActive() && extras.configFormat() === 2 && !params["legacy_names"] && !legacyFlag;
+    const canonicalNames = true;
     const shown = (key: string): string => (canonicalNames ? (_CANONICAL_LIST_NAMES.get(key) ?? key) : key);
     const extra = _extraListGroups(Boolean(params["show_all"]));
 
@@ -1156,7 +1072,6 @@ export const init = command("init", {
           destination = extras.storageLocation(target).path;
         } else if (field.env) {
           configSeams.writeEnvVar(field.env, value);
-          if (_LEGACY_TOML_ENV_KEYS.has(field.key)) _removeTomlKey(field.key);
           destination = configSeams._ENV_FILE;
         } else {
           const data = configSeams.loadConfigDict(); data[field.key] = value; _saveConfigDict(data);
@@ -1209,94 +1124,11 @@ export const init = command("init", {
   }),
 });
 
-const CHECK_HELP = () => providerCliExtension()?.configuration?.help["CHECK_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
-
-const MIGRATE_HELP = () => providerCliExtension()?.configuration?.help["MIGRATE_HELP"] ?? "Configure the selected provider. Run abx provider info for its fields.";
-
-function _whereLabel(where: string): string {
-  return where === "dotenv" ? "dotenv" : where;
-}
-
-export const check_config = command("check", {
-  help: CHECK_HELP,
-  hidden: !_surfaceActive(),
-  params: [option(["--strict"], { is_flag: true, help: "Exit with 1 when a legacy name is in use" })],
-  callback: _handleErrors(async (ctx: Context, params: Params) => {
-    _syncPaths();
-    const fmt = getFormatter(ctx);
-    const findings = auditConfig().map(({ path: _path, ...rest }) => rest);
-    if (fmt.use_json) {
-      fmt.printData(findings.map((f) => new Map<string, unknown>(Object.entries(f))));
-    } else if (!fmt.quiet) {
-      if (!findings.length) {
-        fmt.printSuccess("No legacy names in use.");
-      } else {
-        const width = Math.max(27, ...findings.map((f) => (f.where === "config" ? `[transport] ${f.name.replace(/^transport\./, "")}` : f.name).length));
-        for (const f of findings) {
-          const label = f.where === "config" ? `[transport] ${f.name.replace(/^transport\./, "")}` : f.name;
-          const target = f.where === "config" ? f.canonical_key : `${f.canonical_name} (${f.canonical_key})`;
-          echo(`${ljust(_whereLabel(f.where), 8)} ${ljust(label, width)} -> ${target}`);
-        }
-      }
-    }
-    if (params["strict"] && findings.length) return sysExit(1);
-  }),
-});
-
-export const migrate_config = command("migrate", {
-  help: MIGRATE_HELP,
-  hidden: !_surfaceActive(),
-  params: [
-    option(["--yes", "-y"], { is_flag: true, help: "Do not ask for confirmation" }),
-    option(["--dry-run"], { is_flag: true, help: "Print the plan, change nothing" }),
-  ],
-  callback: _handleErrors(async (ctx: Context, params: Params) => {
-    _syncPaths();
-    const fmt = getFormatter(ctx);
-    const plan = planMigration();
-    const onlyFormat = plan.length === 1 && plan[0]?.action === "set" && extras.configFormat() === 2;
-    const describe = (item: (typeof plan)[number]): string => {
-      if (item.action === "set") return `set ${item.to} = ${pyStr(item.value)}`;
-      if (item.action === "drop") return `drop ${item.from} (${item.to} is already set)`;
-      return `rename ${item.from} -> ${item.to}`;
-    };
-    if (onlyFormat) {
-      fmt.printSuccess("Nothing to migrate: already using the canonical names.");
-      return;
-    }
-    if (params["dry_run"]) {
-      if (fmt.use_json) fmt.printData(plan.map((i) => new Map<string, unknown>(Object.entries(i))));
-      else for (const item of plan) echo(`would ${describe(item)}`);
-      return;
-    }
-    if (!params["yes"]) {
-      const interactive = canPrompt(ctx, false, configSeams.sys ?? undefined);
-      if (!interactive || fmt.use_json || fmt.quiet) {
-        fmt.printError("Refusing to rewrite the configuration without confirmation.", {
-          suggestion: "Review it with 'abx config migrate --dry-run', then re-run with --yes.",
-        });
-        return sysExit(2);
-      }
-      for (const item of plan) echo(`will ${describe(item)}`);
-      const { confirm } = await import("../prompts.js");
-      if (!(await confirm("Rewrite ~/.abx/config.toml and ~/.abx/.env now? Older versions will not read the migrated values", { default: false }))) {
-        fmt.printSuccess("Cancelled; nothing was changed.");
-        return;
-      }
-    }
-    const done = applyMigration();
-    if (fmt.use_json) fmt.printData(done.map((i) => new Map<string, unknown>(Object.entries(i))));
-    else fmt.printSuccess(`Migrated ${done.length - 1} stored name(s); config_format = 2. Backups: config.toml.bak, .env.bak.`);
-  }),
-});
-
 config.addCommand(get);
 config.addCommand(set_value);
 config.addCommand(delete_value);
 config.addCommand(list_config);
 config.addCommand(init);
-config.addCommand(check_config);
-config.addCommand(migrate_config);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Masked secret input (asterisk feedback; no new dependencies)
@@ -1513,12 +1345,9 @@ async function _promptMissingValue(fmt: OutputFormatter, key: string, sensitive 
       else if (canonical === "http_timeout") {
         const parsed = _pyFloatParse(entered);
         if (parsed === null || !Number.isFinite(parsed) || parsed <= 0) throw new ProviderConfigError("Invalid numeric value: expected a positive finite timeout.");
-      } else if (canonical === "max_retries") {
-        const parsed = _pyIntParse(entered);
-        if (parsed === null || parsed < 0) throw new ProviderConfigError("Invalid integer value: expected non-negative retries.");
       } else if (canonical === "http2" && !["true", "false", "1", "0", "yes", "no", "on", "off"].includes(entered.trim().toLowerCase())) {
         throw new ProviderConfigError("Invalid boolean value: expected true/false.");
-      } else if (["api_url", "llm_base_url"].includes(canonical)) {
+      } else if (["sandbox_base_url", "llm_base_url"].includes(canonical)) {
         try { const url = new URL(entered); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
         catch { throw new ProviderConfigError(`Invalid URL for '${key}': expected an HTTP(S) URL.`); }
       }

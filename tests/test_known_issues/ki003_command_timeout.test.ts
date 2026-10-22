@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { CommandsModule } from "../../src/api/commands.js";
 import { CommandTimeoutError, ConnectionError_, ExecutionError } from "../../src/models/errors.js";
-import { ProcessProtocol } from "../../src/protocol/process.js";
+import { ProcessProtocol } from "../../src/providers/shared/e2b/process.js";
 import {
   ConnectTimeout,
   MockTransport,

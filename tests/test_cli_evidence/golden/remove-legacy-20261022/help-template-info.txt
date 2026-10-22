@@ -1,0 +1,23 @@
+Usage: abx template info [options] <TEMPLATE_ID>
+
+Show details for a template ID.
+
+Pass to use the Alibaba Cloud FCSandbox GetTemplate API;
+that mode requires configured AccessKey credentials.
+
+Examples:
+  abx template info tmpl-abc123
+  abx template info tmpl-abc123
+  abx template info tmpl-abc123 --region cn-shanghai
+  abx --json template info tmpl-abc123
+
+Related commands:
+  abx template list
+  abx create TEMPLATE_ID
+  abx template delete TEMPLATE_ID
+
+Options:
+  -r, --region <TEXT>  Region override for providers that declare region
+                       (otherwise use the provider default)
+  -h, --help           Show this message and exit.
+[exit_code:0]

@@ -18,8 +18,8 @@ vi.mock("../../src/transport/ws.js", () => {
   return { WebSocketClient: FakeWS };
 });
 
-import { TerminalSession } from "../../src/protocol/terminal.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { TerminalSession } from "../../src/providers/shared/e2b/terminal.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

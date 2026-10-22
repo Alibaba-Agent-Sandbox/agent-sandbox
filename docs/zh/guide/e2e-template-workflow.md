@@ -384,7 +384,7 @@ abx template deploy ./my-template \
 部署完成后，用 `--official-api` 列出模板可查看**真实名称与状态**（`ready` / `building` / `error`）。以下为真实运行输出（2026-09-28，cn-hangzhou，为聚焦重点已截断）：
 
 ```bash
-$ abx template list --official-api
+$ abx template list
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
 ┃ TemplateID           ┃ Name                        ┃ Alias ┃ Status ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
@@ -418,7 +418,7 @@ $ abx template list
 查看单个模板详情：
 
 ```bash
-$ abx template info <template-id> --official-api
+$ abx template info <template-id>
 ```
 
 ### 参数默认值优先级
@@ -556,7 +556,7 @@ No sandboxes found.
 
 ### 模板名称解析（真实失败案例）
 
-`--template` 既可传模板**名称**也可传**ID**，但只有状态为 `ready` 且镜像可正常拉起的模板才能成功创建。下面是对 `python-hello` 执行创建时的真实输出——尽管 `abx template list --official-api` 中有一个 `ready` 的 `python-hello`，但本次创建在冷启动阶段被平台重置连接：
+`--template` 既可传模板**名称**也可传**ID**，但只有状态为 `ready` 且镜像可正常拉起的模板才能成功创建。下面是对 `python-hello` 执行创建时的真实输出——尽管 `abx template list` 中有一个 `ready` 的 `python-hello`，但本次创建在冷启动阶段被平台重置连接：
 
 ```bash
 $ abx create --template python-hello
@@ -571,14 +571,14 @@ $ abx create --template python-hello
 
 ```bash
 $ abx create --template python-hello
-[E3001] Request timed out: 
+[E3001] Request timed out:
   Suggestion: The HTTP request timed out. Try:
   1. Increase HTTP timeout: abx config set http_timeout 120
   2. Or set env: export ABX_HTTP_TIMEOUT=120
   3. Check network connectivity
 ```
 
-> **经验**：创建前先用 `abx template list --official-api` 确认目标模板为 `ready`；当存在多个同前缀名称（如 `python-hello` / `python-hello-v2` / `python-hello-prov`）时，建议直接用**模板 ID** 避免歧义。若 `ready` 模板仍超时，通常是镜像冷启动过慢，可提高 `http_timeout` 或重试（参见[故障排查](#故障排查)）。
+> **经验**：创建前先用 `abx template list` 确认目标模板为 `ready`；当存在多个同前缀名称（如 `python-hello` / `python-hello-v2` / `python-hello-prov`）时，建议直接用**模板 ID** 避免歧义。若 `ready` 模板仍超时，通常是镜像冷启动过慢，可提高 `http_timeout` 或重试（参见[故障排查](#故障排查)）。
 
 ### 在代码中使用沙箱
 
@@ -628,7 +628,7 @@ abx template delete <template-id>
 | Confirmation required before project files are sent | 非交互的 `--adopt` 没有带 `-y` | 加上 `-y`，或用 `--dry-run` 只看文件列表 |
 | Docker build 失败 | Dockerfile 语法错误 / 网络问题 | 加 `-v` 查看详细日志 |
 | ACR login 失败 | AK/SK 过期或权限不足 | 检查 `.env` 中的凭证配置 |
-| 模板卡在 building 状态 | 平台侧镜像优化中 | 等待或 `abx template info <id> --official-api` 查看状态 |
+| 模板卡在 building 状态 | 平台侧镜像优化中 | 等待或 `abx template info <id>` 查看状态 |
 | 模板进入 error 状态 | Docker attestation 未禁用 | 确保构建使用 `--provenance=false`（SDK 默认已处理） |
 | `E3001` Request timed out | HTTP 超时过短 | `abx config set http_timeout 120` |
 | StreamReset / `E5003` | 平台冷启动慢 | 重试，或 `abx config set http2 false` 禁用 HTTP/2 |

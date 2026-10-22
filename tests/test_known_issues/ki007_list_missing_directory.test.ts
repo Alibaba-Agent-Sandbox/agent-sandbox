@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { FilesModule } from "../../src/api/files.js";
 import { FileNotFoundError_ } from "../../src/models/errors.js";
-import { FilesystemProtocol } from "../../src/protocol/filesystem.js";
+import { FilesystemProtocol } from "../../src/providers/shared/e2b/filesystem.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
 import { useHttpxMock } from "../helpers/httpxMock.js";
 import { ENVD, makeHttp, raises, token } from "./_helpers.js";

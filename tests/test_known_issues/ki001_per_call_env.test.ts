@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { CommandsModule } from "../../src/api/commands.js";
 import type { ProcessResult } from "../../src/models/process.js";
-import { ProcessProtocol } from "../../src/protocol/process.js";
+import { ProcessProtocol } from "../../src/providers/shared/e2b/process.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
 import { useHttpxMock } from "../helpers/httpxMock.js";
 import { ENVD, bodyOf, endEvent, makeHttp, processStream, startEvent, stdoutEvent, token } from "./_helpers.js";

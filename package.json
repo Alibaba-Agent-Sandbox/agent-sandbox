@@ -1,7 +1,7 @@
 {
   "name": "@agent-sandbox/cli",
   "version": "0.4.6",
-  "description": "abx — the Agent Sandbox command-line interface (Node.js)",
+  "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -37,8 +37,7 @@
     "e2e:standard": "node e2e/standard.mjs",
     "vendor:e2b": "node scripts/build-standard-cli.mjs",
     "test:standard-provenance": "node --test scripts/test-standard-provenance.mjs",
-    "e2e:conditional": "node e2e/conditional.mjs",
-    "e2e:provider-image": "node e2e/providers/template-image.mjs"
+    "e2e:conditional": "node e2e/conditional.mjs"
   },
   "repository": {
     "type": "git",

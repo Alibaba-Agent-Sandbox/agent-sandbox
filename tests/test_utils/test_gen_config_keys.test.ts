@@ -16,7 +16,6 @@ const FIXTURE_NAMES = [
   "config-resolution-vectors.json",
   "tree-digest-vectors.json",
   "epp-error-mapping.json",
-  "migration-vectors.json",
   "epp-methods.json",
 ];
 const DESIGN = path.join(root, "docs", "design", "fixtures");

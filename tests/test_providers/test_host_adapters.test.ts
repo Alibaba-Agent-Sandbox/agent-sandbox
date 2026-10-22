@@ -11,7 +11,7 @@ import { CommandTimeoutError, SandboxNotFoundError } from "../../src/models/erro
 import { SandboxConfig } from "../../src/models/sandbox.js";
 import { FEATURES } from "../../src/providers/base.js";
 import { AsyncQueue, mapError, type EppClient, type Notification } from "../../src/providers/epp.js";
-import * as E from "../../src/providers/errors.js";
+import * as E from "../../src/models/provider_errors.js";
 import * as xp from "../../src/providers/exec_provider.js";
 import * as installer from "../../src/providers/installer.js";
 import { getProvider } from "../../src/providers/registry.js";
@@ -136,8 +136,8 @@ async function exerciseEveryAdapter(client: FakeClient, stream: boolean): Promis
   for await (const c of reader) chunks.push(c);
   expect(chunks.length).toBeGreaterThan(0);
   await proc.listProcesses(EPP, TOKEN);
-  await proc.kill(EPP, TOKEN, { pid: "proc-1" });
-  await proc.kill(EPP, TOKEN, { pid: 7 });
+  await proc.sendSignal(EPP, TOKEN, { pid: "proc-1", signal: 9 });
+  await proc.sendSignal(EPP, TOKEN, { pid: 7, signal: 9 });
   await proc.sendSignal(EPP, TOKEN, { pid: 7, signal: 9 });
   await proc.sendInput(EPP, TOKEN, { pid: "proc-1", data: "x" });
 }

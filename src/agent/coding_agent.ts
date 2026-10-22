@@ -113,7 +113,6 @@ export interface CodingAgentBackend {
    */
   resolveCredentials(opts?: {
     storedApiKey?: string | null;
-    llmApiKey?: string | null;
     storedBaseUrl?: string | null;
     storedModel?: string | null;
   }): MaybePromise<CodingAgentCredentials>;
@@ -134,10 +133,8 @@ export interface CodingAgentBackend {
    * Runs on the native session `sessionId` **without** structured output, so the agent's own tool loop (web fetch /
    * shell) is free to run before any verdict ends the session.
    *
-   * Migration-period contract: the result may be a plain `boolean` or a `ResearchOutcome`; callers rely only on
-   * `.ok` (see `researchSucceeded` in `clarify.ts`) and read the optional stable `reason` defensively. A falsy
-   * result means the round is unavailable and the caller continues straight to {@link assess} — research is an
-   * enhancement, never a gate.
+   * Returns a structured outcome with `ok` and a stable, sanitized failure reason.
+   * A failed round continues to assessment; research is an enhancement.
    */
   research(
     prompt: string,
@@ -148,7 +145,7 @@ export interface CodingAgentBackend {
       sessionId: string;
       onActivity?: ((summary: string) => void) | null;
     },
-  ): Promise<boolean | ResearchOutcome>;
+  ): Promise<ResearchOutcome>;
 
   /**
    * Run one structured completeness-assessment round.
@@ -264,7 +261,6 @@ export class QwenCodeBackend implements CodingAgentBackend {
   async resolveCredentials(
     opts: {
       storedApiKey?: string | null;
-      llmApiKey?: string | null;
       storedBaseUrl?: string | null;
       storedModel?: string | null;
     } = {},
@@ -272,7 +268,6 @@ export class QwenCodeBackend implements CodingAgentBackend {
     const qwenCode = await import("./qwen_code.js");
     return qwenCode.seams.resolveQwenCodeCredentials({
       storedApiKey: opts.storedApiKey ?? null,
-      llmApiKey: opts.llmApiKey ?? null,
       storedBaseUrl: opts.storedBaseUrl ?? null,
       storedModel: opts.storedModel ?? null,
     });

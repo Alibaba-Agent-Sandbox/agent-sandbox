@@ -3,16 +3,14 @@
 export { ResolvedCapabilities, resolveCapabilities } from "./capability.js";
 export { CodeContextModule } from "./code.js";
 export { CommandsModule } from "./commands.js";
-export { ACRConfig, BuildResult, DockerBuilder } from "./docker_builder.js";
-export { createOfficialTemplate, getTemplate as getOfficialTemplate } from "./fc_template.js";
+export { ACRConfig, BuildResult, DockerBuilder } from "../providers/alicloud_express/docker_builder.js";
+export { createOfficialTemplate, getTemplate as getOfficialTemplate } from "../providers/alicloud_express/fc_template.js";
 export { FilesModule } from "./files.js";
 export { NetworkModule } from "./network.js";
 export { Sandbox } from "./sandbox.js";
 
-export { deployProviderImage, type ProviderImageOptions } from "./provider_template.js";
 
 export const __all__ = [
-  "deployProviderImage",
   "Sandbox",
   "CommandsModule",
   "FilesModule",

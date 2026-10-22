@@ -19,16 +19,14 @@ export const TEMPLATE_PROFILE: import("../../models/template_profile.js").Profil
 import { ALICLOUD_EXPRESS_KEYS, BUILTIN_PROVIDER_ID, GENERIC_ENDPOINT_KEYS } from "../../utils/config_keys.js";
 export const CONFIG_METADATA = {
   id: BUILTIN_PROVIDER_ID,
-  legacyDataPlanePort: 49983,
-  legacyDataPlaneUrlTemplate: "https://49983-{sandbox_id}.{domain}",
   templateProfile: TEMPLATE_PROFILE,
   keys: ALICLOUD_EXPRESS_KEYS,
   inherit: new Set(GENERIC_ENDPOINT_KEYS),
   derive: { sandbox_base_url: "https://api.{region}.e2b.fc.aliyuncs.com", sandbox_domain: "{region}.e2b.fc.aliyuncs.com" },
   endpointDefaults: { sandbox_base_url: "https://api.cn-hangzhou.e2b.fc.aliyuncs.com", sandbox_domain: "cn-hangzhou.e2b.fc.aliyuncs.com" },
-  legacyFields: new Set(["region", "access_key_id", "access_key_secret"]),
+  transportFields: new Set(["region", "access_key_id", "access_key_secret"]),
   omitDefaultOptions: true,
-  legacyEnvironment: [
+  transportEnvironment: [
     ["ABX_SANDBOX_API_KEY", "api_key", true], ["ABX_SANDBOX_BASE_URL", "api_url", true],
     ["ABX_SANDBOX_DOMAIN", "domain", true], ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", true],
     ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", true], ["ALIBABA_CLOUD_REGION_ID", "region", true],

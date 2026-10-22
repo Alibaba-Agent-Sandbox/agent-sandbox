@@ -12,7 +12,7 @@ import { BUILTIN_PROVIDER_ID, providerEnvPrefix } from "../utils/config_keys.js"
 
 const HEADER = /^\s*\[\[?\s*([^\]]+?)\s*\]\]?\s*(#.*)?$/;
 
-/** Invalidate both legacy and layered snapshots after a successful configuration change. */
+/** Invalidate transport and layered snapshots after a successful configuration change. */
 export function resetConfigurationCaches(): void {
   resetConfig();
   resetLayeredConfig();
@@ -20,6 +20,11 @@ export function resetConfigurationCaches(): void {
 
 /** Atomically replace one configuration file with owner-only permissions and invalidate both consumers. */
 export function writeConfigurationFile(file: string, text: string): void {
+  if (!text.trim()) {
+    fs.rmSync(file, { force: true });
+    resetConfigurationCaches();
+    return;
+  }
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
   try {

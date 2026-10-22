@@ -6,7 +6,7 @@
  * byte-for-byte identical to the Python CLI (`abx exec` argv quoting, `sh -c` auto-wrapping, ...).
  */
 
-import { ValueError } from "./_pyerrors.js";
+import { ValueError } from "../utils/_pyerrors.js";
 
 const WORDCHARS_BASE = "abcdfeghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 const WORDCHARS_POSIX_EXTRA =

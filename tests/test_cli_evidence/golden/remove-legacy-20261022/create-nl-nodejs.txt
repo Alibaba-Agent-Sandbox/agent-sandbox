@@ -1,0 +1,13 @@
+ID        alicloud-express:sbx-XXXXX
+Status    running
+Template  abx-nl-nodejs-ev001
+URL       https://sbx-XXXXX.cn-hangzhou.e2b.fc.aliyuncs.com
+Sandbox alicloud-express:sbx-XXXXX created successfully.
+[exit_code:0]
+[stderr]
+... Generating template
+
+✓ Generated template: abx-nl-nodejs-ev001
+    Dockerfile:    /TMPPATH
+    template.yaml: /TMPPATH
+... Creating...

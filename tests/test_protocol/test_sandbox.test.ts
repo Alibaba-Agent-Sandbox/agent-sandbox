@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { QuotaExceededError, SandboxCreationError, SandboxNotFoundError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
-import { SandboxProtocol } from "../../src/protocol/sandbox.js";
-import { ApiKeyAuth } from "../../src/transport/auth.js";
+import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
+import { ApiKeyAuth } from "../../src/providers/alicloud_express/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { HttpClient } from "../../src/transport/http.js";
 import { useHttpxMock } from "../helpers/httpxMock.js";

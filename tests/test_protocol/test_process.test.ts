@@ -3,8 +3,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { ProcessChunk, ProcessChunkType, ProcessInfo } from "../../src/models/process.js";
-import { _HTTP_TIMEOUT_BUFFER, ProcessProtocol, _parseProcessChunk } from "../../src/protocol/process.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { _HTTP_TIMEOUT_BUFFER, ProcessProtocol, _parseProcessChunk } from "../../src/providers/shared/e2b/process.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -200,7 +200,7 @@ describe("TestSendStdin", () => {
   it("test_sends_payload", async () => {
     const mock_http = _makeMockHttp();
     const proto = new ProcessProtocol(mock_http);
-    await proto.sendStdin(envd_url(), envd_token(), { pid: 42, data: "input\n" });
+    await proto.sendInput(envd_url(), envd_token(), { pid: 42, data: "input\n" });
 
     expect(mock_http.envdRequest).toHaveBeenCalledTimes(1);
     const call_kwargs = mock_http.envdRequest.mock.calls[0][2];
@@ -213,7 +213,7 @@ describe("TestKillProcess", () => {
   it("test_sends_payload", async () => {
     const mock_http = _makeMockHttp();
     const proto = new ProcessProtocol(mock_http);
-    await proto.kill(envd_url(), envd_token(), { pid: 42 });
+    await proto.sendSignal(envd_url(), envd_token(), { pid: 42, signal: 9 });
 
     expect(mock_http.envdRequest).toHaveBeenCalledTimes(1);
     const call_kwargs = mock_http.envdRequest.mock.calls[0][2];

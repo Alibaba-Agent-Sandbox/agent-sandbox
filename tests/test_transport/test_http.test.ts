@@ -13,7 +13,7 @@ import {
   _setAsyncClientInitHook,
   type AsyncClient,
 } from "../../src/transport/_httpx.js";
-import { ApiKeyAuth, EnvdTokenManager, PLATFORM_AUTH_HEADER } from "../../src/transport/auth.js";
+import { ApiKeyAuth, EnvdTokenManager, PLATFORM_AUTH_HEADER } from "../../src/providers/alicloud_express/auth.js";
 import { CONNECT_CONTENT_TYPE } from "../../src/transport/codec.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { HttpClient } from "../../src/transport/http.js";

@@ -23,9 +23,9 @@ import { SandboxProtocol } from "./shared/e2b/sandbox.js";
 import type { AuthProvider } from "../transport/auth_contract.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient, HTTPStatusError } from "../transport/http.js";
-import { Provider, consentedInherit, type ProviderInfra, type ProviderTemplates } from "./base.js";
+import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
 import { unsupportedAdapter } from "./exec_provider.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError } from "./errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError } from "../models/provider_errors.js";
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import { hostVersion } from "./host.js";
 import { eppInfra, type EppFactory } from "./node_epp.js";
@@ -77,7 +77,6 @@ export interface NodeContext {
 }
 
 export interface NodePlugin {
-  buildTemplates?(ctx: NodeContext): Promise<ProviderTemplates>;
   buildInfra(ctx: NodeContext): Promise<NodeInfra>;
   /** Optional template factory; authentication, API mapping and polling stay in the plugin. */
   buildTemplateManager?(ctx: NodeContext): Promise<ProviderTemplateManager>;
@@ -281,7 +280,6 @@ export class NodeProvider extends Provider {
       if (v !== undefined && v !== null) core[key] = v;
     }
     core["http_timeout"] = config.http_timeout;
-    core["max_retries"] = config.max_retries;
 
     const transport = (endpoint: { base_url?: string; domain?: string }) => {
       const copy: LayeredConfig = Object.assign(Object.create(Object.getPrototypeOf(config) as object) as LayeredConfig, config);
@@ -310,31 +308,6 @@ export class NodeProvider extends Provider {
     };
 
     return { plugin, ctx, transport, clients };
-  }
-
-  override async buildTemplates(config: LayeredConfig): Promise<ProviderTemplates> {
-    this.require("templates.deploy");
-    const { plugin, ctx, clients } = await this.context(config);
-    let built: ProviderTemplates | undefined;
-    let closed = false;
-    const close = async (): Promise<void> => {
-      if (closed) return;
-      closed = true;
-      const results = await Promise.allSettled([
-        Promise.resolve().then(() => built?.close?.()),
-        ...clients.map(client => Promise.resolve().then(() => client.close())),
-      ]);
-      if (results.some(result => result.status === "rejected")) throw new ProviderConfigError("Provider template resources could not be closed.");
-    };
-    try {
-      if (!plugin.buildTemplates) throw new ProviderFeatureNotSupportedError(this.id, "templates.deploy");
-      built = await plugin.buildTemplates(ctx);
-      if (!built || typeof built.deploy !== "function") throw new ProviderConfigError("Provider returned an invalid template factory.");
-      return { deploy: input => built!.deploy(input), close };
-    } catch (error) {
-      await close().catch(() => undefined);
-      throw error;
-    }
   }
 
   override async buildTemplateManager(config: LayeredConfig, feature = "templates.build"): Promise<ProviderTemplateManager> {

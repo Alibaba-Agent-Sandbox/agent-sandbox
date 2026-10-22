@@ -111,7 +111,7 @@ Installing a provider does not enable every `abx` command. The CLI and the Pytho
 | `sandbox.pause` | Express standard pause/resume; generic provider CLI entry still missing | ProviderSandbox `pause`, `resume` |
 | `exec.run` | `exec`, `run` | `commands.run`, `sandbox.run` |
 | `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_stdin` |
+| `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_input` |
 | `pty` | Express connect uses a PTY; project provider connect is still a line REPL | `get_terminal` |
 | `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
@@ -260,9 +260,6 @@ or newer, as required by the [official mount guide](https://help.aliyun.com/zh/a
 ## Portability and provider updates
 
 See [migration, ownership and updates](../design/provider-portability-and-updates.md) for the existing-resource adoption boundary, legacy FC template guards, provider-owned image factories and the distinction between Git/manual/bundled updates.
-
-Pushed-image factories use `abx --provider PROVIDER template from-image IMAGE --name NAME -y` and the independent `templates.deploy` feature. Optional E2B host SDK loading requires Node22+. Provider manifests remain gated until actual backend acceptance; local installed-host tests do not prove cloud support.
-### Preflight and backend failures
 
 Native terminal access checks the selected provider's PTY declaration before wire
 work. Internal Express template deployment checks ownership before credentials or

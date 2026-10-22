@@ -41,12 +41,6 @@ Python 仓库的[极速版迁移指南](https://github.com/Alibaba-Agent-Sandbox
 
 ## 模板接口及待交付工作
 
-复用 [CLI PR #42](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/42) 中独立的
-`templates.deploy` / `buildTemplates(ctx)` 契约，不再设计第二套 SDK 或任意 shell 透传。
-输入是已推送镜像及标准化资源、启动、就绪、镜像仓库配置，输出为允许字段中的 ready
-结果。API、单位换算、轮询和拒绝选项由 provider 负责。镜像工厂不能自动推导为支持本地
-目录、Dockerfile、构建步骤或另一后端的启动语义；不支持的输入须在 I/O 前拒绝。
-
 | Provider | 当前可安装版本的流程 | 补充实现及剩余门禁 |
 | --- | --- | --- |
 | 极速版 | 原模板 ID/别名、旧 FC 部署流程 | 已抽取到内置极速版模板适配器，真实验收单独记录。 |

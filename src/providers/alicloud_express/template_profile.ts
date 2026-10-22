@@ -1,1 +1,1 @@
-export { TEMPLATE_PROFILE } from "../../utils/bundled_metadata.js";
+export { TEMPLATE_PROFILE } from "./metadata.js";

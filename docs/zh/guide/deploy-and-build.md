@@ -74,7 +74,7 @@ abx deploy ./my-template --yes -v         # 非交互，输出调试日志
 CLI0.4.1 增加首个全局选项 `--native`，选择项目原生命令界面。官方极速版模板清单、状态回读、清理和规范平台 step 验收使用此入口：
 
 ```bash
-abx --native --json template list --official-api
+abx --native --json template list
 abx --native template deploy ./my-template --build steps --yes
 # 模板目录的验收脚本使用：
 export ABX='abx --native'

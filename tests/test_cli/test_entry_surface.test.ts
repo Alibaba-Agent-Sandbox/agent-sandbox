@@ -7,8 +7,8 @@ import { selectCommandSurface } from "../../src/cli/entry_surface.js";
 
 describe("explicit project command surface", () => {
   it("preserves the selected provider and all native command arguments", () => {
-    expect(selectCommandSurface(["--native", "--provider", "example-provider", "template", "list", "--official-api"]))
-      .toEqual({ native: true, args: ["--provider", "example-provider", "template", "list", "--official-api"] });
+    expect(selectCommandSurface(["--native", "--provider", "example-provider", "template", "list"]))
+      .toEqual({ native: true, args: ["--provider", "example-provider", "template", "list"] });
   });
 
   it("never consumes a flag in remote exec input", () => {
@@ -28,6 +28,6 @@ describe("explicit project command surface", () => {
     });
     expect(output).toContain("cn-hangzhou");
     const help = execFileSync(process.execPath, [executable, "--native", "template", "list", "--help"], { encoding: "utf8" });
-    expect(help).toContain("--official-api");
+    expect(help).not.toContain("--official-api");
   });
 });

@@ -9,7 +9,6 @@ import {
   TokenExpiredError,
 } from "../../src/models/errors.js";
 import {
-  AkSkAuth,
   ApiKeyAuth,
   ENVD_AUTH_HEADER,
   ENVD_SANDBOX_ID_HEADER,
@@ -18,7 +17,7 @@ import {
   PLATFORM_AUTH_HEADER,
   buildEnvdHeaders as build_envd_headers,
   createAuthProvider as create_auth_provider,
-} from "../../src/transport/auth.js";
+} from "../../src/providers/alicloud_express/auth.js";
 import { patchHttpxAsyncClient, restoreHttpx } from "../_support/patch.js";
 
 afterEach(() => {
@@ -77,99 +76,6 @@ describe("TestApiKeyAuth", () => {
   it("test_refresh_is_noop", async () => {
     const auth = new ApiKeyAuth("key");
     await auth.refresh(); // Should not raise
-  });
-});
-
-describe("TestAkSkAuth", () => {
-  // Test AK/SK authentication.
-
-  it("test_empty_ak_raises", () => {
-    expectRaisesSync(() => new AkSkAuth("", "secret"), InvalidCredentialsError);
-  });
-
-  it("test_empty_sk_raises", () => {
-    expectRaisesSync(() => new AkSkAuth("ak-id", ""), InvalidCredentialsError);
-  });
-
-  it("test_is_token_valid_no_token", () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    expect(auth._isTokenValid()).toBe(false);
-  });
-
-  it("test_is_token_valid_fresh_token", () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth._cached_token = "some-token";
-    auth._token_expires_at = time() + 3600;
-    expect(auth._isTokenValid()).toBe(true);
-  });
-
-  it("test_is_token_valid_near_expiry", () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth._cached_token = "some-token";
-    // Set expiry within 5 min (300s) refresh buffer
-    auth._token_expires_at = time() + 200;
-    expect(auth._isTokenValid()).toBe(false);
-  });
-
-  it("test_is_token_valid_expired", () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth._cached_token = "some-token";
-    auth._token_expires_at = time() - 100;
-    expect(auth._isTokenValid()).toBe(false);
-  });
-
-  it("test_get_headers_calls_exchange_when_invalid", async () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    const mock_exchange = vi.fn(async (_ak: string, _sk: string) => "exchanged-token");
-    auth.setExchangeFunc(mock_exchange);
-
-    const headers = await auth.getHeaders();
-    expect(headers).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer exchanged-token" });
-    expect(mock_exchange).toHaveBeenCalledTimes(1);
-    expect(mock_exchange).toHaveBeenCalledWith("ak-id", "sk-secret");
-  });
-
-  it("test_get_headers_uses_cached_token", async () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth._cached_token = "cached-token";
-    auth._token_expires_at = time() + 3600;
-
-    const mock_exchange = vi.fn(async (_ak: string, _sk: string) => "new-token");
-    auth.setExchangeFunc(mock_exchange);
-
-    const headers = await auth.getHeaders();
-    expect(headers).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer cached-token" });
-    expect(mock_exchange).not.toHaveBeenCalled();
-  });
-
-  it("test_refresh_clears_and_exchanges", async () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth._cached_token = "old-token";
-    auth._token_expires_at = time() + 3600;
-
-    const mock_exchange = vi.fn(async (_ak: string, _sk: string) => "new-token");
-    auth.setExchangeFunc(mock_exchange);
-
-    await auth.refresh();
-    expect(auth._cached_token).toBe("new-token");
-    expect(mock_exchange).toHaveBeenCalledTimes(1);
-  });
-
-  it("test_exchange_without_func_raises", async () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    await expectRaises(() => auth.getHeaders(), InvalidCredentialsError, /exchange function not configured/);
-  });
-
-  it("test_set_exchange_func", () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    const func = vi.fn(async () => "x");
-    auth.setExchangeFunc(func);
-    expect(auth._exchange_func).toBe(func);
-  });
-
-  it("test_refresh_without_exchange_func_raises_credentials_error", async () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    await expectRaises(() => auth.refresh(), InvalidCredentialsError, /exchange function not configured/);
   });
 });
 
@@ -247,27 +153,12 @@ describe("TestCreateAuthProvider", () => {
   });
 
   it("test_api_key_priority", () => {
-    const auth = create_auth_provider({ api_key: "my-key", access_key_id: "ak", access_key_secret: "sk" });
+    const auth = create_auth_provider({ api_key: "my-key" });
     expect(auth).toBeInstanceOf(ApiKeyAuth);
-  });
-
-  it.each(["cn-hangzhou", "cn-shanghai"])("AK/SK requires an API key without network (%s)", (region) => {
-    const network = patchHttpxAsyncClient({});
-    expect(() => create_auth_provider({ access_key_id: "ak", access_key_secret: "sk", region }))
-      .toThrow(InvalidAPIKeyError);
-    expect(network).not.toHaveBeenCalled();
   });
 
   it("test_no_credentials_raises", () => {
     expectRaisesSync(() => create_auth_provider(), InvalidAPIKeyError, /No authentication credentials/);
-  });
-
-  it("test_partial_ak_sk_raises", () => {
-    expectRaisesSync(
-      () => create_auth_provider({ access_key_id: "ak" }),
-      InvalidAPIKeyError,
-      /No authentication credentials/,
-    );
   });
 
   it("test_api_key_used", () => {
@@ -315,96 +206,5 @@ describe("TestBuildEnvdHeaders", () => {
     expect(headers[ENVD_SANDBOX_PORT_HEADER]).toBe("49983");
     expect(headers["Authorization"]!.startsWith("Basic ")).toBe(true);
     expect(Object.keys(headers).length).toBe(4);
-  });
-});
-
-describe("TestAkSkAuthIntegration", () => {
-  // Integration tests for AK/SK auth with injected exchange function.
-
-  it("test_end_to_end_exchange_and_cache", async () => {
-    // Test full flow: create provider -> first call exchanges -> second uses cache.
-    const mock_exchange = vi.fn(async (_ak: string, _sk: string) => "ek-fresh-token");
-
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth.setExchangeFunc(mock_exchange);
-
-    // First call triggers exchange
-    const headers1 = await auth.getHeaders();
-    expect(headers1).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer ek-fresh-token" });
-    expect(mock_exchange.mock.calls.length).toBe(1);
-
-    // Second call uses cache
-    const headers2 = await auth.getHeaders();
-    expect(headers2).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer ek-fresh-token" });
-    expect(mock_exchange.mock.calls.length).toBe(1); // not called again
-  });
-
-  it("test_token_refresh_on_near_expiry", async () => {
-    // Test that token is refreshed when near expiry.
-    let call_count = 0;
-
-    const mock_exchange = async (_ak: string, _sk: string): Promise<string> => {
-      call_count += 1;
-      return `ek-token-${call_count}`;
-    };
-
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth.setExchangeFunc(mock_exchange);
-
-    // First call
-    await auth.getHeaders();
-    expect(call_count).toBe(1);
-
-    // Simulate near-expiry (within REFRESH_BEFORE_EXPIRY buffer)
-    auth._token_expires_at = time() + 100; // within 300s buffer
-
-    // Should trigger re-exchange
-    const headers = await auth.getHeaders();
-    expect(call_count).toBe(2);
-    expect(headers).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer ek-token-2" });
-  });
-
-  it("test_force_refresh", async () => {
-    // Test force refresh clears cache and re-exchanges.
-    const mock_exchange = vi
-      .fn(async (_ak: string, _sk: string) => "unused")
-      .mockResolvedValueOnce("token-1")
-      .mockResolvedValueOnce("token-2");
-
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth.setExchangeFunc(mock_exchange);
-
-    await auth.getHeaders();
-    expect(auth._cached_token).toBe("token-1");
-
-    await auth.refresh();
-    expect(auth._cached_token).toBe("token-2");
-    expect(mock_exchange.mock.calls.length).toBe(2);
-  });
-
-  it("test_exchange_error_propagates", async () => {
-    // Test that exchange errors propagate correctly.
-    const failing_exchange = async (_ak: string, _sk: string): Promise<string> => {
-      throw new TokenExchangeError("Exchange endpoint returned 500");
-    };
-
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth.setExchangeFunc(failing_exchange);
-
-    await expectRaises(() => auth.getHeaders(), TokenExchangeError, /500/);
-  });
-
-  it.each([null, "", "   ", { apiKeyValue: "placeholder" }, 42])("rejects custom non-token return %#", async (value) => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth.setExchangeFunc(async () => value as unknown as string);
-    await expect(auth.getHeaders()).rejects.toThrow("non-empty token string");
-    expect(auth._cached_token).toBeNull();
-    expect(auth._token_expires_at).toBe(0);
-  });
-
-  it("normalizes a valid custom token before caching", async () => {
-    const auth = new AkSkAuth("ak-id", "sk-secret");
-    auth.setExchangeFunc(async () => "  custom-token  ");
-    expect(await auth.getHeaders()).toEqual({ [PLATFORM_AUTH_HEADER]: "Bearer custom-token" });
   });
 });

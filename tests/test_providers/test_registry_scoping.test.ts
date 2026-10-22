@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { InvalidCredentialsError, InvalidAPIKeyError } from "../../src/models/errors.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
 import * as doctor from "../../src/providers/doctor.js";
-import * as E from "../../src/providers/errors.js";
+import * as E from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { getProvider, listProviders, parseSandboxRef, qualify, registerProvider, resolveProviderId } from "../../src/providers/registry.js";
 import { HeaderKeyAuth, RestProvider } from "../../src/providers/rest_provider.js";
@@ -101,7 +101,7 @@ describe("TestRegistry", () => {
     expect(parseSandboxRef("abc")).toEqual([null, "abc"]);
     expect(() => parseSandboxRef("unknown-prov:abc")).toThrow(E.ProviderNotFoundError);
     expect(() => parseSandboxRef("local-process:")).toThrow(E.ProviderConfigError);
-    expect(qualify("alicloud-express", "sb1", { ambient: "alicloud-express" })).toBe("sb1");
+    expect(qualify("alicloud-express", "sb1", { ambient: "alicloud-express" })).toBe("alicloud-express:sb1");
     expect(qualify("alicloud-express", "sb1", { ambient: "local-process" })).toBe("alicloud-express:sb1");
     expect(qualify("local-process", "sb1", { ambient: "alicloud-express" })).toBe("local-process:sb1");
   });

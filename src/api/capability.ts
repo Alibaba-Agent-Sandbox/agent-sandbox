@@ -13,7 +13,7 @@ import { CapabilityNotSupportedError, TemplateParseError } from "../models/error
 import { DEFAULT_CAPABILITIES, SandboxTemplate } from "../models/template.js";
 import { getLogger, ExcInfo } from "../utils/logging.js";
 import { pyRepr } from "../utils/_pyformat.js";
-import { dictGet, pyExcStr } from "./_pyerrors.js";
+import { dictGet, pyExcStr } from "../utils/_pyerrors.js";
 import { rglobName } from "../utils/_pyos.js";
 import { loadYaml as safeLoad } from "../utils/yaml_io.js";
 

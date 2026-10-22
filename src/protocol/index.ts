@@ -4,7 +4,6 @@ export { CodeInterpreterProtocol } from "../providers/shared/e2b/code_interprete
 export { FilesystemProtocol } from "../providers/shared/e2b/filesystem.js";
 export { ProcessProtocol } from "../providers/shared/e2b/process.js";
 export { SandboxProtocol } from "../providers/shared/e2b/sandbox.js";
-export { TemplateProtocol } from "../providers/alicloud_express/template_protocol.js";
 export { TerminalSession } from "../providers/shared/e2b/terminal.js";
 
 export const __all__ = [
@@ -13,5 +12,4 @@ export const __all__ = [
   "FilesystemProtocol",
   "CodeInterpreterProtocol",
   "TerminalSession",
-  "TemplateProtocol",
 ];

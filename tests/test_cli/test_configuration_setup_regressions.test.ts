@@ -71,7 +71,7 @@ describe("guided configuration persistence", () => {
     expect(fs.readFileSync(iso.env, "utf8")).toBe(previous);
     expect(result.output).toContain("was not changed");
     await abx("provider", "config", "alicloud-express", "unset", "access_key_secret");
-    expect(fs.readFileSync(iso.env, "utf8")).not.toContain("ALICLOUD_ACCESS_KEY_SECRET");
+    expect(fs.existsSync(iso.env)).toBe(false);
   });
 
   it("uses the same writer for global LLM values even when the operation names a Provider", () => {
@@ -151,18 +151,6 @@ describe("guided configuration persistence", () => {
     expect(result.exit_code).not.toBe(0);
     expect(fs.readFileSync(iso.toml, "utf8")).toBe(previous);
     expect(fs.readdirSync(iso.home).some((file) => file.endsWith(".tmp"))).toBe(false);
-  });
-
-  it("reports a stored canonical value explicitly if cleanup of the old copy fails", () => {
-    iso.writeToml('[providers.alicloud-express]\nsandbox_api_key = "placeholder-old"\n');
-    const rename = realFs.renameSync;
-    vi.mocked(fs.renameSync).mockImplementation((from, to) => {
-      if (to === iso.toml) throw new Error("previous location is not writable");
-      rename(from, to);
-    });
-    expect(() => saveGuidedValue("sandbox_api_key", "placeholder-new", "alicloud-express")).toThrow(ConfigurationCleanupError);
-    expect(dotenvValues(iso.env).get("ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY")).toBe("placeholder-new");
-    expect(fs.readFileSync(iso.toml, "utf8")).toContain("placeholder-old");
   });
 
   it("initializes one satisfied authentication group without asking for the other group's secret", async () => {

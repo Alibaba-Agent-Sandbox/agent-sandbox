@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "../../src/cli/main.js";
 
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
-import { ProviderInstallError } from "../../src/providers/errors.js";
+import { ProviderInstallError } from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { registerProvider, unregisterProvider } from "../../src/providers/registry.js";
 import { resetCliSelection, setCliProvider } from "../../src/providers/selection.js";

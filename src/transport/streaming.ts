@@ -25,7 +25,6 @@ export class StreamReader<T> implements AsyncIterableIterator<T> {
   constructor(
     raw_frames: AsyncIterable<Record<string, any>> | AsyncIterator<Record<string, any>>,
     transform: (frame: Record<string, any>) => T,
-    _opts: { buffer_size?: number } = {}, // kept for signature compat; unused
   ) {
     this._raw_frames = raw_frames;
     this._transform = transform;
@@ -73,15 +72,6 @@ export class StreamReader<T> implements AsyncIterableIterator<T> {
   }
 
   // --- public API -----------------------------------------------------------
-
-  /**
-   * No-op retained for backward compatibility.
-   *
-   * Previously started a background producer task. Now the generator is lazily created on first iteration.
-   */
-  start(): StreamReader<T> {
-    return this;
-  }
 
   [Symbol.asyncIterator](): StreamReader<T> {
     if (this._iter === null) this._iter = this._generate();

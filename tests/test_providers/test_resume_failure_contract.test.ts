@@ -7,7 +7,7 @@ import { HttpClient } from "../../src/transport/http.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { ApiKeyAuth } from "../../src/transport/auth_contract.js";
 import { AlicloudExpressProvider } from "../../src/providers/alicloud_express/index.js";
-import { ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 import { TerminalSession } from "../../src/providers/shared/e2b/terminal.js";
 import type { TerminalContext } from "../../src/providers/base.js";
 it.each([403,409,429,500,503])("preserves HTTP %i and never sends the fallback GET", async status => {

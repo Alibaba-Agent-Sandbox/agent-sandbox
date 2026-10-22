@@ -3,8 +3,6 @@ import { getOperationConfig } from "../../utils/operation_config.js";
 import { launchTemplate } from "../template_launch.js";
 import { cleandoc } from "../../utils/_py.js";
 import { confirm } from "../prompts.js";
-import type { ProviderImageRequest } from "../../providers/base.js";
-import { deployProviderImage, validateProviderImage } from "../../api/provider_template.js";
 /** Provider-neutral template commands. Native UI, authentication and cloud work belong to adapters. */
 import { argument, command, option, type Context, type Param, type Command } from "../kit.js";
 import { handleErrors } from "../error_handler.js";
@@ -15,7 +13,7 @@ import { providerCliExtension } from "../provider_extensions.js";
 import { getProvider, resolveProviderId } from "../../providers/registry.js";
 import { cliProvider, cliOptions } from "../../providers/selection.js";
 import { loadLayeredConfig } from "../../transport/config_layers.js";
-import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
 import type { ProviderTemplateManager } from "../../providers/template_contract.js";
 import { UsageError } from "../errors.js";
 import { template } from "../template_catalog.js";
@@ -87,64 +85,11 @@ async function runGeneric(name: string, ctx: Context, params: Record<string, unk
   }
   });
 }
-function usesImageFactory(name: string): boolean {
-  return name === "create" && getProvider(resolveProviderId(cliProvider())).supports("templates.deploy");
-}
-const imageHelp = cleandoc(`Create a provider template from an already pushed OCI image.
-
-    Requires templates.deploy. Configure provider credentials separately.
-    Private images use ABX_IMAGE_REGISTRY_USERNAME and ABX_IMAGE_REGISTRY_PASSWORD.
-    Timeout cancels waiting; an already submitted remote build may still exist.
-    Adapter prerequisites and supported options are documented by each provider.
-
-    Example:
-      abx --provider PROVIDER template from-image docker.io/example/runtime:v1 --name runtime:v1 -y
-    `);
-const imageParams: readonly Param[] = [
-    argument(["image"]),
-    option(["--name"], { required: true, help: "Provider template name, optionally with a tag" }),
-    option(["--cpu"], { type: new IntRange({ min: 1 }), default: null, help: "CPU cores" }),
-    option(["--memory"], { type: new IntRange({ min: 1 }), default: null, help: "Memory in MiB" }),
-    option(["--start-cmd"], { default: null, help: "Build-time start command; requires --ready-cmd" }),
-    option(["--ready-cmd"], { default: null, help: "Build-time readiness command" }),
-    option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (0 < timeout <= 3600)" }),
-    option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation" }),
-  ];
-async function runImageFactory(ctx: Context, params: Record<string, any>): Promise<void> {
-    const spec: NonNullable<ProviderImageRequest["spec"]> = {};
-    for (const key of ["cpu", "memory", "start_cmd", "ready_cmd"] as const) {
-      if (params[key] !== null && params[key] !== undefined) Object.assign(spec, { [key]: params[key] });
-    }
-    const input: ProviderImageRequest = {
-      source: { kind: "image", image: params["image"] }, name: params["name"], spec, timeout: params["timeout"],
-    };
-    const username = process.env["ABX_IMAGE_REGISTRY_USERNAME"];
-    const password = process.env["ABX_IMAGE_REGISTRY_PASSWORD"];
-    if (username !== undefined || password !== undefined) input.registry = { username: username ?? "", password: password ?? "" };
-    const fields = username !== undefined || password !== undefined ? [
-      { key: "registry_username", label: "Private image pull username", env: "ABX_IMAGE_REGISTRY_USERNAME" },
-      { key: "registry_password", label: "Private image pull password", secret: true, env: "ABX_IMAGE_REGISTRY_PASSWORD" },
-    ] : [];
-    // Validate all non-credential request data before any secret prompt.
-    validateProviderImage({ ...input, registry: undefined });
-    return withGuidedConfiguration(ctx, { operation: "Create template from image", yes: Boolean(params["yes"]), requirements: fields,
-      values: { registry_username: username, registry_password: password } }, async () => {
-    if (fields.length) input.registry = { username: String(getOperationConfig()?.["registry_username"] ?? ""), password: String(getOperationConfig()?.["registry_password"] ?? "") };
-    validateProviderImage(input);
-    if (!params["yes"]) await confirm("Create this provider template? The provider may charge for the build.", { abort: true });
-    const data = await deployProviderImage(input);
-    const fmt = getFormatter(ctx);
-    if (fmt.use_json) fmt.printData(data);
-    else fmt.printDict({ ...data });
-    });
-}
-
 function routed(name: string, publicName = name): Command {
   const cmd = command(publicName, {
-    help: () => usesImageFactory(name) ? imageHelp : providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
-    params: () => usesImageFactory(name) ? imageParams : providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
+    help: () => providerCliExtension()?.templateUi[name]?.help ?? help[name] ?? "Manage provider templates.",
+    params: () => providerCliExtension()?.templateUi[name]?.params ?? genericParams(name),
     callback: handleErrors(async (ctx, params) => {
-      if (usesImageFactory(name)) return runImageFactory(ctx, params);
       if (name === "build" || name === "deploy") {
         getProvider(resolveProviderId(cliProvider())).require("templates.build");
         const yes = Boolean(params["yes"]) || getOutput(ctx).ci;

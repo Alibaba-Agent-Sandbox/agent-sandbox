@@ -335,15 +335,4 @@ export class ProcessProtocol {
     await this._unary(envd_url, envd_token, _SEND_SIGNAL, { process: _processSelector(pid), signal: name }, request_timeout);
   }
 
-  // --- backward-compat aliases ---
-
-  /** Deprecated: use sendInput(). Kept for backward compatibility. */
-  async sendStdin(envd_url: string, envd_token: EnvdTokenManager, opts: { pid: number | bigint | string; data: string }): Promise<void> {
-    await this.sendInput(envd_url, envd_token, opts);
-  }
-
-  /** Deprecated: use sendSignal(). Kept for backward compatibility. */
-  async kill(envd_url: string, envd_token: EnvdTokenManager, opts: { pid: number | bigint | string }): Promise<void> {
-    await this.sendSignal(envd_url, envd_token, { pid: opts.pid, signal: 9 });
-  }
 }

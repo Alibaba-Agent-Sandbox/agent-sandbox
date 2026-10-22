@@ -249,8 +249,7 @@ export class ClarifyOutcome {
  * Sanitised result of the phase-R research round.
  *
  * `ok` is the single gate: the create flow degrades on a falsy outcome and never blocks (JavaScript objects cannot
- * override truthiness, so callers read `outcome.ok`; {@link researchSucceeded} also accepts the legacy plain
- * `boolean`). `reason` is a stable failure code — one of the `RESEARCH_REASON_*` constants — and `detail` is an
+ * override truthiness, so callers read `outcome.ok`). `reason` is a stable failure code — one of the `RESEARCH_REASON_*` constants — and `detail` is an
  * optional, already-sanitised one-line context. Raw agent stderr and unclassified exception text never leave the
  * debug log, so callers can safely render both fields.
  */
@@ -266,16 +265,6 @@ export class ResearchOutcome {
     Object.freeze(this);
   }
 
-  /** Python `__bool__`. */
-  valueOf(): boolean {
-    return this.ok;
-  }
-}
-
-/** Truthiness of a backend research result: a plain `boolean` (legacy backend) or a {@link ResearchOutcome}. */
-export function researchSucceeded(outcome: boolean | ResearchOutcome | null | undefined): boolean {
-  if (outcome === null || outcome === undefined) return false;
-  return typeof outcome === "boolean" ? outcome : outcome.ok;
 }
 
 /** Fresh UUID for the native Qwen Code session all rounds share. */

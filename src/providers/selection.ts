@@ -4,7 +4,7 @@
  * pass `provider` / `provider_options` explicitly, so every command picks it up without per-command plumbing.
  */
 
-import { ProviderConfigError } from "./errors.js";
+import { ProviderConfigError } from "../models/provider_errors.js";
 
 interface Selection {
   provider: string | null;

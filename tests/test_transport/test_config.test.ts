@@ -7,7 +7,6 @@ import { beforeEach, afterEach, describe, expect, it } from "vitest";
 
 import { ValidationError } from "../../src/models/base.js";
 import {
-  ENVD_PORT,
   TransportConfig,
   _setConfigFile,
   _setEnvFileCandidates,
@@ -29,7 +28,6 @@ describe("TestTransportConfigDefaults", () => {
     expect(cfg.domain).toBe("cn-hangzhou.e2b.fc.aliyuncs.com");
     expect(cfg.api_url).toBe("https://api.cn-hangzhou.e2b.fc.aliyuncs.com");
     // backward-compat property still works
-    expect(cfg.api_base_url).toBe(cfg.api_url);
   });
 
   it("test_default_region", () => {
@@ -58,11 +56,6 @@ describe("TestTransportConfigDefaults", () => {
     expect(cfg.ws_ping_interval).toBe(30.0);
   });
 
-  it("test_default_retry_settings", () => {
-    const cfg = new TransportConfig();
-    expect(cfg.max_retries).toBe(3);
-    expect(cfg.retry_base_delay).toBe(1.0);
-  });
 });
 
 describe("TestTransportConfigValidation", () => {
@@ -80,13 +73,7 @@ describe("TestTransportConfigValidation", () => {
     expect(() => new TransportConfig({ ws_ping_interval: 0.5 })).toThrow(ValidationError);
   });
 
-  it("test_retry_base_delay_minimum", () => {
-    expect(() => new TransportConfig({ retry_base_delay: 0.05 })).toThrow(ValidationError);
-  });
 
-  it("test_max_retries_minimum", () => {
-    expect(() => new TransportConfig({ max_retries: -1 })).toThrow(ValidationError);
-  });
 
   it("test_extra_fields_ignored", () => {
     const cfg = new TransportConfig({ unknown_field: "value" });
@@ -98,12 +85,10 @@ describe("TestTransportConfigValidation", () => {
       api_url: "https://custom.example.com",
       region: "us-west-1",
       http_timeout: 60.0,
-      max_retries: 5,
     });
     expect(cfg.api_url).toBe("https://custom.example.com");
     expect(cfg.region).toBe("us-west-1");
     expect(cfg.http_timeout).toBe(60.0);
-    expect(cfg.max_retries).toBe(5);
   });
 });
 
@@ -331,26 +316,6 @@ describe("TestDotenvIsolation", () => {
     const cfg = load_config({ api_key: "  ", region: "   " });
     expect(cfg.api_key).toBe("from-dotenv");
     expect(cfg.region).toBe("cn-beijing");
-  });
-});
-
-describe("TestEnvdPort", () => {
-  // Test ENVD_PORT constant and build_envd_url.
-
-  it("test_envd_port_constant", () => {
-    expect(ENVD_PORT).toBe(49983);
-  });
-
-  it("test_build_envd_url", () => {
-    const cfg = new TransportConfig();
-    const url = cfg.buildEnvdUrl("sbx-abc123");
-    expect(url).toBe(`https://49983-sbx-abc123.${cfg.domain}`);
-  });
-
-  it("test_build_envd_url_custom_domain", () => {
-    const cfg = new TransportConfig({ domain: "custom.domain.com" });
-    const url = cfg.buildEnvdUrl("sbx-xyz");
-    expect(url).toBe("https://49983-sbx-xyz.custom.domain.com");
   });
 });
 

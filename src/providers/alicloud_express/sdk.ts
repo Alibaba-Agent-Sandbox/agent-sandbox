@@ -1,6 +1,6 @@
 /** Provider-layer loader for the official FC management SDK; independent of the API layer. */
 import { createRequire } from "node:module";
-import { ProviderConfigError } from "../errors.js";
+import { ProviderConfigError } from "../../models/provider_errors.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** Generated model constructors and client are dynamically loaded to keep discovery offline. */

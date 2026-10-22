@@ -16,7 +16,7 @@ import { main } from "../../src/cli/main.js";
 import { startEngine, type EngineHandle } from "../../src/engine/server.js";
 import { QuotaExceededError, SandboxCreationError, SandboxNotFoundError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { ProcessChunkType, type ProcessResult } from "../../src/models/process.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../../src/providers/errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 import * as installer from "../../src/providers/installer.js";
 import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
 import { useIso } from "../_support/iso.js";

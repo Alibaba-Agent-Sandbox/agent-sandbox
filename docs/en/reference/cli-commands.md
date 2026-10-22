@@ -190,4 +190,4 @@ Features that need a missing setting print a one-line pointer to `abx config ini
 
 ## Native provider image factory
 
-`abx --provider PROVIDER template from-image IMAGE --name NAME -y` is a native extension, independent of the standard template builder. See [provider image deployment](../guide/provider-image-deployment.md). Unopted providers return E8004.
+`abx --provider PROVIDER template from-image IMAGE --name NAME -y` is a native extension, independent of the standard template builder. See [provider image deployment](../guide/template-launch.md). Unopted providers return E8004.

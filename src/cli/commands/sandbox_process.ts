@@ -1,4 +1,4 @@
-import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
 import { CapabilityNotSupportedError } from "../../models/errors.js";
 /** Sandbox process-inspection CLI commands: list, info, signal (port of `cli/commands/sandbox_process.py`). */
 

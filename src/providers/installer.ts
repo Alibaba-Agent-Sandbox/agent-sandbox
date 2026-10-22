@@ -18,7 +18,7 @@ import {
   ProviderIntegrityError,
   ProviderNotFoundError,
   ProviderTrustError,
-} from "./errors.js";
+} from "../models/provider_errors.js";
 import { MANIFEST_NAME, checkRequires, loadManifest, manifestSummary, missingManifestError, parseManifest, type Manifest } from "./manifest.js";
 import { purgeProviderSettings, setDefaultProvider } from "./settings.js";
 import * as store from "./store.js";

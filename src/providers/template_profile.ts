@@ -12,7 +12,7 @@ import { bundledConfig, defaultConfig } from "./bundled_config.js";
  * `alicloud-express` (`resolveProviderId`).
  */
 
-import { ProviderManifestError } from "./errors.js";
+import { ProviderManifestError } from "../models/provider_errors.js";
 import { loadManifest } from "./manifest.js";
 import { cliProvider } from "./selection.js";
 import { pluginRoot, resolveProviderId } from "./registry.js";

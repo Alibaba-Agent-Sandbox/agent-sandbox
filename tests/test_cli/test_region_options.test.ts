@@ -26,6 +26,7 @@ import { parse as yamlParse } from "yaml";
 
 import { cli } from "../../src/cli/main.js";
 import { resolveRegion } from "../../src/cli/region.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import * as layered from "../../src/transport/config_layers.js";
@@ -224,6 +225,7 @@ describe("TestRegionOptionPlacement", () => {
  */
 function patchTransport(opts: { protocol?: boolean; loadConfig?: boolean } = {}) {
   const { protocol = true, loadConfig = true } = opts;
+  vi.spyOn(fcTemplate, "listOfficialTemplates").mockResolvedValue([]);
   const spies: { loadCfg?: ReturnType<typeof vi.fn>; httpCls: ReturnType<typeof vi.fn> } = { httpCls: vi.fn() };
   const spyAny = (o: object, k: string) => vi.spyOn(o as Record<string, (...a: unknown[]) => unknown>, k);
   if (loadConfig) {
@@ -316,8 +318,7 @@ describe("TestRegionReachesTransportConfig", () => {
     platformReturnsEmptyList(httpCls);
     const result = await runner().invoke(cli, ["template", "list"]);
     expect(result.exit_code, result.output).toBe(0);
-    const configArg = httpCls.mock.calls.at(-1)![0] as { region: string };
-    expect(configArg.region).toBe("cn-hangzhou");
+    expect(vi.mocked(fcTemplate.listOfficialTemplates).mock.calls.at(-1)?.[0].region).toBe("cn-hangzhou");
   });
 });
 

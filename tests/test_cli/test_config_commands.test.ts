@@ -138,11 +138,11 @@ describe("TestConfigApiKey", () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
-      runner().invoke(cli, ["config", "set", "api_key", "e2b_test1234abcdc1"]),
+      runner().invoke(cli, ["config", "set", "sandbox_api_key", "e2b_test1234abcdc1"]),
     );
 
     expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("api_key");
+    expect(result.output).toContain("sandbox_api_key");
     // Key should be masked
     expect(result.output).not.toContain("e2b_test1234abcdc1");
     expect(result.output).toContain("***");
@@ -155,7 +155,7 @@ describe("TestConfigApiKey", () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
     fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=e2b_mykey12345dc1\n");
-    const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "api_key"]));
+    const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "sandbox_api_key"]));
 
     expect(result.exit_code).toBe(0);
     // Should show masked value
@@ -169,7 +169,7 @@ describe("TestConfigApiKey", () => {
     const env = { ...process.env } as Record<string, string>;
     delete env["ABX_SANDBOX_API_KEY"];
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
-      withEnv(env, () => runner().invoke(cli, ["config", "get", "api_key"])),
+      withEnv(env, () => runner().invoke(cli, ["config", "get", "sandbox_api_key"])),
     );
 
     expect(result.exit_code).toBe(0);
@@ -183,7 +183,7 @@ describe("TestConfigApiKey", () => {
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "list"]));
 
     expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("api_key");
+    expect(result.output).toContain("sandbox_api_key");
     expect(result.output).toContain("***");
     expect(result.output).not.toContain("e2b_testkey123dc1");
   });
@@ -355,8 +355,8 @@ describe("TestConfigSetEmpty", () => {
     fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\n");
     const [result, getResult] = await withConfig(storagePatch(tmp, { env: true }), () =>
       withEnv(cleanEnv(), async () => [
-        await runner().invoke(cli, ["config", "set", "api_key", ""]),
-        await runner().invoke(cli, ["config", "get", "api_key"]),
+        await runner().invoke(cli, ["config", "set", "sandbox_api_key", ""]),
+        await runner().invoke(cli, ["config", "get", "sandbox_api_key"]),
       ]),
     );
 
@@ -373,7 +373,7 @@ describe("TestConfigSetEmpty", () => {
     const envFile = path.join(tmp, ".env");
     fs.writeFileSync(envFile, "ABX_SANDBOX_API_KEY=sk-test-abcdef123456\nGITHUB_TOKEN=gh-token-12345678\n");
     const result = await withConfig(storagePatch(tmp, { env: true }), () =>
-      withEnv(cleanEnv(), () => runner().invoke(cli, ["config", "set", "api_key", ""])),
+      withEnv(cleanEnv(), () => runner().invoke(cli, ["config", "set", "sandbox_api_key", ""])),
     );
 
     expect(result.exit_code).toBe(0);
@@ -494,7 +494,7 @@ describe("TestConfigListSources", () => {
     // Grouped key order: connection keys follow the cloud credentials.
     const all = lines(result.output);
     const regionIdx = all.findIndex((ln) => ln.startsWith("region"));
-    const domainIdx = all.findIndex((ln) => ln.startsWith("domain"));
+    const domainIdx = all.findIndex((ln) => ln.startsWith("sandbox_domain"));
     expect(regionIdx).toBeLessThan(domainIdx);
   });
 

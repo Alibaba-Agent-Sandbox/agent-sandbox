@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { startEngine, type EngineHandle } from "../../src/engine/server.js";
 import { getProviderCommand, listProviderCommands, runProviderCommand } from "../../src/providers/commands.js";
-import { ProviderConfigError, ProviderResourceNotFoundError } from "../../src/providers/errors.js";
+import { ProviderConfigError, ProviderResourceNotFoundError } from "../../src/models/provider_errors.js";
 import { useIso } from "../_support/iso.js";
 
 vi.mock("../../src/providers/commands.js", () => ({

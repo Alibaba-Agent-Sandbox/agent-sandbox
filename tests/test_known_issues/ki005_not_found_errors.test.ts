@@ -16,8 +16,8 @@ import {
   SandboxNotFoundError,
 } from "../../src/models/errors.js";
 import * as models from "../../src/models/index.js";
-import { FilesystemProtocol } from "../../src/protocol/filesystem.js";
-import { SandboxProtocol } from "../../src/protocol/sandbox.js";
+import { FilesystemProtocol } from "../../src/providers/shared/e2b/filesystem.js";
+import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
 import { exitCodeFor } from "../../src/providers/epp.js";
 import { HTTPError } from "../../src/transport/http.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";

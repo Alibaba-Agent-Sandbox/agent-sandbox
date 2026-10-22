@@ -77,14 +77,6 @@ describe("TestStreamReader", () => {
     expect(result).toEqual([1, 3]);
   });
 
-  it("test_start_returns_self", async () => {
-    const reader = new StreamReader(_async_iter([]), (f) => f);
-    const result = reader.start();
-    expect(result).toBe(reader);
-    // Clean up
-    await reader.collect();
-  });
-
   it("test_cancel", async () => {
     // Create a slow async iterator that can be cancelled
     async function* slow_iter(): AsyncGenerator<Frame> {

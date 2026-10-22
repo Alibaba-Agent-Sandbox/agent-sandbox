@@ -755,7 +755,7 @@ abx template build <template-dir> [选项]
   --cpu <n>                 CPU 核数
   --memory <mb>             内存 (MB)
   --dockerfile, -f <path>   自定义 Dockerfile 路径
-  --official-api/--legacy-api   使用官方 CreateTemplate API
+ /--legacy-api   使用官方 CreateTemplate API
   ... (完整选项见 --help)
 
 示例：
@@ -831,7 +831,7 @@ token 优先级：`--token` > 进程环境变量 `GITHUB_TOKEN` > `./.env` > 持
 abx template list [选项]
 
 选项：
-  --official-api/--no-official-api   使用官方 API
+ /--no-official-api   使用官方 API
 ```
 
 列出所有模板（通过 Platform API 查询）。
@@ -842,7 +842,7 @@ abx template list [选项]
 abx template info <template-id> [选项]
 
 选项：
-  --official-api/--no-official-api   使用官方 API
+ /--no-official-api   使用官方 API
 ```
 
 查看模板详细信息。
@@ -952,7 +952,6 @@ abx mcp deploy [选项]
 | `sandbox_base_url` | 平台 API URL（环境变量 `ABX_SANDBOX_BASE_URL`） | (自动)                    |
 | `region`        | 默认区域（环境变量 `ALIBABA_CLOUD_REGION_ID`） | `cn-hangzhou`             |
 | `http_timeout`  | HTTP 请求超时（秒）                    | (自动)                    |
-| `max_retries`   | 最大重试次数                           | (自动)                    |
 | `sandbox_domain` | Envd 域名（环境变量 `ABX_SANDBOX_DOMAIN`） | (自动)                    |
 | `llm_api_key`   | LLM API Key，供自然语言推理和编码代理使用 | (未设置) |
 | `llm_model`     | LLM 模型名称                          | `qwen3-coder-plus`       |

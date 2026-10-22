@@ -21,7 +21,8 @@ import { _CI_ENV_VARS } from "../_support/env.js";
 import { REGISTRY, eligibleCases, formatResult, normalize, runCase } from "./evidence_cases.js";
 
 const GOLDEN_DIR = fileURLToPath(new URL("./golden/convergence-20261018/", import.meta.url));
-const CURRENT_GOLDEN_DIR = fileURLToPath(new URL("./golden/guided-configuration-20261022/", import.meta.url));
+const PREVIOUS_GOLDEN_DIR = fileURLToPath(new URL("./golden/guided-configuration-20261022/", import.meta.url));
+const CURRENT_GOLDEN_DIR = fileURLToPath(new URL("./golden/remove-legacy-20261022/", import.meta.url));
 const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261022-0.4.6/", import.meta.url));
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
@@ -45,9 +46,10 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   const { stdout, stderr, exit_code } = await runCase(testCase);
   const actual = normalize(formatResult(stdout, stderr, exit_code));
 
-  const baselinePath = path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
-  const currentPath = path.join(testCase.output_file === "version" ? VERSION_GOLDEN_DIR : CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
-  const goldenPath = fs.existsSync(currentPath) || testCase.output_file === "version" ? currentPath : baselinePath;
+  const previousPath = path.join(testCase.output_file === "version" ? VERSION_GOLDEN_DIR : PREVIOUS_GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const baselinePath = fs.existsSync(previousPath) ? previousPath : path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const currentPath = path.join(CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const goldenPath = fs.existsSync(currentPath) ? currentPath : baselinePath;
   if (UPDATE) {
     if (!fs.existsSync(baselinePath) || actual !== fs.readFileSync(baselinePath, "utf8") || testCase.output_file === "version") {
       fs.mkdirSync(path.dirname(currentPath), { recursive: true });

@@ -52,5 +52,3 @@ Successful sandboxes remain running until their configured timeout or explicit d
 ## Adapter contract
 
 `ProviderTemplateManager.prepareProject(directory, options)` is optional and guarded by `templates.build`. It returns `{reference,status:"ready",metadata?,provider_options?,startup_command?,ready_command?}`. The host rejects invalid ready references and credential overrides. The reference may be an ID, native name or image. Express uses its provider-owned CLI composition extension; node/1 plugins implement their own manager. `kit.project.stage`, `buildImage` and `runTool` are generic filesystem/process/OCI primitives with no vendor IDs, API endpoints or credential policy. Authentication, native SDK/API mapping, registry pull fields and Kubernetes resources stay in each adapter.
-
-The standalone `templates.deploy` image factory remains a separate opt-in and is not enabled by project preparation. Native E2B/Cube/cluster acceptance remains tracked separately; a loopback protocol test is not a cloud test.

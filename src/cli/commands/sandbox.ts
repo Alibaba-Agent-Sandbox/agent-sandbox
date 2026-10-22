@@ -36,7 +36,7 @@ import { cpSlice } from "../../utils/_py.js";
 import { CommandNotFoundError, DescriptionClarificationError } from "../../models/errors.js";
 import { ProcessChunkType, type CommandResult } from "../../models/process.js";
 import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
-import { ProviderFeatureNotSupportedError } from "../../providers/errors.js";
+import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
 import { loadLayeredConfig } from "../../transport/config_layers.js";
 import { getProvider } from "../../providers/registry.js";
 import { providerCliExtension } from "../provider_extensions.js";
@@ -502,8 +502,7 @@ export async function _clarifyRequirements(
   };
 
   const researchFailureWarning = (research: unknown): string => {
-    // The outcome is bool-compatible (legacy backends return a plain `bool`), so the stable `reason` attribute is read
-    // defensively; the sanitised `detail` is deliberately not rendered -- the warning stays terse.
+    // Show the stable reason; omit the detailed research output from concise warnings.
     const message =
       `${backend.displayName} could not research the public facts ` +
       "behind the description; continuing with the assessment " +
@@ -523,7 +522,7 @@ export async function _clarifyRequirements(
       ..._activityKwargs(backend.research, update),
     }),
   );
-  const researched = clarify.researchSucceeded(research);
+  const researched = research.ok;
   if (!researched) {
     out.warning(researchFailureWarning(research));
     // The failed round may already have created `sessionId` in the agent (it rejects re-pinning an existing id with
@@ -1246,10 +1245,8 @@ export const create = command("create", {
       URL: sandbox.url,
     };
     if (sandbox.info.envd_version) data["EnvdVersion"] = sandbox.info.envd_version;
-    if (!createView.legacy) {
-      if (!out.jsonMode) data["ID"] = printedId(createView, sandbox.id);
-      else data["provider"] = createView.effective;
-    }
+    if (!out.jsonMode) data["ID"] = printedId(createView, sandbox.id);
+    else data["provider"] = createView.effective;
     // Result channel (task 167): the machine-consumable document goes to stdout; the success notice is skipped in --json
     // mode so that stdout stays a single parseable JSON document.
     out.data(data);
@@ -1302,13 +1299,7 @@ export const list_cmd = command("list", {
       return;
     }
 
-    if (!view.legacy) {
-      _printSandboxList(fmt, view, sandboxes.map((sb) => ({ provider: view.effective, info: sb })));
-      return;
-    }
-    const headers = ["ID", "Template", "Status", "Region"];
-    const rows = sandboxes.map((sb) => [sb.sandbox_id, sb.template, sb.status, _unknownDash(sb.region)]);
-    fmt.printTable(headers, rows);
+    _printSandboxList(fmt, view, sandboxes.map((sb) => ({ provider: view.effective, info: sb })));
   }),
 });
 
@@ -1341,7 +1332,7 @@ function _printSandboxList(fmt: OutputFormatter, view: ReturnType<typeof provide
 
 /** `abx list --all-providers`: every configured provider; a failing one is skipped with a warning. */
 async function _listAllProviders(fmt: OutputFormatter, status: string | null, limit: number): Promise<void> {
-  const view = { ...providerView(), legacy: false, ambient: "" };
+  const view = { ...providerView(), ambient: "" };
   const listed: ListedSandbox[] = [];
   let firstError: unknown = null;
   let succeeded = 0;
@@ -1381,7 +1372,7 @@ export const info = command("info", {
     const infoView = providerView(sandbox.provider);
 
     const data: Record<string, unknown> = {
-      ID: infoView.legacy || fmt.use_json ? sbInfo.sandbox_id : printedId(infoView, sbInfo.sandbox_id),
+      ID: fmt.use_json ? sbInfo.sandbox_id : printedId(infoView, sbInfo.sandbox_id),
       Template: sbInfo.template,
       Status: sbInfo.status,
       Region: _unknownDash(sbInfo.region),
@@ -1391,7 +1382,7 @@ export const info = command("info", {
     if (sbInfo.envd_version) data["EnvdVersion"] = sbInfo.envd_version;
     if (sbInfo.started_at) data["Started"] = pyStr(sbInfo.started_at);
     if (sbInfo.metadata && Object.keys(sbInfo.metadata).length > 0) data["Metadata"] = pyStr(sbInfo.metadata);
-    if (!infoView.legacy) data[fmt.use_json ? "provider" : "Provider"] = infoView.effective;
+    data[fmt.use_json ? "provider" : "Provider"] = infoView.effective;
 
     fmt.printDict(data);
   }),

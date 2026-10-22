@@ -5,7 +5,7 @@ import { ApiKeyAuth } from "../../transport/auth_contract.js";
 import type { LayeredConfig } from "../../transport/config_layers.js";
 import { HttpClient, HTTPStatusError, TimeoutException } from "../../transport/http.js";
 import type { ProviderCommand, ProviderCommandRunner } from "../command_contract.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError, ProviderTimeoutError } from "../errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError, ProviderTimeoutError } from "../../models/provider_errors.js";
 import { commandSchema } from "./command_schema.js";
 
 type Dict = Record<string, unknown>;

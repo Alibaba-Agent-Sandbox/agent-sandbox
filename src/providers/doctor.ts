@@ -3,7 +3,7 @@
 import { InvalidAPIKeyError, InvalidCredentialsError, SandboxError } from "../models/errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { BUILTIN_PROVIDER_ID } from "../utils/config_keys.js";
-import { ProviderConfigError, ProviderInstallError } from "./errors.js";
+import { ProviderConfigError, ProviderInstallError } from "../models/provider_errors.js";
 import * as registry from "./registry.js";
 import * as store from "./store.js";
 

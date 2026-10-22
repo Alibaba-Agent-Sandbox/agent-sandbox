@@ -179,7 +179,6 @@ abx config get <KEY>
 | `region` | 默认区域 |
 | `http_timeout` | HTTP 请求超时秒数 |
 | `http2` | 启用 HTTP/2（true/false） |
-| `max_retries` | 最大重试次数 |
 | `llm_api_key` | LLM API Key，供自然语言推理和编码代理使用（输出时脱敏；存为 `ABX_LLM_API_KEY`） |
 | `llm_model` | LLM 模型名称（默认 `qwen3-coder-plus`） |
 | `llm_base_url` | LLM API 基地址，OpenAI 兼容（默认 DashScope compatible-mode） |
@@ -339,7 +338,6 @@ abx template deploy <TEMPLATE_DIR> [选项]
 | `--dockerfile` | `-f` | 自定义 Dockerfile 路径 |
 | `--disk-size` | | 磁盘大小 MB（仅官方 API） |
 | `--internet-access/--no-internet-access` | | 联网访问（仅官方 API） |
-| `--official-api/--legacy-api` | | 使用官方 API（默认）或旧 v3/v2 API |
 | `--team-id` | | Team ID |
 | `--envd-inject/--no-envd-inject` | | envd 注入（默认关闭） |
 | `--generation` | | 沙箱代数（1=一代 rund，2=二代 MicroVM；默认 `template.yaml` → 1） |

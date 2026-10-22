@@ -1,0 +1,6 @@
+ID        alicloud-express:sbx-XXXXX
+Status    running
+Template  base
+URL       https://sbx-XXXXX.cn-hangzhou.e2b.fc.aliyuncs.com
+Sandbox alicloud-express:sbx-XXXXX created successfully.
+[exit_code:0]

@@ -20,7 +20,7 @@ import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contra
 import { HTTPStatusError } from "../transport/http.js";
 import { getLogger } from "../utils/logging.js";
 import { pyStrip } from "../utils/_pyformat.js";
-import { NotImplementedError, RuntimeError, dictGet, pyEncodeUtf8 } from "./_pyerrors.js";
+import { NotImplementedError, RuntimeError, dictGet, pyEncodeUtf8 } from "../utils/_pyerrors.js";
 import { checkCapability } from "./capability.js";
 
 const logger = getLogger("api.code");

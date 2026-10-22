@@ -8,12 +8,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { resolveCapabilities } from "../../src/api/capability.js";
 import { CodeContextModule } from "../../src/api/code.js";
-import { NotImplementedError, RuntimeError } from "../../src/api/_pyerrors.js";
+import { NotImplementedError, RuntimeError } from "../../src/utils/_pyerrors.js";
 import { CapabilityNotSupportedError, TemplateParseError } from "../../src/models/errors.js";
 import { CodeResult, ProcessChunk, ProcessChunkType } from "../../src/models/process.js";
-import { CodeInterpreterProtocol } from "../../src/protocol/code_interpreter.js";
+import { CodeInterpreterProtocol } from "../../src/providers/shared/e2b/code_interpreter.js";
 import { HTTPStatusError, Request, Response } from "../../src/transport/_httpx.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import {
   MockStreamReader as _MockStreamReader,
   captureLogs,

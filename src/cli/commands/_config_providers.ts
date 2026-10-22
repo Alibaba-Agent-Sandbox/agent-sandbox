@@ -1,3 +1,4 @@
+import { PyFloat } from "../../utils/_pyformat.js";
 /**
  * Provider-aware `abx config` keys: `provider`, `providers.<id>.<key>`, bare keys of the effective provider (the built-in
  * `acr_*` / `team_id` keys, or a plugin's options) and the audit/migration helpers. Grammar and storage rules:
@@ -7,7 +8,7 @@
  * `config_cmd.ts`; this module only adds keys, so a user who never installed or selected a provider sees no change.
  */
 
-import { ProviderConfigError } from "../../providers/errors.js";
+import { ProviderConfigError } from "../../models/provider_errors.js";
 import * as registry from "../../providers/registry.js";
 import { cliProvider } from "../../providers/selection.js";
 import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
@@ -43,7 +44,7 @@ function findProviderKey(providerId: string, name: string): ConfigKey | undefine
 }
 
 /**
- * Resolve a key the legacy `config` code does not know. `null` when `typed` is not a provider key at all (the caller then
+ * Resolve a provider-owned configuration key. `null` when `typed` is not a provider key at all (the caller then
  * reports an unknown key). Throws `ProviderNotFoundError` (E8001) / `ProviderConfigError` (E8002) for malformed ones.
  */
 export function resolveExtraKey(typed: string): ExtraTarget | null {
@@ -84,7 +85,7 @@ export function providersDeclaring(name: string): string[] {
   return out;
 }
 
-const _REGISTRY_NAMES: Readonly<Record<string, string>> = { api_url: "sandbox_base_url", domain: "sandbox_domain" };
+const _REGISTRY_NAMES: Readonly<Record<string, string>> = {};
 
 /**
  * The registry key behind a long-standing `config` key (`api_url` -> `sandbox_base_url`, ...). Used once
@@ -100,12 +101,6 @@ export function coreTarget(internal: string, typed: string): ExtraTarget | null 
   if (!core || core.scope !== "core") return null;
   if (["sandbox_api_key", "sandbox_base_url", "sandbox_domain"].includes(name) && !provider.inherit.has(name)) return null;
   return { kind: "key", provider_id: providerId, key: core, scoped: false, typed };
-}
-
-export function configFormat(): number {
-  const core = quietly(() => loadTomlFile(paths.configFile))["core"];
-  const raw = core && typeof core === "object" ? (core as Record<string, unknown>)["config_format"] : undefined;
-  return raw === 2 || raw === "2" ? 2 : 1;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -146,25 +141,20 @@ export type Where = { file: "env" | "toml"; name: string; section?: string };
 export function primaryStorage(target: ExtraTarget): Where {
   const key = target.key as ConfigKey;
   if (target.scoped) {
-    return key.secret ? { file: "env", name: providerEnvName(target.provider_id, key.key) } : { file: "toml", name: key.key, section: `providers.${target.provider_id}` };
+    return (key.secret || key.credential) ? { file: "env", name: providerEnvName(target.provider_id, key.key) } : { file: "toml", name: key.key, section: `providers.${target.provider_id}` };
   }
-  const storage = configFormat() === 2 ? key.storage_phase2 : key.storage_phase1;
+  const storage = key.storage;
   if (storage) return storage as Where;
   return { file: "toml", name: key.key, section: `providers.${target.provider_id}` };
 }
 
-/** Every place a value of this key may be stored (canonical and legacy names, both phases). */
+/** Every place a value of this key may be stored (its current schema storage). */
 function allStorages(target: ExtraTarget): Where[] {
   const key = target.key as ConfigKey;
   const out: Where[] = [primaryStorage(target)];
-  if (target.scoped && key.secret) out.push({ file: "toml", name: key.key, section: `providers.${target.provider_id}` });
+  if (target.scoped && (key.secret || key.credential)) out.push({ file: "toml", name: key.key, section: `providers.${target.provider_id}` });
   if (!target.scoped) {
-    for (const s of [key.storage_phase1, key.storage_phase2]) if (s) out.push(s as Where);
-    for (const a of key.aliases) {
-      if (a.kind !== "legacy") continue;
-      if (a.surface === "env") out.push({ file: "env", name: a.name });
-      if (a.surface === "config" || a.surface === "kwarg") out.push({ file: "toml", name: a.name, section: "transport" });
-    }
+    if (key.storage) out.push(key.storage as Where);
   }
   const seen = new Set<string>();
   return out.filter((w) => {
@@ -251,10 +241,10 @@ export function writeExtra(target: ExtraTarget, text: string): string | number |
   const typed = parseExtraValue(target, text);
   const where = primaryStorage(target);
   const keep = where;
-  // Commit the new value before removing a legacy copy: a failed destination write must preserve working credentials.
+  // Commit the new value before removing an obsolete plaintext copy: a failed destination write must preserve working credentials.
   if (where.file === "env") setEnvValue(where.name, String(typed));
-  else setTomlValue(where.section ?? "transport", where.name, typed);
-  if (configFormat() === 2 || target.scoped && target.key?.secret) {
+  else setTomlValue(where.section ?? "transport", where.name, target.key?.type === "float" && typeof typed === "number" ? new PyFloat(typed) : typed);
+  if (target.scoped && (target.key?.secret || target.key?.credential)) {
     try {
       for (const w of allStorages(target)) if (!(w.file === keep.file && w.name === keep.name && w.section === keep.section)) removeWhere(w);
     } catch {

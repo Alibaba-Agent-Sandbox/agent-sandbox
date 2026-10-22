@@ -39,7 +39,7 @@ Edits:
 6. Instances produced by an exec provider carry `envd_url` when the plugin returns one: keep the existing envd transport for exec/files/PTY (hybrid mode, implemented in `ExecProvider`).
 7. Un-skip the two `it.todo` tests in `tests/test_providers/test_sandbox_provider.test.ts` (`Sandbox.connect('provider:id')` mismatch → `E8030`, and the built-in default path).
 
-`api/commands.ts`: no routing change; `Commands.run/start/...` already take the `ProcessProtocol` from the sandbox. Only needed: accept string pids in `kill/connect/send_stdin` signatures (follows the `ProcessInfo.pid` widening).
+`api/commands.ts`: no routing change; `Commands.run/start/...` already take the `ProcessProtocol` from the sandbox. Only needed: accept string pids in `kill/connect/sendInput` signatures (follows the `ProcessInfo.pid` widening).
 
 ## 3. `src/cli/main.ts` and `command_surface.ts`
 

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed
+
+- Pre-release project compatibility: old template factories/APIs and selector flags, import aliases, migration commands, deprecated method aliases, old server transfer routes, custom AK/SK token exchange and implicit provider URL/port fallbacks.
+
+
 ### Added
 
 - Add read-only npm credential and scope diagnostics to the release recovery workflow, with sanitized output and publication explicitly disabled. / 为发布恢复工作流增加只读 npm 凭据与 scope 诊断，输出脱敏并明确跳过发布。

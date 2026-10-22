@@ -316,10 +316,7 @@ export interface OutputManagerOptions {
   ci?: boolean;
   /** Explicit log level (`DEBUG` / `INFO` / `WARNING` / `ERROR`). Takes precedence over verbose / quiet. */
   logLevel?: string | null;
-  /** Python-spelling aliases of `jsonMode` / `noColor` / `logLevel` (the camelCase key wins when both are given). */
-  json_mode?: boolean;
-  no_color?: boolean;
-  log_level?: string | null;
+
 }
 
 export type ActivityUpdate = (summary?: string) => void;
@@ -371,8 +368,8 @@ export class OutputManager {
   constructor(opts: OutputManagerOptions = {}) {
     const verbose = opts.verbose ?? false;
     let quiet = opts.quiet ?? false;
-    let jsonMode = opts.jsonMode ?? opts.json_mode ?? false;
-    let noColor = opts.noColor ?? opts.no_color ?? false;
+    let jsonMode = opts.jsonMode ?? false;
+    let noColor = opts.noColor ?? false;
     const ci = opts.ci ?? false;
     if (ci) {
       quiet = true;
@@ -385,28 +382,13 @@ export class OutputManager {
     this.noColor = noColor || !isTty();
     this.ci = ci;
 
-    const logLevel = opts.logLevel ?? opts.log_level ?? null;
+    const logLevel = opts.logLevel ?? null;
     if (logLevel !== null) this._level = levelFromName(logLevel.toUpperCase(), logging.INFO);
     else if (verbose) this._level = logging.DEBUG;
     else if (quiet) this._level = logging.ERROR;
     else this._level = logging.WARNING;
 
     this._configureLogging();
-  }
-
-  /** Python-spelling alias of {@link jsonMode}. */
-  get json_mode(): boolean {
-    return this.jsonMode;
-  }
-
-  /** Python-spelling alias of {@link noColor}. */
-  get no_color(): boolean {
-    return this.noColor;
-  }
-
-  /** Alias kept for backward compatibility with `OutputFormatter` (`use_json`). */
-  get useJson(): boolean {
-    return this.jsonMode;
   }
 
   /**

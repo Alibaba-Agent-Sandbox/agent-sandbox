@@ -12,7 +12,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cli } from "../../src/cli/main.js";
 import { configSeams } from "../../src/cli/commands/config_cmd.js";
 import { _readEnvVars } from "../../src/transport/config.js";
-import { _resetDeprecationWarnings } from "../../src/transport/config_layers.js";
 import { hostVersion } from "../../src/providers/host.js";
 import * as installer from "../../src/providers/installer.js";
 import { useIso } from "../_support/iso.js";
@@ -36,19 +35,18 @@ const toml = (): string => (fs.existsSync(iso.toml) ? fs.readFileSync(iso.toml, 
 const dotenv = (): string => (fs.existsSync(iso.env) ? fs.readFileSync(iso.env, "utf-8") : "");
 
 describe("canonical key names", () => {
-  it("test_canonical_and_legacy_names_address_the_same_value", async () => {
-    expect((await abx("config", "set", "sandbox_base_url", "https://a.example")).output).toContain("Set sandbox_base_url = https://a.example");
-    expect((await abx("config", "get", "api_url")).output.trim()).toBe("https://a.example");
-    expect((await abx("config", "get", "api_base_url")).output.trim()).toBe("https://a.example");
-    expect((await abx("config", "set", "domain", "d.example")).output).toContain("Set domain = d.example");
-    expect((await abx("config", "get", "sandbox_domain")).output.trim()).toBe("d.example");
-    expect(toml()).toContain('api_url = "https://a.example"');
+  it("stores canonical endpoint names without a migration step", async () => {
+    expect((await abx("config", "set", "sandbox_base_url", "https://a.example")).exit_code).toBe(0);
+    expect((await abx("config", "get", "sandbox_base_url")).output.trim()).toBe("https://a.example");
+    expect(toml()).toContain('sandbox_base_url = "https://a.example"');
   });
 
-  it("test_the_legacy_api_key_alias_keeps_printing_the_canonical_name", async () => {
-    const r = await abx("config", "set", "api_key", "abcdefghijkl");
-    expect(r.output).toContain("Set sandbox_api_key = ");
-    expect(r.output).not.toContain("abcdefghijkl");
+  it.each(["api_key", "api_url", "api_base_url", "domain"])("rejects removed key %s", async (key) => {
+    expect((await abx("config", "set", key, "unused")).exit_code).not.toBe(0);
+  });
+
+  it.each(["check", "migrate"])("rejects removed command %s", async (name) => {
+    expect((await abx("config", name)).exit_code).not.toBe(0);
   });
 
   it("test_acr_and_team_keys_are_settable_and_stored_in_the_provider_table", async () => {
@@ -72,7 +70,7 @@ describe("canonical key names", () => {
     const r = await abx("config", "list");
     expect(r.output).not.toContain("Provider");
     expect(r.output).not.toContain("registry (ACR)");
-    expect(r.output).toContain("api_url");
+    expect(r.output).toContain("sandbox_base_url");
     await abx("config", "set", "acr_repo", "myrepo");
     const after = await abx("config", "list");
     expect(after.output).toContain("Alibaba Cloud registry (ACR)");
@@ -133,135 +131,6 @@ describe("provider keys", () => {
   });
 });
 
-describe("the TTY-only legacy-key note", () => {
-  const tty = (stderrTty: boolean) => ({ stdin: { isatty: () => false }, stderr: { isatty: () => stderrTty } });
-
-  it("test_note_appears_on_stderr_for_a_renamed_legacy_key_in_a_terminal", async () => {
-    const r = await withConfig({ ...storagePatch(iso.home, { env: true }), sys: tty(true) as never }, () => abx("config", "set", "api_url", "https://n.example"));
-    expect(r.stderr).toContain("note: 'api_url' is now 'sandbox_base_url' (the old name keeps working).");
-    expect(r.stdout).toContain("Set api_url = https://n.example");
-  });
-
-  it("test_no_note_without_a_terminal_in_json_quiet_or_ci", async () => {
-    for (const args of [["config", "set", "api_url", "https://n.example"], ["--json", "config", "set", "api_url", "https://n.example"], ["--quiet", "config", "set", "api_url", "https://n.example"]]) {
-      const r = await withConfig({ ...storagePatch(iso.home, { env: true }), sys: tty(false) as never }, () => abx(...args));
-      expect(r.stderr).not.toContain("note:");
-    }
-    for (const args of [["--json", "config", "set", "api_url", "https://n.example"], ["--quiet", "config", "set", "api_url", "https://n.example"]]) {
-      const r = await withConfig({ ...storagePatch(iso.home, { env: true }), sys: tty(true) as never }, () => abx(...args));
-      expect(r.stderr).not.toContain("note:");
-    }
-    iso.setenv("CI", "true");
-    const ci = await withConfig({ ...storagePatch(iso.home, { env: true }), sys: tty(true) as never }, () => abx("config", "set", "api_url", "https://n.example"));
-    expect(ci.stderr).not.toContain("note:");
-  });
-
-  it("test_canonical_names_never_trigger_the_note", async () => {
-    const r = await withConfig({ ...storagePatch(iso.home, { env: true }), sys: tty(true) as never }, () => abx("config", "set", "sandbox_base_url", "https://n.example"));
-    expect(r.stderr).not.toContain("note:");
-  });
-});
-
-describe("config check", () => {
-  it("test_clean_configuration", async () => {
-    const r = await abx("config", "check");
-    expect(r.exit_code).toBe(0);
-    expect(r.output).toContain("No legacy names in use.");
-  });
-
-  it("test_reports_legacy_names_only_and_never_values", async () => {
-    iso.setenv("SANDBOX_API_KEY", "key-value-abcdef");
-    iso.setenv("E2B_API_KEY", "compat-value-abcdef");
-    iso.setenv("ALICLOUD_ACCESS_KEY_ID", "native-value-abcdef");
-    iso.writeToml('[transport]\napi_url = "https://t.example"\nhttp_timeout = 9\n');
-    const text = await abx("config", "check");
-    expect(text.exit_code).toBe(0);
-    expect(text.output).toContain("No legacy names in use.");
-    for (const secret of ["key-value-abcdef", "compat-value-abcdef", "native-value-abcdef", "t.example"]) expect(text.output).not.toContain(secret);
-    expect(text.output).not.toContain("E2B_API_KEY");
-    expect(text.output).not.toContain("SANDBOX_API_KEY");
-
-    const asJson = json((await abx("--json", "config", "check")).stdout);
-    expect(asJson).toEqual([]);
-  });
-
-  it("test_strict_exits_1_when_something_is_found", async () => {
-    iso.setenv("SANDBOX_REGION", "cn-beijing");
-    iso.setenv("E2B_API_KEY", "x");
-    expect((await abx("config", "check")).exit_code).toBe(0);
-    expect((await abx("config", "check", "--strict")).exit_code).toBe(0);
-  });
-});
-
-describe("config migrate", () => {
-  const seed = (): void => {
-    iso.writeToml('[transport]\napi_url = "https://t.example"\nregion = "cn-beijing"\nhttp_timeout = 9\n');
-    iso.writeEnv("E2B_API_KEY=old-key-value\nACR_NAMESPACE=ns1\n");
-  };
-
-  it("test_dry_run_prints_the_plan_and_changes_nothing", async () => {
-    seed();
-    const before = [toml(), dotenv()];
-    const r = await abx("config", "migrate", "--dry-run");
-    expect(r.exit_code).toBe(0);
-    expect(r.output).toContain("would rename transport.region -> providers.alicloud-express.region");
-    expect(r.output).not.toContain("api_url");
-    expect(r.output).toContain("would set core.config_format = 2");
-    expect([toml(), dotenv()]).toEqual(before);
-  });
-
-  it("test_refuses_without_confirmation_when_not_interactive", async () => {
-    seed();
-    const r = await abx("config", "migrate");
-    expect(r.exit_code).toBe(2);
-    expect(toml()).not.toContain("config_format");
-  });
-
-  it("test_yes_rewrites_names_backs_up_with_0600_and_is_idempotent", async () => {
-    seed();
-    const r = await abx("config", "migrate", "--yes");
-    expect(r.exit_code, r.output).toBe(0);
-    expect(toml()).toContain("config_format = 2");
-    expect(toml()).toContain('api_url = "https://t.example"');
-    expect(toml()).toContain('region = "cn-beijing"');
-    expect(toml()).not.toContain("[transport]\nregion");
-    expect(dotenv()).toContain("E2B_API_KEY=old-key-value");
-    expect(dotenv()).toContain("ACR_NAMESPACE=ns1");
-    expect(dotenv()).not.toContain("ABX_SANDBOX_API_KEY");
-    expect(fs.readFileSync(`${iso.toml}.bak`, "utf-8")).toContain("api_url");
-    expect(fs.statSync(`${iso.toml}.bak`).mode & 0o777).toBe(0o600);
-    expect(fs.statSync(`${iso.env}.bak`).mode & 0o777).toBe(0o600);
-
-    const again = await abx("config", "migrate", "--yes");
-    expect(again.exit_code).toBe(0);
-    expect(again.output).toContain("Nothing to migrate");
-  });
-
-  it("test_after_migration_values_resolve_and_listing_uses_the_canonical_names", async () => {
-    seed();
-    await abx("config", "migrate", "--yes");
-    expect((await abx("config", "get", "api_url")).output.trim()).toBe("https://api.cn-hangzhou.e2b.fc.aliyuncs.com");
-    expect((await abx("config", "get", "region")).output.trim()).toBe("cn-beijing");
-    expect((await abx("config", "get", "sandbox_api_key")).output).toContain("not set");
-
-    const listing = await abx("config", "list");
-    expect(listing.output).toContain("sandbox_base_url");
-    expect(listing.output).toContain("sandbox_domain");
-    expect(listing.output).not.toMatch(/^api_url /m);
-    const legacy = await abx("config", "list", "--legacy-names");
-    expect(legacy.output).toMatch(/^api_url /m);
-    expect(Object.keys(json((await abx("--json", "config", "list")).stdout))).toContain("sandbox_base_url");
-    expect(Object.keys(json((await abx("--json", "config", "list", "--legacy-names")).stdout))).toContain("api_url");
-
-    await abx("config", "set", "api_url", "https://z.example");
-    expect((await abx("config", "get", "sandbox_base_url")).output.trim()).toBe("https://z.example");
-    expect(toml()).toContain("https://z.example");
-    expect((await abx("config", "delete", "region")).output).toContain("already not set");
-    expect((await abx("config", "get", "region")).output.trim()).toBe("cn-beijing");
-    expect((await abx("config", "check")).output).toContain("No legacy names in use.");
-  });
-});
-
 describe("legacy names", () => {
   it("test_retired_env_names_are_not_read", () => {
     const warn = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
@@ -269,7 +138,7 @@ describe("legacy names", () => {
       iso.setenv("SANDBOX_REGION", "cn-beijing");
       iso.setenv("E2B_API_URL", "https://compat.example");
       iso.setenv("ABX_WARN_DEPRECATED", "1");
-      _resetDeprecationWarnings();
+
       const values = _readEnvVars();
       expect(values["region"]).toBeUndefined();
       expect(values["api_url"]).toBeUndefined();

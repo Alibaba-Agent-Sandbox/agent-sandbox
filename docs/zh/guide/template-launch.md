@@ -52,5 +52,3 @@ E2B 等待官方 SDK 构建完成，Cube 等待确切原生构建任务，极速
 ## 适配器契约
 
 可选的 `ProviderTemplateManager.prepareProject(directory, options)` 由 `templates.build` 门禁保护，返回 `{reference,status:"ready",metadata?,provider_options?,startup_command?,ready_command?}`。宿主拒绝无效就绪引用和凭据覆盖，引用可为 ID、原生名称或镜像。极速版通过提供方自有 CLI 组合扩展接入，node/1 插件实现各自管理器。`kit.project.stage`、`buildImage`、`runTool` 仅提供通用文件、进程、OCI 工具，没有厂商 ID、API 路径或认证策略；厂商认证、SDK/API 映射、私仓拉取字段和 Kubernetes 资源仍由适配器维护。
-
-独立的 `templates.deploy` 镜像工厂继续单独门禁，不因项目准备而启用。E2B、Cube 和集群的原生验收单独跟踪，回环协议测试不等同于真实云验收。

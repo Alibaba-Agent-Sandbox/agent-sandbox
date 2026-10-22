@@ -7,7 +7,7 @@ import { validateCommandInput } from "../../providers/command_contract.js";
 import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { confirm } from "../prompts.js";
-import { ProviderConfigError, ProviderMismatchError, ProviderTrustError } from "../../providers/errors.js";
+import { ProviderConfigError, ProviderMismatchError, ProviderTrustError } from "../../models/provider_errors.js";
 import { getProvider } from "../../providers/registry.js";
 import { cliOptions, cliProvider } from "../../providers/selection.js";
 import { getFormatter } from "../formatters.js";

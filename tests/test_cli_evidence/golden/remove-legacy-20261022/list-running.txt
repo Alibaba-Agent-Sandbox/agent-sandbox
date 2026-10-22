@@ -1,0 +1,3 @@
+ID                             Template     Status   Region
+alicloud-express:sbx-XXXXX  python-base  running  cn-hangzhou
+[exit_code:0]

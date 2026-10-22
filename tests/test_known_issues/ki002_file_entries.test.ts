@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import { FilesModule } from "../../src/api/files.js";
 import { FileType } from "../../src/models/filesystem.js";
-import { FilesystemProtocol, _parseFileInfo, _unwrapEntry } from "../../src/protocol/filesystem.js";
+import { FilesystemProtocol, _parseFileInfo, _unwrapEntry } from "../../src/providers/shared/e2b/filesystem.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
 import { useHttpxMock } from "../helpers/httpxMock.js";
 import { ENVD, makeHttp, token } from "./_helpers.js";

@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { compactFeatures, orderedFeatures } from "../../src/providers/base.js";
 import { recordToInfo } from "../../src/providers/exec_provider.js";
-import { ProviderFeatureNotSupportedError, ProviderManifestError, ProviderTrustError } from "../../src/providers/errors.js";
+import { ProviderFeatureNotSupportedError, ProviderManifestError, ProviderTrustError } from "../../src/models/provider_errors.js";
 import { gateProtocol, SANDBOX_RULES } from "../../src/providers/feature_gate.js";
 import * as installer from "../../src/providers/installer.js";
 import { loadManifest } from "../../src/providers/manifest.js";

@@ -1,3 +1,4 @@
+import { providerNetwork } from "../helpers/networkSupport.js";
 /**
  * Shared fixtures for API layer tests (port of `tests/test_api/conftest.py`).
  *
@@ -16,7 +17,7 @@ import { FileInfo, FileType } from "../../src/models/filesystem.js";
 import { ProcessChunk, ProcessChunkType, ProcessInfo } from "../../src/models/process.js";
 import { SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
 import { STANDARD_CAPABILITIES } from "../../src/models/template.js";
-import { EnvdTokenManager } from "../../src/transport/auth.js";
+import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -231,7 +232,7 @@ export function makeFilesModule(
 }
 
 export function makeNetworkModule(): NetworkModule {
-  return new NetworkModule({
+  return providerNetwork({
     sandbox_id: TEST_SANDBOX_ID,
     domain: "cn-hangzhou.e2b.fc.aliyuncs.com",
     secure: true,

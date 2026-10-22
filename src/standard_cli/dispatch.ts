@@ -108,11 +108,11 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
     dotenv: (snapshot.dotenv ?? []).map(standardLayer) };
 
   const config = loadLayeredConfig({ provider: "alicloud-express" }, { sources });
-  if (config.api_key) process.env["E2B_API_KEY"] = config.api_key;
+  if (config.sandbox_api_key) process.env["E2B_API_KEY"] = config.sandbox_api_key;
   const urlSource = explainConfig({ provider: "alicloud-express" }, { sources })["sandbox_base_url"]?.source;
   const explicitUrl = urlSource !== undefined && ["override", "environ", "dotenv", "toml"].includes(urlSource);
-  process.env["E2B_API_URL"] = explicitUrl ? config.api_url : `https://api.${config.domain}`;
-  process.env["E2B_DOMAIN"] = config.domain;
+  process.env["E2B_API_URL"] = explicitUrl ? config.sandbox_base_url : `https://api.${config.sandbox_domain}`;
+  process.env["E2B_DOMAIN"] = config.sandbox_domain;
   const sandboxIndex = normalized.indexOf("sandbox");
   const verb = sandboxIndex >= 0 ? normalized[sandboxIndex + 1] : undefined;
   const commandArgs = normalized.slice(sandboxIndex + 2);
@@ -129,14 +129,14 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
   const hookKey = Symbol.for("agent-sandbox.cli.configuration");
   const hooks = globalThis as unknown as Record<symbol, unknown>;
   hooks[hookKey] = async ({ commandPath, options }: { commandPath: string[]; options: Record<string, unknown> }) => {
-    const overrides = { provider: "alicloud-express", sandbox_api_key: config.api_key,
-      sandbox_base_url: process.env["E2B_API_URL"], sandbox_domain: config.domain, region: config.region };
+    const overrides = { provider: "alicloud-express", sandbox_api_key: config.sandbox_api_key,
+      sandbox_base_url: process.env["E2B_API_URL"], sandbox_domain: config.sandbox_domain, region: config.region };
     return withGuidedConfiguration(undefined, { operation: `abx ${commandPath.join(" ")}`,
       provider: "alicloud-express", requirements: ["sandbox_api_key"], validateProvider: false,
       yes: Boolean(options["yes"] || options["format"] === "json"), overrides,
     }, async () => {
       const effective = loadLayeredConfig({ provider: "alicloud-express" });
-      return { apiKey: effective.api_key, apiUrl: effective.api_url, domain: effective.domain };
+      return { apiKey: effective.sandbox_api_key, apiUrl: effective.sandbox_base_url, domain: effective.sandbox_domain };
     });
   };
   try {

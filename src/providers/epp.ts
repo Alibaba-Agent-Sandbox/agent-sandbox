@@ -39,7 +39,7 @@ import {
   ProviderTimeoutError,
   ProviderVersionError,
   exitCodeFor,
-} from "./errors.js";
+} from "../models/provider_errors.js";
 
 export { exitCodeFor };
 

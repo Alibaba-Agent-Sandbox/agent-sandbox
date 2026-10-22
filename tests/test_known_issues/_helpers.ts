@@ -9,7 +9,7 @@
 import { expect } from "vitest";
 
 import { Request } from "../../src/transport/_httpx.js";
-import { ApiKeyAuth, EnvdTokenManager } from "../../src/transport/auth.js";
+import { ApiKeyAuth, EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import { HttpClient } from "../../src/transport/http.js";
 import { pyJsonDumps } from "../../src/utils/_pyformat.js";

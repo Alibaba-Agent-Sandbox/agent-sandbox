@@ -219,6 +219,21 @@ export async function getTemplate(template_id: string, opts: GetTemplateOptions)
   return result;
 }
 
+/** Delete an Express template through the official FCSandbox API. */
+export async function deleteTemplate(template_id: string, opts: GetTemplateOptions): Promise<void> {
+  const { access_key_id, access_key_secret, region = "cn-hangzhou", endpoint = null } = opts;
+  const sdk = _requireSdk();
+  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint);
+  const team = opts.team_id || await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint });
+  try {
+    await client.deleteTemplate(template_id, new sdk.models["DeleteTemplateRequest"]({ teamID: team }));
+  } catch (exc) {
+    throw new NetworkError(`DeleteTemplate API call failed: ${sdkErrStr(exc)}`, {
+      suggestion: "Check template ID, AK/SK, and network connectivity.",
+    });
+  }
+}
+
 export interface WaitForTemplateReadyOptions extends GetTemplateOptions {
   timeout?: number;
   poll_interval?: number;

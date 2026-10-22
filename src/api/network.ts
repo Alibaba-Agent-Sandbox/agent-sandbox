@@ -3,7 +3,6 @@
 import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import { getLogger } from "../utils/logging.js";
 import type { PortAccess } from "../protocol/port_contract.js";
-import { legacyPortAccess } from "../providers/bundled_config.js";
 
 const logger = getLogger("api.network");
 void logger;
@@ -16,7 +15,7 @@ export interface NetworkModuleInit {
   capabilities?: Set<string> | null;
   /** Provider `ports.url` hook: `[url, headers]` for a port; absent for providers that compute URLs locally. */
   port_resolver?: ((port: number) => Promise<[string, Record<string, string>]>) | null;
-  port_access?: PortAccess;
+  port_access: PortAccess;
 }
 
 /** Synchronous adapter access or asynchronous provider discovery via resolve(). */
@@ -36,8 +35,7 @@ export class NetworkModule {
     this._secure = init.secure ?? true;
     this._access_token = init.access_token ?? null;
     this._capabilities = init.capabilities ?? new Set(DEFAULT_CAPABILITIES);
-    this._port_access = init.port_access ?? legacyPortAccess({ sandbox_id: this._sandbox_id,
-      domain: this._domain, secure: this._secure, access_token: this._access_token });
+    this._port_access = init.port_access;
   }
 
   /** Return the host supplied by the synchronous adapter hook. */
