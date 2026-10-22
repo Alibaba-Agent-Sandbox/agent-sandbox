@@ -9,13 +9,72 @@ on:
         description: "Existing version tag to publish using the current recovery workflow"
         required: true
         type: string
+      diagnostics_only:
+        description: "Check npm identity and scope access without publishing"
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  diagnose:
+    name: Read-only npm credential diagnostics
+    timeout-minutes: 5
+    if: github.event_name == 'workflow_dispatch' && inputs.diagnostics_only
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: Check npm identity and target scope without publishing
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_API_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { spawnSync } from 'node:child_process';
+          // Capture upstream output: usernames, package lists and raw errors never enter logs.
+          function query(args) {
+            const result = spawnSync('npm', [...args, '--json', '--registry=https://registry.npmjs.org',
+              '--fetch-retries=0', '--fetch-timeout=15000', '--logs-max=0'],
+              { encoding: 'utf8', timeout: 20000, maxBuffer: 1024 * 1024 });
+            let data;
+            try { data = JSON.parse(result.stdout); } catch { /* Report only a static classification. */ }
+            if (result.status === 0 && data !== undefined) return { ok: true, data };
+            const code = data?.error?.code;
+            const allowed = ['E401', 'E403', 'E404', 'ENEEDAUTH', 'EOTP', 'ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND'];
+            return { ok: false, code: allowed.includes(code) ? code : 'UNKNOWN_ERROR' };
+          }
+          const report = { credential_present: Boolean(process.env.NODE_AUTH_TOKEN), identity_authenticated: false };
+          if (report.credential_present) {
+            const identity = query(['whoami']);
+            if (identity.ok && typeof identity.data === 'string' && /^[a-z0-9][a-z0-9._-]*$/i.test(identity.data)) {
+              report.identity_authenticated = true;
+              report.scope_matches_account = identity.data === 'agent-sandbox';
+              const org = query(['org', 'ls', 'agent-sandbox', identity.data]);
+              report.organization_membership = org.ok
+                ? (Object.hasOwn(org.data ?? {}, identity.data) ? 'confirmed' : 'not_reported') : 'unknown';
+              if (!org.ok) report.organization_check_error = org.code;
+              const packages = query(['access', 'list', 'packages', identity.data, '@agent-sandbox/cli']);
+              const access = packages.data?.['@agent-sandbox/cli'];
+              report.target_package_access = packages.ok
+                ? (['read-only', 'read-write'].includes(access) ? access : 'not_reported') : 'unknown';
+              if (!packages.ok) report.package_check_error = packages.code;
+            } else {
+              report.identity_error = identity.ok ? 'INVALID_RESPONSE' : identity.code;
+            }
+          }
+          console.log(JSON.stringify(report, null, 2));
+          console.log('Read-only checks do not establish first-publication permission, token write scope or 2FA bypass.');
+          NODE
+
   publish:
+    if: github.event_name != 'workflow_dispatch' || !inputs.diagnostics_only
     name: Build, verify and publish npm package
     runs-on: ubuntu-latest
     environment: npm

@@ -209,3 +209,5 @@ npm run build:binary
 - [CLI 教程](cli-tutorial.md) — 完整的 CLI 生命周期操作
 - [身份认证](authentication.md) — API Key / AK-SK 配置
 - [故障排查](troubleshooting.md) — 常见问题与解决方案
+
+只读排查凭据时，在同一工作流中指定 `release_tag=v0.4.6` 和 `diagnostics_only=true`，发布任务会跳过。诊断任务使用相同的 `npm` 环境和 `NPM_API_TOKEN`，仅报告身份认证、目标命名空间检查的结果，不输出账号名、包列表或索引原始错误。`npm whoami` 成功只证明认证有效，不证明有写入权限；首次发布时，包权限列表缺少该包也不能证明无权发布。应在 npm 设置中核对 token 的包或 scope 写权限、npm 账号的命名空间所有权或组织团队权限，以及无人值守发布的双因素认证要求。单凭发布 E404 无法区分这些原因。更新 secret 后需要启动新运行，保持源码标签不变，并在公开索引完成干净安装验证后才可声明 npm 交付完成。

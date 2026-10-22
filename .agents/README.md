@@ -121,3 +121,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Inline template project creation](notes/proposed/feature/2026-10-21-template-project-autocreate.md) · [verification](evidence/verify/2026-10-21-template-project-autocreate.md) · [Issue #97](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/97)
 
 - [Guided operation configuration](notes/implemented/feature/2026-10-22-guided-configuration.md) · [verification](evidence/verify/2026-10-22-guided-configuration.md) · [Issue #99](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/99)
+
+- [Read-only npm credential diagnostics](notes/implemented/process/2026-10-22-npm-credential-diagnostics.md) · [verification](evidence/verify/2026-10-22-npm-credential-diagnostics.md)
