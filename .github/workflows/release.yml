@@ -112,6 +112,31 @@ jobs:
             echo "NPM_DIST_TAG=latest" >> "$GITHUB_ENV"
           fi
 
+      - name: Validate provenance repository identity
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const repository = process.env.GITHUB_REPOSITORY ?? '';
+          if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+            throw new Error('A GitHub repository identity is required.');
+          }
+          const expected = `git+https://github.com/${repository}.git`;
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          const actual = pkg.repository?.url;
+          if (typeof actual !== 'string' || actual.toLowerCase() !== expected.toLowerCase()) {
+            throw new Error('Package repository must identify the publishing repository; only capitalization may differ.');
+          }
+          if (actual !== expected) {
+            pkg.repository.url = expected;
+            writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('Corrected repository URL capitalization before testing and packaging.');
+          }
+          NODE
+      - name: Record source and workflow revisions
+        run: |
+          echo "Release source commit: $(git rev-parse HEAD)"
+          echo "Publisher workflow commit: $GITHUB_SHA"
+
       - name: Install locked dependencies
         run: npm ci
       - name: Check out the reviewed server test fixtures

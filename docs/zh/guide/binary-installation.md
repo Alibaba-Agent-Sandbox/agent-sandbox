@@ -211,3 +211,5 @@ npm run build:binary
 - [故障排查](troubleshooting.md) — 常见问题与解决方案
 
 只读排查凭据时，在同一工作流中指定 `release_tag=v0.4.6` 和 `diagnostics_only=true`，发布任务会跳过。诊断任务使用相同的 `npm` 环境和 `NPM_API_TOKEN`，仅报告身份认证、目标命名空间检查的结果，不输出账号名、包列表或索引原始错误。`npm whoami` 成功只证明认证有效，不证明有写入权限；首次发布时，包权限列表缺少该包也不能证明无权发布。应在 npm 设置中核对 token 的包或 scope 写权限、npm 账号的命名空间所有权或组织团队权限，以及无人值守发布的双因素认证要求。单凭发布 E404 无法区分这些原因。更新 secret 后需要启动新运行，保持源码标签不变，并在公开索引完成干净安装验证后才可声明 npm 交付完成。
+
+Npm provenance 要求 `package.json` 的 `repository.url` 与发布仓库**大小写完全一致**。新版本保持 `git+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git`。恢复旧标签时，先验证 URL 指向同一仓库（仅忽略大小写），再于依赖安装、测试和打包前校正大小写；指向其他仓库则拒绝继续。这是明确的包元数据转换，不移动源码标签。新生成的 npm tarball 具有独立校验和，安装验收后使用同一个文件带 provenance 发布；不能复用旧 Release tarball 或声称两者字节相同。CI 日志同时记录实际检出的源码提交与发布工作流提交。仍须完成真实 registry 发布及干净安装验证才算 npm 交付成功。
