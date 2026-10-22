@@ -30,3 +30,8 @@ Required latest-head remote CI/review and native checks are mandatory before mer
 ## Cleanup
 
 Read-only template inspection creates no resource. Local fixtures own their temporary files and servers. Related real-cloud SDK fixtures track and clean their sandboxes. No credential values or raw sensitive logs are stored in this record.
+
+## Additional final checks
+
+- PASS: 535 targeted CLI/configuration/protocol-adapter/research regressions on the final source.
+- PASS: real native CLI `--json template list` and `template info` via the official control plane, with valid JSON results. Both operations are read-only.
