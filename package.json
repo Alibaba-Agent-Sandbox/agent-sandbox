@@ -86,6 +86,6 @@
     "vitest": "^5.0.4"
   },
   "optionalDependencies": {
-    "e2b": "2.55.0"
+    "e2b": "2.56.0"
   }
 }
