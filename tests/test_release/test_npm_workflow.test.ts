@@ -9,6 +9,7 @@ const root = resolve(import.meta.dirname, "../..");
 const workflow = parse(readFileSync(join(root, ".github/workflows/release.yml"), "utf8"));
 const steps = workflow.jobs.publish.steps as Array<{ name?: string; run?: string; with?: { ref?: string } }>;
 const guard = steps.find((step) => step.name === "Require a matching version tag")!.run!;
+const repositoryGuard = steps.find((step) => step.name === "Validate provenance repository identity")!.run!;
 const directories: string[] = [];
 function temporary(): string {
   const directory = mkdtempSync(join(tmpdir(), "abx-release-workflow-"));
@@ -50,15 +51,50 @@ describe.skipIf(process.platform === "win32")("npm publication workflow", () => 
     const prefix = join(directory, "runner", "abx-candidate");
     mkdirSync(source);
     mkdirSync(join(directory, "dist-pack"));
-    writeFileSync(join(source, "package.json"), JSON.stringify({ name: "abx-release-path-fixture", version: "1.0.0", files: ["marker.txt"] }));
+    writeFileSync(join(source, "package.json"), JSON.stringify({ name: "abx-release-path-fixture", version: "1.0.0", files: ["marker.txt"],
+      repository: { type: "git", url: "git+https://github.com/alibaba-agent-sandbox/agent-sandbox.git" } }));
     writeFileSync(join(source, "marker.txt"), "local tarball identity\n");
-    const env = { ...process.env, RUNNER_TEMP: join(directory, "runner"), npm_config_audit: "false", npm_config_fund: "false" };
+    const env = { ...process.env, GITHUB_REPOSITORY: "Alibaba-Agent-Sandbox/agent-sandbox", RUNNER_TEMP: join(directory, "runner"), npm_config_audit: "false", npm_config_fund: "false" };
+    execFileSync("bash", ["-eu", "-c", repositoryGuard], { cwd: source, env, stdio: "pipe" });
     execFileSync("npm", ["pack", "--ignore-scripts", "--pack-destination", join(directory, "dist-pack")], { cwd: source, env, stdio: "pipe", timeout: 60_000 });
     const command = steps.find((step) => step.name === "Pack and install the exact publication artifact")!.run!
       .split("\n").find((line) => line.trimStart().startsWith("npm install --global"))!;
     execFileSync("bash", ["-eu", "-c", command], { cwd: directory, env, stdio: "pipe", timeout: 60_000 });
     expect(readFileSync(join(prefix, "lib/node_modules/abx-release-path-fixture/marker.txt"), "utf8")).toBe("local tarball identity\n");
+    const installed = JSON.parse(readFileSync(join(prefix, "lib/node_modules/abx-release-path-fixture/package.json"), "utf8"));
+    expect(installed.repository.url).toBe("git+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git");
   }, 120_000);
+});
+
+describe.skipIf(process.platform === "win32")("provenance repository identity", () => {
+  const canonical = "git+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git";
+  it.each([canonical, canonical.toLowerCase()])("accepts the same repository and preserves other metadata: %s", (url) => {
+    const directory = temporary();
+    const original = { name: "abx-case-fixture", version: "0.4.6", repository: { type: "git", url }, files: ["marker.txt"] };
+    const before = JSON.stringify(original);
+    writeFileSync(join(directory, "package.json"), before);
+    const result = spawnSync("bash", ["-eu", "-c", repositoryGuard], { cwd: directory,
+      env: { ...process.env, GITHUB_REPOSITORY: "Alibaba-Agent-Sandbox/agent-sandbox" }, encoding: "utf8" });
+    expect(result.status).toBe(0);
+    const after = readFileSync(join(directory, "package.json"), "utf8");
+    expect(JSON.parse(after)).toEqual({ ...original, repository: { type: "git", url: canonical } });
+    if (url === canonical) expect(after).toBe(before);
+  });
+
+  it.each([
+    ["git+https://github.com/other-owner/agent-sandbox.git", "Alibaba-Agent-Sandbox/agent-sandbox"],
+    ["git+https://github.com/Alibaba-Agent-Sandbox/other-repo.git", "Alibaba-Agent-Sandbox/agent-sandbox"],
+    ["git+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git.attacker", "Alibaba-Agent-Sandbox/agent-sandbox"],
+    [canonical, ""],
+  ])("rejects unrelated or missing identity without rewriting: %s %s", (url, repository) => {
+    const directory = temporary();
+    const before = JSON.stringify({ version: "0.4.6", repository: { type: "git", url } });
+    writeFileSync(join(directory, "package.json"), before);
+    const result = spawnSync("bash", ["-eu", "-c", repositoryGuard], { cwd: directory,
+      env: { ...process.env, GITHUB_REPOSITORY: repository }, encoding: "utf8" });
+    expect(result.status).not.toBe(0);
+    expect(readFileSync(join(directory, "package.json"), "utf8")).toBe(before);
+  });
 });
 
 // Run the exact workflow script with controlled registry responses, including sensitive error text.

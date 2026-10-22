@@ -123,3 +123,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Guided operation configuration](notes/implemented/feature/2026-10-22-guided-configuration.md) · [verification](evidence/verify/2026-10-22-guided-configuration.md) · [Issue #99](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/99)
 
 - [Read-only npm credential diagnostics](notes/implemented/process/2026-10-22-npm-credential-diagnostics.md) · [verification](evidence/verify/2026-10-22-npm-credential-diagnostics.md)
+
+- [Npm provenance repository capitalization](notes/implemented/process/2026-10-22-npm-provenance-repository-case.md) · [verification](evidence/verify/2026-10-22-npm-provenance-repository-case.md)
