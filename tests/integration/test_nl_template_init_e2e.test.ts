@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /**
  * End-to-end CLI flows for natural-language create versus template init.
  *
@@ -67,7 +68,7 @@ function _codegenResult(tmp: string): CodegenResult {
   const dockerfile = path.join(workdir, "Dockerfile");
   fs.writeFileSync(dockerfile, "FROM python:3.12-slim\n", "utf-8");
   const templateYaml = path.join(workdir, "template.yaml");
-  fs.writeFileSync(templateYaml, `name: ${_TEMPLATE_NAME}\n`, "utf-8");
+  fs.writeFileSync(templateYaml, manifestYaml(`name: ${_TEMPLATE_NAME}\n`), "utf-8");
   const commandsPy = path.join(workdir, "commands.py");
   fs.writeFileSync(
     commandsPy,
@@ -343,7 +344,7 @@ const _SERVER_COMMANDS =
   "if __name__ == '__main__':\n" +
   "    SandboxServer(registry=registry).serve(port=9000)\n";
 const _SERVER_YAML =
-  "name: whatever\n" + "description: 数据分析环境\n" + "capabilities: [shell, files, ports]\n" + "ports: [9000]\n" + "resources:\n  cpu: 2\n  memory: 2048\n";
+  manifestYaml("name: whatever\n" + "description: 数据分析环境\n" + "ports: [9000]\n" + "resources:\n  cpu: 2\n  memory: 2048\n");
 
 /** Replace the Qwen Code process with a writer; return the prompts it received. */
 function _fakeQwen(commandsPy: string | null = _SERVER_COMMANDS): string[] {

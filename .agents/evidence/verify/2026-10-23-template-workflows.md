@@ -91,3 +91,18 @@ The follow-up migrates test fixtures to the current schema, gives the two change
 - `npm run test:standard-provenance`: PASS, 7 tests.
 
 The updated full remote matrix, package/distribution and real provider gates remain required. No complete-suite pass or merge is claimed by this follow-up.
+
+
+## Historical parity ledger migration
+
+The parity runner includes natural-language integration tests outside the default unit command. Their generated manifests now use strict current workflow fixtures. The historical Python ledger remains unchanged: explicit replacements connect retired capability/default/build-field contracts to current rejection/no-claim regressions, including tests that moved within the Python owner repository. The checker verifies the mapped owner test class/function in its explicit owner file.
+
+- Natural-language integration and template guide: PASS, 34 tests across 2 files; the real Python server reference was available.
+- E2B endpoint descriptor regression: PASS, 10 tests. Async endpoint resolution uses the API-reported domain; the fallback-domain fixture explicitly omits the reported domain.
+- Full parity runner with current SDK and provider sources: 4,167 passed / 22 failed / 2 skipped. Twenty failures remain in the previously identified local audit/TCP/TLS/WebSocket paths; two E2B reported-domain expectations were then migrated and their complete file passed as recorded above. This is not a full-suite pass.
+- Latest `node scripts/parity-coverage.mjs --no-run`: PASS; 907/907 CLI ledger entries, 0 failed/skipped ledger entries, 0 missing entries; all 11 moved Python tests verified and found. This validates coverage correspondence using the full recorded report, not the outcome of every test in that report.
+- `node scripts/sync-workflow-contracts.mjs --check`: PASS.
+- `bash scripts/check-repo-health.sh`: PASS, 106 pass / 11 historical-context warnings / 0 failures.
+- Scoped ESLint for migrated guide/NL tests: PASS.
+
+Remote CLI revision `128f8dc6c71a9be9e28a9608e1e19f1b2e44a374` did not reach tests because its pinned Provider commit had not yet been pushed (`upload-pack: not our ref`). The producer was subsequently pushed by the coordinator. A new complete CI run remains necessary; the checkout failure is not interpreted as a pass or a test assertion failure.

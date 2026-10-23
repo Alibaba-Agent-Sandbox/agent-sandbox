@@ -106,7 +106,7 @@ describe.skipIf(!haveCatalog)("e2b node provider", () => {
       expect(sb.url).toBe("https://49983-sbx-1.e2b.test");
       expect(sb.network.getUrl(8080)).toBe("https://8080-sbx-1.e2b.test");
       const [url, headers] = await sb.network.resolve(8080);
-      expect(url).toBe("https://8080-sbx-1.e2b.test");
+      expect(url).toBe("https://8080-sbx-1.reported.test");
       expect(headers["X-Access-Token"]).toBe("tok");
 
       const info = await sb.refreshInfo();
@@ -176,7 +176,8 @@ describe.skipIf(!haveCatalog)("e2b node provider", () => {
     }
   });
 
-  it("uses the default e2b.app domain when none is configured", async () => {
+  it("uses the default e2b.app domain when neither API nor configuration supplies one", async () => {
+    mock.flags.omitDomain = true;
     const sb = await Sandbox.create({
       provider: "e2b",
       provider_options: { base_url: origin, api_key: "e2b-key" },

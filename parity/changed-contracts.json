@@ -80,6 +80,27 @@
     "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_local_install_sandbox_yaml_only": {
       "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
       "reason": "Issue #103: The old successful-alias installation is replaced by a rejection regression."
+    },
+    "tests/test_agent/test_template_guide.py::TestGuideText::test_capability_tokens_are_the_standard_ones": {
+      "target": "tests/test_agent/test_template_guide.py::TestGuideText::test_describes_explicit_workflow_contracts",
+      "reason": "Issue #118: strict workflow contracts replace retired template capability declarations; the guide must teach workflows without granting default capabilities."
+    },
+    "tests/integration/test_workflow_e2e.py::TestCapabilityResolution::test_resolve_fallback_to_defaults": {
+      "target": "tests/integration/test_workflow_e2e.py::TestCapabilityResolution::test_unknown_reference_makes_no_claim",
+      "reason": "Issue #118: unknown references make no capability claim; verify the owning Python SDK regression."
+    },
+    "tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_template_with_capabilities_none_uses_defaults": {
+      "target": "tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_old_capability_and_missing_contract_are_rejected",
+      "reason": "Issue #118: retired capability input and missing workflow contracts are rejected; verify the owning Python SDK regression."
+    },
+    "tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_template_with_explicit_capabilities": {
+      "target": "tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_old_capability_and_missing_contract_are_rejected",
+      "reason": "Issue #118: retired capability declarations are rejected; verify the owning Python SDK regression."
+    },
+    "tests/integration/test_workflow_e2e.py::TestTemplateDefinition::test_legacy_build_fields_ignored": {
+      "target": "tests/test_models/test_template.py::TestSandboxTemplate::test_retired_build_fields_are_rejected",
+      "reason": "Issue #118: retired build fields are rejected without a compatibility mode; verify the owning Python SDK regression.",
+      "owner_file": "client-sdk/tests/test_models/test_template.py"
     }
   }
 }

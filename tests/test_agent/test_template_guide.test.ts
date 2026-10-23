@@ -22,7 +22,6 @@ import {
   TEMPLATE_GUIDE,
   buildTemplateGuide,
 } from "../../src/agent/template_guide.js";
-import { STANDARD_CAPABILITIES } from "../../src/models/template.js";
 import { SERVER_SDK_GIT_SHA } from "../../src/utils/server_sdk_pin.js";
 import { FIXTURES, findPython, itWithPython, itWithServerSdk, readGolden, serverSdkPythonPath } from "../helpers/agentSupport.js";
 
@@ -126,7 +125,7 @@ describe("TestGuideText", () => {
     expect(TEMPLATE_GUIDE).toMatch(/BROWSER[^\n]*默认关闭/);
   });
 
-  it("describes explicit workflow contracts instead of granting capability defaults", () => {
+  it("test_describes_explicit_workflow_contracts", () => {
     expect(TEMPLATE_GUIDE).toContain("workflow_contract_version");
     expect(TEMPLATE_GUIDE).toContain("default_workflow");
     expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
