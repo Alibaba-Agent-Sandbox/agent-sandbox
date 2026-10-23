@@ -126,7 +126,8 @@ describe("TestParseIndex", () => {
     }
     expect(err).toBeInstanceOf(TemplateParseError);
     expect(String(err)).toContain("differs from supported");
-    expect((err as TemplateParseError).suggestion || "").toContain("pip install -U agent-sandbox-client");
+    expect((err as TemplateParseError).suggestion || "").toContain("Upgrade abx");
+    expect((err as TemplateParseError).suggestion || "").toContain("binary-installation.md");
   });
 
   it("test_non_integer_schema_version_is_rejected", () => {

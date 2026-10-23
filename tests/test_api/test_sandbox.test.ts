@@ -9,6 +9,7 @@ import { CommandsModule } from "../../src/api/commands.js";
 import { FilesModule } from "../../src/api/files.js";
 import { NetworkModule } from "../../src/api/network.js";
 import { NotImplementedError } from "../../src/utils/_pyerrors.js";
+import { getProvider } from "../../src/providers/registry.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { CommandNotFoundError, ConnectionError_ } from "../../src/models/errors.js";
 import { CodeResult } from "../../src/models/process.js";
@@ -148,6 +149,29 @@ describe("TestSandboxCreate", () => {
     expect(config.env_vars).toEqual({ FOO: "bar" });
   });
 
+  it("reports the native ID before session binding and cleans if receipt persistence fails", async () => {
+    const protocol = {...protoWith("create", make_sandbox_info()), kill: vi.fn(async () => undefined), isRunning: vi.fn(async () => false)};
+    const close = vi.fn(async () => undefined); patchInfra(protocol, {close});
+    const auth = vi.spyOn(getProvider("alicloud-express"), "createSessionAuth");
+    const on_created = vi.fn(async (id: string) => {
+      expect(id).toBe(TEST_SANDBOX_ID); expect(auth).not.toHaveBeenCalled();
+      throw new Error("journal persistence failed");
+    });
+    const pending = Sandbox.create({template: "base", api_key: TEST_API_KEY, on_created});
+    await expect(pending).rejects.toThrow("journal persistence failed");
+    await expect(pending).rejects.toMatchObject({owned_sandbox_id: TEST_SANDBOX_ID, cleanup_complete: true});
+    expect(on_created).toHaveBeenCalledOnce(); expect(protocol.kill).toHaveBeenCalledWith(TEST_SANDBOX_ID); expect(close).toHaveBeenCalledOnce();
+  });
+  it("exposes a native ID even when later session binding and cleanup both fail", async () => {
+    const protocol = {...protoWith("create", make_sandbox_info()), kill: vi.fn(async () => {throw new Error("kill failed");})};
+    const close = vi.fn(async () => {throw new Error("close failed");}); patchInfra(protocol, {close});
+    const on_created = vi.fn(async () => undefined);
+    vi.spyOn(getProvider("alicloud-express"), "createSessionAuth").mockImplementation(() => {throw new Error("session failed");});
+    const pending = Sandbox.create({template: "base", api_key: TEST_API_KEY, on_created});
+    await expect(pending).rejects.toThrow("session failed");
+    await expect(pending).rejects.toMatchObject({owned_sandbox_id: TEST_SANDBOX_ID, cleanup_complete: false});
+    expect(on_created).toHaveBeenCalledWith(TEST_SANDBOX_ID); expect(protocol.kill).toHaveBeenCalledWith(TEST_SANDBOX_ID); expect(close).toHaveBeenCalledOnce();
+  });
   it("test_create_default_request_timeout_is_none", async () => {
     // Without an explicit request_timeout, None is forwarded (default behaviour).
     const mock_sandbox_proto = protoWith("create", make_sandbox_info());
@@ -549,23 +573,50 @@ describe("TestSandboxEnvdUrlDerivation", () => {
   });
 });
 
+const discovery = {api_version: 2, endpoints: {list_commands: {enabled: true, allowed: true}, run_command: {enabled: true, allowed: true}}};
 function serverClient(status: number, body: unknown) {
-  return vi.spyOn(applicationHttpSeams, "fetch").mockResolvedValue(new Response(JSON.stringify(body), {status}));
+  return vi.spyOn(applicationHttpSeams, "fetch").mockImplementation(async url =>
+    String(url).includes("/capabilities") ? new Response(JSON.stringify(discovery), {status: 200}) : new Response(JSON.stringify(body), {status}));
 }
 afterEach(() => vi.restoreAllMocks());
 describe("bound application named commands", () => {
   it("uses independent HTTP without sending the envd token", async () => {
     const fetch=serverClient(200,{result:42});
     expect((await fx.sandbox.runCommand("add",{x:1,y:2})).value).toBe(42);
-    expect(fetch).toHaveBeenCalledOnce();
-    const options=fetch.mock.calls[0][1];
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(String(fetch.mock.calls[0][0])).toContain("/capabilities");
+    const options=fetch.mock.calls[1][1];
     expect(options?.redirect).toBe("manual");
     expect(JSON.stringify(options?.headers)).not.toContain(TEST_ENVD_TOKEN);
     expect(JSON.parse(String(options?.body))).toEqual({x:1,y:2});
   });
-  it("retains 401 without anonymous retry",async()=>{const fetch=serverClient(401,{error:"unauthorized",type:"AuthError"});const result=await fx.sandbox.runCommand("hello",{name:"Bob"});expect(result.exit_code).toBe(1);expect(fetch).toHaveBeenCalledOnce();});
+  it("retains command 401 without anonymous retry",async()=>{const fetch=serverClient(401,{error:"unauthorized",type:"AuthError"});const result=await fx.sandbox.runCommand("hello",{name:"Bob"});expect(result.exit_code).toBe(1);expect(fetch).toHaveBeenCalledTimes(2);});
   it("returns application execution errors",async()=>{serverClient(500,{error:"boom",type:"RuntimeError"});expect((await fx.sandbox.runCommand("bad")).stderr).toBe("RuntimeError: boom");});
   it("reports missing commands",async()=>{serverClient(404,{error:"not found"});await expect(fx.sandbox.runCommand("missing")).rejects.toBeInstanceOf(CommandNotFoundError);});
   it("retains the selected binding on network failure",async()=>{vi.spyOn(applicationHttpSeams,"fetch").mockRejectedValue(new Error("private endpoint detail"));await expect(fx.sandbox.runCommand("bad")).rejects.toBeInstanceOf(ProviderConfigError);});
-  it("lists the application catalog through HTTP",async()=>{const commands=[{name:"add"}];const fetch=serverClient(200,{commands});expect(await fx.sandbox.listCommands()).toEqual(commands);expect(fetch.mock.calls[0][0]).toEqual(expect.stringContaining("/commands"));});
+  it("lists the application catalog through HTTP",async()=>{const commands=[{name:"add"}];const fetch=serverClient(200,{commands});expect(await fx.sandbox.listCommands()).toEqual(commands);expect(String(fetch.mock.calls[1][0])).toContain("/commands");});
+  it.each(["not-json", null, [], {}, {api_version: 1, endpoints: discovery.endpoints}, {api_version: "2", endpoints: discovery.endpoints}, {api_version: 2.5, endpoints: discovery.endpoints}, {api_version: 2, endpoints: []}, {api_version: 2, endpoints: {}}, {api_version: 2, endpoints: {run_command: {enabled: true, allowed: false}}}, {api_version: 2, endpoints: {run_command: {enabled: false, allowed: true}}}])("refuses payload for invalid or denied protocol %j", async document => {
+    const fetch = vi.spyOn(applicationHttpSeams, "fetch").mockResolvedValue(new Response(typeof document === "string" ? document : JSON.stringify(document), {status: 200}));
+    await expect(fx.sandbox.runCommand("mutate", {payload: true})).rejects.toBeInstanceOf(ProviderConfigError);
+    expect(fetch).toHaveBeenCalledOnce(); expect(fetch.mock.calls[0][1]?.method).toBe("GET");
+  });
+  it.each([null, [], {}, {exit_code: 0}])("rejects a malformed successful command result %j", async body => {
+    serverClient(200, body); await expect(fx.sandbox.runCommand("mutate")).rejects.toBeInstanceOf(ProviderConfigError);
+  });
+  it("preserves an explicitly null command result", async () => {
+    serverClient(200, {result: null}); expect((await fx.sandbox.runCommand("nullable")).value).toBeNull();
+  });
+  it("does not expose a raw non-JSON response in errors", async () => {
+    vi.spyOn(applicationHttpSeams, "fetch").mockImplementation(async url => new Response(String(url).includes("/capabilities") ? JSON.stringify(discovery) : "private fixture signed URL", {status: 200}));
+    await expect(fx.sandbox.runCommand("mutate")).rejects.not.toThrow("private fixture signed URL");
+  });
+  it("does not downgrade identity after discovery 401", async () => {
+    const fetch = vi.spyOn(applicationHttpSeams, "fetch").mockResolvedValue(new Response("{}", {status: 401}));
+    await expect(fx.sandbox.runCommand("mutate")).rejects.toThrow("HTTP 401"); expect(fetch).toHaveBeenCalledOnce();
+  });
+  it.each(["not-json", null, [], {}, {commands: {}}])("rejects malformed command catalog %j", async body => {
+    const fetch = serverClient(200, body);
+    if (typeof body === "string") fetch.mockImplementation(async url => new Response(String(url).includes("/capabilities") ? JSON.stringify(discovery) : body, {status: 200}));
+    await expect(fx.sandbox.listCommands()).rejects.toBeInstanceOf(ProviderConfigError);
+  });
 });

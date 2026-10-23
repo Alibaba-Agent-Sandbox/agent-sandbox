@@ -11,7 +11,7 @@
  * The Python `*_sync` variants (`make_sync`) do not exist in Node: every call is a Promise.
  */
 
-import { requestApplication } from "../transport/application_http.js";
+import { requestApplication, requireApplicationOperation, checkApplicationHealth } from "../transport/application_http.js";
 import type { ApplicationEndpoint } from "../protocol/port_contract.js";
 import { ResolvedCapabilities } from "./capability.js";
 import { CommandNotFoundError, ConnectionError_ } from "../models/errors.js";
@@ -209,6 +209,8 @@ export interface SandboxInit {
 }
 
 export interface CreateOptions extends BuildInfraOptions {
+  /** Persist the owned native ID before any session binding can fail. */
+  on_created?: (sandbox_id: string) => void | Promise<void>;
   template?: string;
   timeout?: number;
   request_timeout?: number | null;
@@ -503,6 +505,7 @@ export class Sandbox {
 
     const popts = _effectiveOptions(prov, provider_options);
     return this._createViaProvider(prov, {
+        on_created: opts.on_created,
         template: effective_template,
         timeout,
         request_timeout,
@@ -592,6 +595,7 @@ export class Sandbox {
   private static async _createViaProvider(
     prov: Provider,
     p: {
+      on_created?: (sandbox_id: string) => void | Promise<void>;
       template: string;
       timeout: number;
       request_timeout: number | null;
@@ -626,6 +630,7 @@ export class Sandbox {
       });
       const info = await infra.sandbox_protocol.create(sandbox_config, { request_timeout: p.request_timeout });
       created = info;
+      await p.on_created?.(info.sandbox_id);
       const envd_token = prov.createSessionAuth(info, infra);
       logger.info("Sandbox created: %s (provider %s)", info.sandbox_id, prov.id);
       const backendResolved = await prov.resolveSessionCapabilities(p.template, info);
@@ -647,12 +652,21 @@ export class Sandbox {
         provider_id: prov.id,
       });
     } catch (e) {
+      let cleanupComplete = false;
       if (created) {
-        try { await infra.sandbox_protocol.kill(created.sandbox_id); }
-        catch { logger.warning("Created sandbox cleanup failed after session binding failed; inspect provider resources."); }
+        try {
+          await infra.sandbox_protocol.kill(created.sandbox_id);
+          cleanupComplete = !(await infra.sandbox_protocol.isRunning(created.sandbox_id));
+        } catch { logger.warning("Created sandbox cleanup failed after session binding failed; inspect provider resources."); }
       }
-      await closer.close();
-      throw e;
+      try { await closer.close(); } catch { /* Preserve the creation failure and its recovery identity. */ }
+      let failure = e instanceof Error ? e : new Error("Sandbox creation failed.", {cause: e});
+      if (created) {
+        const recovery = {owned_sandbox_id: created.sandbox_id, cleanup_complete: cleanupComplete};
+        try { Object.assign(failure, recovery); }
+        catch { failure = Object.assign(new Error(failure.message, {cause: failure}), recovery); }
+      }
+      throw failure;
     }
   }
 
@@ -753,6 +767,14 @@ export class Sandbox {
   }
 
   // ---- Named commands (registered on the in-sandbox SandboxServer) ----
+
+  /** Verify the v2 application operation for this exact sandbox/port and identity. */
+  async verifyApplicationOperation(operation: "commands.list" | "commands.run" | "health", opts: { server_port?: number; application_token?: string } = {}): Promise<void> {
+    const endpoint = await this.network.resolveEndpoint(opts.server_port ?? 9000);
+    const endpointName = {"commands.run": "run_command", "commands.list": "list_commands", health: "health"} as const;
+    await requireApplicationOperation(endpoint, endpointName[operation], opts.application_token);
+    if (operation === "health") await checkApplicationHealth(endpoint, opts.application_token);
+  }
 
   /**
    * List the named commands registered on the sandbox's SandboxServer (`GET /commands` on `server_port`).
@@ -860,6 +882,7 @@ export class Sandbox {
     application_token?: string,
   ): Promise<[HttpResponseLike, Record<string, any>]> {
     const endpoint = await this.network.resolveEndpoint(server_port);
+    await requireApplicationOperation(endpoint, "run_command", application_token);
     const response = await requestApplication(endpoint, `/commands/${encodeURIComponent(name)}`, { method: "POST", json: kwargs, application_token });
 
     let body: Record<string, any>;
@@ -869,7 +892,7 @@ export class Sandbox {
       if (isJsonDecodeError(exc)) {
         throw withCause(
           new RuntimeError(
-            `Sandbox server returned non-JSON response (status ${response.status_code}): ${response.text.slice(0, 200)}`,
+            `Sandbox server returned a non-JSON response (status ${response.status_code}).`,
           ),
           exc,
         );
@@ -877,17 +900,20 @@ export class Sandbox {
       throw exc;
     }
 
+    if (!body || typeof body !== "object" || Array.isArray(body) || (response.is_success && !Object.hasOwn(body, "result")))
+      throw new ProviderConfigError("Application command response has an invalid schema.");
     return [response, body];
   }
 
   /**
    * GET `/commands` from the in-sandbox SandboxServer.
    *
-   * Returns the `commands` list from the JSON body, or an empty list when the response is malformed. Connection errors
+   * Returns the validated `commands` list. Malformed responses fail closed. Connection errors
    * propagate as `RequestError`.
    */
   async _fetchServerCommands(server_port: number, application_token?: string): Promise<Record<string, any>[]> {
     const endpoint = await this.network.resolveEndpoint(server_port);
+    await requireApplicationOperation(endpoint, "list_commands", application_token);
     const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token });
 
     if (!response.is_success) {
@@ -897,11 +923,11 @@ export class Sandbox {
     try {
       body = response.json();
     } catch (exc) {
-      if (isJsonDecodeError(exc)) return [];
+      if (isJsonDecodeError(exc)) throw new ProviderConfigError("Application command catalog is not valid JSON.");
       throw exc;
     }
-    const commands = dictGet(body, "commands", []);
-    return Array.isArray(commands) ? commands : [];
+    if (!body || typeof body !== "object" || Array.isArray(body) || !Array.isArray(body["commands"])) throw new ProviderConfigError("Application command catalog has an invalid schema.");
+    return body["commands"];
   }
 
   // ---- E2B-compatible URL stubs ----

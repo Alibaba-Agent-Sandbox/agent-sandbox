@@ -7,7 +7,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { planWorkflow, validateWorkflowManifest } from "../template/workflow_plan.mjs";
 import { providerContentDigest } from "../providers/content_identity.js";
 import { digestDir } from "../providers/store.js";
-import { requestApplication, validateApplicationEndpoint } from "../transport/application_http.js";
+import { requestApplication, requireApplicationOperation, checkApplicationHealth, validateApplicationEndpoint } from "../transport/application_http.js";
 import { stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
 import { pyExpandUser } from "../utils/_pyos.js";
@@ -49,6 +49,8 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
   const workflowId = params["workflow"] === undefined || params["workflow"] === null ? undefined : String(params["workflow"]);
   const plan = planWorkflow(sourceMetadata, provider, workflowId, "cli");
   if (plan.state !== "T") throw new ProviderConfigError(`Selected workflow is unavailable: ${plan.requirements.filter(r => r.state !== "T").map(r => `${r.operation} (${r.reason})`).join(", ")}.`);
+  if (plan.binding.authentication === "service-token" && (!process.env["ABX_SERVER_TOKEN"] || /[\r\n]/.test(process.env["ABX_SERVER_TOKEN"]!)))
+    throw new ProviderConfigError("Selected application identity requires ABX_SERVER_TOKEN before preparing or creating resources.");
   const workflow = (sourceMetadata["workflows"] as Record<string, { startup: string; input: string }>)[plan.workflow_id];
   const aliasBase = String(params["alias"] ?? template.name);
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(aliasBase)) throw new ProviderConfigError("Template alias must be a lowercase name of at most 63 characters.");
@@ -106,8 +108,16 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     if (plan.kind !== "application" || !plan.service || plan.binding.endpoint !== "explicit-url" || typeof params["service_url"] !== "string") throw new ProviderConfigError("Service workflow requires --service-url and an application explicit-url binding.");
     const endpoint = validateApplicationEndpoint({ provider_id: provider.id, sandbox_id: "external-service", port: plan.service.port,
       url: params["service_url"], headers: {}, authentication_audience: "gateway", path_mode: "prefix" }, "external-service", plan.service.port);
-    const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token: applicationToken });
-    if (!response.is_success || !Array.isArray(response.json()["commands"])) throw new ProviderConfigError("External application protocol check failed.");
+    const operation = (sourceMetadata["workflows"] as Record<string, {operation: "commands.run" | "commands.list" | "health"}>)[plan.workflow_id].operation;
+    const endpointName = {"commands.run": "run_command", "commands.list": "list_commands", health: "health"} as const;
+    await requireApplicationOperation(endpoint, endpointName[operation], applicationToken);
+    if (operation === "health") await checkApplicationHealth(endpoint, applicationToken);
+    if (operation === "commands.list") {
+      const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token: applicationToken });
+      let body: unknown;
+      try { body = response.json(); } catch { throw new ProviderConfigError("External application catalog is not valid JSON."); }
+      if (!response.is_success || !body || typeof body !== "object" || !Array.isArray((body as Record<string, unknown>)["commands"])) throw new ProviderConfigError("External application catalog has an invalid schema.");
+    }
     fmt.printData({provider: provider.id, workflow_id: plan.workflow_id, input: "service", protocol_verified: true});
     return;
   }
@@ -167,17 +177,32 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     secrets.some(secret => reference.includes(secret))) throw new ProviderConfigError("Provider preparation returned an invalid ready reference.");
   verifyProviderSnapshot();
   const createIntent = await journal.intent({ kind: "sandbox", correlation_key: options.alias, cleanup: "sandbox.delete" });
-  let sandbox: Sandbox;
+  let sandbox: Sandbox | undefined;
+  let knownSandboxId: string | undefined;
+  const recordCreated = async (id: string): Promise<void> => {
+    knownSandboxId = id;
+    await journal.created(createIntent, id);
+  };
   try {
-  sandbox = await launchSeams.create({ provider: provider.id, template: reference,
+  sandbox = await launchSeams.create({
+    on_created: recordCreated, provider: provider.id, template: reference,
     api_key: provider.inherit.has("sandbox_api_key") ? config.sandbox_api_key : undefined,
     api_url: provider.inherit.has("sandbox_base_url") ? config.sandbox_base_url : undefined,
     provider_options: { ...structuredClone(config.provider_options), ...prepared.provider_options }, metadata: {...prepared.metadata, "abx.launch": journal.id, "abx.intent": createIntent},
     envs: {...environment},
     timeout: sandboxTimeout, cpu: template.cpu_count, memory: template.memory_mb });
-  await journal.created(createIntent, sandbox.id);
-  } catch {
-    await journal.mark(createIntent, "uncertain");
+  // Third-party create seams must also retain the known ID before journal I/O.
+  if (knownSandboxId === undefined) await recordCreated(sandbox.id);
+  } catch (error) {
+    const recovery = error as {owned_sandbox_id?: string; cleanup_complete?: boolean};
+    if (knownSandboxId === undefined && typeof recovery?.owned_sandbox_id === "string") knownSandboxId = recovery.owned_sandbox_id;
+    let cleaned = recovery?.cleanup_complete === true;
+    if (sandbox && !cleaned) {
+      try { await sandbox.kill(); cleaned = !(await sandbox.isRunning()); } catch { /* Keep known identity in the recovery error. */ }
+      finally { try { await sandbox.close(); } catch { /* Cleanup must survive client close failures. */ } }
+    }
+    try { await journal.mark(createIntent, cleaned ? "deleted" : "uncertain"); } catch { /* Journal failure must not prevent owned cleanup. */ }
+    if (knownSandboxId !== undefined) throw new ProviderConfigError(`Sandbox creation/session binding failed for owned sandbox ${knownSandboxId}; cleanup ${cleaned ? "completed" : "must be reconciled"}; recovery journal ${journal.id}.`);
     throw new ProviderConfigError(`Sandbox creation has an uncertain outcome. Do not retry blindly; inspect resource journal ${journal.id} and reconcile by its correlation key.`);
   }
   try {
@@ -197,8 +222,9 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
       }
     }
     if (plan.kind === "application" && plan.service) {
-      const commands = await sandbox.listCommands({ server_port: plan.service.port, application_token: applicationToken });
-      if (!Array.isArray(commands)) throw new Error("Application protocol check failed");
+      const operation = (sourceMetadata["workflows"] as Record<string, {operation: "commands.list" | "commands.run" | "health"}>)[plan.workflow_id].operation;
+      if (operation === "commands.list") await sandbox.listCommands({server_port: plan.service.port, application_token: applicationToken});
+      else await sandbox.verifyApplicationOperation(operation, {server_port: plan.service.port, application_token: applicationToken});
     }
     await journal.mark(createIntent, "retained");
     for (const resource of prepared.owned_resources ?? []) await journal.mark(resource.intent_id, "retained");

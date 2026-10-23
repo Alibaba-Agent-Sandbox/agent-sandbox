@@ -19,10 +19,32 @@ export class ResourceJournal implements ResourceJournalCallbacks {
     this.file = path.join(paths.abxDir, "resource-journal", `${this.id}.json`);
   }
   private async save(): Promise<void> {
-    await fs.mkdir(path.dirname(this.file), { recursive: true, mode: 0o700 });
+    const journalDirectory = path.dirname(this.file);
+    const firstCreated = await fs.mkdir(journalDirectory, { recursive: true, mode: 0o700 });
     const temporary = `${this.file}.tmp`;
-    await fs.writeFile(temporary, JSON.stringify({ version: 1, id: this.id, provider: this.provider, plan_digest: this.plan_digest, entries: this.entries }), { mode: 0o600 });
+    const handle = await fs.open(temporary, "w", 0o600);
+    try {
+      await handle.writeFile(JSON.stringify({ version: 1, id: this.id, provider: this.provider, plan_digest: this.plan_digest, entries: this.entries }));
+      await handle.sync();
+    } finally { await handle.close(); }
     await fs.rename(temporary, this.file);
+    // Directory fsync is required: unsupported filesystems/platforms fail before a mutation is submitted.
+    const directories = [journalDirectory];
+    if (firstCreated !== undefined) {
+      // Persist every newly created directory entry, including the first entry in its existing parent.
+      let createdDirectory = journalDirectory;
+      for (;;) {
+        const parent = path.dirname(createdDirectory);
+        directories.push(parent);
+        if (path.resolve(createdDirectory) === path.resolve(firstCreated)) break;
+        if (parent === createdDirectory) throw new ProviderConfigError("Cannot establish journal directory durability.");
+        createdDirectory = parent;
+      }
+    }
+    for (const folder of directories) {
+      const directory = await fs.open(folder, "r");
+      try { await directory.sync(); } finally { await directory.close(); }
+    }
   }
   async intent(input: ResourceIntent): Promise<string> {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._:/@-]{0,1023}$/.test(input.correlation_key)) throw new ProviderConfigError("Resource correlation key must not contain credentials or endpoint URLs.");

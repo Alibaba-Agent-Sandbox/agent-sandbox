@@ -1,11 +1,14 @@
 import { manifestYaml } from "../helpers/workflowManifest.js";
 import fs from "node:fs";
+import promises from "node:fs/promises";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Provider } from "../../src/providers/base.js";
 import type { PreparedTemplate, ProviderTemplateManager } from "../../src/providers/template_contract.js";
 import { registerProvider } from "../../src/providers/registry.js";
 import { setCliProvider, resetCliSelection } from "../../src/providers/selection.js";
+import {applicationHttpSeams} from "../../src/transport/application_http.js";
+import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { launchSeams } from "../../src/cli/template_launch.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { Context, command } from "../../src/cli/kit.js";
@@ -36,7 +39,7 @@ function setup(required_operations: string[] = []) {
       binding: {transport: "http",endpoint: "provider-port",caller: "host",authentication: "none"},operation: "commands.run",required_operations}}}));
   fs.writeFileSync(path.join(directory, "Dockerfile"), "FROM python:3.12-slim\nCOPY *.whl /tmp/\nRUN echo fallback\n");
   const provider = new ProjectProvider(); registerProvider(provider); setCliProvider(provider.id);
-  const sandbox = { id: "owned-sandbox", listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
+  const sandbox = { id: "owned-sandbox", verifyApplicationOperation: vi.fn(async () => undefined), listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
     commands: { run: vi.fn(async (_command: string, _options?: unknown) => ({ exit_code: 0 })) } };
   const create = vi.spyOn(launchSeams, "create").mockResolvedValue(sandbox as unknown as Sandbox);
   return { directory, provider, sandbox, create, invoke: (extra: string[] = []) => new CliRunner().invoke(cli, ["--json", "template", "launch", directory, "-y", ...extra]) };
@@ -52,6 +55,8 @@ describe("provider-owned project launch", () => {
       expect(f.create).toHaveBeenCalledWith(expect.objectContaining({ provider: f.provider.id, template: "opaque-returned-id" }));
       expect(JSON.parse(result.stdout)).toEqual(expect.objectContaining({ sandbox_id: "owned-sandbox", provider: f.provider.id, template_reference: "opaque-returned-id", workflow_id: "application", source_digest: expect.stringMatching(/^[a-f0-9]{64}$/) }));
       expect(f.provider.close).toHaveBeenCalledOnce(); expect(f.sandbox.close).toHaveBeenCalledOnce();
+      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("commands.run", expect.objectContaining({server_port: 9000}));
+      expect(f.sandbox.listCommands).not.toHaveBeenCalled();
     } finally { f.create.mockRestore(); }
   });
   it("rejects an explicit missing interpreter operation before any resources", async () => {
@@ -59,6 +64,121 @@ describe("provider-owned project launch", () => {
     try { const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.stdout).toContain("code.context.execute");
       expect(f.provider.buildTemplateManager).not.toHaveBeenCalled(); expect(f.create).not.toHaveBeenCalled(); }
     finally { f.create.mockRestore(); }
+  });
+  it("refuses creation when the filesystem cannot durably sync its journal directory", async () => {
+    const f = setup(); const open = promises.open.bind(promises);
+    const opened = vi.spyOn(promises, "open").mockImplementation(async (...args) => {
+      const handle = await open(...args);
+      if (String(args[0]).endsWith("resource-journal")) vi.spyOn(handle, "sync").mockRejectedValue(new Error("directory sync unsupported"));
+      return handle;
+    });
+    try { expect((await f.invoke()).exit_code).not.toBe(0); expect(f.create).not.toHaveBeenCalled(); }
+    finally { opened.mockRestore(); f.create.mockRestore(); }
+  });
+  it("still deletes and closes the known sandbox after an actual receipt directory-sync failure", async () => {
+    const f = setup(); const open = promises.open.bind(promises); let directorySyncs = 0;
+    const opened = vi.spyOn(promises, "open").mockImplementation(async (...args) => {
+      const handle = await open(...args);
+      if (String(args[0]).endsWith("resource-journal") && ++directorySyncs === 2) vi.spyOn(handle, "sync").mockRejectedValue(new Error("receipt sync failed"));
+      return handle;
+    });
+    try {
+      const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).toContain("owned-sandbox");
+      expect(f.sandbox.kill).toHaveBeenCalledOnce(); expect(f.sandbox.close).toHaveBeenCalledOnce();
+    } finally { opened.mockRestore(); f.create.mockRestore(); }
+  });
+  it("does not replay a create whose native ID is unknown", async () => {
+    const f = setup(); f.create.mockRejectedValue(new Error("create timeout"));
+    try {
+      const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).toContain("uncertain outcome");
+      expect(f.create).toHaveBeenCalledOnce(); expect(f.sandbox.kill).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
+  });
+  it("retains the native ID from the early callback when session binding cannot be cleaned", async () => {
+    const f = setup();
+    f.create.mockImplementation(async options => {
+      if (!options || typeof options !== "object") throw new Error("expected create options");
+      await options.on_created?.("native-known-id");
+      throw Object.assign(new Error("session failed"), {owned_sandbox_id: "native-known-id", cleanup_complete: false});
+    });
+    try {
+      const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).toContain("native-known-id"); expect(result.output).toContain("must be reconciled");
+      const journalDir = path.join(iso.home, "resource-journal");
+      const persisted = JSON.parse(fs.readFileSync(path.join(journalDir, fs.readdirSync(journalDir)[0]), "utf8"));
+      expect(persisted.entries.at(-1)).toMatchObject({id: "native-known-id", state: "uncertain"});
+    } finally { f.create.mockRestore(); }
+  });
+  it("cleans and closes a known sandbox when persisting its ID fails", async () => {
+    const f = setup();
+    const journal = vi.spyOn(ResourceJournal.prototype, "created").mockRejectedValue(new Error("disk full"));
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0);
+      expect(result.output).toContain("owned-sandbox");
+      expect(result.output).toContain("cleanup completed");
+      expect(f.sandbox.kill).toHaveBeenCalledOnce();
+      expect(f.sandbox.close).toHaveBeenCalledOnce();
+      expect(f.sandbox.listCommands).not.toHaveBeenCalled();
+    } finally { journal.mockRestore(); f.create.mockRestore(); }
+  });
+  it("keeps a confirmed native cleanup deleted instead of marking it uncertain", async () => {
+    const f = setup();
+    f.create.mockRejectedValue(Object.assign(new Error("session binding failed"), {owned_sandbox_id: "native-known-id", cleanup_complete: true}));
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0); expect(result.output).toContain("native-known-id"); expect(result.output).toContain("cleanup completed");
+      const journalDir = path.join(iso.home, "resource-journal");
+      const persisted = JSON.parse(fs.readFileSync(path.join(journalDir, fs.readdirSync(journalDir)[0]), "utf8"));
+      expect(persisted.entries.at(-1).state).toBe("deleted");
+    } finally { f.create.mockRestore(); }
+  });
+  it("reports known cleanup residuals even when journal and close both fail", async () => {
+    const f = setup();
+    const journal = vi.spyOn(ResourceJournal.prototype, "created").mockRejectedValue(new Error("disk full"));
+    const mark = vi.spyOn(ResourceJournal.prototype, "mark").mockRejectedValue(new Error("disk full"));
+    f.sandbox.kill.mockRejectedValue(new Error("delete failed"));
+    f.sandbox.close.mockRejectedValue(new Error("close failed"));
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0);
+      expect(result.output).toContain("owned sandbox owned-sandbox");
+      expect(result.output).toContain("must be reconciled");
+      expect(f.sandbox.kill).toHaveBeenCalledOnce();
+      expect(f.sandbox.close).toHaveBeenCalledOnce();
+    } finally { journal.mockRestore(); mark.mockRestore(); f.create.mockRestore(); }
+  });
+  it("checks a health workflow without requiring the command catalog", async () => {
+    const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.provides.app.operations = ["health"]; manifest.workflows.application.operation = "health"; fs.writeFileSync(file, JSON.stringify(manifest));
+    try {
+      const result = await f.invoke(); expect(result.exit_code, result.output).toBe(0);
+      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.objectContaining({server_port: 9000}));
+      expect(f.sandbox.listCommands).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
+  });
+  it("uses the strict catalog path only for a selected commands.list workflow", async () => {
+    const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.workflows.application.operation = "commands.list"; fs.writeFileSync(file, JSON.stringify(manifest));
+    f.sandbox.listCommands.mockRejectedValue(new Error("invalid catalog"));
+    try { expect((await f.invoke()).exit_code).not.toBe(0); expect(f.sandbox.verifyApplicationOperation).not.toHaveBeenCalled(); expect(f.sandbox.kill).toHaveBeenCalledOnce(); }
+    finally { f.create.mockRestore(); }
+  });
+  it("checks the selected run operation before retaining a launched application", async () => {
+    const f = setup(); f.sandbox.verifyApplicationOperation.mockRejectedValue(new Error("run denied"));
+    try {
+      expect((await f.invoke()).exit_code).not.toBe(0);
+      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("commands.run", expect.objectContaining({server_port: 9000}));
+      expect(f.sandbox.kill).toHaveBeenCalledOnce();
+      expect(f.sandbox.listCommands).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
+  });
+  it("rejects a missing required service token before preparing or creating resources", async () => {
+    const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.workflows.application.binding.authentication = "service-token"; fs.writeFileSync(file, JSON.stringify(manifest));
+    try {
+      const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).toContain("ABX_SERVER_TOKEN");
+      expect(f.provider.prepare).not.toHaveBeenCalled(); expect(f.create).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
   });
   it("requires explicit build/create consent before preparing", async () => {
     const f = setup();
@@ -139,6 +259,23 @@ describe("Express preparation readiness", () => {
 });
 
 describe("explicit workflow inputs and build profiles", () => {
+  it.each(["commands.run", "commands.list", "health"])("checks only the selected external service operation %s", async operation => {
+    const f = setup(); f.provider.workflow_inputs = ["service"];
+    const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.workflows.application.input = "service"; manifest.workflows.application.binding.endpoint = "explicit-url";
+    manifest.workflows.application.operation = operation; manifest.provides.app.operations = [operation]; fs.writeFileSync(file, JSON.stringify(manifest));
+    const names = {"commands.run": "run_command", "commands.list": "list_commands", health: "health"} as const;
+    const endpoint = names[operation as keyof typeof names];
+    const fetch = vi.spyOn(applicationHttpSeams, "fetch").mockImplementation(async url => {
+      const value = String(url).endsWith("/capabilities") ? {api_version: 2, endpoints: {[endpoint]: {enabled: true, allowed: true}}} : operation === "health" ? {status: "ok"} : {commands: []};
+      return new Response(JSON.stringify(value), {status: 200});
+    });
+    try {
+      const result = await f.invoke(["--service-url", "http://127.0.0.1:9000"]); expect(result.exit_code, result.output).toBe(0);
+      expect(f.create).not.toHaveBeenCalled(); expect(f.provider.prepare).not.toHaveBeenCalled();
+      expect(fetch.mock.calls.map(call => new URL(String(call[0])).pathname)).toEqual(operation === "commands.run" ? ["/capabilities"] : ["/capabilities", operation === "health" ? "/health" : "/commands"]);
+    } finally {fetch.mockRestore(); f.create.mockRestore();}
+  });
   it("launches an explicitly owned managed reference without preparing source", async () => {
     const f=setup();f.provider.workflow_inputs=["source", "managed"];
     const file=path.join(f.directory,"template.yaml"), manifest=JSON.parse(fs.readFileSync(file,"utf8"));

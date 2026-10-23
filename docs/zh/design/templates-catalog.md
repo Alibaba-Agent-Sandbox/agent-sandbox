@@ -64,7 +64,7 @@
 ## 2. 机器可读索引（`awesome-templates.yaml`）
 
 ```yaml
-schema_version: 1
+schema_version: 2
 templates:
   - name: node-web                       # 必填；唯一；kebab-case
     description: "Node.js Web 服务运行环境"  # 人类可读描述（搜索命中源）
@@ -73,14 +73,12 @@ templates:
     ref: v1.0.0                          # 可选；锁定 tag/branch/sha
     tags: [nodejs, web, express, api]    # 搜索标签
     author: alibaba-agent-sandbox
-    capabilities: [shell, files, code, ports]
     status: official                     # official | community | experimental
 ```
 
 约定：
 
-- **`schema_version`**：索引格式版本，当前为 `1`。缺失按 1 处理（向后兼容）；
-  比客户端支持版本更新时**明确报错**并提示升级 CLI，绝不静默误读。
+- **`schema_version`**：索引格式版本，必须明确为 `2`。缺失或不支持的版本直接报错，不提供旧版默认值。条目定位权威 spec-v4 清单，不授予能力，也不重复声明工作流。
 - **`repo`**：仅接受 `github.com` 的 `owner/repo` 或完整 URL（解析时归一化）。
 - **`path` / `ref` 组合**：条目合成为 Terraform 风格的
   `owner/repo//path@ref` 引用（`TemplateIndexEntry.install_ref`），直接交给
@@ -125,7 +123,7 @@ templates:
 | `404` | 落入通用网络错误路径 | `NetworkError`，suggestion 提示校验索引 URL（`--index-url`） |
 | 服务端错误（5xx） | 过期缓存 + warning | `NetworkError` |
 | 其他非 2xx | 过期缓存 + warning | `NetworkError`，报告具体状态码 |
-| `schema_version` 过新 | 不降级 | `TemplateParseError`，提示 `npm install -g @agent-sandbox/cli@latest` |
+| `schema_version` 缺失或不支持 | 不降级 | `TemplateParseError`，提示 `npm install -g @agent-sandbox/cli@latest` |
 | 索引无 `templates` 列表 / 非法 YAML | 不降级 | `TemplateParseError`（含来源 URL） |
 
 降级呈现统一走 `TemplateIndex.stale` + `notice` 两个字段：CLI 在结果前打印

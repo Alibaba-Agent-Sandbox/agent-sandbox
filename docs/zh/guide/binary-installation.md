@@ -115,7 +115,7 @@ abx --version
 
 ## 从源码安装
 
-需要 Node.js 20 或更新版本。2026-10-15 在 Linux x64、Node.js 22.14.0 上验证过：`npm pack` 生成 `agent-sandbox-cli-0.3.0.tgz`，`npm install -g` 安装该 tarball 后执行 `abx --version`，输出为 `abx, version 0.3.0`。
+需要 Node.js 20 或更新版本，直接构建并安装当前检出版本：
 
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
@@ -123,13 +123,12 @@ cd agent-sandbox
 git rev-parse HEAD
 npm ci
 npm run build
-npm pack
-npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+npm install --global --prefix "$HOME/.local" .
 export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```
 
-`npm pack` 的文件名是 `agent-sandbox-cli-<version>.tgz`（当前树是 `agent-sandbox-cli-0.4.0.tgz`）。
+上述步骤直接安装已编译的当前检出版本，不依赖带版本号的归档文件名。
 
 ## 验证安装
 
