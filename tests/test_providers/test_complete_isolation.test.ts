@@ -84,6 +84,13 @@ describe("complete backend isolation", () => {
     const root = fs.mkdtempSync(path.join(process.cwd(), "template-plugin-"));
     try {
       fs.writeFileSync(path.join(root, "abx-provider.toml"), `manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "template-factory"
 name = "Template factory"

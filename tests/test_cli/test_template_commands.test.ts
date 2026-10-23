@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /** Tests for template CLI commands. */
 
 import "../_support/isolatedHome.js";
@@ -140,7 +141,7 @@ describe("TestInstallRegistryType", () => {
 
   it("test_install_local_template", async () => {
     const tp = tmpPath();
-    writeText(path.join(tp, "template.yaml"), "name: test-local\nversion: '1.0.0'\n");
+    writeText(path.join(tp, "template.yaml"), manifestYaml("name: test-local\nversion: '1.0.0'\n"));
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
     setenv("ACR_NAMESPACE", "test-namespace");
     patchTransport(mockHttp({ json: { templateID: "tpl-123", buildID: "bld-456" } }));
@@ -162,7 +163,7 @@ describe("TestInstallRegistryType", () => {
 
   it("test_install_platform_400_friendly", async () => {
     const tp = tmpPath();
-    writeText(path.join(tp, "template.yaml"), "name: test-local\nversion: '1.0.0'\n");
+    writeText(path.join(tp, "template.yaml"), manifestYaml("name: test-local\nversion: '1.0.0'\n"));
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
 
     const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local", "--download-only"]);
@@ -454,7 +455,7 @@ describe("TestTemplateBuildCommand", () => {
   it("test_build_uses_yaml_defaults", async () => {
     const tp = tmpPath();
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
-    writeText(path.join(tp, "template.yaml"), "name: my-template\nresources:\n  cpu: 4\n  memory: 4096\n");
+    writeText(path.join(tp, "template.yaml"), manifestYaml("name: my-template\nresources:\n  cpu: 4\n  memory: 4096\n"));
     delenv("ACR_NAMESPACE");
     patchLoadConfig(fakeConfig());
     const { builder } = mockBuilder();
@@ -586,7 +587,7 @@ describe("TestTemplateInitCommand", () => {
   it("test_from_path", async () => {
     const tp = tmpPath();
     const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), "name: from-test\n");
+    writeText(path.join(source, "template.yaml"), manifestYaml("name: from-test\n"));
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     const target = path.join(tp, "dest");
     vi.spyOn(RegistryClient.prototype, "resolve").mockResolvedValue({
@@ -692,7 +693,7 @@ function envAliyun(ns: string | null = "test-ns"): void {
 describe("TestInstallFullPipeline", () => {
   function _makeTemplateDir(): string {
     const tdir = path.join(tmpPath(), "tpl");
-    writeText(path.join(tdir, "template.yaml"), "name: test-tpl\nresources:\n  cpu: 1\n  memory: 512\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-tpl\nresources:\n  cpu: 1\n  memory: 512\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     return tdir;
   }
@@ -734,14 +735,14 @@ describe("TestInstallFullPipeline", () => {
 describe("TestGenerationFromYaml", () => {
   it("test_generation_from_yaml", () => {
     const tdir = path.join(tmpPath(), "gen");
-    writeText(path.join(tdir, "template.yaml"), "name: test-gen\ngeneration: 2\nresources:\n  cpu: 1\n  memory: 512\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen\ngeneration: 2\nresources:\n  cpu: 1\n  memory: 512\n"));
     const defaults = _readYamlDefaults(tdir);
     expect(defaults["generation"]).toBe(2);
   });
 
   it("test_generation_cli_overrides_yaml", async () => {
     const tdir = path.join(tmpPath(), "gen2");
-    writeText(path.join(tdir, "template.yaml"), "name: test-gen2\ngeneration: 2\nresources:\n  cpu: 1\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen2\ngeneration: 2\nresources:\n  cpu: 1\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-gen" });
@@ -757,7 +758,7 @@ describe("TestGenerationFromYaml", () => {
 describe("TestStartReadyWarning", () => {
   it("test_warning_when_generation_not_2", async () => {
     const tdir = path.join(tmpPath(), "warn");
-    writeText(path.join(tdir, "template.yaml"), "name: test-warn\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-warn\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     envAliyun();
     patchDoDeploy({ TemplateID: "tpl-w", "ACR Image": "img:latest" });
@@ -769,7 +770,7 @@ describe("TestStartReadyWarning", () => {
 
   it("test_do_deploy_warns_start_cmd_gen1", async () => {
     const tdir = path.join(tmpPath(), "warn2");
-    writeText(path.join(tdir, "template.yaml"), "name: test-w2\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-w2\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     setenv("ALICLOUD_ACCESS_KEY_ID", "ak");
     setenv("ALICLOUD_ACCESS_KEY_SECRET", "sk");
@@ -855,7 +856,7 @@ describe("TestInitFromDefaultDirectory", () => {
   it("test_init_from_no_dir_uses_yaml_name", async () => {
     const tp = tmpPath();
     const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), "name: from-yaml-name\n");
+    writeText(path.join(source, "template.yaml"), manifestYaml("name: from-yaml-name\n"));
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     process.chdir(tp);
     vi.spyOn(RegistryClient.prototype, "resolve").mockResolvedValue(refFor(source, { path: "test" }));
@@ -889,7 +890,7 @@ describe("TestInitFromDefaultDirectory", () => {
 describe("TestBuildYamlGeneration", () => {
   it("test_build_yaml_generation_2_no_flag", async () => {
     const tdir = path.join(tmpPath(), "gen2");
-    writeText(path.join(tdir, "template.yaml"), "name: test-gen2\ngeneration: 2\nresources:\n  cpu: 1\n  memory: 512\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen2\ngeneration: 2\nresources:\n  cpu: 1\n  memory: 512\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-gen2" });
@@ -903,7 +904,7 @@ describe("TestBuildYamlGeneration", () => {
 
   it("test_express_commands_py_defaults_generation_and_start", async () => {
     const tdir = path.join(tmpPath(), "express");
-    writeText(path.join(tdir, "template.yaml"), "name: express-demo\nbase: python:3.12\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: express-demo\nbase: python:3.12\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     writeText(path.join(tdir, "commands.py"), "print('hi')\n");
     delenv("ABX_PROVIDER");
@@ -921,7 +922,7 @@ describe("TestBuildYamlGeneration", () => {
 
   it("test_generation_flag_wins_over_express_default", async () => {
     const tdir = path.join(tmpPath(), "express-flag");
-    writeText(path.join(tdir, "template.yaml"), "name: express-flag\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: express-flag\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     writeText(path.join(tdir, "commands.py"), "print('hi')\n");
     delenv("ABX_PROVIDER");
@@ -938,7 +939,7 @@ describe("TestBuildYamlGeneration", () => {
 
   it("test_yaml_start_cmd_is_used_when_the_flag_is_omitted", () => {
     const tdir = path.join(tmpPath(), "yaml-start");
-    writeText(path.join(tdir, "template.yaml"), 'name: yaml-start\ngeneration: 2\nstart_cmd: "serve"\nready_cmd: "health"\n');
+    writeText(path.join(tdir, "template.yaml"), manifestYaml('name: yaml-start\ngeneration: 2\nstart_cmd: "serve"\nready_cmd: "health"\n'));
     const runtime = resolveDeployRuntime(tdir, {}, { server_start: "image_cmd" } as never);
     expect(runtime).toEqual({ generation: 2, start_cmd: "serve", ready_cmd: "health" });
   });
@@ -946,7 +947,7 @@ describe("TestBuildYamlGeneration", () => {
   it("test_generic_provider_does_not_default_to_generation_2", () => {
     const tdir = path.join(tmpPath(), "generic");
     writeText(path.join(tdir, "commands.py"), "print('hi')\n");
-    writeText(path.join(tdir, "template.yaml"), "name: generic\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: generic\n"));
     const runtime = resolveDeployRuntime(
       tdir,
       {},
@@ -964,7 +965,7 @@ describe("TestBuildYamlGeneration", () => {
 describe("TestBuildTargetImagePassthrough", () => {
   it("test_build_envd_inject_target_image", async () => {
     const tdir = path.join(tmpPath(), "timg");
-    writeText(path.join(tdir, "template.yaml"), "name: test-timg\n");
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-timg\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     envAliyun();
     patchLoadConfig(fakeConfig({ access_key_id: "ak-test", access_key_secret: "sk-test" }));
@@ -987,7 +988,7 @@ describe("TestBuildTargetImagePassthrough", () => {
 describe("TestInstallDirOption", () => {
   function _src(name: string, tp: string): string {
     const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), `name: ${name}\n`);
+    writeText(path.join(source, "template.yaml"), manifestYaml(`name: ${name}\n`));
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     return source;
   }

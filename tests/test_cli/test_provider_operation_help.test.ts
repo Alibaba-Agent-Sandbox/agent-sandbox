@@ -31,6 +31,13 @@ async function installFixture(id: string, operations: Operation[], options: { br
   fs.mkdirSync(source);
   fs.writeFileSync(path.join(source, "abx-provider.toml"), `
 manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "${id}"
 name = "${id}"

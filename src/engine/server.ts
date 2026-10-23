@@ -310,8 +310,7 @@ class Engine {
       return { ok: true };
     });
     r("GET", "/v1/sandboxes/:id/ports/:port/url", async (c) => {
-      const [url, headers] = await (await c.sandbox()).network.resolve(Number(c.params[1]));
-      return { url, headers };
+      return (await c.sandbox()).network.resolveEndpoint(Number(c.params[1]));
     });
 
     r("POST", "/v1/sandboxes/:id/commands/run", async (c) => {
@@ -395,14 +394,34 @@ class Engine {
       return HANDLED;
     });
 
+    r("GET", "/v1/sandboxes/:id/application/commands", async (c) => {
+      const port = c.query.get("server_port");
+      const applicationToken = c.req.headers["x-abx-application-token"];
+      if (applicationToken !== undefined && typeof applicationToken !== "string") throw new ValueError("Invalid application authentication header.");
+      return { commands: await (await c.sandbox()).listCommands({ server_port: port === null ? 9000 : Number(port), application_token: applicationToken }) };
+    });
+    r("POST", "/v1/sandboxes/:id/application/commands/:name", async (c) => {
+      const body = await c.json();
+      if (Object.keys(body).some(key => !["arguments", "server_port", "application_token"].includes(key)) ||
+          (body["arguments"] !== undefined && (body["arguments"] === null || typeof body["arguments"] !== "object" || Array.isArray(body["arguments"]))) ||
+          (body["application_token"] !== undefined && typeof body["application_token"] !== "string") ||
+          (body["server_port"] !== undefined && (!Number.isSafeInteger(body["server_port"]) || Number(body["server_port"]) < 1 || Number(body["server_port"]) > 65535))) throw new ValueError("Invalid named command input.");
+      return dump(await (await c.sandbox()).runCommand(c.params[1], (body["arguments"] ?? {}) as Dict,
+        { server_port: Number(body["server_port"] ?? 9000), application_token: body["application_token"] as string | undefined }));
+    });
+
     r("POST", "/v1/sandboxes/:id/code/run", async (c) => {
       const body = await c.json();
-      const opts: Dict = { language: body["language"] ?? "python", timeout: body["timeout"] ?? 30, envs: body["envs"] ?? null, context_id: body["context_id"] ?? null };
+      if (body["mode"] !== undefined && body["mode"] !== "default-context" && body["mode"] !== "stateless") throw new ValueError("Unknown code execution mode.");
+      if (body["context_id"] !== undefined && body["context_id"] !== null && body["mode"] === "default-context") throw new ValueError("Explicit and default contexts cannot be combined.");
+      if (Object.keys(body).some(key => !["code", "language", "timeout", "envs", "context_id", "mode"].includes(key)) || typeof body["code"] !== "string") throw new ValueError("Invalid code execution input.");
+      const opts: Dict = { operation: body["mode"] === "default-context" ? "code.default-context.execute" : "code.execute", language: body["language"] ?? "python", timeout: body["timeout"] ?? 30, envs: body["envs"] ?? null, context_id: body["context_id"] ?? null };
       return dump(await (await c.sandbox()).code.run(String(body["code"] ?? ""), opts as never));
     });
     r("POST", "/v1/sandboxes/:id/code/contexts", async (c) => {
       const body = await c.json();
-      return new Reply(201, await (await c.sandbox()).code.createContext({ language: String(body["language"] ?? "python") }));
+      if (Object.keys(body).some(key => key !== "language") || (body["language"] !== undefined && (typeof body["language"] !== "string" || !body["language"]))) throw new ValueError("Invalid context input.");
+      return new Reply(201, await (await c.sandbox()).code.createContext({ language: (body["language"] ?? "python") as string }));
     });
     r("GET", "/v1/sandboxes/:id/code/contexts", async (c) => ({ contexts: await (await c.sandbox()).code.listContexts() }));
     r("POST", "/v1/sandboxes/:id/code/contexts/:ctx/restart", async (c) => (await c.sandbox()).code.restartContext(c.params[1] as string));

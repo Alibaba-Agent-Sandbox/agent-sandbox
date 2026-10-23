@@ -116,7 +116,7 @@ Installing a provider does not enable every `abx` command. The CLI and the Pytho
 | `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
 | `files.transfer` | — | signed upload and download URLs |
-| `code.interpret` | No generic code command; MCP/interpreter entry points have their own contract | `run_code` |
+| Exact `code.*` operations | Interpreter execution and explicit contexts are gated separately | `run_code` |
 | `templates.read` | `template list`, `template info` | template read APIs |
 | `templates.build` | `template build/push/create/deploy/install/delete`, `deploy`, `install` | image build and template registration |
 | `ports.url` | No dedicated URL command | Provider-aware `network.resolve` / `resolve_url` |
@@ -131,7 +131,7 @@ How the CLI follows the active provider:
 
 - `abx template list|info` need `templates.read`; `build`, `push`, `create`, `deploy`, `install` (unless `--download-only`), `delete` and the top-level `abx deploy` need `templates.build`. Without it they answer `E8004` before any registry, Docker or ACR work.
 - `abx sandbox command run|list` need an HTTP data plane to the sandbox. A provider that routes over EPP answers `E8004` naming `named commands`.
-- `abx sandbox capabilities` derives `shell`, `files`, `code`, `terminal` and `ports` from the provider's declared features (the built-in provider reads them from the sandbox template).
+- Workflow readiness uses exact Provider operations and consumer bridges. See [template workflows](template-workflows.md).
 - `abx info` and `abx list` print `-` for a region or timeout the provider does not report.
 
 A manifest with `kind = "python"` is not installable. Programmatic Python `Provider` subclasses still work in the Python SDK, but nothing installed from disk runs as Python.

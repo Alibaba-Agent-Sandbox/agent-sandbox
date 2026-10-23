@@ -38,7 +38,6 @@ export {
 } from "./process.js";
 export { SandboxConfig, SandboxInfo, SandboxStatus, validateVolumeMounts } from "./sandbox.js";
 export {
-  DEFAULT_CAPABILITIES,
   STANDARD_CAPABILITIES,
   BuildInfo,
   BuildStatus,
@@ -94,7 +93,6 @@ export const __all__ = [
   "WatchEvent",
   // Template
   "STANDARD_CAPABILITIES",
-  "DEFAULT_CAPABILITIES",
   "BuildStatus",
   "TemplateInfo",
   "BuildInfo",

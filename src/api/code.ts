@@ -1,57 +1,14 @@
-/**
- * Code context module — code interpreter for sandboxes (port of `api/code.py`).
- *
- * 通过 CodeInterpreterProtocol 调用 Code Interpreter RPC 服务。支持 runCode、createCodeContext、listCodeContexts、
- * restartCodeContext、removeCodeContext 操作。
- *
- * 当 CodeInterpreter 服务不可用（HTTP 404）时，自动降级为通过 ProcessProtocol 写文件 + shell 执行的模式（与 @sandbox
- * 装饰器同一机制），对调用方透明。
- *
- * The selected adapter owns the interpreter wire protocol.
- */
-
-import { randomUUID } from "node:crypto";
-
-import { CodeResult, ProcessChunkType } from "../models/process.js";
-import { DEFAULT_CAPABILITIES } from "../models/template.js";
+/** Project code interpreter entrypoint. Interpreter failures retain their original diagnosis. */
+import { CodeResult } from "../models/process.js";
 import type { CodeInterpreterProtocol } from "../protocol/contracts.js";
-import type { ProcessProtocol } from "../protocol/contracts.js";
 import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
-import { HTTPStatusError } from "../transport/http.js";
-import { getLogger } from "../utils/logging.js";
+import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
+import { dictGet } from "../utils/_pyerrors.js";
 import { pyStrip } from "../utils/_pyformat.js";
-import { NotImplementedError, RuntimeError, dictGet, pyEncodeUtf8 } from "../utils/_pyerrors.js";
-import { checkCapability } from "./capability.js";
-
-const logger = getLogger("api.code");
-
-export const _seams = {
-  monotonic: (): number => Number(process.hrtime.bigint()) / 1e9,
-  uuid4Hex: (): string => randomUUID().replace(/-/g, ""),
-};
-
-/** Language → interpreter command for shell fallback (mirrors routes_devtools.py) */
-export const _LANGUAGE_COMMANDS: Record<string, string> = {
-  python: "python3",
-  javascript: "node",
-  typescript: "node",
-  shell: "bash",
-  bash: "bash",
-  r: "Rscript",
-};
-
-/** Language → temp-file extension */
-export const _LANGUAGE_EXTENSIONS: Record<string, string> = {
-  python: ".py",
-  javascript: ".js",
-  typescript: ".ts",
-  shell: ".sh",
-  bash: ".sh",
-  r: ".R",
-};
 
 export interface CodeRunOptions {
   language?: string;
+  operation?: "code.execute" | "code.default-context.execute";
   timeout?: number;
   context_id?: string | null;
   envs?: Record<string, string> | null;
@@ -60,254 +17,79 @@ export interface CodeRunOptions {
   on_result?: ((r: any) => void) | null;
 }
 
-interface ShellRunOptions {
-  language: string;
-  timeout: number;
-  envs: Record<string, string> | null;
-  on_stdout: ((s: string) => void) | null;
-  on_stderr: ((s: string) => void) | null;
-  on_result: ((r: any) => void) | null;
-}
-
-function lookup(table: Record<string, string>, key: string, dflt: string): string {
-  return Object.prototype.hasOwnProperty.call(table, key) ? table[key]! : dflt;
-}
-
-/**
- * Code interpreter — execute code snippets in the sandbox.
- *
- * Calls CodeInterpreterProtocol for code execution and context management. When the CodeInterpreter service is
- * unavailable (HTTP 404), `run()` falls back transparently to writing the code to a temp file and executing it via the
- * process/shell protocol.
- */
+/** Execute only the selected interpreter operation; process execution is a separate API. */
 export class CodeContextModule {
-  _sandbox_id: string;
-  _envd_url: string;
-  _envd_token: EnvdTokenManager;
-  _code: CodeInterpreterProtocol;
-  _process: ProcessProtocol | null;
-  _capabilities: Set<string>;
-  _ci_available: boolean;
-
   constructor(
-    sandbox_id: string,
-    envd_url: string,
-    envd_token: EnvdTokenManager,
-    code_interpreter_protocol: CodeInterpreterProtocol,
-    capabilities: Set<string> | null = null,
-    process_protocol: ProcessProtocol | null = null,
-  ) {
-    this._sandbox_id = sandbox_id;
-    this._envd_url = envd_url;
-    this._envd_token = envd_token;
-    this._code = code_interpreter_protocol;
-    this._process = process_protocol;
-    this._capabilities = capabilities !== null ? capabilities : new Set(DEFAULT_CAPABILITIES);
-    // Assume CodeInterpreter is available until a 404 proves otherwise.
-    this._ci_available = true;
+    readonly _sandbox_id: string,
+    readonly _envd_url: string,
+    readonly _envd_token: EnvdTokenManager,
+    readonly _code: CodeInterpreterProtocol,
+    readonly _capabilities: Set<string> = new Set<string>(),
+  ) {}
+
+  private require(operation: string): void {
+    const operations = this._code.operations;
+    if (!operations || typeof operations.has !== "function" || !operations.has(operation)) throw new ProviderFeatureNotSupportedError("selected", operation);
   }
 
-  /**
-   * Execute code in the sandbox via Code Interpreter RPC.
-   *
-   * If the CodeInterpreter service returns HTTP 404 (not deployed on this backend), falls back transparently to shell
-   * execution — writes the code to a temp file and runs the appropriate interpreter via the process protocol.
-   */
+  /** Execute a stateless request, or the explicitly named persistent context. */
   async run(code: string, opts: CodeRunOptions = {}): Promise<CodeResult> {
-    const {
-      language = "python",
-      timeout = 30,
-      context_id = null,
-      envs = null,
-      on_stdout = null,
-      on_stderr = null,
-      on_result = null,
-    } = opts;
-    // Capability gate — must run BEFORE any CI availability / 404 shell fallback so that a template without "code"
-    // never reaches the code interpreter or the shell fallback (fail-closed).
-    checkCapability(this._capabilities, "code");
-
-    // Fast path: CI already known unavailable — skip straight to fallback.
-    if (!this._ci_available) {
-      return this._runViaShell(code, { language, timeout, envs, on_stdout, on_stderr, on_result });
+    const { language = "python", timeout = 30, context_id = null, envs = null,
+      on_stdout = null, on_stderr = null, on_result = null } = opts;
+    if (opts.operation !== undefined && !["code.execute", "code.default-context.execute"].includes(opts.operation)) throw new TypeError("Unknown interpreter operation.");
+    if (context_id !== null && opts.operation === "code.default-context.execute") throw new TypeError("Explicit and default contexts cannot be combined.");
+    const operation = context_id === null ? (opts.operation ?? "code.execute") : "code.context.execute";
+    this.require(operation);
+    if (typeof code !== "string" || typeof language !== "string" || !language || !Number.isSafeInteger(timeout) || timeout <= 0 ||
+      (context_id !== null && (typeof context_id !== "string" || !context_id))) throw new TypeError("Invalid interpreter input.");
+    let executionContext = context_id;
+    if (operation === "code.execute") {
+      this.require("code.context.create"); this.require("code.context.execute"); this.require("code.context.delete");
+      const created = await this._code.createContext(this._sandbox_id, this._envd_url, this._envd_token, { language });
+      if (typeof created["contextId"] !== "string" || !created["contextId"]) throw new TypeError("Interpreter returned no context identity.");
+      executionContext = created["contextId"];
     }
-
-    let response: Record<string, any>;
+    let response: Record<string, any> | undefined;
+    let executionError: unknown;
+    let executionFailed = false;
     try {
-      response = await this._code.runCode(this._sandbox_id, this._envd_url, this._envd_token, {
-        code,
-        language,
-        context_id,
-        timeout,
-        envs,
-        on_stdout,
-        on_stderr,
-        on_result,
-      });
-    } catch (exc) {
-      if (exc instanceof HTTPStatusError) {
-        if (exc.response.status_code === 404) {
-          logger.warning("CodeInterpreter service unavailable (HTTP 404), falling back to shell execution");
-          this._ci_available = false;
-          return this._runViaShell(code, { language, timeout, envs, on_stdout, on_stderr, on_result });
-        }
+      response = await this._code.runCode(this._sandbox_id, this._envd_url, this._envd_token,
+        { code, language, context_id: executionContext, timeout, envs, on_stdout, on_stderr, on_result });
+    } catch (error) { executionFailed = true; executionError = error; }
+    if (operation === "code.execute" && executionContext !== null) {
+      try { await this._code.removeContext(this._sandbox_id, this._envd_url, this._envd_token, { context_id: executionContext }); }
+      catch (cleanupError) {
+        if (executionFailed) throw new AggregateError([executionError, cleanupError], "Interpreter execution failed and temporary context cleanup could not be confirmed.", {cause: cleanupError});
+        throw cleanupError;
       }
-      throw exc;
     }
-
-    // Parse the RPC response into a CodeResult. Response format may vary; handle both direct and nested results
+    if (executionFailed) throw executionError;
+    if (response === undefined) throw new TypeError("Interpreter returned no execution result.");
     const result = dictGet(response, "result", response);
-    return new CodeResult({
-      text: pyStrip(dictGet(result, "text", dictGet(result, "stdout", ""))),
-      stdout: dictGet(result, "stdout", ""),
-      stderr: dictGet(result, "stderr", ""),
+    return new CodeResult({ text: pyStrip(dictGet(result, "text", dictGet(result, "stdout", ""))),
+      stdout: dictGet(result, "stdout", ""), stderr: dictGet(result, "stderr", ""),
       exit_code: dictGet(result, "exitCode", dictGet(result, "exit_code", 0)),
-      execution_time: dictGet(result, "executionTime", dictGet(result, "execution_time", 0.0)),
-    });
+      execution_time: dictGet(result, "executionTime", dictGet(result, "execution_time", 0.0)) });
   }
 
-  // ------------------------------------------------------------------
-  // Shell fallback (CodeInterpreter 404)
-  // ------------------------------------------------------------------
-
-  /**
-   * Execute code via the process protocol (shell fallback).
-   *
-   * Writes the code to a temp file using base64 (avoids shell-quoting issues), runs the appropriate interpreter,
-   * collects stdout/stderr, and cleans up.
-   */
-  async _runViaShell(code: string, opts: ShellRunOptions): Promise<CodeResult> {
-    const { language, timeout, envs, on_stdout, on_stderr, on_result } = opts;
-    if (this._process === null) {
-      throw new RuntimeError(
-        "Shell fallback for code execution requires process_protocol to be injected but it was not provided.",
-      );
-    }
-
-    const interpreter = lookup(_LANGUAGE_COMMANDS, language, language);
-    const ext = lookup(_LANGUAGE_EXTENSIONS, language, "");
-    const tmp_path = `/tmp/_abx_code_${_seams.uuid4Hex()}${ext}`;
-
-    try {
-      // Step 1 — write code to temp file via base64 (quoting-safe)
-      const b64_code = pyEncodeUtf8(code).toString("base64");
-      const write_reader = await this._process.start(this._envd_url, this._envd_token, {
-        cmd: "python3",
-        args: ["-c", `import base64; open('${tmp_path}','wb').write(base64.b64decode('${b64_code}'))`],
-        timeout: 30,
-      });
-      for await (const _ of write_reader) {
-        void _; // drain
-      }
-
-      // Step 2 — execute the code file with the correct interpreter
-      const start_time = _seams.monotonic();
-      const exec_reader = await this._process.start(this._envd_url, this._envd_token, {
-        cmd: interpreter,
-        args: [tmp_path],
-        env: envs && Object.keys(envs).length ? envs : null,
-        timeout,
-      });
-
-      const stdout_parts: string[] = [];
-      const stderr_parts: string[] = [];
-      let exit_code = 0;
-
-      for await (const chunk of exec_reader) {
-        if (chunk.type === ProcessChunkType.STDOUT) {
-          stdout_parts.push(chunk.data);
-          if (on_stdout && chunk.data) on_stdout(chunk.data);
-        } else if (chunk.type === ProcessChunkType.STDERR) {
-          stderr_parts.push(chunk.data);
-          if (on_stderr && chunk.data) on_stderr(chunk.data);
-        } else if (chunk.type === ProcessChunkType.EXIT) {
-          exit_code = chunk.exit_code || 0;
-        }
-      }
-
-      const execution_time = _seams.monotonic() - start_time;
-      const stdout = stdout_parts.join("");
-      const stderr = stderr_parts.join("");
-
-      if (on_result) {
-        on_result({ stdout, stderr, exitCode: exit_code, executionTime: execution_time });
-      }
-
-      return new CodeResult({
-        text: pyStrip(stdout),
-        stdout,
-        stderr,
-        exit_code,
-        output_files: [],
-        execution_time,
-      });
-    } finally {
-      // Best-effort cleanup of the temp file — runs even if Step 2 raises
-      try {
-        const rm_reader = await this._process.start(this._envd_url, this._envd_token, {
-          cmd: "rm",
-          args: ["-f", tmp_path],
-          timeout: 10,
-        });
-        for await (const _ of rm_reader) {
-          void _;
-        }
-      } catch {
-        // best-effort
-      }
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // Context management (require live CodeInterpreter service)
-  // ------------------------------------------------------------------
-
-  /**
-   * Re-enable CodeInterpreter probing after backend recovery. After calling this, the next `run()` call will attempt
-   * the native CodeInterpreter RPC again instead of going straight to the shell fallback.
-   */
-  resetCiAvailability(): void {
-    this._ci_available = true;
-  }
-
-  /** Raise if CI is known unavailable (set after first 404). */
-  _checkCiAvailable(operation: string): void {
-    if (!this._ci_available) {
-      throw new NotImplementedError(
-        `Context operation '${operation}' requires the CodeInterpreter ` +
-          "service which is currently unavailable (HTTP 404). Code " +
-          "execution works via shell fallback but stateful contexts " +
-          "are not supported in fallback mode.",
-      );
-    }
-  }
-
-  /** Create a new execution context. Returns context info dict (includes contextId). */
+  /** Create an explicit persistent execution context. */
   async createContext(opts: { language?: string } = {}): Promise<Record<string, any>> {
-    const { language = "python" } = opts;
-    checkCapability(this._capabilities, "code");
-    this._checkCiAvailable("create_context");
-    return this._code.createContext(this._sandbox_id, this._envd_url, this._envd_token, { language });
+    this.require("code.context.create");
+    return this._code.createContext(this._sandbox_id, this._envd_url, this._envd_token, opts);
   }
-
-  /** List all execution contexts. */
+  /** List persistent execution contexts. */
   async listContexts(): Promise<Record<string, any>[]> {
-    checkCapability(this._capabilities, "code");
-    this._checkCiAvailable("list_contexts");
+    this.require("code.context.list");
     return this._code.listContexts(this._sandbox_id, this._envd_url, this._envd_token);
   }
-
-  /** Restart an execution context. */
+  /** Restart the specified persistent context. */
   async restartContext(context_id: string): Promise<Record<string, any>> {
-    checkCapability(this._capabilities, "code");
-    this._checkCiAvailable("restart_context");
+    this.require("code.context.restart");
     return this._code.restartContext(this._sandbox_id, this._envd_url, this._envd_token, { context_id });
   }
-
-  /** Remove an execution context. */
+  /** Delete the specified persistent context. */
   async removeContext(context_id: string): Promise<void> {
-    checkCapability(this._capabilities, "code");
-    this._checkCiAvailable("remove_context");
+    this.require("code.context.delete");
     await this._code.removeContext(this._sandbox_id, this._envd_url, this._envd_token, { context_id });
   }
 }

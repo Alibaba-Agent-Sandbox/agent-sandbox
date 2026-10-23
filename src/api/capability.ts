@@ -10,7 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { CapabilityNotSupportedError, TemplateParseError } from "../models/errors.js";
-import { DEFAULT_CAPABILITIES, SandboxTemplate } from "../models/template.js";
+import { SandboxTemplate } from "../models/template.js";
 import { getLogger, ExcInfo } from "../utils/logging.js";
 import { pyRepr } from "../utils/_pyformat.js";
 import { dictGet, pyExcStr } from "../utils/_pyerrors.js";
@@ -35,7 +35,7 @@ export class ResolvedCapabilities {
   capabilities: Set<string>;
 
   constructor(init: ResolvedCapabilitiesInit = {}) {
-    this.capabilities = init.capabilities !== undefined ? new Set(init.capabilities) : new Set(DEFAULT_CAPABILITIES);
+    this.capabilities = init.capabilities !== undefined ? new Set(init.capabilities) : new Set<string>();
   }
 }
 
@@ -104,7 +104,7 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
       return parseTemplateData(data);
     } catch (exc) {
       logger.warning(
-        "Matched template at %s failed validation; refusing to fall back to DEFAULT_CAPABILITIES (fail-closed)",
+        "Matched template at %s failed validation; refusing an invalid workflow manifest (fail-closed)",
         yaml_path,
         new ExcInfo(exc),
       );
@@ -146,7 +146,7 @@ export function parseTemplateData(data: Record<string, any>): SandboxTemplate {
  * 1. If `local_yaml_path` is given, parse it directly.
  * 2. Scan `~/.abx/templates/` for a matching template name.
  * 3. TODO(Phase2): `GET /templates/{id}` metadata fallback.
- * 4. Fall back to `DEFAULT_CAPABILITIES` and emit a warning.
+ * 4. Return no inferred permissions when no manifest is available.
  */
 /** A cache directory name: no separators, so the copy stays inside `~/.abx/templates`. */
 function _cacheDirName(raw: string): string | null {
@@ -193,15 +193,15 @@ export async function resolveCapabilities(
       try {
         data = safeLoad(fs.readFileSync(local_yaml_path, { encoding: "utf8" }));
       } catch (e) {
-        logger.warning("Failed to read local template YAML at %s, using defaults", local_yaml_path, new ExcInfo(e));
-        data = null;
+        throw new TemplateParseError(`Explicit template YAML is unreadable: ${pyExcStr(e)}`);
       }
+      if (!isDict(data)) throw new TemplateParseError("Explicit template YAML must contain a workflow manifest mapping.");
       if (isDict(data)) {
         try {
           template = parseTemplateData(data);
         } catch (exc) {
           logger.warning(
-            "Local template YAML at %s failed validation; refusing to fall back to DEFAULT_CAPABILITIES (fail-closed)",
+            "Local template YAML at %s failed validation; refusing an invalid workflow manifest (fail-closed)",
             local_yaml_path,
             new ExcInfo(exc),
           );
@@ -216,18 +216,7 @@ export async function resolveCapabilities(
     template = _findLocalTemplate(template_id);
   }
 
-  // 4. Fallback
-  if (template === null) {
-    logger.warning(
-      "Could not resolve capabilities for template %r; no matching template.yaml in ~/.abx/templates. " +
-        "Using default capabilities shell, files, code. " +
-        "Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
-      template_id,
-    );
-    return new ResolvedCapabilities();
-  }
-
-  const caps: Set<string> = template.capabilities !== null ? new Set(template.capabilities) : new Set(DEFAULT_CAPABILITIES);
-
-  return new ResolvedCapabilities({ capabilities: caps });
+  // Template contents do not grant adapter operations or caller permissions.
+  // A matching source is still validated above; discovery is supplied by the provider.
+  return new ResolvedCapabilities();
 }

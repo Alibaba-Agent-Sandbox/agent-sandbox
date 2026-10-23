@@ -1,37 +1,59 @@
 # Verification: template workflows
 
 - Date: 2026-10-23
-- Change: proposed template-workflows decision
+- Change: [Issue #118](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/118); proposed template-workflows decision
 - Result: PARTIAL
-- Package: CLI source worktree based on main, Node.js local runtime
-- Credentials: not included in this record
+- Package: isolated CLI implementation branch; pure contract commits `1cab8a6` and `f98a880`
+- Environment: Node.js 22, Linux; credentials and private endpoints are not recorded
 
 ## What was verified
 
-The pure planner consumes canonical operation rules instead of inferring an interpreter dependency from template software. Application transport and interpreter execution tests are being updated with the implementation.
+The pure planner consumes canonical operation rules and 31 conformance vectors. Application workflows do not infer interpreter dependencies. The source launcher selects explicit build profiles, preserves Dockerfiles, records creation intent, and validates provider/source identity. Dedicated application HTTP requests preserve proxy scope, isolate credentials and refuse redirects and anonymous retry. The guessed Connect interpreter and its runtime export have been removed rather than certifying a mock endpoint as a real implementation.
 
 ## Commands run
 
-- Node direct import of `src/template/workflow_plan.mjs` and comparison against canonical `vectors.json`: 29 of 29 normalized results/rejections matched.
-- `npx vitest run tests/test_api/test_code.test.ts`: 29 passed.
+- `node scripts/sync-workflow-contracts.mjs --check`: PASS; source revision `b8d06847780448193f7d529c59c40b5ba9cc6b8d`.
+- Direct Node normalized comparison against owner vectors: PASS, 31 cases.
+- Scoped Vitest command covering `test_workflow_plan`, `test_resource_journal`, `test_application_http`, `test_content_identity`, `test_manifest`, `test_template_launch`, `test_code`, `test_capability`, `test_template_index`, `test_code_interpreter` and `test_e2b_provider`: PASS, 198 tests across 11 files at that checkpoint.
+- Migration regression across 10 files: 336 PASS, 4 FAIL in engine proxy/Host tests. Later migration fixes and stricter interpreter rejection are recorded by subsequent focused checks; this is not a full-suite pass.
+- `npm test -- --maxWorkers 4` on an intermediate implementation: FAIL; 4,006 passed, 155 failed, 3 skipped. This run predates subsequent fixture migrations. No failing test was changed to a skip to obtain a pass.
+- `npm run typecheck`, `npm run build`, `npm run lint`: executed repeatedly during implementation; final-head results are appended below when available.
+- `bash scripts/check-repo-health.sh`: PASS, 106 pass / 11 historical-context warnings / 0 failures at the recorded checkpoint.
+- `node scripts/capture-cli-evidence.mjs --command template --out .agents/evidence/cli/2026-10-23-template-workflows`: PASS, 5 offline cases, 2 capture files.
 
 ## Results
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| Shared vectors | PASS | Exact normalized JSON agreement across 29 cases |
-| Interpreter regressions | PASS | 29 tests, no shell fallback; explicit context and cleanup |
-| Full repository gates | Not yet run | Implementation in progress |
-| Real provider lifecycle | Not yet run | Requires final implementation and configured backend |
+| Canonical planner and strict manifest | PASS | Exact normalized agreement, including required readiness operations |
+| Isolated context lifecycle and no shell fallback | PASS | Generic operation logic exercised with explicit adapters; guessed HTTP routes removed |
+| Application HTTP real component | PASS | Real localhost server receives exact proxy prefix/query and separate application/gateway authentication |
+| Source/profile/journal identity logic | PASS at checkpoint | Relevant regressions included in scoped suite; additional final changes require their final run |
+| Full latest-head repository gates | Pending | Intermediate full-suite failure above is preserved |
+| Engine proxy/foreign Host checks | FAIL locally | Actual socket destination is localhost; explicit foreign Host and envd-dial tests receive HTTP 501 with “项目网络审计已关闭”; expected security/status assertions remain intact |
+| Real OpenSandbox source lifecycle | Not yet verified by this owner | Cross-repository remote run required; local Docker is unavailable |
+| Remote CI / merge | Not verified | Parent coordinates contribution workflow after owner commits |
 
 ## Cleanup
 
-The checks above created no cloud resources. Temporary execution-snapshot regressions clean their local fixtures.
+Recorded checks created no cloud sandboxes or templates. Real HTTP test servers close in `finally`; local snapshot and journal fixtures use isolated temporary directories. No claim of cloud resource cleanup is made without a real provider run.
 
 ## Problems found
 
-Prepared remote artifacts without a verified provider deletion API require an explicit manual recovery record; this must not be represented as confirmed cleanup.
+A provider version/manifest hash is not code identity. Source readiness commands require `exec.run` even for native entrypoint startup. App command `run` must not collide with the engine shell route. The guessed interpreter's previous 404 fallback hid an unimplemented transport; removing only the fallback would still leave false capability claims.
 
 ## Not verified
 
-Remote CI, installed package/SEA behavior and the real OpenSandbox unified launch/invoke/cleanup path remain unverified at this checkpoint.
+The final complete CI matrix, package/SEA distribution acceptance, differential parity, and real OpenSandbox launch/invoke/cleanup must pass before the proposed change is accepted or merged. Beta maturity and historical receipts do not satisfy these gates.
+
+## Final local checkpoint before owner commit
+
+- `npm run typecheck`: PASS, exit 0 after launcher config/source freeze changes.
+- `npm run build`: PASS, exit 0; mandatory remote build/package gates remain pending.
+- `npm run lint`: PASS, exit 0; 276 warnings, no errors.
+- Follow-up source/HTTP/context regression: PASS, 49 tests across 3 files, including Git-ignored input exclusion, source profile selection and combined execution/cleanup failure preservation.
+- Engine application route regression: PASS, 1 selected test. The other 12 tests were not selected by `-t`; this is not a claim that the engine suite passed. A named application command `run` reaches the application handler and malformed arguments are rejected before invocation.
+- Source CLI `template launch --help`: PASS; captured with explicit workflow, build-profile and external-service flags.
+- `git diff --check`: PASS at checkpoint.
+
+Complete latest-head test/CI and real OpenSandbox gates remain outstanding; this record does not authorize a green merge on partial evidence.

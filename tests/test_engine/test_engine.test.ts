@@ -1,3 +1,4 @@
+import { Sandbox } from "../../src/api/sandbox.js";
 /**
  * The engine over real HTTP, SSE and WebSocket against the catalog's cubesandbox plugin and a local E2B-shaped backend.
  */
@@ -7,7 +8,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 
 import { ENGINE_PROTOCOL, engineFile, readRecord } from "../../src/engine/discovery.js";
@@ -44,7 +45,7 @@ describe.skipIf(!haveCatalog)("engine", () => {
     engine = await startEngine({ idle_timeout: 0 });
     base = `http://127.0.0.1:${engine.record.port}`;
     token = engine.record.token;
-    connection = { provider: "cubesandbox", provider_options: { base_url: mock.origin, domain: "cube.test", proxy: `127.0.0.1:${mock.port}` } };
+    connection = { provider: "cubesandbox", provider_options: { base_url: mock.origin, domain: "localhost", proxy: `127.0.0.1:${mock.port}` } };
   });
   afterEach(async () => {
     unregisterProvider("engine-pty-fixture");
@@ -84,10 +85,21 @@ describe.skipIf(!haveCatalog)("engine", () => {
     expect((await fetch(`${base}/v1/health`, { headers: { Authorization: "Bearer nope" } })).status).toBe(401);
     expect((await fetch(`${base}/v1/health`, { headers: { Authorization: `Bearer ${token}`, Origin: "http://evil.test" } })).status).toBe(401);
     const status = await new Promise<number>((resolve) => {
-      const req = http.request({ host: "127.0.0.1", port: engine.record.port, path: "/v1/health", headers: { Host: "evil.test", Authorization: `Bearer ${token}` } }, (r) => resolve(r.statusCode ?? 0));
+      const req = http.request({ host: "127.0.0.1", port: engine.record.port, path: "/v1/health", headers: { Host: "foreign.localhost", Authorization: `Bearer ${token}` } }, (r) => resolve(r.statusCode ?? 0));
       req.end();
     });
     expect(status).toBe(401);
+  });
+
+  it("keeps application command run distinct from raw shell run", async () => {
+    const runCommand = vi.fn(async () => ({value:42,exit_code:0}));
+    const sandbox = {runCommand,close:async()=>undefined};
+    const connect=vi.spyOn(Sandbox,"connect").mockResolvedValue(sandbox as unknown as Sandbox);
+    try {
+      const result=await api("POST","/v1/sandboxes/sbx-1/application/commands/run",{arguments:{x:1},server_port:9000});
+      expect(result.status).toBe(200);expect(runCommand).toHaveBeenCalledWith("run",{x:1},expect.objectContaining({server_port:9000}));
+      expect((await api("POST","/v1/sandboxes/sbx-1/application/commands/run",{arguments:[],unknown:true})).status).toBe(400);
+    }finally{connect.mockRestore();}
   });
 
   it("only one engine runs at a time", async () => {
@@ -131,7 +143,7 @@ describe.skipIf(!haveCatalog)("engine", () => {
     });
     expect(Buffer.from(await got.arrayBuffer()).toString()).toBe("file-bytes");
 
-    const code = await api("POST", "/v1/sandboxes/sbx-1/code/run", { code: "print(42)" });
+    const code = await api("POST", "/v1/sandboxes/sbx-1/code/run", { code: "print(42)", mode: "default-context" });
     expect(code.status).toBe(200);
     expect(JSON.stringify(code.json)).toContain("42");
 

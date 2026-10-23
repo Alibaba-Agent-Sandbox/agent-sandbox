@@ -22,6 +22,13 @@ const descriptor: ProviderCommand = {
 };
 const section = (entries: unknown = [descriptor]) => ({ protocol: "provider-commands/1", entries });
 const base = `manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "command-demo"
 version = "1.0.0"
@@ -189,7 +196,7 @@ describe("provider management command contract", () => {
     const root = path.join(iso.root, "node-plugin");
     fs.mkdirSync(root);
     fs.writeFileSync(path.join(root, "abx-provider.toml"), base + commandsToml);
-    fs.writeFileSync(path.join(root, "provider.mjs"), `export default function create() { return { async buildInfra(ctx) { return { sandbox_protocol: {}, provider_commands: { async run(command, input) { return {items: [ctx.id, command, String(input.limit)]}; } } }; } }; }`);
+    fs.writeFileSync(path.join(root, "provider.mjs"), `export default function create() { return { async buildInfra(ctx) { return { operation_contract_version:1,operations:{cli:[],python:[]}, sandbox_protocol: {}, provider_commands: { async run(command, input) { return {items: [ctx.id, command, String(input.limit)]}; } } }; } }; }`);
     await install(root, { yes: true });
     expect(listProviderCommands("command-demo")).toHaveLength(1);
     expect(await runProviderCommand("command-demo", "volume.list", { limit: 3 })).toEqual({ items: ["command-demo", "volume.list", "3"] });
@@ -204,7 +211,7 @@ describe("provider management command contract", () => {
     fs.writeFileSync(path.join(root, "provider.mjs"), `import readline from 'node:readline';
 const lines = readline.createInterface({input:process.stdin});
 lines.on('line', line => { const q=JSON.parse(line); let result={};
-if(q.method==='initialize') result={protocol:'epp/1',features:[]};
+if(q.method==='initialize') result={protocol:'epp/1',operation_contract_version:1,operations:{cli:[],python:[]},features:[]};
 else if(q.method==='provider.commands.run') result={items:[q.params.command,String(q.params.input.limit)]};
 if(q.id!==undefined) process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\\n');
 if(q.method==='shutdown') setTimeout(()=>process.exit(0),5);
@@ -222,7 +229,7 @@ if(q.method==='shutdown') setTimeout(()=>process.exit(0),5);
 export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
   async dispatch(method, params) {
     appendFileSync(${JSON.stringify(events)}, JSON.stringify({method, params})+'\\n');
-    if (method === 'initialize') return {protocol:'epp/1',features:[]};
+    if (method === 'initialize') return {protocol:'epp/1',operation_contract_version:1,operations:{cli:[],python:[]},features:[]};
     if (method === 'provider.commands.run') return {items:[params.command,String(params.input.limit)]};
     return {};
   }
@@ -242,7 +249,7 @@ export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
     fs.writeFileSync(path.join(root, "abx-provider.toml"), base + commandsToml);
     fs.writeFileSync(path.join(root, "provider.mjs"), `export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
   async dispatch(method) {
-    if (method === 'initialize') return {protocol:'epp/1',features:[]};
+    if (method === 'initialize') return {protocol:'epp/1',operation_contract_version:1,operations:{cli:[],python:[]},features:[]};
     if (method === 'shutdown') return {};
     throw {code:-32601,message:'Method not found'};
   }
@@ -257,7 +264,7 @@ export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
     fs.writeFileSync(path.join(root, "abx-provider.toml"), base + commandsToml.replace(/^output_schema.*$/m, 'output_schema = { type = "null" }'));
     fs.writeFileSync(path.join(root, "provider.mjs"), `export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
   async dispatch(method) {
-    if (method === 'initialize') return {protocol:'epp/1',features:[]};
+    if (method === 'initialize') return {protocol:'epp/1',operation_contract_version:1,operations:{cli:[],python:[]},features:[]};
     return null;
   }
 })) });`);
@@ -287,7 +294,7 @@ export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
     const root = path.join(iso.root, "node-plugin-close");
     fs.mkdirSync(root);
     fs.writeFileSync(path.join(root, "abx-provider.toml"), base + commandsToml);
-    fs.writeFileSync(path.join(root, "provider.mjs"), `export default function create() { return { async buildInfra(ctx) { ctx.http({base_url:'http://127.0.0.1',domain:'example.com'}); return { sandbox_protocol: {}, provider_commands: { async run() { return {items:[]}; } }, async close() { throw new Error('plugin cleanup failed'); } }; } }; }`);
+    fs.writeFileSync(path.join(root, "provider.mjs"), `export default function create() { return { async buildInfra(ctx) { ctx.http({base_url:'http://127.0.0.1',domain:'example.com'}); return { operation_contract_version:1,operations:{cli:[],python:[]}, sandbox_protocol: {}, provider_commands: { async run() { return {items:[]}; } }, async close() { throw new Error('plugin cleanup failed'); } }; } }; }`);
     const close = vi.spyOn(HttpClient.prototype, "close").mockResolvedValue();
     await install(root, { yes: true });
     await expect(runProviderCommand("command-demo", "volume.list", {})).rejects.toThrow("resource cleanup failed");
@@ -298,7 +305,7 @@ export default kit => ({ buildInfra: ctx => kit.epp.infra(ctx, () => ({
     const root = path.join(iso.root, "node-plugin-malformed");
     fs.mkdirSync(root);
     fs.writeFileSync(path.join(root, "abx-provider.toml"), base + commandsToml);
-    fs.writeFileSync(path.join(root, "provider.mjs"), `export default function create() { return { async buildInfra(ctx) { ctx.http({base_url:'http://127.0.0.1',domain:'example.com'}); return { sandbox_protocol: {}, provider_commands: {} }; } }; }`);
+    fs.writeFileSync(path.join(root, "provider.mjs"), `export default function create() { return { async buildInfra(ctx) { ctx.http({base_url:'http://127.0.0.1',domain:'example.com'}); return { operation_contract_version:1,operations:{cli:[],python:[]}, sandbox_protocol: {}, provider_commands: {} }; } }; }`);
     const close = vi.spyOn(HttpClient.prototype, "close").mockResolvedValue();
     await install(root, { yes: true });
     await expect(runProviderCommand("command-demo", "volume.list", {})).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);

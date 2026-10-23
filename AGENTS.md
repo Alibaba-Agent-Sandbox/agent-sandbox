@@ -143,31 +143,15 @@ All SDK errors live in [`models/errors.ts`](src/models/errors.ts). Error codes f
 
 Every exception carries: `code`, `message`, `suggestion`, `docs_url` (populated when documentation is available).
 
-### Capability Model
+### Template workflow contract
 
-Defined in [`models/template.ts`](src/models/template.ts), resolved by [`api/capability.ts`](src/api/capability.ts).
-
-- **`STANDARD_CAPABILITIES`** = `{shell, files, code, terminal, ports}` — all recognised tokens
-- **`DEFAULT_CAPABILITIES`** = `{shell, files, code}` — applied when a template declares nothing
-- `terminal` and `ports` **must** be declared explicitly in the template's `template.yaml`
-- **Capability declaration:** capabilities are declared in `template.yaml` and resolved by `resolveCapabilities()` (fail-closed). All API methods are callable; capability tokens are used at template resolution / model validation layer only
-- **Fail-closed:** if a matched template's YAML is malformed, the resolver raises `TemplateParseError` (E2004) rather than silently falling back to defaults
-
-### Capability Resolution Priority
-
-1. Explicit `local_yaml_path` (programmatic override)
-2. Local template cache scan (`~/.abx/templates/`)
-3. *(Phase 2, TODO)* Online fallback — `GET /templates/{id}`
-4. Fall back to `DEFAULT_CAPABILITIES` + warning
-
-### CLI Command Resolution Priority
-
-When `abx create` resolves a template:
-- Programmatic specification → local project `template.yaml` → installed template cache → *(Phase 2)* online registry → `DEFAULT`
-
-### Template Definition
-
-Templates use `template.yaml` (not `manifest.yaml` for capability purposes). Key fields: `name`, `capabilities`, `alias`/`aliases`. Named commands are not declared in `template.yaml`; they are registered on the in-sandbox server (`abx sandbox command list|run`).
+Project manifests use strict spec v4 with `workflow_contract_version: 1`, `provides`,
+`default_workflow` and `workflows`. Retired `capabilities`, `tested_on` and `providers`
+claims are rejected. There is no default capability baseline. Provider operations,
+workflow input kinds, startup modes and consumer bridges must be explicit. Local
+manifest resolution validates the source and does not grant adapter permissions.
+See [template workflows](docs/en/guide/template-workflows.md) and its
+[Chinese translation](docs/zh/guide/template-workflows.md).
 
 ---
 
@@ -241,7 +225,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 1. **Never auto-commit.** Make changes; let the human review and commit.
 2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `ABX_UPDATE_EVIDENCE=1 npm test`.
 3. **After modifying any CLI command**, regenerate the affected evidence files and verify they look correct.
-4. **Respect template capability declarations.** If `resolveCapabilities()` fails or a capability is missing, the fix is to declare it in the template YAML — not to bypass the resolution.
+4. **Respect template workflow declarations.** Validate the chosen workflow against actual Provider operations and consumer support; do not infer permissions from installed software.
 5. **Never fabricate FC/envd API endpoints.** If you're unsure about a real backend API, flag it as a TODO rather than inventing a placeholder.
 6. **Run the full test suite** (`make test && make lint && make typecheck`) before claiming a task is done.
 7. **Secret scanning** is enforced via `.githooks/check-secrets.sh`. Never commit API keys, tokens, or passwords. Use `REPLACE_ME` or `placeholder` for examples.

@@ -49,7 +49,6 @@ const ADVERTISED = [
   "exec.stream",
   "process.manage",
   "files.rw",
-  "code.interpret",
   "ports.url",
 ] as const;
 
@@ -271,7 +270,7 @@ describe.skipIf(!haveCatalog)("alicloud-container provider", () => {
       expect(listed[0]?.path).toBe("/tmp/a.txt");
 
       seen.length = 0;
-      const code = await sb.runCode("print(42)", { language: "python", envs: { A: "b" } });
+      const code = await sb.runCode("print(42)", { operation: "code.default-context.execute", language: "python", envs: { A: "b" } });
       expect(code.stdout).toContain("42");
       expect(code.text).toContain("42");
       const exec = seen.find((s) => s.url === "/execute");

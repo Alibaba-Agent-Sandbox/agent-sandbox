@@ -1,7 +1,8 @@
+import workflowOperations from "./workflow-operations.json" with { type: "json" };
 import { CONFIG_METADATA } from "./metadata.js";
 /** The built-in provider: Alibaba Cloud Express Edition (`alicloud-express`). */
 
-import { CodeInterpreterProtocol } from "../shared/e2b/code_interpreter.js";
+import { UnsupportedCodeProtocol } from "../unsupported_code.js";
 import { FilesystemProtocol } from "../shared/e2b/filesystem.js";
 import { ProcessProtocol } from "../shared/e2b/process.js";
 import { SandboxProtocol } from "../shared/e2b/sandbox.js";
@@ -57,8 +58,11 @@ export class AlicloudExpressProvider extends Provider {
     this.version = hostVersion();
     this.features = new Set([
       "sandbox.lifecycle", "sandbox.timeout", "exec.run", "exec.stream", "process.manage", "pty",
-      "files.rw", "files.watch", "files.transfer", "code.interpret", "templates.read", "templates.build", "ports.url", "sessions",
+      "files.rw", "files.watch", "files.transfer", "templates.read", "templates.build", "ports.url", "sessions",
     ]);
+    this.operations = workflowOperations.operations;
+    this.workflow_inputs = workflowOperations.workflow_inputs;
+    this.startup_modes = workflowOperations.startup_modes;
     this.commands = [...ALICLOUD_COMMANDS, ...CONDITIONAL_COMMANDS];
     // Snapshot create may take300 seconds; this is an outer deadline, not the sandbox TTL.
     this.commandTimeoutMs = 360_000;
@@ -70,7 +74,7 @@ export class AlicloudExpressProvider extends Provider {
 
   override buildSessionProtocols(http: HttpClient) {
     return { sandbox_protocol: new SandboxProtocol(http), process_protocol: new ProcessProtocol(http),
-      filesystem_protocol: new FilesystemProtocol(http), code_interpreter_protocol: new CodeInterpreterProtocol(http) };
+      filesystem_protocol: new FilesystemProtocol(http), code_interpreter_protocol: new UnsupportedCodeProtocol(this.id) };
   }
 
   override createSessionAuth(info: SandboxInfo): EnvdTokenManager {
@@ -123,7 +127,7 @@ export class AlicloudExpressProvider extends Provider {
       sandbox_protocol: new SandboxProtocol(http),
       process_protocol: new ProcessProtocol(http),
       filesystem_protocol: new FilesystemProtocol(http),
-      code_interpreter_protocol: new CodeInterpreterProtocol(http),
+      code_interpreter_protocol: new UnsupportedCodeProtocol(this.id),
       close: () => http.close(),
     };
   }

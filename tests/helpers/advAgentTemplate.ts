@@ -1,3 +1,4 @@
+import { WORKFLOW_YAML } from "./workflowManifest.js";
 /**
  * Shared harness of the `adv_*.test.ts` files (adversarial review of the agent/template area): runs the CLI in an
  * isolated HOME and work directory. Expected values in those tests were captured from the Python oracle; setting
@@ -99,7 +100,7 @@ export function put(root: string, rel: string, data: string): void {
 
 export const DOCKERFILE =
   'FROM python:3.12-slim\nWORKDIR /app\nCOPY . .\nCMD ["python3", "commands.py"]\n';
-export const TEMPLATE_YAML =
+export const TEMPLATE_YAML = WORKFLOW_YAML +
   'name: demo-tpl\nversion: "1.0.0"\ndescription: demo\nresources:\n  cpu: 1\n  memory: 512\n';
 
 /** Install a local template whose template.yaml is `yaml`; returns the CLI run. */

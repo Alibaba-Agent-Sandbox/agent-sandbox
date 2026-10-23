@@ -41,7 +41,7 @@ const INDEX_URL =
   "https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml";
 
 const INDEX_YAML = `\
-schema_version: 1
+schema_version: 2
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"
@@ -49,7 +49,6 @@ templates:
     path: qwen-code
     tags: [qwen, ai-agent]
     author: alibaba-agent-sandbox
-    capabilities: [shell, files, code]
     status: official
   - name: node-web
     description: "Node.js web service"
@@ -57,7 +56,6 @@ templates:
     path: node-web
     tags: [nodejs, web, deploy]
     author: alibaba-agent-sandbox
-    capabilities: [shell, files, code]
     status: official
 `;
 
@@ -109,17 +107,17 @@ describe("TestParseIndex", () => {
     expect(qwen.description).toBe("Qwen Code agent harness");
     expect(qwen.tags).toEqual(["qwen", "ai-agent"]);
     expect(qwen.author).toBe("alibaba-agent-sandbox");
-    expect(qwen.capabilities).toEqual(["shell", "files", "code"]);
+    expect(qwen.workflow).toBeNull();
     expect(qwen.status).toBe("official");
   });
 
   it("test_missing_schema_version_is_rejected", () => {
-    const text = INDEX_YAML.replace("schema_version: 1\n", "");
+    const text = INDEX_YAML.replace("schema_version: 2\n", "");
     expect(() => parse_index(text)).toThrow(TemplateParseError);
   });
 
   it("test_newer_schema_version_is_rejected", () => {
-    const text = INDEX_YAML.replace("schema_version: 1", "schema_version: 99");
+    const text = INDEX_YAML.replace("schema_version: 2", "schema_version: 99");
     let err: unknown;
     try {
       parse_index(text);
@@ -132,7 +130,7 @@ describe("TestParseIndex", () => {
   });
 
   it("test_non_integer_schema_version_is_rejected", () => {
-    const text = INDEX_YAML.replace("schema_version: 1", 'schema_version: "one"');
+    const text = INDEX_YAML.replace("schema_version: 2", 'schema_version: "one"');
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/non-integer schema_version/);
   });
@@ -143,33 +141,33 @@ describe("TestParseIndex", () => {
     repo: alibaba-agent-sandbox/awesome-templates
     path: dup
 `;
-    const text = `schema_version: 1\ntemplates:\n${entry}${entry}`;
+    const text = `schema_version: 2\ntemplates:\n${entry}${entry}`;
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/duplicate entry/);
   });
 
   it("test_missing_name_is_rejected", () => {
-    const text = "schema_version: 1\ntemplates:\n  - repo: alibaba-agent-sandbox/awesome-templates\n";
+    const text = "schema_version: 2\ntemplates:\n  - repo: alibaba-agent-sandbox/awesome-templates\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/missing the required 'name'/);
   });
 
   it("test_missing_repo_is_rejected", () => {
-    const text = "schema_version: 1\ntemplates:\n  - name: x\n";
+    const text = "schema_version: 2\ntemplates:\n  - name: x\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/missing the required 'repo'/);
   });
 
   it("test_unsupported_host_is_rejected", () => {
     const text =
-      "schema_version: 1\ntemplates:\n" + "  - name: x\n    repo: https://gitlab.com/owner/repo\n    path: x\n";
+      "schema_version: 2\ntemplates:\n" + "  - name: x\n    repo: https://gitlab.com/owner/repo\n    path: x\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/Unsupported template host/);
   });
 
   it("test_tags_must_be_a_string_list", () => {
     const text =
-      "schema_version: 1\ntemplates:\n" +
+      "schema_version: 2\ntemplates:\n" +
       "  - name: x\n    repo: alibaba-agent-sandbox/awesome-templates\n" +
       "    path: x\n    tags: [1, 2]\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
@@ -182,8 +180,8 @@ describe("TestParseIndex", () => {
   });
 
   it("test_missing_templates_list_is_rejected", () => {
-    expect(() => parse_index("schema_version: 1\n")).toThrow(TemplateParseError);
-    expect(() => parse_index("schema_version: 1\n")).toThrow(/no 'templates' list/);
+    expect(() => parse_index("schema_version: 2\n")).toThrow(TemplateParseError);
+    expect(() => parse_index("schema_version: 2\n")).toThrow(/no 'templates' list/);
   });
 });
 
@@ -191,7 +189,7 @@ describe("TestInstallRef", () => {
   // `install_ref` → the exact reference handed to the registry client.
 
   const _entry = (yaml_fragment: string) => {
-    const text = `schema_version: 1\ntemplates:\n${yaml_fragment}`;
+    const text = `schema_version: 2\ntemplates:\n${yaml_fragment}`;
     return parse_index(text).entries[0]!;
   };
 
@@ -293,7 +291,7 @@ describe("TestFetchIndexNetwork", () => {
   it("test_utf8_bom_is_cached_verbatim", async () => {
     const tmp_path = iso.tmp_path;
     const raw = Buffer.from(
-      "\uFEFFschema_version: 1\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n",
+      "\uFEFFschema_version: 2\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n",
       "utf8",
     );
     httpx_mock.add_response({ url: INDEX_URL, content: raw });

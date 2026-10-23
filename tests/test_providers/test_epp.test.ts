@@ -52,7 +52,7 @@ const LOOP = `
 const rl = require("readline").createInterface({ input: process.stdin });
 rl.on("line", (line) => {
   const msg = JSON.parse(line);
-  if (msg.method === "initialize") send({ jsonrpc: "2.0", id: msg.id, result: { protocol: "epp/1", features: ["sandbox.lifecycle"] } });
+  if (msg.method === "initialize") send({ jsonrpc: "2.0", id: msg.id, result: { protocol: "epp/1", operation_contract_version: 1, operations: {cli:[],python:[]}, features: ["sandbox.lifecycle"] } });
   else if (msg.method === "shutdown") { send({ jsonrpc: "2.0", id: msg.id, result: {} }); process.exit(0); }
   else handle(msg);
 });

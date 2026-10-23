@@ -104,6 +104,13 @@ describe("recordToInfo", () => {
 
 const REST_MANIFEST = `
 manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "rest-lite"
 version = "0.1.0"

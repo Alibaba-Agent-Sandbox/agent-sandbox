@@ -290,7 +290,7 @@ rl.on("line", (line) => {
   if (msg.id === undefined) return;
   const rid = msg.id, method = msg.method, p = msg.params || {};
   let res;
-  if (method === "initialize") res = { protocol: "epp/1", plugin: { name: "echo", version: "1" }, features: ["sandbox.lifecycle", "ports.url"] };
+  if (method === "initialize") res = { protocol: "epp/1", plugin: { name: "echo", version: "1" }, operation_contract_version: 1, operations: {cli:[],python:[]}, features: ["sandbox.lifecycle", "ports.url"] };
   else if (method === "sandbox.create") res = { sandbox_id: "echo-1", template: p.template || "base", status: "running", metadata: { create: JSON.stringify(p) } };
   else if (method === "sandbox.get") res = { sandbox_id: p.sandbox_id, template: "base", status: "running", metadata: { via: "get" } };
   else if (method === "sandbox.kill") res = {};
@@ -302,6 +302,13 @@ rl.on("line", (line) => {
 `;
 
 const ECHO_MANIFEST = `manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 
 [provider]
 id = "echo-prov"

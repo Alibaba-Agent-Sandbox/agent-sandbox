@@ -126,13 +126,10 @@ describe("TestGuideText", () => {
     expect(TEMPLATE_GUIDE).toMatch(/BROWSER[^\n]*默认关闭/);
   });
 
-  it("test_capability_tokens_are_the_standard_ones", () => {
-    const line = TEMPLATE_GUIDE.split("\n").find((entry) => entry.includes("`capabilities` 取自"));
-    expect(line).toBeDefined();
-    const afterMarker = (line as string).split("取自").slice(1).join("取自");
-    const head = afterMarker.split("，")[0] as string;
-    const tokens = new Set(head.match(/[a-z]+/g) ?? []);
-    expect(tokens).toEqual(new Set(STANDARD_CAPABILITIES));
+  it("describes explicit workflow contracts instead of granting capability defaults", () => {
+    expect(TEMPLATE_GUIDE).toContain("workflow_contract_version");
+    expect(TEMPLATE_GUIDE).toContain("default_workflow");
+    expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
   });
 
   serverIt("test_imports_shown_in_the_guide_exist", () => {

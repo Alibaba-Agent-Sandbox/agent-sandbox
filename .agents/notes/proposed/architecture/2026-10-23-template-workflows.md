@@ -12,9 +12,13 @@ Consume the versioned operation rules and acceptance profiles owned by [python-s
 
 Lock build sources and provider code into execution snapshots. Persist owned-resource intent before preparation/create requests; uncertain outcomes require reconciliation. Resolve application HTTP by sandbox/port binding, preserve proxy path/query, isolate credentials, and refuse redirects or anonymous retries. Stateless interpreter execution uses an isolated explicit context and cleanup; default-context execution is a distinct operation. Standard client sources and attribution remain unchanged.
 
+The initial native Express workflow consumer supports managed inputs only. Its independent build commands are not silently reused as workflow source preparation. The guessed Connect interpreter implementation and its runtime exports are removed; Express, REST presets and the E2B catalog consumer cannot advertise those code operations. Real provider-owned default-context HTTP handlers remain separate from stateless and explicit-context support.
+
+Provider code identity uses the shared path-NUL-bytes-NUL encoding. The install integrity digest is an additional runtime mutation fence. New operation/input/startup declarations participate in installation consent and update risk assessment. Application engine routes use `/application/commands` so an application command named `run` cannot enter the shell route.
+
 ## API Design
 
-`validateWorkflowManifest(manifest)` validates new workflow fields. `planWorkflow(manifest, provider, workflowId, consumer)` returns deterministic T/F/U requirements using adjacent canonical JSON rules. `NetworkModule.resolveEndpoint(port)` returns a structured private endpoint. `ResourceJournal` persists intent, created identity and recovery state without credentials.
+`validateWorkflowManifest(manifest)` validates new workflow fields. `planWorkflow(manifest, provider, workflowId, consumer)` returns deterministic T/F/U requirements using adjacent canonical JSON rules. `NetworkModule.resolveEndpoint(port)` returns a structured private endpoint. `ResourceJournal` persists intent, created identity and recovery state without credentials. Sandbox creation carries journal and intent IDs as correlation metadata. Explicit build profiles select an unmodified root Dockerfile.
 
 ## Alternatives considered
 
@@ -40,5 +44,7 @@ Run shared vectors across Python and Node, operation/context regressions, bound 
 - Required local/remote checks and real-component verification pass before acceptance.
 
 ## Evidence
+
+- [Issue #118](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/118)
 
 - [Verification](../../../evidence/verify/2026-10-23-template-workflows.md)

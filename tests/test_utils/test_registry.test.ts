@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /** Tests for RegistryClient. */
 
 import fs from "node:fs";
@@ -191,7 +192,7 @@ describe("TestRegistryClientResolve", () => {
     const tmp_path = iso.tmp_path;
     const local_dir = path.join(tmp_path, "my-template");
     fs.mkdirSync(local_dir);
-    fs.writeFileSync(path.join(local_dir, "template.yaml"), "name: test\n");
+    fs.writeFileSync(path.join(local_dir, "template.yaml"), manifestYaml("name: test\n"));
 
     const old_cwd = process.cwd();
     try {
@@ -280,7 +281,7 @@ describe("TestRegistryClientFetch", () => {
     // 本地目录包含 template.yaml 应成功返回。
     const tmp_path = iso.tmp_path;
     const client = new RegistryClient();
-    fs.writeFileSync(path.join(tmp_path, "template.yaml"), "name: test\n");
+    fs.writeFileSync(path.join(tmp_path, "template.yaml"), manifestYaml("name: test\n"));
 
     const ref = new TemplateRef({ registry_type: "local", local_path: tmp_path, is_builtin: false });
     const result = await client.fetch(ref);
@@ -302,7 +303,7 @@ describe("TestRegistryClientFetch", () => {
     // 本地目录包含两个文件都应成功。
     const tmp_path = iso.tmp_path;
     const client = new RegistryClient();
-    fs.writeFileSync(path.join(tmp_path, "template.yaml"), "name: test\n");
+    fs.writeFileSync(path.join(tmp_path, "template.yaml"), manifestYaml("name: test\n"));
     fs.writeFileSync(path.join(tmp_path, "Dockerfile"), "FROM ubuntu:22.04\n");
 
     const ref = new TemplateRef({ registry_type: "local", local_path: tmp_path, is_builtin: false });
@@ -503,7 +504,7 @@ describe("TestRegistryClientCache", () => {
     // Patch TEMPLATE_CACHE_DIR to use tmp_path
     const cache_dir = path.join(tmp_path, "owner", "repo", "v1.0");
     fs.mkdirSync(cache_dir, { recursive: true });
-    fs.writeFileSync(path.join(cache_dir, "template.yaml"), "name: test\n");
+    fs.writeFileSync(path.join(cache_dir, "template.yaml"), manifestYaml("name: test\n"));
 
     _setTemplateCacheDir(tmp_path);
     const result = client._checkCache("owner", "repo", "v1.0");
@@ -516,7 +517,7 @@ describe("TestRegistryClientCache", () => {
     const client = new RegistryClient();
     const cache_dir = path.join(tmp_path, "owner", "repo", "v1.0", "templates", "py");
     fs.mkdirSync(cache_dir, { recursive: true });
-    fs.writeFileSync(path.join(cache_dir, "template.yaml"), "name: test\n");
+    fs.writeFileSync(path.join(cache_dir, "template.yaml"), manifestYaml("name: test\n"));
 
     _setTemplateCacheDir(tmp_path);
     const result = client._checkCache("owner", "repo", "v1.0", "templates/py");
@@ -530,7 +531,7 @@ describe("TestRegistryClientCache", () => {
     // 仅创建根目录缓存，子目录未缓存
     const cache_dir = path.join(tmp_path, "owner", "repo", "v1.0");
     fs.mkdirSync(cache_dir, { recursive: true });
-    fs.writeFileSync(path.join(cache_dir, "template.yaml"), "name: test\n");
+    fs.writeFileSync(path.join(cache_dir, "template.yaml"), manifestYaml("name: test\n"));
 
     _setTemplateCacheDir(tmp_path);
     const result = client._checkCache("owner", "repo", "v1.0", "templates/py");

@@ -232,7 +232,7 @@ export const search = template.command("search", {
                 ref: entry.ref,
                 tags: [...entry.tags],
                 author: entry.author,
-                capabilities: [...entry.capabilities],
+                workflow: entry.workflow,
                 status: entry.status,
             })));
             return;

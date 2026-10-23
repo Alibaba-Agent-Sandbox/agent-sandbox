@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 import "../_support/isolatedHome.js";
 
 import fs from "node:fs";
@@ -102,7 +103,7 @@ describe("Template project onboarding", () => {
   it("an existing project is passed through without re-scaffolding", async () => {
     const record = backend();
     fs.writeFileSync(path.join(tmpPath(), "Dockerfile"), "original\n");
-    fs.writeFileSync(path.join(tmpPath(), "template.yaml"), "name: existing\n");
+    fs.writeFileSync(path.join(tmpPath(), "template.yaml"), manifestYaml("name: existing\n"));
     const result = await new CliRunner().invoke(cli, ["template", "deploy", tmpPath(), "-y"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(record).toHaveBeenCalledOnce();
@@ -207,7 +208,7 @@ describe("Template project onboarding", () => {
     const source = path.join(tmpPath(), "source");
     const target = path.join(tmpPath(), "target");
     fs.mkdirSync(source); fs.mkdirSync(target);
-    fs.writeFileSync(path.join(source, "template.yaml"), "name: copied\nversion: '1.0.0'\n");
+    fs.writeFileSync(path.join(source, "template.yaml"), manifestYaml("name: copied\nversion: '1.0.0'\n"));
     fs.writeFileSync(path.join(source, "Dockerfile"), "FROM python:3.12\n");
     fs.writeFileSync(path.join(target, "Dockerfile"), "original\n");
     const result = await new CliRunner().invoke(cli, ["template", "scaffold", "--from", source, target], { input: "n\n" });

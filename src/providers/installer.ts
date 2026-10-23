@@ -29,7 +29,7 @@ const GIT_TIMEOUT_MS = 120_000;
 const GIT_OUTPUT_CAP = 160 * 1024 * 1024;
 
 /** Manifest aspects whose change forces a new consent on update. */
-export const RISK_ASPECTS = ["runtime", "security", "features", "inherit", "fields", "commands"] as const;
+export const RISK_ASPECTS = ["runtime", "security", "features", "inherit", "fields", "commands", "operations", "workflow_inputs", "startup_modes"] as const;
 
 /** Test seam: the single place a directory is atomically swapped into the store. */
 export const fsHooks = {
@@ -74,6 +74,7 @@ export class InstallPlan {
       runtime: m.kind === "exec" ? [...m.command] : m.kind === "node" ? ["node", m.entry] : ["rest", String(m.endpoint["base_url"] ?? "")],
       kind: m.kind,
       features: [...m.features].sort(),
+      operation_contract_version: 1, operations: m.operations, workflow_inputs: m.workflow_inputs, startup_modes: m.startup_modes,
       commands: [...m.commands],
       security: m.security,
       fields: m.fields.map((f) => ({ key: f.key, secret: Boolean(f.secret) })),
@@ -431,6 +432,8 @@ export function diffAspects(old: Receipt, next: Manifest): string[] {
   if (!sameJson(consented["runtime"], summary.runtime)) changed.push("runtime");
   if (!sameJson(sortedSecurity(consented["security"]), sortedSecurity(summary.security))) changed.push("security");
   if (!sameJson(consented["features"], summary.features)) changed.push("features");
+  for (const aspect of ["operations", "workflow_inputs", "startup_modes"] as const)
+    if (!sameJson(consented[aspect], summary[aspect])) changed.push(aspect);
   const had = new Set((consented["inherit"] as string[] | undefined) ?? []);
   if (!summary.inherit.every((k) => had.has(k))) changed.push("inherit");
   if (!sameJson(consented["fields"], summary.fields)) changed.push("fields");

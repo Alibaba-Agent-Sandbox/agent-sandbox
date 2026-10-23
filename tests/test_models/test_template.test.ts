@@ -4,20 +4,24 @@ import { describe, expect, it } from "vitest";
 
 import { SandboxTemplate, TemplateRef } from "../../src/models/template.js";
 
+import vectors from "../test_template/fixtures/workflow-vectors.json" with {type:"json"};
+const workflowFields = vectors.cases[0].input.manifest;
+
 describe("TestSandboxTemplate", () => {
   // Tests for SandboxTemplate model.
 
   it("test_minimal_template", () => {
-    const tmpl = new SandboxTemplate({ name: "test" });
+    const tmpl = new SandboxTemplate({ ...workflowFields, name: "test" });
     expect(tmpl.name).toBe("test");
     expect(tmpl.version).toBe("1.0.0");
     expect(tmpl.env).toEqual({});
     expect(tmpl.ports).toEqual([]);
-    expect(tmpl.capabilities).toBeNull();
+    expect(tmpl.default_workflow).toBe(workflowFields.default_workflow);
   });
 
   it("test_full_template", () => {
     const tmpl = new SandboxTemplate({
+      ...workflowFields,
       name: "data-science",
       version: "2.0.0",
       description: "Data science template",
@@ -27,19 +31,19 @@ describe("TestSandboxTemplate", () => {
       author: "test-author",
       license: "MIT",
       tags: ["data", "python"],
-      capabilities: ["shell", "files", "code"],
     });
     expect(tmpl.name).toBe("data-science");
     expect(tmpl.version).toBe("2.0.0");
     expect(tmpl.cpu_count).toBe(2);
     expect(tmpl.memory_mb).toBe(4096);
     expect(tmpl.tags).toEqual(["data", "python"]);
-    expect(tmpl.capabilities).toEqual(["shell", "files", "code"]);
+    expect(tmpl.spec_version).toBe(4);
   });
 
   it("test_extra_fields_ignored", () => {
     // Legacy build fields (base, system_packages, etc.) are silently ignored.
     const tmpl = new SandboxTemplate({
+      ...workflowFields,
       name: "test",
       base: "python:3.11",
       system_packages: ["git"],

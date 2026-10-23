@@ -6,6 +6,7 @@
  * when it is spawned over stdio. The same module still runs standalone for any other host.
  */
 
+import { validateOperations, verifyRuntimeOperations, type OperationDeclaration } from "./operations.js";
 import { SandboxError } from "../models/errors.js";
 import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
 import { ProcessProtocol } from "./shared/e2b/process.js";
@@ -43,6 +44,7 @@ function isRpcError(exc: unknown): exc is { code: number; message: string; data?
 
 export class InProcessEppClient implements EppPeer {
   features: ReadonlySet<string> = new Set();
+  operations: OperationDeclaration = { cli: [], python: [] };
   failure: SandboxError | null = null;
 
   private readonly queues = new Map<string, AsyncQueue<Notification | null>>();
@@ -81,6 +83,7 @@ export class InProcessEppClient implements EppPeer {
     if (res["protocol"] !== PROTOCOL) {
       throw new ProviderProtocolError(`Provider '${this.provider_id}' answered protocol '${String(res["protocol"])}', expected '${PROTOCOL}'.`);
     }
+    this.operations = validateOperations(res["operation_contract_version"], res["operations"]);
     const feats = res["features"];
     this.features = Array.isArray(feats) ? new Set(feats.filter((f): f is string => typeof f === "string")) : new Set();
   }
@@ -181,6 +184,7 @@ export async function eppInfra(ctx: NodeContext, factory: EppFactory): Promise<N
       locale: "en",
       data_dir: "",
     });
+    verifyRuntimeOperations(ctx.operations, 1, client.operations);
   } catch (exc) {
     await client.close();
     throw exc;
@@ -194,6 +198,7 @@ export async function eppInfra(ctx: NodeContext, factory: EppFactory): Promise<N
   const nativeFiles = http === null ? null : new FilesystemProtocol(http);
 
   return {
+    operation_contract_version: 1, operations: client.operations,
     provider_commands: {
       run: async (command, input) => {
         try { return await client.call("provider.commands.run", { command, input }); }

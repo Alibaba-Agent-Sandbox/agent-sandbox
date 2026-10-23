@@ -4,7 +4,6 @@ import * as fs from "node:fs";
 
 import type { FileInfo, WatchEvent } from "../models/filesystem.js";
 import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
-import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import type { FilesystemProtocol } from "../protocol/contracts.js";
 import type { SandboxProtocol } from "../protocol/contracts.js";
 import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
@@ -44,7 +43,7 @@ export class FilesModule {
     this._fs = filesystem_protocol;
     this._sandbox_protocol = sandbox_protocol;
     this._sandbox_id = sandbox_id;
-    this._capabilities = capabilities !== null ? capabilities : new Set(DEFAULT_CAPABILITIES);
+    this._capabilities = capabilities !== null ? capabilities : new Set<string>();
   }
 
   /** Read a file as text (`encoding` default: utf-8). */

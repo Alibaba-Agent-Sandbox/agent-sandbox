@@ -191,9 +191,6 @@ export async function startE2BMock(): Promise<E2BMock> {
       if (req.method === "POST" && (url === "/process.Process/SendSignal" || url === "/process.Process/SendInput")) {
         return json(200, {});
       }
-      if (req.method === "POST" && url === "/code.CodeInterpreter/Execute") {
-        return json(200, { result: { stdout: "42\n", text: "42", stderr: "", exitCode: 0 } });
-      }
       if (req.method === "POST" && url === "/filesystem.Filesystem/WatchDir") {
         res.writeHead(200, { "Content-Type": "application/connect+json" });
         res.end(Buffer.concat([frame(0, { filesystem: { name: "/tmp/a.txt", type: "EVENT_TYPE_WRITE" } }), frame(2, {})]));

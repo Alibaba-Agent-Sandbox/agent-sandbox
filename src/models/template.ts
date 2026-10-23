@@ -4,6 +4,7 @@
  * 模板管理 API 响应字段使用 camelCase（已实测验证 POST /templates 返回 templateID, buildID）。
  */
 
+import { validateWorkflowManifest } from "../template/workflow_plan.mjs";
 import { z } from "zod";
 
 import { defineModel, lax } from "./base.js";
@@ -14,13 +15,6 @@ import { defineModel, lax } from "./base.js";
 
 /** All recognised capability tokens. Extensible in future phases. */
 export const STANDARD_CAPABILITIES: ReadonlySet<string> = new Set(["shell", "files", "code", "terminal", "ports"]);
-
-/**
- * System default baseline — applied when a template declares no capabilities.
- *
- * `terminal` and `ports` must be declared explicitly by the template.
- */
-export const DEFAULT_CAPABILITIES: ReadonlySet<string> = new Set(["shell", "files", "code"]);
 
 /** Template build lifecycle status. */
 export const BuildStatus = {
@@ -118,24 +112,18 @@ export class SandboxTemplate extends defineModel(
     license: z.string().default(""),
     tags: z.array(z.string()).default(() => []),
 
-    /**
-     * Runtime capabilities. `null` -> inherit `DEFAULT_CAPABILITIES`; an explicit list overrides the default (may be a
-     * subset or include `terminal` / `ports`).
-     */
-    capabilities: z
-      .array(z.string())
-      .nullable()
-      .default(null)
-      .superRefine((caps, ctx) => {
-        for (const cap of caps ?? []) {
-          if (!STANDARD_CAPABILITIES.has(cap)) {
-            ctx.addIssue({
-              code: "custom",
-              message: `Unknown capability '${cap}'; allowed: ${JSON.stringify([...STANDARD_CAPABILITIES].sort())}`,
-            });
-          }
-        }
-      }),
+    spec_version: z.literal(4),
+    workflow_contract_version: z.literal(1),
+    provides: z.record(z.string(), z.unknown()),
+    default_workflow: z.string(),
+    workflows: z.record(z.string(), z.unknown()),
+    start_cmd: z.string().optional(),
+    ready_cmd: z.string().optional(),
+    capabilities: z.never().optional(),
+    tested_on: z.never().optional(),
+    providers: z.never().optional(),
+  }).superRefine((value, ctx) => {
+    try { validateWorkflowManifest(value); } catch (error) { ctx.addIssue({code: "custom",message: String(error)}); }
   }),
 ) {}
 
@@ -155,7 +143,6 @@ export class TemplateRef extends defineModel(
 
 export const __all__ = [
   "STANDARD_CAPABILITIES",
-  "DEFAULT_CAPABILITIES",
   "BuildStatus",
   "TemplateInfo",
   "BuildInfo",

@@ -1,4 +1,5 @@
 /** Backend-independent template management contract. Factories own credentials, API mapping and polling. */
+import type { ResourceJournalCallbacks } from "../template/resource_journal.js";
 import type { TemplateInfo } from "../models/template.js";
 import type { LayeredConfig } from "../transport/config_layers.js";
 export interface TemplateBuildOptions {
@@ -12,10 +13,15 @@ export interface PreparedTemplate {
   startup_command?: string; ready_command?: string;
   metadata?: Record<string, string>;
   provider_options?: Record<string, unknown>;
+  owned_resources?: Array<{ intent_id: string; kind: "image" | "template"; id: string; cleanup: "manual" | "template.delete"; owned: true }>;
+  identity?: { image_digest?: string; native_version?: string };
 }
 export interface ProjectTemplateOptions {
   alias: string; timeout: number;
-  template: { name: string; capabilities: string[]; cpu: number; memory: number; start_cmd: string | null; ready_cmd: string | null };
+  build_profile?: { id: string; dockerfile: string; context: "." };
+  workflow?: { startup: string; input: string };
+  journal?: ResourceJournalCallbacks;
+  template: { name: string; cpu: number; memory: number; start_cmd: string | null; ready_cmd: string | null };
 }
 export interface ProviderTemplateManager {
   prepareProject?(directory: string, options: ProjectTemplateOptions): Promise<PreparedTemplate>;

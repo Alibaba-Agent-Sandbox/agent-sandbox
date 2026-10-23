@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /**
  * Adversarial review fixes (agent-template area): `template install` / `init --from` / `build` behave like the Python
  * oracle (tarfile / pathlib / shutil.copytree / PyYAML `safe_load` semantics). See tests/helpers/advAgentTemplate.ts.
@@ -84,7 +85,7 @@ describe("ADV-agent-template: template install / init / build", () => {
     const got: string[] = [];
     for (const extra of cases) {
       const sb = sandbox();
-      const r = await localInstall(sb, `name: x\nversion: "1"\n${extra}`);
+      const r = await localInstall(sb, manifestYaml(`name: x\nversion: "1"\n${extra}`));
       got.push(`${r.code}:${r.stderr.split("\n")[0]}`);
     }
     expect(got).toEqual(["0:", "0:", "0:"]);

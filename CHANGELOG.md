@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Project templates require spec v4 workflow manifests and exact provider operations. Application HTTP bindings are isolated from envd; interpreter execution is stateless by default, with explicit persistent contexts and no shell fallback. Launch records immutable sources, explicit build profiles and owned-resource recovery intent. Guessed interpreter RPCs and their public runtime export are removed; native Express workflow source preparation remains unavailable until its journal and identity contract is implemented.
+
+
 ## [0.4.9] - 2026-10-23
 
 ### Added

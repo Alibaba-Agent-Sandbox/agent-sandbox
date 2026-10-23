@@ -7,7 +7,6 @@
       "sandbox.list",
       "sandbox.delete",
       "sandbox.timeout",
-      "template.prepare",
       "exec.run",
       "exec.stream",
       "files.read",
@@ -16,14 +15,7 @@
       "files.stat",
       "files.remove",
       "files.move",
-      "ports.resolve",
-      "code.execute",
-      "code.context.create",
-      "code.context.execute",
-      "code.context.list",
-      "code.context.restart",
-      "code.context.delete",
-      "code.default-context.execute"
+      "ports.resolve"
     ],
     "python": [
       "sandbox.create",
@@ -31,7 +23,6 @@
       "sandbox.list",
       "sandbox.delete",
       "sandbox.timeout",
-      "template.prepare",
       "exec.run",
       "exec.stream",
       "files.read",
@@ -40,18 +31,10 @@
       "files.stat",
       "files.remove",
       "files.move",
-      "ports.resolve",
-      "code.execute",
-      "code.context.create",
-      "code.context.execute",
-      "code.context.list",
-      "code.context.restart",
-      "code.context.delete",
-      "code.default-context.execute"
+      "ports.resolve"
     ]
   },
   "workflow_inputs": [
-    "source",
     "managed"
   ],
   "startup_modes": [

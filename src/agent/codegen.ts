@@ -99,7 +99,22 @@ ${notice}必须创建的文件：
    name: ${f.template_name}
    version: "1.0.0"
    description: <一句话中文描述，不超过 50 字>
-   capabilities: <与 commands.py 开启的能力组一致>
+   spec_version: 4
+   workflow_contract_version: 1
+   provides:
+     app: { protocol: agent-sandbox-server, version: 2, port: ${f.server_port}, operations: [commands.list, commands.run] }
+   default_workflow: application
+   workflows:
+     application:
+       kind: application
+       input: source
+       service: app
+       startup: ${f.profile.server_start === "platform_start_cmd" ? "entrypoint" : "exec"}
+       binding: { transport: http, endpoint: provider-port, caller: host, authentication: none }
+       operation: commands.run
+       required_operations: []
+   start_cmd: <显式应用启动命令，exec 工作流必填>
+   # 不写 capabilities、tested_on 或 providers 旧字段
    ports: <至少包含 ${f.server_port}>
    resources:
      cpu: <1-8 的整数>

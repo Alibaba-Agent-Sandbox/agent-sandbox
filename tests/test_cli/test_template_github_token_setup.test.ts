@@ -31,7 +31,7 @@ const runner = (): CliRunner => new CliRunner();
 const tmpPath = useTmpPath();
 
 const INDEX_YAML = `\
-schema_version: 1
+schema_version: 2
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"

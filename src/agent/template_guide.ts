@@ -195,11 +195,10 @@ from agent_sandbox.server import (
 
 ### 5. template.yaml 规则
 必填：\`name\`（使用给定的模板名）、\`version: "1.0.0"\`、\`description\`（一句话中文，不超过 50 字）、
-\`capabilities\`、\`ports\`、\`resources\`。
-- \`capabilities\` 取自 \`shell | files | code | terminal | ports\`，要与实际用到的能力组一致：
-  \`files\`↔FILE_OPS，\`shell\`↔PROCESS，\`code\`↔DEV_TOOLS，\`terminal\`↔TERMINAL，
-  \`ports\`↔SYSTEM（端口检测）与对外端口。\`terminal\` 和 \`ports\` 必须显式声明才会生效。
-  最小参考对应 \`shell, files, code\`。
+\`spec_version: 4\`、\`workflow_contract_version: 1\`、\`provides\`、\`default_workflow\`、\`workflows\`、\`ports\`、\`resources\`。
+- \`provides.app\` 声明 HTTP 应用协议 \`agent-sandbox-server\`、版本 2、端口及 \`commands.list/commands.run\`。
+- 默认 application workflow 显式声明 source 输入、服务 app、启动策略、host/provider-port/http 绑定和 commands.run。
+- 普通镜像内 Python 或应用服务不代表统一解释器支持；不要写旧字段 \`capabilities\`、\`tested_on\` 或 \`providers\`。
 - \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
 - \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
 - \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。

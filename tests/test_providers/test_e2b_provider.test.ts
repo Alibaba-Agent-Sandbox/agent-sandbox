@@ -1,3 +1,4 @@
+import { ProviderFeatureNotSupportedError } from "../../src/models/provider_errors.js";
 /**
  * The catalog `e2b` node provider through the CLI host (`Sandbox` + the installed plugin), against the local
  * E2B-shaped mock. No live `api.e2b.app` call and no real API key.
@@ -56,7 +57,6 @@ describe.skipIf(!haveCatalog)("e2b node provider", () => {
       "process.manage",
       "files.rw",
       "files.watch",
-      "code.interpret",
       "ports.url",
     ]) {
       expect(provider.supports(feature), feature).toBe(true);
@@ -249,20 +249,10 @@ describe.skipIf(!haveCatalog)("e2b node provider", () => {
     }
   });
 
-  it("runs code through the code interpreter RPC", async () => {
+  it("rejects interpreter requests without a verified adapter and sends no payload", async () => {
     mock.flags.envdUrl = origin;
     const sb = await Sandbox.create({ provider: "e2b", provider_options: options(), template: "base" });
-    try {
-      seen.length = 0;
-      const code = await sb.runCode("print(42)", { language: "python" });
-      expect(code.stdout).toBe("42\n");
-      expect(code.text).toBe("42");
-      expect(code.exit_code).toBe(0);
-      const exec = seen.find((s) => s.url === "/code.CodeInterpreter/Execute");
-      expect(JSON.parse(exec?.body.toString() ?? "{}")).toMatchObject({ code: "print(42)", language: "python" });
-      expect(seen.some((s) => s.url === "/process.Process/Start")).toBe(false);
-    } finally {
-      await sb.kill();
-    }
+    try { seen.length=0; await expect(sb.runCode("payload")).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError); expect(seen).toEqual([]); }
+    finally { await sb.kill(); }
   });
 });

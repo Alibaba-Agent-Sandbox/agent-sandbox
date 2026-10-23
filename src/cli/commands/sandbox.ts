@@ -1825,7 +1825,7 @@ export const run_cmd = command("run", {
     const sandbox = await Sandbox.connect(sandboxId);
     let result: CommandResult;
     try {
-      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort });
+      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: process.env["ABX_SERVER_TOKEN"] });
     } catch (exc) {
       if (exc instanceof CommandNotFoundError) {
         fmt.printError(exc.message, { code: exc.code, suggestion: exc.suggestion });
@@ -1856,7 +1856,7 @@ export const command_list = command("list", {
     const sandboxId: string = params["sandbox_id"];
     const fmt = getFormatter(ctx);
     const sandbox = await Sandbox.connect(sandboxId);
-    const commands = await sandbox.listCommands({ server_port: params["server_port"] });
+    const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: process.env["ABX_SERVER_TOKEN"] });
 
     if (fmt.use_json) {
       fmt.printData(commands);

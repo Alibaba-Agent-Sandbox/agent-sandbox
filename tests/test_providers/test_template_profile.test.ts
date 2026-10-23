@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /**
  * Provider template profiles: default alicloud-express, an explicit provider with no profile, and a missing profile.
  * The generator must say when it substituted the generic Docker profile, and must not fall through to the FC image.
@@ -53,7 +54,7 @@ function workspace(files: Record<string, string>): string {
   return dir;
 }
 
-const YAML = "name: demo\ndescription: demo\nresources:\n  cpu: 1\n  memory: 512\n";
+const YAML = manifestYaml("name: demo\ndescription: demo\nresources:\n  cpu: 1\n  memory: 512\n");
 const MAIN_COMMANDS =
   "from agent_sandbox.server import SandboxServer\n" +
   "if __name__ == '__main__':\n" +
@@ -175,13 +176,14 @@ describe("scaffold dockerfiles", () => {
     const files = renderScaffold("node", "demo");
     const docker = files.get("Dockerfile") ?? "";
     expect(docker.startsWith("FROM python:3.12-slim\n")).toBe(true);
-    expect(docker).toContain('CMD ["python3", "commands.py"]');
+    expect(docker).not.toMatch(CMD_INSTRUCTION);
+    expect(files.get("template.yaml")).toContain("startup: exec");
     expect(docker).toContain("WORKDIR /app");
     expect(docker).not.toContain("fc-e2b-registry");
     expect(docker).toContain("agent-sandbox-server");
     const yaml = files.get("template.yaml") ?? "";
     expect(yaml).not.toContain("generation:");
-    expect(yaml).not.toContain("start_cmd:");
+    expect(yaml).toContain("start_cmd:");
   });
 });
 
