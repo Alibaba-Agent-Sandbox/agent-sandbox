@@ -139,3 +139,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Command recovery review](notes/implemented/process/2026-10-23-command-recovery-review.md) · [verification](evidence/verify/2026-10-23-command-recovery-review.md)
 
 - [Release contract recovery](notes/implemented/process/2026-10-23-release-contract-recovery.md) · [verification](evidence/verify/2026-10-23-release-contract-recovery.md)
+
+- [npm readback recovery](notes/implemented/process/2026-10-23-npm-readback-recovery.md) · [verification](evidence/verify/2026-10-23-npm-readback-recovery.md)
