@@ -69,3 +69,7 @@ A shared review found that WHATWG URL normalization can remove TAB characters an
 - Launch help capture updated to distinguish source, managed/image and external-service workflows.
 
 These focused checks do not replace the outstanding full-suite, remote CI and real-provider gates above.
+
+## CI dependency and merge readiness
+
+PR [#121](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/121) initially had no check runs because GitHub reported `mergeable=false` / `mergeable_state=dirty`. Actions was enabled; draft state was not treated as a passing CI result. The Provider catalog checkout is pinned to reviewed producer revision `9a1eaaa7659bcd8a98d321c8111a4a1340ca3227` from [Provider PR #25](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/25). This dependency is pending; update the immutable pin to the verified producer merge revision before acceptance.
