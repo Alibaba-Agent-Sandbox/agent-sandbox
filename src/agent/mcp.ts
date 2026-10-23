@@ -1,4 +1,5 @@
 import { BorrowedSandboxError } from "./lifecycle_errors.js";
+import { hostVersion } from "../providers/host.js";
 import { qualify } from "../providers/registry.js";
 /**
  * Agent Sandbox MCP Server。
@@ -52,7 +53,7 @@ export const MCP_PROTOCOL_VERSION = "2024-11-05";
 export const _STDIO_READ_LIMIT = 8 * 1024 * 1024;
 
 export const SERVER_NAME = "agent-sandbox";
-export const SERVER_VERSION = "0.3.0";
+export const SERVER_VERSION = hostVersion();
 
 // ---------------------------------------------------------------------------
 // Sandbox SDK access (lazy, like the Python function-level imports)

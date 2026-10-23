@@ -18,7 +18,8 @@ import { HttpClient } from "../transport/http.js";
 import { providerEnvName } from "../utils/config_keys.js";
 import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
 import { FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
-import type { Manifest } from "./manifest.js";
+import { hostVersion } from "./host.js";
+import { checkRequires, type Manifest } from "./manifest.js";
 
 /** Platform authentication with a bearer token or a custom API-key header. */
 export class HeaderKeyAuth implements AuthProvider {
@@ -87,6 +88,7 @@ export class RestProvider extends Provider {
   }
 
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+    checkRequires(this.manifest, { component: "cli", host_version: hostVersion() });
     this.validateConfig(config);
     const opts = config.provider_options;
     const key = opts["api_key"] || (this.inherit.has("sandbox_api_key") ? config.sandbox_api_key : null);

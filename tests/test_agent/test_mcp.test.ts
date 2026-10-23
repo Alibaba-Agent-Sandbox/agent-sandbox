@@ -1,5 +1,6 @@
 /** Tests for MCP Server initialization and request handling. */
 
+import fs from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const SandboxMock = vi.hoisted(() => ({
@@ -523,4 +524,9 @@ describe("TestDefaultSandboxContract", () => {
     expect((result.error as string).toLowerCase()).not.toContain("mozilla");
     expect(result.error as string).toContain("500");
   });
+});
+
+it("reports the installed CLI package version through MCP", () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
+  expect(SERVER_VERSION).toBe(pkg.version);
 });

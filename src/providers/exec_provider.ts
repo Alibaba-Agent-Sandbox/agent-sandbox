@@ -28,7 +28,7 @@ import { ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResour
 import { hostVersion } from "./host.js";
 import type { ApplicationEndpoint } from "../protocol/port_contract.js";
 import { validateApplicationEndpoint } from "../transport/application_http.js";
-import type { Manifest } from "./manifest.js";
+import { checkRequires, type Manifest } from "./manifest.js";
 import * as store from "./store.js";
 
 type Dict = Record<string, unknown>;
@@ -610,6 +610,7 @@ export class ExecProvider extends Provider {
   }
 
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
+    checkRequires(this.manifest, { component: "cli", host_version: hostVersion() });
     this.validateConfig(config);
     if (this.receipt !== null) store.verifyIntegrity(this.id);
     const argv = resolveCommand(this.manifest.command, this.pluginRoot);

@@ -386,6 +386,7 @@ export function contractCases(): ContractCase[] {
       },
     },
     {
+      // Checks URL format only; backend reachability requires a real service and a separate request.
       name: "test_ports_url",
       async run(h) {
         h.need("ports.url");
@@ -489,7 +490,7 @@ export async function runContractSuite(providerId: string, opts: ContractOptions
 export interface TestRegistrar {
   describe: (name: string, fn: () => void) => void;
   it: (name: string, fn: () => Promise<void>, timeoutMs?: number) => void;
-  /** Called to skip a case at run time (vitest: `ctx.skip`); defaults to passing silently. */
+  /** Called to skip a case at run time (vitest: `ctx.skip`); must mark the framework case skipped. Missing handlers fail explicitly. */
   onSkip?: (reason: string) => void;
 }
 
@@ -509,7 +510,10 @@ export function defineProviderContractTests(
             await c.run(h);
           } catch (exc) {
             if (exc instanceof SkipContractTest) {
-              reg.onSkip?.(exc.message);
+              if (!reg.onSkip) {
+                throw new Error(`Contract case '${c.name}' skipped: ${exc.message}. Supply TestRegistrar.onSkip to report a framework skip.`, { cause: exc });
+              }
+              reg.onSkip(exc.message);
               return;
             }
             throw exc;

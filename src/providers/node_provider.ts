@@ -32,7 +32,7 @@ import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocol
 import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import { hostVersion } from "./host.js";
 import { eppInfra, type EppFactory } from "./node_epp.js";
-import type { Manifest } from "./manifest.js";
+import { checkRequires, type Manifest } from "./manifest.js";
 import { HeaderKeyAuth } from "./rest_provider.js";
 import * as store from "./store.js";
 
@@ -278,6 +278,7 @@ export class NodeProvider extends Provider {
   }
 
   private async context(config: LayeredConfig) {
+    checkRequires(this.manifest, { component: "cli", host_version: hostVersion() });
     this.validateConfig(config);
     if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
     const digest = store.digestDir(this.pluginRoot);

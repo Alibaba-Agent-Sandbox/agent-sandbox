@@ -40,7 +40,7 @@ Rule of thumb: **MCP for chat agents, SDK for code, CLI for scripts.** MCP and t
 
 ## Installation
 
-The standalone CLI binary does not require Node.js. Building/installing its source package requires Node.js20+. Public npm metadata is unavailable; use the binary installer or the source recipe below.
+The standalone CLI binary does not require Node.js. Building/installing its source package requires Node.js20+. Install the published CLI with `npm install -g @agent-sandbox/cli`, or use the binary installer or source recipe below. Verify the installed build with `abx --version`.
 
 ```bash
 curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
@@ -221,7 +221,7 @@ The following table describes native provider/MCP errors, which subclass
 `SandboxError` and carry `code`, `message`, `suggestion` and `docs_url`. Native CLI
 exit codes are1 general,3 auth,4 not found,5 timeout,6 quota. Standard Express
 commands preserve the pinned standard error and exit behavior; consult their help
-and `docs/en/guide/migrate-from-e2b.md`.
+and [docs/en/guide/migrate-from-e2b.md](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/en/guide/migrate-from-e2b.md).
 
 | Symptom / code | Cause | Fix |
 |---|---|---|
@@ -236,7 +236,7 @@ and `docs/en/guide/migrate-from-e2b.md`.
 | `E5003` / create hangs then fails | Cold start longer than client timeout | Retry; `abx config set http_timeout 120`; `abx config set http2 false` |
 
 Native project commands accept `abx -v <command>` for verbose (DEBUG) output.
-Standard commands do not accept that native root flag. Full native error table: `docs/en/reference/error-codes.md`.
+Standard commands do not accept that native root flag. Full native error table: [docs/en/reference/error-codes.md](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/en/reference/error-codes.md).
 
 ## Hard rules recap
 
@@ -266,8 +266,8 @@ skills directory as `<skills-dir>/agent-sandbox/SKILL.md` and `<skills-dir>/agen
 - Codex: `~/.agents/skills/` (user); project skills load from `<repo-root>/.agents/skills/` (scanned upward from the current directory)
 
 Full matrix, version pinning, upgrades, uninstall, and security notes:
-`docs/en/guide/agent-skill-installation.md` (English) and
-`docs/zh/guide/agent-skill-installation.md` (中文).
+[docs/en/guide/agent-skill-installation.md](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/en/guide/agent-skill-installation.md) (English) and
+[docs/zh/guide/agent-skill-installation.md](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/zh/guide/agent-skill-installation.md) (中文).
 
 ## How AI tools consume this guide
 
@@ -285,8 +285,8 @@ The guide and the MCP surface are tool-neutral:
 - **AGENTS.md / rules-based tools**: reference this file from your `AGENTS.md`
   or rules file; the commands above run unchanged.
 
-Further reading: `llms.txt` (repo map), `README.md`, `docs/en/guide/` (tutorials),
-`docs/en/reference/` (CLI/API/error-code reference).
+Further reading: [llms.txt](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/llms.txt) (repo map), `README.md`, [docs/en/guide/](https://github.com/alibaba-agent-sandbox/agent-sandbox/tree/main/docs/en/guide/) (tutorials),
+[docs/en/reference/](https://github.com/alibaba-agent-sandbox/agent-sandbox/tree/main/docs/en/reference/) (CLI/API/error-code reference).
 
 
 Generated MCP ASGI artifacts install a matching Python client/server pair from one
@@ -298,4 +298,4 @@ changes their lifetime. No automatic FC API deployment is implemented.
 
 ## Automatic project preparation
 
-Use `abx --provider ID template launch SOURCE --yes` with a host build that includes this extension. Read [the guide](docs/en/guide/template-launch.md) for one-time provider prerequisites. The adapter returns the exact reference; do not invent IDs, substitute credentials or claim missing PTY/code capabilities. Third-party native acceptance remains Beta/deferred.
+Use `abx --provider ID template launch SOURCE --yes` with a host build that includes this extension. Read [the guide](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/en/guide/template-launch.md) for one-time provider prerequisites. The adapter returns the exact reference; do not invent IDs, substitute credentials or claim missing PTY/code capabilities. Check the selected provider’s documented acceptance scope; a passing test for one provider or capability does not establish another’s support.

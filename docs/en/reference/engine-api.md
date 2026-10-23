@@ -105,3 +105,21 @@ validation details.
 The engine hosts `builtin` (`alicloud-express`), `rest` (`e2b-rest/1`), `exec` (EPP/1 child processes of third-party plugins) and `node` (in-process `node/1` modules: `opensandbox`, `e2b`, `cubesandbox`, `alicloud-container`) providers. A client never sees the difference.
 
 The Python gRPC engine in `agent_sandbox.engine` is superseded by this one for catalog providers. The built-in Python `alicloud-express` path still has its own copy.
+
+## Provider initialization and runtime boundaries
+
+`POST /v1/providers/:provider/initialize` accepts the normal connection header or
+`{ "connection": { ... } }` body. It loads the installed provider, validates its
+host compatibility and configuration, builds infrastructure, then closes it before
+returning `{provider, initialized: true, version}`. No sandbox create, connect or
+list operation is called. This executes trusted plugin initialization code; it is
+not a cloud connectivity or permission check. Configuration, import and cleanup
+failures are errors, never successful handshakes. The route requires a CLI build
+containing this change; the published 0.4.10 build does not have it. Clients must
+report a 404 as unsupported initialization and request an upgrade.
+
+Installed and direct provider factories check the executing CLI's manifest
+requirements before running plugin code. Node plugins execute from content-bound
+snapshots, so an update can load new relative dependencies while existing sessions
+retain their original code. SSE output pauses upstream iteration while the socket
+buffer is full and releases the iterator when the consumer disconnects.
