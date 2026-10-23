@@ -128,3 +128,14 @@ The real provider acceptance run exposed a YAML scalar difference: the configure
 - `node scripts/check-release-artifact.mjs dist/binary`: PASS against the actual standalone executable, including embedded help/notice assets, isolated configuration behavior and terminal-menu cancellation.
 
 These local artifact checks do not certify the real OpenSandbox lifecycle; the coordinator records the provider run independently.
+
+
+## Real-provider cleanup JSON regression
+
+The actual OpenSandbox acceptance run reached sandbox creation but exposed an existing CLI defect in its cleanup assertion: `abx --json list` emitted an empty string when there were no sandboxes. Human-readable success notices are suppressed in JSON mode, so returning before the data branch produced no machine-readable document and masked an earlier application error in the fixture's `finally` block. Empty single-provider and all-provider lists now use the same data branch as nonempty lists and emit `[]`. The provider owner separately preserves the original application failure and verifies owned deletion; this CLI change does not claim the application passed.
+
+- Sandbox command regression file: PASS, 41 tests, including both empty JSON list routes and existing text/nonempty behavior.
+- Typecheck and scoped ESLint: PASS.
+- Primary workspace `npm run build`: PASS; its `dist` includes the runtime fix for the next real-provider run.
+
+At the preceding source revision `20e29f24fd5d027ebc0c450ecf072f0f2a10ddcf`, the complete Node 22 GitHub test job passed, including unit and parity gates. [CI run](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39939939879). Updated complete CI and the actual OpenSandbox application lifecycle remain necessary after this runtime correction.

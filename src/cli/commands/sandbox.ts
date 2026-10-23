@@ -1293,11 +1293,6 @@ export const list_cmd = command("list", {
       provider_options: scopedFlagOptions("--region", "region", region, view),
     });
 
-    if (!sandboxes.length) {
-      fmt.printSuccess("No sandboxes found.");
-      return;
-    }
-
     _printSandboxList(fmt, view, sandboxes.map((sb) => ({ provider: view.effective, info: sb })));
   }),
 });
@@ -1309,16 +1304,16 @@ interface ListedSandbox {
 
 /** Qualified ids in text mode, a `provider` key in JSON (spec section 4.4). */
 function _printSandboxList(fmt: OutputFormatter, view: ReturnType<typeof providerView>, listed: ListedSandbox[], withColumn = false): void {
-  if (!listed.length) {
-    fmt.printSuccess("No sandboxes found.");
-    return;
-  }
   if (fmt.use_json) {
     fmt.printData(
       listed.map(({ provider, info: sb }) => new Map<string, unknown>([
         ["ID", sb.sandbox_id], ["Template", sb.template], ["Status", sb.status], ["Region", _unknownDash(sb.region)], ["provider", provider],
       ])),
     );
+    return;
+  }
+  if (!listed.length) {
+    fmt.printSuccess("No sandboxes found.");
     return;
   }
   const headers = withColumn ? ["ID", "Template", "Status", "Region", "Provider"] : ["ID", "Template", "Status", "Region"];
