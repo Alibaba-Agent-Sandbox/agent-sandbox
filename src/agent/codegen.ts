@@ -209,7 +209,7 @@ function hasFromInstruction(dockerfile: string): boolean {
 }
 
 function defaultRetryHint(workdir: string): string {
-  return `Inspect the generated workspace: ${workdir} — then retry, or fall back to 'abx create <name>'.`;
+  return `Inspect the generated workspace: ${workdir}. ${AICodegenError.suggestion}`;
 }
 
 function loadTemplateYaml(templateYaml: string, retry?: string | null): Record<string, unknown> {
@@ -588,7 +588,7 @@ function validateServerEntrypoint(
  *
  * The manifest is returned as plain data (key order kept) so it can be dumped back with `dumpYaml`.
  *
- * `retry` replaces the default "inspect the workspace / fall back to `abx create --template`" suggestion on every
+ * `retry` replaces the default "inspect the workspace / fall back to `abx create <name> --detach`" suggestion on every
  * error.
  *
  * Throws `AICodegenError` when any check fails.
@@ -725,9 +725,7 @@ async function generateTemplateFilesImpl(
       `Qwen Code did not create the expected file(s): ${missing.join(", ")}.${detail}`,
       {
         suggestion:
-          `Inspect the generated workspace: ${work} — then retry ` +
-          `'abx create "${description}"', or fall back to ` +
-          "'abx create <name>'.",
+          `Inspect the generated workspace: ${work}. ${AICodegenError.suggestion}`,
       },
     );
   }
@@ -756,4 +754,3 @@ seams.generateTemplateFiles = generateTemplateFilesImpl;
 function pyRepr200(text: string): string {
   return pyReprStr(cpSlice(pyStrip(text), 0, 200));
 }
-

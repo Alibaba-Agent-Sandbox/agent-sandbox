@@ -43,3 +43,7 @@ Python 导入及行为见[Python 迁移指南](https://github.com/Alibaba-Agent-
 
 `abx --licenses` 包含上游预打包代码的完整依赖身份清单与保留声明。维护者按
 [固定源码流程](../../../vendor/e2b-cli/README.md)更新和验证。
+
+### 生成的项目说明
+
+内置极速版 `template scaffold` README 使用显式 Express Provider，以 `template deploy . && create NAME --detach` 串联。在终端中可交互补齐配置，自动化添加 `-y` 前先配置完整。部署失败即停止创建；用输出的 ID 调用命名命令并显式 kill 清理。其他 Provider 给出各自帮助入口，不推荐 Express 部署。AI 重试使用 `create --prompt "DESCRIPTION"`，已有极速版模板使用 `create TEMPLATE --detach`。

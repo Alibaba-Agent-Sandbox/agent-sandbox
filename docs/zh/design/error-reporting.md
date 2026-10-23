@@ -1,6 +1,6 @@
 # 错误上报到 FC 与 SLS（设计提案）
 
-状态：proposed，仅设计，2026-10-22。下列配置、接口和云资源均未因本文而实现或部署。当前 `abx` 没有这个通用错误上报服务；技能安装指南中的遥测说明指外部 skills 安装器。[English](../../en/design/error-reporting.md)。
+状态：proposed，仅设计，2026-10-23。下列配置、接口和云资源均未因本文而实现或部署。当前 `abx` 没有这个通用错误上报服务；技能安装指南中的遥测说明指外部 skills 安装器。[English](../../en/design/error-reporting.md)。
 
 ## 目标与归属
 
@@ -81,10 +81,18 @@ enabled = false
 | `command_id` | 白名单命令路径，最多 80 字符 | 不含 argv 或任意插件操作名 |
 | `provider_id` | 已知 ID 或 `custom`，最多 64 字符 | 不含本地路径、源地址或客户命名 |
 | `category` / `error_code` | 枚举 / 已知代码或 `unknown` | 用法、配置、认证、能力、网络、构建、远程退出、内部错误 |
+| `diagnostic_code` | 必填、独立版本的枚举 | 上报器分类，不依赖异常类或消息原文 |
+| `rejected_option` | 可选，已知公开选项枚举或 `custom` | 只含 parser 的选项 ID，不含值或任意 token |
 | `stage` / `exit_code` | 枚举 / 有界整数 | 当前操作的结果 |
 | `missing_fields` | 最多 12 个白名单字段 ID | 只有名称；自定义字段归为 `custom` |
 | `retry_count` | 整数 0–10 | 汇总次数 |
 | `stack_frames` | 可选，最多 8 个包内模块/函数 ID | 仅内部错误，不含完整堆栈 |
+
+### 稳定诊断分类
+
+即使 `error_code=unknown`，也必须提供 `diagnostic_code`。版本化目录初始包含 `usage.unknown_option`、`usage.missing_argument`、`config.missing_field`、`config.invalid_value`、`auth.rejected`、`provider.unsupported`、`network.timeout`、`network.unavailable`、`build.failed`、`remote.nonzero`、`internal.unclassified`。各捕获适配器在脱敏前根据有类型的 parser/校验/执行结果元数据映射，不能通过解析任意错误文本分类。现有无错误码的 `CliError` 路径需要增加显式元数据或有类型的边界适配器，才能算完成覆盖；原始白名单 `error_code` 独立保留，不替上游编造 E 编码。
+
+后台维护目录对应的中英文消息模板和参数限制。例如标准 create 拒绝已知 `--template`，上报 `usage.unknown_option`、`command_id=sandbox.create`、`rejected_option=--template`；私有或未知 token 只记 `custom`。缺失配置仅记白名单字段 ID，不允许选项值、任意 JSON 上下文和消息插值。无法分类时保留安全类别/阶段/命令及 `internal.unclassified`，无法还原原始错误。监测未分类比例以补充适配器；分组指纹包含 diagnostic_code，发布前测试不同用法/配置错误、私有名称和缺少元数据。
 
 第一版不上传自由文本 `message`，后台根据错误码和模板生成可读说明。禁止原始参数、远程命令/输出、提示词、生成代码、文件、工作目录、用户/主目录路径、仓库地址、环境值、凭据、云账号/资源 ID、API 端点、HTTP 内容/头及任意 Provider 错误原文。对秘密做哈希并不等于匿名化。分组指纹只计算分类、代码、规范命令、包内帧。
 
@@ -113,7 +121,17 @@ HTTPS 解决传输保密。若将来要求网关不可见正文，再选经过�
 1. 安装首次产生可报告错误时，后台在私有目录创建 Ed25519 密钥对；不采集硬件指纹、不需要登录或 Sandbox 凭据。身份/令牌缓存最多 30 天轮换。
 2. 拟议 `POST /v1/diagnostics/enroll` 仅接收公钥和协议能力。网关按可信网络来源及全局预算限制注册，后端签发 24 小时 token，包含 issuer、audience、expiry、jti、随机安装 subject、公钥指纹和 `diagnostics:write` scope。不能访问云账号。不能审计好绑定 JWT 时改用不透明 token。
 3. 客户端对下列 UTF-8 字节签名，末尾没有换行：`abx-diagnostics-v1\nPOST\n/v1/diagnostics/events\n<token-jti>\n<unix-seconds>\n<nonce>\n<lowercase-hex-sha256-of-body>`。nonce 是 128 位随机数，以不带填充的 base64url 表示。请求头为 `Authorization: Bearer <token>`、`X-Abx-Diagnostics-Timestamp`、`X-Abx-Diagnostics-Nonce`、`X-Abx-Diagnostics-Signature`（Ed25519 签名采用无填充 base64url）。Authorization 最多 2 KiB，自定义头各最多 128 字节，均不放 URL。
-4. 服务端验证签发方、受众、scope、有效期、公钥绑定、签名、±5 分钟时间窗口和严格 schema。共享存储以原子 insert-if-absent 记录 `(token-jti, nonce)`，TTL 10 分钟；event_id 去重 24 小时。完整校验后、打印前原子保留两种去重记录。不能用单实例内存表代替。存储故障返回有界 503 且不打印原文；时钟偏差最多丢失/延迟上报，不影响业务。
+4. 服务端验证签发方、受众、scope、有效期、公钥绑定、签名、±5 分钟时间窗口和严格 schema。完整校验后，共享存储以原子 insert-if-absent 记录 `(token-jti, nonce)`，TTL 10 分钟。事件处理单独采用下述可恢复协议；只有事件预占记录不能算接收成功。不能用单实例内存表代替。存储故障返回有界 503 且不打印原文；时钟偏差最多丢失/延迟上报，不影响业务。
+
+### 事件预占、重试和崩溃恢复
+
+使用共享原子/CAS 存储，去重键为 `(installation_subject, event_id)`，不能只用全局 event_id；24 小时 token 续期保持 subject 不变。已接收记录从接收起至少保留 24 小时。nonce 防重放与事件去重独立：重试始终换 nonce。校验通过且事件已接收时返回 202，不再次打印。记录绑定精确事件正文的 SHA-256；相同键但正文不同返回 409 并计安全原因桶，不覆盖旧事件。
+
+新事件原子创建 `inflight`，包含正文摘要、随机 owner/fencing token 和 30 秒租约。有效租约内的重复请求返回 503 和有界 `Retry-After`；客户端保留队列，在后续命令重试，不延长本地事件的 24 小时寿命。租约过期可用新 fence 重新取得。处理器打印前检查归属/租约，输出一行结构化 JSON，再通过 CAS 将自己的预占改为 `accepted`，之后才能返回 202。租约丢失、打印失败、提交失败或存储不可用均返回有界 503，不能声称已接收。FC 处理寿命小于租约（初始目标 ≤2 秒），客户端仍保持单请求 1 秒上限；服务调用有界，不在 FC 内循环重试。
+
+打印前崩溃留下可重新取得的租约，不能让事件被压制 24 小时。打印后、提交前崩溃，重试可能产生重复日志。提交后丢失 202，新的签名重试直接返回 202、不重复打印。stdout 与状态存储没有事务，租约/fencing 检查也无法消除暂停处理器在打印前后的竞态。因此只是在有界寿命内对重试事件进行至少一次处理尝试，SLS 采集仍是尽力而为，不能保证必达或 exactly once。分析按 subject/event ID 去重，计数和预算必须容忍重复尝试。要求更强语义时应使用持久队列确认，不能只增加去重 TTL。
+
+故障注入覆盖预占、打印、提交、响应前后崩溃，以及并发重复、正文冲突、租约过期、旧 owner、token 续期和存储故障。确认仅 inflight 不返回 202、打印前崩溃能恢复、重复行在分析中只计一个事件。这些是未来实现/发布门禁，不是本文已通过的验证。
 
 该流程阻止捕获请求的重放，无法阻止攻击者批量注册或伪造合法格式的内容。日志统一标记 `trust=anonymous_unverified`，不用于计费、授权、处罚或安全事实判断。
 

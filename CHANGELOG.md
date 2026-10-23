@@ -6,7 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-10-23
+
 ### Fixed
+
+- Correct AI recovery commands and generated scaffold instructions: positional detached Express create, explicit --prompt, interactive deploy gated before create, provider-specific guidance and explicit cleanup. / 修正 AI 错误恢复及脚手架说明：极速版位置参数与 --detach、显式 --prompt，交互部署成功后才创建，保留 Provider 归属并补充清理。
+- Clarify the error-reporting proposal with stable diagnostic codes and crash-recoverable event claims; reporting remains unimplemented. / 上报提案补充稳定诊断码及可恢复事件预占；上报功能尚未实现。
 
 - Explain how to resume interactive configuration when `--yes/-y` skips missing-value prompts; correct active Express create examples.
 

@@ -111,6 +111,30 @@ function dockerfile(profile: TemplateProfile, opts: { copyCommands: boolean }): 
 
 function readme(blurb: string, profile: TemplateProfile): string {
   const who = profile.user || "the image default user";
+  const deploy = profile.provider_id === "alicloud-express"
+    ? `Run from this project directory. Deploy prompts for missing configuration in a terminal.
+Create runs only after deploy succeeds and prints a sandbox ID without opening a terminal.
+
+\`\`\`bash
+abx --provider alicloud-express template deploy . &&
+abx --provider alicloud-express create {name} --detach
+\`\`\`
+
+Replace \`SANDBOX_ID\` below with the returned ID. Run the named command, then clean up:
+
+\`\`\`bash
+abx --provider alicloud-express run SANDBOX_ID hello --arg name=Ada
+abx --provider alicloud-express kill SANDBOX_ID
+\`\`\`
+
+For automation, configure the required values before adding \`-y\` to deploy.`
+    : `This scaffold uses the selected provider's image profile. Build, register and create
+using that provider's documented workflow; Express template deployment is not available
+for this provider. Inspect its local help before proceeding:
+
+\`\`\`bash
+abx --provider ${profile.provider_id} create --help
+\`\`\``;
   return `# {name}
 
 ${blurb}
@@ -134,11 +158,7 @@ Default user: \`${who}\`. Working directory: \`${profile.workdir}\`.
 
 ${profile.registry}
 
-\`\`\`bash
-abx template deploy . -y
-abx create {name}
-abx run <SANDBOX_ID> hello --arg name=Ada
-\`\`\`
+${deploy}
 
 ## Call it from the Python SDK
 

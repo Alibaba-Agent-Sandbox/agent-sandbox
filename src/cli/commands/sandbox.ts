@@ -376,7 +376,7 @@ export function _rollingNote(update: ((summary: string) => void) | null, limit: 
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// AI template generation helpers for `abx create "<description>"`
+// AI template generation helpers for `abx create --prompt "<description>"`
 //
 // The pipeline talks to a pluggable coding-agent backend (see `agent/coding_agent.ts`); Qwen Code is the only shipped
 // backend today, so every default message stays byte-identical to the Qwen Code wording. Backend resolution, binary
@@ -478,8 +478,7 @@ export async function _clarifyRequirements(
     const parts = [`Missing details: ${assessment.missingSummary()}.`];
     if (assessment.example) parts.push(`Example description: "${assessment.example}".`);
     parts.push(
-      "Add them to DESCRIPTION, pass --yes/-y to generate from the current " +
-        "description anyway, or use 'abx create <name>'.",
+      DescriptionClarificationError.suggestion,
     );
     return parts.join(" ");
   };
