@@ -119,8 +119,14 @@ choose_install_dir() {
 }
 
 http_get() {
-  # http_get URL DEST  -> sets http_status
-  http_status=$(curl -sS -L --retry 3 --retry-delay 1 --retry-connrefused \
+  # http_get URL DEST [progress] -> sets http_status. stdin is a pipe in curl | sh.
+  # The binary goes to DEST; only curl's HTTP status is captured on stdout.
+  if [ "${3:-}" = "progress" ] && [ -t 2 ]; then
+    set -- "$1" "$2" --progress-bar
+  else
+    set -- "$1" "$2" --silent
+  fi
+  http_status=$(curl "$3" --show-error -L --retry 3 --retry-delay 1 --retry-connrefused \
     -A "abx-installer" \
     -o "$2" -w '%{http_code}' "$1") || http_status=000
 }
@@ -133,7 +139,7 @@ download_asset() {
   sum_url="${url}.sha256"
 
   printf '%s\n' "Downloading ${url}"
-  http_get "$url" "${tmp}/bin"
+  http_get "$url" "${tmp}/bin" progress
   if [ "$http_status" != "200" ]; then
     if [ "$http_status" = "404" ]; then
       extra="Release v${version} has no ${asset} asset. This installer downloads abx-<version>-<os>-<arch> and a .sha256 file."

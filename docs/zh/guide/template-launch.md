@@ -13,17 +13,14 @@ abx --provider opensandbox template launch ./my-project --yes
 
 ## 安装包含此入口的 CLI
 
-先运行 `abx template launch --help`。已发布的 0.4.0 npm 版本早于此功能，版本号不能证明已有入口。在包含此功能的版本发布前，使用已审查的 main 源码构建：
+运行 `abx template launch --help` 检查已安装入口。使用官网安装脚本更新，或执行 `npm install -g @agent-sandbox/cli@0.4.9`；0.4.9 同时包含配置方向键菜单。官网[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 标明当前实际交付的二进制版本。
 
 ```sh
-git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
-cd agent-sandbox
-npm ci
-npm run build
-node dist/bin/abx.js template launch --help
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
+abx template launch --help
 ```
 
-源码版可用 `node /absolute/path/to/agent-sandbox/dist/bin/abx.js` 替代命令里的 `abx`。标准模板命令的原有含义不变。
+也可在源码检出中执行 `npm ci && npm run build`，再用 `node dist/bin/abx.js` 运行。标准模板命令的原有含义不变。
 
 ## 提供方只需配置一次
 
@@ -40,6 +37,14 @@ node dist/bin/abx.js template launch --help
 基础镜像须保留目标后端要求的运行时，包括已声明能力所需的 envd/Jupyter。宿主不会猜厂商镜像或替换成通用基础镜像。容器版从基础 SandboxSet 读取原生镜像，保留运行时注入、初始化容器、卷和探针；不修改基础资源，生成资源仅在归属和镜像匹配时复用。零副本池通过后端的 create-on-no-stock 扩展直接创建沙箱。
 
 项目在独立临时副本中构建，不修改原目录。提供方显式允许模板规范里的可选 wheel 输入缺失，保留 Dockerfile 已固定的安装回退路径。本地 OCI 构建复用 Docker 仓库登录，以内容哈希生成不可变标签，不打印工具原始输出，不把极速版凭据用于其他后端。私有镜像拉取认证单独放在对应提供方命名空间中。
+
+## 模板、准备流程与 PTY 的区别
+
+目录里的模板是一份项目配方。后端模板 ID 是已登记运行环境的标识，镜像引用是容器镜像的地址，它们是不同输入。`template launch` 会请所选提供方按需构建或登记，并把返回的引用交给 create；直接从已有模板创建时，仍需该后端的 ID/名称，支持镜像输入的后端则使用镜像 URI。
+
+PTY 是伪终端，用于交互程序、终端窗口缩放与终端输入输出。自动准备模板与 PTY 是两项独立能力。要求 `terminal` 的模板，需要提供方声明并实现 `pty`，运行时也须提供对应服务。项目 Provider 的 `connect` 逐行 REPL 每次执行独立命令，不会建立持久 PTY 会话。只在 YAML 中增加 `terminal`，不能补齐缺失的服务协议或提供方适配器。
+
+可以自行实现准备流程和终端适配，但应放在提供方插件及匹配的运行时中，并完成真实后端验证。目录能力声明描述适配器，Beta 和逐模板测试状态单独描述验收情况。“自动准备”仍需要先配置文档列出的凭据、工具和权限。
 
 ## 能力、就绪与清理
 

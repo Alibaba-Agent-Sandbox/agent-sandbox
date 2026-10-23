@@ -13,17 +13,14 @@ Use `--alias NAME` to select the build name, `--timeout SECONDS` for preparation
 
 ## Install a CLI that includes this extension
 
-Check `abx template launch --help`. The existing 0.4.0 npm release predates this extension; do not assume that a version number proves its availability. Until a release containing it is published, build the reviewed main source:
+Run `abx template launch --help` to check the installed entry. Update with the official installer or `npm install -g @agent-sandbox/cli@0.4.9`; 0.4.9 also includes arrow-key configuration menus. The official site's [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) identifies the binary release currently delivered.
 
 ```sh
-git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
-cd agent-sandbox
-npm ci
-npm run build
-node dist/bin/abx.js template launch --help
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
+abx template launch --help
 ```
 
-Use `node /absolute/path/to/agent-sandbox/dist/bin/abx.js` in place of `abx` for that source build. Existing standard template commands keep their meanings.
+A source checkout can also be built with `npm ci && npm run build`, then run as `node dist/bin/abx.js`. Standard template commands keep their existing meanings.
 
 ## Configure the provider once
 
@@ -40,6 +37,14 @@ Install/update the catalog plugin using its documented Git source; pinned instal
 The base image must retain that backend's required runtime (including envd/Jupyter when declared). The host does not guess a vendor image or silently substitute a generic base. Container preparation obtains the base image from the base SandboxSet and preserves its runtime injection, init containers, volumes and probes. It never edits that base resource; an existing generated resource is reused only when ownership/image match. Its zero-sized pool is claimed with the backend's documented create-on-no-stock option.
 
 Project builds stage an isolated copy and leave the source unchanged. Providers explicitly allow the template spec's optional wheel-copy input to be absent, retaining the Dockerfile's pinned installation fallback. Local OCI builds use existing Docker registry authentication and immutable content-based tags. They do not log tool output or use Express keys for another backend. Configure private image pull credentials separately in that provider's namespace.
+
+## Templates, preparation and PTY
+
+A catalog template is a project recipe. A backend template ID identifies an already registered runtime; an image reference identifies a container image. These are different inputs. `template launch` asks the selected provider to build/register as required and passes its returned reference to create. Direct creation from an existing template still requires that backend's ID/name (or image URI where supported).
+
+PTY means a pseudo-terminal for interactive programs, terminal resizing and terminal input/output. Template preparation and PTY are independent. A template requiring `terminal` can launch only when the selected provider declares and implements `pty` and the runtime supports it. The project Provider `connect` line REPL executes separate commands and does not establish a persistent PTY session. Enabling `terminal` in YAML alone cannot implement a missing server protocol or provider adapter.
+
+Custom implementations belong in the provider's project preparation and terminal adapters, with matching runtime support and real-backend validation. Catalog capability declarations describe the adapter; Beta and per-template test status describe verification separately. “Automatic preparation” still requires the documented credentials, tools and permissions.
 
 ## Capability checks, readiness and cleanup
 

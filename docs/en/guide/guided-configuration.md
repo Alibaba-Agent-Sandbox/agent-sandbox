@@ -19,6 +19,8 @@ Before requesting credentials, the flow shows the effective Provider, region, an
 2. **Save for future commands**: store supported settings in the selected Provider's declared user configuration location, then read them back before continuing.
 3. **Cancel**: stop before starting the operation.
 
+Use **Up/Down** to move and **Enter** to select. **Ctrl+C** cancels. Authentication methods and template project recovery use the same menu controls. Configuration menus stay on stderr; CI, JSON, quiet and `--yes` paths do not open them. Scripted prompt streams retain numbered selection.
+
 Secrets use hidden input. An invalid typed value can be entered again. Empty input cancels missing-value collection; it does not delete an existing credential. Inputs are collected before persistent writes begin. Each supported file write is atomic, but saving several fields is not a transaction: if a later write or cleanup fails, the diagnostic identifies completed fields or a possibly written field and the operation stops.
 
 A value entered for only this command does not reach a later, separately invoked command. For example, a temporary build credential is not saved for a later deploy, and a temporary Sandbox API key used during MCP setup is not installed into an editor's process environment.

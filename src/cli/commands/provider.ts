@@ -12,7 +12,7 @@ import { Argument, Context, argument, command, group, option, type Command } fro
 import { Choice } from "../types.js";
 import { Abort, sysExit } from "../errors.js";
 import { echo } from "../io.js";
-import { confirm } from "../prompts.js";
+import { confirm, select } from "../prompts.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
@@ -681,14 +681,12 @@ export const config_cmd = command("config", {
       echo(configurationTargetSummary(id), { err: true });
       const pending: Array<[ConfigField, string]> = [];
       const setup = await configExtras.initializationKeys(id, async (groups) => {
-        echo(groups.map((group, index) => `  ${index + 1}. ${group.join(" + ")}`).join("\n"), { err: true });
-        for (;;) {
-          const answer = await promptPlain("Choose an authentication method (number; Enter cancels): ");
-          if (!answer) throw new Abort();
-          const index = Number(answer) - 1;
-          if (Number.isInteger(index) && index >= 0 && index < groups.length) return index;
-          echo("Choose one of the listed authentication methods.", { err: true });
-        }
+        const index = await select("Choose an authentication method", {
+          choices: [...groups.map((group, index) => ({ name: group.join(" + "), value: index })), { name: "Cancel", value: -1 }],
+          default: -1, err: true,
+        });
+        if (index === -1) throw new Abort();
+        return index;
       });
       const selected = new Set(setup.map((key) => key.key));
       const authenticationFields = new Set(p.authAnyOf.flat());

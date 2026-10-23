@@ -2,7 +2,7 @@
 import type { Context } from "./kit.js";
 import { Abort, CliError } from "./errors.js";
 import { canPrompt } from "./interaction.js";
-import { prompt } from "./prompts.js";
+import { prompt, select, type SelectOptions } from "./prompts.js";
 import { getOutput } from "./output.js";
 import { cliProvider, cliOptions } from "../providers/selection.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
@@ -40,7 +40,7 @@ export const canGuideConfiguration = canPrompt;
 /** Test seams keep terminal simulation separate from production's strict terminal policy. */
 export const guidanceSeams = {
   interactive: canPrompt,
-  ask: (label: string, secret: boolean): Promise<string> => prompt(label, {
+  ask: (label: string, secret: boolean, selection?: SelectOptions<string>): Promise<string> => selection ? select(label, selection) : prompt(label, {
     default: "", show_default: false, hide_input: secret, err: true,
   }) as Promise<string>,
 };
@@ -103,9 +103,10 @@ export async function withGuidedConfiguration<T>(
       if (!groups.length) throw new CliError(`Provider '${provider.id}' declares no usable authentication configuration. Run 'abx provider info ${provider.id}'.`);
       let group = groups[0]!;
       if (groups.length > 1 && guidanceSeams.interactive(ctx, request.yes)) {
-        getOutput(ctx).info(`Authentication choices for ${provider.id}:\n` + groups.map((g, i) => `  ${i + 1}. ${g.join(" + ")}`).join("\n"));
         for (;;) {
-          const selected = await guidanceSeams.ask("Choose an authentication method (number; Enter cancels)", false);
+          const selected = await guidanceSeams.ask("Choose an authentication method", false, {
+            choices: [...groups.map((g, i) => ({ name: g.join(" + "), value: String(i + 1) })), { name: "Cancel", value: "" }], default: "", err: true,
+          });
           if (!selected) throw new Abort();
           const choice = Number(selected);
           if (Number.isInteger(choice) && choice >= 1 && choice <= groups.length) { group = groups[choice - 1]!; break; }
@@ -155,7 +156,10 @@ export async function withGuidedConfiguration<T>(
   let scope = "1";
   if (canSave) {
     for (;;) {
-      scope = await guidanceSeams.ask("Configuration scope: 1 only this command (default), 2 save for future commands, 3 cancel", false);
+      scope = await guidanceSeams.ask("Configuration scope", false, {
+        choices: [{ name: "Only this command", value: "1" }, { name: "Save for future commands", value: "2" }, { name: "Cancel", value: "3" }],
+        default: "1", err: true,
+      });
       if (!scope || scope === "1" || scope === "2") break;
       if (scope === "3") throw new Abort();
       out.warning("Choose 1, 2 or 3. Enter uses configuration only for this command.");

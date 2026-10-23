@@ -51,11 +51,13 @@ curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
 ```
 
+macOS/Linux binary downloads show a progress bar and percentage in a terminal. Redirected logs remain quiet.
+
 The installer picks `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, or `windows-x64`, verifies the `.sha256`, and does not need `sudo`. macOS and Linux install to `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. Windows installs to `%LOCALAPPDATA%\Programs\abx` and adds it to the user `PATH`. `ABX_INSTALL_DIR` selects the directory.
 
 The macOS/Linux website installer defaults to the latest fully mirrored release and downloads the binary and checksum from the website domain, without GitHub discovery. The [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) lists the available version and files. `ABX_VERSION` selects a release; an explicit older version retains the GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset base. The Windows PowerShell installer still uses GitHub.
 
-The website copies all five platform binaries, the npm archive and SHA-256 sidecars from a complete stable GitHub Release; size and checksum validation must pass before publication. A new release becomes the website default after mirror deployment. The current 0.4.0 release predates later `[Unreleased]` changes; use matching source builds for those changes.
+The website copies all five platform binaries, the npm archive and SHA-256 sidecars from a complete stable GitHub Release; size and checksum validation must pass before publication. A new release becomes the website default after mirror deployment. Use the mirror manifest to check the delivered version; `[Unreleased]` changes require a matching source build until published.
 
 ### Manual download
 

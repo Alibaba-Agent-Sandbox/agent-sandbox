@@ -10,7 +10,7 @@ import { UsageError } from "./errors.js";
 import { getFormatter } from "./formatters.js";
 import type { Context } from "./kit.js";
 import { getOutput } from "./output.js";
-import { confirm, prompt } from "./prompts.js";
+import { confirm, prompt, select } from "./prompts.js";
 import { availableCases } from "./scaffold.js";
 import { _selectScaffoldCase, templateSeams, writeBuiltinScaffold } from "./template_catalog.js";
 
@@ -53,7 +53,14 @@ export async function prepareTemplateBuildInputs(ctx: Context, directory: string
       if (!canGuideConfiguration(ctx, yes)) throw new UsageError(`${error.message} Initialize with 'abx template scaffold --template python ${shlexQuote(target)}', adapt existing code with 'abx template scaffold --adopt ${shlexQuote(target)}', or choose another project path. Existing files were preserved.`, ctx);
       const out = getOutput(ctx);
       out.info(`Directory '${target}' has no Dockerfile or platform build steps. Existing files will be preserved unless you explicitly approve listed replacements.`);
-      const choice = String(await prompt("Choose 1 scaffold a template, 2 adapt existing code with a model, 3 use another directory, 4 cancel", { default: "4", show_default: false, err: true })).trim();
+      const choice = await select("Prepare this template project", {
+        choices: [
+          { name: "Scaffold a template", value: "1" },
+          { name: "Adapt existing code with a model", value: "2" },
+          { name: "Use another directory", value: "3" },
+          { name: "Cancel", value: "4" },
+        ], default: "4", err: true,
+      });
       if (choice === "1") {
         const caseName = await _selectScaffoldCase(availableCases());
         await writeBuiltinScaffold(ctx, { directory: target, name: path.basename(target), caseName, yes: false });

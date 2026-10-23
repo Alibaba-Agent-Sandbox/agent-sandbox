@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-10-23
+
+### Added
+
+- Show terminal download progress in the shell installer, including piped installation; keep redirected logs quiet. / Shell 安装脚本在终端显示下载进度，支持管道安装，重定向日志保持简洁。
+- Use arrow-key menus for configuration scope, authentication methods and template project recovery, retaining scripted numbered input. / 配置范围、认证方式与模板项目准备改用方向键菜单，保留脚本编号输入。
+
+
 ### Fixed
 
 - Recover npm publication safely after delayed registry visibility: verify immutable candidate integrity before skipping an existing version, and use bounded fresh-cache online readback retries. / npm 版本短暂不可见时支持安全恢复：先核对已发布版本与验收包完整性，再跳过重复发布；读回使用有界重试与独立缓存。
