@@ -1,4 +1,5 @@
 import { readdirSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { join, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -53,10 +54,10 @@ export async function main(opts) {
   const timeoutDefault = Number(process.env.ABX_E2E_TIMEOUT_MS || 120_000);
 
   const root = makeSandboxDir('abx-e2e-');
-  const tracker = { sandboxes: new Set(), killed: new Set() };
+  const tracker = { sandboxes: new Set(), killed: new Set(), uncertainCreates: new Set() };
   mkdirSync(STATE_DIR, { recursive: true });
   const ledger = join(STATE_DIR, `run-${RUN_ID}.json`);
-  const persist = () => writeFileSync(ledger, JSON.stringify({ runId: RUN_ID, sandboxes: [...tracker.sandboxes].filter((s) => !tracker.killed.has(s)) }));
+  const persist = () => writeFileSync(ledger, JSON.stringify({ runId: RUN_ID, sandboxes: [...tracker.sandboxes].filter((s) => !tracker.killed.has(s)), uncertainCreates: [...tracker.uncertainCreates] }));
 
   const skipReasons = {
     cloud: cloudOk ? null : `real-cloud credentials missing (${missingCloudCredentials(creds).join(', ')}); provide them via environment or the gitignored cli/.env`,
@@ -78,16 +79,7 @@ export async function main(opts) {
   }
   console.log(`abx e2e run ${RUN_ID}\n  binary : ${binSpec}\n  version: ${meta.version}\n  cloud  : ${cloudOk ? 'credentials present' : 'NO credentials (cloud suites skip)'}`);
 
-  const cleanup = async () => {
-    const env = baseEnv({ home: join(root, 'home-cleanup'), creds });
-    mkdirSync(env.HOME, { recursive: true });
-    for (const id of [...tracker.sandboxes]) {
-      if (tracker.killed.has(id)) continue;
-      const r = await runBinary({ bin, argv: ['sandbox', 'kill', id], env, cwd: root, timeoutMs: 90_000 });
-      if (r.code === 0 || /not found|404/i.test(r.stdout + r.stderr)) tracker.killed.add(id);
-    }
-    persist();
-  };
+  const cleanup = () => cleanupTrackedSandboxes({ bin, creds, root, tracker, persist });
   let interrupted = false;
   for (const sig of ['SIGINT', 'SIGTERM']) {
     process.on(sig, async () => { if (interrupted) process.exit(130); interrupted = true; console.error(`\n${sig}: cleaning up sandboxes...`); await cleanup(); process.exit(130); });
@@ -139,30 +131,45 @@ export async function main(opts) {
       if (suite.teardown && !suiteSkip) { try { await suite.teardown(ctx); } catch (e) { console.log(`  teardown error: ${mask(String(e.message ?? e))}`); } }
       await cleanup();
     }
-    const leak = await leakCheck({ bin, creds, root, tracker, mask, cloudOk, skipOnlyOffline: suites.every((s) => !(s.needs ?? []).includes('cloud')) });
+    const leak = await leakCheck({ bin, creds, root, tracker, persist, mask, cloudOk, skipOnlyOffline: suites.every((s) => !(s.needs ?? []).includes('cloud')) });
     results.push(leak);
     console.log(`\n  ${leak.status.toUpperCase().padEnd(5)} ${leak.id}${leak.reason ? ` - ${leak.reason}` : ''}`);
   } finally {
     await cleanup();
     if (!process.env.ABX_E2E_KEEP) rmSync(root, { recursive: true, force: true });
-    if (tracker.sandboxes.size === tracker.killed.size && existsSync(ledger)) rmSync(ledger, { force: true });
+    if (tracker.sandboxes.size === tracker.killed.size && tracker.uncertainCreates.size === 0 && existsSync(ledger)) rmSync(ledger, { force: true });
   }
 
   meta.finishedAt = new Date().toISOString();
   meta.leakedSandboxes = [...tracker.sandboxes].filter((s) => !tracker.killed.has(s)).length;
   meta.createdSandboxes = tracker.sandboxes.size;
+  meta.unresolvedCreateAttempts = tracker.uncertainCreates.size;
   const counts = {};
   for (const r of results) counts[r.status] = (counts[r.status] ?? 0) + 1;
   meta.counts = counts;
-  console.log(`\nSummary: ${Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(', ')}; sandboxes created=${meta.createdSandboxes} leaked=${meta.leakedSandboxes}`);
+  console.log(`\nSummary: ${Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(', ')}; known sandboxes created=${meta.createdSandboxes} unconfirmed=${meta.leakedSandboxes} unresolved creates=${meta.unresolvedCreateAttempts}`);
   const out = { meta, results };
   if (opts.json) writeFileSync(opts.json, mask(JSON.stringify(out, null, 2)));
   if (opts.markdown) writeFileSync(opts.markdown, mask(renderMarkdown(out)));
   process.exitCode = results.some((r) => r.status === 'fail') ? 1 : 0;
 }
 
-async function leakCheck({ bin, creds, root, tracker, mask, cloudOk, skipOnlyOffline }) {
+/** Preserve failed standard kill operations in the recovery ledger. */
+export async function cleanupTrackedSandboxes({ bin, creds, root, tracker, persist }) {
+  const env = baseEnv({ home: join(root, 'home-cleanup'), creds });
+  mkdirSync(env.HOME, { recursive: true });
+  for (const id of [...tracker.sandboxes]) {
+    if (tracker.killed.has(id)) continue;
+    await runBinary({ bin, argv: ['sandbox', 'kill', '--', id], env, cwd: root, timeoutMs: 90_000 });
+    // A kill acknowledgement is not independent evidence that the resource is absent.
+  }
+  persist();
+}
+
+export async function leakCheck({ bin, creds, root, tracker, cloudOk, skipOnlyOffline, persist = () => {}, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) }) {
   const rec = { suite: 'builtin', id: 'leak-check', title: 'no sandbox created by this run is still listed', status: 'pass', ms: 0, attempts: 1, notes: [] };
+  const uncertain = tracker.uncertainCreates?.size ?? 0;
+  if (uncertain && tracker.sandboxes.size === 0) { persist(); rec.status = 'fail'; rec.reason = `${uncertain} unresolved create attempt(s); no resource identity is available for safe cleanup`; return rec; }
   if (!cloudOk || skipOnlyOffline || tracker.sandboxes.size === 0) { rec.status = 'skip'; rec.reason = 'no cloud sandboxes were created'; return rec; }
   const env = baseEnv({ home: join(root, 'home-leak'), creds });
   mkdirSync(env.HOME, { recursive: true });
@@ -170,13 +177,24 @@ async function leakCheck({ bin, creds, root, tracker, mask, cloudOk, skipOnlyOff
     const r = await runBinary({ bin, argv: ['sandbox', 'list', '--format', 'json'], env, cwd: root, timeoutMs: 90_000 });
     const j = parseJsonLoose(r.stdout);
     if (r.code !== 0 || j === undefined) { rec.status = 'fail'; rec.reason = `could not list sandboxes: exit ${r.code}`; return rec; }
-    const ids = Array.isArray(j) ? j.map((x) => x.sandboxId ?? x.sandboxID ?? x.ID ?? x.id) : [];
+    if (!Array.isArray(j) || j.some((entry) => !entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.sandboxId !== 'string' || !entry.sandboxId.trim())) {
+      rec.status = 'fail'; rec.reason = 'standard inventory must be an array with nonempty sandboxId strings'; return rec;
+    }
+    const ids = j.map((entry) => entry.sandboxId);
     const leaked = [...tracker.sandboxes].filter((id) => ids.includes(id));
-    if (!leaked.length) return rec;
-    for (const id of leaked) await runBinary({ bin, argv: ['sandbox', 'kill', id], env, cwd: root, timeoutMs: 90_000 });
+    for (const id of tracker.sandboxes) {
+      if (ids.includes(id)) tracker.killed.delete(id);
+      else tracker.killed.add(id);
+    }
+    persist();
+    if (!leaked.length) {
+      if (uncertain) { rec.status = 'fail'; rec.reason = `${uncertain} unresolved create attempt(s) require reconciliation`; }
+      return rec;
+    }
+    for (const id of leaked) await runBinary({ bin, argv: ['sandbox', 'kill', '--', id], env, cwd: root, timeoutMs: 90_000 });
     rec.status = 'fail';
-    rec.reason = `${leaked.length} sandbox(es) were still listed after cleanup (killed now): ${leaked.join(', ')}`;
-    await new Promise((r) => setTimeout(r, 3000));
+    rec.reason = `${leaked.length} sandbox(es) were still listed after cleanup; absence unconfirmed: ${leaked.join(', ')}`;
+    if (i < 3) await wait(3000);
   }
   return rec;
 }
@@ -184,6 +202,18 @@ async function leakCheck({ bin, creds, root, tracker, mask, cloudOk, skipOnlyOff
 export function makeContext({ bin, creds, mask, home, cwd, root, tracker, persist, state, suite, timeoutDefault }) {
   const ctx = {
     bin, creds, home, cwd, root, state, suite, mask,
+    beginCreateAttempt(label) {
+      tracker.uncertainCreates ??= new Set();
+      const attempt = `${suite.id}/${label}/${randomUUID()}`;
+      tracker.uncertainCreates.add(attempt);
+      persist();
+      return attempt;
+    },
+    resolveCreateAttempt(attempt) {
+      if (!tracker.uncertainCreates?.has(attempt)) throw new Error('unknown create attempt');
+      tracker.uncertainCreates.delete(attempt);
+      persist();
+    },
     track(id) { tracker.sandboxes.add(id); persist(); },
     untrack(id) { tracker.killed.add(id); persist(); },
     env(extra = {}, { withCreds = true } = {}) { return baseEnv({ home: ctx.home, creds: withCreds ? creds : {}, extra }); },

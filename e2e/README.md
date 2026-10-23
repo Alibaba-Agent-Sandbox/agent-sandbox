@@ -78,14 +78,67 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 | Determinism | Outputs are normalised (sandbox ids, timestamps, durations, container ids, temp paths, uptime). Order-insensitive matchers where the platform does not guarantee order. Retries only for known-eventual operations, declared per scenario (`retries`, `ctx.eventually`) and reported when they were needed. |
 | Skips | A suite/scenario that cannot run is reported as `SKIP` with the exact reason (missing credentials, GitHub index unreachable, Docker opt-in, ...), never silently green. |
 
+## Cloud command contracts
+
+`cloud-readonly` and `cloud-lifecycle` use the standard detached-create, list/info JSON
+(`--format json`), state filter (`--state`) and kill contracts. Project JSON exec,
+quiet/CI output and create-time environment/upload checks use the explicit `--native`
+entry. The harness supplies the same selected account through `E2B_*` for the standard
+surface and canonical `ABX_SANDBOX_*` for project operations; negative credential
+overrides apply to both. This mapping is test setup, not a product compatibility alias.
+Create mutations are not replayed. Before each submission the runner persists an unresolved
+attempt; a known ID is tracked immediately, while a definitive template-not-found rejection
+resolves the attempt without an ID. Timeouts and ambiguous replies retain the attempt and fail
+the final check. A kill acknowledgement never proves absence: only a valid standard inventory
+can confirm an owned resource is gone. The runner and `cleanup.mjs --yes` keep unresolved
+attempts and unconfirmed IDs in the recovery ledger, including partial cleanup progress.
+
+Select an already deployed `python-hello` template implementing application protocol v2
+and the documented `hello` command for the named-command check. Without `ABX_E2E_APP_START_COMMAND`, the suite requires that service to be running already.
+For a selected `startup: exec` workflow on a bare managed sandbox, supply the exact reviewed
+manifest start command. For the current python-hello manifest this is:
+
+```bash
+ABX_E2E_APP_START_COMMAND="agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py" \
+  ABX_BIN=abx node e2e/run.mjs --suite cloud-readonly,cloud-lifecycle
+```
+
+If the selected managed image does not contain the reviewed application source, explicitly
+set both `ABX_E2E_APP_UPLOAD_SOURCE` and `ABX_E2E_APP_UPLOAD_DEST` together with that startup
+command. For example, after setting `PYTHON_HELLO_SOURCE` to the reviewed
+[python-hello source directory](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/python-hello):
+
+```bash
+ABX_E2E_APP_UPLOAD_SOURCE="$PYTHON_HELLO_SOURCE/commands.py" \
+ABX_E2E_APP_UPLOAD_DEST="/home/user/app/commands.py" \
+ABX_E2E_APP_START_COMMAND="agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py" \
+  ABX_BIN=abx node e2e/run.mjs --suite cloud-readonly,cloud-lifecycle
+```
+
+The paired source/destination and startup command are validated before application mutation.
+The fixture is uploaded once into the owned sandbox; upload failure prevents startup. Record
+the selected source revision and byte hash in the run evidence. This mode verifies a managed
+sandbox plus an uploaded current application fixture and its CLI bridge. It does not certify
+that the original image preinstalls that fixture or that Express source-image builds work.
+
+Startup runs once and must return a real, visible process ID before the protocol-v2 command
+catalog and payloads are admitted. No script paths, alternate commands, protocol fallbacks or
+restart retries are guessed. A missing or incompatible deployed application fails this check. Process signalling
+uses only a process created by the run and validates every process-list ID before verifying
+disappearance. Discovery may declare no coarse groups even when real exec/file checks pass;
+no shell/files baseline is inferred. Metrics and pip package checks use their current structured
+JSON contracts. Native template info uses an actual ID from the same-account native inventory;
+its current official missing-template errors are checked as E5000 plus exact API/404 diagnostics. Interactive
+create/connect remain covered by `e2e/standard.mjs` with a real local PTY.
+
 ## Suites
 
 | Suite | Needs | Content |
 |---|---|---|
 | `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template scaffold`, local `template search --index-url` |
 | `standard-contract` | cloud + Python 3/local PTY | Fixed E2B lifecycle, remote status, real PTY/connect ownership, automatic expiry and cleanup |
-| `cloud-readonly` | cloud | wrong API key (`E1000`, exit 3), `template list/info/delete` and not-found envelopes (exit 4, `E2001`/`E5000`), `list` shapes, secret masking of `config list` |
-| `cloud-lifecycle` | cloud | `create` -> `list` -> `info` -> `exec` (exit-code propagation, `--cwd`, `--json`, `-q`, `--ci`, `CI=true`, timeout -> exit 5) -> `upload`/`download` (binary round-trip) -> `exec --background/--stream/--env` -> `sandbox files/process/system/capabilities` -> `connect` -> `sandbox command list` / `run` named commands -> env/upload at create -> `kill` |
+| `cloud-readonly` | cloud | standard authentication/listing and explicit native error envelopes, official template ID readback and precise missing-resource diagnostics, secret masking of `config list` |
+| `cloud-lifecycle` | cloud | detached `create` -> `list` -> `info` -> `exec` (exit-code propagation, `--cwd`, explicit native JSON/quiet/CI, standard `CI=true`, unsupported timeout rejection) -> `upload`/`download` (binary round-trip) -> background/streaming/command env -> `sandbox files/process/system/capabilities` -> `sandbox command list` / `run` named commands -> env/upload at create -> `kill` |
 | `catalog` | outbound GitHub | `template search` and `template install --download-only` against the remote index |
 | `docker-deploy` | cloud + Docker, opt-in | `template scaffold` -> `template deploy` (docker build, ACR push, CreateTemplate) -> `create` -> `exec` -> `template delete` |
 
@@ -160,6 +213,9 @@ the mount scenario does not provision storage or delete an existing Volume.
 |---|---|
 | `ABX_BIN` | Binary under test (default `abx`); may contain arguments, e.g. `"node $PWD/dist/bin/abx.js"`; script paths must be absolute for isolated scenario directories |
 | `ABX_E2E_TEMPLATE` | Template for the lifecycle suite (default `python-hello`) |
+| `ABX_E2E_TEMPLATE_ID` | Optional actual native TemplateID, required to exist in the selected account inventory for official info readback |
+| `ABX_E2E_APP_UPLOAD_SOURCE` / `ABX_E2E_APP_UPLOAD_DEST` | Optional paired reviewed local fixture and explicit remote destination; require an explicit start command, upload once before startup |
+| `ABX_E2E_APP_START_COMMAND` | Optional exact selected manifest startup command; runs once with a real PID check, otherwise the application must already be serving |
 | `ABX_E2E_TIMEOUT_MS` | Default per-command timeout (default 120000) |
 | `ABX_E2E_DOCKER=1` | Enable the Docker/ACR suite (slow, costs real resources) |
 | `ABX_E2E_ALLOW_KILL_ALL=1` | Enable the `kill --all` confirmation guard scenario (dangerous on shared accounts) |

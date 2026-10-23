@@ -63,3 +63,5 @@ Evidence for the Python SDK and server lives in the
 - [Final provider convergence acceptance](verify/2026-10-18-provider-convergence-acceptance.md)
 
 - [Provider-owned metadata follow-up](verify/2026-10-18-provider-owned-metadata-followup.md)
+
+- [Cloud E2E command contract](verify/2026-10-23-cloud-e2e-command-contract.md)

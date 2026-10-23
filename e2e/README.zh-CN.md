@@ -66,14 +66,58 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 | 确定性 | 输出会被规范化(沙箱 ID、时间戳、耗时、容器 ID、临时路径、uptime);平台不保证顺序处注意使用与顺序无关的匹配;仅对已知最终一致的操作重试,按场景声明(`retries`、`ctx.eventually`),并在需要时于报告中标注。 |
 | 跳过 | 无法运行的套件/场景会以 `SKIP` 及确切原因报告(缺少凭据、GitHub 索引不可达、Docker 需主动开启等),绝不静默变绿。 |
 
+## 云端命令合同
+
+`cloud-readonly` 和 `cloud-lifecycle` 使用标准 detached create、list/info JSON
+（`--format json`）、状态过滤（`--state`）和 kill 合同。项目 JSON exec、quiet/CI
+输出及创建时 env/上传检查使用显式 `--native` 入口。测试将同一选定账户分别通过标准
+`E2B_*` 与项目规范 `ABX_SANDBOX_*` 设置传入，负例凭据覆盖同时作用于两者。
+这只是测试配置，不是产品兼容别名。创建操作不自动重放，提交前先持久化未决意图；获得真实 ID 后立即登记，明确的模板不存在拒绝
+可以不产生 ID 地解除意图。超时或含糊结果保留未决意图，并使最终检查失败。kill 确认本身
+不能证明资源消失，只有有效的标准清单可以确认缺席。runner 与 `cleanup.mjs --yes` 都会
+保留未决创建和未确认 ID，并记录部分清理进度。
+
+具名命令检查要求选定的已部署 `python-hello` 模板实现应用协议 v2 和文档中的 `hello`
+命令。未设置 `ABX_E2E_APP_START_COMMAND` 时，要求服务已经启动。对裸 managed 沙箱上的
+`startup: exec` 工作流，必须显式传入经检查的当前 manifest 原样启动命令；当前
+python-hello 为：
+
+```bash
+ABX_E2E_APP_START_COMMAND="agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py" \
+  ABX_BIN=abx node e2e/run.mjs --suite cloud-readonly,cloud-lifecycle
+```
+
+若选定的 managed 镜像没有包含经检查的当前应用文件，可显式同时设置
+`ABX_E2E_APP_UPLOAD_SOURCE`、`ABX_E2E_APP_UPLOAD_DEST` 和上述启动命令。
+先将 `PYTHON_HELLO_SOURCE` 设置为经检查的
+[python-hello 源码目录](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/python-hello)：
+
+```bash
+ABX_E2E_APP_UPLOAD_SOURCE="$PYTHON_HELLO_SOURCE/commands.py" \
+ABX_E2E_APP_UPLOAD_DEST="/home/user/app/commands.py" \
+ABX_E2E_APP_START_COMMAND="agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py" \
+  ABX_BIN=abx node e2e/run.mjs --suite cloud-readonly,cloud-lifecycle
+```
+
+应用变更前先验证参数配对。文件仅上传一次至本轮自有沙箱，上传失败不启动服务。
+验收记录必须写明选定源码版本及字节哈希。该模式验证 managed 沙箱加上传的当前应用
+及 CLI 调用桥接，不表示原镜像已预装该文件，也不证明 Express 源码镜像构建可用。
+
+启动只执行一次，必须获得真实且可见的进程 ID，之后才允许协议 v2 目录和命令载荷调用。
+不猜测其他路径、启动命令或协议，不重复重启。服务缺失或协议不兼容会使检查失败。进程信号仅作用于本轮创建的进程，验证清单内每个进程 ID 后才判断其消失。即使真实
+exec/files 检查通过，发现接口也可以没有声明粗粒度分组，测试不再推断 shell/files 基线。
+metrics 和 pip 包清单使用现行结构化 JSON 合同。原生模板 info 从同账户原生清单取得
+真实 TemplateID，模板不存在检查严格验证当前 E5000 和指定 API/404 诊断。交互式 create/connect
+仍由 `e2e/standard.mjs` 使用真实本地 PTY 覆盖。
+
 ## 套件
 
 | 套件 | 依赖 | 内容 |
 |---|---|---|
 | `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、固定的顶层命令集（已移除的写法退出码 2）、向临时 HOME 写入 MCP `install/status/stop`、`template scaffold`、本地 `template search --index-url` |
 | `standard-contract` | 云端 + Python 3/本地 PTY | 固定 E2B 生命周期、远程退出码、真实 PTY/connect 所有权、自动到期及清理 |
-| `cloud-readonly` | 云端 | 错误 API Key(`E1000`,退出码 3)、`template list/info/delete` 与 not-found 信封(退出码 4,`E2001`/`E5000`)、`list` 输出结构、`config list` 密钥脱敏 |
-| `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、`--json`、`-q`、`--ci`、`CI=true`、超时→退出码 5)→ `upload`/`download`(二进制往返)→ `exec --background/--stream/--env` → `sandbox files/process/system/capabilities` → `connect` → `sandbox command list` / `run` 具名命令 → 创建时注入 env/上传 → `kill` |
+| `cloud-readonly` | 云端 | 标准认证与列表、显式原生错误信封、官方真实 TemplateID 回读与精确不存在诊断、`config list` 密钥脱敏 |
+| `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、显式 native JSON/quiet/CI、标准 `CI=true`、不支持的超时选项拒绝)→ `upload`/`download`(二进制往返)→ 后台/流式执行/命令 env → `sandbox files/process/system/capabilities` → `sandbox command list` / `run` 具名命令 → 创建时注入 env/上传 → `kill` |
 | `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template install --download-only` |
 | `docker-deploy` | 云端 + Docker,需主动开启 | `template scaffold` → `template deploy`(docker build、ACR push、CreateTemplate)→ `create` → `exec` → `template delete` |
 
@@ -130,6 +174,9 @@ Key、删除 Volume、清空并删除测试 Bucket、解绑并删除自定义策
 |---|---|
 | `ABX_BIN` | 被测二进制(默认 `abx`),可带参数,如 `"node $PWD/dist/bin/abx.js"`；临时场景工作目录要求脚本使用绝对路径 |
 | `ABX_E2E_TEMPLATE` | 生命周期套件使用的模板(默认 `python-hello`) |
+| `ABX_E2E_TEMPLATE_ID` | 可选真实原生 TemplateID，官方 info 回读时要求它存在于选定账户清单 |
+| `ABX_E2E_APP_UPLOAD_SOURCE` / `ABX_E2E_APP_UPLOAD_DEST` | 可选、必须成对的经检查本地应用文件和明确远端路径；要求显式启动命令，只在启动前上传一次 |
+| `ABX_E2E_APP_START_COMMAND` | 可选的选定 manifest 原样启动命令，只运行一次并验证真实 PID；不设置则要求应用已启动 |
 | `ABX_E2E_TIMEOUT_MS` | 每条命令默认超时(默认 120000) |
 | `ABX_E2E_DOCKER=1` | 启用 Docker/ACR 套件(慢,会消耗真实资源) |
 | `ABX_E2E_ALLOW_KILL_ALL=1` | 启用 `kill --all` 确认保护场景(共享账号下危险) |
