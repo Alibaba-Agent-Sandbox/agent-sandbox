@@ -73,7 +73,7 @@ SDK release cadence is fully decoupled from template evolution.
 ## 2. Machine-Readable Index (`awesome-templates.yaml`)
 
 ```yaml
-schema_version: 1
+schema_version: 2
 templates:
   - name: node-web                       # required; unique; kebab-case
     description: "Node.js web service runtime"  # human-readable (search hit source)
@@ -82,15 +82,12 @@ templates:
     ref: v1.0.0                          # optional; pins a tag/branch/sha
     tags: [nodejs, web, express, api]    # searchable tags
     author: alibaba-agent-sandbox
-    capabilities: [shell, files, code, ports]
     status: official                     # official | community | experimental
 ```
 
 Conventions:
 
-- **`schema_version`**: index format version, currently `1`. Missing means 1
-  (backward compatible); a version newer than the client supports fails
-  **loudly** with an upgrade hint instead of being misinterpreted.
+- **`schema_version`**: index format version, exactly `2`. Missing or unsupported versions fail explicitly; there is no legacy-version default. Entries locate authoritative spec-v4 manifests; they do not grant capabilities or duplicate workflow declarations.
 - **`repo`**: only `github.com` `owner/repo` slugs or full URLs are accepted
   (normalised at parse time).
 - **`path` / `ref` combination**: entries compose into a Terraform-style
@@ -143,7 +140,7 @@ deployments first-class.
 | `404` | Falls into the generic network-error path | `NetworkError` suggesting verifying the index URL (`--index-url`) |
 | Server errors (5xx) | Stale cache + warning | `NetworkError` |
 | Other non-2xx | Stale cache + warning | `NetworkError` reporting the concrete status |
-| `schema_version` too new | No degradation | `TemplateParseError` with `npm install -g @agent-sandbox/cli@latest` |
+| Missing/unsupported `schema_version` | No degradation | `TemplateParseError` with `npm install -g @agent-sandbox/cli@latest` |
 | Missing `templates` list / invalid YAML | No degradation | `TemplateParseError` (includes the source URL) |
 
 Degradation is surfaced uniformly through `TemplateIndex.stale` + `notice`: the

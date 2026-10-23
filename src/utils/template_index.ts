@@ -362,7 +362,7 @@ export function parseIndex(text: string, opts: ParseIndexOptions = {}): Template
     throw new TemplateParseError(
       `Template index schema_version ${schema_version} differs from supported ` +
         `schema_version ${INDEX_SCHEMA_VERSION}.`,
-      { suggestion: "Upgrade agent-sandbox-client (`pip install -U agent-sandbox-client`) to read this index." },
+      { suggestion: "Upgrade abx using its source or binary installation guide: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/binary-installation.md" },
     );
   }
 

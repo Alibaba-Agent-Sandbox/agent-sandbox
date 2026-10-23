@@ -115,7 +115,7 @@ The public index must resolve first; HTTP404 means publication is incomplete. A 
 
 ## Install from source
 
-Node.js 20 or newer. Verified 2026-10-15 on Linux x64 with Node.js 22.14.0: `npm pack` wrote `agent-sandbox-cli-0.3.0.tgz`, and installing that tarball with `npm install -g` then running `abx --version` printed `abx, version 0.3.0`.
+Use Node.js 20 or newer. Build and install the current checkout directly:
 
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
@@ -123,13 +123,12 @@ cd agent-sandbox
 git rev-parse HEAD
 npm ci
 npm run build
-npm pack
-npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+npm install --global --prefix "$HOME/.local" .
 export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```
 
-`npm pack` names the file `agent-sandbox-cli-<version>.tgz` (the current tree is `agent-sandbox-cli-0.4.0.tgz`).
+This installs the compiled checkout directly without depending on a versioned tarball filename.
 
 ## Verify the installation
 

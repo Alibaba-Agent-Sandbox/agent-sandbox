@@ -65,3 +65,27 @@ export async function requestApplication(endpoint: ApplicationEndpoint, operatio
   const text = await response.text();
   return { is_success: response.ok, status_code: response.status, text, json: () => JSON.parse(text) };
 }
+
+/** Check the selected application's v2 protocol and identity before sending an operation. */
+export async function requireApplicationOperation(endpoint: ApplicationEndpoint, operation: "list_commands" | "run_command" | "health", application_token?: string): Promise<void> {
+  const response = await requestApplication(endpoint, "/capabilities", { method: "GET", application_token });
+  if (!response.is_success) throw new ProviderConfigError(`Application protocol discovery failed (HTTP ${response.status_code}).`);
+  let document: unknown;
+  try { document = response.json(); } catch { throw new ProviderConfigError("Invalid application protocol discovery."); }
+  if (!document || typeof document !== "object" || Array.isArray(document)) throw new ProviderConfigError("Invalid application protocol discovery.");
+  const value = document as Record<string, unknown>;
+  if (value["api_version"] !== 2 || !value["endpoints"] || typeof value["endpoints"] !== "object" || Array.isArray(value["endpoints"]))
+    throw new ProviderConfigError("Application requires protocol version 2 and an endpoint map.");
+  const rule = (value["endpoints"] as Record<string, unknown>)[operation];
+  if (!rule || typeof rule !== "object" || Array.isArray(rule) || (rule as Record<string, unknown>)["enabled"] !== true || (rule as Record<string, unknown>)["allowed"] !== true)
+    throw new ProviderConfigError(`Application endpoint '${operation}' is unavailable to the selected identity.`);
+}
+
+/** Probe the protocol's health operation without requiring named-command authorization. */
+export async function checkApplicationHealth(endpoint: ApplicationEndpoint, application_token?: string): Promise<void> {
+  const response = await requestApplication(endpoint, "/health", {method: "GET", application_token});
+  let document: unknown;
+  try { document = response.json(); } catch { throw new ProviderConfigError("Invalid application health response."); }
+  if (!response.is_success || !document || typeof document !== "object" || Array.isArray(document) || (document as Record<string, unknown>)["status"] !== "ok")
+    throw new ProviderConfigError("Application health check failed.");
+}

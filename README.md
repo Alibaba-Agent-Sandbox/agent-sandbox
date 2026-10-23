@@ -79,15 +79,14 @@ An HTTP404 from the official registry means npm publication is incomplete; a mer
 
 ### From source
 
-Node.js 20 or newer. Verified 2026-10-15 on Linux x64 with Node.js 22.14.0 (`npm pack` wrote `agent-sandbox-cli-0.3.0.tgz`; `abx --version` printed `abx, version 0.3.0`):
+Use Node.js 20 or newer. Build and install the current checkout directly:
 
 ```bash
 git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
 cd agent-sandbox
 npm ci
 npm run build
-npm pack
-npm install -g --prefix "$HOME/.local" ./agent-sandbox-cli-0.4.0.tgz
+npm install --global --prefix "$HOME/.local" .
 export PATH="$HOME/.local/bin:$PATH"
 abx --version
 ```

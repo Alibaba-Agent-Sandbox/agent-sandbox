@@ -148,3 +148,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [OpenSandbox maturity](notes/implemented/process/2026-10-23-opensandbox-maturity.md) · [verification](evidence/verify/2026-10-23-opensandbox-maturity.md)
 
 Provider installation progress: [decision](notes/implemented/feature/2026-10-23-provider-install-progress.md), [local verification](evidence/verify/2026-10-23-provider-install-progress.md).
+
+- [Workflow review safety](notes/proposed/feature/2026-10-23-workflow-review-safety.md) · [verification](evidence/verify/2026-10-23-workflow-review-safety.md) · [Issue 122](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/122)
