@@ -1,0 +1,24 @@
+Usage: abx template list [options]
+
+List custom templates registered for the current account.
+
+The native entry uses the Alibaba Cloud FCSandbox API with AK/SK.
+Standard template listing uses the Sandbox API key.
+This command does not search the community template index.
+
+Examples:
+  abx --native template list
+  abx --native template list --region cn-shanghai
+  abx --native --json template list
+  abx template list --format json
+
+Related commands:
+  abx template info TEMPLATE_ID
+  abx template search QUERY
+  abx template install TEMPLATE_REF
+
+Options:
+  -r, --region <TEXT>  Region override for providers that declare region
+                       (otherwise use the provider default)
+  -h, --help           Show this message and exit.
+[exit_code:0]

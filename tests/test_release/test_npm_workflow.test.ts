@@ -4,6 +4,7 @@ import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync 
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
+import { createHash } from "node:crypto";
 
 const root = resolve(import.meta.dirname, "../..");
 const workflow = parse(readFileSync(join(root, ".github/workflows/release.yml"), "utf8"));
@@ -17,6 +18,34 @@ function temporary(): string {
   return directory;
 }
 afterEach(() => directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true })));
+
+describe.skipIf(process.platform === "win32")("tested release mirror artifact", () => {
+  const job = workflow.jobs["release-assets"];
+  const command = job.steps.find((step: { run?: string }) => step.run).run;
+
+  it("checksums the exact versioned candidate after successful publication", () => {
+    const directory = temporary();
+    const name = "agent-sandbox-cli-0.4.8.tgz";
+    const bytes = "the exact previously tested publication candidate\n";
+    writeFileSync(join(directory, name), bytes);
+    execFileSync("bash", ["-eu", "-c", command], { cwd: directory,
+      env: { ...process.env, RELEASE_TAG: "v0.4.8" }, stdio: "pipe" });
+    expect(readFileSync(join(directory, `${name}.sha256`), "utf8").split(/\s+/)[0])
+      .toBe(createHash("sha256").update(bytes).digest("hex"));
+    expect(job.needs).toBe("publish");
+    expect(job.permissions).toEqual({ contents: "write" });
+    expect(workflow.jobs.publish.permissions.contents).toBe("read");
+  });
+
+  it.each([[], ["wrong-package.tgz"], ["agent-sandbox-cli-0.4.7.tgz"],
+    ["agent-sandbox-cli-0.4.8.tgz", "extra.tgz"]])("rejects wrong or ambiguous candidates: %s", (...names) => {
+    const directory = temporary();
+    for (const name of names) writeFileSync(join(directory, name), "untrusted candidate");
+    const result = spawnSync("bash", ["-eu", "-c", command], { cwd: directory,
+      env: { ...process.env, RELEASE_TAG: "v0.4.8" } });
+    expect(result.status).not.toBe(0);
+  });
+});
 
 // The publisher runs on Ubuntu; these tests execute its actual shell and npm commands.
 describe.skipIf(process.platform === "win32")("npm publication workflow", () => {

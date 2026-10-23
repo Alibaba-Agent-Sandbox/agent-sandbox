@@ -137,3 +137,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Error reporting proposal](notes/proposed/architecture/2026-10-22-error-reporting.md) (design only).
 
 - [Command recovery review](notes/implemented/process/2026-10-23-command-recovery-review.md) · [verification](evidence/verify/2026-10-23-command-recovery-review.md)
+
+- [Release contract recovery](notes/implemented/process/2026-10-23-release-contract-recovery.md) · [verification](evidence/verify/2026-10-23-release-contract-recovery.md)

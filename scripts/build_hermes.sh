@@ -10,11 +10,11 @@ TAG="${TAG:-dev}"
 : "${ACR_NAMESPACE:?set ACR_NAMESPACE to your ACR namespace}"
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 echo "Fetching hermes-agent from alibaba-agent-sandbox/awesome-templates..."
-"$ABX_BIN" --region "$REGION" \
-    template install hermes-agent --download-only
+"$ABX_BIN" --provider alicloud-express \
+    template install hermes-agent --region "$REGION" --download-only
 echo "Starting hermes-agent build..."
-"$ABX_BIN" --region "$REGION" \
+"$ABX_BIN" --provider alicloud-express \
     template deploy "$HOME/.abx/templates/alibaba-agent-sandbox/awesome-templates/default/hermes-agent" \
-    --acr-namespace "$ACR_NAMESPACE" --acr-repo hermes-agent \
-    --tag "$TAG" --cpu 2 --memory 4096 --official-api
+    --region "$REGION" --acr-namespace "$ACR_NAMESPACE" --acr-repo hermes-agent \
+    --tag "$TAG" --cpu 2 --memory 4096
 echo "Exit code: $?"

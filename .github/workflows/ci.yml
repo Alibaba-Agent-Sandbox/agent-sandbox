@@ -125,6 +125,11 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the actual installed npm artifact
+        run: |
+          npm install --global --prefix "$RUNNER_TEMP/abx-package-check" ./dist-pack/*.tgz
+          node scripts/check-release-artifact.mjs "$RUNNER_TEMP/abx-package-check/bin/abx"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

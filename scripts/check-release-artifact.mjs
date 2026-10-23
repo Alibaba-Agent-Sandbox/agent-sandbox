@@ -31,7 +31,10 @@ assert.match(rootHelp, /create\s+Create a sandbox\.\s+\(alias: abx sandbox creat
 assert.match(rootHelp, /run\s+Run a registered sandbox command\.\s+\(alias: abx sandbox\s+command run\)/, "Installed artifact must explain registered commands before their alias");
 assert.match(run(["create", "--help"]), /--detach/);
 assert.match(run(["template", "image", "--help"]), /Usage:/i);
-assert.match(run(["--native", "template", "list", "--help"]), /--official-api/);
+const nativeListHelp = run(["--native", "template", "list", "--help"]);
+assert.match(nativeListHelp, /--region/);
+assert.match(nativeListHelp, /FCSandbox API with AK\/SK/);
+assert.doesNotMatch(nativeListHelp, /--official-api|--legacy-api/);
 assert.match(run(["--native", "config", "get", "region"]), /\S/);
 const projectRoot = mkdtempSync(join(tmpdir(), "abx-onboarding-"));
 try {
