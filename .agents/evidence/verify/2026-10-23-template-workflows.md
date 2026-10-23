@@ -106,3 +106,14 @@ The parity runner includes natural-language integration tests outside the defaul
 - Scoped ESLint for migrated guide/NL tests: PASS.
 
 Remote CLI revision `128f8dc6c71a9be9e28a9608e1e19f1b2e44a374` did not reach tests because its pinned Provider commit had not yet been pushed (`upload-pack: not our ref`). The producer was subsequently pushed by the coordinator. A new complete CI run remains necessary; the checkout failure is not interpreted as a pass or a test assertion failure.
+
+
+## Reproducible owner verification and installed artifact
+
+CI now pins the Python contract/test producer to `270a7a8fa72656653b485403273491fd99aeefc8` from [Python PR #89](https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/89), checks out the owner test files, and explicitly points `PYTHON_SDK_ROOT` at that checkout for parity verification. This avoids quietly leaving moved-test verification unavailable in CI. Both pending producer pins must be updated to verified merge revisions when their dependencies land.
+
+- `make dist-check`: PASS; packaged `dist/bin/abx.js` found.
+- `npm pack` and isolated global installation of the produced tarball: PASS.
+- `node scripts/check-release-artifact.mjs <isolated-installed-abx>`: PASS; actual installed executable verifies version, isolated configuration guidance, a single JSON result, root/standard/native help, notices, and terminal-menu cancellation before credential input.
+
+No live credentials or cloud resources were needed for these package checks. Standalone SEA and real-provider workflow evidence remain separate required checks.

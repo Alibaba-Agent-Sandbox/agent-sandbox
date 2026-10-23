@@ -57,8 +57,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: alibaba-agent-sandbox/python-sdk
+          # Contract and migrated-test dependency: https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/89
+          ref: 270a7a8fa72656653b485403273491fd99aeefc8
           path: vendor/python-sdk
-          sparse-checkout: server-sdk/src
+          sparse-checkout: |
+            server-sdk/src
+            client-sdk/tests
           sparse-checkout-cone-mode: false
 
       - name: Check out the provider catalog
@@ -84,6 +88,7 @@ jobs:
 
       - name: Parity coverage check
         env:
+          PYTHON_SDK_ROOT: ${{ github.workspace }}/vendor/python-sdk
           ABX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src
         run: npm run parity:coverage
 
