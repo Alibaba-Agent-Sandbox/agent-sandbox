@@ -1,8 +1,8 @@
 {
   "repository": "https://github.com/Alibaba-Agent-Sandbox/python-sdk",
-  "revision": "5f7631cfc02e6e67bdf7a7325ef39dec112f812d",
+  "revision": "b8d06847780448193f7d529c59c40b5ba9cc6b8d",
   "files": {
-    "workflow-v1.json": "0f1e0cef03debe5a6983f550ee22f4985374bcca060932f15abd8e133d22c23f",
+    "workflow-v1.json": "1f15ec90eb00c6b50bc820d149f3574aa76aebabc314709d55533ad17c90df65",
     "verification-profiles.json": "e5a5926d2556596e470679198021efe27f60ed9c5479e535c783a41f1421e820",
     "receipt.schema.json": "6ac8cfe5f5b983aed84c1f683c33636e1e99ba35091cab2581d7ce50b78c34f1"
   }

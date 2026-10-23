@@ -94,7 +94,8 @@ export function planWorkflow(manifest, provider, workflowId, consumer) {
     const requirement = { operation, phase, owner, state, reason };
     if (!requirements.some(r => r.operation === operation && r.phase === phase && r.owner === owner)) requirements.push(requirement);
   };
-  for (const rule of contract.rules) if (Object.entries(rule.when).every(([field, values]) => values.includes(lookup(workflow, field))))
+  for (const rule of contract.rules) if (Object.entries(rule.when ?? {}).every(([field, values]) => values.includes(lookup(workflow, field))) &&
+      (rule.when_present ?? []).every(field => lookup({manifest, provider, workflow}, field) !== undefined && lookup({manifest, provider, workflow}, field) !== null))
     for (const operation of rule.operations) add(operation, rule.phase, rule.owner);
   add(workflow.operation, "before-invoke", workflow.kind === "application" ? "consumer" : "provider");
   for (const operation of workflow.required_operations) add(operation, "before-invoke", "provider");
