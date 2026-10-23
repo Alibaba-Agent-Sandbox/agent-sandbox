@@ -104,3 +104,5 @@ They are registered as recognised optional sections and are not mandatory:
 - `## Implementation` — implementation notes, phases, or status detail
 - `## Evidence` — links to tests, PRs, or captured verification artifacts
 - `## Files changed` — the concrete files touched by the decision
+
+- [Cloud E2E command contract](proposed/process/2026-10-23-cloud-e2e-command-contract.md)

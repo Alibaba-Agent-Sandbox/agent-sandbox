@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Migrate cloud CLI E2E scenarios to standard detached creation and per-command JSON formats; retain project coverage through explicit native entry, track owned IDs before verification, prove actual process termination, and retain ambiguous create attempts and unconfirmed cleanup in durable recovery records. / 云端 CLI E2E 迁移到标准 detached 创建和命令级 JSON 输出；项目功能显式使用 native 入口，先记录资源 ID，再验证实际进程终止与清理，持久保留未知创建及未确认清理记录。
+
 - Refuse command payloads until the bound application confirms protocol v2 and the current identity’s exact endpoint; reject malformed catalogs, and clean known sandboxes even if their recovery receipt cannot be written. / 应用端点确认 v2 协议和当前身份的精确操作后才发送命令，拒绝非法目录，恢复日志写入失败仍清理已知沙箱。
 
 - Preserve backend-issued process IDs and timestamps through streaming; acknowledge silent-process startup using its real ID, and reject missing or invalid IDs. / 流式调用保留后端进程 ID 和时间戳，静默进程以真实 ID 确认启动，缺少或非法 ID 时拒绝确认。
