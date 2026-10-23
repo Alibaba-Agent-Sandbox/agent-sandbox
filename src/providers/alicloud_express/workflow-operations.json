@@ -1,0 +1,61 @@
+{
+  "operation_contract_version": 1,
+  "operations": {
+    "cli": [
+      "sandbox.create",
+      "sandbox.get",
+      "sandbox.list",
+      "sandbox.delete",
+      "sandbox.timeout",
+      "template.prepare",
+      "exec.run",
+      "exec.stream",
+      "files.read",
+      "files.write",
+      "files.list",
+      "files.stat",
+      "files.remove",
+      "files.move",
+      "ports.resolve",
+      "code.execute",
+      "code.context.create",
+      "code.context.execute",
+      "code.context.list",
+      "code.context.restart",
+      "code.context.delete",
+      "code.default-context.execute"
+    ],
+    "python": [
+      "sandbox.create",
+      "sandbox.get",
+      "sandbox.list",
+      "sandbox.delete",
+      "sandbox.timeout",
+      "template.prepare",
+      "exec.run",
+      "exec.stream",
+      "files.read",
+      "files.write",
+      "files.list",
+      "files.stat",
+      "files.remove",
+      "files.move",
+      "ports.resolve",
+      "code.execute",
+      "code.context.create",
+      "code.context.execute",
+      "code.context.list",
+      "code.context.restart",
+      "code.context.delete",
+      "code.default-context.execute"
+    ]
+  },
+  "workflow_inputs": [
+    "source",
+    "managed"
+  ],
+  "startup_modes": [
+    "entrypoint",
+    "none"
+  ]
+}
