@@ -43,6 +43,7 @@ export function validateWorkflowManifest(manifest) {
     keys(workflow.binding, contract.binding_keys);
     for (const key of contract.binding_keys) if (!contract.binding_values[key].includes(workflow.binding[key])) error(`invalid binding.${key}`);
     strings(workflow.required_operations);
+    if (own(workflow, "required_checks")) strings(workflow.required_checks);
     for (const operation of workflow.required_operations) if (!own(contract.operations, operation)) error(`unknown required operation ${operation}`);
     if (workflow.kind === "application") {
       if (typeof workflow.service !== "string" || !own(manifest.provides, workflow.service)) error("application service must exist");
