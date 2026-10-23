@@ -57,3 +57,15 @@ The final complete CI matrix, package/SEA distribution acceptance, differential 
 - `git diff --check`: PASS at checkpoint.
 
 Complete latest-head test/CI and real OpenSandbox gates remain outstanding; this record does not authorize a green merge on partial evidence.
+
+## Independent HTTP path review follow-up
+
+A shared review found that WHATWG URL normalization can remove TAB characters and then normalize dot segments. The application URL join now rejects raw and decoded C0/DEL characters before constructing the operation URL, and validates the raw endpoint before URL parsing. Regression inputs include raw/encoded TAB traversal and encoded NUL/DEL. No request is sent for rejected paths.
+
+- HTTP path and Provider help fixture regressions: PASS, 29 tests across 2 files.
+- Interpreter environment/callback input regressions: PASS, 21 tests; malformed maps or callbacks are rejected before context creation and payload execution.
+- `npm run typecheck`: PASS, exit 0 after the review fixes.
+- ESLint on the changed API/transport/test files: PASS, exit 0.
+- Launch help capture updated to distinguish source, managed/image and external-service workflows.
+
+These focused checks do not replace the outstanding full-suite, remote CI and real-provider gates above.

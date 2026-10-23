@@ -42,6 +42,9 @@ export class CodeContextModule {
     this.require(operation);
     if (typeof code !== "string" || typeof language !== "string" || !language || !Number.isSafeInteger(timeout) || timeout <= 0 ||
       (context_id !== null && (typeof context_id !== "string" || !context_id))) throw new TypeError("Invalid interpreter input.");
+    if (envs !== null && (typeof envs !== "object" || Array.isArray(envs) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(envs)) || Object.values(envs).some(value => typeof value !== "string"))) throw new TypeError("Interpreter environment must be a string map.");
+    if ([on_stdout, on_stderr, on_result].some(callback => callback !== null && typeof callback !== "function")) throw new TypeError("Interpreter callbacks must be functions.");
     let executionContext = context_id;
     if (operation === "code.execute") {
       this.require("code.context.create"); this.require("code.context.execute"); this.require("code.context.delete");

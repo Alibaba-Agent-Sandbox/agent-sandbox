@@ -13,7 +13,7 @@ describe("application port binding", () => {
     expect(fetch.mock.calls[0]).toEqual(["https://gateway.invalid/sandboxes/owned/ports/9000/commands/run?signature=private", expect.objectContaining({
       redirect: "manual", headers:{"X-Gateway-Token":"gateway-only","Authorization":"Bearer application-only","Content-Type":"application/json"}})]);
   });
-  it.each(["//other", "/../other", "/%2e%2e/other", "/%252e%252e/other", "/commands/%2fother", "/commands//other", "/commands?other=1"])("rejects ambiguous or escaping operation %s before sending credentials", async operation => {
+  it.each(["//other", "/../other", "/%2e%2e/other", "/%252e%252e/other", "/commands/%2fother", "/commands//other", "/commands?other=1", "/\t../\t../victim/9000/health", "/%09../%09../victim/9000/health", "/commands/%00", "/commands/%7f"])("rejects ambiguous or escaping operation %s before sending credentials", async operation => {
     const fetch = vi.fn(); applicationHttpSeams.fetch = fetch;
     await expect(requestApplication(endpoint(), operation, {method: "POST"})).rejects.toThrow("path escapes"); expect(fetch).not.toHaveBeenCalled();
   });

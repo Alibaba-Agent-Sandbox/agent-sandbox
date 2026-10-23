@@ -213,3 +213,11 @@ it("preserves execution and cleanup failures together", async () => {
   try {await module.run("payload");throw Error("unexpected success");}
   catch(error){expect(error).toBeInstanceOf(AggregateError);expect((error as AggregateError).errors).toEqual([executionError,cleanupError]);}
 });
+
+it("rejects malformed environment and callbacks before creating a context or sending payload", async()=>{
+  const {module,code_interpreter_protocol:protocol}=makeCodeModule();
+  await expect(module.run("payload",{envs:true} as never)).rejects.toThrow("environment");
+  await expect(module.run("payload",{envs:{A:1}} as never)).rejects.toThrow("environment");
+  await expect(module.run("payload",{on_stdout:"ignored"} as never)).rejects.toThrow("callbacks");
+  expect(protocol.createContext).not.toHaveBeenCalled();expect(protocol.runCode).not.toHaveBeenCalled();
+});

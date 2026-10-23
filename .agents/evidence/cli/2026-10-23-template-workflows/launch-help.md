@@ -5,10 +5,11 @@ Captured from the source CLI with `node --import tsx src/bin/abx.ts template lau
 ```text
 Usage: abx template launch [options] <TEMPLATE_REF>
 
-Build/register a template with the selected provider and create a sandbox using
-its returned reference. Configure the provider first; --yes permits billable
-operations. The selected workflow determines required operations before build.
-This project extension does not convert IDs between clouds.
+Launch the selected manifest workflow. Source builds prepare resources; image
+and managed workflows create from explicit references; external service
+workflows verify their HTTP binding. Configure the selected provider before
+cloud operations; --yes permits billable build/create. Required operations are
+checked before preparation.
 
 Options:
   --service-url <SERVICE_URL>      Explicit external service URL for a service

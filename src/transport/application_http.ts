@@ -2,6 +2,8 @@
 import { ProviderConfigError } from "../models/provider_errors.js";
 import type { ApplicationEndpoint } from "../protocol/port_contract.js";
 
+const hasControl = (value: string): boolean => [...value].some(character => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
+
 export const applicationHttpSeams = { fetch: globalThis.fetch };
 export interface ApplicationResponse { is_success: boolean; status_code: number; text: string; json(): any }
 
@@ -10,6 +12,7 @@ export function validateApplicationEndpoint(endpoint: ApplicationEndpoint, sandb
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535 || endpoint.sandbox_id !== sandboxId || endpoint.port !== port ||
       endpoint.authentication_audience !== "gateway" || !["prefix", "operation-signed"].includes(endpoint.path_mode))
     throw new ProviderConfigError("Application endpoint does not match the selected sandbox and port.");
+  if (typeof endpoint.url !== "string" || hasControl(endpoint.url)) throw new ProviderConfigError("Application endpoint contains control characters.");
   let url: URL;
   try { url = new URL(endpoint.url); } catch { throw new ProviderConfigError("Invalid application endpoint."); }
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.hash)
@@ -25,13 +28,17 @@ export function validateApplicationEndpoint(endpoint: ApplicationEndpoint, sandb
 
 /** Append a protocol-owned operation path without losing proxy scope or signed query. */
 export function applicationOperationUrl(endpoint: ApplicationEndpoint, operationPath: string): string {
+  validateApplicationEndpoint(endpoint, endpoint.sandbox_id, endpoint.port);
   if (endpoint.path_mode !== "prefix") throw new ProviderConfigError("This endpoint requires adapter-signed operation requests.");
+  let decodedPath: string;
+  try { decodedPath = decodeURIComponent(operationPath); } catch { throw new ProviderConfigError("Application operation path has invalid encoding."); }
+  if (hasControl(operationPath) || hasControl(decodedPath)) throw new ProviderConfigError("Application operation path escapes its binding.");
   if (!operationPath.startsWith("/") || operationPath.startsWith("//") || /[?#\\]/.test(operationPath) ||
       operationPath.split("/").slice(1).some(part => !part || part === "." || part === ".." || /%(?:2e|2f|5c|25)/i.test(part)))
     throw new ProviderConfigError("Application operation path escapes its binding.");
   const url = new URL(endpoint.url);
   // Reject ambiguous provider prefixes rather than normalizing them into another sandbox binding.
-  if (/\\|\/\/|%(?:2e|2f|5c|25)/i.test(url.pathname)) throw new ProviderConfigError("Ambiguous application proxy prefix.");
+  if (hasControl(decodeURIComponent(url.pathname)) || /\\|\/\/|%(?:2e|2f|5c|25)/i.test(url.pathname)) throw new ProviderConfigError("Ambiguous application proxy prefix.");
   url.pathname = url.pathname.replace(/\/$/, "") + operationPath;
   return url.href;
 }
@@ -40,7 +47,6 @@ export function applicationOperationUrl(endpoint: ApplicationEndpoint, operation
 export async function requestApplication(endpoint: ApplicationEndpoint, operationPath: string, options: {
   method: "GET" | "POST"; json?: unknown; application_token?: string; timeout?: number;
 }): Promise<ApplicationResponse> {
-  validateApplicationEndpoint(endpoint, endpoint.sandbox_id, endpoint.port);
   const url = applicationOperationUrl(endpoint, operationPath);
   const headers: Record<string, string> = { ...endpoint.headers };
   if (options.application_token !== undefined) {

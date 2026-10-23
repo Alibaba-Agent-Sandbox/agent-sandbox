@@ -78,6 +78,7 @@ export default () => {
     async buildInfra() {
       mark("buildInfra");
       return {
+        operation_contract_version: 1, operations: {cli:[],python:[]},
         sandbox_protocol: {},
         provider_commands: {
           async run(operation, input) {
