@@ -36,7 +36,7 @@ terminalTest("shows an elapsed Git stage before a slow real fetch completes", ()
     expect(terminal.status, terminal.stderr).toBe(0);
     expect(terminal.stdout).toMatch(/^Installed provider 'demo-prov'/);
     expect(terminal.stdout).not.toContain("Fetching");
-    expect(terminal.stderr).toMatch(/Fetching provider source with Git \(timeout: 120s\).*1s/);
+    expect(terminal.stderr).toMatch(/Fetching provider source with Git \(timeout: 120s\).*\.\.\. [1-9]\d*s/);
     expect(terminal.stderr).toContain("Validating provider files");
     expect(terminal.stderr).not.toContain("Verifying provider handshake");
   } finally {

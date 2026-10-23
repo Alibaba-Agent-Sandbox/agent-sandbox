@@ -35,7 +35,7 @@ npm run check:hygiene
 | Scenario | Result | Evidence |
 | --- | --- | --- |
 | Final targeted installer/CLI/terminal/snapshots | PASS | 247 tests |
-| Real delayed Git + terminal | PASS | Fetch stage redraw includes 1s before success; final stdout contains only result |
+| Real delayed Git + terminal | PASS | Fetch stage redraw includes a positive elapsed value before success; final stdout contains only result |
 | Real public GitHub OpenSandbox install | PASS | Source/plugin 0.4.1, actual post-consent handshake, isolated home; 1.35s in development run; 1.24s using the actual installed npm artifact |
 | Actual installed npm artifact smoke | PASS | Version 0.4.10, terminal menu, JSON result, guidance/help/notices |
 | Typecheck / ESLint / build | PASS | Locked source environment |
@@ -51,7 +51,7 @@ Public provider installs and terminal fixtures use disposable homes; removed aft
 
 ## Problems found
 
-The missing feedback and unconditional shallow retry are fixed in this branch. Existing unrelated local network/TLS/WebSocket and offline-harness failures remain explicit limitations; no tests or cloud controls were weakened.
+The missing feedback and unconditional shallow retry are fixed in this branch. Initial [CI 39921982744](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39921982744) exposed an overly exact terminal-test assertion: scheduler jitter can produce 0s then 2s, skipping the literal 1s. The regression now requires a positive elapsed redraw before completion; the real Git delay and result/stderr assertions remain intact. Existing unrelated local network/TLS/WebSocket and offline-harness failures remain explicit limitations; no tests or cloud controls were weakened.
 
 ## Not verified
 
