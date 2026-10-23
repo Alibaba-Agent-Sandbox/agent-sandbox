@@ -4,7 +4,7 @@
 
 `abx template launch SOURCE --workflow application` 在构建和创建资源前检查所选工作流。非交互执行需用 `--yes` 授权计费的构建与创建步骤。Provider 必须明确支持输入类型、启动模式和每个所需操作。声明 `ready_cmd` 时必须支持 `exec.run`。托管模板引用必须标明归属 Provider；OCI 镜像输入要求不可变的 `@sha256:` 引用。外部服务 URL 使用显式 server-client 入口。
 
-若模板声明 `build_profiles.portable: {dockerfile: Dockerfile.portable, context: .}`，用 `--build-profile portable` 选择。原 Dockerfile 保持原样。所选文件必须包含可用基础镜像；未解析的平台占位符在创建资源前被拒绝。CLI 对允许上传的源文件和构建配置建立快照，准备资源前再次核对。凭据环境文件被排除，源目录软链接被拒绝。
+若模板声明 `build_profiles.portable: {dockerfile: Dockerfile.portable, context: '.'}`，用 `--build-profile portable` 选择。原 Dockerfile 保持原样。所选文件必须包含可用基础镜像；未解析的平台占位符在创建资源前被拒绝。CLI 对允许上传的源文件和构建配置建立快照，准备资源前再次核对。凭据环境文件被排除，源目录软链接被拒绝。
 
 适配器为具体沙箱与端口返回应用端点。请求保留代理路径前缀和签名查询参数，隔离应用与网关凭据，拒绝重定向和匿名重试。应用命令通过独立 HTTP 连接执行，不依赖 shell 或 envd 服务。
 

@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 import fs from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -156,6 +157,22 @@ describe("explicit workflow inputs and build profiles", () => {
     const f=setup(),file=path.join(f.directory,"template.yaml"),manifest=JSON.parse(fs.readFileSync(file,"utf8"));manifest.build_profiles={portable:{dockerfile:"Dockerfile.portable",context:"."}};fs.writeFileSync(file,JSON.stringify(manifest));fs.writeFileSync(path.join(f.directory,"Dockerfile"),"FROM <platform-base>\n");fs.writeFileSync(path.join(f.directory,"Dockerfile.portable"),"FROM python:3.12-slim\n");
     try{const result=await f.invoke(["--build-profile","portable"]);expect(result.exit_code,result.output).toBe(0);expect(JSON.parse(result.stdout).build_profile).toBe("portable");expect(f.provider.prepare.mock.calls[0]?.length).toBeGreaterThan(0);expect(fs.readFileSync(path.join(f.directory,"Dockerfile"),"utf8")).toBe("FROM <platform-base>\n");}
     finally{f.create.mockRestore();}
+  });
+  it("launches a portable profile from actual YAML with a quoted root context", async () => {
+    const f = setup();
+    const yaml = manifestYaml("name: project\nbuild_profiles:\n  portable:\n    dockerfile: Dockerfile.portable\n    context: '.'\n");
+    fs.writeFileSync(path.join(f.directory, "template.yaml"), yaml);
+    const original = "FROM <platform-base>\n";
+    fs.writeFileSync(path.join(f.directory, "Dockerfile"), original);
+    fs.writeFileSync(path.join(f.directory, "Dockerfile.portable"), "FROM python:3.12-slim\n");
+    try {
+      const result = await f.invoke(["--build-profile", "portable"]);
+      expect(result.exit_code, result.output).toBe(0);
+      expect(f.provider.prepare.mock.calls[0]?.[1].build_profile).toEqual({ id: "portable", dockerfile: "Dockerfile.portable", context: "." });
+      expect(JSON.parse(result.stdout)).toMatchObject({ build_profile: "portable", source_digest: expect.stringMatching(/^[a-f0-9]{64}$/) });
+      expect(fs.readFileSync(path.join(f.directory, "Dockerfile"), "utf8")).toBe(original);
+      expect(fs.readFileSync(path.join(f.directory, "template.yaml"), "utf8")).toBe(yaml);
+    } finally { f.create.mockRestore(); }
   });
   it("rejects an unknown build profile before side effects",async()=>{const f=setup();try{expect((await f.invoke(["--build-profile","missing"])).exit_code).not.toBe(0);expect(f.provider.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();}finally{f.create.mockRestore();}});
 });

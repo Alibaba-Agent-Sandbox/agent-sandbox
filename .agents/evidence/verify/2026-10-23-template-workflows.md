@@ -117,3 +117,14 @@ CI now pins the Python contract/test producer to `270a7a8fa72656653b485403273491
 - `node scripts/check-release-artifact.mjs <isolated-installed-abx>`: PASS; actual installed executable verifies version, isolated configuration guidance, a single JSON result, root/standard/native help, notices, and terminal-menu cancellation before credential input.
 
 No live credentials or cloud resources were needed for these package checks. Standalone SEA and real-provider workflow evidence remain separate required checks.
+
+
+## Portable profile YAML and standalone executable
+
+The real provider acceptance run exposed a YAML scalar difference: the configured YAML 1.1 parser loads an unquoted `context: .` as a non-finite numeric value. Strict root-context validation correctly rejected that input before preparation. The portable manifest and bilingual CLI example use the explicit string `context: '.'`; validation remains strict and the source paths are unchanged.
+
+- Actual YAML portable-profile launch regression: PASS; complete launcher file 17 tests passed. The quoted context reaches the prepare seam with its selected Dockerfile, source digest and profile identity; the original Dockerfile and manifest bytes remain unchanged.
+- `npm run build:binary`: PASS for Linux x64; the generated executable reports version 0.4.10.
+- `node scripts/check-release-artifact.mjs dist/binary`: PASS against the actual standalone executable, including embedded help/notice assets, isolated configuration behavior and terminal-menu cancellation.
+
+These local artifact checks do not certify the real OpenSandbox lifecycle; the coordinator records the provider run independently.
