@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.10] - 2026-10-23
+
 ### Fixed
+
+- Show provider install/update stages and live elapsed time while fetching, validating and verifying; stop retrying Git timeouts and unrelated fetch errors. / 提供方安装与更新显示阶段及终端等待计时；Git 超时和无关拉取错误不再重复重试。
 
 - Align provider launch guidance with accepted OpenSandbox Docker scope and independently marked Beta providers. / 提供方启动说明同步 OpenSandbox Docker 已验收范围，其他 Beta 提供方单独标注。
 

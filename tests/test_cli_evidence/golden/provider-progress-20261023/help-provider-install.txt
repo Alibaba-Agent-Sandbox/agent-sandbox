@@ -1,0 +1,43 @@
+Usage: abx provider install [options] <SOURCE>
+
+Install a provider plugin from a directory or a git URL.
+
+SOURCE is a local directory, owner/repo//subdir[@ref] (same // as
+'abx template install'), or a git URL (https://, ssh://, git@host:path).
+The plugin's abx-provider.toml is validated and its tree digest recorded.
+After consent, default verification may load and initialize the plugin. A
+consent screen
+lists what the plugin runs, which features it provides and which generic
+credentials it would receive. Non-interactive installs need --yes.
+Progress and terminal elapsed time go to stderr; --json/--quiet suppress them.
+
+A full 40-hex commit (--ref) or --sha256 pins the install. Tag and branch
+installs are unpinned: they are accepted only after you read the consent
+screen in a terminal (without --yes) or with --allow-unpinned; --yes alone
+never accepts a moving ref.
+
+Examples:
+  abx provider install ./my-provider
+  abx provider install ./my-provider --link --yes     # development: use in
+place
+  abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
+  abx provider install https://github.com/acme/abx-provider-acme.git --ref
+<commit>
+
+Options:
+  --ref <REF>                 Git tag, branch or commit (a full 40-hex commit
+                              pins the install)
+  --subdir <SUBDIR>           Plugin directory inside the repository
+  --sha256 <SHA256>           Expected tree digest; the install fails if it
+                              differs (pins the install)
+  --link                      Link a local directory for development (no copy,
+                              no integrity check; requires --yes; POSIX only)
+  --force                     Replace an installed provider with the same id
+  --allow-unpinned            Allow a tag/branch install without --sha256 in
+                              non-interactive mode
+  --allow-insecure-transport  Allow file://, git:// and http:// sources (testing
+                              only)
+  -y, --yes                   Skip the confirmation prompt (required in
+                              non-interactive mode)
+  -h, --help                  Show this message and exit.
+[exit_code:0]
