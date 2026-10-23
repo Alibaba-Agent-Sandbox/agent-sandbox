@@ -51,6 +51,8 @@ What `install` does and does not do:
 - A source is **pinned** with a full 40-hex `--ref` or `--sha256 <tree digest>`. A tag or branch is unpinned: it is accepted only after you read the consent screen in a terminal (no `--yes`) or with `--allow-unpinned`; `--yes` alone refuses it (`E8012`) and prints the commit to pin. `abx provider update` follows the same rule. `--link` makes an in-place development install without an integrity check. `--allow-insecure-transport` enables `file://`, `git://` and `http://` (tests and development only). URLs with embedded credentials are rejected (`E8012`).
 - The tree digest is verified every time the plugin starts (`E8011` when files changed). `--force` replaces an existing install of the same id.
 
+Installation and update report source inspection, Git fetching, file/manifest/digest validation, store writing and post-consent handshake verification on stderr. An interactive terminal also shows elapsed seconds for the current stage. `--yes` skips consent but keeps progress; `--json` and `--quiet` suppress progress. Each Git operation has a 120-second timeout. Timeouts and network/authentication failures are not automatically retried; a server that explicitly rejects shallow fetch gets one announced retry without depth. If fetching times out, check connectivity to the source host (or the SSH agent for SSH URLs), or clone the repository yourself and install its plugin directory locally. A completed install does not start an OpenSandbox server or create a cloud sandbox.
+
 Check a provider without side effects on the backend:
 
 ```bash

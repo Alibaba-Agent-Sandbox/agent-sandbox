@@ -17,3 +17,5 @@ abx --provider opensandbox template launch ./python-hello --workflow application
 成功的 JSON 结果包含工作流、后端引用、沙箱、源码摘要、执行计划和资源日志。新建沙箱保留至主动删除或超时。启动失败时仅清理本次拥有的沙箱，并报告是否确认删除。镜像与已注册模板可能保留或需手工清理。超时可能留下结果不确定的资源，应根据资源日志中的关联标识核对后再重试。
 
 新工作流实现通过仓库检查和真实 Provider 门禁后才可发布。源码可通过 `npm ci && npm run build` 构建，再用 `node dist/bin/abx.js` 执行；已发布的旧 CLI 不会仅因目录更新自动获得新契约。标准模板命令保留其固定版本的标准客户端契约。
+
+第三方 Provider 集成仍标记为 Beta。工作流证据不等于完整原生协议面已经验收，正式原生验收属于独立门禁。

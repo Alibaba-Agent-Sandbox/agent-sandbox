@@ -84,6 +84,39 @@ async function rejectsWith<T extends Error>(p: Promise<unknown>, cls: new (...a:
   throw new Error(`expected ${cls.name}`);
 }
 
+describe("installation progress", () => {
+  it("reports real Git stages before consent and verification, without exposing source output", async () => {
+    const repo = writePlugin(T("repo"));
+    initRepo(repo);
+    gitCommitAll(repo);
+    const seen: installer.InstallPhase[] = [];
+    await installer.install(`file://${repo}`, {
+      ...HV, allowInsecureTransport: true, allowUnpinned: true,
+      onProgress: (phase) => seen.push(phase),
+      confirm: () => {
+        expect(seen).toContain("fetch");
+        expect(seen.at(-1)).toBe("consent");
+        expect(store.readReceipt("demo-prov")).toBeNull();
+        return true;
+      },
+      verify: () => {
+        expect(seen.at(-1)).toBe("verify");
+        expect(store.readReceipt("demo-prov")).not.toBeNull();
+      },
+    });
+    expect(seen).toEqual(["inspect", "fetch", "validate", "validate", "consent", "write", "verify"]);
+  });
+
+  it("keeps verification rollback while reporting its phase", async () => {
+    const seen: installer.InstallPhase[] = [];
+    await expect(inst(writePlugin(T("src")), {
+      onProgress: (phase) => seen.push(phase), verify: boom("handshake failed"),
+    })).rejects.toThrow("handshake failed");
+    expect(seen.at(-1)).toBe("verify");
+    expect(store.readReceipt("demo-prov")).toBeNull();
+  });
+});
+
 describe("TestLocalInstall", () => {
   it("test_installs_and_records_receipt", async () => {
     const src = writePlugin(T("src"));

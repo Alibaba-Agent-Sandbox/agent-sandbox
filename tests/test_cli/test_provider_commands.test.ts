@@ -90,6 +90,25 @@ describe("provider help and discovery", () => {
 });
 
 describe("provider install / default / uninstall", () => {
+  it("reports human installation stages on stderr only", async () => {
+    const r = await abx("provider", "install", LOCAL_PROCESS, "--yes", "--no-verify");
+    expect(r.exit_code, r.output).toBe(0);
+    expect(r.stderr).toContain("Inspecting provider source");
+    expect(r.stderr).toContain("Validating provider files, manifest and digest");
+    expect(r.stderr).toContain("Installing provider files");
+    expect(r.stderr).not.toContain("Verifying provider handshake");
+    expect(r.stdout).toMatch(/^Installed provider/);
+    expect(r.stdout).not.toContain("Inspecting");
+  });
+
+  it.each(["--json", "--quiet"])("suppresses installation progress in %s", async (mode) => {
+    const r = await abx(mode, "provider", "install", LOCAL_PROCESS, "--yes", "--no-verify");
+    expect(r.exit_code, r.output).toBe(0);
+    expect(r.stderr).toBe("");
+    if (mode === "--json") expect(json(r.stdout)).toMatchObject({ status: "success", id: "local-process" });
+    else expect(r.stdout).toBe("");
+  });
+
   it("test_install_requires_yes_without_a_terminal", async () => {
     const r = await abx("provider", "install", LOCAL_PROCESS);
     expect(r.exit_code).toBe(2);

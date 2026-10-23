@@ -12,7 +12,7 @@ export { listProviderCommands, getProviderCommand, runProviderCommand, type Prov
 export { doctor, verifyHandshake, type DoctorReport } from "./doctor.js";
 export * from "../models/provider_errors.js";
 export { ExecProvider } from "./exec_provider.js";
-export { install, uninstall, update, InstallPlan } from "./installer.js";
+export { install, uninstall, update, InstallPlan, type InstallPhase, type ProgressFn } from "./installer.js";
 export { loadManifest, parseManifest, type Manifest } from "./manifest.js";
 export {
   ambientProviderId,

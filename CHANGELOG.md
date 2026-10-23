@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Project templates require spec v4 workflow manifests and exact provider operations. Application HTTP bindings are isolated from envd; interpreter execution is stateless by default, with explicit persistent contexts and no shell fallback. Launch records immutable sources, explicit build profiles and owned-resource recovery intent. Guessed interpreter RPCs and their public runtime export are removed; native Express workflow source preparation remains unavailable until its journal and identity contract is implemented.
 
+## [0.4.10] - 2026-10-23
+
+### Fixed
+
+- Show provider install/update stages and live elapsed time while fetching, validating and verifying; stop retrying Git timeouts and unrelated fetch errors. / 提供方安装与更新显示阶段及终端等待计时；Git 超时和无关拉取错误不再重复重试。
+
+- Align provider launch guidance with accepted OpenSandbox Docker scope and independently marked Beta providers. / 提供方启动说明同步 OpenSandbox Docker 已验收范围，其他 Beta 提供方单独标注。
 
 ## [0.4.9] - 2026-10-23
 

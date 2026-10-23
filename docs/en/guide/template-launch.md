@@ -17,3 +17,5 @@ The source snapshot and provider code are checked before preparation/create. `st
 A successful JSON result identifies the workflow, returned reference, sandbox, source digest, execution plan and resource journal. Newly created sandboxes are retained until deletion or timeout. On startup failure the launcher deletes only its owned sandbox and reports whether deletion was confirmed. Images and registered templates can remain retained or require manual cleanup. A timeout can leave an uncertain remote result: reconcile the journal's correlation identity before retrying.
 
 The new workflow implementation must pass its repository and real-provider gates before release. A source checkout can be built with `npm ci && npm run build` and invoked using `node dist/bin/abx.js`; an older published CLI does not acquire this contract from a catalog update alone. Standard template commands retain their pinned standard-client contract.
+
+All third-party Provider integrations remain Beta. Workflow evidence does not certify their complete native protocol surface; formal native acceptance is a separate gate.
