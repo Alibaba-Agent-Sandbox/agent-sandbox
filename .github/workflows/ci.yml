@@ -67,7 +67,7 @@ jobs:
           repository: alibaba-agent-sandbox/awesome-providers
           # Contract dependency under review: https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/25
           # Keep immutable until the producer lands; update to its verified merge revision before acceptance.
-          ref: 9a1eaaa7659bcd8a98d321c8111a4a1340ca3227
+          ref: de4fbf647966459feb57a35ab590b938024abe0e
           path: vendor/awesome-providers
 
       - name: Typecheck

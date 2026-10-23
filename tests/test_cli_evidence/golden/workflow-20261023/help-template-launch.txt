@@ -1,0 +1,21 @@
+Usage: abx template launch [options] <TEMPLATE_REF>
+
+Launch the selected manifest workflow. Source builds prepare resources; image
+and managed workflows create from explicit references; external service
+workflows verify their HTTP binding. Configure the selected provider before
+cloud operations; --yes permits billable build/create. Required operations are
+checked before preparation.
+
+Options:
+  --service-url <SERVICE_URL>      Explicit external service URL for a service
+                                   workflow
+  --build-profile <BUILD_PROFILE>  Explicit manifest build profile; preserves
+                                   its Dockerfile without rewriting source
+  --workflow <WORKFLOW>            Explicit workflow ID (defaults to the
+                                   manifest default_workflow)
+  -a, --alias <ALIAS>
+  --timeout <FLOAT>                Build deadline in seconds (maximum 3600)
+  --sandbox-timeout <FLOAT>        Sandbox lifetime in seconds
+  -y, --yes
+  -h, --help                       Show this message and exit.
+[exit_code:0]

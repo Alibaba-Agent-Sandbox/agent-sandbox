@@ -1,5 +1,6 @@
 /** Provider-owned port addressing and access headers. */
 
+import { ProviderConfigError } from "../models/provider_errors.js";
 import { getLogger } from "../utils/logging.js";
 import { validateApplicationEndpoint } from "../transport/application_http.js";
 import type { ApplicationEndpoint } from "../protocol/port_contract.js";
@@ -68,6 +69,7 @@ export class NetworkModule {
 
   /** Resolve the exact sandbox/port application binding, independently of the envd transport. */
   async resolveEndpoint(port: number): Promise<ApplicationEndpoint> {
+    if (this._port_resolver !== null && !this._endpoint_resolver) throw new ProviderConfigError("Provider application endpoints require an explicit sandbox/port descriptor.");
     const endpoint = this._endpoint_resolver ? await this._endpoint_resolver(port) : {
       provider_id: this._provider_id, sandbox_id: this._sandbox_id, port,
       url: this.getUrl(port), headers: this._port_access.getServerHeaders(),

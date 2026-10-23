@@ -91,7 +91,7 @@ describe.skipIf(!hasPython)("a plugin sandbox", () => {
       const r = await abx("--provider", "local-process", ...args);
       expect(r.err + r.out, args.join(" ")).toContain("E8004");
       expect(r.err + r.out).not.toContain("_createEnvdClient");
-      expect(r.err + r.out).toContain("named commands");
+      expect(r.err + r.out).toContain("ports.url");
       expect(r.code).toBe(1);
     }
   });

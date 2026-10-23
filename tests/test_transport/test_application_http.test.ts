@@ -54,3 +54,9 @@ it("executes against a real HTTP server with the exact proxy binding and separat
     expect(observed).toEqual([{url:"/sandboxes/owned/ports/9000/commands/add?signature=private",authorization:"Bearer application-only",gateway:"gateway-only",body:'{"x":1,"y":2}'}]);
   } finally {await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
 });
+
+it("refuses to reconstruct an async provider endpoint from the synchronous default scheme",async()=>{
+  const {NetworkModule}=await import("../../src/api/network.js");
+  const network=new NetworkModule({sandbox_id:"owned",domain:"gateway.invalid",port_resolver:async()=>["http://proxy.invalid/owned/9000",{}],port_access:{getUrl:()=>"https://wrong.invalid",getHost:()=>"wrong.invalid",getAccessHeaders:()=>({}),getServerHeaders:()=>({})}});
+  await expect(network.resolveEndpoint(9000)).rejects.toThrow("explicit sandbox/port descriptor");
+});

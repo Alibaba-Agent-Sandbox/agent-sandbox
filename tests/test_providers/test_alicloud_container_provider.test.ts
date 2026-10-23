@@ -285,7 +285,7 @@ describe.skipIf(!haveCatalog)("alicloud-container provider", () => {
 
       const before = seen.length;
       await expect(sb.files.watch("/tmp")).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
-      await expect(sb.code.createContext()).rejects.toThrow(/createContext/);
+      await expect(sb.code.createContext()).rejects.toThrow(/code\.context\.create/);
       expect(seen.length).toBe(before);
     } finally {
       await sb.kill();

@@ -73,3 +73,21 @@ These focused checks do not replace the outstanding full-suite, remote CI and re
 ## CI dependency and merge readiness
 
 PR [#121](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/121) initially had no check runs because GitHub reported `mergeable=false` / `mergeable_state=dirty`. Actions was enabled; draft state was not treated as a passing CI result. The Provider catalog checkout is pinned to reviewed producer revision `9a1eaaa7659bcd8a98d321c8111a4a1340ca3227` from [Provider PR #25](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/pull/25). This dependency is pending; update the immutable pin to the verified producer merge revision before acceptance.
+
+
+## Full-suite and real CI convergence follow-up
+
+The clean lockfile installation and build were run in a native temporary checkout to avoid slow workspace filesystem access. The intermediate complete local suite returned 4,140 passed / 23 failed / 2 skipped across 185 files. These failures remain recorded; no security assertion was skipped or relaxed. Local explicit foreign-Host/envd-dial requests returned network-audit HTTP 501, and low-level TCP/TLS/WebSocket fixtures also differed locally.
+
+The actual Ubuntu GitHub CI at CLI revision `ecfbd31b1b7920cb6253bd2fcf023fbc1cb8037b` ran both Node 20 and Node 22. Node 20 reported 4,149 passed / 9 failed / 6 skipped; both jobs failed. [CI run](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39937561722). The nine failures were retired-schema test fixtures, help snapshots, exact-operation error expectations, and Cube application endpoint scheme/domain reconstruction. The local network-audit and low-level transport failures did not reproduce in this Ubuntu run. Docs links, typecheck/lint and installer checks passed; package build was skipped because tests failed.
+
+The follow-up migrates test fixtures to the current schema, gives the two changed help captures a new evidence directory, and checks the exact `code.context.create` operation. Application networking now refuses providers that supply only an asynchronous URL resolver without an explicit owned endpoint descriptor, preventing a synchronous fallback from changing HTTP to HTTPS or losing the reported domain. Producer revision `de4fbf647966459feb57a35ab590b938024abe0e` supplies explicit Cube/Container/E2B endpoint descriptors and is pinned in CI pending its reviewed merge.
+
+- Follow-up fixture/application/container regression: PASS, 178 tests across 6 files.
+- Provider/engine integration with the new descriptors: 29 passed / 10 failed, all remaining failed paths are the local foreign-Host/envd network-audit paths described above. Missing-token checks and application endpoint binding assertions remain intact. The Cube fallback-domain endpoint test now passes locally.
+- `npm run typecheck`: PASS, exit 0.
+- `npm run lint`: PASS, exit 0; 276 warnings / 0 errors.
+- `npm run check:hygiene`: PASS.
+- `npm run test:standard-provenance`: PASS, 7 tests.
+
+The updated full remote matrix, package/distribution and real provider gates remain required. No complete-suite pass or merge is claimed by this follow-up.
