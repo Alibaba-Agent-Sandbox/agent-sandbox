@@ -297,6 +297,8 @@ describe("TestGenerateTemplateFiles", () => {
       "commands.py",
     );
     expect(String(exc)).toContain("did not create the expected file");
+    expect(exc.suggestion).toContain('abx create --prompt "<description>"');
+    expect(exc.suggestion).toContain("abx create <name> --detach");
   });
 
   it("test_commands_py_with_a_syntax_error_raises", async () => {
@@ -485,7 +487,7 @@ describe("TestValidateTemplateWorkspace", () => {
   it("default suggestion names the workspace and the fallback command", async () => {
     const exc = await raises(() => validateTemplateWorkspace(tmpPath, "n"), AICodegenError);
     expect(exc.suggestion).toBe(
-      `Inspect the generated workspace: ${tmpPath} — then retry, or fall back to 'abx create <name>'.`,
+      `Inspect the generated workspace: ${tmpPath}. ${AICodegenError.suggestion}`,
     );
   });
 

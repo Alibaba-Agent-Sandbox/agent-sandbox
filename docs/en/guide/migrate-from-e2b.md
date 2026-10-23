@@ -44,3 +44,7 @@ template READMEs use that same pair. No PyPI release is implied.
 
 `abx --licenses` includes the full upstream prebundle identity inventory and retained
 notices. Maintainers refresh and verify them using [the pinned-source workflow](../../../vendor/e2b-cli/README.md).
+
+### Generated project instructions
+
+Built-in Express `template scaffold` READMEs use `template deploy . && create NAME --detach` with an explicit Express provider. Run in a terminal to complete missing configuration; configure values before using `-y` in automation. A failed deploy stops creation. Use the printed ID for named commands and explicit kill. Other providers receive their own help entry rather than Express deployment instructions. AI recovery uses `create --prompt "DESCRIPTION"`; an existing Express template uses `create TEMPLATE --detach`.

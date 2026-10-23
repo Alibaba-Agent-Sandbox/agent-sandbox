@@ -40,11 +40,20 @@ const fixture = JSON.parse(
 
 const registry = errors as unknown as Record<string, new (...args: unknown[]) => errors.SandboxError>;
 
-// Keep the historical oracle immutable. Provider isolation intentionally replaces
-// its native-only default suggestion; explicit suggestions retain exact parity.
+// Preserve the historical formatting oracle. Project-owned defaults intentionally
+// follow the current provider/CLI contract; explicit suggestions retain parity.
+const aiRetry = 'The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry \'abx create --prompt "<description>"\'. For Express, fall back to \'abx create <name> --detach\'; for other providers, check \'abx create --help\'.';
+const currentSuggestions: Record<string, string> = {
+  InvalidCredentialsError: "Check the selected provider authentication configuration (abx provider info).",
+  QwenCodeNotInstalledError: "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'). For Express, bypass AI generation with 'abx create <name> --detach'; for other providers, check 'abx create --help'.",
+  AICodegenError: aiRetry,
+  QwenCodeTimeoutError: aiRetry,
+  QwenCodeStartupError: aiRetry,
+  DescriptionClarificationError: "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y with --prompt to generate from the current description anyway. For Express, use an existing template with 'abx create <name> --detach'; for other providers, check 'abx create --help'.",
+};
 const currentCases = fixture.cases.map((c): Case => {
-  if (c.cls !== "InvalidCredentialsError" || c.variant !== "minimal") return c;
-  const suggestion = "Check the selected provider authentication configuration (abx provider info).";
+  const suggestion = currentSuggestions[c.cls];
+  if (suggestion === undefined || c.variant !== "minimal") return c;
   return { ...c, expected: { ...c.expected,
     suggestion,
     str: `[${c.expected.code}] ${c.expected.message}\n  Suggestion: ${suggestion}`,

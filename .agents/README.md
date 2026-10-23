@@ -135,3 +135,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [Recover interactive setup and align template commands](notes/implemented/process/2026-10-22-template-command-guidance.md) · [verification](evidence/verify/2026-10-22-template-command-guidance.md)
 
 - [Error reporting proposal](notes/proposed/architecture/2026-10-22-error-reporting.md) (design only).
+
+- [Command recovery review](notes/implemented/process/2026-10-23-command-recovery-review.md) · [verification](evidence/verify/2026-10-23-command-recovery-review.md)

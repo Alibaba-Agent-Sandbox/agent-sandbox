@@ -6,6 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { RUNTIME_DEPENDENCY_NOTICES } from "../../src/licenses/runtime_dependencies.js";
+import { renderScaffold } from "../../src/cli/scaffold.js";
+import { AICodegenError, DescriptionClarificationError, QwenCodeNotInstalledError } from "../../src/models/errors.js";
 
 const home = mkdtempSync(path.join(os.tmpdir(), "abx-standard-"));
 const entry = fileURLToPath(new URL("../../src/bin/abx.ts", import.meta.url));
@@ -25,6 +27,52 @@ async function run(args: string[]): Promise<{ code: number; stdout: string; stde
 }
 
 describe("standard executable contract", () => {
+  it.each([QwenCodeNotInstalledError, AICodegenError, DescriptionClarificationError])(
+    "renders an executable Express recovery command for %s", async (ErrorType) => {
+      const rendered = String(new ErrorType("generation unavailable"));
+      const command = rendered.match(/'abx create <name> --detach'/)?.[0];
+      expect(command, rendered).toBeDefined();
+      const args = command!.slice(1, -1).split(" ").slice(1).map((arg) => arg === "<name>" ? "base" : arg);
+      const result = await run([...args, "--timeout", "29"]);
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain("--timeout must be at least 30 seconds");
+      expect(rendered).not.toContain("create --template");
+    },
+  );
+
+  it("makes AI retry explicit and accepts its prompt syntax", async () => {
+    const suggestion = new AICodegenError("unavailable").suggestion;
+    expect(suggestion).toContain('abx create --prompt "<description>"');
+    const result = await run(["create", "--prompt", "a Python environment", "--help"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("--prompt");
+  });
+
+  it.each(["python", "node", "minimal"])("generates a gated detached %s workflow", async (caseName) => {
+    const readme = renderScaffold(caseName, "demo", "alicloud-express").get("README.md")!;
+    const block = readme.match(/```bash\n([\s\S]*?)```/)?.[1];
+    expect(block).toBeDefined();
+    const trace = path.join(home, `deploy-failure-${caseName}.txt`);
+    // Execute the generated shell block: a rejected deploy must prevent creation.
+    const code = await new Promise<number>((resolve) => {
+      execFile("sh", ["-c", `abx() { printf '%s\\n' "$*" >> "$ABX_TEST_TRACE"; return 7; }\n${block}`],
+        { env: { PATH: process.env.PATH, ABX_TEST_TRACE: trace } }, (error) => resolve(typeof error?.code === "number" ? error.code : 0));
+    });
+    expect(code).toBe(7);
+    expect(readFileSync(trace, "utf8").trim()).toBe("--provider alicloud-express template deploy .");
+    const create = block!.split("\n").find((line) => line.includes(" create "))!;
+    const result = await run([...create.trim().split(" ").slice(1), "--timeout", "29"]);
+    expect(result.stderr).toContain("--timeout must be at least 30 seconds");
+    expect(readme).toContain("kill SANDBOX_ID");
+  });
+
+  it("keeps other provider scaffolds on their own workflow", () => {
+    const readme = renderScaffold("python", "demo", "opensandbox").get("README.md")!;
+    expect(readme).toContain("abx --provider opensandbox create --help");
+    expect(readme).not.toContain("abx --provider alicloud-express");
+    expect(readme).not.toContain("abx template deploy");
+  });
+
   it("retains identified package licenses and prebundled copyright notices", async () => {
     const sources = JSON.parse(readFileSync(new URL("../../vendor/e2b-cli/sources.json", import.meta.url), "utf8")) as Array<{ name: string; version: string; license: string }>;
     expect(sources.length).toBeGreaterThan(30);
