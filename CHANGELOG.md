@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Recover npm publication safely after delayed registry visibility: verify immutable candidate integrity before skipping an existing version, and use bounded fresh-cache online readback retries. / npm 版本短暂不可见时支持安全恢复：先核对已发布版本与验收包完整性，再跳过重复发布；读回使用有界重试与独立缓存。
+
 ## [0.4.8] - 2026-10-23
 
 ### Fixed
