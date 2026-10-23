@@ -191,3 +191,30 @@ jobs:
           done
           [ "$installed" = true ]
           node scripts/check-release-artifact.mjs "$RUNNER_TEMP/abx-public/bin/abx"
+
+  release-assets:
+    name: Attach the tested npm artifact and checksum
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: release-assets
+      - name: Check the exact candidate and generate its checksum
+        working-directory: release-assets
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+        run: |
+          set -- *.tgz
+          [ "$#" -eq 1 ]
+          [ -f "$1" ]
+          [ "$1" = "agent-sandbox-cli-${RELEASE_TAG#v}.tgz" ]
+          sha256sum "$1" > "$1.sha256"
+      - name: Attach assets required by the website release mirror
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          files: release-assets/*

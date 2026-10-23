@@ -90,16 +90,16 @@ templateUi["list"] =  { params: [
     regionOption(),
 ], help: cleandoc(`List custom templates registered for the current account.
 
-    By default this queries the configured platform endpoint. Pass
-    to use the Alibaba Cloud FCSandbox API with AK/SK.
+    The native entry uses the Alibaba Cloud FCSandbox API with AK/SK.
+    Standard template listing uses the Sandbox API key.
     This command does not search the community template index.
 
     \b
     Examples:
-      abx template list
-      abx template list
-      abx template list --region cn-shanghai
-      abx --json template list
+      abx --native template list
+      abx --native template list --region cn-shanghai
+      abx --native --json template list
+      abx template list --format json
 
     \b
     Related commands:
@@ -112,12 +112,11 @@ templateUi["info"] =  { params: [
     regionOption(),
 ], help: cleandoc(`Show details for a template ID.
 
-    Pass to use the Alibaba Cloud FCSandbox GetTemplate API;
-    that mode requires configured AccessKey credentials.
+    This uses the Alibaba Cloud FCSandbox GetTemplate API and requires
+    configured AccessKey credentials.
 
     \b
     Examples:
-      abx template info tmpl-abc123
       abx template info tmpl-abc123
       abx template info tmpl-abc123 --region cn-shanghai
       abx --json template info tmpl-abc123

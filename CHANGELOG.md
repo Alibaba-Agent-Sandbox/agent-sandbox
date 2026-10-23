@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-10-23
+
+### Fixed
+
+- Validate current native template help instead of the retired --official-api flag; run installed-artifact smoke in normal package CI before tagging. Repair native list/info help and deployment helper arguments; attach the exact tested npm tarball and checksum required by the website mirror. / 发布验收改为当前原生命令合同，常规 CI 在打标签前验证实际安装包；修正列表/详情帮助及部署脚本参数，并上传官网镜像需要的实际验收 npm 包和校验和。
+
 ## [0.4.7] - 2026-10-23
+
+Unpublished candidate: binary verification stopped on a stale retired-option assertion. The immutable failed tag is retained; recovery continues in 0.4.8. / 未发布候选版：独立二进制验收被旧参数断言拦截，保留失败标签，由 0.4.8 继续交付。
 
 ### Fixed
 

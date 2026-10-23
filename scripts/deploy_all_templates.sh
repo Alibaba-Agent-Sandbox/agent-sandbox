@@ -55,20 +55,19 @@ for name in "${ORDER[@]}"; do
     SRC="$EXAMPLES_TEMPLATES_DIR/$name"
   else
     echo "Fetching $name from alibaba-agent-sandbox/awesome-templates..."
-    "$ABX_BIN" --region "$REGION" template install "$name" --download-only
+    "$ABX_BIN" --provider alicloud-express template install "$name" --region "$REGION" --download-only
     SRC="$CATALOG_CACHE/$name"
   fi
 
   START_TIME=$(date +%s)
   
-  "$ABX_BIN" --region "$REGION" template deploy \
-    "$SRC" \
+  "$ABX_BIN" --provider alicloud-express template deploy \
+    "$SRC" --region "$REGION" \
     --acr-namespace "$ACR_NS" \
     --acr-repo "$name" \
     --tag "$TAG" \
     --cpu "$cpu" \
-    --memory "$mem" \
-    --official-api 2>&1 && EXIT_CODE=$? || EXIT_CODE=$?
+    --memory "$mem" 2>&1 && EXIT_CODE=$? || EXIT_CODE=$?
   
   END_TIME=$(date +%s)
   ELAPSED=$((END_TIME - START_TIME))
