@@ -244,7 +244,8 @@ export class ExecSandboxProtocol {
 function frameToChunk(frame: Record<string, unknown>): ProcessChunk {
   const kind = String(frame["type"] ?? "stdout");
   const type = kind === "stdout" || kind === "stderr" || kind === "exit" ? kind : ProcessChunkType.STDOUT;
-  return new ProcessChunk({ type, data: String(frame["data"] ?? ""), exit_code: (frame["exit_code"] as number | null | undefined) ?? null });
+  return new ProcessChunk({ type, data: String(frame["data"] ?? ""), exit_code: (frame["exit_code"] as number | null | undefined) ?? null,
+    pid: frame["pid"] ?? null, timestamp: frame["timestamp"] ?? null });
 }
 
 export interface ProcessStartOpts {
@@ -371,9 +372,16 @@ export class ExecProcessProtocol {
 
   private async *stream(params: Dict, timeout: number): AsyncGenerator<Dict> {
     const res = asDict(await this.client.call("exec.start", params, { timeout: timeout + execTuning.exitGraceSeconds }));
-    const processId = String(res["process_id"]);
-    const queue: AsyncQueue<Notification | null> = this.client.openStream(processId);
+    const processId = res["process_id"];
+    if (!(typeof processId === "string" && processId.trim().length > 0) &&
+        !(typeof processId === "number" && Number.isSafeInteger(processId) && processId > 0)) {
+      throw new ProviderProtocolError(`Provider '${this.pid}' returned no valid process ID for exec.start.`);
+    }
+    const streamId = String(processId);
+    const queue: AsyncQueue<Notification | null> = this.client.openStream(streamId);
     try {
+      // A backend-issued ID acknowledges startup even when the process emits no output.
+      yield { type: "stdout", data: "", pid: processId, timestamp: res["timestamp"] ?? null };
       for (;;) {
         const note = await queue.getWithin((timeout + execTuning.exitGraceSeconds) * 1000);
         if (note === undefined) {
@@ -386,14 +394,16 @@ export class ExecProcessProtocol {
           return;
         }
         if (note["method"] === "exec.output") {
-          yield { type: note["stream"] === "stderr" ? "stderr" : "stdout", data: String(note["data"] ?? "") };
+          yield { type: note["stream"] === "stderr" ? "stderr" : "stdout", data: String(note["data"] ?? ""),
+            pid: note["pid"] ?? note["process_id"] ?? processId, timestamp: note["timestamp"] ?? null };
         } else if (note["method"] === "exec.exit") {
-          yield { type: "exit", exit_code: Math.trunc(Number(note["exit_code"] ?? 0)) };
+          yield { type: "exit", exit_code: Math.trunc(Number(note["exit_code"] ?? 0)),
+            pid: note["pid"] ?? note["process_id"] ?? processId, timestamp: note["timestamp"] ?? null };
           return;
         }
       }
     } finally {
-      this.client.closeStream(processId);
+      this.client.closeStream(streamId);
     }
   }
 

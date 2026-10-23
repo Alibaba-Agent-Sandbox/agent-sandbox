@@ -32,6 +32,12 @@ describe("TestProcessResult", () => {
 });
 
 describe("TestProcessChunk", () => {
+  it.each([1234, "opaque-process-id", "000123"])('preserves real process identifier %j through serialization', pid => {
+    const chunk = new ProcessChunk({ type: "stdout", data: "", pid, timestamp: 123.5 });
+    expect(chunk.pid).toBe(pid);
+    expect(JSON.parse(JSON.stringify(chunk.modelDump()))).toMatchObject({ pid, timestamp: 123.5 });
+  });
+
   it("test_stdout_chunk", () => {
     const chunk = new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "hello" });
     expect(chunk.type).toBe(ProcessChunkType.STDOUT);

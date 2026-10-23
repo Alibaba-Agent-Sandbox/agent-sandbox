@@ -139,3 +139,20 @@ The actual OpenSandbox acceptance run reached sandbox creation but exposed an ex
 - Primary workspace `npm run build`: PASS; its `dist` includes the runtime fix for the next real-provider run.
 
 At the preceding source revision `20e29f24fd5d027ebc0c450ecf072f0f2a10ddcf`, the complete Node 22 GitHub test job passed, including unit and parity gates. [CI run](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/39939939879). Updated complete CI and the actual OpenSandbox application lifecycle remain necessary after this runtime correction.
+
+
+## Real startup acknowledgement identity regression
+
+The [next actual OpenSandbox run](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/actions/runs/39941973393) passed CLI source/profile preparation, image push, sandbox readiness, the CLI application invocation, and Python connection to that application. Its subsequent Python prepared-image launch timed out waiting for startup acknowledgement: the backend returned a real opaque process ID, but the CLI EPP adapter never emitted it and its process-frame converter discarded PID metadata. This is an adapter propagation defect, not evidence that standard output proves process startup.
+
+The EPP adapter now validates the returned startup ID before opening a stream. Only an actual nonempty opaque string or positive safe integer can produce the initial empty metadata chunk; missing, blank, non-finite, fractional, zero or negative IDs fail with a typed protocol error. String IDs retain their exact representation, including leading zeroes. Stream frame PID and reported timestamps survive model serialization, CLI background output and the engine SSE response. No random/synthetic ID or stdout-based acknowledgement is introduced, and no provider operation declarations are expanded.
+
+- Final related regression: PASS, 96 tests across process models, EPP client/adapter, CLI background execution and engine streaming.
+- A real JSON-RPC subprocess returns the actual startup ID and emits no stdout notification until a separate release request. Both opaque-string and numeric IDs are acknowledged before that release and retain PID/timestamp through serialized chunks.
+- A real installed local-process plugin starts a silent process and crosses the EPP subprocess, process model and localhost engine HTTP/SSE route; the initial frame and exit frame preserve the same backend-issued opaque ID. Local sandbox cleanup is asserted and the engine closes in `finally`.
+- Invalid startup-ID cases fail before a stream opens; no acknowledgement is emitted.
+- `npm run typecheck`: PASS; CLI background PID handling uses the same number/string contract.
+- Scoped ESLint: PASS.
+- Primary workspace `npm run build`: PASS; rebuilt `dist` includes the PID propagation fix.
+
+The Provider/Python owners separately correct upstream fabricated-ID fallback and Python engine PID loss. Their coordinated complete real-provider rerun and updated CLI CI remain required after this correction.

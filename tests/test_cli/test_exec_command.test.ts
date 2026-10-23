@@ -153,11 +153,11 @@ describe("TestExecBackground", () => {
     expect(sb.commands.run).not.toHaveBeenCalled();
   });
 
-  it("test_background_json", async () => {
+  it.each([7, "opaque-process-id", "0007"])("test_background_json [%j]", async pid => {
     const sb = _sandbox();
-    sb.commands.start.mockResolvedValue(started(new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "", pid: 7 })));
+    sb.commands.start.mockResolvedValue(started(new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "", pid })));
     const result = await runner().invoke(cli, ["--json", "exec", "--background", "sbx-1", "--", "sleep", "100"]);
-    expect(JSON.parse(result.stdout)).toEqual({ pid: 7 });
+    expect(JSON.parse(result.stdout)).toEqual({ pid });
   });
 
   it("test_background_without_pid_fails", async () => {

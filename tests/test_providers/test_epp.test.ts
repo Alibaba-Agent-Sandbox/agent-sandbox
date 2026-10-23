@@ -7,6 +7,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import * as E from "../../src/models/provider_errors.js";
+import { ExecProcessProtocol } from "../../src/providers/exec_provider.js";
 import * as epp from "../../src/providers/epp.js";
 import { EppClient, exitCodeFor, mapError, scrubbedEnv } from "../../src/providers/epp.js";
 import * as installer from "../../src/providers/installer.js";
@@ -74,6 +75,40 @@ async function rejectsWith<T extends Error>(p: Promise<unknown>, cls: new (...a:
 const code = (e: Error): string => (e as E.ProviderError).code;
 
 describe("EppClient", () => {
+  it.each(["000123opaque-process", 42])("acknowledges a silent backend with its real wire process ID before output: %j", async processId => {
+    const c = client(`
+      const processId = ${JSON.stringify(processId)};
+      require("readline").createInterface({ input: process.stdin }).on("line", line => {
+        const msg = JSON.parse(line);
+        if (msg.method === "initialize") send({ jsonrpc: "2.0", id: msg.id, result: { protocol: "epp/1", operation_contract_version: 1, operations: { cli: ["exec.run", "exec.stream"], python: [] }, features: ["exec.run", "exec.stream"] } });
+        else if (msg.method === "exec.start") send({ jsonrpc: "2.0", id: msg.id, result: { process_id: processId, timestamp: 123.5 } });
+        else if (msg.method === "release") {
+          send({ jsonrpc: "2.0", id: msg.id, result: {} });
+          send({ jsonrpc: "2.0", method: "exec.output", params: { process_id: processId, stream: "stdout", data: "ready", timestamp: 124.5 } });
+          send({ jsonrpc: "2.0", method: "exec.exit", params: { process_id: processId, exit_code: 0, timestamp: 125.5 } });
+        } else if (msg.method === "shutdown") { send({ jsonrpc: "2.0", id: msg.id, result: {} }); process.exit(0); }
+      });
+    `);
+    await c.start(INIT);
+    const protocol = new ExecProcessProtocol(c, c.features, null);
+    const reader = await protocol.start("epp://t/sbx-1", null as never, { cmd: "silent-server", timeout: 1 });
+    try {
+      const first = await reader.next();
+      expect(first.done).toBe(false);
+      expect(JSON.parse(JSON.stringify(first.value?.modelDump()))).toMatchObject({ type: "stdout", data: "", pid: processId, timestamp: 123.5 });
+      // No output notification exists until this separate real JSON-RPC request.
+      await c.call("release");
+      const chunks = await reader.collect();
+      expect(chunks.map(chunk => chunk.modelDump())).toEqual([
+        expect.objectContaining({ type: "stdout", data: "ready", pid: processId, timestamp: 124.5 }),
+        expect.objectContaining({ type: "exit", exit_code: 0, pid: processId, timestamp: 125.5 }),
+      ]);
+    } finally {
+      await c.close();
+      await reader.cancel();
+    }
+  }, 5000);
+
   it("test_handshake_and_ping", async () => {
     const c = client(serve('send({ jsonrpc: "2.0", id: msg.id, result: msg.params });'));
     const result = await c.start(INIT);

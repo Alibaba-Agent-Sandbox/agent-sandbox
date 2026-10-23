@@ -1525,7 +1525,7 @@ export const exec_cmd = command("exec", {
     const sandbox = await Sandbox.connect(sandboxId);
 
     if (background) {
-      let pid: number | null = null;
+      let pid: number | string | null = null;
       for await (const chunk of await sandbox.commands.start(commandLine, { timeout: cmdTimeout, cwd, env })) {
         if (chunk.pid !== null && chunk.pid !== undefined) {
           pid = chunk.pid;

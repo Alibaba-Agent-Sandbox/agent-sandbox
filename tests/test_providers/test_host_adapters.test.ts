@@ -172,7 +172,7 @@ describe("method table", () => {
     expect(TABLE["sandbox.get"]?.["support"]).toBe("required");
     expect(TABLE["sandbox.connect"]?.["support"]).toBe("optional");
     expect(TABLE["process.kill"]?.["params"]["pid"]["type"]).toBe("string|integer");
-    expect(TABLE["exec.start"]?.["result"]).toBe("{process_id: string}");
+    expect(TABLE["exec.start"]?.["result"]).toBe("{process_id: string|integer}");
   });
 });
 
@@ -246,6 +246,20 @@ describe("ExecSandboxProtocol", () => {
 });
 
 describe("ExecProcessProtocol", () => {
+  it.each([undefined, null, "", "   ", 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])("refuses an invalid startup ID before emitting an acknowledgement: %j", async processId => {
+    class MissingId extends FakeClient {
+      override async call(method: string, params: Dict = {}): Promise<unknown> {
+        if (method === "exec.start") return { process_id: processId };
+        return super.call(method, params);
+      }
+    }
+    const client = new MissingId();
+    const proc = new xp.ExecProcessProtocol(asClient(client), ALL_FEATURES, null);
+    const reader = await proc.start(EPP, TOKEN, { cmd: "silent-server", timeout: 1 });
+    await expect(reader.next()).rejects.toBeInstanceOf(E.ProviderProtocolError);
+    expect(client.queues.size).toBe(0);
+  });
+
   it("test_process_info_accepts_string_ids", async () => {
     const proc = new xp.ExecProcessProtocol(asClient(new FakeClient()), ALL_FEATURES, null);
     const infos = await proc.listProcesses(EPP, TOKEN);
