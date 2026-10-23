@@ -85,6 +85,12 @@ export class InstallPlan {
 
 export type ConfirmFn = (plan: InstallPlan) => boolean | Promise<boolean>;
 export type VerifyFn = (providerId: string) => void | Promise<void>;
+/** Host-owned installation stages; never contains Git or plugin output. */
+export type InstallPhase = "inspect" | "fetch" | "fetch-full" | "validate" | "consent" | "write" | "verify";
+/** Optional presentation hook. The installer itself never writes terminal output. */
+export type ProgressFn = (phase: InstallPhase) => void;
+
+class GitCommandError extends ProviderInstallError {}
 
 // ---------------------------------------------------------------- git
 
@@ -254,7 +260,9 @@ function runGit(args: string[], opts: { cwd: string; env: NodeJS.ProcessEnv; std
     };
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
-      finish(() => reject(new ProviderInstallError("Cannot fetch provider source: git timed out.")));
+      finish(() => reject(new ProviderInstallError(`Cannot fetch provider source: git ${args[0]} timed out after ${GIT_TIMEOUT_MS / 1000}s.`, {
+        suggestion: "Check connectivity to the source host (and SSH agent for SSH sources), or clone the repository yourself and install its local plugin directory. The timed-out operation was not retried.",
+      })));
     }, GIT_TIMEOUT_MS);
     child.stdout.on("data", (b: Buffer) => {
       size += b.length;
@@ -290,7 +298,7 @@ async function git(args: string[], opts: { cwd: string; env: NodeJS.ProcessEnv; 
   if (res.code !== 0) {
     const lines = res.stderr.trim().split(/\r?\n/).filter(Boolean);
     const tail = lines.length > 0 ? (lines[lines.length - 1] as string) : "git failed";
-    throw new ProviderInstallError(`Cannot fetch provider source: ${store.redactUrl(tail)}.`);
+    throw new GitCommandError(`Cannot fetch provider source: ${store.redactUrl(tail)}.`);
   }
   return res.stdout;
 }
@@ -359,7 +367,7 @@ async function readBlobs(records: TreeRecord[], opts: { repo: string; env: NodeJ
 /** Fetch a git source *without checking anything out*; returns `{ entries, commit }`. */
 export async function fetchGit(
   url: string,
-  opts: { ref?: string | null; subdir?: string | null; allowInsecure?: boolean },
+  opts: { ref?: string | null; subdir?: string | null; allowInsecure?: boolean; onProgress?: ProgressFn | undefined },
 ): Promise<{ entries: store.FileEntry[]; commit: string }> {
   const scratch = fs.mkdtempSync(path.join(store.stagingDir(), "git-"));
   try {
@@ -369,12 +377,15 @@ export async function fetchGit(
     await git(["init", "--bare", "--quiet", "--template="], { cwd: repo, env });
     const target = opts.ref || "HEAD";
     const fetch = ["fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--filter=blob:limit=10m"];
+    opts.onProgress?.("fetch");
     try {
       await git([...fetch, "--depth", "1", url, target], { cwd: repo, env });
     } catch (exc) {
-      if (!(exc instanceof ProviderInstallError)) throw exc;
+      if (!(exc instanceof GitCommandError) || !/does not support shallow|shallow (?:capabilities|requests? (?:are )?not supported)/i.test(exc.message)) throw exc;
+      opts.onProgress?.("fetch-full");
       await git([...fetch, url, target], { cwd: repo, env });
     }
+    opts.onProgress?.("validate");
     const commit = (await git(["rev-parse", "--verify", "FETCH_HEAD^{commit}"], { cwd: repo, env })).toString("utf-8").trim();
     if (opts.ref && SHA40.test(opts.ref) && commit !== opts.ref) {
       throw new ProviderInstallError("Cannot fetch provider source: the server returned a different commit.");
@@ -465,6 +476,7 @@ function makeReceipt(plan: InstallPlan, installedBy: Record<string, string> | nu
 }
 
 export interface PrepareOptions {
+  onProgress?: ProgressFn | undefined;
   ref?: string | null;
   subdir?: string | null;
   sha256?: string | null;
@@ -474,6 +486,7 @@ export interface PrepareOptions {
 
 /** Fetch and validate a source; nothing is written to the store. */
 export async function prepare(source: string, opts: PrepareOptions = {}): Promise<{ plan: InstallPlan; entries: store.FileEntry[] }> {
+  opts.onProgress?.("inspect");
   const expanded = expandCatalogRef(source, opts.ref, opts.subdir);
   source = expanded.source;
   opts = { ...opts, ref: expanded.ref, subdir: expanded.subdir };
@@ -498,11 +511,12 @@ export async function prepare(source: string, opts: PrepareOptions = {}): Promis
     src = { type: "local", path: root };
     trust = "local";
   } else {
-    const fetched = await fetchGit(location, { ref: opts.ref, subdir: opts.subdir, allowInsecure: opts.allowInsecureTransport });
+    const fetched = await fetchGit(location, { ref: opts.ref, subdir: opts.subdir, allowInsecure: opts.allowInsecureTransport, onProgress: opts.onProgress });
     entries = fetched.entries;
     src = { type: "git", url: store.redactUrl(location), ref: opts.ref || "HEAD", commit: fetched.commit, subdir: opts.subdir || "" };
     trust = opts.ref && SHA40.test(opts.ref) ? "pinned" : "unpinned";
   }
+  opts.onProgress?.("validate");
   const manifest = manifestFromEntries(entries);
   const digest = store.digestFiles(entries);
   if (opts.sha256) {
@@ -569,6 +583,7 @@ export async function install(source: string, opts: InstallOptions = {}): Promis
   }
 
   if (!opts.yes) {
+    opts.onProgress?.("consent");
     if (!opts.confirm) {
       const commit = plan.source.commit;
       const subdir = plan.source.subdir;
@@ -580,7 +595,12 @@ export async function install(source: string, opts: InstallOptions = {}): Promis
   }
 
   const receipt = makeReceipt(plan, opts.installedBy, manifest.sha256, host);
-  await store.withStoreLock(() => swapIn(manifest.id, entries, receipt, { link: plan.trust === "link", verify: opts.verify }));
+  opts.onProgress?.("write");
+  const verify: VerifyFn | undefined = opts.verify ? async (id) => {
+    opts.onProgress?.("verify");
+    await opts.verify?.(id);
+  } : undefined;
+  await store.withStoreLock(() => swapIn(manifest.id, entries, receipt, { link: plan.trust === "link", verify }));
   return receipt;
 }
 
@@ -670,6 +690,7 @@ async function swapIn(
 // ---------------------------------------------------------------- update / uninstall
 
 export interface UpdateOptions {
+  onProgress?: ProgressFn | undefined;
   ref?: string | null;
   check?: boolean;
   yes?: boolean;
@@ -720,6 +741,7 @@ export async function update(providerId: string, opts: UpdateOptions = {}): Prom
     ref: useRef,
     subdir: src.subdir || null,
     allowInsecureTransport: opts.allowInsecureTransport,
+    onProgress: opts.onProgress,
   });
   if (plan.manifest.id !== providerId) {
     throw new ProviderInstallError(`Provider id changed from '${providerId}' to '${plan.manifest.id}'; refusing to update.`);
@@ -734,6 +756,7 @@ export async function update(providerId: string, opts: UpdateOptions = {}): Prom
   const host = opts.hostVersion ?? hostVersion();
   checkRequires(plan.manifest, { component: "cli", host_version: host });
   if (!opts.yes) {
+    opts.onProgress?.("consent");
     if (!opts.confirm) {
       throw new ProviderTrustError("Installing a provider requires confirmation.", {
         suggestion: `Re-run with --yes after reviewing: abx provider update ${providerId}`,
@@ -743,7 +766,12 @@ export async function update(providerId: string, opts: UpdateOptions = {}): Prom
   }
   const installedBy = receipt["installed_by"] as Record<string, string> | undefined;
   const newReceipt = makeReceipt(plan, installedBy, plan.manifest.sha256, host);
-  await store.withStoreLock(() => swapIn(providerId, entries, newReceipt, { link: false, verify: opts.verify }));
+  opts.onProgress?.("write");
+  const verify: VerifyFn | undefined = opts.verify ? async (id) => {
+    opts.onProgress?.("verify");
+    await opts.verify?.(id);
+  } : undefined;
+  await store.withStoreLock(() => swapIn(providerId, entries, newReceipt, { link: false, verify }));
   return { ...base, status: "updated" };
 }
 

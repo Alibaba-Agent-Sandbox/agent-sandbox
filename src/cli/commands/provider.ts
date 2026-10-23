@@ -30,6 +30,7 @@ import { resolveKey, coerce } from "../../utils/config_resolver.js";
 import { BUILTIN_PROVIDER_ID, CORE_KEYS, GENERIC_ENDPOINT_KEYS, getKey } from "../../utils/config_keys.js";
 import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
+import { getOutput } from "../output.js";
 import { handleErrors } from "../error_handler.js";
 import { engine } from "./provider_engine.js";
 import { createProviderRun, provider_commands } from "./provider_commands.js";
@@ -54,7 +55,7 @@ const PROVIDER_HELP = [
   "      abx provider install ./my-provider",
   "      abx provider install https://github.com/acme/abx-provider-acme.git --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7",
   "      abx provider default acme",
-  "      abx create --provider acme --template base",
+  "      abx create base --provider acme",
   "      abx list --all-providers",
   "",
   "    \b",
@@ -72,6 +73,36 @@ export const provider = group("provider", { help: PROVIDER_HELP, hidden: !provid
 
 function isInteractive(fmt: OutputFormatter): boolean {
   return canPrompt() && !fmt.use_json && !fmt.quiet;
+}
+
+/** Present bounded, host-authored stages without exposing Git/plugin output. */
+async function withInstallProgress<T>(ctx: Context, fn: (onProgress: installer.ProgressFn) => Promise<T>): Promise<T> {
+  const out = getOutput(ctx);
+  const fmt = getFormatter(ctx);
+  const messages: Record<Exclude<installer.InstallPhase, "consent">, string> = {
+    inspect: "Inspecting provider source",
+    fetch: "Fetching provider source with Git (timeout: 120s)",
+    "fetch-full": "Source server does not support shallow fetch; retrying without depth (timeout: 120s)",
+    validate: "Validating provider files, manifest and digest",
+    write: "Installing provider files (waiting for the store lock if busy)",
+    verify: "Verifying provider handshake",
+  };
+  let previous: installer.InstallPhase | undefined;
+  let activity: { close: () => void } | undefined;
+  try {
+    return await fn((phase) => {
+      if (fmt.use_json || fmt.quiet || phase === previous) return;
+      previous = phase;
+      activity?.close();
+      activity = undefined;
+      // A consent prompt must have exclusive control of the terminal.
+      if (phase === "consent") return;
+      out.info(`${messages[phase]}...`);
+      if (out.useActivityLine) activity = out.startActivity(messages[phase], { tick: true });
+    });
+  } finally {
+    activity?.close();
+  }
 }
 
 function ambientId(): string {
@@ -297,6 +328,7 @@ const install_cmd = command("install", {
     "    After consent, default verification may load and initialize the plugin. A consent screen",
     "    lists what the plugin runs, which features it provides and which generic",
     "    credentials it would receive. Non-interactive installs need --yes.",
+    "    Progress and terminal elapsed time go to stderr; --json/--quiet suppress them.",
     "",
     "    A full 40-hex commit (--ref) or --sha256 pins the install. Tag and branch",
     "    installs are unpinned: they are accepted only after you read the consent",
@@ -327,7 +359,8 @@ const install_cmd = command("install", {
     const fmt = getFormatter(ctx);
     const source = params["source"] as string;
     const interactive = isInteractive(fmt);
-    const receipt = await installer.install(source, {
+    const receipt = await withInstallProgress(ctx, (onProgress) => installer.install(source, {
+      onProgress,
       ref: (params["ref"] as string | null) ?? null,
       subdir: (params["subdir"] as string | null) ?? null,
       sha256: (params["sha256"] as string | null) ?? null,
@@ -343,7 +376,7 @@ const install_cmd = command("install", {
         return ok;
       },
       verify: params["no_verify"] ? undefined : verifyHandshake,
-    });
+    }));
     registry.forget(String(receipt["id"]));
     const trust = String(receipt["trust"]);
     const src = (receipt["source"] ?? {}) as Record<string, unknown>;
@@ -452,7 +485,8 @@ const update_cmd = command("update", {
         continue;
       }
       results.push(
-        await installer.update(id, {
+        await withInstallProgress(ctx, (onProgress) => installer.update(id, {
+          onProgress,
           ref: (params["ref"] as string | null) ?? null,
           check: Boolean(params["check"]),
           yes: Boolean(params["yes"]),
@@ -466,7 +500,7 @@ const update_cmd = command("update", {
             return ok;
           },
           verify: verifyHandshake,
-        }),
+        })),
       );
       registry.forget(id);
     }
