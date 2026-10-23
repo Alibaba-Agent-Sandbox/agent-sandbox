@@ -119,7 +119,7 @@ HTTPS 解决传输保密。若将来要求网关不可见正文，再选经过�
 拟议注册/发送过程，全在后台：
 
 1. 安装首次产生可报告错误时，后台在私有目录创建 Ed25519 密钥对；不采集硬件指纹、不需要登录或 Sandbox 凭据。身份/令牌缓存最多 30 天轮换。
-2. 拟议 `POST /v1/diagnostics/enroll` 仅接收公钥和协议能力。网关按可信网络来源及全局预算限制注册，后端签发 24 小时 token，包含 issuer、audience、expiry、jti、随机安装 subject、公钥指纹和 `diagnostics:write` scope。不能访问云账号。不能审计好绑定 JWT 时改用不透明 token。
+2. 拟议 `POST /v1/diagnostics/enroll` 仅接收公钥和协议能力。网关按可信网络来源及全局预算限制注册，后端签发 24 小时 token，包含 issuer、audience、expiry、jti、随机安装 subject、公钥指纹和 `diagnostics:write` scope。同一公钥指纹续期时，从共享的 30 天身份记录复用同一随机 subject；令牌续期不能重置事件去重或延长身份寿命。轮换前尽量排空旧队列，否则按已说明的尽力发送丢失策略丢弃旧身份事件，不把已提交事件改用新 subject 重签。不能访问云账号。不能审计好绑定 JWT 时改用不透明 token。
 3. 客户端对下列 UTF-8 字节签名，末尾没有换行：`abx-diagnostics-v1\nPOST\n/v1/diagnostics/events\n<token-jti>\n<unix-seconds>\n<nonce>\n<lowercase-hex-sha256-of-body>`。nonce 是 128 位随机数，以不带填充的 base64url 表示。请求头为 `Authorization: Bearer <token>`、`X-Abx-Diagnostics-Timestamp`、`X-Abx-Diagnostics-Nonce`、`X-Abx-Diagnostics-Signature`（Ed25519 签名采用无填充 base64url）。Authorization 最多 2 KiB，自定义头各最多 128 字节，均不放 URL。
 4. 服务端验证签发方、受众、scope、有效期、公钥绑定、签名、±5 分钟时间窗口和严格 schema。完整校验后，共享存储以原子 insert-if-absent 记录 `(token-jti, nonce)`，TTL 10 分钟。事件处理单独采用下述可恢复协议；只有事件预占记录不能算接收成功。不能用单实例内存表代替。存储故障返回有界 503 且不打印原文；时钟偏差最多丢失/延迟上报，不影响业务。
 
