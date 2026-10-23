@@ -13,7 +13,7 @@ Document/link/record health and hygiene; normal required CI. No unrelated cloud 
 
 ## Results
 
-- PASS: `bash scripts/check-repo-health.sh --quiet` (existing warnings only).
+- PASS: `bash scripts/check-repo-health.sh --quiet` in the matching locked-dependency temporary source mirror (existing warnings only). The initial dependency-free worktree probe failed for the missing development toolchain; no gate was weakened.
 - PASS: `npm run check:hygiene`.
 - Manual review: both language guide paragraphs reference provider-owned accepted scope; CHANGELOG updated. No runtime code, package version or credentials changed.
 - PENDING: normal required exact-head document/full CI. No unrelated cloud tests are needed for this prose change. Required remote checks and publication receipts are linked from the Issue/PR after completion without rewriting merged captures. Prior native receipts are historical evidence, not a newly executed current-host run.
