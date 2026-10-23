@@ -18,7 +18,7 @@ export class ProcessChunk extends defineModel(
     type: z.enum(ProcessChunkType),
     data: z.string().default(""),
     exit_code: lax.int().nullable().default(null),
-    pid: lax.int().nullable().default(null),
+    pid: z.union([z.string(), lax.int()]).nullable().default(null),
     timestamp: lax.float().nullable().default(null),
   }),
 ) {}

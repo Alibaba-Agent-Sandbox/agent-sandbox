@@ -1293,11 +1293,6 @@ export const list_cmd = command("list", {
       provider_options: scopedFlagOptions("--region", "region", region, view),
     });
 
-    if (!sandboxes.length) {
-      fmt.printSuccess("No sandboxes found.");
-      return;
-    }
-
     _printSandboxList(fmt, view, sandboxes.map((sb) => ({ provider: view.effective, info: sb })));
   }),
 });
@@ -1309,16 +1304,16 @@ interface ListedSandbox {
 
 /** Qualified ids in text mode, a `provider` key in JSON (spec section 4.4). */
 function _printSandboxList(fmt: OutputFormatter, view: ReturnType<typeof providerView>, listed: ListedSandbox[], withColumn = false): void {
-  if (!listed.length) {
-    fmt.printSuccess("No sandboxes found.");
-    return;
-  }
   if (fmt.use_json) {
     fmt.printData(
       listed.map(({ provider, info: sb }) => new Map<string, unknown>([
         ["ID", sb.sandbox_id], ["Template", sb.template], ["Status", sb.status], ["Region", _unknownDash(sb.region)], ["provider", provider],
       ])),
     );
+    return;
+  }
+  if (!listed.length) {
+    fmt.printSuccess("No sandboxes found.");
     return;
   }
   const headers = withColumn ? ["ID", "Template", "Status", "Region", "Provider"] : ["ID", "Template", "Status", "Region"];
@@ -1530,7 +1525,7 @@ export const exec_cmd = command("exec", {
     const sandbox = await Sandbox.connect(sandboxId);
 
     if (background) {
-      let pid: number | null = null;
+      let pid: number | string | null = null;
       for await (const chunk of await sandbox.commands.start(commandLine, { timeout: cmdTimeout, cwd, env })) {
         if (chunk.pid !== null && chunk.pid !== undefined) {
           pid = chunk.pid;
@@ -1825,7 +1820,7 @@ export const run_cmd = command("run", {
     const sandbox = await Sandbox.connect(sandboxId);
     let result: CommandResult;
     try {
-      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort });
+      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: process.env["ABX_SERVER_TOKEN"] });
     } catch (exc) {
       if (exc instanceof CommandNotFoundError) {
         fmt.printError(exc.message, { code: exc.code, suggestion: exc.suggestion });
@@ -1856,7 +1851,7 @@ export const command_list = command("list", {
     const sandboxId: string = params["sandbox_id"];
     const fmt = getFormatter(ctx);
     const sandbox = await Sandbox.connect(sandboxId);
-    const commands = await sandbox.listCommands({ server_port: params["server_port"] });
+    const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: process.env["ABX_SERVER_TOKEN"] });
 
     if (fmt.use_json) {
       fmt.printData(commands);

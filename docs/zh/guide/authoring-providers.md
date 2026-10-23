@@ -174,6 +174,8 @@ CLI 通过 stdin/stdout 调用这些方法（权威列表见 `docs/design/fixtur
 | `files.rw` | `files.read`、`files.write`、`files.list`、`files.stat`、`files.mkdir`、`files.remove`、`files.move`。`files.search` 和 `files.chmod` 是扩展，宿主目前不会调用 |
 | `ports.url` | `ports.url` |
 
+`exec.start` 必须返回后端实际签发的 `process_id`：非空不透明字符串或正的安全整数。首个进程分块用该真实 ID 和空数据确认启动，不能用标准输出冒充启动确认。宿主在引擎流中保留 ID 及后端返回的时间戳；缺少或非法 ID 时明确失败。
+
 `sandbox.create` 必须返回带 `sandbox_id` 的记录。有则一并返回：`template`、`status`、`metadata`、`envd_url`（或 `url`）、`envd_access_token`、`created_at`、`expires_at`、`region`。没有 `envd_url` 时，宿主继续通过 EPP 和你通信（`epp://<id>/<sandbox_id>`）。`envd_url` 是 `http(s)` 时，之后的文件、进程和终端走 E2B envd 传输，不再进入插件。
 
 错误使用 JSON-RPC 错误码加 `data.sdk_code`。有三种结果要做对，因为脚本会按错误码匹配：

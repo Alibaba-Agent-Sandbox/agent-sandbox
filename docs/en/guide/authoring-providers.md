@@ -177,6 +177,8 @@ The CLI calls these over stdin/stdout (the authoritative list is `docs/design/fi
 | `files.rw` | `files.read`, `files.write`, `files.list`, `files.stat`, `files.mkdir`, `files.remove`, `files.move`. `files.search` and `files.chmod` are extensions the host does not call yet |
 | `ports.url` | `ports.url` |
 
+`exec.start` must return a real backend-issued `process_id`: a nonempty opaque string or a positive safe integer. The first process chunk acknowledges startup with that exact ID and empty data; output is not a startup acknowledgement. The host preserves the ID and any reported timestamp through engine streaming. Missing or invalid IDs fail explicitly.
+
 `sandbox.create` must return a record with `sandbox_id`. Also returned when you have them: `template`, `status`, `metadata`, `envd_url` (or `url`), `envd_access_token`, `created_at`, `expires_at`, `region`. No `envd_url` means the host keeps talking to you over EPP (`epp://<id>/<sandbox_id>`). An `http(s)` `envd_url` means later file, process, and terminal calls use the E2B envd transport instead of your plugin.
 
 Errors use JSON-RPC codes plus `data.sdk_code`. Three outcomes are worth getting right, because scripts match on the code:

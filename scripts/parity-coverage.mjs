@@ -52,14 +52,17 @@ const allEntries = readFileSync(join(root, "parity", "python-tests-to-port.txt")
 const ledger = allEntries.filter((l) => !moved.has(l));
 const movedEntries = allEntries.filter((l) => moved.has(l));
 
+// Retired contracts retain their historical ledger entry and map to an explicit current regression.
+const replacements = JSON.parse(readFileSync(join(root, "parity", "changed-contracts.json"), "utf8")).replacements;
+
 const pythonSdkRoot = process.env.PYTHON_SDK_ROOT ?? resolve(root, "..", "python-sdk");
 const movedMissing = [];
 if (existsSync(pythonSdkRoot)) {
   for (const entry of movedEntries) {
-    const [, ...rest] = entry.split("::");
+    const [, ...rest] = (replacements[entry]?.target ?? entry).split("::");
     const name = rest[rest.length - 1];
     const cls = rest.length > 1 ? rest[0] : null;
-    const file = join(pythonSdkRoot, moved.get(entry));
+    const file = join(pythonSdkRoot, replacements[entry]?.owner_file ?? moved.get(entry));
     let found = false;
     if (existsSync(file)) {
       let text = readFileSync(file, "utf8");
@@ -86,7 +89,6 @@ for (const file of report.testResults) {
 }
 
 // Keep the historical Python ledger immutable; trace intentionally replaced contracts.
-const replacements = JSON.parse(readFileSync(join(root, "parity", "changed-contracts.json"), "utf8")).replacements;
 const missing = [];
 const bad = [];
 let ok = 0;

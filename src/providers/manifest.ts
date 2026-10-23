@@ -1,5 +1,6 @@
 /** `abx-provider.toml` manifest: parsing, validation and version comparison (port of `providers/manifest.py`). */
 
+import { validateOperations, type OperationDeclaration } from "./operations.js";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -48,6 +49,10 @@ export interface Manifest {
   call_timeout_ms: number;
   platforms: readonly string[];
   features: readonly string[];
+  operation_contract_version: 1;
+  operations: OperationDeclaration;
+  workflow_inputs: readonly string[];
+  startup_modes: readonly string[];
   /** Optional separately versioned management command descriptors. */
   commands: readonly ProviderCommand[];
   security: SecuritySection;
@@ -65,6 +70,9 @@ export interface ManifestSummary {
   runtime: string[];
   security: SecuritySection;
   features: string[];
+  operations: OperationDeclaration;
+  workflow_inputs: readonly string[];
+  startup_modes: readonly string[];
   commands: readonly ProviderCommand[];
   inherit: string[];
   fields: string[];
@@ -76,6 +84,7 @@ export function manifestSummary(m: Manifest): ManifestSummary {
     runtime: m.kind === "exec" ? [...m.command] : m.kind === "node" ? ["node", m.entry] : ["rest", String(m.endpoint["base_url"] ?? "")],
     security: m.security,
     features: [...m.features].sort(),
+    operations: m.operations, workflow_inputs: m.workflow_inputs, startup_modes: m.startup_modes,
     commands: [...m.commands].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
     inherit: [...m.inherit].sort(),
     fields: m.fields.map((f) => f.key).sort(),
@@ -209,7 +218,15 @@ export function parseManifest(data: Uint8Array | string): Manifest {
     throw err(exc instanceof Error ? exc.message : String(exc));
   }
 
+  let operations: OperationDeclaration;
+  try { operations = validateOperations(doc["operation_contract_version"], doc["operations"]); }
+  catch (error) { throw err(String(error)); }
   if (doc["manifest_version"] !== 1) throw err("manifest_version must be 1");
+  const workflow = table(doc, "workflow", true);
+  if (Object.keys(workflow).some(key => key !== "inputs" && key !== "startups")) throw err("unknown workflow field");
+  const workflow_inputs = strList(workflow, "inputs", "workflow"), startup_modes = strList(workflow, "startups", "workflow");
+  if (new Set(workflow_inputs).size !== workflow_inputs.length || new Set(startup_modes).size !== startup_modes.length) throw err("duplicate workflow declaration");
+  if (workflow_inputs.some(v => !["source", "image", "managed", "service"].includes(v)) || startup_modes.some(v => !["exec", "entrypoint", "none"].includes(v))) throw err("unknown workflow input/startup mode");
   const prov = table(doc, "provider", true);
   const pid = str(prov, "id", "provider", { required: true });
   const problem = validateProviderId(pid);
@@ -390,6 +407,7 @@ export function parseManifest(data: Uint8Array | string): Manifest {
     call_timeout_ms: ms("call_timeout_ms", 60_000),
     platforms,
     features: supported,
+    operation_contract_version: 1, operations, workflow_inputs, startup_modes,
     commands: parseCommandSection(unfloat(doc["commands"]), kind),
     security,
     inherit,

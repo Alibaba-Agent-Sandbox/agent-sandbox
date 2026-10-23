@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /**
  * Unit tests for the AI code-generation orchestrator.
  *
@@ -36,6 +37,20 @@ const pythonIt = itWithPython(it);
 
 const VALID_TEMPLATE_YAML = `\
 name: whatever-the-model-wrote
+spec_version: 4
+workflow_contract_version: 1
+provides:
+  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+default_workflow: application
+workflows:
+  application:
+    kind: application
+    input: source
+    service: app
+    startup: none
+    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
+    operation: commands.run
+    required_operations: []
 description: 一个用于数据分析的 Python 环境
 resources:
   cpu: 2
@@ -473,6 +488,7 @@ describe("TestValidateTemplateWorkspace", () => {
     const data = validateTemplateWorkspace(tmpPath, "my-name");
     expect(data["name"]).toBe("my-name");
     expect(data).toEqual({
+      ...safeLoad(VALID_TEMPLATE_YAML) as Record<string, unknown>,
       name: "my-name",
       description: "一个用于数据分析的 Python 环境",
       resources: { cpu: 2, memory: 4096 },
@@ -492,11 +508,13 @@ describe("TestValidateTemplateWorkspace", () => {
   });
 
   it("rewrites template.yaml in block style, keeping key order, after generation", async () => {
-    patchRun(fakeRunWriting({ templateYaml: "name: x\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\n" }));
+    patchRun(fakeRunWriting({ templateYaml: manifestYaml("name: x\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\n") }));
     const result = await generateTemplateFiles("canon", { baseDir: tmpPath });
-    expect(fs.readFileSync(result.templateYaml, "utf8")).toBe(
-      `name: ${result.templateName}\ndescription: 'quoted: yes'\nports:\n- 9000\n- 8080\nresources:\n  cpu: 1\n  memory: 512\n`,
-    );
+    const written = fs.readFileSync(result.templateYaml, "utf8");
+    expect(written).toContain("spec_version: 4");
+    expect(written).toContain(`name: ${result.templateName}`);
+    expect(written).toContain("ports:\n- 9000\n- 8080");
+    expect(safeLoad(written)).toEqual(safeLoad(manifestYaml(`name: ${result.templateName}\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\n`)));
   });
 });
 

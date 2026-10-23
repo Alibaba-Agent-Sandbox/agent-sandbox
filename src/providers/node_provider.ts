@@ -1,3 +1,5 @@
+import { verifyRuntimeOperations } from "./operations.js";
+import type { OperationDeclaration } from "./operations.js";
 import { stageProject, buildProjectImage, runTool } from "./shared/project.js";
 import type { ProviderTemplateManager } from "./template_contract.js";
 import { loadTemplate } from "./shared/e2b/template_sdk.js";
@@ -13,10 +15,11 @@ import type { TerminalContext as SessionTerminalContext, ProviderInfra as Sessio
  */
 
 import * as path from "node:path";
+import * as fs from "node:fs";
+import * as os from "node:os";
 import { pathToFileURL } from "node:url";
 
 import { InvalidAPIKeyError } from "../models/errors.js";
-import { CodeInterpreterProtocol } from "./shared/e2b/code_interpreter.js";
 import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
 import { ProcessProtocol } from "./shared/e2b/process.js";
 import { SandboxProtocol } from "./shared/e2b/sandbox.js";
@@ -37,6 +40,8 @@ type Dict = Record<string, unknown>;
 
 /** What a plugin module returns from `buildInfra`. Missing protocols answer `E8004`. */
 export interface NodeInfra {
+  operation_contract_version: 1;
+  operations: OperationDeclaration;
   /** Provider management operations; only manifest-declared command ids are callable. */
   provider_commands?: ProviderInfra["provider_commands"];
   sandbox_protocol: object;
@@ -63,6 +68,8 @@ export interface HttpOptions {
 export interface NodeContext {
   id: string;
   features: ReadonlySet<string>;
+  operation_contract_version: 1;
+  operations: OperationDeclaration;
   /** Every declared field of the manifest, resolved (explicit, environment, `.env`, `config.toml`, default). */
   options: Readonly<Record<string, unknown>>;
   /** The generic keys the manifest's `[core] inherit` lists and the user consented to. */
@@ -89,7 +96,6 @@ export interface ProviderKit {
   SandboxProtocol: typeof SandboxProtocol;
   ProcessProtocol: typeof ProcessProtocol;
   FilesystemProtocol: typeof FilesystemProtocol;
-  CodeInterpreterProtocol: typeof CodeInterpreterProtocol;
   errors: { InvalidAPIKeyError: typeof InvalidAPIKeyError; ProviderConfigError: typeof ProviderConfigError; ProviderFeatureNotSupportedError: typeof ProviderFeatureNotSupportedError };
   e2b: {
     loadTemplate(): Promise<unknown>;
@@ -205,7 +211,6 @@ export function providerKit(): ProviderKit {
     SandboxProtocol,
     ProcessProtocol,
     FilesystemProtocol,
-    CodeInterpreterProtocol,
     errors: { InvalidAPIKeyError, ProviderConfigError, ProviderFeatureNotSupportedError },
     e2b: { resumeConnect, withDefault, overlay, parseExecution, loadTemplate },
     epp: { infra: eppInfra },
@@ -216,10 +221,15 @@ const loaded = new Map<string, NodePlugin>();
 
 /** Import the plugin module once per installed tree digest; an update gets a fresh module. */
 async function loadPlugin(id: string, root: string, entry: string, digest: string): Promise<NodePlugin> {
-  const file = path.resolve(root, entry);
-  const key = `${file}#${digest}`;
+  if (store.digestDir(root) !== digest) throw new ProviderProtocolError("Provider code changed before loading.");
+  const original = path.resolve(root, entry);
+  const key = `${original}#${digest}`;
   const cached = loaded.get(key);
   if (cached !== undefined) return cached;
+  const snapshot = fs.mkdtempSync(path.join(os.tmpdir(), "abx-provider-"));
+  fs.cpSync(root, snapshot, { recursive: true, filter: source => ![".git", "data", store.RECEIPT_NAME].includes(path.relative(root, source).split(path.sep)[0]) });
+  if (store.digestDir(snapshot) !== digest || store.digestDir(root) !== digest) { fs.rmSync(snapshot, { recursive: true, force: true }); throw new ProviderProtocolError("Provider code changed while locking its execution snapshot."); }
+  const file = path.resolve(snapshot, entry);
   const url = `${pathToFileURL(file).href}?v=${encodeURIComponent(digest || "link")}`;
   const mod = (await import(url)) as { default?: unknown; create?: unknown };
   const factory = typeof mod.create === "function" ? mod.create : mod.default;
@@ -256,6 +266,10 @@ export class NodeProvider extends Provider {
     this.displayNameZh = manifest.name_zh;
     this.version = manifest.version;
     this.features = new Set(manifest.features);
+    this.operations = manifest.operations;
+    if (this.operations.cli.some(operation => ["code.stream", "code.results.structured"].includes(operation))) throw new ProviderProtocolError("This CLI consumer has no real-time interpreter or structured-result bridge.");
+    this.workflow_inputs = manifest.workflow_inputs;
+    this.startup_modes = manifest.startup_modes;
     this.commands = manifest.commands;
     this.commandTimeoutMs = manifest.call_timeout_ms;
     this.configFields = manifest.fields;
@@ -266,7 +280,7 @@ export class NodeProvider extends Provider {
   private async context(config: LayeredConfig) {
     this.validateConfig(config);
     if (this.receipt !== null && this.receipt["trust"] !== "link") store.verifyIntegrity(this.id);
-    const digest = String(this.receipt?.["tree_sha256"] ?? "");
+    const digest = store.digestDir(this.pluginRoot);
     const plugin = await loadPlugin(this.id, this.pluginRoot, this.manifest.entry, digest);
 
     const options: Dict = {};
@@ -291,6 +305,7 @@ export class NodeProvider extends Provider {
     const ctx: NodeContext = {
       id: this.id,
       features: this.features,
+      operation_contract_version: 1, operations: this.operations,
       options,
       core,
       secretKeys: this.configFields.filter((f) => f.secret).map((f) => f.key),
@@ -346,10 +361,35 @@ export class NodeProvider extends Provider {
       if (built === null || typeof built !== "object" || Array.isArray(built)) {
         throw new ProviderProtocolError(`Provider '${this.id}' returned invalid infrastructure.`);
       }
+      verifyRuntimeOperations(this.operations, built.operation_contract_version, built.operations);
     } catch (exc) {
       await Promise.allSettled(clients.map((client) => client.close()));
       throw exc;
     }
+    const bridges: Record<string, [object | null | undefined, string[]]> = {
+      "sandbox.create": [built.sandbox_protocol, ["create"]], "sandbox.get": [built.sandbox_protocol, ["getInfo"]],
+      "sandbox.list": [built.sandbox_protocol, ["list"]], "sandbox.delete": [built.sandbox_protocol, ["kill"]],
+      "sandbox.timeout": [built.sandbox_protocol, ["setTimeout"]], "sandbox.pause": [built.sandbox_protocol, ["pause"]],
+      "sandbox.resume": [built.sandbox_protocol, ["resume"]], "exec.run": [built.process_protocol, ["start"]],
+      "exec.stream": [built.process_protocol, ["start"]], "files.read": [built.filesystem_protocol, ["read"]],
+      "files.write": [built.filesystem_protocol, ["write"]], "files.list": [built.filesystem_protocol, ["listDir"]],
+      "files.stat": [built.filesystem_protocol, ["stat"]], "files.remove": [built.filesystem_protocol, ["remove"]],
+      "files.move": [built.filesystem_protocol, ["move"]],
+      "code.execute": [built.code_interpreter_protocol, ["createContext", "runCode", "removeContext"]],
+      "code.context.create": [built.code_interpreter_protocol, ["createContext"]],
+      "code.context.execute": [built.code_interpreter_protocol, ["runCode"]],
+      "code.context.list": [built.code_interpreter_protocol, ["listContexts"]],
+      "code.context.restart": [built.code_interpreter_protocol, ["restartContext"]],
+      "code.context.delete": [built.code_interpreter_protocol, ["removeContext"]],
+      "code.default-context.execute": [built.code_interpreter_protocol, ["runCode"]],
+    };
+    for (const operation of this.operations.cli) {
+      const bridge = bridges[operation];
+      if (bridge && bridge[1].some(method => typeof (bridge[0] as Record<string, unknown> | undefined)?.[method] !== "function"))
+        throw new ProviderProtocolError(`Provider '${this.id}' declares '${operation}' without its consumer handler.`);
+    }
+    const codeProtocol = built.code_interpreter_protocol ? new Proxy(built.code_interpreter_protocol, {get: (target, key) =>
+      key === "operations" ? new Set(this.operations.cli.filter(operation => operation.startsWith("code."))) : Reflect.get(target, key)}) : null;
     const gate = <T extends object>(protocol: T | null | undefined, rules: Parameters<typeof gateProtocol>[2], feature: string): T =>
       protocol ? gateProtocol(protocol, this.id, rules, this.features) : (unsupportedAdapter(this.id, feature) as unknown as T);
     const own = built.http_client ?? null;
@@ -361,7 +401,7 @@ export class NodeProvider extends Provider {
       sandbox_protocol: gate(built.sandbox_protocol, SANDBOX_RULES, "sandbox.lifecycle") as never,
       process_protocol: gate(built.process_protocol, PROCESS_RULES, "exec.run") as never,
       filesystem_protocol: gate(built.filesystem_protocol, FILESYSTEM_RULES, "files.rw") as never,
-      code_interpreter_protocol: gate(built.code_interpreter_protocol, CODE_RULES, "code.interpret") as never,
+      code_interpreter_protocol: codeProtocol ? gateProtocol(codeProtocol, this.id, CODE_RULES, new Set(this.operations.cli)) as never : unsupportedAdapter(this.id, "code.execute") as never,
       envd_auth: built.envd_auth,
       close: async () => {
         const cleanup = await Promise.allSettled([

@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -22,7 +23,7 @@ afterEach(() => vi.restoreAllMocks());
 const context = (): Context => new Context(command("deploy"));
 function project(steps = false): string {
   const directory = path.join(tmpPath(), "app");
-  writeText(path.join(directory, "template.yaml"), steps ? "name: app\ngeneration: 2\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['echo ready']\n" : "name: app\n");
+  writeText(path.join(directory, "template.yaml"), manifestYaml(steps ? "name: app\ngeneration: 2\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['echo ready']\n" : "name: app\n"));
   if (!steps) writeText(path.join(directory, "Dockerfile"), "FROM python:3.12-slim\n");
   return directory;
 }
@@ -108,7 +109,7 @@ describe("Operation-specific template guidance", () => {
     patchLoadConfig();
     const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
     const ctx = context(); ctx.params = { yes: true };
-    const result = await CLI_EXTENSION.prepareProject(project(true), { alias: "launch", timeout: 60, template: { name: "launch", capabilities: ["shell"], cpu: 2, memory: 512, start_cmd: null, ready_cmd: null } }, ctx);
+    const result = await CLI_EXTENSION.prepareProject(project(true), { alias: "launch", timeout: 60, template: { name: "launch", cpu: 2, memory: 512, start_cmd: null, ready_cmd: null } }, ctx);
     expect(result).toEqual({ reference: "steps-reference", status: "ready" });
     expect(deploy).toHaveBeenCalledOnce();
     expect(deploy.mock.calls[0]![1].acr_namespace).toBeUndefined();

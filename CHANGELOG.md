@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Project templates require spec v4 workflow manifests and exact provider operations. Application HTTP bindings are isolated from envd; interpreter execution is stateless by default, with explicit persistent contexts and no shell fallback. Launch records immutable sources, explicit build profiles and owned-resource recovery intent. Guessed interpreter RPCs and their public runtime export are removed; native Express workflow source preparation remains unavailable until its journal and identity contract is implemented.
+
+### Fixed
+
+- Preserve backend-issued process IDs and timestamps through streaming; acknowledge silent-process startup using its real ID, and reject missing or invalid IDs. / 流式调用保留后端进程 ID 和时间戳，静默进程以真实 ID 确认启动，缺少或非法 ID 时拒绝确认。
+- Emit `[]` for an empty JSON sandbox list, including all-provider lists, so machine-readable cleanup checks always receive one JSON value. / JSON 沙箱空列表（含所有提供方汇总）输出 `[]`，清理检查始终收到一个有效 JSON 值。
+
 ## [0.4.10] - 2026-10-23
 
 ### Fixed

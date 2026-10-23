@@ -1,7 +1,6 @@
 /** Commands module — run commands in sandboxes (port of `api/commands.py`). */
 
 import { ProcessChunk, ProcessChunkType, ProcessInfo, ProcessResult } from "../models/process.js";
-import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import type { ProcessProtocol } from "../protocol/contracts.js";
 import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { StreamReader } from "../transport/streaming.js";
@@ -84,7 +83,7 @@ export class CommandsModule {
     this._envd_url = envd_url;
     this._envd_token = envd_token;
     this._process = process_protocol;
-    this._capabilities = capabilities !== null ? capabilities : new Set(DEFAULT_CAPABILITIES);
+    this._capabilities = capabilities !== null ? capabilities : new Set<string>();
   }
 
   /**

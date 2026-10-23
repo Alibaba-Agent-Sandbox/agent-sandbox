@@ -20,6 +20,7 @@
  *   instead of being misinterpreted.
  */
 
+import { validateWorkflowManifest } from "../template/workflow_plan.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ValueError } from "../models/value_error.js";
@@ -55,7 +56,7 @@ export function _setIndexCacheDir(dir: string): string {
 }
 
 /** Index schema version understood by this client. */
-export const INDEX_SCHEMA_VERSION = 1;
+export const INDEX_SCHEMA_VERSION = 2;
 
 /** Cache freshness window for `search` / `install` (seconds). */
 export const INDEX_MAX_AGE_SECONDS = 3600;
@@ -72,7 +73,7 @@ export interface TemplateIndexEntryInit {
   ref?: string | null;
   tags?: readonly string[];
   author?: string;
-  capabilities?: readonly string[];
+  workflow?: Record<string, unknown> | null;
   status?: string;
 }
 
@@ -85,7 +86,7 @@ export class TemplateIndexEntry {
   readonly ref: string | null;
   readonly tags: readonly string[];
   readonly author: string;
-  readonly capabilities: readonly string[];
+  readonly workflow: Record<string, unknown> | null;
   readonly status: string;
 
   constructor(init: TemplateIndexEntryInit) {
@@ -96,7 +97,7 @@ export class TemplateIndexEntry {
     this.ref = init.ref ?? null;
     this.tags = Object.freeze([...(init.tags ?? [])]);
     this.author = init.author ?? "";
-    this.capabilities = Object.freeze([...(init.capabilities ?? [])]);
+    this.workflow = init.workflow ?? null;
     this.status = init.status ?? "community";
     Object.freeze(this);
   }
@@ -291,15 +292,18 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
   const pathRaw = dget(raw, "path");
   const refRaw = dget(raw, "ref");
   const tagsRaw = dget(raw, "tags");
-  const capsRaw = dget(raw, "capabilities");
   const tags: unknown = truthy(tagsRaw) ? tagsRaw : [];
-  const capabilities: unknown = truthy(capsRaw) ? capsRaw : [];
+
   if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) {
     throw new TemplateParseError(`Index entry '${name}': 'tags' must be a list of strings.`);
   }
-  if (!Array.isArray(capabilities) || !capabilities.every((c) => typeof c === "string")) {
-    throw new TemplateParseError(`Index entry '${name}': 'capabilities' must be a list of strings.`);
+  let workflow: Record<string, unknown> | null = null;
+  for (const retired of ["capabilities", "tested_on", "providers"]) if (Object.hasOwn(raw, retired)) throw new TemplateParseError(`Index entry '${name}' uses retired field '${retired}'.`);
+  // Source rows are locators. Their fetched template.yaml is the only workflow authority.
+  if (raw["template_id"] !== undefined) {
+    try { workflow = validateWorkflowManifest(raw); } catch (error) { throw new TemplateParseError(`Managed entry '${name}' has an invalid workflow: ${String(error)}`); }
   }
+
 
   const descRaw = dget(raw, "description");
   const authorRaw = dget(raw, "author");
@@ -312,7 +316,7 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
     ref: truthy(refRaw) ? pyStrip(pyStr(refRaw)) || null : null,
     tags: [...(tags as string[])],
     author: pyStr(truthy(authorRaw) ? authorRaw : ""),
-    capabilities: [...(capabilities as string[])],
+    workflow,
     status: pyStr(truthy(statusRaw) ? statusRaw : "community"),
   });
   // Fail fast on unusable repo references (also validates the host).

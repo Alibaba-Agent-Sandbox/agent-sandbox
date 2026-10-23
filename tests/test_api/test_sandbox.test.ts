@@ -1,6 +1,8 @@
+import { applicationHttpSeams } from "../../src/transport/application_http.js";
+import { ProviderConfigError } from "../../src/models/provider_errors.js";
 /** Tests for the Sandbox core API class. */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CodeContextModule } from "../../src/api/code.js";
 import { CommandsModule } from "../../src/api/commands.js";
@@ -547,120 +549,23 @@ describe("TestSandboxEnvdUrlDerivation", () => {
   });
 });
 
-function serverClient(response: any): any {
-  const client = { post: vi.fn(async (..._a: any[]) => response) };
-  fx.http_client._createEnvdClient.mockReturnValue(client);
-  return client;
+function serverClient(status: number, body: unknown) {
+  return vi.spyOn(applicationHttpSeams, "fetch").mockResolvedValue(new Response(JSON.stringify(body), {status}));
 }
-
-describe("TestSandboxRunCommand", () => {
-  it("test_run_command_success", async () => {
-    const mock_client = serverClient({ is_success: true, json: vi.fn(() => ({ result: 42 })) });
-
-    const result = await fx.sandbox.runCommand("add", { x: 1, y: 2 });
-
-    expect(result.value).toBe(42);
-    expect(result.exit_code).toBe(0);
-    expect(result.success).toBe(true);
-    expect(mock_client.post).toHaveBeenCalledTimes(1);
-    expect(mock_client.post).toHaveBeenCalledWith("/commands/add", {
-      json: { x: 1, y: 2 },
-      headers: { "Content-Type": "application/json", "X-Access-Token": TEST_ENVD_TOKEN },
-    });
+afterEach(() => vi.restoreAllMocks());
+describe("bound application named commands", () => {
+  it("uses independent HTTP without sending the envd token", async () => {
+    const fetch=serverClient(200,{result:42});
+    expect((await fx.sandbox.runCommand("add",{x:1,y:2})).value).toBe(42);
+    expect(fetch).toHaveBeenCalledOnce();
+    const options=fetch.mock.calls[0][1];
+    expect(options?.redirect).toBe("manual");
+    expect(JSON.stringify(options?.headers)).not.toContain(TEST_ENVD_TOKEN);
+    expect(JSON.parse(String(options?.body))).toEqual({x:1,y:2});
   });
-
-  it("retries a named command without the access token when the server rejects it", async () => {
-    const mock_client = {
-      post: vi
-        .fn()
-        .mockResolvedValueOnce({
-          is_success: false,
-          status_code: 401,
-          json: vi.fn(() => ({ error: "unauthorized", type: "AuthError" })),
-        })
-        .mockResolvedValueOnce({ is_success: true, json: vi.fn(() => ({ result: "Hello, Bob!" })) }),
-    };
-    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
-
-    const result = await fx.sandbox.runCommand("hello", { name: "Bob" });
-
-    expect(result.value).toBe("Hello, Bob!");
-    expect(mock_client.post).toHaveBeenNthCalledWith(1, "/commands/hello", {
-      json: { name: "Bob" },
-      headers: { "Content-Type": "application/json", "X-Access-Token": TEST_ENVD_TOKEN },
-    });
-    expect(mock_client.post).toHaveBeenNthCalledWith(2, "/commands/hello", {
-      json: { name: "Bob" },
-      headers: { "Content-Type": "application/json" },
-    });
-  });
-
-  it("test_run_command_server_error_returns_exit_code_1", async () => {
-    serverClient({ is_success: false, status_code: 500, json: vi.fn(() => ({ error: "boom", type: "RuntimeError" })) });
-
-    const result = await fx.sandbox.runCommand("bad");
-
-    expect(result.exit_code).toBe(1);
-    expect(result.success).toBe(false);
-    expect(result.stderr).toContain("RuntimeError: boom");
-  });
-
-  it("test_run_command_404_raises_command_not_found", async () => {
-    serverClient({ is_success: false, status_code: 404, json: vi.fn(() => ({ error: "not found", type: "ValueError" })) });
-
-    await expect(fx.sandbox.runCommand("nonexistent")).rejects.toBeInstanceOf(CommandNotFoundError);
-  });
-
-  it("test_run_command_connection_failure_raises_connection_error", async () => {
-    const mock_client = { post: vi.fn(async () => Promise.reject(new ConnectError("connection refused"))) };
-    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
-
-    const p = fx.sandbox.runCommand("whatever");
-    await expect(p).rejects.toBeInstanceOf(ConnectionError_);
-    await expect(p).rejects.toThrow(/No SandboxServer reachable/);
-  });
-
-  it("test_run_command_name_kwarg_no_conflict", async () => {
-    const mock_client = serverClient({ is_success: true, json: vi.fn(() => ({ result: "Hello World" })) });
-
-    const result = await fx.sandbox.runCommand("hello", { name: "World" });
-
-    expect(result.value).toBe("Hello World");
-    expect(mock_client.post).toHaveBeenCalledWith("/commands/hello", {
-      json: { name: "World" },
-      headers: { "Content-Type": "application/json", "X-Access-Token": TEST_ENVD_TOKEN },
-    });
-  });
-
-  it("test_run_command_502_non_json_raises_connection_error", async () => {
-    serverClient({
-      is_success: false,
-      status_code: 502,
-      text: "<html>502 Bad Gateway</html>",
-      json: vi.fn(() => {
-        throw new JSONDecodeError("x", "y", 0);
-      }),
-    });
-
-    await expect(fx.sandbox.runCommand("anything")).rejects.toBeInstanceOf(ConnectionError_);
-  });
-});
-
-describe("TestSandboxListCommands", () => {
-  it("test_list_commands_returns_server_catalogue", async () => {
-    const commands = [{ name: "add", description: "Add", args: [{ name: "x", type: "int", required: true }] }];
-    const get = vi.fn(async (..._a: any[]) => ({ is_success: true, json: vi.fn(() => ({ commands })) }));
-    const mock_client = { get };
-    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
-
-    expect(await fx.sandbox.listCommands()).toEqual(commands);
-    expect(get.mock.calls[0]![0]).toBe("/commands");
-  });
-
-  it("test_list_commands_connection_failure_raises_connection_error", async () => {
-    const mock_client = { get: vi.fn(async () => Promise.reject(new ConnectError("connection refused"))) };
-    fx.http_client._createEnvdClient.mockReturnValue(mock_client);
-
-    await expect(fx.sandbox.listCommands()).rejects.toBeInstanceOf(ConnectionError_);
-  });
+  it("retains 401 without anonymous retry",async()=>{const fetch=serverClient(401,{error:"unauthorized",type:"AuthError"});const result=await fx.sandbox.runCommand("hello",{name:"Bob"});expect(result.exit_code).toBe(1);expect(fetch).toHaveBeenCalledOnce();});
+  it("returns application execution errors",async()=>{serverClient(500,{error:"boom",type:"RuntimeError"});expect((await fx.sandbox.runCommand("bad")).stderr).toBe("RuntimeError: boom");});
+  it("reports missing commands",async()=>{serverClient(404,{error:"not found"});await expect(fx.sandbox.runCommand("missing")).rejects.toBeInstanceOf(CommandNotFoundError);});
+  it("retains the selected binding on network failure",async()=>{vi.spyOn(applicationHttpSeams,"fetch").mockRejectedValue(new Error("private endpoint detail"));await expect(fx.sandbox.runCommand("bad")).rejects.toBeInstanceOf(ProviderConfigError);});
+  it("lists the application catalog through HTTP",async()=>{const commands=[{name:"add"}];const fetch=serverClient(200,{commands});expect(await fx.sandbox.listCommands()).toEqual(commands);expect(fetch.mock.calls[0][0]).toEqual(expect.stringContaining("/commands"));});
 });

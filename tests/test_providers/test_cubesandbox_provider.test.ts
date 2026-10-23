@@ -208,7 +208,7 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
       expect(watched[0]?.path).toBe("/tmp/a.txt");
 
       seen.length = 0;
-      const code = await sb.runCode("print(42)", { envs: { FOO: "bar" } });
+      const code = await sb.runCode("print(42)", { operation: "code.default-context.execute", envs: { FOO: "bar" } });
       expect(code.stdout).toContain("42");
       expect(code.exit_code).toBe(0);
       const exec = seen.find((s) => s.url === "/execute");

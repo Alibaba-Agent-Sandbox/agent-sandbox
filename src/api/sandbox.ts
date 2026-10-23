@@ -11,10 +11,11 @@
  * The Python `*_sync` variants (`make_sync`) do not exist in Node: every call is a Promise.
  */
 
+import { requestApplication } from "../transport/application_http.js";
+import type { ApplicationEndpoint } from "../protocol/port_contract.js";
 import { ResolvedCapabilities } from "./capability.js";
 import { CommandNotFoundError, ConnectionError_ } from "../models/errors.js";
 import { setActiveProvider, trackOpenInfra } from "../providers/active.js";
-import { DEFAULT_CAPABILITIES } from "../models/template.js";
 import type { Provider, ProviderInfra } from "../providers/base.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderMismatchError } from "../models/provider_errors.js";
 import { cliOptions, cliProvider } from "../providers/selection.js";
@@ -138,7 +139,7 @@ export function _selectProvider(provider: string | Provider | null | undefined, 
  * the provider lacks is refused by its protocol gate with E8004 naming the feature, not by a template-flavoured E3004.
  */
 function providerCapabilities(prov: Provider): ResolvedCapabilities {
-  return new ResolvedCapabilities({ capabilities: [...DEFAULT_CAPABILITIES, ...prov.capabilities()] });
+  return new ResolvedCapabilities({ capabilities: prov.capabilities() });
 }
 
 class InfraCloser {
@@ -237,6 +238,8 @@ export interface ListOptions extends BuildInfraOptions {
 
 export interface RunCodeOptions {
   language?: string;
+  operation?: "code.execute" | "code.default-context.execute";
+  context_id?: string | null;
   timeout?: number;
   envs?: Record<string, string> | null;
   on_stdout?: ((s: string) => void) | null;
@@ -408,6 +411,9 @@ export class Sandbox {
         access_token: this._envd_token ? this._envd_token.token : null,
         capabilities: this._capabilities,
         port_resolver: this._portResolver(),
+        provider_id: this._provider_id,
+        endpoint_resolver: typeof (this._sandbox_protocol as unknown as { portEndpoint?: unknown }).portEndpoint === "function"
+          ? port => (this._sandbox_protocol as unknown as { portEndpoint(id: string, port: number): Promise<ApplicationEndpoint> }).portEndpoint(this.id, port) : undefined,
         port_access: getProvider(this._provider_id).createPortAccess({ sandbox_id: this.id,
           domain: this._domain, secure: this._secure, access_token: this._envd_token?.token ?? null }, this._sandbox_protocol),
       });
@@ -424,7 +430,6 @@ export class Sandbox {
         this._envd_token,
         this._code_interpreter_protocol,
         this._capabilities,
-        this._process_protocol,
       );
     }
     return this._code;
@@ -736,8 +741,7 @@ export class Sandbox {
 
   /** Run code in the sandbox using the code interpreter. */
   async runCode(code: string, opts: RunCodeOptions = {}): Promise<CodeResult> {
-    const { language = "python", timeout = 30, envs = null, on_stdout = null, on_stderr = null, on_result = null } = opts;
-    return this.code.run(code, { language, timeout, envs, on_stdout, on_stderr, on_result });
+    return this.code.run(code, opts);
   }
 
   /** Open an interactive PTY terminal session (WebSocket). */
@@ -758,12 +762,10 @@ export class Sandbox {
    * Throws `ConnectionError_` when no SandboxServer is reachable, and `TokenExpiredError` if the sandbox is not
    * authenticated.
    */
-  async listCommands(opts: { server_port?: number } = {}): Promise<Record<string, any>[]> {
+  async listCommands(opts: { server_port?: number; application_token?: string } = {}): Promise<Record<string, any>[]> {
     const { server_port = 9000 } = opts;
-    Sandbox._requireHttpDataPlane(this, "named commands");
-    this._envd_token.getHeaders();
     try {
-      return await this._fetchServerCommands(server_port);
+      return await this._fetchServerCommands(server_port, opts.application_token);
     } catch (exc) {
       if (exc instanceof RequestError) throw this._serverUnreachable(server_port, exc);
       throw exc;
@@ -778,13 +780,12 @@ export class Sandbox {
    * Throws `CommandNotFoundError` when the server has no command `name`, and `ConnectionError_` when no SandboxServer is
    * reachable. A command that exists but fails validation/execution resolves to a `CommandResult` with `exit_code` 1.
    */
-  async runCommand(name: string, kwargs: Record<string, any> = {}, opts: { server_port?: number } = {}): Promise<CommandResult> {
+  async runCommand(name: string, kwargs: Record<string, any> = {}, opts: { server_port?: number; application_token?: string } = {}): Promise<CommandResult> {
     const { server_port = 9000 } = opts;
-    Sandbox._requireHttpDataPlane(this, "named commands");
     let response: HttpResponseLike;
     let body: Record<string, any>;
     try {
-      [response, body] = await this._callServerCommand(name, server_port, kwargs);
+      [response, body] = await this._callServerCommand(name, server_port, kwargs, opts.application_token);
     } catch (exc) {
       if (exc instanceof RequestError) throw this._serverUnreachable(server_port, exc);
       if (exc instanceof RuntimeError) {
@@ -856,27 +857,10 @@ export class Sandbox {
     name: string,
     server_port: number,
     kwargs: Record<string, any>,
+    application_token?: string,
   ): Promise<[HttpResponseLike, Record<string, any>]> {
-    const url = this.network.getUrl(server_port);
-    const access_headers = this.network.getAccessHeaders();
-    const client = this._envdClientFactory("named commands")(url);
-    const first = await this._postServerCommand(client, name, kwargs, access_headers);
-    // Express does not set ABX_SERVER_TOKEN. A presented credential that matches nothing is HTTP 401,
-    // while the same request with no credential is the anonymous identity. Retry once without it.
-    if (first[0].status_code === 401 && Object.keys(access_headers).length > 0) {
-      return this._postServerCommand(client, name, kwargs, {});
-    }
-    return first;
-  }
-
-  private async _postServerCommand(
-    client: EnvdClientLike,
-    name: string,
-    kwargs: Record<string, any>,
-    access_headers: Record<string, string>,
-  ): Promise<[HttpResponseLike, Record<string, any>]> {
-    const headers = { "Content-Type": "application/json", ...access_headers };
-    const response = await client.post(`/commands/${encodeURIComponent(name)}`, { json: kwargs, headers });
+    const endpoint = await this.network.resolveEndpoint(server_port);
+    const response = await requestApplication(endpoint, `/commands/${encodeURIComponent(name)}`, { method: "POST", json: kwargs, application_token });
 
     let body: Record<string, any>;
     try {
@@ -902,15 +886,9 @@ export class Sandbox {
    * Returns the `commands` list from the JSON body, or an empty list when the response is malformed. Connection errors
    * propagate as `RequestError`.
    */
-  async _fetchServerCommands(server_port: number): Promise<Record<string, any>[]> {
-    const url = this.network.getUrl(server_port);
-    const access_headers = this.network.getAccessHeaders();
-
-    const client = this._envdClientFactory("named commands")(url);
-    let response = await client.get("/commands", { headers: access_headers });
-    if (response.status_code === 401 && Object.keys(access_headers).length > 0) {
-      response = await client.get("/commands", { headers: {} });
-    }
+  async _fetchServerCommands(server_port: number, application_token?: string): Promise<Record<string, any>[]> {
+    const endpoint = await this.network.resolveEndpoint(server_port);
+    const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token });
 
     if (!response.is_success) {
       throw new RuntimeError(`Sandbox server answered GET /commands with HTTP ${response.status_code}`);

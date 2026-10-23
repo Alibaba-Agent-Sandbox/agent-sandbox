@@ -1,3 +1,4 @@
+import type { OperationDeclaration } from "./operations.js";
 import { unsupportedProtocol } from "./unsupported.js";
 import type { PortAccess, PortContext } from "../protocol/port_contract.js";
 export type { PortAccess, PortContext } from "../protocol/port_contract.js";
@@ -43,7 +44,6 @@ export const FEATURES = [
   "files.rw",
   "files.watch",
   "files.transfer",
-  "code.interpret",
   "templates.read",
   "templates.build",
   "ports.url",
@@ -79,7 +79,6 @@ export function compactFeatures(features: Iterable<string>): string {
 export const FEATURE_TO_CAPABILITY: Readonly<Record<string, string>> = {
   "exec.run": "shell",
   "files.rw": "files",
-  "code.interpret": "code",
   pty: "terminal",
   "ports.url": "ports",
 };
@@ -177,6 +176,10 @@ export interface ProviderDescription {
   version: string;
   kind: ProviderKind;
   features: string[];
+  operation_contract_version: 1;
+  operations: OperationDeclaration;
+  workflow_inputs: readonly string[];
+  startup_modes: readonly string[];
   config_fields: Array<{
     key: string;
     type: string;
@@ -204,6 +207,10 @@ export abstract class Provider {
   version = "0.0.0";
   kind: ProviderKind = "python";
   features: ReadonlySet<string> = new Set();
+  readonly operation_contract_version = 1 as const;
+  operations: OperationDeclaration = { cli: [], python: [] };
+  workflow_inputs: readonly string[] = [];
+  startup_modes: readonly string[] = [];
   commands: readonly ProviderCommand[] = [];
   commandTimeoutMs = 60_000;
   configFields: readonly ConfigField[] = [];
@@ -268,7 +275,7 @@ export abstract class Provider {
   buildSessionProtocols(_http: HttpClient): SessionProtocols {
     return { sandbox_protocol: unsupportedProtocol(this.id, "sandbox.lifecycle"),
       process_protocol: unsupportedProtocol(this.id, "exec.run"), filesystem_protocol: unsupportedProtocol(this.id, "files.rw"),
-      code_interpreter_protocol: unsupportedProtocol(this.id, "code.interpret") } as unknown as SessionProtocols;
+      code_interpreter_protocol: unsupportedProtocol(this.id, "code.execute") } as unknown as SessionProtocols;
   }
 
   createSessionAuth(info: SandboxInfo, infra?: ProviderInfra): DataPlaneAuth {
@@ -325,7 +332,9 @@ export abstract class Provider {
 
   /** Template capability tokens implied by this provider's features. */
   capabilities(): ReadonlySet<string> {
-    return new Set(Object.entries(FEATURE_TO_CAPABILITY).filter(([f]) => this.features.has(f)).map(([, c]) => c));
+    const discovery = new Set(Object.entries(FEATURE_TO_CAPABILITY).filter(([feature]) => this.features.has(feature)).map(([, token]) => token));
+    if (this.operations.cli.some(operation => operation.startsWith("code."))) discovery.add("code");
+    return discovery;
   }
 
   /** JSON-friendly summary (`abx provider info --json`). */
@@ -337,6 +346,8 @@ export abstract class Provider {
       version: this.version,
       kind: this.kind,
       features: [...this.features].sort(),
+      operation_contract_version: 1, operations: this.operations,
+      workflow_inputs: this.workflow_inputs, startup_modes: this.startup_modes,
       config_fields: this.configFields.map((f) => ({
         key: f.key,
         type: f.type ?? "str",

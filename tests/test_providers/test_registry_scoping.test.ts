@@ -257,7 +257,10 @@ describe("TestDoctor", () => {
     fs.writeFileSync(
       path.join(src, "abx-provider.toml"),
       [
-        "manifest_version = 1",
+        'manifest_version = 1',
+        'operation_contract_version = 1',
+        '[operations]', 'cli = []', 'python = []',
+        '[workflow]', 'inputs = ["managed"]', 'startups = ["none"]',
         "[provider]",
         'id = "rest-no-key"',
         'version = "0.1.0"',

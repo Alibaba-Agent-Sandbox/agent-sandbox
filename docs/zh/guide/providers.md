@@ -118,7 +118,7 @@ abx kill local-process:sbx-1 --yes
 | `files.rw` | `upload`、`download`、`sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
 | `files.watch` | — | `files.watch` |
 | `files.transfer` | — | 带签名的上传和下载 URL |
-| `code.interpret` | 无通用 code 命令；MCP/解释器入口各有契约 | `run_code` |
+| 具体 `code.*` 操作 | 解释器执行与各项上下文操作分别检查 | `run_code` |
 | `templates.read` | `template list`、`template info` | 模板读取 API |
 | `templates.build` | `template build/push/create/deploy/install/delete`、`deploy`、`install` | 镜像构建和模板注册 |
 | `ports.url` | 无独立 URL 命令 | Provider 感知的 `network.resolve` / `resolve_url` |
@@ -133,7 +133,7 @@ CLI 如何跟随当前提供商：
 
 - `abx template list|info` 需要 `templates.read`；`build`、`push`、`create`、`deploy`、`install`（`--download-only` 除外）、`delete` 以及顶层 `abx deploy` 需要 `templates.build`。缺少时在任何镜像仓库、Docker 或 ACR 操作之前返回 `E8004`。
 - `abx sandbox command run|list` 需要通向沙箱的 HTTP 数据面。通过 EPP 路由的提供商会返回 `E8004`，并写明 `named commands`。
-- `abx sandbox capabilities` 由提供商声明的特性推导 `shell`、`files`、`code`、`terminal`、`ports`（内置提供商从沙箱模板读取）。
+- 工作流就绪判断使用具体 Provider 操作与客户端协议支持，详见[模板工作流](template-workflows.md)。
 - 提供商没有上报区域或超时时，`abx info` 和 `abx list` 显示 `-`。
 
 `kind = "python"` 的清单不可安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用，但从磁盘安装的插件不会以 Python 运行。

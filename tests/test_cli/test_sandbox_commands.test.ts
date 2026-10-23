@@ -253,6 +253,14 @@ describe("TestConnect", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestList", () => {
+  it.each([{ flags: [] }, { flags: ["--all-providers"] }])("returns an empty JSON array when no sandboxes exist: %j", async ({ flags }) => {
+    patchTransport([]);
+    const result = await runner().invoke(cli, ["--json", "list", ...flags]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual([]);
+    expect(result.stderr).toBe("");
+  });
+
   it("test_list_basic", async () => {
     patchTransport([infoOf("sbx-1")]);
 

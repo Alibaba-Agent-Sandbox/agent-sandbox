@@ -404,15 +404,6 @@ export function contractCases(): ContractCase[] {
         h.need("sandbox.lifecycle");
         const probes: Record<string, (sb: SandboxHandle) => Promise<unknown>> = {
           "sandbox.pause": (sb) => (h.guard("sandbox.pause"), sb.infra.sandbox_protocol.pause(sb.id)),
-          "code.interpret": async (sb) => {
-            h.guard("code.interpret");
-            return (sb.infra.code_interpreter_protocol as unknown as { runCode: (...a: unknown[]) => Promise<unknown> }).runCode(
-              sb.id,
-              sb.url,
-              sb.token,
-              { code: "1 + 1" },
-            );
-          },
           "files.watch": async (sb) => {
             h.guard("files.watch");
             return (sb.fs() as unknown as { watchDir: (...a: unknown[]) => Promise<unknown> }).watchDir(sb.url, sb.token, { path: "/" });

@@ -118,8 +118,8 @@ export const from_image = create_template;
 
 /** Prepare the selected source and launch it without copying a cloud template ID. */
 export const launch = template.command("launch", {
-  help: "Build/register a template with the selected provider and create a sandbox using its returned reference. Configure the provider first; --yes permits billable operations. Missing capabilities fail before build. This project extension does not convert IDs between clouds.",
-  params: [argument(["template_ref"]), option(["--alias", "-a"], { default: null }),
+  help: "Launch the selected manifest workflow. Source builds prepare resources; image and managed workflows create from explicit references; external service workflows verify their HTTP binding. Configure the selected provider before cloud operations; --yes permits billable build/create. Required operations are checked before preparation.",
+  params: [argument(["template_ref"]), option(["--service-url"], { default: null, help: "Explicit external service URL for a service workflow" }), option(["--build-profile"], { default: null, help: "Explicit manifest build profile; preserves its Dockerfile without rewriting source" }), option(["--workflow"], { default: null, help: "Explicit workflow ID (defaults to the manifest default_workflow)" }), option(["--alias", "-a"], { default: null }),
     option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (maximum 3600)" }),
     option(["--sandbox-timeout"], { type: FLOAT, default: 300, help: "Sandbox lifetime in seconds" }),
     option(["--yes", "-y"], { is_flag: true })],

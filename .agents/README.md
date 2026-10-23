@@ -144,6 +144,7 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Terminal installation and prompts](notes/implemented/feature/2026-10-23-terminal-install-prompts.md) · [verification](evidence/verify/2026-10-23-terminal-install-prompts.md)
 
+- [Template workflows](notes/proposed/architecture/2026-10-23-template-workflows.md) · [verification](evidence/verify/2026-10-23-template-workflows.md)
 - [OpenSandbox maturity](notes/implemented/process/2026-10-23-opensandbox-maturity.md) · [verification](evidence/verify/2026-10-23-opensandbox-maturity.md)
 
 Provider installation progress: [decision](notes/implemented/feature/2026-10-23-provider-install-progress.md), [local verification](evidence/verify/2026-10-23-provider-install-progress.md).

@@ -45,7 +45,7 @@ describe.skipIf(!haveCatalog)("node plugins from the catalog", () => {
       const p = getProvider(id);
       expect(p.kind).toBe("node");
       expect(p.supports("files.rw")).toBe(true);
-      expect(p.supports("code.interpret")).toBe(true);
+      expect(p.operations.cli.some(operation => operation === "code.execute")).toBe(false);
     }
     expect(getProvider("cubesandbox").supports("process.manage")).toBe(false);
     expect(getProvider("e2b").supports("process.manage")).toBe(true);
@@ -110,7 +110,7 @@ describe.skipIf(!haveCatalog)("node plugins from the catalog", () => {
       expect(seen[1]?.url).toBe("/files?path=%2Ftmp%2Fa.txt&username=root");
 
       seen.length = 0;
-      const code = await sb.runCode("print(42)");
+      const code = await sb.runCode("print(42)", {operation:"code.default-context.execute"});
       const exec = seen.find((s) => s.url === "/execute");
       expect(exec?.headers["host"]).toBe("49999-sbx-1.reported.test");
       expect(exec?.headers["e2b-sandbox-port"]).toBe("49999");

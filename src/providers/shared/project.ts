@@ -1,4 +1,5 @@
 /** Generic local project/OCI primitives. Backend policy and authentication stay in adapters. */
+import type { ResourceJournalCallbacks } from "../../template/resource_journal.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -6,10 +7,10 @@ import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { ProviderConfigError } from "../../models/provider_errors.js";
 
-export interface ProjectStageOptions { base_image?: string; ensure_user?: string; optional_copy?: readonly string[] }
-export interface StagedProject { directory: string; digest: string; close(): Promise<void> }
+export interface ProjectStageOptions { dockerfile?: string }
+export interface StagedProject { directory: string; digest: string; verify(): Promise<void>; close(): Promise<void> }
 export interface ImageBuildOptions extends ProjectStageOptions {
-  image_repository: string; name: string; timeout?: number;
+  image_repository: string; name: string; timeout?: number; journal?: ResourceJournalCallbacks;
 }
 /** Run a local tool without a shell. Raw tool output/errors are never included in public exceptions. */
 export function runTool(command: string, args: readonly string[], options: { cwd?: string; input?: string; timeout?: number } = {}): Promise<string> {
@@ -23,49 +24,47 @@ export function runTool(command: string, args: readonly string[], options: { cwd
     child.stdin?.end(options.input);
   });
 }
-/** Stage a source tree without changing it. An explicit base replaces the first FROM only. */
+/** Snapshot the authorized source tree without rewriting build inputs. */
 export async function stageProject(directory: string, options: ProjectStageOptions = {}): Promise<StagedProject> {
+  if (Object.keys(options).some(key => key !== "dockerfile") || (options.dockerfile !== undefined && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(options.dockerfile))) throw new ProviderConfigError("Build profile must select a root Dockerfile without rewriting source.");
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "abx-project-"));
   const staged = path.join(root, "source");
   try {
+    let eligible: Set<string> | null = null;
+    try { eligible = new Set((await runTool("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {cwd: directory})).split("\0").filter(Boolean)); }
+    catch { /* A non-Git local source has no tracked/ignored distinction. */ }
+    const eligiblePaths = eligible === null ? null : new Set([...eligible].flatMap(file => {
+      const parts=file.split("/");return parts.map((_part,index)=>parts.slice(0,index+1).join("/"));
+    }));
     await fs.cp(directory, staged, { recursive: true, filter: async (source) => {
+      const relative=path.relative(directory,source).split(path.sep).join("/");
+      if(relative && eligiblePaths && !eligiblePaths.has(relative))return false;
       const name = path.basename(source);
       if (name === ".git" || name === ".abx" || name === ".env" || (name.startsWith(".env.") && name !== ".env.example")) return false;
-      if ((await fs.lstat(source)).isSymbolicLink()) throw new ProviderConfigError("Project preparation does not accept symbolic links.");
+      const stat = await fs.lstat(source);
+      if (stat.isSymbolicLink()) throw new ProviderConfigError("Project preparation does not accept symbolic links.");
+      if (stat.isFile() && eligible && !eligible.has(path.relative(directory, source).split(path.sep).join("/"))) return false;
       return true;
     } });
-    const file = path.join(staged, "Dockerfile");
-    let dockerfile = await fs.readFile(file, "utf8");
-    if (options.base_image) {
-      if (!/^[a-zA-Z0-9][a-zA-Z0-9._:/@-]*$/.test(options.base_image) || options.base_image.includes("://")) throw new ProviderConfigError("Invalid project base image.");
-      dockerfile = dockerfile.replace(/^FROM\s+(?:--platform=\S+\s+)?\S+(.*)$/im, `FROM ${options.base_image}$1`);
-      if (options.ensure_user) {
-        if (!/^[a-z_][a-z0-9_-]*$/.test(options.ensure_user)) throw new ProviderConfigError("Invalid project build user.");
-        dockerfile = dockerfile.replace(/^(FROM[^\n]*\n)/im, `$1USER root\nRUN id -u ${options.ensure_user} >/dev/null 2>&1 || useradd --create-home --shell /bin/sh ${options.ensure_user}\n`);
-      }
-    }
-    // Providers may explicitly identify optional build inputs with a Dockerfile fallback.
-    for (const pattern of options.optional_copy ?? []) {
-      if (!/^\*\.[a-zA-Z0-9]+$/.test(pattern)) throw new ProviderConfigError("Optional copy inputs must be simple extension patterns.");
-      const suffix = pattern.slice(1);
-      if (!(await fs.readdir(staged)).some(name => name.endsWith(suffix))) {
-        const lines = dockerfile.split("\n");
-        dockerfile = lines.filter(line => !(line.trim().startsWith("COPY ") && line.trim().split(/\s+/)[1] === pattern)).join("\n");
-      }
-    }
-    if (!/^FROM\s+/im.test(dockerfile) || /^FROM[^\n]*[<>]/im.test(dockerfile)) throw new ProviderConfigError("Configure this provider's build_base_image before preparing a template with an unresolved base image.");
-    await fs.writeFile(file, dockerfile);
+    const file = path.join(staged, options.dockerfile ?? "Dockerfile");
+    const dockerfile = await fs.readFile(file, "utf8");
+    if (!/^FROM\s+/im.test(dockerfile) || /^FROM[^\n]*[<>]/im.test(dockerfile)) throw new ProviderConfigError("Project Dockerfile must name an explicit base image; source build inputs are never rewritten.");
+    async function digest(): Promise<string> {
     const hash = createHash("sha256");
     async function visit(folder: string): Promise<void> {
       for (const name of (await fs.readdir(folder)).sort()) {
         const item = path.join(folder, name), stat = await fs.stat(item);
-        hash.update(JSON.stringify([path.relative(staged, item), stat.isDirectory() ? "directory" : "file", stat.size, stat.mode & 0o777]));
         if (stat.isDirectory()) await visit(item);
-        else hash.update(await fs.readFile(item));
+        else { hash.update(path.relative(staged, item).split(path.sep).join("/")); hash.update("\0"); hash.update(await fs.readFile(item)); hash.update("\0"); }
       }
     }
     await visit(staged);
-    return { directory: staged, digest: hash.digest("hex"), close: () => fs.rm(root, { recursive: true, force: true }) };
+    return hash.digest("hex");
+    }
+    const snapshotDigest = await digest();
+    return { directory: staged, digest: snapshotDigest, verify: async () => {
+      if (await digest() !== snapshotDigest) throw new ProviderConfigError("Execution snapshot changed; recompute the plan before preparing resources.");
+    }, close: () => fs.rm(root, { recursive: true, force: true }) };
   } catch (error) {
     await fs.rm(root, { recursive: true, force: true });
     if (error instanceof ProviderConfigError) throw error;
@@ -78,16 +77,25 @@ export async function buildProjectImage(directory: string, options: ImageBuildOp
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(options.name)) throw new ProviderConfigError("Project alias must be a lowercase name of at most 63 characters.");
   const timeout = options.timeout ?? 600;
   if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 3600) throw new ProviderConfigError("Project build timeout must be greater than 0 and at most 3600 seconds.");
+  if (!options.journal) throw new ProviderConfigError("Project image preparation requires an owned-resource journal.");
   const deadline = Date.now() + timeout * 1000;
-  const stage = await stageProject(directory, options);
+  const stage = await stageProject(directory, { dockerfile: options.dockerfile });
   try {
     const image = `${options.image_repository}:${options.name}-${stage.digest.slice(0, 16)}`;
     const buildRemaining = (deadline - Date.now()) / 1000;
     if (buildRemaining <= 0) throw new ProviderConfigError("Project staging exceeded the build deadline.");
-    await runTool("docker", ["build", "--platform", "linux/amd64", "-t", image, "."], { cwd: stage.directory, timeout: buildRemaining });
+    await stage.verify();
+    const localIntent = await options.journal.intent({ kind: "image", correlation_key: image, cleanup: "manual" });
+    await runTool("docker", ["build", "--platform", "linux/amd64", "-f", options.dockerfile ?? "Dockerfile", "-t", image, "."], { cwd: stage.directory, timeout: buildRemaining });
+    await options.journal.created(localIntent, image);
     const remaining = (deadline - Date.now()) / 1000;
     if (remaining <= 0) throw new ProviderConfigError("Project build timed out before image publication.");
+    const pushIntent = await options.journal.intent({ kind: "image", correlation_key: image, cleanup: "manual" });
     await runTool("docker", ["push", image], { timeout: remaining });
-    return image;
+    const digests = JSON.parse(await runTool("docker", ["image", "inspect", "--format", "{{json .RepoDigests}}", image], { timeout: Math.max(0.01, (deadline - Date.now()) / 1000) })) as unknown;
+    const immutable = Array.isArray(digests) ? digests.find(value => typeof value === "string" && value.startsWith(`${options.image_repository}@sha256:`) && /@sha256:[a-f0-9]{64}$/.test(value)) : undefined;
+    if (!immutable) throw new ProviderConfigError("Published image has no observable immutable digest; inspect the resource journal before retrying.");
+    await options.journal.created(pushIntent, immutable);
+    return immutable;
   } finally { await stage.close(); }
 }

@@ -27,7 +27,7 @@ const runner = (): CliRunner => new CliRunner();
 const tmpPath = useTmpPath();
 
 const INDEX_YAML = `\
-schema_version: 1
+schema_version: 2
 templates:
   - name: qwen-code
     description: "Qwen Code agent harness"
@@ -35,7 +35,6 @@ templates:
     path: qwen-code
     tags: [qwen, ai-agent]
     author: alibaba-agent-sandbox
-    capabilities: [shell, files, code]
     status: official
   - name: node-web
     description: "Node.js web service"
@@ -43,7 +42,6 @@ templates:
     path: node-web
     tags: [nodejs, web, deploy]
     author: alibaba-agent-sandbox
-    capabilities: [shell, files, code]
     status: official
 `;
 

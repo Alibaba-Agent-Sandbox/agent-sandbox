@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 /**
  * End-to-end `abx template install` tests for the template catalog (port of `tests/test_templates/test_local_install.py`).
  *
@@ -249,10 +250,10 @@ describe("TestLocalInstallFailures", () => {
   it("test_invalid_yaml_is_rejected", async () => {
     const folder = path.join(tmpPath(), "broken");
     fs.mkdirSync(folder);
-    fs.writeFileSync(path.join(folder, "template.yaml"), "name: broken\ncapabilities:\n  - not-a-real-capability\n", "utf-8");
+    fs.writeFileSync(path.join(folder, "template.yaml"), manifestYaml("name: broken\ncapabilities:\n  - not-a-real-capability\n"), "utf-8");
     const result = await runner().invoke(cli, ["template", "install", folder, "--registry-type", "local"]);
     expect(result.exit_code).not.toBe(0);
-    expect(_combined_output(result).toLowerCase()).toContain("capability");
+    expect(_combined_output(result).toLowerCase()).toContain("capabilities");
   });
 });
 
@@ -428,13 +429,13 @@ describe("TestSandboxYamlAliasInstall", () => {
     fs.mkdirSync(tmpl_dir);
     fs.writeFileSync(
       path.join(tmpl_dir, "template.yaml"),
-      "name: both-yamls\n" +
+      manifestYaml("name: both-yamls\n" +
         "version: '1.0.0'\n" +
         "description: Canonical file\n" +
         "base: python:3.11-slim\n" +
         "author: test\n" +
         "tags:\n  - test\n" +
-        "capabilities:\n  - shell\n  - files\n  - code\n",
+        ""),
       "utf-8",
     );
     fs.writeFileSync(

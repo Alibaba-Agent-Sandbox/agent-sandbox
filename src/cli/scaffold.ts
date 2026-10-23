@@ -53,6 +53,40 @@ ready_cmd: ${quoted(profile.ready_cmd ?? "")}
 `;
 }
 
+/** Explicit application or ordinary exec route; installed software never implies interpreter support. */
+function workflowYaml(profile: TemplateProfile, minimal = false): string {
+  if (minimal) return `spec_version: 4
+workflow_contract_version: 1
+provides: {}
+default_workflow: exec
+workflows:
+  exec:
+    kind: exec
+    input: source
+    startup: none
+    binding: { transport: exec, endpoint: provider-native, caller: host, authentication: provider }
+    operation: exec.run
+    required_operations: []
+`;
+  const native = profile.server_start === "platform_start_cmd";
+  return `spec_version: 4
+workflow_contract_version: 1
+${native ? "" : `start_cmd: ${quoted(`agent-sandbox-server serve --port 9000 --commands ${profile.workdir}/commands.py`)}\n`}
+provides:
+  app: { protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run] }
+default_workflow: application
+workflows:
+  application:
+    kind: application
+    input: source
+    service: app
+    startup: ${native ? "entrypoint" : "exec"}
+    binding: { transport: http, endpoint: provider-port, caller: host, authentication: none }
+    operation: commands.run
+    required_operations: []
+`;
+}
+
 function templateYaml(profile: TemplateProfile, description: string, cpu: number): string {
   return `name: {name}
 version: "1.0.0"
@@ -62,10 +96,7 @@ base: ${quoted(profile.base_image)}
 user: ${quoted(profile.user)}
 workdir: ${quoted(profile.workdir)}
 ${platformRuntime(profile)}
-capabilities:
-  - shell
-  - files
-  - code
+${workflowYaml(profile)}
 
 resources:
   cpu: ${cpu}
@@ -82,10 +113,7 @@ base: ${quoted(profile.base_image)}
 user: ${quoted(profile.user)}
 workdir: ${quoted(profile.workdir)}
 
-capabilities:
-  - shell
-  - files
-  - code
+${workflowYaml(profile, true)}
 `;
 }
 
@@ -104,7 +132,7 @@ function dockerfile(profile: TemplateProfile, opts: { copyCommands: boolean }): 
   if (profile.user) lines.push(`USER ${profile.user}`);
   if (opts.copyCommands) {
     lines.push("COPY commands.py .", "", "EXPOSE 9000");
-    if (cmd) lines.push(cmd);
+    if (cmd && profile.server_start === "platform_start_cmd") lines.push(cmd);
   }
   return `${lines.join("\n")}\n`;
 }

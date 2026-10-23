@@ -60,6 +60,13 @@ export const TEST_HOST_VERSION = "0.3.0";
 
 const MANIFEST = (id: string, version: string, extra: string): string => `\
 manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 
 [provider]
 id = "${id}"

@@ -138,6 +138,7 @@ export function mockFilesystemProtocol(): any {
 
 export function mockCodeInterpreterProtocol(): any {
   return {
+    operations: new Set(["code.execute", "code.context.create", "code.context.execute", "code.context.list", "code.context.restart", "code.context.delete"]),
     runCode: vi.fn(async () => ({ stdout: "42\n", stderr: "", exitCode: 0, executionTime: 0.05 })),
     createContext: vi.fn(async () => ({ contextId: "ctx-001", language: "python" })),
     listContexts: vi.fn(async () => [{ contextId: "ctx-001", language: "python" }]),
@@ -252,7 +253,6 @@ export function makeCodeModule(
       envdTokenManager(),
       code_interpreter_protocol,
       ALL_CAPABILITIES,
-      process_protocol,
     ),
     code_interpreter_protocol,
     process_protocol,

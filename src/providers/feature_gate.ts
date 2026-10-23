@@ -39,9 +39,11 @@ export const FILESYSTEM_RULES: FeatureRules = {
   watchDir: ["files.watch"],
 };
 
-export const CODE_RULES: FeatureRules = Object.fromEntries(
-  ["runCode", "createContext", "listContexts", "restartContext", "removeContext"].map((m) => [m, ["code.interpret"]]),
-);
+export const CODE_RULES: FeatureRules = {
+  runCode: ["code.execute", "code.context.execute", "code.default-context.execute"],
+  createContext: ["code.context.create"], listContexts: ["code.context.list"],
+  restartContext: ["code.context.restart"], removeContext: ["code.context.delete"],
+};
 
 /** Wrap `target` so a method needing an undeclared feature throws `ProviderFeatureNotSupportedError` (E8004). */
 export function gateProtocol<T extends object>(target: T, providerId: string, rules: FeatureRules, supported: ReadonlySet<string>): T {

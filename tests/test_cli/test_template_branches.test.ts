@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/workflowManifest.js";
 import "../_support/isolatedHome.js";
 import * as guidance from "../../src/cli/config_guidance.js";
 /**
@@ -33,7 +34,7 @@ afterEach(() => {
 
 function templateDir(): string {
   const tdir = path.join(tmpPath(), "tpl");
-  writeText(path.join(tdir, "template.yaml"), "name: test-tpl\nresources:\n  cpu: 1\n  memory: 512\n");
+  writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-tpl\nresources:\n  cpu: 1\n  memory: 512\n"));
   writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
   return tdir;
 }
@@ -130,7 +131,7 @@ describe("TestInstallPipelineStatuses", () => {
     envAliyun();
     const tp = tmpPath();
     const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), "name: st-test\n");
+    writeText(path.join(source, "template.yaml"), manifestYaml("name: st-test\n"));
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     spyAny(templateSeams, "_doDeploy").mockResolvedValue({
       TemplateID: "tpl-9",
@@ -162,7 +163,7 @@ describe("TestInstallPipelineStatuses", () => {
     envAliyun();
     const tp = tmpPath();
     const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), "name: st-test\n");
+    writeText(path.join(source, "template.yaml"), manifestYaml("name: st-test\n"));
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local"]);
     expect(result.exit_code).toBe(2);
@@ -175,7 +176,7 @@ describe("TestInstallPipelineStatuses", () => {
     vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const tp = tmpPath();
     const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), "name: st-test\n");
+    writeText(path.join(source, "template.yaml"), manifestYaml("name: st-test\n"));
     writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
     const doDeploy = spyAny(templateSeams, "_doDeploy");
     const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local"], { input: "n\n" });

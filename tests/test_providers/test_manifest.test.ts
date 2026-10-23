@@ -7,6 +7,13 @@ import { checkRequires, parseManifest, versionSatisfies } from "../../src/provid
 
 const BASE = `
 manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "demo-prov"
 version = "1.2.3"
@@ -111,6 +118,13 @@ it("test_protocol_mismatch_is_version_error_code", () => {
 it("test_rest_manifest", () => {
   const text = `
 manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "rest-one"
 version = "0.1"

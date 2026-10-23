@@ -6,8 +6,9 @@ import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
 import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
 /** `rest` providers: a declarative endpoint preset for any E2B-protocol backend (no code). */
 
+import { ProviderProtocolError } from "../models/provider_errors.js";
 import { InvalidAPIKeyError } from "../models/errors.js";
-import { CodeInterpreterProtocol } from "./shared/e2b/code_interpreter.js";
+import { UnsupportedCodeProtocol } from "./unsupported_code.js";
 import { FilesystemProtocol } from "./shared/e2b/filesystem.js";
 import { ProcessProtocol } from "./shared/e2b/process.js";
 import { SandboxProtocol } from "./shared/e2b/sandbox.js";
@@ -16,7 +17,7 @@ import type { LayeredConfig } from "../transport/config_layers.js";
 import { HttpClient } from "../transport/http.js";
 import { providerEnvName } from "../utils/config_keys.js";
 import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
-import { CODE_RULES, FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
+import { FILESYSTEM_RULES, PROCESS_RULES, SANDBOX_RULES, gateProtocol } from "./feature_gate.js";
 import type { Manifest } from "./manifest.js";
 
 /** Platform authentication with a bearer token or a custom API-key header. */
@@ -52,7 +53,7 @@ export class RestProvider extends Provider {
     if (context.url.startsWith("epp://")) return super.openTerminal(context, opts);
     return e2bOpenTerminal(context, opts);
   }
-  override buildSessionProtocols(http: HttpClient) { return e2bSessionProtocols(http); }
+  override buildSessionProtocols(http: HttpClient) { return e2bSessionProtocols(http, this.id); }
   override createPortAccess(context: PortContext) { return createPortAccess(context); }
   override resolveSessionUrl(info: SessionInfo, config: import("../transport/config.js").TransportConfig) { return info.envd_url || envdUrl(info.sandbox_id, config.domain); }
   override kind = "rest" as const;
@@ -69,6 +70,10 @@ export class RestProvider extends Provider {
     this.displayNameZh = manifest.name_zh;
     this.version = manifest.version;
     this.features = new Set(manifest.features);
+    this.operations = manifest.operations;
+    if (Object.values(this.operations).some((operations: readonly string[]) => operations.some((operation: string) => operation.startsWith("code.")))) throw new ProviderProtocolError("REST presets have no verified interpreter transport.");
+    this.workflow_inputs = manifest.workflow_inputs;
+    this.startup_modes = manifest.startup_modes;
     this.configFields = manifest.fields;
     this.authAnyOf = manifest.auth_any_of;
     this.inherit = consentedInherit(manifest.inherit, receipt);
@@ -100,7 +105,7 @@ export class RestProvider extends Provider {
       sandbox_protocol: gate(new SandboxProtocol(http, { unknownIfAbsent: true }), SANDBOX_RULES),
       process_protocol: gate(new ProcessProtocol(http), PROCESS_RULES),
       filesystem_protocol: gate(new FilesystemProtocol(http), FILESYSTEM_RULES),
-      code_interpreter_protocol: gate(new CodeInterpreterProtocol(http), CODE_RULES),
+      code_interpreter_protocol: new UnsupportedCodeProtocol(this.id),
       close: () => http.close(),
     };
   }

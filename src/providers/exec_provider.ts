@@ -1,3 +1,4 @@
+import { verifyRuntimeOperations } from "./operations.js";
 import { sessionAuth as e2bSessionAuth, openTerminal as e2bOpenTerminal } from "./shared/e2b/session.js";
 import type { SandboxInfo as SessionInfo } from "../models/sandbox.js";
 import type { TerminalContext as SessionTerminalContext, ProviderInfra as SessionInfra } from "./base.js";
@@ -25,6 +26,8 @@ import { Provider, consentedInherit, type ProviderInfra } from "./base.js";
 import { EppClient, PROTOCOL, isMethodNotFound, resolveCommand, scrubbedEnv, type AsyncQueue, type EppPeer, type Notification } from "./epp.js";
 import { ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "../models/provider_errors.js";
 import { hostVersion } from "./host.js";
+import type { ApplicationEndpoint } from "../protocol/port_contract.js";
+import { validateApplicationEndpoint } from "../transport/application_http.js";
 import type { Manifest } from "./manifest.js";
 import * as store from "./store.js";
 
@@ -124,6 +127,14 @@ export class ExecSandboxProtocol {
     if (typeof url !== "string" || !url) throw new ProviderProtocolError(`Provider '${this.pid}' returned no url for ports.url.`);
     const raw = asDict(res["headers"]);
     return [url, Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v)]))];
+  }
+
+  /** Resolve the structured application binding returned by the selected adapter. */
+  async portEndpoint(sandboxId: string, port: number): Promise<ApplicationEndpoint> {
+    this.need("ports.url");
+    const endpoint = await this.client.call("ports.url", { sandbox_id: sandboxId, port }) as ApplicationEndpoint;
+    if (endpoint.provider_id !== this.pid) throw new ProviderProtocolError("Application endpoint provider mismatch.");
+    return validateApplicationEndpoint(endpoint, sandboxId, port);
   }
 
   private need(feature: string): void {
@@ -233,7 +244,8 @@ export class ExecSandboxProtocol {
 function frameToChunk(frame: Record<string, unknown>): ProcessChunk {
   const kind = String(frame["type"] ?? "stdout");
   const type = kind === "stdout" || kind === "stderr" || kind === "exit" ? kind : ProcessChunkType.STDOUT;
-  return new ProcessChunk({ type, data: String(frame["data"] ?? ""), exit_code: (frame["exit_code"] as number | null | undefined) ?? null });
+  return new ProcessChunk({ type, data: String(frame["data"] ?? ""), exit_code: (frame["exit_code"] as number | null | undefined) ?? null,
+    pid: frame["pid"] ?? null, timestamp: frame["timestamp"] ?? null });
 }
 
 export interface ProcessStartOpts {
@@ -360,9 +372,16 @@ export class ExecProcessProtocol {
 
   private async *stream(params: Dict, timeout: number): AsyncGenerator<Dict> {
     const res = asDict(await this.client.call("exec.start", params, { timeout: timeout + execTuning.exitGraceSeconds }));
-    const processId = String(res["process_id"]);
-    const queue: AsyncQueue<Notification | null> = this.client.openStream(processId);
+    const processId = res["process_id"];
+    if (!(typeof processId === "string" && processId.trim().length > 0) &&
+        !(typeof processId === "number" && Number.isSafeInteger(processId) && processId > 0)) {
+      throw new ProviderProtocolError(`Provider '${this.pid}' returned no valid process ID for exec.start.`);
+    }
+    const streamId = String(processId);
+    const queue: AsyncQueue<Notification | null> = this.client.openStream(streamId);
     try {
+      // A backend-issued ID acknowledges startup even when the process emits no output.
+      yield { type: "stdout", data: "", pid: processId, timestamp: res["timestamp"] ?? null };
       for (;;) {
         const note = await queue.getWithin((timeout + execTuning.exitGraceSeconds) * 1000);
         if (note === undefined) {
@@ -375,14 +394,16 @@ export class ExecProcessProtocol {
           return;
         }
         if (note["method"] === "exec.output") {
-          yield { type: note["stream"] === "stderr" ? "stderr" : "stdout", data: String(note["data"] ?? "") };
+          yield { type: note["stream"] === "stderr" ? "stderr" : "stdout", data: String(note["data"] ?? ""),
+            pid: note["pid"] ?? note["process_id"] ?? processId, timestamp: note["timestamp"] ?? null };
         } else if (note["method"] === "exec.exit") {
-          yield { type: "exit", exit_code: Math.trunc(Number(note["exit_code"] ?? 0)) };
+          yield { type: "exit", exit_code: Math.trunc(Number(note["exit_code"] ?? 0)),
+            pid: note["pid"] ?? note["process_id"] ?? processId, timestamp: note["timestamp"] ?? null };
           return;
         }
       }
     } finally {
-      this.client.closeStream(processId);
+      this.client.closeStream(streamId);
     }
   }
 
@@ -577,6 +598,10 @@ export class ExecProvider extends Provider {
     this.displayNameZh = manifest.name_zh;
     this.version = manifest.version;
     this.features = new Set(manifest.features);
+    this.operations = manifest.operations;
+    if (Object.values(this.operations).some((operations: readonly string[]) => operations.some((operation: string) => operation.startsWith("code.")))) throw new ProviderProtocolError("EPP interpreter operations require a verified wire bridge.");
+    this.workflow_inputs = manifest.workflow_inputs;
+    this.startup_modes = manifest.startup_modes;
     this.commands = manifest.commands;
     this.commandTimeoutMs = manifest.call_timeout_ms;
     this.configFields = manifest.fields;
@@ -612,7 +637,7 @@ export class ExecProvider extends Provider {
       callTimeout: this.manifest.call_timeout_ms / 1000,
       secrets: secretValues,
     });
-    await client.start({
+    const initialized = await client.start({
       protocol: PROTOCOL,
       host: { name: "abx", version: hostVersion() },
       provider_id: this.id,
@@ -621,6 +646,7 @@ export class ExecProvider extends Provider {
       locale: "en",
       data_dir: dataDir,
     });
+    verifyRuntimeOperations(this.operations, initialized["operation_contract_version"], initialized["operations"]);
     const advertised = client.features.size > 0 ? client.features : this.features;
     const supported = new Set([...this.features].filter((f) => advertised.has(f)));
     let httpClient: HttpClient | null = null;
@@ -653,7 +679,7 @@ export class ExecProvider extends Provider {
       sandbox_protocol: new ExecSandboxProtocol(client, supported, new Set(this.configFields.filter((f) => f.secret).map((f) => f.key))) as never,
       process_protocol: new ExecProcessProtocol(client, supported, nativeProcess) as never,
       filesystem_protocol: new ExecFilesystemProtocol(client, supported, nativeFiles) as never,
-      code_interpreter_protocol: unsupportedAdapter(this.id, "code.interpret") as never,
+      code_interpreter_protocol: unsupportedAdapter(this.id, "code.execute") as never,
       close,
     };
   }

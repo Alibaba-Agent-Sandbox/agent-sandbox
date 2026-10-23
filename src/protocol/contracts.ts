@@ -114,6 +114,7 @@ export interface RunCodeOptions {
 }
 
 export interface CodeInterpreterProtocol {
+    readonly operations: ReadonlySet<string>;
     runCode(sandbox_id: string, envd_url: string, envd_token: EnvdTokenManager, opts: RunCodeOptions): Promise<Record<string, any>>;
     createContext(sandbox_id: string, envd_url: string, envd_token: EnvdTokenManager, opts?: {
         language?: string;
