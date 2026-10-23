@@ -1,6 +1,6 @@
 # Decision: CLI recovery and scaffold command review
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -28,11 +28,15 @@ Exercise rendered suggestions through the executable parser and generated shell 
 
 ## Acceptance criteria
 
-- [ ] Recovery/scaffold regressions pass.
-- [ ] Required repository gates and real-component verification recorded.
-- [ ] Bilingual guides/design and changelog match implemented scope.
-- [ ] PR merged after checks; reporter implementation remains explicitly future work.
+- Recovery/scaffold regressions pass.
+- Required repository gates and real-component verification recorded.
+- Bilingual guides/design and changelog match implemented scope.
+- PR merged after checks; reporter implementation remains explicitly future work.
 
 ## Evidence
 
 [Verification](../../../evidence/verify/2026-10-23-command-recovery-review.md). Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/109.
+
+## Implementation
+
+The scoped code and design corrections are implemented and locally verified. Reporting remains design-only. Final-head repository CI and merge confirmation are recorded in the linked PR; this pre-merge evidence snapshot does not claim that pending checks or publication already completed.
