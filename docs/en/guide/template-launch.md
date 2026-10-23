@@ -24,7 +24,7 @@ A source checkout can also be built with `npm ci && npm run build`, then run as 
 
 ## Configure the provider once
 
-Install/update the catalog plugin using its documented Git source; pinned installs remain pinned. The new project adapters need a host build exposing the generic project primitives. The CLI reports an actionable prerequisite error on older hosts. All third-party providers remain **Beta**, with formal native acceptance deferred by the maintainer. A callable workflow is not a native acceptance receipt.
+Install/update the catalog plugin using its documented Git source; pinned installs remain pinned. The new project adapters need a host build exposing the generic project primitives. The CLI reports an actionable prerequisite error on older hosts. OpenSandbox’s Docker path has native CLI/SDK and project-launch acceptance. E2B, CubeSandbox and container-cluster paths remain **Beta**; see the [provider acceptance scope](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/blob/main/docs/acceptance.md). Per-template test coverage is independent.
 
 | Provider path | One-time preparation requirements | Returned reference |
 | --- | --- | --- |

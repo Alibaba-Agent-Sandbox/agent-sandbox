@@ -143,3 +143,5 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 - [npm readback recovery](notes/implemented/process/2026-10-23-npm-readback-recovery.md) · [verification](evidence/verify/2026-10-23-npm-readback-recovery.md)
 
 - [Terminal installation and prompts](notes/implemented/feature/2026-10-23-terminal-install-prompts.md) · [verification](evidence/verify/2026-10-23-terminal-install-prompts.md)
+
+- [OpenSandbox maturity](notes/implemented/process/2026-10-23-opensandbox-maturity.md) · [verification](evidence/verify/2026-10-23-opensandbox-maturity.md)

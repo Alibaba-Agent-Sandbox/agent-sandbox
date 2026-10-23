@@ -24,7 +24,7 @@ abx template launch --help
 
 ## 提供方只需配置一次
 
-按提供方文档从 Git 安装或更新插件；固定提交的安装仍保持固定。新项目适配器需要宿主提供通用项目工具，旧宿主会提示更新。第三方全部保留 **Beta**，维护者暂缓其正式原生验收；流程可调用不代表已经通过真实后端验收。
+按提供方文档从 Git 安装或更新插件；固定提交的安装仍保持固定。新项目适配器需要宿主提供通用项目工具，旧宿主会提示更新。OpenSandbox 的 Docker 路径已有原生 CLI/SDK 与项目启动验收；E2B、CubeSandbox 和容器集群路径仍为 **Beta**。详见[提供方验收范围](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/blob/main/docs/acceptance.md)，逐模板测试覆盖独立判断。
 
 | 路径 | 一次性准备条件 | 自动返回的引用 |
 | --- | --- | --- |

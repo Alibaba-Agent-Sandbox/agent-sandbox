@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Align provider launch guidance with accepted OpenSandbox Docker scope and independently marked Beta providers. / 提供方启动说明同步 OpenSandbox Docker 已验收范围，其他 Beta 提供方单独标注。
+
 ## [0.4.9] - 2026-10-23
 
 ### Added
