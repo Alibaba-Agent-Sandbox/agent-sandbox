@@ -31,6 +31,9 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 ```
 
+二进制下载在终端 stderr 显示 curl 进度条和百分比，`curl | sh` 同样适用。重定向 stderr 时不显示动态进度，下载错误和校验结果仍会保留。服务器未提供总大小时，curl 显示传输活动而不显示百分比。
+
+
 脚本是 POSIX `sh`。它识别操作系统和 CPU，包括 Apple Silicon 上的 Rosetta shell（安装原生 `darwin-arm64`）和 `aarch64` Linux（`linux-arm64`）。官网入口设置已完整镜像的版本和官网下载前缀，因此默认安装无需访问 GitHub 查询版本或下载文件。脚本下载二进制和 `.sha256`，用 `sha256sum` 或 `shasum` 校验，并且不需要 `sudo`。
 
 目标目录在 `/usr/local/bin` 可写时用它，否则用 `$HOME/.local/bin`。目录不在 `PATH` 上时，脚本打印需要添加的那一行 `export PATH=...`，然后执行 `abx --version`。

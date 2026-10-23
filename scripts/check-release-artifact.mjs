@@ -1,5 +1,6 @@
 // Exercise an installed package or a real SEA, outside source-module imports.
 import assert from "node:assert/strict";
+import { TERMINAL_DRIVER } from "./terminal-driver.mjs";
 import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -95,6 +96,33 @@ try {
   assert.equal(readFileSync(join(project, "Dockerfile"), "utf8"), "keep original\n");
   assert.equal(invokeProject(["template", "scaffold", "--template", "python", project, "--force", "-y"]).status, 0);
   assert.match(readFileSync(join(project, "Dockerfile"), "utf8"), /FROM/);
+  // Exercise the shipped executable in a real terminal; cancellation precedes Docker/cloud work.
+  if (process.platform !== "win32") {
+    const python = spawnSync("python3", ["-c", "import pty, fcntl, termios"], { encoding: "utf8" });
+    assert.equal(python.status, 0, "POSIX release verification requires python3 PTY support");
+    const terminalEnv = { ...environment, TERM: "xterm-256color" };
+    delete terminalEnv.CI;
+    delete terminalEnv.GITHUB_ACTIONS;
+    const spec = {
+      argv: [artifact, "template", "deploy", project], stdout_terminal: true,
+      steps: [{ wait_for: "Save for future commands", keys: "\x1b[B\x1b[B\r" }],
+    };
+    const driven = spawnSync("python3", ["-c", TERMINAL_DRIVER, JSON.stringify(spec)], {
+      encoding: "utf8", timeout: 60000, env: terminalEnv, cwd: projectRoot,
+    });
+    assert.ifError(driven.error);
+    assert.equal(driven.status, 0, driven.stderr);
+    const terminal = JSON.parse(driven.stdout);
+    assert.equal(terminal.timed_out, false, "Terminal menu did not finish");
+    assert.equal(terminal.status, 1, "Cancel must stop deployment");
+    assert.match(terminal.stderr, /Configuration scope/);
+    assert.match(terminal.stderr, /Cancel/);
+    assert.doesNotMatch(terminal.stderr, /input hidden|Configuration.*complete; continuing/);
+    assert.ok(!existsSync(join(projectRoot, ".abx", ".env")), "Cancel must not save credentials");
+    assert.ok(!existsSync(join(projectRoot, ".abx", "config.toml")), "Cancel must not save configuration");
+    console.log("PASS: installed executable terminal menu: Down/Down/Enter cancels before credential input");
+  }
+
 } finally {
   rmSync(projectRoot, { recursive: true, force: true });
 }

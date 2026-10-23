@@ -51,6 +51,8 @@ curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
 ```
 
+macOS/Linux 下载二进制时会在终端显示进度条和百分比；重定向日志时保持简洁。
+
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_INSTALL_DIR` 选择目录。macOS/Linux 官网安装入口默认使用最新已完整镜像的版本，从官网域名下载二进制和校验文件，无需访问 GitHub 查询版本。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 列出可用版本及文件。`ABX_VERSION` 选择版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 可覆盖产物下载前缀。Windows PowerShell 安装脚本仍使用 GitHub。
 
 官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。当前 0.4.0 早于后续 `[Unreleased]` 变更；需要这些变更时请构建配套源码。

@@ -126,3 +126,31 @@ export async function confirm(text: string, opts: ConfirmOptions = {}): Promise<
   if (abort && !answer) throw new Abort();
   return answer;
 }
+
+/** A finite choice; terminal users move with arrow keys and confirm with Enter. */
+export interface SelectOptions<T extends string | number> {
+  choices: readonly { name: string; value: T }[];
+  default: T;
+  err?: boolean;
+}
+
+/** Select a finite value, retaining numbered input for scripted streams. */
+export async function select<T extends string | number>(text: string, opts: SelectOptions<T>): Promise<T> {
+  const { choices, default: deflt, err = false } = opts;
+  if (!choices.length || !choices.some(choice => choice.value === deflt)) {
+    throw new Error("A selection requires choices and a matching default.");
+  }
+  if (onRealTerminal()) {
+    const { select: ask } = await import("@inquirer/prompts");
+    return inquire(output => ask({ message: text, choices: [...choices], default: deflt }, { output }), err);
+  }
+  choices.forEach((choice, index) => echo(`  ${index + 1}. ${choice.name}`, { err }));
+  const defaultIndex = choices.findIndex(choice => choice.value === deflt) + 1;
+  for (;;) {
+    const value = (await readAnswer(`${text} [${defaultIndex}]: `, false, err, null)).trim();
+    if (!value) return deflt;
+    const index = Number(value) - 1;
+    if (Number.isInteger(index) && index >= 0 && index < choices.length) return choices[index]!.value;
+    echo(`Choose a number from 1 to ${choices.length}.`, { err });
+  }
+}

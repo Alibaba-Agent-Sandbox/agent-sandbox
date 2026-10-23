@@ -24,7 +24,7 @@ import { StringDecoder } from "node:string_decoder";
 import { argument, command, group, option, type Context } from "../kit.js";
 import { Abort, EOFError, KeyboardInterrupt, sysExit } from "../errors.js";
 import { echo, sys } from "../io.js";
-import { prompt } from "../prompts.js";
+import { prompt, select } from "../prompts.js";
 import { cpSlice, len, ljust } from "../../utils/_py.js";
 import { TransportConfig, projectDotenvValue } from "../../transport/config.js";
 import { _DEFAULT_OPENAI_BASE_URL, _DEFAULT_OPENAI_MODEL } from "../../agent/qwen_code.js";
@@ -1015,14 +1015,12 @@ export const init = command("init", {
     assertConfigValuesValid([...CORE_KEYS.filter((key) => !GENERIC_ENDPOINT_KEYS.includes(key.key) || provider.inherit.has(key.key)), ...provider.configKeys()], collectSources(), provider.id);
     echo(configurationTargetSummary(provider.id), { err: true });
     const declared: readonly ConfigPrompt[] = profile?.initFields ?? (await extras.initializationKeys(provider.id, async (groups) => {
-      echo(groups.map((group, index) => `  ${index + 1}. ${group.join(" + ")}`).join("\n"), { err: true });
-      for (;;) {
-        const answer = String(await prompt("Choose an authentication method (number; Enter cancels)", { default: "", show_default: false, err: true }));
-        if (!answer) throw new Abort();
-        const index = Number(answer) - 1;
-        if (Number.isInteger(index) && index >= 0 && index < groups.length) return index;
-        echo("Choose one of the listed authentication methods.", { err: true });
-      }
+      const index = await select("Choose an authentication method", {
+        choices: [...groups.map((group, index) => ({ name: group.join(" + "), value: index })), { name: "Cancel", value: -1 }],
+        default: -1, err: true,
+      });
+      if (index === -1) throw new Abort();
+      return index;
     })).map((key) => ({
       key: key.key, prompt: key.description || key.key, hidden: key.secret, current: !key.secret, result: "stored" as const,
     }));

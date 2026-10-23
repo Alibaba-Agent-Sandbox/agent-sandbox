@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { TERMINAL_DRIVER } from "../../scripts/terminal-driver.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const INSTALL_SH = join(ROOT, "install.sh");
@@ -105,8 +106,11 @@ async function startRelease(options) {
         res.end("missing asset");
         return;
       }
-      res.writeHead(200, { "content-type": "application/octet-stream" });
-      res.end(body);
+      res.writeHead(200, { "content-type": "application/octet-stream", "content-length": body.length });
+      if (options.slow) {
+        res.write(body.subarray(0, Math.floor(body.length / 2)));
+        setTimeout(() => res.end(body.subarray(Math.floor(body.length / 2))), 1200);
+      } else res.end(body);
       return;
     }
 
@@ -121,7 +125,7 @@ async function startRelease(options) {
   };
 }
 
-function runInstaller(base, extraEnv, extraPath) {
+function runInstaller(base, extraEnv, extraPath, terminal = false) {
   const env = { ...process.env };
   delete env.ABX_VERSION;
   delete env.ABX_INSTALL_DIR;
@@ -133,7 +137,9 @@ function runInstaller(base, extraEnv, extraPath) {
   Object.assign(env, extraEnv);
   // spawn (not spawnSync): the fake release server runs on this event loop.
   return new Promise((resolve) => {
-    const child = spawn("sh", [INSTALL_SH], { env });
+    const child = terminal
+      ? spawn("python3", ["-c", TERMINAL_DRIVER, JSON.stringify({ argv: ["sh"], script: INSTALL_SH })], { env })
+      : spawn("sh", [INSTALL_SH], { env });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
@@ -149,7 +155,7 @@ function runInstaller(base, extraEnv, extraPath) {
     });
     child.on("close", (status) => {
       clearTimeout(timer);
-      resolve({ status, stdout, stderr });
+      resolve(terminal && status === 0 ? JSON.parse(stdout) : { status, stdout, stderr });
     });
   });
 }
@@ -354,3 +360,39 @@ function currentAsset() {
   assert.ok(os && arch, `unsupported test host ${unameS} ${unameM}`);
   return `abx-${VERSION}-${os}-${arch}`;
 }
+
+const pythonPty = spawnSync("python3", ["-c", "import pty, fcntl, termios"], { encoding: "utf8" });
+test("shows real curl percentage on terminal stderr with piped script stdin", { skip: pythonPty.status !== 0 }, async () => {
+  const platform = currentAsset();
+  const binary = Buffer.concat([fakeBinary(platform), Buffer.from("# padding\n".repeat(8192))]);
+  const home = mkdtempSync(join(tmpdir(), "abx-progress-"));
+  const installDir = join(home, "bin");
+  const release = await startRelease({ binary, asset: platform, slow: true });
+  try {
+    const result = await runInstaller(release.base, { HOME: home, ABX_INSTALL_DIR: installDir, ABX_VERSION: VERSION }, undefined, true);
+    assert.equal(result.status, 0, JSON.stringify(result));
+    assert.equal(result.timed_out, false);
+    assert.match(result.stderr, /50\.0%/);
+    assert.match(result.stderr, /100\.0%/);
+    assert.doesNotMatch(result.stdout, /\d+\.\d%/);
+    assert.match(result.stdout, /Checksum verified/);
+    assert.equal(readFileSync(join(installDir, "abx"), "utf8"), binary.toString("utf8"));
+  } finally {
+    await release.close();
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("keeps real curl progress out of redirected output", async () => {
+  const platform = currentAsset();
+  const home = mkdtempSync(join(tmpdir(), "abx-quiet-progress-"));
+  const release = await startRelease({ binary: fakeBinary(platform), asset: platform, slow: true });
+  try {
+    const result = await runInstaller(release.base, { HOME: home, ABX_INSTALL_DIR: join(home, "bin"), ABX_VERSION: VERSION });
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.doesNotMatch(result.stdout + result.stderr, /\d+\.\d%|\r|\u001b/);
+  } finally {
+    await release.close();
+    rmSync(home, { recursive: true, force: true });
+  }
+});

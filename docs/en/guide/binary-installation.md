@@ -34,6 +34,8 @@ curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 
 The script is POSIX `sh`. It detects the OS and CPU, including a Rosetta shell on Apple Silicon (it installs native `darwin-arm64`) and `aarch64` Linux (`linux-arm64`). The website entry supplies the fully mirrored version and website asset base, so default installation does not query GitHub or download from GitHub. It downloads the binary and the `.sha256`, checks the digest with `sha256sum` or `shasum`, and installs without `sudo`.
 
+The binary download shows curl’s progress bar and percentage on terminal stderr, including with `curl | sh`. Redirected stderr stays quiet; HTTP failures and checksum verification remain visible. If the server omits the total size, curl shows transfer activity without a percentage.
+
 The destination is `/usr/local/bin` when that directory is writable, otherwise `$HOME/.local/bin`. If the directory is not on `PATH`, the script prints the exact `export PATH=...` line to add. It then runs `abx --version`.
 
 ```bash
