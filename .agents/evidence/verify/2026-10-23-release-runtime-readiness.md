@@ -40,6 +40,8 @@ ALL_PROXY and their lowercase equivalents; the failures below still occurred.
 | --- | --- | --- |
 | Lockfile install | PASS | npm 12 warned that openapi-core/esbuild install scripts were blocked; build and local runtime checks passed |
 | Typecheck/build | PASS | Current candidate source |
+| Initial mounted-filesystem full test/offline trials | CANCELLED | Interrupted with exit 130 after the equivalent local-disk runs completed; not counted as passing |
+| Commit hook | PASS / partial tooling | Custom staged secret scan passed; optional pre-commit framework was not installed |
 | ESLint | PASS | 0 errors, 275 pre-existing warnings |
 | Focused runtime/Skill suite | PASS | 75 tests, including real HTTP and ES module loading |
 | MCP wire/package gate | PASS | 21 tests, including missing Skill resource rejection |
