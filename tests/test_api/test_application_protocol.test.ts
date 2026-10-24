@@ -3,6 +3,7 @@ import {createServer} from "node:http";
 import type {AddressInfo} from "node:net";
 import {describe, expect, it} from "vitest";
 import {Sandbox} from "../../src/api/sandbox.js";
+import {TransportConfig} from "../../src/transport/config.js";
 import type {ApplicationEndpoint} from "../../src/protocol/port_contract.js";
 
 const capabilities = {api_version: 2, endpoints: {list_commands: {enabled: false, allowed: false}, run_command: {enabled: true, allowed: true}}};
@@ -24,6 +25,7 @@ describe("application protocol over real HTTP", () => {
       const endpoint: ApplicationEndpoint = {provider_id: "review", sandbox_id: "owned", port: 9000,
         url: `http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}?signature=opaque%25value`, headers: {}, authentication_audience: "gateway", path_mode: "prefix"};
       const sandbox = Object.create(Sandbox.prototype) as Sandbox;
+      sandbox._config = new TransportConfig();
       Object.defineProperty(sandbox, "network", {value: {resolveEndpoint: async () => endpoint}});
       if (scenario === "valid") {
         expect((await sandbox.runCommand("add", {x: 20, y: 22}, {application_token: "application-only"})).value).toBe(42);
@@ -49,6 +51,7 @@ it("probes a health-only real HTTP application without named-command permissions
   try {
     const endpoint: ApplicationEndpoint = {provider_id: "review", sandbox_id: "owned", port: 9000, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, headers: {}, authentication_audience: "gateway", path_mode: "prefix"};
     const sandbox = Object.create(Sandbox.prototype) as Sandbox;
+    sandbox._config = new TransportConfig();
     Object.defineProperty(sandbox, "network", {value: {resolveEndpoint: async () => endpoint}});
     await sandbox.verifyApplicationOperation("health"); expect(paths).toEqual(["/capabilities", "/health"]);
   } finally {await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));}

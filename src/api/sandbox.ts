@@ -772,8 +772,8 @@ export class Sandbox {
   async verifyApplicationOperation(operation: "commands.list" | "commands.run" | "health", opts: { server_port?: number; application_token?: string } = {}): Promise<void> {
     const endpoint = await this.network.resolveEndpoint(opts.server_port ?? 9000);
     const endpointName = {"commands.run": "run_command", "commands.list": "list_commands", health: "health"} as const;
-    await requireApplicationOperation(endpoint, endpointName[operation], opts.application_token);
-    if (operation === "health") await checkApplicationHealth(endpoint, opts.application_token);
+    await requireApplicationOperation(endpoint, endpointName[operation], opts.application_token, this._config.http_timeout);
+    if (operation === "health") await checkApplicationHealth(endpoint, opts.application_token, this._config.http_timeout);
   }
 
   /**
@@ -882,8 +882,8 @@ export class Sandbox {
     application_token?: string,
   ): Promise<[HttpResponseLike, Record<string, any>]> {
     const endpoint = await this.network.resolveEndpoint(server_port);
-    await requireApplicationOperation(endpoint, "run_command", application_token);
-    const response = await requestApplication(endpoint, `/commands/${encodeURIComponent(name)}`, { method: "POST", json: kwargs, application_token });
+    await requireApplicationOperation(endpoint, "run_command", application_token, this._config.http_timeout);
+    const response = await requestApplication(endpoint, `/commands/${encodeURIComponent(name)}`, { method: "POST", json: kwargs, application_token, timeout: this._config.http_timeout });
 
     let body: Record<string, any>;
     try {
@@ -913,8 +913,8 @@ export class Sandbox {
    */
   async _fetchServerCommands(server_port: number, application_token?: string): Promise<Record<string, any>[]> {
     const endpoint = await this.network.resolveEndpoint(server_port);
-    await requireApplicationOperation(endpoint, "list_commands", application_token);
-    const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token });
+    await requireApplicationOperation(endpoint, "list_commands", application_token, this._config.http_timeout);
+    const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token, timeout: this._config.http_timeout });
 
     if (!response.is_success) {
       throw new RuntimeError(`Sandbox server answered GET /commands with HTTP ${response.status_code}`);

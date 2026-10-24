@@ -77,6 +77,8 @@
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | 阿里云 AccessKey Secret |
 | `GITHUB_TOKEN` | `github_token` | GitHub token（模板下载用；用 `abx config set github_token` 保存；CI 以 Secret 注入） |
 
+从 CLI 0.4.17 起，`ABX_HTTP_TIMEOUT` 也作用于 `abx run` 及命令发现的每次应用 HTTP 请求，默认 30 秒。长任务可以在调用前设置，例如 `ABX_HTTP_TIMEOUT=330 abx run "$SANDBOX_ID" qwen --json-args '{"prompt":"检查已上传的项目","command_timeout":300}'`。HTTP 超时只停止等待响应，不会取消远端命令。
+
 ### 仅 CLI：模板构建与生成
 
 Python SDK 是运行时客户端，不声明这些键；CLI 在 `src/utils/cli_config_keys.ts` 中声明它们。

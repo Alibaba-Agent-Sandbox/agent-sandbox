@@ -63,7 +63,7 @@ export async function requestApplication(endpoint: ApplicationEndpoint, operatio
   try {
     response = await applicationHttpSeams.fetch(url, { method: options.method, headers,
       body: options.json === undefined ? undefined : JSON.stringify(options.json), redirect: "manual",
-      signal: AbortSignal.timeout((options.timeout ?? 30) * 1000) });
+      signal: AbortSignal.timeout(Math.ceil((options.timeout ?? 30) * 1000)) });
   } catch { throw new ProviderConfigError("Application request failed on the selected sandbox binding; no alternate path was attempted."); }
   if (response.status >= 300 && response.status < 400) throw new ProviderConfigError("Application redirects are not allowed.");
   const text = await response.text();
@@ -71,8 +71,8 @@ export async function requestApplication(endpoint: ApplicationEndpoint, operatio
 }
 
 /** Check the selected application's v2 protocol and identity before sending an operation. */
-export async function requireApplicationOperation(endpoint: ApplicationEndpoint, operation: "list_commands" | "run_command" | "health", application_token?: string): Promise<void> {
-  const response = await requestApplication(endpoint, "/capabilities", { method: "GET", application_token });
+export async function requireApplicationOperation(endpoint: ApplicationEndpoint, operation: "list_commands" | "run_command" | "health", application_token?: string, timeout?: number): Promise<void> {
+  const response = await requestApplication(endpoint, "/capabilities", { method: "GET", application_token, timeout });
   if (!response.is_success) throw new ProviderConfigError(`Application protocol discovery failed (HTTP ${response.status_code}).`);
   let document: unknown;
   try { document = response.json(); } catch { throw new ProviderConfigError("Invalid application protocol discovery."); }
@@ -86,8 +86,8 @@ export async function requireApplicationOperation(endpoint: ApplicationEndpoint,
 }
 
 /** Probe the protocol's health operation without requiring named-command authorization. */
-export async function checkApplicationHealth(endpoint: ApplicationEndpoint, application_token?: string): Promise<void> {
-  const response = await requestApplication(endpoint, "/health", {method: "GET", application_token});
+export async function checkApplicationHealth(endpoint: ApplicationEndpoint, application_token?: string, timeout?: number): Promise<void> {
+  const response = await requestApplication(endpoint, "/health", {method: "GET", application_token, timeout});
   let document: unknown;
   try { document = response.json(); } catch { throw new ProviderConfigError("Invalid application health response."); }
   if (!response.is_success || !document || typeof document !== "object" || Array.isArray(document) || (document as Record<string, unknown>)["status"] !== "ok")

@@ -77,6 +77,8 @@ Sandbox calls require `ABX_SANDBOX_API_KEY`; AK/SK settings configure separate o
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | Alibaba Cloud AccessKey Secret |
 | `GITHUB_TOKEN` | `github_token` | GitHub token for template downloads (store with `abx config set github_token`; CI: inject as a secret) |
 
+Since CLI 0.4.17, `ABX_HTTP_TIMEOUT` also controls each application HTTP request made by `abx run` and command discovery (default: 30 seconds). For a longer command, set it before invoking the CLI, for example `ABX_HTTP_TIMEOUT=330 abx run "$SANDBOX_ID" qwen --json-args '{"prompt":"Review the uploaded project","command_timeout":300}'`. An HTTP timeout stops waiting for the response; it does not cancel the remote command.
+
 ### CLI only: template build and generation
 
 The Python SDK is a runtime client and does not declare these keys; the CLI declares them in `src/utils/cli_config_keys.ts`.

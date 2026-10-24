@@ -170,3 +170,5 @@ Current generation fix: [Express workspace ownership](notes/proposed/feature/202
 - [Current provider guidance](notes/implemented/process/2026-10-24-current-provider-guidance.md) · [verification](evidence/verify/2026-10-24-current-provider-guidance.md).
 
 - [Provider operation boundaries](notes/implemented/process/2026-10-24-provider-operation-boundaries.md) · [verification](evidence/verify/2026-10-24-provider-operation-boundaries.md).
+
+- [Application HTTP timeout](notes/proposed/feature/2026-10-24-application-http-timeout.md) · [verification](evidence/verify/2026-10-24-application-http-timeout.md) · [Issue 147](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/147).
