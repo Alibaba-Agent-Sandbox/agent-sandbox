@@ -1,6 +1,6 @@
 # Decision: Integrate runtime readiness into CLI 0.4.11
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -49,3 +49,7 @@ only the tested version-matching tag and verify its public registry artifact aft
 ## Evidence
 
 - [Integration verification](../../../evidence/verify/2026-10-24-release-integration.md).
+
+## Implementation
+
+Delivered in [PR #127](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/127); actual merged state was checked on 2026-10-24. Later acceptance and current limitations are indexed in the [current synchronization record](../../../evidence/verify/2026-10-24-current-docs-and-records.md). Earlier verification files remain unchanged and retain their original pending or failed observations.

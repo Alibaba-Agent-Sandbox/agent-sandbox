@@ -1,6 +1,6 @@
 # Decision: Fail closed at application and creation recovery boundaries
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -41,3 +41,7 @@ Cover wrong discovery versions, malformed documents/catalogs and denied endpoint
 
 - [Review verification](../../../evidence/verify/2026-10-23-workflow-review-safety.md).
 - [Issue 122](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/122).
+
+## Implementation
+
+Delivered in [PR #123](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/123); actual merged state was checked on 2026-10-24. Later acceptance and current limitations are indexed in the [current synchronization record](../../../evidence/verify/2026-10-24-current-docs-and-records.md). Earlier verification files remain unchanged and retain their original pending or failed observations.

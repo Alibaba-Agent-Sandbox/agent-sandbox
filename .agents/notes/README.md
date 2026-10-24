@@ -107,4 +107,4 @@ They are registered as recognised optional sections and are not mandatory:
 
 - [Cloud E2E command contract](proposed/process/2026-10-23-cloud-e2e-command-contract.md)
 
-- [CLI 0.4.11 integration](proposed/process/2026-10-24-release-integration.md)
+- [CLI 0.4.11 integration](implemented/process/2026-10-24-release-integration.md)

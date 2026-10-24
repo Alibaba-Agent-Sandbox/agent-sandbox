@@ -1,5 +1,5 @@
 # Decision: Restore built-in Express source workflows
-Status: proposed
+Status: implemented
 
 ## Problem
 The built-in default provider rejected all 46 source templates through the unified launcher,
@@ -36,3 +36,7 @@ startup/environment. Real Registry source launch, API/CLI calls and owned cleanu
 - Failures preserve recovery identity and clean up owned sandboxes.
 - Exact build inputs and returned IDs survive the complete launch.
 - Real cloud acceptance and all mandatory gates pass before merge.
+
+## Implementation
+
+Delivered in [PR #135](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/135); actual merged state was checked on 2026-10-24. Later acceptance and current limitations are indexed in the [current synchronization record](../../../evidence/verify/2026-10-24-current-docs-and-records.md). Earlier verification files remain unchanged and retain their original pending or failed observations.

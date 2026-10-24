@@ -1,5 +1,5 @@
 # Decision: Order Express workspace ownership repair after WORKDIR
-Status: proposed
+Status: implemented
 
 ## Problem
 [Issue #132](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/132) reports
@@ -51,3 +51,7 @@ health, the owning CLI cloud suite and required remote CI before release.
 
 ## Evidence
 See [verification](../../../evidence/verify/2026-10-24-generated-workdir-ownership.md).
+
+## Implementation
+
+Delivered in [PR #133](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/133); actual merged state was checked on 2026-10-24. Later acceptance and current limitations are indexed in the [current synchronization record](../../../evidence/verify/2026-10-24-current-docs-and-records.md). Earlier verification files remain unchanged and retain their original pending or failed observations.
