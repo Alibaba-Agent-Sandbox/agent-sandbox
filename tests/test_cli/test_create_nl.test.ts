@@ -239,6 +239,25 @@ class _FakePhaseOut {
 // ---------------------------------------------------------------------------
 
 describe("TestCreateRouting", () => {
+  it("accepts detached prompt creation and carries explicit platform steps through the real pipeline", async () => {
+    const [, generated, deploy] = _patchSuccessPipeline(tmp);
+    const create = patchCreate();
+    const result = await runner().invoke(cli, ["create", "--prompt", "a Python data API", "--yes", "--detach", "--build", "steps"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(generated).toHaveBeenCalledWith("a Python data API", expect.objectContaining({ buildMode: "steps", baseImage: "fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49" }));
+    expect(deploy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ build: "steps", yes: true }));
+    expect(create).toHaveBeenCalledOnce();
+  });
+
+  it("does not create a sandbox when generated template readiness fails", async () => {
+    const [, , deploy] = _patchSuccessPipeline(tmp);
+    deploy.mockRejectedValue(new Error("generated template did not become ready"));
+    const create = patchCreate();
+    const result = await runner().invoke(cli, ["create", "--prompt", "a Python API", "--yes", "--detach", "--build", "steps"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(create).not.toHaveBeenCalled();
+    expect(result.output).toContain("Generated template files remain");
+  });
   it("retains command-only cloud configuration through generation, deployment and final creation", async () => {
     vi.stubEnv("ABX_SANDBOX_API_KEY", "");
     vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "");

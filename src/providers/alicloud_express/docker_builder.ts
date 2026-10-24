@@ -20,8 +20,9 @@ import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { materializeBaseImage } from "./base_image.js";
 import { injectedPackageVersion } from "../../utils/package_version.js";
-import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC } from "../../utils/server_sdk_pin.js";
+import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC, SERVER_SDK_RELEASE_SPEC } from "../../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../../models/errors.js";
 import { AsyncClient, HTTPError, asyncWith } from "../../transport/_httpx.js";
@@ -147,7 +148,7 @@ function rewriteServerRequirements(source: string, wheels: readonly string[], es
     }
     if (!pipInstall) continue;
     const archive = /^(?:agent-sandbox-server\s*@\s*)?https:\/\/github\.com\/alibaba-agent-sandbox\/python-sdk\/archive\/[0-9a-f]{40}\.tar\.gz#subdirectory=server-sdk$/i.test(word.value);
-    if (wheels.length && archive) {
+    if (wheels.length && (archive || word.value === SERVER_SDK_RELEASE_SPEC)) {
       edits.push({ start: word.start, end: word.end, value: wheels.map((name) => `/tmp/${name}`).join(" ") });
     } else if (!wheels.length && word.value === "agent-sandbox-server") {
       edits.push({ start: word.start, end: word.end, value: `"${SERVER_SDK_PIP_SPEC}"` });
@@ -221,17 +222,7 @@ function materializedDockerfile(context: string, dockerfile: string | null): str
   if (!existsSync(source)) return dockerfile;
   let text = readFileSync(source, "utf8");
   const original = text;
-  if (text.includes("<region>") || text.includes("<tag>")) {
-    const region = process.env.ABX_BASE_IMAGE_REGION || process.env.ALIBABA_CLOUD_REGION_ID || "cn-hangzhou";
-    const tag = process.env.ABX_BASE_IMAGE_TAG || "v0.0.49";
-    if (!/^[a-z0-9-]+$/.test(region)) {
-      throw new DockerBuildError(`Base image region ${region} is not a lowercase DNS label.`);
-    }
-    if (!/^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag)) {
-      throw new DockerBuildError(`Base image tag ${tag} is not a Docker tag.`);
-    }
-    text = text.replaceAll("<region>", region).replaceAll("<tag>", tag);
-  }
+  text = materializeBaseImage(text);
   text = rewriteDockerfileForServerInstall(text, contextWheelNames(context));
   if (text === original) return dockerfile;
   const out = join(context, "Dockerfile.abx-build");

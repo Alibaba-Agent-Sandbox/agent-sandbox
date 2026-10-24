@@ -20,7 +20,7 @@
 my-template/
 ├── template.yaml      # 必须 — 模板定义
 ├── Dockerfile         # 可选 — 自定义 Docker 构建（优先于 template.yaml 中的构建步骤）
-├── commands.py        # 可选 — 通过 @sandbox.register 注册自定义命令
+├── commands.py        # 可选 — 通过 @command 注册自定义命令
 └── README.md          # 可选 — 模板说明
 ```
 
@@ -35,33 +35,43 @@ my-template/
 ```yaml
 name: my-python-template
 version: "1.0.0"
-description: "Python 数据分析环境，预装 pandas 和 matplotlib"
-author: "Your Name"
-tags:
-  - python
-  - data-analysis
-
+spec_version: 4
+workflow_contract_version: 1
+description: "Python data analysis application"
+provides:
+  app:
+    protocol: agent-sandbox-server
+    version: 2
+    port: 9000
+    operations: [commands.list, commands.run]
+default_workflow: application
+workflows:
+  application:
+    kind: application
+    input: source
+    service: app
+    startup: entrypoint
+    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
+    operation: commands.run
+    required_operations: []
+generation: 2
+start_cmd: agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py
+ready_cmd: agent-sandbox-server healthcheck --port 9000
+ports: [9000]
+resources: {cpu: 2, memory: 2048}
 env:
   PYTHONUNBUFFERED: "1"
-  APP_DIR: "/app"
-
-capabilities:
-  - shell
-  - files
-  - code
-  - terminal
-
-ports:
-  - 8080
 ```
 
 ---
 
-## 字段参考、能力声明与具名命令
+## 工作流契约与具名命令
 
-`template.yaml` 字段、`capabilities` 词表（`shell`、`files`、`code`、`terminal`、`ports`）属于共享的模板契约。具名命令不在 `template.yaml` 中声明：用 `@command` 注册，并且只在 `if __name__ == "__main__"` 里调用 `start()`。用 `abx run <id> <name> --arg k=v` 调用（用 `abx sandbox command list <id>` 列出）。字段与能力的规范记录在[相关 SDK 文档](#相关-sdk-文档)列出的 SDK 文档中。
+上面的示例描述由 `commands.py` 实现的 Express 应用 HTTP 服务，还需要 Dockerfile 或自包含的平台构建步骤。项目模板要求显式 spec v4 工作流契约；旧字段 `capabilities`、`tested_on`、`providers` 会被拒绝，不存在默认能力授权。具名命令用 `@command` 在 `commands.py` 注册，不写在 YAML 中。只在 `if __name__ == "__main__"` 中调用 `start()`。
 
-`base` 可以是镜像字符串，也可以是 `{ image: ... }`。阿里云 Express 还要写 `generation: 2`、`start_cmd` 和 `ready_cmd`（由平台启动 `agent-sandbox-server`，镜像入口不会启动它）。`abx template scaffold -t python` 会写入这些键。`abx run` 和 `abx sandbox command list` / `run` 向 9000 端口发送沙箱的 `X-Access-Token`。若服务返回 HTTP 401，会不带凭证再试一次：Express 不设置 `ABX_SERVER_TOKEN`，对不上的 token 会被拒绝。`abx template deploy` 成功后把清单缓存在 `~/.abx/templates/<template-id>/template.yaml`。带了 `--alias` 时，同一份文件也会写到 `~/.abx/templates/<alias>/template.yaml`，所以 `abx create <id>` 和 `abx create <alias>` 都能解析能力。两处都没有时，警告会写出 `~/.abx/templates`。
+用 `abx sandbox command list <id>` 列出，用 `abx sandbox command run <id> <name> --arg k=v` 调用。应用鉴权与 envd 分离；服务要求 token 时配置 `ABX_SERVER_TOKEN`，客户端不会在未授权后去掉凭据重试。服务须确认当前身份的精确端点操作后，CLI 才发送命令参数。参见[模板 YAML 规范](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)。
+
+`base` 可以是镜像字符串或 `{ image: ... }`。Express generation 2 由平台 `start_cmd` / `ready_cmd` 启动服务，保留基础镜像入口。部署按返回模板 ID 和显式别名缓存清单；缓存项目清单不代表云模板已经 Ready。
 
 ## Dockerfile 自定义
 
@@ -75,7 +85,7 @@ ports:
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
 - 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template scaffold` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。这个包不在 PyPI 上。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
+- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template scaffold` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。内置脚手架保留这个源码固定版本。自然语言生成使用已发布的 alpha `agent-sandbox-server==0.3.1a1`，通过 `python3 -m pip install --index-url https://pypi.org/simple` 安装；它不是稳定版 SDK。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
 
 ---
 
@@ -100,7 +110,7 @@ abx deploy ./app --acr-namespace my-ns
 |------|----------|
 | `Dockerfile` | 总是 |
 | `commands.py` | `SandboxServer` HTTP 入口，端口 9000 |
-| `template.yaml` | 名称、资源、端口、能力 |
+| `template.yaml` | 名称、资源、端口、工作流契约 |
 | `.dockerignore` | 仅当项目里还没有这份文件 |
 
 应用源码保持原样。Agent 在这份名单之外创建或修改的文件会被报告并丢弃。被替换的文件保留为 `*.abx-bak`；已有备份不会被覆盖（下一份是 `.abx-bak.1`）。
@@ -212,6 +222,6 @@ abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-
 `template.yaml` 契约与 Python 侧的编写指南位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)：
 
 - [模板 YAML 规范](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md) — 所有字段精确定义
-- [编写模板（SDK）](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/authoring-templates.md) — 字段参考、能力声明、自定义命令、`@sandbox.register`
+- [编写模板（SDK）](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/authoring-templates.md) — 字段参考、工作流声明、自定义命令、`@command`
 - [模板系统](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) — 分级、名称解析、版本管理
 - [声明式用法](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md) — `@sandbox` 装饰器

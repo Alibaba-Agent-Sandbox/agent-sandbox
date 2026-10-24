@@ -20,7 +20,7 @@ A complete template directory structure is as follows:
 my-template/
 ├── template.yaml      # Required — template definition
 ├── Dockerfile         # Optional — custom Docker build (takes priority over build steps in template.yaml)
-├── commands.py        # Optional — register custom commands via @sandbox.register
+├── commands.py        # Optional — register custom commands via @command
 └── README.md          # Optional — template description
 ```
 
@@ -35,33 +35,43 @@ Publish with `abx deploy`. `--build auto` (the default) uses the Dockerfile when
 ```yaml
 name: my-python-template
 version: "1.0.0"
-description: "Python data analysis environment with pre-installed pandas and matplotlib"
-author: "Your Name"
-tags:
-  - python
-  - data-analysis
-
+spec_version: 4
+workflow_contract_version: 1
+description: "Python data analysis application"
+provides:
+  app:
+    protocol: agent-sandbox-server
+    version: 2
+    port: 9000
+    operations: [commands.list, commands.run]
+default_workflow: application
+workflows:
+  application:
+    kind: application
+    input: source
+    service: app
+    startup: entrypoint
+    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
+    operation: commands.run
+    required_operations: []
+generation: 2
+start_cmd: agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py
+ready_cmd: agent-sandbox-server healthcheck --port 9000
+ports: [9000]
+resources: {cpu: 2, memory: 2048}
 env:
   PYTHONUNBUFFERED: "1"
-  APP_DIR: "/app"
-
-capabilities:
-  - shell
-  - files
-  - code
-  - terminal
-
-ports:
-  - 8080
 ```
 
 ---
 
-## Field Reference, Capabilities and Named Commands
+## Workflow contracts and named commands
 
-The `template.yaml` fields and the `capabilities` vocabulary (`shell`, `files`, `code`, `terminal`, `ports`) are part of the shared template contract. Named commands are not declared in `template.yaml`: register them with `@command` and call `start()` only under `if __name__ == "__main__"`. Call one with `abx run <id> <name> --arg k=v` (list them with `abx sandbox command list <id>`). The fields and capabilities are specified in the SDK documentation listed in [Related SDK documentation](#related-sdk-documentation).
+The example above describes an Express application HTTP service implemented by `commands.py`; it also needs a Dockerfile or self-contained platform build steps. Project templates require the explicit spec v4 workflow contract. Retired `capabilities`, `tested_on` and `providers` fields are rejected, and there is no default capability grant. Named commands belong in `commands.py` with `@command`, not in the YAML. Call `start()` only under `if __name__ == "__main__"`.
 
-`base` may be a string image or `{ image: ... }`. For Alibaba Cloud Express, also set `generation: 2`, `start_cmd`, and `ready_cmd` (the platform starts `agent-sandbox-server`; the image entrypoint does not). `abx template scaffold -t python` writes those keys. `abx run` and `abx sandbox command list` / `run` send the sandbox `X-Access-Token` to port 9000. If that credential is rejected (HTTP 401), they retry once with no credential: Express does not set `ABX_SERVER_TOKEN`, and a token that matches nothing is unauthorized. After `abx template deploy`, the manifest is cached at `~/.abx/templates/<template-id>/template.yaml`. A deploy that passes `--alias` also caches it at `~/.abx/templates/<alias>/template.yaml`, so `abx create <id>` and `abx create <alias>` both resolve capabilities. If neither file is present, the warning names `~/.abx/templates`.
+Use `abx sandbox command list <id>` and `abx sandbox command run <id> <name> --arg k=v`. Application authorization is independent of envd: when the service requires a token, configure `ABX_SERVER_TOKEN`; the client does not retry an unauthorized request without its credential. The service must advertise the exact endpoint operation before the CLI sends the command payload. See the [Template YAML Spec](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
+
+`base` can be an image string or `{ image: ... }`. On Express, generation 2 and platform `start_cmd` / `ready_cmd` start the application; the base image entrypoint is preserved. Deploy caches the manifest by returned template ID and any explicit alias. A cache is a project manifest, not proof that the cloud template is Ready.
 
 ## Dockerfile Customization
 
@@ -75,7 +85,7 @@ Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `sta
 
 - `alicloud-express` uses `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`, does not set `CMD` or `ENTRYPOINT`, and starts the server with the platform `start_cmd` / `ready_cmd`. Workdir is `/home/user/app`. Ports 49983, 5000, and 49999 are reserved by that profile.
 - Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `abx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
-- The image installs `agent-sandbox-server`, not the client package. `abx template scaffold` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`. That distribution is not on PyPI. A Dockerfile that already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` is used as written, and deploy does not query PyPI. `ABX_SERVER_SDK_SOURCE` replaces that pin with a local wheel, whatever SHA it names.
+- The image installs `agent-sandbox-server`, not the client package. `abx template scaffold` writes `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`. The built-in scaffold retains this source pin. Natural-language generation uses the published alpha `agent-sandbox-server==0.3.1a1` with `python3 -m pip install --index-url https://pypi.org/simple`; this is not a stable SDK release. A Dockerfile that already pins `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` is used as written, and deploy does not query PyPI. `ABX_SERVER_SDK_SOURCE` replaces that pin with a local wheel, whatever SHA it names.
 
 ---
 
@@ -100,7 +110,7 @@ Only these files are written, and only after you confirm the preview (or pass `-
 |------|------|
 | `Dockerfile` | Always |
 | `commands.py` | The `SandboxServer` HTTP entry point, port 9000 |
-| `template.yaml` | Name, resources, ports, capabilities |
+| `template.yaml` | Name, resources, ports, workflow contracts |
 | `.dockerignore` | Only when the project does not already have one |
 
 Application source stays as it is. A file the agent creates or edits outside that list is reported and discarded. A replaced file is kept as `*.abx-bak`; an existing backup is never overwritten (the next one is `.abx-bak.1`).
@@ -212,6 +222,6 @@ abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-
 The `template.yaml` contract and the Python-side authoring guides live in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk):
 
 - [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — precise definitions for all fields
-- [Authoring Templates (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, capability declarations, custom commands, `@sandbox.register`
+- [Authoring Templates (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, workflow declarations, custom commands, `@command`
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) — tiers, name resolution, versioning
 - [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md) — the `@sandbox` decorator

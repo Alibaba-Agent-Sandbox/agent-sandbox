@@ -7,11 +7,13 @@
  */
 
 import {
-  ABX_SERVER_INSTALL,
   dockerfileCmdLine,
   resolveTemplateProfile,
   type TemplateProfile,
 } from "../providers/template_profile.js";
+
+import type { BuildMode } from "../template/build_plan.js";
+import { SERVER_SDK_RELEASE_SPEC } from "../utils/server_sdk_pin.js";
 
 export const __all__ = [
   "REQUIRED_TEMPLATE_FILES",
@@ -100,8 +102,8 @@ function dockerfileRules(profile: TemplateProfile): string {
     ? `ENTRYPOINT 可以替换。`
     : `不要写 ENTRYPOINT 指令（基础镜像的入口不可替换）。`;
   const installIntro =
-    "- 安装 agent-sandbox-server，固定使用下面这一行（包不在 PyPI 上；这是钉死的 python-sdk 归档。" +
-    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx template deploy` 改用本地 wheel）：";
+    "- 安装 agent-sandbox-server，固定使用下面已发布的 PyPI alpha 测试版（不是稳定版）。" +
+    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx template deploy` 改用本地 wheel：";
   const secrets = "- 不要在镜像里写入任何密钥；需要的密钥在 template.yaml 的 `env` 里只列名字（空值或非敏感默认值）。";
   if (profile.server_start === "platform_start_cmd") {
     return `### 3. Dockerfile 规则（provider \`${profile.provider_id}\`）
@@ -116,7 +118,7 @@ function dockerfileRules(profile: TemplateProfile): string {
 - 仓库：${profile.registry}
 ${installIntro}
 \`\`\`
-${ABX_SERVER_INSTALL}
+RUN python3 -m pip install --index-url https://pypi.org/simple --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}"
 \`\`\`
 - \`COPY commands.py .\`（以及业务代码），\`EXPOSE ${SERVER_PORT}\`（业务端口一并 EXPOSE）。
 ${secrets}`;
@@ -133,9 +135,58 @@ ${secrets}`;
 - 仓库：${profile.registry}
 ${installIntro}
 \`\`\`
-${ABX_SERVER_INSTALL}
+RUN python3 -m pip install --index-url https://pypi.org/simple --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}"
 \`\`\`
 ${secrets}`;
+}
+
+/** The existing platform steps API has no uploaded local COPY context. */
+function platformStepsRules(profile: TemplateProfile): string {
+  return `### 3a. 本次发布模式：steps（必须完成，Dockerfile 不参与本次构建）
+- 仍创建 Dockerfile 供审阅和以后本地构建，但本次 template.yaml 必须包含：
+  base:
+    image: ${profile.base_image}
+  build:
+    mode: steps
+    steps:
+      - {type: USER, args: [root]}
+      - {type: RUN, args: [<完整安装依赖的 shell 命令>]}
+      - {type: RUN, args: [<在绝对路径 ${profile.workdir}/commands.py 写入源码的完整 shell 命令>]}
+      - {type: RUN, args: [<检查语法并修正工作目录所有权的 shell 命令>]}
+      - {type: WORKDIR, args: [${profile.workdir}]}
+      - {type: USER, args: [${profile.user || "root"}]}
+- 以上 image 是提供方已解析的完整引用，必须逐字保留，不能改成 latest、其他 tag 或其他区域。
+- 平台只收到 base.image 与这些类型化 steps，不会收到当前目录、Dockerfile 或 COPY 上下文。
+  这条禁止 COPY 仅针对 build.steps；Dockerfile 仍必须遵循上一节 COPY commands.py 并保持完整。
+  build.steps 不能使用 COPY、相对路径本地文件、或假定 commands.py 已存在。
+- 必须在 RUN 步骤用 python3 -m pip install --index-url https://pypi.org/simple 安装 Python 依赖及 ${SERVER_SDK_RELEASE_SPEC}（alpha）；不要依赖基础镜像的默认镜像源缓存。
+- 为避免 Python 源码、shell、YAML 三层缩进或转义损坏，不手写源码 heredoc 到 YAML。
+  先完成 commands.py，再运行本地 Python 标准库 base64.b64encode(Path("commands.py").read_bytes()).decode()
+  在同一个本地 Python 脚本中读取真实文件、编码、构造 manifest 并写入 JSON。
+  不要把 base64 打印到会话后再复制进大型 write_file 调用；编码只在本地变量里传入单行 RUN：
+  mkdir -p ${profile.workdir} && printf '%s' '<真实base64内容>' | base64 -d > ${profile.workdir}/commands.py
+  每个业务文件都使用相同方式。不要手算 base64，不要留下占位符。
+- 用 Python 字典构造完整清单，再用 json.dumps(manifest, ensure_ascii=False, indent=2) 写 template.yaml。
+  JSON 是合法 YAML，CLI 接受此格式；每条 RUN 的 args 是只包含一个完整 shell 字符串的数组。
+  可以运行本地 Python 处理文本，但不要安装依赖、运行 Docker 或执行云构建。
+- 使用上面的 build.steps 顺序，不混用 build.run/apt_install/pip_install（快捷指令会在 USER root 前执行）。
+  平台默认构建用户不一定是 root；安装阶段先 USER root，结束时恢复 provider 运行用户 ${profile.user || "root"}。
+  安装与写文件后执行 chown -R ${profile.user || "root"}:${profile.user || "root"} ${profile.workdir}，确保运行用户可写工作目录。
+- 所有路径使用绝对路径；安装的库必须是 start_cmd 使用的同一个 Python 能导入的。
+  已有 python3/pip 时不要重新 apt 安装 Python；仅在用户需求确实包含系统依赖时安装对应系统包。
+  不要假定基础镜像的 Python 版本。用户没有要求依赖版本时，不要猜测或复制历史旧版本 pin，
+  让目标解释器上的 pip 解析兼容版本。numpy/pandas/matplotlib 这类有官方 wheel 的库使用
+  python3 -m pip install --index-url https://pypi.org/simple --only-binary=:all: pandas matplotlib
+  （仅安装需求用到的包），拒绝无匹配 wheel 而进入耗时源码编译；不要为这些 wheel 安装 gcc、python3-dev 或图像开发包。
+  README 说明依赖解析策略，验收时记录实际 Python 与依赖版本；用户指定版本不兼容时报告错误，不静默换版本。
+- 保留上面的 provider start_cmd / ready_cmd，实际源码必须写入它们引用的位置。
+- 最后一个 RUN 用 python3 -m py_compile ${profile.workdir}/commands.py 检查语法。
+- README 明确本次使用平台 steps，无需本地 Docker/ACR，也明确安装的是 alpha SDK。
+- 每次工具输出都必须检查错误；大段文件拆成短小写入，避免 max_tokens 截断。
+  最后用本地 Python 检查四个根文件存在、ast.parse(commands.py)、json.loads(template.yaml)、
+  每个 step.args 是字符串数组，且 Dockerfile 包含 COPY commands.py。
+  生成清单脚本采用独立短 .py 文件运行，避免在 shell 双引号里嵌套整个 Python 字典。
+  自检失败就在同一工作目录修复后再检查，不能在工具失败或缺文件时声称完成。`;
 }
 
 /**
@@ -148,7 +199,7 @@ ${secrets}`;
  * `profile` is a resolved {@link TemplateProfile}, a provider id, or omitted to use the same provider `abx` already
  * selected (`--provider` / `ABX_PROVIDER` / default `alicloud-express`). The text describes that one profile.
  */
-export function buildTemplateGuide(mode: string = "create", profile?: TemplateProfile | string | null): string {
+export function buildTemplateGuide(mode: string = "create", profile?: TemplateProfile | string | null, buildMode: BuildMode = "auto"): string {
   if (mode !== "create" && mode !== "adopt") {
     throw new Error(`Unknown template guide mode '${mode}'; expected 'create' or 'adopt'.`);
   }
@@ -163,6 +214,8 @@ ${howItIsUsed(selected)}
 ${filesSection}
 
 ${dockerfileRules(selected)}
+
+${buildMode === "steps" ? platformStepsRules(selected) : ""}
 
 ### 4. commands.py 规则（\`agent_sandbox.server\` API）
 \`\`\`python
@@ -184,8 +237,8 @@ from agent_sandbox.server import (
 - 自定义 HTTP 路由：\`@table.route("GET"|"POST"|"DELETE", "/path/{param}", group=CapabilityGroup.COMMANDS)\`，
   处理函数接收 \`request\`，返回 \`ServerResponse.ok({...})\`。需求不是自定义 HTTP 时不要写。
 - 内置接口总是存在：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、\`POST /commands/<名字>\`。
-- 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，请求必须带 \`X-Access-Token\`（\`/health\` 与
-  \`/capabilities\` 免鉴权）。不要在代码里写死 token。
+- 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，应用请求使用 \`Authorization: Bearer <ABX_SERVER_TOKEN>\`（\`/health\` 与
+  \`/capabilities\` 免鉴权）。平台网关的 \`X-Access-Token\` 独立配置，不要混用两个 token；不要在代码里写死 token。
 - 需求是一个 Web/API 服务时：在 \`start()\` 之前用 \`subprocess.Popen([...])\` 拉起业务进程并监听自己的端口
   （该端口写进 template.yaml 的 \`ports\` 与 Dockerfile 的 EXPOSE），或者做成 \`@command\`。
   ${SERVER_PORT} 端口必须由 \`start()\` 提供。
@@ -204,7 +257,7 @@ from agent_sandbox.server import (
 - \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
 - 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
-  \`abx run <sandbox_id> <名字>\` 调用。
+  \`abx sandbox command run <sandbox_id> <名字>\` 调用。
 - \`tags\`、\`author\` 可省略。
 ${
   selected.server_start === "platform_start_cmd"

@@ -28,6 +28,13 @@ abx create --prompt "Python data science environment"  # project generation
 
 The positional argument is a template and defaults to base. `--detach` prints its ID. Without it create opens a real terminal; default lifecycle requests a one-second timeout after exit, which Alibaba may round to about 60 seconds. Explicit timeout/lifecycle flags retain the pinned behavior. Use `--lifecycle.ontimeout` as documented in `create --help`; there is no standard `--template`, `--upload` or `--yes` option. Creation/env/metadata options are exactly those in the fixed CLI version's help.
 
+For natural-language generation, inspect `abx create --prompt DESCRIPTION --help`.
+With Express, `abx create --prompt "Python data science environment" --yes --detach --build steps`
+uses cloud build steps without local Docker/ACR, waits for Ready, then creates the sandbox.
+`--yes` confirms generation; `--detach` is accepted because this route already returns without
+opening a terminal. Docker remains the default. Qwen Code, model credentials, provider AK/SK
+and a sandbox API key are required. Generated application code still needs review and testing.
+
 ### abx list
 
 ```bash

@@ -1,17 +1,30 @@
 // Template catalog: needs outbound access to raw.githubusercontent.com / github.com (not the sandbox cloud).
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { checkShape, parseJsonLoose } from '../lib/assert.mjs';
 
 export default {
   id: 'catalog',
   title: 'Template catalog (remote index): search / install --download-only',
   needs: ['github'],
   scenarios: [
-    { id: 'search-python', title: 'template search python finds python-hello (official)', creds: false, freshHome: true, argv: ['template', 'search', 'python'], stdout: ['python-hello', 'official', /\d+ template\(s\) found\./] },
+    { id: 'search-python', title: 'template search python finds python-hello with its published status', creds: false, freshHome: true, argv: ['template', 'search', 'python'], stdout: ['python-hello', 'Status', /\d+ template\(s\) found\./] },
     {
-      id: 'search-json-shape', title: 'template search --json: [{name,description,repo,tags,author,capabilities,status}]', creds: false, freshHome: true, argv: ['--json', 'template', 'search', 'python', '--status', 'official'],
-      jsonShape: [{ name: 'string', description: 'string', repo: 'string', tags: ['string'], author: 'string', capabilities: ['string'], status: 'string' }],
-      json: (j) => { if (!j.some((t) => t.name === 'python-hello')) throw new Error('python-hello missing'); if (j.some((t) => t.status !== 'official')) throw new Error('status filter leaked non-official'); },
+      id: 'search-json-shape', title: 'catalog JSON exposes current workflow metadata and filters by the published status', creds: false, freshHome: true,
+      async run(ctx) {
+        const r = await ctx.abx(['--json', 'template', 'search', 'python'], { creds: false });
+        if (r.code !== 0) ctx.fail(`search failed: ${r.code}`);
+        const entries = parseJsonLoose(r.stdout);
+        checkShape(entries, [{ name: 'string', description: 'string', repo: 'string', tags: ['string'], author: 'string', workflow: 'string|null', status: 'string' }]);
+        const hello = entries.find((entry) => entry.name === 'python-hello');
+        if (!hello) ctx.fail('python-hello missing');
+        if (entries.some((entry) => 'capabilities' in entry)) ctx.fail('catalog exposes retired capabilities metadata');
+        const filtered = await ctx.abx(['--json', 'template', 'search', 'python', '--status', hello.status], { creds: false });
+        if (filtered.code !== 0) ctx.fail(`filtered search failed: ${filtered.code}`);
+        const selected = parseJsonLoose(filtered.stdout);
+        if (!Array.isArray(selected) || !selected.some((entry) => entry.name === 'python-hello')) ctx.fail('filtered catalog lost python-hello');
+        if (selected.some((entry) => entry.status !== hello.status)) ctx.fail('status filter leaked a different status');
+      },
     },
     { id: 'search-no-match', title: 'template search with no hits: exit 0 and message', creds: false, freshHome: true, argv: ['template', 'search', 'zzzznomatch-e2e'], stdout: "No templates matching 'zzzznomatch-e2e'" },
     {

@@ -191,6 +191,26 @@ describe("TestPrompt", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestGenerateTemplateFiles", () => {
+  it("rejects Docker-only generated files when platform steps were requested", async () => {
+    patchRun(fakeRunWriting());
+    await expect(generateTemplateFiles("a data API", { workdir: tmpPath, buildMode: "steps" })).rejects.toThrow("base.image");
+  });
+
+  it("rejects a model changing the provider-resolved platform image", async () => {
+    patchRun(fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbase: python:latest\nbuild:\n  run: ['echo ready']\n" }));
+    await expect(generateTemplateFiles("a data API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" })).rejects.toThrow("must preserve the selected provider image");
+  });
+
+  it("passes self-contained steps guidance and validates the existing platform build format", async () => {
+    const run = patchRun(fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbase: python:3.12-slim\nbuild:\n  mode: steps\n  run: ['echo ready']\n" }));
+    const result = await generateTemplateFiles("a data API", { workdir: tmpPath, buildMode: "steps" });
+    expect(result.workdir).toBe(tmpPath);
+    expect(run.mock.calls[0]![0]).toContain("本次发布模式：steps");
+    expect(run.mock.calls[0]![0]).toContain("不会收到当前目录");
+    const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as any;
+    expect(manifest.build.mode).toBe("steps");
+    expect(manifest.build.run).toEqual(["echo ready"]);
+  });
   it("test_success_writes_validated_workspace", async () => {
     patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("运行 Python 数据分析", { baseDir: tmpPath });

@@ -148,8 +148,8 @@ it.each([{}, { status: 'success' }, [{ ID: 'sbx-owned-test' }], [{ sandboxID: 's
   expect(record.reason).toContain('standard inventory');
 });
 
-it('accepts an actual standard empty inventory as proof of owned resource absence', async () => {
-  const fixture = subprocessFixture("process.stdout.write('[]');");
+it('confirms empty inventory only with exact owned-ID NotFound', async () => {
+  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else process.stdout.write('[]');`);
   const record = await leakCheck({ ...fixture, cloudOk: true, skipOnlyOffline: false, mask: (value: string) => value });
   expect(record.status).toBe('pass');
 });
@@ -250,8 +250,8 @@ it('revokes optimistic cleanup, persists a live owned ID through four inventorie
   expect([...fixture.tracker.sandboxes].filter((id) => !fixture.tracker.killed.has(id))).toHaveLength(1);
 });
 
-it('confirms cleanup only after a valid independent inventory reports absence', async () => {
-  const fixture = subprocessFixture("process.stdout.write('[]');");
+it('confirms cleanup only after inventory and exact owned-ID absence', async () => {
+  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else process.stdout.write('[]');`);
   const persist = vi.fn();
   const checked = await leakCheck({ ...fixture, persist, cloudOk: true, skipOnlyOffline: false });
   expect(checked.status).toBe('pass');
@@ -260,7 +260,7 @@ it('confirms cleanup only after a valid independent inventory reports absence', 
 });
 
 it('standalone recovery preserves live resources and writes partial confirmed progress', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('list')) process.stdout.write('[{"sandboxId":"sbx-still-live"}]');`);
+  const fixture = subprocessFixture(`if (process.argv.includes('list')) process.stdout.write('[{"sandboxId":"sbx-still-live"}]'); else if (process.argv.includes('info') && process.argv.includes('sbx-already-gone')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; }`);
   const record = { runId: 'fixture-run', sandboxes: ['sbx-still-live', 'sbx-already-gone'] };
   const file = join(fixture.root, 'run-fixture.json');
   writeFileSync(file, JSON.stringify(record));
@@ -272,7 +272,7 @@ it('standalone recovery preserves live resources and writes partial confirmed pr
 });
 
 it('standalone recovery removes its ledger only after independent complete absence', async () => {
-  const fixture = subprocessFixture("if (process.argv.includes('list')) process.stdout.write('[]');");
+  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else if (process.argv.includes('list')) process.stdout.write('[]');`);
   const record = { runId: 'fixture-run', sandboxes: ['sbx-already-gone'] };
   const file = join(fixture.root, 'run-fixture.json');
   writeFileSync(file, JSON.stringify(record));
@@ -313,7 +313,7 @@ it.each([[{ command: 'sleep' }], [{ pid: null }], [{ pid: 0 }], [{ pid: '  ' }]]
 });
 
 it('persists create intent before submission and retains an unresolved timeout through cleanup/recovery', async () => {
-  const fixture = subprocessFixture("process.stdout.write('[]');");
+  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else process.stdout.write('[]');`);
   const tracker = { sandboxes: new Set<string>(), killed: new Set<string>(), uncertainCreates: new Set<string>() };
   const file = join(fixture.root, 'run-uncertain.json');
   const persist = () => writeFileSync(file, JSON.stringify({ runId: 'fixture-run', sandboxes: [...tracker.sandboxes].filter((id) => !tracker.killed.has(id)), uncertainCreates: [...tracker.uncertainCreates] }));
@@ -414,4 +414,14 @@ it('uploads exactly one current fixture before exactly one explicitly selected s
   expect(abx.mock.calls[0][0]).toEqual(['upload', 'sbx-owned-test', 'fixture.py', '/fixture/app.py']);
   expect(abx.mock.calls[1][0]).toEqual(['exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
   expect(abx).toHaveBeenCalledTimes(3);
+});
+
+
+it.each(['live', 'network error', 'endpoint not found'])('retains an owned ID when an empty list hides %s from exact info', async (state) => {
+  const source = `if (process.argv.includes('list')) process.stdout.write('[]'); else if (process.argv.includes('info')) { process.stderr.write(${JSON.stringify(state)}); process.exitCode = ${state === 'live' ? 0 : 1}; }`;
+  const fixture = subprocessFixture(source);
+  fixture.tracker.killed.add('sbx-owned-test');
+  const checked = await leakCheck({ ...fixture, cloudOk: true, skipOnlyOffline: false, wait: async () => {} });
+  expect(checked.status).toBe('fail');
+  expect(fixture.tracker.killed.has('sbx-owned-test')).toBe(false);
 });

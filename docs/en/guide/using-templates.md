@@ -1,6 +1,6 @@
 # Using Templates
 
-Templates are preconfigured sandbox environment definitions that include a base image, pre-installed software, capability declarations, and custom commands.
+Templates are preconfigured sandbox environment definitions that include a base image, pre-installed software, explicit workflow contracts, and custom commands.
 
 ---
 
@@ -9,17 +9,17 @@ Templates are preconfigured sandbox environment definitions that include a base 
 A template is a directory containing a `template.yaml` that defines the sandbox runtime environment. Templates can:
 
 - Specify a base Docker image and pre-installed packages
-- Declare supported capabilities (`shell`, `files`, `code`, `terminal`, `ports`)
+- Declare services, workflows and their exact operations
 - Define custom commands
 - Set default environment variables and resource specifications
 
-A template that omits `capabilities` gets the default capability set `{shell, files, code}`.
+Project templates require `spec_version: 4`, `workflow_contract_version: 1`, `provides`, `default_workflow` and `workflows`. Retired `capabilities`, `tested_on` and `providers` fields are rejected; there is no implicit capability grant.
 
 ---
 
 ## List Available Templates
 
-Currently, the template list comes from locally installed templates (located in `~/.abx/templates/`). Use `abx template install` to install templates.
+Use `abx template search python` to search the public catalog, and `abx template list` for templates registered with the selected provider. Download source with `abx template install <ref> --download-only`; cached source is kept under `~/.abx/templates/`.
 
 ---
 
@@ -84,40 +84,35 @@ abx create --prompt "a Python data analysis environment with pandas and matplotl
 
 `abx create --prompt "<description>"` (without an existing template positional argument) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
 
+For non-interactive use, add `--yes`; `--detach` is accepted and this generation path already returns without opening a terminal. Discover generation-specific options with `abx create --prompt "DESCRIPTION" --help`.
+
+The default uses local Docker and ACR. On Express, explicitly select the existing platform steps path when Docker is unavailable:
+
+```bash
+abx create --prompt "a Python data analysis environment with pandas and matplotlib" \
+  --yes --detach --build steps --dir ./generated
+```
+
+This still calls the real model. It generates self-contained `base.image` and `build.run` content, submits the template, waits for **Ready**, then creates the sandbox. Local source files are not uploaded as a COPY build context. The generated server uses the published `agent-sandbox-server==0.3.1a1` alpha from the official PyPI index; it is not a stable SDK release. Review the generated files and test their actual APIs. A model may produce invalid or unsuitable code; validation errors preserve the workspace and stop creation.
+
+`abx template deploy --build steps` by itself still returns **submitted**; inspect `abx template info <id>` until Ready before creating from that template. Generation and deployment require model credentials, sandbox API configuration and AK/SK; steps does not require ACR credentials.
+
 ---
 
-## Built-in Templates
+## Templates and runtime operations
 
-| Template | Description | Default Capabilities |
-|----------|-------------|----------------------|
-| `base` | Basic Ubuntu environment | `shell`, `files`, `code` |
+`base` and `code-interpreter-v1` are platform template aliases. A registered alias is different from a project source directory. Use the provider's actual runtime operations and the selected workflow binding; installing Python in an image does not itself implement the code-interpreter protocol.
 
-> **Tip**: You can install more templates from the community via `abx template install`, or create your own by following [Authoring Templates](authoring-templates.md). A project that already has source code can be adapted in place with `abx template scaffold --adopt`.
-
----
-
-## Capability Model
-
-Templates declare the sandbox's supported capabilities via the `capabilities` field:
-
-| Capability | Description | Default |
-|------------|-------------|---------|
-| `shell` | Execute shell commands | ✅ |
-| `files` | Filesystem operations | ✅ |
-| `code` | Code Interpreter code execution | ✅ |
-| `terminal` | PTY terminal sessions | ❌ (must be explicitly declared) |
-| `ports` | Port URL access | ❌ (must be explicitly declared) |
-
-When a template does not declare `capabilities`, the default capability set `{shell, files, code}` is used.
+Project manifests explicitly bind their application service and required operations. Inspect the sandbox with `abx sandbox capabilities <id>` and list its named application commands with `abx sandbox command list <id>`. See [Authoring Templates](authoring-templates.md) and the SDK's [Template YAML Spec](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
 
 ---
 
 ## Custom Commands
 
-Templates can define custom commands, invoked by users with `abx run`:
+Templates can define custom commands, invoked by users with `abx sandbox command run`:
 
 ```bash
-abx run sbx-xxxx dev --arg port=8080
+abx sandbox command run sbx-xxxx dev --arg port=8080
 ```
 
 ---

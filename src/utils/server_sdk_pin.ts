@@ -1,17 +1,10 @@
-/**
- * Where a template image installs `agent-sandbox-server` when no local wheel is injected.
- *
- * The distribution is not on PyPI. The PyPI project `agent-sandbox` is unrelated (`agent-infra/sandbox-sdk`).
- * The client SDK distribution is `agent-sandbox-client` (the import name stays `agent_sandbox`).
- * `python-sdk` has no GitHub release, so the Dockerfile installs the `server-sdk` directory of a pinned commit
- * archive. That URL works with plain `pip install` (no git client, no BuildKit, no local wheel).
- * `ABX_SERVER_SDK_SOURCE` still builds a wheel and replaces this line at `docker build` time.
- * Any `python-sdk/archive/<40-hex>.tar.gz#subdirectory=server-sdk` pin is that same install:
- * deploy uses it as written and does not query PyPI, and a local wheel replaces it whatever SHA it names.
- *
- * Pin is python-sdk `61c43e0be65a1f57aa09186d578e7b399e48429b` (PR #21). The server-sdk tree there
- * matches `b6e71fa` (PR #20); later commits through `11bbafa6` (PR #24) do not change server runtime.
+/** Exact server installation requirements used by template tooling.
+ * The published release is explicitly alpha; legacy source pins remain supported.
+ * Local wheel injection recognizes both supported install forms.
  */
+
+/** Published, opt-in alpha used by newly generated application templates. */
+export const SERVER_SDK_RELEASE_SPEC = "agent-sandbox-server==0.3.1a1";
 
 /** A Dockerfile pin of `server-sdk` from a python-sdk commit archive, any 40-hex SHA. */
 export const SERVER_SDK_ARCHIVE_PIN =

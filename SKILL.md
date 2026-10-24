@@ -128,6 +128,10 @@ sets terminal-session environment; do not rely on it as a sandbox-wide secret st
 
 `abx create --prompt "DESCRIPTION"` generates a project template with Qwen Code
 (needs its CLI and a DashScope/ModelStudio key configured through `abx config init`).
+For Express without local Docker, use `abx create --prompt "Python data analysis" --yes --detach --build steps`.
+This also requires provider AK/SK and the sandbox API key. The command waits for the generated
+platform template to become Ready before creating the sandbox. `--detach` does not replace
+`--yes` for generation confirmation. See `abx create --prompt DESCRIPTION --help`.
 Other installed providers retain their native `--provider ID create --template NAME`
 interface. Consult that provider's help before mixing standard and native flags.
 
@@ -165,7 +169,7 @@ prints the PID on stderr. A pipeline or shell variable needs an explicit shell:
 `abx exec <SANDBOX_ID> sh -c 'echo $HOME'`. Inspect a process with
 `abx sandbox process list <SANDBOX_ID>`; process signals accept SIGTERM15 or SIGKILL9.
 
-`run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` needs a template whose capabilities include `code`.
+`run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` requires the selected provider and workflow to support the interpreter operation. Installing Python in an application template does not provide that interpreter binding; spec v4 has no template `capabilities` authorization field.
 
 MCP exposes 21 tools in this source version. Core: `create_sandbox`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`. Workflows: `get_capabilities`, `list_sandboxes`, `get_sandbox`, `set_sandbox_timeout`, `retain_sandbox`, `upload_file`, `download_file`, `start_task`, `get_task`, `cancel_task`, `verify_sandbox`. Templates: `submit_template_build`, `get_template_build`, `validate_template`. Inspect actual tools/list on the installed server before relying on these additions. See the linked workflows for completion checks and provider boundaries.
 

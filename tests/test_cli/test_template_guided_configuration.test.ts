@@ -1,3 +1,4 @@
+import { TemplateBuildTimeoutError } from "../../src/models/errors.js";
 import { manifestYaml } from "../helpers/workflowManifest.js";
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
@@ -8,6 +9,7 @@ import { cli } from "../../src/cli/main.js";
 import { guidanceSeams } from "../../src/cli/config_guidance.js";
 import * as guidance from "../../src/cli/config_guidance.js";
 import { getOperationConfig } from "../../src/utils/operation_config.js";
+import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
 import { _buildImage, templateSeams, withDeployConfiguration } from "../../src/providers/alicloud_express/cli/template.js";
 import { templateSeams as catalogSeams } from "../../src/cli/template_catalog.js";
@@ -103,6 +105,41 @@ describe("Operation-specific template guidance", () => {
     expect(deploy).toHaveBeenCalledOnce();
     expect(deploy.mock.calls[0]![1]).toMatchObject({ region: "cn-shanghai", alias: "kept", build: "steps", timeout: 78, cpu: 3, yes: true });
     expect(deploy.mock.calls[0]![1].acr_namespace).toBeUndefined();
+  });
+
+  it("waits for a generated submitted template before returning its reference", async () => {
+    patchLoadConfig();
+    vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "pending-generated", Status: "submitted" });
+    let finish!: () => void;
+    const waiting = vi.spyOn(fcTemplate, "waitForTemplateReady").mockImplementation(() => new Promise(resolve => { finish = () => resolve({ status: { state: "ready" } } as never); }));
+    const ctx = context(); ctx.params = { yes: true };
+    let returned = false;
+    const result = CLI_EXTENSION.deployGenerated(project(true), { build: "steps", timeout: 60 }, ctx).then(value => { returned = true; return value; });
+    await vi.waitFor(() => expect(waiting).toHaveBeenCalledOnce());
+    expect(returned).toBe(false);
+    expect(waiting.mock.calls[0]![0]).toBe("pending-generated");
+    finish();
+    expect(await result).toEqual({ template_id: "pending-generated", status: "ready" });
+  });
+
+  it("preserves a timed-out remote build identity and gives actionable inspection guidance", async () => {
+    patchLoadConfig();
+    vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "pending-timeout", Status: "submitted" });
+    const error = new TemplateBuildTimeoutError("still building");
+    vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(error);
+    const ctx = context(); ctx.params = { yes: true };
+    await expect(CLI_EXTENSION.deployGenerated(project(true), { build: "steps" }, ctx)).rejects.toBe(error);
+    expect(error.suggestion).toContain("abx template info pending-timeout");
+    expect(error.suggestion).not.toContain("Increase the build timeout");
+  });
+
+  it("propagates failed generated build readiness without replaying deployment", async () => {
+    patchLoadConfig();
+    const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "failed-generated", Status: "submitted" });
+    vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(new Error("platform build failed"));
+    const ctx = context(); ctx.params = { yes: true };
+    await expect(CLI_EXTENSION.deployGenerated(project(true), { build: "steps" }, ctx)).rejects.toThrow("platform build failed");
+    expect(deploy).toHaveBeenCalledOnce();
   });
 
   it("launch preparation accepts platform steps with no namespace", async () => {

@@ -53,6 +53,7 @@ import { printedId, providerView, scopedFlagOptions } from "../provider_view.js"
 import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
 import { ValueError } from "../../models/value_error.js";
+import type { BuildMode } from "../../template/build_plan.js";
 import { files } from "./sandbox_files.js";
 import { process as process_ } from "./sandbox_process.js";
 import { capabilities, system } from "./sandbox_system.js";
@@ -103,6 +104,7 @@ const CREATE_HELP = `Create a new sandbox.
       abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
       abx create --prompt "a python data science env"  # generate, build, deploy, create
       abx create -y --prompt "a node.js api server"    # non-interactive full pipeline
+      abx create -y --detach --build steps --prompt "a Python data analysis API"
       abx template scaffold --prompt "a python data science env"  # template files only
 
     \b
@@ -118,6 +120,9 @@ const CREATE_HELP = `Create a new sandbox.
       which writes Dockerfile, commands.py, and template.yaml and stops
       before build, push, deploy, and sandbox create. --yes skips that
       question and runs the full pipeline.
+      --detach is accepted on this path: generated sandboxes already return
+      without opening a terminal. --build steps uses platform build steps
+      instead of local Docker/ACR; the default build path stays unchanged.
 
     \b
     Related commands:
@@ -755,7 +760,7 @@ export async function _pickReplacementModel(
 export async function _generateTemplateWorkspace(
   ctx: Context,
   description: string,
-  opts: { yes: boolean; output_dir?: string | null; ask_output_dir?: boolean; model?: string | null },
+  opts: { yes: boolean; output_dir?: string | null; ask_output_dir?: boolean; model?: string | null; buildMode?: BuildMode; baseImage?: string },
 ): Promise<any> {
   const { yes } = opts;
   const outputDir = opts.output_dir ?? null;
@@ -795,6 +800,8 @@ export async function _generateTemplateWorkspace(
         binary,
         env: active.asEnv(),
         onProgress: out.useLiveStatus ? null : (message: string) => out.progress(message),
+        ...(opts.buildMode && opts.buildMode !== "auto" ? { buildMode: opts.buildMode } : {}),
+        ...(opts.baseImage ? { baseImage: opts.baseImage } : {}),
         ..._activityKwargs(backend.generate, update),
       }),
     );
@@ -1020,6 +1027,8 @@ export async function _generateAndDeployTemplate(
     output_dir: opts.output_dir ?? null,
     ask_output_dir: true,
     model: opts.model ?? null,
+    buildMode: (opts.provider_options?.["build"] ?? "auto") as BuildMode,
+    baseImage: extension.generationBaseImage?.(opts.provider_options ?? {}),
   });
 
   if (!yes) {
@@ -1061,6 +1070,7 @@ export const create = command("create", {
   params: () => [
     argument(["template_name"], { required: false, default: null }),
     option(["--prompt"], { default: null, help: "Generate a sandbox from a natural-language description. Mutually exclusive with a template." }),
+    option(["--detach", "-d"], { is_flag: true, help: "Return after creation without opening a terminal (already the default for --prompt). Does not replace --yes." }),
     option(["--template", "-T"], { default: null, help: "Template ID or alias to launch (e.g. 'base', 'python-hello'). " + "Defaults to 'base' when omitted. Cannot be combined with DESCRIPTION." }),
     option(["--upload", "-u"], { type: new Path({ exists: true }), default: null, help: "Local file or directory to upload after creation" }),
     option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: 300, help: "Sandbox lifetime in seconds (positive integer; default: 300)" }),

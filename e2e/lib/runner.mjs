@@ -167,7 +167,7 @@ export async function cleanupTrackedSandboxes({ bin, creds, root, tracker, persi
 }
 
 export async function leakCheck({ bin, creds, root, tracker, cloudOk, skipOnlyOffline, persist = () => {}, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) }) {
-  const rec = { suite: 'builtin', id: 'leak-check', title: 'no sandbox created by this run is still listed', status: 'pass', ms: 0, attempts: 1, notes: [] };
+  const rec = { suite: 'builtin', id: 'leak-check', title: 'owned sandboxes are absent from inventory and exact-ID queries', status: 'pass', ms: 0, attempts: 1, notes: [] };
   const uncertain = tracker.uncertainCreates?.size ?? 0;
   if (uncertain && tracker.sandboxes.size === 0) { persist(); rec.status = 'fail'; rec.reason = `${uncertain} unresolved create attempt(s); no resource identity is available for safe cleanup`; return rec; }
   if (!cloudOk || skipOnlyOffline || tracker.sandboxes.size === 0) { rec.status = 'skip'; rec.reason = 'no cloud sandboxes were created'; return rec; }
@@ -181,19 +181,27 @@ export async function leakCheck({ bin, creds, root, tracker, cloudOk, skipOnlyOf
       rec.status = 'fail'; rec.reason = 'standard inventory must be an array with nonempty sandboxId strings'; return rec;
     }
     const ids = j.map((entry) => entry.sandboxId);
-    const leaked = [...tracker.sandboxes].filter((id) => ids.includes(id));
+    const leaked = [];
     for (const id of tracker.sandboxes) {
-      if (ids.includes(id)) tracker.killed.delete(id);
-      else tracker.killed.add(id);
+      // Inventory can lag behind creation. Only the exact owned identity's NotFound
+      // response, together with inventory absence, confirms cleanup.
+      let absent = false;
+      if (!ids.includes(id)) {
+        const info = await runBinary({ bin, argv: ['sandbox', 'info', '--format', 'json', '--', id], env, cwd: root, timeoutMs: 90_000 });
+        absent = info.code === 1 && /wasn't found/i.test(info.stdout + info.stderr);
+      }
+      if (absent) tracker.killed.add(id);
+      else { tracker.killed.delete(id); leaked.push(id); }
     }
     persist();
     if (!leaked.length) {
+      rec.status = 'pass'; delete rec.reason;
       if (uncertain) { rec.status = 'fail'; rec.reason = `${uncertain} unresolved create attempt(s) require reconciliation`; }
       return rec;
     }
     for (const id of leaked) await runBinary({ bin, argv: ['sandbox', 'kill', '--', id], env, cwd: root, timeoutMs: 90_000 });
     rec.status = 'fail';
-    rec.reason = `${leaked.length} sandbox(es) were still listed after cleanup; absence unconfirmed: ${leaked.join(', ')}`;
+    rec.reason = `${leaked.length} sandbox(es) have unconfirmed absence after cleanup: ${leaked.join(', ')}`;
     if (i < 3) await wait(3000);
   }
   return rec;
