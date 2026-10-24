@@ -6,7 +6,7 @@ A **provider** is a sandbox backend. `abx` ships one built-in provider and can d
 |---|---|---|---|
 | `alicloud-express` | Alibaba Cloud Express Edition (阿里云极速版) | built-in | yes |
 
-Without an explicit selection, the CLI uses `alicloud-express`. Use `abx --version` to check the installed CLI; Python client/server packages have their own release versions. See [installation](binary-installation.md) for published CLI artifacts.
+Without an explicit selection, the CLI uses `alicloud-express`. Use `abx --version` to check the installed CLI; The Python SDK follows a separate release line from the CLI, with matching client and server package versions. See [installation](binary-installation.md) for published CLI artifacts.
 
 ---
 

@@ -1,6 +1,6 @@
 # Decision: Keep provider guidance aligned with delivered entry points
 
-Status: proposed
+Status: implemented
 
 ## Problem
 

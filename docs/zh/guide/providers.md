@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `alicloud-express` | 阿里云极速版 (Alibaba Cloud Express Edition) | 内置 | 是 |
 
-没有显式选择时，CLI 使用 `alicloud-express`。通过 `abx --version` 查看已安装的 CLI 版本；Python 客户端和服务端使用各自的发布版本。公开 CLI 产物见[安装指南](binary-installation.md)。
+没有显式选择时，CLI 使用 `alicloud-express`。通过 `abx --version` 查看已安装的 CLI 版本；Python SDK 使用独立于 CLI 的发布版本，客户端与服务端保持同版本。公开 CLI 产物见[安装指南](binary-installation.md)。
 
 ---
 
