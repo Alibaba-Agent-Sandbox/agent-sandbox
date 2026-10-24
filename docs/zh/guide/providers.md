@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `alicloud-express` | 阿里云极速版 (Alibaba Cloud Express Edition) | 内置 | 是 |
 
-> **不使用提供商时，一切照旧。** 没有安装任何插件、也没有选择提供商时，所有命令、每一个输出字节与每一个环境变量的行为都与 0.2.x 相同。在安装插件或设置非内置默认提供商之前，`provider` 命令组不会出现在 `abx --help` 中（但始终可以调用）。CLI 包版本为 0.3.0；`python-sdk` 中的 Python SDK 版本钉是另一条发布线。
+没有显式选择时，CLI 使用 `alicloud-express`。通过 `abx --version` 查看已安装的 CLI 版本；Python SDK 使用独立于 CLI 的发布版本，客户端与服务端保持同版本。公开 CLI 产物见[安装指南](binary-installation.md)。
 
 ---
 
@@ -16,7 +16,7 @@
 
 标准 E2B 命令前端仅用于极速版，带 Provider 前缀的沙箱引用进入 Provider 路由。其他 Provider 目前仍使用项目 CLI 参数；选择它们不代表全部 E2B 专有选项和返回模型都已适配。template scaffold 的本地生成可以采用通用 Docker profile，但这只是镜像约定，不是切换云端后端。
 
-能力声明不是实现。原生 FC/ACR 模板处理器明确属于极速版；其他 Provider 即使声明 templates.read/build，在真正的 Provider 模板适配器交付前仍返回 E8004。这一检查也覆盖自然语言云端部署和内部部署辅助函数，并发生在代码生成、Docker、凭据读取和云端操作之前。
+模板命令调用所选 Provider 已实现的模板管理器或专用命令处理器，原生 FC/ACR 处理器属于极速版。公开入口 `abx --provider <id> template launch SOURCE` 使用 Provider 自己的准备与启动实现；OpenSandbox 已实现文档所述默认配方的源码准备。缺少所需操作时在当前 Provider 上报错，不静默切换到极速版。构建和配置要求见[启动模板](template-launch.md)，操作检查见[模板工作流](template-workflows.md)。自然语言云端部署仍需要相应 Provider 自己的处理器。
 
 内置 Provider 明确列出自身已实现的适配能力；增加全局能力不能自动把极速版标记为支持。当前适配器不把 storage.mount、network.vpc、ports.domain 宣称为通用沙箱操作。这不代表阿里云没有对应能力：资源管理和挂载集成需要各自已实现、已验证的入口。暂停还受运行时/函数开通条件限制，静态声明不等于账号实际可用。
 
@@ -140,7 +140,7 @@ CLI 如何跟随当前提供商：
 
 ### 目录里的提供方
 
-四个目录提供方都能在 CLI 和所有 SDK 里使用，因为它们都跑在 Node.js 里，由 CLI 宿主承载：
+四个目录提供方是由 CLI 宿主承载的 Node.js 插件，CLI 和 Python SDK 可以使用这些已安装插件：
 
 - `opensandbox`、`e2b`、`cubesandbox`、`alicloud-container` 都是 `node` 插件：一个 ES 模块，由宿主在进程内通过一个小的 kit 加载（见 [编写提供商](authoring-providers.md)）。
 
@@ -154,7 +154,7 @@ abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
 
 非交互安装需要 `--yes`。未钉扎的 git ref 还要 `--allow-unpinned`，或者写成 40 位十六进制的 `--ref`。Python SDK 安装器是 `python -m agent_sandbox.providers install registry:<id> --yes`。
 
-Python SDK（以及之后的 Node、Go、Java SDK）通过本地引擎 `abx provider engine serve` 使用同一批插件，引擎按需启动。见 [引擎 HTTP API](../reference/engine-api.md)。
+Python SDK 通过本地引擎 `abx provider engine serve` 使用这些插件，引擎按需启动。见[引擎 HTTP API](../reference/engine-api.md)。独立的 [Node SDK](https://github.com/Alibaba-Agent-Sandbox/nodejs-sdk) 当前提供应用 HTTP 客户端，不创建云沙箱，也未接入 Provider 插件；其他语言客户端需要实现引擎集成后才能声明这项能力。
 
 | Id | 类型 | 页面 |
 |---|---|---|
