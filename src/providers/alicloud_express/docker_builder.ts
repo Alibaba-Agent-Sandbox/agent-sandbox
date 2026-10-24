@@ -52,14 +52,26 @@ export function contextHasPinnedServerArchive(context: string, dockerfile: strin
   }
 }
 
+/** Preserve supported explicit server requirements unless a local source override is requested. */
+export function contextHasPinnedServerRequirement(context: string, dockerfile: string | null = null): boolean {
+  const source = resolvedDockerfile(context, dockerfile);
+  if (!existsSync(source)) return false;
+  try {
+    const text = readFileSync(source, "utf8");
+    return dockerfilePinsServerArchive(text) || text.split(/[\s"']+/).includes(SERVER_SDK_RELEASE_SPEC);
+  } catch {
+    return false;
+  }
+}
+
 async function _injectOrKeepPin(
   context: string,
   dockerfile: string | null,
   progress: (msg: string) => void,
   step: string,
 ): Promise<string[]> {
-  if (!process.env[SERVER_SDK_SOURCE_ENV] && contextHasPinnedServerArchive(context, dockerfile)) {
-    progress(`${step} Using the Dockerfile's pinned agent-sandbox-server archive`);
+  if (!process.env[SERVER_SDK_SOURCE_ENV] && contextHasPinnedServerRequirement(context, dockerfile)) {
+    progress(`${step} Using the Dockerfile's pinned agent-sandbox-server requirement`);
     return [];
   }
   progress(`${step} Injecting SDK wheel into build context...`);
@@ -896,7 +908,7 @@ export class DockerBuilder {
    *
    * - when a server-sdk source tree is given explicitly (`project_root`, or the `ABX_SERVER_SDK_SOURCE` environment
    *   variable): build a wheel from it with `pip wheel`, so unreleased changes reach the image;
-   * - otherwise, when the Dockerfile already pins a python-sdk server archive: inject nothing and do not query PyPI;
+   * - otherwise, when the Dockerfile already pins a supported server archive or release: inject nothing and do not query PyPI;
    * - otherwise: download the released wheel of the same version from PyPI (see `_downloadReleaseWheel`).
    *
    * When neither a source tree nor a PyPI wheel is available, nothing is injected. The scaffold Dockerfile installs a
@@ -913,7 +925,7 @@ export class DockerBuilder {
     if (project_root === null || project_root === undefined) {
       const fromEnv = process.env[SERVER_SDK_SOURCE_ENV];
       if (!fromEnv) {
-        if (contextHasPinnedServerArchive(context_dir, dockerfile)) return [];
+        if (contextHasPinnedServerRequirement(context_dir, dockerfile)) return [];
         return DockerBuilder._downloadReleaseWheel(context_dir);
       }
       project_root = fromEnv;

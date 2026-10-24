@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Accept `--detach` on prompt creation and expose the actual generation help; document native JSON output separately from standard command formats. / 自然语言创建接受 `--detach`，帮助可发现真实生成选项，区分原生 JSON 输出与标准命令格式。
 - Support explicit Express `create --prompt --build steps`, resolve the provider base image before generation, guide self-contained ordered build steps, and wait for Ready with progress before sandbox creation. Default Docker deployment is unchanged. / 极速版自然语言创建支持显式云端 steps，提前解析基础镜像，指导完整有序构建步骤，显示进度并等待 Ready 后创建沙箱；默认 Docker 部署保持不变。
 - Generate against published server alpha `0.3.1a1` using the official PyPI index; align bilingual template guides and the packaged Skill with spec v4 workflow contracts and independent application authentication. / 生成指导使用官方 PyPI 已发布 server alpha `0.3.1a1`，双语模板指南与打包 Skill 同步 spec v4 工作流及独立应用鉴权。
-
+- Preserve an explicit server alpha pin during automatic Docker preparation while retaining explicit local source overrides. / Docker 自动准备保留明确的 server alpha 固定版本，显式本地源码覆盖保持可用。
 - Require exact owned-sandbox NotFound alongside inventory absence in E2E cleanup; refresh version, prompt help, generic exec-workflow and catalog assertions against current public contracts. / E2E 清理同时要求精确沙箱 NotFound 与列表缺席，版本、生成帮助、通用 exec 工作流及目录验收同步当前公开合同。
 
 ## [0.4.11] - 2026-10-24

@@ -58,8 +58,15 @@ abx create --prompt '一个支持 pandas 和 matplotlib 的 Python 数据分析�
   explicitly starts that scaffold through workflow exec/start_cmd. After checking
   the schema, source history and existing unit contract, the fixture verifies that
   explicit startup and COPY instead. Its capability rerun passes all seven checks.
+- Final official black-box suite: 176 passed, 0 failed, 8 skipped in 304.5 seconds.
+  Two owned sandboxes were cleaned up; no leaked sandbox or unresolved creation
+  remained. The exclusive fixture was deleted and exact template info returned NotFound.
+- Independent review found automatic wheel injection could override the new exact
+  alpha requirement using the CLI version. Supported explicit server pins now skip
+  automatic download; an explicit source override still builds and injects its wheel.
+  Docker builder regression: 40 passed; typecheck passed.
 - PR 129 initial remote Node 22, Typecheck, Installer, Markdown and real-Docker
-  checks passed; Node 20 and final model/cloud/API/CLI acceptance remain in progress.
+  checks passed; latest-head CI and final model/cloud/API/CLI acceptance remain in progress.
 - The next generation run explicitly uses qwen3.8-max rather than coder-flash;
   this is an independent model experiment, not a claim that flash became reliable.
 
@@ -77,3 +84,12 @@ no automatic repair or silent mutation of the model artifact is introduced.
 
 Final cloud result and normal remote CI are pending. Local transport test failures
 remain recorded and are not treated as passes.
+
+## Additional model observation
+
+The first qwen3.8-max attempt reached the existing 600-second generation limit
+after writing four files, passing 46 local self-checks and correcting its own CSV
+parser. It had not returned a final result, so the command failed and created no
+cloud resources. A fresh attempt uses the documented
+`ABX_QWEN_CODEGEN_TIMEOUT=1200`; the cloud build wait remains 600 seconds.
+This explicit configuration experiment does not change either default timeout.
