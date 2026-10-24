@@ -24,6 +24,7 @@ let sandbox, launch, error;
 async function run(args, json = true) {
   const result = await new Promise(resolve => {
   const child = execFile(process.execPath, [cli, '--native', ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => resolve({ status: error ? error.code ?? 1 : 0, stdout, stderr }));
+  child.stdin.end(); // Remote exec reads piped stdin to EOF; this harness supplies no input.
   const phases = new Set();
   child.stderr.on('data', chunk => {
     for (const phase of ['Checking Docker daemon', 'Building Docker image', 'Logging into ACR', 'Pushing to ACR', 'Image pushed to ACR', 'Creating template via official API', 'Waiting for template to become READY']) {
@@ -57,7 +58,7 @@ function journals() {
 }
 try {
   // Same source reference and default build as the Registry's Express instruction.
-  launch = await run(['template','launch','Alibaba-Agent-Sandbox/awesome-templates//python-hello','--workflow','application','--alias',alias,'--timeout','1200','--sandbox-timeout','600','--yes']);
+  launch = await run(['template','launch','Alibaba-Agent-Sandbox/awesome-templates//python-hello','--workflow','application','--alias',alias,'--timeout','1200','--sandbox-timeout',process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600','--yes']);
   assert.equal(launch.provider,'alicloud-express');assert.equal(launch.workflow_id,'application');assert.ok(launch.source_digest);check('Registry source launch');
   const entries = journals().flatMap(j=>j.entries);
   assert.ok(entries.some(e=>e.kind==='template' && e.id===launch.template_reference && e.state==='retained'));
@@ -84,6 +85,7 @@ try {
         E2B_API_KEY:process.env.ABX_SANDBOX_API_KEY,E2B_API_URL:process.env.ABX_SANDBOX_BASE_URL,E2B_DOMAIN:process.env.ABX_SANDBOX_DOMAIN}
     });
     if(fs.existsSync(reportFile))report.full_e2e=JSON.parse(fs.readFileSync(reportFile,'utf8'));
+    if(full.status !== 0) report.full_e2e_failure_diagnostic=sanitize(full.stdout + full.stderr);
     assert.equal(full.status,0,'Full E2E suite must pass; inspect sanitized report');check('full CLI E2E suite');
   }
   report.result='PASS';

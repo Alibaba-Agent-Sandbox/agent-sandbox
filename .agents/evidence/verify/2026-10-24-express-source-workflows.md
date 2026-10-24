@@ -46,3 +46,8 @@ Consumer: https://github.com/Alibaba-Agent-Sandbox/registry/pull/45
   the unique build tag through the existing native API contract. Added regression assertions
   for tagged API input and separate digest evidence. Focused 60 tests and typecheck pass;
   real cloud rerun remains required.
+- Run 40092372924: tagged Docker template reached Ready; an independent application healthcheck
+  on its owned sandbox returned zero. Full report pending. Review found the asynchronous test
+  wrapper left child stdin open, which can block `exec` waiting for EOF; close that pipe before
+  rerunning. Also align the acceptance sandbox lifetime with the optional full suite deadline
+  (30 minutes rather than 10); the current owned sandbox lifetime was extended explicitly.
