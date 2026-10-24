@@ -104,39 +104,22 @@ A command that needs a feature the provider does not declare (for example `abx s
 
 ## What you can run after installing
 
-Installing a provider does not enable every `abx` command. The CLI and the Python SDK call **the same installed plugin**, and the plugin's manifest says which features it implements. `abx provider info <id>` prints that list. A command whose feature is missing fails with `E8004` (exit code 1) and does not contact the backend. The built-in provider declares its own implemented adapter set; global feature registration does not establish CLI coverage or live account availability.
+Installing a plugin does not implement every interface. Inspect `abx provider info <id>` and check the exact operations required by the selected client and [template workflow](template-workflows.md). Manifest declarations, client implementation and the backend response each affect whether a call succeeds.
 
-| Feature the provider must declare | CLI commands | Python SDK |
+| Task | CLI | Python ProviderSandbox |
 |---|---|---|
-| `sandbox.lifecycle` | `create`, `list`, `info`, `kill`, `connect` | `Sandbox.create`, `connect`, `list`, `kill`, `info` |
-| `sandbox.timeout` | Creation lifetime options; no generic timeout command | `set_timeout` |
-| `sandbox.pause` | Express standard pause/resume; generic provider CLI entry still missing | ProviderSandbox `pause`, `resume` |
-| `exec.run` | `exec`, `run` | `commands.run`, `sandbox.run` |
-| `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/info/signal`; start with `exec --background` | `commands.list`, `kill`, `send_input` |
-| `pty` | Express connect uses a PTY; project provider connect is still a line REPL | `get_terminal` |
-| `files.rw` | `upload`, `download`, `sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
-| `files.watch` | — | `files.watch` |
-| `files.transfer` | — | signed upload and download URLs |
-| Exact `code.*` operations | Interpreter execution and explicit contexts are gated separately | `run_code` |
-| `templates.read` | `template list`, `template info` | template read APIs |
-| `templates.build` | `template build/push/create/deploy/install/delete`, `deploy`, `install` | image build and template registration |
-| `ports.url` | No dedicated URL command | Provider-aware `network.resolve` / `resolve_url` |
-| `ports.domain` | Not implemented by this adapter | Requires a verified backend-specific adapter |
-| `storage.mount` | No generic mount command in this change | Separate mount integration, not implemented here |
-| `network.vpc` | FC template flags only; no generic provider operation | Separate provider-specific configuration |
-| `sessions` | re-attach with `connect <provider:id>` | `Sandbox.connect` on an existing id |
+| Create, connect and clean up | `create`, `connect`, `kill` | `ProviderSandbox.create/connect`, instance `kill/close`; `close` releases only the local client |
+| Execute a process | `exec` | `commands.run` |
+| Read and write files | `upload`, `download` | `files.read/write` |
+| Call a template application | `run`, `sandbox command run`; see [command reference](../reference/cli-commands.md) | `await application_client(port, token=...)`, then `client.commands.run` |
+| Resolve an application endpoint | No standalone URL command | `await network.resolve(port)` returns the URL and gateway headers |
+| Prepare source and launch | `template launch`; see [launch guide](template-launch.md) | Prepare with the CLI, then connect to its sandbox or use the prepared reference |
 
-`abx provider list` shows how many features each provider declares (the table has to stay readable at 80 columns); `--json` has the full list as one string, for example `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`. `abx provider info <id>` prints the list.
+Process execution, application commands, interpreters and PTY are separate interfaces. Supporting one does not imply the others. A provider's EPP transport does not itself prevent calling an application over HTTP: the selected workflow must expose a reachable application endpoint and satisfy its authentication contract. Preserve gateway headers and supply the application token explicitly.
 
-How the CLI follows the active provider:
+Workflow planning checks specific provider operations and consumer support; see [template workflows](template-workflows.md). `abx info` and `abx list` print `-` for a region or timeout the provider does not report.
 
-- `abx template list|info` need `templates.read`; `build`, `push`, `create`, `deploy`, `install` (unless `--download-only`), `delete` and the top-level `abx deploy` need `templates.build`. Without it they answer `E8004` before any registry, Docker or ACR work.
-- `abx sandbox command run|list` need an HTTP data plane to the sandbox. A provider that routes over EPP answers `E8004` naming `named commands`.
-- Workflow readiness uses exact Provider operations and consumer bridges. See [template workflows](template-workflows.md).
-- `abx info` and `abx list` print `-` for a region or timeout the provider does not report.
-
-A manifest with `kind = "python"` is not installable. Programmatic Python `Provider` subclasses still work in the Python SDK, but nothing installed from disk runs as Python.
+A manifest with `kind = "python"` is not installable. Programmatic Python `Provider` subclasses remain available in the Python SDK. An `exec` plugin may still use a Python executable and the EPP protocol.
 
 ### Catalog providers
 
