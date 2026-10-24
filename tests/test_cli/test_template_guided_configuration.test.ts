@@ -1,3 +1,4 @@
+import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { TemplateBuildTimeoutError } from "../../src/models/errors.js";
 import { manifestYaml } from "../helpers/workflowManifest.js";
 import "../_support/isolatedHome.js";
@@ -146,8 +147,8 @@ describe("Operation-specific template guidance", () => {
     patchLoadConfig();
     const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
     const ctx = context(); ctx.params = { yes: true };
-    const result = await CLI_EXTENSION.prepareProject(project(true), { alias: "launch", timeout: 60, template: { name: "launch", cpu: 2, memory: 512, start_cmd: null, ready_cmd: null } }, ctx);
-    expect(result).toEqual({ reference: "steps-reference", status: "ready" });
+    const result = await CLI_EXTENSION.prepareProject(project(true), { alias: "launch", timeout: 60, journal: new ResourceJournal("alicloud-express", "fixture"), template: { name: "launch", cpu: 2, memory: 512, start_cmd: null, ready_cmd: null } }, ctx);
+    expect(result).toMatchObject({ reference: "steps-reference", status: "ready", identity: { native_version: "steps-reference" } });
     expect(deploy).toHaveBeenCalledOnce();
     expect(deploy.mock.calls[0]![1].acr_namespace).toBeUndefined();
   });

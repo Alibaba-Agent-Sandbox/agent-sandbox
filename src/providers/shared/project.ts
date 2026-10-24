@@ -7,9 +7,10 @@ import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { ProviderConfigError } from "../../models/provider_errors.js";
 
-export interface ProjectStageOptions { dockerfile?: string }
+export interface ProjectStageOptions { dockerfile?: string | null; resolveDockerfile?: (source: string) => string }
 export interface StagedProject { directory: string; digest: string; verify(): Promise<void>; close(): Promise<void> }
-export interface ImageBuildOptions extends ProjectStageOptions {
+export interface ImageBuildOptions {
+  dockerfile?: string;
   image_repository: string; name: string; timeout?: number; journal?: ResourceJournalCallbacks;
 }
 /** Run a local tool without a shell. Raw tool output/errors are never included in public exceptions. */
@@ -26,7 +27,7 @@ export function runTool(command: string, args: readonly string[], options: { cwd
 }
 /** Snapshot the authorized source tree without rewriting build inputs. */
 export async function stageProject(directory: string, options: ProjectStageOptions = {}): Promise<StagedProject> {
-  if (Object.keys(options).some(key => key !== "dockerfile") || (options.dockerfile !== undefined && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(options.dockerfile))) throw new ProviderConfigError("Build profile must select a root Dockerfile without rewriting source.");
+  if (Object.keys(options).some(key => !["dockerfile", "resolveDockerfile"].includes(key)) || (options.dockerfile != null && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(options.dockerfile))) throw new ProviderConfigError("Build profile must select a root Dockerfile without rewriting source.");
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "abx-project-"));
   const staged = path.join(root, "source");
   try {
@@ -46,9 +47,13 @@ export async function stageProject(directory: string, options: ProjectStageOptio
       if (stat.isFile() && eligible && !eligible.has(path.relative(directory, source).split(path.sep).join("/"))) return false;
       return true;
     } });
+    if (options.dockerfile !== null) {
     const file = path.join(staged, options.dockerfile ?? "Dockerfile");
-    const dockerfile = await fs.readFile(file, "utf8");
+    const original = await fs.readFile(file, "utf8");
+    const dockerfile = options.resolveDockerfile?.(original) ?? original;
     if (!/^FROM\s+/im.test(dockerfile) || /^FROM[^\n]*[<>]/im.test(dockerfile)) throw new ProviderConfigError("Project Dockerfile must name an explicit base image; source build inputs are never rewritten.");
+    if (dockerfile !== original) await fs.writeFile(file, dockerfile);
+    }
     async function digest(): Promise<string> {
     const hash = createHash("sha256");
     async function visit(folder: string): Promise<void> {

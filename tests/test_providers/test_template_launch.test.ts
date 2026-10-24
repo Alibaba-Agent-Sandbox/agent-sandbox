@@ -249,11 +249,11 @@ describe("Express preparation readiness", () => {
     const load = vi.spyOn(adapter.templateSeams, "loadConfig").mockReturnValue({ access_key_id: "placeholder", access_key_secret: "placeholder", region: "cn-hangzhou" } as ReturnType<typeof adapter.templateSeams.loadConfig>);
     const wait = vi.spyOn(fc, "waitForTemplateReady").mockRejectedValue(new Error("build failed"));
     try {
-      const options = { alias: "fixture", timeout: 30, template: { name: "fixture", cpu: 2, memory: 2048, start_cmd: null, ready_cmd: null } };
+      const options = { alias: "fixture", timeout: 30, journal: new ResourceJournal("alicloud-express", "fixture"), template: { name: "fixture", cpu: 2, memory: 2048, start_cmd: null, ready_cmd: null } };
       await expect(CLI_EXTENSION.prepareProject(source, options, ctx)).rejects.toThrow("build failed");
       expect(wait).toHaveBeenCalledWith("submitted-template", expect.objectContaining({ poll_interval: 2, timeout: expect.any(Number) }));
       wait.mockResolvedValue({ status: "Ready" });
-      await expect(CLI_EXTENSION.prepareProject(source, options, ctx)).resolves.toEqual({ reference: "submitted-template", status: "ready" });
+      await expect(CLI_EXTENSION.prepareProject(source, options, ctx)).resolves.toMatchObject({ reference: "submitted-template", status: "ready", identity: { native_version: "submitted-template" } });
     } finally { deploy.mockRestore(); load.mockRestore(); wait.mockRestore(); }
   });
 });

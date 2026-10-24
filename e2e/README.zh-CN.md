@@ -197,3 +197,22 @@ mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/READ
 ## MCP 生命周期真实验证
 
 构建后运行 `node e2e/mcp-lifecycle.mjs`。凭据仅经环境变量传入。脚本启动真实 CLI STDIO 进程，验证创建、列表、元数据、续期、文件与命令，以及外部观察者退出不销毁资源；finally 仅清理本次创建的 ID 并只读核对无残留。仅列表的已知最终一致可见性会重试。
+
+## 极速版源码工作流实测
+
+在已启动 Docker 的主机执行 `npm ci && npm run build`，再运行
+`node e2e/express-workflow.mjs`。通过环境变量配置 `ABX_SANDBOX_API_KEY`、
+`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、
+`ALICLOUD_ACCESS_KEY_SECRET`、`ALIBABA_CLOUD_REGION_ID` 和 `ACR_NAMESPACE`。
+账号需要对应 ACR 命名空间的推送权限及极速版模板的创建、删除权限。
+`ABX_WORKFLOW_REPORT` 指定 JSON 报告路径；`ABX_WORKFLOW_FULL_E2E=1`
+可追加运行基于该模板的完整 CLI 测试套件。
+
+脚本直接使用 Registry 的 `python-hello` 源码及默认 Dockerfile，验证 HTTP
+命令和 CLI 文件操作，并删除本次创建的沙箱、模板。此操作会产生云资源费用。
+ACR 镜像资源记录保留于 `~/.abx/resource-journal/`，供手动清理镜像；不要删除
+共享镜像仓库。脱敏报告分别记录测试结果和清理状态。
+
+Actions 工作流通过加密的 `EXPRESS_ACCEPTANCE_*` 仓库 Secrets 注入配置
+（具体映射见工作流），仅在 `EXPRESS_ACCEPTANCE_ENABLED=true` 时执行云端步骤。
+未开启时为跳过，构建通过不代表云端实测通过。仅同仓库 PR 和手动触发可执行该任务。

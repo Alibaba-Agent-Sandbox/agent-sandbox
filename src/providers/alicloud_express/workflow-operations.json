@@ -15,7 +15,8 @@
       "files.stat",
       "files.remove",
       "files.move",
-      "ports.resolve"
+      "ports.resolve",
+      "template.prepare"
     ],
     "python": [
       "sandbox.create",
@@ -35,10 +36,16 @@
     ]
   },
   "workflow_inputs": [
+    "source",
     "managed"
   ],
   "startup_modes": [
+    "exec",
     "entrypoint",
     "none"
+  ],
+  "source_placeholders": [
+    "<region>",
+    "<tag>"
   ]
 }

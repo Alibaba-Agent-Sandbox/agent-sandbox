@@ -5,7 +5,10 @@ import type { Context, Command, Param } from "./kit.js";
 import { CLI_EXTENSION } from "../providers/alicloud_express/cli/extension.js";
 import { resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
+import type { StagedProject } from "../providers/shared/project.js";
 export interface ProviderCliExtension {
+  /** Snapshot provider-native source inputs before any resource mutation. */
+  stageProject?(directory: string, options: ProjectTemplateOptions): Promise<StagedProject>;
   id: string;
   prepareProject?(directory: string, options: ProjectTemplateOptions, ctx: Context): Promise<PreparedTemplate>;
   configuration?: ProviderConfigUi;

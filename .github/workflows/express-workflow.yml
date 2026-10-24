@@ -1,0 +1,52 @@
+name: Express source workflow acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/cli/template_launch.ts
+      - src/providers/alicloud_express/**
+      - src/providers/shared/project.ts
+      - e2e/express-workflow.mjs
+      - .github/workflows/express-workflow.yml
+permissions:
+  contents: read
+jobs:
+  express:
+    # Real cloud billing is opt-in; never expose credentials to a fork pull request.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      EXPRESS_ACCEPTANCE_ENABLED: ${{ secrets.EXPRESS_ACCEPTANCE_ENABLED }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Launch Registry source, invoke application and verify owned cleanup
+        if: env.EXPRESS_ACCEPTANCE_ENABLED == 'true'
+        env:
+          ABX_SANDBOX_API_KEY: ${{ secrets.EXPRESS_ACCEPTANCE_SANDBOX_API_KEY }}
+          ABX_SANDBOX_BASE_URL: ${{ secrets.EXPRESS_ACCEPTANCE_SANDBOX_BASE_URL }}
+          ABX_SANDBOX_DOMAIN: ${{ secrets.EXPRESS_ACCEPTANCE_SANDBOX_DOMAIN }}
+          ALICLOUD_ACCESS_KEY_ID: ${{ secrets.EXPRESS_ACCEPTANCE_ACCESS_KEY_ID }}
+          ALICLOUD_ACCESS_KEY_SECRET: ${{ secrets.EXPRESS_ACCEPTANCE_ACCESS_KEY_SECRET }}
+          ALIBABA_CLOUD_REGION_ID: ${{ secrets.EXPRESS_ACCEPTANCE_REGION }}
+          ACR_NAMESPACE: ${{ secrets.EXPRESS_ACCEPTANCE_ACR_NAMESPACE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          ABX_WORKFLOW_FULL_E2E: '1'
+          ABX_WORKFLOW_REPORT: ${{ runner.temp }}/express-workflow-report.json
+        run: node e2e/express-workflow.mjs
+      - name: Retain sanitized acceptance summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: express-workflow-report
+          path: ${{ runner.temp }}/express-workflow-report.json
+          if-no-files-found: warn
+          retention-days: 7

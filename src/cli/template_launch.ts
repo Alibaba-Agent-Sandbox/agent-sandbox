@@ -131,7 +131,10 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   const verifyProviderSnapshot = (): void => {
     if (pluginRoot && digestDir(pluginRoot) !== providerSnapshotDigest) throw new ProviderConfigError("Provider code changed after planning; compute a new execution snapshot.");
   };
-  const snapshot = plan.input === "source" ? await stageProject(directory, { dockerfile: options.build_profile?.dockerfile }) : null;
+  const extension = providerCliExtension(provider.id);
+  const snapshot = plan.input === "source" ? await (extension?.stageProject
+    ? extension.stageProject(directory, options)
+    : stageProject(directory, { dockerfile: options.build_profile?.dockerfile })) : null;
   if (snapshot) {
     directory = snapshot.directory;
     if (createHash("sha256").update(fs.readFileSync(path.join(directory, "template.yaml"))).digest("hex") !== manifestDigest) {
@@ -207,15 +210,17 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   }
   try {
     const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
-    if (options.workflow?.startup === "exec" && options.template.start_cmd) {
-      const result = await sandbox.commands.run(`nohup /bin/sh -c ${quote(options.template.start_cmd)} >/tmp/abx-template-server.log 2>&1 </dev/null &`, { timeout: 10 });
+    const startCommand = prepared.startup_command ?? options.template.start_cmd;
+    const readyCommand = prepared.ready_command ?? options.template.ready_cmd;
+    if (options.workflow?.startup === "exec" && startCommand) {
+      const result = await sandbox.commands.run(`nohup /bin/sh -c ${quote(startCommand)} >/tmp/abx-template-server.log 2>&1 </dev/null &`, { timeout: 10 });
       if (!("exit_code" in result) || result.exit_code !== 0) throw new Error("Startup failed");
     }
-    if (options.template.ready_cmd) {
+    if (readyCommand) {
       const deadline = Date.now() + Math.min(options.timeout, 60) * 1000;
       for (;;) {
         const remaining = Math.max(0.01, Math.min(5, (deadline - Date.now()) / 1000));
-        const result = await sandbox.commands.run(options.template.ready_cmd, { timeout: remaining });
+        const result = await sandbox.commands.run(readyCommand, { timeout: remaining });
         if ("exit_code" in result && result.exit_code === 0) break;
         if (Date.now() >= deadline) throw new Error("Readiness timed out");
         await delay(250);

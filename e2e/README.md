@@ -235,3 +235,24 @@ Exit code of `run.mjs`: 0 = no failures (skips allowed), 1 = at least one failur
 ## Provider ownership without cloud prerequisites
 
 `ABX_BIN=<built-executable> node e2e/provider-boundary.mjs` installs a local fixture into a temporary HOME and checks qualified references, conflicting/unknown/empty namespaces, remote provider flags and template/deploy refusal. It exercises the actual executable and filesystem, creates no cloud resource, and is not a real OpenSandbox deployment test.
+
+## Express source workflow acceptance
+
+After `npm ci && npm run build`, run `node e2e/express-workflow.mjs` on a host with
+Docker running. Configure `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`,
+`ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`,
+`ALIBABA_CLOUD_REGION_ID` and `ACR_NAMESPACE` through the environment. The account
+must be able to push to that ACR namespace and create/delete Express templates.
+Set `ABX_WORKFLOW_REPORT` to a JSON output path; optionally set
+`ABX_WORKFLOW_FULL_E2E=1` to run the broader CLI suite against the prepared template.
+
+The test launches the Registry's unchanged `python-hello` source using its default
+Dockerfile, invokes its HTTP command, exercises CLI file operations, and deletes
+its owned sandbox/template. It creates billable resources. ACR image receipts are
+retained in `~/.abx/resource-journal/` for manual image cleanup; do not delete shared
+repositories. The sanitized report distinguishes failure and cleanup status.
+
+The opt-in Actions workflow uses encrypted `EXPRESS_ACCEPTANCE_*` repository
+secrets (see its environment mapping) and requires `EXPRESS_ACCEPTANCE_ENABLED=true`.
+Without that switch the cloud step is skipped; a green build alone is not cloud
+acceptance. Only same-repository PRs and manual dispatches can use this job.

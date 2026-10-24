@@ -1,3 +1,6 @@
+import type { ResourceJournalCallbacks } from "../../../template/resource_journal.js";
+import type { PreparedTemplate } from "../../template_contract.js";
+import { runTool } from "../../shared/project.js";
 import { prepareTemplateBuildInputs } from "../../../cli/template_project.js";
 import { withGuidedConfiguration, canGuideConfiguration, type GuidanceField } from "../../../cli/config_guidance.js";
 import { getOperationConfig } from "../../../utils/operation_config.js";
@@ -522,6 +525,8 @@ export async function _pushImage(local_image: string, opts: PushImageOptions): P
 }
 
 interface RunReportedDeployOptions {
+    journal?: ResourceJournalCallbacks;
+    owned_resources?: NonNullable<PreparedTemplate["owned_resources"]>;
     out: Any;
     config: Any;
     template_dir: string;
@@ -563,6 +568,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
     let buildStatus: string;
     let buildLogs: string[];
     {
+        const localIntent = await o.journal?.intent({ kind: "image", correlation_key: `${acr.repo}:${tag}`, cleanup: "manual" });
         const localTag = await templateSeams._buildImage(template_dir, {
             tag,
             repo: acr.repo,
@@ -571,6 +577,11 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             on_progress: (m) => reporter.phase(m),
             on_output: (l) => reporter.log(l),
         });
+        if (localIntent) {
+            await o.journal!.created(localIntent, localTag);
+            o.owned_resources!.push({ intent_id: localIntent, kind: "image", id: localTag, cleanup: "manual", owned: true });
+        }
+        const pushIntent = await o.journal?.intent({ kind: "image", correlation_key: acr.tagged_ref(tag), cleanup: "manual" });
         const [ref, creds] = await templateSeams._pushImage(localTag, {
             acr,
             tag,
@@ -579,10 +590,25 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             on_output: (l) => reporter.log(l),
         });
         acrRef = ref;
+        if (pushIntent) {
+            const digests: unknown = JSON.parse(await runTool("docker", ["image", "inspect", "--format", "{{json .RepoDigests}}", ref], { timeout: 30 }));
+            const repository = ref.slice(0, ref.lastIndexOf(":"));
+            const immutable = Array.isArray(digests) ? digests.find((value: unknown) => typeof value === "string" && value.startsWith(`${repository}@sha256:`) && /@sha256:[a-f0-9]{64}$/.test(value)) : undefined;
+            if (!immutable) throw new TemplateBuildError("Published image has no observable immutable digest; inspect the resource journal.");
+            // Preserve the observed digest as evidence. Express currently resolves tagged ACR
+            // images itself; digest input can fail with a platform manifest digest mismatch.
+            // Workflow tags are unique per preparation, so do not replace this native API input.
+            await o.journal!.created(pushIntent, immutable);
+            o.owned_resources!.push({ intent_id: pushIntent, kind: "image", id: immutable, cleanup: "manual", owned: true });
+        }
         reporter.done(`Image pushed to ACR: ${acrRef}`);
         const registryType = acr.acree_instance_id ? "acree" : "acr";
         reporter.phase(`Creating template via official API: ${template_name}`);
+        const envdTarget = o.journal && o.envd_inject ? acr.tagged_ref(`${tag}-envd`) : o.target_image;
+        const copyIntent = o.journal && o.envd_inject && envdTarget ? await o.journal.intent({ kind: "image", correlation_key: envdTarget, cleanup: "manual" }) : undefined;
+        const templateIntent = await o.journal?.intent({ kind: "template", correlation_key: template_name, cleanup: "template.delete" });
         const apiResult = await fcTemplate.createOfficialTemplate({
+            update_existing: o.journal ? false : undefined,
             name: template_name,
             image: acrRef,
             access_key_id: o.platform_ak,
@@ -605,13 +631,17 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             registry_vpc_id: acr.vpc_id || null,
             registry_vswitch_id: acr.vswitch_ids || null,
             registry_security_group_id: acr.security_group_id || null,
-            target_image: o.target_image,
+            target_image: envdTarget,
         });
         templateId = apiResult["templateID"] ?? "";
         if (!templateId) {
             throw new TemplateBuildError("CreateTemplate returned no template ID.", {
                 suggestion: "Inspect 'abx template list' before retrying; registration may already have been submitted.",
             });
+        }
+        if (templateIntent) {
+            await o.journal!.created(templateIntent, templateId);
+            o.owned_resources!.push({ intent_id: templateIntent, kind: "template", id: templateId, cleanup: "template.delete", owned: true });
         }
         reporter.phase(`Waiting for template to become READY: ${templateId}`);
         const onPoll = (state: string, elapsed: number): void => {
@@ -625,6 +655,10 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             timeout,
             on_poll: onPoll,
         });
+        if (copyIntent && envdTarget) {
+            await o.journal!.created(copyIntent, envdTarget);
+            o.owned_resources!.push({ intent_id: copyIntent, kind: "image", id: envdTarget, cleanup: "manual", owned: true });
+        }
         const finalStatus = pyTruthy(finalData["status"]) ? finalData["status"] : {};
         buildStatus = _isDict(finalStatus) ? pyStr(finalStatus["state"] ?? "unknown").toLowerCase() : pyStr(finalStatus).toLowerCase();
         buildId = "";
@@ -640,6 +674,9 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
 }
 
 export interface DoDeployOptions {
+    /** Workflow launches retain exact owned identities and start the service after creation. */
+    journal?: ResourceJournalCallbacks;
+    workflow_launch?: boolean;
     acr_namespace?: string;
     /** Existing batch consent; never makes missing secrets interactive. */
     yes?: boolean;
@@ -771,8 +808,9 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
     const resolvedMemory: number = memory !== null ? memory : _coerceInt(yamlDefaults["memory"], 2048);
     const runtime = resolveDeployRuntime(template_dir, { generation, start_cmd, ready_cmd });
     const resolvedGeneration = runtime.generation;
-    const resolvedStart = runtime.start_cmd;
-    const resolvedReady = runtime.ready_cmd;
+    const resolvedStart = opts.workflow_launch ? null : runtime.start_cmd;
+    const resolvedReady = opts.workflow_launch ? null : runtime.ready_cmd;
+    const ownedResources: NonNullable<PreparedTemplate["owned_resources"]> = [];
     const [resolvedAcrUsername, resolvedAcrPassword] = effectiveAcrCredentials({ acr_username, acr_password }, config);
     const resolvedRepo = acr_repo || yamlDefaults["name"] || nodePath.basename(pyResolve(String(template_dir)));
     const templateName = alias || resolvedRepo;
@@ -797,7 +835,9 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
         const reporter = new _StepReporter(out, { verbose });
         try {
             reporter.phase(`Creating template from platform steps: ${templateName}`);
+            const templateIntent = await opts.journal?.intent({ kind: "template", correlation_key: templateName, cleanup: "template.delete" });
             const apiResult = await fcTemplate.createOfficialTemplate({
+                update_existing: opts.journal ? false : undefined,
                 name: templateName,
                 image: plan.image,
                 steps: plan.steps,
@@ -821,6 +861,10 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
                     suggestion: "Inspect 'abx template list' before retrying; registration may already have been submitted.",
                 });
             }
+            if (templateIntent) {
+                await opts.journal!.created(templateIntent, templateId);
+                ownedResources.push({ intent_id: templateIntent, kind: "template", id: templateId, cleanup: "template.delete", owned: true });
+            }
             reporter.done(`Template registration submitted: ${templateId}`);
             _rememberTemplate(template_dir, templateId, out, [alias ?? "", templateName].filter((n) => Boolean(n)));
             return {
@@ -828,6 +872,7 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
                 BuildID: "N/A",
                 "ACR Image": "N/A",
                 "Build mode": "steps",
+                ...(opts.journal ? { owned_resources: ownedResources } : {}),
                 Status: "submitted",
                 _build_logs: [],
             };
@@ -862,6 +907,7 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
         if (plan.ignoredSteps)
             out.warning(IGNORED_PLATFORM_STEPS);
         const reported = await _runReportedDeploy(reporter, {
+            journal: opts.journal, owned_resources: ownedResources,
             out,
             config,
             template_dir,
@@ -887,7 +933,7 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
             platform_sk: platformSk,
         });
         _rememberTemplate(template_dir, reported["TemplateID"], out, [alias ?? "", templateName].filter((n) => Boolean(n)));
-        return reported;
+        return { ...reported, ...(opts.journal ? { owned_resources: ownedResources } : {}) };
     }
     finally {
         reporter.close();

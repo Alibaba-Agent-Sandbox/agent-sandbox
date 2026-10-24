@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.14] - 2026-10-24
+
+### Fixed
+
+- Restore built-in Express source-template launches with native base-image resolution, explicit build-profile handoff, owned build/register receipts, and application startup after creation. Registry guidance can now recognize the native placeholders without claiming live acceptance for every template.
+
+
 ## [0.4.13] - 2026-10-24
 
 ### Fixed

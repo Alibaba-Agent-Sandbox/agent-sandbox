@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "checks": [
+    "Registry source launch",
+    "exact template handoff and immutable image receipt",
+    "CLI info and list",
+    "CLI exec",
+    "CLI command discovery",
+    "CLI named command",
+    "POST /commands/hello",
+    "CLI upload/download/stat/remove",
+    "full CLI E2E suite",
+    "owned sandbox and template cleanup"
+  ],
+  "limitation": "Only python-hello is live-tested; static compatibility does not certify other template workloads.",
+  "revision": "a13b973",
+  "workflow_run": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40093847721",
+  "full_e2e_counts": {
+    "pass": 176,
+    "skip": 8
+  },
+  "cleanup": {
+    "sandboxes": "confirmed deleted",
+    "templates": "confirmed absent",
+    "images": {
+      "owned_image_tags": 6,
+      "deleted_now": 5,
+      "already_confirmed_absent": 1,
+      "remaining": 0
+    }
+  }
+}
