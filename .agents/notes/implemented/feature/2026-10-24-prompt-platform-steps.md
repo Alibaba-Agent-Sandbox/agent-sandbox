@@ -1,5 +1,5 @@
 # Decision: Complete prompt creation through existing platform steps
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -33,7 +33,9 @@ guides and the packaged Skill to the actual workflow and authentication contract
 Express prompt creation accepts `--build auto|dockerfile|steps` and `--detach`.
 Generation adapters receive optional buildMode and baseImage fields. Providers may
 supply a resolved generationBaseImage through the existing CLI extension boundary.
-Standard positional create and its pinned options are unchanged.
+Standard positional create and its pinned options are unchanged. The existing profile
+can carry optional provider-owned resource advice; this is guidance, not a schema
+constraint or automatic manifest rewriting.
 
 ## Alternatives considered
 
@@ -61,9 +63,19 @@ system/PTY operations, exact owned-resource cleanup and installed-artifact check
 
 - Default Docker behavior and direct-deploy submission semantics remain compatible.
 - A fresh model-generated steps artifact reaches Ready and an actual sandbox.
-- Its API and CLI return independently checked business outputs and a valid plot.
+- Its API and CLI return independently checked integer-addition business outputs.
 - Failed and successful resources are cleaned by precise identity and readback.
 - Bilingual docs, packaged Skill, release version and regression evidence agree.
+
+## Known limits
+
+The successful real model journey uses a small integer-addition prompt. Earlier
+pandas/matplotlib candidates remained building past 600 seconds; a separate
+bounded observation did not resolve the build bottleneck. Model generation is
+not deterministic. These failures remain recorded and are not claimed as fixed
+by the successful smaller application. The generated source directory was
+root-owned despite the chown guidance; the addition service needs only read
+access, and file exercises use an independently verified writable user directory.
 
 ## Evidence
 

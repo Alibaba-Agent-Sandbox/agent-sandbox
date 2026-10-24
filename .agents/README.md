@@ -153,4 +153,4 @@ Provider installation progress: [decision](notes/implemented/feature/2026-10-23-
 
 - [CLI 0.4.11 integration](notes/proposed/process/2026-10-24-release-integration.md) · [verification](evidence/verify/2026-10-24-release-integration.md)
 
-- [Prompt platform steps](notes/proposed/feature/2026-10-24-prompt-platform-steps.md) · [verification](evidence/verify/2026-10-24-prompt-platform-steps.md)
+- [Prompt platform steps](notes/implemented/feature/2026-10-24-prompt-platform-steps.md) · [verification](evidence/verify/2026-10-24-prompt-platform-steps.md)

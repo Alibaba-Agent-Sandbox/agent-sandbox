@@ -2,7 +2,7 @@
 
 - Date: 2026-10-24
 - Change: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/128
-- Result: PARTIAL (verification in progress)
+- Result: PASS for scoped addition workflow and native-user fixes; numerical-build limitation remains
 - Package: candidate @agent-sandbox/cli 0.4.12, compiled source
 - Environment: Linux, real Alibaba Cloud Express; credentials supplied through environment, values omitted.
 
@@ -180,3 +180,61 @@ clarifies that enabling one group does not disable other defaults. README scope
 stays focused on calls and environment variables. Guide/profile regressions:
 31 passed; typecheck and build passed. Remote CI at 625a2c2 passed all seven jobs;
 the new guidance still requires fresh generation and cloud acceptance.
+
+## Final scoped acceptance
+
+Fresh candidate 12 used the prompt “创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果”,
+qwen3.8-max, the explicitly configured 1200-second generation budget and unchanged
+600-second build budget. It generated all four files without manual edits, reached
+cloud READY after 52 seconds, and created a running sandbox. The complete create
+command exited zero in 256.15 seconds. The package used was compiled source
+7ef688b, not an already-published CLI release.
+
+The main real-cloud verifier passed 49/49 assertions. A separate portable verifier
+using only public CLI/SDK configuration then passed 50/50, including its own unique
+data directory. Both checked exact list visibility, info and lifetime/kill policy,
+remote Python execution, commands/capabilities, uploaded/downloaded bytes, directory
+and move/remove postconditions, system queries, background process identification
+and termination, real PTY cwd/environment, and actual HTTP requests. Addition
+returned independently calculated integers for positive, negative, zero and values
+beyond signed 32-bit range; missing arguments returned 400 and an unknown command
+returned 404. The remote downloaded generated source matched local SHA256:
+`76b7d12eab561116da2619b6bafb8e1f9ddf6ead4ad5cbeec4a99e182d682a40`.
+
+Cleanup killed only the owned sandbox and independently read its exact ID as
+SandboxNotFoundError through the published SDK. Deletion of the exact owned
+template was followed by GetTemplate returning TemplateNotFound. No owned resources
+remain. Independent cross-agent review checked the source changes and live evidence.
+All seven remote jobs passed at 7ef688b; this final record-only commit must pass its
+own normal checks before merge, without another commit merely to record that green.
+
+### Measurement corrections and remaining limits
+
+- The first file-write test assumed the application source directory was writable.
+  Actual ownership was root:root 0755 for the directory and user:user 0644 for
+  commands.py; UID 1000 could read the service but could not write there. This
+  does not meet the guide's writable-directory intent, but the addition contract
+  requires no source-directory writes. Data tests use a unique directory under
+  the sandbox user home. No unverified cause or backend permission fix is claimed.
+- An exact 900.000-second assertion encountered API timestamp precision: a
+  millisecond startedAt and second-precision endAt yielded 899.631 seconds. The
+  verifier now allows one second of representational tolerance and still requires
+  kill-on-timeout. Initial metadata had independently shown 900 seconds.
+- The first repeat of the portable verifier collided with a directory from the
+  earlier run; it now creates a unique owned data directory. Both failed harness
+  attempts are retained, rather than relabeled as product successes.
+- This successful small prompt does not establish reliable numerical-image builds
+  or default-model reliability. The earlier malformed files, timeout and resource
+  failures remain part of the evidence. The resource ratio note guides generation;
+  it is not an enforced template-schema constraint.
+
+Reproduction uses the documented prompt command with --yes --detach --build steps
+and --timeout 900, explicit model configuration, and environment-only credentials.
+The portable verifier and sanitized generated example will accompany the developer
+journey blog. Public release installation and a fresh published-artifact journey
+are a separate release verification, not silently included in this source result.
+
+Host Qwen Code reported version 0.19.3 (the separate Qwen-in-sandbox case uses a
+different version). Final configured repository health: 105 pass, 11 warning,
+0 fail; hygiene passed. The workspace-only health attempt lacked its lockfile
+development dependencies, so the final gate ran in the existing npm-ci checkout.
