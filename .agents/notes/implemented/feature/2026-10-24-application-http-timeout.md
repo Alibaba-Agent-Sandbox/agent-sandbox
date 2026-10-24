@@ -1,6 +1,6 @@
 # Decision: Apply the existing HTTP deadline to application requests
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
