@@ -65,4 +65,16 @@ The early long-running local make-ci run overlapped subsequent parser/test edits
 - Express cleanup confirmed created sandboxes deleted and templates absent. The workflow initially retained one unique job image tag with a cleanup journal; a separate exact-digest-checked cleanup deleted that owned tag and confirmed GET 404. The shared `python-hello` image repository was preserved. Eight temporary task credentials were removed from workflow secrets. A workflow that succeeds with the opt-in cloud step skipped is not counted as a live cloud test.
 - Real OpenSandbox [T4 40105713813](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/actions/runs/40105713813) PASS with provider `f55e061650efb182745d92dcf3f39fb3e1b43f96`, CLI `90d6c3abfbb0b717ad5cc6e3922c6a18f6ecc960`, Python SDK `4bc11a701b8c262aefb27f6e59780749b1d3cb08`, and templates `7afc10cdd90cf01bc6871caae0a7f62aeec471d8`. Server 1.1.1 and pinned release-1.1.1 execd ran on the hosted Docker runner. Both the default native recipe and explicitly selected portable recipe built and pushed, launched through CLI, served CLI application commands, allowed Python connection and independent Python launch from the prepared image. Default source was not pre-converted or silently replaced by portable. Independent cleanup confirmed no sandbox containers remained and removed the job-owned local registry container. [The owning repository receipt](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/blob/feae1f2c/.agents/evidence/verify/2026-10-24-opensandbox-default-and-portable.md) records these inputs and limitations. Its documentation-only follow-up [40106282628](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/actions/runs/40106282628) also passed using the same CLI/SDK/template pins.
 
-The source materializer implementation is identical in the OpenSandbox tested CLI revision and final candidate. Final provider pins containing later metadata/SDK fixes receive an independent provider run; those results must not be inferred from the older run. These results cover one template with two profiles, not the unexecuted 46-template runtime matrix.
+The source materializer implementation is identical in the OpenSandbox tested CLI revision and final candidate. Final provider pins containing later metadata/SDK fixes received the independent run below, rather than inferring success from the older run. These results cover one template with two profiles, not the unexecuted 46-template runtime matrix.
+
+
+## Independent final-input OpenSandbox rerun
+
+[Final T4 40106702699](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/actions/runs/40106702699) PASS with the exact final executable inputs:
+
+- CLI `33c4e890d8017c6c89bb8e105a1f8432537ac3d0`.
+- Python SDK `b2b9757be40df340bc8275386f5c23dbb55fa955`.
+- Provider `0a5dc608e192055ed61b9e547a48d523a0d43105`.
+- Templates `cd1de48216b933da95785412b9e49c75ad9a0676`.
+
+Both `python-hello` default native and explicit portable build/push/CLI launch paths, CLI application invocation, Python connection and independent prepared-image creation passed again. Independent cleanup confirmed no sandbox containers remained and removed the job-owned local registry container. This is final-input runtime evidence for these two paths only. CLI commits after the listed executable input change engineering records only.
