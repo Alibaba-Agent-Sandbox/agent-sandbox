@@ -223,7 +223,9 @@ export function parseManifest(data: Uint8Array | string): Manifest {
   catch (error) { throw err(String(error)); }
   if (doc["manifest_version"] !== 1) throw err("manifest_version must be 1");
   const workflow = table(doc, "workflow", true);
-  if (Object.keys(workflow).some(key => key !== "inputs" && key !== "startups")) throw err("unknown workflow field");
+  if (Object.keys(workflow).some(key => !["inputs", "startups", "source_placeholders"].includes(key))) throw err("unknown workflow field");
+  const sourcePlaceholders = strList(workflow, "source_placeholders", "workflow");
+  if (new Set(sourcePlaceholders).size !== sourcePlaceholders.length || sourcePlaceholders.some(value => !["<region>", "<tag>"].includes(value))) throw err("unknown or duplicate source placeholder");
   const workflow_inputs = strList(workflow, "inputs", "workflow"), startup_modes = strList(workflow, "startups", "workflow");
   if (new Set(workflow_inputs).size !== workflow_inputs.length || new Set(startup_modes).size !== startup_modes.length) throw err("duplicate workflow declaration");
   if (workflow_inputs.some(v => !["source", "image", "managed", "service"].includes(v)) || startup_modes.some(v => !["exec", "entrypoint", "none"].includes(v))) throw err("unknown workflow input/startup mode");

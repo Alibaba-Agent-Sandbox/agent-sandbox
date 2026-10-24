@@ -44,6 +44,17 @@ it("test_bytes_and_str_inputs_agree", () => {
   expect(parseManifest(Buffer.from(BASE)).sha256).toBe(parseManifest(BASE).sha256);
 });
 
+it("accepts optional source recipe descriptions without granting provider operations", () => {
+  const parsed = parseManifest(BASE.replace('startups = ["none"]', 'startups = ["none"]\nsource_placeholders = ["<region>", "<tag>"]'));
+  expect(parsed.operations).toEqual({ cli: [], python: [] });
+  expect(parsed.workflow_inputs).toEqual(["managed"]);
+  expect(parsed.raw["workflow"]).toMatchObject({ source_placeholders: ["<region>", "<tag>"] });
+});
+
+it.each(['["<unknown>"]', '["<tag>", "<tag>"]', '["region"]', '"<tag>"', '[1]'])("rejects invalid source placeholder descriptions: %s", value => {
+  expect(() => parseManifest(BASE.replace('startups = ["none"]', `startups = ["none"]\nsource_placeholders = ${value}`))).toThrow(ProviderManifestError);
+});
+
 const REJECTIONS: Array<[string, string]> = [
   [mutate('supported = ["sandbox.lifecycle", "exec.run"]', 'supported = ["templates.deploy"]'), "unknown feature"],
   ["not toml [", "Invalid abx-provider.toml"],

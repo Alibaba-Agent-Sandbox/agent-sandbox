@@ -13,7 +13,7 @@ Verification is in progress. This file does not establish a real cloud pass or a
 ## Commands run
 
 - `npm ci`: PASS, lockfile installation completed.
-- `npx vitest run tests/test_providers/test_source_recipe.test.ts tests/test_providers/test_template_launch.test.ts tests/test_providers/test_express_source_workflow.test.ts`: PASS, 50 tests.
+- `npx vitest run tests/test_providers/test_source_recipe.test.ts tests/test_providers/test_template_launch.test.ts tests/test_providers/test_express_source_workflow.test.ts`: PASS, 50 tests. A follow-up run including provider-manifest regressions passed 110 tests.
 - `npm run typecheck`: PASS after correcting the initial type mismatch.
 - `npm run build`: PASS.
 - `bash scripts/check-repo-health.sh`: PASS, 106 checks, 11 historical warnings, no failures.
@@ -37,3 +37,7 @@ Official source placeholders and wheel preparation were missing from the public 
 ## Not verified
 
 Real OpenSandbox source build/create/application/cleanup and full 46-template coverage are pending. No claim is inferred from historical receipts.
+
+## Cross-repository metadata review
+
+The optional provider `workflow.source_placeholders` description uses the existing catalog values `<region>` and `<tag>`. Parsing accepts only those unique strings and grants no operations or input kinds. The current OpenSandbox manifest was parsed successfully after adding this compatibility handling; older CLI releases without that handling cannot install this updated manifest. Registry installation guidance must select the matching CLI.

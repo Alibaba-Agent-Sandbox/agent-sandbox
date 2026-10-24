@@ -12,7 +12,7 @@ Reuse the current source snapshot and Docker builder. Resolve only the official 
 
 ## API Design
 
-The public command remains `abx --provider opensandbox template launch SOURCE`. The existing stageProject helper materializes the official recipe in its temporary copy. No new template fields, provider methods, statuses, or user options are introduced.
+The public command remains `abx --provider opensandbox template launch SOURCE`. The existing stageProject helper materializes the official recipe in its temporary copy. No new template fields, provider methods, statuses, or user options are introduced. The optional provider source_placeholders description accepts only the existing catalog substitution names and grants no runtime operations. Older hosts must be updated before installing a plugin that declares it.
 
 ## Alternatives considered
 
