@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.17] - 2026-10-24
+
 ### Fixed
+
+- Apply the existing HTTP timeout configuration to application discovery and commands, retaining the 30-second default and sending each command once. / 应用命令与发现请求遵守已有 HTTP 超时配置，保留默认 30 秒且不重放命令。
 
 - Simplify provider usage guidance around actual process, application and source-preparation interfaces; remove incorrect EPP and Python build generalizations.
 
