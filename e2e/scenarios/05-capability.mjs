@@ -1,9 +1,11 @@
 // Black-box checks for CLI capabilities that stay local: version, help, provider list,
-// --model on create/template init, template-profile Dockerfiles, and llm_model config.
+// --model on prompt create/template scaffold, template-profile Dockerfiles, and llm_model config.
 // Spawns the abx process only. No command-handler imports, no DashScope, no cloud sandbox.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parse as parseYaml } from 'yaml';
 
+const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 const NO_PROFILE = 'e2e-no-profile';
 
 export default {
@@ -12,11 +14,11 @@ export default {
   needs: [],
   scenarios: [
     {
-      id: 'version-0-3-0',
-      title: '--version prints 0.3.0',
+      id: 'version-package',
+      title: '--version matches the package under test',
       argv: ['--version'],
       creds: false,
-      stdout: /^abx, version 0\.3\.0$/m,
+      stdout: (text) => text.trim() === `abx, version ${VERSION}`,
     },
     {
       id: 'help-root-and-provider',
@@ -40,31 +42,31 @@ export default {
     },
     {
       id: 'create-help-model',
-      title: 'create --help mentions --model',
-      argv: ['create', '--help'],
+      title: 'prompt create help exposes model, confirmation, detach and build options',
+      argv: ['create', '--prompt', 'data environment', '--help'],
       creds: false,
-      stdout: '--model',
+      stdout: ['--model', '--yes', '--detach', '--build'],
     },
     {
-      id: 'template-init-help-model',
-      title: 'template init --help mentions --model',
-      argv: ['template', 'init', '--help'],
+      id: 'template-scaffold-help-model',
+      title: 'template scaffold --help mentions --model',
+      argv: ['template', 'scaffold', '--help'],
       creds: false,
       stdout: '--model',
     },
     {
       // `--adopt --dry-run` lists files that would be sent; it does not print Dockerfile guidance.
-      // `template init --template` is local: ABX_PROVIDER stays unset (the runner does not forward it)
+      // `template scaffold --template` is local: ABX_PROVIDER stays unset (the runner does not forward it)
       // and `--provider` names an id with no installed profile, so the generic Docker profile is written.
       id: 'template-profile-no-network',
-      title: 'template init for a provider id with no profile writes the generic Dockerfile and does not call the network',
+      title: 'template scaffold for a provider id with no profile writes the generic Dockerfile and does not call the network',
       creds: false,
       async run(ctx) {
         const home = ctx.newHome('profile');
         const cwd = ctx.newCwd('profile');
         const env = { ABX_PROVIDER: undefined };
         const r = await ctx.abx(
-          ['--provider', NO_PROFILE, 'template', 'init', 'noprof', '--template', 'python', '--name', 'nop-tpl'],
+          ['--provider', NO_PROFILE, 'template', 'scaffold', 'noprof', '--template', 'python', '--name', 'nop-tpl'],
           { home, cwd, creds: false, env },
         );
         if (r.code !== 0) ctx.fail(`exit ${r.code}\n--- stdout ---\n${ctx.excerpt(r.stdout)}\n--- stderr ---\n${ctx.excerpt(r.stderr)}`);
@@ -74,12 +76,15 @@ export default {
         ctx.check('dockerfile', dockerfile, [
           'FROM python:3.12-slim',
           'WORKDIR /app',
-          'CMD ["python3", "commands.py"]',
+          'COPY commands.py .',
+          { not: /(?:^|\n)\s*CMD\s/ },
           { not: 'fc-e2b-registry' },
           { not: 'dashscope' },
         ]);
         ctx.check('output', r.out, [{ not: 'dashscope' }, { not: /https?:\/\// }]);
         const yaml = readFileSync(join(cwd, 'noprof', 'template.yaml'), 'utf8');
+        const manifest = parseYaml(yaml);
+        if (manifest.spec_version !== 4 || manifest.workflows?.application?.startup !== 'exec' || manifest.start_cmd !== 'agent-sandbox-server serve --port 9000 --commands /app/commands.py') ctx.fail('generic scaffold must explicitly start its application through the exec workflow');
         if (!yaml.includes('python:3.12-slim')) ctx.fail(`template.yaml base is not the generic image:\n${yaml}`);
       },
     },

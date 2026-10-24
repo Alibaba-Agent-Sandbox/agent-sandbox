@@ -12,6 +12,8 @@ export interface ProviderCliExtension {
   templateUi: Record<string, { params: readonly Param[]; help: string }>;
   createParams?: readonly Param[];
   deployHelp?: string;
+  /** Concrete provider-owned base for explicit generated platform steps; Docker defaults stay unchanged. */
+  generationBaseImage?(options: Record<string, unknown>): string | undefined;
   /** Provider-owned authentication requirements for its management catalog, not a host backend switch. */
   managementRequirements?(commandId: string): readonly string[];
   loadTemplates(): Promise<Record<string, unknown>>;

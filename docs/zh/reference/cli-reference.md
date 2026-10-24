@@ -28,6 +28,12 @@ abx create --prompt "Python 数据分析环境"   # 项目生成
 
 位置参数是模板，默认 base。--detach 打印 ID；不传则打开真实终端。默认生命周期在终端退出后请求一秒超时，阿里云可能取整到约 60 秒。显式 timeout/lifecycle 参数保持固定版本行为。--lifecycle.ontimeout 见帮助。标准入口没有 --template、--upload、--yes；环境变量和元数据等创建参数以该固定 CLI 的帮助为准。
 
+自然语言生成的完整参数见 `abx create --prompt DESCRIPTION --help`。
+极速版可用 `abx create --prompt "Python 数据分析环境" --yes --detach --build steps`
+在云端构建，无需本地 Docker/ACR；等待模板 Ready 后才创建沙箱。
+`--yes` 确认生成，`--detach` 在这个本来就不打开终端的入口被接受，不能替代确认。
+默认仍用 Docker。需要 Qwen Code、模型凭据、Provider AK/SK 和沙箱 API Key；生成的业务代码仍需审阅和测试。
+
 ### abx list
 
 ```bash

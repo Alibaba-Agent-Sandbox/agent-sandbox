@@ -20,8 +20,9 @@ import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { materializeBaseImage } from "./base_image.js";
 import { injectedPackageVersion } from "../../utils/package_version.js";
-import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC } from "../../utils/server_sdk_pin.js";
+import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC, SERVER_SDK_RELEASE_SPEC } from "../../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../../models/errors.js";
 import { AsyncClient, HTTPError, asyncWith } from "../../transport/_httpx.js";
@@ -51,14 +52,26 @@ export function contextHasPinnedServerArchive(context: string, dockerfile: strin
   }
 }
 
+/** Preserve supported explicit server requirements unless a local source override is requested. */
+export function contextHasPinnedServerRequirement(context: string, dockerfile: string | null = null): boolean {
+  const source = resolvedDockerfile(context, dockerfile);
+  if (!existsSync(source)) return false;
+  try {
+    const text = readFileSync(source, "utf8");
+    return dockerfilePinsServerArchive(text) || text.split(/[\s"']+/).includes(SERVER_SDK_RELEASE_SPEC);
+  } catch {
+    return false;
+  }
+}
+
 async function _injectOrKeepPin(
   context: string,
   dockerfile: string | null,
   progress: (msg: string) => void,
   step: string,
 ): Promise<string[]> {
-  if (!process.env[SERVER_SDK_SOURCE_ENV] && contextHasPinnedServerArchive(context, dockerfile)) {
-    progress(`${step} Using the Dockerfile's pinned agent-sandbox-server archive`);
+  if (!process.env[SERVER_SDK_SOURCE_ENV] && contextHasPinnedServerRequirement(context, dockerfile)) {
+    progress(`${step} Using the Dockerfile's pinned agent-sandbox-server requirement`);
     return [];
   }
   progress(`${step} Injecting SDK wheel into build context...`);
@@ -147,7 +160,7 @@ function rewriteServerRequirements(source: string, wheels: readonly string[], es
     }
     if (!pipInstall) continue;
     const archive = /^(?:agent-sandbox-server\s*@\s*)?https:\/\/github\.com\/alibaba-agent-sandbox\/python-sdk\/archive\/[0-9a-f]{40}\.tar\.gz#subdirectory=server-sdk$/i.test(word.value);
-    if (wheels.length && archive) {
+    if (wheels.length && (archive || word.value === SERVER_SDK_RELEASE_SPEC)) {
       edits.push({ start: word.start, end: word.end, value: wheels.map((name) => `/tmp/${name}`).join(" ") });
     } else if (!wheels.length && word.value === "agent-sandbox-server") {
       edits.push({ start: word.start, end: word.end, value: `"${SERVER_SDK_PIP_SPEC}"` });
@@ -221,17 +234,7 @@ function materializedDockerfile(context: string, dockerfile: string | null): str
   if (!existsSync(source)) return dockerfile;
   let text = readFileSync(source, "utf8");
   const original = text;
-  if (text.includes("<region>") || text.includes("<tag>")) {
-    const region = process.env.ABX_BASE_IMAGE_REGION || process.env.ALIBABA_CLOUD_REGION_ID || "cn-hangzhou";
-    const tag = process.env.ABX_BASE_IMAGE_TAG || "v0.0.49";
-    if (!/^[a-z0-9-]+$/.test(region)) {
-      throw new DockerBuildError(`Base image region ${region} is not a lowercase DNS label.`);
-    }
-    if (!/^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/.test(tag)) {
-      throw new DockerBuildError(`Base image tag ${tag} is not a Docker tag.`);
-    }
-    text = text.replaceAll("<region>", region).replaceAll("<tag>", tag);
-  }
+  text = materializeBaseImage(text);
   text = rewriteDockerfileForServerInstall(text, contextWheelNames(context));
   if (text === original) return dockerfile;
   const out = join(context, "Dockerfile.abx-build");
@@ -905,7 +908,7 @@ export class DockerBuilder {
    *
    * - when a server-sdk source tree is given explicitly (`project_root`, or the `ABX_SERVER_SDK_SOURCE` environment
    *   variable): build a wheel from it with `pip wheel`, so unreleased changes reach the image;
-   * - otherwise, when the Dockerfile already pins a python-sdk server archive: inject nothing and do not query PyPI;
+   * - otherwise, when the Dockerfile already pins a supported server archive or release: inject nothing and do not query PyPI;
    * - otherwise: download the released wheel of the same version from PyPI (see `_downloadReleaseWheel`).
    *
    * When neither a source tree nor a PyPI wheel is available, nothing is injected. The scaffold Dockerfile installs a
@@ -922,7 +925,7 @@ export class DockerBuilder {
     if (project_root === null || project_root === undefined) {
       const fromEnv = process.env[SERVER_SDK_SOURCE_ENV];
       if (!fromEnv) {
-        if (contextHasPinnedServerArchive(context_dir, dockerfile)) return [];
+        if (contextHasPinnedServerRequirement(context_dir, dockerfile)) return [];
         return DockerBuilder._downloadReleaseWheel(context_dir);
       }
       project_root = fromEnv;

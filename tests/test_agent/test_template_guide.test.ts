@@ -22,7 +22,7 @@ import {
   TEMPLATE_GUIDE,
   buildTemplateGuide,
 } from "../../src/agent/template_guide.js";
-import { SERVER_SDK_GIT_SHA } from "../../src/utils/server_sdk_pin.js";
+import { SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
 import { FIXTURES, findPython, itWithPython, itWithServerSdk, readGolden, serverSdkPythonPath } from "../helpers/agentSupport.js";
 
 const serverIt = itWithServerSdk(it);
@@ -92,8 +92,10 @@ describe("TestGuideText", () => {
   });
 
   it("test_sdk_install_pattern_is_the_established_one", () => {
-    expect(TEMPLATE_GUIDE).toContain("subdirectory=server-sdk");
-    expect(TEMPLATE_GUIDE).toContain(SERVER_SDK_GIT_SHA);
+    expect(TEMPLATE_GUIDE).toContain(SERVER_SDK_RELEASE_SPEC);
+    expect(TEMPLATE_GUIDE).toContain("--index-url https://pypi.org/simple");
+    expect(TEMPLATE_GUIDE).toContain("alpha");
+    expect(TEMPLATE_GUIDE).not.toContain("不在 PyPI");
     expect(TEMPLATE_GUIDE).not.toContain("COPY *.whl");
   });
 
@@ -129,6 +131,40 @@ describe("TestGuideText", () => {
     expect(TEMPLATE_GUIDE).toContain("workflow_contract_version");
     expect(TEMPLATE_GUIDE).toContain("default_workflow");
     expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
+  });
+
+  it("teaches verified application CLI arguments and provider-owned HTTP bindings", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express");
+    expect(guide).toContain("--json-args");
+    expect(guide).toContain("APPLICATION_URL");
+    expect(guide).toContain("本次 README 只提供上述 CLI/HTTP 调用");
+    expect(guide).toContain("X-Access-Token");
+    expect(guide).not.toContain("https://<端口>-<sandbox_id>.<domain>");
+    expect(guide).not.toContain("sandbox.network.get_url(port)");
+  });
+
+  it("renders Express resource advice without imposing it on generic providers", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express", "steps");
+    expect(guide).toContain("1 <= resources.memory / 1024 / resources.cpu <= 4");
+    expect(guide).toContain("resources.cpu: 2、resources.memory: 4096");
+    expect(buildTemplateGuide("create", "opensandbox")).not.toContain("resources.memory / 1024");
+  });
+
+  it("matches CLI JSON output and distinguishes token auth from group enablement", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express");
+    expect(guide).toContain("abx --json sandbox command run");
+    expect(guide).toContain('该 JSON 模式返回 `{"result": <返回值>}`');
+    expect(guide).toContain("`/capabilities` 需要应用 token");
+    expect(guide).toContain("enable_group 不会关闭其他默认组");
+  });
+
+  it("keeps numerical dependency indexes configurable while pinning the server alpha source", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express", "steps");
+    expect(guide).toContain("python3 -m pip install --only-binary=:all: pandas matplotlib");
+    expect(guide).not.toContain("python3 -m pip install --index-url https://pypi.org/simple --only-binary=:all: pandas matplotlib");
+    expect(guide).toContain("仅 agent-sandbox-server alpha 的单独安装命令");
+    expect(guide).toContain("--index-url https://pypi.org/simple");
+    expect(guide).not.toContain("mirrors.aliyun.com");
   });
 
   serverIt("test_imports_shown_in_the_guide_exist", () => {

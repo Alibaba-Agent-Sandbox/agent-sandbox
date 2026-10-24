@@ -29,6 +29,7 @@ const TERMINAL_GOLDEN_DIR = fileURLToPath(new URL("./golden/provider-progress-20
 const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261022-0.4.6/", import.meta.url));
 const WORKFLOW_GOLDEN_DIR = fileURLToPath(new URL("./golden/workflow-20261023/", import.meta.url));
 const RELEASE_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261024-0.4.11/", import.meta.url));
+const JOURNEY_GOLDEN_DIR = fileURLToPath(new URL("./golden/developer-journey-20261024/", import.meta.url));
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
 /** `_suppress_ci_detection`: the CLI must never auto-enable JSON mode. */
@@ -56,7 +57,8 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   const historicalCurrentPath = fs.existsSync(recoveryPath) ? recoveryPath : path.join(HISTORICAL_CURRENT_DIR, `${testCase.output_file}.txt`);
   const baselinePath = fs.existsSync(historicalCurrentPath) ? historicalCurrentPath :
     fs.existsSync(previousPath) ? previousPath : path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
-  const currentPath = path.join(["help-template", "help-template-launch"].includes(testCase.output_file) ? WORKFLOW_GOLDEN_DIR : testCase.output_file === "version" ? RELEASE_GOLDEN_DIR : testCase.output_file.startsWith("help-provider") ? TERMINAL_GOLDEN_DIR : CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const legacyCurrentPath = path.join(["help-template", "help-template-launch"].includes(testCase.output_file) ? WORKFLOW_GOLDEN_DIR : testCase.output_file === "version" ? RELEASE_GOLDEN_DIR : testCase.output_file.startsWith("help-provider") ? TERMINAL_GOLDEN_DIR : CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const currentPath = ["version", "help-abx", "help-create"].includes(testCase.output_file) ? path.join(JOURNEY_GOLDEN_DIR, `${testCase.output_file}.txt`) : legacyCurrentPath;
   const goldenPath = fs.existsSync(currentPath) ? currentPath : baselinePath;
   if (UPDATE) {
     if (!fs.existsSync(baselinePath) || actual !== fs.readFileSync(baselinePath, "utf8") || testCase.output_file === "version") {

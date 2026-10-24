@@ -27,7 +27,7 @@ import { getFormatter } from "../../../cli/formatters.js";
 import { requireTemplateFeature } from "./selection.js";
 import { enableVerbose, getOutput, isCiEnv } from "../../../cli/output.js";
 import { regionOption } from "../../../cli/region.js";
-import { ACRConfig, DockerBuilder, contextHasPinnedServerArchive, dockerBuildxAvailable } from "../docker_builder.js";
+import { ACRConfig, DockerBuilder, contextHasPinnedServerRequirement, dockerBuildxAvailable } from "../docker_builder.js";
 import { cacheDeployedTemplate } from "../../../api/capability.js";
 import * as fcTemplate from "../fc_template.js";
 import { formatFixed0, homeDir, which } from "../../../agent/_pycompat.js";
@@ -464,8 +464,8 @@ export async function _buildImage(template_dir: string, opts: BuildImageOptions)
         if (!(await confirm("After fixing Docker, check again?", { default: true, err: true }))) throw new DockerBuildError("Docker setup cancelled. No build has started.");
     }
     let injectedWheels: string[] = [];
-    if (!process.env.ABX_SERVER_SDK_SOURCE && contextHasPinnedServerArchive(tdir, dockerfile)) {
-        on_progress("[2/3] Using the Dockerfile's pinned agent-sandbox-server archive");
+    if (!process.env.ABX_SERVER_SDK_SOURCE && contextHasPinnedServerRequirement(tdir, dockerfile)) {
+        on_progress("[2/3] Using the Dockerfile's pinned agent-sandbox-server requirement");
     }
     else {
         on_progress("[2/3] Injecting SDK wheel into build context...");

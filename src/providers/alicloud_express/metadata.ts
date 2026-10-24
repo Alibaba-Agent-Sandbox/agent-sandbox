@@ -10,6 +10,7 @@ export const TEMPLATE_PROFILE: import("../../models/template_profile.js").Profil
   user: "user",
   workdir: "/home/user/app",
   reserved_ports: [49983, 5000, 49999],
+  resource_notes: "Express 要求 1 <= resources.memory / 1024 / resources.cpu <= 4（内存 MB、CPU 核）。无用户明确资源要求时使用已验证的 resources.cpu: 2、resources.memory: 4096；1 核配 512 MB 无效。",
   registry:
     "public pull; image region must equal the sandbox region; a non-matching FROM takes platform copy + envdInject; no ACR image acceleration",
 };

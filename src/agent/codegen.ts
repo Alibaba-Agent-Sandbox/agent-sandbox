@@ -42,6 +42,7 @@ import {
 import { pyRepr as pyReprStr } from "./_py.js";
 import { YAMLError, dumpYaml, isMapping, loadYaml } from "../utils/yaml_io.js";
 import { type QwenCodeRunResult, type RunHeadlessOptions, excStr, runQwenCodeHeadless } from "./qwen_code.js";
+import { resolveBuildPlan, type BuildMode } from "../template/build_plan.js";
 import { buildTemplateGuide, REQUIRED_TEMPLATE_FILES, SERVER_ENTRYPOINT, SERVER_PORT } from "./template_guide.js";
 import {
   dockerfileCmdLine,
@@ -202,13 +203,14 @@ export function makeTemplateName(description: string, opts: { token?: string | n
  * the agent already holds the description and every question/answer in its own conversation memory — the prompt
  * deliberately does not replay the transcript.
  */
-export function buildCodegenPrompt(description: string, templateName: string, providerId?: string | null): string {
-  const profile = resolveTemplateProfile(providerId);
+export function buildCodegenPrompt(description: string, templateName: string, providerId?: string | null, buildMode: BuildMode = "auto", baseImage?: string): string {
+  const selected = resolveTemplateProfile(providerId);
+  const profile = baseImage ? { ...selected, base_image: baseImage } : selected;
   return codegenPromptTemplate({
     description: pyStrip(description),
     template_name: templateName,
     server_port: SERVER_PORT,
-    guide: buildTemplateGuide("create", profile),
+    guide: buildTemplateGuide("create", profile, buildMode),
     profile,
   });
 }
@@ -611,7 +613,7 @@ function validateServerEntrypoint(
 export function validateTemplateWorkspace(
   workdir: string,
   templateName: string,
-  opts: { retry?: string | null; providerId?: string | null } = {},
+  opts: { retry?: string | null; providerId?: string | null; buildMode?: BuildMode; baseImage?: string } = {},
 ): Record<string, unknown> {
   const dockerfile = path.join(workdir, "Dockerfile");
   const templateYaml = path.join(workdir, "template.yaml");
@@ -637,6 +639,15 @@ export function validateTemplateWorkspace(
   } catch (exc) {
     throw new AICodegenError(`Generated template.yaml failed schema validation: ${excStr(exc)}`, { suggestion: hint });
   }
+  if (opts.buildMode && opts.buildMode !== "auto") {
+    try {
+      const plan = resolveBuildPlan(workdir, { mode: opts.buildMode });
+      if (plan.kind === "steps" && opts.baseImage && plan.image !== opts.baseImage) {
+        throw new Error(`base.image must preserve the selected provider image ${opts.baseImage}; received ${plan.image}`);
+      }
+    }
+    catch (error) { throw new AICodegenError(`Generated template cannot use ${opts.buildMode}: ${excStr(error)}`, { suggestion: hint }); }
+  }
   return data;
 }
 
@@ -661,6 +672,8 @@ function prepareWorkdirImpl(description: string, opts: { baseDir?: string | null
 }
 
 export interface GenerateTemplateFilesOptions {
+  buildMode?: BuildMode;
+  baseImage?: string;
   workdir?: string | null;
   templateName?: string | null;
   resumeSession?: string | null;
@@ -715,7 +728,7 @@ async function generateTemplateFilesImpl(
   const tmplName = templateName as string;
   const work = workdir;
 
-  const prompt = buildCodegenPrompt(description, tmplName);
+  const prompt = buildCodegenPrompt(description, tmplName, undefined, opts.buildMode, opts.baseImage);
   progress(`Generating template with Qwen Code in ${work} ...`);
   const extra: Partial<RunHeadlessOptions> = opts.onActivity == null ? {} : { onActivity: opts.onActivity };
   const result = await seams.runQwenCodeHeadless(prompt, {
@@ -745,7 +758,7 @@ async function generateTemplateFilesImpl(
     );
   }
 
-  const data = validateTemplateWorkspace(work, tmplName);
+  const data = validateTemplateWorkspace(work, tmplName, { buildMode: opts.buildMode, baseImage: opts.baseImage });
 
   writeTextUtf8(templateYaml, dumpYaml(data));
   logger.debug("Generated template workspace ready: %s", work);

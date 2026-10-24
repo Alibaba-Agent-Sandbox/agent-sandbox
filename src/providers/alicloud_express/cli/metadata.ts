@@ -402,7 +402,11 @@ templateUi["delete"] =  { params: [
       abx template install REF       Reinstall a template
     `) };
 
-export const createParams = [option(["--acr-namespace"], { envvar: "ACR_NAMESPACE", default: null, help: "ACR namespace for building the generated template (env: ACR_NAMESPACE, or set in .env file)" })];
+export const createParams = [
+    option(["--acr-namespace"], { envvar: "ACR_NAMESPACE", default: null, help: "ACR namespace for building the generated template (env: ACR_NAMESPACE, or set in .env file)" }),
+    option(["--build"], { type: new Choice(["auto", "dockerfile", "steps"]), default: "auto", show_default: true,
+        help: "Generated template publish path. steps generates self-contained platform steps without local Docker/ACR; auto keeps the Dockerfile default." }),
+];
 
 /** Full publish help is adapter-owned metadata used by both entry points. */
 export const DEPLOY_HELP = cleandoc(`Publish a template project: build, push to ACR, register the template (same as 'abx template deploy').

@@ -1,0 +1,240 @@
+# Verification: prompt platform steps
+
+- Date: 2026-10-24
+- Change: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/128
+- Result: PASS for scoped addition workflow and native-user fixes; numerical-build limitation remains
+- Package: candidate @agent-sandbox/cli 0.4.12, compiled source
+- Environment: Linux, real Alibaba Cloud Express; credentials supplied through environment, values omitted.
+
+## What was verified
+
+The developer journey first reproduced rejected detach and missing Docker using
+published 0.4.11. Each later attempt uses fresh model generation, without editing
+the generated application. Failed attempts remain failures, not successful retries.
+
+## Commands run
+
+```sh
+npm ci
+npm run typecheck
+npm run build
+npm test
+abx create --prompt '一个支持 pandas 和 matplotlib 的 Python 数据分析环境' --yes --detach --build steps --timeout 900
+```
+
+## Results
+
+- Focused generation/provider/snapshot suite: 366 passed.
+- Initial full suite: 4245 passed, 10 failed, 51 skipped. The same 10 TCP/TLS/WS
+  cases fail on clean base 07bcab4 in the same managed environment (18 other cases
+  in those three files pass). No transport code or test expectations were changed.
+- Packaged Skill validation: passed.
+- Candidate 1: model emitted malformed multiline YAML, rejected before cloud creation.
+- Candidate 2: model guessed base:latest; remote function creation failed. Generation
+  now receives the provider's concrete image and validates exact preservation.
+- Candidate 3: fixed image reached remote build; apt installation failed under the
+  default unprivileged build user. Guidance now uses existing ordered USER/RUN/
+  WORKDIR steps and restores the runtime user with writable workspace ownership.
+- Candidate 4: total 695.76 seconds, including about 600 seconds of build waiting;
+  last state building, then E7011. Exact template deletion and NotFound were verified.
+  The model pinned pandas 2.1.4 and matplotlib 3.8.2. An independent run on the same
+  v0.0.49 base reports Python 3.13.13; official PyPI metadata has no cp313 wheels for
+  these pins. This is a confirmed compatibility risk, not proof of the unseen
+  remote build's precise bottleneck. Guidance now selects compatible binary wheels.
+- Candidates 5–7: no cloud resources. Respectively missing manifest, incomplete
+  auxiliary Dockerfile, and malformed steps arguments were rejected. Native Qwen
+  logs show successful API responses; candidate 6 also had a tool response rejected
+  for token truncation. The Dockerfile omission preceded that truncation. Guidance
+  now scopes COPY restrictions to steps and builds encoded manifests in one local
+  script, with explicit file/AST/JSON checks. No acceptance guard was relaxed.
+- Original black-box suite: 168 passed, 8 failed, 8 skipped. Seven failures exposed
+  stale fixtures; one used an old deployed application with HTTP 502. The rerun uses
+  a fresh owned Ready python-hello template and preserves exact cleanup verification.
+- Exact cleanup regression: 58 passed; latest combined generation regression: 158 passed.
+- Typecheck/build pass, lint has zero errors, repository health PASS=105/FAIL=0,
+  packaged Skill validator and npm entry/reference closure pass.
+- Black-box rerun with current owned fixture: 175 passed, 1 failed, 8 skipped.
+  The remaining generic scaffold check expected a Docker CMD, whereas strict v4
+  explicitly starts that scaffold through workflow exec/start_cmd. After checking
+  the schema, source history and existing unit contract, the fixture verifies that
+  explicit startup and COPY instead. Its capability rerun passes all seven checks.
+- Final official black-box suite: 176 passed, 0 failed, 8 skipped in 304.5 seconds.
+  Two owned sandboxes were cleaned up; no leaked sandbox or unresolved creation
+  remained. The exclusive fixture was deleted and exact template info returned NotFound.
+- Independent review found automatic wheel injection could override the new exact
+  alpha requirement using the CLI version. Supported explicit server pins now skip
+  automatic download; an explicit source override still builds and injects its wheel.
+  Docker builder regression: 40 passed; typecheck passed.
+- PR 129 initial remote Node 22, Typecheck, Installer, Markdown and real-Docker
+  checks passed; latest-head CI and final model/cloud/API/CLI acceptance remain in progress.
+- The next generation run explicitly uses qwen3.8-max rather than coder-flash;
+  this is an independent model experiment, not a claim that flash became reliable.
+
+## Cleanup
+
+Candidates 2 and 3: exact owned template delete followed by exact info NotFound.
+Candidate 1 created no cloud resource. No account-wide deletion was used.
+
+## Problems found
+
+See Issue 128. Application generation remains model-dependent and requires review;
+no automatic repair or silent mutation of the model artifact is introduced.
+
+## Not verified
+
+Final cloud result and normal remote CI are pending. Local transport test failures
+remain recorded and are not treated as passes.
+
+## Additional model observation
+
+The first qwen3.8-max attempt reached the existing 600-second generation limit
+after writing four files, passing 46 local self-checks and correcting its own CSV
+parser. It had not returned a final result, so the command failed and created no
+cloud resources. A fresh attempt uses the documented
+`ABX_QWEN_CODEGEN_TIMEOUT=1200`; the cloud build wait remains 600 seconds.
+This explicit configuration experiment does not change either default timeout.
+
+Candidate 9 generated README examples contained an unsupported `--input` option
+and a fictitious synchronous SDK application call. The artifact is preserved.
+The guide now teaches `--json-args` and provider-owned application bindings with
+separate gateway/application authentication, and limits README examples to the
+verified CLI/HTTP surface. Guide regression: 13 passed, 6 environment-dependent
+server-package cross-checks skipped; fresh generation must review the README too.
+
+## Candidate 9 and controlled dependency diagnosis
+
+Candidate 9 generated normally in about 356 seconds, but cloud build polling
+reached its unchanged 600-second budget while still building (956.65 seconds
+total). Its exact owned template was deleted and NotFound verified; no sandbox
+was created. Manifest-embedded commands.py exactly matched the generated file.
+
+On an independent owned base sandbox with the standard client's verified root
+identity, the exact dependency RUN timed out after 315 seconds while downloading
+the pandas 12 MB cp313 wheel. A fresh controlled comparison installed numerical
+packages using the base's configured index in 46.709 seconds, then installed the
+server alpha from official PyPI in 15.615 seconds. The runtime user successfully
+imported the packages and rendered a plot. Both diagnostic resources were cleaned
+and exact absence verified. This identifies a dependency-download problem in the
+controlled runtime experiment, not the unseen build backend's sole root cause.
+
+The development candidate guide had over-applied the official-index requirement.
+The narrow correction leaves ordinary dependency indexes configurable and keeps
+only the separate server alpha install on official PyPI; no mirror is hardcoded.
+All 20 configured guide regressions pass. Latest remote CI at 2c9e0f2 passed all
+seven jobs. A fresh generation remains necessary for final cloud acceptance.
+
+## Native TypeScript OS-user regression
+
+Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/130
+
+The native CommandsModule run/stream/start API exposes user, but the old shared
+E2B process transport sent it in an unknown protobuf field. A real owned sandbox
+returned UID 1000 for native root while the standard Python client returned UID 0
+on the same ID. After the narrow per-request Basic header correction, native root
+and standard root both returned 0, native user returned 1000, native start(root)
+returned 0, a nonexistent user raised EnvdRpcError, and the default identity was
+unchanged. Exact kill and getInfoById SandboxNotFound verified cleanup.
+
+The first control attempt used the published standard CLI, which printed UID 0
+but exited 1 in that subprocess harness. That failed control and its successful
+cleanup remain recorded; the successful comparison uses the standard Python
+client with a zero exit code. It is not relabeled as a passing CLI experiment.
+
+Wire-level concurrent principal/gateway isolation plus process/API regressions:
+54 passed. Typecheck/build pass; independent cross-agent source review found no
+additional blocker. This validates the source candidate, not a published 0.4.12.
+
+The d30da6c remote Node 20/22 jobs caught one old catalog-provider assertion
+that still required the removed protobuf user field. The fixture now asserts
+its absence while preserving the default root Basic-header check and adding
+an explicit non-root request with the gateway token retained. Against the
+CI-pinned catalog de4fbf6, six local catalog tests pass; the two cubesandbox
+proxy tests stop at this environment's HTTP 501 network-audit response before
+assertions. Clearing proxy environment variables does not change that result;
+the remote jobs must verify these cases. No transport behavior was weakened.
+
+Candidate 10 generated all four files and an embedded commands.py matching
+the local SHA256, but its original create command again reached the unchanged
+600-second build deadline while still building (1166.53 seconds total). It
+created one template and no sandbox. A separately bounded read-only observation
+follows; it cannot retroactively turn that create command into a pass.
+
+Candidate 10 stayed building through a separate bounded 296-second observation
+(five exact reads), with no step-log/build ID exposed by this API and no SLS
+log configuration. Exact deletion returned TemplateNotFound. Numerical builds
+remain an unresolved limitation; the runtime pip comparison is not substituted
+for build acceptance.
+
+A distinct small addition prompt (candidate 11) generated normally in roughly
+385 seconds but the backend rejected its 1 CPU / 512 MB ratio immediately:
+Memory GB / CPU must be between 1 and 4. Its exact template was deleted and
+TemplateNotFound verified. No sandbox was created. The existing Express profile
+now supplies optional human-readable resource advice, recommending the verified
+2 CPU / 4096 MB default; generic providers receive no Express constraint. This
+does not silently rewrite manifests or create a new resource planner.
+
+The generated README also confused ordinary CLI output with JSON mode and
+repeated an incorrect capabilities authentication statement. Guidance now uses
+explicit `abx --json`, documents only health as application-token exempt, and
+clarifies that enabling one group does not disable other defaults. README scope
+stays focused on calls and environment variables. Guide/profile regressions:
+31 passed; typecheck and build passed. Remote CI at 625a2c2 passed all seven jobs;
+the new guidance still requires fresh generation and cloud acceptance.
+
+## Final scoped acceptance
+
+Fresh candidate 12 used the prompt “创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果”,
+qwen3.8-max, the explicitly configured 1200-second generation budget and unchanged
+600-second build budget. It generated all four files without manual edits, reached
+cloud READY after 52 seconds, and created a running sandbox. The complete create
+command exited zero in 256.15 seconds. The package used was compiled source
+7ef688b, not an already-published CLI release.
+
+The main real-cloud verifier passed 49/49 assertions. A separate portable verifier
+using only public CLI/SDK configuration then passed 50/50, including its own unique
+data directory. Both checked exact list visibility, info and lifetime/kill policy,
+remote Python execution, commands/capabilities, uploaded/downloaded bytes, directory
+and move/remove postconditions, system queries, background process identification
+and termination, real PTY cwd/environment, and actual HTTP requests. Addition
+returned independently calculated integers for positive, negative, zero and values
+beyond signed 32-bit range; missing arguments returned 400 and an unknown command
+returned 404. The remote downloaded generated source matched local SHA256:
+`76b7d12eab561116da2619b6bafb8e1f9ddf6ead4ad5cbeec4a99e182d682a40`.
+
+Cleanup killed only the owned sandbox and independently read its exact ID as
+SandboxNotFoundError through the published SDK. Deletion of the exact owned
+template was followed by GetTemplate returning TemplateNotFound. No owned resources
+remain. Independent cross-agent review checked the source changes and live evidence.
+All seven remote jobs passed at 7ef688b; this final record-only commit must pass its
+own normal checks before merge, without another commit merely to record that green.
+
+### Measurement corrections and remaining limits
+
+- The first file-write test assumed the application source directory was writable.
+  Actual ownership was root:root 0755 for the directory and user:user 0644 for
+  commands.py; UID 1000 could read the service but could not write there. This
+  does not meet the guide's writable-directory intent, but the addition contract
+  requires no source-directory writes. Data tests use a unique directory under
+  the sandbox user home. No unverified cause or backend permission fix is claimed.
+- An exact 900.000-second assertion encountered API timestamp precision: a
+  millisecond startedAt and second-precision endAt yielded 899.631 seconds. The
+  verifier now allows one second of representational tolerance and still requires
+  kill-on-timeout. Initial metadata had independently shown 900 seconds.
+- The first repeat of the portable verifier collided with a directory from the
+  earlier run; it now creates a unique owned data directory. Both failed harness
+  attempts are retained, rather than relabeled as product successes.
+- This successful small prompt does not establish reliable numerical-image builds
+  or default-model reliability. The earlier malformed files, timeout and resource
+  failures remain part of the evidence. The resource ratio note guides generation;
+  it is not an enforced template-schema constraint.
+
+Reproduction uses the documented prompt command with --yes --detach --build steps
+and --timeout 900, explicit model configuration, and environment-only credentials.
+The portable verifier and sanitized generated example will accompany the developer
+journey blog. Public release installation and a fresh published-artifact journey
+are a separate release verification, not silently included in this source result.
+
+Host Qwen Code reported version 0.19.3 (the separate Qwen-in-sandbox case uses a
+different version). Final configured repository health: 105 pass, 11 warning,
+0 fail; hygiene passed. The workspace-only health attempt lacked its lockfile
+development dependencies, so the final gate ran in the existing npm-ci checkout.

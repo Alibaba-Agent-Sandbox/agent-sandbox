@@ -1,6 +1,6 @@
 # 使用模板
 
-模板是预配置的沙箱环境定义，包含基础镜像、预装软件、能力声明和自定义命令。
+模板是预配置的沙箱环境定义，包含基础镜像、预装软件、显式工作流契约和自定义命令。
 
 ---
 
@@ -9,17 +9,17 @@
 模板是一个包含 `template.yaml` 的目录，定义了沙箱的运行环境。模板可以：
 
 - 指定基础 Docker 镜像和预装包
-- 声明支持的能力（`shell`、`files`、`code`、`terminal`、`ports`）
+- 声明服务、工作流及其精确操作
 - 定义自定义命令
 - 设置默认环境变量和资源规格
 
-未声明 `capabilities` 的模板使用默认能力集 `{shell, files, code}`。
+项目模板必须声明 `spec_version: 4`、`workflow_contract_version: 1`、`provides`、`default_workflow` 和 `workflows`。旧字段 `capabilities`、`tested_on`、`providers` 会被拒绝，不存在隐式能力授权。
 
 ---
 
 ## 列出可用模板
 
-目前模板列表来自本地安装的模板（位于 `~/.abx/templates/`）。通过 `abx template install` 安装模板。
+用 `abx template search python` 搜索公共目录，用 `abx template list` 列出当前提供方已注册的模板。只下载源码可用 `abx template install <ref> --download-only`，源码缓存在 `~/.abx/templates/`。
 
 ---
 
@@ -84,40 +84,35 @@ abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析�
 
 `abx create --prompt "<描述>"`（未显式传 `--template` 时）走 生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
 
+非交互运行需要 `--yes`；接受 `--detach`，生成路径原本就会在创建后返回而不进入终端。用 `abx create --prompt "描述" --help` 查看生成路径的完整选项。
+
+默认使用本地 Docker 和 ACR。Express 下没有 Docker 时，可显式选择已有的平台 steps 路径：
+
+```bash
+abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析环境" \
+  --yes --detach --build steps --dir ./generated
+```
+
+这仍然调用真实模型，生成自包含的 `base.image` 与 `build.run`，提交模板并等待 **Ready** 后创建沙箱。本地源码不会作为 COPY 构建上下文上传。生成服务固定使用官方 PyPI 的 `agent-sandbox-server==0.3.1a1` alpha，它不是稳定版 SDK。应审阅生成文件并实测业务 API；模型可能生成无效或不符合需求的代码，校验失败会保留目录并停止创建。
+
+单独执行 `abx template deploy --build steps` 仍返回 **submitted**；先用 `abx template info <id>` 确认 Ready，再创建沙箱。生成和部署需要模型配置、沙箱 API 配置及 AK/SK；steps 不要求 ACR 凭据。
+
 ---
 
-## 内置模板
+## 模板与运行时操作
 
-| 模板名 | 说明 | 默认能力 |
-|--------|------|----------|
-| `base` | 基础 Ubuntu 环境 | `shell`, `files`, `code` |
+`base`、`code-interpreter-v1` 是平台模板别名，与项目源码目录不同。运行能力由提供方的真实操作和所选工作流绑定决定；镜像安装 Python 不代表实现了代码解释器协议。
 
-> **提示**：可通过 `abx template install` 从社区获取更多模板，或参考 [编写模板](authoring-templates.md) 创建自己的模板。已有源码的项目可以用 `abx template scaffold --adopt` 就地补成模板。
-
----
-
-## 能力模型
-
-模板通过 `capabilities` 字段声明沙箱支持的能力：
-
-| 能力 | 说明 | 默认 |
-|------|------|------|
-| `shell` | 执行 Shell 命令 | ✅ |
-| `files` | 文件系统操作 | ✅ |
-| `code` | Code Interpreter 代码执行 | ✅ |
-| `terminal` | PTY 终端会话 | ❌（需显式声明） |
-| `ports` | 端口 URL 访问 | ❌（需显式声明） |
-
-当模板未声明 `capabilities` 时，使用默认能力集 `{shell, files, code}`。
+项目清单显式绑定应用服务及其所需操作。用 `abx sandbox capabilities <id>` 查询沙箱，用 `abx sandbox command list <id>` 列出具名应用命令。参见[编写模板](authoring-templates.md)和 SDK 的[模板 YAML 规范](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)。
 
 ---
 
 ## 自定义命令
 
-模板可以定义自定义命令，用户通过 `abx run` 调用：
+模板可以定义自定义命令，用户通过 `abx sandbox command run` 调用：
 
 ```bash
-abx run sbx-xxxx dev --arg port=8080
+abx sandbox command run sbx-xxxx dev --arg port=8080
 ```
 
 ---

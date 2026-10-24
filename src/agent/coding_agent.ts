@@ -34,6 +34,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import type { BuildMode } from "../template/build_plan.js";
 import { ValueError } from "../models/value_error.js";
 import {
   AICodegenError,
@@ -179,6 +180,8 @@ export interface CodingAgentBackend {
     opts: {
       workdir: string;
       templateName: string;
+      buildMode?: BuildMode;
+      baseImage?: string;
       resumeSession?: string | null;
       binary?: string | null;
       env?: Readonly<Record<string, string>> | null;
@@ -336,6 +339,8 @@ export class QwenCodeBackend implements CodingAgentBackend {
     opts: {
       workdir: string;
       templateName: string;
+      buildMode?: BuildMode;
+      baseImage?: string;
       resumeSession?: string | null;
       binary?: string | null;
       env?: Readonly<Record<string, string>> | null;
@@ -349,6 +354,8 @@ export class QwenCodeBackend implements CodingAgentBackend {
     return codegen.seams.generateTemplateFiles(description, {
       workdir: opts.workdir,
       templateName: opts.templateName,
+      ...(opts.buildMode ? { buildMode: opts.buildMode } : {}),
+      ...(opts.baseImage ? { baseImage: opts.baseImage } : {}),
       resumeSession: opts.resumeSession ?? null,
       binary: opts.binary ?? null,
       env: opts.env ?? null,

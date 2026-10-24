@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 import { rewriteDockerfileForServerInstall } from "../../src/providers/alicloud_express/docker_builder.js";
-import { SERVER_SDK_PIP_SPEC } from "../../src/utils/server_sdk_pin.js";
+import { SERVER_SDK_PIP_SPEC, SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
 
 const WHEEL = "agent_sandbox_server-0.3.0-py3-none-any.whl";
 const INSTALL = `pip install --no-cache-dir "${SERVER_SDK_PIP_SPEC}"`;
@@ -35,6 +35,12 @@ function expectValidSingleRun(text: string): string {
 }
 
 describe("server wheel Dockerfile structure", () => {
+  it("injects a local wheel into the published alpha requirement while preserving unrelated pins", () => {
+    const source = `FROM scratch\nRUN pip install "${SERVER_SDK_RELEASE_SPEC}" pandas==3.0.3\n`;
+    expect(rewriteDockerfileForServerInstall(source, [WHEEL])).toContain(`pip install /tmp/${WHEEL} pandas==3.0.3`);
+    expect(rewriteDockerfileForServerInstall(source, [])).toBe(source);
+  });
+
   it("keeps a conditional wheel install as one valid RUN", () => {
     const source = `FROM scratch\nCOPY *.whl /tmp/\nRUN if ls /tmp/*.whl 1>/dev/null 2>&1; then \\\n        pip install --no-cache-dir /tmp/*.whl && rm -f /tmp/*.whl; \\\n    else \\\n        ${INSTALL}; \\\n    fi\nUSER user\nEXPOSE 9000\n`;
     const output = rewriteDockerfileForServerInstall(source, [WHEEL]);

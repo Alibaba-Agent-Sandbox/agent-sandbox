@@ -21,7 +21,7 @@ import {
   rewriteDockerfileForServerInstall,
   serverSdkVersion,
 } from "../../src/providers/alicloud_express/docker_builder.js";
-import { ABX_SERVER_INSTALL } from "../../src/utils/server_sdk_pin.js";
+import { ABX_SERVER_INSTALL, SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
 import { _provenanceNotice } from "../../src/providers/alicloud_express/cli/template.js";
 import { DockerBuildError } from "../../src/models/errors.js";
 import {
@@ -519,6 +519,35 @@ describe("TestInjectSdkWheel", () => {
     expect(wheels.map((w) => w.split("/").pop())).toEqual(["agent_sandbox-0.1.0-py3-none-any.whl"]);
     expect(readFileSync(wheels[0]!)).toEqual(WHEEL);
     expect(seen[0]).toBe(`https://pypi.org/pypi/agent-sandbox-server/${serverSdkVersion()}/json`);
+  });
+
+  it.each(["Dockerfile", "Dockerfile.generated"])("preserves the published alpha pin in %s without an automatic wheel download", async (dockerfile) => {
+    const context = mkTmp();
+    writeFileSync(join(context, dockerfile), `FROM scratch\nRUN python3 -m pip install --index-url https://pypi.org/simple "${SERVER_SDK_RELEASE_SPEC}"\n`);
+    const download = vi.spyOn(DockerBuilder, "_downloadReleaseWheel").mockResolvedValue(["wrong-version.whl"]);
+    expect(await DockerBuilder.injectSdkWheel(context, null, dockerfile)).toEqual([]);
+    expect(download).not.toHaveBeenCalled();
+    expect(h.spawn).not.toHaveBeenCalled();
+  });
+
+  it("allows an explicit local source to override the published alpha pin", async () => {
+    const project = mkTmp();
+    writeFileSync(join(project, "pyproject.toml"), '[project]\nname = "agent-sandbox-server"\n');
+    const context = mkTmp();
+    const dockerfile = `FROM scratch\nRUN pip install "${SERVER_SDK_RELEASE_SPEC}"\n`;
+    writeFileSync(join(context, "Dockerfile"), dockerfile);
+    vi.stubEnv(SERVER_SDK_SOURCE_ENV, project);
+    const download = vi.spyOn(DockerBuilder, "_downloadReleaseWheel");
+    h.spawn.mockImplementation((_cmd: string, args: string[]) => {
+      const out = args[args.indexOf("-w") + 1]!;
+      return fakeChild({ onSpawn: () => writeFileSync(join(out, "agent_sandbox_server-9.9.9-py3-none-any.whl"), "local") });
+    });
+    const wheels = await DockerBuilder.injectSdkWheel(context);
+    expect(download).not.toHaveBeenCalled();
+    expect(wheels.map((wheel) => wheel.split("/").pop())).toEqual(["agent_sandbox_server-9.9.9-py3-none-any.whl"]);
+    const rewritten = rewriteDockerfileForServerInstall(dockerfile, wheels.map((wheel) => wheel.split("/").pop()!));
+    expect(rewritten).not.toContain(SERVER_SDK_RELEASE_SPEC);
+    expect(rewritten).toContain("agent_sandbox_server-9.9.9-py3-none-any.whl");
   });
 
   it("test_frozen_binary_never_shells_out_to_pip", async () => {

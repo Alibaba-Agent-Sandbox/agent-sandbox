@@ -83,7 +83,7 @@ function planSafe(path, { isGroup, usage }) {
   if (key === 'config init') return { argv: [...path, '--yes'], code: 0, match: /abx config set/ };
   if (key === 'provider list' || key === 'provider default') return { argv: [...path], code: 0, match: /alicloud-express/ };
   if (key === 'provider doctor') return { argv: [...path], code: 0, match: /installed/ };
-  if (key === 'provider update') return { argv: [...path], code: 0, match: /up to date/ };
+  if (key === 'provider update') return { argv: [...path], code: 0, match: /No updates found among the checked Git providers/ };
   if (key === 'template scaffold') return { kind: 'scaffold', argv: [...path] };
   if (key === 'mcp') return { argv: ['mcp', '--help'], code: 0, match: /Usage: abx mcp/ };
   if (key === 'mcp status') return { argv: [...path], code: 0, match: /agent-sandbox/ };
