@@ -143,3 +143,18 @@ client with a zero exit code. It is not relabeled as a passing CLI experiment.
 Wire-level concurrent principal/gateway isolation plus process/API regressions:
 54 passed. Typecheck/build pass; independent cross-agent source review found no
 additional blocker. This validates the source candidate, not a published 0.4.12.
+
+The d30da6c remote Node 20/22 jobs caught one old catalog-provider assertion
+that still required the removed protobuf user field. The fixture now asserts
+its absence while preserving the default root Basic-header check and adding
+an explicit non-root request with the gateway token retained. Against the
+CI-pinned catalog de4fbf6, six local catalog tests pass; the two cubesandbox
+proxy tests stop at this environment's HTTP 501 network-audit response before
+assertions. Clearing proxy environment variables does not change that result;
+the remote jobs must verify these cases. No transport behavior was weakened.
+
+Candidate 10 generated all four files and an embedded commands.py matching
+the local SHA256, but its original create command again reached the unchanged
+600-second build deadline while still building (1166.53 seconds total). It
+created one template and no sandbox. A separately bounded read-only observation
+follows; it cannot retroactively turn that create command into a pass.

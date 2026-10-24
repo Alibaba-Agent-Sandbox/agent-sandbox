@@ -101,7 +101,14 @@ describe.skipIf(!haveCatalog)("node plugins from the catalog", () => {
       expect(start?.body.readUInt8(0)).toBe(0);
       expect(start?.body.readUInt32BE(1)).toBe(start ? start.body.length - 5 : -1);
       expect(Buffer.from(String(start?.headers["authorization"]).split(" ")[1] as string, "base64").toString()).toBe("root:");
-      expect(JSON.parse(start?.body.subarray(5).toString() ?? "{}").process.user).toBe("root");
+      expect(JSON.parse(start?.body.subarray(5).toString() ?? "{}").process).not.toHaveProperty("user");
+
+      seen.length = 0;
+      await sb.commands.run("echo hi", { user: "user" });
+      const explicitUser = seen.find((s) => s.url === "/process.Process/Start");
+      expect(Buffer.from(String(explicitUser?.headers["authorization"]).split(" ")[1] as string, "base64").toString()).toBe("user:");
+      expect(explicitUser?.headers["x-access-token"]).toBe("tok");
+      expect(JSON.parse(explicitUser?.body.subarray(5).toString() ?? "{}").process).not.toHaveProperty("user");
 
       seen.length = 0;
       await sb.files.write("/tmp/a.txt", "data");
