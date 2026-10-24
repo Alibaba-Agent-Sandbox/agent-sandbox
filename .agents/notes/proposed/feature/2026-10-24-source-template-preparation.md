@@ -8,7 +8,7 @@ The public OpenSandbox source launch path rejects the official native base place
 
 ## Decision
 
-Reuse the current source snapshot and Docker builder. Resolve only the official native base FROM recipe with documented image defaults. When its existing server-wheel COPY has no context wheels, add a Docker wheel stage using the exact archive already pinned in the Dockerfile. Keep application RUN, COPY ownership and final USER instructions. Validate an optional server-sdk.commit against the archive. Explicit profiles remain explicit; no fallback or manifest schema is added. The Express extension retains its existing native build path. Tool failures report only fixed phase/prerequisite text, never subprocess output or arguments.
+Reuse the current source snapshot and Docker builder. Resolve only the official native base FROM recipe with documented image defaults. When its existing server-wheel COPY has no context wheels, add a Docker wheel stage using the exact archive already pinned in the Dockerfile. Keep application RUN, COPY ownership and final USER instructions. Validate an optional server-sdk.commit against the archive. Explicit profiles remain explicit; no fallback or new template schema is added. The Express extension retains its existing native build path. Tool failures report only fixed phase/prerequisite text, never subprocess output or arguments.
 
 ## API Design
 
