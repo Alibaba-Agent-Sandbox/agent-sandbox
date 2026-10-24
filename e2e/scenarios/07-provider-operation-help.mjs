@@ -8,6 +8,13 @@ function fixture(directory, { broken = false } = {}) {
   const id = 'operation-help-fixture';
   writeFileSync(join(directory, 'abx-provider.toml'), `
 manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = []
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "${id}"
 version = "1.0.0"
@@ -38,6 +45,7 @@ export default () => ({
   async buildInfra() {
     mark('buildInfra');
     return {
+      operation_contract_version: 1, operations: { cli: [], python: [] },
       sandbox_protocol: {},
       provider_commands: { async run(operation, input) { mark('run:' + operation); return { operation, name: input.name }; } },
       async close() { mark('close'); }

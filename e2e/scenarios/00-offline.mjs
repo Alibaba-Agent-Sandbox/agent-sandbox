@@ -8,20 +8,19 @@ const ROOT_COMMANDS = ['config', 'connect', 'create', 'deploy', 'download', 'exe
 const REMOVED_ROOT_COMMANDS = ['init', 'install'];
 const MISSING_SANDBOX_AUTH = ['Missing configuration', 'sandbox_api_key', 'abx config set providers.alicloud-express.sandbox_api_key', { not: 'e2b auth login' }, { not: 'Configuration scope' }, { not: 'E2B_API_KEY' }];
 
-const INDEX = `templates:
+const INDEX = `schema_version: 2
+templates:
   - name: alpha-py
     description: Alpha python template
     repo: https://github.com/example/alpha
     tags: [python, demo]
     author: me
-    capabilities: [shell, files]
     status: official
   - name: beta-node
     description: Beta node template
     repo: https://github.com/example/beta
     tags: [node]
     author: you
-    capabilities: [shell]
     status: community
 `;
 
@@ -103,10 +102,11 @@ export default {
     // ---- config store (fresh HOME per scenario) -------------------------------------------------
     {
       id: 'config-list-json', title: 'config list --json: documented keys and defaults (no shortcuts table)', argv: ['--json', 'config', 'list'], creds: false, freshHome: true,
-      jsonShape: { sandbox_api_key: 'string|null', region: 'string', http_timeout: 'number', http2: 'boolean', max_retries: 'number', llm_model: 'string' },
+      jsonShape: { sandbox_api_key: 'string|null', region: 'string', http_timeout: 'number', http2: 'boolean', llm_model: 'string' },
       json: (j) => {
         if (j.region !== 'cn-hangzhou') throw new Error(`default region should be cn-hangzhou, got ${j.region}`);
-        if (j.max_retries !== 3 || j.http_timeout !== 30) throw new Error('unexpected numeric defaults');
+        if (j.http_timeout !== 30) throw new Error('unexpected numeric defaults');
+        if ('max_retries' in j) throw new Error('retired max_retries must not be advertised');
         if ('shortcuts' in j) throw new Error('config list must not expose a shortcuts table');
       },
     },
@@ -114,7 +114,7 @@ export default {
     { id: 'config-get-default', title: 'config get region -> cn-hangzhou', argv: ['config', 'get', 'region'], creds: false, freshHome: true, stdout: /^cn-hangzhou$/m },
     { id: 'config-get-json', title: 'config get --json returns a JSON scalar', argv: ['--json', 'config', 'get', 'region'], creds: false, freshHome: true, stdout: /^"cn-hangzhou"$/m },
     { id: 'config-get-unknown', title: 'config get of an unknown key exits 2 and lists available keys', argv: ['config', 'get', 'nosuchkey'], creds: false, freshHome: true, exit: 2, output: ['Unknown config key', 'region', 'sandbox_api_key'] },
-    { id: 'config-set-invalid-number', title: 'config set http_timeout abc exits 2', argv: ['config', 'set', 'http_timeout', 'abc'], creds: false, freshHome: true, exit: 2, output: 'Invalid numeric value' },
+    { id: 'config-set-invalid-number', title: 'config set http_timeout abc exits 2', argv: ['config', 'set', 'http_timeout', 'abc'], creds: false, freshHome: true, exit: 2, output: ["Invalid value for 'http_timeout'", 'expected float'] },
     {
       id: 'config-set-get-delete', title: 'config set/get/delete round-trip persists to ~/.abx/config.toml', creds: false,
       async run(ctx) {

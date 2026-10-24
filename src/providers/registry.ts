@@ -7,7 +7,8 @@ import { Provider, orderedFeatures } from "./base.js";
 import { AlicloudExpressProvider } from "./alicloud_express/index.js";
 import { ExecProvider } from "./exec_provider.js";
 import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError } from "../models/provider_errors.js";
-import { loadManifest } from "./manifest.js";
+import { checkRequires, loadManifest } from "./manifest.js";
+import { hostVersion } from "./host.js";
 import { NodeProvider } from "./node_provider.js";
 import { RestProvider } from "./rest_provider.js";
 import * as store from "./store.js";
@@ -70,6 +71,7 @@ export function loadInstalled(providerId: string): Provider {
   const root = pluginRoot(providerId, receipt as Record<string, unknown>);
   const manifest = loadManifest(root);
   if (manifest.id !== providerId) throw new ProviderNotFoundError(`Provider '${providerId}' is not installed.`);
+  checkRequires(manifest, { component: "cli", host_version: hostVersion() });
   if (manifest.kind === "rest") {
     if (receipt["trust"] !== "link") store.verifyIntegrity(providerId);
     return new RestProvider(manifest, receipt as Record<string, unknown>);

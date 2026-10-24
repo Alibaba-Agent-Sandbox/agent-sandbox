@@ -9,6 +9,7 @@ import type { AddressInfo } from "node:net";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { SERVER_VERSION } from "../../src/agent/mcp.js";
 import { createMcpApp, serveMcpApp, HeaderBag, type McpHttpApp } from "../../src/agent/mcp_http.js";
 
 interface Raw {
@@ -95,10 +96,10 @@ describe("TestMcpHttpWire", () => {
     const r = await call(port, "POST", "/mcp", { body: INIT });
     expect(r.status).toBe(200);
     const h = headers(r);
-    expect(h.slice(0, 2)).toEqual(["content-length: 169", "content-type: application/json"]);
+    expect(h.slice(0, 2)).toEqual([`content-length: ${Buffer.byteLength(r.body)}`, "content-type: application/json"]);
     expect(h[2]).toMatch(/^mcp-session-id: [0-9a-f-]{36}$/);
     expect(r.body).toBe(
-      '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"agent-sandbox","version":"0.3.0"}}}',
+      `{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"agent-sandbox","version":"${SERVER_VERSION}"}}}`,
     );
   });
 

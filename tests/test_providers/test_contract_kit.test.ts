@@ -19,6 +19,23 @@ describe("contract kit", () => {
     expect(names).toContain("test_secret_options_are_redacted_from_errors");
   });
 
+  it("does not turn unsupported features into passes when a framework has no skip adapter", async () => {
+    const cases = new Map<string, () => Promise<void>>();
+    defineProviderContractTests("alicloud-express", {
+      describe: (_name, fn) => fn(),
+      it: (name, fn) => { cases.set(name, fn); },
+    });
+    await expect(cases.get("test_pause_resume")!()).rejects.toThrow(/TestRegistrar.onSkip/);
+    const skips: string[] = [];
+    defineProviderContractTests("alicloud-express", {
+      describe: (_name, fn) => fn(),
+      it: (name, fn) => { cases.set(name, fn); },
+      onSkip: reason => { skips.push(reason); },
+    });
+    await cases.get("test_pause_resume")!();
+    expect(skips).toEqual(["alicloud-express does not declare sandbox.pause"]);
+  });
+
   it("test_parse_options", () => {
     expect(parseOptions(["a=1", "b=x=y"])).toEqual({ a: "1", b: "x=y" });
     expect(() => parseOptions(["novalue"])).toThrow(/KEY=VALUE/);

@@ -65,3 +65,5 @@ Evidence for the Python SDK and server lives in the
 - [Provider-owned metadata follow-up](verify/2026-10-18-provider-owned-metadata-followup.md)
 
 - [Cloud E2E command contract](verify/2026-10-23-cloud-e2e-command-contract.md)
+
+- [CLI 0.4.11 integration](verify/2026-10-24-release-integration.md)

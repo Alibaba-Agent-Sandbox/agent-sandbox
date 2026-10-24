@@ -101,3 +101,17 @@ abx provider engine stop
 引擎承载 `builtin`（`alicloud-express`）、`rest`（`e2b-rest/1`）、`exec`（第三方插件的 EPP/1 子进程）和 `node`（进程内的 `node/1` 模块：`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container`）提供商。客户端看不出区别。
 
 `agent_sandbox.engine` 里的 Python gRPC 引擎，对目录提供方而言已被这个引擎取代。Python 内置的 `alicloud-express` 仍保留自己的一份。
+
+## Provider 初始化与运行边界
+
+`POST /v1/providers/:provider/initialize` 接受已有连接请求头或
+`{ "connection": { ... } }` 请求体。它加载已安装 Provider，校验宿主兼容性
+和配置，初始化基础设施并关闭后才返回 `{provider, initialized: true, version}`。
+不会调用沙箱 create、connect 或 list。初始化会执行已信任的插件代码；
+它不证明云端连通性或账号权限。配置、导入、清理失败均返回错误，不能算握手成功。
+此接口要求包含该改动的 CLI 构建；已发布的 0.4.10 尚不包含它。客户端遇到
+404 应明确报告不支持初始化验证并提示升级。
+
+已安装插件和直接调用的 Provider 工厂均在运行代码前校验当前 CLI 是否满足 manifest
+要求。Node 插件从内容确定的快照执行；更新可加载新的相对依赖，已有会话仍使用原代码。
+SSE 遇到套接字写入背压时停止拉取上游事件，消费者断开时释放迭代器。

@@ -19,6 +19,8 @@ import { ValueError } from "../models/value_error.js";
 import { ProviderNotFoundError, ProviderConfigError, ProviderMismatchError, ProviderTrustError, ProviderResourceNotFoundError } from "../models/provider_errors.js";
 import { getProviderCommand, listProviderCommands, runProviderCommand } from "../providers/commands.js";
 import * as registry from "../providers/registry.js";
+import { loadLayeredConfig } from "../transport/config_layers.js";
+import { streamSse } from "./sse.js";
 import { hostVersion } from "../providers/host.js";
 import { ENGINE_PROTOCOL, acquireLock, removeRecord, writeRecord, type EngineRecord } from "./discovery.js";
 
@@ -226,6 +228,27 @@ class Engine {
     r("GET", "/v1/providers", async () => ({
       providers: registry.listProviders().map((p) => ({ id: p.id, name: p.name, version: p.version, kind: p.kind, trust: p.trust, features: p.features, error: p.error ?? null })),
     }));
+    // Initialize the installed plugin without creating or connecting a cloud sandbox.
+    r("POST", "/v1/providers/:provider/initialize", async (c) => {
+      const body = await c.json();
+      const connection = this.connectionOf(c, body);
+      const providerId = this.commandProvider(c, connection);
+      const provider = registry.getProvider(providerId);
+      const { provider: _provider, provider_options, ...options } = connection;
+      void _provider;
+      const config = loadLayeredConfig({ ...options, provider: providerId,
+        provider_options: provider_options ?? undefined,
+        ...(connection.api_key !== undefined ? { sandbox_api_key: connection.api_key } : {}),
+        ...(connection.api_url !== undefined ? { sandbox_base_url: connection.api_url } : {}),
+        ...(connection.domain !== undefined ? { sandbox_domain: connection.domain } : {}),
+      });
+      const infra = await provider.buildInfra(config);
+      try {
+        return { provider: providerId, initialized: true, version: hostVersion() };
+      } finally {
+        await infra.close?.();
+      }
+    });
     r("GET", "/v1/providers/:provider/commands", async (c) => {
       const provider = this.commandProvider(c);
       return { commands: listProviderCommands(provider) };
@@ -453,24 +476,7 @@ class Engine {
 
   /** Stream `source` as server-sent events until it ends or the client goes away. */
   private async sse(c: Ctx, source: AsyncIterable<unknown>, map: (item: unknown) => unknown): Promise<void> {
-    c.res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
-    const iterator = source[Symbol.asyncIterator]();
-    let gone = false;
-    c.res.on("close", () => {
-      gone = true;
-      void iterator.return?.(undefined)?.catch?.(() => undefined);
-    });
-    try {
-      for (;;) {
-        const step = await iterator.next();
-        if (step.done || gone) break;
-        c.res.write(`data: ${JSON.stringify(map(step.value))}\n\n`);
-      }
-      if (!gone) c.res.write("event: end\ndata: {}\n\n");
-    } catch (exc) {
-      if (!gone) c.res.write(`event: error\ndata: ${JSON.stringify(errorBody(exc))}\n\n`);
-    }
-    if (!gone) c.res.end();
+    await streamSse(c.res, source, map, errorBody);
   }
 
   private authorized(req: http.IncomingMessage): boolean {

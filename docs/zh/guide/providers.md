@@ -270,3 +270,10 @@ Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.
 见[自动准备并启动项目](template-launch.md)：各后端准备条件、引用传递、就绪与清理。
 
 Provider 扩展命令的两端共同发现，以及极速版暂停/快照用法，见 [Provider 命令指南](provider-commands.md)。
+
+### 合约测试跳过
+
+使用 `defineProviderContractTests` 的测试框架适配器必须提供 `onSkip`，
+在缺少能力时将用例标记为跳过。缺少此适配器时会明确失败，不再将未执行用例统计为通过。
+`runContractSuite` 继续返回结构化的 `passed`、`failed` 和 `skipped` 结果。
+验收报告须将跳过的能力与已通过能力分开。

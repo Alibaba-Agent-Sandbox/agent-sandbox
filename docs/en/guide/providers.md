@@ -273,3 +273,11 @@ quota and service errors propagate instead of becoming successful metadata reads
 See [automatic project preparation and launch](template-launch.md) for per-provider prerequisites, reference handoff, readiness and cleanup.
 
 See [Provider-owned commands](provider-commands.md) for shared CLI/Python discovery and the implemented Express pause/Snapshot extensions.
+
+### Contract test skips
+
+Framework adapters for `defineProviderContractTests` must supply `onSkip` and
+mark the framework case skipped when a capability is absent. Without this adapter,
+a skipped case now fails explicitly instead of being counted as passed.
+`runContractSuite` continues to return structured `passed`, `failed` and `skipped`
+outcomes. Report skipped capabilities separately from successful acceptance.
