@@ -62,6 +62,7 @@ function bind(fields: ProfileFields, providerId: string, missing: boolean): Temp
     workdir: fields.workdir,
     reserved_ports: [...fields.reserved_ports],
     registry: fields.registry,
+    ...(fields.resource_notes ? { resource_notes: fields.resource_notes } : {}),
   };
 }
 

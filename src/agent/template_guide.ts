@@ -57,12 +57,12 @@ const _FILES_CREATE = `### 2. 模板必须包含的文件
 - \`commands.py\`：服务入口，见下文
 - \`template.yaml\`
 - \`README.md\`：模板是什么、需要哪些环境变量、调用示例（CLI 与 curl）
-  CLI 参数必须使用 \`abx sandbox command run <sandbox_id> <名字> --json-args '{"参数":"值"}'\`，
-  不存在 \`--input\`。先用 \`abx sandbox command list <sandbox_id>\` 查看实际命令。
+  CLI JSON 示例使用 \`abx --json sandbox command run <sandbox_id> <名字> --json-args '{"参数":"值"}'\`，
+  该 JSON 模式返回 \`{"result": <返回值>}\`；省略 \`--json\` 时仅输出返回值。不存在 \`--input\`。先用 \`abx sandbox command list <sandbox_id>\` 查看实际命令。
   curl 使用用户从实际应用绑定取得的 \`APPLICATION_URL\`；不要手拼 sandbox 域名或猜测网关 URL。
   说明该绑定要求的网关认证（如 \`X-Access-Token\`）与可选应用 \`Authorization: Bearer\` 独立，
   必须按实际绑定传递相应凭据，不能把未认证的 URL 示例说成通用可用路径。
-  本次 README 只提供上述 CLI/HTTP 调用，不生成未经验证的 Python/Node SDK 示例；
+  本次 README 只提供上述 CLI/HTTP 调用与所需环境变量，不扩写默认权限策略，也不生成未经验证的 Python/Node SDK 示例；
   尤其不要把同步 \`Sandbox(template=...)\` 或进程 \`sandbox.commands.run\` 冒充应用命令 API。
 需求确实需要时，可再添加业务代码（如 \`app.py\`、\`server.js\`、\`requirements.txt\`），
 放在当前目录，并在 Dockerfile 里 COPY 进镜像。
@@ -243,12 +243,11 @@ from agent_sandbox.server import (
   FILE_OPS（文件上传/下载/列表/搜索/打包，默认开）、PROCESS（\`/shell\`、后台进程，默认开）、
   TERMINAL（PTY，默认开）、SYSTEM（系统信息、\`/env\`、\`/ports\`，默认开）、
   DEV_TOOLS（\`/code/run\`、git，**默认关闭**）、BROWSER（Playwright，**默认关闭**）、
-  AGENTS（Agents API，**默认关闭**）。只打开需求用得到的可选组。
+  AGENTS（Agents API，**默认关闭**）。只打开需求用得到的可选组；enable_group 不会关闭其他默认组。
 - 自定义 HTTP 路由：\`@table.route("GET"|"POST"|"DELETE", "/path/{param}", group=CapabilityGroup.COMMANDS)\`，
   处理函数接收 \`request\`，返回 \`ServerResponse.ok({...})\`。需求不是自定义 HTTP 时不要写。
 - 内置接口总是存在：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、\`POST /commands/<名字>\`。
-- 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，应用请求使用 \`Authorization: Bearer <ABX_SERVER_TOKEN>\`（\`/health\` 与
-  \`/capabilities\` 免鉴权）。平台网关的 \`X-Access-Token\` 独立配置，不要混用两个 token；不要在代码里写死 token。
+- 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，应用请求使用 \`Authorization: Bearer <ABX_SERVER_TOKEN>\`（仅 \`/health\` 免应用鉴权，\`/capabilities\` 需要应用 token）。平台网关的 \`X-Access-Token\` 独立配置，不要混用两个 token；不要在代码里写死 token。
 - 需求是一个 Web/API 服务时：在 \`start()\` 之前用 \`subprocess.Popen([...])\` 拉起业务进程并监听自己的端口
   （该端口写进 template.yaml 的 \`ports\` 与 Dockerfile 的 EXPOSE），或者做成 \`@command\`。
   ${SERVER_PORT} 端口必须由 \`start()\` 提供。
@@ -264,6 +263,7 @@ from agent_sandbox.server import (
 - 普通镜像内 Python 或应用服务不代表统一解释器支持；不要写旧字段 \`capabilities\`、\`tested_on\` 或 \`providers\`。
 - \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
 - \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
+${selected.resource_notes ? `- ${selected.resource_notes}` : ""}
 - \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
 - 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用

@@ -21,6 +21,8 @@ export interface TemplateProfile {
   readonly workdir: string;
   readonly reserved_ports: readonly number[];
   readonly registry: string;
+  /** Provider-owned generation advice; does not mutate or validate user resources. */
+  readonly resource_notes?: string;
 }
 
 export interface ProfileFields {
@@ -35,4 +37,5 @@ export interface ProfileFields {
   workdir: string;
   reserved_ports: readonly number[];
   registry: string;
+  resource_notes?: string;
 }

@@ -143,6 +143,21 @@ describe("TestGuideText", () => {
     expect(guide).not.toContain("sandbox.network.get_url(port)");
   });
 
+  it("renders Express resource advice without imposing it on generic providers", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express", "steps");
+    expect(guide).toContain("1 <= resources.memory / 1024 / resources.cpu <= 4");
+    expect(guide).toContain("resources.cpu: 2、resources.memory: 4096");
+    expect(buildTemplateGuide("create", "opensandbox")).not.toContain("resources.memory / 1024");
+  });
+
+  it("matches CLI JSON output and distinguishes token auth from group enablement", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express");
+    expect(guide).toContain("abx --json sandbox command run");
+    expect(guide).toContain('该 JSON 模式返回 `{"result": <返回值>}`');
+    expect(guide).toContain("`/capabilities` 需要应用 token");
+    expect(guide).toContain("enable_group 不会关闭其他默认组");
+  });
+
   it("keeps numerical dependency indexes configurable while pinning the server alpha source", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
     expect(guide).toContain("python3 -m pip install --only-binary=:all: pandas matplotlib");

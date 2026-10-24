@@ -158,3 +158,25 @@ the local SHA256, but its original create command again reached the unchanged
 600-second build deadline while still building (1166.53 seconds total). It
 created one template and no sandbox. A separately bounded read-only observation
 follows; it cannot retroactively turn that create command into a pass.
+
+Candidate 10 stayed building through a separate bounded 296-second observation
+(five exact reads), with no step-log/build ID exposed by this API and no SLS
+log configuration. Exact deletion returned TemplateNotFound. Numerical builds
+remain an unresolved limitation; the runtime pip comparison is not substituted
+for build acceptance.
+
+A distinct small addition prompt (candidate 11) generated normally in roughly
+385 seconds but the backend rejected its 1 CPU / 512 MB ratio immediately:
+Memory GB / CPU must be between 1 and 4. Its exact template was deleted and
+TemplateNotFound verified. No sandbox was created. The existing Express profile
+now supplies optional human-readable resource advice, recommending the verified
+2 CPU / 4096 MB default; generic providers receive no Express constraint. This
+does not silently rewrite manifests or create a new resource planner.
+
+The generated README also confused ordinary CLI output with JSON mode and
+repeated an incorrect capabilities authentication statement. Guidance now uses
+explicit `abx --json`, documents only health as application-token exempt, and
+clarifies that enabling one group does not disable other defaults. README scope
+stays focused on calls and environment variables. Guide/profile regressions:
+31 passed; typecheck and build passed. Remote CI at 625a2c2 passed all seven jobs;
+the new guidance still requires fresh generation and cloud acceptance.
