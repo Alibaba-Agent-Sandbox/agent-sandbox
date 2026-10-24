@@ -8,7 +8,7 @@ import { planWorkflow, validateWorkflowManifest } from "../template/workflow_pla
 import { providerContentDigest } from "../providers/content_identity.js";
 import { digestDir } from "../providers/store.js";
 import { requestApplication, requireApplicationOperation, checkApplicationHealth, validateApplicationEndpoint } from "../transport/application_http.js";
-import { stageProject } from "../providers/shared/project.js";
+import { ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
 import { pyExpandUser } from "../utils/_pyos.js";
 import type { Provider } from "../providers/base.js";
@@ -166,7 +166,10 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
       prepared = await manager.prepareProject(directory, options);
     }
     }
-  } catch { throw new ProviderConfigError(`Template preparation failed; inspect recovery journal ${journal.id} before retrying any submitted operation.`); }
+  } catch (error) {
+    const reason = error instanceof ProjectToolError ? error.message : "Template preparation failed.";
+    throw new ProviderConfigError(`${reason} Inspect recovery journal ${journal.id} before retrying any submitted operation.`);
+  }
   finally { await manager?.close?.(); await snapshot?.close(); }
   const reference = prepared?.reference;
   for (const command of [prepared?.startup_command, prepared?.ready_command]) if (command !== undefined && (typeof command !== "string" || !command.trim())) throw new ProviderConfigError("Provider preparation returned an invalid service command.");

@@ -44,6 +44,25 @@ it("test_bytes_and_str_inputs_agree", () => {
   expect(parseManifest(Buffer.from(BASE)).sha256).toBe(parseManifest(BASE).sha256);
 });
 
+it("accepts optional source recipe descriptions without granting provider operations", () => {
+  const source = BASE.replace('cli = []', 'cli = ["template.prepare"]').replace('inputs = ["managed"]', 'inputs = ["source"]');
+  const parsed = parseManifest(source.replace('startups = ["none"]', 'startups = ["none"]\nsource_placeholders = ["<region>", "<tag>"]'));
+  expect(parsed.operations).toEqual({ cli: ["template.prepare"], python: [] });
+  expect(parsed.workflow_inputs).toEqual(["source"]);
+  expect(parsed.raw["workflow"]).toMatchObject({ source_placeholders: ["<region>", "<tag>"] });
+});
+
+it("rejects source substitution claims when source preparation is not declared", () => {
+  const metadata = BASE.replace('startups = ["none"]', 'startups = ["none"]\nsource_placeholders = ["<region>"]');
+  expect(() => parseManifest(metadata)).toThrow("source placeholders require");
+  expect(() => parseManifest(metadata.replace('inputs = ["managed"]', 'inputs = ["source"]'))).toThrow("source placeholders require");
+  expect(() => parseManifest(metadata.replace('cli = []', 'cli = ["template.prepare"]'))).toThrow("source placeholders require");
+});
+
+it.each(['["<unknown>"]', '["<tag>", "<tag>"]', '["region"]', '"<tag>"', '[1]'])("rejects invalid source placeholder descriptions: %s", value => {
+  expect(() => parseManifest(BASE.replace('startups = ["none"]', `startups = ["none"]\nsource_placeholders = ${value}`))).toThrow(ProviderManifestError);
+});
+
 const REJECTIONS: Array<[string, string]> = [
   [mutate('supported = ["sandbox.lifecycle", "exec.run"]', 'supported = ["templates.deploy"]'), "unknown feature"],
   ["not toml [", "Invalid abx-provider.toml"],
@@ -176,11 +195,15 @@ it.each([
   ["1.2.9", "~=1.2", true], ["1.3.0", "~=1.2", true], ["2.0.0", "~=1.2", false], ["1.2.9", "~=1.2.3", true],
   ["1.3.0", "~=1.2.3", false], ["1.0rc1", ">=1.0", false], ["1.0", ">1.0rc1", true], ["1.0.0", "==1.0", true],
   ["1.0", "!=1.0", false], ["5", "", true],
+  ["0.3.1a2", ">=0.3.1a3", false], ["0.3.1a10", ">0.3.1a3", true],
+  ["0.3.1b1", ">0.3.1a99", true], ["0.3.1rc1", ">0.3.1b99", true],
+  ["0.3.1", ">0.3.1rc99", true], ["0.3.1-alpha.3", "==0.3.1a3", true],
+  ["0.3.1.dev1", "<0.3.1a1", true], ["0.3.1-beta.2", "==0.3.1b2", true],
 ] as Array<[string, string, boolean]>)("test_version_satisfies[%s %s]", (ver, spec, ok) => {
   expect(versionSatisfies(ver, spec)).toBe(ok);
 });
 
-it.each(["~~1", ">=", "foo", ">=x"])("test_bad_specs_raise_value_error[%s]", (spec) => {
+it.each(["~~1", ">=", "foo", ">=x", ">=1.0-unrecognized", ">=0.3.1a3extra"])("test_bad_specs_raise_value_error[%s]", (spec) => {
   expect(() => versionSatisfies("1.0", spec)).toThrow(Error);
 });
 

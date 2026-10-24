@@ -1,21 +1,27 @@
-# 按显式工作流启动模板
+# 启动模板
 
-`template launch` 解析源目录、校验 spec v4 清单，并根据 Provider 的具体操作、输入类型、启动模式和调用客户端协议支持检查所选工作流。应用 HTTP 工作流不要求 `code.execute` 或平台统一解释器。完整契约与安全规则见[模板工作流](template-workflows.md)。
+默认 OpenSandbox 配方与可选的 Provider 源码占位符说明需要 CLI 0.4.15 或更新版本。
+
+配置好 [Provider](providers.md) 后，直接启动 Registry 中的源码模板：
 
 ```sh
-abx --provider opensandbox template launch ./python-hello --workflow application --build-profile portable
+abx --provider opensandbox template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes
 ```
 
-示例显式选择 `build_profiles.portable`，保留原 Dockerfile。交互执行会确认构建与创建授权；已授权的非交互执行可加 `--yes`。源码构建需要所选 Provider 的凭据和原生构建条件，例如 OpenSandbox 所需 Docker、可写镜像仓库和仓库登录。OpenSandbox 服务必须可达，并能拉取构建后的镜像。Provider 成熟度与工作流支持、验证状态分别判断。
+CLI 会构建镜像、创建沙箱、启动应用，并检查其 API 是否可访问。后续命令使用返回的沙箱 ID。OpenSandbox 需要可访问的服务端、Docker、可写镜像仓库及 Docker 仓库登录；服务端也必须能拉取该镜像。极速版使用 `--provider alicloud-express`，并配置平台和 ACR 凭据。
 
-`--alias NAME` 设置构建关联名，`--timeout SECONDS` 设置准备期限（默认 600，最大 3600），`--sandbox-timeout SECONDS` 设置沙箱存活期（默认 300）。`--workflow ID` 选择已声明的路径；`--build-profile ID` 选择已声明的根目录 Dockerfile 和上下文。不再自动改写基础镜像、USER、COPY 或入口。Dockerfile 留有未解析平台占位符时，在准备资源前拒绝。
+官方源码模板沿用已有的原生基础镜像配方。OpenSandbox 默认解析为 `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`；可以用 `ABX_BASE_IMAGE_REGION` 和 `ABX_BASE_IMAGE_TAG` 覆盖。这是镜像来源配置，与 OpenSandbox 服务部署地域无关。Docker 从所选 Dockerfile 已固定的 SDK 提交构建 wheel，并交给原有安装步骤。不需要另行克隆 Python SDK，也不需要宿主 Python 构建工具。CLI 只准备临时副本，保留应用指令和最终 `USER`。
 
-镜像工作流要求不可变镜像引用；托管工作流要求后端引用及一致的 Provider 归属。这两类输入不会当成源码构建。外部应用服务工作流通过 `--service-url` 指定 URL，应用令牌与平台凭据分别提供。
+常用选项：
 
-准备和创建前会核对源码快照与 Provider 代码。`startup: exec` 执行清单明确的启动命令；`startup: entrypoint` 使用所选 Provider 的原生启动方式。声明 `ready_cmd` 时要求 `exec.run`，并在报告成功前执行。应用协议检查使用具体沙箱与端口的端点，保留网关路径和查询参数，独立于 envd 传输，也不会匿名重试。
+- `--timeout SECONDS`：构建和准备时限，默认 600，最大 3600 秒。
+- `--sandbox-timeout SECONDS`：沙箱存活时间，默认 300 秒。
+- `--alias NAME`：用于关联构建资源的名称。
+- `--workflow ID`：选择模板声明的其他工作流。
+- `--build-profile ID`：显式选择其他 Dockerfile，例如 `portable`；CLI 不会静默切换。
 
-成功的 JSON 结果包含工作流、后端引用、沙箱、源码摘要、执行计划和资源日志。新建沙箱保留至主动删除或超时。启动失败时仅清理本次拥有的沙箱，并报告是否确认删除。镜像与已注册模板可能保留或需手工清理。超时可能留下结果不确定的资源，应根据资源日志中的关联标识核对后再重试。
+省略 `--yes` 时会交互确认计费的构建与创建。也可以用本地源码目录代替 Registry 引用。自定义基础镜像必须完整，未知占位符会在构建前报错。自定义多阶段构建需要自行提供 Dockerfile 所复制的 wheel。
 
-新工作流实现通过仓库检查和真实 Provider 门禁后才可发布。源码可通过 `npm ci && npm run build` 构建，再用 `node dist/bin/abx.js` 执行；已发布的旧 CLI 不会仅因目录更新自动获得新契约。标准模板命令保留其固定版本的标准客户端契约。
+启动成功后，沙箱保留到主动删除或超时。启动失败时，CLI 尝试删除本次创建的沙箱。保留的镜像、平台模板会记录在命令输出的资源日志中。远端请求超时后先核对日志再重试，因为资源可能已经创建。
 
-第三方 Provider 集成仍标记为 Beta。工作流证据不等于完整原生协议面已经验收，正式原生验收属于独立门禁。
+模板 HTTP API、shell 执行、PTY 终端和持久解释器是独立功能，模板 HTTP API 不要求平台解释器。清单与协议细节见[模板工作流](template-workflows.md)。

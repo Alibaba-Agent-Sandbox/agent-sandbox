@@ -15,7 +15,7 @@ import { Context, command } from "../../src/cli/kit.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIso } from "../_support/iso.js";
-import { stageProject, runTool } from "../../src/providers/shared/project.js";
+import { ProjectToolError, stageProject, runTool } from "../../src/providers/shared/project.js";
 
 const iso = useIso();
 beforeEach(resetCliSelection);
@@ -46,6 +46,35 @@ function setup(required_operations: string[] = []) {
 }
 
 describe("provider-owned project launch", () => {
+  it("hands the materialized official recipe to source preparation through the public launch path", async () => {
+    const f = setup();
+    const original = 'FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>\nCOPY *.whl /tmp/\nRUN pip install "https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e2cb27e24fde0a67112f82b8d44af463445a5d1a.tar.gz#subdirectory=server-sdk"\nUSER user\n';
+    fs.writeFileSync(path.join(f.directory, "Dockerfile"), original);
+    let effective = "";
+    f.provider.prepare.mockImplementation(async directory => {
+      effective = fs.readFileSync(path.join(directory, "Dockerfile"), "utf8");
+      return f.provider.prepared;
+    });
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code, result.output).toBe(0);
+      expect(effective).toContain("COPY --from=abx-server-wheel /abx-wheels/*.whl /tmp/");
+      expect(effective).not.toContain("<region>");
+      expect(effective).toContain("USER user\n");
+      expect(fs.readFileSync(path.join(f.directory, "Dockerfile"), "utf8")).toBe(original);
+    } finally { f.create.mockRestore(); }
+  });
+  it("keeps the safe failed Docker phase and recovery journal visible without exposing raw output", async () => {
+    const f = setup();
+    f.provider.prepare.mockRejectedValue(new ProjectToolError("docker", "push", { killed: true }));
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0);
+      expect(result.output).toContain("Docker push exceeded its time limit");
+      expect(result.output).toContain("recovery journal");
+      expect(f.create).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
+  });
   it("hands the exact returned reference to the same provider, never requiring a user ID", async () => {
     const f = setup();
     try {

@@ -1,0 +1,334 @@
+{
+  "check": "source preparation only; no build, cloud or application verification",
+  "results": [
+    {
+      "name": "_skeleton",
+      "result": "PASS",
+      "source_digest": "a50c864bd9d1f926ea4d946ccf9fa9e8fe577868b1847c03a1881277c85e340c",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "agents-cli",
+      "result": "PASS",
+      "source_digest": "7b42ece8a47851c231b9df763667f1e879cec6d8a6752799f850912ab54a38df",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "aider",
+      "result": "PASS",
+      "source_digest": "194127751cfefeaf2b187801fbb129eef3561f3cc2ae83a2f4b0ba570de75d97",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "amp",
+      "result": "PASS",
+      "source_digest": "80baf8321cc2e805166779a6b02647fedd402bde88a952c13d81c401c309ae81",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "apply-patch",
+      "result": "PASS",
+      "source_digest": "096aa5e394f3e5151bda8388e97677d84c84cc188876c12c9b47331240c5aaf8",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "appworld",
+      "result": "PASS",
+      "source_digest": "81d7b9aa63e495c6b43c1aa86472eecc1d48ecc2b5d9de0482329aabbfd3a001",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "browser-automation",
+      "result": "PASS",
+      "source_digest": "0cccd62941f0d6c986a585a1efea0cf3a0051f0ba2e6c5a6b26af5bc4f393164",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "browser-use",
+      "result": "PASS",
+      "source_digest": "df3736b40892ce74251c9882c3a1c53a94ea7bec3a4d278b332c92509e43c1c6",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "chrome",
+      "result": "PASS",
+      "source_digest": "4ea7d0d1481a3234ca9f09ca341019ec93b9d5a6525780566bb5cfa45093c417",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "claude-code",
+      "result": "PASS",
+      "source_digest": "10e8a3970f719db1a7ee2f8b4cc76d351be74cc09d22bebfdccb89b34e017e8a",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "cline",
+      "result": "PASS",
+      "source_digest": "9639adf6f9a62bbd5597f964794794c2cdee3328d4cf3c6b1a513a84069822be",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "code-server",
+      "result": "PASS",
+      "source_digest": "687edf72a98bd90f427e2e7e3ee4e16ff0b3b4414c0c8d947c8a3c47b038b80d",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "codex",
+      "result": "PASS",
+      "source_digest": "f5f03d196269f7fa943ebdf338683062c25e8ac9716c421fa2501f5962f8eb74",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "codex-agent-api",
+      "result": "PASS",
+      "source_digest": "52a6c22fa13ee217aedfe929b8f244d1db4229ef5f45e8a2baadc1868ea5d1f1",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "copilot-cli",
+      "result": "PASS",
+      "source_digest": "6262c07980ff5d542410a93f6f4a6c2358166fa123ebaa4f57091997d4f3bf50",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "crush",
+      "result": "PASS",
+      "source_digest": "e8c18f93b10e14829bb87e0d0efc3b87b3b2b390562b64de852e49c2946622fd",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "cursor-agent",
+      "result": "PASS",
+      "source_digest": "959de2e5c0a40859c58d8436b8008f6df89f03b3d7813ab883349ccbfa8a324f",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "deepagents",
+      "result": "PASS",
+      "source_digest": "151927e511cd253af1a32d47691239322d5cd0889e63c0f3c76fdd74c82270a5",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "deepseek-harness",
+      "result": "PASS",
+      "source_digest": "e8ba110817c2dd0535d6c74a890831df7ac205f8e70c49b02e1d405f1171cfab",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "dev-services",
+      "result": "PASS",
+      "source_digest": "9672db677748d18f340beea20187e68b5e5cdb753078f5ccaf2594d0f2f0d16f",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "devin",
+      "result": "PASS",
+      "source_digest": "b11bc690b4c149a9935a90535f5a03aeeec5dd7c2691182069a3a7c6d1dfead5",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "document-tools",
+      "result": "PASS",
+      "source_digest": "570f5330e5d99d74b14c76f685aad0a7ec2a4a5675aa6508db35cf27206045e9",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "droid",
+      "result": "PASS",
+      "source_digest": "99ed73b5a00963ece5c85e52ef5e0bb28122aa9f9d3496c5063fa5061f90c0b7",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "gemini",
+      "result": "PASS",
+      "source_digest": "7a660b40fe3dc0d2422c2d181dc908eb46305ed96f7f4edc5efaa612c8f501b9",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "goose",
+      "result": "PASS",
+      "source_digest": "f2b7a1f29e391ea7210835ccc8580b4e5acd6e355c294c19bb47c1d59557e9cc",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "grok",
+      "result": "PASS",
+      "source_digest": "28b5e643bc37a52a8e62835bd2f9a403d4a7cf250b42a1487a793726b0675c08",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "hermes-agent",
+      "result": "PASS",
+      "source_digest": "b78e30a2562cc2749397b73cffdcefc88e8b7bc8efddf3bf1668307233f1fe2d",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "kimi-code",
+      "result": "PASS",
+      "source_digest": "94a2135fc88ed0c564bc345b40c9e47e62d08469ba6c7efd599733e0a87bfa98",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "media-tools",
+      "result": "PASS",
+      "source_digest": "63562247c64311701be51756f09497035509c5c6b8a895844d88c2e13c7a15ce",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "muse",
+      "result": "PASS",
+      "source_digest": "51ea7b4d43705d9c488871de650edc727047be7fe9002c071da21b709d17e40f",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "next-app",
+      "result": "PASS",
+      "source_digest": "2b5f23cd7d8eee126ca1a445176c4002aa805ae5f16a2086c4ae02904254688c",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "node-web",
+      "result": "PASS",
+      "source_digest": "dbe6b4f2d552e97c5b5d8c07722d764d689b3d0b2788b37f0221417a4a370363",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "ocr",
+      "result": "PASS",
+      "source_digest": "695863c5d80697eb34ce7ad415de90d24421fa4df688a4bc9d891052beaf8e40",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "openclaw",
+      "result": "PASS",
+      "source_digest": "b26966a9c74140f60cd6871d026029dcddc53d8c89a50b12b84ae77f54ca6a9f",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "opencode",
+      "result": "PASS",
+      "source_digest": "627ba4c94f2403919b4b470309c07c529b06702588818ae6b30777fc2a963039",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "osworld",
+      "result": "PASS",
+      "source_digest": "d895b961e31cbfb31da779266321c0bc48431326349d5d9ca6faba93600d7f8e",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "pi",
+      "result": "PASS",
+      "source_digest": "fa6a44b7736e37faac20d8e9412af2c70cb471e4fd08ff4281675f825feea9de",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "polyglot-toolchain",
+      "result": "PASS",
+      "source_digest": "7b23e02b73c2743bd454bcfbea0be390ce89d02e4a3f54ff6ce72eecdd195c43",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "prime-agent",
+      "result": "PASS",
+      "source_digest": "b8067ceeafbba6bfb553a5e182b2ece5624f0827fe4c5072c1550cb532329d1e",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "python-hello",
+      "result": "PASS",
+      "source_digest": "9f57176c85627031253a6225255c1f8fe929a91fde96584e065c632ca70ceaa0",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "qm",
+      "result": "PASS",
+      "source_digest": "7a8cb8c4a4ee90df3c90e0962fd0432d6234292235e749b6fe49da422a66b2ba",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "qm-sandbox",
+      "result": "PASS",
+      "source_digest": "0fe9283b29996e1a663be12a89e2b4098c3e6eb44346f2146a39943934961d96",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "qoder",
+      "result": "PASS",
+      "source_digest": "e5476e434ab4588a79f2748fd4e5a1f33401a30a2fe1b838afac8aca87dabf95",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "qwen-code",
+      "result": "PASS",
+      "source_digest": "147aaf9d7a11a3e324520a33935b4aacc513cad315f74046dd8157c01d066a60",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "stagehand",
+      "result": "PASS",
+      "source_digest": "1bf3d551a3b553c10aa33c741b5dec4a844957c5769224a0846d44164f7ed17c",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "swe",
+      "result": "PASS",
+      "source_digest": "02aa7adefcb5a45f525e722392b687db1dd927607ca8532d9bcfe56619f4e235",
+      "wheel_stage": true,
+      "non_root": true
+    },
+    {
+      "name": "tau2-bench",
+      "result": "PASS",
+      "source_digest": "dca5e8b0173e9daed13f04ed11b23c3e0980a287feb30c68e806b603b4ebfd74",
+      "wheel_stage": true,
+      "non_root": true
+    }
+  ]
+}

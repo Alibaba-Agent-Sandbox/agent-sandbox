@@ -93,14 +93,17 @@ export function manifestSummary(m: Manifest): ManifestSummary {
 
 // ---------------------------------------------------------------- versions
 
-type ParsedVersion = readonly [readonly number[], number];
+type ParsedVersion = readonly [readonly number[], number, number];
 
 function parseVersion(text: string): ParsedVersion {
-  const m = /^\s*v?(\d+(?:\.\d+)*)([\s\S]*)$/.exec(text);
+  const m = /^\s*v?(\d+(?:\.\d+)*)(?:[-_.]?(dev|alpha|a|beta|b|preview|pre|rc|c)[-_.]?(\d+)?)?\s*$/i.exec(text);
   if (!m) throw new Error(`invalid version '${text}'`);
   const nums = (m[1] as string).split(".").map((p) => Number.parseInt(p, 10));
-  const rest = (m[2] as string).trim();
-  return [nums, rest ? 0 : 1];
+  const label = m[2]?.toLowerCase();
+  const phase = !label ? 4 : label === "dev" ? 0 : ["a", "alpha"].includes(label) ? 1 : ["b", "beta"].includes(label) ? 2 : 3;
+  const ordinal = Number.parseInt(m[3] ?? "0", 10);
+  if (![...nums, ordinal].every(Number.isSafeInteger)) throw new Error(`invalid version '${text}'`);
+  return [nums, phase, ordinal];
 }
 
 function cmp(a: ParsedVersion, b: ParsedVersion): number {
@@ -110,7 +113,7 @@ function cmp(a: ParsedVersion, b: ParsedVersion): number {
     const y = b[0][i] ?? 0;
     if (x !== y) return x < y ? -1 : 1;
   }
-  return Math.sign(a[1] - b[1]);
+  return Math.sign(a[1] - b[1]) || Math.sign(a[2] - b[2]);
 }
 
 /** Whether `version` satisfies a comma-separated AND list of comparators (`>= <= > < == != ~=`). */
@@ -135,9 +138,9 @@ export function versionSatisfies(version: string, spec: string): boolean {
       let upper: ParsedVersion;
       if (nums.length > 1) {
         const head = nums.slice(0, -1);
-        upper = [[...head.slice(0, -1), (head[head.length - 1] as number) + 1], 1];
+        upper = [[...head.slice(0, -1), (head[head.length - 1] as number) + 1], 4, 0];
       } else {
-        upper = [[(nums[0] as number) + 1], 1];
+        upper = [[(nums[0] as number) + 1], 4, 0];
       }
       if (c < 0 || cmp(have, upper) >= 0) return false;
     }
@@ -223,8 +226,11 @@ export function parseManifest(data: Uint8Array | string): Manifest {
   catch (error) { throw err(String(error)); }
   if (doc["manifest_version"] !== 1) throw err("manifest_version must be 1");
   const workflow = table(doc, "workflow", true);
-  if (Object.keys(workflow).some(key => key !== "inputs" && key !== "startups")) throw err("unknown workflow field");
+  if (Object.keys(workflow).some(key => !["inputs", "startups", "source_placeholders"].includes(key))) throw err("unknown workflow field");
+  const sourcePlaceholders = strList(workflow, "source_placeholders", "workflow");
+  if (new Set(sourcePlaceholders).size !== sourcePlaceholders.length || sourcePlaceholders.some(value => !["<region>", "<tag>"].includes(value))) throw err("unknown or duplicate source placeholder");
   const workflow_inputs = strList(workflow, "inputs", "workflow"), startup_modes = strList(workflow, "startups", "workflow");
+  if (sourcePlaceholders.length && (!operations.cli.includes("template.prepare") || !workflow_inputs.includes("source"))) throw err("source placeholders require CLI template.prepare and source input");
   if (new Set(workflow_inputs).size !== workflow_inputs.length || new Set(startup_modes).size !== startup_modes.length) throw err("duplicate workflow declaration");
   if (workflow_inputs.some(v => !["source", "image", "managed", "service"].includes(v)) || startup_modes.some(v => !["exec", "entrypoint", "none"].includes(v))) throw err("unknown workflow input/startup mode");
   const prov = table(doc, "provider", true);

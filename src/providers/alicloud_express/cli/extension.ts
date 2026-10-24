@@ -4,7 +4,7 @@ import { confirm } from "../../../cli/prompts.js";
 import type { ProviderCliExtension } from "../../../cli/provider_extensions.js";
 import { CONFIGURATION_UI } from "./configuration.js";
 /** Upper-layer CLI integration owned by Express. Static metadata never performs cloud I/O. */
-import { materializeBaseImage } from "../base_image.js";
+import { materializeBaseImage } from "../../../utils/base_image.js";
 import { loadLayeredConfig } from "../../../transport/config_layers.js";
 import { CONFIG_METADATA } from "../metadata.js";
 import { templateUi, createParams, DEPLOY_HELP } from "./metadata.js";

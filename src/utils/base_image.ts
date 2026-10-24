@@ -1,4 +1,4 @@
-import { DockerBuildError } from "../../models/errors.js";
+import { DockerBuildError } from "../models/errors.js";
 
 /** Expand the existing Express image placeholders without asking a model to choose a tag. */
 export function materializeBaseImage(value: string, configuredRegion?: string | null): string {

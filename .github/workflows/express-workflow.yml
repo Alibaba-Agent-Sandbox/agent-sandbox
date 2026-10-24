@@ -6,6 +6,8 @@ on:
       - src/cli/template_launch.ts
       - src/providers/alicloud_express/**
       - src/providers/shared/project.ts
+      - src/providers/shared/source_recipe.ts
+      - src/utils/base_image.ts
       - e2e/express-workflow.mjs
       - .github/workflows/express-workflow.yml
 permissions:

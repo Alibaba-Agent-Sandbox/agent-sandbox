@@ -158,3 +158,5 @@ Provider installation progress: [decision](notes/implemented/feature/2026-10-23-
 Current generation fix: [Express workspace ownership](notes/proposed/feature/2026-10-24-generated-workdir-ownership.md).
 
 - [Express source workflows](notes/proposed/feature/2026-10-24-express-source-workflows.md) · [verification](evidence/verify/2026-10-24-express-source-workflows.md).
+
+- [Public source recipe preparation](notes/proposed/feature/2026-10-24-source-template-preparation.md) · [verification](evidence/verify/2026-10-24-source-template-preparation.md).
