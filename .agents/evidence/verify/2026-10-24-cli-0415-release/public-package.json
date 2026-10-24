@@ -1,0 +1,17 @@
+{
+  "registry_url": "https://registry.npmjs.org/@agent-sandbox/cli/0.4.15",
+  "name": "@agent-sandbox/cli",
+  "version": "0.4.15",
+  "dist": {
+    "tarball": "https://registry.npmjs.org/@agent-sandbox/cli/-/cli-0.4.15.tgz",
+    "integrity": "sha512-t3g0KOkCxXxeVDey8VPKD/TU0KbV9OAD4T4Y/rnuG/1s+E8/Z2VqvKS2TbeM+Ht3ePLKN2le4rnlezh2ZDFMLQ==",
+    "shasum": "99e38165e1ff3a9db0f05a1e62a101e29ca624fb"
+  },
+  "fresh_install": {
+    "version": "abx, version 0.4.15",
+    "template_launch_help": true,
+    "build_profile_option": true,
+    "install": "npm install --prefix <fresh-directory> --registry https://registry.npmjs.org --prefer-online --cache <fresh-cache> @agent-sandbox/cli@0.4.15",
+    "initial_attempt": "ETARGET during public index cache propagation; retry with fresh cache succeeded"
+  }
+}

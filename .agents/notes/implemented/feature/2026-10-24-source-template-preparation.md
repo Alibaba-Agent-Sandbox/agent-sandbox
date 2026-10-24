@@ -1,6 +1,6 @@
 # Decision: Prepare the existing official source recipe
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -39,3 +39,7 @@ Test official recipe expansion, unchanged application instructions, pin agreemen
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-10-24-source-template-preparation.md)
+
+## Implementation
+
+Landed in [PR 137](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/137), merge `25e22d8f5c38bb0b7636ba699511da4f4695ec48`. Public package verification is recorded separately in the [0.4.15 release receipt](../../../evidence/verify/2026-10-24-cli-0415-release.md).
