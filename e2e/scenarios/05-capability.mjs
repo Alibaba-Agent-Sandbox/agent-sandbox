@@ -3,6 +3,7 @@
 // Spawns the abx process only. No command-handler imports, no DashScope, no cloud sandbox.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parse as parseYaml } from 'yaml';
 
 const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 const NO_PROFILE = 'e2e-no-profile';
@@ -75,12 +76,15 @@ export default {
         ctx.check('dockerfile', dockerfile, [
           'FROM python:3.12-slim',
           'WORKDIR /app',
-          'CMD ["python3", "commands.py"]',
+          'COPY commands.py .',
+          { not: /(?:^|\n)\s*CMD\s/ },
           { not: 'fc-e2b-registry' },
           { not: 'dashscope' },
         ]);
         ctx.check('output', r.out, [{ not: 'dashscope' }, { not: /https?:\/\// }]);
         const yaml = readFileSync(join(cwd, 'noprof', 'template.yaml'), 'utf8');
+        const manifest = parseYaml(yaml);
+        if (manifest.spec_version !== 4 || manifest.workflows?.application?.startup !== 'exec' || manifest.start_cmd !== 'agent-sandbox-server serve --port 9000 --commands /app/commands.py') ctx.fail('generic scaffold must explicitly start its application through the exec workflow');
         if (!yaml.includes('python:3.12-slim')) ctx.fail(`template.yaml base is not the generic image:\n${yaml}`);
       },
     },

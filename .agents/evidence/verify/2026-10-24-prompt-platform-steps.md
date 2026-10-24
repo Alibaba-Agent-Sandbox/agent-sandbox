@@ -35,7 +35,33 @@ abx create --prompt '一个支持 pandas 和 matplotlib 的 Python 数据分析�
 - Candidate 3: fixed image reached remote build; apt installation failed under the
   default unprivileged build user. Guidance now uses existing ordered USER/RUN/
   WORKDIR steps and restores the runtime user with writable workspace ownership.
-- Final cloud/API/CLI and repository gates: in progress.
+- Candidate 4: total 695.76 seconds, including about 600 seconds of build waiting;
+  last state building, then E7011. Exact template deletion and NotFound were verified.
+  The model pinned pandas 2.1.4 and matplotlib 3.8.2. An independent run on the same
+  v0.0.49 base reports Python 3.13.13; official PyPI metadata has no cp313 wheels for
+  these pins. This is a confirmed compatibility risk, not proof of the unseen
+  remote build's precise bottleneck. Guidance now selects compatible binary wheels.
+- Candidates 5–7: no cloud resources. Respectively missing manifest, incomplete
+  auxiliary Dockerfile, and malformed steps arguments were rejected. Native Qwen
+  logs show successful API responses; candidate 6 also had a tool response rejected
+  for token truncation. The Dockerfile omission preceded that truncation. Guidance
+  now scopes COPY restrictions to steps and builds encoded manifests in one local
+  script, with explicit file/AST/JSON checks. No acceptance guard was relaxed.
+- Original black-box suite: 168 passed, 8 failed, 8 skipped. Seven failures exposed
+  stale fixtures; one used an old deployed application with HTTP 502. The rerun uses
+  a fresh owned Ready python-hello template and preserves exact cleanup verification.
+- Exact cleanup regression: 58 passed; latest combined generation regression: 158 passed.
+- Typecheck/build pass, lint has zero errors, repository health PASS=105/FAIL=0,
+  packaged Skill validator and npm entry/reference closure pass.
+- Black-box rerun with current owned fixture: 175 passed, 1 failed, 8 skipped.
+  The remaining generic scaffold check expected a Docker CMD, whereas strict v4
+  explicitly starts that scaffold through workflow exec/start_cmd. After checking
+  the schema, source history and existing unit contract, the fixture verifies that
+  explicit startup and COPY instead. Its capability rerun passes all seven checks.
+- PR 129 initial remote Node 22, Typecheck, Installer, Markdown and real-Docker
+  checks passed; Node 20 and final model/cloud/API/CLI acceptance remain in progress.
+- The next generation run explicitly uses qwen3.8-max rather than coder-flash;
+  this is an independent model experiment, not a claim that flash became reliable.
 
 ## Cleanup
 
