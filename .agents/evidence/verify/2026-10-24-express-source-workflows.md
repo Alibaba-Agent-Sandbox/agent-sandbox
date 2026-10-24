@@ -1,60 +1,68 @@
 # Express source workflow verification
 
-Result: PARTIAL — implementation under verification; no cloud success claimed yet.
+Result: PASS for the scoped implementation and representative real-cloud workflows.
+Publication and Registry deployment follow the producer merge; static compatibility does not
+certify every template workload.
 
-Baseline: CLI v0.4.13, commit ddf84a164315e87c9a73b0b2e1636e465f76c09b.
+Baseline: CLI v0.4.13, ddf84a164315e87c9a73b0b2e1636e465f76c09b.
+Verified product revision: a13b973 (version 0.4.14); final follow-up changes only record evidence.
 Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/134
-
-- PASS: typecheck; focused launch/preparation regressions, 38 tests.
-- PASS: public catalog investigation: 46 source templates rejected; only python-hello has a portable profile.
-- Pending: complete CI and real Docker/Express source acceptance.
-- Local environment has no Docker executable/daemon. Real Docker acceptance uses the opt-in Actions job.
-- Existing issue #131 numerical steps timeout remains outside scope.
-
-## Subsequent verification
-
-- PASS: 60 focused regressions after adding journal-aware Docker/profile and configuration coverage.
-- PASS: 118 CLI evidence snapshots after recording version 0.4.14 in a new directory; older captures preserved.
-- PASS: ESLint (zero errors; existing warnings retained).
-- PASS: remote Node 20/22 CI at edfa221, run 40090690400, including packaging and parity.
-- PARTIAL local full suite: 4,309 passes, 21 failures, 2 skips. One old preparation fixture lacked
-  the newly required journal and was corrected/retested. The remaining loopback/engine/wire failures
-  show environment proxy/audit interference (HTTP 501 or rewritten TCP/TLS/WebSocket behavior);
-  assertions were not relaxed. The corresponding remote CI matrix passed.
-- PASS: actual native steps source launch from an explicit adaptation of current python-hello;
-  command discovery, hello invocation and exec produced the expected results. Independent
-  sandbox/template inventory checks confirmed both absent after cleanup. Initial CLI kill lacked
-  consent and returned 1; template deletion succeeded, followed by independent absence checks.
-  This does not replace unchanged Registry Docker source acceptance.
-- FAIL: first Docker acceptance run 40090408602; startup did not complete. Sandbox/template cleanup
-  confirmed. A subsequent run is in progress; no Docker success is claimed here.
-
 PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/135
 Consumer: https://github.com/Alibaba-Agent-Sandbox/registry/pull/45
 
-- PASS: subsequent native-steps launch and broader CLI E2E: 176 passed, 8 skipped;
-  two tracked sandboxes, zero unconfirmed or unresolved creations; final leak check passed.
-  Both native kill and template delete returned zero for the launcher-owned resources.
-  Docker-specific opt-in cases were skipped here and remain separately required.
-- PASS: remote Node 20/22 CI at 45060db, run 40091593693.
-- FAIL: Docker acceptance run 40091593664: image build/push and template creation receipts
-  exist, but preparation failed before sandbox creation. Template cleanup confirmed.
-  Added sanitized platform status capture before deleting failed templates; root cause pending.
-- FAIL with confirmed cause: run 40092070928 reached platform template creation, then
-  the platform reported `pull image: image digest mismatch` for digest-based image input.
-  Sandbox/template cleanup confirmed. Keep the observed digest in the journal, but submit
-  the unique build tag through the existing native API contract. Added regression assertions
-  for tagged API input and separate digest evidence. Focused 60 tests and typecheck pass;
-  real cloud rerun remains required.
-- Run 40092372924: tagged Docker template reached Ready; an independent application healthcheck
-  on its owned sandbox returned zero. Full report pending. Review found the asynchronous test
-  wrapper left child stdin open, which can block `exec` waiting for EOF; close that pipe before
-  rerunning. Also align the acceptance sandbox lifetime with the optional full suite deadline
-  (30 minutes rather than 10); the current owned sandbox lifetime was extended explicitly.
-- Correction after isolated stdin probe: native `exec` completes with either open or closed
-  stdin; it was not the blocked operation. Run 40092372924 was cancelled for diagnosis.
-  Its retained job log confirms Registry launch, image/template receipts, info/list, exec,
-  command discovery, hello and POST all passed. The file-delete test omitted `--yes` and
-  waited at its confirmation prompt. Add explicit consent and keep stdin closed so future
-  unexpected prompts fail rather than hang. Independent cleanup confirmed zero owned
-  sandboxes and templates after cancellation. No full-suite pass is claimed for that run.
+## Passing checks
+
+- `npx vitest run tests/test_providers/test_express_source_workflow.test.ts tests/test_providers/test_template_launch.test.ts tests/test_cli/test_template_guided_configuration.test.ts`: 60 passes.
+- CLI evidence snapshots: 118 passes; version 0.4.14 has a new capture directory, historical captures preserved.
+- `npm run typecheck`: pass. ESLint: zero errors, existing warnings retained.
+- `bash scripts/check-repo-health.sh`: 105 passes, 11 historical warnings, zero failures.
+- `npm run check:hygiene` and `git diff --check`: pass.
+- Full remote Node 20/22 CI, typecheck, installer and package validation:
+  https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40093847735
+- Unchanged Registry `Alibaba-Agent-Sandbox/awesome-templates//python-hello` default Docker launch:
+  https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40093847721
+  Source build/register/create, exact template handoff, digest receipts, info/list, exec,
+  command discovery, hello, POST `/commands/hello`, upload/download/stat/remove all passed.
+  The full CLI E2E suite against the resulting template passed: **176 pass, 8 skip**.
+  [Sanitized summary](2026-10-24-express-source-workflows/cloud-summary.json).
+- An explicit native-steps adaptation of current python-hello also passed unified launch,
+  discovery, hello and exec; its broader CLI E2E run independently passed **176 pass, 8 skip**.
+  This steps adaptation is separate from the unchanged Docker source acceptance.
+
+## Cleanup and reproducibility
+
+The acceptance job verified sandbox deletion and template inventory absence. Six unique
+image tags from the image-producing task runs were reconciled by exact names, digests and
+creation times, then deleted separately after sandbox/template cleanup. All six returned
+`IMAGE_NOT_EXIST`; shared repositories and unrelated tags were preserved.
+The eight task-owned encrypted `EXPRESS_ACCEPTANCE_*` Actions secrets were temporary;
+cleanup is recorded before merge. Existing package-publishing secrets were not changed.
+
+Run `npm ci && npm run build`, then `node e2e/express-workflow.mjs` with the configuration
+in `e2e/README.md` / `e2e/README.zh-CN.md`; set `ABX_WORKFLOW_FULL_E2E=1` for the full suite.
+This uses real Docker, ACR and Express resources. The harness documents manual image cleanup;
+this task completed that cleanup separately. Without the opt-in Actions secret the cloud
+step is skipped, which is not another cloud acceptance run.
+
+## Earlier failures and resolved test issues
+
+- Digest-based platform image input failed with `pull image: image digest mismatch` in run
+  40092070928. Keep the observed digest as evidence and submit the unique native image tag;
+  successful run 40093847721 validates that correction. No existing tag is overwritten.
+- Run 40090690387 timed out before recording any resource intent; no build success claimed.
+- Run 40092372924 passed launch, API and CLI calls but was cancelled to diagnose a blocked
+  file-delete prompt. Independent cleanup confirmed zero owned sandboxes/templates.
+- Run 40093603793 reproduced the missing `--yes` as an explicit aborted confirmation.
+  The harness now supplies consent, closes unused stdin and gives the full suite a sufficient
+  sandbox lifetime. A local comparison ruled out native exec itself as the stdin blocker.
+- Initial local full unit run: 4,309 pass, 21 fail, 2 skip. One old journal fixture was fixed;
+  the remaining loopback/engine/wire failures showed this environment's proxy/audit
+  interference (HTTP 501 and rewritten TCP/TLS/WebSocket behavior). Assertions were not
+  weakened; the complete remote Node 20/22 CI matrix passed.
+
+## Limits
+
+Only python-hello is live-tested here. The Registry's 46 source plans are statically compatible;
+this is not 46 workload certifications. Eight full-suite cases were explicitly skipped for
+missing optional prerequisites; the Docker source path has its separate passing acceptance.
+Existing numerical-build timeout issue #131 remains outside scope.
