@@ -166,3 +166,5 @@ Current generation fix: [Express workspace ownership](notes/proposed/feature/202
 - [Proxy application token compatibility](notes/implemented/feature/2026-10-24-proxy-application-token.md) · [verification](evidence/verify/2026-10-24-proxy-application-token.md).
 
 - [CLI 0.4.16 publication](evidence/verify/2026-10-24-cli-0416-release.md) · five-platform assets, public npm readback and fresh installation.
+
+- [Current provider guidance](notes/proposed/process/2026-10-24-current-provider-guidance.md) · [verification](evidence/verify/2026-10-24-current-provider-guidance.md).

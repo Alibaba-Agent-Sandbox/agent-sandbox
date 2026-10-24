@@ -6,7 +6,7 @@ A **provider** is a sandbox backend. `abx` ships one built-in provider and can d
 |---|---|---|---|
 | `alicloud-express` | Alibaba Cloud Express Edition (阿里云极速版) | built-in | yes |
 
-> **Nothing changes until you use a provider.** With no plugin installed and no provider selected, every command, every output byte and every environment variable behaves as in 0.2.x. The `provider` command group is hidden from `abx --help` until a plugin is installed or a non-built-in default is set (it is always callable). The CLI package version is 0.3.0; the Python SDK pin in `python-sdk` is a separate release line.
+Without an explicit selection, the CLI uses `alicloud-express`. Use `abx --version` to check the installed CLI; Python client/server packages have their own release versions. See [installation](binary-installation.md) for published CLI artifacts.
 
 ---
 
@@ -16,7 +16,7 @@ Selecting a provider chooses its configuration and protocol adapter. Unsupported
 
 The standard E2B command frontend is used only for Express. Qualified sandbox references enter the provider router. Other providers currently retain the project CLI syntax; selecting one does not promise that every E2B-specific option or result model is implemented there. Local generation with template scaffold can use a generic Docker profile; that changes the image contract, not the cloud backend.
 
-A feature declaration is permission to use an implemented adapter, not an implementation. Native FC/ACR template handlers are bound to Express. Other providers return E8004 even if a plugin declares templates.read/build, until a provider-aware template adapter is delivered. This guard also covers natural-language cloud deployment and internal deployment helpers, before code generation, Docker, credential loading or cloud work.
+Template commands use the selected provider's implemented template manager or its specialized command handlers. Native FC/ACR handlers belong to Express. The public `abx --provider <id> template launch SOURCE` path uses provider-owned preparation and startup; OpenSandbox implements source preparation for the documented default recipe. Missing operations fail on the selected provider without silently switching to Express. See [launch a template](template-launch.md) for build/configuration requirements and [template workflows](template-workflows.md) for the operation checks. Natural-language cloud deployment still requires its own matching provider handler.
 
 The built-in provider lists its own implemented adapter features explicitly; adding a host feature must not implicitly advertise it on Express. This adapter does not advertise storage.mount, network.vpc or ports.domain as generic sandbox operations. That does not mean Alibaba lacks those cloud capabilities: resource administration and mount integration need their own implemented, verified entry points. Pause also depends on runtime/function enablement; a declaration alone is not account availability.
 
@@ -140,7 +140,7 @@ A manifest with `kind = "python"` is not installable. Programmatic Python `Provi
 
 ### Catalog providers
 
-All four catalog providers run from the CLI and from every SDK, because they run in Node.js, inside the CLI host:
+The four catalog providers use Node.js plugins hosted by the CLI. The CLI and Python SDK can consume these installed plugins:
 
 - `opensandbox`, `e2b`, `cubesandbox` and `alicloud-container` are all `node` plugins: an ES module the host loads in-process through a small kit (see [Authoring providers](authoring-providers.md)).
 
@@ -154,7 +154,7 @@ abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
 
 A non-interactive install needs `--yes`. An unpinned git ref also needs `--allow-unpinned`, or a 40-hex `--ref`. The Python SDK installer is `python -m agent_sandbox.providers install registry:<id> --yes`.
 
-The Python SDK (and later the Node, Go and Java SDKs) reach the same plugins through the local engine, `abx provider engine serve`, which starts on demand. See [Engine HTTP API](../reference/engine-api.md).
+The Python SDK reaches these plugins through the local engine, `abx provider engine serve`, which starts on demand. See [Engine HTTP API](../reference/engine-api.md). The independent [Node SDK](https://github.com/Alibaba-Agent-Sandbox/nodejs-sdk) currently provides an application HTTP client; it does not create cloud sandboxes or consume provider plugins. Other language clients would need an engine integration before making that claim.
 
 | Id | Kind | Page |
 |---|---|---|
