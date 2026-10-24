@@ -20,7 +20,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { materializeBaseImage } from "./base_image.js";
+import { materializeBaseImage } from "../../utils/base_image.js";
 import { injectedPackageVersion } from "../../utils/package_version.js";
 import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC, SERVER_SDK_RELEASE_SPEC } from "../../utils/server_sdk_pin.js";
 

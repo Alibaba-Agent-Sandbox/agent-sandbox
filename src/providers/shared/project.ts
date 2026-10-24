@@ -6,6 +6,7 @@ import os from "node:os";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { ProviderConfigError } from "../../models/provider_errors.js";
+import { materializeSourceRecipe } from "./source_recipe.js";
 
 export interface ProjectStageOptions { dockerfile?: string | null; resolveDockerfile?: (source: string) => string }
 export interface StagedProject { directory: string; digest: string; verify(): Promise<void>; close(): Promise<void> }
@@ -13,19 +14,27 @@ export interface ImageBuildOptions {
   dockerfile?: string;
   image_repository: string; name: string; timeout?: number; journal?: ResourceJournalCallbacks;
 }
+/** A host-tool failure with fixed diagnostic text, never subprocess output or arguments. */
+export class ProjectToolError extends ProviderConfigError {
+  constructor(command: string, operation: string | undefined, error: { code?: string | number | null; killed?: boolean }) {
+    const tool = command === "docker" && ["build", "push", "image"].includes(operation ?? "") ? `Docker ${operation}` : command === "git" ? "Git source inspection" : "Project preparation tool";
+    const reason = error.code === "ENOENT" ? "is not installed or is not on PATH" : error.killed ? "exceeded its time limit" : "failed";
+    super(`${tool} ${reason}. Check the tool installation, image registry access and provider configuration.`);
+  }
+}
 /** Run a local tool without a shell. Raw tool output/errors are never included in public exceptions. */
 export function runTool(command: string, args: readonly string[], options: { cwd?: string; input?: string; timeout?: number } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = execFile(command, [...args], { cwd: options.cwd, timeout: Math.ceil((options.timeout ?? 600) * 1000),
       maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (error, stdout) => {
-      if (error) reject(new ProviderConfigError("Project preparation tool failed. Check the tool installation, registry access and provider configuration; a submitted operation may still exist."));
+      if (error) reject(new ProjectToolError(command, args[0], error));
       else resolve(stdout);
     });
     child.stdin?.on("error", () => undefined);
     child.stdin?.end(options.input);
   });
 }
-/** Snapshot the authorized source tree without rewriting build inputs. */
+/** Snapshot the source and materialize its declared official recipe in the temporary copy. */
 export async function stageProject(directory: string, options: ProjectStageOptions = {}): Promise<StagedProject> {
   if (Object.keys(options).some(key => !["dockerfile", "resolveDockerfile"].includes(key)) || (options.dockerfile != null && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(options.dockerfile))) throw new ProviderConfigError("Build profile must select a root Dockerfile without rewriting source.");
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "abx-project-"));
@@ -50,8 +59,12 @@ export async function stageProject(directory: string, options: ProjectStageOptio
     if (options.dockerfile !== null) {
     const file = path.join(staged, options.dockerfile ?? "Dockerfile");
     const original = await fs.readFile(file, "utf8");
-    const dockerfile = options.resolveDockerfile?.(original) ?? original;
-    if (!/^FROM\s+/im.test(dockerfile) || /^FROM[^\n]*[<>]/im.test(dockerfile)) throw new ProviderConfigError("Project Dockerfile must name an explicit base image; source build inputs are never rewritten.");
+    const pinFile = path.join(staged, "server-sdk.commit");
+    const serverCommit = await fs.readFile(pinFile, "utf8").catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return undefined; throw error; });
+    const dockerfile = options.resolveDockerfile?.(original) ?? materializeSourceRecipe(original, {
+      serverCommit, hasWheels: (await fs.readdir(staged)).some(name => name.endsWith(".whl")),
+    });
+    if (!/^FROM\s+/im.test(dockerfile) || /^FROM[^\n]*[<>]/im.test(dockerfile)) throw new ProviderConfigError("The selected Dockerfile has an unresolved base image. Use an explicit image or the official <region>/<tag> base recipe.");
     if (dockerfile !== original) await fs.writeFile(file, dockerfile);
     }
     async function digest(): Promise<string> {

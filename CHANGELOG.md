@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Prepare official source templates for OpenSandbox from their existing base-image and pinned server-wheel recipe without editing the checkout or requiring host Python build tools.
+
 ## [0.4.14] - 2026-10-24
 
 ### Fixed

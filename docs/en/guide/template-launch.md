@@ -1,21 +1,25 @@
-# Launch an explicit template workflow
+# Launch a template
 
-`template launch` resolves a source directory, validates its spec v4 manifest, and plans the selected workflow against the provider's exact operations, input kinds, startup modes and calling-client protocol support. An application HTTP workflow does not require `code.execute` or a platform interpreter. See [template workflows](template-workflows.md) for the contract and security rules.
+Configure the [provider](providers.md), then launch a Registry source template:
 
 ```sh
-abx --provider opensandbox template launch ./python-hello --workflow application --build-profile portable
+abx --provider opensandbox template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes
 ```
 
-The example selects `build_profiles.portable` explicitly. The original Dockerfile stays unchanged. Interactive runs request build/create consent; use `--yes` for an authorized noninteractive run. Source builds need the selected provider's credentials and native build prerequisites, such as Docker, a writable image repository and registry authentication for OpenSandbox. The OpenSandbox server must be reachable and able to pull the resulting image. Provider maturity remains independent from workflow support and verification.
+The CLI builds the image, creates a sandbox, starts the application and checks that its API is reachable. Use the returned sandbox ID for later commands. OpenSandbox needs a reachable server, Docker, a writable image repository and Docker registry authentication; the server must be able to pull that image. For Express, use `--provider alicloud-express` and configure its platform and ACR credentials.
 
-Use `--alias NAME` for the build correlation name, `--timeout SECONDS` for preparation (default 600, maximum 3600) and `--sandbox-timeout SECONDS` for sandbox lifetime (default 300). `--workflow ID` selects an explicitly declared path. `--build-profile ID` selects a declared root Dockerfile and context; no base image, USER, COPY or entrypoint is silently rewritten. A Dockerfile with an unresolved platform placeholder fails before preparation.
+Official source templates use the existing native base recipe. OpenSandbox resolves its base to `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`; `ABX_BASE_IMAGE_REGION` and `ABX_BASE_IMAGE_TAG` override those build inputs. These are image-source settings, independent of the OpenSandbox server location. Docker builds the exact server SDK commit already pinned in the selected Dockerfile and supplies its wheel to the existing install step. No separate Python SDK checkout or host Python build tools are required. The CLI prepares a temporary copy and keeps application instructions and the final `USER` unchanged.
 
-Image workflows require an immutable image reference; managed workflows require their backend reference and matching provider. Neither input is treated as source. External application service workflows use an explicit URL through `--service-url`, with their own application token supplied separately from platform credentials.
+Options:
 
-The source snapshot and provider code are checked before preparation/create. `startup: exec` runs the manifest's explicit start command; `startup: entrypoint` uses the selected provider's native startup behavior. A declared `ready_cmd` requires `exec.run` and executes before success. Application protocol discovery uses the exact sandbox/port endpoint, retaining gateway path prefixes and query parameters without reusing envd transport or retrying anonymously.
+- `--timeout SECONDS`: build/preparation limit, default 600 and maximum 3600.
+- `--sandbox-timeout SECONDS`: instance lifetime, default 300.
+- `--alias NAME`: name used to correlate build resources.
+- `--workflow ID`: choose another declared workflow.
+- `--build-profile ID`: choose an explicitly declared Dockerfile, for example `portable`. The CLI never silently switches profiles.
 
-A successful JSON result identifies the workflow, returned reference, sandbox, source digest, execution plan and resource journal. Newly created sandboxes are retained until deletion or timeout. On startup failure the launcher deletes only its owned sandbox and reports whether deletion was confirmed. Images and registered templates can remain retained or require manual cleanup. A timeout can leave an uncertain remote result: reconcile the journal's correlation identity before retrying.
+Omit `--yes` to confirm the billable build/create interactively. A local source directory works in place of the Registry reference. Custom base images must be explicit; unknown placeholders are reported before building. Custom multi-stage recipes must supply any wheel their Dockerfile copies.
 
-The new workflow implementation must pass its repository and real-provider gates before release. A source checkout can be built with `npm ci && npm run build` and invoked using `node dist/bin/abx.js`; an older published CLI does not acquire this contract from a catalog update alone. Standard template commands retain their pinned standard-client contract.
+A successful launch keeps the sandbox running until deletion or expiry. On failure, the CLI attempts to delete the sandbox it created. Retained images and platform templates are listed in the resource journal printed by the command. If a remote request times out, inspect that journal before retrying because the resource may already exist.
 
-All third-party Provider integrations remain Beta. Workflow evidence does not certify their complete native protocol surface; formal native acceptance is a separate gate.
+HTTP template APIs, shell execution, PTY sessions and persistent interpreters are separate functions. A template HTTP API does not require a platform interpreter. See [template workflows](template-workflows.md) for manifest and protocol details.
