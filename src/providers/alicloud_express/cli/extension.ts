@@ -11,6 +11,7 @@ import { templateUi, createParams, DEPLOY_HELP } from "./metadata.js";
 import type { Context } from "../../../cli/kit.js";
 import { getOutput } from "../../../cli/output.js";
 import path from "node:path";
+import fs from "node:fs";
 import { stageProject } from "../../shared/project.js";
 import { resolveBuildPlan, commandWithStepEnvironment } from "../../../template/build_plan.js";
 import { ProviderConfigError } from "../../../models/provider_errors.js";
@@ -35,7 +36,8 @@ export const CLI_EXTENSION = {
     const plan = resolveBuildPlan(directory, { mode: dockerfile ? "dockerfile" : "auto", dockerfile });
     const deployOptions = { alias: options.alias, tag: options.alias, timeout: options.timeout, yes: Boolean(ctx.params["yes"]), ctx,
       dockerfile, build: plan.kind, journal: options.journal, workflow_launch: true,
-      cpu: options.template.cpu, memory: options.template.memory, envd_inject: plan.kind === "dockerfile" };
+      cpu: options.template.cpu, memory: options.template.memory,
+      envd_inject: plan.kind === "dockerfile" && !/^FROM\s+fc-e2b-registry\.[a-z0-9-]+\.cr\.aliyuncs\.com\/runtime\/base:/im.test(fs.readFileSync(plan.dockerfile, "utf8")) };
     return adapter.withDeployConfiguration(directory, deployOptions, async () => {
       if (!deployOptions.yes) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
     const result = await adapter.do_deploy(directory, deployOptions);

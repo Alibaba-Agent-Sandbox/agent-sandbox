@@ -25,10 +25,13 @@ function run(args, json = true) {
   const result = spawnSync(process.execPath, [cli, '--native', ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 });
   if (result.status !== 0) {
     // Raw cloud/build errors can contain signed URLs. Keep only bounded sanitized diagnostics locally.
-    const secrets = Object.entries(process.env).filter(([key]) => /KEY|TOKEN|SECRET|PASSWORD/.test(key)).map(([,value]) => value).filter(Boolean);
+    const secrets = Object.entries(process.env).filter(([key]) => /KEY|TOKEN|SECRET|PASSWORD|BASE_URL|DOMAIN|NAMESPACE/.test(key)).map(([,value]) => value).filter(Boolean);
     let diagnostic = result.stderr + result.stdout;
     for (const secret of secrets) diagnostic = diagnostic.split(secret).join('[redacted]');
     diagnostic = diagnostic.replace(/https?:\/\/[^\s"']+/g, '[url]').slice(-8000);
+    diagnostic = diagnostic.replace(/\b[0-9]{12,}\b/g, '[account]').replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/g, '[journal]');
+    report.failure_diagnostic = diagnostic;
+    report.resource_states = journals().flatMap(j => j.entries.map(({kind,state}) => ({kind,state})));
     fs.writeFileSync(path.join(directory, 'failure.txt'), diagnostic, {mode: 0o600});
     throw new Error(`CLI ${args.slice(0,2).join(' ')} failed (exit ${result.status}); diagnostics retained locally, not uploaded`);
   }

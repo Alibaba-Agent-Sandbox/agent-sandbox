@@ -1,3 +1,6 @@
+import type { ResourceJournalCallbacks } from "../../../template/resource_journal.js";
+import type { PreparedTemplate } from "../../template_contract.js";
+import { runTool } from "../../shared/project.js";
 import { prepareTemplateBuildInputs } from "../../../cli/template_project.js";
 import { withGuidedConfiguration, canGuideConfiguration, type GuidanceField } from "../../../cli/config_guidance.js";
 import { getOperationConfig } from "../../../utils/operation_config.js";
@@ -434,10 +437,6 @@ export async function _provenanceNotice(out: Any): Promise<void> {
     out.info("\u2139 Auto-added --provenance=false" + " (prevents FC image optimization failure; set DOCKER_BUILDKIT=0 to skip)");
 }
 
-import type { ResourceJournalCallbacks } from "../../../template/resource_journal.js";
-import type { PreparedTemplate } from "../../template_contract.js";
-import { runTool } from "../../shared/project.js";
-
 export interface BuildImageOptions {
     tag: string;
     repo: string | null;
@@ -603,6 +602,8 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         reporter.done(`Image pushed to ACR: ${acrRef}`);
         const registryType = acr.acree_instance_id ? "acree" : "acr";
         reporter.phase(`Creating template via official API: ${template_name}`);
+        const envdTarget = o.journal && o.envd_inject ? acr.tagged_ref(`${tag}-envd`) : o.target_image;
+        const copyIntent = o.journal && o.envd_inject && envdTarget ? await o.journal.intent({ kind: "image", correlation_key: envdTarget, cleanup: "manual" }) : undefined;
         const templateIntent = await o.journal?.intent({ kind: "template", correlation_key: template_name, cleanup: "template.delete" });
         const apiResult = await fcTemplate.createOfficialTemplate({
             update_existing: o.journal ? false : undefined,
@@ -628,7 +629,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             registry_vpc_id: acr.vpc_id || null,
             registry_vswitch_id: acr.vswitch_ids || null,
             registry_security_group_id: acr.security_group_id || null,
-            target_image: o.target_image,
+            target_image: envdTarget,
         });
         templateId = apiResult["templateID"] ?? "";
         if (!templateId) {
@@ -652,6 +653,10 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             timeout,
             on_poll: onPoll,
         });
+        if (copyIntent && envdTarget) {
+            await o.journal!.created(copyIntent, envdTarget);
+            o.owned_resources!.push({ intent_id: copyIntent, kind: "image", id: envdTarget, cleanup: "manual", owned: true });
+        }
         const finalStatus = pyTruthy(finalData["status"]) ? finalData["status"] : {};
         buildStatus = _isDict(finalStatus) ? pyStr(finalStatus["state"] ?? "unknown").toLowerCase() : pyStr(finalStatus).toLowerCase();
         buildId = "";
