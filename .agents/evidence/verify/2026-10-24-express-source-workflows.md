@@ -31,3 +31,18 @@ Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/134
 
 PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/135
 Consumer: https://github.com/Alibaba-Agent-Sandbox/registry/pull/45
+
+- PASS: subsequent native-steps launch and broader CLI E2E: 176 passed, 8 skipped;
+  two tracked sandboxes, zero unconfirmed or unresolved creations; final leak check passed.
+  Both native kill and template delete returned zero for the launcher-owned resources.
+  Docker-specific opt-in cases were skipped here and remain separately required.
+- PASS: remote Node 20/22 CI at 45060db, run 40091593693.
+- FAIL: Docker acceptance run 40091593664: image build/push and template creation receipts
+  exist, but preparation failed before sandbox creation. Template cleanup confirmed.
+  Added sanitized platform status capture before deleting failed templates; root cause pending.
+- FAIL with confirmed cause: run 40092070928 reached platform template creation, then
+  the platform reported `pull image: image digest mismatch` for digest-based image input.
+  Sandbox/template cleanup confirmed. Keep the observed digest in the journal, but submit
+  the unique build tag through the existing native API contract. Added regression assertions
+  for tagged API input and separate digest evidence. Focused 60 tests and typecheck pass;
+  real cloud rerun remains required.

@@ -595,9 +595,11 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             const repository = ref.slice(0, ref.lastIndexOf(":"));
             const immutable = Array.isArray(digests) ? digests.find((value: unknown) => typeof value === "string" && value.startsWith(`${repository}@sha256:`) && /@sha256:[a-f0-9]{64}$/.test(value)) : undefined;
             if (!immutable) throw new TemplateBuildError("Published image has no observable immutable digest; inspect the resource journal.");
-            acrRef = immutable;
-            await o.journal!.created(pushIntent, acrRef);
-            o.owned_resources!.push({ intent_id: pushIntent, kind: "image", id: acrRef, cleanup: "manual", owned: true });
+            // Preserve the observed digest as evidence. Express currently resolves tagged ACR
+            // images itself; digest input can fail with a platform manifest digest mismatch.
+            // Workflow tags are unique per preparation, so do not replace this native API input.
+            await o.journal!.created(pushIntent, immutable);
+            o.owned_resources!.push({ intent_id: pushIntent, kind: "image", id: immutable, cleanup: "manual", owned: true });
         }
         reporter.done(`Image pushed to ACR: ${acrRef}`);
         const registryType = acr.acree_instance_id ? "acree" : "acr";

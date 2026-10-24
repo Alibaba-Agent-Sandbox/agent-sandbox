@@ -84,7 +84,7 @@ describe("Express source workflow", () => {
     });
     vi.spyOn(projectTools,"runTool").mockResolvedValue(JSON.stringify([immutable]));
     const create=vi.spyOn(fc,"createOfficialTemplate").mockImplementation(async options=>{
-      expect(options).toMatchObject({image:immutable,update_existing:false,envd_inject:true,target_image:ref+"-envd",start_command:null,ready_command:null});
+      expect(options).toMatchObject({image:ref,update_existing:false,envd_inject:true,target_image:ref+"-envd",start_command:null,ready_command:null});
       expect(f.journal.entries.at(-1)).toMatchObject({kind:"template",state:"intent"});
       return {templateID:"exact-template-id"};
     });
@@ -92,6 +92,7 @@ describe("Express source workflow", () => {
     const result=await CLI_EXTENSION.prepareProject(f.directory,f.options,f.ctx);
     expect(build).toHaveBeenCalledOnce();expect(create).toHaveBeenCalledOnce();
     expect(result.reference).toBe("exact-template-id");expect(result.owned_resources).toHaveLength(4);
+    expect(result.owned_resources).toContainEqual(expect.objectContaining({kind:"image",id:immutable}));
     expect(f.journal.entries.every(e=>e.state==="created")).toBe(true);
   });
   it("supports source application planning without claiming Python source preparation or foreign references",()=>{

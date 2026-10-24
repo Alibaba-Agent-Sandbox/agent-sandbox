@@ -10,6 +10,8 @@ Reuse native deployment with optional resource journals and exact TemplateID han
 Resolve native region/tag placeholders in the staged snapshot; retain original source bytes.
 Honor explicit Dockerfile profiles. The launcher starts the application after creation rather
 than also registering its startup with the platform. Preserve native step environment wrappers.
+Image receipts retain the Docker-observed digest; the platform receives the unique build tag.
+Live acceptance showed digest input failing with a platform image-digest mismatch.
 Only the CLI declares source preparation; no new Python implementation is claimed.
 
 ## API Design
