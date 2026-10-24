@@ -93,14 +93,17 @@ export function manifestSummary(m: Manifest): ManifestSummary {
 
 // ---------------------------------------------------------------- versions
 
-type ParsedVersion = readonly [readonly number[], number];
+type ParsedVersion = readonly [readonly number[], number, number];
 
 function parseVersion(text: string): ParsedVersion {
-  const m = /^\s*v?(\d+(?:\.\d+)*)([\s\S]*)$/.exec(text);
+  const m = /^\s*v?(\d+(?:\.\d+)*)(?:[-_.]?(dev|alpha|a|beta|b|preview|pre|rc|c)[-_.]?(\d+)?)?\s*$/i.exec(text);
   if (!m) throw new Error(`invalid version '${text}'`);
   const nums = (m[1] as string).split(".").map((p) => Number.parseInt(p, 10));
-  const rest = (m[2] as string).trim();
-  return [nums, rest ? 0 : 1];
+  const label = m[2]?.toLowerCase();
+  const phase = !label ? 4 : label === "dev" ? 0 : ["a", "alpha"].includes(label) ? 1 : ["b", "beta"].includes(label) ? 2 : 3;
+  const ordinal = Number.parseInt(m[3] ?? "0", 10);
+  if (![...nums, ordinal].every(Number.isSafeInteger)) throw new Error(`invalid version '${text}'`);
+  return [nums, phase, ordinal];
 }
 
 function cmp(a: ParsedVersion, b: ParsedVersion): number {
@@ -110,7 +113,7 @@ function cmp(a: ParsedVersion, b: ParsedVersion): number {
     const y = b[0][i] ?? 0;
     if (x !== y) return x < y ? -1 : 1;
   }
-  return Math.sign(a[1] - b[1]);
+  return Math.sign(a[1] - b[1]) || Math.sign(a[2] - b[2]);
 }
 
 /** Whether `version` satisfies a comma-separated AND list of comparators (`>= <= > < == != ~=`). */
@@ -135,9 +138,9 @@ export function versionSatisfies(version: string, spec: string): boolean {
       let upper: ParsedVersion;
       if (nums.length > 1) {
         const head = nums.slice(0, -1);
-        upper = [[...head.slice(0, -1), (head[head.length - 1] as number) + 1], 1];
+        upper = [[...head.slice(0, -1), (head[head.length - 1] as number) + 1], 4, 0];
       } else {
-        upper = [[(nums[0] as number) + 1], 1];
+        upper = [[(nums[0] as number) + 1], 4, 0];
       }
       if (c < 0 || cmp(have, upper) >= 0) return false;
     }

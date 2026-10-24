@@ -1,5 +1,7 @@
 # Launch a template
 
+The default OpenSandbox recipe and optional provider source-placeholder metadata require CLI 0.4.15 or later.
+
 Configure the [provider](providers.md), then launch a Registry source template:
 
 ```sh

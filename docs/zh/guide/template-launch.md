@@ -1,5 +1,7 @@
 # 启动模板
 
+默认 OpenSandbox 配方与可选的 Provider 源码占位符说明需要 CLI 0.4.15 或更新版本。
+
 配置好 [Provider](providers.md) 后，直接启动 Registry 中的源码模板：
 
 ```sh

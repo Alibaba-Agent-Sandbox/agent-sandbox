@@ -187,11 +187,15 @@ it.each([
   ["1.2.9", "~=1.2", true], ["1.3.0", "~=1.2", true], ["2.0.0", "~=1.2", false], ["1.2.9", "~=1.2.3", true],
   ["1.3.0", "~=1.2.3", false], ["1.0rc1", ">=1.0", false], ["1.0", ">1.0rc1", true], ["1.0.0", "==1.0", true],
   ["1.0", "!=1.0", false], ["5", "", true],
+  ["0.3.1a2", ">=0.3.1a3", false], ["0.3.1a10", ">0.3.1a3", true],
+  ["0.3.1b1", ">0.3.1a99", true], ["0.3.1rc1", ">0.3.1b99", true],
+  ["0.3.1", ">0.3.1rc99", true], ["0.3.1-alpha.3", "==0.3.1a3", true],
+  ["0.3.1.dev1", "<0.3.1a1", true], ["0.3.1-beta.2", "==0.3.1b2", true],
 ] as Array<[string, string, boolean]>)("test_version_satisfies[%s %s]", (ver, spec, ok) => {
   expect(versionSatisfies(ver, spec)).toBe(ok);
 });
 
-it.each(["~~1", ">=", "foo", ">=x"])("test_bad_specs_raise_value_error[%s]", (spec) => {
+it.each(["~~1", ">=", "foo", ">=x", ">=1.0-unrecognized", ">=0.3.1a3extra"])("test_bad_specs_raise_value_error[%s]", (spec) => {
   expect(() => versionSatisfies("1.0", spec)).toThrow(Error);
 });
 
