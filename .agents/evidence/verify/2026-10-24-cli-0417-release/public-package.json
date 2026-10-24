@@ -1,0 +1,35 @@
+{
+  "name": "@agent-sandbox/cli",
+  "version": "0.4.17",
+  "dist": {
+    "shasum": "7f7facb2172312babbf273c9cd5d4aa1f2a7b3b5",
+    "tarball": "https://registry.npmjs.org/@agent-sandbox/cli/-/cli-0.4.17.tgz",
+    "fileCount": 625,
+    "integrity": "sha512-7mhQbDxONXD8IK0cO0hsyEkliS2aTr6A5P2X4ArtYxPU1VcosHrfeG4bYTbhB4iGe8iewmiGgHfB96Dv7oA9HQ==",
+    "signatures": [
+      {
+        "sig": "MEUCIQCU7Ln6fNopFxhecTVGmQXfnzfKznXeERViu5rQf4zMNwIgfxhIYfUBEQ03tJ9V/KCtNnCd4T2asRHy9iyl3WMkTQg=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEQCIFamoIWFxTKegsiu09PVgfqZ/IUO/TwmoDguERcvPc/OAiAvyckl5ax+QMj6FFFhmtwi2mSK5jT/hXj8kw+n16YsUg==",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@agent-sandbox%2fcli@0.4.17",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 9479236
+  },
+  "source_commit": "2809931b0fb05c6ba53fb7b8be2369938c308614",
+  "dist_tag_latest": "0.4.17",
+  "fresh_install": {
+    "result": "PASS",
+    "version_output": "abx, version 0.4.17",
+    "template_launch_help": true,
+    "initial_propagation_attempt": "HTTP404; later no-cache metadata and fresh prefix/cache installation passed"
+  }
+}
