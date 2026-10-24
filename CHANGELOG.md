@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.16] - 2026-10-24
+
+### Fixed
+
+- Preserve application authentication through proxies that strip Authorization by also using the existing X-Access-Token header when the gateway has not occupied it. Bearer authentication, gateway credentials and redirect rejection are preserved.
+
 ## [0.4.15] - 2026-10-24
 
 ### Fixed

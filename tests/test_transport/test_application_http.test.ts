@@ -11,7 +11,7 @@ describe("application port binding", () => {
     const fetch = vi.fn(async () => new Response('{"result":42}', {status:200})); applicationHttpSeams.fetch = fetch as never;
     await requestApplication(validateApplicationEndpoint(endpoint(), "owned", 9000), "/commands/run", {method: "POST",json:{x:1},application_token: "application-only"});
     expect(fetch.mock.calls[0]).toEqual(["https://gateway.invalid/sandboxes/owned/ports/9000/commands/run?signature=private", expect.objectContaining({
-      redirect: "manual", headers:{"X-Gateway-Token":"gateway-only","Authorization":"Bearer application-only","Content-Type":"application/json"}})]);
+      redirect: "manual", headers:{"X-Gateway-Token":"gateway-only","Authorization":"Bearer application-only","X-Access-Token":"application-only","Content-Type":"application/json"}})]);
   });
   it.each(["//other", "/../other", "/%2e%2e/other", "/%252e%252e/other", "/commands/%2fother", "/commands//other", "/commands?other=1", "/\t../\t../victim/9000/health", "/%09../%09../victim/9000/health", "/commands/%00", "/commands/%7f"])("rejects ambiguous or escaping operation %s before sending credentials", async operation => {
     const fetch = vi.fn(); applicationHttpSeams.fetch = fetch;
@@ -59,4 +59,43 @@ it("refuses to reconstruct an async provider endpoint from the synchronous defau
   const {NetworkModule}=await import("../../src/api/network.js");
   const network=new NetworkModule({sandbox_id:"owned",domain:"gateway.invalid",port_resolver:async()=>["http://proxy.invalid/owned/9000",{}],port_access:{getUrl:()=>"https://wrong.invalid",getHost:()=>"wrong.invalid",getAccessHeaders:()=>({}),getServerHeaders:()=>({})}});
   await expect(network.resolveEndpoint(9000)).rejects.toThrow("explicit sandbox/port descriptor");
+});
+
+
+it.each(["X-Access-Token", "x-access-token", "X-aCcEsS-ToKeN"])("preserves gateway credential %s without changing the descriptor", async name => {
+  const binding = {...endpoint(), headers: {[name]: "gateway-only"}};
+  const fetch = vi.fn(async () => new Response("{}", {status: 200}));
+  applicationHttpSeams.fetch = fetch as never;
+  await requestApplication(binding, "/capabilities", {method: "GET", application_token: "application-only"});
+  expect(fetch.mock.calls[0]).toEqual([expect.any(String), expect.objectContaining({headers: {
+    [name]: "gateway-only", Authorization: "Bearer application-only",
+  }})]);
+  expect(binding.headers).toEqual({[name]: "gateway-only"});
+});
+
+it("does not synthesize application authentication without an explicit token", async () => {
+  const fetch = vi.fn(async () => new Response("{}", {status: 200}));
+  applicationHttpSeams.fetch = fetch as never;
+  await requestApplication(endpoint(), "/health", {method: "GET"});
+  expect(fetch.mock.calls[0]).toEqual([expect.any(String), expect.objectContaining({headers: {"X-Gateway-Token": "gateway-only"}})]);
+});
+
+it.each(["bearer-only", "authorization-stripped"])("authenticates a real HTTP %s service", async mode => {
+  const {createServer} = await import("node:http");
+  const server = createServer((req, res) => {
+    // The proxy forwards only X-Access-Token; the old service understands only Bearer.
+    const accepted = mode === "authorization-stripped"
+      ? req.headers["x-access-token"] === "application-only"
+      : req.headers.authorization === "Bearer application-only";
+    res.writeHead(accepted ? 200 : 401, {"Content-Type": "application/json"});
+    res.end(JSON.stringify(accepted ? {result: 42} : {error: "unauthorized"}));
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const port = (server.address() as import("node:net").AddressInfo).port;
+    const binding = {...endpoint(), url: `http://127.0.0.1:${port}/proxy/owned/9000`};
+    const response = await requestApplication(binding, "/commands/hello", {method: "POST", json: {}, application_token: "application-only"});
+    expect(response.status_code).toBe(200);
+    expect(response.json()).toEqual({result: 42});
+  } finally {await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));}
 });

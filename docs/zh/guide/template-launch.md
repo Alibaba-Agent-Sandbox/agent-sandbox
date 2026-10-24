@@ -12,6 +12,8 @@ CLI 会构建镜像、创建沙箱、启动应用，并检查其 API 是否可�
 
 官方源码模板沿用已有的原生基础镜像配方。OpenSandbox 默认解析为 `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`；可以用 `ABX_BASE_IMAGE_REGION` 和 `ABX_BASE_IMAGE_TAG` 覆盖。这是镜像来源配置，与 OpenSandbox 服务部署地域无关。Docker 从所选 Dockerfile 已固定的 SDK 提交构建 wheel，并交给原有安装步骤。不需要另行克隆 Python SDK，也不需要宿主 Python 构建工具。CLI 只准备临时副本，保留应用指令和最终 `USER`。
 
+需要应用认证的模板应在启动前设置 `ABX_SERVER_TOKEN`。OpenSandbox 服务端代理连接需要 CLI 0.4.16 或更新版本。CLI 保留 Bearer 认证；网关未占用 `X-Access-Token` 时，还会通过该请求头发送同一个显式应用令牌，不会替换网关凭据。
+
 常用选项：
 
 - `--timeout SECONDS`：构建和准备时限，默认 600，最大 3600 秒。
