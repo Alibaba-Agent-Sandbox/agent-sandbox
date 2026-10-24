@@ -1,7 +1,7 @@
 # Verification: Provider operation boundaries
 
 Date: 2026-10-24
-Result: PARTIAL — scoped local checks passed; final PR CI/review pending.
+Result: PASS — scoped checks and independent review passed; final record-only head still requires normal merge checks.
 Base: `cf7dcf67496488a98c0a9ce67dcb0541f723a516`.
 Tracking: [Issue 145](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/145).
 Scope: bilingual provider guide, changelog and engineering records only.
@@ -14,6 +14,8 @@ Scope: bilingual provider guide, changelog and engineering records only.
 - `bash scripts/check-repo-health.sh`: PASS=106, WARN=11, FAIL=0. Warnings are existing repository history/layout notices.
 - `npm run check:hygiene`: PASS.
 - `git diff --check`: PASS. English/Chinese task mappings agree.
+
+- Remote [CI 40117116441](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40117116441) passed Node 20/22 tests, typecheck, installer and package build on `f92837df5d72c8ecb69297c3e666d6f9486cddc1`; [Markdown links 40117116469](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40117116469) also passed. Independent bilingual review found no remaining content blocker.
 
 ## Limits
 

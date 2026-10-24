@@ -169,4 +169,4 @@ Current generation fix: [Express workspace ownership](notes/proposed/feature/202
 
 - [Current provider guidance](notes/implemented/process/2026-10-24-current-provider-guidance.md) · [verification](evidence/verify/2026-10-24-current-provider-guidance.md).
 
-- [Provider operation boundaries](notes/proposed/process/2026-10-24-provider-operation-boundaries.md) · [verification](evidence/verify/2026-10-24-provider-operation-boundaries.md).
+- [Provider operation boundaries](notes/implemented/process/2026-10-24-provider-operation-boundaries.md) · [verification](evidence/verify/2026-10-24-provider-operation-boundaries.md).

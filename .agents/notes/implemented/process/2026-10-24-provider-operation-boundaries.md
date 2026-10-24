@@ -1,6 +1,6 @@
 # Decision: Separate provider operations and application interfaces
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
