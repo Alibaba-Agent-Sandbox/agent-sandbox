@@ -183,8 +183,11 @@ function platformStepsRules(profile: TemplateProfile): string {
   已有 python3/pip 时不要重新 apt 安装 Python；仅在用户需求确实包含系统依赖时安装对应系统包。
   不要假定基础镜像的 Python 版本。用户没有要求依赖版本时，不要猜测或复制历史旧版本 pin，
   让目标解释器上的 pip 解析兼容版本。numpy/pandas/matplotlib 这类有官方 wheel 的库使用
-  python3 -m pip install --index-url https://pypi.org/simple --only-binary=:all: pandas matplotlib
+  python3 -m pip install --only-binary=:all: pandas matplotlib
   （仅安装需求用到的包），拒绝无匹配 wheel 而进入耗时源码编译；不要为这些 wheel 安装 gcc、python3-dev 或图像开发包。
+  普通依赖沿用基础镜像或用户配置的 pip 索引，不硬编码镜像地址，不为整个依赖安装强制切换官方源。
+  仅 agent-sandbox-server alpha 的单独安装命令必须使用上文 --index-url https://pypi.org/simple，
+  避免镜像尚未同步 alpha。不要把 server 与 pandas/matplotlib 合并到同一条 pip install 中。
   README 说明依赖解析策略，验收时记录实际 Python 与依赖版本；用户指定版本不兼容时报告错误，不静默换版本。
 - 保留上面的 provider start_cmd / ready_cmd，实际源码必须写入它们引用的位置。
 - 最后一个 RUN 用 python3 -m py_compile ${profile.workdir}/commands.py 检查语法。

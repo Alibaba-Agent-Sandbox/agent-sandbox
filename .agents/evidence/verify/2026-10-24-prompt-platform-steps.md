@@ -100,3 +100,25 @@ The guide now teaches `--json-args` and provider-owned application bindings with
 separate gateway/application authentication, and limits README examples to the
 verified CLI/HTTP surface. Guide regression: 13 passed, 6 environment-dependent
 server-package cross-checks skipped; fresh generation must review the README too.
+
+## Candidate 9 and controlled dependency diagnosis
+
+Candidate 9 generated normally in about 356 seconds, but cloud build polling
+reached its unchanged 600-second budget while still building (956.65 seconds
+total). Its exact owned template was deleted and NotFound verified; no sandbox
+was created. Manifest-embedded commands.py exactly matched the generated file.
+
+On an independent owned base sandbox with the standard client's verified root
+identity, the exact dependency RUN timed out after 315 seconds while downloading
+the pandas 12 MB cp313 wheel. A fresh controlled comparison installed numerical
+packages using the base's configured index in 46.709 seconds, then installed the
+server alpha from official PyPI in 15.615 seconds. The runtime user successfully
+imported the packages and rendered a plot. Both diagnostic resources were cleaned
+and exact absence verified. This identifies a dependency-download problem in the
+controlled runtime experiment, not the unseen build backend's sole root cause.
+
+The development candidate guide had over-applied the official-index requirement.
+The narrow correction leaves ordinary dependency indexes configurable and keeps
+only the separate server alpha install on official PyPI; no mirror is hardcoded.
+All 20 configured guide regressions pass. Latest remote CI at 2c9e0f2 passed all
+seven jobs. A fresh generation remains necessary for final cloud acceptance.

@@ -143,6 +143,15 @@ describe("TestGuideText", () => {
     expect(guide).not.toContain("sandbox.network.get_url(port)");
   });
 
+  it("keeps numerical dependency indexes configurable while pinning the server alpha source", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express", "steps");
+    expect(guide).toContain("python3 -m pip install --only-binary=:all: pandas matplotlib");
+    expect(guide).not.toContain("python3 -m pip install --index-url https://pypi.org/simple --only-binary=:all: pandas matplotlib");
+    expect(guide).toContain("仅 agent-sandbox-server alpha 的单独安装命令");
+    expect(guide).toContain("--index-url https://pypi.org/simple");
+    expect(guide).not.toContain("mirrors.aliyun.com");
+  });
+
   serverIt("test_imports_shown_in_the_guide_exist", () => {
     const block = /from agent_sandbox\.server import \(([\s\S]*?)\)/.exec(TEMPLATE_GUIDE);
     expect(block).not.toBeNull();
