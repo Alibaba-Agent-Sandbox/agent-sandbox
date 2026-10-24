@@ -164,3 +164,5 @@ Current generation fix: [Express workspace ownership](notes/proposed/feature/202
 - [CLI 0.4.15 publication](evidence/verify/2026-10-24-cli-0415-release.md) · immutable tag, five platform assets and public npm installation.
 
 - [Proxy application token compatibility](notes/implemented/feature/2026-10-24-proxy-application-token.md) · [verification](evidence/verify/2026-10-24-proxy-application-token.md).
+
+- [CLI 0.4.16 publication](evidence/verify/2026-10-24-cli-0416-release.md) · five-platform assets, public npm readback and fresh installation.

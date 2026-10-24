@@ -1,0 +1,35 @@
+{
+  "name": "@agent-sandbox/cli",
+  "version": "0.4.16",
+  "dist": {
+    "shasum": "a9876352bc2adcaa6ff7b8a66bbfac7d0d9b23b3",
+    "tarball": "https://registry.npmjs.org/@agent-sandbox/cli/-/cli-0.4.16.tgz",
+    "fileCount": 625,
+    "integrity": "sha512-VUDVeVSieQM9Y6vmK60qbpr4BhBxOko7igyOK/egeEtPfd/ZPhZI30XOX1FIiRIp1YbWhzxVh7LvLtzJvDsVxA==",
+    "signatures": [
+      {
+        "sig": "MEQCIGFU/I9KEXVBsd6ENhYEbDpldFn0bckZ3i+dK43ABijlAiBn/IzkE/g1TSHgVJdR0uVtfwL5smP5GLhqzoHcIUet+A==",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEUCIQDe5WEue9BmYtB2NW57pzRK/1xiRCJyROvPalM9ksDlUAIgblFKT90szoJNFjHM52xEXxMPetePWr2IfqpqXGOD8dU=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@agent-sandbox%2fcli@0.4.16",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 9478709
+  },
+  "source_commit": "413d575a688bd6f870c42c711d11346d176e0f38",
+  "fresh_install": {
+    "result": "PASS",
+    "version_output": "abx, version 0.4.16",
+    "template_launch_help": true,
+    "initial_propagation_attempt": "HTTP404 and npm ETARGET; later no-cache read and fresh-cache install passed"
+  },
+  "dist_tag_latest": "0.4.16"
+}
