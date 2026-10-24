@@ -21,6 +21,10 @@ ownership. The guidance uses the published server alpha with the official index.
 Use existing provider extensions, build-plan validation and polling progress. Do not
 introduce a new template registry, artifact service, interpreter binding or retrying
 model generation. Keep failed generated files and report the owned template ID.
+A real diagnostic also exposed ignored native process OS-user options. Select an
+explicit user through the existing per-request envd Basic principal, preserving
+default identity and gateway headers without mutating shared authentication.
+Engine/EPP payload contracts and the standard implementation stay unchanged.
 Direct template deployment retains its submission-only result. Update bilingual
 guides and the packaged Skill to the actual workflow and authentication contracts.
 
@@ -42,7 +46,9 @@ Standard positional create and its pinned options are unchanged.
 
 Existing Express template administration, provider profile, Qwen Code generation,
 shared spec v4 schema and `agent-sandbox-server==0.3.1a1` (published alpha).
-Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/128
+Issues: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/128 and
+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/130
+Python counterpart: https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/94
 
 ## Test Strategy
 

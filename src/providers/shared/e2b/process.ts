@@ -169,9 +169,8 @@ export class ProcessProtocol {
    *
    * 请求格式（已实测验证）: {"process": {"cmd": "...", "args": [...]}}
    *
-   * Note: `cwd` and `user` are only included in the payload when explicitly provided (non-empty). Sending
-   * `user="user"` to certain platform base images triggers `fork/exec: no such file or directory` because the envd uses
-   * a namespace that doesn't recognise that user account.
+   * An explicit `user` selects envd's per-request Basic principal; it is not a process protobuf field.
+   * An empty user preserves the provider's configured principal without changing shared token state.
    */
   async start(
     envd_url: string,
@@ -183,7 +182,13 @@ export class ProcessProtocol {
     if (args && args.length) process_obj["args"] = args;
     if (env && Object.keys(env).length) process_obj["envs"] = env;
     if (cwd) process_obj["cwd"] = cwd;
-    if (user) process_obj["user"] = user;
+    let headers: Record<string, string> | null = null;
+    if (user) {
+      if ([":", "\0", "\r", "\n"].some((char) => user.includes(char))) {
+        throw new ValueError("user must not contain a colon, NUL, or line break");
+      }
+      headers = { Authorization: `Basic ${Buffer.from(`${user}:`, "utf8").toString("base64")}` };
+    }
 
     // StartRequest.stdin sits beside process. A missing flag defaults to true, so a reader waits until the HTTP
     // timeout. Proto JSON drops an unknown field nested under process.
@@ -196,6 +201,7 @@ export class ProcessProtocol {
     const raw_stream = this._http.envdStream(envd_url, _START, {
       payload,
       envd_token,
+      headers,
       request_timeout: http_timeout,
     });
 

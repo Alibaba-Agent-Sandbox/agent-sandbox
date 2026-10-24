@@ -122,3 +122,24 @@ The narrow correction leaves ordinary dependency indexes configurable and keeps
 only the separate server alpha install on official PyPI; no mirror is hardcoded.
 All 20 configured guide regressions pass. Latest remote CI at 2c9e0f2 passed all
 seven jobs. A fresh generation remains necessary for final cloud acceptance.
+
+## Native TypeScript OS-user regression
+
+Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/130
+
+The native CommandsModule run/stream/start API exposes user, but the old shared
+E2B process transport sent it in an unknown protobuf field. A real owned sandbox
+returned UID 1000 for native root while the standard Python client returned UID 0
+on the same ID. After the narrow per-request Basic header correction, native root
+and standard root both returned 0, native user returned 1000, native start(root)
+returned 0, a nonexistent user raised EnvdRpcError, and the default identity was
+unchanged. Exact kill and getInfoById SandboxNotFound verified cleanup.
+
+The first control attempt used the published standard CLI, which printed UID 0
+but exited 1 in that subprocess harness. That failed control and its successful
+cleanup remain recorded; the successful comparison uses the standard Python
+client with a zero exit code. It is not relabeled as a passing CLI experiment.
+
+Wire-level concurrent principal/gateway isolation plus process/API regressions:
+54 passed. Typecheck/build pass; independent cross-agent source review found no
+additional blocker. This validates the source candidate, not a published 0.4.12.
