@@ -2,7 +2,8 @@
 
 - Date: 2026-10-24
 - Change: CLI 0.4.13 candidate; [#132](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/132)
-- Result: PARTIAL — real-cloud comparison passed; fresh generation, full-suite rerun and remote CI pending.
+- Result: PASS for the real-cloud correction, fresh generation and full CLI E2E.
+  Local wire-level suite remains environment-blocked; latest-head remote CI is required before merge.
 - Environment: Node 22.22.2, Python 3.13.13, public client/server 0.3.1a2 for the
   independent comparison, Express cn-hangzhou generation 2, base v0.0.49.
   Credentials were injected privately; no credential values are recorded.
@@ -38,6 +39,26 @@ implementation or generalize to other providers/Dockerfile builds.
 - Real template deploy/readiness, sandbox create, independent SDK metadata and
   write/read/delete, application add, exact-ID cleanup/readback executed for both orders.
 
+## Fresh generation and complete E2E
+- Real model qwen3.8-max, CLI 0.4.13 installed candidate, original add prompt, 1200-second
+  generation budget and unchanged 600-second build budget. The generated manifest uses
+  WORKDIR, final py_compile/chown, USER user without manual edits.
+- The generated README distinguishes intended configuration from runtime verification.
+  Its exact documented shell check passed with uid=1000 and WRITABLE. The repository
+  Node probe independently observed directory UID/GID 1000, mode 0755, successful
+  write/read/delete and temporary-directory removal. No chmod/chown was applied at runtime.
+- The existing add application experiment passed all 50 assertions, covering SDK/HTTP
+  calls, CLI lifecycle, files, process, terminal and system operations. Its owned
+  sandbox and template both have confirmed absence after cleanup.
+- `ABX_BIN=<isolated-installed-cli> npm run e2e -- --json <report> --markdown <report>`:
+  176 passed, 8 explicit opt-in skips, zero failures, 317.94 seconds. The leak check
+  passed: two tracked suite sandboxes, zero unconfirmed IDs or unresolved attempts.
+  The fixture template was deleted and TemplateNotFound confirmed. Opt-in management
+  writes, unsupported volume status mutation and Docker/ACR deployment were skipped;
+  the scoped steps build was verified independently above.
+- The packed and freshly installed 0.4.13 candidate passed `check-release-artifact.mjs`,
+  including the actual terminal menu, help, JSON output and notices.
+
 ## Cleanup
 Both comparison sandboxes returned typed SandboxNotFoundError after deletion; both
 templates returned TemplateNotFound after deletion. Initial harness attempts exposed
@@ -45,9 +66,10 @@ registration-before-READY and status-shape mistakes; their templates were delete
 The first full CLI suite was invalidated by concurrently rebuilding its dist entry;
 it failed before loading the CLI during the create attempts. Its template cleanup
 was recovered with the unchanged public executable and verified independently.
-A rerun will use an isolated installed tarball so builds cannot remove its entry.
+The rerun used an isolated installed tarball so builds could not remove its entry.
 
 ## Not verified
-Fresh real-model generation, complete CLI suite and required remote CI are pending.
+Required latest-head remote CI and release publication are checked separately on
+[PR #133](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/133).
 Binary/npm publication and website distribution must be checked after merge/tagging.
 [Issue #131](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131) is deferred.
