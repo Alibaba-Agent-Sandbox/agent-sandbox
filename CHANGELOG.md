@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation synchronization
+
+- Synchronize current template deadline guidance and engineering-record acceptance with delivered releases. / 同步模板请求时限说明及已交付变更的工程记录状态。
+
+
 ### Documentation
 
 - Record CLI 0.4.17 public distribution and link template contributors to the owning schema instead of duplicating retired fields.

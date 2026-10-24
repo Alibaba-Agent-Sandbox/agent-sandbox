@@ -1,5 +1,18 @@
 # `.agents/` — engineering record of the cli repository
 
+## Current delivery — 2026-10-24
+
+- Published CLI: **0.4.17**, with [public distribution and actual public-package cloud regression](evidence/verify/2026-10-24-cli-0417-release.md).
+- Default source preparation supports Express and OpenSandbox. [Launch instructions](../docs/en/guide/template-launch.md) and [workflow contract](../docs/en/guide/template-workflows.md) describe actual inputs, application bindings and cleanup.
+- Application token compatibility preserves gateway credentials; application discovery and calls honor `ABX_HTTP_TIMEOUT`. That request deadline does not change cloud build deadlines.
+- The [92-case source-template matrix](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/78c30fbbd186cb59c3a0f0abd9fdf85b10c84b35/.agents/evidence/verify/2026-10-24-public-template-matrix.md) used public CLI **0.4.16**, Python **0.3.1a5**, 46 source templates and two providers. It is not a 0.4.17 rerun or evidence for every interpreter, PTY, desktop or real-model task.
+- [Issue 131](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131), complex generated environment build timeouts, remains deferred. Request-timeout acceptance does not resolve it.
+
+[Documentation synchronization decision](notes/implemented/process/2026-10-24-current-docs-and-records.md) · [verification and acceptance reconciliation](evidence/verify/2026-10-24-current-docs-and-records.md).
+
+Earlier entries below are a decision history. A remaining proposal is not a current product guarantee; read the linked acceptance scope before treating its full criteria as complete.
+
+
 Maintainer and AI-agent facing records of **why** the CLI looks the way it does. Nothing here is published to npm
 (`package.json#files` is an allow-list). All new documents are written in English.
 
@@ -144,20 +157,20 @@ Auth migration: [explicit sandbox API keys](notes/implemented/architecture/2026-
 
 - [Terminal installation and prompts](notes/implemented/feature/2026-10-23-terminal-install-prompts.md) · [verification](evidence/verify/2026-10-23-terminal-install-prompts.md)
 
-- [Template workflows](notes/proposed/architecture/2026-10-23-template-workflows.md) · [verification](evidence/verify/2026-10-23-template-workflows.md)
+- [Template workflows](notes/implemented/architecture/2026-10-23-template-workflows.md) · [verification](evidence/verify/2026-10-23-template-workflows.md)
 - [OpenSandbox maturity](notes/implemented/process/2026-10-23-opensandbox-maturity.md) · [verification](evidence/verify/2026-10-23-opensandbox-maturity.md)
 
 Provider installation progress: [decision](notes/implemented/feature/2026-10-23-provider-install-progress.md), [local verification](evidence/verify/2026-10-23-provider-install-progress.md).
 
-- [Workflow review safety](notes/proposed/feature/2026-10-23-workflow-review-safety.md) · [verification](evidence/verify/2026-10-23-workflow-review-safety.md) · [Issue 122](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/122)
+- [Workflow review safety](notes/implemented/feature/2026-10-23-workflow-review-safety.md) · [verification](evidence/verify/2026-10-23-workflow-review-safety.md) · [Issue 122](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/122)
 
-- [CLI 0.4.11 integration](notes/proposed/process/2026-10-24-release-integration.md) · [verification](evidence/verify/2026-10-24-release-integration.md)
+- [CLI 0.4.11 integration](notes/implemented/process/2026-10-24-release-integration.md) · [verification](evidence/verify/2026-10-24-release-integration.md)
 
 - [Prompt platform steps](notes/implemented/feature/2026-10-24-prompt-platform-steps.md) · [verification](evidence/verify/2026-10-24-prompt-platform-steps.md)
 
-Current generation fix: [Express workspace ownership](notes/proposed/feature/2026-10-24-generated-workdir-ownership.md).
+Current generation fix: [Express workspace ownership](notes/implemented/feature/2026-10-24-generated-workdir-ownership.md).
 
-- [Express source workflows](notes/proposed/feature/2026-10-24-express-source-workflows.md) · [verification](evidence/verify/2026-10-24-express-source-workflows.md).
+- [Express source workflows](notes/implemented/feature/2026-10-24-express-source-workflows.md) · [verification](evidence/verify/2026-10-24-express-source-workflows.md).
 
 - [Public source recipe preparation](notes/implemented/feature/2026-10-24-source-template-preparation.md) · [verification](evidence/verify/2026-10-24-source-template-preparation.md).
 

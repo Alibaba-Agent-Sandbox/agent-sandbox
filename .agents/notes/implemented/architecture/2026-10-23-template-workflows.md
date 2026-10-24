@@ -1,6 +1,6 @@
 # Decision: Plan template workflows independently from runtime offerings
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -48,3 +48,7 @@ Run shared vectors across Python and Node, operation/context regressions, bound 
 - [Issue #118](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/118)
 
 - [Verification](../../../evidence/verify/2026-10-23-template-workflows.md)
+
+## Implementation
+
+Delivered in [PR #121](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/121); actual merged state was checked on 2026-10-24. Later acceptance and current limitations are indexed in the [current synchronization record](../../../evidence/verify/2026-10-24-current-docs-and-records.md). Earlier verification files remain unchanged and retain their original pending or failed observations.

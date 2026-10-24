@@ -27,3 +27,7 @@ Omit `--yes` to confirm the billable build/create interactively. A local source 
 A successful launch keeps the sandbox running until deletion or expiry. On failure, the CLI attempts to delete the sandbox it created. Retained images and platform templates are listed in the resource journal printed by the command. If a remote request times out, inspect that journal before retrying because the resource may already exist.
 
 HTTP template APIs, shell execution, PTY sessions and persistent interpreters are separate functions. A template HTTP API does not require a platform interpreter. See [template workflows](template-workflows.md) for manifest and protocol details.
+
+## Application request deadlines
+
+CLI 0.4.17 applies `ABX_HTTP_TIMEOUT` to application discovery, health, command listing and command calls. For example, set `ABX_HTTP_TIMEOUT=330` before running a long application command. This is the wait for each HTTP request; it does not change a template build deadline or cancel work already executing remotely. See [configuration](../reference/configuration.md).
