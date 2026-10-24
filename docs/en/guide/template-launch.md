@@ -12,6 +12,8 @@ The CLI builds the image, creates a sandbox, starts the application and checks t
 
 Official source templates use the existing native base recipe. OpenSandbox resolves its base to `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`; `ABX_BASE_IMAGE_REGION` and `ABX_BASE_IMAGE_TAG` override those build inputs. These are image-source settings, independent of the OpenSandbox server location. Docker builds the exact server SDK commit already pinned in the selected Dockerfile and supplies its wheel to the existing install step. No separate Python SDK checkout or host Python build tools are required. The CLI prepares a temporary copy and keeps application instructions and the final `USER` unchanged.
 
+For authenticated templates, set `ABX_SERVER_TOKEN` to the application service token before launching. OpenSandbox server-proxy connections require CLI 0.4.16 or later. The CLI preserves Bearer authentication and also sends the same explicit application token as `X-Access-Token` when that header is not already used by the gateway; gateway credentials are never replaced.
+
 Options:
 
 - `--timeout SECONDS`: build/preparation limit, default 600 and maximum 3600.

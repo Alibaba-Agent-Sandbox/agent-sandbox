@@ -53,6 +53,10 @@ export async function requestApplication(endpoint: ApplicationEndpoint, operatio
     if (!options.application_token || /[\r\n]/.test(options.application_token) || Object.keys(headers).some(k => k.toLowerCase() === "authorization"))
       throw new ProviderConfigError("Application and gateway authentication must have separate audiences.");
     headers["Authorization"] = `Bearer ${options.application_token}`;
+    // Some server proxies strip Authorization. Use the server's existing token
+    // header too, unless that name is already occupied by the gateway.
+    if (!Object.keys(headers).some(name => name.toLowerCase() === "x-access-token"))
+      headers["X-Access-Token"] = options.application_token;
   }
   if (options.json !== undefined) headers["Content-Type"] = "application/json";
   let response: Response;
