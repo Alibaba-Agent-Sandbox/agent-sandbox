@@ -24,7 +24,7 @@ let sandbox, launch, error;
 async function run(args, json = true) {
   const result = await new Promise(resolve => {
   const child = execFile(process.execPath, [cli, '--native', ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => resolve({ status: error ? error.code ?? 1 : 0, stdout, stderr }));
-  child.stdin.end(); // Remote exec reads piped stdin to EOF; this harness supplies no input.
+  child.stdin.end(); // Automated commands have no interactive input; unexpected prompts must fail.
   const phases = new Set();
   child.stderr.on('data', chunk => {
     for (const phase of ['Checking Docker daemon', 'Building Docker image', 'Logging into ACR', 'Pushing to ACR', 'Image pushed to ACR', 'Creating template via official API', 'Waiting for template to become READY']) {
@@ -75,7 +75,7 @@ try {
   await run(['upload',launch.sandbox_id,local,'/tmp/abx-workflow-e2e.txt'],false);
   await run(['download',launch.sandbox_id,'/tmp/abx-workflow-e2e.txt',downloaded],false);assert.equal(fs.readFileSync(downloaded,'utf8'),'workflow file roundtrip');
   await run(['sandbox','files','stat',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt']);
-  await run(['sandbox','files','rm',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt'],false);check('CLI upload/download/stat/remove');
+  await run(['sandbox','files','rm',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt','--yes'],false);check('CLI upload/download/stat/remove');
   if (process.env.ABX_WORKFLOW_FULL_E2E === '1') {
     const reportFile = path.join(directory,'full-e2e.json');
     const full = spawnSync(process.execPath,[fileURLToPath(new URL('./run.mjs',import.meta.url)),'--json',reportFile],{

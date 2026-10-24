@@ -51,3 +51,10 @@ Consumer: https://github.com/Alibaba-Agent-Sandbox/registry/pull/45
   wrapper left child stdin open, which can block `exec` waiting for EOF; close that pipe before
   rerunning. Also align the acceptance sandbox lifetime with the optional full suite deadline
   (30 minutes rather than 10); the current owned sandbox lifetime was extended explicitly.
+- Correction after isolated stdin probe: native `exec` completes with either open or closed
+  stdin; it was not the blocked operation. Run 40092372924 was cancelled for diagnosis.
+  Its retained job log confirms Registry launch, image/template receipts, info/list, exec,
+  command discovery, hello and POST all passed. The file-delete test omitted `--yes` and
+  waited at its confirmation prompt. Add explicit consent and keep stdin closed so future
+  unexpected prompts fail rather than hang. Independent cleanup confirmed zero owned
+  sandboxes and templates after cancellation. No full-suite pass is claimed for that run.
