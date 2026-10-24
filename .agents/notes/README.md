@@ -106,3 +106,5 @@ They are registered as recognised optional sections and are not mandatory:
 - `## Files changed` — the concrete files touched by the decision
 
 - [Cloud E2E command contract](proposed/process/2026-10-23-cloud-e2e-command-contract.md)
+
+- [CLI 0.4.11 integration](proposed/process/2026-10-24-release-integration.md)
