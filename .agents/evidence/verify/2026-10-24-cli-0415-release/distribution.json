@@ -1,0 +1,80 @@
+{
+  "tag": "v0.4.15",
+  "merge_sha": "25e22d8f5c38bb0b7636ba699511da4f4695ec48",
+  "binary_workflow": 40107804850,
+  "release_id": 422818968,
+  "assets": [
+    {
+      "name": "abx-0.4.15-darwin-arm64",
+      "size": 122650736,
+      "digest": "sha256:e99bdba3b4e1eefc89c47a68499a71c315c277a47569ecbc2db061abe8143a6e"
+    },
+    {
+      "name": "abx-0.4.15-darwin-arm64.sha256",
+      "size": 90,
+      "digest": "sha256:bd8a76269d91d6c6b69202a7eff2b397073d1f5958188c87d75cb04d81975eeb"
+    },
+    {
+      "name": "abx-0.4.15-darwin-x64",
+      "size": 125805248,
+      "digest": "sha256:505a33d7c19187a5f3240b05663dad35df158ee309a64f770d9573938105d483"
+    },
+    {
+      "name": "abx-0.4.15-darwin-x64.sha256",
+      "size": 88,
+      "digest": "sha256:d28d0cea3af55c134a8b18e8bc738443b14caa134168f851b06a27037c86a21d"
+    },
+    {
+      "name": "abx-0.4.15-linux-arm64",
+      "size": 132779136,
+      "digest": "sha256:c5c02c6ca31e863b1836ba2e76405ab71e55872d079a676f5a97ad155c415dce"
+    },
+    {
+      "name": "abx-0.4.15-linux-arm64.sha256",
+      "size": 89,
+      "digest": "sha256:97288a4de57b69d637187bd30acf4f3f146cf2ff2dd9749741a7f9f44aabef98"
+    },
+    {
+      "name": "abx-0.4.15-linux-x64",
+      "size": 135400640,
+      "digest": "sha256:eb4cfd57425e736bc046dce5656d82e1d2b8b0a3d11838cc753a6d8c43639b44"
+    },
+    {
+      "name": "abx-0.4.15-linux-x64.sha256",
+      "size": 87,
+      "digest": "sha256:ec32a7155c646a908ffa9e469a6fed5b45d83b6f05dbe89f75930e41455e5dc8"
+    },
+    {
+      "name": "abx-0.4.15-windows-x64.exe",
+      "size": 97689088,
+      "digest": "sha256:7f62a08b4a2cb810a81dac99c9d934e4dc6f76b2f1924a79d53bb8169f60ff73"
+    },
+    {
+      "name": "abx-0.4.15-windows-x64.exe.sha256",
+      "size": 93,
+      "digest": "sha256:027e681011c1376af73cc2a637670536f1aba081dc5db8093e96e492899add4d"
+    }
+  ],
+  "public_checksum_readback": [
+    {
+      "binary": "abx-0.4.15-darwin-arm64",
+      "sidecar_matches_uploaded_binary_digest": true
+    },
+    {
+      "binary": "abx-0.4.15-darwin-x64",
+      "sidecar_matches_uploaded_binary_digest": true
+    },
+    {
+      "binary": "abx-0.4.15-linux-arm64",
+      "sidecar_matches_uploaded_binary_digest": true
+    },
+    {
+      "binary": "abx-0.4.15-linux-x64",
+      "sidecar_matches_uploaded_binary_digest": true
+    },
+    {
+      "binary": "abx-0.4.15-windows-x64.exe",
+      "sidecar_matches_uploaded_binary_digest": true
+    }
+  ]
+}
