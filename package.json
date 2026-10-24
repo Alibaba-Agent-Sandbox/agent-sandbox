@@ -83,7 +83,7 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "optionalDependencies": {
     "e2b": "2.55.0"
