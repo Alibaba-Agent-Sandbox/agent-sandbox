@@ -1,0 +1,88 @@
+{
+  "source_commit": "413d575a688bd6f870c42c711d11346d176e0f38",
+  "binary_run": 40111618077,
+  "release_id": 422845291,
+  "published_at": "2026-10-24T16:30:30Z",
+  "assets": [
+    {
+      "name": "abx-0.4.16-darwin-arm64",
+      "size": 122573936,
+      "digest": "sha256:5af824bb4679c6a06d10c56309af68d6023308f6502442c0fb8caed8a1f6eaab",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-darwin-arm64"
+    },
+    {
+      "name": "abx-0.4.16-darwin-arm64.sha256",
+      "size": 90,
+      "digest": "sha256:12bf5fc013cf6968a5af6ac9e1441acfd3e385fb9104277f65d95feaa8257cdb",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-darwin-arm64.sha256"
+    },
+    {
+      "name": "abx-0.4.16-darwin-x64",
+      "size": 125805248,
+      "digest": "sha256:57767361658449c4cb32bef558c13ab5dc5e8738ee67a5b8f695fdb0e18f2ade",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-darwin-x64"
+    },
+    {
+      "name": "abx-0.4.16-darwin-x64.sha256",
+      "size": 88,
+      "digest": "sha256:02c84411227d0fa7b0f2f94e5a4cf396a4c8a7589d67822607fd1d3b9aad1bf8",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-darwin-x64.sha256"
+    },
+    {
+      "name": "abx-0.4.16-linux-arm64",
+      "size": 132779136,
+      "digest": "sha256:d4a0007bc6df5a2fab7e697886d2aa17a0f461e1bc858c20612c907a50df3544",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-linux-arm64"
+    },
+    {
+      "name": "abx-0.4.16-linux-arm64.sha256",
+      "size": 89,
+      "digest": "sha256:f49a7a9f75e311bb45b8fff5f59a8dad6c3cda23d95d9f9bd881d17adacdaedd",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-linux-arm64.sha256"
+    },
+    {
+      "name": "abx-0.4.16-linux-x64",
+      "size": 135400640,
+      "digest": "sha256:74b1b380cec965f48b5dcbdd361d1b09d4de619fc302d89b69021257510e7cb0",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-linux-x64"
+    },
+    {
+      "name": "abx-0.4.16-linux-x64.sha256",
+      "size": 87,
+      "digest": "sha256:0d1aed96a83cf0ab4341bbe6b02afe0c3c1f582a12ea3e5d229367d02c8606a5",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-linux-x64.sha256"
+    },
+    {
+      "name": "abx-0.4.16-windows-x64.exe",
+      "size": 97689088,
+      "digest": "sha256:f3535ed1925728f2f898df1378b78ddf7c33ad4c411bafb4834123146c8480c7",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-windows-x64.exe"
+    },
+    {
+      "name": "abx-0.4.16-windows-x64.exe.sha256",
+      "size": 93,
+      "digest": "sha256:d00bfc51724cd90363b0179a946ecf145d6512a38655907124020bddad5a73ff",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/abx-0.4.16-windows-x64.exe.sha256"
+    },
+    {
+      "name": "agent-sandbox-cli-0.4.16.tgz",
+      "size": 2181780,
+      "digest": "sha256:c1463981875e920d998510bf4bb01260abf5aab9c9acca530efa9d11a182dade",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/agent-sandbox-cli-0.4.16.tgz"
+    },
+    {
+      "name": "agent-sandbox-cli-0.4.16.tgz.sha256",
+      "size": 95,
+      "digest": "sha256:f83eb9b59792d606ccdf0c163453bdba6ac336ab0d55ceafd59205b4774515cf",
+      "browser_download_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.4.16/agent-sandbox-cli-0.4.16.tgz.sha256"
+    }
+  ],
+  "public_checksum_sidecars_verified": [
+    "abx-0.4.16-darwin-arm64.sha256",
+    "abx-0.4.16-darwin-x64.sha256",
+    "abx-0.4.16-linux-arm64.sha256",
+    "abx-0.4.16-linux-x64.sha256",
+    "abx-0.4.16-windows-x64.exe.sha256"
+  ],
+  "npm_run": 40111877147
+}
