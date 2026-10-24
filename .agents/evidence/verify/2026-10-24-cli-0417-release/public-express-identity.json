@@ -1,0 +1,11 @@
+{
+  "source": "fresh public npm installation",
+  "package": "@agent-sandbox/cli",
+  "version": "0.4.17",
+  "version_output": "abx, version 0.4.17",
+  "release_commit": "2809931b0fb05c6ba53fb7b8be2369938c308614",
+  "baseline_public_version": "0.4.16",
+  "report_sha256": "ddc2d6aa5d2ff4bfd8a60d1bb9319fa8a60481165e80b59f11eb591598c23ce6",
+  "generic_candidate_label_in_script": "public npm CLI 0.4.17",
+  "result": "PASS"
+}

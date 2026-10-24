@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Record CLI 0.4.17 public distribution and link template contributors to the owning schema instead of duplicating retired fields.
+
+
 ## [0.4.17] - 2026-10-24
 
 ### Fixed

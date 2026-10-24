@@ -1,0 +1,33 @@
+{
+  "provider": "alicloud-express",
+  "template": "base",
+  "result": "PASS",
+  "checks": [
+    {
+      "case": "public-0416-ignores-configured-40",
+      "http_timeout_seconds": 40,
+      "server_delay_seconds": 35,
+      "returncode": 2,
+      "elapsed_seconds": 31.15
+    },
+    {
+      "case": "candidate-honors-configured-40",
+      "http_timeout_seconds": 40,
+      "server_delay_seconds": 35,
+      "returncode": 0,
+      "elapsed_seconds": 36.55
+    },
+    {
+      "case": "candidate-honors-short-1",
+      "http_timeout_seconds": 1,
+      "server_delay_seconds": 3,
+      "returncode": 2,
+      "elapsed_seconds": 2.19
+    }
+  ],
+  "cleanup": "confirmed absent",
+  "server_version": "0.3.1a5",
+  "server_wheel_sha256": "96405446aa84d4eb939536d90355f614bce468b745784def823b29781c638a1a",
+  "application_result": "PASS",
+  "absent_from_inventory": true
+}
