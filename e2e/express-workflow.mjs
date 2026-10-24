@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { Sandbox } from '../dist/api/sandbox.js';
 import { requestApplication } from '../dist/transport/application_http.js';
 import { loadConfig } from '../dist/transport/config.js';
-import { listOfficialTemplates, deleteTemplate } from '../dist/providers/alicloud_express/fc_template.js';
+import { listOfficialTemplates, getTemplate, deleteTemplate } from '../dist/providers/alicloud_express/fc_template.js';
 
 const cli = fileURLToPath(new URL('../dist/bin/abx.js', import.meta.url));
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'abx-express-acceptance-'));
@@ -33,17 +33,22 @@ async function run(args, json = true) {
   });
   if (result.status !== 0) {
     // Raw cloud/build errors can contain signed URLs. Keep only bounded sanitized diagnostics locally.
-    const secrets = Object.entries(process.env).filter(([key]) => /KEY|TOKEN|SECRET|PASSWORD|BASE_URL|DOMAIN|NAMESPACE/.test(key)).map(([,value]) => value).filter(Boolean);
-    let diagnostic = result.stderr + result.stdout;
-    for (const secret of secrets) diagnostic = diagnostic.split(secret).join('[redacted]');
-    diagnostic = diagnostic.replace(/https?:\/\/[^\s"']+/g, '[url]').slice(-8000);
-    diagnostic = diagnostic.replace(/\b[0-9]{12,}\b/g, '[account]').replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/g, '[journal]');
+    const diagnostic = sanitize(result.stderr + result.stdout);
     report.failure_diagnostic = diagnostic;
     report.resource_states = journals().flatMap(j => j.entries.map(({kind,state}) => ({kind,state})));
     fs.writeFileSync(path.join(directory, 'failure.txt'), diagnostic, {mode: 0o600});
     throw new Error(`CLI ${args.slice(0,2).join(' ')} failed (exit ${result.status}); diagnostics retained locally, not uploaded`);
   }
   return json ? JSON.parse(result.stdout) : result.stdout;
+}
+function sanitize(value) {
+  let text = typeof value === 'string' ? value : JSON.stringify(value);
+  const secrets = Object.entries(process.env).filter(([key]) => /KEY|TOKEN|SECRET|PASSWORD|BASE_URL|DOMAIN|NAMESPACE/.test(key)).map(([, value]) => value).filter(Boolean);
+  for (const secret of secrets) text = text.split(secret).join('[redacted]');
+  for (const entry of journals().flatMap(j => j.entries)) {
+    for (const id of [entry.id, entry.correlation_key].filter(Boolean)) text = text.split(id).join('[owned-resource]');
+  }
+  return text.replace(/https?:\/\/[^\s"']+/g, '[url]').replace(/\b[0-9]{12,}\b/g, '[account]').replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/g, '[journal]').slice(-8000);
 }
 function check(name) { report.checks.push(name); console.log(`PASS ${name}`); }
 function journals() {
@@ -90,7 +95,13 @@ finally {
     for(const id of ids) { const owned=await Sandbox.connect(id,{provider:'alicloud-express'});try{await owned.kill();assert.equal(await owned.isRunning(),false);}finally{await owned.close();} }
     report.cleanup.sandboxes='confirmed deleted';
     const ownedTemplates=(await listOfficialTemplates(nativeOptions)).filter(t=>t.name?.startsWith(`${alias}-`));
-    for(const t of ownedTemplates)await deleteTemplate(t.templateID,nativeOptions);
+    for(const t of ownedTemplates) {
+      if(error) {
+        const detail = await getTemplate(t.templateID,nativeOptions);
+        (report.template_failure_states ||= []).push(sanitize(detail.status));
+      }
+      await deleteTemplate(t.templateID,nativeOptions);
+    }
     assert.equal((await listOfficialTemplates(nativeOptions)).filter(t=>t.name?.startsWith(`${alias}-`)).length,0);
     report.cleanup.templates='confirmed absent from inventory';
     // Registry images have explicit manual cleanup semantics and remain attributable by their unique tag.
