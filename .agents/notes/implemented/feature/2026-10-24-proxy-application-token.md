@@ -1,6 +1,6 @@
 # Decision: Keep application identity through server proxies
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
