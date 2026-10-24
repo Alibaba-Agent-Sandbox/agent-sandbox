@@ -25,6 +25,8 @@ metadata changed from 0.4.10 to 0.4.11, followed by fresh build and artifact ver
 - After version bump: `npm run build`, MCP/package tests, `npm run e2e:offline`, `make dist-check`.
 - `npm pack`, fresh-prefix global install of the exact tarball, then `node scripts/check-release-artifact.mjs INSTALLED_ABX`.
 - `npx vitest run tests/integration/test_cli_e2e.test.ts tests/integration/test_nl_template_init_e2e.test.ts`
+- `npm run parity:coverage` on the final version and regenerated evidence.
+- `bash scripts/check-repo-health.sh`; `npm run check:hygiene`; `git diff --check`.
 - `ABX_BIN=BUILT_ABX node e2e/run.mjs --suite cloud-readonly,cloud-lifecycle --json REPORT --markdown REPORT`
 
 Full tests use Python fixture 270a7a8fa72656653b485403273491fd99aeefc8 and providers
@@ -45,8 +47,10 @@ fixture de4fbf647966459feb57a35ab590b938024abe0e via the existing documented fix
 | Package contents and actual fresh install | PASS | Complete Skill reference closure; installed 0.4.11 version, menus, JSON, help and licenses |
 | Real Express read-only/lifecycle | PASS | 71 passed, 0 failed/skipped; 2 owned sandboxes; 0 leaked and 0 unresolved creates |
 | Complete parity first run | FAIL | 4302 passed, 21 failed, 2 skipped: existing 20 environment failures plus stale 0.4.10 version golden |
-| Version evidence repair | PASS | Captured 0.4.11 into a new golden directory, preserving historical evidence; full evidence-file regression passes |
-| Final complete parity rerun | PENDING | Record actual result before release |
+| Version evidence repair | PASS | Captured 0.4.11 into a new golden directory, preserving historical evidence; all 118 evidence-file cases pass |
+| Final complete suite at 0.4.11 | FAIL / environment blocked | 4303 passed, 20 failed, 2 skipped; identical failed test names on unchanged main |
+| Final parity ledger | PASS | 907/907; 11 migrated Python entries verified; does not erase the 20 full-suite environment failures |
+| Health and hygiene | PASS | 105 checks, 11 historical warnings, 0 failures; no local-path or credential findings |
 | Remote CI/review | PENDING | Required on the final reviewed head |
 
 The 20 local full-suite failures remain the existing managed-network HTTP/TLS/proxy and
