@@ -104,39 +104,22 @@ abx kill local-process:sbx-1 --yes
 
 ## 安装之后能用什么
 
-安装一个提供商，并不会打开全部 `abx` 命令。CLI 和 Python SDK 调用的是**同一份已安装插件**，插件清单里写了它实现哪些能力。`abx provider info <id>` 会打印这份清单。缺了对应能力的命令以 `E8004` 失败（退出码 1），不会去访问后端。没有选择插件时，内置 Provider 仅声明自身适配器已实现的能力；全局注册不代表 CLI 入口已接通或当前账号实际可用。
+安装插件不会自动实现全部接口。查看 `abx provider info <id>`，并按[模板工作流](template-workflows.md)检查当前客户端需要的具体操作。清单声明、客户端实现和实际后端响应分别决定一次调用能否成功。
 
-| 提供商必须声明的能力 | CLI 命令 | Python SDK |
+| 要做的事 | CLI | Python ProviderSandbox |
 |---|---|---|
-| `sandbox.lifecycle` | `create`、`list`、`info`、`kill`、`connect` | `Sandbox.create`、`connect`、`list`、`kill`、`info` |
-| `sandbox.timeout` | 创建时的生命周期参数；无通用 timeout 命令 | `set_timeout` |
-| `sandbox.pause` | 极速版标准 pause/resume；通用 Provider CLI 入口尚未接入 | ProviderSandbox `pause`、`resume` |
-| `exec.run` | `exec`、`run` | `commands.run`、`sandbox.run` |
-| `exec.stream` | `sandbox exec --stream` | `commands.stream` |
-| `process.manage` | `sandbox process list/info/signal`；用 `exec --background` 启动 | `commands.list`、`kill`、`send_input` |
-| `pty` | 极速版 connect 为 PTY；项目 Provider connect 仍是逐行 REPL | `get_terminal` |
-| `files.rw` | `upload`、`download`、`sandbox files ...` | `files.read/write/list/stat/mkdir/remove/move` |
-| `files.watch` | — | `files.watch` |
-| `files.transfer` | — | 带签名的上传和下载 URL |
-| 具体 `code.*` 操作 | 解释器执行与各项上下文操作分别检查 | `run_code` |
-| `templates.read` | `template list`、`template info` | 模板读取 API |
-| `templates.build` | `template build/push/create/deploy/install/delete`、`deploy`、`install` | 镜像构建和模板注册 |
-| `ports.url` | 无独立 URL 命令 | Provider 感知的 `network.resolve` / `resolve_url` |
-| `ports.domain` | 当前适配器未实现 | 需要已验证的后端专有适配器 |
-| `storage.mount` | 本次没有通用挂载命令 | 独立挂载集成，本次未实现 |
-| `network.vpc` | 仅 FC 模板参数，不是通用 Provider 操作 | 独立的 Provider 专有配置 |
-| `sessions` | `connect <provider:id>` 重新连接 | 对已有 id 调用 `Sandbox.connect` |
+| 创建、连接与清理 | `create`、`connect`、`kill` | `ProviderSandbox.create/connect`、实例 `kill/close`；`close` 仅释放本地客户端 |
+| 执行进程 | `exec` | `commands.run` |
+| 读写文件 | `upload`、`download` | `files.read/write` |
+| 调用模板应用 | `run`、`sandbox command run`，见[命令参考](../reference/cli-commands.md) | `await application_client(port, token=...)` 后调用 `client.commands.run` |
+| 获取应用端点 | 无独立 URL 命令 | `await network.resolve(port)` 返回 URL 和网关头 |
+| 准备源码并启动 | `template launch`，见[启动指南](template-launch.md) | 使用 CLI 准备，再连接返回的沙箱或使用已准备好的引用 |
 
-`abx provider list` 只显示每个提供商声明了多少项特性（表格要在 80 列下保持可读）；`--json` 里是完整列表的单个字符串，例如 `sandbox(lifecycle,timeout,pause) exec(run,stream) process(manage) files(rw) ports(url) sessions`。`abx provider info <id>` 打印完整清单。
+进程执行、应用命令、解释器和 PTY 是不同接口，一种接口通过不代表其他接口已实现。提供方使用 EPP 传输，不代表无法通过 HTTP 调用应用：所选工作流需要提供可达的应用端点并满足认证要求。调用时保留网关头，显式提供应用令牌。
 
-CLI 如何跟随当前提供商：
+工作流规划检查具体提供方操作与客户端支持，详见[模板工作流](template-workflows.md)。提供方没有上报区域或超时时，`abx info` 和 `abx list` 显示 `-`。
 
-- `abx template list|info` 需要 `templates.read`；`build`、`push`、`create`、`deploy`、`install`（`--download-only` 除外）、`delete` 以及顶层 `abx deploy` 需要 `templates.build`。缺少时在任何镜像仓库、Docker 或 ACR 操作之前返回 `E8004`。
-- `abx sandbox command run|list` 需要通向沙箱的 HTTP 数据面。通过 EPP 路由的提供商会返回 `E8004`，并写明 `named commands`。
-- 工作流就绪判断使用具体 Provider 操作与客户端协议支持，详见[模板工作流](template-workflows.md)。
-- 提供商没有上报区域或超时时，`abx info` 和 `abx list` 显示 `-`。
-
-`kind = "python"` 的清单不可安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用，但从磁盘安装的插件不会以 Python 运行。
+`kind = "python"` 的清单不可安装。Python SDK 仍支持以代码方式构造的 `Provider` 子类；`exec` 插件也可以使用 Python 可执行程序实现 EPP 协议。
 
 ### 目录里的提供方
 

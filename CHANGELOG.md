@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Simplify provider usage guidance around actual process, application and source-preparation interfaces; remove incorrect EPP and Python build generalizations.
+
 - Correct the bilingual provider guide: current provider-owned template preparation and CLI/Python plugin consumption, without obsolete release or all-SDK claims.
 
 ## [0.4.16] - 2026-10-24
