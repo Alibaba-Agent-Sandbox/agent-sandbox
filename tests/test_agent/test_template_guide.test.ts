@@ -133,6 +133,16 @@ describe("TestGuideText", () => {
     expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
   });
 
+  it("teaches verified application CLI arguments and provider-owned HTTP bindings", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express");
+    expect(guide).toContain("--json-args");
+    expect(guide).toContain("APPLICATION_URL");
+    expect(guide).toContain("本次 README 只提供上述 CLI/HTTP 调用");
+    expect(guide).toContain("X-Access-Token");
+    expect(guide).not.toContain("https://<端口>-<sandbox_id>.<domain>");
+    expect(guide).not.toContain("sandbox.network.get_url(port)");
+  });
+
   serverIt("test_imports_shown_in_the_guide_exist", () => {
     const block = /from agent_sandbox\.server import \(([\s\S]*?)\)/.exec(TEMPLATE_GUIDE);
     expect(block).not.toBeNull();

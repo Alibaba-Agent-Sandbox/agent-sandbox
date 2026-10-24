@@ -93,3 +93,10 @@ parser. It had not returned a final result, so the command failed and created no
 cloud resources. A fresh attempt uses the documented
 `ABX_QWEN_CODEGEN_TIMEOUT=1200`; the cloud build wait remains 600 seconds.
 This explicit configuration experiment does not change either default timeout.
+
+Candidate 9 generated README examples contained an unsupported `--input` option
+and a fictitious synchronous SDK application call. The artifact is preserved.
+The guide now teaches `--json-args` and provider-owned application bindings with
+separate gateway/application authentication, and limits README examples to the
+verified CLI/HTTP surface. Guide regression: 13 passed, 6 environment-dependent
+server-package cross-checks skipped; fresh generation must review the README too.

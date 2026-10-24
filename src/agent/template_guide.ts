@@ -56,7 +56,14 @@ const _FILES_CREATE = `### 2. 模板必须包含的文件
 - \`Dockerfile\`
 - \`commands.py\`：服务入口，见下文
 - \`template.yaml\`
-- \`README.md\`：模板是什么、需要哪些环境变量、调用示例（curl）
+- \`README.md\`：模板是什么、需要哪些环境变量、调用示例（CLI 与 curl）
+  CLI 参数必须使用 \`abx sandbox command run <sandbox_id> <名字> --json-args '{"参数":"值"}'\`，
+  不存在 \`--input\`。先用 \`abx sandbox command list <sandbox_id>\` 查看实际命令。
+  curl 使用用户从实际应用绑定取得的 \`APPLICATION_URL\`；不要手拼 sandbox 域名或猜测网关 URL。
+  说明该绑定要求的网关认证（如 \`X-Access-Token\`）与可选应用 \`Authorization: Bearer\` 独立，
+  必须按实际绑定传递相应凭据，不能把未认证的 URL 示例说成通用可用路径。
+  本次 README 只提供上述 CLI/HTTP 调用，不生成未经验证的 Python/Node SDK 示例；
+  尤其不要把同步 \`Sandbox(template=...)\` 或进程 \`sandbox.commands.run\` 冒充应用命令 API。
 需求确实需要时，可再添加业务代码（如 \`app.py\`、\`server.js\`、\`requirements.txt\`），
 放在当前目录，并在 Dockerfile 里 COPY 进镜像。
 `;
@@ -80,8 +87,8 @@ function selectedProfile(profile?: TemplateProfile | string | null): TemplatePro
 }
 
 function howItIsUsed(profile: TemplateProfile): string {
-  const common = `沙箱部署后，调用方只能通过 HTTP(S) 访问它：\`https://<端口>-<sandbox_id>.<domain>\`
-（SDK 里是 \`sandbox.network.get_url(port)\`）。所以镜像里**必须有一个常驻的 HTTP 服务**，
+  const common = `本模板的业务命令通过 provider 返回的应用 HTTP(S) 绑定访问；URL 与网关认证由实际绑定决定，不能手拼。
+应用命令与 envd 进程执行是不同协议。所以镜像里**必须有一个常驻的 HTTP 服务**，
 仅有 Dockerfile 的模板部署后无法被使用。Agent Sandbox 的标准做法是：\`commands.py\`
 用 \`agent_sandbox.server\`（纯标准库、零第三方依赖的 HTTP 服务）在 **${SERVER_PORT}** 端口对外服务。
 \`commands.py\` 只从 \`agent_sandbox.server\` 导入，并在 \`if __name__ == "__main__"\` 里调用 \`start(${SERVER_PORT})\`。`;
