@@ -47,3 +47,11 @@ The optional provider `workflow.source_placeholders` description uses the existi
 ## Release compatibility
 
 CLI 0.4.15 includes the optional metadata parser before the updated provider is published. Compatibility ordering distinguishes dev/alpha/beta/RC ordinals, including a2 versus a3 and a10 versus a3; unrecognized suffixes are rejected rather than considered equivalent. Runtime preparation behavior is unchanged by this version bump.
+
+## Second review and release snapshot correction
+
+Cross-review aligned source-placeholder metadata prerequisites with Python: an adapter must explicitly declare CLI template.prepare and source input. Metadata still grants no operations. The manifest suite passes 71 tests after this correction.
+
+Remote candidate run [40105561435](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40105561435) failed on both Node versions because the version golden still expected 0.4.14; Node22 reported 4354 passed, 1 failed, 5 skipped. The 0.4.15 version golden was regenerated through ABX_UPDATE_EVIDENCE in a new release directory, preserving the historical 0.4.14 capture. Latest-head CI remains required.
+
+The early long-running local make-ci run overlapped subsequent parser/test edits and therefore cannot establish final revision coverage; its cached old module/new test mismatch is not reported as a product failure or attributed to the environment. Separate local loopback/PTY subprocess failures remain distinguishable. A frozen-head full-suite run is required for final local results.

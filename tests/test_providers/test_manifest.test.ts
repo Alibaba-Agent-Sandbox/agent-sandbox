@@ -45,10 +45,18 @@ it("test_bytes_and_str_inputs_agree", () => {
 });
 
 it("accepts optional source recipe descriptions without granting provider operations", () => {
-  const parsed = parseManifest(BASE.replace('startups = ["none"]', 'startups = ["none"]\nsource_placeholders = ["<region>", "<tag>"]'));
-  expect(parsed.operations).toEqual({ cli: [], python: [] });
-  expect(parsed.workflow_inputs).toEqual(["managed"]);
+  const source = BASE.replace('cli = []', 'cli = ["template.prepare"]').replace('inputs = ["managed"]', 'inputs = ["source"]');
+  const parsed = parseManifest(source.replace('startups = ["none"]', 'startups = ["none"]\nsource_placeholders = ["<region>", "<tag>"]'));
+  expect(parsed.operations).toEqual({ cli: ["template.prepare"], python: [] });
+  expect(parsed.workflow_inputs).toEqual(["source"]);
   expect(parsed.raw["workflow"]).toMatchObject({ source_placeholders: ["<region>", "<tag>"] });
+});
+
+it("rejects source substitution claims when source preparation is not declared", () => {
+  const metadata = BASE.replace('startups = ["none"]', 'startups = ["none"]\nsource_placeholders = ["<region>"]');
+  expect(() => parseManifest(metadata)).toThrow("source placeholders require");
+  expect(() => parseManifest(metadata.replace('inputs = ["managed"]', 'inputs = ["source"]'))).toThrow("source placeholders require");
+  expect(() => parseManifest(metadata.replace('cli = []', 'cli = ["template.prepare"]'))).toThrow("source placeholders require");
 });
 
 it.each(['["<unknown>"]', '["<tag>", "<tag>"]', '["region"]', '"<tag>"', '[1]'])("rejects invalid source placeholder descriptions: %s", value => {

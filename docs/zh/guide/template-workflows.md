@@ -24,4 +24,4 @@
 
 `service-token` 绑定在构建或创建前必须配置 `ABX_SERVER_TOKEN`，缺失时在产生费用前拒绝。成功命令响应必须明确包含 `result`（允许 `null`），错误格式不能被当作成功，异常中不回显原始响应正文。启动只检查所选操作：`commands.run` 不额外要求命令列表权限，`health` 工作流使用健康检查端点。
 
-Provider 清单可用可选字段 `[workflow].source_placeholders = ["<region>", "<tag>"]` 描述支持的源码占位符。该目录说明不会授予操作或输入类型，实际支持仍按独立声明检查；未知或重复占位符会被拒绝。
+Provider 清单可用可选字段 `[workflow].source_placeholders = ["<region>", "<tag>"]` 描述支持的源码占位符。该目录说明不会授予操作或输入类型，实际支持仍按独立声明检查；未知或重复占位符会被拒绝。 非空声明要求同时声明 CLI `template.prepare` 操作和 `source` 输入。
