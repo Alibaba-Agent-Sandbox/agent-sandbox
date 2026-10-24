@@ -39,6 +39,7 @@ jobs:
           ALIBABA_CLOUD_REGION_ID: ${{ secrets.EXPRESS_ACCEPTANCE_REGION }}
           ACR_NAMESPACE: ${{ secrets.EXPRESS_ACCEPTANCE_ACR_NAMESPACE }}
           GITHUB_TOKEN: ${{ github.token }}
+          ABX_WORKFLOW_FULL_E2E: '1'
           ABX_WORKFLOW_REPORT: ${{ runner.temp }}/express-workflow-report.json
         run: node e2e/express-workflow.mjs
       - name: Retain sanitized acceptance summary
