@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.13] - 2026-10-24
+
+### Fixed
+
+- Order generated Express steps as WORKDIR, final ownership repair, then non-root USER; require runtime write/read/delete verification instead of claiming chown guarantees directory writability (#132). / Express 生成步骤先设置 WORKDIR，再修正目录所有权，最后恢复非 root 用户；README 要求实际写读删验证，不再仅凭 chown 承诺目录可写。
+
+### Known limitations
+
+- Complex pandas/matplotlib cloud steps builds may time out; the cause remains under investigation (#131). / 复杂 pandas/matplotlib 云端 steps 构建仍可能超时，根因尚待确认（#131）。
+
+
 ## [0.4.12] - 2026-10-24
 
 ### Fixed

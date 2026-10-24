@@ -159,8 +159,8 @@ function platformStepsRules(profile: TemplateProfile): string {
       - {type: USER, args: [root]}
       - {type: RUN, args: [<完整安装依赖的 shell 命令>]}
       - {type: RUN, args: [<在绝对路径 ${profile.workdir}/commands.py 写入源码的完整 shell 命令>]}
-      - {type: RUN, args: [<检查语法并修正工作目录所有权的 shell 命令>]}
       - {type: WORKDIR, args: [${profile.workdir}]}
+      - {type: RUN, args: [<检查语法并修正工作目录所有权的 shell 命令>]}
       - {type: USER, args: [${profile.user || "root"}]}
 - 以上 image 是提供方已解析的完整引用，必须逐字保留，不能改成 latest、其他 tag 或其他区域。
 - 平台只收到 base.image 与这些类型化 steps，不会收到当前目录、Dockerfile 或 COPY 上下文。
@@ -178,7 +178,13 @@ function platformStepsRules(profile: TemplateProfile): string {
   可以运行本地 Python 处理文本，但不要安装依赖、运行 Docker 或执行云构建。
 - 使用上面的 build.steps 顺序，不混用 build.run/apt_install/pip_install（快捷指令会在 USER root 前执行）。
   平台默认构建用户不一定是 root；安装阶段先 USER root，结束时恢复 provider 运行用户 ${profile.user || "root"}。
-  安装与写文件后执行 chown -R ${profile.user || "root"}:${profile.user || "root"} ${profile.workdir}，确保运行用户可写工作目录。
+  先完成所有 WORKDIR 步骤，再在最后一个 RUN 中检查语法并执行
+  chown -R ${profile.user || "root"}:${profile.user || "root"} ${profile.workdir}，然后 USER ${profile.user || "root"}；chown 后不要再放 WORKDIR。
+${profile.provider_id === "alicloud-express" ? `  Express steps 实测：USER root 下的 WORKDIR 会把已 chown 的目标目录重设为 root 所有；目录内文件的所有权可保持不变。
+  这不是 Dockerfile 或其他 provider 的通用权限规则。` : ""}
+  README 区分构建配置与运行时验证：只说明预期的运行用户和目录，不得仅凭 chown 声称已保证或实测可写。
+  提供以实际非 root 运行用户在 ${profile.workdir} 创建临时子目录、写入/读取/删除文件并清理的检查方法；
+  明确应用命令成功不代表目录可写。检查失败时报告身份与目录权限，不改成 root 运行、不使用 chmod 777、也不静默改写用户清单。
 - 所有路径使用绝对路径；安装的库必须是 start_cmd 使用的同一个 Python 能导入的。
   已有 python3/pip 时不要重新 apt 安装 Python；仅在用户需求确实包含系统依赖时安装对应系统包。
   不要假定基础镜像的 Python 版本。用户没有要求依赖版本时，不要猜测或复制历史旧版本 pin，

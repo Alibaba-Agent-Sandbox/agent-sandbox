@@ -158,6 +158,23 @@ describe("TestGuideText", () => {
     expect(guide).toContain("enable_group 不会关闭其他默认组");
   });
 
+  it("finishes Express WORKDIR before ownership repair and keeps runtime verification explicit", () => {
+    const guide = buildTemplateGuide("create", "alicloud-express", "steps");
+    const instructions = guide.slice(guide.indexOf("  build:"), guide.indexOf("- 以上 image"));
+    const steps = [...instructions.matchAll(/type: (USER|RUN|WORKDIR), args: \[(.*?)\]/g)]
+      .map((match) => ({ type: match[1], args: match[2] }));
+    const workdir = steps.findIndex((step) => step.type === "WORKDIR");
+    const ownership = steps.findIndex((step) => step.args?.includes("所有权"));
+    expect(workdir).toBeGreaterThan(-1);
+    expect(ownership).toBeGreaterThan(workdir);
+    expect(steps.slice(ownership + 1)).toEqual([{ type: "USER", args: "user" }]);
+    expect(guide).toContain("不得仅凭 chown 声称已保证或实测可写");
+    expect(guide).toContain("创建临时子目录、写入/读取/删除文件并清理");
+    expect(guide).toContain("应用命令成功不代表目录可写");
+    expect(buildTemplateGuide("create", "opensandbox", "steps")).not.toContain("Express steps 实测");
+    expect(buildTemplateGuide("create", "alicloud-express", "dockerfile")).not.toContain("Express steps 实测");
+  });
+
   it("keeps numerical dependency indexes configurable while pinning the server alpha source", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
     expect(guide).toContain("python3 -m pip install --only-binary=:all: pandas matplotlib");

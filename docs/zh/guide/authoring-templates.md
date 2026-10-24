@@ -225,3 +225,26 @@ abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-
 - [编写模板（SDK）](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/authoring-templates.md) — 字段参考、工作流声明、自定义命令、`@command`
 - [模板系统](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/design/template-system.md) — 分级、名称解析、版本管理
 - [声明式用法](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/declarative-usage.md) — `@sandbox` 装饰器
+
+## Express steps：工作目录权限
+
+Express steps 构建时，先执行 `WORKDIR /home/user/app`，再在最后一个 `RUN` 中
+检查源码语法并执行 `chown -R user:user /home/user/app`，最后恢复 `USER user`。
+在实测的 Express generation-2 基础镜像 v0.0.49 上，root 身份下位于 chown 之后的
+WORKDIR 会将目录属主重新设为 root，而 `commands.py` 的用户所有权仍可保持不变。
+这是 Express 平台 steps 的实测行为，不代表 Dockerfile 构建或其他 Provider 的规则。
+
+生成的 README 应说明预期运行身份和目录；构建时修改所有权不等于运行时已验证可写。
+等待模板 READY 后创建实例，使用默认非 root 用户检查。构建 CLI 并配置 Provider 凭据后，可运行本仓库的检查脚本：
+
+```bash
+node e2e/generated-workdir.mjs --sandbox-id YOUR_SANDBOX_ID
+```
+
+脚本创建临时子目录，执行文件写入、读取、删除并确认清理，不修改权限或提升身份。
+应用命令成功是另一项检查。失败时查看实际用户和目录元数据，修正自己模板的步骤顺序
+后重新部署；不要用 root 运行应用或 `chmod 777` 绕过问题。CLI 不会自动改写已有用户清单。
+检查完成后用 `abx kill YOUR_SANDBOX_ID` 删除实例，测试模板需要另外删除。
+
+CLI 0.4.13 更新了新生成模板的指导规则；已有生成模板需要显式调整上述步骤顺序。
+复杂数值计算依赖的构建超时由 [#131](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131) 单独跟踪。

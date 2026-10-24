@@ -225,3 +225,32 @@ The `template.yaml` contract and the Python-side authoring guides live in the [`
 - [Authoring Templates (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, workflow declarations, custom commands, `@command`
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) — tiers, name resolution, versioning
 - [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md) — the `@sandbox` decorator
+
+## Express steps: working-directory permissions
+
+For the Express steps builder, put `WORKDIR /home/user/app` **before** the final
+`RUN` that compiles the source and applies `chown -R user:user /home/user/app`,
+then finish with `USER user`. On the tested Express generation-2 base v0.0.49,
+a `WORKDIR` executed as root after `chown` reset the directory owner to root,
+even though `commands.py` retained its user ownership. This observation concerns
+Express platform steps; it is not a claim about Dockerfile builds or other providers.
+
+The generated README describes the intended identity and directory; build-time
+ownership alone is not proof of runtime writability. After the template is READY,
+create a sandbox and check as its normal non-root user. With the CLI built and provider credentials configured, this repository includes:
+
+```bash
+node e2e/generated-workdir.mjs --sandbox-id YOUR_SANDBOX_ID
+```
+
+The probe creates a temporary child directory, writes and reads a file, deletes
+it, and checks cleanup. It does not alter permissions or elevate the process.
+Application-command success is a separate check. On failure inspect the actual
+user and directory metadata, correct the owned template and redeploy; do not
+run the application as root or apply `chmod 777` as a workaround. The CLI does
+not rewrite existing user manifests. Keep the sandbox until your checks finish,
+then delete it with `abx kill YOUR_SANDBOX_ID`; delete your test template separately.
+
+CLI 0.4.13 updates fresh generation guidance. Existing generated templates need
+the same explicit step-order correction. Complex numerical dependency build
+timeouts remain tracked separately in [#131](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131).
