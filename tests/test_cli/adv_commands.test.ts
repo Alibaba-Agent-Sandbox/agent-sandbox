@@ -132,13 +132,13 @@ describe("commands (review regressions)", () => {
     });
   });
 
-  it("ADV-commands-04 a negative exec timeout expires before any Start request is sent (already-expired ConnectTimeout -> E3001)", async () => {
+  it("ADV-commands-04 a negative command budget expires with E3001 before any Start request is sent", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
       const r = await runAbx(["exec", SB, "--timeout", "-5", "echo hi"], { home, cwd, url: stub.url });
       // `--timeout -5` becomes httpx.Timeout(0). That expires as ConnectTimeout before any bytes (AT-12); the CLI
       // maps TimeoutException to E3001. A ConnectTimeout under a positive timeout is still ConnectionError_ (KI-003).
       expect(r.status).toBe(5);
-      expect(r.stderr).toContain("[E3001] Request timed out");
+      expect(r.stderr).toContain("[E3001] Command timed out");
       expect(r.stderr).not.toContain("ReadTimeout");
       expect((await log()).some((e) => e.path === "/process.Process/Start")).toBe(false);
     });
