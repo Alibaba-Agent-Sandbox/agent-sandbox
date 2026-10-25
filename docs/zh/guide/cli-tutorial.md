@@ -9,11 +9,11 @@
 需要 Node.js 20 或更新版本。安装固定的官方 npm 版本，并检查实际运行的版本：
 
 ```bash
-npm install --global @agent-sandbox/cli@0.5.5 --registry=https://registry.npmjs.org
+npm install --global @agent-sandbox/cli@0.5.6 --registry=https://registry.npmjs.org
 abx --version
 ```
 
-应看到版本 `0.5.5`。独立二进制、不同操作系统及源码开发安装见[安装指南](binary-installation.md)。
+应看到版本 `0.5.6`。独立二进制、不同操作系统及源码开发安装见[安装指南](binary-installation.md)。
 
 ---
 

@@ -23,7 +23,8 @@
       "failed": 10,
       "skipped": 50
     },
-    "remaining_steps": "Stopped after unit failure; parity and package check executed separately"
+    "remaining_steps": "Stopped after unit failure; parity and package check executed separately",
+    "candidate_package_version": "0.5.5 (before 0.5.6 release metadata preparation)"
   },
   "current_producer_sources": {
     "sdk": "8e610a3658040d8d6973e7951f9590ea50a4d70a",
@@ -144,5 +145,30 @@
     "independent_typed_sandbox_absence": true
   },
   "remote_ci": "PENDING: latest record commit must receive its own required checks",
-  "publication": "NOT_RUN"
+  "publication": "NOT_RUN",
+  "pre_fix_baseline_comparison": {
+    "baseline_commit": "4396ac10903d1c17ecfec5ccada4dd36895324a2",
+    "tree_equal_public_main": "3f7fa28e16888a5489980dc56c86d6c71c11c4a0",
+    "passed": 18,
+    "failed": 10,
+    "failed_names_match_candidate_make_ci_exactly": true,
+    "scope": "Three transport/WS files only; no host cause is inferred"
+  },
+  "release_preparation_056": {
+    "package_lock_version": "0.5.6",
+    "build": "PASS",
+    "typecheck": "PASS",
+    "command_and_snapshot_tests": 148,
+    "host_and_registry_scoping_tests": 56,
+    "new_dated_version_help_captures": 3,
+    "local_http_requests": 5,
+    "hygiene": "PASS",
+    "health": {
+      "passed": 106,
+      "warnings": 11,
+      "failed": 0
+    },
+    "runtime_source_unchanged_sha256": "74c2940a8cfa05f411754a1e7879a51fe617ccd43d9661dbf6c7f0b040b95d25",
+    "publication": "PENDING"
+  }
 }

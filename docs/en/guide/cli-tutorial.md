@@ -9,11 +9,11 @@ This tutorial walks you through mastering the `abx` CLI step by step, covering t
 Requires Node.js 20 or newer. Install the exact official npm release and check which version runs:
 
 ```bash
-npm install --global @agent-sandbox/cli@0.5.5 --registry=https://registry.npmjs.org
+npm install --global @agent-sandbox/cli@0.5.6 --registry=https://registry.npmjs.org
 abx --version
 ```
 
-The expected version is `0.5.5`. For standalone binaries, OS-specific installation or source development, use the [installation guide](binary-installation.md).
+The expected version is `0.5.6`. For standalone binaries, OS-specific installation or source development, use the [installation guide](binary-installation.md).
 
 ---
 

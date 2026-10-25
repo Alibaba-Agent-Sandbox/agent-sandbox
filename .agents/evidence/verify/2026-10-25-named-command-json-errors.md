@@ -41,4 +41,16 @@ All local HTTP servers close in `finally`. Local diagnostics and focused regress
 
 ## Not yet verified
 
-The failed full local suites remain recorded, without disabling tests. Latest remote CI, the final reviewed record commit, merge and release are not established by the local or cloud checks above. The candidate still carries the base package version; it is not a claim that the immutable public 0.5.5 package contains this fix.
+The failed full local suites remain recorded, without disabling tests. Latest remote CI, the final reviewed record commit, merge and release are not established by the local or cloud checks above. The earlier cloud candidate carried the base 0.5.5 identity; release preparation now sets package/lock and current installation guidance to the minimal next patch, 0.5.6. No public 0.5.6 artifact is claimed before the separate release gates.
+
+## Minimal patch release preparation
+
+The same unreleased change is prepared as CLI 0.5.6. Package and lock versions, current bilingual installation/tutorial guidance, and new dated version/help captures advance together. Earlier 0.5.5 records and output captures remain unchanged. The public SDK6/runtime pins and generated standard runtime bytes do not change. The earlier source-candidate cloud receipt retains its actual package identity and commit. Latest required CI, normal merge, five-platform artifacts, official publication and fresh public reruns remain pending.
+
+Release preparation checks: `npm run build`, `npm run typecheck` and hygiene PASS at package 0.5.6. The three matching command/snapshot files pass 148 tests; the actual host-adapter and registry-scoping files pass 56 tests. The three new version/help captures were generated with `ABX_UPDATE_EVIDENCE=1`; previous release captures remain unchanged. Compiled 0.5.6 candidate modules pass the same five real loopback HTTP controls. Repository health is 106 PASS / 11 WARN / 0 FAIL. The named-command runtime source hash is unchanged from the reviewed and cloud-tested candidate.
+
+## Independent pre-fix transport baseline
+
+A separate reviewer ran the three failing transport/WebSocket files on actual pre-fix head `4396ac10903d1c17ecfec5ccada4dd36895324a2`, whose tree equals public main `3f7fa28e16888a5489980dc56c86d6c71c11c4a0`, reusing the same installed lockfile dependencies. Result: 18 PASS / 10 FAIL, exit 1. Comparison against this candidate's original `make ci` failure list matches all ten complete test names after whitespace normalization; neither list has additional names. These ten failures therefore precede this patch. This does not establish a host root cause or turn either full run into a pass, and no tests were disabled. The other ten failures in the producer-enabled run remain separate observations.
+
+Safe independently produced baseline and explicit name comparison: [baseline](2026-10-25-named-command-json-errors-baseline.json).
