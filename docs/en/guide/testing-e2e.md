@@ -29,6 +29,11 @@ variables, masked output and tracked cleanup. Every sandbox it creates is destro
 suites, scenario format and environment variables. Recorded results are in
 [`e2e/BASELINE.md`](../../../e2e/BASELINE.md).
 
+The maintained process/file regressions also run with `npm run e2e:known-issues`.
+This suite explicitly selects native Express commands, uses `base` by default,
+and imports the TypeScript SDK built from the same source. Its selected test
+account is configured for both interfaces; see the [runner instructions](../../../e2e/known-issues/README.md).
+
 ## Compare two binaries
 
 ```bash

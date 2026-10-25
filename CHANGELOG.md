@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Tests
+
+- Run maintained known-issue regressions through the current native Express surface, use base and assert typed timeout errors without obsolete text. / 已知问题回归统一当前原生极速版入口，默认使用 base，按类型验证超时错误，删除旧文案断言。
+
 ## [0.5.3] - 2026-10-25
 
 ### Fixed

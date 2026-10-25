@@ -27,6 +27,10 @@ npm run e2e:cleanup                            # 清理遗留沙箱的 dry-run j
 最后的 `leak-check` 场景会在有沙箱残留时使运行失败。套件、场景格式与环境变量见
 [`e2e/README.zh-CN.md`](../../../e2e/README.zh-CN.md)。已记录的结果见 [`e2e/BASELINE.md`](../../../e2e/BASELINE.md)。
 
+进程和文件回归还可通过 `npm run e2e:known-issues` 运行。该套件显式使用原生极速版
+命令，默认使用 `base`，并导入同一源码构建的 TypeScript SDK；测试配置将选定的同一个
+账号分别传给两个接口，详见[运行说明](../../../e2e/known-issues/README.zh-CN.md)。
+
 ## 对比两个二进制
 
 ```bash
