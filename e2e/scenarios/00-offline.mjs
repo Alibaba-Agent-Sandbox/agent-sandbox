@@ -254,10 +254,8 @@ export default {
         if (r.code !== 0) ctx.fail(`mcp deploy exit ${r.code}\n${r.out}`);
         const requirements = readFileSync(join(out, 'requirements.txt'), 'utf8');
         const lines = requirements.trim().split('\n');
-        const server = lines[1]?.match(/^agent-sandbox-server==([a-z0-9.]+)$/);
-        const client = lines[2]?.match(/^agent-sandbox-client\[mcp\]==([a-z0-9.]+)$/);
-        if (lines.length !== 4 || lines[0] !== '--index-url https://pypi.org/simple' || !server || !client || server[1] !== client[1]) ctx.fail('artifact must install the current matching public MCP client and runtime');
-        if (lines[3] !== 'uvicorn>=0.54.0') ctx.fail('artifact must preserve the supported uvicorn dependency constraint');
+        const client = lines[1]?.match(/^agent-sandbox-client\[mcp\]==([a-z0-9.]+)$/);
+        if (lines.length !== 2 || lines[0] !== '--index-url https://pypi.org/simple' || !client) ctx.fail('artifact must install the current public MCP extra, including its matching runtime and ASGI dependencies');
         for (const file of ['app.py', 'config.yaml']) if (!existsSync(join(out, file))) ctx.fail(`missing artifact file ${file}`);
       },
     },

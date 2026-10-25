@@ -328,7 +328,7 @@ describe("TestMcpDeploy", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.statSync(path.join(out, "requirements.txt")).isFile()).toBe(true);
     const requirements = fs.readFileSync(path.join(out, "requirements.txt"), "utf8");
-    expect(requirements).toContain("agent-sandbox-server==0.4.0a2");
+    expect(requirements).not.toContain("agent-sandbox-server");
     expect(requirements).toContain("agent-sandbox-client[mcp]==0.4.0a2");
     expect(requirements).not.toMatch(/^agent-sandbox\[/m);
     expect(requirements).not.toContain("github.com");

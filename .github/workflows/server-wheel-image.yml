@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Alibaba-Agent-Sandbox/python-sdk
-          ref: 1f21ca89be460b372ca5f6594890bf21238c7793
+          ref: v0.4.0a2
           path: vendor/python-sdk
           persist-credentials: false
       - uses: actions/checkout@v4
