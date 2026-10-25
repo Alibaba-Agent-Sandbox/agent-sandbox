@@ -1,13 +1,24 @@
 # `.agents/` — engineering record of the cli repository
 
-## Current patch — public managed catalog resolution
+## Current delivery — 2026-10-25
 
-CLI 0.5.0 is published and introduces whole-template spec v5 startup. Its public
-catalog-name lookup omitted `managed_templates`; use the 0.5.1 patch for native
-catalog names. [Decision](notes/implemented/feature/2026-10-25-managed-catalog-resolution.md)
-and [verification](evidence/verify/2026-10-25-cli-051-managed-catalog.md) distinguish
-public-package failure, candidate validation and release gates. Historical 0.4.x
-and local-manifest tests below do not prove public catalog-name startup.
+CLI **0.5.1** fixes the public managed-template catalog lookup omitted in 0.5.0.
+The complete spec v5 template launches through one command without a workflow
+selector. Readiness commands cover overall readiness; known Server v2 endpoints
+receive health/discovery checks, and all declared service endpoints are returned.
+
+- [Public release verification](evidence/verify/2026-10-25-cli-051-public-release.md)
+  records exact-head CI, artifacts, public npm installation and the actual bare
+  catalog-name cloud experiment.
+- [Managed catalog decision](notes/implemented/feature/2026-10-25-managed-catalog-resolution.md)
+  and [candidate evidence](evidence/verify/2026-10-25-cli-051-managed-catalog.md)
+  preserve the 0.5.0 failure and distinguish it from earlier fixture tests.
+- [Publication decision](notes/implemented/process/2026-10-25-cli-051-public-release.md)
+  keeps released packages, tags and historical evidence immutable.
+
+The earlier delivery entries below describe historical releases, not the current
+installation recommendation or a claim that every template/provider combination
+has been retested by this patch.
 
 ## Current delivery — 2026-10-24
 

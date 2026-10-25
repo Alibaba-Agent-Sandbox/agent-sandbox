@@ -146,8 +146,10 @@ Every exception carries: `code`, `message`, `suggestion`, `docs_url` (populated 
 ### Whole-template startup contract
 
 Project manifests use spec v5 with `provides` and optional `start_cmd` / `ready_cmd`.
-`template launch` starts the complete template once and verifies all declared services;
-there is no workflow selector. Retired workflows and capability claims are rejected with
+`template launch` starts the complete template once, runs declared readiness commands,
+resolves every service endpoint, and checks known Agent Sandbox Server v2 endpoints
+using health/discovery. Other protocols are not automatically probed. There is no
+workflow selector. Retired workflows and capability claims are rejected with
 migration guidance. Provider preparation and resource cleanup remain provider-owned.
 See [template startup](docs/en/guide/template-workflows.md) and its
 [Chinese translation](docs/zh/guide/template-workflows.md).

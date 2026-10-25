@@ -58,7 +58,7 @@ macOS/Linux 下载二进制时会在终端显示进度条和百分比；重定�
 
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_INSTALL_DIR` 选择目录。macOS/Linux 官网安装入口默认使用最新已完整镜像的版本，从官网域名下载二进制和校验文件，无需访问 GitHub 查询版本。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 列出可用版本及文件。`ABX_VERSION` 选择版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 可覆盖产物下载前缀。Windows PowerShell 安装脚本仍使用 GitHub。
 
-官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。当前 0.4.0 早于后续 `[Unreleased]` 变更；需要这些变更时请构建配套源码。
+官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。请用 `abx --version` 确认安装版本，模板目录建议使用 CLI 0.5.1 或更新版本。
 
 ### 手动下载
 
@@ -76,7 +76,7 @@ npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
 abx --version
 ```
 
-官方索引返回HTTP404表示 npm 发布尚未完成；PR合并或构建成功并不代表已经发布。索引可读前使用二进制或源码安装。如果全局目录不可写，可用 `npm install -g --prefix "$HOME/.local" @agent-sandbox/cli`，并将 `$HOME/.local/bin` 加到 PATH；这种方式不需要 sudo。
+官方索引返回 HTTP404 表示该入口暂时无法提供这个包；PR合并或构建成功并不代表已经发布。索引可读前使用二进制或源码安装。如果全局目录不可写，可用 `npm install -g --prefix "$HOME/.local" @agent-sandbox/cli`，并将 `$HOME/.local/bin` 加到 PATH；这种方式不需要 sudo。
 
 ### 从源码安装
 
@@ -268,9 +268,9 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 ## 发布就绪范围
 
-0.4.0是新的标准CLI发行线，现有v0.3.0指向较早实现。请分别核对 GitHub 资产与 npm 元数据；不要用不同代码覆盖旧标签。0.x CLI发行不代表所有提供方和实验模板均完成验收。
+CLI 0.5.1 修复公开目录原生模板名称解析，并保证模板启动的 JSON 输出可直接解析。请分别核对 GitHub 资产与 npm 元数据；已发布的版本标签和包保持不变。见[公开发行验证](.agents/evidence/verify/2026-10-25-cli-051-public-release.md)。
 
-极速版核心及暂停/快照验收不代表整个模板目录都已认证。各模板仍需自己当前版本的部署和模型验收；第三方提供方的 Beta 范围也单独说明。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
+运行证据对应实际测试的模板与平台组合。发行记录明确说明 CLI 交付件及极速版内置 base 的实测范围；各模板文档说明其平台要求和服务 API。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
 
 [自动准备并启动目录模板，无需复制云 ID](docs/zh/guide/template-launch.md).
 
