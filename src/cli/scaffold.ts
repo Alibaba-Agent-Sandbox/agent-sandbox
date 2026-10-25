@@ -53,37 +53,16 @@ ready_cmd: ${quoted(profile.ready_cmd ?? "")}
 `;
 }
 
-/** Explicit application or ordinary exec route; installed software never implies interpreter support. */
-function workflowYaml(profile: TemplateProfile, minimal = false): string {
-  if (minimal) return `spec_version: 4
-workflow_contract_version: 1
+/** Describe every application service; startup is a single template command. */
+function servicesYaml(profile: TemplateProfile, minimal = false): string {
+  if (minimal) return `spec_version: 5
 provides: {}
-default_workflow: exec
-workflows:
-  exec:
-    kind: exec
-    input: source
-    startup: none
-    binding: { transport: exec, endpoint: provider-native, caller: host, authentication: provider }
-    operation: exec.run
-    required_operations: []
 `;
   const native = profile.server_start === "platform_start_cmd";
-  return `spec_version: 4
-workflow_contract_version: 1
+  return `spec_version: 5
 ${native ? "" : `start_cmd: ${quoted(`agent-sandbox-server serve --port 9000 --commands ${profile.workdir}/commands.py`)}\n`}
 provides:
   app: { protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run] }
-default_workflow: application
-workflows:
-  application:
-    kind: application
-    input: source
-    service: app
-    startup: ${native ? "entrypoint" : "exec"}
-    binding: { transport: http, endpoint: provider-port, caller: host, authentication: none }
-    operation: commands.run
-    required_operations: []
 `;
 }
 
@@ -96,7 +75,7 @@ base: ${quoted(profile.base_image)}
 user: ${quoted(profile.user)}
 workdir: ${quoted(profile.workdir)}
 ${platformRuntime(profile)}
-${workflowYaml(profile)}
+${servicesYaml(profile)}
 
 resources:
   cpu: ${cpu}
@@ -113,7 +92,7 @@ base: ${quoted(profile.base_image)}
 user: ${quoted(profile.user)}
 workdir: ${quoted(profile.workdir)}
 
-${workflowYaml(profile, true)}
+${servicesYaml(profile, true)}
 `;
 }
 

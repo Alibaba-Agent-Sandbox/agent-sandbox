@@ -1,4 +1,4 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /**
  * Provider template profiles: default alicloud-express, an explicit provider with no profile, and a missing profile.
  * The generator must say when it substituted the generic Docker profile, and must not fall through to the FC image.

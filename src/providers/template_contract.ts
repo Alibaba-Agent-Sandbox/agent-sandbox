@@ -19,7 +19,6 @@ export interface PreparedTemplate {
 export interface ProjectTemplateOptions {
   alias: string; timeout: number;
   build_profile?: { id: string; dockerfile: string; context: "." };
-  workflow?: { startup: string; input: string };
   journal?: ResourceJournalCallbacks;
   template: { name: string; cpu: number; memory: number; start_cmd: string | null; ready_cmd: string | null };
 }

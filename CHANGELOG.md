@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-25
+
+### Changed
+
+- Launch complete spec v5 templates without `--workflow` or `--service-url`; prepare once, start all declared services and return their addresses. Managed catalog entries launch directly by catalog name. V4 manifests require explicit migration and CLI/catalog publication must be coordinated.
+
+
 ### Documentation synchronization
 
 - Synchronize current template deadline guidance and engineering-record acceptance with delivered releases. / 同步模板请求时限说明及已交付变更的工程记录状态。

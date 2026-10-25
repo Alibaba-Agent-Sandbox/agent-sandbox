@@ -35,8 +35,7 @@ my-template/
 ```yaml
 name: my-python-template
 version: "1.0.0"
-spec_version: 4
-workflow_contract_version: 1
+spec_version: 5
 description: "Python data analysis application"
 provides:
   app:
@@ -44,16 +43,6 @@ provides:
     version: 2
     port: 9000
     operations: [commands.list, commands.run]
-default_workflow: application
-workflows:
-  application:
-    kind: application
-    input: source
-    service: app
-    startup: entrypoint
-    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
-    operation: commands.run
-    required_operations: []
 generation: 2
 start_cmd: agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py
 ready_cmd: agent-sandbox-server healthcheck --port 9000
@@ -65,9 +54,9 @@ env:
 
 ---
 
-## 工作流契约与具名命令
+## 模板启动声明与具名命令
 
-上面的示例描述由 `commands.py` 实现的 Express 应用 HTTP 服务，还需要 Dockerfile 或自包含的平台构建步骤。项目模板要求显式 spec v4 工作流契约；旧字段 `capabilities`、`tested_on`、`providers` 会被拒绝，不存在默认能力授权。具名命令用 `@command` 在 `commands.py` 注册，不写在 YAML 中。只在 `if __name__ == "__main__"` 中调用 `start()`。
+上面的示例描述由 `commands.py` 实现的 Express 应用 HTTP 服务，还需要 Dockerfile 或自包含的平台构建步骤。项目模板要求spec v5 模板声明；旧字段 `capabilities`、`tested_on`、`providers` 会被拒绝，不存在默认能力授权。具名命令用 `@command` 在 `commands.py` 注册，不写在 YAML 中。只在 `if __name__ == "__main__"` 中调用 `start()`。
 
 用 `abx sandbox command list <id>` 列出，用 `abx sandbox command run <id> <name> --arg k=v` 调用。应用鉴权与 envd 分离；服务要求 token 时配置 `ABX_SERVER_TOKEN`，客户端不会在未授权后去掉凭据重试。服务须确认当前身份的精确端点操作后，CLI 才发送命令参数。参见[模板 YAML 规范](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)。
 
@@ -110,7 +99,7 @@ abx deploy ./app --acr-namespace my-ns
 |------|----------|
 | `Dockerfile` | 总是 |
 | `commands.py` | `SandboxServer` HTTP 入口，端口 9000 |
-| `template.yaml` | 名称、资源、端口、工作流契约 |
+| `template.yaml` | 名称、资源、端口、模板启动声明 |
 | `.dockerignore` | 仅当项目里还没有这份文件 |
 
 应用源码保持原样。Agent 在这份名单之外创建或修改的文件会被报告并丢弃。被替换的文件保留为 `*.abx-bak`；已有备份不会被覆盖（下一份是 `.abx-bak.1`）。

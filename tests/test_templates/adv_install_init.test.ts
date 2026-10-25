@@ -1,4 +1,4 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /**
  * Adversarial review fixes (agent-template area): `template install` / `init --from` / `build` behave like the Python
  * oracle (tarfile / pathlib / shutil.copytree / PyYAML `safe_load` semantics). See tests/helpers/advAgentTemplate.ts.

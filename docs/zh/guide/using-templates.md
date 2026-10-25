@@ -9,11 +9,11 @@
 模板是一个包含 `template.yaml` 的目录，定义了沙箱的运行环境。模板可以：
 
 - 指定基础 Docker 镜像和预装包
-- 声明服务、工作流及其精确操作
+- 声明服务、服务及其精确操作
 - 定义自定义命令
 - 设置默认环境变量和资源规格
 
-项目模板必须声明 `spec_version: 4`、`workflow_contract_version: 1`、`provides`、`default_workflow` 和 `workflows`。旧字段 `capabilities`、`tested_on`、`providers` 会被拒绝，不存在隐式能力授权。
+项目模板必须声明 `spec_version: 5` 和 `provides`。`start_cmd` 启动模板的全部服务，`ready_cmd` 检查就绪。旧字段 `capabilities`、`tested_on`、`providers` 会被拒绝，不存在隐式能力授权。
 
 ---
 
@@ -101,7 +101,7 @@ abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析�
 
 ## 模板与运行时操作
 
-`base`、`code-interpreter-v1` 是平台模板别名，与项目源码目录不同。运行能力由提供方的真实操作和所选工作流绑定决定；镜像安装 Python 不代表实现了代码解释器协议。
+`base`、`code-interpreter-v1` 是平台模板别名，与项目源码目录不同。运行能力由提供方的真实操作和模板服务声明决定；镜像安装 Python 不代表实现了代码解释器协议。
 
 项目清单显式绑定应用服务及其所需操作。用 `abx sandbox capabilities <id>` 查询沙箱，用 `abx sandbox command list <id>` 列出具名应用命令。参见[编写模板](authoring-templates.md)和 SDK 的[模板 YAML 规范](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/template-yaml-spec.md)。
 

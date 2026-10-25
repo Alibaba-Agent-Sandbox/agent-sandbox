@@ -1,5 +1,12 @@
 # `.agents/` — engineering record of the cli repository
 
+## In progress — unified template startup
+
+The [spec v5 proposal](notes/proposed/architecture/2026-10-25-unified-template-launch.md)
+removes launch workflow selection and verifies every service. CLI 0.4.17 remains the
+published version and cannot consume these new manifests. Publication is coordinated
+with the template catalog, Python SDK and Registry; local implementation is not a release.
+
 ## Current delivery — 2026-10-24
 
 - Published CLI: **0.4.17**, with [public distribution and actual public-package cloud regression](evidence/verify/2026-10-24-cli-0417-release.md).

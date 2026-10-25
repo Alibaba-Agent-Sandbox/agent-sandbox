@@ -263,9 +263,9 @@ from agent_sandbox.server import (
 
 ### 5. template.yaml 规则
 必填：\`name\`（使用给定的模板名）、\`version: "1.0.0"\`、\`description\`（一句话中文，不超过 50 字）、
-\`spec_version: 4\`、\`workflow_contract_version: 1\`、\`provides\`、\`default_workflow\`、\`workflows\`、\`ports\`、\`resources\`。
+\`spec_version: 5\`、\`provides\`、\`ports\`、\`resources\`。
 - \`provides.app\` 声明 HTTP 应用协议 \`agent-sandbox-server\`、版本 2、端口及 \`commands.list/commands.run\`。
-- 默认 application workflow 显式声明 source 输入、服务 app、启动策略、host/provider-port/http 绑定和 commands.run。
+- 用 \`start_cmd\` 启动模板中的所有服务，\`ready_cmd\` 检查它们就绪；不要定义 workflows 或启动类型。
 - 普通镜像内 Python 或应用服务不代表统一解释器支持；不要写旧字段 \`capabilities\`、\`tested_on\` 或 \`providers\`。
 - \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
 - \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。

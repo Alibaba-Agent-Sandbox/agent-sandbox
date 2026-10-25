@@ -127,9 +127,9 @@ describe("TestGuideText", () => {
     expect(TEMPLATE_GUIDE).toMatch(/BROWSER[^\n]*默认关闭/);
   });
 
-  it("test_describes_explicit_workflow_contracts", () => {
-    expect(TEMPLATE_GUIDE).toContain("workflow_contract_version");
-    expect(TEMPLATE_GUIDE).toContain("default_workflow");
+  it("test_describes_whole_template_startup", () => {
+    expect(TEMPLATE_GUIDE).toContain("spec_version: 5");
+    expect(TEMPLATE_GUIDE).toContain("start_cmd");
     expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
   });
 

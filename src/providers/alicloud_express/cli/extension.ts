@@ -35,7 +35,7 @@ export const CLI_EXTENSION = {
     const dockerfile = options.build_profile ? path.join(directory, options.build_profile.dockerfile) : undefined;
     const plan = resolveBuildPlan(directory, { mode: dockerfile ? "dockerfile" : "auto", dockerfile });
     const deployOptions = { alias: options.alias, tag: options.alias, timeout: options.timeout, yes: Boolean(ctx.params["yes"]), ctx,
-      dockerfile, build: plan.kind, journal: options.journal, workflow_launch: true,
+      dockerfile, build: plan.kind, journal: options.journal, template_launch: true,
       cpu: options.template.cpu, memory: options.template.memory,
       envd_inject: plan.kind === "dockerfile" && !/^FROM\s+fc-e2b-registry\.[a-z0-9-]+\.cr\.aliyuncs\.com\/runtime\/base:/im.test(fs.readFileSync(plan.dockerfile, "utf8")) };
     return adapter.withDeployConfiguration(directory, deployOptions, async () => {

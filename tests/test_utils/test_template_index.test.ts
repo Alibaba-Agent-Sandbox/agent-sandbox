@@ -107,7 +107,7 @@ describe("TestParseIndex", () => {
     expect(qwen.description).toBe("Qwen Code agent harness");
     expect(qwen.tags).toEqual(["qwen", "ai-agent"]);
     expect(qwen.author).toBe("alibaba-agent-sandbox");
-    expect(qwen.workflow).toBeNull();
+    expect(qwen.manifest).toBeNull();
     expect(qwen.status).toBe("official");
   });
 

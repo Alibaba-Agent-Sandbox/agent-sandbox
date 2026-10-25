@@ -4,7 +4,7 @@
  * 模板管理 API 响应字段使用 camelCase（已实测验证 POST /templates 返回 templateID, buildID）。
  */
 
-import { validateWorkflowManifest } from "../template/workflow_plan.mjs";
+import { validateTemplateManifest } from "../template/launch_plan.mjs";
 import { z } from "zod";
 
 import { defineModel, lax } from "./base.js";
@@ -112,18 +112,21 @@ export class SandboxTemplate extends defineModel(
     license: z.string().default(""),
     tags: z.array(z.string()).default(() => []),
 
-    spec_version: z.literal(4),
-    workflow_contract_version: z.literal(1),
+    spec_version: z.literal(5),
     provides: z.record(z.string(), z.unknown()),
-    default_workflow: z.string(),
-    workflows: z.record(z.string(), z.unknown()),
+    workflow_contract_version: z.never().optional(),
+    default_workflow: z.never().optional(),
+    workflows: z.never().optional(),
+    image: z.string().optional(),
+    provider: z.string().optional(),
+    template_id: z.string().optional(),
     start_cmd: z.string().optional(),
     ready_cmd: z.string().optional(),
     capabilities: z.never().optional(),
     tested_on: z.never().optional(),
     providers: z.never().optional(),
   }).superRefine((value, ctx) => {
-    try { validateWorkflowManifest(value); } catch (error) { ctx.addIssue({code: "custom",message: String(error)}); }
+    try { validateTemplateManifest(value); } catch (error) { ctx.addIssue({code: "custom",message: String(error)}); }
   }),
 ) {}
 

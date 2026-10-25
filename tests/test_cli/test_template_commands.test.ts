@@ -1,4 +1,4 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /** Tests for template CLI commands. */
 
 import "../_support/isolatedHome.js";

@@ -143,14 +143,13 @@ All SDK errors live in [`models/errors.ts`](src/models/errors.ts). Error codes f
 
 Every exception carries: `code`, `message`, `suggestion`, `docs_url` (populated when documentation is available).
 
-### Template workflow contract
+### Whole-template startup contract
 
-Project manifests use strict spec v4 with `workflow_contract_version: 1`, `provides`,
-`default_workflow` and `workflows`. Retired `capabilities`, `tested_on` and `providers`
-claims are rejected. There is no default capability baseline. Provider operations,
-workflow input kinds, startup modes and consumer bridges must be explicit. Local
-manifest resolution validates the source and does not grant adapter permissions.
-See [template workflows](docs/en/guide/template-workflows.md) and its
+Project manifests use spec v5 with `provides` and optional `start_cmd` / `ready_cmd`.
+`template launch` starts the complete template once and verifies all declared services;
+there is no workflow selector. Retired workflows and capability claims are rejected with
+migration guidance. Provider preparation and resource cleanup remain provider-owned.
+See [template startup](docs/en/guide/template-workflows.md) and its
 [Chinese translation](docs/zh/guide/template-workflows.md).
 
 ---
@@ -225,7 +224,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 1. **Never auto-commit.** Make changes; let the human review and commit.
 2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `ABX_UPDATE_EVIDENCE=1 npm test`.
 3. **After modifying any CLI command**, regenerate the affected evidence files and verify they look correct.
-4. **Respect template workflow declarations.** Validate the chosen workflow against actual Provider operations and consumer support; do not infer permissions from installed software.
+4. **Launch the whole template.** Derive startup prerequisites from its actual services and commands; do not infer Provider permissions from installed software or reintroduce workflow selection.
 5. **Never fabricate FC/envd API endpoints.** If you're unsure about a real backend API, flag it as a TODO rather than inventing a placeholder.
 6. **Run the full test suite** (`make test && make lint && make typecheck`) before claiming a task is done.
 7. **Secret scanning** is enforced via `.githooks/check-secrets.sh`. Never commit API keys, tokens, or passwords. Use `REPLACE_ME` or `placeholder` for examples.

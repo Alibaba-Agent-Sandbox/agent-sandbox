@@ -4,10 +4,9 @@ import { confirm } from "./prompts.js";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
-import { planWorkflow, validateWorkflowManifest } from "../template/workflow_plan.mjs";
+import { planTemplateLaunch, validateTemplateManifest } from "../template/launch_plan.mjs";
 import { providerContentDigest } from "../providers/content_identity.js";
 import { digestDir } from "../providers/store.js";
-import { requestApplication, requireApplicationOperation, checkApplicationHealth, validateApplicationEndpoint } from "../transport/application_http.js";
 import { ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
 import { pyExpandUser } from "../utils/_pyos.js";
@@ -26,7 +25,7 @@ import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../models
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { parseTemplateData } from "../api/capability.js";
 import { RegistryClient } from "../utils/registry.js";
-import { _findTemplateYaml, _resolveIndexName, _withGithubRateLimitRetry } from "./template_catalog.js";
+import { _findTemplateYaml, _resolveIndexEntry, _withGithubRateLimitRetry } from "./template_catalog.js";
 import { resolveGithubToken } from "./commands/config_cmd.js";
 import { Sandbox, _effectiveOptions } from "../api/sandbox.js";
 import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager } from "../providers/template_contract.js";
@@ -34,24 +33,23 @@ import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager 
 export const launchSeams = { create: (options: Parameters<typeof Sandbox.create>[0]) => Sandbox.create(options) };
 
 /** Validate a known local source before any credential prompt; remote sources are validated once after acquisition. */
-function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>) {
-  const yaml = _findTemplateYaml(directory);
-  if (!yaml) throw new ProviderConfigError("Template source has no template.yaml.");
+function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>) {
+  const yaml = catalogManifest ? null : _findTemplateYaml(directory);
+  if (!yaml && !catalogManifest) throw new ProviderConfigError("Template source has no template.yaml.");
   // The YAML's parent is the build context even when a repository contains several projects.
-  directory = path.dirname(yaml);
-  const manifestBytes = fs.readFileSync(yaml);
+  if (yaml) directory = path.dirname(yaml);
+  const manifestBytes = catalogManifest ? Buffer.from(JSON.stringify(catalogManifest)) : fs.readFileSync(yaml!);
   const manifestDigest = createHash("sha256").update(manifestBytes).digest("hex");
   const raw = loadYaml(manifestBytes.toString("utf8"));
-  if (!isMapping(raw)) throw new ProviderConfigError("Template must contain a workflow manifest.");
+  if (!isMapping(raw)) throw new ProviderConfigError("Template must contain a manifest.");
   const sourceMetadata = raw as Record<string, unknown>;
-  validateWorkflowManifest(sourceMetadata);
+  validateTemplateManifest(sourceMetadata);
   const template = parseTemplateData(structuredClone(sourceMetadata));
-  const workflowId = params["workflow"] === undefined || params["workflow"] === null ? undefined : String(params["workflow"]);
-  const plan = planWorkflow(sourceMetadata, provider, workflowId, "cli");
-  if (plan.state !== "T") throw new ProviderConfigError(`Selected workflow is unavailable: ${plan.requirements.filter(r => r.state !== "T").map(r => `${r.operation} (${r.reason})`).join(", ")}.`);
-  if (plan.binding.authentication === "service-token" && (!process.env["ABX_SERVER_TOKEN"] || /[\r\n]/.test(process.env["ABX_SERVER_TOKEN"]!)))
-    throw new ProviderConfigError("Selected application identity requires ABX_SERVER_TOKEN before preparing or creating resources.");
-  const workflow = (sourceMetadata["workflows"] as Record<string, { startup: string; input: string }>)[plan.workflow_id];
+  const plan = planTemplateLaunch(sourceMetadata, provider, "cli");
+  if (!plan.supported) throw new ProviderConfigError(`Template cannot launch on this provider: ${plan.reason ?? plan.missing_operations.join(", ")}.`);
+  if (Object.hasOwn(template.env, "ABX_SERVER_TOKEN") && (!process.env["ABX_SERVER_TOKEN"] || /[\r\n]/.test(process.env["ABX_SERVER_TOKEN"]!)))
+    throw new ProviderConfigError("Template services require ABX_SERVER_TOKEN before preparing or creating resources.");
+  const input = sourceMetadata["template_id"] ? "managed" : sourceMetadata["image"] ? "image" : "source";
   const aliasBase = String(params["alias"] ?? template.name);
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(aliasBase)) throw new ProviderConfigError("Template alias must be a lowercase name of at most 63 characters.");
   // Each build request uses a fresh correlation name; an uncertain prior request is never retried under the same name.
@@ -65,11 +63,11 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
     if (!isMapping(profile) || Object.keys(profile).some(key => !["dockerfile", "context"].includes(key)) || profile["context"] !== "." || typeof profile["dockerfile"] !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(profile["dockerfile"])) throw new ProviderConfigError("Select a declared root build profile with dockerfile and context: .");
     buildProfile = { id: String(selectedProfile), dockerfile: profile["dockerfile"], context: "." };
   }
-  const options: ProjectTemplateOptions = { build_profile: buildProfile, alias, timeout, workflow, template: { name: template.name,
+  const options: ProjectTemplateOptions = { build_profile: buildProfile, alias, timeout, template: { name: template.name,
     cpu: template.cpu_count ?? 2, memory: template.memory_mb ?? 2048,
-    start_cmd: workflow.startup === "exec" ? String(sourceMetadata["start_cmd"]) : null,
+    start_cmd: sourceMetadata["start_cmd"] === undefined ? null : String(sourceMetadata["start_cmd"]),
     ready_cmd: sourceMetadata["ready_cmd"] === undefined ? null : String(sourceMetadata["ready_cmd"]) } };
-  return { directory, template, options, plan, sourceMetadata, manifestDigest };
+  return { directory, template, options, plan, input, sourceMetadata, manifestDigest };
 }
 
 /** One explicit operation; never guesses an ID or falls back to another backend. */
@@ -85,42 +83,29 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   if (exists && !isLocal) throw new UsageError("Template project source is not a directory.");
   if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template scaffold DIRECTORY' or choose an existing template source.");
   const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params) : null;
-  const externalService = localProject?.plan.input === "service";
-  if (!externalService && !params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
+  if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
   return withGuidedConfiguration(ctx, { operation: "Prepare template and create sandbox", provider: provider.id, yes: Boolean(params["yes"]),
-    validateProvider: !externalService, requirements: externalService ? [] : provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
+    requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
   const fmt = getFormatter(ctx), out = getOutput(ctx);
   let directory = initialDirectory;
+  let catalogManifest: Record<string, unknown> | undefined;
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
     const token = await resolveGithubToken(null);
     directory = await _withGithubRateLimitRetry(async (active) => {
       const registry = new RegistryClient("https://github.com", active);
       let ref = await registry.resolve(source);
-      if (ref.is_builtin) ref = await registry.resolve(await _resolveIndexName(source, { token: active, fmt, out }));
+      if (ref.is_builtin) {
+        const entry = await _resolveIndexEntry(source, {token: active, fmt, out});
+        if (entry.manifest) { catalogManifest = entry.manifest; return initialDirectory; }
+        ref = await registry.resolve(entry.install_ref);
+      }
       return registry.fetch(ref);
     }, { token, fmt, out });
   }
-  const project = localProject ?? readLaunchProject(provider, directory, params);
+  const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest);
   directory = project.directory;
-  const { template, options, plan, sourceMetadata, manifestDigest } = project;
+  const { template, options, plan, input, sourceMetadata, manifestDigest } = project;
   const environment = Object.freeze(Object.fromEntries(Object.entries(template.env).map(([key,value])=>[key,value||process.env[key]||""])));
-  if (plan.input === "service") {
-    if (plan.kind !== "application" || !plan.service || plan.binding.endpoint !== "explicit-url" || typeof params["service_url"] !== "string") throw new ProviderConfigError("Service workflow requires --service-url and an application explicit-url binding.");
-    const endpoint = validateApplicationEndpoint({ provider_id: provider.id, sandbox_id: "external-service", port: plan.service.port,
-      url: params["service_url"], headers: {}, authentication_audience: "gateway", path_mode: "prefix" }, "external-service", plan.service.port);
-    const operation = (sourceMetadata["workflows"] as Record<string, {operation: "commands.run" | "commands.list" | "health"}>)[plan.workflow_id].operation;
-    const endpointName = {"commands.run": "run_command", "commands.list": "list_commands", health: "health"} as const;
-    await requireApplicationOperation(endpoint, endpointName[operation], applicationToken);
-    if (operation === "health") await checkApplicationHealth(endpoint, applicationToken);
-    if (operation === "commands.list") {
-      const response = await requestApplication(endpoint, "/commands", { method: "GET", application_token: applicationToken });
-      let body: unknown;
-      try { body = response.json(); } catch { throw new ProviderConfigError("External application catalog is not valid JSON."); }
-      if (!response.is_success || !body || typeof body !== "object" || !Array.isArray((body as Record<string, unknown>)["commands"])) throw new ProviderConfigError("External application catalog has an invalid schema.");
-    }
-    fmt.printData({provider: provider.id, workflow_id: plan.workflow_id, input: "service", protocol_verified: true});
-    return;
-  }
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
   provider.validateConfig(config);
@@ -132,7 +117,7 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     if (pluginRoot && digestDir(pluginRoot) !== providerSnapshotDigest) throw new ProviderConfigError("Provider code changed after planning; compute a new execution snapshot.");
   };
   const extension = providerCliExtension(provider.id);
-  const snapshot = plan.input === "source" ? await (extension?.stageProject
+  const snapshot = input === "source" ? await (extension?.stageProject
     ? extension.stageProject(directory, options)
     : stageProject(directory, { dockerfile: options.build_profile?.dockerfile })) : null;
   if (snapshot) {
@@ -150,11 +135,10 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   try {
     await snapshot?.verify();
     verifyProviderSnapshot();
-    if (plan.input === "service") throw new ProviderConfigError("External service workflows require an explicit endpoint binding; use the server client for that URL.");
-    if (plan.input === "image" || plan.input === "managed") {
-      const reference = sourceMetadata[plan.input === "image" ? "image" : "template_id"];
-      if (typeof reference !== "string" || !reference) throw new ProviderConfigError("Selected workflow needs its explicit image or template_id reference.");
-      if (plan.input === "image" && !/@sha256:[a-f0-9]{64}$/.test(reference)) throw new ProviderConfigError("Image workflow requires an immutable image digest.");
+    if (input === "image" || input === "managed") {
+      const reference = sourceMetadata[input === "image" ? "image" : "template_id"];
+      if (typeof reference !== "string" || !reference) throw new ProviderConfigError("Template needs its fixed image or template_id reference.");
+      if (input === "image" && !/@sha256:[a-f0-9]{64}$/.test(reference)) throw new ProviderConfigError("Template image requires an immutable image digest.");
       prepared = { reference, status: "ready" };
     } else {
     const extension = providerCliExtension(provider.id);
@@ -215,7 +199,7 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
     const startCommand = prepared.startup_command ?? options.template.start_cmd;
     const readyCommand = prepared.ready_command ?? options.template.ready_cmd;
-    if (options.workflow?.startup === "exec" && startCommand) {
+    if (startCommand) {
       const result = await sandbox.commands.run(`nohup /bin/sh -c ${quote(startCommand)} >/tmp/abx-template-server.log 2>&1 </dev/null &`, { timeout: 10 });
       if (!("exit_code" in result) || result.exit_code !== 0) throw new Error("Startup failed");
     }
@@ -229,15 +213,20 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
         await delay(250);
       }
     }
-    if (plan.kind === "application" && plan.service) {
-      const operation = (sourceMetadata["workflows"] as Record<string, {operation: "commands.list" | "commands.run" | "health"}>)[plan.workflow_id].operation;
-      if (operation === "commands.list") await sandbox.listCommands({server_port: plan.service.port, application_token: applicationToken});
-      else await sandbox.verifyApplicationOperation(operation, {server_port: plan.service.port, application_token: applicationToken});
+    const services: Record<string, unknown> = {};
+    for (const [id, service] of Object.entries(plan.services)) {
+      const serviceOptions = {server_port: service.port, application_token: applicationToken};
+      if (service.protocol === "agent-sandbox-server" && service.version === 2) {
+        await sandbox.verifyApplicationOperation("health", serviceOptions);
+        if (service.operations.includes("commands.list")) await sandbox.listCommands(serviceOptions);
+      }
+      const endpoint = await sandbox.network.resolveEndpoint(service.port);
+      services[id] = { protocol: service.protocol, version: service.version, port: service.port, url: endpoint.url };
     }
     await journal.mark(createIntent, "retained");
     for (const resource of prepared.owned_resources ?? []) await journal.mark(resource.intent_id, "retained");
     fmt.printData({ sandbox_id: sandbox.id, provider: provider.id, template_reference: reference,
-      workflow_id: plan.workflow_id, plan_digest: planDigest, manifest_digest: `sha256:${manifestDigest}`, provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, source_digest: snapshot?.digest ?? null, journal_id: journal.id, build_profile: options.build_profile?.id ?? null });
+      services, plan_digest: planDigest, manifest_digest: `sha256:${manifestDigest}`, provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, source_digest: snapshot?.digest ?? null, journal_id: journal.id, build_profile: options.build_profile?.id ?? null });
   } catch {
     let cleaned = false;
     try { await sandbox.kill(); if (await sandbox.isRunning()) throw new Error("Still running"); await journal.mark(createIntent, "deleted"); cleaned = true; } catch { /* Report the owned ID if cleanup could not be confirmed. */ }

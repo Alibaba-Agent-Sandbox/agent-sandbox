@@ -1,6 +1,6 @@
 # Using Templates
 
-Templates are preconfigured sandbox environment definitions that include a base image, pre-installed software, explicit workflow contracts, and custom commands.
+Templates are preconfigured sandbox environment definitions that include a base image, pre-installed software, declared services and startup commands, and custom commands.
 
 ---
 
@@ -9,11 +9,11 @@ Templates are preconfigured sandbox environment definitions that include a base 
 A template is a directory containing a `template.yaml` that defines the sandbox runtime environment. Templates can:
 
 - Specify a base Docker image and pre-installed packages
-- Declare services, workflows and their exact operations
+- Declare every service and its operations
 - Define custom commands
 - Set default environment variables and resource specifications
 
-Project templates require `spec_version: 4`, `workflow_contract_version: 1`, `provides`, `default_workflow` and `workflows`. Retired `capabilities`, `tested_on` and `providers` fields are rejected; there is no implicit capability grant.
+Project templates require `spec_version: 5` and `provides`. A single `start_cmd` starts all application services; `ready_cmd` checks readiness. Retired `capabilities`, `tested_on` and `providers` fields are rejected; there is no implicit capability grant.
 
 ---
 
@@ -101,7 +101,7 @@ This still calls the real model. It generates self-contained `base.image` and `b
 
 ## Templates and runtime operations
 
-`base` and `code-interpreter-v1` are platform template aliases. A registered alias is different from a project source directory. Use the provider's actual runtime operations and the selected workflow binding; installing Python in an image does not itself implement the code-interpreter protocol.
+`base` and `code-interpreter-v1` are platform template aliases. A registered alias is different from a project source directory. Use the provider's actual runtime operations and the template service declarations; installing Python in an image does not itself implement the code-interpreter protocol.
 
 Project manifests explicitly bind their application service and required operations. Inspect the sandbox with `abx sandbox capabilities <id>` and list its named application commands with `abx sandbox command list <id>`. See [Authoring Templates](authoring-templates.md) and the SDK's [Template YAML Spec](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
 

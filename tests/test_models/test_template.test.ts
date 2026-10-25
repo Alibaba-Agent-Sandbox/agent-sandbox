@@ -4,8 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { SandboxTemplate, TemplateRef } from "../../src/models/template.js";
 
-import vectors from "../test_template/fixtures/workflow-vectors.json" with {type:"json"};
-const workflowFields = vectors.cases[0].input.manifest;
+const workflowFields = {spec_version: 5, provides: {}};
 
 describe("TestSandboxTemplate", () => {
   // Tests for SandboxTemplate model.
@@ -16,7 +15,7 @@ describe("TestSandboxTemplate", () => {
     expect(tmpl.version).toBe("1.0.0");
     expect(tmpl.env).toEqual({});
     expect(tmpl.ports).toEqual([]);
-    expect(tmpl.default_workflow).toBe(workflowFields.default_workflow);
+    expect(tmpl.provides).toEqual({});
   });
 
   it("test_full_template", () => {
@@ -37,7 +36,7 @@ describe("TestSandboxTemplate", () => {
     expect(tmpl.cpu_count).toBe(2);
     expect(tmpl.memory_mb).toBe(4096);
     expect(tmpl.tags).toEqual(["data", "python"]);
-    expect(tmpl.spec_version).toBe(4);
+    expect(tmpl.spec_version).toBe(5);
   });
 
   it("test_extra_fields_ignored", () => {

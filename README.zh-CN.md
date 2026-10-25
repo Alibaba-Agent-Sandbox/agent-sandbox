@@ -16,6 +16,9 @@
 Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)（见 [Python SDK](#python-sdk)）。
 模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；标准 CLI 与 SDK 遵循阿里云支持版本的 E2B 行为契约，后端条件能力见[迁移指南](docs/zh/guide/migrate-from-e2b.md)。
 
+
+模板整体启动：`abx --provider PROVIDER template launch TEMPLATE --yes`。spec v5 删除 workflow 选择，返回全部声明的服务。CLI 0.4.17 不支持 v5，迁移需配合下一次发布，或使用经过审查的源码版本。见[启动与迁移](docs/zh/guide/template-workflows.md)。
+
 ## 网站
 
 | 网站 | 地址 |
