@@ -8,7 +8,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { planTemplateLaunch, validateTemplateManifest } from "../template/launch_plan.mjs";
 import { executableContentDigest, providerContentDigest } from "../providers/content_identity.js";
 import { digestDir } from "../providers/store.js";
-import { ProjectToolError, stageProject } from "../providers/shared/project.js";
+import { DockerSetupError, ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
 import { pyExpandUser } from "../utils/_pyos.js";
 import type { Provider } from "../providers/base.js";
@@ -156,6 +156,8 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     }
     }
   } catch (error) {
+    // This class contains fixed prerequisite text, never external stderr or credentials.
+    if (error instanceof DockerSetupError) throw error;
     const reason = error instanceof ProjectToolError ? error.message : "Template preparation failed.";
     throw new ProviderConfigError(`${reason} Inspect recovery journal ${journal.id} before retrying any submitted operation.`);
   }

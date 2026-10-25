@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Check Docker before recording a build intent and keep fixed missing-Docker/daemon guidance visible during template launch; unstarted builds no longer produce an ambiguous artifact journal (#160). / 模板启动在登记构建资源前检查 Docker，直接显示缺少 Docker 或守护进程不可用的修复提示；尚未开始的构建不会留下含糊的资源记录。
+
 - Bind the standalone built-in provider snapshot to executable bytes during template launch instead of reading a missing source directory; retain directory snapshots for npm and installed plugins (#156). / 独立二进制启动模板时按实际可执行文件内容校验内置 Provider，修复缺少源码目录导致的 E4001；npm 与插件仍校验其目录。
 
 ## [0.5.1] - 2026-10-25

@@ -1,3 +1,4 @@
+import { DockerBuilder } from "../../src/providers/alicloud_express/docker_builder.js";
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Channel-separation tests for the CLI output manager (task 167).
@@ -398,6 +399,7 @@ describe("TestDeployDiagnosticsChannel", () => {
   }
 
   async function patchPipeline(): Promise<void> {
+    vi.spyOn(DockerBuilder.prototype, "checkDocker").mockResolvedValue(true);
     const tpl = (await import(/* @vite-ignore */ TEMPLATE_MODULE as string)) as { templateSeams: object };
     const config = { access_key_id: "ak", access_key_secret: "sk", region: "cn-hangzhou" };
     vi.spyOn(transportConfig, "loadConfig").mockReturnValue(config as never);

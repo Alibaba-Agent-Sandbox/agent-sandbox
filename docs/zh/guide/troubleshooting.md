@@ -201,6 +201,10 @@ export DASHSCOPE_API_KEY="your-key"
 # CLI（create / template init）：abx config set llm_api_key your-key
 ```
 
+### 未安装 Docker 或守护进程不可用
+
+通过 Dockerfile 构建源码模板时，CLI 所在机器需要安装并启动 Docker。先执行 `docker info`，启动 Docker Desktop／守护进程，并检查当前 context 和权限，再重试。CLI 在构建前以 E7020 直接说明原因；这种前置失败不会登记镜像构建、推送、平台模板或沙箱的资源意图。原生平台 steps 和内置模板沿用各自的前置条件。
+
 ### 没有 Dockerfile
 
 目录里没有 `Dockerfile` 时，`abx deploy` 会停下，并给出三条编写命令：已有源码用 `abx template scaffold --adopt .`，用一句话新建项目用 `abx template scaffold --prompt "描述"`，脚手架用 `abx template scaffold -t python`。文件写好之后再执行 `abx deploy`。

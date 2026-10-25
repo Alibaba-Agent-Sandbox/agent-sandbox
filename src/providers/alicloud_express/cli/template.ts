@@ -1,6 +1,6 @@
 import type { ResourceJournalCallbacks } from "../../../template/resource_journal.js";
 import type { PreparedTemplate } from "../../template_contract.js";
-import { runTool } from "../../shared/project.js";
+import { DockerSetupError, runTool } from "../../shared/project.js";
 import { prepareTemplateBuildInputs } from "../../../cli/template_project.js";
 import { withGuidedConfiguration, canGuideConfiguration, type GuidanceField } from "../../../cli/config_guidance.js";
 import { getOperationConfig } from "../../../utils/operation_config.js";
@@ -449,6 +449,17 @@ export interface BuildImageOptions {
     on_output?: ((line: string) => void) | null;
 }
 
+/** Read-only prerequisites run before any build ownership intent is registered. */
+async function ensureDockerDaemon(builder: DockerBuilder): Promise<void> {
+    while (!(await builder.checkDocker())) {
+        const ctx = getCurrentContext(true);
+        const error = new DockerSetupError(which("docker") ? "unavailable" : "missing");
+        if (!canGuideConfiguration(ctx ?? undefined, Boolean(ctx?.params["yes"]))) throw error;
+        getOutput(ctx).warning(error.message);
+        if (!(await confirm("After fixing Docker, check again?", { default: true, err: true }))) throw new DockerSetupError("cancelled");
+    }
+}
+
 /**
  * Build a Docker image locally from a template directory and return the local image tag (`<name>:<tag>`).
  * Shared by the `build` and `deploy` commands.
@@ -460,15 +471,7 @@ export async function _buildImage(template_dir: string, opts: BuildImageOptions)
     const localTag = `${imageName}:${tag}`;
     const builder = new templateSeams.DockerBuilder();
     on_progress("[1/3] Checking Docker daemon...");
-    while (!(await builder.checkDocker())) {
-        const ctx = getCurrentContext(true);
-        const executable = which("docker");
-        const message = executable ? "Docker is installed, but its daemon or selected context is not accessible. Start Docker Desktop/the daemon and check docker context and permissions."
-            : "Docker CLI was not found in PATH. Install Docker and start Docker Desktop/the daemon.";
-        if (!canGuideConfiguration(ctx ?? undefined, Boolean(ctx?.params["yes"]))) throw new DockerBuildError(message, { suggestion: "Run docker info to check the selected context and permissions, then retry. No build has started." });
-        getOutput(ctx).warning(message);
-        if (!(await confirm("After fixing Docker, check again?", { default: true, err: true }))) throw new DockerBuildError("Docker setup cancelled. No build has started.");
-    }
+    await ensureDockerDaemon(builder);
     let injectedWheels: string[] = [];
     if (!process.env.ABX_SERVER_SDK_SOURCE && contextHasPinnedServerRequirement(tdir, dockerfile)) {
         on_progress("[2/3] Using the Dockerfile's pinned agent-sandbox-server requirement");
@@ -563,6 +566,9 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         // manager.
         out.warning("--start-cmd / --ready-cmd only take effect with --generation 2 (MicroVM).");
     }
+    // A missing/unreachable Docker daemon cannot create an image. Do not record an
+    // ambiguous resource intent until this read-only prerequisite has passed.
+    await ensureDockerDaemon(new templateSeams.DockerBuilder());
     // Provenance notice only when buildx will accept the flag.
     await _provenanceNotice(out);
     let templateId: string;

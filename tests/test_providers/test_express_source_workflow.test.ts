@@ -1,3 +1,4 @@
+import { DockerBuilder } from "../../src/providers/alicloud_express/docker_builder.js";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -68,6 +69,7 @@ describe("Express source workflow", () => {
     const portable=await CLI_EXTENSION.stageProject(f.directory,f.options);try{expect(fs.readFileSync(path.join(portable.directory,"Dockerfile.portable"),"utf8")).toBe("FROM python:3.12-slim\n");}finally{await portable.close();}
   });
   it("journals Docker build, immutable publication and envd copy while preserving the selected profile", async()=>{
+    vi.spyOn(DockerBuilder.prototype, "checkDocker").mockResolvedValue(true);
     const f=fixture();vi.stubEnv("ACR_NAMESPACE","fixture-namespace");
     fs.writeFileSync(path.join(f.directory,"Dockerfile.portable"),"FROM python:3.12-slim\n");
     f.options.build_profile={id:"portable",dockerfile:"Dockerfile.portable",context:"."};
