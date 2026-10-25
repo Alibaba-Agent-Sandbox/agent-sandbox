@@ -21,4 +21,4 @@ The existing provider-owned sensitive UI list now includes AccessKey ID. One sha
 
 ## Remaining
 
-Latest combined-head tests, locked generation/provenance, package verification, normal remote CI/review, publication and public fresh-install evidence. Earlier green PR174 checks apply only to its old source head and are not reused as proof of the changed source.
+The [integrated report follow-up](2026-10-25-cli-054-report-follow-up.md) records combined-head local checks and actual fresh npm-package behavior. Normal new-head remote CI/review, publication and public fresh-install evidence remain pending. Earlier green PR174 checks apply only to its old source head and are not reused as proof of the changed source.

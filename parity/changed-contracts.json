@@ -105,6 +105,14 @@
     "tests/test_cli/test_template_index_commands.py::TestSearchCommand::test_search_prints_install_hint_with_index_source": {
       "target": "tests/test_cli/test_template_index_commands.py::TestSearchCommand::test_search_prints_launch_hint_with_index_source",
       "reason": "Issue #153: search covers source and provider-managed templates; the common next action is template launch, not source-only install."
+    },
+    "tests/test_cli/test_config_commands.py::TestConfigAlicloudCredentials::test_get_access_key_id_plain": {
+      "target": "tests/test_cli/test_config_commands.py::TestConfigAlicloudCredentials::test_get_access_key_id_masked",
+      "reason": "Issue #175: AccessKey identifiers follow provider-owned UI sensitivity; output is masked while stored and resolved authentication values remain exact."
+    },
+    "tests/test_cli/test_config_commands.py::TestConfigAlicloudCredentials::test_set_access_key_id_plain": {
+      "target": "tests/test_cli/test_config_commands.py::TestConfigAlicloudCredentials::test_set_access_key_id_masked",
+      "reason": "Issue #175: AccessKey identifiers follow provider-owned UI sensitivity; output is masked while stored and resolved authentication values remain exact."
     }
   }
 }

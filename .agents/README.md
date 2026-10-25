@@ -231,3 +231,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Configuration identifier privacy](notes/proposed/process/2026-10-25-access-key-identifier-masking.md) · [verification](evidence/verify/2026-10-25-access-key-identifier-masking.md) · [Issue175](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/175).
 - [Incompatible template source guidance](notes/proposed/feature/2026-10-25-template-source-version-guidance.md) · [verification](evidence/verify/2026-10-25-template-source-version-guidance.md).
+
+- [CLI 0.5.4 report follow-up](evidence/verify/2026-10-25-cli-054-report-follow-up.md) records the integrated candidate checks; public release and developer reruns remain separate.
