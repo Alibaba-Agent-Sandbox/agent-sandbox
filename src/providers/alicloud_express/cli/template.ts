@@ -1231,8 +1231,10 @@ export const info = template.command("info", {
                 access_key_secret: config.access_key_secret,
                 region: config.region,
             });
-            // BUG-09: Format as readable key-value pairs instead of raw dict.
-            if (_isDict(data)) {
+            if (fmt.use_json) {
+                fmt.printData(data);
+            }
+            else if (_isDict(data)) {
                 fmt.printDict(_stringifyValues(data));
             }
             else {

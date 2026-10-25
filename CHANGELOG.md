@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Preserve nested objects and JSON value types in native template info instead of stringifying them. / 原生模板详情 JSON 保留嵌套对象和值类型，不再转换成字符串。
+
 - Check Docker before recording a build intent and keep fixed missing-Docker/daemon guidance visible during template launch; unstarted builds no longer produce an ambiguous artifact journal (#160). / 模板启动在登记构建资源前检查 Docker，直接显示缺少 Docker 或守护进程不可用的修复提示；尚未开始的构建不会留下含糊的资源记录。
 
 - Assemble generated native steps from the provider-resolved image and final local source bytes, avoiding model-written base64 and missing preparation fields. New application templates install the public server 0.4.0a1 alpha. / 从提供方已解析镜像和最终源码确定性组装生成模板的原生构建步骤，新模板使用公开 server 0.4.0a1 alpha。
