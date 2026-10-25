@@ -1,0 +1,14 @@
+[
+  {
+    "version": "public0.5.3",
+    "returncode": 1,
+    "output": "Using local template from <isolated-home>/.abx/templates/owner/repo/old/example...\nUnexpected error: Invalid SandboxTemplate:\n\u2716 Invalid input: expected 5\n  \u2192 at spec_version\n\u2716 Invalid input: expected record, received undefined\n  \u2192 at provides\n\u2716 Invalid input: expected never, received number\n  \u2192 at workflow_contract_version\n\u2716 Invalid input: expected never, received string\n  \u2192 at default_workflow\n\u2716 Invalid input: expected never, received object\n  \u2192 at workflows\n  Suggestion: Use 'abx -v <command>' for more details, or report this issue.\n",
+    "file_unchanged": true
+  },
+  {
+    "version": "candidate0.5.4",
+    "returncode": 1,
+    "output": "Using local template from <isolated-home>/.abx/templates/owner/repo/old/example...\n[E2004] <isolated-home>/.abx/templates/owner/repo/old/example/template.yaml: unsupported template spec_version 4; this CLI requires spec_version: 5. Use a source revision containing spec_version: 5; updating the version number alone does not migrate an old manifest. If this is a downloaded copy and its remote source has already been updated, remove only its cached template directory (<isolated-home>/.abx/templates/owner/repo/old/example) and retry. Index refresh does not refresh source files.\n  Suggestion: Fix the template.yaml (see the validation error above); capabilities are NOT granted until the template parses cleanly.\n",
+    "file_unchanged": true
+  }
+]

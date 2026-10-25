@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { randomBytes } from "node:crypto";
-import { GitHubRateLimitError, NetworkError, SandboxError, TemplateNotFoundError } from "../models/errors.js";
+import { GitHubRateLimitError, NetworkError, SandboxError, TemplateNotFoundError, TemplateParseError } from "../models/errors.js";
 import { ValueError } from "../models/value_error.js";
 import { SandboxTemplate, TemplateRef } from "../models/template.js";
 import { asyncWith, HTTPStatusError, httpx } from "../transport/_httpx.js";
@@ -427,12 +427,25 @@ function _isStrictParent(parent: string, child: string): boolean {
   return child.startsWith(withSep);
 }
 
+/** Reject obsolete source manifests with recovery scoped to their own cache directory. */
+export function validateTemplateSourceVersion(data: Record<string, unknown>, file: string, cacheDirectory: string | null = TEMPLATE_CACHE_DIR): void {
+  if (Object.hasOwn(data, "spec_version") && data["spec_version"] !== 5) {
+    const declared = typeof data["spec_version"] === "number" ? String(data["spec_version"]) : "invalid";
+    const relative = cacheDirectory === null ? "" : path.relative(path.resolve(cacheDirectory), path.resolve(file));
+    const cached = relative !== "" && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+    const recovery = "Use a source revision containing spec_version: 5; updating the version number alone does not migrate an old manifest." +
+      (cached ? ` If this is a downloaded copy and its remote source has already been updated, remove only its cached template directory (${path.dirname(file)}) and retry. Index refresh does not refresh source files.` : "");
+    throw new TemplateParseError(`${file}: unsupported template spec_version ${declared}; this CLI requires spec_version: 5. ${recovery}`);
+  }
+}
+
 /** 从 YAML 文件加载模板定义。 */
 export function loadTemplateFromYaml(file: string): SandboxTemplate {
   const data = loadYaml(readTextPy(file));
   if (!isMapping(data)) {
     throw new ValueError(`${file} must be a YAML mapping`);
   }
+  validateTemplateSourceVersion(data, file);
   // 映射 resources 嵌套结构到扁平字段
   const { resources, ...rest } = data;
   const flat: Record<string, unknown> = rest;
