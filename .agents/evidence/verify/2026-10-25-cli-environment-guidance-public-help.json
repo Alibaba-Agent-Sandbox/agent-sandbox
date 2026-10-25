@@ -1,0 +1,127 @@
+{
+  "scope": "Actual published standalone CLI0.5.6 help/parser checks in new isolated HOME outside checkout; no credentials/cloud/SDK install",
+  "binary_sha256": "f7d900762660f49863bcb4749f1bb1f7b328d996b643a446868e2d3a36a2ac81",
+  "checks": [
+    {
+      "name": "version",
+      "argv": [
+        "--version"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "0.5.6"
+      ],
+      "passed": true
+    },
+    {
+      "name": "express-create",
+      "argv": [
+        "--provider",
+        "alicloud-express",
+        "create",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "--env",
+        "terminal session",
+        "--detach"
+      ],
+      "passed": true
+    },
+    {
+      "name": "express-connect",
+      "argv": [
+        "--provider",
+        "alicloud-express",
+        "connect",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "--env",
+        "terminal session"
+      ],
+      "passed": true
+    },
+    {
+      "name": "express-exec",
+      "argv": [
+        "--provider",
+        "alicloud-express",
+        "exec",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "--env",
+        "before the sandbox ID"
+      ],
+      "passed": true
+    },
+    {
+      "name": "process-environment",
+      "argv": [
+        "--provider",
+        "alicloud-express",
+        "sandbox",
+        "system",
+        "env",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "--filter",
+        "PATH,HOME,LANG"
+      ],
+      "passed": true
+    },
+    {
+      "name": "named-command",
+      "argv": [
+        "--provider",
+        "alicloud-express",
+        "run",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "--arg",
+        "--server-port"
+      ],
+      "passed": true
+    },
+    {
+      "name": "template-launch",
+      "argv": [
+        "--provider",
+        "alicloud-express",
+        "template",
+        "launch",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "TEMPLATE_REF"
+      ],
+      "passed": true
+    },
+    {
+      "name": "opensandbox-exec",
+      "argv": [
+        "--provider",
+        "opensandbox",
+        "exec",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_help_markers": [
+        "--env",
+        "KEY=VALUE"
+      ],
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "cloud_resources_created": 0
+}
