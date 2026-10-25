@@ -8,7 +8,7 @@ A single template required authors and users to select application, execution or
 
 ## Decision
 
-Use spec v5 with existing `provides`, `start_cmd` and `ready_cmd`. Remove selectable workflows from current runtime manifests and launch commands. Derive preparation from source or a fixed image/owned managed reference. Start once, verify all service declarations without invoking business commands, and return all service addresses. Preserve Provider preparation, immutable snapshots, resource journals and owned cleanup.
+Use spec v5 with existing `provides`, `start_cmd` and `ready_cmd`. Remove selectable workflows from current runtime manifests and launch commands. Derive preparation from source or a fixed image/owned managed reference. Start once, run declared readiness checks, resolve all service addresses, and verify known Agent Sandbox Server v2 endpoints using health/discovery without invoking business commands. Other protocols are not automatically probed. Preserve Provider preparation, immutable snapshots, resource journals and owned cleanup.
 
 ## API Design
 
@@ -25,12 +25,14 @@ Canonical launch contracts are owned by [Python SDK](https://github.com/Alibaba-
 
 ## Test Strategy
 
-Run shared cross-language vectors, launch lifecycle regressions, migration rejection, all-service verification and catalog-managed launch tests; preserve uncertain-create and cleanup regressions. Run CLI checks, evidence capture and real Provider startup before delivery.
+Run shared cross-language vectors, launch lifecycle regressions, migration rejection, all-service endpoint and known-protocol verification and catalog-managed launch tests; preserve uncertain-create and cleanup regressions. Run CLI checks, evidence capture and real Provider startup before delivery.
 
 ## Acceptance criteria
 
-Current launch has no workflow selector; all services are retained and verified; fixed managed catalog entries launch by name; v4 gives a migration error. Shared contracts match the pinned owner, repository checks pass, and real-component evidence is recorded before merge.
+Current launch has no workflow selector; all services are retained and resolved, declared readiness checks run, and known server v2 endpoints receive health/discovery checks; fixed managed catalog entries launch by name; v4 gives a migration error. Shared contracts match the pinned owner, repository checks pass, and real-component evidence is recorded before merge.
 
 ## Evidence
 
 - [Contract foundation](../../../evidence/verify/2026-10-25-unified-template-contract.md)
+- [Runtime and CI](../../../evidence/verify/2026-10-25-unified-template-runtime.md)
+- [Real Express startup and cleanup](../../../evidence/verify/2026-10-25-unified-template-cloud.md)
