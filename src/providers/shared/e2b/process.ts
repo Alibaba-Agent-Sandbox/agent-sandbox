@@ -198,50 +198,89 @@ export class ProcessProtocol {
     // are not killed prematurely by the HTTP layer's default 30 s timeout.
     const http_timeout = pyFloat(timeout) + _HTTP_TIMEOUT_BUFFER;
 
+    const controller = new AbortController();
     const raw_stream = this._http.envdStream(envd_url, _START, {
       payload,
       envd_token,
       headers,
       request_timeout: http_timeout,
+      signal: controller.signal,
     });
 
-    const guarded = this._guardCommandTimeout(raw_stream, envd_url, envd_token, { timeout, http_timeout });
+    const guarded = this._guardCommandTimeout(raw_stream, envd_url, envd_token, {
+      timeout, http_timeout, cancel: () => controller.abort(),
+    });
     return new StreamReader(guarded, _parseProcessChunk);
   }
 
-  /**
-   * Re-raise the HTTP read timeout of a command stream as {@link CommandTimeoutError} (KI-003).
-   *
-   * The HTTP read timeout is derived from the command timeout, so a silent command that outlives it surfaces from httpx
-   * as `ReadTimeout`. The process is killed on a best-effort basis (closing the HTTP stream does not stop it) and the
-   * SDK error is raised.
-   */
+  /** Bound the complete command, including continuously producing streams. */
   async *_guardCommandTimeout(
     raw_stream: AsyncIterable<Record<string, any>>,
     envd_url: string,
     envd_token: EnvdTokenManager,
-    opts: { timeout: number; http_timeout: number },
+    opts: { timeout: number; http_timeout: number; cancel?: () => void },
   ): AsyncGenerator<Record<string, any>> {
     let pid: number | null = null;
+    let deadlineExpired = false;
+    const deadline = performance.now() + opts.timeout * 1000;
+    const iterator = raw_stream[Symbol.asyncIterator]();
     try {
-      for await (const frame of raw_stream) {
+      for (;;) {
+        const remaining = deadline - performance.now();
+        if (remaining <= 0) {
+          deadlineExpired = true;
+          throw new CommandTimeoutError("execution deadline exceeded");
+        }
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let next: IteratorResult<Record<string, any>>;
+        try {
+          next = await Promise.race([
+            iterator.next(),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => {
+                deadlineExpired = true;
+                reject(new CommandTimeoutError("execution deadline exceeded"));
+              }, Math.min(remaining, 2 ** 31 - 1));
+            }),
+          ]);
+        } finally {
+          if (timer !== undefined) clearTimeout(timer);
+        }
+        if (next.done) break;
+        const frame = next.value;
         const started = dictGet(dictGet(frame, "event", null) || {}, "start", null);
-        if (isDict(started) && typeof started["pid"] === "number" && Number.isInteger(started["pid"])) pid = started["pid"];
+        if (isDict(started) && typeof started["pid"] === "number" && Number.isInteger(started["pid"]) && started["pid"] > 0) pid = started["pid"];
         yield frame;
       }
     } catch (exc) {
-      if (!(exc instanceof ReadTimeout)) throw exc;
+      if (!deadlineExpired && !(exc instanceof ReadTimeout)) throw exc;
+      // Closing an async generator alone queues behind its pending next(). Abort
+      // this HTTP stream first so a silent read cannot delay the command deadline.
+      opts.cancel?.();
       if (pid !== null) {
         try {
           await this.sendSignal(envd_url, envd_token, { pid, signal: 9, request_timeout: 10.0 });
         } catch {
-          // best effort: the timeout is what the caller must see
           logger.debug("could not kill timed-out process %s", pid);
         }
       }
-      let detail = `no output for ${_formatG(opts.http_timeout)}s`;
+      let detail = deadlineExpired ? "execution deadline exceeded" : `no output for ${_formatG(opts.http_timeout)}s`;
       if (pid !== null) detail += `; pid ${pid} was asked to stop`;
       throw new CommandTimeoutError(`Command timed out: did not finish within ${opts.timeout}s (${detail}).`);
+    } finally {
+      opts.cancel?.();
+      if (typeof iterator.return === "function") {
+        try {
+          const closing = Promise.resolve(iterator.return());
+          if (deadlineExpired) {
+            // Custom iterators may ignore HTTP cancellation; do not let their
+            // unrelated pending I/O delay the caller's typed timeout.
+            void closing.catch(() => logger.debug("could not close timed-out command stream"));
+          } else {
+            await closing;
+          }
+        } catch { logger.debug("could not close command stream"); }
+      }
     }
   }
 

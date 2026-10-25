@@ -220,3 +220,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Native template JSON correction](notes/proposed/feature/2026-10-25-native-template-json.md) · [verification](evidence/verify/2026-10-25-native-template-json.md) · [Issue 162](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/162).
 
 - [Generated whole-template launch](notes/proposed/feature/2026-10-25-generated-template-launch.md) · [verification](evidence/verify/2026-10-25-generated-template-launch.md).
+
+- [Total command execution deadline](notes/proposed/feature/2026-10-25-command-total-deadline.md) · [verification](evidence/verify/2026-10-25-command-total-deadline.md) · [Issue 166](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/166).

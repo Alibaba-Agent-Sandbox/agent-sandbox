@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Enforce total native command deadlines even with continuous output, close only the owned stream and best-effort stop its observed PID (#166). / 原生命令持续输出也遵守总执行超时，关闭本次流并尝试停止实际观测到的进程。
+
 - Preserve nested objects and JSON value types in native template info instead of stringifying them. / 原生模板详情 JSON 保留嵌套对象和值类型，不再转换成字符串。
 - Generate MCP applications with current factory argument names (`sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`); verify the actual generated HTTP application against its public dependencies. / MCP 生成应用统一使用当前工厂参数，以公开依赖启动真实 HTTP 应用验证。
 - Use the same public Python runtime release for generation, scaffolding, MCP artifacts and default wheel downloads; remove old source-pin compatibility and keep Python versions independent of the CLI package (#165). / 生成器、脚手架、MCP 与默认 wheel 下载共用公开 Python 运行时版本，删除旧源码 pin 兼容分支，并与 CLI 版本解耦。

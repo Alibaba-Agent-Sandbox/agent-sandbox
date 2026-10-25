@@ -10,7 +10,7 @@
 import { ConnectionError_, EnvdRpcError, InvalidAPIKeyError, InvalidCredentialsError } from "../models/errors.js";
 import { pyStrip, pyTruncate } from "../utils/_pyformat.js";
 import { getLogger } from "../utils/logging.js";
-import { type AsyncClient, ConnectError, ConnectTimeout, HTTPStatusError, httpx, type RequestOptions, type Response } from "./_httpx.js";
+import { type AsyncClient, ConnectError, ConnectTimeout, HTTPStatusError, ReadTimeout, httpx, type RequestOptions, type Response } from "./_httpx.js";
 import type { AuthProvider } from "./auth_contract.js";
 import type { DataPlaneAuth as EnvdTokenManager } from "./auth_contract.js";
 import { CONNECT_CONTENT_TYPE, ConnectCodec, EnvelopeStreamParser } from "./codec.js";
@@ -128,6 +128,8 @@ export interface PlatformRequestOptions {
 }
 
 export interface EnvdRequestOptions {
+  /** Cancel only this streaming call; used by the command execution deadline. */
+  signal?: AbortSignal;
   payload?: Record<string, unknown> | null;
   envd_token: EnvdTokenManager;
   headers?: Record<string, string> | null;
@@ -398,7 +400,13 @@ export class HttpClient {
     let client: AsyncClient | null = null;
     let streamCm: { __aenter__(): Promise<Response>; __aexit__(): Promise<void> } | null = null;
     let entered = false;
+    const cancel = (): void => {
+      if (streamCm !== null && entered) void streamCm.__aexit__().catch(() => {});
+      if (client !== null) void client.aclose().catch(() => {});
+    };
+    opts.signal?.addEventListener("abort", cancel, { once: true });
     try {
+      if (opts.signal?.aborted) throw new ReadTimeout("command stream cancelled");
       // Use a fresh client per streaming call (see NOTE above) and a true streaming request so frames are decoded
       // incrementally as network chunks arrive.
       client = new httpx.AsyncClient({
@@ -442,6 +450,7 @@ export class HttpClient {
       }
       throw exc;
     } finally {
+      opts.signal?.removeEventListener("abort", cancel);
       try {
         if (streamCm !== null && entered) await streamCm.__aexit__();
       } finally {
