@@ -22,6 +22,10 @@ A missing runtime token failed a separate real CLI command in 0.595 seconds befo
 - `bash scripts/check-repo-health.sh`: PASS=106, WARN=11, FAIL=0 including the final record/link check.
 - Full local unit suite: 4365 PASS / 12 FAIL / 50 skipped. Two failures were the obsolete reference-plugin host-version fixture and now pass using the actual host version. The remaining ten are local loopback, proxy and TLS transport cases under this execution environment; required clean remote CI remains pending. No full-suite pass is claimed.
 
+## CI fixture correction
+
+The initial remote Node 22 job passed all 197 default test files, then parity found six failures in the separately excluded natural-language integration fixture. That fixture was still missing required runtime input and only modeled the former bare-create object. Updated fixtures now exercise the shared launch path with explicit offline cloud/model seams; all 16 integration tests and its filtered historical parity ledger pass locally. Latest-head remote parity remains required.
+
 ## Scope
 
 Two real-model native-cloud candidate runs passed all 53 usage assertions each, including an explicit `-e ABX_SERVER_TOKEN=...` runtime override. Source hashes and exact sandbox/template absence were independently checked. The second run used runtime override values without putting them into generated artifacts.
