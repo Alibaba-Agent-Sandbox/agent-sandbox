@@ -2,7 +2,7 @@
 
 ## Pending minimal patch — 2026-10-25
 
-CLI 0.5.2 uses the current public Python runtime across generation, scaffolding and MCP artifacts. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. Publication is pending.
+CLI 0.5.3 retains the current public Python runtime across generation, scaffolding and MCP artifacts and fixes Windows journal writes. Version 0.5.2 was withheld after its real Windows artifact failure. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. The [Windows correction and release verification](evidence/verify/2026-10-25-cli-053-windows-release.md) records the next minimal patch; publication is pending.
 
 ## Current delivery — 2026-10-25
 
