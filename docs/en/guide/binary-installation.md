@@ -16,7 +16,7 @@ Binaries are attached to each GitHub Release
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 Each file has a sibling `.sha256` (SHA-256, `sha256sum` / `shasum -a 256` text).
-Release **v0.5.2** includes all five `abx-*` platform binaries and matching SHA-256 files. Older v0.2.0 used `ebx-*`, which this installer does not consume. [Source installation](#install-from-source) remains available.
+The release pipeline publishes five `abx-*` platform binaries and matching SHA-256 files only after every platform passes. The versioned examples below select **v0.5.3**; consult its release verification for availability. Older v0.2.0 used `ebx-*`, which this installer does not consume. [Source installation](#install-from-source) remains available.
 
 The official website mirrors the complete stable release: all five binaries, the npm archive and SHA-256 sidecars. It validates release sizes and payload hashes before deployment. The [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) identifies the version currently available; a newly published GitHub release becomes the website default after the mirror is deployed.
 
@@ -24,7 +24,7 @@ The official website mirrors the complete stable release: all five binaries, the
 
 ## Install
 
-The commands below select v0.5.2 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-052-release.md) records the published artifacts and fresh npm package acceptance.
+The commands below select v0.5.3 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-053-windows-release.md) records the published artifacts and fresh npm package acceptance.
 
 ### macOS and Linux
 
@@ -40,11 +40,11 @@ The destination is `/usr/local/bin` when that directory is writable, otherwise `
 
 ```bash
 # optional
-curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_VERSION=0.5.2 sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_VERSION=0.5.3 sh
 curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_INSTALL_DIR="$HOME/bin" sh
 ```
 
-`ABX_VERSION` accepts `0.5.2` or `v0.5.2`. The function retains the current mirrored release only; an explicit older version keeps the original GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset prefix, whose layout is `<base>/v<version>/<asset>`. Setting an alternate `ABX_REPO`, `ABX_GITHUB_API` or `ABX_LATEST_URL` retains upstream discovery behavior. A custom download base alone still uses the website-pinned version; set `ABX_VERSION` as well to choose another release. An unsupported OS or CPU exits with an error that names the supported platforms. On Windows, use the PowerShell installer.
+`ABX_VERSION` accepts `0.5.3` or `v0.5.3`. The function retains the current mirrored release only; an explicit older version keeps the original GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset prefix, whose layout is `<base>/v<version>/<asset>`. Setting an alternate `ABX_REPO`, `ABX_GITHUB_API` or `ABX_LATEST_URL` retains upstream discovery behavior. A custom download base alone still uses the website-pinned version; set `ABX_VERSION` as well to choose another release. An unsupported OS or CPU exits with an error that names the supported platforms. On Windows, use the PowerShell installer.
 
 The upstream GitHub installer remains available when direct GitHub downloads are preferred:
 
@@ -67,11 +67,11 @@ The Windows script supports `ABX_VERSION` and `ABX_INSTALL_DIR`; its default ver
 ## Manual download
 
 1. Check the version and filenames in the [website mirror manifest](https://www.agent-sandbox.cn/releases/latest.json).
-2. Download the matching asset and `.sha256` under `https://www.agent-sandbox.cn/releases/download/v<version>/`. For example, macOS Apple Silicon v0.5.2:
+2. Download the matching asset and `.sha256` under `https://www.agent-sandbox.cn/releases/download/v<version>/`. For example, macOS Apple Silicon v0.5.3:
 
    ```bash
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.2/abx-0.5.2-darwin-arm64
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.2/abx-0.5.2-darwin-arm64.sha256
+   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.3/abx-0.5.3-darwin-arm64
+   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.3/abx-0.5.3-darwin-arm64.sha256
    ```
 
 3. For other releases, use [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases). Pick `abx-*` assets and matching checksums.
@@ -79,27 +79,27 @@ The Windows script supports `ABX_VERSION` and `ABX_INSTALL_DIR`; its default ver
 
 ```bash
 # macOS
-shasum -a 256 -c abx-0.5.2-darwin-arm64.sha256
+shasum -a 256 -c abx-0.5.3-darwin-arm64.sha256
 
 # Linux
-sha256sum -c abx-0.5.2-linux-x64.sha256
+sha256sum -c abx-0.5.3-linux-x64.sha256
 
-chmod +x ./abx-0.5.2-darwin-arm64
-mkdir -p ~/.local/bin && mv ./abx-0.5.2-darwin-arm64 ~/.local/bin/abx
+chmod +x ./abx-0.5.3-darwin-arm64
+mkdir -p ~/.local/bin && mv ./abx-0.5.3-darwin-arm64 ~/.local/bin/abx
 ```
 
 Windows:
 
 ```powershell
-Get-FileHash abx-0.5.2-windows-x64.exe -Algorithm SHA256
+Get-FileHash abx-0.5.3-windows-x64.exe -Algorithm SHA256
 # Compare the hash with the first field of the .sha256 file.
 
 $installDir = "$env:LOCALAPPDATA\Programs\abx"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item abx-0.5.2-windows-x64.exe "$installDir\abx.exe"
+Move-Item abx-0.5.3-windows-x64.exe "$installDir\abx.exe"
 ```
 
-`certutil -hashfile abx-0.5.2-windows-x64.exe SHA256` prints the same digest.
+`certutil -hashfile abx-0.5.3-windows-x64.exe SHA256` prints the same digest.
 
 ## npm
 
@@ -134,7 +134,7 @@ This installs the compiled checkout directly without depending on a versioned ta
 
 ```bash
 abx --version
-# abx, version 0.5.2
+# abx, version 0.5.3
 ```
 
 > **macOS Gatekeeper:** the release binaries are ad-hoc signed, not notarized. A browser download can be quarantined. If the first launch is blocked:
@@ -203,7 +203,7 @@ npm ci
 npm run build:binary
 ```
 
-The version tag runs [the five-platform binary workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml) and uploads checksummed assets to a draft Release. Publish the draft only after every platform succeeds. Publishing runs [the npm workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which installs the exact tarball before upload and verifies a public-registry install afterward. For recovery, run the current npm workflow from `main` using workflow_dispatch with `release_tag` set to the existing version tag (for example `v0.5.2`). It explicitly checks out `refs/tags/<release_tag>` and rejects mismatching package versions or recovery workflows run from feature branches. This repairs the publisher without moving the immutable source tag. Both install and publish use `./dist-pack/*.tgz` so npm interprets the argument as a local tarball.
+The version tag runs [the five-platform binary workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml) and uploads checksummed assets to a draft Release. Publish the draft only after every platform succeeds. Publishing runs [the npm workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which installs the exact tarball before upload and verifies a public-registry install afterward. For recovery, run the current npm workflow from `main` using workflow_dispatch with `release_tag` set to the existing version tag (for example `v0.5.3`). It explicitly checks out `refs/tags/<release_tag>` and rejects mismatching package versions or recovery workflows run from feature branches. This repairs the publisher without moving the immutable source tag. Both install and publish use `./dist-pack/*.tgz` so npm interprets the argument as a local tarball.
 
 ## Next Steps
 

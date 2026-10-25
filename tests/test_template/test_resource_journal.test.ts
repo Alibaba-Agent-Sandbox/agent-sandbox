@@ -51,3 +51,41 @@ it("syncs every first-created ancestor entry through the first existing parent",
     expect(synced).toEqual([path.join(newRoot, "resource-journal"), newRoot, path.dirname(newRoot), existingRoot]);
   } finally { opened.mockRestore(); _setPaths({abxDir: existingRoot}); }
 });
+
+
+it("syncs Windows journal files without trying POSIX directory handles", async () => {
+  const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
+  const open = promises.open.bind(promises); const synced: string[] = [];
+  const opened = vi.spyOn(promises, "open").mockImplementation(async (...args) => {
+    if (!String(args[0]).endsWith(".tmp")) throw new Error("Windows directory sync is unsupported");
+    const handle = await open(...args); const sync = handle.sync.bind(handle);
+    vi.spyOn(handle, "sync").mockImplementation(async () => { synced.push(String(args[0])); await sync(); });
+    return handle;
+  });
+  try {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const journal = new ResourceJournal("opensandbox", "plan");
+    const id = await journal.intent({ kind: "sandbox", correlation_key: "owned", cleanup: "sandbox.delete" });
+    await journal.created(id, "sandbox-owned");
+    await journal.mark(id, "deleted");
+    expect(synced).toHaveLength(3);
+    expect(JSON.parse(fs.readFileSync(journal.file, "utf8")).entries[0]).toMatchObject({ state: "deleted", id: "sandbox-owned" });
+    expect(fs.existsSync(`${journal.file}.tmp`)).toBe(false);
+  } finally { Object.defineProperty(process, "platform", platform); opened.mockRestore(); }
+});
+
+it("still rejects failed Windows file synchronization before acknowledging intent", async () => {
+  const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
+  const open = promises.open.bind(promises);
+  const opened = vi.spyOn(promises, "open").mockImplementation(async (...args) => {
+    const handle = await open(...args);
+    vi.spyOn(handle, "sync").mockRejectedValue(new Error("file sync failed"));
+    return handle;
+  });
+  try {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const journal = new ResourceJournal("opensandbox", "plan");
+    await expect(journal.intent({ kind: "sandbox", correlation_key: "owned", cleanup: "sandbox.delete" })).rejects.toThrow("file sync failed");
+    expect(fs.existsSync(journal.file)).toBe(false);
+  } finally { Object.defineProperty(process, "platform", platform); opened.mockRestore(); }
+});

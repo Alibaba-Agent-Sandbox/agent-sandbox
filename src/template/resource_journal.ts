@@ -1,4 +1,4 @@
-/** Durable owned-resource recovery journal. It never contains credentials or endpoint URLs. */
+/** Synced owned-resource recovery journal. It never contains credentials or endpoint URLs. */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -28,7 +28,10 @@ export class ResourceJournal implements ResourceJournalCallbacks {
       await handle.sync();
     } finally { await handle.close(); }
     await fs.rename(temporary, this.file);
-    // Directory fsync is required: unsupported filesystems/platforms fail before a mutation is submitted.
+    // Windows supports file sync, but Node does not provide POSIX directory fsync there.
+    // Keep write/sync/rename failures fatal; do not claim power-loss durability for its directory entries.
+    if (process.platform === "win32") return;
+    // On POSIX, persist directory entries before acknowledging the intent.
     const directories = [journalDirectory];
     if (firstCreated !== undefined) {
       // Persist every newly created directory entry, including the first entry in its existing parent.

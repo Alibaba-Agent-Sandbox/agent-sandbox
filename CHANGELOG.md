@@ -6,7 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-## [0.5.2] - 2026-10-25
+## [0.5.3] - 2026-10-25
+
+### Fixed
+
+- Persist resource journal files on Windows without requiring POSIX directory synchronization; retain file write/sync/rename errors and POSIX directory checks (#169). / Windows 资源记录保留文件写入、同步和替换检查，不再依赖 POSIX 目录同步；POSIX 目录检查保持不变。
+
+### Release status
+
+- Version 0.5.2 was not published because its real Windows artifact gate failed. Version 0.5.3 includes the corrections prepared below without replacing the immutable 0.5.2 tag. / 0.5.2 因真实 Windows 产物检查失败而未正式发布；0.5.3 包含下列修复，保留原有不可变标签。
+
+## [0.5.2] - 2026-10-25 (unpublished)
 
 ### Fixed
 
