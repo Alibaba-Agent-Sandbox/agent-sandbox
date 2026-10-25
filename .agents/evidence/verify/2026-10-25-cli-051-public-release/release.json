@@ -1,0 +1,161 @@
+{
+  "version": "0.5.1",
+  "reviewed_head": "9e35dfd8f017194184f4a1012214d26f72bc623a",
+  "pr": 154,
+  "pr_checks": {
+    "Build package": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814695/job/121141112918"
+    },
+    "Test (Node 20)": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814695/job/121140251583"
+    },
+    "Installer script": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814695/job/121140251473"
+    },
+    "Test (Node 22)": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814695/job/121140251441"
+    },
+    "Typecheck (tsc)": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814695/job/121140251266"
+    },
+    "express": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814710/job/121140250994"
+    },
+    "Markdown links": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40183814681/job/121140250982"
+    }
+  },
+  "merge_sha": "8b4d9ad1ebf8b1329039bc292a3fe0ac1a32784f",
+  "main_checks": {
+    "Build package": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184194099/job/121142227170"
+    },
+    "Typecheck (tsc)": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184194099/job/121141398971"
+    },
+    "Test (Node 22)": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184194099/job/121141398950"
+    },
+    "Installer script": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184194099/job/121141398894"
+    },
+    "Test (Node 20)": {
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184194099/job/121141398728"
+    }
+  },
+  "tag_object": "d9fb453ee068aab9e4963d0b8e672150985bec66",
+  "binary_run": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184565506",
+  "binary_jobs": [
+    {
+      "name": "Build abx binary (windows-x64)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184565506/job/121142503676"
+    },
+    {
+      "name": "Build abx binary (darwin-x64)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184565506/job/121142503827"
+    },
+    {
+      "name": "Build abx binary (linux-arm64)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184565506/job/121142503832"
+    },
+    {
+      "name": "Build abx binary (linux-x64)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184565506/job/121142503859"
+    },
+    {
+      "name": "Build abx binary (darwin-arm64)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184565506/job/121142503888"
+    }
+  ],
+  "release_id": 423320042,
+  "release_url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.1",
+  "published_at": "2026-10-25T10:26:22Z",
+  "npm_workflow": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40184777604",
+  "npm_workflow_conclusion": "success",
+  "npm_version": "0.5.1",
+  "archive_sha256": "3c5bac30cedcb48ecea5b34d9ee3fcb43d2fb069ebff6c54a6bd5ce162ad1efa",
+  "archive_integrity": "sha512-dMYMwkSDWm//c8WQd+T38SfcKx/NkCSdMBUR8pAYcHE0xhlFDHubnC8YBNsdVW+npE9Wpvxt9rr1U9MOPP426A==",
+  "assets": [
+    {
+      "name": "abx-0.5.1-darwin-arm64",
+      "size": 122573936
+    },
+    {
+      "name": "abx-0.5.1-darwin-arm64.sha256",
+      "size": 89
+    },
+    {
+      "name": "abx-0.5.1-darwin-x64",
+      "size": 125801120
+    },
+    {
+      "name": "abx-0.5.1-darwin-x64.sha256",
+      "size": 87
+    },
+    {
+      "name": "abx-0.5.1-linux-arm64",
+      "size": 132779136
+    },
+    {
+      "name": "abx-0.5.1-linux-arm64.sha256",
+      "size": 88
+    },
+    {
+      "name": "abx-0.5.1-linux-x64",
+      "size": 135400640
+    },
+    {
+      "name": "abx-0.5.1-linux-x64.sha256",
+      "size": 86
+    },
+    {
+      "name": "abx-0.5.1-windows-x64.exe",
+      "size": 97683456
+    },
+    {
+      "name": "abx-0.5.1-windows-x64.exe.sha256",
+      "size": 92
+    },
+    {
+      "name": "agent-sandbox-cli-0.5.1.tgz",
+      "size": 2182874
+    },
+    {
+      "name": "agent-sandbox-cli-0.5.1.tgz.sha256",
+      "size": 94
+    }
+  ],
+  "fresh_official_npm_install": "pass",
+  "public_artifact_smoke": "pass",
+  "public_cloud_exit": 0,
+  "public_cloud_sanitized_output": "PASS: public CLI 0.5.1 launched bare catalog name base with TTL 300 and empty initial cache\nPublic catalog SHA256: 8fcb10e223a4e592d3f4fa44069dcc966eeb91799cd768ce106470368f7acdd9\nPASS: remote exec returned 42\nPASS: CLI kill and independent API absence check\nPASS: all owned resources independently absent\n"
+}

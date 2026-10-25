@@ -78,7 +78,7 @@ npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
 abx --version
 ```
 
-An HTTP404 from the official registry means npm publication is incomplete; a merged PR or successful build is not publication. Use the binary/source path until the index resolves. If the global prefix is not writable, use `npm install -g --prefix "$HOME/.local" @agent-sandbox/cli` and add `$HOME/.local/bin` to PATH; sudo is not required with that prefix.
+An HTTP404 from the official registry means that endpoint cannot yet supply the package; a merged PR or successful build is not publication. Use the binary/source path until the index resolves. If the global prefix is not writable, use `npm install -g --prefix "$HOME/.local" @agent-sandbox/cli` and add `$HOME/.local/bin` to PATH; sudo is not required with that prefix.
 
 ### From source
 
@@ -274,9 +274,9 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 
 ## Release readiness
 
-0.4.0 is the new standard CLI release line. Existing v0.3.0 points to an earlier implementation. Verify GitHub assets and npm metadata separately; never overwrite an older release tag with different code. A0.x CLI release does not certify every provider or experimental template.
+CLI 0.5.1 fixes public managed-catalog names and keeps template launch JSON output machine-readable. Verify GitHub assets and npm metadata separately; existing version tags and packages are immutable. See the [public release verification](.agents/evidence/verify/2026-10-25-cli-051-public-release.md).
 
-The Express core and conditional pause/snapshot receipts do not certify every catalog template. Templates remain experimental until their own versioned deployment/model acceptance passes; third-party provider Beta scope is separate. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
+Runtime evidence applies to the tested template/provider combination. The release record identifies the actual CLI artifact and managed Express base checks; each template documents its own provider requirements and service APIs. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
 
 [Prepare and launch catalog templates without copying cloud IDs](docs/en/guide/template-launch.md).
 
