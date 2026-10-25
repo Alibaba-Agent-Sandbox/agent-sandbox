@@ -42,7 +42,8 @@ import {
 import { pyRepr as pyReprStr } from "./_py.js";
 import { YAMLError, dumpYaml, isMapping, loadYaml } from "../utils/yaml_io.js";
 import { type QwenCodeRunResult, type RunHeadlessOptions, excStr, runQwenCodeHeadless } from "./qwen_code.js";
-import { resolveBuildPlan, type BuildMode } from "../template/build_plan.js";
+import { resolveBuildPlan, type BuildMode, type PlatformStep } from "../template/build_plan.js";
+import { SERVER_SDK_RELEASE_SPEC } from "../utils/server_sdk_pin.js";
 import { buildTemplateGuide, REQUIRED_TEMPLATE_FILES, SERVER_ENTRYPOINT, SERVER_PORT } from "./template_guide.js";
 import {
   dockerfileCmdLine,
@@ -641,6 +642,57 @@ export function validateTemplateWorkspace(
   return data;
 }
 
+/** Assemble native preparation from final generated files, never model-encoded bytes. */
+function prepareGeneratedSteps(workdir: string, selectedImage?: string): void {
+  const hint = defaultRetryHint(workdir);
+  const manifestPath = path.join(workdir, "template.yaml");
+  const data = loadTemplateYaml(manifestPath, hint);
+  const profile = resolveTemplateProfile();
+  const dockerImage = /^\s*FROM\s+(\S+)/im.exec(readTextReplace(path.join(workdir, "Dockerfile")))?.[1];
+  const image = selectedImage ?? profile.base_image;
+  if (!image || /[<>]/.test(image)) throw new AICodegenError("Generated steps need the provider-resolved base image.", { suggestion: hint });
+  if (selectedImage && dockerImage !== selectedImage) {
+    throw new AICodegenError("Generated Dockerfile must preserve the selected provider base image.", { suggestion: hint });
+  }
+  const build = data["build"];
+  if (build !== undefined && !isMapping(build)) throw new AICodegenError("Generated build must be a mapping.", { suggestion: hint });
+  const recipe = (build ?? {}) as Record<string, unknown>;
+  if (Object.keys(recipe).some((key) => !["mode", "run"].includes(key))) {
+    throw new AICodegenError("Generated steps accept dependency commands in build.run only; the CLI assembles source-file delivery.", { suggestion: hint });
+  }
+  const dependencies = recipe["run"] ?? [];
+  if (!Array.isArray(dependencies) || dependencies.some((value) => typeof value !== "string" || !value.trim())) {
+    throw new AICodegenError("Generated build.run must be an array of dependency commands.", { suggestion: hint });
+  }
+  const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
+  const user = profile.user || "root";
+  const destination = profile.workdir;
+  const steps: PlatformStep[] = [
+    { type: "USER", args: ["root"] },
+    { type: "RUN", args: [`python3 -m pip install --index-url https://pypi.org/simple --no-cache-dir ${quote(SERVER_SDK_RELEASE_SPEC)}`] },
+  ];
+  const root = fs.realpathSync(workdir) + path.sep;
+  for (const file of listTemplateFiles(workdir)) {
+    if (["Dockerfile", "template.yaml", "README.md", ".dockerignore"].includes(file)) continue;
+    const local = path.join(workdir, file);
+    if (!fs.realpathSync(local).startsWith(root) || !fs.lstatSync(local).isFile()) {
+      throw new AICodegenError("Generated source delivery requires regular files inside its workspace.", { suggestion: hint });
+    }
+    const remote = path.posix.join(destination, file.split(path.sep).join("/"));
+    const payload = fs.readFileSync(local).toString("base64");
+    steps.push({ type: "RUN", args: [`mkdir -p ${quote(path.posix.dirname(remote))} && printf '%s' ${quote(payload)} | base64 -d > ${quote(remote)}`] });
+  }
+  steps.push(
+    { type: "WORKDIR", args: [destination] },
+    ...dependencies.map((command): PlatformStep => ({ type: "RUN", args: [command] })),
+    { type: "RUN", args: [`python3 -m py_compile ${quote(path.posix.join(destination, SERVER_ENTRYPOINT))} && chown -R ${quote(`${user}:${user}`)} ${quote(destination)}`] },
+    { type: "USER", args: [user] },
+  );
+  data["base"] = { image };
+  data["build"] = { mode: "steps", steps };
+  writeTextUtf8(manifestPath, dumpYaml(data));
+}
+
 /**
  * Create the generation workspace and its deterministic template name.
  *
@@ -748,6 +800,7 @@ async function generateTemplateFilesImpl(
     );
   }
 
+  if (opts.buildMode === "steps") prepareGeneratedSteps(work, opts.baseImage);
   const data = validateTemplateWorkspace(work, tmplName, { buildMode: opts.buildMode, baseImage: opts.baseImage });
 
   writeTextUtf8(templateYaml, dumpYaml(data));

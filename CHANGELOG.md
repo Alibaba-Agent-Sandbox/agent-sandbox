@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Assemble generated native steps from the provider-resolved image and final local source bytes, avoiding model-written base64 and missing preparation fields. New application templates install the public server 0.4.0a1 alpha. / 从提供方已解析镜像和最终源码确定性组装生成模板的原生构建步骤，新模板使用公开 server 0.4.0a1 alpha。
+
 ## [0.5.1] - 2026-10-25
 
 ### Fixed
