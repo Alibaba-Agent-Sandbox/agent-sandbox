@@ -21,6 +21,8 @@ Template launch starts the complete application: `abx --provider PROVIDER templa
 
 For natural-language Express creation with `--build steps`, the CLI assembles provider preparation and final source-file delivery; the model supplies business code and dependency commands. Newly generated applications install server `0.4.0a1` alpha. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
 
+Generated applications require runtime `ABX_SERVER_TOKEN` before model generation; generation-only stays local. `create --prompt` uses the same whole-template launch lifecycle and returns its prepared template reference and services.
+
 ## Sites
 
 | Site | URL |

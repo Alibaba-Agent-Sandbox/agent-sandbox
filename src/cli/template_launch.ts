@@ -10,6 +10,7 @@ import { executableContentDigest, providerContentDigest } from "../providers/con
 import { digestDir } from "../providers/store.js";
 import { DockerSetupError, ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
+import { resolveTemplateEnvironment } from "../template/environment.js";
 import { pyExpandUser } from "../utils/_pyos.js";
 import type { Provider } from "../providers/base.js";
 import { loadYaml, isMapping } from "../utils/yaml_io.js";
@@ -28,13 +29,13 @@ import { parseTemplateData } from "../api/capability.js";
 import { RegistryClient } from "../utils/registry.js";
 import { _findTemplateYaml, _resolveIndexEntry, _withGithubRateLimitRetry } from "./template_catalog.js";
 import { resolveGithubToken } from "./commands/config_cmd.js";
-import { Sandbox, _effectiveOptions } from "../api/sandbox.js";
+import { Sandbox, _effectiveOptions, type CreateOptions } from "../api/sandbox.js";
 import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager } from "../providers/template_contract.js";
 
 export const launchSeams = { create: (options: Parameters<typeof Sandbox.create>[0]) => Sandbox.create(options) };
 
 /** Validate a known local source before any credential prompt; remote sources are validated once after acquisition. */
-function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>) {
+function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>, environmentOverrides: Readonly<Record<string, string>> = {}) {
   const yaml = catalogManifest ? null : _findTemplateYaml(directory);
   if (!yaml && !catalogManifest) throw new ProviderConfigError("Template source has no template.yaml.");
   // The YAML's parent is the build context even when a repository contains several projects.
@@ -48,8 +49,7 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
   const template = parseTemplateData(structuredClone(sourceMetadata));
   const plan = planTemplateLaunch(sourceMetadata, provider, "cli");
   if (!plan.supported) throw new ProviderConfigError(`Template cannot launch on this provider: ${plan.reason ?? plan.missing_operations.join(", ")}.`);
-  if (Object.hasOwn(template.env, "ABX_SERVER_TOKEN") && (!process.env["ABX_SERVER_TOKEN"] || /[\r\n]/.test(process.env["ABX_SERVER_TOKEN"]!)))
-    throw new ProviderConfigError("Template services require ABX_SERVER_TOKEN before preparing or creating resources.");
+  resolveTemplateEnvironment(template.env, environmentOverrides);
   const input = sourceMetadata["template_id"] ? "managed" : sourceMetadata["image"] ? "image" : "source";
   const aliasBase = String(params["alias"] ?? template.name);
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(aliasBase)) throw new ProviderConfigError("Template alias must be a lowercase name of at most 63 characters.");
@@ -72,9 +72,18 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
 }
 
 /** One explicit operation; never guesses an ID or falls back to another backend. */
-export async function launchTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
+export interface TemplateLaunchResult {
+  receipt: Record<string, unknown>;
+  creation: Record<string, unknown>;
+}
+
+/** One preparation/create/start/readiness lifecycle shared by both CLI entry points. */
+export async function executeTemplateLaunch(
+  ctx: Context,
+  params: Record<string, unknown>,
+  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout"> & { afterCreate?: (sandbox: Sandbox) => Promise<void> } = {},
+): Promise<TemplateLaunchResult> {
   const provider = getProvider(resolveProviderId(cliProvider()));
-  const applicationToken = process.env["ABX_SERVER_TOKEN"];
   const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
   if (!Number.isFinite(timeoutInput) || timeoutInput <= 0 || timeoutInput > 3600 || !Number.isFinite(sandboxTimeoutInput) || sandboxTimeoutInput <= 0) throw new ProviderConfigError("Build timeout must be in (0, 3600] and sandbox timeout must be positive.");
   const source = String(params["template_ref"]);
@@ -83,7 +92,7 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   const isLocal = exists && fs.statSync(initialDirectory).isDirectory();
   if (exists && !isLocal) throw new UsageError("Template project source is not a directory.");
   if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template scaffold DIRECTORY' or choose an existing template source.");
-  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params) : null;
+  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params, undefined, creationOptions.envs ?? {}) : null;
   if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
   return withGuidedConfiguration(ctx, { operation: "Prepare template and create sandbox", provider: provider.id, yes: Boolean(params["yes"]),
     requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
@@ -103,10 +112,11 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
       return registry.fetch(ref);
     }, { token, fmt, out });
   }
-  const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest);
+  const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest, creationOptions.envs ?? {});
   directory = project.directory;
   const { template, options, plan, input, sourceMetadata, manifestDigest } = project;
-  const environment = Object.freeze(Object.fromEntries(Object.entries(template.env).map(([key,value])=>[key,value||process.env[key]||""])));
+  const environment = Object.freeze(resolveTemplateEnvironment(template.env, creationOptions.envs ?? {}));
+  const applicationToken = environment["ABX_SERVER_TOKEN"] || process.env["ABX_SERVER_TOKEN"];
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
   provider.validateConfig(config);
@@ -185,7 +195,10 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     on_created: recordCreated, provider: provider.id, template: reference,
     api_key: provider.inherit.has("sandbox_api_key") ? config.sandbox_api_key : undefined,
     api_url: provider.inherit.has("sandbox_base_url") ? config.sandbox_base_url : undefined,
-    provider_options: { ...structuredClone(config.provider_options), ...prepared.provider_options }, metadata: {...prepared.metadata, "abx.launch": journal.id, "abx.intent": createIntent},
+    provider_options: { ...structuredClone(config.provider_options), ...prepared.provider_options },
+    ...(creationOptions.request_timeout !== undefined ? { request_timeout: creationOptions.request_timeout } : {}),
+    ...(creationOptions.volume_mounts !== undefined ? { volume_mounts: creationOptions.volume_mounts } : {}),
+    metadata: {...prepared.metadata, ...creationOptions.metadata, "abx.launch": journal.id, "abx.intent": createIntent},
     envs: {...environment},
     timeout: sandboxTimeout, cpu: template.cpu_count, memory: template.memory_mb });
   // Third-party create seams must also retain the known ID before journal I/O.
@@ -203,6 +216,7 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     throw new ProviderConfigError(`Sandbox creation has an uncertain outcome. Do not retry blindly; inspect resource journal ${journal.id} and reconcile by its correlation key.`);
   }
   try {
+    await creationOptions.afterCreate?.(sandbox);
     const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
     const startCommand = prepared.startup_command ?? options.template.start_cmd;
     const readyCommand = prepared.ready_command ?? options.template.ready_cmd;
@@ -232,12 +246,22 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
     }
     await journal.mark(createIntent, "retained");
     for (const resource of prepared.owned_resources ?? []) await journal.mark(resource.intent_id, "retained");
-    fmt.printData({ sandbox_id: sandbox.id, provider: provider.id, template_reference: reference,
-      services, plan_digest: planDigest, manifest_digest: `sha256:${manifestDigest}`, provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, source_digest: snapshot?.digest ?? null, journal_id: journal.id, build_profile: options.build_profile?.id ?? null });
+    return {
+      receipt: { sandbox_id: sandbox.id, provider: provider.id, template_reference: reference,
+        services, plan_digest: planDigest, manifest_digest: `sha256:${manifestDigest}`, provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, source_digest: snapshot?.digest ?? null, journal_id: journal.id, build_profile: options.build_profile?.id ?? null },
+      creation: { ID: sandbox.id, Status: sandbox.status, Template: sandbox.info.template, URL: sandbox.url,
+        TemplateID: reference, Services: services,
+        ...(sandbox.info.envd_version ? { EnvdVersion: sandbox.info.envd_version } : {}), provider: provider.id },
+    };
   } catch {
     let cleaned = false;
     try { await sandbox.kill(); if (await sandbox.isRunning()) throw new Error("Still running"); await journal.mark(createIntent, "deleted"); cleaned = true; } catch { /* Report the owned ID if cleanup could not be confirmed. */ }
     throw new ProviderConfigError(`Template startup failed; owned sandbox ${sandbox.id} cleanup ${cleaned ? "completed" : "could not be confirmed"}; recovery journal ${journal.id}.`);
   } finally { await sandbox.close(); }
   });
+}
+
+/** Template-command presentation stays separate from the shared launch lifecycle. */
+export async function launchTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
+  getFormatter(ctx).printData((await executeTemplateLaunch(ctx, params)).receipt);
 }

@@ -25,6 +25,7 @@ import { QwenCodeCredentials } from "../../src/agent/qwen_code.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import * as sandboxCmd from "../../src/cli/commands/sandbox.js";
+import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
 import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
@@ -86,6 +87,13 @@ function _makeSandbox(sandbox_id = "sbx-nl-001", template_ = "abx-nl-sandbox-abc
     url: sbInfo.envd_url,
     info: sbInfo,
     files: { write: vi.fn().mockResolvedValue(undefined) },
+    commands: { run: vi.fn().mockResolvedValue({ exit_code: 0 }) },
+    verifyApplicationOperation: vi.fn().mockResolvedValue(undefined),
+    listCommands: vi.fn().mockResolvedValue([]),
+    network: { resolveEndpoint: vi.fn().mockResolvedValue({ url: "https://application.example" }) },
+    close: vi.fn().mockResolvedValue(undefined),
+    kill: vi.fn().mockResolvedValue(undefined),
+    isRunning: vi.fn().mockResolvedValue(false),
   } as unknown as Sandbox;
 }
 
@@ -96,7 +104,7 @@ function _makeCodegenResult(tmpPath: string, name = "abx-nl-sandbox-abc123"): Co
   const dockerfile = path.join(workdir, "Dockerfile");
   fs.writeFileSync(dockerfile, "FROM python:3.12-slim\n", "utf-8");
   const templateYaml = path.join(workdir, "template.yaml");
-  fs.writeFileSync(templateYaml, `name: ${name}\n`, "utf-8");
+  fs.writeFileSync(templateYaml, `name: ${name}\nspec_version: 5\nprovides:\n  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}\nstart_cmd: python3 commands.py\nready_cmd: 'true'\nenv: {ABX_SERVER_TOKEN: ""}\n`, "utf-8");
   return new CodegenResult({
     workdir,
     templateName: name,
@@ -123,6 +131,7 @@ const savedSeams = {
 /** `_isolated_cwd` + `qwen_env`: hermetic defaults for every AI-path test (individual tests override as needed). */
 beforeEach(() => {
   vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key");
+  vi.stubEnv("ABX_SERVER_TOKEN", "test-application-token");
   vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak");
   vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-sk");
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "abx-create-nl-")));
@@ -179,8 +188,13 @@ function fakeTty(opts: { sandbox?: boolean; codingAgent?: boolean }): void {
 function _patchSuccessPipeline(tmpPath: string, opts: { template_id?: string } = {}): [CodegenResult, Mock, Mock] {
   const templateId = opts.template_id ?? "tmpl-ai-123";
   const gen = _makeCodegenResult(tmpPath);
-  const genMock = vi.fn(async () => gen);
-  const deploy = vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: templateId, Status: "success" });
+  const genMock = vi.fn(async (_description: string, options: { buildMode?: string }) => {
+    if (options.buildMode === "steps") fs.appendFileSync(gen.templateYaml, "base: python:3.12-slim\nbuild: {mode: steps, run: ['echo dependency-ready']}\n");
+    return gen;
+  });
+  const deploy = vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: templateId, Status: "ready" });
+  vi.spyOn(template, "withDeployConfiguration").mockImplementation(async (_directory, _options, action) => action());
+  vi.spyOn(CLI_EXTENSION, "stageProject").mockImplementation(async (directory) => ({ directory, digest: "sha256:test-generated-source", verify: async () => undefined, close: async () => undefined }));
   codegen.seams.generateTemplateFiles = genMock as unknown as typeof codegen.seams.generateTemplateFiles;
   deployMock = deploy as unknown as Mock;
   return [gen, genMock, deploy as unknown as Mock];
@@ -249,6 +263,41 @@ describe("TestCreateRouting", () => {
     expect(create).toHaveBeenCalledOnce();
   });
 
+  it("stops before cloud deployment and creation when generated services require a missing token", async () => {
+    vi.stubEnv("ABX_SERVER_TOKEN", "");
+    const [, generate, deploy] = _patchSuccessPipeline(tmp);
+    const create = patchCreate();
+    const result = await runner().invoke(cli, ["create", "--prompt", "an integer add API", "--yes", "--detach", "--build", "steps"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(generate).not.toHaveBeenCalled();
+    expect(result.output).toContain("require ABX_SERVER_TOKEN");
+    expect(deploy).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("injects explicit generated runtime credentials into creation without passing them to the builder", async () => {
+    vi.stubEnv("ABX_SERVER_TOKEN", "host-token");
+    vi.stubEnv("UNDECLARED_SECRET", "do-not-inherit");
+    const [generated, , deploy] = _patchSuccessPipeline(tmp);
+    fs.writeFileSync(generated.templateYaml, fs.readFileSync(generated.templateYaml, "utf8").replace('env: {ABX_SERVER_TOKEN: ""}', 'env: {ABX_SERVER_TOKEN: "", LANG: C.UTF-8}'));
+    const create = patchCreate();
+    const result = await runner().invoke(cli, ["create", "--prompt", "an integer add API", "--yes", "--detach", "--build", "steps", "-e", "ABX_SERVER_TOKEN=explicit-token"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ envs: { ABX_SERVER_TOKEN: "explicit-token", LANG: "C.UTF-8" } }));
+    const { ctx: _context, ...builderOptions } = opts(deploy);
+    expect(JSON.stringify(builderOptions)).not.toContain("explicit-token");
+    expect(JSON.stringify(builderOptions)).not.toContain("host-token");
+    expect(result.output).not.toContain("explicit-token");
+  });
+
+  it("keeps an explicit ACR namespace on the shared provider preparation path", async () => {
+    const [, , deploy] = _patchSuccessPipeline(tmp);
+    patchCreate();
+    const result = await runner().invoke(cli, ["create", "--prompt", "a Python API", "--yes", "--detach", "--acr-namespace", "explicit-namespace"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(deploy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ acr_namespace: "explicit-namespace", explicit_acr_namespace: true, template_launch: true }));
+  });
+
   it("does not create a sandbox when generated template readiness fails", async () => {
     const [, , deploy] = _patchSuccessPipeline(tmp);
     deploy.mockRejectedValue(new Error("generated template did not become ready"));
@@ -256,7 +305,7 @@ describe("TestCreateRouting", () => {
     const result = await runner().invoke(cli, ["create", "--prompt", "a Python API", "--yes", "--detach", "--build", "steps"]);
     expect(result.exit_code).not.toBe(0);
     expect(create).not.toHaveBeenCalled();
-    expect(result.output).toContain("Generated template files remain");
+    expect(result.output).toContain("recovery journal");
   });
   it("retains command-only cloud configuration through generation, deployment and final creation", async () => {
     vi.stubEnv("ABX_SANDBOX_API_KEY", "");
@@ -296,7 +345,7 @@ describe("TestCreateRouting", () => {
     expect(genMock).toHaveBeenCalledTimes(1);
     expect(callArg(genMock, -1, 0)).toBe("a python data science env");
     expect(deploy).toHaveBeenCalledTimes(1);
-    expect(deploy).toHaveBeenCalledWith(String(gen.workdir), expect.objectContaining({ acr_namespace: null, ctx: expect.anything(), verbose: false, yes: true }));
+    expect(deploy).toHaveBeenCalledWith(String(gen.workdir), expect.objectContaining({ ctx: expect.anything(), yes: true, template_launch: true }));
     expect((callArg(mockCreate as unknown as Mock, -1, 0) as Record<string, unknown>)["template"]).toBe("tmpl-ai-123");
   });
 
@@ -308,7 +357,7 @@ describe("TestCreateRouting", () => {
     const result = await runner().invoke(cli, ["create", "-y", "--prompt", "node service"]);
 
     expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("did not return a template id");
+    expect(result.output).toContain("recovery journal");
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -536,8 +585,8 @@ describe("TestConfirmationAndFailures", () => {
 
     const result = await runner().invoke(cli, ["create", "-y", "--prompt", "python env"]);
 
-    expect(result.exit_code).toBe(1);
-    expect(result.output).toContain("build failed");
+    expect(result.exit_code).toBe(2);
+    expect(result.output).toContain("recovery journal");
   });
 });
 

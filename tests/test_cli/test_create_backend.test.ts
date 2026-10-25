@@ -29,6 +29,7 @@ import * as qwenCode from "../../src/agent/qwen_code.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
+import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
 import { cli } from "../../src/cli/main.js";
 import { SandboxCreationError } from "../../src/models/errors.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
@@ -163,7 +164,7 @@ class _DummyBackend implements CodingAgentBackend {
     const dockerfile = path.join(opts.workdir, "Dockerfile");
     fs.writeFileSync(dockerfile, "FROM scratch\n", "utf-8");
     const templateYaml = path.join(opts.workdir, "template.yaml");
-    fs.writeFileSync(templateYaml, `name: ${opts.templateName}\n`, "utf-8");
+    fs.writeFileSync(templateYaml, `name: ${opts.templateName}\nspec_version: 5\nprovides:\n  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}\nstart_cmd: python3 commands.py\nready_cmd: 'true'\nenv: {ABX_SERVER_TOKEN: ""}\n`, "utf-8");
     return new CodegenResult({
       workdir: opts.workdir,
       templateName: opts.templateName,
@@ -196,6 +197,13 @@ function _makeSandbox(sandbox_id = "sbx-dummy-001", template_ = "x") {
     url: sbInfo.envd_url,
     info: sbInfo,
     files: { write: vi.fn().mockResolvedValue(undefined) },
+    commands: { run: vi.fn().mockResolvedValue({ exit_code: 0 }) },
+    verifyApplicationOperation: vi.fn().mockResolvedValue(undefined),
+    listCommands: vi.fn().mockResolvedValue([]),
+    network: { resolveEndpoint: vi.fn().mockResolvedValue({ url: "https://application.example" }) },
+    close: vi.fn().mockResolvedValue(undefined),
+    kill: vi.fn().mockResolvedValue(undefined),
+    isRunning: vi.fn().mockResolvedValue(false),
   } as unknown as Sandbox;
 }
 
@@ -217,9 +225,12 @@ const savedSeams = {
 };
 
 beforeEach(() => {
+  vi.stubEnv("ABX_SERVER_TOKEN", "test-application-token");
   vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key");
   vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak");
   vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-sk");
+  vi.spyOn(template, "withDeployConfiguration").mockImplementation(async (_directory, _options, action) => action());
+  vi.spyOn(CLI_EXTENSION, "stageProject").mockImplementation(async (directory) => ({ directory, digest: "sha256:dummy-source", verify: async () => undefined, close: async () => undefined }));
   tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-backend-"));
   const binary = path.join(tmp, "dummy-agent");
   fs.writeFileSync(binary, "#!/bin/sh\n", "utf-8");
@@ -268,7 +279,7 @@ function _assertNoRealAgentCalls(): void {
 describe("TestBackendDecoupling", () => {
   it("test_yes_path_runs_entirely_on_the_dummy_backend", async () => {
     const resolver = _patchBackend(dummyBackend);
-    const deployMock = vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-dummy-1", Status: "success" });
+    const deployMock = vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-dummy-1", Status: "ready" });
     vi.spyOn(template, "resolve_acr_namespace").mockReturnValue("acr-ns");
     const mockSb = _makeSandbox();
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(mockSb);
@@ -292,7 +303,7 @@ describe("TestBackendDecoupling", () => {
     expect(genCall["env"]).toEqual({ DUMMY_AGENT_KEY: "dummy-secret" });
 
     expect(deployMock).toHaveBeenCalledTimes(1);
-    expect(deployMock).toHaveBeenCalledWith(dummyBackend.workdir, expect.objectContaining({ acr_namespace: null, ctx: expect.anything(), verbose: false, yes: true }));
+    expect(deployMock).toHaveBeenCalledWith(dummyBackend.workdir, expect.objectContaining({ ctx: expect.anything(), yes: true, template_launch: true }));
     expect((mockCreate.mock.calls[0]![0] as Record<string, unknown>)["template"]).toBe("tmpl-dummy-1");
     _assertNoRealAgentCalls();
   });

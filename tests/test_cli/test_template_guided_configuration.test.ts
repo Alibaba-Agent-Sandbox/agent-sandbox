@@ -31,6 +31,11 @@ function project(steps = false): string {
   return directory;
 }
 
+function preparation(alias = "generated", timeout = 60, cpu = 2) {
+  return { alias, timeout, journal: new ResourceJournal("alicloud-express", "fixture"),
+    template: { name: alias, cpu, memory: 512, start_cmd: null, ready_cmd: null } };
+}
+
 describe("Operation-specific template guidance", () => {
   it.each(["missing directory", "file", "missing template"])("validates known local launch input before asking for credentials: %s", async kind => {
     const source = path.join(tmpPath(), "invalid-source");
@@ -115,11 +120,11 @@ describe("Operation-specific template guidance", () => {
     expect(fs.readdirSync(tmpPath())).toEqual(["app"]);
   });
 
-  it("steps generated deployment forwards supported options without resolving ACR", async () => {
+  it("shared steps preparation forwards supported options without resolving ACR", async () => {
     patchLoadConfig();
     const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
-    const ctx = context(); ctx.params = { yes: true };
-    await CLI_EXTENSION.deployGenerated(project(true), { region: "cn-shanghai", alias: "kept", build: "steps", timeout: 78, cpu: 3 }, ctx);
+    const ctx = context(); ctx.params = { yes: true, region: "cn-shanghai" };
+    await CLI_EXTENSION.prepareProject(project(true), preparation("kept", 78, 3), ctx);
     expect(deploy).toHaveBeenCalledOnce();
     expect(deploy.mock.calls[0]![1]).toMatchObject({ region: "cn-shanghai", alias: "kept", build: "steps", timeout: 78, cpu: 3, yes: true });
     expect(deploy.mock.calls[0]![1].acr_namespace).toBeUndefined();
@@ -132,12 +137,12 @@ describe("Operation-specific template guidance", () => {
     const waiting = vi.spyOn(fcTemplate, "waitForTemplateReady").mockImplementation(() => new Promise(resolve => { finish = () => resolve({ status: { state: "ready" } } as never); }));
     const ctx = context(); ctx.params = { yes: true };
     let returned = false;
-    const result = CLI_EXTENSION.deployGenerated(project(true), { build: "steps", timeout: 60 }, ctx).then(value => { returned = true; return value; });
+    const result = CLI_EXTENSION.prepareProject(project(true), preparation(), ctx).then(value => { returned = true; return value; });
     await vi.waitFor(() => expect(waiting).toHaveBeenCalledOnce());
     expect(returned).toBe(false);
     expect(waiting.mock.calls[0]![0]).toBe("pending-generated");
     finish();
-    expect(await result).toEqual({ template_id: "pending-generated", status: "ready" });
+    expect(await result).toMatchObject({ reference: "pending-generated", status: "ready" });
   });
 
   it("preserves a timed-out remote build identity and gives actionable inspection guidance", async () => {
@@ -146,7 +151,7 @@ describe("Operation-specific template guidance", () => {
     const error = new TemplateBuildTimeoutError("still building");
     vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(error);
     const ctx = context(); ctx.params = { yes: true };
-    await expect(CLI_EXTENSION.deployGenerated(project(true), { build: "steps" }, ctx)).rejects.toBe(error);
+    await expect(CLI_EXTENSION.prepareProject(project(true), preparation(), ctx)).rejects.toBe(error);
     expect(error.suggestion).toContain("abx template info pending-timeout");
     expect(error.suggestion).not.toContain("Increase the build timeout");
   });
@@ -156,7 +161,7 @@ describe("Operation-specific template guidance", () => {
     const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "failed-generated", Status: "submitted" });
     vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(new Error("platform build failed"));
     const ctx = context(); ctx.params = { yes: true };
-    await expect(CLI_EXTENSION.deployGenerated(project(true), { build: "steps" }, ctx)).rejects.toThrow("platform build failed");
+    await expect(CLI_EXTENSION.prepareProject(project(true), preparation(), ctx)).rejects.toThrow("platform build failed");
     expect(deploy).toHaveBeenCalledOnce();
   });
 

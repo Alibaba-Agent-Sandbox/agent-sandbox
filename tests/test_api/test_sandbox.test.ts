@@ -1,3 +1,4 @@
+import "../_support/isolatedHome.js";
 import { applicationHttpSeams } from "../../src/transport/application_http.js";
 import { ProviderConfigError } from "../../src/models/provider_errors.js";
 /** Tests for the Sandbox core API class. */

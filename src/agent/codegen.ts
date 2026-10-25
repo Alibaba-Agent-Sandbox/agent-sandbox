@@ -803,6 +803,8 @@ async function generateTemplateFilesImpl(
   if (opts.buildMode === "steps") prepareGeneratedSteps(work, opts.baseImage);
   const data = validateTemplateWorkspace(work, tmplName, { buildMode: opts.buildMode, baseImage: opts.baseImage });
 
+  if (opts.buildMode && opts.buildMode !== "auto") data["build"] = { ...(isMapping(data["build"]) ? data["build"] : {}), mode: opts.buildMode };
+  data["env"] = { ...(isMapping(data["env"]) ? data["env"] : {}), ABX_SERVER_TOKEN: "" };
   writeTextUtf8(templateYaml, dumpYaml(data));
   logger.debug("Generated template workspace ready: %s", work);
 

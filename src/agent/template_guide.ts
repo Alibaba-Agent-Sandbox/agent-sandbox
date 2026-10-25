@@ -233,6 +233,7 @@ from agent_sandbox.server import (
 - \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
 ${selected.resource_notes ? `- ${selected.resource_notes}` : ""}
 - \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
+${mode === "create" ? "- 新生成应用必须声明 env.ABX_SERVER_TOKEN 为空字符串；令牌由运行环境提供，CLI 在构建/创建前验证并注入，不写入镜像或生成文件。README 的 CLI/SDK/HTTP 示例都使用此应用令牌；不要声称它可选，也不要把控制面 API key 当作应用令牌。" : ""}
 - 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
   \`abx sandbox command run <sandbox_id> <名字>\` 调用。

@@ -54,6 +54,8 @@ import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
 import { ValueError } from "../../models/value_error.js";
 import type { BuildMode } from "../../template/build_plan.js";
+import { resolveTemplateEnvironment } from "../../template/environment.js";
+import { executeTemplateLaunch, type TemplateLaunchResult } from "../template_launch.js";
 import { files } from "./sandbox_files.js";
 import { process as process_ } from "./sandbox_process.js";
 import { capabilities, system } from "./sandbox_system.js";
@@ -120,6 +122,8 @@ const CREATE_HELP = `Create a new sandbox.
       which writes Dockerfile, commands.py, and template.yaml and stops
       before build, push, deploy, and sandbox create. --yes skips that
       question and runs the full pipeline.
+      New generated applications require ABX_SERVER_TOKEN in the environment (or -e).
+      It is injected at runtime; generation-only does not require a token.
       --detach is accepted on this path: generated sandboxes already return
       without opening a terminal. --build steps uses platform build steps
       instead of local Docker/ACR; the default build path stays unchanged.
@@ -1001,54 +1005,38 @@ export async function _wantsTemplateOnly(ctx: Context, description: string, opts
 }
 
 /**
- * Generate a template with the coding agent, build+deploy it, return its ref.
+ * Generate a template, then use the shared whole-template launch lifecycle.
  *
  * `output_dir` is `--dir`: the parent directory for the generated workspace (an interactive terminal is asked when it
  * is omitted).
  *
- * Returns the template ID (or name) to pass to `Sandbox.create`.
+ * Returns creation presentation and the service receipt after one preparation/create/start.
  */
-export async function _generateAndDeployTemplate(
+export async function _generateAndLaunchTemplate(
   ctx: Context,
   description: string,
-  opts: { yes: boolean; verbose: boolean; output_dir?: string | null; model?: string | null; provider_options?: Record<string, unknown>; [key: string]: unknown },
-): Promise<string> {
+  opts: { yes: boolean; verbose: boolean; output_dir?: string | null; model?: string | null; provider_options?: Record<string, unknown>; creationOptions?: Parameters<typeof executeTemplateLaunch>[2]; [key: string]: unknown },
+): Promise<TemplateLaunchResult> {
   const extension = providerCliExtension();
-  if (!extension?.deployGenerated) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
-  const deployGenerated = extension.deployGenerated;
-  const { yes } = opts;
+  if (!extension?.prepareProject) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
+  // Generated applications always require this runtime credential; fail before model work.
+  resolveTemplateEnvironment({ ABX_SERVER_TOKEN: "" }, opts.creationOptions?.envs ?? {});
   const selected = providerView().effective;
-  return withGuidedConfiguration(ctx, { operation: "Generate, deploy and create sandbox", provider: selected, yes: Boolean(ctx.params["yes"]),
+  return withGuidedConfiguration(ctx, { operation: "Generate and launch sandbox", provider: selected, yes: Boolean(ctx.params["yes"]),
     requirements: selected === "alicloud-express" ? ["access_key_id", "access_key_secret"] : undefined,
-    validateProvider: selected !== "alicloud-express", overrides: { region: opts["region"] } }, async () => {
-
-  const gen = await _generateTemplateWorkspace(ctx, description, {
-    yes,
-    output_dir: opts.output_dir ?? null,
-    ask_output_dir: true,
-    model: opts.model ?? null,
-    buildMode: (opts.provider_options?.["build"] ?? "auto") as BuildMode,
-    baseImage: extension.generationBaseImage?.(opts.provider_options ?? {}),
-  });
-
-  if (!yes) {
-    if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
-      throw new UsageError(
-        "Confirmation required to build and deploy the generated template. " + "Use --yes/-y to skip in non-interactive mode.",
-      );
+    validateProvider: selected !== "alicloud-express", overrides: { region: opts.provider_options?.["region"] ?? opts["region"] } }, async () => {
+    const gen = await _generateTemplateWorkspace(ctx, description, {
+      yes: opts.yes, output_dir: opts.output_dir ?? null, ask_output_dir: true, model: opts.model ?? null,
+      buildMode: (opts.provider_options?.["build"] ?? "auto") as BuildMode,
+      baseImage: extension.generationBaseImage?.(opts.provider_options ?? {}),
+    });
+    if (!opts.yes && (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty())) {
+      throw new UsageError("Confirmation required to build and deploy the generated template. Use --yes/-y to skip in non-interactive mode.");
     }
-    await confirm(`Build and deploy template '${gen.templateName}' now?`, { abort: true, err: true });
-  }
-
-  let data: Awaited<ReturnType<typeof deployGenerated>>;
-  try { data = await deployGenerated(String(gen.workdir), { ...opts, ...opts.provider_options }, ctx); }
-  catch (error) {
-    getOutput(ctx).warning(`Generated template files remain at ${gen.workdir}. Check the provider's remote build state before retrying deployment; template generation has not been repeated.`);
-    throw error;
-  }
-  const templateRef = pyStrip(String(data["template_id"] ?? ""));
-  if (!templateRef) throw new CliError("Provider deployment did not return a template id. Inspect its build state before creating a sandbox.");
-  return templateRef;
+    return executeTemplateLaunch(ctx, {
+      template_ref: gen.workdir, yes: opts.yes, timeout: 600,
+      sandbox_timeout: opts.provider_options?.["cmd_timeout"] ?? 300,
+    }, opts.creationOptions);
   });
 }
 
@@ -1183,13 +1171,33 @@ export const create = command("create", {
 
     if (requestTimeout !== null && (!Number.isFinite(requestTimeout) || requestTimeout <= 0)) throw new ValueError(`request_timeout must be a positive number of seconds, got ${pyRepr(new PyFloat(requestTimeout))}`);
     const execute = async (): Promise<void> => {
-    let effectiveTemplate = template || "base";
     if (description && !template) {
-      effectiveTemplate = await _generateAndDeployTemplate(ctx, description, {
+      const launched = await _generateAndLaunchTemplate(ctx, description, {
         yes, provider_options: params, verbose: verboseFlag, output_dir: outputDir, model,
+        creationOptions: {
+          envs, metadata: meta, volume_mounts: volumeMounts,
+          request_timeout: requestTimeout ?? Math.max(loadLayeredConfig().http_timeout, _CREATE_REQUEST_TIMEOUT_FLOOR),
+          afterCreate: async (sandbox) => {
+            if (!upload) return;
+            if (isFile(upload)) await sandbox.files.write(`/home/user/${nodePath.basename(upload)}`, fs.readFileSync(upload));
+            else for (const relative of rglobAll(upload)) {
+              const local = nodePath.join(upload, relative);
+              if (isFile(local)) await sandbox.files.write(`/home/user/${relative}`, fs.readFileSync(local));
+            }
+          },
+        },
       });
-      if (!fmt.use_json && !getOutput(ctx).useLiveStatus) getOutput(ctx).progress("Creating...");
+      const data = { ...launched.creation };
+      const out = getOutput(ctx);
+      if (!out.jsonMode) {
+        data["ID"] = printedId(providerView(String(data["provider"])), String(data["ID"]));
+        delete data["provider"];
+      }
+      out.data(data);
+      if (!out.jsonMode) out.success(`Sandbox ${data["ID"]} created successfully.`);
+      return;
     }
+    const effectiveTemplate = template || "base";
 
     // Build create kwargs
     const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout };

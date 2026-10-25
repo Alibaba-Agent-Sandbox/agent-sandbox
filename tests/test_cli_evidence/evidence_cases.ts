@@ -136,7 +136,7 @@ const spyAny = (o: object, k: string): Fn => vi.spyOn(o as Record<string, (...a:
 class Patches {
   private undo: Array<() => void> = [];
   constructor() {
-    for (const [name, value] of Object.entries({ ABX_SANDBOX_API_KEY: "placeholder-sandbox", ALICLOUD_ACCESS_KEY_ID: "placeholder-ak", ALICLOUD_ACCESS_KEY_SECRET: "placeholder-sk" })) {
+    for (const [name, value] of Object.entries({ ABX_SANDBOX_API_KEY: "placeholder-sandbox", ALICLOUD_ACCESS_KEY_ID: "placeholder-ak", ALICLOUD_ACCESS_KEY_SECRET: "placeholder-sk", ABX_SERVER_TOKEN: "placeholder-app-token" })) {
       const previous = process.env[name];
       if (!previous) process.env[name] = value;
       this.undo.push(() => { if (previous === undefined) delete process.env[name]; else process.env[name] = previous; });
@@ -199,7 +199,10 @@ function _makeSb(sid = "sbx-ev-001", tmpl = "base", status = "running", region =
     url: sbInfo.envd_url,
     info: sbInfo,
     files: { write: vi.fn().mockResolvedValue(undefined), readBytes: vi.fn().mockResolvedValue(Buffer.from("downloaded-content")) },
-    commands: { run: vi.fn() },
+    commands: { run: vi.fn().mockResolvedValue(new ProcessResult({ stdout: "", stderr: "", exit_code: 0, execution_time: 0 })) },
+    verifyApplicationOperation: vi.fn().mockResolvedValue(undefined), listCommands: vi.fn().mockResolvedValue([]),
+    network: { resolveEndpoint: vi.fn().mockResolvedValue({ url: "https://application.example/9000" }) },
+    isRunning: vi.fn().mockResolvedValue(false), close: vi.fn().mockResolvedValue(undefined),
     kill: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -380,13 +383,13 @@ function _mcpStatus(): MockSetup {
 function _createCodegen(description = "运行 python", templateName = "abx-nl-python-ev001", assessment: ClarifyAssessment | null = null): MockSetup {
   return () => {
     const patches = new Patches();
-    _cfgInto(patches, "", "", { ABX_SANDBOX_API_KEY: "placeholder-sandbox", ALICLOUD_ACCESS_KEY_ID: "placeholder-ak", ALICLOUD_ACCESS_KEY_SECRET: "placeholder-sk" });
+    _cfgInto(patches, "", "", { ABX_SANDBOX_API_KEY: "placeholder-sandbox", ALICLOUD_ACCESS_KEY_ID: "placeholder-ak", ALICLOUD_ACCESS_KEY_SECRET: "placeholder-sk", ABX_SERVER_TOKEN: "placeholder-app-token" });
     const sb = _makeSb("sbx-ev-001", templateName);
     // Stable placeholder workspace so evidence output is platform-neutral (the real path is
     // ~/.abx/generated/<slug>-<stamp>-<token>).
     const workdir = path.join(tmpDir(patches), templateName);
     fs.mkdirSync(workdir, { recursive: true });
-    fs.writeFileSync(path.join(workdir, "template.yaml"), `name: ${templateName}\nbase:\n  image: python:3.12-slim\nbuild:\n  steps:\n    - type: RUN\n      args: ["true"]\n`);
+    fs.writeFileSync(path.join(workdir, "template.yaml"), `name: ${templateName}\nspec_version: 5\nprovides:\n  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}\nstart_cmd: python3 commands.py\nready_cmd: 'true'\nenv: {ABX_SERVER_TOKEN: ""}\ngeneration: 2\nbase:\n  image: python:3.12-slim\nbuild:\n  steps:\n    - type: RUN\n      args: ["true"]\n`);
     const gen = new CodegenResult({
       workdir,
       templateName,
@@ -414,7 +417,7 @@ function _createCodegen(description = "运行 python", templateName = "abx-nl-py
       runResearch: vi.fn(async () => new clarify.ResearchOutcome({ ok: true })) as unknown as typeof clarify.seams.runResearch,
       evaluate: vi.fn(async () => resolved) as unknown as typeof clarify.seams.evaluate,
     });
-    vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-ev-ai-001", Status: "success" });
+    vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-ev-ai-001", Status: "ready" });
     vi.spyOn(template, "resolve_acr_namespace").mockReturnValue("acr-ev-ns");
     vi.spyOn(Sandbox, "create").mockResolvedValue(asSandbox(sb));
     return patches.handle();

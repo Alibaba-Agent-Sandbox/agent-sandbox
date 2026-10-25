@@ -82,6 +82,8 @@ abx create my-python
 abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析环境"
 ```
 
+新生成的应用需要独立的运行时应用令牌。创建前设置环境变量 `ABX_SERVER_TOKEN`，或通过已有 `-e ABX_SERVER_TOKEN=...` 传入。CLI 在调用模型前校验，启动应用时注入；令牌值不会写入生成文件或构建步骤。仅生成本地文件时不要求令牌。创建的 JSON 保留原字段，并返回 `TemplateID` 与 `Services`，方便精确清理和访问应用。
+
 `abx create --prompt "<描述>"`（未显式传 `--template` 时）走 生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
 
 非交互运行需要 `--yes`；接受 `--detach`，生成路径原本就会在创建后返回而不进入终端。用 `abx create --prompt "描述" --help` 查看生成路径的完整选项。
