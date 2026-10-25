@@ -1,6 +1,7 @@
 /** Builders for throw-away provider plugin trees and git repositories (port of `test_providers/helpers.py`). */
 
 import { execFileSync } from "node:child_process";
+import { hostVersion } from "../../src/providers/host.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -55,8 +56,8 @@ export function ensureOpenSandboxPlugin(): string | null {
   return manifestDir(plugin) ? plugin : null;
 }
 
-/** Plugins declare `cli >=0.3`; the CLI package is still 0.2.x, so tests pass this host version explicitly. */
-export const TEST_HOST_VERSION = "0.3.0";
+/** Install reference plugins against the actual CLI package version. */
+export const TEST_HOST_VERSION = hostVersion();
 
 const MANIFEST = (id: string, version: string, extra: string): string => `\
 manifest_version = 1
