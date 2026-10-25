@@ -126,7 +126,7 @@ For a source template from the Registry, configure its provider/build prerequisi
 abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes
 ```
 
-See [provider prerequisites and source launch](docs/en/guide/template-launch.md). An account alias named `python-hello` exists only after registration; finding a Registry source with that name does not register it in your account.
+See [provider prerequisites and source launch](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/template-launch.md). An account alias named `python-hello` exists only after registration; finding a Registry source with that name does not register it in your account.
 
 Interactive create without `--detach` opens a terminal and shortens the default
 lease on exit. Connect leaves an existing sandbox alive. See the migration guide

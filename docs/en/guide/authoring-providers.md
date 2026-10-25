@@ -48,7 +48,7 @@ Sandbox.create({ template: "base", ... })
 
 Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The host checks the feature first. If `exec.run` was not declared, `abx exec` raises E8004 and does not send `exec.run`.
 
-Two paths do **not** go through your plugin:
+Host routing and provider responsibilities differ for these paths:
 
 - `abx create` with no `--provider`, no `ABX_PROVIDER`, and no config default stays on `alicloud-express`.
 - `abx create --prompt "a node api"` runs generation and source acquisition in the host. The selected provider owns source preparation, sandbox creation and cleanup; the shared launcher starts the declared services. A provider without `templates.build` cannot prepare source. Use `abx --provider my-cloud create --template <image-or-name>` for an existing provider-native reference.
