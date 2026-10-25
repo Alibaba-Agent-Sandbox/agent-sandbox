@@ -4,10 +4,10 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 import { rewriteDockerfileForServerInstall } from "../../src/providers/alicloud_express/docker_builder.js";
-import { SERVER_SDK_PIP_SPEC, SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
+import { SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
 
-const WHEEL = "agent_sandbox_server-0.3.0-py3-none-any.whl";
-const INSTALL = `pip install --no-cache-dir "${SERVER_SDK_PIP_SPEC}"`;
+const WHEEL = "agent_sandbox_server-0.4.0a2-py3-none-any.whl";
+const INSTALL = `pip install --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}"`;
 
 /** Read shell-form RUN bodies independently, then let the actual shell validate the result. */
 function runBodies(text: string): string[] {
@@ -52,7 +52,7 @@ describe("server wheel Dockerfile structure", () => {
     expect(output).toContain("USER user\nEXPOSE 9000\n");
   });
 
-  it("preserves commands on both sides of a continued direct archive install", () => {
+  it("preserves commands on both sides of a continued direct runtime install", () => {
     const source = `FROM scratch\nRUN echo before \\\n    && ${INSTALL} \\\n    && echo after\nUSER user\n`;
     const output = rewriteDockerfileForServerInstall(source, [WHEEL]);
     const run = expectValidSingleRun(output);
@@ -69,8 +69,8 @@ describe("server wheel Dockerfile structure", () => {
     expect(run).toBe(`pip install --no-cache-dir /tmp/${WHEEL} httpx==0.28.1 --disable-pip-version-check && echo done`);
   });
 
-  it("does not rewrite comments, echoed requirements or a different package using that archive", () => {
-    const source = `FROM scratch\n# ${INSTALL}\nLABEL description="${SERVER_SDK_PIP_SPEC}"\nRUN echo '${INSTALL}' && pip install --no-cache-dir "different-package @ ${SERVER_SDK_PIP_SPEC.split(" @ ")[1]}"\n`;
+  it("does not rewrite comments, echoed requirements or a different package", () => {
+    const source = `FROM scratch\n# ${INSTALL}\nLABEL description="${SERVER_SDK_RELEASE_SPEC}"\nRUN echo '${INSTALL}' && pip install --no-cache-dir "different-package @ https://example.invalid/custom.whl"\n`;
     expect(rewriteDockerfileForServerInstall(source, [WHEEL])).toBe(source);
   });
 
@@ -80,13 +80,13 @@ describe("server wheel Dockerfile structure", () => {
   });
 
   it("keeps heredoc source text and exec-form instructions intact", () => {
-    const source = `FROM scratch\nRUN python3 - <<'PY'\nprint('${INSTALL}')\nCOPY *.whl /tmp/\nPY\nRUN ["echo", "${SERVER_SDK_PIP_SPEC}"]\n`;
+    const source = `FROM scratch\nRUN python3 - <<'PY'\nprint('${INSTALL}')\nCOPY *.whl /tmp/\nPY\nRUN ["echo", "${SERVER_SDK_RELEASE_SPEC}"]\n`;
     expect(rewriteDockerfileForServerInstall(source, [WHEEL])).toBe(source);
     expect(rewriteDockerfileForServerInstall(source, [])).toBe(source);
   });
 
   it("does not treat echoed control words or pip text as executed commands", () => {
-    const source = `FROM scratch\nRUN echo then pip install "${SERVER_SDK_PIP_SPEC}"\n`;
+    const source = `FROM scratch\nRUN echo then pip install "${SERVER_SDK_RELEASE_SPEC}"\n`;
     expect(rewriteDockerfileForServerInstall(source, [WHEEL])).toBe(source);
     const bare = 'FROM scratch\nRUN echo pip install --no-cache-dir agent-sandbox-server\n';
     expect(rewriteDockerfileForServerInstall(bare, [])).toBe(bare);
@@ -113,6 +113,6 @@ describe("server wheel Dockerfile structure", () => {
     const output = rewriteDockerfileForServerInstall(source, []);
     expectValidSingleRun(output);
     expect(output).not.toContain("COPY *.whl");
-    expect(output).toContain(SERVER_SDK_PIP_SPEC);
+    expect(output).toContain(SERVER_SDK_RELEASE_SPEC);
   });
 });

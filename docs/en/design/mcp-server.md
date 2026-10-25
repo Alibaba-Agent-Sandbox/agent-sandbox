@@ -512,7 +512,7 @@ The Python SDK ships its own `python -m agent_sandbox.agent.mcp` entry point and
 
 ### Current installation and lifecycle implementation
 
-The artifact source pair is defined once in `src/utils/mcp_sdk_pin.ts`; the
+The artifact public release pair uses the shared `src/utils/server_sdk_pin.ts`; the
 [installation guide](../guide/mcp-integration.md) documents its public usage.
 Metadata and explicit timeout use control-plane methods without connect/resume.
 The retired automatic-renewal state/hook is removed. Lifecycle error categories

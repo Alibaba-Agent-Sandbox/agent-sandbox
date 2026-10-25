@@ -512,7 +512,7 @@ Python SDK 自带 `python -m agent_sandbox.agent.mcp` 入口与 `create_mcp_app`
 
 ### 当前安装与生命周期实现
 
-产物的成对源码定义统一归属 `src/utils/mcp_sdk_pin.ts`，公开用法见
+产物的成对公开发行版本共用 `src/utils/server_sdk_pin.ts`，公开用法见
 [安装指南](../guide/mcp-integration.md)。元数据和显式超时操作直接调用控制面，
 不连接或恢复目标沙箱。旧自动续期状态和空操作钩子已删除；生命周期错误及资源
 归属拒绝使用固定的安全信息，不输出厂商原始异常。Node CLI 与生成的 Python

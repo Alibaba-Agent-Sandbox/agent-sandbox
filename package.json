@@ -1,6 +1,6 @@
 {
   "name": "@agent-sandbox/cli",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
@@ -64,7 +64,7 @@
     "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/openapi-core": "^1.0.8",
     "@inquirer/prompts": "^8.7.3",
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "commander": "^14.0.3",
     "diff": "^9.0.0",
     "picocolors": "^1.1.1",
@@ -87,5 +87,8 @@
   },
   "optionalDependencies": {
     "e2b": "2.55.0"
+  },
+  "overrides": {
+    "undici8": "npm:undici@8.12.2"
   }
 }

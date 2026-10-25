@@ -15,13 +15,14 @@ import {
   BuildResult,
   DockerBuilder,
   SERVER_SDK_SOURCE_ENV,
+  SERVER_SDK_VERSION_ENV,
   _seams,
   dockerBuildxAvailable,
   getAcrAuthToken,
   rewriteDockerfileForServerInstall,
   serverSdkVersion,
 } from "../../src/providers/alicloud_express/docker_builder.js";
-import { ABX_SERVER_INSTALL, SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
+import { ABX_SERVER_INSTALL, SERVER_SDK_RELEASE_SPEC, SERVER_SDK_RELEASE_VERSION } from "../../src/utils/server_sdk_pin.js";
 import { _provenanceNotice } from "../../src/providers/alicloud_express/cli/template.js";
 import { DockerBuildError } from "../../src/models/errors.js";
 import {
@@ -480,6 +481,19 @@ function fakeChild(opts: { stdout?: string[]; code?: number; onSpawn?: () => voi
   return child;
 }
 
+describe("server runtime version", () => {
+  it("uses the Python runtime release independently from the CLI package", () => {
+    vi.stubEnv(SERVER_SDK_VERSION_ENV, "");
+    expect(serverSdkVersion()).toBe(SERVER_SDK_RELEASE_VERSION);
+    expect(serverSdkVersion()).not.toBe("0.5.2");
+  });
+
+  it("respects an explicit runtime version override", () => {
+    vi.stubEnv(SERVER_SDK_VERSION_ENV, "9.9.9");
+    expect(serverSdkVersion()).toBe("9.9.9");
+  });
+});
+
 describe("TestInjectSdkWheel", () => {
   // ``inject_sdk_wheel`` must yield a wheel wherever abx is installed.
   beforeEach(() => {
@@ -491,7 +505,7 @@ describe("TestInjectSdkWheel", () => {
     const tmp_path = mkTmp();
     writeFileSync(
       join(tmp_path, "Dockerfile"),
-      'FROM scratch\nRUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tar.gz#subdirectory=server-sdk"\n',
+      `FROM scratch\nRUN pip install --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}"\n`,
     );
     const download = vi.spyOn(DockerBuilder, "_downloadReleaseWheel");
     const seen: string[] = [];
@@ -629,11 +643,11 @@ describe("TestInjectSdkWheel", () => {
 });
 
 describe("rewriteDockerfileForServerInstall", () => {
-  it("drops an empty wheel glob and pins the archive install", () => {
+  it("drops an empty wheel glob and pins the current runtime install", () => {
     const text = "FROM scratch\nCOPY *.whl /tmp/\nRUN if ls /tmp/*.whl; then pip install /tmp/*.whl; else pip install --no-cache-dir agent-sandbox-server; fi\n";
     const out = rewriteDockerfileForServerInstall(text, []);
     expect(out).not.toContain("COPY *.whl");
-    expect(out).toContain('pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/');
+    expect(out).toContain(`pip install --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}"`);
     expect(out).not.toMatch(/pip install --no-cache-dir agent-sandbox-server(?! @)/);
   });
 
@@ -642,19 +656,16 @@ describe("rewriteDockerfileForServerInstall", () => {
     expect(rewriteDockerfileForServerInstall(text, [])).toBe(text);
   });
 
-  it("replaces the archive install with the injected wheel", () => {
+  it("replaces the current runtime install with the injected wheel", () => {
     const text = `FROM scratch\n${ABX_SERVER_INSTALL}\n`;
     const out = rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.3.0-py3-none-any.whl"]);
     expect(out).toContain("COPY agent_sandbox_server-0.3.0-py3-none-any.whl /tmp/agent_sandbox_server-0.3.0-py3-none-any.whl");
     expect(out).not.toContain("github.com");
   });
 
-  it("replaces a different archive SHA when a wheel is injected", () => {
-    const text =
-      'FROM scratch\nRUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/b6e71fa4b6127e94a0da0aa96642ee96f69ad87a.tar.gz#subdirectory=server-sdk"\n';
-    const out = rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.3.0-py3-none-any.whl"]);
-    expect(out).toContain("COPY agent_sandbox_server-0.3.0-py3-none-any.whl");
-    expect(out).not.toContain("b6e71fa4b6127e94a0da0aa96642ee96f69ad87a");
+  it("leaves unrelated explicit source requirements unchanged", () => {
+    const text = 'FROM scratch\nRUN pip install "custom-runtime @ https://example.invalid/runtime.whl"\n';
+    expect(rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.4.0a2-py3-none-any.whl"])).toBe(text);
   });
 });
 
@@ -704,7 +715,7 @@ describe("TestBuildProgress", () => {
     });
     await new DockerBuilder().build(tmp_path, "app:latest");
     expect(seen).not.toContain("COPY *.whl");
-    expect(seen).toContain("subdirectory=server-sdk");
+    expect(seen).toContain(SERVER_SDK_RELEASE_SPEC);
     expect(existsSync(join(tmp_path, "Dockerfile.abx-build"))).toBe(false);
     expect(readFileSync(join(tmp_path, "Dockerfile"), "utf8")).toContain("COPY *.whl");
   });

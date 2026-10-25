@@ -280,18 +280,16 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# agent-sandbox-server 0.4.0a1 is on PyPI. This example retains the server-sdk directory
-# of a pinned python-sdk commit. ABX_SERVER_SDK_SOURCE replaces it with a local wheel.
-RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"
+RUN pip install --index-url https://pypi.org/simple --no-cache-dir "agent-sandbox-server==0.4.0a2"
 
 WORKDIR /app
 COPY commands.py .
 
 EXPOSE 9000
-CMD ["python3", "commands.py"]
+
 ```
 
-> **Server install**: `agent-sandbox-server` 0.4.0a1 is published on PyPI. This example retains its explicit source pin. The PyPI project named `agent-sandbox` is a different package. Deploy does not query PyPI when this pin, or any other 40-hex `python-sdk` archive pin of `server-sdk`, is already in the Dockerfile. The line above installs `server-sdk` from a pinned public commit archive, which `docker build` can run without BuildKit and without a local wheel. Set `ABX_SERVER_SDK_SOURCE` to a `server-sdk` tree when you need that checkout instead; `abx template deploy` then copies the built wheel by its exact filename. A Dockerfile that still has `COPY *.whl` is rewritten for that build when no wheel is present, because the legacy builder rejects an empty glob.
+> **Server install**: scaffolding and generation use the same public Python runtime pin. Set `ABX_SERVER_SDK_SOURCE` only for an explicit local development wheel.
 
 ### Named commands (optional)
 

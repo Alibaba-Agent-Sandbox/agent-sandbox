@@ -12,7 +12,8 @@ const { build } = await import(pathToFileURL(path.join(base, "node_modules/esbui
 const output = path.join(root, "src/standard_cli");
 fs.mkdirSync(output, { recursive: true });
 const assetDirectory = path.join(base, "node_modules/@e2b/cli/dist/templates");
-const pythonInstall = 'python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"';
+const { SERVER_SDK_RELEASE_VERSION } = await import('../dist/utils/server_sdk_pin.js');
+const pythonInstall = `python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==${SERVER_SDK_RELEASE_VERSION}"`;
 const templateAssets = Object.fromEntries(fs.readdirSync(assetDirectory).map((name) => {
   let contents = fs.readFileSync(path.join(assetDirectory, name), "utf8");
   if (name.startsWith("python-")) contents = contents.replaceAll("from e2b import", "from agent_sandbox import");

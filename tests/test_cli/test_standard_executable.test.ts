@@ -148,8 +148,8 @@ describe("standard executable contract", () => {
     expect(result.code, result.stderr).toBe(0);
     expect(readFileSync(path.join(home, name, "template.py"), "utf8")).toContain("from agent_sandbox import");
     const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
-    expect(readme).toContain("agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk");
-    expect(readme).toContain("agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk");
+    expect(readme).toContain("agent-sandbox-client==0.4.0a2");
+    expect(readme).not.toContain("python-sdk/archive/");
   });
 
   it("routes template list with its fixed format option", async () => {
