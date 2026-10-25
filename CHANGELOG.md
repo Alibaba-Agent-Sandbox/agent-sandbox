@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Bind the standalone built-in provider snapshot to executable bytes during template launch instead of reading a missing source directory; retain directory snapshots for npm and installed plugins (#156). / 独立二进制启动模板时按实际可执行文件内容校验内置 Provider，修复缺少源码目录导致的 E4001；npm 与插件仍校验其目录。
+
 ## [0.5.1] - 2026-10-25
 
 ### Fixed
