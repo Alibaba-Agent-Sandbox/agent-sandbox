@@ -1,0 +1,174 @@
+{
+  "base": "3f7fa28e16888a5489980dc56c86d6c71c11c4a0",
+  "runtime_file_sha256": "74c2940a8cfa05f411754a1e7879a51fe617ccd43d9661dbf6c7f0b040b95d25",
+  "focused_before_fix": {
+    "passed": 15,
+    "failed": 2
+  },
+  "focused_after_fix": {
+    "passed": 17,
+    "failed": 0
+  },
+  "local_make_ci": {
+    "exit_code": 2,
+    "hygiene": "PASS",
+    "typecheck": "PASS",
+    "lint": {
+      "errors": 0,
+      "warnings": 275
+    },
+    "build": "PASS",
+    "unit": {
+      "passed": 4407,
+      "failed": 10,
+      "skipped": 50
+    },
+    "remaining_steps": "Stopped after unit failure; parity and package check executed separately",
+    "candidate_package_version": "0.5.5 (before 0.5.6 release metadata preparation)"
+  },
+  "current_producer_sources": {
+    "sdk": "8e610a3658040d8d6973e7951f9590ea50a4d70a",
+    "providers": "126a50e3c4e4c6792019b9c96674d35a9518d8ad"
+  },
+  "parity_coverage": {
+    "exit_code": 0,
+    "ledger_passed": 907,
+    "ledger_failed_or_skipped": 0,
+    "ledger_missing": 0,
+    "moved_sdk_verified": 11,
+    "underlying_unit": {
+      "passed": 4472,
+      "failed": 20,
+      "skipped": 1
+    },
+    "underlying_failures": [
+      {
+        "file": "tests/test_engine/test_engine.test.ts",
+        "name": "engine rejects a missing token, a wrong token, a foreign Host and a browser Origin"
+      },
+      {
+        "file": "tests/test_engine/test_engine.test.ts",
+        "name": "engine creates, runs, streams, moves files, runs code and kills"
+      },
+      {
+        "file": "tests/test_engine/test_engine.test.ts",
+        "name": "engine reuses one session across calls and reconnects after a restart"
+      },
+      {
+        "file": "tests/test_engine/test_engine.test.ts",
+        "name": "engine keeps two connections to the same id apart"
+      },
+      {
+        "file": "tests/test_providers/test_cubesandbox_provider.test.ts",
+        "name": "cubesandbox through the host and CLI runs commands, files and code, and refuses the undeclared PTY"
+      },
+      {
+        "file": "tests/test_providers/test_cubesandbox_provider.test.ts",
+        "name": "cubesandbox through the host and CLI dials envd without a token when allow_missing is set, still as root"
+      },
+      {
+        "file": "tests/test_providers/test_cubesandbox_provider.test.ts",
+        "name": "cubesandbox through the host and CLI drives create, exec, file list, sandbox list, and kill from the CLI"
+      },
+      {
+        "file": "tests/test_providers/test_cubesandbox_provider.test.ts",
+        "name": "cubesandbox through the engine sets a timeout, lists files, and builds an http port URL from the reported domain"
+      },
+      {
+        "file": "tests/test_providers/test_node_plugins.test.ts",
+        "name": "node plugins from the catalog cubesandbox: no key header, http envd, root user, framed streams, dial through the proxy, Jupyter code"
+      },
+      {
+        "file": "tests/test_providers/test_node_plugins.test.ts",
+        "name": "node plugins from the catalog cubesandbox: an envd with no access token gets no token header"
+      },
+      {
+        "file": "tests/test_transport/test_node_transport_integration.test.ts",
+        "name": "TestNodeTransportLoopback reports a refused TCP connection like anyio/httpx (All connection attempts failed)"
+      },
+      {
+        "file": "tests/adversarial/core/transport_net.test.ts",
+        "name": "ADV-core httpx shim: response parsing / error classes ADV-core-20 garbage status line -> RemoteProtocolError \"illegal status line: bytearray(b'garbage')\""
+      },
+      {
+        "file": "tests/adversarial/core/transport_net.test.ts",
+        "name": "ADV-core httpx shim: response parsing / error classes ADV-core-21 TCP RST before any response byte -> ReadError with empty message"
+      },
+      {
+        "file": "tests/adversarial/core/transport_net.test.ts",
+        "name": "ADV-core httpx shim: response parsing / error classes ADV-core-23 h11 accepts: both Transfer-Encoding and Content-Length"
+      },
+      {
+        "file": "tests/adversarial/core/transport_net.test.ts",
+        "name": "ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) ADV-core-25 SSL_CERT_FILE pointing at the server's self-signed cert makes the request succeed"
+      },
+      {
+        "file": "tests/adversarial/core/transport_net.test.ts",
+        "name": "ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) ADV-core-26 SSL_CERT_DIR (hashed dir) is honoured"
+      },
+      {
+        "file": "tests/adversarial/core/transport_net.test.ts",
+        "name": "ADV-core plain `fetch` call sites bypass the httpx shim ADV-core-30 ACR GetAuthorizationToken honours HTTPS_PROXY (httpx trust_env) instead of dialing directly"
+      },
+      {
+        "file": "tests/adversarial/core/ws.test.ts",
+        "name": "ADV-core WebSocketClient close / error text ADV-core-54 invalid UTF-8 in a text frame closes with 1007 and the reason text 'invalid start byte at position 0'"
+      },
+      {
+        "file": "tests/adversarial/core/ws.test.ts",
+        "name": "ADV-core WebSocketClient connect semantics ADV-core-56 HTTP_PROXY / HTTPS_PROXY from the environment are honoured (websockets proxy=True): CONNECT is sent to the proxy"
+      },
+      {
+        "file": "tests/adversarial/core/ws.test.ts",
+        "name": "ADV-core WebSocketClient connect semantics ADV-core-58 a server that closes the socket during the handshake: 'did not receive a valid HTTP response'"
+      }
+    ]
+  },
+  "standard_provenance": {
+    "passed": 7,
+    "failed": 0
+  },
+  "package_entry_and_skill_closure": "PASS",
+  "health": {
+    "passed": 106,
+    "warnings": 11,
+    "failed": 0
+  },
+  "interpretation": "Ledger success is not a full unit-suite success. Network/proxy/TLS/WS and provider/engine HTTP-status failures are observed; no host root cause is claimed. No tests were disabled.",
+  "candidate_real_cloud": {
+    "result": "PASS",
+    "source_commit": "89ec2bf66f80f06c43af6a94b83d9a6156d3878c",
+    "actual_client_server": "0.4.0a6",
+    "checks_passed": 5,
+    "owned_sandboxes": 1,
+    "owned_templates": 0,
+    "independent_typed_sandbox_absence": true
+  },
+  "remote_ci": "PENDING: latest record commit must receive its own required checks",
+  "publication": "NOT_RUN",
+  "pre_fix_baseline_comparison": {
+    "baseline_commit": "4396ac10903d1c17ecfec5ccada4dd36895324a2",
+    "tree_equal_public_main": "3f7fa28e16888a5489980dc56c86d6c71c11c4a0",
+    "passed": 18,
+    "failed": 10,
+    "failed_names_match_candidate_make_ci_exactly": true,
+    "scope": "Three transport/WS files only; no host cause is inferred"
+  },
+  "release_preparation_056": {
+    "package_lock_version": "0.5.6",
+    "build": "PASS",
+    "typecheck": "PASS",
+    "command_and_snapshot_tests": 148,
+    "host_and_registry_scoping_tests": 56,
+    "new_dated_version_help_captures": 3,
+    "local_http_requests": 5,
+    "hygiene": "PASS",
+    "health": {
+      "passed": 106,
+      "warnings": 11,
+      "failed": 0
+    },
+    "runtime_source_unchanged_sha256": "74c2940a8cfa05f411754a1e7879a51fe617ccd43d9661dbf6c7f0b040b95d25",
+    "publication": "PENDING"
+  }
+}

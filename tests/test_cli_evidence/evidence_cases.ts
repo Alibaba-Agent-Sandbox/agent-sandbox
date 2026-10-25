@@ -515,7 +515,7 @@ function _connectRepl(): MockSetup {
  * the two HTTP helpers are stubbed; they emulate an in-sandbox SandboxServer registering `add(x:int, y:int=1)` and
  * `ping()`, or an unreachable server when `reachable` is false.
  */
-function _runCmd(reachable = true): MockSetup {
+function _runCmd(reachable = true, fails = false): MockSetup {
   return () => {
     const patches = new Patches();
     const sb = _makeSb();
@@ -532,6 +532,7 @@ function _runCmd(reachable = true): MockSetup {
     sb["_fetchServerCommands"] = async () => (reachable ? catalogue : unreachable());
     sb["_callServerCommand"] = async (name: unknown, _port: unknown, kwargs: unknown) => {
       if (!reachable) return unreachable();
+      if (fails) return [{ is_success: false, status_code: 500 }, { error: "fixture failure", type: "RuntimeError" }];
       const k = kwargs as Record<string, unknown>;
       if (name === "add") {
         return [{ is_success: true, status_code: 200 }, { result: Number(k["x"]) + Number(k["y"] ?? 1) }];
@@ -846,6 +847,7 @@ function _buildRegistry(): EvidenceCase[] {
     E(["run", "sbx-ev-001", "add", "--arg", "x=2", "--arg", "y=3"], "run add --arg x=2 --arg y=3（服务端命令）", "B", _runCmd(), "run-dispatch"),
     E(["run", "sbx-ev-001", "ping"], "run ping（无参数）", "B", _runCmd(), "run-no-args"),
     E(["--json", "run", "sbx-ev-001", "add", "--json-args", '{"x": 4}'], "--json run add --json-args", "B", _runCmd(), "run-dispatch-json"),
+    E(["--json", "run", "sbx-ev-001", "ping"], "JSON command failure retains its diagnostic", "B", _runCmd(true, true), "run-failure-json-20261025"),
     E(["run", "sbx-ev-001", "deploy"], "run deploy（命令名不存在）", "B", _runCmd(), "run-unknown-command"),
     E(["run", "sbx-ev-001", "add", "--arg", "badformat"], "run add --arg badformat（参数格式错误）", "A", null, "run-invalid-arg"),
     E(["run", "sbx-ev-001", "ping"], "run ping（沙箱内没有 server）", "B", _runCmd(false), "run-no-server"),

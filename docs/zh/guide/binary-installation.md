@@ -15,7 +15,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 每个文件都有同名的 `.sha256`（SHA-256，`sha256sum` / `shasum -a 256` 的文本格式）。
-发行流程在五个平台全部通过后才公开 `abx-*` 二进制及对应 SHA-256 文件。下文指定版本示例使用 **v0.5.5**，实际可用情况见发行验证记录。旧 v0.2.0 使用 `ebx-*`，本安装脚本不消费旧文件名。也可[从源码安装](#从源码安装)。
+发行流程在五个平台全部通过后才公开 `abx-*` 二进制及对应 SHA-256 文件。下文指定版本示例使用 **v0.5.6**，实际可用情况见发行验证记录。旧 v0.2.0 使用 `ebx-*`，本安装脚本不消费旧文件名。也可[从源码安装](#从源码安装)。
 
 官网已镜像完整稳定版：五个平台的二进制、npm 归档及 SHA-256 文件；大小和校验和验证通过后才部署。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 标识当前可下载的版本。GitHub 新版本在镜像部署完成后成为官网默认版本。
 
@@ -23,7 +23,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 
 ## 安装
 
-下面指定版本的命令使用 v0.5.5。默认安装脚本跟随官网当前镜像清单，安装后请用 `abx --version` 确认版本。[发行验证记录](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-055-public-a6-consumption.md) 记录当前验证和发布状态；待发布不代表公开资产已可用。
+下面指定版本的命令使用 v0.5.6。默认安装脚本跟随官网当前镜像清单，安装后请用 `abx --version` 确认版本。[发行验证记录](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-named-command-json-errors.md) 记录当前验证和发布状态；待发布不代表公开资产已可用。
 
 ### macOS 与 Linux
 
@@ -40,11 +40,11 @@ curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
 
 ```bash
 # 可选
-curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_VERSION=0.5.5 sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_VERSION=0.5.6 sh
 curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_INSTALL_DIR="$HOME/bin" sh
 ```
 
-`ABX_VERSION` 可以是 `0.5.5` 或 `v0.5.5`。函数只保留当前完整镜像版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 覆盖产物前缀，布局为 `<base>/v<version>/<asset>`。设置其他 `ABX_REPO`、`ABX_GITHUB_API` 或 `ABX_LATEST_URL` 时保留上游版本解析行为。仅覆盖下载前缀仍使用官网固定版本；需要其他版本时同时设置 `ABX_VERSION`。不支持的系统或 CPU 会直接退出，并写明支持的平台。Windows 请用 PowerShell 安装脚本。
+`ABX_VERSION` 可以是 `0.5.6` 或 `v0.5.6`。函数只保留当前完整镜像版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 覆盖产物前缀，布局为 `<base>/v<version>/<asset>`。设置其他 `ABX_REPO`、`ABX_GITHUB_API` 或 `ABX_LATEST_URL` 时保留上游版本解析行为。仅覆盖下载前缀仍使用官网固定版本；需要其他版本时同时设置 `ABX_VERSION`。不支持的系统或 CPU 会直接退出，并写明支持的平台。Windows 请用 PowerShell 安装脚本。
 
 需要直接从 GitHub 下载时，仍可使用上游入口：
 
@@ -67,11 +67,11 @@ Windows 脚本支持 `ABX_VERSION` 和 `ABX_INSTALL_DIR`；默认版本来自 Gi
 ## 手动下载
 
 1. 从[官网镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 确认当前版本和文件名。
-2. 从 `https://www.agent-sandbox.cn/releases/download/v<version>/` 下载对应文件及 `.sha256`，例如 macOS Apple Silicon v0.5.5：
+2. 从 `https://www.agent-sandbox.cn/releases/download/v<version>/` 下载对应文件及 `.sha256`，例如 macOS Apple Silicon v0.5.6：
 
    ```bash
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.5/abx-0.5.5-darwin-arm64
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.5/abx-0.5.5-darwin-arm64.sha256
+   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.6/abx-0.5.6-darwin-arm64
+   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.6/abx-0.5.6-darwin-arm64.sha256
    ```
 
 3. 其他版本可从 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 下载 `abx-*` 资产及匹配的校验文件。
@@ -79,27 +79,27 @@ Windows 脚本支持 `ABX_VERSION` 和 `ABX_INSTALL_DIR`；默认版本来自 Gi
 
 ```bash
 # macOS
-shasum -a 256 -c abx-0.5.5-darwin-arm64.sha256
+shasum -a 256 -c abx-0.5.6-darwin-arm64.sha256
 
 # Linux
-sha256sum -c abx-0.5.5-linux-x64.sha256
+sha256sum -c abx-0.5.6-linux-x64.sha256
 
-chmod +x ./abx-0.5.5-darwin-arm64
-mkdir -p ~/.local/bin && mv ./abx-0.5.5-darwin-arm64 ~/.local/bin/abx
+chmod +x ./abx-0.5.6-darwin-arm64
+mkdir -p ~/.local/bin && mv ./abx-0.5.6-darwin-arm64 ~/.local/bin/abx
 ```
 
 Windows：
 
 ```powershell
-Get-FileHash abx-0.5.5-windows-x64.exe -Algorithm SHA256
+Get-FileHash abx-0.5.6-windows-x64.exe -Algorithm SHA256
 # 与 .sha256 文件的第一列比对。
 
 $installDir = "$env:LOCALAPPDATA\Programs\abx"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item abx-0.5.5-windows-x64.exe "$installDir\abx.exe"
+Move-Item abx-0.5.6-windows-x64.exe "$installDir\abx.exe"
 ```
 
-`certutil -hashfile abx-0.5.5-windows-x64.exe SHA256` 打印同一摘要。
+`certutil -hashfile abx-0.5.6-windows-x64.exe SHA256` 打印同一摘要。
 
 ## npm
 
@@ -134,7 +134,7 @@ abx --version
 
 ```bash
 abx --version
-# abx, version 0.5.5
+# abx, version 0.5.6
 ```
 
 > **macOS Gatekeeper：** Release 二进制只做了 ad-hoc 签名，没有公证。浏览器下载可能带上隔离属性。如果首次启动被拦截：
@@ -203,7 +203,7 @@ npm ci
 npm run build:binary
 ```
 
-命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。推送版本标签会运行[二进制草稿工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。版本标签先将五平台二进制构建、校验并上传至草稿Release；所有平台与校验和通过后才公开草稿。公开Release触发[npm工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)，上传前安装实际tarball，上传后再次从公开索引安装。恢复发布时，从 `main` 运行当前 npm 工作流的 workflow_dispatch，并将 `release_tag` 设为已有版本标签（如 `v0.5.5`）。工作流明确检出 `refs/tags/<release_tag>`，拒绝版本不匹配或从功能分支启动恢复，不移动既有源码标签。安装和发布均使用 `./dist-pack/*.tgz`，确保 npm 按本地 tarball 解析路径。
+命令会在当前机器上生成 `dist/binary/abx-<version>-<os>-<arch>`。在 Windows 上文件名以 `.exe` 结尾。正式发布由 GitHub Actions 在 Linux x64、Linux arm64、macOS Apple Silicon、macOS Intel 和 Windows x64 上分别构建，并把文件和对应的 `.sha256` 挂到 GitHub Release。推送版本标签会运行[二进制草稿工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml)。版本标签先将五平台二进制构建、校验并上传至草稿Release；所有平台与校验和通过后才公开草稿。公开Release触发[npm工作流](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml)，上传前安装实际tarball，上传后再次从公开索引安装。恢复发布时，从 `main` 运行当前 npm 工作流的 workflow_dispatch，并将 `release_tag` 设为已有版本标签（如 `v0.5.6`）。工作流明确检出 `refs/tags/<release_tag>`，拒绝版本不匹配或从功能分支启动恢复，不移动既有源码标签。安装和发布均使用 `./dist-pack/*.tgz`，确保 npm 按本地 tarball 解析路径。
 
 ## 后续步骤
 

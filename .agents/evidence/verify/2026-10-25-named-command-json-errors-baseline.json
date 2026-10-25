@@ -1,0 +1,41 @@
+{
+  "baseline_reviewed_head": "4396ac10903d1c17ecfec5ccada4dd36895324a2",
+  "baseline_tree_equal_public_main": "3f7fa28e16888a5489980dc56c86d6c71c11c4a0",
+  "scope": "three previously failing transport/WS files on actual pre-fix source; same installed lockfile dependencies, no cloud",
+  "command": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "tests/test_transport/test_node_transport_integration.test.ts",
+    "tests/adversarial/core/transport_net.test.ts",
+    "tests/adversarial/core/ws.test.ts"
+  ],
+  "exit_code": 1,
+  "summary": [
+    "\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 10 \u23af\u23af\u23af\u23af\u23af\u23af\u23af",
+    "FAIL  tests/test_transport/test_node_transport_integration.test.ts > TestNodeTransportLoopback > reports a refused TCP connection like anyio/httpx (All connection attempts failed)",
+    "FAIL  tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-20 garbage status line -> RemoteProtocolError \"illegal status line: bytearray(b'garbage')\"",
+    "FAIL  tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-21 TCP RST before any response byte -> ReadError with empty message",
+    "FAIL  tests/adversarial/core/transport_net.test.ts > ADV-core httpx shim: response parsing / error classes > ADV-core-23 h11 accepts: both Transfer-Encoding and Content-Length",
+    "FAIL  tests/adversarial/core/transport_net.test.ts > ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) > ADV-core-25 SSL_CERT_FILE pointing at the server's self-signed cert makes the request succeed",
+    "FAIL  tests/adversarial/core/transport_net.test.ts > ADV-core TLS trust store (httpx honours SSL_CERT_FILE / SSL_CERT_DIR) > ADV-core-26 SSL_CERT_DIR (hashed dir) is honoured",
+    "FAIL  tests/adversarial/core/transport_net.test.ts > ADV-core plain `fetch` call sites bypass the httpx shim > ADV-core-30 ACR GetAuthorizationToken honours HTTPS_PROXY (httpx trust_env) instead of dialing directly",
+    "FAIL  tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient close / error text > ADV-core-54 invalid UTF-8 in a text frame closes with 1007 and the reason text 'invalid start byte at position 0'",
+    "FAIL  tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient connect semantics > ADV-core-56 HTTP_PROXY / HTTPS_PROXY from the environment are honoured (websockets proxy=True): CONNECT is sent to the proxy",
+    "FAIL  tests/adversarial/core/ws.test.ts > ADV-core WebSocketClient connect semantics > ADV-core-58 a server that closes the socket during the handshake: 'did not receive a valid HTTP response'",
+    "Test Files  3 failed (3)",
+    "Tests  10 failed | 18 passed (28)",
+    "Duration  762ms (transform 42%, tests 40%, import 17%, setup 1%, worker 1%)"
+  ],
+  "interpretation": "Observed baseline results only; no inferred host root cause; no tests disabled",
+  "tree_equal_verified": true,
+  "reviewed_and_merged_tree": "708853eb29058ec787cc529f79cdf0ebee58e974",
+  "comparison_with_candidate_make_ci": {
+    "baseline_failed_names": 10,
+    "candidate_failed_names": 10,
+    "all_failed_names_exactly_match_after_whitespace_normalization": true,
+    "baseline_only": [],
+    "candidate_only": [],
+    "conclusion": "These exact ten failed tests are also present before this patch; no transport/TLS/proxy host root cause is inferred."
+  }
+}

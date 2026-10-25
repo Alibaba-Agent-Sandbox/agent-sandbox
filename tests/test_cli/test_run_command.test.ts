@@ -4,6 +4,8 @@ import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js
 import "../_support/isolatedHome.js";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
@@ -82,6 +84,56 @@ describe("TestRunCommand", () => {
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("RuntimeError: boom");
+  });
+
+  it.each([
+    { name: "execution failure JSON", status: 500, body: { error: "fixture failure", type: "RuntimeError" }, json: true, alias: false, exit: 1, message: "RuntimeError: fixture failure", code: "E3000" },
+    { name: "validation failure alias JSON", status: 400, body: { error: "fixture validation", type: "ValidationError" }, json: true, alias: true, exit: 1, message: "ValidationError: fixture validation", code: "E3000" },
+    { name: "execution failure text", status: 500, body: { error: "fixture failure", type: "RuntimeError" }, json: false, alias: false, exit: 1, message: "RuntimeError: fixture failure" },
+    { name: "nullable success JSON", status: 200, body: { result: null }, json: true, alias: false, exit: 0 },
+    { name: "unknown command JSON", status: 404, body: { error: "not found", type: "CommandNotFoundError" }, json: true, alias: false, exit: 2, code: "E3005" },
+  ])("preserves $name through the dispatcher and HTTP error mapping", async testCase => {
+    let requests = 0;
+    const server = createServer((request, response) => {
+      requests++;
+      expect(request.method).toBe("POST");
+      expect(request.url).toBe("/commands/fixture");
+      response.writeHead(testCase.status, { "content-type": "application/json" });
+      response.end(JSON.stringify(testCase.body));
+    });
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    const endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const sandbox = Object.create(Sandbox.prototype) as Sandbox;
+    // Replace cloud connection/transport only: keep the actual HTTP-to-CommandResult mapping.
+    Object.assign(sandbox, { _callServerCommand: async (name: string, _port: number, args: Record<string, unknown>) => {
+      const response = await fetch(`${endpoint}/commands/${name}`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(args),
+      });
+      return [{ is_success: response.ok, status_code: response.status }, await response.json()];
+    } });
+    vi.spyOn(Sandbox, "connect").mockResolvedValue(sandbox);
+    try {
+      const argv = [...(testCase.json ? ["--json"] : []), ...(testCase.alias ? ["sandbox", "command", "run"] : ["run"]), "fixture-sandbox", "fixture"];
+      const result = await runner().invoke(cli, argv);
+      expect(requests).toBe(1);
+      expect(result.exit_code, result.output).toBe(testCase.exit);
+      if (!testCase.json) {
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toBe(`${testCase.message}\n`);
+      } else {
+        const output = JSON.parse(result.stdout);
+        expect(result.stderr).toBe("");
+        if (testCase.exit === 0) expect(output).toEqual({ result: null });
+        else {
+          expect(output).toMatchObject({ status: "error", code: testCase.code });
+          if (testCase.message) expect(output.message).toBe(testCase.message);
+          expect(output).not.toHaveProperty("result");
+        }
+      }
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
   });
 
   it("test_run_unknown_command_reports_not_found", async () => {

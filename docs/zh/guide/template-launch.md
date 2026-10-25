@@ -1,8 +1,8 @@
 # 启动模板
 
-当前 spec v5 模板建议使用 CLI 0.5.5 或更新版本。CLI 与模板目录需同步升级。
+当前 spec v5 模板建议使用 CLI 0.5.6 或更新版本。CLI 与模板目录需同步升级。
 
-CLI 0.5.5 会读取公开目录中的原生模板。使用 `abx --provider alicloud-express template launch base --yes` 启动极速版内置模板。源码模板与平台原生模板共用这个启动命令；原生模板没有可下载的源码目录。
+CLI 0.5.6 会读取公开目录中的原生模板。使用 `abx --provider alicloud-express template launch base --yes` 启动极速版内置模板。源码模板与平台原生模板共用这个启动命令；原生模板没有可下载的源码目录。
 
 独立二进制已包含极速版内置 Provider，不需要旁边另放 Provider 文件。启动回执记录可执行文件的实际内容指纹；npm 安装和外部插件记录已安装 Provider 目录的内容指纹，并在创建资源前再次核对。
 
