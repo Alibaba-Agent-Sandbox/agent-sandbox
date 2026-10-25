@@ -68,6 +68,23 @@ describe("Operation-specific template guidance", () => {
     expect(builder.builder.build).not.toHaveBeenCalled();
   });
 
+  it.each(["missing", "unavailable"])("checks Docker %s before registering a build intent", async reason => {
+    const builder = mockBuilder(); builder.builder.checkDocker.mockResolvedValue(false);
+    patchLoadConfig(); vi.stubEnv("ACR_NAMESPACE", "fixture-namespace");
+    const pycompat = await import("../../src/agent/_pycompat.js");
+    vi.spyOn(pycompat, "which").mockReturnValue(reason === "missing" ? null : "/mock/docker");
+    const journal = new ResourceJournal("alicloud-express", "fixture");
+    const intent = vi.spyOn(journal, "intent");
+    const create = vi.spyOn(fcTemplate, "createOfficialTemplate");
+    const ctx = context(); ctx.params = { yes: true };
+    await expect(CLI_EXTENSION.prepareProject(project(), { alias: "preflight", timeout: 60, journal,
+      template: { name: "preflight", cpu: 2, memory: 2048, start_cmd: null, ready_cmd: null } }, ctx))
+      .rejects.toThrow(reason === "missing" ? "Docker CLI was not found" : "daemon or selected context is not accessible");
+    expect(intent).not.toHaveBeenCalled(); expect(journal.recoverySummary()).toEqual([]);
+    expect(builder.builder.build).not.toHaveBeenCalled(); expect(builder.builder.push).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it.each([["deploy"], ["template", "deploy"], ["template", "build"]])("reports the complete official build requirements before Docker: %s", async (...prefix) => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null, api_key: "" }));
     const deploy = vi.spyOn(templateSeams, "_doDeploy");

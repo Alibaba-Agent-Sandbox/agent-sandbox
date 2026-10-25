@@ -201,6 +201,10 @@ export DASHSCOPE_API_KEY="your-key"
 # For the CLI (create / template init): abx config set llm_api_key your-key
 ```
 
+### Docker is missing or its daemon is unavailable
+
+Source templates with a Dockerfile need Docker installed and running on the CLI host. Run `docker info`, start Docker Desktop/the daemon, and check the selected context and permissions before retrying. The CLI reports E7020 with the setup reason before starting a build; this prerequisite failure creates no image, push, platform-template or sandbox intent. Native platform steps and managed templates keep their existing prerequisites.
+
 ### No Dockerfile
 
 `abx deploy` stops when the directory has no `Dockerfile` and names the three authoring commands: `abx template scaffold --adopt .` for a project that already has source code, `abx template scaffold --prompt "DESCRIPTION"` for a new project from a sentence, and `abx template scaffold -t python` for a scaffold. After the files exist, run `abx deploy` again.

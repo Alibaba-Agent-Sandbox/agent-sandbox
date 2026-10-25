@@ -769,6 +769,7 @@ describe("TestStartReadyWarning", () => {
   });
 
   it("test_do_deploy_warns_start_cmd_gen1", async () => {
+    mockBuilder(); // This warning-only fixture also supplies a reachable Docker preflight.
     const tdir = path.join(tmpPath(), "warn2");
     writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-w2\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");

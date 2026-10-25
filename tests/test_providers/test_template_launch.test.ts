@@ -16,7 +16,7 @@ import { Context, command } from "../../src/cli/kit.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIso } from "../_support/iso.js";
-import { ProjectToolError, stageProject, runTool } from "../../src/providers/shared/project.js";
+import { DockerSetupError, ProjectToolError, stageProject, runTool } from "../../src/providers/shared/project.js";
 
 const iso = useIso();
 beforeEach(resetCliSelection);
@@ -62,6 +62,17 @@ describe("provider-owned project launch", () => {
       expect(effective).toContain("USER user\n");
       expect(fs.readFileSync(path.join(f.directory, "Dockerfile"), "utf8")).toBe(original);
     } finally { f.create.mockRestore(); }
+  });
+  it("preserves controlled prerequisite guidance without an ambiguous recovery warning", async () => {
+    const f=setup();f.provider.prepare.mockRejectedValue(new DockerSetupError("missing"));
+    try {
+      const result=await f.invoke();expect(result.exit_code).not.toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({code:"E7020"});
+      expect(result.output).toContain("Docker CLI was not found");
+      expect(result.output).toContain("No build has started");
+      expect(result.output).not.toContain("Inspect recovery journal");
+      expect(f.create).not.toHaveBeenCalled();
+    } finally {f.create.mockRestore();}
   });
   it("keeps the safe failed Docker phase and recovery journal visible without exposing raw output", async () => {
     const f = setup();
