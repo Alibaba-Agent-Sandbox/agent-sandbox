@@ -13,9 +13,11 @@ Before you begin, make sure you have:
 
 1. Create a `.env` file in your project root or set the environment variable:
    ```
-   E2B_API_KEY=your_api_key_here
+   {{#if isPython}}ABX_SANDBOX_API_KEY=your_api_key_here
+   ABX_SANDBOX_BASE_URL=https://api.<region>.sandbox.aliyuncs.com
+   ABX_SANDBOX_DOMAIN=<region>.sandbox.aliyuncs.com{{else}}E2B_API_KEY=your_api_key_here
    E2B_API_URL=https://api.<region>.sandbox.aliyuncs.com
-   E2B_DOMAIN=<region>.sandbox.aliyuncs.com
+   E2B_DOMAIN=<region>.sandbox.aliyuncs.com{{/if}}
    ```
 
 ## Installing Dependencies

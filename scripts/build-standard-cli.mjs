@@ -24,7 +24,7 @@ const templateAssets = Object.fromEntries(fs.readdirSync(assetDirectory).map((na
     .replaceAll("E2B Sandbox Template", "Agent Sandbox Template")
     .replace("- An E2B account (sign up at [e2b.dev](https://e2b.dev))", "- An Alibaba Agent Sandbox account")
     .replace("- Your E2B API key (get it from your [E2B dashboard](https://e2b.dev/dashboard))", "- A sandbox API key from the Alibaba Console")
-    .replace("E2B_API_KEY=your_api_key_here", "E2B_API_KEY=your_api_key_here\n   E2B_API_URL=https://api.<region>.sandbox.aliyuncs.com\n   E2B_DOMAIN=<region>.sandbox.aliyuncs.com");
+    .replace("E2B_API_KEY=your_api_key_here", "{{#if isPython}}ABX_SANDBOX_API_KEY=your_api_key_here\n   ABX_SANDBOX_BASE_URL=https://api.<region>.sandbox.aliyuncs.com\n   ABX_SANDBOX_DOMAIN=<region>.sandbox.aliyuncs.com{{else}}E2B_API_KEY=your_api_key_here\n   E2B_API_URL=https://api.<region>.sandbox.aliyuncs.com\n   E2B_DOMAIN=<region>.sandbox.aliyuncs.com{{/if}}");
   return [name, contents];
 }));
 const result = await build({
