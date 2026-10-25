@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Preserve nested objects and JSON value types in native template info instead of stringifying them. / 原生模板详情 JSON 保留嵌套对象和值类型，不再转换成字符串。
+
 - Check Docker before recording a build intent and keep fixed missing-Docker/daemon guidance visible during template launch; unstarted builds no longer produce an ambiguous artifact journal (#160). / 模板启动在登记构建资源前检查 Docker，直接显示缺少 Docker 或守护进程不可用的修复提示；尚未开始的构建不会留下含糊的资源记录。
 - Use the same prepare/create/start/readiness lifecycle for generated applications and template launch, resolve runtime environment separately from builds, and validate required input before generation. Generated create output retains its existing fields and includes the template reference and services. / 生成应用复用模板整体启动流程，运行环境与构建分离，生成前验证必填配置，并返回模板引用及服务地址。
 

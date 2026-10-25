@@ -499,6 +499,8 @@ abx template info <TEMPLATE_ID> [options]
 |--------|-------------|
 | `--region` | Region override for this command (default: `abx config set region` value, else `cn-hangzhou`) |
 
+Native JSON output preserves response value types: `abx --native --json template info <TEMPLATE_ID>` returns `status` as an object (read `status.state`), with arrays, booleans, numbers and null values unchanged. Text output remains a readable table.
+
 ### abx template delete
 
 Use the standard command's --help for its fixed confirmation/options. For Alibaba image administration through the project extension envelope, `abx --json template delete <id> --yes` retains that explicitly selected project interface. Deleting templates/snapshots remains subject to backend ownership and occupancy rules.

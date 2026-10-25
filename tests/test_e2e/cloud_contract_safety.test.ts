@@ -184,7 +184,7 @@ it('does not reintroduce credentials into a credential-free negative probe', asy
 it('resolves positive official template info from the same native inventory instead of an alias', async () => {
   const abx = vi.fn()
     .mockResolvedValueOnce(result([{ TemplateID: 'tpl-owned', Name: 'fixture' }]))
-    .mockResolvedValueOnce(result({ templateID: 'tpl-owned', statusCode: '200', code: 'Success', name: 'fixture', status: "{'state': 'Ready'}", runtimeConfig: "{'cpu': 2}" }));
+    .mockResolvedValueOnce(result({ templateID: 'tpl-owned', statusCode: 200, code: 'Success', name: 'fixture', status: {state: 'Ready'}, runtimeConfig: {cpu: 2} }));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === 'template-info');
   await testCase.run({ abx, fail });
   expect(abx.mock.calls[0][0]).toEqual(['--native', '--json', 'template', 'list']);

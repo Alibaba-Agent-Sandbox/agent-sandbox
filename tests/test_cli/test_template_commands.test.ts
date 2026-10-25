@@ -271,6 +271,16 @@ describe("TestTemplateInfoHelp", () => {
     expect(result.output.includes("TEMPLATE_ID") || result.output.toLowerCase().includes("template_id")).toBe(true);
   });
 
+  it("preserves nested values and primitive types in native JSON output", async () => {
+    patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
+    const response = { templateID: "tpl-ready", status: { state: "ready", details: { count: 2 } },
+      aliases: ["example"], enabled: true, cpu: 2, optional: null };
+    spyAny(fcTemplate, "getTemplate").mockResolvedValue(response);
+    const result = await runner().invoke(cli, ["--json", "template", "info", "tpl-ready"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(response);
+  });
+
   it("test_info_official_template", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     const mockGet = spyAny(fcTemplate, "getTemplate").mockResolvedValue({ templateID: "tpl-ready", status: { state: "ready" } });

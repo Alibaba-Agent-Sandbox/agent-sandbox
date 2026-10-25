@@ -55,8 +55,9 @@ export default {
         const detail = await ctx.abx(['--native', '--json', 'template', 'info', selected.TemplateID]);
         const info = detail.rawJson();
         if (detail.code !== 0 || info?.templateID !== selected.TemplateID) ctx.fail('native template info did not confirm the selected inventory identity');
-        for (const field of ['code', 'name', 'status', 'runtimeConfig']) if (typeof info[field] !== 'string' || !info[field].trim()) ctx.fail(`template info missing formatted ${field}`);
-        if (info.statusCode !== '200' || !info.runtimeConfig.startsWith('{') || !info.runtimeConfig.endsWith('}')) ctx.fail('native template info did not preserve successful official runtime configuration');
+        for (const field of ['code', 'name']) if (typeof info[field] !== 'string' || !info[field].trim()) ctx.fail(`template info missing ${field}`);
+        if (info.statusCode !== 200 || !info.status || typeof info.status !== 'object' || typeof info.status.state !== 'string' ||
+            !info.runtimeConfig || typeof info.runtimeConfig !== 'object' || Array.isArray(info.runtimeConfig)) ctx.fail('native template info must preserve successful typed official response');
       },
     },
     { id: 'template-info-missing', title: 'official template info preserves its current typed network wrapper and exact backend 404 diagnostic', argv: ['--native', 'template', 'info', 'tpl-does-not-exist'], exit: 1, output: ['E5000', 'GetTemplate API call failed', 'TemplateNotFound', '404', 'template not found'] },

@@ -212,4 +212,7 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Standalone provider identity correction](notes/proposed/feature/2026-10-25-standalone-provider-identity.md) · [verification](evidence/verify/2026-10-25-standalone-provider-identity.md) · [Issue 156](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/156).
 
 - [Docker launch prerequisite correction](notes/proposed/feature/2026-10-25-docker-launch-preflight.md) · [verification](evidence/verify/2026-10-25-docker-launch-preflight.md) · [Issue 160](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/160).
+
+- [Native template JSON correction](notes/proposed/feature/2026-10-25-native-template-json.md) · [verification](evidence/verify/2026-10-25-native-template-json.md) · [Issue 162](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/162).
+
 - [Generated whole-template launch](notes/proposed/feature/2026-10-25-generated-template-launch.md) · [verification](evidence/verify/2026-10-25-generated-template-launch.md).

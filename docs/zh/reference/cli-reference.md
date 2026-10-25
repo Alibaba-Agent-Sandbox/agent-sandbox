@@ -498,6 +498,8 @@ abx template info <TEMPLATE_ID> [选项]
 |------|------|
 | `--region` | 本次调用的区域覆盖（默认：`abx config set region` 值，否则 cn-hangzhou） |
 
+原生 JSON 输出保留返回值类型：`abx --native --json template info <TEMPLATE_ID>` 的 `status` 是对象，可直接读取 `status.state`；数组、布尔值、数字和 null 保持原类型。文本输出仍为可读表格。
+
 ### abx template delete
 
 标准命令的确认方式和参数见该固定版本的 --help。通过项目扩展信封管理阿里云镜像时，`abx --json template delete <id> --yes` 保留这一显式选择的项目接口。删除模板/快照仍受后端所有权与占用规则约束。
