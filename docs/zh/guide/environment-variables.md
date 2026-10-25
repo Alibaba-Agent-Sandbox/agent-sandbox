@@ -1,81 +1,74 @@
 # 沙箱中的环境变量（CLI）
 
-> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+[English](../../en/guide/environment-variables.md)
 
-本指南说明如何通过 `abx` CLI 在沙箱内设置和读取环境变量，以及发送给沙箱的命令适用哪些执行规则。底层模型——每个沙箱内有两个相互独立的进程作用域——对 CLI 和 Python SDK 是一致的；包含 SDK 与沙箱内 Server 代码示例的完整说明见文末链接的 SDK 文档。
+CLI 自身配置与沙箱进程环境是不同输入。项目配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`；固定的标准极速版入口还接受其文档中的 E2B 配置。参见[配置参考](../reference/configuration.md)和[标准迁移指南](migrate-from-e2b.md)。本页针对当前公开 CLI 0.5.6；提供方扩展以所选提供方实际支持的操作为准。
 
-> **想了解 CLI 自身的配置变量**（`ABX_SANDBOX_API_KEY`、`ALIBABA_CLOUD_REGION_ID`、`ABX_LLM_API_KEY` 等）？这些变量用于配置 `abx` 本身，而不是沙箱。每个键只有一个变量。见[配置参考](../reference/configuration.md)。
+## 在启动前配置应用
 
----
-
-## 两个进程作用域
-
-每个沙箱内部有两棵相互独立的进程树，各自拥有自己的环境：
-
-| 作用域 | 进程所有者 | 环境变量如何传播 |
-|--------|-----------|------------------|
-| **envd 作用域** | `envd` 守护进程（PID 1） | 创建沙箱时设置的变量，会被通过 envd 启动的所有进程继承——`abx exec`、`abx run`、代码执行和终端会话 |
-| **Server 作用域** | 沙箱内的 `SandboxServer` 进程（可选） | 通过 Server 的 `/env` 接口所做的修改，只影响 Server 自己派生的子进程 |
-
-两个作用域互不泄漏：通过 Server 的 `/env` 接口写入的变量对 `abx exec` 不可见，反之亦然。按设计不存在统一的"设置环境变量"命令。
-
----
-
-## 创建时设置变量（envd 作用域）
-
-`abx create` 接受可重复的 `--env` / `-e KEY=VALUE`。这些变量会注入 envd 根进程，并在沙箱生命周期内被后续所有命令继承：
+应用模板由一个入口负责启动。在 `abx template launch` 前，配置目标模板已声明的环境变量。安全设置 `ABX_SERVER_TOKEN`，并按目标模板 README 设置所需模型配置，然后启动：
 
 ```bash
-abx create base --detach --env MY_KEY=value --env LOG_LEVEL=debug
+abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes
+abx --provider alicloud-express run <sandbox-id> hello --arg name=Ada
 ```
 
-创建之后没有任何 CLI 命令可以修改 envd 变量。如果某条命令需要不同的值，请显式包装：`abx exec <sandbox-id> "sh -c 'MY_KEY=other python app.py'"`。
+将 `<sandbox-id>` 替换为返回的 ID。`abx run` 通过 HTTP 调用命名命令应用，不是 envd shell 命令。应用读取启动环境，调用方的 `ABX_SERVER_TOKEN` 用于请求认证。再启动一个客户端不会重新配置已有应用。配置和自有沙箱、模板、镜像清理参见[模板启动指南](template-workflows.md)。
 
-> **密钥提示：** `--env` 的值会通过 HTTPS 发送到平台 API。避免把密钥写进 shell 历史；优先从你自己的环境读取（`--env "TOKEN=$TOKEN"`），且切勿提交到仓库。不要把它与 CLI 自身的凭据混淆，后者通过 `abx config set` 保存。
+创建输入、单次进程环境和已运行应用的环境各有作用范围。应用本身也可能通过 envd 启动；不能断言每个沙箱都有两棵独立进程树，或 envd 一定是 PID 1。进程后续修改环境不会改写已有父进程或兄弟进程。一个变量继承成功不代表所有变量都如此：提供方／运行时可能仍采用平台的 `PATH`。
 
-## 读取变量
+## 标准极速版入口的终端变量
+
+`abx create` 和 `abx connect` 接受可重复的 `--env` / `-e KEY=VALUE`，用于终端会话：
 
 ```bash
-# 读取单个变量，即进程所见的值（无需 shell）
-abx exec <sandbox-id> "printenv MY_KEY"
-
-# 沙箱内 Server 报告的环境，可按名称过滤
-abx sandbox system env <sandbox-id> --filter PATH,HOME,LANG
+abx --provider alicloud-express create base --env APP_ENV=staging
+abx --provider alicloud-express connect --env APP_ENV=staging <sandbox-id>
 ```
 
-`abx sandbox system env` 会自动排除名称中包含 `TOKEN`、`SECRET`、`KEY`、`PASSWORD` 或 `CREDENTIAL` 的变量。
+第一条命令创建实例并打开终端；`--env` 传给终端，不传入实例生命周期的创建请求。`create --detach` 不打开终端，也不会把 `--env` 变成实例全局注入。Python 创建时的 `ProviderSandbox.create(envs=...)` 见 [SDK 环境指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/environment-variables.md)；不要把终端选项的语义套到其他提供方的创建接口上。
 
----
+使用结束后仅删除自己拥有的实例，例如 `abx --provider alicloud-express kill <sandbox-id>`。连接他人的沙箱不会转移资源归属。
 
-## 直接执行（direct-exec）语义
+## 覆盖或读取单次进程环境
 
-通过 envd 发送的命令以直接 `exec` 方式执行，而不是经过 shell。未加引号的 shell 操作符（`|`、`;`、`&&`、`||`、`>`、`<`、`(...)`、`$(...)`）会被识别，并自动包装为 `sh -c`。其他情况需要显式写 `sh -c '...'`：
-
-| 无需 `sh -c` | 需要 `sh -c '...'` |
-|--------------|---------------------|
-| 管道、重定向、`&&`、`\|\|`、`;`、子 shell、`$(...)` | 变量展开（`$VAR`、`${VAR}`）、反引号、通配符（`*`、`?`、`[...]`） |
+标准极速版 exec 选项放在沙箱 ID 前。单次覆盖只影响该进程和子进程，不影响已运行应用或之后的兄弟命令：
 
 ```bash
-abx exec <sandbox-id> "ls /tmp | grep log"             # 管道：自动包装
-abx exec <sandbox-id> "sh -c 'echo \$HOME'"            # 变量展开：显式 sh -c
-abx exec <sandbox-id> "sh -c 'ls *.py'"                # 通配符：显式 sh -c
-abx exec <sandbox-id> "printenv HOME"                  # 读取单个变量的最简方式
+abx --provider alicloud-express exec --env MY_KEY=one <sandbox-id> printenv MY_KEY
+abx --provider alicloud-express exec <sandbox-id> printenv HOME
+abx --provider alicloud-express sandbox system env <sandbox-id> --filter PATH,HOME,LANG
 ```
 
-由于 `$VAR` 不会被展开，`abx exec <id> "echo $VAR"` 输出的是字面文本，除非你**本地**的 shell 先展开了它——请给整条命令加引号，并使用 `printenv VAR` 或 `sh -c`。
+`abx sandbox system env` 在沙箱中新执行 `env`，然后过滤输出。它**不会**调用应用的 `GET /env`，也不代表任意已有服务进程的环境。该命令排除名称含 `TOKEN`、`SECRET`、`KEY`、`PASSWORD` 或 `CREDENTIAL` 的变量。不要用未过滤的进程命令打印密钥。
 
----
+其他提供方使用其声明的进程操作及支持的参数，具体以对应帮助为准。进程需要特定 `PATH` 时，可以显式传入单次进程的 `env`，而不是假设创建时一定能覆盖平台值。
+
+## Shell 行为取决于入口
+
+标准极速版 exec 入口把渲染后的远程命令交给 `/bin/bash -l -c`。单个带引号的命令字符串作为 shell 输入；多个参数在组装字符串时逐个引用。登录 shell 的初始化也可能影响最终环境。项目原生进程路径对简单命令直接执行，并把检测到的未引用 shell 操作符包装成 `sh -c`；不能把其简单 `$VAR` 和通配符规则当成所有 `abx exec` 入口的行为。
+
+读取单个变量优先用 `printenv`。需要 shell 语法时明确写出，并避免本地先展开远程表达式：
+
+```bash
+abx --provider alicloud-express exec <sandbox-id> sh -c 'printf "%s\n" "$HOME"'
+abx --provider alicloud-express exec <sandbox-id> sh -c 'ls /tmp | head -n 5'
+```
+
+外层单引号把 `$HOME` 留给远程 shell 处理。Shell 执行和进程能力仍由所选提供方决定；这些写法或能力声明不代表尚未实测的后端已经通过验证。
+
+## 读取或修改已运行应用的环境
+
+应用必须开放环境端点，并允许当前身份访问。用已发布 Python SDK 连接运行中的沙箱，通过 `await sandbox.application_client(9000, token=...)` 绑定应用，再使用已有的 `application.system.env(...)` / `application.system.set_env(...)` 方法。[SDK 环境指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/environment-variables.md#server-作用域--getpost-env)提供带认证的示例及策略前提。
+
+应用凭据与提供方网关凭据各自独立，只有网关头不等于已提供应用令牌。`POST /env` 影响该应用及之后的子进程，不改变父进程或兄弟进程，也不会自动重新初始化启动时已缓存的配置。应用保护系统变量和 `ABX_*` 设置。模型凭据和其他只在启动时读取的值应在启动前配置。
 
 ## 速查表
 
-| 做什么 | 如何做 | 作用域 | 生命周期 |
-|--------|--------|--------|----------|
-| 创建时设置 | `abx create --env KEY=VALUE` | envd | 沙箱生命周期 |
-| 读取单个变量 | `abx exec <id> "printenv KEY"` | envd | — |
-| 读取 Server 视角 | `abx sandbox system env <id>` | Server | — |
-
----
-
-## 相关 SDK 文档
-
-完整模型——逐次调用的 `env` 字典、`run_code(envs=)`、`@sandbox(envs=)` 装饰器、Server 的 `GET/POST /env` 接口（读取、设置、受保护与脱敏变量）以及推荐模式——见 `python-sdk` 仓库中 SDK 的[环境变量指南](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/zh/guide/environment-variables.md)。
+| 任务 | 入口 | 范围 |
+|---|---|---|
+| 配置模板应用 | 在 `template launch` 前配置已声明名称 | 该应用的启动过程 |
+| 配置标准极速版终端 | `create --env` 或 `connect --env` | 终端会话 |
+| 覆盖单次进程 | 标准入口在沙箱 ID 前传 `exec --env` | 该进程及其子进程 |
+| 读取进程环境 | `exec ... printenv` 或 `sandbox system env` | 新执行的进程 |
+| 读取或修改应用变量 | 带认证的 SDK 应用绑定 | 已运行应用及之后的子进程 |

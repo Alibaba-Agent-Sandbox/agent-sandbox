@@ -1,97 +1,74 @@
 # Environment Variables in Sandboxes (CLI)
 
-> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+[中文](../../zh/guide/environment-variables.md)
 
-This guide explains how to set and read environment variables inside a sandbox from the `abx` CLI, and which
-execution rules apply to the commands you send. The underlying model — two independent process scopes inside every
-sandbox — is the same for the CLI and the Python SDK; the full description, with code examples for the SDK and the
-in-sandbox server, is in the SDK documentation linked at the bottom.
+The CLI's own configuration and a sandbox process's environment are different inputs. Project configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`; the pinned standard Express entry also accepts its documented E2B settings. See [configuration](../reference/configuration.md) and [standard migration](migrate-from-e2b.md). This page describes the current public CLI 0.5.6; provider extensions depend on the selected provider's supported operations.
 
-> **Looking for the CLI's own configuration variables** (`ABX_SANDBOX_API_KEY`, `ALIBABA_CLOUD_REGION_ID`, `ABX_LLM_API_KEY`, …)?
-> Those configure `abx` itself, not the sandbox. Each key has one variable. See the [Configuration Reference](../reference/configuration.md).
+## Configure the application before launch
 
----
-
-## Two process scopes
-
-Inside every sandbox there are two independent process trees, each with its own environment:
-
-| Scope | Process owner | How env vars propagate |
-|-------|--------------|----------------------|
-| **envd scope** | The `envd` daemon (PID 1) | Variables set at sandbox creation are inherited by every process started through envd — `abx exec`, `abx run`, code execution and terminal sessions |
-| **Server scope** | The in-sandbox `SandboxServer` process (optional) | Changes made through the server's `/env` endpoint only reach child processes spawned by the server itself |
-
-The two scopes never leak into each other: a variable written through the server's `/env` endpoint is invisible to
-`abx exec`, and vice versa. There is no single "set env" command, by design.
-
----
-
-## Setting variables at creation time (envd scope)
-
-`abx create` accepts `--env` / `-e KEY=VALUE`, repeatable. The variables are injected into the envd root process and
-inherited by all later commands for the lifetime of the sandbox:
+For template applications, use one startup owner. Configure the environment variables already declared by the selected template before `abx template launch`. Securely configure `ABX_SERVER_TOKEN` and any model settings required by the selected template's README, then launch:
 
 ```bash
-abx create base --detach --env MY_KEY=value --env LOG_LEVEL=debug
+abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes
+abx --provider alicloud-express run <sandbox-id> hello --arg name=Ada
 ```
 
-There is no CLI command that changes envd variables after creation. To use a different value for one command, wrap
-it explicitly (`abx exec <sandbox-id> "sh -c 'MY_KEY=other python app.py'"`).
+Replace `<sandbox-id>` with the returned ID. `abx run` calls the named-command application over HTTP; it is not an envd shell command. The application reads its startup environment, while `ABX_SERVER_TOKEN` in the caller authenticates the request. Starting another client does not reconfigure the existing application. See [template startup](template-workflows.md) for configuration and owned sandbox/template/image cleanup.
 
-> **Secrets:** values given with `--env` are sent to the platform API over HTTPS. Avoid putting secrets into shell
-> history; prefer reading them from your own environment (`--env "TOKEN=$TOKEN"`) and never commit them. Do not
-> confuse this with the CLI's own credentials, which are stored with `abx config set`.
+Creation input, a process environment and an already running application's environment are distinct. An application may itself be started through envd; every sandbox need not have two independent process trees or an envd process with PID 1. A process's later environment changes do not rewrite its existing parent or siblings. Do not infer universal inheritance from one successful variable: a provider/runtime may retain its platform `PATH`.
 
-## Reading variables
+## Terminal variables on the standard Express entry
+
+`abx create` and `abx connect` accept repeatable `--env` / `-e KEY=VALUE` for the terminal session:
 
 ```bash
-# One variable, as the process sees it (no shell needed)
-abx exec <sandbox-id> "printenv MY_KEY"
-
-# The environment reported by the in-sandbox server, optionally filtered
-abx sandbox system env <sandbox-id> --filter PATH,HOME,LANG
+abx --provider alicloud-express create base --env APP_ENV=staging
+abx --provider alicloud-express connect --env APP_ENV=staging <sandbox-id>
 ```
 
-`abx sandbox system env` automatically leaves out variables whose names contain `TOKEN`, `SECRET`, `KEY`,
-`PASSWORD` or `CREDENTIAL`.
+The first command creates an instance and opens a terminal. Its `--env` values are passed to that terminal, not to the lifetime creation request. `create --detach` does not open a terminal and does not turn `--env` into instance-wide injection. For Python creation-time `ProviderSandbox.create(envs=...)`, use the [SDK environment guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/environment-variables.md); do not apply the terminal flag's semantics to another provider's creation API.
 
----
+Only delete an instance you own when finished, for example `abx --provider alicloud-express kill <sandbox-id>`. Attaching to somebody else's sandbox does not transfer its ownership.
 
-## Direct-exec semantics
+## Override or read a process environment
 
-Commands sent through envd are executed with a direct `exec`, not through a shell. Unquoted shell operators (`|`,
-`;`, `&&`, `||`, `>`, `<`, `(...)`, `$(...)`) are detected and the command is transparently wrapped in `sh -c`.
-Everything else needs an explicit `sh -c '...'`:
-
-| Works without `sh -c` | Needs `sh -c '...'` |
-|-----------------------|---------------------|
-| Pipes, redirects, `&&`, `\|\|`, `;`, subshells, `$(...)` | Variable expansion (`$VAR`, `${VAR}`), backticks, glob patterns (`*`, `?`, `[...]`) |
+Place standard Express exec options before the sandbox ID. A per-command override applies to that process and its children, not to an already running application or future sibling commands:
 
 ```bash
-abx exec <sandbox-id> "ls /tmp | grep log"             # pipe: auto-wrapped
-abx exec <sandbox-id> "sh -c 'echo \$HOME'"            # expansion: explicit sh -c
-abx exec <sandbox-id> "sh -c 'ls *.py'"                # glob: explicit sh -c
-abx exec <sandbox-id> "printenv HOME"                  # simplest way to read one variable
+abx --provider alicloud-express exec --env MY_KEY=one <sandbox-id> printenv MY_KEY
+abx --provider alicloud-express exec <sandbox-id> printenv HOME
+abx --provider alicloud-express sandbox system env <sandbox-id> --filter PATH,HOME,LANG
 ```
 
-Because `$VAR` is not expanded, `abx exec <id> "echo $VAR"` prints the literal text unless your **local** shell
-expands it first — quote the whole command and use `printenv VAR` or `sh -c` instead.
+`abx sandbox system env` runs `env` in a new sandbox process, then filters the output. It does **not** call the application's `GET /env` or report an arbitrary already running server's environment. Names containing `TOKEN`, `SECRET`, `KEY`, `PASSWORD` or `CREDENTIAL` are excluded by this command. Avoid printing secrets with an unfiltered process command.
 
----
+Other providers use their declared process operation and supported flags; consult that provider's help. Explicit process `env` is useful when a required `PATH` must be supplied instead of assuming creation-time replacement.
+
+## Shell behavior depends on the entry
+
+The standard Express exec entry renders the remote command and runs it through `/bin/bash -l -c`. One quoted command string is shell input; multiple arguments are quoted individually when building that string. Login-shell initialization may also affect the resulting environment. The native project process path instead directly executes simple commands and wraps detected unquoted shell operators in `sh -c`. Its simple `$VAR` and glob handling must not be presented as the behavior of every `abx exec` entry.
+
+Use `printenv` for a single variable. When you intend shell syntax, make that explicit and protect the remote expression from local expansion:
+
+```bash
+abx --provider alicloud-express exec <sandbox-id> sh -c 'printf "%s\n" "$HOME"'
+abx --provider alicloud-express exec <sandbox-id> sh -c 'ls /tmp | head -n 5'
+```
+
+The outer single quotes preserve `$HOME` for the remote shell. Shell execution and supported process features remain provider-specific; neither this syntax nor a declared capability proves an untested backend works.
+
+## Read or change the running application's environment
+
+An application must expose and authorize its environment endpoints. Connect the published Python SDK to the already running sandbox, bind `await sandbox.application_client(9000, token=...)`, and use its existing `application.system.env(...)` / `application.system.set_env(...)` methods. The [SDK environment guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/environment-variables.md#server-scope--getpost-env) gives the authenticated example and policy requirements.
+
+Application credentials and provider gateway credentials are separate; gateway headers alone are not an application token. `POST /env` affects that application and future children, not its parent or siblings, and does not automatically reinitialize values cached during startup. The application protects system variables and `ABX_*` settings. Use startup configuration for model credentials and other startup-only values.
 
 ## Quick reference
 
-| What | How | Scope | Lifetime |
-|------|-----|-------|----------|
-| Set at creation | `abx create --env KEY=VALUE` | envd | Sandbox lifetime |
-| Read one variable | `abx exec <id> "printenv KEY"` | envd | — |
-| Read the server's view | `abx sandbox system env <id>` | Server | — |
-
----
-
-## Related SDK documentation
-
-The complete model — per-call `env` dictionaries, `run_code(envs=)`, the `@sandbox(envs=)` decorator, the server's
-`GET/POST /env` endpoints (read, set, protected and redacted variables) and recommended patterns — is documented in
-the SDK's [Environment Variables guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/environment-variables.md)
-in the `python-sdk` repository.
+| Task | Entry | Scope |
+|---|---|---|
+| Configure a template application | Configure declared values before `template launch` | That application startup |
+| Configure the standard Express terminal | `create --env` or `connect --env` | Terminal session |
+| Override one process | `exec --env` before the standard sandbox ID | That process and its children |
+| Read a process environment | `exec ... printenv` or `sandbox system env` | A newly executed process |
+| Read or update application variables | Authenticated SDK application binding | Running application and future children |

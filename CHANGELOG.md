@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Correct bilingual CLI environment guidance: standard Express terminal-only creation flags, per-process overrides, actual process-environment reads, application binding and entry-specific shell behavior. Documentation only; runtime and version stay unchanged. / 修正双语 CLI 环境指南，明确标准极速版创建参数仅配置终端、单次进程覆盖、进程环境读取、应用绑定和入口对应的 shell 行为；仅改文档，不改运行时和版本。
+
 - Align generated Python/MCP runtime dependencies with the reviewed public `0.4.0a6` pair and refresh current bilingual installation, generation and guest command examples; preserve valid generic provider flags while clarifying Express positional syntax. / 生成应用、Python 脚手架与 MCP 使用公开 SDK 0.4.0a6 配对依赖，更新当前双语安装、生成与沙箱内命令示例；保留合法插件参数，明确极速版使用位置参数。
 
 ### Fixed
