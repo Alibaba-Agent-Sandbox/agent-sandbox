@@ -128,11 +128,11 @@ describe("TestSearchCommand", () => {
     expect(result.output).toContain("No templates matching");
   });
 
-  it("test_search_prints_install_hint_with_index_source", async () => {
+  it("test_search_prints_launch_hint_with_index_source", async () => {
     _patchIndex(index());
     const result = await runner().invoke(cli, ["template", "search", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("abx template install");
+    expect(result.output).toContain("template launch <name>");
     expect(result.output).toContain(INDEX_URL);
   });
 
@@ -252,5 +252,24 @@ describe("TestInstallBareNameResolution", () => {
 
     expect(result.exit_code, result.output).toBe(0);
     expect(client.resolve.mock.calls[1]![0]).toBe(`${SOURCE_OF_TRUTH_REPO}//qwen-code`);
+  });
+});
+
+
+describe("published managed catalog commands", () => {
+  const published = fs.readFileSync(new URL("../fixtures/catalog/awesome-templates.yaml", import.meta.url), "utf8");
+  it.each(["base", "code-interpreter-v1", "desktop", "opensandbox-code-interpreter"])("search returns native identity for %s", async name => {
+    const idx = parseIndex(published); _patchIndex(idx);
+    const result = await runner().invoke(cli, ["--json", "template", "search", name]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(_jsonEntries(result.stdout).find(entry => entry.name === name)?.manifest).toEqual(idx.find(name)!.manifest);
+  });
+  it("redirects source installation of managed catalog entries to launch", async () => {
+    _patchIndex(parseIndex(published));
+    const fetch = vi.spyOn(registryMod.RegistryClient.prototype, "fetch");
+    const result = await runner().invoke(cli, ["template", "install", "desktop"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(result.output).toContain("template launch desktop");
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

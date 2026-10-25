@@ -200,7 +200,7 @@ The artifact directory contains:
 | `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
 | `config.yaml` | YAML manifest with function name, region, runtime `python3.10`, handler `app.app`, memory/timeout, env vars, HTTP trigger (POST/GET/DELETE), session affinity |
 
-Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The generated requirements install the matching client and server from one tested GitHub commit archive; no unpublished PyPI release is required.
+Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The generated requirements install the matching client and server from one tested GitHub commit archive; the public 0.4.0a1 PyPI alpha is also available, while this generator retains its explicit source pin.
 
 The command prints: manual FC deployment steps (package → create function → create HTTP trigger → enable `Mcp-Session-Id` affinity if supported) and an IDE config template pointing at `<FC_HTTP_TRIGGER_URL>/mcp` with a masked Bearer token.
 

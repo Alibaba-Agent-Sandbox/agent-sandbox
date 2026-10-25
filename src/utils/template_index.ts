@@ -286,7 +286,7 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
   }
   const repoRaw = dget(raw, "repo");
   const repo = pyStrip(truthy(repoRaw) ? pyStr(repoRaw) : "");
-  if (!repo) {
+  if (!repo && raw["template_id"] === undefined) {
     throw new TemplateParseError(`Index entry '${name}' is missing the required 'repo' field (${index_url}).`);
   }
   const pathRaw = dget(raw, "path");
@@ -320,7 +320,7 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
     status: pyStr(truthy(statusRaw) ? statusRaw : "community"),
   });
   // Fail fast on unusable repo references (also validates the host).
-  void entry.github_slug;
+  if (repo) void entry.github_slug;
   return entry;
 }
 
@@ -371,9 +371,18 @@ export function parseIndex(text: string, opts: ParseIndexOptions = {}): Template
     throw new TemplateParseError(`Template index has no 'templates' list (${source_url}).`);
   }
 
+  const managed_entries = data["managed_templates"] ?? [];
+  if (!Array.isArray(managed_entries)) {
+    throw new TemplateParseError(`Template index 'managed_templates' must be a list (${source_url}).`);
+  }
+  for (const raw of managed_entries) {
+    if (!isDict(raw) || !Object.hasOwn(raw, "template_id")) {
+      throw new TemplateParseError(`Managed template entries require a native template_id (${source_url}).`);
+    }
+  }
   const entries: TemplateIndexEntry[] = [];
   const seen = new Set<string>();
-  for (const raw of raw_entries) {
+  for (const raw of [...raw_entries, ...managed_entries]) {
     const entry = _parseEntry(raw, source_url);
     const key = entry.name.toLowerCase();
     if (seen.has(key)) {

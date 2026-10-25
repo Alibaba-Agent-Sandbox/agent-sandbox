@@ -255,6 +255,9 @@ export async function _resolveIndexName(name: string, opts: {
                 "directly from a repository: 'abx template install owner/repo//subdir[@ref]'.",
         });
     }
+    if (entry.manifest) {
+        throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
+    }
     fmt.printSuccess(`Resolved '${name}' via the template index: ${entry.install_ref}`);
     return entry.install_ref;
 }

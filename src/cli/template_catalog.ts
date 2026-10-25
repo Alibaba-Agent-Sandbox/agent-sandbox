@@ -242,7 +242,7 @@ export const search = template.command("search", {
         fmt.printTable(headers, rows);
         if (!fmt.quiet) {
             echo(`\n${results.length} template(s) found.`);
-            echo(`Install one with: abx template install <name> (index: ${index.source_url})`);
+            echo(`Launch one with: abx --provider <provider> template launch <name> (index: ${index.source_url})`);
         }
     }),
 });
@@ -729,7 +729,7 @@ export const templateSeams: {
 };
 
 export async function _resolveIndexEntry(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<TemplateIndexEntry> {
-  const { token, fmt, out } = opts;
+  const { token, out } = opts;
   let index = await fetchIndex(null, { token });
   let entry = index.find(name);
   if (entry === null && !index.stale) {
@@ -748,10 +748,15 @@ export async function _resolveIndexEntry(name: string, opts: { token: string | n
       },
     );
   }
-  fmt.printSuccess(`Resolved '${name}' via the template index: ${entry.install_ref}`);
+  const identity = entry.manifest ? `${entry.manifest.provider}/${entry.manifest.template_id}` : entry.install_ref;
+  out.info(`Resolved '${name}' via the template index: ${identity}`);
   return entry;
 }
 
 export async function _resolveIndexName(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<string> {
-  return (await _resolveIndexEntry(name, opts)).install_ref;
+  const entry = await _resolveIndexEntry(name, opts);
+  if (entry.manifest) {
+    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
+  }
+  return entry.install_ref;
 }

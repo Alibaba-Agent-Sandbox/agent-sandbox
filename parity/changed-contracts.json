@@ -101,6 +101,10 @@
       "target": "tests/test_models/test_template.py::TestSandboxTemplate::test_retired_build_fields_are_rejected",
       "reason": "Issue #118: retired build fields are rejected without a compatibility mode; verify the owning Python SDK regression.",
       "owner_file": "client-sdk/tests/test_models/test_template.py"
+    },
+    "tests/test_cli/test_template_index_commands.py::TestSearchCommand::test_search_prints_install_hint_with_index_source": {
+      "target": "tests/test_cli/test_template_index_commands.py::TestSearchCommand::test_search_prints_launch_hint_with_index_source",
+      "reason": "Issue #153: search covers source and provider-managed templates; the common next action is template launch, not source-only install."
     }
   }
 }

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- CLI 0.5.1 includes the public catalog’s `managed_templates` list, preserves provider/native IDs without fabricated source repositories, and resolves managed names through `template launch`. Source installation gives the launch command for native entries. Existing raw-YAML caches are re-parsed on upgrade. Catalog lookup diagnostics go to stderr so launch JSON output remains a single document. / CLI 0.5.1 修复公开目录原生模板遗漏，保留平台和原生 ID；原生模板统一用 `template launch` 启动，升级无需清理缓存。
+
 ## [0.5.0] - 2026-10-25
 
 ### Changed

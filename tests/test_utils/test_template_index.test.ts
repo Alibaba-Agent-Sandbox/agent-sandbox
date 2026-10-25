@@ -484,3 +484,35 @@ describe("TestFetchIndexDegradedModes", () => {
     expect(httpx_mock.get_requests().length).toBe(1);
   });
 });
+
+
+describe("public source and managed catalog", () => {
+  const published = fs.readFileSync(new URL("../fixtures/catalog/awesome-templates.yaml", import.meta.url), "utf8");
+  it("preserves all four native identities alongside 46 source locators", () => {
+    const index = parse_index(published);
+    expect(index.entries).toHaveLength(50);
+    for (const [name, provider, template_id] of [
+      ["base", "alicloud-express", "base"],
+      ["code-interpreter-v1", "alicloud-express", "code-interpreter-v1"],
+      ["desktop", "e2b", "desktop"],
+      ["opensandbox-code-interpreter", "opensandbox", "opensandbox/code-interpreter:v1.1.0"],
+    ]) {
+      const entry = index.entries.find(item => item.name === name)!;
+      expect(entry.manifest).toMatchObject({spec_version: 5, provider, template_id, provides: {}});
+      expect(entry.repo).toBe("");
+      expect(entry.path).toBeNull();
+    }
+    expect(index.entries.find(item => item.name === "qwen-code")!.install_ref).toBe("alibaba-agent-sandbox/awesome-templates//qwen-code");
+  });
+  it("reads managed entries from an existing raw-YAML cache without a network refresh", () => {
+    const directory = path.join(iso.tmp_path, "old-version-cache");
+    _seed_cache(directory, {text: published});
+    expect(read_cached_index(directory)!.find("base")!.manifest).toMatchObject({provider: "alicloud-express", template_id: "base"});
+    expect(read_cached_index(directory)!.entries).toHaveLength(50);
+  });
+  it("rejects malformed managed rows and cross-list duplicate names", () => {
+    expect(() => parse_index(INDEX_YAML + "managed_templates: {}\n")).toThrow(/managed_templates.*list/);
+    expect(() => parse_index(INDEX_YAML + "managed_templates:\n  - name: missing-native\n")).toThrow(/template_id/);
+    expect(() => parse_index(INDEX_YAML + "managed_templates:\n  - name: QWEN-CODE\n    spec_version: 5\n    provider: alicloud-express\n    template_id: base\n    provides: {}\n")).toThrow(/uplicate/);
+  });
+});
