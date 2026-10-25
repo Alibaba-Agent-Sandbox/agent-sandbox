@@ -148,8 +148,26 @@ describe("standard executable contract", () => {
     expect(result.code, result.stderr).toBe(0);
     expect(readFileSync(path.join(home, name, "template.py"), "utf8")).toContain("from agent_sandbox import");
     const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
-    expect(readme).toContain("agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk");
-    expect(readme).toContain("agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk");
+    expect(readme).toContain("agent-sandbox-client==0.4.0a2");
+    expect(readme).toContain("from agent_sandbox import");
+    expect(readme).not.toContain("from e2b import");
+    expect(readme).toContain("ABX_SANDBOX_API_KEY=");
+    expect(readme).toContain("ABX_SANDBOX_BASE_URL=");
+    expect(readme).toContain("ABX_SANDBOX_DOMAIN=");
+    expect(readme).not.toContain("E2B_API_KEY=");
+    expect(readme).toContain("finally:");
+    expect(readme).toContain("sandbox.kill()");
+    expect(readme).not.toContain("python-sdk/archive/");
+  });
+
+  it("retains the external TypeScript package and configuration contract", async () => {
+    const name = "contract-typescript";
+    const result = await run(["template", "init", "--name", name, "--language", "typescript"]);
+    expect(result.code, result.stderr).toBe(0);
+    const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
+    expect(readme).toContain("npm install e2b");
+    expect(readme).toContain("E2B_API_KEY=");
+    expect(readme).not.toContain("ABX_SANDBOX_API_KEY=");
   });
 
   it("routes template list with its fixed format option", async () => {

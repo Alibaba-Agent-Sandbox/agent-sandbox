@@ -1,5 +1,9 @@
 # `.agents/` — engineering record of the cli repository
 
+## Pending minimal patch — 2026-10-25
+
+CLI 0.5.2 uses the current public Python runtime across generation, scaffolding and MCP artifacts. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. Publication is pending.
+
 ## Current delivery — 2026-10-25
 
 CLI **0.5.1** fixes the public managed-template catalog lookup omitted in 0.5.0.

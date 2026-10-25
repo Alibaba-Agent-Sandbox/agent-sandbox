@@ -12,16 +12,19 @@ const { build } = await import(pathToFileURL(path.join(base, "node_modules/esbui
 const output = path.join(root, "src/standard_cli");
 fs.mkdirSync(output, { recursive: true });
 const assetDirectory = path.join(base, "node_modules/@e2b/cli/dist/templates");
-const pythonInstall = 'python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"';
+const { SERVER_SDK_RELEASE_VERSION } = await import('../dist/utils/server_sdk_pin.js');
+const pythonInstall = `python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==${SERVER_SDK_RELEASE_VERSION}"`;
 const templateAssets = Object.fromEntries(fs.readdirSync(assetDirectory).map((name) => {
   let contents = fs.readFileSync(path.join(assetDirectory, name), "utf8");
-  if (name.startsWith("python-")) contents = contents.replaceAll("from e2b import", "from agent_sandbox import");
+  contents = contents.replaceAll("from e2b import", "from agent_sandbox import");
   if (name === "readme.hbs") contents = contents
     .replaceAll("pip install e2b", pythonInstall)
+    .replace("sandbox = Sandbox.create('{{name}}')\n\n# Your sandbox is ready to use!\nprint('Sandbox created successfully')", "sandbox = Sandbox.create('{{name}}')\ntry:\n    print('Sandbox created successfully')\nfinally:\n    sandbox.kill()")
+    .replace("    sandbox = await AsyncSandbox.create('{{name}}')\n    \n    # Your sandbox is ready to use!\n    print('Sandbox created successfully')", "    sandbox = await AsyncSandbox.create('{{name}}')\n    try:\n        print('Sandbox created successfully')\n    finally:\n        await sandbox.kill()")
     .replaceAll("E2B Sandbox Template", "Agent Sandbox Template")
     .replace("- An E2B account (sign up at [e2b.dev](https://e2b.dev))", "- An Alibaba Agent Sandbox account")
     .replace("- Your E2B API key (get it from your [E2B dashboard](https://e2b.dev/dashboard))", "- A sandbox API key from the Alibaba Console")
-    .replace("E2B_API_KEY=your_api_key_here", "E2B_API_KEY=your_api_key_here\n   E2B_API_URL=https://api.<region>.sandbox.aliyuncs.com\n   E2B_DOMAIN=<region>.sandbox.aliyuncs.com");
+    .replace("E2B_API_KEY=your_api_key_here", "{{#if isPython}}ABX_SANDBOX_API_KEY=your_api_key_here\n   ABX_SANDBOX_BASE_URL=https://api.<region>.sandbox.aliyuncs.com\n   ABX_SANDBOX_DOMAIN=<region>.sandbox.aliyuncs.com{{else}}E2B_API_KEY=your_api_key_here\n   E2B_API_URL=https://api.<region>.sandbox.aliyuncs.com\n   E2B_DOMAIN=<region>.sandbox.aliyuncs.com{{/if}}");
   return [name, contents];
 }));
 const result = await build({

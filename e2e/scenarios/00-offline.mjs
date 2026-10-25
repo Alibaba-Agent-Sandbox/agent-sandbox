@@ -244,7 +244,7 @@ export default {
     },
 
     {
-      id: 'mcp-deploy-client-requirements', title: 'mcp deploy pins a matching Python client/runtime source pair and ASGI dependency', creds: false,
+      id: 'mcp-deploy-client-requirements', title: 'mcp deploy pins a matching public Python client/runtime pair and ASGI dependency', creds: false,
       async run(ctx) {
         const cwd = ctx.newCwd('mcp-artifact');
         const out = join(cwd, 'artifact');
@@ -254,10 +254,8 @@ export default {
         if (r.code !== 0) ctx.fail(`mcp deploy exit ${r.code}\n${r.out}`);
         const requirements = readFileSync(join(out, 'requirements.txt'), 'utf8');
         const lines = requirements.trim().split('\n');
-        const server = lines[0]?.match(/^agent-sandbox-server @ https:\/\/github\.com\/Alibaba-Agent-Sandbox\/python-sdk\/archive\/([a-f0-9]{40})\.tar\.gz#subdirectory=server-sdk$/);
-        const client = lines[1]?.match(/^agent-sandbox-client\[mcp\] @ https:\/\/github\.com\/Alibaba-Agent-Sandbox\/python-sdk\/archive\/([a-f0-9]{40})\.tar\.gz#subdirectory=client-sdk$/);
-        if (lines.length !== 3 || !server || !client || server[1] !== client[1]) ctx.fail('artifact must install the MCP client and runtime from the same immutable source revision');
-        if (lines[2] !== 'uvicorn>=0.54.0') ctx.fail('artifact must preserve the supported uvicorn dependency constraint');
+        const client = lines[1]?.match(/^agent-sandbox-client\[mcp\]==([a-z0-9.]+)$/);
+        if (lines.length !== 2 || lines[0] !== '--index-url https://pypi.org/simple' || !client) ctx.fail('artifact must install the current public MCP extra, including its matching runtime and ASGI dependencies');
         for (const file of ['app.py', 'config.yaml']) if (!existsSync(join(out, file))) ctx.fail(`missing artifact file ${file}`);
       },
     },

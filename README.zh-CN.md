@@ -17,9 +17,9 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；标准 CLI 与 SDK 遵循阿里云支持版本的 E2B 行为契约，后端条件能力见[迁移指南](docs/zh/guide/migrate-from-e2b.md)。
 
 
-模板整体启动：`abx --provider PROVIDER template launch TEMPLATE --yes`。spec v5 删除 workflow 选择，返回全部声明的服务。spec v5 需要 CLI 0.5.1 或更新版本；CLI 与模板目录需同步升级。见[启动与迁移](docs/zh/guide/template-workflows.md)。
+模板整体启动：`abx --provider PROVIDER template launch TEMPLATE --yes`。spec v5 删除 workflow 选择，返回全部声明的服务。spec v5 需要 CLI 0.5.2 或更新版本；CLI 与模板目录需同步升级。见[启动与迁移](docs/zh/guide/template-workflows.md)。
 
-自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a1` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
+自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a2` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
 
 新生成应用在调用模型前需要运行时 `ABX_SERVER_TOKEN`；仅生成本地文件时不需要。`create --prompt` 复用同一个模板整体启动流程，并返回模板引用和服务地址。
 
@@ -62,7 +62,7 @@ macOS/Linux 下载二进制时会在终端显示进度条和百分比；重定�
 
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_INSTALL_DIR` 选择目录。macOS/Linux 官网安装入口默认使用最新已完整镜像的版本，从官网域名下载二进制和校验文件，无需访问 GitHub 查询版本。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 列出可用版本及文件。`ABX_VERSION` 选择版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 可覆盖产物下载前缀。Windows PowerShell 安装脚本仍使用 GitHub。
 
-官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。请用 `abx --version` 确认安装版本，模板目录建议使用 CLI 0.5.1 或更新版本。
+官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。请用 `abx --version` 确认安装版本，模板目录建议使用 CLI 0.5.2 或更新版本。
 
 ### 手动下载
 
@@ -190,15 +190,13 @@ Python SDK —— 同步 `Sandbox`／异步 `AsyncSandbox` API、`@sandbox` 声�
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
-python -m pip install \
-  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" \
-  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==0.4.0a2"
 
 # 模板镜像内使用的服务端运行时（import agent_sandbox.server）
-python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-server==0.4.0a2"
 ```
 
-`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。npm 官方元数据可读后再使用上述 npm 安装方式。
+`agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [Python installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。npm 包可按上面的命令安装。
 
 ## 文档
 
@@ -272,7 +270,7 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 ## 发布就绪范围
 
-CLI 0.5.1 修复公开目录原生模板名称解析，并保证模板启动的 JSON 输出可直接解析。请分别核对 GitHub 资产与 npm 元数据；已发布的版本标签和包保持不变。见[公开发行验证](.agents/evidence/verify/2026-10-25-cli-051-public-release.md)。
+CLI 0.5.2 让生成应用与目录模板共用启动流程，修复独立二进制 Provider 查找，并让模板详情 JSON 保持真实结构。生成器、脚手架与 MCP 产物共用当前公开 Python 运行时版本。见[公开发行验证](.agents/evidence/verify/2026-10-25-cli-052-release.md)。
 
 运行证据对应实际测试的模板与平台组合。发行记录明确说明 CLI 交付件及极速版内置 base 的实测范围；各模板文档说明其平台要求和服务 API。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
 

@@ -36,13 +36,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Alibaba-Agent-Sandbox/python-sdk
-          ref: e2cb27e24fde0a67112f82b8d44af463445a5d1a
+          ref: v0.4.0a2
           path: vendor/python-sdk
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: Alibaba-Agent-Sandbox/awesome-templates
-          ref: 7cb0d9430768eec22f500ebb80b3fe9517ab1cbc
+          ref: 269f9cb6980ad48eea02fdc403d8daa80484e7b8
           path: vendor/awesome-templates
           persist-credentials: false
       - run: npm ci

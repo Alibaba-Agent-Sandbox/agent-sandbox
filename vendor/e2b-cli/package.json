@@ -9,6 +9,7 @@
   "overrides": {
     "@e2b/cli": {
       "e2b": "2.50.0"
-    }
+    },
+    "undici8": "npm:undici@8.12.2"
   }
 }

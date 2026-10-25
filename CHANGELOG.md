@@ -6,16 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-25
+
 ### Fixed
 
 - Enforce total native command deadlines even with continuous output, close only the owned stream and best-effort stop its observed PID (#166). / 原生命令持续输出也遵守总执行超时，关闭本次流并尝试停止实际观测到的进程。
 
 - Preserve nested objects and JSON value types in native template info instead of stringifying them. / 原生模板详情 JSON 保留嵌套对象和值类型，不再转换成字符串。
+- Generate MCP applications with current factory argument names (`sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`); verify the actual generated HTTP application against its public dependencies. / MCP 生成应用统一使用当前工厂参数，以公开依赖启动真实 HTTP 应用验证。
+- Generate standard Python README examples with current project imports and guaranteed sandbox cleanup. / 标准 Python 脚手架 README 示例使用当前项目导入，并确保清理所建沙箱。
+- Use the same public Python runtime release for generation, scaffolding, MCP artifacts and default wheel downloads; remove old source-pin compatibility and keep Python versions independent of the CLI package (#165). / 生成器、脚手架、MCP 与默认 wheel 下载共用公开 Python 运行时版本，删除旧源码 pin 兼容分支，并与 CLI 版本解耦。
+- Patch optional Undici 8 to 8.12.2, Ajv to 8.18.0 and fast-uri to 3.1.9 while preserving the locked standard CLI and protocol sources. / 将可选 Undici 8、Ajv、fast-uri 分别最小修补至 8.12.2、8.18.0、3.1.9，保留已锁定的标准 CLI 和协议源码。
 
 - Check Docker before recording a build intent and keep fixed missing-Docker/daemon guidance visible during template launch; unstarted builds no longer produce an ambiguous artifact journal (#160). / 模板启动在登记构建资源前检查 Docker，直接显示缺少 Docker 或守护进程不可用的修复提示；尚未开始的构建不会留下含糊的资源记录。
 - Use the same prepare/create/start/readiness lifecycle for generated applications and template launch, resolve runtime environment separately from builds, and validate required input before generation. Generated create output retains its existing fields and includes the template reference and services. / 生成应用复用模板整体启动流程，运行环境与构建分离，生成前验证必填配置，并返回模板引用及服务地址。
 
-- Assemble generated native steps from the provider-resolved image and final local source bytes, avoiding model-written base64 and missing preparation fields. New application templates install the public server 0.4.0a1 alpha. / 从提供方已解析镜像和最终源码确定性组装生成模板的原生构建步骤，新模板使用公开 server 0.4.0a1 alpha。
+- Assemble generated native steps from the provider-resolved image and final local source bytes, avoiding model-written base64 and missing preparation fields. New application templates install the public server 0.4.0a2 alpha. / 从提供方已解析镜像和最终源码确定性组装生成模板的原生构建步骤，新模板使用公开 server 0.4.0a2 alpha。
 - Bind the standalone built-in provider snapshot to executable bytes during template launch instead of reading a missing source directory; retain directory snapshots for npm and installed plugins (#156). / 独立二进制启动模板时按实际可执行文件内容校验内置 Provider，修复缺少源码目录导致的 E4001；npm 与插件仍校验其目录。
 
 ## [0.5.1] - 2026-10-25

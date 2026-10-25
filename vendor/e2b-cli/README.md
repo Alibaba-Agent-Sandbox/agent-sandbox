@@ -7,6 +7,7 @@ The shipped runtime is owned source; users do not install or execute an upstream
 npm ci --prefix vendor/e2b-cli
 # Only when intentionally refreshing attribution inputs; requires Node22+ and tar:
 node scripts/audit-standard-prebundle.mjs
+npm run build
 npm run vendor:e2b
 npm run test:standard-provenance
 ```
@@ -26,8 +27,7 @@ The dual Apache/BSD protobuf notice retains the upstream Apache text and the act
 Google BSD header from its published varint implementation. Raw upstream legal
 comments remain retained separately in the generated artifact.
 
-Generated Python recipes install both project distributions at tested implementation
-cceb318d58fad0096def8809165d6646029a35e2. This is a source install, not a PyPI release.
+Generated Python recipes install public `agent-sandbox-client==0.4.0a2`, which requires the matching server runtime. The generation script uses the shared current runtime pin and rewrites Python imports in both source and README examples to `agent_sandbox`; Python README configuration uses canonical ABX variables; TypeScript retains its external `e2b` package and E2B configuration contract.
 
 Rendered notice line endings/trailing spaces are normalized for portable artifacts.
 Source-file hashes still refer to the exact original bytes; copyright and terms remain intact.

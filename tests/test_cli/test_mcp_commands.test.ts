@@ -328,9 +328,11 @@ describe("TestMcpDeploy", () => {
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.statSync(path.join(out, "requirements.txt")).isFile()).toBe(true);
     const requirements = fs.readFileSync(path.join(out, "requirements.txt"), "utf8");
-    expect(requirements).toContain("agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/13b214b334b1dba26c46f94feea6f4699d5038cb.tar.gz#subdirectory=server-sdk");
-    expect(requirements).toContain("agent-sandbox-client[mcp] @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/13b214b334b1dba26c46f94feea6f4699d5038cb.tar.gz#subdirectory=client-sdk");
+    expect(requirements).not.toContain("agent-sandbox-server");
+    expect(requirements).toContain("agent-sandbox-client[mcp]==0.4.0a2");
     expect(requirements).not.toMatch(/^agent-sandbox\[/m);
+    expect(requirements).not.toContain("github.com");
+    expect(fs.readFileSync(path.join(out, "app.py"), "utf8")).toContain('os.environ.get("ABX_SANDBOX_DOMAIN")');
 
     expect(fs.statSync(path.join(out, "app.py")).isFile()).toBe(true);
     expect(fs.readFileSync(path.join(out, "app.py"), "utf8")).toContain("require_auth_token");

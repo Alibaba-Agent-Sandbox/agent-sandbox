@@ -1,8 +1,8 @@
 # Launch a template
 
-Spec v5 templates require CLI 0.5.1 or newer. Upgrade the CLI and template catalog together.
+Spec v5 templates require CLI 0.5.2 or newer. Upgrade the CLI and template catalog together.
 
-CLI 0.5.1 includes native entries from the public catalog. Use `abx --provider alicloud-express template launch base --yes` to launch the built-in Express template. Source templates and provider-managed templates share this command; managed templates have no source directory to install. Version 0.5.0 omitted the catalog’s `managed_templates` list. Cached raw YAML is re-parsed after upgrading; no cache reset is needed.
+CLI 0.5.2 includes native entries from the public catalog. Use `abx --provider alicloud-express template launch base --yes` to launch the built-in Express template. Source templates and provider-managed templates share this command; managed templates have no source directory to install.
 
 The standalone executable includes the built-in Express provider and needs no adjacent provider files. Its launch receipt identifies the executable bytes; npm installations and external plugins identify their installed provider trees. This identity is checked again before creating resources.
 

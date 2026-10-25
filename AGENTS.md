@@ -261,8 +261,7 @@ For standard source updates, read `vendor/e2b-cli/README.md`. Preserve both exte
 and upstream-prebundled package inventories, retained notices and source-map hashes.
 Run `npm run test:standard-provenance` and the locked `npm run vendor:e2b` replay.
 Large license/standard output must drain through real stdout pipes before exit.
-Generated Python installation must use a tested matching client/server source pair;
-the MCP artifact has its separately verified native source pin and tool catalog.
+Generated Python installation and the MCP artifact use the shared tested public client/server release pin. Verify the actual generated artifact and its tool catalog after changing that pin.
 
 ## Provider command ownership
 

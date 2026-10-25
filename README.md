@@ -17,9 +17,9 @@ The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; the standard Express command path follows the pinned E2B CLI behavior contract. See [migration](docs/en/guide/migrate-from-e2b.md).
 
 
-Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Spec v5 requires CLI 0.5.1 or newer; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
+Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Spec v5 requires CLI 0.5.2 or newer; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
 
-For natural-language Express creation with `--build steps`, the CLI assembles provider preparation and final source-file delivery; the model supplies business code and dependency commands. Newly generated applications install server `0.4.0a1` alpha. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
+For natural-language Express creation with `--build steps`, the CLI assembles provider preparation and final source-file delivery; the model supplies business code and dependency commands. Newly generated applications install server `0.4.0a2` alpha. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
 
 Generated applications require runtime `ABX_SERVER_TOKEN` before model generation; generation-only stays local. `create --prompt` uses the same whole-template launch lifecycle and returns its prepared template reference and services.
 
@@ -195,15 +195,13 @@ The Python SDK — the synchronous `Sandbox` / asynchronous `AsyncSandbox` API, 
 
 ```bash
 # Client SDK (import agent_sandbox)
-python -m pip install \
-  "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" \
-  "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==0.4.0a2"
 
 # Server runtime used inside template images (import agent_sandbox.server)
-python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-server==0.4.0a2"
 ```
 
-`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with [paired source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md). The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). Use npm only after its official metadata resolves, as described above.
+`agent-sandbox-server` is the container-side runtime: template Dockerfiles and `commands.py` install it with [Python installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md). The `abx` CLI is no longer shipped with the Python packages (there is no `[cli]` extra). Install it with the [binary installer](docs/en/guide/binary-installation.md). The npm package is available through the installation command above.
 
 ## Documentation
 
@@ -278,7 +276,7 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 
 ## Release readiness
 
-CLI 0.5.1 fixes public managed-catalog names and keeps template launch JSON output machine-readable. Verify GitHub assets and npm metadata separately; existing version tags and packages are immutable. See the [public release verification](.agents/evidence/verify/2026-10-25-cli-051-public-release.md).
+CLI 0.5.2 shares one launch lifecycle for generated and catalog templates, fixes standalone provider lookup and keeps template-info JSON structured. Generation, scaffolding and MCP artifacts use the current matched public Python runtime. See the [public release verification](.agents/evidence/verify/2026-10-25-cli-052-release.md).
 
 Runtime evidence applies to the tested template/provider combination. The release record identifies the actual CLI artifact and managed Express base checks; each template documents its own provider requirements and service APIs. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
 

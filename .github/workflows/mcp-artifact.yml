@@ -1,0 +1,51 @@
+name: Generated MCP artifact
+
+on:
+  pull_request:
+    paths:
+      - src/cli/commands/mcp.ts
+      - src/utils/server_sdk_pin.ts
+      - scripts/verify-mcp-artifact.mjs
+      - .github/workflows/mcp-artifact.yml
+  push:
+    branches: [main]
+    paths:
+      - src/cli/commands/mcp.ts
+      - src/utils/server_sdk_pin.ts
+      - scripts/verify-mcp-artifact.mjs
+      - .github/workflows/mcp-artifact.yml
+
+permissions:
+  contents: read
+
+jobs:
+  actual-generated-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: npm run build
+      - name: Generate the actual artifact
+        env:
+          ABX_MCP_AUTH_TOKEN: placeholder-test-authentication-token
+        run: node dist/bin/abx.js mcp deploy --output-dir "$RUNNER_TEMP/mcp-artifact" --api-key placeholder --region cn-hangzhou
+      - name: Install the artifact's exact public requirements
+        run: |
+          python -m venv "$RUNNER_TEMP/mcp-venv"
+          "$RUNNER_TEMP/mcp-venv/bin/python" -m pip install -r "$RUNNER_TEMP/mcp-artifact/requirements.txt"
+      - name: Start the generated server and check real HTTP authentication and tool catalog
+        run: |
+          node scripts/verify-mcp-artifact.mjs --python "$RUNNER_TEMP/mcp-venv/bin/python" --artifact "$RUNNER_TEMP/mcp-artifact" --output "$RUNNER_TEMP/mcp-result.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-mcp-http-result
+          path: ${{ runner.temp }}/mcp-result.json
+          if-no-files-found: error

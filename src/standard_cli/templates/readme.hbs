@@ -13,9 +13,11 @@ Before you begin, make sure you have:
 
 1. Create a `.env` file in your project root or set the environment variable:
    ```
-   E2B_API_KEY=your_api_key_here
+   {{#if isPython}}ABX_SANDBOX_API_KEY=your_api_key_here
+   ABX_SANDBOX_BASE_URL=https://api.<region>.sandbox.aliyuncs.com
+   ABX_SANDBOX_DOMAIN=<region>.sandbox.aliyuncs.com{{else}}E2B_API_KEY=your_api_key_here
    E2B_API_URL=https://api.<region>.sandbox.aliyuncs.com
-   E2B_DOMAIN=<region>.sandbox.aliyuncs.com
+   E2B_DOMAIN=<region>.sandbox.aliyuncs.com{{/if}}
    ```
 
 ## Installing Dependencies
@@ -24,7 +26,7 @@ Before you begin, make sure you have:
 {{#if isTypeScript}}
 npm install e2b
 {{else if isPython}}
-python -m pip install "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=server-sdk" "agent-sandbox-client @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/cceb318d58fad0096def8809165d6646029a35e2.tar.gz#subdirectory=client-sdk"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==0.4.0a2"
 {{/if}}
 ```
 
@@ -62,25 +64,27 @@ console.log('Sandbox created successfully')
 ```
 {{else if isPythonSync}}
 ```python
-from e2b import Sandbox
+from agent_sandbox import Sandbox
 
 # Create a new sandbox instance
 sandbox = Sandbox.create('{{name}}')
-
-# Your sandbox is ready to use!
-print('Sandbox created successfully')
+try:
+    print('Sandbox created successfully')
+finally:
+    sandbox.kill()
 ```
 {{else if isPythonAsync}}
 ```python
-from e2b import AsyncSandbox
+from agent_sandbox import AsyncSandbox
 import asyncio
 
 async def main():
     # Create a new sandbox instance
     sandbox = await AsyncSandbox.create('{{name}}')
-    
-    # Your sandbox is ready to use!
-    print('Sandbox created successfully')
+    try:
+        print('Sandbox created successfully')
+    finally:
+        await sandbox.kill()
 
 # Run the async function
 asyncio.run(main())

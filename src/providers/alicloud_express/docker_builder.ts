@@ -17,12 +17,10 @@ import { spawn } from "node:child_process";
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, copyFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, isAbsolute, join, resolve } from "node:path";
 
 import { materializeBaseImage } from "../../utils/base_image.js";
-import { injectedPackageVersion } from "../../utils/package_version.js";
-import { dockerfilePinsServerArchive, SERVER_SDK_PIP_SPEC, SERVER_SDK_RELEASE_SPEC } from "../../utils/server_sdk_pin.js";
+import { SERVER_SDK_RELEASE_SPEC, SERVER_SDK_RELEASE_VERSION } from "../../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../../models/errors.js";
 import { AsyncClient, HTTPError, asyncWith } from "../../transport/_httpx.js";
@@ -41,24 +39,13 @@ function resolvedDockerfile(context: string, dockerfile: string | null | undefin
   return isAbsolute(dockerfile) ? dockerfile : join(context, dockerfile);
 }
 
-/** True when the build context Dockerfile already pins a python-sdk server archive. */
-export function contextHasPinnedServerArchive(context: string, dockerfile: string | null = null): boolean {
-  const source = resolvedDockerfile(context, dockerfile);
-  if (!existsSync(source)) return false;
-  try {
-    return dockerfilePinsServerArchive(readFileSync(source, "utf8"));
-  } catch {
-    return false;
-  }
-}
-
 /** Preserve supported explicit server requirements unless a local source override is requested. */
 export function contextHasPinnedServerRequirement(context: string, dockerfile: string | null = null): boolean {
   const source = resolvedDockerfile(context, dockerfile);
   if (!existsSync(source)) return false;
   try {
     const text = readFileSync(source, "utf8");
-    return dockerfilePinsServerArchive(text) || text.split(/[\s"']+/).includes(SERVER_SDK_RELEASE_SPEC);
+    return text.split(/[\s"']+/).includes(SERVER_SDK_RELEASE_SPEC);
   } catch {
     return false;
   }
@@ -159,11 +146,10 @@ function rewriteServerRequirements(source: string, wheels: readonly string[], es
       continue;
     }
     if (!pipInstall) continue;
-    const archive = /^(?:agent-sandbox-server\s*@\s*)?https:\/\/github\.com\/alibaba-agent-sandbox\/python-sdk\/archive\/[0-9a-f]{40}\.tar\.gz#subdirectory=server-sdk$/i.test(word.value);
-    if (wheels.length && (archive || word.value === SERVER_SDK_RELEASE_SPEC)) {
+    if (wheels.length && word.value === SERVER_SDK_RELEASE_SPEC) {
       edits.push({ start: word.start, end: word.end, value: wheels.map((name) => `/tmp/${name}`).join(" ") });
     } else if (!wheels.length && word.value === "agent-sandbox-server") {
-      edits.push({ start: word.start, end: word.end, value: `"${SERVER_SDK_PIP_SPEC}"` });
+      edits.push({ start: word.start, end: word.end, value: `"${SERVER_SDK_RELEASE_SPEC}"` });
     }
   }
   for (const edit of edits.reverse()) source = source.slice(0, edit.start) + edit.value + source.slice(edit.end);
@@ -552,31 +538,9 @@ function streamLines(cmd: string[], onLine: (line: string) => void): Promise<num
 // Server-SDK version
 // ---------------------------------------------------------------------------
 
-/**
- * Version of `agent-sandbox-server` to download from PyPI.
- *
- * The client and server distributions are released in lockstep; the Node CLI package version plays the role of the
- * Python client's `__version__`. `ABX_SERVER_SDK_VERSION` overrides it.
- */
+/** Python runtime version is independent of the CLI package version. */
 export function serverSdkVersion(): string {
-  const override = process.env[SERVER_SDK_VERSION_ENV];
-  if (override) return override;
-  const injected = injectedPackageVersion();
-  if (injected !== undefined) return injected;
-  try {
-    let dir = dirname(fileURLToPath(import.meta.url));
-    for (let i = 0; i < 5; i++) {
-      const candidate = join(dir, "package.json");
-      if (existsSync(candidate)) {
-        const pkg = JSON.parse(readFileSync(candidate, "utf8")) as { name?: string; version?: string };
-        if (pkg.version) return pkg.version;
-      }
-      dir = dirname(dir);
-    }
-  } catch {
-    /* fall through */
-  }
-  return "0.2.0";
+  return process.env[SERVER_SDK_VERSION_ENV] || SERVER_SDK_RELEASE_VERSION;
 }
 
 function sha256Hex(data: Uint8Array): string {
@@ -908,12 +872,10 @@ export class DockerBuilder {
    *
    * - when a server-sdk source tree is given explicitly (`project_root`, or the `ABX_SERVER_SDK_SOURCE` environment
    *   variable): build a wheel from it with `pip wheel`, so unreleased changes reach the image;
-   * - otherwise, when the Dockerfile already pins a supported server archive or release: inject nothing and do not query PyPI;
-   * - otherwise: download the released wheel of the same version from PyPI (see `_downloadReleaseWheel`).
+   * - otherwise, when the Dockerfile pins the current runtime release: inject nothing and do not query PyPI;
+   * - otherwise: download the configured runtime wheel from PyPI.
    *
-   * When neither a source tree nor a PyPI wheel is available, nothing is injected. The scaffold Dockerfile installs a
-   * pinned GitHub archive, and `rewriteDockerfileForServerInstall` drops a legacy `COPY *.whl` so the legacy builder
-   * can still run. A local wheel replaces any archive SHA, not only the scaffold pin.
+   * When no wheel is available, the Dockerfile installs the explicit published runtime requirement.
    *
    * @returns List of wheel file paths copied into the context.
    */

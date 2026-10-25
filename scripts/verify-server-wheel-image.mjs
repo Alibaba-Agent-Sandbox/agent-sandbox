@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { DockerBuilder } from '../dist/providers/alicloud_express/docker_builder.js';
-import { SERVER_SDK_PIP_SPEC } from '../dist/utils/server_sdk_pin.js';
+import { SERVER_SDK_RELEASE_SPEC, SERVER_SDK_RELEASE_VERSION } from '../dist/utils/server_sdk_pin.js';
 
 const templates = resolve(process.env.ABX_REVIEW_TEMPLATES);
 const server = resolve(process.env.ABX_REVIEW_SERVER_SDK);
@@ -21,6 +21,11 @@ for (const entry of readdirSync(serverSources, { recursive: true })) {
   }
 }
 assert(Object.keys(expectedSources).length > 40, 'compare the complete server module source set');
+function gitRevision(directory) {
+  const result = spawnSync('git', ['-C', directory, 'rev-parse', 'HEAD'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim();
+}
 const context = mkdtempSync(join(tmpdir(), 'abx-real-wheel-'));
 const tags = [];
 const docker = (args) => {
@@ -40,7 +45,7 @@ try {
         'FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>',
         'WORKDIR /home/user/app',
         'RUN echo before \\',
-        `    && pip install --no-cache-dir "${SERVER_SDK_PIP_SPEC}" httpx==0.28.1 \\`,
+        `    && pip install --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}" httpx==0.28.1 \\`,
         '    && printf after > /tmp/wheel-rewrite-complete',
         'USER user',
         'EXPOSE 9000',
@@ -58,7 +63,7 @@ try {
       'from pathlib import Path',
       'import agent_sandbox.server as runtime',
       'assert os.geteuid() != 0',
-      'assert importlib.metadata.version("agent-sandbox-server") == "0.3.0"',
+      `assert importlib.metadata.version("agent-sandbox-server") == ${JSON.stringify(SERVER_SDK_RELEASE_VERSION)}`,
       'for relative, expected in json.loads(sys.argv[1]).items():\n    assert hashlib.sha256((Path(runtime.__file__).parent / relative).read_bytes()).hexdigest() == expected, relative',
       mode === 'conditional'
         ? 'import commands; assert commands.hello("Image") == "Hello, Image!"; assert commands.run_script("print(6*7)").strip() == "42"'
@@ -83,8 +88,8 @@ try {
         format: 'docker-archive', template: 'python-hello',
         repository: process.env.GITHUB_REPOSITORY,
         checkout_commit: commit.stdout.trim(), workflow_run_id: process.env.GITHUB_RUN_ID,
-        server_sdk_commit: 'e2cb27e24fde0a67112f82b8d44af463445a5d1a',
-        template_source_commit: '7cb0d9430768eec22f500ebb80b3fe9517ab1cbc',
+        server_sdk_commit: gitRevision(server),
+        template_source_commit: gitRevision(templates),
         base_image: 'fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49',
         local_image_id: docker(['image', 'inspect', '--format', '{{.Id}}', tag]).trim(),
         archive_sha256: digest,

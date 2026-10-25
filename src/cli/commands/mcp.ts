@@ -1,4 +1,4 @@
-import { MCP_CLIENT_PIP_SPEC, MCP_SERVER_PIP_SPEC } from "../../utils/mcp_sdk_pin.js";
+import { SERVER_SDK_RELEASE_VERSION } from "../../utils/server_sdk_pin.js";
 /**
  * MCP Server CLI commands: install, start, stop, status, deploy (port of `cli/commands/mcp.py`).
  *
@@ -783,7 +783,7 @@ export const start = command("start", {
     }),
     option(["--api-key"], { default: null, envvar: "ABX_SANDBOX_API_KEY", help: "API key override." }),
     option(["--api-url"], { default: null, envvar: "ABX_SANDBOX_BASE_URL", help: "API URL override." }),
-    option(["--domain"], { default: null, envvar: "E2B_DOMAIN", help: "Domain override." }),
+    option(["--domain"], { default: null, envvar: "ABX_SANDBOX_DOMAIN", help: "Domain override." }),
     option(["--http", "use_http"], {
       is_flag: true,
       default: false,
@@ -1204,9 +1204,8 @@ mcp.addCommand(status);
 // deploy command
 // ---------------------------------------------------------------------------
 
-export const _DEPLOY_REQUIREMENTS = `${MCP_SERVER_PIP_SPEC}
-${MCP_CLIENT_PIP_SPEC}
-uvicorn>=0.54.0
+export const _DEPLOY_REQUIREMENTS = `--index-url https://pypi.org/simple
+agent-sandbox-client[mcp]==${SERVER_SDK_RELEASE_VERSION}
 `;
 
 export const _DEPLOY_APP_PY =
@@ -1218,9 +1217,9 @@ export const _DEPLOY_APP_PY =
   "# Remote clients can reach this process. Do not boot with auth disabled.\n" +
   "app = create_mcp_app(\n" +
   '    auth_token=require_auth_token(os.environ.get("ABX_MCP_AUTH_TOKEN")),\n' +
-  '    api_key=os.environ.get("ABX_SANDBOX_API_KEY"),\n' +
-  '    api_url=os.environ.get("ABX_SANDBOX_BASE_URL"),\n' +
-  '    domain=os.environ.get("E2B_DOMAIN"),\n' +
+  '    sandbox_api_key=os.environ.get("ABX_SANDBOX_API_KEY"),\n' +
+  '    sandbox_base_url=os.environ.get("ABX_SANDBOX_BASE_URL"),\n' +
+  '    sandbox_domain=os.environ.get("ABX_SANDBOX_DOMAIN"),\n' +
   '    template=os.environ.get("ABX_DEFAULT_TEMPLATE", "base"),\n' +
   ")\n";
 
