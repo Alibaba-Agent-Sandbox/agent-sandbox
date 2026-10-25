@@ -3,9 +3,10 @@ import { confirm } from "./prompts.js";
 /** Download, ask the selected adapter to prepare, then create using its returned reference. */
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { injectedPackageVersion } from "../utils/package_version.js";
 import { createHash, randomUUID } from "node:crypto";
 import { planTemplateLaunch, validateTemplateManifest } from "../template/launch_plan.mjs";
-import { providerContentDigest } from "../providers/content_identity.js";
+import { executableContentDigest, providerContentDigest } from "../providers/content_identity.js";
 import { digestDir } from "../providers/store.js";
 import { ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
@@ -109,12 +110,16 @@ export async function launchTemplate(ctx: Context, params: Record<string, unknow
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
   provider.validateConfig(config);
+  // SEA embeds the built-in provider in this executable; it has no sibling source tree.
+  // The injected version detects the packaging mode, while the bytes identify its code.
+  const builtinExecutable = provider.id === "alicloud-express" && injectedPackageVersion() !== undefined ? process.execPath : undefined;
   const pluginRoot = (provider as Provider & {pluginRoot?: string}).pluginRoot ??
-    (provider.id === "alicloud-express" ? fileURLToPath(new URL("../providers/", import.meta.url)) : undefined);
-  const providerContentIdentity = pluginRoot ? providerContentDigest(pluginRoot) : null;
-  const providerSnapshotDigest = pluginRoot ? digestDir(pluginRoot) : null;
+    (provider.id === "alicloud-express" && !builtinExecutable ? fileURLToPath(new URL("../providers/", import.meta.url)) : undefined);
+  const providerContentIdentity = builtinExecutable ? executableContentDigest(builtinExecutable) : pluginRoot ? providerContentDigest(pluginRoot) : null;
+  const providerSnapshotDigest = builtinExecutable ? providerContentIdentity : pluginRoot ? digestDir(pluginRoot) : null;
   const verifyProviderSnapshot = (): void => {
-    if (pluginRoot && digestDir(pluginRoot) !== providerSnapshotDigest) throw new ProviderConfigError("Provider code changed after planning; compute a new execution snapshot.");
+    const current = builtinExecutable ? executableContentDigest(builtinExecutable) : pluginRoot ? digestDir(pluginRoot) : null;
+    if (current !== providerSnapshotDigest) throw new ProviderConfigError("Provider code changed after planning; compute a new execution snapshot.");
   };
   const extension = providerCliExtension(provider.id);
   const snapshot = input === "source" ? await (extension?.stageProject

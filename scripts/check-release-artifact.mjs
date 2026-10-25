@@ -66,6 +66,21 @@ try {
   assert.match(missingKey.stdout + missingKey.stderr, /sandbox_api_key/);
   assert.doesNotMatch(missingKey.stdout + missingKey.stderr, /e2b auth login|e2b\.dev\/dashboard/i);
   assert.doesNotMatch(missingKey.stdout + missingKey.stderr, /Configuration scope|input hidden/i, "A subprocess without a terminal must never ask for credentials");
+  // Reach built-in provider execution identity in the actual delivered artifact.
+  // The closed loopback port prevents cloud mutation; credentials are synthetic.
+  const managedProject = join(projectRoot, "managed-project");
+  mkdirSync(managedProject);
+  writeFileSync(join(managedProject, "template.yaml"), "name: base\nspec_version: 5\nprovider: alicloud-express\ntemplate_id: base\nprovides: {}\n");
+  const managedLaunch = invokeProject(["--provider", "alicloud-express", "--json", "template", "launch", managedProject, "--yes"], {
+    ABX_SANDBOX_API_KEY: "placeholder-test-key",
+    ABX_SANDBOX_BASE_URL: "http://127.0.0.1:1",
+    ABX_SANDBOX_DOMAIN: "localhost",
+  });
+  assert.notEqual(managedLaunch.status, 0, "Closed loopback must stop before a real create");
+  const managedFailure = JSON.parse(managedLaunch.stdout);
+  assert.match(managedFailure.message, /Sandbox creation has an uncertain outcome/,
+    "Built-in provider identity must load from the artifact without sidecar source files");
+  assert.doesNotMatch(managedFailure.message, /ENOENT|providers[\\/]|File or directory not found/);
   const invalid = invokeProject(["create", "--template", "base"]);
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /unknown option/i);
