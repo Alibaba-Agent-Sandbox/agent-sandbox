@@ -149,6 +149,10 @@ describe("standard executable contract", () => {
     expect(readFileSync(path.join(home, name, "template.py"), "utf8")).toContain("from agent_sandbox import");
     const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
     expect(readme).toContain("agent-sandbox-client==0.4.0a2");
+    expect(readme).toContain("from agent_sandbox import");
+    expect(readme).not.toContain("from e2b import");
+    expect(readme).toContain("finally:");
+    expect(readme).toContain("sandbox.kill()");
     expect(readme).not.toContain("python-sdk/archive/");
   });
 

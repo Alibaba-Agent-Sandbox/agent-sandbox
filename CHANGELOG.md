@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Preserve nested objects and JSON value types in native template info instead of stringifying them. / 原生模板详情 JSON 保留嵌套对象和值类型，不再转换成字符串。
 - Generate MCP applications with current factory argument names (`sandbox_api_key`, `sandbox_base_url`, `sandbox_domain`); verify the actual generated HTTP application against its public dependencies. / MCP 生成应用统一使用当前工厂参数，以公开依赖启动真实 HTTP 应用验证。
+- Generate standard Python README examples with current project imports and guaranteed sandbox cleanup. / 标准 Python 脚手架 README 示例使用当前项目导入，并确保清理所建沙箱。
 - Use the same public Python runtime release for generation, scaffolding, MCP artifacts and default wheel downloads; remove old source-pin compatibility and keep Python versions independent of the CLI package (#165). / 生成器、脚手架、MCP 与默认 wheel 下载共用公开 Python 运行时版本，删除旧源码 pin 兼容分支，并与 CLI 版本解耦。
 - Patch optional Undici 8 to 8.12.2, Ajv to 8.18.0 and fast-uri to 3.1.9 while preserving the locked standard CLI and protocol sources. / 将可选 Undici 8、Ajv、fast-uri 分别最小修补至 8.12.2、8.18.0、3.1.9，保留已锁定的标准 CLI 和协议源码。
 

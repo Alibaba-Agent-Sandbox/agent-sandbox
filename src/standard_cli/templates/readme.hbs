@@ -62,25 +62,27 @@ console.log('Sandbox created successfully')
 ```
 {{else if isPythonSync}}
 ```python
-from e2b import Sandbox
+from agent_sandbox import Sandbox
 
 # Create a new sandbox instance
 sandbox = Sandbox.create('{{name}}')
-
-# Your sandbox is ready to use!
-print('Sandbox created successfully')
+try:
+    print('Sandbox created successfully')
+finally:
+    sandbox.kill()
 ```
 {{else if isPythonAsync}}
 ```python
-from e2b import AsyncSandbox
+from agent_sandbox import AsyncSandbox
 import asyncio
 
 async def main():
     # Create a new sandbox instance
     sandbox = await AsyncSandbox.create('{{name}}')
-    
-    # Your sandbox is ready to use!
-    print('Sandbox created successfully')
+    try:
+        print('Sandbox created successfully')
+    finally:
+        await sandbox.kill()
 
 # Run the async function
 asyncio.run(main())
