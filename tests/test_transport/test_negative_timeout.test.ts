@@ -1,10 +1,4 @@
-/**
- * AT-12: a negative (or already-expired) per-call timeout is `ConnectTimeout` every time.
- *
- * `run_command {timeout: -5}` is the adversarial "timeout neg" case: the HTTP timeout is `timeout + 5`, so httpx sees
- * `Timeout(0)`. `new httpx.Timeout(-1)` is the same already-expired connect deadline. Neither may be `ReadTimeout`,
- * a successful result, or the KI-003 `ConnectionError_` rewrite.
- */
+/** Negative command budgets fail at the command layer before Start; negative HTTP timeouts remain ConnectTimeout. */
 
 import http from "node:http";
 import net from "node:net";
@@ -45,13 +39,14 @@ function toolManager(): SandboxManager {
 }
 
 describe("AT-12 negative timeout", () => {
-  it("run_command timeout -5 and httpx.Timeout(-1) are ConnectTimeout on both calls, with nothing sent", async () => {
+  it("negative command budgets are typed E3001 and negative HTTP timeouts remain ConnectTimeout, with nothing sent", async () => {
     const manager = toolManager();
     const before = hits.length;
     const first = await dispatchTool("run_command", { command: "ls", timeout: -5 }, manager);
     const second = await dispatchTool("run_command", { command: "ls", timeout: -5 }, manager);
-    expect(first).toEqual({ error: "ConnectTimeout" });
-    expect(second).toEqual({ error: "ConnectTimeout" });
+    expect(first.error).toContain("[E3001] Command timed out");
+    expect(first.error).toContain("within -5s");
+    expect(second).toEqual(first);
     expect(hits.length).toBe(before);
 
     const client = new AsyncClient({ timeout: new Timeout(-1), trust_env: false });

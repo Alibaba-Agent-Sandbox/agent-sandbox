@@ -12,15 +12,17 @@ import {
   Request,
   Response,
   _setDefaultTransportFactory,
+  _setAsyncClientInitHook,
+  type AsyncClient,
 } from "../../src/transport/_httpx.js";
 import { HTTPError } from "../../src/transport/http.js";
 import { useIsolatedEnv, useTransportIsolation } from "../_support/env.js";
-import { ENVD, bodyOf, frame, makeHttp, raises, startEvent, token } from "./_helpers.js";
+import { ENVD, bodyOf, frame, makeHttp, raises, startEvent, stdoutEvent, endEvent, token } from "./_helpers.js";
 
 const iso = useIsolatedEnv();
 useTransportIsolation(iso);
 
-afterEach(() => _setDefaultTransportFactory(null));
+afterEach(() => { _setDefaultTransportFactory(null); _setAsyncClientInitHook(null); });
 
 const commands = () => new CommandsModule(ENVD, token(), new ProcessProtocol(makeHttp()));
 
@@ -100,4 +102,49 @@ describe("KI-003 command timeout", () => {
     });
     await raises(() => commands().run("true", { timeout: 3 }), ConnectionError_);
   });
+});
+
+
+describe("total command deadline", () => {
+  for (const noisy of [false, true]) {
+    it(`stops a finite ${noisy ? "noisy" : "silent"} stream at the total deadline and closes its HTTP resources`, async () => {
+      let closed = false;
+      let finalized = false;
+      let release: (() => void) | undefined;
+      const clients: AsyncClient[] = [];
+      _setAsyncClientInitHook({after: client => clients.push(client)});
+      async function* bytes(): AsyncGenerator<Uint8Array> {
+        try {
+          yield frame(startEvent(321));
+          for (let index = 0; index < (noisy ? 100 : 1); index++) {
+            await new Promise<void>(resolve => {
+              const timer = setTimeout(resolve, noisy ? 5 : 500);
+              release = () => { clearTimeout(timer); resolve(); };
+            });
+            if (closed) return;
+            if (noisy) yield frame(stdoutEvent("still running\n"));
+          }
+          yield frame(endEvent());
+        } finally { finalized = true; }
+      }
+      let response: Response | undefined;
+      const seen = install(request => {
+        if (!isStart(request)) return new Response(200, {json: {}});
+        response = new Response(200, {stream: bytes(), onClose: () => {
+          closed = true;
+          release?.();
+        }});
+        return response;
+      });
+      const before = performance.now();
+      const error = await raises(() => commands().run("owned command", {timeout: 0.03}), CommandTimeoutError);
+      expect(error.message).toContain("execution deadline exceeded");
+      expect(performance.now() - before).toBeLessThan(250);
+      expect(kills(seen).map(bodyOf)).toEqual([{process: {pid: 321}, signal: "SIGNAL_SIGKILL"}]);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(response?.is_closed).toBe(true);
+      expect(clients.some(client => client.is_closed)).toBe(true);
+      expect(finalized).toBe(true);
+    });
+  }
 });

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Enforce total native command deadlines even with continuous output, close only the owned stream and best-effort stop its observed PID (#166). / 原生命令持续输出也遵守总执行超时，关闭本次流并尝试停止实际观测到的进程。
+
 - Preserve nested objects and JSON value types in native template info instead of stringifying them. / 原生模板详情 JSON 保留嵌套对象和值类型，不再转换成字符串。
 
 - Check Docker before recording a build intent and keep fixed missing-Docker/daemon guidance visible during template launch; unstarted builds no longer produce an ambiguous artifact journal (#160). / 模板启动在登记构建资源前检查 Docker，直接显示缺少 Docker 或守护进程不可用的修复提示；尚未开始的构建不会留下含糊的资源记录。

@@ -69,6 +69,8 @@ abx exec --background <sandbox-id> python -m http.server 8000
 
 All CLI options precede the sandbox ID. Everything after it belongs to the command, including flags named --provider or --prompt. Execution streams stdout/stderr and returns the remote exit code. Background PID is written to stderr. There is no local --stream or --timeout option in this fixed version. Shell syntax in multiple arguments uses an explicit `sh -c`. Piped stdin depends on the backend envd version, with the same warning/version guard as the reference.
 
+For the native provider command, `abx --native --provider alicloud-express exec <SANDBOX_ID> --timeout 30 -- python3 task.py` bounds the complete command stream, including continuous output. Expiry reports `E3001` and requests SIGKILL for the process ID observed in that stream. Stream closure and the kill request are best effort; child-process trees are not automatically terminated. The sandbox lifetime is configured separately.
+
 ### abx connect
 
 ```bash

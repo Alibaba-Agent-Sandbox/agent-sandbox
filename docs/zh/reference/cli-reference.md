@@ -68,6 +68,8 @@ abx exec --background <sandbox-id> python -m http.server 8000
 
 所有本地选项放在沙箱 ID 前，之后的全部参数归远程命令，包括名为 --provider、--prompt 的参数。执行默认流式输出 stdout/stderr，并返回远程退出码；后台 PID 写入 stderr。固定版本没有本地 --stream、--timeout。多参数中的 shell 语法使用显式 sh -c。管道 stdin 取决于后端 envd 版本，保留与参考客户端相同的警告和版本检查。
 
+原生提供方命令 `abx --native --provider alicloud-express exec <SANDBOX_ID> --timeout 30 -- python3 task.py` 限制整个命令流的执行时间，持续输出也不会重置预算。超时返回 `E3001`，并尝试向该流实际报告的进程 ID 发送 SIGKILL。关闭流和终止进程为尽力执行，不自动终止整个子进程树；沙箱存活时间单独设置。
+
 ### abx connect
 
 ```bash

@@ -2,6 +2,7 @@
 // One sandbox is shared by the suite; everything created is tracked and destroyed in cleanup().
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import { join } from 'node:path';
 import { configureExpressScenario, trackDetachedCreate, isExpressSandboxId, readProcessInventory } from '../lib/express-scenarios.mjs';
 
@@ -86,6 +87,32 @@ export default {
       id: 'exec-timeout', title: 'standard exec rejects a local timeout option absent from the pinned CLI', requires: ['create-json'], timeoutMs: 240_000,
       argv: (ctx) => ['exec', '--timeout', '2', sid(ctx), 'true'], exit: 1, output: "unknown option '--timeout'",
     },
+
+    ...[false, true].map(noisy => ({
+      id: `native-exec-total-deadline-${noisy ? 'noisy' : 'silent'}`,
+      title: `native/provider command total deadline stops ${noisy ? 'continuous output' : 'a silent finite process'}`,
+      requires: ['create-json'], timeoutMs: 30_000,
+      async run(ctx) {
+        const program = noisy
+          ? 'import time; [(print("owned deadline output", flush=True), time.sleep(0.2)) for _ in range(20)]'
+          : 'import time; time.sleep(4)';
+        const started = performance.now();
+        const execution = await ctx.abx(['--native', '--provider', 'alicloud-express', '--json',
+          'exec', sid(ctx), '--timeout', '1', '--', 'python3', '-u', '-c', program]);
+        const error = execution.rawJson();
+        if (execution.code !== 5 || error?.code !== 'E3001' || !/execution deadline exceeded/.test(error.message))
+          ctx.fail('native/provider exec must report the typed total command timeout');
+        if (performance.now() - started > 8_000) ctx.fail('native command did not return within its bounded timeout/cleanup window');
+        const pid = /; pid ([0-9]+) was asked to stop/.exec(error.message)?.[1];
+        if (!pid) ctx.fail('timeout must identify the PID observed for this command');
+        await ctx.eventually(async () => {
+          const listed = await ctx.abx(['--native', '--provider', 'alicloud-express', '--json',
+            'sandbox', 'process', 'list', sid(ctx)]);
+          const processes = readProcessInventory(ctx, listed);
+          if (processes.some(process => String(process.pid) === pid)) ctx.fail('owned timed-out process is still running');
+        }, {timeoutMs: 5_000, intervalMs: 250, what: 'owned timed-out process to stop'});
+      },
+    })),
 
     // ---- upload / download ----------------------------------------------------------------------------
     {
