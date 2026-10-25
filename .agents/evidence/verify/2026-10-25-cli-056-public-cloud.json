@@ -1,0 +1,57 @@
+{
+  "scope": "Official public npm CLI6 named-command JSON failure end-to-end, public SDK6/server6; one base sandbox, no templates/model",
+  "passed": true,
+  "source_commit": "1ea3eabd679c3cf26c824492a60fe2a8aea43f62",
+  "cli_source_sha256": "74c2940a8cfa05f411754a1e7879a51fe617ccd43d9661dbf6c7f0b040b95d25",
+  "public_package_version": "0.5.6 (independent official npm installation)",
+  "client": "0.4.0a6",
+  "fixture_source_sha256": "8b8b5ad8131eb1280c0fb80a0a4657a5ad231789d3fa2eab2e88e95de667f060",
+  "actual_cli_version": "abx, version 0.5.6",
+  "installed_cli_module_sha256": "3a524f7c42af58f5ed12c96e5888cb60fdf2b932370a69b7d7b336d854e5a8ac",
+  "actual_server_version": "0.4.0a6",
+  "independent_http_execution_status": 500,
+  "independent_http_validation_status": 400,
+  "checks": [
+    {
+      "name": "execution-json",
+      "exit_code": 1,
+      "passed": true,
+      "single_json_error": true,
+      "code": "E3000",
+      "diagnostic_present": true
+    },
+    {
+      "name": "validation-json",
+      "exit_code": 1,
+      "passed": true,
+      "single_json_error": true,
+      "code": "E3000",
+      "diagnostic_present": true
+    },
+    {
+      "name": "execution-text",
+      "exit_code": 1,
+      "passed": true,
+      "text_diagnostic_preserved": true
+    },
+    {
+      "name": "nullable-json",
+      "exit_code": 0,
+      "passed": true,
+      "successful_null_preserved": true
+    },
+    {
+      "name": "notfound-json",
+      "exit_code": 2,
+      "passed": true,
+      "single_json_error": true,
+      "code": "E3005",
+      "diagnostic_present": true
+    }
+  ],
+  "independent_typed_sandbox_absence": true,
+  "known_owned_counts": {
+    "sandboxes": 1,
+    "templates": 0
+  }
+}

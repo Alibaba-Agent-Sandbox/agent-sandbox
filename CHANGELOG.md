@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Record completed CLI 0.5.6 GitHub/npm publication and independent public-package verification; distinguish website mirror promotion and preserve earlier candidate evidence. / 补齐 CLI 0.5.6 正式发布和独立公开包验证记录，区分官网镜像部署并保留此前候选证据。
+
 ## [0.5.6] - 2026-10-25
 
 ### Fixed

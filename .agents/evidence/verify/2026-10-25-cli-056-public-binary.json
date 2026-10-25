@@ -1,0 +1,12 @@
+{
+  "scope": "independent full HTTPS GET streamed hash without retaining duplicate binary; matches independently installed case binary on disk, executed in another new HOME",
+  "release": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.6",
+  "asset": "abx-0.5.6-linux-x64",
+  "actual_downloaded_bytes": 135400640,
+  "sha256": "f7d900762660f49863bcb4749f1bb1f7b328d996b643a446868e2d3a36a2ac81",
+  "github_digest_matches": true,
+  "shared_installed_bytes_match": true,
+  "actual_version": "abx, version 0.5.6",
+  "cloud_calls": 0,
+  "passed": true
+}

@@ -24,7 +24,7 @@ The official website mirrors the complete stable release: all five binaries, the
 
 ## Install
 
-The commands below select v0.5.6 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-named-command-json-errors.md) records current validation and publication status; pending publication is not public artifact availability.
+The commands below select v0.5.6 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-056-publication.md) records the completed GitHub/npm publication and independent public-package checks. At that readback, the website mirror still selected 0.5.4; it is promoted separately. Install 0.5.6 from official npm or GitHub now, or explicitly select `ABX_VERSION=0.5.6` with the installer.
 
 ### macOS and Linux
 
@@ -67,11 +67,11 @@ The Windows script supports `ABX_VERSION` and `ABX_INSTALL_DIR`; its default ver
 ## Manual download
 
 1. Check the version and filenames in the [website mirror manifest](https://www.agent-sandbox.cn/releases/latest.json).
-2. Download the matching asset and `.sha256` under `https://www.agent-sandbox.cn/releases/download/v<version>/`. For example, macOS Apple Silicon v0.5.6:
+2. For current 0.5.6, download the asset and `.sha256` from its published GitHub release. The website mirror only serves the version listed in its manifest. For example, macOS Apple Silicon v0.5.6:
 
    ```bash
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.6/abx-0.5.6-darwin-arm64
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.6/abx-0.5.6-darwin-arm64.sha256
+   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.6/abx-0.5.6-darwin-arm64
+   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.6/abx-0.5.6-darwin-arm64.sha256
    ```
 
 3. For other releases, use [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases). Pick `abx-*` assets and matching checksums.

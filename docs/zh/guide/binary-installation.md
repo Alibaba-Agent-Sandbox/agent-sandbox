@@ -23,7 +23,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 
 ## 安装
 
-下面指定版本的命令使用 v0.5.6。默认安装脚本跟随官网当前镜像清单，安装后请用 `abx --version` 确认版本。[发行验证记录](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-named-command-json-errors.md) 记录当前验证和发布状态；待发布不代表公开资产已可用。
+下面指定版本的命令使用 v0.5.6。默认安装脚本跟随官网当前镜像清单，安装后请用 `abx --version` 确认版本。[发行验证记录](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-056-publication.md) 记录已完成的 GitHub/npm 发布及独立公开包验证。该次回读中，官网镜像仍为 0.5.4，镜像升级单独部署；现在安装 0.5.6 可使用官方 npm 或 GitHub，也可在安装脚本中显式设置 `ABX_VERSION=0.5.6`。
 
 ### macOS 与 Linux
 
@@ -67,11 +67,11 @@ Windows 脚本支持 `ABX_VERSION` 和 `ABX_INSTALL_DIR`；默认版本来自 Gi
 ## 手动下载
 
 1. 从[官网镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 确认当前版本和文件名。
-2. 从 `https://www.agent-sandbox.cn/releases/download/v<version>/` 下载对应文件及 `.sha256`，例如 macOS Apple Silicon v0.5.6：
+2. 当前 0.5.6 从已公开的 GitHub Release 下载文件及 `.sha256`；官网镜像仅提供其清单中的版本。例如 macOS Apple Silicon v0.5.6：
 
    ```bash
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.6/abx-0.5.6-darwin-arm64
-   curl -fSLO https://www.agent-sandbox.cn/releases/download/v0.5.6/abx-0.5.6-darwin-arm64.sha256
+   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.6/abx-0.5.6-darwin-arm64
+   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.6/abx-0.5.6-darwin-arm64.sha256
    ```
 
 3. 其他版本可从 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 下载 `abx-*` 资产及匹配的校验文件。
