@@ -74,7 +74,7 @@ env:
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
 - 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template scaffold` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。内置脚手架保留这个源码固定版本。自然语言生成使用已发布的 alpha `agent-sandbox-server==0.3.1a1`，通过 `python3 -m pip install --index-url https://pypi.org/simple` 安装；它不是稳定版 SDK。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
+- 镜像安装的是 `agent-sandbox-server`，不是客户端包。`abx template scaffold` 写入 `RUN pip install --no-cache-dir "agent-sandbox-server @ https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/61c43e0be65a1f57aa09186d578e7b399e48429b.tar.gz#subdirectory=server-sdk"`。内置脚手架保留这个源码固定版本。自然语言生成使用已发布的 alpha `agent-sandbox-server==0.4.0a1`，通过 `python3 -m pip install --index-url https://pypi.org/simple` 安装；它不是稳定版 SDK。Dockerfile 里如果已经钉了 `python-sdk/archive/<40位十六进制>.tar.gz#subdirectory=server-sdk`，就按原文安装，部署不会再请求 PyPI。`ABX_SERVER_SDK_SOURCE` 会用本地 wheel 替换这一行，不论 SHA 是哪一个。
 
 ---
 

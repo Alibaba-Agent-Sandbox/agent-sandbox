@@ -19,6 +19,8 @@ Template build and deploy live in this CLI. The runtime client is the Python SDK
 
 Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Spec v5 requires CLI 0.5.1 or newer; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
 
+For natural-language Express creation with `--build steps`, the CLI assembles provider preparation and final source-file delivery; the model supplies business code and dependency commands. Newly generated applications install server `0.4.0a1` alpha. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
+
 ## Sites
 
 | Site | URL |

@@ -76,9 +76,10 @@ The CLI implements these rules. The Python client does not deploy templates. Cre
 
 Express `abx create --prompt "Python data analysis" --yes --detach --build steps` forwards the
 explicit mode to generation and deployment. The provider supplies its resolved base image;
-generated steps must preserve it and include their own files because no local COPY context is
-uploaded. Ordered USER/RUN/WORKDIR steps install dependencies as root and restore the runtime
-user. Generation uses the published `agent-sandbox-server==0.3.1a1` alpha from the official
+the CLI assembles file-transfer steps from final local bytes because no COPY context is
+uploaded. Files and WORKDIR precede dependency commands so relative requirements files work.
+The model supplies business code and existing build.run dependencies; ordered native steps
+repair ownership after WORKDIR and restore the provider runtime user. Generation uses the published `agent-sandbox-server==0.4.0a1` alpha from the official
 PyPI index. The prompt pipeline waits for Ready before creating a sandbox; direct
 `template deploy --build steps` still reports submission, so poll `template info` separately.
 The default Docker route is unchanged. Model-generated code is an artifact to review and test.

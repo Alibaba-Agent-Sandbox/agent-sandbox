@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Assemble generated native steps from the provider-resolved image and final local source bytes, avoiding model-written base64 and missing preparation fields. New application templates install the public server 0.4.0a1 alpha. / 从提供方已解析镜像和最终源码确定性组装生成模板的原生构建步骤，新模板使用公开 server 0.4.0a1 alpha。
 - Bind the standalone built-in provider snapshot to executable bytes during template launch instead of reading a missing source directory; retain directory snapshots for npm and installed plugins (#156). / 独立二进制启动模板时按实际可执行文件内容校验内置 Provider，修复缺少源码目录导致的 E4001；npm 与插件仍校验其目录。
 
 ## [0.5.1] - 2026-10-25

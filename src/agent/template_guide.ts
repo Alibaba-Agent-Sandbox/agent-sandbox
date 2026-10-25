@@ -147,62 +147,24 @@ RUN python3 -m pip install --index-url https://pypi.org/simple --no-cache-dir "$
 ${secrets}`;
 }
 
-/** The existing platform steps API has no uploaded local COPY context. */
+/** Native source-file transport is assembled by the CLI from final local bytes. */
 function platformStepsRules(profile: TemplateProfile): string {
   return `### 3a. 本次发布模式：steps（必须完成，Dockerfile 不参与本次构建）
-- 仍创建 Dockerfile 供审阅和以后本地构建，但本次 template.yaml 必须包含：
-  base:
-    image: ${profile.base_image}
-  build:
-    mode: steps
-    steps:
-      - {type: USER, args: [root]}
-      - {type: RUN, args: [<完整安装依赖的 shell 命令>]}
-      - {type: RUN, args: [<在绝对路径 ${profile.workdir}/commands.py 写入源码的完整 shell 命令>]}
-      - {type: WORKDIR, args: [${profile.workdir}]}
-      - {type: RUN, args: [<检查语法并修正工作目录所有权的 shell 命令>]}
-      - {type: USER, args: [${profile.user || "root"}]}
-- 以上 image 是提供方已解析的完整引用，必须逐字保留，不能改成 latest、其他 tag 或其他区域。
-- 平台只收到 base.image 与这些类型化 steps，不会收到当前目录、Dockerfile 或 COPY 上下文。
-  这条禁止 COPY 仅针对 build.steps；Dockerfile 仍必须遵循上一节 COPY commands.py 并保持完整。
-  build.steps 不能使用 COPY、相对路径本地文件、或假定 commands.py 已存在。
-- 必须在 RUN 步骤用 python3 -m pip install --index-url https://pypi.org/simple 安装 Python 依赖及 ${SERVER_SDK_RELEASE_SPEC}（alpha）；不要依赖基础镜像的默认镜像源缓存。
-- 为避免 Python 源码、shell、YAML 三层缩进或转义损坏，不手写源码 heredoc 到 YAML。
-  先完成 commands.py，再运行本地 Python 标准库 base64.b64encode(Path("commands.py").read_bytes()).decode()
-  在同一个本地 Python 脚本中读取真实文件、编码、构造 manifest 并写入 JSON。
-  不要把 base64 打印到会话后再复制进大型 write_file 调用；编码只在本地变量里传入单行 RUN：
-  mkdir -p ${profile.workdir} && printf '%s' '<真实base64内容>' | base64 -d > ${profile.workdir}/commands.py
-  每个业务文件都使用相同方式。不要手算 base64，不要留下占位符。
-- 用 Python 字典构造完整清单，再用 json.dumps(manifest, ensure_ascii=False, indent=2) 写 template.yaml。
-  JSON 是合法 YAML，CLI 接受此格式；每条 RUN 的 args 是只包含一个完整 shell 字符串的数组。
-  可以运行本地 Python 处理文本，但不要安装依赖、运行 Docker 或执行云构建。
-- 使用上面的 build.steps 顺序，不混用 build.run/apt_install/pip_install（快捷指令会在 USER root 前执行）。
-  平台默认构建用户不一定是 root；安装阶段先 USER root，结束时恢复 provider 运行用户 ${profile.user || "root"}。
-  先完成所有 WORKDIR 步骤，再在最后一个 RUN 中检查语法并执行
-  chown -R ${profile.user || "root"}:${profile.user || "root"} ${profile.workdir}，然后 USER ${profile.user || "root"}；chown 后不要再放 WORKDIR。
-${profile.provider_id === "alicloud-express" ? `  Express steps 实测：USER root 下的 WORKDIR 会把已 chown 的目标目录重设为 root 所有；目录内文件的所有权可保持不变。
-  这不是 Dockerfile 或其他 provider 的通用权限规则。` : ""}
-  README 区分构建配置与运行时验证：只说明预期的运行用户和目录，不得仅凭 chown 声称已保证或实测可写。
-  提供以实际非 root 运行用户在 ${profile.workdir} 创建临时子目录、写入/读取/删除文件并清理的检查方法；
-  明确应用命令成功不代表目录可写。检查失败时报告身份与目录权限，不改成 root 运行、不使用 chmod 777、也不静默改写用户清单。
-- 所有路径使用绝对路径；安装的库必须是 start_cmd 使用的同一个 Python 能导入的。
-  已有 python3/pip 时不要重新 apt 安装 Python；仅在用户需求确实包含系统依赖时安装对应系统包。
-  不要假定基础镜像的 Python 版本。用户没有要求依赖版本时，不要猜测或复制历史旧版本 pin，
-  让目标解释器上的 pip 解析兼容版本。numpy/pandas/matplotlib 这类有官方 wheel 的库使用
-  python3 -m pip install --only-binary=:all: pandas matplotlib
-  （仅安装需求用到的包），拒绝无匹配 wheel 而进入耗时源码编译；不要为这些 wheel 安装 gcc、python3-dev 或图像开发包。
-  普通依赖沿用基础镜像或用户配置的 pip 索引，不硬编码镜像地址，不为整个依赖安装强制切换官方源。
-  仅 agent-sandbox-server alpha 的单独安装命令必须使用上文 --index-url https://pypi.org/simple，
-  避免镜像尚未同步 alpha。不要把 server 与 pandas/matplotlib 合并到同一条 pip install 中。
-  README 说明依赖解析策略，验收时记录实际 Python 与依赖版本；用户指定版本不兼容时报告错误，不静默换版本。
-- 保留上面的 provider start_cmd / ready_cmd，实际源码必须写入它们引用的位置。
-- 最后一个 RUN 用 python3 -m py_compile ${profile.workdir}/commands.py 检查语法。
-- README 明确本次使用平台 steps，无需本地 Docker/ACR，也明确安装的是 alpha SDK。
-- 每次工具输出都必须检查错误；大段文件拆成短小写入，避免 max_tokens 截断。
-  最后用本地 Python 检查四个根文件存在、ast.parse(commands.py)、json.loads(template.yaml)、
-  每个 step.args 是字符串数组，且 Dockerfile 包含 COPY commands.py。
-  生成清单脚本采用独立短 .py 文件运行，避免在 shell 双引号里嵌套整个 Python 字典。
-  自检失败就在同一工作目录修复后再检查，不能在工具失败或缺文件时声称完成。`;
+- 仍创建可审阅的 Dockerfile、commands.py、template.yaml 和 README.md。
+- CLI 已解析基础镜像 ${profile.base_image}、运行用户 ${profile.user || "root"}、工作目录 ${profile.workdir}。
+  CLI 会确定性生成 base.image、安装 ${SERVER_SDK_RELEASE_SPEC}、上传最终业务文件、修正所有权并恢复运行用户。
+- template.yaml 中只需在已有 build.run 字符串数组列出额外依赖安装命令；没有额外依赖时省略 build。
+  不要写 base、build.steps、base64、heredoc、逐行 echo 或任何源码传输命令，不要重复安装 agent-sandbox-server。
+  build.run 只安装需求确实需要的依赖，不运行应用；CLI 会在部署时传输真实文件内容。
+- 先完成 commands.py 及确实需要的业务代码、依赖清单。不要创建生成 manifest 的辅助脚本。
+  template.yaml 用 JSON 格式写入（JSON 是合法 YAML），用本地 Python json.dumps 序列化，避免 YAML/shell 嵌套转义。
+- 不假定基础镜像的 Python 版本。pandas/matplotlib 等有官方 wheel 的包使用 --only-binary=:all:，
+  只安装需求用到的依赖；版本不兼容时报告错误，不静默改版本，不安装无关编译工具。
+- 保留 provider start_cmd / ready_cmd，commands.py 只在 __main__ 下 start，不写 CMD 或 ENTRYPOINT。
+- README 说明平台 steps 无需本地 Docker/ACR、使用 alpha SDK。运行身份和目录可写性必须通过实际运行检查，
+  不凭构建步骤声明已验证可写；不要改成 root 运行或 chmod 777。
+- 完成前用本地 Python ast.parse 检查 commands.py、json.loads 检查 template.yaml，检查四个根文件都存在。
+  不要执行云构建或安装本地依赖。`;
 }
 
 /**

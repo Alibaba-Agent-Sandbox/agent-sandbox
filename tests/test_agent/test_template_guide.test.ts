@@ -158,30 +158,21 @@ describe("TestGuideText", () => {
     expect(guide).toContain("enable_group 不会关闭其他默认组");
   });
 
-  it("finishes Express WORKDIR before ownership repair and keeps runtime verification explicit", () => {
+  it("keeps native delivery and runtime ownership in the CLI", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
-    const instructions = guide.slice(guide.indexOf("  build:"), guide.indexOf("- 以上 image"));
-    const steps = [...instructions.matchAll(/type: (USER|RUN|WORKDIR), args: \[(.*?)\]/g)]
-      .map((match) => ({ type: match[1], args: match[2] }));
-    const workdir = steps.findIndex((step) => step.type === "WORKDIR");
-    const ownership = steps.findIndex((step) => step.args?.includes("所有权"));
-    expect(workdir).toBeGreaterThan(-1);
-    expect(ownership).toBeGreaterThan(workdir);
-    expect(steps.slice(ownership + 1)).toEqual([{ type: "USER", args: "user" }]);
-    expect(guide).toContain("不得仅凭 chown 声称已保证或实测可写");
-    expect(guide).toContain("创建临时子目录、写入/读取/删除文件并清理");
-    expect(guide).toContain("应用命令成功不代表目录可写");
-    expect(buildTemplateGuide("create", "opensandbox", "steps")).not.toContain("Express steps 实测");
-    expect(buildTemplateGuide("create", "alicloud-express", "dockerfile")).not.toContain("Express steps 实测");
+    expect(guide).toContain("CLI 会确定性生成 base.image");
+    expect(guide).toContain("不要写 base、build.steps、base64");
+    expect(guide).toContain("build.run 字符串数组");
+    expect(guide).toContain("运行身份和目录可写性必须通过实际运行检查");
+    expect(guide).toContain("不凭构建步骤声明已验证可写");
   });
 
-  it("keeps numerical dependency indexes configurable while pinning the server alpha source", () => {
+  it("keeps numerical dependencies wheel-only without imposing the server index", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
-    expect(guide).toContain("python3 -m pip install --only-binary=:all: pandas matplotlib");
-    expect(guide).not.toContain("python3 -m pip install --index-url https://pypi.org/simple --only-binary=:all: pandas matplotlib");
-    expect(guide).toContain("仅 agent-sandbox-server alpha 的单独安装命令");
-    expect(guide).toContain("--index-url https://pypi.org/simple");
+    expect(guide).toContain("--only-binary=:all:");
+    expect(guide).toContain("不安装无关编译工具");
     expect(guide).not.toContain("mirrors.aliyun.com");
+    expect(guide).not.toContain("python3 -m pip install --index-url https://pypi.org/simple --only-binary");
   });
 
   serverIt("test_imports_shown_in_the_guide_exist", () => {
