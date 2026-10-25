@@ -30,7 +30,7 @@ const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261022-0.4.
 const WORKFLOW_GOLDEN_DIR = fileURLToPath(new URL("./golden/template-launch-20261025/", import.meta.url));
 const RELEASE_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261024-0.4.11/", import.meta.url));
 const JOURNEY_GOLDEN_DIR = fileURLToPath(new URL("./golden/developer-journey-20261024/", import.meta.url));
-const CURRENT_VERSION_DIR = fileURLToPath(new URL("./golden/release-20261025-0.5.1/", import.meta.url));
+const CURRENT_VERSION_DIR = fileURLToPath(new URL("./golden/release-20261025-0.5.2/", import.meta.url));
 const GENERATED_LAUNCH_GOLDEN_DIR = fileURLToPath(new URL("./golden/generated-launch-20261025/", import.meta.url));
 const GENERATED_LAUNCH_CASES = new Set(["help-create", "create-nl-python", "create-nl-nodejs", "create-nl-confirm-required", "create-nl-clarify-required", "create-nl-not-installed"]);
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";

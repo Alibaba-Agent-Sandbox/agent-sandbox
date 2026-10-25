@@ -229,7 +229,7 @@ describe("TestGenerateTemplateFiles", () => {
     const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as GeneratedStepManifest;
     expect(manifest.build.mode).toBe("steps");
     expect(manifest.build.steps).toContainEqual({ type: "RUN", args: ["python3 -m pip install --only-binary=:all: pandas"] });
-    expect(manifest.build.steps[1]!.args[0]).toContain("agent-sandbox-server==0.4.0a1");
+    expect(manifest.build.steps[1]!.args[0]).toContain("agent-sandbox-server==0.4.0a2");
   });
 
   it("rejects model-authored native delivery recipes instead of deploying stale bytes", async () => {
