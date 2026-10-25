@@ -134,7 +134,15 @@
     "failed": 0
   },
   "interpretation": "Ledger success is not a full unit-suite success. Network/proxy/TLS/WS and provider/engine HTTP-status failures are observed; no host root cause is claimed. No tests were disabled.",
-  "candidate_real_cloud": "NOT_RUN",
-  "remote_ci": "NOT_RUN",
+  "candidate_real_cloud": {
+    "result": "PASS",
+    "source_commit": "89ec2bf66f80f06c43af6a94b83d9a6156d3878c",
+    "actual_client_server": "0.4.0a6",
+    "checks_passed": 5,
+    "owned_sandboxes": 1,
+    "owned_templates": 0,
+    "independent_typed_sandbox_absence": true
+  },
+  "remote_ci": "PENDING: latest record commit must receive its own required checks",
   "publication": "NOT_RUN"
 }

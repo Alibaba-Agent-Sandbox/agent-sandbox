@@ -2,7 +2,7 @@
 
 - Date: 2026-10-25
 - Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/180
-- Result: PARTIAL — focused and build checks pass; full local suites have recorded failures; remote CI and candidate real-cloud verification remain pending.
+- Result: PARTIAL — focused, build and candidate real-cloud checks pass; full local suites have recorded failures; latest remote CI remains pending.
 - Base: public CLI source `3f7fa28e16888a5489980dc56c86d6c71c11c4a0` (0.5.5).
 - Environment: Linux, Node.js 22.22.2; reproducible `npm ci` from the unchanged lockfile. HTTP fixtures use placeholders only.
 
@@ -27,10 +27,18 @@ An independent installed-public-package diagnostic made five actual loopback HTT
 
 Detailed safe results: [checks](2026-10-25-named-command-json-error-checks.json), [separate baseline/candidate HTTP fixtures](2026-10-25-named-command-json-error-fixtures.json).
 
+## Candidate real-component verification
+
+The compiled source at `89ec2bf66f80f06c43af6a94b83d9a6156d3878c` was exercised through the actual CLI against one newly created Express base sandbox. The host client and actual remote server were both public `0.4.0a6`. An uploaded command fixture deliberately raises a safe RuntimeError, validates two integers and returns a null value. Independent authenticated HTTP requests confirm the server returns 500 for execution failure and 400 for invalid input.
+
+Five actual CLI cases PASS: JSON execution failure and the full command alias's JSON validation failure each emit one diagnostic E3000 object with exit 1; text mode retains the diagnostic; successful null retains `{result:null}` with exit 0; unknown command retains E3005 with exit 2. These use the unreleased source candidate, whose package identity remains 0.5.5. They do not claim the immutable public 0.5.5 package was patched, and do not establish the separate template business failure's cause.
+
+Safe receipt: [candidate cloud results](2026-10-25-named-command-json-errors-cloud.json). Credentials and the exact owned ID remain private. No template or model was created.
+
 ## Cleanup
 
-All local HTTP servers close in `finally`. The diagnostic and focused regression create no cloud resources. The earlier supplementary cloud run's cleanup belongs to its owning template receipt.
+All local HTTP servers close in `finally`. Local diagnostics and focused regressions create no cloud resources. The candidate cloud test journals its one owned sandbox immediately after creation, kills that exact ID in `finally`, and independently confirms `SandboxNotFoundError`; no template is created. The earlier supplementary template run's cleanup remains in its owning receipt.
 
 ## Not yet verified
 
-The failed full local suites remain recorded, without disabling tests. Latest remote CI, candidate real-cloud execution, final reviewed commit, merge and release are not established by the local checks above. The candidate still carries the base package version; it is not a claim that the immutable public 0.5.5 package contains this fix.
+The failed full local suites remain recorded, without disabling tests. Latest remote CI, the final reviewed record commit, merge and release are not established by the local or cloud checks above. The candidate still carries the base package version; it is not a claim that the immutable public 0.5.5 package contains this fix.
