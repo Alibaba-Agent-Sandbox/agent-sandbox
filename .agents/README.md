@@ -207,3 +207,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Application HTTP timeout](notes/implemented/feature/2026-10-24-application-http-timeout.md) · [verification](evidence/verify/2026-10-24-application-http-timeout.md) · [Issue 147](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/147).
 
 - [CLI 0.4.17 publication](notes/implemented/process/2026-10-24-cli-0417-public-release.md) · [public verification](evidence/verify/2026-10-24-cli-0417-release.md).
+
+- [Standalone provider identity correction](notes/proposed/feature/2026-10-25-standalone-provider-identity.md) · [verification](evidence/verify/2026-10-25-standalone-provider-identity.md) · [Issue 156](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/156).

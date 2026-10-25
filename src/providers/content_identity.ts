@@ -21,3 +21,15 @@ export function providerContentDigest(root: string): string {
   const hash=createHash("sha256");for(const name of files)hash.update(name).update("\0").update(fs.readFileSync(path.join(root,name))).update("\0");
   return `sha256:${hash.digest("hex")}`;
 }
+
+/** Hash the actual standalone executable containing a bundled built-in provider. */
+export function executableContentDigest(executable: string): string {
+  const descriptor = fs.openSync(executable, "r");
+  try {
+    if (!fs.fstatSync(descriptor).isFile()) throw new ProviderConfigError("Provider executable identity requires a regular file.");
+    const hash = createHash("sha256"), buffer = Buffer.allocUnsafe(1024 * 1024);
+    let count: number;
+    while ((count = fs.readSync(descriptor, buffer, 0, buffer.length, null)) > 0) hash.update(buffer.subarray(0, count));
+    return `sha256:${hash.digest("hex")}`;
+  } finally { fs.closeSync(descriptor); }
+}
