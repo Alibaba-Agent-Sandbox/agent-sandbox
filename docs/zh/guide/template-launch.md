@@ -1,6 +1,8 @@
 # 启动模板
 
-spec v5 模板需要 CLI 0.5.0 或更新版本。CLI 与模板目录需同步升级。
+spec v5 模板需要 CLI 0.5.1 或更新版本。CLI 与模板目录需同步升级。
+
+CLI 0.5.1 会读取公开目录中的原生模板。使用 `abx --provider alicloud-express template launch base --yes` 启动极速版内置模板。源码模板与平台原生模板共用这个启动命令；原生模板没有可下载的源码目录。0.5.0 遗漏了目录的 `managed_templates` 列表。升级后会重新解析缓存的原始 YAML，无需清除缓存。
 
 配置好 [Provider](providers.md) 后，直接启动 Registry 中的源码模板：
 

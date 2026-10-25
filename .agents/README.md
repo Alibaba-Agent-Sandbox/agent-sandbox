@@ -1,11 +1,13 @@
 # `.agents/` — engineering record of the cli repository
 
-## In progress — unified template startup
+## Current patch — public managed catalog resolution
 
-The [spec v5 proposal](notes/proposed/architecture/2026-10-25-unified-template-launch.md)
-removes launch workflow selection and verifies every service. CLI 0.4.17 remains the
-published version and cannot consume these new manifests. Publication is coordinated
-with the template catalog, Python SDK and Registry; local implementation is not a release.
+CLI 0.5.0 is published and introduces whole-template spec v5 startup. Its public
+catalog-name lookup omitted `managed_templates`; use the 0.5.1 patch for native
+catalog names. [Decision](notes/implemented/feature/2026-10-25-managed-catalog-resolution.md)
+and [verification](evidence/verify/2026-10-25-cli-051-managed-catalog.md) distinguish
+public-package failure, candidate validation and release gates. Historical 0.4.x
+and local-manifest tests below do not prove public catalog-name startup.
 
 ## Current delivery — 2026-10-24
 

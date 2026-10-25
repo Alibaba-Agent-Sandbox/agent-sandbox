@@ -17,7 +17,7 @@ The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; the standard Express command path follows the pinned E2B CLI behavior contract. See [migration](docs/en/guide/migrate-from-e2b.md).
 
 
-Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Spec v5 requires CLI 0.5.0 or newer; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
+Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Spec v5 requires CLI 0.5.1 or newer; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
 
 ## Sites
 
@@ -66,7 +66,7 @@ The website copies all five platform binaries, the npm archive and SHA-256 sidec
 
 Download `abx-<version>-<os>-<arch>[.exe]` and the matching `.sha256` from the website mirror under `https://www.agent-sandbox.cn/releases/download/v<version>/` (version/files in the [manifest](https://www.agent-sandbox.cn/releases/latest.json)), or from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases), check the digest, and put the file on `PATH` as `abx`. Commands, checksums, and the platform table: [Binary Installation](docs/en/guide/binary-installation.md) ([中文](docs/zh/guide/binary-installation.md)).
 
-The current source fixes embedded Express SDK loading outside the checkout. Existing release assets do not acquire this fix until rebuilt and published; see the installation guide for artifact validation and `abx --licenses` attribution.
+Release packages include the embedded Express SDK for use outside the source checkout. See the installation guide for artifact validation and `abx --licenses` attribution.
 
 ### npm (Node.js 20+)
 

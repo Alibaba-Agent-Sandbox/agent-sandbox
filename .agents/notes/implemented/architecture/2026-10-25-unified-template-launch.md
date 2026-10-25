@@ -1,6 +1,6 @@
 # Decision: Launch a complete template without workflow selection
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -36,3 +36,7 @@ Current launch has no workflow selector; all services are retained and resolved,
 - [Contract foundation](../../../evidence/verify/2026-10-25-unified-template-contract.md)
 - [Runtime and CI](../../../evidence/verify/2026-10-25-unified-template-runtime.md)
 - [Real Express startup and cleanup](../../../evidence/verify/2026-10-25-unified-template-cloud.md)
+
+## Publication
+
+CLI 0.5.0 was published from merge `408e618f38c11e5df98f0e6fb859465060f4fdb8`. The subsequent public managed-name lookup defect is corrected separately by 0.5.1; see the [release and managed-catalog evidence](../../../evidence/verify/2026-10-25-cli-051-managed-catalog.md).

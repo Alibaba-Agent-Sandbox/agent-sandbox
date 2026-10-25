@@ -301,15 +301,21 @@ describe("fixed template references and build profiles", () => {
       expect(Object.keys(JSON.parse(result.stdout).services)).toEqual(["app", "worker"]); expect(f.sandbox.commands.run).not.toHaveBeenCalled(); }
     finally {f.create.mockRestore();}
   });
-  it("launches a managed catalog name directly without fetching a fictitious source directory", async () => {
+  it.each([
+    ["base", "base"], ["code-interpreter-v1", "code-interpreter-v1"],
+    ["desktop", "desktop"], ["opensandbox-code-interpreter", "opensandbox/code-interpreter:v1.1.0"],
+  ])("launches managed catalog %s without fetching a fictitious source directory", async (name, nativeId) => {
     const f = setup(); f.provider.workflow_inputs = ["managed"];
-    const manifest = {name: "catalog-managed", spec_version: 5, provides: {}, provider: f.provider.id, template_id: "native-version-42"};
-    const entry = new catalog.TemplateIndexEntry({name: "catalog-managed", repo: "https://github.com/owner/templates", manifest});
-    const fetchIndex = vi.spyOn(catalog, "fetchIndex").mockResolvedValue(new catalog.TemplateIndex({entries: [entry]}));
+    // Preserve the real dual-list catalog shape; replace only the backend identity with the test provider.
+    const published = fs.readFileSync(new URL("../fixtures/catalog/awesome-templates.yaml", import.meta.url), "utf8");
+    const index = catalog.parseIndex(published.replace(/provider: (alicloud-express|opensandbox|e2b)/g, `provider: ${f.provider.id}`));
+    const fetchIndex = vi.spyOn(catalog, "fetchIndex").mockResolvedValue(index);
     const fetchSource = vi.spyOn(RegistryClient.prototype, "fetch");
-    try {const result = await new CliRunner().invoke(cli, ["--json", "template", "launch", "catalog-managed", "--yes"]);
+    try {const result = await new CliRunner().invoke(cli, ["--json", "template", "launch", name, "--yes"]);
       expect(result.exit_code, result.output).toBe(0); expect(fetchSource).not.toHaveBeenCalled(); expect(f.provider.prepare).not.toHaveBeenCalled();
-      expect(f.create).toHaveBeenCalledWith(expect.objectContaining({template: "native-version-42"})); }
+      expect(f.create).toHaveBeenCalledWith(expect.objectContaining({template: nativeId}));
+      expect(JSON.parse(result.stdout)).toMatchObject({sandbox_id: "owned-sandbox", services: {}});
+      expect(result.stderr).toContain("Resolved"); }
     finally {fetchIndex.mockRestore(); fetchSource.mockRestore(); f.create.mockRestore();}
   });
   it("keeps application-specific APIs available without treating them as launch operations", async () => {

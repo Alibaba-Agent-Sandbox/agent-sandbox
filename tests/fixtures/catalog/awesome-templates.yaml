@@ -1,0 +1,542 @@
+# Source manifests own workflow declarations. Managed inputs declare their workflows inline.
+# Historical receipts do not certify current input identities or project consumer paths.
+schema_version: 2
+templates:
+- name: python-hello
+  description: A minimal Python hello world template for testing
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: python-hello
+  tags:
+  - python
+  - hello-world
+  - example
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: browser-use
+  description: Native browser-use0.13.11 with private local pinned Chromium and explicit model.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: browser-use
+  tags:
+  - browser-use
+  - browser
+  - ai-agent
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: browser-automation
+  description: Browser automation sandbox with Playwright + Chromium for web scraping and UI testing
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: browser-automation
+  tags:
+  - browser
+  - playwright
+  - chromium
+  - automation
+  - web-scraping
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: claude-code
+  description: Claude Code Agent runtime — Anthropic Claude-powered AI coding assistant
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: claude-code
+  tags:
+  - claude
+  - anthropic
+  - ai-coding
+  - ai-agent
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: copilot-cli
+  description: Pinned native GitHub Copilot CLI1.0.100 with explicit OpenAI-compatible BYOK and owned process lifecycle.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: copilot-cli
+  tags:
+  - copilot
+  - ai-coding
+  - byok
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: codex
+  description: OpenAI Codex CLI (@openai/codex@0.162.1). codex exec, JSON events, sandbox bypass, OpenAI-compatible
+    config.toml.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: codex
+  tags:
+  - codex
+  - openai
+  - ai-agent
+  - code-generation
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: codex-agent-api
+  description: Codex 0.162.1 HTTP session adapter with bounded turns and SSE; project API subset, not full OpenAI
+    API compatibility.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: codex-agent-api
+  tags:
+  - codex
+  - openai
+  - agents-api
+  - ai-agent
+  - self-hosted
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: qoder
+  description: Qoder coding CLI @qoder-ai/qodercli@1.1.72 with version, read-only setup and bounded headless execution.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: qoder
+  tags:
+  - qoder
+  - ai-coding
+  - ai-agent
+  - development
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: agents-cli
+  description: Restricted local Agents HTTP API with pinned Codex 0.162.1 and Qwen Code 0.23.0.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: agents-cli
+  tags:
+  - agents-api
+  - codex
+  - qwen-code
+  - self-hosted
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: qwen-code
+  description: Qwen Code Agent runtime — Dashscope-powered AI autonomous deployment agent
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: qwen-code
+  tags:
+  - qwen
+  - qwen-code
+  - dashscope
+  - ai-coding
+  - ai-agent
+  - deploy
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: deepagents
+  description: Native DeepAgents0.7.25 local file/shell compatible-provider runtime with no subagents.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: deepagents
+  tags:
+  - deepagents
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: deepseek-harness
+  description: Bounded DeepSeek-compatible coding agent with read, write, list and shell tools.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: deepseek-harness
+  tags:
+  - deepseek
+  - ai-agent
+  - ai-coding
+  - code-generation
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: hermes-agent
+  description: NousResearch Hermes 0.22.1 with pinned upstream runtime, local file/terminal tools and bounded headless
+    execution.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: hermes-agent
+  tags:
+  - hermes
+  - nousresearch
+  - ai-agent
+  - tool-calling
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: node-web
+  description: Node.js web service runtime for Express, Fastify and other frameworks
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: node-web
+  tags:
+  - nodejs
+  - web
+  - express
+  - api
+  - javascript
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: openclaw
+  description: OpenClaw 2026.10.4 gateway with authenticated health, owned process lifecycle and Node.js 24.16.0.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: openclaw
+  tags:
+  - openclaw
+  - ai-agent
+  - ai-coding
+  - gateway
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: opencode
+  description: OpenCode coding agent. Headless opencode run and optional opencode serve. Package opencode-ai@1.19.0.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: opencode
+  tags:
+  - opencode
+  - ai-agent
+  - ai-coding
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: amp
+  description: Sourcegraph Amp CLI. amp_execute runs amp -x; amp_version and amp_setup_check do not need a key.
+    Package @ampcode/cli@0.0.1792022479-ge66e24.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: amp
+  tags:
+  - amp
+  - sourcegraph
+  - ai-agent
+  - ai-coding
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: droid
+  description: Genuine Factory Droid0.241.1, explicit compatible BYOK and isolated bounded coding.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: droid
+  tags:
+  - droid
+  - factory
+  - ai-agent
+  - ai-coding
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: gemini
+  description: Gemini CLI. Command gemini -p. Package @google/gemini-cli@0.64.0.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: gemini
+  tags:
+  - gemini
+  - ai-agent
+  - ai-coding
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: document-tools
+  description: Bounded Markdown/HTML to DOCX, TXT, PPTX and headless LibreOffice PDF.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: document-tools
+  tags:
+  - pandoc
+  - documents
+  - markdown
+  - docx
+  - cpu
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: media-tools
+  description: Bounded offline CPU FFmpeg presets and native JSON argv with real process results.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: media-tools
+  tags:
+  - ffmpeg
+  - media
+  - cpu
+  - audio
+  - video
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: pi
+  description: Official Pi CLI 1.3.0 with ephemeral compatible-model settings and explicit writable tools.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: pi
+  tags:
+  - pi
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: ocr
+  description: CPU English image OCR with pinned Tesseract 5.5.0 and bounded private TXT/TSV artifacts.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: ocr
+  tags:
+  - ocr
+  - tesseract
+  - images
+  - english
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: aider
+  description: Official Aider 0.86.2 with read-only ask and guarded selected-file writeback.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: aider
+  tags:
+  - aider
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: swe
+  description: mini-swe-agent 2.4.6 with one real SWE-bench Flask instance and independent non-Docker evaluation.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: swe
+  tags:
+  - swe-bench
+  - mini-swe-agent
+  - evaluation
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: osworld
+  description: 'Pinned OSWorld Linux browser slice: real X11 input, screenshots, AT-SPI and selected task evaluators.'
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: osworld
+  tags:
+  - osworld
+  - computer-use
+  - desktop
+  - browser
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: polyglot-toolchain
+  description: Pinned Go, Rust and Temurin JDK with real compile-and-run verification.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: polyglot-toolchain
+  tags:
+  - go
+  - rust
+  - java
+  - toolchain
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: kimi-code
+  description: Official Kimi Code 2.2.0 with isolated headless turns and explicit tool permission.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: kimi-code
+  tags:
+  - kimi
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: apply-patch
+  description: Official Codex patch dialect with bounded native execution and relative workspace paths.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: apply-patch
+  tags:
+  - patch
+  - files
+  - codex
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: goose
+  description: Official Goose1.54.0 with private compatible-provider config and explicit developer tools.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: goose
+  tags:
+  - goose
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: code-server
+  description: Pinned authenticated browser IDE with private configuration and owned process lifecycle.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: code-server
+  tags:
+  - ide
+  - vscode
+  - code-server
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: dev-services
+  description: Pinned non-root PostgreSQL17.11 and Redis8.0.2 with owned lifecycle.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: dev-services
+  tags:
+  - database
+  - postgresql
+  - redis
+  - development
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: next-app
+  description: Pinned Next.js16.4.2 and Vite8.3.4 frontend scaffold and owned preview lifecycle.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: next-app
+  tags:
+  - node
+  - nextjs
+  - vite
+  - preview
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: crush
+  description: Official Crush0.98.1 with private compatible-provider turns and explicit tools.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: crush
+  tags:
+  - crush
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: stagehand
+  description: Native Stagehand4.3.0 local Chromium act/extract with explicit compatible model transport.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: stagehand
+  tags:
+  - stagehand
+  - browser
+  - automation
+  - nodejs
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: grok
+  description: Official xAI Grok Build1.0.62 native CLI with explicit compatible model and isolated bounded coding.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: grok
+  tags:
+  - grok
+  - xai
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: cline
+  description: Pinned genuine Cline3.0.73 CLI, private compatible provider and bounded headless coding.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: cline
+  tags:
+  - cline
+  - coding-agent
+  - openai-compatible
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: tau2-bench
+  description: Original Tau2 text retail runner with native agent/user models and strict trajectory replay.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: tau2-bench
+  tags:
+  - tau2
+  - benchmark
+  - tools
+  - retail
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: chrome
+  description: Pinned headed Chrome145 with native CDP and authenticated visible noVNC desktop
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: chrome
+  tags:
+  - chrome
+  - browser
+  - cdp
+  - vnc
+  - desktop
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: prime-agent
+  description: Original stable Prime Agent0.10.0 native CLI and fixed CPython REPL with explicit compatible provider.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: prime-agent
+  tags:
+  - prime-agent
+  - coding-agent
+  - rlm
+  - python
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: appworld
+  description: Original AppWorld engine/evaluator with private encrypted bundles and an explicit compatible-model
+    API bridge
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: appworld
+  tags:
+  - appworld
+  - benchmark
+  - function-calling
+  - evaluation
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: qm-sandbox
+  description: Original QM tool context backed by the actual Agent Sandbox Node HTTP SDK.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: qm-sandbox
+  tags:
+  - qm
+  - sandbox
+  - sdk
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: qm
+  description: Original QM Pi harness and tools with an actual SDK backend and explicit compatible model.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: qm
+  tags:
+  - qm
+  - sandbox
+  - sdk
+  - coding-agent
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: muse
+  description: Original native Meta Muse Code with explicit compatible Responses and an owned catalogue/credential
+    relay.
+  repo: https://github.com/alibaba-agent-sandbox/awesome-templates
+  path: muse
+  tags:
+  - muse
+  - meta
+  - coding-agent
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: cursor-agent
+  description: Pinned original Cursor Agent CLI with explicit owned-sandbox native tools.
+  repo: https://github.com/Alibaba-Agent-Sandbox/awesome-templates
+  path: cursor-agent
+  tags:
+  - cursor
+  - coding-agent
+  - cli
+  author: alibaba-agent-sandbox
+  status: experimental
+- name: devin
+  description: Pinned original Devin CLI with private original account-file integration and explicit tools.
+  repo: https://github.com/Alibaba-Agent-Sandbox/awesome-templates
+  path: devin
+  tags:
+  - devin
+  - coding-agent
+  - cli
+  author: alibaba-agent-sandbox
+  status: experimental
+managed_templates:
+- name: base
+  provider: alicloud-express
+  template_id: base
+  kind: provider-managed
+  documentation: docs/managed/base/README.md
+  historical_evidence:
+  - docs/managed/evidence/base-2026-10-19T154144Z.json
+  provides: {}
+  spec_version: 5
+- name: code-interpreter-v1
+  provider: alicloud-express
+  template_id: code-interpreter-v1
+  kind: provider-managed
+  documentation: docs/managed/code-interpreter-v1/README.md
+  historical_evidence:
+  - docs/managed/evidence/code-interpreter-v1-2026-10-19T154153Z.json
+  provides: {}
+  spec_version: 5
+- name: desktop
+  provider: e2b
+  template_id: desktop
+  kind: provider-managed
+  documentation: docs/managed/desktop/README.md
+  historical_evidence:
+  - docs/managed/evidence/verification-desktop-2026-10-21.json
+  provides: {}
+  spec_version: 5
+- name: opensandbox-code-interpreter
+  provider: opensandbox
+  template_id: opensandbox/code-interpreter:v1.1.0
+  kind: provider-managed
+  documentation: docs/managed/opensandbox-code-interpreter/README.md
+  historical_evidence:
+  - docs/managed/evidence/verification-opensandbox-code-interpreter-2026-10-21-native-docker.json
+  provides: {}
+  spec_version: 5
