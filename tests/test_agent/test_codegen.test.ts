@@ -183,6 +183,23 @@ describe("TestPrompt", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestGenerateTemplateFiles", () => {
+  it("declares a runtime-only application token in new generated artifacts", async () => {
+    vi.stubEnv("ABX_SERVER_TOKEN", "host-private-token-not-for-artifacts");
+    patchRun(fakeRunWriting());
+    const result = await generateTemplateFiles("add API", { workdir: tmpPath });
+    const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, unknown>;
+    expect(manifest["env"]).toEqual({ ABX_SERVER_TOKEN: "" });
+    expect(fs.readFileSync(result.templateYaml, "utf8")).not.toContain("host-private-token-not-for-artifacts");
+    vi.unstubAllEnvs();
+  });
+
+  it("persists an explicit Dockerfile selection for the shared launch executor", async () => {
+    patchRun(fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbuild:\n  mode: auto\n" }));
+    const result = await generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "dockerfile" });
+    const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, unknown>;
+    expect(manifest["build"]).toEqual({ mode: "dockerfile" });
+  });
+
   it("assembles missing native preparation from the provider image and final source bytes", async () => {
     const run = patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" });
@@ -598,7 +615,7 @@ describe("TestValidateTemplateWorkspace", () => {
     expect(written).toContain("spec_version: 5");
     expect(written).toContain(`name: ${result.templateName}`);
     expect(written).toContain("ports:\n- 9000\n- 8080");
-    expect(safeLoad(written)).toEqual(safeLoad(manifestYaml(`name: ${result.templateName}\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\n`)));
+    expect(safeLoad(written)).toEqual(safeLoad(manifestYaml(`name: ${result.templateName}\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\nenv: {ABX_SERVER_TOKEN: ""}\n`)));
   });
 });
 

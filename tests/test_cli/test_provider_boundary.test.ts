@@ -3,7 +3,7 @@ import "../_support/isolatedHome.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requireTemplateFeature } from "../../src/providers/alicloud_express/cli/selection.js";
 import { requireTemplateFeature as legacyTemplateFeature } from "../../src/providers/alicloud_express/cli/selection.js";
-import { _generateAndDeployTemplate } from "../../src/cli/commands/sandbox.js";
+import { _generateAndLaunchTemplate } from "../../src/cli/commands/sandbox.js";
 import { _doDeploy, templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import type { Context } from "../../src/cli/kit.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
@@ -43,7 +43,7 @@ describe("provider template boundary", () => {
 
   it("checks the selected backend before invoking natural-language generation for cloud deploy", async () => {
     selectForeign();
-    await expect(_generateAndDeployTemplate({} as Context, "test environment", {
+    await expect(_generateAndLaunchTemplate({} as Context, "test environment", {
       yes: true, acr_namespace: null, verbose: false,
     })).rejects.toBeInstanceOf(ProviderFeatureNotSupportedError);
   });

@@ -21,6 +21,8 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 
 自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a1` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
 
+新生成应用在调用模型前需要运行时 `ABX_SERVER_TOKEN`；仅生成本地文件时不需要。`create --prompt` 复用同一个模板整体启动流程，并返回模板引用和服务地址。
+
 ## 网站
 
 | 网站 | 地址 |

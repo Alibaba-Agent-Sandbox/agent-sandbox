@@ -38,7 +38,7 @@ function setup() {
     provides: {app: {protocol: "agent-sandbox-server",version: 2,port: 9000,operations: ["commands.run","commands.list"]}}}));
   fs.writeFileSync(path.join(directory, "Dockerfile"), "FROM python:3.12-slim\nCOPY *.whl /tmp/\nRUN echo fallback\n");
   const provider = new ProjectProvider(); registerProvider(provider); setCliProvider(provider.id);
-  const sandbox = { network: {resolveEndpoint: vi.fn(async (port: number) => ({url: `https://fixture.example/${port}`}))}, id: "owned-sandbox", verifyApplicationOperation: vi.fn(async () => undefined), listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
+  const sandbox = { info: { template: "fixture-template" }, status: "running", url: "https://envd.fixture.example", network: {resolveEndpoint: vi.fn(async (port: number) => ({url: `https://fixture.example/${port}`}))}, id: "owned-sandbox", verifyApplicationOperation: vi.fn(async () => undefined), listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
     commands: { run: vi.fn(async (_command: string, _options?: unknown) => ({ exit_code: 0 })) } };
   const create = vi.spyOn(launchSeams, "create").mockResolvedValue(sandbox as unknown as Sandbox);
   return { directory, provider, sandbox, create, invoke: (extra: string[] = []) => new CliRunner().invoke(cli, ["--json", "template", "launch", directory, "-y", ...extra]) };
