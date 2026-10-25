@@ -30,3 +30,9 @@ Two early probe runs placed the native exec selector incorrectly or overlapped a
 ## Not yet verified
 
 Source steps completion, final full-suite result, candidate installed-package verification, remote CI and the Docker/OpenSandbox template matrix. No claim of merged or published changes is made. No Docker executable is present locally; the focused Express steps path does not replace that matrix.
+
+## Candidate follow-up
+
+- Real Express final runner completed successfully; see [focused cloud evidence](2026-10-25-unified-template-cloud.md).
+- Packed CLI 0.5.0 with `npm pack`, installed its tarball into an isolated prefix, and ran `node scripts/check-release-artifact.mjs INSTALLED_ABX`: PASS (version, terminal guidance, JSON output, root/standard/native help, notices).
+- First remote Node 20/22 runs found four stale test expectations: one scaffold assertion and three v4 capability fixtures. They are being migrated to current declarations. Local CubeSandbox/engine failures returned environment proxy HTTP 501 for loopback fixture traffic; these did not occur in the remote CI run. Final gating remains in progress.
