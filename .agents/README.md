@@ -2,7 +2,7 @@
 
 ## Pending minimal patch — 2026-10-25
 
-CLI 0.5.4 prepares matched Python 0.4.0a3 consumption and preserves definite native template absence as existing E2001. Python publication, real generated-artifact checks and CLI publication remain pending. [Decision](notes/proposed/process/2026-10-25-cli-054-runtime-consumption.md) · [verification](evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
+CLI 0.5.4 prepares matched Python 0.4.0a3 consumption and preserves definite native template absence as existing E2001. Python 0.4.0a3 is published; real generated-artifact checks and CLI publication remain pending. [Decision](notes/proposed/process/2026-10-25-cli-054-runtime-consumption.md) · [verification](evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
 
 ## Current public patch delivery — 2026-10-25
 

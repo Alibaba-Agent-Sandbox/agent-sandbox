@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "transport": "in-process ASGITransport; candidate CLI0.5.4-generated app with public SDK0.4.0a3 and real cloud tools; not network HTTP",
+  "checks": {
+    "asgi_initialize": true,
+    "create_running": true,
+    "command_42": true,
+    "file_bytes": true,
+    "independent_typed_404": true
+  },
+  "cloud_requests": 5,
+  "versions": {
+    "agent-sandbox-client": "0.4.0a3",
+    "agent-sandbox-server": "0.4.0a3"
+  },
+  "owned_sandbox_absent": true
+}

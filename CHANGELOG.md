@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-10-25
+
 ### Fixed
 
 - Recognize existing dated JSON evidence receipts in repository-health references without relaxing ADR names or ignoring missing files. / 仓库健康检查识别真实存在的日期化 JSON 验证记录，不放宽 ADR 命名或忽略缺失文件。
@@ -14,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
-- Prepare CLI 0.5.4 with matched Python client/server 0.4.0a3 for generated applications, standard Python scaffolds and MCP artifacts, consuming the SDK readiness-command polling correction. Publication remains gated on the actual public Python release and artifact checks. / CLI 0.5.4 的生成应用、标准 Python 脚手架和 MCP 产物统一准备使用 Python 0.4.0a3，消费 SDK 就绪命令轮询修复；发布仍需公开 Python 发行与真实产物检查通过。
+- Use matched Python client/server 0.4.0a3 for generated applications, standard Python scaffolds and MCP artifacts, consuming the SDK readiness-command polling correction. / CLI 0.5.4 的生成应用、标准 Python 脚手架和 MCP 产物统一使用公开 Python 0.4.0a3，消费 SDK 就绪命令轮询修复。
 
 ### Tests
 
