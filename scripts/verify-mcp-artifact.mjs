@@ -27,8 +27,8 @@ const metadata = spawnSync(python, ['-c',
   { encoding: 'utf8', env: environment });
 assert.equal(metadata.status, 0, metadata.stderr);
 const versions = JSON.parse(metadata.stdout);
-assert.equal(versions['agent-sandbox-client'], '0.4.0a2');
-assert.equal(versions['agent-sandbox-server'], '0.4.0a2');
+assert.equal(versions['agent-sandbox-client'], '0.4.0a3');
+assert.equal(versions['agent-sandbox-server'], '0.4.0a3');
 const token = randomBytes(32).toString('base64url');
 Object.assign(environment, {
   ABX_MCP_AUTH_TOKEN: token,

@@ -74,7 +74,7 @@ Which `FROM`, whether `ENTRYPOINT` may be replaced, `CMD` versus a platform `sta
 
 - `alicloud-express` uses `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`, does not set `CMD` or `ENTRYPOINT`, and starts the server with the platform `start_cmd` / `ready_cmd`. Workdir is `/home/user/app`. Ports 49983, 5000, and 49999 are reserved by that profile.
 - Any other provider uses the generic profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) unless its `abx-provider.toml` declares a `[template]` table. A missing profile is not the FC image; the generator names the provider id that had none.
-- Images install `agent-sandbox-server==0.4.0a2` from the official PyPI index. Scaffolding and natural-language generation share this runtime pin. An explicit `ABX_SERVER_SDK_SOURCE` builds and injects a local development wheel; normal builds use the published runtime.
+- Images install `agent-sandbox-server==0.4.0a3` from the official PyPI index. Scaffolding and natural-language generation share this runtime pin. An explicit `ABX_SERVER_SDK_SOURCE` builds and injects a local development wheel; normal builds use the published runtime.
 
 ---
 

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { rewriteDockerfileForServerInstall } from "../../src/providers/alicloud_express/docker_builder.js";
 import { SERVER_SDK_RELEASE_SPEC } from "../../src/utils/server_sdk_pin.js";
 
-const WHEEL = "agent_sandbox_server-0.4.0a2-py3-none-any.whl";
+const WHEEL = "agent_sandbox_server-0.4.0a3-py3-none-any.whl";
 const INSTALL = `pip install --no-cache-dir "${SERVER_SDK_RELEASE_SPEC}"`;
 
 /** Read shell-form RUN bodies independently, then let the actual shell validate the result. */

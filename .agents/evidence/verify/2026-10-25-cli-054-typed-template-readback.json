@@ -1,0 +1,26 @@
+{
+  "result": "PASS",
+  "resource_created": false,
+  "read_only_comparison": [
+    {
+      "cli": "public-0.5.3",
+      "exit_code": 1,
+      "status": "error",
+      "code": "E5000",
+      "exact_previously_owned_deleted_template": true
+    },
+    {
+      "cli": "candidate-0.5.4",
+      "exit_code": 4,
+      "status": "error",
+      "code": "E2001",
+      "exact_previously_owned_deleted_template": true
+    }
+  ],
+  "input_provenance": "exact generated-template ID from prior public 0.5.3 prompt case owned cleanup receipt; ID omitted",
+  "candidate_text_readback": {
+    "exit_code": 4,
+    "typed_code_visible": true,
+    "resource_created": false
+  }
+}

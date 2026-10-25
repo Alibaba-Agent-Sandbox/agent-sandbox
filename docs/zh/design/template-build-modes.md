@@ -78,6 +78,6 @@ build:
 把显式模式传给生成和部署。Provider 提供已解析的基础镜像，CLI 从最终本地源码字节
 确定性组装文件传输步骤，因为不会上传 COPY 上下文。先写文件并设置 WORKDIR，再执行
 模型声明的 build.run 依赖命令，让相对路径依赖清单可用；WORKDIR 后修正所有权并恢复提供方运行用户。生成指导使用官方 PyPI 的已发布 alpha
-`agent-sandbox-server==0.4.0a2`。自然语言流水线等待 Ready 后才创建沙箱；
+`agent-sandbox-server==0.4.0a3`。自然语言流水线等待 Ready 后才创建沙箱；
 直接 `template deploy --build steps` 仍只确认提交，需要另行轮询 `template info`。
 默认 Docker 路线保持不变；模型生成代码仍是需要审阅和测试的产物。

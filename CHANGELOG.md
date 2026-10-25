@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Recognize existing dated JSON evidence receipts in repository-health references without relaxing ADR names or ignoring missing files. / 仓库健康检查识别真实存在的日期化 JSON 验证记录，不放宽 ADR 命名或忽略缺失文件。
+- Name the actual agent-sandbox-client in generated Python installation hints; TypeScript retains its external e2b dependency. / 生成的 Python 安装提示使用实际的 agent-sandbox-client 名称，TypeScript 仍保留外部 e2b 依赖。
+- Preserve the official structured missing-template response as existing typed E2001 instead of a network failure; cleanup tests reject old message-based absence fallbacks (#173). / 官方结构化模板不存在响应复用现有 E2001 类型，不再当作网络失败；清理测试删除基于错误文字的旧回退。
+
+### Changed
+
+- Prepare CLI 0.5.4 with matched Python client/server 0.4.0a3 for generated applications, standard Python scaffolds and MCP artifacts, consuming the SDK readiness-command polling correction. Publication remains gated on the actual public Python release and artifact checks. / CLI 0.5.4 的生成应用、标准 Python 脚手架和 MCP 产物统一准备使用 Python 0.4.0a3，消费 SDK 就绪命令轮询修复；发布仍需公开 Python 发行与真实产物检查通过。
+
 ### Tests
 
 - Run maintained known-issue regressions through the current native Express surface, use base and assert typed timeout errors without obsolete text. / 已知问题回归统一当前原生极速版入口，默认使用 base，按类型验证超时错误，删除旧文案断言。

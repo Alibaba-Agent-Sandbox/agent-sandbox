@@ -309,7 +309,8 @@ for (const p of files) {
 if (bad.length) R("FAIL", `${bad.length} ADR(s) violate .agents/notes/README.md rules; first: ` + bad.slice(0, 3).join("; "));
 else R("PASS", "every ADR has a dated name, '# Decision:' title and Status matching its directory");
 
-const stems = new Set(files.filter((p) => adrRe.test(path.basename(p))).map((p) => path.basename(p).replace(/\.md$/, "")));
+const evidenceName = /^\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*\.(?:md|json)$/;
+const stems = new Set(files.filter((p) => evidenceName.test(path.basename(p))).map((p) => path.basename(p).replace(/\.(?:md|json)$/, "")));
 const dangling = new Map();
 for (const p of files.filter((f) => /\.(md|txt)$/.test(f) && rel(f) !== "docs/design/repository-layout.md")) {
   const t = read(p).replace(/\[[^\]]*\]\(https?:\/\/[^)]*\)|https?:\/\/\S+/g, "");

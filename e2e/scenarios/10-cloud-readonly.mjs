@@ -60,10 +60,10 @@ export default {
             !info.runtimeConfig || typeof info.runtimeConfig !== 'object' || Array.isArray(info.runtimeConfig)) ctx.fail('native template info must preserve successful typed official response');
       },
     },
-    { id: 'template-info-missing', title: 'official template info preserves its current typed network wrapper and exact backend 404 diagnostic', argv: ['--native', 'template', 'info', 'tpl-does-not-exist'], exit: 1, output: ['E5000', 'GetTemplate API call failed', 'TemplateNotFound', '404', 'template not found'] },
+    { id: 'template-info-missing', title: 'official template info reports typed template absence', argv: ['--native', 'template', 'info', 'tpl-does-not-exist'], exit: 4, output: ['E2001', 'was not found'] },
     {
-      id: 'template-info-missing-json', title: 'official missing template JSON preserves E5000 and the exact backend error', argv: ['--native', '--json', 'template', 'info', 'tpl-does-not-exist'], exit: 1,
-      jsonShape: { status: 'string', code: 'string', message: 'string' }, json: (j) => { if (j.status !== 'error' || j.code !== 'E5000' || !/GetTemplate API call failed/.test(j.message) || !/TemplateNotFound/.test(j.message) || !/404/.test(j.message)) throw new Error('missing-template response did not preserve the official API diagnostic'); },
+      id: 'template-info-missing-json', title: 'official missing template JSON returns typed E2001', argv: ['--native', '--json', 'template', 'info', 'tpl-does-not-exist'], exit: 4,
+      jsonShape: { status: 'string', code: 'string', message: 'string' }, json: (j) => { if (j.status !== 'error' || j.code !== 'E2001') throw new Error('missing-template info must return typed E2001'); },
     },
     { id: 'template-delete-missing', title: 'official delete of an unknown template preserves its exact backend 404 diagnostic', argv: ['--native', '--json', 'template', 'delete', 'tpl-does-not-exist', '--yes'], exit: 1, jsonShape: { status: 'string', code: 'string', message: 'string' }, json: (j) => { if (j.status !== 'error' || j.code !== 'E5000' || !/DeleteTemplate API call failed/.test(j.message) || !/TemplateNotFound/.test(j.message) || !/404/.test(j.message)) throw new Error('missing-template delete did not preserve the official API diagnostic'); } },
     {

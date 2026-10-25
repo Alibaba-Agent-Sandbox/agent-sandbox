@@ -49,6 +49,9 @@ const __dirname = typeof __filename === "string" ? abxDirname(__filename) : abxD
 const runtimeFile = path.join(output, "runtime.mjs");
 let runtime = fs.readFileSync(runtimeFile, "utf8");
 if (!/\.name\(["`]e2b["`]\)/.test(runtime)) throw new Error("Pinned program name changed; review source update");
+const pythonHint = 'asPrimary(`pip install e2b`)} (install e2b dependency)';
+if (runtime.split(pythonHint).length - 1 !== 2) throw new Error("Pinned Python installation hints changed");
+runtime = runtime.replaceAll(pythonHint, pythonHint.replace("(install e2b dependency)", "(install agent-sandbox-client dependency)"));
 runtime = runtime.replaceAll("pip install e2b", JSON.stringify(pythonInstall).slice(1, -1));
 runtime = runtime.replace(/\.name\(["`]e2b["`]\)/, '.name("abx")').replaceAll("e2b sandbox exec", "abx sandbox exec");
 if (!runtime.includes("main(), exports.pkg = pkg;")) throw new Error("Pinned command completion entry changed");
