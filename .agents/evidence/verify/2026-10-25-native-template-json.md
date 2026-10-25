@@ -19,7 +19,7 @@ The actual native command callback preserves nested objects, arrays, numeric, bo
 - `node scripts/capture-cli-evidence.mjs --command template-info --out CAPTURE_DIR`: one affected offline command capture, preserved in [CLI evidence](../cli/native-template-info-20261025.md), not cloud proof.
 
 - `npm run typecheck`, `npm run lint`, `npm run check:hygiene`, `bash scripts/check-repo-health.sh`: PASS (lint 0 errors; health 106 PASS/0 FAIL).
-- Initial `npm test`: 4353 PASS, 13 FAIL, 50 SKIP. One failure was the old string-valued E2E fixture, corrected to structured values; remaining failures are the two existing local plugin-host version mismatches and ten transport/proxy interception expectations. Focused updated command/cloud-harness rerun: 150 PASS. Current-head CI follows.
+- Initial `npm test`: 4353 PASS, 13 FAIL, 50 SKIP. One failure was the old string-valued E2E fixture, corrected to structured values; remaining failures are the two existing local plugin-host version mismatches and ten transport/proxy interception expectations. Focused updated command/cloud-harness rerun: 150 PASS. Final full-suite rerun: 4354 PASS, 12 environment FAIL, 50 SKIP; no changed-command failure remains. Current-head CI follows.
 
 ## Cleanup
 
