@@ -1,6 +1,6 @@
 # Launch a template
 
-Spec v5 templates require CLI 0.5.0. Upgrade the CLI and template catalog together.
+Spec v5 templates require CLI 0.5.0 or newer. Upgrade the CLI and template catalog together.
 
 Configure the [provider](providers.md), then launch a Registry source template:
 

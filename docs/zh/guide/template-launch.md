@@ -1,6 +1,6 @@
 # 启动模板
 
-spec v5 模板需要 CLI 0.5.0。CLI 与模板目录需同步升级。
+spec v5 模板需要 CLI 0.5.0 或更新版本。CLI 与模板目录需同步升级。
 
 配置好 [Provider](providers.md) 后，直接启动 Registry 中的源码模板：
 
