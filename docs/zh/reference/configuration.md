@@ -189,6 +189,8 @@ abx config init
 
 `access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，不会自动交换沙箱 API Key。
 
+配置列表、读取结果和设置确认会对 AccessKey ID 与 Secret 脱敏，包括 JSON 和指定 Provider 的命令；认证使用的存储值仍然完整。
+
 沙箱运行时仍须独立配置 API Key。详见 [认证详解](../guide/authentication.md#aksk-阿里云扩展认证-)。
 
 ---

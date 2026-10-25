@@ -77,7 +77,7 @@ runtime = runtime.replace(helpAnchor, `
 sandboxCommand.addHelpText("after", "\\nAgent Sandbox extensions: upload, download, files, process, command, system, capabilities. Use each command's --help.");
 templateCommand.addHelpText("after", "\\nAgent Sandbox extensions: from-image, build, deploy, scaffold, install, push, search, info. Use scaffold --prompt for generation or scaffold --adopt for an existing project.");
 for (const abxCommand of sandboxCommand.commands) {
-  if (abxCommand.name() === "create" || abxCommand.name() === "spawn") abxCommand.addHelpText("after", "\\nAgent Sandbox: --prompt <description> generates a template before creation. Use abx create --prompt DESCRIPTION --help for its --yes, --detach and --build options.");
+  if (abxCommand.name() === "create" || abxCommand.name() === "spawn") abxCommand.addHelpText("after", "\\nStandard create expects a registered platform template ID or alias. For Git Registry source, use abx template launch SOURCE --yes.\\nAgent Sandbox: --prompt <description> generates a template before creation. Use abx create --prompt DESCRIPTION --help for its --yes, --detach and --build options.");
 }
 program.hook("preAction", async (_program, command) => {
   const hook = globalThis[Symbol.for("agent-sandbox.cli.configuration")];

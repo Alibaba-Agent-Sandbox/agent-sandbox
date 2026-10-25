@@ -49,8 +49,9 @@ Details: docs/en/design/architecture.md
 Install: `npm install -g @agent-sandbox/cli`
 
 ```
-abx create --template python-hello # create sandbox
-abx exec <id> -- echo hello          # run command (--stream, --background)
+abx create base --detach            # create from a registered platform template
+abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes # Registry source; configure provider/build first
+abx exec <id> -- echo hello          # run command; --background starts a background process
 abx run <id> <name> --arg k=v       # named command on the in-sandbox server
 abx upload <id> ./local /remote     # file transfer
 abx mcp start                       # start MCP server (STDIO)

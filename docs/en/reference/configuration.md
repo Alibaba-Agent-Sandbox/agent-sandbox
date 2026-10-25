@@ -189,6 +189,8 @@ The interactive wizard prompts for: the sandbox API key, the default region, the
 
 When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for official template/image/ACR control-plane operations, never automatic sandbox-key exchange.
 
+Configuration listing, get output and set acknowledgements mask the AccessKey ID and secret, including JSON and provider-qualified commands. Stored values remain complete for authentication.
+
 Sandbox runtime requests still require a separate API key. See [Authentication](../guide/authentication.md#aksk-alibaba-cloud-extended-authentication-) for details.
 
 ---

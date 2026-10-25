@@ -194,7 +194,7 @@ describe("TestConfigAlicloudCredentials", () => {
 
   const EXAMPLE_ACCESS_KEY_ID = "LTAI" + "5tExampleAkId";
 
-  it("test_set_access_key_id_plain", async () => {
+  it("test_set_access_key_id_masked", async () => {
     const tmp = tmpPath();
     const configFile = path.join(tmp, "config.toml");
     const envFile = path.join(tmp, ".env");
@@ -203,8 +203,9 @@ describe("TestConfigAlicloudCredentials", () => {
     );
 
     expect(result.exit_code).toBe(0);
-    // AK id is not sensitive: shown in full, written to .env, not config.toml.
-    expect(result.output).toContain(EXAMPLE_ACCESS_KEY_ID);
+    // The identifier is masked in output but preserved for authentication/storage.
+    expect(result.output).not.toContain(EXAMPLE_ACCESS_KEY_ID);
+    expect(result.output).toContain("***");
     expect(fs.statSync(envFile).isFile()).toBe(true);
     expect(readText(envFile)).toContain("ALICLOUD_ACCESS_KEY_ID=" + EXAMPLE_ACCESS_KEY_ID);
     expect(exists(configFile)).toBe(false);
@@ -240,14 +241,15 @@ describe("TestConfigAlicloudCredentials", () => {
     expect(readText(envFile)).toContain("ALICLOUD_ACCESS_KEY_SECRET=SecretValue1234567890");
   });
 
-  it("test_get_access_key_id_plain", async () => {
+  it("test_get_access_key_id_masked", async () => {
     const tmp = tmpPath();
     fs.writeFileSync(path.join(tmp, ".env"), `ALICLOUD_ACCESS_KEY_ID=${EXAMPLE_ACCESS_KEY_ID}\n`);
     const result = await withConfig(storagePatch(tmp, { env: true }), () => runner().invoke(cli, ["config", "get", "access_key_id"]));
 
     expect(result.exit_code).toBe(0);
-    // Not sensitive: full value shown.
-    expect(result.output).toContain(EXAMPLE_ACCESS_KEY_ID);
+    // The stored identifier is not printed in full.
+    expect(result.output).not.toContain(EXAMPLE_ACCESS_KEY_ID);
+    expect(result.output).toContain("***");
   });
 
   it("test_get_access_key_secret_masked", async () => {
@@ -285,8 +287,9 @@ describe("TestConfigAlicloudCredentials", () => {
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("access_key_id");
     expect(result.output).toContain("access_key_secret");
-    // AK id shown in full, SK masked.
-    expect(result.output).toContain(EXAMPLE_ACCESS_KEY_ID);
+    // Both parts of the credential pair are masked in output.
+    expect(result.output).not.toContain(EXAMPLE_ACCESS_KEY_ID);
+    expect(result.output).toContain("***");
     expect(result.output).not.toContain("SecretValue1234567890");
     expect(result.output).toContain("***");
   });

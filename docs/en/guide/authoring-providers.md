@@ -51,7 +51,7 @@ Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The ho
 Two paths do **not** go through your plugin:
 
 - `abx create` with no `--provider`, no `ABX_PROVIDER`, and no config default stays on `alicloud-express`.
-- `abx create --prompt "a node api"` (a description, no `--template`) first runs the built-in template authoring pipeline (generate, build, deploy). Only the final `Sandbox.create` uses the selected provider. A provider without `templates.build` should be launched with `abx --provider my-cloud create --template <image-or-name>`.
+- `abx create --prompt "a node api"` runs generation and source acquisition in the host. The selected provider owns source preparation, sandbox creation and cleanup; the shared launcher starts the declared services. A provider without `templates.build` cannot prepare source. Use `abx --provider my-cloud create --template <image-or-name>` for an existing provider-native reference.
 
 `Sandbox.create(template="base", provider="my-cloud")` in Python is step 2 onward. It does not pass through the CLI. The installed plugin is still `~/.abx/providers/my-cloud`.
 

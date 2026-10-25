@@ -40,12 +40,29 @@ describe("standard executable contract", () => {
     },
   );
 
+  it("distinguishes registered platform templates from Registry source in create help", async () => {
+    const result = await run(["create", "--help"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("registered platform template ID or alias");
+    expect(result.stdout).toContain("For Git Registry source, use abx template launch SOURCE --yes");
+  });
+
+  it("keeps native template help explicit about platform references", async () => {
+    const result = await run(["--native", "create", "--help"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Provider-native template reference");
+    expect(result.stdout).toContain("already registered alias");
+    expect(result.stdout).not.toContain("abx create python-hello");
+  });
+
   it("makes AI retry explicit and accepts its prompt syntax", async () => {
     const suggestion = new AICodegenError("unavailable").suggestion;
     expect(suggestion).toContain('abx create --prompt "<description>"');
     const result = await run(["create", "--prompt", "a Python environment", "--help"]);
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("--prompt");
+    expect(result.stdout).toContain("qwen3-coder-plus");
+    expect(result.stdout).not.toContain("qwen-coder-plus");
   });
 
   it.each(["python", "node", "minimal"])("generates a gated detached %s workflow", async (caseName) => {

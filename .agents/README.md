@@ -228,3 +228,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Total command execution deadline](notes/proposed/feature/2026-10-25-command-total-deadline.md) · [verification](evidence/verify/2026-10-25-command-total-deadline.md) · [Issue 166](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/166).
 
 - [Current known-issue runner](notes/implemented/process/2026-10-25-current-known-issue-runner.md) · [verification](evidence/verify/2026-10-25-current-known-issue-runner.md).
+
+- [Configuration identifier privacy](notes/proposed/process/2026-10-25-access-key-identifier-masking.md) · [verification](evidence/verify/2026-10-25-access-key-identifier-masking.md) · [Issue175](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/175).

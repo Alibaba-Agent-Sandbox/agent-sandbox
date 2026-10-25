@@ -26,4 +26,9 @@ const extensions = new Map<string, ProviderCliExtension>([[CLI_EXTENSION.id, CLI
 export function registerProviderCliExtension(extension: ProviderCliExtension): void { extensions.set(extension.id, extension); }
 export function providerCliExtension(id = resolveProviderId(cliProvider())): ProviderCliExtension | undefined { return extensions.get(id); }
 
+/** Provider-owned display/input sensitivity; stored values and shared key schemas stay unchanged. */
+export function isProviderConfigSensitive(id: string, key: string, secret = false): boolean {
+  return secret || Boolean(providerCliExtension(id)?.configuration?.sensitive.includes(key));
+}
+
 export function bundledCliConfigurations(): readonly ProviderConfigUi[] { return [...extensions.values()].flatMap((extension) => extension.configuration ? [extension.configuration] : []); }
