@@ -12,7 +12,7 @@ Send the intermediate installation completion through existing `OutputManager.in
 
 ## API Design
 
-No new API or option. The documented stdout-result/stderr-diagnostic contract applies to the first installation as well as subsequent invocations.
+No new API or option. Current custom-command examples also use the existing public `command` and `start` exports; removed module-global registry imports are corrected in documentation rather than restored. The documented stdout-result/stderr-diagnostic contract applies to the first installation as well as subsequent invocations.
 
 ## Alternatives considered
 
@@ -23,6 +23,7 @@ No new API or option. The documented stdout-result/stderr-diagnostic contract ap
 ## Dependencies
 
 - https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/177
+- https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/178
 - Existing coding-agent backend installation and output manager.
 
 ## Test Strategy

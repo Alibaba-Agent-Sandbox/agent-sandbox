@@ -151,13 +151,14 @@ abx run abc123 add --json-args '{"x": 1, "y": 2}'
 在沙箱内用装饰器注册命令：
 
 ```python
-from agent_sandbox.server.registry import registry
+from agent_sandbox.server import command, start
 
-@registry.command("greet")
+@command("greet")
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
-registry.freeze()
+if __name__ == "__main__":
+    start(9000)
 ```
 
 字符串结果原样输出，其他值输出为 JSON（`--json` 包装为 `{"result": ...}`）。命令在服务器端失败时退出码为 1；名称不存在时退出码为 2（`CommandNotFoundError`）。

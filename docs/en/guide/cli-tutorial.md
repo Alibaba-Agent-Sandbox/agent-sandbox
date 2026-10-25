@@ -111,13 +111,14 @@ On a terminal the transfer shows `Downloading /app/result.csv... 12s`. The file 
 Named commands are registered in Python code running inside the sandbox (the in-sandbox `SandboxServer`). They are not declared in `template.yaml`.
 
 ```python
-from agent_sandbox.server.registry import registry
+from agent_sandbox.server import command, start
 
-@registry.command("greet")
+@command("greet")
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
-registry.freeze()
+if __name__ == "__main__":
+    start(9000)
 ```
 
 List and run them:

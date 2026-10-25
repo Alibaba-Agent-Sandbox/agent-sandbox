@@ -1,0 +1,7 @@
+{
+  "server_version": "0.4.0a4",
+  "original_current_example": "from agent_sandbox.server.registry import registry",
+  "actual_failure_type": "ImportError",
+  "removed_alias_not_restored": true,
+  "no_cloud_calls": true
+}

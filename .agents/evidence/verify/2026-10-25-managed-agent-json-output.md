@@ -36,3 +36,9 @@ This run used a candidate build carrying the base package version 0.5.4 and publ
 ## Pending
 
 Final public SDK consumption/generation checks; owner CI, independent review, five platform binaries, official GitHub/npm publication and fresh public developer reruns. Candidate package strings do not prove publication.
+
+## Current command-registration examples
+
+Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/178. A separate current-docs scan found the tutorial and CLI reference in both languages still importing a nonexistent module-global `registry` from the server package. Public server0.4.0a4 raises ImportError for that [original import](2026-10-25-cli-command-docs-original-import.json). The four current examples now use the existing `command`/`start` exports and a normal `__main__` startup guard; no alias or runtime mechanism is added. The explicitly historical e2e-template-workflow captures remain unchanged.
+
+Each corrected **actual document block** ran in its own real local HTTP subprocess with public server0.4.0a4. Command discovery reported the required string argument, POST returned `Hello, World!`, missing authentication returned401, and every exact owned PID was independently absent after termination. [Receipt](2026-10-25-cli-command-docs-public-a4.json). SKILL, references and standard scaffold sources contain no matching removed global-registry import. Final coordinated SDK6 replay remains pending; these a4 observations will not be relabelled.

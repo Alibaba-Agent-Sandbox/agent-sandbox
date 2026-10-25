@@ -111,13 +111,14 @@ abx download sbx-xxxx /app/result.csv ./result.csv
 具名命令在沙箱内运行的 Python 代码（沙箱内 `SandboxServer`）中注册，不在 `template.yaml` 中声明。
 
 ```python
-from agent_sandbox.server.registry import registry
+from agent_sandbox.server import command, start
 
-@registry.command("greet")
+@command("greet")
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
-registry.freeze()
+if __name__ == "__main__":
+    start(9000)
 ```
 
 列出并运行：

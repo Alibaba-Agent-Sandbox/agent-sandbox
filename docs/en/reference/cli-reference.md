@@ -152,13 +152,14 @@ abx run abc123 add --json-args '{"x": 1, "y": 2}'
 Register a command with the decorator inside the sandbox:
 
 ```python
-from agent_sandbox.server.registry import registry
+from agent_sandbox.server import command, start
 
-@registry.command("greet")
+@command("greet")
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
-registry.freeze()
+if __name__ == "__main__":
+    start(9000)
 ```
 
 A string result is printed as is, any other value as JSON (`--json` wraps it as `{"result": ...}`). A command that fails on the server exits 1; an unknown name exits 2 (`CommandNotFoundError`).

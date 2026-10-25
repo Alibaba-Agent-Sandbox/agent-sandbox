@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Use the actual command/start server exports in current custom-command documentation, with working standalone startup (#178). / 当前具名命令说明使用实际 command/start 导出及可运行的启动方式。
 - Keep the first managed coding-agent installation diagnostic on stderr so `--json create --prompt` produces one parseable final result (#177). / 首次自动安装 coding agent 的完成提示写入 stderr，确保 `--json create --prompt` 只输出一个可解析的最终结果。
 
 ## [0.5.4] - 2026-10-25
