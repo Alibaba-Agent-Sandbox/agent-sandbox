@@ -134,7 +134,7 @@ export async function ensureCodingAgentBinary(ctx: Context, opts: { yes: boolean
     },
     { tick: true },
   );
-  out.success(`Installed ${backend.displayName}: ${installed}`);
+  out.info(`Installed ${backend.displayName}: ${installed}`);
   return installed;
 }
 

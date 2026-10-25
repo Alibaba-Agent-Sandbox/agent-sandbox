@@ -1077,6 +1077,7 @@ abx create my-ml-env
 
 由此得到的保证：
 
+- 托管 coding agent 的安装属于中间过程：首次执行 `create --prompt` 时，安装完成提示也写入 stderr。JSON 模式下 stdout 只包含命令的最终结果。
 - `--json` 模式下 stdout 始终是**单个 JSON 文档**；`info` / `warning` / `progress` / `debug` / `error` 的 JSON 形态改为写入 stderr。
 - 库侧 warning 与 DEBUG 诊断统一经 root logger 上的单一 handler 桥接，因此同一条告警只渲染一次（不再出现 SDK 带时间戳行与宿主 `WARNING:` 行各一遍）。
 - 进度 spinner 渲染在 stderr；每次写输出前先暂停活动 spinner、写完再恢复，状态与结果不会交错。

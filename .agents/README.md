@@ -235,3 +235,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [CLI 0.5.4 report follow-up](evidence/verify/2026-10-25-cli-054-report-follow-up.md) records the integrated candidate checks; public release and developer reruns remain separate.
 
 - [Active Express source entry cleanup](evidence/verify/2026-10-25-cli-054-active-source-script.md) separates current argument/preflight proof from the still-blocked default Docker cloud run.
+
+- [Managed coding-agent JSON output](notes/proposed/process/2026-10-25-managed-agent-json-output.md) · [verification](evidence/verify/2026-10-25-managed-agent-json-output.md)
