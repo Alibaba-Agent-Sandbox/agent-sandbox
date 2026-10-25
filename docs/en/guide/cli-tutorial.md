@@ -6,33 +6,35 @@ This tutorial walks you through mastering the `abx` CLI step by step, covering t
 
 ## Step 1: Installation
 
-```bash
-# Build this checkout until the new release is published
-npm ci
-npm run build
-node dist/bin/abx.js --version
-```
-
-Examples below use the installed binary name abx. From this checkout, replace that prefix with `node /absolute/path/dist/bin/abx.js`:
+Requires Node.js 20 or newer. Install the exact official npm release and check which version runs:
 
 ```bash
+npm install --global @agent-sandbox/cli@0.5.5 --registry=https://registry.npmjs.org
 abx --version
 ```
+
+The expected version is `0.5.5`. For standalone binaries, OS-specific installation or source development, use the [installation guide](binary-installation.md).
 
 ---
 
 ## Step 2: Authentication
 
+This tutorial uses Alibaba Cloud Express. Select the provider for the current terminal:
+
+```bash
+export ABX_PROVIDER=alicloud-express
+```
+
 ### Set API Key via config
 
 ```bash
-abx config set sandbox_api_key your-api-key
+abx config set sandbox_api_key
 ```
 
 ### Or via Environment Variable
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="<YOUR_SANDBOX_API_KEY>"
 ```
 
 > For more authentication methods (AK/SK, .env files, config.toml, etc.), see [Authentication](authentication.md).
@@ -49,13 +51,15 @@ abx create base --detach --timeout 300
 
 Without --detach create opens a real PTY; its default exit policy shortens the lease (Alibaba minimum TTL applies). For an existing sandbox, connect opens a PTY and leaves that sandbox alive after terminal exit.
 
-Natural language is an explicit project extension:
+Optional generation requires model credentials and an application token in addition to the platform key; complete the [generation setup](using-templates.md#natural-language-creation) before these commands. The basic `base` lifecycle above requires neither a model nor this application service. Start with a small standard-library application:
 
 ```bash
-abx create --prompt "a Python data analysis environment"
-abx create --prompt "a Node.js API server" -y
-abx template scaffold --prompt "a Python data analysis environment"
+abx create --prompt "a Python sandbox with an add command accepting two integers"
+abx create --prompt "a Python sandbox with an add command accepting two integers" -y
+abx template scaffold --prompt "a Python sandbox with an add command accepting two integers"
 ```
+
+Larger dependency stacks have separate build requirements; the unresolved [pandas/matplotlib timeout](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131) is not resolved by the small addition example.
 
 The project generation path may research requirements and ask for missing user choices, then build/deploy after confirmation. The scaffold command writes local files. `template init --name demo --language python-sync` instead generates standard SDK build files; Python output imports agent_sandbox. Existing template creation needs neither LLM nor --template. Upload files separately:
 
@@ -70,7 +74,7 @@ abx list --state running --limit 5 --format json
 abx info <sandbox-id> --format json
 ```
 
-Standard output uses E2B models and --format; the project's global JSON envelope is a separate extension interface. Keep E2B_API_KEY, E2B_API_URL and E2B_DOMAIN configured.
+Standard output uses the fixed models and `--format`; keep the project `ABX_SANDBOX_*` configuration from Step 2. The standard Express entry also honors `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN` for existing external integrations. If both sets are present in the same environment, that entry uses the E2B values. Those aliases do not configure other providers or project extensions. See [migration](migrate-from-e2b.md).
 
 ## Step 5: Execute Commands in a Sandbox
 
@@ -108,7 +112,7 @@ On a terminal the transfer shows `Downloading /app/result.csv... 12s`. The file 
 
 ## Step 7: Run Named Commands
 
-Named commands are registered in Python code running inside the sandbox (the in-sandbox `SandboxServer`). They are not declared in `template.yaml`.
+Named commands belong to an application running **inside the sandbox**. The stock `base` from Step 3 does not acquire this application by running Python on your own computer. Save the following as `commands.py` in a template project. The image must include the published `agent-sandbox-server==0.4.0a6` runtime; follow [Authoring Templates](authoring-templates.md) for its Dockerfile or provider build steps, port9000 service declaration, startup and readiness settings.
 
 ```python
 from agent_sandbox.server import command, start
@@ -121,15 +125,23 @@ if __name__ == "__main__":
     start(9000)
 ```
 
-List and run them:
+Set a long random application token in this terminal, and declare `env: {ABX_SERVER_TOKEN: ""}` in the template so launch supplies that value to the guest. The token is separate from the platform account key. The same terminal value is used by `abx run`:
 
 ```bash
-abx sandbox command list sbx-xxxx
-abx run sbx-xxxx greet --arg name=World          # same as: abx sandbox command run
-abx run sbx-xxxx add --json-args '{"x": 1, "y": 2}'
+export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
+abx --provider alicloud-express --json template launch ./my-command-template --yes
 ```
 
-> `registry` belongs to the in-sandbox server SDK, which is documented in the SDK repository (see [Related SDK documentation](#related-sdk-documentation)). A sandbox without a running server reports `No SandboxServer reachable`.
+Run this only after the linked authoring guide's provider preparation requirements are met. Save the returned `sandbox_id` as `APP_SANDBOX_ID`; this is the new application sandbox, not the earlier stock `base` ID:
+
+```bash
+export APP_SANDBOX_ID="<LAUNCH_RETURNED_SANDBOX_ID>"
+abx sandbox command list "$APP_SANDBOX_ID"
+abx run "$APP_SANDBOX_ID" greet --arg name=World
+abx run "$APP_SANDBOX_ID" greet --json-args '{"name": "World"}'
+```
+
+The result is `Hello, World!`. The service and client must receive the same `ABX_SERVER_TOKEN`; a missing or different application token is rejected. `start(9000)` runs in the guest through the template startup configuration. A sandbox without that running service reports `No SandboxServer reachable`. Delete the application sandbox by its exact ID when done; template/image retention is covered by the authoring guide.
 
 ---
 
@@ -155,8 +167,10 @@ abx template install owner/repo//subdir
 
 ### Use an Installed Template
 
+Only use `create` after deployment has returned an actual platform template ID or registered alias; a downloaded source folder is not that ID. For a Git Registry or local project, prefer `abx template launch SOURCE --yes`, which prepares and starts the whole template. See [Using Templates](using-templates.md).
+
 ```bash
-abx create my-template --detach
+abx create <REGISTERED_TEMPLATE_ID_OR_ALIAS> --detach
 ```
 
 ### Scaffold a Template Locally
@@ -285,7 +299,7 @@ Grey rows include a short redacted tool detail (command, url, query, or path), a
 
 ## Global Options
 
-Project extensions support --json/-j, --quiet/-q, --no-color, --verbose and --ci as documented by their help. Standard E2B commands retain their fixed options, such as list/info --format json. Use E2B_API_URL/E2B_DOMAIN for the standard endpoint; region flags apply only to project administration commands that explicitly offer them.
+Project extensions support --json/-j, --quiet/-q, --no-color, --verbose and --ci as documented by their help. Standard E2B commands retain their fixed options, such as list/info --format json. Use `ABX_SANDBOX_BASE_URL`/`ABX_SANDBOX_DOMAIN` for project configuration; the standard aliases described in Step 4 remain available for external integrations. Region flags apply only to project administration commands that explicitly offer them.
 
 See [CLI Reference — Global Options](../reference/cli-reference.md#global-options).
 

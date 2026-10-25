@@ -76,10 +76,17 @@ abx create my-python
 
 ## Natural Language Creation
 
-When you are unsure which template to use, you can describe your needs in natural language:
+For a generated application, first configure the selected provider and model. `abx config init --llm` is the existing interactive setup; automation can use the documented `ABX_LLM_API_KEY`, `ABX_LLM_BASE_URL` and `ABX_LLM_MODEL` values for its own available model. The platform key and model key have different purposes; see [Authentication](authentication.md) and [Authoring Templates](authoring-templates.md) for build prerequisites.
+
+Set a long random application token, then start with a small standard-library command:
 
 ```bash
-abx create --prompt "a Python data analysis environment with pandas and matplotlib"
+abx config init --llm
+export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
+```
+
+```bash
+abx create --prompt "a Python sandbox with an add command accepting two integers"
 ```
 
 New generated applications require a separate runtime application token. Export `ABX_SERVER_TOKEN` before creation, or provide it through the existing `-e ABX_SERVER_TOKEN=...` option. The CLI validates it before model work and injects it when starting the application; it does not write the token value into generated files or build steps. Generation-only remains local. The create JSON keeps its original fields and also returns `TemplateID` and `Services` for exact cleanup and application access.
@@ -91,15 +98,17 @@ For non-interactive use, add `--yes`; `--detach` is accepted and this generation
 The default uses local Docker and ACR. On Express, explicitly select the existing platform steps path when Docker is unavailable:
 
 ```bash
-abx create --prompt "a Python data analysis environment with pandas and matplotlib" \
+abx create --prompt "a Python sandbox with an add command accepting two integers" \
   --yes --detach --build steps --dir ./generated
 ```
 
-This still calls the real model. It generates self-contained `base.image` and `build.run` content, submits the template, waits for **Ready**, then creates the sandbox. Local source files are not uploaded as a COPY build context. The generated server uses the published `agent-sandbox-server==0.4.0a4` alpha from the official PyPI index; it is not a stable SDK release. Review the generated files and test their actual APIs. A model may produce invalid or unsuitable code; validation errors preserve the workspace and stop creation.
+This still calls the real model. It generates self-contained `base.image` and `build.run` content, submits the template, waits for **Ready**, then creates the sandbox. Local source files are not uploaded as a COPY build context. The generated server uses the published `agent-sandbox-server==0.4.0a6` alpha from the official PyPI index; it is not a stable SDK release. Review the generated files and test their actual APIs. A model may produce invalid or unsuitable code; validation errors preserve the workspace and stop creation.
 
 For generated native steps, the CLI uses the provider-resolved image, runtime user and workdir, installs the server, and writes the final local source bytes into the build recipe. The model only supplies business files and extra dependency commands in the existing `build.run` list. It does not encode source files or duplicate provider preparation fields. Invalid output still preserves the workspace and stops before deployment.
 
 `abx template deploy --build steps` by itself still returns **submitted**; inspect `abx template info <id>` until Ready before creating from that template. Generation and deployment require model credentials, sandbox API configuration and AK/SK; steps does not require ACR credentials.
+
+The small addition example does not establish a fix for the still-open [pandas/matplotlib build timeout](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131); large dependencies require their own build checks.
 
 ---
 

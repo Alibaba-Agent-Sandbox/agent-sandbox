@@ -144,8 +144,8 @@ abx run <SANDBOX_ID> <COMMAND_NAME> [选项]
 
 ```bash
 abx sandbox command list abc123
-abx run abc123 build --arg target=staging --arg n=2
-abx run abc123 add --json-args '{"x": 1, "y": 2}'
+abx run abc123 greet --arg name=World
+abx run abc123 greet --json-args '{"name": "World"}'
 ```
 
 在沙箱内用装饰器注册命令：
@@ -160,6 +160,8 @@ def greet(name: str) -> str:
 if __name__ == "__main__":
     start(9000)
 ```
+
+将它保存为应用模板中的 `commands.py`，在镜像中安装配套服务端运行时，并由启动配置**在沙箱内**执行。服务与 CLI 终端使用相同的 `ABX_SERVER_TOKEN`；本机执行文件不会把应用装入先前的原生沙箱。完整步骤见[具名命令教程](../guide/cli-tutorial.md)和[编写模板](../guide/authoring-templates.md)。
 
 字符串结果原样输出，其他值输出为 JSON（`--json` 包装为 `{"result": ...}`）。命令在服务器端失败时退出码为 1；名称不存在时退出码为 2（`CommandNotFoundError`）。
 

@@ -145,8 +145,8 @@ abx run <SANDBOX_ID> <COMMAND_NAME> [options]
 
 ```bash
 abx sandbox command list abc123
-abx run abc123 build --arg target=staging --arg n=2
-abx run abc123 add --json-args '{"x": 1, "y": 2}'
+abx run abc123 greet --arg name=World
+abx run abc123 greet --json-args '{"name": "World"}'
 ```
 
 Register a command with the decorator inside the sandbox:
@@ -161,6 +161,8 @@ def greet(name: str) -> str:
 if __name__ == "__main__":
     start(9000)
 ```
+
+Save this as `commands.py` in the application template. Its image must install the matching server runtime and start this file **inside the guest**. Supply the same `ABX_SERVER_TOKEN` to that service and the CLI terminal; the earlier stock sandbox does not acquire the application by running this file locally. See the [complete named-command tutorial](../guide/cli-tutorial.md) and [template authoring](../guide/authoring-templates.md).
 
 A string result is printed as is, any other value as JSON (`--json` wraps it as `{"result": ...}`). A command that fails on the server exits 1; an unknown name exits 2 (`CommandNotFoundError`).
 

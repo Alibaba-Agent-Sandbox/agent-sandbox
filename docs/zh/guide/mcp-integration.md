@@ -201,7 +201,7 @@ abx mcp deploy \
 | `app.py` | ASGI 入口，读取 FC 环境变量（`ABX_MCP_AUTH_TOKEN`、`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ABX_DEFAULT_TEMPLATE`） |
 | `config.yaml` | YAML 清单：函数名、地域、运行时 `python3.10`、handler `app.app`、内存/超时、环境变量、HTTP 触发器（POST/GET/DELETE）、会话亲和 |
 
-安装依赖使用 Python 客户端发行包 `agent-sandbox-client` 的 `mcp` extra；Python 导入命名空间仍为 `agent_sandbox`。生成的依赖从官方 PyPI 安装同版本 `0.4.0a4` 客户端与服务器。
+安装依赖使用 Python 客户端发行包 `agent-sandbox-client` 的 `mcp` extra；Python 导入命名空间仍为 `agent_sandbox`。生成的依赖从官方 PyPI 安装同版本 `0.4.0a6` 客户端与服务器。
 
 命令还会打印：手动 FC 部署步骤（打包 → 创建函数 → 创建 HTTP 触发器 → 如支持则启用 `Mcp-Session-Id` 亲和）以及指向 `<FC_HTTP_TRIGGER_URL>/mcp`、Bearer token 打码的 IDE 配置模板。
 
@@ -324,7 +324,7 @@ MCP 服务的 Python 实现——`python -m agent_sandbox.agent.mcp`、ASGI 入�
 
 `abx mcp deploy` 生成 ASGI 产物和手动 FC 部署步骤。依赖将
 `agent-sandbox-client[mcp]` 与 `agent-sandbox-server` 同时固定到公开版本
-`0.4.0a4`；使用
+`0.4.0a6`；使用
 `python -m pip install -r requirements.txt` 安装，导入名称仍为 `agent_sandbox`。
 生成的 Python HTTP 服务器与 Node CLI MCP 服务器是两个独立入口，应查询各自的
 `tools/list`，不要假设工具目录相同。

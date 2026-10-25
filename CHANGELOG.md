@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [0.5.5] - 2026-10-25
 
+### Changed
+
+- Align generated Python/MCP runtime dependencies with the reviewed public `0.4.0a6` pair and refresh current bilingual installation, generation and guest command examples; preserve valid generic provider flags while clarifying Express positional syntax. / 生成应用、Python 脚手架与 MCP 使用公开 SDK 0.4.0a6 配对依赖，更新当前双语安装、生成与沙箱内命令示例；保留合法插件参数，明确极速版使用位置参数。
+
 ### Fixed
 
 - Use the actual command/start server exports in current custom-command documentation, with working standalone startup (#178). / 当前具名命令说明使用实际 command/start 导出及可运行的启动方式。

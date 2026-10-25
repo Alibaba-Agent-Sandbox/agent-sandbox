@@ -40,3 +40,4 @@ Run actual CLI dispatch and output formatting with a first-install backend fixtu
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-10-25-managed-agent-json-output.md).
+- [Final public SDK6 consumption and preserved network diagnostics](../../../evidence/verify/2026-10-25-cli-055-public-a6-consumption.md).
