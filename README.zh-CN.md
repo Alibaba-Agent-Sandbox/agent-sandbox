@@ -19,6 +19,8 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 
 模板整体启动：`abx --provider PROVIDER template launch TEMPLATE --yes`。spec v5 删除 workflow 选择，返回全部声明的服务。spec v5 需要 CLI 0.5.1 或更新版本；CLI 与模板目录需同步升级。见[启动与迁移](docs/zh/guide/template-workflows.md)。
 
+自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a1` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
+
 ## 网站
 
 | 网站 | 地址 |

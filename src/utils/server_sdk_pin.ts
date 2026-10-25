@@ -4,7 +4,7 @@
  */
 
 /** Published, opt-in alpha used by newly generated application templates. */
-export const SERVER_SDK_RELEASE_SPEC = "agent-sandbox-server==0.3.1a1";
+export const SERVER_SDK_RELEASE_SPEC = "agent-sandbox-server==0.4.0a1";
 
 /** A Dockerfile pin of `server-sdk` from a python-sdk commit archive, any 40-hex SHA. */
 export const SERVER_SDK_ARCHIVE_PIN =

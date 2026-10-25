@@ -1,0 +1,412 @@
+{
+  "scope": "Source candidate before public publication; Express only",
+  "public_baseline_version": "0.5.1",
+  "client_version": "0.4.0a1",
+  "generated_server_version": "0.4.0a1",
+  "report": {
+    "prompt": "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果",
+    "model": "qwen3-coder-flash",
+    "generation_timeout_seconds": 1200,
+    "build_timeout_seconds": 600,
+    "versions": {
+      "cli": "abx, version 0.5.1",
+      "client": "0.4.0a1",
+      "python": "3.13.13"
+    },
+    "script_sha256": {
+      "run.py": "3b7f44a85fe9bf6ab40562e7c705102f23cba83d0c5b42e4b7c03a8b392b7dce",
+      "verify.py": "f639eb1bb2708974cf72e507099921dab45744f34b4752765ba2f066e66a9a97"
+    },
+    "create": {
+      "exit_code": 0,
+      "elapsed_seconds": 63.5,
+      "stdout": "{\n  \"ID\": \"<owned-resource>\",\n  \"Status\": \"running\",\n  \"Template\": \"abx-nl-python-add-82e6cf\",\n  \"URL\": \"https://49983-<owned-resource>.<redacted>\",\n  \"EnvdVersion\": \"0.6.1\",\n  \"provider\": \"alicloud-express\"\n}\n",
+      "stderr": "{\n  \"level\": \"progress\",\n  \"message\": \"Generating template\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Generating template with Qwen Code in <experiment-path> ...\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Creating template from platform steps: abx-nl-python-add-82e6cf\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Template registration submitted: <owned-resource>\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Waiting for generated template <owned-resource> to become ready...\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Template <owned-resource>: building (0s)\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Template <owned-resource>: building (16s)\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Template <owned-resource>: building (33s)\"\n}\n{\n  \"level\": \"progress\",\n  \"message\": \"Template <owned-resource>: ready (42s)\"\n}\n"
+    },
+    "generated_sha256": {
+      "commands.py": "1b2fccbc740f8b01f8bb4925d9b7d20e42b09f504101b1460620ab127d6b5582",
+      "Dockerfile": "ffee2365d41cc0c35f590a0e9cf0dd314e3444ca686d2fce1f0f50a230e41134",
+      "template.yaml": "1a62ab42c06dd4ce4873b4ee198f2771d4465ba01142ca81c95ce26810313f5a",
+      "README.md": "d7dce41f8280152491ab84ed669a3cb3e8ec173b46685afac26991355bea0e6a"
+    },
+    "verification": {
+      "exit_code": 0,
+      "output": "info PASS\nrequested-lifetime-and-kill-policy PASS\nexec PASS\ncapabilities PASS\nnon-root-writable-app PASS\nowned-data-directory PASS\nfile-write-read PASS\nfile-written-remove PASS\ndownload-generated-source PASS\ngenerated-source-sha256 PASS\nlist-0 PASS\nlist-contains-exact-owned-id PASS\ncommands PASS\nupload PASS\nadd PASS\nCLI-add-business PASS\nsample-upload PASS\nfile-list PASS\nfile-stat PASS\nfile-search PASS\ndownload PASS\nfile-mkdir PASS\nmkdir-postcondition PASS\nfile-move PASS\nmove-postconditions PASS\nfile-rm PASS\nremoved-stat-notfound PASS\nremove-postcondition PASS\nupload-download-sha256 PASS\nsystem-info PASS\nsystem-metrics PASS\nsystem-ports PASS\nsystem-packages PASS\nsystem-env PASS\nbackground PASS\nprocess-list PASS\nbackground-owned-pid PASS\nprocess-info PASS\nprocess-signal PASS\nprocess-list-after PASS\nowned-process-terminated PASS\nHTTP-health PASS\nGET-application-capabilities PASS\nGET-registered-commands PASS\nPOST-add-17-25 PASS\nPOST-add--15-7 PASS\nPOST-add-0-0 PASS\nPOST-add-2147483648-2147483648 PASS\nPOST-negative-400 PASS\nPOST-negative-404 PASS\nPTY-cwd-environment PASS\nAssertions 51 / 51\n"
+    },
+    "cleanup": [
+      {
+        "kind": "sandbox",
+        "absent": true,
+        "delete_exit_code": 0,
+        "typed_readback": "SandboxNotFoundError"
+      },
+      {
+        "kind": "template",
+        "absent": true,
+        "delete_exit_code": 0
+      }
+    ],
+    "passed": true
+  },
+  "assertions": [
+    {
+      "name": "info",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "requested-lifetime-and-kill-policy",
+      "passed": true,
+      "details": {
+        "lease_seconds": 900.0,
+        "on_timeout": "kill"
+      }
+    },
+    {
+      "name": "exec",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "capabilities",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "non-root-writable-app",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "owned-data-directory",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-write-read",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-written-remove",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "download-generated-source",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "generated-source-sha256",
+      "passed": true,
+      "details": {
+        "local": "1b2fccbc740f8b01f8bb4925d9b7d20e42b09f504101b1460620ab127d6b5582",
+        "remote": "1b2fccbc740f8b01f8bb4925d9b7d20e42b09f504101b1460620ab127d6b5582"
+      }
+    },
+    {
+      "name": "list-0",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "list-contains-exact-owned-id",
+      "passed": true,
+      "details": {
+        "attempts": 1,
+        "bounded_delay_seconds": 20
+      }
+    },
+    {
+      "name": "commands",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "upload",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "add",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "CLI-add-business",
+      "passed": true,
+      "details": {
+        "result": 42
+      }
+    },
+    {
+      "name": "sample-upload",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-list",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-stat",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-search",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "download",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-mkdir",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "mkdir-postcondition",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-move",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "move-postconditions",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "file-rm",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "removed-stat-notfound",
+      "passed": true,
+      "details": {
+        "exit_code": 4
+      }
+    },
+    {
+      "name": "remove-postcondition",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "upload-download-sha256",
+      "passed": true,
+      "details": "9dd50049f9d6da4ea6622612768fbf81f911c3e401b9d8e1caed607900e4f503"
+    },
+    {
+      "name": "system-info",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "system-metrics",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "system-ports",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "system-packages",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "system-env",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "background",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "process-list",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "background-owned-pid",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "process-info",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "process-signal",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "process-list-after",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "owned-process-terminated",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "HTTP-health",
+      "passed": true,
+      "details": {
+        "status": 200
+      }
+    },
+    {
+      "name": "GET-application-capabilities",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "api_version": 2,
+        "server_version": "0.4.0a1",
+        "command_endpoints": {
+          "list_commands": {
+            "method": "GET",
+            "path": "/commands",
+            "group": "commands",
+            "summary": "List the registered custom commands.",
+            "streaming": false,
+            "enabled": true,
+            "allowed": true,
+            "reason": null,
+            "rule": null,
+            "scopes": [
+              "commands:list"
+            ],
+            "limits": {},
+            "params": {}
+          },
+          "run_command": {
+            "method": "POST",
+            "path": "/commands/{name}",
+            "group": "commands",
+            "summary": "Run a registered named command.",
+            "streaming": false,
+            "enabled": true,
+            "allowed": true,
+            "reason": null,
+            "rule": null,
+            "scopes": [
+              "commands:run"
+            ],
+            "limits": {},
+            "params": {}
+          }
+        }
+      }
+    },
+    {
+      "name": "GET-registered-commands",
+      "passed": true,
+      "details": {
+        "commands": [
+          {
+            "name": "add",
+            "args": [
+              {
+                "name": "a",
+                "type": "integer",
+                "required": true,
+                "default": null,
+                "description": ""
+              },
+              {
+                "name": "b",
+                "type": "integer",
+                "required": true,
+                "default": null,
+                "description": ""
+              }
+            ],
+            "description": "Add two integers and return the result."
+          }
+        ]
+      }
+    },
+    {
+      "name": "POST-add-17-25",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "response": {
+          "result": 42
+        },
+        "expected": 42
+      }
+    },
+    {
+      "name": "POST-add--15-7",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "response": {
+          "result": -8
+        },
+        "expected": -8
+      }
+    },
+    {
+      "name": "POST-add-0-0",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "response": {
+          "result": 0
+        },
+        "expected": 0
+      }
+    },
+    {
+      "name": "POST-add-2147483648-2147483648",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "response": {
+          "result": 4294967296
+        },
+        "expected": 4294967296
+      }
+    },
+    {
+      "name": "POST-negative-400",
+      "passed": true,
+      "details": {
+        "status": 400
+      }
+    },
+    {
+      "name": "POST-negative-404",
+      "passed": true,
+      "details": {
+        "status": 404
+      }
+    },
+    {
+      "name": "PTY-cwd-environment",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

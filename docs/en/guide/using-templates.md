@@ -93,7 +93,9 @@ abx create --prompt "a Python data analysis environment with pandas and matplotl
   --yes --detach --build steps --dir ./generated
 ```
 
-This still calls the real model. It generates self-contained `base.image` and `build.run` content, submits the template, waits for **Ready**, then creates the sandbox. Local source files are not uploaded as a COPY build context. The generated server uses the published `agent-sandbox-server==0.3.1a1` alpha from the official PyPI index; it is not a stable SDK release. Review the generated files and test their actual APIs. A model may produce invalid or unsuitable code; validation errors preserve the workspace and stop creation.
+This still calls the real model. It generates self-contained `base.image` and `build.run` content, submits the template, waits for **Ready**, then creates the sandbox. Local source files are not uploaded as a COPY build context. The generated server uses the published `agent-sandbox-server==0.4.0a1` alpha from the official PyPI index; it is not a stable SDK release. Review the generated files and test their actual APIs. A model may produce invalid or unsuitable code; validation errors preserve the workspace and stop creation.
+
+For generated native steps, the CLI uses the provider-resolved image, runtime user and workdir, installs the server, and writes the final local source bytes into the build recipe. The model only supplies business files and extra dependency commands in the existing `build.run` list. It does not encode source files or duplicate provider preparation fields. Invalid output still preserves the workspace and stops before deployment.
 
 `abx template deploy --build steps` by itself still returns **submitted**; inspect `abx template info <id>` until Ready before creating from that template. Generation and deployment require model credentials, sandbox API configuration and AK/SK; steps does not require ACR credentials.
 
