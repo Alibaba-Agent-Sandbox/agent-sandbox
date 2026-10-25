@@ -273,3 +273,14 @@ describe("published managed catalog commands", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+
+it("source resolver diagnostics use stderr output management", async () => {
+  _patchIndex(index());
+  const { _resolveIndexName } = await import("../../src/providers/alicloud_express/cli/template.js");
+  const out = {info: vi.fn(), warning: vi.fn()};
+  const fmt = {printSuccess: vi.fn()};
+  expect(await _resolveIndexName("qwen-code", {token: null, fmt, out})).toBe("alibaba-agent-sandbox/awesome-templates//qwen-code");
+  expect(out.info).toHaveBeenCalledWith(expect.stringContaining("Resolved 'qwen-code'"));
+  expect(fmt.printSuccess).not.toHaveBeenCalled();
+});

@@ -239,7 +239,7 @@ export async function _resolveIndexName(name: string, opts: {
     fmt: Any;
     out: Any;
 }): Promise<string> {
-    const { token, fmt, out } = opts;
+    const { token, out } = opts;
     let index = await fetchIndex(null, { token });
     let entry = index.find(name);
     if (entry === null && !index.stale) {
@@ -258,7 +258,7 @@ export async function _resolveIndexName(name: string, opts: {
     if (entry.manifest) {
         throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
     }
-    fmt.printSuccess(`Resolved '${name}' via the template index: ${entry.install_ref}`);
+    out.info(`Resolved '${name}' via the template index: ${entry.install_ref}`);
     return entry.install_ref;
 }
 
