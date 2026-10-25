@@ -13,6 +13,7 @@ import { Choice } from "../types.js";
 import { Abort, sysExit } from "../errors.js";
 import { echo } from "../io.js";
 import { confirm, select } from "../prompts.js";
+import { isProviderConfigSensitive } from "../provider_extensions.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
@@ -616,7 +617,7 @@ function validateFieldValue(id: string, field: ConfigField, text: string): strin
 
 function configRow(f: ConfigField, id: string): string[] {
   const raw = configExtras.readExtra(fieldTarget(id, f)).value;
-  const shown = raw === undefined || raw === null || raw === "" ? "(not set)" : f.secret ? "********" : String(raw);
+  const shown = raw === undefined || raw === null || raw === "" ? "(not set)" : isProviderConfigSensitive(id, f.key, f.secret) ? "********" : String(raw);
   return [f.key, f.type ?? "str", shown, f.secret ? "secret" : "", f.required ? "required" : ""];
 }
 
@@ -643,7 +644,7 @@ async function readValue(ctx: Context, id: string, f: ConfigField, given: string
   const { _promptSecret } = await import("./config_cmd.js");
   if (showTarget) echo(configurationTargetSummary(id), { err: true });
   for (;;) {
-    const entered = f.secret ? await _promptSecret(`${f.key} (input masked; press Enter to keep the current value)`) : await promptPlain(`${f.key} (press Enter to keep the current value): `);
+    const entered = isProviderConfigSensitive(id, f.key, f.secret) ? await _promptSecret(`${f.key} (input masked; press Enter to keep the current value)`) : await promptPlain(`${f.key} (press Enter to keep the current value): `);
     if (!entered.trim()) return null;
     try { validateFieldValue(id, f, entered); return entered; }
     catch (error) {
@@ -758,7 +759,7 @@ export const config_cmd = command("config", {
     if (action === "get") {
       const raw = configExtras.readExtra(fieldTarget(id, f)).value;
       if (raw === undefined || raw === null || raw === "") fmt.printData("(not set)");
-      else fmt.printData(f.secret ? "********" : String(raw));
+      else fmt.printData(isProviderConfigSensitive(id, f.key, f.secret) ? "********" : String(raw));
     } else if (action === "set") {
       assertConfigFilesReadable(paths.configFile, paths.envFiles);
       storeField(fmt, id, f, await readValue(ctx, id, f, value));

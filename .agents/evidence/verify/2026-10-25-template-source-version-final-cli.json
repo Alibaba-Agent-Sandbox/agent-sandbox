@@ -1,0 +1,15 @@
+{
+  "version": "candidate0.5.4",
+  "source": "e210292 plus scoped source-version suggestion correction; not public",
+  "returncode": 1,
+  "output": "Using local template from <isolated-home>/.abx/templates/owner/repo/old/example...\n[E2004] <isolated-home>/.abx/templates/owner/repo/old/example/template.yaml: unsupported template spec_version 4; this CLI requires spec_version: 5. Use a source revision containing spec_version: 5; updating the version number alone does not migrate an old manifest. If this is a downloaded copy and its remote source has already been updated, remove only its cached template directory (<isolated-home>/.abx/templates/owner/repo/old/example) and retry. Index refresh does not refresh source files.\n",
+  "cloud_calls": 0,
+  "checks": {
+    "typed_e2004": true,
+    "source_revision_guidance": true,
+    "obsolete_capability_suggestion_absent": true,
+    "no_duplicate_suggestion": true,
+    "manifest_bytes_unchanged": true
+  },
+  "passed": true
+}

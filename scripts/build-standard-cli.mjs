@@ -49,6 +49,9 @@ const __dirname = typeof __filename === "string" ? abxDirname(__filename) : abxD
 const runtimeFile = path.join(output, "runtime.mjs");
 let runtime = fs.readFileSync(runtimeFile, "utf8");
 if (!/\.name\(["`]e2b["`]\)/.test(runtime)) throw new Error("Pinned program name changed; review source update");
+const pythonHint = 'asPrimary(`pip install e2b`)} (install e2b dependency)';
+if (runtime.split(pythonHint).length - 1 !== 2) throw new Error("Pinned Python installation hints changed");
+runtime = runtime.replaceAll(pythonHint, pythonHint.replace("(install e2b dependency)", "(install agent-sandbox-client dependency)"));
 runtime = runtime.replaceAll("pip install e2b", JSON.stringify(pythonInstall).slice(1, -1));
 runtime = runtime.replace(/\.name\(["`]e2b["`]\)/, '.name("abx")').replaceAll("e2b sandbox exec", "abx sandbox exec");
 if (!runtime.includes("main(), exports.pkg = pkg;")) throw new Error("Pinned command completion entry changed");
@@ -74,7 +77,7 @@ runtime = runtime.replace(helpAnchor, `
 sandboxCommand.addHelpText("after", "\\nAgent Sandbox extensions: upload, download, files, process, command, system, capabilities. Use each command's --help.");
 templateCommand.addHelpText("after", "\\nAgent Sandbox extensions: from-image, build, deploy, scaffold, install, push, search, info. Use scaffold --prompt for generation or scaffold --adopt for an existing project.");
 for (const abxCommand of sandboxCommand.commands) {
-  if (abxCommand.name() === "create" || abxCommand.name() === "spawn") abxCommand.addHelpText("after", "\\nAgent Sandbox: --prompt <description> generates a template before creation. Use abx create --prompt DESCRIPTION --help for its --yes, --detach and --build options.");
+  if (abxCommand.name() === "create" || abxCommand.name() === "spawn") abxCommand.addHelpText("after", "\\nStandard create expects a registered platform template ID or alias. For Git Registry source, use abx template launch SOURCE --yes.\\nAgent Sandbox: --prompt <description> generates a template before creation. Use abx create --prompt DESCRIPTION --help for its --yes, --detach and --build options.");
 }
 program.hook("preAction", async (_program, command) => {
   const hook = globalThis[Symbol.for("agent-sandbox.cli.configuration")];

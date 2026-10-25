@@ -111,15 +111,22 @@ abx config get sandbox_api_key                   # shows a masked value
 
 ## Creating a sandbox
 
-Standard Express CLI (the positional argument is a template; use `--detach` for scripts):
+Standard Express `create` takes a registered platform template ID or account alias, not a Git Registry source reference. `base` below is the platform built-in template; use `--detach` for scripts:
 
 ```bash
 abx create base --detach --timeout 300
-abx create python-hello --detach
 abx list --format json
 abx info <SANDBOX_ID>
 abx connect <SANDBOX_ID>                # real PTY; cd and shell environment persist
 ```
+
+For a source template from the Registry, configure its provider/build prerequisites and application token, then use the complete-template launcher instead:
+
+```bash
+abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes
+```
+
+See [provider prerequisites and source launch](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/template-launch.md). An account alias named `python-hello` exists only after registration; finding a Registry source with that name does not register it in your account.
 
 Interactive create without `--detach` opens a terminal and shortens the default
 lease on exit. Connect leaves an existing sandbox alive. See the migration guide

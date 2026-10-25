@@ -15,6 +15,7 @@ import { getLogger, ExcInfo } from "../utils/logging.js";
 import { pyRepr } from "../utils/_pyformat.js";
 import { dictGet, pyExcStr } from "../utils/_pyerrors.js";
 import { rglobName } from "../utils/_pyos.js";
+import { validateTemplateSourceVersion } from "../utils/registry.js";
 import { loadYaml as safeLoad } from "../utils/yaml_io.js";
 
 const logger = getLogger("api.capability");
@@ -101,8 +102,10 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
     if (!_templateMatches(data, yaml_path, template_id)) continue;
 
     try {
+      validateTemplateSourceVersion(data, yaml_path, cacheDir);
       return parseTemplateData(data);
     } catch (exc) {
+      if (exc instanceof TemplateParseError) throw exc;
       logger.warning(
         "Matched template at %s failed validation; refusing an invalid template manifest (fail-closed)",
         yaml_path,
@@ -198,8 +201,10 @@ export async function resolveCapabilities(
       if (!isDict(data)) throw new TemplateParseError("Explicit template YAML must contain a template manifest mapping.");
       if (isDict(data)) {
         try {
+          validateTemplateSourceVersion(data, local_yaml_path, null);
           template = parseTemplateData(data);
         } catch (exc) {
+          if (exc instanceof TemplateParseError) throw exc;
           logger.warning(
             "Local template YAML at %s failed validation; refusing an invalid template manifest (fail-closed)",
             local_yaml_path,

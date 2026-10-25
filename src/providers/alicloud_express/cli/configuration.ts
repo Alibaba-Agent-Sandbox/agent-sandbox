@@ -11,7 +11,7 @@ export const CONFIGURATION_UI: ProviderConfigUi = {
   envStored: [["access_key_id", "ALICLOUD_ACCESS_KEY_ID"], ["access_key_secret", "ALICLOUD_ACCESS_KEY_SECRET"], ["acr_namespace", "ACR_NAMESPACE"]],
   envOverrides: [["access_key_id", ["ALICLOUD_ACCESS_KEY_ID"]], ["access_key_secret", ["ALICLOUD_ACCESS_KEY_SECRET"]], ["acr_namespace", ["ACR_NAMESPACE"]], ["region", ["ALIBABA_CLOUD_REGION_ID"]]],
   groups: [["Alibaba Cloud credentials", ["access_key_id", "access_key_secret", "acr_namespace"]]],
-  sensitive: ["access_key_secret"],
+  sensitive: ["access_key_id", "access_key_secret"],
   extraGroups: [["Alibaba Cloud registry (ACR)", ["acr_registry", "acr_repo", "acr_username", "acr_password", "acr_instance_id", "acr_vpc_id", "acr_vswitch_ids", "acr_security_group_id", "team_id"]]],
   initFields: [
     { key: "sandbox_api_key", env: "ABX_SANDBOX_API_KEY", prompt: "Sandbox API key (sandbox_api_key / ABX_SANDBOX_API_KEY, input masked)", hidden: true, result: "stored" },

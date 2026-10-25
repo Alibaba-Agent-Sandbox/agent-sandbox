@@ -251,8 +251,8 @@ Set `ABX_WORKFLOW_REPORT` to a JSON output path; optionally set
 `ABX_WORKFLOW_FULL_E2E=1` to run the broader CLI suite against the prepared template.
 
 The test launches the Registry's unchanged `python-hello` source using its default
-Dockerfile, invokes its HTTP command, exercises CLI file operations, and deletes
-its owned sandbox/template. It creates billable resources. ACR image receipts are
+Dockerfile, checks the returned declared services, invokes its HTTP command, exercises CLI file operations, and deletes
+its owned sandbox/template with independent typed absence readback. It creates billable resources. ACR image receipts are
 retained in `~/.abx/resource-journal/` for manual image cleanup; do not delete shared
 repositories. The sanitized report distinguishes failure and cleanup status.
 

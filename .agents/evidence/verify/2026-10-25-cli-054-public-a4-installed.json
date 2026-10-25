@@ -1,0 +1,27 @@
+{
+  "source_head": "f29ed071ce86c8b69d5f9d3b097067a6170b77a2",
+  "cli": "0.5.4 candidate, not public",
+  "sdk_pin": "0.4.0a4 public",
+  "package_sha256": "4b55ef12f65c9ef51f4df1443a46f47aaee352b679baa0b1427e5ac88c99d981",
+  "isolated_home": true,
+  "outside_checkout": true,
+  "only_synthetic_configuration": true,
+  "cloud_calls": 0,
+  "checks": {
+    "python-sync": true,
+    "python-async": true,
+    "generated_mcp_public_a4_requirements": true,
+    "seven_delivered_identifier_commands_masked": true
+  },
+  "mcp_requirements": [
+    "--index-url https://pypi.org/simple",
+    "agent-sandbox-client[mcp]==0.4.0a4"
+  ],
+  "generated_sha256": {
+    "python-sync-readme": "3d65d0a8ac88418bc07c6ff17808e9e150615d0c23953a37dc5302587f23c89b",
+    "python-async-readme": "f6497ebfc46bff9fe03909c47b81e1d39749ab14e058bc5f639346dbc37a72ab",
+    "mcp-app.py": "c3e3ab6cfbcdd1dff386174cf2c0a7781736ddf703498979b53e458d0cf3e69c",
+    "mcp-requirements.txt": "556e1c02874140841be551f5ea27f788272daa9bdd6225895e3e564cfb79f0d7"
+  },
+  "passed": true
+}

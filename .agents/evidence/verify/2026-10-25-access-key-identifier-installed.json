@@ -1,0 +1,79 @@
+{
+  "credential_source": "only a synthetic non-credential sentinel; fresh HOME and outside-checkout cwd",
+  "network_or_cloud_calls": 0,
+  "checks": [
+    {
+      "arguments": [
+        "config",
+        "list"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    },
+    {
+      "arguments": [
+        "--json",
+        "config",
+        "list"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    },
+    {
+      "arguments": [
+        "config",
+        "get",
+        "access_key_id"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    },
+    {
+      "arguments": [
+        "config",
+        "get",
+        "providers.alicloud-express.access_key_id"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    },
+    {
+      "arguments": [
+        "provider",
+        "config",
+        "alicloud-express",
+        "list"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    },
+    {
+      "arguments": [
+        "provider",
+        "config",
+        "alicloud-express",
+        "get",
+        "access_key_id"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    },
+    {
+      "arguments": [
+        "config",
+        "set",
+        "access_key_id",
+        "<synthetic-identifier>"
+      ],
+      "exit_code": 0,
+      "raw_identifier_present": false,
+      "mask_present": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "source_head": "da82079738f46d36e2684246c0c57b27d1484cec",
+  "version": "0.5.4 candidate, not public",
+  "artifact_sha256": "a26f90e7cb11183b84fc246caf0a64d065c62836658ee058f63417f64fa9bc58",
+  "isolated_home": true,
+  "outside_checkout": true,
+  "cloud_calls": 0,
+  "checks": {
+    "standard_help_registered_platform_and_registry_launch": true,
+    "native_help_registered_alias_and_source_launch": true,
+    "model_example_qwen3_coder_plus": true,
+    "obsolete_manifest_typed_error": true,
+    "obsolete_manifest_guidance_without_zod_wall": true,
+    "obsolete_manifest_bytes_unchanged": true
+  },
+  "passed": true
+}

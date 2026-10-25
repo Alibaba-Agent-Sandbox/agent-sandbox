@@ -14,7 +14,7 @@ import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import { performance } from "node:perf_hooks";
 
-import { NetworkError, SandboxError, TemplateBuildError, TemplateBuildTimeoutError } from "../../models/errors.js";
+import { NetworkError, SandboxError, TemplateBuildError, TemplateBuildTimeoutError, TemplateNotFoundError } from "../../models/errors.js";
 import { getLogger } from "../../utils/logging.js";
 import { pyRepr } from "../../utils/_pyformat.js";
 import { pyExcStr } from "../../utils/_pyerrors.js";
@@ -204,6 +204,10 @@ export async function getTemplate(template_id: string, opts: GetTemplateOptions)
   try {
     resp = await client.getTemplate(template_id, new sdk.models["GetTemplateRequest"]({ teamID: team_id }));
   } catch (exc) {
+    const sdkError = exc as { statusCode?: unknown; code?: unknown } | null;
+    if (sdkError?.statusCode === 404 && sdkError.code === "TemplateNotFound") {
+      throw new TemplateNotFoundError(`Template ${template_id} was not found.`);
+    }
     throw new NetworkError(`GetTemplate API call failed: ${sdkErrStr(exc)}`, {
       suggestion: "Check template ID, AK/SK, and network connectivity.",
     });

@@ -1,8 +1,8 @@
 # 启动模板
 
-当前 spec v5 模板建议使用 CLI 0.5.3 或更新版本。CLI 与模板目录需同步升级。
+当前 spec v5 模板建议使用 CLI 0.5.4 或更新版本。CLI 与模板目录需同步升级。
 
-CLI 0.5.3 会读取公开目录中的原生模板。使用 `abx --provider alicloud-express template launch base --yes` 启动极速版内置模板。源码模板与平台原生模板共用这个启动命令；原生模板没有可下载的源码目录。
+CLI 0.5.4 会读取公开目录中的原生模板。使用 `abx --provider alicloud-express template launch base --yes` 启动极速版内置模板。源码模板与平台原生模板共用这个启动命令；原生模板没有可下载的源码目录。
 
 独立二进制已包含极速版内置 Provider，不需要旁边另放 Provider 文件。启动回执记录可执行文件的实际内容指纹；npm 安装和外部插件记录已安装 Provider 目录的内容指纹，并在创建资源前再次核对。
 
@@ -14,7 +14,7 @@ abx --provider opensandbox template launch Alibaba-Agent-Sandbox/awesome-templat
 
 CLI 准备模板、创建一个沙箱、执行启动命令、等待已声明的 `ready_cmd`，并解析全部服务端点。Agent Sandbox Server v2 服务还会检查健康状态与协议发现；其他协议不会自动进行协议探测。输出包含沙箱 ID 和所有服务地址；业务命令在启动后按需调用。OpenSandbox 需要可访问的服务端、Docker、可写镜像仓库及 Docker 仓库登录；服务端也必须能拉取该镜像。极速版使用 `--provider alicloud-express`，并配置平台和 ACR 凭据。
 
-官方源码模板沿用已有的原生基础镜像配方。OpenSandbox 默认解析为 `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`；可以用 `ABX_BASE_IMAGE_REGION` 和 `ABX_BASE_IMAGE_TAG` 覆盖。这是镜像来源配置，与 OpenSandbox 服务部署地域无关。Docker 从所选 Dockerfile 已固定的 SDK 提交构建 wheel，并交给原有安装步骤。不需要另行克隆 Python SDK，也不需要宿主 Python 构建工具。CLI 只准备临时副本，保留应用指令和最终 `USER`。
+官方源码模板沿用已有的原生基础镜像配方。OpenSandbox 默认解析为 `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`；可以用 `ABX_BASE_IMAGE_REGION` 和 `ABX_BASE_IMAGE_TAG` 覆盖。这是镜像来源配置，与 OpenSandbox 服务部署地域无关。所选 Dockerfile 安装自身声明的公开 server 发行包。显式指定本地 SDK 源码时可以构建并注入开发 wheel；普通构建不需要另行克隆 Python SDK，也不需要宿主 Python 构建工具。CLI 只准备临时副本，保留应用指令和最终 `USER`。
 
 需要应用认证的模板应在启动前设置 `ABX_SERVER_TOKEN`。OpenSandbox 服务端代理连接需要 CLI 0.4.16 或更新版本。CLI 保留 Bearer 认证；网关未占用 `X-Access-Token` 时，还会通过该请求头发送同一个显式应用令牌，不会替换网关凭据。
 
@@ -28,6 +28,8 @@ CLI 准备模板、创建一个沙箱、执行启动命令、等待已声明的 
 省略 `--yes` 时会交互确认计费的构建与创建。也可以用本地源码目录代替 Registry 引用。自定义基础镜像必须完整，未知占位符会在构建前报错。自定义多阶段构建需要自行提供 Dockerfile 所复制的 wheel。
 
 启动成功后，沙箱保留到主动删除或超时。启动失败时，CLI 尝试删除本次创建的沙箱。保留的镜像、平台模板会记录在命令输出的资源日志中。远端请求超时后先核对日志再重试，因为资源可能已经创建。
+
+极速版原生模板详情在官方确认模板不存在时返回现有错误 `E2001`、退出状态 `4`。网络、权限或服务端失败不能作为资源不存在的证明。
 
 模板 HTTP API、shell 执行、PTY 终端和持久解释器是独立功能，模板 HTTP API 不要求平台解释器。清单与协议细节见[模板启动](template-workflows.md)。
 

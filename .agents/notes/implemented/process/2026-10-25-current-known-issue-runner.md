@@ -1,6 +1,6 @@
 # Decision: Run maintained regressions through the current Express command surface
 
-Status: proposed
+Status: implemented
 
 ## Problem
 

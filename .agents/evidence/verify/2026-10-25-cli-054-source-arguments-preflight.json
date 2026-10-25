@@ -1,0 +1,25 @@
+{
+  "version": "CLI0.5.4 candidate",
+  "scope": "actual current argument parse and local Docker preflight only; not a Registry download or cloud acceptance run",
+  "arguments": [
+    "--native",
+    "--json",
+    "template",
+    "launch",
+    "<local-source>",
+    "--alias",
+    "parser-preflight",
+    "--timeout",
+    "1200",
+    "--sandbox-timeout",
+    "600",
+    "--yes"
+  ],
+  "returncode": 1,
+  "error_code": "E7020",
+  "docker_preflight_reached": true,
+  "only_synthetic_credentials": true,
+  "cloud_resources_created": 0,
+  "full_default_docker_source_e2e": "BLOCKED: host has no Docker",
+  "passed_for_declared_scope": true
+}

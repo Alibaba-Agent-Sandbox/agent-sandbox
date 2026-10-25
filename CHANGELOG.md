@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-10-25
+
+### Fixed
+
+- Remove retired workflow selection from the active Express source acceptance script and require declared service results plus exact typed cleanup readback (#173). / 极速版源码验收脚本移除旧 workflow 选择，核对实际服务与自有资源的结构化清理结果。
+- Mask AccessKey identifiers across configuration output and hidden input through existing provider UI metadata; preserve stored authentication values (#175). / 通过已有 Provider UI 元数据对配置输出及输入中的 AccessKey ID 脱敏，保留完整认证存储值。
+- Clarify that standard create accepts registered platform IDs/aliases while Git Registry sources use template launch; remove obsolete current skill/LLM examples. / 明确标准 create 使用已注册的平台 ID 或别名，Git Registry 源码使用 template launch，并清理当前 Skill 与 LLM 说明中的旧示例。
+- Explain incompatible template source versions and their exact cached directory without accepting retired schemas or deleting files (#176). / 旧模板源码给出规范版本与具体缓存目录提示，不兼容旧清单或自动删除文件。
+
+- Recognize existing dated JSON evidence receipts in repository-health references without relaxing ADR names or ignoring missing files. / 仓库健康检查识别真实存在的日期化 JSON 验证记录，不放宽 ADR 命名或忽略缺失文件。
+- Name the actual agent-sandbox-client in generated Python installation hints; TypeScript retains its external e2b dependency. / 生成的 Python 安装提示使用实际的 agent-sandbox-client 名称，TypeScript 仍保留外部 e2b 依赖。
+- Preserve the official structured missing-template response as existing typed E2001 instead of a network failure; cleanup tests reject old message-based absence fallbacks (#173). / 官方结构化模板不存在响应复用现有 E2001 类型，不再当作网络失败；清理测试删除基于错误文字的旧回退。
+
+### Changed
+
+- Use matched Python client/server 0.4.0a4 for generated applications, standard Python scaffolds and MCP artifacts, consuming the SDK readiness-command polling correction. / CLI 0.5.4 的生成应用、标准 Python 脚手架和 MCP 产物统一使用公开 Python 0.4.0a4，消费 SDK 就绪命令轮询修复。
+
 ### Tests
 
 - Run maintained known-issue regressions through the current native Express surface, use base and assert typed timeout errors without obsolete text. / 已知问题回归统一当前原生极速版入口，默认使用 base，按类型验证超时错误，删除旧文案断言。

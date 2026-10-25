@@ -101,7 +101,6 @@ const CREATE_HELP = `Create a new sandbox.
     \b
     Examples:
       abx create base              # explicit 'base' template
-      abx create python-hello      # named template
       abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
       abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
       abx create --prompt "a python data science env"  # generate, build, deploy, create
@@ -1059,7 +1058,7 @@ export const create = command("create", {
     argument(["template_name"], { required: false, default: null }),
     option(["--prompt"], { default: null, help: "Generate a sandbox from a natural-language description. Mutually exclusive with a template." }),
     option(["--detach", "-d"], { is_flag: true, help: "Return after creation without opening a terminal (already the default for --prompt). Does not replace --yes." }),
-    option(["--template", "-T"], { default: null, help: "Template ID or alias to launch (e.g. 'base', 'python-hello'). " + "Defaults to 'base' when omitted. Cannot be combined with DESCRIPTION." }),
+    option(["--template", "-T"], { default: null, help: "Provider-native template reference (e.g. 'base'); Express uses a platform ID or already registered alias. Git Registry source uses template launch. " + "Defaults to 'base' when omitted. Cannot be combined with DESCRIPTION." }),
     option(["--upload", "-u"], { type: new Path({ exists: true }), default: null, help: "Local file or directory to upload after creation" }),
     option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: 300, help: "Sandbox lifetime in seconds (positive integer; default: 300)" }),
     option(["--request-timeout"], {
@@ -1084,7 +1083,7 @@ export const create = command("create", {
     option(["--model"], {
       default: null,
       help:
-        "Model id for the template generation step (for example qwen-coder-plus). " +
+        "Model id for the template generation step (for example qwen3-coder-plus). " +
         "Overrides llm_model / ABX_LLM_MODEL / OPENAI_MODEL for this command. " +
         "When the endpoint rejects the model, an interactive terminal offers coding and chat models with the arrow keys.",
     }),

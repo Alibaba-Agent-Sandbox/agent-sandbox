@@ -40,12 +40,29 @@ describe("standard executable contract", () => {
     },
   );
 
+  it("distinguishes registered platform templates from Registry source in create help", async () => {
+    const result = await run(["create", "--help"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("registered platform template ID or alias");
+    expect(result.stdout).toContain("For Git Registry source, use abx template launch SOURCE --yes");
+  });
+
+  it("keeps native template help explicit about platform references", async () => {
+    const result = await run(["--native", "create", "--help"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Provider-native template reference");
+    expect(result.stdout).toContain("already registered alias");
+    expect(result.stdout).not.toContain("abx create python-hello");
+  });
+
   it("makes AI retry explicit and accepts its prompt syntax", async () => {
     const suggestion = new AICodegenError("unavailable").suggestion;
     expect(suggestion).toContain('abx create --prompt "<description>"');
     const result = await run(["create", "--prompt", "a Python environment", "--help"]);
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("--prompt");
+    expect(result.stdout).toContain("qwen3-coder-plus");
+    expect(result.stdout).not.toContain("qwen-coder-plus");
   });
 
   it.each(["python", "node", "minimal"])("generates a gated detached %s workflow", async (caseName) => {
@@ -146,9 +163,11 @@ describe("standard executable contract", () => {
     const name = `contract-${language}`;
     const result = await run(["template", "init", "--name", name, "--language", language]);
     expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toContain("install agent-sandbox-client dependency");
+    expect(result.stdout).not.toContain("install e2b dependency");
     expect(readFileSync(path.join(home, name, "template.py"), "utf8")).toContain("from agent_sandbox import");
     const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
-    expect(readme).toContain("agent-sandbox-client==0.4.0a2");
+    expect(readme).toContain("agent-sandbox-client==0.4.0a4");
     expect(readme).toContain("from agent_sandbox import");
     expect(readme).not.toContain("from e2b import");
     expect(readme).toContain("ABX_SANDBOX_API_KEY=");
@@ -165,6 +184,7 @@ describe("standard executable contract", () => {
     const result = await run(["template", "init", "--name", name, "--language", "typescript"]);
     expect(result.code, result.stderr).toBe(0);
     const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
+    expect(result.stdout).toContain("install e2b dependency");
     expect(readme).toContain("npm install e2b");
     expect(readme).toContain("E2B_API_KEY=");
     expect(readme).not.toContain("ABX_SANDBOX_API_KEY=");

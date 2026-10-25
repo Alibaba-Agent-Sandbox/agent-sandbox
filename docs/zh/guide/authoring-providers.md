@@ -47,10 +47,10 @@ Sandbox.create({ template: "base", ... })
 
 之后的 `exec`、`upload`、`kill my-cloud:<id>` 都用这个 id。宿主先检查能力。没有声明 `exec.run` 时，`abx exec` 返回 E8004，不会发送 `exec.run`。
 
-这两条路径**不会**进入你的插件：
+以下路径需要区分宿主路由与 Provider 的职责：
 
 - 没有 `--provider`、没有 `ABX_PROVIDER`、配置里也没有默认值时，`abx create` 仍走 `alicloud-express`。
-- `abx create --prompt "一个 node 服务"`（有描述、没有 `--template`）会先走内置的模板编写流程（生成、构建、部署）。只有最后一次 `Sandbox.create` 使用选中的 provider。没有 `templates.build` 的 provider 用 `abx --provider my-cloud create --template <镜像或名称>` 来启动。
+- `abx create --prompt "一个 node 服务"` 的生成和源码获取由宿主完成；源码准备、沙箱创建和清理由选中的 Provider 负责，共享启动器启动清单声明的服务。没有 `templates.build` 的 Provider 不能准备源码；已有平台原生引用用 `abx --provider my-cloud create --template <镜像或名称>` 创建。
 
 Python 里的 `Sandbox.create(template="base", provider="my-cloud")` 从第 2 步开始，不经过 CLI。它用的仍是已安装的 `~/.abx/providers/my-cloud`。
 

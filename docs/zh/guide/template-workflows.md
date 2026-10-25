@@ -13,3 +13,5 @@
 删除 `workflow_contract_version`、`default_workflow` 和 `workflows`，改为 `spec_version: 5`。保留全部 `provides`、`start_cmd`、`ready_cmd`、环境变量和应用代码。启动命令删除 `--workflow` 与 `--service-url`。当前 CLI 对 v4 清单给出迁移错误，不会猜测旧流程。CLI 与模板目录需要同步升级；旧二进制无法读取 v5 清单。
 
 已有验证记录保留其当时版本的历史意义。静态操作检查不等于真实平台测试，也不证明当前账号配置或服务已经就绪。
+
+遇到清单版本不符时，请选择包含当前 v5 清单的源码提交。如果远端源码已经更新，但下载的副本仍然陈旧，只删除错误提示中指明的该模板缓存目录，然后重试。`abx template search --refresh` 刷新的是目录索引，不是已下载的源码。固定的旧 Git 提交不会因为删除缓存而变成新版本。CLI 不会自动修改或删除源码文件。

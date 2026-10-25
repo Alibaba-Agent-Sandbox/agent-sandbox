@@ -193,8 +193,9 @@ it('resolves positive official template info from the same native inventory inst
 
 it('does not accept a generic network/auth error as a missing official template', () => {
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === 'template-info-missing-json');
-  expect(() => testCase.json({ status: 'error', code: 'E5000', message: 'GetTemplate API call failed: 401 Unauthorized' })).toThrow('official API diagnostic');
-  expect(() => testCase.json({ status: 'error', code: 'E5000', message: 'GetTemplate API call failed: TemplateNotFound code: 404' })).not.toThrow();
+  expect(() => testCase.json({ status: 'error', code: 'E5000', message: 'GetTemplate API call failed: 401 Unauthorized' })).toThrow('typed E2001');
+  expect(() => testCase.json({ status: 'error', code: 'E5000', message: 'GetTemplate API call failed: TemplateNotFound code: 404' })).toThrow('typed E2001');
+  expect(() => testCase.json({ status: 'error', code: 'E2001', message: 'localized opaque text' })).not.toThrow();
 });
 
 it('starts an explicitly selected application command once and requires its real process before any catalog/payload', async () => {

@@ -11,7 +11,7 @@ import { GitHubRateLimitError, NetworkError, TemplateNotFoundError } from "../..
 import { TemplateRef } from "../../src/models/template.js";
 import { Request, Response } from "../../src/transport/_httpx.js";
 import { FINE_GRAINED_PAT_URL } from "../../src/utils/github_token.js";
-import { BUILTIN_TEMPLATES, RegistryClient, TEMPLATE_CACHE_DIR, _setTemplateCacheDir } from "../../src/utils/registry.js";
+import { BUILTIN_TEMPLATES, RegistryClient, TEMPLATE_CACHE_DIR, _setTemplateCacheDir, loadTemplateFromYaml } from "../../src/utils/registry.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { patchHttpxAsyncClient, patchedAsyncClient, restoreHttpx } from "../_support/patch.js";
 import { makeTarGz } from "../_support/tar.js";
@@ -828,5 +828,55 @@ describe("TestBuiltinTemplates", () => {
 
   it("test_code_interpreter_in_builtins", () => {
     expect(BUILTIN_TEMPLATES.has("code-interpreter-v1")).toBe(true);
+  });
+});
+
+
+describe("obsolete manifest recovery", () => {
+  const oldManifest = "name: old\nspec_version: 4\nworkflow_contract_version: 1\ndefault_workflow: application\nworkflows: {}\n";
+
+  it("rejects an obsolete local source with its path and source revision guidance", () => {
+    const file = path.join(iso.tmp_path, "template.yaml");
+    fs.writeFileSync(file, oldManifest);
+    expect(() => loadTemplateFromYaml(file)).toThrow(file);
+    expect(() => loadTemplateFromYaml(file)).toThrow("spec_version 4; this CLI requires spec_version: 5");
+    expect(() => loadTemplateFromYaml(file)).toThrow("Use a source revision");
+    try { loadTemplateFromYaml(file); } catch (error) {
+      expect(String(error)).not.toContain("expected never");
+      expect(String(error)).not.toContain("capabilities are NOT granted");
+      expect(error).toHaveProperty("suggestion", "");
+      expect(String(error)).not.toContain("cached template directory");
+    }
+    expect(fs.readFileSync(file, "utf8")).toBe(oldManifest);
+  });
+
+  it("identifies only the stale template cache without deleting files or suggesting index refresh", () => {
+    const cache = path.join(iso.tmp_path, "cache");
+    _setTemplateCacheDir(cache);
+    const directory = path.join(cache, "owner", "repo", "old-ref", "example");
+    fs.mkdirSync(directory, { recursive: true });
+    const file = path.join(directory, "template.yaml");
+    fs.writeFileSync(file, oldManifest);
+    expect(() => loadTemplateFromYaml(file)).toThrow(`cached template directory (${directory})`);
+    expect(() => loadTemplateFromYaml(file)).toThrow("Index refresh does not refresh source files");
+    expect(fs.readFileSync(file, "utf8")).toBe(oldManifest);
+  });
+
+  it("does not label a neighbouring local directory as source cache", () => {
+    const cache = path.join(iso.tmp_path, "cache");
+    _setTemplateCacheDir(cache);
+    const directory = `${cache}-local`;
+    fs.mkdirSync(directory);
+    const file = path.join(directory, "template.yaml");
+    fs.writeFileSync(file, oldManifest);
+    try { loadTemplateFromYaml(file); } catch (error) {
+      expect(String(error)).not.toContain("cached template directory");
+    }
+  });
+
+  it("continues to load the current manifest", () => {
+    const file = path.join(iso.tmp_path, "template.yaml");
+    fs.writeFileSync(file, manifestYaml("name: current\n"));
+    expect(loadTemplateFromYaml(file).name).toBe("current");
   });
 });

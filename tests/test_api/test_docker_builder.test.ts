@@ -665,7 +665,7 @@ describe("rewriteDockerfileForServerInstall", () => {
 
   it("leaves unrelated explicit source requirements unchanged", () => {
     const text = 'FROM scratch\nRUN pip install "custom-runtime @ https://example.invalid/runtime.whl"\n';
-    expect(rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.4.0a2-py3-none-any.whl"])).toBe(text);
+    expect(rewriteDockerfileForServerInstall(text, ["agent_sandbox_server-0.4.0a4-py3-none-any.whl"])).toBe(text);
   });
 });
 

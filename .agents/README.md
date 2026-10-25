@@ -1,6 +1,10 @@
 # `.agents/` — engineering record of the cli repository
 
-## Current patch delivery — 2026-10-25
+## Pending minimal patch — 2026-10-25
+
+CLI 0.5.4 prepares matched Python 0.4.0a4 consumption and preserves definite native template absence as existing E2001. Python 0.4.0a4 is published; latest generated-artifact checks and CLI publication remain pending. Earlier a3 candidate receipts remain history. [Latest a4 verification](evidence/verify/2026-10-25-cli-054-public-a4-consumption.md) · [Decision](notes/proposed/process/2026-10-25-cli-054-runtime-consumption.md) · [verification](evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
+
+## Current public patch delivery — 2026-10-25
 
 CLI 0.5.3 retains the current public Python runtime across generation, scaffolding and MCP artifacts and fixes Windows journal writes. Version 0.5.2 was withheld after its real Windows artifact failure. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. The [Windows correction and release verification](evidence/verify/2026-10-25-cli-053-windows-release.md) records the prepublication platform gate. CLI 0.5.3 is now public on GitHub and npm; the official website default mirror selects it. Fresh isolated installations and real managed/process/file/deadline checks passed, with exact owned resources independently confirmed absent. See the new [current regression verification](evidence/verify/2026-10-25-current-known-issue-runner.md) and [release](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.3). This does not certify the whole template matrix.
 
@@ -223,4 +227,11 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Total command execution deadline](notes/proposed/feature/2026-10-25-command-total-deadline.md) · [verification](evidence/verify/2026-10-25-command-total-deadline.md) · [Issue 166](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/166).
 
-- [Current known-issue runner](notes/proposed/process/2026-10-25-current-known-issue-runner.md) · [verification](evidence/verify/2026-10-25-current-known-issue-runner.md).
+- [Current known-issue runner](notes/implemented/process/2026-10-25-current-known-issue-runner.md) · [verification](evidence/verify/2026-10-25-current-known-issue-runner.md).
+
+- [Configuration identifier privacy](notes/proposed/process/2026-10-25-access-key-identifier-masking.md) · [verification](evidence/verify/2026-10-25-access-key-identifier-masking.md) · [Issue175](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/175).
+- [Incompatible template source guidance](notes/proposed/feature/2026-10-25-template-source-version-guidance.md) · [verification](evidence/verify/2026-10-25-template-source-version-guidance.md).
+
+- [CLI 0.5.4 report follow-up](evidence/verify/2026-10-25-cli-054-report-follow-up.md) records the integrated candidate checks; public release and developer reruns remain separate.
+
+- [Active Express source entry cleanup](evidence/verify/2026-10-25-cli-054-active-source-script.md) separates current argument/preflight proof from the still-blocked default Docker cloud run.

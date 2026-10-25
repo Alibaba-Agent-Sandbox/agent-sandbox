@@ -1,5 +1,5 @@
 import { ProviderConfigError } from "../../models/provider_errors.js";
-import { providerCliExtension, bundledCliConfigurations } from "../provider_extensions.js";
+import { providerCliExtension, bundledCliConfigurations, isProviderConfigSensitive } from "../provider_extensions.js";
 import type { ConfigPrompt } from "../provider_config_contract.js";
 import { providerSchema, paths } from "../../transport/config_layers.js";
 /**
@@ -489,11 +489,11 @@ function _extraText(target: extras.ExtraTarget | undefined, value: unknown): str
 
 function _extraDisplay(target: extras.ExtraTarget, value: unknown): string {
   const text = _extraText(target, value);
-  return target.key?.secret ? _maskValue(text) : text;
+  return isProviderConfigSensitive(target.provider_id, target.key?.key ?? "", target.key?.secret) ? _maskValue(text) : text;
 }
 
 function _extraPrompt(fmt: OutputFormatter, target: extras.ExtraTarget): Promise<string | null> {
-  return _promptMissingValue(fmt, target.typed, target.key?.secret ?? false);
+  return _promptMissingValue(fmt, target.typed, isProviderConfigSensitive(target.provider_id, target.key?.key ?? "", target.key?.secret));
 }
 
 /** Exit 2 for a key that is not configurable (removed Qwen Code keys name their `llm_*` replacement). */
@@ -722,7 +722,7 @@ export const set_value = command("set", {
         return;
       }
       extras.writeExtra(extra, value);
-      fmt.printSuccess(`Set ${extra.typed} = ${extra.key?.secret ? _maskValue(value) : value}`);
+      fmt.printSuccess(`Set ${extra.typed} = ${_extraDisplay(extra, value)}`);
       _savedHint(key, value, extra);
       return;
     }
@@ -920,7 +920,10 @@ export const list_config = command("list", {
       }
       return _effectiveValue(key);
     };
-    const sensitive = (key: string): boolean => extra.targets.has(key) ? Boolean(extra.targets.get(key)?.key?.secret) : _SENSITIVE_KEYS.has(key);
+    const sensitive = (key: string): boolean => {
+      const target = extra.targets.get(key);
+      return target ? isProviderConfigSensitive(target.provider_id, target.key?.key ?? "", target.key?.secret) : _SENSITIVE_KEYS.has(key);
+    };
 
     const render = (key: string): string => {
       const [value, source] = effectiveOf(key);

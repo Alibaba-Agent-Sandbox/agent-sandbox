@@ -16,7 +16,7 @@ import {
   waitForTemplateReady,
   type FcSdk,
 } from "../../src/providers/alicloud_express/fc_template.js";
-import { SandboxError, TemplateBuildError } from "../../src/models/errors.js";
+import { NetworkError, SandboxError, TemplateBuildError, TemplateNotFoundError } from "../../src/models/errors.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -414,6 +414,38 @@ describe("TestCreateOfficialTemplate", () => {
 });
 
 describe("TestGetTemplate", () => {
+  it("maps only structured official template absence to E2001", async () => {
+    const error = Object.assign(new Error("opaque backend diagnostic"), {
+      statusCode: 404, code: "TemplateNotFound", data: { httpStatusCode: 404 },
+    });
+    const getTemplateRequest = vi.fn().mockRejectedValue(error);
+    patchClient({ getTemplate: getTemplateRequest });
+    const rejected = getTemplate("tpl-owned-deleted", {
+      access_key_id: "AK", access_key_secret: "SK", team_id: "team-x",
+    });
+    await expect(rejected).rejects.toBeInstanceOf(TemplateNotFoundError);
+    await expect(rejected).rejects.toMatchObject({ code: "E2001" });
+    expect(getTemplateRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { statusCode: 401, code: "Unauthorized" },
+    { statusCode: 403, code: "TemplateNotFound" },
+    { statusCode: 500, code: "InternalError" },
+    { statusCode: 404, code: "UnknownRoute" },
+    { code: "ECONNRESET" },
+    {},
+  ])("does not treat other SDK errors or missing-template prose as absence: %j", async (fields) => {
+    patchClient({ getTemplate: vi.fn().mockRejectedValue(Object.assign(
+      new Error("TemplateNotFound code: 404, template not found"), fields,
+    )) });
+    const rejected = getTemplate("tpl-owned-deleted", {
+      access_key_id: "AK", access_key_secret: "SK", team_id: "team-x",
+    });
+    await expect(rejected).rejects.toBeInstanceOf(NetworkError);
+    await expect(rejected).rejects.toMatchObject({ code: "E5000" });
+  });
+
   it("test_get_template_success", async () => {
     const mock_client = {
       getTemplate: vi.fn().mockResolvedValue({
