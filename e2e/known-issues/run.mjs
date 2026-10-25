@@ -33,13 +33,19 @@ if (!hasCloudCredentials(creds)) {
   process.exit(0);
 }
 
-const TEMPLATE = process.env.ABX_E2E_TEMPLATE || 'python-hello';
-const bin = parseBin(process.env.ABX_BIN || 'abx');
+const TEMPLATE = process.env.ABX_E2E_TEMPLATE || 'base';
+const bin = [...parseBin(process.env.ABX_BIN || 'abx'), '--native', '--provider', 'alicloud-express'];
 const runId = `ki-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${Math.random().toString(16).slice(2, 8)}`;
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'abx-e2e-ki-')));
 const home = join(root, 'home');
 mkdirSync(home, { recursive: true });
-const env = baseEnv({ home, creds });
+// The harness explicitly selects one Express test account for both maintained
+// interfaces. This mapping is test setup, not a product configuration alias.
+const env = baseEnv({ home, creds, extra: {
+  ABX_SANDBOX_API_KEY: creds.E2B_API_KEY,
+  ABX_SANDBOX_BASE_URL: creds.E2B_API_URL,
+  ABX_SANDBOX_DOMAIN: creds.E2B_DOMAIN,
+} });
 const ledgerDir = join(E2E_DIR, '.state');
 mkdirSync(ledgerDir, { recursive: true });
 const ledger = join(ledgerDir, `run-${runId}.json`);
@@ -48,6 +54,13 @@ const persist = () => writeFileSync(ledger, JSON.stringify({ runId, sandboxes: [
 
 async function abx(argv, { env: extra = {}, creds: useCreds = true, timeoutMs = 180_000 } = {}) {
   const e = useCreds ? { ...env, ...extra } : { ...baseEnv({ home, creds: {} }), ...extra };
+  for (const [standard, project] of [
+    ['E2B_API_KEY', 'ABX_SANDBOX_API_KEY'],
+    ['E2B_API_URL', 'ABX_SANDBOX_BASE_URL'],
+    ['E2B_DOMAIN', 'ABX_SANDBOX_DOMAIN'],
+  ]) {
+    if (extra[standard] !== undefined) e[project] = extra[standard];
+  }
   const r = await runBinary({ bin, argv, env: e, cwd: root, timeoutMs });
   const out = { code: r.code, stdout: mask(r.stdout), stderr: mask(r.stderr), ms: r.ms, timedOut: r.timedOut };
   out.text = `${out.stdout}\n${out.stderr}`;
@@ -171,7 +184,7 @@ scenario('ki006-bad-api-key', 'KI-006', 'wrong API key: exit 3, E1001 (list and 
   const list = await abx(['list'], { env: bad });
   must(list.code === 3 && list.text.includes('E1001'), `list: exit ${list.code}: ${excerpt(list.text)}`);
   must(!list.text.includes(bad.E2B_API_KEY), 'the key leaked into the output');
-  const create = await abx(['create', '--template', TEMPLATE], { env: bad });
+  const create = await abx(['create', TEMPLATE], { env: bad });
   must(create.code === 3 && create.text.includes('E1001'), `create: exit ${create.code}: ${excerpt(create.text)}`);
 });
 
@@ -187,9 +200,9 @@ scenario('ki003-sdk-timeout-kills-the-process', 'KI-003', 'run("sleep 113", time
   must(alive.stdout.trim() === '0', `sleep 113 still running (${alive.stdout.trim()})`);
 });
 
-scenario('ki003-cli-exec-timeout', 'KI-003', 'abx exec --timeout 3 "sleep 114": exit 5, E3001, "did not finish within 3s", process gone', async () => {
-  const r = await abx(['exec', state.id, 'sleep 114', '--timeout', '3']);
-  must(r.code === 5 && r.text.includes('E3001') && r.text.includes('Command did not finish within 3s'), `exit ${r.code}: ${excerpt(r.text)}`);
+scenario('ki003-cli-exec-timeout', 'KI-003', 'native Express exec --timeout 3: exit 5, E3001, total deadline, process gone', async () => {
+  const r = await abx(['--json', 'exec', state.id, 'sleep 114', '--timeout', '3']);
+  must(r.code === 5 && r.json().code === 'E3001' && r.ms < 30_000, `exit ${r.code}: ${excerpt(r.text)}`);
   const alive = await state.sb.commands.run(`sh -c 'ps -eo args | grep -c "^sleep 114" || true'`);
   must(alive.stdout.trim() === '0', `sleep 114 still running (${alive.stdout.trim()})`);
 });
@@ -261,7 +274,7 @@ async function main() {
   let exitCode = 0;
   try {
     before = await listIds();
-    const create = await abx(['--json', 'create', '--template', TEMPLATE, '--timeout', '900'], { timeoutMs: 240_000 });
+    const create = await abx(['--json', 'create', TEMPLATE, '--timeout', '900'], { timeoutMs: 240_000 });
     must(create.code === 0, `create failed (exit ${create.code}): ${excerpt(create.text)}`);
     state.id = create.json().ID;
     tracked.add(state.id);

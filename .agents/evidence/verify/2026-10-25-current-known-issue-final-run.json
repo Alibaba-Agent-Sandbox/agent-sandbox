@@ -1,0 +1,131 @@
+{
+  "runId": "ki-20261025152850-055fbb",
+  "bin": "abx (public npm 0.5.3)",
+  "version": "abx, version 0.5.3",
+  "results": [
+    {
+      "id": "ki001-per-call-env",
+      "ki": "KI-001",
+      "title": "commands.run(env) reaches the command (envs, not envVars)",
+      "status": "pass",
+      "ms": 507
+    },
+    {
+      "id": "ki002-prepare",
+      "ki": "KI-002",
+      "title": "create a directory tree through the CLI",
+      "status": "pass",
+      "ms": 2907
+    },
+    {
+      "id": "ki002-list-json-reports-directories",
+      "ki": "KI-002",
+      "title": "files list --json: directory vs file type, name, size",
+      "status": "pass",
+      "ms": 1190
+    },
+    {
+      "id": "ki002-stat-directory-and-file",
+      "ki": "KI-002",
+      "title": "files stat --json: real Name/Path/Type/Size (nested entry)",
+      "status": "pass",
+      "ms": 2369
+    },
+    {
+      "id": "ki007-list-missing-directory",
+      "ki": "KI-007",
+      "title": "files list of a missing directory: exit 4, E4001",
+      "status": "pass",
+      "ms": 1423
+    },
+    {
+      "id": "ki007-list-empty-directory-still-ok",
+      "ki": "KI-007",
+      "title": "files list of an existing empty directory: exit 0, no error",
+      "status": "pass",
+      "ms": 1354
+    },
+    {
+      "id": "ki005-stat-missing-file",
+      "ki": "KI-005",
+      "title": "files stat of a missing path: exit 4, E4001",
+      "status": "pass",
+      "ms": 1133
+    },
+    {
+      "id": "ki005-download-missing-file",
+      "ki": "KI-005",
+      "title": "download of a missing remote file: exit 4, E4001, nothing written",
+      "status": "pass",
+      "ms": 1144
+    },
+    {
+      "id": "ki005-missing-sandbox",
+      "ki": "KI-005",
+      "title": "info/exec of a missing sandbox: exit 4, E2009",
+      "status": "pass",
+      "ms": 1183
+    },
+    {
+      "id": "ki006-bad-api-key",
+      "ki": "KI-006",
+      "title": "wrong API key: exit 3, E1001 (list and create)",
+      "status": "pass",
+      "ms": 1194
+    },
+    {
+      "id": "ki003-sdk-timeout-kills-the-process",
+      "ki": "KI-003",
+      "title": "run(\"sleep 113\", timeout=3): CommandTimeoutError (E3001) and the process is gone",
+      "status": "pass",
+      "ms": 3842
+    },
+    {
+      "id": "ki003-cli-exec-timeout",
+      "ki": "KI-003",
+      "title": "native Express exec --timeout 3: exit 5, E3001, total deadline, process gone",
+      "status": "pass",
+      "ms": 4655
+    },
+    {
+      "id": "ki004-cli-signal-15",
+      "ki": "KI-004",
+      "title": "abx sandbox process signal --signal 15 terminates a running process",
+      "status": "pass",
+      "ms": 2973
+    },
+    {
+      "id": "ki004-cli-signal-9",
+      "ki": "KI-004",
+      "title": "abx sandbox process signal --signal 9 terminates a running process",
+      "status": "pass",
+      "ms": 2862
+    },
+    {
+      "id": "ki004-sdk-kill",
+      "ki": "KI-004",
+      "title": "commands.kill(pid) terminates a running process",
+      "status": "pass",
+      "ms": 1852
+    },
+    {
+      "id": "ki004-sdk-send-input",
+      "ki": "KI-004",
+      "title": "commands.sendInput reaches stdin (head -n 1 echoes it)",
+      "status": "pass",
+      "ms": 1879
+    },
+    {
+      "id": "ki004-cli-unsupported-signal",
+      "ki": "KI-004",
+      "title": "abx sandbox process signal --signal 2: rejected with the envd message, nothing sent",
+      "status": "pass",
+      "ms": 4327
+    }
+  ],
+  "summary": {
+    "pass": 17,
+    "fail": 0,
+    "leaked": 0
+  }
+}

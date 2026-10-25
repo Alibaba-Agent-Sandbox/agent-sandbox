@@ -1,10 +1,10 @@
 # `.agents/` — engineering record of the cli repository
 
-## Pending minimal patch — 2026-10-25
+## Current patch delivery — 2026-10-25
 
-CLI 0.5.3 retains the current public Python runtime across generation, scaffolding and MCP artifacts and fixes Windows journal writes. Version 0.5.2 was withheld after its real Windows artifact failure. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. The [Windows correction and release verification](evidence/verify/2026-10-25-cli-053-windows-release.md) records the next minimal patch; publication is pending.
+CLI 0.5.3 retains the current public Python runtime across generation, scaffolding and MCP artifacts and fixes Windows journal writes. Version 0.5.2 was withheld after its real Windows artifact failure. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. The [Windows correction and release verification](evidence/verify/2026-10-25-cli-053-windows-release.md) records the prepublication platform gate. CLI 0.5.3 is now public on GitHub and npm; the official website default mirror selects it. Fresh isolated installations and real managed/process/file/deadline checks passed, with exact owned resources independently confirmed absent. See the new [current regression verification](evidence/verify/2026-10-25-current-known-issue-runner.md) and [release](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.3). This does not certify the whole template matrix.
 
-## Current delivery — 2026-10-25
+## Earlier delivery — 2026-10-25
 
 CLI **0.5.1** fixes the public managed-template catalog lookup omitted in 0.5.0.
 The complete spec v5 template launches through one command without a workflow
@@ -222,3 +222,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Generated whole-template launch](notes/proposed/feature/2026-10-25-generated-template-launch.md) · [verification](evidence/verify/2026-10-25-generated-template-launch.md).
 
 - [Total command execution deadline](notes/proposed/feature/2026-10-25-command-total-deadline.md) · [verification](evidence/verify/2026-10-25-command-total-deadline.md) · [Issue 166](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/166).
+
+- [Current known-issue runner](notes/proposed/process/2026-10-25-current-known-issue-runner.md) · [verification](evidence/verify/2026-10-25-current-known-issue-runner.md).
