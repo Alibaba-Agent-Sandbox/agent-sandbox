@@ -24,7 +24,7 @@ The official website mirrors the complete stable release: all five binaries, the
 
 ## Install
 
-The commands below select v0.5.5 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-055-public-a6-consumption.md) records the published artifacts and fresh npm package acceptance.
+The commands below select v0.5.5 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-055-public-a6-consumption.md) records current validation and publication status; pending publication is not public artifact availability.
 
 ### macOS and Linux
 

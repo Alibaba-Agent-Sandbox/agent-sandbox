@@ -23,7 +23,7 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 
 ## 安装
 
-下面指定版本的命令使用 v0.5.5。默认安装脚本跟随官网当前镜像清单，安装后请用 `abx --version` 确认版本。[发行验证记录](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-055-public-a6-consumption.md) 记录公开资产及全新 npm 安装后的验证。
+下面指定版本的命令使用 v0.5.5。默认安装脚本跟随官网当前镜像清单，安装后请用 `abx --version` 确认版本。[发行验证记录](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-25-cli-055-public-a6-consumption.md) 记录当前验证和发布状态；待发布不代表公开资产已可用。
 
 ### macOS 与 Linux
 

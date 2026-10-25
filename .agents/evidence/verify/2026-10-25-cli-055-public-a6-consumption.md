@@ -44,3 +44,5 @@ The maintained-entry scan includes hidden workflow files. Remaining old workflow
 - Normal review/merge, immutable CLI5 five-platform artifacts, GitHub/npm publication and fresh public developer cases. Case4 uses explicit native steps; this does not prove the default Git-source Docker preparation path.
 
 Final current-producer underlying Vitest counts: 4466 PASS / 20 FAIL / 1 SKIP. Parity ledger coverage success does not erase these full-suite failures. The machine-local generated JSON is preserved outside the source checkout. The last new evidence-folder link also initially failed the dated-record slug check; the new capture folder was renamed to the existing capture-layout convention and final health was rerun, without changing the checker or old evidence.
+
+Independent final review found and corrected one remaining Chinese MCP requirements table (old Git-source/uvicorn description) and two installation-guide sentences that prematurely described the pending CLI5 artifacts as published. Both languages now describe actual requirements and the current publication status. This delta changes documentation only; normal exact-head CI is rerun.
