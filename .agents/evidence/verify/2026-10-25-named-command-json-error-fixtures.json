@@ -1,0 +1,135 @@
+{
+  "scope": "Two separate five-request local HTTP diagnostics; cloud connect and command transport seams are replaced, actual dispatcher and HTTP-to-result mapping are exercised. Candidate retains base package version until release preparation.",
+  "public_baseline": {
+    "scope": "Installed public CLI5 dispatcher plus actual runCommand mapping, real local HTTP via replaced command transport/connect seam; not cloud/network gateway proof",
+    "product_version": "0.5.5",
+    "actual_http_requests": 5,
+    "results": [
+      {
+        "name": "execution-failure-json",
+        "fixture_status": 500,
+        "fixture_body": {
+          "error": "diagnostic-fixture-failure",
+          "type": "RuntimeError"
+        },
+        "exit_code": 1,
+        "stdout": "{\n  \"result\": null\n}\n",
+        "stderr": "",
+        "exception": null
+      },
+      {
+        "name": "execution-failure-text",
+        "fixture_status": 500,
+        "fixture_body": {
+          "error": "diagnostic-fixture-failure",
+          "type": "RuntimeError"
+        },
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "RuntimeError: diagnostic-fixture-failure\n",
+        "exception": null
+      },
+      {
+        "name": "validation-failure-json",
+        "fixture_status": 400,
+        "fixture_body": {
+          "error": "diagnostic-fixture-validation",
+          "type": "ValidationError"
+        },
+        "exit_code": 1,
+        "stdout": "{\n  \"result\": null\n}\n",
+        "stderr": "",
+        "exception": null
+      },
+      {
+        "name": "nullable-success-json",
+        "fixture_status": 200,
+        "fixture_body": {
+          "result": null
+        },
+        "exit_code": 0,
+        "stdout": "{\n  \"result\": null\n}\n",
+        "stderr": "",
+        "exception": null
+      },
+      {
+        "name": "notfound-json",
+        "fixture_status": 404,
+        "fixture_body": {
+          "error": "diagnostic-fixture-notfound",
+          "type": "CommandNotFoundError"
+        },
+        "exit_code": 2,
+        "stdout": "{\n  \"status\": \"error\",\n  \"message\": \"Command 'fixture-command' not found. Server: HTTP 404.\",\n  \"code\": \"E3005\",\n  \"suggestion\": \"List the registered commands with 'abx sandbox command list SANDBOX_ID'.\"\n}\n",
+        "stderr": "",
+        "exception": null
+      }
+    ]
+  },
+  "built_source_candidate": {
+    "scope": "Source candidate based on public5, built dispatcher plus actual runCommand mapping, real local HTTP via replaced command transport/connect seam; not cloud/network gateway proof",
+    "product_version": "0.5.5",
+    "actual_http_requests": 5,
+    "results": [
+      {
+        "name": "execution-failure-json",
+        "fixture_status": 500,
+        "fixture_body": {
+          "error": "diagnostic-fixture-failure",
+          "type": "RuntimeError"
+        },
+        "exit_code": 1,
+        "stdout": "{\n  \"status\": \"error\",\n  \"message\": \"RuntimeError: diagnostic-fixture-failure\",\n  \"code\": \"E3000\"\n}\n",
+        "stderr": "",
+        "exception": null
+      },
+      {
+        "name": "execution-failure-text",
+        "fixture_status": 500,
+        "fixture_body": {
+          "error": "diagnostic-fixture-failure",
+          "type": "RuntimeError"
+        },
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "RuntimeError: diagnostic-fixture-failure\n",
+        "exception": null
+      },
+      {
+        "name": "validation-failure-json",
+        "fixture_status": 400,
+        "fixture_body": {
+          "error": "diagnostic-fixture-validation",
+          "type": "ValidationError"
+        },
+        "exit_code": 1,
+        "stdout": "{\n  \"status\": \"error\",\n  \"message\": \"ValidationError: diagnostic-fixture-validation\",\n  \"code\": \"E3000\"\n}\n",
+        "stderr": "",
+        "exception": null
+      },
+      {
+        "name": "nullable-success-json",
+        "fixture_status": 200,
+        "fixture_body": {
+          "result": null
+        },
+        "exit_code": 0,
+        "stdout": "{\n  \"result\": null\n}\n",
+        "stderr": "",
+        "exception": null
+      },
+      {
+        "name": "notfound-json",
+        "fixture_status": 404,
+        "fixture_body": {
+          "error": "diagnostic-fixture-notfound",
+          "type": "CommandNotFoundError"
+        },
+        "exit_code": 2,
+        "stdout": "{\n  \"status\": \"error\",\n  \"message\": \"Command 'fixture-command' not found. Server: HTTP 404.\",\n  \"code\": \"E3005\",\n  \"suggestion\": \"List the registered commands with 'abx sandbox command list SANDBOX_ID'.\"\n}\n",
+        "stderr": "",
+        "exception": null
+      }
+    ]
+  }
+}

@@ -157,7 +157,9 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # typed val
 | `--server-port PORT` | port of the in-sandbox server (default 9000) |
 
 A string result is printed as is, any other value as JSON (`--json` wraps it as `{"result": ...}`). A command that
-fails on the server exits 1; an unknown name exits 2; a sandbox without a running server reports
+fails on the server exits 1. With `--json`, validation/execution failures emit one error object with
+`status: "error"`, code `E3000` and the server diagnostic in `message`; successful results keep the `{"result": ...}` shape.
+An unknown name exits 2 with `E3005`; a sandbox without a running server reports
 "No SandboxServer reachable" and exits non-zero.
 
 ## Setup: `abx config init`

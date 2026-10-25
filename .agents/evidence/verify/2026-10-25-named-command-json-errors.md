@@ -1,0 +1,36 @@
+# Verification: Named-command JSON failure diagnostics
+
+- Date: 2026-10-25
+- Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/180
+- Result: PARTIAL — focused and build checks pass; full local suites have recorded failures; remote CI and candidate real-cloud verification remain pending.
+- Base: public CLI source `3f7fa28e16888a5489980dc56c86d6c71c11c4a0` (0.5.5).
+- Environment: Linux, Node.js 22.22.2; reproducible `npm ci` from the unchanged lockfile. HTTP fixtures use placeholders only.
+
+## Original observation and independent reproduction
+
+A public CLI 0.5.5 native-steps supplementary template run returned exit 1 and only `{"result":null}`. Its template and sandbox were independently confirmed deleted, but the runner stopped at the CLI consumer before SDK/HTTP business checks. The original server status/body was not retained. This record does not infer the business failure's cause from that output.
+
+An independent installed-public-package diagnostic made five actual loopback HTTP requests through the real `Sandbox.runCommand` mapping and dispatcher, replacing cloud connection/command transport only. HTTP 500 and 400 produced exit 1, result-null stdout and empty stderr; text-mode 500 preserved the diagnostic; 200/null exited 0; 404 retained E3005. These are local fixture results, not a real-cloud acceptance claim.
+
+## Commands and results
+
+- `npm ci --prefer-offline --no-audit --no-fund`: PASS.
+- Added five real local HTTP dispatcher cases, then ran `npx vitest run tests/test_cli/test_run_command.test.ts` before the source fix: 15 PASS, 2 FAIL. Both JSON error cases failed because the actual output lacked `status`/`code`; the three control cases passed.
+- The same command after the source fix: 17 PASS, 0 FAIL.
+- `ABX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence/test_evidence_snapshots.test.ts -t run-failure-json-20261025`: PASS. The new dated capture contains one E3000 error JSON and exit 1; no historical capture is overwritten.
+- `make ci`: FAIL (exit 2). Hygiene, typecheck and build PASS; lint has 0 errors and 275 existing warnings. Unit result: 4407 PASS, 10 FAIL, 50 skipped. The failed assertions concern transport error handling, TLS trust, proxy behavior and WebSocket close/handshake behavior; this record does not assign an unverified host cause.
+- `npm run parity:coverage` with the reviewed SDK `8e610a3` and provider `126a50e` source trees: ledger 907/907 PASS and 11 moved SDK entries verified, exit 0. The underlying unit run is **4472 PASS, 20 FAIL, 1 skipped**. Ten additional engine/Cube/provider assertions fail, including observed HTTP 501 text `项目网络审计已关闭`; the text is an observation, not a root-cause conclusion. Ledger success does not mean the full suite passed.
+- `npm run test:standard-provenance`: 7 PASS.
+- `make dist-check`: PASS for the package entry and installed Skill reference closure.
+- `bash scripts/check-repo-health.sh`: initially 106 PASS / 11 historical warnings. After parity generated its ignored raw report, the next scan correctly failed on machine-local paths inside that report (105 PASS / 11 WARN / 1 FAIL). The raw report was preserved privately outside the checkout; the final health scan passes again with 106 PASS / 11 WARN / 0 FAIL. No scanner rule or checked-in evidence was weakened.
+- A separate five-request real local HTTP run against compiled candidate modules preserves 500/400 JSON diagnostics, text failure, successful null and typed 404 controls. It remains a local fixture, with no cloud calls.
+
+Detailed safe results: [checks](2026-10-25-named-command-json-error-checks.json), [separate baseline/candidate HTTP fixtures](2026-10-25-named-command-json-error-fixtures.json).
+
+## Cleanup
+
+All local HTTP servers close in `finally`. The diagnostic and focused regression create no cloud resources. The earlier supplementary cloud run's cleanup belongs to its owning template receipt.
+
+## Not yet verified
+
+The failed full local suites remain recorded, without disabling tests. Latest remote CI, candidate real-cloud execution, final reviewed commit, merge and release are not established by the local checks above. The candidate still carries the base package version; it is not a claim that the immutable public 0.5.5 package contains this fix.

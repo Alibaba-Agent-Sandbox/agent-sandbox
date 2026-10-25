@@ -239,3 +239,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Managed coding-agent JSON output](notes/proposed/process/2026-10-25-managed-agent-json-output.md) · [verification](evidence/verify/2026-10-25-managed-agent-json-output.md)
 
 - [CLI 0.5.5 final runtime consumption](evidence/verify/2026-10-25-cli-055-public-a6-consumption.md). Final publication and public developer reruns remain pending.
+
+- [Named-command JSON errors](notes/proposed/feature/2026-10-25-named-command-json-errors.md) · [verification](evidence/verify/2026-10-25-named-command-json-errors.md) · [Issue180](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/180).

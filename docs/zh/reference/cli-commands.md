@@ -150,8 +150,9 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 | `--json-args JSON` | 以 JSON 对象传参 |
 | `--server-port PORT` | 沙箱内服务端端口（默认 9000） |
 
-字符串结果原样打印，其他值以 JSON 打印（`--json` 时包装为 `{"result": ...}`）。命令在服务端执行失败时退出码为 1；
-名称不存在退出码为 2；沙箱里没有运行中的服务端时提示 "No SandboxServer reachable" 并以非零退出。
+字符串结果原样打印，其他值以 JSON 打印（`--json` 时包装为 `{"result": ...}`）。命令在服务端执行失败时退出码为 1。
+使用 `--json` 时，参数校验或执行失败只输出一个错误对象，包含 `status: "error"`、错误码 `E3000`，以及 `message` 中的服务端诊断；成功结果仍使用 `{"result": ...}`。
+名称不存在时保留 `E3005`，退出码为 2；沙箱里没有运行中的服务端时提示 "No SandboxServer reachable" 并以非零退出。
 
 ## 初始化：`abx config init`
 

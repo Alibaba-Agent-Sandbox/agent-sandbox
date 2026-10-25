@@ -33,7 +33,7 @@ import { Abort, CliError, EOFError, KeyboardInterrupt, SystemExit, UsageError, s
 import { echo, sys } from "../io.js";
 import { confirm, prompt } from "../prompts.js";
 import { cpSlice } from "../../utils/_py.js";
-import { CommandNotFoundError, DescriptionClarificationError } from "../../models/errors.js";
+import { CommandNotFoundError, DescriptionClarificationError, ExecutionError } from "../../models/errors.js";
 import { ProcessChunkType, type CommandResult } from "../../models/process.js";
 import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
 import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
@@ -1846,15 +1846,14 @@ export const run_cmd = command("run", {
       throw exc;
     }
 
-    if (fmt.use_json) fmt.printData({ result: result.value });
-    else if (result.success) {
-      if (typeof result.value === "string") echo(result.value);
-      else if (result.value !== null && result.value !== undefined) echo(JSON.stringify(result.value));
-    }
     if (!result.success) {
-      if (result.stderr && !fmt.use_json) echo(result.stderr, { err: true });
-      sysExit(1);
+      if (fmt.use_json) fmt.printError(result.stderr || "Command execution failed", { code: ExecutionError.code });
+      else if (result.stderr) echo(result.stderr, { err: true });
+      return sysExit(1);
     }
+    if (fmt.use_json) fmt.printData({ result: result.value });
+    else if (typeof result.value === "string") echo(result.value);
+    else if (result.value !== null && result.value !== undefined) echo(JSON.stringify(result.value));
   }),
 });
 

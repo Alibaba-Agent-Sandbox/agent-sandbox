@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve named-command validation/execution diagnostics in one JSON error object (E3000) while retaining successful output and exit codes (#180). / 具名命令校验或执行失败时，JSON 输出保留服务端诊断并复用 E3000；成功输出及退出码保持不变。
+
 ## [0.5.5] - 2026-10-25
 
 ### Changed
