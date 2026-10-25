@@ -196,11 +196,11 @@ The artifact directory contains:
 
 | File | Content |
 |------|---------|
-| `requirements.txt` | public `agent-sandbox-client[mcp]==0.4.0a3` (matching runtime and ASGI dependencies included) |
+| `requirements.txt` | public `agent-sandbox-client[mcp]==0.4.0a4` (matching runtime and ASGI dependencies included) |
 | `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
 | `config.yaml` | YAML manifest with function name, region, runtime `python3.10`, handler `app.app`, memory/timeout, env vars, HTTP trigger (POST/GET/DELETE), session affinity |
 
-Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The generated requirements install matching client/server `0.4.0a3` from the official PyPI index.
+Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The generated requirements install matching client/server `0.4.0a4` from the official PyPI index.
 
 The command prints: manual FC deployment steps (package → create function → create HTTP trigger → enable `Mcp-Session-Id` affinity if supported) and an IDE config template pointing at `<FC_HTTP_TRIGGER_URL>/mcp` with a masked Bearer token.
 
@@ -323,7 +323,7 @@ Connected external resources and retained/background sandboxes survive client di
 
 `abx mcp deploy` generates an ASGI artifact and manual FC steps. Its requirements
 pin both `agent-sandbox-client[mcp]` and `agent-sandbox-server` to public version
-`0.4.0a3`; install with
+`0.4.0a4`; install with
 `python -m pip install -r requirements.txt`. Python imports remain `agent_sandbox`.
 The generated Python HTTP server and Node CLI MCP server are separate surfaces:
 inspect each server's `tools/list` rather than assuming identical tool catalogs.

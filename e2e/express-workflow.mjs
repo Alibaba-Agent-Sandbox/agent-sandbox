@@ -7,6 +7,7 @@ import { spawnSync, execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { Sandbox } from '../dist/api/sandbox.js';
+import { SandboxNotFoundError, TemplateNotFoundError } from '../dist/models/errors.js';
 import { requestApplication } from '../dist/transport/application_http.js';
 import { loadConfig } from '../dist/transport/config.js';
 import { listOfficialTemplates, getTemplate, deleteTemplate } from '../dist/providers/alicloud_express/fc_template.js';
@@ -58,8 +59,9 @@ function journals() {
 }
 try {
   // Same source reference and default build as the Registry's Express instruction.
-  launch = await run(['template','launch','Alibaba-Agent-Sandbox/awesome-templates//python-hello','--workflow','application','--alias',alias,'--timeout','1200','--sandbox-timeout',process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600','--yes']);
-  assert.equal(launch.provider,'alicloud-express');assert.equal(launch.workflow_id,'application');assert.ok(launch.source_digest);check('Registry source launch');
+  launch = await run(['template','launch','Alibaba-Agent-Sandbox/awesome-templates//python-hello','--alias',alias,'--timeout','1200','--sandbox-timeout',process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600','--yes']);
+  assert.equal(launch.provider,'alicloud-express');assert.ok(launch.source_digest);
+  assert.equal(launch.services.app.protocol,'agent-sandbox-server');assert.equal(launch.services.app.version,2);assert.equal(launch.services.app.port,9000);assert.ok(launch.services.app.url);check('Registry source launch and declared application service');
   const entries = journals().flatMap(j=>j.entries);
   assert.ok(entries.some(e=>e.kind==='template' && e.id===launch.template_reference && e.state==='retained'));
   assert.ok(entries.some(e=>e.kind==='image' && /@sha256:[a-f0-9]{64}$/.test(e.id) && e.state==='retained'));check('exact template handoff and immutable image receipt');
@@ -94,18 +96,45 @@ finally {
   try {
     const entries=journals().flatMap(j=>j.entries);
     const ids=new Set(entries.filter(e=>e.kind==='sandbox'&&e.id).map(e=>e.id));if(launch?.sandbox_id)ids.add(launch.sandbox_id);
-    for(const id of ids) { const owned=await Sandbox.connect(id,{provider:'alicloud-express'});try{await owned.kill();assert.equal(await owned.isRunning(),false);}finally{await owned.close();} }
-    report.cleanup.sandboxes='confirmed deleted';
-    const ownedTemplates=(await listOfficialTemplates(nativeOptions)).filter(t=>t.name?.startsWith(`${alias}-`));
-    for(const t of ownedTemplates) {
-      if(error) {
-        const detail = await getTemplate(t.templateID,nativeOptions);
-        (report.template_failure_states ||= []).push(sanitize(detail.status));
-      }
-      await deleteTemplate(t.templateID,nativeOptions);
+    for(const id of ids) {
+      const owned=await Sandbox.connect(id,{provider:'alicloud-express'}).catch(failure=>{
+        if(failure instanceof SandboxNotFoundError)return null;
+        throw failure;
+      });
+      if(!owned)continue;
+      try {
+        await owned.kill();
+        let absent=false;
+        await Sandbox.getInfoById(id,{provider:'alicloud-express'}).catch(failure=>{
+          if(failure instanceof SandboxNotFoundError)absent=true; else throw failure;
+        });
+        assert.ok(absent,'Owned sandbox must have independent typed absence');
+      } finally { await owned.close(); }
     }
-    assert.equal((await listOfficialTemplates(nativeOptions)).filter(t=>t.name?.startsWith(`${alias}-`)).length,0);
-    report.cleanup.templates='confirmed absent from inventory';
+    const ownedTemplates=(await listOfficialTemplates(nativeOptions)).filter(t=>t.name?.startsWith(`${alias}-`));
+    const templateIds=new Set(entries.filter(e=>e.kind==='template'&&e.id).map(e=>e.id));
+    if(launch?.template_reference)templateIds.add(launch.template_reference);
+    for(const t of ownedTemplates)templateIds.add(t.templateID);
+    for(const id of templateIds) {
+      const detail=await getTemplate(id,nativeOptions).catch(failure=>{
+        if(failure instanceof TemplateNotFoundError)return null;
+        throw failure;
+      });
+      if(!detail)continue;
+      if(error)(report.template_failure_states ||= []).push(sanitize(detail.status));
+      await deleteTemplate(id,nativeOptions);
+      let absent=false;
+      await getTemplate(id,nativeOptions).catch(failure=>{
+        if(failure instanceof TemplateNotFoundError)absent=true; else throw failure;
+      });
+      assert.ok(absent,'Owned template must have independent typed E2001 absence');
+    }
+    assert.ok(!entries.some(e=>e.kind==='sandbox'&&!e.id&&e.state!=='deleted'),
+      'Unknown sandbox creation outcomes require journal reconciliation');
+    assert.ok(!entries.some(e=>e.kind==='template'&&!e.id&&e.state!=='deleted'&&!ownedTemplates.some(t=>t.name===e.correlation_key)),
+      'Unknown template creation outcomes require exact correlation reconciliation');
+    report.cleanup.sandboxes=ids.size ? 'confirmed absent by independent typed readback' : 'no owned sandbox IDs';
+    report.cleanup.templates=templateIds.size ? 'confirmed absent by independent typed E2001 readback' : 'no owned template IDs';
     // Registry images have explicit manual cleanup semantics and remain attributable by their unique tag.
     report.cleanup.images='unique-tag ACR images retained; manual cleanup entries in the resource journal';
     check('owned sandbox and template cleanup');

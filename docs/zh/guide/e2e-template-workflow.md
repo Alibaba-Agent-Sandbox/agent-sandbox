@@ -280,7 +280,7 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN pip install --index-url https://pypi.org/simple --no-cache-dir "agent-sandbox-server==0.4.0a3"
+RUN pip install --index-url https://pypi.org/simple --no-cache-dir "agent-sandbox-server==0.4.0a4"
 
 WORKDIR /app
 COPY commands.py .

@@ -2,7 +2,7 @@
 
 ## Pending minimal patch — 2026-10-25
 
-CLI 0.5.4 prepares matched Python 0.4.0a3 consumption and preserves definite native template absence as existing E2001. Python 0.4.0a3 is published; real generated-artifact checks and CLI publication remain pending. [Decision](notes/proposed/process/2026-10-25-cli-054-runtime-consumption.md) · [verification](evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
+CLI 0.5.4 prepares matched Python 0.4.0a4 consumption and preserves definite native template absence as existing E2001. Python 0.4.0a4 is published; latest generated-artifact checks and CLI publication remain pending. Earlier a3 candidate receipts remain history. [Latest a4 verification](evidence/verify/2026-10-25-cli-054-public-a4-consumption.md) · [Decision](notes/proposed/process/2026-10-25-cli-054-runtime-consumption.md) · [verification](evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
 
 ## Current public patch delivery — 2026-10-25
 
@@ -233,3 +233,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Incompatible template source guidance](notes/proposed/feature/2026-10-25-template-source-version-guidance.md) · [verification](evidence/verify/2026-10-25-template-source-version-guidance.md).
 
 - [CLI 0.5.4 report follow-up](evidence/verify/2026-10-25-cli-054-report-follow-up.md) records the integrated candidate checks; public release and developer reruns remain separate.
+
+- [Active Express source entry cleanup](evidence/verify/2026-10-25-cli-054-active-source-script.md) separates current argument/preflight proof from the still-blocked default Docker cloud run.

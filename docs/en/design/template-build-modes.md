@@ -79,7 +79,7 @@ explicit mode to generation and deployment. The provider supplies its resolved b
 the CLI assembles file-transfer steps from final local bytes because no COPY context is
 uploaded. Files and WORKDIR precede dependency commands so relative requirements files work.
 The model supplies business code and existing build.run dependencies; ordered native steps
-repair ownership after WORKDIR and restore the provider runtime user. Generation uses the published `agent-sandbox-server==0.4.0a3` alpha from the official
+repair ownership after WORKDIR and restore the provider runtime user. Generation uses the published `agent-sandbox-server==0.4.0a4` alpha from the official
 PyPI index. The prompt pipeline waits for Ready before creating a sandbox; direct
 `template deploy --build steps` still reports submission, so poll `template info` separately.
 The default Docker route is unchanged. Model-generated code is an artifact to review and test.

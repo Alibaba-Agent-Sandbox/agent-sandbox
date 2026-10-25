@@ -19,7 +19,7 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 
 模板整体启动：`abx --provider PROVIDER template launch TEMPLATE --yes`。spec v5 删除 workflow 选择，返回全部声明的服务。当前 spec v5 目录建议使用 CLI 0.5.4 或更新版本；CLI 与模板目录需同步升级。见[启动与迁移](docs/zh/guide/template-workflows.md)。
 
-自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a3` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
+自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a4` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
 
 新生成应用在调用模型前需要运行时 `ABX_SERVER_TOKEN`；仅生成本地文件时不需要。`create --prompt` 复用同一个模板整体启动流程，并返回模板引用和服务地址。
 
@@ -190,10 +190,10 @@ Python SDK —— 同步 `Sandbox`／异步 `AsyncSandbox` API、`@sandbox` 声�
 
 ```bash
 # 客户端 SDK（import agent_sandbox）
-python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==0.4.0a3"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-client==0.4.0a4"
 
 # 模板镜像内使用的服务端运行时（import agent_sandbox.server）
-python -m pip install --index-url https://pypi.org/simple "agent-sandbox-server==0.4.0a3"
+python -m pip install --index-url https://pypi.org/simple "agent-sandbox-server==0.4.0a4"
 ```
 
 `agent-sandbox-server` 是容器内运行时：模板的 Dockerfile 与 `commands.py` 通过 [Python installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) 安装它。`abx` CLI 不再随 Python 包发布（不存在 `[cli]` extra）。请用[二进制安装脚本](docs/zh/guide/binary-installation.md)安装。npm 包可按上面的命令安装。
@@ -270,7 +270,7 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 ## 发布就绪范围
 
-CLI 0.5.4 的生成器、脚手架与 MCP 产物统一使用 Python client/server 0.4.0a3。原生模板详情把官方确定的模板不存在响应报告为现有 E2001，网络和权限错误仍与资源不存在区分。见[公开发行验证](.agents/evidence/verify/2026-10-25-cli-054-runtime-consumption.md)。
+CLI 0.5.4 的生成器、脚手架与 MCP 产物统一使用 Python client/server 0.4.0a4。原生模板详情把官方确定的模板不存在响应报告为现有 E2001，网络和权限错误仍与资源不存在区分。见[公开发行验证](.agents/evidence/verify/2026-10-25-cli-054-runtime-consumption.md)。
 
 运行证据对应实际测试的模板与平台组合。发行记录明确说明 CLI 交付件及极速版内置 base 的实测范围；各模板文档说明其平台要求和服务 API。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
 

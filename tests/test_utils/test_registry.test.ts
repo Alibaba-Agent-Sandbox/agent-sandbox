@@ -843,6 +843,8 @@ describe("obsolete manifest recovery", () => {
     expect(() => loadTemplateFromYaml(file)).toThrow("Use a source revision");
     try { loadTemplateFromYaml(file); } catch (error) {
       expect(String(error)).not.toContain("expected never");
+      expect(String(error)).not.toContain("capabilities are NOT granted");
+      expect(error).toHaveProperty("suggestion", "");
       expect(String(error)).not.toContain("cached template directory");
     }
     expect(fs.readFileSync(file, "utf8")).toBe(oldManifest);

@@ -74,7 +74,7 @@ env:
 
 - `alicloud-express` 使用 `FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>`，不写 `CMD` 或 `ENTRYPOINT`，由平台 `start_cmd` / `ready_cmd` 启动服务。工作目录是 `/home/user/app`。端口 49983、5000、49999 属于该配置的保留端口。
 - 其他提供者在 `abx-provider.toml` 没有 `[template]` 表时使用通用配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`）。缺少配置不是 FC 镜像；生成器会写出那个没有配置的 provider id。
-- 镜像从官方 PyPI 安装 `agent-sandbox-server==0.4.0a3`。脚手架与自然语言生成共用这一运行时版本。仅在明确设置 `ABX_SERVER_SDK_SOURCE` 时构建并注入本地开发 wheel；普通构建使用公开发行包。
+- 镜像从官方 PyPI 安装 `agent-sandbox-server==0.4.0a4`。脚手架与自然语言生成共用这一运行时版本。仅在明确设置 `ABX_SERVER_SDK_SOURCE` 时构建并注入本地开发 wheel；普通构建使用公开发行包。
 
 ---
 

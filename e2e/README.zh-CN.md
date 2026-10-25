@@ -208,8 +208,8 @@ mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/READ
 `ABX_WORKFLOW_REPORT` 指定 JSON 报告路径；`ABX_WORKFLOW_FULL_E2E=1`
 可追加运行基于该模板的完整 CLI 测试套件。
 
-脚本直接使用 Registry 的 `python-hello` 源码及默认 Dockerfile，验证 HTTP
-命令和 CLI 文件操作，并删除本次创建的沙箱、模板。此操作会产生云资源费用。
+脚本直接使用 Registry 的 `python-hello` 源码及默认 Dockerfile，核对返回的服务，验证 HTTP
+命令和 CLI 文件操作，并删除本次创建的沙箱、模板，通过独立的结构化不存在错误核对清理。此操作会产生云资源费用。
 ACR 镜像资源记录保留于 `~/.abx/resource-journal/`，供手动清理镜像；不要删除
 共享镜像仓库。脱敏报告分别记录测试结果和清理状态。
 

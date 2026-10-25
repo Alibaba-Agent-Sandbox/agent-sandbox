@@ -8,7 +8,7 @@ Generated and scaffolded Python artifacts must use the matched SDK runtime that 
 
 ## Decision
 
-Publish the smallest CLI patch, 0.5.4, consuming Python client/server 0.4.0a3 through the existing shared exact pin. Regenerate standard assets with locked vendor inputs. Map official structured GetTemplate statusCode404 plus TemplateNotFound to existing E2001, and remove the old message fallback from project tests. Do not alter global errors, create a new class or duplicate readiness polling in the CLI.
+Publish the smallest CLI patch, 0.5.4, consuming Python client/server 0.4.0a4 through the existing shared exact pin. Regenerate standard assets with locked vendor inputs. Map official structured GetTemplate statusCode404 plus TemplateNotFound to existing E2001, and remove the old message fallback from project tests. Do not alter global errors, create a new class or duplicate readiness polling in the CLI.
 
 ## API Design
 
@@ -25,6 +25,7 @@ No new options or classes. Native template info reports the existing E2001/exit4
 - https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/173
 - https://github.com/Alibaba-Agent-Sandbox/python-sdk/issues/121
 - https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/122
+- https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/125
 
 ## Test Strategy
 
@@ -40,3 +41,5 @@ Meaningful SDK error mapping and fail-closed regressions; actual read-only owned
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
+
+- [Public a4 consumption](../../../evidence/verify/2026-10-25-cli-054-public-a4-consumption.md).

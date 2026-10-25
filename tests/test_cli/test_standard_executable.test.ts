@@ -167,7 +167,7 @@ describe("standard executable contract", () => {
     expect(result.stdout).not.toContain("install e2b dependency");
     expect(readFileSync(path.join(home, name, "template.py"), "utf8")).toContain("from agent_sandbox import");
     const readme = readFileSync(path.join(home, name, "README.md"), "utf8");
-    expect(readme).toContain("agent-sandbox-client==0.4.0a3");
+    expect(readme).toContain("agent-sandbox-client==0.4.0a4");
     expect(readme).toContain("from agent_sandbox import");
     expect(readme).not.toContain("from e2b import");
     expect(readme).toContain("ABX_SANDBOX_API_KEY=");

@@ -95,7 +95,7 @@ abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析�
   --yes --detach --build steps --dir ./generated
 ```
 
-这仍然调用真实模型，生成自包含的 `base.image` 与 `build.run`，提交模板并等待 **Ready** 后创建沙箱。本地源码不会作为 COPY 构建上下文上传。生成服务固定使用官方 PyPI 的 `agent-sandbox-server==0.4.0a3` alpha，它不是稳定版 SDK。应审阅生成文件并实测业务 API；模型可能生成无效或不符合需求的代码，校验失败会保留目录并停止创建。
+这仍然调用真实模型，生成自包含的 `base.image` 与 `build.run`，提交模板并等待 **Ready** 后创建沙箱。本地源码不会作为 COPY 构建上下文上传。生成服务固定使用官方 PyPI 的 `agent-sandbox-server==0.4.0a4` alpha，它不是稳定版 SDK。应审阅生成文件并实测业务 API；模型可能生成无效或不符合需求的代码，校验失败会保留目录并停止创建。
 
 单独执行 对于生成的原生 steps，CLI 使用提供方已解析的基础镜像、运行用户和工作目录，安装服务包，并把最终本地源码字节写入构建步骤。模型只生成业务文件和已有 `build.run` 中的额外依赖安装命令，无需编码源码或重复提供方的准备字段。无效结果仍会保留目录并在部署前停止。
 

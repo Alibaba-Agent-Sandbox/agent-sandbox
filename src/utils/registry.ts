@@ -435,7 +435,7 @@ export function validateTemplateSourceVersion(data: Record<string, unknown>, fil
     const cached = relative !== "" && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
     const recovery = "Use a source revision containing spec_version: 5; updating the version number alone does not migrate an old manifest." +
       (cached ? ` If this is a downloaded copy and its remote source has already been updated, remove only its cached template directory (${path.dirname(file)}) and retry. Index refresh does not refresh source files.` : "");
-    throw new TemplateParseError(`${file}: unsupported template spec_version ${declared}; this CLI requires spec_version: 5. ${recovery}`);
+    throw new TemplateParseError(`${file}: unsupported template spec_version ${declared}; this CLI requires spec_version: 5. ${recovery}`, { suggestion: "" });
   }
 }
 
