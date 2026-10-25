@@ -295,6 +295,7 @@ it("test_template_create_shows_a_header_and_hides_the_password", async () => {
 });
 
 it("test_install_milestones_show_under_the_header", async () => {
+  iso.monkeypatch.setenv("ABX_SERVER_TOKEN", "test-application-token");
   const tty = ttyStderr();
   const backend = {
     displayName: "Qwen Code",

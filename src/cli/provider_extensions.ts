@@ -21,7 +21,6 @@ export interface ProviderCliExtension {
   managementRequirements?(commandId: string): readonly string[];
   loadTemplates(): Promise<Record<string, unknown>>;
   loadDeploy?(): Promise<{ deploy_shortcut: Command }>;
-  deployGenerated?(directory: string, options: Record<string, unknown>, ctx: Context): Promise<Record<string, unknown>>;
 }
 const extensions = new Map<string, ProviderCliExtension>([[CLI_EXTENSION.id, CLI_EXTENSION]]);
 export function registerProviderCliExtension(extension: ProviderCliExtension): void { extensions.set(extension.id, extension); }

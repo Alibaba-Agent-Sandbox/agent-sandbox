@@ -30,6 +30,7 @@ import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import { configSeams } from "../../src/cli/commands/config_cmd.js";
 import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
+import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
 import { cli } from "../../src/cli/main.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
@@ -38,6 +39,7 @@ import { useTmpPath } from "../helpers/templateSupport.js";
 const tmpPath = useTmpPath();
 beforeEach(() => {
   vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key");
+  vi.stubEnv("ABX_SERVER_TOKEN", "placeholder-application-token");
   vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "placeholder-access-id");
   vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-access-secret");
 });
@@ -100,7 +102,15 @@ function _sandbox(): Sandbox {
     envdUrl: "https://sbx-e2e-001.cn-hangzhou.e2b.fc.aliyuncs.com",
     envdAccessToken: "tok",
   });
-  return { id: info.sandbox_id, status: info.status, url: info.envd_url, info } as unknown as Sandbox;
+  return { id: info.sandbox_id, status: info.status, url: info.envd_url, info,
+    commands: { run: vi.fn().mockResolvedValue({ exit_code: 0 }) },
+    network: { resolveEndpoint: vi.fn().mockResolvedValue({ url: "https://application.example" }) },
+    verifyApplicationOperation: vi.fn().mockResolvedValue(undefined),
+    listCommands: vi.fn().mockResolvedValue([]),
+    close: vi.fn().mockResolvedValue(undefined),
+    kill: vi.fn().mockResolvedValue(undefined),
+    isRunning: vi.fn().mockResolvedValue(false),
+  } as unknown as Sandbox;
 }
 
 interface AgentReady {
@@ -119,6 +129,8 @@ const savedSeams = {
 };
 
 afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   Object.assign(qwenCode.seams, savedSeams.qwen);
   Object.assign(codegen.seams, savedSeams.codegen);
   Object.assign(clarify.seams, savedSeams.clarify);
@@ -143,7 +155,11 @@ function agentReady(): AgentReady {
   clarify.seams.evaluate = vi.fn(async () => new ClarifyAssessment({ completeness: 1.0, question: null })) as unknown as typeof clarify.seams.evaluate;
   const generated = _codegenResult(tmp);
   const generate = vi.fn(async () => generated);
-  const deploy = vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-ai-123", Status: "success" }) as unknown as Mock;
+  const deploy = vi.spyOn(template, "do_deploy").mockResolvedValue({ TemplateID: "tmpl-ai-123", Status: "ready" }) as unknown as Mock;
+  vi.spyOn(template, "withDeployConfiguration").mockImplementation(async (_directory, _options, action) => action());
+  vi.spyOn(CLI_EXTENSION, "stageProject").mockImplementation(async (directory) => ({
+    directory, digest: "sha256:test-generated-source", verify: async () => undefined, close: async () => undefined,
+  }));
   codegen.seams.generateTemplateFiles = generate as unknown as typeof codegen.seams.generateTemplateFiles;
   return { generated, generate, deploy };
 }

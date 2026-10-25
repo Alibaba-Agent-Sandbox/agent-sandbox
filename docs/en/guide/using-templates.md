@@ -82,6 +82,8 @@ When you are unsure which template to use, you can describe your needs in natura
 abx create --prompt "a Python data analysis environment with pandas and matplotlib"
 ```
 
+New generated applications require a separate runtime application token. Export `ABX_SERVER_TOKEN` before creation, or provide it through the existing `-e ABX_SERVER_TOKEN=...` option. The CLI validates it before model work and injects it when starting the application; it does not write the token value into generated files or build steps. Generation-only remains local. The create JSON keeps its original fields and also returns `TemplateID` and `Services` for exact cleanup and application access.
+
 `abx create --prompt "<description>"` (without an existing template positional argument) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
 
 For non-interactive use, add `--yes`; `--detach` is accepted and this generation path already returns without opening a terminal. Discover generation-specific options with `abx create --prompt "DESCRIPTION" --help`.
