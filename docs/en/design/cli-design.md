@@ -1081,6 +1081,7 @@ The manager owns two channels and never mixes them, so machine-readable output s
 Consequences:
 
 - In `--json` mode stdout stays a **single JSON document**; the JSON forms of `info` / `warning` / `progress` / `debug` / `error` are written to stderr instead.
+- Managed coding-agent installation is intermediate progress: its completion message goes to stderr, including the first `create --prompt` run. In JSON mode only the final command result goes to stdout.
 - Library warnings and DEBUG diagnostics are bridged through one handler on the root logger, so a warning is rendered exactly once (no duplicate `WARNING:` line next to the SDK's timestamped line).
 - Progress spinners render on stderr; every write pauses the live spinner and resumes it afterwards, so status text and results never interleave.
 - `--quiet`, `--json` and `--ci` therefore keep stdout free of status text and log records.

@@ -143,7 +143,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Alibaba-Agent-Sandbox/python-sdk
-          ref: 270a7a8fa72656653b485403273491fd99aeefc8
+          ref: 8e610a3658040d8d6973e7951f9590ea50a4d70a
           path: vendor/python-sdk
           sparse-checkout: server-sdk/src
           sparse-checkout-cone-mode: false
@@ -151,7 +151,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Alibaba-Agent-Sandbox/awesome-providers
-          ref: de4fbf647966459feb57a35ab590b938024abe0e
+          ref: 126a50e3c4e4c6792019b9c96674d35a9518d8ad
           path: vendor/awesome-providers
       - name: Typecheck
         run: npm run typecheck

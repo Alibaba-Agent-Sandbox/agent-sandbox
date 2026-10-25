@@ -76,30 +76,39 @@ abx create my-python
 
 ## 自然语言创建
 
-当不确定使用哪个模板时，可以用自然语言描述需求：
+生成应用前先完成提供方和模型配置。现有的交互入口是 `abx config init --llm`；自动化可使用文档中的 `ABX_LLM_API_KEY`、`ABX_LLM_BASE_URL`、`ABX_LLM_MODEL`，模型名称必须是自己服务中可用的值。平台密钥与模型密钥用途不同；认证和构建准备条件见[认证说明](authentication.md)与[编写模板](authoring-templates.md)。
+
+设置足够长的随机应用令牌后，先从只用标准库的小命令开始：
 
 ```bash
-abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析环境"
+abx config init --llm
+export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
+```
+
+```bash
+abx create --prompt "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果"
 ```
 
 新生成的应用需要独立的运行时应用令牌。创建前设置环境变量 `ABX_SERVER_TOKEN`，或通过已有 `-e ABX_SERVER_TOKEN=...` 传入。CLI 在调用模型前校验，启动应用时注入；令牌值不会写入生成文件或构建步骤。仅生成本地文件时不要求令牌。创建的 JSON 保留原字段，并返回 `TemplateID` 与 `Services`，方便精确清理和访问应用。
 
-`abx create --prompt "<描述>"`（未显式传 `--template` 时）走 生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
+`abx create --prompt "<描述>"`（没有提供已存在模板的位置参数时）走生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
 
 非交互运行需要 `--yes`；接受 `--detach`，生成路径原本就会在创建后返回而不进入终端。用 `abx create --prompt "描述" --help` 查看生成路径的完整选项。
 
 默认使用本地 Docker 和 ACR。Express 下没有 Docker 时，可显式选择已有的平台 steps 路径：
 
 ```bash
-abx create --prompt "一个支持 pandas 和 matplotlib 的 Python 数据分析环境" \
+abx create --prompt "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果" \
   --yes --detach --build steps --dir ./generated
 ```
 
-这仍然调用真实模型，生成自包含的 `base.image` 与 `build.run`，提交模板并等待 **Ready** 后创建沙箱。本地源码不会作为 COPY 构建上下文上传。生成服务固定使用官方 PyPI 的 `agent-sandbox-server==0.4.0a4` alpha，它不是稳定版 SDK。应审阅生成文件并实测业务 API；模型可能生成无效或不符合需求的代码，校验失败会保留目录并停止创建。
+这仍然调用真实模型，生成自包含的 `base.image` 与 `build.run`，提交模板并等待 **Ready** 后创建沙箱。本地源码不会作为 COPY 构建上下文上传。生成服务固定使用官方 PyPI 的 `agent-sandbox-server==0.4.0a6` alpha，它不是稳定版 SDK。应审阅生成文件并实测业务 API；模型可能生成无效或不符合需求的代码，校验失败会保留目录并停止创建。
 
-单独执行 对于生成的原生 steps，CLI 使用提供方已解析的基础镜像、运行用户和工作目录，安装服务包，并把最终本地源码字节写入构建步骤。模型只生成业务文件和已有 `build.run` 中的额外依赖安装命令，无需编码源码或重复提供方的准备字段。无效结果仍会保留目录并在部署前停止。
+对于生成的原生 steps，CLI 使用提供方已解析的基础镜像、运行用户和工作目录，安装服务包，并把最终本地源码字节写入构建步骤。模型只生成业务文件和已有 `build.run` 中的额外依赖安装命令，无需编码源码或重复提供方的准备字段。无效结果仍会保留目录并在部署前停止。
 
 `abx template deploy --build steps` 仍返回 **submitted**；先用 `abx template info <id>` 确认 Ready，再创建沙箱。生成和部署需要模型配置、沙箱 API 配置及 AK/SK；steps 不要求 ACR 凭据。
+
+小型加法示例不代表尚未解决的 [pandas/matplotlib 构建超时](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131)已修复；大型依赖需要单独检查构建。
 
 ---
 

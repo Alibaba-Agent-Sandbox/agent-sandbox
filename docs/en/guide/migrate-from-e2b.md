@@ -2,7 +2,7 @@
 
 The standard command path targets Alibaba's documented `@e2b/cli@2.20.0`, with its protocol client fixed at `e2b@2.50.0` (below the documented 2.51.0 create/connect incompatibility). [Alibaba compatibility](https://help.aliyun.com/zh/agent-sandbox/e2b-compatibility-explanation) defines service boundaries. This is a CLI implementation detail, not a Node SDK release.
 
-Install/build this checkout as described in the root README until the release is published. Keep your existing `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`; replace the executable prefix `e2b` with `abx`. Project/home configuration also works. Authentication uses the configured Alibaba API key; E2B browser login and Team administration are not required.
+Install the current official release using the [installation guide](binary-installation.md). Keep your existing `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`; replace the executable prefix `e2b` with `abx`. Project/home configuration also works. Authentication uses the configured Alibaba API key; E2B browser login and Team administration are not required.
 
 Standard command output options follow each command's help, such as `--format json` where supported. Native root switches such as `--json` / `--quiet` do not select a different lifecycle implementation; unsupported combinations fail explicitly. Check the standard command's `--help` for supported options.
 
@@ -38,9 +38,7 @@ Real conditional probes on the tested python-hello function returned `pauseSessi
 
 ### Source installation and artifact notices
 
-Use the paired Python source recipe in the README; its tested implementation pin
-provides the synchronous/asynchronous standard entries shown here. Generated Python
-template READMEs use that same pair. No PyPI release is implied.
+Use the current official CLI release from the [installation guide](binary-installation.md) and the matched public Python client/server release described in the README. Python template READMEs use that same exact runtime pin. A source checkout is needed only for development or an explicitly chosen source installation.
 
 `abx --licenses` includes the full upstream prebundle identity inventory and retained
 notices. Maintainers refresh and verify them using [the pinned-source workflow](../../../vendor/e2b-cli/README.md).

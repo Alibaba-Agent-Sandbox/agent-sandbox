@@ -27,7 +27,7 @@ The dual Apache/BSD protobuf notice retains the upstream Apache text and the act
 Google BSD header from its published varint implementation. Raw upstream legal
 comments remain retained separately in the generated artifact.
 
-Generated Python recipes install public `agent-sandbox-client==0.4.0a3`, which requires the matching server runtime. The generation script uses the shared current runtime pin and rewrites Python imports in both source and README examples to `agent_sandbox`; Python README configuration uses canonical ABX variables; TypeScript retains its external `e2b` package and E2B configuration contract.
+Generated Python recipes install public `agent-sandbox-client==0.4.0a6`, which requires the matching server runtime. The generation script uses the shared current runtime pin and rewrites Python imports in both source and README examples to `agent_sandbox`; Python README configuration uses canonical ABX variables; TypeScript retains its external `e2b` package and E2B configuration contract.
 
 Rendered notice line endings/trailing spaces are normalized for portable artifacts.
 Source-file hashes still refer to the exact original bytes; copyright and terms remain intact.

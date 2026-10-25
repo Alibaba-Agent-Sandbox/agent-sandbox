@@ -431,6 +431,23 @@ describe("TestCreateRouting", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestQwenCodeInstallGate", () => {
+  it("keeps the final JSON result parseable after a first managed installation", async () => {
+    qwenCode.seams.findQwenCodeBinary = vi.fn(() => null);
+    const installed = path.join(tmp, "qwen");
+    const install = vi.fn(async () => installed);
+    qwenCode.seams.downloadAndInstallStandalone = install as never;
+    _patchSuccessPipeline(tmp);
+    patchCreate();
+
+    const result = await runner().invoke(cli, ["--json", "create", "--prompt", "an integer add API", "--yes", "--build", "steps"]);
+
+    expect(result.exit_code, result.output).toBe(0);
+    expect(install).toHaveBeenCalledOnce();
+    expect(JSON.parse(result.stdout)).toMatchObject({ ID: "sbx-nl-001", TemplateID: "tmpl-ai-123" });
+    expect(result.stdout).not.toContain("Installed Qwen Code");
+    expect(result.stderr).toContain(`Installed Qwen Code: ${installed}`);
+  });
+
   it("test_not_installed_non_tty_shows_quick_setup_and_fails", async () => {
     qwenCode.seams.findQwenCodeBinary = vi.fn(() => null);
     const genMock = vi.fn();

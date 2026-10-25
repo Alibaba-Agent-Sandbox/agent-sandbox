@@ -1,0 +1,52 @@
+{
+  "scope": "candidate source correction with public SDK 0.4.0a4; not published CLI 0.5.5",
+  "base_source": "3ff60603606466e0154ceaa7c1c051651084de0e",
+  "versions": {
+    "cli": "abx, version 0.5.4",
+    "client": "0.4.0a4",
+    "python": "3.13.13"
+  },
+  "fresh_home": true,
+  "ambient_qwen_excluded": true,
+  "managed_official_install": true,
+  "create_exit_code": 0,
+  "create_elapsed_seconds": 65.94,
+  "stdout_single_json": true,
+  "stdout_result_keys": [
+    "ID",
+    "Status",
+    "Template",
+    "URL",
+    "TemplateID",
+    "Services",
+    "EnvdVersion",
+    "provider"
+  ],
+  "stdout_installation_message": false,
+  "stderr_installation_message": true,
+  "assertion_count": 54,
+  "assertions_passed": 54,
+  "cleanup": [
+    {
+      "kind": "sandbox",
+      "absent": true,
+      "delete_exit_code": 0,
+      "typed_readback": "SandboxNotFoundError"
+    },
+    {
+      "kind": "template",
+      "absent": true,
+      "delete_exit_code": 0,
+      "typed_readback": "E2001"
+    }
+  ],
+  "passed": true,
+  "runner_sha256": {
+    "run.py": "4ad2f63270a75d1411838109c9d065a9c233e6977c105cae98965bfe19cd7182",
+    "verify.py": "da013f311e9a670cf07074a5b2d7296c2eb0447ab5612985761fecddac734e9f"
+  },
+  "modified_source_sha256": {
+    "src/cli/commands/_coding_agent.ts": "d21c3982d5f244b1aa6a7ba909dedbb5ae91010848afe9b59c2cb42277327fba",
+    "tests/test_cli/test_create_nl.test.ts": "895d297d08a4ca14089f85a9d2ba6976a65987b3100fbfe04c7b9406c7deb7cf"
+  }
+}

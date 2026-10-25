@@ -1,0 +1,100 @@
+{
+  "client_version": "0.4.0a6",
+  "server_version": "0.4.0a6",
+  "scope": "actual current documentation code starts local HTTP server at its documented port; no cloud/model; owned PID cleanup",
+  "checks": [
+    {
+      "document": "docs/en/guide/cli-tutorial.md",
+      "code_sha256": "d0c07cb94272b26a28f342c852b5f7ca56065edfd2f3d72d8af665fcde488477",
+      "passed": true,
+      "actual_schema": {
+        "name": "greet",
+        "args": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "default": null,
+            "description": ""
+          }
+        ],
+        "description": ""
+      },
+      "business_result": {
+        "result": "Hello, World!"
+      },
+      "missing_token_401": true,
+      "owned_pid_absent": true
+    },
+    {
+      "document": "docs/en/reference/cli-reference.md",
+      "code_sha256": "d0c07cb94272b26a28f342c852b5f7ca56065edfd2f3d72d8af665fcde488477",
+      "passed": true,
+      "actual_schema": {
+        "name": "greet",
+        "args": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "default": null,
+            "description": ""
+          }
+        ],
+        "description": ""
+      },
+      "business_result": {
+        "result": "Hello, World!"
+      },
+      "missing_token_401": true,
+      "owned_pid_absent": true
+    },
+    {
+      "document": "docs/zh/guide/cli-tutorial.md",
+      "code_sha256": "d0c07cb94272b26a28f342c852b5f7ca56065edfd2f3d72d8af665fcde488477",
+      "passed": true,
+      "actual_schema": {
+        "name": "greet",
+        "args": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "default": null,
+            "description": ""
+          }
+        ],
+        "description": ""
+      },
+      "business_result": {
+        "result": "Hello, World!"
+      },
+      "missing_token_401": true,
+      "owned_pid_absent": true
+    },
+    {
+      "document": "docs/zh/reference/cli-reference.md",
+      "code_sha256": "d0c07cb94272b26a28f342c852b5f7ca56065edfd2f3d72d8af665fcde488477",
+      "passed": true,
+      "actual_schema": {
+        "name": "greet",
+        "args": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "default": null,
+            "description": ""
+          }
+        ],
+        "description": ""
+      },
+      "business_result": {
+        "result": "Hello, World!"
+      },
+      "missing_token_401": true,
+      "owned_pid_absent": true
+    }
+  ],
+  "passed": true
+}

@@ -120,8 +120,7 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
   if (["create", "cr", "spawn", "sp"].includes(verb ?? "") &&
       options.some((arg) => arg === "--template" || arg.startsWith("--template=")) &&
       !options.some((arg) => arg === "--help" || arg === "-h")) {
-    process.stderr.write("Hint: create takes a positional template: abx create TEMPLATE [--detach]. " +
-      "The --template option belongs to 'abx template scaffold'.\n");
+    process.stderr.write("Hint: Express create takes a positional template: abx create TEMPLATE [--detach].\n");
   }
   process.argv = [process.argv[0]!, process.argv[1]!, ...normalized];
   // An embedded, independently released CLI must not check for updates to @e2b/cli.

@@ -6,33 +6,35 @@
 
 ## 第一步：安装
 
-```bash
-# 新版本发布前从当前检出目录构建
-npm ci
-npm run build
-node dist/bin/abx.js --version
-```
-
-以下示例使用已安装二进制的 abx 名称；从检出目录运行时，将前缀替换为 `node /绝对路径/dist/bin/abx.js`：
+需要 Node.js 20 或更新版本。安装固定的官方 npm 版本，并检查实际运行的版本：
 
 ```bash
+npm install --global @agent-sandbox/cli@0.5.5 --registry=https://registry.npmjs.org
 abx --version
 ```
+
+应看到版本 `0.5.5`。独立二进制、不同操作系统及源码开发安装见[安装指南](binary-installation.md)。
 
 ---
 
 ## 第二步：认证
 
+本教程使用阿里云极速版。先为当前终端选择提供方：
+
+```bash
+export ABX_PROVIDER=alicloud-express
+```
+
 ### 通过 config 设置 API Key
 
 ```bash
-abx config set sandbox_api_key your-api-key
+abx config set sandbox_api_key
 ```
 
 ### 或通过环境变量
 
 ```bash
-export ABX_SANDBOX_API_KEY="your-api-key"
+export ABX_SANDBOX_API_KEY="<YOUR_SANDBOX_API_KEY>"
 ```
 
 > 更多认证方式（AK/SK、.env 文件、config.toml 等）详见 [认证详解](authentication.md)。
@@ -49,13 +51,15 @@ abx create base --detach --timeout 300
 
 不传 --detach 时 create 打开真实 PTY；默认退出策略会缩短租期（阿里云最短 TTL 仍适用）。连接已有沙箱时，connect 打开真实 PTY，退出终端后沙箱继续运行。
 
-自然语言是显式项目扩展：
+可选的源码生成还需要模型凭据与应用令牌，平台 API key 不能替代它们；执行下列命令前先完成[生成配置](using-templates.md#自然语言创建)。上面的原生 `base` 生命周期不需要模型或此应用服务。先从只用标准库的小应用开始：
 
 ```bash
-abx create --prompt "一个 Python 数据分析环境"
-abx create --prompt "一个 Node.js API 服务" -y
-abx template scaffold --prompt "一个 Python 数据分析环境"
+abx create --prompt "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果"
+abx create --prompt "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果" -y
+abx template scaffold --prompt "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果"
 ```
+
+大型依赖栈另有构建条件；小型加法示例不代表此前的 [pandas/matplotlib 构建超时](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131)已经解决。
 
 项目生成路径可以调研需求、询问缺失的用户偏好，并在确认后构建/部署。scaffold 只写本地文件；template init --name demo --language python-sync 则生成标准 SDK 构建文件，Python 使用 agent_sandbox。已有模板无需 LLM 或 --template。文件单独上传：
 
@@ -70,7 +74,7 @@ abx list --state running --limit 5 --format json
 abx info <sandbox-id> --format json
 ```
 
-标准输出使用 E2B 模型与 --format，项目全局 JSON 信封是另一个扩展接口。保留已配置的 E2B_API_KEY、E2B_API_URL、E2B_DOMAIN。
+标准输出使用固定模型及 `--format`，沿用第二步的项目 `ABX_SANDBOX_*` 配置即可。标准极速版入口也遵循外部集成契约，接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`；同一环境同时提供两组值时，该入口采用 E2B 值。这些别名不配置其他提供方或项目扩展，详见[迁移说明](migrate-from-e2b.md)。
 
 ## 第五步：在沙箱中执行命令
 
@@ -108,28 +112,36 @@ abx download sbx-xxxx /app/result.csv ./result.csv
 
 ## 第七步：运行具名命令
 
-具名命令在沙箱内运行的 Python 代码（沙箱内 `SandboxServer`）中注册，不在 `template.yaml` 中声明。
+具名命令属于**沙箱内运行的应用**。在自己的电脑上运行 Python，不会让第三步的原生 `base` 沙箱获得这个应用。把下列代码保存为模板项目中的 `commands.py`；镜像需要安装已发布的 `agent-sandbox-server==0.4.0a6`。Dockerfile 或提供方构建步骤、9000端口服务声明、启动和就绪设置见[编写模板](authoring-templates.md)。
 
 ```python
-from agent_sandbox.server.registry import registry
+from agent_sandbox.server import command, start
 
-@registry.command("greet")
+@command("greet")
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
-registry.freeze()
+if __name__ == "__main__":
+    start(9000)
 ```
 
-列出并运行：
+在当前终端设置一个足够长的随机应用令牌，并在模板中声明 `env: {ABX_SERVER_TOKEN: ""}`，让启动过程把该值传入沙箱。它与平台账户密钥分开；随后 `abx run` 使用同一终端中的值：
 
 ```bash
-abx sandbox command list sbx-xxxx
-abx run sbx-xxxx greet --arg name=World          # 等同于：abx sandbox command run
-abx run sbx-xxxx add --json-args '{"x": 1, "y": 2}'
+export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
+abx --provider alicloud-express --json template launch ./my-command-template --yes
 ```
 
-> `registry` 属于沙箱内 Server SDK，其文档位于 SDK 仓库（见 [相关 SDK 文档](#相关-sdk-文档)）。沙箱内没有运行中的服务器时会报告 `No SandboxServer reachable`。
+先完成上述模板编写指南中的提供方准备条件，再启动。把返回的 `sandbox_id` 保存为 `APP_SANDBOX_ID`；这是新建的应用沙箱，不是前面的原生 `base` ID：
 
+```bash
+export APP_SANDBOX_ID="<LAUNCH_RETURNED_SANDBOX_ID>"
+abx sandbox command list "$APP_SANDBOX_ID"
+abx run "$APP_SANDBOX_ID" greet --arg name=World
+abx run "$APP_SANDBOX_ID" greet --json-args '{"name": "World"}'
+```
+
+返回结果为 `Hello, World!`。服务端和客户端必须使用相同的 `ABX_SERVER_TOKEN`，缺少或填写不同的应用令牌都会被拒绝。模板启动配置负责在沙箱内执行 `start(9000)`；没有运行该服务的沙箱会报 `No SandboxServer reachable`。用完后按这个精确 ID 删除应用沙箱；模板和镜像是否保留见编写指南。
 ---
 
 ## 第八步：销毁沙箱
@@ -154,8 +166,10 @@ abx template install owner/repo//subdir
 
 ### 使用已安装的模板
 
+只有部署完成并取得真实平台模板 ID 或已注册别名后，才把它交给 `create`；下载的源码目录名不是平台 ID。Git Registry 或本地项目优先使用 `abx template launch SOURCE --yes`，由同一命令准备并启动整个模板，详见[使用模板](using-templates.md)。
+
 ```bash
-abx create my-template --detach
+abx create <REGISTERED_TEMPLATE_ID_OR_ALIAS> --detach
 ```
 
 ### 本地脚手架生成模板
@@ -284,7 +298,7 @@ Building Docker image locally: my-template:latest... 12s
 
 ## 全局选项
 
-项目扩展按帮助支持 --json/-j、--quiet/-q、--no-color、--verbose、--ci。标准 E2B 命令保留固定参数，例如 list/info --format json。标准后端地址使用 E2B_API_URL/E2B_DOMAIN；region 参数仅适用于帮助中明确提供它的项目管理命令。
+项目扩展按帮助支持 --json/-j、--quiet/-q、--no-color、--verbose、--ci。标准 E2B 命令保留固定参数，例如 list/info --format json。项目配置使用 `ABX_SANDBOX_BASE_URL`/`ABX_SANDBOX_DOMAIN`；第四步说明的标准别名仍可用于外部集成。region 参数仅适用于帮助中明确提供它的项目管理命令。
 
 见 [CLI 参考 — 全局选项](../reference/cli-reference.md#全局选项)。
 

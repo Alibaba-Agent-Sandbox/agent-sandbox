@@ -1,0 +1,43 @@
+{
+  "scope": "metadata/argument dispatch only; nonexistent provider for generic syntax; no platform credential or cloud create",
+  "cases": [
+    {
+      "case": "generic-positional",
+      "arguments": [
+        "--provider",
+        "not-installed-audit",
+        "create",
+        "base"
+      ],
+      "exit_code": 4,
+      "stdout": "",
+      "stderr": "[E8001] Provider 'not-installed-audit' is not installed.\n  Suggestion: Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.\n"
+    },
+    {
+      "case": "generic-option",
+      "arguments": [
+        "--provider",
+        "not-installed-audit",
+        "create",
+        "--template",
+        "base"
+      ],
+      "exit_code": 4,
+      "stdout": "",
+      "stderr": "[E8001] Provider 'not-installed-audit' is not installed.\n  Suggestion: Run 'abx provider list'; install with 'abx provider install <path-or-git-url>'.\n"
+    },
+    {
+      "case": "express-option",
+      "arguments": [
+        "--provider",
+        "alicloud-express",
+        "create",
+        "--template",
+        "base"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Hint: create takes a positional template: abx create TEMPLATE [--detach]. The --template option belongs to 'abx template scaffold'.\nerror: unknown option '--template'\n"
+    }
+  ]
+}

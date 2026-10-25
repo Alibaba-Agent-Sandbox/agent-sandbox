@@ -27,8 +27,8 @@ const metadata = spawnSync(python, ['-c',
   { encoding: 'utf8', env: environment });
 assert.equal(metadata.status, 0, metadata.stderr);
 const versions = JSON.parse(metadata.stdout);
-assert.equal(versions['agent-sandbox-client'], '0.4.0a4');
-assert.equal(versions['agent-sandbox-server'], '0.4.0a4');
+assert.equal(versions['agent-sandbox-client'], '0.4.0a6');
+assert.equal(versions['agent-sandbox-server'], '0.4.0a6');
 const token = randomBytes(32).toString('base64url');
 Object.assign(environment, {
   ABX_MCP_AUTH_TOKEN: token,
@@ -74,7 +74,7 @@ function request(body, auth, session) {
   });
 }
 const checks = {};
-const report = { passed: false, versions, transport: 'real generated ASGI HTTP', checks, cloud_requests: 0 };
+const report = { passed: false, versions, transport: 'real generated ASGI HTTP', checks, cloud_requests: 0, readiness_connection_retries: { ECONNREFUSED: 0, ECONNRESET: 0 } };
 try {
   const initialize = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {
     protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'public-artifact-verifier', version: '1' },
@@ -83,7 +83,10 @@ try {
   for (let attempt = 0; attempt < 100; attempt++) {
     if (stopped) throw new Error('Generated server exited: ' + stderr.trim().split('\n').at(-1));
     try { await request(initialize); ready = true; break; }
-    catch (error) { if (error.code !== 'ECONNREFUSED') throw error; }
+    catch (error) {
+      if (error.code !== 'ECONNREFUSED' && error.code !== 'ECONNRESET') throw error;
+      report.readiness_connection_retries[error.code]++;
+    }
     await new Promise(done => setTimeout(done, 100));
   }
   assert(ready, 'Generated server readiness deadline');

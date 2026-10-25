@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "versions": {
+    "agent-sandbox-client": "0.4.0a6",
+    "agent-sandbox-server": "0.4.0a6"
+  },
+  "transport": "real generated ASGI HTTP",
+  "checks": {
+    "missing_auth_rejected": true,
+    "wrong_auth_rejected": true,
+    "initialize": true,
+    "current_tool_catalog": true,
+    "tool_schemas": true
+  },
+  "cloud_requests": 0,
+  "readiness_connection_retries": {
+    "ECONNREFUSED": 0,
+    "ECONNRESET": 2
+  },
+  "tool_names": [
+    "cancel_task",
+    "create_sandbox",
+    "download_file",
+    "get_sandbox",
+    "get_task",
+    "kill_sandbox",
+    "list_files",
+    "list_sandboxes",
+    "read_file",
+    "run_code",
+    "run_command",
+    "set_sandbox_timeout",
+    "start_task",
+    "upload_file",
+    "write_file"
+  ],
+  "owned_process_stopped": true
+}

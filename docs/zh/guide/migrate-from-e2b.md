@@ -2,7 +2,7 @@
 
 标准命令路径以阿里云记录的 `@e2b/cli@2.20.0` 为基线，将其协议客户端固定为 `e2b@2.50.0`，避开已记录的 2.51.0 创建/连接问题。云端范围遵循[阿里云兼容说明](https://help.aliyun.com/zh/agent-sandbox/e2b-compatibility-explanation)。这是 CLI 内部实现，不涉及 Node SDK 发布。
 
-新版本发布前，按根 README 从当前检出构建安装。保留现有 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，把可执行文件前缀 `e2b` 改为 `abx`。项目与用户配置文件也可使用。使用阿里云 API Key，不需要 E2B 浏览器登录或 Team 管理。
+按[安装指南](binary-installation.md)安装当前官方版本。保留现有 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，把可执行文件前缀 `e2b` 改为 `abx`。项目与用户配置文件也可使用。使用阿里云 API Key，不需要 E2B 浏览器登录或 Team 管理。
 
 标准命令的输出选项以各命令帮助为准，例如支持时使用 `--format json`。原生根选项 `--json`／`--quiet` 等不会切换生命周期实现；不支持的组合会明确报错。具体可用选项请查看该标准命令的 `--help`。
 
@@ -38,8 +38,7 @@ Python 导入及行为见[Python 迁移指南](https://github.com/Alibaba-Agent-
 
 ### 源码安装与产物声明
 
-使用 README 中配套的 Python 源码安装命令；经过验证的实现提交提供本文的同步／异步标准入口。
-生成的 Python 模板 README 使用同一对源码依赖，不代表已经发布到 PyPI。
+CLI 使用[安装指南](binary-installation.md)中的当前官方版本，Python 使用 README 指定的配套公开客户端／服务端版本。生成的 Python 模板 README 使用同一个精确运行时依赖；只有开发或主动选择源码安装时才需要检出源码。
 
 `abx --licenses` 包含上游预打包代码的完整依赖身份清单与保留声明。维护者按
 [固定源码流程](../../../vendor/e2b-cli/README.md)更新和验证。

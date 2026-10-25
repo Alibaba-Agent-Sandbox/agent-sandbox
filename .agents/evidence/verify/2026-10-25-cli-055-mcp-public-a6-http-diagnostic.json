@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "versions": {
+    "agent-sandbox-client": "0.4.0a6",
+    "agent-sandbox-server": "0.4.0a6"
+  },
+  "transport": "real generated ASGI HTTP",
+  "checks": {},
+  "cloud_requests": 0,
+  "last_request": {
+    "stage": "readiness",
+    "attempt": 0,
+    "method": "POST",
+    "path": "/mcp",
+    "rpc": "initialize",
+    "authentication": "absent"
+  },
+  "failure": "Error: socket hang up",
+  "server_stderr": "",
+  "server_stopped_at_failure": false,
+  "owned_process_stopped": true
+}
