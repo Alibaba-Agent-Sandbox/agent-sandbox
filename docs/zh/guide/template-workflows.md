@@ -1,27 +1,15 @@
-# 模板工作流
+# 整体启动模板
 
-项目模板使用 `spec_version: 4` 和 `workflow_contract_version: 1`，声明 `provides`、`workflows` 和唯一的 `default_workflow`。镜像里安装的软件、Provider 适配器操作、调用客户端的协议支持是三个独立条件。调用模板 HTTP 服务的应用工作流，不要求平台提供统一解释器。
+执行 `abx --provider PROVIDER template launch TEMPLATE --yes`。模板只有一个启动入口：CLI 准备模板内容、创建沙箱、执行声明的 `start_cmd`、等待 `ready_cmd`，并解析 `provides` 中全部服务的地址。不再选择 workflow，也不再区分应用、执行命令或解释器等启动类型。
 
-`abx template launch SOURCE --workflow application` 在构建和创建资源前检查所选工作流。非交互执行需用 `--yes` 授权计费的构建与创建步骤。Provider 必须明确支持输入类型、启动模式和每个所需操作。声明 `ready_cmd` 时必须支持 `exec.run`。托管模板引用必须标明归属 Provider；OCI 镜像输入要求不可变的 `@sha256:` 引用。外部服务 URL 使用显式 server-client 入口。
+模板使用 `spec_version: 5`。应用服务、命令、依赖和启动脚本属于同一个模板；`provides` 描述所有服务端点，启动脚本可以启动多个进程。业务命令在启动后按需调用，不会自动执行。Agent Sandbox Server v2 服务通过健康、协议发现和命令目录验证，不执行业务命令。其他服务协议由声明的就绪命令检查，并返回 Provider 提供的访问地址；CLI 不声称理解这些应用协议。
 
-若模板声明 `build_profiles.portable: {dockerfile: Dockerfile.portable, context: '.'}`，用 `--build-profile portable` 选择。原 Dockerfile 保持原样。所选文件必须包含可用基础镜像或支持的官方原生基础镜像配方；未知占位符在创建资源前报错。默认配方和 SDK wheel 的准备方式见[启动模板](template-launch.md)。CLI 对允许上传的源文件和构建配置建立快照，准备资源前再次核对。凭据环境文件被排除，源目录软链接被拒绝。
+源码模板使用 Dockerfile 或平台支持的构建配方。作者可以固定 `image`，或固定所属 `provider` 与 `template_id` 来引用已准备的制品；这些是模板内容，不是用户要选择的执行模式。镜像引用要求不可变的 `@sha256:` digest。凭据、上传、注册和平台地址仍由 Provider 处理。CLI 在创建资源前检查所需的平台操作。
 
-适配器为具体沙箱与端口返回应用端点。请求保留代理路径前缀和签名查询参数，隔离应用与网关凭据，拒绝重定向和匿名重试。应用命令通过独立 HTTP 连接执行，不依赖 shell 或 envd 服务。
+目录中的平台内置模板直接按目录名称启动，例如 `abx --provider alicloud-express template launch base --yes`。CLI 直接读取目录中的托管模板声明，不复制一份源码清单。已有外部服务使用 server client 连接；启动模板总会创建沙箱。
 
-解释器按具体操作检查支持条件。`code.execute` 创建并删除临时上下文；`code.default-context.execute` 显式选择持续保留状态的默认上下文。命名上下文的各个操作独立声明。解释器返回 404 时保留解释器错误，不会改用 shell 执行。
+## 从 v4 迁移
 
-构建、镜像发布、模板注册和沙箱创建均在发送请求前记录资源意图。失败或超时可能代表结果不确定：根据输出的资源日志和关联标识核对后再重试。清理仅操作本次创建的资源。保留的镜像与模板、需手工移除的资源与已经确认删除的沙箱分别记录。
+删除 `workflow_contract_version`、`default_workflow` 和 `workflows`，改为 `spec_version: 5`。保留全部 `provides`、`start_cmd`、`ready_cmd`、环境变量和应用代码。启动命令删除 `--workflow` 与 `--service-url`。当前 CLI 对 v4 清单给出迁移错误，不会猜测旧流程。CLI 与模板目录需要同步升级；旧二进制无法读取 v5 清单。
 
-目录中的静态兼容结果、实时环境就绪状态、独立验证证据分别显示。历史回执不会自动证明新源码、Provider 或客户端版本可用。Beta 等成熟度标签与具体工作流是否实现相互独立。
-
-内置极速版支持源码和已有托管模板工作流。源码启动复用原生构建与注册路径，在提交前记录镜像、模板资源，等待就绪后用返回的真实模板 ID 创建沙箱。应用在沙箱创建后启动一次，并使用运行时环境变量。原生 `<region>`、`<tag>` 按配置地域和已有基础镜像默认值在执行快照中解析，原始源码保持不变；其他未解析占位符仍会报错。可用 `--build-profile` 显式选择作者提供的构建文件，不会自动切换到 portable Dockerfile。Docker 构建需要可用的 Docker daemon、ACR namespace 和阿里云 AccessKey，创建沙箱还需 Sandbox API Key；显式声明 `build.mode: steps` 的项目使用云端步骤，无需 Docker。源码准备是 CLI 能力，Python provider 的声明不包含该操作。启动保留的镜像和模板记录在恢复日志中，供用户显式清理。
-
-列出或提交应用命令前，CLI 会在同一端点绑定检查 `/capabilities`：`api_version` 必须严格为 `2`，所选端点必须对当前身份明确启用且允许。发现文档或命令目录格式错误时立即拒绝，HTTP 成功不能代替协议验证；启动流程也会在保留沙箱前检查所选操作。
-
-平台返回真实沙箱 ID 后，先记录其所有权，再绑定会话认证与能力。写入已知 ID 的日志失败时仍尝试清理；错误明确显示拥有的沙箱 ID 和未解决的清理状态，不将已知资源当成未知创建结果。
-
-恢复日志先同步临时文件、原子替换日志，再同步所属目录，完成后才允许提交资源变更。不支持这些同步操作的文件系统会在创建资源前拒绝启动，不会忽略同步失败。
-
-`service-token` 绑定在构建或创建前必须配置 `ABX_SERVER_TOKEN`，缺失时在产生费用前拒绝。成功命令响应必须明确包含 `result`（允许 `null`），错误格式不能被当作成功，异常中不回显原始响应正文。启动只检查所选操作：`commands.run` 不额外要求命令列表权限，`health` 工作流使用健康检查端点。
-
-Provider 清单可用可选字段 `[workflow].source_placeholders = ["<region>", "<tag>"]` 描述支持的源码占位符。该目录说明不会授予操作或输入类型，实际支持仍按独立声明检查；未知或重复占位符会被拒绝。 非空声明要求同时声明 CLI `template.prepare` 操作和 `source` 输入。
+已有验证记录保留其当时版本的历史意义。静态操作检查不等于真实平台测试，也不证明当前账号配置或服务已经就绪。

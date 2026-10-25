@@ -1,17 +1,6 @@
-spec_version: 4
-workflow_contract_version: 1
+spec_version: 5
 provides:
   app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
-default_workflow: application
-workflows:
-  application:
-    kind: application
-    input: source
-    service: app
-    startup: none
-    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
-    operation: commands.run
-    required_operations: []
 # FIXTURE — offline test sample only, do NOT publish from this repository.
 # The single source of truth for this template (content, index, release) is:
 #   https://github.com/alibaba-agent-sandbox/awesome-templates/tree/main/python-hello

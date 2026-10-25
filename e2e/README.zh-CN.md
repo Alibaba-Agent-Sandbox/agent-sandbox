@@ -216,3 +216,7 @@ ACR 镜像资源记录保留于 `~/.abx/resource-journal/`，供手动清理镜�
 Actions 工作流通过加密的 `EXPRESS_ACCEPTANCE_*` 仓库 Secrets 注入配置
 （具体映射见工作流），仅在 `EXPRESS_ACCEPTANCE_ENABLED=true` 时执行云端步骤。
 未开启时为跳过，构建通过不代表云端实测通过。仅同仓库 PR 和手动触发可执行该任务。
+
+## 模板整体启动验收
+
+构建候选 CLI 后，设置环境中的沙箱密钥和阿里云 AccessKey，执行 `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs`。先启动 spec v5 托管 base 模板，再用固定官方基础镜像和原生 steps 准备源码模板，启动两个 HTTP 服务、检查就绪、核对全部返回地址，并远程检查构建标记。脚本只清理资源日志中本次创建的沙箱和模板，并确认已不存在。`--managed-only` 跳过源码准备。本测试只覆盖极速版重点路径，不代表全部 Docker/OpenSandbox 模板矩阵；测试期间不要同时重建 dist。

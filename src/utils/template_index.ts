@@ -20,7 +20,7 @@
  *   instead of being misinterpreted.
  */
 
-import { validateWorkflowManifest } from "../template/workflow_plan.mjs";
+import { validateTemplateManifest } from "../template/launch_plan.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ValueError } from "../models/value_error.js";
@@ -73,7 +73,7 @@ export interface TemplateIndexEntryInit {
   ref?: string | null;
   tags?: readonly string[];
   author?: string;
-  workflow?: Record<string, unknown> | null;
+  manifest?: Record<string, unknown> | null;
   status?: string;
 }
 
@@ -86,7 +86,7 @@ export class TemplateIndexEntry {
   readonly ref: string | null;
   readonly tags: readonly string[];
   readonly author: string;
-  readonly workflow: Record<string, unknown> | null;
+  readonly manifest: Record<string, unknown> | null;
   readonly status: string;
 
   constructor(init: TemplateIndexEntryInit) {
@@ -97,7 +97,7 @@ export class TemplateIndexEntry {
     this.ref = init.ref ?? null;
     this.tags = Object.freeze([...(init.tags ?? [])]);
     this.author = init.author ?? "";
-    this.workflow = init.workflow ?? null;
+    this.manifest = init.manifest ?? null;
     this.status = init.status ?? "community";
     Object.freeze(this);
   }
@@ -297,11 +297,11 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
   if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) {
     throw new TemplateParseError(`Index entry '${name}': 'tags' must be a list of strings.`);
   }
-  let workflow: Record<string, unknown> | null = null;
+  let manifest: Record<string, unknown> | null = null;
   for (const retired of ["capabilities", "tested_on", "providers"]) if (Object.hasOwn(raw, retired)) throw new TemplateParseError(`Index entry '${name}' uses retired field '${retired}'.`);
-  // Source rows are locators. Their fetched template.yaml is the only workflow authority.
+  // Source rows are locators. Their fetched template.yaml is the only manifest authority.
   if (raw["template_id"] !== undefined) {
-    try { workflow = validateWorkflowManifest(raw); } catch (error) { throw new TemplateParseError(`Managed entry '${name}' has an invalid workflow: ${String(error)}`); }
+    try { manifest = validateTemplateManifest(raw); } catch (error) { throw new TemplateParseError(`Managed entry '${name}' has an invalid manifest: ${String(error)}`); }
   }
 
 
@@ -316,7 +316,7 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
     ref: truthy(refRaw) ? pyStrip(pyStr(refRaw)) || null : null,
     tags: [...(tags as string[])],
     author: pyStr(truthy(authorRaw) ? authorRaw : ""),
-    workflow,
+    manifest,
     status: pyStr(truthy(statusRaw) ? statusRaw : "community"),
   });
   // Fail fast on unusable repo references (also validates the host).

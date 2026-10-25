@@ -676,7 +676,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
 export interface DoDeployOptions {
     /** Workflow launches retain exact owned identities and start the service after creation. */
     journal?: ResourceJournalCallbacks;
-    workflow_launch?: boolean;
+    template_launch?: boolean;
     acr_namespace?: string;
     /** Existing batch consent; never makes missing secrets interactive. */
     yes?: boolean;
@@ -808,8 +808,8 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
     const resolvedMemory: number = memory !== null ? memory : _coerceInt(yamlDefaults["memory"], 2048);
     const runtime = resolveDeployRuntime(template_dir, { generation, start_cmd, ready_cmd });
     const resolvedGeneration = runtime.generation;
-    const resolvedStart = opts.workflow_launch ? null : runtime.start_cmd;
-    const resolvedReady = opts.workflow_launch ? null : runtime.ready_cmd;
+    const resolvedStart = opts.template_launch ? null : runtime.start_cmd;
+    const resolvedReady = opts.template_launch ? null : runtime.ready_cmd;
     const ownedResources: NonNullable<PreparedTemplate["owned_resources"]> = [];
     const [resolvedAcrUsername, resolvedAcrPassword] = effectiveAcrCredentials({ acr_username, acr_password }, config);
     const resolvedRepo = acr_repo || yamlDefaults["name"] || nodePath.basename(pyResolve(String(template_dir)));

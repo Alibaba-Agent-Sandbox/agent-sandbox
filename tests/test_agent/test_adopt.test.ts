@@ -55,20 +55,9 @@ const YAML = `\
 name: ignored
 version: "1.0.0"
 description: demo
-spec_version: 4
-workflow_contract_version: 1
+spec_version: 5
 provides:
   app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
-default_workflow: application
-workflows:
-  application:
-    kind: application
-    input: source
-    service: app
-    startup: none
-    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
-    operation: commands.run
-    required_operations: []
 ports: [9000]
 resources:
   cpu: 1

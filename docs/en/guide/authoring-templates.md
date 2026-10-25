@@ -35,8 +35,7 @@ Publish with `abx deploy`. `--build auto` (the default) uses the Dockerfile when
 ```yaml
 name: my-python-template
 version: "1.0.0"
-spec_version: 4
-workflow_contract_version: 1
+spec_version: 5
 description: "Python data analysis application"
 provides:
   app:
@@ -44,16 +43,6 @@ provides:
     version: 2
     port: 9000
     operations: [commands.list, commands.run]
-default_workflow: application
-workflows:
-  application:
-    kind: application
-    input: source
-    service: app
-    startup: entrypoint
-    binding: {transport: http, endpoint: provider-port, caller: host, authentication: none}
-    operation: commands.run
-    required_operations: []
 generation: 2
 start_cmd: agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py
 ready_cmd: agent-sandbox-server healthcheck --port 9000
@@ -65,9 +54,9 @@ env:
 
 ---
 
-## Workflow contracts and named commands
+## Template startup and named commands
 
-The example above describes an Express application HTTP service implemented by `commands.py`; it also needs a Dockerfile or self-contained platform build steps. Project templates require the explicit spec v4 workflow contract. Retired `capabilities`, `tested_on` and `providers` fields are rejected, and there is no default capability grant. Named commands belong in `commands.py` with `@command`, not in the YAML. Call `start()` only under `if __name__ == "__main__"`.
+The example above describes an Express application HTTP service implemented by `commands.py`; it also needs a Dockerfile or self-contained platform build steps. Project templates require the spec v5 template manifest. Retired `capabilities`, `tested_on` and `providers` fields are rejected, and there is no default capability grant. Named commands belong in `commands.py` with `@command`, not in the YAML. Call `start()` only under `if __name__ == "__main__"`.
 
 Use `abx sandbox command list <id>` and `abx sandbox command run <id> <name> --arg k=v`. Application authorization is independent of envd: when the service requires a token, configure `ABX_SERVER_TOKEN`; the client does not retry an unauthorized request without its credential. The service must advertise the exact endpoint operation before the CLI sends the command payload. See the [Template YAML Spec](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
 
@@ -110,7 +99,7 @@ Only these files are written, and only after you confirm the preview (or pass `-
 |------|------|
 | `Dockerfile` | Always |
 | `commands.py` | The `SandboxServer` HTTP entry point, port 9000 |
-| `template.yaml` | Name, resources, ports, workflow contracts |
+| `template.yaml` | Name, resources, ports, services and startup commands |
 | `.dockerignore` | Only when the project does not already have one |
 
 Application source stays as it is. A file the agent creates or edits outside that list is reported and discarded. A replaced file is kept as `*.abx-bak`; an existing backup is never overwritten (the next one is `.abx-bak.1`).
@@ -222,7 +211,7 @@ abx template from-image registry.cn-hangzhou.aliyuncs.com/ns/repo:tag --name my-
 The `template.yaml` contract and the Python-side authoring guides live in the [`python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk):
 
 - [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md) — precise definitions for all fields
-- [Authoring Templates (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, workflow declarations, custom commands, `@command`
+- [Authoring Templates (SDK)](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/authoring-templates.md) — field reference, service declarations, custom commands, `@command`
 - [Template System](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/design/template-system.md) — tiers, name resolution, versioning
 - [Declarative Usage](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/declarative-usage.md) — the `@sandbox` decorator
 

@@ -104,7 +104,7 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
       return parseTemplateData(data);
     } catch (exc) {
       logger.warning(
-        "Matched template at %s failed validation; refusing an invalid workflow manifest (fail-closed)",
+        "Matched template at %s failed validation; refusing an invalid template manifest (fail-closed)",
         yaml_path,
         new ExcInfo(exc),
       );
@@ -195,13 +195,13 @@ export async function resolveCapabilities(
       } catch (e) {
         throw new TemplateParseError(`Explicit template YAML is unreadable: ${pyExcStr(e)}`);
       }
-      if (!isDict(data)) throw new TemplateParseError("Explicit template YAML must contain a workflow manifest mapping.");
+      if (!isDict(data)) throw new TemplateParseError("Explicit template YAML must contain a template manifest mapping.");
       if (isDict(data)) {
         try {
           template = parseTemplateData(data);
         } catch (exc) {
           logger.warning(
-            "Local template YAML at %s failed validation; refusing an invalid workflow manifest (fail-closed)",
+            "Local template YAML at %s failed validation; refusing an invalid template manifest (fail-closed)",
             local_yaml_path,
             new ExcInfo(exc),
           );

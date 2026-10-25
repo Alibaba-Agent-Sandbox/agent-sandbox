@@ -1,4 +1,4 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /**
  * End-to-end `abx template install` tests for the template catalog (port of `tests/test_templates/test_local_install.py`).
  *

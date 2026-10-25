@@ -1,4 +1,6 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import * as catalog from "../../src/utils/template_index.js";
+import { RegistryClient } from "../../src/utils/registry.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 import fs from "node:fs";
 import promises from "node:fs/promises";
 import path from "node:path";
@@ -7,7 +9,6 @@ import { Provider } from "../../src/providers/base.js";
 import type { PreparedTemplate, ProviderTemplateManager } from "../../src/providers/template_contract.js";
 import { registerProvider } from "../../src/providers/registry.js";
 import { setCliProvider, resetCliSelection } from "../../src/providers/selection.js";
-import {applicationHttpSeams} from "../../src/transport/application_http.js";
 import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { launchSeams } from "../../src/cli/template_launch.js";
 import { Sandbox } from "../../src/api/sandbox.js";
@@ -24,22 +25,20 @@ class ProjectProvider extends Provider {
   override features = new Set(["templates.build", "sandbox.lifecycle", "exec.run", "ports.url"]);
   override operations = { cli: ["template.prepare", "sandbox.create", "sandbox.delete", "exec.run", "ports.resolve"], python: [] };
   override workflow_inputs = ["source"];
-  override startup_modes = ["exec", "none"];
+  override startup_modes = ["exec", "entrypoint", "none"];
   prepared: PreparedTemplate = { reference: "opaque-returned-id", status: "ready" };
   prepare = vi.fn(async (_directory: string, _options: import("../../src/providers/template_contract.js").ProjectTemplateOptions): Promise<PreparedTemplate> => this.prepared);
   close = vi.fn(async () => undefined);
   override async buildInfra(): Promise<never> { throw Error("must use selected provider via create seam"); }
   override buildTemplateManager = vi.fn(async (): Promise<ProviderTemplateManager> => ({ prepareProject: this.prepare, close: this.close }));
 }
-function setup(required_operations: string[] = []) {
+function setup() {
   const directory = path.join(iso.root, "project"); fs.mkdirSync(directory);
-  fs.writeFileSync(path.join(directory, "template.yaml"), JSON.stringify({name: "project", spec_version: 4, workflow_contract_version: 1,
-    provides: {app: {protocol: "agent-sandbox-server",version: 2,port: 9000,operations: ["commands.run","commands.list"]}},
-    default_workflow: "application", workflows: {application: {kind: "application",input: "source",service: "app",startup: "none",
-      binding: {transport: "http",endpoint: "provider-port",caller: "host",authentication: "none"},operation: "commands.run",required_operations}}}));
+  fs.writeFileSync(path.join(directory, "template.yaml"), JSON.stringify({name: "project", spec_version: 5,
+    provides: {app: {protocol: "agent-sandbox-server",version: 2,port: 9000,operations: ["commands.run","commands.list"]}}}));
   fs.writeFileSync(path.join(directory, "Dockerfile"), "FROM python:3.12-slim\nCOPY *.whl /tmp/\nRUN echo fallback\n");
   const provider = new ProjectProvider(); registerProvider(provider); setCliProvider(provider.id);
-  const sandbox = { id: "owned-sandbox", verifyApplicationOperation: vi.fn(async () => undefined), listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
+  const sandbox = { network: {resolveEndpoint: vi.fn(async (port: number) => ({url: `https://fixture.example/${port}`}))}, id: "owned-sandbox", verifyApplicationOperation: vi.fn(async () => undefined), listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
     commands: { run: vi.fn(async (_command: string, _options?: unknown) => ({ exit_code: 0 })) } };
   const create = vi.spyOn(launchSeams, "create").mockResolvedValue(sandbox as unknown as Sandbox);
   return { directory, provider, sandbox, create, invoke: (extra: string[] = []) => new CliRunner().invoke(cli, ["--json", "template", "launch", directory, "-y", ...extra]) };
@@ -82,15 +81,15 @@ describe("provider-owned project launch", () => {
       expect(result.exit_code, result.output).toBe(0);
       expect(f.provider.prepare).toHaveBeenCalledOnce();
       expect(f.create).toHaveBeenCalledWith(expect.objectContaining({ provider: f.provider.id, template: "opaque-returned-id" }));
-      expect(JSON.parse(result.stdout)).toEqual(expect.objectContaining({ sandbox_id: "owned-sandbox", provider: f.provider.id, template_reference: "opaque-returned-id", workflow_id: "application", source_digest: expect.stringMatching(/^[a-f0-9]{64}$/) }));
+      expect(JSON.parse(result.stdout)).toEqual(expect.objectContaining({ sandbox_id: "owned-sandbox", provider: f.provider.id, template_reference: "opaque-returned-id", services: {app: expect.objectContaining({port: 9000})}, source_digest: expect.stringMatching(/^[a-f0-9]{64}$/) }));
       expect(f.provider.close).toHaveBeenCalledOnce(); expect(f.sandbox.close).toHaveBeenCalledOnce();
-      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("commands.run", expect.objectContaining({server_port: 9000}));
-      expect(f.sandbox.listCommands).not.toHaveBeenCalled();
+      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.objectContaining({server_port: 9000}));
+      expect(f.sandbox.listCommands).toHaveBeenCalled();
     } finally { f.create.mockRestore(); }
   });
-  it("rejects an explicit missing interpreter operation before any resources", async () => {
-    const f = setup(["code.context.execute"]);
-    try { const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.stdout).toContain("code.context.execute");
+  it("rejects missing startup operations before any resources", async () => {
+    const f = setup(); f.provider.operations.cli = f.provider.operations.cli.filter(operation => operation !== "ports.resolve");
+    try { const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.stdout).toContain("ports.resolve");
       expect(f.provider.buildTemplateManager).not.toHaveBeenCalled(); expect(f.create).not.toHaveBeenCalled(); }
     finally { f.create.mockRestore(); }
   });
@@ -176,34 +175,34 @@ describe("provider-owned project launch", () => {
       expect(f.sandbox.close).toHaveBeenCalledOnce();
     } finally { journal.mockRestore(); mark.mockRestore(); f.create.mockRestore(); }
   });
-  it("checks a health workflow without requiring the command catalog", async () => {
+  it("checks a health-only service without requiring the command catalog", async () => {
     const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
-    manifest.provides.app.operations = ["health"]; manifest.workflows.application.operation = "health"; fs.writeFileSync(file, JSON.stringify(manifest));
+    manifest.provides.app.operations = ["health"]; fs.writeFileSync(file, JSON.stringify(manifest));
     try {
       const result = await f.invoke(); expect(result.exit_code, result.output).toBe(0);
       expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.objectContaining({server_port: 9000}));
       expect(f.sandbox.listCommands).not.toHaveBeenCalled();
     } finally { f.create.mockRestore(); }
   });
-  it("uses the strict catalog path only for a selected commands.list workflow", async () => {
+  it("uses the strict catalog path for a declared command catalog", async () => {
     const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
-    manifest.workflows.application.operation = "commands.list"; fs.writeFileSync(file, JSON.stringify(manifest));
+    manifest.provides.app.operations = ["commands.list"]; fs.writeFileSync(file, JSON.stringify(manifest));
     f.sandbox.listCommands.mockRejectedValue(new Error("invalid catalog"));
-    try { expect((await f.invoke()).exit_code).not.toBe(0); expect(f.sandbox.verifyApplicationOperation).not.toHaveBeenCalled(); expect(f.sandbox.kill).toHaveBeenCalledOnce(); }
+    try { expect((await f.invoke()).exit_code).not.toBe(0); expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.anything()); expect(f.sandbox.kill).toHaveBeenCalledOnce(); }
     finally { f.create.mockRestore(); }
   });
-  it("checks the selected run operation before retaining a launched application", async () => {
+  it("checks application health before retaining a launched template", async () => {
     const f = setup(); f.sandbox.verifyApplicationOperation.mockRejectedValue(new Error("run denied"));
     try {
       expect((await f.invoke()).exit_code).not.toBe(0);
-      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("commands.run", expect.objectContaining({server_port: 9000}));
+      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.objectContaining({server_port: 9000}));
       expect(f.sandbox.kill).toHaveBeenCalledOnce();
       expect(f.sandbox.listCommands).not.toHaveBeenCalled();
     } finally { f.create.mockRestore(); }
   });
   it("rejects a missing required service token before preparing or creating resources", async () => {
     const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
-    manifest.workflows.application.binding.authentication = "service-token"; fs.writeFileSync(file, JSON.stringify(manifest));
+    manifest.env = {ABX_SERVER_TOKEN: ""}; fs.writeFileSync(file, JSON.stringify(manifest));
     try {
       const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).toContain("ABX_SERVER_TOKEN");
       expect(f.provider.prepare).not.toHaveBeenCalled(); expect(f.create).not.toHaveBeenCalled();
@@ -223,7 +222,7 @@ describe("provider-owned project launch", () => {
   it("starts the adapter-selected service and waits for readiness without printing raw output", async () => {
     const f = setup();
     const manifest = JSON.parse(fs.readFileSync(path.join(f.directory, "template.yaml"), "utf8"));
-    manifest.workflows.application.startup = "exec"; manifest.start_cmd = "python commands.py"; manifest.ready_cmd = "healthcheck";
+    manifest.start_cmd = "python commands.py"; manifest.ready_cmd = "healthcheck";
     fs.writeFileSync(path.join(f.directory, "template.yaml"), JSON.stringify(manifest));
     try { const result = await f.invoke(); expect(result.exit_code, result.output).toBe(0); expect(f.sandbox.commands.run).toHaveBeenCalledTimes(2);
       expect(f.sandbox.commands.run.mock.calls[0]?.[0]).toContain("nohup"); expect(f.sandbox.kill).not.toHaveBeenCalled(); }
@@ -232,7 +231,7 @@ describe("provider-owned project launch", () => {
   it("kills only its new sandbox when startup fails and closes the client", async () => {
     const f = setup();
     const manifest = JSON.parse(fs.readFileSync(path.join(f.directory, "template.yaml"), "utf8"));
-    manifest.workflows.application.startup = "exec"; manifest.start_cmd = "server";
+    manifest.start_cmd = "server";
     fs.writeFileSync(path.join(f.directory, "template.yaml"), JSON.stringify(manifest));
     f.sandbox.commands.run.mockRejectedValue(Error("private tool error"));
     try { const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).not.toContain("private tool error");
@@ -287,35 +286,57 @@ describe("Express preparation readiness", () => {
   });
 });
 
-describe("explicit workflow inputs and build profiles", () => {
-  it.each(["commands.run", "commands.list", "health"])("checks only the selected external service operation %s", async operation => {
-    const f = setup(); f.provider.workflow_inputs = ["service"];
-    const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
-    manifest.workflows.application.input = "service"; manifest.workflows.application.binding.endpoint = "explicit-url";
-    manifest.workflows.application.operation = operation; manifest.provides.app.operations = [operation]; fs.writeFileSync(file, JSON.stringify(manifest));
-    const names = {"commands.run": "run_command", "commands.list": "list_commands", health: "health"} as const;
-    const endpoint = names[operation as keyof typeof names];
-    const fetch = vi.spyOn(applicationHttpSeams, "fetch").mockImplementation(async url => {
-      const value = String(url).endsWith("/capabilities") ? {api_version: 2, endpoints: {[endpoint]: {enabled: true, allowed: true}}} : operation === "health" ? {status: "ok"} : {commands: []};
-      return new Response(JSON.stringify(value), {status: 200});
-    });
-    try {
-      const result = await f.invoke(["--service-url", "http://127.0.0.1:9000"]); expect(result.exit_code, result.output).toBe(0);
-      expect(f.create).not.toHaveBeenCalled(); expect(f.provider.prepare).not.toHaveBeenCalled();
-      expect(fetch.mock.calls.map(call => new URL(String(call[0])).pathname)).toEqual(operation === "commands.run" ? ["/capabilities"] : ["/capabilities", operation === "health" ? "/health" : "/commands"]);
-    } finally {fetch.mockRestore(); f.create.mockRestore();}
+describe("fixed template references and build profiles", () => {
+  it.each(["--workflow", "--service-url"])("rejects removed option %s before resource creation", async option => {
+    const f = setup();
+    try {const result = await f.invoke([option, "unused"]); expect(result.exit_code).not.toBe(0); expect(f.create).not.toHaveBeenCalled(); expect(f.provider.prepare).not.toHaveBeenCalled();}
+    finally {f.create.mockRestore();}
+  });
+  it("launches once and verifies every declared service without invoking business commands", async () => {
+    const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.provides.worker = {protocol: "agent-sandbox-server", version: 2, port: 9001, operations: ["health"]};
+    fs.writeFileSync(file, JSON.stringify(manifest));
+    try {const result = await f.invoke(); expect(result.exit_code, result.output).toBe(0);
+      expect(f.create).toHaveBeenCalledOnce(); expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.objectContaining({server_port: 9001}));
+      expect(Object.keys(JSON.parse(result.stdout).services)).toEqual(["app", "worker"]); expect(f.sandbox.commands.run).not.toHaveBeenCalled(); }
+    finally {f.create.mockRestore();}
+  });
+  it("launches a managed catalog name directly without fetching a fictitious source directory", async () => {
+    const f = setup(); f.provider.workflow_inputs = ["managed"];
+    const manifest = {name: "catalog-managed", spec_version: 5, provides: {}, provider: f.provider.id, template_id: "native-version-42"};
+    const entry = new catalog.TemplateIndexEntry({name: "catalog-managed", repo: "https://github.com/owner/templates", manifest});
+    const fetchIndex = vi.spyOn(catalog, "fetchIndex").mockResolvedValue(new catalog.TemplateIndex({entries: [entry]}));
+    const fetchSource = vi.spyOn(RegistryClient.prototype, "fetch");
+    try {const result = await new CliRunner().invoke(cli, ["--json", "template", "launch", "catalog-managed", "--yes"]);
+      expect(result.exit_code, result.output).toBe(0); expect(fetchSource).not.toHaveBeenCalled(); expect(f.provider.prepare).not.toHaveBeenCalled();
+      expect(f.create).toHaveBeenCalledWith(expect.objectContaining({template: "native-version-42"})); }
+    finally {fetchIndex.mockRestore(); fetchSource.mockRestore(); f.create.mockRestore();}
+  });
+  it("keeps application-specific APIs available without treating them as launch operations", async () => {
+    const f = setup(); const file = path.join(f.directory, "template.yaml"), manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.provides.app.operations = ["agents.sessions.create"];
+    fs.writeFileSync(file, JSON.stringify(manifest));
+    try {const result = await f.invoke(); expect(result.exit_code, result.output).toBe(0);
+      expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalledWith("health", expect.anything());
+      expect(f.sandbox.listCommands).not.toHaveBeenCalled(); expect(f.sandbox.commands.run).not.toHaveBeenCalled();}
+    finally {f.create.mockRestore();}
+  });
+  it("rejects v4 manifests with migration guidance before creating resources", async () => {
+    const f = setup(); fs.writeFileSync(path.join(f.directory, "template.yaml"), JSON.stringify({name: "project", spec_version: 4, provides: {}, workflows: {}}));
+    try {const result = await f.invoke(); expect(result.exit_code).not.toBe(0); expect(result.output).toContain("spec_version: 5"); expect(f.create).not.toHaveBeenCalled();}
+    finally {f.create.mockRestore();}
   });
   it("launches an explicitly owned managed reference without preparing source", async () => {
     const f=setup();f.provider.workflow_inputs=["source", "managed"];
     const file=path.join(f.directory,"template.yaml"), manifest=JSON.parse(fs.readFileSync(file,"utf8"));
-    manifest.provider=f.provider.id;manifest.template_id="native-version-42";manifest.workflows.application.input="managed";
+    manifest.provider=f.provider.id;manifest.template_id="native-version-42";
     fs.writeFileSync(file,JSON.stringify(manifest));fs.unlinkSync(path.join(f.directory,"Dockerfile"));
     try {const result=await f.invoke();expect(result.exit_code,result.output).toBe(0);expect(f.provider.prepare).not.toHaveBeenCalled();expect(f.create).toHaveBeenCalledWith(expect.objectContaining({template:"native-version-42"}));}
     finally {f.create.mockRestore();}
   });
   it("rejects a foreign managed reference before preparing or creating", async () => {
     const f=setup();f.provider.workflow_inputs=["managed"];
-    const file=path.join(f.directory,"template.yaml"),manifest=JSON.parse(fs.readFileSync(file,"utf8"));manifest.provider="other-provider";manifest.template_id="foreign";manifest.workflows.application.input="managed";fs.writeFileSync(file,JSON.stringify(manifest));
+    const file=path.join(f.directory,"template.yaml"),manifest=JSON.parse(fs.readFileSync(file,"utf8"));manifest.provider="other-provider";manifest.template_id="foreign";fs.writeFileSync(file,JSON.stringify(manifest));
     try {expect((await f.invoke()).exit_code).not.toBe(0);expect(f.provider.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();}
     finally{f.create.mockRestore();}
   });

@@ -45,6 +45,10 @@ credentials are never written to that file.
 
 The normal runner includes standard-contract plus project extension scenarios. Old parser and terminal assumptions have been migrated: local exec options precede the ID, stdin is piped only when a scenario supplies it, cleanup uses standard kill/list, and the command walk understands standard aliases and embedded extension help. The runtime standard template init creates SDK files; project template.yaml workflows use template scaffold. A focused pass does not mean the full CI matrix passed.
 
+## Whole-template startup
+
+After building the candidate CLI, run `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs` with Sandbox credentials and Alibaba Cloud AccessKeys in the environment. The test launches a spec v5 managed `base` template, then prepares a native-steps source using the pinned official base image, starts two HTTP services, checks readiness, verifies both returned endpoints and executes a build marker check. It deletes only its journaled sandboxes/templates and confirms their absence. `--managed-only` omits the source preparation case. This is focused Express evidence, not the full Docker/OpenSandbox catalog matrix. Do not rebuild `dist/` concurrently with a running binary test.
+
 ## Quick start
 
 ```bash

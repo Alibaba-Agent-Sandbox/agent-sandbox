@@ -1,4 +1,4 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /**
  * Provider template profiles: default alicloud-express, an explicit provider with no profile, and a missing profile.
  * The generator must say when it substituted the generic Docker profile, and must not fall through to the FC image.
@@ -177,7 +177,7 @@ describe("scaffold dockerfiles", () => {
     const docker = files.get("Dockerfile") ?? "";
     expect(docker.startsWith("FROM python:3.12-slim\n")).toBe(true);
     expect(docker).not.toMatch(CMD_INSTRUCTION);
-    expect(files.get("template.yaml")).toContain("startup: exec");
+    expect(files.get("template.yaml")).toContain('start_cmd: "agent-sandbox-server serve');
     expect(docker).toContain("WORKDIR /app");
     expect(docker).not.toContain("fc-e2b-registry");
     expect(docker).toContain("agent-sandbox-server");

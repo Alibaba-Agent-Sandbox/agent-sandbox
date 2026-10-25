@@ -1,4 +1,4 @@
-import { WORKFLOW_YAML } from "../helpers/workflowManifest.js";
+import { TEMPLATE_YAML_FIELDS } from "../helpers/templateManifest.js";
 /**
  * Offline end-to-end: `abx template scaffold --adopt` then `abx deploy`.
  *
@@ -118,7 +118,7 @@ function _templateYaml(sample: Sample): string {
     "name: ignored-by-cli\n" +
     'version: "1.0.0"\n' +
     `description: ${sample.name} demo\n` +
-    WORKFLOW_YAML +
+    TEMPLATE_YAML_FIELDS +
     "ports: [9000]\n" +
     `generation: ${sample.generation}\n` +
     "resources:\n" +

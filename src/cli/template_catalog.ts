@@ -28,7 +28,7 @@ import { GitHubRateLimitError } from "../models/errors.js";
 import { isFile, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, scandirNames, writeTextPy } from "../utils/_pyos.js";
 import { FINE_GRAINED_PAT_URL } from "../utils/github_token.js";
 import { RegistryClient, loadTemplateFromYaml } from "../utils/registry.js";
-import { fetchIndex } from "../utils/template_index.js";
+import { fetchIndex, type TemplateIndexEntry } from "../utils/template_index.js";
 import { resolveTemplateProfile } from "../providers/template_profile.js";
 export type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -232,7 +232,7 @@ export const search = template.command("search", {
                 ref: entry.ref,
                 tags: [...entry.tags],
                 author: entry.author,
-                workflow: entry.workflow,
+                manifest: entry.manifest,
                 status: entry.status,
             })));
             return;
@@ -728,7 +728,7 @@ export const templateSeams: {
     stdinIsatty: () => isatty(sys.stdin)
 };
 
-export async function _resolveIndexName(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<string> {
+export async function _resolveIndexEntry(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<TemplateIndexEntry> {
   const { token, fmt, out } = opts;
   let index = await fetchIndex(null, { token });
   let entry = index.find(name);
@@ -749,5 +749,9 @@ export async function _resolveIndexName(name: string, opts: { token: string | nu
     );
   }
   fmt.printSuccess(`Resolved '${name}' via the template index: ${entry.install_ref}`);
-  return entry.install_ref;
+  return entry;
+}
+
+export async function _resolveIndexName(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<string> {
+  return (await _resolveIndexEntry(name, opts)).install_ref;
 }

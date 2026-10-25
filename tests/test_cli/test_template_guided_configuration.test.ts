@@ -1,6 +1,6 @@
 import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { TemplateBuildTimeoutError } from "../../src/models/errors.js";
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
 import path from "node:path";

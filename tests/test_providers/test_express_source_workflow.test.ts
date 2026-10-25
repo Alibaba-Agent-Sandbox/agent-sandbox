@@ -18,7 +18,7 @@ function fixture() {
   fs.writeFileSync(path.join(directory, "template.yaml"), JSON.stringify({ name: "fixture", generation: 2, base: "base:fixed", build: { mode: "steps", steps: [{type:"RUN",args:["true"]}, {type:"ENV",args:["WORKFLOW_TEST","value"]}] }, start_cmd: "serve", ready_cmd: "ready" }));
   const ctx = new Context(command("launch")); ctx.params["yes"] = true;
   const journal = new ResourceJournal("alicloud-express", "fixture");
-  const options: ProjectTemplateOptions = {alias:"fixture-unique",timeout:30,journal,workflow:{input:"source",startup:"exec"},template:{name:"fixture",cpu:2,memory:2048,start_cmd:"serve",ready_cmd:"ready"}};
+  const options: ProjectTemplateOptions = {alias:"fixture-unique",timeout:30,journal,template:{name:"fixture",cpu:2,memory:2048,start_cmd:"serve",ready_cmd:"ready"}};
   vi.spyOn(templateSeams, "loadConfig").mockReturnValue({access_key_id:"placeholder",access_key_secret:"placeholder",region:"cn-hangzhou"} as ReturnType<typeof templateSeams.loadConfig>);
   return {directory,ctx,journal,options};
 }

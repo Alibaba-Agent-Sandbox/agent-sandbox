@@ -27,10 +27,10 @@ const RECOVERY_GOLDEN_DIR = fileURLToPath(new URL("./golden/command-recovery-202
 const CURRENT_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-contract-20261023/", import.meta.url));
 const TERMINAL_GOLDEN_DIR = fileURLToPath(new URL("./golden/provider-progress-20261023/", import.meta.url));
 const VERSION_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261022-0.4.6/", import.meta.url));
-const WORKFLOW_GOLDEN_DIR = fileURLToPath(new URL("./golden/workflow-20261023/", import.meta.url));
+const WORKFLOW_GOLDEN_DIR = fileURLToPath(new URL("./golden/template-launch-20261025/", import.meta.url));
 const RELEASE_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261024-0.4.11/", import.meta.url));
 const JOURNEY_GOLDEN_DIR = fileURLToPath(new URL("./golden/developer-journey-20261024/", import.meta.url));
-const CURRENT_VERSION_DIR = fileURLToPath(new URL("./golden/release-20261024-0.4.17/", import.meta.url));
+const CURRENT_VERSION_DIR = fileURLToPath(new URL("./golden/release-20261025-0.5.0/", import.meta.url));
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
 /** `_suppress_ci_detection`: the CLI must never auto-enable JSON mode. */

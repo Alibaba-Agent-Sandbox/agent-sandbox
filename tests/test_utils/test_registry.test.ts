@@ -1,4 +1,4 @@
-import { manifestYaml } from "../helpers/workflowManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /** Tests for RegistryClient. */
 
 import fs from "node:fs";
