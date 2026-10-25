@@ -5,6 +5,7 @@ import path from "node:path";
 import os from "node:os";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
+import { DockerBuildError } from "../../models/errors.js";
 import { ProviderConfigError } from "../../models/provider_errors.js";
 import { materializeSourceRecipe } from "./source_recipe.js";
 
@@ -22,6 +23,18 @@ export class ProjectToolError extends ProviderConfigError {
     super(`${tool} ${reason}. Check the tool installation, image registry access and provider configuration.`);
   }
 }
+/** A read-only Docker prerequisite failure with controlled, safe user guidance. */
+export class DockerSetupError extends DockerBuildError {
+  constructor(reason: "missing" | "unavailable" | "cancelled") {
+    const messages = {
+      missing: "Docker CLI was not found in PATH. Install Docker and start Docker Desktop/the daemon. No build has started.",
+      unavailable: "Docker is installed, but its daemon or selected context is not accessible. Start Docker Desktop/the daemon and check docker context and permissions. No build has started.",
+      cancelled: "Docker setup cancelled. No build has started.",
+    };
+    super(messages[reason], { suggestion: "Run docker info to check the selected context and permissions, then retry. No build has started." });
+  }
+}
+
 /** Run a local tool without a shell. Raw tool output/errors are never included in public exceptions. */
 export function runTool(command: string, args: readonly string[], options: { cwd?: string; input?: string; timeout?: number } = {}): Promise<string> {
   return new Promise((resolve, reject) => {

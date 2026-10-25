@@ -210,3 +210,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Generated native-step validation](notes/proposed/feature/2026-10-25-generated-steps-validation.md) · [verification](evidence/verify/2026-10-25-generated-steps-validation.md) · [Issue #157](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/157).
 - [Standalone provider identity correction](notes/proposed/feature/2026-10-25-standalone-provider-identity.md) · [verification](evidence/verify/2026-10-25-standalone-provider-identity.md) · [Issue 156](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/156).
+
+- [Docker launch prerequisite correction](notes/proposed/feature/2026-10-25-docker-launch-preflight.md) · [verification](evidence/verify/2026-10-25-docker-launch-preflight.md) · [Issue 160](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/160).
