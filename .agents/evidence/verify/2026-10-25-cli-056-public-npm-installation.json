@@ -1,0 +1,15 @@
+{
+  "package": "@agent-sandbox/cli",
+  "version": "0.5.6",
+  "source": "official public npm; no local tarball",
+  "fresh_home": true,
+  "fresh_cache": true,
+  "repository_external": true,
+  "configured_ca_inherited": true,
+  "installation_exit": 0,
+  "cloud_calls": 0,
+  "package_version": "0.5.6",
+  "actual_version": "abx, version 0.5.6",
+  "no_workflow_option": true,
+  "passed": true
+}

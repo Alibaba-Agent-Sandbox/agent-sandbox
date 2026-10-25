@@ -1,0 +1,108 @@
+{
+  "runtime_source": "1ea3eabd679c3cf26c824492a60fe2a8aea43f62",
+  "reviewed_head": "e982301cce86356846faaee3342f5f0f3a9d52c8",
+  "tag": "v0.5.6",
+  "tag_object": "bf3d2574ed9a054a82893e154e27dc805d42fdd5",
+  "release_id": 423678307,
+  "published_at": "2026-10-25T21:44:20Z",
+  "release_asset_count": 12,
+  "applicable_ci_count": 6,
+  "applicable_ci": [
+    {
+      "name": "Build package",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40235675235/job/121297905618"
+    },
+    {
+      "name": "Typecheck (tsc)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40235675235/job/121296689618"
+    },
+    {
+      "name": "Test (Node 22)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40235675235/job/121296689530"
+    },
+    {
+      "name": "Installer script",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40235675235/job/121296689477"
+    },
+    {
+      "name": "Test (Node 20)",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40235675235/job/121296689291"
+    },
+    {
+      "name": "Markdown links",
+      "conclusion": "success",
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/40235675199/job/121296618508"
+    }
+  ],
+  "binary_workflow": 40236483898,
+  "npm_publisher": 40236891035,
+  "assets": [
+    {
+      "name": "abx-0.5.6-darwin-arm64",
+      "bytes": 122573936,
+      "github_digest": "sha256:dd9b704f6f5d56bf1fcd75ee107381cb566305ba93daacab364d6ba1f7c280a3"
+    },
+    {
+      "name": "abx-0.5.6-darwin-arm64.sha256",
+      "bytes": 89,
+      "github_digest": "sha256:5f3101792602f0862bdbdd926b6546ffa5ff782d273118cf542f37ca4ec6ab4d"
+    },
+    {
+      "name": "abx-0.5.6-darwin-x64",
+      "bytes": 125805248,
+      "github_digest": "sha256:6f3ca52219dda8861c70a9ee4e9f455dec354a72481a70d8f8f40a9a3dcdb2fb"
+    },
+    {
+      "name": "abx-0.5.6-darwin-x64.sha256",
+      "bytes": 87,
+      "github_digest": "sha256:011d855491154e68f7643e665c3f556a5bd16f6a8ea571a415dcd8f7184e8d2c"
+    },
+    {
+      "name": "abx-0.5.6-linux-arm64",
+      "bytes": 132779136,
+      "github_digest": "sha256:ed60b8f4aa638bf3abab78fd4a8b4fb74b8c787102f5713e3d62e2202dd9ea0e"
+    },
+    {
+      "name": "abx-0.5.6-linux-arm64.sha256",
+      "bytes": 88,
+      "github_digest": "sha256:528ef4f36bdf61190dc64daf6bc07b8765fdc34d7ae06df64218d2a27d857209"
+    },
+    {
+      "name": "abx-0.5.6-linux-x64",
+      "bytes": 135400640,
+      "github_digest": "sha256:f7d900762660f49863bcb4749f1bb1f7b328d996b643a446868e2d3a36a2ac81"
+    },
+    {
+      "name": "abx-0.5.6-linux-x64.sha256",
+      "bytes": 86,
+      "github_digest": "sha256:cc4e3746136b477223cb4a72be2fd203101168654a80b1ae25a2fcf52b2a0a16"
+    },
+    {
+      "name": "abx-0.5.6-windows-x64.exe",
+      "bytes": 97688576,
+      "github_digest": "sha256:76b79f69e91cea484ab102a79eb1a44796be9c00c119fdf24262d743b12f9b05"
+    },
+    {
+      "name": "abx-0.5.6-windows-x64.exe.sha256",
+      "bytes": 92,
+      "github_digest": "sha256:102e7ffb988c92a795d739389b75050a78fc547e9243ed06c703de04a3b61cb7"
+    },
+    {
+      "name": "agent-sandbox-cli-0.5.6.tgz",
+      "bytes": 2185446,
+      "github_digest": "sha256:f8e123e5cc15a64ea0ed403c895eb28eae4f655d6f01949856d5fd7b6676bbad"
+    },
+    {
+      "name": "agent-sandbox-cli-0.5.6.tgz.sha256",
+      "bytes": 94,
+      "github_digest": "sha256:b983b0827ef7754011270d711a49bd18950b6857409ba5bc3a9a5373cfbfea1c"
+    }
+  ],
+  "website_default_at_readback": "v0.5.4",
+  "website_mirror_is_separate_from_GitHub_and_npm": true
+}

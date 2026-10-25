@@ -1,0 +1,8 @@
+{
+  "scope": "actual independently installed public npm6 artifact; existing full release artifact verifier",
+  "package_version": "0.5.6",
+  "exit_code": 0,
+  "passed": true,
+  "cloud_calls": 0,
+  "checks": "version/help/managed loopback preflight/standard and native parser/configuration/scaffold/noninteractive behavior/real terminal cancellation/complete notices"
+}

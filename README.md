@@ -276,7 +276,7 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 
 ## Release readiness
 
-CLI 0.5.6 consumes matched Python client/server 0.4.0a6 across generation, scaffolding and MCP artifacts. Native template info reports definitive official absence as existing typed E2001; network and authorization failures remain distinct. Named-command JSON failures retain their diagnostic in one existing E3000 error object. See the [current validation and publication status](.agents/evidence/verify/2026-10-25-named-command-json-errors.md).
+CLI 0.5.6 consumes matched Python client/server 0.4.0a6 across generation, scaffolding and MCP artifacts. Native template info reports definitive official absence as existing typed E2001; network and authorization failures remain distinct. Named-command JSON failures retain their diagnostic in one existing E3000 error object. See the [current validation and publication status](.agents/evidence/verify/2026-10-25-cli-056-publication.md).
 
 Runtime evidence applies to the tested template/provider combination. Published CLI artifacts and managed Express base checks receive separate release evidence; each template documents its own provider requirements and service APIs. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
 

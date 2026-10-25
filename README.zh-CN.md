@@ -270,7 +270,7 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 
 ## 发布就绪范围
 
-CLI 0.5.6 的生成器、脚手架与 MCP 产物统一使用 Python client/server 0.4.0a6。原生模板详情把官方确定的模板不存在响应报告为现有 E2001，网络和权限错误仍与资源不存在区分。具名命令失败时，JSON 输出在一个现有 E3000 错误对象中保留诊断。见[当前验证与发布状态](.agents/evidence/verify/2026-10-25-named-command-json-errors.md)。
+CLI 0.5.6 的生成器、脚手架与 MCP 产物统一使用 Python client/server 0.4.0a6。原生模板详情把官方确定的模板不存在响应报告为现有 E2001，网络和权限错误仍与资源不存在区分。具名命令失败时，JSON 输出在一个现有 E3000 错误对象中保留诊断。见[当前验证与发布状态](.agents/evidence/verify/2026-10-25-cli-056-publication.md)。
 
 运行证据对应实际测试的模板与平台组合。公开 CLI 产物及极速版内置 base 的实测会保存在独立的发行记录中；各模板文档说明其平台要求和服务 API。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
 

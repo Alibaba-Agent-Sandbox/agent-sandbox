@@ -1,10 +1,14 @@
 # `.agents/` — engineering record of the cli repository
 
-## Pending minimal patch — 2026-10-25
+## Current public CLI 0.5.6 — 2026-10-25
+
+CLI **0.5.6** is published on GitHub and official npm. [Publication and public consumption](evidence/verify/2026-10-25-cli-056-publication.md) records six applicable source checks, the five-platform release, all 12 assets, independent npm/SEA checks and actual public-npm named-command error controls with owned sandbox absence. The website mirror still selected 0.5.4 at readback; website promotion is separate. This does not certify the full template/provider matrix. The [publication note](notes/proposed/process/2026-10-25-cli-056-publication.md) records this documentation follow-up; historical candidate evidence is unchanged.
+
+## Earlier 0.5.4 preparation checkpoint — 2026-10-25
 
 CLI 0.5.4 prepares matched Python 0.4.0a4 consumption and preserves definite native template absence as existing E2001. Python 0.4.0a4 is published; latest generated-artifact checks and CLI publication remain pending. Earlier a3 candidate receipts remain history. [Latest a4 verification](evidence/verify/2026-10-25-cli-054-public-a4-consumption.md) · [Decision](notes/proposed/process/2026-10-25-cli-054-runtime-consumption.md) · [verification](evidence/verify/2026-10-25-cli-054-runtime-consumption.md).
 
-## Current public patch delivery — 2026-10-25
+## Earlier public 0.5.3 delivery — 2026-10-25
 
 CLI 0.5.3 retains the current public Python runtime across generation, scaffolding and MCP artifacts and fixes Windows journal writes. Version 0.5.2 was withheld after its real Windows artifact failure. [Decision](notes/proposed/process/2026-10-25-cli-052-release.md) and [verification](evidence/verify/2026-10-25-cli-052-release.md) distinguish candidate checks, publication and fresh public-install reruns. The [Windows correction and release verification](evidence/verify/2026-10-25-cli-053-windows-release.md) records the prepublication platform gate. CLI 0.5.3 is now public on GitHub and npm; the official website default mirror selects it. Fresh isolated installations and real managed/process/file/deadline checks passed, with exact owned resources independently confirmed absent. See the new [current regression verification](evidence/verify/2026-10-25-current-known-issue-runner.md) and [release](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.3). This does not certify the whole template matrix.
 
@@ -28,7 +32,7 @@ The earlier delivery entries below describe historical releases, not the current
 installation recommendation or a claim that every template/provider combination
 has been retested by this patch.
 
-## Current delivery — 2026-10-24
+## Historical delivery — 2026-10-24
 
 - Published CLI: **0.4.17**, with [public distribution and actual public-package cloud regression](evidence/verify/2026-10-24-cli-0417-release.md).
 - Default source preparation supports Express and OpenSandbox. [Launch instructions](../docs/en/guide/template-launch.md) and [workflow contract](../docs/en/guide/template-workflows.md) describe actual inputs, application bindings and cleanup.
