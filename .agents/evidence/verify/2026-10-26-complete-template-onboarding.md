@@ -28,6 +28,8 @@ A fresh home can initialize with hidden Sandbox credentials, generate and save a
 - bash scripts/check-repo-health.sh --quiet — PASS (105 pass, 11 baseline warnings, 0 failures).
 - npm run check:hygiene — PASS.
 
+- Fresh `npm run build` → `npm pack` → install into an empty prefix → real initialized-template E2E — PASS: the installed package completed initialization, catalog selection, cloud creation, remote execution and independent HTTP 404 cleanup. The archive contains all four new runtime modules; SHA1 21738ac0d3e459362156b300125a99b71085f08b. The first packaging probe used stale dist after only rebuilding SEA; rebuilding the npm distribution corrected the candidate before this successful clean installation. No package was published.
+
 ## Cleanup
 
 Owned successful sandbox creations were deleted and independent authenticated HTTP GET returned 404. The terminal test uses an isolated home and removes its saved configuration. No existing user resources or configuration were changed.
