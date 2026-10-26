@@ -17,7 +17,7 @@ A fresh home can initialize with hidden Sandbox credentials, generate and save a
 - npm run parity:coverage with SDK/provider source paths — PASS: 907/907 ledger entries, zero failed/skipped/missing; 11 moves verified in the SDK.
 - npm run typecheck; npm run build — PASS.
 - npm run lint — PASS (baseline warnings, zero errors).
-- npm run build:binary — PASS: Linux x64 standalone version smoke test.
+- npm run build:binary — PASS: Linux x64 standalone version smoke test; final binary SHA256 f02aabcaefd8aea6b6a3f20872651078c4fa65387d200e5e9647300fb92e065c. Real initialization/catalog/create/remote-exec/404-cleanup also passed with this final standalone binary.
 - ABX_UPDATE_EVIDENCE=1 vitest run tests/test_cli_evidence — PASS: 119 tests. New onboarding-20261026 snapshots preserve prior history.
 - node scripts/capture-cli-evidence.mjs --out <new dated evidence directory> — PASS: 118 cases, zero skipped. Changed command groups are retained separately.
 - vitest run tests/test_cli/test_setup_journey.test.ts tests/test_cli/test_template_application_setup.test.ts — PASS: 12 tests before the additional exact-name ordering regression.
@@ -31,6 +31,8 @@ A fresh home can initialize with hidden Sandbox credentials, generate and save a
 ## Cleanup
 
 Owned successful sandbox creations were deleted and independent authenticated HTTP GET returned 404. The terminal test uses an isolated home and removes its saved configuration. No existing user resources or configuration were changed.
+
+- Real PTY hidden-input tests — PASS, 29 tests with immediate input and prompt-readiness assertion. The new assertion reproduced the pre-fix failure; the shared reader now prepares terminal input before displaying its prompt.
 
 ## Problems found
 

@@ -1290,9 +1290,9 @@ export async function _readMaskedLine(
     out.flush();
   };
   const write = opts.writer ?? defaultWrite;
-  write(promptText);
   const chars: string[] = [];
   const loop = async (read: () => string | Promise<string>): Promise<string> => {
+    write(promptText);
     for (;;) {
       const chunk = await read();
       if (chunk === "") {

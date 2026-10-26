@@ -27,6 +27,11 @@ const CLI_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 /** The child program of the pty tests (`_CHILD_CODE`): prompt for a secret and report what came back. */
 const CHILD_CODE = `
 import { _promptSecret } from ${JSON.stringify(CONFIG_CMD_URL)};
+const originalWrite = process.stdout.write;
+process.stdout.write = function(chunk, ...args) {
+  if (String(chunk).includes("Prompt: ") && !process.stdin.isRaw) throw new Error("TTY_NOT_READY");
+  return Reflect.apply(originalWrite, this, [chunk, ...args]);
+};
 const emit = (text) => new Promise((resolve) => process.stdout.write(text, () => resolve()));
 try {
   const value = await _promptSecret("Prompt");
@@ -70,7 +75,6 @@ try:
                 break
             out.extend(chunk)
         if sent == 0 and b"Prompt: " in bytes(out):
-            time.sleep(0.1)
             os.write(master, parts[0])
             sent = 1
         elif sent == 1 and len(parts) > 1 and wait_for is not None and wait_for in bytes(out):
