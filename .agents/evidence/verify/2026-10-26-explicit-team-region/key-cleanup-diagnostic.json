@@ -1,0 +1,7 @@
+{
+  "exact_hash_match": true,
+  "inactivate_exit": 0,
+  "delete_exit": 0,
+  "get_exit": 4,
+  "get_error_code": "E8005"
+}

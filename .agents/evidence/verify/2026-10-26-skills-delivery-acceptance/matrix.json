@@ -1,0 +1,126 @@
+{
+  "date": "2026-10-26",
+  "result": "PARTIAL",
+  "scope": "Selected Express environment and source candidates; PASS means the stated scenario passed, not all providers, client variants or public releases.",
+  "items": [
+    {
+      "id": "P0.1",
+      "result": "PASS",
+      "title": "Lifecycle and selected configuration",
+      "verified": "Actual selected-Team key binding; explicit cn-hangzhou endpoint; list/state/TTL/delete; matching-template 1 CPU/1024 MiB verified. Mismatched overrides fail and roll back.",
+      "limits": "One existing Team and region tested; region metadata remains unknown. Cross-Team permissions and a second region were not tested."
+    },
+    {
+      "id": "P0.2",
+      "result": "PASS",
+      "title": "Execution, files, recovery and failures",
+      "verified": "102400-byte binary SHA256 roundtrip; background job survives MCP restart; logs/results/cancel; code, execution timeout, missing sandbox and bounded Python MemoryError distinguished.",
+      "limits": "Linux shell execution tested. Native Express code.execute is unsupported; no sandbox-wide physical OOM induced."
+    },
+    {
+      "id": "P0.3",
+      "result": "PASS",
+      "title": "OCI image to usable Template",
+      "verified": "Real public image build, ready polling, sandbox business result 385; intentional RUN exit42 build fails with diagnosis; templates deleted independently.",
+      "limits": "Representative public image only; private registry credential paths and arbitrary images are not certified."
+    },
+    {
+      "id": "P0.4",
+      "result": "PASS",
+      "title": "Persistent storage",
+      "verified": "Private OSS real RW/RO mounts; exact mountinfo and file hash; kill and recreate persistence; owned bucket/role/policy/volume cleanup.",
+      "limits": "OSS is the tested first storage type. Generation2 required official ossfs2/FUSE installation plus supported append-volume API."
+    },
+    {
+      "id": "P0.5",
+      "result": "PASS",
+      "title": "Installation and connectivity",
+      "verified": "Actual Cursor-generated MCP configuration invokes a cloud task; Qwen Code loads installed source Skill, discovers capabilities, creates one sandbox, returns42, file roundtrip, status and kill; independent404.",
+      "limits": "Qwen tested with explicit reviewed MCP config and an available model. This is not an all-client certification."
+    },
+    {
+      "id": "P1.1",
+      "result": "PARTIAL",
+      "title": "Startup acceleration",
+      "verified": "Native Template Cache official API and new CLI CRUD passed; creating\u2192ready, list, delete\u2192404. Three before/after create+command samples recorded.",
+      "limits": "No native WarmPool target/cluster supplied; no workload/SLA benchmark or verified Cache fee comparison. Template Cache is not a running pool."
+    },
+    {
+      "id": "P1.2",
+      "result": "PARTIAL",
+      "title": "Cost analysis",
+      "verified": "Read all24 pages/2311 October FC bill rows;2276 Sandbox costs grouped privately; non-Sandbox rows excluded; amounts not published.",
+      "limits": "No historical Team/Template mapping or tags, utilization baseline or WarmPool inventory; no account-wide savings claim."
+    },
+    {
+      "id": "P1.3",
+      "result": "PASS",
+      "title": "Deep pause and resume",
+      "verified": "Actual PAUSED state, reconnect, same in-memory HTTP token, process/service, file and exact persistent mount/read-only checks.",
+      "limits": "MicroVM generation2 tested; no all-provider or service-SLA claim."
+    },
+    {
+      "id": "P1.4",
+      "result": "PASS",
+      "title": "Snapshot reuse",
+      "verified": "Platform snapshot listing/restoration, two clones, file content and write isolation; real maintained standard contract passes.",
+      "limits": "External VM snapshots were not supplied. Snapshot-clone mount override rejected400; no arbitrary VM import claim."
+    },
+    {
+      "id": "P1.5",
+      "result": "PARTIAL",
+      "title": "Template upgrade and rollback",
+      "verified": "Real v1\u2192v2\u2192v1 business execution and independent cleanup. Cache can be explicitly managed by template ID.",
+      "limits": "Automatic update synchronization of caches and native WarmPool was not verified; requires a version policy and target pool."
+    },
+    {
+      "id": "P1.6",
+      "result": "PARTIAL",
+      "title": "Network and credentials",
+      "verified": "Public egress200\u2192deny/nonzero\u2192restore200, DNS diagnosis; model API401 without credential\u2192200 with platform header injection, no credential in sandbox env/code.",
+      "limits": "Old base template CA trust failed; new official v0.0.44 image passed with TLS verification. No target VPC/private service supplied."
+    },
+    {
+      "id": "P1.7",
+      "result": "PASS",
+      "title": "Repository and expiring preview",
+      "verified": "Pinned public repository fetch, dependency/test/start checks; actual preview200 then unsigned/tampered/expired403.",
+      "limits": "Expiry implemented in the tested application HMAC layer; platform-native gateway expiry is not claimed."
+    },
+    {
+      "id": "P1.8",
+      "result": "PARTIAL",
+      "title": "Browser, desktop and takeover",
+      "verified": "Actual desktop GUI screenshot/actions; separate VNC controller simulates operator step, Agent resumes same browser; independent state and replay timeline.",
+      "limits": "Operator is simulated, not an actual human login. Screenshot timeline is not full-motion video. Private traffic-token validation recorded separately."
+    },
+    {
+      "id": "P1.9",
+      "result": "PASS",
+      "title": "Agent framework",
+      "verified": "Real LangGraph selected flow: one user/conversation reuses sandbox, different users separate environments/files; both resources independently404.",
+      "limits": "Deterministic framework integration tested; no claim of a separate LLM-driven workload or multi-framework coverage."
+    },
+    {
+      "id": "P1.10",
+      "result": "PARTIAL",
+      "title": "Remote MCP",
+      "verified": "Real HTTPS temporary hosted MCP, bearer401, separate sessions, manual tools, automatic owned-resource cleanup; ownership defects repaired and retested.",
+      "limits": "Temporary acceptance service, not a persistent official managed production endpoint. Same credential borrowing is not cross-user isolation."
+    },
+    {
+      "id": "P2.1",
+      "result": "PASS",
+      "title": "Third-party tools",
+      "verified": "Actual filesystem MCP2026.7.10 initialize/tools/read_file, upgrade2026.8.31, same actual call, logs and process/package cleanup.",
+      "limits": "Selected filesystem MCP requires no external service credential. Arbitrary third-party Skills were not certified."
+    },
+    {
+      "id": "P2.2",
+      "result": "PASS",
+      "title": "Parallel environments",
+      "verified": "Three real sandboxes execute exit0/7/0; failed logs/environment retained and reconnected, other resources released, final owned cleanup verified.",
+      "limits": "Bounded three-way sample, not throughput/scale acceptance."
+    }
+  ]
+}

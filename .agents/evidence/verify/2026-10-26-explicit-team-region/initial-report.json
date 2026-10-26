@@ -1,0 +1,63 @@
+{
+  "checks": [
+    {
+      "name": "create-scoped-key",
+      "result": "PASS",
+      "mode": "0o600",
+      "explicit_team_matches_response": true
+    },
+    {
+      "name": "team-binding-independently-observed",
+      "result": "PASS",
+      "management_get_team_matches_requested": true
+    },
+    {
+      "name": "create-explicit-team-region",
+      "result": "PASS",
+      "explicit_region": "cn-hangzhou",
+      "team_credential_source": "new management-verified key bound to the requested existing Team"
+    },
+    {
+      "name": "task-through-selected-team-region",
+      "result": "PASS",
+      "actual_stdout": "TEAM_REGION_OK"
+    },
+    {
+      "name": "selected-region-observation",
+      "result": "PASS",
+      "requested_region": "cn-hangzhou",
+      "runtime_reported_region": null,
+      "region_evidence": "explicit regional configuration and same-regional endpoint request; backend region metadata remains unknown"
+    },
+    {
+      "name": "sandbox-cleanup",
+      "result": "PASS",
+      "independently_absent": true
+    },
+    {
+      "name": "temporary-key-revoked",
+      "result": "FAIL",
+      "deleted": null
+    },
+    {
+      "name": "revoked-key-auth-rejected",
+      "result": "FAIL",
+      "error": null
+    }
+  ],
+  "team_sha256": "294152d192f9c364aec91d67bd76ce1ae66c183ad5b0041b97cda30d6f523ae7",
+  "requested_region": "cn-hangzhou",
+  "resources": [
+    {
+      "kind": "api_key",
+      "id_sha256": "ec72885a32cdb9b255cbb491b68b688b48e58b0a71c17d8630e53ab46f381140"
+    },
+    {
+      "kind": "sandbox",
+      "id": "alicloud-express:sbx-b6692be2-dac6-4d2b-aa99-79d269101481"
+    }
+  ],
+  "key_cleanup_error": "AssertionError",
+  "revocation_check_error": "AssertionError",
+  "result": "FAIL"
+}

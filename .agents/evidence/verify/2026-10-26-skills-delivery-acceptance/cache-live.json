@@ -1,0 +1,108 @@
+{
+  "tests": [
+    {
+      "id": "own-template-cache-baseline-absent",
+      "result": "PASS"
+    },
+    {
+      "id": "cache-create",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "id": "cache-ready",
+      "result": "PASS"
+    },
+    {
+      "id": "cache-list-match",
+      "result": "PASS"
+    }
+  ],
+  "template_id": "9zuqtf051ixo9ashd8k8",
+  "cache_api": "2026-08-20",
+  "measurements": [
+    {
+      "phase": "before-explicit-cache",
+      "ready_ms": 1410
+    },
+    {
+      "phase": "before-explicit-cache",
+      "ready_ms": 1074
+    },
+    {
+      "phase": "before-explicit-cache",
+      "ready_ms": 1227
+    },
+    {
+      "phase": "after-ready-cache",
+      "ready_ms": 1076
+    },
+    {
+      "phase": "after-ready-cache",
+      "ready_ms": 1097
+    },
+    {
+      "phase": "after-ready-cache",
+      "ready_ms": 1100
+    }
+  ],
+  "cleanup": [
+    {
+      "kill": "accepted"
+    },
+    {
+      "kill": "accepted"
+    },
+    {
+      "kill": "accepted"
+    },
+    {
+      "kill": "accepted"
+    },
+    {
+      "kill": "accepted"
+    },
+    {
+      "kill": "accepted"
+    },
+    {
+      "sandbox": "sbx-f5283a4c-ab14-41be-9f94-12c52f1dc66b",
+      "kill": "accepted"
+    },
+    {
+      "sandbox": "sbx-2af28ba8-003b-4817-8847-f9216a281177",
+      "kill": "accepted"
+    },
+    {
+      "sandbox": "sbx-5850b79d-5fb3-4c97-87d9-e800c2325144",
+      "kill": "accepted"
+    },
+    {
+      "sandbox": "sbx-49f20821-93a8-446e-bc3b-d79020ed3b28",
+      "kill": "accepted"
+    },
+    {
+      "sandbox": "sbx-8ef55dd8-9e72-4e90-9e91-4d57f929a47d",
+      "kill": "accepted"
+    },
+    {
+      "sandbox": "sbx-97c64dfa-f056-4816-b680-cf14e0aab0ef",
+      "kill": "accepted"
+    },
+    {
+      "cache": "9zuqtf051ixo9ashd8k8",
+      "absent": true
+    }
+  ],
+  "limitations": [
+    "metadata-absent cache is not proof of a globally cold image",
+    "three samples are not a latency SLA",
+    "no native WarmPool contract in this selected Express API"
+  ],
+  "last_cache": {
+    "status": "ready",
+    "progress": 100,
+    "image_size_mb": 584
+  },
+  "result": "PASS"
+}

@@ -9,10 +9,10 @@ const secret = "synthetic-private-provider-value";
 const statics = { create: vi.fn(), connect: vi.fn(), list: vi.fn(), getInfoById: vi.fn(), setTimeoutById: vi.fn(), killById: vi.fn() };
 const row = { sandbox_id: "owned", template: "base", status: "running", region: "fixture", timeout: 600,
   cpu_count: 2, memory_mb: 1024, started_at: null, end_at: null, envd_access_token: secret, metadata: { token: secret } };
-function handle() { return { id: "owned", url: "https://fixture.invalid", status: "running", setTimeout: vi.fn(), kill: vi.fn(), close: vi.fn() }; }
+function handle() { return { id: "owned", url: "https://fixture.invalid", status: "running", setTimeout: vi.fn(), kill: vi.fn(), close: vi.fn(), _createdMetadataReader: vi.fn().mockResolvedValue({ state: "found", info: row }) }; }
 beforeEach(() => { vi.restoreAllMocks(); for (const f of Object.values(statics)) f.mockReset(); vi.spyOn(sdk, "loadSandbox").mockResolvedValue(statics); });
 it("forwards supported create inputs, rejecting unknown controls before SDK work", async () => {
-  const sandbox = handle(); statics.create.mockResolvedValue(sandbox);
+  const sandbox = handle(); statics.create.mockResolvedValue(sandbox); statics.getInfoById.mockResolvedValue(row);
   const manager = new SandboxManager();
   expect(await dispatchTool("create_sandbox", { template: "base", timeout: 600, cpu: 2, memory: 1024, region: "fixture" }, manager)).toMatchObject({ sandbox_id: "owned" });
   expect(statics.create).toHaveBeenCalledWith(expect.objectContaining({ cpu: 2, memory: 1024, provider_options: { region: "fixture" } }));

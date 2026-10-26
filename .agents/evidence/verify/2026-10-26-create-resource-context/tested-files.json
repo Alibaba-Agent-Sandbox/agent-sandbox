@@ -1,0 +1,14 @@
+{
+  "base_revision": "db3588b838fd43394f66874ae6a919e239d67a99",
+  "files": {
+    "src/api/created_metadata.ts": "4298f9d16da8157e9fb94da3fb1662555145754500cdc42680401578f8d1f990",
+    "src/api/sandbox.ts": "b36e659c5ac811de5df895c1e45eec17a00da92fe48b5f2c6a1b16b0a2f44930",
+    "src/agent/create_resources.ts": "8e4f4950a3e90dd37db5171b49ceaa638d3e0414a0eaf5ee337cbff4d70603eb",
+    "src/agent/mcp.ts": "f4f8df02203237376720000f7f95b6bb4efec8e98891898de3d0e7459d360330",
+    "src/agent/tools.ts": "b104f8a7c4d758c9532dc867ae827fe964267129e6346315a8598c70ae1f6b36",
+    "tests/test_api/test_created_metadata.test.ts": "4aaf5f6573f6d66c275cc3f18c57724db679f8cf83091a7d3f46a4980abb4d65",
+    "tests/test_agent/test_create_resources.test.ts": "2d934f44288b864413928a3c734dcd8b2c9477952a451dabbd5d0664f41911ca",
+    "tests/test_agent/test_mcp_lifecycle.test.ts": "085b4343d675c8c86ce44005f5701ff64814398c9a9cdad35c32def0bc281cbd",
+    "e2e/mcp-lifecycle.mjs": "61c8de3772f7a59d6dab68c6229d65ba5089cc7420006721c7c4cd842bb91295"
+  }
+}

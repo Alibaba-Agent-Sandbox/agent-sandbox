@@ -1,0 +1,124 @@
+{
+  "run": "skills-accept-9fbc341a1c8708e4",
+  "source_image_sha256": "ef1f57996afc6293451da456a77325e997530aeeaf7595678c69bb624c24ac7e",
+  "checks": [
+    {
+      "name": "register-v1",
+      "passed": true
+    },
+    {
+      "name": "ready-v1",
+      "passed": true
+    },
+    {
+      "name": "register-v2",
+      "passed": true
+    },
+    {
+      "name": "ready-v2",
+      "passed": true
+    },
+    {
+      "name": "register-bad",
+      "passed": true
+    },
+    {
+      "name": "build-failure-correctly-diagnosed",
+      "passed": true,
+      "expected_exit_code": 42
+    },
+    {
+      "name": "business-artifact-v1",
+      "passed": true,
+      "business_result": 385,
+      "artifact_sha256": "612b49cfa617bd2bdff85ed2854cf7e6461b129b1bf44daf3b8ddf0721a0556e"
+    },
+    {
+      "name": "sandbox-cleanup-v1",
+      "passed": true
+    },
+    {
+      "name": "business-artifact-v2",
+      "passed": true,
+      "business_result": 385,
+      "artifact_sha256": "612b49cfa617bd2bdff85ed2854cf7e6461b129b1bf44daf3b8ddf0721a0556e"
+    },
+    {
+      "name": "sandbox-cleanup-v2",
+      "passed": true
+    },
+    {
+      "name": "business-artifact-v1",
+      "passed": true,
+      "business_result": 385,
+      "artifact_sha256": "612b49cfa617bd2bdff85ed2854cf7e6461b129b1bf44daf3b8ddf0721a0556e"
+    },
+    {
+      "name": "sandbox-cleanup-v1",
+      "passed": true
+    },
+    {
+      "name": "template-cleanup-v1",
+      "passed": true
+    },
+    {
+      "name": "template-cleanup-v2",
+      "passed": true
+    },
+    {
+      "name": "template-cleanup-bad",
+      "passed": true
+    }
+  ],
+  "templates": [
+    {
+      "version": "v1",
+      "name": "skills-accept-9fbc341a1c8708e4-v1",
+      "submitted": true,
+      "id": "6mmaw7x8kejaeekvj3j2",
+      "get404": true,
+      "inventory_absent": true
+    },
+    {
+      "version": "v2",
+      "name": "skills-accept-9fbc341a1c8708e4-v2",
+      "submitted": true,
+      "id": "k5all60s3l29m59q3rde",
+      "get404": true,
+      "inventory_absent": true
+    },
+    {
+      "version": "bad",
+      "name": "skills-accept-9fbc341a1c8708e4-bad",
+      "submitted": true,
+      "id": "n5h7edd4colrzncijjpq",
+      "get404": true,
+      "inventory_absent": true
+    }
+  ],
+  "sandboxes": [
+    {
+      "version": "v1",
+      "template_id": "6mmaw7x8kejaeekvj3j2",
+      "submitted": true,
+      "id": "sbx-79d83dde-31a0-49a5-9968-39b0c3709844",
+      "absent": true
+    },
+    {
+      "version": "v2",
+      "template_id": "k5all60s3l29m59q3rde",
+      "submitted": true,
+      "id": "sbx-c8084a9e-3daf-4b61-b526-65b18fa4c500",
+      "absent": true
+    },
+    {
+      "version": "v1",
+      "template_id": "6mmaw7x8kejaeekvj3j2",
+      "submitted": true,
+      "id": "sbx-874c022e-54a2-4c96-9852-799e7a4820ea",
+      "absent": true
+    }
+  ],
+  "scope": "OCI source + generation-2 platform RUN build; explicit template-ID selection and rollback; not Dockerfile-local or external VM snapshot acceptance",
+  "passed": true
+}

@@ -1,0 +1,17 @@
+# Skill workflow acceptance
+
+Choose `agent-sandbox` for CLI/MCP operations, `agent-sandbox-sdk` for Python/template implementation, `awesome-providers` for installing/selecting existing providers, and `agent-sandbox-provider` for authoring a backend. Load the matching Skill and its references, then verify its selected backend. A Skill supplies instructions; it does not install a managed service or add backend APIs.
+
+The [dated17-scenario matrix](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-26-skills-delivery-acceptance.md) records actual results and limits. [Issue46](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/46) remains open. Core execution/persistence/template/snapshot/framework/tool scenarios have real cloud evidence; native WarmPool, complete cost attribution, automatic pool synchronization and permanent managed remote MCP still need acceptance.
+
+For a quick installed-agent check, use an authorized existing Team/region and ask the agent to create exactly one ready-template sandbox with a reasonable lifetime, run `python3 -c "print(6*7)"`, write/read a unique file, inspect state and delete only that sandbox. Save the actual handle; independently verify absence. An available configured model and explicitly approved MCP server configuration are client prerequisites. Qwen Code0.19.3 completed this flow through actual MCP tools; earlier model/configuration/budget failures are retained in the receipt.
+
+Use `run_command` when the selected provider declares shell execution but not `code.execute`. Express `base` resource overrides may be ignored by the backend: current source MCP checks actual resource metadata and rolls back a mismatch. Select a template with the required resources. Old published packages do not acquire the source fix by installing a Skill.
+
+For HTTPS credential injection, official base/code-interpreter images at v0.0.44 or later include the required platform CA. An older `base` fixture returned curl certificate error60; an owned official v0.0.44 fixture passed401 without credentials then200 through backend header injection, with TLS verification enabled and no secret in sandbox code or environment. [Official prerequisite](https://help.aliyun.com/zh/agent-sandbox/outbound-request-header-transformation). Do not dump `getInfo().network.rules`: its values can contain credentials.
+
+Desktop private app ports use `secure=True`, `allow_public_traffic=False` and the traffic-access token header; envd tokens and the VNC password have different purposes. The controller test verifies403 without the traffic token, wrong-password rejection, actual frames, simulated operator input and resumed Agent actions. Its replay is a screenshot timeline. See the [maintained SDK runner](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/e2e/desktop_acceptance.py).
+
+Cost analysis reads real bills but must leave missing Team/Template attribution unallocated. The tested account's bill rows had no usable tags; per-Sandbox amounts remain private. Do not invent utilization, WarmPool savings or Cache fees. Three latency samples do not establish an SLA. [Official pricing](https://help.aliyun.com/zh/agent-sandbox/product-overview/billing-overview).
+
+Source-only fixes, real cloud passes, client coverage and published package versions are recorded separately. Each runner cleans only journaled resources; an accepted delete response is followed by independent absence verification.

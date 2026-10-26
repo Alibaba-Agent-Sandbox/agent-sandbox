@@ -150,3 +150,55 @@ Python 仓库的手动验收控制器通过两端访问同一个真实 Provider�
 跨端本地验收使用 [Python 仓库的控制器](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/e2e/README.zh-CN.md)，传入本仓库构建的独立二进制；产物不要放在其他构建会清理的目录。
 
 真实验收中，恢复后立即创建快照曾返回 HTTP503；先确认运行状态并等待服务准入稳定，再首次创建。最终验收使用30秒静置间隔，该值是验收观察，不是服务就绪 SLA。失败写入不自动重试。
+
+## 极速版 Template Cache
+
+内置 Provider 通过官方2026-08-20 Sandbox 管理 API 实现
+`template-cache.create`、`template-cache.get`、`template-cache.list` 和
+`template-cache.delete`。这些操作使用所选 AK/SK 与地域，地址固定为
+`sandbox.<region>.aliyuncs.com`；沙箱 API Key 不能代替 AK/SK。
+帮助和 JSON 发现只读取本地声明，不要求凭据，不初始化云 SDK。
+使用前确认实际安装的 CLI 构建已经包含这些声明。
+
+所有操作都必须明确传入 `team_id`，创建、查询详情和删除还必须提供准确的
+`template_id`，不会自动选择 Team 或模板。把以下非密钥引用保存为 `cache-ref.json`：
+
+```json
+{"team_id":"REPLACE_ME_TEAM_ID","template_id":"REPLACE_ME_TEMPLATE_ID"}
+```
+
+```sh
+abx --json provider command info alicloud-express template-cache.create
+abx --json provider command run alicloud-express template-cache.create --input-file ./cache-ref.json --yes
+abx --json provider command run alicloud-express template-cache.get --input-file ./cache-ref.json
+abx --json provider command run alicloud-express template-cache.list --input-file ./cache-ref.json
+abx --json provider command run alicloud-express template-cache.delete --input-file ./cache-ref.json --yes
+```
+
+创建只提交一次请求，在 `data` 中返回实际缓存元数据。真实验收观察到
+`status: "creating"`、`progress: 0`，之后才变为 `status: "ready"`、
+`progress: 100`，镜像大小 `image_size_mb: 584`。创建请求成功不代表缓存可用；
+应在有截止时间的轮询中查询详情，直到实际状态为 ready，遇到 failed/error/evicted
+则停止。缺少的状态、进度和时间不会补默认值。`http_timeout` 限制每个 SDK 请求，
+操作不会自动轮询或重试；超时或冲突后，先核对同一 Team 和模板再决定是否重新写入。
+
+列表每次返回一页：`data.template_caches`、`data.max_results`、
+`data.next_token`。可选输入为 `template_id`、`status`、`max_results`（1–100）和
+`next_token`，续页令牌应原样传回，null 表示最后一页。
+删除已不存在的缓存返回 `data.deleted: false`，不会删除模板。
+报告清理成功前应独立查询详情和列表核对。
+
+比较缓存前后的实际沙箱就绪并能执行任务的耗时，保持模板、地域和规格一致，记录样本数
+和波动。没有显式缓存元数据不等于全局冷镜像。镜像大小是缓存占用，不是节省金额；
+费用估算需要已核实的计费标准和账单数据。这四个操作不提供 WarmPool 配置或账单 API。
+
+选择本轮创建且已经 Ready 的模板运行真实资源验收：
+
+```sh
+export ABX_SKILL_CACHE_TEAM_ID=REPLACE_ME_TEAM_ID
+export ABX_SKILL_CACHE_TEMPLATE_ID=REPLACE_ME_TEMPLATE_ID
+node e2e/skill-template-cache-acceptance.mjs --output ./cache-acceptance-new.json
+```
+
+场景在缓存已存在时停止，观察真实 creating→ready 进度，测试四个 CLI 操作，并通过独立
+官方 SDK 查询404和列表确认删除。它会删除本轮缓存，保留调用方提供的模板。

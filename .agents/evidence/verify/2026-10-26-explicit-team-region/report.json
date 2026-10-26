@@ -1,0 +1,79 @@
+{
+  "checks": [
+    {
+      "name": "regional-endpoint-matches-selection",
+      "result": "PASS",
+      "selected_region": "cn-hangzhou",
+      "configured_endpoint_matches_region": true
+    },
+    {
+      "name": "create-scoped-key",
+      "result": "PASS",
+      "mode": "0o600",
+      "explicit_team_matches_response": true
+    },
+    {
+      "name": "team-binding-independently-observed",
+      "result": "PASS",
+      "management_get_team_matches_requested": true
+    },
+    {
+      "name": "create-explicit-team-region",
+      "result": "PASS",
+      "explicit_region": "cn-hangzhou",
+      "team_credential_source": "new management-verified key bound to the requested existing Team"
+    },
+    {
+      "name": "task-through-selected-team-region",
+      "result": "PASS",
+      "actual_stdout": "TEAM_REGION_OK"
+    },
+    {
+      "name": "selected-region-observation",
+      "result": "PASS",
+      "requested_region": "cn-hangzhou",
+      "runtime_reported_region": null,
+      "region_evidence": "explicit regional configuration and same-regional endpoint request; backend region metadata remains unknown"
+    },
+    {
+      "name": "sandbox-cleanup",
+      "result": "PASS",
+      "independently_absent": true
+    },
+    {
+      "name": "temporary-key-inactivated",
+      "result": "PASS",
+      "status": "inactive"
+    },
+    {
+      "name": "temporary-key-revoked",
+      "result": "PASS",
+      "deleted": true
+    },
+    {
+      "name": "temporary-key-independently-absent",
+      "result": "PASS",
+      "lookup_exit": 4,
+      "error_code": "E8005",
+      "http_404_observed": true
+    },
+    {
+      "name": "revoked-key-auth-rejected",
+      "result": "PASS",
+      "error": "[E1001] Sandbox authentication failed."
+    }
+  ],
+  "team_sha256": "294152d192f9c364aec91d67bd76ce1ae66c183ad5b0041b97cda30d6f523ae7",
+  "requested_region": "cn-hangzhou",
+  "resources": [
+    {
+      "kind": "api_key",
+      "id_sha256": "e2c6f515ec6b04b95e669c58675a6cdbf9e58c2c83f3a7733b342654bfaa1474"
+    },
+    {
+      "kind": "sandbox",
+      "id": "alicloud-express:sbx-2f7dc95d-e678-4eab-bd53-5f43ced9ba02"
+    }
+  ],
+  "result": "PASS"
+}

@@ -1,0 +1,67 @@
+{
+  "provider": "configured cloud",
+  "transport": "real CLI STDIO JSON-RPC",
+  "checks": [
+    {
+      "name": "STDIO advertises all lifecycle tools",
+      "ok": true
+    },
+    {
+      "name": "get without default returns tool error",
+      "ok": true
+    },
+    {
+      "name": "unsupported account selector returns tool error",
+      "ok": true
+    },
+    {
+      "name": "real create with matching template CPU and memory",
+      "ok": true
+    },
+    {
+      "name": "default refresh returns only safe metadata",
+      "ok": true
+    },
+    {
+      "name": "independent metadata matches expected template resources",
+      "ok": true
+    },
+    {
+      "name": "eventually consistent list contains owned sandbox",
+      "ok": true
+    },
+    {
+      "name": "external ID refresh over STDIO",
+      "ok": true
+    },
+    {
+      "name": "external ID TTL update over STDIO",
+      "ok": true
+    },
+    {
+      "name": "observer EOF preserves external sandbox",
+      "ok": true
+    },
+    {
+      "name": "default TTL update over STDIO",
+      "ok": true
+    },
+    {
+      "name": "MCP real file roundtrip",
+      "ok": true
+    },
+    {
+      "name": "MCP real command execution",
+      "ok": true
+    },
+    {
+      "name": "owned sandbox destruction",
+      "ok": true
+    },
+    {
+      "name": "finally cleanup and readonly absence check",
+      "ok": true
+    }
+  ],
+  "passed": true
+}

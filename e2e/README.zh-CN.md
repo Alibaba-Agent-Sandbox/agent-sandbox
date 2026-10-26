@@ -220,3 +220,7 @@ Actions 工作流通过加密的 `EXPRESS_ACCEPTANCE_*` 仓库 Secrets 注入配
 ## 模板整体启动验收
 
 构建候选 CLI 后，设置环境中的沙箱密钥和阿里云 AccessKey，执行 `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs`。先启动 spec v5 托管 base 模板，再用固定官方基础镜像和原生 steps 准备源码模板，启动两个 HTTP 服务、检查就绪、核对全部返回地址，并远程检查构建标记。脚本只清理资源日志中本次创建的沙箱和模板，并确认已不存在。`--managed-only` 跳过源码准备。本测试只覆盖极速版重点路径，不代表全部 Docker/OpenSandbox 模板矩阵；测试期间不要同时重建 dist。
+
+## MCP 生命周期的规格期望
+
+构建后运行 `node e2e/mcp-lifecycle.mjs`，通过真实 CLI STDIO server 检查资源归属、独立元数据查询、存活时间、文件和命令。用 `ABX_E2E_TEMPLATE` 选择已准备好的模板，并用 `ABX_E2E_CPU`、`ABX_E2E_MEMORY` 指定实际规格期望值（默认为 `base`、2 CPU、2048 MB）。创建参数和随后独立查询的规格必须都符合期望。执行和清理保留 Provider 限定 ID；元数据和列表比较使用解析后的原始 ID。

@@ -1,0 +1,41 @@
+{
+  "checks": [
+    {
+      "sandbox_id": "sbx-f5283a4c-ab14-41be-9f94-12c52f1dc66b",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-2af28ba8-003b-4817-8847-f9216a281177",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-5850b79d-5fb3-4c97-87d9-e800c2325144",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-49f20821-93a8-446e-bc3b-d79020ed3b28",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-8ef55dd8-9e72-4e90-9e91-4d57f929a47d",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-97c64dfa-f056-4816-b680-cf14e0aab0ef",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-1f64d469-b555-49e7-92ee-2a7cf078dae9",
+      "absence_verified": true
+    },
+    {
+      "sandbox_id": "sbx-5d869979-2729-4243-85a3-c788626834d8",
+      "absence_verified": true
+    }
+  ],
+  "result": "PASS"
+}

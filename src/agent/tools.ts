@@ -16,6 +16,7 @@ import { HTTPStatusError, TimeoutException, RequestError } from "../transport/ht
 import { z } from "zod";
 import { templateSchemas, handleTemplateOperation } from "./template_operations.js";
 import { OPERATION_SCHEMAS, operationInputs, handleOperation } from "./operations.js";
+import { verifyCreatedResources } from "./create_resources.js";
 import { pyExcStr } from "../utils/_pyerrors.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
 import { KeyError, ValueError, isDict, pyStrip, pyTruthy, pyTypeName, type JsonObject } from "./_py.js";
@@ -260,11 +261,13 @@ export async function handleCreateSandbox(
     ...(params.region !== undefined ? { region: params.region as string } : {}),
     ...(params.retain !== undefined ? { retain: params.retain as boolean } : {}),
   });
-  return {
-    sandbox_id: typeof manager.reference === "function" ? manager.reference(sandbox) : sandbox.id,
-    status: enumValue(sandbox.status),
-    url: sandbox.url,
-  };
+  const reference = typeof manager.reference === "function" ? manager.reference(sandbox) : sandbox.id;
+  const resourceFailure = await verifyCreatedResources(reference, {
+    ...(params.cpu !== undefined ? { cpu: params.cpu as number } : {}),
+    ...(params.memory !== undefined ? { memory: params.memory as number } : {}),
+  }, sandbox._createdMetadataReader, () => manager.rollbackCreatedSandbox(sandbox));
+  if (resourceFailure) return resourceFailure;
+  return { sandbox_id: reference, status: enumValue(sandbox.status), url: sandbox.url };
 }
 
 export async function handleRunCode(

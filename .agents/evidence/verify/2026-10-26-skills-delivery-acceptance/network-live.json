@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "id": "public-egress-allowed",
+      "result": "PASS",
+      "data": {
+        "status": 200
+      }
+    },
+    {
+      "id": "deny-egress-enforced",
+      "result": "PASS",
+      "data": {
+        "nonzero_exit": 28,
+        "policy_denied": true
+      }
+    },
+    {
+      "id": "restore-egress",
+      "result": "PASS",
+      "data": {
+        "status": 200
+      }
+    },
+    {
+      "id": "dns-failure-distinguished",
+      "result": "PASS",
+      "data": {
+        "classification": "DNS_ERROR"
+      }
+    }
+  ],
+  "cleanup": [
+    {
+      "sandbox_id": "sbx-e4121ebb-dafd-40aa-9028-0043b1b7e8f0",
+      "absence_verified": false
+    },
+    {
+      "sandbox_id": "sbx-e4121ebb-dafd-40aa-9028-0043b1b7e8f0",
+      "independent_get_absent": true
+    }
+  ],
+  "sandbox_id": "sbx-e4121ebb-dafd-40aa-9028-0043b1b7e8f0",
+  "result": "PASS"
+}

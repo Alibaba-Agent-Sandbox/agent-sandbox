@@ -15,6 +15,12 @@ Read [task workflows](references/task-workflows.md) for task submission, reconne
 
 Every function attempted through this Skill needs a sanitized record: which agent/model used this Skill/version, the user's request, actual tool/CLI arguments, returned result/error, expected effect, independently observed effect, elapsed time and PASS/FAIL/BLOCKED/NOT_RUN. Keep a user-readable input → return → effect table with links to machine-readable events. Credentials and private logs never enter records. A response saying success is not proof that the requested effect occurred.
 
+## Select the instruction set
+
+Use this Skill for CLI/MCP operations. Use `agent-sandbox-sdk` for Python clients and template/services, `awesome-providers` for existing provider installation/configuration and catalog contribution, and `agent-sandbox-provider` for implementing a new provider protocol. Installing instructions does not grant backend features.
+
+A successful create response is not proof of the requested resources: inspect actual CPU/memory and template/region before delivering it. Current MCP source fails closed and rolls back its own new sandbox when explicit resources cannot be verified. Express can require a template built with the desired resources rather than per-create overrides. See [verified task workflows](references/task-workflows.md).
+
 ## When to use
 
 Use Agent Sandbox when a task needs an isolated, disposable Linux environment:
@@ -176,7 +182,7 @@ prints the PID on stderr. A pipeline or shell variable needs an explicit shell:
 `abx exec <SANDBOX_ID> sh -c 'echo $HOME'`. Inspect a process with
 `abx sandbox process list <SANDBOX_ID>`; process signals accept SIGTERM15 or SIGKILL9.
 
-`run_code` and `commands.run` are Python client calls. They belong to the `agent-sandbox-sdk` skill. `run_code` requires the selected provider and workflow to support the interpreter operation. Installing Python in an application template does not provide that interpreter binding; spec v4 has no template `capabilities` authorization field.
+Python client examples belong to `agent-sandbox-sdk`. MCP `run_code` requires the selected backend to implement the interpreter operation; tools/list alone does not prove support. Native Express currently rejects `code.execute` with E8004. Shell execution of installed Python is a separate supported path. Specification 5 starts the whole template and rejects retired `capabilities` and workflow-selector fields.
 
 MCP exposes 21 tools in this source version. Core: `create_sandbox`, `run_code`, `run_command`, `read_file`, `write_file`, `list_files`, `kill_sandbox`. Workflows: `get_capabilities`, `list_sandboxes`, `get_sandbox`, `set_sandbox_timeout`, `retain_sandbox`, `upload_file`, `download_file`, `start_task`, `get_task`, `cancel_task`, `verify_sandbox`. Templates: `submit_template_build`, `get_template_build`, `validate_template`. Inspect actual tools/list on the installed server before relying on these additions. See the linked workflows for completion checks and provider boundaries.
 
@@ -243,7 +249,7 @@ and [docs/en/guide/migrate-from-e2b.md](https://github.com/alibaba-agent-sandbox
 | `E2003` | Region unavailable | `abx config set region <region>`, retry |
 | `E2009` / exit 4 | Sandbox id not found on info, exec, or connect | Check `abx list`. `abx kill` of a missing id still exits 0 |
 | `E3001` | Command/code timeout | Raise the command `timeout`; check for hangs |
-| `E3004` | Missing `code` capability | Use a template whose `template.yaml` declares `code` |
+| `E3004` / `E8004` | Selected interface/provider does not implement the operation | Discover the actual operation contract and use a supported interface. Do not add retired template `capabilities` fields. |
 | `E5003` / create hangs then fails | Cold start longer than client timeout | Retry; `abx config set http_timeout 120`; `abx config set http2 false` |
 
 Native project commands accept `abx -v <command>` for verbose (DEBUG) output.
@@ -310,3 +316,5 @@ changes their lifetime. No automatic FC API deployment is implemented.
 ## Automatic project preparation
 
 Use `abx --provider ID template launch SOURCE --yes` with a host build that includes this extension. Read [the guide](https://github.com/alibaba-agent-sandbox/agent-sandbox/blob/main/docs/en/guide/template-launch.md) for one-time provider prerequisites. The adapter returns the exact reference; do not invent IDs, substitute credentials or claim missing PTY/code capabilities. Check the selected provider’s documented acceptance scope; a passing test for one provider or capability does not establish another’s support.
+
+For the dated real workflow results and remaining acceptance prerequisites, see [workflow acceptance](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/skill-workflow-acceptance.md). Source verification is not a published-package guarantee.

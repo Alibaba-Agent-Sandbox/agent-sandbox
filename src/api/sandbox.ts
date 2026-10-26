@@ -41,6 +41,7 @@ import { CodeContextModule } from "./code.js";
 import { CommandsModule } from "./commands.js";
 import { FilesModule } from "./files.js";
 import { NetworkModule } from "./network.js";
+import { freezeCreatedMetadataReader, type CreatedMetadataReader } from "./created_metadata.js";
 
 const logger = getLogger("api.sandbox");
 
@@ -206,6 +207,8 @@ export interface SandboxInit {
   /** The capability set a provider declares (reported by `capabilities`; the module gates stay permissive so the provider answers E8004). */
   declared_capabilities?: ReadonlySet<string> | null;
   provider_id?: string;
+  /** Internal fresh observation for create verification; never reconstructed from process defaults. */
+  created_metadata_reader?: CreatedMetadataReader;
 }
 
 export interface CreateOptions extends BuildInfraOptions {
@@ -296,6 +299,7 @@ export class Sandbox {
   _declared_capabilities: ReadonlySet<string> | null;
   _provider_id: string;
   _killed: boolean;
+  readonly _createdMetadataReader?: CreatedMetadataReader;
 
   private _commands?: CommandsModule;
   private _files?: FilesModule;
@@ -306,6 +310,7 @@ export class Sandbox {
     this._info = init.info;
     this._config = init.config;
     this._provider_id = init.provider_id ?? resolveProviderId();
+    this._createdMetadataReader = init.created_metadata_reader;
 
     // Derive envd URL when the platform response omits it (Bug 1 fix)
     if (!this._info.envd_url && this._info.sandbox_id) {
@@ -630,6 +635,7 @@ export class Sandbox {
       });
       const info = await infra.sandbox_protocol.create(sandbox_config, { request_timeout: p.request_timeout });
       created = info;
+      const createdMetadataReader = freezeCreatedMetadataReader(prov, infra.config, info.sandbox_id);
       await p.on_created?.(info.sandbox_id);
       const envd_token = prov.createSessionAuth(info, infra);
       logger.info("Sandbox created: %s (provider %s)", info.sandbox_id, prov.id);
@@ -650,6 +656,7 @@ export class Sandbox {
         resolved_capabilities: resolved,
         declared_capabilities: backendResolved ? resolved.capabilities : prov.capabilities(),
         provider_id: prov.id,
+        created_metadata_reader: createdMetadataReader,
       });
     } catch (e) {
       let cleanupComplete = false;

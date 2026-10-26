@@ -1,0 +1,39 @@
+{
+  "scope": "Real configured-region Express MCP resource mismatch; no second-region claim",
+  "checks": [
+    {
+      "name": "MCP result marks mismatch isError",
+      "passed": true
+    },
+    {
+      "name": "actual template resources independently read",
+      "passed": true
+    },
+    {
+      "name": "requested resources remain explicit",
+      "passed": true
+    },
+    {
+      "name": "fresh created-context read confirms rollback",
+      "passed": true
+    },
+    {
+      "name": "provider-qualified new resource identity",
+      "passed": true
+    },
+    {
+      "name": "manager removed only its newly created handle",
+      "passed": true
+    },
+    {
+      "name": "independent runtime API returns HTTP404",
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "absent": true
+    }
+  ],
+  "passed": true
+}

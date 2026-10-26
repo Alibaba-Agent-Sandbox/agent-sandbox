@@ -1,0 +1,137 @@
+{
+  "agent": "Qwen Code",
+  "scope": "actual installed Skill + real MCP tools",
+  "max_seconds": 180,
+  "exit_code": 0,
+  "elapsed": 49.68,
+  "independent_cleanup": {
+    "sandbox_id": "sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0",
+    "absence_verified": true
+  },
+  "result": "PASS",
+  "model": "qwen3.8-flash",
+  "skill_sha256": "ee737d72ead1fc004b6aa1158173caa16af19e55e36728b0ae14014b66bc9a00",
+  "operations": [
+    {
+      "type": "call",
+      "name": "skill",
+      "arguments": {
+        "skill": "agent-sandbox"
+      }
+    },
+    {
+      "type": "result",
+      "content": "Operate an Agent Sandbox with the abx CLI or MCP. Use when the task is sandbox setup, task execution, reconnection, file delivery, diagnosis or template acceptance with abx. Do not use this to write a Python client, template.yaml, a Dockerfile, or commands.py; that skill is agent-sandbox-sdk."
+    },
+    {
+      "type": "result",
+      "content": "Loaded 7 tool(s)"
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__get_capabilities",
+      "arguments": {}
+    },
+    {
+      "type": "result",
+      "content": "{\"provider\": \"alicloud-express\", \"declared_features\": [\"exec.run\", \"exec.stream\", \"files.rw\", \"files.transfer\", \"files.watch\", \"ports.url\", \"process.manage\", \"pty\", \"sandbox.lifecycle\", \"sandbox.timeout\", \"sessions\", \"templates.build\", \"templates.read\"], \"verification\": \"declaration_only\", \"platform_dependencies\": [\"storage_mount\", \"template_cache\", \"warm_pool\", \"billing\", \"snapshot\", \"deep_hibernation\", \"preview_expiry\", \"desktop_handoff\", \"hosted_mcp\"], \"note\": \"Only per-provider live evidence establishes workflow support; task wrappers need Linux, sh, python3, nohup and /proc.\"}"
+    },
+    {
+      "type": "result",
+      "content": "Loaded 1 tool(s)"
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__create_sandbox",
+      "arguments": {
+        "template": "base",
+        "timeout": 120
+      }
+    },
+    {
+      "type": "result",
+      "content": "{\"sandbox_id\": \"alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0\", \"status\": \"running\", \"url\": \"https://49983-sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0.cn-hangzhou.e2b.fc.aliyuncs.com\"}"
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__run_command",
+      "arguments": {
+        "command": "python3 -c \"print(6*7)\"",
+        "sandbox_id": "alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0"
+      }
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__write_file",
+      "arguments": {
+        "path": "/tmp/abx-acceptance-qwen-sbx-dc97175b-6x7.txt",
+        "content": "abx acceptance probe\nsandbox=alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0\n6*7=42\n",
+        "sandbox_id": "alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0"
+      }
+    },
+    {
+      "type": "result",
+      "content": "{\"stdout\": \"42\\n\", \"stderr\": \"\", \"exit_code\": 0}"
+    },
+    {
+      "type": "result",
+      "content": "{\"success\": true, \"bytes_written\": 94}"
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__read_file",
+      "arguments": {
+        "path": "/tmp/abx-acceptance-qwen-sbx-dc97175b-6x7.txt",
+        "sandbox_id": "alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0"
+      }
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__get_sandbox",
+      "arguments": {
+        "sandbox_id": "alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0"
+      }
+    },
+    {
+      "type": "result",
+      "content": "{\"content\": \"abx acceptance probe\\nsandbox=alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0\\n6*7=42\\n\"}"
+    },
+    {
+      "type": "result",
+      "content": "{\"sandbox\": {\"sandbox_id\": \"sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0\", \"template\": \"base\", \"status\": \"running\", \"region\": null, \"timeout\": null, \"cpu_count\": 2, \"memory_mb\": 2048, \"started_at\": \"2026-10-26T03:56:01.966Z\", \"end_at\": \"2026-10-26T03:58:01.966Z\"}}"
+    },
+    {
+      "type": "call",
+      "name": "mcp__agent-sandbox__kill_sandbox",
+      "arguments": {
+        "sandbox_id": "alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0"
+      }
+    },
+    {
+      "type": "result",
+      "content": "{\"success\": true, \"sandbox_id\": \"alicloud-express:sbx-dc97175b-cfc1-499b-ad52-ec282f4b63b0\"}"
+    }
+  ],
+  "earlier_attempts": [
+    {
+      "result": "FAIL",
+      "reason": "configured default model did not exist; no sandbox created"
+    },
+    {
+      "result": "FAIL",
+      "reason": "listed model rejected API parameters; no sandbox created"
+    },
+    {
+      "result": "BLOCKED",
+      "reason": "implicit MCP configuration pending approval; explicit reviewed MCP configuration connected"
+    },
+    {
+      "result": "FAIL",
+      "reason": "12 tool-call budget reached after actual create/execute/write; supervisor independently verified deletion"
+    },
+    {
+      "result": "PARTIAL",
+      "reason": "all actual operations and delete completed, but final reporting exceeded 120-second budget"
+    }
+  ]
+}
