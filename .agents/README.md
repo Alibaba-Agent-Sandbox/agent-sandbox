@@ -2,6 +2,8 @@
 
 ## Current public CLI 0.5.6 — 2026-10-25
 
+[Changelog attribution correction](notes/proposed/process/2026-10-25-environment-changelog-attribution.md) keeps the later environment-guide update under Unreleased Documentation; [verification](evidence/verify/2026-10-25-environment-changelog-attribution.md) preserves its exact text and prior evidence.
+
 [Current environment guidance](notes/proposed/process/2026-10-25-cli-environment-guidance.md) corrects terminal/process/application scope and standard-versus-native shell behavior; [verification](evidence/verify/2026-10-25-cli-environment-guidance.md) records actual published help without cloud work.
 
 CLI **0.5.6** is published on GitHub and official npm. [Publication and public consumption](evidence/verify/2026-10-25-cli-056-publication.md) records six applicable source checks, the five-platform release, all 12 assets, independent npm/SEA checks and actual public-npm named-command error controls with owned sandbox absence. The website mirror still selected 0.5.4 at readback; website promotion is separate. This does not certify the full template/provider matrix. The [publication note](notes/proposed/process/2026-10-25-cli-056-publication.md) records this documentation follow-up; historical candidate evidence is unchanged.
