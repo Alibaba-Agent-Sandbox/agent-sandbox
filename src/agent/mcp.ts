@@ -298,6 +298,20 @@ export class SandboxManager {
     return id;
   }
 
+  /** Internal create rollback: keep the exact returned handle across observation/shutdown races. */
+  async rollbackCreatedSandbox(sandbox: SandboxInstance): Promise<void> {
+    const id = this.reference(sandbox);
+    await sandbox.kill();
+    await this._state_lock.runExclusive(() => {
+      if (this._sandboxes.get(id) === sandbox) {
+        this._sandboxes.delete(id);
+        this.preserved.delete(id);
+        this.borrowed.delete(id);
+      }
+      if (this._default_sandbox === sandbox) this._default_sandbox = null;
+    });
+  }
+
   /** Kill all sandboxes. */
   async shutdown(): Promise<void> {
     const items = await this._state_lock.runExclusive(() => {

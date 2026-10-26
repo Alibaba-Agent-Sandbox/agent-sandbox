@@ -261,3 +261,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Seventeen-scenario Skill acceptance](evidence/verify/2026-10-26-skills-delivery-acceptance.md) (PARTIAL; includes installed-agent, network, cost and cleanup receipts).
 
 - [Requirement-level Skill verification](notes/proposed/process/2026-10-26-skills-delivery-acceptance.md).
+
+- [Exact creation context during MCP verification and rollback](notes/proposed/feature/2026-10-26-create-resource-context.md) · [verification](evidence/verify/2026-10-26-create-resource-context.md).

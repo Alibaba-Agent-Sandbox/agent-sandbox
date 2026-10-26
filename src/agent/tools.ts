@@ -262,10 +262,10 @@ export async function handleCreateSandbox(
     ...(params.retain !== undefined ? { retain: params.retain as boolean } : {}),
   });
   const reference = typeof manager.reference === "function" ? manager.reference(sandbox) : sandbox.id;
-  const resourceFailure = await verifyCreatedResources(manager, reference, {
+  const resourceFailure = await verifyCreatedResources(reference, {
     ...(params.cpu !== undefined ? { cpu: params.cpu as number } : {}),
     ...(params.memory !== undefined ? { memory: params.memory as number } : {}),
-  });
+  }, sandbox._createdMetadataReader, () => manager.rollbackCreatedSandbox(sandbox));
   if (resourceFailure) return resourceFailure;
   return { sandbox_id: reference, status: enumValue(sandbox.status), url: sandbox.url };
 }

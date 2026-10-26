@@ -11,7 +11,7 @@ For MCP create calls with explicit CPU or memory, independently observe only the
 
 ## API Design
 
-`verifyCreatedResources(manager, id, {cpu?, memory?}): Promise<JsonObject | null>` is an agent-layer helper. The MCP error includes `category: resource_configuration`, requested/observed resources, `verified: false`, `sandbox_id` and `cleanup_verified`. No explicit resource requirement preserves the previous create path. Public Node/Python client create semantics are unchanged.
+`verifyCreatedResources(id, {cpu?, memory?}, readCreatedMetadata?, rollbackCreated?): Promise<JsonObject | null>` is an agent-layer helper. Its internal closures retain the actual creation context and exact new handle. The MCP error includes `category: resource_configuration`, requested/observed resources, `verified: false`, `sandbox_id` and `cleanup_verified`; uncertain cleanup additionally returns the provider-qualified `recovery_sandbox_id`. No explicit resource requirement preserves the previous create path. Public Node/Python client create semantics are unchanged.
 
 ## Alternatives considered
 
@@ -32,3 +32,5 @@ New `src/agent/create_resources.ts`, integrated into `src/agent/tools.ts`; focus
 [Live evidence](../../../evidence/verify/2026-10-26-cli-live-resource-verification.md) records original failure, real post-fix rollback/absence, matching-resource template acceptance, files, durable tasks, cancellation, errors, client installation and three parallel environments. Focused tests 36 passed, typecheck and build passed. Full-repository and remote gates remain the coordinating task's responsibility. This record remains proposed until accepted and merged.
 
 Maintained [STDIO fixture verification](../../../evidence/verify/2026-10-26-mcp-lifecycle-fixture.md) passed 15 real checks after the coordinating build. [Explicit Team/region verification](../../../evidence/verify/2026-10-26-explicit-team-region.md) used a short-lived key bound to the selected existing Team, confirmed runtime effects and revoked both test keys.
+
+The subsequent [creation-context correction](2026-10-26-create-resource-context.md) and [separate verification](../../../evidence/verify/2026-10-26-create-resource-context.md) preserve those historical runs and close the default-region and cache-replacement races found in independent review.

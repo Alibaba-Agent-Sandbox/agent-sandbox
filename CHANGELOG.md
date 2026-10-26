@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Bind MCP resource verification and rollback to the exact newly created handle and resolved provider/endpoint; report cleanup only after same-context readback, with a recovery handle for uncertain outcomes.
+- 规格核验与回滚绑定本次新建实例及实际提供方／端点；同一上下文独立回读后才确认清理，不确定时返回恢复句柄。
+
 - Atomically register MCP create/connect results with session shutdown; late owned creations are killed and late borrowed handles are only closed.
 - 修复 MCP 会话关闭与创建／连接登记的竞态：回收迟到的新建实例，仅关闭迟到的借用连接。
 

@@ -345,6 +345,13 @@ differs or is unknown, the call returns `isError: true`, category
 The tool deletes only the sandbox it just created and checks its absence; when
 cleanup is unverified, the returned sandbox ID allows an explicit retry.
 
+Verification uses a fresh control-plane connection with the provider and complete
+configuration captured when this sandbox was created, including provider options.
+Rollback targets that exact new handle even if the session cache changes during
+the check. A not-found response from another region, setup failure or client-close
+failure cannot confirm cleanup. An uncertain result includes the provider-qualified
+`recovery_sandbox_id`; pass that handle unchanged when inspecting or retrying cleanup.
+
 Express may ignore per-create resource overrides and use its template's resource
 configuration. Choose or build a template with the requested specification, then
 verify the actual sandbox; do not report an ignored override as applied. A missing
