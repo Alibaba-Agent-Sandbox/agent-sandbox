@@ -1,0 +1,16 @@
+Usage: abx template launch [options] [TEMPLATE_REF]
+
+Download and launch the whole template on the selected provider. Its startup
+command starts the declared services; launch verifies their availability. Omit
+TEMPLATE_REF in a terminal to search and choose a template. Missing
+configuration is collected before cloud operations; --yes skips prompts and
+permits billable build/create.
+
+Options:
+  --build-profile <BUILD_PROFILE>  Declared Dockerfile build profile
+  -a, --alias <ALIAS>
+  --timeout <FLOAT>                Build deadline in seconds (maximum 3600)
+  --sandbox-timeout <FLOAT>        Sandbox lifetime in seconds
+  -y, --yes
+  -h, --help                       Show this message and exit.
+[exit_code:0]

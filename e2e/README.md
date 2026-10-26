@@ -1,5 +1,9 @@
 # abx black-box E2E suite
 
+Add `--application` to test missing application-token prompting and saved-token reuse against an existing `python-hello` template (override its ID with `ABX_ONBOARDING_APPLICATION_TEMPLATE`). This mode starts the template service and independently deletes its owned sandbox.
+
+Run `ABX_BIN=<binary> node e2e/initialized-template.mjs` for a fresh-home initialization through catalog selection, billable-create confirmation, real Express creation, remote execution and independent HTTP 404 cleanup. It verifies masked input and a generated saved application token. Requires the same credentials and terminal support as guided configuration.
+
 A language-neutral, black-box end-to-end suite for the `abx` CLI. It spawns the binary under test
 exactly like a user would (argv, environment, stdin, exit code, stdout/stderr, files on disk) against
 the **real cloud**. Point `ABX_BIN` at the `abx` binary you want to test.

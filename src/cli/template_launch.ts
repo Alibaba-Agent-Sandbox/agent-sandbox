@@ -10,7 +10,7 @@ import { executableContentDigest, providerContentDigest } from "../providers/con
 import { digestDir } from "../providers/store.js";
 import { DockerSetupError, ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ResourceJournal } from "../template/resource_journal.js";
-import { resolveTemplateEnvironment } from "../template/environment.js";
+import { withTemplateEnvironment, applicationToken } from "./template_environment.js";
 import { pyExpandUser } from "../utils/_pyos.js";
 import type { Provider } from "../providers/base.js";
 import { loadYaml, isMapping } from "../utils/yaml_io.js";
@@ -26,16 +26,14 @@ import { cliProvider } from "../providers/selection.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { parseTemplateData } from "../api/capability.js";
-import { RegistryClient } from "../utils/registry.js";
-import { _findTemplateYaml, _resolveIndexEntry, _withGithubRateLimitRetry } from "./template_catalog.js";
-import { resolveGithubToken } from "./commands/config_cmd.js";
+import { _findTemplateYaml, acquireTemplateSource } from "./template_catalog.js";
 import { Sandbox, _effectiveOptions, type CreateOptions } from "../api/sandbox.js";
 import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager } from "../providers/template_contract.js";
 
 export const launchSeams = { create: (options: Parameters<typeof Sandbox.create>[0]) => Sandbox.create(options) };
 
 /** Validate a known local source before any credential prompt; remote sources are validated once after acquisition. */
-function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>, environmentOverrides: Readonly<Record<string, string>> = {}) {
+function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>) {
   const yaml = catalogManifest ? null : _findTemplateYaml(directory);
   if (!yaml && !catalogManifest) throw new ProviderConfigError("Template source has no template.yaml.");
   // The YAML's parent is the build context even when a repository contains several projects.
@@ -49,7 +47,6 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
   const template = parseTemplateData(structuredClone(sourceMetadata));
   const plan = planTemplateLaunch(sourceMetadata, provider, "cli");
   if (!plan.supported) throw new ProviderConfigError(`Template cannot launch on this provider: ${plan.reason ?? plan.missing_operations.join(", ")}.`);
-  resolveTemplateEnvironment(template.env, environmentOverrides);
   const input = sourceMetadata["template_id"] ? "managed" : sourceMetadata["image"] ? "image" : "source";
   const aliasBase = String(params["alias"] ?? template.name);
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(aliasBase)) throw new ProviderConfigError("Template alias must be a lowercase name of at most 63 characters.");
@@ -92,31 +89,22 @@ export async function executeTemplateLaunch(
   const isLocal = exists && fs.statSync(initialDirectory).isDirectory();
   if (exists && !isLocal) throw new UsageError("Template project source is not a directory.");
   if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template scaffold DIRECTORY' or choose an existing template source.");
-  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params, undefined, creationOptions.envs ?? {}) : null;
+  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params) : null;
   if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
   return withGuidedConfiguration(ctx, { operation: "Prepare template and create sandbox", provider: provider.id, yes: Boolean(params["yes"]),
     requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
-  const fmt = getFormatter(ctx), out = getOutput(ctx);
   let directory = initialDirectory;
   let catalogManifest: Record<string, unknown> | undefined;
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
-    const token = await resolveGithubToken(null);
-    directory = await _withGithubRateLimitRetry(async (active) => {
-      const registry = new RegistryClient("https://github.com", active);
-      let ref = await registry.resolve(source);
-      if (ref.is_builtin) {
-        const entry = await _resolveIndexEntry(source, {token: active, fmt, out});
-        if (entry.manifest) { catalogManifest = entry.manifest; return initialDirectory; }
-        ref = await registry.resolve(entry.install_ref);
-      }
-      return registry.fetch(ref);
-    }, { token, fmt, out });
+    const acquired = await acquireTemplateSource(ctx, source, { allowManaged: true });
+    directory = acquired.directory ?? initialDirectory;
+    catalogManifest = acquired.manifest;
   }
-  const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest, creationOptions.envs ?? {});
+  const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest);
   directory = project.directory;
   const { template, options, plan, input, sourceMetadata, manifestDigest } = project;
-  const environment = Object.freeze(resolveTemplateEnvironment(template.env, creationOptions.envs ?? {}));
-  const applicationToken = environment["ABX_SERVER_TOKEN"] || process.env["ABX_SERVER_TOKEN"];
+  return withTemplateEnvironment(ctx, template.env, creationOptions.envs ?? {}, Boolean(params["yes"]), async environment => {
+  const token = environment["ABX_SERVER_TOKEN"] || applicationToken();
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
   provider.validateConfig(config);
@@ -154,6 +142,7 @@ export async function executeTemplateLaunch(
       const reference = sourceMetadata[input === "image" ? "image" : "template_id"];
       if (typeof reference !== "string" || !reference) throw new ProviderConfigError("Template needs its fixed image or template_id reference.");
       if (input === "image" && !/@sha256:[a-f0-9]{64}$/.test(reference)) throw new ProviderConfigError("Template image requires an immutable image digest.");
+      if (!params["yes"]) await confirm("Create a billable sandbox from this template?", { abort: true, err: true });
       prepared = { reference, status: "ready" };
     } else {
     const extension = providerCliExtension(provider.id);
@@ -236,7 +225,7 @@ export async function executeTemplateLaunch(
     }
     const services: Record<string, unknown> = {};
     for (const [id, service] of Object.entries(plan.services)) {
-      const serviceOptions = {server_port: service.port, application_token: applicationToken};
+      const serviceOptions = {server_port: service.port, application_token: token};
       if (service.protocol === "agent-sandbox-server" && service.version === 2) {
         await sandbox.verifyApplicationOperation("health", serviceOptions);
         if (service.operations.includes("commands.list")) await sandbox.listCommands(serviceOptions);
@@ -259,9 +248,21 @@ export async function executeTemplateLaunch(
     throw new ProviderConfigError(`Template startup failed; owned sandbox ${sandbox.id} cleanup ${cleaned ? "completed" : "could not be confirmed"}; recovery journal ${journal.id}.`);
   } finally { await sandbox.close(); }
   });
+  });
 }
 
 /** Template-command presentation stays separate from the shared launch lifecycle. */
 export async function launchTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
-  getFormatter(ctx).printData((await executeTemplateLaunch(ctx, params)).receipt);
+  if (!params["template_ref"]) {
+    if (params["yes"]) throw new UsageError("Supply a template name with --yes. Run 'abx template launch' without --yes in a terminal to browse templates.");
+    const { chooseTemplate } = await import("./setup.js");
+    params = { ...params, template_ref: await chooseTemplate(ctx) };
+  }
+  const result = await executeTemplateLaunch(ctx, params);
+  const fmt = getFormatter(ctx);
+  fmt.printData(result.receipt);
+  if (!fmt.use_json) {
+    const id = String(result.receipt["sandbox_id"]);
+    getOutput(ctx).info(`Sandbox ready. List application commands: abx sandbox command list ${id}\nCall a command: abx run ${id} COMMAND\nDelete this sandbox when finished: abx kill ${id}`);
+  }
 }

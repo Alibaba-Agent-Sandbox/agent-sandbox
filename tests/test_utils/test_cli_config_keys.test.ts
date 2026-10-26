@@ -14,7 +14,7 @@ const CONTRACT = JSON.parse(
 
 describe("CLI-only config keys", () => {
   it("test_cli_keys_are_the_template_build_and_generation_keys", () => {
-    expect(CLI_CORE_KEYS.map((k) => k.key)).toEqual(["llm_api_key", "llm_base_url", "llm_model"]);
+    expect(CLI_CORE_KEYS.map((k) => k.key)).toEqual(["server_token", "llm_api_key", "llm_base_url", "llm_model"]);
     expect(CLI_BUILTIN_KEYS.map((k) => k.key)).toEqual([
       "acr_namespace", "acr_registry", "acr_repo", "acr_username", "acr_password", "acr_instance_id", "acr_vpc_id",
       "acr_vswitch_ids", "acr_security_group_id", "team_id",

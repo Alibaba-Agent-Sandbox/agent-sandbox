@@ -54,7 +54,7 @@ import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
 import { ValueError } from "../../models/value_error.js";
 import type { BuildMode } from "../../template/build_plan.js";
-import { resolveTemplateEnvironment } from "../../template/environment.js";
+import { withTemplateEnvironment, applicationToken } from "../template_environment.js";
 import { executeTemplateLaunch, type TemplateLaunchResult } from "../template_launch.js";
 import { files } from "./sandbox_files.js";
 import { process as process_ } from "./sandbox_process.js";
@@ -1019,7 +1019,8 @@ export async function _generateAndLaunchTemplate(
   const extension = providerCliExtension();
   if (!extension?.prepareProject) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
   // Generated applications always require this runtime credential; fail before model work.
-  resolveTemplateEnvironment({ ABX_SERVER_TOKEN: "" }, opts.creationOptions?.envs ?? {});
+  return withTemplateEnvironment(ctx, { ABX_SERVER_TOKEN: "" }, opts.creationOptions?.envs ?? {}, opts.yes, async environment => {
+  opts = { ...opts, creationOptions: { ...opts.creationOptions, envs: { ...environment } } };
   const selected = providerView().effective;
   return withGuidedConfiguration(ctx, { operation: "Generate and launch sandbox", provider: selected, yes: Boolean(ctx.params["yes"]),
     requirements: selected === "alicloud-express" ? ["access_key_id", "access_key_secret"] : undefined,
@@ -1036,6 +1037,7 @@ export async function _generateAndLaunchTemplate(
       template_ref: gen.workdir, yes: opts.yes, timeout: 600,
       sandbox_timeout: opts.provider_options?.["cmd_timeout"] ?? 300,
     }, opts.creationOptions);
+  });
   });
 }
 
@@ -1837,7 +1839,7 @@ export const run_cmd = command("run", {
     const sandbox = await Sandbox.connect(sandboxId);
     let result: CommandResult;
     try {
-      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: process.env["ABX_SERVER_TOKEN"] });
+      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: applicationToken() });
     } catch (exc) {
       if (exc instanceof CommandNotFoundError) {
         fmt.printError(exc.message, { code: exc.code, suggestion: exc.suggestion });
@@ -1867,7 +1869,7 @@ export const command_list = command("list", {
     const sandboxId: string = params["sandbox_id"];
     const fmt = getFormatter(ctx);
     const sandbox = await Sandbox.connect(sandboxId);
-    const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: process.env["ABX_SERVER_TOKEN"] });
+    const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: applicationToken() });
 
     if (fmt.use_json) {
       fmt.printData(commands);

@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import { parseTomlBytes } from "./toml_plain.js";
 import { parseStream } from "./_dotenv.js";
 import { aliasNames, envNames, type ConfigKey } from "./config_keys.js";
-import { coerce, overrideNames, type Sources } from "./config_resolver.js";
+import { validateConfigValue, overrideNames, type Sources } from "./config_resolver.js";
 
 function readExisting(file: string): Buffer | null {
   try {
@@ -55,13 +55,7 @@ export function assertConfigValuesValid(keys: readonly ConfigKey[], sources: Sou
     const explicit = candidates.find(([raw]) => raw !== null && raw !== undefined && String(raw).trim() !== "");
     if (!explicit) continue;
     const [raw, location] = explicit;
-    const converted = coerce(key, raw);
-    let valid = converted !== null;
-    if ((key.type === "float" || key.type === "int") && !Number.isFinite(Number(converted))) valid = false;
-    if (key.type === "url") {
-      try { const url = new URL(String(converted)); valid = valid && (!["sandbox_base_url", "llm_base_url"].includes(key.key) || ["http:", "https:"].includes(url.protocol)); }
-      catch { valid = false; }
-    }
+    const valid = validateConfigValue(key, raw) !== null;
     if (!valid) throw new Error(`Invalid ${key.type} configuration for '${key.key}' from ${location}. Correct that source before continuing; its value is not shown.`);
   }
 }

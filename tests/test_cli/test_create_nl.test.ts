@@ -270,7 +270,7 @@ describe("TestCreateRouting", () => {
     const result = await runner().invoke(cli, ["create", "--prompt", "an integer add API", "--yes", "--detach", "--build", "steps"]);
     expect(result.exit_code).not.toBe(0);
     expect(generate).not.toHaveBeenCalled();
-    expect(result.output).toContain("require ABX_SERVER_TOKEN");
+    expect(result.output).toContain("ABX_SERVER_TOKEN");
     expect(deploy).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
   });

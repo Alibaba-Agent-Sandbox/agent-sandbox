@@ -17,12 +17,11 @@ import { ProviderConfigError } from "../models/provider_errors.js";
 import {
   BUILTIN_PROVIDER_ID,
   CORE_KEYS,
-  GENERIC_ENDPOINT_KEYS,
   envNames,
   getKey,
   type ConfigKey,
 } from "../utils/config_keys.js";
-import { resolveKey, type Resolved, type Sources } from "../utils/config_resolver.js";
+import { resolveKey, resolveConfiguration, type Resolved, type Sources } from "../utils/config_resolver.js";
 import { dotenvValues } from "../utils/_dotenv.js";
 import { PyFloat, pyStrip } from "../utils/_pyformat.js";
 import { parseTomlBytes } from "../utils/toml_plain.js";
@@ -280,64 +279,10 @@ function normaliseOverrides(overrides: Record<string, unknown>): Record<string, 
   return rest;
 }
 
-function pyFormatTemplate(template: string, fields: Record<string, string>): string | null {
-  let missing = false;
-  const out = template.replace(/\{(\w+)\}/g, (_m, name: string) => {
-    if (!(name in fields)) {
-      missing = true;
-      return "";
-    }
-    return fields[name] as string;
-  });
-  return missing ? null : out;
-}
-
-function applyDerive(sources: Sources, schema: ProviderSchema, out: Map<string, Resolved>): void {
-  const baseKey = getKey("sandbox_base_url");
-  if (!baseKey) throw new Error("config registry has no 'sandbox_base_url' key");
-  if (schema.inherit.has("sandbox_base_url")) {
-    const explicit = resolveKey(
-      baseKey,
-      { overrides: sources.overrides ?? {}, environ: sources.environ ?? {} },
-      { scopedFor: schema.provider_id, useDefault: false },
-    );
-    if (explicit !== null) return;
-  }
-  for (const [keyName, template] of Object.entries(schema.derive)) {
-    const current = out.get(keyName);
-    if (current !== undefined && current.layer !== "default") continue;
-    const fields: Record<string, string> = {};
-    for (const [k, v] of out) if (v.layer !== "default") fields[k] = String(v.value);
-    const value = pyFormatTemplate(template, fields);
-    if (value === null) continue;
-    out.set(keyName, { key: keyName, value, layer: "derived", name: "", layer_index: 0 });
-  }
-}
-
-/**
- * Resolve every key applicable to the selected provider. Keys that have neither a value nor a default are absent.
- */
+/** Resolve provider settings through the common pure source resolver. */
 export function resolveAll(sources: Sources, schemaIn?: ProviderSchema): { schema: ProviderSchema; resolved: Map<string, Resolved> } {
   const schema = schemaIn ?? providerSchema(selectProviderId(sources));
-  const out = new Map<string, Resolved>();
-  const pid = schema.provider_id;
-  for (const key of CORE_KEYS) {
-    if (key.key === "provider") continue;
-    const generic = GENERIC_ENDPOINT_KEYS.includes(key.key);
-    if (generic && !schema.inherit.has(key.key)) continue;
-    let res = resolveKey(key, sources, { scopedFor: generic ? pid : null, useDefault: !generic });
-    if (res === null && key.key in schema.endpoint_defaults) {
-      res = { key: key.key, value: schema.endpoint_defaults[key.key], layer: "default", name: "", layer_index: 0 };
-    }
-    if (res !== null) out.set(key.key, res);
-  }
-  for (const key of schema.keys) {
-    const res = resolveKey(key, sources);
-    if (res !== null) out.set(key.key, res);
-    else out.delete(key.key); // An absent Provider-owned field cannot borrow a same-named core default.
-  }
-  if (Object.keys(schema.derive).length > 0) applyDerive(sources, schema, out);
-  return { schema, resolved: out };
+  return { schema, resolved: resolveConfiguration(sources, schema) };
 }
 
 const CONFIG_FIELD_NAMES = new Set([

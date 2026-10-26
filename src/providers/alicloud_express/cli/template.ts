@@ -239,27 +239,8 @@ export async function _resolveIndexName(name: string, opts: {
     fmt: Any;
     out: Any;
 }): Promise<string> {
-    const { token, out } = opts;
-    let index = await fetchIndex(null, { token });
-    let entry = index.find(name);
-    if (entry === null && !index.stale) {
-        // The cache may predate a freshly published template - refresh once.
-        index = await fetchIndex(null, { token, force: true });
-        entry = index.find(name);
-    }
-    if (index.notice)
-        out.warning(index.notice);
-    if (entry === null) {
-        throw new TemplateNotFoundError(`Template '${name}' is not a built-in template and was not found in the ` + `template index (${index.source_url}).`, {
-            suggestion: "Run 'abx template search <query>' to browse the index, or install " +
-                "directly from a repository: 'abx template install owner/repo//subdir[@ref]'.",
-        });
-    }
-    if (entry.manifest) {
-        throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
-    }
-    out.info(`Resolved '${name}' via the template index: ${entry.install_ref}`);
-    return entry.install_ref;
+    const { _resolveIndexName: resolveIndexName } = await import("../../../cli/template_catalog.js");
+    return resolveIndexName(name, opts);
 }
 
 /**

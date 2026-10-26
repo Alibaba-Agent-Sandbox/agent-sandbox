@@ -73,6 +73,19 @@ jobs:
           ref: 126a50e3c4e4c6792019b9c96674d35a9518d8ad
           path: vendor/awesome-providers
 
+      - name: Check out the shared authentication test contract
+        uses: actions/checkout@v4
+        with:
+          repository: Alibaba-Agent-Sandbox/python-sdk
+          ref: 98642ae6712a5017e187cae7952a2b3c819c1ece
+          path: vendor/auth-contract
+          sparse-checkout: contracts/testing/application-auth-vectors.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Verify shared authentication test fixture
+        run: cmp tests/fixtures/application-auth-vectors.json vendor/auth-contract/contracts/testing/application-auth-vectors.json
+
       - name: Typecheck
         run: npm run typecheck
 

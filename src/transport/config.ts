@@ -26,6 +26,7 @@ import { loadBytes } from "../utils/_tomllib.js";
 import { dotenvValues } from "../utils/_dotenv.js";
 import { ValueError } from "../models/value_error.js";
 import { getLogger } from "../utils/logging.js";
+import { resolveConfiguration } from "../utils/config_resolver.js";
 
 const logger = getLogger("transport.config");
 
@@ -154,33 +155,6 @@ function pyTypeName(v: unknown): string {
   const tp = (v as { __pytype__?: string }).__pytype__;
   if (tp) return tp;
   return "dict";
-}
-
-/** Python `dict.update(value)` for a TOML value: mapping, or an iterable of key/value pairs (errors match CPython). */
-function _dictUpdate(target: Record<string, unknown>, value: unknown): void {
-  if (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof PyFloat) && !(value as { __pytype__?: string }).__pytype__) {
-    Object.assign(target, value);
-    return;
-  }
-  if (typeof value === "string" || Array.isArray(value)) {
-    const items: unknown[] = typeof value === "string" ? [...value] : value;
-    items.forEach((item, i) => {
-      let seq: unknown[] | null = null;
-      if (typeof item === "string") seq = [...item];
-      else if (Array.isArray(item)) seq = item;
-      else if (item !== null && typeof item === "object" && !(item instanceof PyFloat) && !(item as { __pytype__?: string }).__pytype__) seq = Object.keys(item);
-      if (seq === null) {
-        throw new TypeError(`cannot convert dictionary update sequence element #${i} to a sequence`);
-      }
-      if (seq.length !== 2) {
-        throw new ValueError(`dictionary update sequence element #${i} has length ${seq.length}; 2 is required`);
-      }
-      Object.defineProperty(target, String(seq[0]), { value: seq[1], enumerable: true, writable: true, configurable: true });
-    });
-    return;
-  }
-  const tp = (value as { __pytype__?: string } | null)?.__pytype__;
-  throw new TypeError(`'${tp ? `datetime.${tp}` : pyTypeName(value)}' object is not iterable`);
 }
 
 function _tableToObject(v: unknown): unknown {
@@ -362,64 +336,33 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
     return _cached_config;
   }
 
-  // Layer 4 (lowest): config.toml
+  // TransportConfig is the compatibility projection of the common resolver.
+  // Keep this loader's injectable paths and public transport option names.
+  const names: Record<string, string> = { api_key: "sandbox_api_key", api_url: "sandbox_base_url", domain: "sandbox_domain" };
+  const sourceOverrides: Record<string, unknown> = { provider: defaultConfig.id };
+  const explicit: Record<string, unknown> = {};
+  for (const [key, raw] of Object.entries(overrides)) {
+    if (raw === null || raw === undefined || typeof raw === "string" && !pyStrip(raw)) continue;
+    const value = typeof raw === "string" ? pyStrip(raw) : raw;
+    sourceOverrides[names[key] ?? key] = value;
+    explicit[key] = value;
+  }
+  const environ: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) if (value !== undefined) environ[key] = value;
+  const resolved = resolveConfiguration({
+    overrides: sourceOverrides, environ, dotenv: [_loadDotenvFile()], toml: _loadTomlFile(_CONFIG_FILE),
+  }, { provider_id: defaultConfig.id, keys: defaultConfig.keys, inherit: defaultConfig.inherit,
+    derive: defaultConfig.derive, endpoint_defaults: defaultConfig.endpointDefaults });
   const merged: Record<string, unknown> = {};
-  const toml_data = _loadTomlFile(_CONFIG_FILE);
-  if ("transport" in toml_data) {
-    const current = { ...(toml_data["transport"] as Record<string, unknown>) };
-    for (const removed of ["api_key", "api_url", "domain"]) delete current[removed];
-    _dictUpdate(merged, current);
-  }
-  // Map public configuration names to internal transport fields.
-  for (const [canonical, transportKey] of [["sandbox_base_url", "api_url"], ["sandbox_domain", "domain"]] as const) {
-    if (canonical in merged) {
-      if (!(transportKey in merged)) merged[transportKey] = merged[canonical];
-      delete merged[canonical];
+  for (const key of ["sandbox_api_key", "sandbox_base_url", "sandbox_domain", "region", "access_key_id", "access_key_secret", "http_timeout", "http2", "max_connections", "max_keepalive_connections", "keepalive_expiry", "ws_ping_interval"]) {
+    const value = resolved.get(key)?.value;
+    if (value !== undefined && value !== null) {
+      const field = Object.entries(names).find(([, canonical]) => canonical === key)?.[0] ?? key;
+      merged[field] = value;
     }
   }
-  const providerTables = toml_data["providers"];
-  if (providerTables && typeof providerTables === "object") {
-    const builtinTable = (providerTables as Record<string, unknown>)[defaultConfig.id];
-    if (builtinTable && typeof builtinTable === "object" && "region" in builtinTable) {
-      const region = (builtinTable as Record<string, unknown>)["region"];
-      if (typeof region === "string" && pyStrip(region)) merged["region"] = region;
-    }
-  }
-
-  // Layer 3: .env file
-  const dotenv_vals = _loadDotenvFile();
-  Object.assign(merged, _envDictToFields(dotenv_vals));
-
-  // Layer 2: environment variables
-  Object.assign(merged, _readEnvVars());
-
-  // Layer 1 (highest): code-level overrides. Blank strings are unset.
-  const applied_overrides: Record<string, unknown> = {};
-  for (const [key, rawValue] of Object.entries(overrides)) {
-    let value = rawValue;
-    if (value === null || value === undefined) continue;
-    if (typeof value === "string") {
-      value = pyStrip(value);
-      if (!value) continue;
-    }
-    applied_overrides[key] = value;
-  }
-  Object.assign(merged, applied_overrides);
-
-  const _envPresent = (name: string): boolean => {
-    const raw = process.env[name];
-    return Boolean(raw && pyStrip(raw));
-  };
-
-  // Auto-derive api_url and domain from region when not explicitly set
-  const _explicit_url =
-    "api_url" in applied_overrides ||
-    "api_base_url" in applied_overrides ||
-    _envPresent("ABX_SANDBOX_BASE_URL");
-  if (!_explicit_url && "region" in merged) {
-    if (!("api_url" in merged)) merged["api_url"] = defaultConfig.derive.sandbox_base_url.replace("{region}", pyStr(merged["region"]));
-    if (!("domain" in merged)) merged["domain"] = defaultConfig.derive.sandbox_domain.replace("{region}", pyStr(merged["region"]));
-  }
+  // Explicit transport options retain model validation rather than falling back on invalid input.
+  Object.assign(merged, explicit);
 
   const config = new TransportConfig(merged);
 

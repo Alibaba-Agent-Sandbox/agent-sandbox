@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Continue CLI initialization through catalog selection and template creation; share runtime credential prompts, saved application authentication, field validation and template source acquisition. Transport configuration now projects the common pure resolver; the installer and template readers share PAX decoding. Python SDK configuration remains noninteractive.
+- 初始化后可直接查找并启动模板；统一应用凭证补配、配置解析和字段校验，Python SDK 保持非交互配置。
+
 - Bind MCP resource verification and rollback to the exact newly created handle and resolved provider/endpoint; report cleanup only after same-context readback, with a recovery handle for uncertain outcomes.
 - 规格核验与回滚绑定本次新建实例及实际提供方／端点；同一上下文独立回读后才确认清理，不确定时返回恢复句柄。
 

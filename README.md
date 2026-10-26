@@ -118,7 +118,7 @@ No Node.js? Copy `SKILL.md` into your tool's skills directory (for example `~/.q
 
 ```bash
 # Configure credentials
-abx config init                          # credentials + region (--build / --llm add sections)
+abx config init                          # guided configuration → find a template → create
 abx config set sandbox_api_key <YOUR_API_KEY>   # or set one key directly
 
 # Sandbox lifecycle

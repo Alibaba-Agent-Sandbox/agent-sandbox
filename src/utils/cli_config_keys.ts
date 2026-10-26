@@ -37,6 +37,7 @@ function core(
 
 /** Core-scoped CLI keys: the template-generation LLM profile. */
 export const CLI_CORE_KEYS: readonly ConfigKey[] = [
+  core("server_token", { env: "ABX_SERVER_TOKEN", group: "Application authentication", secret: true, description: "Access token for template applications" }),
   core("llm_api_key", { env: "ABX_LLM_API_KEY", group: GROUP_LLM, secret: true, description: "LLM API key for template generation" }),
   core("llm_base_url", {
     env: "ABX_LLM_BASE_URL",
