@@ -12,6 +12,7 @@ import { DockerSetupError, ProjectToolError, stageProject } from "../providers/s
 import { ResourceJournal } from "../template/resource_journal.js";
 import { withTemplateEnvironment, applicationToken } from "./template_environment.js";
 import { pyExpandUser } from "../utils/_pyos.js";
+import { quoteShellLiteral as quote } from "../utils/shell.js";
 import type { Provider } from "../providers/base.js";
 import { loadYaml, isMapping } from "../utils/yaml_io.js";
 import path from "node:path";
@@ -206,7 +207,6 @@ export async function executeTemplateLaunch(
   }
   try {
     await creationOptions.afterCreate?.(sandbox);
-    const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
     const startCommand = prepared.startup_command ?? options.template.start_cmd;
     const readyCommand = prepared.ready_command ?? options.template.ready_cmd;
     if (startCommand) {

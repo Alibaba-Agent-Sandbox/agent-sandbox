@@ -196,6 +196,25 @@ Python 移植台账继续作为保留的原生项目扩展的回归基线。极�
 
 原生移植规则保留模块归属、camelCase 函数与 snake_case 线上／JSON 字段。输出通道和退出码属于各自前端的契约。除原生辅助测试外，还须验证实际可执行入口；仅通过 parity coverage 不能证明标准命令行为。
 
+## 复用现有基础方法
+
+给命令或 Agent 工具新增辅助函数前，先检查已有归属模块：
+
+| 需求 | 现有归属 |
+| --- | --- |
+| 解析配置、校验字段和认证条件 | `utils/config_resolver.ts` |
+| 交互补齐 CLI 配置并继续当前操作 | `cli/config_guidance.ts` |
+| 解析和补齐模板运行环境 | `cli/template_environment.ts` |
+| 获取本地、目录或代码仓库中的模板源码 | `cli/template_catalog.ts` 的 `acquireTemplateSource` |
+| 将字面量渲染成始终带引号的 POSIX shell 参数 | `utils/shell.ts` 的 `quoteShellLiteral` |
+| 格式化 Python 兼容浮点数 | `utils/_pyformat.ts` 的 `pyFloatRepr` |
+| 构造 MCP JSON-RPC 响应和错误 | `agent/mcp.ts` 的 `_jsonrpcResponse`、`_jsonrpcError` |
+
+命令和 Agent 工具直接导入归属模块；兼容导出可以转发到同一实现。
+保持现有 shell 命令文本：`api/_shlex.ts` 单独遵循已测试的 CPython
+`shlex.quote` 格式。输入、输出和失败语义一致时才共享基础方法。
+Provider 准入、进程归属和解包策略继续由各自模块负责。CLI 交互不进入 SDK 配置。
+
 ## 相关 SDK 文档
 
 Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记录在 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)中：

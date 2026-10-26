@@ -227,6 +227,26 @@ The Python porting ledger remains the regression baseline for retained native pr
 
 Native porting rules keep module ownership, camelCase functions and snake_case wire/JSON fields. Output channels and exit codes belong to the relevant frontend's contract. Verify the shipped executable in addition to native helper tests; parity coverage alone does not prove standard command behavior.
 
+## Reuse existing primitives
+
+Before adding a helper to a command or agent tool, check the owning module:
+
+| Requirement | Existing owner |
+| --- | --- |
+| Resolve configuration and validate field/authentication requirements | `utils/config_resolver.ts` |
+| Prompt for missing CLI configuration and resume the operation | `cli/config_guidance.ts` |
+| Resolve and prompt for template runtime environment | `cli/template_environment.ts` |
+| Acquire local, catalog or repository template source | `cli/template_catalog.ts` (`acquireTemplateSource`) |
+| Render an always-quoted POSIX shell literal | `utils/shell.ts` (`quoteShellLiteral`) |
+| Format a Python-compatible float | `utils/_pyformat.ts` (`pyFloatRepr`) |
+| Construct MCP JSON-RPC responses and errors | `agent/mcp.ts` (`_jsonrpcResponse`, `_jsonrpcError`) |
+
+Commands and agent tools import these owners; compatibility exports may forward to them.
+Preserve existing shell command text: `api/_shlex.ts` implements the separately tested
+CPython `shlex.quote` format. Share a primitive only when input, output and failure
+semantics match. Provider admission, process ownership and archive extraction policies
+stay with their owners. CLI prompts remain outside SDK configuration.
+
 ## Related SDK documentation
 
 The Python SDK, the in-sandbox server runtime and the shared `template.yaml` contract are documented in the

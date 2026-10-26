@@ -118,6 +118,23 @@ try {
   check('MCP real file roundtrip', !write.error && !read.error && read.payload.content === 'lifecycle roundtrip\n');
   const run = await owner.tool('run_command', { command: 'printf 42', timeout: 30 });
   check('MCP real command execution', !run.error && run.payload.exit_code === 0 && run.payload.stdout.trim() === '42');
+  const taskCwd = "/tmp/mcp task's workspace";
+  const directory = await owner.tool('run_command', { command: `mkdir -p "${taskCwd}"`, timeout: 30 });
+  check('quoted task working directory is created', !directory.error && directory.payload.exit_code === 0);
+  const task = await owner.tool('start_task', {
+    sandbox_id: owned, cwd: taskCwd, command: `printf '%s\\n' "task's quoted text"; pwd`,
+  });
+  check('durable task accepts quoted command and cwd', !task.error && typeof task.payload.task_id === 'string');
+  let taskResult;
+  // Poll the original task only; never replay its submission.
+  for (let n = 0; n < 20; n++) {
+    taskResult = await owner.tool('get_task', { sandbox_id: owned, task_id: task.payload.task_id });
+    if (taskResult.error || ['succeeded', 'failed', 'cancelled'].includes(taskResult.payload.state)) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  check('durable task preserves literal command and working directory', !taskResult.error &&
+    taskResult.payload.state === 'succeeded' && taskResult.payload.exit_code === 0 &&
+    taskResult.payload.stdout === `task's quoted text\n${taskCwd}\n`);
   const killed = await owner.tool('kill_sandbox');
   destroyed = !killed.error && killed.payload.success;
   check('owned sandbox destruction', destroyed);

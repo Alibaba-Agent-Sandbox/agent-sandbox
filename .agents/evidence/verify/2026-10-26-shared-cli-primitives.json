@@ -1,0 +1,108 @@
+{
+  "base_revision": "6bf637fcbbc2daa3717477e127ace68b0931a347",
+  "files": {
+    "src/agent/tasks.ts": "85e14f71cadc86c35495ca47ce13c8a4bb713c034007ec240e2738246bfc85fe",
+    "src/agent/codegen.ts": "0513f8a6c59b358b12e2a535fb0c2a82e1448c364a0b1339ceaf52ded48c09c9",
+    "src/cli/template_launch.ts": "e0e8c7cb1b840b6606a63a664a7aad1b139f5117a92864b164f631a6d52e2e1f",
+    "src/agent/mcp_http.ts": "e361a954548d5f9a2fe7e425116a11e4cc728064ff5f6d44b5548b741d875c6f",
+    "src/utils/_py.ts": "e17007b50e6086f917f1d7da0e1f724c55b4cecf66bd8f5cc8200abfe2aa27c8",
+    "src/utils/shell.ts": "21ebaf2d7d685ed3111e27979b722fd108aa77a7a3f31421aaf8db783d396ed5",
+    "tests/test_utils/test_shell.test.ts": "431dd38e7081bbf48aee659082ecceda48cf198dcd95ea75ba50c80df060eb78",
+    "e2e/mcp-lifecycle.mjs": "ce7707c7d529f39458d5ada752ea3ded9a973ef7f3b27e073e518d25d415dd61"
+  },
+  "unit_tests": {
+    "passed": 4562,
+    "skipped": 2
+  },
+  "parity": {
+    "passed": 907,
+    "failed_or_skipped": 0,
+    "moved_tests_verified": 11
+  },
+  "targeted_tests": {
+    "passed": 121
+  },
+  "real_cloud_mcp": {
+    "provider": "configured cloud",
+    "transport": "real CLI STDIO JSON-RPC",
+    "checks": [
+      {
+        "name": "STDIO advertises all lifecycle tools",
+        "ok": true
+      },
+      {
+        "name": "get without default returns tool error",
+        "ok": true
+      },
+      {
+        "name": "unsupported account selector returns tool error",
+        "ok": true
+      },
+      {
+        "name": "real create with matching template CPU and memory",
+        "ok": true
+      },
+      {
+        "name": "default refresh returns only safe metadata",
+        "ok": true
+      },
+      {
+        "name": "independent metadata matches expected template resources",
+        "ok": true
+      },
+      {
+        "name": "eventually consistent list contains owned sandbox",
+        "ok": true
+      },
+      {
+        "name": "external ID refresh over STDIO",
+        "ok": true
+      },
+      {
+        "name": "external ID TTL update over STDIO",
+        "ok": true
+      },
+      {
+        "name": "observer EOF preserves external sandbox",
+        "ok": true
+      },
+      {
+        "name": "default TTL update over STDIO",
+        "ok": true
+      },
+      {
+        "name": "MCP real file roundtrip",
+        "ok": true
+      },
+      {
+        "name": "MCP real command execution",
+        "ok": true
+      },
+      {
+        "name": "quoted task working directory is created",
+        "ok": true
+      },
+      {
+        "name": "durable task accepts quoted command and cwd",
+        "ok": true
+      },
+      {
+        "name": "durable task preserves literal command and working directory",
+        "ok": true
+      },
+      {
+        "name": "owned sandbox destruction",
+        "ok": true
+      },
+      {
+        "name": "finally cleanup and readonly absence check",
+        "ok": true
+      }
+    ],
+    "passed": true
+  },
+  "lint": {
+    "errors": 0,
+    "existing_warnings": 275
+  }
+}

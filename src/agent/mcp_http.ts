@@ -37,9 +37,10 @@ import {
   pyJsonDumps,
   pyJsonLoadsBytes,
   pyStrip,
-  type JsonObject,
 } from "./_py.js";
-import { SandboxMCPServer } from "./mcp.js";
+import { SandboxMCPServer, _jsonrpcResponse, _jsonrpcError } from "./mcp.js";
+
+export { _jsonrpcResponse, _jsonrpcError };
 
 const logger = getLogger("agent.mcp_http");
 
@@ -85,27 +86,6 @@ export const time = {
     return Number(process.hrtime.bigint()) / 1e9;
   },
 };
-
-// ---------------------------------------------------------------------------
-// JSON-RPC 2.0 helpers (shared format with agent/mcp.ts)
-// ---------------------------------------------------------------------------
-
-/** Build a JSON-RPC 2.0 success response. */
-export function _jsonrpcResponse(id: unknown, result: unknown): JsonObject {
-  return { jsonrpc: "2.0", id, result };
-}
-
-/** Build a JSON-RPC 2.0 error response. */
-export function _jsonrpcError(
-  id: unknown,
-  code: number,
-  message: string,
-  data: unknown = null,
-): JsonObject {
-  const err: JsonObject = { code, message };
-  if (data !== null && data !== undefined) err.data = data;
-  return { jsonrpc: "2.0", id, error: err };
-}
 
 // ---------------------------------------------------------------------------
 // Session store — in-process session → SandboxMCPServer mapping
