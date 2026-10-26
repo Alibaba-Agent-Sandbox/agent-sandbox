@@ -1,0 +1,69 @@
+{
+  "api": "2026-08-20",
+  "team_id": "owned-team_id-294152d192f9",
+  "template_id": "owned-template_id-b857bd24869e",
+  "checks": [
+    {
+      "name": "independent-existing-cache-absent",
+      "passed": true
+    },
+    {
+      "name": "cli-get-absent-not-found",
+      "passed": true
+    },
+    {
+      "name": "cli-cache-create",
+      "passed": true,
+      "returned_status": "creating"
+    },
+    {
+      "name": "cli-observed-cache-ready",
+      "passed": true
+    },
+    {
+      "name": "cli-cache-list-match",
+      "passed": true,
+      "next_token": null
+    },
+    {
+      "name": "cli-cache-delete",
+      "passed": true
+    },
+    {
+      "name": "independent-cache-get404",
+      "passed": true
+    },
+    {
+      "name": "independent-cache-inventory-absent",
+      "passed": true
+    },
+    {
+      "name": "cli-cache-delete-already-absent",
+      "passed": true
+    }
+  ],
+  "observations": [
+    {
+      "status": "creating",
+      "progress": 0,
+      "image_size_mb": 584
+    },
+    {
+      "status": "creating",
+      "progress": 0,
+      "image_size_mb": 584
+    },
+    {
+      "status": "creating",
+      "progress": 0,
+      "image_size_mb": 584
+    },
+    {
+      "status": "ready",
+      "progress": 100,
+      "image_size_mb": 584
+    }
+  ],
+  "scope": "Actual CLI Provider command cache CRUD, no latency/cost SLA or WarmPool claim",
+  "passed": true
+}

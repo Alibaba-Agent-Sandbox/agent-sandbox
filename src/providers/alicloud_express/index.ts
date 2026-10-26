@@ -30,6 +30,7 @@ import { Provider, type ConfigField, type ProviderInfra, type TerminalContext } 
 import type { ProviderCommandRunner } from "../command_contract.js";
 import { ALICLOUD_COMMANDS, runAlicloudCommand } from "./commands.js";
 import { CONDITIONAL_COMMANDS, buildConditionalCommandRunner, isConditionalCommand } from "./conditional_commands.js";
+import { TEMPLATE_CACHE_COMMANDS, isTemplateCacheCommand, runTemplateCacheCommand } from "./template_cache_commands.js";
 
 function fields(): ConfigField[] {
   return ALICLOUD_EXPRESS_KEYS.map((k) => ({
@@ -63,7 +64,7 @@ export class AlicloudExpressProvider extends Provider {
     this.operations = workflowOperations.operations;
     this.workflow_inputs = workflowOperations.workflow_inputs;
     this.startup_modes = workflowOperations.startup_modes;
-    this.commands = [...ALICLOUD_COMMANDS, ...CONDITIONAL_COMMANDS];
+    this.commands = [...ALICLOUD_COMMANDS, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS];
     // Snapshot create may take300 seconds; this is an outer deadline, not the sandbox TTL.
     this.commandTimeoutMs = 360_000;
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
@@ -104,6 +105,7 @@ export class AlicloudExpressProvider extends Provider {
     let conditional: ProviderCommandRunner | undefined;
     return {
       run: (command, input, signal) => {
+        if (isTemplateCacheCommand(command)) return runTemplateCacheCommand(config, command, input, signal);
         if (!isConditionalCommand(command)) return runAlicloudCommand(config, command, input);
         conditional ??= buildConditionalCommandRunner(config);
         return conditional.run(command, input, signal);

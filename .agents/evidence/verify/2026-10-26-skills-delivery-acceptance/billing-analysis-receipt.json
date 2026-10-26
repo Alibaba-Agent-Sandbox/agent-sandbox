@@ -1,0 +1,21 @@
+{
+  "result": "PARTIAL",
+  "api": "QueryInstanceBill",
+  "product_code": "fc",
+  "billing_cycle": "2026-10",
+  "pages": 24,
+  "all_rows_read": 2311,
+  "total_count": 2311,
+  "sandbox_count": 2276,
+  "sandbox_bill_rows": 2276,
+  "non_sandbox_rows_excluded": 35,
+  "sandbox_rows_with_tags": 0,
+  "monetary_fields_validated": true,
+  "private_report_written": true,
+  "public_raw_bills_or_amounts": false,
+  "blocked": [
+    "historic Team/Template mapping absent",
+    "actual workload utilization and native WarmPool inventory unavailable",
+    "savings cannot be verified without workload and attribution baseline"
+  ]
+}

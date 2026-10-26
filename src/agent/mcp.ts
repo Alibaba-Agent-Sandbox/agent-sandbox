@@ -193,8 +193,9 @@ export class SandboxManager {
   /** Create a sandbox and make it the session default. */
   async createSandbox(options: CreateSandboxOptions = {}): Promise<SandboxInstance> {
     const { template = null, timeout = 300, envs = null } = options;
-    const Sandbox = await sdk.loadSandbox();
     const epoch = this._epoch;
+    const Sandbox = await sdk.loadSandbox();
+    if (epoch !== this._epoch) throw new CancelledError();
 
     const kwargs = this._connectKwargs({
       template: template || this._default_template,
@@ -205,21 +206,23 @@ export class SandboxManager {
     if (options.memory !== undefined) kwargs.memory = options.memory;
     if (options.region !== undefined) kwargs.provider_options = { region: options.region };
     const sandbox = await Sandbox.create(kwargs);
-    if (epoch !== this._epoch) {
-      // The session was shut down while this create was in flight. Python
-      // cancels the pending call; here the sandbox exists already, so remove it.
+    const registered = await this._state_lock.runExclusive(() => {
+      // The epoch check and registration must be atomic with shutdown's snapshot.
+      if (epoch !== this._epoch) return false;
+      this._sandboxes.set(this.reference(sandbox), sandbox);
+      if (options.retain) this.preserved.add(this.reference(sandbox));
+      this._default_sandbox = sandbox;
+      return true;
+    });
+    if (!registered) {
+      // Release the exact newly created handle without adopting or looking up any other ID.
       try {
         await sandbox.kill();
-      } catch (exc) {
+      } catch {
         logger.warning("Failed to kill sandbox created during shutdown");
       }
       throw new CancelledError();
     }
-    await this._state_lock.runExclusive(() => {
-      this._sandboxes.set(this.reference(sandbox), sandbox);
-      if (options.retain) this.preserved.add(this.reference(sandbox));
-      this._default_sandbox = sandbox;
-    });
     logger.info("Created sandbox: %s", sandbox.id);
     return sandbox;
   }
@@ -227,19 +230,27 @@ export class SandboxManager {
   /** Get a sandbox by ID, or create/return the default sandbox. */
   async getSandbox(sandboxId: string | null = null): Promise<SandboxInstance> {
     if (sandboxId) {
+      const epoch = this._epoch;
       const cached = await this._state_lock.runExclusive(() => this._sandboxes.get(sandboxId));
+      if (epoch !== this._epoch) throw new CancelledError();
       if (cached !== undefined && cached !== null) {
         return cached;
       }
       const Sandbox = await sdk.loadSandbox();
-      const epoch = this._epoch;
-      const sb = await Sandbox.connect(this._connectKwargs({ sandbox_id: sandboxId }));
       if (epoch !== this._epoch) throw new CancelledError();
-      await this._state_lock.runExclusive(() => {
+      const sb = await Sandbox.connect(this._connectKwargs({ sandbox_id: sandboxId }));
+      const registered = await this._state_lock.runExclusive(() => {
+        if (epoch !== this._epoch) return false;
         this._sandboxes.set(sandboxId, sb);
         this.borrowed.add(sandboxId);
         this.preserved.add(sandboxId);
+        return true;
       });
+      if (!registered) {
+        try { await sb.close?.(); }
+        catch { logger.warning("Failed to close borrowed sandbox connected during shutdown"); }
+        throw new CancelledError();
+      }
       return sb;
     }
 

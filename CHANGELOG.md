@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Atomically register MCP create/connect results with session shutdown; late owned creations are killed and late borrowed handles are only closed.
+- 修复 MCP 会话关闭与创建／连接登记的竞态：回收迟到的新建实例，仅关闭迟到的借用连接。
+
+- Reject and roll back MCP-created sandboxes whose explicit CPU/memory requirements are not independently verified; preserve recovery identity when cleanup cannot be confirmed.
+- MCP 创建后独立核验显式 CPU／内存要求，不符合时回滚本次沙箱，清理未确认时保留恢复标识。
+- Correct retired interpreter-capability guidance and document actual Skill/interface boundaries.
+
+### Added
+
+- Add explicit-Team Express `template-cache.create/get/list/delete` provider commands using the official 2026-08-20 API, verified with real cache readiness and deletion.
+- 新增显式指定 Team 的极速版 Template Cache 创建、查询、列表和删除操作，实测确认就绪与删除。
+
+- Real-cloud OCI build/rollback/failure, repository/expiring-preview, third-party MCP and bounded parallel-task acceptance with independent resource cleanup.
+- 增加真实云端 OCI 构建、版本回滚、失败诊断、代码检出、过期预览、第三方 MCP 和并行任务验收及资源清理。
+
+
 ### Documentation
 
 - Correct bilingual CLI environment guidance: standard Express terminal-only creation flags, per-process overrides, actual process-environment reads, application binding and entry-specific shell behavior. Documentation only; runtime and version stay unchanged. / 修正双语 CLI 环境指南，明确标准极速版创建参数仅配置终端、单次进程覆盖、进程环境读取、应用绑定和入口对应的 shell 行为；仅改文档，不改运行时和版本。

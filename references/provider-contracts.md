@@ -6,6 +6,15 @@ Use `get_capabilities` and `abx provider info ID` to inspect the selected provid
 
 Keep these statuses separate: implemented, unit-tested, live-tested, unsupported, blocked and not run. Storage mounts, snapshots, deep hibernation, template caches/warm pools, cost data, network/VPC policy, preview expiration, browser takeover/replay and hosted MCP need actual provider-specific APIs and per-provider acceptance. Ordinary files are not persistent volumes; a port URL is not an expiring preview; local MCP HTTP is not an official hosted service. No FC application deployment is included.
 
+For Express startup acceleration, inspect the installed catalog for `template-cache.create/get/list/delete`.
+These actual management operations use AK/SK and an explicit Team/template reference. Use the
+[Template Cache workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/provider-commands.md#express-template-cache)
+when that catalog is present: create once, inspect actual status/progress until ready with a deadline,
+run a business probe, then compare measured timings. Preserve the caller's requested template and
+budget. After an uncertain write, reconcile get/list before retrying; delete only task-owned caches
+and verify independent absence. Cache footprint is not a price or savings estimate, and these
+commands do not configure a WarmPool.
+
 ## Help, execution and update contracts
 
 `abx -h` summarizes the selected Provider; `abx provider -h` and `abx provider run -h` show

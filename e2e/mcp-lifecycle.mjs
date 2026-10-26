@@ -8,11 +8,18 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { loadCredentials } from './lib/env.mjs';
+import { parseSandboxRef } from '../dist/providers/registry.js';
 
 const cli = fileURLToPath(new URL('../dist/bin/abx.js', import.meta.url));
 const checks = [];
 const credentials = loadCredentials();
 const provider = process.env.ABX_PROVIDER || "alicloud-express";
+// These expectations must match the selected template's independently verified resources.
+const expectedCpu = Number(process.env.ABX_E2E_CPU || 2);
+const expectedMemory = Number(process.env.ABX_E2E_MEMORY || 2048);
+if (![expectedCpu, expectedMemory].every((value) => Number.isInteger(value) && value > 0)) {
+  throw new Error('ABX_E2E_CPU and ABX_E2E_MEMORY must be positive integer template resource expectations');
+}
 // Child and finally fallback must use exactly the same authorized configuration.
 Object.assign(process.env, credentials, { SANDBOX_LOG_LEVEL: "CRITICAL" });
 function check(name, ok) {
@@ -71,6 +78,7 @@ function client() {
 const owner = client();
 const observer = client();
 let owned;
+let ownedRaw;
 let destroyed = false;
 try {
   for (const c of [owner, observer]) await c.request('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'lifecycle-e2e', version: '1' } });
@@ -78,24 +86,26 @@ try {
   check('STDIO advertises all lifecycle tools', ['list_sandboxes', 'get_sandbox', 'set_sandbox_timeout'].every((name) => catalog.result.tools.some((t) => t.name === name)));
   check('get without default returns tool error', (await observer.tool('get_sandbox')).error);
   check('unsupported account selector returns tool error', (await observer.tool('create_sandbox', { team: 'unsupported' })).error);
-  const created = await owner.tool('create_sandbox', { timeout: 600, cpu: 2, memory: 1024 });
+  const created = await owner.tool('create_sandbox', { timeout: 600, cpu: expectedCpu, memory: expectedMemory });
   owned = created.payload.sandbox_id;
-  check('real create with CPU and memory', !created.error && typeof owned === 'string' && owned.length > 0);
+  if (typeof owned === 'string') ownedRaw = parseSandboxRef(owned)[1];
+  check('real create with matching template CPU and memory', !created.error && typeof owned === 'string' && owned.length > 0);
   const info = await owner.tool('get_sandbox', { sandbox_id: owned });
   const allowed = ['sandbox_id', 'template', 'status', 'region', 'timeout', 'started_at', 'end_at', 'cpu_count', 'memory_mb'];
-  check('default refresh returns only safe metadata', !info.error && info.payload.sandbox.sandbox_id === owned && Object.keys(info.payload.sandbox).length === allowed.length && Object.keys(info.payload.sandbox).every((k) => allowed.includes(k)));
+  check('default refresh returns only safe metadata', !info.error && info.payload.sandbox.sandbox_id === ownedRaw && Object.keys(info.payload.sandbox).length === allowed.length && Object.keys(info.payload.sandbox).every((k) => allowed.includes(k)));
+  check('independent metadata matches expected template resources', info.payload.sandbox.cpu_count === expectedCpu && info.payload.sandbox.memory_mb === expectedMemory);
   let listed = false;
   // List visibility is the only intentionally retried platform operation.
   for (let n = 0; n < 10; n++) {
     const result = await observer.tool('list_sandboxes', { limit: 100, offset: 0 });
     if (result.error) throw new Error('ListFailure');
-    listed = result.payload.sandboxes.some((s) => s.sandbox_id === owned);
+    listed = result.payload.sandboxes.some((s) => s.sandbox_id === ownedRaw);
     if (listed) break;
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   check('eventually consistent list contains owned sandbox', listed);
   const external = await observer.tool('get_sandbox', { sandbox_id: owned });
-  check('external ID refresh over STDIO', !external.error && external.payload.sandbox.sandbox_id === owned);
+  check('external ID refresh over STDIO', !external.error && external.payload.sandbox.sandbox_id === ownedRaw);
   const renewed = await observer.tool('set_sandbox_timeout', { sandbox_id: owned, timeout: 720 });
   check('external ID TTL update over STDIO', !renewed.error && renewed.payload.accepted);
   await observer.close();
@@ -122,7 +132,7 @@ try {
       const { Sandbox } = await import('../dist/api/sandbox.js');
       if (!destroyed) await Sandbox.killById(owned, { provider });
       const visible = await Sandbox.list({ provider });
-      cleanupPassed = !visible.some((s) => s.sandbox_id === owned);
+      cleanupPassed = !visible.some((s) => s.sandbox_id === ownedRaw);
     } catch { cleanupPassed = false; }
     checks.push({ name: 'finally cleanup and readonly absence check', ok: cleanupPassed });
     console.log(`${cleanupPassed ? 'PASS' : 'FAIL'} finally cleanup and readonly absence check`);

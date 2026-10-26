@@ -73,7 +73,7 @@ The MCP Server provides 21 tools: the seven compatible core tools below, plus th
 | `kill_sandbox` | Destroy a sandbox | `sandbox_id` (optional; destroys the default sandbox when omitted. An error is returned when there is no default) |
 
 >
-> **Default sandbox**: `create_sandbox` makes that sandbox the default, so a later `write_file` / `run_code` / `kill_sandbox` that omits `sandbox_id` uses the sandbox just created. If there is no default yet, the first tool call that omits `sandbox_id` lazily creates one. An omitted `template` uses the server template (`code-interpreter-v1` for `abx mcp start`). Each use extends the sandbox lifetime by the timeout it was created with. Every sandbox in the session is destroyed when the IDE closes the server (STDIO) or on `DELETE /mcp` / idle timeout (HTTP).
+> **Default sandbox**: `create_sandbox` makes that sandbox the default, so a later `write_file` / `run_code` / `kill_sandbox` that omits `sandbox_id` uses the sandbox just created. If there is no default yet, the first tool call that omits `sandbox_id` lazily creates one. An omitted `template` uses the server template (`code-interpreter-v1` for `abx mcp start`). Observation and ordinary use do not renew lifetime; use `set_sandbox_timeout` explicitly. On disconnect, only session-created ephemeral sandboxes are destroyed. Borrowed resources, explicitly retained sandboxes and background-task sandboxes survive until their platform expiry or explicit deletion.
 
 ---
 
@@ -334,3 +334,19 @@ control plane directly and reports acceptance separately from observed timeout.
 Observation and ordinary execution do not silently extend lifetime. Borrowed
 resources survive session shutdown. Lifecycle failures retain safe categories and
 HTTP status without provider credentials, response bodies or stack traces.
+
+
+### Explicit CPU and memory requirements
+
+`create_sandbox` accepts optional `cpu` and `memory` (MB). It independently reads
+created-sandbox metadata before accepting explicit requirements. If either value
+differs or is unknown, the call returns `isError: true`, category
+`resource_configuration`, requested/observed resources and `cleanup_verified`.
+The tool deletes only the sandbox it just created and checks its absence; when
+cleanup is unverified, the returned sandbox ID allows an explicit retry.
+
+Express may ignore per-create resource overrides and use its template's resource
+configuration. Choose or build a template with the requested specification, then
+verify the actual sandbox; do not report an ignored override as applied. A missing
+`timeout` metadata field remains unknown; inspect the independently observed
+`end_at` after an explicit lifetime update.

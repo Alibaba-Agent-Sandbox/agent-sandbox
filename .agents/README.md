@@ -249,3 +249,15 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [CLI 0.5.5 final runtime consumption](evidence/verify/2026-10-25-cli-055-public-a6-consumption.md). Final publication and public developer reruns remain pending.
 
 - [Named-command JSON errors](notes/proposed/feature/2026-10-25-named-command-json-errors.md) · [verification](evidence/verify/2026-10-25-named-command-json-errors.md) · [Issue180](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/180).
+
+- [Verify requested MCP resources](notes/proposed/feature/2026-10-26-mcp-create-resource-verification.md) · [verification](evidence/verify/2026-10-26-cli-live-resource-verification.md).
+
+- [Native Express Template Cache](notes/proposed/feature/2026-10-26-express-template-cache-commands.md) · [verification](evidence/verify/2026-10-26-express-template-cache-commands.md).
+
+- [Atomic MCP shutdown registration](notes/proposed/feature/2026-10-26-mcp-shutdown-registration.md) · [verification](evidence/verify/2026-10-26-mcp-shutdown-registration.md).
+
+- [Real template and tool acceptance](notes/proposed/process/2026-10-26-skill-template-tools-acceptance.md) · [verification](evidence/verify/2026-10-26-skill-template-tools-acceptance.md).
+
+- [Seventeen-scenario Skill acceptance](evidence/verify/2026-10-26-skills-delivery-acceptance.md) (PARTIAL; includes installed-agent, network, cost and cleanup receipts).
+
+- [Requirement-level Skill verification](notes/proposed/process/2026-10-26-skills-delivery-acceptance.md).

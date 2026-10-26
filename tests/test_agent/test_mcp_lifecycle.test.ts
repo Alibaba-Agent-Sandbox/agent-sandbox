@@ -12,7 +12,7 @@ const row = { sandbox_id: "owned", template: "base", status: "running", region: 
 function handle() { return { id: "owned", url: "https://fixture.invalid", status: "running", setTimeout: vi.fn(), kill: vi.fn(), close: vi.fn() }; }
 beforeEach(() => { vi.restoreAllMocks(); for (const f of Object.values(statics)) f.mockReset(); vi.spyOn(sdk, "loadSandbox").mockResolvedValue(statics); });
 it("forwards supported create inputs, rejecting unknown controls before SDK work", async () => {
-  const sandbox = handle(); statics.create.mockResolvedValue(sandbox);
+  const sandbox = handle(); statics.create.mockResolvedValue(sandbox); statics.getInfoById.mockResolvedValue(row);
   const manager = new SandboxManager();
   expect(await dispatchTool("create_sandbox", { template: "base", timeout: 600, cpu: 2, memory: 1024, region: "fixture" }, manager)).toMatchObject({ sandbox_id: "owned" });
   expect(statics.create).toHaveBeenCalledWith(expect.objectContaining({ cpu: 2, memory: 1024, provider_options: { region: "fixture" } }));

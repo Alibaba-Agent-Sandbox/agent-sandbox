@@ -164,3 +164,60 @@ cloud/model acceptance is added to Actions. Official constraints:
 [Snapshot](https://help.aliyun.com/zh/agent-sandbox/snapshot-invited-test).
 
 Run the cross-consumer local acceptance controller from the [Python owner](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/e2e/README.md#shared-provider-conditional-acceptance-local-only) using this CLI's standalone build. Save the binary outside directories cleaned by other builds.
+
+## Express Template Cache
+
+The bundled Provider also implements `template-cache.create`, `template-cache.get`,
+`template-cache.list` and `template-cache.delete` through the official2026-08-20
+Sandbox management API. These commands use the selected AK/SK and region, with the endpoint
+fixed to `sandbox.<region>.aliyuncs.com`; a sandbox API key cannot replace AK/SK.
+Help and JSON discovery stay local and require neither credentials nor SDK initialization.
+Check that the installed CLI contains these descriptors before using them.
+
+Every operation requires an explicit `team_id`. Create/get/delete also require the exact
+`template_id`; no template or Team is chosen automatically. Save this non-secret reference
+to `cache-ref.json`:
+
+```json
+{"team_id":"REPLACE_ME_TEAM_ID","template_id":"REPLACE_ME_TEMPLATE_ID"}
+```
+
+```sh
+abx --json provider command info alicloud-express template-cache.create
+abx --json provider command run alicloud-express template-cache.create --input-file ./cache-ref.json --yes
+abx --json provider command run alicloud-express template-cache.get --input-file ./cache-ref.json
+abx --json provider command run alicloud-express template-cache.list --input-file ./cache-ref.json
+abx --json provider command run alicloud-express template-cache.delete --input-file ./cache-ref.json --yes
+```
+
+Create submits one request and returns the observed cache metadata in `data`. Acceptance
+observed `status: "creating"`, `progress: 0` followed by `status: "ready"`, `progress: 100`
+and `image_size_mb: 584`. A successful create is not readiness: query get with a bounded
+deadline until the actual status is ready, stopping on a failed/error/evicted state. Missing
+status, progress or timestamps remain absent. `http_timeout` bounds each SDK request;
+there is no implicit polling or retry. After a timeout or conflict, inspect that exact
+Team/template before repeating a write.
+
+List returns one page as `data.template_caches`, `data.max_results` and `data.next_token`.
+Optional inputs are `template_id`, `status`, `max_results` (1–100) and `next_token`.
+Pass the opaque token unchanged to the next request; a null token marks the final page.
+Delete returns `data.deleted: false` for an already absent cache. It retains the template;
+independently query get and list to verify deletion before claiming cleanup.
+
+Compare actual ready-to-business sandbox timings before and after caching using the same
+template, region and resource specification. Record the sample count and variability.
+Absent explicit cache metadata does not establish a globally cold image. Image size is
+cache footprint, not a monetary saving; calculate costs only from verified rates and billing
+data. These four operations provide no WarmPool configuration or billing API.
+
+For owned-resource real acceptance, select a task-owned ready template and run:
+
+```sh
+export ABX_SKILL_CACHE_TEAM_ID=REPLACE_ME_TEAM_ID
+export ABX_SKILL_CACHE_TEMPLATE_ID=REPLACE_ME_TEMPLATE_ID
+node e2e/skill-template-cache-acceptance.mjs --output ./cache-acceptance-new.json
+```
+
+The scenario refuses a pre-existing cache, observes actual creating→ready progress, tests
+all four CLI operations and verifies deletion using an independent official SDK Get404 and
+inventory query. It deletes its cache and retains the caller's template.

@@ -63,6 +63,7 @@
     "@alicloud/fcsandbox20260509": "^1.5.1",
     "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/openapi-core": "^1.0.8",
+    "@alicloud/sandbox20260820": "1.2.0",
     "@inquirer/prompts": "^8.7.3",
     "ajv": "8.18.0",
     "commander": "^14.0.3",

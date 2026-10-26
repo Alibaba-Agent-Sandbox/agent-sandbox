@@ -1,0 +1,9 @@
+{
+  "result": "PARTIAL",
+  "core_workflows": "PASS",
+  "unsupported": "Express run_code code-interpreter transport",
+  "original_defect": "per-create resource override ignored",
+  "fix": "MCP explicit resources now independently checked and mismatches rolled back; matching-resource template actual1CPU1024 PASS",
+  "cleanup": "14 actual created sandboxIDs independently absent; mismatch rollback separately absent",
+  "base_revision": "2e32256acdd45eab026c5b1d71e4e886df4c0f77"
+}

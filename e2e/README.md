@@ -260,3 +260,7 @@ The opt-in Actions workflow uses encrypted `EXPRESS_ACCEPTANCE_*` repository
 secrets (see its environment mapping) and requires `EXPRESS_ACCEPTANCE_ENABLED=true`.
 Without that switch the cloud step is skipped; a green build alone is not cloud
 acceptance. Only same-repository PRs and manual dispatches can use this job.
+
+## MCP lifecycle resource expectations
+
+After building, `node e2e/mcp-lifecycle.mjs` runs the real CLI STDIO server and checks ownership, independent metadata, lifetime changes, files and commands. Select a prepared template with `ABX_E2E_TEMPLATE`; set `ABX_E2E_CPU` and `ABX_E2E_MEMORY` to its expected actual resources (defaults: `base`, 2 CPU, 2048 MB). Both create arguments and a separate metadata response must match those expectations. Qualified IDs are used for operations; the fixture parses their raw ID for metadata/list comparisons.

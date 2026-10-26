@@ -31,6 +31,8 @@ const WORKFLOW_GOLDEN_DIR = fileURLToPath(new URL("./golden/template-launch-2026
 const RELEASE_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261024-0.4.11/", import.meta.url));
 const JOURNEY_GOLDEN_DIR = fileURLToPath(new URL("./golden/developer-journey-20261024/", import.meta.url));
 const CURRENT_RELEASE_DIR = fileURLToPath(new URL("./golden/release-20261025-0.5.6/", import.meta.url));
+const TEMPLATE_CACHE_HELP_DIR = fileURLToPath(new URL("./golden/template-cache-20261026/", import.meta.url));
+const TEMPLATE_CACHE_HELP_CASES = new Set(["help-abx", "help-provider"]);
 const GENERATED_LAUNCH_GOLDEN_DIR = fileURLToPath(new URL("./golden/generated-launch-20261025/", import.meta.url));
 const GENERATED_LAUNCH_CASES = new Set(["help-create", "create-nl-python", "create-nl-nodejs", "create-nl-confirm-required", "create-nl-clarify-required", "create-nl-not-installed"]);
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
@@ -61,7 +63,7 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   const baselinePath = fs.existsSync(historicalCurrentPath) ? historicalCurrentPath :
     fs.existsSync(previousPath) ? previousPath : path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
   const legacyCurrentPath = path.join(["help-template", "help-template-launch"].includes(testCase.output_file) ? WORKFLOW_GOLDEN_DIR : testCase.output_file === "version" ? RELEASE_GOLDEN_DIR : testCase.output_file.startsWith("help-provider") ? TERMINAL_GOLDEN_DIR : CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
-  const currentPath = ["help-create", "help-config-init"].includes(testCase.output_file) ? path.join(CURRENT_RELEASE_DIR, `${testCase.output_file}.txt`) : GENERATED_LAUNCH_CASES.has(testCase.output_file) ? path.join(GENERATED_LAUNCH_GOLDEN_DIR, `${testCase.output_file}.txt`) : testCase.output_file === "version" ? path.join(CURRENT_RELEASE_DIR, "version.txt") : ["help-abx", "help-create"].includes(testCase.output_file) ? path.join(JOURNEY_GOLDEN_DIR, `${testCase.output_file}.txt`) : legacyCurrentPath;
+  const currentPath = TEMPLATE_CACHE_HELP_CASES.has(testCase.output_file) ? path.join(TEMPLATE_CACHE_HELP_DIR, `${testCase.output_file}.txt`) : ["help-create", "help-config-init"].includes(testCase.output_file) ? path.join(CURRENT_RELEASE_DIR, `${testCase.output_file}.txt`) : GENERATED_LAUNCH_CASES.has(testCase.output_file) ? path.join(GENERATED_LAUNCH_GOLDEN_DIR, `${testCase.output_file}.txt`) : testCase.output_file === "version" ? path.join(CURRENT_RELEASE_DIR, "version.txt") : ["help-abx", "help-create"].includes(testCase.output_file) ? path.join(JOURNEY_GOLDEN_DIR, `${testCase.output_file}.txt`) : legacyCurrentPath;
   const goldenPath = fs.existsSync(currentPath) ? currentPath : baselinePath;
   if (UPDATE) {
     if (!fs.existsSync(baselinePath) || actual !== fs.readFileSync(baselinePath, "utf8") || testCase.output_file === "version") {

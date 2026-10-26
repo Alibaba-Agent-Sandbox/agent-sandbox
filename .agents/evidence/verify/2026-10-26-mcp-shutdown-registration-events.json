@@ -1,0 +1,42 @@
+{
+  "scope": "Actual Express create/connect/commands/kill; test hooks delay real SDK handle registration to force the shutdown lock interleaving",
+  "checks": [
+    {
+      "name": "create-late-registration-cancelled",
+      "passed": true
+    },
+    {
+      "name": "create-session-state-empty",
+      "passed": true
+    },
+    {
+      "name": "newly-created-owned-sandbox-independently-absent",
+      "passed": true
+    },
+    {
+      "name": "connect-late-registration-cancelled",
+      "passed": true
+    },
+    {
+      "name": "connect-session-state-empty",
+      "passed": true
+    },
+    {
+      "name": "late-borrowed-handle-closed",
+      "passed": true
+    },
+    {
+      "name": "borrowed-sandbox-business-survives",
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "absent": true
+    },
+    {
+      "absent": true
+    }
+  ],
+  "passed": true
+}

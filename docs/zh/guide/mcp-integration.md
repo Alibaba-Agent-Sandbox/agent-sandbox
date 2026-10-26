@@ -74,7 +74,7 @@ MCP Server 提供 21 个工具：下面保留七个兼容核心工具，其后�
 
 > **命名说明**：MCP 工具 `run_command` 通过 `sh -c` 执行命令（SDK 中 `sandbox.commands.run(..., shell=True)`），与 SDK 中已弃用的 `Sandbox.run_command()` 方法无关——后者用于调度命名自定义命令，请使用 `Sandbox.custom()` 替代。
 >
-> **默认沙箱**：`create_sandbox` 的结果会成为默认沙箱，所以随后省略 `sandbox_id` 的 `write_file` / `run_code` / `kill_sandbox` 都作用在刚创建的那只沙箱上。还没有默认沙箱时，第一次省略 `sandbox_id` 的工具调用会懒创建一只。省略 `template` 时使用 server 配置的模板（`abx mcp start` 默认为 `code-interpreter-v1`）。每次使用沙箱前会按创建时的 `timeout` 延长存活时间。IDE 关闭 server（STDIO）或 `DELETE /mcp` / 空闲超时（HTTP）时会销毁会话里的全部沙箱。
+> **默认沙箱**：`create_sandbox` 的结果会成为默认沙箱，所以随后省略 `sandbox_id` 的 `write_file` / `run_code` / `kill_sandbox` 都作用在刚创建的那只沙箱上。还没有默认沙箱时，第一次省略 `sandbox_id` 的工具调用会懒创建一只。省略 `template` 时使用 server 配置的模板（`abx mcp start` 默认为 `code-interpreter-v1`）。查询和普通执行不会延长存活时间；需要续期时显式调用 `set_sandbox_timeout`。断开连接只销毁会话新建的临时沙箱。借用、显式保留和运行后台任务的沙箱会保留到平台超时或显式删除。
 
 ---
 
@@ -333,3 +333,15 @@ CLI 生命周期工具使用显式沙箱 ID。列表和元数据查询不会接�
 外部沙箱；`set_sandbox_timeout` 直接请求控制面，分别报告请求是否被接受及能否
 观察到目标超时。只读查询与普通执行不隐式续期，借用资源在会话结束后保留。
 生命周期错误保留安全分类和 HTTP 状态，不输出厂商凭据、响应正文或异常堆栈。
+
+
+### 显式指定 CPU 和内存
+
+`create_sandbox` 支持可选的 `cpu` 和 `memory`（MB）。指定资源要求后，工具会重新查询
+新沙箱的元数据。实际值不一致或无法确认时，返回 `isError: true`、
+`category: resource_configuration`、请求值、实际值和 `cleanup_verified`。
+工具只删除本次刚创建的沙箱并检查其已不存在；清理未确认时，使用返回的沙箱 ID 显式重试清理。
+
+Express 可能忽略创建沙箱时的资源覆盖值，实际规格取决于模板。选择或构建满足规格的模板，
+再确认实际沙箱的规格，不要把未生效的覆盖值报告为成功。元数据缺少 `timeout` 时保持未知；
+显式修改存活时间后，可通过独立查询的 `end_at` 确认到期时间。

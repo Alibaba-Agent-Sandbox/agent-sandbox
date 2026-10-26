@@ -67,3 +67,7 @@ Evidence for the Python SDK and server lives in the
 - [Cloud E2E command contract](verify/2026-10-23-cloud-e2e-command-contract.md)
 
 - [CLI 0.4.11 integration](verify/2026-10-24-release-integration.md)
+
+- [Seventeen workflow requirements: real Skill acceptance](verify/2026-10-26-skills-delivery-acceptance.md).
+- [MCP requested resources](verify/2026-10-26-cli-live-resource-verification.md), [selected Team/region](verify/2026-10-26-explicit-team-region.md), [maintained STDIO lifecycle](verify/2026-10-26-mcp-lifecycle-fixture.md).
+- [Template business/tool acceptance](verify/2026-10-26-skill-template-tools-acceptance.md), [Template Cache](verify/2026-10-26-express-template-cache-commands.md), [shutdown race](verify/2026-10-26-mcp-shutdown-registration.md).
