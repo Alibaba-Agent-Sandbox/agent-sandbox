@@ -116,7 +116,7 @@ npx skills add agent-sandbox/agent-sandbox --skill agent-sandbox -a qoder -y
 
 ```bash
 # 配置凭证
-abx config init                          # 凭证 + 区域（--build / --llm 追加相应部分）
+abx config init                          # 引导配置 → 查找模板 → 创建
 abx config set sandbox_api_key <YOUR_API_KEY>   # 或直接设置单个密钥
 
 # 沙箱生命周期

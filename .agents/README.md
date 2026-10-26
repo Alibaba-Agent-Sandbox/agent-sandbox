@@ -263,3 +263,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Requirement-level Skill verification](notes/proposed/process/2026-10-26-skills-delivery-acceptance.md).
 
 - [Exact creation context during MCP verification and rollback](notes/proposed/feature/2026-10-26-create-resource-context.md) · [verification](evidence/verify/2026-10-26-create-resource-context.md).
+
+- [Complete template onboarding](notes/proposed/feature/2026-10-26-complete-template-onboarding.md) · [verification](evidence/verify/2026-10-26-complete-template-onboarding.md).

@@ -1,5 +1,16 @@
 # Guided configuration
 
+## Initialize, find and create
+
+Run `abx config init` after installation. The wizard explains where to obtain the selected provider's credentials and saves the values you enter. It generates an application access token when one is missing; existing tokens are kept. Choose **Find and launch a template**, search by name or purpose, and select the template. Any missing build settings are filled in the same operation before cloud work. The CLI then prints the sandbox, application-command and cleanup information.
+
+You can also run `abx template launch` without a reference to open the same picker, or `abx template launch opencode` to select a known catalog entry. Automation supplies a reference and all required values before using `--yes`; it never opens the picker.
+
+`server_token` is a CLI-only configuration key stored as `ABX_SERVER_TOKEN` in the protected user dotenv file. Template creation, application verification and later `abx run` calls use the same value. To replace it, run `abx config set server_token` for hidden input. A template that declares no application token remains unchanged. Only declared, empty model inputs can inherit the saved CLI model profile; explicit runtime values and template defaults keep priority.
+
+The Python SDK is a library: pass parameters or use its documented environment/dotenv/configuration sources. It does not run this wizard, prompt for missing configuration or gain SDK setup commands.
+
+
 When an operation needs configuration, `abx` checks the selected Provider and the operation's build or execution plan before starting work. In an interactive terminal, it can collect missing values and continue that operation. An account permission, quota, network failure, or unsupported capability still requires the corresponding remedy; it is not treated as a missing API key.
 
 For the complete field and precedence rules, see the [configuration reference](../reference/configuration.md), [authentication](authentication.md), and [Providers guide](providers.md). The [migration guide](migrate-from-e2b.md) describes the separate standard and native command surfaces.

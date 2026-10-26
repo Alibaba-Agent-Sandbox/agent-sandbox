@@ -1,3 +1,4 @@
+import { parsePax } from "./tar_format.js";
 /**
  * Minimal `tarfile.open(path, "r:gz")` replacement (ustar, GNU long names and pax headers) with the behaviours the
  * registry client relies on: `getmembers()` order, `name` normalisation, `isfile()` classification and
@@ -102,22 +103,7 @@ function calcChecksums(block: Buffer): [number, number] {
   return [unsigned, signed];
 }
 
-function parsePax(data: Buffer): Record<string, string> {
-  const out: Record<string, string> = {};
-  let pos = 0;
-  while (pos < data.length) {
-    const sp = data.indexOf(0x20, pos);
-    if (sp < 0) break;
-    const length = parseInt(data.subarray(pos, sp).toString("ascii"), 10);
-    if (!Number.isFinite(length) || length <= 0) break;
-    const record = data.subarray(sp + 1, pos + length - 1);
-    const eq = record.indexOf(0x3d);
-    if (eq < 0) break;
-    out[record.subarray(0, eq).toString("utf-8")] = record.subarray(eq + 1).toString("utf-8");
-    pos += length;
-  }
-  return out;
-}
+
 
 class HeaderEOF extends Error {}
 
@@ -205,7 +191,7 @@ export class TarArchive {
       }
       if (info.type === XHDTYPE || info.type === SOLARIS_XHDTYPE || info.type === XGLTYPE) {
         if (dataEnd > buf.length) throw new ReadError("unexpected end of data");
-        const pax = parsePax(buf.subarray(info.offset_data, dataEnd));
+        const pax = parsePax(buf.subarray(info.offset_data, dataEnd), true);
         if (info.type === XGLTYPE) globalPax = { ...globalPax, ...pax };
         else pendingPax = { ...(pendingPax ?? {}), ...pax };
         offset = info.offset_data + padded(info.size);

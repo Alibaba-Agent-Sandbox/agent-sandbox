@@ -488,7 +488,7 @@ describe("TestConfigListSources", () => {
 
     expect(result.exit_code).toBe(0);
     const titles = lines(result.output).filter((ln) => ln.startsWith("── "));
-    const expectedTitles = ["Sandbox authentication", "Alibaba Cloud credentials", "Connection", "LLM", "Integrations"];
+    const expectedTitles = ["Sandbox authentication", "Alibaba Cloud credentials", "Application authentication", "Connection", "LLM", "Integrations"];
     expect(titles.map((t) => t.slice(3).replace(/─+$/, "").trim())).toEqual(expectedTitles);
     // Every group header renders as a full 64-character rule.
     expect(titles.every((t) => [...t].length === 64)).toBe(true);

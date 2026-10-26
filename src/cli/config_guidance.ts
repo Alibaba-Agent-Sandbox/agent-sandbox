@@ -6,13 +6,15 @@ import { prompt, select, type SelectOptions } from "./prompts.js";
 import { getOutput } from "./output.js";
 import { cliProvider, cliOptions } from "../providers/selection.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
-import { collectSources, explainConfig, loadLayeredConfig, paths, resetLayeredConfig, type LayeredConfig } from "../transport/config_layers.js";
+import { collectSources, loadLayeredConfig, paths, resetLayeredConfig, type LayeredConfig } from "../transport/config_layers.js";
 import { resetConfig } from "../transport/config.js";
 import { getOperationConfig, withOperationConfig } from "../utils/operation_config.js";
 import { assertConfigFilesReadable, assertConfigValuesValid } from "../utils/config_diagnostics.js";
 import { CORE_KEYS, GENERIC_ENDPOINT_KEYS, getKey, type ConfigKey } from "../utils/config_keys.js";
-import { coerce } from "../utils/config_resolver.js";
+import { validateConfigValue, authenticationChoices } from "../utils/config_resolver.js";
 import { bundledConfig } from "../utils/bundled_config.js";
+import { configurationTargetSummary } from "./config_target.js";
+import { configurationFieldHelp } from "./configuration_help.js";
 
 export interface GuidanceField {
   key: string;
@@ -22,6 +24,10 @@ export interface GuidanceField {
   /** Custom operation inputs without a config key may only be used for this operation. */
   persist?: boolean;
   flag?: string;
+  /** Optional generation for a local secret; the value is never displayed. */
+  generate?: () => string;
+  /** Validate custom inputs using the same domain rule as their consumer. */
+  validate?: (value: string) => boolean;
 }
 
 export interface ConfigurationRequest {
@@ -63,7 +69,7 @@ function configValue(config: LayeredConfig, key: string): unknown {
 export async function withGuidedConfiguration<T>(
   ctx: Context | undefined,
   request: ConfigurationRequest,
-  action: () => Promise<T>,
+  action: (values: Readonly<Record<string, unknown>>) => Promise<T>,
 ): Promise<T> {
   const provider = getProvider(request.provider ?? resolveProviderId(cliProvider()));
   const overrides: Record<string, unknown> = { provider: provider.id, provider_options: cliOptions() };
@@ -87,7 +93,9 @@ export async function withGuidedConfiguration<T>(
     if (has(values[key])) return values[key];
     // A plugin field must never inherit an unrelated global field with the same name.
     if (provider.configFields.some((field) => field.key === key)) return undefined;
-    return cfg._ALLOWED_KEYS.has(key) ? cfg._effectiveValue(key)[0] : undefined;
+    if (cfg._ALLOWED_KEYS.has(key)) return cfg._effectiveValue(key)[0];
+    const env = fields.get(key)?.env;
+    return env ? process.env[env] : undefined;
   };
   for (const [key, value] of Object.entries(request.values ?? {})) {
     const name = canonical(key);
@@ -98,8 +106,7 @@ export async function withGuidedConfiguration<T>(
     for (const field of provider.configFields) if (field.required) fields.set(field.key, { key: field.key, label: field.description, secret: field.secret });
     const have = (key: string): boolean => has(effective(key)) && (!GENERIC_ENDPOINT_KEYS.includes(key) || provider.inherit.has(key));
     if (provider.authAnyOf.length && !provider.authAnyOf.some((group) => group.every(have))) {
-      const groups = provider.authAnyOf.filter((group) => group.every((key) => keys.has(key) ||
-        GENERIC_ENDPOINT_KEYS.includes(key) && provider.inherit.has(key)));
+      const { possible: groups } = authenticationChoices(provider.authAnyOf, new Set([...keys.keys(), ...provider.inherit]), have);
       if (!groups.length) throw new CliError(`Provider '${provider.id}' declares no usable authentication configuration. Run 'abx provider info ${provider.id}'.`);
       let group = groups[0]!;
       if (groups.length > 1 && guidanceSeams.interactive(ctx, request.yes)) {
@@ -122,6 +129,7 @@ export async function withGuidedConfiguration<T>(
   const missing: GuidanceField[] = [];
   for (const [name, field] of fields) {
     if (!has(effective(name))) missing.push(field);
+    else if (field.validate && !field.validate(String(effective(name)))) throw new CliError(`Invalid configuration for '${name}'; correct its value before continuing.`);
     else values[name] = effective(name);
   }
   const snapshot = (): Record<string, unknown> => ({ ...config, ...getOperationConfig(), ...values, ...overrides,
@@ -130,13 +138,13 @@ export async function withGuidedConfiguration<T>(
   });
   const execute = (): Promise<T> => {
     if (request.validateProvider !== false) provider.validateConfig(loadLayeredConfig({ provider: provider.id }));
-    return action();
+    return action(Object.freeze({ ...values }));
   };
   if (!missing.length) return withOperationConfig(snapshot(), execute);
   const repairKey = (key: string): string => keys.has(key) || GENERIC_ENDPOINT_KEYS.includes(key) && provider.inherit.has(key)
     ? `providers.${provider.id}.${key}` : key;
   const persistable = (field: GuidanceField): boolean => field.persist !== false && (keys.has(field.key) || Boolean(getKey(field.key)) || cfg._ALLOWED_KEYS.has(field.key));
-  const repair = (field: GuidanceField): string => persistable(field) ? `abx config set ${repairKey(field.key)}`
+  const repair = (field: GuidanceField): string => persistable(field) ? `abx config set ${repairKey(field.key)}${field.env ? ` (or set ${field.env})` : ""}`
     : field.flag ? `supply ${field.flag}` : field.env ? `set ${field.env}` : "supply this operation's documented option";
   const details = missing.map((f) => `  - ${f.key}: ${repair(f)}`).join("\n");
   const out = getOutput(ctx);
@@ -145,12 +153,14 @@ export async function withGuidedConfiguration<T>(
       (request.yes ? "--yes/-y skips configuration prompts. To enter missing values interactively, rerun this command without --yes/-y in a terminal.\n" : "") +
       "Run the configuration commands in a terminal, or supply the documented environment variables in automation. No cloud operation was submitted.");
   }
-  const explanation = explainConfig(overrides);
-  out.info(`Provider: ${provider.id}\nRegion: ${config.region || "(not configured)"} (${explanation["region"]?.source ?? "current command"})\n` +
-    `API host: ${safeHost(config.sandbox_base_url)} (${explanation["sandbox_base_url"]?.source ?? "current command"})`);
+  out.info(configurationTargetSummary(provider.id, overrides));
   const registry = effective("acr_registry");
   if (typeof registry === "string" && registry) out.info(`Registry host: ${safeHost(registry.includes("://") ? registry : `https://${registry}`)}`);
   out.info(`${request.operation} needs ${missing.length} configuration value(s):\n${details}`);
+  for (const field of missing) {
+    const help = configurationFieldHelp(field.key, provider.id);
+    if (help) out.info(help);
+  }
   if (missing.some((f) => f.key === "sandbox_api_key")) out.info("Sandbox API keys create and connect to sandboxes. Alibaba Cloud AccessKeys used for builds do not replace a Sandbox API key.");
   const canSave = missing.some(persistable);
   let scope = "1";
@@ -158,7 +168,7 @@ export async function withGuidedConfiguration<T>(
     for (;;) {
       scope = await guidanceSeams.ask("Configuration scope", false, {
         choices: [{ name: "Only this command", value: "1" }, { name: "Save for future commands", value: "2" }, { name: "Cancel", value: "3" }],
-        default: "1", err: true,
+        default: missing.some(field => field.generate) ? "2" : "1", err: true,
       });
       if (!scope || scope === "1" || scope === "2") break;
       if (scope === "3") throw new Abort();
@@ -169,12 +179,16 @@ export async function withGuidedConfiguration<T>(
     const metadata = keys.get(field.key) ?? getKey(field.key);
     const secret = field.secret ?? metadata?.secret ?? /(?:secret|password|token|api_key)$/.test(field.key);
     for (;;) {
-      const answer = await guidanceSeams.ask(`${field.label ?? field.key}${secret ? " (input hidden)" : ""}; Enter cancels`, secret);
-      if (!answer.trim()) throw new Abort();
-      let value: unknown = answer.trim();
+      const answer = await guidanceSeams.ask(`${field.label ?? field.key}${secret ? " (input hidden)" : ""}; ${field.generate && scope === "2" ? "Enter generates a token" : "Enter cancels"}`, secret);
+      if (!answer.trim() && (!field.generate || scope !== "2")) throw new Abort();
+      let value: unknown = answer.trim() || field.generate!();
+      if (field.validate && !field.validate(String(value))) {
+        out.warning(`Invalid value for '${field.key}'; enter a nonempty value without line breaks.`);
+        continue;
+      }
       if (metadata) {
-        value = coerce(metadata, answer);
-        if (value === null || metadata.type === "url" && !validUrl(String(value), field.key === "sandbox_base_url" || field.key === "llm_base_url")) {
+        value = validateConfigValue(metadata, value);
+        if (value === null) {
           out.warning(`Invalid value for '${field.key}'; expected ${metadata.type}${metadata.choices.length ? ` (${metadata.choices.join(", ")})` : ""}.`);
           continue;
         }
@@ -211,8 +225,4 @@ export async function withGuidedConfiguration<T>(
   }
   out.info(`Configuration for ${request.operation} is complete; continuing the current operation.`);
   return withOperationConfig(snapshot(), execute);
-}
-
-function validUrl(value: string, httpOnly = false): boolean {
-  try { const url = new URL(value); return !httpOnly || url.protocol === "https:" || url.protocol === "http:"; } catch { return false; }
 }

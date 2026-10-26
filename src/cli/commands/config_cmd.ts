@@ -40,6 +40,9 @@ import { setEnvValue, setTomlValue, resetConfigurationCaches, writeConfiguration
 import { dotenvValues, parseStream } from "../../utils/_dotenv.js";
 import { assertConfigFilesReadable, assertConfigValuesValid } from "../../utils/config_diagnostics.js";
 import { CORE_KEYS, GENERIC_ENDPOINT_KEYS } from "../../utils/config_keys.js";
+import { CLI_CORE_KEYS } from "../../utils/cli_config_keys.js";
+import { randomBytes } from "node:crypto";
+import { configurationFieldHelp } from "../configuration_help.js";
 import { collectSources } from "../../transport/config_layers.js";
 import { getOperationConfig } from "../../utils/operation_config.js";
 import { canPrompt } from "../interaction.js";
@@ -110,6 +113,7 @@ function _stdout(): { write(text: string): void; flush(): void } {
 
 /** Keys that users can configure (key -> help). */
 export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
+  ...CLI_CORE_KEYS.map((key) => [key.key, key.description] as const),
   ["sandbox_api_key", "Sandbox service API key (env: ABX_SANDBOX_API_KEY)"],
   ["sandbox_base_url", "Platform API URL of the selected provider"],
   ["http_timeout", "HTTP request timeout in seconds"],
@@ -124,6 +128,7 @@ export const _ALLOWED_KEYS: ReadonlyMap<string, string> = new Map([
 
 /** Keys stored in `~/.abx/.env` (mapped to their env-var name) rather than `config.toml`. */
 export const _ENV_STORED_KEYS: ReadonlyMap<string, string> = new Map([
+  ...CLI_CORE_KEYS.filter((key) => key.storage?.file === "env").map((key) => [key.key, key.env] as const),
   ["sandbox_api_key", "ABX_SANDBOX_API_KEY"],
   ["llm_api_key", "ABX_LLM_API_KEY"],
   ["github_token", "GITHUB_TOKEN"],
@@ -132,6 +137,7 @@ export const _ENV_STORED_KEYS: ReadonlyMap<string, string> = new Map([
 
 /** Keys the long-standing code handles itself for every provider (everything but the built-in provider's own keys). */
 const _GENERIC_KEYS: ReadonlySet<string> = new Set([
+  ...CLI_CORE_KEYS.map((key) => key.key),
   "sandbox_api_key", "sandbox_base_url", "sandbox_domain", "http_timeout", "http2", "llm_api_key", "llm_model", "llm_base_url", "github_token",
 ]);
 
@@ -145,16 +151,18 @@ const _REMOVED_KEYS: ReadonlyMap<string, string> = new Map([
 /** Functional groups for `config list`: stable order, one group per topic. */
 const _CONFIG_GROUPS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["Sandbox authentication", ["sandbox_api_key"]],
+  ["Application authentication", ["server_token"]],
   ["Connection", ["sandbox_base_url", "region", "sandbox_domain", "http_timeout", "http2"]],
   ["LLM", ["llm_api_key", "llm_model", "llm_base_url"]],
   ["Integrations", ["github_token"]],
 ];
 
 /** Keys that are sensitive and should be masked in output. */
-const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_api_key", "github_token", ...bundledCliConfigurations().flatMap((profile) => [...profile.sensitive])]);
+const _SENSITIVE_KEYS: ReadonlySet<string> = new Set(["sandbox_api_key", "llm_api_key", "github_token", ...CLI_CORE_KEYS.filter((key) => key.secret).map((key) => key.key), ...bundledCliConfigurations().flatMap((profile) => [...profile.sensitive])]);
 
 /** Environment variables that override each key at runtime, in priority order. */
 const _ENV_OVERRIDES: ReadonlyMap<string, readonly string[]> = new Map([
+  ...CLI_CORE_KEYS.map((key) => [key.key, [key.env]] as const),
   ["sandbox_api_key", ["ABX_SANDBOX_API_KEY"]],
   ["sandbox_base_url", ["ABX_SANDBOX_BASE_URL"]],
   ["sandbox_domain", ["ABX_SANDBOX_DOMAIN"]],
@@ -1035,6 +1043,8 @@ export const init = command("init", {
     assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
     echo("abx guided configuration (press Enter to keep the current value; missing required values remain incomplete):", { err: true });
     for (const field of fields) {
+      const help = configurationFieldHelp(field.key, provider.id);
+      if (help) echo(help, { err: true });
       let current: unknown = field.default ?? "";
       if (field.current) {
         const target = profile ? null : extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
@@ -1114,9 +1124,16 @@ export const init = command("init", {
     }
     if (overridden.length) echo(`Saved values overridden by another configuration source: ${overridden.join(", ")}. Update or remove that source to use the newly saved values; values are not shown.`, { err: true });
     const destinations = [...new Set(pending.map(({ field }) => field.env ? configSeams._ENV_FILE : configSeams._CONFIG_FILE))];
+    if (!_effectiveValue("server_token")[0]) {
+      const location = saveGuidedValue("server_token", randomBytes(32).toString("hex"));
+      echo(`Generated an application access token and saved it in ${location.path}. Template launch and abx run use it automatically.`, { err: true });
+    }
     fmt.printSuccess(`Configuration complete.${destinations.length ? ` Saved to ${destinations.join(" and ")}.` : " Existing values were kept."} Review values and sources with 'abx config list'.`);
     echo("To change a value later: abx config set KEY (omit VALUE for masked secret input).", { err: true });
-    if (!build || !llm) {
+    if (!build && !llm) {
+      const { continueSetup } = await import("../setup.js");
+      await continueSetup(ctx);
+    } else if (!build || !llm) {
       const more: string[] = [];
       if (!build) more.push("template build/push: 'abx config init --build'");
       if (!llm) more.push("template generation: 'abx config init --llm'");
@@ -1273,9 +1290,9 @@ export async function _readMaskedLine(
     out.flush();
   };
   const write = opts.writer ?? defaultWrite;
-  write(promptText);
   const chars: string[] = [];
   const loop = async (read: () => string | Promise<string>): Promise<string> => {
+    write(promptText);
     for (;;) {
       const chunk = await read();
       if (chunk === "") {

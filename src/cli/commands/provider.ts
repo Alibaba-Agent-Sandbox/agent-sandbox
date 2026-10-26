@@ -27,7 +27,7 @@ import { assertConfigFilesReadable, assertConfigValuesValid } from "../../utils/
 import * as store from "../../providers/store.js";
 import { runContractSuite, summarizeContract } from "../../providers/testing.js";
 import { collectSources, loadLayeredConfig, resetLayeredConfig, paths } from "../../transport/config_layers.js";
-import { resolveKey, coerce } from "../../utils/config_resolver.js";
+import { resolveKey, validateConfigValue } from "../../utils/config_resolver.js";
 import { BUILTIN_PROVIDER_ID, CORE_KEYS, GENERIC_ENDPOINT_KEYS, getKey } from "../../utils/config_keys.js";
 import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
@@ -600,17 +600,10 @@ function fieldOf(id: string, key: string): ConfigField {
 function validateFieldValue(id: string, field: ConfigField, text: string): string | number | boolean {
   const owner = registry.getProvider(id);
   const ck = owner.configKeys().find((key) => key.key === field.key) ?? (owner.inherit.has(field.key) ? getKey(field.key) : undefined) ?? configFieldToKey(field, id);
-  const value = coerce(ck, text);
+  const value = validateConfigValue(ck, text);
   if (value === null) {
     const reason = field.type === "enum" ? `expected one of ${(field.choices ?? []).join(", ")}` : `expected ${field.type ?? "str"}`;
     throw new ProviderConfigError(`Invalid value for '${field.key}': ${reason}.`);
-  }
-  if (field.type === "url") {
-    try {
-      new URL(String(value));
-    } catch {
-      throw new ProviderConfigError(`Invalid value for '${field.key}': not a URL.`);
-    }
   }
   return value as string | number | boolean;
 }

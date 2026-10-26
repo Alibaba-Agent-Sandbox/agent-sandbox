@@ -118,8 +118,8 @@ export const from_image = create_template;
 
 /** Prepare the selected source and launch it without copying a cloud template ID. */
 export const launch = template.command("launch", {
-  help: "Download and launch the whole template on the selected provider. Its startup command starts the declared services; launch verifies their availability. Configure the provider before cloud operations; --yes permits billable build/create.",
-  params: [argument(["template_ref"]), option(["--build-profile"], { default: null, help: "Declared Dockerfile build profile" }), option(["--alias", "-a"], { default: null }),
+  help: "Download and launch the whole template on the selected provider. Its startup command starts the declared services; launch verifies their availability. Omit TEMPLATE_REF in a terminal to search and choose a template. Missing configuration is collected before cloud operations; --yes skips prompts and permits billable build/create.",
+  params: [argument(["template_ref"], { required: false }), option(["--build-profile"], { default: null, help: "Declared Dockerfile build profile" }), option(["--alias", "-a"], { default: null }),
     option(["--timeout"], { type: FLOAT, default: 600, help: "Build deadline in seconds (maximum 3600)" }),
     option(["--sandbox-timeout"], { type: FLOAT, default: 300, help: "Sandbox lifetime in seconds" }),
     option(["--yes", "-y"], { is_flag: true })],

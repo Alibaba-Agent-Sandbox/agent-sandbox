@@ -115,9 +115,9 @@ describe("TestConfigInitWizard", () => {
     expect(result.output).toContain("2/2 ");
     expect(result.output).not.toContain("ACR namespace");
     expect(result.output).not.toContain("LLM API key");
-    expect(result.output).toContain("abx config init --build");
-    expect(result.output).toContain("abx config init --llm");
-    expect(readText(envFile)).toBe("ABX_SANDBOX_API_KEY=sk-platform\n");
+    expect(result.output).toContain("Generated an application access token");
+    expect(readText(envFile)).toContain("ABX_SANDBOX_API_KEY=sk-platform\n");
+    expect(readText(envFile)).toMatch(/ABX_SERVER_TOKEN=[a-f0-9]{64}/);
   });
 
   it("test_llm_section_only", async () => {

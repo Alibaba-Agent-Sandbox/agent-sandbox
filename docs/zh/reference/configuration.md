@@ -38,7 +38,9 @@
 | 地域 | `region` | `ALIBABA_CLOUD_REGION_ID` |
 | 阿里云 AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
 | ACR 命名空间 / 密码 | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
-| GitHub token | `github_token` | `GITHUB_TOKEN` |
+| 应用访问令牌 | `server_token` | `ABX_SERVER_TOKEN` |
+| GitHub token | `server_token` | `ABX_SERVER_TOKEN` | CLI 应用令牌；初始化时自动生成，保存在 `~/.abx/.env`，显示时脱敏 |
+| `github_token` | `GITHUB_TOKEN` |
 | LLM API Key | `llm_api_key` | `ABX_LLM_API_KEY` |
 | LLM 地址 | `llm_base_url` | `ABX_LLM_BASE_URL` |
 | LLM 模型 | `llm_model` | `ABX_LLM_MODEL` |

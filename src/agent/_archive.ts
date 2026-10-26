@@ -1,3 +1,4 @@
+import { parsePax } from "../utils/tar_format.js";
 /**
  * Dependency-free `.tar.gz` / `.zip` reading and *safe* extraction for the
  * Qwen Code standalone installer.
@@ -48,21 +49,7 @@ function octal(buf: Buffer, start: number, length: number): number {
   return parseInt(text, 8);
 }
 
-function parsePax(data: Buffer): Record<string, string> {
-  const result: Record<string, string> = {};
-  let pos = 0;
-  while (pos < data.length) {
-    const space = data.indexOf(0x20, pos);
-    if (space === -1) break;
-    const length = parseInt(data.subarray(pos, space).toString("ascii"), 10);
-    if (!Number.isFinite(length) || length <= 0) break;
-    const record = data.subarray(space + 1, pos + length - 1).toString("utf8");
-    const eq = record.indexOf("=");
-    if (eq !== -1) result[record.slice(0, eq)] = record.slice(eq + 1);
-    pos += length;
-  }
-  return result;
-}
+
 
 /** Parse every member of a (gzip-compressed or plain) tar archive. */
 export function readTarMembers(archive: string): TarMember[] {

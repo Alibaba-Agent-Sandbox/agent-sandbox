@@ -5,19 +5,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { type Context } from "./kit.js";
 import { getFormatter } from "./formatters.js";
-import { getOutput } from "./output.js";
 import { CliError } from "./errors.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider, cliOptions } from "../providers/selection.js";
 import { ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
-import { RegistryClient, loadTemplateFromYaml, TEMPLATE_CACHE_DIR } from "../utils/registry.js";
-import { _findTemplateYaml, _resolveIndexName, _withGithubRateLimitRetry } from "./template_catalog.js";
+import { loadTemplateFromYaml, TEMPLATE_CACHE_DIR } from "../utils/registry.js";
+import { _findTemplateYaml, acquireTemplateSource } from "./template_catalog.js";
 import type { ProviderTemplateManager } from "../providers/template_contract.js";
-import { resolveGithubToken } from "./commands/config_cmd.js";
 
 export async function installTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
-  const fmt = getFormatter(ctx), out = getOutput(ctx);
+  const fmt = getFormatter(ctx);
   const provider = getProvider(resolveProviderId(cliProvider()));
   const owner: { manager: ProviderTemplateManager | null } = { manager: null };
   if (!params["download_only"]) {
@@ -25,17 +23,11 @@ export async function installTemplate(ctx: Context, params: Record<string, unkno
     if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new CliError("Review deployment inputs and pass --yes, or use --download-only.");
   }
   try {
-    let name = String(params["template_ref"]);
-    const token = await resolveGithubToken(params["token"] as string | null);
-    const acquired = await _withGithubRateLimitRetry(async (active) => {
-      const registry = new RegistryClient(String(params["registry_url"] ?? "https://github.com"), active);
-      let ref = await registry.resolve(name, params["registry_type"] as string | null);
-      if (ref.is_builtin) {
-        name = await _resolveIndexName(name, { token: active, fmt, out });
-        ref = await registry.resolve(name, params["registry_type"] as string | null);
-      }
-      return registry.fetch(ref);
-    }, { token, fmt, out });
+    const source = await acquireTemplateSource(ctx, String(params["template_ref"]), {
+      token: params["token"] as string | null,
+      registryUrl: String(params["registry_url"] ?? "https://github.com"), registryType: params["registry_type"] as string | null,
+    });
+    const acquired = source.directory!;
     const yaml = _findTemplateYaml(acquired);
     if (!yaml) throw new CliError("Template source has no template.yaml.");
     const template = loadTemplateFromYaml(yaml);

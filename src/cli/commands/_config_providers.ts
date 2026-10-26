@@ -13,7 +13,7 @@ import * as registry from "../../providers/registry.js";
 import { cliProvider } from "../../providers/selection.js";
 import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
 import { collectSources, loadTomlFile, paths, quietly, readDotenv, resetLayeredConfig, selectProviderId } from "../../transport/config_layers.js";
-import { coerce, resolveKey } from "../../utils/config_resolver.js";
+import { validateConfigValue, authenticationChoices, resolveKey } from "../../utils/config_resolver.js";
 import { BUILTIN_PROVIDER_ID, getKey, providerEnvName, type ConfigKey } from "../../utils/config_keys.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -202,17 +202,10 @@ function removeWhere(where: Where): void {
 /** Validate and type `text` for `key` (a bad value is an E8002 / exit 2). */
 export function parseExtraValue(target: ExtraTarget, text: string): string | number | boolean {
   const key = target.key as ConfigKey;
-  const value = coerce(key, text);
+  const value = validateConfigValue(key, text);
   if (value === null) {
     const reason = key.type === "enum" ? `expected one of ${key.choices.join(", ")}` : `expected ${key.type}`;
     throw new ProviderConfigError(`Invalid value for '${target.typed}': ${reason}.`);
-  }
-  if (key.type === "url") {
-    try {
-      new URL(String(value));
-    } catch {
-      throw new ProviderConfigError(`Invalid value for '${target.typed}': not a URL.`);
-    }
   }
   return value as string | number | boolean;
 }
@@ -308,8 +301,7 @@ export async function initializationKeys(
       const value = target ? readExtra(target).value : undefined;
       return value !== undefined && value !== null && value !== "";
     };
-    const complete = provider.authAnyOf.find((group) => group.every(have));
-    const possible = provider.authAnyOf.filter((group) => group.every((name) => declared.has(name)));
+    const { complete, possible } = authenticationChoices(provider.authAnyOf, new Set(declared.keys()), have);
     if (!complete && !possible.length) throw new ProviderConfigError(`Provider '${providerId}' declares no usable authentication combination.`, { suggestion: `Inspect 'abx provider info ${providerId}'; no configuration was changed.` });
     const selected = complete ?? possible[possible.length > 1 ? await choose(possible) : 0];
     if (!selected) throw new ProviderConfigError("Choose one of the listed authentication methods; no configuration was changed.");

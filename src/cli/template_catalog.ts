@@ -554,22 +554,9 @@ export const init = template.command("scaffold", {
 
     // --from: fetch from registry and copy source files into DIR
     if (fromRef) {
-      const cfgMod = await _configCmd();
-      const resolveGithubToken = cfgMod.resolveGithubToken;
-
-      const fetchFrom = async (active: string | null): Promise<[Any, string]> => {
-        const client = new RegistryClient("https://github.com", active);
-        const ref = await client.resolve(fromRef);
-        if (ref.is_builtin) {
-          throw usageError(
-            `'${fromRef}' is a built-in template and cannot be used with --from. ` + "Use -t/--template for built-in cases.",
-          );
-        }
-        return [ref, await out.spinner(`Fetching template from ${fromRef}`, () => client.fetch(ref))];
-      };
-
-      const [ref, sourcePath] = await _withGithubRateLimitRetry(fetchFrom, { token: await resolveGithubToken(), fmt, out });
-
+      const acquired = await acquireTemplateSource(ctx, fromRef, { allowCatalog: false });
+      const ref = acquired.ref;
+      const sourcePath = acquired.directory!;
       const source = String(sourcePath);
 
       // A local directory with no manifest is a source project, not a template. Copying it would also copy .env and
@@ -759,4 +746,29 @@ export async function _resolveIndexName(name: string, opts: { token: string | nu
     throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
   }
   return entry.install_ref;
+}
+
+/** Acquire template content once; cloud preparation and writes remain with their callers. */
+export async function acquireTemplateSource(
+  ctx: Context,
+  source: string,
+  options: { token?: string | null; registryUrl?: string; registryType?: string | null; allowManaged?: boolean; allowCatalog?: boolean } = {},
+): Promise<{ directory?: string; manifest?: Record<string, unknown>; ref: Awaited<ReturnType<RegistryClient["resolve"]>> }> {
+  const fmt = getFormatter(ctx), out = getOutput(ctx);
+  const cfg = await _configCmd();
+  const token = await cfg.resolveGithubToken(options.token);
+  return _withGithubRateLimitRetry(async active => {
+    const client = new RegistryClient(options.registryUrl ?? "https://github.com", active);
+    let ref = await client.resolve(source, options.registryType);
+    if (ref.is_builtin) {
+      if (options.allowCatalog === false) throw usageError(`'${source}' is a built-in template and cannot be used with --from. Use -t/--template for built-in cases.`);
+      const entry = await _resolveIndexEntry(source, { token: active, fmt, out });
+      if (entry.manifest) {
+        if (!options.allowManaged) throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
+        return { ref, manifest: entry.manifest };
+      }
+      ref = await client.resolve(entry.install_ref, options.registryType);
+    }
+    return { ref, directory: await client.fetch(ref) };
+  }, { token, fmt, out });
 }

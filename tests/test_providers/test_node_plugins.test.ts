@@ -1,3 +1,5 @@
+import "../_support/isolatedHome.js";
+
 /**
  * The catalog's `node/1` plugins (e2b, cubesandbox, alicloud-container) installed through the real installer and driven
  * through `Sandbox` against a local E2B-shaped server that serves both the control plane and envd.

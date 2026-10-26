@@ -210,7 +210,7 @@ describe("guided configuration persistence", () => {
     expect(questions).toHaveLength(1);
     expect(questions[0]).toContain("API");
     expect(result.output).not.toContain("Choose an authentication method");
-    expect(fs.existsSync(iso.env)).toBe(false);
+    expect([...dotenvValues(iso.env).keys()]).toEqual(["ABX_SERVER_TOKEN"]);
   });
 
   it("accepts required false and zero values as configured during generic init", async () => {

@@ -11,6 +11,8 @@
 import { pyFloatParse, pyStrip } from "./_pyformat.js";
 import {
   BUILTIN_PROVIDER_ID,
+  CORE_KEYS,
+  GENERIC_ENDPOINT_KEYS,
   aliasNames,
   envNames,
   getKey,
@@ -75,6 +77,30 @@ export function coerce(key: ConfigKey, raw: unknown): unknown {
     return key.choices.includes(text.toUpperCase()) ? text.toUpperCase() : null;
   }
   return text;
+}
+
+/** Parse a configured value with the same URL/numeric checks for prompts, writes and diagnostics. */
+export function validateConfigValue(key: ConfigKey, raw: unknown): unknown {
+  const value = coerce(key, raw);
+  if (value === null) return null;
+  if ((key.type === "float" || key.type === "int") && !Number.isFinite(Number(value))) return null;
+  if (key.type === "url") {
+    try {
+      const url = new URL(String(value));
+      if (["sandbox_base_url", "llm_base_url"].includes(key.key) && !["http:", "https:"].includes(url.protocol)) return null;
+    } catch { return null; }
+  }
+  return value;
+}
+
+/** Resolve declared authentication alternatives without performing terminal I/O. */
+export function authenticationChoices(
+  groups: readonly (readonly string[])[],
+  declared: ReadonlySet<string>,
+  have: (key: string) => boolean,
+): { complete: readonly string[] | undefined; possible: readonly (readonly string[])[] } {
+  const possible = groups.filter(group => group.every(key => declared.has(key)));
+  return { complete: possible.find(group => group.every(have)), possible };
 }
 
 /** `[display name, raw value]` candidates inside a TOML document, most specific first. */
@@ -155,4 +181,70 @@ export function resolveProviderId(sources: Sources): Resolved {
   const res = resolveKey(key, sources);
   if (!res) throw new Error("provider key has no default");
   return res;
+}
+
+/** Provider-owned data required by the pure configuration resolver. */
+export interface ConfigurationSchema {
+  provider_id: string;
+  keys: readonly ConfigKey[];
+  inherit: ReadonlySet<string>;
+  derive: Readonly<Record<string, string>>;
+  endpoint_defaults: Readonly<Record<string, string>>;
+}
+
+function pyFormatTemplate(template: string, fields: Record<string, string>): string | null {
+  let missing = false;
+  const out = template.replace(/\{(\w+)\}/g, (_m, name: string) => {
+    if (!(name in fields)) {
+      missing = true;
+      return "";
+    }
+    return fields[name] as string;
+  });
+  return missing ? null : out;
+}
+
+function applyDerive(sources: Sources, schema: ConfigurationSchema, out: Map<string, Resolved>): void {
+  const baseKey = getKey("sandbox_base_url");
+  if (!baseKey) throw new Error("config registry has no 'sandbox_base_url' key");
+  if (schema.inherit.has("sandbox_base_url")) {
+    const explicit = resolveKey(
+      baseKey,
+      { overrides: sources.overrides ?? {}, environ: sources.environ ?? {} },
+      { scopedFor: schema.provider_id, useDefault: false },
+    );
+    if (explicit !== null) return;
+  }
+  for (const [keyName, template] of Object.entries(schema.derive)) {
+    const current = out.get(keyName);
+    if (current !== undefined && current.layer !== "default") continue;
+    const fields: Record<string, string> = {};
+    for (const [k, v] of out) if (v.layer !== "default") fields[k] = String(v.value);
+    const value = pyFormatTemplate(template, fields);
+    if (value === null) continue;
+    out.set(keyName, { key: keyName, value, layer: "derived", name: "", layer_index: 0 });
+  }
+}
+
+/** Resolve all applicable fields without filesystem access or Provider implementation imports. */
+export function resolveConfiguration(sources: Sources, schema: ConfigurationSchema): Map<string, Resolved> {
+  const out = new Map<string, Resolved>();
+  const pid = schema.provider_id;
+  for (const key of CORE_KEYS) {
+    if (key.key === "provider") continue;
+    const generic = GENERIC_ENDPOINT_KEYS.includes(key.key);
+    if (generic && !schema.inherit.has(key.key)) continue;
+    let res = resolveKey(key, sources, { scopedFor: generic ? pid : null, useDefault: !generic });
+    if (res === null && key.key in schema.endpoint_defaults) {
+      res = { key: key.key, value: schema.endpoint_defaults[key.key], layer: "default", name: "", layer_index: 0 };
+    }
+    if (res !== null) out.set(key.key, res);
+  }
+  for (const key of schema.keys) {
+    const res = resolveKey(key, sources);
+    if (res !== null) out.set(key.key, res);
+    else out.delete(key.key); // An absent Provider-owned field cannot borrow a same-named core default.
+  }
+  if (Object.keys(schema.derive).length > 0) applyDerive(sources, schema, out);
+  return out;
 }

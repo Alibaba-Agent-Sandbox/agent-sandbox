@@ -1,5 +1,16 @@
 # 配置引导
 
+## 初始化、查找并创建
+
+安装后运行 `abx config init`。向导会说明所选 Provider 的凭证去哪里获取，并保存填写的值。缺少应用访问令牌时会生成并保存，已有令牌会保留。选择 **Find and launch a template**，按名称或用途搜索，再选择模板。实际构建还缺哪些值，会在同一次操作里补齐，然后才开始云端工作。创建成功会显示沙箱信息、应用命令和清理方法。
+
+也可以直接运行不带引用的 `abx template launch` 打开同一个选择器，或用 `abx template launch opencode` 选择已知目录条目。自动化须先提供模板引用和所需值，再使用 `--yes`；不会打开选择器。
+
+`server_token` 是 CLI 自有配置键，以 `ABX_SERVER_TOKEN` 存在受保护的用户 dotenv 文件中。模板创建、应用验证和后续 `abx run` 使用同一个值；修改时运行 `abx config set server_token` 隐藏输入。没有声明应用令牌的模板不受影响。只有模板声明且默认值为空的模型输入才能继承 CLI 已保存的模型配置，显式运行时值和模板默认值仍然优先。
+
+Python SDK 是库，通过参数以及已支持的环境变量、dotenv 和配置来源取值。它不运行这个向导，不询问缺项，也没有新增 SDK 初始化命令。
+
+
 执行操作前，`abx` 会根据所选 Provider 和本次构建或执行计划检查配置。交互终端中可以就地补齐缺失值，再继续本次操作。权限、配额、网络故障或不支持的能力仍会给出对应诊断，不会统一当成缺少 API Key。
 
 完整字段和优先级见[配置参考](../reference/configuration.md)、[认证配置](authentication.md)和[Providers 指南](providers.md)。标准与原生命令入口的边界见[迁移指南](migrate-from-e2b.md)。

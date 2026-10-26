@@ -38,7 +38,9 @@ Each key has one name. Product settings use `ABX_<KEY>`. A vendor that already p
 | Region | `region` | `ALIBABA_CLOUD_REGION_ID` |
 | Alibaba Cloud AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
 | ACR namespace / password | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
-| GitHub token | `github_token` | `GITHUB_TOKEN` |
+| Application access token | `server_token` | `ABX_SERVER_TOKEN` |
+| GitHub token | `server_token` | `ABX_SERVER_TOKEN` | CLI-only application token, generated during initialization; masked and saved in `~/.abx/.env` |
+| `github_token` | `GITHUB_TOKEN` |
 | LLM API key | `llm_api_key` | `ABX_LLM_API_KEY` |
 | LLM base URL | `llm_base_url` | `ABX_LLM_BASE_URL` |
 | LLM model | `llm_model` | `ABX_LLM_MODEL` |
