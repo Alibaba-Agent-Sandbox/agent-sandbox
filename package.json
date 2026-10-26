@@ -87,7 +87,7 @@
     "vitest": "^5.0.4"
   },
   "optionalDependencies": {
-    "e2b": "2.55.0"
+    "e2b": "2.59.0"
   },
   "overrides": {
     "undici8": "npm:undici@8.12.2"
