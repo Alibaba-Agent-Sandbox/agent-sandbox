@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Shared CLI primitives](notes/proposed/process/2026-10-26-shared-cli-primitives.md) · [verification](evidence/verify/2026-10-26-shared-cli-primitives.md).
+
 ## Current public CLI 0.5.6 — 2026-10-25
 
 [Changelog attribution correction](notes/proposed/process/2026-10-25-environment-changelog-attribution.md) keeps the later environment-guide update under Unreleased Documentation; [verification](evidence/verify/2026-10-25-environment-changelog-attribution.md) preserves its exact text and prior evidence.

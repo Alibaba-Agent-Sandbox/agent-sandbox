@@ -124,34 +124,9 @@ export function pyStrRepr(s: string): string {
   return out + quote;
 }
 
-/** `repr(float)` for the shortest round-trip representation. */
-export function pyFloatRepr(x: number): string {
-  if (Number.isNaN(x)) return "nan";
-  if (x === Infinity) return "inf";
-  if (x === -Infinity) return "-inf";
-  if (x === 0) return Object.is(x, -0) ? "-0.0" : "0.0";
-  const exp = x.toExponential();
-  const m = /^(-?)(\d)(?:\.(\d+))?e([+-]\d+)$/.exec(exp);
-  if (!m) return String(x);
-  const sign = m[1] ?? "";
-  const digits = (m[2] ?? "") + (m[3] ?? "");
-  const e = Number(m[4]);
-  if (e >= -4 && e < 16) {
-    if (e >= 0) {
-      const intPart = digits.length > e + 1 ? digits.slice(0, e + 1) : digits.padEnd(e + 1, "0");
-      const frac = digits.length > e + 1 ? digits.slice(e + 1) : "0";
-      return `${sign}${intPart}.${frac}`;
-    }
-    return `${sign}0.${"0".repeat(-e - 1)}${digits}`;
-  }
-  const mant = digits.length > 1 ? `${digits[0]}.${digits.slice(1)}` : digits;
-  const es = Math.abs(e).toString().padStart(2, "0");
-  return `${sign}${mant}e${e < 0 ? "-" : "+"}${es}`;
-}
+import { PyFloat, pyFloatRepr } from "./_pyformat.js";
 
-import { PyFloat } from "./_pyformat.js";
-
-export { PyFloat };
+export { PyFloat, pyFloatRepr };
 
 /** `str(value)` for the value kinds that occur in option defaults/values. */
 export function pyStr(value: unknown): string {

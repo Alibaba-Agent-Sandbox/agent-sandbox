@@ -22,6 +22,7 @@ import * as path from "node:path";
 import { parseTemplateData } from "../api/capability.js";
 import { AICodegenError } from "../models/errors.js";
 import { getLogger } from "../utils/logging.js";
+import { quoteShellLiteral as quote } from "../utils/shell.js";
 import {
   cmpCodePoint,
   cpSlice,
@@ -664,7 +665,6 @@ function prepareGeneratedSteps(workdir: string, selectedImage?: string): void {
   if (!Array.isArray(dependencies) || dependencies.some((value) => typeof value !== "string" || !value.trim())) {
     throw new AICodegenError("Generated build.run must be an array of dependency commands.", { suggestion: hint });
   }
-  const quote = (value: string): string => "'" + value.replaceAll("'", "'\\''") + "'";
   const user = profile.user || "root";
   const destination = profile.workdir;
   const steps: PlatformStep[] = [

@@ -1,12 +1,12 @@
 /** Durable Linux task state lives in the sandbox, independently of the MCP connection. */
 import { randomUUID } from "node:crypto";
+import { quoteShellLiteral as quote } from "../utils/shell.js";
 
 export interface TaskSandbox {
   commands: { run(command: string, options: { shell: boolean; timeout: number }): Promise<unknown> };
 }
 
 const ROOT = "/tmp/.abx-tasks";
-const quote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
 
 // A supervisor owns wait()/exit status; /proc identity prevents signalling a reused PID.
 const SUPERVISOR = `import json,os,signal,subprocess,sys,time
