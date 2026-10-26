@@ -1,7 +1,7 @@
 # Verification: complete template onboarding
 
 - Date: 2026-10-26
-- Result: PARTIAL — final required gates and remote review/CI pending.
+- Result: PASS for scoped onboarding/configuration behavior; remote review/CI and merge checked separately.
 - Change: scoped onboarding/configuration/source/PAX changes on refactor/operation-inputs-20261026, based on bf1bdda02f3a0e553b94c018624a2bc3a134e9e7.
 - Environment: Linux, Node 22.22.2, Python 3.13. CLI 0.5.6 built from candidate source; this is not a public release.
 - Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/189.
@@ -24,7 +24,7 @@ A fresh home can initialize with hidden Sandbox credentials, generate and save a
 - ABX_BIN=<candidate> node e2e/initialized-template.mjs — PASS: real terminal initialization through catalog creation, saved hidden input, generated token, remote execution and independent cleanup.
 - Real managed base launch --yes — PASS, separately deleted and independently queried afterward.
 - ABX_BIN=<candidate> node e2e/initialized-template.mjs --application — PASS against an existing real python-hello template: missing application token prompted and generated, same token injected at creation and reused by a subsequent sandbox command list; independent HTTP 404 cleanup confirmed.
-- Final new behavior regressions: 13 scenarios, including exact-name priority and saved declared model configuration. Final full suite is rerun with the exact reviewed SDK/provider CI dependencies.
+- Final full suite with exact reviewed SDK 8e610a3658040d8d6973e7951f9590ea50a4d70a/provider 126a50e3c4e4c6792019b9c96674d35a9518d8ad dependencies — PASS: 204 files, 4550 passed, 2 conditional skips. Includes all 13 new behavior scenarios (exact-name ordering and saved declared model configuration included).
 - bash scripts/check-repo-health.sh --quiet — PASS (105 pass, 11 baseline warnings, 0 failures).
 - npm run check:hygiene — PASS.
 
@@ -40,4 +40,4 @@ Two optional catalog-plugin cases hit an ambient external network route in a con
 
 ## Not verified
 
-Full source-template Docker/ACR builds are blocked by missing Docker in this runner. A managed base receipt does not certify all source templates, models, providers or a public package publication. Application-service cloud verification passed as described above. Remote review/CI and the final full run must pass before review readiness; no pending check is a pass.
+Full source-template Docker/ACR builds are blocked by missing Docker in this runner. A managed base receipt does not certify all source templates, models, providers or a public package publication. Application-service cloud verification passed as described above. Remote review/CI must pass before merge; no pending check is a pass.
