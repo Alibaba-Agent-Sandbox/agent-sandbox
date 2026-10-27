@@ -8,7 +8,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -36,7 +36,6 @@ import { useIso } from "../_support/iso.js";
 import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 
 const iso = useIso();
-const here = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN = catalogDir("alicloud-container");
 const haveCatalog = fs.existsSync(path.join(PLUGIN, "abx-provider.toml"));
 

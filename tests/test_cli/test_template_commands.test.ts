@@ -25,20 +25,7 @@ import { TemplateBuildError } from "../../src/models/errors.js";
 import { UsageError } from "../../src/cli/errors.js";
 import { RegistryClient } from "../../src/utils/registry.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import {
-  delenv,
-  fakeConfig,
-  httpError,
-  mockHttp,
-  patchLoadConfig,
-  patchOfficialApi,
-  patchTransport,
-  setenv,
-  spyAny,
-  useMockBuilder,
-  useTmpPath,
-  writeText,
-} from "../helpers/templateSupport.js";
+import { delenv, fakeConfig, mockHttp, patchLoadConfig, patchOfficialApi, patchTransport, setenv, spyAny, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
 import { useCapsys } from "./conftest.js";
 
 const runner = (): CliRunner => new CliRunner();

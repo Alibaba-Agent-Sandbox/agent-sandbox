@@ -60,7 +60,7 @@ import { files } from "./sandbox_files.js";
 import { process as process_ } from "./sandbox_process.js";
 import { capabilities, system } from "./sandbox_system.js";
 
-const _log = getLogger("cli.commands.sandbox");
+getLogger("cli.commands.sandbox");
 
 /** Patch points (the TypeScript counterparts of the module attributes the Python tests monkeypatch). */
 export const sandboxSeams: {

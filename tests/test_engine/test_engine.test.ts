@@ -6,7 +6,6 @@ import { Sandbox } from "../../src/api/sandbox.js";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
@@ -27,8 +26,7 @@ import { SandboxProtocol } from "../../src/providers/shared/e2b/sandbox.js";
 import { EnvdTokenManager } from "../../src/providers/shared/e2b/auth.js";
 import { TerminalSession } from "../../src/providers/shared/e2b/terminal.js";
 
-const iso = useIso();
-const here = path.dirname(fileURLToPath(import.meta.url));
+useIso();
 const CUBE = catalogDir("cubesandbox");
 const haveCatalog = fs.existsSync(path.join(CUBE, "abx-provider.toml"));
 

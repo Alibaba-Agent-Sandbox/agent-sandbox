@@ -38,8 +38,6 @@ import {
 } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
-import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { _setProjectEnvFile, resetConfig } from "../../src/transport/config.js";
 import * as transportHttp from "../../src/transport/http.js";
@@ -291,7 +289,6 @@ function _cfg(toml = "", env = "", extraEnv: Record<string, string> = {}): MockS
   };
 }
 
-const _makeCfg = (): unknown => ({ api_key: "test-k", access_key_id: null, access_key_secret: null, region: "cn-hangzhou" });
 
 /** `Sandbox.create` -> `sb` (the run_sync value of the create flow). */
 function _create(sb: MockSandbox): MockSetup {

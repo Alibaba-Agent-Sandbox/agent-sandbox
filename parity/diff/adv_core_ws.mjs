@@ -7,7 +7,6 @@
  *
  * Exit 0 identical / 1 diffs / 2 oracle absent (skip). Needs the `ws` package (a runtime dependency of the CLI).
  */
-import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { createServer as createTls } from "node:https";
 import net from "node:net";
@@ -15,13 +14,11 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createHash } from "node:crypto";
 import { WebSocketServer } from "ws";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI_ROOT = join(HERE, "..", "..");
 const ORACLE_VENV = process.env.ORACLE_VENV;
-const ORIG_REPO = process.env.ORIG_REPO;
 if (!ORACLE_VENV || !existsSync(join(ORACLE_VENV, "bin", "python"))) {
   console.log("[adv_core_ws] ORACLE_VENV not set / absent: skipping");
   process.exit(2);
@@ -422,7 +419,6 @@ async function runScenario(s) {
 let todo = S.filter((s) => !FILTER || FILTER.test(s.name));
 if (flag("--list")) { for (const s of S) console.log(s.name); process.exit(0); }
 let diffs = 0, same = 0;
-const CONC = Number(process.env.ADV_WS_CONCURRENCY || 1);
 for (const s of todo) {
   const [py, ts] = await runScenario(s);
   const ident = py.out === ts.out && py.log === ts.log && py.proxy === ts.proxy;

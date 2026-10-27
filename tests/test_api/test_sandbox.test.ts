@@ -12,11 +12,10 @@ import { NetworkModule } from "../../src/api/network.js";
 import { NotImplementedError } from "../../src/utils/_pyerrors.js";
 import { getProvider } from "../../src/providers/registry.js";
 import { Sandbox } from "../../src/api/sandbox.js";
-import { CommandNotFoundError, ConnectionError_ } from "../../src/models/errors.js";
+import { CommandNotFoundError } from "../../src/models/errors.js";
 import { CodeResult } from "../../src/models/process.js";
 import { SandboxConfig, SandboxInfo, SandboxStatus } from "../../src/models/sandbox.js";
 import { TerminalSession } from "../../src/providers/shared/e2b/terminal.js";
-import { ConnectError, JSONDecodeError } from "../../src/transport/_httpx.js";
 import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import { TransportConfig } from "../../src/transport/config.js";
 import {

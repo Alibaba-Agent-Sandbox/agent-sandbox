@@ -3,7 +3,6 @@ import { providerNetwork } from "../helpers/networkSupport.js";
 
 import { describe, expect, it } from "vitest";
 
-import { NetworkModule } from "../../src/api/network.js";
 import { TEST_ENVD_TOKEN, TEST_SANDBOX_ID, makeNetworkModule } from "./conftest.js";
 
 const DOMAIN = "cn-hangzhou.e2b.fc.aliyuncs.com";

@@ -15,8 +15,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { _doDeploy, templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import { unifiedDiff } from "../../src/cli/commands/_adopt.js";
 import { cli } from "../../src/cli/main.js";
-import { CliError } from "../../src/cli/errors.js";
-import { DockerBuilder } from "../../src/providers/alicloud_express/docker_builder.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { fakeConfig, mockHttp, patchLoadConfig, patchTransport, setenv, spyAny, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
 

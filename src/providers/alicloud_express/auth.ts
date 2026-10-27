@@ -2,7 +2,7 @@
 import { InvalidAPIKeyError } from "../../models/errors.js";
 import { CREDENTIAL_ENV_SUGGESTION } from "./credential_names.js";
 import { getLogger } from "../../utils/logging.js";
-import { ApiKeyAuth, PLATFORM_AUTH_HEADER, type AuthProvider } from "../../transport/auth_contract.js";
+import { ApiKeyAuth, type AuthProvider } from "../../transport/auth_contract.js";
 export { ApiKeyAuth, PLATFORM_AUTH_HEADER, type AuthProvider } from "../../transport/auth_contract.js";
 export * from "../shared/e2b/auth.js";
 const logger = getLogger("transport.auth");

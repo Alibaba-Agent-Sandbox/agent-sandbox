@@ -261,3 +261,8 @@ The Python SDK, the in-sandbox server runtime and the shared `template.yaml` con
 
 
 Provider composition after the main integration uses structural core contracts and provider-owned session, port and file URL adapters. Native Express implementations live under providers/alicloud_express and shared/e2b. Retired forwarding imports are removed; the retired Python gRPC engine is absent. The pinned standard migration surface is separate from explicit provider routing, and unavailable backend operations do not gain support from command registration.
+
+
+## Unused-code review
+
+The TypeScript gate checks unused locals and parameters. Cleanup preserves initialization calls and positional callback/constructor contracts. Exported helpers require a consumer and compatibility review; an executable import graph alone does not justify removing deep imports. Generated configuration helpers are maintained through their generator. Retired SDK-port implementations remain removed.

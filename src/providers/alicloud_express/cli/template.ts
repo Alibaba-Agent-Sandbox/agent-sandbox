@@ -18,35 +18,29 @@ export * from "../../../cli/template_catalog.js";
  */
 import fs from "node:fs";
 import nodePath from "node:path";
-import { Argument, Option, argument, getCurrentContext, group, option, type Context } from "../../../cli/kit.js";
-import { Choice, FLOAT, INT, Path as ClickPath } from "../../../cli/types.js";
+import { getCurrentContext, group, type Context } from "../../../cli/kit.js";
 import { CliError, UsageError, sysExit } from "../../../cli/errors.js";
 import { echo, sys } from "../../../cli/io.js";
-import { confirm, prompt } from "../../../cli/prompts.js";
+import { confirm } from "../../../cli/prompts.js";
 import { isatty } from "../../../cli/io.js";
 import { cleandoc } from "../../../utils/_py.js";
 import { EXIT_NOT_FOUND, handleErrors } from "../../../cli/error_handler.js";
 import { getFormatter } from "../../../cli/formatters.js";
 import { requireTemplateFeature } from "./selection.js";
 import { enableVerbose, getOutput, isCiEnv } from "../../../cli/output.js";
-import { regionOption } from "../../../cli/region.js";
 import { ACRConfig, DockerBuilder, contextHasPinnedServerRequirement, dockerBuildxAvailable } from "../docker_builder.js";
 import { cacheDeployedTemplate } from "../../../api/capability.js";
 import * as fcTemplate from "../fc_template.js";
 import { formatFixed0, homeDir, which } from "../../../agent/_pycompat.js";
-import { ACRLoginError, DockerBuildError, NetworkError, TemplateBuildError, TemplateNotFoundError } from "../../../models/errors.js";
+import { ACRLoginError, NetworkError, TemplateBuildError, TemplateNotFoundError } from "../../../models/errors.js";
 import { AKSK_ENV_SUGGESTION } from "../credential_names.js";
-import { createAuthProvider } from "../auth.js";
 import { loadConfig } from "../../../transport/config.js";
-import { HttpClient } from "../../../transport/http.js";
-import { HTTPStatusError } from "../../../transport/_httpx.js";
 import { dotenvValues } from "../../../utils/_dotenv.js";
 import { pyRepr, pyStr, pyTruthy } from "../../../utils/_pyformat.js";
 import { AttributeError, OSError, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, pyTypeNameOf, readTextPy } from "../../../utils/_pyos.js";
 import { loadYaml as yamlSafeLoad } from "../../../utils/yaml_io.js";
 import * as registryMod from "../../../utils/registry.js";
 import { BUILTIN_TEMPLATES, RegistryClient, loadTemplateFromYaml } from "../../../utils/registry.js";
-import { fetchIndex } from "../../../utils/template_index.js";
 import { resolveTemplateProfile, type TemplateProfile } from "../../template_profile.js";
 import { BuildModeError, commandWithStepEnvironment, resolveBuildPlan, type BuildPlan } from "../../../template/build_plan.js";
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -541,7 +535,7 @@ interface RunReportedDeployOptions {
 
 /** Build, push, and register, streaming tool output through `reporter`. */
 async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployOptions): Promise<Record<string, Any>> {
-    const { out, config, template_dir, acr, template_name, region, tag, platform, start_cmd, ready_cmd, timeout, dockerfile } = o;
+    const { out, template_dir, acr, template_name, region, tag, platform, start_cmd, ready_cmd, timeout, dockerfile } = o;
     if ((start_cmd || ready_cmd) && o.resolved_generation !== 2) {
         // Diagnostic channel: rendered once on stderr, suppressed by --quiet/--ci/--json instead of bypassing the output
         // manager.
@@ -556,7 +550,6 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
     let buildId: string;
     let acrRef: string;
     let buildStatus: string;
-    let buildLogs: string[];
     {
         const localIntent = await o.journal?.intent({ kind: "image", correlation_key: `${acr.repo}:${tag}`, cleanup: "manual" });
         const localTag = await templateSeams._buildImage(template_dir, {
@@ -652,7 +645,6 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         const finalStatus = pyTruthy(finalData["status"]) ? finalData["status"] : {};
         buildStatus = _isDict(finalStatus) ? pyStr(finalStatus["state"] ?? "unknown").toLowerCase() : pyStr(finalStatus).toLowerCase();
         buildId = "";
-        buildLogs = [];
     }
     return {
         TemplateID: templateId || "N/A",

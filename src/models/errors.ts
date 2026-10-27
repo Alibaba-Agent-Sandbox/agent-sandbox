@@ -22,7 +22,7 @@
  *  - `to_dict()` -> `toDict()`.
  */
 
-import { pyStrRepr, pySorted } from "../utils/_pyformat.js";
+import { pyStrRepr } from "../utils/_pyformat.js";
 
 export interface SandboxErrorOptions {
   code?: string | null;

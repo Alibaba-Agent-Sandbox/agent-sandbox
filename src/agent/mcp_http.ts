@@ -30,7 +30,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
 
-import { ExcInfo, getLogger } from "../utils/logging.js";
+import { getLogger } from "../utils/logging.js";
 import {
   ValueError,
   isDict,

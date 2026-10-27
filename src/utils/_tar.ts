@@ -105,7 +105,6 @@ function calcChecksums(block: Buffer): [number, number] {
 
 
 
-class HeaderEOF extends Error {}
 
 export class TarArchive {
   private members: TarInfo[] | null = null;

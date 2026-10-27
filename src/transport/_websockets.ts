@@ -713,7 +713,7 @@ class PerMessageDeflate {
   private decodeContData = false;
   constructor(
     private readonly remoteNoContextTakeover: boolean,
-    private readonly localNoContextTakeover: boolean,
+    _localNoContextTakeover: boolean,
     private readonly remoteMaxWindowBits: number,
     private readonly localMaxWindowBits: number,
   ) {}
@@ -1482,7 +1482,6 @@ export class Connection {
   async sendContext(fn: () => void, expected = OPEN): Promise<void> {
     let waitForClose = false;
     let raiseCloseExc = false;
-    let originalExc: unknown = null;
     if (this.protocol.state === expected) {
       let failed = false;
       try {
@@ -1491,7 +1490,6 @@ export class Connection {
         if (exc instanceof ProtocolError) throw exc;
         logger.error("unexpected internal error %s", String(exc));
         raiseCloseExc = true;
-        originalExc = exc;
         failed = true;
       }
       if (!failed) {
@@ -1504,7 +1502,6 @@ export class Connection {
         } catch (exc) {
           waitForClose = false;
           raiseCloseExc = true;
-          originalExc = exc;
         }
       }
     } else {
@@ -1517,7 +1514,6 @@ export class Connection {
         if (this.closeDeadline === null) await this.connectionLost;
         else await withTimeout(this.connectionLost, this.closeDeadline - Date.now(), () => new PyTimeoutError("timed out while closing connection"));
       } catch (exc) {
-        originalExc = exc;
         raiseCloseExc = true;
         this.recvExc ??= exc;
       }

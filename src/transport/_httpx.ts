@@ -24,7 +24,6 @@ import * as http2 from "node:http2";
 import * as https from "node:https";
 import * as net from "node:net";
 import * as tls from "node:tls";
-import * as zlib from "node:zlib";
 import { randomBytes } from "node:crypto";
 import { stdGetLogger } from "../utils/logging.js";
 import { ValueError } from "../models/value_error.js";
@@ -1327,7 +1326,6 @@ export class NodeTransport implements AsyncBaseTransport {
   private readonly tlsTrust: TlsTrust;
   private readonly h2Sessions = new Map<string, http2.ClientHttp2Session>();
   private readonly h1Origins = new Set<string>();
-  private closed = false;
 
   constructor(opts: NodeTransportOptions = {}) {
     this.http2Enabled = opts.http2 ?? false;
@@ -1346,7 +1344,6 @@ export class NodeTransport implements AsyncBaseTransport {
   }
 
   async aclose(): Promise<void> {
-    this.closed = true;
     this.httpAgent.destroy();
     this.httpsAgent.destroy();
     for (const s of this.h2Sessions.values()) {

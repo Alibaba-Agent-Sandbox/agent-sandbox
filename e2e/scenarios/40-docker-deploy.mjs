@@ -1,7 +1,6 @@
 // Template build/deploy pipeline: local docker build -> ACR push -> official CreateTemplate -> sandbox.
 // Opt-in (ABX_E2E_DOCKER=1): needs a working docker daemon AND an ACR path with usable upload
 // bandwidth; creates (and deletes) real cloud resources.
-import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const TPL = `e2e-cli-${Math.random().toString(16).slice(2, 8)}`;

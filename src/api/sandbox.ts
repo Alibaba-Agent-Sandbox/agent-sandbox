@@ -22,7 +22,7 @@ import { cliOptions, cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, registerProvider, resolveProviderId } from "../providers/registry.js";
 import { providerEnvName } from "../utils/config_keys.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
-import { CodeResult, CommandResult, ProcessResult, type ProcessChunk } from "../models/process.js";
+import { CodeResult, CommandResult } from "../models/process.js";
 import { SandboxConfig, SandboxInfo, validateVolumeMounts, type SandboxStatus } from "../models/sandbox.js";
 import type { CodeInterpreterProtocol } from "../protocol/contracts.js";
 import type { FilesystemProtocol } from "../protocol/contracts.js";
@@ -32,9 +32,8 @@ import type { TerminalSession } from "../protocol/contracts.js";
 import type { AuthProvider, DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { TransportConfig } from "../transport/config.js";
 import { HttpClient, RequestError } from "../transport/http.js";
-import type { StreamReader } from "../transport/streaming.js";
 import { ExcInfo, getLogger } from "../utils/logging.js";
-import { PyFloat, pyRepr, pySorted, pyStr, pyStrip, pyTruthy } from "../utils/_pyformat.js";
+import { PyFloat, pyRepr, pyStr, pyTruthy } from "../utils/_pyformat.js";
 import { AttributeError } from "../utils/_pyos.js";
 import { NotImplementedError, RuntimeError, ValueError, dictGet, pyExcStr, pyTypeName } from "../utils/_pyerrors.js";
 import { CodeContextModule } from "./code.js";
@@ -252,10 +251,6 @@ export interface RunCodeOptions {
   on_result?: ((r: any) => void) | null;
 }
 
-interface EnvdClientLike {
-  post(url: string, opts: { json?: unknown; headers?: Record<string, string> }): Promise<HttpResponseLike>;
-  get(url: string, opts: { headers?: Record<string, string> }): Promise<HttpResponseLike>;
-}
 
 interface HttpResponseLike {
   is_success: boolean;
@@ -473,7 +468,6 @@ export class Sandbox {
       disk = null,
       gpu = null,
       description = null,
-      secure = true,
       api_key = null,
       api_url = null,
       domain = null,
@@ -855,13 +849,6 @@ export class Sandbox {
     if (sb._http_client instanceof InfraCloser && typeof (sb._http_client.httpClient as { _createEnvdClient?: unknown } | null)?._createEnvdClient !== "function") {
       throw new ProviderFeatureNotSupportedError(sb._provider_id, feature);
     }
-  }
-
-  private _envdClientFactory(feature: string): (url: string) => EnvdClientLike {
-    Sandbox._requireHttpDataPlane(this, feature);
-    const hc = this._http_client instanceof InfraCloser ? this._http_client.httpClient : this._http_client;
-    const factory = (hc as unknown as { _createEnvdClient: (u: string) => EnvdClientLike })._createEnvdClient;
-    return (url) => factory.call(hc, url);
   }
 
   private _serverUnreachable(server_port: number, cause: unknown): ConnectionError_ {

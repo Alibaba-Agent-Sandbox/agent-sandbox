@@ -1,7 +1,7 @@
 // Shared runner for the adv_commands_* differential fuzzers (oracle `abx` vs Node `abx`).
 // Needs ORACLE_VENV; Node side runs src/bin/abx.ts through tsx. One private stub per run; HOME/cwd isolated.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -155,13 +155,11 @@ export async function runAll(cases, { jobs = 6, verbose = true, only = null, har
   const root = scratchRoot();
   const allow = createAllowList(harness);
   const sel = cases.filter((c) => !only || c.name.includes(only));
-  let n = 0;
   const diffs = [];
   await pool(sel, jobs, async (c) => {
     const py = await runKind("py", c, root);
     const node = await runKind("node", c, root);
     const d = compare(py, node);
-    n++;
     if (d.length && allow.judgeResults(c.name, py, node).allowed) { if (verbose) console.log(`ALLOWED ${c.name} (SDK defect fix, parity/sdk-defect-fixes.md)`); }
     else if (d.length) { diffs.push({ name: c.name, argv: typeof c.argv === "function" ? "<fn>" : c.argv, d }); if (verbose) console.log(`DIFF ${c.name}  argv=${JSON.stringify(typeof c.argv === "function" ? "<fn>" : c.argv)}\n  ${d.join("\n  ")}`); }
   });

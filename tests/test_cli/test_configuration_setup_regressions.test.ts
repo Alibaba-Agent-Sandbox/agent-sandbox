@@ -17,7 +17,6 @@ import { assertConfigFilesReadable, assertConfigValuesValid } from "../../src/ut
 import { dotenvValues } from "../../src/utils/_dotenv.js";
 import { Provider, type ProviderInfra } from "../../src/providers/base.js";
 import { registerProvider } from "../../src/providers/registry.js";
-import { ConfigurationCleanupError } from "../../src/cli/commands/_config_providers.js";
 import { setEnvValue } from "../../src/providers/settings.js";
 
 vi.mock("node:fs", async (importOriginal) => {

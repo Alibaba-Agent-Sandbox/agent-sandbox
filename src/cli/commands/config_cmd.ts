@@ -261,13 +261,6 @@ function _asciiDigits(text: string): string {
 /** Python `float(text)` for a string; `null` where it raises `ValueError`. */
 const _pyFloatParse = (text: string): number | null => pyFloatParse(_asciiDigits(text));
 
-/** Python `int(text)` (decimal digits, optional sign/underscores/whitespace); `null` where it raises `ValueError`. */
-function _pyIntParse(text: string): number | bigint | null {
-  const t = _asciiDigits(pyStrip(text));
-  if (!/^[+-]?[0-9]+(?:_[0-9]+)*$/.test(t)) return null;
-  const big = BigInt(t.replace(/_/g, ""));
-  return big >= BigInt(Number.MIN_SAFE_INTEGER) && big <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(big) : big;
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Full-config read/write
@@ -449,10 +442,6 @@ function _canonicalizeKey(key: string): string {
   return key;
 }
 
-/** The name echoed in `Set ...` lines: the canonical key as typed. */
-function _echoName(typed: string, canonical: string): string {
-  return typed;
-}
 
 /** `extras` reads `~/.abx` through `config_layers.paths`; follow the seams when tests (or callers) moved them. */
 function _syncPaths(): void {
@@ -479,7 +468,7 @@ function _extraFor(typed: string, canonical: string): extras.ExtraTarget | null 
     });
   }
   if (_ALLOWED_KEYS.has(canonical)) {
-    return extras.coreTarget(canonical, _echoName(typed, canonical));
+    return extras.coreTarget(canonical, typed);
   }
   return extras.resolveExtraKey(typed);
 }
@@ -717,7 +706,7 @@ export const set_value = command("set", {
 
     const typedKey = key;
     key = _canonicalizeKey(key);
-    const echoKey = _echoName(typedKey, key);
+    const echoKey = typedKey;
 
     const extra = _extraFor(typedKey, key);
     if (extra !== null) {
@@ -843,7 +832,7 @@ export const delete_value = command("delete", {
       return;
     }
     if (!_ALLOWED_KEYS.has(key)) return _rejectUnknownKey(fmt, key);
-    _clearStoredValue(fmt, key, _echoName(typedKey, key));
+    _clearStoredValue(fmt, key, typedKey);
   }),
 });
 

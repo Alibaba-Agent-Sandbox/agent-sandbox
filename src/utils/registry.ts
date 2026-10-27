@@ -8,8 +8,8 @@ import { GitHubRateLimitError, NetworkError, SandboxError, TemplateNotFoundError
 import { ValueError } from "../models/value_error.js";
 import { SandboxTemplate, TemplateRef } from "../models/template.js";
 import { asyncWith, HTTPStatusError, httpx } from "../transport/_httpx.js";
-import { PyFloat, pyStripChars } from "./_pyformat.js";
-import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, readTextPy, toOSError } from "./_pyos.js";
+import { pyStripChars } from "./_pyformat.js";
+import { isDir, mkdirParents, pathExists, pyJoin, pyResolve, readTextPy, toOSError } from "./_pyos.js";
 import { openTarGz } from "./_tar.js";
 import { isMapping, loadYaml } from "./yaml_io.js";
 import { FINE_GRAINED_PAT_URL, rateLimitMessage, rateLimitSuggestion } from "./github_token.js";

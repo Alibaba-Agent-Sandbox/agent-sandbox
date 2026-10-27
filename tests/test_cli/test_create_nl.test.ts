@@ -118,7 +118,6 @@ function _makeCodegenResult(tmpPath: string, name = "abx-nl-sandbox-abc123"): Co
 let tmp = "";
 let savedCwd = "";
 let qwen: { binary: string; workdir: string; research: Mock; prepareWorkdir: Mock };
-let deployMock: Mock | null = null;
 
 const savedSeams = {
   qwen: { ...qwenCode.seams },
@@ -138,7 +137,6 @@ beforeEach(() => {
   savedCwd = process.cwd();
   process.chdir(tmp);
   cfg.writeEnvVar.mockReset();
-  deployMock = null;
 
   const binary = path.join(tmp, "qwen");
   fs.writeFileSync(binary, "#!/bin/sh\n", "utf-8");
@@ -196,7 +194,6 @@ function _patchSuccessPipeline(tmpPath: string, opts: { template_id?: string } =
   vi.spyOn(template, "withDeployConfiguration").mockImplementation(async (_directory, _options, action) => action());
   vi.spyOn(CLI_EXTENSION, "stageProject").mockImplementation(async (directory) => ({ directory, digest: "sha256:test-generated-source", verify: async () => undefined, close: async () => undefined }));
   codegen.seams.generateTemplateFiles = genMock as unknown as typeof codegen.seams.generateTemplateFiles;
-  deployMock = deploy as unknown as Mock;
   return [gen, genMock, deploy as unknown as Mock];
 }
 
