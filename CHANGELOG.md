@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Update bilingual installation/tutorial examples to CLI 0.5.7 and record formal distribution, public-source journeys and website delivery separately from candidate evidence. / 双语安装与教程示例更新为 CLI 0.5.7，正式发行、公开包源码流程与官网交付分别记录，保留候选版历史证据。
+
 ## [0.5.7] - 2026-10-27
 
 ### Changed

@@ -1,6 +1,6 @@
 # Decision: Preserve safe template preparation diagnostics in CLI 0.5.7
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -41,3 +41,7 @@ Regression tests cover controlled diagnoses, network-priority classification, un
 
 - [Verification](../../../evidence/verify/2026-10-27-template-build-diagnostics.md).
 - [Issue 197](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/197).
+
+## Implementation
+
+CLI 0.5.7 is public on GitHub, official npm and the website mirror. The [publication and independent public-consumption receipt](../../../evidence/verify/2026-10-27-cli-057-publication.md) records final source/platform gates, exact artifact identity, real Express source reruns and cleanup. Candidate evidence is immutable. Optional model inputs remain explicit environment/configuration inputs; no SDK configuration command was added.

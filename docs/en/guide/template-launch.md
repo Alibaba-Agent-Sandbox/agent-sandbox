@@ -1,6 +1,6 @@
 # Launch a template
 
-Use CLI 0.5.6 or newer with the current spec v5 templates. Upgrade the CLI and template catalog together.
+Use CLI 0.5.7 or newer with the current spec v5 templates. Upgrade the CLI and template catalog together.
 
 CLI 0.5.6 includes native entries from the public catalog. Use `abx --provider alicloud-express template launch base --yes` to launch the built-in Express template. Source templates and provider-managed templates share this command; managed templates have no source directory to install.
 

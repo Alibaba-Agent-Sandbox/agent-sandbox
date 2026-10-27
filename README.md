@@ -17,7 +17,7 @@ The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; the standard Express command path follows the pinned E2B CLI behavior contract. See [migration](docs/en/guide/migrate-from-e2b.md).
 
 
-Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Use CLI 0.5.6 or newer for the current spec v5 catalog; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
+Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Use CLI 0.5.7 or newer for the current spec v5 catalog; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
 
 For natural-language Express creation with `--build steps`, the CLI assembles provider preparation and final source-file delivery; the model supplies business code and dependency commands. Newly generated applications install server `0.4.0a6` alpha. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
 
@@ -276,7 +276,9 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 
 ## Release readiness
 
-CLI 0.5.6 consumes matched Python client/server 0.4.0a6 across generation, scaffolding and MCP artifacts. Native template info reports definitive official absence as existing typed E2001; network and authorization failures remain distinct. Named-command JSON failures retain their diagnostic in one existing E3000 error object. See the [current validation and publication status](.agents/evidence/verify/2026-10-25-cli-056-publication.md).
+CLI 0.5.7 connects `abx config init` to template discovery and creation. Missing application tokens can be generated in the same command and saved for later calls; source failures retain typed build/registry/platform diagnostics and recovery guidance.
+
+CLI 0.5.7 consumes matched Python client/server 0.4.0a6 across generation, scaffolding and MCP artifacts. Native template info reports definitive official absence as existing typed E2001; network and authorization failures remain distinct. Named-command JSON failures retain their diagnostic in one existing E3000 error object. See the [current validation and publication status](.agents/evidence/verify/2026-10-27-cli-057-publication.md).
 
 Runtime evidence applies to the tested template/provider combination. Published CLI artifacts and managed Express base checks receive separate release evidence; each template documents its own provider requirements and service APIs. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
 

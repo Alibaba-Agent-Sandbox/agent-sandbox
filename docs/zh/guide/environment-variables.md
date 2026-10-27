@@ -2,7 +2,7 @@
 
 [English](../../en/guide/environment-variables.md)
 
-CLI 自身配置与沙箱进程环境是不同输入。项目配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`；固定的标准极速版入口还接受其文档中的 E2B 配置。参见[配置参考](../reference/configuration.md)和[标准迁移指南](migrate-from-e2b.md)。本页针对当前公开 CLI 0.5.6；提供方扩展以所选提供方实际支持的操作为准。
+CLI 自身配置与沙箱进程环境是不同输入。项目配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`；固定的标准极速版入口还接受其文档中的 E2B 配置。参见[配置参考](../reference/configuration.md)和[标准迁移指南](migrate-from-e2b.md)。本页针对当前公开 CLI 0.5.7；提供方扩展以所选提供方实际支持的操作为准。
 
 ## 在启动前配置应用
 
