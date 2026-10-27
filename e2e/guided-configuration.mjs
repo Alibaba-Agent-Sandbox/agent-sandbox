@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         os.execvpe(command[0], command + ['sandbox', 'create', 'code-interpreter-v1', '--detach', '--timeout', '60'], child_env)
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
-    scope_sent = key_sent = False
+    scope_sent = key_sent = method_sent = False
     status = None
     try:
         deadline = time.monotonic() + 90
@@ -49,6 +49,9 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                     raise
                 if not chunk: break
                 output += chunk
+                if not method_sent and b'Choose an authentication method' in output:
+                    os.write(master, b'1\n')
+                    method_sent = True
                 if not scope_sent and b'Configuration scope:' in output:
                     os.write(master, b'1\n')
                     scope_sent = True

@@ -1,0 +1,46 @@
+Usage: abx config init [options]
+
+Guided setup with optional template search and launch (add --build / --llm for
+focused setup).
+
+Choose an existing Sandbox API key, or skip it to configure AK/SK.
+Managed keys need Team-scoped CreateApiKey, DescribeApiKey and UpdateApiKey.
+Creating or renewing a key requires confirmation (or explicit --ci).
+Setup only saves configuration; it never creates a key. Secrets are masked
+and stored in ~/.abx/.env; the region goes to ~/.abx/config.toml.
+
+``--build`` adds the template build & push settings: the ACR namespace
+and the Alibaba Cloud AccessKey pair (needed by ``abx template
+install``, ``build``, ``push`` and ``deploy``).
+
+``--llm`` adds the LLM API key used for template generation
+(``abx create --prompt "<description>"``, ``abx template scaffold --prompt
+"<description>"``).
+
+After basic setup, choose Find and launch a template to search the
+catalog and create without leaving the wizard. Missing build values
+are collected by the same configuration prompts. An application token
+is generated and saved for template launch and abx run.
+
+In non-TTY environments (CI, piped input) the wizard never blocks: it
+prints the equivalent non-interactive ``abx config set ...`` commands
+and exits successfully. ``--yes`` behaves the same way.
+
+Examples:
+  abx config init                 # credentials + region
+  abx config init --build         # ... plus ACR namespace and AccessKey
+  abx config init --llm           # ... plus the LLM API key
+  abx config init --yes           # print non-interactive commands
+
+Related commands:
+  abx config list           Review effective values and sources
+  abx config set KEY VALUE  Set one value directly
+  abx config set KEY ""     Clear one stored value
+
+Options:
+  -y, --yes   Non-interactive: print the equivalent commands instead of
+              prompting
+  --build     Also ask for the selected provider build settings
+  --llm       Also ask for the LLM API key used for template generation
+  -h, --help  Show this message and exit.
+[exit_code:0]

@@ -2,7 +2,7 @@
 
 > Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
 
-Sandbox runtime requests require an **API Key**. **AK/SK (Alibaba Cloud AccessKey)** is configured separately for official control-plane operations.
+Sandbox runtime requests require an **API Key**. **AK/SK (Alibaba Cloud AccessKey)** can explicitly prepare that key for Express, and authenticates native control-plane operations; see [permissions](permissions.md).
 
 > **Historical note**: the `abx auth` CLI command group (`login`/`logout`/`status`/`switch`) was removed before the first stable release (`0.1.0`). Credentials are configured with the environment variables and `abx config set sandbox_api_key` shown below; check the effective state with `abx config list`.
 
@@ -13,7 +13,7 @@ Sandbox runtime requests require an **API Key**. **AK/SK (Alibaba Cloud AccessKe
 Agent Sandbox provides three authentication paths for different scenarios:
 
 - **API Key mode**: The most common approach. Accesses the platform API via the `Authorization: Bearer {api_key}` header. Suitable for personal development, CI/CD, and most other scenarios.
-- **AK/SK control plane**: Used by official template/image/ACR operations. It does not automatically create or exchange a sandbox API key.
+- **AK/SK control plane**: Used by official template/image/ACR operations. It can prepare a managed sandbox API key after confirmation; see [permissions](permissions.md).
 - **envd internal authentication**: After sandbox creation, the CLI communicates with the in-sandbox envd service using `envdAccessToken` (obtained from the creation response). This is an internal mechanism managed automatically — no manual handling required (the headers are described in the SDK documentation linked at the bottom).
 
 ---
@@ -68,32 +68,13 @@ sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 The sandbox API key is stored in `~/.abx/.env` as `ABX_SANDBOX_API_KEY`, not in `config.toml`.
 
 <a id="aksk-alibaba-cloud-extended-authentication-"></a>
-## AK/SK control plane and migration
+## AK/SK managed authentication
 
-The previous automatic AK/SK-to-sandbox-key exchange has been removed. With only
-AccessKey credentials, sandbox authentication now raises `InvalidAPIKeyError`
-(E1001) locally, before any exchange/network request. Configure
-`ABX_SANDBOX_API_KEY` or pass `sandbox_api_key=` / `api_key=` explicitly for
-sandbox create/connect/list and data-plane requests.
+Express can prepare the required sandbox API key using your AccessKey. Configure `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET` and the region. On first use, confirm credential creation in a terminal, or explicitly use `abx --ci sandbox list --format json`. Reuse is read-only; renewal requires fresh confirmation. An unrelated `--yes`, pipe or `CI=true` is not consent.
 
-Keep `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET` and the configured
-region for official template/image and ACR control-plane operations. These
-operations have their own clients and credentials; their supported endpoints
-are unchanged. API key and AccessKey credentials may be configured together for
-a workflow that needs both runtime and template deployment.
+The official credential-resource API replaces the retired guessed RPC exchange. Expiry is an explicit tool-managed 30-day policy; it is not a temporary-token service. Details, exact RAM Actions, Team resource ARN policies and recovery steps are in [features and permissions](permissions.md).
 
-The locked official FCSandbox SDK has a `CreateApiKey` operation, but models it
-as `POST /pop/2026-05-09/api-keys` with a structured `apiKey.apiKeyValue` response.
-That credential-resource API does not establish an STS-style one-hour exchange
-or safe automatic refresh lifecycle. The old guessed RPC GET/signing/parser
-implementation is retired; the runtime never mints credentials implicitly.
-
-The CLI does not expose a custom token-service flag. Programmatic custom auth
-adapters are documented by the [Python SDK](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/authentication.md).
-Direct imports of removed private CLI exchange/signing helpers must migrate to
-an explicitly documented application-owned service.
-
----
+Explicit API keys take precedence. Key rejection, revocation or disabled status never triggers automatic replacement. Help/configuration and credential-method selection do not create cloud resources. Native template/ACR clients remain independent.
 
 ## Configuration Priority Chain
 
@@ -109,7 +90,7 @@ flowchart TD
 
 LLM keys, the GitHub token, and the region use this same chain. A blank or whitespace-only value is skipped. The names and defaults are listed in [Credential resolution](../reference/configuration.md#credential-resolution).
 
-The sandbox API key is never derived from AK/SK. When both are configured, runtime calls use the API key:
+Managed preparation is used only when no explicit key is configured. When both are configured, runtime calls use the explicit API key:
 - If both `sandbox_api_key` and `access_key_id` are provided, API Key is used
 - If both `ABX_SANDBOX_API_KEY` and `ALICLOUD_ACCESS_KEY_ID` are set, `ABX_SANDBOX_API_KEY` is used
 
@@ -187,7 +168,7 @@ abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-va
 [E1002] envdAccessToken not available. Sandbox may not be created or connected.
 ```
 
-**Solution**: Check that the system clock is accurate. The CLI auto-refreshes tokens; if this error persists, the clock skew may be too large.
+**Solution**: Reconnect to obtain a valid envd token. Managed API-key creation and renewal require separate consent; see [permissions](permissions.md).
 
 ---
 

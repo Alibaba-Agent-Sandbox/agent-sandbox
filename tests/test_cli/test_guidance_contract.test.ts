@@ -39,7 +39,8 @@ afterEach(() => { restore(); vi.restoreAllMocks(); });
 
 function answers(...values: string[]): MockInstance<typeof guidanceSeams.ask> {
   const remaining = [...values];
-  return vi.spyOn(guidanceSeams, "ask").mockImplementation(async () => {
+  return vi.spyOn(guidanceSeams, "ask").mockImplementation(async (label, _secret, selection) => {
+    if (label === "Choose an authentication method" && selection?.choices.some(choice => choice.name === "sandbox_api_key")) return "1";
     if (!remaining.length) throw new Error("Unexpected additional configuration question");
     return remaining.shift()!;
   });
@@ -107,7 +108,7 @@ describe("one-operation configuration", () => {
       });
       expect(transport.loadConfig().api_key).toBe("placeholder-api");
     });
-    expect(ask).toHaveBeenCalledTimes(2);
+    expect(ask).toHaveBeenCalledTimes(3);
     unchanged();
   });
 

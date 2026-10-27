@@ -28,7 +28,8 @@ const ctx = () => new Context(command('launch'));
 function answers(...values: string[]) {
   vi.spyOn(guidance, 'canGuideConfiguration').mockReturnValue(true);
   vi.spyOn(guidance.guidanceSeams, 'interactive').mockReturnValue(true);
-  return vi.spyOn(guidance.guidanceSeams, 'ask').mockImplementation(async () => {
+  return vi.spyOn(guidance.guidanceSeams, 'ask').mockImplementation(async (label) => {
+    if (label === 'Choose an authentication method') return '1';
     if (!values.length) throw new Error('Unexpected configuration question');
     return values.shift()!;
   });
@@ -56,7 +57,7 @@ describe('template application setup', () => {
     await executeTemplateLaunch(ctx(),{template_ref:kind==='local'?f.dir:'owner/repo//app'});
     const token=dotenvValues(iso.env).get('ABX_SERVER_TOKEN');
     expect(token).toMatch(/^[a-f0-9]{64}$/);
-    expect(ask).toHaveBeenCalledTimes(4);
+    expect(ask).toHaveBeenCalledTimes(5);
     expect(f.prepare).toHaveBeenCalledOnce();expect(f.create).toHaveBeenCalledOnce();
     expect((f.create.mock.calls[0]![0] as CreateOptions).envs).toEqual({ABX_SERVER_TOKEN:token});
     expect(f.list).toHaveBeenCalledWith(expect.objectContaining({application_token:token}));

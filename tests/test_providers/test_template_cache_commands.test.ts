@@ -40,7 +40,7 @@ describe("Template Cache command discovery", () => {
       expect(command.effect).toBe(command.id.endsWith("create") ? "write" : command.id.endsWith("delete") ? "delete" : "read");
       expect(command.idempotent).toBe(!command.id.endsWith("create"));
     }
-    expect(listProviderCommands("alicloud-express")).toHaveLength(30);
+    expect(listProviderCommands("alicloud-express")).toHaveLength(32);
     expect(loader).not.toHaveBeenCalled();
   });
 

@@ -118,3 +118,7 @@ STDIO server execution never asks configuration questions or consumes JSON-RPC i
 ## Safe continuation
 
 Setup resumes the stage that has not yet started. It keeps the selected Provider, supported original options, generated project files, and known resource references. It does not replay code generation, Docker builds, pushes, template registration, or sandbox creation merely because a later request failed. After a timeout or ambiguous cloud submission, inspect the reported resource and use the existing query commands before retrying. No automatic configuration wizard grants permissions, activates an unavailable service, or proves remote credentials valid just because local fields are complete.
+
+## Express credential choice
+
+Missing runtime credentials offer an existing API key or AK/SK. Skipping the API-key field in `config init` offers missing AccessKey fields. Initialization does not create cloud keys. The first runtime operation separately confirms managed-key creation/renewal; only explicit `--ci` auto-confirms it. [Permissions and examples](permissions.md).

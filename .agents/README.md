@@ -273,3 +273,7 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Exact creation context during MCP verification and rollback](notes/proposed/feature/2026-10-26-create-resource-context.md) · [verification](evidence/verify/2026-10-26-create-resource-context.md).
 
 - [Complete template onboarding](notes/proposed/feature/2026-10-26-complete-template-onboarding.md) · [verification](evidence/verify/2026-10-26-complete-template-onboarding.md).
+
+- [Consented Express managed API keys](notes/implemented/architecture/2026-10-27-managed-api-key.md) · [verification](evidence/verify/2026-10-27-managed-api-key.md).
+
+- [Managed-key supported CI acceptance](evidence/verify/2026-10-27-managed-api-key-ci.md).

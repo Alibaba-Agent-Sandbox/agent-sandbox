@@ -1,5 +1,7 @@
 # abx black-box E2E suite
 
+Run `ABX_BIN=<candidate> node e2e/managed-api-key.mjs` with AK/SK and the Express API URL/domain to verify fresh-home consent denial, explicit `--ci` provisioning, private cross-process reuse, real sandbox execution and confirmed renewal. This creates one owned key and one sandbox; cleanup disables/deletes the key and verifies both resources are absent. The test identity additionally needs `sandbox:DeleteApiKey` for cleanup. See [permissions](../docs/en/guide/permissions.md).
+
 Run `ABX_BIN=<binary> node e2e/template-build-failure.mjs` with local Docker access to verify a real failing Docker instruction, typed E7020, safe diagnostics and the absence of remote submissions. It uses placeholder credentials and creates no cloud resources.
 
 

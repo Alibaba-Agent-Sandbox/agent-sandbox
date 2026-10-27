@@ -25,7 +25,7 @@ async function run(args: string[], env: Record<string, string> = {}, cwd = home)
 }
 
 describe("standard configuration through the shipped entry", () => {
-  it.each(["--json", "--quiet", "--verbose", "--no-color", "--ci", "--log-level=INFO"])(
+  it.each(["--json", "--quiet", "--verbose", "--no-color", "--log-level=INFO"])(
     "rejects native root flag %s instead of selecting native create behavior", async (flag) => {
       const result = await run([flag, "sandbox", "create", "base", "--detach"]);
       expect(result.code).toBe(1);

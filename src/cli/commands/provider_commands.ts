@@ -115,7 +115,8 @@ function operationParams(): Param[] {
 }
 
 async function executeOperation(id: string, descriptor: ProviderCommand, ctx: Context, params: Params): Promise<void> {
-  if (descriptor.effect !== "read" && params["yes"] !== true) {
+  const accepted = params["yes"] === true || ctx.obj?.["ci_explicit"] === true && providerCliExtension(id)?.ciAutoConfirmCommands?.includes(descriptor.id) === true;
+  if (descriptor.effect !== "read" && !accepted) {
     if (!canGuideConfiguration(ctx)) throw new ProviderTrustError(`Command '${descriptor.id}' requires --yes (${descriptor.effect}).`);
   }
   const input = await inputOf(params);
@@ -127,7 +128,8 @@ async function executeOperation(id: string, descriptor: ProviderCommand, ctx: Co
   await withGuidedConfiguration(ctx, { operation: `Provider operation ${descriptor.id}`, provider: id, yes: Boolean(params["yes"]), overrides: options,
     requirements: providerCliExtension(id)?.managementRequirements?.(descriptor.id), validateProvider: id !== "alicloud-express",
   }, async () => {
-    if (descriptor.effect !== "read" && !params["yes"]) await confirm(`Run '${descriptor.id}' (${descriptor.effect}) with provider '${id}'?`, { default: false, abort: true, err: true });
+    if (descriptor.effect !== "read" && !accepted) await confirm(`Run '${descriptor.id}' (${descriptor.effect}) with provider '${id}'?`, { default: false, abort: true, err: true });
+    if (ctx.obj?.["ci_explicit"] === true && providerCliExtension(id)?.ciAutoConfirmCommands?.includes(descriptor.id)) echo(`--ci authorized: ${descriptor.description}`, { err: true });
     getFormatter(ctx).printData(await runProviderCommand(id, descriptor.id, input, options));
   });
 }

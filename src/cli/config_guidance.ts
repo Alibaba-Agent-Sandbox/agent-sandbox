@@ -1,8 +1,8 @@
 /** Project-owned, operation-aware configuration setup. Never retries an executed cloud mutation. */
-import type { Context } from "./kit.js";
+import { getCurrentContext, type Context } from "./kit.js";
 import { Abort, CliError } from "./errors.js";
 import { canPrompt } from "./interaction.js";
-import { prompt, select, type SelectOptions } from "./prompts.js";
+import { confirm, prompt, select, type SelectOptions } from "./prompts.js";
 import { getOutput } from "./output.js";
 import { cliProvider, cliOptions } from "../providers/selection.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
@@ -15,6 +15,7 @@ import { validateConfigValue, authenticationChoices } from "../utils/config_reso
 import { bundledConfig } from "../utils/bundled_config.js";
 import { configurationTargetSummary } from "./config_target.js";
 import { configurationFieldHelp } from "./configuration_help.js";
+import { providerCliExtension } from "./provider_extensions.js";
 
 export interface GuidanceField {
   key: string;
@@ -31,6 +32,7 @@ export interface GuidanceField {
 }
 
 export interface ConfigurationRequest {
+  ci?: boolean;
   operation: string;
   requirements?: readonly (string | GuidanceField)[];
   provider?: string;
@@ -49,6 +51,7 @@ export const guidanceSeams = {
   ask: (label: string, secret: boolean, selection?: SelectOptions<string>): Promise<string> => selection ? select(label, selection) : prompt(label, {
     default: "", show_default: false, hide_input: secret, err: true,
   }) as Promise<string>,
+  confirm: (message: string): Promise<boolean> => confirm(message, { default: false, err: true }),
 };
 
 const aliases: Record<string, string> = { api_key: "sandbox_api_key", api_url: "sandbox_base_url", domain: "sandbox_domain" };
@@ -101,6 +104,27 @@ export async function withGuidedConfiguration<T>(
     const name = canonical(key);
     if (has(value) && !has(configValue(config, name))) values[name] = value;
   }
+  const runtimeAuth = providerCliExtension(provider.id)?.configuration?.runtimeAuthentication;
+  const needsRuntimeAuth = Boolean(runtimeAuth && fields.has(runtimeAuth.key));
+  if (runtimeAuth && needsRuntimeAuth && !has(effective(runtimeAuth.key))) {
+    let group = runtimeAuth.alternatives.find(candidate => candidate.every(key => has(effective(key))));
+    if (!group) {
+      // A partially entered AccessKey pair is completed instead of asking for an unrelated API key.
+      group = runtimeAuth.alternatives.find(candidate => candidate.some(key => has(effective(key))));
+      if (!group) {
+        if (!guidanceSeams.interactive(ctx, request.yes)) throw new CliError(`Missing configuration for ${request.operation}. Configure one authentication method: ${runtimeAuth.alternatives.map(candidate => candidate.join(" + ")).join("; or ")}. Run 'abx config set providers.${provider.id}.${runtimeAuth.key}' in a terminal, or configure the alternative credentials. ${runtimeAuth.help} No cloud operation was submitted.`);
+        getOutput(ctx).info(runtimeAuth.help);
+        const answer = await guidanceSeams.ask("Choose an authentication method", false, {
+          choices: [...runtimeAuth.alternatives.map((candidate, index) => ({ name: candidate.join(" + "), value: String(index + 1) })), { name: "Cancel", value: "" }], default: "1", err: true,
+        });
+        const index = Number(answer || "1") - 1;
+        group = runtimeAuth.alternatives[index];
+        if (!answer || !group) throw new Abort();
+      }
+    }
+    if (!group.includes(runtimeAuth.key)) fields.delete(runtimeAuth.key);
+    for (const key of group) fields.set(key, { key });
+  }
   // Provider-owned required fields and alternative authentication are independent of Express's build plan.
   if (request.validateProvider !== false) {
     for (const field of provider.configFields) if (field.required) fields.set(field.key, { key: field.key, label: field.description, secret: field.secret });
@@ -136,9 +160,13 @@ export async function withGuidedConfiguration<T>(
     provider_options: { ...config.provider_options, ...((overrides["provider_options"] as Record<string, unknown> | undefined) ?? {}),
       ...Object.fromEntries(Object.entries(values).filter(([name]) => keys.has(name) && !bundledConfig(provider.id)?.transportFields.has(name))) },
   });
-  const execute = (): Promise<T> => {
+  const execute = async (): Promise<T> => {
     if (request.validateProvider !== false) provider.validateConfig(loadLayeredConfig({ provider: provider.id }));
-    return action(Object.freeze({ ...values }));
+    if (runtimeAuth && needsRuntimeAuth && !has(effective(runtimeAuth.key))) values[runtimeAuth.key] = await runtimeAuth.resolve(loadLayeredConfig({ provider: provider.id }), {
+      ci: request.ci === true || (ctx ?? getCurrentContext(true))?.obj?.["ci_explicit"] === true,
+      confirm: message => guidanceSeams.interactive(ctx, request.yes) ? guidanceSeams.confirm(message) : Promise.resolve(false),
+    });
+    return withOperationConfig(snapshot(), () => action(Object.freeze({ ...values })));
   };
   if (!missing.length) return withOperationConfig(snapshot(), execute);
   const repairKey = (key: string): string => keys.has(key) || GENERIC_ENDPOINT_KEYS.includes(key) && provider.inherit.has(key)
@@ -161,7 +189,7 @@ export async function withGuidedConfiguration<T>(
     const help = configurationFieldHelp(field.key, provider.id);
     if (help) out.info(help);
   }
-  if (missing.some((f) => f.key === "sandbox_api_key")) out.info("Sandbox API keys create and connect to sandboxes. Alibaba Cloud AccessKeys used for builds do not replace a Sandbox API key.");
+  if (runtimeAuth && needsRuntimeAuth) out.info(runtimeAuth.help);
   const canSave = missing.some(persistable);
   let scope = "1";
   if (canSave) {

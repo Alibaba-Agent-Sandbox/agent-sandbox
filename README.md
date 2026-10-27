@@ -289,3 +289,5 @@ Provider-owned pause/resume and Snapshot commands share one implementation acros
 For native Express template inventory and platform-step acceptance, CLI0.4.1 supports `abx --native` (first global option). See [native deployment operations](docs/en/guide/deploy-and-build.md#explicit-native-express-entry).
 
 Current API / 当前接口: [development contract](docs/en/guide/current-api.md).
+
+[Express authentication and required permissions](docs/en/guide/permissions.md): existing API key or explicitly confirmed AK/SK-managed key.

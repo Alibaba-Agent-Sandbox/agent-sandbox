@@ -313,7 +313,7 @@ describe("TestCreateRouting", () => {
     vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "");
     fakeTty({ codingAgent: true, sandbox: true });
     const answers = ["1", "temporary-sandbox-key", "temporary-access-id", "temporary-access-secret"];
-    vi.spyOn(guidance.guidanceSeams, "ask").mockImplementation(async () => answers.shift() ?? "");
+    vi.spyOn(guidance.guidanceSeams, "ask").mockImplementation(async (label) => label === "Choose an authentication method" ? "1" : answers.shift() ?? "");
     _patchSuccessPipeline(tmp);
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     const create = patchCreate();
