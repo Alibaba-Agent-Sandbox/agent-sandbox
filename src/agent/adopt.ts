@@ -830,12 +830,6 @@ function exposedPorts(dockerfile: string): Set<number> {
   return found;
 }
 
-class PyValueError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ValueError";
-  }
-}
 
 function checkPorts(dockerfile: string, commands: string, data: Record<string, unknown>, warnings: string[]): void {
   const raw = data["ports"];

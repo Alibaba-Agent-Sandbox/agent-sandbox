@@ -2,10 +2,8 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { CodeContextModule } from "../../src/api/code.js";
 import { CodeResult } from "../../src/models/process.js";
 import { HTTPStatusError, Request, Response } from "../../src/transport/_httpx.js";
-import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
 import {
   makeCodeModule,
 } from "./conftest.js";

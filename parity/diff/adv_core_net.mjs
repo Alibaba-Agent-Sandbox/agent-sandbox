@@ -337,7 +337,6 @@ for (const [id, fn] of [
 }
 
 // proxies (apiUrl points to an unresolvable host, the "proxy" is the raw server)
-const PX = (o) => o;
 add("x-http-proxy", { argv: LIST, apiUrl: () => "http://target.invalid:8080", env: (o) => ({ HTTP_PROXY: o }), respond: () => J(200, []) });
 add("x-http-proxy-lower", { argv: LIST, apiUrl: () => "http://target.invalid:8080", env: (o) => ({ http_proxy: o }), respond: () => J(200, []) });
 add("x-http-proxy-both-cases", { argv: LIST, apiUrl: () => "http://target.invalid:8080", env: (o) => ({ http_proxy: o, HTTP_PROXY: "http://127.0.0.1:1" }), respond: () => J(200, []) });

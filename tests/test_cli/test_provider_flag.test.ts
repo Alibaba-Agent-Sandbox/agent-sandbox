@@ -18,7 +18,7 @@ import { useIso } from "../_support/iso.js";
 import { LOCAL_PROCESS, TEST_HOST_VERSION, pythonAvailable } from "../_support/plugins.js";
 import { useCapsys } from "./conftest.js";
 
-const iso = useIso();
+useIso();
 const cap = useCapsys();
 const hasPython = pythonAvailable();
 let tmp = "";

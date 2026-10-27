@@ -257,7 +257,7 @@ add("install: invalid utf-8", {
 });
 add("install: key from ./.env", { argv: ["mcp", "install", "--target", "cursor"], files: { "cwd/.env": "E2B_API_KEY=dotenv-key\n" }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
 add("install: key from ~/.abx/.env", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.abx/.env": "SANDBOX_API_KEY=home-key\n" }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
-add("install: key from config.toml", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.abx/config.toml": '[transport]\napi_key = "toml-key"\n' }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } });
+add("install: key from config.toml", { argv: ["mcp", "install", "--target", "cursor"], files: { "home/.abx/config.toml": '[transport]\napi_key = "toml-key"\n' }, ide: { target: "cursor", file: ".cursor/mcp.json", base: "home" } }); // Synthetic placeholder credential for the local parity stub.
 add("install: blank env key falls through", {
   argv: ["mcp", "install", "--target", "cursor"],
   env: { E2B_API_KEY: "  ", SANDBOX_API_KEY: "second" },
@@ -337,7 +337,7 @@ add("start: stale state is replaced (stdio, EOF)", {
 });
 
 // --- deploy ----------------------------------------------------------------------------------------------------------
-const TOKEN = "fixed-token-value-0123456789";
+const TOKEN = "fixed-token-value-0123456789"; // Synthetic placeholder credential for the local parity stub.
 const tokenFile = { "cwd/token.txt": `${TOKEN}\n` };
 const D = (name, argv, extra = {}) =>
   add(`deploy: ${name}`, { argv: ["mcp", "deploy", "--output-dir", extra.outdirOverride ?? "out", ...argv], deploy: true, ...extra });
@@ -571,14 +571,6 @@ async function stubPlatform(handler) {
   return { server, port: server.address().port, close: () => new Promise((r) => (server.closeAllConnections(), server.close(r))) };
 }
 
-function pidAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 async function jsonrpcSession(impl, name, fn) {
   if (!selected(name)) return;

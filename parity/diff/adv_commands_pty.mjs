@@ -11,7 +11,6 @@ const SB = "sbx-ev-001";
 const cases = [];
 const P = "abx:sbx-ev-0> ";
 const pty = (name, argv, steps, extra = {}) => cases.push({ name, argv, keepAnsi: true, pty: { steps, timeout: 30 }, env: { TERM: "dumb", NO_COLOR: null, ...(extra.env ?? {}) }, ...extra, env2: undefined });
-const replSteps = (...lines) => lines.flatMap((l) => [{ expect: P, send: l }]);
 for (const term of ["dumb", "xterm-256color"]) {
   const env = { TERM: term, NO_COLOR: null };
   const t = (n) => `[${term}] ${n}`;

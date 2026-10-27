@@ -1,6 +1,6 @@
-import { readdirSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { readdirSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { join, basename } from 'node:path';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { E2E_DIR, loadCredentials, hasCloudCredentials, missingCloudCredentials, makeMasker } from './env.mjs';

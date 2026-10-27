@@ -1,4 +1,4 @@
-import { bundledConfig, bundledConfigs, bundledKeys, defaultConfig } from "../utils/bundled_config.js";
+import { bundledConfig, defaultConfig } from "../utils/bundled_config.js";
 import { getOperationConfig } from "../utils/operation_config.js";
 /**
  * Layered configuration with provider selection (port of the layered half of
@@ -14,18 +14,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { ProviderConfigError } from "../models/provider_errors.js";
-import {
-  BUILTIN_PROVIDER_ID,
-  CORE_KEYS,
-  envNames,
-  getKey,
-  type ConfigKey,
-} from "../utils/config_keys.js";
+import { BUILTIN_PROVIDER_ID, CORE_KEYS, getKey, type ConfigKey } from "../utils/config_keys.js";
 import { resolveKey, resolveConfiguration, type Resolved, type Sources } from "../utils/config_resolver.js";
 import { dotenvValues } from "../utils/_dotenv.js";
 import { PyFloat, pyStrip } from "../utils/_pyformat.js";
 import { parseTomlBytes } from "../utils/toml_plain.js";
-import { dumpsToml } from "../utils/toml_write.js";
 import { TransportConfig, clearCachedConfigBytes, readCachedConfigBytes } from "./config.js";
 
 export const ENVD_PORT = 49983;
@@ -52,9 +45,6 @@ export function _resetPaths(): void {
   paths.envFiles = [".env", path.join(dir, ".env")];
 }
 
-function isBlank(v: unknown): boolean {
-  return v === null || v === undefined || (typeof v === "string" && !pyStrip(v));
-}
 
 // ---------------------------------------------------------------------------
 // The resolved configuration object

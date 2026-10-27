@@ -17,7 +17,7 @@ import * as installer from "../../src/providers/installer.js";
 import { useIso } from "../_support/iso.js";
 import { LOCAL_PROCESS, TEST_HOST_VERSION } from "../_support/plugins.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { storagePatch, withConfig } from "../helpers/configSupport.js";
+import { storagePatch } from "../helpers/configSupport.js";
 
 const iso = useIso();
 let undo: () => void = () => undefined;
@@ -30,7 +30,6 @@ beforeEach(() => {
 afterEach(() => undo());
 
 const abx = (...args: string[]) => new CliRunner().invoke(cli, args);
-const json = (text: string): any => JSON.parse(text); // eslint-disable-line @typescript-eslint/no-explicit-any
 const toml = (): string => (fs.existsSync(iso.toml) ? fs.readFileSync(iso.toml, "utf-8") : "");
 const dotenv = (): string => (fs.existsSync(iso.env) ? fs.readFileSync(iso.env, "utf-8") : "");
 

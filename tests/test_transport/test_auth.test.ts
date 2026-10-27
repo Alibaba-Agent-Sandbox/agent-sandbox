@@ -1,13 +1,8 @@
 /** Tests for transport.auth module. */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  InvalidAPIKeyError,
-  InvalidCredentialsError,
-  TokenExchangeError,
-  TokenExpiredError,
-} from "../../src/models/errors.js";
+import { InvalidAPIKeyError, TokenExpiredError } from "../../src/models/errors.js";
 import {
   ApiKeyAuth,
   ENVD_AUTH_HEADER,
@@ -18,26 +13,13 @@ import {
   buildEnvdHeaders as build_envd_headers,
   createAuthProvider as create_auth_provider,
 } from "../../src/providers/alicloud_express/auth.js";
-import { patchHttpxAsyncClient, restoreHttpx } from "../_support/patch.js";
+import { restoreHttpx } from "../_support/patch.js";
 
 afterEach(() => {
   restoreHttpx();
 });
 
-const time = () => Date.now() / 1000;
 
-/** `pytest.raises(cls, match=...)` for async callables. */
-async function expectRaises(fn: () => Promise<unknown>, cls: new (...a: never[]) => Error, match?: RegExp): Promise<Error> {
-  let caught: unknown;
-  try {
-    await fn();
-  } catch (e) {
-    caught = e;
-  }
-  expect(caught, "DID NOT RAISE").toBeInstanceOf(cls);
-  if (match) expect(String((caught as Error).message)).toMatch(match);
-  return caught as Error;
-}
 
 function expectRaisesSync(fn: () => unknown, cls: new (...a: never[]) => Error, match?: RegExp): void {
   let caught: unknown;

@@ -7,7 +7,6 @@ import "../_support/isolatedHome.js";
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -21,7 +20,6 @@ import { type E2BMock, type Seen, startE2BMock } from "../_support/e2b_mock.js";
 import { TEST_HOST_VERSION, catalogDir } from "../_support/plugins.js";
 
 const iso = useIso();
-const here = path.dirname(fileURLToPath(import.meta.url));
 const CATALOG = catalogDir();
 const haveCatalog = fs.existsSync(path.join(CATALOG, "e2b", "abx-provider.toml"));
 

@@ -34,7 +34,6 @@ const NODE_FILE_SUGG = 'Use files\\.list\\(\\) to check available files, or file
 const AUTH_SUGG_PY = 'Check your API key or AK/SK credentials \\(abx config set sandbox_api_key <KEY>\\)\\.';
 const AUTH_SUGG_NODE = 'Check your ABX_SANDBOX_API_KEY environment variable or pass sandbox_api_key\\.';
 const NODE_AUTH_MSG = "The Platform API rejected the API key \\(HTTP 401\\) for /[^\\n:\"]*: it is invalid, revoked or for another region\\.";
-const j = (s) => s.replace(/\n/g, '\\n');
 
 const jsonErr = (message, code, suggestion) => `\\{\\n  "status": "error",\\n  "message": "${message}",\\n  "code": "${code}"${suggestion ? `,\\n  "suggestion": "${suggestion}"` : ''}\\n\\}\\n`;
 

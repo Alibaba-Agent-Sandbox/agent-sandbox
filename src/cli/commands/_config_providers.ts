@@ -12,7 +12,7 @@ import { ProviderConfigError } from "../../models/provider_errors.js";
 import * as registry from "../../providers/registry.js";
 import { cliProvider } from "../../providers/selection.js";
 import { setDefaultProvider, setEnvValue, setTomlValue } from "../../providers/settings.js";
-import { collectSources, loadTomlFile, paths, quietly, readDotenv, resetLayeredConfig, selectProviderId } from "../../transport/config_layers.js";
+import { collectSources, loadTomlFile, paths, readDotenv, resetLayeredConfig, selectProviderId } from "../../transport/config_layers.js";
 import { validateConfigValue, authenticationChoices, resolveKey } from "../../utils/config_resolver.js";
 import { BUILTIN_PROVIDER_ID, getKey, providerEnvName, type ConfigKey } from "../../utils/config_keys.js";
 import * as fs from "node:fs";

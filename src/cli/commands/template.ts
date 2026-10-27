@@ -1,14 +1,12 @@
 import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
-import { getOperationConfig } from "../../utils/operation_config.js";
 import { launchTemplate } from "../template_launch.js";
-import { cleandoc } from "../../utils/_py.js";
 import { confirm } from "../prompts.js";
 /** Provider-neutral template commands. Native UI, authentication and cloud work belong to adapters. */
 import { argument, command, option, type Context, type Param, type Command } from "../kit.js";
 import { handleErrors } from "../error_handler.js";
 import { getFormatter } from "../formatters.js";
 import { getOutput } from "../output.js";
-import { INT, FLOAT, IntRange } from "../types.js";
+import { INT, FLOAT } from "../types.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { getProvider, resolveProviderId } from "../../providers/registry.js";
 import { cliProvider, cliOptions } from "../../providers/selection.js";

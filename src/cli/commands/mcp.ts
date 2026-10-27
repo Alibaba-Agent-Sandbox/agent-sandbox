@@ -26,7 +26,7 @@ import { TOOL_SCHEMAS } from "../../agent/tools.js";
 import { JSONDecodeError, pyJsonLoads } from "../../agent/_py.js";
 import { dumpYaml } from "../../utils/yaml_io.js";
 import { pyPathStr, which } from "../../agent/_pycompat.js";
-import { loadConfig, resetConfig } from "../../transport/config.js";
+import { resetConfig } from "../../transport/config.js";
 import { loadLayeredConfig } from "../../transport/config_layers.js";
 import { getOperationConfig } from "../../utils/operation_config.js";
 import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";

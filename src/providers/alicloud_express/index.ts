@@ -10,7 +10,7 @@ import { createAuthProvider } from "./auth.js";
 import { MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, prepareManagedApiKey, resolveSandboxApiKey } from "./managed_api_key.js";
 import { resolveCapabilities } from "../../api/capability.js";
 import type { SandboxInfo } from "../../models/sandbox.js";
-import { loadConfig, type TransportConfig } from "../../transport/config.js";
+import { type TransportConfig } from "../../transport/config.js";
 import { EnvdTokenManager } from "../shared/e2b/auth.js";
 import { TerminalSession } from "../shared/e2b/terminal.js";
 import { envdUrl } from "../shared/e2b/url.js";

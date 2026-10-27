@@ -5,16 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { configFieldToKey, type ConfigField } from "../../src/providers/base.js";
 import { exitCodeFor, mapError } from "../../src/providers/epp.js";
 import * as store from "../../src/providers/store.js";
-import { ProviderSchema, builtinSchema, readDotenv, resolveAll } from "../../src/transport/config_layers.js";
+import { ProviderSchema, builtinSchema, resolveAll } from "../../src/transport/config_layers.js";
 import { CLI_ONLY_KEYS } from "../../src/utils/cli_config_keys.js";
 import { exportSchema } from "../../src/utils/config_keys.js";
-import { parseTomlText } from "../../src/utils/toml_plain.js";
-import { dumpsToml } from "../../src/utils/toml_write.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.resolve(here, "..", "fixtures");

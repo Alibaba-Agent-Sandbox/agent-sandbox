@@ -7,7 +7,6 @@ import "../_support/isolatedHome.js";
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -25,7 +24,6 @@ import { useCapsys } from "../test_cli/conftest.js";
 
 const iso = useIso();
 const cap = useCapsys();
-const here = path.dirname(fileURLToPath(import.meta.url));
 const CUBE = catalogDir("cubesandbox");
 const haveCatalog = fs.existsSync(path.join(CUBE, "abx-provider.toml"));
 

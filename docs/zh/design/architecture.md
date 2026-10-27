@@ -228,3 +228,8 @@ Python SDK、沙箱内 Server 运行时以及共享的 `template.yaml` 契约记
 
 
 主分支整合后，核心只消费结构化契约，会话、端口和文件 URL 归属所选 Provider。极速版原生实现归属 providers/alicloud_express 与 shared/e2b。旧转发导入已删除，已退役的 Python gRPC 引擎保持删除。固定版本的标准迁移入口与显式 Provider 路由独立；注册命令不会赋予后端缺失的能力。
+
+
+## 未使用代码审查
+
+TypeScript 门禁检查未使用的局部声明和参数。清理时保留初始化调用以及回调、构造函数的参数位置约定。导出 helper 必须同时核对消费者和兼容性，不能仅凭可执行入口图删除深层导入；生成的配置 helper 应从生成器维护。已退役的 SDK 移植实现继续保持移除。

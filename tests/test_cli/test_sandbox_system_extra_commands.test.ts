@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
-import { ProcessChunk, ProcessResult } from "../../src/models/process.js";
+import { ProcessResult } from "../../src/models/process.js";
 import * as httpx from "../../src/transport/_httpx.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
@@ -31,23 +31,6 @@ function _patchConnect(sb: ReturnType<typeof _makeSandbox>) {
   return vi.spyOn(Sandbox, "connect").mockResolvedValue(sb as unknown as Sandbox);
 }
 
-/** Wrap a list of chunks into an async iterator for a streaming-exec mock. */
-class _AsyncIter implements AsyncIterableIterator<ProcessChunk> {
-  private readonly _chunks: ProcessChunk[];
-
-  constructor(chunks: ProcessChunk[]) {
-    this._chunks = [...chunks];
-  }
-
-  [Symbol.asyncIterator](): this {
-    return this;
-  }
-
-  async next(): Promise<IteratorResult<ProcessChunk>> {
-    if (!this._chunks.length) return { done: true, value: undefined };
-    return { done: false, value: this._chunks.shift() as ProcessChunk };
-  }
-}
 
 /** Python `str.splitlines()` for `\n`-terminated text. */
 function _splitlines(text: string): string[] {

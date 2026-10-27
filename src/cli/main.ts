@@ -19,7 +19,6 @@ import { closeOpenInfra, resetActiveProvider } from "../providers/active.js";
 import { addCliOptions, extractProviderFlags, resetCliSelection, setCliProvider } from "../providers/selection.js";
 import { AttributeError } from "../utils/_pyos.js";
 import { injectedPackageVersion } from "../utils/package_version.js";
-import { Abort, Exit, KeyboardInterrupt, SystemExit } from "./errors.js";
 import { OutputFormatter } from "./formatters.js";
 import { type Command, type Context, type LazyEntry, type Params, group, option, runCommand } from "./kit.js";
 import { OUTPUT_META_KEY, OutputManager, isCiEnv } from "./output.js";
@@ -28,7 +27,6 @@ import { Choice } from "./types.js";
 import { GROUP_COMMANDS, SHORTCUTS } from "./command_surface.js";
 import { discoverProviderOperations, providerOperationsSummary } from "./provider_operations.js";
 
-const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Seams

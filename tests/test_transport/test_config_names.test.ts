@@ -1,9 +1,7 @@
 /** Canonical names, legacy/compat aliases, precedence, audit and migration for `loadLayeredConfig` (port of `test_config_names.py`). */
 
-import fs from "node:fs";
-import path from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { Provider } from "../../src/providers/base.js";
 import { ProviderConfigError } from "../../src/models/provider_errors.js";
@@ -14,7 +12,6 @@ import {
   loadLayeredConfig,
   resetLayeredConfig,
 } from "../../src/transport/config_layers.js";
-import { parseTomlText } from "../../src/utils/toml_plain.js";
 import { useIso } from "../_support/iso.js";
 
 class Dummy extends Provider {
