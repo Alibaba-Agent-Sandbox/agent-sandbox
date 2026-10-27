@@ -1,10 +1,14 @@
 # `.agents/` — engineering record of the cli repository
 
-- [Template build diagnostics and 0.5.7 candidate](notes/proposed/feature/2026-10-27-template-build-diagnostics.md) · [verification](evidence/verify/2026-10-27-template-build-diagnostics.md).
+## Current public CLI 0.5.7 — 2026-10-27
+
+[Publication and independent public consumption](evidence/verify/2026-10-27-cli-057-publication.md) records successful five-platform/GitHub/npm gates, all 12 assets, fresh public npm/standalone installation, the original OpenCode command, initialization through python-hello, real model/tool and file checks, owned-resource absence and default website installation. Source builds used an explicitly recorded isolated MTU-1450 Docker worker; optional model inputs were supplied through environment configuration. This does not certify every provider/template combination.
+
+- [Template build diagnostics and 0.5.7 candidate](notes/implemented/feature/2026-10-27-template-build-diagnostics.md) · [verification](evidence/verify/2026-10-27-template-build-diagnostics.md).
 
 - [Shared CLI primitives](notes/proposed/process/2026-10-26-shared-cli-primitives.md) · [verification](evidence/verify/2026-10-26-shared-cli-primitives.md).
 
-## Current public CLI 0.5.6 — 2026-10-25
+## Earlier public CLI 0.5.6 — 2026-10-25
 
 [Changelog attribution correction](notes/proposed/process/2026-10-25-environment-changelog-attribution.md) keeps the later environment-guide update under Unreleased Documentation; [verification](evidence/verify/2026-10-25-environment-changelog-attribution.md) preserves its exact text and prior evidence.
 

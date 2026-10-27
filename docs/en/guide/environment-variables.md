@@ -2,7 +2,7 @@
 
 [中文](../../zh/guide/environment-variables.md)
 
-The CLI's own configuration and a sandbox process's environment are different inputs. Project configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`; the pinned standard Express entry also accepts its documented E2B settings. See [configuration](../reference/configuration.md) and [standard migration](migrate-from-e2b.md). This page describes the current public CLI 0.5.6; provider extensions depend on the selected provider's supported operations.
+The CLI's own configuration and a sandbox process's environment are different inputs. Project configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`; the pinned standard Express entry also accepts its documented E2B settings. See [configuration](../reference/configuration.md) and [standard migration](migrate-from-e2b.md). This page describes the current public CLI 0.5.7; provider extensions depend on the selected provider's supported operations.
 
 ## Configure the application before launch
 
