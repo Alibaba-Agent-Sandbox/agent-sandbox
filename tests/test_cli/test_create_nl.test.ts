@@ -602,7 +602,8 @@ describe("TestConfirmationAndFailures", () => {
 
     const result = await runner().invoke(cli, ["create", "-y", "--prompt", "python env"]);
 
-    expect(result.exit_code).toBe(2);
+    expect(result.exit_code).toBe(1);
+    expect(result.output).toContain("E7020");
     expect(result.output).toContain("recovery journal");
   });
 });

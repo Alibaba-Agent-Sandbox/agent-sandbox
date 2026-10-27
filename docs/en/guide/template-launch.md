@@ -36,3 +36,9 @@ HTTP template APIs, shell execution, PTY sessions and persistent interpreters ar
 ## Application request deadlines
 
 CLI 0.4.17 applies `ABX_HTTP_TIMEOUT` to application discovery, health, command listing and command calls. For example, set `ABX_HTTP_TIMEOUT=330` before running a long application command. This is the wait for each HTTP request; it does not change a template build deadline or cancel work already executing remotely. See [configuration](../reference/configuration.md).
+
+## Source build failures
+
+CLI 0.5.7 preserves Docker build (`E7020`), registry authentication (`E7022`), registry push (`E7021`) and platform template preparation (`E7010`/`E7011`) failures instead of replacing them with a configuration error. Docker failures report a controlled diagnosis for network timeouts, TLS trust, dependency resolution, disk space or Dockerfile parsing. Network evidence takes priority when pip also prints “No matching distribution found” after failed index requests. Raw tool output is omitted from the final error because it may contain credentials.
+
+Check connectivity **inside the Docker build network**, including package-index HTTPS, DNS, proxy, CA trust and MTU. A successful host request does not verify container access. Match Docker network MTU to the actual host network when needed; do not disable TLS verification or change dependency pins to hide a network failure. Inspect the printed resource journal before retrying. `--verbose` streams the build output for an intentional retry; review that output locally because build instructions may print private values. The CLI never automatically replays a failed build/push/register operation.

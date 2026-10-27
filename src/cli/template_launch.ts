@@ -8,7 +8,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { planTemplateLaunch, validateTemplateManifest } from "../template/launch_plan.mjs";
 import { executableContentDigest, providerContentDigest } from "../providers/content_identity.js";
 import { digestDir } from "../providers/store.js";
-import { DockerSetupError, ProjectToolError, stageProject } from "../providers/shared/project.js";
+import { DockerBuildFailure, DockerSetupError, ProjectToolError, stageProject } from "../providers/shared/project.js";
+import { ACRLoginError, ACRPushError, DockerBuildError, TemplateBuildError, TemplateBuildTimeoutError } from "../models/errors.js";
 import { ResourceJournal } from "../template/resource_journal.js";
 import { withTemplateEnvironment, applicationToken } from "./template_environment.js";
 import { pyExpandUser } from "../utils/_pyos.js";
@@ -158,8 +159,16 @@ export async function executeTemplateLaunch(
   } catch (error) {
     // This class contains fixed prerequisite text, never external stderr or credentials.
     if (error instanceof DockerSetupError) throw error;
+    const recovery = ` Inspect recovery journal ${journal.id} before retrying any submitted operation.`;
+    if (error instanceof DockerBuildFailure) throw new DockerBuildError(error.message + recovery, { suggestion: error.suggestion });
+    // Other provider errors may contain arbitrary upstream output. Preserve the typed phase, not the raw message.
+    if (error instanceof DockerBuildError) throw new DockerBuildError("Docker build failed." + recovery);
+    if (error instanceof ACRLoginError) throw new ACRLoginError("Image registry authentication failed." + recovery);
+    if (error instanceof ACRPushError) throw new ACRPushError("Image registry push failed." + recovery);
+    if (error instanceof TemplateBuildTimeoutError) throw new TemplateBuildTimeoutError("Platform template preparation timed out." + recovery);
+    if (error instanceof TemplateBuildError) throw new TemplateBuildError("Platform template preparation failed." + recovery);
     const reason = error instanceof ProjectToolError ? error.message : "Template preparation failed.";
-    throw new ProviderConfigError(`${reason} Inspect recovery journal ${journal.id} before retrying any submitted operation.`);
+    throw new ProviderConfigError(reason + recovery);
   }
   finally { await manager?.close?.(); await snapshot?.close(); }
   const reference = prepared?.reference;

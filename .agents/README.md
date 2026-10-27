@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Template build diagnostics and 0.5.7 candidate](notes/proposed/feature/2026-10-27-template-build-diagnostics.md) · [verification](evidence/verify/2026-10-27-template-build-diagnostics.md).
+
 - [Shared CLI primitives](notes/proposed/process/2026-10-26-shared-cli-primitives.md) · [verification](evidence/verify/2026-10-26-shared-cli-primitives.md).
 
 ## Current public CLI 0.5.6 — 2026-10-25

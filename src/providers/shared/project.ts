@@ -35,6 +35,25 @@ export class DockerSetupError extends DockerBuildError {
   }
 }
 
+/** Fixed build diagnostics derived from tool output; never includes that output or its credentials. */
+export class DockerBuildFailure extends DockerBuildError {
+  constructor(output: string, exitCode: number) {
+    // Network evidence takes precedence: pip can report "no matching distribution" after index timeouts.
+    const [reason, action] = /certificate verify failed|CERTIFICATE_VERIFY_FAILED|x509:|unknown authority/i.test(output)
+      ? ["TLS certificate verification failed", "Check the build container's CA trust and registry or package-index certificates. Keep TLS verification enabled."]
+      : /timed? ?out|ReadTimeout|ETIMEDOUT|TLS handshake timeout|Temporary failure in name resolution|Could not resolve|ENOTFOUND|network is unreachable|connection (?:reset|refused)/i.test(output)
+      ? ["network access failed or timed out", "Check DNS, proxy and outbound HTTPS inside Docker, including the Docker network MTU; host connectivity alone does not prove build connectivity."]
+      : /No matching distribution found|Could not find a version that satisfies|npm ERR! code (?:ETARGET|ERESOLVE)|npm error code (?:ETARGET|ERESOLVE)|Unable to locate package/i.test(output)
+      ? ["dependency resolution failed", "Check the configured package index, pinned versions and the build image's Python or Node version and architecture."]
+      : /no space left on device/i.test(output)
+      ? ["Docker storage is full", "Check Docker disk usage and remove only disposable build resources."]
+      : /dockerfile parse error|unknown instruction:|failed to read dockerfile/i.test(output)
+      ? ["the Dockerfile could not be read or parsed", "Check the selected Dockerfile and build context."]
+      : ["a build instruction failed", "Inspect the Docker build output and the failing instruction. Use --verbose on an intentional retry after checking the recovery journal."];
+    super(`Docker build failed (exit ${Number.isInteger(exitCode) ? exitCode : -1}): ${reason}.`, { suggestion: action });
+  }
+}
+
 /** Run a local tool without a shell. Raw tool output/errors are never included in public exceptions. */
 export function runTool(command: string, args: readonly string[], options: { cwd?: string; input?: string; timeout?: number } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
