@@ -1,7 +1,7 @@
 # Verification: Consented Express managed API keys
 
 - Date: 2026-10-27
-- Change: [Issue #200](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/200); [decision](../../notes/proposed/architecture/2026-10-27-managed-api-key.md).
+- Change: [Issue #200](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/200); [decision](../../notes/implemented/architecture/2026-10-27-managed-api-key.md).
 - Result: PARTIAL — feature acceptance passed; full-suite baseline failures remain blocking.
 - Binary: candidate source, package version 0.5.7, built with npm run build from main 51c7d5af0ba1de6c50a38d86baa060d555d09482 plus this PR. This is not a published release.
 - Environment: Linux, Node 22.22.2, real Express cn-hangzhou; credentials supplied through ignored environment configuration, never recorded.
@@ -63,3 +63,5 @@ Full-suite baseline transport failures prevent claiming full CI success. Configu
 ## Not verified
 
 The full cloud/Docker/ACR matrix, alternate regions, Windows ACL behavior, standalone SEA binary, real least-privilege RAM account denial/grant and the remote Node matrix were not verified here. The feature has real cloud positive evidence plus mocked permission-denial regressions; it does not claim that every documented RAM policy was exercised with a separate restricted user. No npm release was requested or performed.
+
+Supported remote Node 20/22 CI subsequently passed; see [CI acceptance](2026-10-27-managed-api-key-ci.md). Earlier local failures remain part of this run history.
