@@ -72,6 +72,21 @@ For read-only templates, add a Statement granting `sandbox:ListTemplates` and `s
 
 Enterprise ACR temporary login uses `cr:GetAuthorizationToken`; repository pull/push uses `cr:PullRepository`/`cr:PushRepository`. Have an administrator prepare missing repositories/namespaces using the setup permissions below. Personal and enterprise editions use different APIs/resource ARNs: scope the policy using the target instance's official authorization reference. New personal-edition instances use their fixed registry password; possessing an AccessKey does not guarantee temporary registry login. Platform-step builds do not push through local Docker/ACR and must not require local ACR push permission.
 
+
+For enterprise temporary login and push to an existing repository, replace every placeholder in this policy. For pull-only access, use `cr:PullRepository` in the second statement:
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {"Effect": "Allow", "Action": "cr:GetAuthorizationToken", "Resource": "*"},
+    {"Effect": "Allow", "Action": "cr:PushRepository", "Resource": "acs:cr:<region>:<account-id>:repository/<instance-id>/<namespace>/<repository>"}
+  ]
+}
+```
+
+Token retrieval requires `Resource: "*"`; it has no resource-level scope. Repository push remains restricted by the second statement. Administrators preparing an enterprise namespace need `cr:CreateNamespace` on `acs:cr:<region>:<account-id>:repository/<instance-id>`; repository preparation uses `cr:CreateRepository` on `acs:cr:<region>:<account-id>:repository/<instance-id>/<namespace>`. These setup permissions do not imply the tool automatically creates repositories. Personal-edition pull/push uses `acs:cr:<region>:<account-id>:repository/<namespace>/<repository>` without an enterprise instance segment, together with its required login name and fixed password. See [ACR action/resource mappings](https://help.aliyun.com/en/acr/user-guide/ram-authorization-information) and [personal repository authorization](https://help.aliyun.com/en/acr/user-guide/repository-access-control).
+
 A caller's `CreateVolume` does not authorize sandbox access to stored data. The execution role must trust `fc.aliyuncs.com` for `sts:AssumeRole` and grant only the necessary storage access: for example `oss:ListObjects` and `oss:GetObject` for read-only OSS, adding `oss:PutObject`, `oss:DeleteObject` and multipart actions only as needed. Configure Bucket-level and Object-level resource scopes separately. Key policy and product admission conditions still apply.
 
 ## Managed-key lifecycle and recovery
