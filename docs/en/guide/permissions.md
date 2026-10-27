@@ -7,7 +7,7 @@ This guide applies to `alicloud-express`. Grant permissions to the RAM identity 
 | Task | Credentials and permissions |
 |---|---|
 | Standard sandbox create/connect/list/kill, commands, files and interpreter | Existing sandbox API key, endpoint/domain and a suitable template. No caller AK/SK is needed. Key policy, Team, expiry, IP rules and runtime support still apply |
-| First managed-key preparation from AK/SK | `sandbox:CreateApiKey` on the target Team's `apikeys/*`; explicit confirmation or `--ci` |
+| First managed-key preparation from AK/SK | `sandbox:CreateApiKey` on the target Team's `apikeys/*`; continuing to runtime also needs the Describe action below; explicit confirmation or `--ci` |
 | Reuse a managed key | `sandbox:DescribeApiKey` on the same Team's `apikeys/*`; no credential creation |
 | Continue when the managed key has less than one day left | Confirm `sandbox:UpdateApiKey` on the same Team's `apikeys/*`; extend the existing key without resetting its secret |
 | Help, config initialization/display and provider command discovery | No cloud permissions and no key creation. Complete configuration does not certify live permissions |
@@ -52,7 +52,7 @@ These actions apply to native management APIs. Do not require native Sandbox RAM
 | Feature / command | RAM actions | Resource scope |
 |---|---|---|
 | `team.list`; native template flow without an explicit Team | `sandbox:ListTeams` | `acs:sandbox:<region>:<account-id>:teams/*`, not one Team ARN |
-| `team.get/create/update/delete` | `sandbox:GetTeam`, `sandbox:CreateTeam`, `sandbox:UpdateTeam`, `sandbox:DeleteTeam`, respectively | Target Team; creation uses account Team scope; resource-group changes also check source/destination groups |
+| `team.get/create/update/delete` | `sandbox:GetTeam`, `sandbox:CreateTeam`, `sandbox:UpdateTeam`, `sandbox:DeleteTeam`, respectively | Get/update/delete: `acs:sandbox:<region>:<account-id>:teams/<team-id>`; create: `acs:sandbox:<region>:<account-id>:teams/*`; resource-group changes check source/destination groups |
 | `--native template list`, `template info` | `sandbox:ListTemplates`, `sandbox:GetTemplate` | Target Team's `templates/*` or specific Template; automatic Team lookup additionally needs `ListTeams` |
 | `template from-image`, platform-step build, registration/status polling in `template deploy` | `sandbox:CreateTemplate`, `sandbox:GetTemplate`; `sandbox:ListTeams` when Team is not explicit | Target Team's `templates/*`; lookup may use a specific Template |
 | Native template update/delete | `sandbox:UpdateTemplate`, `sandbox:DeleteTemplate` | Target Template ARN; registration does not grant deletion |
@@ -61,7 +61,7 @@ These actions apply to native management APIs. Do not require native Sandbox RAM
 | `api-key.reset/delete` | `sandbox:ResetApiKey`, `sandbox:DeleteApiKey` | Same; disabling before deletion additionally needs `UpdateApiKey` |
 | `template-cache.create/get/list/delete` | `sandbox:CreateTemplateCache`, `sandbox:DescribeTemplateCache`, `sandbox:ListTemplateCache`, `sandbox:DeleteTemplateCache` | `acs:sandbox:<region>:<account-id>:teams/<team-id>/template-caches/<template-id>`; list uses `template-caches/*` |
 | `volume.create/get/list/update/delete` | `sandbox:CreateVolume`, `sandbox:GetVolume`, `sandbox:ListVolumes`, `sandbox:UpdateVolume`, `sandbox:DeleteVolume` | Create/list use `teams/<team-id>/volumes/*`; addressed operations use a specific Volume. Prefix each with `acs:sandbox:<region>:<account-id>:` |
-| `quota.get/list/update/delete` | `sandbox:DescribeQuota`, `sandbox:ListQuotas`, `sandbox:UpdateQuota`, `sandbox:DeleteQuota` | Team `quotas/*`; account listing needs the corresponding account-wide scope |
+| `quota.get/list/update/delete` | `sandbox:DescribeQuota`, `sandbox:ListQuotas`, `sandbox:UpdateQuota`, `sandbox:DeleteQuota` | Get/update/delete: `acs:sandbox:<region>:<account-id>:teams/<team-id>/quotas/*`; account list: `acs:sandbox:<region>:<account-id>:teams/*/quotas/*` |
 | Local Docker build | No cloud RAM action; working Docker is required | Local machine |
 | ACR image push | Target repository push permission; enterprise temporary login also needs `cr:GetAuthorizationToken` | See below; not granted by `sandbox:*` |
 | OSS or other storage mounts | Volume management and storage access are separate | Sandbox execution role; see below |
@@ -70,7 +70,7 @@ For read-only templates, add a Statement granting `sandbox:ListTemplates` and `s
 
 ## ACR and storage authorization
 
-Enterprise ACR temporary login uses `cr:GetAuthorizationToken`; repository pull/push uses `cr:PullRepository`/`cr:PushRepository`. Creating missing repositories/namespaces requires additional management actions, such as enterprise `cr:CreateRepository` and `cr:CreateRepoNamespace`. Personal and enterprise editions use different APIs/resource ARNs: scope the policy using the target instance's official authorization reference. New personal-edition instances use their fixed registry password; possessing an AccessKey does not guarantee temporary registry login. Platform-step builds do not push through local Docker/ACR and must not require local ACR push permission.
+Enterprise ACR temporary login uses `cr:GetAuthorizationToken`; repository pull/push uses `cr:PullRepository`/`cr:PushRepository`. Have an administrator prepare missing repositories/namespaces using the setup permissions below. Personal and enterprise editions use different APIs/resource ARNs: scope the policy using the target instance's official authorization reference. New personal-edition instances use their fixed registry password; possessing an AccessKey does not guarantee temporary registry login. Platform-step builds do not push through local Docker/ACR and must not require local ACR push permission.
 
 A caller's `CreateVolume` does not authorize sandbox access to stored data. The execution role must trust `fc.aliyuncs.com` for `sts:AssumeRole` and grant only the necessary storage access: for example `oss:ListObjects` and `oss:GetObject` for read-only OSS, adding `oss:PutObject`, `oss:DeleteObject` and multipart actions only as needed. Configure Bucket-level and Object-level resource scopes separately. Key policy and product admission conditions still apply.
 

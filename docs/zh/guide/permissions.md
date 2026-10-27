@@ -7,7 +7,7 @@
 | 使用场景 | 凭证和权限 |
 |---|---|
 | 用已有 Key 创建、连接、列出、释放沙箱，执行命令、文件读写、代码解释器和标准 CLI | 已有沙箱 API Key、正确端点/域名和可用模板即可；不需要额外提供 AK/SK。仍受 Key 的 Team、策略、有效期、IP 规则及运行时限制 |
-| 仅有 AK/SK，首次准备工具专用 Key | `sandbox:CreateApiKey`，作用于目标 Team 的 `apikeys/*`；必须确认，或显式使用 `--ci` |
+| 仅有 AK/SK，首次准备工具专用 Key | `sandbox:CreateApiKey`，作用于目标 Team 的 `apikeys/*`；继续运行沙箱还需下行的 `DescribeApiKey`；必须确认，或显式使用 `--ci` |
 | 后续复用已管理 Key | `sandbox:DescribeApiKey`，同一 Team 的 `apikeys/*`；只读检查，不重复创建 |
 | 已管理 Key 的有效期不足一天，继续使用 | 确认后执行 `sandbox:UpdateApiKey`，同一 Team 的 `apikeys/*`；延长同一把 Key，不重置明文 |
 | `config init`、帮助、配置查看、Provider 命令发现 | 无需云权限，不会创建 Key。引导完成只说明配置已填写，不代表权限已通过验证 |
@@ -54,7 +54,7 @@ abx provider command run alicloud-express api-key.prepare --yes
 | 功能／命令 | 所需 RAM Action | 资源范围 |
 |---|---|---|
 | `team.list`；原生模板流程未显式指定 Team 时的自动查询 | `sandbox:ListTeams` | `acs:sandbox:<region>:<account-id>:teams/*`，不是单个 Team ARN |
-| `team.get` / `team.create` / `team.update` / `team.delete` | 分别为 `sandbox:GetTeam` / `CreateTeam` / `UpdateTeam` / `DeleteTeam`（每项都带 `sandbox:` 前缀） | 指定 Team；创建使用账号内 Team 范围；变更资源组另检查源/目标组 |
+| `team.get` / `team.create` / `team.update` / `team.delete` | 分别为 `sandbox:GetTeam` / `CreateTeam` / `UpdateTeam` / `DeleteTeam`（每项都带 `sandbox:` 前缀） | 查询/更新/删除用 `acs:sandbox:<region>:<account-id>:teams/<team-id>`；创建用 `acs:sandbox:<region>:<account-id>:teams/*`；变更资源组检查源/目标组 |
 | `--native template list` / `template info` | 分别为 `sandbox:ListTemplates` / `sandbox:GetTemplate` | 目标 Team 的 `templates/*` 或具体 Template；没有指定 Team 时另需 `ListTeams` |
 | `template from-image`、平台步骤构建、`template deploy` 的注册和状态等待 | `sandbox:CreateTemplate`、`sandbox:GetTemplate`；未指定 Team 时另需 `sandbox:ListTeams` | 目标 Team 的 `templates/*`；查询可限具体 Template |
 | 原生模板更新／删除 | `sandbox:UpdateTemplate` / `sandbox:DeleteTemplate` | 对应 Template ARN；构建/注册权限不包含删除权限 |
@@ -63,7 +63,7 @@ abx provider command run alicloud-express api-key.prepare --yes
 | `api-key.reset` / `api-key.delete` | `sandbox:ResetApiKey` / `sandbox:DeleteApiKey` | 同上；删除前需停用，停用另需 `UpdateApiKey` |
 | `template-cache.create/get/list/delete` | 分别为 `sandbox:CreateTemplateCache` / `sandbox:DescribeTemplateCache` / `sandbox:ListTemplateCache` / `sandbox:DeleteTemplateCache` | `acs:sandbox:<region>:<account-id>:teams/<team-id>/template-caches/<template-id>`；列表使用 `template-caches/*` |
 | `volume.create/get/list/update/delete` | 分别为 `sandbox:CreateVolume` / `sandbox:GetVolume` / `sandbox:ListVolumes` / `sandbox:UpdateVolume` / `sandbox:DeleteVolume` | 创建/列表用 `teams/<team-id>/volumes/*`，按 ID 操作用具体 Volume；均加 `acs:sandbox:<region>:<account-id>:` 前缀 |
-| `quota.get/list/update/delete` | 分别为 `sandbox:DescribeQuota` / `sandbox:ListQuotas` / `sandbox:UpdateQuota` / `sandbox:DeleteQuota` | Team 的 `quotas/*`；主账号列表需账号级对应范围 |
+| `quota.get/list/update/delete` | 分别为 `sandbox:DescribeQuota` / `sandbox:ListQuotas` / `sandbox:UpdateQuota` / `sandbox:DeleteQuota` | 详情/更新/删除用 `acs:sandbox:<region>:<account-id>:teams/<team-id>/quotas/*`；主账号列表用 `acs:sandbox:<region>:<account-id>:teams/*/quotas/*` |
 | 本地 Docker 构建 | 无云 RAM Action；本机需要可用 Docker | 无 |
 | Docker 镜像推送 ACR | 目标仓库的推送权限；企业版临时登录还需 `cr:GetAuthorizationToken` | 见下一节；不包含在 `sandbox:*` 内 |
 | 沙箱挂载 OSS 等存储 | Volume 管理与底层存储访问分开授权 | 由沙箱执行角色访问存储；见下一节 |
@@ -72,7 +72,22 @@ abx provider command run alicloud-express api-key.prepare --yes
 
 ## ACR 和存储是独立授权
 
-ACR 企业版临时登录用 `cr:GetAuthorizationToken`；仓库拉取/推送对应 `cr:PullRepository`、`cr:PushRepository`。仓库、命名空间不存在时，自动创建所需的管理 Action（例如企业版 `cr:CreateRepository`、`cr:CreateRepoNamespace`）还需单独授权。个人版和企业版资源 ARN/接口不同，应按目标实例的官方授权说明限定仓库；不要复制一个版本的策略到另一个版本。新版个人版应使用其固定登录密码，不能把“有 AK/SK”理解为一定能取得临时仓库凭证。平台步骤构建不经过本机 Docker/ACR 推送，不应因此要求 ACR 推送权限。
+ACR 企业版临时登录用 `cr:GetAuthorizationToken`；仓库拉取/推送对应 `cr:PullRepository`、`cr:PushRepository`。仓库或命名空间不存在时，先由管理员准备，所需管理权限见下方。个人版和企业版资源 ARN/接口不同，应按目标实例的官方授权说明限定仓库；不要复制一个版本的策略到另一个版本。新版个人版应使用其固定登录密码，不能把“有 AK/SK”理解为一定能取得临时仓库凭证。平台步骤构建不经过本机 Docker/ACR 推送，不应因此要求 ACR 推送权限。
+
+
+企业版“已有仓库 + 临时登录 + 推送”的策略示例（替换所有占位符）；仅拉取时将第二条 Action 换为 `cr:PullRepository`：
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {"Effect": "Allow", "Action": "cr:GetAuthorizationToken", "Resource": "*"},
+    {"Effect": "Allow", "Action": "cr:PushRepository", "Resource": "acs:cr:<region>:<account-id>:repository/<instance-id>/<namespace>/<repository>"}
+  ]
+}
+```
+
+`GetAuthorizationToken` 不支持资源级授权，必须使用 `Resource: "*"`；仓库推送仍按第二条限定。企业版的命名空间预创建使用 `cr:CreateNamespace`，Resource 为 `acs:cr:<region>:<account-id>:repository/<instance-id>`；仓库预创建使用 `cr:CreateRepository`，Resource 为 `acs:cr:<region>:<account-id>:repository/<instance-id>/<namespace>`。这些是管理员准备资源时的权限，不是工具会自动创建仓库的承诺。个人版仓库的推送/拉取 ARN 不含企业版实例段：`acs:cr:<region>:<account-id>:repository/<namespace>/<repository>`，并配置个人版要求的登录名和固定密码。参考 [ACR 资源及 Action 清单](https://help.aliyun.com/en/acr/user-guide/ram-authorization-information)和[个人版仓库授权](https://help.aliyun.com/zh/acr/user-guide/repository-access-control/)。
 
 存储挂载时，AK/SK 调用者的 `CreateVolume` 不等于沙箱具备读取数据的权限。执行角色需信任 `fc.aliyuncs.com` 执行 `sts:AssumeRole`，再授予目标 Bucket/前缀所需权限，例如只读 OSS 的 `oss:ListObjects`、`oss:GetObject`；写入/删除按任务需要增加 `oss:PutObject`、`oss:DeleteObject` 等。Bucket 级与 Object 级资源要分别配置。挂载仍受 API Key 策略和产品开通条件约束。
 
