@@ -59,7 +59,7 @@ The same chain is what these calls read:
 
 ---
 
-Sandbox calls require `ABX_SANDBOX_API_KEY`; AK/SK settings configure separate official control-plane operations and cannot substitute for it. See [authentication migration](../guide/authentication.md).
+Sandbox calls use an explicit API key, or the Express managed key prepared from AK/SK after confirmation. See [authentication](../guide/authentication.md) and [feature permissions](../guide/permissions.md).
 
 ## Environment Variables
 
@@ -189,7 +189,7 @@ The interactive wizard prompts for: the sandbox API key, the default region, the
 
 ### AK/SK control-plane configuration
 
-When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for official template/image/ACR control-plane operations, never automatic sandbox-key exchange.
+When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for native template/image/ACR operations and, after explicit confirmation or --ci, Express managed API-key preparation. See [feature permissions](../guide/permissions.md).
 
 Configuration listing, get output and set acknowledgements mask the AccessKey ID and secret, including JSON and provider-qualified commands. Stored values remain complete for authentication.
 

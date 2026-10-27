@@ -4,6 +4,14 @@ export interface ConfigPrompt {
   current?: boolean; default?: string; result: "stored" | "set";
 }
 export interface ProviderConfigUi {
+  fieldHelp?: Readonly<Record<string, string>>;
+  /** Alternatives and preparation are owned by the provider, not hardcoded by host guidance. */
+  runtimeAuthentication?: {
+    key: string;
+    alternatives: readonly (readonly string[])[];
+    help: string;
+    resolve(config: import("../transport/config_layers.js").LayeredConfig, options: { ci: boolean; confirm(message: string): Promise<boolean> }): Promise<string>;
+  };
   allowed: readonly (readonly [string, string])[];
   envStored: readonly (readonly [string, string])[];
   envOverrides: readonly (readonly [string, readonly string[]])[];

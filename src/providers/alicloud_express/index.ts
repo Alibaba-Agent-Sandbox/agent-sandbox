@@ -7,6 +7,7 @@ import { FilesystemProtocol } from "../shared/e2b/filesystem.js";
 import { ProcessProtocol } from "../shared/e2b/process.js";
 import { SandboxProtocol } from "../shared/e2b/sandbox.js";
 import { createAuthProvider } from "./auth.js";
+import { MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, prepareManagedApiKey, resolveSandboxApiKey } from "./managed_api_key.js";
 import { resolveCapabilities } from "../../api/capability.js";
 import type { SandboxInfo } from "../../models/sandbox.js";
 import { loadConfig, type TransportConfig } from "../../transport/config.js";
@@ -64,7 +65,7 @@ export class AlicloudExpressProvider extends Provider {
     this.operations = workflowOperations.operations;
     this.workflow_inputs = workflowOperations.workflow_inputs;
     this.startup_modes = workflowOperations.startup_modes;
-    this.commands = [...ALICLOUD_COMMANDS, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS];
+    this.commands = [...ALICLOUD_COMMANDS, MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS];
     // Snapshot create may take300 seconds; this is an outer deadline, not the sandbox TTL.
     this.commandTimeoutMs = 360_000;
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
@@ -105,6 +106,7 @@ export class AlicloudExpressProvider extends Provider {
     let conditional: ProviderCommandRunner | undefined;
     return {
       run: (command, input, signal) => {
+        if (command === MANAGED_KEY_COMMAND.id || command === MANAGED_KEY_RESOLVE_COMMAND.id) return prepareManagedApiKey(config, input, command === MANAGED_KEY_COMMAND.id);
         if (isTemplateCacheCommand(command)) return runTemplateCacheCommand(config, command, input, signal);
         if (!isConditionalCommand(command)) return runAlicloudCommand(config, command, input);
         conditional ??= buildConditionalCommandRunner(config);
@@ -117,7 +119,7 @@ export class AlicloudExpressProvider extends Provider {
   async buildInfra(config: LayeredConfig): Promise<ProviderInfra> {
     const transport = config.toTransportConfig();
     const auth = createAuthProvider({
-      api_key: config.sandbox_api_key,
+      api_key: config.sandbox_api_key || (config.access_key_id || config.access_key_secret ? await resolveSandboxApiKey(config) : null),
     });
     // Express envd reads streaming RPCs as Connect envelopes. Plain JSON is parsed as a length prefix
     // (`{"pro...` → "promised N bytes") and the command's stdout never arrives.

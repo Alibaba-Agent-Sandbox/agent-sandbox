@@ -87,7 +87,10 @@ export function standardArguments(input: readonly string[]): string[] | null {
 
 /** Execute the project's bundled standard client. No external e2b executable/package is loaded. */
 export async function dispatchStandard(args: readonly string[]): Promise<boolean> {
-  const normalized = standardArguments(args);
+  const parsed = standardArguments(args);
+  // --ci controls credential consent only; preserve the standard lifecycle and output contract.
+  const ci = parsed?.[0] === "--ci";
+  const normalized = ci ? parsed!.slice(1) : parsed;
   if (normalized === null) return false;
   const expressOptions = (values: readonly string[]): number => values.filter((arg, index) => arg === "--provider=alicloud-express" || (arg === "--provider" && values[index + 1] === "alicloud-express")).length;
   const expressOverride = expressOptions(args) > expressOptions(normalized);
@@ -132,10 +135,10 @@ export async function dispatchStandard(args: readonly string[]): Promise<boolean
       sandbox_base_url: process.env["E2B_API_URL"], sandbox_domain: config.sandbox_domain, region: config.region };
     return withGuidedConfiguration(undefined, { operation: `abx ${commandPath.join(" ")}`,
       provider: "alicloud-express", requirements: ["sandbox_api_key"], validateProvider: false,
-      yes: Boolean(options["yes"] || options["format"] === "json"), overrides,
-    }, async () => {
+      yes: Boolean(ci || options["yes"] || options["format"] === "json"), ci, overrides,
+    }, async (values) => {
       const effective = loadLayeredConfig({ provider: "alicloud-express" });
-      return { apiKey: effective.sandbox_api_key, apiUrl: effective.sandbox_base_url, domain: effective.sandbox_domain };
+      return { apiKey: values["sandbox_api_key"] ?? effective.sandbox_api_key, apiUrl: effective.sandbox_base_url, domain: effective.sandbox_domain };
     });
   };
   try {

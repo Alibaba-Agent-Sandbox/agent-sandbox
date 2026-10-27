@@ -59,7 +59,7 @@
 
 ---
 
-沙箱调用需要 `ABX_SANDBOX_API_KEY`；AK/SK 用于独立官方控制面，不能替代沙箱密钥。见[鉴权迁移](../guide/authentication.md)。
+沙箱调用使用显式 API Key，或经确认后由极速版使用 AK/SK 准备的管理 Key。见[认证](../guide/authentication.md)及[功能权限](../guide/permissions.md)。
 
 ## 环境变量
 
@@ -189,7 +189,7 @@ abx config init
 
 ### AK/SK 控制面配置
 
-`access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，不会自动交换沙箱 API Key。
+`access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，仅在用户确认或显式 `--ci` 时准备管理 Key，详见[权限说明](../guide/permissions.md)。
 
 配置列表、读取结果和设置确认会对 AccessKey ID 与 Secret 脱敏，包括 JSON 和指定 Provider 的命令；认证使用的存储值仍然完整。
 

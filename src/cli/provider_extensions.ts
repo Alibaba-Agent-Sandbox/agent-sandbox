@@ -7,6 +7,8 @@ import { resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 import type { StagedProject } from "../providers/shared/project.js";
 export interface ProviderCliExtension {
+  /** Only these explicitly named provider mutations may auto-confirm under --ci. */
+  ciAutoConfirmCommands?: readonly string[];
   /** Snapshot provider-native source inputs before any resource mutation. */
   stageProject?(directory: string, options: ProjectTemplateOptions): Promise<StagedProject>;
   id: string;

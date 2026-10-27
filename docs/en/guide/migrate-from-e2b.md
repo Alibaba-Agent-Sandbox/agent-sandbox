@@ -50,3 +50,5 @@ Built-in Express `template scaffold` READMEs use `template deploy . && create NA
 Native Express template list/info use the Alibaba FCSandbox API and AccessKey credentials. Use `abx --native template list --region REGION` for native management or `abx template list --format json` for standard listing with the Sandbox API key. The removed `--official-api`/`--legacy-api` selectors are not required. Release artifact verification exercises this current contract before publication.
 
 Maintainer release recovery preserves immutable versions: an existing npm version is reused only after its integrity matches the exact tested candidate. Public install readback retries with fresh online metadata for at most ten minutes before failing; it never overwrites a published version.
+
+`--ci` is also accepted by standard commands to authorize Express managed-key preparation without input; it preserves standard lifecycle/output behavior. Existing E2B credentials still take precedence. See [permissions](permissions.md).

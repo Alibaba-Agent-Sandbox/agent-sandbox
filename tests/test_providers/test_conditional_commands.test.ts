@@ -23,7 +23,7 @@ describe("Express conditional command registration", () => {
     const parsed = parseCommandSection({ protocol: "provider-commands/1", entries: CONDITIONAL_COMMANDS }, "builtin");
     expect(parsed.map((x) => x.id)).toEqual(["sandbox.pause", "sandbox.resume", "snapshot.create", "snapshot.delete", "snapshot.list", "snapshot.restore"]);
     for (const item of parsed) expect(getProviderCommand("alicloud-express", item.id)).toEqual(item);
-    expect(listProviderCommands("alicloud-express")).toHaveLength(30);
+    expect(listProviderCommands("alicloud-express")).toHaveLength(32);
     expect(network).not.toHaveBeenCalled();
   });
 

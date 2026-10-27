@@ -160,7 +160,7 @@ export const cli: Command = group("abx", {
       metavar: "LEVEL",
       help: "Set log level explicitly (DEBUG, INFO, WARNING, ERROR)",
     }),
-    option(["--ci"], { is_flag: true, help: "CI/CD mode (quiet + no-color + json)" }),
+    option(["--ci"], { is_flag: true, help: "CI/CD output; explicitly authorize Express managed API-key creation/renewal" }),
   ],
   callback: (ctx: Context, params: Params) => {
     // Auto-detect CI environment
@@ -183,6 +183,8 @@ export const cli: Command = group("abx", {
     ctx.obj!["quiet"] = output.quiet;
     ctx.obj!["verbose"] = output.verbose;
     ctx.obj!["no_color"] = output.noColor;
+    // Ambient CI changes presentation only; credential mutations require the flag.
+    ctx.obj!["ci_explicit"] = Boolean(params["ci"]);
   },
 });
 

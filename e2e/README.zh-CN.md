@@ -1,5 +1,7 @@
 # abx 黑盒 E2E 测试套件
 
+使用 `ABX_BIN=<candidate> node e2e/managed-api-key.mjs`，配置 AK/SK 和极速版 API URL/domain，验证全新用户目录中的拒绝授权、显式 `--ci` 准备、私有缓存跨进程复用、真实沙箱执行和续期确认。测试创建自己的 Key 与沙箱，停用/删除 Key，并核验两类资源已不存在。清理身份额外需要 `sandbox:DeleteApiKey`，见[权限指南](../docs/zh/guide/permissions.md)。
+
 使用 `ABX_BIN=<binary> node e2e/template-build-failure.mjs` 和本机 Docker 验证真实构建失败、E7020、诊断脱敏及未提交云端资源。该用例仅使用占位凭证，不创建云资源。
 
 

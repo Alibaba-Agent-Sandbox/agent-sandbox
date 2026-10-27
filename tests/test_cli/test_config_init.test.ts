@@ -16,6 +16,7 @@ import { cli } from "../../src/cli/main.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { exists, fakeTtySys, readText, storagePatch, withConfig } from "../helpers/configSupport.js";
+import { managedKeySeams } from "../../src/providers/alicloud_express/managed_api_key.js";
 
 const iso = useIsolatedEnv();
 
@@ -38,7 +39,9 @@ describe("TestConfigInitNonInteractive", () => {
     expect(result.output).toContain("abx config set region");
     expect(result.output).not.toContain("abx config set llm_api_key");
     expect(result.output).not.toContain("abx config set acr_namespace");
-    expect(result.output).not.toContain("abx config set access_key_id");
+    expect(result.output).toContain("abx config set access_key_id");
+    expect(result.output).toContain("sandbox:CreateApiKey");
+    expect(result.output).toContain("confirmation");
     expect(result.output).toContain("abx config init --build");
     expect(result.output).toContain("abx config init --llm");
     // Nothing may be written without explicit user input.
@@ -74,6 +77,19 @@ describe("TestConfigInitNonInteractive", () => {
 });
 
 describe("TestConfigInitWizard", () => {
+  it("can finish with AK/SK instead of an API key without provisioning anything", async () => {
+    const tmp = tmpPath();
+    const load = vi.spyOn(managedKeySeams, "loadSdk");
+    const result = await withConfig({ ...storagePatch(tmp, { env: true }), sys: fakeTtySys() }, () =>
+      runner().invoke(cli, ["config", "init", "--llm"], { input: "\ncn-hangzhou\nplaceholder-llm\nplaceholder-ak\nplaceholder-secret\n" }),
+    );
+    expect(result.exit_code, result.output).toBe(0);
+    expect(result.output).toContain("Configuration complete");
+    expect(result.output).toContain("sandbox:CreateApiKey");
+    expect(readText(path.join(tmp, ".env"))).toContain("ALICLOUD_ACCESS_KEY_SECRET=placeholder-secret");
+    expect(readText(path.join(tmp, ".env"))).not.toContain("ABX_SANDBOX_API_KEY=");
+    expect(load).not.toHaveBeenCalled();
+  });
   it("test_wizard_stores_platform_and_qwen_keys", async () => {
     const tmp = tmpPath();
     const configFile = path.join(tmp, "config.toml");
@@ -124,7 +140,7 @@ describe("TestConfigInitWizard", () => {
     const tmp = tmpPath();
     const envFile = path.join(tmp, ".env");
     const result = await withConfig({ ...storagePatch(tmp, { env: true }), sys: fakeTtySys() }, () =>
-      runner().invoke(cli, ["config", "init", "--llm"], { input: "\n\nsk-qwen\n" }),
+      runner().invoke(cli, ["config", "init", "--llm"], { input: "\n\nsk-qwen\n\n\n" }),
     );
 
     expect(result.exit_code, result.output).toBe(2);
@@ -132,7 +148,7 @@ describe("TestConfigInitWizard", () => {
     expect(result.output).not.toContain("Configuration complete");
     expect(result.output).toContain("3/3 ");
     expect(result.output).not.toContain("ACR namespace");
-    expect(result.output).toContain("Missing: sandbox_api_key");
+    expect(result.output).toContain("Configure one authentication method: sandbox_api_key; or access_key_id + access_key_secret");
     expect(result.output).not.toContain("abx config init --llm");
     expect(readText(envFile)).toContain("ABX_LLM_API_KEY=sk-qwen");
   });

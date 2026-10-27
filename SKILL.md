@@ -92,7 +92,7 @@ installed engine before relying on current-main documentation. See [Provider con
 
 ## Credentials and security
 
-Runtime sandbox requests require `ABX_SANDBOX_API_KEY`. Official template/image/ACR control-plane operations separately require `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`. AK/SK never automatically creates or exchanges the runtime API key.
+Express runtime requests use an existing API key, or a provider-managed key prepared with `ALICLOUD_ACCESS_KEY_ID` + `ALICLOUD_ACCESS_KEY_SECRET`. Creation and renewal require explicit terminal confirmation or the literal `--ci` flag; `CI=true` is not consent. SDK/MCP resolution is read-only: prepare first with `abx provider command run alicloud-express api-key.prepare --yes` or Python `prepare_api_key(confirm=True)`. Official template/image/ACR operations have separate permissions. See [feature permissions and Team-scoped RAM policies](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/permissions.md).
 
 Persist them locally instead of exporting in every shell:
 

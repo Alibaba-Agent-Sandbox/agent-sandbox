@@ -109,6 +109,7 @@ def main():
 
         secret_fixture = "hidden-cancel-fixture-do-not-save"
         status, output, _ = invoke(["create", "base"], [
+            ("Choose an authentication method", b"1\r"),
             ("Configuration scope", b"1\r"),
             ("input hidden", secret_fixture.encode() + b"\x03"),
         ])

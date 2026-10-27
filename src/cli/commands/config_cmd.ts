@@ -1025,6 +1025,7 @@ export const init = command("init", {
     assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
     assertConfigValuesValid([...CORE_KEYS.filter((key) => !GENERIC_ENDPOINT_KEYS.includes(key.key) || provider.inherit.has(key.key)), ...provider.configKeys()], collectSources(), provider.id);
     echo(configurationTargetSummary(provider.id), { err: true });
+    if (profile?.runtimeAuthentication) echo(profile.runtimeAuthentication.help, { err: true });
     const declared: readonly ConfigPrompt[] = profile?.initFields ?? (await extras.initializationKeys(provider.id, async (groups) => {
       const index = await select("Choose an authentication method", {
         choices: [...groups.map((group, index) => ({ name: group.join(" + "), value: index })), { name: "Cancel", value: -1 }],
@@ -1072,6 +1073,21 @@ export const init = command("init", {
       const value = pyStrip(await configSeams._promptSecret(label("LLM API key (DashScope/ModelStudio, input masked)")));
       if (value) pending.push({ field: { key: "llm_api_key", env: "ABX_LLM_API_KEY", prompt: "LLM API key", hidden: true, result: "stored" }, value });
     }
+    const runtimeAuth = profile?.runtimeAuthentication;
+    const configured = (key: string): boolean => Boolean(pending.find(item => item.field.key === key)?.value || _effectiveValue(key)[0]);
+    if (runtimeAuth && !configured(runtimeAuth.key)) {
+      const alternative = runtimeAuth.alternatives.find(group => !group.includes(runtimeAuth.key));
+      if (alternative) {
+        echo(`No API key supplied. You can configure ${alternative.join(" + ")} instead. ${runtimeAuth.help}`, { err: true });
+        for (const key of alternative) {
+          if (configured(key) || fields.some(field => field.key === key)) continue;
+          const field = profile.buildFields.find(candidate => candidate.key === key);
+          if (!field) continue;
+          const value = pyStrip(await configSeams._promptSecret(`${field.prompt}; Enter leaves setup incomplete`));
+          if (value) pending.push({ field, value });
+        }
+      }
+    }
     const saved: string[] = [];
     try {
       for (const { field, value } of pending) {
@@ -1101,12 +1117,13 @@ export const init = command("init", {
 
     echo();
     resetConfigurationCaches();
-    const required = profile ? ["sandbox_api_key", ...(build ? ["acr_namespace", "access_key_id", "access_key_secret"] : []), ...(llm ? ["llm_api_key"] : [])] : fields.filter((field) => provider.configKeys().find((key) => key.key === field.key)?.required).map((field) => field.key);
+    const runtimeConfigured = runtimeAuth?.alternatives.some(group => group.every(key => Boolean(_effectiveValue(key)[0])));
+    const required = profile ? [...(runtimeAuth || runtimeConfigured ? [] : ["sandbox_api_key"]), ...(build ? ["acr_namespace", "access_key_id", "access_key_secret"] : []), ...(llm ? ["llm_api_key"] : [])] : fields.filter((field) => provider.configKeys().find((key) => key.key === field.key)?.required).map((field) => field.key);
     const missing = required.filter((key) => {
       const value = profile ? _effectiveValue(key)[0] : extras.readExtra(extras.resolveExtraKey(`providers.${provider.id}.${key}`)!).value;
       return value === null || value === undefined || value === "";
     });
-    let authError = "";
+    let authError = runtimeAuth && !runtimeConfigured ? ` Configure one authentication method: ${runtimeAuth.alternatives.map(group => group.join(" + ")).join("; or ")}.` : "";
     if (!profile) {
       try { provider.validateConfig((await import("../../transport/config_layers.js")).loadLayeredConfig({ provider: provider.id })); }
       catch { authError = ` Required fields or an authentication combination for '${provider.id}' are still missing; see 'abx provider info ${provider.id}'.`; }

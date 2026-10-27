@@ -15,6 +15,7 @@ import { resolveBuildPlan, commandWithStepEnvironment } from "../../../template/
 import { ProviderConfigError } from "../../../models/provider_errors.js";
 import type { PreparedTemplate } from "../../template_contract.js";
 export const CLI_EXTENSION = {
+  ciAutoConfirmCommands: ["api-key.prepare"],
   id: CONFIG_METADATA.id, templateUi, createParams, deployHelp: DEPLOY_HELP, configuration: CONFIGURATION_UI,
   generationBaseImage(options: Record<string, unknown>) {
     return options["build"] === "steps" ? materializeBaseImage(CONFIG_METADATA.templateProfile.base_image, loadLayeredConfig({ provider: CONFIG_METADATA.id }).region) : undefined;

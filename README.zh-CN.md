@@ -283,3 +283,5 @@ CLI 0.5.7 的生成器、脚手架与 MCP 产物统一使用 Python client/serve
 原生极速版模板清单与平台 step 验收从 CLI0.4.1 起可使用首个全局选项 `abx --native`，参见[原生部署操作](docs/zh/guide/deploy-and-build.md#显式原生极速版入口)。
 
 Current API / 当前接口: [development contract](docs/zh/guide/current-api.md).
+
+[极速版认证与所需权限](docs/zh/guide/permissions.md)：已有 API Key，或经显式确认的 AK/SK 管理 Key。

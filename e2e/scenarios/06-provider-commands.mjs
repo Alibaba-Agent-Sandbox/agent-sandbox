@@ -14,13 +14,13 @@ export default {
       id: 'static-discovery', title: 'builtin management discovery works without credentials', creds: false,
       argv: ['--json', 'provider', 'command', 'list', 'alicloud-express'],
       json(j) {
-        if (!Array.isArray(j) || j.length !== 26) throw new Error('expected 26 public management commands');
-        if (!j.some((c) => c.id === 'volume.create') || j.some((c) => c.id.startsWith('domain.'))) throw new Error('capability declarations do not match verified APIs');
+        if (!Array.isArray(j) || j.length !== 32) throw new Error('expected 32 public management commands');
+        if (!['volume.create', 'api-key.prepare', 'api-key.resolve'].every(id => j.some(c => c.id === id)) || j.some((c) => c.id.startsWith('domain.'))) throw new Error('capability declarations do not match verified APIs');
       },
     },
     {
       id: 'selected-provider-root-help', title: 'ordinary root help summarizes the selected Provider without credentials', creds: false,
-      argv: ['--help'], output: ['Provider: alicloud-express', '26 provider operations', 'abx provider --help', { not: 'additionalProperties' }],
+      argv: ['--help'], output: ['Provider: alicloud-express', '32 provider operations', 'abx provider --help', { not: 'additionalProperties' }],
     },
     {
       id: 'selected-provider-directory', title: 'provider help lists complete invocation paths', creds: false,
