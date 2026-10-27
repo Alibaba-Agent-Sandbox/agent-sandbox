@@ -16,7 +16,8 @@ import { Context, command } from "../../src/cli/kit.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIso } from "../_support/iso.js";
-import { DockerSetupError, ProjectToolError, stageProject, runTool } from "../../src/providers/shared/project.js";
+import { DockerBuildFailure, DockerSetupError, ProjectToolError, stageProject, runTool } from "../../src/providers/shared/project.js";
+import { ACRLoginError, ACRPushError, DockerBuildError, TemplateBuildError, TemplateBuildTimeoutError } from "../../src/models/errors.js";
 
 const iso = useIso();
 beforeEach(resetCliSelection);
@@ -45,6 +46,28 @@ function setup() {
 }
 
 describe("provider-owned project launch", () => {
+  it.each([
+    [new DockerBuildFailure("ReadTimeoutError: private-index-credential\nNo matching distribution found", 1), "E7020", "network access failed or timed out"],
+    [new DockerBuildError("private-index-credential"), "E7020", "Docker build failed"],
+    [new ACRLoginError("private-index-credential"), "E7022", "registry authentication failed"],
+    [new ACRPushError("private-index-credential"), "E7021", "registry push failed"],
+    [new TemplateBuildError("private-index-credential"), "E7010", "Platform template preparation failed"],
+    [new TemplateBuildTimeoutError("private-index-credential"), "E7011", "Platform template preparation timed out"],
+    [new Error("private-index-credential"), "E8002", "Template preparation failed"],
+  ])("preserves safe preparation phase and code for %s", async (error, code, phase) => {
+    const f = setup(); f.provider.prepare.mockRejectedValue(error);
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({ code });
+      expect(result.output).toContain(phase);
+      expect(result.output).toContain("recovery journal");
+      expect(result.output).not.toContain("private-index-credential");
+      expect(f.provider.prepare).toHaveBeenCalledOnce();
+      expect(f.provider.close).toHaveBeenCalledOnce();
+      expect(f.create).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
+  });
   it("hands the materialized official recipe to source preparation through the public launch path", async () => {
     const f = setup();
     const original = 'FROM fc-e2b-registry.<region>.cr.aliyuncs.com/runtime/base:<tag>\nCOPY *.whl /tmp/\nRUN pip install "https://github.com/Alibaba-Agent-Sandbox/python-sdk/archive/e2cb27e24fde0a67112f82b8d44af463445a5d1a.tar.gz#subdirectory=server-sdk"\nUSER user\n';

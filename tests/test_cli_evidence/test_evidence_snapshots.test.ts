@@ -31,6 +31,7 @@ const WORKFLOW_GOLDEN_DIR = fileURLToPath(new URL("./golden/template-launch-2026
 const RELEASE_GOLDEN_DIR = fileURLToPath(new URL("./golden/release-20261024-0.4.11/", import.meta.url));
 const JOURNEY_GOLDEN_DIR = fileURLToPath(new URL("./golden/developer-journey-20261024/", import.meta.url));
 const CURRENT_RELEASE_DIR = fileURLToPath(new URL("./golden/release-20261025-0.5.6/", import.meta.url));
+const BUILD_DIAGNOSTICS_RELEASE_DIR = fileURLToPath(new URL("./golden/release-20261027-0.5.7/", import.meta.url));
 const TEMPLATE_CACHE_HELP_DIR = fileURLToPath(new URL("./golden/template-cache-20261026/", import.meta.url));
 const TEMPLATE_CACHE_HELP_CASES = new Set(["help-abx", "help-provider"]);
 const GENERATED_LAUNCH_GOLDEN_DIR = fileURLToPath(new URL("./golden/generated-launch-20261025/", import.meta.url));
@@ -66,11 +67,12 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
     fs.existsSync(previousPath) ? previousPath : path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
   const legacyCurrentPath = path.join(["help-template", "help-template-launch"].includes(testCase.output_file) ? WORKFLOW_GOLDEN_DIR : testCase.output_file === "version" ? RELEASE_GOLDEN_DIR : testCase.output_file.startsWith("help-provider") ? TERMINAL_GOLDEN_DIR : CURRENT_GOLDEN_DIR, `${testCase.output_file}.txt`);
   const currentPath = ONBOARDING_CASES.has(testCase.output_file) ? path.join(ONBOARDING_DIR, `${testCase.output_file}.txt`) : TEMPLATE_CACHE_HELP_CASES.has(testCase.output_file) ? path.join(TEMPLATE_CACHE_HELP_DIR, `${testCase.output_file}.txt`) : ["help-create", "help-config-init"].includes(testCase.output_file) ? path.join(CURRENT_RELEASE_DIR, `${testCase.output_file}.txt`) : GENERATED_LAUNCH_CASES.has(testCase.output_file) ? path.join(GENERATED_LAUNCH_GOLDEN_DIR, `${testCase.output_file}.txt`) : testCase.output_file === "version" ? path.join(CURRENT_RELEASE_DIR, "version.txt") : ["help-abx", "help-create"].includes(testCase.output_file) ? path.join(JOURNEY_GOLDEN_DIR, `${testCase.output_file}.txt`) : legacyCurrentPath;
-  const goldenPath = fs.existsSync(currentPath) ? currentPath : baselinePath;
+  const releasePath = testCase.output_file === "version" ? path.join(BUILD_DIAGNOSTICS_RELEASE_DIR, "version.txt") : currentPath;
+  const goldenPath = fs.existsSync(releasePath) ? releasePath : baselinePath;
   if (UPDATE) {
     if (!fs.existsSync(baselinePath) || actual !== fs.readFileSync(baselinePath, "utf8") || testCase.output_file === "version") {
-      fs.mkdirSync(path.dirname(currentPath), { recursive: true });
-      fs.writeFileSync(currentPath, actual);
+      fs.mkdirSync(path.dirname(releasePath), { recursive: true });
+      fs.writeFileSync(releasePath, actual);
     }
     return;
   }

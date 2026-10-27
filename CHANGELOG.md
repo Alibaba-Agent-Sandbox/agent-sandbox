@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-10-27
+
 ### Changed
 
 - Reuse one POSIX shell literal renderer across template startup, generated build steps and durable tasks; reuse existing float and MCP JSON-RPC formatters while retaining their import paths and output.
 - 模板启动、生成构建步骤和持久任务共享 shell 字面量转义；复用现有浮点格式和 MCP JSON-RPC 构造，保持导入路径与输出。
 
 ### Fixed
+
+- Preserve typed template preparation failures and controlled Docker diagnoses, with recovery guidance and no raw tool stderr in the final error (#197). / 保留模板准备失败阶段与错误码，提供 Docker 受控诊断和恢复提示，最终错误不包含原始工具输出。
 
 - Continue CLI initialization through catalog selection and template creation; share runtime credential prompts, saved application authentication, field validation and template source acquisition. Transport configuration now projects the common pure resolver; the installer and template readers share PAX decoding. Python SDK configuration remains noninteractive. Ensure the terminal is ready before displaying masked-input prompts.
 - 初始化后可直接查找并启动模板；统一应用凭证补配、配置解析和字段校验，Python SDK 保持非交互配置。

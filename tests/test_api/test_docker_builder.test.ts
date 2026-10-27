@@ -670,6 +670,27 @@ describe("rewriteDockerfileForServerInstall", () => {
 });
 
 describe("TestBuildProgress", () => {
+  it.each([
+    ["ReadTimeoutError: index\nNo matching distribution found", "network access failed or timed out", "MTU"],
+    ["CERTIFICATE_VERIFY_FAILED", "TLS certificate verification failed", "CA trust"],
+    ["No matching distribution found", "dependency resolution failed", "pinned versions"],
+    ["no space left on device", "Docker storage is full", "disk usage"],
+    ["dockerfile parse error", "could not be read or parsed", "Dockerfile"],
+    ["command exited with code 23", "a build instruction failed", "--verbose"],
+  ])("reports controlled diagnostics for failed build output: %s", async (output, reason, action) => {
+    vi.stubEnv("DOCKER_BUILDKIT", "0");
+    h.spawn.mockImplementation(() => fakeChild({ stdout: [output + "\ncredential-without-a-known-prefix\n"], code: 23 }));
+    let failure: DockerBuildError | undefined;
+    try { await new DockerBuilder().build(mkTmp(), "app:latest"); }
+    catch (error) { failure = error as DockerBuildError; }
+    expect(failure).toBeInstanceOf(DockerBuildError);
+    expect(failure?.code).toBe("E7020");
+    expect(failure?.message).toContain("exit 23");
+    expect(failure?.message).toContain(reason);
+    expect(failure?.suggestion).toContain(action);
+    expect(JSON.stringify(failure?.toDict())).not.toContain("credential-without-a-known-prefix");
+    expect(h.spawn).toHaveBeenCalledOnce();
+  });
   it("test_buildkit_build_streams_plain_progress", async () => {
     const tmp_path = mkTmp();
     vi.stubEnv("DOCKER_BUILDKIT", "1");

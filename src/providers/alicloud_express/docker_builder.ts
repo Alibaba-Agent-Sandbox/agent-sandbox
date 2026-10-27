@@ -23,6 +23,7 @@ import { materializeBaseImage } from "../../utils/base_image.js";
 import { SERVER_SDK_RELEASE_SPEC, SERVER_SDK_RELEASE_VERSION } from "../../utils/server_sdk_pin.js";
 
 import { ACRLoginError, ACRPushError, DockerBuildError } from "../../models/errors.js";
+import { DockerBuildFailure } from "../shared/project.js";
 import { AsyncClient, HTTPError, asyncWith } from "../../transport/_httpx.js";
 import { getLogger } from "../../utils/logging.js";
 import { createOfficialTemplate } from "./fc_template.js";
@@ -663,9 +664,7 @@ export class DockerBuilder {
         logger.debug("docker build: %s", line);
       });
       if (returncode !== 0) {
-        throw new DockerBuildError(
-          `Docker build failed (exit ${returncode}):\n` + output_lines.slice(-20).join("\n"),
-        );
+        throw new DockerBuildFailure(output_lines.join("\n"), returncode);
       }
       logger.info("Docker build succeeded: %s", tag);
       return tag;
