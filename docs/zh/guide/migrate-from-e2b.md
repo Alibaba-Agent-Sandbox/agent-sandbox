@@ -52,3 +52,5 @@ CLI 使用[安装指南](binary-installation.md)中的当前官方版本，Pytho
 维护者发布恢复保持版本不可变：已发布 npm 版本只有与实际验收包完整性相同才允许复用。公开安装读回使用在线元数据和独立缓存，最多重试十分钟后明确失败，不覆盖已发布版本。
 
 标准命令也接受根选项 `--ci`，用于无需输入地授权极速版管理 Key 准备，保留标准生命周期和输出行为。已有 E2B 凭证仍优先。见[权限](permissions.md)。
+
+极速版已有 E2B CLI 用户的最小迁移：安装 `abx`，将命令的可执行名从 `e2b` 改为 `abx`，保留原 API Key、`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN` 和受支持的标准参数。只有新增原生模板/ACR 等功能或选择 AK/SK 管理 Key 时，才增加对应配置与权限。AK/SK 首次准备在普通终端确认，自动化明确写 `abx --ci ...`；`-ci` 不作为别名。SDK 导入与最小迁移见[Python 迁移指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/migrate-from-e2b.md)。
