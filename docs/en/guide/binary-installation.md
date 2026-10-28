@@ -16,7 +16,7 @@ Binaries are attached to each GitHub Release
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 Each file has a sibling `.sha256` (SHA-256, `sha256sum` / `shasum -a 256` text).
-The release pipeline publishes five `abx-*` platform binaries and matching SHA-256 files only after every platform passes. The versioned examples below select **v0.5.7**; consult its release verification for availability. Older v0.2.0 used `ebx-*`, which this installer does not consume. [Source installation](#install-from-source) remains available.
+Download CLI **v0.5.8** for your platform with its matching SHA-256 file from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.8). [Source installation](#install-from-source) is also available.
 
 The official website mirrors the complete stable release: all five binaries, the npm archive and SHA-256 sidecars. It validates release sizes and payload hashes before deployment. The [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) identifies the version currently available; a newly published GitHub release becomes the website default after the mirror is deployed.
 
@@ -24,7 +24,7 @@ The official website mirrors the complete stable release: all five binaries, the
 
 ## Install
 
-The commands below select v0.5.7 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. [Release verification](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.agents/evidence/verify/2026-10-27-cli-057-publication.md) records publication, public-package reruns and the independently checked website version. Use official npm or GitHub for an explicit version, or set `ABX_VERSION=0.5.7` with the installer.
+The commands below select v0.5.8 when a version is specified. The default installer follows the current website mirror manifest; check `abx --version` after installation. Use official npm or GitHub for an explicit version, or set `ABX_VERSION=0.5.8` with the installer.
 
 ### macOS and Linux
 
@@ -40,11 +40,11 @@ The destination is `/usr/local/bin` when that directory is writable, otherwise `
 
 ```bash
 # optional
-curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_VERSION=0.5.7 sh
+curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_VERSION=0.5.8 sh
 curl -fsSL https://www.agent-sandbox.cn/install.sh | ABX_INSTALL_DIR="$HOME/bin" sh
 ```
 
-`ABX_VERSION` accepts `0.5.7` or `v0.5.7`. The function retains the current mirrored release only; an explicit older version keeps the original GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset prefix, whose layout is `<base>/v<version>/<asset>`. Setting an alternate `ABX_REPO`, `ABX_GITHUB_API` or `ABX_LATEST_URL` retains upstream discovery behavior. A custom download base alone still uses the website-pinned version; set `ABX_VERSION` as well to choose another release. An unsupported OS or CPU exits with an error that names the supported platforms. On Windows, use the PowerShell installer.
+`ABX_VERSION` accepts `0.5.8` or `v0.5.8`. The website mirrors the current release only; an explicit older version keeps the original GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset prefix, whose layout is `<base>/v<version>/<asset>`. Setting an alternate `ABX_REPO`, `ABX_GITHUB_API` or `ABX_LATEST_URL` retains upstream discovery behavior. A custom download base alone still uses the website-pinned version; set `ABX_VERSION` as well to choose another release. An unsupported OS or CPU exits with an error that names the supported platforms. On Windows, use the PowerShell installer.
 
 The upstream GitHub installer remains available when direct GitHub downloads are preferred:
 
@@ -67,11 +67,11 @@ The Windows script supports `ABX_VERSION` and `ABX_INSTALL_DIR`; its default ver
 ## Manual download
 
 1. Check the version and filenames in the [website mirror manifest](https://www.agent-sandbox.cn/releases/latest.json).
-2. For current 0.5.7, download the asset and `.sha256` from its published GitHub release. The website mirror only serves the version listed in its manifest. For example, macOS Apple Silicon v0.5.7:
+2. For current 0.5.8, download the asset and `.sha256` from its published GitHub release. The website mirror only serves the version listed in its manifest. For example, macOS Apple Silicon v0.5.8:
 
    ```bash
-   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.7/abx-0.5.7-darwin-arm64
-   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.7/abx-0.5.7-darwin-arm64.sha256
+   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.8/abx-0.5.8-darwin-arm64
+   curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.8/abx-0.5.8-darwin-arm64.sha256
    ```
 
 3. For other releases, use [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases). Pick `abx-*` assets and matching checksums.
@@ -79,27 +79,27 @@ The Windows script supports `ABX_VERSION` and `ABX_INSTALL_DIR`; its default ver
 
 ```bash
 # macOS
-shasum -a 256 -c abx-0.5.7-darwin-arm64.sha256
+shasum -a 256 -c abx-0.5.8-darwin-arm64.sha256
 
 # Linux
-sha256sum -c abx-0.5.7-linux-x64.sha256
+sha256sum -c abx-0.5.8-linux-x64.sha256
 
-chmod +x ./abx-0.5.7-darwin-arm64
-mkdir -p ~/.local/bin && mv ./abx-0.5.7-darwin-arm64 ~/.local/bin/abx
+chmod +x ./abx-0.5.8-darwin-arm64
+mkdir -p ~/.local/bin && mv ./abx-0.5.8-darwin-arm64 ~/.local/bin/abx
 ```
 
 Windows:
 
 ```powershell
-Get-FileHash abx-0.5.7-windows-x64.exe -Algorithm SHA256
+Get-FileHash abx-0.5.8-windows-x64.exe -Algorithm SHA256
 # Compare the hash with the first field of the .sha256 file.
 
 $installDir = "$env:LOCALAPPDATA\Programs\abx"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Move-Item abx-0.5.7-windows-x64.exe "$installDir\abx.exe"
+Move-Item abx-0.5.8-windows-x64.exe "$installDir\abx.exe"
 ```
 
-`certutil -hashfile abx-0.5.7-windows-x64.exe SHA256` prints the same digest.
+`certutil -hashfile abx-0.5.8-windows-x64.exe SHA256` prints the same digest.
 
 ## npm
 
@@ -134,7 +134,7 @@ This installs the compiled checkout directly without depending on a versioned ta
 
 ```bash
 abx --version
-# abx, version 0.5.7
+# abx, version 0.5.8
 ```
 
 > **macOS Gatekeeper:** the release binaries are ad-hoc signed, not notarized. A browser download can be quarantined. If the first launch is blocked:
@@ -186,15 +186,11 @@ If GitHub downloads fail with curl error 92 or HTTP 000, use the website macOS/L
 ## Notes
 
 - The binary bundles the CLI and its runtime dependencies, including the Alibaba Cloud template API client and the MCP servers (STDIO and Streamable HTTP).
-- Express management and official template operations load their embedded Alibaba Cloud SDK only when invoked. Standalone binaries do not need a separate SDK installation or a `node_modules` directory. npm installations use the package's declared runtime dependencies installed by npm. A successful `--version` alone does not validate an SDK-backed operation; release verification also runs a read-only management request from an isolated installation.
-- `abx --licenses` includes the official SDK dependency graph's shipped license/README notices and original package license declarations. Maintainers regenerate this attribution with `node scripts/alicloud-sdk-notices.mjs` after dependency changes; `--check` verifies it. This is additional attribution, not a full CLI SBOM.
+- Standalone binaries need no separate SDK installation or `node_modules` directory. npm installs the dependencies declared by the package.
+- Run `abx --licenses` to view bundled dependency licenses and attribution.
 - The binary is only the `abx` CLI. The Python SDK is a separate package: [Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) ([`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)).
 
 ## Build the binary yourself
-
-For npm artifact validation after `npm run build`, `make dist-check` verifies that
-the package contains `dist/bin/abx.js`. It accepts both older npm array reports and
-npm 12's package-name keyed reports; a missing entry point still fails the gate.
 
 From a checkout, with Node.js 20 or newer (official builds; distro builds that strip the Node SEA fuse cannot be used):
 
@@ -203,15 +199,9 @@ npm ci
 npm run build:binary
 ```
 
-The version tag runs [the five-platform binary workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release-binary.yml) and uploads checksummed assets to a draft Release. Publish the draft only after every platform succeeds. Publishing runs [the npm workflow](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/.github/workflows/release.yml), which installs the exact tarball before upload and verifies a public-registry install afterward. For recovery, run the current npm workflow from `main` using workflow_dispatch with `release_tag` set to the existing version tag (for example `v0.5.7`). It explicitly checks out `refs/tags/<release_tag>` and rejects mismatching package versions or recovery workflows run from feature branches. This repairs the publisher without moving the immutable source tag. Both install and publish use `./dist-pack/*.tgz` so npm interprets the argument as a local tarball.
-
 ## Next Steps
 
 - [Getting Started](getting-started.md) — Install, configure, first sandbox
 - [CLI Tutorial](cli-tutorial.md) — Full CLI lifecycle operations
 - [Authentication](authentication.md) — API Key / AK-SK configuration
 - [Troubleshooting](troubleshooting.md) — Common issues and solutions
-
-For read-only credential troubleshooting, dispatch the same workflow with `release_tag=v0.4.6` and `diagnostics_only=true`. The publication job is skipped. The diagnostic job uses the same `npm` environment and `NPM_API_TOKEN`, reports only whether identity and target-scope checks succeed, and suppresses account names, package lists and raw registry errors. `npm whoami` establishes authentication; it does not establish write permission. An absent package-access entry is inconclusive for a package's first publication. Check the token's package/scope write selection, the npm account's ownership or organization/team permissions, and unattended 2FA requirements in npm settings. An E404 from publish alone cannot distinguish these causes. Refreshing a secret requires a new run. Keep the source tag unchanged and verify a clean public-registry installation before reporting npm delivery complete.
-
-Npm provenance requires `package.json`'s `repository.url` to match the publishing repository **including capitalization**. Keep `git+https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git` in new releases. Recovery of an older tag validates that its URL identifies the same repository (ignoring capitalization), then corrects capitalization before dependency installation, testing and packaging. A different repository is rejected. The source tag is not moved; this is an explicit package-metadata transformation. The resulting npm tarball has its own checksum and is installed and verified before that exact file is published with provenance. Do not reuse an older Release tarball or claim its bytes are identical. CI logs record both the checked-out source commit and the publishing workflow commit. Registry publication and a clean registry installation remain the delivery gates.

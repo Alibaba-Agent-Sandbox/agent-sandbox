@@ -278,6 +278,8 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Managed-key supported CI acceptance](evidence/verify/2026-10-27-managed-api-key-ci.md).
 
-- [Application-token guidance](notes/proposed/feature/2026-10-28-application-token-guidance.md) · [verification](evidence/verify/2026-10-28-application-token-guidance.md).
+- [Application-token guidance](notes/implemented/feature/2026-10-28-application-token-guidance.md) · [verification](evidence/verify/2026-10-28-application-token-guidance.md).
 
 - [Application-token cloud and CLI 0.5.8 delivery](evidence/verify/2026-10-28-application-token-release.md).
+
+- [CLI 0.5.8 public installation guidance](notes/proposed/process/2026-10-28-cli-058-public-guidance.md) · [publication verification](evidence/verify/2026-10-28-cli-058-publication.md).
