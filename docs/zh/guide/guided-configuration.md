@@ -6,6 +6,8 @@
 
 也可以直接运行不带引用的 `abx template launch` 打开同一个选择器，或用 `abx template launch opencode` 选择已知目录条目。自动化须先提供模板引用和所需值，再使用 `--yes`；不会打开选择器。
 
+`ABX_SERVER_TOKEN` 用于保护沙箱内运行的应用 API，是你自行设置或由 CLI 随机生成的私有令牌，与 Sandbox API Key、云 AccessKey 和模型 API Key 分开，无需去云控制台申请。交互启动时选择 **Save for future commands**，在应用令牌输入处按回车即可生成并保存；也可以隐藏输入自己的令牌。选择 **Only this command** 时，须输入一个后续调用应用时也能提供的令牌。
+
 `server_token` 是 CLI 自有配置键，以 `ABX_SERVER_TOKEN` 存在受保护的用户 dotenv 文件中。模板创建、应用验证和后续 `abx run` 使用同一个值；修改时运行 `abx config set server_token` 隐藏输入。没有声明应用令牌的模板不受影响。只有模板声明且默认值为空的模型输入才能继承 CLI 已保存的模型配置，显式运行时值和模板默认值仍然优先。
 
 Python SDK 是库，通过参数以及已支持的环境变量、dotenv 和配置来源取值。它不运行这个向导，不询问缺项，也没有新增 SDK 初始化命令。

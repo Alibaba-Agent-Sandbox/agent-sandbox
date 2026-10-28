@@ -12,16 +12,16 @@
 
 > Cloud sandboxes for AI agents — create, execute, and manage isolated environments in seconds.
 
-**Agent Sandbox** is the command-line interface (`abx`). The default provider is Alibaba Cloud Express (`alicloud-express`). The CLI also loads installed `node`, `exec` and `rest` plugins. The catalog providers `opensandbox`, `alicloud-container`, `cubesandbox` and `e2b` are `node` plugins: an ES module `provider.mjs` that exports `create(kit)`. Install one with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` (a local path or a git URL also works) and run `abx --provider <id>`. An id that is neither built in nor installed exits `E8001`. A manifest with `runtime.kind = "python"` cannot be installed. In-code Python `Provider` subclasses still work in the Python SDK, which reaches the same `node` plugins through the local engine (`abx provider engine serve`; `abx` on `PATH` or `ABX_BIN`). `exec` (EPP/1 over stdio, any language, optional `pty.*`) remains for third-party plugins.
+**Agent Sandbox** is the command-line interface (`abx`) for creating and managing cloud sandboxes. Alibaba Cloud Express (`alicloud-express`) is the default provider. Install another provider with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` and select it with `abx --provider <id>`. See [providers](docs/en/guide/providers.md) for setup and supported operations.
 The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk) (see [Python SDK](#python-sdk)).
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; the standard Express command path follows the pinned E2B CLI behavior contract. See [migration](docs/en/guide/migrate-from-e2b.md).
 
 
 Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Use CLI 0.5.7 or newer for the current spec v5 catalog; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
 
-For natural-language Express creation with `--build steps`, the CLI assembles provider preparation and final source-file delivery; the model supplies business code and dependency commands. Newly generated applications install server `0.4.0a6` alpha. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
+Create an application from a description with `abx create --prompt`. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
 
-Generated applications require runtime `ABX_SERVER_TOKEN` before model generation; generation-only stays local. `create --prompt` uses the same whole-template launch lifecycle and returns its prepared template reference and services.
+Authenticated template applications use `ABX_SERVER_TOKEN`, a private secret you choose or the CLI generates, to protect their APIs. Run `abx config init` to generate and save it, or follow the prompt during interactive template launch. It is separate from your Sandbox API key. See [configuration](docs/en/guide/guided-configuration.md).
 
 ## Sites
 
@@ -64,7 +64,7 @@ The installer picks `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`, or
 
 The macOS/Linux website installer defaults to the latest fully mirrored release and downloads the binary and checksum from the website domain, without GitHub discovery. The [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) lists the available version and files. `ABX_VERSION` selects a release; an explicit older version retains the GitHub download default. `ABX_DOWNLOAD_BASE` overrides the asset base. The Windows PowerShell installer still uses GitHub.
 
-The website copies all five platform binaries, the npm archive and SHA-256 sidecars from a complete stable GitHub Release; size and checksum validation must pass before publication. A new release becomes the website default after mirror deployment. Use the mirror manifest to check the delivered version; `[Unreleased]` changes require a matching source build until published.
+Use `abx --version` to check the installed version and the [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) to check the version available from the website.
 
 ### Manual download
 
@@ -272,22 +272,3 @@ We welcome contributions! Please read the [Contributing Guide](.github/CONTRIBUT
 ## License
 
 [Apache-2.0](LICENSE) — see [`NOTICE`](NOTICE) for copyright information.
-
-
-## Release readiness
-
-CLI 0.5.7 connects `abx config init` to template discovery and creation. Missing application tokens can be generated in the same command and saved for later calls; source failures retain typed build/registry/platform diagnostics and recovery guidance.
-
-CLI 0.5.7 consumes matched Python client/server 0.4.0a6 across generation, scaffolding and MCP artifacts. Native template info reports definitive official absence as existing typed E2001; network and authorization failures remain distinct. Named-command JSON failures retain their diagnostic in one existing E3000 error object. See the [current validation and publication status](.agents/evidence/verify/2026-10-27-cli-057-publication.md).
-
-Runtime evidence applies to the tested template/provider combination. Published CLI artifacts and managed Express base checks receive separate release evidence; each template documents its own provider requirements and service APIs. The maintained public sites are [the website](https://www.agent-sandbox.cn) and [Registry](https://registry.agent-sandbox.cn).
-
-[Prepare and launch catalog templates without copying cloud IDs](docs/en/guide/template-launch.md).
-
-Provider-owned pause/resume and Snapshot commands share one implementation across CLI and SDK; see the [registration and usage guide](docs/en/guide/provider-commands.md).
-
-For native Express template inventory and platform-step acceptance, CLI0.4.1 supports `abx --native` (first global option). See [native deployment operations](docs/en/guide/deploy-and-build.md#explicit-native-express-entry).
-
-Current API / 当前接口: [development contract](docs/en/guide/current-api.md).
-
-[Express authentication and required permissions](docs/en/guide/permissions.md): existing API key or explicitly confirmed AK/SK-managed key.

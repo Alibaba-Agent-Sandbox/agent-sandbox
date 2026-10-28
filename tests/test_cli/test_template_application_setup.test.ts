@@ -64,7 +64,23 @@ describe('template application setup', () => {
     expect(applicationToken()).toBe(token);
     expect(process.env).toEqual(before);
     const output=Object.values(cap.readouterr()).join('');
+    expect(output).toContain('ABX_SERVER_TOKEN protects');
+    expect(output).toContain('separate from your Sandbox API key');
+    expect(output).toContain('Enter to generate');
     expect(output).not.toContain(token);expect(output).not.toContain('placeholder-platform');
+  });
+  it('carries command-only platform and application credentials through launch without saving them', async () => {
+    const f=source();
+    const ask=answers('1','placeholder-platform','1','placeholder-application');
+    await executeTemplateLaunch(ctx(),{template_ref:f.dir});
+    expect(ask).toHaveBeenCalledTimes(5);
+    expect(f.prepare).toHaveBeenCalledOnce();expect(f.create).toHaveBeenCalledOnce();
+    expect((f.create.mock.calls[0]![0] as CreateOptions).envs).toEqual({ABX_SERVER_TOKEN:'placeholder-application'});
+    expect(f.list).toHaveBeenCalledWith(expect.objectContaining({application_token:'placeholder-application'}));
+    expect(fs.existsSync(iso.env)).toBe(false);
+    const output=Object.values(cap.readouterr()).join('');
+    expect(output).toContain('ABX_SERVER_TOKEN protects');
+    expect(output).not.toContain('placeholder-platform');expect(output).not.toContain('placeholder-application');
   });
   it('reuses the saved application token without another prompt',async()=>{
     iso.writeEnv('ABX_SERVER_TOKEN=placeholder-saved\n');
@@ -86,7 +102,8 @@ describe('template application setup', () => {
   it('automation lists the application env and config remedies without submitting',async()=>{
     vi.spyOn(guidance.guidanceSeams,'interactive').mockReturnValue(false);
     const action=vi.fn();
-    await expect(withTemplateEnvironment(ctx(),{ABX_SERVER_TOKEN:''},{},true,action)).rejects.toThrow('ABX_SERVER_TOKEN');
+    const golden = new URL('../test_cli_evidence/golden/application-token-20261028/missing-token.txt', import.meta.url);
+    await expect(withTemplateEnvironment(ctx(),{ABX_SERVER_TOKEN:''},{},true,action)).rejects.toMatchObject({message:fs.readFileSync(golden,'utf8').trimEnd()});
     expect(action).not.toHaveBeenCalled();expect(fs.existsSync(iso.env)).toBe(false);
   });
   it('inherits only saved declared model fields and preserves template defaults', async()=>{

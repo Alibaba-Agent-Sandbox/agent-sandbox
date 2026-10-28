@@ -13,5 +13,5 @@ it.skipIf(!available)("built CLI preserves template consent through a real POSIX
   });
   expect(result.error).toBeUndefined();
   expect(result.status, result.stdout + result.stderr).toBe(0);
-  expect(result.stdout.match(/^PASS:/gm)).toHaveLength(6);
+  expect(result.stdout.match(/^PASS:/gm)).toHaveLength(7);
 }, 60000);

@@ -34,7 +34,7 @@ export async function withTemplateEnvironment<T>(
   if (explicit !== undefined) resolveTemplateEnvironment(declarations, { ...overrides, ABX_SERVER_TOKEN: explicit });
   return withGuidedConfiguration(ctx, {
     operation: "Configure template application", yes, validateProvider: false,
-    requirements: [{ key: "server_token", label: "Application access token", env: "ABX_SERVER_TOKEN",
+    requirements: [{ key: "server_token", label: "Application access token (ABX_SERVER_TOKEN)", env: "ABX_SERVER_TOKEN",
       secret: true, generate: () => randomBytes(32).toString("hex"), validate: value => Boolean(value.trim()) && !/[\r\n]/.test(value) }],
     values: { server_token: explicit },
     overrides: explicit === undefined ? {} : { server_token: explicit },

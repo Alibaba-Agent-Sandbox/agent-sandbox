@@ -1,0 +1,5 @@
+Missing configuration for Configure template application:
+  - server_token: abx config set server_token (or set ABX_SERVER_TOKEN)
+ABX_SERVER_TOKEN protects the application API inside your sandbox and is separate from your Sandbox API key and Alibaba Cloud AccessKeys. You do not obtain it from a cloud console: choose your own private token, or select Save for future commands and press Enter to generate one. Later abx run calls use the same token. Run 'abx config init' to generate and save it, or 'abx config set server_token' to enter your own token with hidden input.
+--yes/-y skips configuration prompts. To enter missing values interactively, rerun this command without --yes/-y in a terminal.
+Run the configuration commands in a terminal, or supply the documented environment variables in automation. No cloud operation was submitted.

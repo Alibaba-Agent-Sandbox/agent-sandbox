@@ -277,3 +277,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Consented Express managed API keys](notes/implemented/architecture/2026-10-27-managed-api-key.md) · [verification](evidence/verify/2026-10-27-managed-api-key.md).
 
 - [Managed-key supported CI acceptance](evidence/verify/2026-10-27-managed-api-key-ci.md).
+
+- [Application-token guidance](notes/proposed/feature/2026-10-28-application-token-guidance.md) · [verification](evidence/verify/2026-10-28-application-token-guidance.md).
