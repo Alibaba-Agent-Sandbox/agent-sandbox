@@ -46,7 +46,6 @@ export async function withTemplateEnvironment<T>(
       "Make the CLI user configuration writable, or supply your own ABX_SERVER_TOKEN through the environment or -e. " +
       "This is a private application token you choose, separate from your Sandbox API key; no cloud-console credential is needed.");
   }
-  getOutput(ctx).info("Application authentication configured automatically and saved securely on this machine; later CLI commands reuse it. " +
-    "Your platform API key keeps its selected configuration scope.");
+  getOutput(ctx).debug("Application authentication configured automatically and saved securely on this machine; later CLI commands reuse it.");
   return action(Object.freeze(resolveTemplateEnvironment(declarations, { ...overrides, ABX_SERVER_TOKEN: generated })));
 }

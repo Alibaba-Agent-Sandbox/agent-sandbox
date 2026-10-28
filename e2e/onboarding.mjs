@@ -85,9 +85,9 @@ def main():
         project = root / "dev-services"
         status, output, _ = invoke(["template", "deploy", str(project), "--acr-namespace", "onboarding-test"], [
             ("Create a template project here and continue?", b"y\r"), ("Select a case", b"\r"),
-            ("Configuration scope", b"3\r"),
+            ("access_key_id (input hidden)", b"\r"),
         ])
-        assert status == 1 and "Configuration scope" in output and "access_key_id" in output and "access_key_secret" in output, "Must continue into unified configuration guidance"
+        assert status == 1 and "Configuration scope" not in output and "access_key_id" in output, "Must request missing credentials directly"
         assert "Aborted" in output and "Building Docker" not in output and "Creating template" not in output, "Cancelling configuration must stop before cloud submission"
         assert (project / "template.yaml").is_file()
         assert "Created template project" in output
@@ -110,7 +110,6 @@ def main():
         secret_fixture = "hidden-cancel-fixture-do-not-save"
         status, output, _ = invoke(["create", "base"], [
             ("Choose an authentication method", b"1\r"),
-            ("Configuration scope", b"1\r"),
             ("input hidden", secret_fixture.encode() + b"\x03"),
         ])
         assert status != 0 and secret_fixture not in output, "Hidden input and Ctrl-C must not expose the entered value"
@@ -130,18 +129,24 @@ def main():
         platform_fixture = "placeholder-platform-key"
         status, output, _ = invoke(["--provider", "alicloud-express", "template", "launch", str(application)], [
             ("Choose an authentication method", b"1\r"),
-            ("Configuration scope", b"1\r"),
             ("sandbox_api_key (input hidden)", platform_fixture.encode() + b"\r"),
             ("Create a billable sandbox", b"n\r"),
         ])
-        assert status != 0 and "Application authentication configured automatically" in output
+        assert status != 0 and "Configuration saved." in output
+        assert "Configuration scope" not in output and "sandbox:CreateApiKey" not in output
         assert "Application access token (ABX_SERVER_TOKEN)" not in output
         assert platform_fixture not in output
         stored = (home / ".abx/.env").read_text()
-        assert re.fullmatch(r'ABX_SERVER_TOKEN=[a-f0-9]{64}\n', stored), "Only generated application authentication may be saved"
+        token = re.search(r'^ABX_SERVER_TOKEN=([a-f0-9]{64})$', stored, re.M)
+        assert token and "ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY=" + platform_fixture in stored, "Platform and generated application credentials must be saved"
         assert (home / ".abx/.env").stat().st_mode & 0o777 == 0o600
-        assert stored.split("=", 1)[1].strip() not in output
-        print("PASS: command-only platform setup configures application authentication automatically and preserves creation consent")
+        assert token[1] not in output
+        if os.environ.get("ABX_CAPTURE_ONBOARDING") == "1":
+            print("CAPTURE_BEGIN")
+            print(re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output).replace(str(root), "<TMP>"))
+            print("CAPTURE_END")
+        print("PASS: platform configuration saves by default, application authentication is automatic and creation consent is preserved")
+        (home / ".abx/.env").unlink()
 
         cases = [
             (["--native", "--json", "create", "base"], {}),

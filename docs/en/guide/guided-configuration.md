@@ -6,7 +6,7 @@ Run `abx config init` after installation. The wizard explains where to obtain th
 
 You can also run `abx template launch` without a reference to open the same picker, or `abx template launch opencode` to select a known catalog entry. Automation supplies a reference and all required values before using `--yes`; it never opens the picker.
 
-Application authentication is automatic. When a template declares application authentication and you have not configured a credential, the CLI generates a random token, stores it in its owner-only local credential file and supplies it when the application starts. Later CLI commands reuse it without another prompt, including when launching with `--yes`. **Only this command** still keeps your platform API key out of saved configuration; the generated application credential has a separate local lifecycle. A read-only configuration directory stops launch before template preparation or sandbox creation.
+Application authentication is automatic. When a template declares application authentication and you have not configured a credential, the CLI generates a random token, stores it in its owner-only local credential file and supplies it when the application starts. Later CLI commands reuse it without another prompt, including when launching with `--yes`. A read-only configuration directory stops launch before template preparation or sandbox creation.
 
 For a custom credential or an external SDK/HTTP client, `ABX_SERVER_TOKEN` is the private token protecting the application API. It is separate from your Sandbox API key, cloud AccessKeys and model API keys and does not come from a cloud console. Choose a long random token yourself and set it before launch, or run `abx config set server_token` for hidden input. External clients must use the same token for their application requests. An explicit `-e ABX_SERVER_TOKEN=...` takes priority and is not saved automatically. If you supply an explicit token, keep it available for later calls; changing a local value does not update an already running application.
 
@@ -28,19 +28,13 @@ abx create dev-services
 abx template deploy ./dev-services --alias dev-services
 ```
 
-Before requesting credentials, the flow shows the effective Provider, region, and API host. URL user information and query strings are excluded from this display. The flow lists the missing fields and offers these scopes once:
+Interactive setup saves supported settings to your current user's local configuration automatically. Later commands reuse them, so there is no save-scope menu. The prompt briefly identifies the provider, region and API host and explains where to obtain the requested credential. Detailed configuration-source diagnostics are available with `--verbose`; AK/SK management permissions and consent are explained when that path is used.
 
-1. **Only this command** (default): use the values through the current operation's stages. No user configuration or project dotenv file is written.
-2. **Save for future commands**: store supported settings in the selected Provider's declared user configuration location, then read them back before continuing.
-3. **Cancel**: stop before starting the operation.
-
-Use **Up/Down** to move and **Enter** to select. **Ctrl+C** cancels. Authentication methods and template project recovery use the same menu controls. Configuration menus stay on stderr; CI, JSON, quiet and `--yes` paths do not open them. Scripted prompt streams retain numbered selection.
+For a temporary override, use the command's existing options or documented environment variables. Already supplied values are used without being copied into saved configuration. **Ctrl+C** or empty input cancels missing-value collection before saving.
 
 Secrets use hidden input. An invalid typed value can be entered again. Empty input cancels missing-value collection; it does not delete an existing credential. Inputs are collected before persistent writes begin. Each supported file write is atomic, but saving several fields is not a transaction: if a later write or cleanup fails, the diagnostic identifies completed fields or a possibly written field and the operation stops.
 
-A value entered for only this command does not reach a later, separately invoked command. For example, a temporary build credential is not saved for a later deploy, and a temporary Sandbox API key used during MCP setup is not installed into an editor's process environment.
-
-After saving, the flow reports the actual destination and modification command. Environment variables and project `.env` values retain their precedence. If they override a newly saved value, the flow explains the conflict rather than claiming that the saved value took effect.
+Environment variables and project `.env` retain their precedence. If they override a newly saved value, setup reports the conflict before continuing. Detailed save locations are available with `--verbose` and `abx config list`.
 
 ## Ask only for the current operation
 
@@ -99,7 +93,7 @@ abx provider config PROVIDER set KEY
 abx provider config PROVIDER unset KEY
 ```
 
-Provider settings use their actual schema storage names. For example, Express `access_key_secret` uses `ALICLOUD_ACCESS_KEY_SECRET`; a Provider-scoped inherited Sandbox API key uses that Provider's scoped variable. The completion message names the actual file. User credential dotenv files are written with owner-only permissions. Unsupported dotenv interpolation or control characters are rejected before replacing the file; ordinary spaces, hashes, quotes, backslashes, and supported multiline values are preserved.
+Provider settings use their actual schema storage names. For example, Express `access_key_secret` uses `ALICLOUD_ACCESS_KEY_SECRET`; a Provider-scoped inherited Sandbox API key uses that Provider's scoped variable. Use `abx config list` or `--verbose` to inspect the actual storage location. User credential dotenv files are written with owner-only permissions. Unsupported dotenv interpolation or control characters are rejected before replacing the file; ordinary spaces, hashes, quotes, backslashes, and supported multiline values are preserved.
 
 Malformed or unreadable TOML/dotenv files are diagnosed by source, without showing secret contents. Invalid explicit booleans, numbers, enums, or URLs are reported instead of silently falling back to defaults. Repair the identified source; setup does not replace a damaged file with an empty configuration.
 

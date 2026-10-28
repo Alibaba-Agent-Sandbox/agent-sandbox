@@ -52,33 +52,36 @@ function source() {
 describe('template application setup', () => {
   it.each(['local','remote'])('fills missing platform and application inputs, then creates once: %s', async kind => {
     const f=source();
-    const ask=answers('1','placeholder-platform');
+    const ask=answers('placeholder-platform');
     vi.spyOn(RegistryClient.prototype,'fetch').mockResolvedValue(f.dir);
     const before={...process.env};
     await executeTemplateLaunch(ctx(),{template_ref:kind==='local'?f.dir:'owner/repo//app'});
     const token=dotenvValues(iso.env).get('ABX_SERVER_TOKEN');
     expect(token).toMatch(/^[a-f0-9]{64}$/);
-    expect(ask).toHaveBeenCalledTimes(3);
+    expect(ask).toHaveBeenCalledTimes(2);
     expect(f.prepare).toHaveBeenCalledOnce();expect(f.create).toHaveBeenCalledOnce();
     expect((f.create.mock.calls[0]![0] as CreateOptions).envs).toEqual({ABX_SERVER_TOKEN:token});
     expect(f.list).toHaveBeenCalledWith(expect.objectContaining({application_token:token}));
     expect(applicationToken()).toBe(token);
     expect(process.env).toEqual(before);
     const output=Object.values(cap.readouterr()).join('');
-    expect(output).toContain('Application authentication configured automatically');
-    expect([...dotenvValues(iso.env).keys()]).toEqual(['ABX_SERVER_TOKEN']);
+    expect(output).not.toContain('Configuration scope');
+    expect(output).not.toContain('sandbox:CreateApiKey');
+    expect(output).not.toContain('Configure template application');
+    expect(dotenvValues(iso.env).get('ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY')).toBe('placeholder-platform');
+    expect([...dotenvValues(iso.env).keys()].sort()).toEqual(['ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY','ABX_SERVER_TOKEN']);
     expect(fs.statSync(iso.env).mode & 0o777).toBe(0o600);
     expect(output).not.toContain(token);expect(output).not.toContain('placeholder-platform');
   });
-  it('carries command-only platform and application credentials through launch without saving them', async () => {
+  it('saves platform input by default and keeps explicit application input unsaved', async () => {
     const f=source();
-    const ask=answers('1','placeholder-platform');
+    const ask=answers('placeholder-platform');
     await executeTemplateLaunch(ctx(),{template_ref:f.dir}, {envs:{ABX_SERVER_TOKEN:'placeholder-application'}});
-    expect(ask).toHaveBeenCalledTimes(3);
+    expect(ask).toHaveBeenCalledTimes(2);
     expect(f.prepare).toHaveBeenCalledOnce();expect(f.create).toHaveBeenCalledOnce();
     expect((f.create.mock.calls[0]![0] as CreateOptions).envs).toEqual({ABX_SERVER_TOKEN:'placeholder-application'});
     expect(f.list).toHaveBeenCalledWith(expect.objectContaining({application_token:'placeholder-application'}));
-    expect(fs.existsSync(iso.env)).toBe(false);
+    expect([...dotenvValues(iso.env).keys()]).toEqual(['ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY']);
     const output=Object.values(cap.readouterr()).join('');
     expect(output).not.toContain('placeholder-platform');expect(output).not.toContain('placeholder-application');
   });
@@ -95,7 +98,7 @@ describe('template application setup', () => {
     expect(result.ABX_SERVER_TOKEN).toBe('placeholder-explicit');expect(ask).not.toHaveBeenCalled();
   });
   it('cancellation stops before preparation and creation',async()=>{
-    const f=source();answers('3');
+    const f=source();answers('');
     await expect(executeTemplateLaunch(ctx(),{template_ref:f.dir})).rejects.toThrow();
     expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();expect(fs.existsSync(iso.env)).toBe(false);
   });
@@ -112,15 +115,15 @@ describe('template application setup', () => {
     expect(Object.values(cap.readouterr()).join('')).not.toContain(first.ABX_SERVER_TOKEN);
   });
   it('fails before preparation if application credential storage fails',async()=>{
-    const f=source();answers('1','placeholder-platform');
+    const f=source();iso.setenv('ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY','placeholder-platform');answers();
     vi.spyOn(configCommands,'saveGuidedValue').mockImplementation(()=>{throw new Error('private failure details');});
     await expect(executeTemplateLaunch(ctx(),{template_ref:f.dir})).rejects.toThrow('Could not save application authentication');
     expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();
   });
   it.each(['', ' ', 'bad\ntoken'])('rejects invalid explicit tokens without generating a replacement or preparing: %j',async token=>{
-    const f=source();answers('1','placeholder-platform');
+    const f=source();answers('placeholder-platform');
     await expect(executeTemplateLaunch(ctx(),{template_ref:f.dir},{envs:{ABX_SERVER_TOKEN:token}})).rejects.toThrow('ABX_SERVER_TOKEN');
-    expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();expect(fs.existsSync(iso.env)).toBe(false);
+    expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();expect(dotenvValues(iso.env).get('ABX_SERVER_TOKEN')).toBeUndefined();
   });
   it('inherits only saved declared model fields and preserves template defaults', async()=>{
     iso.writeEnv('ABX_LLM_API_KEY=placeholder-model\nABX_LLM_MODEL=saved-model\n');

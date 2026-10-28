@@ -4,11 +4,11 @@ Status: proposed
 
 ## Problem
 
-After platform credential setup, template users must still understand and configure an internal application token. CLI0.5.8 explains its origin but keeps a second prompt. The reported newcomer flow should continue with authenticated application access automatically.
+Template users must repeatedly choose configuration scope and understand an internal application token. CLI0.5.8 explains the token but keeps a second prompt and prints unrelated managed-key details. The user requested default local persistence, concise relevant prompts and automatic application authentication.
 
 ## Decision
 
-When a template declares application authentication, the CLI resolves explicit runtime input, the caller environment and saved configuration first. With no configured credential, it generates32 cryptographic random bytes, saves the hex token using the existing protected user credential writer, verifies that it can reload the same value, and only then permits template preparation and creation. Startup verification and later CLI commands reuse the credential. The generated local application secret has a separate lifecycle from a command-only platform API key; the latter is never persisted by this change. Existing configured tokens are not rotated, and invalid explicit values fail closed. No cloud management API key is generated or renewed.
+When a template declares application authentication, the CLI resolves explicit runtime input, the caller environment and saved configuration first. With no configured credential, it generates32 cryptographic random bytes, saves the hex token using the existing protected user credential writer, verifies that it can reload the same value, and only then permits template preparation and creation. Startup verification and later CLI commands reuse the credential. Interactive configuration now saves supported values to the protected current-user configuration by default, without a scope selector. Existing explicit options and environment values remain temporary overrides and are not copied into saved configuration. Application setup does not ask another question. Default output contains concise target/source information and a save confirmation; detailed diagnostics use verbose output. Provider-managed key creation/renewal still requires the existing explicit consent or --ci. Provider-sensitive identifiers retain hidden input. Existing configured tokens are not rotated, and invalid explicit values fail closed. No cloud management API key is generated or renewed.
 
 ## API Design
 
@@ -26,18 +26,19 @@ Node crypto and the existing CLI credential storage/resolution. No dependency, t
 
 ## Test Strategy
 
-Cover local/remote source launch, command-only provider key isolation, automatic and explicit credentials, protected storage, reuse, invalid input, persistence failure and cancellation. Preserve historical golden captures and add a dated create-help snapshot. Run real POSIX terminal onboarding and actual Express launch followed by discovery, business invocation, wrong-token rejection and independently confirmed owned deletion. Distinguish local baseline failures from required remote CI.
+Cover local/remote source launch, default provider-key persistence and temporary override isolation, automatic and explicit credentials, protected storage, reuse, invalid input, persistence failure and cancellation. Preserve historical golden captures and add a dated create-help snapshot. Run real POSIX terminal onboarding and actual Express launch followed by discovery, business invocation, wrong-token rejection and independently confirmed owned deletion. Distinguish local baseline failures from required remote CI.
 
 ## Acceptance criteria
 
 - Normal launch never asks the user to obtain or type an application token.
 - Correct generated authentication works across CLI processes; wrong authentication returnsHTTP401.
-- A command-only platform key is not saved; the local application file is owner-only and secrets never appear in output or generated source.
+- Interactive provider input is saved by default, explicit overrides are not copied, and no scope menu appears. Credential files are owner-only and secrets never appear in output or generated source.
 - Failure to save/reload authentication stops before template preparation and creation.
 - Existing explicit credentials, SDK contracts and authentication requirements remain supported.
 - English/Chinese guidance, dated evidence, current-head CI and normal PR review accompany delivery.
 
 ## Evidence
 
-- [Verification](../../../evidence/verify/2026-10-28-automatic-application-auth.md).
+- [Final default-saved guidance verification](../../../evidence/verify/2026-10-28-default-saved-guidance.md).
+- [Earlier automatic-authentication phase](../../../evidence/verify/2026-10-28-automatic-application-auth.md) at4c7f049 remains historical and records the earlier command-only design before the user changed that requirement.
 - [Issue210](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/210).

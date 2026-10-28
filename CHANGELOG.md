@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
-- Automatically generate and securely save missing template application authentication, reuse it in later commands, and retain command-only scope for platform API keys. Custom runtime credentials remain supported.
+- Save interactive configuration to the current user by default without a scope selector, show concise relevant prompts, and automatically manage reusable template application authentication. Explicit runtime overrides and managed-key consent remain supported.
 
 
 ### Documentation
