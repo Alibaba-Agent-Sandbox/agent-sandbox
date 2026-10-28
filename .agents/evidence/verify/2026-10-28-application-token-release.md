@@ -43,7 +43,13 @@ The earlier local result remains historical and is superseded for delivery statu
   those alternative credentials for this API-key-specific scenario and use current terminal
   input/marker matching. Rerun via the installed npm candidate: PASS, hidden command-only key,
   real create/exec continuation, no credential persistence and independently confirmed deletion.
+- Full `e2e/initialized-template.mjs` via the installed npm candidate: PASS, real hidden API-key
+  entry, generated saved application token, catalog selection, billable create confirmation,
+  remote execution and independent HTTP 404 cleanup. Its first run timed out at step zero because
+  the fixture expected the old `input masked)` suffix; matching the stable Sandbox API key prompt
+  prefix handles the current AK/SK option text without changing product behavior.
 - Typecheck and ESLint on the 0.5.8 candidate: PASS; zero lint errors and 275 existing warnings.
+- Repository health: PASS=105, WARN=11, FAIL=0. Hygiene and scoped diff/secret checks: PASS.
 - PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/208.
 
 ## Release gates
