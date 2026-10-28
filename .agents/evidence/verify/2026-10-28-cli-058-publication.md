@@ -54,3 +54,6 @@ the installed candidate and cancelled before preparation/creation without saving
   GitHub publication or npm installation alone.
 All credentials stay in the pre-existing private dotenv/child environment; values and private
 resource references are absent from records. Prior failures/captures remain unchanged.
+
+The initial documentation diff check flagged an extra blank line at the relocated maintainer
+note EOF. It was trimmed; the final scoped diff check passes.
