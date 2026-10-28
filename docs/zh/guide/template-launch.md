@@ -16,7 +16,7 @@ CLI 准备模板、创建一个沙箱、执行启动命令、等待已声明的 
 
 官方源码模板沿用已有的原生基础镜像配方。OpenSandbox 默认解析为 `fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49`；可以用 `ABX_BASE_IMAGE_REGION` 和 `ABX_BASE_IMAGE_TAG` 覆盖。这是镜像来源配置，与 OpenSandbox 服务部署地域无关。所选 Dockerfile 安装自身声明的公开 server 发行包。显式指定本地 SDK 源码时可以构建并注入开发 wheel；普通构建不需要另行克隆 Python SDK，也不需要宿主 Python 构建工具。CLI 只准备临时副本，保留应用指令和最终 `USER`。
 
-运行 `abx config init` 可以生成并保存应用认证；交互启动时也能补齐 `server_token` 后继续创建。自动化可提供 `ABX_SERVER_TOKEN`。OpenSandbox 服务端代理连接需要 CLI 0.4.16 或更新版本。CLI 保留 Bearer 认证；网关未占用 `X-Access-Token` 时，还会通过该请求头发送同一个显式应用令牌，不会替换网关凭据。
+应用认证缺省时由 CLI 自动生成并保存在本机，后续 `abx run` 自动复用，无需单独配置；`--yes` 启动也适用。自动化须预先配置平台凭据。自定义应用令牌及外部客户端用法见[配置引导](guided-configuration.md)。OpenSandbox 服务端代理连接需要 CLI 0.4.16 或更新版本。CLI 保留 Bearer 认证；网关未占用 `X-Access-Token` 时，还会通过该请求头发送同一个显式应用令牌，不会替换网关凭据。
 
 常用选项：
 

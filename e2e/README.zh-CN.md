@@ -5,7 +5,7 @@
 使用 `ABX_BIN=<binary> node e2e/template-build-failure.mjs` 和本机 Docker 验证真实构建失败、E7020、诊断脱敏及未提交云端资源。该用例仅使用占位凭证，不创建云资源。
 
 
-运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs --application` 可验证缺失应用令牌时的补配和后续命令自动复用。该模式使用已有 `python-hello` 模板（可用 `ABX_ONBOARDING_APPLICATION_TEMPLATE` 指定 ID），启动服务后独立核验本次沙箱的删除结果。
+运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs --application` 可验证自动配置应用认证和后续命令自动复用。该模式使用已有 `python-hello` 模板（可用 `ABX_ONBOARDING_APPLICATION_TEMPLATE` 指定 ID），启动服务后调用真实认证命令，并独立核验本次沙箱的删除结果。改用 `--command-only-application` 可先隐藏输入仅当前命令有效的 Sandbox API Key，并确认只有自动生成的应用凭据被保存。
 
 运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs`，验证全新用户目录中初始化、模板搜索选择、计费确认、真实极速版创建、远程执行和 HTTP 404 独立清理核验；同时检查隐藏输入及自动保存的应用令牌。所需凭证和终端支持与交互配置用例相同。
 

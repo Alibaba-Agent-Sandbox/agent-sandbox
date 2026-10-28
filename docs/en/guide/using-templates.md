@@ -82,14 +82,13 @@ Set a long random application token, then start with a small standard-library co
 
 ```bash
 abx config init --llm
-export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
 ```
 
 ```bash
 abx create --prompt "a Python sandbox with an add command accepting two integers"
 ```
 
-New generated applications require a separate runtime application token. Export `ABX_SERVER_TOKEN` before creation, or provide it through the existing `-e ABX_SERVER_TOKEN=...` option. The CLI validates it before model work and injects it when starting the application; it does not write the token value into generated files or build steps. Generation-only remains local. The create JSON keeps its original fields and also returns `TemplateID` and `Services` for exact cleanup and application access.
+The CLI automatically generates and securely saves application authentication when missing, then reuses it for later commands. Custom application credentials can be supplied through `ABX_SERVER_TOKEN` or the existing `-e` option; see [configuration](guided-configuration.md). Credentials are injected only at runtime, never into generated source or build steps. Generation-only remains local. The create JSON keeps its original fields and also returns `TemplateID` and `Services` for exact cleanup and application access.
 
 `abx create --prompt "<description>"` (without an existing template positional argument) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
 

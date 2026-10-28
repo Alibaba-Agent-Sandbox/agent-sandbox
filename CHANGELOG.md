@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Automatically generate and securely save missing template application authentication, reuse it in later commands, and retain command-only scope for platform API keys. Custom runtime credentials remain supported.
+
+
 ### Documentation
 
 - Point installation examples to CLI 0.5.8 and keep publishing/recovery instructions in engineering documentation. / 安装示例更新为 CLI 0.5.8，发布与恢复说明移入工程文档。

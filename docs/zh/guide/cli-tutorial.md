@@ -125,10 +125,9 @@ if __name__ == "__main__":
     start(9000)
 ```
 
-在当前终端设置一个足够长的随机应用令牌，并在模板中声明 `env: {ABX_SERVER_TOKEN: ""}`，让启动过程把该值传入沙箱。它与平台账户密钥分开；随后 `abx run` 使用同一终端中的值：
+在模板中声明 `env: {ABX_SERVER_TOKEN: ""}`。缺省应用认证由 CLI 自动生成、安全保存，在启动时传入，并供后续 `abx run` 复用，无需手工配置。自定义凭据是可选项，见[配置引导](guided-configuration.md)：
 
 ```bash
-export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
 abx --provider alicloud-express --json template launch ./my-command-template --yes
 ```
 

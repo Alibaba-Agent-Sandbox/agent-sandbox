@@ -10,6 +10,7 @@ import type { CreateOptions } from '../../src/api/sandbox.js';
 import { RegistryClient } from '../../src/utils/registry.js';
 import { CLI_EXTENSION } from '../../src/providers/alicloud_express/cli/extension.js';
 import { configSeams } from '../../src/cli/commands/config_cmd.js';
+import * as configCommands from '../../src/cli/commands/config_cmd.js';
 import { useIso } from '../_support/iso.js';
 import { storagePatch } from '../helpers/configSupport.js';
 import { dotenvValues } from '../../src/utils/_dotenv.js';
@@ -51,35 +52,34 @@ function source() {
 describe('template application setup', () => {
   it.each(['local','remote'])('fills missing platform and application inputs, then creates once: %s', async kind => {
     const f=source();
-    const ask=answers('1','placeholder-platform','2','');
+    const ask=answers('1','placeholder-platform');
     vi.spyOn(RegistryClient.prototype,'fetch').mockResolvedValue(f.dir);
     const before={...process.env};
     await executeTemplateLaunch(ctx(),{template_ref:kind==='local'?f.dir:'owner/repo//app'});
     const token=dotenvValues(iso.env).get('ABX_SERVER_TOKEN');
     expect(token).toMatch(/^[a-f0-9]{64}$/);
-    expect(ask).toHaveBeenCalledTimes(5);
+    expect(ask).toHaveBeenCalledTimes(3);
     expect(f.prepare).toHaveBeenCalledOnce();expect(f.create).toHaveBeenCalledOnce();
     expect((f.create.mock.calls[0]![0] as CreateOptions).envs).toEqual({ABX_SERVER_TOKEN:token});
     expect(f.list).toHaveBeenCalledWith(expect.objectContaining({application_token:token}));
     expect(applicationToken()).toBe(token);
     expect(process.env).toEqual(before);
     const output=Object.values(cap.readouterr()).join('');
-    expect(output).toContain('ABX_SERVER_TOKEN protects');
-    expect(output).toContain('separate from your Sandbox API key');
-    expect(output).toContain('Enter to generate');
+    expect(output).toContain('Application authentication configured automatically');
+    expect([...dotenvValues(iso.env).keys()]).toEqual(['ABX_SERVER_TOKEN']);
+    expect(fs.statSync(iso.env).mode & 0o777).toBe(0o600);
     expect(output).not.toContain(token);expect(output).not.toContain('placeholder-platform');
   });
   it('carries command-only platform and application credentials through launch without saving them', async () => {
     const f=source();
-    const ask=answers('1','placeholder-platform','1','placeholder-application');
-    await executeTemplateLaunch(ctx(),{template_ref:f.dir});
-    expect(ask).toHaveBeenCalledTimes(5);
+    const ask=answers('1','placeholder-platform');
+    await executeTemplateLaunch(ctx(),{template_ref:f.dir}, {envs:{ABX_SERVER_TOKEN:'placeholder-application'}});
+    expect(ask).toHaveBeenCalledTimes(3);
     expect(f.prepare).toHaveBeenCalledOnce();expect(f.create).toHaveBeenCalledOnce();
     expect((f.create.mock.calls[0]![0] as CreateOptions).envs).toEqual({ABX_SERVER_TOKEN:'placeholder-application'});
     expect(f.list).toHaveBeenCalledWith(expect.objectContaining({application_token:'placeholder-application'}));
     expect(fs.existsSync(iso.env)).toBe(false);
     const output=Object.values(cap.readouterr()).join('');
-    expect(output).toContain('ABX_SERVER_TOKEN protects');
     expect(output).not.toContain('placeholder-platform');expect(output).not.toContain('placeholder-application');
   });
   it('reuses the saved application token without another prompt',async()=>{
@@ -95,16 +95,32 @@ describe('template application setup', () => {
     expect(result.ABX_SERVER_TOKEN).toBe('placeholder-explicit');expect(ask).not.toHaveBeenCalled();
   });
   it('cancellation stops before preparation and creation',async()=>{
-    const f=source();answers('1','placeholder-platform','3');
+    const f=source();answers('3');
     await expect(executeTemplateLaunch(ctx(),{template_ref:f.dir})).rejects.toThrow();
     expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();expect(fs.existsSync(iso.env)).toBe(false);
   });
-  it('automation lists the application env and config remedies without submitting',async()=>{
+  it('automatically saves and reuses application authentication in automation without prompting',async()=>{
     vi.spyOn(guidance.guidanceSeams,'interactive').mockReturnValue(false);
-    const action=vi.fn();
-    const golden = new URL('../test_cli_evidence/golden/application-token-20261028/missing-token.txt', import.meta.url);
-    await expect(withTemplateEnvironment(ctx(),{ABX_SERVER_TOKEN:''},{},true,action)).rejects.toMatchObject({message:fs.readFileSync(golden,'utf8').trimEnd()});
-    expect(action).not.toHaveBeenCalled();expect(fs.existsSync(iso.env)).toBe(false);
+    const ask=vi.spyOn(guidance.guidanceSeams,'ask');
+    const action=vi.fn(async (env:Readonly<Record<string,string>>)=>({...env}));
+    const first=await withTemplateEnvironment(ctx(),{ABX_SERVER_TOKEN:''},{},true,action);
+    const second=await withTemplateEnvironment(ctx(),{ABX_SERVER_TOKEN:''},{},true,action);
+    expect(first.ABX_SERVER_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(second).toEqual(first);
+    expect(ask).not.toHaveBeenCalled();
+    expect(dotenvValues(iso.env).get('ABX_SERVER_TOKEN')).toBe(first.ABX_SERVER_TOKEN);
+    expect(Object.values(cap.readouterr()).join('')).not.toContain(first.ABX_SERVER_TOKEN);
+  });
+  it('fails before preparation if application credential storage fails',async()=>{
+    const f=source();answers('1','placeholder-platform');
+    vi.spyOn(configCommands,'saveGuidedValue').mockImplementation(()=>{throw new Error('private failure details');});
+    await expect(executeTemplateLaunch(ctx(),{template_ref:f.dir})).rejects.toThrow('Could not save application authentication');
+    expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();
+  });
+  it.each(['', ' ', 'bad\ntoken'])('rejects invalid explicit tokens without generating a replacement or preparing: %j',async token=>{
+    const f=source();answers('1','placeholder-platform');
+    await expect(executeTemplateLaunch(ctx(),{template_ref:f.dir},{envs:{ABX_SERVER_TOKEN:token}})).rejects.toThrow('ABX_SERVER_TOKEN');
+    expect(f.prepare).not.toHaveBeenCalled();expect(f.create).not.toHaveBeenCalled();expect(fs.existsSync(iso.env)).toBe(false);
   });
   it('inherits only saved declared model fields and preserves template defaults', async()=>{
     iso.writeEnv('ABX_LLM_API_KEY=placeholder-model\nABX_LLM_MODEL=saved-model\n');

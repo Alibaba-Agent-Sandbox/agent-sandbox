@@ -21,7 +21,7 @@ Template launch starts the complete application: `abx --provider PROVIDER templa
 
 Create an application from a description with `abx create --prompt`. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
 
-Authenticated template applications use `ABX_SERVER_TOKEN`, a private secret you choose or the CLI generates, to protect their APIs. Run `abx config init` to generate and save it, or follow the prompt during interactive template launch. It is separate from your Sandbox API key. See [configuration](docs/en/guide/guided-configuration.md).
+The CLI automatically configures application authentication when you launch a template and reuses it for later commands. You only need to supply the provider credentials required by your chosen platform. See [configuration](docs/en/guide/guided-configuration.md) for optional custom application credentials and external clients.
 
 ## Sites
 

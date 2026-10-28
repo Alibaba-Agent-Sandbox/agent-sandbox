@@ -132,15 +132,16 @@ def main():
             ("Choose an authentication method", b"1\r"),
             ("Configuration scope", b"1\r"),
             ("sandbox_api_key (input hidden)", platform_fixture.encode() + b"\r"),
-            ("Configure template application needs", b"2\r"),
-            ("Application access token (ABX_SERVER_TOKEN)", b"\x03"),
+            ("Create a billable sandbox", b"n\r"),
         ])
-        assert status != 0 and "ABX_SERVER_TOKEN protects" in output
-        assert "separate from your Sandbox API key" in output and "Enter to generate" in output
-        assert "You do not obtain it from a cloud console" in output
-        assert platform_fixture not in output and not (home / ".abx/.env").exists()
-        assert "Create a billable sandbox" not in output, "Cancellation must stop before creation"
-        print("PASS: temporary platform setup continues to explained application-token guidance before cloud creation")
+        assert status != 0 and "Application authentication configured automatically" in output
+        assert "Application access token (ABX_SERVER_TOKEN)" not in output
+        assert platform_fixture not in output
+        stored = (home / ".abx/.env").read_text()
+        assert re.fullmatch(r'ABX_SERVER_TOKEN=[a-f0-9]{64}\n', stored), "Only generated application authentication may be saved"
+        assert (home / ".abx/.env").stat().st_mode & 0o777 == 0o600
+        assert stored.split("=", 1)[1].strip() not in output
+        print("PASS: command-only platform setup configures application authentication automatically and preserves creation consent")
 
         cases = [
             (["--native", "--json", "create", "base"], {}),

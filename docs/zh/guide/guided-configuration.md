@@ -6,7 +6,9 @@
 
 也可以直接运行不带引用的 `abx template launch` 打开同一个选择器，或用 `abx template launch opencode` 选择已知目录条目。自动化须先提供模板引用和所需值，再使用 `--yes`；不会打开选择器。
 
-`ABX_SERVER_TOKEN` 用于保护沙箱内运行的应用 API，是你自行设置或由 CLI 随机生成的私有令牌，与 Sandbox API Key、云 AccessKey 和模型 API Key 分开，无需去云控制台申请。交互启动时选择 **Save for future commands**，在应用令牌输入处按回车即可生成并保存；也可以隐藏输入自己的令牌。选择 **Only this command** 时，须输入一个后续调用应用时也能提供的令牌。
+应用认证由 CLI 自动处理。模板声明应用认证且你尚未配置凭据时，CLI 会随机生成令牌，写入仅当前用户可读写的本机凭据文件，并在应用启动时传入。后续 CLI 命令自动复用，不再单独询问；`--yes` 启动也适用。**Only this command** 仍保证平台 API Key 不写入用户配置；自动生成的应用凭据有独立的本机生命周期。如果本机配置目录不可写，CLI 会在准备模板或创建沙箱前停止。
+
+需要自定义凭据或使用外部 SDK/HTTP 客户端时，`ABX_SERVER_TOKEN` 才需要由你管理：它是保护应用 API 的私有令牌，与 Sandbox API Key、云 AK/SK 和模型 Key 分开，无需去云控制台申请。你可以自行生成足够长的随机值，在启动前设置，或运行 `abx config set server_token` 隐藏输入。外部客户端调用应用时使用同一个值。显式 `-e ABX_SERVER_TOKEN=...` 优先，且不会自动保存；自行指定时，后续调用仍须提供相同的值。修改本机配置不会更改已经运行的应用。
 
 `server_token` 是 CLI 自有配置键，以 `ABX_SERVER_TOKEN` 存在受保护的用户 dotenv 文件中。模板创建、应用验证和后续 `abx run` 使用同一个值；修改时运行 `abx config set server_token` 隐藏输入。没有声明应用令牌的模板不受影响。只有模板声明且默认值为空的模型输入才能继承 CLI 已保存的模型配置，显式运行时值和模板默认值仍然优先。
 
