@@ -61,7 +61,7 @@ abx config get sandbox_api_key
 abx create base --detach
 ```
 
-`base` is the default template. The repository README uses `python-base`, the Python image in the catalog.
+`base` is the default template. Use the template catalog to choose an application-specific environment.
 
 ## 4. Execute Code
 

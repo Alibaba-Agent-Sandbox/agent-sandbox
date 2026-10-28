@@ -61,7 +61,7 @@ abx config get sandbox_api_key
 abx create base --detach
 ```
 
-`base` 是默认模板。仓库 README 里的 `python-base` 是目录中的 Python 镜像。
+`base` 是默认模板。需要应用专用环境时，可从模板目录选择。
 
 ## 4. 执行代码
 
