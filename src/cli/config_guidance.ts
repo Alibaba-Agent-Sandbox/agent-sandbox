@@ -175,9 +175,11 @@ export async function withGuidedConfiguration<T>(
   const repair = (field: GuidanceField): string => persistable(field) ? `abx config set ${repairKey(field.key)}${field.env ? ` (or set ${field.env})` : ""}`
     : field.flag ? `supply ${field.flag}` : field.env ? `set ${field.env}` : "supply this operation's documented option";
   const details = missing.map((f) => `  - ${f.key}: ${repair(f)}`).join("\n");
+  const fieldHelp = missing.map(field => configurationFieldHelp(field.key, provider.id)).filter((help): help is string => Boolean(help));
   const out = getOutput(ctx);
   if (!guidanceSeams.interactive(ctx, request.yes)) {
     throw new CliError(`Missing configuration for ${request.operation}:\n${details}\n` +
+      (fieldHelp.length ? `${fieldHelp.join("\n")}\n` : "") +
       (request.yes ? "--yes/-y skips configuration prompts. To enter missing values interactively, rerun this command without --yes/-y in a terminal.\n" : "") +
       "Run the configuration commands in a terminal, or supply the documented environment variables in automation. No cloud operation was submitted.");
   }
@@ -185,10 +187,7 @@ export async function withGuidedConfiguration<T>(
   const registry = effective("acr_registry");
   if (typeof registry === "string" && registry) out.info(`Registry host: ${safeHost(registry.includes("://") ? registry : `https://${registry}`)}`);
   out.info(`${request.operation} needs ${missing.length} configuration value(s):\n${details}`);
-  for (const field of missing) {
-    const help = configurationFieldHelp(field.key, provider.id);
-    if (help) out.info(help);
-  }
+  for (const help of fieldHelp) out.info(help);
   if (runtimeAuth && needsRuntimeAuth) out.info(runtimeAuth.help);
   const canSave = missing.some(persistable);
   let scope = "1";

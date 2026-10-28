@@ -119,6 +119,29 @@ def main():
                 assert secret_fixture.encode() not in path.read_bytes(), "Cancelling credential input must not persist a secret"
         print("PASS: actual hidden input restores the terminal on Ctrl-C without echoing or saving the partial key")
 
+        application = root / "application"
+        application.mkdir()
+        (application / "template.yaml").write_text(json.dumps({
+            "name": "application", "spec_version": 5, "provider": "alicloud-express", "template_id": "base",
+            "provides": {"app": {"protocol": "agent-sandbox-server", "version": 2, "port": 9000,
+                                  "operations": ["commands.list", "commands.run"]}},
+            "env": {"ABX_SERVER_TOKEN": ""},
+        }))
+        platform_fixture = "placeholder-platform-key"
+        status, output, _ = invoke(["--provider", "alicloud-express", "template", "launch", str(application)], [
+            ("Choose an authentication method", b"1\r"),
+            ("Configuration scope", b"1\r"),
+            ("sandbox_api_key (input hidden)", platform_fixture.encode() + b"\r"),
+            ("Configure template application needs", b"2\r"),
+            ("Application access token (ABX_SERVER_TOKEN)", b"\x03"),
+        ])
+        assert status != 0 and "ABX_SERVER_TOKEN protects" in output
+        assert "separate from your Sandbox API key" in output and "Enter to generate" in output
+        assert "You do not obtain it from a cloud console" in output
+        assert platform_fixture not in output and not (home / ".abx/.env").exists()
+        assert "Create a billable sandbox" not in output, "Cancellation must stop before creation"
+        print("PASS: temporary platform setup continues to explained application-token guidance before cloud creation")
+
         cases = [
             (["--native", "--json", "create", "base"], {}),
             (["--native", "create", "base"], {"CI": "1"}),

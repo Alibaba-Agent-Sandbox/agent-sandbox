@@ -12,16 +12,16 @@
 
 > 为 AI Agent 打造的云沙箱 —— 秒级创建、执行、管理隔离环境。
 
-**Agent Sandbox** 是命令行工具（`abx`）。默认提供方是阿里云极速版（`alicloud-express`）。CLI 还会加载已安装的 `node`、`exec` 和 `rest` 插件。目录提供方 `opensandbox`、`alicloud-container`、`cubesandbox` 和 `e2b` 都是 `node` 插件：导出 `create(kit)` 的 ES 模块 `provider.mjs`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装（本地路径或 git URL 也可以），再用 `abx --provider <id>` 运行。既不是内置也未安装的 id 以 `E8001` 退出。`runtime.kind = "python"` 的清单不能安装。Python SDK 里以代码方式构造的 `Provider` 子类仍然可用；SDK 通过本机引擎（`abx provider engine serve`；`abx` 在 `PATH` 上或由 `ABX_BIN` 指定）使用同一批 `node` 插件。`exec`（stdio 上的 EPP/1，任意语言，可选 `pty.*`）留给第三方插件。
+**Agent Sandbox** 是用于创建和管理云沙箱的命令行工具（`abx`），默认提供方是阿里云极速版（`alicloud-express`）。使用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装其他提供方，再用 `abx --provider <id>` 选择。配置和支持的操作见[提供方指南](docs/zh/guide/providers.md)。
 Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)（见 [Python SDK](#python-sdk)）。
 模板的构建和部署在这个 CLI 里。运行时客户端是 Python SDK。那边的方法名接近 E2B，便于迁移；标准 CLI 与 SDK 遵循阿里云支持版本的 E2B 行为契约，后端条件能力见[迁移指南](docs/zh/guide/migrate-from-e2b.md)。
 
 
 模板整体启动：`abx --provider PROVIDER template launch TEMPLATE --yes`。spec v5 删除 workflow 选择，返回全部声明的服务。当前 spec v5 目录建议使用 CLI 0.5.7 或更新版本；CLI 与模板目录需同步升级。见[启动与迁移](docs/zh/guide/template-workflows.md)。
 
-自然语言创建极速版模板时，`--build steps` 的提供方准备和最终源码传输由 CLI 确定性组装，模型负责业务代码与依赖安装命令。新生成的应用安装 server `0.4.0a6` alpha。见[自然语言创建](docs/zh/guide/using-templates.md)。
+使用 `abx create --prompt` 可以根据描述创建应用，详见[自然语言创建](docs/zh/guide/using-templates.md)。
 
-新生成应用在调用模型前需要运行时 `ABX_SERVER_TOKEN`；仅生成本地文件时不需要。`create --prompt` 复用同一个模板整体启动流程，并返回模板引用和服务地址。
+需要认证的模板应用通过 `ABX_SERVER_TOKEN` 保护应用 API。它是你自行设置或由 CLI 随机生成的私有令牌，与 Sandbox API Key 分开。运行 `abx config init` 可生成并保存；交互启动模板时也会提示补齐。详见[配置引导](docs/zh/guide/guided-configuration.md)。
 
 ## 网站
 
@@ -62,7 +62,7 @@ macOS/Linux 下载二进制时会在终端显示进度条和百分比；重定�
 
 安装脚本会选择 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64` 或 `windows-x64`，校验 `.sha256`，并且不需要 `sudo`。macOS 和 Linux 在 `/usr/local/bin` 可写时装到那里，否则装到 `$HOME/.local/bin`。Windows 装到 `%LOCALAPPDATA%\Programs\abx`，并把它加到用户 `PATH`。`ABX_INSTALL_DIR` 选择目录。macOS/Linux 官网安装入口默认使用最新已完整镜像的版本，从官网域名下载二进制和校验文件，无需访问 GitHub 查询版本。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 列出可用版本及文件。`ABX_VERSION` 选择版本；显式指定较早版本时仍默认从 GitHub 下载。`ABX_DOWNLOAD_BASE` 可覆盖产物下载前缀。Windows PowerShell 安装脚本仍使用 GitHub。
 
-官网从完整稳定版 GitHub Release 复制五个平台的二进制、npm 归档及 SHA-256 文件，大小和校验和验证通过后才发布。新版本在镜像部署完成后成为官网默认版本。请用 `abx --version` 确认安装版本，模板目录建议使用 CLI 0.5.7 或更新版本。
+使用 `abx --version` 查看已安装版本，通过[镜像清单](https://www.agent-sandbox.cn/releases/latest.json)查看官网可安装版本。
 
 ### 手动下载
 
@@ -266,22 +266,3 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 ## 许可证
 
 [Apache-2.0](LICENSE) —— 版权信息见 [`NOTICE`](NOTICE)。
-
-
-## 发布就绪范围
-
-CLI 0.5.7 将 `abx config init` 与模板查找、创建串联起来。应用访问令牌可在同一次命令中生成并保存，后续调用自动复用；源码失败保留构建、仓库及平台错误类型和恢复提示。
-
-CLI 0.5.7 的生成器、脚手架与 MCP 产物统一使用 Python client/server 0.4.0a6。原生模板详情把官方确定的模板不存在响应报告为现有 E2001，网络和权限错误仍与资源不存在区分。具名命令失败时，JSON 输出在一个现有 E3000 错误对象中保留诊断。见[当前验证与发布状态](.agents/evidence/verify/2026-10-27-cli-057-publication.md)。
-
-运行证据对应实际测试的模板与平台组合。公开 CLI 产物及极速版内置 base 的实测会保存在独立的发行记录中；各模板文档说明其平台要求和服务 API。维护中的公开站点是[官网](https://www.agent-sandbox.cn)和[Registry](https://registry.agent-sandbox.cn)。
-
-[自动准备并启动目录模板，无需复制云 ID](docs/zh/guide/template-launch.md).
-
-暂停/恢复和快照命令由 Provider 注册，CLI 与 SDK 共用实现，见[注册与使用说明](docs/zh/guide/provider-commands.md)。
-
-原生极速版模板清单与平台 step 验收从 CLI0.4.1 起可使用首个全局选项 `abx --native`，参见[原生部署操作](docs/zh/guide/deploy-and-build.md#显式原生极速版入口)。
-
-Current API / 当前接口: [development contract](docs/zh/guide/current-api.md).
-
-[极速版认证与所需权限](docs/zh/guide/permissions.md)：已有 API Key，或经显式确认的 AK/SK 管理 Key。

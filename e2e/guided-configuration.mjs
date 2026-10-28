@@ -23,7 +23,9 @@ trusted['E2B_API_KEY'] = credential
 trusted['ABX_SANDBOX_API_KEY'] = credential
 child_env = dict(trusted)
 for name in list(child_env):
-    if name in ('E2B_API_KEY', 'ABX_SANDBOX_API_KEY', 'CI', 'ABX_CI', 'GITHUB_ACTIONS'):
+    if name in ('E2B_API_KEY', 'ABX_SANDBOX_API_KEY', 'ALICLOUD_ACCESS_KEY_ID', 'ALICLOUD_ACCESS_KEY_SECRET',
+                'ABX_ALICLOUD_EXPRESS_ACCESS_KEY_ID', 'ABX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET',
+                'CI', 'ABX_CI', 'GITHUB_ACTIONS'):
         child_env.pop(name)
 child_env.update(NO_COLOR='1', NO_UPDATE_NOTIFIER='1', TERM='dumb')
 owned = None
@@ -50,13 +52,13 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                 if not chunk: break
                 output += chunk
                 if not method_sent and b'Choose an authentication method' in output:
-                    os.write(master, b'1\n')
+                    os.write(master, b'1\r')
                     method_sent = True
-                if not scope_sent and b'Configuration scope:' in output:
-                    os.write(master, b'1\n')
+                if not scope_sent and b'Configuration scope' in output:
+                    os.write(master, b'1\r')
                     scope_sent = True
                 if scope_sent and not key_sent and b'(input hidden); Enter cancels' in output:
-                    os.write(master, credential.encode() + b'\n')
+                    os.write(master, credential.encode() + b'\r')
                     key_sent = True
             result, code = os.waitpid(pid, os.WNOHANG)
             if result:

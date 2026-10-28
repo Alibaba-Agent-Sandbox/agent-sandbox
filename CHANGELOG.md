@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-10-28
+
+### Fixed
+
+- Explain application-token purpose, generation and reuse in configuration errors and prompts, including automation. / 配置报错与交互提示补齐应用令牌的用途、生成和复用方式，包含自动化场景。
+
 ### Added
 
 - Express AK/SK managed-key preparation with explicit consent, private shared storage, expiry renewal and feature-scoped RAM permission guidance. / 极速版支持经确认的 AK/SK 管理 Key 准备、私有共享存储、到期续期及按功能划分的 RAM 授权指南。

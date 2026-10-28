@@ -6,6 +6,8 @@ Run `abx config init` after installation. The wizard explains where to obtain th
 
 You can also run `abx template launch` without a reference to open the same picker, or `abx template launch opencode` to select a known catalog entry. Automation supplies a reference and all required values before using `--yes`; it never opens the picker.
 
+`ABX_SERVER_TOKEN` protects the application API running inside the sandbox. It is a private secret you choose or the CLI generates, separate from your Sandbox API key, cloud AccessKeys and model API keys. You do not apply for it in a cloud console. During interactive launch, select **Save for future commands** and press Enter at the application-token prompt to generate and save a random token; alternatively, enter your own token with hidden input. With **Only this command**, enter a token you can also supply for later application calls.
+
 `server_token` is a CLI-only configuration key stored as `ABX_SERVER_TOKEN` in the protected user dotenv file. Template creation, application verification and later `abx run` calls use the same value. To replace it, run `abx config set server_token` for hidden input. A template that declares no application token remains unchanged. Only declared, empty model inputs can inherit the saved CLI model profile; explicit runtime values and template defaults keep priority.
 
 The Python SDK is a library: pass parameters or use its documented environment/dotenv/configuration sources. It does not run this wizard, prompt for missing configuration or gain SDK setup commands.
