@@ -287,3 +287,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Automatic application authentication](notes/proposed/feature/2026-10-28-automatic-application-auth.md) · [verification](evidence/verify/2026-10-28-automatic-application-auth.md) · [Issue210](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/210).
 
 - [Default saved configuration and concise prompts](evidence/verify/2026-10-28-default-saved-guidance.md) · [terminal capture](evidence/cli/2026-10-28-default-saved-configuration.md).
+
+- [Default-saved installed artifact gate](evidence/verify/2026-10-28-default-saved-artifact.md).

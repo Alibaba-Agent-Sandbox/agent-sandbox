@@ -26,7 +26,7 @@ Node crypto and the existing CLI credential storage/resolution. No dependency, t
 
 ## Test Strategy
 
-Cover local/remote source launch, default provider-key persistence and temporary override isolation, automatic and explicit credentials, protected storage, reuse, invalid input, persistence failure and cancellation. Preserve historical golden captures and add a dated create-help snapshot. Run real POSIX terminal onboarding and actual Express launch followed by discovery, business invocation, wrong-token rejection and independently confirmed owned deletion. Distinguish local baseline failures from required remote CI.
+Cover local/remote source launch, default provider-key persistence and temporary override isolation, automatic and explicit credentials, protected storage, reuse, invalid input, persistence failure and cancellation. Preserve historical golden captures and add a dated create-help snapshot. Run real POSIX terminal onboarding and actual Express launch followed by discovery, business invocation, wrong-token rejection and independently confirmed owned deletion. Validate the actual packed/installed artifact, including authentication-menu arrow cancellation after removing the scope selector. Distinguish local baseline failures from required remote CI.
 
 ## Acceptance criteria
 
@@ -39,6 +39,7 @@ Cover local/remote source launch, default provider-key persistence and temporary
 
 ## Evidence
 
+- [Installed artifact gate](../../../evidence/verify/2026-10-28-default-saved-artifact.md).
 - [Final default-saved guidance verification](../../../evidence/verify/2026-10-28-default-saved-guidance.md).
 - [Earlier automatic-authentication phase](../../../evidence/verify/2026-10-28-automatic-application-auth.md) at4c7f049 remains historical and records the earlier command-only design before the user changed that requirement.
 - [Issue210](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/210).
