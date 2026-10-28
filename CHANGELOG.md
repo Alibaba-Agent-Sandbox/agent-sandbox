@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Point installation examples to CLI 0.5.8 and keep publishing/recovery instructions in engineering documentation. / 安装示例更新为 CLI 0.5.8，发布与恢复说明移入工程文档。
+
 ## [0.5.8] - 2026-10-28
 
 ### Fixed

@@ -1,6 +1,6 @@
 # Decision: Explain application authentication wherever configuration is missing
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -64,3 +64,5 @@ record full-suite failures separately, and attempt the existing real-cloud appli
 - [Initial local verification](../../../evidence/verify/2026-10-28-application-token-guidance.md)
 - [Authenticated cloud and release verification](../../../evidence/verify/2026-10-28-application-token-release.md)
 - [Issue #207](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/207)
+
+- [Public CLI 0.5.8 publication](../../../evidence/verify/2026-10-28-cli-058-publication.md)

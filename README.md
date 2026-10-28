@@ -17,7 +17,7 @@ The Python SDK lives in [the `python-sdk` repository](https://github.com/alibaba
 Template build and deploy live in this CLI. The runtime client is the Python SDK. Method names there are E2B-shaped to ease migration; the standard Express command path follows the pinned E2B CLI behavior contract. See [migration](docs/en/guide/migrate-from-e2b.md).
 
 
-Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Use CLI 0.5.7 or newer for the current spec v5 catalog; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
+Template launch starts the complete application: `abx --provider PROVIDER template launch TEMPLATE --yes`. Spec v5 removes workflow selection and returns all declared services. Use CLI 0.5.8 or newer for the current spec v5 catalog; upgrade the CLI and template catalog together. See [startup and migration](docs/en/guide/template-workflows.md).
 
 Create an application from a description with `abx create --prompt`. See [natural-language creation](docs/en/guide/using-templates.md#natural-language-creation).
 
