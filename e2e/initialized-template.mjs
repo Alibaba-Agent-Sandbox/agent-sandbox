@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     step = 0
     steps = [(b'input masked)', credential.encode() + b'\r'), (b'2/2 Region', b'\r'), (b'What would you like to do next?', b'\r'), (b'Find a template by name or purpose', b'base\r'), (b'Choose a template', b'\r'), (b'Create a billable sandbox', b'y\r')]
     if application:
-        steps = [(b'Configuration scope', b'\r'), (b'Application access token (input hidden)', b'\r'), (b'Create a billable sandbox', b'y\r')]
+        steps = [(b'Configuration scope', b'\r'), (b'Application access token (ABX_SERVER_TOKEN) (input hidden)', b'\r'), (b'Create a billable sandbox', b'y\r')]
     status = None
     try:
         deadline = time.monotonic() + 150

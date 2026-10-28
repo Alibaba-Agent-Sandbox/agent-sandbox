@@ -37,6 +37,9 @@ No credential is generated for noninteractive execution or undeclared applicatio
 
 ## Dependencies
 
+Prepare CLI 0.5.8 with unchanged dependency resolutions; the release includes the existing
+mainline consented Express managed-key feature.
+
 No dependency updates. Reuses CLI configuration help and template environment validation.
 Related prior issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/189.
 
@@ -58,4 +61,6 @@ record full-suite failures separately, and attempt the existing real-cloud appli
 
 ## Evidence
 
-- [Verification](../../../evidence/verify/2026-10-28-application-token-guidance.md)
+- [Initial local verification](../../../evidence/verify/2026-10-28-application-token-guidance.md)
+- [Authenticated cloud and release verification](../../../evidence/verify/2026-10-28-application-token-release.md)
+- [Issue #207](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/207)

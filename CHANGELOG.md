@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-10-28
+
 ### Fixed
 
 - Explain application-token purpose, generation and reuse in configuration errors and prompts, including automation. / 配置报错与交互提示补齐应用令牌的用途、生成和复用方式，包含自动化场景。
