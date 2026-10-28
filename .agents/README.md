@@ -289,3 +289,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Default saved configuration and concise prompts](evidence/verify/2026-10-28-default-saved-guidance.md) · [terminal capture](evidence/cli/2026-10-28-default-saved-configuration.md).
 
 - [Default-saved installed artifact gate](evidence/verify/2026-10-28-default-saved-artifact.md).
+
+- [README audience review](notes/proposed/process/2026-10-28-readme-audience-review.md) · [verification](evidence/verify/2026-10-28-readme-audience-review.md).

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Reorganize the English and Chinese repository READMEs around installation, first use and task-oriented documentation; keep migration and detailed reference material in their guides.
+
 ### Fixed
 
 - Save interactive configuration to the current user by default without a scope selector, show concise relevant prompts, and automatically manage reusable template application authentication. Explicit runtime overrides and managed-key consent remain supported.
