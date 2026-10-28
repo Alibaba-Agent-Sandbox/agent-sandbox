@@ -4,7 +4,7 @@ import { manifestYaml } from "../helpers/templateManifest.js";
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Context, command } from "../../src/cli/kit.js";
 import { cli } from "../../src/cli/main.js";
 import { guidanceSeams } from "../../src/cli/config_guidance.js";
@@ -20,6 +20,13 @@ import { RegistryClient } from "../../src/utils/registry.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { fakeConfig, patchLoadConfig, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
 
+import { useIso } from "../_support/iso.js";
+import { configSeams } from "../../src/cli/commands/config_cmd.js";
+import { storagePatch } from "../helpers/configSupport.js";
+const iso=useIso();
+let restoreConfiguration:()=>void;
+beforeEach(()=>{const old={...configSeams};Object.assign(configSeams,storagePatch(iso.home,{env:true}));restoreConfiguration=()=>Object.assign(configSeams,old);});
+afterEach(()=>restoreConfiguration());
 const tmpPath = useTmpPath();
 const mockBuilder = useMockBuilder();
 afterEach(() => vi.restoreAllMocks());
@@ -102,10 +109,10 @@ describe("Operation-specific template guidance", () => {
     expect(build).not.toHaveBeenCalled();
   });
 
-  it("collects temporary credentials once and restores the surrounding operation", async () => {
+  it("saves collected credentials by default and restores the surrounding operation", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null, api_key: "" }));
     vi.spyOn(guidanceSeams, "interactive").mockReturnValue(true);
-    const answers = ["1", "placeholder-ak", "placeholder-sk", "my-namespace"];
+    const answers = ["placeholder-ak", "placeholder-sk", "my-namespace"];
     vi.spyOn(guidanceSeams, "ask").mockImplementation(async () => answers.shift() ?? "");
     const before = { ...process.env };
     const result = await withDeployConfiguration(project(), { ctx: context() }, async () => {

@@ -119,8 +119,8 @@ try {
     delete terminalEnv.CI;
     delete terminalEnv.GITHUB_ACTIONS;
     const spec = {
-      argv: [artifact, "template", "deploy", project], stdout_terminal: true,
-      steps: [{ wait_for: "Save for future commands", keys: "\x1b[B\x1b[B\r" }],
+      argv: [artifact, "create", "base"], stdout_terminal: true,
+      steps: [{ wait_for: "access_key_id + access_key_secret", keys: "\x1b[B\x1b[B\r" }],
     };
     const driven = spawnSync("python3", ["-c", TERMINAL_DRIVER, JSON.stringify(spec)], {
       encoding: "utf8", timeout: 60000, env: terminalEnv, cwd: projectRoot,
@@ -130,12 +130,13 @@ try {
     const terminal = JSON.parse(driven.stdout);
     assert.equal(terminal.timed_out, false, "Terminal menu did not finish");
     assert.equal(terminal.status, 1, "Cancel must stop deployment");
-    assert.match(terminal.stderr, /Configuration scope/);
+    assert.match(terminal.stderr, /Choose an authentication method/);
+    assert.doesNotMatch(terminal.stderr, /Configuration scope|Save for future commands/);
     assert.match(terminal.stderr, /Cancel/);
     assert.doesNotMatch(terminal.stderr, /input hidden|Configuration.*complete; continuing/);
     assert.ok(!existsSync(join(projectRoot, ".abx", ".env")), "Cancel must not save credentials");
     assert.ok(!existsSync(join(projectRoot, ".abx", "config.toml")), "Cancel must not save configuration");
-    console.log("PASS: installed executable terminal menu: Down/Down/Enter cancels before credential input");
+    console.log("PASS: installed executable authentication menu: Down/Down/Enter cancels before credential input");
   }
 
 } finally {

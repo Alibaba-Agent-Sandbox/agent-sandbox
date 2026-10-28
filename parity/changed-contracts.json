@@ -2,8 +2,8 @@
   "decision": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/33",
   "replacements": {
     "tests/test_cli/test_create_nl.py::TestQwenCodeCredentialGate::test_tty_prompts_for_key_and_stores_it": {
-      "target": "tests/test_cli/test_create_nl.py::TestQwenCodeCredentialGate::test_tty_prompts_for_key_for_current_command",
-      "reason": "Issue #99: entered credentials default to operation-only scope; persistence requires the explicit save choice"
+      "target": "tests/test_cli/test_create_nl.py::TestQwenCodeCredentialGate::test_tty_prompts_for_key_for_current_command_and_saves_it_by_default",
+      "reason": "Issue #210: user-requested interactive configuration now saves supported credentials by default without a scope selector; existing explicit runtime/environment overrides remain temporary"
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_acr_namespace_failure_happens_before_the_build": {
       "target": "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_namespace_guidance_is_owned_by_the_plan_aware_build",

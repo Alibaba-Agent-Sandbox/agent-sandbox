@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         os.execvpe(command[0], command + ['sandbox', 'create', 'code-interpreter-v1', '--detach', '--timeout', '60'], child_env)
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
-    scope_sent = key_sent = method_sent = False
+    key_sent = method_sent = False
     status = None
     try:
         deadline = time.monotonic() + 90
@@ -54,10 +54,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                 if not method_sent and b'Choose an authentication method' in output:
                     os.write(master, b'1\r')
                     method_sent = True
-                if not scope_sent and b'Configuration scope' in output:
-                    os.write(master, b'1\r')
-                    scope_sent = True
-                if scope_sent and not key_sent and b'(input hidden); Enter cancels' in output:
+                if not key_sent and b'(input hidden); Enter cancels' in output:
                     os.write(master, credential.encode() + b'\r')
                     key_sent = True
             result, code = os.waitpid(pid, os.WNOHANG)
@@ -77,16 +74,18 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             owned = candidates[0].decode()
         assert credential.encode() not in output, 'hidden input was echoed'
         assert os.waitstatus_to_exitcode(status) == 0, 'guided create failed (raw output withheld)'
-        assert scope_sent and key_sent and owned, 'guidance did not complete and return a sandbox ID'
-        assert b'Configuration applies only to this command' in clean
+        assert key_sent and owned, 'guidance did not complete and return a sandbox ID'
+        assert b'Configuration scope' not in clean and b'Configuration saved.' in clean
         assert not list(Path(home).rglob('config.toml')), 'operation-only setup persisted configuration'
-        assert not list(Path(home).rglob('.env')), 'operation-only setup persisted a credential file'
+        saved=list(Path(home).rglob('.env'))
+        assert len(saved)==1 and credential in saved[0].read_text(), 'guided key was not saved by default'
+        assert saved[0].stat().st_mode & 0o777 == 0o600, 'saved credential is not owner-only'
         result = subprocess.run(command + ['sandbox', 'exec', owned, 'printf', 'guided-cloud-ok'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
         if result.returncode != 0 or result.stdout != b'guided-cloud-ok':
             diagnostic = (result.stderr + result.stdout).decode(errors='replace').replace(credential, '[REDACTED]').replace(owned, '[OWNED_SANDBOX]')
             print('Remote exec diagnostic (exit %s): %s' % (result.returncode, diagnostic), file=sys.stderr)
         assert result.returncode == 0 and result.stdout == b'guided-cloud-ok', 'created sandbox did not execute'
-        print('PASS: real terminal hidden input, operation-only configuration, create continuation and remote exec')
+        print('PASS: real terminal hidden input, default saved configuration, create continuation and remote exec')
     finally:
         os.close(master)
         if status is None:
@@ -103,7 +102,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                     raise AssertionError('owned sandbox still exists after kill')
             except urllib.error.HTTPError as error:
                 assert error.code == 404, 'cleanup readback did not confirm absence'
-            print('PASS: owned sandbox cleanup; no credentials persisted')
+            print('PASS: owned sandbox cleanup; isolated saved configuration removed')
 `;
 const result = spawnSync("python3", ["-c", probe, JSON.stringify(parseBin(process.env.ABX_BIN ?? "abx"))], {
   env: { ...process.env, ...credentials, ABX_GUIDED_VERIFICATION_KEY: key },

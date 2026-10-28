@@ -21,7 +21,7 @@ Python SDK 位于 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox
 
 使用 `abx create --prompt` 可以根据描述创建应用，详见[自然语言创建](docs/zh/guide/using-templates.md)。
 
-需要认证的模板应用通过 `ABX_SERVER_TOKEN` 保护应用 API。它是你自行设置或由 CLI 随机生成的私有令牌，与 Sandbox API Key 分开。运行 `abx config init` 可生成并保存；交互启动模板时也会提示补齐。详见[配置引导](docs/zh/guide/guided-configuration.md)。
+启动模板时，CLI 会自动配置应用认证，后续命令自动复用。你只需提供所选平台要求的凭据。自定义应用凭据和外部客户端的使用方式见[配置引导](docs/zh/guide/guided-configuration.md)。
 
 ## 网站
 

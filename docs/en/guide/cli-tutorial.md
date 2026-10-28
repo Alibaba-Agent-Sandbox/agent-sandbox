@@ -125,10 +125,9 @@ if __name__ == "__main__":
     start(9000)
 ```
 
-Set a long random application token in this terminal, and declare `env: {ABX_SERVER_TOKEN: ""}` in the template so launch supplies that value to the guest. The token is separate from the platform account key. The same terminal value is used by `abx run`:
+Declare `env: {ABX_SERVER_TOKEN: ""}` in the template. The CLI generates and securely saves application authentication when missing, supplies it at launch and reuses it for later `abx run` calls. No manual token setup is needed. Custom credentials are optional; see [configuration](guided-configuration.md):
 
 ```bash
-export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
 abx --provider alicloud-express --json template launch ./my-command-template --yes
 ```
 

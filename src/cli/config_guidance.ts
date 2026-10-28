@@ -15,7 +15,7 @@ import { validateConfigValue, authenticationChoices } from "../utils/config_reso
 import { bundledConfig } from "../utils/bundled_config.js";
 import { configurationTargetSummary } from "./config_target.js";
 import { configurationFieldHelp } from "./configuration_help.js";
-import { providerCliExtension } from "./provider_extensions.js";
+import { providerCliExtension, isProviderConfigSensitive } from "./provider_extensions.js";
 
 export interface GuidanceField {
   key: string;
@@ -113,7 +113,7 @@ export async function withGuidedConfiguration<T>(
       group = runtimeAuth.alternatives.find(candidate => candidate.some(key => has(effective(key))));
       if (!group) {
         if (!guidanceSeams.interactive(ctx, request.yes)) throw new CliError(`Missing configuration for ${request.operation}. Configure one authentication method: ${runtimeAuth.alternatives.map(candidate => candidate.join(" + ")).join("; or ")}. Run 'abx config set providers.${provider.id}.${runtimeAuth.key}' in a terminal, or configure the alternative credentials. ${runtimeAuth.help} No cloud operation was submitted.`);
-        getOutput(ctx).info(runtimeAuth.help);
+        getOutput(ctx).debug(runtimeAuth.help);
         const answer = await guidanceSeams.ask("Choose an authentication method", false, {
           choices: [...runtimeAuth.alternatives.map((candidate, index) => ({ name: candidate.join(" + "), value: String(index + 1) })), { name: "Cancel", value: "" }], default: "1", err: true,
         });
@@ -183,31 +183,20 @@ export async function withGuidedConfiguration<T>(
       (request.yes ? "--yes/-y skips configuration prompts. To enter missing values interactively, rerun this command without --yes/-y in a terminal.\n" : "") +
       "Run the configuration commands in a terminal, or supply the documented environment variables in automation. No cloud operation was submitted.");
   }
-  out.info(configurationTargetSummary(provider.id, overrides));
+  const target = configurationTargetSummary(provider.id, overrides);
+  out.info(target.split("\n").map(line => line.replace(/ \([^)]*\)$/, "")).join(" · "));
+  out.debug(target);
   const registry = effective("acr_registry");
   if (typeof registry === "string" && registry) out.info(`Registry host: ${safeHost(registry.includes("://") ? registry : `https://${registry}`)}`);
-  out.info(`${request.operation} needs ${missing.length} configuration value(s):\n${details}`);
+  out.debug(`${request.operation} needs ${missing.length} configuration value(s):\n${details}`);
   for (const help of fieldHelp) out.info(help);
-  if (runtimeAuth && needsRuntimeAuth) out.info(runtimeAuth.help);
-  const canSave = missing.some(persistable);
-  let scope = "1";
-  if (canSave) {
-    for (;;) {
-      scope = await guidanceSeams.ask("Configuration scope", false, {
-        choices: [{ name: "Only this command", value: "1" }, { name: "Save for future commands", value: "2" }, { name: "Cancel", value: "3" }],
-        default: missing.some(field => field.generate) ? "2" : "1", err: true,
-      });
-      if (!scope || scope === "1" || scope === "2") break;
-      if (scope === "3") throw new Abort();
-      out.warning("Choose 1, 2 or 3. Enter uses configuration only for this command.");
-    }
-  }
+  if (runtimeAuth && needsRuntimeAuth) out.debug(runtimeAuth.help);
   for (const field of missing) {
     const metadata = keys.get(field.key) ?? getKey(field.key);
-    const secret = field.secret ?? metadata?.secret ?? /(?:secret|password|token|api_key)$/.test(field.key);
+    const secret = isProviderConfigSensitive(provider.id, field.key, field.secret ?? metadata?.secret ?? /(?:secret|password|token|api_key)$/.test(field.key));
     for (;;) {
-      const answer = await guidanceSeams.ask(`${field.label ?? field.key}${secret ? " (input hidden)" : ""}; ${field.generate && scope === "2" ? "Enter generates a token" : "Enter cancels"}`, secret);
-      if (!answer.trim() && (!field.generate || scope !== "2")) throw new Abort();
+      const answer = await guidanceSeams.ask(`${field.label ?? field.key}${secret ? " (input hidden)" : ""}; ${field.generate && persistable(field) ? "Enter generates a token" : "Enter cancels"}`, secret);
+      if (!answer.trim() && (!field.generate || !persistable(field))) throw new Abort();
       let value: unknown = answer.trim() || field.generate!();
       if (field.validate && !field.validate(String(value))) {
         out.warning(`Invalid value for '${field.key}'; enter a nonempty value without line breaks.`);
@@ -224,15 +213,15 @@ export async function withGuidedConfiguration<T>(
       break;
     }
   }
-  if (scope === "2") {
+  if (missing.some(persistable)) {
     const saved: string[] = [];
     for (const field of missing) {
-      if (!persistable(field)) { out.info(`${field.key} applies only to the current operation.`); continue; }
+      if (!persistable(field)) continue;
       try {
         const scoped = keys.has(field.key) || GENERIC_ENDPOINT_KEYS.includes(field.key) && provider.inherit.has(field.key);
         const location = cfg.saveGuidedValue(field.key, String(values[field.key]), scoped ? provider.id : undefined);
         saved.push(field.key);
-        out.info(`Saved ${field.key} in ${location.path}. Change it later: abx config set ${repairKey(field.key)} (value hidden when sensitive).`);
+        out.debug(`Saved ${field.key} in ${location.path}. Change it later: abx config set ${repairKey(field.key)} (value hidden when sensitive).`);
       } catch {
         throw new CliError(`Could not finish saving '${field.key}'. ${saved.length ? `Completed fields: ${saved.join(", ")}.` : "No field has completed saving."} ` +
           "This field may have been written before cleanup failed; review 'abx config list', configuration support and file permissions. The operation was not started.");
@@ -247,9 +236,7 @@ export async function withGuidedConfiguration<T>(
         throw new CliError(`Saved '${field.key}' is overridden by another configuration source. Review 'abx config list' and the environment/project dotenv settings before retrying. The operation was not started.`);
       }
     }
-  } else {
-    out.info("Configuration applies only to this command; no credentials were saved to user configuration. Future commands may need configuration again.");
+    out.info("Configuration saved.");
   }
-  out.info(`Configuration for ${request.operation} is complete; continuing the current operation.`);
   return withOperationConfig(snapshot(), execute);
 }

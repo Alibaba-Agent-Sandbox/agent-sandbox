@@ -16,7 +16,8 @@ import errno, fcntl, json, os, pty, re, select, signal, struct, subprocess, sys,
 from pathlib import Path
 
 command = json.loads(sys.argv[1])
-application = sys.argv[2] == 'application'
+application = sys.argv[2] in ('application', 'guided-application')
+guided = sys.argv[2] == 'guided-application'
 credential = os.environ['ABX_GUIDED_VERIFICATION_KEY']
 trusted = dict(os.environ)
 trusted.pop('ABX_GUIDED_VERIFICATION_KEY', None)
@@ -24,7 +25,7 @@ trusted['E2B_API_KEY'] = credential
 trusted['ABX_SANDBOX_API_KEY'] = credential
 child_env = dict(trusted)
 for name in list(child_env):
-    if name in ('ABX_SERVER_TOKEN', 'CI', 'ABX_CI', 'GITHUB_ACTIONS') or not application and name in ('E2B_API_KEY', 'ABX_SANDBOX_API_KEY'):
+    if name in ('ABX_SERVER_TOKEN', 'CI', 'ABX_CI', 'GITHUB_ACTIONS') or guided and name in ('E2B_API_KEY', 'ABX_SANDBOX_API_KEY', 'ALICLOUD_ACCESS_KEY_ID', 'ALICLOUD_ACCESS_KEY_SECRET', 'ABX_ALICLOUD_EXPRESS_ACCESS_KEY_ID', 'ABX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET') or not application and name in ('E2B_API_KEY', 'ABX_SANDBOX_API_KEY'):
         child_env.pop(name)
 child_env.update(NO_COLOR='1', NO_UPDATE_NOTIFIER='1', TERM='dumb')
 owned = None
@@ -52,7 +53,9 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     step = 0
     steps = [(b'Sandbox API key (input masked', credential.encode() + b'\r'), (b'2/2 Region', b'\r'), (b'What would you like to do next?', b'\r'), (b'Find a template by name or purpose', b'base\r'), (b'Choose a template', b'\r'), (b'Create a billable sandbox', b'y\r')]
     if application:
-        steps = [(b'Configuration scope', b'\r'), (b'Application access token (ABX_SERVER_TOKEN) (input hidden)', b'\r'), (b'Create a billable sandbox', b'y\r')]
+        steps = [(b'Create a billable sandbox', b'y\r')]
+        if guided:
+            steps = [(b'Choose an authentication method', b'1\r'), (b'sandbox_api_key (input hidden)', credential.encode() + b'\r')] + steps
     status = None
     try:
         deadline = time.monotonic() + 150
@@ -95,18 +98,32 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         assert saved, 'initialization did not save configuration'
         text = saved[0].read_text()
         if not application: assert credential in text, 'Sandbox API key not saved'
+        if guided:
+            assert credential in text, 'guided platform key was not saved'
+            assert b'Configuration scope' not in output, 'obsolete scope selection was shown'
+            assert b'sandbox:CreateApiKey' not in output, 'unrelated managed-key details were shown for an API key'
+            assert b'Application access token (ABX_SERVER_TOKEN)' not in output, 'automatic application authentication asked for a token'
+            assert saved[0].stat().st_mode & 0o777 == 0o600, 'application credential file is not private'
         token = re.search(r'^ABX_SERVER_TOKEN=[\"\']?([a-f0-9]{64})', text, re.M)
         assert token, 'application token was not generated and saved'
         assert token[1].encode() not in output, 'generated token was printed'
-        result = subprocess.run(command + ['sandbox', 'exec', owned, 'printf', 'guided-cloud-ok'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+        client_env=dict(trusted)
+        if guided:
+            for key in ('E2B_API_KEY','ABX_SANDBOX_API_KEY','ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY','ALICLOUD_ACCESS_KEY_ID','ALICLOUD_ACCESS_KEY_SECRET','ABX_SERVER_TOKEN'):
+                client_env.pop(key,None)
+        result = subprocess.run(command + ['sandbox', 'exec', owned, 'printf', 'guided-cloud-ok'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
         if result.returncode != 0 or result.stdout != b'guided-cloud-ok':
             diagnostic = (result.stderr + result.stdout).decode(errors='replace').replace(credential, '[REDACTED]').replace(owned, '[OWNED_SANDBOX]')
             print('Remote exec diagnostic (exit %s): %s' % (result.returncode, diagnostic), file=sys.stderr)
         assert result.returncode == 0 and result.stdout == b'guided-cloud-ok', 'created sandbox did not execute'
         if application:
-            result = subprocess.run(command + ['sandbox', 'command', 'list', owned], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            result = subprocess.run(command + ['sandbox', 'command', 'list', owned], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
             assert result.returncode == 0, 'subsequent command discovery did not reuse the saved application token'
-            print('PASS: missing application token prompted, generated, injected and reused for actual authenticated service discovery')
+            result = subprocess.run(command + ['sandbox', 'command', 'run', owned, 'hello', '--arg', 'name=AutoAuth'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            assert result.returncode == 0 and b'Hello, AutoAuth!' in result.stdout, 'authenticated business command did not reuse generated authentication'
+            rejected = subprocess.run(command + ['sandbox', 'command', 'list', owned], env={**client_env, 'ABX_SERVER_TOKEN':'placeholder-wrong-application-token'}, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            assert rejected.returncode != 0 and b'401' in rejected.stdout + rejected.stderr, 'incorrect application token was not rejected with HTTP401'
+            print('PASS: application authentication automatically generated, injected and reused for discovery and real hello command; wrong-token HTTP401 retained')
         else:
             print('PASS: real terminal initialization, saved hidden input, generated application token, catalog selection, creation and remote exec')
     finally:
@@ -133,7 +150,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                 assert error.code == 404, 'cleanup readback did not confirm absence'
             print('PASS: owned sandbox cleanup independently confirmed by HTTP 404; isolated configuration removed')
 `;
-const result = spawnSync("python3", ["-c", probe, JSON.stringify(parseBin(process.env.ABX_BIN ?? "abx")), process.argv.includes("--application") ? "application" : "initialization"], {
+const result = spawnSync("python3", ["-c", probe, JSON.stringify(parseBin(process.env.ABX_BIN ?? "abx")), process.argv.includes("--guided-application") ? "guided-application" : process.argv.includes("--application") ? "application" : "initialization"], {
   env: { ...process.env, ...credentials, ABX_GUIDED_VERIFICATION_KEY: key },
   encoding: "utf8", timeout: 250_000, maxBuffer: 1024 * 1024,
 });

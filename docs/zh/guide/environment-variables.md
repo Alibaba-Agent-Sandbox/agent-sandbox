@@ -6,7 +6,7 @@ CLI 自身配置与沙箱进程环境是不同输入。项目配置使用 `ABX_S
 
 ## 在启动前配置应用
 
-应用模板由一个入口负责启动。在 `abx template launch` 前，配置目标模板已声明的环境变量。安全设置 `ABX_SERVER_TOKEN`，并按目标模板 README 设置所需模型配置，然后启动：
+应用模板由一个入口负责启动。在 `abx template launch` 前，配置目标模板已声明的环境变量。应用认证由 CLI 自动配置；按目标模板 README 设置所需模型配置，然后启动：
 
 ```bash
 abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes

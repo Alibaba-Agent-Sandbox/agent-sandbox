@@ -6,7 +6,7 @@ The CLI's own configuration and a sandbox process's environment are different in
 
 ## Configure the application before launch
 
-For template applications, use one startup owner. Configure the environment variables already declared by the selected template before `abx template launch`. Securely configure `ABX_SERVER_TOKEN` and any model settings required by the selected template's README, then launch:
+For template applications, use one startup owner. Configure the environment variables already declared by the selected template before `abx template launch`. Application authentication is configured automatically; set any model settings required by the selected template's README, then launch:
 
 ```bash
 abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes

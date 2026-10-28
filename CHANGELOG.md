@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Save interactive configuration to the current user by default without a scope selector, show concise relevant prompts, and automatically manage reusable template application authentication. Explicit runtime overrides and managed-key consent remain supported.
+
+
 ### Documentation
 
 - Point installation examples to CLI 0.5.8 and keep publishing/recovery instructions in engineering documentation. / 安装示例更新为 CLI 0.5.8，发布与恢复说明移入工程文档。

@@ -82,14 +82,13 @@ abx create my-python
 
 ```bash
 abx config init --llm
-export ABX_SERVER_TOKEN="<YOUR_APPLICATION_TOKEN>"
 ```
 
 ```bash
 abx create --prompt "创建一个 Python 沙箱，提供 add 命令接收两个整数并返回相加结果"
 ```
 
-新生成的应用需要独立的运行时应用令牌。创建前设置环境变量 `ABX_SERVER_TOKEN`，或通过已有 `-e ABX_SERVER_TOKEN=...` 传入。CLI 在调用模型前校验，启动应用时注入；令牌值不会写入生成文件或构建步骤。仅生成本地文件时不要求令牌。创建的 JSON 保留原字段，并返回 `TemplateID` 与 `Services`，方便精确清理和访问应用。
+缺省应用认证由 CLI 自动生成、安全保存在本机，后续命令自动复用。自定义凭据可通过 `ABX_SERVER_TOKEN` 或已有 `-e` 选项传入，详见[配置引导](guided-configuration.md)。凭据仅在运行时传入，不写入生成文件或构建步骤；仅生成本地文件时不要求令牌。创建的 JSON 保留原字段，并返回 `TemplateID` 与 `Services`，方便精确清理和访问应用。
 
 `abx create --prompt "<描述>"`（没有提供已存在模板的位置参数时）走生成路径：调用 Qwen Code 生成 Dockerfile、`commands.py`（`agent_sandbox.server` HTTP 服务入口）与 template.yaml，构建部署后用生成的模板创建沙箱。
 

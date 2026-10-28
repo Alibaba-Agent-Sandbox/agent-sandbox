@@ -33,11 +33,12 @@ import { AICodegenError, DockerBuildError, QwenCodeCredentialError } from "../..
 import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 
-const cfg = vi.hoisted(() => ({ writeEnvVar: vi.fn() }));
+const cfg = vi.hoisted(() => ({ writeEnvVar: vi.fn(), saved: new Map<string,string>() }));
 
 // Keep the configuration sources hermetic (Python patches `config_cmd.load_config_dict` / `read_env_var`).
 vi.mock("../../src/cli/commands/config_cmd.js", () => ({
-  _effectiveValue: () => [null, "default"],
+  _effectiveValue: (key:string) => [cfg.saved.get(key) ?? null, "default"],
+  saveGuidedValue: (key:string,value:string) => {cfg.saved.set(key,value);cfg.writeEnvVar(key,value);return {path:"isolated-user-configuration",key};},
   _ALLOWED_KEYS: new Set(["llm_api_key", "llm_base_url", "llm_model", "sandbox_api_key", "access_key_id", "access_key_secret"]),
   writeEnvVar: (...a: unknown[]) => cfg.writeEnvVar(...a),
   _removeTomlKey: async () => undefined,
@@ -138,6 +139,7 @@ beforeEach(() => {
   savedCwd = process.cwd();
   process.chdir(tmp);
   cfg.writeEnvVar.mockReset();
+  cfg.saved.clear();
   deployMock = null;
 
   const binary = path.join(tmp, "qwen");
@@ -307,12 +309,12 @@ describe("TestCreateRouting", () => {
     expect(create).not.toHaveBeenCalled();
     expect(result.output).toContain("recovery journal");
   });
-  it("retains command-only cloud configuration through generation, deployment and final creation", async () => {
-    vi.stubEnv("ABX_SANDBOX_API_KEY", "");
-    vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", "");
-    vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", "");
+  it("retains collected cloud configuration through generation, deployment and final creation", async () => {
+    vi.stubEnv("ABX_SANDBOX_API_KEY", undefined);
+    vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", undefined);
+    vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", undefined);
     fakeTty({ codingAgent: true, sandbox: true });
-    const answers = ["1", "temporary-sandbox-key", "temporary-access-id", "temporary-access-secret"];
+    const answers = ["temporary-sandbox-key", "temporary-access-id", "temporary-access-secret"];
     vi.spyOn(guidance.guidanceSeams, "ask").mockImplementation(async (label) => label === "Choose an authentication method" ? "1" : answers.shift() ?? "");
     _patchSuccessPipeline(tmp);
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
@@ -326,8 +328,9 @@ describe("TestCreateRouting", () => {
     expect(create).toHaveBeenCalledOnce();
     expect(answers).toHaveLength(0);
     expect(getOperationConfig()).toBeUndefined();
-    expect(cfg.writeEnvVar).not.toHaveBeenCalled();
-    expect(process.env["ABX_SANDBOX_API_KEY"]).toBe("");
+    expect(cfg.saved.get("sandbox_api_key")).toBe("temporary-sandbox-key");
+    expect(cfg.saved.get("access_key_id")).toBe("temporary-access-id");
+    expect(process.env["ABX_SANDBOX_API_KEY"]).toBeUndefined();
     expect(result.output).not.toContain("temporary-sandbox-key");
     expect(result.output).not.toContain("temporary-access-secret");
   });
@@ -523,7 +526,7 @@ describe("TestQwenCodeCredentialGate", () => {
     expect(result.output).toContain("E2006");
   });
 
-  it("test_tty_prompts_for_key_for_current_command", async () => {
+  it("test_tty_prompts_for_key_for_current_command_and_saves_it_by_default", async () => {
     const resolveMock = vi
       .fn()
       .mockImplementationOnce(() => {
@@ -538,11 +541,12 @@ describe("TestQwenCodeCredentialGate", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "n\n1\nsk-user-key\n\ny\n" });
+    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "n\nsk-user-key\n\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(cfg.writeEnvVar).not.toHaveBeenCalled();
-    expect(result.output).toContain("only to this command");
+    expect(cfg.saved.get("llm_api_key")).toBe("sk-user-key");
+    expect(result.output).toContain("Configuration saved.");
+    expect(result.output).not.toContain("Configuration scope");
     expect(resolveMock).toHaveBeenCalledTimes(2);
     // The second resolve must reuse the freshly entered key.
     expect(callArg(resolveMock, -1, 0)["storedApiKey"]).toBe("sk-user-key");

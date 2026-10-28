@@ -283,3 +283,9 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Application-token cloud and CLI 0.5.8 delivery](evidence/verify/2026-10-28-application-token-release.md).
 
 - [CLI 0.5.8 public installation guidance](notes/proposed/process/2026-10-28-cli-058-public-guidance.md) · [publication verification](evidence/verify/2026-10-28-cli-058-publication.md).
+
+- [Automatic application authentication](notes/proposed/feature/2026-10-28-automatic-application-auth.md) · [verification](evidence/verify/2026-10-28-automatic-application-auth.md) · [Issue210](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/210).
+
+- [Default saved configuration and concise prompts](evidence/verify/2026-10-28-default-saved-guidance.md) · [terminal capture](evidence/cli/2026-10-28-default-saved-configuration.md).
+
+- [Default-saved installed artifact gate](evidence/verify/2026-10-28-default-saved-artifact.md).

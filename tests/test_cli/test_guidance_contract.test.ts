@@ -78,9 +78,9 @@ describe("one-operation configuration", () => {
   });
 
   it("reaches both real consumers and profile readers without files or environment changes", async () => {
-    answers("1", "placeholder-api", "placeholder-namespace", "placeholder-ak", "placeholder-sk");
+    answers();
     const environment = { ...process.env };
-    await withGuidedConfiguration(undefined, request(["sandbox_api_key", "acr_namespace", "access_key_id", "access_key_secret"]), async () => {
+    await withGuidedConfiguration(undefined, { ...request(["sandbox_api_key", "acr_namespace", "access_key_id", "access_key_secret"]), overrides: {sandbox_api_key:"placeholder-api",acr_namespace:"placeholder-namespace",access_key_id:"placeholder-ak",access_key_secret:"placeholder-sk"} }, async () => {
       const layered = loadLayeredConfig();
       const legacy = transport.loadConfig();
       expect(layered.sandbox_api_key).toBe("placeholder-api");
@@ -101,14 +101,14 @@ describe("one-operation configuration", () => {
   });
 
   it("keeps nested safe stages on the same temporary identity without asking twice", async () => {
-    const ask = answers("1", "placeholder-api");
-    await withGuidedConfiguration(undefined, request(["sandbox_api_key"]), async () => {
+    const ask = answers();
+    await withGuidedConfiguration(undefined, { ...request(["sandbox_api_key"]), overrides: {sandbox_api_key:"placeholder-api"} }, async () => {
       await withGuidedConfiguration(undefined, request(["sandbox_api_key"]), async () => {
         expect(transport.loadConfig().api_key).toBe("placeholder-api");
       });
       expect(transport.loadConfig().api_key).toBe("placeholder-api");
     });
-    expect(ask).toHaveBeenCalledTimes(3);
+    expect(ask).not.toHaveBeenCalled();
     unchanged();
   });
 
@@ -158,30 +158,41 @@ describe("one-operation configuration", () => {
   it("does not borrow an identically named Express secret for another Provider", async () => {
     const provider = example([{ key: "access_key_secret", required: true, secret: true, credential: true }]);
     iso.setenv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-other-provider");
-    answers("1", "placeholder-own-provider");
+    answers("placeholder-own-provider");
     await withGuidedConfiguration(undefined, { operation: "provider operation", provider: provider.id }, async () => {
       expect(loadLayeredConfig({ provider: provider.id }).provider_options["access_key_secret"]).toBe("placeholder-own-provider");
       expect(process.env["ALICLOUD_ACCESS_KEY_SECRET"]).toBe("placeholder-other-provider");
     });
-    unchanged();
+    expect(dotenvValues(iso.env).get("ABX_GUIDANCE_EXAMPLE_ACCESS_KEY_SECRET")).toBe("placeholder-own-provider");
+    expect(getOperationConfig()).toBeUndefined();
   });
 });
 
 describe("persistent configuration", () => {
+  it("hides provider-sensitive AccessKey identifiers during default saved setup", async () => {
+    const ask=answers("placeholder-identifier","placeholder-secret");
+    await withGuidedConfiguration(undefined,request(["access_key_id","access_key_secret"]),async()=>undefined);
+    expect(ask.mock.calls.find(([label])=>label.startsWith("access_key_id"))?.[1]).toBe(true);
+    expect(dotenvValues(iso.env).get("ALICLOUD_ACCESS_KEY_ID")).toBe("placeholder-identifier");
+    expect(fs.statSync(iso.env).mode & 0o777).toBe(0o600);
+    const output=Object.values(cap.readouterr()).join("");
+    expect(output).not.toContain("placeholder-identifier");expect(output).not.toContain("placeholder-secret");
+  });
+
   it("persists global LLM credentials and reports the true destination without echoing the value", async () => {
-    answers("2", "placeholder-llm");
+    answers("placeholder-llm");
     await withGuidedConfiguration(undefined, request(["llm_api_key"]), async () => {
       expect(_effectiveValue("llm_api_key")[0]).toBe("placeholder-llm");
     });
     expect(dotenvValues(iso.env).get("ABX_LLM_API_KEY")).toBe("placeholder-llm");
     const { out, err } = cap.readouterr();
-    expect(out + err).toContain(iso.env);
-    expect(out + err).toContain("abx config set llm_api_key");
+    expect(out + err).toContain("Configuration saved.");
+    expect(out + err).not.toContain("Configuration scope");
     expect(out + err).not.toContain("placeholder-llm");
   });
 
   it("persists inherited API credentials using a consumable Provider-scoped variable", async () => {
-    answers("2", "placeholder-api");
+    answers("placeholder-api");
     await withGuidedConfiguration(undefined, request(["sandbox_api_key"]), async () => {
       expect(transport.loadConfig().api_key).toBe("placeholder-api");
       expect(loadLayeredConfig().sandbox_api_key).toBe("placeholder-api");
@@ -192,7 +203,7 @@ describe("persistent configuration", () => {
 
   it("persists dynamic Provider fields through their own schema and reads them back", async () => {
     const provider = example([{ key: "token", required: true, secret: true }]);
-    answers("2", "placeholder-provider");
+    answers("placeholder-provider");
     await withGuidedConfiguration(undefined, { operation: "provider operation", provider: provider.id }, async () => {
       expect(loadLayeredConfig({ provider: provider.id }).provider_options["token"]).toBe("placeholder-provider");
     });
@@ -201,7 +212,7 @@ describe("persistent configuration", () => {
   });
 
   it("never starts an operation after a failed persistent write", async () => {
-    answers("2", "placeholder-llm");
+    answers("placeholder-llm");
     vi.spyOn(settings, "setEnvValue").mockImplementation(() => { throw new Error("not writable"); });
     const action = vi.fn(async () => undefined);
     await expect(withGuidedConfiguration(undefined, request(["llm_api_key"]), action)).rejects.toThrow("Could not finish saving");
@@ -210,9 +221,7 @@ describe("persistent configuration", () => {
   });
 
   it("stops if a newly appearing environment override prevents the saved value from taking effect", async () => {
-    let calls = 0;
     vi.spyOn(guidanceSeams, "ask").mockImplementation(async () => {
-      if (++calls === 1) return "2";
       iso.setenv("ABX_LLM_API_KEY", "placeholder-environment");
       return "placeholder-entered";
     });
@@ -229,13 +238,14 @@ describe("persistent configuration", () => {
 describe("authentication groups and typed fields", () => {
   it("asks for one chosen complete authentication combination", async () => {
     const provider = example([{ key: "token", secret: true }, { key: "client_id" }, { key: "client_secret", secret: true }], [["token"], ["client_id", "client_secret"]]);
-    const ask = answers("2", "1", "placeholder-id", "placeholder-secret");
+    const ask = answers("2", "placeholder-id", "placeholder-secret");
     await withGuidedConfiguration(undefined, { operation: "provider operation", provider: provider.id }, async () => {
       expect(loadLayeredConfig({ provider: provider.id }).provider_options).toMatchObject({ client_id: "placeholder-id", client_secret: "placeholder-secret" });
       expect(loadLayeredConfig({ provider: provider.id }).provider_options["token"]).toBeUndefined();
     });
     expect(ask.mock.calls.slice(1).some(([label]) => label.includes("token"))).toBe(false);
-    unchanged();
+    expect(dotenvValues(iso.env).get("ABX_GUIDANCE_EXAMPLE_CLIENT_SECRET")).toBe("placeholder-secret");
+    expect(getOperationConfig()).toBeUndefined();
   });
 
   it("does not ask for another method if one authentication group is already complete", async () => {
@@ -251,12 +261,13 @@ describe("authentication groups and typed fields", () => {
   it("asks only for a missing half of the selected credential pair", async () => {
     const provider = example([{ key: "client_id" }, { key: "client_secret", secret: true }], [["client_id", "client_secret"]]);
     iso.setenv("ABX_GUIDANCE_EXAMPLE_CLIENT_ID", "placeholder-existing-id");
-    const ask = answers("1", "placeholder-new-secret");
+    const ask = answers("placeholder-new-secret");
     await withGuidedConfiguration(undefined, { operation: "provider operation", provider: provider.id }, async () => {
       expect(loadLayeredConfig({ provider: provider.id }).provider_options).toMatchObject({ client_id: "placeholder-existing-id", client_secret: "placeholder-new-secret" });
     });
     expect(ask.mock.calls.some(([label]) => label.startsWith("client_id"))).toBe(false);
-    unchanged();
+    expect(dotenvValues(iso.env).get("ABX_GUIDANCE_EXAMPLE_CLIENT_SECRET")).toBe("placeholder-new-secret");
+    expect(getOperationConfig()).toBeUndefined();
   });
 
   it("rejects an unusable authentication contract before asking or executing", async () => {
@@ -271,21 +282,22 @@ describe("authentication groups and typed fields", () => {
 
   it("repeats invalid typed input without echoing it or abandoning the command", async () => {
     const provider = example([{ key: "mode", type: "enum", choices: ["FAST", "SAFE"], required: true }]);
-    const ask = answers("1", "placeholder-invalid", "safe");
+    const ask = answers("placeholder-invalid", "safe");
     await withGuidedConfiguration(undefined, { operation: "provider operation", provider: provider.id }, async () => {
       expect(loadLayeredConfig({ provider: provider.id }).provider_options["mode"]).toBe("SAFE");
     });
-    expect(ask).toHaveBeenCalledTimes(3);
+    expect(ask).toHaveBeenCalledTimes(2);
     const { out, err } = cap.readouterr();
     expect(out + err).toContain("Invalid value");
     expect(out + err).not.toContain("placeholder-invalid");
-    unchanged();
+    expect(loadLayeredConfig({provider:provider.id}).provider_options["mode"]).toBe("SAFE");
+    expect(getOperationConfig()).toBeUndefined();
   });
 });
 
 describe("abort and error boundaries", () => {
   it("cancels before persistence or action, including after collecting another secret", async () => {
-    answers("2", "placeholder-api", "");
+    answers("placeholder-api", "");
     const action = vi.fn(async () => undefined);
     await expect(withGuidedConfiguration(undefined, request(["sandbox_api_key", "llm_api_key"]), action)).rejects.toBeInstanceOf(Abort);
     expect(action).not.toHaveBeenCalled();
@@ -293,12 +305,13 @@ describe("abort and error boundaries", () => {
   });
 
   it("preserves an action failure and never repeats a submitted operation", async () => {
-    answers("1", "placeholder-api");
+    answers("placeholder-api");
     const submittedError = new Error("submitted operation timed out");
     const action = vi.fn(async () => { throw submittedError; });
     await expect(withGuidedConfiguration(undefined, request(["sandbox_api_key"]), action)).rejects.toBe(submittedError);
     expect(action).toHaveBeenCalledOnce();
-    unchanged();
+    expect(dotenvValues(iso.env).get("ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY")).toBe("placeholder-api");
+    expect(getOperationConfig()).toBeUndefined();
   });
 
   it("reports invalid explicit sources before asking or executing", async () => {

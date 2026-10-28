@@ -121,8 +121,8 @@ const CREATE_HELP = `Create a new sandbox.
       which writes Dockerfile, commands.py, and template.yaml and stops
       before build, push, deploy, and sandbox create. --yes skips that
       question and runs the full pipeline.
-      New generated applications require ABX_SERVER_TOKEN in the environment (or -e).
-      It is injected at runtime; generation-only does not require a token.
+      Application authentication is generated, saved locally and reused automatically.
+      Optionally supply your own ABX_SERVER_TOKEN in the environment (or -e).
       --detach is accepted on this path: generated sandboxes already return
       without opening a terminal. --build steps uses platform build steps
       instead of local Docker/ACR; the default build path stays unchanged.
@@ -1018,7 +1018,7 @@ export async function _generateAndLaunchTemplate(
 ): Promise<TemplateLaunchResult> {
   const extension = providerCliExtension();
   if (!extension?.prepareProject) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
-  // Generated applications always require this runtime credential; fail before model work.
+  // Prepare reusable application authentication before model work.
   return withTemplateEnvironment(ctx, { ABX_SERVER_TOKEN: "" }, opts.creationOptions?.envs ?? {}, opts.yes, async environment => {
   opts = { ...opts, creationOptions: { ...opts.creationOptions, envs: { ...environment } } };
   const selected = providerView().effective;
