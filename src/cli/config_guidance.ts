@@ -112,8 +112,11 @@ export async function withGuidedConfiguration<T>(
       // A partially entered AccessKey pair is completed instead of asking for an unrelated API key.
       group = runtimeAuth.alternatives.find(candidate => candidate.some(key => has(effective(key))));
       if (!group) {
-        if (!guidanceSeams.interactive(ctx, request.yes)) throw new CliError(`Missing configuration for ${request.operation}. Configure one authentication method: ${runtimeAuth.alternatives.map(candidate => candidate.join(" + ")).join("; or ")}. Run 'abx config set providers.${provider.id}.${runtimeAuth.key}' in a terminal, or configure the alternative credentials. ${runtimeAuth.help} No cloud operation was submitted.`);
-        getOutput(ctx).debug(runtimeAuth.help);
+        if (!guidanceSeams.interactive(ctx, request.yes)) {
+          getOutput(ctx).debug(runtimeAuth.help);
+          const help = configurationFieldHelp(runtimeAuth.key, provider.id);
+          throw new CliError(`Missing configuration for ${request.operation}. Configure one authentication method: ${runtimeAuth.alternatives.map(candidate => candidate.join(" + ")).join("; or ")}. Run 'abx config set providers.${provider.id}.${runtimeAuth.key}' in a terminal, or configure the alternative credentials. ${help ? `${help} ` : ""}No cloud operation was submitted.`);
+        }
         const answer = await guidanceSeams.ask("Choose an authentication method", false, {
           choices: [...runtimeAuth.alternatives.map((candidate, index) => ({ name: candidate.join(" + "), value: String(index + 1) })), { name: "Cancel", value: "" }], default: "1", err: true,
         });

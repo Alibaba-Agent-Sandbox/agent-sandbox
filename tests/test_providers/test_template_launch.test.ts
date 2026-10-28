@@ -10,6 +10,9 @@ import type { PreparedTemplate, ProviderTemplateManager } from "../../src/provid
 import { registerProvider } from "../../src/providers/registry.js";
 import { setCliProvider, resetCliSelection } from "../../src/providers/selection.js";
 import { ResourceJournal } from "../../src/template/resource_journal.js";
+import * as prompts from "../../src/cli/prompts.js";
+import * as guidance from "../../src/cli/config_guidance.js";
+import { Abort } from "../../src/cli/errors.js";
 import { launchSeams } from "../../src/cli/template_launch.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { Context, command } from "../../src/cli/kit.js";
@@ -46,6 +49,48 @@ function setup() {
 }
 
 describe("provider-owned project launch", () => {
+  it("declines source build consent without preparing or creating resources", async () => {
+    const f = setup();
+    const interactive = vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
+    const confirmation = vi.spyOn(prompts, "confirm").mockRejectedValue(new Abort());
+    try {
+      const result = await new CliRunner().invoke(cli, ["--json", "template", "launch", f.directory]);
+      expect(result.exit_code).toBe(1);
+      expect(result.output).toContain("Aborted!");
+      expect(result.output).not.toContain("recovery journal");
+      expect(confirmation).toHaveBeenCalledWith("Build/register this template and create a billable sandbox?", expect.anything());
+      expect(f.provider.buildTemplateManager).not.toHaveBeenCalled();
+      expect(f.provider.prepare).not.toHaveBeenCalled(); expect(f.create).not.toHaveBeenCalled();
+    } finally { interactive.mockRestore(); confirmation.mockRestore(); f.create.mockRestore(); }
+  });
+  it("preserves cancellation before a provider records any resource intent", async () => {
+    const f = setup(); f.provider.prepare.mockRejectedValue(new Abort());
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).toBe(1);
+      expect(result.output).toContain("Aborted!");
+      expect(result.output).not.toContain("Template preparation failed");
+      expect(result.output).not.toContain("recovery journal");
+      expect(fs.existsSync(path.join(iso.home, "resource-journal"))).toBe(false);
+      expect(f.create).not.toHaveBeenCalled();
+      expect(f.provider.close).toHaveBeenCalledOnce();
+    } finally { f.create.mockRestore(); }
+  });
+  it("retains recovery guidance for an interruption after a recorded intent", async () => {
+    const f = setup();
+    f.provider.prepare.mockImplementation(async (_directory, options) => {
+      await options.journal!.intent({kind: "template", correlation_key: "interrupted-preparation", cleanup: "template.delete"});
+      throw new Abort();
+    });
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0);
+      expect(result.output).toContain("recovery journal");
+      expect(result.output).not.toContain("Aborted!");
+      expect(f.create).not.toHaveBeenCalled();
+      expect(f.provider.close).toHaveBeenCalledOnce();
+    } finally { f.create.mockRestore(); }
+  });
   it.each([
     [new DockerBuildFailure("ReadTimeoutError: private-index-credential\nNo matching distribution found", 1), "E7020", "network access failed or timed out"],
     [new DockerBuildError("private-index-credential"), "E7020", "Docker build failed"],
