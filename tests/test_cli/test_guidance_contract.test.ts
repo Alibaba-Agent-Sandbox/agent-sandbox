@@ -66,6 +66,18 @@ const unchanged = (): void => {
 };
 
 describe("one-operation configuration", () => {
+  it("gives concise actionable runtime-authentication recovery before any method is selected", async () => {
+    vi.mocked(guidanceSeams.interactive).mockReturnValue(false);
+    const ask = answers(); const action = vi.fn();
+    const error = await withGuidedConfiguration(undefined, request(["sandbox_api_key"]), action).catch(error => error as Error);
+    if (!(error instanceof Error)) throw new Error("Expected a missing-configuration error");
+    expect(error.message).toContain("abx config set providers.alicloud-express.sandbox_api_key");
+    expect(error.message).toContain("Agent Sandbox console");
+    expect(error.message).toContain("No cloud operation was submitted");
+    expect(error.message).not.toContain("sandbox:CreateApiKey");
+    expect(error.message).not.toContain("30 days");
+    expect(ask).not.toHaveBeenCalled(); expect(action).not.toHaveBeenCalled(); unchanged();
+  });
   it("explains how to recover from missing configuration with --yes without asking or submitting", async () => {
     vi.mocked(guidanceSeams.interactive).mockReturnValue(false);
     const ask = answers();

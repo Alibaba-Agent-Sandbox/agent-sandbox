@@ -6,7 +6,7 @@ import { echo } from "../../../cli/io.js";
 export const CONFIGURATION_UI: ProviderConfigUi = {
   fieldHelp: {
     sandbox_api_key: "Get your Sandbox API key: Agent Sandbox console > Express > API Keys, in the selected region. https://help.aliyun.com/zh/agent-sandbox/getting-started/create-api-key",
-    access_key_id: "Express managed API keys and native template/ACR operations use an AccessKey pair. Key preparation needs sandbox:CreateApiKey, sandbox:DescribeApiKey and sandbox:UpdateApiKey on the target Team. Create or find the pair in RAM > Users > Authentication. https://help.aliyun.com/zh/acr/create-and-obtain-an-accesskey-pair",
+    access_key_id: "Get your Alibaba Cloud AccessKey pair: RAM > Users > Authentication. https://help.aliyun.com/zh/acr/create-and-obtain-an-accesskey-pair",
     acr_namespace: "Use an existing ACR namespace in the selected region, or create one in Container Registry > Personal Edition > Namespaces. https://help.aliyun.com/zh/acr/user-guide/manage-namespaces",
   },
   runtimeAuthentication: {

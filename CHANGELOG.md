@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Treat template-launch cancellation before resource submission as `Aborted!`; retain recovery guidance for recorded intents. Keep missing-authentication errors focused on credential source and configuration commands, with managed-key details available in verbose output and actual consent. / 模板启动在资源提交前取消时正常显示 `Aborted!`，已记录提交意图的中断仍保留恢复指引；缺凭据报错聚焦来源和补配命令，托管 Key 详情保留在详细输出及实际确认流程中。
+
 - Save interactive configuration to the current user by default without a scope selector, show concise relevant prompts, and automatically manage reusable template application authentication. Explicit runtime overrides and managed-key consent remain supported.
 
 

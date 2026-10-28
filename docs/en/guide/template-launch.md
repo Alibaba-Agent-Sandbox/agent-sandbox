@@ -27,6 +27,8 @@ Options:
 
 Omit `--yes` to confirm the billable build/create interactively. A local source directory works in place of the Registry reference. Custom base images must be explicit; unknown placeholders are reported before building. Custom multi-stage recipes must supply any wheel their Dockerfile copies.
 
+Declining the build/create confirmation or pressing **Ctrl+C** before a resource submission exits with `Aborted!`. Configuration already saved remains available for the next command. An interruption after a resource intent is recorded still reports the recovery journal; inspect it before retrying.
+
 A successful launch keeps the sandbox running until deletion or expiry. On failure, the CLI attempts to delete the sandbox it created. Retained images and platform templates are listed in the resource journal printed by the command. If a remote request times out, inspect that journal before retrying because the resource may already exist.
 
 For native Express template info, a confirmed official missing-template response returns existing error `E2001` with exit status `4`. Network, authorization and server failures are not absence confirmation.

@@ -132,7 +132,9 @@ def main():
             ("sandbox_api_key (input hidden)", platform_fixture.encode() + b"\r"),
             ("Create a billable sandbox", b"n\r"),
         ])
-        assert status != 0 and "Configuration saved." in output
+        assert status == 1 and "Configuration saved." in output
+        assert "Aborted!" in output and "Template preparation failed" not in output and "recovery journal" not in output
+        assert not (home / ".abx/resource-journal").exists(), "Declined creation must not record a cloud intent"
         assert "Configuration scope" not in output and "sandbox:CreateApiKey" not in output
         assert "Application access token (ABX_SERVER_TOKEN)" not in output
         assert platform_fixture not in output
@@ -146,6 +148,13 @@ def main():
             print(re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output).replace(str(root), "<TMP>"))
             print("CAPTURE_END")
         print("PASS: platform configuration saves by default, application authentication is automatic and creation consent is preserved")
+        status, output, _ = invoke(["--provider", "alicloud-express", "template", "launch", str(application)], [
+            ("Create a billable sandbox", b"\x03"),
+        ])
+        assert status == 1 and "Aborted!" in output and "recovery journal" not in output
+        assert "Template preparation failed" not in output and "Configuration saved." not in output
+        assert not (home / ".abx/resource-journal").exists()
+        print("PASS: Ctrl-C at creation consent exits as cancellation and restores the terminal without resource intents")
         (home / ".abx/.env").unlink()
 
         cases = [
@@ -158,6 +167,8 @@ def main():
             status, output, _ = invoke(arguments, [], extra_environment=extra)
             assert status == 1 and "Missing configuration" in output, "Automation must report missing values without waiting"
             assert "Configuration scope" not in output and "input hidden" not in output, "TTY must not enable automation credential prompts"
+            assert "sandbox:CreateApiKey" not in output and "30 days" not in output, "Ordinary missing-key recovery must not expand managed-key details"
+            assert "abx config set providers.alicloud-express.sandbox_api_key" in output and "Agent Sandbox console" in output
             if "--json" in arguments or extra.get("CI"):
                 assert "sandbox_api_key" in json.loads(output)["message"], "Machine mode must emit exactly one final JSON result"
         print("PASS: real TTY plus JSON, CI, quiet and -y never asks for configuration")

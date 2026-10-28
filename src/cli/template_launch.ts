@@ -21,7 +21,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { Context } from "./kit.js";
 import { getFormatter } from "./formatters.js";
 import { getOutput } from "./output.js";
-import { UsageError } from "./errors.js";
+import { Abort, UsageError } from "./errors.js";
 import { providerCliExtension } from "./provider_extensions.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
@@ -157,6 +157,8 @@ export async function executeTemplateLaunch(
     }
     }
   } catch (error) {
+    // A declined prompt has no recovery work unless preparation already recorded an intent.
+    if (error instanceof Abort && journal.entries.length === 0) throw error;
     // This class contains fixed prerequisite text, never external stderr or credentials.
     if (error instanceof DockerSetupError) throw error;
     const recovery = ` Inspect recovery journal ${journal.id} before retrying any submitted operation.`;
