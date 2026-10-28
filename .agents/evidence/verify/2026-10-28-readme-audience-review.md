@@ -27,8 +27,8 @@ Documentation changes only. No provider API calls, sandboxes, templates, cloud k
 - `bash scripts/check-repo-health.sh`: PASS: 106 checks, 0 failures; 11 warnings.
 - `npm run check:hygiene`: PASS.
 - `npm ci`: PASS.
-- `npm test`: IN PROGRESS at evidence capture; full result will be reported on the PR.
-- `npm run lint; npm run typecheck`: PENDING after the full test command.
+- `npm test`: PARTIAL: stopped after repeated local engine/parity harness failures and 15–20 second timeouts; a complete local pass is not claimed. Runtime files are unchanged; remote CI runs remain required.
+- `npm run lint` and `npm run typecheck` (separate commands after the initial chained test run): PASS.
 
 ## Reviewed public-file identity
 
@@ -39,3 +39,7 @@ Documentation changes only. No provider API calls, sandboxes, templates, cloud k
 | `README.zh-CN.md` | `6a1c0b69833695ccbc07cc647da221aba551c7c451643988c3a64727f19863db` |
 | `docs/en/guide/getting-started.md` | `2d999ef02192c1f9b41d1e2147aa9ab9f4aba54b51ae1f98c3d3b9f5f03e7b9b` |
 | `docs/zh/guide/getting-started.md` | `89149e44320720c3fd9e48ac18be8557676a7edbe98c94ac1f2d708cd6f66782` |
+
+## Local harness limits
+
+The broad local CLI suite was stopped after repeated failures in engine/parity integration and the managed-key process-lock timing test. That run used the system Python rather than the separately installed SDK/server environment, and the mounted checkout has slow file operations. These observations do not independently establish every failure cause. The scoped documentation, health, hygiene, lint and type checks passed. The full latest-head CI matrix must pass before merge. No real cloud-key preparation was executed: consent messages above came from local test fixtures.
