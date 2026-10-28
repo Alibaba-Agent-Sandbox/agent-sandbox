@@ -2,7 +2,7 @@
 
 - Date: 2026-10-28
 - Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/207
-- Result: PARTIAL — candidate regressions and real application E2E pass; remote CI and release verification pending.
+- Result: PARTIAL — candidate npm/binary checks and real application E2E pass; current-head CI and release publication pending.
 - Scope: application-token guidance plus version-only 0.5.8 preparation, unchanged dependency resolutions.
 
 ## Corrected prerequisite discovery
@@ -28,6 +28,23 @@ The earlier local result remains historical and is superseded for delivery statu
 - Focused setup/environment/guidance/golden/real-PTY suite: PASS, 158 tests in five files.
 - Prior complete local suite: 20 failures also reproduced on unchanged base; remote full CI
   will establish the release environment result. No checks are skipped to hide those failures.
+
+## Candidate distribution and cloud checks
+
+- Packed `@agent-sandbox/cli@0.5.8`, installed the actual tarball under an isolated prefix,
+  and ran `scripts/check-release-artifact.mjs`: PASS (version, isolated guidance, single JSON,
+  standard/native help, terminal menu and complete license notices).
+- Built standalone Linux x64 0.5.8 and ran the same artifact checks: PASS.
+- Ran `e2e/initialized-template.mjs --application` through the installed npm candidate: PASS,
+  including generated token injection, subsequent authenticated command discovery and independent
+  HTTP 404 cleanup of the one owned sandbox. The isolated saved configuration was removed.
+- The generic API-key guided runner initially timed out. Its missing-key child environment still
+  contained alternative build credentials and its menu marker used an obsolete colon. Isolate
+  those alternative credentials for this API-key-specific scenario and use current terminal
+  input/marker matching. Rerun via the installed npm candidate: PASS, hidden command-only key,
+  real create/exec continuation, no credential persistence and independently confirmed deletion.
+- Typecheck and ESLint on the 0.5.8 candidate: PASS; zero lint errors and 275 existing warnings.
+- PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/208.
 
 ## Release gates
 
