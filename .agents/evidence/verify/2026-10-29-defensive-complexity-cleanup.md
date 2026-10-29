@@ -4,7 +4,7 @@
 - Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/215
 - PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/216
 - Base: 84dce3fb4a02590f3ce129c0de786716ac98c1dc
-- Result: PARTIAL — changed behavior and targeted real-cloud checks pass; full local suite has recorded failures. Merge is pending remote gates.
+- Result: Source behavior, targeted real-cloud acceptance and the complete remote CI matrix pass. Local environment failures remain recorded below. Final documentation commit and merge still require current-head checks.
 - Source and test changes are on an isolated branch; original workspace edits are preserved.
 
 ## Checks
@@ -47,6 +47,8 @@ English and Chinese application registration examples were executed locally: @co
 
 Final repository health: 106 passed, 11 historical warnings, 0 failed. git diff --check passed. Python make hygiene passed; CLI hygiene passed as part of make ci. The first CLI health run found a generated ignored parity report containing local paths; the report was moved outside the checkout and health rerun. No tracked source was exempted.
 
-## Remaining gates
+## Remote CI and remaining gates
 
-Overall local CI is not green. No network assertions were relaxed. Initial remote checks already passed static/links and (for Python) the real Python-to-Node provider-engine job; complete matrices are still pending. Remote PR checks and required review must pass before merge; no release is part of this change.
+Complete remote checks passed for source revision `5840d6b9c36fdbd62abb2f761050223cb9b01b39`: Build package, Test (Node 22), Test (Node 20), Installer script, Typecheck (tsc), Markdown links. This independently distinguishes local environment failures from the successful remote matrices. Local failures and prior cancellations remain in history; no network assertions were relaxed.
+
+The final records-only commit must pass its own current-head checks before merge. The ADR describes the implemented change; the PR carries pending merge state. No release is part of this change.
