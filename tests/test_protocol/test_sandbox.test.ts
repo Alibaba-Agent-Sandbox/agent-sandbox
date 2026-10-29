@@ -267,6 +267,19 @@ describe("TestIsRunning", () => {
     expect(await protocol.isRunning("sbx-abc123")).toBe(false);
   });
 
+  it.each([401, 403, 500])("preserves HTTP %s instead of reporting a stopped sandbox", async (status) => {
+    const protocol = makeProtocol();
+    httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-abc123`, method: "GET", status_code: status, json: { message: "lookup failed" } });
+    await expect(protocol.isRunning("sbx-abc123")).rejects.toThrow();
+  });
+
+  it("preserves transport errors instead of reporting a stopped sandbox", async () => {
+    const protocol = makeProtocol();
+    const failure = new Error("connection lost");
+    httpx_mock.add_exception(failure, { url: `${BASE}/sandboxes/sbx-abc123`, method: "GET" });
+    await expect(protocol.isRunning("sbx-abc123")).rejects.toThrow("connection lost");
+  });
+
   it("test_is_running_on_error", async () => {
     const protocol = makeProtocol();
     httpx_mock.add_response({ url: `${BASE}/sandboxes/sbx-gone`, method: "GET", status_code: 404, json: { message: "not found" } });

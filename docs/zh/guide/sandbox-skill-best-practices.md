@@ -1,20 +1,16 @@
-# 用 Agent Sandbox Skill 完成可验证的任务
+# 用 Agent Sandbox Skill 运行后台任务
 
-目标是让用户看到“Agent 发了什么、工具回了什么、实际做成了什么”。Skill 是 Agent 读取的操作指导；CLI/MCP 发起实际请求，Provider 决定后端支持范围。不要把“工具调用成功”“拿到 ID”当成业务交付。
+通过 Skill，让 Agent 上传输入文件、在沙箱中执行任务、取回结果并清理环境。CLI 或 MCP 工具负责执行，所选 Provider 决定可用的操作。
 
-## 安装和首次接入
+## 安装和连接
 
-按 [Skill 安装指南](agent-skill-installation.md) 安装同版本的 `SKILL.md` 和 `references/`。安装 CLI 或配置 MCP 后，先查看真实 `--help` / `tools/list`，确认安装版本包含所需操作。当前源码提供 21 个 MCP 工具，已发布版本可能不同。
+按 [Skill 安装指南](agent-skill-installation.md)安装同一版本的 `SKILL.md` 和完整 `references/` 目录。随后安装 CLI，按[认证指南](authentication.md)配置凭据，并为 Agent 连接 MCP。查看已安装 CLI 的 `--help` 或 MCP `tools/list`，确认可用命令和参数。
 
-从环境变量或本地凭据存储加载认证，避免把 API Key、AK/SK、签名 URL、账户信息写入对话或文档。分别确认运行时 API 的 Team/地域与模板控制面的 AK/SK、Team/地域。运行时创建接口不接受任意 `team_id`；不支持的创建字段会明确拒绝，不能静默忽略。先记录资源基线，然后只创建自己的短寿命测试沙箱。
+选择包含任务所需工具的现成模板。下面的例子需要带 Python 3 的 Linux 模板。凭据从本机配置或环境变量加载，不写进任务提示和输出文件。
 
-## 一个用户能感受到的例子
+## 示例：汇总订单文件
 
-用户对 Agent 说：
-
-> 请用沙箱统计这份订单文件，后台运行，重新连接后取回结果；再演示取消任务，最后只清理你创建的环境。
-
-输入文件：
+将以下输入保存为 `orders.csv`：
 
 ```csv
 qty,unit_price
@@ -23,57 +19,62 @@ qty,unit_price
 3,2.00
 ```
 
-验收预期为 3 行、数量合计 6、金额字符串 `31.50`。金额使用 Decimal，避免浮点误差。预期值先独立计算，不能冒充从云端下载的文件。
+向 Agent 提出任务：
 
-2026-10-18 独立 Agent 的真实 CLI 操作已经观测到：
+> 将这份订单文件和 Python 脚本上传到沙箱，用 Decimal 计算行数、数量合计和金额合计。以后台任务运行，保存沙箱 ID 和任务 ID；重新连接后下载 result.json，最后删除你创建的沙箱。
 
-| Agent 通过 Skill 操作 | 发送内容 | 实际返回 | 独立检查的效果 |
-| --- | --- | --- | --- |
-| 创建 | 指定已 ready 的模板，寿命 600 秒 | 新沙箱 ID | 平台开始/到期时间相差 600 秒 |
-| 上传 | CSV 和分析脚本 | 上传成功、远端文件清单 | CSV 实际为 37 字节 |
-| 后台执行 | 启动 Python 分析 | PID 495 | 退出 CLI 后，新 CLI 能查到同 PID 与正确命令 |
-| 下载 | 下载统计 JSON | 53 字节文件 | JSON 内容、字节和远端 SHA-256 全部一致 |
-| 失败诊断 | `exit 7` | 远端及 CLI 退出码均为 7 | 作为命令失败记录，没有误报沙箱失效 |
-| 取消 | 对独立心跳任务 PID 500 发 SIGTERM | 信号调用完成 | 终止标记 15、进程消失、心跳计数在约 41 秒观察内保持 182 |
-| 清理 | 只删除本轮创建 ID | 删除成功 | 后续列表为空 |
+脚本可以使用：
 
-实际下载文件内容为以下 JSON 加一个换行，SHA-256 为 `9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8`：
+```python
+import csv
+import json
+from decimal import Decimal
+from pathlib import Path
+
+with Path("/tmp/orders.csv").open(newline="") as source:
+    rows = list(csv.DictReader(source))
+result = {
+    "row_count": len(rows),
+    "total_amount": str(sum(
+        (int(row["qty"]) * Decimal(row["unit_price"]) for row in rows),
+        Decimal("0.00"),
+    )),
+    "total_qty": sum(int(row["qty"]) for row in rows),
+}
+Path("/tmp/result.json").write_text(json.dumps(result) + "\n")
+```
+
+下载的 JSON 应包含以下值：
 
 ```json
 {"row_count":3,"total_amount":"31.50","total_qty":6}
 ```
 
-本例证明这一模板、Provider、版本下的 CLI 闭环；不代表全部高级能力，也不能从一次运行推导总体成功率。MCP 重启恢复和逐工具结果应查看本轮[完整验证记录](../../../.agents/evidence/verify/2026-10-18-skill-reliability.md)，其中失败、受阻和未执行项仍保留。
+报告结果前，检查实际下载的文件。任务提交成功只表示任务已经启动。
 
-## 用 MCP 做相同的闭环
+## 通过 MCP 运行和重连
 
-先运行 `get_capabilities`，它返回的是声明，不是实测结论。`create_sandbox` 后运行 `get_sandbox`、`verify_sandbox`。`upload_file` 要求 base64 和 SHA-256，服务端写入后读回验证。`start_task` 返回独立任务 ID，并自动保留沙箱；保存沙箱和任务 ID 后可以重启 MCP 进程，使用原 ID 调用 `get_task`，不重复提交业务。
+1. 用 `get_capabilities` 查看所选 Provider 声明的操作。调用 `create_sandbox`，传入现成模板和合适的 `timeout`，保存返回的沙箱 ID。`get_sandbox` 读取元数据，`verify_sandbox` 检查命令执行和文件传输。
+2. 用 `upload_file` 将 CSV 和脚本分别上传到 `/tmp/orders.csv` 和 `/tmp/summarize_orders.py`。传入 `sandbox_id`、`path`、规范 base64 编码的 `content_base64`，以及对应的 `sha256`。工具会读回远端文件，检查传输结果。
+3. 调用 `start_task`，传入 `sandbox_id` 和 `command: "python3 /tmp/summarize_orders.py"`，保存返回的 `task_id`。这会保留沙箱，使其在 MCP 断连后继续存在。
+4. 重连后，用原 `sandbox_id` 和 `task_id` 调用 `get_task`，不要重新提交同一任务。若提交失败且结果不确定，先检查原沙箱，再决定是否重试。
+5. 任务进入 `succeeded` 后，用 `download_file` 下载 `/tmp/result.json`。将 `content_base64` 解码保存到本机，比较文件大小和 SHA-256，再核对上面的 JSON 值。任务处于 `failed` 时，检查返回的错误、退出状态和可用日志。
+6. 取回结果后，用你创建的 ID 调用 `kill_sandbox`。若删除失败，说明失败情况，保留同一资源 ID 以便重试。
 
-`start_task`/`get_task`/`cancel_task` 需要沙箱内的 Linux、sh、python3、nohup、base64 和 `/proc`。状态与日志保存在沙箱中，并不跨沙箱销毁保留，也不等于多用户托管任务服务。平台寿命仍然生效。
+## 任务和文件传输限制
 
-取消请求后轮询到终态，并检查心跳或输出确实停止。`running`、`cancelling`、`unknown` 都不是完成。`download_file` 返回 base64、大小和哈希，Agent 仍需把文件写到本地、读回并核对业务结果，才能说“已交付”。大于 1 MiB 的文件用 CLI 传输并独立比较哈希。
+后台任务工具需要沙箱内的 Linux、`sh`、`python3`、`nohup`、`base64` 和 `/proc`。状态和日志会在客户端断连后保留，但沙箱到期或删除后便会丢失。`get_task` 只返回有限大小的日志尾部；排查大量输出时，检查日志截断字段。
 
-连接用户已有沙箱不会取得其清理所有权。会话创建的临时沙箱断连会自动删除；显式保留和后台任务沙箱继续存在，直到平台到期或显式删除。查询不续期；修改寿命必须调用 `set_sandbox_timeout`，并分别看请求是否接受和实际值是否可观测。
+取消任务时，向 `cancel_task` 传入沙箱和任务 ID，再轮询 `get_task` 直到终态，并检查实际工作已停止。`running`、`cancelling`、`unknown` 都不是完成。取消操作向原 Linux 进程组发送 SIGTERM；忽略 SIGTERM 的进程可能持续处于 `cancelling`，主动使用 `setsid` 或 daemonize 的进程可能离开受管理的进程组。
 
-## 如何区分失败原因
+MCP 下载上限为 1 MiB。更大的文件使用 CLI，并比较本机与远端哈希：
 
-上次故障已找到操作审计证据：2026-10-16 07:18:48，同名后端函数的 `DeleteFunction` 成功；07:18:51，任务启动才返回 `FunctionNotFound`。直接原因是后端函数已被删除，不能归因于业务代码或未兑现 600 秒寿命。审计调用者是 assumed-role，所用 AK 与当前提供的 AK 不同；尚未对应到上游触发操作，因此不能进一步认定具体操作者或平台产品缺陷。历史模板当前查询 404 是补充证据。
+```bash
+abx download SANDBOX_ID /tmp/result.json ./result.json
+```
 
-本轮直接查询还发现：平台响应没有 `timeout` 字段，但客户端以前填成 300 秒。实际开始/到期时间证明 600 秒生效。这是客户端元数据问题；修复后缺失字段保持未知，日期保留 ISO 格式。类似地，模板列表以前丢失 `aliases` 和 `builds[].status`，属于 CLI 映射问题。
+## 明确资源归属和清理
 
-HTTP 自定义 Host 测试应分别验证路由和真实本地请求，保留网络审计拦截证据；源码冷启动不能让基础 MCP ping 等待云 SDK。OOM 不能只凭退出码 137 判断。每项归因需包含请求 ID、原始状态的脱敏摘录、对照实验、修复及复测。
+只有 MCP 会话创建且未显式保留的临时沙箱，才会在正常关闭时自动删除。连接的用户已有沙箱属于借用资源，会继续保留。`start_task` 或 `retain_sandbox` 会保留本次创建的沙箱，直到平台到期或显式删除；关闭保留选项不会取得借用资源的清理所有权。
 
-## 每次操作都记录
-
-按 Skill 的 [任务记录格式](../../../references/task-workflows.md) 保存 Agent 名称、模型/版本（拿不到则明确未知）、Skill 哈希、自然语言任务、Provider、脱敏参数、返回、耗时、期望、实际效果、检查方法和清理结果。保留失败的原始时间线；复测写新证据，不能覆盖旧失败。
-
-代码与回归通过、真实平台通过、自然语言 Agent 通过、安装客户端通过是不同维度。模板构建需要“提交→ready→实际创建→执行/文件→清理”；普通文件读写不能代替存储持久性验收。存储、预热/缓存、账单、休眠、快照、网络策略、预览有效期、桌面接管和远程托管 MCP 都需要对应 Provider 接口和真实验收；缺少条件就记录缺口，不能输出虚假的通过率。
-
-主 Agent 追加完成了剩余三个模板工具：认证查询 Team、镜像提交、ready 状态查询、真实沙箱命令/二进制验收，并独立确认沙箱和新模板删除。首次请求暴露 generation 1 不支持启动参数的问题，已改为默认 generation 2 并增加提交前检查。独立 Agent 与主 Agent 合计实测 21/21 工具；更广的需求覆盖仍按表格明确保留缺口。
-
-
-## 再次验证与明确边界
-
-第二次独立审查发现，安装示例存在错误仓库地址、检出目录及遗漏参考文件的问题；安装指南现统一使用 Alibaba-Agent-Sandbox 官方仓库并复制完整文件包。运行时边界也需修复：抗 SIGTERM 子进程仍在工作时必须保持 `cancelling`；shell 先退出不能代表整个进程组完成；带 Provider 前缀的删除必须清空默认资源和缓存；删除失败需保留重试句柄；对连接资源关闭保留选项不能取得其自动清理所有权。任务管理只覆盖原 Linux 进程组和会话；主动 `setsid` 或 daemonize 的进程可以逃离此范围。
-
-本轮发送参数、返回、实际效果及未闭环范围见[新增验证记录](../../../.agents/evidence/verify/2026-10-18-skill-recheck.md)。上一轮 21 个工具实测通过，仍不代表最初全部需求都已闭环。
+查询不会延长沙箱寿命。需要更多时间时，调用 `set_sandbox_timeout` 并检查返回的元数据。Provider 未返回寿命信息时，实际值仍保持未知。只删除本任务创建或用户明确指定的资源，分别说明任务结果和清理结果。

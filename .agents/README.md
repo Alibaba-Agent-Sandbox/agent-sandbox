@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Defensive complexity cleanup](notes/proposed/architecture/2026-10-29-defensive-complexity-cleanup.md) · [verification](evidence/verify/2026-10-29-defensive-complexity-cleanup.md).
+
 - [Precise onboarding review](notes/proposed/feature/2026-10-28-precise-onboarding-review.md) · [verification](evidence/verify/2026-10-28-precise-onboarding-review.md).
 
 ## Current public CLI 0.5.7 — 2026-10-27

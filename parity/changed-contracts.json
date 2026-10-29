@@ -113,6 +113,26 @@
     "tests/test_cli/test_config_commands.py::TestConfigAlicloudCredentials::test_set_access_key_id_plain": {
       "target": "tests/test_cli/test_config_commands.py::TestConfigAlicloudCredentials::test_set_access_key_id_masked",
       "reason": "Issue #175: AccessKey identifiers follow provider-owned UI sensitivity; output is masked while stored and resolved authentication values remain exact."
+    },
+    "tests/test_cli/test_create_nl.py::TestTemplateOnlySwitch::test_tty_yes_writes_template_and_skips_build": {
+      "target": "tests/test_cli/test_create_nl.py::TestNaturalLanguageCreateTarget::creates a sandbox without asking to change the selected target",
+      "reason": "Natural-language create keeps its chosen target; local-only generation remains template scaffold --prompt."
+    },
+    "tests/test_cli/test_create_nl.py::TestTemplateOnlySwitch::test_yes_flag_skips_the_switch_and_deploys": {
+      "target": "tests/test_cli/test_create_nl.py::TestCreateRouting::test_ai_flow_with_yes_creates_from_deployed_template",
+      "reason": "Natural-language create always follows the creation pipeline; --yes keeps its noninteractive behavior."
+    },
+    "tests/test_cli/test_sandbox_commands.py::TestKill::test_kill_abort": {
+      "target": "tests/test_cli/test_sandbox_commands.py::TestKill::honors interactive kill confirmation n",
+      "reason": "Native kill requires a terminal for confirmation; the rejection regression explicitly simulates one."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_create_switch_stops_after_the_local_template": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_create_keeps_its_target_after_interactive_confirmation",
+      "reason": "Natural-language create retains the creation target; scaffold remains local-only."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_noninteractive_create_reminds_about_init_and_does_not_launch": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_noninteractive_create_requires_confirmation_and_does_not_launch",
+      "reason": "Noninteractive create keeps the build confirmation without repeating alternative command targets."
     }
   }
 }

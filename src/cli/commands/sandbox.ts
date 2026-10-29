@@ -116,11 +116,8 @@ const CREATE_HELP = `Create a new sandbox.
       itself (tool stack, official install method, common dependencies) and
       only asks for private preferences or business decisions it cannot
       infer — one question at a time in interactive sessions. Non-interactive
-      shells must pass --yes to generate without asking. Interactive
-      sessions are asked up front whether to switch to template init,
-      which writes Dockerfile, commands.py, and template.yaml and stops
-      before build, push, deploy, and sandbox create. --yes skips that
-      question and runs the full pipeline.
+      shells must pass --yes to generate without asking. To generate local
+      template files only, use abx template scaffold --prompt "DESCRIPTION".
       Application authentication is generated, saved locally and reused automatically.
       Optionally supply your own ABX_SERVER_TOKEN in the environment (or -e).
       --detach is accepted on this path: generated sandboxes already return
@@ -951,9 +948,8 @@ export async function _promptProjectDirectory(
 /**
  * Generate a local template project and stop.
  *
- * Shared by `abx template scaffold --prompt "DESCRIPTION"` and by the create-path switch that opts out of build, push, deploy, and
- * sandbox creation. `ask_directory` prompts for the project directory before generation (init). The create switch
- * keeps `./<name>/`.
+ * Used by `abx template scaffold --prompt "DESCRIPTION"`. `ask_directory` prompts
+ * for the project directory before generation.
  */
 export async function _generateLocalTemplate(
   ctx: Context,
@@ -970,37 +966,6 @@ export async function _generateLocalTemplate(
   const gen = await _generateTemplateWorkspace(ctx, description, { yes, model: opts.model ?? null });
   const [target, created] = _materializeLocalTemplate(gen, { name, force, directory: projectDir });
   template._printInitSummary(getFormatter(ctx), getOutput(ctx), target, created, name || gen.templateName);
-}
-
-/**
- * Ask whether natural-language create should stop after the local template.
- *
- * `--yes` and `--json` keep the full create pipeline and do not ask. A non-interactive terminal gets a one-line reminder
- * and continues; the later build confirmation still applies. An interactive terminal must opt in -- the default is to
- * continue creating the sandbox.
- */
-export async function _wantsTemplateOnly(ctx: Context, description: string, opts: { yes: boolean }): Promise<boolean> {
-  const fmt = getFormatter(ctx);
-  if (opts.yes || fmt.use_json) return false;
-
-  const hint =
-    "Natural-language create generates a template, then builds and pushes " +
-    "the image, deploys it, and creates a sandbox. " +
-    `Template only: abx template scaffold --prompt "${description}"`;
-  if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
-    getOutput(ctx).info(hint);
-    return false;
-  }
-
-  echo(
-    "Natural-language create will:\n" +
-      "  1. generate a template (Dockerfile, commands.py server, template.yaml)\n" +
-      "  2. build and push the image\n" +
-      "  3. deploy the template\n" +
-      "  4. create a sandbox\n",
-    { err: true },
-  );
-  return confirm("Switch to template init and only create the local template?", { default: false, err: true });
 }
 
 /**
@@ -1151,13 +1116,6 @@ export const create = command("create", {
 
     const fmt = getFormatter(ctx);
 
-    // Local-only generation makes no cloud configuration demands.
-    if (description && !template && await _wantsTemplateOnly(ctx, description, { yes })) {
-      if (outputDir) getOutput(ctx).warning("--dir is ignored for template-only generation; the files are written to ./<name>/.");
-      await _generateLocalTemplate(ctx, description, { yes, model });
-      return;
-    }
-
     // Parse env vars from "KEY=VALUE" format
     const envs = _parsePairs(env, (item) => {
       fmt.printError(`Invalid environment variable format: ${pyRepr(item)} (expected KEY=VALUE)`);
@@ -1219,10 +1177,6 @@ export const create = command("create", {
     const out = getOutput(ctx);
 
     const runCreate = async (note: ((text: string) => void) | null): Promise<Sandbox> => {
-      // The option is a Python float, so its repr keeps the ".0" the SDK (which only sees a JS number) cannot print.
-      if (requestTimeout !== null && requestTimeout <= 0) {
-        throw new ValueError(`request_timeout must be a positive number of seconds, got ${pyRepr(new PyFloat(requestTimeout))}`);
-      }
       const sbx = await Sandbox.create(createKwargs);
       if (upload) {
         const remoteBase = "/home/user";
@@ -1437,6 +1391,14 @@ export const kill = command("kill", {
       sysExit(2);
     }
 
+    const confirmKill = async (question: string): Promise<void> => {
+      if (yes) return;
+      if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
+        throw new UsageError("Confirmation required to kill sandboxes. Use --yes/-y in non-interactive mode.");
+      }
+      await confirm(question, { abort: true, err: true });
+    };
+
     if (killAll) {
       const killView = providerView();
       let sandboxes: Array<{ sandbox_id: string }>;
@@ -1449,12 +1411,7 @@ export const kill = command("kill", {
         return;
       }
 
-      if (!yes) {
-        if (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty()) {
-          throw new UsageError("Confirmation required for killing all sandboxes. " + "Use --yes/-y to skip in non-interactive mode.");
-        }
-        await confirm(`Kill all ${sandboxes.length} running sandbox(es)?`, { abort: true });
-      }
+      await confirmKill(`Kill all ${sandboxes.length} running sandbox(es)?`);
 
       const out = getOutput(ctx);
       let killed = 0;
@@ -1481,7 +1438,7 @@ export const kill = command("kill", {
 
       fmt.printSuccess(`Killed ${killed}/${total} sandbox(es).`);
     } else {
-      if (!yes) await confirm(`Kill sandbox ${sandboxId}?`, { abort: true });
+      await confirmKill(`Kill sandbox ${sandboxId}?`);
 
       await getOutput(ctx).spinner(`Killing sandbox ${sandboxId}`, () => _connectAndKill(sandboxId as string));
 

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Simplify natural-language create and Provider help; native noninteractive kill requires explicit --yes. Preserve quoted command arguments and background shell mode, and propagate lifecycle errors instead of reporting absence. / 精简自然语言创建和 Provider 帮助；原生非交互删除须显式 --yes，修复引号参数和后台 shell，状态查询保留实际错误。
+
 ### Changed
 
 - Reorganize the English and Chinese repository READMEs around installation, first use and task-oriented documentation; keep migration and detailed reference material in their guides.

@@ -70,9 +70,9 @@ export function providerOperationHelp(provider: string, entry: ProviderCommand):
   const fields = Object.entries(properties ?? {}).map(([name, schema]) => `  ${name}: ${fieldSummary(schema)}${required.has(name) ? " (required)" : " (optional)"}`);
   return [`[${entry.effect}] ${providerOperationDescription(entry)}`, "", `Provider: ${provider}`, `Effect: ${entry.effect}; idempotent: ${entry.idempotent}.`,
     entry.effect === "read" ? "Read operation; no --yes required." : "Requires --yes to confirm this operation.", "",
-    "Input fields (JSON, not individual CLI flags):", ...(fields.length ? fields : ["  See input schema below."]), "",
-    "Input schema:", JSON.stringify(entry.input_schema, null, 2), "", "Output schema:", JSON.stringify(entry.output_schema, null, 2), "",
     "Usage:", `  abx --provider ${provider} provider run ${entry.id} --input-file request.json${entry.effect === "read" ? "" : " --yes"}`,
-    "  Write a request matching the input schema to request.json. Do not put secrets in command-line arguments.",
+    "  Write a request matching the input schema to request.json. Do not put secrets in command-line arguments.", "",
+    "Input fields (JSON, not individual CLI flags):", ...(fields.length ? fields : ["  See the full input schema."]), "",
+    "Full input/output schemas:", `  abx --json provider command info ${provider} ${entry.id}`,
   ].join("\n");
 }

@@ -19,7 +19,7 @@ abx --provider alicloud-express provider run snapshot.list --input '{}'
 These contextual help/run entry points require a build containing this change; the original v0.4.0
 release predates them. Root help shows the selected Provider and a compact operation summary;
 `provider --help` and `provider run --help` show its full directory with complete invocation paths.
-Operation help shows its description, input fields, JSON schemas, effect and confirmation rule.
+Operation help shows usage, input fields, effect and confirmation. Use `abx --json provider command info PROVIDER OPERATION` to inspect the full input and output schemas.
 `-h` and `--help` work alike. Help reads local metadata without credentials, plugin execution or cloud
 requests. An invalid selected Provider produces a help diagnostic while keeping repair commands
 visible. Actual execution fails for an invalid selection rather than silently switching backends.

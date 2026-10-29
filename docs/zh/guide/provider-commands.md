@@ -16,10 +16,9 @@ abx provider run snapshot.create \
 abx --provider alicloud-express provider run snapshot.list --input '{}'
 ```
 
-这些上下文帮助和 `run` 入口需要包含本次变更的构建，原始 v0.4.0 发布物尚未包含。
 顶层帮助显示所选 Provider 和操作摘要；`provider --help`、`provider run --help` 显示
-完整操作目录和完整调用路径；具体操作帮助显示说明、输入字段、JSON Schema、影响和
-确认要求。`-h` 与 `--help` 等价。帮助只读取本地声明，不要求凭据、不执行插件、不访问
+完整操作目录和完整调用路径；具体操作帮助显示说明、输入字段、影响和确认要求。完整 JSON Schema 可通过
+`abx --json provider command info PROVIDER OPERATION` 查看。`-h` 与 `--help` 等价。帮助只读取本地声明，不要求凭据、不执行插件、不访问
 云端。所选 Provider 无效时，帮助显示诊断并保留修复命令；真正执行时严格报错，不会
 悄悄切换后端。
 
