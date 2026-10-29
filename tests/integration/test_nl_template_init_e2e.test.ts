@@ -274,23 +274,23 @@ it("test_top_level_init_matches_template_init", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// create: switch to init, or continue through deploy + sandbox create
+// create: retain the chosen target through deploy + sandbox create
 // ---------------------------------------------------------------------------
 
-it("test_create_switch_stops_after_the_local_template", async () => {
+it("test_create_keeps_its_target_after_interactive_confirmation", async () => {
   const tmp = tmpPath();
   const ready = agentReady();
   process.chdir(tmp);
   fakeTty();
-  const create = spyCreate();
+  const create = spyCreate(_sandbox());
 
-  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION], { input: "y\n" });
+  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION], { input: "\ny\n" });
 
   expect(result.exit_code, _shown(result)).toBe(0);
-  expect(_shown(result)).toContain("Switch to template init");
-  expect(ready.deploy).not.toHaveBeenCalled();
-  expect(create).not.toHaveBeenCalled();
-  _assertLocalTemplate(path.join(tmp, _TEMPLATE_NAME));
+  expect(_shown(result)).not.toContain("Switch to template");
+  expect(ready.deploy).toHaveBeenCalledTimes(1);
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(_shown(result)).toContain("sbx-e2e-001");
 });
 
 it("test_create_yes_deploys_and_creates_a_sandbox", async () => {
@@ -322,7 +322,7 @@ it("test_sandbox_create_yes_is_the_same_pipeline", async () => {
   expect(_shown(result)).toContain("sbx-e2e-001");
 });
 
-it("test_noninteractive_create_reminds_about_init_and_does_not_launch", async () => {
+it("test_noninteractive_create_requires_confirmation_and_does_not_launch", async () => {
   const tmp = tmpPath();
   const ready = agentReady();
   process.chdir(tmp);
@@ -333,7 +333,6 @@ it("test_noninteractive_create_reminds_about_init_and_does_not_launch", async ()
   expect(result.exit_code).not.toBe(0);
   const shown = _shown(result);
   expect(shown).toContain("Confirmation required");
-  expect(shown).toContain("abx template scaffold");
   expect(ready.deploy).not.toHaveBeenCalled();
   expect(create).not.toHaveBeenCalled();
 });

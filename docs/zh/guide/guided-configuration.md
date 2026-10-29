@@ -19,6 +19,8 @@ Python SDK 是库，通过参数以及已支持的环境变量、dotenv 和配�
 
 完整字段和优先级见[配置参考](../reference/configuration.md)、[认证配置](authentication.md)和[Providers 指南](providers.md)。标准与原生命令入口的边界见[迁移指南](migrate-from-e2b.md)。
 
+`abx create --prompt "描述"` 生成模板后继续创建沙箱。只需生成本地模板时，使用 `abx template scaffold ./my-template --prompt "描述"`。
+
 ## 补齐配置并继续
 
 正常运行命令即可进入适用的引导：
@@ -120,3 +122,5 @@ STDIO 服务执行期间绝不弹出配置问答，不会用 JSON-RPC 输入收�
 ## 极速版凭证选择
 
 缺少运行凭证时可选已有 API Key 或 AK/SK。在 `config init` 跳过 API Key 会提示补齐 AccessKey。初始化本身不创建云端 Key；首次运行操作单独确认创建/续期，只有显式 `--ci` 自动确认。[权限及示例](permissions.md)。
+
+原生 JSON、CI 或管道模式下删除沙箱需要显式 `--yes`；未提供时，`abx kill` 直接退出，不等待确认输入。

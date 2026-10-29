@@ -32,7 +32,7 @@ export default {
     },
     {
       id: 'selected-provider-operation-help', title: 'operation help describes schemas and confirmation before credential lookup', creds: false,
-      argv: ['provider', 'run', 'volume.create', '--help'], output: ['Provider: alicloud-express', 'Effect: write', 'required', 'Input schema:', 'Output schema:', '--input-file', '--yes'],
+      argv: ['provider', 'run', 'volume.create', '--help'], output: ['Provider: alicloud-express', 'Effect: write', 'required', 'Input fields', 'Full input/output schemas:', 'abx --json provider command info', '--input-file', '--yes'],
     },
     {
       id: 'selected-provider-recovery-help', title: 'missing selected Provider preserves host repair commands', creds: false,

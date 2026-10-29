@@ -5,8 +5,7 @@ import type { ProcessProtocol } from "../protocol/contracts.js";
 import type { DataPlaneAuth as EnvdTokenManager } from "../transport/auth_contract.js";
 import type { StreamReader } from "../transport/streaming.js";
 import { getLogger } from "../utils/logging.js";
-import { ValueError } from "../utils/_pyerrors.js";
-import { Shlex, shlexSplit } from "./_shlex.js";
+import { shlexSplit } from "./_shlex.js";
 
 const logger = getLogger("api.commands");
 void logger;
@@ -21,24 +20,17 @@ export const _seams = {
   monotonic: (): number => Number(process.hrtime.bigint()) / 1e9,
 };
 
-/**
- * Return `true` if `cmd` contains unquoted shell operators.
- *
- * Uses `Shlex` with `punctuation_chars=true` so that operators inside quoted sections (single or double) are *not*
- * flagged.
- */
+/** Detect shell operators before tokenization discards quoting and escapes. */
 export function _needsShellWrap(cmd: string): boolean {
-  try {
-    const lex = new Shlex(cmd, { posix: true, punctuation_chars: true });
-    lex.whitespace_split = true;
-    for (const token of lex) {
-      if (token && Array.from(token).every((c) => _SHELL_PUNCT.has(c))) {
-        return true;
-      }
-    }
-  } catch (e) {
-    // Malformed quoting — let it through; the caller will get an error from shlex.split or the remote side.
-    if (!(e instanceof ValueError)) throw e;
+  let quote: string | null = null;
+  let escaped = false;
+  for (const char of cmd) {
+    if (escaped) escaped = false;
+    else if (char === "\\" && quote !== "'") escaped = true;
+    else if (quote !== null) {
+      if (char === quote) quote = null;
+    } else if (char === "'" || char === '"') quote = char;
+    else if (_SHELL_PUNCT.has(char)) return true;
   }
   return false;
 }
@@ -107,7 +99,7 @@ export class CommandsModule {
    * Run a command and wait for completion.
    *
    * `cmd`: Shell command string. `timeout`: Max execution time in seconds. `env`: Additional environment variables.
-   * `cwd`: Working directory. `user`: OS user to run the command as. `background`: If true, delegate to start() and
+   * `cwd`: Working directory. `user`: OS user to run the command as. `background`: If true, start the process and
    * return a StreamReader handle immediately without blocking. `shell`: When true, always run `cmd` via `sh -c`.
    *
    * Returns ProcessResult (stdout, stderr, exit_code) when `background` is false, otherwise a StreamReader of
@@ -115,10 +107,6 @@ export class CommandsModule {
    */
   async run(cmd: string, opts: RunOptions = {}): Promise<ProcessResult | StreamReader<ProcessChunk>> {
     const { timeout = 60, env = null, cwd = "", user = "", background = false, shell = false } = opts;
-    if (background) {
-      return this.start(cmd, { timeout, env, cwd, user });
-    }
-
     let command: string;
     let args: string[];
     if (shell) {
@@ -138,6 +126,8 @@ export class CommandsModule {
       timeout,
       user,
     });
+
+    if (background) return reader;
 
     const stdout_parts: string[] = [];
     const stderr_parts: string[] = [];

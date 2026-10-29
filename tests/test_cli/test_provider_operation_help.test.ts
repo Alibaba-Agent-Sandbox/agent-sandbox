@@ -123,7 +123,7 @@ describe("selected Provider help and execution", () => {
     expect(fs.existsSync(marker)).toBe(false);
   });
 
-  it("renders localized descriptions, required input and output schemas, effects and confirmation", async () => {
+  it("renders compact localized help with required fields and a complete schema entry", async () => {
     const marker = await installFixture("localized-help", [{ id: "volumes.create", effect: "write" }]);
     iso.writeToml('[core]\nprovider = "localized-help"\n');
     iso.setenv("LANG", "zh_CN.UTF-8");
@@ -135,6 +135,13 @@ describe("selected Provider help and execution", () => {
       expect(result.output).toContain(part);
     }
     expect(result.output).not.toContain("--name");
+    expect(result.output).not.toContain("additionalProperties");
+    expect(result.output).toContain("abx --json provider command info localized-help volumes.create");
+    expect(result.output.indexOf("Usage:")).toBeLessThan(result.output.indexOf("Input fields"));
+    const full = await abx("--json", "provider", "command", "info", "localized-help", "volumes.create");
+    expect(full.exit_code, full.output).toBe(0);
+    expect(JSON.parse(full.stdout).input_schema.required).toEqual(["name"]);
+    expect(JSON.parse(full.stdout).output_schema.properties.operation).toBeDefined();
     expect(fs.existsSync(marker)).toBe(false);
   });
 

@@ -1,16 +1,16 @@
-# Verifiable tasks with the Agent Sandbox Skill
+# Run background tasks with the Agent Sandbox Skill
 
-Show users what the agent sent, what the tool returned and what actually changed. A Skill guides an agent; CLI/MCP executes requests, while the provider determines backend support. An accepted request or returned ID is not business delivery.
+Use the Skill to ask an agent to upload inputs, run a task in a sandbox, retrieve its output and clean up the environment. The CLI or MCP tools execute the work; the selected Provider determines which operations are available.
 
 ## Install and connect
 
-Follow the [installation guide](agent-skill-installation.md), installing `SKILL.md` and `references/` from one revision. Inspect actual CLI help or `tools/list`; this source exposes 21 MCP tools and installed releases may differ. Load credentials through environment/local configuration without recording API keys, AK/SK, signed URLs or account details. Runtime API credentials select the runtime Team; template-control AK/SK and Team are a separate scope. Unsupported create fields such as arbitrary `team_id` are refused rather than ignored.
+Follow the [Skill installation guide](agent-skill-installation.md). Install `SKILL.md` together with its `references/` directory from the same revision. Then install the CLI, configure credentials using the [authentication guide](authentication.md), and connect your agent to MCP. Check the installed CLI's `--help` or MCP `tools/list` for the available commands and parameters.
 
-Record existing resources first, then create only your own short-lived test environment. A declared provider feature requires separate live acceptance.
+Choose a prepared template containing the tools your task needs. For the example below, use a Linux template with Python 3. Load credentials from local configuration or environment variables; keep them out of task prompts and output files.
 
-## A concrete user task
+## Example: summarize an order file
 
-Ask an agent: “Summarize this order file in a sandbox, run it in the background, retrieve the result after reconnecting, demonstrate cancellation, then clean up only your resources.”
+Save this input as `orders.csv`:
 
 ```csv
 qty,unit_price
@@ -19,57 +19,62 @@ qty,unit_price
 3,2.00
 ```
 
-Independently expect three rows, quantity six and Decimal total string `31.50`. Expected data is never substituted for a downloaded cloud artifact.
+Ask your agent:
 
-The independent agent's real CLI run on 2026-10-18 observed:
+> Upload this order file and a Python script to a sandbox. Calculate the row count, total quantity and total amount using Decimal. Run the script as a background task, save the sandbox and task IDs, reconnect and download result.json. Then delete the sandbox you created.
 
-| Skill action | Sent | Returned | Observed effect |
-| --- | --- | --- | --- |
-| Create | Ready template, lifetime 600s | New sandbox ID | Platform start/expiration timestamps differ by 600s |
-| Upload | CSV and analysis code | Upload success and remote listing | Input CSV is 37 bytes |
-| Background/reconnect | Start Python analysis, exit CLI, use new clients | PID 495 | Same PID and command recovered after disconnect |
-| Retrieve | Download result JSON | 53 bytes | Exact bytes, parsed totals and remote/local SHA-256 agree |
-| Diagnose code failure | `exit 7` | Remote and CLI exit code 7 | Correctly distinguished from resource failure |
-| Cancel | SIGTERM heartbeat PID 500 | Signal accepted | Marker 15, process absent and heartbeat count 182 unchanged over approximately 41s |
-| Cleanup | Delete only owned ID | Delete accepted | Subsequent resource list empty |
+The script can use:
 
-The actual artifact is this JSON plus one newline, SHA-256 `9c808afca68751e859669502476d9570d6fe5a0a6ac1c8fb774d40ec3346d6f8`:
+```python
+import csv
+import json
+from decimal import Decimal
+from pathlib import Path
+
+with Path("/tmp/orders.csv").open(newline="") as source:
+    rows = list(csv.DictReader(source))
+result = {
+    "row_count": len(rows),
+    "total_amount": str(sum(
+        (int(row["qty"]) * Decimal(row["unit_price"]) for row in rows),
+        Decimal("0.00"),
+    )),
+    "total_qty": sum(int(row["qty"]) for row in rows),
+}
+Path("/tmp/result.json").write_text(json.dumps(result) + "\n")
+```
+
+The downloaded JSON should contain these values:
 
 ```json
 {"row_count":3,"total_amount":"31.50","total_qty":6}
 ```
 
-This is evidence for this version/provider/template, not a statistical reliability rate or acceptance of all advanced features. See the [complete verification record](../../../.agents/evidence/verify/2026-10-18-skill-reliability.md) for MCP restart acceptance and the full passed/failed/blocked/unrun denominator.
+Check the downloaded file itself before reporting the result. A successful task submission only means the task was started.
 
-## The equivalent MCP workflow
+## Run and reconnect with MCP
 
-Inspect `get_capabilities`, then create and run `get_sandbox`/`verify_sandbox`. `upload_file` requires canonical base64 and SHA-256 and checks remote read-back. `start_task` returns a durable task ID and retains the sandbox. Save both IDs, restart the MCP process and query the original task with `get_task`; never blindly resubmit after an uncertain submission.
+1. Inspect `get_capabilities` for the selected Provider's declared operations. Use `create_sandbox` with the prepared template and a suitable `timeout`; save the returned sandbox ID. `get_sandbox` reads its metadata, and `verify_sandbox` checks command execution and file transfer.
+2. Upload `orders.csv` and the script to `/tmp/orders.csv` and `/tmp/summarize_orders.py` using `upload_file`. Supply `sandbox_id`, `path`, canonical `content_base64` and its SHA-256 as `sha256`. The tool reads back the remote file to check the transfer.
+3. Call `start_task` with `sandbox_id` and `command: "python3 /tmp/summarize_orders.py"`. Save the returned `task_id`. This retains the sandbox across MCP disconnects.
+4. After reconnecting, call `get_task` with the original `sandbox_id` and `task_id`. Reuse those IDs instead of submitting the job again. If submission fails with an uncertain result, inspect the existing sandbox before retrying.
+5. When the task reaches `succeeded`, call `download_file` for `/tmp/result.json`. Decode `content_base64` into a local file, compare its length and SHA-256 with the response, and check the JSON values above. For a `failed` task, inspect the returned error, exit status and available logs.
+6. After retrieving the result, call `kill_sandbox` with the ID you created. Report any deletion failure so the same resource can be retried.
 
-Task wrappers require Linux, sh, python3, nohup, base64 and `/proc`. State/logs survive the client connection inside the sandbox; platform expiry/destruction still removes them. This is not a hosted multi-user task service. Poll cancellation to a terminal state and verify work stops. `running`, `cancelling` and `unknown` are not completion.
+## Task and transfer limits
 
-`download_file` returns bounded base64, length and SHA-256; the agent must write/re-read the local file and verify business content. Use CLI transfer with independent hashes for files over 1 MiB. Keep task success and cleanup success separate.
+Background task tools need Linux, `sh`, `python3`, `nohup`, `base64` and `/proc` inside the sandbox. Their state and logs survive a client disconnect, but are lost when the sandbox expires or is deleted. `get_task` returns bounded log tails; check the truncation fields when diagnosing long output.
 
-Connecting to an existing user sandbox does not adopt cleanup ownership. Only session-created ephemeral resources auto-delete on disconnect. Retained/background environments survive until platform TTL or explicit deletion. Observation does not renew TTL. `set_sandbox_timeout` separates acceptance from observable verification; omitted timeout/region remain unknown.
+To cancel a task, call `cancel_task` with its sandbox and task IDs, then poll `get_task` until it reaches a terminal state. Check that observable work has stopped. `running`, `cancelling` and `unknown` are not completion. Cancellation sends SIGTERM to the original Linux process group. Processes that ignore SIGTERM can remain `cancelling`; processes that create a new session with `setsid` or daemonize can leave the managed group.
 
-## Diagnose failures with controls
+MCP downloads are limited to 1 MiB. For larger files, use the CLI and compare local and remote hashes:
 
-The historical failure now has audit evidence: at 07:18:48 UTC on 2026-10-16, DeleteFunction succeeded for the exact backing function; task startup returned FunctionNotFound at 07:18:51. The direct cause was a deleted backing function, not business code or failure to honor the requested 600-second lifetime. The actor is assumed-role and used a different AK from the currently supplied one. The upstream initiating operation remains unidentified, so this does not establish a particular deleting user or a platform product defect. The historical template now returning 404 is corroboration.
+```bash
+abx download SANDBOX_ID /tmp/result.json ./result.json
+```
 
-Raw platform data omitted `timeout`; the client previously displayed its default 300s. Actual start/expiration timestamps proved the requested 600s. That is a client metadata defect. The fix preserves unknown values and ISO timestamps. Losing `aliases` and `builds[].status` in template-list output is likewise a CLI mapping defect.
+## Keep resource ownership explicit
 
-Test custom-Host routing separately from real loopback traffic and retain platform audit interception evidence. MCP ping/discovery should not await the cloud SDK. Exit 137 alone does not establish OOM. Record request IDs, sanitized observations, a control, repair and the same acceptance check after repair.
+Only sandboxes created by the MCP session and left ephemeral are automatically deleted during normal shutdown. Connected user sandboxes are borrowed and stay intact. `start_task` or `retain_sandbox` preserves a created sandbox until its platform lifetime expires or it is explicitly deleted; disabling retention does not transfer ownership of a borrowed resource.
 
-## Record every attempted operation
-
-Use the [action record contract](../../../references/task-workflows.md): agent/model/version (or explicitly unknown), Skill hash, user request, provider, sanitized arguments, return/error, elapsed time, expected/observed effect, independent assertion and cleanup. Preserve failed timelines and write fresh rerun evidence.
-
-Separate code/unit, real-cloud, natural-language agent and installed-client acceptance. Template submission needs ready state plus a real test sandbox/command/file/cleanup. Ordinary file I/O is not persistent storage. Mounts, cache/warm pools, billing, hibernation, snapshots, network policy, expiring previews, desktop handoff and hosted MCP require provider APIs and their own real acceptance. Missing prerequisites remain coverage gaps.
-
-Parent-agent follow-up completed the remaining three template tools: authenticated Team discovery, image submission, ready-state query, real runtime command/binary acceptance and independently verified sandbox/template deletion. The first attempt exposed a generation-1 startup-parameter rejection; default generation 2 plus preflight validation fixed it. Combined tool exercise is 21/21 across the independent and parent runs; the broader requirement coverage remains explicitly partial.
-
-
-## Second verification and known boundaries
-
-A second independent review found installation examples using the wrong repository/checkout directory and omitting required references. The updated installation guide uses the canonical Alibaba-Agent-Sandbox repository and copies the complete bundle. Runtime edge cases also required repairs: SIGTERM-resistant descendants must keep a task `cancelling`; a shell exiting before its group finishes cannot establish completion; provider-qualified deletion must clear the default/cache; failed deletion must remain retryable; disabling retention on a connected resource must not transfer cleanup ownership. Task management covers the original Linux process group/session. Explicit `setsid`/daemonization can escape it.
-
-See the [new verification record](../../../.agents/evidence/verify/2026-10-18-skill-recheck.md) for fresh inputs, returns, effects and remaining gaps. The previous 21-tool live run does not establish complete original requirement coverage.
+Observation does not extend the sandbox lifetime. Use `set_sandbox_timeout` when you need more time, and check its returned metadata. If the Provider omits lifetime information, the actual value remains unknown. Delete only resources created for your task or explicitly designated by the user, and keep task results separate from cleanup results.

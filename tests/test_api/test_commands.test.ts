@@ -45,6 +45,10 @@ describe("TestCommandsParsing", () => {
     ["echo $(date)", "sh"],
     ["python3 -c 'print(1|2)'", "python3"], // inside quotes, no wrap
     ['grep -r "a|b" .', "grep"], // inside quotes, no wrap
+    ['printf "%s%s" "$HOME" "|"', "printf"],
+    [String.raw`echo \|`, "echo"],
+    [String.raw`echo \\| cat`, "sh"],
+    ["echo '#' | cat", "sh"],
     ["echo hello", "echo"], // simple, no wrap
     ["ls -la /tmp", "ls"], // simple with args, no wrap
   ];
@@ -91,6 +95,22 @@ describe("TestCommandsRun", () => {
     const call_kwargs = process_protocol.start.mock.calls.at(-1)[2];
     expect(call_kwargs["cmd"]).toBe("sh");
     expect(call_kwargs["args"]).toEqual(["-c", "cd /tmp && echo $HOME"]);
+  });
+
+  it.each([false, true])("keeps quoted punctuation literal in foreground/background %s", async (background) => {
+    const { module: commands, process_protocol } = makeCommandsModule();
+    await commands.run('printf "%s%s" "$HOME" "|"', { background });
+    expect(process_protocol.start.mock.calls.at(-1)[2]).toMatchObject({
+      cmd: "printf", args: ["%s%s", "$HOME", "|"],
+    });
+    expect(process_protocol.start).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])("honors explicit shell in foreground/background %s", async (background) => {
+    const { module: commands, process_protocol } = makeCommandsModule();
+    await commands.run("echo $HOME", { background, shell: true });
+    expect(process_protocol.start.mock.calls.at(-1)[2]).toMatchObject({ cmd: "sh", args: ["-c", "echo $HOME"] });
+    expect(process_protocol.start).toHaveBeenCalledTimes(1);
   });
 
   it("test_run_passes_env_and_cwd", async () => {
@@ -220,7 +240,7 @@ describe("TestCommandsUserParam", () => {
 });
 
 describe("TestCommandsBackground", () => {
-  // Test that background=True delegates to start() and returns a handle.
+  // Background mode returns the started process handle.
   it("test_background_returns_stream_reader", async () => {
     // background=True should return a StreamReader-like handle, not ProcessResult.
     const { module: commands_module, process_protocol } = makeCommandsModule();

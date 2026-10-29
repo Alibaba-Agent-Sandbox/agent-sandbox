@@ -84,7 +84,7 @@ export default {
           const directory = await success(ctx, ['provider', '--help'], options);
           ctx.check('complete operation paths', directory.out, ['abx provider run health.check', 'abx provider run install']);
           const chinese = await success(ctx, ['provider', 'run', 'resource.create', '--help'], { ...options, env: { LC_ALL: 'zh_CN.UTF-8', LANG: 'zh_CN.UTF-8' } });
-          ctx.check('localized generated help', chinese.out, ['本地操作 resource.create', 'name', 'string', 'required', 'Input schema:', 'Output schema:', '--yes']);
+          ctx.check('localized generated help', chinese.out, ['本地操作 resource.create', 'name', 'string', 'required', 'Input fields', 'Full input/output schemas:', 'abx --json provider command info', '--yes']);
           if (existsSync(marker)) ctx.fail('help imported the Provider runtime');
         } finally {
           rmSync(home, { recursive: true, force: true });

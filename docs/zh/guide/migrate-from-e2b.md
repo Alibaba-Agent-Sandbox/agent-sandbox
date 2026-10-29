@@ -47,9 +47,8 @@ CLI 使用[安装指南](binary-installation.md)中的当前官方版本，Pytho
 
 内置极速版 `template scaffold` README 使用显式 Express Provider，以 `template deploy . && create NAME --detach` 串联。在终端中可交互补齐配置，自动化添加 `-y` 前先配置完整。部署失败即停止创建；用输出的 ID 调用命名命令并显式 kill 清理。其他 Provider 给出各自帮助入口，不推荐 Express 部署。AI 重试使用 `create --prompt "DESCRIPTION"`，已有极速版模板使用 `create TEMPLATE --detach`。
 
-原生极速版模板 list/info 使用阿里云 FCSandbox API 和 AccessKey 凭据。原生管理使用 `abx --native template list --region REGION`；标准列表使用 `abx template list --format json` 和 Sandbox API Key。已删除的 `--official-api`/`--legacy-api` 无需传入。发布验收在公开发布前验证当前合同。
+原生极速版模板 list/info 使用阿里云 FCSandbox API 和 AccessKey 凭据。原生管理使用 `abx --native template list --region REGION`；标准列表使用 `abx template list --format json` 和 Sandbox API Key。已删除的 `--official-api`/`--legacy-api` 无需传入。
 
-维护者发布恢复保持版本不可变：已发布 npm 版本只有与实际验收包完整性相同才允许复用。公开安装读回使用在线元数据和独立缓存，最多重试十分钟后明确失败，不覆盖已发布版本。
 
 标准命令也接受根选项 `--ci`，用于无需输入地授权极速版管理 Key 准备，保留标准生命周期和输出行为。已有 E2B 凭证仍优先。见[权限](permissions.md)。
 

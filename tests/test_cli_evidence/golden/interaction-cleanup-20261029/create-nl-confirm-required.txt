@@ -1,0 +1,10 @@
+[exit_code:2]
+[stderr]
+... Researching public facts
+... Assessing description
+... Generating template
+
+✓ Generated template: abx-nl-python-ev001
+    Dockerfile:    /TMPPATH
+    template.yaml: /TMPPATH
+Confirmation required to build and deploy the generated template. Use --yes/-y to skip in non-interactive mode.

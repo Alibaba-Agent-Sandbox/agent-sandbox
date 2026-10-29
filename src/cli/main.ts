@@ -118,7 +118,7 @@ const ROOT_HELP = [
   "",
   "\b",
   "Examples:",
-  "  abx list --status running",
+  "  abx list --state running",
   "  abx template search python",
   "  abx template scaffold --template python ./my-template",
   "  abx deploy ./my-template",

@@ -1,0 +1,6 @@
+[exit_code:1]
+[stderr]
+... Researching public facts
+... Assessing description
+[E2008] The description is about 30% complete (minimum 80%) and this session cannot ask clarifying questions.
+  Suggestion: Missing details: dependencies, entry command, ports, resources, data. Example description: "Python 3.12 runtime with pandas and jupyter installed, entry command 'jupyter notebook --ip 0.0.0.0', port 8888, 2 CPU 4 GB memory, upload a data.csv dataset". Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y with --prompt to generate from the current description anyway. For Express, use an existing template with 'abx create <name> --detach'; for other providers, check 'abx create --help'.

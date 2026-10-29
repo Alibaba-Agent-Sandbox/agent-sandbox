@@ -49,12 +49,6 @@ export class SandboxProtocol {
   }
 
   _info(data: unknown): SandboxInfo {
-    if (this._unknownIfAbsent && data !== null && typeof data === "object" && !Array.isArray(data)) {
-      const d = { ...(data as Record<string, unknown>) };
-      if (!("region" in d)) d["region"] = "";
-      if (!("timeout" in d)) d["timeout"] = 0;
-      return SandboxInfo.modelValidate(d);
-    }
     // A response omission is not evidence that the service applied client defaults.
     if (data !== null && typeof data === "object" && !Array.isArray(data)) {
       const observed = { ...(data as Record<string, unknown>) };
@@ -196,8 +190,9 @@ export class SandboxProtocol {
     try {
       const info = await this.getInfo(sandbox_id);
       return info.status === SandboxStatus.RUNNING;
-    } catch {
-      return false;
+    } catch (error) {
+      if (error instanceof SandboxNotFoundError) return false;
+      throw error;
     }
   }
 

@@ -19,6 +19,8 @@ When an operation needs configuration, `abx` checks the selected Provider and th
 
 For the complete field and precedence rules, see the [configuration reference](../reference/configuration.md), [authentication](authentication.md), and [Providers guide](providers.md). The [migration guide](migrate-from-e2b.md) describes the separate standard and native command surfaces.
 
+`abx create --prompt "DESCRIPTION"` generates and launches a sandbox. To generate local files only, use `abx template scaffold --prompt "DESCRIPTION"`. Create does not ask you to choose this goal again.
+
 ## Configure and continue
 
 Run a command normally to use its setup flow:
@@ -120,3 +122,5 @@ Setup resumes the stage that has not yet started. It keeps the selected Provider
 ## Express credential choice
 
 Missing runtime credentials offer an existing API key or AK/SK. Skipping the API-key field in `config init` offers missing AccessKey fields. Initialization does not create cloud keys. The first runtime operation separately confirms managed-key creation/renewal; only explicit `--ci` auto-confirms it. [Permissions and examples](permissions.md).
+
+Deleting a sandbox in native JSON, CI or piped mode requires explicit `--yes`; without it, `abx kill` exits without reading confirmation input.

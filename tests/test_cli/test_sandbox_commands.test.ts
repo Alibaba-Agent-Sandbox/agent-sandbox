@@ -11,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
 import { cli } from "../../src/cli/main.js";
+import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
+import * as guidance from "../../src/cli/config_guidance.js";
 import { replSeams } from "../../src/cli/repl.js";
 import { AuthenticationError, CommandTimeoutError, QuotaExceededError, TemplateNotFoundError } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
@@ -335,9 +337,33 @@ describe("TestKill", () => {
     expect(connect).not.toHaveBeenCalled();
   });
 
-  it("test_kill_abort", async () => {
-    const result = await runner().invoke(cli, ["kill", "sbx-cli-test-001"], { input: "n\n" });
-    expect(result.exit_code).not.toBe(0); // Aborted
+  it.each([false, true])("requires --yes without reading stdin in JSON mode (all=%s)", async (all) => {
+    const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
+    patchTransport([infoOf("sbx-1")]);
+    const result = await runner().invoke(cli, ["--json", "kill", ...(all ? ["--all"] : ["sbx-1"])], { input: "y\n" });
+    expect(result.exit_code).toBe(2);
+    expect(JSON.parse(result.stdout)).toMatchObject({ status: "error" });
+    expect(result.stdout).toContain("--yes");
+    expect(result.output).not.toContain("[y/N]");
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("requires --yes outside a terminal", async () => {
+    const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
+    const result = await runner().invoke(cli, ["kill", "sbx-1"], { input: "y\n" });
+    expect(result.exit_code).toBe(2);
+    expect(result.output).toContain("--yes");
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it.each(["n", "y"])("honors interactive kill confirmation %s", async (answer) => {
+    const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
+    vi.spyOn(sandboxSeams, "stdinIsatty").mockReturnValue(true);
+    const result = await runner().invoke(cli, ["kill", "sbx-1"], { input: `${answer}\n` });
+    expect(result.exit_code).toBe(answer === "y" ? 0 : 1);
+    expect(kill).toHaveBeenCalledTimes(answer === "y" ? 1 : 0);
+    expect(result.stdout).not.toContain("[y/N]");
   });
 
   it("test_kill_no_id_no_all", async () => {
