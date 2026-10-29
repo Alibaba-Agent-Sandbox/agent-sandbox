@@ -2,6 +2,7 @@
 
 - Date: 2026-10-29
 - Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/215
+- PR: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/216
 - Base: 84dce3fb4a02590f3ce129c0de786716ac98c1dc
 - Result: PARTIAL — changed behavior and targeted real-cloud checks pass; full local suite has recorded failures. Merge is pending remote gates.
 - Source and test changes are on an isolated branch; original workspace edits are preserved.
@@ -36,6 +37,8 @@ Retained: ServerClient cross-loop compatibility, endpoint/audience authenticatio
 
 A source-built CLI and editable Python client used an existing authorized Express API key loaded only into child processes. One owned base sandbox with a 180-second TTL passed: three sequential synchronous literal-argument executions, background shell variable expansion, synchronous file write/read, and TypeScript lifecycle/literal/background checks against that same sandbox. Deletion succeeded. The first independent check mistakenly called instance-only standard is_running as a class method and failed locally; corrected standard get_info returned SandboxNotFoundException, independently proving absence. The verification mistake is not a product failure.
 
+The existing declarative cloud suite additionally passed all six tests: sync/async remote functions, remote exception propagation, borrowed-instance survival, automatic owned-instance deletion and local serializer validation.
+
 Three maintained Python cloud regressions also passed (23 collected, 3 selected, 20 deselected): quoted_operator, background_preserves and sync_connection_reuses. Their owned base fixture performed cleanup. This is targeted Express acceptance, not every provider/template or complete cloud suite.
 
 English and Chinese application registration examples were executed locally: @command() registers demo, which returns hello=1. SDK application examples now use application_client and async context cleanup. Public guides omit internal acceptance statistics and audit timelines.
@@ -46,4 +49,4 @@ Final repository health: 106 passed, 11 historical warnings, 0 failed. git diff 
 
 ## Remaining gates
 
-Overall local CI is not green. No network assertions were relaxed. Remote PR checks and required review must pass before merge; no release is part of this change.
+Overall local CI is not green. No network assertions were relaxed. Initial remote checks already passed static/links and (for Python) the real Python-to-Node provider-engine job; complete matrices are still pending. Remote PR checks and required review must pass before merge; no release is part of this change.

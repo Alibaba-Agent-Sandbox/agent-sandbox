@@ -6,15 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-### Fixed
-
-- Simplify natural-language create and Provider help; native noninteractive kill requires explicit --yes. Preserve quoted command arguments and background shell mode, and propagate lifecycle errors instead of reporting absence. / 精简自然语言创建和 Provider 帮助；原生非交互删除须显式 --yes，修复引号参数和后台 shell，状态查询保留实际错误。
-
 ### Changed
 
 - Reorganize the English and Chinese repository READMEs around installation, first use and task-oriented documentation; keep migration and detailed reference material in their guides.
 
 ### Fixed
+
+- Simplify natural-language create and Provider help; native noninteractive kill requires explicit --yes. Preserve quoted command arguments and background shell mode, and propagate lifecycle errors instead of reporting absence. / 精简自然语言创建和 Provider 帮助；原生非交互删除须显式 --yes，修复引号参数和后台 shell，状态查询保留实际错误。
 
 - Treat template-launch cancellation before resource submission as `Aborted!`; retain recovery guidance for recorded intents. Keep missing-authentication errors focused on credential source and configuration commands, with managed-key details available in verbose output and actual consent. / 模板启动在资源提交前取消时正常显示 `Aborted!`，已记录提交意图的中断仍保留恢复指引；缺凭据报错聚焦来源和补配命令，托管 Key 详情保留在详细输出及实际确认流程中。
 
