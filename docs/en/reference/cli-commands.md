@@ -8,10 +8,10 @@ removed through configuration, and there is no per-user alias table.
 
 <!-- fixed-set -->
 
-Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
+The fixed top-level groups and shortcuts are: `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx pause`, `abx resume`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
 
 `abx --help` lists two sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`, `provider`)
-and **Sandbox shortcuts** (the ten shortcuts, each showing its purpose followed by an `(alias: abx …)` note).
+and **Sandbox shortcuts** (the fixed shortcuts, each showing its purpose followed by an `(alias: abx …)` note).
 A contextual Provider operation summary follows those sections. Browse more templates in the
 [Registry](https://registry.agent-sandbox.cn/templates/), or use `abx template search KEYWORD`.
 
@@ -71,13 +71,16 @@ abx
 ├── sandbox
 │   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
 │   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID
+│   ├── pause SANDBOX_ID   resume SANDBOX_ID   timeout SANDBOX_ID SECONDS
+│   ├── logs SANDBOX_ID    metrics SANDBOX_ID  snapshot create | list | delete   fork SANDBOX_ID
 │   ├── upload SANDBOX_ID LOCAL REMOTE  download SANDBOX_ID REMOTE LOCAL
 │   ├── capabilities SANDBOX_ID
 │   ├── files    list | mkdir | mv | rm | search | stat
 │   ├── process  list | info | signal            (inspect / control only; start a process with exec --background)
 │   ├── command  list | run                      (named commands registered on the in-sandbox server)
 │   └── system   env | info | metrics | packages | ports
-├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
+├── template     init | create | list | delete | publish | unpublish | migrate
+│                scaffold | from-image | search | info | build | push | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command | run
@@ -100,6 +103,10 @@ Usage lines (from `abx … --help`):
 | `abx sandbox kill` | `kill [OPTIONS] [SANDBOX_ID]` |
 | `abx sandbox exec` | `exec [OPTIONS] SANDBOX_ID COMMAND...` |
 | `abx sandbox connect` | `connect [OPTIONS] SANDBOX_ID` |
+| `abx sandbox pause` / `resume` | `<verb> SANDBOX_ID` |
+| `abx sandbox timeout` | `timeout SANDBOX_ID SECONDS` (project extension; seconds are lifetime, not request timeout) |
+| `abx sandbox logs` / `metrics` / `fork` | `<verb> [options] SANDBOX_ID` (standard Express path) |
+| `abx sandbox snapshot` | `snapshot create/list/delete` (standard Express path) |
 | `abx sandbox upload` | `upload [OPTIONS] SANDBOX_ID LOCAL_PATH REMOTE_PATH` |
 | `abx sandbox download` | `download [OPTIONS] SANDBOX_ID REMOTE_PATH LOCAL_PATH` |
 | `abx sandbox capabilities` | `capabilities [OPTIONS] SANDBOX_ID` |
@@ -109,12 +116,13 @@ Usage lines (from `abx … --help`):
 | `abx sandbox command list` | `command list [OPTIONS] SANDBOX_ID` |
 | `abx sandbox command run` | `command run [OPTIONS] SANDBOX_ID COMMAND_NAME` |
 | `abx sandbox system env\|info\|metrics\|packages\|ports` | `system <verb> [OPTIONS] SANDBOX_ID` |
-| `abx template scaffold` | `init [OPTIONS] [DIRECTORY]` |
+| `abx template scaffold` | `scaffold [OPTIONS] [DIRECTORY]` |
 | `abx template search` | `search [OPTIONS] QUERY` |
 | `abx template info` / `delete` | `<verb> [OPTIONS] TEMPLATE_ID` |
 | `abx template list` | `list [OPTIONS]` |
 | `abx template build` / `deploy` | `<verb> [OPTIONS] TEMPLATE_DIR` (the top-level `abx deploy` takes an optional `[PATH]`, default `.`) |
-| `abx template push` / `create` | `<verb> [OPTIONS] IMAGE` |
+| `abx template push` | `push [OPTIONS] IMAGE` (project extension) |
+| `abx template create` | `create [options] TEMPLATE_NAME` (standard build path) |
 | `abx template install` | `install [OPTIONS] TEMPLATE_REF` |
 | `abx config init\|list` | `<verb> [OPTIONS]` |
 | `abx config get\|delete` | `<verb> [OPTIONS] KEY` |
@@ -193,3 +201,9 @@ Features that need a missing setting print a one-line pointer to `abx config ini
 ## Native provider image factory
 
 `abx --provider PROVIDER template from-image IMAGE --name NAME -y` is a native extension, independent of the standard template builder. See [provider image deployment](../guide/template-launch.md). Unopted providers return E8004.
+
+## Express runtime extensions
+
+The tree combines standard Express commands and explicit project extensions. Standard `sandbox --help` and `template --help` show the pinned standard directory; `--native` selects the project command implementation. Qualified sandbox IDs retain provider ownership.
+
+Use `abx --native create TEMPLATE --network-file network.json` to supply structured network settings without changing the standard create lifecycle. Use `abx sandbox timeout ID SECONDS` to update a running instance lifetime. Append mounts and replace egress policy through declared `sandbox.mounts.append` and `sandbox.network.update` provider commands. See [Express runtime configuration](../guide/express-runtime.md) for inputs, private gateway tokens and cleanup.

@@ -59,6 +59,8 @@ export class SandboxConfig extends defineModel(
     metadata: lax.stringMap().default(() => ({})),
     env_vars: lax.stringMap().default(() => ({})), // 环境变量键值对（已实测验证）
     volume_mounts: volumeMountsSchema.default(() => ({})),
+    // An opt-in provider input. The selected adapter validates and encodes it.
+    network: z.record(z.string(), z.unknown()).nullable().default(null),
 
     // Resource configuration (optional — only sent when explicitly set)
     cpu: lax.int().nullable().default(null), // CPU 核数
@@ -72,7 +74,7 @@ export class SandboxConfig extends defineModel(
   }),
   {
     aliases: { template: "templateID", auto_pause: "autoPause", env_vars: "envVars" },
-    internal: ["secure", "provider_options", "volume_mounts"],
+    internal: ["secure", "provider_options", "volume_mounts", "network"],
   },
 ) {
   /** Build the camelCase request payload for sandbox creation（已实测验证）. */
@@ -109,6 +111,7 @@ export class SandboxInfo extends defineModel(
 
     // 认证与版本信息（已实测验证）
     envd_access_token: z.string().nullable().default(null),
+    traffic_access_token: z.string().nullable().default(null),
     envd_version: z.string().nullable().default(null),
     client_id: z.string().nullable().default(null),
     account_id: z.string().nullable().default(null),
@@ -136,6 +139,7 @@ export class SandboxInfo extends defineModel(
       alias_name: "alias",
       status: "state",
       envd_access_token: "envdAccessToken",
+      traffic_access_token: "trafficAccessToken",
       envd_version: "envdVersion",
       client_id: "clientID",
       account_id: "accountID",
@@ -148,5 +152,9 @@ export class SandboxInfo extends defineModel(
       envd_url: "envdUrl",
       reported_domain: "domain",
     },
+    internal: ["traffic_access_token"],
   },
-) {}
+) {
+  /** Diagnostic inspection excludes live gateway credentials, as do JSON and model dumps. */
+  [Symbol.for("nodejs.util.inspect.custom")](): Record<string, unknown> { return this.modelDump(); }
+}

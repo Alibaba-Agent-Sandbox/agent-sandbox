@@ -83,6 +83,7 @@ abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-te
 | 配置凭据与默认值 | [交互配置](docs/zh/guide/guided-configuration.md) |
 | 选择或安装后端 | [提供方](docs/zh/guide/providers.md) |
 | 构建和发布模板 | [编写模板](docs/zh/guide/authoring-templates.md) |
+| 管理极速版资源 | [管理操作](docs/zh/guide/express-management.md) · [运行时与私有访问](docs/zh/guide/express-runtime.md) |
 | 查询命令与选项 | [CLI 参考](docs/zh/reference/cli-reference.md) |
 | 迁移现有阿里云 E2B CLI 配置 | [迁移指南](docs/zh/guide/migrate-from-e2b.md) |
 | 处理运行错误 | [故障排查](docs/zh/guide/troubleshooting.md) |

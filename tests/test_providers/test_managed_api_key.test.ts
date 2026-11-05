@@ -34,6 +34,16 @@ beforeEach(() => {
 afterEach(() => { Object.assign(managedKeySeams, original); vi.restoreAllMocks(); });
 
 describe("Express managed API keys", () => {
+  it("passes temporary identity credentials to the confirmed SDK operation without disclosing them", async () => {
+    const configured = vi.fn();
+    managedKeySeams.loadSdk = () => ({ ...official, Client: class {
+      constructor(options: unknown) { configured(options); }
+      createApiKeyWithOptions = create; describeApiKeyWithOptions = describeKey; updateApiKeyWithOptions = update;
+    } as any });
+    const result = await prepareManagedApiKey(config({ security_token: "placeholder-sts-token" }), {}, true);
+    expect(configured.mock.calls[0][0]).toMatchObject({ accessKeyId: "placeholder-ak", accessKeySecret: "placeholder-secret", securityToken: "placeholder-sts-token" });
+    expect(JSON.stringify(result)).not.toContain("placeholder-sts-token");
+  });
   it("discovers without loading an SDK; resolution is read-only and preparation is a write", () => {
     const load = vi.spyOn(managedKeySeams, "loadSdk");
     const commands = listProviderCommands("alicloud-express");

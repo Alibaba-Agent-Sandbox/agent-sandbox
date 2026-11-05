@@ -155,7 +155,7 @@ async function prepareLocked(config: LayeredConfig, filename: string, identity: 
     if (!saved && !confirmed) throw new ManagedKeyConsentRequiredError("creation", config.region, team ?? "default");
     const sdk = managedKeySeams.loadSdk();
     const milliseconds = Math.ceil(config.http_timeout * 1000);
-    const client = new sdk.Client(new sdk.Config({ accessKeyId: ak, accessKeySecret: sk, regionId: config.region,
+    const client = new sdk.Client(new sdk.Config({ accessKeyId: ak, accessKeySecret: sk, securityToken: config.security_token || undefined, regionId: config.region,
       endpoint: `sandbox.${config.region}.aliyuncs.com`, readTimeout: milliseconds, connectTimeout: milliseconds, retryOptions: { retryable: false } }));
     const runtime = { autoretry: false, maxAttempts: 1, readTimeout: milliseconds, connectTimeout: milliseconds };
     const request = (name: string, value: Record<string, unknown>) => new sdk.models[name]!(value);

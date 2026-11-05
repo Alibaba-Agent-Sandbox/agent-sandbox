@@ -83,6 +83,7 @@ Run `abx mcp start` to expose sandbox operations through MCP. The repository als
 | Configure credentials and defaults | [Guided configuration](docs/en/guide/guided-configuration.md) |
 | Choose or install a backend | [Providers](docs/en/guide/providers.md) |
 | Build and publish a template | [Authoring templates](docs/en/guide/authoring-templates.md) |
+| Manage Express resources | [Management](docs/en/guide/express-management.md) · [Runtime and private access](docs/en/guide/express-runtime.md) |
 | Look up commands and options | [CLI reference](docs/en/reference/cli-reference.md) |
 | Move an existing Alibaba E2B CLI setup | [Migration guide](docs/en/guide/migrate-from-e2b.md) |
 | Resolve an error | [Troubleshooting](docs/en/guide/troubleshooting.md) |

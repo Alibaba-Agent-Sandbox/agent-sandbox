@@ -21,6 +21,7 @@ import { getProvider, registerProvider, resolveProviderId } from "../../src/prov
 import * as settings from "../../src/providers/settings.js";
 import * as store from "../../src/providers/store.js";
 import { EnvdTokenManager } from "../../src/providers/alicloud_express/auth.js";
+import { ExpressSandboxProtocol } from "../../src/providers/alicloud_express/sandbox.js";
 import { loadLayeredConfig, type LayeredConfig } from "../../src/transport/config_layers.js";
 import { useIso } from "../_support/iso.js";
 import { LOCAL_PROCESS, TEST_HOST_VERSION, pythonAvailable, writePlugin } from "../_support/plugins.js";
@@ -220,7 +221,7 @@ describe("provider-level behaviour that needs no plugin runtime", () => {
     const infra = await provider.buildInfra(loadLayeredConfig({ sandbox_api_key: "k", sandbox_base_url: "https://api.example" }));
     try {
       expect(infra.http_client).not.toBeNull();
-      expect(infra.sandbox_protocol.constructor.name).toBe("SandboxProtocol");
+      expect(infra.sandbox_protocol).toBeInstanceOf(ExpressSandboxProtocol);
       expect(infra.config.sandbox_base_url).toBe("https://api.example");
       expect(await infra.auth?.getHeaders()).toEqual({ Authorization: "Bearer k" });
     } finally {

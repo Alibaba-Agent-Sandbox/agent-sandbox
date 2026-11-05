@@ -68,6 +68,7 @@ const CASES: Array<[string, string, string | number | boolean]> = [
   ["ALIBABA_CLOUD_REGION_ID", "region", "cn-beijing"],
   ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", "id"],
   ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", "sec"],
+  ["ALIBABA_CLOUD_SECURITY_TOKEN", "security_token", "fixture-session-token"],
   ["ABX_HTTP_TIMEOUT", "http_timeout", 12.5],
   ["ABX_HTTP2", "http2", false],
 ];
@@ -87,6 +88,13 @@ const RETIRED_ENV = [
 ];
 const raw = (v: string | number | boolean): string => (v === false ? "false" : String(v));
 const field = (cfg: LayeredConfig, name: string): unknown => (cfg as unknown as Record<string, unknown>)[name];
+
+it("preserves the explicit STS triple in transport configuration", () => {
+  const cfg = new LayeredConfig({ access_key_id: "fixture-id", access_key_secret: "fixture-secret", security_token: "fixture-session" });
+  const transport = cfg.toTransportConfig();
+  expect([transport.access_key_id, transport.access_key_secret, transport.security_token])
+    .toEqual(["fixture-id", "fixture-secret", "fixture-session"]);
+});
 
 describe.each(CASES)("TestEveryNameInEveryLayer[%s -> %s]", (env, name, value) => {
   it("test_process_env", () => {

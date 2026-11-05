@@ -16,7 +16,7 @@ function loadSdk(): FcManagementSdk {
   // Literal global require calls let esbuild include these lazy dependencies in SEA.
   // Native ESM has no global require and resolves the installed packages instead.
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
-  const models = typeof require === "function" ? require("@alicloud/fcsandbox20260509") : nodeRequire("@alicloud/fcsandbox20260509");
+  const models = typeof require === "function" ? require("@alicloud/sandbox20260820") : nodeRequire("@alicloud/sandbox20260820");
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
   const core = typeof require === "function" ? require("@alicloud/openapi-core") : nodeRequire("@alicloud/openapi-core");
   const Client = models.default ?? models.Client;
@@ -28,12 +28,19 @@ function loadSdk(): FcManagementSdk {
 /** Test seam for replacing the client while retaining official generated request models. */
 export const _sdkLoader: { load: () => FcManagementSdk } = { load: loadSdk };
 
+/** Retained only for the published status-only Volume update contract. */
+export const _legacySdkLoader: { load: () => FcManagementSdk } = { load: () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Required for lazy SEA bundling.
+  const models = typeof require === "function" ? require("@alicloud/fcsandbox20260509") : nodeRequire("@alicloud/fcsandbox20260509");
+  return { ...loadSdk(), models, Client: models.default ?? models.Client };
+} };
+
 /** Load the SDK only after operation and credentials have been validated. */
-export function _requireSdk(): FcManagementSdk {
+export function _requireSdk(legacy = false): FcManagementSdk {
   try {
-    return _sdkLoader.load();
+    return legacy ? _legacySdkLoader.load() : _sdkLoader.load();
   } catch {
-    throw new ProviderConfigError("The official FCSandbox management SDK could not be loaded.", {
+    throw new ProviderConfigError("The official Sandbox management SDK could not be loaded.", {
       suggestion: "Reinstall the CLI with its lockfile dependencies.",
     });
   }

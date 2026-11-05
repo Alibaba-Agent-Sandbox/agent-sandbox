@@ -25,6 +25,8 @@ The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers
 | [Binary Installation](guide/binary-installation.md) | Single-file `abx` binary (Node SEA), no Node.js required |
 | [Providers](guide/providers.md) | Install, select, and configure sandbox providers |
 | [Provider commands](guide/provider-commands.md) | Contextual help, default selection, shared CLI/Python discovery, updates and Express pause/Snapshot usage |
+| [Express management](guide/express-management.md) | Teams, quotas, API Keys, storage and native templates |
+| [Express runtime](guide/express-runtime.md) | Private application access, lifecycle, network replacement and runtime mounts |
 | [Authoring Providers](guide/authoring-providers.md) | Write a `node` or EPP/1 `exec` provider plugin, including `[template]` and install-from-git |
 | [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `abx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |

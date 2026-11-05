@@ -25,12 +25,13 @@ export const CONFIG_METADATA = {
   inherit: new Set(GENERIC_ENDPOINT_KEYS),
   derive: { sandbox_base_url: "https://api.{region}.e2b.fc.aliyuncs.com", sandbox_domain: "{region}.e2b.fc.aliyuncs.com" },
   endpointDefaults: { sandbox_base_url: "https://api.cn-hangzhou.e2b.fc.aliyuncs.com", sandbox_domain: "cn-hangzhou.e2b.fc.aliyuncs.com" },
-  transportFields: new Set(["region", "access_key_id", "access_key_secret"]),
+  transportFields: new Set(["region", "access_key_id", "access_key_secret", "security_token"]),
   omitDefaultOptions: true,
   transportEnvironment: [
     ["ABX_SANDBOX_API_KEY", "api_key", true], ["ABX_SANDBOX_BASE_URL", "api_url", true],
     ["ABX_SANDBOX_DOMAIN", "domain", true], ["ALICLOUD_ACCESS_KEY_ID", "access_key_id", true],
     ["ALICLOUD_ACCESS_KEY_SECRET", "access_key_secret", true], ["ALIBABA_CLOUD_REGION_ID", "region", true],
+    ["ALIBABA_CLOUD_SECURITY_TOKEN", "security_token", true],
     ["ABX_HTTP_TIMEOUT", "http_timeout", true],
   ] as [string, string, boolean][],
 };

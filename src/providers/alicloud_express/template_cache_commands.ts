@@ -116,7 +116,7 @@ export async function runTemplateCacheCommand(config: LayeredConfig, id: string,
   if (!accessKeyId?.trim() || !accessKeySecret?.trim()) throw new AuthenticationError("Template Cache management requires both access_key_id and access_key_secret; a sandbox API key does not replace them.");
   if (!/^[a-z][a-z0-9-]{0,62}$/.test(region)) throw new ProviderConfigError("Invalid Template Cache management region.");
   if (!Number.isFinite(timeout) || timeout <= 0) throw new ProviderConfigError("Template Cache request timeout must be positive and finite.");
-  const secrets = [accessKeyId, accessKeySecret, config.sandbox_api_key ?? ""].filter(Boolean);
+  const secrets = [accessKeyId, accessKeySecret, config.security_token ?? "", config.sandbox_api_key ?? ""].filter(Boolean);
   let sdk: TemplateCacheSdk;
   try { sdk = _templateCacheSdkLoader.load(); }
   catch { throw new ProviderConfigError("The official Template Cache management SDK could not be loaded.", { suggestion: "Reinstall the CLI with its lockfile dependencies." }); }
@@ -125,7 +125,7 @@ export async function runTemplateCacheCommand(config: LayeredConfig, id: string,
   const runtime = { autoretry: false, maxAttempts: 1, readTimeout: milliseconds, connectTimeout: milliseconds };
   let response: unknown;
   try {
-    const client = new sdk.Client(new sdk.Config({ accessKeyId, accessKeySecret, regionId: region, endpoint: `sandbox.${region}.aliyuncs.com`,
+    const client = new sdk.Client(new sdk.Config({ accessKeyId, accessKeySecret, securityToken: config.security_token || undefined, regionId: region, endpoint: `sandbox.${region}.aliyuncs.com`,
       readTimeout: milliseconds, connectTimeout: milliseconds, retryOptions: { retryable: false } }));
     if (id === "template-cache.create") {
       response = await client.createTemplateCacheWithOptions(new sdk.models.CreateTemplateCacheRequest({

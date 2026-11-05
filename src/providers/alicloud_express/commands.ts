@@ -9,6 +9,8 @@ import type { LayeredConfig } from "../../transport/config_layers.js";
 import type { ProviderCommand } from "../commands.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError } from "../../models/provider_errors.js";
 import { _requireSdk, type FcManagementSdk } from "./sdk.js";
+import { managementInputSecrets, managementVpcMetadata, mountConfig, storageInputs, storageKeys, toManagementWire } from "./management_schema.js";
+import { TEMPLATE_COMMANDS, isTemplateCommand, runTemplateCommand } from "./template_commands.js";
 
 type Dict = Record<string, unknown>;
 const text = z.string().min(1).max(1024);
@@ -23,39 +25,28 @@ const keyRef = { api_key_id: identifier };
 const secretFile = { secret_file: z.string().min(1).max(4096) };
 const quotaRef = { team_id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) };
 const description = z.string().max(4096);
-const ipConfig = z.strictObject({ ip_address: shortText, description: description.optional() });
+const ipConfig = z.strictObject({ ip_address: shortText, description: z.string().max(128).optional() });
 const keyFields = {
-  api_key_name: shortText.optional(), expire_time: z.iso.datetime({ offset: true }).optional(),
+  api_key_name: shortText.optional(), expire_time: z.union([z.iso.datetime({ offset: true }), z.literal("")]).optional().describe("RFC3339 expiry or an explicitly empty native API value; omission preserves the current expiry on update."),
   ip_whitelist: z.array(ipConfig).max(100).optional(), ip_blacklist: z.array(ipConfig).max(100).optional(),
 };
 const teamFields = {
   team_name: shortText.optional(), description: description.optional(),
   plan: shortText.optional(), resource_group_id: identifier.optional(),
 };
-const ossConfig = z.strictObject({ bucket_name: shortText, bucket_path: text, endpoint: text, read_only: z.boolean() });
-const agenticFsConfig = z.strictObject({ server_addr: text, user_id: nonnegative.optional(), group_id: nonnegative.optional() });
-const agenticBucketConfig = z.strictObject({
-  agentic_bucket: shortText, bucket_name: shortText, bucket_path: text.optional(), endpoint: text, read_only: z.boolean().optional(),
-});
-const mountConfig = z.strictObject({
-  role: text.optional(),
-  vpc_config: z.strictObject({
-    vpc_id: identifier, security_group_id: identifier, v_switch_ids: z.array(identifier).min(1).max(16),
-  }).optional(),
-});
+const { oss_volume_config: ossConfig, agentic_fs_volume_config: agenticFsConfig, agentic_bucket_volume_config: agenticBucketConfig, juice_fs_volume_config: juiceFsConfig } = storageInputs;
+const optionalStorage = { oss_volume_config: ossConfig.optional(), agentic_fs_volume_config: agenticFsConfig.optional(), agentic_bucket_volume_config: agenticBucketConfig.optional(), juice_fs_volume_config: juiceFsConfig.optional(), mount_config: mountConfig.optional() };
 
 const inputs = {
   "volume.create": z.strictObject({
-    ...teamRef, volume_name: shortText, oss_volume_config: ossConfig.optional(),
-    agentic_fs_volume_config: agenticFsConfig.optional(), agentic_bucket_volume_config: agenticBucketConfig.optional(),
-    mount_config: mountConfig.optional(),
+    ...teamRef, volume_name: shortText, ...optionalStorage,
   }),
   "volume.get": z.strictObject(volumeRef),
   "volume.list": z.strictObject({
     ...cursor, team_id: identifier.optional(), volume_name: shortText.optional(),
-    status: shortText.optional(), resource_group_id: identifier.optional(), user_id: identifier.optional(),
+    status: shortText.optional(), resource_group_id: identifier.optional(), user_id: identifier.optional(), storage_class: shortText.optional(),
   }),
-  "volume.update": z.strictObject({ ...volumeRef, status: shortText }),
+  "volume.update": z.strictObject({ ...volumeRef, ...optionalStorage, status: shortText.optional().describe("Deprecated status-only legacy API; cannot be combined with storage or mount configuration.") }),
   "volume.delete": z.strictObject(volumeRef),
   "team.create": z.strictObject({ ...teamFields, team_name: shortText }),
   "team.get": z.strictObject(teamRef),
@@ -73,7 +64,7 @@ const inputs = {
   "api-key.delete": z.strictObject(keyRef),
   "quota.get": z.strictObject(quotaRef),
   "quota.list": z.strictObject(cursor),
-  "quota.update": z.strictObject({ ...quotaRef, cpu_cores: nonnegative, memory_gb: nonnegative }),
+  "quota.update": z.strictObject({ ...quotaRef, cpu_cores: nonnegative, memory_gb: nonnegative, instance_count: z.number().int().min(-1).max(2147483647).optional() }),
   "quota.delete": z.strictObject(quotaRef),
 } as const;
 
@@ -84,8 +75,9 @@ const optionalStrings = (names: readonly string[]): Record<string, z.ZodOptional
 
 const volumeOutput = z.strictObject({
   ...optionalStrings(["volume_id", "volume_name", "team_id", "storage_class", "status", "status_reason", "created_at", "updated_at", "resource_group_id", "user_id"]),
-  oss_volume_config: ossConfig.partial().optional(), agentic_fs_volume_config: agenticFsConfig.partial().optional(),
-  agentic_bucket_volume_config: agenticBucketConfig.partial().optional(), mount_config: mountConfig.partial().optional(),
+  oss_volume_config: ossConfig.partial().optional(), agentic_fs_volume_config: agenticFsConfig.partial().extend({ access_point_id: z.string().optional(), agentic_space_id: z.string().optional(), file_system_id: z.string().optional() }).optional(),
+  agentic_bucket_volume_config: agenticBucketConfig.partial().optional(), mount_config: mountConfig.partial().extend({ vpc_config: managementVpcMetadata.optional() }).optional(),
+  juice_fs_volume_config: juiceFsConfig.partial().extend({ token: z.literal("[REDACTED]").optional() }).optional(),
 });
 const teamOutput = z.strictObject({
   ...optionalStrings(["team_id", "team_name", "description", "plan", "resource_group_id", "status", "created_time", "user_id"]),
@@ -96,7 +88,7 @@ const keyOutput = z.strictObject({
   api_key_value: z.literal("[REDACTED]").optional(),
   ip_whitelist: z.array(ipConfig.partial()).optional(), ip_blacklist: z.array(ipConfig.partial()).optional(),
 });
-const quotaOutput = z.strictObject({ tag_value: z.string().optional(), cpu_cores: z.number().optional(), memory_gb: z.number().optional() });
+const quotaOutput = z.strictObject({ tag_value: z.string().optional(), cpu_cores: z.number().optional(), memory_gb: z.number().optional(), instance_count: z.number().optional() });
 const deletionOutput = z.strictObject({ deleted: z.literal(true) });
 const cursorOutput = { max_results: z.number().nullable(), next_token: z.string().nullable() };
 const pageOutput = { page_number: z.number().nullable(), page_size: z.number().nullable(), total: z.number().nullable() };
@@ -112,7 +104,7 @@ const labels: Record<CommandId, readonly [string, string]> = {
   "volume.create": ["Create a Volume mount configuration.", "创建存储卷挂载配置。"],
   "volume.get": ["Get a Volume configuration.", "查询存储卷配置。"],
   "volume.list": ["List one page of Volumes.", "分页查询存储卷。"],
-  "volume.update": ["Update Volume status.", "更新存储卷状态。"],
+  "volume.update": ["Update Volume storage/mount configuration. Deprecated status-only input uses the legacy API.", "更新存储卷及挂载配置；已弃用的单独 status 输入使用旧版 API。"],
   "volume.delete": ["Delete Volume metadata; underlying storage is retained.", "删除存储卷配置，保留底层数据。"],
   "team.create": ["Create a Team.", "创建 Team。"],
   "team.get": ["Get a Team.", "查询 Team。"],
@@ -127,7 +119,7 @@ const labels: Record<CommandId, readonly [string, string]> = {
   "api-key.delete": ["Delete an inactive API key.", "删除已停用的 API Key。"],
   "quota.get": ["Get a Team resource quota.", "查询 Team 资源配额。"],
   "quota.list": ["List one page of Team resource quotas.", "分页查询 Team 资源配额。"],
-  "quota.update": ["Replace a Team CPU and memory quota, including zero limits.", "设置 Team CPU 与内存配额，支持零配额。"],
+  "quota.update": ["Set required CPU/memory quota and optional instance_count (-1 clears; 0 disables).", "设置必填的 CPU/内存配额及可选 instance_count（-1 清除，0 禁用）。"],
   "quota.delete": ["Delete a Team quota configuration.", "删除 Team 配额配置。"],
 };
 
@@ -138,11 +130,15 @@ function outputFor(id: CommandId): z.ZodType {
 }
 
 /** The complete supported FC management catalog. Discovery does not access credentials or the network. */
-export const ALICLOUD_COMMANDS: readonly ProviderCommand[] = Object.keys(inputs).map((raw) => {
+export const ALICLOUD_COMMANDS: readonly ProviderCommand[] = [...Object.keys(inputs).map<ProviderCommand>((raw) => {
   const id = raw as CommandId;
   const action = id.split(".")[1];
   const inputSchema = commandSchema(inputs[id]);
-  if (id === "volume.create") inputSchema.oneOf = ["oss_volume_config", "agentic_fs_volume_config", "agentic_bucket_volume_config"].map((key) => ({ properties: { [key]: {} }, required: [key] }));
+  if (id === "volume.create") inputSchema.oneOf = storageKeys.map((key) => ({ properties: { [key]: {} }, required: [key] }));
+  if (id === "volume.update") inputSchema.oneOf = [
+    { properties: { status: {}, ...Object.fromEntries([...storageKeys, "mount_config"].map(key => [key, false])) }, required: ["status"] },
+    { properties: { status: false }, anyOf: [...storageKeys, "mount_config"].map(key => ({ properties: { [key]: {} }, required: [key] })) },
+  ];
   return {
     id, description: labels[id][0], description_zh: labels[id][1],
     input_schema: inputSchema,
@@ -150,31 +146,13 @@ export const ALICLOUD_COMMANDS: readonly ProviderCommand[] = Object.keys(inputs)
     effect: action === "get" || action === "list" ? "read" : action === "delete" ? "delete" : "write",
     idempotent: action !== "create" && action !== "reset",
   };
-});
+}), ...TEMPLATE_COMMANDS];
 
-/** Wire aliases are explicit: no caller-supplied SDK method names or arbitrary payload fields. */
-const aliases: Record<string, string> = {
-  team_id: "teamID", volume_id: "volumeID", api_key_id: "apiKeyID", volume_name: "volumeName",
-  max_results: "maxResults", next_token: "nextToken", page_number: "pageNumber", page_size: "pageSize",
-  resource_group_id: "resourceGroupID", user_id: "userID", team_name: "teamName", api_key_name: "apiKeyName",
-  expire_time: "expireTime", ip_whitelist: "ipWhitelist", ip_blacklist: "ipBlacklist", ip_address: "ipAddress",
-  oss_volume_config: "ossVolumeConfig", agentic_fs_volume_config: "agenticFSVolumeConfig",
-  agentic_bucket_volume_config: "agenticBucketVolumeConfig", bucket_name: "bucketName", bucket_path: "bucketPath",
-  read_only: "readOnly", agentic_bucket: "agenticBucket", server_addr: "serverAddr", group_id: "groupID",
-  mount_config: "mountConfig", vpc_config: "vpcConfig", vpc_id: "vpcId", security_group_id: "securityGroupId",
-  v_switch_ids: "vSwitchIds", cpu_cores: "cpuCores", memory_gb: "memoryGB",
-};
-
-function wire(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(wire);
-  if (value === null || typeof value !== "object") return value;
-  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [aliases[key] ?? key, wire(entry)]));
-}
+const wire = toManagementWire;
 
 function validIp(raw: string): boolean {
   const [address, prefix, extra] = raw.split("/");
-  const family = isIP(address);
-  return Boolean(family) && extra === undefined && (prefix === undefined || (/^\d+$/.test(prefix) && Number(prefix) <= (family === 4 ? 32 : 128)));
+  return isIP(address) === 4 && extra === undefined && (prefix === undefined || (/^\d+$/.test(prefix) && Number(prefix) <= 32));
 }
 
 function validateSemantics(id: CommandId, input: Dict): void {
@@ -184,9 +162,10 @@ function validateSemantics(id: CommandId, input: Dict): void {
   for (const name of ["volume_name", "team_name", "api_key_name"]) {
     if (typeof input[name] === "string" && !(input[name] as string).trim()) throw new ProviderConfigError("Resource names must contain a non-whitespace character.");
   }
-  if (id === "volume.create") {
-    const storage = ["oss_volume_config", "agentic_fs_volume_config", "agentic_bucket_volume_config"].filter((key) => input[key] !== undefined);
-    if (storage.length !== 1) throw new ProviderConfigError("Volume creation requires exactly one storage configuration.");
+  if (id === "volume.create" || id === "volume.update") {
+    const storage = storageKeys.filter((key) => input[key] !== undefined);
+    if (id === "volume.create" && storage.length !== 1) throw new ProviderConfigError("Volume creation requires exactly one storage configuration.");
+    if (id === "volume.update" && (storage.length > 1 || input.status !== undefined && (storage.length > 0 || input.mount_config !== undefined) || input.status === undefined && storage.length === 0 && input.mount_config === undefined)) throw new ProviderConfigError("Volume update requires storage/mount changes or legacy status alone; these forms cannot be combined.");
     for (const key of ["oss_volume_config", "agentic_bucket_volume_config"]) {
       const config = input[key] as Dict | undefined;
       if (config && ((config.bucket_path !== undefined && !String(config.bucket_path).startsWith("/")) || !/^https?:\/\//.test(String(config.endpoint)))) {
@@ -195,12 +174,13 @@ function validateSemantics(id: CommandId, input: Dict): void {
     }
     if (input.agentic_bucket_volume_config && object(input.mount_config)?.vpc_config) throw new ProviderConfigError("AgenticBucket Volumes do not support VPC mount configuration.");
   }
+  if (Array.isArray(input.ip_whitelist) && input.ip_whitelist.length && Array.isArray(input.ip_blacklist) && input.ip_blacklist.length) throw new ProviderConfigError("Nonempty API-key IP whitelist and blacklist are mutually exclusive.");
   if ((id === "team.update" || id === "api-key.update") && Object.keys(input).length < 2) {
     throw new ProviderConfigError("An update requires at least one changed field.");
   }
   for (const key of ["ip_whitelist", "ip_blacklist"]) {
     if (Array.isArray(input[key]) && !(input[key] as Dict[]).every((item) => validIp(String(item.ip_address)))) {
-      throw new ProviderConfigError("IP rules require valid IPv4/IPv6 addresses or CIDR ranges.");
+      throw new ProviderConfigError("IP rules require valid IPv4 addresses or CIDR ranges.");
     }
   }
 }
@@ -220,7 +200,7 @@ function project(schema: z.ZodType, raw: unknown, secrets: readonly string[]): u
     if (Array.isArray(value)) return value.map(normalize);
     const record = object(value);
     if (!record) return value;
-    return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null).map(([key, value]) => [snake(key), snake(key) === "api_key_value" ? "[REDACTED]" : normalize(value)]));
+    return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null).map(([key, value]) => [snake(key), ["api_key_value", "token", "password"].includes(snake(key)) ? "[REDACTED]" : normalize(value)]));
   };
   const jsonSchema = z.toJSONSchema(schema, { target: "draft-7" }) as Dict;
   const pick = (value: unknown, definition: Dict): unknown => {
@@ -302,6 +282,7 @@ function request(sdk: FcManagementSdk, name: string, values: Dict): any {
 
 /** Execute one validated FC management command using only this resolved configuration snapshot. */
 export async function runAlicloudCommand(config: LayeredConfig, id: string, rawInput: Dict): Promise<unknown> {
+  if (isTemplateCommand(id)) return runTemplateCommand(config, id, rawInput);
   if (!Object.hasOwn(inputs, id)) throw new ProviderFeatureNotSupportedError("alicloud-express", id);
   const commandId = id as CommandId;
   const parsed = inputs[commandId].safeParse(rawInput);
@@ -311,13 +292,14 @@ export async function runAlicloudCommand(config: LayeredConfig, id: string, rawI
   const { access_key_id: accessKeyId, access_key_secret: accessKeySecret, region, http_timeout: timeout } = config;
   if (!accessKeyId?.trim() || !accessKeySecret?.trim()) throw new AuthenticationError("FC management commands require both access_key_id and access_key_secret.", { suggestion: "Configure Alibaba Cloud AccessKey credentials for the selected provider." });
   if (!/^[a-z][a-z0-9-]{0,62}$/.test(region)) throw new ProviderConfigError("Invalid FC management region.");
-  const secrets = [accessKeyId, accessKeySecret];
-  const sdk = _requireSdk();
+  const secrets = [accessKeyId, accessKeySecret, config.security_token ?? "", ...managementInputSecrets(input)].filter(Boolean);
+  const legacy = id === "volume.update" && input.status !== undefined;
+  const sdk = _requireSdk(legacy);
   const milliseconds = Math.ceil(timeout * 1000);
   let client: any;
   try {
     client = new sdk.Client(new sdk.Config({
-      accessKeyId, accessKeySecret, regionId: region, endpoint: `fcsandbox.${region}.aliyuncs.com`,
+      accessKeyId, accessKeySecret, securityToken: config.security_token || undefined, regionId: region, endpoint: `${legacy ? "fcsandbox" : "sandbox"}.${region}.aliyuncs.com`,
       readTimeout: milliseconds, connectTimeout: milliseconds, retryOptions: { retryable: false },
     }));
   } catch (error) {
@@ -334,7 +316,10 @@ export async function runAlicloudCommand(config: LayeredConfig, id: string, rawI
     method = `${action}Volume${action === "list" ? "s" : ""}WithOptions`;
     model = `${action[0].toUpperCase()}${action.slice(1)}Volume${action === "list" ? "s" : ""}Request`;
     if (action === "create") args = [request(sdk, model, { body: request(sdk, "CreateVolumeInput", body) })];
-    else if (action === "update") args = [input.volume_id, request(sdk, model, { body: request(sdk, "UpdateVolumeInput", { teamID: input.team_id, status: input.status }) })];
+    else if (action === "update") {
+      const { teamID: _team, volumeID: _volume, ...changes } = body;
+      args = [input.volume_id, request(sdk, model, legacy ? { body: request(sdk, "UpdateVolumeInput", { teamID: input.team_id, status: input.status }) } : { teamID: input.team_id, body: request(sdk, "UpdateVolumeInput", changes) })];
+    }
     else if (action === "list") args = [request(sdk, model, body)];
     else args = [input.volume_id, request(sdk, model, { teamID: input.team_id })];
   } else if (group === "team") {
@@ -415,7 +400,13 @@ export async function runAlicloudCommand(config: LayeredConfig, id: string, rawI
   } else {
     const field = group === "api-key" ? "apiKey" : group;
     if (!object(result[field])) throw new ProviderProtocolError("The FC management service returned no resource.");
-    data = project(resourceOutputs[group], result[field], secrets);
+    // Current key APIs may return policy beside apiKey, while older responses
+    // embed it. Explicit top-level values, including [], are authoritative.
+    const resource = group === "api-key" ? { ...object(result[field]),
+      ...(result.ipWhitelist === undefined ? {} : { ipWhitelist: result.ipWhitelist }),
+      ...(result.ipBlacklist === undefined ? {} : { ipBlacklist: result.ipBlacklist }),
+    } : result[field];
+    data = project(resourceOutputs[group], resource, secrets);
     if (destination) data = { ...data as Dict, secret_file: destination.filename };
   }
   const output = outputFor(commandId).safeParse({ request_id: typeof result.requestId === "string" ? secrets.reduce((value, secret) => value.split(secret).join("[REDACTED]"), result.requestId) : null, data });

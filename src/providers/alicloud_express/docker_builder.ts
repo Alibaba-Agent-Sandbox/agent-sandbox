@@ -565,6 +565,7 @@ export interface BuildOptions {
 }
 
 export interface LoginAkSkOptions {
+  security_token?: string | null;
   region?: string;
   instance_id?: string | null;
 }
@@ -589,6 +590,8 @@ export interface BuildAndRegisterOfficialOptions {
   acr_access_key_secret?: string | null;
   api_access_key_id?: string | null;
   api_access_key_secret?: string | null;
+  acr_security_token?: string | null;
+  api_security_token?: string | null;
   timeout?: number;
 }
 
@@ -725,7 +728,7 @@ export class DockerBuilder {
     const { region = "cn-hangzhou", instance_id = null } = opts;
     logger.info("Attempting ACR login via GetAuthorizationToken for %s", registry);
     try {
-      const token_data = await getAcrAuthToken(access_key_id, access_key_secret, region, { instance_id });
+      const token_data = await getAcrAuthToken(access_key_id, access_key_secret, region, { instance_id, security_token: opts.security_token });
       const temp_username = String(token_data["tempUserName"] ?? "");
       const auth_token = String(token_data["authorizationToken"] ?? "");
       if (!temp_username || !auth_token) {
@@ -735,6 +738,7 @@ export class DockerBuilder {
       await this.loginAcr(registry, temp_username, auth_token);
       return { tempUserName: temp_username, authorizationToken: auth_token };
     } catch (exc) {
+      if (opts.security_token) throw new ACRLoginError("ACR temporary-credential login failed; direct AccessKey login fallback was not attempted.");
       if (exc instanceof ACRLoginError) {
         logger.warning("GetAuthorizationToken failed: %s — falling back to direct AK/SK login", pyExcStr(exc));
       } else {
@@ -1014,6 +1018,7 @@ export class DockerBuilder {
     const creds = await this.loginAcrWithAksk(acr.registry, acr_ak, acr_sk, {
       region,
       instance_id: acr.acree_instance_id || null,
+      security_token: opts.acr_security_token,
     });
     await this.tag(local_tag, acr_ref);
     await this.push(acr_ref, { on_output: (line) => logger.debug("  %s", line) });
@@ -1030,6 +1035,7 @@ export class DockerBuilder {
       image: acr_ref,
       access_key_id: api_ak,
       access_key_secret: api_sk,
+      security_token: opts.api_security_token,
       region,
       team_id,
       cpu: cpu_count,
@@ -1134,6 +1140,7 @@ export async function _getAcrAuthTokenPersonal(
   access_key_id: string,
   access_key_secret: string,
   region = "cn-hangzhou",
+  security_token?: string | null,
 ): Promise<Record<string, unknown>> {
   const endpoint = `https://cr.${region}.aliyuncs.com`;
   const path = "/tokens";
@@ -1150,6 +1157,7 @@ export async function _getAcrAuthTokenPersonal(
     "x-acs-version": "2016-06-07",
   };
 
+  if (security_token) headers["x-acs-security-token"] = security_token;
   const sig = _signRoa("GET", path, headers, access_key_secret, "application/json", "application/json");
   headers["Authorization"] = `acs ${access_key_id}:${sig}`;
 
@@ -1177,6 +1185,7 @@ export async function _getAcrAuthTokenEe(
   access_key_secret: string,
   region = "cn-hangzhou",
   instance_id = "",
+  security_token?: string | null,
 ): Promise<Record<string, unknown>> {
   const endpoint = `https://cr.${region}.aliyuncs.com`;
   const ts = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -1192,6 +1201,7 @@ export async function _getAcrAuthTokenEe(
     SignatureNonce: randomUUID(),
     InstanceId: instance_id,
   };
+  if (security_token) params["SecurityToken"] = security_token;
   params["Signature"] = _signRpc(params, access_key_secret);
 
   logger.info("Calling ACR GetAuthorizationToken (RPC, EE, region=%s, instance=%s)", region, instance_id);
@@ -1224,34 +1234,35 @@ export async function getAcrAuthToken(
   access_key_id: string,
   access_key_secret: string,
   region = "cn-hangzhou",
-  opts: { instance_id?: string | null } = {},
+  opts: { instance_id?: string | null; security_token?: string | null } = {},
 ): Promise<Record<string, unknown>> {
   const instance_id = opts.instance_id ?? null;
   const errors: string[] = [];
+  const safeError = (error: unknown): string => [access_key_id, access_key_secret, opts.security_token ?? ""].filter(Boolean).reduce((value, secret) => value.split(secret).join("[REDACTED]"), pyExcStr(error));
 
   // 1. Try personal edition (ROA)
   try {
-    const auth = await _seams.getAcrAuthTokenPersonal(access_key_id, access_key_secret, region);
+    const auth = await (opts.security_token ? _seams.getAcrAuthTokenPersonal(access_key_id, access_key_secret, region, opts.security_token) : _seams.getAcrAuthTokenPersonal(access_key_id, access_key_secret, region));
     const token = auth["authorizationToken"] ?? "";
     const user = auth["tempUserName"] ?? "";
     if (token && user) return auth;
     errors.push(`personal: incomplete credentials ${pyKeyList(Object.keys(auth))}`);
   } catch (exc) {
-    errors.push(`personal: ${pyExcStr(exc)}`);
-    logger.debug("ACR personal-edition token failed: %s", pyExcStr(exc));
+    errors.push(`personal: ${safeError(exc)}`);
+    logger.debug("ACR personal-edition token failed: %s", safeError(exc));
   }
 
   // 2. Try EE edition (RPC) if instance_id provided
   if (instance_id) {
     try {
-      const auth = await _seams.getAcrAuthTokenEe(access_key_id, access_key_secret, region, instance_id);
+      const auth = await (opts.security_token ? _seams.getAcrAuthTokenEe(access_key_id, access_key_secret, region, instance_id, opts.security_token) : _seams.getAcrAuthTokenEe(access_key_id, access_key_secret, region, instance_id));
       const token = auth["authorizationToken"] ?? "";
       const user = auth["tempUserName"] ?? "";
       if (token && user) return auth;
       errors.push(`EE: incomplete credentials ${pyKeyList(Object.keys(auth))}`);
     } catch (exc) {
-      errors.push(`EE: ${pyExcStr(exc)}`);
-      logger.debug("ACR EE-edition token failed: %s", pyExcStr(exc));
+      errors.push(`EE: ${safeError(exc)}`);
+      logger.debug("ACR EE-edition token failed: %s", safeError(exc));
     }
   }
 

@@ -272,6 +272,9 @@ export abstract class Provider {
   /** Explicit optional create inputs; implementations opt in before any I/O. */
   createOptions: ReadonlySet<string> = new Set();
 
+  /** Validate opted-in provider create inputs before infrastructure or credentials are prepared. */
+  validateCreateOptions(_options: Readonly<Record<string, unknown>>): void { }
+
   buildSessionProtocols(_http: HttpClient): SessionProtocols {
     return { sandbox_protocol: unsupportedProtocol(this.id, "sandbox.lifecycle"),
       process_protocol: unsupportedProtocol(this.id, "exec.run"), filesystem_protocol: unsupportedProtocol(this.id, "files.rw"),

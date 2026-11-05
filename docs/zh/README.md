@@ -25,6 +25,8 @@ CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。
 | [二进制安装](guide/binary-installation.md) | 单文件 `abx` 二进制（Node SEA），无需 Node.js |
 | [提供商](guide/providers.md) | 安装、选择并配置沙箱提供商 |
 | [Provider 命令](guide/provider-commands.md) | 上下文帮助、默认选择、两端共同发现、更新，以及极速版暂停/快照用法 |
+| [极速版管理](guide/express-management.md) | Team、配额、API Key、存储与原生模板 |
+| [极速版运行时](guide/express-runtime.md) | 私有应用访问、生命周期、网络替换与运行时挂载 |
 | [编写提供商](guide/authoring-providers.md) | 编写 `node` 或 EPP/1 `exec` 提供商插件，含 `[template]` 与从 git 安装 |
 | [认证配置](guide/authentication.md) | API Key / AK-SK 认证与 `abx config` |
 | [CLI 教程](guide/cli-tutorial.md) | 命令行快速上手 |

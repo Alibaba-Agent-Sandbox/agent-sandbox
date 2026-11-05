@@ -6,6 +6,7 @@ import { parseCommandSection, validateCommandOutput } from "../../src/providers/
 import { LayeredConfig } from "../../src/transport/config_layers.js";
 import { HttpClient, HTTPStatusError, ReadTimeout, Request, Response } from "../../src/transport/http.js";
 import { useIso } from "../_support/iso.js";
+import * as managedKey from "../../src/providers/alicloud_express/managed_api_key.js";
 
 useIso();
 afterEach(() => vi.restoreAllMocks());
@@ -23,12 +24,20 @@ describe("Express conditional command registration", () => {
     const parsed = parseCommandSection({ protocol: "provider-commands/1", entries: CONDITIONAL_COMMANDS }, "builtin");
     expect(parsed.map((x) => x.id)).toEqual(["sandbox.pause", "sandbox.resume", "snapshot.create", "snapshot.delete", "snapshot.list", "snapshot.restore"]);
     for (const item of parsed) expect(getProviderCommand("alicloud-express", item.id)).toEqual(item);
-    expect(listProviderCommands("alicloud-express")).toHaveLength(32);
+    const all = listProviderCommands("alicloud-express");
+    expect(new Set(all.map((item) => item.id)).size).toBe(all.length);
     expect(network).not.toHaveBeenCalled();
   });
 
-  it("uses API-key auth, never substituting management AK/SK", () => {
-    expect(() => buildConditionalCommandRunner(new LayeredConfig({ access_key_id: "placeholder-ak", access_key_secret: "placeholder-sk" }))).toThrow(/API key/);
+  it("resolves an already prepared key lazily without authorizing credential creation", async () => {
+    const resolve = vi.spyOn(managedKey, "resolveSandboxApiKey").mockResolvedValue("placeholder-prepared-key");
+    const call = vi.spyOn(HttpClient.prototype, "platformRequest").mockResolvedValue(new Response(204));
+    const runner = buildConditionalCommandRunner(new LayeredConfig({ access_key_id: "placeholder-ak", access_key_secret: "placeholder-sk" }));
+    expect(resolve).not.toHaveBeenCalled();
+    await runner.run("sandbox.pause", { sandbox_id: "source" }, signal());
+    expect(resolve).toHaveBeenCalledOnce();
+    expect(call).toHaveBeenCalledOnce();
+    await runner.close?.();
   });
 
   it("pauses with memory and resumes via POST connect, without a guessed resume route", async () => {

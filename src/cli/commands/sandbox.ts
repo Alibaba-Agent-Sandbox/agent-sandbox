@@ -26,7 +26,7 @@ import { defaultGeneratedDir } from "../../agent/codegen.js";
 import { dumpYaml, isMapping, loadYaml } from "../../utils/yaml_io.js";
 import { pyPathStr } from "../../agent/_pycompat.js";
 import { shlexQuote } from "../../api/_shlex.js";
-import { Sandbox } from "../../api/sandbox.js";
+import { Sandbox, _selectProvider } from "../../api/sandbox.js";
 import { type Option, Context, argument, command, group, option } from "../kit.js";
 import { Choice, FLOAT, INT, Path } from "../types.js";
 import { Abort, CliError, EOFError, KeyboardInterrupt, SystemExit, UsageError, sysExit } from "../errors.js";
@@ -52,6 +52,8 @@ import { regionOption } from "../region.js";
 import { printedId, providerView, scopedFlagOptions } from "../provider_view.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
+import { runProviderCommand } from "../../providers/commands.js";
+import { readTrafficTokenFile, withTrafficTokenOutput } from "../traffic_token_file.js";
 import { ValueError } from "../../models/value_error.js";
 import type { BuildMode } from "../../template/build_plan.js";
 import { withTemplateEnvironment, applicationToken } from "../template_environment.js";
@@ -330,7 +332,7 @@ const COMMAND_LIST_HELP = `List the named commands registered in a sandbox.
 
 const SANDBOX_HELP = `Manage sandboxes: lifecycle, files, processes, named commands, system details.
 
-    create, list, info, kill, exec, connect, upload and download are also
+    create, list, info, kill, pause, resume, exec, connect, upload and download are also
     available as top-level shortcuts (abx create, abx list, ...), and
     'sandbox command run' as 'abx run'.
 
@@ -338,6 +340,7 @@ const SANDBOX_HELP = `Manage sandboxes: lifecycle, files, processes, named comma
     Examples:
       abx sandbox create --template base
       abx sandbox list --status running
+      abx sandbox timeout alicloud-express:abc123 600
       abx sandbox system info abc123
 
     \b
@@ -1039,6 +1042,8 @@ export const create = command("create", {
     option(["--env", "-e"], { multiple: true, help: "Environment variable for the sandbox, format KEY=VALUE (repeatable)" }),
     option(["--metadata", "-m"], { multiple: true, help: "Metadata key-value pair, format KEY=VALUE (repeatable)" }),
     option(["--volume-mount"], { multiple: true, metavar: "PATH=NAME", help: "Mount an existing same-Team Volume by name at an absolute Unix path (Express only; repeatable)" }),
+    option(["--network-file"], { type: new Path({ exists: true }), default: null, metavar: "FILE", help: "Native Express create: read snake_case network configuration from a private JSON file. Does not change standard create semantics." }),
+    option(["--traffic-token-output"], { default: null, metavar: "FILE", help: "Explicitly save the created public-port gateway token to a new private 0600 file; never print it." }),
     option(["--yes", "-y"], {
       is_flag: true,
       default: false,
@@ -1074,6 +1079,17 @@ export const create = command("create", {
     const env: string[] = params["env"];
     const metadata: string[] = params["metadata"];
     const volumeMountPairs: string[] = params["volume_mount"];
+    const networkFile: string | null = params["network_file"];
+    const trafficTokenOutput: string | null = params["traffic_token_output"];
+    let saveTrafficToken: (token: string | null) => void = () => undefined;
+    const saveCreatedTrafficToken = async (sandbox: Sandbox): Promise<void> => {
+      try { saveTrafficToken(sandbox.traffic_access_token); }
+      catch (error) {
+        try { await sandbox.kill(); }
+        catch { throw new CliError(`Traffic token output failed for owned sandbox ${sandbox.id}, and sandbox cleanup failed. Inspect that instance before retrying.`); }
+        throw error;
+      }
+    };
     const yes: boolean = params["yes"];
     const model: string | null = params["model"];
     const outputDir: string | null = params["output_dir"];
@@ -1094,6 +1110,18 @@ export const create = command("create", {
     if (mountEntries.length) {
       const selected = providerView().effective;
       if (!getProvider(selected).createOptions.has("volume_mounts")) throw new ProviderFeatureNotSupportedError(selected, "volume_mounts");
+    }
+    let network: Record<string, unknown> | null = null;
+    if (networkFile !== null) {
+      const selected = providerView().effective;
+      if (!getProvider(selected).createOptions.has("network")) throw new ProviderFeatureNotSupportedError(selected, "network");
+      try {
+        if (!fs.statSync(networkFile).isFile() || fs.statSync(networkFile).size > 65536) throw new Error();
+        const parsed: unknown = JSON.parse(fs.readFileSync(networkFile, "utf8"));
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error();
+        network = parsed as Record<string, unknown>;
+        getProvider(selected).validateCreateOptions({ network, secure: true });
+      } catch { throw new UsageError("Invalid --network-file: use a JSON object containing declared snake_case network fields (maximum 64 KiB)."); }
     }
 
     if (verboseFlag) enableVerbose(ctx);
@@ -1134,9 +1162,10 @@ export const create = command("create", {
       const launched = await _generateAndLaunchTemplate(ctx, description, {
         yes, provider_options: params, verbose: verboseFlag, output_dir: outputDir, model,
         creationOptions: {
-          envs, metadata: meta, volume_mounts: volumeMounts,
+          envs, metadata: meta, volume_mounts: volumeMounts, network,
           request_timeout: requestTimeout ?? Math.max(loadLayeredConfig().http_timeout, _CREATE_REQUEST_TIMEOUT_FLOOR),
           afterCreate: async (sandbox) => {
+            await saveCreatedTrafficToken(sandbox);
             if (!upload) return;
             if (isFile(upload)) await sandbox.files.write(`/home/user/${nodePath.basename(upload)}`, fs.readFileSync(upload));
             else for (const relative of rglobAll(upload)) {
@@ -1163,6 +1192,7 @@ export const create = command("create", {
     if (Object.keys(envs).length > 0) createKwargs["envs"] = envs;
     if (Object.keys(meta).length > 0) createKwargs["metadata"] = meta;
     if (mountEntries.length) createKwargs["volume_mounts"] = volumeMounts;
+    if (network !== null) createKwargs["network"] = network;
 
     // HTTP timeout for the create call: sandbox creation (cold start) is known to be slow, so we always enforce a floor of
     // 120s. If the user configured a *larger* http_timeout (e.g. 300s) that is respected; if they configured a *smaller*
@@ -1178,6 +1208,7 @@ export const create = command("create", {
 
     const runCreate = async (note: ((text: string) => void) | null): Promise<Sandbox> => {
       const sbx = await Sandbox.create(createKwargs);
+      await saveCreatedTrafficToken(sbx);
       if (upload) {
         const remoteBase = "/home/user";
         if (isFile(upload)) {
@@ -1227,9 +1258,12 @@ export const create = command("create", {
     const selectedProvider = getProvider(providerView().effective);
     selectedProvider.require("sandbox.lifecycle");
     if (description) selectedProvider.require("templates.build");
-    return withGuidedConfiguration(ctx, { operation: "Generate, deploy and create sandbox", provider: selectedProvider.id, yes,
+    return withTrafficTokenOutput(trafficTokenOutput, async (save) => {
+      saveTrafficToken = save;
+      return withGuidedConfiguration(ctx, { operation: "Generate, deploy and create sandbox", provider: selectedProvider.id, yes,
       requirements: selectedProvider.id === "alicloud-express" ? ["sandbox_api_key", ...(description ? ["access_key_id", "access_key_secret"] : [])] : undefined,
       validateProvider: selectedProvider.id !== "alicloud-express", overrides: { region: params["region"] } }, execute);
+    });
   }),
 });
 
@@ -1784,6 +1818,7 @@ export const run_cmd = command("run", {
     option(["--arg", "-a", "args"], { multiple: true, help: "Command argument, format KEY=VALUE (repeatable)" }),
     option(["--json-args"], { default: null, help: 'Command arguments as a JSON object, e.g. \'{"x": 1}\' (for typed values)' }),
     _serverPortOption(),
+    option(["--traffic-token-file"], { default: null, metavar: "FILE", help: "Read the separate public-port gateway token from a private 0600 file; does not renew or resume the sandbox." }),
   ],
   callback: handleErrors(async (ctx: Context, params) => {
     const sandboxId: string = params["sandbox_id"];
@@ -1793,7 +1828,7 @@ export const run_cmd = command("run", {
     const fmt = getFormatter(ctx);
     const kwargs = _commandArguments(params["args"], params["json_args"], fmt);
 
-    const sandbox = await Sandbox.connect(sandboxId);
+    const sandbox = params["traffic_token_file"] ? await Sandbox.connect(sandboxId, { traffic_access_token: readTrafficTokenFile(params["traffic_token_file"]) }) : await Sandbox.connect(sandboxId);
     let result: CommandResult;
     try {
       result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: applicationToken() });
@@ -1821,11 +1856,11 @@ const _commandSignature = (args: Array<Record<string, unknown>>): string =>
 
 export const command_list = command("list", {
   help: COMMAND_LIST_HELP,
-  params: [argument(["sandbox_id"]), _serverPortOption()],
+  params: [argument(["sandbox_id"]), _serverPortOption(), option(["--traffic-token-file"], { default: null, metavar: "FILE", help: "Read the separate gateway token from a private 0600 file without renewing the sandbox." })],
   callback: handleErrors(async (ctx: Context, params) => {
     const sandboxId: string = params["sandbox_id"];
     const fmt = getFormatter(ctx);
-    const sandbox = await Sandbox.connect(sandboxId);
+    const sandbox = params["traffic_token_file"] ? await Sandbox.connect(sandboxId, { traffic_access_token: readTrafficTokenFile(params["traffic_token_file"]) }) : await Sandbox.connect(sandboxId);
     const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: applicationToken() });
 
     if (fmt.use_json) {
@@ -1857,6 +1892,25 @@ command_group.addCommand(run_cmd, "run");
 // sandbox group (abx sandbox list/info/kill/...)
 // ---------------------------------------------------------------------------------------------------------------------
 
+/** Run a declared control-plane mutation without attaching to the sandbox's data plane. */
+function lifecycleCommand(verb: "pause" | "resume" | "timeout") {
+  return command(verb, {
+    help: verb === "timeout" ? "Set an existing sandbox lifetime in seconds without connecting or resuming."
+      : `${verb === "pause" ? "Pause" : "Resume"} an existing sandbox using the selected provider's declared operation.`,
+    params: [argument(["sandbox_id"]), ...(verb === "timeout" ? [argument(["seconds"], { type: INT })] : [])],
+    callback: handleErrors(async (ctx: Context, params) => {
+      const [provider, id] = _selectProvider(null, params["sandbox_id"]);
+      const input = { sandbox_id: id, ...(verb === "timeout" ? { timeout: params["seconds"] } : {}) };
+      const result = await runProviderCommand(provider.id, `sandbox.${verb}`, input);
+      getOutput(ctx).data(result);
+    }),
+  });
+}
+
+export const pause = lifecycleCommand("pause");
+export const resume = lifecycleCommand("resume");
+export const timeout = lifecycleCommand("timeout");
+
 export const sandbox = group("sandbox", {
   help: SANDBOX_HELP,
   callback: (ctx: Context) => {
@@ -1868,6 +1922,9 @@ sandbox.addCommand(create);
 sandbox.addCommand(list_cmd, "list");
 sandbox.addCommand(info);
 sandbox.addCommand(kill);
+sandbox.addCommand(pause);
+sandbox.addCommand(resume);
+sandbox.addCommand(timeout);
 sandbox.addCommand(exec_cmd, "exec");
 sandbox.addCommand(connect);
 sandbox.addCommand(upload);

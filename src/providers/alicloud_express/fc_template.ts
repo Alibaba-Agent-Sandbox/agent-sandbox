@@ -1,7 +1,7 @@
 /**
- * Official Alibaba Cloud FCSandbox CreateTemplate API adapter (port of `agent_sandbox/api/fc_template.py`).
+ * Official Alibaba Cloud Sandbox CreateTemplate API adapter (port of `agent_sandbox/api/fc_template.py`).
  *
- * This module wraps the `@alicloud/fcsandbox20260509` SDK (Node counterpart of the Python
+ * This module wraps the `@alicloud/sandbox20260820` SDK (Node counterpart of the Python
  * `alibabacloud-fcsandbox20260509` wheel) to provide a clean, SDK-independent interface for creating sandbox templates
  * via the official Alibaba Cloud API.
  *
@@ -16,8 +16,6 @@ import { performance } from "node:perf_hooks";
 
 import { NetworkError, SandboxError, TemplateBuildError, TemplateBuildTimeoutError, TemplateNotFoundError } from "../../models/errors.js";
 import { getLogger } from "../../utils/logging.js";
-import { pyRepr } from "../../utils/_pyformat.js";
-import { pyExcStr } from "../../utils/_pyerrors.js";
 
 const logger = getLogger("api.fc_template");
 
@@ -26,8 +24,8 @@ const logger = getLogger("api.fc_template");
 // ---------------------------------------------------------------------------
 
 export const _SDK_INSTALL_HINT =
-  "Official Alibaba Cloud FCSandbox SDK is not installed.\n" +
-  "Install with: npm install @alicloud/fcsandbox20260509 @alicloud/openapi-core";
+  "Official Alibaba Cloud Sandbox SDK is not installed.\n" +
+  "Install with: npm install @alicloud/sandbox20260820 @alicloud/openapi-core";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** The slice of the Alibaba Cloud SDK this module needs (swappable in tests through `_sdkLoader`). */
@@ -45,13 +43,13 @@ const nodeRequire = createRequire(import.meta.url);
 function defaultLoadSdk(): FcSdk {
   // Keep SDK loading lazy while exposing literal dependencies to the SEA bundler.
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
-  const mod = typeof require === "function" ? require("@alicloud/fcsandbox20260509") : nodeRequire("@alicloud/fcsandbox20260509");
+  const mod = typeof require === "function" ? require("@alicloud/sandbox20260820") : nodeRequire("@alicloud/sandbox20260820");
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal require is necessary for lazy SEA bundling.
   const core = typeof require === "function" ? require("@alicloud/openapi-core") : nodeRequire("@alicloud/openapi-core");
   const Client = mod.default ?? mod.Client;
   const Config = core.$OpenApiUtil?.Config ?? core.OpenApiUtil?.Config;
   if (typeof Client !== "function" || typeof Config !== "function") {
-    throw new Error("unexpected @alicloud/fcsandbox20260509 module shape");
+    throw new Error("unexpected @alicloud/sandbox20260820 module shape");
   }
   return { models: mod, Client, Config };
 }
@@ -73,24 +71,20 @@ export function _requireSdk(): FcSdk {
     return _sdkLoader.load();
   } catch {
     throw new SandboxError(_SDK_INSTALL_HINT, {
-      suggestion: "npm install @alicloud/fcsandbox20260509 @alicloud/openapi-core",
+      suggestion: "npm install @alicloud/sandbox20260820 @alicloud/openapi-core",
     });
   }
 }
 
-/** Python `str(exc)` for an Alibaba Cloud SDK exception (`Error: {code} {message} Response: {data}`). */
+/** Keep cloud diagnostics actionable without returning raw responses or echoed credentials. */
 function sdkErrStr(exc: unknown): string {
-  if (exc !== null && typeof exc === "object" && ("code" in exc || "data" in exc) && exc instanceof Error) {
-    const e = exc as Error & { code?: unknown; data?: unknown; statusCode?: unknown };
-    if (e.code !== undefined && e.code !== null && e.code !== "") {
-      const data = e.data && typeof e.data === "object" ? { ...(e.data as object), ...(e.statusCode !== undefined && !("statusCode" in (e.data as object)) ? { statusCode: e.statusCode } : {}) } : e.data;
-      // The JS SDK prefixes `message` with `<code>: `; the Python `TeaException.message` does not.
-      const code = String(e.code);
-      const message = e.message.startsWith(`${code}: `) ? e.message.slice(code.length + 2) : e.message;
-      return `Error: ${code} ${message} Response: ${data === undefined ? "None" : pyRepr(data)}`;
-    }
-  }
-  return pyExcStr(exc);
+  const record = exc !== null && typeof exc === "object" ? exc as Record<string, unknown> : {};
+  const raw = exc instanceof Error ? exc.message : "";
+  if (raw.includes("startCommand is only supported when updating a generation 2")) return GEN1_START_COMMAND;
+  if (raw.includes("TemplateAlreadyExists") || record.code === "TemplateAlreadyExists") return "TemplateAlreadyExists (HTTP409)";
+  const code = typeof record.code === "string" && /^[A-Za-z][A-Za-z0-9_.-]{0,79}$/.test(record.code) ? record.code : "ServiceError";
+  const status = Number(record.statusCode);
+  return `${code}${Number.isInteger(status) && status >= 100 && status <= 599 ? ` (HTTP${status})` : ""}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,14 +130,47 @@ export function _resolveTargetImage(source: string, target: string | null | unde
 // Public helpers
 // ---------------------------------------------------------------------------
 
-function makeClient(sdk: FcSdk, access_key_id: string, access_key_secret: string, region: string, endpoint?: string | null): any {
+function makeClient(sdk: FcSdk, access_key_id: string, access_key_secret: string, region: string, endpoint?: string | null, security_token?: string | null, timeout = 60): any {
   const config = new sdk.Config({
     accessKeyId: access_key_id,
     accessKeySecret: access_key_secret,
+    securityToken: security_token || undefined,
+    readTimeout: Math.ceil(timeout * 1000), connectTimeout: Math.ceil(timeout * 1000), retryOptions: { retryable: false },
     regionId: region,
-    endpoint: endpoint || `fcsandbox.${region}.aliyuncs.com`,
+    endpoint: endpoint || `sandbox.${region}.aliyuncs.com`,
   });
   return new sdk.Client(config);
+}
+
+/** Shared generated-model boundary for existing workflows and native template commands. */
+export function buildNativeTemplateRequest(sdk: FcSdk, action: "create" | "update", body: Record<string, unknown>, teamId?: string): any {
+  const input = new sdk.models[action === "create" ? "CreateTemplateInput" : "PublicUpdateTemplateInput"](body);
+  const Model = sdk.models[action === "create" ? "CreateTemplateRequest" : "UpdateTemplateRequest"];
+  return new Model({ body: input, ...(teamId ? { teamID: teamId } : {}) });
+}
+
+/** Execute a declared native template action once; callers own validation and safe projection. */
+export async function callOfficialTemplateApi(
+  action: "create" | "get" | "list" | "update" | "delete",
+  input: Record<string, unknown>,
+  auth: { access_key_id: string; access_key_secret: string; security_token?: string | null; region: string; http_timeout: number },
+): Promise<Record<string, unknown>> {
+  const sdk = _requireSdk();
+  const client = makeClient(sdk, auth.access_key_id, auth.access_key_secret, auth.region, undefined, auth.security_token, auth.http_timeout);
+  const milliseconds = Math.ceil(auth.http_timeout * 1000);
+  const runtime = { autoretry: false, maxAttempts: 1, readTimeout: milliseconds, connectTimeout: milliseconds };
+  const { templateID, teamID, ...body } = input;
+  let response: any;
+  if (action === "create") response = await client.createTemplateWithOptions(buildNativeTemplateRequest(sdk, "create", { ...body, teamID }), {}, runtime);
+  else if (action === "update") response = await client.updateTemplateWithOptions(templateID, buildNativeTemplateRequest(sdk, "update", body, String(teamID)), {}, runtime);
+  else if (action === "list") response = await client.listTemplatesWithOptions(new sdk.models["ListTemplatesRequest"](input), {}, runtime);
+  else {
+    const name = action === "get" ? "GetTemplateRequest" : "DeleteTemplateRequest";
+    response = await client[`${action}TemplateWithOptions`](templateID, new sdk.models[name]({ teamID }), {}, runtime);
+  }
+  const result = response?.body;
+  if (result === null || typeof result !== "object") throw new TemplateBuildError("The native template service returned no response body; a remote mutation may have completed.");
+  return typeof result.toMap === "function" ? result.toMap() : result;
 }
 
 /**
@@ -155,10 +182,10 @@ export async function getTeamId(
   access_key_id: string,
   access_key_secret: string,
   region = "cn-hangzhou",
-  opts: { endpoint?: string | null } = {},
+  opts: { endpoint?: string | null; security_token?: string | null } = {},
 ): Promise<string> {
   const sdk = _requireSdk();
-  const client = makeClient(sdk, access_key_id, access_key_secret, region, opts.endpoint);
+  const client = makeClient(sdk, access_key_id, access_key_secret, region, opts.endpoint, opts.security_token);
 
   let resp: any;
   try {
@@ -184,6 +211,7 @@ export async function getTeamId(
 export interface GetTemplateOptions {
   access_key_id: string;
   access_key_secret: string;
+  security_token?: string | null;
   region?: string;
   endpoint?: string | null;
   team_id?: string | null;
@@ -194,10 +222,10 @@ export async function getTemplate(template_id: string, opts: GetTemplateOptions)
   const { access_key_id, access_key_secret, region = "cn-hangzhou", endpoint = null } = opts;
   let team_id = opts.team_id ?? null;
   const sdk = _requireSdk();
-  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint);
+  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint, opts.security_token);
 
   if (!team_id) {
-    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint });
+    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint, security_token: opts.security_token });
   }
 
   let resp: any;
@@ -223,12 +251,12 @@ export async function getTemplate(template_id: string, opts: GetTemplateOptions)
   return result;
 }
 
-/** Delete an Express template through the official FCSandbox API. */
+/** Delete an Express template through the official Sandbox API. */
 export async function deleteTemplate(template_id: string, opts: GetTemplateOptions): Promise<void> {
   const { access_key_id, access_key_secret, region = "cn-hangzhou", endpoint = null } = opts;
   const sdk = _requireSdk();
-  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint);
-  const team = opts.team_id || await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint });
+  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint, opts.security_token);
+  const team = opts.team_id || await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint, security_token: opts.security_token });
   try {
     await client.deleteTemplate(template_id, new sdk.models["DeleteTemplateRequest"]({ teamID: team }));
   } catch (exc) {
@@ -259,7 +287,7 @@ export async function waitForTemplateReady(
   let team_id = opts.team_id ?? null;
 
   if (!team_id) {
-    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint });
+    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint, security_token: opts.security_token });
   }
 
   const start = _seams.monotonic();
@@ -269,6 +297,7 @@ export async function waitForTemplateReady(
     const data = await _seams.getTemplate(template_id, {
       access_key_id,
       access_key_secret,
+      security_token: opts.security_token,
       region,
       endpoint,
       team_id,
@@ -296,6 +325,7 @@ export async function waitForTemplateReady(
 export interface ListOfficialTemplatesOptions {
   access_key_id: string;
   access_key_secret: string;
+  security_token?: string | null;
   region?: string;
   team_id?: string | null;
   endpoint?: string | null;
@@ -312,10 +342,10 @@ export async function listOfficialTemplates(opts: ListOfficialTemplatesOptions):
   const { access_key_id, access_key_secret, region = "cn-hangzhou", endpoint = null, max_results = 100 } = opts;
   let team_id = opts.team_id ?? null;
   const sdk = _requireSdk();
-  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint);
+  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint, opts.security_token);
 
   if (!team_id) {
-    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint });
+    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint, security_token: opts.security_token });
   }
 
   const results: Array<Record<string, any>> = [];
@@ -462,6 +492,7 @@ export interface UpdateExistingTemplateOptions {
   registry_vswitch_id: string | null;
   registry_security_group_id: string | null;
   target_image?: string | null;
+  steps?: Array<{ type: string; args: string[] }> | null;
 }
 
 /** Update an existing template by name (fallback for 409). */
@@ -518,10 +549,9 @@ export async function _updateExistingTemplate(opts: UpdateExistingTemplateOption
     });
   }
 
-  // Note: generation and osType cannot be modified via UpdateTemplate; only image, start_command, ready_command,
-  // registry_* are allowed.
   const sandbox_config = new m["PublicUpdateTemplateSandboxConfig"]({
     image,
+    steps: opts.steps === undefined || opts.steps === null ? undefined : opts.steps.map(step => new m["PublicUpdateTemplateStep"]({ type: step.type, args: step.args })),
     registryType: effective_registry_type ?? undefined,
     acrInstanceId: acr_instance_id ?? undefined,
     startCommand: start_command ?? undefined,
@@ -557,7 +587,7 @@ export async function _updateExistingTemplate(opts: UpdateExistingTemplateOption
     runtimeConfig: runtime_config,
     buildConfig: build_config ?? undefined,
   });
-  const request = new m["UpdateTemplateRequest"]({ body: update_input, teamID: team_id });
+  const request = buildNativeTemplateRequest(sdk, "update", update_input, team_id);
 
   logger.info("Calling UpdateTemplate: id=%s, name=%s, image=%s", template_id, name, image);
 
@@ -598,6 +628,7 @@ export interface CreateOfficialTemplateOptions {
   image: string;
   access_key_id: string;
   access_key_secret: string;
+  security_token?: string | null;
   region?: string;
   team_id?: string | null;
   endpoint?: string | null;
@@ -629,7 +660,7 @@ export interface CreateOfficialTemplateOptions {
 /**
  * Create a sandbox template via the official Alibaba Cloud CreateTemplate API.
  *
- * Lazily loads the `@alicloud/fcsandbox20260509` SDK and raises a friendly error if it is not installed.
+ * Lazily loads the `@alicloud/sandbox20260820` SDK and raises a friendly error if it is not installed.
  *
  * @returns Dict with keys: `templateID`, `requestId`, `code`, `message`, `statusCode`.
  * @throws SandboxError if the SDK is missing; TemplateBuildError if the API call fails.
@@ -668,7 +699,7 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
   // Auto-resolve team_id if not provided
   if (!team_id) {
     logger.info("No team_id provided, auto-resolving via ListTeams...");
-    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint });
+    team_id = await _seams.getTeamId(access_key_id, access_key_secret, region, { endpoint, security_token: opts.security_token });
   }
 
   // Auto-detect registry_type
@@ -766,9 +797,9 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
     runtimeConfig: runtime_config,
     buildConfig: build_config ?? undefined,
   });
-  const request = new m["CreateTemplateRequest"]({ body: create_input });
+  const request = buildNativeTemplateRequest(sdk, "create", create_input);
 
-  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint);
+  const client = makeClient(sdk, access_key_id, access_key_secret, region, endpoint, opts.security_token);
 
   logger.info(
     "Calling CreateTemplate: name=%s, image=%s, team=%s, region=%s, envdInject=%s, generation=%d",
@@ -832,6 +863,7 @@ export async function createOfficialTemplate(opts: CreateOfficialTemplateOptions
           registry_vswitch_id,
           registry_security_group_id,
           target_image: resolved_target,
+          steps,
         });
       } catch (updateErr) {
         const updateText = updateErr instanceof Error ? updateErr.message : String(updateErr);
@@ -994,6 +1026,6 @@ export function buildCreateTemplateRequestMap(opts: BuildCreateTemplateRequestMa
     runtimeConfig: runtime_config,
     buildConfig: build_config ?? undefined,
   });
-  const request = new m["CreateTemplateRequest"]({ body: create_input });
+  const request = buildNativeTemplateRequest(sdk, "create", create_input);
   return { ...request.toMap() };
 }
