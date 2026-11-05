@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Add explicit managed application build, plan, apply, status, reconcile, retire and destroy commands, private generated authentication, revision-pinned workers and a stable FC Gateway alias. / 新增托管应用构建、计划、部署、状态、核对、退役与销毁命令，支持本机私有生成认证、固定 revision Worker 和稳定 FC Gateway 别名。
+
 ### Changed
 
 - Reorganize the English and Chinese repository READMEs around installation, first use and task-oriented documentation; keep migration and detailed reference material in their guides.

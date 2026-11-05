@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Managed Agents application](notes/proposed/feature/2026-11-05-managed-agents-application.md) · [verification](evidence/verify/2026-11-05-managed-agents-application.md).
+
 - [Provider runtime onboarding](notes/proposed/process/2026-11-05-provider-runtime-onboarding.md) · [verification](evidence/verify/2026-11-05-provider-runtime-onboarding.md).
 
 - [Defensive complexity cleanup](notes/implemented/architecture/2026-10-29-defensive-complexity-cleanup.md) · [verification](evidence/verify/2026-10-29-defensive-complexity-cleanup.md).

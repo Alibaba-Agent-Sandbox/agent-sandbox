@@ -36,6 +36,7 @@ const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProper
 
 /** Command modules the root group loads lazily. A fixed map so the binary bundler includes every one. */
 const COMMAND_MODULES: Record<string, () => Promise<Record<string, unknown>>> = {
+  "commands/app": () => import("./commands/app.js"),
   "commands/sandbox": () => import("./commands/sandbox.js"),
   "commands/config_cmd": () => import("./commands/config_cmd.js"),
   "commands/mcp": () => import("./commands/mcp.js"),

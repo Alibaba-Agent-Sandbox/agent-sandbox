@@ -233,3 +233,10 @@ Actions 工作流通过加密的 `EXPRESS_ACCEPTANCE_*` 仓库 Secrets 注入配
 ## MCP 生命周期的规格期望
 
 构建后运行 `node e2e/mcp-lifecycle.mjs`，通过真实 CLI STDIO server 检查资源归属、独立元数据查询、存活时间、文件和命令。用 `ABX_E2E_TEMPLATE` 选择已准备好的模板，并用 `ABX_E2E_CPU`、`ABX_E2E_MEMORY` 指定实际规格期望值（默认为 `base`、2 CPU、2048 MB）。创建参数和随后独立查询的规格必须都符合期望。执行和清理保留 Provider 限定 ID；元数据和列表比较使用解析后的原始 ID。
+## 托管应用组件
+
+执行 `npm run build` 后，配置极速版部署凭据与 ACR 命名空间，再运行 `node e2e/managed-components.mjs all`。
+`ABX_APP_E2E_ACCESS_REF` 可选择明确的 Devs 配置名，默认 `abx` 使用已配置的 AccessKey。
+此检查创建一个私有 FC 测试函数和一个使用随机 tag 的极小 Server 镜像，运行官方组件 deploy/info/remove，
+独立确认云端资源与本机 tag 消失，共享 ACR 仓库保留。结果未知时保留私有恢复目录，不猜测资源归属。
+组件检查不能替代完整 Gateway/PostgreSQL/Sandbox/模型联合部署验收。

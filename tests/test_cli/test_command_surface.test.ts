@@ -16,7 +16,7 @@ import { CliRunner } from "../helpers/cliRunner.js";
 
 const runner = (): CliRunner => new CliRunner();
 
-const GROUPS = ["sandbox", "template", "config", "mcp", "provider"];
+const GROUPS = ["app", "sandbox", "template", "config", "mcp", "provider"];
 const SHORTCUT_NAMES = ["create", "list", "info", "kill", "exec", "connect", "upload", "download", "run", "deploy"];
 const SHORTCUT_TARGETS: Record<string, string> = {
   create: "sandbox create",

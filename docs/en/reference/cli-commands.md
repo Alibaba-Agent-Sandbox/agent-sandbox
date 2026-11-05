@@ -8,9 +8,9 @@ removed through configuration, and there is no per-user alias table.
 
 <!-- fixed-set -->
 
-Top-level commands, exactly these: `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
+Top-level commands, exactly these: `abx app`, `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
 
-`abx --help` lists two sections: **Command groups** (`sandbox`, `template`, `config`, `mcp`, `provider`)
+`abx --help` lists two sections: **Command groups** (`app`, `sandbox`, `template`, `config`, `mcp`, `provider`)
 and **Sandbox shortcuts** (the ten shortcuts, each showing its purpose followed by an `(alias: abx …)` note).
 A contextual Provider operation summary follows those sections. Browse more templates in the
 [Registry](https://registry.agent-sandbox.cn/templates/), or use `abx template search KEYWORD`.
@@ -68,6 +68,7 @@ There is no top-level `abx init` or `abx install`: use `abx template scaffold` a
 
 ```
 abx
+├── app          build | clean-build | plan | apply | status | reconcile | retire | destroy
 ├── sandbox
 │   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
 │   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID

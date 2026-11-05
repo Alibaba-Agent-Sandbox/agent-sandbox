@@ -28,6 +28,7 @@ The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers
 | [Authoring Providers](guide/authoring-providers.md) | Write a `node` or EPP/1 `exec` provider plugin, including `[template]` and install-from-git |
 | [Authentication](guide/authentication.md) | API Key / AK-SK authentication and `abx config` |
 | [CLI Tutorial](guide/cli-tutorial.md) | CLI quick start |
+| [Managed Applications](guide/managed-applications.md) | One stable Gateway, explicit deployment and session-owned Sandbox compute |
 | [Using Templates](guide/using-templates.md) | Official and community templates |
 | [Authoring Templates](guide/authoring-templates.md) | Custom templates, including `abx template scaffold --adopt` for an existing project |
 | [Deploy & Build](guide/deploy-and-build.md) | Template lifecycle (`template init` / `--adopt` → `deploy` → `create`) |

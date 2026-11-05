@@ -58,6 +58,9 @@ abx kill <sandbox-id>
 
 ## Launch an application template
 
+To deploy an Agents API with one stable Gateway and a separate Sandbox per Session, use the
+[managed application guide](docs/en/guide/managed-applications.md).
+
 Templates package tools such as browser automation, coding agents and web services. Choose one from the [catalog](https://registry.agent-sandbox.cn/en/templates/) and follow its setup instructions:
 
 ```bash

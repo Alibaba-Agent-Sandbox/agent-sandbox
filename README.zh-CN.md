@@ -58,6 +58,9 @@ abx kill <sandbox-id>
 
 ## 启动应用模板
 
+如需部署统一 Gateway 地址、每个 Session 独立使用 Sandbox 的 Agents API，请参阅
+[托管应用指南](docs/zh/guide/managed-applications.md)。
+
 模板封装浏览器自动化、编码 Agent、Web 服务等工具。从[模板目录](https://registry.agent-sandbox.cn/templates/)选择模板，按其说明准备配置：
 
 ```bash
