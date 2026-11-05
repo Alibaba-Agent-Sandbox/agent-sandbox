@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Documentation
 
+- Explain standalone and npm provider runtime requirements, the Python engine call path, quick installation and performance trade-offs in both provider guides. / 双语提供方指南补齐独立二进制与 npm 环境要求、Python 引擎调用路径、快捷安装和性能取舍。
+
 - Point installation examples to CLI 0.5.8 and keep publishing/recovery instructions in engineering documentation. / 安装示例更新为 CLI 0.5.8，发布与恢复说明移入工程文档。
 
 ## [0.5.8] - 2026-10-28

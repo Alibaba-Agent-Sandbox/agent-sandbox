@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Provider runtime onboarding](notes/proposed/process/2026-11-05-provider-runtime-onboarding.md) · [verification](evidence/verify/2026-11-05-provider-runtime-onboarding.md).
+
 - [Defensive complexity cleanup](notes/implemented/architecture/2026-10-29-defensive-complexity-cleanup.md) · [verification](evidence/verify/2026-10-29-defensive-complexity-cleanup.md).
 
 - [Precise onboarding review](notes/proposed/feature/2026-10-28-precise-onboarding-review.md) · [verification](evidence/verify/2026-10-28-precise-onboarding-review.md).

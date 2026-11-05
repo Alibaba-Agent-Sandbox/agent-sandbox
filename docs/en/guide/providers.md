@@ -8,6 +8,47 @@ A **provider** is a sandbox backend. `abx` ships one built-in provider and can d
 
 Without an explicit selection, the CLI uses `alicloud-express`. Use `abx --version` to check the installed CLI; The Python SDK follows a separate release line from the CLI, with matching client and server package versions. See [installation](binary-installation.md) for published CLI artifacts.
 
+## Runtime requirements and quick installation
+
+For Node providers such as OpenSandbox, choose one CLI installation method:
+
+| Installation | Client requirements |
+|---|---|
+| Standalone `abx` binary | Includes Node.js; no separate Node.js or npm installation |
+| npm package | Node.js 20+ and npm; use Node.js 22+ for providers that use the global WebSocket API for PTY |
+| Python SDK with a Node provider | Python 3.10+ plus either CLI installation above; installing the Python package alone does not install the engine |
+
+On macOS and Linux, the shortest CLI installation is:
+
+```bash
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
+abx --version
+```
+
+The installer verifies the binary's SHA-256. Follow its PATH instructions if `abx` is not found. For Windows x64, manual installation and supported platforms, see [binary installation](binary-installation.md). If Node.js is already installed, `npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org` is an alternative; both methods provide the same provider engine.
+
+Then install OpenSandbox interactively from its source repository:
+
+```bash
+abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
+abx provider doctor opensandbox
+```
+
+This source installation needs Git. Python users can instead use `python -m agent_sandbox.providers install registry:opensandbox --yes` after installing the SDK and `abx`; the Python registry installer downloads a verified archive and does not require Git. See the [Python provider quick start](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/providers.md) for the complete Python installation and usage. Install a provider once and reuse it; `--yes` accepts its installation permissions and does not disable verification.
+
+An OpenSandbox service must already be running and reachable. Its default address is `http://127.0.0.1:8080`, so no environment variable is needed for that address. Set `ABX_OPENSANDBOX_BASE_URL` only for another address. If the service requires authentication, obtain its key from the service administrator and configure `ABX_OPENSANDBOX_API_KEY`; it is separate from an Express Sandbox API Key and a template application's `ABX_SERVER_TOKEN`. Connecting to an existing remote service does not require Docker on the client; running the service locally or building source images has its own Docker requirements.
+
+### Python calls and performance
+
+```text
+CLI               -> Node provider -> backend
+Python SDK        -> local abx engine -> Node provider -> backend
+```
+
+The Python SDK starts the engine on demand and reuses it. It needs an available `abx` executable, either on PATH or selected with `ABX_BIN`; it does not start a fresh Node process for every operation. A standalone binary supplies the Node runtime inside that executable. This requirement applies to Node providers, not every Python provider implementation.
+
+Compared with a native Python adapter calling the same backend directly, the engine adds local HTTP communication, encoding and forwarding, an extra process's memory, and potentially additional data copies for large responses or files. Engine startup affects the first use when no healthy engine is running. High-frequency short calls can be more sensitive to this overhead than long backend operations. There is no fixed latency or percentage guarantee: measure cold start, warm latency, tail latency and file throughput with the same backend, payload and concurrency. [The SDK provider guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/providers.md) explains this trade-off in more detail. Using a bundled runtime simplifies installation; it does not remove this forwarding step.
+
 ---
 
 ## Provider boundaries and unequal capabilities
@@ -146,7 +187,7 @@ The Python SDK reaches these plugins through the local engine, `abx provider eng
 | `cubesandbox` | `node` | [CubeSandbox provider](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/cubesandbox) |
 | `e2b` | `node` | [E2B provider](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/e2b) |
 
-OpenSandbox talks to a local server. Set `ABX_OPENSANDBOX_BASE_URL` (default `http://127.0.0.1:8080`) and, when the server requires a key, `ABX_OPENSANDBOX_API_KEY`. The capability table on each page is the one to follow, including calls that return `E8004`.
+OpenSandbox talks to your configured local or remote service. Keep the default `http://127.0.0.1:8080` or set `ABX_OPENSANDBOX_BASE_URL` for another address; configure `ABX_OPENSANDBOX_API_KEY` only when the service requires a key. The capability table on each page is the one to follow, including calls that return `E8004`.
 
 ---
 
