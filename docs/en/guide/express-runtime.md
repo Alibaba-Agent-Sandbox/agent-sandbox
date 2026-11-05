@@ -2,6 +2,8 @@
 
 Express runtime operations use the selected Sandbox API key and regional API URL. They are separate from Team, Key and Volume metadata management, which uses Alibaba Cloud credentials. If you use an already prepared AK/SK-managed Sandbox Key, runtime operations reuse it; creating or renewing that credential still requires its own confirmation.
 
+An explicit Sandbox API key is sufficient for the runtime operations below; you do not need an Alibaba Cloud AccessKey pair for them. Confirming a runtime mutation with `--yes` does not authorize managed-key creation or renewal.
+
 Use a CLI build whose `abx provider command list alicloud-express` includes `sandbox.mounts.append`, `sandbox.network.update` and `sandbox.timeout`. The presence of an operation does not enable an account allowlist or supply storage clients, roles or network resources.
 
 ## Create with network settings
@@ -91,7 +93,7 @@ Direct configuration is supplied under `inline_volume_mounts`. Every storage gro
 | `agentic_bucket` | `agentic_bucket`, `bucket_name`, `endpoint`, `mount_dir`; optional `bucket_path`, `read_only` | None |
 | `juice_fs` | `volume_name`, `mount_dir`, `token`; optional `remote_dir`, `args` | Optional `envs`, including `BASE_URL` when the sandbox has no JuiceFS service address |
 
-The local mount directories must be distinct normalized absolute Unix paths outside system and hidden directories. Submitted directories cannot overlap. Each inline storage group accepts at most five points; the service also counts existing mounts. JuiceFS `args` cannot override the platform-managed `--token` or `--subdir` options.
+The local mount directories must be distinct normalized absolute Unix paths outside system and hidden directories. Submitted directories cannot overlap, including across named and inline mounts: `/mnt/data` and `/mnt/data/log` conflict; `/mnt/data` and `/mnt/data-temp` are separate directories. Each inline storage group accepts at most five points; the service also counts existing mounts. JuiceFS `args` cannot override the platform-managed `--token` or `--subdir` options.
 
 Appending retains existing mounts and the sandbox's current role/VPC settings. The required storage clients, access policy, roles and network must already be ready. It does not unmount, replace or provision underlying storage. A successful acknowledgement is not proof of data access: independently read an expected file, or write/read/delete an owned test file. The official [append mount guide](https://help.aliyun.com/zh/agent-sandbox/append-mount-volume) describes service prerequisites and limits.
 

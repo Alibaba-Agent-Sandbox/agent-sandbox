@@ -2,6 +2,8 @@
 
 极速版运行操作使用所选 Sandbox API Key 和对应地域的 API 地址。它们与使用阿里云凭据的 Team、Key、Volume 元数据管理分开。采用已准备的 AK/SK 管理 Key 时，运行操作会复用该 Key；创建或续期凭据仍需单独确认。
 
+以下运行操作仅需显式配置的 Sandbox API Key，无须同时提供阿里云 AccessKey 对。使用 `--yes` 确认运行变更不代表授权创建或续期托管 Key。
+
 请使用 `abx provider command list alicloud-express` 能列出 `sandbox.mounts.append`、`sandbox.network.update` 和 `sandbox.timeout` 的 CLI 构建。操作出现在目录中，不代表账号白名单已开通，也不会自动准备存储客户端、角色或网络资源。
 
 ## 创建时配置网络
@@ -91,7 +93,7 @@ abx --json provider command info alicloud-express sandbox.mounts.append
 | `agentic_bucket` | `agentic_bucket`、`bucket_name`、`endpoint`、`mount_dir`；可选 `bucket_path`、`read_only` | 无 |
 | `juice_fs` | `volume_name`、`mount_dir`、`token`；可选 `remote_dir`、`args` | 可选 `envs`；沙箱尚未设置 JuiceFS 服务地址时须包含 `BASE_URL` |
 
-本地目录必须是规范化的绝对 Unix 路径，不能位于系统或隐藏目录，不能重复或相互重叠。单个直接存储组最多接受五个挂载点；服务还会累计已有挂载数量。JuiceFS 的 `args` 不能重复提供平台管理的 `--token` 或 `--subdir`。
+本地目录必须是规范化的绝对 Unix 路径，不能位于系统或隐藏目录，不能重复或相互重叠，按名和直接配置的挂载也须共同满足此限制。例如，`/mnt/data` 与 `/mnt/data/log` 冲突；`/mnt/data` 与 `/mnt/data-temp` 是独立目录。单个直接存储组最多接受五个挂载点；服务还会累计已有挂载数量。JuiceFS 的 `args` 不能重复提供平台管理的 `--token` 或 `--subdir`。
 
 追加操作保留已有挂载和沙箱当前角色、VPC。所需的存储客户端、访问策略、角色与网络必须事先可用。它不卸载、不替换，也不创建底层存储。成功确认不能替代数据访问验证：应读取预期文件，或对自己拥有的测试文件执行写入、读回、删除。服务前提和限制见官方[追加挂载指南](https://help.aliyun.com/zh/agent-sandbox/append-mount-volume)。
 

@@ -11,6 +11,7 @@ import { withGuidedConfiguration, guidanceSeams } from "../../src/cli/config_gui
 import { useIso } from "../_support/iso.js";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
+import { HttpClient, Response } from "../../src/transport/http.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const iso = useIso();
@@ -77,6 +78,20 @@ describe("Express managed API keys", () => {
     const load = vi.spyOn(managedKeySeams, "loadSdk");
     expect(await resolveSandboxApiKey(config({ sandbox_api_key: "placeholder-explicit" }))).toBe("placeholder-explicit");
     expect(load).not.toHaveBeenCalled();
+  });
+  it("reuses a prepared key for a runtime CLI operation without creating or renewing it", async () => {
+    await prepareManagedApiKey(config(), {}, true);
+    create.mockClear(); update.mockClear(); describeKey.mockClear();
+    iso.setenv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak");
+    iso.setenv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-secret");
+    const request = vi.spyOn(HttpClient.prototype, "platformRequest").mockResolvedValue(new Response(204));
+    const result = await new CliRunner().invoke(cli, ["--json", "provider", "command", "run", "alicloud-express", "sandbox.timeout", "--input", '{"sandbox_id":"source","timeout":600}', "--yes"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(describeKey).toHaveBeenCalledOnce();
+    expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    expect(request).toHaveBeenCalledOnce();
+    expect(result.output).not.toContain("placeholder-managed");
   });
   it.each(["environment", "toml"])("uses the existing Express Team setting from %s", async source => {
     if (source === "environment") iso.setenv("ABX_ALICLOUD_EXPRESS_TEAM_ID", "team-selected");

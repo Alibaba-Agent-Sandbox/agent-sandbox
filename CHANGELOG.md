@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Reject overlapping runtime append-mount directories even when a similarly named independent directory separates them in sort order. / 修复运行时追加挂载的重叠目录校验：名称相近的独立目录不再掩盖父子目录冲突。
+- Accept a Sandbox API key alone for runtime provider commands; keep Alibaba Cloud credentials for native management and separate managed-key consent. / 运行时 Provider 命令仅凭 Sandbox API Key 即可调用；原生管理仍要求阿里云凭据，托管 Key 继续独立确认。
+
 - Preserve updated template steps on same-name deployment and correctly route native Express pause/resume for provider-qualified references. Keep legacy Volume status updates as an explicit separate contract. / 修复同名部署丢失模板步骤和带提供方实例引用的原生暂停/恢复路由；旧版 Volume 状态更新保留独立契约。
 
 - Simplify natural-language create and Provider help; native noninteractive kill requires explicit --yes. Preserve quoted command arguments and background shell mode, and propagate lifecycle errors instead of reporting absence. / 精简自然语言创建和 Provider 帮助；原生非交互删除须显式 --yes，修复引号参数和后台 shell，状态查询保留实际错误。

@@ -65,8 +65,13 @@ function validateMounts(input: z.infer<typeof appendInput>): void {
   if (!paths.length) throw new ProviderConfigError("Append mounts requires at least one named or inline mount point.");
   try { for (const entry of paths) validateVolumeMounts({ [entry]: "mount" }); }
   catch { throw new ProviderConfigError("Mount paths must be normalized absolute Unix paths outside system and hidden directories."); }
-  const sorted = [...paths].sort();
-  for (let i = 1; i < sorted.length; i++) if (sorted[i] === sorted[i - 1] || sorted[i]!.startsWith(`${sorted[i - 1]}/`)) throw new ProviderConfigError("Submitted mount paths must be distinct and must not overlap.");
+  for (let i = 0; i < paths.length; i++) {
+    for (let j = 0; j < i; j++) {
+      if (paths[i] === paths[j] || paths[i]!.startsWith(`${paths[j]}/`) || paths[j]!.startsWith(`${paths[i]}/`)) {
+        throw new ProviderConfigError("Submitted mount paths must be distinct and must not overlap.");
+      }
+    }
+  }
   for (const point of input.inline_volume_mounts?.juice_fs?.mount_points ?? []) {
     if (point.args?.some((arg) => /^--(?:token|subdir)(?:=|$)/.test(arg))) throw new ProviderConfigError("JuiceFS args cannot override platform-managed token or subdir arguments.");
   }
