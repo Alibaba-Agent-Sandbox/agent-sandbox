@@ -8,6 +8,47 @@
 
 没有显式选择时，CLI 使用 `alicloud-express`。通过 `abx --version` 查看已安装的 CLI 版本；Python SDK 使用独立于 CLI 的发布版本，客户端与服务端保持同版本。公开 CLI 产物见[安装指南](binary-installation.md)。
 
+## 运行环境与快捷安装
+
+使用 OpenSandbox 等 Node 提供方时，选择一种 CLI 安装方式即可：
+
+| 安装方式 | 客户端环境要求 |
+|---|---|
+| 独立 `abx` 二进制 | 已内嵌 Node.js，无须单独安装 Node.js 或 npm |
+| npm 包 | Node.js 20+ 和 npm；提供方的 PTY 使用全局 WebSocket API 时请选择 Node.js 22+ |
+| Python SDK 调用 Node 提供方 | Python 3.10+，再任选上述一种 CLI 安装方式；仅安装 Python 包不会安装引擎 |
+
+macOS 和 Linux 的 CLI 快捷安装：
+
+```bash
+curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
+abx --version
+```
+
+脚本会校验二进制的 SHA-256。若找不到 `abx`，按脚本提示补充 PATH。Windows x64、手动安装及支持平台见[二进制安装](binary-installation.md)。已有 Node.js 时也可运行 `npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org`；两种方式提供相同的提供方引擎。
+
+随后从源码仓库交互安装 OpenSandbox：
+
+```bash
+abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
+abx provider doctor opensandbox
+```
+
+这条源码安装路径需要 Git。Python 用户安装 SDK 和 `abx` 后，也可运行 `python -m agent_sandbox.providers install registry:opensandbox --yes`；Python 注册站安装器下载并校验归档，不需要 Git。完整的 Python 安装与调用示例见 [Python 提供方快速开始](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/providers.md)。提供方安装一次即可复用；`--yes` 表示接受安装权限，不会关闭验证。
+
+OpenSandbox 服务需要已经启动并可访问。默认地址是 `http://127.0.0.1:8080`，使用该地址时不用设置环境变量。连接其他地址才需设置 `ABX_OPENSANDBOX_BASE_URL`。服务启用鉴权时，从服务管理员获取密钥并配置 `ABX_OPENSANDBOX_API_KEY`；它与极速版 Sandbox API Key、模板应用的 `ABX_SERVER_TOKEN` 分属不同用途。连接已有远端服务不要求客户端安装 Docker；本机启动服务或构建源码镜像有各自的 Docker 要求。
+
+### Python 调用原理与性能影响
+
+```text
+CLI        -> Node 提供方 -> 后端服务
+Python SDK -> 本机 abx 引擎 -> Node 提供方 -> 后端服务
+```
+
+Python SDK 按需启动并复用引擎，需要 PATH 中的 `abx`，也可以用 `ABX_BIN` 指定可执行程序。正常操作不会每次重新启动 Node 进程；独立二进制在自身内部提供 Node 运行时。这项依赖针对 Node 提供方，不代表所有 Python 提供方实现都有此要求。
+
+相对于原生 Python 适配器直连同一后端，引擎增加本机 HTTP 通信、编解码和转发、额外进程的内存，以及大响应或文件可能产生的数据拷贝。没有健康引擎时，首次使用还包含启动耗时。高频短操作对这部分开销可能比长时间的后端任务更敏感。没有固定的毫秒数或百分比保证：应在相同后端、数据量和并发下，分别测量冷启动、复用后的延迟、尾延迟及文件吞吐。更多说明见 [SDK 提供方指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/providers.md)。内嵌运行时简化了安装，调用时仍然经过这层转发。
+
 ---
 
 ## Provider 边界与不同的能力集合
@@ -146,7 +187,7 @@ Python SDK 通过本地引擎 `abx provider engine serve` 使用这些插件，�
 | `cubesandbox` | `node` | [CubeSandbox 提供方](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/cubesandbox) |
 | `e2b` | `node` | [E2B 提供方](https://github.com/Alibaba-Agent-Sandbox/awesome-providers/tree/main/e2b) |
 
-OpenSandbox 连接本机服务。设置 `ABX_OPENSANDBOX_BASE_URL`（默认 `http://127.0.0.1:8080`）；服务要求密钥时再设 `ABX_OPENSANDBOX_API_KEY`。能力对照以该页为准，包括会返回 `E8004` 的调用。
+OpenSandbox 连接配置的本机或远端服务。可以直接使用默认 `http://127.0.0.1:8080`，其他地址通过 `ABX_OPENSANDBOX_BASE_URL` 设置；服务要求密钥时再配置 `ABX_OPENSANDBOX_API_KEY`。能力对照以该页为准，包括会返回 `E8004` 的调用。
 
 ---
 

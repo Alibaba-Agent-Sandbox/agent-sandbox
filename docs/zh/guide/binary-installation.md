@@ -157,6 +157,14 @@ abx --version
 | Python SDK（`import agent_sandbox`） | 不包含 | 不包含（[Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md)，见 [`python-sdk` 仓库](https://github.com/alibaba-agent-sandbox/python-sdk)） |
 | 可选扩展（`alicloud`、`mcp` 等） | 无需单独安装 —— 已内置 | 无需单独安装 —— 已内置 |
 
+## Python SDK 使用二进制运行 Node 提供方
+
+独立二进制也可提供 Python SDK 所需的本机提供方引擎。使用 OpenSandbox 等 Node 提供方时，SDK 仍使用 Node 运行时，但运行时已内嵌在 `abx` 中，无须单独安装 `node` 或 npm。
+
+上方的一行脚本安装 CLI 及其运行时。Python SDK 和所选提供方仍需分别安装，完整步骤见 [Python 提供方快速开始](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/providers.md)。SDK 从 PATH 查找 `abx`，也可用 `ABX_BIN` 指定其他可执行程序位置。Python 注册站安装器下载并校验归档，因此这条路径不需要 Git。安装提供方不会启动后端服务。
+
+调用路径与性能取舍见[提供方运行环境](providers.md#运行环境与快捷安装)。内嵌 Node 改变的是安装方式，Python 调用仍经过本机引擎。
+
 ## 故障排查：abx: command not found
 
 1. **安装目录不在 `PATH` 上。** `install.sh` 安装到 `/usr/local/bin` 或 `$HOME/.local/bin`。目录不在 `PATH` 中时，会打印类似下面的一行：
@@ -186,7 +194,7 @@ GitHub 下载出现 curl error 92 或 HTTP 000 时， 使用上方 macOS/Linux �
 ## 说明
 
 - 二进制包含 CLI 及其运行时依赖，包括阿里云模板 API 客户端和 MCP 服务（STDIO 与 Streamable HTTP）。
-- 独立二进制无需另装 SDK，也不依赖外部 `node_modules`；通过 npm 安装时，由 npm 安装包声明的依赖。
+- 独立二进制用于 CLI 时，无须安装 Python SDK，也不依赖外部 `node_modules`；Python 应用仍需单独安装 Python SDK。通过 npm 安装时，由 npm 安装 CLI 包声明的依赖。
 - 运行 `abx --licenses` 可查看随包依赖的许可及归属说明。
 - 二进制只提供 `abx` CLI。Python SDK 是单独的包：[Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md)（[`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)）。
 

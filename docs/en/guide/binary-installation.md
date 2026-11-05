@@ -157,6 +157,14 @@ abx --version
 | Python SDK (`import agent_sandbox`) | Not included | Not included ([Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md), see [the `python-sdk` repository](https://github.com/alibaba-agent-sandbox/python-sdk)) |
 | Optional extensions (`alicloud`, `mcp`, ...) | Not needed — built in | Not needed — built in |
 
+## Using the binary with Python Node providers
+
+The standalone binary can also supply the local provider engine used by the Python SDK. For Node providers such as OpenSandbox, the SDK still uses a Node runtime, but that runtime is embedded in `abx`; a separate `node` or npm installation is unnecessary.
+
+The one-line installer above installs the CLI and its runtime. Install the Python SDK and selected provider separately, following the [Python provider quick start](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/providers.md). The SDK finds `abx` on PATH; `ABX_BIN` can select another executable location. The Python registry provider installer uses verified archives, so that path does not require Git. Installing a provider does not start its backend service.
+
+See [provider runtime requirements and performance](providers.md#runtime-requirements-and-quick-installation) for the call path and performance trade-offs. Bundling Node changes how it is installed; Python calls still go through the local engine.
+
 ## Troubleshooting: abx: command not found
 
 1. **The install directory is not on `PATH`.** `install.sh` installs to `/usr/local/bin` or `$HOME/.local/bin` and, when that directory is missing from `PATH`, prints a line like:
@@ -186,7 +194,7 @@ If GitHub downloads fail with curl error 92 or HTTP 000, use the website macOS/L
 ## Notes
 
 - The binary bundles the CLI and its runtime dependencies, including the Alibaba Cloud template API client and the MCP servers (STDIO and Streamable HTTP).
-- Standalone binaries need no separate SDK installation or `node_modules` directory. npm installs the dependencies declared by the package.
+- CLI use needs no Python SDK or external `node_modules` directory with the standalone binary. Python applications still install the Python SDK separately. npm installs the dependencies declared by the CLI package.
 - Run `abx --licenses` to view bundled dependency licenses and attribution.
 - The binary is only the `abx` CLI. The Python SDK is a separate package: [Python source installation](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/install-python.md) ([`python-sdk`](https://github.com/alibaba-agent-sandbox/python-sdk)).
 

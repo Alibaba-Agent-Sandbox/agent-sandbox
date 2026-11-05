@@ -39,3 +39,13 @@ All sandbox IDs were tracked privately and deleted only when owned by this task;
 Real append-mount data access requires actual OSS, AgenticFS, AgenticBucket and JuiceFS fixtures, including existing role/network inputs. None was supplied; metadata CRUD is not storage-mount acceptance. STS serialization/signing checks do not establish real temporary-credential expiry behavior. No package was published, no unchanged existing cloud resource was mutated, and this record does not certify every cloud API or runtime admission condition.
 
 The PR remains a draft while required service acceptance is blocked. The records remain proposed and the two owner Issues remain open until all acceptance criteria are met.
+
+## Final candidate and cross-review
+
+After the late IP-policy/optional-VPC response corrections and fixed safe diagnostics for quoted/short rule credentials, `make ci` was repeated: **4662 passed, 10 unchanged baseline network/WebSocket failures, 53 skipped** across 209 files. Typecheck, lint, hygiene and compilation passed before that test failure. The 907-entry parity ledger passed, with zero missing/failed/skipped entries; it does not override the complete test result.
+
+Independent reviewers accepted the final management and runtime implementation after the response-shape and error-privacy corrections. Final actual native deployment evidence, current management metadata CRUD and cleanup are in the owner record. The Python final complete client suite passed 2392 cases and Node passed 36, followed by successful Node20/22 CI. A separate real lifecycle test confirmed paused and then running through GET before checking the same object and original file marker, with GET404 cleanup. Actual Python and Node private-gateway registered commands passed.
+
+For network control, fresh Gen2 provider/direct updates both returned 204 with independent readback. Immediate pause/connect sequences returned 409 through both paths while GET showed running and the old lifetime. Their paused state had not been independently confirmed; the cause remains unproven. Rejected mutations were not replayed. No test result was changed to accept 409 as success.
+
+Documentation-only provider onboarding landed on main during the task. It was merged without replacing its index/changelog records. Cross-repository delivery: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/234, https://github.com/Alibaba-Agent-Sandbox/python-sdk/pull/153 and https://github.com/Alibaba-Agent-Sandbox/nodejs-sdk/pull/24. The CLI remains a draft for the explicitly blocked storage acceptance and remaining service conditions.
