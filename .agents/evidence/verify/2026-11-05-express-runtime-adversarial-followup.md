@@ -89,7 +89,7 @@ receipt was independently inspected before including these results:
 | Cleanup | PASS | Owned DELETE followed by independent GET HTTP404 |
 
 The command form is the same as the source capture, using `node dist/bin/abx.js`
-and per-operation input files instead. The key was supplied through the
+and per-operation `--input` JSON values instead. The key was supplied through the
 environment, with no AccessKeys. Resource identifiers and raw operational logs
 are omitted. This confirms current CLI authentication and preflight reachability;
 it does not verify a valid storage append or storage data access.
