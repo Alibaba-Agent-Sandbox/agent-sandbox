@@ -1,5 +1,6 @@
 import { TemplateBuildTimeoutError } from "../../../models/errors.js";
 import { isConditionalCommand } from "../conditional_commands.js";
+import { isRuntimeCommand } from "../runtime_commands.js";
 import { confirm } from "../../../cli/prompts.js";
 import type { ProviderCliExtension } from "../../../cli/provider_extensions.js";
 import { CONFIGURATION_UI } from "./configuration.js";
@@ -62,7 +63,7 @@ export const CLI_EXTENSION = {
       ...(options.template.ready_cmd ? { ready_command: commandWithStepEnvironment(plan, options.template.ready_cmd)! } : {}) };
     });
   },
-  managementRequirements: (commandId: string) => isConditionalCommand(commandId) ? ["sandbox_api_key"] : ["access_key_id", "access_key_secret"],
+  managementRequirements: (commandId: string) => isConditionalCommand(commandId) || isRuntimeCommand(commandId) ? ["sandbox_api_key"] : ["access_key_id", "access_key_secret"],
   loadTemplates: () => import("./template.js"),
   loadDeploy: () => import("./deploy.js"),
 } satisfies ProviderCliExtension;

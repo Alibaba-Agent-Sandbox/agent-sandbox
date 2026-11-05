@@ -80,7 +80,7 @@ export interface TemplateLaunchResult {
 export async function executeTemplateLaunch(
   ctx: Context,
   params: Record<string, unknown>,
-  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout"> & { afterCreate?: (sandbox: Sandbox) => Promise<void> } = {},
+  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "network" | "request_timeout"> & { afterCreate?: (sandbox: Sandbox) => Promise<void> } = {},
 ): Promise<TemplateLaunchResult> {
   const provider = getProvider(resolveProviderId(cliProvider()));
   const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
@@ -199,6 +199,7 @@ export async function executeTemplateLaunch(
     provider_options: { ...structuredClone(config.provider_options), ...prepared.provider_options },
     ...(creationOptions.request_timeout !== undefined ? { request_timeout: creationOptions.request_timeout } : {}),
     ...(creationOptions.volume_mounts !== undefined ? { volume_mounts: creationOptions.volume_mounts } : {}),
+    ...(creationOptions.network !== undefined ? { network: creationOptions.network } : {}),
     metadata: {...prepared.metadata, ...creationOptions.metadata, "abx.launch": journal.id, "abx.intent": createIntent},
     envs: {...environment},
     timeout: sandboxTimeout, cpu: template.cpu_count, memory: template.memory_mb });

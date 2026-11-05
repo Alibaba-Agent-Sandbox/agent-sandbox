@@ -17,7 +17,7 @@ import { CliRunner } from "../helpers/cliRunner.js";
 const runner = (): CliRunner => new CliRunner();
 
 const GROUPS = ["sandbox", "template", "config", "mcp", "provider"];
-const SHORTCUT_NAMES = ["create", "list", "info", "kill", "exec", "connect", "upload", "download", "run", "deploy"];
+const SHORTCUT_NAMES = ["create", "list", "info", "kill", "exec", "connect", "pause", "resume", "upload", "download", "run", "deploy"];
 const SHORTCUT_TARGETS: Record<string, string> = {
   create: "sandbox create",
   list: "sandbox list",
@@ -25,6 +25,8 @@ const SHORTCUT_TARGETS: Record<string, string> = {
   kill: "sandbox kill",
   exec: "sandbox exec",
   connect: "sandbox connect",
+  pause: "sandbox pause",
+  resume: "sandbox resume",
   upload: "sandbox upload",
   download: "sandbox download",
   run: "sandbox command run",
@@ -85,7 +87,7 @@ describe("TestFixedCommandSurface", () => {
   it("test_shortcuts_resolve_to_the_canonical_command_objects", async () => {
     const sandbox = (await cli.getCommand("sandbox"))!;
     const template = (await cli.getCommand("template"))!;
-    for (const name of ["create", "list", "info", "kill", "exec", "connect", "upload", "download"]) {
+    for (const name of ["create", "list", "info", "kill", "exec", "connect", "pause", "resume", "upload", "download"]) {
       const top = await cli.getCommand(name);
       expect(top, name).not.toBeNull();
       expect(top).toBe(await sandbox.getCommand(name));
@@ -131,7 +133,7 @@ describe("TestFixedCommandSurface", () => {
 
   it("test_groups_have_exactly_the_documented_children", async () => {
     const expected: Record<string, string[]> = {
-      sandbox: ["capabilities", "command", "connect", "create", "download", "exec", "files", "info", "kill", "list", "process", "system", "upload"],
+      sandbox: ["capabilities", "command", "connect", "create", "download", "exec", "files", "info", "kill", "list", "pause", "process", "resume", "system", "timeout", "upload"],
       "sandbox files": ["list", "mkdir", "mv", "rm", "search", "stat"],
       "sandbox process": ["info", "list", "signal"],
       "sandbox command": ["list", "run"],

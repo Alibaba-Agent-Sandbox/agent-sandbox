@@ -68,6 +68,7 @@ export interface LayeredConfigInit {
   sandbox_api_key?: string | null;
   access_key_id?: string | null;
   access_key_secret?: string | null;
+  security_token?: string | null;
   provider_options?: Record<string, unknown>;
   http_timeout?: number;
   max_connections?: number;
@@ -86,6 +87,7 @@ export class LayeredConfig {
   sandbox_api_key: string | null;
   access_key_id: string | null;
   access_key_secret: string | null;
+  security_token: string | null;
   provider_options: Record<string, unknown>;
   http_timeout: number;
   max_connections: number;
@@ -103,6 +105,7 @@ export class LayeredConfig {
     this.sandbox_api_key = data.sandbox_api_key ?? null;
     this.access_key_id = data.access_key_id ?? null;
     this.access_key_secret = data.access_key_secret ?? null;
+    this.security_token = data.security_token ?? null;
     this.provider_options = data.provider_options ?? {};
     this.http_timeout = data.http_timeout ?? 30;
     this.max_connections = data.max_connections ?? 100;
@@ -136,6 +139,7 @@ export class LayeredConfig {
       api_key: this.sandbox_api_key,
       access_key_id: this.access_key_id,
       access_key_secret: this.access_key_secret,
+      security_token: this.security_token,
       http_timeout: new PyFloat(this.http_timeout),
       max_connections: this.max_connections,
       max_keepalive_connections: this.max_keepalive_connections,
@@ -292,6 +296,7 @@ const CONFIG_FIELD_NAMES = new Set([
   "sandbox_api_key",
   "access_key_id",
   "access_key_secret",
+  "security_token",
   "http_timeout",
   "max_connections",
   "max_keepalive_connections",

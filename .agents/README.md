@@ -1,5 +1,11 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Express runtime adversarial follow-up](notes/proposed/feature/2026-11-05-express-runtime-adversarial-followup.md) · [verification](evidence/verify/2026-11-05-express-runtime-adversarial-followup.md).
+
+- [Express runtime completion](notes/proposed/feature/2026-11-05-express-runtime-completion.md) · [verification](evidence/verify/2026-11-05-express-runtime-completion.md).
+- [Express integration checks and real-service boundaries](evidence/verify/2026-11-05-express-api-integration.md).
+- [Express adversarial design review](evidence/research/2026-11-05-express-api-design-review.md).
+- [Express management completion](notes/proposed/feature/2026-11-05-express-management-completion.md) · [verification](evidence/verify/2026-11-05-express-management-completion.md).
 - [Provider runtime onboarding](notes/proposed/process/2026-11-05-provider-runtime-onboarding.md) · [verification](evidence/verify/2026-11-05-provider-runtime-onboarding.md).
 
 - [Defensive complexity cleanup](notes/implemented/architecture/2026-10-29-defensive-complexity-cleanup.md) · [verification](evidence/verify/2026-10-29-defensive-complexity-cleanup.md).

@@ -89,6 +89,7 @@ export class TransportConfig extends defineModel(
     api_key: z.string().nullable().default(null),
     access_key_id: z.string().nullable().default(null),
     access_key_secret: z.string().nullable().default(null),
+    security_token: z.string().nullable().default(null),
 
     // HTTP settings
     http_timeout: lax.float(1.0).default(30.0),
@@ -354,7 +355,7 @@ export function loadConfig(overridesIn: Record<string, unknown> = {}): Transport
   }, { provider_id: defaultConfig.id, keys: defaultConfig.keys, inherit: defaultConfig.inherit,
     derive: defaultConfig.derive, endpoint_defaults: defaultConfig.endpointDefaults });
   const merged: Record<string, unknown> = {};
-  for (const key of ["sandbox_api_key", "sandbox_base_url", "sandbox_domain", "region", "access_key_id", "access_key_secret", "http_timeout", "http2", "max_connections", "max_keepalive_connections", "keepalive_expiry", "ws_ping_interval"]) {
+  for (const key of ["sandbox_api_key", "sandbox_base_url", "sandbox_domain", "region", "access_key_id", "access_key_secret", "security_token", "http_timeout", "http2", "max_connections", "max_keepalive_connections", "keepalive_expiry", "ws_ping_interval"]) {
     const value = resolved.get(key)?.value;
     if (value !== undefined && value !== null) {
       const field = Object.entries(names).find(([, canonical]) => canonical === key)?.[0] ?? key;

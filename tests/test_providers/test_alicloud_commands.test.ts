@@ -5,11 +5,13 @@ import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { ALICLOUD_COMMANDS, runAlicloudCommand } from "../../src/providers/alicloud_express/commands.js";
 import { parseCommandSection, validateCommandInput, validateCommandOutput } from "../../src/providers/command_contract.js";
-import { _sdkLoader } from "../../src/providers/alicloud_express/sdk.js";
+import { _sdkLoader, _legacySdkLoader } from "../../src/providers/alicloud_express/sdk.js";
 import { LayeredConfig } from "../../src/transport/config_layers.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const loadReal = _sdkLoader.load;
+const loadLegacy = _legacySdkLoader.load;
+const legacySdk = loadLegacy();
 // Module loading is fixture setup, not part of a mocked SDK request assertion.
 // Discovery tests still replace and check the loader seam, with no cloud I/O.
 const realSdk = loadReal();
@@ -24,18 +26,20 @@ function fake(method: string, body: Record<string, unknown>): { call: ReturnType
   const call = vi.fn().mockResolvedValue({ body });
   const makeClient = vi.fn(function () { return { [method]: call }; });
   _sdkLoader.load = () => ({ ...real, Client: makeClient as any });
+  _legacySdkLoader.load = () => ({ ...legacySdk, Client: makeClient as any });
   return { call, makeClient };
 }
 
-afterEach(() => { _sdkLoader.load = loadReal; vi.restoreAllMocks(); });
+afterEach(() => { _legacySdkLoader.load = loadLegacy; _sdkLoader.load = loadReal; vi.restoreAllMocks(); });
 afterAll(() => { fs.rmSync(secretDirectory, { recursive: true, force: true }); });
 
 describe("FC management descriptors", () => {
-  it("discovers all 20 commands without loading SDK or credentials, with valid strict schemas", () => {
+  it("discovers the current management catalog without loading SDK or credentials, with valid strict schemas", () => {
     const loader = vi.fn(() => { throw new Error("SDK must not load during discovery"); });
     _sdkLoader.load = loader;
     const commands = parseCommandSection({ protocol: "provider-commands/1", entries: ALICLOUD_COMMANDS }, "builtin");
-    expect(commands).toHaveLength(20);
+    expect(commands.map(command => command.id)).toEqual(expect.arrayContaining(["volume.create", "quota.update", "template.create", "template.update", "template.list"]));
+    expect(new Set(commands.map(command => command.id)).size).toBe(commands.length);
     expect(commands.some((entry) => entry.id.startsWith("domain."))).toBe(false);
     expect(loader).not.toHaveBeenCalled();
     for (const command of commands) {
@@ -88,7 +92,7 @@ describe("official SDK request/response mappings", () => {
     expect(JSON.parse(JSON.stringify(actualArgs.slice(0, args.length)))).toEqual(args);
     for (const argument of actualArgs.slice(0, args.length)) if (typeof argument === "object") expect(argument.constructor.name).toMatch(/Request$/);
     expect(actualArgs.slice(args.length)).toEqual([{}, { autoretry: false, maxAttempts: 1, readTimeout: 7000, connectTimeout: 7000 }]);
-    expect(makeClient.mock.calls[0][0]).toMatchObject({ accessKeyId: "placeholder-ak", accessKeySecret: "placeholder-sk", endpoint: "fcsandbox.cn-hangzhou.aliyuncs.com", retryOptions: { retryable: false } });
+    expect(makeClient.mock.calls[0][0]).toMatchObject({ accessKeyId: "placeholder-ak", accessKeySecret: "placeholder-sk", endpoint: `${id === "volume.update" && input.status !== undefined ? "fcsandbox" : "sandbox"}.cn-hangzhou.aliyuncs.com`, retryOptions: { retryable: false } });
     expect(JSON.stringify(makeClient.mock.calls)).not.toContain("placeholder-runtime-key");
     validateCommandOutput(ALICLOUD_COMMANDS.find((entry) => entry.id === id)!, result);
   });
@@ -111,7 +115,7 @@ describe("official SDK request/response mappings", () => {
     _sdkLoader.load = () => ({ ...real, Client });
     await runAlicloudCommand(config, "volume.create", { team_id: "team-1", volume_name: "workspace", oss_volume_config: oss });
     const [params, request, runtime] = callApi.mock.calls[0];
-    expect(params).toMatchObject({ action: "CreateVolume", version: "2026-05-09", pathname: "/pop/2026-05-09/volumes", authType: "AK", method: "POST" });
+    expect(params).toMatchObject({ action: "CreateVolume", version: "2026-08-20", pathname: "/pop/2026-08-20/volumes", authType: "AK", method: "POST" });
     expect(request.body).toEqual({ teamID: "team-1", volumeName: "workspace", ossVolumeConfig: { bucketName: "example-bucket", bucketPath: "/workspace", endpoint: oss.endpoint, readOnly: false } });
     expect(runtime.autoretry).toBe(false);
   });

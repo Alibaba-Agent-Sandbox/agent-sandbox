@@ -13,7 +13,7 @@ export async function handleTemplateOperation(name: keyof typeof templateInputs,
   if (resolveProviderId(cliProvider()) !== "alicloud-express") throw new Error("This template adapter only supports alicloud-express; use the selected provider's documented template operation");
   const cfg = loadConfig();
   if (!cfg.access_key_id || !cfg.access_key_secret) throw new Error("Template adapter requires configured AK/SK; runtime API key is insufficient");
-  const auth = { access_key_id: cfg.access_key_id, access_key_secret: cfg.access_key_secret, team_id: p.team_id as string, region: (p.region as string | undefined) ?? cfg.region };
+  const auth = { access_key_id: cfg.access_key_id, access_key_secret: cfg.access_key_secret, security_token: cfg.security_token, team_id: p.team_id as string, region: (p.region as string | undefined) ?? cfg.region };
   if (name === "get_template_build") {
     const result = await getTemplate(p.template_id as string, auth);
     return { template_id: p.template_id, status: result.status ?? result.state ?? null, code: result.code ?? null, runtime_verified: false };

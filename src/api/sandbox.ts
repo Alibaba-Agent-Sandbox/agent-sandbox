@@ -220,6 +220,8 @@ export interface CreateOptions extends BuildInfraOptions {
   metadata?: Record<string, string> | null;
   /** Built-in Express only: normalized absolute Unix mount paths mapped to existing same-Team Volume names. */
   volume_mounts?: Record<string, string> | null;
+  /** Provider-opted-in structured network creation input; encoded by the selected adapter. */
+  network?: Record<string, unknown> | null;
   envs?: Record<string, string> | null;
   cpu?: number | null;
   memory?: number | null;
@@ -233,6 +235,8 @@ export interface CreateOptions extends BuildInfraOptions {
 export interface ConnectOptions extends BuildInfraOptions {
   sandbox_id?: string;
   domain?: string | null;
+  /** Explicit gateway token for GET attachment; never triggers POST connect or lifecycle renewal. */
+  traffic_access_token?: string | null;
 }
 
 export interface ListOptions extends BuildInfraOptions {
@@ -305,9 +309,11 @@ export class Sandbox {
   private _files?: FilesModule;
   private _network?: NetworkModule;
   private _code?: CodeContextModule;
+  #trafficToken: string | null;
 
   constructor(init: SandboxInit) {
     this._info = init.info;
+    this.#trafficToken = init.info.traffic_access_token ?? null;
     this._config = init.config;
     this._provider_id = init.provider_id ?? resolveProviderId();
     this._createdMetadataReader = init.created_metadata_reader;
@@ -366,6 +372,9 @@ export class Sandbox {
     return this._info;
   }
 
+  /** Explicit access to the gateway credential; excluded from normal serialization and diagnostics. */
+  get traffic_access_token(): string | null { return this.#trafficToken; }
+
   /** Effective capability set for this sandbox. */
   get capabilities(): ReadonlySet<string> {
     return new FrozenSet(this._declared_capabilities ?? this._capabilities);
@@ -422,7 +431,8 @@ export class Sandbox {
         endpoint_resolver: typeof (this._sandbox_protocol as unknown as { portEndpoint?: unknown }).portEndpoint === "function"
           ? port => (this._sandbox_protocol as unknown as { portEndpoint(id: string, port: number): Promise<ApplicationEndpoint> }).portEndpoint(this.id, port) : undefined,
         port_access: getProvider(this._provider_id).createPortAccess({ sandbox_id: this.id,
-          domain: this._domain, secure: this._secure, access_token: this._envd_token?.token ?? null }, this._sandbox_protocol),
+          domain: this._domain, secure: this._secure, access_token: this._envd_token?.token ?? null,
+          traffic_access_token: this.#trafficToken }, this._sandbox_protocol),
       });
     }
     return this._network;
@@ -489,6 +499,8 @@ export class Sandbox {
     if (Object.keys(volume_mounts).length && !prov.createOptions.has("volume_mounts")) {
       throw new ProviderFeatureNotSupportedError(prov.id, "volume_mounts");
     }
+    if (opts.network != null && !prov.createOptions.has("network")) throw new ProviderFeatureNotSupportedError(prov.id, "network");
+    prov.validateCreateOptions({ network: opts.network, secure });
     const secure_hint: boolean | null = opts.secure === undefined ? null : opts.secure;
 
     if (request_timeout !== null && request_timeout <= 0) {
@@ -521,6 +533,7 @@ export class Sandbox {
         disk,
         gpu,
         volume_mounts,
+        network: opts.network ?? null,
         secure: secure_hint,
         domain,
         build: { api_key, api_url, access_key_id, access_key_secret, provider_options: popts },
@@ -543,6 +556,7 @@ export class Sandbox {
     const popts = _effectiveOptions(prov, provider_options);
       return this._connectViaProvider(prov, bare_id as string, {
         domain,
+        traffic_access_token: opts.traffic_access_token ?? null,
         build: { api_key, api_url, access_key_id, access_key_secret, provider_options: popts },
       });
   }
@@ -611,6 +625,7 @@ export class Sandbox {
       disk: number | null;
       gpu: string | null;
       volume_mounts: Record<string, string>;
+      network: Record<string, unknown> | null;
       secure: boolean | null;
       domain: string | null;
       build: BuildInfraOptions;
@@ -630,6 +645,7 @@ export class Sandbox {
         disk: p.disk,
         gpu: p.gpu,
         volume_mounts: p.volume_mounts,
+        network: p.network,
         secure: p.secure,
         provider_options: { ...(p.build.provider_options ?? {}) },
       });
@@ -677,11 +693,12 @@ export class Sandbox {
     }
   }
 
-  private static async _connectViaProvider(prov: Provider, sandbox_id: string, p: { domain: string | null; build: BuildInfraOptions }): Promise<Sandbox> {
+  private static async _connectViaProvider(prov: Provider, sandbox_id: string, p: { domain: string | null; traffic_access_token: string | null; build: BuildInfraOptions }): Promise<Sandbox> {
     const infra = await _providerInfra(prov, p.build);
     const closer = new InfraCloser(infra);
     try {
       const info = await infra.sandbox_protocol.connect(sandbox_id);
+      if (p.traffic_access_token !== null) info.traffic_access_token = p.traffic_access_token;
       const envd_token = prov.createSessionAuth(info, infra);
       logger.info("Connected to sandbox: %s (provider %s)", sandbox_id, prov.id);
       const backendResolved = await prov.resolveSessionCapabilities(info.template, info);
@@ -751,6 +768,9 @@ export class Sandbox {
   /** Refresh sandbox info from the platform. */
   async refreshInfo(): Promise<SandboxInfo> {
     this._info = await this._sandbox_protocol.getInfo(this.id);
+    if (this._info.traffic_access_token !== null) this.#trafficToken = this._info.traffic_access_token;
+    else this._info.traffic_access_token = this.#trafficToken;
+    this._network = undefined;
     // Re-derive envd URL if the platform still omits it
     if (!this._info.envd_url && this._info.sandbox_id) {
       this._info.envd_url = getProvider(this._provider_id).resolveSessionUrl(this._info, this._config, this._sandbox_protocol);

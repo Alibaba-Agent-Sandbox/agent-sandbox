@@ -9,6 +9,7 @@ export function createPortAccess(context: PortContext, serverAuth = true): PortA
     getHost,
     getUrl: (port) => `${context.secure ? "https" : "http"}://${getHost(port)}`,
     getAccessHeaders,
-    getServerHeaders: () => serverAuth ? getAccessHeaders() : {},
+    getServerHeaders: () => serverAuth ? getAccessHeaders()
+      : context.traffic_access_token ? { "e2b-traffic-access-token": context.traffic_access_token } : {},
   };
 }

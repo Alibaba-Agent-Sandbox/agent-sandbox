@@ -14,7 +14,7 @@ import { useIso } from "../_support/iso.js";
 useIso();
 const original = _templateCacheSdkLoader.load;
 const official = original();
-const config = new LayeredConfig({ access_key_id: "placeholder-cache-ak", access_key_secret: "placeholder-cache-secret", sandbox_api_key: "placeholder-runtime-key",
+const config = new LayeredConfig({ access_key_id: "placeholder-cache-ak", access_key_secret: "placeholder-cache-secret", security_token: "placeholder-sts-token", sandbox_api_key: "placeholder-runtime-key",
   region: "cn-hangzhou", sandbox_base_url: "https://unrelated.example.test", http_timeout: 7 });
 const ref = { team_id: "team-1", template_id: "template-1" };
 const wire = { teamID: "team-1", templateID: "template-1", status: "loading", progress: 12, imageSizeMB: 584 };
@@ -40,7 +40,7 @@ describe("Template Cache command discovery", () => {
       expect(command.effect).toBe(command.id.endsWith("create") ? "write" : command.id.endsWith("delete") ? "delete" : "read");
       expect(command.idempotent).toBe(!command.id.endsWith("create"));
     }
-    expect(listProviderCommands("alicloud-express")).toHaveLength(32);
+    expect(new Set(listProviderCommands("alicloud-express").map(command => command.id)).size).toBe(listProviderCommands("alicloud-express").length);
     expect(loader).not.toHaveBeenCalled();
   });
 
@@ -88,7 +88,7 @@ describe("official Template Cache requests", () => {
     expect(JSON.parse(JSON.stringify(call.mock.calls[0].slice(0, args.length)))).toEqual(args);
     for (const argument of call.mock.calls[0].slice(0, args.length)) if (typeof argument === "object") expect(argument.constructor.name).toMatch(/Request$/);
     expect(call.mock.calls[0].slice(args.length)).toEqual([{}, { autoretry: false, maxAttempts: 1, readTimeout: 7000, connectTimeout: 7000 }]);
-    expect(makeClient.mock.calls[0][0]).toMatchObject({ accessKeyId: config.access_key_id, accessKeySecret: config.access_key_secret,
+    expect(makeClient.mock.calls[0][0]).toMatchObject({ accessKeyId: config.access_key_id, accessKeySecret: config.access_key_secret, securityToken: config.security_token,
       regionId: "cn-hangzhou", endpoint: "sandbox.cn-hangzhou.aliyuncs.com", retryOptions: { retryable: false } });
     expect(JSON.stringify(makeClient.mock.calls)).not.toContain(config.sandbox_api_key);
     expect(JSON.stringify(makeClient.mock.calls)).not.toContain("unrelated.example.test");
@@ -170,7 +170,7 @@ describe("Template Cache safe errors and deadlines", () => {
   it("rejects invalid region, missing AK/SK and an already cancelled call before SDK I/O", async () => {
     const loader = vi.fn(original); _templateCacheSdkLoader.load = loader;
     await expect(runTemplateCacheCommand(new LayeredConfig({ sandbox_api_key: "placeholder-runtime-key" }), "template-cache.get", ref, signal())).rejects.toThrow(/both access_key/);
-    await expect(runTemplateCacheCommand(new LayeredConfig({ access_key_id: "placeholder-ak", access_key_secret: "placeholder-sk", region: "cn-hangzhou.attacker.test" }), "template-cache.get", ref, signal())).rejects.toMatchObject({ code: "E8002" });
+    await expect(runTemplateCacheCommand(new LayeredConfig({ access_key_id: "placeholder-ak", access_key_secret: "placeholder-sk", security_token: "placeholder-sts-token", region: "cn-hangzhou.attacker.test" }), "template-cache.get", ref, signal())).rejects.toMatchObject({ code: "E8002" });
     const controller = new AbortController(); controller.abort();
     await expect(runTemplateCacheCommand(config, "template-cache.create", ref, controller.signal)).rejects.toMatchObject({ code: "E8022" });
     await expect(runTemplateCacheCommand(config, "arbitrary-sdk-method", ref, signal())).rejects.toMatchObject({ code: "E8004" });

@@ -85,7 +85,7 @@ export class SandboxProtocol {
    */
   async create(config: SandboxConfig, opts: { request_timeout?: number | null } = {}): Promise<SandboxInfo> {
     const request_timeout = opts.request_timeout ?? null;
-    const payload = config.toCreatePayload();
+    const payload = this.createPayload(config);
 
     try {
       // 已实测验证：路径无 /api/v1 前缀
@@ -94,10 +94,15 @@ export class SandboxProtocol {
       return this._info(data);
     } catch (exc) {
       if (exc instanceof HTTPStatusError) {
-        this._handleCreateError(exc);
+        this._handleCreateError(exc, config);
       }
       throw exc;
     }
+  }
+
+  /** The adapter may encode its explicitly opted-in create fields. */
+  protected createPayload(config: SandboxConfig): Record<string, unknown> {
+    return config.toCreatePayload();
   }
 
   /**
@@ -217,7 +222,7 @@ export class SandboxProtocol {
   }
 
   /** Convert HTTP errors to typed exceptions for create. */
-  _handleCreateError(exc: HTTPStatusError): never {
+  _handleCreateError(exc: HTTPStatusError, _config?: SandboxConfig): never {
     const status = exc.response.status_code;
     let body: Record<string, unknown>;
     try {

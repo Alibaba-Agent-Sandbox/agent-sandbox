@@ -482,6 +482,7 @@ export interface PushImageOptions {
     acr: Any;
     tag: string;
     region: string;
+    security_token?: string | null;
     on_progress: (message: string) => void;
     on_output?: ((line: string) => void) | null;
 }
@@ -503,6 +504,7 @@ export async function _pushImage(local_image: string, opts: PushImageOptions): P
     const creds = await builder.loginAcrWithAksk(acr.registry, acr.username, acr.password, {
         region,
         instance_id: acr.acree_instance_id || null,
+        security_token: opts.security_token,
     });
     on_progress(`Tagging: ${local_image} \u2192 ${acrRef}`);
     await builder.tag(local_image, acrRef);
@@ -576,6 +578,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             acr,
             tag,
             region,
+            security_token: acr.username === config.access_key_id && acr.password === config.access_key_secret ? config.security_token : undefined,
             on_progress: (m) => reporter.phase(m),
             on_output: (l) => reporter.log(l),
         });
@@ -603,6 +606,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
             image: acrRef,
             access_key_id: o.platform_ak,
             access_key_secret: o.platform_sk,
+            security_token: config.security_token,
             region,
             team_id: o.team_id,
             cpu: o.resolved_cpu,
@@ -640,6 +644,7 @@ async function _runReportedDeploy(reporter: _StepReporter, o: RunReportedDeployO
         const finalData = await fcTemplate.waitForTemplateReady(templateId, {
             access_key_id: o.platform_ak,
             access_key_secret: o.platform_sk,
+            security_token: config.security_token,
             region,
             team_id: o.team_id,
             timeout,
@@ -833,6 +838,7 @@ async function deployConfigured(template_dir: string, opts: DoDeployOptions): Pr
                 steps: plan.steps,
                 access_key_id: config.access_key_id,
                 access_key_secret: config.access_key_secret,
+                security_token: config.security_token,
                 region: config.region,
                 team_id,
                 cpu: resolvedCpu,
@@ -1174,6 +1180,7 @@ export const list_templates = template.command("list", {
             const templates = await fcTemplate.listOfficialTemplates({
                 access_key_id: config.access_key_id,
                 access_key_secret: config.access_key_secret,
+                security_token: config.security_token,
                 region: config.region,
             });
             if (!templates || templates.length === 0) {
@@ -1210,6 +1217,7 @@ export const info = template.command("info", {
             const data = await fcTemplate.getTemplate(templateId, {
                 access_key_id: config.access_key_id,
                 access_key_secret: config.access_key_secret,
+                security_token: config.security_token,
                 region: config.region,
             });
             if (fmt.use_json) {
@@ -1276,6 +1284,7 @@ export const create_template = template.command("create", {
             image,
             access_key_id: ak,
             access_key_secret: sk,
+            security_token: config.security_token,
             region: finalRegion,
             team_id: teamId,
             cpu,
@@ -1364,6 +1373,7 @@ export const push = template.command("push", {
                 acr,
                 tag: imageTag,
                 region: config.region,
+                security_token: acr.username === config.access_key_id && acr.password === config.access_key_secret ? config.security_token : undefined,
                 on_progress: (m) => reporter.phase(m),
                 on_output: (l) => reporter.log(l),
             });
@@ -1565,7 +1575,7 @@ export const delete_ = template.command("delete", {
         const fmt = getFormatter(ctx);
         const config = templateSeams.loadConfig({ region: params["region"] });
         await fcTemplate.deleteTemplate(templateId, {
-            access_key_id: config.access_key_id!, access_key_secret: config.access_key_secret!, region: config.region,
+            access_key_id: config.access_key_id!, access_key_secret: config.access_key_secret!, security_token: config.security_token, region: config.region,
         });
         fmt.printSuccess(`Template ${templateId} deleted.`);
         });

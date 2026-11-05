@@ -4,6 +4,8 @@ export interface PortContext {
   domain: string;
   secure: boolean;
   access_token: string | null;
+  /** Independent public-port gateway credential; never an envd or application token. */
+  traffic_access_token?: string | null;
 }
 
 export interface PortAccess {

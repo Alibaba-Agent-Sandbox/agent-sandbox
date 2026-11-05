@@ -7,10 +7,10 @@
 
 <!-- fixed-set -->
 
-顶层命令仅有这些：`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
+固定的顶层命令组与快捷方式为：`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx pause`、`abx resume`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
 
 `abx --help` 分两段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`、`provider`）和
-**Sandbox shortcuts**（十个快捷方式，先说明用途，再以 `(alias: abx …)` 备注完整命令）。
+**Sandbox shortcuts**（固定快捷方式，先说明用途，再以 `(alias: abx …)` 备注完整命令）。
 之后显示当前 Provider 的操作摘要。更多模板可浏览 [Registry](https://registry.agent-sandbox.cn/templates/)，
 或运行 `abx template search 关键词`。
 
@@ -66,13 +66,16 @@ abx
 ├── sandbox
 │   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
 │   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID
+│   ├── pause SANDBOX_ID   resume SANDBOX_ID   timeout SANDBOX_ID SECONDS
+│   ├── logs SANDBOX_ID    metrics SANDBOX_ID  snapshot create | list | delete   fork SANDBOX_ID
 │   ├── upload SANDBOX_ID LOCAL REMOTE  download SANDBOX_ID REMOTE LOCAL
 │   ├── capabilities SANDBOX_ID
 │   ├── files    list | mkdir | mv | rm | search | stat
 │   ├── process  list | info | signal            （只查看/控制；启动进程用 exec --background）
 │   ├── command  list | run                      （沙箱内服务端注册的具名命令）
 │   └── system   env | info | metrics | packages | ports
-├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
+├── template     init | create | list | delete | publish | unpublish | migrate
+│                scaffold | from-image | search | info | build | push | deploy | install
 ├── config       init | get | set | list | delete
 ├── mcp          deploy | install | start | status | stop
 └── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command | run
@@ -94,6 +97,10 @@ abx
 | `abx sandbox kill` | `kill [OPTIONS] [SANDBOX_ID]` |
 | `abx sandbox exec` | `exec [OPTIONS] SANDBOX_ID COMMAND...` |
 | `abx sandbox connect` | `connect [OPTIONS] SANDBOX_ID` |
+| `abx sandbox pause` / `resume` | `<动词> SANDBOX_ID` |
+| `abx sandbox timeout` | `timeout SANDBOX_ID SECONDS`（项目扩展，秒数表示生存期限） |
+| `abx sandbox logs` / `metrics` / `fork` | `<动词> [options] SANDBOX_ID`（标准极速版入口） |
+| `abx sandbox snapshot` | `snapshot create/list/delete`（标准极速版入口） |
 | `abx sandbox upload` | `upload [OPTIONS] SANDBOX_ID LOCAL_PATH REMOTE_PATH` |
 | `abx sandbox download` | `download [OPTIONS] SANDBOX_ID REMOTE_PATH LOCAL_PATH` |
 | `abx sandbox capabilities` | `capabilities [OPTIONS] SANDBOX_ID` |
@@ -103,12 +110,13 @@ abx
 | `abx sandbox command list` | `command list [OPTIONS] SANDBOX_ID` |
 | `abx sandbox command run` | `command run [OPTIONS] SANDBOX_ID COMMAND_NAME` |
 | `abx sandbox system env\|info\|metrics\|packages\|ports` | `system <动词> [OPTIONS] SANDBOX_ID` |
-| `abx template scaffold` | `init [OPTIONS] [DIRECTORY]` |
+| `abx template scaffold` | `scaffold [OPTIONS] [DIRECTORY]` |
 | `abx template search` | `search [OPTIONS] QUERY` |
 | `abx template info` / `delete` | `<动词> [OPTIONS] TEMPLATE_ID` |
 | `abx template list` | `list [OPTIONS]` |
 | `abx template build` / `deploy` | `<动词> [OPTIONS] TEMPLATE_DIR`（顶层 `abx deploy` 的 `[PATH]` 可省略，默认 `.`） |
-| `abx template push` / `create` | `<动词> [OPTIONS] IMAGE` |
+| `abx template push` | `push [OPTIONS] IMAGE`（项目扩展） |
+| `abx template create` | `create [options] TEMPLATE_NAME`（标准构建入口） |
 | `abx template install` | `install [OPTIONS] TEMPLATE_REF` |
 | `abx config init\|list` | `<动词> [OPTIONS]` |
 | `abx config get\|delete` | `<动词> [OPTIONS] KEY` |
@@ -184,3 +192,9 @@ abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # 带类型
 ## 原生 Provider 镜像工厂
 
 `abx --provider PROVIDER template from-image IMAGE --name NAME -y` 是独立于标准模板构建器的原生扩展。见[提供方镜像部署](../guide/template-launch.md)。未启用的提供方返回 E8004。
+
+## 极速版运行配置扩展
+
+命令树同时展示标准极速版命令和明确的项目扩展。标准 `sandbox --help`、`template --help` 展示固定的标准目录；`--native` 选择项目原生命令实现。带 Provider 前缀的沙箱 ID 保留其资源归属。
+
+使用 `abx --native create TEMPLATE --network-file network.json` 传入结构化网络设置，不改变标准 create 的生命周期。`abx sandbox timeout ID SECONDS` 修改已有实例的生存期限。通过已声明的 `sandbox.mounts.append`、`sandbox.network.update` Provider 命令追加挂载和整体替换出网配置。输入、私有网关令牌及清理方式见[极速版运行配置](../guide/express-runtime.md)。

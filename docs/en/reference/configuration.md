@@ -18,7 +18,7 @@ Configuration is loaded in the following priority order (highest to lowest):
 5. Built-in defaults                                  ← Lowest
 ```
 
-Each key has exactly one environment variable. The first layer that sets that variable wins. The built-in provider reads `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. It does not read `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, or `ALIBABA_CLOUD_ACCESS_KEY_SECRET`.
+Each key has exactly one environment variable. The first layer that sets that variable wins. The built-in provider reads `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, `ALIBABA_CLOUD_SECURITY_TOKEN`, and `ALIBABA_CLOUD_REGION_ID`. It does not read `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, or `ALIBABA_CLOUD_ACCESS_KEY_SECRET`.
 
 `.env` files are merged **per key**. `./.env` overrides `~/.abx/.env` when both set the same key. A key that the project file does not set still comes from `~/.abx/.env`.
 
@@ -37,6 +37,7 @@ Each key has one name. Product settings use `ABX_<KEY>`. A vendor that already p
 | Data-plane domain | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` |
 | Region | `region` | `ALIBABA_CLOUD_REGION_ID` |
 | Alibaba Cloud AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
+| STS session token | `security_token` | `ALIBABA_CLOUD_SECURITY_TOKEN` |
 | ACR namespace / password | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
 | Application access token | `server_token` | `ABX_SERVER_TOKEN` |
 | GitHub token | `server_token` | `ABX_SERVER_TOKEN` | CLI-only application token, generated during initialization; masked and saved in `~/.abx/.env` |
@@ -77,6 +78,7 @@ Sandbox calls use an explicit API key, or the Express managed key prepared from 
 | `ABX_DEFAULT_TEMPLATE` | `default_template` | Default template |
 | `ALICLOUD_ACCESS_KEY_ID` | `access_key_id` | Alibaba Cloud AccessKey ID |
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | Alibaba Cloud AccessKey Secret |
+| `ALIBABA_CLOUD_SECURITY_TOKEN` | `security_token` | STS token paired with temporary AccessKey credentials |
 | `GITHUB_TOKEN` | `github_token` | GitHub token for template downloads (store with `abx config set github_token`; CI: inject as a secret) |
 
 Since CLI 0.4.17, `ABX_HTTP_TIMEOUT` also controls each application HTTP request made by `abx run` and command discovery (default: 30 seconds). For a longer command, set it before invoking the CLI, for example `ABX_HTTP_TIMEOUT=330 abx run "$SANDBOX_ID" qwen --json-args '{"prompt":"Review the uploaded project","command_timeout":300}'`. An HTTP timeout stops waiting for the response; it does not cancel the remote command.
@@ -175,6 +177,7 @@ The `region` key set here is the **persistent default** for regional commands. A
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API base URL (default: DashScope compatible-mode) |
 | `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (official control-plane credential) |
 | `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (official control-plane credential) |
+| `security_token` | `ALIBABA_CLOUD_SECURITY_TOKEN` | STS session token paired with temporary AccessKey credentials |
 | `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template install` / `abx template deploy` (set it with `abx config init --build`) |
 | `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`abx template install` / `abx template search`; stored in `~/.abx/.env`, shown masked) |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Team id. Optional. Not required. |
@@ -190,6 +193,8 @@ The interactive wizard prompts for: the sandbox API key, the default region, the
 ### AK/SK control-plane configuration
 
 When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for native template/image/ACR operations and, after explicit confirmation or --ci, Express managed API-key preparation. See [feature permissions](../guide/permissions.md).
+
+For STS credentials, also provide `ALIBABA_CLOUD_SECURITY_TOKEN` from the same issued temporary credential set. All three values must remain valid together. The token is a secret, is masked by configuration display, and is separate from the Sandbox API key and application token. Obtain temporary credentials through your existing RAM role/STS workflow; the CLI does not acquire or refresh them.
 
 Configuration listing, get output and set acknowledgements mask the AccessKey ID and secret, including JSON and provider-qualified commands. Stored values remain complete for authentication.
 

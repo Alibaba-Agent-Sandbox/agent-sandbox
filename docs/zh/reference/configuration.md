@@ -18,7 +18,7 @@
 5. 内置默认值                                  ← 最低
 ```
 
-每个键只有一个环境变量。第一个设置了该变量的层决定结果。内置提供方读取 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`。
+每个键只有一个环境变量。第一个设置了该变量的层决定结果。内置提供方读取 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET`、`ALIBABA_CLOUD_SECURITY_TOKEN` 和 `ALIBABA_CLOUD_REGION_ID`。不读取 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`。
 
 `.env` 文件按**键**合并。同一个键两边都有时，`./.env` 优先于 `~/.abx/.env`。项目文件里没有的键，仍然来自 `~/.abx/.env`。
 
@@ -37,6 +37,7 @@
 | 数据平面域名 | `sandbox_domain` | `ABX_SANDBOX_DOMAIN` |
 | 地域 | `region` | `ALIBABA_CLOUD_REGION_ID` |
 | 阿里云 AK / SK | `access_key_id` / `access_key_secret` | `ALICLOUD_ACCESS_KEY_ID` / `ALICLOUD_ACCESS_KEY_SECRET` |
+| STS 会话令牌 | `security_token` | `ALIBABA_CLOUD_SECURITY_TOKEN` |
 | ACR 命名空间 / 密码 | `acr_namespace` / `acr_password` | `ACR_NAMESPACE` / `ACR_PASSWORD` |
 | 应用访问令牌 | `server_token` | `ABX_SERVER_TOKEN` |
 | GitHub token | `server_token` | `ABX_SERVER_TOKEN` | CLI 应用令牌；初始化时自动生成，保存在 `~/.abx/.env`，显示时脱敏 |
@@ -77,6 +78,7 @@
 | `ABX_DEFAULT_TEMPLATE` | `default_template` | 默认模板 |
 | `ALICLOUD_ACCESS_KEY_ID` | `access_key_id` | 阿里云 AccessKey ID |
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | 阿里云 AccessKey Secret |
+| `ALIBABA_CLOUD_SECURITY_TOKEN` | `security_token` | 与临时 AccessKey 配套使用的 STS 令牌 |
 | `GITHUB_TOKEN` | `github_token` | GitHub token（模板下载用；用 `abx config set github_token` 保存；CI 以 Secret 注入） |
 
 从 CLI 0.4.17 起，`ABX_HTTP_TIMEOUT` 也作用于 `abx run` 及命令发现的每次应用 HTTP 请求，默认 30 秒。长任务可以在调用前设置，例如 `ABX_HTTP_TIMEOUT=330 abx run "$SANDBOX_ID" qwen --json-args '{"prompt":"检查已上传的项目","command_timeout":300}'`。HTTP 超时只停止等待响应，不会取消远端命令。
@@ -175,6 +177,7 @@ abx config set github_token ""
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API Base URL（默认 DashScope compatible-mode） |
 | `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | 阿里云 AccessKey ID（官方控制面凭据） |
 | `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret（官方控制面凭据） |
+| `security_token` | `ALIBABA_CLOUD_SECURITY_TOKEN` | 与临时 AccessKey 配套使用的 STS 会话令牌 |
 | `acr_namespace` | `ACR_NAMESPACE` | `abx template install` / `abx template deploy` 用的（用 `abx config init --build` 设置） ACR 命名空间 |
 | `github_token` | `GITHUB_TOKEN` | GitHub token（模板下载用，`abx template install` / `abx template search`；存 `~/.abx/.env`，脱敏显示） |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | 团队 id。可选。不是必填项。 |
@@ -190,6 +193,8 @@ abx config init
 ### AK/SK 控制面配置
 
 `access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，仅在用户确认或显式 `--ci` 时准备管理 Key，详见[权限说明](../guide/permissions.md)。
+
+使用 STS 临时凭据时，还需提供同一次签发的 `ALIBABA_CLOUD_SECURITY_TOKEN`，三项凭据必须配套且处于有效期内。该令牌属于秘密，配置展示会脱敏；它与 Sandbox API Key、应用令牌分开。临时凭据从已有 RAM 角色/STS 流程获取，CLI 不负责申请或刷新。
 
 配置列表、读取结果和设置确认会对 AccessKey ID 与 Secret 脱敏，包括 JSON 和指定 Provider 的命令；认证使用的存储值仍然完整。
 

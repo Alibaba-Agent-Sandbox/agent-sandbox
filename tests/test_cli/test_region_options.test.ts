@@ -31,7 +31,7 @@ import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import * as layered from "../../src/transport/config_layers.js";
 import * as transportHttp from "../../src/transport/http.js";
-import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
+import * as protocolSandbox from "../../src/providers/alicloud_express/sandbox.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { ALL_COMMANDS } from "./conftest.js";
@@ -247,7 +247,7 @@ function patchTransport(opts: { protocol?: boolean; loadConfig?: boolean } = {})
   spies.httpCls = spyAny(transportHttp, "HttpClient").mockImplementation(function () {
     return { close: async () => undefined };
   } as never) as never;
-  if (protocol) spyAny(protocolSandbox, "SandboxProtocol").mockImplementation(function () {
+  if (protocol) spyAny(protocolSandbox, "ExpressSandboxProtocol").mockImplementation(function () {
       return { list: async () => [] };
     } as never);
   return spies;

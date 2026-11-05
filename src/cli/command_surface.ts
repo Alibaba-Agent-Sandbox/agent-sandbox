@@ -19,8 +19,8 @@ export const GROUP_COMMANDS: Readonly<Record<string, { spec: string; help: strin
 export const HELP_GROUPS: ReadonlyArray<string> = Object.keys(GROUP_COMMANDS);
 
 /**
- * Top-level shortcuts, in help order: name -> purpose, spec and canonical command path. Exactly these
- * ten; `deploy` is the headline publish workflow, the other nine are `abx sandbox ...` actions used constantly.
+ * Top-level shortcuts, in help order: name -> purpose, spec and canonical command path.
+ * Provider-owned lifecycle actions also have native routes for qualified references.
  */
 export const SHORTCUTS: Readonly<Record<string, { spec: string; target: string; help: string }>> = {
   create: { spec: "commands/sandbox:create", target: "sandbox create", help: "Create a sandbox." },
@@ -29,6 +29,8 @@ export const SHORTCUTS: Readonly<Record<string, { spec: string; target: string; 
   kill: { spec: "commands/sandbox:kill", target: "sandbox kill", help: "Terminate sandboxes." },
   exec: { spec: "commands/sandbox:exec_cmd", target: "sandbox exec", help: "Run a command in a sandbox." },
   connect: { spec: "commands/sandbox:connect", target: "sandbox connect", help: "Open a terminal in a sandbox." },
+  pause: { spec: "commands/sandbox:pause", target: "sandbox pause", help: "Pause a sandbox." },
+  resume: { spec: "commands/sandbox:resume", target: "sandbox resume", help: "Resume a sandbox." },
   upload: { spec: "commands/sandbox:upload", target: "sandbox upload", help: "Upload files to a sandbox." },
   download: { spec: "commands/sandbox:download", target: "sandbox download", help: "Download a file from a sandbox." },
   run: { spec: "commands/sandbox:run_cmd", target: "sandbox command run", help: "Run a registered sandbox command." },

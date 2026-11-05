@@ -5,7 +5,6 @@ import { CONFIG_METADATA } from "./metadata.js";
 import { UnsupportedCodeProtocol } from "../unsupported_code.js";
 import { FilesystemProtocol } from "../shared/e2b/filesystem.js";
 import { ProcessProtocol } from "../shared/e2b/process.js";
-import { SandboxProtocol } from "../shared/e2b/sandbox.js";
 import { createAuthProvider } from "./auth.js";
 import { MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, prepareManagedApiKey, resolveSandboxApiKey } from "./managed_api_key.js";
 import { resolveCapabilities } from "../../api/capability.js";
@@ -32,6 +31,9 @@ import type { ProviderCommandRunner } from "../command_contract.js";
 import { ALICLOUD_COMMANDS, runAlicloudCommand } from "./commands.js";
 import { CONDITIONAL_COMMANDS, buildConditionalCommandRunner, isConditionalCommand } from "./conditional_commands.js";
 import { TEMPLATE_CACHE_COMMANDS, isTemplateCacheCommand, runTemplateCacheCommand } from "./template_cache_commands.js";
+import { RUNTIME_COMMANDS, buildRuntimeCommandRunner, isRuntimeCommand } from "./runtime_commands.js";
+import { ExpressSandboxProtocol } from "./sandbox.js";
+import { parseCreateNetwork } from "./network_schema.js";
 
 function fields(): ConfigField[] {
   return ALICLOUD_EXPRESS_KEYS.map((k) => ({
@@ -65,17 +67,21 @@ export class AlicloudExpressProvider extends Provider {
     this.operations = workflowOperations.operations;
     this.workflow_inputs = workflowOperations.workflow_inputs;
     this.startup_modes = workflowOperations.startup_modes;
-    this.commands = [...ALICLOUD_COMMANDS, MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS];
+    this.commands = [...ALICLOUD_COMMANDS, MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS, ...RUNTIME_COMMANDS];
     // Snapshot create may take300 seconds; this is an outer deadline, not the sandbox TTL.
     this.commandTimeoutMs = 360_000;
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
     this.configFields = fields();
   }
 
-  override createOptions = new Set(["volume_mounts"]);
+  override createOptions = new Set(["volume_mounts", "network"]);
+
+  override validateCreateOptions(options: Readonly<Record<string, unknown>>): void {
+    if (options.network != null) parseCreateNetwork(options.network, options.secure !== false);
+  }
 
   override buildSessionProtocols(http: HttpClient) {
-    return { sandbox_protocol: new SandboxProtocol(http), process_protocol: new ProcessProtocol(http),
+    return { sandbox_protocol: new ExpressSandboxProtocol(http), process_protocol: new ProcessProtocol(http),
       filesystem_protocol: new FilesystemProtocol(http), code_interpreter_protocol: new UnsupportedCodeProtocol(this.id) };
   }
 
@@ -104,15 +110,20 @@ export class AlicloudExpressProvider extends Provider {
 
   override async buildCommandRunner(config: LayeredConfig): Promise<ProviderCommandRunner> {
     let conditional: ProviderCommandRunner | undefined;
+    let runtime: ProviderCommandRunner | undefined;
     return {
       run: (command, input, signal) => {
         if (command === MANAGED_KEY_COMMAND.id || command === MANAGED_KEY_RESOLVE_COMMAND.id) return prepareManagedApiKey(config, input, command === MANAGED_KEY_COMMAND.id);
         if (isTemplateCacheCommand(command)) return runTemplateCacheCommand(config, command, input, signal);
+        if (isRuntimeCommand(command)) {
+          runtime ??= buildRuntimeCommandRunner(config);
+          return runtime.run(command, input, signal);
+        }
         if (!isConditionalCommand(command)) return runAlicloudCommand(config, command, input);
         conditional ??= buildConditionalCommandRunner(config);
         return conditional.run(command, input, signal);
       },
-      close: async () => { await conditional?.close?.(); },
+      close: async () => { await Promise.all([conditional?.close?.(), runtime?.close?.()]); },
     };
   }
 
@@ -128,7 +139,7 @@ export class AlicloudExpressProvider extends Provider {
       config,
       auth,
       http_client: http,
-      sandbox_protocol: new SandboxProtocol(http),
+      sandbox_protocol: new ExpressSandboxProtocol(http),
       process_protocol: new ProcessProtocol(http),
       filesystem_protocol: new FilesystemProtocol(http),
       code_interpreter_protocol: new UnsupportedCodeProtocol(this.id),

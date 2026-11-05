@@ -1,12 +1,12 @@
 /** Express data-plane operations registered once for the CLI and all engine clients. */
 import { z } from "zod";
-import { InvalidAPIKeyError, QuotaExceededError, SandboxError, SandboxNotFoundError } from "../../models/errors.js";
-import { ApiKeyAuth } from "../../transport/auth_contract.js";
+import { QuotaExceededError, SandboxError, SandboxNotFoundError } from "../../models/errors.js";
 import type { LayeredConfig } from "../../transport/config_layers.js";
-import { HttpClient, HTTPStatusError, TimeoutException } from "../../transport/http.js";
+import { HTTPStatusError, TimeoutException } from "../../transport/http.js";
 import type { ProviderCommand, ProviderCommandRunner } from "../command_contract.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderProtocolError, ProviderResourceNotFoundError, ProviderTimeoutError } from "../../models/provider_errors.js";
 import { commandSchema } from "./command_schema.js";
+import { dataPlaneClient } from "./data_plane.js";
 
 type Dict = Record<string, unknown>;
 const sandboxId = z.string().min(1).max(256).regex(/^[A-Za-z0-9_-]+$/);
@@ -75,8 +75,7 @@ function serviceError(id: Id, error: unknown): never {
 
 /** Build an isolated, closeable data-plane runner. AK/SK is never substituted for the API key. */
 export function buildConditionalCommandRunner(config: LayeredConfig): ProviderCommandRunner {
-  if (!config.sandbox_api_key?.trim()) throw new InvalidAPIKeyError("Express pause/Snapshot commands require the selected sandbox API key; AK/SK does not replace it.");
-  const http = new HttpClient(config.toTransportConfig(), new ApiKeyAuth(config.sandbox_api_key));
+  const client = dataPlaneClient(config);
   return {
     async run(id: string, raw: Dict, signal: AbortSignal): Promise<unknown> {
       if (!isConditionalCommand(id)) throw new ProviderFeatureNotSupportedError("alicloud-express", `command:${id}`);
@@ -86,6 +85,7 @@ export function buildConditionalCommandRunner(config: LayeredConfig): ProviderCo
       const input = parsed.data as Dict;
       const request_timeout = Number(input.request_timeout ?? (id === "snapshot.create" ? 300 : config.http_timeout));
       const source = encodeURIComponent(String(input.sandbox_id));
+      const http = await client.get(signal);
       try {
         if (id === "sandbox.pause") {
           await http.platformRequest("POST", `/sandboxes/${source}/pause`, { json: { memory: true }, request_timeout });
@@ -120,6 +120,6 @@ export function buildConditionalCommandRunner(config: LayeredConfig): ProviderCo
         return { deleted: true };
       } catch (error) { return serviceError(id, error); }
     },
-    close: () => http.close(),
+    close: () => client.close(),
   };
 }

@@ -17,6 +17,8 @@ import {
   SERVER_SDK_SOURCE_ENV,
   SERVER_SDK_VERSION_ENV,
   _seams,
+  _getAcrAuthTokenPersonal,
+  _getAcrAuthTokenEe,
   dockerBuildxAvailable,
   getAcrAuthToken,
   rewriteDockerfileForServerInstall,
@@ -96,6 +98,28 @@ describe("TestACRAuthTokenAlias", () => {
     const result = await getAcrAuthToken("ak", "sk", "cn-hangzhou");
     expect(result["tempUserName"]).toBe("u");
     expect(mock_personal).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ACR STS authentication", () => {
+  it("signs the personal-edition security-token header and sends the EE token parameter", async () => {
+    const seen: Array<{ url: string; token: string }> = [];
+    _setDefaultTransportFactory(() => new MockTransport(request => {
+      seen.push({ url: request.url.toString(), token: request.headers.get("x-acs-security-token", "") ?? "" });
+      return new HttpxResponse(200, { json: { data: { tempUserName: "runtime-user", authorizationToken: "placeholder-acr-auth" } } });
+    }));
+    await _getAcrAuthTokenPersonal("placeholder-ak", "placeholder-sk", "cn-hangzhou", "placeholder-sts");
+    await _getAcrAuthTokenEe("placeholder-ak", "placeholder-sk", "cn-hangzhou", "cri-example", "placeholder-sts");
+    expect(seen[0]!.token).toBe("placeholder-sts");
+    expect(new URL(seen[1]!.url).searchParams.get("SecurityToken")).toBe("placeholder-sts");
+  });
+
+  it("does not fall back to direct AK/SK Docker login when temporary credentials fail", async () => {
+    vi.spyOn(_seams, "getAcrAuthTokenPersonal").mockRejectedValue(new Error("placeholder-sts"));
+    const builder = new DockerBuilder();
+    const login = vi.spyOn(builder, "loginAcr").mockResolvedValue();
+    await expect(builder.loginAcrWithAksk("example.invalid", "placeholder-ak", "placeholder-sk", { security_token: "placeholder-sts" })).rejects.toThrow("direct AccessKey login fallback was not attempted");
+    expect(login).not.toHaveBeenCalled();
   });
 });
 
