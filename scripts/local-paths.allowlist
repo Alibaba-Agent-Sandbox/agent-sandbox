@@ -36,5 +36,7 @@ parity/diff/config_cmds.mjs|C:\\\\Users\\\\me
 tests/test_cli/test_config_llm.test.ts|sk-placeholder
 parity/review/completeness.md|sk-adv-canonical
 parity/diff/adv_agent_template_adopt.mjs|BEGIN (RSA |OPENSSH )?PRIVATE KEY|ghp_abcdefghijklmnopqrstuvwxyz0123
+# Deliberately malformed CA-rejection fixture: only a header, the word "invalid", and an end marker; no private key material.
+tests/test_cli/test_managed_application.test.ts|-----BEGIN PRIVATE KEY-----
 # Provider e2e harness: a path inside its throw-away $WORK home (provider owner's script).
 e2e/providers/run.sh|\$WORK/home/\.abx

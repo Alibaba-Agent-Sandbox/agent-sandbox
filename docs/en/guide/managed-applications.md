@@ -9,6 +9,8 @@ Node.js 20+, Docker, an ACR namespace and the template's Python smoke dependenci
 Start from the [Agents API template](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api).
 It supplies the Sandbox image, Server recipe, binding example and business smoke script. Its API is an
 OpenAI Agents inspired subset with explicit queue and compute-close behavior; use its API guide for supported requests.
+SSE connections return finite slices of up to 20 seconds. Save the persistent event cursor and reconnect
+with `Last-Event-ID`; a finished stream slice does not mean the turn completed.
 
 Keep deployment input private and outside the image build context:
 

@@ -42,7 +42,7 @@ node e2e/managed-components.mjs all
 | Actual Server image lifecycle | PASS | Docker scratch build, random ACR tag push, matching native config ID/digest, clean-build, native tag absence and exact local-tag absence |
 | Actual FC environment budget probe | PASS | 3,020 and 5,020 total key/value bytes were accepted and read back exactly; both owned functions independently absent. This disproves a 4 KiB hard rejection for this account/API, not an unlimited-size guarantee |
 | Reproducible real component runner | PASS | Committed e2e/managed-components.mjs all ran both FC and ACR lifecycles successfully |
-| Full local CI | FAIL | 4,610 passed, 10 failed, 60 skipped; all ten failures independently reproduced on untouched main 590f0ef with its lockfile. Final state/VPC guards have additional focused checks |
+| Full local CI / final SDK-configured suite | FAIL | Latest full suite: 4,649 passed, 10 failed, 54 skipped; all ten failures independently reproduced on untouched main 590f0ef with its lockfile. Final state/VPC guards are included |
 | Repository health | PASS | 105 passed, 11 existing warnings, zero failures |
 | Hygiene | PASS | No machine-local paths or credential-like values found |
 | Parity coverage with the actual Server SDK source configured | PASS | 907 ledger entries passed; zero failed/skipped/missing; all eleven moved entries verified in the owner checkout |
@@ -71,6 +71,11 @@ the profile now sets diskSize: 512 explicitly. The first minimal component fixtu
 codeUri instead of fc3 0.1.26's code property; its failure was corrected in the fixture before passing.
 ACR metadata can temporarily omit image digests immediately after a successful push. Only bounded
 read retries are allowed; missing metadata never establishes absence and pushes are not replayed.
+
+The first remote CI run passed both Node test jobs, type checking and lint, but hygiene flagged the
+deliberately malformed private-key header in the CA rejection test. That fixture has no key material;
+the existing narrow file/pattern allowlist convention documents this match. Production rejection,
+all other credential patterns and all cloud acceptance gates remain unchanged.
 
 The unchanged main baseline reproduces ten failures across test_node_transport_integration,
 adversarial/core/transport_net and adversarial/core/ws: refused-connection text; malformed HTTP,

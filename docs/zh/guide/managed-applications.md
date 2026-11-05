@@ -8,6 +8,8 @@ CLI 0.5.8 尚未包含这些命令。部署主机需要 Node.js 20+、Docker、A
 从 [Agents API 模板](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api)开始。
 模板包含 Sandbox 镜像、Server 构建文件、绑定示例和业务验证脚本。API 是受 OpenAI Agents 启发的子集，
 明确区分排队和关闭计算；受支持请求以模板 API 指南为准。
+SSE 每次连接返回最多 20 秒的有限片段；请保存持久事件游标并通过 `Last-Event-ID` 重连。
+一次流片段结束不代表本轮任务已完成。
 
 将私有部署输入放到镜像构建上下文排除的目录：
 
