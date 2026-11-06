@@ -86,26 +86,27 @@ describe("managed application boundary", () => {
     expect(result.error).toBeUndefined(); expect(result.status).toBe(1); expect(result.stderr).toContain("ERR_INVALID_ARG_TYPE"); expect(result.stderr).toContain("Function.concat"); expect(result.stderr).toContain("Readable.onEnd");
   });
   it("serializes the signed UTF-8 control envelope through the real FC SDK before the network boundary", async () => {
-    const require = createRequire(import.meta.url), dara = require("@darabonba/typescript"), httpx = require("httpx") as { request(url: string, options: { method: string; headers: Record<string, string>; data: Readable }): Promise<Readable> };
+    const require = createRequire(import.meta.url), dara = require("@darabonba/typescript"), core = require("@darabonba/typescript/dist/core") as { doAction(request: { protocol: string; pathname: string; method: string; query: Record<string, string>; headers: Record<string, string>; body: Readable }): Promise<unknown> };
     const envelope = signInvocation("dispatcher", { action: "status", marker: "证据🔒" }, binding().internal.token), expected = Buffer.from(JSON.stringify(envelope), "utf8");
     let outbound: Buffer | undefined;
-    const network = vi.spyOn(httpx, "request").mockImplementation(async (url: string, options: { method: string; headers: Record<string, string>; data: Readable }) => {
-      expect(url).toBe("https://fcv3.cn-hangzhou.aliyuncs.com/2023-03-30/functions/test-dispatcher/invocations?qualifier=LATEST");
-      expect(options.method).toBe("POST"); expect(options.headers["x-fc-invocation-type"]).toBe("Sync"); expect(options.headers["x-fc-log-type"]).toBe("None");
-      outbound = await dara.Stream.readAsBytes(options.data);
-      expect(options.headers["x-acs-content-sha256"]).toBe(createHash("sha256").update(expected).digest("hex"));
-      return Object.assign(Readable.from([Buffer.from('{"activeSessions":0}', "utf8")]), { statusCode: 200, headers: {} });
+    const network = vi.spyOn(core, "doAction").mockImplementation(async request => {
+      expect(request.protocol).toBe("https"); expect(request.headers.host).toBe("fcv3.cn-hangzhou.aliyuncs.com");
+      expect(request.pathname).toBe("/2023-03-30/functions/test-dispatcher/invocations"); expect(request.query.qualifier).toBe("LATEST");
+      expect(request.method).toBe("POST"); expect(request.headers["x-fc-invocation-type"]).toBe("Sync"); expect(request.headers["x-fc-log-type"]).toBe("None");
+      outbound = await dara.Stream.readAsBytes(request.body);
+      expect(request.headers["x-acs-content-sha256"]).toBe(createHash("sha256").update(expected).digest("hex"));
+      return new dara.Response(Object.assign(Readable.from([Buffer.from('{"activeSessions":0}', "utf8")]), { statusCode: 200, headers: {} }));
     });
     const fc = createFcTransport({ AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" }, "cn-hangzhou");
     await expect(fc.invokeControl("test-dispatcher", envelope)).resolves.toEqual({ activeSessions: 0 });
     expect(network).toHaveBeenCalledTimes(1); expect(outbound).toEqual(expected); expect(JSON.parse(outbound!.toString("utf8"))).toEqual(envelope);
   });
   it.each(["errorType", "ErrorType", "errorMessage", "ErrorMessage", "error", "Error"])("withholds native HTTP 200 error field %s through the official SDK", async key => {
-    const httpx = createRequire(import.meta.url)("httpx") as { request(...args: unknown[]): Promise<Readable> };
+    const require = createRequire(import.meta.url), dara = require("@darabonba/typescript"), core = require("@darabonba/typescript/dist/core") as { doAction(...args: unknown[]): Promise<unknown> };
     const raw = "test-native-output-must-stay-private";
-    const network = vi.spyOn(httpx, "request").mockImplementation(async () => Object.assign(Readable.from([Buffer.from(JSON.stringify({ [key]: raw }), "utf8")]), { statusCode: 200, headers: {} }));
+    const network = vi.spyOn(core, "doAction").mockImplementation(async () => new dara.Response(Object.assign(Readable.from([Buffer.from(JSON.stringify({ [key]: raw }), "utf8")]), { statusCode: 200, headers: {} })));
     const fc = createFcTransport({ AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" }, "cn-hangzhou");
-    await expect(fc.invokeControl("test-dispatcher", signInvocation("dispatcher", { operation: "status" }, binding().internal.token))).rejects.toThrow("Private invocation failed or returned an invalid bounded result.");
+    await expect(fc.invokeControl("test-dispatcher", signInvocation("dispatcher", { operation: "status" }, binding().internal.token))).rejects.toMatchObject({ message: "Private invocation failed or returned an invalid bounded result." });
     expect(network).toHaveBeenCalledTimes(1);
   });
   it("freezes non-secret state routing while allowing password/TLS material changes", () => {
