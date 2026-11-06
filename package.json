@@ -64,7 +64,7 @@
     "@alicloud/fcsandbox20260509": "^1.5.1",
     "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/openapi-core": "^1.0.8",
-    "@alicloud/sandbox20260820": "1.2.0",
+    "@alicloud/sandbox20260820": "1.2.1",
     "@alicloud/sts20150401": "1.2.0",
     "@darabonba/typescript": "1.0.5",
     "@inquirer/prompts": "^8.7.3",
