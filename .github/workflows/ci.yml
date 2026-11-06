@@ -54,7 +54,7 @@ jobs:
         run: npm ci
 
       - name: Verify Express image recovery report projection
-        run: node --test e2e/express-workflow-images.test.mjs
+        run: node --test e2e/express-workflow-images.test.mjs e2e/terminal-expiry.test.mjs
 
       - name: Check out the Python server SDK
         uses: actions/checkout@v4

@@ -2,7 +2,7 @@
 
 - Date: 2026-11-06
 - Change: [Issue 237](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/237)
-- Result: PARTIAL; local and remote repository gates PASS; initial real Express gate FAIL; publication pending.
+- Result: real-component coverage completed across preserved runs; final exact-head repository/publication gates pending.
 - Package: locally prepared CLI 0.5.10; base main `7b08d7c66299f5ac98ea34684d968d61e208f0d9`.
 - Environment: Linux, Node.js 22. Credentials are not needed for local regressions and are not recorded.
 
@@ -40,6 +40,10 @@ revision success, fatal errors and production temporary-credential behavior unch
   Node 20/22 tests, typecheck, installer and package build PASS. Documentation links also PASS.
   Automatic Express run 42232391946 skipped its real launch step; its green job is not real-component evidence.
 - [Initial standalone real Express result](2026-11-06-cli-0510-express-initial.md): FAIL; no blind rerun.
+- [Subsequent real Express result and test-clock correction](2026-11-06-terminal-expiry-observation-budget.md):
+  the second full report remains FAIL (177 PASS, one FAIL, eight SKIP); the isolated complete standard
+  case then passed with actual waited exit 0 and independent typed absence for both owned IDs.
+  The 37 pure image/expiry cases and lint also pass; all 697 product dist files remain unchanged.
 
 The five remaining optional cases require three temporary real filesystem mounts, a live local
 OpenSandbox server, or the original SDK user-doc fixture. None is reported as passed.
@@ -72,6 +76,8 @@ independently; it does not broaden the existing compute cleanup selector.
 
 ## Not verified
 
-Complete real Express success, managed public deployment with this patch, five-platform release and
-fresh public npm installation are pending. CLI 0.5.9's failed receipt remains
+Final exact-head repository gates, managed public deployment with this patch, five-platform release
+and fresh public npm installation are pending. Real Express coverage is scoped across the original
+177 passing cases and the corrected selected standard case; eight conditional cases remain skipped.
+Neither earlier complete-run failure is rewritten as success. CLI 0.5.9's failed receipt remains
 historical and is not marked ready or replayed.
