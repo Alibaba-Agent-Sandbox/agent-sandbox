@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+[Managed storage budget compilation](notes/proposed/feature/2026-11-06-managed-storage-budget-compilation.md) · [verification](evidence/verify/2026-11-06-managed-storage-budget-compilation.md) checks actual compiled bootstrap against the installed final SDK.
+
 [FC control request bytes](notes/proposed/feature/2026-11-06-fc-control-request-bytes.md) · [verification](evidence/verify/2026-11-06-fc-control-request-bytes.md) preserves the actual official serializer failure and the separate recovery candidate.
 
 [FC certificate argument chunks](evidence/verify/2026-11-06-fc-ca-argument-chunks.md) preserves the native single-argument limit and separate third candidate.

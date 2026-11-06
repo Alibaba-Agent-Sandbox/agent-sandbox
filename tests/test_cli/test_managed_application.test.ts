@@ -27,11 +27,16 @@ const temporary: string[] = [];
 const scratch = (): string => { const folder = fs.mkdtempSync(path.join(os.tmpdir(), "abx-managed-test-")); temporary.push(folder); return folder; };
 afterEach(() => { vi.restoreAllMocks(); for (const folder of temporary.splice(0)) fs.rmSync(folder, { recursive: true, force: true }); });
 const templateFixture = fileURLToPath(new URL("../fixtures/application-managed/template.yaml", import.meta.url));
-function fixture() {
+function fixture(source = templateFixture) {
   const directory = scratch(), file = path.join(directory, "template.yaml"), tools = scratch(); fs.copyFileSync(templateFixture, file);
+  if (source !== templateFixture) {
+    const recipe = readTemplate(source).application.deployment.serverBuildRecipe;
+    fs.copyFileSync(source, file);
+    if (recipe) { const target = path.join(directory, recipe.dockerfile); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.copyFileSync(path.join(path.dirname(source), recipe.dockerfile), target); }
+  }
   fs.mkdirSync(path.join(tools, "loader")); fs.mkdirSync(path.join(tools, "component"));
   const template = readTemplate(file), buildFile = path.join(directory, ".abx", "build.json");
-  const build: BuildReceipt = { schemaVersion: 1, kind: "ManagedApplicationBuild", sourceDigest: sourceDigest(directory), image: template.application.deployment.serverImage!, createdAt: new Date().toISOString(), toolchain: {
+  const build: BuildReceipt = { schemaVersion: 1, kind: "ManagedApplicationBuild", sourceDigest: sourceDigest(directory), image: template.application.deployment.serverImage ?? "registry.example.test/agents@sha256:" + "a".repeat(64), createdAt: new Date().toISOString(), toolchain: {
     schemaVersion: 1, node: { path: process.execPath, version: process.version, sha256: createHash("sha256").update(fs.readFileSync(process.execPath)).digest("hex") },
     loader: { path: path.join(tools, "loader", "index.cjs"), version: "fixture", directory: path.join(tools, "loader"), sha256: toolDigest(path.join(tools, "loader")) },
     component: { reference: "fc3@0.1.26", directory: path.join(tools, "component"), sha256: toolDigest(path.join(tools, "component")) } } };
@@ -246,6 +251,27 @@ describe("managed application effects", () => {
     const value = fixture(), external = services(value.plan), receipt = await applyPlan(value.plan, external.deps, value.receiptFile);
     expect(receipt.stateInstanceId).toBe("1".repeat(32));
     for (const name of Object.values(value.plan.identities)) expect(JSON.parse((external.native.get(name)!.environmentVariables as Record<string, string>).ABX_MANAGED_CONFIG_JSON).expectedStateId).toBe(receipt.stateInstanceId);
+  });
+  it("compiles only numeric storage budgets while preserving the manifest's deployment descriptor", async () => {
+    const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
+    const expected = Object.fromEntries(Object.entries(value.template.application.storage).filter(([key]) => key !== "backend"));
+    for (const name of Object.values(value.plan.identities)) {
+      const compiled = JSON.parse((external.native.get(name)!.environmentVariables as Record<string, string>).ABX_MANAGED_CONFIG_JSON);
+      expect(compiled.storage).toEqual(expected); expect(compiled.storage).not.toHaveProperty("backend");
+    }
+    expect(value.template.application.storage.backend).toBe("bounded-database");
+  });
+  it.skipIf(!process.env.ABX_MANAGED_RUNTIME_PYTHON)("passes full compiled role configuration through the installed final SDK parser", async () => {
+    const value = fixture(process.env.ABX_MANAGED_TEMPLATE_FILE ?? templateFixture), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
+    const compiled = Object.values(value.plan.identities).map(name => JSON.parse((external.native.get(name)!.environmentVariables as Record<string, string>).ABX_MANAGED_CONFIG_JSON));
+    const check = spawnSync(process.env.ABX_MANAGED_RUNTIME_PYTHON!, ["-I", "-c", [
+      "import json, sys", "from agent_sandbox.managed_agents import ManagedConfig", "configs = json.load(sys.stdin)",
+      "for value in configs:", "    config = ManagedConfig.from_dict(value)", "    assert config.storage == value['storage']",
+      "    for key, extra in [('backend', 'bounded-database'), ('unknownBudget', 1)]:", "        invalid = {**value, 'storage': {**value['storage'], key: extra}}",
+      "        try: ManagedConfig.from_dict(invalid)", "        except ValueError: pass", "        else: raise AssertionError('unknown storage field accepted')",
+      "print('three compiled role configs accepted; descriptor and unknown field rejected')",
+    ].join("\n")], { input: JSON.stringify(compiled), encoding: "utf8", timeout: 15000 });
+    expect(check.error).toBeUndefined(); expect(check.status).toBe(0); expect(check.stdout.trim()).toBe("three compiled role configs accepted; descriptor and unknown field rejected");
   });
   it("withholds candidate publication when the backend ledger changes during initial pinning", async () => {
     const value = fixture(), external = services(value.plan); let calls = 0;

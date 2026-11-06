@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Keep the storage backend descriptor out of numeric runtime budgets so the full managed manifest starts with the matching SDK. / 编译数字运行预算时排除存储后端描述，使完整托管清单可由对应 SDK 正常启动。
+
 - Serialize private FC invocation bodies as UTF-8 bytes and reject drained application ledgers before candidate publication. / 私有 FC 调用显式发送 UTF-8 字节，候选发布前拒绝已排空的应用账本。
 
 - Wait for FC image readiness, submit owned Server image tags with digest verification, keep database CA outside the 4 KiB role environment, and bound native function names. / 等待 FC 镜像就绪，自有 Server 镜像以 tag 提交并核对 digest，数据库 CA 不占角色 4 KiB 环境变量预算，并限制原生函数名长度。

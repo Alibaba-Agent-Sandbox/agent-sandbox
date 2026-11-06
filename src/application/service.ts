@@ -90,7 +90,7 @@ function runtimeConfig(receipt: ApplicationReceipt, binding: ResolvedBindings): 
   return { revision: receipt.plan.revision, template: receipt.sandbox!.reference, models: { [binding.model.model]: binding.model.adapter }, applicationId: appId(receipt.plan.template), provider: app.sandbox.provider,
     modelEnvAllowlist: app.bindings.model.allowedEnv,
     ...(receipt.stateInstanceId ? { expectedStateId: receipt.stateInstanceId } : {}),
-    workspace: "/workspace", port: 9000, sessions: app.sessions, limits: app.limits, storage: app.storage,
+    workspace: "/workspace", port: 9000, sessions: app.sessions, limits: app.limits, storage: Object.fromEntries(Object.entries(app.storage).filter(([key]) => key !== "backend")),
     workers: Object.fromEntries([...receipt.retained.map(item => [item.revision, item.worker]), [receipt.plan.revision, receipt.plan.identities.worker]]) };
 }
 function propsFor(receipt: ApplicationReceipt, services: ApplicationServices, role: Role, auth = services.binding.auth): Record<string, unknown> {
