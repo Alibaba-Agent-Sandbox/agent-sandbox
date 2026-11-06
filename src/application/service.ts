@@ -175,6 +175,24 @@ async function verifyProductionCredential(services: ApplicationServices, endpoin
   }
   throw failure();
 }
+async function waitForStableGateway(services: ApplicationServices, endpoint: string, revision: string): Promise<void> {
+  const deadline = Date.now() + 30000;
+  let attempts = 0, status: number | undefined;
+  const failure = (): ApplicationError => new ApplicationError(`Stable Gateway HTTP readiness did not confirm the frozen revision (${status === undefined ? "HTTP status unavailable" : `HTTP ${status}`}; attempts ${attempts}).`);
+  while (attempts < 30) {
+    const remaining = Math.floor(deadline - Date.now());
+    if (remaining <= 0) throw failure();
+    attempts++;
+    let result: { status: number; body: unknown };
+    try { result = await probe(services, endpoint, "/health", undefined, Math.min(15000, remaining)); }
+    catch { status = undefined; throw failure(); }
+    status = Number.isInteger(result.status) && result.status >= 100 && result.status <= 599 ? result.status : undefined;
+    if (status === 200 && record(result.body) && result.body.revision === revision) return;
+    if (![404, 502, 503, 504].includes(status ?? 0) || attempts === 30 || Date.now() + 1000 >= deadline) throw failure();
+    await delay(1000);
+  }
+  throw failure();
+}
 async function candidateHooks(receipt: ApplicationReceipt, services: ApplicationServices, endpoint: string, token: string): Promise<void> {
   let finished = false, dispatchFailure: unknown;
   const drive = async (): Promise<void> => { while (!finished) { try { await services.fc.invokeControl(receipt.plan.identities.dispatcher, signInvocation("dispatcher", { limit: 20 }, services.binding.internal.token)); } catch (error) { dispatchFailure = error; return; } if (!finished) await delay(250); } };
@@ -286,6 +304,8 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     if (services.binding.ingress.kind === "custom-domain") { await services.fc.publishDomain(services.binding.ingress.domainName!, plan.identities.gateway, receipt.aliasName); receipt.endpoint = `https://${services.binding.ingress.domainName}`; }
     else receipt.endpoint = testEndpoint;
     save(file, receipt);
+    phase("stable-readiness"); await waitForStableGateway(services, receipt.endpoint, plan.revision);
+    phase("verify-production-auth");
     await verifyProductionCredential(services, receipt.endpoint, verificationToken);
     phase("candidate-cleanup"); await services.fc.deleteTrigger(plan.identities.gateway, receipt.candidateTrigger);
     delete receipt.candidateEndpoint; delete receipt.candidateTrigger;

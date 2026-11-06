@@ -390,6 +390,55 @@ describe("managed application effects", () => {
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
     expect(attempts).toBe(2); expect(tokens[0]).toBe(tokens[1]);
   });
+  it("waits for stable HTTP health at the frozen revision before testing the credential", async () => {
+    const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
+    external.deps.probe = async (_endpoint, pathname, token) => {
+      if (pathname === "/health") { health++; expect(token).toBeUndefined(); return health === 2 ? { status: 404, body: {} } : { status: 200, body: { revision: value.plan.revision } }; }
+      credentials++; expect(health).toBe(3); return { status: 401, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(credentials).toBe(1);
+  });
+  it("rejects stable HTTP from an old revision even if it would reject the new credential", async () => {
+    const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") return { status: 200, body: { revision: ++health === 1 ? value.plan.revision : "test-old-revision" } };
+      credentials++; return { status: 401, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 1)." });
+    expect(credentials).toBe(0); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
+    expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
+  });
+  it.each([403, 500])("fails stable HTTP readiness immediately on %s", async status => {
+    const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") return ++health === 1 ? { status: 200, body: { revision: value.plan.revision } } : { status, body: { private: "test-private-health-error" } };
+      credentials++; return { status: 401, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: `Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP ${status}; attempts 1).` });
+    expect(health).toBe(2); expect(credentials).toBe(0);
+  });
+  it("bounds stable readiness wait without treating a 404 as successful authentication", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let health = 0, credentials = 0, shift = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") { if (++health === 1) return { status: 200, body: { revision: value.plan.revision } }; shift += 31000; return { status: 404, body: {} }; }
+      credentials++; return { status: 401, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP 404; attempts 1)." });
+    expect(health).toBe(2); expect(credentials).toBe(0);
+  });
+  it("narrows real stable-health fetch timeouts to their remaining readiness budget", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let health = 0, shift = 0;
+    external.deps.probe = undefined; vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      if (String(input).endsWith("/health")) { if (++health === 2) { shift += 22000; return new Response("test-native-not-ready", { status: 404 }); } return new Response(JSON.stringify({ revision: value.plan.revision })); }
+      return new Response("{}", { status: 401 });
+    });
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(health).toBe(3); expect(timeout.mock.calls[2][0]).toBeGreaterThan(0); expect(timeout.mock.calls[2][0]).toBeLessThan(8000);
+  });
   it.each([200, 400, 403, 404, 500])("fails immediately on production HTTP %s without retrying into 401", async status => {
     const value = fixture(), external = services(value.plan); let attempts = 0, boundary = -1;
     external.deps.probe = async (_endpoint, pathname) => {

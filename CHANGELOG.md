@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Verify the stable HTTP Gateway serves the frozen new revision before final credential rejection, with bounded health-only readiness waits. / 最终凭据检查前验证稳定 HTTP Gateway 已服务冻结的新 revision，并有限等待健康入口就绪。
+
 - Report safe production credential-check status and retry only bounded HTTP 502/503/504 reads; accepted credentials still stop publication immediately. / 生产凭据检查报告安全状态码，只有限重试 HTTP 502/503/504 读取；凭据被接受时仍立即停止发布。
 
 - Keep the storage backend descriptor out of numeric runtime budgets so the full managed manifest starts with the matching SDK. / 编译数字运行预算时排除存储后端描述，使完整托管清单可由对应 SDK 正常启动。

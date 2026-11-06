@@ -130,3 +130,6 @@ remove those exact images with ACR tooling after no retained template or functio
 
 The final temporary-credential check retries only HTTP 502/503/504 within 30 seconds and four attempts.
 An accepted credential or any other failure stops the operation; retain the receipt and inspect it instead of replaying apply.
+
+Before the final credential check, the stable health endpoint must return the new deployment revision.
+Health-only HTTP 404/502/503/504 responses may wait within 30 seconds; authentication 404 never counts as rejection.

@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+[Stable Gateway HTTP readiness](notes/proposed/feature/2026-11-06-stable-gateway-readiness.md) · [verification](evidence/verify/2026-11-06-stable-gateway-readiness.md) verifies the frozen HTTP revision before final credential rejection.
+
 [Production credential probe](notes/proposed/feature/2026-11-06-production-credential-probe.md) · [verification](evidence/verify/2026-11-06-production-credential-probe.md) bounds explicit transient read checks while retaining authentication failures.
 
 [Managed storage budget compilation](notes/proposed/feature/2026-11-06-managed-storage-budget-compilation.md) · [verification](evidence/verify/2026-11-06-managed-storage-budget-compilation.md) checks actual compiled bootstrap against the installed final SDK.
