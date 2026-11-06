@@ -11,10 +11,12 @@ import { SandboxNotFoundError, TemplateNotFoundError } from '../dist/models/erro
 import { requestApplication } from '../dist/transport/application_http.js';
 import { loadConfig } from '../dist/transport/config.js';
 import { listOfficialTemplates, getTemplate, deleteTemplate } from '../dist/providers/alicloud_express/fc_template.js';
+import { projectWorkflowImages, selectWorkflowImageJournals } from './express-workflow-images.mjs';
 
 const cli = fileURLToPath(new URL('../dist/bin/abx.js', import.meta.url));
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'abx-express-acceptance-'));
 const alias = `workflow-e2e-${randomBytes(6).toString('hex')}`;
+const runStartedAt = new Date().toISOString();
 const journalDirectory = path.join(os.homedir(), '.abx', 'resource-journal');
 const report = { result: 'FAIL', checks: [], cleanup: {}, limitation: 'Only python-hello is live-tested; static compatibility does not certify other template workloads.' };
 const config = loadConfig();
@@ -56,6 +58,12 @@ function check(name) { report.checks.push(name); console.log(`PASS ${name}`); }
 function journals() {
   if (!fs.existsSync(journalDirectory)) return [];
   return fs.readdirSync(journalDirectory).filter(name=>name.endsWith('.json')).map(name=>JSON.parse(fs.readFileSync(path.join(journalDirectory,name),'utf8'))).filter(j=>j.entries.some(e=>e.correlation_key?.startsWith(alias)));
+}
+function imageJournals() {
+  if (!fs.existsSync(journalDirectory)) return [];
+  const all = fs.readdirSync(journalDirectory).filter(name=>name.endsWith('.json'))
+    .map(name=>JSON.parse(fs.readFileSync(path.join(journalDirectory,name),'utf8')));
+  return selectWorkflowImageJournals(all, alias);
 }
 try {
   // Same source reference and default build as the Registry's Express instruction.
@@ -139,9 +147,18 @@ finally {
     report.cleanup.images='unique-tag ACR images retained; manual cleanup entries in the resource journal';
     check('owned sandbox and template cleanup');
   } catch { report.cleanup.failure='cleanup not confirmed; reconcile the local owned-resource journal';report.result='FAIL'; }
-  await sandbox?.close();
+  try { await sandbox?.close(); }
+  catch { report.cleanup.client_close='unconfirmed';report.result='FAIL'; }
   if(error)report.result='FAIL';
-  fs.writeFileSync(process.env.ABX_WORKFLOW_REPORT || path.join(directory,'report.json'),JSON.stringify(report,null,2)+'\n');
+  try {
+    report.owned_image_metadata = projectWorkflowImages(imageJournals(), alias, launch,
+      {startedAt: runStartedAt, finishedAt: new Date().toISOString()});
+    if(report.owned_image_metadata.status !== 'complete') report.result='FAIL';
+  } catch {
+    report.owned_image_metadata = {schemaVersion:1,status:'unconfirmed',images:[],issues:['image_metadata_collection_failed']};
+    report.result='FAIL';
+  }
+  fs.writeFileSync(process.env.ABX_WORKFLOW_REPORT || path.join(directory,'report.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
 }
 if(error){console.error(error.message);process.exitCode=1;}
 if(report.result!=='PASS')process.exitCode=1;

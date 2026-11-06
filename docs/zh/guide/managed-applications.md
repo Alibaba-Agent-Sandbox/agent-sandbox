@@ -2,8 +2,8 @@
 
 托管应用对外提供一个 Gateway 地址，Session 按需创建隔离的 Sandbox 计算环境。
 用户在不同会话和应用升级后仍使用同一地址。此流程支持阿里云极速版与函数计算上的
-`spec_version: 6`、`managed-bridge-v1` 模板。请用 `npm install --global @agent-sandbox/cli@0.5.9`
-安装已发布的 npm CLI 0.5.9；CLI 0.5.8 尚未包含这些命令。部署主机需要 Node.js 20+、Docker、ACR 命名空间及模板 smoke 脚本的 Python 依赖。
+`spec_version: 6`、`managed-bridge-v1` 模板。请用 `npm install --global @agent-sandbox/cli@0.5.10`
+安装 npm CLI 0.5.10；CLI 0.5.8 尚未包含这些命令。部署主机需要 Node.js 20+、Docker、ACR 命名空间及模板 smoke 脚本的 Python 依赖。
 
 从 [Agents API 模板](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api)开始。
 模板包含 Sandbox 镜像、Server 构建文件、绑定示例和业务验证脚本。API 是受 OpenAI Agents 启发的子集，
@@ -71,6 +71,11 @@ apply 记录使用后，只能经应用 retire/destroy 生命周期清理。推�
 `apply` 准备独立命名的 Sandbox Template，部署三个函数，执行模板候选业务验证，再发布稳定 Gateway 别名。
 收据给出 `endpoint` 和 `receipt_file`，外部客户端只需配置此地址与业务 Key。
 FC 内置域名仅供测试；生产环境使用既有 HTTPS 自定义域名。
+
+候选和稳定 Gateway 的健康检查会等待最多 30 秒，直到返回计划中的 revision。
+HTTP 200 响应中的 revision 不同或缺失时，在此期限内继续等待。
+发布要求 revision 精确匹配计划，随后单独检查临时凭据是否被拒绝。
+就绪等待超时后保留收据供观察和清理；`reconcile` 不会继续执行发布。
 
 升级时重新构建，并将上次 ready 收据传给计划：
 

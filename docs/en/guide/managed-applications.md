@@ -3,7 +3,7 @@
 Managed applications expose one Gateway endpoint. Sessions create isolated Sandbox compute as needed;
 clients keep using the Gateway URL across sessions and application updates. This workflow supports
 the `spec_version: 6`, `managed-bridge-v1` template profile on Alibaba Cloud Express and Function Compute.
-Install the published npm CLI 0.5.9 with `npm install --global @agent-sandbox/cli@0.5.9`.
+Install npm CLI 0.5.10 with `npm install --global @agent-sandbox/cli@0.5.10`.
 CLI 0.5.8 does not include these commands.
 Node.js 20+, Docker, an ACR namespace and the template's Python smoke dependencies are required on the deployment host.
 
@@ -84,6 +84,11 @@ An application apply prepares a uniquely named Sandbox Template, deploys the thr
 template's candidate smoke and publishes the stable Gateway alias. The receipt reports `endpoint` and `receipt_file`.
 Configure external clients with this endpoint and the business key. FC built-in domains are for testing;
 use an existing HTTPS custom domain for production.
+
+Candidate and stable Gateway health checks wait up to 30 seconds for the planned revision.
+An HTTP 200 response with a different or missing revision remains unready during this wait.
+Publication requires the exact planned revision, followed by a separate credential rejection check.
+A readiness timeout retains the receipt for observation and cleanup; `reconcile` does not resume publication.
 
 For an update, build again and give `plan` the last ready receipt:
 

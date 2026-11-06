@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Record CLI 0.5.9 publication and independently verified public installation; managed application guides now install the published npm version. / 补充 CLI 0.5.9 发行与独立公开安装记录，托管应用指南改用已发布 npm 版本。
 
+## [0.5.10] - 2026-11-06
+
+### Fixed
+
+- Continue bounded candidate and stable Gateway health reads when HTTP 200 has a different, missing or malformed revision; publish only after the exact planned revision is observed. Credential verification remains separate and strict. / 候选和稳定 Gateway 返回 HTTP 200 但 revision 不同、缺失或形状无效时，继续有界健康查询；只在精确匹配计划后发布，凭据检查仍独立且严格。
+
 ## [0.5.9] - 2026-11-06
 
 ### Added
