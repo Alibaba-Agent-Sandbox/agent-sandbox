@@ -188,7 +188,7 @@ async function waitForGatewayRevision(services: ApplicationServices, endpoint: s
     catch { status = undefined; throw failure(); }
     status = Number.isInteger(result.status) && result.status >= 100 && result.status <= 599 ? result.status : undefined;
     if (status === 200 && record(result.body) && result.body.revision === revision) return;
-    if (![404, 502, 503, 504].includes(status ?? 0) || attempts === 30 || Date.now() + 1000 >= deadline) throw failure();
+    if (![200, 404, 502, 503, 504].includes(status ?? 0) || attempts === 30 || Date.now() + 1000 >= deadline) throw failure();
     await delay(1000);
   }
   throw failure();

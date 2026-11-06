@@ -1,5 +1,6 @@
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -403,16 +404,97 @@ describe("managed application effects", () => {
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
     expect(hooks).toBe(1); expect(external.aliases.size).toBe(1);
   });
-  it.each([{ revision: "test-old-revision" }, {}, null])("rejects a candidate HTTP200 whose revision does not match: %j", async body => {
-    const value = fixture(), external = services(value.plan); let attempts = 0, hooks = 0;
-    external.deps.probe = async () => { attempts++; return { status: 200, body }; };
+  it.each(["Candidate", "Stable"] as const)("waits through nonmatching and malformed HTTP200 health before exact %s revision", async stage => {
+    const value = fixture(), external = services(value.plan); let attempts = 0, hooks = 0, credentials = 0;
+    const unready: unknown[] = [{ revision: "test-private-wrong-revision" }, {}, null, [], { revision: 7 }];
+    external.deps.probe = async (endpoint, pathname) => {
+      if (pathname !== "/health") { credentials++; expect(attempts).toBe(6); return { status: 401, body: {} }; }
+      const selected = endpoint.includes("//verify-") === (stage === "Candidate");
+      if (selected) { attempts++; return { status: 200, body: attempts <= unready.length ? unready[attempts - 1] : { revision: value.plan.revision } }; }
+      return { status: 200, body: { revision: value.plan.revision } };
+    };
+    external.deps.hooks = async phase => { if (phase === "afterReady") { if (stage === "Candidate") expect(attempts).toBe(6); hooks++; } };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(attempts).toBe(6); expect(hooks).toBe(1); expect(credentials).toBe(1);
+  });
+  it("uses the real local HTTP probe before candidate hooks and stable credential verification", { timeout: 20000 }, async () => {
+    const value = fixture(), external = services(value.plan), events: string[] = [];
+    const stages = ["Candidate", "Stable"] as const;
+    const health = { Candidate: 0, Stable: 0 }, endpoints: Partial<Record<typeof stages[number], string>> = {};
+    const handlerFailures: unknown[] = []; let hooks = 0, credentials = 0;
+    external.deps.probe = undefined;
+    expect(vi.isMockFunction(globalThis.fetch)).toBe(false);
+    expect(vi.isMockFunction(Date.now)).toBe(false);
+    const servers = stages.map(stage => http.createServer((request, response) => {
+      try {
+        expect(request.method).toBe("GET");
+        expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
+        if (request.url === "/health") {
+          expect(request.headers.authorization === undefined).toBe(true);
+          expect(credentials).toBe(0); expect(hooks).toBe(stage === "Candidate" ? 0 : 1);
+          expect(readReceipt(value.receiptFile)).toMatchObject({ status: "applying", phase: stage === "Candidate" ? "candidate-smoke" : "stable-readiness" });
+          const attempt = ++health[stage]; events.push(`${stage}:${attempt}`);
+          response.setHeader("content-type", "application/json");
+          response.end(attempt === 1 ? JSON.stringify({ revision: "test-wrong-local-revision" })
+            : attempt === 2 ? "not-json-health" : JSON.stringify({ revision: value.plan.revision }));
+        } else {
+          expect(stage).toBe("Stable"); expect(request.url).toBe("/v1/agents/sessions");
+          expect((request.headers.authorization ?? "").startsWith("Bearer ")).toBe(true);
+          expect(health).toEqual({ Candidate: 3, Stable: 3 }); expect(hooks).toBe(1);
+          expect(readReceipt(value.receiptFile).phase).toBe("verify-production-auth");
+          credentials++; events.push("production-auth"); response.writeHead(401, { "content-type": "application/json" }); response.end("{}");
+        }
+      } catch (error) { handlerFailures.push(error); response.statusCode = 500; response.end("local-component-assertion-failed"); }
+    }));
+    try {
+      for (let index = 0; index < servers.length; index++) {
+        const server = servers[index];
+        await new Promise<void>((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
+        const address = server.address();
+        if (!address || typeof address === "string") throw new Error("Local component server did not expose a TCP port.");
+        endpoints[stages[index]] = `http://127.0.0.1:${address.port}`;
+      }
+      const createTrigger = external.deps.fc.createHttpTrigger;
+      external.deps.fc.createHttpTrigger = async (name, trigger, qualifier) => {
+        await createTrigger(name, trigger, qualifier);
+        const endpoint = endpoints[trigger.startsWith("verify-") ? "Candidate" : "Stable"]!;
+        external.triggers.set(`${name}/${trigger}/${qualifier}`, endpoint); return endpoint;
+      };
+      external.deps.hooks = async phase => {
+        if (phase === "afterReady") {
+          expect(health).toEqual({ Candidate: 3, Stable: 0 }); expect(credentials).toBe(0);
+          expect(readReceipt(value.receiptFile).phase).toBe("candidate-smoke"); hooks++; events.push("afterReady");
+        }
+      };
+      const configureTimer = external.deps.fc.configureTimer;
+      external.deps.fc.configureTimer = async (name, token, enabled) => {
+        if (enabled) { expect(credentials).toBe(1); expect(health).toEqual({ Candidate: 3, Stable: 3 }); events.push("timer-enabled"); }
+        return configureTimer(name, token, enabled);
+      };
+      const started = performance.now();
+      await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+      expect(performance.now() - started).toBeGreaterThanOrEqual(3500);
+      expect(handlerFailures).toEqual([]); expect(credentials).toBe(1); expect(hooks).toBe(1);
+      expect(events).toEqual(["Candidate:1", "Candidate:2", "Candidate:3", "afterReady", "Stable:1", "Stable:2", "Stable:3", "production-auth", "timer-enabled"]);
+      expect(readReceipt(value.receiptFile)).toMatchObject({ status: "ready", phase: "ready" });
+    } finally {
+      for (const server of servers) {
+        server.closeAllConnections();
+        if (server.listening) await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+      }
+    }
+  });
+  it.each([{ revision: "test-old-revision" }, {}, null])("rejects persistent candidate HTTP200 mismatch after the readiness budget: %j", async body => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let attempts = 0, hooks = 0, shift = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    external.deps.probe = async () => { attempts++; shift += 16000; return { status: 200, body }; };
     external.deps.hooks = async phase => { if (phase === "afterReady") hooks++; };
-    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Candidate Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 1; revision match false)." });
-    expect(attempts).toBe(1); expect(hooks).toBe(0); expect(external.aliases.size).toBe(0);
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Candidate Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 2; revision match false)." });
+    expect(attempts).toBe(2); expect(hooks).toBe(0); expect(external.aliases.size).toBe(0);
     expect(readReceipt(value.receiptFile)).toMatchObject({ status: "requires_reconcile", phase: "candidate-smoke" });
     expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
   });
-  it.each([403, 500])("rejects fatal candidate health HTTP%s without business hooks", async status => {
+  it.each([401, 403, 500])("rejects fatal candidate health HTTP%s without business hooks", async status => {
     const value = fixture(), external = services(value.plan); let attempts = 0, hooks = 0;
     external.deps.probe = async () => { attempts++; return { status, body: { private: "test-candidate-native-error" } }; };
     external.deps.hooks = async phase => { if (phase === "afterReady") hooks++; };
@@ -437,7 +519,7 @@ describe("managed application effects", () => {
     external.deps.probe = undefined; vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
     const timeout = vi.spyOn(AbortSignal, "timeout");
     vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
-      if (String(input).includes("//verify-") && String(input).endsWith("/health") && ++candidate === 1) { shift += 22000; return new Response("test-native-route-unavailable", { status: 404 }); }
+      if (String(input).includes("//verify-") && String(input).endsWith("/health") && ++candidate === 1) { shift += 22000; return new Response("test-non-json-health-body", { status: 200 }); }
       return String(input).endsWith("/health") ? new Response(JSON.stringify({ revision: value.plan.revision })) : new Response("{}", { status: 401 });
     });
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
@@ -452,17 +534,19 @@ describe("managed application effects", () => {
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
     expect(credentials).toBe(1);
   });
-  it("rejects stable HTTP from an old revision even if it would reject the new credential", async () => {
-    const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
+  it("rejects persistent stable HTTP200 mismatch even if it would reject the new credential", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let health = 0, credentials = 0, shift = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
     external.deps.probe = async (_endpoint, pathname) => {
-      if (pathname === "/health") return { status: 200, body: { revision: ++health === 1 ? value.plan.revision : "test-old-revision" } };
+      if (pathname === "/health") { if (++health === 1) return { status: 200, body: { revision: value.plan.revision } }; shift += 16000; return { status: 200, body: { revision: "test-private-old-revision", private: "test-private-response-body" } }; }
       credentials++; return { status: 401, body: {} };
     };
-    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 1; revision match false)." });
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 2; revision match false)." });
+    expect(health).toBe(3);
     expect(credentials).toBe(0); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
     expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
   });
-  it.each([403, 500])("fails stable HTTP readiness immediately on %s", async status => {
+  it.each([401, 403, 500])("fails stable HTTP readiness immediately on %s", async status => {
     const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
     external.deps.probe = async (_endpoint, pathname) => {
       if (pathname === "/health") return ++health === 1 ? { status: 200, body: { revision: value.plan.revision } } : { status, body: { private: "test-private-health-error" } };
@@ -486,11 +570,34 @@ describe("managed application effects", () => {
     external.deps.probe = undefined; vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
     const timeout = vi.spyOn(AbortSignal, "timeout");
     vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
-      if (String(input).endsWith("/health")) { if (++health === 2) { shift += 22000; return new Response("test-native-not-ready", { status: 404 }); } return new Response(JSON.stringify({ revision: value.plan.revision })); }
+      if (String(input).endsWith("/health")) { if (++health === 2) { shift += 22000; return new Response("test-non-json-health-body", { status: 200 }); } return new Response(JSON.stringify({ revision: value.plan.revision })); }
       return new Response("{}", { status: 401 });
     });
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
     expect(health).toBe(3); expect(timeout.mock.calls[2][0]).toBeGreaterThan(0); expect(timeout.mock.calls[2][0]).toBeLessThan(8000);
+  });
+  it("withholds a stable transport error without retrying or checking credentials", async () => {
+    const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") { if (++health === 1) return { status: 200, body: { revision: value.plan.revision } }; throw Error("test-private-transport-body"); }
+      credentials++; return { status: 401, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP status unavailable; attempts 1)." });
+    expect(health).toBe(2); expect(credentials).toBe(0);
+  });
+  it.each(["Candidate", "Stable"] as const)("caps persistent %s HTTP200 mismatches at 30 reads even with a stationary clock", { timeout: 40000 }, async stage => {
+    const value = fixture(), external = services(value.plan), now = Date.now(); let attempts = 0, hooks = 0, credentials = 0;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    external.deps.probe = async (endpoint, pathname) => {
+      if (pathname !== "/health") { credentials++; return { status: 401, body: {} }; }
+      if (endpoint.includes("//verify-") === (stage === "Candidate")) { attempts++; return { status: 200, body: { revision: "test-private-wrong-revision", private: "test-private-body" } }; }
+      return { status: 200, body: { revision: value.plan.revision } };
+    };
+    external.deps.hooks = async phase => { if (phase === "afterReady") hooks++; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: `${stage} Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 30; revision match false).` });
+    expect(attempts).toBe(30); expect(hooks).toBe(stage === "Candidate" ? 0 : 1); expect(credentials).toBe(0);
+    expect(readReceipt(value.receiptFile)).toMatchObject({ status: "requires_reconcile", phase: stage === "Candidate" ? "candidate-smoke" : "stable-readiness" });
+    expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
   });
   it.each([200, 400, 403, 404, 500])("fails immediately on production HTTP %s without retrying into 401", async status => {
     const value = fixture(), external = services(value.plan); let attempts = 0, boundary = -1;

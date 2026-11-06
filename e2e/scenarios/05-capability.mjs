@@ -84,7 +84,14 @@ export default {
         ctx.check('output', r.out, [{ not: 'dashscope' }, { not: /https?:\/\// }]);
         const yaml = readFileSync(join(cwd, 'noprof', 'template.yaml'), 'utf8');
         const manifest = parseYaml(yaml);
-        if (manifest.spec_version !== 4 || manifest.workflows?.application?.startup !== 'exec' || manifest.start_cmd !== 'agent-sandbox-server serve --port 9000 --commands /app/commands.py') ctx.fail('generic scaffold must explicitly start its application through the exec workflow');
+        const app = manifest.provides?.app;
+        if (manifest.spec_version !== 5 || 'workflows' in manifest
+            || manifest.start_cmd !== 'agent-sandbox-server serve --port 9000 --commands /app/commands.py'
+            || app?.protocol !== 'agent-sandbox-server' || app.version !== 2 || app.port !== 9000
+            || !Array.isArray(app.operations) || app.operations.length !== 2
+            || !['commands.list', 'commands.run'].every(operation => app.operations.includes(operation))) {
+          ctx.fail('generic scaffold must declare its spec5 application service and exact startup command');
+        }
         if (!yaml.includes('python:3.12-slim')) ctx.fail(`template.yaml base is not the generic image:\n${yaml}`);
       },
     },
