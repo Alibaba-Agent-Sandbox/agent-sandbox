@@ -25,7 +25,7 @@ export interface ApplicationServices {
 }
 const roles: Role[] = ["worker", "dispatcher", "gateway"];
 const appId = (template: ApplicationTemplate): string => template.name;
-function safeName(value: string): string { return value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+/, "").slice(0, 35) || "agents"; }
+function safeName(value: string): string { return value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+/, "").slice(0, 34) || "agents"; }
 export function createPlan(templateFile: string, buildFile: string, previousReceipt?: string): ApplicationPlan {
   const file = fs.realpathSync(templateFile), projectRoot = path.dirname(file), template = readTemplate(file), build = readBuild(buildFile);
   if (build.sourceDigest !== sourceDigest(projectRoot)) throw new ApplicationError("Source changed after build; build the current input before planning.");
@@ -95,24 +95,53 @@ function runtimeConfig(receipt: ApplicationReceipt, binding: ResolvedBindings): 
 }
 function propsFor(receipt: ApplicationReceipt, services: ApplicationServices, role: Role, auth = services.binding.auth): Record<string, unknown> {
   const plan = receipt.plan, binding = { ...services.binding, auth };
+  const environmentVariables = bootstrapEnvironment(plan.template.application, binding, role, runtimeConfig(receipt, binding));
+  const bytes = Object.entries(environmentVariables).reduce((size, [key, value]) => size + Buffer.byteLength(key, "utf8") + Buffer.byteLength(value, "utf8"), 0);
+  if (bytes > 4096) throw new ApplicationError("FC bootstrap environment exceeds 4 KiB; reduce the role's resolved configuration before deployment.");
+  const image = plan.ownedServerImage?.localTag ?? plan.image;
   return { functionName: plan.identities[role], description: `Agent Sandbox ${appId(plan.template)} ${plan.revision} ${receipt.operationId}`,
     runtime: "custom-container", cpu: role === "gateway" ? 1 : 2, memorySize: role === "gateway" ? 1024 : 2048, diskSize: 512, internetAccess: true, timeout: role === "worker" ? 86400 : 120,
-    role: binding.internal.roleArn, customContainerConfig: { image: plan.image, port: 9000, entrypoint: ["python", "-m", "agent_sandbox.managed_agents"], command: [role] },
-    ...(binding.vpcConfig ? { vpcConfig: binding.vpcConfig } : {}),
-    environmentVariables: bootstrapEnvironment(plan.template.application, binding, role, runtimeConfig(receipt, binding)) };
+    role: binding.internal.roleArn, customContainerConfig: { image, port: 9000, entrypoint: ["python", "-m", "agent_sandbox.managed_agents"],
+      command: [role, ...(binding.databaseCa ? ["--database-ca-base64", Buffer.from(binding.databaseCa, "utf8").toString("base64")] : [])] },
+    ...(binding.vpcConfig ? { vpcConfig: binding.vpcConfig } : {}), environmentVariables };
+}
+function candidateAuthentication(receipt: ApplicationReceipt, services: ApplicationServices, sha256: string): Record<string, unknown> {
+  return { ...services.binding.auth, tokens: [...services.binding.auth.tokens as unknown[], { sha256, owner: `verification:${receipt.plan.revision}`, scopes: ["agents:read", "agents:write"], expiresAt: Math.floor(Date.now() / 1000) + 3600 }] };
+}
+function preflightEnvironments(receipt: ApplicationReceipt, services: ApplicationServices): void {
+  // Use the real prepared Template ID and account for every later state/auth expansion
+  // before reserving any FC role. No placeholder is sent to a runtime or persisted.
+  const pinned = { ...receipt, stateInstanceId: receipt.stateInstanceId ?? "0".repeat(32) };
+  for (const role of roles) propsFor(pinned, services, role);
+  propsFor(pinned, services, "gateway", candidateAuthentication(pinned, services, "0".repeat(64)));
 }
 async function inspectOwned(receipt: ApplicationReceipt, services: ApplicationServices, item: FunctionReceipt): Promise<void> {
   const body = await services.fc.describeFunction(item.functionName);
   if (!body) throw new ApplicationError("A recorded function is absent; recovery must not silently recreate it.");
   verifyFunction(body, receipt.accountId, receipt.plan.template.application.deployment.region, item.functionName, item);
 }
-async function verifyDeployment(receipt: ApplicationReceipt, services: ApplicationServices, role: Role): Promise<void> {
-  const body = await services.fc.describeFunction(receipt.plan.identities[role]);
-  if (!body) throw new ApplicationError("Deployed function could not be read back.");
-  verifyFunction(body, receipt.accountId, receipt.plan.template.application.deployment.region, receipt.plan.identities[role], receipt.functions.find(item => item.role === role));
+async function settledFunction(receipt: ApplicationReceipt, services: ApplicationServices, role: Role, updated: boolean, allowInactive = false): Promise<Record<string, unknown>> {
+  const deadline = Date.now() + 300000, name = receipt.plan.identities[role];
+  for (;;) {
+    const body = await services.fc.describeFunction(name);
+    if (!body) throw new ApplicationError("A recorded function is absent; recovery must not silently recreate it.");
+    verifyFunction(body, receipt.accountId, receipt.plan.template.application.deployment.region, name, receipt.functions.find(item => item.role === role));
+    const state = body.state, update = body.lastUpdateStatus;
+    if (state === "Failed" || update === "Failed") throw new ApplicationError("FC image preparation or update failed; resources were retained for reconciliation.");
+    if (!["Active", "Pending", "Inactive"].includes(String(state)) || (update !== undefined && !["Successful", "InProgress"].includes(String(update)))) throw new ApplicationError("FC readiness state is unconfirmed; resources were retained for reconciliation.");
+    if ((update === "Successful" || (!updated && update === undefined)) && (state === "Active" || (allowInactive && state === "Inactive"))) return body;
+    if (Date.now() >= deadline) throw new ApplicationError("FC readiness exceeded its bounded wait; resources were retained without replaying deployment.");
+    await delay(250);
+  }
+}
+async function verifyDeployment(receipt: ApplicationReceipt, services: ApplicationServices, role: Role, auth = services.binding.auth): Promise<void> {
+  const body = await settledFunction(receipt, services, role, true);
   if (body.internetAccess !== true) throw new ApplicationError("Deployed FC function did not confirm the required public model/Sandbox access setting.");
-  const expected = propsFor(receipt, services, role);
-  if (!record(body.environmentVariables) || digest(body.environmentVariables) !== digest(expected.environmentVariables) || !record(body.customContainerConfig) || body.customContainerConfig.image !== receipt.plan.image) throw new ApplicationError("Deployed FC runtime bootstrap did not match its frozen revision and state identity.");
+  const expected = propsFor(receipt, services, role, auth), container = expected.customContainerConfig as Record<string, unknown>;
+  if (!record(body.environmentVariables) || digest(body.environmentVariables) !== digest(expected.environmentVariables) || !record(body.customContainerConfig)
+    || body.customContainerConfig.image !== container.image || body.customContainerConfig.resolvedImageUri !== receipt.plan.image
+    || body.customContainerConfig.port !== container.port || digest(body.customContainerConfig.entrypoint ?? null) !== digest(container.entrypoint)
+    || digest(body.customContainerConfig.command ?? null) !== digest(container.command)) throw new ApplicationError("Deployed FC runtime bootstrap did not match its frozen image, command, revision and state identity.");
   if (services.binding.vpcConfig) {
     const native = body.vpcConfig;
     if (!record(native) || native.vpcId !== services.binding.vpcConfig.vpcId || native.securityGroupId !== services.binding.vpcConfig.securityGroupId || !Array.isArray(native.vSwitchIds)
@@ -165,6 +194,7 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     receipt.sandbox = await services.prepare(plan, value => { receipt.sandbox = value; save(file, receipt); });
     if (!receipt.sandbox.reference || !receipt.sandbox.resources.some(item => item.kind === "template" && item.id === receipt.sandbox!.reference && item.state === "created")) throw new ApplicationError("Sandbox preparation omitted a confirmed owned template receipt.");
     save(file, receipt);
+    preflightEnvironments(receipt, services);
     for (const role of roles) {
       phase(`reserve-${role}`);
       const existing = await services.fc.describeFunction(plan.identities[role]);
@@ -182,7 +212,7 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
         receipt.functions.push(functionReceipt(created, role, plan.image, plan.revision, "created")); save(file, receipt);
       }
       phase(`deploy-${role}`);
-      await inspectOwned(receipt, services, receipt.functions.at(-1)!);
+      await settledFunction(receipt, services, role, false, Boolean(inherited));
       await services.deploy(plan, role, propsFor(receipt, services, role));
       await verifyDeployment(receipt, services, role);
       if (role === "worker") await services.fc.configureWorker(plan.identities.worker);
@@ -200,8 +230,9 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     }
     const verificationToken = randomBytes(32).toString("base64url"), verificationHash = businessTokenDigest(verificationToken);
     phase("candidate-auth");
-    const auth = { ...services.binding.auth, tokens: [...services.binding.auth.tokens as unknown[], { sha256: verificationHash, owner: `verification:${plan.revision}`, scopes: ["agents:read", "agents:write"], expiresAt: Math.floor(Date.now() / 1000) + 3600 }] };
+    const auth = candidateAuthentication(receipt, services, verificationHash);
     await services.deploy(plan, "gateway", propsFor(receipt, services, "gateway", auth));
+    await verifyDeployment(receipt, services, "gateway", auth);
     phase("candidate-version"); receipt.gatewayVersion = await services.fc.publishVersion(plan.identities.gateway, plan.revision); save(file, receipt);
     receipt.publishedVersions = [receipt.gatewayVersion]; save(file, receipt);
     receipt.candidateTrigger = `verify-${plan.revision.slice(4)}`;
@@ -215,11 +246,12 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     assertPlan(plan);
     phase("remove-verification-auth");
     await services.deploy(plan, "gateway", propsFor(receipt, services, "gateway"));
+    await settledFunction(receipt, services, "gateway", true);
     const latest = await services.fc.describeFunction(plan.identities.gateway);
     const environment = latest && record(latest.environmentVariables) ? latest.environmentVariables : null;
     const productionProps = propsFor(receipt, services, "gateway");
     if (!environment || digest(environment) !== digest(productionProps.environmentVariables) || JSON.stringify(environment).includes(verificationHash)
-      || !record(latest?.customContainerConfig) || latest.customContainerConfig.image !== plan.image) throw new ApplicationError("Candidate verification credential removal was not independently confirmed; publication withheld.");
+      || !record(latest?.customContainerConfig) || latest.customContainerConfig.image !== (productionProps.customContainerConfig as Record<string, unknown>).image) throw new ApplicationError("Candidate verification credential removal was not independently confirmed; publication withheld.");
     await verifyDeployment(receipt, services, "gateway");
     phase("production-version"); receipt.gatewayVersion = await services.fc.publishVersion(plan.identities.gateway, plan.revision);
     receipt.publishedVersions.push(receipt.gatewayVersion); save(file, receipt);

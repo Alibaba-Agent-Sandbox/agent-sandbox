@@ -119,7 +119,6 @@ export function resolveBindings(app: ManagedApplication, file?: string, options:
 export function bootstrapEnvironment(app: ManagedApplication, binding: ResolvedBindings, role: Role, config: Record<string, unknown>): Record<string, string> {
   const env: Record<string, string> = { ABX_MANAGED_CONFIG_JSON: JSON.stringify(config), ABX_MANAGED_DATABASE_URL: binding.databaseUrl,
     ABX_MANAGED_INTERNAL_TOKEN: binding.internal.token, ABX_MANAGED_FC_ENDPOINT: `fcv3.${app.deployment.region}.aliyuncs.com` };
-  if (binding.databaseCa) env.ABX_MANAGED_DATABASE_CA_PEM = binding.databaseCa;
   if (role === "gateway") env.ABX_MANAGED_AUTH_JSON = JSON.stringify(binding.auth);
   else env.ABX_MANAGED_PROVIDER_CONFIG_JSON = JSON.stringify(binding.provider);
   if (role === "worker") env.ABX_MANAGED_MODEL_CONFIG_JSON = JSON.stringify(binding.model);

@@ -48,7 +48,7 @@ function services(plan: ApplicationPlan) {
   const fc: FcTransport = {
     accountId: "123",
     async describeFunction(name) { return native.get(name) ?? null; },
-    async createFunction(props) { calls.push(`create:${String(props.functionName)}`); const value = { ...props, functionArn: `acs:fc:cn-hangzhou:123:functions/${String(props.functionName)}`, functionId: `native-${++counter}`, createdTime: new Date().toISOString() }; native.set(String(props.functionName), value); return value; },
+    async createFunction(props) { calls.push(`create:${String(props.functionName)}`); const value = { ...props, functionArn: `acs:fc:cn-hangzhou:123:functions/${String(props.functionName)}`, functionId: `native-${++counter}`, createdTime: new Date().toISOString(), state: "Active", lastUpdateStatus: "Successful", customContainerConfig: { ...(props.customContainerConfig as Record<string, unknown>), resolvedImageUri: plan.image } }; native.set(String(props.functionName), value); return value; },
     async describeAlias(name, alias) { return aliases.get(`${name}/${alias}`) ?? null; },
     async setAlias(name, alias, version, expected) { expect(aliases.get(`${name}/${alias}`) ?? null).toBe(expected); aliases.set(`${name}/${alias}`, version); calls.push(`alias:${version}`); },
     async publishVersion() { const version = String(++counter); versions.add(version); return version; },
@@ -66,7 +66,7 @@ function services(plan: ApplicationPlan) {
   };
   const deps: ApplicationServices = { fc, credential: { AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" }, binding: binding(),
     async prepare(frozen, progress) { const sandbox = { provider: "alicloud-express", reference: `template-${frozen.revision}`, journalId: "owned-journal", resources: [{ kind: "template", id: `template-${frozen.revision}`, state: "created", cleanup: "template.delete", intent_id: "intent-1" }] }; progress(sandbox); return sandbox; },
-    async deploy(_frozen, _role, props) { const name = String(props.functionName); native.set(name, { ...native.get(name), ...props }); },
+    async deploy(frozen, _role, props) { const name = String(props.functionName); native.set(name, { ...native.get(name), ...props, state: "Active", lastUpdateStatus: "Successful", customContainerConfig: { ...(props.customContainerConfig as Record<string, unknown>), resolvedImageUri: frozen.image } }); },
     async deleteTemplate(value) { calls.push(`delete-template:${value.reference}`); },
     async probe(_endpoint, pathname) { return pathname === "/health" ? { status: 200, body: { revision: plan.revision } } : { status: 401, body: {} }; },
     async hooks() {},
@@ -134,7 +134,7 @@ describe("managed application boundary", () => {
     fs.writeFileSync(path.join(value.directory, "database-ca.pem"), ca); input[value.template.application.bindings.state.reference] = { databaseUrl: `${binding().databaseUrl}?sslmode=verify-full`, databaseCa: { file: "database-ca.pem" } };
     fs.writeFileSync(file, JSON.stringify(input), { mode: 0o600 }); const resolved = resolveBindings(value.template.application, file);
     expect(resolved.databaseCa).toContain("BEGIN CERTIFICATE");
-    for (const role of ["gateway", "worker", "dispatcher"] as const) expect(bootstrapEnvironment(value.template.application, resolved, role, {}).ABX_MANAGED_DATABASE_CA_PEM).toBe(resolved.databaseCa);
+    for (const role of ["gateway", "worker", "dispatcher"] as const) expect(bootstrapEnvironment(value.template.application, resolved, role, {}).ABX_MANAGED_DATABASE_CA_PEM).toBeUndefined();
     expect(JSON.stringify(value.plan)).not.toContain(ca);
   });
   it("rejects private keys and malformed certificate material in the state CA binding", () => {
@@ -149,6 +149,61 @@ describe("managed application boundary", () => {
   });
 });
 describe("managed application effects", () => {
+  it("keeps public database CA in the verified command instead of the bounded environment", async () => {
+    const value = fixture(), external = services(value.plan); external.deps.binding.databaseCa = rootCertificates[0];
+    await applyPlan(value.plan, external.deps, value.receiptFile);
+    for (const [role, name] of Object.entries(value.plan.identities)) {
+      const body = external.native.get(name)!, command = (body.customContainerConfig as Record<string, string[]>).command;
+      expect(command.slice(0, 2)).toEqual([role, "--database-ca-base64"]); expect(Buffer.from(command[2], "base64").toString("ascii")).toBe(rootCertificates[0]);
+      expect((body.environmentVariables as Record<string, string>).ABX_MANAGED_DATABASE_CA_PEM).toBeUndefined();
+    }
+  });
+  it("preflights future candidate authentication before any FC creation", async () => {
+    const value = fixture(), external = services(value.plan);
+    external.deps.binding.auth.tokens = Array.from({ length: 30 }, () => ({ sha256: "a".repeat(64), owner: "owner", scopes: ["agents:read", "agents:write"] }));
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/4 KiB/); expect(external.native.size).toBe(0);
+  });
+  it("keeps maximum-length names within the native 64-character function limit", () => {
+    const value = fixture(); value.template.name = "a".repeat(63); fs.writeFileSync(value.file, stringify(value.template));
+    const build = JSON.parse(fs.readFileSync(value.buildFile, "utf8")); build.sourceDigest = sourceDigest(value.directory); writeJson(value.buildFile, build);
+    expect(Math.max(...Object.values(createPlan(value.file, value.buildFile).identities).map(name => name.length))).toBe(64);
+  });
+  it("waits for native creation before deploying and for updates before publication", async () => {
+    const value = fixture(), external = services(value.plan), create = external.deps.fc.createFunction, read = external.deps.fc.describeFunction;
+    let reads = 0, updates = 0;
+    external.deps.fc.createFunction = async props => { const body = await create(props); body.state = "Pending"; return body; };
+    external.deps.fc.describeFunction = async name => { const body = await read(name); if (body?.state === "Pending" && ++reads % 2 === 0) body.state = "Active"; if (body?.lastUpdateStatus === "InProgress" && ++updates % 2 === 0) body.lastUpdateStatus = "Successful"; return body; };
+    const deploy = external.deps.deploy; external.deps.deploy = async (plan, role, props) => { expect(external.native.get(String(props.functionName))!.state).toBe("Active"); await deploy(plan, role, props); external.native.get(String(props.functionName))!.lastUpdateStatus = "InProgress"; };
+    const publish = external.deps.fc.publishVersion; external.deps.fc.publishVersion = async (name, revision) => { expect(external.native.get(name)!.lastUpdateStatus).toBe("Successful"); return await publish(name, revision); };
+    await applyPlan(value.plan, external.deps, value.receiptFile); expect(reads).toBeGreaterThanOrEqual(6); expect(updates).toBeGreaterThanOrEqual(16);
+  });
+  it("uses the owned random tag for FC while freezing and verifying its resolved digest", async () => {
+    const value = fixture(); delete value.template.application.deployment.serverImage; value.template.application.deployment.serverBuildRecipe = { dockerfile: "Dockerfile.server", context: "." };
+    fs.writeFileSync(value.file, stringify(value.template)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
+    const build = JSON.parse(fs.readFileSync(value.buildFile, "utf8")), digest = `sha256:${"d".repeat(64)}`, repository = "registry.cn-hangzhou.aliyuncs.com/example/agents-api-server", localTag = `${repository}:build-test`;
+    build.image = `${repository}@${digest}`; build.sourceDigest = sourceDigest(value.directory); build.ownedServerImage = { accountId: "123", region: "cn-hangzhou", namespace: "example", repository: "agents-api-server", tag: "build-test", localTag, localImageId: `sha256:${"c".repeat(64)}`, digest, state: "confirmed", journalId: "11111111-1111-1111-1111-111111111111", intentId: "test-intent" }; writeJson(value.buildFile, build);
+    const plan = createPlan(value.file, value.buildFile), external = services(plan); await applyPlan(plan, external.deps, value.receiptFile);
+    expect(readReceipt(value.receiptFile).plan.image).toBe(build.image);
+    for (const body of external.native.values()) expect(body.customContainerConfig).toMatchObject({ image: localTag, resolvedImageUri: build.image });
+  });
+  it("bounds readiness polling without redeploying a pending creation", async () => {
+    const value = fixture(), external = services(value.plan), create = external.deps.fc.createFunction, read = external.deps.fc.describeFunction; let deployments = 0;
+    external.deps.fc.createFunction = async props => { const body = await create(props); body.state = "Pending"; return body; };
+    external.deps.fc.describeFunction = async name => { const body = await read(name); if (body?.state === "Pending") vi.spyOn(Date, "now").mockReturnValue(Date.now() + 300001); return body; };
+    external.deps.deploy = async () => { deployments++; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/bounded wait/); expect(deployments).toBe(0); expect(external.native.size).toBe(1);
+  });
+  it.each(["Failed", "unknown"])("retains native creation without deployment when state is %s", async state => {
+    const value = fixture(), external = services(value.plan), create = external.deps.fc.createFunction; let deployments = 0;
+    external.deps.fc.createFunction = async props => { const body = await create(props); body.state = state; return body; };
+    external.deps.deploy = async () => { deployments++; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/FC.*(?:failed|unconfirmed)/); expect(deployments).toBe(0); expect(external.native.size).toBe(1); expect(external.aliases.size).toBe(0);
+  });
+  it.each(["resolvedImageUri", "command", "entrypoint"])("withholds publication when native %s differs", async field => {
+    const value = fixture(), external = services(value.plan), deploy = external.deps.deploy;
+    external.deps.deploy = async (plan, role, props) => { await deploy(plan, role, props); (external.native.get(String(props.functionName))!.customContainerConfig as Record<string, unknown>)[field] = field === "resolvedImageUri" ? `registry.example/server@sha256:${"f".repeat(64)}` : ["unexpected"]; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/frozen image/); expect(external.aliases.size).toBe(0);
+  });
   it("pins the actual ledger identity in every role before exposing a candidate", async () => {
     const value = fixture(), external = services(value.plan), receipt = await applyPlan(value.plan, external.deps, value.receiptFile);
     expect(receipt.stateInstanceId).toBe("1".repeat(32));

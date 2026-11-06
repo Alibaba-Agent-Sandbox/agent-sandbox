@@ -42,6 +42,8 @@ chmod 600 .abx/bindings.json
 数据库使用私有 CA 时，在 State 中增加 `databaseCa: { "file": "/path/to/database-ca.pem" }`，
 或 `databaseCa: { "env": "AGENTS_DATABASE_CA_PEM" }`，URI 保持 `sslmode=verify-full`。
 只接受不超过 64 KiB 的证书 PEM 链；此运行时 CA 只交付三个 Server 角色，不写入镜像、计划、收据或 Sandbox 环境。
+CA 不占 FC 环境变量预算。每个角色的环境变量名与值合计不得超过 4 KiB UTF-8，包含候选认证和持久状态身份；
+编译后的配置超限时，在创建 FC 函数前拒绝。较大的 CA 链仍须满足所选 FC 容器命令的实际大小限制。
 
 默认业务和内部控制 Key 仅在首次 `apply` 时生成，以私有权限保存在当前用户的应用凭据存储，后续命令复用。
 输出提供 `credentials_file`；外部客户端可在本机安全读取其中的 `businessKey`，请安全备份该文件。
@@ -97,5 +99,7 @@ retire 先阻止旧 revision 接受新 Session 和输入，关闭剩余可复用
 destroy 先阻止新输入并排空所有已记录 revision，再删除确认归属的资源，包含升级失败后仍保留的资源。
 请保留历史收据，它们用于确认保留资源及其控制函数。排空或删除未完成时保留收据，观察进度，
 然后重试 retire 或生成新的销毁计划。数据库、模型账号、执行角色和自定义域名属于外部提供资源，由用户管理。
-本流程拥有的 Server tag 在应用记录的引用消失后删除；外部提供的 `serverImage` digest 按借用资源保留。
+本流程拥有的 Server tag 在应用记录的引用消失后删除；外部提供的 `serverImage` digest 按借用资源保留并原样交给 FC。
+若所选镜像仓库路径拒绝 digest 输入，请使用托管 Server 构建配方；它向 FC 提交独立自有 tag，并核对 FC 解析的 digest 与冻结计划一致。
+CLI 在镜像准备与更新完成后才调用或发布函数；失败时保留恢复收据。
 Sandbox 构建镜像仍在恢复输出中保留手动清理记录；确认没有保留模板或函数引用后，再使用 ACR 工具删除这些明确镜像。

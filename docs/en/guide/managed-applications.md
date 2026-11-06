@@ -46,7 +46,11 @@ its original resolved credentials until retired.
 For a database with a private certificate authority, add State `databaseCa: { "file": "/path/to/database-ca.pem" }`
 or `databaseCa: { "env": "AGENTS_DATABASE_CA_PEM" }`, keeping `sslmode=verify-full` in the URI.
 Only certificate PEM chains up to 64 KiB are accepted. This runtime CA input goes to the three Server
-roles and is excluded from images, plans, receipts and the Sandbox environment.
+roles and is excluded from images, plans, receipts and the Sandbox environment. The CLI keeps
+CA material outside the FC environment budget. Compiled role environment names and values
+share a 4 KiB UTF-8 budget, including candidate authentication and the persistent state pin;
+oversized configurations fail before FC functions are created. Large CA chains still require
+acceptance by the selected FC container command limits.
 
 The default business/control keys are generated only by initial `apply`, saved under the current user's
 private application credential store, and reused by later commands. Output gives `credentials_file`;
@@ -114,5 +118,9 @@ their control functions. If drain or deletion is incomplete, retain the receipts
 then retry retirement or create a fresh destruction plan.
 The database, model account, execution role and custom domain are supplied resources and remain yours.
 Owned Server tags are removed after their recorded application references are gone. Supplied
-`serverImage` digests are borrowed and preserved. Sandbox build images retain manual cleanup entries;
+`serverImage` digests are borrowed and preserved. They are sent unchanged to FC; if that registry
+path rejects digest input, use the managed Server build recipe. That recipe sends its unique owned
+tag and verifies FC's resolved digest against the frozen plan. The CLI waits for image preparation
+and completed updates before invoking or publishing functions; failures retain recovery receipts.
+Sandbox build images retain manual cleanup entries;
 remove those exact images with ACR tooling after no retained template or function references them.
