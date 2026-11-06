@@ -102,7 +102,7 @@ function propsFor(receipt: ApplicationReceipt, services: ApplicationServices, ro
   return { functionName: plan.identities[role], description: `Agent Sandbox ${appId(plan.template)} ${plan.revision} ${receipt.operationId}`,
     runtime: "custom-container", cpu: role === "gateway" ? 1 : 2, memorySize: role === "gateway" ? 1024 : 2048, diskSize: 512, internetAccess: true, timeout: role === "worker" ? 86400 : 120,
     role: binding.internal.roleArn, customContainerConfig: { image, port: 9000, entrypoint: ["python", "-m", "agent_sandbox.managed_agents"],
-      command: [role, ...(binding.databaseCa ? ["--database-ca-base64", Buffer.from(binding.databaseCa, "utf8").toString("base64")] : [])] },
+      command: [role, ...(binding.databaseCa ? ["--database-ca-base64", ...Buffer.from(binding.databaseCa, "utf8").toString("base64").match(/.{1,1920}/g)!] : [])] },
     ...(binding.vpcConfig ? { vpcConfig: binding.vpcConfig } : {}), environmentVariables };
 }
 function candidateAuthentication(receipt: ApplicationReceipt, services: ApplicationServices, sha256: string): Record<string, unknown> {

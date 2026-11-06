@@ -150,11 +150,11 @@ describe("managed application boundary", () => {
 });
 describe("managed application effects", () => {
   it("keeps public database CA in the verified command instead of the bounded environment", async () => {
-    const value = fixture(), external = services(value.plan); external.deps.binding.databaseCa = rootCertificates[0];
+    const value = fixture(), external = services(value.plan), chain = `${rootCertificates[0]}\n${rootCertificates[0]}\n${rootCertificates[0]}`; external.deps.binding.databaseCa = chain;
     await applyPlan(value.plan, external.deps, value.receiptFile);
     for (const [role, name] of Object.entries(value.plan.identities)) {
       const body = external.native.get(name)!, command = (body.customContainerConfig as Record<string, string[]>).command;
-      expect(command.slice(0, 2)).toEqual([role, "--database-ca-base64"]); expect(Buffer.from(command[2], "base64").toString("ascii")).toBe(rootCertificates[0]);
+      expect(command.slice(0, 2)).toEqual([role, "--database-ca-base64"]); expect(command.length).toBeGreaterThan(3); expect(command.slice(2).every(part => part.length <= 1920 && part.length % 4 === 0)).toBe(true); expect(Buffer.from(command.slice(2).join(""), "base64").toString("ascii")).toBe(chain);
       expect((body.environmentVariables as Record<string, string>).ABX_MANAGED_DATABASE_CA_PEM).toBeUndefined();
     }
   });

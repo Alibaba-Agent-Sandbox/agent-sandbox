@@ -20,7 +20,9 @@ expired readiness retains the receipt without replay. A settled Inactive existin
 redeployed; post-update readiness requires Active and Successful.
 
 Keep certificate material out of role environments. Encode public CA PEM as the managed runtime's
-explicit base64 argument; secrets remain role-scoped environment values. Before the first FC creation,
+explicit canonical base64 arguments in 1920-character chunks; secrets remain role-scoped environment
+values. A subsequent native diagnostic established a 2048-character per-argument limit; chunking
+keeps the complete trust bundle and exact command readback without modifying the old candidate. Before the first FC creation,
 compile every role using the real prepared Template ID, future persistent state pin and candidate auth,
 and reject key/value UTF-8 totals above 4096 bytes. Verify full command/entrypoint/port/environment
 and native ownership with the frozen image. Shorten the safe application prefix to 34 characters.

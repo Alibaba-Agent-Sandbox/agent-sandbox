@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+[FC certificate argument chunks](evidence/verify/2026-11-06-fc-ca-argument-chunks.md) preserves the native single-argument limit and separate third candidate.
+
 [FC managed image readiness](notes/proposed/feature/2026-11-06-fc-managed-image-readiness.md) · [verification](evidence/verify/2026-11-06-fc-managed-image-readiness.md) records the separate new candidate after actual create/input and environment limits were observed.
 
 [Managed deployment drain recovery](notes/proposed/feature/2026-11-06-managed-deployment-drain.md) · [verification](evidence/verify/2026-11-06-managed-deployment-drain.md) continues PR235 and prepares the unpublished 0.5.9 candidate.
