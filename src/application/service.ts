@@ -148,14 +148,32 @@ async function verifyDeployment(receipt: ApplicationReceipt, services: Applicati
       || digest([...native.vSwitchIds].sort()) !== digest([...services.binding.vpcConfig.vSwitchIds].sort())) throw new ApplicationError("Deployed FC VPC configuration did not match the explicit state binding.");
   }
 }
-async function probe(services: ApplicationServices, endpoint: string, pathname: string, token?: string): Promise<{ status: number; body: unknown }> {
+async function probe(services: ApplicationServices, endpoint: string, pathname: string, token?: string, timeoutMs = 15000): Promise<{ status: number; body: unknown }> {
   if (services.probe) return services.probe(endpoint, pathname, token);
   try {
-    const result = await fetch(`${endpoint}${pathname}`, { headers: token ? { authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(15000), redirect: "error" });
+    const result = await fetch(`${endpoint}${pathname}`, { headers: token ? { authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(timeoutMs), redirect: "error" });
     const bytes = await result.text(); if (bytes.length > 65536) throw new Error("Output limit");
     let body: unknown; try { body = JSON.parse(bytes); } catch { body = null; }
     return { status: result.status, body };
   } catch { throw new ApplicationError("Gateway probe failed; no request or response credentials were retained."); }
+}
+async function verifyProductionCredential(services: ApplicationServices, endpoint: string, token: string): Promise<void> {
+  const deadline = Date.now() + 30000;
+  let attempts = 0, status: number | undefined;
+  const failure = (): ApplicationError => new ApplicationError(`Production Gateway did not reject the temporary verification credential (${status === undefined ? "HTTP status unavailable" : `HTTP ${status}`}; attempts ${attempts}).`);
+  while (attempts < 4) {
+    const remaining = Math.floor(deadline - Date.now());
+    if (remaining <= 0) throw failure();
+    attempts++;
+    let result: { status: number; body: unknown };
+    try { result = await probe(services, endpoint, "/v1/agents/sessions", token, Math.min(15000, remaining)); }
+    catch { status = undefined; throw failure(); }
+    status = Number.isInteger(result.status) && result.status >= 100 && result.status <= 599 ? result.status : undefined;
+    if (status === 401) return;
+    if (![502, 503, 504].includes(status ?? 0) || attempts === 4 || Date.now() + 1000 >= deadline) throw failure();
+    await delay(1000);
+  }
+  throw failure();
 }
 async function candidateHooks(receipt: ApplicationReceipt, services: ApplicationServices, endpoint: string, token: string): Promise<void> {
   let finished = false, dispatchFailure: unknown;
@@ -268,8 +286,7 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     if (services.binding.ingress.kind === "custom-domain") { await services.fc.publishDomain(services.binding.ingress.domainName!, plan.identities.gateway, receipt.aliasName); receipt.endpoint = `https://${services.binding.ingress.domainName}`; }
     else receipt.endpoint = testEndpoint;
     save(file, receipt);
-    const rejected = await probe(services, receipt.endpoint, "/v1/agents/sessions", verificationToken);
-    if (rejected.status !== 401) throw new ApplicationError("Production Gateway did not reject the temporary verification credential.");
+    await verifyProductionCredential(services, receipt.endpoint, verificationToken);
     phase("candidate-cleanup"); await services.fc.deleteTrigger(plan.identities.gateway, receipt.candidateTrigger);
     delete receipt.candidateEndpoint; delete receipt.candidateTrigger;
     phase("enable-dispatch"); await services.fc.configureTimer(plan.identities.dispatcher, services.binding.internal.token, true);

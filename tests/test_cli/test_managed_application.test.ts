@@ -381,6 +381,71 @@ describe("managed application effects", () => {
     external.deps.deploy = async (...args) => { if (args[1] === "gateway" && ++gatewayDeploys === 4) return; await deploy(...args); };
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/credential removal/); expect(external.aliases.size).toBe(0);
   });
+  it.each([502, 503, 504])("retries only transient production HTTP %s before confirming rejection", async status => {
+    const value = fixture(), external = services(value.plan), tokens: string[] = []; let attempts = 0;
+    external.deps.probe = async (_endpoint, pathname, token) => {
+      if (pathname === "/health") return { status: 200, body: { revision: value.plan.revision } };
+      tokens.push(token!); return { status: ++attempts === 1 ? status : 401, body: { private: "test-body-must-stay-private" } };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(attempts).toBe(2); expect(tokens[0]).toBe(tokens[1]);
+  });
+  it.each([200, 400, 403, 404, 500])("fails immediately on production HTTP %s without retrying into 401", async status => {
+    const value = fixture(), external = services(value.plan); let attempts = 0, boundary = -1;
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") return { status: 200, body: { revision: value.plan.revision } };
+      boundary = external.calls.length; return { status: ++attempts === 1 ? status : 401, body: { private: "test-body-must-stay-private" } };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: `Production Gateway did not reject the temporary verification credential (HTTP ${status}; attempts 1).` });
+    expect(attempts).toBe(1); expect(external.calls.slice(boundary)).toEqual([]);
+    expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
+  });
+  it("stops on a transient followed by accepted verification credentials before any later 401", async () => {
+    const value = fixture(), external = services(value.plan), statuses = [503, 200, 401]; let attempts = 0, boundary = -1;
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") return { status: 200, body: { revision: value.plan.revision } };
+      boundary = external.calls.length; return { status: statuses[attempts++]!, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Production Gateway did not reject the temporary verification credential (HTTP 200; attempts 2)." });
+    expect(attempts).toBe(2); expect(external.calls.slice(boundary)).toEqual([]); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
+  });
+  it("stops production transport failures without retaining raw error text or retrying", async () => {
+    const value = fixture(), external = services(value.plan); let attempts = 0;
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") return { status: 200, body: { revision: value.plan.revision } };
+      attempts++; throw new Error("test-transport-details-must-stay-private");
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Production Gateway did not reject the temporary verification credential (HTTP status unavailable; attempts 1)." });
+    expect(attempts).toBe(1); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
+  });
+  it("bounds production transient attempts and retains the failed receipt", async () => {
+    const value = fixture(), external = services(value.plan); let attempts = 0;
+    external.deps.probe = async (_endpoint, pathname) => pathname === "/health" ? { status: 200, body: { revision: value.plan.revision } } : { status: (++attempts, 503), body: {} };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Production Gateway did not reject the temporary verification credential (HTTP 503; attempts 4)." });
+    expect(attempts).toBe(4); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
+  });
+  it("expires the total production probe budget before another request", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let attempts = 0, shift = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    external.deps.probe = async (_endpoint, pathname) => {
+      if (pathname === "/health") return { status: 200, body: { revision: value.plan.revision } };
+      attempts++; shift += 31000; return { status: 504, body: {} };
+    };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Production Gateway did not reject the temporary verification credential (HTTP 504; attempts 1)." });
+    expect(attempts).toBe(1);
+  });
+  it("reduces the real fetch timeout to the production budget remaining", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let attempts = 0, shift = 0;
+    external.deps.probe = undefined; vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      if (String(input).endsWith("/health")) return new Response(JSON.stringify({ revision: value.plan.revision }));
+      attempts++; if (attempts === 1) { shift += 22000; return new Response("test-transient-body", { status: 502 }); }
+      return new Response("{}", { status: 401 });
+    });
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(attempts).toBe(2); const remaining = timeout.mock.calls.at(-1)![0]; expect(remaining).toBeGreaterThan(0); expect(remaining).toBeLessThan(8000);
+  });
   it("retains all workers while logical reusable sessions or uncertain cleanup remain", async () => {
     const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
     external.deps.fc.invokeControl = async () => ({ stateInstanceId: "1".repeat(32), activeSessions: 1, pendingCleanup: 0, uncertainResources: 0, draining: true });

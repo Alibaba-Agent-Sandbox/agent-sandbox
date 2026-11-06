@@ -127,3 +127,6 @@ tag and verifies FC's resolved digest against the frozen plan. The CLI waits for
 and completed updates before invoking or publishing functions; failures retain recovery receipts.
 Sandbox build images retain manual cleanup entries;
 remove those exact images with ACR tooling after no retained template or function references them.
+
+The final temporary-credential check retries only HTTP 502/503/504 within 30 seconds and four attempts.
+An accepted credential or any other failure stops the operation; retain the receipt and inspect it instead of replaying apply.
