@@ -175,10 +175,10 @@ async function verifyProductionCredential(services: ApplicationServices, endpoin
   }
   throw failure();
 }
-async function waitForStableGateway(services: ApplicationServices, endpoint: string, revision: string): Promise<void> {
+async function waitForGatewayRevision(services: ApplicationServices, endpoint: string, revision: string, stage: "Candidate" | "Stable"): Promise<void> {
   const deadline = Date.now() + 30000;
   let attempts = 0, status: number | undefined;
-  const failure = (): ApplicationError => new ApplicationError(`Stable Gateway HTTP readiness did not confirm the frozen revision (${status === undefined ? "HTTP status unavailable" : `HTTP ${status}`}; attempts ${attempts}).`);
+  const failure = (): ApplicationError => new ApplicationError(`${stage} Gateway HTTP readiness did not confirm the frozen revision (${status === undefined ? "HTTP status unavailable" : `HTTP ${status}`}; attempts ${attempts}${status === 200 ? "; revision match false" : ""}).`);
   while (attempts < 30) {
     const remaining = Math.floor(deadline - Date.now());
     if (remaining <= 0) throw failure();
@@ -277,8 +277,7 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     receipt.executionMayHaveStarted = true; phase("candidate-trigger");
     receipt.candidateEndpoint = await services.fc.createHttpTrigger(plan.identities.gateway, receipt.candidateTrigger, receipt.gatewayVersion); save(file, receipt);
     phase("candidate-smoke");
-    const health = await probe(services, receipt.candidateEndpoint, "/health");
-    if (health.status !== 200 || !record(health.body) || health.body.revision !== plan.revision) throw new ApplicationError("Candidate Gateway health did not confirm the planned revision.");
+    await waitForGatewayRevision(services, receipt.candidateEndpoint, plan.revision, "Candidate");
     await candidateHooks(receipt, services, receipt.candidateEndpoint, verificationToken);
     assertPlan(plan);
     phase("remove-verification-auth");
@@ -304,7 +303,7 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     if (services.binding.ingress.kind === "custom-domain") { await services.fc.publishDomain(services.binding.ingress.domainName!, plan.identities.gateway, receipt.aliasName); receipt.endpoint = `https://${services.binding.ingress.domainName}`; }
     else receipt.endpoint = testEndpoint;
     save(file, receipt);
-    phase("stable-readiness"); await waitForStableGateway(services, receipt.endpoint, plan.revision);
+    phase("stable-readiness"); await waitForGatewayRevision(services, receipt.endpoint, plan.revision, "Stable");
     phase("verify-production-auth");
     await verifyProductionCredential(services, receipt.endpoint, verificationToken);
     phase("candidate-cleanup"); await services.fc.deleteTrigger(plan.identities.gateway, receipt.candidateTrigger);

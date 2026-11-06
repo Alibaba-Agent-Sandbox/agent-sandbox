@@ -133,3 +133,5 @@ An accepted credential or any other failure stops the operation; retain the rece
 
 Before the final credential check, the stable health endpoint must return the new deployment revision.
 Health-only HTTP 404/502/503/504 responses may wait within 30 seconds; authentication 404 never counts as rejection.
+
+Candidate and stable HTTP routes must each serve the planned revision before publication completes. Health checks wait up to30 seconds for404/502/503/504; a wrong revision or other error stops deployment. Failed apply operations are inspected rather than replayed.

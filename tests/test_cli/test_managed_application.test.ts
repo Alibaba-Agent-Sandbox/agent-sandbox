@@ -390,6 +390,59 @@ describe("managed application effects", () => {
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
     expect(attempts).toBe(2); expect(tokens[0]).toBe(tokens[1]);
   });
+  it("waits for candidate HTTP readiness before business hooks and stable publication", async () => {
+    const value = fixture(), external = services(value.plan); let attempts = 0, hooks = 0;
+    external.deps.probe = async (endpoint, pathname) => {
+      if (pathname === "/health") {
+        if (endpoint.includes("//verify-") && ++attempts <= 2) return { status: attempts === 1 ? 404 : 503, body: { private: "test-candidate-native-error" } };
+        return { status: 200, body: { revision: value.plan.revision } };
+      }
+      return { status: 401, body: {} };
+    };
+    external.deps.hooks = async phase => { if (phase === "afterReady") { expect(attempts).toBe(3); hooks++; } };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(hooks).toBe(1); expect(external.aliases.size).toBe(1);
+  });
+  it.each([{ revision: "test-old-revision" }, {}, null])("rejects a candidate HTTP200 whose revision does not match: %j", async body => {
+    const value = fixture(), external = services(value.plan); let attempts = 0, hooks = 0;
+    external.deps.probe = async () => { attempts++; return { status: 200, body }; };
+    external.deps.hooks = async phase => { if (phase === "afterReady") hooks++; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Candidate Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 1; revision match false)." });
+    expect(attempts).toBe(1); expect(hooks).toBe(0); expect(external.aliases.size).toBe(0);
+    expect(readReceipt(value.receiptFile)).toMatchObject({ status: "requires_reconcile", phase: "candidate-smoke" });
+    expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
+  });
+  it.each([403, 500])("rejects fatal candidate health HTTP%s without business hooks", async status => {
+    const value = fixture(), external = services(value.plan); let attempts = 0, hooks = 0;
+    external.deps.probe = async () => { attempts++; return { status, body: { private: "test-candidate-native-error" } }; };
+    external.deps.hooks = async phase => { if (phase === "afterReady") hooks++; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: `Candidate Gateway HTTP readiness did not confirm the frozen revision (HTTP ${status}; attempts 1).` });
+    expect(attempts).toBe(1); expect(hooks).toBe(0); expect(external.aliases.size).toBe(0);
+  });
+  it("withholds raw candidate transport errors and does not replay the read", async () => {
+    const value = fixture(), external = services(value.plan); let attempts = 0;
+    external.deps.probe = async () => { attempts++; throw new Error("test-private-candidate-transport-error"); };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Candidate Gateway HTTP readiness did not confirm the frozen revision (HTTP status unavailable; attempts 1)." });
+    expect(attempts).toBe(1); expect(external.aliases.size).toBe(0);
+  });
+  it("bounds the candidate readiness budget before business hooks", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let attempts = 0, shift = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    external.deps.probe = async () => { attempts++; shift += 31000; return { status: 404, body: {} }; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Candidate Gateway HTTP readiness did not confirm the frozen revision (HTTP 404; attempts 1)." });
+    expect(attempts).toBe(1); expect(external.aliases.size).toBe(0);
+  });
+  it("narrows real candidate-health fetch timeouts to their remaining readiness budget", async () => {
+    const value = fixture(), external = services(value.plan), now = Date.now; let candidate = 0, shift = 0;
+    external.deps.probe = undefined; vi.spyOn(Date, "now").mockImplementation(() => now() + shift);
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      if (String(input).includes("//verify-") && String(input).endsWith("/health") && ++candidate === 1) { shift += 22000; return new Response("test-native-route-unavailable", { status: 404 }); }
+      return String(input).endsWith("/health") ? new Response(JSON.stringify({ revision: value.plan.revision })) : new Response("{}", { status: 401 });
+    });
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+    expect(candidate).toBe(2); expect(timeout.mock.calls[1][0]).toBeGreaterThan(0); expect(timeout.mock.calls[1][0]).toBeLessThan(8000);
+  });
   it("waits for stable HTTP health at the frozen revision before testing the credential", async () => {
     const value = fixture(), external = services(value.plan); let health = 0, credentials = 0;
     external.deps.probe = async (_endpoint, pathname, token) => {
@@ -405,7 +458,7 @@ describe("managed application effects", () => {
       if (pathname === "/health") return { status: 200, body: { revision: ++health === 1 ? value.plan.revision : "test-old-revision" } };
       credentials++; return { status: 401, body: {} };
     };
-    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 1)." });
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toMatchObject({ message: "Stable Gateway HTTP readiness did not confirm the frozen revision (HTTP 200; attempts 1; revision match false)." });
     expect(credentials).toBe(0); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
     expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
   });
