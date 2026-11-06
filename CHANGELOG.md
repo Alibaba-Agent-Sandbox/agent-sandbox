@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Serialize private FC invocation bodies as UTF-8 bytes and reject drained application ledgers before candidate publication. / 私有 FC 调用显式发送 UTF-8 字节，候选发布前拒绝已排空的应用账本。
+
 - Wait for FC image readiness, submit owned Server image tags with digest verification, keep database CA outside the 4 KiB role environment, and bound native function names. / 等待 FC 镜像就绪，自有 Server 镜像以 tag 提交并核对 digest，数据库 CA 不占角色 4 KiB 环境变量预算，并限制原生函数名长度。
 
 - Drain retained application revisions before retirement or destruction, verify their persistent state identity, and preserve historical Gateway cleanup after failed updates. / 应用退役或销毁前排空保留 revision 并核对持久状态身份，升级失败后仍按历史记录清理 Gateway。

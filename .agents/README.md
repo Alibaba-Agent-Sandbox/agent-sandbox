@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+[FC control request bytes](notes/proposed/feature/2026-11-06-fc-control-request-bytes.md) · [verification](evidence/verify/2026-11-06-fc-control-request-bytes.md) preserves the actual official serializer failure and the separate recovery candidate.
+
 [FC certificate argument chunks](evidence/verify/2026-11-06-fc-ca-argument-chunks.md) preserves the native single-argument limit and separate third candidate.
 
 [FC managed image readiness](notes/proposed/feature/2026-11-06-fc-managed-image-readiness.md) · [verification](evidence/verify/2026-11-06-fc-managed-image-readiness.md) records the separate new candidate after actual create/input and environment limits were observed.

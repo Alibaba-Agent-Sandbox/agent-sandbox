@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
+import { Readable } from "node:stream";
 import { rootCertificates } from "node:tls";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stringify } from "yaml";
@@ -12,7 +14,7 @@ import schemaSource from "../../src/application/schema-source.json" with { type:
 import { digest, readTemplate, sourceDigest, toolDigest, writeJson } from "../../src/application/config.js";
 import { bootstrapEnvironment, businessTokenDigest, resolveBindings, stateConnectionIdentity, type ResolvedBindings } from "../../src/application/bindings.js";
 import { applyPlan, createDestroyPlan, createPlan, destroyPlan, observeReceipt, readPlan, readReceipt, retireRevision, withApplicationLock, type ApplicationServices } from "../../src/application/service.js";
-import { signInvocation, type FcTransport } from "../../src/application/fc.js";
+import { createFcTransport, signInvocation, type FcTransport } from "../../src/application/fc.js";
 import { execute } from "../../src/application/process.js";
 import { buildApplication, cleanBuild } from "../../src/application/tools.js";
 import { createRegistryClient, type RegistryClient } from "../../src/providers/alicloud_express/application/registry.js";
@@ -58,7 +60,7 @@ function services(plan: ApplicationPlan) {
     async deleteAlias(name, alias) { aliases.delete(`${name}/${alias}`); },
     async configureWorker(name) { calls.push(`async:${name}`); },
     async configureTimer(name, _token, enabled) { calls.push(`timer:${name}:${enabled}`); },
-    async invokeControl(_name, envelope) { calls.push("control"); expect(envelope.signature).toBe(signInvocation("dispatcher", envelope.payload as Record<string, unknown>, deps.binding.internal.token).signature); return { activeSessions: 0, pendingCleanup: 0, uncertainResources: 0, draining: true, stateInstanceId: "1".repeat(32) }; },
+    async invokeControl(_name, envelope) { calls.push("control"); expect(envelope.signature).toBe(signInvocation("dispatcher", envelope.payload as Record<string, unknown>, deps.binding.internal.token).signature); return { activeSessions: 0, pendingCleanup: 0, uncertainResources: 0, draining: (envelope.payload as Record<string, unknown>).operation === "drain", stateInstanceId: "1".repeat(32) }; },
     async deleteFunction(name) { calls.push(`delete:${name}`); native.delete(name); },
     async deleteVersion(_name, version) { calls.push(`delete-version:${version}`); versions.delete(version); },
     async hasVersion(_name, version) { return versions.has(version); },
@@ -79,9 +81,44 @@ function sourceBindings(template: ReturnType<typeof readTemplate>, data: Resolve
   return source;
 }
 describe("managed application boundary", () => {
+  it("reproduces the official stream serializer's rejection of string chunks in an isolated process", () => {
+    const result = spawnSync(process.execPath, ["-e", "require('@darabonba/typescript').Stream.readAsBytes(require('node:stream').Readable.from(['{\"role\":\"dispatcher\"}']))"], { cwd: process.cwd(), encoding: "utf8", timeout: 5000 });
+    expect(result.error).toBeUndefined(); expect(result.status).toBe(1); expect(result.stderr).toContain("ERR_INVALID_ARG_TYPE"); expect(result.stderr).toContain("Function.concat"); expect(result.stderr).toContain("Readable.onEnd");
+  });
+  it("serializes the signed UTF-8 control envelope through the real FC SDK before the network boundary", async () => {
+    const require = createRequire(import.meta.url), dara = require("@darabonba/typescript"), httpx = require("httpx") as { request(url: string, options: { method: string; headers: Record<string, string>; data: Readable }): Promise<Readable> };
+    const envelope = signInvocation("dispatcher", { action: "status", marker: "证据🔒" }, binding().internal.token), expected = Buffer.from(JSON.stringify(envelope), "utf8");
+    let outbound: Buffer | undefined;
+    const network = vi.spyOn(httpx, "request").mockImplementation(async (url: string, options: { method: string; headers: Record<string, string>; data: Readable }) => {
+      expect(url).toBe("https://fcv3.cn-hangzhou.aliyuncs.com/2023-03-30/functions/test-dispatcher/invocations?qualifier=LATEST");
+      expect(options.method).toBe("POST"); expect(options.headers["x-fc-invocation-type"]).toBe("Sync"); expect(options.headers["x-fc-log-type"]).toBe("None");
+      outbound = await dara.Stream.readAsBytes(options.data);
+      expect(options.headers["x-acs-content-sha256"]).toBe(createHash("sha256").update(expected).digest("hex"));
+      return Object.assign(Readable.from([Buffer.from('{"activeSessions":0}', "utf8")]), { statusCode: 200, headers: {} });
+    });
+    const fc = createFcTransport({ AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" }, "cn-hangzhou");
+    await expect(fc.invokeControl("test-dispatcher", envelope)).resolves.toEqual({ activeSessions: 0 });
+    expect(network).toHaveBeenCalledTimes(1); expect(outbound).toEqual(expected); expect(JSON.parse(outbound!.toString("utf8"))).toEqual(envelope);
+  });
+  it.each(["errorType", "ErrorType", "errorMessage", "ErrorMessage", "error", "Error"])("withholds native HTTP 200 error field %s through the official SDK", async key => {
+    const httpx = createRequire(import.meta.url)("httpx") as { request(...args: unknown[]): Promise<Readable> };
+    const raw = "test-native-output-must-stay-private";
+    const network = vi.spyOn(httpx, "request").mockImplementation(async () => Object.assign(Readable.from([Buffer.from(JSON.stringify({ [key]: raw }), "utf8")]), { statusCode: 200, headers: {} }));
+    const fc = createFcTransport({ AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" }, "cn-hangzhou");
+    await expect(fc.invokeControl("test-dispatcher", signInvocation("dispatcher", { operation: "status" }, binding().internal.token))).rejects.toThrow("Private invocation failed or returned an invalid bounded result.");
+    expect(network).toHaveBeenCalledTimes(1);
+  });
   it("freezes non-secret state routing while allowing password/TLS material changes", () => {
     expect(stateConnectionIdentity("postgresql://user:old@db.test/agents?sslmode=require")).toBe(stateConnectionIdentity("postgres://user:new@db.test:5432/agents?sslmode=verify-full&sslrootcert=%2Fca.pem"));
     for (const suffix of ["?host=other", "?options=-csearch_path%3Dother", "?dbname=other", "?unrecognized=value"]) expect(() => stateConnectionIdentity(`postgresql://user:private@db.test/agents${suffix}`)).toThrow(/overrides/);
+  });
+  it.each([true, undefined])("withholds candidates when the initial ledger admission is %s", async draining => {
+    const value = fixture(), external = services(value.plan), operations: unknown[] = [];
+    external.deps.fc.invokeControl = async (_name, envelope) => { operations.push(envelope.payload); return { stateInstanceId: "1".repeat(32), activeSessions: 0, pendingCleanup: 0, uncertainResources: 0, ...(draining === undefined ? {} : { draining }) }; };
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/new application name or a fresh state database/);
+    expect(operations).toEqual([expect.objectContaining({ operation: "status" })]);
+    expect(external.triggers.size).toBe(0); expect(external.aliases.size).toBe(0); expect(external.native.size).toBe(3);
+    expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
   });
   it("keeps the schema consumer pinned to immutable producer bytes", () => {
     const schema = fs.readFileSync(fileURLToPath(new URL("../../src/application/template-v6.schema.json", import.meta.url)));
@@ -211,7 +248,7 @@ describe("managed application effects", () => {
   });
   it("withholds candidate publication when the backend ledger changes during initial pinning", async () => {
     const value = fixture(), external = services(value.plan); let calls = 0;
-    external.deps.fc.invokeControl = async () => ({ stateInstanceId: (++calls === 1 ? "1" : "2").repeat(32), activeSessions: 0, pendingCleanup: 0, uncertainResources: 0 });
+    external.deps.fc.invokeControl = async () => ({ stateInstanceId: (++calls === 1 ? "1" : "2").repeat(32), draining: false, activeSessions: 0, pendingCleanup: 0, uncertainResources: 0 });
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/state identity/); expect(external.triggers.size).toBe(0); expect(external.aliases.size).toBe(0);
   });
   it("preserves the actual created template identity when readiness subsequently fails", async () => {

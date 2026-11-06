@@ -223,6 +223,7 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
     receipt.executionMayHaveStarted = true; phase("bootstrap-state-identity");
     const identity = await control(receipt, services, "status");
     if (!/^[a-f0-9]{32}$/.test(String(identity.stateInstanceId)) || (receipt.stateInstanceId && receipt.stateInstanceId !== identity.stateInstanceId)) throw new ApplicationError("Dispatcher did not confirm the expected durable application ledger identity.");
+    if (identity.draining !== false) throw new ApplicationError("Application ledger is draining or its admission state is unconfirmed. After complete destruction, use a new application name or a fresh state database; normal updates require the previous receipt. The saved drain fence was preserved.");
     if (!receipt.stateInstanceId) {
       receipt.stateInstanceId = String(identity.stateInstanceId); phase("pin-state-identity");
       for (const role of roles) { await inspectOwned(receipt, services, receipt.functions.find(item => item.role === role)!); await services.deploy(plan, role, propsFor(receipt, services, role)); await verifyDeployment(receipt, services, role); }

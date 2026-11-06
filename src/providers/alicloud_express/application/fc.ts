@@ -165,11 +165,13 @@ export function createFcTransport(credential: CredentialSnapshot, region: string
     },
     async invokeControl(name, envelope) {
       try {
-        const response = await client.invokeFunctionWithOptions(name, model("InvokeFunctionRequest", { qualifier: "LATEST", body: Readable.from([JSON.stringify(envelope)]) }), model("InvokeFunctionHeaders", { xFcInvocationType: "Sync", xFcLogType: "None" }), runtime());
+        const response = await client.invokeFunctionWithOptions(name, model("InvokeFunctionRequest", { qualifier: "LATEST", body: Readable.from([Buffer.from(JSON.stringify(envelope), "utf8")]) }), model("InvokeFunctionHeaders", { xFcInvocationType: "Sync", xFcLogType: "None" }), runtime());
         if (response.statusCode !== 200 || !response.body) throw new Error("Invocation failed");
         const chunks: Buffer[] = []; let bytes = 0;
         for await (const part of response.body as AsyncIterable<Buffer>) { bytes += part.length; if (bytes > 65536) throw new Error("Output limit"); chunks.push(Buffer.from(part)); }
-        const value = JSON.parse(Buffer.concat(chunks).toString("utf8")); if (!record(value)) throw new Error("Invalid output"); return value;
+        const value = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        if (!record(value) || ["errorType", "ErrorType", "errorMessage", "ErrorMessage", "error", "Error"].some(key => Object.hasOwn(value, key))) throw new Error("Invalid output");
+        return value;
       } catch { throw new ApplicationError("Private invocation failed or returned an invalid bounded result."); }
     },
     async deleteVersion(name, version) {

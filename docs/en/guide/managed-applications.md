@@ -117,6 +117,9 @@ an unsuccessful update. Keep the previous receipts available: they identify reta
 their control functions. If drain or deletion is incomplete, retain the receipts, observe progress,
 then retry retirement or create a fresh destruction plan.
 The database, model account, execution role and custom domain are supplied resources and remain yours.
+Destruction preserves the database's admission fence and history. To create another application after
+complete destruction, choose a new template application name or a fresh empty state database. Deploy
+normal revisions with the previous receipt; apply never reopens a drained ledger automatically.
 Owned Server tags are removed after their recorded application references are gone. Supplied
 `serverImage` digests are borrowed and preserved. They are sent unchanged to FC; if that registry
 path rejects digest input, use the managed Server build recipe. That recipe sends its unique owned
