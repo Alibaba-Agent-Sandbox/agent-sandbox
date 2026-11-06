@@ -1,5 +1,6 @@
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -415,6 +416,73 @@ describe("managed application effects", () => {
     external.deps.hooks = async phase => { if (phase === "afterReady") { if (stage === "Candidate") expect(attempts).toBe(6); hooks++; } };
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
     expect(attempts).toBe(6); expect(hooks).toBe(1); expect(credentials).toBe(1);
+  });
+  it("uses the real local HTTP probe before candidate hooks and stable credential verification", { timeout: 20000 }, async () => {
+    const value = fixture(), external = services(value.plan), events: string[] = [];
+    const stages = ["Candidate", "Stable"] as const;
+    const health = { Candidate: 0, Stable: 0 }, endpoints: Partial<Record<typeof stages[number], string>> = {};
+    const handlerFailures: unknown[] = []; let hooks = 0, credentials = 0;
+    external.deps.probe = undefined;
+    expect(vi.isMockFunction(globalThis.fetch)).toBe(false);
+    expect(vi.isMockFunction(Date.now)).toBe(false);
+    const servers = stages.map(stage => http.createServer((request, response) => {
+      try {
+        expect(request.method).toBe("GET");
+        expect(external.calls).not.toContain(`timer:${value.plan.identities.dispatcher}:true`);
+        if (request.url === "/health") {
+          expect(request.headers.authorization === undefined).toBe(true);
+          expect(credentials).toBe(0); expect(hooks).toBe(stage === "Candidate" ? 0 : 1);
+          expect(readReceipt(value.receiptFile)).toMatchObject({ status: "applying", phase: stage === "Candidate" ? "candidate-smoke" : "stable-readiness" });
+          const attempt = ++health[stage]; events.push(`${stage}:${attempt}`);
+          response.setHeader("content-type", "application/json");
+          response.end(attempt === 1 ? JSON.stringify({ revision: "test-wrong-local-revision" })
+            : attempt === 2 ? "not-json-health" : JSON.stringify({ revision: value.plan.revision }));
+        } else {
+          expect(stage).toBe("Stable"); expect(request.url).toBe("/v1/agents/sessions");
+          expect((request.headers.authorization ?? "").startsWith("Bearer ")).toBe(true);
+          expect(health).toEqual({ Candidate: 3, Stable: 3 }); expect(hooks).toBe(1);
+          expect(readReceipt(value.receiptFile).phase).toBe("verify-production-auth");
+          credentials++; events.push("production-auth"); response.writeHead(401, { "content-type": "application/json" }); response.end("{}");
+        }
+      } catch (error) { handlerFailures.push(error); response.statusCode = 500; response.end("local-component-assertion-failed"); }
+    }));
+    try {
+      for (let index = 0; index < servers.length; index++) {
+        const server = servers[index];
+        await new Promise<void>((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
+        const address = server.address();
+        if (!address || typeof address === "string") throw new Error("Local component server did not expose a TCP port.");
+        endpoints[stages[index]] = `http://127.0.0.1:${address.port}`;
+      }
+      const createTrigger = external.deps.fc.createHttpTrigger;
+      external.deps.fc.createHttpTrigger = async (name, trigger, qualifier) => {
+        await createTrigger(name, trigger, qualifier);
+        const endpoint = endpoints[trigger.startsWith("verify-") ? "Candidate" : "Stable"]!;
+        external.triggers.set(`${name}/${trigger}/${qualifier}`, endpoint); return endpoint;
+      };
+      external.deps.hooks = async phase => {
+        if (phase === "afterReady") {
+          expect(health).toEqual({ Candidate: 3, Stable: 0 }); expect(credentials).toBe(0);
+          expect(readReceipt(value.receiptFile).phase).toBe("candidate-smoke"); hooks++; events.push("afterReady");
+        }
+      };
+      const configureTimer = external.deps.fc.configureTimer;
+      external.deps.fc.configureTimer = async (name, token, enabled) => {
+        if (enabled) { expect(credentials).toBe(1); expect(health).toEqual({ Candidate: 3, Stable: 3 }); events.push("timer-enabled"); }
+        return configureTimer(name, token, enabled);
+      };
+      const started = performance.now();
+      await expect(applyPlan(value.plan, external.deps, value.receiptFile)).resolves.toMatchObject({ status: "ready" });
+      expect(performance.now() - started).toBeGreaterThanOrEqual(3500);
+      expect(handlerFailures).toEqual([]); expect(credentials).toBe(1); expect(hooks).toBe(1);
+      expect(events).toEqual(["Candidate:1", "Candidate:2", "Candidate:3", "afterReady", "Stable:1", "Stable:2", "Stable:3", "production-auth", "timer-enabled"]);
+      expect(readReceipt(value.receiptFile)).toMatchObject({ status: "ready", phase: "ready" });
+    } finally {
+      for (const server of servers) {
+        server.closeAllConnections();
+        if (server.listening) await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+      }
+    }
   });
   it.each([{ revision: "test-old-revision" }, {}, null])("rejects persistent candidate HTTP200 mismatch after the readiness budget: %j", async body => {
     const value = fixture(), external = services(value.plan), now = Date.now; let attempts = 0, hooks = 0, shift = 0;

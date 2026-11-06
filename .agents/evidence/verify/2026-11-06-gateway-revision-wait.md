@@ -44,6 +44,10 @@ revision success, fatal errors and production temporary-credential behavior unch
   the second full report remains FAIL (177 PASS, one FAIL, eight SKIP); the isolated complete standard
   case then passed with actual waited exit 0 and independent typed absence for both owned IDs.
   The 37 pure image/expiry cases and lint also pass; all 697 product dist files remain unchanged.
+- [Real local HTTP component](2026-11-06-gateway-real-http-component.md): one full `applyPlan` case
+  uses two actual TCP origins and native probe/fetch/parse/delays, checking candidate/stable retries,
+  persisted phases and hook/authentication/timer order. Its isolated old-line control fails as expected;
+  the owning checkout's selected component passes. FC/state/hook control fixtures are not cloud evidence.
 
 The five remaining optional cases require three temporary real filesystem mounts, a live local
 OpenSandbox server, or the original SDK user-doc fixture. None is reported as passed.
