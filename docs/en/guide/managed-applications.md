@@ -3,7 +3,8 @@
 Managed applications expose one Gateway endpoint. Sessions create isolated Sandbox compute as needed;
 clients keep using the Gateway URL across sessions and application updates. This workflow supports
 the `spec_version: 6`, `managed-bridge-v1` template profile on Alibaba Cloud Express and Function Compute.
-Use the npm CLI built from a revision containing `abx app --help`; CLI 0.5.8 does not include these commands.
+Install the published npm CLI 0.5.9 with `npm install --global @agent-sandbox/cli@0.5.9`.
+CLI 0.5.8 does not include these commands.
 Node.js 20+, Docker, an ACR namespace and the template's Python smoke dependencies are required on the deployment host.
 
 Start from the [Agents API template](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api).
