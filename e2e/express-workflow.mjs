@@ -23,7 +23,7 @@ const config = loadConfig();
 const nativeOptions = { access_key_id: config.access_key_id, access_key_secret: config.access_key_secret, region: config.region };
 assert.ok(nativeOptions.access_key_id && nativeOptions.access_key_secret && config.api_key && process.env.ACR_NAMESPACE, 'Configure Express Sandbox key, AccessKeys and ACR_NAMESPACE');
 process.env.ABX_SERVER_TOKEN ||= randomBytes(32).toString('hex');
-let sandbox, launch, error;
+let sandbox, launch, error, prelaunchJournalIds;
 async function run(args, json = true) {
   const result = await new Promise(resolve => {
   const child = execFile(process.execPath, [cli, '--native', ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => resolve({ status: error ? error.code ?? 1 : 0, stdout, stderr }));
@@ -59,6 +59,14 @@ function journals() {
   if (!fs.existsSync(journalDirectory)) return [];
   return fs.readdirSync(journalDirectory).filter(name=>name.endsWith('.json')).map(name=>JSON.parse(fs.readFileSync(path.join(journalDirectory,name),'utf8'))).filter(j=>j.entries.some(e=>e.correlation_key?.startsWith(alias)));
 }
+function journalIdsBeforeLaunch() {
+  let names;
+  try { names = fs.readdirSync(journalDirectory); }
+  catch (failure) { if (failure.code === 'ENOENT') return []; throw new Error('prelaunch_journal_inventory_unconfirmed', {cause: failure}); }
+  const ids = names.filter(name=>name.endsWith('.json')).map(name=>name.slice(0,-5));
+  if (!ids.every(id=>/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id))) throw new Error('prelaunch_journal_inventory_unconfirmed');
+  return ids;
+}
 function imageJournals() {
   if (!fs.existsSync(journalDirectory)) return [];
   const all = fs.readdirSync(journalDirectory).filter(name=>name.endsWith('.json'))
@@ -66,6 +74,7 @@ function imageJournals() {
   return selectWorkflowImageJournals(all, alias);
 }
 try {
+  prelaunchJournalIds = journalIdsBeforeLaunch();
   // Same source reference and default build as the Registry's Express instruction.
   launch = await run(['template','launch','Alibaba-Agent-Sandbox/awesome-templates//python-hello','--alias',alias,'--timeout','1200','--sandbox-timeout',process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600','--yes']);
   assert.equal(launch.provider,'alicloud-express');assert.ok(launch.source_digest);
@@ -152,7 +161,7 @@ finally {
   if(error)report.result='FAIL';
   try {
     report.owned_image_metadata = projectWorkflowImages(imageJournals(), alias, launch,
-      {startedAt: runStartedAt, finishedAt: new Date().toISOString()});
+      {startedAt: runStartedAt, finishedAt: new Date().toISOString()}, prelaunchJournalIds);
     if(report.owned_image_metadata.status !== 'complete') report.result='FAIL';
   } catch {
     report.owned_image_metadata = {schemaVersion:1,status:'unconfirmed',images:[],issues:['image_metadata_collection_failed']};

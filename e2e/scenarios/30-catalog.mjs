@@ -10,15 +10,19 @@ export default {
   scenarios: [
     { id: 'search-python', title: 'template search python finds python-hello with its published status', creds: false, freshHome: true, argv: ['template', 'search', 'python'], stdout: ['python-hello', 'Status', /\d+ template\(s\) found\./] },
     {
-      id: 'search-json-shape', title: 'catalog JSON exposes current workflow metadata and filters by the published status', creds: false, freshHome: true,
+      id: 'search-json-shape', title: 'catalog JSON exposes source locators or managed manifests and filters by the published status', creds: false, freshHome: true,
       async run(ctx) {
         const r = await ctx.abx(['--json', 'template', 'search', 'python'], { creds: false });
         if (r.code !== 0) ctx.fail(`search failed: ${r.code}`);
         const entries = parseJsonLoose(r.stdout);
-        checkShape(entries, [{ name: 'string', description: 'string', repo: 'string', tags: ['string'], author: 'string', workflow: 'string|null', status: 'string' }]);
+        checkShape(entries, [{ name: 'string', description: 'string', repo: 'string', path: 'string|null', ref: 'string|null', tags: ['string'], author: 'string', manifest: 'object|null', status: 'string' }]);
         const hello = entries.find((entry) => entry.name === 'python-hello');
         if (!hello) ctx.fail('python-hello missing');
-        if (entries.some((entry) => 'capabilities' in entry)) ctx.fail('catalog exposes retired capabilities metadata');
+        if (hello.manifest !== null || hello.path !== 'python-hello'
+            || hello.repo.replace(/\/$/, '').toLowerCase() !== 'https://github.com/alibaba-agent-sandbox/awesome-templates') {
+          ctx.fail('python-hello must retain its source locator instead of an invented inline manifest');
+        }
+        if (entries.some((entry) => 'capabilities' in entry || 'workflow' in entry)) ctx.fail('catalog exposes retired capabilities or workflow metadata');
         const filtered = await ctx.abx(['--json', 'template', 'search', 'python', '--status', hello.status], { creds: false });
         if (filtered.code !== 0) ctx.fail(`filtered search failed: ${filtered.code}`);
         const selected = parseJsonLoose(filtered.stdout);

@@ -2,7 +2,7 @@
 
 - Date: 2026-11-06
 - Change: [Issue 237](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/237)
-- Result: PARTIAL; local repository gates PASS; remote real-component and publication gates pending.
+- Result: PARTIAL; local and remote repository gates PASS; initial real Express gate FAIL; publication pending.
 - Package: locally prepared CLI 0.5.10; base main `7b08d7c66299f5ac98ea34684d968d61e208f0d9`.
 - Environment: Linux, Node.js 22. Credentials are not needed for local regressions and are not recorded.
 
@@ -25,7 +25,7 @@ revision success, fatal errors and production temporary-credential behavior unch
   recoverable. Original compute cleanup selection is unchanged.
 - First full `make ci` reached unit tests: 4,739 PASS, 11 optional skips and one expected version-golden
   mismatch after the release bump. Added a new dated 0.5.10 golden using `ABX_UPDATE_EVIDENCE=1` and
-  retained every previous golden. The selected version case now passes; the full rerun is pending.
+  retained every previous golden. The selected version case and later full rerun pass.
 - ESLint: zero errors, 275 warnings. Repository health: 105 PASS, 11 WARN, zero FAIL.
 - [Actual candidate version capture](../cli/2026-11-06-cli-0510-version.md).
 - A second full run passed all 4,740 enabled unit cases but parity rejected six skipped server-reference
@@ -35,6 +35,11 @@ revision success, fatal errors and production temporary-credential behavior unch
   907/907 PASS, zero missing, 11 moved classes independently verified in the owning SDK. Package-entry
   and Skill-reference closure checks: PASS. The enabled server-guide component suite also passed 23 cases
   separately; those overlap the full run and are not additional unique coverage.
+- Exact-head `b544c4ca8233bcbd24691e43638383cef8d6375d` remote CI
+  [42232391962](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/42232391962):
+  Node 20/22 tests, typecheck, installer and package build PASS. Documentation links also PASS.
+  Automatic Express run 42232391946 skipped its real launch step; its green job is not real-component evidence.
+- [Initial standalone real Express result](2026-11-06-cli-0510-express-initial.md): FAIL; no blind rerun.
 
 The five remaining optional cases require three temporary real filesystem mounts, a live local
 OpenSandbox server, or the original SDK user-doc fixture. None is reported as passed.
@@ -48,9 +53,13 @@ still stop publication immediately. Static full-message assertions withhold priv
 
 ## Cleanup
 
-Local fixtures remove their owned directories. This change has not yet created cloud resources.
-The existing Express acceptance creates compute and intentionally retains image tags; its future
-image-only report and independent cleanup must be recorded separately before claiming no task resources remain.
+Local fixtures remove their owned directories. The standalone Express run independently confirmed
+its owned sandbox/template absence. Its two image entries remain explicitly retained/manual in the
+unchanged private journal; the initial image projection incorrectly selected zero rows. A separate
+fixed-resource recovery removed their two exact tags and independently confirmed absence at
+15:06:28Z, without deleting the generic repository. The later one-sandbox expiry observation also
+confirmed sandbox/process absence. See the separate record for actual hashes and scope; the original
+FAIL is unchanged.
 
 ## Problems found
 
@@ -63,6 +72,6 @@ independently; it does not broaden the existing compute cleanup selector.
 
 ## Not verified
 
-Full local CI, exact-head remote CI/real Express workflow, managed public deployment with this patch,
-five-platform release and fresh public npm installation are pending. CLI 0.5.9's failed receipt remains
+Complete real Express success, managed public deployment with this patch, five-platform release and
+fresh public npm installation are pending. CLI 0.5.9's failed receipt remains
 historical and is not marked ready or replayed.
