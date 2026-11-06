@@ -1,0 +1,763 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/awesome-templates/main/spec/template-v6.schema.json",
+  "title": "Agent Sandbox managed-session application template specification v6",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "version",
+    "description",
+    "author",
+    "license",
+    "spec_version",
+    "base",
+    "generation",
+    "start_cmd",
+    "ready_cmd",
+    "resources",
+    "ports",
+    "tags",
+    "priority",
+    "wave",
+    "env",
+    "smoke",
+    "provides",
+    "application"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^(?:_skeleton|[a-z0-9][a-z0-9-]{0,62})$"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_cmd": {
+      "const": "python -m agent_sandbox.server.managed --port 9000"
+    },
+    "ready_cmd": {
+      "const": "agent-sandbox-server healthcheck --port 9000"
+    },
+    "spec_version": {
+      "const": 6
+    },
+    "generation": {
+      "const": 2
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu",
+        "memory"
+      ],
+      "properties": {
+        "cpu": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory": {
+          "type": "integer",
+          "minimum": 128,
+          "multipleOf": 64
+        }
+      }
+    },
+    "ports": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 65535
+      },
+      "contains": {
+        "const": 9000
+      }
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "priority": {
+      "enum": [
+        "P0",
+        "P1",
+        "P2"
+      ]
+    },
+    "wave": {
+      "enum": [
+        1,
+        2,
+        3,
+        "other"
+      ]
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "smoke": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation",
+          "expect"
+        ],
+        "properties": {
+          "operation": {
+            "enum": [
+              "health",
+              "capabilities"
+            ]
+          },
+          "expect": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array"
+            ]
+          }
+        }
+      }
+    },
+    "application": {
+      "$ref": "#/$defs/application"
+    },
+    "provides": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "version",
+          "port",
+          "operations"
+        ],
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "operations": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "build_profiles": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dockerfile",
+          "context"
+        ],
+        "properties": {
+          "dockerfile": {
+            "type": "string",
+            "pattern": "^Dockerfile[.][a-z][a-z0-9.-]*$"
+          },
+          "context": {
+            "const": "."
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "refName": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\\\x00-\\x1f]+$"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "#/$defs/refName"
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "gateway",
+              "worker",
+              "dispatcher",
+              "sandbox-creation",
+              "deployment-publisher"
+            ]
+          }
+        },
+        "resolverRole": {
+          "const": "worker"
+        },
+        "allowedEnv": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          }
+        }
+      },
+      "required": [
+        "reference",
+        "targets"
+      ]
+    },
+    "hooks": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/refName"
+              },
+              "type": {
+                "const": "custom"
+              },
+              "argv": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 64,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              },
+              "cwd": {
+                "$ref": "#/$defs/relativePath"
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              },
+              "envAllowlist": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]*$"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "argv",
+              "cwd",
+              "timeoutSeconds",
+              "envAllowlist"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/refName"
+              },
+              "type": {
+                "const": "serverless-devs"
+              },
+              "step": {
+                "enum": [
+                  "gateway",
+                  "worker",
+                  "dispatcher"
+                ]
+              },
+              "command": {
+                "const": "info"
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 900
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "step",
+              "command",
+              "timeoutSeconds"
+            ]
+          }
+        ]
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "protocol": {
+              "const": "agent-sandbox-managed-agents/v1"
+            },
+            "compatibility": {
+              "const": "openai-agents-inspired-subset"
+            },
+            "busyInputPolicy": {
+              "const": "reject-unless-steerable"
+            },
+            "explicitQueue": {
+              "const": true
+            }
+          },
+          "required": [
+            "protocol",
+            "compatibility",
+            "busyInputPolicy",
+            "explicitQueue"
+          ]
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "placement": {
+              "const": "in-sandbox"
+            },
+            "driver": {
+              "const": "sandbox-local-api"
+            },
+            "profile": {
+              "const": "managed-bridge-v1"
+            }
+          },
+          "required": [
+            "placement",
+            "driver",
+            "profile"
+          ]
+        },
+        "gateway": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "placement": {
+              "const": "fc-web"
+            }
+          },
+          "required": [
+            "placement"
+          ]
+        },
+        "sandbox": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "$ref": "#/$defs/refName"
+            },
+            "lifetime": {
+              "const": "per-session"
+            },
+            "workspace": {
+              "const": "exclusive"
+            },
+            "requiredFeatures": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "sandbox.lifecycle"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "ports.url"
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "provider",
+            "lifetime",
+            "workspace",
+            "requiredFeatures"
+          ]
+        },
+        "sessions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "idleTimeoutSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxLifetimeSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxLogicalSessionsPerOwner": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxActiveSessions": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxQueuedTurnsPerSession": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxConcurrentTurnsPerSession": {
+              "const": 1
+            },
+            "resultRetentionSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "closePolicy": {
+              "const": "release-compute-retain-results"
+            },
+            "deletePolicy": {
+              "const": "remove-public-data-retain-private-cleanup"
+            },
+            "guestRestartPolicy": {
+              "const": "freeze-and-reconcile"
+            }
+          },
+          "required": [
+            "idleTimeoutSeconds",
+            "maxLifetimeSeconds",
+            "maxLogicalSessionsPerOwner",
+            "maxActiveSessions",
+            "maxQueuedTurnsPerSession",
+            "maxConcurrentTurnsPerSession",
+            "resultRetentionSeconds",
+            "closePolicy",
+            "deletePolicy",
+            "guestRestartPolicy"
+          ]
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "const": "durable"
+            },
+            "bindingRef": {
+              "$ref": "#/$defs/refName"
+            }
+          },
+          "required": [
+            "profile",
+            "bindingRef"
+          ]
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backend": {
+              "const": "bounded-database"
+            },
+            "maxFileBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxArtifactBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxTurnArtifactBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxRetainedBytesPerOwner": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "backend",
+            "maxFileBytes",
+            "maxArtifactBytes",
+            "maxTurnArtifactBytes",
+            "maxRetainedBytesPerOwner"
+          ]
+        },
+        "bindings": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/refName"
+          },
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/binding"
+          },
+          "required": [
+            "sandboxAccess",
+            "model",
+            "clientAuth",
+            "internalAuth"
+          ]
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxRunSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxToolSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxConcurrentRuns": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxQueuedRuns": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxRunsPerMinute": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxEventsPerRun": {
+              "type": "integer",
+              "minimum": 5
+            },
+            "maxOutputBytes": {
+              "type": "integer",
+              "minimum": 1024
+            },
+            "maxSubscribersPerSession": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "maxRunSeconds",
+            "maxToolSeconds",
+            "maxConcurrentRuns",
+            "maxQueuedRuns",
+            "maxRunsPerMinute",
+            "maxEventsPerRun",
+            "maxOutputBytes",
+            "maxSubscribersPerSession"
+          ]
+        },
+        "deployment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "const": "fc-managed-agents"
+            },
+            "accessRef": {
+              "$ref": "#/$defs/refName"
+            },
+            "region": {
+              "type": "string",
+              "pattern": "^cn-[a-z0-9-]+$"
+            },
+            "component": {
+              "type": "string",
+              "pattern": "^fc3@[0-9]+\\.[0-9]+\\.[0-9]+$"
+            },
+            "serverImage": {
+              "type": "string",
+              "pattern": "^[^\\s@]+@sha256:[0-9a-f]{64}$"
+            },
+            "serverBuildRecipe": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "dockerfile": {
+                  "$ref": "#/$defs/relativePath"
+                },
+                "context": {
+                  "const": "."
+                }
+              },
+              "required": [
+                "dockerfile",
+                "context"
+              ]
+            },
+            "ingressBindingRef": {
+              "$ref": "#/$defs/refName"
+            },
+            "revisionStrategy": {
+              "const": "immutable-workers-with-drain"
+            }
+          },
+          "required": [
+            "profile",
+            "accessRef",
+            "region",
+            "component",
+            "ingressBindingRef",
+            "revisionStrategy"
+          ],
+          "oneOf": [
+            {
+              "required": [
+                "serverImage"
+              ],
+              "not": {
+                "required": [
+                  "serverBuildRecipe"
+                ]
+              }
+            },
+            {
+              "required": [
+                "serverBuildRecipe"
+              ],
+              "not": {
+                "required": [
+                  "serverImage"
+                ]
+              }
+            }
+          ]
+        },
+        "hooks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "beforeApply": {
+              "$ref": "#/$defs/hooks"
+            },
+            "afterReady": {
+              "$ref": "#/$defs/hooks"
+            }
+          },
+          "required": []
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "endpoint": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "const": "publish.outputs.endpoint"
+                }
+              },
+              "required": [
+                "from"
+              ]
+            },
+            "protocol": {
+              "const": "agent-sandbox-managed-agents/v1"
+            }
+          },
+          "required": [
+            "endpoint",
+            "protocol"
+          ]
+        }
+      },
+      "required": [
+        "api",
+        "runtime",
+        "gateway",
+        "sandbox",
+        "sessions",
+        "state",
+        "storage",
+        "bindings",
+        "limits",
+        "deployment",
+        "outputs"
+      ]
+    }
+  },
+  "description": "Managed Agents application profile; v5 retains its independent original contract."
+}

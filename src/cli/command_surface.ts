@@ -8,6 +8,7 @@
 
 /** Command groups (`abx GROUP ...`). */
 export const GROUP_COMMANDS: Readonly<Record<string, { spec: string; help: string }>> = {
+  app: { spec: "commands/app:app", help: "Build, review, deploy and clean up managed applications." },
   sandbox: { spec: "commands/sandbox:sandbox", help: "Manage sandboxes, their files, processes and commands." },
   template: { spec: "commands/template:template", help: "Discover, scaffold, build, publish and install sandbox templates." },
   config: { spec: "commands/config_cmd:config", help: "Manage persistent credentials and CLI defaults." },

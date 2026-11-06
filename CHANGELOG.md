@@ -6,11 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.9] - Unreleased
+
+### Added
+
+- Add explicit managed application build, plan, apply, status, reconcile, retire and destroy commands, private generated authentication, revision-pinned workers and a stable FC Gateway alias. / 新增托管应用构建、计划、部署、状态、核对、退役与销毁命令，支持本机私有生成认证、固定 revision Worker 和稳定 FC Gateway 别名。
+
 ### Changed
 
 - Reorganize the English and Chinese repository READMEs around installation, first use and task-oriented documentation; keep migration and detailed reference material in their guides.
 
 ### Fixed
+
+- Check candidate HTTP revision readiness with the same bounded read policy as stable publication; retain safe status diagnostics before hooks. / 候选入口在执行验证钩子前采用与稳定入口相同的有界 HTTP revision 就绪检查，并保留安全状态诊断。
+
+- Verify the stable HTTP Gateway serves the frozen new revision before final credential rejection, with bounded health-only readiness waits. / 最终凭据检查前验证稳定 HTTP Gateway 已服务冻结的新 revision，并有限等待健康入口就绪。
+
+- Report safe production credential-check status and retry only bounded HTTP 502/503/504 reads; accepted credentials still stop publication immediately. / 生产凭据检查报告安全状态码，只有限重试 HTTP 502/503/504 读取；凭据被接受时仍立即停止发布。
+
+- Keep the storage backend descriptor out of numeric runtime budgets so the full managed manifest starts with the matching SDK. / 编译数字运行预算时排除存储后端描述，使完整托管清单可由对应 SDK 正常启动。
+
+- Serialize private FC invocation bodies as UTF-8 bytes and reject drained application ledgers before candidate publication. / 私有 FC 调用显式发送 UTF-8 字节，候选发布前拒绝已排空的应用账本。
+
+- Wait for FC image readiness, submit owned Server image tags with digest verification, keep database CA outside the 4 KiB role environment, and bound native function names. / 等待 FC 镜像就绪，自有 Server 镜像以 tag 提交并核对 digest，数据库 CA 不占角色 4 KiB 环境变量预算，并限制原生函数名长度。
+
+- Drain retained application revisions before retirement or destruction, verify their persistent state identity, and preserve historical Gateway cleanup after failed updates. / 应用退役或销毁前排空保留 revision 并核对持久状态身份，升级失败后仍按历史记录清理 Gateway。
 
 - Simplify natural-language create and Provider help; native noninteractive kill requires explicit --yes. Preserve quoted command arguments and background shell mode, and propagate lifecycle errors instead of reporting absence. / 精简自然语言创建和 Provider 帮助；原生非交互删除须显式 --yes，修复引号参数和后台 shell，状态查询保留实际错误。
 

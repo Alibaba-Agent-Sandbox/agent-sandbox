@@ -273,3 +273,11 @@ acceptance. Only same-repository PRs and manual dispatches can use this job.
 ## MCP lifecycle resource expectations
 
 After building, `node e2e/mcp-lifecycle.mjs` runs the real CLI STDIO server and checks ownership, independent metadata, lifetime changes, files and commands. Select a prepared template with `ABX_E2E_TEMPLATE`; set `ABX_E2E_CPU` and `ABX_E2E_MEMORY` to its expected actual resources (defaults: `base`, 2 CPU, 2048 MB). Both create arguments and a separate metadata response must match those expectations. Qualified IDs are used for operations; the fixture parses their raw ID for metadata/list comparisons.
+## Managed application components
+
+After `npm run build`, run `node e2e/managed-components.mjs all` with the selected Express deployment
+credentials and ACR namespace. `ABX_APP_E2E_ACCESS_REF` selects an explicit Devs profile; default `abx`
+uses configured AccessKeys. This creates one private FC test function and one tiny random-tagged Server
+image, exercises the official component deploy/info/remove methods and confirms exact remote/local absence.
+Shared ACR repositories remain. An uncertain result preserves a private recovery directory instead of
+guessing ownership. This component check does not certify a full Gateway/PostgreSQL/Sandbox/model deployment.

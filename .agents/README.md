@@ -1,5 +1,23 @@
 # `.agents/` — engineering record of the cli repository
 
+[Candidate Gateway HTTP readiness](notes/proposed/feature/2026-11-06-candidate-gateway-readiness.md) · [verification](evidence/verify/2026-11-06-candidate-gateway-readiness.md) applies the bounded revision check before candidate hooks.
+
+[Stable Gateway HTTP readiness](notes/proposed/feature/2026-11-06-stable-gateway-readiness.md) · [verification](evidence/verify/2026-11-06-stable-gateway-readiness.md) verifies the frozen HTTP revision before final credential rejection.
+
+[Production credential probe](notes/proposed/feature/2026-11-06-production-credential-probe.md) · [verification](evidence/verify/2026-11-06-production-credential-probe.md) bounds explicit transient read checks while retaining authentication failures.
+
+[Managed storage budget compilation](notes/proposed/feature/2026-11-06-managed-storage-budget-compilation.md) · [verification](evidence/verify/2026-11-06-managed-storage-budget-compilation.md) checks actual compiled bootstrap against the installed final SDK.
+
+[FC control request bytes](notes/proposed/feature/2026-11-06-fc-control-request-bytes.md) · [verification](evidence/verify/2026-11-06-fc-control-request-bytes.md) preserves the actual official serializer failure and the separate recovery candidate.
+
+[FC certificate argument chunks](evidence/verify/2026-11-06-fc-ca-argument-chunks.md) preserves the native single-argument limit and separate third candidate.
+
+[FC managed image readiness](notes/proposed/feature/2026-11-06-fc-managed-image-readiness.md) · [verification](evidence/verify/2026-11-06-fc-managed-image-readiness.md) records the separate new candidate after actual create/input and environment limits were observed.
+
+[Managed deployment drain recovery](notes/proposed/feature/2026-11-06-managed-deployment-drain.md) · [verification](evidence/verify/2026-11-06-managed-deployment-drain.md) continues PR235 and prepares the unpublished 0.5.9 candidate.
+
+- [Managed Agents application](notes/proposed/feature/2026-11-05-managed-agents-application.md) · [verification](evidence/verify/2026-11-05-managed-agents-application.md).
+
 - [Provider runtime onboarding](notes/proposed/process/2026-11-05-provider-runtime-onboarding.md) · [verification](evidence/verify/2026-11-05-provider-runtime-onboarding.md).
 
 - [Defensive complexity cleanup](notes/implemented/architecture/2026-10-29-defensive-complexity-cleanup.md) · [verification](evidence/verify/2026-10-29-defensive-complexity-cleanup.md).

@@ -7,9 +7,9 @@
 
 <!-- fixed-set -->
 
-顶层命令仅有这些：`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
+顶层命令仅有这些：`abx app`、`abx sandbox`、`abx template`、`abx config`、`abx mcp`、`abx provider`、`abx create`、`abx list`、`abx info`、`abx kill`、`abx exec`、`abx connect`、`abx upload`、`abx download`、`abx run`、`abx deploy`。
 
-`abx --help` 分两段列出：**Command groups**（`sandbox`、`template`、`config`、`mcp`、`provider`）和
+`abx --help` 分两段列出：**Command groups**（`app`、`sandbox`、`template`、`config`、`mcp`、`provider`）和
 **Sandbox shortcuts**（十个快捷方式，先说明用途，再以 `(alias: abx …)` 备注完整命令）。
 之后显示当前 Provider 的操作摘要。更多模板可浏览 [Registry](https://registry.agent-sandbox.cn/templates/)，
 或运行 `abx template search 关键词`。
@@ -63,6 +63,7 @@ abx --ci template deploy ./ci-services --alias ci-services
 
 ```
 abx
+├── app          build | clean-build | plan | apply | status | reconcile | retire | destroy
 ├── sandbox
 │   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
 │   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID

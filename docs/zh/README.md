@@ -28,6 +28,7 @@ CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。
 | [编写提供商](guide/authoring-providers.md) | 编写 `node` 或 EPP/1 `exec` 提供商插件，含 `[template]` 与从 git 安装 |
 | [认证配置](guide/authentication.md) | API Key / AK-SK 认证与 `abx config` |
 | [CLI 教程](guide/cli-tutorial.md) | 命令行快速上手 |
+| [托管应用](guide/managed-applications.md) | 统一 Gateway、显式部署与按 Session 隔离的 Sandbox 计算 |
 | [模板使用](guide/using-templates.md) | 官方与社区模板使用 |
 | [模板编写](guide/authoring-templates.md) | 自定义模板；已有项目用 `abx template scaffold --adopt` |
 | [部署与构建](guide/deploy-and-build.md) | 模板生命周期（`template init` / `--adopt` → `deploy` → `create`） |
