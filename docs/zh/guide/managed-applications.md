@@ -93,7 +93,9 @@ abx app plan --destroy .abx/current.receipt.json --out .abx/destroy.json
 abx app destroy .abx/destroy.json --bindings .abx/bindings.json --yes
 ```
 
-旧 revision 的可复用 Session 均关闭且清理确认后才能 retire。destroy 先阻止新输入并排空应用，再删除记录中确认归属的资源。
-排空或删除未完成时保留收据，观察进度并生成新的销毁计划。数据库、模型账号、执行角色和自定义域名属于外部提供资源，由用户管理。
+retire 先阻止旧 revision 接受新 Session 和输入，关闭剩余可复用 Session，确认清理完成后才删除资源。
+destroy 先阻止新输入并排空所有已记录 revision，再删除确认归属的资源，包含升级失败后仍保留的资源。
+请保留历史收据，它们用于确认保留资源及其控制函数。排空或删除未完成时保留收据，观察进度，
+然后重试 retire 或生成新的销毁计划。数据库、模型账号、执行角色和自定义域名属于外部提供资源，由用户管理。
 本流程拥有的 Server tag 在应用记录的引用消失后删除；外部提供的 `serverImage` digest 按借用资源保留。
 Sandbox 构建镜像仍在恢复输出中保留手动清理记录；确认没有保留模板或函数引用后，再使用 ACR 工具删除这些明确镜像。

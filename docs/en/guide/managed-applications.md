@@ -106,9 +106,12 @@ abx app plan --destroy .abx/current.receipt.json --out .abx/destroy.json
 abx app destroy .abx/destroy.json --bindings .abx/bindings.json --yes
 ```
 
-Retire an old revision only after its reusable Sessions are closed and its cleanup is confirmed.
-Destroy fences new inputs and drains the application before deleting its recorded owned resources.
-If drain or deletion is incomplete, retain the receipt, observe progress, then create a fresh destruction plan.
+Retire stops the old revision from accepting new Sessions or inputs, closes its remaining reusable
+Sessions and deletes its resources only after cleanup is confirmed. Destroy fences new inputs and
+drains all recorded revisions before deleting owned resources, including resources retained after
+an unsuccessful update. Keep the previous receipts available: they identify retained resources and
+their control functions. If drain or deletion is incomplete, retain the receipts, observe progress,
+then retry retirement or create a fresh destruction plan.
 The database, model account, execution role and custom domain are supplied resources and remain yours.
 Owned Server tags are removed after their recorded application references are gone. Supplied
 `serverImage` digests are borrowed and preserved. Sandbox build images retain manual cleanup entries;

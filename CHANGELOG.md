@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.9] - Unreleased
+
 ### Added
 
 - Add explicit managed application build, plan, apply, status, reconcile, retire and destroy commands, private generated authentication, revision-pinned workers and a stable FC Gateway alias. / 新增托管应用构建、计划、部署、状态、核对、退役与销毁命令，支持本机私有生成认证、固定 revision Worker 和稳定 FC Gateway 别名。
@@ -15,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Reorganize the English and Chinese repository READMEs around installation, first use and task-oriented documentation; keep migration and detailed reference material in their guides.
 
 ### Fixed
+
+- Drain retained application revisions before retirement or destruction, verify their persistent state identity, and preserve historical Gateway cleanup after failed updates. / 应用退役或销毁前排空保留 revision 并核对持久状态身份，升级失败后仍按历史记录清理 Gateway。
 
 - Simplify natural-language create and Provider help; native noninteractive kill requires explicit --yes. Preserve quoted command arguments and background shell mode, and propagate lifecycle errors instead of reporting absence. / 精简自然语言创建和 Provider 帮助；原生非交互删除须显式 --yes，修复引号参数和后台 shell，状态查询保留实际错误。
 

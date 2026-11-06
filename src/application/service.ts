@@ -66,10 +66,13 @@ function assertPlan(plan: ApplicationPlan): void {
   if (plan.operation === "apply" && plan.buildReceipt) { const build = readBuild(plan.buildReceipt); if (build.image !== plan.image || digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null)) throw new ApplicationError("The frozen Server build identity changed; compute a fresh plan."); }
   if (plan.previousReceipt && digest(readReceipt(plan.previousReceipt)) !== plan.previousDigest) throw new ApplicationError("The previous receipt changed; compute a fresh plan.");
 }
-function control(receipt: ApplicationReceipt, services: ApplicationServices, operation: "status" | "drain", revision?: string): Promise<Record<string, unknown>> {
-  const dispatcher = receipt.functions.find(item => item.role === "dispatcher");
+async function control(receipt: ApplicationReceipt, services: ApplicationServices, operation: "status" | "drain", revision?: string, controller?: FunctionReceipt): Promise<Record<string, unknown>> {
+  const dispatcher = controller ?? receipt.functions.find(item => item.role === "dispatcher");
   if (!dispatcher) throw new ApplicationError("No confirmed dispatcher exists; retain unknown resources for reconciliation.");
-  return services.fc.invokeControl(dispatcher.functionName, signInvocation("dispatcher", { operation, applicationId: appId(receipt.plan.template), ...(revision ? { revision } : {}), limit: 20 }, services.binding.internal.token));
+  await inspectOwned(receipt, services, dispatcher);
+  const result = await services.fc.invokeControl(dispatcher.functionName, signInvocation("dispatcher", { operation, applicationId: appId(receipt.plan.template), ...(revision ? { revision } : {}), limit: 20 }, services.binding.internal.token));
+  if (receipt.stateInstanceId && result.stateInstanceId !== receipt.stateInstanceId) throw new ApplicationError("Dispatcher state identity differs from the saved application ledger; cleanup was withheld.");
+  return result;
 }
 function drained(value: Record<string, unknown>): boolean { return ["activeSessions", "pendingCleanup", "uncertainResources"].every(key => Number.isSafeInteger(value[key]) && value[key] === 0); }
 function validateBinding(plan: ApplicationPlan, services: ApplicationServices, previous?: ApplicationReceipt): void {
@@ -269,7 +272,8 @@ export async function retireRevision(receipt: ApplicationReceipt, revision: stri
   validateBinding(receipt.plan, services, receipt);
   const retired = receipt.retained.find(item => item.revision === revision);
   if (!retired || revision === receipt.plan.revision || receipt.status !== "ready") throw new ApplicationError("Retire requires a non-current retained revision of a ready deployment.");
-  if (!drained(await control(receipt, services, "status", revision))) throw new ApplicationError("Retained revision still owns reusable sessions or unresolved cleanup; close them before retirement.");
+  const activity = await control(receipt, services, "drain", revision);
+  if (activity.draining !== true || !drained(activity)) throw new ApplicationError("Retained revision drain is unconfirmed or still owns reusable sessions or unresolved cleanup; close them before retirement.");
   const historical = findHistorical(receipt, revision);
   const gateway = receipt.functions.find(item => item.role === "gateway");
   if (!gateway || !receipt.aliasName) throw new ApplicationError("Current Gateway publication ownership is missing.");
@@ -329,9 +333,22 @@ export async function destroyPlan(plan: ApplicationPlan, services: ApplicationSe
     if (templates.some(resource => ["intent", "uncertain"].includes(resource.state)) || created.length > 1 || (created.length === 1 && created[0].id !== item.sandbox?.reference)) throw new ApplicationError("Sandbox template creation remains uncertain; preserve the exact native journal and reconcile before declaring destruction complete.");
   }
   if (receipt.cleanup.some(item => item.kind === "function" && item.status === "uncertain" && !history.some(older => older.functions.some(owned => owned.functionName === item.identity)))) throw new ApplicationError("Uncertain resource ownership blocks automatic destruction; reconcile first.");
+  const recordedGateways = history.flatMap(item => item.functions.filter(resource => resource.role === "gateway"));
+  if (new Set(recordedGateways.map(item => digest([item.functionName, item.functionArn, item.functionId, item.createdTime]))).size > 1) throw new ApplicationError("Historical Gateway ownership is inconsistent; deletion withheld.");
+  const gateway = recordedGateways[0];
   receipt.status = "destroying"; receipt.phase = "drain"; save(file, receipt);
-  if (receipt.executionMayHaveStarted && !receipt.drainConfirmed) {
-    const activity = await control(receipt, services, "drain");
+  if (history.some(item => item.executionMayHaveStarted || item.status === "ready" || item.endpoint) && !receipt.drainConfirmed) {
+    // An update can fail before creating its Dispatcher while retained production Sessions exist.
+    // Prefer the current controller; an older controller may only confirm zero after every
+    // revision is actually quiescent. Native absence permits fallback, identity mismatch does not.
+    let controller: FunctionReceipt | undefined;
+    for (const candidate of history.flatMap(item => item.functions.filter(resource => resource.role === "dispatcher"))) {
+      const body = await services.fc.describeFunction(candidate.functionName);
+      if (!body) continue;
+      verifyFunction(body, receipt.accountId, receipt.plan.template.application.deployment.region, candidate.functionName, candidate);
+      controller = candidate; break;
+    }
+    const activity = await control(receipt, services, "drain", undefined, controller);
     if (activity.draining !== true || !drained(activity)) { receipt.status = "requires_reconcile"; save(file, receipt); throw new ApplicationError("Application drain is still active; resources were retained. Observe cleanup and prepare a fresh destruction plan."); }
     receipt.drainConfirmed = true; save(file, receipt);
   }
@@ -354,13 +371,12 @@ export async function destroyPlan(plan: ApplicationPlan, services: ApplicationSe
     await services.fc.deleteFunction(item.functionName);
   };
   for (const item of functions.values()) await cleanup("function", item.functionName, () => removeFunction(item));
-  const gateway = receipt.functions.find(item => item.role === "gateway");
   if (gateway) await cleanup("function", gateway.functionName, async () => {
     const body = await services.fc.describeFunction(gateway.functionName); if (!body) return;
     verifyFunction(body, receipt.accountId, receipt.plan.template.application.deployment.region, gateway.functionName, gateway);
     await services.fc.deleteTrigger(gateway.functionName, "abx-gateway");
-    if (receipt.candidateTrigger) await services.fc.deleteTrigger(gateway.functionName, receipt.candidateTrigger);
-    if (receipt.aliasName) await services.fc.deleteAlias(gateway.functionName, receipt.aliasName);
+    for (const trigger of new Set(history.flatMap(item => item.candidateTrigger ? [item.candidateTrigger] : []))) await services.fc.deleteTrigger(gateway.functionName, trigger);
+    for (const alias of new Set(history.flatMap(item => item.aliasName ? [item.aliasName] : []))) await services.fc.deleteAlias(gateway.functionName, alias);
     for (const version of new Set(history.flatMap(item => item.publishedVersions ?? (item.gatewayVersion ? [item.gatewayVersion] : [])))) await services.fc.deleteVersion(gateway.functionName, version);
     await services.fc.deleteFunction(gateway.functionName);
   });

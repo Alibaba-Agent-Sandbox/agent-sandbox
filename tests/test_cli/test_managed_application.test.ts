@@ -213,6 +213,45 @@ describe("managed application effects", () => {
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(); const receipt = readReceipt(value.receiptFile); expect(receipt.executionMayHaveStarted).not.toBe(true);
     await destroyPlan(createDestroyPlan(value.receiptFile), external.deps); expect(external.native.size).toBe(0); expect(external.calls).not.toContain("control");
   });
+  it("keeps retained production workers when an update fails before its dispatcher exists", async () => {
+    const value = fixture(), external = services(value.plan), previous = await applyPlan(value.plan, external.deps, value.receiptFile);
+    const update = createPlan(value.file, value.buildFile, value.receiptFile), file = path.join(value.directory, ".abx", "failed-update.receipt.json");
+    external.deps.fc.configureWorker = async () => { throw Error("new worker setup failed"); };
+    await expect(applyPlan(update, external.deps, file)).rejects.toThrow(/setup failed/);
+    expect(readReceipt(file).executionMayHaveStarted).not.toBe(true);
+    external.calls.length = 0;
+    external.deps.fc.invokeControl = async (name, envelope) => {
+      external.calls.push(`drain:${name}`);
+      expect(envelope.payload).toMatchObject({ operation: "drain", applicationId: value.template.name });
+      return { stateInstanceId: "1".repeat(32), activeSessions: 1, pendingCleanup: 0, uncertainResources: 0, draining: true };
+    };
+    await expect(destroyPlan(createDestroyPlan(file), external.deps)).rejects.toThrow(/drain is still active/);
+    expect(external.calls).toContain(`drain:${previous.plan.identities.dispatcher}`);
+    expect(external.calls.some(item => item.startsWith("delete:"))).toBe(false);
+    expect(external.native.has(previous.plan.identities.worker)).toBe(true);
+  });
+  it("cleans the inherited Gateway after an early update failure only after historical drain", async () => {
+    const value = fixture(), external = services(value.plan), previous = await applyPlan(value.plan, external.deps, value.receiptFile);
+    const update = createPlan(value.file, value.buildFile, value.receiptFile), file = path.join(value.directory, ".abx", "failed-update.receipt.json");
+    external.deps.fc.configureWorker = async () => { throw Error("new worker setup failed"); };
+    await expect(applyPlan(update, external.deps, file)).rejects.toThrow(/setup failed/);
+    external.calls.length = 0;
+    await destroyPlan(createDestroyPlan(file), external.deps);
+    expect(external.calls).toContain("control");
+    expect(external.calls).toContain(`delete:${previous.plan.identities.gateway}`);
+    expect(external.native.size).toBe(0);
+    expect(external.aliases.size).toBe(0);
+  });
+  it("retains every resource when historical Gateway creation identities conflict", async () => {
+    const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
+    const update = createPlan(value.file, value.buildFile, value.receiptFile), file = path.join(value.directory, ".abx", "update.receipt.json");
+    external.deps.probe = async (_endpoint, pathname) => pathname === "/health" ? { status: 200, body: { revision: update.revision } } : { status: 401, body: {} };
+    const receipt = await applyPlan(update, external.deps, file);
+    receipt.functions.find(item => item.role === "gateway")!.functionId = "conflicting-creation"; writeJson(file, receipt);
+    external.calls.length = 0;
+    await expect(destroyPlan(createDestroyPlan(file), external.deps)).rejects.toThrow(/Historical Gateway ownership/);
+    expect(external.calls.some(item => item.startsWith("delete:"))).toBe(false);
+  });
   it("marks possible execution before a candidate trigger whose result becomes unknown", async () => {
     const value = fixture(), external = services(value.plan); external.deps.fc.createHttpTrigger = async () => { expect(readReceipt(value.receiptFile).executionMayHaveStarted).toBe(true); throw new Error("unknown trigger"); };
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(); expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
@@ -225,7 +264,7 @@ describe("managed application effects", () => {
   });
   it("retains all workers while logical reusable sessions or uncertain cleanup remain", async () => {
     const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
-    external.deps.fc.invokeControl = async () => ({ activeSessions: 1, pendingCleanup: 0, uncertainResources: 0, draining: true });
+    external.deps.fc.invokeControl = async () => ({ stateInstanceId: "1".repeat(32), activeSessions: 1, pendingCleanup: 0, uncertainResources: 0, draining: true });
     await expect(destroyPlan(createDestroyPlan(value.receiptFile), external.deps)).rejects.toThrow(/drain is still active/); expect(external.native.size).toBe(3);
   });
   it("continues partial destruction and retries without repeating drain or deleting a replacement", async () => {
@@ -240,8 +279,30 @@ describe("managed application effects", () => {
   it("rejects retire when an old idle logical session can still accept input", async () => {
     const value = fixture(), external = services(value.plan), receipt = await applyPlan(value.plan, external.deps, value.receiptFile);
     receipt.retained.push({ revision: "rev-old", worker: "old-worker", dispatcher: "old-dispatcher", template: "old-template" });
-    external.deps.fc.invokeControl = async () => ({ activeSessions: 1, pendingCleanup: 0, uncertainResources: 0 });
+    external.deps.fc.invokeControl = async () => ({ stateInstanceId: "1".repeat(32), activeSessions: 1, pendingCleanup: 0, uncertainResources: 0 });
     await expect(retireRevision(receipt, "rev-old", external.deps, value.receiptFile)).rejects.toThrow(/reusable sessions/); expect(external.calls).not.toContain("delete:old-worker");
+  });
+  it("requires a durable revision drain fence rather than a zero-activity observation for retire", async () => {
+    const value = fixture(), external = services(value.plan), old = await applyPlan(value.plan, external.deps, value.receiptFile);
+    const update = createPlan(value.file, value.buildFile, value.receiptFile), file = path.join(value.directory, ".abx", "update.receipt.json");
+    external.deps.probe = async (_endpoint, pathname) => pathname === "/health" ? { status: 200, body: { revision: update.revision } } : { status: 401, body: {} };
+    const receipt = await applyPlan(update, external.deps, file);
+    external.calls.length = 0;
+    const operations: unknown[] = [];
+    external.deps.fc.invokeControl = async (_name, envelope) => {
+      operations.push(envelope.payload);
+      return { stateInstanceId: "1".repeat(32), activeSessions: 0, pendingCleanup: 0, uncertainResources: 0, draining: false };
+    };
+    await expect(retireRevision(receipt, old.plan.revision, external.deps, file)).rejects.toThrow(/drain/);
+    expect(operations).toEqual([expect.objectContaining({ operation: "drain", revision: old.plan.revision })]);
+    expect(external.calls.some(item => item.startsWith("delete:"))).toBe(false);
+  });
+  it("rejects control results from a replacement ledger before any cleanup", async () => {
+    const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
+    external.calls.length = 0;
+    external.deps.fc.invokeControl = async () => ({ stateInstanceId: "2".repeat(32), activeSessions: 0, pendingCleanup: 0, uncertainResources: 0, draining: true });
+    await expect(destroyPlan(createDestroyPlan(value.receiptFile), external.deps)).rejects.toThrow(/state identity/);
+    expect(external.calls.some(item => item.startsWith("delete:"))).toBe(false);
   });
   it("preserves old routing during update and retries retirement including historical Gateway versions", async () => {
     const value = fixture(), external = services(value.plan), old = await applyPlan(value.plan, external.deps, value.receiptFile), history = fs.readFileSync(value.receiptFile, "utf8");
@@ -260,7 +321,7 @@ describe("managed application effects", () => {
   });
   it("rejects an internal key rotation across retained revisions before cloud mutation", async () => {
     const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
-    const next = createPlan(value.file, value.buildFile, value.receiptFile); external.deps.binding.internal.token = "new-random-control-token-".repeat(3);
+    const next = createPlan(value.file, value.buildFile, value.receiptFile); external.deps.binding.internal.token = "test-new-random-control-token-".repeat(3);
     await expect(applyPlan(next, external.deps)).rejects.toThrow(/Internal credentials changed/); expect(external.native.size).toBe(3);
   });
 });
@@ -297,6 +358,22 @@ describe("owned Server image lifecycle", () => {
     expect(result.ownedServerImage?.state).toBe("confirmed"); expect(result.ownedServerImage?.tag).toMatch(/^build-[a-f0-9]{24}$/); expect(result.image).toContain("@sha256:");
     const cleaned = await cleanBuild(value.output, value.credential, value.dependencies); expect(cleaned.status).toBe("cleaned");
     expect(fs.readFileSync(value.output, "utf8")).not.toContain("private-registry-token");
+  });
+  it("excludes private deployment inputs and environment files from the actual Docker context", async () => {
+    const value = buildFixture();
+    for (const name of [".abx/private/env", ".abx/wheels/private.whl", ".env", ".env.local", "nested/.env.production"]) {
+      const file = path.join(value.directory, name); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, "private-input");
+    }
+    const run = value.dependencies.run; let checked = false;
+    value.dependencies.run = vi.fn(async input => {
+      if (input.argv[1] === "build") {
+        const context = input.argv.at(-1)!;
+        for (const name of [".abx", ".env", ".env.local", "nested/.env.production"]) expect(fs.existsSync(path.join(context, name))).toBe(false);
+        expect(fs.readFileSync(path.join(context, "Dockerfile.server"), "utf8")).toBe("FROM scratch\n"); checked = true;
+      }
+      return await run(input);
+    });
+    await buildApplication(value.template, value.directory, value.credential, value.output, value.dependencies); expect(checked).toBe(true);
   });
   it("retains the only recovery handle when push returns an unknown outcome", async () => {
     const value = buildFixture(), run = value.dependencies.run;

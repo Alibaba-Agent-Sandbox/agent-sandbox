@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+[Managed deployment drain recovery](notes/proposed/feature/2026-11-06-managed-deployment-drain.md) · [verification](evidence/verify/2026-11-06-managed-deployment-drain.md) continues PR235 and prepares the unpublished 0.5.9 candidate.
+
 - [Managed Agents application](notes/proposed/feature/2026-11-05-managed-agents-application.md) · [verification](evidence/verify/2026-11-05-managed-agents-application.md).
 
 - [Provider runtime onboarding](notes/proposed/process/2026-11-05-provider-runtime-onboarding.md) · [verification](evidence/verify/2026-11-05-provider-runtime-onboarding.md).
