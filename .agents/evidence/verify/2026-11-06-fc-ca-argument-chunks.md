@@ -43,3 +43,7 @@ This local owner created no cloud resources; test temporary files clean up in af
 owner independently reconciles every failed attempt and exact native absence. Native total argument
 limits and full application behavior still need actual FC verification; 64 KiB host validation does not
 promise native acceptance of every bundle. No package publication or merge is claimed.
+
+## Accepted producer provenance
+
+The independent static-contract [PR299](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/pull/299) merged as `31fe653c2940d8681b9549be3f570977152847a7` after current-head checks. The consumer source marker now points to those independently read-back identical schema bytes. That marker is test/provenance input and is absent from packaged dist; the installed third candidate remains unchanged.
