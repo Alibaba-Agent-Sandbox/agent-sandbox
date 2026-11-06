@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-## [0.5.9] - Unreleased
+### Documentation
+
+- Record CLI 0.5.9 publication and independently verified public installation; managed application guides now install the published npm version. / 补充 CLI 0.5.9 发行与独立公开安装记录，托管应用指南改用已发布 npm 版本。
+
+## [0.5.9] - 2026-11-06
 
 ### Added
 
