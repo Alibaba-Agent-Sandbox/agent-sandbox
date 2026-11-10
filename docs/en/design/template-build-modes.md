@@ -1,35 +1,50 @@
 # Template build modes
 
-Status: current specification for how a template directory becomes a registered sandbox template.
+Status: current source behavior for Sandbox template preparation. The mode rules below describe the Express adapter; other Providers expose their own supported preparation capabilities. Managed application builds follow the [managed application guide](../guide/managed-applications.md).
 
-A template is published in exactly one way per invocation. The user chooses. The default looks at the directory and picks.
+## Commands and outputs
 
-## Modes
+```bash
+abx template build ./project --out ./.abx/build.json --timeout 600 --yes
+abx deploy --build ./.abx/build.json --name my-app --yes
+# Or prepare and deploy directly:
+abx deploy ./project --name my-app --build-timeout 600 --yes
+```
 
-`--build` on `abx template build`, `abx template deploy`, and `abx deploy` accepts `auto` (default), `dockerfile`, or `steps`. `template.yaml` may set `build.mode` to the same three values. The command flag wins. When the flag is `auto` and the file sets a mode, the file mode is used.
+`template build` prepares a reusable artifact without creating an instance. `deploy --build FILE` consumes that artifact; `--build` does not select a mode. Direct `deploy SOURCE` prepares source and creates a named deployment. Source publication is a separate `template publish SOURCE --tag VERSION` operation.
 
-| Mode | What runs | `CreateTemplate` body |
-|---|---|---|
-| `dockerfile` | Local `docker build`, push to ACR, then register | `sandboxConfig.image` is the pushed image. `steps` is omitted. |
-| `steps` | No local Docker and no ACR push | `sandboxConfig.image` is `base.image`. `sandboxConfig.steps` is the expanded step list. |
-| `auto` | `Dockerfile` present → `dockerfile`. Otherwise, if the file has any build declaration → `steps`. | As the chosen mode. |
+## Choosing the preparation path
 
-When `auto` finds both a `Dockerfile` and build declarations, the Dockerfile path is used and the CLI prints that the platform steps were not sent.
+For Express, set `build.mode` in `template.yaml` to `auto`, `dockerfile` or `steps`. Without an explicit Dockerfile profile, the adapter uses that value, or `auto` when omitted.
 
-`steps` does not read a `Dockerfile` even if one is present. An `ACR_NAMESPACE` value that comes from the environment is ignored. Passing `--acr-namespace` together with `--build steps` is a usage error (exit 2). Platform steps use the official `CreateTemplate` API.
+| Manifest mode | Preparation |
+|---|---|
+| `dockerfile` | Build the local Dockerfile, push the image to the configured repository, then register it. |
+| `steps` | Register `base.image` and the expanded platform steps without a local Docker build or ACR push. |
+| `auto` | Prefer an existing Dockerfile; otherwise use the declared platform steps. |
 
-## template.yaml
+When both recipes exist, `auto` selects the Dockerfile and reports that the platform steps were not sent. Explicit `steps` ignores a Dockerfile and an ambient ACR namespace. Configure build credentials through `abx config init --build` or supported configuration inputs; the public authoring commands do not expose the former adapter-specific build flags.
 
-Fields that already take effect stay as they are (`name`, `capabilities`, `ports`, `resources`, `server`, `env`). Named commands stay in `commands.py`. They are not build steps.
-
-`base` is either a mapping or a string. A string is the image reference (`base: python:3.12-slim` is the same as `base.image`). `generation`, `start_cmd`, and `ready_cmd` are optional. `abx template deploy` sends them on `CreateTemplate`. A flag (`--generation`, `--start-cmd`, `--ready-cmd`) overrides the file. When the selected provider starts the server with a platform command and the directory contains `commands.py`, a missing `generation` defaults to `2` and a missing `start_cmd` / `ready_cmd` defaults to that provider profile. Other templates default to generation 1 and no start command. Generation 1 rejects a start command. If a generation-1 template of the same name already exists, deploy stops and prints `abx template delete <id> -y` followed by a redeploy. `--force` deletes that template and creates it again. `-y` does not.
+`--build-profile NAME` on `template build` or `deploy` selects a named Dockerfile recipe declared in the source:
 
 ```yaml
-name: python-data
+build_profiles:
+  portable:
+    dockerfile: Dockerfile.portable
+    context: .
+```
+
+The selected Dockerfile must be a root-level filename and the context must be `.`. Explicit profile selection uses that Dockerfile; it does not fall back to another recipe when preparation fails.
+
+## Platform steps
+
+A Sandbox template uses `spec_version: 5`. Alongside its service, resource and startup declarations, an Express platform-step recipe can contain:
+
+```yaml
 base:
   image: python:3.12-slim
 build:
-  mode: auto
+  mode: steps
   apt_install: [build-essential]
   pip_install: ["pandas>=2.0"]
   npm_install: []
@@ -42,44 +57,29 @@ build:
       args: ["echo done"]
 ```
 
-Declarations expand in this order, then raw `build.steps` are appended unchanged:
+The adapter expands declarations in this order, then appends raw `build.steps`:
 
 | Declaration | Platform step |
 |---|---|
-| `apt_install` | `{ "type": "RUN", "args": ["apt-get update && apt-get install -y <pkgs> && rm -rf /var/lib/apt/lists/*"] }` |
-| `pip_install` | `{ "type": "RUN", "args": ["pip install --no-cache-dir <pkgs>"] }` |
-| `npm_install` | `{ "type": "RUN", "args": ["npm install -g <pkgs>"] }` |
-| `env` | one `{ "type": "ENV", "args": ["KEY", "VAL"] }` per variable |
-| `run` | one `{ "type": "RUN", "args": ["<command>"] }` per command |
-| `steps` | copied as `{ type, args }` |
+| `apt_install` | `RUN` with apt update/install and package-list cleanup |
+| `pip_install` | `RUN` with `pip install --no-cache-dir` |
+| `npm_install` | `RUN` with `npm install -g` |
+| `env` | One `ENV` step with separate key and value arguments per variable |
+| `run` | One `RUN` step per command |
+| `steps` | Explicit `{ type, args }` entries; `args` is a string array |
 
-The official model documents `type` with the example `RUN` and `args` as a list of strings. Express `ENV` requires separate key/value arguments; values containing spaces or equals signs remain one argument. If the platform rejects a type, the CLI exits 1 and includes the platform message. The provider does not reliably propagate native `ENV` into later build `RUN` or runtime processes. For explicit generation-2 start/readiness commands, the CLI supplies the final declared ENV values with a quoted `/usr/bin/env` shell wrapper. Literal values remain literal and later ENV declarations override earlier ones. With no explicit runtime command (for example generation1), runtime environment behavior remains provider-defined. `COPY` is not generated: local files are not part of the cloud build context. Copying files requires `dockerfile` mode.
+Platform steps require a base image and at least one step. `base: IMAGE` is equivalent to `base.image`. Dockerfile mode instead uses the Dockerfile's `FROM`. Missing recipes, invalid modes or a missing selected Dockerfile fail preparation.
 
-`steps` mode requires `base.image`. That value is `sandboxConfig.image`. In `dockerfile` mode the `FROM` line in the Dockerfile is the base image; `base.image` is not sent.
+No local file context is uploaded for platform steps and no `COPY` step is generated. Use a Dockerfile recipe when the build needs local application files. Dependency commands execute as supplied; review generated source before building.
 
-## Errors
+Express native `ENV` is not a guarantee that a value reaches later `RUN` commands or runtime processes. For explicit startup/readiness commands, the adapter supplies the final step environment through a quoted `/usr/bin/env` wrapper; later declarations replace earlier values. Keep runtime inputs in the template's `env` declarations or explicit deployment inputs. Named application commands belong in application code and are not build steps.
 
-| Situation | Exit |
-|---|---|
-| `auto`, no Dockerfile and no build declarations | 2 |
-| `dockerfile`, no Dockerfile | 2 |
-| `steps`, missing `base.image` or no steps | 2 |
-| `steps` with `--acr-namespace` | 2 |
-| `build.mode` is not `auto`, `dockerfile`, or `steps` | 2 |
-| Platform rejects a step | 1 |
+## Readiness, deadlines and cleanup
 
-## SDK
+Both reusable builds and direct source deployments wait for template preparation to become ready. A successful native registration submission alone is not proof of readiness. Inspect native state with `abx --provider alicloud-express provider run template.get --input-file template-get.json`, where the file contains `template_id` and optionally `team_id`.
 
-The CLI implements these rules. The Python client does not deploy templates. Creating a sandbox (`Sandbox.create`) does not select a build mode.
+For Sandbox preparation, `template build --timeout SECONDS` and `deploy --build-timeout SECONDS` set the preparation budget: 600 seconds by default, greater than zero and at most 3600. `deploy --sandbox-timeout` separately sets instance lifetime; `--request-timeout` configures request timing. A local deadline does not prove remote work stopped or that an uncertain create can be replayed safely.
 
-## Natural-language creation
+Use `status` and `recover` for a failed named deployment, then `delete` for resources it owns. A separately prepared build remains independent: remove its consumers before `template build --clean BUILD_FILE --yes`, and inspect reported images requiring manual cleanup. See [authoring templates](../guide/authoring-templates.md) and [deployment boundaries](../guide/template-launch.md).
 
-Express `abx create --prompt "Python data analysis" --yes --detach --build steps` forwards the
-explicit mode to generation and deployment. The provider supplies its resolved base image;
-the CLI assembles file-transfer steps from final local bytes because no COPY context is
-uploaded. Files and WORKDIR precede dependency commands so relative requirements files work.
-The model supplies business code and existing build.run dependencies; ordered native steps
-repair ownership after WORKDIR and restore the provider runtime user. Generation uses the published `agent-sandbox-server==0.4.0a6` alpha from the official
-PyPI index. The prompt pipeline waits for Ready before creating a sandbox; direct
-`template deploy --build steps` still reports submission, so poll `template info` separately.
-The default Docker route is unchanged. Model-generated code is an artifact to review and test.
+Model-assisted authoring uses `template init --prompt` or `--adopt` and stops at source files. SDK sandbox creation does not invoke this build pipeline.
