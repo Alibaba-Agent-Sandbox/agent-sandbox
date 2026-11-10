@@ -1,4 +1,4 @@
-export function imports(text: string, file?: string): string[];
+export function imports(text: string, file?: string): Array<{ specifier: string; typeOnly: boolean }>;
 export function canonicalRepository(value: unknown, issues?: boolean): boolean;
 export function productPython(relative: string): boolean;
 export function removedCli(text: string, file: string): boolean;

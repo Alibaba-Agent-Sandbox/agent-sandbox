@@ -264,3 +264,30 @@ These remain failures; assertions and mock-network routing were not weakened. Th
 CLI chain after exec requires the remote Node 22 rerun, where the earlier suite had reached
 this newly exposed parser failure. Reports: `/tmp/cli-cubesandbox-final.json` and
 `/tmp/cli-cubesandbox-public-recheck.json`. Targeted ESLint and `git diff --check` passed.
+
+### Health checker distinguishes SDK types from runtime loads
+
+After the clean-install dependency correction, the repository health checker incorrectly
+required `e2b` in runtime dependencies. It already parsed TypeScript syntax, but discarded
+whether an import was type-only and treated every src reference alike. Its existing AST
+helper now retains `{specifier, typeOnly}` for imports, exports, import-equals, import
+query types and declaration files. Source runtime imports still require dependencies or
+optionalDependencies; type references require a declared dependency (development entries
+are allowed). Mixed value/type imports, side-effect imports, dynamic imports, require and
+value re-exports remain runtime references. There is no package-name exception.
+
+The complete-checker regression covers development-only e2b types and declaration exports,
+missing type dependencies, and eleven actual-runtime spellings that must still fail for
+the same development-only package. The fixture declares its own TypeScript tool dependency;
+otherwise that deliberately minimal package correctly fails a separate script dependency
+check. The original health shell script now reports PASS=106, WARN=11, FAIL=0; existing
+historical warnings remain visible. Full typecheck, targeted lint and diff checks passed.
+The change is limited to the health script, its existing AST helper/declaration and tests;
+product source, bundle, package dependency classification and dist remain unchanged.
+Final focused result: all six repository-health tests passed. Each of the seven type-only
+and eleven runtime spellings is checked directly through the AST helper, with complete
+shell invocations verifying the four dependency categories. An earlier redundant shell
+run for every spelling exceeded the test's 20-second limit; grouping the complete-checker
+cases removed that overhead without increasing the limit or dropping the individual AST
+assertions. Report: `/tmp/cli-health-type-import-regression3.json`; original health output:
+`/tmp/cli-health-type-import-final.log`.

@@ -7,14 +7,27 @@ function source(text, file = "source.ts") {
 }
 
 function imports(text, file) {
+  const parsed = source(text, file);
   const result = [];
+  const add = (specifier, typeOnly = false) => result.push({ specifier, typeOnly: parsed.isDeclarationFile || typeOnly });
   function visit(node) {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) result.push(node.moduleSpecifier.text);
-    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) result.push(node.moduleReference.expression.text);
-    if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require")) && node.arguments.length && ts.isStringLiteralLike(node.arguments[0])) result.push(node.arguments[0].text);
+    if (ts.isImportDeclaration(node) && ts.isStringLiteralLike(node.moduleSpecifier)) {
+      const clause = node.importClause;
+      const bindings = clause?.namedBindings;
+      const namedTypesOnly = !clause?.name && bindings && ts.isNamedImports(bindings) && bindings.elements.length > 0 && bindings.elements.every(element => element.isTypeOnly);
+      add(node.moduleSpecifier.text, Boolean(clause?.isTypeOnly || namedTypesOnly));
+    }
+    if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+      const clause = node.exportClause;
+      const namedTypesOnly = clause && ts.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every(element => element.isTypeOnly);
+      add(node.moduleSpecifier.text, Boolean(node.isTypeOnly || namedTypesOnly));
+    }
+    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) add(node.moduleReference.expression.text, node.isTypeOnly);
+    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteralLike(node.argument.literal)) add(node.argument.literal.text, true);
+    if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require")) && node.arguments.length && ts.isStringLiteralLike(node.arguments[0])) add(node.arguments[0].text);
     ts.forEachChild(node, visit);
   }
-  visit(source(text, file));
+  visit(parsed);
   return result;
 }
 

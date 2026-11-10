@@ -171,19 +171,19 @@ for (const f of files.filter((f) => /\.(ts|mts|cts|js|mjs|cjs)$/.test(f) && /\/(
   const rel = path.relative(root, f);
   const isRuntime = rel.startsWith("src/");
   const text = fs.readFileSync(f, "utf8");
-  for (const spec of imports(text, f)) {
+  for (const { specifier: spec, typeOnly } of imports(text, f)) {
     if (spec.startsWith(".") || spec.startsWith("node:") || spec.startsWith("#")) continue;
     const name = spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0];
     if (builtins.has(name)) continue;
     const runtimeDeclared = new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.optionalDependencies || {})]);
-    if (isRuntime && !runtimeDeclared.has(name)) (missingRuntime.get(name) || missingRuntime.set(name, []).get(name)).push(rel);
-    if (!isRuntime && !declared.has(name)) (missingDev.get(name) || missingDev.set(name, []).get(name)).push(rel);
+    if (isRuntime && !typeOnly && !runtimeDeclared.has(name)) (missingRuntime.get(name) || missingRuntime.set(name, []).get(name)).push(rel);
+    if ((!isRuntime || typeOnly) && !declared.has(name)) (missingDev.get(name) || missingDev.set(name, []).get(name)).push(rel);
   }
 }
-chk(missingRuntime.size === 0, "every import in src/ is a declared runtime dependency",
+chk(missingRuntime.size === 0, "every runtime import in src/ is a declared runtime dependency",
   `src/ imports packages missing from dependencies: ${[...missingRuntime.keys()].join(", ")}`);
-chk(missingDev.size === 0, "every import in tests/ and scripts/ is declared",
-  `tests/scripts import undeclared packages: ${[...missingDev.keys()].join(", ")}`);
+chk(missingDev.size === 0, "every type import and tests/scripts import is declared",
+  `type imports or tests/scripts import undeclared packages: ${[...missingDev.keys()].join(", ")}`);
 const dev = pkg.devDependencies || {};
 for (const t of ["typescript", "vitest", "@types/node"]) chk(dev[t], `devDependency ${t}`, `devDependency ${t} missing (a fresh clone cannot build or test)`);
 
