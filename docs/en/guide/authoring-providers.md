@@ -4,12 +4,12 @@ A provider plugin is a directory with an `abx-provider.toml` manifest and, for t
 
 Publish plugins in [alibaba-agent-sandbox/awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers), one directory per provider. Do not put them in the SDK or CLI repositories. That catalog also has the contributor guide (`docs/authoring.md`) and the agent skill (`SKILL.md`) for writing a provider.
 
-## How `abx create` reaches a provider
+## How `abx deploy --template-id TEMPLATE` reaches a provider
 
-`abx create` does not import your plugin. It calls `Sandbox.create`, and that call picks a provider before any sandbox API runs.
+`abx deploy --template-id TEMPLATE` does not import your plugin. It calls `Sandbox.create`, and that call picks a provider before any sandbox API runs.
 
 ```text
-abx --provider my-cloud create --template base
+abx --provider my-cloud deploy --name my-sandbox --template-id base
         │
         │  1. main() pulls --provider and --opt out of argv (before the sandbox ID for exec)
         │     and stores them for this process only.
@@ -46,12 +46,12 @@ Sandbox.create({ template: "base", ... })
       are still alicloud-express.
 ```
 
-Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The host checks the feature first. If `exec.run` was not declared, `abx exec` raises E8004 and does not send `exec.run`.
+Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The host checks the feature first. If `exec.run` was not declared, `abx sandbox exec` raises E8004 and does not send `exec.run`.
 
 Host routing and provider responsibilities differ for these paths:
 
-- `abx create` with no `--provider`, no `ABX_PROVIDER`, and no config default stays on `alicloud-express`.
-- `abx create --prompt "a node api"` runs generation and source acquisition in the host. The selected provider owns source preparation, sandbox creation and cleanup; the shared launcher starts the declared services. A provider without `templates.build` cannot prepare source. Use `abx --provider my-cloud create --template <image-or-name>` for an existing provider-native reference.
+- `abx deploy --template-id TEMPLATE` with no `--provider`, no `ABX_PROVIDER`, and no config default stays on `alicloud-express`.
+- `abx template init --prompt "a node api"` runs generation and source acquisition in the host. The selected provider owns source preparation, sandbox creation and cleanup; the shared launcher starts the declared services. A provider without `templates.build` cannot prepare source. Use `abx --provider my-cloud deploy --name my-sandbox --template-id <image-or-name>` for an existing provider-native reference.
 
 `Sandbox.create(template="base", provider="my-cloud")` in Python is step 2 onward. It does not pass through the CLI. The installed plugin is still `~/.abx/providers/my-cloud`.
 
@@ -200,7 +200,7 @@ abx provider install ./my-cloud --link --yes       # in place, no integrity chec
 abx provider doctor my-cloud                       # manifest, requires, configuration completeness, handshake
 abx config set providers.my-cloud.api_key          # masked prompt
 abx provider test my-cloud -o region=eu-1          # the contract suite (18 cases; unsupported features are skipped)
-abx --provider my-cloud create --template base
+abx --provider my-cloud deploy --name my-sandbox --template-id base
 ```
 
 `abx provider test` runs the same contract kit that the reference plugins pass: lifecycle, exec, streaming, files, process control, timeouts, error mapping. Unit-test your plugin without the CLI by driving the process with NDJSON on stdin.
@@ -269,7 +269,7 @@ abx provider install https://github.com/you/abx-provider-my-cloud.git \
   --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
 
 # plugin lives in providers/my-cloud inside a larger repo.
-# // is the subdirectory, the same spelling as `abx template install owner/repo//subdir`.
+# // is the subdirectory, the same spelling as `abx template init ./project --from owner/repo//subdir`.
 abx provider install you/plugins//providers/my-cloud \
   --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
 
@@ -292,7 +292,7 @@ Document the `[security]` block honestly: it is the user's only summary of what 
 
 ## 5. Template profile
 
-The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template scaffold` / `deploy`). It does not decide what `abx create X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
+The `[template]` table is for **template authoring only** (Dockerfile and code generation for `abx template init` / `deploy`). It does not decide what `abx deploy --template-id X` means: that string is passed to your plugin in `sandbox.create`, and you map it. OpenSandbox treats it as a container image URI (`python:3.12-slim`) and offers `default_image` and `image_aliases` options for short names; it has no `[template]` table and stays on the generic profile.
 
 Optional `[template]` table. When the table is absent, template generation uses the generic Docker profile (`FROM python:3.12-slim`, `CMD ["python3", "commands.py"]`, `WORKDIR /app`) and says this provider had no profile. It does not use the Alibaba Cloud Express FC image. OpenSandbox stays on that generic profile; its create `entrypoint` is unchanged.
 

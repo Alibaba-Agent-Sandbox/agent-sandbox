@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Template authoring boundaries](notes/proposed/architecture/2026-11-10-template-authoring-boundaries.md) · [verification](evidence/verify/2026-11-10-template-authoring-boundaries.md).
+
 [Gateway revision wait](notes/proposed/feature/2026-11-06-gateway-revision-wait.md) · [verification](evidence/verify/2026-11-06-gateway-revision-wait.md) continues bounded health observations without accepting a different revision; CLI 0.5.10 remains a candidate until publication gates pass.
 
 [CLI 0.5.9 publication](notes/proposed/process/2026-11-06-cli-059-publication.md) · [verification](evidence/verify/2026-11-06-cli-059-publication.md) records final source upgrade/retirement acceptance and independent five-platform/npm consumption. Public template recipe acceptance remains separate.
@@ -319,3 +321,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Default-saved installed artifact gate](evidence/verify/2026-10-28-default-saved-artifact.md).
 
 - [README audience review](notes/proposed/process/2026-10-28-readme-audience-review.md) · [verification](evidence/verify/2026-10-28-readme-audience-review.md).
+
+- [Unified deployment](notes/proposed/architecture/2026-11-10-unified-deployment.md) · [verification and blocked gates](evidence/verify/2026-11-10-unified-deployment.md).

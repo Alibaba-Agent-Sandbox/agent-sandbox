@@ -1,6 +1,6 @@
 # MCP 集成
 
-> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+> CLI 使用统一命令树。Provider 配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL` 和 `ABX_SANDBOX_DOMAIN`。极速版也支持 E2B 配置别名，见[迁移指南](migrate-from-e2b.md)。
 
 Agent Sandbox 提供 MCP（Model Context Protocol）Server，使 AI IDE 和工具能够直接操作沙箱。
 
@@ -141,7 +141,7 @@ export ABX_SANDBOX_API_KEY=your-api-key
 abx mcp start --http --host 0.0.0.0 --port 9000
 ```
 
-端点：`POST /mcp`（JSON-RPC）、`DELETE /mcp`（会话终止）、`GET /health`（健康检查）。`GET /mcp` 返回 405（SSE 通知尚未实现，按 Streamable HTTP 规范用 405 而不是 501）。远程产物必须带非空 Bearer token（`--generate-token` 或 `--auth-token-file`）。带 `Origin` 且不是本机、也不在 `ABX_MCP_ALLOWED_ORIGINS` 里的请求返回 403。
+端点：`POST /mcp`（JSON-RPC）、`DELETE /mcp`（会话终止）、`GET /health`（健康检查）。`GET /mcp` 返回 405（SSE 通知尚未实现，按 Streamable HTTP 规范用 405 而不是 501）。部署的 MCP 模板必须带非空 Bearer token。带 `Origin` 且不是本机、也不在 `ABX_MCP_ALLOWED_ORIGINS` 里的请求返回 403。
 
 ### Bearer Token 认证
 
@@ -151,7 +151,7 @@ abx mcp start --http --host 0.0.0.0 --port 9000
 |------|------------|----------|
 | `abx mcp start`（STDIO） | 没有 Bearer。进程由本机 IDE 拉起，不对外监听 | 沙箱调用用 `ABX_SANDBOX_API_KEY` / `abx config set sandbox_api_key` |
 | `abx mcp start --http` | Bearer。回环地址可以不配 token（启动时会警告）；`--host` 不是回环时必须有非空 `--auth-token` | `--auth-token` 或 `ABX_MCP_AUTH_TOKEN` |
-| 阿里云 FC 上的远程函数 | Bearer 必填。产物里的 `app.py` 在 token 为空时拒绝启动，不会变成“免认证” | `abx mcp deploy --generate-token` 写入函数环境变量 `ABX_MCP_AUTH_TOKEN`。FC HTTP 触发器使用 `anonymous`，这样 MCP 客户端不用阿里云签名；真正的鉴权是应用层 Bearer。`GET /health` 只返回状态和协议，不校验 token，也不含密钥 |
+| 部署的 MCP 模板 | Bearer 必填，app.py 缺少令牌时拒绝启动 | 默认使用 CLI 管理的 ABX_SERVER_TOKEN，可用 ABX_MCP_AUTH_TOKEN 覆盖；Provider endpoint 认证仍独立。GET /health 公开且不含密钥 |
 
 设置 `ABX_MCP_AUTH_TOKEN`（或 `auth_token`）后，`/mcp` 的每个请求必须携带：
 
@@ -161,9 +161,9 @@ Authorization: Bearer <token>
 
 - 本机回环上未设置 token → 认证关闭，启动时会警告
 - token 已设置但为空 → **fail-closed**：所有请求返回 401
-- FC 产物未设置或为空 → 进程拒绝启动
+- MCP 模板的两个令牌输入均未设置或为空 → 进程拒绝启动
 
-token 比较使用常量时间算法。可用 `openssl rand -base64 32` 生成，或让 `abx mcp deploy --generate-token` 生成。
+token 比较使用常量时间算法。部署的模板默认复用 CLI 自动生成并保存的应用令牌。
 
 ### 客户端配置（远程）
 
@@ -182,43 +182,31 @@ token 比较使用常量时间算法。可用 `openssl rand -base64 32` 生成�
 
 ---
 
-## 生成 FC 部署产物
-
-`abx mcp deploy` 生成面向阿里云函数计算的待打包产物。它**不**调用 FC API —— 需要通过控制台或 SDK 手动创建函数。
+## 部署可编辑的 MCP 模板
 
 ```bash
-abx mcp deploy \
-  --generate-token \
-  --api-key $ABX_SANDBOX_API_KEY \
-  --output-dir ./mcp-artifact
+abx template init ./my-mcp --template mcp
+abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
 ```
 
-产物目录包含：
+生成的源码包含 template.yaml、Dockerfile、app.py、requirements.txt、.dockerignore
+和 README.md。部署前可编辑应用和清单。它在 Sandbox 中以单个 HTTP 进程运行已有的
+带认证 Python MCP 应用。依赖固定为公开版 `agent-sandbox-client[mcp]==0.4.0a6`，
+该发行版包含匹配的运行时和 ASGI 依赖。
 
-| 文件 | 内容 |
-|------|------|
-| `requirements.txt` | 官方 PyPI 索引及固定版本 `agent-sandbox-client[mcp]==0.4.0a6`（自动安装同版本服务器与所需 HTTP 依赖） |
-| `app.py` | ASGI 入口，读取 FC 环境变量（`ABX_MCP_AUTH_TOKEN`、`ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ABX_DEFAULT_TEMPLATE`） |
-| `config.yaml` | YAML 清单：函数名、地域、运行时 `python3.10`、handler `app.app`、内存/超时、环境变量、HTTP 触发器（POST/GET/DELETE）、会话亲和 |
+MCP 应用需要自己的 Sandbox API Key、API 地址和沙箱域名来创建会话沙箱。
+通过运行时输入传入同账号、同地域的这些值；构建镜像的凭据不能替代它们。
+`template init` 不把凭据复制到源码。
 
-安装依赖使用 Python 客户端发行包 `agent-sandbox-client` 的 `mcp` extra；Python 导入命名空间仍为 `agent_sandbox`。生成的依赖从官方 PyPI 安装同版本 `0.4.0a6` 客户端与服务器。
+CLI 自动准备 ABX_SERVER_TOKEN，MCP 服务默认将其用于 Bearer 认证；显式提供
+ABX_MCP_AUTH_TOKEN 时使用后者。客户端配置部署结果里的 mcp 服务 URL 加 `/mcp`、
+`Authorization: Bearer <TOKEN>`，以及 Provider 为此 endpoint 返回的流量认证头。
+Provider 流量认证和 MCP 认证是两层独立凭据，应同时保留。
 
-命令还会打印：手动 FC 部署步骤（打包 → 创建函数 → 创建 HTTP 触发器 → 如支持则启用 `Mcp-Session-Id` 亲和）以及指向 `<FC_HTTP_TRIGGER_URL>/mcp`、Bearer token 打码的 IDE 配置模板。
-
-> **安全**：`config.yaml` 含 API key 与 Bearer token。切勿提交到版本控制。
-
-部署完成后，客户端使用触发器 URL 配置：
-
-```json
-{
-  "mcpServers": {
-    "agent-sandbox-remote": {
-      "url": "https://<FC_HTTP_TRIGGER_URL>/mcp",
-      "headers": { "Authorization": "Bearer <BEARER_TOKEN>" }
-    }
-  }
-}
-```
+后续请求复用 initialize 返回的 Mcp-Session-Id。DELETE /mcp 结束会话并清理该会话
+拥有的沙箱。GET /mcp 仍返回 405，未实现服务端通知 SSE。会话存于进程内存，不跨应用
+替换保存。先结束会话，再执行 `abx delete my-mcp --yes`。
+编辑后的源码可按[模板编写指南](authoring-templates.md)构建或发布。
 
 ---
 
@@ -284,7 +272,7 @@ curl -s -X DELETE http://localhost:9000/mcp \
 | IDE 显示 server 失败 / 无工具 | `abx` 不在 IDE 的 `PATH` 中 | 在 IDE 配置中使用绝对路径，如 `/usr/local/bin/abx`（npm 全局 bin 目录见 `npm prefix -g`） |
 | 工具列表正常但每次调用报错 | API key 缺失或无效 | `abx mcp status` 看 `auth_configured`；设置 `ABX_SANDBOX_API_KEY` 或 `abx config set sandbox_api_key` |
 | IDE 重启后 `create_sandbox` 失败 | 后端 API URL/地域不匹配 | 在 server 参数/env 块中传 `--api-url`（或设 `ABX_SANDBOX_BASE_URL`） |
-| HTTP 每个请求都 401 | `ABX_MCP_AUTH_TOKEN` 为空（fail-closed） | 设置非空 token。本机回环可以删掉该变量来关闭认证。FC 产物没有 token 时不会启动 |
+| HTTP 每个请求都 401 | `ABX_MCP_AUTH_TOKEN` 为空（fail-closed） | 设置非空 token。本机回环可以删掉该变量来关闭认证。MCP 模板没有 token 时不会启动 |
 | HTTP 404 Unknown session | `Mcp-Session-Id` 已过期（空闲 TTL 3600 秒）或实例重启 | 重新发送 `initialize` 创建新会话 |
 | HTTP 503 会话上限 | 进程内并发会话超过 100 | 关闭空闲会话（`DELETE /mcp`）或经 `create_mcp_app()` 调高 `max_sessions` |
 | `GET /mcp` 返回 405 | SSE 通知尚未实现 | 预期行为 — 只使用 `POST /mcp` |
@@ -297,7 +285,7 @@ curl -s -X DELETE http://localhost:9000/mcp \
 
 - **传输协议**：STDIO（换行分隔 JSON-RPC 2.0，协议版本 2024-11-05）与 Streamable HTTP（规范 2025-06-18）。`initialize` 按 transport 协商支持版本 —— 请求版本受支持时原样回显，缺失或不支持时回退到该 transport 自己的版本（因此 HTTP 的 /health 与 initialize 均报告 2025-06-18）
 - **沙箱管理**：MCP Server 为每个会话内部维护 `SandboxManager`，管理多个沙箱实例的生命周期
-- **默认模板**：`abx mcp start` 为 `code-interpreter-v1`；HTTP 应用与 `abx mcp deploy` 产物为 `base`。`create_sandbox` 省略 `template` 时用的就是这个 server 模板
+- **默认模板**：`abx mcp start` 为 `code-interpreter-v1`；HTTP 应用与 MCP 模板为 `base`。`create_sandbox` 省略 `template` 时用的就是这个 server 模板
 - **STDIO**：单条消息上限 8 MiB；超限的一行会被拒绝，进程继续服务下一条。`ping` 在工具调用进行中也会返回
 - **HTTP 会话**：空闲 TTL 3600 秒、每进程最多 100 个并发会话，容量满返回 503
 
@@ -307,7 +295,7 @@ curl -s -X DELETE http://localhost:9000/mcp \
 
 - [CLI 教程](cli-tutorial.md) — CLI 完整使用教程
 - [CLI 参考](../reference/cli-reference.md) — MCP 命令详细参考
-- [MCP Server 设计](../design/mcp-server.md) — 工具、传输与 FC 部署架构
+- [MCP Server 设计](../design/mcp-server.md) — 工具、传输与 远程 HTTP 架构
 
 ---
 
@@ -322,10 +310,9 @@ MCP 服务的 Python 实现——`python -m agent_sandbox.agent.mcp`、ASGI 入�
 
 ### 生成产物的安装与生命周期边界
 
-`abx mcp deploy` 生成 ASGI 产物和手动 FC 部署步骤。依赖将
-`agent-sandbox-client[mcp]` 与 `agent-sandbox-server` 同时固定到公开版本
-`0.4.0a6`；使用
-`python -m pip install -r requirements.txt` 安装，导入名称仍为 `agent_sandbox`。
+`abx template init --template mcp` 生成可编辑的应用源码。依赖选择公开版 MCP
+客户端 extra 及其匹配运行时；通过 `python -m pip install -r requirements.txt`
+安装，导入名称仍为 `agent_sandbox`。
 生成的 Python HTTP 服务器与 Node CLI MCP 服务器是两个独立入口，应查询各自的
 `tools/list`，不要假设工具目录相同。
 

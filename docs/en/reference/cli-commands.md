@@ -1,196 +1,77 @@
-> For standard Express commands use the [E2B migration contract](../guide/migrate-from-e2b.md): create takes a template, --prompt requests generation, template create uses E2B build semantics, and from-image creates an Alibaba image template.
+# CLI commands
 
-# CLI Command Reference (canonical tree)
-
-Every action has **one canonical path**, written `abx GROUP VERB`. On top of that there is a small, **fixed** set of
-top-level shortcuts for the commands people type most. The set is hard-coded: it cannot be extended, renamed or
-removed through configuration, and there is no per-user alias table.
+`abx` deploys reusable templates, manages their running instances, and exposes Sandbox operations. The commands below describe the current source tree; install a CLI built from this revision when using this command layout. Released 0.5.10 uses the earlier layout.
 
 <!-- fixed-set -->
 
-Top-level commands, exactly these: `abx app`, `abx sandbox`, `abx template`, `abx config`, `abx mcp`, `abx provider`, `abx create`, `abx list`, `abx info`, `abx kill`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx run`, `abx deploy`.
+`abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`.
 
-`abx --help` lists two sections: **Command groups** (`app`, `sandbox`, `template`, `config`, `mcp`, `provider`)
-and **Sandbox shortcuts** (the ten shortcuts, each showing its purpose followed by an `(alias: abx …)` note).
-A contextual Provider operation summary follows those sections. Browse more templates in the
-[Registry](https://registry.agent-sandbox.cn/templates/), or use `abx template search KEYWORD`.
-
-## Template project directories
-
-Create the source project before deploying it, then pass the deployed template as a positional argument:
-
-```sh
-abx template scaffold --template python ./dev-services --name dev-services
-abx template deploy ./dev-services -y --alias dev-services
-abx create dev-services --detach
-```
-
-Choose `python`, `node` or `minimal` for the built-in scaffold; use the Registry for other template sources.
-For a missing build/deploy directory, an interactive invocation offers creation, lets you choose a
-built-in scaffold, and continues the original operation after confirmation. `--yes`/`-y`, `--ci`, or a
-CI environment creates a Python template project without prompts and continues, preserving alias and
-provider options. Existing directories are used as supplied. A noninteractive invocation without yes/CI
-gives a scaffold command without creating files. To choose another runtime in automation, scaffold it
-first with `--template node` or `--template minimal`. A scaffold displays nonempty-directory entries
-before writing and asks before replacement.
-`-y` alone never authorizes replacement; scripts must explicitly add `--force`. Declining leaves files intact.
-Standard `create` uses `abx create TEMPLATE`, rather than the scaffold-specific `--template` option.
-
-For project commands, `CI=true` or `--ci` selects JSON output: errors are written to stdout with a nonzero exit code. Text-mode errors use stderr.
-
-You can therefore deploy a new project directly:
-
-```sh
-abx template deploy ./dev-services -y --alias dev-services
-# CI mode also confirms creation and deployment:
-abx --ci template deploy ./ci-services --alias ci-services
-```
-
-## Shortcuts
-
-| Shortcut | Same as |
-|---|---|
-| `abx create` | `abx sandbox create` |
-| `abx list` | `abx sandbox list` |
-| `abx info` | `abx sandbox info` |
-| `abx kill` | `abx sandbox kill` |
-| `abx exec` | `abx sandbox exec` |
-| `abx connect` | `abx sandbox connect` |
-| `abx upload` | `abx sandbox upload` |
-| `abx download` | `abx sandbox download` |
-| `abx run` | `abx sandbox command run` |
-| `abx deploy` | `abx template deploy` |
-
-There is no top-level `abx init` or `abx install`: use `abx template scaffold` and `abx template install`
-(credentials are `abx config init`).
-
-## Canonical tree
-
-```
-abx
-├── app          build | clean-build | plan | apply | status | reconcile | retire | destroy
-├── sandbox
-│   ├── create [template]            list            info SANDBOX_ID        kill [SANDBOX_ID]
-│   ├── exec SANDBOX_ID COMMAND...      connect SANDBOX_ID
-│   ├── upload SANDBOX_ID LOCAL REMOTE  download SANDBOX_ID REMOTE LOCAL
-│   ├── capabilities SANDBOX_ID
-│   ├── files    list | mkdir | mv | rm | search | stat
-│   ├── process  list | info | signal            (inspect / control only; start a process with exec --background)
-│   ├── command  list | run                      (named commands registered on the in-sandbox server)
-│   └── system   env | info | metrics | packages | ports
-├── template     init | create | list | delete | scaffold | from-image | search | info | build | push | deploy | install
-├── config       init | get | set | list | delete
-├── mcp          deploy | install | start | status | stop
-└── provider     list | show | info | install | uninstall | update | default | config | doctor | test | engine | command | run
-```
-
-`abx provider --help` lists management commands and the selected Provider's operations.
-Use `abx provider run OPERATION --help` for JSON fields, schemas and effects, then the
-same path to execute. Default/explicit selection, automatic discovery and the compatible
-JSON catalog are documented in [Provider operations](../guide/provider-commands.md).
-Operation IDs remain opaque and cannot replace fixed host commands. These contextual
-entries require a build containing the change; see the guide's release boundary.
-
-Usage lines (from `abx … --help`):
-
-| Command | Usage |
-|---|---|
-| `abx sandbox create` | `create [options] [template]` |
-| `abx sandbox list` | `list [OPTIONS]` |
-| `abx sandbox info` | `info [OPTIONS] SANDBOX_ID` |
-| `abx sandbox kill` | `kill [OPTIONS] [SANDBOX_ID]` |
-| `abx sandbox exec` | `exec [OPTIONS] SANDBOX_ID COMMAND...` |
-| `abx sandbox connect` | `connect [OPTIONS] SANDBOX_ID` |
-| `abx sandbox upload` | `upload [OPTIONS] SANDBOX_ID LOCAL_PATH REMOTE_PATH` |
-| `abx sandbox download` | `download [OPTIONS] SANDBOX_ID REMOTE_PATH LOCAL_PATH` |
-| `abx sandbox capabilities` | `capabilities [OPTIONS] SANDBOX_ID` |
-| `abx sandbox files list\|mkdir\|mv\|rm\|search\|stat` | `files <verb> [OPTIONS] SANDBOX_ID` (path options `-p/--path`, `-s/--source`, `-d/--dest`) |
-| `abx sandbox process list` | `process list [OPTIONS] SANDBOX_ID` |
-| `abx sandbox process info\|signal` | `process <verb> [OPTIONS] SANDBOX_ID PID` |
-| `abx sandbox command list` | `command list [OPTIONS] SANDBOX_ID` |
-| `abx sandbox command run` | `command run [OPTIONS] SANDBOX_ID COMMAND_NAME` |
-| `abx sandbox system env\|info\|metrics\|packages\|ports` | `system <verb> [OPTIONS] SANDBOX_ID` |
-| `abx template scaffold` | `init [OPTIONS] [DIRECTORY]` |
-| `abx template search` | `search [OPTIONS] QUERY` |
-| `abx template info` / `delete` | `<verb> [OPTIONS] TEMPLATE_ID` |
-| `abx template list` | `list [OPTIONS]` |
-| `abx template build` / `deploy` | `<verb> [OPTIONS] TEMPLATE_DIR` (the top-level `abx deploy` takes an optional `[PATH]`, default `.`) |
-| `abx template push` / `create` | `<verb> [OPTIONS] IMAGE` |
-| `abx template install` | `install [OPTIONS] TEMPLATE_REF` |
-| `abx config init\|list` | `<verb> [OPTIONS]` |
-| `abx config get\|delete` | `<verb> [OPTIONS] KEY` |
-| `abx config set` | `set [OPTIONS] KEY [VALUE]` |
-| `abx mcp deploy\|install\|start\|status\|stop` | `<verb> [OPTIONS]` |
-
-## Global options
-
-`-j/--json`, `-q/--quiet`, `-v/--verbose`, `--no-color`, `--log-level [debug|info|warning|error]`, `--ci`,
-`--version`, `-h/--help`. They go before the command (`abx --json list`).
-
-There is no global `--timeout` and no `--profile`. A sandbox **lifetime** is `--timeout SECONDS` on `abx create` only;
-standard exec has no local command-timeout flag.
-
-## Standard execution and terminals
+## Deploy and manage
 
 ```bash
-abx exec --cwd /app --env MODE=test SANDBOX_ID pytest -q
-abx exec --background SANDBOX_ID python -m http.server 8000
-abx connect SANDBOX_ID
+abx config init
+abx deploy python-hello --name demo
+abx status demo
+abx logs demo
+abx delete demo
 ```
 
-All local exec options precede the sandbox ID. Output streams by default, remote exit status is preserved, and a background PID is written to stderr. There is no standard local --stream or --timeout flag. Connect is a real PTY and preserves cwd/environment between commands; exiting connect leaves the sandbox alive. Interactive create uses the reference lifecycle policy; use --detach when subsequent commands need its ID. See the [complete standard reference](cli-reference.md).
+`deploy SOURCE` accepts a catalog name, a Registry source reference, or a local template directory. `--name` names the instance independently of its template. Omit the name to use the template's name. `--plan` validates the source and previews required resources without building or deploying. `--yes` approves changes in automation; JSON output does not grant approval.
 
-## Named commands: `abx run` / `abx sandbox command`
+Use `deploy --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `sandbox exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
 
-There is exactly one mechanism: commands registered on the **in-sandbox server** (`CommandRegistry`,
-`GET /commands`, `POST /commands/{name}`). They are not declared in `template.yaml`.
+Managed application templates use the same `deploy` command, with `--bindings FILE` for external-service and credential references. Deploying a ready application under the same name updates it while retaining revisions needed by its sessions. Delete an ordinary Sandbox deployment before recreating it under the same name. A name whose resources were deleted can be reused.
+
+`list` combines local deployment records with Sandboxes from the selected Provider. `--local` avoids cloud queries; `--all-providers` queries all configured Providers. `--limit`, `--offset` and `--status` filter remote Sandbox results. Recorded deployment state is labelled separately from remote observations.
+
+`status`, `logs` and `delete` also accept raw Sandbox IDs. A matching local name takes precedence. Use a Provider-qualified ID when you need to address a raw ID explicitly. `status --revisions` includes retained application revisions; `delete NAME --revision REVISION` retires an unused revision.
+
+For a named Sandbox, `logs` reads the template service startup log. `--source platform` reads native Sandbox logs. Managed application `logs --role gateway|worker|dispatcher` queries its configured FC log destination; one-shot queries are supported, and logging must already be enabled for that function.
+
+`recover NAME` inspects interrupted effects using saved ownership records. It never repeats an uncertain creation or publication request. Follow its result before retrying deployment or deletion. Local records live under `~/.abx/deployments`; keep them while their resources exist. A local deployment lock does not coordinate deployments from different machines.
+
+Deleting a deployment removes its recorded owned resources. Externally supplied services and explicitly reused build artifacts remain owned by their original source. Any manually retained image artifacts are shown in the result; delete those using their registry's image-management tools when no longer needed.
+
+## Template authoring
 
 ```bash
-abx sandbox command list SANDBOX_ID                                  # name, arguments, description
-abx run SANDBOX_ID build --arg target=staging --arg n=2              # same as: abx sandbox command run
-abx run SANDBOX_ID add --json-args '{"x": 1, "y": 2}'                # typed values
+abx template list python
+abx template info python-hello
+abx template init ./my-template --from python-hello
+abx template init ./my-mcp --template mcp
+abx template build ./my-template --yes
+abx deploy --build BUILD_FILE --name demo --yes
+abx template publish ./my-template --tag v1.0.0 --yes
+abx template build --clean BUILD_FILE --yes
 ```
 
-| Option | Meaning |
-|---|---|
-| `-a/--arg KEY=VALUE` | command argument (repeatable; the server coerces strings by the declared type) |
-| `--json-args JSON` | arguments as a JSON object |
-| `--server-port PORT` | port of the in-sandbox server (default 9000) |
+`list` and `info` inspect the reusable catalog. Provider-native cloud templates are inspected through Provider operations.
 
-A string result is printed as is, any other value as JSON (`--json` wraps it as `{"result": ...}`). A command that
-fails on the server exits 1. With `--json`, validation/execution failures emit one error object with
-`status: "error"`, code `E3000` and the server diagnostic in `message`; successful results keep the `{"result": ...}` shape.
-An unknown name exits 2 with `E3005`; a sandbox without a running server reports
-"No SandboxServer reachable" and exits non-zero.
+`init --from` copies source without validating it for execution, building images or deploying resources. `init --template` creates a local skeleton; `--prompt` and `--adopt` are authoring options. Generated files remain editable.
 
-## Setup: `abx config init`
+`build` prepares a Provider-specific reusable artifact and preserves its source snapshot and resource journal. A build may perform billable remote work. The output identifies its artifact file. `deploy --build` verifies the source and target before using its prepared reference. Native Provider references can have Provider-specific mutability; they are not a universal immutable image format. A build in use cannot be cleaned. Managed application builds retain their image digest and locked component toolchain.
 
-`abx config init` asks for the **credentials and the region** only. Two flags add sections:
+`publish` pushes a committed source version to an existing GitHub remote using a new tag and returns a commit-pinned Registry source reference. It does not create a catalog listing. Choose a new version tag for changed content; existing remote tags are never overwritten.
 
-| Flag | Adds |
-|---|---|
-| `--build` | ACR namespace and Alibaba Cloud AccessKey (needed by `template build`/`deploy`/`install`) |
-| `--llm` | LLM API key used for template generation (`abx create --prompt "DESCRIPTION"`, `abx template scaffold --prompt "DESCRIPTION"`) |
+## Sandbox operations
 
-Features that need a missing setting print a one-line pointer to `abx config init --build` or
-`abx config init --llm`. Without a terminal (or with `--yes`/`--ci`) the command prints the equivalent
-`abx config set …` lines instead of prompting.
+Use `sandbox exec`, `sandbox connect`, `sandbox files`, `sandbox process`, `sandbox command`, `sandbox system`, `sandbox capabilities`, `sandbox pause`, `sandbox resume`, `sandbox metrics`, `sandbox snapshot`, `sandbox fork` and `sandbox network`. Commands accept a named Sandbox deployment or a native Sandbox ID. Available advanced operations depend on the Provider.
 
-## Removed spellings
+```bash
+abx sandbox exec demo -- python -c 'print("hello")'
+abx sandbox files list demo /home/user
+abx sandbox command list demo
+abx sandbox connect demo
+```
 
-| Removed | Use |
-|---|---|
-| top-level `abx init`, `abx install` | `abx template scaffold`, `abx template install` |
-| `abx sandbox process start` | `abx exec --background` |
-| `abx sandbox shell-stream` | `abx exec` (streams by default) |
-| `abx sandbox run` | `abx run` / `abx sandbox command run` |
-| global `-t/--timeout`, global `-p/--profile` | `abx create --timeout`; no replacement for `--profile` |
-| `[shortcuts]` in `config.toml`, `abx config set shortcuts.<name>` | none (the shortcuts are fixed) |
-| `custom_commands` in `template.yaml` | register named commands on the in-sandbox server |
-| `abx deploy --traditional` | none (the pipeline is fixed) |
+## Configuration and Providers
 
-[Standard lifecycle, terminal, parser and exit-code reference](cli-reference.md). Standard local options precede the sandbox ID.
+`config init/get/set/list/delete` owns credentials, Provider configuration and defaults. Interactive configuration is saved for the current user; options and environment variables provide temporary overrides.
 
-## Native provider image factory
+`provider list/info/install/update/uninstall/doctor` manages Provider plugins. `provider run OPERATION` is the single native operation execution path. `provider command list/info` preserves machine-readable descriptions and input schemas. SDK engine and contract-test tools remain available for Provider developers. Use `--help` on the selected Provider operation for supported input fields.
 
-`abx --provider PROVIDER template from-image IMAGE --name NAME -y` is a native extension, independent of the standard template builder. See [provider image deployment](../guide/template-launch.md). Unopted providers return E8004.
+## MCP and output
+
+`mcp install/start/status/stop` manages local MCP integration. Create an editable HTTP MCP service with `template init --template mcp`, then deploy it as a template.
+
+`--json`, `--quiet`, `--verbose`, `--no-color` and `--ci` use the same parser for every command. Streaming operations emit their documented stream output. Provider selection never changes the command parser. `--help` is the authoritative option list for each command.

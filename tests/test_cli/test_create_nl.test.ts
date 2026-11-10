@@ -1,5 +1,5 @@
 /**
- * Tests for the `abx create "<description>"` AI generation routing.
+ * Tests for `abx template init --prompt` source generation.
  *
  * The natural-language path now drives Qwen Code codegen behind a research-first clarification loop (plain research
  * round on a native session, then the structured assessment, then one question per round); `--template` keeps the
@@ -8,7 +8,6 @@
 
 import "../_support/isolatedHome.js";
 import * as guidance from "../../src/cli/config_guidance.js";
-import { getOperationConfig } from "../../src/utils/operation_config.js";
 
 import fs from "node:fs";
 import os from "node:os";
@@ -29,9 +28,9 @@ import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extensio
 import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
-import { AICodegenError, DockerBuildError, QwenCodeCredentialError } from "../../src/models/errors.js";
+import { AICodegenError, QwenCodeCredentialError } from "../../src/models/errors.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import { CliRunner, type Result } from "../helpers/cliRunner.js";
+import { CliRunner } from "../helpers/cliRunner.js";
 
 const cfg = vi.hoisted(() => ({ writeEnvVar: vi.fn(), saved: new Map<string,string>() }));
 
@@ -119,7 +118,6 @@ function _makeCodegenResult(tmpPath: string, name = "abx-nl-sandbox-abc123"): Co
 let tmp = "";
 let savedCwd = "";
 let qwen: { binary: string; workdir: string; research: Mock; prepareWorkdir: Mock };
-let deployMock: Mock | null = null;
 
 const savedSeams = {
   qwen: { ...qwenCode.seams },
@@ -140,7 +138,6 @@ beforeEach(() => {
   process.chdir(tmp);
   cfg.writeEnvVar.mockReset();
   cfg.saved.clear();
-  deployMock = null;
 
   const binary = path.join(tmp, "qwen");
   fs.writeFileSync(binary, "#!/bin/sh\n", "utf-8");
@@ -198,7 +195,6 @@ function _patchSuccessPipeline(tmpPath: string, opts: { template_id?: string } =
   vi.spyOn(template, "withDeployConfiguration").mockImplementation(async (_directory, _options, action) => action());
   vi.spyOn(CLI_EXTENSION, "stageProject").mockImplementation(async (directory) => ({ directory, digest: "sha256:test-generated-source", verify: async () => undefined, close: async () => undefined }));
   codegen.seams.generateTemplateFiles = genMock as unknown as typeof codegen.seams.generateTemplateFiles;
-  deployMock = deploy as unknown as Mock;
   return [gen, genMock, deploy as unknown as Mock];
 }
 
@@ -254,185 +250,6 @@ class _FakePhaseOut {
 // Routing: AI path vs direct template path
 // ---------------------------------------------------------------------------
 
-describe("TestCreateRouting", () => {
-  it("accepts detached prompt creation and carries explicit platform steps through the real pipeline", async () => {
-    const [, generated, deploy] = _patchSuccessPipeline(tmp);
-    const create = patchCreate();
-    const result = await runner().invoke(cli, ["create", "--prompt", "a Python data API", "--yes", "--detach", "--build", "steps"]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(generated).toHaveBeenCalledWith("a Python data API", expect.objectContaining({ buildMode: "steps", baseImage: "fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49" }));
-    expect(deploy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ build: "steps", yes: true }));
-    expect(create).toHaveBeenCalledOnce();
-  });
-
-  it("stops before cloud deployment and creation when generated services require a missing token", async () => {
-    vi.stubEnv("ABX_SERVER_TOKEN", "");
-    const [, generate, deploy] = _patchSuccessPipeline(tmp);
-    const create = patchCreate();
-    const result = await runner().invoke(cli, ["create", "--prompt", "an integer add API", "--yes", "--detach", "--build", "steps"]);
-    expect(result.exit_code).not.toBe(0);
-    expect(generate).not.toHaveBeenCalled();
-    expect(result.output).toContain("ABX_SERVER_TOKEN");
-    expect(deploy).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("injects explicit generated runtime credentials into creation without passing them to the builder", async () => {
-    vi.stubEnv("ABX_SERVER_TOKEN", "host-token");
-    vi.stubEnv("UNDECLARED_SECRET", "do-not-inherit");
-    const [generated, , deploy] = _patchSuccessPipeline(tmp);
-    fs.writeFileSync(generated.templateYaml, fs.readFileSync(generated.templateYaml, "utf8").replace('env: {ABX_SERVER_TOKEN: ""}', 'env: {ABX_SERVER_TOKEN: "", LANG: C.UTF-8}'));
-    const create = patchCreate();
-    const result = await runner().invoke(cli, ["create", "--prompt", "an integer add API", "--yes", "--detach", "--build", "steps", "-e", "ABX_SERVER_TOKEN=explicit-token"]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ envs: { ABX_SERVER_TOKEN: "explicit-token", LANG: "C.UTF-8" } }));
-    const { ctx: _context, ...builderOptions } = opts(deploy);
-    expect(JSON.stringify(builderOptions)).not.toContain("explicit-token");
-    expect(JSON.stringify(builderOptions)).not.toContain("host-token");
-    expect(result.output).not.toContain("explicit-token");
-  });
-
-  it("keeps an explicit ACR namespace on the shared provider preparation path", async () => {
-    const [, , deploy] = _patchSuccessPipeline(tmp);
-    patchCreate();
-    const result = await runner().invoke(cli, ["create", "--prompt", "a Python API", "--yes", "--detach", "--acr-namespace", "explicit-namespace"]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(deploy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ acr_namespace: "explicit-namespace", explicit_acr_namespace: true, template_launch: true }));
-  });
-
-  it("does not create a sandbox when generated template readiness fails", async () => {
-    const [, , deploy] = _patchSuccessPipeline(tmp);
-    deploy.mockRejectedValue(new Error("generated template did not become ready"));
-    const create = patchCreate();
-    const result = await runner().invoke(cli, ["create", "--prompt", "a Python API", "--yes", "--detach", "--build", "steps"]);
-    expect(result.exit_code).not.toBe(0);
-    expect(create).not.toHaveBeenCalled();
-    expect(result.output).toContain("recovery journal");
-  });
-  it("retains collected cloud configuration through generation, deployment and final creation", async () => {
-    vi.stubEnv("ABX_SANDBOX_API_KEY", undefined);
-    vi.stubEnv("ALICLOUD_ACCESS_KEY_ID", undefined);
-    vi.stubEnv("ALICLOUD_ACCESS_KEY_SECRET", undefined);
-    fakeTty({ codingAgent: true, sandbox: true });
-    const answers = ["temporary-sandbox-key", "temporary-access-id", "temporary-access-secret"];
-    vi.spyOn(guidance.guidanceSeams, "ask").mockImplementation(async (label) => label === "Choose an authentication method" ? "1" : answers.shift() ?? "");
-    _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-    const create = patchCreate();
-    create.mockImplementation(async () => {
-      expect(getOperationConfig()).toMatchObject({ sandbox_api_key: "temporary-sandbox-key", access_key_id: "temporary-access-id", access_key_secret: "temporary-access-secret" });
-      return _makeSandbox();
-    });
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "\ny\n" });
-    expect(result.exit_code, result.output).toBe(0);
-    expect(create).toHaveBeenCalledOnce();
-    expect(answers).toHaveLength(0);
-    expect(getOperationConfig()).toBeUndefined();
-    expect(cfg.saved.get("sandbox_api_key")).toBe("temporary-sandbox-key");
-    expect(cfg.saved.get("access_key_id")).toBe("temporary-access-id");
-    expect(process.env["ABX_SANDBOX_API_KEY"]).toBeUndefined();
-    expect(result.output).not.toContain("temporary-sandbox-key");
-    expect(result.output).not.toContain("temporary-access-secret");
-  });
-
-  it("test_ai_flow_with_yes_creates_from_deployed_template", async () => {
-    const [gen, genMock, deploy] = _patchSuccessPipeline(tmp);
-    const mockCreate = patchCreate();
-
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "a python data science env"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("Generated template");
-    expect(result.output).toContain("sbx-nl-001");
-
-    expect(genMock).toHaveBeenCalledTimes(1);
-    expect(callArg(genMock, -1, 0)).toBe("a python data science env");
-    expect(deploy).toHaveBeenCalledTimes(1);
-    expect(deploy).toHaveBeenCalledWith(String(gen.workdir), expect.objectContaining({ ctx: expect.anything(), yes: true, template_launch: true }));
-    expect((callArg(mockCreate as unknown as Mock, -1, 0) as Record<string, unknown>)["template"]).toBe("tmpl-ai-123");
-  });
-
-  // Historical parity name retained; missing IDs now fail safely instead of guessing.
-  it("test_create_falls_back_to_template_name_when_no_id", async () => {
-    _patchSuccessPipeline(tmp, { template_id: "N/A" });
-    const mockCreate = patchCreate();
-
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "node service"]);
-
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("recovery journal");
-    expect(mockCreate).not.toHaveBeenCalled();
-  });
-
-  it("test_explicit_template_bypasses_codegen", async () => {
-    const genMock = vi.fn();
-    codegen.seams.generateTemplateFiles = genMock as never;
-    patchCreate(_makeSandbox("sbx-nl-001", "base"));
-
-    const result = await runner().invoke(cli, ["create", "--template", "base"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(genMock).not.toHaveBeenCalled();
-    expect(result.output).not.toContain("Generated template");
-  });
-
-  it.each(["--template", "-T"])("test_description_with_explicit_template_is_rejected [%s]", async (templateFlag) => {
-    // DESCRIPTION + --template is a usage error, never a silent drop.
-    const genMock = vi.fn();
-    codegen.seams.generateTemplateFiles = genMock as never;
-    const deploy = vi.spyOn(template, "do_deploy");
-    const createMock = vi.spyOn(Sandbox, "create");
-
-    const result = await runner().invoke(cli, ["create", "--prompt", "python", templateFlag, "custom"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("cannot be combined");
-    expect(result.output).toContain("--template");
-    expect(genMock).not.toHaveBeenCalled();
-    expect(deploy).not.toHaveBeenCalled();
-    expect(createMock).not.toHaveBeenCalled();
-  });
-
-  it("test_description_with_template_and_missing_template_value_still_errors", async () => {
-    // Order of arguments does not matter: the conflict is detected either way.
-    const genMock = vi.fn();
-    codegen.seams.generateTemplateFiles = genMock as never;
-
-    const result = await runner().invoke(cli, ["create", "--template", "base", "--prompt", "python"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("cannot be combined");
-    expect(genMock).not.toHaveBeenCalled();
-  });
-
-  it("test_no_description_no_template_uses_base", async () => {
-    // The standard default is the base template.
-    const genMock = vi.fn();
-    codegen.seams.generateTemplateFiles = genMock as never;
-
-    const create = patchCreate();
-    const result = await runner().invoke(cli, ["create"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(create).toHaveBeenCalled();
-    expect(genMock).not.toHaveBeenCalled();
-  });
-
-  it("test_json_mode_suppresses_generated_summary", async () => {
-    _patchSuccessPipeline(tmp);
-    patchCreate();
-
-    const result = await runner().invoke(cli, ["--json", "create", "-y", "--prompt", "python env"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).not.toContain("Generated template");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Qwen Code availability
-// ---------------------------------------------------------------------------
-
 describe("TestQwenCodeInstallGate", () => {
   it("keeps the final JSON result parseable after a first managed installation", async () => {
     qwenCode.seams.findQwenCodeBinary = vi.fn(() => null);
@@ -442,11 +259,11 @@ describe("TestQwenCodeInstallGate", () => {
     _patchSuccessPipeline(tmp);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["--json", "create", "--prompt", "an integer add API", "--yes", "--build", "steps"]);
+    const result = await runner().invoke(cli, ["--json", "template", "init", "--prompt", "an integer add API", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(install).toHaveBeenCalledOnce();
-    expect(JSON.parse(result.stdout)).toMatchObject({ ID: "sbx-nl-001", TemplateID: "tmpl-ai-123" });
+    expect(JSON.parse(result.stdout)).toMatchObject({ name: "abx-nl-sandbox-abc123" });
     expect(result.stdout).not.toContain("Installed Qwen Code");
     expect(result.stderr).toContain(`Installed Qwen Code: ${installed}`);
   });
@@ -456,7 +273,7 @@ describe("TestQwenCodeInstallGate", () => {
     const genMock = vi.fn();
     codegen.seams.generateTemplateFiles = genMock as never;
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "python env"]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "python env"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Quick Setup");
@@ -471,7 +288,7 @@ describe("TestQwenCodeInstallGate", () => {
     qwenCode.seams.downloadAndInstallStandalone = installMock as never;
     fakeTty({ codingAgent: true });
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "python env"], { input: "n\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "python env"], { input: "n\n" });
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Declined to install");
@@ -490,7 +307,7 @@ describe("TestQwenCodeInstallGate", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "y\n\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION], { input: "y\n\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(installMock).toHaveBeenCalledTimes(1);
@@ -508,7 +325,7 @@ describe("TestQwenCodeCredentialGate", () => {
       throw new QwenCodeCredentialError("no model credentials found");
     });
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "python env"]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "python env"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2006");
@@ -520,7 +337,7 @@ describe("TestQwenCodeCredentialGate", () => {
       throw new QwenCodeCredentialError("no model credentials found");
     });
 
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "python env"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", "python env"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2006");
@@ -541,7 +358,7 @@ describe("TestQwenCodeCredentialGate", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "sk-user-key\n\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION], { input: "\nsk-user-key\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(cfg.saved.get("llm_api_key")).toBe("sk-user-key");
@@ -558,7 +375,7 @@ describe("TestQwenCodeCredentialGate", () => {
     });
     fakeTty({ codingAgent: true });
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "python env"], { input: "\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "python env"], { input: "\n" });
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Aborted!");
@@ -571,19 +388,7 @@ describe("TestQwenCodeCredentialGate", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestConfirmationAndFailures", () => {
-  it("test_non_tty_without_yes_requires_confirmation", async () => {
-    _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-    const deploy = vi.spyOn(template, "do_deploy");
 
-    // The assessment clears the threshold, so the clarification loop asks nothing and the flow reaches the non-interactive
-    // confirmation gate.
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("Confirmation required");
-    expect(deploy).not.toHaveBeenCalled();
-  });
 
   it("test_codegen_failure_surfaces_e2007", async () => {
     codegen.seams.generateTemplateFiles = vi.fn(async () => {
@@ -591,24 +396,14 @@ describe("TestConfirmationAndFailures", () => {
     }) as never;
     const deploy = vi.spyOn(template, "do_deploy");
 
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "python env"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", "python env"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2007");
     expect(deploy).not.toHaveBeenCalled();
   });
 
-  it("test_build_failure_propagates", async () => {
-    _patchSuccessPipeline(tmp);
-    vi.spyOn(template, "do_deploy").mockRejectedValue(new DockerBuildError("build failed"));
-    patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "python env"]);
-
-    expect(result.exit_code).toBe(1);
-    expect(result.output).toContain("E7020");
-    expect(result.output).toContain("recovery journal");
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -623,14 +418,14 @@ describe("TestDescriptionClarification", () => {
   // first assessment, one question per round, the 80% threshold gate, one native session for every round, non-interactive
   // fail-fast, cancel/EOF handling, and graceful degradation.
 
-  it("test_complete_description_skips_questions_and_reaches_confirm_gate", async () => {
+  it("test_complete_description_skips_questions_and_writes_source", async () => {
     const [, genMock] = _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("Confirmation required");
+    expect(result.exit_code).toBe(0);
+    expect(fs.existsSync(path.join(tmp, "abx-nl-sandbox-abc123", "template.yaml"))).toBe(true);
     expect(result.output).not.toContain("/5"); // the internal round cap is never shown
     expect(result.output).not.toContain("Question 1");
     expect(evaluateMock).toHaveBeenCalledTimes(1);
@@ -653,7 +448,7 @@ describe("TestDescriptionClarification", () => {
       }),
     ]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2008");
@@ -664,7 +459,7 @@ describe("TestDescriptionClarification", () => {
     expect(result.output).toContain("Example description:");
     expect(result.output).toContain("Python 3.12 with pandas, expose port 8888");
     expect(result.output).toContain("--yes/-y");
-    expect(result.output).toContain("abx create <name>");
+    expect(result.output).toContain("abx deploy --template-id <name>");
     expect(genMock).not.toHaveBeenCalled();
     expect(deploy).not.toHaveBeenCalled();
   });
@@ -674,7 +469,7 @@ describe("TestDescriptionClarification", () => {
     const [, genMock] = _patchSuccessPipeline(tmp);
     _patchClarifyEvaluate([_clarifyAssessment(0.5, { question: "Q?", missing: ["ports"] })]);
 
-    const result = await runner().invoke(cli, ["--json", "create", "--prompt", "运行 python"]);
+    const result = await runner().invoke(cli, ["--json", "template", "init", "--prompt", "运行 python"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2008");
@@ -688,7 +483,7 @@ describe("TestDescriptionClarification", () => {
     const evaluateMock = _patchClarifyEvaluate([]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "运行 python"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", "运行 python"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(evaluateMock).not.toHaveBeenCalled();
@@ -708,7 +503,7 @@ describe("TestDescriptionClarification", () => {
     ]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\npandas\njupyter notebook\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\npandas\njupyter notebook\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     // One question per round, numbered with no total shown: Question 1 and Question 2 were asked, Question 3 was never
@@ -746,7 +541,7 @@ describe("TestDescriptionClarification", () => {
     fakeTty({ sandbox: true });
     _patchClarifyEvaluate([_clarifyAssessment(0.4, { question: "Q?", missing: ["dependencies"] })]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n\n" });
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2008");
@@ -759,7 +554,7 @@ describe("TestDescriptionClarification", () => {
     fakeTty({ sandbox: true });
     _patchClarifyEvaluate([_clarifyAssessment(0.4, { question: "Q?", missing: ["dependencies"] })]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n" });
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E2008");
@@ -776,7 +571,7 @@ describe("TestDescriptionClarification", () => {
     );
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n" + "unknown\n".repeat(5) + "y\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n" + "unknown\n".repeat(5) + "y\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Question 5: Missing detail 5?");
@@ -796,7 +591,7 @@ describe("TestDescriptionClarification", () => {
     const evaluateMock = _patchClarifyEvaluate([null]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Could not assess the description completeness");
@@ -814,7 +609,7 @@ describe("TestDescriptionClarification", () => {
     _patchClarifyEvaluate([_clarifyAssessment(0.5, { question: "Which dependencies?", missing: ["dependencies"] }), null]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\npandas\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\npandas\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("became unavailable");
@@ -838,9 +633,9 @@ describe("TestResearchFirstFlow", () => {
     _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(2); // stopped at the confirm gate
+    expect(result.exit_code, result.output).toBe(0);
     const research = qwen.research;
     expect(research).toHaveBeenCalledTimes(1);
     // Phase R: the research prompt embeds the description.
@@ -859,9 +654,9 @@ describe("TestResearchFirstFlow", () => {
     _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(2);
+    expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("could not research the public facts");
     // No session came out of research, so the assessment pins it itself.
     expect(opts(evaluateMock)["sessionId"]).toBe(_SESSION);
@@ -886,9 +681,9 @@ describe("TestResearchFirstFlow", () => {
     const [, genMock] = _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(2);
+    expect(result.exit_code, result.output).toBe(0);
     expect(opts(qwen.research)["sessionId"]).toBe(_SESSION);
     expect(opts(evaluateMock)["sessionId"]).toBe(second);
     expect(opts(evaluateMock)["sessionId"]).not.toBe(_SESSION);
@@ -907,9 +702,9 @@ describe("TestResearchFirstFlow", () => {
     _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(2); // stopped at the confirm gate
+    expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("could not research the public facts");
     expect(result.output).toContain(hintFragment);
     expect(result.output).not.toContain("raw internal detail");
@@ -927,9 +722,9 @@ describe("TestResearchFirstFlow", () => {
     _patchSuccessPipeline(tmp);
     const evaluateMock = _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", description]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", description]);
 
-    expect(result.exit_code, result.output).toBe(2); // reached the confirm gate
+    expect(result.exit_code, result.output).toBe(0);
     const research = qwen.research;
     expect(research).toHaveBeenCalledTimes(1);
     expect(callArg(research, -1, 0)).toContain("Serverless Devs CLI");
@@ -957,7 +752,7 @@ describe("TestDelegationAnswers", () => {
     ]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n你自己决定吧\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n你自己决定吧\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Description is now about 90%; generating.");
@@ -981,7 +776,7 @@ describe("TestDelegationAnswers", () => {
     ]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n2 CPU 4 GB\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n2 CPU 4 GB\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     const followup = callArg(evaluateMock, 1, 0) as string;
@@ -1007,7 +802,7 @@ describe("TestAntiRepetition", () => {
     ]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n8888\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n8888\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     // The question was shown exactly once -- the repeat was caught before a second prompt, even though the model kept
@@ -1031,7 +826,7 @@ describe("TestAntiRepetition", () => {
     ]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "运行 python"], { input: "\n8888\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "运行 python"], { input: "\n8888\ny\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     const followup = callArg(evaluateMock, 1, 0) as string;
@@ -1075,9 +870,9 @@ describe("TestPhaseStatusChannels", () => {
     _patchSuccessPipeline(tmp);
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", _COMPLETE_DESCRIPTION]);
 
-    expect(result.exit_code, result.output).toBe(2);
+    expect(result.exit_code, result.output).toBe(0);
     expect(result.stderr).toContain("Assessing description");
     expect(result.stderr).toContain("Generating template");
     expect(result.stdout).not.toContain("Assessing description");
@@ -1090,7 +885,7 @@ describe("TestPhaseStatusChannels", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["--json", "create", "-y", "--prompt", "python env"]);
+    const result = await runner().invoke(cli, ["--json", "template", "init", "-y", "--prompt", "python env"]);
 
     expect(result.exit_code, result.output).toBe(0);
     // stdout: machine readable JSON only -- no phase prose, no questions. (`--yes` skips clarification, so the generation
@@ -1108,7 +903,7 @@ describe("TestPhaseStatusChannels", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     patchCreate();
 
-    const result = await runner().invoke(cli, ["--quiet", "create", "-y", "--prompt", "python env"]);
+    const result = await runner().invoke(cli, ["--quiet", "template", "init", "-y", "--prompt", "python env"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stderr).not.toContain("Assessing description");
@@ -1121,44 +916,13 @@ describe("TestPhaseStatusChannels", () => {
 // Natural-language create and local scaffold have separate targets.
 // ---------------------------------------------------------------------------
 
-describe("TestNaturalLanguageCreateTarget", () => {
-  it("creates a sandbox without asking to change the selected target", async () => {
-    fakeTty({ sandbox: true });
-    const [, genMock, deploy] = _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-    const create = patchCreate();
-
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "\ny\n" });
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output + result.stderr).not.toContain("Switch to template");
-    expect(result.output + result.stderr).toContain("billable sandbox");
-    expect(genMock).toHaveBeenCalledTimes(1);
-    expect(deploy).toHaveBeenCalledTimes(1);
-    expect(create).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps the build confirmation before creating resources", async () => {
-    fakeTty({ sandbox: true });
-    const [, , deploy] = _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-    const create = patchCreate();
-
-    const result = await runner().invoke(cli, ["create", "--prompt", _COMPLETE_DESCRIPTION], { input: "\nn\n" });
-
-    expect(result.exit_code).not.toBe(0);
-    expect(deploy).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
-  });
-});
-
 describe("TestTemplateInitNaturalLanguage", () => {
-  // `abx template scaffold --prompt "DESCRIPTION"` generates files and stops.
+  // `abx template init --prompt "DESCRIPTION"` generates files and stops.
 
   it("test_description_writes_local_files_without_deploy", async () => {
     const [gen, genMock, deploy] = _patchSuccessPipeline(tmp);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", "a python data science env"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", "a python data science env"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(deploy).not.toHaveBeenCalled();
@@ -1167,14 +931,14 @@ describe("TestTemplateInitNaturalLanguage", () => {
     expect(result.output).not.toContain("Directory for the template project");
     const target = path.join(tmp, gen.templateName);
     expect(fs.readFileSync(path.join(target, "Dockerfile"), "utf-8").startsWith("FROM")).toBe(true);
-    expect(result.output).toContain("template deploy");
+    expect(result.output).toContain("abx deploy");
     expect(result.output).not.toContain("created successfully");
   });
 
   it("test_name_overrides_directory_and_yaml", async () => {
     _patchSuccessPipeline(tmp);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--name", "myapp", "--prompt", "a python data science env"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "--name", "myapp", "--prompt", "a python data science env"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const yamlText = fs.readFileSync(path.join(tmp, "myapp", "template.yaml"), "utf-8");
@@ -1188,21 +952,21 @@ describe("TestTemplateInitNaturalLanguage", () => {
     fs.mkdirSync(target);
     fs.writeFileSync(path.join(target, "Dockerfile"), "kept\n", "utf-8");
 
-    const blocked = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", "a python data science env"]);
+    const blocked = await runner().invoke(cli, ["template", "init", "-y", "--prompt", "a python data science env"]);
     expect(blocked.exit_code).toBe(1);
     expect(blocked.output).toContain("already exist");
     expect(fs.readFileSync(path.join(target, "Dockerfile"), "utf-8")).toBe("kept\n");
     expect(deploy).not.toHaveBeenCalled();
 
-    const forced = await runner().invoke(cli, ["template", "scaffold", "-y", "--force", "--prompt", "a python data science env"]);
+    const forced = await runner().invoke(cli, ["template", "init", "-y", "--force", "--prompt", "a python data science env"]);
     expect(forced.exit_code, forced.output).toBe(0);
     expect(fs.readFileSync(path.join(target, "Dockerfile"), "utf-8").startsWith("FROM")).toBe(true);
   });
 
   it("test_description_rejects_scaffold_flags", async () => {
     for (const args of [
-      ["template", "scaffold", "--prompt", "a python env", "-t", "python"],
-      ["template", "scaffold", "--prompt", "a python env", "--from", "owner/repo"],
+      ["template", "init", "--prompt", "a python env", "-t", "python"],
+      ["template", "init", "--prompt", "a python env", "--from", "owner/repo"],
     ]) {
       const result = await runner().invoke(cli, args);
       expect(result.exit_code).not.toBe(0);
@@ -1213,7 +977,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
   it("test_top_level_init_shortcut_accepts_a_description", async () => {
     const [gen, , deploy] = _patchSuccessPipeline(tmp);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", "一个数据分析环境"]);
+    const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", "一个数据分析环境"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(deploy).not.toHaveBeenCalled();
@@ -1225,7 +989,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     const [gen, , deploy] = _patchSuccessPipeline(tmp);
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "--prompt", "a python data science env"], { input: "\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "a python data science env"], { input: "\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     const shown = result.output + (result.stderr || "");
@@ -1241,7 +1005,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
     const chosen = path.join(tmp, "serverless-devs");
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "--prompt", "a python data science env"], { input: `${chosen}\n` });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "a python data science env"], { input: `${chosen}\n` });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.readFileSync(path.join(chosen, "Dockerfile"), "utf-8").startsWith("FROM")).toBe(true);
@@ -1256,7 +1020,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     const blocked = path.join(tmp, "not-a-dir");
     fs.writeFileSync(blocked, "x", "utf-8");
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "--prompt", "a python data science env"], { input: `${blocked}\n` });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "a python data science env"], { input: `${blocked}\n` });
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("not a directory");
@@ -1271,117 +1035,11 @@ describe("TestTemplateInitNaturalLanguage", () => {
     fs.mkdirSync(chosen);
     fs.writeFileSync(path.join(chosen, "Dockerfile"), "kept\n", "utf-8");
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "--prompt", "a python data science env"], { input: `${chosen}\n` });
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "a python data science env"], { input: `${chosen}\n` });
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("already exist");
     expect(genMock).not.toHaveBeenCalled();
     expect(fs.readFileSync(path.join(chosen, "Dockerfile"), "utf-8")).toBe("kept\n");
-  });
-});
-
-describe("TestOutputDir", () => {
-  // `--dir` / interactive prompt: where the AI template workspace lives.
-
-  async function _invoke(args: string[], input?: string): Promise<Result> {
-    patchCreate();
-    return runner().invoke(cli, args, input === undefined ? {} : { input });
-  }
-
-  it("test_explicit_dir_is_used_as_parent_and_not_created_by_validation", async () => {
-    _patchSuccessPipeline(tmp);
-    const target = path.join(tmp, "my", "templates");
-
-    const result = await _invoke(["create", "-y", "--dir", target, "--prompt", "python env"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    // Generation (mocked here) creates the workspace; validation alone must not.
-    expect(fs.existsSync(target)).toBe(false);
-    expect(opts(qwen.prepareWorkdir)["baseDir"]).toBe(path.resolve(target));
-  });
-
-  it("test_default_location_when_dir_omitted_and_not_interactive", async () => {
-    // No --dir and no TTY: never prompt, keep the standard location.
-    _patchSuccessPipeline(tmp);
-
-    const result = await _invoke(["create", "-y", "--prompt", "python env"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).not.toContain("which directory");
-    expect(opts(qwen.prepareWorkdir)).not.toHaveProperty("baseDir");
-  });
-
-  it("test_tty_prompts_and_enter_accepts_the_default", async () => {
-    fakeTty({ sandbox: true });
-    _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-
-    // directory=<Enter>, confirm=y
-    const result = await _invoke(["create", "--prompt", _COMPLETE_DESCRIPTION], "\ny\n");
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("Save the generated template under which directory?");
-    expect(result.output).toContain("generated"); // the default is shown
-    expect(opts(qwen.prepareWorkdir)).not.toHaveProperty("baseDir");
-  });
-
-  it("test_tty_prompt_answer_is_used", async () => {
-    fakeTty({ sandbox: true });
-    _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-    const chosen = path.join(tmp, "chosen");
-
-    const result = await _invoke(["create", "--prompt", _COMPLETE_DESCRIPTION], `${chosen}\ny\n`);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(fs.existsSync(chosen)).toBe(false);
-    expect(opts(qwen.prepareWorkdir)["baseDir"]).toBe(path.resolve(chosen));
-  });
-
-  it("test_answer_at_the_directory_prompt_creates_no_directory", async () => {
-    // A clarification answer typed at the directory prompt must not leave `./pandas`.
-    fakeTty({ sandbox: true });
-    _patchSuccessPipeline(tmp);
-    _patchClarifyEvaluate([_clarifyAssessment(1.0)]);
-    const before = new Set(fs.readdirSync(tmp));
-
-    // directory="pandas" (meant as a clarification answer), confirm=y
-    const result = await _invoke(["create", "--prompt", _COMPLETE_DESCRIPTION], "pandas\ny\n");
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(fs.existsSync(path.join(tmp, "pandas"))).toBe(false);
-    const added = fs.readdirSync(tmp).filter((name) => !before.has(name));
-    expect(added.every((name) => name === "generated-workspace")).toBe(true);
-  });
-
-  it("test_unwritable_parent_is_rejected_without_creating_anything", async () => {
-    _patchSuccessPipeline(tmp);
-    const locked = path.join(tmp, "locked");
-    fs.mkdirSync(locked);
-    sandboxSeams.access = (p) => String(p) !== fs.realpathSync(locked);
-
-    const result = await runner().invoke(cli, ["create", "-y", "--dir", path.join(locked, "sub"), "--prompt", "python env"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("not writable");
-    expect(fs.existsSync(path.join(locked, "sub"))).toBe(false);
-  });
-
-  it("test_dir_without_description_is_a_usage_error", async () => {
-    const result = await runner().invoke(cli, ["create", "--template", "base", "--dir", tmp]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("--dir only applies");
-  });
-
-  it("test_dir_pointing_at_a_file_is_rejected", async () => {
-    _patchSuccessPipeline(tmp);
-    const aFile = path.join(tmp, "file.txt");
-    fs.writeFileSync(aFile, "x", "utf-8");
-
-    const result = await runner().invoke(cli, ["create", "-y", "--dir", aFile, "--prompt", "python env"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("not a directory");
   });
 });

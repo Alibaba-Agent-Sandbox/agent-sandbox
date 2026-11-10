@@ -70,7 +70,7 @@ Path("/tmp/result.json").write_text(json.dumps(result) + "\n")
 MCP 下载上限为 1 MiB。更大的文件使用 CLI，并比较本机与远端哈希：
 
 ```bash
-abx download SANDBOX_ID /tmp/result.json ./result.json
+abx sandbox download SANDBOX_ID /tmp/result.json ./result.json
 ```
 
 ## 明确资源归属和清理

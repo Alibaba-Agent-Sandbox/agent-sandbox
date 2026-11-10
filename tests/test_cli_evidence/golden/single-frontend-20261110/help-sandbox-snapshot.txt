@@ -1,0 +1,12 @@
+Usage: abx sandbox snapshot [options] [command]
+
+Create, list and delete native sandbox snapshots.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  create      Create a snapshot from a sandbox.
+  delete      Delete snapshots.
+  list        List snapshots; optionally filter by sandbox or snapshot name.
+[exit_code:0]

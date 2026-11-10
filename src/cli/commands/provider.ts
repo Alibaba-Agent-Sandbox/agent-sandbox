@@ -9,27 +9,19 @@
  */
 
 import { Argument, Context, argument, command, group, option, type Command } from "../kit.js";
-import { Choice } from "../types.js";
-import { Abort, sysExit } from "../errors.js";
+import { sysExit } from "../errors.js";
 import { echo } from "../io.js";
-import { confirm, select } from "../prompts.js";
-import { isProviderConfigSensitive } from "../provider_extensions.js";
+import { confirm } from "../prompts.js";
 import { providersInUse } from "../../providers/in_use.js";
 import * as installer from "../../providers/installer.js";
 import { doctor, verifyHandshake } from "../../providers/doctor.js";
 import { ProviderConfigError, ProviderConflictError, ProviderNotFoundError, ProviderTrustError } from "../../models/provider_errors.js";
 import * as registry from "../../providers/registry.js";
-import { setDefaultProvider } from "../../providers/settings.js";
-import * as configExtras from "./_config_providers.js";
-import { configurationTargetSummary } from "../config_target.js";
 import { canPrompt } from "../interaction.js";
-import { assertConfigFilesReadable, assertConfigValuesValid } from "../../utils/config_diagnostics.js";
 import * as store from "../../providers/store.js";
 import { runContractSuite, summarizeContract } from "../../providers/testing.js";
-import { collectSources, loadLayeredConfig, resetLayeredConfig, paths } from "../../transport/config_layers.js";
-import { resolveKey, validateConfigValue } from "../../utils/config_resolver.js";
-import { BUILTIN_PROVIDER_ID, CORE_KEYS, GENERIC_ENDPOINT_KEYS, getKey } from "../../utils/config_keys.js";
-import { compactFeatures, configFieldToKey, type ConfigField } from "../../providers/base.js";
+import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";
+import { compactFeatures } from "../../providers/base.js";
 import { getFormatter, type OutputFormatter } from "../formatters.js";
 import { getOutput } from "../output.js";
 import { handleErrors } from "../error_handler.js";
@@ -48,21 +40,21 @@ const PROVIDER_HELP = [
   "",
   "    Select a provider for one command with the global '--provider ID' (any",
   "    position) and set provider options with '--opt KEY=VALUE' (repeatable).",
-  "    Sandbox references may be qualified: 'abx kill local-process:sbx-1'.",
+  "    Sandbox references may be qualified: 'abx delete local-process:sbx-1'.",
   "",
   "    \b",
   "    Examples:",
   "      abx provider list",
   "      abx provider install ./my-provider",
   "      abx provider install https://github.com/acme/abx-provider-acme.git --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7",
-  "      abx provider default acme",
-  "      abx create base --provider acme",
+  "      abx config set provider acme",
+  "      abx --provider acme deploy --template-id base --yes",
   "      abx list --all-providers",
   "",
   "    \b",
   "    Related commands:",
   "      abx config      Credentials and defaults (keys: provider, providers.<id>.<key>)",
-  "      abx info        Show one sandbox",
+  "      abx status        Show one sandbox",
   "    ",
 ].join("\n");
 
@@ -108,17 +100,6 @@ async function withInstallProgress<T>(ctx: Context, fn: (onProgress: installer.P
 
 function ambientId(): string {
   return registry.ambientProviderId();
-}
-
-function defaultSource(): "env" | "dotenv" | "config" | "builtin" {
-  const sources = collectSources();
-  const key = getKey("provider");
-  if (!key) return "builtin";
-  const res = resolveKey(key, sources);
-  if (res === null || res.layer === "default") return "builtin";
-  if (res.layer === "environ" || res.layer === "override") return "env";
-  if (res.layer === "dotenv") return "dotenv";
-  return "config";
 }
 
 function pairsToMap(pairs: Array<[string, unknown]>): Map<string, unknown> {
@@ -269,7 +250,7 @@ const INFO_HELP = [
   "    \b",
   "    Examples:",
   "      abx provider info alicloud-express",
-  "      abx --json provider show local-process",
+  "      abx --json provider info local-process",
   "    ",
 ].join("\n");
 
@@ -324,7 +305,7 @@ const install_cmd = command("install", {
     "Install a provider plugin from a directory or a git URL.",
     "",
     "    SOURCE is a local directory, owner/repo//subdir[@ref] (same // as",
-    "    'abx template install'), or a git URL (https://, ssh://, git@host:path).",
+    "    'abx template init --from'), or a git URL (https://, ssh://, git@host:path).",
     "    The plugin's abx-provider.toml is validated and its tree digest recorded.",
     "    After consent, default verification may load and initialize the plugin. A consent screen",
     "    lists what the plugin runs, which features it provides and which generic",
@@ -539,231 +520,6 @@ function short(commit: string | null): string {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// default
-// ---------------------------------------------------------------------------------------------------------------------
-
-const default_cmd = command("default", {
-  help: [
-    "Show or set the default provider.",
-    "",
-    "    Without ID prints the effective default (ABX_PROVIDER wins over the stored",
-    "    value). With ID stores '[core] provider' in ~/.abx/config.toml; --unset",
-    "    returns to alicloud-express.",
-    "",
-    "    \b",
-    "    Examples:",
-    "      abx provider default",
-    "      abx provider default local-process",
-    "      abx provider default --unset",
-    "    ",
-  ].join("\n"),
-  params: [argument(["provider_id"], { metavar: "ID", required: false }) as Argument, option(["--unset"], { is_flag: true, help: "Reset the default to alicloud-express" })],
-  callback: handleErrors(async (ctx: Context, params: Params) => {
-    const fmt = getFormatter(ctx);
-    const id = (params["provider_id"] as string | null) ?? null;
-    if (params["unset"]) {
-      setDefaultProvider(null);
-      resetLayeredConfig();
-      fmt.printSuccess(`Default provider reset to '${BUILTIN_PROVIDER_ID}'`);
-      return;
-    }
-    if (id === null) {
-      const current = ambientId();
-      if (fmt.use_json) fmt.printData(pairsToMap([["default", current], ["source", defaultSource()]]));
-      else echo(current);
-      return;
-    }
-    registry.getProvider(id);
-    setDefaultProvider(id === BUILTIN_PROVIDER_ID ? null : id);
-    resetLayeredConfig();
-    const override = process.env["ABX_PROVIDER"];
-    if (override && override.trim() && override.trim() !== id) echo(`note: ABX_PROVIDER=${override.trim()} overrides this at runtime.`, { err: true });
-    fmt.printSuccess(`Default provider set to '${id}'`);
-  }),
-});
-
-// ---------------------------------------------------------------------------------------------------------------------
-// config
-// ---------------------------------------------------------------------------------------------------------------------
-
-function fieldOf(id: string, key: string): ConfigField {
-  const p = registry.getProvider(id);
-  const declared = p.configFields.find((x) => x.key === key);
-  const inherited = p.inherit.has(key) ? getKey(key) : undefined;
-  const f: ConfigField | undefined = declared ?? (inherited ? { key: inherited.key, type: inherited.type, secret: inherited.secret, credential: inherited.credential, description: inherited.description, choices: inherited.choices } : undefined);
-  if (!f) {
-    throw new ProviderConfigError(`Unknown option '${key}' for provider '${id}'.`, { suggestion: `Available: ${p.configFields.map((x) => x.key).join(", ") || "(none)"}` });
-  }
-  return f;
-}
-
-function validateFieldValue(id: string, field: ConfigField, text: string): string | number | boolean {
-  const owner = registry.getProvider(id);
-  const ck = owner.configKeys().find((key) => key.key === field.key) ?? (owner.inherit.has(field.key) ? getKey(field.key) : undefined) ?? configFieldToKey(field, id);
-  const value = validateConfigValue(ck, text);
-  if (value === null) {
-    const reason = field.type === "enum" ? `expected one of ${(field.choices ?? []).join(", ")}` : `expected ${field.type ?? "str"}`;
-    throw new ProviderConfigError(`Invalid value for '${field.key}': ${reason}.`);
-  }
-  return value as string | number | boolean;
-}
-
-function configRow(f: ConfigField, id: string): string[] {
-  const raw = configExtras.readExtra(fieldTarget(id, f)).value;
-  const shown = raw === undefined || raw === null || raw === "" ? "(not set)" : isProviderConfigSensitive(id, f.key, f.secret) ? "********" : String(raw);
-  return [f.key, f.type ?? "str", shown, f.secret ? "secret" : "", f.required ? "required" : ""];
-}
-
-async function promptPlain(text: string): Promise<string> {
-  const { prompt } = await import("../prompts.js");
-  return String(await prompt(text.replace(/: $/, ""), { default: "", show_default: false, err: true }));
-}
-
-function fieldTarget(id: string, f: ConfigField): configExtras.ExtraTarget {
-  const target = configExtras.resolveExtraKey(`providers.${id}.${f.key}`);
-  if (!target) throw new ProviderConfigError(`Provider '${id}' does not declare '${f.key}'.`);
-  return target;
-}
-
-function removeField(id: string, f: ConfigField): void {
-  configExtras.clearExtra(fieldTarget(id, f));
-}
-
-async function readValue(ctx: Context, id: string, f: ConfigField, given: string | null, showTarget = true): Promise<string | null> {
-  if (given !== null) return given;
-  if (!canPrompt(ctx)) {
-    throw new ProviderConfigError(`No value given for '${f.key}'; configuration input requires an interactive terminal.`, { suggestion: `Use 'abx provider config ${id} set ${f.key} VALUE', or inject ${fieldTarget(id, f).key?.env ?? f.key} through your CI secret environment.` });
-  }
-  const { _promptSecret } = await import("./config_cmd.js");
-  if (showTarget) echo(configurationTargetSummary(id), { err: true });
-  for (;;) {
-    const entered = isProviderConfigSensitive(id, f.key, f.secret) ? await _promptSecret(`${f.key} (input masked; press Enter to keep the current value)`) : await promptPlain(`${f.key} (press Enter to keep the current value): `);
-    if (!entered.trim()) return null;
-    try { validateFieldValue(id, f, entered); return entered; }
-    catch (error) {
-      if (!(error instanceof ProviderConfigError)) throw error;
-      echo(error.message, { err: true });
-    }
-  }
-}
-
-function storeField(fmt: OutputFormatter, id: string, f: ConfigField, value: string | null): void {
-  if (value === null || value === "") {
-    fmt.printSuccess(`No value entered; ${f.key} for provider '${id}' was not changed. Use 'abx provider config ${id} unset ${f.key}' to remove it.`);
-    return;
-  }
-  const target = fieldTarget(id, f);
-  configExtras.writeExtra(target, value);
-  const destination = configExtras.storageLocation(target);
-  const actual = configExtras.readExtra(target);
-  const override = actual.source === "env" || actual.value !== validateFieldValue(id, f, value) ? ` Effective value comes from ${actual.name || actual.source}; stored value may be overridden.` : "";
-  fmt.printSuccess(`Stored ${f.key} for provider '${id}' in ${destination.path}.${override} Review with 'abx provider config ${id} list'; change with 'abx provider config ${id} set ${f.key}'.`);
-}
-
-export const config_cmd = command("config", {
-  help: [
-    "Show or edit one provider's configuration.",
-    "",
-    "    ACTION is one of list, get, set, unset, init. Secrets (fields marked secret",
-    "    in the manifest) are stored using their declared environment names and always",
-    "    shown masked; other options go to [providers.<id>] in ~/.abx/config.toml.",
-    "    The same keys are reachable as 'abx config get providers.<id>.<key>'.",
-    "",
-    "    \b",
-    "    Examples:",
-    "      abx provider config local-process list",
-    "      abx provider config local-process set workdir_root /tmp/abx",
-    "      abx provider config my-cloud set token       # masked prompt",
-    "      abx provider config my-cloud unset token",
-    "      abx provider config my-cloud init            # prompt for every field",
-    "    ",
-  ].join("\n"),
-  params: [
-    argument(["provider_id"], { metavar: "ID" }) as Argument,
-    argument(["action"], { metavar: "ACTION", type: new Choice(["list", "get", "set", "unset", "init"]) }) as Argument,
-    argument(["key"], { required: false }) as Argument,
-    argument(["value"], { required: false }) as Argument,
-  ],
-  callback: handleErrors(async (ctx: Context, params: Params) => {
-    const fmt = getFormatter(ctx);
-    const id = params["provider_id"] as string;
-    const action = params["action"] as string;
-    const p = registry.getProvider(id);
-    const key = (params["key"] as string | null) ?? null;
-    const value = (params["value"] as string | null) ?? null;
-
-    if (action === "list") {
-      if (!p.configFields.length) {
-        fmt.printSuccess(`Provider '${id}' has no options.`);
-        return;
-      }
-      table(fmt, ["Key", "Type", "Value", "Secret", "Required"], p.configFields.map((f) => configRow(f, id)));
-      return;
-    }
-    if (action === "init") {
-      if (!canPrompt(ctx)) {
-        throw new ProviderConfigError("'init' needs an interactive terminal.", { suggestion: `Use 'abx provider config ${id} set KEY VALUE' for each field.` });
-      }
-      assertConfigFilesReadable(paths.configFile, paths.envFiles);
-      assertConfigValuesValid([...CORE_KEYS.filter((field) => !GENERIC_ENDPOINT_KEYS.includes(field.key) || p.inherit.has(field.key)), ...p.configKeys()], collectSources(), id);
-      echo(configurationTargetSummary(id), { err: true });
-      const pending: Array<[ConfigField, string]> = [];
-      const setup = await configExtras.initializationKeys(id, async (groups) => {
-        const index = await select("Choose an authentication method", {
-          choices: [...groups.map((group, index) => ({ name: group.join(" + "), value: index })), { name: "Cancel", value: -1 }],
-          default: -1, err: true,
-        });
-        if (index === -1) throw new Abort();
-        return index;
-      });
-      const selected = new Set(setup.map((key) => key.key));
-      const authenticationFields = new Set(p.authAnyOf.flat());
-      const fields: ConfigField[] = [
-        ...p.configFields.filter((field) => !authenticationFields.has(field.key) || selected.has(field.key)),
-        ...setup.filter((key) => !p.configFields.some((field) => field.key === key.key)).map((key) => ({
-          key: key.key, type: key.type, secret: key.secret, credential: key.credential, description: key.description,
-        })),
-      ];
-      const total = fields.length;
-      for (const [i, f] of fields.entries()) {
-        const label = `${i + 1}/${total} ${f.description || f.key} (${f.key})${f.required ? " *" : ""}`;
-        echo(label, { err: true });
-        const entered = await readValue(ctx, id, f, null, false);
-        if (entered !== null) pending.push([f, entered]);
-      }
-      const saved: string[] = [];
-      try {
-        for (const [field, value] of pending) { storeField(fmt, id, field, value); saved.push(field.key); }
-      } catch (error) {
-        if (error instanceof configExtras.ConfigurationCleanupError) saved.push(error.field);
-        throw new ProviderConfigError(`Configuration save failed. Saved fields: ${saved.join(", ") || "none"}; setup is incomplete.${error instanceof configExtras.ConfigurationCleanupError ? " A previous configuration copy could not be removed." : ""}`, { suggestion: `Check permissions on ${paths.configFile} and its adjacent .env; review 'abx provider config ${id} list' before retrying.` });
-      }
-      try { p.validateConfig(loadLayeredConfig({ provider: id })); }
-      catch (error) {
-        throw new ProviderConfigError(`Configuration incomplete for provider '${id}'. ${error instanceof Error ? error.message : "Required fields or an authentication combination are missing."}`, { suggestion: `Run 'abx provider config ${id} init' again, or 'abx provider config ${id} set KEY'.` });
-      }
-      fmt.printSuccess(`Configuration complete. Review values and sources with 'abx config list'; modify with 'abx provider config ${id} set KEY'.`);
-      return;
-    }
-    if (key === null) {
-      throw new ProviderConfigError(`'${action}' needs a KEY.`, { suggestion: `abx provider config ${id} ${action} KEY` });
-    }
-    const f = fieldOf(id, key);
-    if (action === "get") {
-      const raw = configExtras.readExtra(fieldTarget(id, f)).value;
-      if (raw === undefined || raw === null || raw === "") fmt.printData("(not set)");
-      else fmt.printData(isProviderConfigSensitive(id, f.key, f.secret) ? "********" : String(raw));
-    } else if (action === "set") {
-      assertConfigFilesReadable(paths.configFile, paths.envFiles);
-      storeField(fmt, id, f, await readValue(ctx, id, f, value));
-    } else {
-      removeField(id, f);
-      fmt.printSuccess(`Cleared ${f.key} for provider '${id}'.`);
-    }
-  }),
-});
-
-// ---------------------------------------------------------------------------------------------------------------------
 // doctor / test
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -843,12 +599,9 @@ const test_cmd = command("test", {
 
 provider.addCommand(list_cmd, "list");
 provider.addCommand(info_cmd, "info");
-provider.addCommand(info_cmd, "show");
 provider.addCommand(install_cmd, "install");
 provider.addCommand(uninstall_cmd, "uninstall");
 provider.addCommand(update_cmd, "update");
-provider.addCommand(default_cmd, "default");
-provider.addCommand(config_cmd, "config");
 provider.addCommand(doctor_cmd, "doctor");
 provider.addCommand(test_cmd, "test");
 provider.addCommand(engine, "engine");

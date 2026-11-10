@@ -1,5 +1,5 @@
 /**
- * AI code generation for `abx create --prompt "<description>"`.
+ * AI code generation for `abx template init --prompt "<description>"`.
  *
  * Port of `agent_sandbox/agent/codegen.py`. Orchestrates a Qwen Code headless run that produces a *usable* template
  * inside a dedicated workspace: a `Dockerfile`, a `commands.py` that starts the container-side `agent_sandbox.server`
@@ -590,14 +590,14 @@ function validateServerEntrypoint(
 /**
  * Validate a generated template workspace and return its manifest data.
  *
- * Shared by `abx create --prompt "<description>"` and `abx template scaffold --adopt`. Checks, fail-closed: the Dockerfile has a
+ * Shared by `abx template init --adopt`. Checks, fail-closed: the Dockerfile has a
  * `FROM`; `commands.py` parses and starts `agent_sandbox.server`; the Dockerfile references it; `template.yaml` is a
  * mapping that passes the capability schema. Nothing is written; the returned manifest carries `templateName` as
  * its `name`.
  *
  * The manifest is returned as plain data (key order kept) so it can be dumped back with `dumpYaml`.
  *
- * `retry` replaces the default "inspect the workspace / fall back to `abx create <name> --detach`" suggestion on every
+ * `retry` replaces the default "inspect the workspace / fall back to `abx deploy --template-id <name> --name my-sandbox`" suggestion on every
  * error.
  *
  * Throws `AICodegenError` when any check fails.

@@ -16,11 +16,13 @@ Binaries are attached to each GitHub Release
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 Each file has a sibling `.sha256` (SHA-256, `sha256sum` / `shasum -a 256` text).
-Download CLI **v0.5.8** for your platform with its matching SHA-256 file from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.8). [Source installation](#install-from-source) is also available.
+Choose a published version and its matching SHA-256 file from [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases). [Source installation](#install-from-source) is also available.
 
 The official website mirrors the complete stable release: all five binaries, the npm archive and SHA-256 sidecars. It validates release sizes and payload hashes before deployment. The [mirror manifest](https://www.agent-sandbox.cn/releases/latest.json) identifies the version currently available; a newly published GitHub release becomes the website default after the mirror is deployed.
 
 ---
+
+Current repository guides describe source commands. Older releases may expose different commands; inspect `abx --help`, or install from source below for the current interface.
 
 ## Install
 
@@ -67,7 +69,7 @@ The Windows script supports `ABX_VERSION` and `ABX_INSTALL_DIR`; its default ver
 ## Manual download
 
 1. Check the version and filenames in the [website mirror manifest](https://www.agent-sandbox.cn/releases/latest.json).
-2. For current 0.5.8, download the asset and `.sha256` from its published GitHub release. The website mirror only serves the version listed in its manifest. For example, macOS Apple Silicon v0.5.8:
+2. For the fixed 0.5.8 example, download the asset and `.sha256` from its published GitHub release. The website mirror only serves the version listed in its manifest. For example, macOS Apple Silicon v0.5.8:
 
    ```bash
    curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.8/abx-0.5.8-darwin-arm64

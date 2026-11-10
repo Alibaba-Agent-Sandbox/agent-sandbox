@@ -1,3 +1,6 @@
+import { connectSandboxTarget } from "../deployment_store.js";
+import { connectNative, isExpressReference, pause, resume, metrics, snapshot, fork, network } from "./sandbox_native.js";
+export { logs } from "./sandbox_native.js";
 import { canGuideConfiguration, withGuidedConfiguration } from "../config_guidance.js";
 /**
  * Sandbox lifecycle CLI commands: create, list, info, kill, exec, connect, upload, download (port of
@@ -39,7 +42,6 @@ import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
 import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
 import { loadLayeredConfig } from "../../transport/config_layers.js";
 import { getProvider } from "../../providers/registry.js";
-import { providerCliExtension } from "../provider_extensions.js";
 import { getLogger } from "../../utils/logging.js";
 import { PyFloat, pyRepr, pyStr, pyStrip } from "../../utils/_pyformat.js";
 import { formatFixed0 } from "../../agent/_pycompat.js";
@@ -54,8 +56,7 @@ import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
 import { ValueError } from "../../models/value_error.js";
 import type { BuildMode } from "../../template/build_plan.js";
-import { withTemplateEnvironment, applicationToken } from "../template_environment.js";
-import { executeTemplateLaunch, type TemplateLaunchResult } from "../template_launch.js";
+import { applicationToken } from "../template_environment.js";
 import { files } from "./sandbox_files.js";
 import { process as process_ } from "./sandbox_process.js";
 import { capabilities, system } from "./sandbox_system.js";
@@ -84,54 +85,9 @@ export const sandboxSeams: {
 // Help texts (the Python docstrings, verbatim; cleaned with `cleandoc`)
 // ---------------------------------------------------------------------------------------------------------------------
 
-const CREATE_HELP = `Create a new sandbox.
-
-    'abx create' is the shortcut of 'abx sandbox create'. A positional argument
-    selects a template; the default is base. Natural language uses --prompt.
-
-    \b
-      abx create base                        launch the base template
-      abx create code-interpreter-v1         launch an existing template
-      abx create --prompt "DESCRIPTION"      generate a template, build and launch
-
-    --prompt and an explicit template cannot be combined.
-
-    --timeout is the sandbox lifetime in seconds (default: 300).
-
-    \b
-    Examples:
-      abx create base              # explicit 'base' template
-      abx create -e API_KEY=xxx -e DEBUG=1    # inject env vars
-      abx create --upload ./app --timeout 600 # upload dir, 10-min lifetime
-      abx create --prompt "a python data science env"  # generate, build, deploy, create
-      abx create -y --prompt "a node.js api server"    # non-interactive full pipeline
-      abx create -y --detach --build steps --prompt "a Python data analysis API"
-      abx template scaffold --prompt "a python data science env"  # template files only
-
-    \b
-    Notes:
-      Template generation needs the Qwen Code CLI and a DashScope/ModelStudio
-      key ('abx config init --llm'); building and deploying also needs
-      'abx config init --build'. It researches publicly verifiable facts
-      itself (tool stack, official install method, common dependencies) and
-      only asks for private preferences or business decisions it cannot
-      infer — one question at a time in interactive sessions. Non-interactive
-      shells must pass --yes to generate without asking. To generate local
-      template files only, use abx template scaffold --prompt "DESCRIPTION".
-      Application authentication is generated, saved locally and reused automatically.
-      Optionally supply your own ABX_SERVER_TOKEN in the environment (or -e).
-      --detach is accepted on this path: generated sandboxes already return
-      without opening a terminal. --build steps uses platform build steps
-      instead of local Docker/ACR; the default build path stays unchanged.
-
-    \b
-    Related commands:
-      abx list                 List existing sandboxes
-      abx info SANDBOX_ID      Inspect a created sandbox
-      abx template scaffold DIR    Scaffold a new template project (local)
-      abx template scaffold --prompt "DESC" Generate a template only (no build)
-      abx template search KEY  Find reusable templates
-      abx config init          Set credentials and region
+const CREATE_HELP = `Create one Sandbox from an already registered Provider template.
+    This internal service is used by abx deploy --template-id. Source authoring
+    and generation belong to abx template init.
     `;
 
 const LIST_HELP = `List sandboxes, optionally filtered by lifecycle status.
@@ -145,23 +101,23 @@ const LIST_HELP = `List sandboxes, optionally filtered by lifecycle status.
 
     \b
     Related commands:
-      abx info SANDBOX_ID  Show one sandbox in detail
-      abx create           Create a new sandbox
-      abx kill SANDBOX_ID  Destroy a sandbox
+      abx status SANDBOX_ID  Show one sandbox in detail
+      abx deploy --template-id base --yes   Create a sandbox
+      abx delete SANDBOX_ID  Destroy a sandbox
     `;
 
 const INFO_HELP = `Show status, template, region, timeout, and URL for a sandbox.
 
     \b
     Examples:
-      abx info abc123
+      abx status abc123
       abx --json info abc123
 
     \b
     Related commands:
       abx list                  Find sandbox IDs
       abx sandbox capabilities  Show declared capability groups
-      abx exec SANDBOX_ID -- CMD  Run a command in the sandbox
+      abx sandbox exec SANDBOX_ID -- CMD  Run a command in the sandbox
     `;
 
 const KILL_HELP = `Permanently destroy one sandbox or all running sandboxes.
@@ -171,105 +127,80 @@ const KILL_HELP = `Permanently destroy one sandbox or all running sandboxes.
 
     \b
     Examples:
-      abx kill abc123
-      abx kill abc123 --yes
-      abx kill --all --yes
-      abx kill --all --yes --region cn-shanghai
+      abx delete abc123
+      abx delete abc123 --yes
+      abx delete --all --yes
+      abx delete --all --yes --region cn-shanghai
 
     \b
     Related commands:
       abx list              Find running sandbox IDs
-      abx info SANDBOX_ID   Verify a sandbox before deletion
-      abx create            Create a replacement sandbox
+      abx status SANDBOX_ID   Verify a sandbox before deletion
+      abx deploy --template-id base --yes   Create a replacement sandbox
     `;
 
-const EXEC_HELP = `Run a command in a sandbox.
+const EXEC_HELP = `Run a command in a sandbox and preserve its exit code.
 
-    'abx exec' is the shortcut of 'abx sandbox exec'.
+    Everything after the sandbox ID is passed through to the remote command.
+    Put abx options before the ID. A single quoted argument is a shell command
+    line; several arguments are shell-quoted individually.
 
-    Put the command after \`\`--\`\`: it is run exactly as given (no shell).
-    A single quoted argument is read as a command line, so pipes and
-    redirects work; use \`\`sh -c '...'\`\` for variable expansion.
+    Express forwards piped stdin and EOF when supported by the sandbox.
+    --background prints the process ID and returns; --json returns structured
+    stdout, stderr and exit_code without mixing terminal output into JSON.
 
-    By default the command runs to completion and abx exits with its remote
-    exit code. \`\`--stream\`\` prints stdout/stderr live while it runs;
-    \`\`--background\`\` starts it, prints the pid and returns at once.
-
-    \b
     Examples:
-      abx exec abc123 -- python --version
-      abx exec abc123 --cwd /app --timeout 300 -- pytest -q
-      abx exec abc123 --env DEBUG=1 -- python app.py
-      abx exec abc123 --stream -- pip install numpy
-      abx exec abc123 --background -- python -m http.server 8000
-      abx exec abc123 "ls /app | wc -l"
-      abx --json exec abc123 -- echo ready
-
-    \b
-    Related commands:
-      abx connect SANDBOX_ID                  Open the command REPL
-      abx sandbox process list SANDBOX_ID     Find a background process
-      abx run SANDBOX_ID NAME                 Run a named command registered in the sandbox
+      abx sandbox exec abc123 python --version
+      abx sandbox exec --cwd /app --timeout 300 abc123 pytest -q
+      abx sandbox exec --env DEBUG=1 abc123 python app.py
+      abx sandbox exec --background abc123 python -m http.server 8000
+      abx --json sandbox exec abc123 echo ready
     `;
 
-const CONNECT_HELP = `Open an interactive command REPL for a sandbox.
+const CONNECT_HELP = `Open an interactive sandbox terminal.
 
-    'abx connect' is the shortcut of 'abx sandbox connect'.
+    Express uses a PTY: shell state, terminal resizing and control characters
+    are preserved. Other Providers use the existing line-based command REPL;
+    each line runs in its own process. Use sandbox exec for automation.
 
-    This is a line-based REPL, not a PTY: every line you enter runs in a new
-    process with a 30-second timeout, so \`\`cd\`\`, environment variables and
-    aliases do not survive between lines (use \`\`cd /path && <cmd>\`\` on one
-    line, or \`\`abx exec --cwd\`\`, instead).
-
-    On interactive terminals basic line editing and command history are
-    enabled (Up/Down history, Ctrl+R search, Ctrl+A/E and friends).  Type
-    \`\`exit\`\`/\`\`quit\`\` or press Ctrl+D to leave; Ctrl+C also disconnects.
-    Failed commands are reported as one friendly message - never as raw
-    HTTP errors.
-
-    \b
     Examples:
-      abx connect abc123
-
-    \b
-    Related commands:
-      abx exec SANDBOX_ID -- CMD  Run one command with a custom timeout
-      abx info SANDBOX_ID         Inspect connection details
+      abx sandbox connect abc123
+      abx sandbox connect --cwd /app --user root abc123
     `;
 
 const UPLOAD_HELP = `Upload a local file or directory to the sandbox.
 
     Examples:
 
-        abx upload abc123 ./script.py /app/script.py
+        abx sandbox upload abc123 ./script.py /app/script.py
 
-        abx upload abc123 ./data/ /app/data/
+        abx sandbox upload abc123 ./data/ /app/data/
 
     \b
     Related commands:
-      abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH
+      abx sandbox download SANDBOX_ID REMOTE_PATH LOCAL_PATH
       abx sandbox files list SANDBOX_ID --path /app
-      abx exec SANDBOX_ID -- CMD
+      abx sandbox exec SANDBOX_ID -- CMD
     `;
 
 const DOWNLOAD_HELP = `Download a file from the sandbox to local.
 
     Examples:
 
-        abx download abc123 /app/result.csv ./result.csv
+        abx sandbox download abc123 /app/result.csv ./result.csv
 
-        abx download abc123 /app/output.log .
+        abx sandbox download abc123 /app/output.log .
 
     \b
     Related commands:
-      abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
+      abx sandbox upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
       abx sandbox files stat SANDBOX_ID --path REMOTE_PATH
       abx sandbox files list SANDBOX_ID --path REMOTE_DIR
     `;
 
 const RUN_HELP = `Run a named command registered in the sandbox.
 
-    'abx run' is the shortcut of 'abx sandbox command run'.
+    This invokes a command registered by the sandbox application.
 
     Named commands are functions the template registers on the SandboxServer
     that runs inside the sandbox (\`\`POST /commands/NAME\`\`). List them with
@@ -283,16 +214,16 @@ const RUN_HELP = `Run a named command registered in the sandbox.
 
     \b
     Examples:
-      abx run abc123 build
-      abx run abc123 test --arg file=tests/
-      abx run abc123 add --json-args '{"x": 1, "y": 2}'
+      abx sandbox command run abc123 build
+      abx sandbox command run abc123 test --arg file=tests/
+      abx sandbox command run abc123 add --json-args '{"x": 1, "y": 2}'
       abx --json run abc123 greet --arg name=Ada
 
     \b
     Related commands:
       abx sandbox command list SANDBOX_ID   List the registered commands
-      abx exec SANDBOX_ID -- CMD            Run an arbitrary command
-      abx info SANDBOX_ID                   Inspect the target sandbox
+      abx sandbox exec SANDBOX_ID -- CMD            Run an arbitrary command
+      abx status SANDBOX_ID                   Inspect the target sandbox
     `;
 
 const COMMAND_GROUP_HELP = `List and run the named commands registered in a sandbox.
@@ -308,8 +239,8 @@ const COMMAND_GROUP_HELP = `List and run the named commands registered in a sand
 
     \b
     Related commands:
-      abx run SANDBOX_ID NAME    Shortcut for 'sandbox command run'
-      abx exec SANDBOX_ID -- CMD Run an arbitrary command
+      abx sandbox command run SANDBOX_ID NAME    Shortcut for 'sandbox command run'
+      abx sandbox exec SANDBOX_ID -- CMD Run an arbitrary command
     `;
 
 const COMMAND_LIST_HELP = `List the named commands registered in a sandbox.
@@ -324,28 +255,14 @@ const COMMAND_LIST_HELP = `List the named commands registered in a sandbox.
 
     \b
     Related commands:
-      abx run SANDBOX_ID NAME    Run one of them
+      abx sandbox command run SANDBOX_ID NAME    Run one of them
       abx sandbox capabilities SANDBOX_ID
     `;
 
-const SANDBOX_HELP = `Manage sandboxes: lifecycle, files, processes, named commands, system details.
+const SANDBOX_HELP = `Run commands and manage Sandbox files, processes and advanced lifecycle.
 
-    create, list, info, kill, exec, connect, upload and download are also
-    available as top-level shortcuts (abx create, abx list, ...), and
-    'sandbox command run' as 'abx run'.
-
-    \b
-    Examples:
-      abx sandbox create --template base
-      abx sandbox list --status running
-      abx sandbox system info abc123
-
-    \b
-    Related commands:
-      abx sandbox files --help    Inspect and modify remote files
-      abx sandbox process --help  Inspect and signal processes
-      abx sandbox command --help  Run commands registered in the sandbox
-      abx sandbox system --help   Inspect runtime system details
+    Arguments accept a deployment name, raw Sandbox ID or provider-qualified ID.
+    Use root deploy/list/status/logs/delete/recover for instance management.
     `;
 
 
@@ -381,7 +298,7 @@ export function _rollingNote(update: ((summary: string) => void) | null, limit: 
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// AI template generation helpers for `abx create --prompt "<description>"`
+// AI template generation helpers for `abx template init --prompt "<description>"`
 //
 // The pipeline talks to a pluggable coding-agent backend (see `agent/coding_agent.ts`); Qwen Code is the only shipped
 // backend today, so every default message stays byte-identical to the Qwen Code wording. Backend resolution, binary
@@ -690,8 +607,7 @@ export function _withModelHint(exc: unknown, creds: { asEnv(): Record<string, st
   const model = _modelInUse(creds);
   const suggestion =
     `The endpoint rejected model '${model}'. ` +
-    "Pass a model this key can call: abx create --prompt \"<description>\" --model <id> " +
-    "(or abx template scaffold --model <id>). " +
+    "Pass a model this key can call: abx template init --prompt \"<description>\" --model <id> " +
     "Persist it with: abx config set llm_model <id>. " +
     "ABX_LLM_MODEL and OPENAI_MODEL also work.";
   if (exc !== null && typeof exc === "object" && "suggestion" in exc) {
@@ -927,7 +843,7 @@ export function _validateProjectDirectory(chosen: string, opts: { force: boolean
 }
 
 /**
- * Ask where `abx template scaffold --prompt "DESCRIPTION"` should write the project.
+ * Ask where `abx template init --prompt "DESCRIPTION"` should write the project.
  *
  * Returns the chosen directory, or `null` to keep `./<name>/` (or `./<--name>/`). `--yes`, `--json`, and a
  * non-interactive terminal skip the prompt. Enter accepts the default. Nothing is created here.
@@ -948,7 +864,7 @@ export async function _promptProjectDirectory(
 /**
  * Generate a local template project and stop.
  *
- * Used by `abx template scaffold --prompt "DESCRIPTION"`. `ask_directory` prompts
+ * Used by `abx template init --prompt "DESCRIPTION"`. `ask_directory` prompts
  * for the project directory before generation.
  */
 export async function _generateLocalTemplate(
@@ -968,44 +884,6 @@ export async function _generateLocalTemplate(
   template._printInitSummary(getFormatter(ctx), getOutput(ctx), target, created, name || gen.templateName);
 }
 
-/**
- * Generate a template, then use the shared whole-template launch lifecycle.
- *
- * `output_dir` is `--dir`: the parent directory for the generated workspace (an interactive terminal is asked when it
- * is omitted).
- *
- * Returns creation presentation and the service receipt after one preparation/create/start.
- */
-export async function _generateAndLaunchTemplate(
-  ctx: Context,
-  description: string,
-  opts: { yes: boolean; verbose: boolean; output_dir?: string | null; model?: string | null; provider_options?: Record<string, unknown>; creationOptions?: Parameters<typeof executeTemplateLaunch>[2]; [key: string]: unknown },
-): Promise<TemplateLaunchResult> {
-  const extension = providerCliExtension();
-  if (!extension?.prepareProject) throw new ProviderFeatureNotSupportedError(providerView().effective, "templates.build");
-  // Prepare reusable application authentication before model work.
-  return withTemplateEnvironment(ctx, { ABX_SERVER_TOKEN: "" }, opts.creationOptions?.envs ?? {}, opts.yes, async environment => {
-  opts = { ...opts, creationOptions: { ...opts.creationOptions, envs: { ...environment } } };
-  const selected = providerView().effective;
-  return withGuidedConfiguration(ctx, { operation: "Generate and launch sandbox", provider: selected, yes: Boolean(ctx.params["yes"]),
-    requirements: selected === "alicloud-express" ? ["access_key_id", "access_key_secret"] : undefined,
-    validateProvider: selected !== "alicloud-express", overrides: { region: opts.provider_options?.["region"] ?? opts["region"] } }, async () => {
-    const gen = await _generateTemplateWorkspace(ctx, description, {
-      yes: opts.yes, output_dir: opts.output_dir ?? null, ask_output_dir: true, model: opts.model ?? null,
-      buildMode: (opts.provider_options?.["build"] ?? "auto") as BuildMode,
-      baseImage: extension.generationBaseImage?.(opts.provider_options ?? {}),
-    });
-    if (!opts.yes && (!canGuideConfiguration(ctx, false) || !sandboxSeams.stdinIsatty())) {
-      throw new UsageError("Confirmation required to build and deploy the generated template. Use --yes/-y to skip in non-interactive mode.");
-    }
-    return executeTemplateLaunch(ctx, {
-      template_ref: gen.workdir, yes: opts.yes, timeout: 600,
-      sandbox_timeout: opts.provider_options?.["cmd_timeout"] ?? 300,
-    }, opts.creationOptions);
-  });
-  });
-}
-
 /** Parse `KEY=VALUE` items; the first malformed item is reported through `onInvalid`, which exits. */
 function _parsePairs(items: readonly string[], onInvalid: (item: string) => never): Record<string, string> {
   const result: Record<string, string> = {};
@@ -1023,9 +901,7 @@ export const create = command("create", {
   help: CREATE_HELP,
   params: () => [
     argument(["template_name"], { required: false, default: null }),
-    option(["--prompt"], { default: null, help: "Generate a sandbox from a natural-language description. Mutually exclusive with a template." }),
-    option(["--detach", "-d"], { is_flag: true, help: "Return after creation without opening a terminal (already the default for --prompt). Does not replace --yes." }),
-    option(["--template", "-T"], { default: null, help: "Provider-native template reference (e.g. 'base'); Express uses a platform ID or already registered alias. Git Registry source uses template launch. " + "Defaults to 'base' when omitted. Cannot be combined with DESCRIPTION." }),
+    option(["--template", "-T"], { default: null, help: "Provider-native template ID or alias; defaults to base." }),
     option(["--upload", "-u"], { type: new Path({ exists: true }), default: null, help: "Local file or directory to upload after creation" }),
     option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: 300, help: "Sandbox lifetime in seconds (positive integer; default: 300)" }),
     option(["--request-timeout"], {
@@ -1039,35 +915,11 @@ export const create = command("create", {
     option(["--env", "-e"], { multiple: true, help: "Environment variable for the sandbox, format KEY=VALUE (repeatable)" }),
     option(["--metadata", "-m"], { multiple: true, help: "Metadata key-value pair, format KEY=VALUE (repeatable)" }),
     option(["--volume-mount"], { multiple: true, metavar: "PATH=NAME", help: "Mount an existing same-Team Volume by name at an absolute Unix path (Express only; repeatable)" }),
-    option(["--yes", "-y"], {
-      is_flag: true,
-      default: false,
-      help:
-        "Skip interactive prompts (the template-only switch, Qwen Code install, " +
-        "credentials, description clarification, build/deploy confirmation) and run " +
-        "the full create pipeline. Required for template generation in non-interactive shells.",
-    }),
-    option(["--model"], {
-      default: null,
-      help:
-        "Model id for the template generation step (for example qwen3-coder-plus). " +
-        "Overrides llm_model / ABX_LLM_MODEL / OPENAI_MODEL for this command. " +
-        "When the endpoint rejects the model, an interactive terminal offers coding and chat models with the arrow keys.",
-    }),
-    ...(providerCliExtension()?.createParams ?? []),
-    option(["--dir", "output_dir"], {
-      default: null,
-      metavar: "DIRECTORY",
-      help:
-        "Parent directory for the generated template files (Dockerfile, " +
-        "commands.py, template.yaml); a new <name>-<timestamp>-<id> subfolder is created inside it. " +
-        "Default: ~/.abx/generated (an interactive terminal is asked when omitted).",
-    }),
+    option(["--yes", "-y"], { is_flag: true, default: false, help: "Use configured credentials without interactive prompts" }),
     option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
   ],
   callback: handleErrors(async (ctx: Context, params) => {
-    const description: string | null = params["prompt"];
-    const template: string | null = params["template"] ?? params["template_name"] ?? (description ? null : "base");
+    const template: string = params["template"] ?? params["template_name"] ?? "base";
     const upload: string | null = params["upload"];
     const cmdTimeout: number = params["cmd_timeout"];
     const requestTimeout: number | null = params["request_timeout"];
@@ -1075,8 +927,6 @@ export const create = command("create", {
     const metadata: string[] = params["metadata"];
     const volumeMountPairs: string[] = params["volume_mount"];
     const yes: boolean = params["yes"];
-    const model: string | null = params["model"];
-    const outputDir: string | null = params["output_dir"];
     const verboseFlag: boolean = params["verbose_flag"];
 
     const mountEntries: Array<[string, string]> = [];
@@ -1098,22 +948,6 @@ export const create = command("create", {
 
     if (verboseFlag) enableVerbose(ctx);
 
-    // Routing guard: DESCRIPTION and --template are mutually exclusive. Accepting both while silently dropping one of them
-    // would be surprising, so reject the combination before any AI generation or network call.
-    if (description && template) {
-      throw new UsageError(
-        "DESCRIPTION and --template cannot be combined. Drop --template to " +
-          "generate a template from the description, or drop DESCRIPTION to " +
-          "launch an existing template directly.",
-      );
-    }
-
-    if (outputDir && !description) {
-      throw new UsageError(
-        "--dir only applies to template generation; pass a DESCRIPTION, " + "or drop --dir when launching an existing template.",
-      );
-    }
-
     const fmt = getFormatter(ctx);
 
     // Parse env vars from "KEY=VALUE" format
@@ -1130,36 +964,11 @@ export const create = command("create", {
 
     if (requestTimeout !== null && (!Number.isFinite(requestTimeout) || requestTimeout <= 0)) throw new ValueError(`request_timeout must be a positive number of seconds, got ${pyRepr(new PyFloat(requestTimeout))}`);
     const execute = async (): Promise<void> => {
-    if (description && !template) {
-      const launched = await _generateAndLaunchTemplate(ctx, description, {
-        yes, provider_options: params, verbose: verboseFlag, output_dir: outputDir, model,
-        creationOptions: {
-          envs, metadata: meta, volume_mounts: volumeMounts,
-          request_timeout: requestTimeout ?? Math.max(loadLayeredConfig().http_timeout, _CREATE_REQUEST_TIMEOUT_FLOOR),
-          afterCreate: async (sandbox) => {
-            if (!upload) return;
-            if (isFile(upload)) await sandbox.files.write(`/home/user/${nodePath.basename(upload)}`, fs.readFileSync(upload));
-            else for (const relative of rglobAll(upload)) {
-              const local = nodePath.join(upload, relative);
-              if (isFile(local)) await sandbox.files.write(`/home/user/${relative}`, fs.readFileSync(local));
-            }
-          },
-        },
-      });
-      const data = { ...launched.creation };
-      const out = getOutput(ctx);
-      if (!out.jsonMode) {
-        data["ID"] = printedId(providerView(String(data["provider"])), String(data["ID"]));
-        delete data["provider"];
-      }
-      out.data(data);
-      if (!out.jsonMode) out.success(`Sandbox ${data["ID"]} created successfully.`);
-      return;
-    }
     const effectiveTemplate = template || "base";
 
     // Build create kwargs
     const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout };
+    if (params["lifecycle"] !== undefined) createKwargs["lifecycle"] = params["lifecycle"];
     if (Object.keys(envs).length > 0) createKwargs["envs"] = envs;
     if (Object.keys(meta).length > 0) createKwargs["metadata"] = meta;
     if (mountEntries.length) createKwargs["volume_mounts"] = volumeMounts;
@@ -1177,7 +986,10 @@ export const create = command("create", {
     const out = getOutput(ctx);
 
     const runCreate = async (note: ((text: string) => void) | null): Promise<Sandbox> => {
+      if (params["_beforeCreate"]) createKwargs["metadata"] = { ...meta, ...await params["_beforeCreate"]() };
+      if (params["_onCreated"]) createKwargs["on_created"] = params["_onCreated"];
       const sbx = await Sandbox.create(createKwargs);
+      if (params["_onCreated"]) await params["_onCreated"](sbx.id);
       if (upload) {
         const remoteBase = "/home/user";
         if (isFile(upload)) {
@@ -1209,6 +1021,7 @@ export const create = command("create", {
       sandbox = await out.spinner("Creating sandbox", () => runCreate(null));
     }
 
+    if (params["_quietResult"]) { await sandbox.close(); return; }
     const createView = providerView(sandbox.provider);
     const data: Record<string, unknown> = {
       ID: sandbox.id,
@@ -1226,9 +1039,8 @@ export const create = command("create", {
     };
     const selectedProvider = getProvider(providerView().effective);
     selectedProvider.require("sandbox.lifecycle");
-    if (description) selectedProvider.require("templates.build");
-    return withGuidedConfiguration(ctx, { operation: "Generate, deploy and create sandbox", provider: selectedProvider.id, yes,
-      requirements: selectedProvider.id === "alicloud-express" ? ["sandbox_api_key", ...(description ? ["access_key_id", "access_key_secret"] : [])] : undefined,
+    return withGuidedConfiguration(ctx, { operation: "Create sandbox", provider: selectedProvider.id, yes,
+      requirements: selectedProvider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined,
       validateProvider: selectedProvider.id !== "alicloud-express", overrides: { region: params["region"] } }, execute);
   }),
 });
@@ -1334,7 +1146,7 @@ export const info = command("info", {
     const sandboxId: string = params["sandbox_id"];
     const fmt = getFormatter(ctx);
 
-    const sandbox = await Sandbox.connect(sandboxId);
+    const sandbox = await connectSandboxTarget(sandboxId);
     const sbInfo = sandbox.info;
     const infoView = providerView(sandbox.provider);
 
@@ -1387,7 +1199,7 @@ export const kill = command("kill", {
     const fmt = getFormatter(ctx);
 
     if (!killAll && !sandboxId) {
-      fmt.printError("Either provide a sandbox ID or use --all.", { suggestion: "Usage: abx kill <sandbox-id> or abx kill --all" });
+      fmt.printError("Either provide a sandbox ID or use --all.", { suggestion: "Usage: abx delete <sandbox-id> or abx delete --all" });
       sysExit(2);
     }
 
@@ -1460,27 +1272,31 @@ function _processResultData(result: { stdout: string; stderr: string; exit_code:
   };
 }
 
-/** The command line `abx exec` sends: one argument is a command line as typed, several are an exact argv. */
+/** The command line `abx sandbox exec` sends: one argument is a command line as typed, several are an exact argv. */
 export function _execCommandLine(argv: readonly string[]): string {
   return argv.length === 1 ? (argv[0] as string) : argv.map((a) => shlexQuote(a)).join(" ");
 }
 
 export const exec_cmd = command("exec", {
+  passThroughOptions: true,
   help: EXEC_HELP,
   params: [
     argument(["sandbox_id"]),
     argument(["command"], { nargs: -1, required: true }),
-    option(["--cwd"], { default: "", help: "Working directory (empty = container default)" }),
+    option(["--cwd", "-c"], { default: "", help: "Working directory (empty = container default)" }),
+    option(["--user", "-u"], { help: "Run as the specified sandbox user" }),
     option(["--env", "-e"], { multiple: true, help: "Environment variable for the command, format KEY=VALUE (repeatable)" }),
-    option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: 60, help: "Command timeout in seconds (positive integer; default: 60)" }),
-    option(["--background"], { is_flag: true, help: "Start the command, print its pid and return without waiting" }),
+    option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: null, help: "Command deadline in seconds (Express: no deadline; other Providers: 60s)" }),
+    option(["--background"], { is_flag: true, help: "Start the command, print its pid after piped stdin reaches EOF; do not wait for remote completion" }),
     option(["--stream"], { is_flag: true, help: "Print stdout/stderr live while the command runs" }),
     option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
   ],
   callback: handleErrors(async (ctx: Context, params) => {
     const sandboxId: string = params["sandbox_id"];
-    const argv: string[] = params["command"];
-    const cmdTimeout: number = params["cmd_timeout"];
+    const words: string[] = params["command"];
+    const argv = words[0] === "--" ? words.slice(1) : words;
+    const cmdTimeout: number = params["cmd_timeout"] ?? (isExpressReference(sandboxId) ? 0 : 60);
+    if (!Number.isFinite(cmdTimeout) || cmdTimeout < 0 || cmdTimeout > 2147483) throw new UsageError("--timeout must be between 0 and 2147483 seconds; 0 means no command deadline.");
     const cwd: string = params["cwd"];
     const background: boolean = params["background"];
     const stream: boolean = params["stream"];
@@ -1498,7 +1314,21 @@ export const exec_cmd = command("exec", {
     const env = Object.keys(envs).length > 0 ? envs : null;
     const commandLine = _execCommandLine(argv);
 
-    const sandbox = await Sandbox.connect(sandboxId);
+    if (isExpressReference(sandboxId)) {
+      const native = await connectNative(ctx, sandboxId);
+      const { execute } = await import("../../standard_cli/session.js");
+      let stdout = "", stderr = "";
+      const result = await execute(native, commandLine, {
+        cwd: cwd || undefined, user: params["user"] ?? undefined, envs: env ?? undefined, timeoutMs: cmdTimeout * 1000, background,
+        onStdout: data => { if (fmt.use_json) stdout += data; else echo(data, { nl: false }); },
+        onStderr: data => { if (fmt.use_json) stderr += data; else echo(data, { err: true, nl: false }); },
+      });
+      if (background) { if (fmt.use_json) fmt.printData({ pid: result.pid }); else echo(String(result.pid)); }
+      else if (fmt.use_json) fmt.printData({ stdout, stderr, exit_code: result.exitCode });
+      sysExit(result.exitCode);
+    }
+    if (params["user"]) throw new UsageError("--user is supported by the alicloud-express protocol executor.");
+    const sandbox = await connectSandboxTarget(sandboxId);
 
     if (background) {
       let pid: number | string | null = null;
@@ -1557,11 +1387,18 @@ export const exec_cmd = command("exec", {
 
 export const connect = command("connect", {
   help: CONNECT_HELP,
-  params: [argument(["sandbox_id"])],
+  params: [argument(["sandbox_id"]), option(["--user", "-u"]), option(["--cwd", "-c"]), option(["--env", "-e"], { multiple: true })],
   callback: handleErrors(async (ctx: Context, params) => {
     const sandboxId: string = params["sandbox_id"];
-
-    const sandbox = await Sandbox.connect(sandboxId);
+    if (isExpressReference(sandboxId)) {
+      if (getFormatter(ctx).use_json) throw new UsageError("Interactive terminal output cannot use --json. Use sandbox exec.");
+      const envs = _parsePairs(params["env"], item => { throw new UsageError(`Invalid --env ${item}; expected KEY=VALUE.`); });
+      const native = await connectNative(ctx, sandboxId);
+      const { connectTerminal } = await import("../../standard_cli/session.js");
+      sysExit(await connectTerminal(native, { user: params["user"] ?? undefined, cwd: params["cwd"] ?? undefined, envs }));
+    }
+    if (params["user"] || params["cwd"] || params["env"].length) throw new UsageError("--user, --cwd and --env require the Express interactive terminal.");
+    const sandbox = await connectSandboxTarget(sandboxId);
     const out = getOutput(ctx);
     out.success(`Connected to sandbox ${sandboxId}`);
     out.info("Type 'exit' or Ctrl+D to disconnect");
@@ -1650,7 +1487,7 @@ export const upload = command("upload", {
     const out = getOutput(ctx);
 
     const runUpload = async (note: (text: string) => void): Promise<string> => {
-      const sandbox = await Sandbox.connect(sandboxId);
+      const sandbox = await connectSandboxTarget(sandboxId);
 
       if (isFile(localPath)) {
         await sandbox.files.write(remotePath, fs.readFileSync(localPath));
@@ -1704,7 +1541,7 @@ export const download = command("download", {
     const out = getOutput(ctx);
 
     const content = await out.spinner(`Downloading ${remotePath}`, async () => {
-      const sandbox = await Sandbox.connect(sandboxId);
+      const sandbox = await connectSandboxTarget(sandboxId);
       return sandbox.files.readBytes(remotePath);
     });
 
@@ -1793,7 +1630,7 @@ export const run_cmd = command("run", {
     const fmt = getFormatter(ctx);
     const kwargs = _commandArguments(params["args"], params["json_args"], fmt);
 
-    const sandbox = await Sandbox.connect(sandboxId);
+    const sandbox = await connectSandboxTarget(sandboxId);
     let result: CommandResult;
     try {
       result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: applicationToken() });
@@ -1825,7 +1662,7 @@ export const command_list = command("list", {
   callback: handleErrors(async (ctx: Context, params) => {
     const sandboxId: string = params["sandbox_id"];
     const fmt = getFormatter(ctx);
-    const sandbox = await Sandbox.connect(sandboxId);
+    const sandbox = await connectSandboxTarget(sandboxId);
     const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: applicationToken() });
 
     if (fmt.use_json) {
@@ -1864,10 +1701,6 @@ export const sandbox = group("sandbox", {
   },
 });
 
-sandbox.addCommand(create);
-sandbox.addCommand(list_cmd, "list");
-sandbox.addCommand(info);
-sandbox.addCommand(kill);
 sandbox.addCommand(exec_cmd, "exec");
 sandbox.addCommand(connect);
 sandbox.addCommand(upload);
@@ -1878,3 +1711,5 @@ sandbox.addCommand(files, "files");
 sandbox.addCommand(process_, "process");
 sandbox.addCommand(command_group, "command");
 sandbox.addCommand(system, "system");
+
+for (const operation of [pause, resume, metrics, snapshot, fork, network]) sandbox.addCommand(operation);

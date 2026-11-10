@@ -11,16 +11,17 @@ export const CLI_ROOT = join(E2E_DIR, '..');
 /** Variables forwarded to the binary under test (credentials + endpoints). */
 export const CRED_KEYS = [
   'E2B_API_KEY', 'E2B_API_URL', 'E2B_DOMAIN',
+  'ABX_SANDBOX_API_KEY', 'ABX_SANDBOX_BASE_URL', 'ABX_SANDBOX_DOMAIN',
   'ACR_NAMESPACE',
   'ABX_LLM_API_KEY', 'ABX_LLM_BASE_URL',
   'ALICLOUD_ACCESS_KEY_ID', 'ALICLOUD_ACCESS_KEY_SECRET',
   'ALIBABA_CLOUD_REGION_ID',
 ];
 const SECRET_KEYS = new Set([
-  'E2B_API_KEY', 'ABX_LLM_API_KEY',
+  'E2B_API_KEY', 'ABX_SANDBOX_API_KEY', 'ABX_LLM_API_KEY',
   'ALICLOUD_ACCESS_KEY_ID', 'ALICLOUD_ACCESS_KEY_SECRET', 'ACR_NAMESPACE',
 ]);
-const HOST_KEYS = new Set(['E2B_API_URL', 'E2B_DOMAIN', 'ABX_LLM_BASE_URL']);
+const HOST_KEYS = new Set(['E2B_API_URL', 'E2B_DOMAIN', 'ABX_SANDBOX_BASE_URL', 'ABX_SANDBOX_DOMAIN', 'ABX_LLM_BASE_URL']);
 
 export function parseDotenv(text) {
   const out = {};
@@ -46,15 +47,21 @@ export function loadCredentials() {
     const v = process.env[k] ?? fromFile[k];
     if (v) creds[k] = v;
   }
+  // Test fixtures also call the SDK directly. Explicitly bridge their historical
+  // E2B credential names here; the product CLI accepts the canonical ABX names.
+  for (const [canonical, fixture] of [['ABX_SANDBOX_API_KEY', 'E2B_API_KEY'], ['ABX_SANDBOX_BASE_URL', 'E2B_API_URL'], ['ABX_SANDBOX_DOMAIN', 'E2B_DOMAIN']]) {
+    if (!creds[canonical] && creds[fixture]) creds[canonical] = creds[fixture];
+    if (!creds[fixture] && creds[canonical]) creds[fixture] = creds[canonical];
+  }
   return creds;
 }
 
 export function hasCloudCredentials(creds) {
-  return Boolean(creds.E2B_API_KEY && (creds.E2B_API_URL || creds.E2B_DOMAIN));
+  return Boolean((creds.ABX_SANDBOX_API_KEY || creds.E2B_API_KEY) && (creds.ABX_SANDBOX_BASE_URL || creds.E2B_API_URL || creds.ABX_SANDBOX_DOMAIN || creds.E2B_DOMAIN));
 }
 
 export function missingCloudCredentials(creds) {
-  return ['E2B_API_KEY', 'E2B_API_URL'].filter((k) => !creds[k]);
+  return [!(creds.ABX_SANDBOX_API_KEY || creds.E2B_API_KEY) && 'ABX_SANDBOX_API_KEY', !(creds.ABX_SANDBOX_BASE_URL || creds.E2B_API_URL || creds.ABX_SANDBOX_DOMAIN || creds.E2B_DOMAIN) && 'ABX_SANDBOX_BASE_URL'].filter(Boolean);
 }
 
 /** Build a masker that replaces every secret / host value (and short derived forms). */

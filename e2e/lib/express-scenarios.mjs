@@ -27,12 +27,12 @@ export function isExpressSandboxId(value) {
   return typeof value === 'string' && /^sbx-[A-Za-z0-9_-]+$/.test(value) && value !== 'sbx-XXXXX';
 }
 
-/** Record the unnormalised detached-create identity before any further assertion. */
+/** Record the unnormalised deployment identity before any further assertion. */
 export function trackDetachedCreate(ctx, result, attempt) {
-  const id = result.maskedStdout.trim();
+  const id = result.rawJson?.()?.sandbox_id;
   if (isExpressSandboxId(id)) { ctx.track(id); if (attempt) ctx.resolveCreateAttempt(attempt); }
   if (result.code !== 0) ctx.fail(`create exit ${result.code}\n${result.out}`);
-  if (!isExpressSandboxId(id)) ctx.fail('detached create did not return one real Express sandbox ID');
+  if (!isExpressSandboxId(id)) ctx.fail('deploy did not return one real Express sandbox ID');
   return id;
 }
 

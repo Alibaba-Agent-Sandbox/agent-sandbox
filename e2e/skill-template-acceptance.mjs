@@ -44,7 +44,7 @@ const check = (name, passed, details = {}) => {
   assert.ok(passed, name);
 };
 const request = (argv) => runBinary({ bin: parseBin(process.env.ABX_BIN || `${process.execPath} ${resolve("dist/bin/abx.js")}`),
-  argv, env: { ...process.env, ...credentials, ABX_PROVIDER_UPDATE_CHECK: "0" }, cwd: root, timeoutMs: 180_000 });
+  argv, env: { ...process.env, ...credentials, ABX_SANDBOX_API_KEY: credentials.E2B_API_KEY, ABX_SANDBOX_BASE_URL: credentials.E2B_API_URL, ABX_SANDBOX_DOMAIN: credentials.E2B_DOMAIN, ABX_PROVIDER_UPDATE_CHECK: "0" }, cwd: root, timeoutMs: 180_000 });
 const platform = async (path, init = {}) => fetch(credentials.E2B_API_URL.replace(/\/$/, "") + path, {
   ...init, headers: { "X-API-Key": credentials.E2B_API_KEY, ...init.headers }, signal: AbortSignal.timeout(30_000), redirect: "error",
 });
@@ -67,10 +67,14 @@ try {
     writeFileSync(join(directory, "template.yaml"), lines.join("\n") + "\n");
     assert.ok(!(await inventory()).some(t => t.name === name), "Unique owned template already exists");
     const owned = { version, name, submitted: true }; report.templates.push(owned); save();
-    const deployed = await request(["--native", "--json", "template", "deploy", directory, "--build", "steps", "--yes", "--alias", name, "--team-id", options.team_id]);
-    if (deployed.code !== 0) throw new Error(`CLI deployment failed (exit ${deployed.code}); inspect the sanitized CLI diagnostic separately`);
-    const result = JSON.parse(deployed.stdout); owned.id = result.TemplateID; save();
-    check(`register-${version}`, typeof owned.id === "string" && result["Build mode"] === "steps");
+    const payload = { name, image: config.image, generation: 2, cpu: 2, memory: 2048,
+      envd_inject: false, steps: [{ type: "RUN", args: [command, "root"] }],
+      ...(config.startCommand ? { start_command: config.startCommand } : {}),
+      ...(config.readyCommand ? { ready_command: config.readyCommand } : {}), team_id: options.team_id };
+    const deployed = await request(["--json", "provider", "run", "template.create", "--input", JSON.stringify(payload), "--yes"]);
+    if (deployed.code !== 0) throw new Error(`CLI registration failed (exit ${deployed.code}); inspect the sanitized CLI diagnostic separately`);
+    const result = JSON.parse(deployed.stdout); owned.id = result.template?.templateID; save();
+    check(`register-${version}`, typeof owned.id === "string");
     if (version === "bad") {
       let diagnosed = false;
       try { await fc.waitForTemplateReady(owned.id, { ...options, timeout: 480, poll_interval: 3 }); }
@@ -88,9 +92,9 @@ try {
   for (const version of ["v1", "v2", "v1"]) {
     const template = report.templates.find(t => t.version === version);
     const owned = { version, template_id: template.id, submitted: true }; report.sandboxes.push(owned); save();
-    const created = await request(["--native", "--json", "create", template.id, "--timeout", "180", "--metadata", `skills_accept_run=${run}`]);
+    const created = await request(["--json", "deploy", "--template-id", template.id, "--sandbox-timeout", "180", "--metadata", `skills_accept_run=${run}`, "--yes"]);
     assert.equal(created.code, 0, "Native CLI create failed; source must be a valid spec-5 manifest");
-    owned.id = JSON.parse(created.stdout).ID; assert.ok(typeof owned.id === "string"); save();
+    owned.id = JSON.parse(created.stdout).sandbox_id; assert.ok(typeof owned.id === "string"); save();
     const execution = await request(["sandbox", "exec", owned.id, "sh", "-c", "cat /opt/abx-acceptance/version; printf '\\n'; cat /opt/abx-acceptance/business.json"]);
     const lines = execution.stdout.trim().split("\n");
     check(`business-artifact-${version}`, execution.code === 0 && lines[0] === version && JSON.parse(lines[1]).result === 385,

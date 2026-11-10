@@ -39,15 +39,15 @@ describe("TestLazyGroup", () => {
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
     // All lazy commands should appear in help
-    for (const cmd of ["create", "list", "info", "kill", "exec", "connect", "config", "template", "mcp", "provider", "run", "deploy"]) {
+    for (const cmd of ["deploy", "list", "status", "delete", "logs", "recover", "sandbox", "config", "template", "mcp", "provider"]) {
       expect(result.output).toContain(cmd);
     }
   });
 
   it("test_lazy_subcommand_loads_on_demand", async () => {
-    const cmd = await cli.getCommand("create");
+    const cmd = await cli.getCommand("deploy");
     expect(cmd).not.toBeNull();
-    expect(cmd!.name).toBe("create");
+    expect(cmd!.name).toBe("deploy");
   });
 
   it("test_lazy_lookup_returns_null_for_unknown", async () => {
@@ -112,7 +112,7 @@ describe("TestTopLevelInitRemoved", () => {
 
   it("test_invoking_init_without_case_requires_explicit_choice", async () => {
     // Non-TTY (CliRunner) never blocks: an explicit case or --from is required.
-    const result = await runner().invoke(cli, ["template", "scaffold"]);
+    const result = await runner().invoke(cli, ["template", "init"]);
     // A UsageError raised inside a callback keeps click's usage exit code (2), like a parse error.
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
@@ -120,7 +120,7 @@ describe("TestTopLevelInitRemoved", () => {
   });
 
   it("test_init_help_shows_scaffold_help", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "--help"]);
+    const result = await runner().invoke(cli, ["template", "init", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Scaffold a new sandbox template project");
   });
@@ -130,8 +130,8 @@ describe("TestTopLevelInitRemoved", () => {
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("abx config init");
-    expect(result.output).toContain("abx create base");
-    expect(result.output).toContain("abx template scaffold --template python");
+    expect(result.output).toContain("abx deploy python-hello --name demo");
+    expect(result.output).toContain("abx template init ./my-template --from python-hello");
   });
 
   // BLOCKED-ON: cli/commands/config_cmd (init)
@@ -143,7 +143,7 @@ describe("TestTopLevelInitRemoved", () => {
 
   // BLOCKED-ON: cli/commands/template (init)
   it.skipIf(!commandModuleExists("template"))("test_template_init_still_exists_with_scaffold_help", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "--help"]);
+    const result = await runner().invoke(cli, ["template", "init", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Scaffold a new sandbox template project");
   });

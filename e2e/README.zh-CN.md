@@ -1,30 +1,29 @@
 # abx 黑盒 E2E 测试套件
 
-使用 `ABX_BIN=<candidate> node e2e/managed-api-key.mjs`，配置 AK/SK 和极速版 API URL/domain，验证全新用户目录中的拒绝授权、显式 `--ci` 准备、私有缓存跨进程复用、真实沙箱执行和续期确认。测试创建自己的 Key 与沙箱，停用/删除 Key，并核验两类资源已不存在。清理身份额外需要 `sandbox:DeleteApiKey`，见[权限指南](../docs/zh/guide/permissions.md)。
+使用 `ABX_BIN=<candidate> node e2e/managed-api-key.mjs`，配置 AK/SK 和极速版 API URL/domain，验证全新用户目录中的拒绝授权、显式授权准备管理 Key（使用 `--yes`；`--ci` 本身不授权）、私有缓存跨进程复用、真实沙箱执行和续期确认。测试创建自己的 Key 与沙箱，停用/删除 Key，并核验两类资源已不存在。清理身份额外需要 `sandbox:DeleteApiKey`，见[权限指南](../docs/zh/guide/permissions.md)。
 
 使用 `ABX_BIN=<binary> node e2e/template-build-failure.mjs` 和本机 Docker 验证真实构建失败、E7020、诊断脱敏及未提交云端资源。该用例仅使用占位凭证，不创建云资源。
 
 
 运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs --application` 可验证自动配置应用认证和后续命令自动复用。该模式使用已有 `python-hello` 模板（可用 `ABX_ONBOARDING_APPLICATION_TEMPLATE` 指定 ID），启动服务后调用真实认证命令，并独立核验本次沙箱的删除结果。改用 `--guided-application` 可先隐藏输入 Sandbox API Key，确认无需保存范围菜单即默认保存，并由新进程复用平台和应用凭据。
 
-运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs`，验证全新用户目录中初始化、模板搜索选择、计费确认、真实极速版创建、远程执行和 HTTP 404 独立清理核验；同时检查隐藏输入及自动保存的应用令牌。所需凭证和终端支持与交互配置用例相同。
+运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs`，在全新用户目录中用本地 managed base 源码执行 `deploy --name guided-init`，验证计费确认、缺少密钥引导、真实极速版创建、远程执行和 HTTP 404 独立清理核验；同时检查隐藏输入及自动保存的应用令牌。所需凭证和终端支持与交互配置用例相同。
 
 与语言无关的 `abx` CLI 黑盒端到端套件。它像真实用户一样启动被测二进制(argv、环境变量、stdin、退出码、
 stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定要测的 `abx` 二进制。
 
 > English version: [README.md](README.md).
 
-## 标准 E2B 迁移契约
+## 协议生命周期验证
 
 使用 `ABX_BIN=<独立可执行文件> npm run e2e:standard`，通过环境变量或被忽略的
 .env 配置 E2B_API_KEY、E2B_API_URL/E2B_DOMAIN。这个专项测试使用真实极速版后端和
-本地 PTY（Linux/macOS，需 Python 3），覆盖后台及交互创建、stdout/远程退出码、
-模板 JSON 列表、持续 shell 状态、connect 所有权、自动到期与清理。它不会调用外部
-E2B CLI。平台会把退出终端后的一秒超时请求取整到约 60 秒，测试会等待这一已知异步
-回收过程。错误在输出前脱敏。
+本地 PTY（Linux/macOS，需 Python 3），覆盖具名 deploy、stdout 与非零远程退出码、
+`sandbox connect` 的持续 shell、断开后借用沙箱仍存活，以及显式 delete 和独立 HTTP 404
+清理检查。不再测试已删除的 create 自动连接或退出终端时改写租期行为，错误在输出前脱敏。
 
 使用 `ABX_BIN=<独立可执行文件> node e2e/guided-configuration.mjs`，验证真实终端中的
-缺少密钥引导、隐藏输入、临时配置、创建和远程执行。通过环境变量提供 Sandbox API Key
+普通 deploy 触发的缺少密钥引导、隐藏输入、独立用户目录内持久保存、创建和远程执行。通过环境变量提供 Sandbox API Key
 及明确的 API URL/domain。测试先从子进程环境移除密钥，再通过提示输入，使用独立的
 用户目录；结束时删除自己创建的沙箱，并通过独立 HTTP 404 查询确认清理。需 Linux/macOS
 和 Python 3，会创建一个真实沙箱。
@@ -42,7 +41,9 @@ E2B CLI。平台会把退出终端后的一秒超时请求取整到约 60 秒，
 提交不会重放。若无法确认清理，测试失败，并保留权限为 0600、仅记录本次资源引用的
 临时恢复文件；该文件不存储凭证。
 
-常规 runner 已包含 standard-contract 和项目扩展场景。旧的参数与终端假设已调整：exec 本地参数放在 ID 前，仅在场景提供输入时连接 stdin 管道，清理使用标准 kill/list，命令遍历识别标准别名与内嵌扩展帮助。标准 template init 生成 SDK 文件，项目 template.yaml 工作流使用 template scaffold。专项通过不代表完整 CI 矩阵通过。
+常规 runner 使用当前源码中的统一 CLI：deploy 与具名生命周期命令，运行操作归入 sandbox。
+exec 的本地选项放在沙箱 ID 前，用 `--` 分隔远程 argv。命令遍历检查每个帮助节点和安全的
+本地调用。template init 生成源码，template build 准备可复用产物。专项通过不代表完整 CI 矩阵通过。
 
 ## 快速开始
 
@@ -71,20 +72,24 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 | 隔离 | 每个套件/场景使用系统临时目录下全新的 `HOME`(及 cwd),`XDG_CONFIG_HOME` 位于其中;不读写真实 home 或仓库。仅继承 `PATH`、locale、代理/CA 变量。 |
 | CI 自动模式 | 不转发 `CI`、`GITHUB_ACTIONS` 等变量,避免 CLI 悄悄切换到 `--json/--quiet`;需要时由场景显式设置 `CI=true`。 |
 | 密钥 | 来自环境变量 / `cli/.env`,只传给子进程。捕获的每个字节在存储、打印、比较前都会脱敏(`<SECRET>`、`<HOST>`、`<DOMAIN>`,以及 `abc***xyz` 形式的部分脱敏值)。报告不含任何凭据。 |
-| 清理 | 运行创建的每个沙箱都会被追踪,在 `finally`/信号处理中销毁,并在确认删除前记录于 `e2e/.state/run-<id>.json`。内置的 `leak-check` 场景最后会列出账号下沙箱,若仍有被追踪的沙箱则失败。默认从不使用 `kill --all`。 |
+| 清理 | 运行创建的每个沙箱都会被追踪,在 `finally`/信号处理中销毁,并在确认删除前记录于 `e2e/.state/run-<id>.json`。内置的 `leak-check` 场景最后会列出账号下沙箱,若仍有被追踪的沙箱则失败。默认从不使用 账号范围删除。 |
 | 确定性 | 输出会被规范化(沙箱 ID、时间戳、耗时、容器 ID、临时路径、uptime);平台不保证顺序处注意使用与顺序无关的匹配;仅对已知最终一致的操作重试,按场景声明(`retries`、`ctx.eventually`),并在需要时于报告中标注。 |
 | 跳过 | 无法运行的套件/场景会以 `SKIP` 及确切原因报告(缺少凭据、GitHub 索引不可达、Docker 需主动开启等),绝不静默变绿。 |
 
 ## 云端命令合同
 
-`cloud-readonly` 和 `cloud-lifecycle` 使用标准 detached create、list/info JSON
-（`--format json`）、状态过滤（`--state`）和 kill 合同。项目 JSON exec、quiet/CI
-输出及创建时 env/上传检查使用显式 `--native` 入口。测试将同一选定账户分别通过标准
-`E2B_*` 与项目规范 `ABX_SANDBOX_*` 设置传入，负例凭据覆盖同时作用于两者。
-这只是测试配置，不是产品兼容别名。创建操作不自动重放，提交前先持久化未决意图；获得真实 ID 后立即登记，明确的模板不存在拒绝
-可以不产生 ID 地解除意图。超时或含糊结果保留未决意图，并使最终检查失败。kill 确认本身
-不能证明资源消失，只有有效的标准清单可以确认缺席。runner 与 `cleanup.mjs --yes` 都会
-保留未决创建和未确认 ID，并记录部分清理进度。
+`cloud-readonly` 和 `cloud-lifecycle` 使用 `deploy --template-id`、根级
+`list/status/delete` 与 `sandbox exec`/文件/进程/应用命令。JSON 清单为
+`{items, partial, errors}`，部署结果包含 `name` 和 `sandbox_id`。原生模板 CRUD
+通过 `provider run template.list/get/create/delete` 与 JSON 输入调用，需要已有云 AK/SK；
+Sandbox API Key 是另一类凭据。测试层显式将旧 E2B 变量映射为 ABX 名称，并保留负向凭据覆盖。
+
+创建操作不自动重放。提交前保存未决意图，收到 ID 后立即追踪；仅明确拒绝才解除无 ID 的意图。
+删除确认不足以证明资源不存在，必须同时取得完整清单与精确 ID 的 typed NotFound。
+结果不确定时保留账本和私有工作目录，以便继续按名称 recover。Docker 场景使用 template build
+和具名 deploy；构建产物保留到原生模板不存在及产物清理均得到确认。没有 Docker 时明确跳过，
+不计为验收通过。
+
 
 具名命令检查要求选定的已部署 `python-hello` 模板实现应用协议 v2 和文档中的 `hello`
 命令。未设置 `ABX_E2E_APP_START_COMMAND` 时，要求服务已经启动。对裸 managed 沙箱上的
@@ -123,12 +128,12 @@ metrics 和 pip 包清单使用现行结构化 JSON 合同。原生模板 info �
 
 | 套件 | 依赖 | 内容 |
 |---|---|---|
-| `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、固定的顶层命令集（已移除的写法退出码 2）、向临时 HOME 写入 MCP `install/status/stop`、`template scaffold`、本地 `template search --index-url` |
-| `standard-contract` | 云端 + Python 3/本地 PTY | 固定 E2B 生命周期、远程退出码、真实 PTY/connect 所有权、自动到期及清理 |
-| `cloud-readonly` | 云端 | 标准认证与列表、显式原生错误信封、官方真实 TemplateID 回读与精确不存在诊断、`config list` 密钥脱敏 |
-| `cloud-lifecycle` | 云端 | `create` → `list` → `info` → `exec`(退出码透传、`--cwd`、显式 native JSON/quiet/CI、标准 `CI=true`、不支持的超时选项拒绝)→ `upload`/`download`(二进制往返)→ 后台/流式执行/命令 env → `sandbox files/process/system/capabilities` → `sandbox command list` / `run` 具名命令 → 创建时注入 env/上传 → `kill` |
-| `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template install --download-only` |
-| `docker-deploy` | 云端 + Docker,需主动开启 | `template scaffold` → `template deploy`(docker build、ACR push、CreateTemplate)→ `create` → `exec` → `template delete` |
+| `offline` | 无 | `--version`、各命令组 `--help`、用法错误(退出码 2)、缺少凭据(退出码 3,`E1001`)、`config get/set/list/delete/init`、固定的顶层命令集（已移除的写法退出码 2）、向临时 HOME 写入 MCP `install/status/stop`、`template init`、本地 `template search --index-url` |
+| `standard-contract` | 云端 + Python 3/本地 PTY | 命名部署、远程退出码、真实 PTY/connect 所有权及显式删除 |
+| `cloud-readonly` | 云端 | 统一认证与列表、typed 错误信封、官方真实 TemplateID 回读与精确不存在诊断、`config list` 密钥脱敏 |
+| `cloud-lifecycle` | 云端 | `deploy` → `list` → `status` → `sandbox exec`(退出码透传、`--cwd`、JSON/quiet/CI 输出、受支持的命令期限)→ `sandbox upload`/`sandbox download`(二进制往返)→ 后台/流式执行/命令 env → `sandbox files/process/system/capabilities` → `sandbox command list` / `sandbox run` 具名命令 → 创建时注入 env/上传 → `delete` |
+| `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template init --from` |
+| `docker-deploy` | 云端 + Docker,需主动开启 | `template init` → `template build`(docker build、ACR push、CreateTemplate)→ `deploy` → `sandbox exec` → `template build --clean` |
 
 ## 场景格式
 
@@ -144,12 +149,12 @@ metrics 和 pip 包清单使用现行结构化 JSON 合同。原生模板 info �
 
 ## 提供商插件（`e2e/providers/run.sh`）
 
-一个 bash 脚本：把参考插件安装到一次性的 `HOME`，并通过 CLI 驱动真实沙箱。运行方式：`npm run e2e:providers` 或 `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`。`local-process`（`exec` 插件，Python）与 `e2b-compatible`（`rest` 清单）来自 `python-sdk/examples/providers`。`opensandbox` 是目录里的 `node` 插件（`provider.mjs`，`create(kit)`），从 [awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers) 克隆（`opensandbox/` 目录）。另外三个目录 id（`e2b`、`cubesandbox`、`alicloud-container`）也是那棵树里的 `node` 插件。`catalog` 目标安装的是 `awesome-providers//opensandbox`。
+一个 bash 脚本：把参考插件安装到一次性的 `HOME`，并通过 CLI 驱动真实沙箱。运行方式：`npm run e2e:providers` 或 `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`。`local-process`（`sandbox exec` 插件，Python）与 `e2b-compatible`（`rest` 清单）来自 `python-sdk/examples/providers`。`opensandbox` 是目录里的 `node` 插件（`provider.mjs`，`create(kit)`），从 [awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers) 克隆（`opensandbox/` 目录）。另外三个目录 id（`e2b`、`cubesandbox`、`alicloud-container`）也是那棵树里的 `node` 插件。`catalog` 目标安装的是 `awesome-providers//opensandbox`。
 
 | 目标 | 依赖 | 检查内容 |
 |---|---|---|
-| `offline` | 无（git、python3） | “用到才出现”的 `provider` 命令组、同意界面与 `--yes` 规则（`E8012`）、从路径安装与从钉住 commit 的本地 git 仓库安装、`E8003` 冲突与 `--force`、`doctor`/`info`、`E8001`、`E8002`（命令行传密钥）、`provider default`、`E8030`、篡改检测（`E8011`）、卸载 |
-| `local-process` | python3 | `create`、`list`、`exec`（退出码透传）、`upload`/`download` 往返、`sandbox files list`、`kill`、终止后返回退出码 4，全程使用限定 id |
+| `offline` | 无（git、python3） | “用到才出现”的 `provider` 命令组、同意界面与 `--yes` 规则（`E8012`）、从路径安装与从钉住 commit 的本地 git 仓库安装、`E8003` 冲突与 `--force`、`doctor`/`status`、`E8001`、`E8002`（命令行传密钥）、`provider default`、`E8030`、篡改检测（`E8011`）、卸载 |
+| `local-process` | python3 | `deploy`、`list`、`sandbox exec`（退出码透传）、`sandbox upload`/`sandbox download` 往返、`sandbox files list`、`delete`、终止后返回退出码 4，全程使用限定 id |
 | `opensandbox` | 运行中的 OpenSandbox：`python-sdk/e2e/opensandbox/local-up.sh`（Docker；密钥 `local-dev-key`，`127.0.0.1:8080`） | 按路径与按 git 安装、`doctor`、`provider default opensandbox`、带与不带 `--provider` 的完整沙箱往返、密钥掩码，以及 `abx provider test`（契约套件） |
 | `e2b-compatible` | 环境中的 `E2B_API_KEY`（及 `E2B_API_URL`、`E2B_DOMAIN`） | REST 插件继承通用 `sandbox_*` 键，在真实云上跑同一往返；没有密钥时报告为 `SKIP` |
 
@@ -188,7 +193,6 @@ Key、删除 Volume、清空并删除测试 Bucket、解绑并删除自定义策
 | `ABX_E2E_APP_START_COMMAND` | 可选的选定 manifest 原样启动命令，只运行一次并验证真实 PID；不设置则要求应用已启动 |
 | `ABX_E2E_TIMEOUT_MS` | 每条命令默认超时(默认 120000) |
 | `ABX_E2E_DOCKER=1` | 启用 Docker/ACR 套件(慢,会消耗真实资源) |
-| `ABX_E2E_ALLOW_KILL_ALL=1` | 启用 `kill --all` 确认保护场景(共享账号下危险) |
 | `ABX_E2E_KEEP=1` | 保留临时工作目录以便调试(可能含命令输出,不含凭据) |
 
 ## 结果与基线

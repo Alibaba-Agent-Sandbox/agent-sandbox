@@ -40,7 +40,7 @@ describe("Template Cache command discovery", () => {
       expect(command.effect).toBe(command.id.endsWith("create") ? "write" : command.id.endsWith("delete") ? "delete" : "read");
       expect(command.idempotent).toBe(!command.id.endsWith("create"));
     }
-    expect(listProviderCommands("alicloud-express")).toHaveLength(32);
+    expect(listProviderCommands("alicloud-express")).toHaveLength(36);
     expect(loader).not.toHaveBeenCalled();
   });
 
@@ -66,7 +66,7 @@ describe("Template Cache command discovery", () => {
 
   it.each(["template-cache.create", "template-cache.delete"])("requires CLI confirmation for %s before SDK I/O", async id => {
     const loader = vi.fn(original); _templateCacheSdkLoader.load = loader;
-    const result = await new CliRunner().invoke(cli, ["--json", "provider", "command", "run", "alicloud-express", id, "--input", JSON.stringify(ref)]);
+    const result = await new CliRunner().invoke(cli, ["--json", "provider", "run", id, "--input", JSON.stringify(ref)]);
     expect(result.exit_code).toBe(2);
     expect(JSON.parse(result.stdout)).toMatchObject({ code: "E8012" });
     expect(loader).not.toHaveBeenCalled();

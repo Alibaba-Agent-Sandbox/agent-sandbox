@@ -7,7 +7,7 @@ import { CONFIGURATION_UI } from "./configuration.js";
 import { materializeBaseImage } from "../../../utils/base_image.js";
 import { loadLayeredConfig } from "../../../transport/config_layers.js";
 import { CONFIG_METADATA } from "../metadata.js";
-import { templateUi, createParams, DEPLOY_HELP } from "./metadata.js";
+import { templateUi } from "./metadata.js";
 import path from "node:path";
 import fs from "node:fs";
 import { stageProject } from "../../shared/project.js";
@@ -15,8 +15,7 @@ import { resolveBuildPlan, commandWithStepEnvironment } from "../../../template/
 import { ProviderConfigError } from "../../../models/provider_errors.js";
 import type { PreparedTemplate } from "../../template_contract.js";
 export const CLI_EXTENSION = {
-  ciAutoConfirmCommands: ["api-key.prepare"],
-  id: CONFIG_METADATA.id, templateUi, createParams, deployHelp: DEPLOY_HELP, configuration: CONFIGURATION_UI,
+  id: CONFIG_METADATA.id, templateUi, configuration: CONFIGURATION_UI,
   generationBaseImage(options: Record<string, unknown>) {
     return options["build"] === "steps" ? materializeBaseImage(CONFIG_METADATA.templateProfile.base_image, loadLayeredConfig({ provider: CONFIG_METADATA.id }).region) : undefined;
   },
@@ -27,7 +26,7 @@ export const CLI_EXTENSION = {
     return stageProject(directory, { dockerfile: plan.kind === "steps" ? null : path.basename(plan.dockerfile),
       resolveDockerfile: source => materializeBaseImage(source, region) });
   },
-  async prepareProject(directory, options, ctx) {
+  async prepareProject(directory, options, ctx, approved = false) {
     if (!options.journal) throw new ProviderConfigError("Express workflow preparation requires an owned-resource journal.");
     const started = Date.now();
     const adapter = await import("./template.js");
@@ -41,7 +40,7 @@ export const CLI_EXTENSION = {
       cpu: options.template.cpu, memory: options.template.memory,
       envd_inject: plan.kind === "dockerfile" && !/^FROM\s+fc-e2b-registry\.[a-z0-9-]+\.cr\.aliyuncs\.com\/runtime\/base:/im.test(fs.readFileSync(plan.dockerfile, "utf8")) };
     return adapter.withDeployConfiguration(directory, deployOptions, async () => {
-      if (!deployOptions.yes) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
+      if (!approved && !deployOptions.yes) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
     const result = await adapter.do_deploy(directory, deployOptions);
     const reference = result["TemplateID"];
     if (typeof reference !== "string" || !reference || reference === "N/A") throw new Error("Template preparation returned no reference.");
@@ -51,7 +50,7 @@ export const CLI_EXTENSION = {
       await fc.waitForTemplateReady(reference, { access_key_id: config.access_key_id!, access_key_secret: config.access_key_secret!, region: config.region,
         timeout: Math.max(0.01, options.timeout - (Date.now() - started) / 1000), poll_interval: 2 }).catch((error: unknown) => {
           if (error instanceof TemplateBuildTimeoutError) {
-            error.suggestion = `Inspect 'abx template info ${reference}' and the source files at ${directory}. The remote build may still be running; do not resubmit it blindly. Simplify the build steps if needed, or delete this exact template after inspection.`;
+            error.suggestion = `Inspect 'abx provider run template.get --input '${JSON.stringify({ template_id: reference })}'' and the source files at ${directory}. The remote build may still be running; do not resubmit it blindly. Simplify the build steps if needed, or delete this exact template after inspection.`;
           }
           throw error;
         });
@@ -64,5 +63,4 @@ export const CLI_EXTENSION = {
   },
   managementRequirements: (commandId: string) => isConditionalCommand(commandId) ? ["sandbox_api_key"] : ["access_key_id", "access_key_secret"],
   loadTemplates: () => import("./template.js"),
-  loadDeploy: () => import("./deploy.js"),
 } satisfies ProviderCliExtension;

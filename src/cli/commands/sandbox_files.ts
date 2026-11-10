@@ -15,8 +15,8 @@ import { handleErrors } from "../error_handler.js";
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {
   // Imported lazily like the Python helper: the SDK loggers must be created after the CLI's logging bridge is
   // installed by the root group callback, otherwise `--verbose` cannot lower the package logger level.
-  const { Sandbox } = await import("../../api/sandbox.js");
-  return Sandbox.connect(sandbox_id);
+  const { connectSandboxTarget } = await import("../deployment_store.js");
+  return connectSandboxTarget(sandbox_id);
 }
 
 // ---------------------------------------------------------------------------
@@ -36,8 +36,8 @@ export const files_list = command("list", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox files stat SANDBOX_ID --path PATH\n" +
-    "  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
-    "  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
+    "  abx sandbox upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
+    "  abx sandbox download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { default: "/home/user", help: "Directory path to list" }),
@@ -109,7 +109,7 @@ export const files_stat = command("stat", {
     "Related commands:\n" +
     "  abx sandbox files list SANDBOX_ID --path PATH\n" +
     "  abx sandbox files mv SANDBOX_ID --source PATH --dest PATH\n" +
-    "  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
+    "  abx sandbox download SANDBOX_ID REMOTE_PATH LOCAL_PATH",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { required: true, help: "File or directory path" }),
@@ -149,7 +149,7 @@ export const files_mkdir = command("mkdir", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox files list SANDBOX_ID --path PATH\n" +
-    "  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
+    "  abx sandbox upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
     "  abx sandbox files rm SANDBOX_ID --path PATH",
   params: [
     argument(["sandbox_id"]),
@@ -263,7 +263,7 @@ export const files_search = command("search", {
     "Related commands:\n" +
     "  abx sandbox files list SANDBOX_ID --path DIRECTORY\n" +
     "  abx sandbox files stat SANDBOX_ID --path PATH\n" +
-    "  abx exec SANDBOX_ID \"find /app -type f\"",
+    "  abx sandbox exec SANDBOX_ID \"find /app -type f\"",
   params: [
     argument(["sandbox_id"]),
     option(["--path", "-p"], { required: true, help: "Directory to search in" }),
@@ -322,8 +322,8 @@ export const files = group("files", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
-    "  abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH\n" +
+    "  abx sandbox upload SANDBOX_ID LOCAL_PATH REMOTE_PATH\n" +
+    "  abx sandbox download SANDBOX_ID REMOTE_PATH LOCAL_PATH\n" +
     "  abx sandbox process --help",
   callback: (ctx) => {
     ctx.ensureObject(Object);

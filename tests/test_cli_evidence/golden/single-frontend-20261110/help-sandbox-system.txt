@@ -1,0 +1,24 @@
+Usage: abx sandbox system [options] [command]
+
+Inspect runtime environment, ports, packages, and resource usage.
+
+Examples:
+  abx sandbox system info abc123
+  abx sandbox system env abc123 --filter PATH,HOME
+  abx sandbox system metrics abc123
+
+Related commands:
+  abx status SANDBOX_ID
+  abx sandbox process --help
+  abx sandbox capabilities SANDBOX_ID
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  env         Show environment variables from a sandbox.
+  info        Show system information of a sandbox.
+  metrics     Show resource usage metrics of a sandbox.
+  packages    List installed packages in a sandbox.
+  ports       Show listening TCP ports in a sandbox.
+[exit_code:0]

@@ -4,7 +4,7 @@ import {Context, command} from '../../src/cli/kit.js';
 import * as interaction from '../../src/cli/interaction.js';
 import * as prompts from '../../src/cli/prompts.js';
 import * as index from '../../src/utils/template_index.js';
-import * as launch from '../../src/cli/template_launch.js';
+import {deploy_shortcut} from '../../src/cli/commands/deploy.js';
 import {chooseTemplate, continueSetup} from '../../src/cli/setup.js';
 import {useIso} from '../_support/iso.js';
 
@@ -20,17 +20,18 @@ function catalog() {
 }
 
 describe('initialization to creation',()=>{
-  it('finds catalog content and hands the selection to the ordinary launch entry',async()=>{
+  it('finds catalog content and hands the selection to the ordinary named deployment entry',async()=>{
     const fetch=catalog();
     vi.spyOn(prompts,'prompt').mockResolvedValue('coding');
     const answers=['launch','opencode'];
     const choose=vi.spyOn(prompts,'select').mockImplementation(async()=>answers.shift()!);
-    const create=vi.spyOn(launch,'launchTemplate').mockResolvedValue(undefined);
+    const create=vi.spyOn(Context.prototype,'invoke').mockResolvedValue(undefined);
     await continueSetup(ctx());
     expect(fetch).toHaveBeenCalledOnce();
     expect(choose.mock.calls[1]![1].choices.map(c=>c.value)).toContain('opencode');
     expect(create).toHaveBeenCalledOnce();
-    expect(create.mock.calls[0]![1]).toEqual({template_ref:'opencode'});
+    expect(create.mock.calls[0]![0]).toBe(deploy_shortcut);
+    expect(create.mock.calls[0]![1]).toEqual({source:'opencode'});
   });
   it('offers another search when the initial purpose has no match',async()=>{
     catalog();
@@ -54,7 +55,7 @@ describe('initialization to creation',()=>{
   it('finishes configuration without fetching or creating if no continuation is selected',async()=>{
     const fetch=catalog();
     vi.spyOn(prompts,'select').mockResolvedValue('');
-    const create=vi.spyOn(launch,'launchTemplate').mockResolvedValue(undefined);
+    const create=vi.spyOn(Context.prototype,'invoke').mockResolvedValue(undefined);
     await continueSetup(ctx());
     expect(fetch).not.toHaveBeenCalled();expect(create).not.toHaveBeenCalled();
   });

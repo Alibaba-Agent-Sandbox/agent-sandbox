@@ -18,17 +18,33 @@ import shutil
 import subprocess
 import tempfile
 import time
+import http.server
+import threading
 
 
 def main():
     repository = Path(sys.argv[1])
     command = shlex.split(os.environ.get("ABX_BIN", "")) or [shutil.which("node"), str(repository / "dist/bin/abx.js")]
+    requests = []
+    class Boundary(http.server.BaseHTTPRequestHandler):
+        def respond(self):
+            requests.append(self.command)
+            self.send_response(503)
+            self.end_headers()
+            self.wfile.write(b"local request boundary; no cloud backend")
+        do_GET = do_POST = do_DELETE = do_PATCH = do_PUT = respond
+        def log_message(self, *_args):
+            pass
+    boundary = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Boundary)
+    threading.Thread(target=boundary.serve_forever, daemon=True).start()
+    endpoint = "http://127.0.0.1:" + str(boundary.server_port)
     with tempfile.TemporaryDirectory(prefix="abx-onboarding-pty-") as temporary:
         root = Path(temporary)
         home = root / "home"
         home.mkdir()
         environment = {"PATH": os.environ["PATH"], "HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config"),
-                       "TERM": "xterm", "NO_COLOR": "1", "LANG": "C.UTF-8", "ABX_NO_KEYCHAIN": "1", "USERPROFILE": str(home)}
+                       "TERM": "xterm", "NO_COLOR": "1", "LANG": "C.UTF-8", "ABX_NO_KEYCHAIN": "1", "USERPROFILE": str(home),
+                       "ABX_SANDBOX_BASE_URL": endpoint, "ABX_ALICLOUD_EXPRESS_SANDBOX_BASE_URL": endpoint}
 
         def invoke(arguments, answers, *, stdout_pipe=False, extra_environment=None):
             master, slave = pty.openpty()
@@ -83,20 +99,16 @@ def main():
                     child.stdout.close()
 
         project = root / "dev-services"
-        status, output, _ = invoke(["template", "deploy", str(project), "--acr-namespace", "onboarding-test"], [
-            ("Create a template project here and continue?", b"y\r"), ("Select a case", b"\r"),
-            ("access_key_id (input hidden)", b"\r"),
-        ])
-        assert status == 1 and "Configuration scope" not in output and "access_key_id" in output, "Must request missing credentials directly"
-        assert "Aborted" in output and "Building Docker" not in output and "Creating template" not in output, "Cancelling configuration must stop before cloud submission"
-        assert (project / "template.yaml").is_file()
-        assert "Created template project" in output
-        print("PASS: actual terminal creates a selected project, reaches configuration setup and cancels before cloud submission")
+        status, output, _ = invoke(["template", "init", str(project)], [("Select a case", b"\r")])
+        assert status == 0 and (project / "template.yaml").is_file()
+        assert "input hidden" not in output
+        assert not (home / ".abx/resource-journal").exists()
+        print("PASS: actual terminal initializes editable source without cloud configuration or submission")
 
         dockerfile = project / "Dockerfile"
         dockerfile.write_text("original file\n")
         (project / "notes.txt").write_text("preserve unrelated data\n")
-        arguments = ["template", "scaffold", "--template", "python", str(project)]
+        arguments = ["template", "init", "--template", "python", str(project)]
         status, _, _ = invoke(arguments, [("Overwrite these existing entries?", b"n\r")])
         assert status == 1 and dockerfile.read_text() == "original file\n"
         print("PASS: actual terminal decline preserves the original file")
@@ -108,60 +120,71 @@ def main():
         print("PASS: actual terminal confirmation replaces selected entries and keeps unrelated data")
 
         secret_fixture = "hidden-cancel-fixture-do-not-save"
-        status, output, _ = invoke(["create", "base"], [
+        status, output, _ = invoke(["deploy", "--template-id", "base", "--name", "native-key-cancel"], [
+            ("Deploy native-key-cancel?", b"y\r"),
             ("Choose an authentication method", b"1\r"),
-            ("input hidden", secret_fixture.encode() + b"\x03"),
+            ("sandbox_api_key (input hidden)", secret_fixture.encode() + b"\x03"),
         ])
         assert status != 0 and secret_fixture not in output, "Hidden input and Ctrl-C must not expose the entered value"
         for path in home.rglob("*"):
             if path.is_file():
                 assert secret_fixture.encode() not in path.read_bytes(), "Cancelling credential input must not persist a secret"
-        print("PASS: actual hidden input restores the terminal on Ctrl-C without echoing or saving the partial key")
+        assert requests == [], "Cancelling native credentials must not submit a request"
+        assert not (home / ".abx/resource-journal").exists()
+        print("PASS: native deployment confirmation preserves hidden credential input and Ctrl-C stops before requests or secret persistence")
 
         application = root / "application"
-        application.mkdir()
+        shutil.copytree(project, application)
         (application / "template.yaml").write_text(json.dumps({
-            "name": "application", "spec_version": 5, "provider": "alicloud-express", "template_id": "base",
+            "name": "application", "spec_version": 5,
             "provides": {"app": {"protocol": "agent-sandbox-server", "version": 2, "port": 9000,
                                   "operations": ["commands.list", "commands.run"]}},
             "env": {"ABX_SERVER_TOKEN": ""},
         }))
         platform_fixture = "placeholder-platform-key"
-        status, output, _ = invoke(["--provider", "alicloud-express", "template", "launch", str(application)], [
+        status, output, _ = invoke(["deploy", str(application), "--name", "source-config-cancel"], [
+            ("Deploy source-config-cancel?", b"y\r"),
             ("Choose an authentication method", b"1\r"),
             ("sandbox_api_key (input hidden)", platform_fixture.encode() + b"\r"),
-            ("Create a billable sandbox", b"n\r"),
+            ("access_key_id (input hidden)", b"\r"),
         ])
-        assert status == 1 and "Configuration saved." in output
-        assert "Aborted!" in output and "Template preparation failed" not in output and "recovery journal" not in output
-        assert not (home / ".abx/resource-journal").exists(), "Declined creation must not record a cloud intent"
-        assert "Configuration scope" not in output and "sandbox:CreateApiKey" not in output
-        assert "Application access token (ABX_SERVER_TOKEN)" not in output
-        assert platform_fixture not in output
+        assert status == 1 and "Configuration saved." in output and "Aborted!" in output
+        assert "Configuration scope" not in output and platform_fixture not in output
+        assert "Build/register" not in output, "A deployment already approved must not ask for billing consent twice"
+        assert requests == [], "Cancelling missing build credentials must not submit a request"
+        journal_directory = home / ".abx/resource-journal"
+        for journal in journal_directory.glob("*.json"):
+            assert json.loads(journal.read_text())["entries"] == [], "No resource intent is allowed before configuration completes"
         stored = (home / ".abx/.env").read_text()
         token = re.search(r'^ABX_SERVER_TOKEN=([a-f0-9]{64})$', stored, re.M)
-        assert token and "ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY=" + platform_fixture in stored, "Platform and generated application credentials must be saved"
+        assert token and "=" + platform_fixture in stored, "Platform and generated application credentials must be saved"
         assert (home / ".abx/.env").stat().st_mode & 0o777 == 0o600
         assert token[1] not in output
+        status, output, _ = invoke(["deploy", str(application), "--name", "consent-check"], [
+            ("Deploy consent-check?", b"n\r"),
+        ])
+        assert status == 1 and "Aborted!" in output
+        assert requests == [], "Declined deployment must not submit requests"
+        assert not (home / ".abx/deployments/consent-check").exists()
         if os.environ.get("ABX_CAPTURE_ONBOARDING") == "1":
             print("CAPTURE_BEGIN")
             print(re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output).replace(str(root), "<TMP>"))
             print("CAPTURE_END")
-        print("PASS: platform configuration saves by default, application authentication is automatic and creation consent is preserved")
-        status, output, _ = invoke(["--provider", "alicloud-express", "template", "launch", str(application)], [
-            ("Create a billable sandbox", b"\x03"),
+        print("PASS: source deployment saves a hidden platform key, generates application authentication and still asks for missing build configuration before requests")
+        status, output, _ = invoke(["deploy", str(application), "--name", "consent-check"], [
+            ("Deploy consent-check?", b"\x03"),
         ])
         assert status == 1 and "Aborted!" in output and "recovery journal" not in output
         assert "Template preparation failed" not in output and "Configuration saved." not in output
-        assert not (home / ".abx/resource-journal").exists()
+        assert requests == []
         print("PASS: Ctrl-C at creation consent exits as cancellation and restores the terminal without resource intents")
         (home / ".abx/.env").unlink()
 
         cases = [
-            (["--native", "--json", "create", "base"], {}),
-            (["--native", "create", "base"], {"CI": "1"}),
-            (["--native", "--quiet", "create", "base"], {}),
-            (["--native", "create", "base", "-y"], {}),
+            (["--json", "deploy", "--template-id", "base", "--name", "auto-json", "--yes"], {}),
+            (["deploy", "--template-id", "base", "--name", "auto-plain", "--yes"], {"CI": "1"}),
+            (["--quiet", "deploy", "--template-id", "base", "--name", "auto-quiet", "--yes"], {}),
+            (["deploy", "--template-id", "base", "--name", "auto-yes", "-y"], {}),
         ]
         for arguments, extra in cases:
             status, output, _ = invoke(arguments, [], extra_environment=extra)
@@ -173,13 +196,20 @@ def main():
                 assert "sandbox_api_key" in json.loads(output)["message"], "Machine mode must emit exactly one final JSON result"
         print("PASS: real TTY plus JSON, CI, quiet and -y never asks for configuration")
 
-        status, terminal, result = invoke(["--native", "create", "base"], [], stdout_pipe=True)
+        status, _, _ = invoke(["delete", "auto-plain", "--yes"], [])
+        assert status == 0
+        status, terminal, result = invoke(["deploy", "--template-id", "base", "--name", "auto-plain", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "Missing configuration" in terminal + result
         assert "Configuration scope" not in terminal + result and "input hidden" not in terminal + result, "Piped stdout must not enable credential input"
-        status, terminal, result = invoke(["--native", "--json", "create", "base"], [], stdout_pipe=True)
+        status, _, _ = invoke(["delete", "auto-json", "--yes"], [])
+        assert status == 0
+        status, terminal, result = invoke(["--json", "deploy", "--template-id", "base", "--name", "auto-json", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "sandbox_api_key" in json.loads(result)["message"]
         assert "Configuration scope" not in terminal + result
+        assert requests == [], "The whole fixture must stay before the first backend request"
         print("PASS: real TTY stdin/stderr with stdout piped never prompts and preserves one JSON document")
+    boundary.shutdown()
+    boundary.server_close()
 
 
 if __name__ == "__main__":

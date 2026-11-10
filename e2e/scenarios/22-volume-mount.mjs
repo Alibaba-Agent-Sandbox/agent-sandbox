@@ -92,7 +92,7 @@ async function invoke(ctx, args, label, timeoutMs = 90_000) {
 }
 
 async function verify(ctx, id, config, mode) {
-  const json = await invoke(ctx, ['exec', id, volumeMountCommand(config.path, config.sentinel, config.payload, mode), '--timeout', '30'], `Volume ${mode}`);
+  const json = await invoke(ctx, ["sandbox", "exec", "--timeout", "30", id, volumeMountCommand(config.path, config.sentinel, config.payload, mode)], `Volume ${mode}`);
   if (json?.exit_code !== 0 || json.stdout?.trim() !== MARKERS[mode]) throw new Error(`Volume ${mode} did not prove its postcondition; raw command output omitted`);
 }
 
@@ -112,9 +112,9 @@ export default {
       const cleanupErrors = [];
       try {
         // No retry: an unknown create outcome must not silently create another sandbox.
-        const created = await invoke(ctx, ['create', '--template', process.env.ABX_E2E_TEMPLATE || 'python-hello', '--timeout', '600', '--volume-mount', `${config.path}=${config.name}`], 'Volume-mounted sandbox create', 180_000);
-        if (typeof created?.ID !== 'string' || !/^sbx-[A-Za-z0-9_-]+$/.test(created.ID)) throw new Error('create returned no usable sandbox ID; its remote outcome may be unknown and its 600-second lease must expire');
-        id = created.ID;
+        const created = await invoke(ctx, ["deploy", "--template-id", process.env.ABX_E2E_TEMPLATE || 'python-hello', "--sandbox-timeout", '600', '--volume-mount', `${config.path}=${config.name}`, "--yes"], 'Volume-mounted sandbox create', 180_000);
+        if (typeof created?.sandbox_id !== 'string' || !/^sbx-[A-Za-z0-9_-]+$/.test(created.sandbox_id)) throw new Error('create returned no usable sandbox ID; its remote outcome may be unknown and its 600-second lease must expire');
+        id = created.sandbox_id;
         ctx.track(id);
         await verify(ctx, id, config, 'probe');
         sentinelAttempted = true;
@@ -128,9 +128,9 @@ export default {
             catch { cleanupErrors.push(`exclusive sentinel cleanup unverified (${config.sentinel})`); }
           }
           try {
-            await invoke(ctx, ['kill', id, '--yes'], 'test-owned sandbox cleanup');
+            await invoke(ctx, ["delete", id, '--yes'], 'test-owned sandbox cleanup');
             await ctx.eventually(async () => {
-              const result = await ctx.rawAbx(['--provider', PROVIDER, '--json', 'info', id], { timeoutMs: 60_000 });
+              const result = await ctx.rawAbx(['--provider', PROVIDER, '--json', "status", id], { timeoutMs: 60_000 });
               if (result.timedOut || result.code !== 4) throw new Error('test-owned sandbox disappearance is not yet verified');
             }, { timeoutMs: 30_000, intervalMs: 2000, what: 'the test-owned mounted sandbox to disappear' });
             ctx.untrack(id);

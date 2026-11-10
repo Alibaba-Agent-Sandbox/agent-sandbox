@@ -31,7 +31,7 @@ function benchCliSubcommand() {
   const commands = [
     ["sandbox", "--help"],
     ["template", "--help"],
-    ["session", "--help"],
+    ["provider", "--help"],
     ["mcp", "--help"],
   ];
   for (const cmd of commands) {

@@ -1,205 +1,122 @@
-/**
- * Tests for the top-level `abx deploy` command.
- *
- * `abx deploy` is the fixed *publish* step of the template lifecycle (docker build -> push -> register) and delegates
- * to `template build`. It takes no description and no LLM: what a template is lives in `template.yaml`, authored
- * earlier by `abx template scaffold`. The pipeline itself is covered by the `template` tests, so here `build` is replaced by
- * a recorder that keeps its real option set.
- */
-
+/** Public deployment behavior, including durable identity before uncertain cloud results. */
 import "../_support/isolatedHome.js";
-
 import fs from "node:fs";
 import path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
-import { deploySeams, deploy_shortcut } from "../../src/providers/alicloud_express/cli/deploy.js";
-import { build as realBuild } from "../../src/providers/alicloud_express/cli/template.js";
-import { cli } from "../../src/cli/main.js";
-import { command, getCurrentContext } from "../../src/cli/kit.js";
-import { UsageError } from "../../src/cli/errors.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { delenv, useTmpPath, writeText } from "../helpers/templateSupport.js";
-
-const runner = (): CliRunner => new CliRunner();
-const tmpPath = useTmpPath();
-
-let buildCalls: Array<Record<string, unknown>> = [];
-let saved: { build: typeof deploySeams.build; resolve: typeof deploySeams.resolve_acr_namespace };
-
-/** `build_calls` fixture: replace `template build` by a recorder; the ACR namespace resolves offline. */
-beforeEach(() => {
-  buildCalls = [];
-  saved = { build: deploySeams.build, resolve: deploySeams.resolve_acr_namespace };
-  deploySeams.build = command("build", {
-    params: [...realBuild.params],
-    callback: (_ctx: unknown, params: Record<string, unknown>) => {
-      buildCalls.push(params);
-    },
-  });
-  deploySeams.resolve_acr_namespace = vi.fn(() => "test-ns");
-});
-
-afterEach(() => {
-  deploySeams.build = saved.build;
-  deploySeams.resolve_acr_namespace = saved.resolve;
-});
-
-/** `project` fixture: a template directory that already has a Dockerfile. */
+import { useTmpPath } from "../helpers/templateSupport.js";
+import { cli } from "../../src/cli/main.js";
+import { deploymentSeams } from "../../src/cli/commands/deploy.js";
+import { readDeployment, saveDeployment, sandboxTarget } from "../../src/cli/deployment_store.js";
+import { renderScaffold } from "../../src/cli/scaffold.js";
+import { paths, _setPaths } from "../../src/transport/config_layers.js";
+import { ResourceJournal } from "../../src/template/resource_journal.js";
+import { Sandbox } from "../../src/api/sandbox.js";
+import { sourceDigest } from "../../src/application/config.js";
+const tmp = useTmpPath();
+const run = (args: string[]) => new CliRunner().invoke(cli, args, {env: {ABX_SANDBOX_API_KEY: "test-key", ABX_REGION: "cn-hangzhou"}});
+const oldPaths = {...paths};
+beforeEach(() => _setPaths({abxDir: path.join(tmp(), "home")}));
+afterEach(() => { vi.restoreAllMocks(); _setPaths(oldPaths); });
 function project(): string {
-  writeText(path.join(tmpPath(), "Dockerfile"), "FROM python:3.11-slim\n");
-  return tmpPath();
+  const folder = path.join(tmp(), "project"); fs.mkdirSync(folder);
+  for (const [name, content] of renderScaffold("minimal", "example", "alicloud-express")) fs.writeFileSync(path.join(folder, name), content);
+  return folder;
 }
-
-describe("TestFixedPipeline", () => {
-  it("test_delegates_to_build_with_project_dir", async () => {
-    const p = project();
-    const result = await runner().invoke(cli, ["deploy", p, "--acr-namespace", "ns", "-y"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(buildCalls.length).toBe(1);
-    expect(buildCalls[0]!["template_dir"]).toBe(fs.realpathSync(p));
-    expect(buildCalls[0]!["acr_namespace"]).toBe("ns");
-    expect(buildCalls[0]!["yes"]).toBe(true);
+function fakeLaunch() {
+  return vi.spyOn(deploymentSeams, "launch").mockImplementation(async (_ctx, params, options = {}) => {
+    expect(fs.existsSync(String(params.template_ref))).toBe(true);
+    options.onTarget?.({provider:"alicloud-express",providerOptions:{region:"cn-hangzhou"},connection:{api_url:"https://example.test",domain:"example.test"}});
+    const journal = new ResourceJournal("alicloud-express", "test"); options.onJournal?.(journal);
+    const intent = await journal.intent({kind:"sandbox",correlation_key:"demo-test",cleanup:"sandbox.delete"});
+    await journal.created(intent, "sandbox-test"); await options.onCreated?.("sandbox-test");
+    return {receipt:{sandbox_id:"sandbox-test",provider:"alicloud-express",services:{}},creation:{}};
   });
-
-  it("test_path_defaults_to_current_directory", async () => {
-    const p = project();
-    process.chdir(p);
-
-    const result = await runner().invoke(cli, ["deploy"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(buildCalls[0]!["template_dir"]).toBe(fs.realpathSync(p));
+}
+describe("unified deploy", () => {
+  it("previews a valid Sandbox without invoking creation, building or writing a deployment", async () => {
+    const source = project(), launch = fakeLaunch();
+    const result = await run(["--json","deploy",source,"--name","demo","--plan"]);
+    expect(result.exit_code,result.output).toBe(0); expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",kind:"sandbox",builds_or_cloud_changes:false});
+    expect(launch).not.toHaveBeenCalled(); expect(readDeployment("demo")).toBeUndefined();
   });
-
-  it("test_never_touches_the_coding_agent_or_llm_keys", async () => {
-    const p = project();
-    const boom = vi.fn(() => {
-      throw new Error("agent must not be resolved");
-    });
-    vi.spyOn(codingAgent, "resolveCodingAgentBackend").mockImplementation(boom);
-    vi.spyOn(codingAgent, "ensureCodingAgentBinary").mockImplementation(boom);
-    vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockImplementation(boom);
-    for (const v of ["ABX_LLM_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]) delenv(v);
-
-    const result = await runner().invoke(cli, ["deploy", p]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(boom).not.toHaveBeenCalled();
-    expect(buildCalls.length).toBe(1);
+  it("rejects an invalid manifest during preview", async () => {
+    const source=project(); fs.writeFileSync(path.join(source,"template.yaml"),"name: example\nspec_version: 999\n");
+    expect((await run(["deploy",source,"--plan"])).exit_code).not.toBe(0);
   });
-
-  it.each(["-v", "--verbose"])("test_verbose_is_accepted [%s]", async (flag) => {
-    const p = project();
-    const result = await runner().invoke(cli, ["deploy", p, flag]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).not.toContain("No such option");
-    expect(buildCalls[0]!["verbose_flag"]).toBe(true);
+  it("creates one named Sandbox, pins the resolved connection and preserves user source", async () => {
+    const source=project(), before=sourceDigest(source); fs.writeFileSync(path.join(source,".env"),"PRIVATE=do-not-copy\n");
+    const launch=fakeLaunch(); const result=await run(["--json","deploy",source,"--name","demo","--yes"]);
+    expect(result.exit_code,result.output).toBe(0); expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",sandbox_id:"sandbox-test",status:"ready"});
+    expect(launch).toHaveBeenCalledTimes(1); expect(sourceDigest(source)).toBe(before);
+    const saved=readDeployment("demo")!; expect(fs.existsSync(path.join(saved.source!,".env"))).toBe(false);
+    expect(sandboxTarget("demo")).toMatchObject({id:"sandbox-test",api_url:"https://example.test",provider_options:{region:"cn-hangzhou"}});
+    expect((await run(["deploy",source,"--name","demo","--yes"])).exit_code).not.toBe(0); expect(launch).toHaveBeenCalledTimes(1);
+    saved.status="deleted";saveDeployment(saved);
+    expect((await run(["deploy",source,"--name","demo","--yes"])).exit_code).toBe(0); expect(launch).toHaveBeenCalledTimes(2);
   });
-
-  it("test_shares_every_template_build_option", () => {
-    const deployOpts = new Set<string>();
-    for (const p of deploy_shortcut.params) for (const o of p.kind === "option" ? p.decls : []) deployOpts.add(o);
-    for (const param of realBuild.params) {
-      if (param.kind === "option") for (const o of param.decls) expect(deployOpts.has(o), param.name).toBe(true);
+  it("keeps an uncertain native create intent without retrying the cloud operation", async () => {
+    const create=vi.spyOn(Sandbox,"create").mockRejectedValue(new Error("unknown-result"));
+    const result=await run(["deploy","--template-id","base","--name","uncertain","--yes"]);
+    expect(result.exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
+    const saved=readDeployment("uncertain")!;expect(saved.status).toBe("requires_recovery");
+    const journal=JSON.parse(fs.readFileSync(saved.journal!,"utf8"));expect(journal.entries).toEqual([expect.objectContaining({kind:"sandbox",state:"intent",cleanup:"sandbox.delete"})]);
+    expect(create.mock.calls[0][0]).toMatchObject({metadata:{"abx.launch":journal.id,"abx.intent":journal.entries[0].intent_id}});
+    expect((await run(["deploy","--template-id","base","--name","uncertain","--yes"])).exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
+  });
+  it("retains the known identity when service startup fails", async () => {
+    const source=project();vi.spyOn(deploymentSeams,"launch").mockImplementation(async(_ctx,_params,options={})=>{await options.onCreated?.("known-owned");throw new Error("startup");});
+    expect((await run(["deploy",source,"--name","failed","--yes"])).exit_code).not.toBe(0);
+    expect(readDeployment("failed")).toMatchObject({sandboxId:"known-owned",status:"requires_recovery"});
+  });
+  it("rejects non-ready build artifacts and source drift before deployment", async () => {
+    const source=project(),file=path.join(tmp(),"build.json"), launch=fakeLaunch();
+    fs.writeFileSync(file,JSON.stringify({kind:"SandboxTemplateBuild",status:"building",projectRoot:source,sourceDigest:sourceDigest(source)}));
+    expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);expect(launch).not.toHaveBeenCalled();
+    fs.writeFileSync(file,JSON.stringify({kind:"SandboxTemplateBuild",status:"ready",prepared:{},projectRoot:source,sourceDigest:"changed"}));
+    expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);expect(launch).not.toHaveBeenCalled();
+  });
+  it("releases a borrowed build after real admission rejects its Provider identity before resource requests", async () => {
+    const source = project(), file = path.join(tmp(), "build.json");
+    fs.writeFileSync(file, JSON.stringify({kind:"SandboxTemplateBuild",version:1,status:"ready",provider:"alicloud-express",projectRoot:source,sourceDigest:sourceDigest(source),prepared:{reference:"base",status:"ready"},target:{provider:"alicloud-express",providerOptions:{},connection:{},provider_digest:"different-code"}}));
+    const result = await run(["deploy", "--build", file, "--name", "rejected", "--yes"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(result.output).toContain("Build target or Provider implementation differs");
+    expect(readDeployment("rejected")).toMatchObject({effectsStarted:false,status:"requires_recovery"});
+    expect(JSON.parse(fs.readFileSync(file,"utf8")).consumers).toHaveLength(1);
+    const removed = await run(["delete", "rejected", "--yes"]);
+    expect(removed.exit_code,removed.output).toBe(0);
+    expect(readDeployment("rejected")?.status).toBe("deleted");
+    expect(JSON.parse(fs.readFileSync(file,"utf8")).consumers).toEqual([]);
+  });
+  it("keeps unknown records and rejects duplicate mounts or missing upload before admission", async () => {
+    const source = project(), launch = fakeLaunch();
+    for (const args of [["--volume-mount","/data=one","--volume-mount","/data=two"],["--upload",path.join(tmp(),"missing")]]) {
+      expect((await run(["deploy",source,"--name","invalid","--yes",...args])).exit_code).not.toBe(0);
+      expect(readDeployment("invalid")).toBeUndefined();
     }
+    expect(launch).not.toHaveBeenCalled();
+    saveDeployment({version:1,name:"unknown",kind:"sandbox",provider:"alicloud-express",status:"requires_recovery",createdAt:"now",updatedAt:"now"});
+    expect((await run(["delete","unknown","--yes"])).exit_code).not.toBe(0);
+    expect(readDeployment("unknown")?.status).toBe("requires_recovery");
   });
+});
 
-  it("test_help_has_no_ai_options_and_points_at_template_init", async () => {
-    const result = await runner().invoke(cli, ["deploy", "--help"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("--verbose");
-    expect(result.output).toContain("--acr-namespace");
-    expect(result.output).toContain("abx template scaffold");
-    for (const gone of ["--agent", "--instruction", "--max-wall-time", "--max-session-turns"]) expect(result.output).not.toContain(gone);
-    expect(result.output).not.toContain("--traditional");
+// Exercise the actual Docker harness argv through the public parser and build admission.
+it("Docker scenario reaches borrowed-build Provider admission without a redundant source", async () => {
+  const module = "../../e2e/scenarios/40-docker-deploy.mjs";
+  const { default: docker } = await import(module);
+  const source = project(), file = path.join(tmp(), "docker-build.json");
+  fs.writeFileSync(file, JSON.stringify({kind:"SandboxTemplateBuild",version:1,status:"ready",provider:"alicloud-express",projectRoot:source,sourceDigest:sourceDigest(source),prepared:{reference:"base",status:"ready"},target:{provider:"alicloud-express",providerOptions:{},connection:{},provider_digest:"different-code"}}));
+  let output = "";
+  const abx = vi.fn(async (argv: string[]) => {
+    const response = await run(argv); output = response.output;
+    return {code:response.exit_code,out:response.output,rawJson:()=>JSON.parse(response.stdout)};
   });
-
-  it("test_a_description_is_not_accepted", async () => {
-    const p = project();
-    const result = await runner().invoke(cli, ["deploy", p, "deploy on port 8080"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output.toLowerCase()).toContain("unexpected extra argument");
-    expect(buildCalls).toEqual([]);
-  });
-
-  it.each(["--agent", "--instruction", "-i"])("test_ai_options_are_gone [%s]", async (flag) => {
-    const p = project();
-    const args = ["deploy", p, flag, ...(flag === "--agent" ? [] : ["x"])];
-
-    const result = await runner().invoke(cli, args);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such option");
-    expect(buildCalls).toEqual([]);
-  });
-
-  it("test_nonexistent_path_is_rejected", async () => {
-    const result = await runner().invoke(cli, ["deploy", "/nonexistent/path/xyz"]);
-
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("not an existing directory");
-    expect(buildCalls).toEqual([]);
-  });
-
-  it("test_steps_template_skips_the_dockerfile_and_acr_checks", async () => {
-    writeText(
-      path.join(tmpPath(), "template.yaml"),
-      "name: steps-only\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['true']\n",
-    );
-
-    const result = await runner().invoke(cli, ["deploy", tmpPath(), "--build", "steps", "-y"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(buildCalls.length).toBe(1);
-    expect(buildCalls[0]!["build"]).toBe("steps");
-    expect(deploySeams.resolve_acr_namespace).not.toHaveBeenCalled();
-  });
-
-  it("test_missing_dockerfile_points_at_template_init", async () => {
-    const result = await runner().invoke(cli, ["deploy", tmpPath()]);
-
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("No Dockerfile and no template.yaml build steps");
-    expect(result.output).toContain("abx template scaffold");
-    expect(buildCalls).toEqual([]);
-  });
-
-  it("test_explicit_dockerfile_option_skips_the_check", async () => {
-    const custom = path.join(tmpPath(), "Dockerfile.prod");
-    writeText(custom, "FROM python:3.11-slim\n");
-
-    const result = await runner().invoke(cli, ["deploy", tmpPath(), "--dockerfile", custom]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(buildCalls.length).toBe(1);
-  });
-
-  it("test_namespace_guidance_is_owned_by_the_plan_aware_build", async () => {
-    const p = project();
-    deploySeams.resolve_acr_namespace = vi.fn(() => {
-      throw new UsageError("ACR namespace is required", getCurrentContext(true));
-    });
-
-    const result = await runner().invoke(cli, ["deploy", p]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(deploySeams.resolve_acr_namespace).not.toHaveBeenCalled();
-    expect(buildCalls).toHaveLength(1);
-  });
-
-  it("test_traditional_flag_is_removed", async () => {
-    const p = project();
-    const result = await runner().invoke(cli, ["deploy", p, "--traditional"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such option");
-    expect(buildCalls.length).toBe(0);
-  });
+  const ctx = {state:{name:"docker-admission",source,build:file},abx,beginCreateAttempt:()=>"attempt",track:vi.fn(),resolveCreateAttempt:vi.fn(),fail:(message:string)=>{throw new Error(message);}};
+  await expect(docker.scenarios[1].run(ctx)).rejects.toThrow("create exit");
+  expect(abx).toHaveBeenCalledOnce();
+  expect(output, output).toContain("Build target or Provider implementation differs");
+  expect(output).not.toContain("omit SOURCE");
+  expect(readDeployment("docker-admission")).toMatchObject({effectsStarted:false,status:"requires_recovery"});
 });

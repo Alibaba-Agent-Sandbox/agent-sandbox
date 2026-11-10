@@ -25,7 +25,7 @@ import { type Command, type Context, type LazyEntry, type Params, group, option,
 import { OUTPUT_META_KEY, OutputManager, isCiEnv } from "./output.js";
 import { Choice } from "./types.js";
 
-import { GROUP_COMMANDS, SHORTCUTS } from "./command_surface.js";
+import { GROUP_COMMANDS, ROOT_COMMANDS } from "./command_surface.js";
 import { discoverProviderOperations, providerOperationsSummary } from "./provider_operations.js";
 
 const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
@@ -36,7 +36,7 @@ const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProper
 
 /** Command modules the root group loads lazily. A fixed map so the binary bundler includes every one. */
 const COMMAND_MODULES: Record<string, () => Promise<Record<string, unknown>>> = {
-  "commands/app": () => import("./commands/app.js"),
+  "commands/deployment_management": () => import("./commands/deployment_management.js"),
   "commands/sandbox": () => import("./commands/sandbox.js"),
   "commands/config_cmd": () => import("./commands/config_cmd.js"),
   "commands/mcp": () => import("./commands/mcp.js"),
@@ -107,32 +107,11 @@ export const VERSION: string = (() => {
 })();
 
 const ROOT_HELP = [
-  "abx — Agent Sandbox CLI",
-  "",
-  "Create, manage, and interact with cloud sandboxes.",
-  "",
-  "\b",
-  "Get started:",
-  "  abx config init               Set credentials and region (run first)",
-  "  abx create base               Create a sandbox",
-  "  abx exec SANDBOX -- CMD...    Run a command in it",
-  "",
-  "\b",
-  "Examples:",
-  "  abx list --state running",
-  "  abx template search python",
-  "  abx template scaffold --template python ./my-template",
-  "  abx deploy ./my-template",
-  '  abx create --prompt "DESCRIPTION" --help   Generation options',
-  "",
-  "Output flags: --json/--ci apply to native extensions, including --prompt.",
-  "Standard sandbox commands keep their own options; use abx list --format json",
-  "or abx info SANDBOX --format json. Check each command's --help.",
-  "",
+  "abx — Agent Sandbox CLI", "", "Deploy useful templates and manage their running instances.", "",
+  "Get started:", "  abx config init", "  abx deploy python-hello --name demo", "  abx status demo", "  abx delete demo", "",
+  "Author templates:", "  abx template list python", "  abx template init ./my-template --from python-hello", "  abx deploy ./my-template --name demo", "",
+  "Use --json for machine-readable output. --yes separately authorizes changes.",
   "More templates: https://registry.agent-sandbox.cn/templates/",
-  "",
-  "Every action has one canonical path (abx GROUP VERB); the shortcuts below are a",
-  "fixed set and cannot be changed in the configuration.",
 ].join("\n");
 
 /**
@@ -148,10 +127,10 @@ export const cli: Command = group("abx", {
   version: VERSION,
   lazy: {
     ...Object.fromEntries(Object.entries(GROUP_COMMANDS).map(([name, { spec, help }]) => [name, lazyEntry(spec, help, "Command groups:")])),
-    ...Object.fromEntries(Object.entries(SHORTCUTS).map(([name, { spec, target, help }]) => [name, lazyEntry(spec, `${help} (alias: abx ${target})`, "Sandbox shortcuts:")])),
+    ...Object.fromEntries(Object.entries(ROOT_COMMANDS).map(([name, { spec, help }]) => [name, lazyEntry(spec, help, "Commands:")])),
   },
   params: [
-    option(["--json", "-j", "output_json"], { is_flag: true, help: "JSON for native extensions (standard commands use their own --format option)" }),
+    option(["--json", "-j", "output_json"], { is_flag: true, help: "Machine-readable JSON output" }),
     option(["--quiet", "-q"], { is_flag: true, help: "Minimal output" }),
     option(["--verbose", "-v"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
     option(["--no-color"], { is_flag: true, help: "Disable colored output" }),
@@ -161,7 +140,7 @@ export const cli: Command = group("abx", {
       metavar: "LEVEL",
       help: "Set log level explicitly (DEBUG, INFO, WARNING, ERROR)",
     }),
-    option(["--ci"], { is_flag: true, help: "CI/CD output; explicitly authorize Express managed API-key creation/renewal" }),
+    option(["--ci"], { is_flag: true, help: "Machine-readable CI/CD output; does not authorize changes" }),
   ],
   callback: (ctx: Context, params: Params) => {
     // Auto-detect CI environment

@@ -1,0 +1,26 @@
+Usage: abx deploy [options] [SOURCE]
+
+Deploy a catalog template or local project. --name identifies the running
+instance. Use --template-id for a Provider-native template; --plan previews
+resources without building or deploying.
+
+Options:
+  --name <NAME>
+  --template-id <TEMPLATE_ID>
+  --build <BUILD>                  Reuse a template build artifact.
+  --plan
+  --bindings <BINDINGS>            Private application binding references JSON
+                                   file.
+  --build-profile <BUILD_PROFILE>
+  --build-timeout <FLOAT>
+  --sandbox-timeout <INTEGER>
+  --request-timeout <FLOAT>
+  --upload <UPLOAD>
+  --on-timeout <ON_TIMEOUT>        (choices: "pause", "kill")
+  --auto-resume
+  -e, --env <ENV>
+  -m, --metadata <METADATA>
+  --volume-mount <VOLUME_MOUNT>
+  -y, --yes
+  -h, --help                       Show this message and exit.
+[exit_code:0]

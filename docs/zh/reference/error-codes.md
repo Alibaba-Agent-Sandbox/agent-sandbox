@@ -43,18 +43,18 @@ except SandboxError as e:
 | E2002 | `QuotaExceededError` | 配额超限 | 销毁空闲沙箱或申请提升配额 | 运行中的沙箱数量超过账户配额 |
 | E2003 | `RegionUnavailableError` | 区域不可用 | 尝试其他区域或检查服务可用性 | 请求的区域暂时不可用或不存在 |
 | E2004 | `TemplateParseError` | 模板解析失败 | 修复 template.yaml（见校验错误）；能力不会被授予直到模板解析成功 | template.yaml 格式错误或字段无效 |
-| E2005 | `QwenCodeNotInstalledError` | 未安装 Qwen Code | 按 Quick Setup 安装官方 standalone（或 `abx config init`），或用 `abx create <名称> --detach` 跳过 模板生成 | `abx create --prompt "描述"` 且 PATH 与 `~/.abx/bin` 均无 Qwen Code，且用户拒绝安装或非 TTY 未传 `-y` |
+| E2005 | `QwenCodeNotInstalledError` | 未安装 Qwen Code | 按 Quick Setup 安装官方 standalone（或 `abx config init`），或用 `abx deploy --template-id <名称>` 跳过 模板生成 | `abx template init --prompt "描述"` 且 PATH 与 `~/.abx/bin` 均无 Qwen Code，且用户拒绝安装或非 TTY 未传 `-y` |
 | E2006 | `QwenCodeCredentialError` | Qwen Code 凭证缺失 | `abx config set llm_api_key <KEY>` 或 `abx config init`；也可导出 `DASHSCOPE_API_KEY`/`OPENAI_API_KEY` | 生成路径下 `llm_api_key`、环境变量与 `~/.qwen/settings.json` 均无可用凭证 |
-| E2007 | `AICodegenError` | 模板生成失败 | 查看保留的生成目录（`~/.abx/generated/<名称>`，或 `--dir` 指定位置下）后重试，或改用 `abx create <名称> --detach` | Qwen Code 生成失败/超时，或产出的 Dockerfile、template.yaml 缺失或未通过校验 |
-| E2008 | `DescriptionClarificationError` | 描述信息量不足以进行 模板生成 | 把建议中列出的缺失项（或示例描述）补进 `DESCRIPTION`；或传 `--yes`/`-y` 直接按当前描述生成；或改用 `abx create <名称> --detach` | Agent 自行检索可公开查证的事实后，描述完整度仍低于 80%（缺失的是用户偏好 / 私有约束 / 业务决策）且当前会话无法提问（非 TTY / CI 未传 `-y`），或交互式澄清被取消 / 中断（EOF） |
-| E2009 | `SandboxNotFoundError` | 不存在该 ID 的沙箱 | 运行 `abx list` 查看运行中的沙箱；已销毁或已过期的沙箱无法重新连接 | `abx info/connect/pause/resume/set-timeout`（以及所有需要连接沙箱的命令）使用平台返回 HTTP 404 的 ID；退出码 4（`abx kill` 仍保持幂等） |
+| E2007 | `AICodegenError` | 模板生成失败 | 查看保留的生成目录（`~/.abx/generated/<名称>`，或 `--dir` 指定位置下）后重试，或改用 `abx deploy --template-id <名称>` | Qwen Code 生成失败/超时，或产出的 Dockerfile、template.yaml 缺失或未通过校验 |
+| E2008 | `DescriptionClarificationError` | 描述信息量不足以进行 模板生成 | 把建议中列出的缺失项（或示例描述）补进 `DESCRIPTION`；或传 `--yes`/`-y` 直接按当前描述生成；或改用 `abx deploy --template-id <名称>` | Agent 自行检索可公开查证的事实后，描述完整度仍低于 80%（缺失的是用户偏好 / 私有约束 / 业务决策）且当前会话无法提问（非 TTY / CI 未传 `-y`），或交互式澄清被取消 / 中断（EOF） |
+| E2009 | `SandboxNotFoundError` | 不存在该 ID 的沙箱 | 运行 `abx list` 查看运行中的沙箱；已销毁或已过期的沙箱无法重新连接 | `abx status / sandbox connect / sandbox pause / sandbox resume`（以及所有需要连接沙箱的命令）使用平台返回 HTTP 404 的 ID；退出码 4（`abx delete` 仍保持幂等） |
 
 ### 排查步骤
 
 1. 确认模板名称正确（`abx template list`）
 2. 对于 E2002，检查 `abx list` 是否有大量闲置沙箱
 3. 对于 E2004，检查 template.yaml 的 YAML 语法和字段值
-4. 对于 E2005–E2008（生成路径），按输出中的 Quick Setup 操作；不想使用 模板生成时可显式传 `abx create <名称> --detach`。其中 E2008 需把缺失项（或示例描述）补进参数，或传 `-y` 跳过澄清直接生成
+4. 对于 E2005–E2008（生成路径），按输出中的 Quick Setup 操作；不想使用 模板生成时可显式传 `abx deploy --template-id <名称>`。其中 E2008 需把缺失项（或示例描述）补进参数，或传 `-y` 跳过澄清直接生成
 
 ---
 
@@ -67,8 +67,8 @@ except SandboxError as e:
 | E3002 | `ProcessError` | 进程非零退出码 | — | 命令返回非零退出码（携带 `exit_code`、`stdout`、`stderr` 属性） |
 | E3003 | `CodeExecutionError` | 代码执行失败 | 检查代码语法和运行时依赖 | Code Interpreter 执行代码失败 |
 | E3004 | `CapabilityNotSupportedError` | 能力未启用 | 在模板的 `capabilities` 列表中声明所需能力，或使用支持该能力的模板 | 调用了运行时门控能力但未声明（如在无 `code` 能力的模板上调用 `run_code()`）。也会在模板解析时由 `resolve_capabilities()` 抛出 |
-| E3005 | `CommandNotFoundError` | 具名命令未找到 | 用 `abx sandbox command list <SANDBOX_ID>` 列出已注册命令，并确认 SandboxServer 在运行 | `abx run <名称>` / `sandbox.run(name)` 从沙箱内 SandboxServer 注册表得到 HTTP 404。带 `command_name` 属性 |
-| E3006 | `EnvdRpcError` | envd 拒绝了 RPC 调用（HTTP >= 400） | 检查命令与参数，或用 `abx -v` 查看原始错误响应 | 沙箱 envd 返回 HTTP >= 400（例如未知可执行文件触发 `process.Process/Start` 500）。携带 `status_code`、`rpc_path`、`envd_error`（解析后的 JSON 体）与 `body_text`；消息不包含完整沙箱 URL。`abx connect` 会将其映射为单条友好提示（如 `Command not found: <cmd>`） |
+| E3005 | `CommandNotFoundError` | 具名命令未找到 | 用 `abx sandbox command list <SANDBOX_ID>` 列出已注册命令，并确认 SandboxServer 在运行 | `abx sandbox command run <名称>` / `sandbox.run(name)` 从沙箱内 SandboxServer 注册表得到 HTTP 404。带 `command_name` 属性 |
+| E3006 | `EnvdRpcError` | envd 拒绝了 RPC 调用（HTTP >= 400） | 检查命令与参数，或用 `abx -v` 查看原始错误响应 | 沙箱 envd 返回 HTTP >= 400（例如未知可执行文件触发 `process.Process/Start` 500）。携带 `status_code`、`rpc_path`、`envd_error`（解析后的 JSON 体）与 `body_text`；消息不包含完整沙箱 URL。`abx sandbox connect` 会将其映射为单条友好提示（如 `Command not found: <cmd>`） |
 
 ### E3004 详细说明
 
@@ -106,7 +106,7 @@ except CapabilityNotSupportedError as e:
 | 错误码 | 异常类 | 含义 | 建议 | 触发场景 |
 |--------|--------|------|------|----------|
 | E5000 | `NetworkError` | 网络错误（基类） | — | 网络连接相关通用错误 |
-| E5000 | `GitHubRateLimitError` | GitHub 匿名 API 限流（拉取模板时触发） | 执行 `abx config set github_token`（星号脱敏输入；交互终端下 CLI 会主动引导并只重试一次），CI 中注入 `GITHUB_TOKEN` | 未配置 token 时执行 `abx template install` / `abx install` / `abx template search` |
+| E5000 | `GitHubRateLimitError` | GitHub 匿名 API 限流（拉取模板时触发） | 执行 `abx config set github_token`（星号脱敏输入；交互终端下 CLI 会主动引导并只重试一次），CI 中注入 `GITHUB_TOKEN` | 未配置 token 时执行 `abx template init --from` / `abx template init --from` / `abx template list` |
 | E5001 | `ConnectionError_` | 连接失败 | 检查网络连通性和防火墙规则 | 无法连接到沙箱服务 |
 
 > **注意**：`ConnectionError_` 类名带下划线后缀，以避免遮蔽 Python 内置 `ConnectionError`。

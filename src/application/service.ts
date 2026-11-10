@@ -10,7 +10,7 @@ import { execute } from "./process.js";
 import { withApplicationLock } from "./lock.js";
 import { paths } from "../transport/config_layers.js";
 export { withApplicationLock } from "./lock.js";
-import type { ApplicationPlan, ApplicationReceipt, ApplicationTemplate, FunctionReceipt, OwnedServerImage, PreparedSandbox, Role } from "./types.js";
+import type { ApplicationPlan, ApplicationReceipt, FunctionReceipt, OwnedServerImage, PreparedSandbox, Role } from "./types.js";
 
 export interface ApplicationServices {
   fc: FcTransport;
@@ -24,17 +24,20 @@ export interface ApplicationServices {
   hooks?(phase: "beforeApply" | "afterReady", receipt: ApplicationReceipt, endpoint?: string, token?: string): Promise<void>;
 }
 const roles: Role[] = ["worker", "dispatcher", "gateway"];
-const appId = (template: ApplicationTemplate): string => template.name;
-function safeName(value: string): string { return value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+/, "").slice(0, 34) || "agents"; }
-export function createPlan(templateFile: string, buildFile: string, previousReceipt?: string): ApplicationPlan {
+export const applicationId = (plan: ApplicationPlan): string => plan.applicationId ?? plan.template.name;
+function safeName(value: string): string { return `${value.slice(0, 23)}-${digest(value).slice(0, 10)}`; }
+export function createPlan(templateFile: string, buildFile: string, previousReceipt?: string, name?: string, borrowedBuild = false): ApplicationPlan {
   const file = fs.realpathSync(templateFile), projectRoot = path.dirname(file), template = readTemplate(file), build = readBuild(buildFile);
   if (build.sourceDigest !== sourceDigest(projectRoot)) throw new ApplicationError("Source changed after build; build the current input before planning.");
+  if (borrowedBuild && build.lifecycleOwner) throw new ApplicationError("This build belongs to a deployment lifecycle. Create a reusable artifact with template build.");
+  const id = name ?? template.name;
+  if (!/^[a-z][a-z0-9-]{0,62}$/.test(id)) throw new ApplicationError("Application name must start with a lowercase letter and contain at most 63 lowercase letters, digits or hyphens.");
   const previous = previousReceipt ? readReceipt(previousReceipt) : undefined;
-  if (previous && (previous.status !== "ready" || previous.plan.template.name !== template.name || previous.plan.template.application.deployment.region !== template.application.deployment.region)) throw new ApplicationError("An update requires the ready receipt for this application and region.");
-  const revision = `rev-${randomBytes(10).toString("hex")}`, base = safeName(template.name);
-  const plan: ApplicationPlan = { schemaVersion: 2, kind: "ManagedApplicationPlan", operation: "apply", id: "", revision,
+  if (previous && (previous.status !== "ready" || applicationId(previous.plan) !== id || previous.plan.template.application.deployment.region !== template.application.deployment.region)) throw new ApplicationError("An update requires the ready receipt for this application and region.");
+  const revision = `rev-${randomBytes(10).toString("hex")}`, base = safeName(id);
+  const plan: ApplicationPlan = { schemaVersion: 2, kind: "ManagedApplicationPlan", applicationId: id, borrowedBuild, operation: "apply", id: "", revision,
     createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 24 * 3600000).toISOString(), projectRoot, templateFile: file,
-    sourceDigest: build.sourceDigest, template, image: build.image, toolchain: build.toolchain, buildReceipt: fs.realpathSync(buildFile), ...(build.ownedServerImage ? { ownedServerImage: build.ownedServerImage } : {}),
+    sourceDigest: build.sourceDigest, template, image: build.image, toolchain: build.toolchain, buildReceipt: fs.realpathSync(buildFile), ...(!borrowedBuild && build.ownedServerImage ? { ownedServerImage: build.ownedServerImage } : {}),
     identities: { gateway: previous?.plan.identities.gateway ?? `${base}-gateway`, worker: `${base}-worker-${revision.slice(4)}`, dispatcher: `${base}-dispatch-${revision.slice(4)}` },
     steps: [{ id: "sandbox-template", type: "sandbox-template", dependsOn: [] }, { id: "worker", type: "serverless-devs", dependsOn: ["sandbox-template"] },
       { id: "dispatcher", type: "serverless-devs", dependsOn: ["worker"] }, { id: "gateway", type: "serverless-devs", dependsOn: ["dispatcher"] },
@@ -44,12 +47,12 @@ export function createPlan(templateFile: string, buildFile: string, previousRece
 }
 export function createDestroyPlan(receiptFile: string): ApplicationPlan {
   const previous = readReceipt(receiptFile);
-  const plan: ApplicationPlan = { ...previous.plan, operation: "destroy", createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 86400000).toISOString(), previousReceipt: fs.realpathSync(receiptFile), previousDigest: digest(previous), id: "" };
+  const plan: ApplicationPlan = { ...previous.plan, applicationId: applicationId(previous.plan), operation: "destroy", createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 86400000).toISOString(), previousReceipt: fs.realpathSync(receiptFile), previousDigest: digest(previous), id: "" };
   plan.id = planId(plan); return plan;
 }
 export function readPlan(file: string): ApplicationPlan {
   const value: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
-  if (!record(value) || value.kind !== "ManagedApplicationPlan" || value.schemaVersion !== 2 || !["apply", "destroy"].includes(String(value.operation)) || typeof value.id !== "string" || planId(value as unknown as ApplicationPlan) !== value.id) throw new ApplicationError("Invalid or modified application plan.");
+  if (!record(value) || typeof value.applicationId !== "string" || value.kind !== "ManagedApplicationPlan" || value.schemaVersion !== 2 || !["apply", "destroy"].includes(String(value.operation)) || typeof value.id !== "string" || planId(value as unknown as ApplicationPlan) !== value.id) throw new ApplicationError("Invalid or modified application plan.");
   return value as unknown as ApplicationPlan;
 }
 export function readReceipt(file: string): ApplicationReceipt {
@@ -63,14 +66,14 @@ function assertPlan(plan: ApplicationPlan): void {
   if (Date.parse(plan.expiresAt) <= Date.now()) throw new ApplicationError("Application plan expired; compute a new plan.");
   verifyTools(plan.toolchain);
   if (plan.operation === "apply" && (sourceDigest(plan.projectRoot) !== plan.sourceDigest || digest(readTemplate(plan.templateFile)) !== digest(plan.template))) throw new ApplicationError("Frozen application source changed; build and plan again.");
-  if (plan.operation === "apply" && plan.buildReceipt) { const build = readBuild(plan.buildReceipt); if (build.image !== plan.image || digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null)) throw new ApplicationError("The frozen Server build identity changed; compute a fresh plan."); }
+  if (plan.operation === "apply" && plan.buildReceipt) { const build = readBuild(plan.buildReceipt); if (build.image !== plan.image || (!plan.borrowedBuild && digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null))) throw new ApplicationError("The frozen Server build identity changed; compute a fresh plan."); }
   if (plan.previousReceipt && digest(readReceipt(plan.previousReceipt)) !== plan.previousDigest) throw new ApplicationError("The previous receipt changed; compute a fresh plan.");
 }
 async function control(receipt: ApplicationReceipt, services: ApplicationServices, operation: "status" | "drain", revision?: string, controller?: FunctionReceipt): Promise<Record<string, unknown>> {
   const dispatcher = controller ?? receipt.functions.find(item => item.role === "dispatcher");
   if (!dispatcher) throw new ApplicationError("No confirmed dispatcher exists; retain unknown resources for reconciliation.");
   await inspectOwned(receipt, services, dispatcher);
-  const result = await services.fc.invokeControl(dispatcher.functionName, signInvocation("dispatcher", { operation, applicationId: appId(receipt.plan.template), ...(revision ? { revision } : {}), limit: 20 }, services.binding.internal.token));
+  const result = await services.fc.invokeControl(dispatcher.functionName, signInvocation("dispatcher", { operation, applicationId: applicationId(receipt.plan), ...(revision ? { revision } : {}), limit: 20 }, services.binding.internal.token));
   if (receipt.stateInstanceId && result.stateInstanceId !== receipt.stateInstanceId) throw new ApplicationError("Dispatcher state identity differs from the saved application ledger; cleanup was withheld.");
   return result;
 }
@@ -87,7 +90,7 @@ function validateBinding(plan: ApplicationPlan, services: ApplicationServices, p
 }
 function runtimeConfig(receipt: ApplicationReceipt, binding: ResolvedBindings): Record<string, unknown> {
   const app = receipt.plan.template.application;
-  return { revision: receipt.plan.revision, template: receipt.sandbox!.reference, models: { [binding.model.model]: binding.model.adapter }, applicationId: appId(receipt.plan.template), provider: app.sandbox.provider,
+  return { revision: receipt.plan.revision, template: receipt.sandbox!.reference, models: { [binding.model.model]: binding.model.adapter }, applicationId: applicationId(receipt.plan), provider: app.sandbox.provider,
     modelEnvAllowlist: app.bindings.model.allowedEnv,
     ...(receipt.stateInstanceId ? { expectedStateId: receipt.stateInstanceId } : {}),
     workspace: "/workspace", port: 9000, sessions: app.sessions, limits: app.limits, storage: Object.fromEntries(Object.entries(app.storage).filter(([key]) => key !== "backend")),
@@ -99,7 +102,7 @@ function propsFor(receipt: ApplicationReceipt, services: ApplicationServices, ro
   const bytes = Object.entries(environmentVariables).reduce((size, [key, value]) => size + Buffer.byteLength(key, "utf8") + Buffer.byteLength(value, "utf8"), 0);
   if (bytes > 4096) throw new ApplicationError("FC bootstrap environment exceeds 4 KiB; reduce the role's resolved configuration before deployment.");
   const image = plan.ownedServerImage?.localTag ?? plan.image;
-  return { functionName: plan.identities[role], description: `Agent Sandbox ${appId(plan.template)} ${plan.revision} ${receipt.operationId}`,
+  return { functionName: plan.identities[role], description: `Agent Sandbox ${applicationId(plan)} ${plan.revision} ${receipt.operationId}`,
     runtime: "custom-container", cpu: role === "gateway" ? 1 : 2, memorySize: role === "gateway" ? 1024 : 2048, diskSize: 512, internetAccess: true, timeout: role === "worker" ? 86400 : 120,
     role: binding.internal.roleArn, customContainerConfig: { image, port: 9000, entrypoint: ["python", "-m", "agent_sandbox.managed_agents"],
       command: [role, ...(binding.databaseCa ? ["--database-ca-base64", ...Buffer.from(binding.databaseCa, "utf8").toString("base64").match(/.{1,1920}/g)!] : [])] },
@@ -219,9 +222,11 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
       // CLI holds app lock first. The common build lock prevents clean-build racing this admission.
       await withApplicationLock(path.join(paths.abxDir, "build-locks"), fs.realpathSync(plan.buildReceipt), async () => {
         const build = readBuild(plan.buildReceipt!);
-        if (build.image !== plan.image || digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null)) throw new ApplicationError("Server build ownership changed before application admission.");
+        if (build.image !== plan.image || (!plan.borrowedBuild && digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null))) throw new ApplicationError("Server build ownership changed before application admission.");
+        if (plan.borrowedBuild && build.lifecycleOwner) throw new ApplicationError("Build is owned by another deployment lifecycle.");
+        if (!plan.borrowedBuild) { if (build.usedBy?.some(item => item.applicationId !== applicationId(plan))) throw new ApplicationError("Build already has another consumer; ownership cannot be transferred."); build.lifecycleOwner = applicationId(plan); }
         build.usedBy ??= [];
-        if (!build.usedBy.some(item => item.applicationId === appId(plan.template) && item.revision === plan.revision)) build.usedBy.push({ applicationId: appId(plan.template), revision: plan.revision });
+        if (!build.usedBy.some(item => item.applicationId === applicationId(plan) && item.revision === plan.revision)) build.usedBy.push({ applicationId: applicationId(plan), revision: plan.revision });
         writeJson(plan.buildReceipt!, build);
       });
     }
@@ -330,7 +335,7 @@ export async function observeReceipt(receipt: ApplicationReceipt, services: Appl
   return { ...publicSummary(receipt, file), resources, ...(activity ? { activity } : {}) };
 }
 export function publicSummary(receipt: ApplicationReceipt, file?: string): Record<string, unknown> {
-  return { application_id: appId(receipt.plan.template), revision: receipt.plan.revision, status: receipt.status, phase: receipt.phase,
+  return { application_id: applicationId(receipt.plan), revision: receipt.plan.revision, status: receipt.status, phase: receipt.phase,
     ...(file ? { receipt_file: path.resolve(file) } : {}), ...(receipt.endpoint ? { endpoint: receipt.endpoint } : {}),
     ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}), retained_revisions: receipt.retained.map(item => item.revision),
     retained_build_artifacts: receipt.sandbox?.resources.filter(item => item.kind === "image" && item.cleanup === "manual" && item.state !== "deleted") ?? [],
@@ -381,6 +386,7 @@ export async function retireRevision(receipt: ApplicationReceipt, revision: stri
     if (!receipt.retainedImages.some(image => image.localTag === historical.plan.ownedServerImage!.localTag)) receipt.retainedImages.push(historical.plan.ownedServerImage);
   }
   if (failed) throw new ApplicationError("Retirement cleanup remains unconfirmed; the retained revision and successful progress were saved for retry.");
+  await releaseBorrowedBuild(historical);
   receipt.retained = receipt.retained.filter(item => item.revision !== revision); receipt.phase = "ready"; save(file, receipt); return receipt;
 }
 function findHistorical(receipt: ApplicationReceipt, revision: string): ApplicationReceipt {
@@ -455,6 +461,7 @@ export async function destroyPlan(plan: ApplicationPlan, services: ApplicationSe
   });
   if (failed) { receipt.status = "requires_reconcile"; save(file, receipt); throw new ApplicationError("Some owned resources could not be confirmed absent; successful cleanup was retained. Reconcile and prepare a fresh destruction plan."); }
   receipt.cleanup.forEach(item => { item.status = "confirmed"; }); if (receipt.sandbox) receipt.sandbox.resources.forEach(item => { if (item.kind === "template") item.state = "deleted"; });
+  for (const item of history) await releaseBorrowedBuild(item);
   receipt.retained = []; receipt.status = "destroyed"; receipt.phase = "destroyed"; save(file, receipt); return receipt;
 }
 /** Host hook protocol: file IDs are fixed; diagnostics never include unfiltered child output. */
@@ -464,7 +471,7 @@ export async function runHooks(phase: "beforeApply" | "afterReady", receipt: App
     if (hook.type !== "custom") continue;
     const directory = fs.mkdtempSync(path.join(receipt.plan.projectRoot, ".abx", "hook-"));
     const context = path.join(directory, "context.json"), result = path.join(directory, "result.json");
-    writeJson(context, { schemaVersion: 1, hookId: hook.id, phase, applicationId: appId(receipt.plan.template), revision: receipt.plan.revision, operationId: receipt.operationId, planId: receipt.plan.id, inputDirectory: receipt.plan.projectRoot, resources: receipt.functions.map(item => ({ role: item.role, functionName: item.functionName })) });
+    writeJson(context, { schemaVersion: 1, hookId: hook.id, phase, applicationId: applicationId(receipt.plan), revision: receipt.plan.revision, operationId: receipt.operationId, planId: receipt.plan.id, inputDirectory: receipt.plan.projectRoot, resources: receipt.functions.map(item => ({ role: item.role, functionName: item.functionName })) });
     const env: Record<string, string> = {};
     for (const key of ["PATH", "SystemRoot", "WINDIR", "TEMP", "TMP", "LANG", "LC_ALL", ...(hook.envAllowlist ?? [])]) if (process.env[key]) env[key] = process.env[key]!;
     Object.assign(env, { ABX_HOOK_CONTEXT_FILE: context, ABX_HOOK_RESULT_FILE: result, ...(endpoint ? { ABX_CANDIDATE_ENDPOINT: endpoint } : {}), ...(token ? { ABX_CANDIDATE_TOKEN: token } : {}) });
@@ -475,4 +482,15 @@ export async function runHooks(phase: "beforeApply" | "afterReady", receipt: App
     } catch { throw new ApplicationError(`Application hook '${hook.id}' did not confirm success; raw diagnostics were withheld.`); }
     finally { fs.rmSync(directory, { recursive: true, force: true }); }
   }
+}
+
+/** Borrowed author builds remain independently cleanable after their consumers are gone. */
+async function releaseBorrowedBuild(receipt: ApplicationReceipt): Promise<void> {
+  if (!receipt.plan.borrowedBuild || !receipt.plan.buildReceipt) return;
+  const file = fs.realpathSync(receipt.plan.buildReceipt);
+  await withApplicationLock(path.join(paths.abxDir, "build-locks"), file, async () => {
+    const build = readBuild(file);
+    build.usedBy = (build.usedBy ?? []).filter(item => item.applicationId !== applicationId(receipt.plan) || item.revision !== receipt.plan.revision);
+    writeJson(file, build);
+  });
 }

@@ -241,7 +241,7 @@ abx config set region cn-hangzhou
 
 # 4. 选择接口
 abx mcp install --target cursor   # 对话类 Agent 用 MCP（或 --target claude / vscode）
-abx exec <sandbox-id> -- echo hi   # 脚本用 CLI
+abx sandbox exec <sandbox-id> -- echo hi   # 脚本用 CLI
 ```
 
 - **凭证规则**——绝不把真实密钥写进 Skill、仓库、聊天消息或沙箱文件；完整规则见 `SKILL.md` 的 "Credentials and security"。

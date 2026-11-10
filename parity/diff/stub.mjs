@@ -151,6 +151,11 @@ export function startStub({ port = 0 } = {}) {
       if (m === 'GET') return json(res, 200, withEnvd(s));
       if (m === 'DELETE') { delete world.sandboxes[mm[1]]; res.writeHead(204); return res.end(); }
     }
+    mm = /^\/sandboxes\/([^/]+)\/connect$/.exec(path);
+    if (mm && m === 'POST') {
+      const sandbox = world.sandboxes[mm[1]];
+      return sandbox ? json(res, 200, withEnvd(sandbox)) : json(res, 404, { code: 404, message: 'sandbox not found' });
+    }
     mm = /^\/sandboxes\/([^/]+)\/(timeout|pause|resume|refreshes)$/.exec(path);
     if (mm) { res.writeHead(204); return res.end(); }
     if (path === '/templates' && m === 'GET') return json(res, 200, world.templates);

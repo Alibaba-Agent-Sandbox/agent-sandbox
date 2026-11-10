@@ -6,6 +6,13 @@ const path = require("node:path");
 const {createRequire} = require("node:module");
 const request = JSON.parse(fs.readFileSync(0, "utf8"));
 let logCount = 0;
+const logs = []; let logBytes = 0;
+if (request.command === "logs") console.log = (...values) => {
+  const line = values.map(value => typeof value === "string" ? value : JSON.stringify(value)).join(" ");
+  logBytes += Buffer.byteLength(line);
+  if (logs.length >= 10000 || logBytes > 1024 * 1024) throw new Error("Log output exceeds capture limit");
+  logs.push(line.replace(/\x1b\[[0-9;]*m/g, ""));
+};
 let stage = "load", credentialRequests = 0;
 const noop = () => { logCount += 1; };
 const progress = new Proxy({}, {get: () => noop});
@@ -22,7 +29,7 @@ const write = value => fs.writeFileSync(3, JSON.stringify(value));
     write({componentPath: instance.__path, version: String(instance.__version || ""), logCount});
     return;
   }
-  if (!["deploy", "info", "remove"].includes(request.command)) throw new Error("Unsupported lifecycle method");
+  if (!["deploy", "info", "remove", "logs"].includes(request.command) || typeof instance[request.command] !== "function") throw new Error("Unsupported lifecycle method");
   stage = "invoke";
   const input = {
     cwd: request.cwd, name: request.name, props: request.props, command: request.command,
@@ -32,7 +39,7 @@ const write = value => fs.writeFileSync(3, JSON.stringify(value));
     getCredential: async () => { credentialRequests += 1; return {...request.credential}; },
   };
   const result = await instance[request.command](input);
-  write({result, logCount});
+  write({result, logCount, ...(request.command === "logs" ? {logs} : {})});
 })().catch(error => { write({error: "Component operation failed; raw output withheld.", stage, credentialRequests,
   ...(typeof error.code === "string" && /^[A-Za-z0-9_.]{1,80}$/.test(error.code) ? {code:error.code} : {})}); });
 `;

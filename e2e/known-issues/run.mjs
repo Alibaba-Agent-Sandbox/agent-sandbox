@@ -34,7 +34,7 @@ if (!hasCloudCredentials(creds)) {
 }
 
 const TEMPLATE = process.env.ABX_E2E_TEMPLATE || 'base';
-const bin = [...parseBin(process.env.ABX_BIN || 'abx'), '--native', '--provider', 'alicloud-express'];
+const bin = [...parseBin(process.env.ABX_BIN || 'abx'), '--provider', 'alicloud-express'];
 const runId = `ki-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${Math.random().toString(16).slice(2, 8)}`;
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'abx-e2e-ki-')));
 const home = join(root, 'home');
@@ -74,7 +74,7 @@ const excerpt = (s, n = 300) => mask(String(s)).replace(/\s+/g, ' ').slice(0, n)
 
 async function killTracked() {
   for (const id of [...tracked]) {
-    const r = await runBinary({ bin, argv: ['kill', id, '--yes'], env, cwd: root, timeoutMs: 90_000 });
+    const r = await runBinary({ bin, argv: ["delete", id, '--yes'], env, cwd: root, timeoutMs: 90_000 });
     if (r.code === 0 || /not found|404|E2009/i.test(r.stdout + r.stderr)) tracked.delete(id);
   }
   persist();
@@ -94,7 +94,8 @@ async function listIds() {
   const r = await abx(['--json', 'list']);
   must(r.code === 0, `list failed: ${excerpt(r.text)}`);
   const j = r.json();
-  return new Set(Array.isArray(j) ? j.map((s) => s.ID) : []);
+  must(Array.isArray(j.items) && j.partial === false, "list must return a complete items envelope");
+  return new Set(j.items.filter(s => s.observation === "remote").map((s) => s.sandbox_id).filter(Boolean));
 }
 
 let sdk = null;
@@ -167,12 +168,12 @@ scenario('ki005-stat-missing-file', 'KI-005', 'files stat of a missing path: exi
 });
 
 scenario('ki005-download-missing-file', 'KI-005', 'download of a missing remote file: exit 4, E4001, nothing written', async () => {
-  const r = await abx(['download', state.id, `${state.dir}/zzz-missing`, join(root, 'out.bin')]);
+  const r = await abx(["sandbox", 'download', state.id, `${state.dir}/zzz-missing`, join(root, 'out.bin')]);
   must(r.code === 4 && r.text.includes('E4001'), `exit ${r.code}: ${excerpt(r.text)}`);
 });
 
 scenario('ki005-missing-sandbox', 'KI-005', 'info/exec of a missing sandbox: exit 4, E2009', async () => {
-  for (const argv of [['info', 'sbx-doesnotexist00000'], ['exec', 'sbx-doesnotexist00000', 'true']]) {
+  for (const argv of [["status", 'sbx-doesnotexist00000'], ["sandbox", 'exec', 'sbx-doesnotexist00000', 'true']]) {
     const r = await abx(argv);
     must(r.code === 4 && r.text.includes('E2009'), `${argv[0]}: exit ${r.code}: ${excerpt(r.text)}`);
   }
@@ -180,11 +181,11 @@ scenario('ki005-missing-sandbox', 'KI-005', 'info/exec of a missing sandbox: exi
 
 // KI-006 authentication
 scenario('ki006-bad-api-key', 'KI-006', 'wrong API key: exit 3, E1001 (list and create)', async () => {
-  const bad = { E2B_API_KEY: 'e2e-invalid-key-0000000000000000' };
+  const bad = { ABX_SANDBOX_API_KEY: 'e2e-invalid-key-0000000000000000' };
   const list = await abx(['list'], { env: bad });
   must(list.code === 3 && list.text.includes('E1001'), `list: exit ${list.code}: ${excerpt(list.text)}`);
-  must(!list.text.includes(bad.E2B_API_KEY), 'the key leaked into the output');
-  const create = await abx(['create', TEMPLATE], { env: bad });
+  must(!list.text.includes(bad.ABX_SANDBOX_API_KEY), 'the key leaked into the output');
+  const create = await abx(["deploy", "--template-id", TEMPLATE, "--yes"], { env: bad });
   must(create.code === 3 && create.text.includes('E1001'), `create: exit ${create.code}: ${excerpt(create.text)}`);
 });
 
@@ -201,7 +202,7 @@ scenario('ki003-sdk-timeout-kills-the-process', 'KI-003', 'run("sleep 113", time
 });
 
 scenario('ki003-cli-exec-timeout', 'KI-003', 'native Express exec --timeout 3: exit 5, E3001, total deadline, process gone', async () => {
-  const r = await abx(['--json', 'exec', state.id, 'sleep 114', '--timeout', '3']);
+  const r = await abx(["--json", "sandbox", "exec", "--timeout", "3", state.id, "sleep 114"]);
   must(r.code === 5 && r.json().code === 'E3001' && r.ms < 30_000, `exit ${r.code}: ${excerpt(r.text)}`);
   const alive = await state.sb.commands.run(`sh -c 'ps -eo args | grep -c "^sleep 114" || true'`);
   must(alive.stdout.trim() === '0', `sleep 114 still running (${alive.stdout.trim()})`);
@@ -274,9 +275,9 @@ async function main() {
   let exitCode = 0;
   try {
     before = await listIds();
-    const create = await abx(['--json', 'create', TEMPLATE, '--timeout', '900'], { timeoutMs: 240_000 });
+    const create = await abx(['--json', "deploy", "--template-id", TEMPLATE, "--sandbox-timeout", '900', "--yes"], { timeoutMs: 240_000 });
     must(create.code === 0, `create failed (exit ${create.code}): ${excerpt(create.text)}`);
-    state.id = create.json().ID;
+    state.id = create.json().sandbox_id;
     tracked.add(state.id);
     persist();
     console.log(`  sandbox: ${state.id.slice(0, 8)}... (tracked, killed at the end)`);

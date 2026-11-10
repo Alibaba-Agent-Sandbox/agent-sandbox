@@ -1,5 +1,5 @@
 /**
- * `abx template build --build` selects one publish path.
+ * The retained native Express adapter selects platform steps or a local image build.
  */
 
 import "../_support/isolatedHome.js";
@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import { templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
-import { cli } from "../../src/cli/main.js";
+import { providerTemplateCli as cli } from "../helpers/providerTemplateCli.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { patchLoadConfig, patchOfficialApi, setenv, spyAny, useTmpPath, writeText } from "../helpers/templateSupport.js";
 

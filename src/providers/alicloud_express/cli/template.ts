@@ -6,7 +6,7 @@ import { withGuidedConfiguration, canGuideConfiguration, type GuidanceField } fr
 import { getOperationConfig } from "../../../utils/operation_config.js";
 import { templateUi } from "./metadata.js";
 export { _installParams, _GITHUB_TOKEN_HELP } from "./metadata.js";
-import { _printInitSummary, _GITHUB_TOKEN_HELP, _configCmd, _withGithubRateLimitRetry, usageError, _lazyModule, _isNlDescription, _findTemplateYaml, _selectScaffoldCase, _codePointCompare, _LAZY_MODULES, _githubRateLimitSetupAvailable, _offerGithubTokenSetup, _tryArrowCasePicker, _scaffoldPickerAvailable, pyStrip, templateSeams as catalogSeams, search, init } from "../../../cli/template_catalog.js";
+import { _printInitSummary, _GITHUB_TOKEN_HELP, _configCmd, _withGithubRateLimitRetry, usageError, _lazyModule, _isNlDescription, _findTemplateYaml, _selectScaffoldCase, _codePointCompare, _LAZY_MODULES, _githubRateLimitSetupAvailable, _offerGithubTokenSetup, _tryArrowCasePicker, _scaffoldPickerAvailable, pyStrip, templateSeams as catalogSeams, init } from "../../../cli/template_catalog.js";
 export * from "../../../cli/template_catalog.js";
 /**
  * Template management CLI commands (`abx template ...`; `abx deploy` is the top-level shortcut of `template deploy`).
@@ -1571,5 +1571,4 @@ export const delete_ = template.command("delete", {
         });
     }),
 });
-template.addCommand(search);
 template.addCommand(init);

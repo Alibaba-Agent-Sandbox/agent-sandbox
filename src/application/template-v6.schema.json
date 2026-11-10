@@ -267,8 +267,7 @@
         }
       },
       "required": [
-        "reference",
-        "targets"
+        "reference"
       ]
     },
     "hooks": {
@@ -379,13 +378,7 @@
             "explicitQueue": {
               "const": true
             }
-          },
-          "required": [
-            "protocol",
-            "compatibility",
-            "busyInputPolicy",
-            "explicitQueue"
-          ]
+          }
         },
         "runtime": {
           "type": "object",
@@ -400,12 +393,7 @@
             "profile": {
               "const": "managed-bridge-v1"
             }
-          },
-          "required": [
-            "placement",
-            "driver",
-            "profile"
-          ]
+          }
         },
         "gateway": {
           "type": "object",
@@ -414,10 +402,7 @@
             "placement": {
               "const": "fc-web"
             }
-          },
-          "required": [
-            "placement"
-          ]
+          }
         },
         "sandbox": {
           "type": "object",
@@ -456,10 +441,7 @@
             }
           },
           "required": [
-            "provider",
-            "lifetime",
-            "workspace",
-            "requiredFeatures"
+            "provider"
           ]
         },
         "sessions": {
@@ -509,11 +491,7 @@
             "maxLogicalSessionsPerOwner",
             "maxActiveSessions",
             "maxQueuedTurnsPerSession",
-            "maxConcurrentTurnsPerSession",
-            "resultRetentionSeconds",
-            "closePolicy",
-            "deletePolicy",
-            "guestRestartPolicy"
+            "resultRetentionSeconds"
           ]
         },
         "state": {
@@ -528,7 +506,6 @@
             }
           },
           "required": [
-            "profile",
             "bindingRef"
           ]
         },
@@ -557,7 +534,6 @@
             }
           },
           "required": [
-            "backend",
             "maxFileBytes",
             "maxArtifactBytes",
             "maxTurnArtifactBytes",
@@ -679,8 +655,7 @@
             "accessRef",
             "region",
             "component",
-            "ingressBindingRef",
-            "revisionStrategy"
+            "ingressBindingRef"
           ],
           "oneOf": [
             {
@@ -737,25 +712,17 @@
             "protocol": {
               "const": "agent-sandbox-managed-agents/v1"
             }
-          },
-          "required": [
-            "endpoint",
-            "protocol"
-          ]
+          }
         }
       },
       "required": [
-        "api",
-        "runtime",
-        "gateway",
         "sandbox",
         "sessions",
         "state",
         "storage",
         "bindings",
         "limits",
-        "deployment",
-        "outputs"
+        "deployment"
       ]
     }
   },

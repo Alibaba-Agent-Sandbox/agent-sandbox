@@ -36,40 +36,23 @@ async function abx(...args: string[]): Promise<{ code: number; out: string; err:
 const installLocal = (): Promise<unknown> => installer.install(LOCAL_PROCESS, { yes: true, hostVersion: TEST_HOST_VERSION });
 
 describe("template commands honour the active provider", () => {
-  const cases: Array<[string, string[]]> = [
-    ["build", ["template", "build", "."]],
-    ["deploy", ["template", "deploy", "."]],
-    ["deploy shortcut", ["deploy", "."]],
-    ["push", ["template", "push", "registry.example/ns/img:1"]],
-    ["create", ["template", "from-image", "registry.example/ns/img:1", "--name", "t"]],
-    ["install", ["template", "install", "owner/repo"]],
-    ["delete", ["template", "delete", "tpl-1", "--yes"]],
-    ["list", ["template", "list"]],
-    ["info", ["template", "info", "tpl-1"]],
-  ];
-
-  for (const [name, args] of cases) {
-    it(`test_${name.replace(" ", "_")}_answers_e8004_on_a_provider_without_templates`, async () => {
+  for (const operation of ["template.list", "template.get", "template.create", "template.delete"]) {
+    it(`does not expose Express ${operation} for an unrelated provider`, async () => {
       await installLocal();
-      const r = await abx("--provider", "local-process", ...args);
-      const text = r.err + r.out;
-      expect(text).toContain("E8004");
-      expect(text).toContain("local-process");
-      expect(text).toMatch(/templates\.(read|build)/);
-      expect(r.code).toBe(1);
+      const result = await abx("--provider", "local-process", "provider", "run", operation);
+      expect(result.code).toBe(2); expect(result.err + result.out).toContain("No such command");
     });
   }
-
-  it("test_the_configured_default_provider_is_honoured_too", async () => {
+  it("the configured default provider does not inherit Express commands", async () => {
     await installLocal();
-    expect((await abx("provider", "default", "local-process")).code).toBe(0);
-    const r = await abx("template", "list");
-    expect(r.err + r.out).toContain("E8004");
+    expect((await abx("config", "set", "provider", "local-process")).code).toBe(0);
+    const result = await abx("provider", "run", "template.list");
+    expect(result.code).toBe(2); expect(result.err + result.out).toContain("No such command");
   });
 
   it("test_download_only_install_needs_no_provider_feature", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "template", "install", path.join(tmp, "missing"), "--download-only");
+    const r = await abx("--provider", "local-process", "template", "init", "output", "--from", path.join(tmp, "missing"));
     expect(r.err + r.out).not.toContain("E8004");
   });
 });
@@ -77,9 +60,9 @@ describe("template commands honour the active provider", () => {
 describe.skipIf(!hasPython)("a plugin sandbox", () => {
   async function createSandbox(): Promise<string> {
     await installLocal();
-    const created = await abx("--json", "--provider", "local-process", "create", "--template", "base");
+    const created = await abx("--json", "--provider", "local-process", "deploy", "--yes", "--template-id", "base");
     expect(created.code, created.err).toBe(0);
-    return JSON.parse(created.out).ID as string;
+    return JSON.parse(created.out).sandbox_id as string;
   }
 
   it("test_named_commands_answer_e8004_not_an_untyped_crash", async () => {
@@ -105,13 +88,13 @@ describe.skipIf(!hasPython)("a plugin sandbox", () => {
 
   it("test_info_has_no_builtin_region_or_timeout_defaults", async () => {
     const sid = await createSandbox();
-    const r = await abx("--json", "--provider", "local-process", "info", sid);
+    const r = await abx("--json", "--provider", "local-process", "status", sid);
     expect(r.code, r.err).toBe(0);
     const doc = JSON.parse(r.out);
-    expect(doc.Region).toBe("-");
-    expect(doc.Timeout).toBe("-");
+    expect(doc.region).toBe("");
+    expect(doc.timeout).toBe(0);
     const listed = await abx("--provider", "local-process", "list");
     expect(listed.out).not.toContain("cn-hangzhou");
-    expect(listed.out).toMatch(/\s-$/m);
+    expect(listed.out).toContain("local-process");
   });
 });

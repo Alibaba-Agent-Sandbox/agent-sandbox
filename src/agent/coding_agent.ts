@@ -1,5 +1,5 @@
 /**
- * Pluggable coding-agent backend boundary for `abx create --prompt "<description>"`.
+ * Pluggable coding-agent backend boundary for `abx template init --prompt "<description>"`.
  *
  * Port of `agent_sandbox/agent/coding_agent.py`. The natural-language create path drives a *coding agent* on the host
  * to turn one free-form description into a Dockerfile + `template.yaml` (and, for interactive sessions, to assess the
@@ -70,7 +70,7 @@ export interface CodingAgentCredentials {
 export type CreationErrorClass = new (message: string, options?: { suggestion?: string | null }) => SandboxCreationError;
 
 /**
- * What `abx create --prompt "<description>"` needs from a coding agent.
+ * What `abx template init --prompt "<description>"` needs from a coding agent.
  *
  * The interface covers the five phases the create pipeline runs before deployment: locating/installing the agent,
  * resolving model credentials, researching the public facts behind the description ({@link research}), completing
@@ -123,7 +123,7 @@ export interface CodingAgentBackend {
    *
    * The clarification phase and the generation run share this directory: native agent sessions are keyed by the
    * working directory, so both phases must use the same `cwd` for the session pair (`--session-id` / `--resume`) to
-   * line up. `baseDir` is the **parent** directory (`abx create --dir`); a fresh `<slug>-<timestamp>-<token>`
+   * line up. `baseDir` is the **parent** directory (`generation workspace parent`); a fresh `<slug>-<timestamp>-<token>`
    * subdirectory is created inside it. `null`/omitted selects the backend's default location (`~/.abx/generated`).
    */
   prepareWorkdir(description: string, opts?: { baseDir?: string | null }): MaybePromise<[string, string]>;
@@ -193,7 +193,7 @@ export interface CodingAgentBackend {
   /**
    * Run `prompt` in `workdir` and return the agent's final text.
    *
-   * Used by `abx template scaffold --adopt`. The backend does not validate or write into the user's project; the caller
+   * Used by `abx template init --adopt`. The backend does not validate or write into the user's project; the caller
    * does. The child environment must not inherit cloud credentials.
    */
   runInWorkspace(
@@ -236,8 +236,8 @@ export class QwenCodeBackend implements CodingAgentBackend {
       lines.push(
         `  1. Install the ${this.displayName} CLI (official standalone build):`,
         `       ${qwenCode.seams.officialInstallCommand()}`,
-        "     or re-run 'abx create --prompt \"<description>\"' and accept the install prompt",
-        "     or bypass template generation with:  abx create base",
+        "     or re-run 'abx template init --prompt \"<description>\"' and accept the install prompt",
+        "     or bypass template generation with:  abx deploy --template-id base --name my-sandbox",
       );
     } else {
       lines.push(

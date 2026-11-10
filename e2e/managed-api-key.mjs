@@ -38,7 +38,7 @@ try:
                     raise
                 chunk = b""
             terminal.extend(chunk)
-        if not answered and b"Continue?" in terminal:
+        if not answered and b"Run 'api-key.prepare'" in terminal:
             os.write(master, (answer + "\n").encode())
             answered = True
     assert answered, "Managed-key confirmation prompt was not shown"
@@ -88,47 +88,48 @@ function terminal(answer, args) {
   return JSON.parse(result.stdout);
 }
 try {
-  const denied = execute(["sandbox", "list", "--format", "json"]);
+  const denied = execute(["--json", "provider", "run", "api-key.prepare"]);
   assert.notEqual(denied.status, 0);
-  assert.match(denied.stderr, /requires confirmation/);
-  assert.equal(fs.readdirSync(path.join(home, ".abx", "credentials", "alicloud-express")).length, 0);
+  assert.match(denied.stdout + denied.stderr, /requires --yes/);
+  assert.ok(!fs.existsSync(path.join(home, ".abx", "credentials", "alicloud-express")) || fs.readdirSync(path.join(home, ".abx", "credentials", "alicloud-express")).length === 0);
   console.log("PASS: no credential creation without consent");
   if (process.platform !== "win32") {
-    const declined = terminal("n", ["sandbox", "list"]);
+    const declined = terminal("n", ["provider", "run", "api-key.prepare"]);
     assert.notEqual(declined.status, 0);
-    assert.equal(fs.readdirSync(path.join(home, ".abx", "credentials", "alicloud-express")).length, 0);
+    assert.ok(!fs.existsSync(path.join(home, ".abx", "credentials", "alicloud-express")) || fs.readdirSync(path.join(home, ".abx", "credentials", "alicloud-express")).length === 0);
     console.log("PASS: declining a real terminal confirmation does not create a key");
   }
-  const prepared = succeeds(["--ci", "sandbox", "list", "--format", "json"]);
+  const ciDenied = execute(["--ci", "provider", "run", "api-key.prepare"]);
+  assert.notEqual(ciDenied.status, 0); assert.match(ciDenied.stdout + ciDenied.stderr, /requires --yes/);
+  const prepared = succeeds(["--json", "provider", "run", "api-key.prepare", "--yes"]);
   JSON.parse(prepared.stdout);
-  assert.match(prepared.stderr, /--ci authorized/);
+  assert.ok(!prepared.stderr.includes("--ci authorized"));
   const directory = path.join(home, ".abx", "credentials", "alicloud-express");
   const files = fs.readdirSync(directory).filter(file => file.endsWith(".json"));
   assert.equal(files.length, 1); recordFile = path.join(directory, files[0]);
   record = JSON.parse(fs.readFileSync(recordFile, "utf8"));
   assert.equal(record.state, "ready");
   if (process.platform !== "win32") assert.equal(fs.statSync(recordFile).mode & 0o777, 0o600);
-  succeeds(["sandbox", "list", "--format", "json"]);
+  succeeds(["--json", "list"]);
   assert.equal(fs.readdirSync(directory).filter(file => file.endsWith(".json")).length, 1);
-  console.log("PASS: explicit CI preparation, private storage and reuse across processes");
-  const created = succeeds(["sandbox", "create", "base", "--detach", "--timeout", "120"]);
-  ownedSandbox = created.stdout.trim(); assert.match(ownedSandbox, /^[A-Za-z0-9_-]+$/);
+  console.log("PASS: explicit preparation consent, private storage and reuse across processes");
+  const created = succeeds(["--json", "deploy", "--template-id", "base", "--sandbox-timeout", "120", "--yes"]);
+  ownedSandbox = JSON.parse(created.stdout).sandbox_id; assert.match(ownedSandbox, /^[A-Za-z0-9_-]+$/);
   assert.equal(succeeds(["sandbox", "exec", ownedSandbox, "echo", "managed-auth-ok"]).stdout.trim(), "managed-auth-ok");
-  succeeds(["sandbox", "kill", ownedSandbox]);
+  succeeds(["delete", ownedSandbox, "--yes"]);
   const absent = await fetch(`${childEnv.ABX_SANDBOX_BASE_URL}/sandboxes/${ownedSandbox}`, { headers: { "X-API-Key": record.api_key_value } });
   assert.equal(absent.status, 404); ownedSandbox = undefined;
   console.log("PASS: real sandbox create, command execution, kill and independent absence readback");
   await client.updateApiKey(record.api_key_id, new sdk.UpdateApiKeyRequest({ body: new sdk.UpdateApiKeyInput({ expireTime: new Date(Date.now() + 3600_000).toISOString() }) }));
-  const renewal = execute(["sandbox", "list", "--format", "json"]);
-  assert.notEqual(renewal.status, 0); assert.match(renewal.stderr, /renewal requires confirmation/);
+  const renewal = execute(["--json", "provider", "run", "api-key.prepare"]);
+  assert.notEqual(renewal.status, 0); assert.match(renewal.stdout + renewal.stderr, /requires --yes/);
   if (process.platform !== "win32") {
-    const confirmed = terminal("y", ["sandbox", "list"]);
+    const confirmed = terminal("y", ["provider", "run", "api-key.prepare"]);
     assert.equal(confirmed.status, 0, mask(confirmed.stderr));
-    assert.match(confirmed.stderr, /Confirmed/);
     await client.updateApiKey(record.api_key_id, new sdk.UpdateApiKeyRequest({ body: new sdk.UpdateApiKeyInput({ expireTime: new Date(Date.now() + 3600_000).toISOString() }) }));
     console.log("PASS: accepting a real terminal confirmation renews the managed key");
   }
-  succeeds(["--ci", "sandbox", "list", "--format", "json"]);
+  succeeds(["--json", "provider", "run", "api-key.prepare", "--yes"]);
   const renewed = JSON.parse(fs.readFileSync(recordFile, "utf8"));
   assert.equal(renewed.api_key_id, record.api_key_id); assert.equal(renewed.api_key_value, record.api_key_value);
   assert.ok(Date.parse(renewed.expire_time) - Date.now() > 29 * 24 * 3600_000);
@@ -137,7 +138,7 @@ try {
   console.error(mask(String(error?.message ?? error))); process.exitCode = 1;
 } finally {
   if (ownedSandbox) {
-    const result = execute(["sandbox", "kill", ownedSandbox]);
+    const result = execute(["delete", ownedSandbox, "--yes"]);
     if (result.status !== 0) { console.error("FAIL: owned sandbox cleanup failed"); process.exitCode = 1; }
   }
   if (!recordFile) {

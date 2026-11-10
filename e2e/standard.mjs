@@ -6,12 +6,11 @@ import fs from "node:fs";
 import { performance } from "node:perf_hooks";
 import { loadCredentials, makeMasker } from "./lib/env.mjs";
 import { parseBin } from "./lib/exec.mjs";
-import { observeTerminalExpiry, readNativeObservation, terminalProbeBudget, releaseOwnedSandbox } from "./lib/terminal-expiry.mjs";
+import { terminalProbeBudget, releaseOwnedSandbox } from "./lib/terminal-expiry.mjs";
 
 const credentials = loadCredentials();
 Object.assign(process.env, credentials);
 const mask = makeMasker(credentials);
-const apiUrl = credentials.E2B_API_URL ?? `https://api.${credentials.E2B_DOMAIN}`;
 const started = performance.now(), observationDeadline = started + 210_000, cleanupDeadline = started + 235_000;
 const ledgerFile = process.env.ABX_STANDARD_LEDGER;
 let ledgerStarted = false;
@@ -80,7 +79,7 @@ async function cleanupOwned(id) {
   return releaseOwnedSandbox({id, attempted:deleteAttempted, onRecord:record,
     prepareRemove:() => {
       const timeout = remaining(cleanupDeadline, 15000);
-      return () => execute(binary, [...binaryPrefix, 'sandbox', 'kill', id], {timeout});
+      return () => execute(binary, [...binaryPrefix, 'delete', id, '--yes'], {timeout});
     },
     confirmAbsent:() => typedAbsent(id, remaining(cleanupDeadline, 10000)),
     onConfirmed:() => created.delete(id)});
@@ -95,7 +94,6 @@ if pid == 0:
 fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 0, 0))
 output = b''
 sent = False
-resource_reported = False
 deadline = time.monotonic() + 45
 try:
     while time.monotonic() < deadline:
@@ -107,11 +105,6 @@ try:
                 raise
             if not chunk: break
             output += chunk
-            if sys.argv[2] == 'create' and not resource_reported:
-                match = re.search(rb'with sandbox ID (?:\x1b\[[0-9;]*m)*([A-Za-z0-9_-]+)', output)
-                if match:
-                    print('RESOURCE ' + match.group(1).decode(), flush=True)
-                    resource_reported = True
         # Wait for the remote shell prompt, not merely the local connection banner.
         if not sent and (b'$ ' in output or b'# ' in output):
             os.write(master, b"cd /tmp\nexport ABX_STATE=retained\nprintf 'PTY_STATE:%s:%s\\n' \"$PWD\" \"$ABX_STATE\"\nexit\n")
@@ -133,8 +126,8 @@ let primaryFailure;
 record('standard-start', {observationBudgetSeconds:210, cleanupReserveSeconds:30, graceSeconds:90});
 try {
   assert.ok(process.env.E2B_API_KEY, "E2B_API_KEY is required");
-  const output = await run(["sandbox", "create", "code-interpreter-v1", "--detach", "--timeout", "300"]);
-  const id = output.trim();
+  const output = await run(["--json", "deploy", "--template-id", "code-interpreter-v1", "--sandbox-timeout", "300", "--yes"]);
+  const id = JSON.parse(output).sandbox_id;
   assert.match(id, /^[A-Za-z0-9_-]+$/);
   created.add(id);
   record('detached-created', {sandboxId:id});
@@ -142,37 +135,15 @@ try {
   assert.equal(await run(["sandbox", "exec", id, "printf", "standard-output"]), "standard-output");
   assert.equal(await run(["sandbox", "exec", id, "sh", "-c", "printf standard-error-path; exit 7"], 7), "standard-error-path");
   console.log("PASS: stdout and command failure");
-  const templates = JSON.parse(await run(["template", "list", "--format", "json"]));
-  assert.ok(Array.isArray(templates));
-  console.log("PASS: template list");
   const terminal = await execute("python3", ["-c", terminalProbe, binary, "connect", id, JSON.stringify(binaryPrefix)], { timeout: terminalProbeBudget(observationDeadline) });
   assert.match(terminal.stdout, /PTY state and exit: PASS/);
   // Connect must preserve the existing sandbox after the shell exits.
   assert.equal(await run(["sandbox", "exec", id, "printf", "still-alive"]), "still-alive");
-  let automatic;
-  try {
-    const result = await execute("python3", ["-c", terminalProbe, binary, "create", "code-interpreter-v1", JSON.stringify(binaryPrefix)], { timeout: terminalProbeBudget(observationDeadline) });
-    automatic = /RESOURCE ([A-Za-z0-9_-]+)/.exec(result.stdout)?.[1];
-    assert.ok(automatic, "create must report its sandbox ID");
-    created.add(automatic);
-    record('interactive-created', {sandboxId:automatic});
-  } catch (error) {
-    const leaked = /RESOURCE ([A-Za-z0-9_-]+)/.exec(error.stdout ?? "")?.[1];
-    if (leaked) { created.add(leaked); record('interactive-create-identity-before-failure', {sandboxId:leaked}); }
-    throw error;
-  }
-  // Counted polls spent part of their budget inside the valid native lease. Freeze its clock once.
-  const expiry = await observeTerminalExpiry({sandboxId:automatic, hardDeadline:observationDeadline,
-    read: timeoutMs => readNativeObservation(`${apiUrl}/sandboxes/${automatic}`, credentials.E2B_API_KEY, timeoutMs),
-    confirmAbsent: timeoutMs => typedAbsent(automatic, timeoutMs),
-    onObservation: observation => record('expiry-observation', observation)});
-  record('natural-expiry-confirmed', expiry);
-  console.log('PASS: post-terminal lease shortened and natural expiry independently confirmed');
-  created.delete(automatic);
   await cleanupOwned(id);
-  const list = JSON.parse(await run(["sandbox", "list", "--format", "json"], 0, {cleanup:true, timeout:5000}));
-  assert.ok(!list.some((item) => item.sandboxId === id || item.sandboxID === id));
-  console.log("PASS: detached create, stdout, command failure, templates, stateful PTY, connect retention, create expiry, kill and cleanup");
+  const list = JSON.parse(await run(["--json", "list"], 0, {cleanup:true, timeout:5000}));
+  assert.ok(Array.isArray(list.items));
+  assert.ok(!list.items.some((item) => item.sandbox_id === id && item.observation === "remote"));
+  console.log("PASS: deploy, stdout, command failure, stateful PTY, connect retention, delete and cleanup");
 } catch (error) { primaryFailure = error; }
 finally {
   const cleanup = await Promise.allSettled([...created].map((id) => cleanupOwned(id)));

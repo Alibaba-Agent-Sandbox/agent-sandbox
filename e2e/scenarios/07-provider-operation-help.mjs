@@ -76,7 +76,7 @@ export default {
         const options = { home, cwd };
         try {
           await success(ctx, ['provider', 'install', source, '--yes', '--no-verify'], options);
-          await success(ctx, ['provider', 'default', id], options);
+          await success(ctx, ["config", "set", "provider", id], options);
           for (const argv of [['--help'], ['provider', '--help'], ['provider', 'run', '--help'], ['provider', 'run', 'health.check', '-h']]) {
             const result = await success(ctx, argv, options);
             ctx.check('selected Provider', result.out, `Provider: ${id}`);
@@ -93,7 +93,7 @@ export default {
       },
     },
     {
-      id: 'installed-operation-compatibility', title: 'new and legacy invocation share results, opaque ids and pre-execution guards', creds: false,
+      id: 'installed-operation-compatibility', title: 'stored and explicit Provider selection share results, opaque ids and pre-execution guards', creds: false,
       async run(ctx) {
         const home = ctx.newHome('operation-execution');
         const cwd = ctx.newCwd('operation-execution');
@@ -102,10 +102,10 @@ export default {
         const options = { home, cwd };
         try {
           await success(ctx, ['provider', 'install', source, '--yes', '--no-verify'], options);
-          await success(ctx, ['provider', 'default', id], options);
+          await success(ctx, ["config", "set", "provider", id], options);
           for (const argv of [
             ['provider', 'run', 'resource.create', '--input', '{"name":"example"}'],
-            ['provider', 'command', 'run', id, 'resource.create', '--input', '{"name":"example"}'],
+            ["--provider", id, "provider", "run", 'resource.create', '--input', '{"name":"example"}'],
           ]) {
             const refused = await ctx.abx(argv, { ...options, creds: false });
             if (refused.code !== 2 || !refused.out.includes('E8012')) ctx.fail('write bypassed the confirmation gate');
@@ -116,8 +116,8 @@ export default {
           const input = join(cwd, 'request.json');
           writeFileSync(input, '{"name":"example"}');
           const canonical = await success(ctx, ['--json', 'provider', 'run', 'health.check', '--input-file', input], options);
-          const legacy = await success(ctx, ['--json', 'provider', 'command', 'run', id, 'health.check', '--input', '{"name":"example"}'], options);
-          if (JSON.stringify(canonical.rawJson()) !== JSON.stringify(legacy.rawJson())) ctx.fail('canonical and legacy execution returned different results');
+          const selected = await success(ctx, ['--json', "--provider", id, "provider", "run", 'health.check', '--input', '{"name":"example"}'], options);
+          if (JSON.stringify(canonical.rawJson()) !== JSON.stringify(selected.rawJson())) ctx.fail('stored and explicit selection returned different results');
           const opaque = await success(ctx, ['--json', 'provider', 'run', 'install', '--input-file', input], options);
           if (opaque.rawJson()?.operation !== 'install') ctx.fail('operation id collided with a host management command');
           await success(ctx, ['--json', 'provider', 'run', 'resource.create', '--yes', '--input-file', input], options);

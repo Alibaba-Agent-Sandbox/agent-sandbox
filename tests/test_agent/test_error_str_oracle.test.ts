@@ -42,14 +42,14 @@ const registry = errors as unknown as Record<string, new (...args: unknown[]) =>
 
 // Preserve the historical formatting oracle. Project-owned defaults intentionally
 // follow the current provider/CLI contract; explicit suggestions retain parity.
-const aiRetry = 'The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry \'abx create --prompt "<description>"\'. For Express, fall back to \'abx create <name> --detach\'; for other providers, check \'abx create --help\'.';
+const aiRetry = 'The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry \'abx template init --prompt "<description>"\'. For Express, fall back to \'abx deploy --template-id <name> --name my-sandbox\'; for other providers, check \'abx deploy --help\'.';
 const currentSuggestions: Record<string, string> = {
   InvalidCredentialsError: "Check the selected provider authentication configuration (abx provider info).",
-  QwenCodeNotInstalledError: "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'). For Express, bypass AI generation with 'abx create <name> --detach'; for other providers, check 'abx create --help'.",
+  QwenCodeNotInstalledError: "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx deploy --help'). For Express, bypass AI generation with 'abx deploy --template-id <name> --name my-sandbox'; for other providers, check 'abx deploy --help'.",
   AICodegenError: aiRetry,
   QwenCodeTimeoutError: aiRetry,
   QwenCodeStartupError: aiRetry,
-  DescriptionClarificationError: "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y with --prompt to generate from the current description anyway. For Express, use an existing template with 'abx create <name> --detach'; for other providers, check 'abx create --help'.",
+  DescriptionClarificationError: "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y with --prompt to generate from the current description anyway. For Express, use an existing template with 'abx deploy --template-id <name> --name my-sandbox'; for other providers, check 'abx deploy --help'.",
 };
 const currentCases = fixture.cases.map((c): Case => {
   const suggestion = currentSuggestions[c.cls];

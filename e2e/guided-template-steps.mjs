@@ -121,18 +121,19 @@ const isTemplateReference = async (reference, expected) => {
   return templateReferences.get(reference) === expected;
 };
 const cleanupSandboxes = async (templateReference, runAlias, known) => {
-  const listed = await request(["sandbox", "list", "--template", templateReference, "--metadata", `abx_guided_steps_run=${runAlias}`, "--format", "json", "--limit", "0", "--state", "running,paused"], sandboxEnvironment, 60_000);
-  assert.equal(listed.code, 0, "Could not reconcile the owned sandbox inventory");
-  let values;
-  try { values = JSON.parse(listed.stdout); } catch { assert.fail("Owned sandbox inventory is not a JSON array"); }
+  // The unified list intentionally exposes deployment summaries. Reconciliation
+  // needs actual remote metadata, so use the existing native inventory protocol.
+  const listed = await safe("Reconcile owned sandbox metadata", () => api("/sandboxes?state=running%2Cpaused&limit=100"));
+  assert.equal(listed.status, 200, "Could not reconcile the owned sandbox inventory");
+  const values = await listed.json();
   assert.ok(Array.isArray(values), "Owned sandbox inventory must be an array");
   // Some backends return aliases as template IDs or ignore server-side list filters.
   // Restrict metadata locally, then resolve the actual runtime reference before trusting an ID.
   const owned = values.filter(item => item.metadata?.abx_guided_steps_run === runAlias);
   for (const item of owned) {
-    assert.ok(validSandboxId(item.sandboxId) && await isTemplateReference(item.templateId, templateReference), "Owned sandbox inventory has an invalid ID or unexpected template");
+    assert.ok(validSandboxId(item.sandboxID) && await isTemplateReference(item.templateID, templateReference), "Owned sandbox inventory has an invalid ID or unexpected template");
   }
-  const ids = new Set([...owned.map(item => item.sandboxId), ...(known ? [known] : [])]);
+  const ids = new Set([...owned.map(item => item.sandboxID), ...(known ? [known] : [])]);
   assert.ok(ids.size, "Sandbox submission outcome is unknown; do not claim confirmed cleanup");
   for (const id of ids) {
     assert.ok(validSandboxId(id), "Refusing an invalid sandbox cleanup ID");
@@ -143,7 +144,7 @@ const cleanupSandboxes = async (templateReference, runAlias, known) => {
     const runMetadata = detail.metadata?.abx_guided_steps_run;
     const metadataMatches = runMetadata === runAlias || id === known && runMetadata === undefined;
     assert.ok(detail.sandboxID === id && metadataMatches && await isTemplateReference(detail.templateID, templateReference), "Exact sandbox ID, metadata or template ownership does not match");
-    const killed = await request(["sandbox", "kill", "--", id], sandboxEnvironment, 60_000);
+    const killed = await request(["delete", "--yes", "--", id], sandboxEnvironment, 60_000);
     assert.equal(killed.code, 0, "Owned sandbox deletion failed");
     const response = await safe("Read back owned sandbox absence", () => api(`/sandboxes/${encodeURIComponent(id)}`));
     assert.equal(response.status, 404, "Independent readback did not confirm sandbox absence");
@@ -152,11 +153,11 @@ const cleanupSandboxes = async (templateReference, runAlias, known) => {
 try {
   sourceSubmitted = true;
   persistOwnedState();
-  const sourceCreated = await request(["--native", "--json", "create", publicSource.templateID, "--timeout", "60", "--metadata", `abx_guided_steps_run=${alias}-source`], sandboxEnvironment);
+  const sourceCreated = await request(["--json", "deploy", "--template-id", publicSource.templateID, "--sandbox-timeout", "60", "--metadata", `abx_guided_steps_run=${alias}-source`, "--yes"], sandboxEnvironment);
   assert.equal(sourceCreated.code, 0, "Existing public source did not create a sandbox; response withheld");
   let sourceCreatedResult;
   try { sourceCreatedResult = JSON.parse(sourceCreated.stdout); } catch { throw new Error("Source create did not return one JSON document"); }
-  sourceSandbox = sourceCreatedResult.ID;
+  sourceSandbox = sourceCreatedResult.sandbox_id;
   assert.ok(validSandboxId(sourceSandbox), "Source create did not return a single sandbox ID");
   persistOwnedState();
   const sourceExecution = await request(["sandbox", "exec", sourceSandbox, "printf", "verified-public-source-ok"], sandboxEnvironment, 60_000);
@@ -169,19 +170,22 @@ try {
   assert.equal((await safe("Inspect the pre-deploy inventory", ownedTemplates)).length, 0, "The unique owned alias unexpectedly exists");
   submitted = true;
   persistOwnedState();
-  const deployed = await request(["--native", "--json", "template", "deploy", directory, "--build", "steps", "--yes", "--alias", alias, "--team-id", team, ...(runtime.diskSize ? ["--disk-size", String(runtime.diskSize)] : [])], deployEnvironment);
+  const payload = { name: alias, image: config.image, generation: config.generation,
+    cpu: runtime.cpu, memory: runtime.memorySize, envd_inject: false, team_id: team,
+    steps: [{ type: "RUN", args: [`printf '%s' '${marker}' > /tmp/abx-guided-steps-marker`, "root"] }],
+    ...(runtime.diskSize ? { disk_size: runtime.diskSize } : {}),
+    ...(config.startCommand ? { start_command: config.startCommand } : {}),
+    ...(config.readyCommand ? { ready_command: config.readyCommand } : {}) };
+  const deployed = await request(["--json", "provider", "run", "template.create", "--input", JSON.stringify(payload), "--yes"], deployEnvironment);
   if (deployed.code !== 0) {
     console.error(JSON.stringify(deployDiagnostic(deployed)));
     throw new Error(`Steps deployment exited ${deployed.code}; the exact owned alias will be reconciled without replaying submission`);
   }
   let result;
   try { result = JSON.parse(deployed.stdout); } catch { throw new Error("Steps deploy did not return exactly one JSON result"); }
-  template = result.TemplateID;
+  template = result.template?.templateID;
   assert.ok(validTemplateId(template), "Deployment returned no valid template ID");
   persistOwnedState();
-  assert.equal(result["Build mode"], "steps");
-  assert.equal(result["ACR Image"], "N/A");
-  assert.equal(result.Status, "submitted");
   assert.ok(!/Configuration scope|input hidden|Missing ACR namespace/i.test(deployed.stdout + deployed.stderr), "Steps incorrectly required unrelated setup");
   await safe("Wait for the one submitted steps build", () => fc.waitForTemplateReady(template, { access_key_id: accessKeyId, access_key_secret: accessKeySecret, region, team_id: team, timeout: 360, poll_interval: 2 }));
   const verified = await safe("Read the owned registered template", () => get(template));
@@ -190,11 +194,11 @@ try {
 
   sandboxSubmitted = true;
   persistOwnedState();
-  const created = await request(["--native", "--json", "create", template, "--timeout", "60", "--metadata", `abx_guided_steps_run=${alias}`], sandboxEnvironment);
+  const created = await request(["--json", "deploy", "--template-id", template, "--sandbox-timeout", "60", "--metadata", `abx_guided_steps_run=${alias}`, "--yes"], sandboxEnvironment);
   assert.equal(created.code, 0, "Creating the owned build-marker sandbox failed; response withheld");
   let createdResult;
   try { createdResult = JSON.parse(created.stdout); } catch { throw new Error("Sandbox create did not return one JSON document"); }
-  const id = createdResult.ID;
+  const id = createdResult.sandbox_id;
   assert.ok(validSandboxId(id), "Create did not return a single sandbox ID");
   sandbox = id;
   persistOwnedState();

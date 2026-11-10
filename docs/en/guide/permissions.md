@@ -38,9 +38,9 @@ abx config set access_key_id      # masked input
 abx config set access_key_secret  # masked input
 abx config set region cn-hangzhou
 abx config set team_id <TEAM_ID>  # optional; otherwise the API's default Team
-abx sandbox list                 # asks for confirmation if preparation is needed
+abx list                 # asks for confirmation if preparation is needed
 abx --ci sandbox list --format json  # explicit automation consent
-abx provider command run alicloud-express api-key.prepare --yes  # explicit preparation
+abx --provider alicloud-express provider run api-key.prepare --yes  # explicit preparation
 ```
 
 A pipe, `CI=true`, JSON output or another operation's `--yes` is not implicit credential-creation consent. SDKs, MCP and the local engine never display interactive prompts or silently create a key. Prepare explicitly using the CLI above or Python `prepare_api_key(confirm=True)`. `api-key.resolve` is read-only; `api-key.prepare` is a confirmed write. `--ci` does not auto-confirm arbitrary writes from other providers.
@@ -53,7 +53,7 @@ These actions apply to native management APIs. Do not require native Sandbox RAM
 |---|---|---|
 | `team.list`; native template flow without an explicit Team | `sandbox:ListTeams` | `acs:sandbox:<region>:<account-id>:teams/*`, not one Team ARN |
 | `team.get/create/update/delete` | `sandbox:GetTeam`, `sandbox:CreateTeam`, `sandbox:UpdateTeam`, `sandbox:DeleteTeam`, respectively | Get/update/delete: `acs:sandbox:<region>:<account-id>:teams/<team-id>`; create: `acs:sandbox:<region>:<account-id>:teams/*`; resource-group changes check source/destination groups |
-| `--native template list`, `template info` | `sandbox:ListTemplates`, `sandbox:GetTemplate` | Target Team's `templates/*` or specific Template; automatic Team lookup additionally needs `ListTeams` |
+| `provider run template.list`, `provider run template.get` | `sandbox:ListTemplates`, `sandbox:GetTemplate` | Target Team's `templates/*` or specific Template; automatic Team lookup additionally needs `ListTeams` |
 | `template from-image`, platform-step build, registration/status polling in `template deploy` | `sandbox:CreateTemplate`, `sandbox:GetTemplate`; `sandbox:ListTeams` when Team is not explicit | Target Team's `templates/*`; lookup may use a specific Template |
 | Native template update/delete | `sandbox:UpdateTemplate`, `sandbox:DeleteTemplate` | Target Template ARN; registration does not grant deletion |
 | `api-key.list/get` | `sandbox:ListApiKeys`, `sandbox:DescribeApiKey` | Target Team's `apikeys/*` |

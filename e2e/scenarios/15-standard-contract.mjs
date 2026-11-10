@@ -4,11 +4,11 @@ import { baseEnv, runBinary } from '../lib/exec.mjs';
 
 export default {
   id: 'standard-contract',
-  title: 'Pinned E2B migration: actual CLI, Express and local PTY',
+  title: 'Sandbox protocol: actual CLI, Express and local PTY',
   needs: ['cloud'],
   scenarios: [{
     id: 'standard-lifecycle-pty',
-    title: 'Create/exec/list/PTY/connect ownership/expiry and cleanup',
+    title: 'Deploy/exec/list/PTY/connect ownership and cleanup',
     timeoutMs: 240_000,
     async run(ctx) {
       const result = await runBinary({
@@ -19,7 +19,7 @@ export default {
         timeoutMs: 240_000,
       });
       if (result.code !== 0 || result.timedOut) ctx.fail(ctx.mask(result.stdout + result.stderr));
-      ctx.check('standard result', result.stdout, 'kill and cleanup');
+      ctx.check('standard result', result.stdout, 'delete and cleanup');
     },
   }],
 };

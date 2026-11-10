@@ -33,13 +33,13 @@ describe("provider help and discovery", () => {
     const r = await abx("provider", "--help");
     expect(r.exit_code).toBe(0);
     expect(r.output).toContain("alicloud-express");
-    for (const sub of ["list", "info", "install", "uninstall", "update", "default", "config", "doctor", "test"]) {
+    for (const sub of ["list", "info", "install", "uninstall", "update", "doctor", "test"]) {
       expect(r.output).toContain(sub);
     }
   });
 
   it("test_every_subcommand_has_help", async () => {
-    for (const sub of ["list", "info", "show", "install", "uninstall", "update", "default", "doctor", "test", "config"]) {
+    for (const sub of ["list", "info", "install", "uninstall", "update", "doctor", "test"]) {
       const r = await abx("provider", sub, "--help");
       expect(r.exit_code, `${sub}: ${r.output}`).toBe(0);
       expect(r.output).toContain("Usage:");
@@ -82,10 +82,8 @@ describe("provider help and discovery", () => {
     expect(json(r.stdout)).toMatchObject({ id: "alicloud-express", kind: "builtin", default: true });
   });
 
-  it("test_show_is_an_alias_of_info", async () => {
-    const a = await abx("--json", "provider", "info", "alicloud-express");
-    const b = await abx("--json", "provider", "show", "alicloud-express");
-    expect(b.stdout).toBe(a.stdout);
+  it.each(["show", "default", "config"])("removes duplicate provider %s entry", async name => {
+    expect((await abx("provider", name, "--help")).exit_code).toBe(2);
   });
 });
 
@@ -136,31 +134,31 @@ describe("provider install / default / uninstall", () => {
     expect(info.install.source.path ?? info.install.source.url).toBeDefined();
     expect(JSON.stringify(info)).not.toContain("token_value");
 
-    expect((await abx("provider", "default")).stdout.trim()).toBe("alicloud-express");
-    const set = await abx("provider", "default", "local-process");
+    expect((await abx("config", "get", "provider")).stdout.trim()).toBe("alicloud-express");
+    const set = await abx("config", "set", "provider", "local-process");
     expect(set.exit_code).toBe(0);
-    expect(json((await abx("--json", "provider", "default")).stdout)).toEqual({ default: "local-process", source: "config" });
+    expect(json((await abx("--json", "config", "get", "provider")).stdout)).toBe("local-process");
     expect(fs.readFileSync(iso.toml, "utf-8")).toContain('provider = "local-process"');
 
     const un = await abx("provider", "uninstall", "local-process", "--yes");
     expect(un.exit_code, un.output).toBe(0);
     expect(json((await abx("--json", "provider", "list")).stdout)).toHaveLength(1);
-    expect((await abx("provider", "default")).stdout.trim()).toBe("alicloud-express");
+    expect((await abx("config", "get", "provider")).stdout.trim()).toBe("alicloud-express");
   });
 
   it("test_default_unknown_is_e8001", async () => {
-    const r = await abx("provider", "default", "nothing-here");
+    const r = await abx("config", "set", "provider", "nothing-here");
     expect(r.exit_code).toBe(4);
     expect(r.output).toContain("E8001");
   });
 
   it("test_default_unset_and_env_override_note", async () => {
     await abx("provider", "install", LOCAL_PROCESS, "--yes", "--no-verify");
-    await abx("provider", "default", "local-process");
+    await abx("config", "set", "provider", "local-process");
     iso.setenv("ABX_PROVIDER", "alicloud-express");
-    const shown = json((await abx("--json", "provider", "default")).stdout);
-    expect(shown).toEqual({ default: "alicloud-express", source: "env" });
-    const unset = await abx("provider", "default", "--unset");
+    const shown = json((await abx("--json", "config", "get", "provider")).stdout);
+    expect(shown).toBe("alicloud-express");
+    const unset = await abx("config", "delete", "provider");
     expect(unset.exit_code).toBe(0);
     expect(fs.readFileSync(iso.toml, "utf-8")).not.toContain("provider =");
   });
@@ -231,39 +229,39 @@ describe("provider config", () => {
   });
 
   it("test_set_plain_option_goes_to_the_provider_table", async () => {
-    const r = await abx("provider", "config", "local-process", "set", "debug", "true");
+    const r = await abx("config", "set", "providers.local-process.debug", "true");
     expect(r.exit_code, r.output).toBe(0);
     expect(fs.readFileSync(iso.toml, "utf-8")).toMatch(/\[providers\.local-process\]\s+debug = true/);
-    expect((await abx("provider", "config", "local-process", "get", "debug")).stdout.trim()).toBe("true");
+    expect((await abx("config", "get", "providers.local-process.debug")).stdout.trim()).toBe("True");
   });
 
   it("test_secret_goes_to_dotenv_and_is_masked", async () => {
-    const r = await abx("provider", "config", "local-process", "set", "token", "s3cr3t-value");
+    const r = await abx("config", "set", "providers.local-process.token", "s3cr3t-value");
     expect(r.exit_code, r.output).toBe(0);
     expect(r.output).not.toContain("s3cr3t-value");
     expect(fs.readFileSync(iso.env, "utf-8")).toContain("ABX_LOCAL_PROCESS_TOKEN=s3cr3t-value");
     if (fs.existsSync(iso.toml)) expect(fs.readFileSync(iso.toml, "utf-8")).not.toContain("s3cr3t-value");
-    const got = await abx("provider", "config", "local-process", "get", "token");
+    const got = await abx("config", "get", "providers.local-process.token");
     expect(got.output).not.toContain("s3cr3t-value");
-    const listed = await abx("--json", "provider", "config", "local-process", "list");
+    const listed = await abx("--json", "--provider", "local-process", "config", "list");
     expect(listed.output).not.toContain("s3cr3t-value");
     expect(fs.statSync(iso.env).mode & 0o777).toBe(0o600);
   });
 
   it("test_unknown_option_is_e8002", async () => {
-    const r = await abx("provider", "config", "local-process", "set", "nope", "1");
+    const r = await abx("config", "set", "providers.local-process.nope", "1");
     expect(r.exit_code).toBe(2);
     expect(r.output).toContain("E8002");
   });
 
   it("test_invalid_value_is_e8002", async () => {
-    const r = await abx("provider", "config", "local-process", "set", "debug", "maybe");
+    const r = await abx("config", "set", "providers.local-process.debug", "maybe");
     expect(r.exit_code).toBe(2);
   });
 
   it("test_unset_clears_the_value", async () => {
-    await abx("provider", "config", "local-process", "set", "debug", "true");
-    const r = await abx("provider", "config", "local-process", "unset", "debug");
+    await abx("config", "set", "providers.local-process.debug", "true");
+    const r = await abx("config", "delete", "providers.local-process.debug");
     expect(r.exit_code).toBe(0);
     expect(fs.existsSync(iso.toml)).toBe(false);
   });

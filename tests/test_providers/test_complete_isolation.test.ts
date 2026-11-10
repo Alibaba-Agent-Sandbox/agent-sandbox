@@ -65,10 +65,10 @@ describe("complete backend isolation", () => {
   it("recomputes CLI options and AI tools after selecting another backend in the same process", async () => {
     const provider = new IsolatedProvider(); registerProvider(provider);
     setCliProvider("alicloud-express");
-    expect(deploy_shortcut.help).toContain("Runs one publish path");
+    expect(deploy_shortcut.help).toContain("Deploy a catalog template");
     expect(TOOL_SCHEMAS.some(s => s.name === "submit_template_build")).toBe(true);
     expect(Object.hasOwn(TOOL_HANDLERS, "submit_template_build")).toBe(true);
-    expect(build.params.some(p => p.name === "acr_namespace")).toBe(true);
+    expect(build.params.some(p => p.name === "build_profile")).toBe(true);
     setCliProvider(provider.id);
     expect(deploy_shortcut.help).not.toContain("ACR");
     expect(TOOL_SCHEMAS.some(s => s.name === "submit_template_build")).toBe(false);
@@ -131,7 +131,7 @@ supported = ["templates.read"]
       list: async () => [], close: closed,
     });
     registerProvider(provider);
-    expect(await main({ args: ["--json", "--provider", provider.id, "template", "list"] })).toBe(0);
+    expect(await main({ args: ["--json", "--provider", provider.id, "provider", "run", "template.list"] })).toBe(0);
     expect(factory).toHaveBeenCalledTimes(1);
     expect(closed).toHaveBeenCalledTimes(1);
   });

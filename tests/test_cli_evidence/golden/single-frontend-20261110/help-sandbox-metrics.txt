@@ -1,0 +1,8 @@
+Usage: abx sandbox metrics [options] <SANDBOX_ID>
+
+Read sandbox CPU, memory and disk metrics.
+
+Options:
+  -f, --follow  Continue until the sandbox stops
+  -h, --help    Show this message and exit.
+[exit_code:0]

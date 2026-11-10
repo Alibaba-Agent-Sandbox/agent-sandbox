@@ -1,0 +1,15 @@
+Usage: abx provider info [options] <ID>
+
+Show a provider's manifest, features and configuration.
+
+Installed providers additionally show their source, commit, tree digest,
+runtime command, declared (advisory) security permissions and the generic
+credentials they were allowed to inherit. 'show' is an alias.
+
+Examples:
+  abx provider info alicloud-express
+  abx --json provider info local-process
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

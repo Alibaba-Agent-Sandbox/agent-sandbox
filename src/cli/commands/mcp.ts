@@ -1,6 +1,5 @@
-import { SERVER_SDK_RELEASE_VERSION } from "../../utils/server_sdk_pin.js";
 /**
- * MCP Server CLI commands: install, start, stop, status, deploy (port of `cli/commands/mcp.py`).
+ * MCP Server CLI commands: install, start, stop, status (port of `cli/commands/mcp.py`).
  *
  * Module-level functions that the Python tests monkeypatch (`_read_api_key`, `_pid_alive`, `_running_server`, ...) are
  * called through this module's own namespace (`self.<fn>`) so `vi.spyOn(mcpModule, "_readApiKey")` reaches the
@@ -10,7 +9,6 @@ import { SERVER_SDK_RELEASE_VERSION } from "../../utils/server_sdk_pin.js";
  */
 
 import { spawn } from "node:child_process";
-import { randomBytes, randomInt } from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
 import type * as net from "node:net";
@@ -19,14 +17,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { type Context, command, group, option } from "../kit.js";
-import { Choice, INT, Path } from "../types.js";
-import { CliError, sysExit } from "../errors.js";
+import { Choice, INT } from "../types.js";
+import { sysExit } from "../errors.js";
 import { echo } from "../io.js";
 import { TOOL_SCHEMAS } from "../../agent/tools.js";
 import { JSONDecodeError, pyJsonLoads } from "../../agent/_py.js";
-import { dumpYaml } from "../../utils/yaml_io.js";
 import { pyPathStr, which } from "../../agent/_pycompat.js";
-import { loadConfig, resetConfig } from "../../transport/config.js";
+import { resetConfig } from "../../transport/config.js";
 import { loadLayeredConfig } from "../../transport/config_layers.js";
 import { getOperationConfig } from "../../utils/operation_config.js";
 import { withGuidedConfiguration, canGuideConfiguration } from "../config_guidance.js";
@@ -41,10 +38,9 @@ import {
   toOSError,
   writeTextPy,
 } from "../../utils/_pyos.js";
-import { PyFloat, pyJsonDumps, pySorted, pyStr, pyStrRepr, pyStrip } from "../../utils/_pyformat.js";
+import { PyFloat, pyJsonDumps, pyStr, pyStrRepr, pyStrip } from "../../utils/_pyformat.js";
 import { getFormatter } from "../formatters.js";
 import { handleErrors } from "../error_handler.js";
-import { regionOption } from "../region.js";
 import { cliProvider } from "../../providers/selection.js";
 import { getProvider, resolveProviderId } from "../../providers/registry.js";
 import { BUILTIN_PROVIDER_ID } from "../../utils/config_keys.js";
@@ -181,7 +177,7 @@ async function _withOptionalMcpSetup<T>(ctx: Context, operation: string, action:
         validateProvider: provider.id !== BUILTIN_PROVIDER_ID,
       }, action);
     }
-    getOutput(ctx).info(`Sandbox access is not configured. Registration/artifact generation can continue offline; configure it later with '${provider.id === BUILTIN_PROVIDER_ID ? "abx config set sandbox_api_key" : `abx provider config ${provider.id} init`}'. This does not verify that the service is ready.`);
+    getOutput(ctx).info(`Sandbox access is not configured. Registration/artifact generation can continue offline; configure it later with '${provider.id === BUILTIN_PROVIDER_ID ? "abx config set sandbox_api_key" : `abx --provider ${provider.id} config init`}'. This does not verify that the service is ready.`);
   }
   return action();
 }
@@ -1199,288 +1195,3 @@ export const status = command("status", {
   }),
 });
 mcp.addCommand(status);
-
-// ---------------------------------------------------------------------------
-// deploy command
-// ---------------------------------------------------------------------------
-
-export const _DEPLOY_REQUIREMENTS = `--index-url https://pypi.org/simple
-agent-sandbox-client[mcp]==${SERVER_SDK_RELEASE_VERSION}
-`;
-
-export const _DEPLOY_APP_PY =
-  '"""ASGI entry point for the FC MCP server."""\n' +
-  "import os\n" +
-  "\n" +
-  "from agent_sandbox.agent.mcp_http import create_mcp_app, require_auth_token\n" +
-  "\n" +
-  "# Remote clients can reach this process. Do not boot with auth disabled.\n" +
-  "app = create_mcp_app(\n" +
-  '    auth_token=require_auth_token(os.environ.get("ABX_MCP_AUTH_TOKEN")),\n' +
-  '    sandbox_api_key=os.environ.get("ABX_SANDBOX_API_KEY"),\n' +
-  '    sandbox_base_url=os.environ.get("ABX_SANDBOX_BASE_URL"),\n' +
-  '    sandbox_domain=os.environ.get("ABX_SANDBOX_DOMAIN"),\n' +
-  '    template=os.environ.get("ABX_DEFAULT_TEMPLATE", "base"),\n' +
-  ")\n";
-
-/** Generate a cryptographically secure random Bearer token (`secrets.token_urlsafe(32)`). */
-export function _generateToken(): string {
-  return randomBytes(32).toString("base64url");
-}
-
-/** Read a Bearer token from a file. */
-export function _readTokenFile(file: string): string {
-  return pyStrip(readTextPy(file));
-}
-
-const _MKDTEMP_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789_";
-
-/** `tempfile.mkdtemp(prefix=...)`: `<prefix><8 random chars of [a-z0-9_]>`, mode 0700. */
-function _mkdtemp(prefix: string): string {
-  const base = os.tmpdir();
-  for (let attempt = 0; attempt < 100; attempt++) {
-    let suffix = "";
-    for (let i = 0; i < 8; i++) suffix += _MKDTEMP_CHARS[randomInt(_MKDTEMP_CHARS.length)];
-    const candidate = path.join(base, prefix + suffix);
-    try {
-      fs.mkdirSync(candidate, { mode: 0o700 });
-      return candidate;
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code === "EEXIST") continue;
-      throw toOSError(e, candidate);
-    }
-  }
-  throw new Error("No usable temporary directory name found");
-}
-
-export const deploy = command("deploy", {
-  help:
-    "Generate an Alibaba Cloud FC deployment artifact.\n" +
-    "\n" +
-    "Creates a Streamable HTTP ASGI application artifact and prints manual\n" +
-    "FC deployment steps. Automatic FC API deployment is not implemented.\n" +
-    "\n" +
-    "The artifact contains ``requirements.txt``, ``app.py`` (ASGI entry\n" +
-    "point), and ``config.yaml`` (a YAML deployment manifest with FC function\n" +
-    "settings and environment variables).\n" +
-    "\n" +
-    "``--region`` overrides the FC region for this invocation; without it the\n" +
-    "region comes from ``abx config set region`` / ``ALIBABA_CLOUD_REGION_ID``\n" +
-    "environment variable and defaults to ``cn-hangzhou``.\n" +
-    "\n" +
-    "A non-empty Bearer token is required (--generate-token or\n" +
-    "--auth-token-file). POST and DELETE /mcp are implemented. GET /mcp\n" +
-    "returns 405 until SSE server notifications exist. The function\n" +
-    "environment sets ALIBABA_CLOUD_REGION_ID to the selected region.\n" +
-    "\n" +
-    "\b\n" +
-    "Examples:\n" +
-    "  abx mcp deploy --generate-token --api-key $ABX_SANDBOX_API_KEY\n" +
-    "  abx mcp deploy --auth-token-file ./token.txt --region cn-shanghai\n" +
-    "  abx mcp deploy --generate-token --output-dir ./deploy-artifact\n" +
-    "\n" +
-    "\b\n" +
-    "Related commands:\n" +
-    "  abx mcp start                 Run the local STDIO server\n" +
-    "  abx mcp status                Inspect MCP authentication state\n" +
-    "  abx config set sandbox_api_key VALUE  Configure sandbox authentication",
-  params: [
-    option(["--name"], { default: "agent-sandbox-mcp", help: "FC function name for the artifact." }),
-    regionOption(),
-    option(["--template"], { default: "base", help: "Default sandbox template for MCP sessions." }),
-    option(["--memory"], { type: INT, default: 512, help: "FC function memory (MB)." }),
-    option(["--timeout", "fc_timeout"], { type: INT, default: 600, help: "FC function timeout (s)." }),
-    option(["--auth-token-file"], {
-      default: null,
-      type: new Path({ exists: true }),
-      help: "Path to a non-empty Bearer token file.",
-    }),
-    option(["--generate-token"], {
-      is_flag: true,
-      default: false,
-      help: "Auto-generate a random Bearer token.",
-    }),
-    option(["--enable-session-affinity/--no-session-affinity"], {
-      default: true,
-      help: "Enable Mcp-Session-Id affinity (requires FC MCP support).",
-    }),
-    option(["--api-key"], {
-      default: null,
-      envvar: "ABX_SANDBOX_API_KEY",
-      help: "ABX_SANDBOX_API_KEY to inject into the FC function env.",
-    }),
-    option(["--custom-domain"], { default: null, help: "Custom domain for the MCP endpoint." }),
-    option(["--output-dir"], {
-      default: null,
-      type: new Path(),
-      help: "Write the FC deployment artifact to this directory.",
-    }),
-  ],
-  callback: handleErrors(async (ctx: Context, params: Record<string, any>) => {
-    if (resolveProviderId(cliProvider()) !== BUILTIN_PROVIDER_ID) throw new CliError("FC deployment artifacts require --provider alicloud-express. Other Providers keep their own deployment workflows.");
-    const fmt = getFormatter(ctx);
-    const name: string = params["name"];
-    const template: string = params["template"];
-    const memory: number = params["memory"];
-    const fcTimeout: number = params["fc_timeout"];
-    const authTokenFile: string | null = params["auth_token_file"];
-    const generateToken: boolean = params["generate_token"];
-    const enableSessionAffinity: boolean = params["enable_session_affinity"];
-    let apiKey: string | null = params["api_key"];
-    const customDomain: string | null = params["custom_domain"];
-    const outputDir: string | null = params["output_dir"];
-
-    const region = params["region"] || _mcpConfig().region;
-
-    // --- Resolve auth token ---
-    let authToken = "";
-    if (authTokenFile) {
-      authToken = _readTokenFile(authTokenFile);
-    } else if (generateToken) {
-      authToken = _generateToken();
-    } else if (pyStrip(process.env["ABX_MCP_AUTH_TOKEN"] ?? "")) {
-      authToken = pyStrip(process.env["ABX_MCP_AUTH_TOKEN"] as string);
-    }
-
-    if (!authToken) {
-      if (canGuideConfiguration(ctx) && await confirm("Generate a Bearer token and write it into this MCP deployment artifact? Keep config.yaml private.", { default: true, err: true })) {
-        authToken = _generateToken();
-      }
-    }
-    if (!authToken) {
-      echo(
-        "Error: a non-empty MCP Bearer token is required. " +
-          "Pass --generate-token or --auth-token-file. " +
-          "Refusing to write an artifact that would disable client authentication.",
-        { err: true },
-      );
-      return sysExit(1);
-    }
-
-    // --- Resolve API key ---
-    if (!apiKey) apiKey = self._readApiKey();
-
-    const writeArtifact = async (): Promise<void> => {
-    if (!apiKey) apiKey = self._readApiKey();
-    if (!apiKey) {
-      echo(
-        "Warning: No ABX_SANDBOX_API_KEY provided. The generated MCP Server artifact " +
-          "cannot create sandboxes until --api-key or ABX_SANDBOX_API_KEY is configured.",
-        { err: true },
-      );
-    }
-
-    // --- Build deploy artifact ---
-    let artifactDir: string;
-    if (outputDir) {
-      artifactDir = pyPathStr(outputDir);
-      mkdirParents(artifactDir);
-    } else {
-      artifactDir = _mkdtemp("abx-mcp-deploy-");
-    }
-
-    writeTextPy(path.join(artifactDir, "requirements.txt"), _DEPLOY_REQUIREMENTS);
-    writeTextPy(path.join(artifactDir, "app.py"), _DEPLOY_APP_PY);
-
-    // config.yaml: provider-neutral YAML deployment manifest, not an FC API payload
-    const envVars: Record<string, string> = {
-      ABX_MCP_AUTH_TOKEN: authToken,
-      ABX_DEFAULT_TEMPLATE: template,
-      ALIBABA_CLOUD_REGION_ID: region,
-    };
-    if (apiKey) envVars["ABX_SANDBOX_API_KEY"] = apiKey;
-
-    const effective = _mcpConfig();
-    const apiUrl = effective.sandbox_base_url;
-    if (apiUrl) envVars["ABX_SANDBOX_BASE_URL"] = apiUrl;
-    if (effective.sandbox_domain) envVars["ABX_SANDBOX_DOMAIN"] = effective.sandbox_domain;
-
-    const fcConfig: Record<string, unknown> = {
-      function_name: name,
-      region,
-      runtime: "python3.10",
-      handler: "app.app",
-      memory,
-      timeout: fcTimeout,
-      environment_variables: envVars,
-      http_trigger: {
-        methods: ["POST", "GET", "DELETE"],
-        enable_session_affinity: enableSessionAffinity,
-      },
-    };
-    if (customDomain) fcConfig["custom_domain"] = customDomain;
-
-    writeTextPy(path.join(artifactDir, "config.yaml"), dumpYaml(fcConfig));
-    fs.chmodSync(path.join(artifactDir, "config.yaml"), 0o600);
-
-    if (fmt.use_json) {
-      fmt.printData({ status: "artifact-created", artifact_dir: artifactDir, deployed: false, service_verified: false, sandbox_access_configured: Boolean(apiKey), bearer_token_configured: Boolean(authToken) });
-      return;
-    }
-    fmt.printSuccess(`FC deployment artifact written to ${artifactDir}`);
-    _printArtifactSummary(artifactDir, fcConfig, authToken);
-    _printManualDeploySteps(artifactDir, enableSessionAffinity);
-    _printIdeConfig(authToken, customDomain);
-    };
-    if (!apiKey && canGuideConfiguration(ctx)) {
-      return _withOptionalMcpSetup(ctx, "MCP deployment artifact (credentials are written to config.yaml)", writeArtifact);
-    }
-    return writeArtifact();
-  }),
-});
-mcp.addCommand(deploy);
-
-/** Print a summary of the deploy artifact. */
-function _printArtifactSummary(artifactDir: string, fcConfig: Record<string, unknown>, authToken: string | null): void {
-  echo();
-  echo("Artifact contents:");
-  let names: string[];
-  try {
-    names = fs.readdirSync(artifactDir);
-  } catch (e) {
-    throw toOSError(e, artifactDir);
-  }
-  for (const f of pySorted(names)) echo(`  ${f}`);
-  echo();
-  echo(`  Function: ${pyStr(fcConfig["function_name"])}`);
-  echo(`  Region:   ${pyStr(fcConfig["region"])}`);
-  echo(`  Memory:   ${pyStr(fcConfig["memory"])} MB`);
-  echo(`  Timeout:  ${pyStr(fcConfig["timeout"])} s`);
-  if (authToken) {
-    echo("  Token:    configured (stored in config.yaml; not displayed)");
-  }
-}
-
-/** Print provider-neutral manual FC deployment guidance. */
-function _printManualDeploySteps(artifactDir: string, enableSessionAffinity: boolean): void {
-  echo();
-  echo("Automatic FC API deployment is not implemented. Manual steps:");
-  echo(`  1. Review and package the files in ${artifactDir}.`);
-  echo("  2. Use the official Alibaba Cloud FC console or SDK to create the function.");
-  echo(
-    "  3. Translate config.yaml settings through the official console/SDK, " +
-      "then create an HTTP trigger for POST/GET/DELETE.",
-  );
-  if (enableSessionAffinity) {
-    echo("  4. Enable Mcp-Session-Id affinity if the selected FC runtime supports it.");
-  } else {
-    echo("  4. Session affinity is disabled in this artifact.");
-  }
-  echo("  5. Replace <FC_HTTP_TRIGGER_URL> below with the resulting trigger URL.");
-  echo("  6. Clients should call DELETE /mcp when a session ends.");
-  echo("  Note: GET /mcp returns 405 until SSE server notifications exist.");
-  echo("  Security: config.yaml contains secrets; do not commit it to version control.");
-}
-
-/** Print an IDE config template without exposing a plaintext token. */
-function _printIdeConfig(authToken: string | null, customDomain: string | null): void {
-  const endpoint = customDomain ? `https://${customDomain}/mcp` : "<FC_HTTP_TRIGGER_URL>/mcp";
-
-  const remote: Record<string, unknown> = { url: endpoint };
-  const ideConfig = { mcpServers: { "agent-sandbox-remote": remote } };
-  if (authToken !== null) remote["headers"] = { Authorization: "Bearer <BEARER_TOKEN>" };
-
-  echo();
-  echo("IDE config template (replace placeholders; do not commit secrets):");
-  echo(pyJsonDumps(ideConfig, { indent: 2, ensure_ascii: false }));
-}

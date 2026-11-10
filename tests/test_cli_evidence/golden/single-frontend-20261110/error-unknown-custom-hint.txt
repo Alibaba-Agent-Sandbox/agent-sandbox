@@ -1,0 +1,6 @@
+[exit_code:2]
+[stderr]
+Usage: abx [options] [command]
+Try 'abx -h' for help.
+
+Error: No such command 'frobnicate'. No similar command. See 'abx --help' for the command list (templates: 'abx template init|build|publish'; named commands in a sandbox: 'abx sandbox command run SANDBOX NAME').

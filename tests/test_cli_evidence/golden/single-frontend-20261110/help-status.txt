@@ -1,0 +1,9 @@
+Usage: abx status [options] <TARGET>
+
+Inspect a named deployment or raw Sandbox ID without resuming it. --revisions
+includes retained application versions.
+
+Options:
+  --revisions
+  -h, --help   Show this message and exit.
+[exit_code:0]

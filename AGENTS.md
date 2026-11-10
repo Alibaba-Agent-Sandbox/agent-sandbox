@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-**Agent Sandbox** (npm package name `@agent-sandbox/cli`, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (distribution name `agent-sandbox-client`, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. The standard Express command path follows the pinned Alibaba-supported E2B behavior contract; project provider/build/MCP extensions remain explicit. Read the bilingual migration guide before changing either path.
+**Agent Sandbox** (npm package name `@agent-sandbox/cli`, CLI command `abx`) is the CLI for the Alibaba Cloud FC Agent Sandbox service. It builds and deploys sandbox templates. The Python SDK (distribution name `agent-sandbox-client`, import `agent_sandbox`) and the in-sandbox runtime (`agent-sandbox-server`) live in the `python-sdk` repository. The CLI uses one parser for every Provider. Express protocol and PTY helpers retain the pinned Alibaba-supported SDK behavior. Read the bilingual architecture and migration guides before changing these boundaries.
 
 - **Language:** TypeScript (strict, ESM), Node.js >= 20
 - **Build system:** `tsc` (`npm run build`); standalone binaries via esbuild bundle + Node SEA (`scripts/build_binary.mjs`)
@@ -146,7 +146,7 @@ Every exception carries: `code`, `message`, `suggestion`, `docs_url` (populated 
 ### Whole-template startup contract
 
 Project manifests use spec v5 with `provides` and optional `start_cmd` / `ready_cmd`.
-`template launch` starts the complete template once, runs declared readiness commands,
+`deploy` starts the complete template once, runs declared readiness commands,
 resolves every service endpoint, and checks known Agent Sandbox Server v2 endpoints
 using health/discovery. Other protocols are not automatically probed. There is no
 workflow selector. Retired workflows and capability claims are rejected with

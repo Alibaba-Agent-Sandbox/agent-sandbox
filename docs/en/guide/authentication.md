@@ -1,6 +1,6 @@
 # Authentication
 
-> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+> CLI commands share one command tree. Provider configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. Express also accepts the supported E2B configuration aliases; see the [migration guide](migrate-from-e2b.md).
 
 Sandbox runtime requests require an **API Key**. **AK/SK (Alibaba Cloud AccessKey)** can explicitly prepare that key for Express, and authenticates native control-plane operations; see [permissions](permissions.md).
 
@@ -132,10 +132,10 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 abx config set sandbox_api_key your-api-key
 ```
 
-For an interactive standard terminal session, pass process environment with `--env`. This is terminal-session environment, not a sandbox-wide store; detached creation has no terminal. Use the SDK/native provider creation environment when future processes must inherit values:
+Use deploy `--env` for the newly created runtime. A per-command override belongs to `sandbox exec --env` and does not reconfigure an already running service:
 
 ```bash
-abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
+abx deploy --template-id base --name my-sandbox --env MODE=example --yes
 ```
 
 > **Historical note**: macOS Keychain integration was removed in the overdesign cleanup (ADR 2026-09-23). The `abx secret` CLI command group has also been removed. All secret management is now done through environment variables, `.env` files, or `abx config set`.

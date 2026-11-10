@@ -22,7 +22,7 @@ Please use the right channel for your needs:
 
 ```bash
 npm install -g @agent-sandbox/cli
-abx create --template python-base
+abx deploy --template-id base --yes
 ```
 
 Or use the Python SDK (`pip install agent-sandbox-client`, in the `python-sdk` repository). `pip install agent-sandbox` installs an unrelated project:

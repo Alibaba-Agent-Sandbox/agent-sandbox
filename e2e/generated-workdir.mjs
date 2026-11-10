@@ -32,8 +32,7 @@ print(json.dumps(result))
 `;
 const command = values.cli ?? process.execPath;
 const prefix = values.cli ? [] : [fileURLToPath(new URL('../dist/bin/abx.js', import.meta.url))];
-const run = spawnSync(command, [...prefix, '--native', '--json', 'exec', values['sandbox-id'],
-  '--', 'python3', '-c', probe], { encoding: 'utf8', timeout: 90_000 });
+const run = spawnSync(command, [...prefix, '--json', 'sandbox', 'exec', values['sandbox-id'], '--', 'python3', '-c', probe], { encoding: 'utf8', timeout: 90_000 });
 assert.equal(run.status, 0, 'Remote permission probe failed; inspect your sandbox separately');
 const execution = JSON.parse(run.stdout);
 assert.equal(execution.exit_code, 0);

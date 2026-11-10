@@ -1,4 +1,4 @@
-/** Tests for MCP CLI commands: install, start, status, deploy (port of `tests/test_cli/test_mcp_commands.py`). */
+/** Tests for MCP CLI commands: install, start, status (port of `tests/test_cli/test_mcp_commands.py`). */
 
 import "../_support/isolatedHome.js";
 
@@ -7,12 +7,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { parse as yamlParse } from "yaml";
 
 import * as agentMcp from "../../src/agent/mcp.js";
 import * as mcpMod from "../../src/cli/commands/mcp.js";
 import { cli } from "../../src/cli/main.js";
-import * as region from "../../src/cli/region.js";
 import { useIsolatedEnv } from "../_support/env.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 
@@ -299,198 +297,6 @@ describe("TestMcpStart", () => {
     const result = await runner().invoke(cli, ["mcp", "stop"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("not running");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// deploy command
-// ---------------------------------------------------------------------------
-
-describe("TestMcpDeploy", () => {
-  // Test `abx mcp deploy` command.
-
-  it("test_deploy_help", async () => {
-    // deploy --help should work.
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output.includes("FC") || result.output.includes("Streamable HTTP")).toBe(true);
-    expect(result.output).toContain("--name");
-    expect(result.output).toContain("--generate-token");
-  });
-
-  it("test_deploy_output_dir", async () => {
-    // deploy --output-dir writes artifact to local directory.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("test-api-key");
-    // region now falls back to the shared resolution chain (config/env/default); pin it for determinism.
-    vi.spyOn(region, "resolveRegion").mockReturnValue("cn-hangzhou");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(fs.statSync(path.join(out, "requirements.txt")).isFile()).toBe(true);
-    const requirements = fs.readFileSync(path.join(out, "requirements.txt"), "utf8");
-    expect(requirements).not.toContain("agent-sandbox-server");
-    expect(requirements).toContain("agent-sandbox-client[mcp]==0.4.0a6");
-    expect(requirements).not.toMatch(/^agent-sandbox\[/m);
-    expect(requirements).not.toContain("github.com");
-    expect(fs.readFileSync(path.join(out, "app.py"), "utf8")).toContain('os.environ.get("ABX_SANDBOX_DOMAIN")');
-
-    expect(fs.statSync(path.join(out, "app.py")).isFile()).toBe(true);
-    expect(fs.readFileSync(path.join(out, "app.py"), "utf8")).toContain("require_auth_token");
-    expect(fs.statSync(path.join(out, "config.yaml")).isFile()).toBe(true);
-    // Verify config.yaml content
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.function_name).toBe("agent-sandbox-mcp");
-    expect(cfg.region).toBe("cn-hangzhou");
-    expect(cfg.memory).toBe(512);
-    expect(cfg.environment_variables).toHaveProperty("ABX_SANDBOX_API_KEY");
-    expect(cfg.environment_variables).toHaveProperty("ABX_MCP_AUTH_TOKEN");
-  });
-
-  it("test_deploy_custom_name_region", async () => {
-    // deploy with custom --name and --region.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, [
-      "mcp",
-      "deploy",
-      "--output-dir",
-      out,
-      "--name",
-      "my-mcp-fn",
-      "--region",
-      "cn-shanghai",
-      "--template",
-      "python-base",
-      "--memory",
-      "1024",
-      "--timeout",
-      "300",
-      "--generate-token",
-    ]);
-    expect(result.exit_code, result.output).toBe(0);
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.function_name).toBe("my-mcp-fn");
-    expect(cfg.region).toBe("cn-shanghai");
-    expect(cfg.memory).toBe(1024);
-    expect(cfg.timeout).toBe(300);
-    expect(cfg.environment_variables.ABX_DEFAULT_TEMPLATE).toBe("python-base");
-    expect(cfg.environment_variables.ALIBABA_CLOUD_REGION_ID).toBe("cn-shanghai");
-    expect(cfg.environment_variables.ABX_MCP_AUTH_TOKEN).toBeTruthy();
-  });
-
-  it("test_deploy_auth_token_file", async () => {
-    // deploy --auth-token-file reads token from file.
-    const out = path.join(tmpPath(), "artifact");
-    const tokenFile = path.join(tmpPath(), "token.txt");
-    fs.writeFileSync(tokenFile, "my-fixed-token-value\n");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--auth-token-file", tokenFile]);
-    expect(result.exit_code, result.output).toBe(0);
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.environment_variables.ABX_MCP_AUTH_TOKEN).toBe("my-fixed-token-value");
-    expect(result.output).not.toContain("my-fixed-token-value");
-    expect(result.output).toContain("Bearer <BEARER_TOKEN>");
-  });
-
-  it("test_deploy_empty_auth_token_file_is_refused", async () => {
-    // An empty token file must not produce an open or fail-closed artifact.
-    const out = path.join(tmpPath(), "artifact");
-    const tokenFile = path.join(tmpPath(), "token.txt");
-    fs.writeFileSync(tokenFile, "  \n");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--auth-token-file", tokenFile]);
-
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("non-empty");
-    expect(fs.existsSync(path.join(out, "config.yaml"))).toBe(false);
-  });
-
-  it("test_deploy_missing_token_is_refused", async () => {
-    // Omitting the Bearer token must not disable client authentication.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("k");
-    iso.monkeypatch.setenv("ABX_MCP_AUTH_TOKEN", "");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out]);
-
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("non-empty");
-    expect(fs.existsSync(path.join(out, "config.yaml"))).toBe(false);
-  });
-
-  it("test_deploy_generate_token", async () => {
-    // deploy --generate-token produces a random token.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
-    expect(result.exit_code, result.output).toBe(0);
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    const token = cfg.environment_variables.ABX_MCP_AUTH_TOKEN ?? "";
-    expect(token.length).toBeGreaterThan(16); // urlsafe_b64 tokens are long
-  });
-
-  it("test_deploy_no_api_key_warning", async () => {
-    // deploy without API key shows warning.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey(null);
-    iso.monkeypatch.delenv("ABX_SANDBOX_API_KEY");
-    iso.monkeypatch.delenv("ABX_SANDBOX_API_KEY");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--generate-token"]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("ABX_SANDBOX_API_KEY");
-  });
-
-  it("test_deploy_explicit_api_key", async () => {
-    // An explicit --api-key takes precedence over stored configuration.
-    const out = path.join(tmpPath(), "artifact");
-    const readApiKey = patchApiKey(null);
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--api-key", "cli-api-key", "--generate-token"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(readApiKey).not.toHaveBeenCalled();
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.environment_variables.ABX_SANDBOX_API_KEY).toBe("cli-api-key");
-  });
-
-  it("test_deploy_session_affinity_flag", async () => {
-    // deploy --enable-session-affinity is reflected in config.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--enable-session-affinity", "--generate-token"]);
-    expect(result.exit_code, result.output).toBe(0);
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.http_trigger.enable_session_affinity).toBe(true);
-  });
-
-  it("test_deploy_no_session_affinity_flag", async () => {
-    // deploy --no-session-affinity disables affinity in config.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--no-session-affinity", "--generate-token"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.http_trigger.enable_session_affinity).toBe(false);
-  });
-
-  it("test_deploy_custom_domain", async () => {
-    // deploy --custom-domain is reflected in config.
-    const out = path.join(tmpPath(), "artifact");
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--output-dir", out, "--custom-domain", "mcp.example.com", "--generate-token"]);
-    expect(result.exit_code, result.output).toBe(0);
-    const cfg = yamlParse(fs.readFileSync(path.join(out, "config.yaml"), "utf8"));
-    expect(cfg.custom_domain).toBe("mcp.example.com");
-  });
-
-  it("test_deploy_without_output_dir", async () => {
-    // deploy without --output-dir generates artifact to temp dir.
-    patchApiKey("k");
-    const result = await runner().invoke(cli, ["mcp", "deploy", "--generate-token"]);
-    // Should succeed even without output-dir
-    expect(result.exit_code, result.output).toBe(0);
-    expect(result.output.toLowerCase().includes("artifact") || result.output.toLowerCase().includes("deploy")).toBe(true);
-    const m = /FC deployment artifact written to (\S+)/.exec(result.output);
-    if (m) fs.rmSync(m[1] as string, { recursive: true, force: true });
   });
 });
 

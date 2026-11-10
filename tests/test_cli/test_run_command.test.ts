@@ -30,7 +30,7 @@ describe("TestRunCommand", () => {
     const runCommand = vi.fn().mockResolvedValue(new CommandResult({ value: "built!", exit_code: 0 }));
     _mockSandbox({ runCommand });
 
-    const result = await runner().invoke(cli, ["run", "sbx-1", "build"]);
+    const result = await runner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("built!");
@@ -42,7 +42,7 @@ describe("TestRunCommand", () => {
     _mockSandbox({ runCommand });
 
     for (const argv of [
-      ["run", "sbx-1", "deploy", "--arg", "target=staging", "-a", "n=2"],
+      ["sandbox", "command", "run", "sbx-1", "deploy", "--arg", "target=staging", "-a", "n=2"],
       ["sandbox", "command", "run", "sbx-1", "deploy", "--arg", "target=staging", "-a", "n=2"],
     ]) {
       const result = await runner().invoke(cli, argv);
@@ -59,7 +59,7 @@ describe("TestRunCommand", () => {
     const runCommand = vi.fn().mockResolvedValue(new CommandResult({ value: { sum: 3 }, exit_code: 0 }));
     _mockSandbox({ runCommand });
 
-    const result = await runner().invoke(cli, ["--json", "run", "sbx-1", "add", "--json-args", '{"x": 1, "y": 2}', "--server-port", "8123"]);
+    const result = await runner().invoke(cli, ["--json", "sandbox", "command", "run", "sbx-1", "add", "--json-args", '{"x": 1, "y": 2}', "--server-port", "8123"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("sum");
@@ -67,12 +67,12 @@ describe("TestRunCommand", () => {
   });
 
   it("test_run_invalid_arg_format", async () => {
-    const result = await runner().invoke(cli, ["run", "sbx-1", "build", "--arg", "badformat"]);
+    const result = await runner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build", "--arg", "badformat"]);
     expect(result.exit_code).toBe(2);
   });
 
   it("test_run_invalid_json_args", async () => {
-    const result = await runner().invoke(cli, ["run", "sbx-1", "build", "--json-args", "[1]"]);
+    const result = await runner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build", "--json-args", "[1]"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -80,7 +80,7 @@ describe("TestRunCommand", () => {
     const runCommand = vi.fn().mockResolvedValue(new CommandResult({ stderr: "RuntimeError: boom", exit_code: 1 }));
     _mockSandbox({ runCommand });
 
-    const result = await runner().invoke(cli, ["run", "sbx-1", "bad"]);
+    const result = await runner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "bad"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("RuntimeError: boom");
@@ -113,7 +113,7 @@ describe("TestRunCommand", () => {
     } });
     vi.spyOn(Sandbox, "connect").mockResolvedValue(sandbox);
     try {
-      const argv = [...(testCase.json ? ["--json"] : []), ...(testCase.alias ? ["sandbox", "command", "run"] : ["run"]), "fixture-sandbox", "fixture"];
+      const argv = [...(testCase.json ? ["--json"] : []), ...(testCase.alias ? ["sandbox", "command", "run"] : ["sandbox", "command", "run"]), "fixture-sandbox", "fixture"];
       const result = await runner().invoke(cli, argv);
       expect(requests).toBe(1);
       expect(result.exit_code, result.output).toBe(testCase.exit);
@@ -139,7 +139,7 @@ describe("TestRunCommand", () => {
   it("test_run_unknown_command_reports_not_found", async () => {
     _mockSandbox({ runCommand: vi.fn().mockRejectedValue(new CommandNotFoundError("bad", { server_status: "HTTP 404", suggestion: "List the registered commands with 'abx sandbox command list SANDBOX_ID'." })) });
 
-    const result = await runner().invoke(cli, ["run", "sbx-1", "bad"]);
+    const result = await runner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "bad"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("not found");
@@ -149,7 +149,7 @@ describe("TestRunCommand", () => {
   it("test_run_without_server_errors_cleanly", async () => {
     _mockSandbox({ runCommand: vi.fn().mockRejectedValue(new ConnectionError_("No SandboxServer reachable in sandbox sbx-1 on port 9000.")) });
 
-    const result = await runner().invoke(cli, ["run", "sbx-1", "build"]);
+    const result = await runner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build"]);
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("No SandboxServer reachable");

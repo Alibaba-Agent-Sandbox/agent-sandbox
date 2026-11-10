@@ -74,7 +74,11 @@ async function inspectPackage(identity) {
   files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   return { source_kind: sourceKind, name, version, license: metadata.license, integrity: metadata.dist.integrity, files };
 }
-const identities = prebundledIdentities(sourceMap);
+const sdkOnly = process.argv.includes("--sdk");
+const identities = sdkOnly ? ["@bufbuild/protobuf", "@connectrpc/connect", "@connectrpc/connect-web"].map(name => {
+  const metadata = JSON.parse(readFileSync(join(base, "node_modules", name, "package.json"), "utf8"));
+  return `${name}@${metadata.version}`;
+}) : prebundledIdentities(sourceMap);
 const packages = new Array(identities.length);
 let next = 0;
 await Promise.all(Array.from({ length: 8 }, async () => {
@@ -89,6 +93,6 @@ for (const pkg of packages) {
 const manifest = { source_map_sha256: digest(sourceMap), packages: packages.map(pkg => ({
   ...pkg, files: pkg.files.map(({ path, sha256 }) => ({ path, sha256 })),
 })), notices_sha256: digest(notices) };
-writeFileSync(join(base, "prebundled-sources.json"), JSON.stringify(manifest, null, 2) + "\n");
-writeFileSync(join(base, "prebundled-notices.txt"), notices);
+writeFileSync(join(base, sdkOnly ? "sdk-license-sources.json" : "prebundled-sources.json"), JSON.stringify(manifest, null, 2) + "\n");
+writeFileSync(join(base, sdkOnly ? "sdk-license-notices.txt" : "prebundled-notices.txt"), notices);
 console.log(`Retained provenance and notices for ${packages.length} exact prebundled identities.`);

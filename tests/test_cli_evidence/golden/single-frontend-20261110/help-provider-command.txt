@@ -1,0 +1,15 @@
+Usage: abx provider command [options] [command]
+
+Discover provider-specific management command schemas.
+
+Commands manage cloud resources; sandbox application commands use 'abx sandbox
+command'.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  info        Show a management command's input/output schemas and effects.
+  list        List a provider's management commands without connecting to the
+              backend.
+[exit_code:0]

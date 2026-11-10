@@ -4,12 +4,12 @@
 
 插件发布到 [alibaba-agent-sandbox/awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers)，每个提供商一个目录。不要放进 SDK 或 CLI 仓库。该目录仓库还有贡献指南（`docs/authoring.md`）和给 AI 用的 skill（`SKILL.md`）。
 
-## `abx create` 如何调用到 provider
+## `abx deploy --template-id TEMPLATE` 如何调用到 provider
 
-`abx create` 不会 import 你的插件。它调用 `Sandbox.create`，这次调用在访问任何沙箱 API 之前先选定 provider。
+`abx deploy --template-id TEMPLATE` 不会 import 你的插件。它调用 `Sandbox.create`，这次调用在访问任何沙箱 API 之前先选定 provider。
 
 ```text
-abx --provider my-cloud create --template base
+abx --provider my-cloud deploy --name my-sandbox --template-id base
         │
         │  1. main() 从参数里取出 --provider 和 --opt（exec 放在沙箱 ID 前）
         │     只在本次进程内保存。
@@ -45,12 +45,12 @@ Sandbox.create({ template: "base", ... })
       和本次命令都是 alicloud-express，CLI 会把 id 打印成 my-cloud:<sandbox_id>。
 ```
 
-之后的 `exec`、`upload`、`kill my-cloud:<id>` 都用这个 id。宿主先检查能力。没有声明 `exec.run` 时，`abx exec` 返回 E8004，不会发送 `exec.run`。
+之后的 `exec`、`upload`、`kill my-cloud:<id>` 都用这个 id。宿主先检查能力。没有声明 `exec.run` 时，`abx sandbox exec` 返回 E8004，不会发送 `exec.run`。
 
 以下路径需要区分宿主路由与 Provider 的职责：
 
-- 没有 `--provider`、没有 `ABX_PROVIDER`、配置里也没有默认值时，`abx create` 仍走 `alicloud-express`。
-- `abx create --prompt "一个 node 服务"` 的生成和源码获取由宿主完成；源码准备、沙箱创建和清理由选中的 Provider 负责，共享启动器启动清单声明的服务。没有 `templates.build` 的 Provider 不能准备源码；已有平台原生引用用 `abx --provider my-cloud create --template <镜像或名称>` 创建。
+- 没有 `--provider`、没有 `ABX_PROVIDER`、配置里也没有默认值时，`abx deploy --template-id TEMPLATE` 仍走 `alicloud-express`。
+- `abx template init --prompt "一个 node 服务"` 的生成和源码获取由宿主完成；源码准备、沙箱创建和清理由选中的 Provider 负责，共享启动器启动清单声明的服务。没有 `templates.build` 的 Provider 不能准备源码；已有平台原生引用用 `abx --provider my-cloud deploy --name my-sandbox --template-id <镜像或名称>` 创建。
 
 Python 里的 `Sandbox.create(template="base", provider="my-cloud")` 从第 2 步开始，不经过 CLI。它用的仍是已安装的 `~/.abx/providers/my-cloud`。
 
@@ -197,7 +197,7 @@ abx provider install ./my-cloud --link --yes       # 原地安装，无完整性
 abx provider doctor my-cloud                       # 清单、requires、配置完整性、握手
 abx config set providers.my-cloud.api_key          # 掩码提示
 abx provider test my-cloud -o region=eu-1          # 契约测试（18 个用例；不支持的特性会被跳过）
-abx --provider my-cloud create --template base
+abx --provider my-cloud deploy --name my-sandbox --template-id base
 ```
 
 `abx provider test` 运行参考插件通过的同一套契约套件：生命周期、exec、流式输出、文件、进程控制、超时、错误映射。要在不依赖 CLI 的情况下对插件做单元测试，可以直接用 NDJSON 驱动其进程的 stdin。
@@ -266,7 +266,7 @@ abx provider install https://github.com/you/abx-provider-my-cloud.git \
   --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
 
 # 插件在更大仓库的 providers/my-cloud 子目录里。
-# // 是子目录，和 `abx template install owner/repo//subdir` 同一写法。
+# // 是子目录，和 `abx template init ./project --from owner/repo//subdir` 同一写法。
 abx provider install you/plugins//providers/my-cloud \
   --ref 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
 
@@ -289,7 +289,7 @@ abx provider install https://github.com/you/abx-provider-my-cloud.git \
 
 ## 5. 模板配置
 
-`[template]` 表**只用于模板创作**（`abx template scaffold` / `deploy` 的 Dockerfile 和代码生成）。它不决定 `abx create X` 的含义：那个字符串会在 `sandbox.create` 里原样交给你的插件，由你来映射。OpenSandbox 把它当作容器镜像 URI（`python:3.12-slim`），并提供 `default_image` 和 `image_aliases` 选项来使用短名；它没有 `[template]` 表，使用通用配置。
+`[template]` 表**只用于模板创作**（`abx template init` / `deploy` 的 Dockerfile 和代码生成）。它不决定 `abx deploy --template-id X` 的含义：那个字符串会在 `sandbox.create` 里原样交给你的插件，由你来映射。OpenSandbox 把它当作容器镜像 URI（`python:3.12-slim`），并提供 `default_image` 和 `image_aliases` 选项来使用短名；它没有 `[template]` 表，使用通用配置。
 
 可选的 `[template]` 表。没有这张表时，模板生成使用通用 Docker 配置（`FROM python:3.12-slim`、`CMD ["python3", "commands.py"]`、`WORKDIR /app`），并说明该提供者没有模板配置。它不会使用阿里云极速版 FC 镜像。OpenSandbox 保持通用配置；其 create `entrypoint` 在这一轮不改。
 

@@ -37,7 +37,7 @@ function heading(catalog: ProviderOperations): string {
 }
 
 function unavailable(catalog: ProviderOperations): string {
-  return `${heading(catalog)}\nOperations unavailable (${catalog.error?.code ?? "E8020"}).\nUse 'abx provider list' to inspect providers; 'abx provider default ID' selects a working default.\nInstallation and update commands remain available.`;
+  return `${heading(catalog)}\nOperations unavailable (${catalog.error?.code ?? "E8020"}).\nUse 'abx provider list' to inspect providers; 'abx config set provider ID' selects a working default.\nInstallation and update commands remain available.`;
 }
 
 /** Compact root overview; the full list and schemas are progressively disclosed below provider. */

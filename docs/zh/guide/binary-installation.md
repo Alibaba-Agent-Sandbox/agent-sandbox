@@ -15,11 +15,13 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 | Windows (x64) | `abx-{version}-windows-x64.exe` |
 
 每个文件都有同名的 `.sha256`（SHA-256，`sha256sum` / `shasum -a 256` 的文本格式）。
-从 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.5.8) 下载适合当前平台的 CLI **v0.5.8** 及对应 SHA-256 文件。也可[从源码安装](#从源码安装)。
+从 [GitHub Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases) 选择已发布版本，下载适合当前平台的二进制及对应 SHA-256 文件。也可[从源码安装](#从源码安装)。
 
 官网已镜像完整稳定版：五个平台的二进制、npm 归档及 SHA-256 文件；大小和校验和验证通过后才部署。[镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 标识当前可下载的版本。GitHub 新版本在镜像部署完成后成为官网默认版本。
 
 ---
+
+本仓库当前指南对应当前源码命令。历史发行版可能使用不同入口；安装后查看 `abx --help`，需要当前命令时使用下方源码安装路径。
 
 ## 安装
 
@@ -67,7 +69,7 @@ Windows 脚本支持 `ABX_VERSION` 和 `ABX_INSTALL_DIR`；默认版本来自 Gi
 ## 手动下载
 
 1. 从[官网镜像清单](https://www.agent-sandbox.cn/releases/latest.json) 确认当前版本和文件名。
-2. 当前 0.5.8 从已公开的 GitHub Release 下载文件及 `.sha256`；官网镜像仅提供其清单中的版本。例如 macOS Apple Silicon v0.5.8：
+2. 以下固定 0.5.8 示例从已公开的 GitHub Release 下载文件及 `.sha256`；官网镜像仅提供其清单中的版本。例如 macOS Apple Silicon v0.5.8：
 
    ```bash
    curl -fSLO https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.5.8/abx-0.5.8-darwin-arm64

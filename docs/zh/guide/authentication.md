@@ -1,6 +1,6 @@
 # 认证详解
 
-> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+> CLI 使用统一命令树。Provider 配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL` 和 `ABX_SANDBOX_DOMAIN`。极速版也支持 E2B 配置别名，见[迁移指南](migrate-from-e2b.md)。
 
 沙箱运行时请求需要 **API Key**；**AK/SK（阿里云 AccessKey）**经明确确认后可为极速版准备该 Key，也用于原生控制面操作；见[功能与权限](permissions.md)。
 
@@ -132,10 +132,10 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 abx config set sandbox_api_key your-api-key
 ```
 
-标准交互终端可以用 `--env` 设置进程环境。这仅属于终端会话，不是沙箱级存储；脱离终端创建不会打开该会话。后续进程需要继承变量时，使用 SDK/原生 provider 的创建环境参数：
+`abx deploy --env KEY=VALUE` 设置新沙箱的运行环境；`abx sandbox exec --env KEY=VALUE NAME -- COMMAND` 只设置该进程的环境。例如：
 
 ```bash
-abx create base --env MY_TOKEN=your-secret-value --env ANOTHER_SECRET=another-value
+abx deploy --template-id base --name my-sandbox --env MODE=example --yes
 ```
 
 > **历史说明**：macOS Keychain 集成已在过度设计清理中移除（ADR 2026-09-23）。`abx secret` CLI 命令组也已被移除。所有密钥管理现通过环境变量、`.env` 文件或 `abx config set` 完成。

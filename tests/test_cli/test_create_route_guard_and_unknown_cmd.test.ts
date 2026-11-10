@@ -1,15 +1,4 @@
-/**
- * Task 210 targeted tests: explicit-route guard on `abx create` and the root LazyGroup unknown-command hint.
- *
- * Contracts asserted here:
- * - `abx create` with neither DESCRIPTION nor --template -> Click UsageError, exit code 2, message on stderr listing all
- *   three explicit routes.
- * - Unknown top-level command with a close spelling candidate -> exit 2 and a "Did you mean" suggestion only (no
- *   custom-command hint).
- * - Unknown top-level command with no plausible candidate -> exit 2 and a pointer to `abx --help` and
- *   `abx run SANDBOX NAME`.
- * - JSON / quiet / CI flags do not change exit code 2 semantics.
- */
+/** Canonical deploy route validation and unknown-command hints. */
 
 import "../_support/isolatedHome.js";
 
@@ -25,34 +14,21 @@ beforeEach(() => vi.stubEnv("ABX_SANDBOX_API_KEY", "placeholder-sandbox-key"));
 afterEach(() => vi.unstubAllEnvs());
 
 // ---------------------------------------------------------------------------
-// 1. abx create without description / template
+// 1. deploy route validation and removed entry
 // ---------------------------------------------------------------------------
 
-describe("TestCreateRequiresExplicitRoute", () => {
-  it("bare create and positional templates use the standard defaults", async () => {
-    const mockSb = { commands: {}, id: "sbx-mock", status: "running", url: "https://sbx-mock.example", info: { template: "base", envd_version: null } };
-    const spy = vi.spyOn(Sandbox, "create").mockResolvedValue(mockSb as unknown as Sandbox);
-    try {
-      for (const args of [["create"], ["create", "base"]]) {
-        const result = await runner().invoke(cli, args);
-        expect(result.exit_code, result.output).toBe(0);
-      }
-      expect(spy).toHaveBeenCalledTimes(2);
-    } finally { spy.mockRestore(); }
+describe("TestDeployRequiresExplicitRoute", () => {
+  it("rejects a missing route before native creation", async () => {
+    const spy = vi.spyOn(Sandbox, "create");
+    const result = await runner().invoke(cli, ["deploy", "--name", "missing-route", "--yes"]);
+    expect(result.exit_code).toBe(2);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
-
-  // Python patches `Sandbox.create` and `run_sync`; here `Sandbox.create` is spied on (no `run_sync` bridge in the Node port).
-  it("test_explicit_base_still_routes_to_base", async () => {
-    // The explicit base route keeps working (no AI, no clarification).
-    // A `MagicMock` answers every attribute `create` reads; spell the few that matter out.
-    const mockSb = { commands: {}, id: "sbx-mock", status: "running", url: "https://sbx-mock.example", info: { template: "base", envd_version: null } };
-    const spy = vi.spyOn(Sandbox, "create").mockResolvedValue(mockSb as unknown as Sandbox);
-    try {
-      const result = await runner().invoke(cli, ["create", "--template", "base"]);
-      expect(result.exit_code, result.output).toBe(0);
-    } finally {
-      spy.mockRestore();
-    }
+  it("does not retain the retired create entry", async () => {
+    const result = await runner().invoke(cli, ["create", "--template", "base"]);
+    expect(result.exit_code).toBe(2);
+    expect(result.output).toContain("No such command 'create'");
   });
 });
 
@@ -62,11 +38,11 @@ describe("TestCreateRequiresExplicitRoute", () => {
 
 describe("TestUnknownCommandHints", () => {
   it("test_close_candidate_gets_correction_only", async () => {
-    const result = await runner().invoke(cli, ["creat"]);
+    const result = await runner().invoke(cli, ["deplo"]);
     expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such command 'creat'");
+    expect(result.output).toContain("No such command 'deplo'");
     expect(result.output).toContain("Did you mean");
-    expect(result.output).toContain("'create'");
+    expect(result.output).toContain("'deploy'");
     // High-confidence candidates must NOT show the custom-command hint.
     expect(result.output).not.toContain("custom_commands");
   });
@@ -83,17 +59,17 @@ describe("TestUnknownCommandHints", () => {
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No such command 'frobnicate'");
     expect(result.output).toContain("abx --help");
-    expect(result.output).toContain("abx run SANDBOX NAME");
+    expect(result.output).toContain("abx sandbox command run SANDBOX NAME");
     expect(result.output).not.toContain("custom_commands");
   });
 
   it("test_init_and_install_are_not_top_level_commands", async () => {
-    // Scaffolding and installing live under `abx template`; the hint names them.
+    // Authoring lives under template; removed root commands receive the current hints.
     for (const name of ["init", "install"]) {
       const result = await runner().invoke(cli, [name]);
       expect(result.exit_code).toBe(2);
       expect(result.output).toContain(`No such command '${name}'`);
-      expect(result.output).toContain("abx template scaffold|install");
+      expect(result.output).toContain("abx template init|build|publish");
     }
   });
 

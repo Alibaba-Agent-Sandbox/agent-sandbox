@@ -54,7 +54,7 @@ async function invoke(ctx, state, id, input = {}, { missingOkay = false } = {}) 
   writeFileSync(filename, JSON.stringify(input), { flag: 'wx', mode: 0o600 });
   let result;
   try {
-    result = await ctx.rawAbx(['--json', 'provider', 'command', 'run', PROVIDER, id, '--input-file', filename, '--yes'], { timeoutMs: 90_000 });
+    result = await ctx.rawAbx(['--json', "--provider", PROVIDER, "provider", "run", id, '--input-file', filename, '--yes'], { timeoutMs: 90_000 });
   } finally {
     rmSync(filename, { force: true });
   }

@@ -6,7 +6,7 @@ Provider 安装一次后，声明的操作自动可见，不需要用户再执�
 默认 Provider，脚本可以显式选择：
 
 ```sh
-abx provider default alicloud-express
+abx config set provider alicloud-express
 abx --help
 abx provider --help
 abx provider run --help
@@ -24,7 +24,7 @@ abx --provider alicloud-express provider run snapshot.list --input '{}'
 
 选择顺序与执行共用同一规则：`--provider ID`、`ABX_PROVIDER`、项目 `.env`、用户 `.env`、
 已保存配置、内置默认值。像上例一样，把全局选项放在 `provider` 命令组之前。
-`provider default ID` 保存偏好，环境变量仍可覆盖该值。
+`config set provider ID` 保存偏好，环境变量仍可覆盖该值。
 
 操作 ID 是一个完整参数，包括其中的点：`snapshot.create` 不转换成 `snapshot create`。
 操作固定放在 `provider run` 下，名为 `list`、`install` 或 `default` 的操作不能覆盖宿主
@@ -37,13 +37,13 @@ abx --provider alicloud-express provider run snapshot.list --input '{}'
 ```sh
 abx --json provider command list alicloud-express
 abx --json provider command info alicloud-express snapshot.create
-abx --json provider command run alicloud-express snapshot.create \
+abx --json --provider alicloud-express provider run snapshot.create \
   --input-file ./snapshot-input.json --yes
 ```
 
 AI 和自动化应使用这些 JSON 接口。面向人的帮助不是稳定 JSON 响应契约。
 Provider 管理操作、沙箱应用命令（`abx sandbox command`）与模板准备
-（`abx template launch`）是不同职责。注册和查看帮助不会创建模板或云资源。
+（`abx deploy`）是不同职责。注册和查看帮助不会创建模板或云资源。
 本次变更不会自动生成 MCP 工具、Shell 补全或 SDK 类型化方法。
 
 ## 职责与更新
@@ -94,17 +94,17 @@ HTTP403/409 不能归为 Provider 未声明能力。原生 ProviderSandbox 特�
 ```sh
 abx --json provider command list alicloud-express
 abx --json provider command info alicloud-express snapshot.create
-abx --json provider command run alicloud-express sandbox.pause \
+abx --json --provider alicloud-express provider run sandbox.pause \
   --input '{"sandbox_id":"<sandbox-id>"}' --yes
-abx --json provider command run alicloud-express sandbox.resume \
+abx --json --provider alicloud-express provider run sandbox.resume \
   --input '{"sandbox_id":"<sandbox-id>","timeout":600}' --yes
-abx --json provider command run alicloud-express snapshot.create \
+abx --json --provider alicloud-express provider run snapshot.create \
   --input '{"sandbox_id":"<sandbox-id>","name":"checkpoint","request_timeout":300}' --yes
-abx --json provider command run alicloud-express snapshot.list \
+abx --json --provider alicloud-express provider run snapshot.list \
   --input '{"sandbox_id":"<sandbox-id>","limit":100}'
-abx --json provider command run alicloud-express snapshot.restore \
+abx --json --provider alicloud-express provider run snapshot.restore \
   --input '{"snapshot_id":"<returned-snapshot-uuid>","timeout":300}' --yes
-abx --json provider command run alicloud-express snapshot.delete \
+abx --json --provider alicloud-express provider run snapshot.delete \
   --input '{"snapshot_id":"<returned-snapshot-uuid>"}' --yes
 ```
 
@@ -168,10 +168,10 @@ Python 仓库的手动验收控制器通过两端访问同一个真实 Provider�
 
 ```sh
 abx --json provider command info alicloud-express template-cache.create
-abx --json provider command run alicloud-express template-cache.create --input-file ./cache-ref.json --yes
-abx --json provider command run alicloud-express template-cache.get --input-file ./cache-ref.json
-abx --json provider command run alicloud-express template-cache.list --input-file ./cache-ref.json
-abx --json provider command run alicloud-express template-cache.delete --input-file ./cache-ref.json --yes
+abx --json --provider alicloud-express provider run template-cache.create --input-file ./cache-ref.json --yes
+abx --json --provider alicloud-express provider run template-cache.get --input-file ./cache-ref.json
+abx --json --provider alicloud-express provider run template-cache.list --input-file ./cache-ref.json
+abx --json --provider alicloud-express provider run template-cache.delete --input-file ./cache-ref.json --yes
 ```
 
 创建只提交一次请求，在 `data` 中返回实际缓存元数据。真实验收观察到

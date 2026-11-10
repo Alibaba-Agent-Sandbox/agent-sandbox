@@ -168,23 +168,24 @@ describe("Express managed API keys", () => {
 });
 
 describe("Express confirmation experience", () => {
-  it("declining does not create anything; explicit --ci authorizes preparation", async () => {
+  it("declining does not create anything; explicit provider preparation authorizes it", async () => {
     const ask = vi.fn(async (_message: string) => false);
-    await expect(CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { ci: false, confirm: ask })).rejects.toMatchObject({ code: "E8012" });
+    await expect(CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { confirm: ask })).rejects.toMatchObject({ code: "E8012" });
     expect(ask.mock.calls[0][0]).toContain("30-day"); expect(create).not.toHaveBeenCalled();
-    expect(await CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { ci: true, confirm: ask })).toBe("placeholder-managed");
+    await prepareManagedApiKey(config(), {}, true);
     expect(ask).toHaveBeenCalledOnce(); expect(create).toHaveBeenCalledOnce();
   });
   it("a positive confirmation prepares once and later commands do not prompt again", async () => {
     const ask = vi.fn(async () => true);
-    await CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { ci: false, confirm: ask });
-    await CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { ci: false, confirm: ask });
+    await CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { confirm: ask });
+    await CONFIGURATION_UI.runtimeAuthentication!.resolve(config(), { confirm: ask });
     expect(ask).toHaveBeenCalledOnce(); expect(create).toHaveBeenCalledOnce();
   });
-  it("operation guidance accepts AK/SK, prepares with --ci and passes a resolved key to the original action", async () => {
+  it("operation guidance accepts AK/SK and reuses an explicitly prepared key", async () => {
     iso.setenv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak"); iso.setenv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-secret");
     const action = vi.fn(async values => values.sandbox_api_key);
-    expect(await withGuidedConfiguration(undefined, { operation: "create", provider: "alicloud-express", requirements: ["sandbox_api_key"], ci: true }, action)).toBe("placeholder-managed");
+    await prepareManagedApiKey(config(), {}, true);
+    expect(await withGuidedConfiguration(undefined, { operation: "create", provider: "alicloud-express", requirements: ["sandbox_api_key"] }, action)).toBe("placeholder-managed");
     expect(action).toHaveBeenCalledOnce(); expect(create).toHaveBeenCalledOnce();
   });
   it("automation without --ci neither prompts nor creates a key", async () => {
@@ -194,16 +195,18 @@ describe("Express confirmation experience", () => {
     await expect(withGuidedConfiguration(undefined, { operation: "create", requirements: ["sandbox_api_key"] }, action)).rejects.toMatchObject({ code: "E8012" });
     expect(action).not.toHaveBeenCalled(); expect(create).not.toHaveBeenCalled();
   });
-  it("ambient CI does not authorize credential writes; the explicit native --ci flag does", async () => {
+  it("neither ambient nor explicit CI authorizes writes; provider operation --yes does", async () => {
     iso.setenv("CI", "true");
     iso.setenv("ALICLOUD_ACCESS_KEY_ID", "placeholder-ak"); iso.setenv("ALICLOUD_ACCESS_KEY_SECRET", "placeholder-secret");
     const runner = new CliRunner();
-    const args = ["provider", "command", "run", "alicloud-express", "api-key.prepare"];
+    const args = ["provider", "run", "api-key.prepare"];
     const refused = await runner.invoke(cli, args);
     expect(refused.exit_code).not.toBe(0); expect(create).not.toHaveBeenCalled();
-    const accepted = await runner.invoke(cli, ["--ci", ...args]);
+    const ciRefused = await runner.invoke(cli, ["--ci", ...args]);
+    expect(ciRefused.exit_code).not.toBe(0); expect(create).not.toHaveBeenCalled();
+    const accepted = await runner.invoke(cli, ["--ci", ...args, "--yes"]);
     expect(accepted.exit_code, accepted.output).toBe(0);
-    expect(accepted.stderr).toContain("--ci authorized");
+    expect(accepted.stderr).not.toContain("--ci authorized");
     expect(accepted.stdout).not.toContain("placeholder-managed");
     expect(create).toHaveBeenCalledOnce();
   });

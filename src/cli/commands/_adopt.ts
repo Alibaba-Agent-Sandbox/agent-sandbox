@@ -1,6 +1,6 @@
 import { canGuideConfiguration } from "../config_guidance.js";
 /**
- * `abx template scaffold --adopt` orchestration (port of `cli/commands/_adopt.py`).
+ * `abx template init --adopt` orchestration (port of `cli/commands/_adopt.py`).
  *
  * The agent work and the safety checks live in `agent/adopt.ts`. This module only talks to the user: consent, the
  * preview, and translating rejections into Click errors.
@@ -181,7 +181,7 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
       replaced: [...plan.replaces],
       backed_up: [...result.backedUp],
       not_applied: [...plan.notApplied],
-      next_steps: [`abx deploy ${dirArg} -y`],
+      next_steps: [`abx deploy ${dirArg} --name ${templateName} --yes`],
     });
   } finally {
     if (cleanup) fs.rmSync(staged.stagingDir, { recursive: true, force: true });

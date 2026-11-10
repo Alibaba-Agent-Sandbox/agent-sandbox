@@ -14,7 +14,7 @@ const [binary, ...prefix] = parseBin(process.env.ABX_BIN || 'abx');
 const env = {
   PATH: process.env.PATH, HOME: root, USERPROFILE: root, NO_COLOR: '1',
   ABX_NO_KEYCHAIN: '1', ABX_PROVIDER_UPDATE_CHECK: '0',
-  E2B_API_KEY: 'placeholder-boundary-key', E2B_API_URL: 'http://127.0.0.1:1', E2B_DOMAIN: 'example.invalid',
+  ABX_SANDBOX_API_KEY: 'placeholder-boundary-key', ABX_SANDBOX_BASE_URL: 'http://127.0.0.1:1', ABX_SANDBOX_DOMAIN: 'example.invalid',
 };
 function run(args, status = 0) {
   try {
@@ -22,7 +22,7 @@ function run(args, status = 0) {
     assert.equal(status, 0);
     return out;
   } catch (error) {
-    assert.equal(error.status, status, 'unexpected CLI status');
+    assert.equal(error.status, status, `unexpected CLI status: ${String(error.stderr).replaceAll('placeholder-boundary-key', '<SECRET>')}`);
     return String(error.stdout) + String(error.stderr);
   }
 }
@@ -30,6 +30,13 @@ const calls = () => existsSync(marker) ? JSON.parse(readFileSync(marker, 'utf8')
 try {
   mkdirSync(plugin);
   writeFileSync(join(plugin, 'abx-provider.toml'), `manifest_version = 1
+operation_contract_version = 1
+[operations]
+cli = ["sandbox.get"]
+python = []
+[workflow]
+inputs = ["managed"]
+startups = ["none"]
 [provider]
 id = "boundary-probe"
 version = "1.0.0"
@@ -42,31 +49,33 @@ supported = ["sandbox.lifecycle", "templates.read", "templates.build"]
 inherit = []
 `);
   writeFileSync(join(plugin, 'provider.mjs'), `import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-const marker = new URL('./calls.json', import.meta.url);
+const marker = ${JSON.stringify(marker)};
 export default () => ({ async buildInfra() { return {
+  operation_contract_version: 1, operations: { cli: ["sandbox.get"], python: [] },
   envd_auth: {allow_missing: true},
-  sandbox_protocol: { async connect(id) {
+  sandbox_protocol: { async getInfo(id) {
     const calls = existsSync(marker) ? JSON.parse(readFileSync(marker, 'utf8')) : [];
     calls.push(id); writeFileSync(marker, JSON.stringify(calls));
-    return {sandbox_id: id, template: 'fixture', status: 'running', timeout: 300, metadata: {}};
+    const info = {sandbox_id: id, template: 'fixture', status: 'running', timeout: 300, metadata: {}};
+    return { ...info, modelDump: () => ({ ...info }) };
   } },
   async close() {}
 }; } });
 `);
   run(['provider', 'install', plugin, '--link', '--yes']);
-  assert.match(run(['info', 'boundary-probe:owned-id']), /boundary-probe/);
+  assert.match(run(["--json", "status", 'boundary-probe:owned-id']), /owned-id/);
   assert.deepEqual(calls(), ['owned-id']);
   console.log('PASS: qualified resource bypasses default Express and reaches its local provider');
-  assert.match(run(['--provider', 'alicloud-express', 'info', 'boundary-probe:owned-id'], 2), /E8030/);
-  assert.match(run(['info', 'unknown-probe:owned-id'], 4), /E8001/);
-  assert.match(run(['info', 'boundary-probe:'], 2), /E8002/);
-  assert.match(run(['--provider', 'boundary-probe', 'exec', 'owned-id', 'agent', '--provider', 'alicloud-express'], 2), /No such option/);
+  assert.match(run(['--provider', 'alicloud-express', "status", 'boundary-probe:owned-id'], 2), /E8030/);
+  assert.match(run(["status", 'unknown-probe:owned-id'], 4), /E8001/);
+  assert.match(run(["status", 'boundary-probe:'], 2), /E8002/);
+  assert.match(run(['--provider', 'boundary-probe', "sandbox", 'exec', '--unknown-local-option', 'owned-id', 'agent'], 2), /No such option/);
   assert.deepEqual(calls(), ['owned-id']);
   console.log('PASS: conflicting, unknown and empty namespaces fail before provider calls');
-  assert.match(run(['--provider', 'boundary-probe', 'template', 'list'], 1), /E8004/);
-  assert.match(run(['--provider', 'boundary-probe', 'create', '--prompt', 'test environment', '--yes'], 1), /E8004/);
+  assert.match(run(['--provider', 'boundary-probe', 'provider', 'run', 'template.list'], 1), /E8004/);
+  assert.match(run(["--provider", "boundary-probe", "provider", "run", "template.create", "--input", '{"image":"example.invalid/source:v1","team_id":"foreign-field"}', "--yes"], 2), /E8002/);
   assert.deepEqual(calls(), ['owned-id']);
-  console.log('PASS: foreign template flags cannot invoke FC/ACR or natural-language deploy');
+  console.log('PASS: generic template operations fail before foreign backend work');
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

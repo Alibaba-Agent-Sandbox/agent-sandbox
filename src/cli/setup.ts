@@ -13,7 +13,7 @@ import { _withGithubRateLimitRetry } from "./template_catalog.js";
 
 /** Pick a catalog template without requiring users to find or copy repository references. */
 export async function chooseTemplate(ctx: Context): Promise<string> {
-  if (!canPrompt(ctx)) throw new UsageError("Choose a template with 'abx template search QUERY', then run 'abx template launch NAME' in a terminal, or supply NAME and --yes in automation.");
+  if (!canPrompt(ctx)) throw new UsageError("Choose a template with 'abx template list QUERY', then run 'abx deploy NAME' in a terminal, or supply NAME and --yes in automation.");
   const out = getOutput(ctx), fmt = getFormatter(ctx);
   const provider = getProvider(resolveProviderId(cliProvider()));
   const index = await _withGithubRateLimitRetry(token => fetchIndex(null, { token }), { token: resolveGithubToken(), fmt, out });
@@ -38,13 +38,13 @@ export async function chooseTemplate(ctx: Context): Promise<string> {
 export async function continueSetup(ctx: Context): Promise<void> {
   if (!canPrompt(ctx)) return;
   const next = await select("What would you like to do next?", {
-    choices: [{ name: "Find and launch a template", value: "launch" }, { name: "Finish setup", value: "" }],
+    choices: [{ name: "Find and deploy a template", value: "launch" }, { name: "Finish setup", value: "" }],
     default: "launch", err: true,
   });
   if (next !== "launch") {
-    getOutput(ctx).info("Ready. Run 'abx template launch' to find and launch a template; missing build settings can be filled in the same command.");
+    getOutput(ctx).info("Ready. Run 'abx deploy TEMPLATE' to find and launch a template; missing build settings can be filled in the same command.");
     return;
   }
-  const { launchTemplate } = await import("./template_launch.js");
-  await launchTemplate(ctx, { template_ref: await chooseTemplate(ctx) });
+  const { deploy_shortcut } = await import("./commands/deploy.js");
+  await ctx.invoke(deploy_shortcut, { source: await chooseTemplate(ctx) });
 }

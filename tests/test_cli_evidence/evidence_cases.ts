@@ -901,7 +901,25 @@ function _buildRegistry(): EvidenceCase[] {
 }
 
 /** The registry (same order as the Python `REGISTRY`). */
-export const REGISTRY: EvidenceCase[] = _buildRegistry();
+const retained = _buildRegistry().filter(c => /^(config-|mcp-|run-|command-list|upload-|download-)/.test(c.output_file) || ["version", "error-unknown-suggestion", "error-unknown-custom-hint", "error-removed-init"].includes(c.output_file));
+function currentCommand(command: string[]): string[] {
+  const offset = command[0] === "--json" ? 1 : 0;
+  const operation = command[offset];
+  if (operation === "run") return [...command.slice(0, offset), "sandbox", "command", "run", ...command.slice(offset + 1)];
+  if (operation === "upload" || operation === "download") return [...command.slice(0, offset), "sandbox", ...command.slice(offset)];
+  return command;
+}
+const publicHelp = [[], ["deploy"], ["list"], ["status"], ["logs"], ["delete"], ["recover"],
+  ["sandbox"], ...["exec", "connect", "upload", "download", "files", "process", "command", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"].map(name => ["sandbox", name]),
+  ["provider"], ...["list", "info", "install", "update", "run", "command"].map(name => ["provider", name]),
+  ...["list", "info"].map(name => ["provider", "command", name]),
+  ["template"], ...["list", "info", "init", "build", "publish"].map(name => ["template", name]),
+  ["config"], ...["init", "get", "set", "list"].map(name => ["config", name]),
+  ["mcp"], ...["start", "stop", "install", "status"].map(name => ["mcp", name])];
+export const REGISTRY: EvidenceCase[] = [
+  ...publicHelp.map(command => ({ command: [...command, "--help"], description: `${command.join(" ") || "abx"} --help`, category: "A" as const, mock_setup: null, output_file: `help-${command.join("-") || "abx"}` })),
+  ...retained.map(c => ({ ...c, command: currentCommand(c.command) })),
+];
 
 /** Cases suitable for golden-file testing (deterministic only): mocked ones plus every category-A case. */
 export function eligibleCases(): EvidenceCase[] {
@@ -919,7 +937,7 @@ export async function runCase(testCase: EvidenceCase): Promise<{ stdout: string;
       handle = await testCase.mock_setup();
       if (handle.env.command) cmd = handle.env.command;
     }
-    const result = await runner.invoke(cli, cmd, { prog_name: "abx" });
+    const result = await runner.invoke(cli, currentCommand(cmd), { prog_name: "abx" });
     return { stdout: result.stdout || "", stderr: result.stderr || "", exit_code: result.exit_code };
   } finally {
     if (handle) await handle.restore();

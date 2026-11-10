@@ -581,9 +581,9 @@ describe("TestGeneration1StartCommand", () => {
       throw new Error("expected TemplateBuildError");
     } catch (exc) {
       expect(exc).toBeInstanceOf(TemplateBuildError);
-      expect((exc as TemplateBuildError).suggestion).toContain("abx template delete tpl-old -y");
-      expect((exc as TemplateBuildError).suggestion).toContain("abx template deploy . -y");
-      expect((exc as TemplateBuildError).suggestion).toContain("--force");
+      expect((exc as TemplateBuildError).suggestion).toContain('provider run template.delete --input \'{"template_id":"tpl-old"}\' --yes');
+      expect((exc as TemplateBuildError).suggestion).toContain("abx template build . --yes");
+      expect((exc as TemplateBuildError).suggestion).toContain("new template name");
     }
   });
 
@@ -616,7 +616,7 @@ describe("TestGeneration1StartCommand", () => {
       expect((exc as TemplateBuildError).message).toContain(
         "sandboxConfig.startCommand is only supported when updating a generation 2 sandbox template",
       );
-      expect((exc as TemplateBuildError).suggestion).toContain("abx template delete tpl-old -y");
+      expect((exc as TemplateBuildError).suggestion).toContain('provider run template.delete --input \'{"template_id":"tpl-old"}\' --yes');
     }
     expect(client.updateTemplate).toHaveBeenCalled();
     expect(client.deleteTemplate).not.toHaveBeenCalled();

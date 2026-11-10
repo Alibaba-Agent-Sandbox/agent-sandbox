@@ -6,7 +6,7 @@ export default {
   scenarios: ['volume', 'team', 'api-key', 'quota'].flatMap((resource) => ['legacy', 'context'].map((entry) => ({
     id: `${resource}-${entry === 'legacy' ? '' : 'context-'}list`, title: `list one page of ${resource} resources through the ${entry} entry`,
     argv: entry === 'legacy'
-      ? ['--json', 'provider', 'command', 'run', 'alicloud-express', `${resource}.list`]
+      ? ['--json', "--provider", 'alicloud-express', "provider", "run", `${resource}.list`]
       : ['--provider', 'alicloud-express', '--json', 'provider', 'run', `${resource}.list`],
     json(j) {
       const key = resource === 'api-key' ? 'api_keys' : `${resource}s`;

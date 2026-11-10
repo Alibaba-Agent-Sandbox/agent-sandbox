@@ -1,3 +1,4 @@
+import * as nativeSandbox from "../../src/cli/commands/sandbox_native.js";
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Tests for sandbox CLI commands: create, list, info, kill, exec, upload, download. */
 
@@ -10,7 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
-import { cli } from "../../src/cli/main.js";
+import { cli } from "../helpers/sandboxServiceCli.js";
 import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
 import * as guidance from "../../src/cli/config_guidance.js";
 import { replSeams } from "../../src/cli/repl.js";
@@ -74,6 +75,7 @@ function patchTransport(listed: unknown[] | (() => Promise<unknown[]>)) {
 
 let tmp = "";
 beforeEach(() => {
+  vi.spyOn(nativeSandbox, "isExpressReference").mockReturnValue(false);
   tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-sbxcmd-"));
 });
 afterEach(() => {
@@ -219,7 +221,7 @@ describe("TestConnect", () => {
     patchConnect({ id: "sbx-cli-test-001", commands: {} });
     patchInput(["exit"]);
 
-    const result = await runner().invoke(cli, ["connect", "sbx-cli-test-001"]);
+    const result = await runner().invoke(cli, ["sandbox", "connect", "sbx-cli-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("Connected") || result.output.includes("Disconnected")).toBe(true);
@@ -231,7 +233,7 @@ describe("TestConnect", () => {
     patchConnect({ id: "sbx-cli-test-001", commands: {} });
     patchInput(new EOFError());
 
-    const result = await runner().invoke(cli, ["connect", "sbx-cli-test-001"]);
+    const result = await runner().invoke(cli, ["sandbox", "connect", "sbx-cli-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Disconnected");
@@ -243,7 +245,7 @@ describe("TestConnect", () => {
     patchConnect({ id: "sbx-cli-test-001", commands: { run } });
     patchInput(["echo hello", "exit"]);
 
-    const result = await runner().invoke(cli, ["connect", "sbx-cli-test-001"]);
+    const result = await runner().invoke(cli, ["sandbox", "connect", "sbx-cli-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("hello world");
@@ -406,7 +408,7 @@ describe("TestExec", () => {
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "hello\n", stderr: "", exit_code: 0, execution_time: 0.1 }));
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["exec", "sbx-cli-test-001", "echo hello"]);
+    const result = await runner().invoke(cli, ["sandbox", "exec", "sbx-cli-test-001", "echo hello"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("hello");
@@ -417,7 +419,7 @@ describe("TestExec", () => {
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "hi\n", stderr: "", exit_code: 0, execution_time: 0.05 }));
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["--json", "exec", "sbx-cli-test-001", "echo hi"]);
+    const result = await runner().invoke(cli, ["--json", "sandbox", "exec", "sbx-cli-test-001", "echo hi"]);
 
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
@@ -430,7 +432,7 @@ describe("TestExec", () => {
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "", stderr: "error\n", exit_code: 1, execution_time: 0.05 }));
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["exec", "sbx-cli-test-001", "false"]);
+    const result = await runner().invoke(cli, ["sandbox", "exec", "sbx-cli-test-001", "false"]);
 
     expect(result.exit_code).toBe(1);
   });
@@ -462,7 +464,7 @@ describe("TestErrorHandling", () => {
     sb.commands.run = vi.fn().mockRejectedValue(new CommandTimeoutError("timed out"));
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["exec", "sbx-1", "sleep 999"]);
+    const result = await runner().invoke(cli, ["sandbox", "exec", "sbx-1", "sleep 999"]);
 
     expect(result.exit_code).toBe(5);
   });
@@ -488,7 +490,7 @@ describe("TestUpload", () => {
     const sb = _makeSandbox();
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["upload", "sbx-cli-test-001", localFile, "/app/script.py"]);
+    const result = await runner().invoke(cli, ["sandbox", "upload", "sbx-cli-test-001", localFile, "/app/script.py"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Uploaded");
@@ -497,7 +499,7 @@ describe("TestUpload", () => {
 
   it("test_upload_file_not_exists", async () => {
     // click.Path(exists=True) should reject missing files.
-    const result = await runner().invoke(cli, ["upload", "sbx-1", "/nonexistent/file.py", "/app/file.py"]);
+    const result = await runner().invoke(cli, ["sandbox", "upload", "sbx-1", "/nonexistent/file.py", "/app/file.py"]);
     expect(result.exit_code).not.toBe(0);
   });
 
@@ -509,7 +511,7 @@ describe("TestUpload", () => {
     const sb = _makeSandbox();
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["upload", "sbx-cli-test-001", tmp, "/app/data"]);
+    const result = await runner().invoke(cli, ["sandbox", "upload", "sbx-cli-test-001", tmp, "/app/data"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Uploaded 2 files");
@@ -528,7 +530,7 @@ describe("TestDownload", () => {
     const dest = path.join(tmp, "result.csv");
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["download", "sbx-cli-test-001", "/app/result.csv", dest]);
+    const result = await runner().invoke(cli, ["sandbox", "download", "sbx-cli-test-001", "/app/result.csv", dest]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Downloaded");
@@ -541,7 +543,7 @@ describe("TestDownload", () => {
     sb.files.readBytes = vi.fn().mockResolvedValue(Buffer.from("log-data"));
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["download", "sbx-cli-test-001", "/app/output.log", tmp]);
+    const result = await runner().invoke(cli, ["sandbox", "download", "sbx-cli-test-001", "/app/output.log", tmp]);
 
     expect(result.exit_code).toBe(0);
     expect(fs.readFileSync(path.join(tmp, "output.log"))).toEqual(Buffer.from("log-data"));
@@ -554,7 +556,7 @@ describe("TestDownload", () => {
     const dest = path.join(tmp, "deep", "nested", "file.bin");
     patchConnect(sb);
 
-    const result = await runner().invoke(cli, ["download", "sbx-cli-test-001", "/app/file.bin", dest]);
+    const result = await runner().invoke(cli, ["sandbox", "download", "sbx-cli-test-001", "/app/file.bin", dest]);
 
     expect(result.exit_code).toBe(0);
     expect(fs.readFileSync(dest)).toEqual(Buffer.from("binary"));

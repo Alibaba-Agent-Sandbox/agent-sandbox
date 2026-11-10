@@ -22,10 +22,10 @@ class TemplateOnlyProvider extends Provider {
 }
 
 describe("provider ownership and updates", () => {
-  it.each([["list", []], ["build", [".", "--yes"]]] as const)("does not route a plugin's template %s into FC", async (operation, options) => {
+  it.each([["template.list", []], ["template.create", ["--yes", "--input", '{"image":"fixture:v1"}']]] as const)("does not route a plugin's template %s into FC", async (operation, options) => {
     registerProvider(new TemplateOnlyProvider());
     setCliProvider("template-only");
-    const code = await main({ args: ["--json", "--provider", "template-only", "template", operation, ...options] });
+    const code = await main({ args: ["--json", "--provider", "template-only", "provider", "run", operation, ...options] });
     expect(code).not.toBe(0);
     const { out, err } = cap.readouterr();
     expect(out + err).toContain("E8004");

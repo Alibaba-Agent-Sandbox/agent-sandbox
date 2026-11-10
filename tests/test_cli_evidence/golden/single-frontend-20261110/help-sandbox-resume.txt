@@ -1,0 +1,7 @@
+Usage: abx sandbox resume [options] <SANDBOX_ID>
+
+Resume a paused sandbox.
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

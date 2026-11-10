@@ -1,3 +1,4 @@
+import * as nativeSandbox from "../../src/cli/commands/sandbox_native.js";
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /** Extra branch tests for the main sandbox commands (adversarial line-by-line pass over sandbox.py). */
 
@@ -10,7 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
-import { cli } from "../../src/cli/main.js";
+import { cli } from "../helpers/sandboxServiceCli.js";
 import { inputInterrupts, replSeams } from "../../src/cli/repl.js";
 import { KeyboardInterrupt } from "../../src/cli/errors.js";
 import { CommandResult } from "../../src/models/process.js";
@@ -18,6 +19,7 @@ import { CliRunner } from "../helpers/cliRunner.js";
 
 let tmp = "";
 beforeEach(() => {
+  vi.spyOn(nativeSandbox, "isExpressReference").mockReturnValue(false);
   tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-sbxbr-"));
 });
 afterEach(() => {
@@ -68,7 +70,7 @@ describe("TestUploadOrder", () => {
     const write = vi.fn().mockResolvedValue(undefined);
     vi.spyOn(Sandbox, "connect").mockResolvedValue({ id: "sbx-1", files: { write } } as unknown as Sandbox);
 
-    const result = await new CliRunner().invoke(cli, ["upload", "sbx-1", root, "/app/data"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "upload", "sbx-1", root, "/app/data"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const expected = scandirWalk(root).filter((rel) => {
@@ -97,7 +99,7 @@ describe("TestRunServerValueRendering", () => {
   const runWith = async (value: unknown, args: string[] = []) => {
     const runCommand = vi.fn().mockResolvedValue(new CommandResult({ value, exit_code: 0 }));
     vi.spyOn(Sandbox, "connect").mockResolvedValue({ runCommand } as unknown as Sandbox);
-    return new CliRunner().invoke(cli, [...args, "run", "sbx-1", "tool"]);
+    return new CliRunner().invoke(cli, [...args, "sandbox", "command", "run", "sbx-1", "tool"]);
   };
 
   it("test_run_server_dict_is_rendered_as_json", async () => {
@@ -157,7 +159,7 @@ describe("TestConnectInterrupts", () => {
     replSeams.input = async () => {
       throw new KeyboardInterrupt();
     };
-    const result = await new CliRunner().invoke(cli, ["connect", "sbx-1"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "connect", "sbx-1"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Disconnected.");
   });
@@ -169,7 +171,7 @@ describe("TestConnectInterrupts", () => {
       inputInterrupts.count += 1;
       return "exit";
     };
-    const result = await new CliRunner().invoke(cli, ["connect", "sbx-1"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "connect", "sbx-1"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Aborted!");
   });
@@ -182,7 +184,7 @@ describe("TestConnectInterrupts", () => {
       inputInterrupts.count += 1;
       return "echo hi";
     };
-    const result = await new CliRunner().invoke(cli, ["connect", "sbx-1"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "connect", "sbx-1"]);
     expect(run).not.toHaveBeenCalled();
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Aborted!");
@@ -191,7 +193,7 @@ describe("TestConnectInterrupts", () => {
   it("test_connect_swallow_flag_reset_after_session", async () => {
     vi.spyOn(Sandbox, "connect").mockResolvedValue({ id: "sbx-1", commands: {} } as unknown as Sandbox);
     replSeams.input = async () => "exit";
-    await new CliRunner().invoke(cli, ["connect", "sbx-1"]);
+    await new CliRunner().invoke(cli, ["sandbox", "connect", "sbx-1"]);
     expect(inputInterrupts.swallowFirst).toBe(false);
   });
 });

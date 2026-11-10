@@ -83,7 +83,7 @@ function mockSandbox(sandboxId = "sbx-chan-001", template = "base"): Record<stri
     envdUrl: `https://${sandboxId}.cn-hangzhou.e2b.fc.aliyuncs.com`,
     envdAccessToken: "tok",
   });
-  return { id: info.sandbox_id, status: info.status, url: info.envd_url, info, files: {} };
+  return { close: vi.fn(async () => undefined), id: info.sandbox_id, status: info.status, url: info.envd_url, info, files: {} };
 }
 
 /**
@@ -98,7 +98,7 @@ async function invokeCreate(runner: CliRunner, args: string[], template = "base"
     getLogger("api.capability").warning(
       "Could not resolve capabilities for template %r; no matching template.yaml in ~/.abx/templates. " +
         "Using default capabilities shell, files, code. " +
-        "Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
+        "Run 'abx template build' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
       template,
     );
     return mockSb as unknown as Sandbox;
@@ -304,11 +304,11 @@ describe("TestCreateChannelSeparation", () => {
   // `abx create` never mixes diagnostics into the result stream.
 
   it("test_plain_mode_splits_result_and_warning", async () => {
-    const result = await invokeCreate(new CliRunner(), ["create", "--template", "base"]);
+    const result = await invokeCreate(new CliRunner(), ["deploy", "--template-id", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stdout).toContain("sbx-chan-001");
-    expect(result.stdout).toContain("created successfully");
+    expect(result.stdout).toContain("ready");
     expect(result.stdout).not.toContain("default capabilities shell, files, code");
     // Exactly one rendered warning line -- the duplicate-handler regression.
     expect(
@@ -317,42 +317,39 @@ describe("TestCreateChannelSeparation", () => {
         .filter(
           (l) =>
             l ===
-            "WARNING: Could not resolve capabilities for template 'base'; no matching template.yaml in ~/.abx/templates. Using default capabilities shell, files, code. Run 'abx template deploy' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
+            "WARNING: Could not resolve capabilities for template 'base'; no matching template.yaml in ~/.abx/templates. Using default capabilities shell, files, code. Run 'abx template build' to cache it, or copy template.yaml to ~/.abx/templates/<id>/template.yaml.",
         ).length,
     ).toBe(1);
     expect(result.stderr).not.toContain("sbx-chan-001");
   });
 
   it("test_json_mode_stdout_is_a_single_document", async () => {
-    const result = await invokeCreate(new CliRunner(), ["--json", "create", "--template", "base"]);
+    const result = await invokeCreate(new CliRunner(), ["--json", "deploy", "--template-id", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const payload = JSON.parse(result.stdout);
-    expect(payload["ID"]).toBe("sbx-chan-001");
-    expect(payload["Status"]).toBe("running");
+    expect(payload["sandbox_id"]).toBe("sbx-chan-001");
+    expect(payload["status"]).toBe("ready");
     expect(result.stderr).toContain("~/.abx/templates");
   });
 
   it("test_quiet_mode_prints_values_only", async () => {
-    const result = await invokeCreate(new CliRunner(), ["--quiet", "create", "--template", "base"]);
+    const result = await invokeCreate(new CliRunner(), ["--quiet", "deploy", "--template-id", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.stdout.trimEnd().split("\n")).toEqual([
-      "alicloud-express:sbx-chan-001",
-      "running",
-      "base",
-      "https://sbx-chan-001.cn-hangzhou.e2b.fc.aliyuncs.com",
-    ]);
+    expect(result.stdout).toContain("sbx-chan-001");
+    expect(result.stdout).not.toContain("Creating");
+    expect(result.stdout).not.toContain("default capabilities");
     expect(result.stderr).toBe("");
   });
 
   it("test_ci_mode_is_json_and_silent", async () => {
     iso.monkeypatch.setenv("CI", "1");
 
-    const result = await invokeCreate(new CliRunner(), ["create", "--template", "base"]);
+    const result = await invokeCreate(new CliRunner(), ["deploy", "--template-id", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
-    expect(JSON.parse(result.stdout)["ID"]).toBe("sbx-chan-001");
+    expect(JSON.parse(result.stdout)["sandbox_id"]).toBe("sbx-chan-001");
     expect(result.stderr).toBe("");
   });
 
@@ -362,11 +359,11 @@ describe("TestCreateChannelSeparation", () => {
     const genMock = vi.spyOn(codegen, "generateTemplateFiles" as never).mockImplementation((() => undefined) as never);
     const createMock = vi.spyOn(Sandbox, "create").mockImplementation((() => undefined) as never);
 
-    const result = await new CliRunner().invoke(cli, ["create", "--prompt", "python", "--template", "base"]);
+    const result = await new CliRunner().invoke(cli, ["deploy", "--prompt", "python", "--template-id", "base", "--yes"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("cannot be combined");
+    expect(result.stderr).toContain("No such option");
     expect(genMock).not.toHaveBeenCalled();
     expect(createMock).not.toHaveBeenCalled();
     genMock.mockRestore();

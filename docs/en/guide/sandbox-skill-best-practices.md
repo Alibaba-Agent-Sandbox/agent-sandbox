@@ -70,7 +70,7 @@ To cancel a task, call `cancel_task` with its sandbox and task IDs, then poll `g
 MCP downloads are limited to 1 MiB. For larger files, use the CLI and compare local and remote hashes:
 
 ```bash
-abx download SANDBOX_ID /tmp/result.json ./result.json
+abx sandbox download SANDBOX_ID /tmp/result.json ./result.json
 ```
 
 ## Keep resource ownership explicit

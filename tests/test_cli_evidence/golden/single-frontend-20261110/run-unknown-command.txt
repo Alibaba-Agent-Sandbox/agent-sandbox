@@ -1,0 +1,4 @@
+[exit_code:2]
+[stderr]
+[E3005] Command 'deploy' not found. Server: HTTP 404.
+  Suggestion: List the registered commands with 'abx sandbox command list SANDBOX_ID'.

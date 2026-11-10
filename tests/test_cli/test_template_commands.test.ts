@@ -21,6 +21,7 @@ import {
   templateSeams,
 } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
+import { providerTemplateCli } from "../helpers/providerTemplateCli.js";
 import { TemplateBuildError } from "../../src/models/errors.js";
 import { UsageError } from "../../src/cli/errors.js";
 import { RegistryClient } from "../../src/utils/registry.js";
@@ -28,11 +29,8 @@ import { CliRunner } from "../helpers/cliRunner.js";
 import {
   delenv,
   fakeConfig,
-  httpError,
-  mockHttp,
   patchLoadConfig,
   patchOfficialApi,
-  patchTransport,
   setenv,
   spyAny,
   useMockBuilder,
@@ -56,127 +54,13 @@ describe("TestTemplateGroup", () => {
   it("test_template_list_subcommands", async () => {
     const result = await runner().invoke(cli, ["template", "--help"]);
     expect(result.exit_code).toBe(0);
-    for (const sub of ["template", "install", "list", "build", "delete", "info", "create"]) expect(result.output).toContain(sub);
-  });
-});
-
-describe("TestInstallCommand", () => {
-  const builtinOk = (out: string): boolean => out.toLowerCase().includes("built-in") || out.includes("No installation needed");
-
-  it("test_install_builtin", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "base"]);
-    expect(result.exit_code).toBe(0);
-    expect(builtinOk(result.output)).toBe(true);
-  });
-
-  it("test_install_builtin_code_interpreter", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "code-interpreter-v1"]);
-    expect(result.exit_code).toBe(0);
-    expect(builtinOk(result.output)).toBe(true);
-  });
-
-  it("test_install_shortcut_help", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output.includes("TEMPLATE_REF") || result.output.toLowerCase().includes("template_ref")).toBe(true);
-  });
-
-  it("test_install_help_discloses_cloud_costs", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("Alibaba Cloud");
-    expect(result.output.toLowerCase()).toContain("cost");
-    expect(result.output).toContain("--download-only");
-  });
-
-  it("test_install_shortcut_help_discloses_cloud_costs", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("Alibaba Cloud");
-    expect(result.output.toLowerCase()).toContain("cost");
-    expect(result.output).toContain("--download-only");
-  });
-
-  it("test_install_shortcut_builtin", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "base"]);
-    expect(result.exit_code).toBe(0);
-    expect(builtinOk(result.output)).toBe(true);
-  });
-});
-
-describe("TestInstallSubdirFormat", () => {
-  it("test_install_help_shows_subdir_examples", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("//subdir");
-  });
-
-  it("test_install_subdir_builtin_passthrough", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "base"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output.toLowerCase().includes("built-in") || result.output.includes("No installation needed")).toBe(true);
-  });
-
-  it("test_install_shortcut_subdir_help", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output.includes("TEMPLATE_REF") || result.output.toLowerCase().includes("template_ref")).toBe(true);
-  });
-});
-
-describe("TestInstallRegistryType", () => {
-  it("test_install_help_shows_registry_type", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("--registry-type");
-    expect(result.output).toContain("github");
-    expect(result.output).toContain("local");
-  });
-
-  it("test_install_shortcut_has_registry_type", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("--registry-type");
-  });
-
-  it("test_install_local_template", async () => {
-    const tp = tmpPath();
-    writeText(path.join(tp, "template.yaml"), manifestYaml("name: test-local\nversion: '1.0.0'\n"));
-    writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
-    setenv("ACR_NAMESPACE", "test-namespace");
-    patchTransport(mockHttp({ json: { templateID: "tpl-123", buildID: "bld-456" } }));
-
-    const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local"]);
-    expect(result.exit_code).toBe(2);
-  });
-
-  it("test_install_invalid_registry_type", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "owner/repo", "--registry-type", "invalid"]);
-    expect(result.exit_code).not.toBe(0);
-  });
-
-  it("test_install_help_shows_local_example", async () => {
-    const result = await runner().invoke(cli, ["template", "install", "--help"]);
-    expect(result.exit_code).toBe(0);
-    expect(result.output.includes("./my-template") || result.output.toLowerCase().includes("local")).toBe(true);
-  });
-
-  it("test_install_platform_400_friendly", async () => {
-    const tp = tmpPath();
-    writeText(path.join(tp, "template.yaml"), manifestYaml("name: test-local\nversion: '1.0.0'\n"));
-    writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
-
-    const result = await runner().invoke(cli, ["template", "install", tp, "--registry-type", "local", "--download-only"]);
-
-    expect(result.exit_code).toBe(0);
-    expect(result.output).toContain("abx template build");
-    expect(result.output.includes("installed-locally") || result.output.includes("installed locally")).toBe(true);
+    for (const sub of ["list", "info", "init", "build", "publish"]) expect(result.output).toContain(sub);
   });
 });
 
 describe("TestTemplateListCommand", () => {
   it("test_list_help_honest", async () => {
-    const result = await runner().invoke(cli, ["template", "list", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "list", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.toLowerCase().includes("custom templates") || result.output.toLowerCase().includes("platform")).toBe(true);
     expect(result.output.toLowerCase()).not.toContain("all available");
@@ -187,7 +71,7 @@ describe("TestTemplateListCommand", () => {
     const templates = [{ templateID: "tpl-ready", name: "demo", status: { state: "ready" } }];
     const mockList = spyAny(fcTemplate, "listOfficialTemplates").mockResolvedValue(templates);
 
-    const result = await runner().invoke(cli, ["template", "list"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "list"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("tpl-ready");
@@ -198,7 +82,7 @@ describe("TestTemplateListCommand", () => {
 
 describe("TestTemplateBuildHelp", () => {
   it("test_build_help", async () => {
-    const result = await runner().invoke(cli, ["template", "build", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("--dockerfile") || result.output.includes("-f")).toBe(true);
     expect(result.output).not.toContain("--legacy-api");
@@ -206,7 +90,7 @@ describe("TestTemplateBuildHelp", () => {
   });
 
   it("test_build_help_discloses_cloud_costs", async () => {
-    const result = await runner().invoke(cli, ["template", "build", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Alibaba Cloud");
     expect(result.output.toLowerCase()).toContain("cost");
@@ -214,7 +98,7 @@ describe("TestTemplateBuildHelp", () => {
   });
 
   it("test_build_help_automation_hint", async () => {
-    const result = await runner().invoke(cli, ["template", "build", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("automation/CI");
     expect(result.output).toContain("ACR_NAMESPACE");
@@ -222,14 +106,14 @@ describe("TestTemplateBuildHelp", () => {
   });
 
   it("test_deploy_help_discloses_cloud_costs", async () => {
-    const result = await runner().invoke(cli, ["template", "deploy", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Alibaba Cloud");
     expect(result.output.toLowerCase()).toContain("cost");
   });
 
   it("test_deploy_help", async () => {
-    const result = await runner().invoke(cli, ["template", "deploy", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("Build, push, and create template in one step");
     expect(result.output).not.toContain("--legacy-api");
@@ -244,7 +128,7 @@ describe("TestTemplateBuildHelp", () => {
   });
 
   it("test_build_local_removed", async () => {
-    const result = await runner().invoke(cli, ["template", "build-local", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build-local", "--help"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("No such command 'build-local'");
   });
@@ -252,13 +136,13 @@ describe("TestTemplateBuildHelp", () => {
 
 describe("TestTemplateDeleteHelp", () => {
   it("test_delete_help", async () => {
-    const result = await runner().invoke(cli, ["template", "delete", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "delete", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("TEMPLATE_ID") || result.output.toLowerCase().includes("template_id")).toBe(true);
   });
 
   it("test_delete_help_honest", async () => {
-    const result = await runner().invoke(cli, ["template", "delete", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "delete", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.toLowerCase()).toContain("platform");
   });
@@ -266,7 +150,7 @@ describe("TestTemplateDeleteHelp", () => {
 
 describe("TestTemplateInfoHelp", () => {
   it("test_info_help", async () => {
-    const result = await runner().invoke(cli, ["template", "info", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "info", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.includes("TEMPLATE_ID") || result.output.toLowerCase().includes("template_id")).toBe(true);
   });
@@ -276,7 +160,7 @@ describe("TestTemplateInfoHelp", () => {
     const response = { templateID: "tpl-ready", status: { state: "ready", details: { count: 2 } },
       aliases: ["example"], enabled: true, cpu: 2, optional: null };
     spyAny(fcTemplate, "getTemplate").mockResolvedValue(response);
-    const result = await runner().invoke(cli, ["--json", "template", "info", "tpl-ready"]);
+    const result = await runner().invoke(providerTemplateCli, ["--json", "template", "info", "tpl-ready"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual(response);
   });
@@ -285,7 +169,7 @@ describe("TestTemplateInfoHelp", () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     const mockGet = spyAny(fcTemplate, "getTemplate").mockResolvedValue({ templateID: "tpl-ready", status: { state: "ready" } });
 
-    const result = await runner().invoke(cli, ["template", "info", "tpl-ready"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "info", "tpl-ready"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("tpl-ready");
@@ -296,20 +180,20 @@ describe("TestTemplateInfoHelp", () => {
 
 describe("TestTemplateCreateCommand", () => {
   it("test_create_help", async () => {
-    const result = await runner().invoke(cli, ["template", "from-image", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "create", "--help"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["IMAGE", "--name", "--team-id", "--cpu", "--memory", "--generation", "--envd-inject"]) expect(result.output).toContain(s);
   });
 
   it("test_create_requires_name", async () => {
-    const result = await runner().invoke(cli, ["template", "from-image", "img:latest"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "create", "img:latest"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output.includes("--name") || result.output.includes("Missing")).toBe(true);
   });
 
   it("test_create_missing_aksk", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
-    const result = await runner().invoke(cli, ["template", "from-image", "img:tag", "--name", "test"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "create", "img:tag", "--name", "test"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("access_key_id");
     expect(result.output).toContain("access_key_secret");
@@ -321,7 +205,7 @@ describe("TestTemplateCreateCommand", () => {
       create: { templateID: "tpl-test-001", requestId: "req-001", code: "200", message: "", statusCode: 200 },
     });
 
-    const result = await runner().invoke(cli, ["template", "from-image", "img:tag", "--name", "test-tpl"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "create", "img:tag", "--name", "test-tpl"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("tpl-test-001");
@@ -332,7 +216,7 @@ describe("TestTemplateCreateCommand", () => {
     patchLoadConfig(fakeConfig({ access_key_id: "AK", access_key_secret: "SK" }));
     patchOfficialApi({ create: { templateID: "tpl-json-001", requestId: "req-json", code: "200", message: "", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, ["--json", "template", "from-image", "img:tag", "--name", "test"]);
+    const result = await runner().invoke(providerTemplateCli, ["--json", "template", "create", "img:tag", "--name", "test"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("tpl-json-001");
@@ -341,7 +225,7 @@ describe("TestTemplateCreateCommand", () => {
 
 describe("TestTemplateDeployOfficialAPI", () => {
   it("test_deploy_help_shows_official_api", async () => {
-    const result = await runner().invoke(cli, ["template", "deploy", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["--team-id", "--envd-inject", "--generation", "--ready-cmd"]) expect(result.output).toContain(s);
   });
@@ -351,7 +235,7 @@ describe("TestTemplateDeployOfficialAPI", () => {
     writeText(path.join(tp, "Dockerfile"), "FROM ubuntu:22.04\n");
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
 
-    const result = await runner().invoke(cli, ["template", "deploy", "--acr-namespace", "test-ns"], { env: { ABX_TEMPLATE_DIR: tp } });
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", "--acr-namespace", "test-ns"], { env: { ABX_TEMPLATE_DIR: tp } });
 
     expect(result.exit_code).toBe(1);
     expect(result.output).not.toContain("Missing argument");
@@ -359,7 +243,7 @@ describe("TestTemplateDeployOfficialAPI", () => {
   });
 
   it("test_deploy_default_is_official", async () => {
-    const result = await runner().invoke(cli, ["template", "deploy", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.toLowerCase().includes("official") || result.output.includes("CreateTemplate")).toBe(true);
   });
@@ -380,7 +264,7 @@ describe("TestTemplateDeployCredentialSeparation", () => {
     const builder = _mockBuilder();
     const { create } = patchOfficialApi({ create: { templateID: "tpl-001", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, [
+    const result = await runner().invoke(providerTemplateCli, [
       "template", "deploy", tp, "--acr-namespace", "test-ns", "--acr-username", "my-acr-user", "--acr-password", "my-acr-pass", "--yes",
     ]);
 
@@ -400,7 +284,7 @@ describe("TestTemplateDeployCredentialSeparation", () => {
     const builder = _mockBuilder();
     const { create } = patchOfficialApi({ create: { templateID: "tpl-002", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, ["template", "deploy", tp, "--acr-namespace", "test-ns", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", tp, "--acr-namespace", "test-ns", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const loginArgs = builder.loginAcrWithAksk.mock.calls[0]!;
@@ -414,7 +298,7 @@ describe("TestTemplateDeployCredentialSeparation", () => {
 
 describe("TestTemplatePushCommand", () => {
   it("test_push_help", async () => {
-    const result = await runner().invoke(cli, ["template", "push", "--help"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "push", "--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("IMAGE");
     expect(result.output).toContain("--acr-namespace");
@@ -422,7 +306,7 @@ describe("TestTemplatePushCommand", () => {
 
   it("test_push_missing_creds", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
-    const result = await runner().invoke(cli, ["template", "push", "my-img:latest", "--acr-namespace", "test-ns"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "push", "my-img:latest", "--acr-namespace", "test-ns"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output).not.toContain("Traceback");
     expect(result.output.toLowerCase()).toContain("configuration");
@@ -433,7 +317,7 @@ describe("TestTemplatePushCommand", () => {
     const { builder } = mockBuilder();
     builder.loginAcrWithAksk.mockResolvedValue({ tempUserName: "u", authorizationToken: "t" });
 
-    const result = await runner().invoke(cli, ["template", "push", "my-img:v1", "--acr-namespace", "test-ns"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "push", "my-img:v1", "--acr-namespace", "test-ns"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("test-ns/my-img:v1");
@@ -452,7 +336,7 @@ describe("TestTemplateBuildCommand", () => {
     builder.build.mockResolvedValue("my-repo:v1");
     const { create } = patchOfficialApi({ create: { templateID: "tpl-b1", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, [
+    const result = await runner().invoke(providerTemplateCli, [
       "template", "build", tp, "--acr-namespace", "test-ns", "--acr-repo", "my-repo", "--tag", "v1", "--yes",
     ]);
 
@@ -472,7 +356,7 @@ describe("TestTemplateBuildCommand", () => {
     builder.build.mockResolvedValue("my-template:latest");
     const { create } = patchOfficialApi({ create: { templateID: "tpl-yaml", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, ["template", "build", tp, "--acr-namespace", "test-ns", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tp, "--acr-namespace", "test-ns", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const createKwargs = create.mock.calls[0]![0] as Record<string, unknown>;
@@ -495,7 +379,7 @@ describe("TestTemplateBuildCommand", () => {
     builder.build.mockResolvedValue("img:latest");
     const { create } = patchOfficialApi({ create: { templateID: "tpl-ns", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, ["template", "build", tp, "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tp, "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("ACR: ns-from-dotenv/");
@@ -559,28 +443,28 @@ const listDir = (d: string): Set<string> =>
 
 describe("TestTemplateInitCommand", () => {
   it("test_list_shows_all_cases", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "--list"]);
+    const result = await runner().invoke(cli, ["template", "init", "--list"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["python", "node", "minimal"]) expect(result.output).toContain(s);
   });
 
   it("test_python_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "pyproj");
-    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md"]));
   });
 
   it("test_node_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "nodeproj");
-    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "node"]);
+    const result = await runner().invoke(cli, ["template", "init", target, "-t", "node"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md"]));
   });
 
   it("test_minimal_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "minproj");
-    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "minimal"]);
+    const result = await runner().invoke(cli, ["template", "init", target, "-t", "minimal"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "README.md"]));
     expect(fs.existsSync(path.join(target, "commands.py"))).toBe(false);
@@ -588,7 +472,7 @@ describe("TestTemplateInitCommand", () => {
 
   it("test_top_level_init_shortcut_works", async () => {
     const target = path.join(tmpPath(), "topshortcut");
-    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
     expect(fs.existsSync(path.join(target, "Dockerfile"))).toBe(true);
@@ -605,7 +489,7 @@ describe("TestTemplateInitCommand", () => {
     } as never);
     vi.spyOn(RegistryClient.prototype, "fetch").mockResolvedValue(source);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", target, "--from", source]);
+    const result = await runner().invoke(cli, ["template", "init", target, "--from", source]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
@@ -615,8 +499,8 @@ describe("TestTemplateInitCommand", () => {
 
 describe("TestTemplateInitCommandObject", () => {
   it("test_template_group_exposes_init", async () => {
-    expect(await templateGroup.getCommand("scaffold")).toBe(templateInit);
-    expect(await cli.getCommand("scaffold")).toBeNull();
+    expect(await templateGroup.getCommand("init")).toBe(templateInit);
+    expect(await cli.getCommand("init")).toBeNull();
   });
 });
 
@@ -637,7 +521,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_arrow_picker_selects_case", async () => {
     selectMock.mockResolvedValue("node");
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold"]);
+    const result = await runner().invoke(cli, ["template", "init"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(selectMock).toHaveBeenCalledTimes(1);
     expect(fs.existsSync(path.join(tmpPath(), "node", "template.yaml"))).toBe(true);
@@ -647,7 +531,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_numbered_fallback_when_questionary_missing", async () => {
     vi.spyOn(templateSeams, "_tryArrowCasePicker").mockResolvedValue(null);
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold"], { input: "2\n" });
+    const result = await runner().invoke(cli, ["template", "init"], { input: "2\n" });
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(tmpPath(), "node", "template.yaml"))).toBe(true);
     expect(result.output).toContain("1. python");
@@ -656,7 +540,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_numbered_fallback_when_picker_raises", async () => {
     selectMock.mockRejectedValue(new Error("no terminal"));
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold"], { input: "1\n" });
+    const result = await runner().invoke(cli, ["template", "init"], { input: "1\n" });
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(tmpPath(), "python", "template.yaml"))).toBe(true);
   });
@@ -664,7 +548,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_picker_cancel_aborts", async () => {
     selectMock.mockResolvedValue(null);
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold"]);
+    const result = await runner().invoke(cli, ["template", "init"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Aborted");
     expect(fs.existsSync(path.join(tmpPath(), "python"))).toBe(false);
@@ -672,7 +556,7 @@ describe("TestInitInteractivePicker", () => {
 
   it("test_json_mode_never_prompts", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["--json", "template", "scaffold"]);
+    const result = await runner().invoke(cli, ["--json", "template", "init"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
     expect(selectMock).toHaveBeenCalledTimes(0);
@@ -681,7 +565,7 @@ describe("TestInitInteractivePicker", () => {
   it("test_ci_env_never_prompts", async () => {
     setenv("CI", "true");
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold"]);
+    const result = await runner().invoke(cli, ["template", "init"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No scaffold case specified");
     expect(selectMock).toHaveBeenCalledTimes(0);
@@ -700,48 +584,6 @@ function envAliyun(ns: string | null = "test-ns"): void {
   setenv("ALICLOUD_ACCESS_KEY_SECRET", "sk-test");
 }
 
-describe("TestInstallFullPipeline", () => {
-  function _makeTemplateDir(): string {
-    const tdir = path.join(tmpPath(), "tpl");
-    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-tpl\nresources:\n  cpu: 1\n  memory: 512\n"));
-    writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
-    return tdir;
-  }
-
-  it("test_install_deploy_with_yes", async () => {
-    const tdir = _makeTemplateDir();
-    envAliyun();
-    const mockDeploy = patchDoDeploy({ TemplateID: "tpl-deploy-test" });
-
-    const result = await runner().invoke(cli, ["template", "install", tdir, "--registry-type", "local", "--yes"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(mockDeploy).toHaveBeenCalled();
-    const kw = mockDeploy.mock.calls[0]![1] as unknown as Record<string, unknown>;
-    expect(kw["cpu"] === undefined || kw["cpu"] === null || kw["cpu"] === 1).toBe(true);
-  });
-
-  it("test_install_non_tty_without_yes_raises", async () => {
-    const tdir = _makeTemplateDir();
-    envAliyun();
-    const result = await runner().invoke(cli, ["template", "install", tdir, "--registry-type", "local"]);
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output.includes("--yes") || result.output.includes("Confirmation")).toBe(true);
-  });
-
-  it("test_install_missing_acr_namespace_error", async () => {
-    const tdir = _makeTemplateDir();
-    delenv("ACR_NAMESPACE");
-    envAliyun(null);
-    setenv("HOME", tmpPath());
-    process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "install", tdir, "--registry-type", "local"]);
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("--download-only");
-    expect(result.output.includes("Cannot build") || result.output.includes("Missing")).toBe(true);
-  });
-});
-
 describe("TestGenerationFromYaml", () => {
   it("test_generation_from_yaml", () => {
     const tdir = path.join(tmpPath(), "gen");
@@ -757,7 +599,7 @@ describe("TestGenerationFromYaml", () => {
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-gen" });
 
-    const result = await runner().invoke(cli, ["template", "build", tdir, "--generation", "1", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tdir, "--generation", "1", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(mockDeploy).toHaveBeenCalled();
@@ -773,7 +615,7 @@ describe("TestStartReadyWarning", () => {
     envAliyun();
     patchDoDeploy({ TemplateID: "tpl-w", "ACR Image": "img:latest" });
 
-    const result = await runner().invoke(cli, ["template", "build", tdir, "--start-cmd", "/start.sh", "--generation", "1", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tdir, "--start-cmd", "/start.sh", "--generation", "1", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
   });
@@ -812,7 +654,7 @@ describe("TestStartReadyWarning", () => {
 describe("TestInitDefaultDirectory", () => {
   it("test_init_no_dir_creates_subdir", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     const subdir = path.join(tmpPath(), "python");
     expect(fs.statSync(subdir).isDirectory()).toBe(true);
@@ -822,7 +664,7 @@ describe("TestInitDefaultDirectory", () => {
 
   it("test_init_no_dir_with_name", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "python", "--name", "myapp"]);
+    const result = await runner().invoke(cli, ["template", "init", "-t", "python", "--name", "myapp"]);
     expect(result.exit_code, result.output).toBe(0);
     const subdir = path.join(tmpPath(), "myapp");
     expect(fs.statSync(subdir).isDirectory()).toBe(true);
@@ -832,14 +674,14 @@ describe("TestInitDefaultDirectory", () => {
 
   it("test_init_explicit_dir_still_works", async () => {
     const target = path.join(tmpPath(), "custom");
-    const result = await runner().invoke(cli, ["template", "scaffold", target, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(target, "template.yaml"))).toBe(true);
   });
 
   it("test_init_name_precedence_name_over_case", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "node", "--name", "webapp"]);
+    const result = await runner().invoke(cli, ["template", "init", "-t", "node", "--name", "webapp"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.statSync(path.join(tmpPath(), "webapp")).isDirectory()).toBe(true);
     expect(fs.existsSync(path.join(tmpPath(), "node"))).toBe(false);
@@ -847,14 +689,14 @@ describe("TestInitDefaultDirectory", () => {
 
   it("test_init_name_precedence_case_over_default", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "minimal"]);
+    const result = await runner().invoke(cli, ["template", "init", "-t", "minimal"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.statSync(path.join(tmpPath(), "minimal")).isDirectory()).toBe(true);
   });
 
   it("test_template_init_no_dir_creates_subdir", async () => {
     process.chdir(tmpPath());
-    const result = await runner().invoke(cli, ["template", "scaffold", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(tmpPath(), "python", "template.yaml"))).toBe(true);
   });
@@ -873,7 +715,7 @@ describe("TestInitFromDefaultDirectory", () => {
     vi.spyOn(RegistryClient.prototype, "resolve").mockResolvedValue(refFor(source, { path: "test" }));
     vi.spyOn(RegistryClient.prototype, "fetch").mockResolvedValue(source);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "--from", source]);
+    const result = await runner().invoke(cli, ["template", "init", "--from", source]);
 
     expect(result.exit_code, result.output).toBe(0);
     const subdir = path.join(tp, "from-yaml-name");
@@ -890,7 +732,7 @@ describe("TestInitFromDefaultDirectory", () => {
     vi.spyOn(RegistryClient.prototype, "resolve").mockResolvedValue(refFor(source, { repo: "my-ref-repo", path: "owner/my-ref-repo" }));
     vi.spyOn(RegistryClient.prototype, "fetch").mockResolvedValue(source);
 
-    const result = await runner().invoke(cli, ["template", "scaffold", "--from", source]);
+    const result = await runner().invoke(cli, ["template", "init", "--from", source]);
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("--adopt");
@@ -906,7 +748,7 @@ describe("TestBuildYamlGeneration", () => {
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-gen2" });
 
-    const result = await runner().invoke(cli, ["template", "build", tdir, "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tdir, "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(mockDeploy).toHaveBeenCalled();
@@ -922,7 +764,7 @@ describe("TestBuildYamlGeneration", () => {
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-express" });
 
-    const result = await runner().invoke(cli, ["template", "build", tdir, "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tdir, "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const kw = mockDeploy.mock.calls[0]![1] as unknown as Record<string, unknown>;
@@ -940,7 +782,7 @@ describe("TestBuildYamlGeneration", () => {
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-flag" });
 
-    const result = await runner().invoke(cli, ["template", "build", tdir, "--generation", "1", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "build", tdir, "--generation", "1", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const kw = mockDeploy.mock.calls[0]![1] as unknown as Record<string, unknown>;
@@ -984,7 +826,7 @@ describe("TestBuildTargetImagePassthrough", () => {
     builder.build.mockResolvedValue("test-timg:latest");
     const { create } = patchOfficialApi({ create: { templateID: "tpl-ti", statusCode: 200 } });
 
-    const result = await runner().invoke(cli, [
+    const result = await runner().invoke(providerTemplateCli, [
       "template", "build", tdir, "--envd-inject", "--target-image", "custom-target:v1", "--yes",
     ]);
 
@@ -996,64 +838,11 @@ describe("TestBuildTargetImagePassthrough", () => {
   });
 });
 
-describe("TestInstallDirOption", () => {
-  function _src(name: string, tp: string): string {
-    const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), manifestYaml(`name: ${name}\n`));
-    writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
-    return source;
-  }
-
-  it("test_install_dir_download_only", async () => {
-    const tp = tmpPath();
-    const source = _src("dir-test", tp);
-    const dest = path.join(tp, "out");
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local", "--download-only", "--dir", dest]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(fs.existsSync(path.join(dest, "template.yaml"))).toBe(true);
-    expect(fs.existsSync(path.join(dest, "Dockerfile"))).toBe(true);
-  });
-
-  it("test_install_dir_nonempty_errors", async () => {
-    const tp = tmpPath();
-    const source = _src("dir-test", tp);
-    const dest = path.join(tp, "occupied");
-    writeText(path.join(dest, "existing.txt"), "conflict\n");
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local", "--download-only", "--dir", dest]);
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("not empty");
-  });
-
-  it("test_install_shortcut_dir_option", async () => {
-    const tp = tmpPath();
-    const source = _src("sc-test", tp);
-    const dest = path.join(tp, "scdir");
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local", "--download-only", "--dir", dest]);
-    expect(result.exit_code, result.output).toBe(0);
-    expect(fs.existsSync(path.join(dest, "template.yaml"))).toBe(true);
-  });
-
-  it("test_install_dir_deploy_passes_template_dir", async () => {
-    const tp = tmpPath();
-    const source = _src("deploy-dir", tp);
-    envAliyun();
-    const dest = path.join(tp, "destdir");
-    const mockDeploy = patchDoDeploy({ TemplateID: "tpl-dir", "ACR Image": "reg/ns/repo:latest" });
-
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local", "--dir", dest, "--yes"]);
-
-    expect(result.exit_code, result.output).toBe(0);
-    expect(mockDeploy).toHaveBeenCalled();
-    expect(mockDeploy.mock.calls[0]![0]).toBe(dest);
-  });
-});
-
-
 describe("TestOfficialTemplateManagementErrors", () => {
   it("test_list_official_error_is_reported", async () => {
     patchLoadConfig();
     const call = spyAny(fcTemplate, "listOfficialTemplates").mockRejectedValue(new TemplateBuildError("official list refused"));
-    const result = await runner().invoke(cli, ["template", "list"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "list"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("official list refused");
     expect(call).toHaveBeenCalledOnce();
@@ -1062,7 +851,7 @@ describe("TestOfficialTemplateManagementErrors", () => {
   it("test_info_official_error_is_reported", async () => {
     patchLoadConfig();
     const call = spyAny(fcTemplate, "getTemplate").mockRejectedValue(new TemplateBuildError("official info refused (HTTP 404)"));
-    const result = await runner().invoke(cli, ["template", "info", "owned-template"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "info", "owned-template"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("official info refused");
     expect(call).toHaveBeenCalledOnce();
@@ -1071,7 +860,7 @@ describe("TestOfficialTemplateManagementErrors", () => {
   it("test_delete_official_error_is_reported", async () => {
     patchLoadConfig();
     const call = spyAny(fcTemplate, "deleteTemplate").mockRejectedValue(new TemplateBuildError("official delete refused (HTTP 404)"));
-    const result = await runner().invoke(cli, ["template", "delete", "owned-template", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "delete", "owned-template", "--yes"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("official delete refused");
     expect(call).toHaveBeenCalledOnce();

@@ -4,7 +4,7 @@ Use `get_capabilities` and `abx provider info ID` to inspect the selected provid
 
 `get_sandbox`/`list_sandboxes` are observational and do not renew resources. `set_sandbox_timeout` explicitly requests renewal and reports `accepted` separately from `timeout_verified`. A backend may omit timeout/region: these are unknown, never client-default evidence. Compare actual `started_at`/`end_at` when available, and preserve ISO timestamps. Querying an environment is not permission to take ownership of it.
 
-Keep these statuses separate: implemented, unit-tested, live-tested, unsupported, blocked and not run. Storage mounts, snapshots, deep hibernation, template caches/warm pools, cost data, network/VPC policy, preview expiration, browser takeover/replay and hosted MCP need actual provider-specific APIs and per-provider acceptance. Ordinary files are not persistent volumes; a port URL is not an expiring preview; local MCP HTTP is not an official hosted service. No FC application deployment is included.
+Keep these statuses separate: implemented, unit-tested, live-tested, unsupported, blocked and not run. Storage mounts, snapshots, deep hibernation, template caches/warm pools, cost data, network/VPC policy, preview expiration, browser takeover/replay and hosted MCP need actual provider-specific APIs and per-provider acceptance. Ordinary files are not persistent volumes; a port URL is not an expiring preview; local MCP HTTP is not an official hosted service. Managed FC application deployment is a separate template profile; it is not implied by a Provider feature.
 
 For Express startup acceleration, inspect the installed catalog for `template-cache.create/get/list/delete`.
 These actual management operations use AK/SK and an explicit Team/template reference. Use the
@@ -28,12 +28,12 @@ Run with `abx --provider ID provider run OPERATION --input-file ./input.json`. K
 opaque, pass JSON input, and use `--yes` only for the authorized write/delete operation. An operation
 named `install` cannot shadow `abx provider install`: all operation execution stays below `provider run`.
 No extra registration step follows install/update. The Provider owns descriptors and execution; the
-host derives contextual help from the same catalog used by the engine and old JSON interfaces:
+host derives contextual help from the same catalog used by the engine and JSON discovery interfaces:
 
 ```sh
 abx --json provider command list ID
 abx --json provider command info ID OPERATION
-abx --json provider command run ID OPERATION --input-file ./input.json --yes
+abx --json --provider ID provider run OPERATION --input-file ./input.json --yes
 ```
 
 Treat these JSON interfaces as the AI discovery surface, not as evidence of automatically generated

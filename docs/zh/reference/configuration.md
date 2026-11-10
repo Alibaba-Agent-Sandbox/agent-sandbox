@@ -49,8 +49,8 @@
 
 下面这些调用读的是同一条链：
 
-- 自然语言 `abx create`（编码代理）
-- `abx template install` / `abx template search`（GitHub token）
+- 自然语言 `abx template init --prompt`（编码代理）
+- `abx template init --from` / `abx template list`（GitHub token）
 - `abx mcp install` / `abx mcp start`（解析 Sandbox 访问，不把密钥复制到 IDE 文件）
 
 `abx mcp install` 不把 Sandbox 凭证复制到 Cursor、Claude 或 VS Code 文件；它记录启动命令及适用的非密钥目标信息。编辑器启动 `abx mcp start` 时会重新解析用户和 Provider 配置。仅本次输入不会传到之后的进程；需要后续启动使用时应明确保存。就地补填、持久化、来源冲突和自动化边界见[配置引导](../guide/guided-configuration.md)。
@@ -79,7 +79,7 @@
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | 阿里云 AccessKey Secret |
 | `GITHUB_TOKEN` | `github_token` | GitHub token（模板下载用；用 `abx config set github_token` 保存；CI 以 Secret 注入） |
 
-从 CLI 0.4.17 起，`ABX_HTTP_TIMEOUT` 也作用于 `abx run` 及命令发现的每次应用 HTTP 请求，默认 30 秒。长任务可以在调用前设置，例如 `ABX_HTTP_TIMEOUT=330 abx run "$SANDBOX_ID" qwen --json-args '{"prompt":"检查已上传的项目","command_timeout":300}'`。HTTP 超时只停止等待响应，不会取消远端命令。
+从 CLI 0.4.17 起，`ABX_HTTP_TIMEOUT` 也作用于 `abx sandbox command run` 及命令发现的每次应用 HTTP 请求，默认 30 秒。长任务可以在调用前设置，例如 `ABX_HTTP_TIMEOUT=330 abx sandbox command run "$SANDBOX_ID" qwen --json-args '{"prompt":"检查已上传的项目","command_timeout":300}'`。HTTP 超时只停止等待响应，不会取消远端命令。
 
 ### 仅 CLI：模板构建与生成
 
@@ -109,7 +109,7 @@ Python SDK 是运行时客户端，不声明这些键；CLI 在 `src/utils/cli_c
 
 | 环境变量 | 默认值 | 说明 |
 |---------------------|---------|-------------|
-| `ABX_ACTIVITY_LINES` | `4` | `message... 12s` 标题下方的灰色行数（整数 1–10）。部署、创建、上传、下载、拉取模板、用镜像注册模板、安装 coding-agent 和 `abx kill --all` 都会用到。 |
+| `ABX_ACTIVITY_LINES` | `4` | `message... 12s` 标题下方的灰色行数（整数 1–10）。部署、创建、上传、下载、拉取模板、用镜像注册模板、安装 coding-agent 和 `abx delete` 都会用到。 |
 
 `--json`、`--quiet`、`--ci`、`TERM=dumb` 和非 TTY 不绘制该标题。见[命令运行期间](../guide/cli-tutorial.md#命令执行时看到什么)。
 
@@ -159,7 +159,7 @@ abx config set region ""
 abx config set github_token ""
 ```
 
-这里设置的 `region` 是区域命令的**持久默认值**。单次调用可以用命令级 `--region`/`-r` 覆盖（`abx list`、`abx kill --all`、模板控制面命令和 `abx mcp deploy` 都接受）。解析优先级：命令 `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`。
+这里设置的 `region` 是持久默认值。单次调用使用 `abx --opt region=cn-shanghai COMMAND` 覆盖；命名部署保留已记录的目标，拒绝冲突的覆盖值。
 
 ### 可通过 abx config 配置的键
 
@@ -175,8 +175,8 @@ abx config set github_token ""
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API Base URL（默认 DashScope compatible-mode） |
 | `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | 阿里云 AccessKey ID（官方控制面凭据） |
 | `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret（官方控制面凭据） |
-| `acr_namespace` | `ACR_NAMESPACE` | `abx template install` / `abx template deploy` 用的（用 `abx config init --build` 设置） ACR 命名空间 |
-| `github_token` | `GITHUB_TOKEN` | GitHub token（模板下载用，`abx template install` / `abx template search`；存 `~/.abx/.env`，脱敏显示） |
+| `acr_namespace` | `ACR_NAMESPACE` | `abx template init --from` / `abx deploy` 用的（用 `abx config init --build` 设置） ACR 命名空间 |
+| `github_token` | `GITHUB_TOKEN` | GitHub token（模板下载用，`abx template init --from` / `abx template list`；存 `~/.abx/.env`，脱敏显示） |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | 团队 id。可选。不是必填项。 |
 
 ### 引导式配置（abx config init）
@@ -189,7 +189,7 @@ abx config init
 
 ### AK/SK 控制面配置
 
-`access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，仅在用户确认或显式 `--ci` 时准备管理 Key，详见[权限说明](../guide/permissions.md)。
+`access_key_id` 和 `access_key_secret` 通过 `abx config set` 设置后，以 `ALICLOUD_ACCESS_KEY_ID` 和 `ALICLOUD_ACCESS_KEY_SECRET` 存储在 `~/.abx/.env` 中。用于官方模板/镜像/ACR 控制面操作，仅在用户确认或显式执行 `provider run api-key.prepare --yes` 时准备管理 Key，详见[权限说明](../guide/permissions.md)。
 
 配置列表、读取结果和设置确认会对 AccessKey ID 与 Secret 脱敏，包括 JSON 和指定 Provider 的命令；认证使用的存储值仍然完整。
 

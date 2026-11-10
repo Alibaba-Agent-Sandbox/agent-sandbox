@@ -49,7 +49,7 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
       sb,
       [
         "template",
-        "scaffold",
+        "init",
         "--adopt",
         path.join(sb.work, "app"),
         "-y",
@@ -101,7 +101,7 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
     const sb = sandbox();
     const r = await abx(sb, [
       "template",
-      "scaffold",
+      "init",
       "--adopt",
       "~nobodyxyz/proj",
       "-y",
