@@ -167,3 +167,9 @@ No package was published. All four owned Sandboxes created during this task
 (one initial smoke check, two broad lifecycle cases, one corrective run) were
 independently confirmed absent after cleanup. No cloud database, template,
 image or management API key was created for these checks.
+
+The branch merged main d0a8302f3a921a4572b9ee237bd093bb43e74d5d after the
+implementation commit. Main added preview/community documentation and the QR
+asset, not runtime changes. The engineering index conflict retained both sets
+of links; bilingual announcements, QR asset and historical records were kept.
+Post-merge repository health (106 checks, zero failures) and hygiene passed.

@@ -323,3 +323,7 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [README audience review](notes/proposed/process/2026-10-28-readme-audience-review.md) · [verification](evidence/verify/2026-10-28-readme-audience-review.md).
 
 - [Unified deployment](notes/proposed/architecture/2026-11-10-unified-deployment.md) · [verification and blocked gates](evidence/verify/2026-11-10-unified-deployment.md).
+
+- [Preview release notice and community](notes/proposed/process/2026-11-10-preview-release-community.md) · [verification](evidence/verify/2026-11-10-preview-release-community.md).
+
+- [Community QR replacement](notes/proposed/process/2026-11-10-refresh-community-qr.md) · [verification](evidence/verify/2026-11-10-refresh-community-qr.md).

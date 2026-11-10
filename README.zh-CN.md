@@ -11,6 +11,8 @@
 
 [官网](https://www.agent-sandbox.cn) · [使用文档](docs/zh/README.md) · [模板目录](https://registry.agent-sandbox.cn/templates/)
 
+> **预览版说明：** Agent Sandbox 目前处于预览阶段，可能会有不兼容变更。预计于 **2026 年 11 月 15 日**发布 **1.0.0 正式版**，敬请期待！
+
 ## 安装
 
 以下命令需要当前源码 CLI；已发布的 0.5.10 使用原命令布局。使用 Node.js 20+ 从源码安装：
@@ -88,6 +90,14 @@ abx deploy python-hello --name hello --yes
 ## Python SDK
 
 在应用代码中控制沙箱，请使用 [Python SDK](https://github.com/Alibaba-Agent-Sandbox/python-sdk)。[Node.js SDK](https://github.com/Alibaba-Agent-Sandbox/nodejs-sdk)用于调用已经启动的沙箱应用服务。
+
+## 交流与反馈
+
+欢迎加入 **Agent Sandbox 开发者工具交流群**，交流使用经验、分享建议与反馈。[点击加入钉钉群](https://qr.dingtalk.com/action/joingroup?code=v1,k1,LSusypYdoGm4U0xoz1p1QSlgoBHeoi/kgpsl4uQ8qus=&_dt_no_comment=1&origin=1)，或搜索钉钉群号 **213605001586**。
+
+也可以使用钉钉扫描二维码加入：
+
+<a href="https://qr.dingtalk.com/action/joingroup?code=v1,k1,LSusypYdoGm4U0xoz1p1QSlgoBHeoi/kgpsl4uQ8qus=&amp;_dt_no_comment=1&amp;origin=1"><img src="assets/dingtalk-group.jpg" alt="钉钉交流群二维码" width="235" /></a>
 
 ## 参与贡献
 
