@@ -163,7 +163,7 @@ three skips. Final build and actual npm dry-run package/reference-closure checks
 passed. Final ESLint had zero errors and 259 warnings. TypeScript passed after
 the deadline and named-list changes.
 
-No package was published. All four owned Sandboxes created during this task
+No package was published. All four owned Sandboxes created by the local verification runs
 (one initial smoke check, two broad lifecycle cases, one corrective run) were
 independently confirmed absent after cleanup. No cloud database, template,
 image or management API key was created for these checks.

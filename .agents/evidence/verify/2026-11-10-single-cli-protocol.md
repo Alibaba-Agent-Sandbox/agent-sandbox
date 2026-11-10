@@ -244,3 +244,23 @@ Logs: `/tmp/cli-sdk-clean-ci.log`, `/tmp/cli-sdk-clean-typecheck.log`,
 `/tmp/cli-sdk-clean-build.log`, `/tmp/cli-sdk-production-prune.log`.
 A read-only scan of workflow/release command consumers found no additional retired public
 entry beyond the MCP generation workflow corrected by the authoring agent.
+
+### CubeSandbox CLI fixture correction after remote CI
+
+Remote Node 22 CI reached the CubeSandbox CLI test and found its deploy invocation still
+used `--timeout 90`. The nearby `--native` diagnostic came from a separate passing test
+that intentionally rejects the removed selector; it was not this failure's cause.
+The invocation now uses `--sandbox-timeout 90`. All original creation, command output,
+file-list, sandbox-list and deletion assertions remain, with additional checks for the
+actual create body `{templateID: "base", timeout: 90}` and the current list JSON envelope
+`{items, partial: false, errors: []}`. CLI exit assertions now include captured output so
+later failures identify their true phase. No public compatibility alias was restored.
+
+Local file rerun: six passed and four failed. The corrected case successfully passed
+creation and the new request-body assertions, then failed executing the command with
+HTTP 501 / E3006 (`项目网络审计已关闭`). A second focused run confirmed the same exact phase
+and response. Three other existing cases also failed in local envd/engine transport.
+These remain failures; assertions and mock-network routing were not weakened. The full
+CLI chain after exec requires the remote Node 22 rerun, where the earlier suite had reached
+this newly exposed parser failure. Reports: `/tmp/cli-cubesandbox-final.json` and
+`/tmp/cli-cubesandbox-public-recheck.json`. Targeted ESLint and `git diff --check` passed.

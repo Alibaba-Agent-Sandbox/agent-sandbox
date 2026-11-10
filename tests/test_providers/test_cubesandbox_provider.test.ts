@@ -270,29 +270,31 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
       "--yes",
       "--template-id",
       "base",
-      "--timeout",
+      "--sandbox-timeout",
       "90",
     );
-    expect(created.code).toBe(0);
+    expect(created.code, created.out + created.err).toBe(0);
     const doc = JSON.parse(created.out) as { sandbox_id: string; provider: string };
     expect(doc.sandbox_id).toBe("sbx-1");
     expect(doc.provider).toBe("cubesandbox");
+    const createRequest = seen.find((s) => s.method === "POST" && s.url === "/sandboxes");
+    expect(JSON.parse(createRequest?.body.toString() ?? "{}")).toMatchObject({ templateID: "base", timeout: 90 });
     expect(seen.find((s) => s.method === "POST" && s.url === "/sandboxes")?.headers["x-api-key"]).toBeUndefined();
 
     const ran = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "sandbox", "exec", "sbx-1", "echo hi");
-    expect(ran.code).toBe(0);
+    expect(ran.code, ran.out + ran.err).toBe(0);
     expect(ran.out).toContain("hi");
 
     const files = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "sandbox", "files", "list", "sbx-1", "--path", "/tmp");
-    expect(files.code).toBe(0);
+    expect(files.code, files.out + files.err).toBe(0);
     expect(files.out).toContain("a.txt");
 
     const listed = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "list");
-    expect(listed.code).toBe(0);
-    expect(listed.out).toContain("sbx-1");
+    expect(listed.code, listed.out + listed.err).toBe(0);
+    expect(JSON.parse(listed.out)).toMatchObject({ items: expect.arrayContaining([expect.objectContaining({ sandbox_id: "sbx-1", provider: "cubesandbox", observation: "remote" })]), partial: false, errors: [] });
 
     const killed = await abx("--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "delete", "sbx-1", "--yes");
-    expect(killed.code).toBe(0);
+    expect(killed.code, killed.out + killed.err).toBe(0);
     expect(seen.some((s) => s.method === "DELETE" && s.url === "/sandboxes/sbx-1")).toBe(true);
   }, 30_000);
 
