@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Documentation
 
+- Announce the expected November 15, 2026 project 1.0.0 release, preview compatibility notice, and DingTalk community contact in both README languages.
+
+### Documentation
+
 - Record CLI 0.5.9 publication and independently verified public installation; managed application guides now install the published npm version. / 补充 CLI 0.5.9 发行与独立公开安装记录，托管应用指南改用已发布 npm 版本。
 
 ## [0.5.10] - 2026-11-06
