@@ -90,6 +90,8 @@ for (const pkg of packages) {
   notices += `\n--- ${pkg.name}@${pkg.version} (${pkg.license}) ---\n`;
   for (const file of pkg.files) notices += file.text + "\n";
 }
+// Preserve historical CLI evidence; new SDK notice files end with one newline.
+if (sdkOnly) notices = notices.replace(/\n+$/, "\n");
 const manifest = { source_map_sha256: digest(sourceMap), packages: packages.map(pkg => ({
   ...pkg, files: pkg.files.map(({ path, sha256 }) => ({ path, sha256 })),
 })), notices_sha256: digest(notices) };

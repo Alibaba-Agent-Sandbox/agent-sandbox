@@ -60,7 +60,8 @@ for (const dir of [...packages].sort()) {
   notice += `\n--- ${pkg.name}@${pkg.version} (${pkg.license ?? "see source"}) ---\n`;
   for (const name of licenseFiles) notice += fs.readFileSync(path.join(dir, name), "utf8") + "\n";
 }
-notice += supplementaryNotices;
+// Preserve the existing separator before the following upstream CLI attribution.
+notice += supplementaryNotices.replace(/\n+$/, "\n\n");
 // Verify retained provenance of the upstream terminal/stdin source port.
 const prebundled = JSON.parse(fs.readFileSync(path.join(base, "prebundled-sources.json"), "utf8"));
 const prebundledNotices = fs.readFileSync(path.join(base, "prebundled-notices.txt"), "utf8");

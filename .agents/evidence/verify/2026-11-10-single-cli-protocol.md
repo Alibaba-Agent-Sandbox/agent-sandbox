@@ -211,3 +211,13 @@ single owned sandbox, including independent process inventory and resource delet
 The focused report contains 37 cases total: 34 passed and three existing real temporary
 filesystem-mount integration cases skipped because their mount opt-in was not enabled.
 These skips are not volume-provider or real-cloud mount acceptance.
+
+Staging the newly added SDK supplementary notice exposed a final blank line at EOF.
+The notice refresher appended a newline to license text that already ended in one.
+SDK-only notice generation now ends with one newline; the aggregate notice digest was
+updated, while all original license-source hashes and nonblank content are unchanged.
+The build explicitly retains the prior aggregate separator, so existing generated license
+text and runtime/dist bytes need no rebuild or modification. Historical upstream CLI
+provenance files were not rewritten. Offline byte comparison proved the old supplementary
+fragment equals the newly rendered fragment, both scripts passed syntax checks, all seven
+provenance tests passed, and `git diff --check` passed. No network refresh was performed.
