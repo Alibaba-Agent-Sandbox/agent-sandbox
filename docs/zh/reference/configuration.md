@@ -1,6 +1,6 @@
 # 配置参考
 
-> 范围：本页说明原生 provider/MCP 的配置和错误。原生配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`。标准极速版命令入口额外接受 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，仅在该入口映射，并回退到项目配置。标准命令选项、终端环境变量和错误行为见[迁移指南](../guide/migrate-from-e2b.md)。
+> CLI 与 MCP 使用统一配置解析。极速版凭据使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`；其他 Provider 声明各自配置。迁移已有用法时见 [E2B 迁移指南](../guide/migrate-from-e2b.md)。
 
 本文档列出 Agent Sandbox 的所有配置项、环境变量、默认值和优先级规则。
 
@@ -109,9 +109,9 @@ Python SDK 是运行时客户端，不声明这些键；CLI 在 `src/utils/cli_c
 
 | 环境变量 | 默认值 | 说明 |
 |---------------------|---------|-------------|
-| `ABX_ACTIVITY_LINES` | `4` | `message... 12s` 标题下方的灰色行数（整数 1–10）。部署、创建、上传、下载、拉取模板、用镜像注册模板、安装 coding-agent 和 `abx delete` 都会用到。 |
+| `ABX_ACTIVITY_LINES` | `4` | `message... 12s` 标题下方的灰色行数（整数 1–10）。部署、上传、下载、拉取模板、用镜像注册模板、安装 coding-agent 和 `abx delete` 都会用到。 |
 
-`--json`、`--quiet`、`--ci`、`TERM=dumb` 和非 TTY 不绘制该标题。见[命令运行期间](../guide/cli-tutorial.md#命令执行时看到什么)。
+`--json`、`--quiet`、`--ci`、`TERM=dumb` 和非 TTY 不绘制该标题。
 
 ## config.toml 配置
 

@@ -327,3 +327,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Preview release notice and community](notes/proposed/process/2026-11-10-preview-release-community.md) · [verification](evidence/verify/2026-11-10-preview-release-community.md).
 
 - [Community QR replacement](notes/proposed/process/2026-11-10-refresh-community-qr.md) · [verification](evidence/verify/2026-11-10-refresh-community-qr.md).
+
+- [Generated MCP workflow entry verification](evidence/verify/2026-11-10-mcp-artifact-workflow-entry.md).

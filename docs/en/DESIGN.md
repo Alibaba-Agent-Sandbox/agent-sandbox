@@ -12,16 +12,17 @@
 
 ### Core Principles
 
-1. **Stable command surface** — command names, options, help text, error text, output channels and exit codes (0–6) stay stable; golden files guard them
-2. **AI-first** — natural language sandbox creation, `--json` / `--quiet` / `--ci` output modes, the MCP server as a first-class citizen
-3. **Zero configuration defaults** — install, export an API key, create a sandbox
+1. **One command contract** — Providers share parsing, output channels and exit codes; behavior checks cover their differences
+2. **Task-oriented interfaces** — template authoring, sandbox operations and MCP reuse the existing services
+3. **Explicit configuration** — configure the selected Provider; output modes never grant permission to create credentials
 
 ### Quick Start
 
+Build the [current source CLI](../../README.md#installation), then configure the selected Provider:
+
 ```bash
-npm install -g @agent-sandbox/cli   # abx CLI (Node.js 20+)
-export ABX_SANDBOX_API_KEY=your-api-key
-abx create base
+abx config init
+abx deploy --template-id base --name demo
 abx list
 ```
 
@@ -99,11 +100,11 @@ graph TB
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| CLI (45 commands) | **Implemented** | See [cli-design.md](design/cli-design.md) |
-| MCP Server (STDIO) | **Implemented** | 7 P0 tools |
+| Unified CLI | **Current source** | See [cli-design.md](design/cli-design.md) |
+| MCP Server (STDIO) | **Implemented** | Discover available tools from the running server |
 | MCP Server (Streamable HTTP) | **Implemented** | `agent/mcp_http.ts` |
-| `abx mcp deploy` (FC artifact generation) | **Implemented** | Generates deploy artifact; manual FC deployment steps printed. See [mcp-server.md](design/mcp-server.md#7-fc-deployment) |
-| Template build/push/create pipeline | **Implemented** | Via official CreateTemplate API |
+| HTTP MCP template | **Current source** | `template init --template mcp` creates editable source for `deploy`. See [MCP boundaries](design/mcp-server.md) |
+| Template authoring and deployment | **Current source** | `template init/build/publish`; `deploy` prepares the selected source through its supported Provider or application profile |
 | Single-file binary (Node SEA) | **Implemented** | See [Binary Installation](guide/binary-installation.md) |
 | Provider commands | **Implemented** for `alicloud-express` and installed `node`, `exec` and `rest` providers (`opensandbox`, `e2b`, `cubesandbox`, `alicloud-container`) | `abx --provider <id>` loads an installed plugin; an id that is neither built in nor installed exits `E8001`. See [Providers](guide/providers.md) and [Node provider architecture](design/node-provider-architecture.md) |
 

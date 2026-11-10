@@ -221,3 +221,26 @@ text and runtime/dist bytes need no rebuild or modification. Historical upstream
 provenance files were not rewritten. Offline byte comparison proved the old supplementary
 fragment equals the newly rendered fragment, both scripts passed syntax checks, all seven
 provenance tests passed, and `git diff --check` passed. No network refresh was performed.
+
+### Clean-install SDK type dependency correction
+
+Remote Node 20 CI reported missing `e2b` declarations and resulting inference errors.
+The workflow uses ordinary `npm ci`; it does not explicitly omit optional dependencies.
+The root package incorrectly declared the compile-time SDK as optional 2.55.0, while the
+self-contained generated runtime is pinned to 2.50.0. Product imports use the bundled
+runtime; root `e2b` imports are type-only. The SDK is now a required development dependency
+pinned to 2.50.0, with a regenerated root lockfile. No runtime dependency, ambient type
+stub, parser, or type-check bypass was introduced. The specific upstream installation
+reason for CI omitting the old optional package was not asserted from the annotations.
+
+In a new isolated directory on Node 22.22.2/npm 12.0.2, `npm ci --omit=optional` succeeded
+and installed `e2b` 2.50.0. Full `npm run typecheck` and `npm run build` then passed against
+those actual pinned declarations. `sandbox exec --help` and `sandbox snapshot --help`
+passed against that build. After `npm prune --omit=dev --omit=optional`, module resolution
+confirmed no external `e2b` remained; both built CLI commands still passed, confirming the
+production runtime does not require the development-only package. The original worktree's
+node_modules and dist were not replaced. Node 20 remains for the remote CI rerun.
+Logs: `/tmp/cli-sdk-clean-ci.log`, `/tmp/cli-sdk-clean-typecheck.log`,
+`/tmp/cli-sdk-clean-build.log`, `/tmp/cli-sdk-production-prune.log`.
+A read-only scan of workflow/release command consumers found no additional retired public
+entry beyond the MCP generation workflow corrected by the authoring agent.

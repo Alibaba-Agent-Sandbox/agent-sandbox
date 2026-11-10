@@ -1,7 +1,7 @@
 {
   "name": "@agent-sandbox/cli",
   "version": "0.5.10",
-  "description": "abx — the Agent Sandbox command-line interface (Node.js)",
+  "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -83,6 +83,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.5",
     "@types/ws": "^8.18.2",
+    "e2b": "2.50.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "postject": "^1.0.0-alpha.6",
@@ -90,9 +91,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.2",
     "vitest": "^5.0.4"
-  },
-  "optionalDependencies": {
-    "e2b": "2.55.0"
   },
   "overrides": {
     "undici8": "npm:undici@8.12.2"

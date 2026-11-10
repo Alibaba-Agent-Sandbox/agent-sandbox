@@ -1,6 +1,6 @@
 # Configuration Reference
 
-> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+> The CLI and MCP use one configuration resolver. Express credentials use `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`; other Providers declare their own configuration. See the [E2B migration guide](../guide/migrate-from-e2b.md) when moving an existing setup.
 
 This document lists all Agent Sandbox configuration options, environment variables, default values, and priority rules.
 
@@ -109,9 +109,9 @@ These variables change what a terminal shows. They are not stored by `abx config
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `ABX_ACTIVITY_LINES` | `4` | How many grey lines sit under a `message... 12s` header (integer 1–10). Used by deploy, create, upload, download, template fetch, image registration, the coding-agent install, and `abx delete`. |
+| `ABX_ACTIVITY_LINES` | `4` | How many grey lines sit under a `message... 12s` header (integer 1–10). Used by deploy, upload, download, template fetch, image registration, the coding-agent install, and `abx delete`. |
 
-`--json`, `--quiet`, `--ci`, `TERM=dumb`, and a non-TTY do not draw that header. See [While a command is running](../guide/cli-tutorial.md#while-a-command-is-running).
+`--json`, `--quiet`, `--ci`, `TERM=dumb`, and a non-TTY do not draw that header.
 
 ## config.toml Configuration
 

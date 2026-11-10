@@ -173,3 +173,21 @@ implementation commit. Main added preview/community documentation and the QR
 asset, not runtime changes. The engineering index conflict retained both sets
 of links; bilingual announcements, QR asset and historical records were kept.
 Post-merge repository health (106 checks, zero failures) and hygiene passed.
+
+## First remote CI corrections
+
+The first pushed head exposed three clean-CI gaps, kept separate from cloud
+verification: Node 20 lacked optional e2b type declarations, the MCP artifact
+workflow still invoked the removed command, and four documentation fragments
+pointed to removed sections. The build-only SDK dependency now matches the
+bundled 2.50.0 version; an isolated npm ci --omit=optional, typecheck and build
+passed. Removing external development dependencies still leaves a working
+bundled CLI. The MCP workflow uses actual template initialization; its real
+HTTP verifier passed unchanged in a fresh Python environment (separate evidence).
+
+Updated both design indexes and configuration references to the single current
+entry and configuration contract. The same Lychee 0.24.2 used by CI checked all
+658 tracked Markdown files offline with fragments and returned zero errors.
+An earlier raw local glob also included installed third-party node_modules and
+failed on their documentation; the tracked-file run matches the clean checkout
+input rather than weakening any project link check.
