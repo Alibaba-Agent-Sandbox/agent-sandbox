@@ -1,5 +1,10 @@
 # `.agents/` — engineering record of the cli repository
 
+## Recent changes — 2026-11-10
+
+- [Owner change index](notes/proposed/process/2026-11-10-recent-change-index.md) · [records verification](evidence/verify/2026-11-10-recent-change-index.md).
+- This is a dated source/delivery index; Draft implementation, prior releases and new validation remain separate.
+
 - [Template authoring boundaries](notes/proposed/architecture/2026-11-10-template-authoring-boundaries.md) · [verification](evidence/verify/2026-11-10-template-authoring-boundaries.md).
 
 [Gateway revision wait](notes/proposed/feature/2026-11-06-gateway-revision-wait.md) · [verification](evidence/verify/2026-11-06-gateway-revision-wait.md) continues bounded health observations without accepting a different revision; CLI 0.5.10 remains a candidate until publication gates pass.
