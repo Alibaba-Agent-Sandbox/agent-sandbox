@@ -110,7 +110,7 @@ function dockerfileRules(profile: TemplateProfile): string {
     : `不要写 ENTRYPOINT 指令（基础镜像的入口不可替换）。`;
   const installIntro =
     "- 安装 agent-sandbox-server，固定使用下面已发布的 PyPI alpha 测试版（不是稳定版）。" +
-    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx template deploy` 改用本地 wheel：";
+    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx deploy` 改用本地 wheel：";
   const secrets = "- 不要在镜像里写入任何密钥；需要的密钥在 template.yaml 的 `env` 里只列名字（空值或非敏感默认值）。";
   if (profile.server_start === "platform_start_cmd") {
     return `### 3. Dockerfile 规则（provider \`${profile.provider_id}\`）
@@ -236,11 +236,11 @@ ${selected.resource_notes ? `- ${selected.resource_notes}` : ""}
 ${mode === "create" ? "- 新生成应用必须声明 env.ABX_SERVER_TOKEN 为空字符串；令牌由运行环境提供，CLI 在构建/创建前验证并注入，不写入镜像或生成文件。README 的 CLI/SDK/HTTP 示例都使用此应用令牌；不要声称它可选，也不要把控制面 API key 当作应用令牌。" : ""}
 - 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
-  \`abx sandbox command run <sandbox_id> <名字>\` 调用。
+  \`abx sandbox command run <app-name> <名字>\` 调用。
 - \`tags\`、\`author\` 可省略。
 ${
   selected.server_start === "platform_start_cmd"
-    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx template deploy\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
+    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx deploy\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
     : ""
 }
 
@@ -250,5 +250,5 @@ ${REFERENCE_COMMANDS_PY}\`\`\`
 `;
 }
 
-/** Guide used by `abx create --prompt "<description>"` for the provider selected at import time. */
+/** Guide used by `abx template init --prompt "<description>"` for the provider selected at import time. */
 export const TEMPLATE_GUIDE: string = buildTemplateGuide("create");

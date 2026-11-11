@@ -1,0 +1,52 @@
+Usage: abx [options] [command]
+
+abx — Agent Sandbox CLI
+
+Deploy useful templates and manage their running instances.
+
+Get started:
+  abx config init
+  abx deploy python-hello --name demo
+  abx status demo
+  abx delete demo
+
+Author templates:
+  abx template list python
+  abx template init ./my-template --from python-hello
+  abx deploy ./my-template --name demo
+
+Use --json for machine-readable output. --yes separately authorizes changes.
+More templates: https://registry.agent-sandbox.cn/templates/
+
+Options:
+  --version            Show the version and exit.
+  -j, --json           Machine-readable JSON output
+  -q, --quiet          Minimal output
+  -v, --verbose        Verbose output (DEBUG level)
+  --no-color           Disable colored output
+  --log-level <LEVEL>  Set log level explicitly (DEBUG, INFO, WARNING, ERROR)
+  --ci                 Machine-readable CI/CD output; does not authorize changes
+  -h, --help           Show this message and exit.
+
+Command groups:
+  template             Discover, create, build and publish reusable templates.
+  sandbox              Run commands and manage Sandbox files, processes and
+                       advanced lifecycle.
+  config               Configure credentials, Providers and defaults.
+  provider             Install Providers and inspect or run native operations.
+  mcp                  Configure and run the local MCP server.
+
+Commands:
+  deploy               Deploy a template as a named instance.
+  list                 List deployments and Sandboxes.
+  status               Inspect a deployment or Sandbox ID.
+  logs                 Read deployment or Sandbox logs.
+  delete               Delete a deployment or Sandbox ID.
+  recover              Inspect and recover an interrupted deployment.
+
+Provider: alicloud-express (default)
+36 provider operations: api-key, quota, sandbox, snapshot, team, template-cache, template, volume.
+Example: abx provider run api-key.create --help
+Use 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.
+Select for one invocation: abx --provider ID provider --help
+[exit_code:0]

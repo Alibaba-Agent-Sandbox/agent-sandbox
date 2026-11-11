@@ -28,15 +28,14 @@ assert.match(rootHelp, /Usage:/i);
 assert.doesNotMatch(rootHelp, /^Providers:$/m, "Provider belongs in Command groups");
 assert.match(rootHelp.split("Command groups:\n")[1]?.split("\n\n")[0] ?? "", /^ {2}provider\s/m);
 assert.match(rootHelp, /https:\/\/registry\.agent-sandbox\.cn\/templates\//);
-assert.match(rootHelp, /create\s+Create a sandbox\.\s+\(alias: abx sandbox create\)/, "Installed artifact must explain the create shortcut");
-assert.match(rootHelp, /run\s+Run a registered sandbox command\.\s+\(alias: abx sandbox\s+command run\)/, "Installed artifact must explain registered commands before their alias");
-assert.match(run(["create", "--help"]), /--detach/);
-assert.match(run(["template", "image", "--help"]), /Usage:/i);
-const nativeListHelp = run(["--native", "template", "list", "--help"]);
-assert.match(nativeListHelp, /--region/);
-assert.match(nativeListHelp, /FCSandbox API with AK\/SK/);
-assert.doesNotMatch(nativeListHelp, /--official-api|--legacy-api/);
-assert.match(run(["--native", "config", "get", "region"]), /\S/);
+for (const name of ["deploy", "list", "status", "logs", "delete", "recover"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
+assert.doesNotMatch(rootHelp, /^ {2}(create|exec|run|kill|info)\s/m);
+assert.match(run(["deploy", "--help"]), /--template-id/);
+assert.match(run(["sandbox", "exec", "--help"]), /Everything after the sandbox ID/);
+assert.match(run(["template", "init", "--help"]), /--from/);
+const providerHelp = run(["--provider", "alicloud-express", "provider", "run", "template.list", "--help"]);
+assert.match(providerHelp, /team_id/); assert.match(providerHelp, /--region/);
+assert.match(run(["config", "get", "region"]), /\S/);
 const projectRoot = mkdtempSync(join(tmpdir(), "abx-onboarding-"));
 try {
   const project = join(projectRoot, "project");
@@ -56,11 +55,11 @@ try {
   // Unrelated upstream state must never break ABX help or supply a different identity.
   mkdirSync(join(projectRoot, ".e2b"));
   writeFileSync(join(projectRoot, ".e2b", "config.json"), "{invalid unrelated configuration");
-  const standardHelp = invokeProject(["create", "--help"]);
+  const standardHelp = invokeProject(["deploy", "--help"]);
   assert.equal(standardHelp.status, 0, "A corrupt ~/.e2b/config.json must not affect ABX help");
   assert.match(standardHelp.stdout, /Usage:/i);
   assert.equal(readFileSync(join(projectRoot, ".e2b", "config.json"), "utf8"), "{invalid unrelated configuration", "ABX must not rewrite unrelated E2B state");
-  const missingKey = invokeProject(["create", "base"]);
+  const missingKey = invokeProject(["deploy", "--template-id", "base", "--yes"]);
   assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
   assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);
   assert.match(missingKey.stdout + missingKey.stderr, /sandbox_api_key/);
@@ -71,7 +70,7 @@ try {
   const managedProject = join(projectRoot, "managed-project");
   mkdirSync(managedProject);
   writeFileSync(join(managedProject, "template.yaml"), "name: base\nspec_version: 5\nprovider: alicloud-express\ntemplate_id: base\nprovides: {}\n");
-  const managedLaunch = invokeProject(["--provider", "alicloud-express", "--json", "template", "launch", managedProject, "--yes"], {
+  const managedLaunch = invokeProject(["--provider", "alicloud-express", "--json", "deploy", managedProject, "--name", "artifact-probe", "--yes"], {
     ABX_SANDBOX_API_KEY: "placeholder-test-key",
     ABX_SANDBOX_BASE_URL: "http://127.0.0.1:1",
     ABX_SANDBOX_DOMAIN: "localhost",
@@ -81,35 +80,32 @@ try {
   assert.match(managedFailure.message, /Sandbox creation has an uncertain outcome/,
     "Built-in provider identity must load from the artifact without sidecar source files");
   assert.doesNotMatch(managedFailure.message, /ENOENT|providers[\\/]|File or directory not found/);
-  const invalid = invokeProject(["create", "--template", "base"]);
+  const invalid = invokeProject(["deploy", "--unknown-local-option"]);
   assert.notEqual(invalid.status, 0);
-  assert.match(invalid.stderr, /unknown option/i);
+  assert.match(invalid.stderr, /No such option/i);
   assert.doesNotMatch(invalid.stdout + invalid.stderr, /Configuration scope|Missing configuration/i, "Syntax errors precede credential setup");
-  const nativeJson = invokeProject(["--native", "--json", "create", "base"]);
+  const nativeJson = invokeProject(["--json", "deploy", "--template-id", "base", "--yes"]);
   assert.equal(nativeJson.status, 1);
   assert.match(JSON.parse(nativeJson.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(nativeJson.stdout + nativeJson.stderr, /Configuration scope|input hidden/i);
-  const ciCreate = invokeProject(["--native", "--ci", "create", "base"], { CI: "1" });
+  const ciCreate = invokeProject(["--ci", "deploy", "--template-id", "base", "--yes"], { CI: "1" });
   assert.equal(ciCreate.status, 1);
   assert.match(JSON.parse(ciCreate.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(ciCreate.stdout + ciCreate.stderr, /Configuration scope|input hidden/i);
-  const missing = invokeProject(["template", "deploy", project, "-y", "--acr-namespace", "onboarding-test"]);
-  assert.equal(missing.status, 1, "New project must continue into provider credential preflight");
+  assert.equal(invokeProject(["template", "init", project, "--template", "python", "--yes"]).status, 0);
+  for (const name of ["template.yaml", "Dockerfile", "commands.py"]) assert.ok(existsSync(join(project, name)));
+  const missing = invokeProject(["template", "build", project, "--yes"]);
+  assert.equal(missing.status, 1, "Source build must reach Provider credential preflight");
   assert.match(missing.stdout + missing.stderr, /Missing configuration/i);
   assert.match(missing.stdout + missing.stderr, /access_key_id/);
-  assert.match(missing.stdout + missing.stderr, /access_key_secret/);
   assert.doesNotMatch(missing.stdout + missing.stderr, /Configuration scope|input hidden/i);
-  for (const name of ["template.yaml", "Dockerfile", "commands.py"]) assert.ok(existsSync(join(project, name)));
-  const ciProject = join(projectRoot, "ci-project");
-  const ci = invokeProject(["--ci", "template", "deploy", ciProject, "--acr-namespace", "onboarding-test"]);
-  assert.equal(ci.status, 1);
-  assert.match(JSON.parse(ci.stdout).message, /Missing configuration/i, "CI must emit one final result");
-  assert.ok(existsSync(join(ciProject, "template.yaml")));
+  const ci = invokeProject(["--ci", "template", "build", project, "--yes"]);
+  assert.equal(ci.status, 1); assert.match(JSON.parse(ci.stdout).message, /Missing configuration/i);
   writeFileSync(join(project, "Dockerfile"), "keep original\n");
-  const overwrite = invokeProject(["template", "scaffold", "--template", "python", project, "-y"]);
+  const overwrite = invokeProject(["template", "init", "--template", "python", project, "-y"]);
   assert.equal(overwrite.status, 1, "Yes alone must not authorize replacement");
   assert.equal(readFileSync(join(project, "Dockerfile"), "utf8"), "keep original\n");
-  assert.equal(invokeProject(["template", "scaffold", "--template", "python", project, "--force", "-y"]).status, 0);
+  assert.equal(invokeProject(["template", "init", "--template", "python", project, "--force", "-y"]).status, 0);
   assert.match(readFileSync(join(project, "Dockerfile"), "utf8"), /FROM/);
   // Exercise the shipped executable in a real terminal; cancellation precedes Docker/cloud work.
   if (process.platform !== "win32") {
@@ -119,7 +115,7 @@ try {
     delete terminalEnv.CI;
     delete terminalEnv.GITHUB_ACTIONS;
     const spec = {
-      argv: [artifact, "create", "base"], stdout_terminal: true,
+      argv: [artifact, "sandbox", "exec", "artifact-probe-unregistered", "true"], stdout_terminal: true,
       steps: [{ wait_for: "access_key_id + access_key_secret", keys: "\x1b[B\x1b[B\r" }],
     };
     const driven = spawnSync("python3", ["-c", TERMINAL_DRIVER, JSON.stringify(spec)], {
@@ -147,4 +143,4 @@ assert.ok(declaration, "Missing complete reviewed notice declaration");
 const runtimeDeclaration = /^export const RUNTIME_DEPENDENCY_NOTICES = (.+);$/m.exec(readFileSync(join(root, "src/licenses/runtime_dependencies.ts"), "utf8"));
 assert.ok(runtimeDeclaration, "Missing complete reviewed runtime dependency notice declaration");
 assert.equal(run(["--licenses"]), JSON.parse(declaration[1]) + JSON.parse(runtimeDeclaration[1]), "Installed artifact notices differ from the complete source");
-console.log(`PASS: installed abx ${version}: version, isolated guidance, one JSON result, root/standard/native help and complete notices`);
+console.log(`PASS: installed abx ${version}: version, isolated guidance, one JSON result, one frontend help and complete notices`);

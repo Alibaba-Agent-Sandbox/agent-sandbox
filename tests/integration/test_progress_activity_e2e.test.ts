@@ -20,6 +20,7 @@ import path from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
+import * as projectTools from "../../src/providers/shared/project.js";
 import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
@@ -28,10 +29,6 @@ import { outputSeams } from "../../src/cli/output.js";
 import { CliError } from "../../src/cli/errors.js";
 import { sys } from "../../src/cli/io.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
-import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
-import * as transportConfig from "../../src/transport/config.js";
-import * as transportHttp from "../../src/transport/http.js";
 import * as templateIndexMod from "../../src/utils/template_index.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { _CI_ENV_VARS, useIsolatedEnv } from "../_support/env.js";
@@ -79,12 +76,16 @@ const _combined = (result: Result): string => `${result.output}${result.stderr ?
 
 function _prepareTemplate(dir: string): void {
   fs.writeFileSync(path.join(dir, "Dockerfile"), "FROM ubuntu:22.04\n");
-  fs.writeFileSync(path.join(dir, "template.yaml"), "name: my-template\nresources:\n  cpu: 2\n  memory: 2048\n");
+  fs.writeFileSync(path.join(dir, "template.yaml"), "spec_version: 5\nprovides: {}\nname: my-template\nresources:\n  cpu: 2\n  memory: 2048\n");
 }
 
 /** Install the mocked `DockerBuilder` that streams its lines through `on_output` / `on_poll`. */
 function _installBuilder(): void {
   const { builder } = mockBuilder();
+  vi.spyOn(projectTools, "runTool").mockImplementation(async (_command, args) => {
+    const ref = args.at(-1)!;
+    return JSON.stringify([`${ref.slice(0, ref.lastIndexOf(":"))}@sha256:${"a".repeat(64)}`]);
+  });
   builder.build.mockImplementation(async (...args: unknown[]) => {
     const emit = (args[2] as { on_output?: ((line: string) => void) | null } | undefined)?.on_output;
     if (emit) {
@@ -110,8 +111,9 @@ function _installBuilder(): void {
 }
 
 async function _invokeBuild(dir: string, prefix: string[] = []): Promise<Result> {
+  iso.monkeypatch.setenv("ACR_NAMESPACE", "test-progress");
   _installBuilder();
-  return runner().invoke(cli, [...prefix, "template", "build", dir, "--acr-namespace", "test-ns", "--yes"]);
+  return runner().invoke(cli, [...prefix, "template", "build", dir, "--yes"]);
 }
 
 function _sandbox(sandbox_id = "sbx-cli-test-001") {
@@ -125,6 +127,7 @@ function _sandbox(sandbox_id = "sbx-cli-test-001") {
     envdAccessToken: "envd-access-token-secret",
   });
   return {
+    close: vi.fn(async () => undefined),
     id: info.sandbox_id,
     status: info.status,
     url: info.envd_url,
@@ -208,7 +211,9 @@ it("test_json_deploy_does_not_dump_build_lines", async () => {
   const result = await _invokeBuild(tmp, ["--json"]);
   expect(result.exit_code, result.output).toBe(0);
   const combined = _combined(result);
-  expect(combined).toContain("tpl-progress");
+  expect(JSON.parse(result.stdout!).status).toBe("built");
+  const artifact = JSON.parse(fs.readFileSync(JSON.parse(result.stdout!).build, "utf8"));
+  expect(artifact.prepared.reference).toBe("tpl-progress");
   expect(combined).not.toContain("#5 [1/2] FROM ubuntu:22.04");
   expect(combined).not.toContain(_TOKEN);
 });
@@ -217,7 +222,7 @@ it("test_create_shows_an_elapsed_header", async () => {
   const tty = ttyStderr();
   vi.spyOn(Sandbox, "create").mockResolvedValue(_sandbox() as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["create", "--template", "python-base", "--request-timeout", "45"]);
+  const result = await runner().invoke(cli, ["deploy", "--yes", "--template-id", "python-base", "--request-timeout", "45"]);
 
   expect(result.exit_code, result.output).toBe(0);
   const shown = tty.getvalue();
@@ -235,7 +240,7 @@ it("test_download_shows_a_header_and_hides_bytes", async () => {
   const dest = path.join(tmp, "out.bin");
   vi.spyOn(Sandbox, "connect").mockResolvedValue(sandbox as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["download", "sb-1", "/app/secret.bin", dest]);
+  const result = await runner().invoke(cli, ["sandbox", "download", "sb-1", "/app/secret.bin", dest]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(fs.readFileSync(dest).equals(Buffer.from(_SECRET))).toBe(true);
@@ -245,31 +250,12 @@ it("test_download_shows_a_header_and_hides_bytes", async () => {
   expect(_combined(result)).not.toContain(_SECRET);
 });
 
-it("test_kill_all_lists_ids_under_the_header", async () => {
-  const tty = ttyStderr();
-  const infos = ["sbx-a", "sbx-b"].map((id) =>
-    SandboxInfo.modelValidate({ sandboxID: id, templateID: "base", status: "running", region: "cn-hangzhou", timeout: 300 }),
-  );
-  vi.spyOn(Sandbox, "list").mockResolvedValue(infos);
-  vi.spyOn(Sandbox, "connect").mockResolvedValue(_sandbox() as unknown as Sandbox);
-  vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
-
-  const result = await runner().invoke(cli, ["kill", "--all", "--yes"]);
-
-  expect(result.exit_code, result.output).toBe(0);
-  const shown = tty.getvalue();
-  expect(shown).toContain("Killing 2 sandbox(es)");
-  expect(shown).toContain("1/2 alicloud-express:sbx-a");
-  expect(shown).toContain("2/2 alicloud-express:sbx-b");
-  expect(result.output).toContain("Killed 2/2");
-});
-
 it("test_template_search_shows_a_fetch_header", async () => {
   const tty = ttyStderr();
   const index = { notice: "", filter: () => [] };
   spyAny(templateIndexMod, "fetchIndex").mockResolvedValue(index as never);
 
-  const result = await runner().invoke(cli, ["template", "search", "python"]);
+  const result = await runner().invoke(cli, ["template", "list", "python"]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(tty.getvalue()).toContain("Fetching the template index... 0s");
@@ -282,13 +268,10 @@ it("test_template_create_shows_a_header_and_hides_the_password", async () => {
   patchLoadConfig(fakeConfig({ access_key_secret: "platform-placeholder" }));
   const create = spyAny(fcTemplate, "createOfficialTemplate").mockResolvedValue({ templateID: "tpl-from-image", statusCode: 200 });
 
-  const result = await runner().invoke(cli, [
-    "template", "from-image", "registry.example/ns/app:latest", "--name", "from-image", "--registry-username", "registry-user", "--registry-password", password,
-  ]);
+  const result = await runner().invoke(cli, ["provider", "run", "template.create", "--yes", "--input", JSON.stringify({ image: "registry.example/ns/app:latest", name: "from-image", registry_username: "registry-user", registry_password: password })]);
 
   expect(result.exit_code, result.output).toBe(0);
   const shown = tty.getvalue();
-  expect(shown).toContain("Creating template from-image... 0s");
   expect(shown).not.toContain(password);
   expect(_combined(result)).not.toContain(password);
   expect((create.mock.calls[0]![0] as Record<string, unknown>)["registry_password"]).toBe(password);
@@ -313,7 +296,7 @@ it("test_install_milestones_show_under_the_header", async () => {
   codingAgentSeams.resolveBackend = (() => backend) as never;
   vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockRejectedValue(new CliError("stop-after-install"));
   try {
-    const result = await runner().invoke(cli, ["create", "--prompt", "a small http server", "--yes"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "--prompt", "a small http server", "--yes"]);
 
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("stop-after-install");

@@ -15,7 +15,7 @@ import type { ProviderCommand } from "../command_contract.js";
 import { commandSchema } from "./command_schema.js";
 import type { FcManagementSdk } from "./sdk.js";
 
-export const MANAGED_KEY_HELP = "Choose an existing Sandbox API key, or AK/SK-managed authentication. Creating a managed key requires sandbox:CreateApiKey; reuse requires sandbox:DescribeApiKey; renewal requires sandbox:UpdateApiKey, scoped to the target Team's API keys. Creation/renewal requires confirmation (automatic only with --ci); a managed key expires after 30 days and is renewed on use within its final day. Optional Team: abx config set team_id <TEAM_ID>; otherwise the API uses your default Team. Permissions: https://help.aliyun.com/zh/agent-sandbox/authorize-ram-users-to-access-the-console";
+export const MANAGED_KEY_HELP = "Choose an existing Sandbox API key, or AK/SK-managed authentication. Creating a managed key requires sandbox:CreateApiKey; reuse requires sandbox:DescribeApiKey; renewal requires sandbox:UpdateApiKey, scoped to the target Team's API keys. Creation/renewal requires confirmation (in automation, run provider run api-key.prepare --yes); a managed key expires after 30 days and is renewed on use within its final day. Optional Team: abx config set team_id <TEAM_ID>; otherwise the API uses your default Team. Permissions: https://help.aliyun.com/zh/agent-sandbox/authorize-ram-users-to-access-the-console";
 const lifetime = 30 * 24 * 3600_000;
 const renewBefore = 24 * 3600_000;
 const requireModule = createRequire(import.meta.url);
@@ -53,8 +53,8 @@ export const MANAGED_KEY_RESOLVE_COMMAND: ProviderCommand = {
 /** Identifies the exact mutation that the Express CLI must explain and confirm. */
 export class ManagedKeyConsentRequiredError extends ProviderTrustError {
   constructor(readonly operation: "creation" | "renewal", readonly region: string, readonly team: string) {
-    super(`Managed API-key ${operation} requires confirmation (region ${region}, Team ${team}). Confirm in a terminal, explicitly run 'abx provider command run alicloud-express api-key.prepare --yes', or use --ci.`, {
-      suggestion: "In a terminal, confirm the prompt; in automation use 'abx --ci ...'. To prepare explicitly, run 'abx provider command run alicloud-express api-key.prepare --yes'. Python: prepare_api_key(confirm=True). " + MANAGED_KEY_HELP,
+    super(`Managed API-key ${operation} requires confirmation (region ${region}, Team ${team}). Confirm in a terminal, explicitly run 'abx --provider alicloud-express provider run api-key.prepare --yes'.`, {
+      suggestion: "In a terminal, confirm the prompt; in automation explicitly run 'abx --provider alicloud-express provider run api-key.prepare --yes'. Python: prepare_api_key(confirm=True). " + MANAGED_KEY_HELP,
     });
   }
 }

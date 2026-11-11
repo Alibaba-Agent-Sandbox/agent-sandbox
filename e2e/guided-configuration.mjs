@@ -35,10 +35,10 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     pid, master = pty.fork()
     if pid == 0:
         os.chdir(home)
-        os.execvpe(command[0], command + ['sandbox', 'create', 'code-interpreter-v1', '--detach', '--timeout', '60'], child_env)
+        os.execvpe(command[0], command + ['deploy', '--template-id', 'code-interpreter-v1', '--name', 'guided-native', '--sandbox-timeout', '60'], child_env)
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
-    key_sent = method_sent = False
+    key_sent = method_sent = approved = False
     status = None
     try:
         deadline = time.monotonic() + 90
@@ -51,6 +51,9 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                     raise
                 if not chunk: break
                 output += chunk
+                if not approved and b'Deploy guided-native?' in output:
+                    os.write(master, b'y\r')
+                    approved = True
                 if not method_sent and b'Choose an authentication method' in output:
                     os.write(master, b'1\r')
                     method_sent = True
@@ -69,12 +72,12 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             raise AssertionError('guided terminal timed out')
         if status is None: _, status = os.waitpid(pid, 0)
         clean = re.sub(rb'\x1b\[[0-?]*[ -/]*[@-~]', b'', output).replace(b'\r', b'')
-        candidates = re.findall(rb'^([A-Za-z0-9][A-Za-z0-9_-]{5,})\s*$', clean, re.M)
+        candidates = re.findall(rb"['\"]sandbox_id['\"]\s*:\s*['\"]([A-Za-z0-9_-]+)['\"]", clean)
         if os.waitstatus_to_exitcode(status) == 0 and len(candidates) == 1:
             owned = candidates[0].decode()
         assert credential.encode() not in output, 'hidden input was echoed'
         assert os.waitstatus_to_exitcode(status) == 0, 'guided create failed (raw output withheld)'
-        assert key_sent and owned, 'guidance did not complete and return a sandbox ID'
+        assert approved and key_sent and owned, 'guidance did not complete and return a sandbox ID'
         assert b'Configuration scope' not in clean and b'Configuration saved.' in clean
         assert not list(Path(home).rglob('config.toml')), 'operation-only setup persisted configuration'
         saved=list(Path(home).rglob('.env'))
@@ -93,7 +96,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             except ProcessLookupError: pass
             os.waitpid(pid, 0)
         if owned:
-            result = subprocess.run(command + ['sandbox', 'kill', owned], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            result = subprocess.run(command + ['delete', owned, '--yes'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
             assert result.returncode == 0, 'owned sandbox cleanup failed'
             api_url = trusted.get('E2B_API_URL') or trusted.get('ABX_SANDBOX_BASE_URL') or 'https://api.' + trusted['E2B_DOMAIN']
             request = urllib.request.Request(api_url.rstrip('/') + '/sandboxes/' + owned, headers={'X-API-Key': credential})

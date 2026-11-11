@@ -35,7 +35,7 @@ KEEP_IDS=()
 
 cleanup() {
   for ref in "${KEEP_IDS[@]:-}"; do
-    [ -n "$ref" ] && abx kill "$ref" --yes >/dev/null 2>&1
+    [ -n "$ref" ] && abx delete "$ref" --yes >/dev/null 2>&1
   done
   rm -rf "$WORK"
 }
@@ -80,9 +80,9 @@ resolve_opensandbox() {
 roundtrip() {
   local provider_args=("$@")
   step "create"
-  abx --json "${provider_args[@]}" create --template "${CREATE_TEMPLATE:-base}"
+  abx --json "${provider_args[@]}" deploy --yes --template-id "${CREATE_TEMPLATE:-base}"
   expect_rc 0 || return
-  local sid; sid="$(json_get "d.get('ID') or d.get('sandbox_id')")"
+  local sid; sid="$(json_get "d.get('sandbox_id')")"
   local ref="$sid"
   [ -n "${PROVIDER_ID:-}" ] && ref="$PROVIDER_ID:$sid"
   if [ -z "$sid" ]; then bad "no sandbox id in the JSON output"; return; fi
@@ -93,27 +93,27 @@ roundtrip() {
   abx --json "${provider_args[@]}" list; expect_rc 0 && expect_out "$sid" && ok
 
   step "exec echo"
-  abx "${provider_args[@]}" exec "$ref" "echo e2e-hello"; expect_rc 0 && expect_out "e2e-hello" && ok
+  abx "${provider_args[@]}" sandbox exec "$ref" "echo e2e-hello"; expect_rc 0 && expect_out "e2e-hello" && ok
 
   step "exec propagates the exit code"
-  abx "${provider_args[@]}" exec "$ref" "sh -c 'exit 3'"; expect_rc 3 && ok
+  abx "${provider_args[@]}" sandbox exec "$ref" "sh -c 'exit 3'"; expect_rc 3 && ok
 
   step "upload then download round trip"
   printf 'payload-%s\n' "$$" > "$WORK/cwd/up.txt"
-  abx "${provider_args[@]}" upload "$ref" up.txt /tmp/up.txt; expect_rc 0 || return
-  abx "${provider_args[@]}" download "$ref" /tmp/up.txt down.txt; expect_rc 0 || return
+  abx "${provider_args[@]}" sandbox upload "$ref" up.txt /tmp/up.txt; expect_rc 0 || return
+  abx "${provider_args[@]}" sandbox download "$ref" /tmp/up.txt down.txt; expect_rc 0 || return
   if cmp -s "$WORK/cwd/up.txt" "$WORK/cwd/down.txt"; then ok; else bad "downloaded file differs"; fi
 
   step "sandbox files list"
   abx "${provider_args[@]}" sandbox files list "$ref" --path /tmp; expect_rc 0 && expect_out "up.txt" && ok
 
   step "kill"
-  abx "${provider_args[@]}" kill "$ref" --yes; expect_rc 0 || return
+  abx "${provider_args[@]}" delete "$ref" --yes; expect_rc 0 || return
   KEEP_IDS=("${KEEP_IDS[@]/$ref}")
   ok
 
   step "killed sandbox is gone (exit 4)"
-  abx "${provider_args[@]}" exec "$ref" "true"; expect_rc 4 && ok
+  abx "${provider_args[@]}" sandbox exec "$ref" "true"; expect_rc 4 && ok
 }
 
 # --- offline: install/list/doctor/default/uninstall behaviour that needs no backend ----------------------------------
@@ -123,8 +123,8 @@ suite_offline() {
   local src="$PROVIDERS_DIR/local-process"
   if [ ! -d "$src" ]; then skip offline "plugin examples not found in $PROVIDERS_DIR"; return; fi
 
-  step "provider group is hidden from root help until a plugin is installed"
-  abx --help; expect_rc 0 && expect_not_out "provider" && ok
+  step "provider group is available before installing plugins"
+  abx --help; expect_rc 0 && expect_out "provider" && ok
 
   step "non-interactive install without --yes is refused (exit 2)"
   abx provider install "$src"; expect_rc 2 && expect_out "E8012" && ok
@@ -154,13 +154,13 @@ suite_offline() {
   step "secret options are refused on the command line (E8002, exit 2)"
   abx --provider local-process --opt token=abc list; expect_rc 2 && expect_out "E8002" && expect_not_out "abc" && ok
 
-  step "provider default, persisted and reverted"
-  abx provider default local-process; expect_rc 0 || return
-  abx provider default; expect_out "local-process" || return
-  abx provider default --unset; expect_rc 0 && ok
+  step "config provider selection, persisted and reverted"
+  abx config set provider local-process; expect_rc 0 || return
+  abx config get provider; expect_out "local-process" || return
+  abx config delete provider; expect_rc 0 && ok
 
   step "reference mismatch (E8030, exit 2)"
-  abx --provider alicloud-express kill local-process:sbx-1 --yes; expect_rc 2 && expect_out "E8030" && ok
+  abx --provider alicloud-express delete local-process:sbx-1 --yes; expect_rc 2 && expect_out "E8030" && ok
 
   step "git install: unpinned is refused, pinned works (local git repo)"
   local repo="$WORK/plugin-repo"; rm -rf "$repo"; cp -r "$src" "$repo"
@@ -205,21 +205,21 @@ suite_opensandbox() {
   step "doctor reaches the handshake"
   abx provider doctor opensandbox; expect_rc 0 && expect_out "handshake" && ok
 
-  step "the API key never appears in provider config output"
-  abx provider config opensandbox list; expect_rc 0 && expect_not_out "$OSB_KEY" && ok
+  step "the API key never appears in selected-provider config output"
+  abx --provider opensandbox config list; expect_rc 0 && expect_not_out "$OSB_KEY" && ok
 
-  step "provider default opensandbox"
-  abx provider default opensandbox; expect_rc 0 && ok
+  step "select opensandbox in config"
+  abx config set provider opensandbox; expect_rc 0 && ok
 
   # Default provider selected: no --provider flag needed, ids are printed qualified.
   PROVIDER_ID=opensandbox CREATE_TEMPLATE="$OSB_IMAGE" roundtrip
   PROVIDER_ID=
 
   step "explicit --provider with the default unset"
-  abx provider default --unset >/dev/null; abx --json --provider opensandbox create --template "$OSB_IMAGE"; expect_rc 0 || return
-  local sid; sid="$(json_get "d.get('ID')")"; KEEP_IDS+=("opensandbox:$sid")
-  abx --provider opensandbox exec "opensandbox:$sid" "echo via-flag"; expect_rc 0 && expect_out "via-flag" || return
-  abx kill "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
+  abx config delete provider >/dev/null; abx --json --provider opensandbox deploy --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
+  local sid; sid="$(json_get "d.get('sandbox_id')")"; KEEP_IDS+=("opensandbox:$sid")
+  abx --provider opensandbox sandbox exec "opensandbox:$sid" "echo via-flag"; expect_rc 0 && expect_out "via-flag" || return
+  abx delete "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
 
   step "install from a local git repo pinned to a commit"
   local repo="$WORK/opensandbox-repo"; rm -rf "$repo"; cp -r "$src" "$repo"
@@ -227,10 +227,10 @@ suite_opensandbox() {
   abx provider uninstall opensandbox --yes >/dev/null 2>&1
   abx provider install "file://$repo" --allow-insecure-transport --ref "$(git -C "$repo" rev-parse HEAD)" --yes; expect_rc 0 || return
   abx provider doctor opensandbox; expect_rc 0 || return
-  abx --json --provider opensandbox create --template "$OSB_IMAGE"; expect_rc 0 || return
-  sid="$(json_get "d.get('ID')")"; KEEP_IDS+=("opensandbox:$sid")
-  abx --provider opensandbox exec "opensandbox:$sid" "echo from-git"; expect_rc 0 && expect_out "from-git" || return
-  abx kill "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
+  abx --json --provider opensandbox deploy --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
+  sid="$(json_get "d.get('sandbox_id')")"; KEEP_IDS+=("opensandbox:$sid")
+  abx --provider opensandbox sandbox exec "opensandbox:$sid" "echo from-git"; expect_rc 0 && expect_out "from-git" || return
+  abx delete "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
 
   step "provider test (contract suite)"
   abx provider test opensandbox -o "base_url=$OSB_URL"; if [ "$RC" = 0 ]; then ok; else bad "contract suite failed"; fi

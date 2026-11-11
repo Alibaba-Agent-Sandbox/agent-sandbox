@@ -26,7 +26,7 @@ body:
       description: Steps to reproduce the behavior
       placeholder: |
         1. Install the CLI `npm install -g @agent-sandbox/cli`
-        2. Run `abx create base`
+        2. Run `abx deploy --template-id base --yes`
         3. See error...
     validations:
       required: true

@@ -1,6 +1,6 @@
 # Configuration Reference
 
-> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+> The CLI and MCP use one configuration resolver. Express credentials use `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`; other Providers declare their own configuration. See the [E2B migration guide](../guide/migrate-from-e2b.md) when moving an existing setup.
 
 This document lists all Agent Sandbox configuration options, environment variables, default values, and priority rules.
 
@@ -49,8 +49,8 @@ Each key has one name. Product settings use `ABX_<KEY>`. A vendor that already p
 
 The same chain is what these calls read:
 
-- natural-language `abx create` (the coding agent)
-- `abx template install` / `abx template search` (GitHub token)
+- natural-language `abx template init --prompt` (the coding agent)
+- `abx template init --from` / `abx template list` (GitHub token)
 - `abx mcp install` / `abx mcp start` (Sandbox access is resolved without copying the key into IDE files)
 
 `abx mcp install` does not copy Sandbox credentials into Cursor, Claude, or VS Code files. It records the launch command and applicable non-secret effective target settings. `abx mcp start` resolves user/Provider credentials again when the editor starts the server. Temporary setup values do not persist into that later process; save them explicitly if future launches need them. See [guided configuration](../guide/guided-configuration.md) for inline input, persistence, source conflicts, and automation boundaries.
@@ -79,7 +79,7 @@ Sandbox calls use an explicit API key, or the Express managed key prepared from 
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | Alibaba Cloud AccessKey Secret |
 | `GITHUB_TOKEN` | `github_token` | GitHub token for template downloads (store with `abx config set github_token`; CI: inject as a secret) |
 
-Since CLI 0.4.17, `ABX_HTTP_TIMEOUT` also controls each application HTTP request made by `abx run` and command discovery (default: 30 seconds). For a longer command, set it before invoking the CLI, for example `ABX_HTTP_TIMEOUT=330 abx run "$SANDBOX_ID" qwen --json-args '{"prompt":"Review the uploaded project","command_timeout":300}'`. An HTTP timeout stops waiting for the response; it does not cancel the remote command.
+Since CLI 0.4.17, `ABX_HTTP_TIMEOUT` also controls each application HTTP request made by `abx sandbox command run` and command discovery (default: 30 seconds). For a longer command, set it before invoking the CLI, for example `ABX_HTTP_TIMEOUT=330 abx sandbox command run "$SANDBOX_ID" qwen --json-args '{"prompt":"Review the uploaded project","command_timeout":300}'`. An HTTP timeout stops waiting for the response; it does not cancel the remote command.
 
 ### CLI only: template build and generation
 
@@ -109,9 +109,9 @@ These variables change what a terminal shows. They are not stored by `abx config
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `ABX_ACTIVITY_LINES` | `4` | How many grey lines sit under a `message... 12s` header (integer 1–10). Used by deploy, create, upload, download, template fetch, image registration, the coding-agent install, and `abx kill --all`. |
+| `ABX_ACTIVITY_LINES` | `4` | How many grey lines sit under a `message... 12s` header (integer 1–10). Used by deploy, upload, download, template fetch, image registration, the coding-agent install, and `abx delete`. |
 
-`--json`, `--quiet`, `--ci`, `TERM=dumb`, and a non-TTY do not draw that header. See [While a command is running](../guide/cli-tutorial.md#while-a-command-is-running).
+`--json`, `--quiet`, `--ci`, `TERM=dumb`, and a non-TTY do not draw that header.
 
 ## config.toml Configuration
 
@@ -159,7 +159,7 @@ abx config set region ""
 abx config set github_token ""
 ```
 
-The `region` key set here is the **persistent default** for regional commands. A single invocation can override it with the command-level `--region`/`-r` option (accepted by `abx list`, `abx kill --all`, the template control-plane commands, and `abx mcp deploy`). Resolution priority: command `--region` > `ALIBABA_CLOUD_REGION_ID` > `abx config set region` > `cn-hangzhou`.
+The `region` key is the persistent default. Override it for one invocation with `abx --opt region=cn-shanghai COMMAND`. Named deployments retain their saved target and reject conflicting overrides.
 
 ### Keys Configurable via abx config
 
@@ -175,8 +175,8 @@ The `region` key set here is the **persistent default** for regional commands. A
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API base URL (default: DashScope compatible-mode) |
 | `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (official control-plane credential) |
 | `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (official control-plane credential) |
-| `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template install` / `abx template deploy` (set it with `abx config init --build`) |
-| `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`abx template install` / `abx template search`; stored in `~/.abx/.env`, shown masked) |
+| `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template init --from` / `abx deploy` (set it with `abx config init --build`) |
+| `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`abx template init --from` / `abx template list`; stored in `~/.abx/.env`, shown masked) |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Team id. Optional. Not required. |
 
 ### Guided Configuration (abx config init)
@@ -189,7 +189,7 @@ The interactive wizard prompts for: the sandbox API key, the default region, the
 
 ### AK/SK control-plane configuration
 
-When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for native template/image/ACR operations and, after explicit confirmation or --ci, Express managed API-key preparation. See [feature permissions](../guide/permissions.md).
+When `access_key_id` and `access_key_secret` are set via `abx config set`, they are stored in `~/.abx/.env` as `ALICLOUD_ACCESS_KEY_ID` and `ALICLOUD_ACCESS_KEY_SECRET`. Used for native template/image/ACR operations and, after explicit confirmation for `provider run api-key.prepare --yes`, Express managed API-key preparation. See [feature permissions](../guide/permissions.md).
 
 Configuration listing, get output and set acknowledgements mask the AccessKey ID and secret, including JSON and provider-qualified commands. Stored values remain complete for authentication.
 

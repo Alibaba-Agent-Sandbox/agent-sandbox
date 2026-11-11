@@ -2,9 +2,8 @@
 
 Managed applications expose one Gateway endpoint. Sessions create isolated Sandbox compute as needed;
 clients keep using the Gateway URL across sessions and application updates. This workflow supports
-the `spec_version: 6`, `managed-bridge-v1` template profile on Alibaba Cloud Express and Function Compute.
-Install npm CLI 0.5.10 with `npm install --global @agent-sandbox/cli@0.5.10`.
-CLI 0.5.8 does not include these commands.
+the explicit `application.deployment.profile: fc-managed-agents` profile on Alibaba Cloud Express and Function Compute.
+Use the [current source CLI](../../../README.md#installation); published 0.5.10 uses the previous command layout.
 Node.js 20+, Docker, an ACR namespace and the template's Python smoke dependencies are required on the deployment host.
 
 Start from the [Agents API template](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api).
@@ -28,7 +27,7 @@ Fill the example's environment references before deploying. The bindings have se
 | State | An existing PostgreSQL database URL reachable by all three FC functions. Prepare a dedicated database and its access rules with your database administrator. |
 | Sandbox access | Your account/region's Sandbox API key, explicit API URL, data domain and region. This key creates and cleans up agent compute. |
 | Model | A model provider key, HTTPS base URL, explicit model ID and supported adapter. Only the Worker resolves this binding for the guest's declared model environment. |
-| Client authentication | `{ "generate": true }` creates the default business key on first apply; alternatively supply token SHA-256 digests, owners and scopes. External clients send the raw business key as a Bearer token. |
+| Client authentication | `{ "generate": true }` creates the default business key on first deployment; alternatively supply token SHA-256 digests, owners and scopes. External clients send the raw business key as a Bearer token. |
 | Internal authentication | `{ "generate": true, "roleArn": { "env": "AGENTS_FC_ROLE_ARN" } }` creates the private control key. The existing execution role must trust FC and permit invocation of this application's Worker/Dispatcher. This differs from the deployment host's AccessKey. |
 | Ingress | `function-alias` with `aliasName` and explicit `allowTestDomain: true`, or an existing exclusive root HTTPS `custom-domain` binding with `domainName`, `protocol: HTTPS` and `aliasName`. |
 
@@ -53,7 +52,7 @@ share a 4 KiB UTF-8 budget, including candidate authentication and the persisten
 oversized configurations fail before FC functions are created. Large CA chains still require
 acceptance by the selected FC container command limits.
 
-The default business/control keys are generated only by initial `apply`, saved under the current user's
+The default business/control keys are generated only by initial `deploy`, saved under the current user's
 private application credential store, and reused by later commands. Output gives `credentials_file`;
 an external client can read its `businessKey` privately. Back up this file securely. Explicit binding values
 remain temporary inputs and are not copied into the store. Keep the internal key unchanged while retained
@@ -63,81 +62,58 @@ Set the template's `application.deployment.accessRef` to your named Serverless D
 `abx` for configured Express AccessKeys, or `env` for explicit cloud credential environment variables.
 The selected identity is verified with STS before changes. The existing Express template preparation adapter
 requires deployment AccessKeys; STS-only template preparation is not supported in this profile.
-No management API key is automatically created or renewed by `app`.
+No management API key is automatically created or renewed by `deploy`.
 
-Build and review before applying:
-
-```bash
-abx app build template.yaml --out .abx/build.json --yes
-abx app plan template.yaml --build-receipt .abx/build.json --out .abx/plan.json
-abx app apply .abx/plan.json --bindings .abx/bindings.json --yes
-```
-
-An unused, confirmed Server build can be removed with `abx app clean-build .abx/build.json --yes`.
-Once apply records its use, clean it through the application's retire/destroy lifecycle. A failed push
-retains its random tag and journal; an unknown remote result needs native inspection before cleanup.
-
-`build` prepares a digest-pinned Server image and exact FC component dependencies. `plan` reads local
-inputs and generates no credentials or cloud resources. Plans expire after 24 hours; changing source,
-tools or the prior receipt requires a new plan. Put generated files in `.abx/`, which the build excludes.
-An application apply prepares a uniquely named Sandbox Template, deploys the three functions, runs the
-template's candidate smoke and publishes the stable Gateway alias. The receipt reports `endpoint` and `receipt_file`.
-Configure external clients with this endpoint and the business key. FC built-in domains are for testing;
-use an existing HTTPS custom domain for production.
-
-Candidate and stable Gateway health checks wait up to 30 seconds for the planned revision.
-An HTTP 200 response with a different or missing revision remains unready during this wait.
-Publication requires the exact planned revision, followed by a separate credential rejection check.
-A readiness timeout retains the receipt for observation and cleanup; `reconcile` does not resume publication.
-
-For an update, build again and give `plan` the last ready receipt:
+Preview and deploy under an application name:
 
 ```bash
-abx app plan template.yaml --build-receipt .abx/build.json \
-  --previous-receipt .abx/previous.receipt.json --out .abx/update.json
-abx app apply .abx/update.json --bindings .abx/bindings.json --yes
-abx app status .abx/current.receipt.json --bindings .abx/bindings.json
+abx deploy . --name my-agents --plan
+abx deploy . --name my-agents --bindings .abx/bindings.json --yes
+abx status my-agents
 ```
 
-Use the actual receipt paths returned by apply. Existing Sessions retain their original Worker and
-Sandbox Template; new Sessions use the current revision. Serialize deployments from multiple hosts
-in your deployment system. The CLI excludes simultaneous local deployments; FC alias updates do not
-provide a distributed compare-and-swap guarantee.
+`--plan` checks the local template and summarizes resources without building or making cloud changes.
+`deploy` builds the Server image, prepares its Sandbox Template, deploys the three functions, validates
+the candidate and publishes the Gateway. It returns `endpoint`, `credentials_file` and `receipt_file`.
+External clients use the endpoint and business key. FC built-in domains are for testing; production
+uses an existing HTTPS custom domain.
 
-`status` inspects recorded native resources; with bindings it also reads durable activity. `reconcile`
-refreshes observation after an interrupted operation without repeating resource creation or publishing.
-Unknown outcomes retain their recovery identities. A stopped local wait does not prove cloud work stopped.
+To update, edit the project and run the same `deploy` command with the same name. Existing Sessions
+retain their Worker and Sandbox Template; new Sessions use the current revision. Keep local deployment
+records and receipts available for cleanup. Deployments from multiple hosts must be serialized by your
+pipeline; the local lock does not coordinate independent hosts.
 
 ```bash
-abx app reconcile .abx/current.receipt.json --bindings .abx/bindings.json --yes
-abx app retire .abx/current.receipt.json --revision <old-revision> \
-  --bindings .abx/bindings.json --yes
-abx app plan --destroy .abx/current.receipt.json --out .abx/destroy.json
-abx app destroy .abx/destroy.json --bindings .abx/bindings.json --yes
+abx status my-agents --revisions
+abx recover my-agents
+abx delete my-agents --revision OLD_REVISION --yes
+abx delete my-agents --yes
 ```
 
-Retire stops the old revision from accepting new Sessions or inputs, closes its remaining reusable
-Sessions and deletes its resources only after cleanup is confirmed. Destroy fences new inputs and
-drains all recorded revisions before deleting owned resources, including resources retained after
-an unsuccessful update. Keep the previous receipts available: they identify retained resources and
-their control functions. If drain or deletion is incomplete, retain the receipts, observe progress,
-then retry retirement or create a fresh destruction plan.
-The database, model account, execution role and custom domain are supplied resources and remain yours.
-Destruction preserves the database's admission fence and history. To create another application after
-complete destruction, choose a new template application name or a fresh empty state database. Deploy
-normal revisions with the previous receipt; apply never reopens a drained ledger automatically.
-Owned Server tags are removed after their recorded application references are gone. Supplied
-`serverImage` digests are borrowed and preserved. They are sent unchanged to FC; if that registry
-path rejects digest input, use the managed Server build recipe. That recipe sends its unique owned
-tag and verifies FC's resolved digest against the frozen plan. The CLI waits for image preparation
-and completed updates before invoking or publishing functions; failures retain recovery receipts.
-Sandbox build images retain manual cleanup entries;
-remove those exact images with ACR tooling after no retained template or function references them.
+`recover` observes interrupted operations without repeating creation or publication. A stopped local
+wait does not prove cloud work stopped. Retiring a revision drains it before removing its resources;
+deleting the application drains all recorded revisions. If cleanup is incomplete, keep the records,
+inspect with `recover`, resolve the reported uncertainty, and retry deletion.
+An existing receipt can be imported with `abx recover my-agents --receipt PATH`.
 
-The final temporary-credential check retries only HTTP 502/503/504 within 30 seconds and four attempts.
-An accepted credential or any other failure stops the operation; retain the receipt and inspect it instead of replaying apply.
+`abx logs my-agents --role gateway` reads an existing FC log store. The default recipe does not
+configure FC logging; configure the function's `logConfig` and required logging access before using
+this command. Continuous application log following is not supported.
 
-Before the final credential check, the stable health endpoint must return the new deployment revision.
-Health-only HTTP 404/502/503/504 responses may wait within 30 seconds; authentication 404 never counts as rejection.
+Template authors can build once for several deployments:
 
-Candidate and stable HTTP routes must each serve the planned revision before publication completes. Health checks wait up to30 seconds for404/502/503/504; a wrong revision or other error stops deployment. Failed apply operations are inspected rather than replayed.
+```bash
+abx template build . --out .abx/build.json --yes
+abx deploy . --build .abx/build.json --name my-agents --bindings .abx/bindings.json --yes
+# After every application using this build has been deleted:
+abx template build --clean .abx/build.json --yes
+```
+
+An explicitly supplied build belongs to its author and remains after application deletion.
+The CLI refuses to clean it while a deployment still uses it. An automatic deployment build is owned
+by that application's lifecycle. Images listed for manual cleanup must be removed with ACR tooling
+only after no retained template or function references them.
+
+The database, model account, execution role and supplied custom domain remain yours. Deletion retains
+the database history and admission fence. To create another application after complete deletion,
+choose a new application name or a fresh empty state database. `deploy` never reopens a drained ledger.

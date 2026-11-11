@@ -1,0 +1,7 @@
+Usage: abx sandbox pause [options] <SANDBOX_ID>
+
+Pause a sandbox while retaining its state.
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

@@ -1,3 +1,5 @@
+import { captureDeploymentTarget } from "./deployment_store.js";
+import { digest } from "../application/config.js";
 import { withGuidedConfiguration, canGuideConfiguration } from "./config_guidance.js";
 import { confirm } from "./prompts.js";
 /** Download, ask the selected adapter to prepare, then create using its returned reference. */
@@ -19,8 +21,6 @@ import { loadYaml, isMapping } from "../utils/yaml_io.js";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Context } from "./kit.js";
-import { getFormatter } from "./formatters.js";
-import { getOutput } from "./output.js";
 import { Abort, UsageError } from "./errors.js";
 import { providerCliExtension } from "./provider_extensions.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
@@ -80,7 +80,7 @@ export interface TemplateLaunchResult {
 export async function executeTemplateLaunch(
   ctx: Context,
   params: Record<string, unknown>,
-  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout"> & { afterCreate?: (sandbox: Sandbox) => Promise<void> } = {},
+  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { approved?: boolean; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void } = {},
 ): Promise<TemplateLaunchResult> {
   const provider = getProvider(resolveProviderId(cliProvider()));
   const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
@@ -90,9 +90,9 @@ export async function executeTemplateLaunch(
   const exists = fs.existsSync(initialDirectory);
   const isLocal = exists && fs.statSync(initialDirectory).isDirectory();
   if (exists && !isLocal) throw new UsageError("Template project source is not a directory.");
-  if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template scaffold DIRECTORY' or choose an existing template source.");
+  if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template init DIRECTORY' or choose an existing template source.");
   const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params) : null;
-  if (!params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
+  if (!creationOptions.approved && !params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
   return withGuidedConfiguration(ctx, { operation: "Prepare template and create sandbox", provider: provider.id, yes: Boolean(params["yes"]),
     requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
   let directory = initialDirectory;
@@ -105,7 +105,8 @@ export async function executeTemplateLaunch(
   const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest);
   directory = project.directory;
   const { template, options, plan, input, sourceMetadata, manifestDigest } = project;
-  return withTemplateEnvironment(ctx, template.env, creationOptions.envs ?? {}, Boolean(params["yes"]), async environment => {
+  const withEnvironment = (callback: (environment: Record<string, string>) => Promise<TemplateLaunchResult>): Promise<TemplateLaunchResult> => creationOptions.prepareOnly ? callback({}) : withTemplateEnvironment(ctx, template.env, creationOptions.envs ?? {}, Boolean(params["yes"]), callback);
+  return withEnvironment(async environment => {
   const token = environment["ABX_SERVER_TOKEN"] || applicationToken();
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
@@ -116,7 +117,11 @@ export async function executeTemplateLaunch(
   const pluginRoot = (provider as Provider & {pluginRoot?: string}).pluginRoot ??
     (provider.id === "alicloud-express" && !builtinExecutable ? fileURLToPath(new URL("../providers/", import.meta.url)) : undefined);
   const providerContentIdentity = builtinExecutable ? executableContentDigest(builtinExecutable) : pluginRoot ? providerContentDigest(pluginRoot) : null;
+  const target = captureDeploymentTarget(provider.id, config);
   const providerSnapshotDigest = builtinExecutable ? providerContentIdentity : pluginRoot ? digestDir(pluginRoot) : null;
+  const builtIdentity = { ...target, provider_digest: providerContentIdentity };
+  if (creationOptions.prepared && (!creationOptions.builtTarget || digest(creationOptions.builtTarget) !== digest(builtIdentity))) throw new ProviderConfigError("Build target or Provider implementation differs from the current resolved configuration; rebuild for this target.");
+  creationOptions.onTarget?.(target);
   const verifyProviderSnapshot = (): void => {
     const current = builtinExecutable ? executableContentDigest(builtinExecutable) : pluginRoot ? digestDir(pluginRoot) : null;
     if (current !== providerSnapshotDigest) throw new ProviderConfigError("Provider code changed after planning; compute a new execution snapshot.");
@@ -138,19 +143,23 @@ export async function executeTemplateLaunch(
   let manager: ProviderTemplateManager | undefined;
   let prepared: PreparedTemplate;
   try {
+    await journal.initialize();
+    creationOptions.onJournal?.(journal);
     await snapshot?.verify();
     verifyProviderSnapshot();
-    if (input === "image" || input === "managed") {
+    if (creationOptions.prepared) {
+      prepared = { ...structuredClone(creationOptions.prepared), owned_resources: [] };
+    } else if (input === "image" || input === "managed") {
       const reference = sourceMetadata[input === "image" ? "image" : "template_id"];
       if (typeof reference !== "string" || !reference) throw new ProviderConfigError("Template needs its fixed image or template_id reference.");
       if (input === "image" && !/@sha256:[a-f0-9]{64}$/.test(reference)) throw new ProviderConfigError("Template image requires an immutable image digest.");
-      if (!params["yes"]) await confirm("Create a billable sandbox from this template?", { abort: true, err: true });
+      if (!creationOptions.approved && !params["yes"]) await confirm("Create a billable sandbox from this template?", { abort: true, err: true });
       prepared = { reference, status: "ready" };
     } else {
     const extension = providerCliExtension(provider.id);
-    if (extension?.prepareProject) prepared = await extension.prepareProject(directory, options, ctx);
+    if (extension?.prepareProject) prepared = await extension.prepareProject(directory, options, ctx, creationOptions.approved);
     else {
-      if (!params["yes"]) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
+      if (!creationOptions.approved && !params["yes"]) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
       manager = await provider.buildTemplateManager(config);
       if (!manager.prepareProject) throw new ProviderFeatureNotSupportedError(provider.id, "templates.build");
       prepared = await manager.prepareProject(directory, options);
@@ -183,17 +192,22 @@ export async function executeTemplateLaunch(
   const secrets = [...provider.configFields.filter(field => field.secret).map(field => config.provider_options[field.key]), config.sandbox_api_key].filter((value): value is string => typeof value === "string" && Boolean(value));
   if (prepared?.status !== "ready" || typeof reference !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._:/@-]{0,1023}$/.test(reference) || reference.includes("://") ||
     secrets.some(secret => reference.includes(secret))) throw new ProviderConfigError("Provider preparation returned an invalid ready reference.");
+  const effectiveTarget = captureDeploymentTarget(provider.id, loadLayeredConfig({ provider: provider.id, provider_options: { ...config.provider_options, ...prepared.provider_options }, sandbox_base_url: config.sandbox_base_url, sandbox_domain: config.sandbox_domain }));
+  if (creationOptions.prepared && digest(effectiveTarget) !== digest(target)) throw new ProviderConfigError("Built template attempts to change its frozen deployment target.");
+  creationOptions.onTarget?.(effectiveTarget);
   verifyProviderSnapshot();
+  if (creationOptions.prepareOnly) return { receipt: { kind: "SandboxTemplateBuild", version: 1, provider: provider.id, target: { ...effectiveTarget, provider_digest: providerContentIdentity }, prepared, manifest_digest: `sha256:${manifestDigest}`, journal_id: journal.id, build_profile: options.build_profile?.id ?? null }, creation: {} };
   const createIntent = await journal.intent({ kind: "sandbox", correlation_key: options.alias, cleanup: "sandbox.delete" });
   let sandbox: Sandbox | undefined;
   let knownSandboxId: string | undefined;
   const recordCreated = async (id: string): Promise<void> => {
     knownSandboxId = id;
     await journal.created(createIntent, id);
+    await creationOptions.onCreated?.(id);
   };
   try {
   sandbox = await launchSeams.create({
-    on_created: recordCreated, provider: provider.id, template: reference,
+    lifecycle: creationOptions.lifecycle, on_created: recordCreated, provider: provider.id, template: reference,
     api_key: provider.inherit.has("sandbox_api_key") ? config.sandbox_api_key : undefined,
     api_url: provider.inherit.has("sandbox_base_url") ? config.sandbox_base_url : undefined,
     provider_options: { ...structuredClone(config.provider_options), ...prepared.provider_options },
@@ -260,20 +274,4 @@ export async function executeTemplateLaunch(
   } finally { await sandbox.close(); }
   });
   });
-}
-
-/** Template-command presentation stays separate from the shared launch lifecycle. */
-export async function launchTemplate(ctx: Context, params: Record<string, unknown>): Promise<void> {
-  if (!params["template_ref"]) {
-    if (params["yes"]) throw new UsageError("Supply a template name with --yes. Run 'abx template launch' without --yes in a terminal to browse templates.");
-    const { chooseTemplate } = await import("./setup.js");
-    params = { ...params, template_ref: await chooseTemplate(ctx) };
-  }
-  const result = await executeTemplateLaunch(ctx, params);
-  const fmt = getFormatter(ctx);
-  fmt.printData(result.receipt);
-  if (!fmt.use_json) {
-    const id = String(result.receipt["sandbox_id"]);
-    getOutput(ctx).info(`Sandbox ready. List application commands: abx sandbox command list ${id}\nCall a command: abx run ${id} COMMAND\nDelete this sandbox when finished: abx kill ${id}`);
-  }
 }

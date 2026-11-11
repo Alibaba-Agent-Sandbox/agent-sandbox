@@ -77,7 +77,7 @@ describe("provider management commands", () => {
   });
 
   it("passes parsed input, provider options and region to the common API", async () => {
-    const result = await abx("--json", "provider", "command", "run", "alicloud-express", "volumes.list", "--input", '{"limit":2}', "--opt", "acr_repo=example-repo", "--region", "cn-hangzhou");
+    const result = await abx("--json", "provider", "run", "volumes.list", "--input", '{"limit":2}', "--opt", "acr_repo=example-repo", "--region", "cn-hangzhou");
     expect(result.exit_code, result.output).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({ volumes: [] });
     expect(runProviderCommand).toHaveBeenCalledWith("alicloud-express", "volumes.list", { limit: 2 }, { provider_options: { acr_repo: "example-repo" }, region: "cn-hangzhou" });
@@ -85,13 +85,13 @@ describe("provider management commands", () => {
 
   it("requires --yes for both write and delete before any execution", async () => {
     for (const effect of ["write", "delete"] as const) {
-      vi.mocked(getProviderCommand).mockReturnValue({ ...descriptor, effect });
-      const refused = await abx("provider", "command", "run", "alicloud-express", "volumes.list");
+      vi.mocked(listProviderCommands).mockReturnValue([{ ...descriptor, effect }]);
+      const refused = await abx("provider", "run", "volumes.list");
       expect(refused.exit_code).toBe(2);
       expect(refused.output).toContain("E8012");
       expect(runProviderCommand).not.toHaveBeenCalled();
     }
-    const allowed = await abx("provider", "command", "run", "alicloud-express", "volumes.list", "--yes");
+    const allowed = await abx("provider", "run", "volumes.list", "--yes");
     expect(allowed.exit_code, allowed.output).toBe(0);
     expect(runProviderCommand).toHaveBeenCalledOnce();
   });
@@ -99,7 +99,7 @@ describe("provider management commands", () => {
   it("reads sensitive JSON from a file without printing the input", async () => {
     const filename = path.join(iso.root, "input.json");
     fs.writeFileSync(filename, '{"certificate":"private-certificate-placeholder"}');
-    const result = await abx("provider", "command", "run", "alicloud-express", "volumes.list", "--input-file", filename);
+    const result = await abx("provider", "run", "volumes.list", "--input-file", filename);
     expect(result.exit_code, result.output).toBe(0);
     expect(runProviderCommand).toHaveBeenCalledWith("alicloud-express", "volumes.list", { certificate: "private-certificate-placeholder" }, { provider_options: {} });
     expect(result.output).not.toContain("private-certificate-placeholder");
@@ -107,7 +107,7 @@ describe("provider management commands", () => {
 
   it("rejects malformed JSON, missing files and conflicting input sources without exposing input", async () => {
     for (const args of [["--input", '{"private-certificate-placeholder":'], ["--input-file", path.join(iso.root, "missing.json")], ["--input", "{}", "--input-file", "input.json"]]) {
-      const result = await abx("provider", "command", "run", "alicloud-express", "volumes.list", ...args);
+      const result = await abx("provider", "run", "volumes.list", ...args);
       expect(result.exit_code, result.output).toBe(2);
       expect(result.output).toContain("E8002");
       expect(result.output).not.toContain("private-certificate-placeholder");
@@ -122,7 +122,7 @@ describe("provider management commands", () => {
     const largeInline = '{"value":"' + "字".repeat(400_000) + '"}';
     expect(largeInline.length).toBeLessThan(1024 * 1024);
     for (const args of [["--input-file", filename], ["--input", largeInline]]) {
-      const result = await abx("provider", "command", "run", "alicloud-express", "volumes.list", ...args);
+      const result = await abx("provider", "run", "volumes.list", ...args);
       expect(result.exit_code, result.output).toBe(2);
       expect(result.output).toContain("E8002");
       expect(result.output).toContain("1 MiB");
@@ -135,27 +135,27 @@ describe("provider management commands", () => {
     const filename = path.join(iso.root, "maximum.json");
     fs.writeFileSync(filename, input);
     for (const args of [["--input", input], ["--input-file", filename]]) {
-      const result = await abx("provider", "command", "run", "alicloud-express", "volumes.list", ...args);
+      const result = await abx("provider", "run", "volumes.list", ...args);
       expect(result.exit_code, result.output).toBe(0);
     }
     expect(runProviderCommand).toHaveBeenCalledTimes(2);
-    const directory = await abx("provider", "command", "run", "alicloud-express", "volumes.list", "--input-file", iso.root);
+    const directory = await abx("provider", "run", "volumes.list", "--input-file", iso.root);
     expect(directory.exit_code, directory.output).toBe(2);
     expect(directory.output).toContain("regular file");
     expect(runProviderCommand).toHaveBeenCalledTimes(2);
   });
 
   it("rejects conflicting explicit provider selection and malformed options", async () => {
-    const mismatch = await abx("--provider", "other", "provider", "command", "run", "alicloud-express", "volumes.list");
-    expect(mismatch.exit_code).toBe(2);
-    expect(mismatch.output).toContain("E8030");
-    const invalid = await abx("provider", "command", "run", "alicloud-express", "volumes.list", "--opt", "invalid");
+    const mismatch = await abx("--provider", "other", "provider", "run", "volumes.list");
+    expect(mismatch.exit_code).toBe(4);
+    expect(mismatch.output).toContain("other");
+    const invalid = await abx("provider", "run", "volumes.list", "--opt", "invalid");
     expect(invalid.exit_code).toBe(2);
     expect(runProviderCommand).not.toHaveBeenCalled();
   });
 
   it("refuses secret provider options on argv without echoing the value", async () => {
-    const result = await abx("provider", "command", "run", "alicloud-express", "volumes.list", "--opt", "access_key_secret=private-key-placeholder");
+    const result = await abx("provider", "run", "volumes.list", "--opt", "access_key_secret=private-key-placeholder");
     expect(result.exit_code, result.output).toBe(2);
     expect(result.output).toContain("E8002");
     expect(result.output).not.toContain("private-key-placeholder");
@@ -163,8 +163,8 @@ describe("provider management commands", () => {
   });
 
   it("preserves provider capability errors", async () => {
-    vi.mocked(getProviderCommand).mockImplementation(() => { throw new ProviderFeatureNotSupportedError("alicloud-express", "commands"); });
-    const result = await abx("provider", "command", "run", "alicloud-express", "volumes.list");
+    vi.mocked(listProviderCommands).mockImplementation(() => { throw new ProviderFeatureNotSupportedError("alicloud-express", "commands"); });
+    const result = await abx("provider", "run", "volumes.list");
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("E8004");
     expect(runProviderCommand).not.toHaveBeenCalled();

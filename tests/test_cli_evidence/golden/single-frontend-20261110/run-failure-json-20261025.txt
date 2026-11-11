@@ -1,0 +1,6 @@
+{
+  "status": "error",
+  "message": "RuntimeError: fixture failure",
+  "code": "E3000"
+}
+[exit_code:1]

@@ -15,26 +15,19 @@
 
 ## 安装
 
-macOS 和 Linux：
+以下命令需要当前源码 CLI；已发布的 0.5.10 使用原命令布局。使用 Node.js 20+ 从源码安装：
 
 ```bash
-curl -fsSL https://www.agent-sandbox.cn/install.sh | sh
+git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
+cd agent-sandbox
+npm ci
+npm run build
+npm link
+cd ..
+abx --help
 ```
 
-Windows PowerShell：
-
-```powershell
-irm https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.ps1 | iex
-```
-
-或使用 npm 安装（需要 Node.js 20+）：
-
-```bash
-npm install -g @agent-sandbox/cli --registry=https://registry.npmjs.org
-abx --version
-```
-
-按安装器提示设置 PATH；Windows 安装后需新开终端。支持平台、校验和、版本选择及源码安装见[二进制安装指南](docs/zh/guide/binary-installation.md)。当前应用模板需要 CLI 0.5.8 或更新版本。
+已发布的 0.5.10 仍可通过 `npm install -g @agent-sandbox/cli@0.5.10` 安装，其命令布局以该版本的 `--help` 为准。
 
 ## 快速开始
 
@@ -42,21 +35,21 @@ abx --version
 
 ```bash
 abx config init
-abx create base --detach
+abx deploy --template-id base --name demo --yes
 ```
 
 极速版需要对应账号和地域的 Sandbox API Key。[凭据与权限指南](docs/zh/guide/permissions.md)说明凭据来源、所需授权，以及可选的 AccessKey 准备方式。交互输入的配置保存在本机，后续命令复用。
 
-将下面的 `<sandbox-id>` 替换为创建时返回的 ID：
+后续操作使用部署名称：
 
 ```bash
-abx exec <sandbox-id> echo hello
-abx info <sandbox-id>
-abx connect <sandbox-id>
-abx kill <sandbox-id>
+abx sandbox exec demo -- echo hello
+abx status demo
+abx sandbox connect demo
+abx delete demo --yes
 ```
 
-`connect` 打开远程终端，退出终端后沙箱仍在运行；`kill` 删除沙箱。文件操作、后台进程等用法见 [CLI 教程](docs/zh/guide/cli-tutorial.md)。
+`sandbox connect` 打开远程终端，退出终端后沙箱仍在运行；`delete` 删除沙箱。文件操作、后台进程等用法见 [CLI 教程](docs/zh/guide/cli-tutorial.md)。
 
 ## 启动应用模板
 
@@ -66,13 +59,13 @@ abx kill <sandbox-id>
 模板封装浏览器自动化、编码 Agent、Web 服务等工具。从[模板目录](https://registry.agent-sandbox.cn/templates/)选择模板，按其说明准备配置：
 
 ```bash
-abx template search python
-abx --provider alicloud-express template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello
+abx template list python
+abx deploy python-hello --name hello --yes
 ```
 
 源码模板需要对应提供方的构建环境。启动命令会运行模板声明的服务，并返回沙箱 ID。CLI 自动生成并在本机保存默认应用认证令牌；使用模型的模板还需配置相应模型凭据。
 
-结束后执行 `abx kill <sandbox-id>`。构建的镜像或模板可能保留以便复用，配置与资源清理见[模板使用指南](docs/zh/guide/using-templates.md)。
+结束后执行 `abx delete hello --yes`，清理拥有的沙箱和模板；借用的构建产物及需手动清理的镜像保留。配置与资源清理见[模板使用指南](docs/zh/guide/using-templates.md)。
 
 ## 接入 AI 工具
 

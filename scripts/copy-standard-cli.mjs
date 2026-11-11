@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 const destination = new URL("../dist/standard_cli/", import.meta.url);
 mkdirSync(destination, { recursive: true });
-for (const name of ["runtime.mjs", "THIRD_PARTY_NOTICES.txt", "runtime.mjs.LEGAL.txt", "templates"]) {
+for (const name of ["runtime.mjs", "THIRD_PARTY_NOTICES.txt", "runtime.mjs.LEGAL.txt"]) {
   cpSync(new URL(`../src/standard_cli/${name}`, import.meta.url), fileURLToPath(new URL(name, destination)), { recursive: true });
 }
 
@@ -12,4 +12,11 @@ const workflowDestination = new URL("../dist/template/", import.meta.url);
 mkdirSync(workflowDestination, { recursive: true });
 for (const name of ["launch_plan.mjs", "launch-v1.json", "workflow_plan.mjs", "workflow-v1.json", "verification-profiles.json"]) {
   cpSync(new URL(`../src/template/${name}`, import.meta.url), fileURLToPath(new URL(name, workflowDestination)));
+}
+
+// The deployment profile is a shared source contract consumed at runtime.
+const profileDestination = new URL("../dist/application/profile/", import.meta.url);
+mkdirSync(profileDestination, { recursive: true });
+for (const name of ["normalize.mjs", "profiles.json"]) {
+  cpSync(new URL(`../src/application/profile/${name}`, import.meta.url), fileURLToPath(new URL(name, profileDestination)));
 }

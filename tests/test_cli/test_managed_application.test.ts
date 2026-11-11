@@ -826,3 +826,28 @@ describe("owned Server image lifecycle", () => {
     expect(JSON.parse(fs.readFileSync(value.output, "utf8")).usedBy).toHaveLength(1);
   });
 });
+
+describe("deployment identity and reusable build ownership", () => {
+  it("deploys the same unchanged template under distinct identities and bounded cloud names", () => {
+    const value=fixture(), before=sourceDigest(value.directory);
+    const left=createPlan(value.file,value.buildFile,undefined,"shared-prefix-abcdefghijklmnopqrstuvwxyz-a",true);
+    const right=createPlan(value.file,value.buildFile,undefined,"shared-prefix-abcdefghijklmnopqrstuvwxyz-b",true);
+    expect(left.applicationId).not.toBe(right.applicationId); expect(left.identities.gateway).not.toBe(right.identities.gateway);
+    expect(left.template.name).toBe(right.template.name);expect(left.sourceDigest).toBe(right.sourceDigest);expect(sourceDigest(value.directory)).toBe(before);
+    for(const name of Object.values(left.identities)) expect(name.length).toBeLessThanOrEqual(64);
+  });
+  it("keeps borrowed server images out of application deletion and releases the author build after destruction", async () => {
+    const value=fixture(),build=JSON.parse(fs.readFileSync(value.buildFile,"utf8"));
+    build.ownedServerImage={accountId:"123",region:"cn-hangzhou",namespace:"example",repository:"agents-server",tag:"build-test",localTag:"registry.example.test/agents:build-test",state:"confirmed",journalId:"owned-build",intentId:"image"};writeJson(value.buildFile,build);
+    const plan=createPlan(value.file,value.buildFile,undefined,"borrower",true),external=services(plan);
+    expect(plan.ownedServerImage).toBeUndefined();external.deps.removeImage=vi.fn();
+    await applyPlan(plan,external.deps,value.receiptFile);
+    expect(JSON.parse(fs.readFileSync(value.buildFile,"utf8")).usedBy).toEqual([{applicationId:"borrower",revision:plan.revision}]);
+    await destroyPlan(createDestroyPlan(value.receiptFile),external.deps);
+    expect(external.deps.removeImage).not.toHaveBeenCalled();expect(JSON.parse(fs.readFileSync(value.buildFile,"utf8")).usedBy).toEqual([]);
+  });
+  it("does not borrow a private build already owned by a deployment lifecycle", () => {
+    const value=fixture(),build=JSON.parse(fs.readFileSync(value.buildFile,"utf8"));build.lifecycleOwner="first";writeJson(value.buildFile,build);
+    expect(()=>createPlan(value.file,value.buildFile,undefined,"second",true)).toThrow(/belongs to a deployment/);
+  });
+});

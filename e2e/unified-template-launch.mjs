@@ -33,14 +33,14 @@ try {
       provides: {first: {protocol: "http", version: 1, port: 9101, operations: []}, second: {protocol: "http", version: 1, port: 9102, operations: []}},
     };
     writeFileSync(join(directory, "template.yaml"), JSON.stringify(manifest));
-    const launched = await run(["--provider", "alicloud-express", "--json", "template", "launch", directory, "--yes", "--timeout", "600"]);
+    const launched = await run(["--provider", "alicloud-express", "--json", "deploy", directory, "--yes", "--build-timeout", "600"]);
     if (launched.code !== 0) throw new Error(`${mode} launch failed (exit ${launched.code}); raw response withheld`);
     let result;
     try {result = JSON.parse(launched.stdout);} catch {throw new Error(`${mode} launch returned invalid JSON; raw response withheld`);}
     assert.ok(result.sandbox_id, "launch must return its sandbox ID");
     assert.deepEqual(Object.keys(result.services), Object.keys(manifest.provides));
     const command = mode === "source" ? "test $(cat /tmp/abx-whole-template-marker) = whole-template-ready" : "printf whole-template-ready";
-    const execution = await run(["--native", "--provider", "alicloud-express", "--json", "exec", result.sandbox_id, command]);
+    const execution = await run(["--provider", "alicloud-express", "--json", "sandbox", "exec", result.sandbox_id, command]);
     if (execution.code !== 0) throw new Error(`${mode} remote command failed: ${mask(execution.stderr || execution.stdout).replace(/https?:\/\/[^\s"<>]+/g, "[URL]").slice(0, 1200)}`);
     console.log(`${mode}: launch, complete service map and remote execution PASS`);
   }

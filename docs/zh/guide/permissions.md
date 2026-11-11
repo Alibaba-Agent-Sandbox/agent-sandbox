@@ -38,11 +38,11 @@ abx config set access_key_id      # 隐藏输入
 abx config set access_key_secret  # 隐藏输入
 abx config set region cn-hangzhou
 abx config set team_id <TEAM_ID>  # 可选；省略使用接口定义的默认 Team
-abx sandbox list                 # 无有效管理 Key 时，在终端请求确认
+abx list                 # 无有效管理 Key 时，在终端请求确认
 # CI 中明确授权本次凭据准备；仍受上述 RAM 权限约束：
 abx --ci sandbox list --format json
 # 单独准备，--yes 是对这次显式写操作的确认：
-abx provider command run alicloud-express api-key.prepare --yes
+abx --provider alicloud-express provider run api-key.prepare --yes
 ```
 
 普通管道、`CI=true`、JSON 输出和其他操作的 `--yes` 不等于允许隐式创建凭据。SDK、MCP 和本机引擎不会弹确认框，也不会因为持有 AK/SK 就静默创建；先通过上述 CLI 显式准备，或使用 Python 的 `prepare_api_key(confirm=True)`。`api-key.resolve` 只读解析；`api-key.prepare` 是需要确认的写操作。`--ci` 不会自动确认其他 Provider 的任意写操作。
@@ -55,7 +55,7 @@ abx provider command run alicloud-express api-key.prepare --yes
 |---|---|---|
 | `team.list`；原生模板流程未显式指定 Team 时的自动查询 | `sandbox:ListTeams` | `acs:sandbox:<region>:<account-id>:teams/*`，不是单个 Team ARN |
 | `team.get` / `team.create` / `team.update` / `team.delete` | 分别为 `sandbox:GetTeam` / `CreateTeam` / `UpdateTeam` / `DeleteTeam`（每项都带 `sandbox:` 前缀） | 查询/更新/删除用 `acs:sandbox:<region>:<account-id>:teams/<team-id>`；创建用 `acs:sandbox:<region>:<account-id>:teams/*`；变更资源组检查源/目标组 |
-| `--native template list` / `template info` | 分别为 `sandbox:ListTemplates` / `sandbox:GetTemplate` | 目标 Team 的 `templates/*` 或具体 Template；没有指定 Team 时另需 `ListTeams` |
+| `provider run template.list` / `provider run template.get` | 分别为 `sandbox:ListTemplates` / `sandbox:GetTemplate` | 目标 Team 的 `templates/*` 或具体 Template；没有指定 Team 时另需 `ListTeams` |
 | `template from-image`、平台步骤构建、`template deploy` 的注册和状态等待 | `sandbox:CreateTemplate`、`sandbox:GetTemplate`；未指定 Team 时另需 `sandbox:ListTeams` | 目标 Team 的 `templates/*`；查询可限具体 Template |
 | 原生模板更新／删除 | `sandbox:UpdateTemplate` / `sandbox:DeleteTemplate` | 对应 Template ARN；构建/注册权限不包含删除权限 |
 | `api-key.list` / `api-key.get` | `sandbox:ListApiKeys` / `sandbox:DescribeApiKey` | 目标 Team 的 `apikeys/*` |

@@ -32,7 +32,7 @@ const save = () => writeFileSync(output, mask(JSON.stringify(report, null, 2)) +
 const check = (name, passed, detail = {}) => { report.checks.push({ name, passed, ...detail }); save(); assert.ok(passed, name); };
 const request = async (operation, write = false) => {
   const result = await runBinary({ bin: parseBin(process.env.ABX_BIN || `${process.execPath} ${resolve("dist/bin/abx.js")}`),
-    argv: ["--json", "provider", "command", "run", "alicloud-express", operation, "--input-file", input, ...(write ? ["--yes"] : [])],
+    argv: ["--json", "--provider", "alicloud-express", "provider", "run", operation, "--input-file", input, ...(write ? ["--yes"] : [])],
     env: { ...process.env, ...credentials, ABX_PROVIDER_UPDATE_CHECK: "0" }, cwd: root, timeoutMs: 90_000 });
   let value; try { value = JSON.parse(result.stdout); } catch { throw new Error(`Invalid JSON from ${operation} (exit ${result.code}); raw output withheld`); }
   return { ...result, value };

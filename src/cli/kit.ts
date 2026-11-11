@@ -77,6 +77,8 @@ export interface LazyEntry {
 }
 
 export interface CommandAttrs {
+  /** Stop parsing local options at the first positional argument (remote exec argv). */
+  passThroughOptions?: boolean;
   help?: string | (() => string);
   /** Additional help evaluated only when help is rendered, never while parsing an action. */
   helpFooter?: () => string;
@@ -89,6 +91,7 @@ export interface CommandAttrs {
 }
 
 export class Command {
+  readonly passThroughOptions: boolean;
   readonly help: string;
   readonly helpFooter: (() => string) | undefined;
   readonly params: readonly Param[];
@@ -104,6 +107,7 @@ export class Command {
     attrs: CommandAttrs = {},
     isGroup = false,
   ) {
+    this.passThroughOptions = attrs.passThroughOptions ?? false;
     this.help = typeof attrs.help === "function" ? "" : attrs.help ?? "";
     if (typeof attrs.help === "function") Object.defineProperty(this, "help", { get: attrs.help });
     this.helpFooter = attrs.helpFooter;
@@ -468,6 +472,7 @@ function configure(cmd: CommanderCommand, spec: Command): void {
       getOutHelpWidth: terminalWidth,
       getErrHelpWidth: terminalWidth,
     });
+  if (spec.passThroughOptions) cmd.passThroughOptions();
   if (spec.help) cmd.description(cleanHelp(spec.help));
   if (spec.helpFooter) cmd.addHelpText("after", () => spec.helpFooter!());
 }
@@ -545,7 +550,7 @@ function rootHint(word: string, names: string[]): string {
   const candidates = closeMatches(word, names, 3, 0.6);
   return candidates.length
     ? ` Did you mean ${candidates.map((c) => `'${c}'`).join(", ")}?`
-    : " No similar command. See 'abx --help' for the command list (templates: 'abx template scaffold|install'; named commands in a sandbox: 'abx run SANDBOX NAME').";
+    : " No similar command. See 'abx --help' for the command list (templates: 'abx template init|build|publish'; named commands in a sandbox: 'abx sandbox command run SANDBOX NAME').";
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

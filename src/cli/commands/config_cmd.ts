@@ -973,7 +973,7 @@ function _printNoninteractiveSetup(opts: { build: boolean; llm: boolean }, fmt?:
   const provider = registry.getProvider(extras.effectiveProviderId());
   const profile = providerCliExtension(provider.id)?.configuration;
   const lines = ["Non-interactive setup. Run these commands to configure abx:", "",
-    ...(profile?.noninteractiveInit ?? provider.configKeys().map((key) => `  abx provider config ${provider.id} set ${key.key} <${key.env}>`)),
+    ...(profile?.noninteractiveInit ?? provider.configKeys().map((key) => `  abx config set providers.${provider.id}.${key.key} <${key.env}>`)),
   ];
   if (opts.build) lines.push(...(profile?.noninteractiveBuild ?? ["", `  abx provider info ${provider.id}`]));
   if (opts.llm) {
@@ -1143,7 +1143,7 @@ export const init = command("init", {
     const destinations = [...new Set(pending.map(({ field }) => field.env ? configSeams._ENV_FILE : configSeams._CONFIG_FILE))];
     if (!_effectiveValue("server_token")[0]) {
       const location = saveGuidedValue("server_token", randomBytes(32).toString("hex"));
-      echo(`Generated an application access token and saved it in ${location.path}. Template launch and abx run use it automatically.`, { err: true });
+      echo(`Generated an application access token and saved it in ${location.path}. Deployment and abx sandbox command run use it automatically.`, { err: true });
     }
     fmt.printSuccess(`Configuration complete.${destinations.length ? ` Saved to ${destinations.join(" and ")}.` : " Existing values were kept."} Review values and sources with 'abx config list'.`);
     echo("To change a value later: abx config set KEY (omit VALUE for masked secret input).", { err: true });

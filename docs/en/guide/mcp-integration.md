@@ -1,6 +1,6 @@
 # MCP Integration
 
-> Scope: this page describes native provider/MCP configuration and errors. Native configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. The standard Express command entry additionally accepts `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN`, mapped at that entry only, and falls back to project configuration. Standard command flags, terminal environment and error behavior follow the [migration guide](../guide/migrate-from-e2b.md).
+> CLI commands share one command tree. Provider configuration uses `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`. Express also accepts the supported E2B configuration aliases; see the [migration guide](migrate-from-e2b.md).
 
 Agent Sandbox provides an MCP (Model Context Protocol) Server, enabling AI IDEs and tools to operate sandboxes directly.
 
@@ -150,7 +150,7 @@ The three entry points use different credentials:
 |-------|----------------------|------------------|
 | `abx mcp start` (STDIO) | No Bearer token. The IDE starts a local process; it does not listen on the network | Sandbox calls use `ABX_SANDBOX_API_KEY` / `abx config set sandbox_api_key` |
 | `abx mcp start --http` | Bearer token. Loopback may omit it (the process warns). A non-loopback `--host` requires a non-empty `--auth-token` | `--auth-token` or `ABX_MCP_AUTH_TOKEN` |
-| Remote function on Alibaba Cloud FC | Bearer token is required. The artifact `app.py` refuses to start when the token is empty, so a remote process cannot boot with authentication disabled | `abx mcp deploy --generate-token` writes `ABX_MCP_AUTH_TOKEN` into the function environment. The FC HTTP trigger uses `anonymous` so an MCP client does not need an Alibaba Cloud signature; the application Bearer token is the check. `GET /health` returns status and protocol only, with no token check and no secrets |
+| Deployed MCP template | Bearer token is required; app.py refuses to start without it | Defaults to CLI-managed ABX_SERVER_TOKEN; override with ABX_MCP_AUTH_TOKEN. Provider endpoint authentication remains separate. GET /health is public and contains no secrets |
 
 When `ABX_MCP_AUTH_TOKEN` (or `auth_token`) is set, every `/mcp` request must carry:
 
@@ -160,9 +160,9 @@ Authorization: Bearer <token>
 
 - Loopback with the token unset → authentication disabled, and the process warns
 - Token set but empty → **fails closed**: every request is rejected with 401
-- FC artifact with the token unset or empty → the process refuses to start
+- MCP template with both token inputs unset or empty → the process refuses to start
 
-Tokens are compared with constant-time comparison. Generate one with `openssl rand -base64 32` or let `abx mcp deploy --generate-token` create one.
+Tokens are compared with constant-time comparison. The deployed template reuses the application token generated and saved by the CLI.
 
 ### Client Configuration (Remote)
 
@@ -181,43 +181,35 @@ Tokens are compared with constant-time comparison. Generate one with `openssl ra
 
 ---
 
-## Generate an FC Deployment Artifact
-
-`abx mcp deploy` produces a ready-to-package artifact for Alibaba Cloud Function Compute. It does **not** call the FC API — you create the function manually via the console or SDK.
+## Deploy an editable MCP template
 
 ```bash
-abx mcp deploy \
-  --generate-token \
-  --api-key $ABX_SANDBOX_API_KEY \
-  --output-dir ./mcp-artifact
+abx template init ./my-mcp --template mcp
+abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
 ```
 
-The artifact directory contains:
+The generated source contains template.yaml, Dockerfile, app.py, requirements.txt,
+.dockerignore and README.md. Edit the application and template before deployment.
+It runs the existing authenticated Python MCP app as a single HTTP process in a
+Sandbox. Its dependencies pin the public `agent-sandbox-client[mcp]==0.4.0a6`,
+which includes the matching runtime and ASGI dependencies.
 
-| File | Content |
-|------|---------|
-| `requirements.txt` | public `agent-sandbox-client[mcp]==0.4.0a6` (matching runtime and ASGI dependencies included) |
-| `app.py` | ASGI entry point reading FC env vars (`ABX_MCP_AUTH_TOKEN`, `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ABX_DEFAULT_TEMPLATE`) |
-| `config.yaml` | YAML manifest with function name, region, runtime `python3.10`, handler `app.app`, memory/timeout, env vars, HTTP trigger (POST/GET/DELETE), session affinity |
+The MCP application needs its own Sandbox API key, API URL and domain to create
+session sandboxes. Supply these as runtime inputs for the same account and region;
+image-build credentials do not replace them. No credential is copied into the
+source by `template init`.
 
-Install the Python client distribution `agent-sandbox-client` with its `mcp` extra; the Python import namespace remains `agent_sandbox`. The generated requirements install matching client/server `0.4.0a6` from the official PyPI index.
+The CLI automatically prepares ABX_SERVER_TOKEN and the MCP service uses it as
+its Bearer token unless ABX_MCP_AUTH_TOKEN is explicitly supplied. Configure a
+client with the deployment's mcp service URL plus `/mcp`, `Authorization: Bearer
+<TOKEN>`, and any Provider traffic headers returned for that endpoint. Provider
+traffic authentication and MCP authentication are separate; retain both.
 
-The command prints: manual FC deployment steps (package → create function → create HTTP trigger → enable `Mcp-Session-Id` affinity if supported) and an IDE config template pointing at `<FC_HTTP_TRIGGER_URL>/mcp` with a masked Bearer token.
-
-> **Security**: `config.yaml` contains your API key and Bearer token. Do not commit it to version control.
-
-After deployment, configure clients with the trigger URL:
-
-```json
-{
-  "mcpServers": {
-    "agent-sandbox-remote": {
-      "url": "https://<FC_HTTP_TRIGGER_URL>/mcp",
-      "headers": { "Authorization": "Bearer <BEARER_TOKEN>" }
-    }
-  }
-}
-```
+Reuse the Mcp-Session-Id returned by initialize. DELETE /mcp terminates that session
+and cleans up its owned sandboxes. GET /mcp remains 405; server notification SSE
+is not implemented. Sessions are in memory and do not survive application
+replacement. End sessions before `abx delete my-mcp --yes`. See
+[template authoring](authoring-templates.md) to build or publish the edited source.
 
 ---
 
@@ -283,7 +275,7 @@ curl -s -X DELETE http://localhost:9000/mcp \
 | IDE shows the server as failed / no tools | `abx` not on the IDE's `PATH` | Use an absolute command path in the IDE config, e.g. `/usr/local/bin/abx` (see `npm prefix -g` for the npm global bin directory) |
 | Tools list works but every call errors | API key missing or invalid | `abx mcp status` → `auth_configured`; set `ABX_SANDBOX_API_KEY` or `abx config set sandbox_api_key` |
 | `create_sandbox` fails after IDE restart | Backend API URL/region mismatch | Pass `--api-url` (or set `ABX_SANDBOX_BASE_URL`) in the server args/env block |
-| HTTP 401 on every request | Empty `ABX_MCP_AUTH_TOKEN` (fails closed) | Set a non-empty token. A local loopback server can omit the variable to disable auth. The FC artifact will not start without a token |
+| HTTP 401 on every request | Empty `ABX_MCP_AUTH_TOKEN` (fails closed) | Set a non-empty token. A local loopback server can omit the variable to disable auth. The MCP template will not start without a token |
 | HTTP 404 Unknown session | `Mcp-Session-Id` expired (idle TTL 3600 s) or instance restarted | Re-send `initialize` to create a new session |
 | HTTP 503 session limit | More than 100 concurrent sessions in the process | Close idle sessions (`DELETE /mcp`) or raise `max_sessions` via `create_mcp_app()` |
 | HTTP 405 on `GET /mcp` | SSE notifications not implemented | Expected — use `POST /mcp` only |
@@ -296,7 +288,7 @@ More general issues: see the [Troubleshooting guide](troubleshooting.md) and [er
 
 - **Transport protocols**: STDIO (newline-delimited JSON-RPC 2.0, protocol version 2024-11-05) and Streamable HTTP (spec 2025-06-18). `initialize` negotiates each transport's supported version — a supported requested `protocolVersion` is echoed back; missing or unsupported requests fall back to the transport's own version (so HTTP health and initialize both report 2025-06-18)
 - **Sandbox management**: the server internally maintains a `SandboxManager` per session that manages the lifecycle of multiple sandbox instances
-- **Default template**: `code-interpreter-v1` via `abx mcp start`; `base` for the HTTP app and `abx mcp deploy` artifacts. `create_sandbox` uses that server template when `template` is omitted
+- **Default template**: `code-interpreter-v1` via `abx mcp start`; `base` for the HTTP app and MCP templates. `create_sandbox` uses that server template when `template` is omitted
 - **STDIO**: one message may be up to 8 MiB. A longer line is rejected and the process keeps serving. `ping` is answered while a tool call is still running
 - **HTTP sessions**: idle TTL 3600 s, max 100 concurrent sessions per process, capacity exhaustion returns 503
 
@@ -306,7 +298,7 @@ More general issues: see the [Troubleshooting guide](troubleshooting.md) and [er
 
 - [CLI Tutorial](cli-tutorial.md) — Complete CLI tutorial
 - [CLI Reference](../reference/cli-reference.md) — Detailed MCP command reference
-- [MCP Server Design](../design/mcp-server.md) — Tools, transports, and FC deployment architecture
+- [MCP Server Design](../design/mcp-server.md) — Tools, transports, and remote HTTP architecture
 
 ---
 
@@ -321,10 +313,10 @@ Connected external resources and retained/background sandboxes survive client di
 
 ### Generated artifact installation and lifecycle boundary
 
-`abx mcp deploy` generates an ASGI artifact and manual FC steps. Its requirements
-pin both `agent-sandbox-client[mcp]` and `agent-sandbox-server` to public version
-`0.4.0a6`; install with
-`python -m pip install -r requirements.txt`. Python imports remain `agent_sandbox`.
+`abx template init --template mcp` generates editable application source. Its
+requirements select the public MCP client extra with its matching runtime;
+install with `python -m pip install -r requirements.txt`. Python imports remain
+`agent_sandbox`.
 The generated Python HTTP server and Node CLI MCP server are separate surfaces:
 inspect each server's `tools/list` rather than assuming identical tool catalogs.
 

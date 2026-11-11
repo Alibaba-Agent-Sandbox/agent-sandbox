@@ -1,6 +1,6 @@
 # 提供方与凭证 —— CLI 规格（Node.js `abx`）
 
-> **状态：对目录提供方已被取代**——本页把 gRPC 传输列为以后的工作时，以这句为准。现行设计是 Node 引擎：`127.0.0.1` 上的 HTTP、SSE 和 WebSocket，协议 `abx-engine/1`。见 [cli/docs/zh/reference/engine-api.md](../reference/engine-api.md) 和 [Node 提供方架构](node-provider-architecture.md)。下面清单里的对应条目作为历史保留。
+> **状态：历史规格。** 下文的命令语法、帮助文本和实现计划对应较早的 CLI，仅保留历史背景，不是当前使用说明。请使用[配置参考](../reference/configuration.md)、[Provider 命令指南](../guide/provider-commands.md)及[当前命令树](../reference/cli-commands.md)。现行引擎契约见[引擎 HTTP API](../reference/engine-api.md)。
 
 > **读者**：落实本规格的 CLI 实现。
 >

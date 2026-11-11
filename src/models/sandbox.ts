@@ -45,6 +45,13 @@ export const SandboxStatus = {
 } as const;
 export type SandboxStatus = (typeof SandboxStatus)[keyof typeof SandboxStatus];
 
+/** Native lifecycle intent; wire fields remain the protocol's autoPause/autoResume. */
+export const sandboxLifecycleSchema = z.object({
+  onTimeout: z.enum(["pause", "kill"]),
+  autoResume: z.boolean().optional(),
+}).strict().refine(value => !value.autoResume || value.onTimeout === "pause", { message: "autoResume requires onTimeout=pause" });
+export type SandboxLifecycle = z.infer<typeof sandboxLifecycleSchema>;
+
 /**
  * Configuration for creating a sandbox.
  *
@@ -55,6 +62,7 @@ export class SandboxConfig extends defineModel(
   z.object({
     template: z.string().default("base"),
     timeout: lax.int(1, 86400).default(300), // Sandbox timeout in seconds
+    lifecycle: sandboxLifecycleSchema.nullable().default(null),
     auto_pause: lax.bool().default(false), // 是否自动暂停
     metadata: lax.stringMap().default(() => ({})),
     env_vars: lax.stringMap().default(() => ({})), // 环境变量键值对（已实测验证）
@@ -72,7 +80,7 @@ export class SandboxConfig extends defineModel(
   }),
   {
     aliases: { template: "templateID", auto_pause: "autoPause", env_vars: "envVars" },
-    internal: ["secure", "provider_options", "volume_mounts"],
+    internal: ["secure", "provider_options", "volume_mounts", "lifecycle"],
   },
 ) {
   /** Build the camelCase request payload for sandbox creation（已实测验证）. */
@@ -80,10 +88,11 @@ export class SandboxConfig extends defineModel(
     const payload: Record<string, unknown> = {
       templateID: this.template,
       timeout: this.timeout,
-      autoPause: this.auto_pause,
+      autoPause: this.lifecycle ? this.lifecycle.onTimeout === "pause" : this.auto_pause,
       metadata: this.metadata,
       envVars: this.env_vars,
     };
+    if (this.lifecycle?.autoResume !== undefined) payload["autoResume"] = { enabled: this.lifecycle.autoResume };
     if (this.cpu !== null) payload["cpuCount"] = this.cpu;
     if (this.memory !== null) payload["memoryMB"] = this.memory;
     if (this.disk !== null) payload["diskSizeMB"] = this.disk;

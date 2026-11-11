@@ -1,0 +1,14 @@
+Usage: abx list [options]
+
+List local deployments and remote sandboxes. Local names take precedence over
+raw Sandbox IDs. --local avoids cloud queries.
+
+Options:
+  --local
+  --all-providers
+  --limit <INTEGER>
+  --offset <INTEGER>
+  --status <STATUS>   (choices: "running", "stopped", "creating", "paused",
+                      "error")
+  -h, --help          Show this message and exit.
+[exit_code:0]

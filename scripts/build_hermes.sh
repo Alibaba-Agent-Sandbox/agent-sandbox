@@ -1,20 +1,15 @@
-#!/bin/bash
-# Deploy the hermes-agent template from the SSOT catalog repo
-# (alibaba-agent-sandbox/awesome-templates); the python-hello fixture lives in the python-sdk repository.
-# Environment: ABX_BIN (abx executable, default: abx), ACR_NAMESPACE (required, your ACR
-# namespace), TAG (image tag, default: dev), REGION (default: cn-hangzhou).
+#!/usr/bin/env bash
+# Fetch and build hermes-agent without starting a sandbox. Retain the artifact for deploy/cleanup.
+# Environment: ABX_BIN (default abx), ACR_NAMESPACE (required), REGION, TAG, WORK_DIR.
 set -euo pipefail
 ABX_BIN="${ABX_BIN:-abx}"
 REGION="${REGION:-cn-hangzhou}"
 TAG="${TAG:-dev}"
 : "${ACR_NAMESPACE:?set ACR_NAMESPACE to your ACR namespace}"
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
-echo "Fetching hermes-agent from alibaba-agent-sandbox/awesome-templates..."
-"$ABX_BIN" --provider alicloud-express \
-    template install hermes-agent --region "$REGION" --download-only
-echo "Starting hermes-agent build..."
-"$ABX_BIN" --provider alicloud-express \
-    template deploy "$HOME/.abx/templates/alibaba-agent-sandbox/awesome-templates/default/hermes-agent" \
-    --region "$REGION" --acr-namespace "$ACR_NAMESPACE" --acr-repo hermes-agent \
-    --tag "$TAG" --cpu 2 --memory 4096
-echo "Exit code: $?"
+WORK_DIR="${WORK_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/abx-hermes-build.XXXXXX")}"
+# Keep configuration overrides transient; template.yaml owns runtime resources.
+"$ABX_BIN" --provider alicloud-express --opt "region=$REGION" \
+  template init "$WORK_DIR/source" --from hermes-agent --yes
+"$ABX_BIN" --provider alicloud-express --opt "region=$REGION" \
+  template build "$WORK_DIR/source" --out "$WORK_DIR/artifact" --alias "hermes-agent-$TAG" --yes
+printf 'Build artifact: %s\n' "$WORK_DIR/artifact"

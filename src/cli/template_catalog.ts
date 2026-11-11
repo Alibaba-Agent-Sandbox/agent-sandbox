@@ -3,7 +3,7 @@ import { getOperationConfig } from "../utils/operation_config.js";
 import { TemplateNotFoundError } from "../models/errors.js";
 /** Provider-neutral template discovery, authoring and local output. */
 /**
- * Template management CLI commands (`abx template ...`; `abx deploy` is the top-level shortcut of `template deploy`).
+ * Catalog discovery and editable template source acquisition (`abx template ...`).
  *
  * Port of `cli/commands/template.py`. Helper functions keep the Python names (snake_case -> `_camelCase`); keyword
  * arguments of the internal helpers keep their Python (snake_case) spelling because they are plain data. Every module
@@ -27,7 +27,8 @@ import { ValueError } from "../utils/_pyerrors.js";
 import { GitHubRateLimitError } from "../models/errors.js";
 import { isFile, mkdirParents, pathExists, pyCopytree, pyJoin, pyResolve, scandirNames, writeTextPy } from "../utils/_pyos.js";
 import { FINE_GRAINED_PAT_URL } from "../utils/github_token.js";
-import { RegistryClient, loadTemplateFromYaml } from "../utils/registry.js";
+import { RegistryClient } from "../utils/registry.js";
+import { loadYaml } from "../utils/yaml_io.js";
 import { fetchIndex, type TemplateIndexEntry } from "../utils/template_index.js";
 import { resolveTemplateProfile } from "../providers/template_profile.js";
 export type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -142,25 +143,24 @@ export async function _withGithubRateLimitRetry<T>(operation: (token: string | n
 }
 
 export const template = group("template", {
-    help: cleandoc(`Discover, scaffold, build, publish and install sandbox templates.
+    help: cleandoc(`Find, edit, build and publish reusable templates.
 
     \b
     Examples:
-      abx template search python
-      abx template scaffold --template python --name my-template
+      abx template list python
+      abx template init --template python --name my-template
       abx template list
 
     \b
     Related commands:
-      abx create TEMPLATE             Launch a sandbox from a template
-      abx deploy [PATH]               Same as 'template deploy'
+      abx deploy TEMPLATE --name APP  Deploy an application from a template
       abx config --help               Configure credentials and region
 
     More templates: https://registry.agent-sandbox.cn/templates/
     `),
 });
 
-export const search = template.command("search", {
+export const list_templates = template.command("list", {
     help: cleandoc(`Search the template catalog by name, tag, or description.
 
     Queries the template index published in the alibaba-agent-sandbox/awesome-templates
@@ -175,20 +175,20 @@ export const search = template.command("search", {
 
     \b
     Examples:
-      abx template search python
-      abx template search ai-agent
-      abx template search browser --status official
-      abx template search qwen --tag deploy
-      abx template search python --refresh    # bypass the local cache
+      abx template list python
+      abx template list ai-agent
+      abx template list browser --status official
+      abx template list qwen --tag deploy
+      abx template list python --refresh    # bypass the local cache
 
     \b
     Related commands:
-      abx template install <name>             Install a template by index name
-      abx template install owner/repo//subdir[@ref]
+      abx template init --from <name>             Install a template by index name
+      abx template init --from owner/repo//subdir[@ref]
       abx template list
     `),
     params: [
-        argument(["query"]),
+        argument(["query"], { default: "", required: false }),
         option(["--tag", "-t"], { default: null, help: "Filter by exact tag name" }),
         option(["--status", "-s"], {
             type: new Choice(["official", "community", "experimental"]),
@@ -242,9 +242,27 @@ export const search = template.command("search", {
         fmt.printTable(headers, rows);
         if (!fmt.quiet) {
             echo(`\n${results.length} template(s) found.`);
-            echo(`Launch one with: abx --provider <provider> template launch <name> (index: ${index.source_url})`);
+            echo(`Launch one with: abx --provider <provider> deploy <name> --name <app> (index: ${index.source_url})`);
         }
     }),
+});
+
+/** Inspect catalog source/managed metadata without calling a cloud provider. */
+export const info = template.command("info", {
+  help: "Show a catalog template's source, version reference and declared services.",
+  params: [argument(["name"]), option(["--index-url"], { default: null, envvar: "ABX_TEMPLATE_INDEX_URL" }),
+    option(["--token"], { default: null, envvar: "GITHUB_TOKEN", help: _GITHUB_TOKEN_HELP }), option(["--refresh"], { is_flag: true })],
+  callback: handleErrors(async (ctx, params) => {
+    const fmt = getFormatter(ctx), out = getOutput(ctx), config = await _configCmd();
+    const index = await _withGithubRateLimitRetry(token => fetchIndex(params["index_url"], { token, force: Boolean(params["refresh"]) }),
+      { token: await config.resolveGithubToken(params["token"]), fmt, out });
+    if (index.notice) out.warning(index.notice);
+    const entry = index.find(String(params["name"]));
+    if (!entry) throw new TemplateNotFoundError(`Template '${params["name"]}' was not found in the catalog.`);
+    fmt.printDict({ name: entry.name, description: entry.description, status: entry.status,
+      source: entry.manifest ? null : entry.install_ref, repo: entry.repo, path: entry.path, ref: entry.ref,
+      tags: [...entry.tags], author: entry.author, manifest: entry.manifest });
+  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -301,7 +319,7 @@ export async function _tryArrowCasePicker(cases: Array<[
 /**
  * Return whether `value` is a sentence rather than a directory path.
  *
- * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template scaffold [DIRECTORY]` invocations
+ * A path token (`my-app`, `./my app`, `.`) stays a directory so existing `abx template init [DIRECTORY]` invocations
  * are unchanged. Whitespace or CJK text is a natural-language description. Prefix a directory that contains spaces
  * with `./`.
  */
@@ -397,7 +415,7 @@ export async function writeBuiltinScaffold(ctx: Context, options: {
   return { created: [...files.keys()], replaced: conflicts };
 }
 
-export const init = template.command("scaffold", {
+export const init = template.command("init", {
   help: cleandoc(`Scaffold a new sandbox template project.
 
     Creates a ready-to-build template directory with template.yaml,
@@ -424,31 +442,33 @@ export const init = template.command("scaffold", {
 
     \b
     Examples:
-      abx template scaffold --list                     # List built-in cases
-      abx template scaffold -t python                  # Creates ./python/
-      abx template scaffold -t python --name myapp     # Creates ./myapp/
-      abx template scaffold -t python ./my-template    # Explicit directory
-      abx template scaffold --from owner/repo          # Creates ./<template-name>/
-      abx template scaffold --prompt "a python data science env"  # generate files only, no build
-      abx template scaffold -y --prompt "a node.js api server"    # non-interactive generation
-      abx template scaffold --adopt . --hint "port 8080" # adapt this project
-      abx template scaffold --adopt ./app --dry-run      # show what would be sent
+      abx template init --list                     # List built-in cases
+      abx template init -t python                  # Creates ./python/
+      abx template init -t python --name myapp     # Creates ./myapp/
+      abx template init -t python ./my-template    # Explicit directory
+      abx template init --from owner/repo          # Creates ./<template-name>/
+      abx template init --prompt "a python data science env"  # generate files only, no build
+      abx template init -y --prompt "a node.js api server"    # non-interactive generation
+      abx template init --adopt . --hint "port 8080" # adapt this project
+      abx template init --adopt ./app --dry-run      # show what would be sent
 
     \b
     Related commands:
-      abx template deploy DIRECTORY
-      abx template install TEMPLATE_REF
-      abx create TEMPLATE
-      abx create --prompt "DESCRIPTION"   # generate, build, deploy, and create
+      abx template build DIRECTORY
+      abx deploy DIRECTORY --name my-app
+      abx template publish DIRECTORY --tag VERSION
     `),
   params: [
     argument(["directory"], { default: null, required: false, type: new ClickPath() }),
     option(["--prompt"], { default: null, help: "Generate a template from a natural-language description" }),
-    option(["--template", "-t", "case"], { default: null, help: "Built-in scaffold case (python, node, minimal)" }),
+    option(["--template", "-t", "case"], { default: null, help: "Built-in scaffold case (python, node, minimal, mcp)" }),
     option(["--from", "from_ref"], {
       default: null,
       help: "Fetch template source from a registry ref (owner/repo, local path)",
     }),
+    option(["--token"], { default: null, envvar: "GITHUB_TOKEN", help: _GITHUB_TOKEN_HELP }),
+    option(["--registry-url"], { default: "https://github.com", help: "Source registry URL for --from" }),
+    option(["--registry-type"], { type: new Choice(["github", "local"]), default: null, help: "Source registry type for --from" }),
     option(["--name"], { default: null, help: "Template name (default: case name, or fetched template name)" }),
     option(["--list", "list_cases"], { is_flag: true, default: false, help: "List available scaffold cases" }),
     option(["--force"], { is_flag: true, default: false, help: "Overwrite existing files" }),
@@ -554,7 +574,7 @@ export const init = template.command("scaffold", {
 
     // --from: fetch from registry and copy source files into DIR
     if (fromRef) {
-      const acquired = await acquireTemplateSource(ctx, fromRef, { allowCatalog: false });
+      const acquired = await acquireTemplateSource(ctx, fromRef, { token: params["token"], registryUrl: params["registry_url"], registryType: params["registry_type"] });
       const ref = acquired.ref;
       const sourcePath = acquired.directory!;
       const source = String(sourcePath);
@@ -563,7 +583,7 @@ export const init = template.command("scaffold", {
       // .git. Remote refs stay tolerant.
       if ((ref.registry_type ?? "") === "local" && _findTemplateYaml(source) === null) {
         throw new CliError(
-          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template scaffold --adopt ${fromRef}`,
+          `'${fromRef}' has no template.yaml, so it is not a template. ` + `To adapt a source project, run: abx template init --adopt ${fromRef}`,
         );
       }
 
@@ -571,8 +591,12 @@ export const init = template.command("scaffold", {
       if (name === null) {
         const yamlPath = _findTemplateYaml(source);
         if (yamlPath) {
-          const tmpl = loadTemplateFromYaml(yamlPath);
-          name = tmpl.name || "";
+          // Copy source independently of the executable manifest version.
+          // A malformed/new manifest can still be edited after acquisition.
+          try {
+            const raw = loadYaml(fs.readFileSync(yamlPath, "utf8"));
+            if (raw && typeof raw === "object" && "name" in raw && typeof raw.name === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(raw.name)) name = raw.name;
+          } catch { /* Source acquisition does not validate deployment input. */ }
         }
         if (!name) {
           // Fallback: repo basename or last path component
@@ -678,7 +702,7 @@ export function _printInitSummary(fmt: Any, out: Any, target: string, created: s
         return;
     }
     const dirArg = String(target) !== process.cwd() ? String(target) : ".";
-    out.info(`  abx template deploy ${dirArg} -y`);
+    out.info(`  abx deploy ${dirArg} --name ${name}`);
     const profile = resolveTemplateProfile();
     if (profile.registry) out.info(`  # ${profile.registry}`);
 }
@@ -730,8 +754,8 @@ export async function _resolveIndexEntry(name: string, opts: { token: string | n
       `Template '${name}' is not a built-in template and was not found in the ` + `template index (${index.source_url}).`,
       {
         suggestion:
-          "Run 'abx template search <query>' to browse the index, or install " +
-          "directly from a repository: 'abx template install owner/repo//subdir[@ref]'.",
+          "Run 'abx template list <query>' to browse the index, or install " +
+          "directly from a repository: 'abx template init --from owner/repo//subdir[@ref]'.",
       },
     );
   }
@@ -743,7 +767,7 @@ export async function _resolveIndexEntry(name: string, opts: { token: string | n
 export async function _resolveIndexName(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<string> {
   const entry = await _resolveIndexEntry(name, opts);
   if (entry.manifest) {
-    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
+    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} deploy ${entry.name} --name <app>' instead.`);
   }
   return entry.install_ref;
 }
@@ -764,11 +788,14 @@ export async function acquireTemplateSource(
       if (options.allowCatalog === false) throw usageError(`'${source}' is a built-in template and cannot be used with --from. Use -t/--template for built-in cases.`);
       const entry = await _resolveIndexEntry(source, { token: active, fmt, out });
       if (entry.manifest) {
-        if (!options.allowManaged) throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} template launch ${entry.name}' instead.`);
+        if (!options.allowManaged) throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} deploy ${entry.name} --name <app>' instead.`);
         return { ref, manifest: entry.manifest };
       }
       ref = await client.resolve(entry.install_ref, options.registryType);
     }
     return { ref, directory: await client.fetch(ref) };
-  }, { token, fmt, out });
+  }, { token, fmt, out }).catch((error: unknown) => {
+    if (error instanceof ValueError) throw usageError(`${error.message} Use 'abx template init DIRECTORY' to create editable source.`);
+    throw error;
+  });
 }

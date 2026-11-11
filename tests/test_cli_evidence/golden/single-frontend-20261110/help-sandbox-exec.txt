@@ -1,0 +1,32 @@
+Usage: abx sandbox exec [options] <SANDBOX_ID> <COMMAND...>
+
+Run a command in a sandbox and preserve its exit code.
+
+Everything after the sandbox ID is passed through to the remote command.
+Put abx options before the ID. A single quoted argument is a shell command
+line; several arguments are shell-quoted individually.
+
+Express forwards piped stdin and EOF when supported by the sandbox.
+--background prints the process ID and returns; --json returns structured
+stdout, stderr and exit_code without mixing terminal output into JSON.
+
+Examples:
+  abx sandbox exec abc123 python --version
+  abx sandbox exec --cwd /app --timeout 300 abc123 pytest -q
+  abx sandbox exec --env DEBUG=1 abc123 python app.py
+  abx sandbox exec --background abc123 python -m http.server 8000
+  abx --json sandbox exec abc123 echo ready
+
+Options:
+  -c, --cwd <CWD>          Working directory (empty = container default)
+  -u, --user <USER>        Run as the specified sandbox user
+  -e, --env <ENV>          Environment variable for the command, format
+                           KEY=VALUE (repeatable)
+  -t, --timeout <INTEGER>  Command deadline in seconds (Express: no deadline;
+                           other Providers: 60s)
+  --background             Start the command, print its pid after piped stdin
+                           reaches EOF; do not wait for remote completion
+  --stream                 Print stdout/stderr live while the command runs
+  -v, --verbose            Verbose output (DEBUG level)
+  -h, --help               Show this message and exit.
+[exit_code:0]

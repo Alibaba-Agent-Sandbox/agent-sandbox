@@ -27,7 +27,7 @@ it('configures each CLI surface from the selected test account without losing ne
   const creds = { E2B_API_KEY: 'placeholder-good', E2B_API_URL: 'https://example.test', E2B_DOMAIN: 'example.test' };
   const ctx = { creds, abx, rawAbx };
   configureExpressScenario(ctx);
-  await ctx.abx(['--native', '--json', 'info', 'owned'], { env: { E2B_API_KEY: 'placeholder-invalid' } });
+  await ctx.abx(['--json', 'status', 'owned'], { env: { E2B_API_KEY: 'placeholder-invalid' } });
   expect(abx.mock.calls[0]![1].env).toMatchObject({ E2B_API_KEY: 'placeholder-invalid', ABX_SANDBOX_API_KEY: 'placeholder-invalid', ABX_SANDBOX_BASE_URL: 'https://example.test' });
   await ctx.rawAbx(['config', 'list'], { env: { ABX_SANDBOX_API_KEY: 'placeholder-explicit' } });
   expect(rawAbx.mock.calls[0]![1].env.ABX_SANDBOX_API_KEY).toBe('placeholder-explicit');
@@ -36,20 +36,20 @@ it('configures each CLI surface from the selected test account without losing ne
 
 it('tracks the real detached ID before info fails, without replaying creation', async () => {
   const track = vi.fn();
-  const abx = vi.fn().mockResolvedValueOnce({ code: 0, maskedStdout: 'sbx-owned-test\n', stdout: 'sbx-XXXXX\n' });
+  const abx = vi.fn().mockResolvedValueOnce({ ...result({sandbox_id: 'sbx-owned-test'}), maskedStdout: '{"sandbox_id":"sbx-owned-test"}' });
   abx.mockImplementationOnce(async () => {
     expect(track).toHaveBeenCalledWith('sbx-owned-test');
     throw new Error('info unavailable');
   });
   await expect(scenario('create-json').run({ ...journalFixture(), state: {}, abx, track, fail })).rejects.toThrow('info unavailable');
   expect(abx).toHaveBeenCalledTimes(2);
-  expect(abx.mock.calls[0][0]).toContain('--detach');
+  expect(abx.mock.calls[0][0]).toContain('--template-id');
   expect(scenario('create-json').retries).toBeUndefined();
 });
 
 it('retains a reported detached identity when the child exits unsuccessfully', () => {
   const track = vi.fn();
-  expect(() => trackDetachedCreate({ track, fail }, { code: 1, maskedStdout: 'sbx-owned-test\n', out: 'child failed' })).toThrow('create exit 1');
+  expect(() => trackDetachedCreate({ track, fail }, { ...result({sandbox_id: 'sbx-owned-test'}, 1), out: 'child failed' })).toThrow('create exit 1');
   expect(track).toHaveBeenCalledWith('sbx-owned-test');
 });
 
@@ -57,13 +57,13 @@ it('tracks the native-created identity before checking env/files, without replay
   const cwd = mkdtempSync(join(tmpdir(), 'abx-cloud-contract-'));
   directories.push(cwd);
   const track = vi.fn();
-  const abx = vi.fn().mockResolvedValueOnce(result({ ID: 'sbx-native-test' }));
+  const abx = vi.fn().mockResolvedValueOnce(result({ sandbox_id: 'sbx-native-test' }));
   abx.mockImplementationOnce(async () => {
     expect(track).toHaveBeenCalledWith('sbx-native-test');
     throw new Error('env probe failed');
   });
   await expect(scenario('create-with-env-and-upload').run({ ...journalFixture(), cwd, state: {}, abx, track, fail })).rejects.toThrow('env probe failed');
-  expect(abx.mock.calls[0][0].slice(0, 3)).toEqual(['--native', '--json', 'create']);
+  expect(abx.mock.calls[0][0].slice(0, 2)).toEqual(['--json', 'deploy']);
   expect(scenario('create-with-env-and-upload').retries).toBeUndefined();
 });
 
@@ -79,7 +79,7 @@ it('does not mark an owned sandbox cleaned when its absence is unconfirmed', asy
 
 it('checks actual owned process disappearance after signalling its backend ID', async () => {
   const abx = vi.fn()
-    .mockResolvedValueOnce({ ...result(null), stderr: '987654\n' })
+    .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
     .mockResolvedValueOnce(result([{ pid: 987654, command: 'sleep 120' }]))
     .mockResolvedValueOnce({ ...result(null), stdout: 'Signal 15 sent to process 987654.' })
     .mockResolvedValueOnce(result([{ pid: 987654, command: 'sleep 120' }]))
@@ -97,7 +97,7 @@ it('checks actual owned process disappearance after signalling its backend ID', 
 
 it('attempts owned process cleanup when termination verification fails', async () => {
   const abx = vi.fn()
-    .mockResolvedValueOnce({ ...result(null), stderr: '987654\n' })
+    .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
     .mockResolvedValueOnce(result([{ pid: 987654, command: 'sleep 120' }]))
     .mockResolvedValueOnce({ ...result(null), stdout: 'Signal 15 sent to process 987654.' })
     .mockResolvedValueOnce(result([{ pid: 987654 }]))
@@ -110,8 +110,8 @@ it('attempts owned process cleanup when termination verification fails', async (
 it('does not untrack a sandbox when info is absent but list still reports it', async () => {
   const untrack = vi.fn();
   const abx = vi.fn()
-    .mockResolvedValueOnce({ ...result(null, 1), out: "Sandbox wasn't found" })
-    .mockResolvedValueOnce(result([{ sandboxId: 'sbx-owned-test' }]));
+    .mockResolvedValueOnce(result({status: 'error', code: 'E2009'}, 4))
+    .mockResolvedValueOnce(result({items:[{sandbox_id:'sbx-owned-test'}], partial:false, errors:[]}));
   const ctx = { state: { id: 'sbx-owned-test' }, abx, untrack, fail, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('kill-yes-json').after(ctx)).rejects.toThrow('still listed');
   expect(untrack).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ it.each(['Error', 'failed', 'sbx-XXXXX'])('never tracks an invalid native create
   const cwd = mkdtempSync(join(tmpdir(), 'abx-cloud-contract-'));
   directories.push(cwd);
   const track = vi.fn();
-  const abx = vi.fn(async () => result({ ID: id }));
+  const abx = vi.fn(async () => result({ sandbox_id: id }));
   await expect(scenario('create-with-env-and-upload').run({ ...journalFixture(), cwd, state: {}, abx, track, fail })).rejects.toThrow('valid owned sandbox identity');
   expect(track).not.toHaveBeenCalled();
   expect(abx).toHaveBeenCalledTimes(1);
@@ -141,15 +141,15 @@ function subprocessFixture(source: string) {
   return { root, bin: [process.execPath, file], creds: {}, tracker: { sandboxes: new Set(['sbx-owned-test']), killed: new Set<string>() } };
 }
 
-it.each([{}, { status: 'success' }, [{ ID: 'sbx-owned-test' }], [{ sandboxID: 'sbx-owned-test' }], [null], [{ sandboxId: '' }]])('cannot report leak-check PASS for malformed standard inventory %j', async (inventory) => {
+it.each([{}, { status: 'success' }, [{ sandbox_id: 'sbx-owned-test' }], [{ sandboxID: 'sbx-owned-test' }], [null], [{ sandboxId: '' }]])('cannot report leak-check PASS for malformed standard inventory %j', async (inventory) => {
   const fixture = subprocessFixture(`process.stdout.write(${JSON.stringify(JSON.stringify(inventory))});`);
   const record = await leakCheck({ ...fixture, cloudOk: true, skipOnlyOffline: false, mask: (value: string) => value });
   expect(record.status).toBe('fail');
-  expect(record.reason).toContain('standard inventory');
+  expect(record.reason).toContain('deployment inventory');
 });
 
 it('confirms empty inventory only with exact owned-ID NotFound', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else process.stdout.write('[]');`);
+  const fixture = subprocessFixture(`if (process.argv.includes('status')) { process.stdout.write('{"status":"error","code":"E2009"}'); process.exitCode = 4; } else process.stdout.write('{"items":[],"partial":false,"errors":[]}');`);
   const record = await leakCheck({ ...fixture, cloudOk: true, skipOnlyOffline: false, mask: (value: string) => value });
   expect(record.status).toBe('pass');
 });
@@ -183,12 +183,12 @@ it('does not reintroduce credentials into a credential-free negative probe', asy
 
 it('resolves positive official template info from the same native inventory instead of an alias', async () => {
   const abx = vi.fn()
-    .mockResolvedValueOnce(result([{ TemplateID: 'tpl-owned', Name: 'fixture' }]))
-    .mockResolvedValueOnce(result({ templateID: 'tpl-owned', statusCode: 200, code: 'Success', name: 'fixture', status: {state: 'Ready'}, runtimeConfig: {cpu: 2} }));
+    .mockResolvedValueOnce(result({templates: [{templateID: 'tpl-owned', name: 'fixture'}]}))
+    .mockResolvedValueOnce(result({template: { templateID: 'tpl-owned', statusCode: 200, code: 'Success', name: 'fixture', status: {state: 'Ready'}, runtimeConfig: {cpu: 2} }}));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === 'template-info');
   await testCase.run({ abx, fail });
-  expect(abx.mock.calls[0][0]).toEqual(['--native', '--json', 'template', 'list']);
-  expect(abx.mock.calls[1][0]).toEqual(['--native', '--json', 'template', 'info', 'tpl-owned']);
+  expect(abx.mock.calls[0][0]).toEqual(['--json', 'provider', 'run', 'template.list', '--input', '{}']);
+  expect(abx.mock.calls[1][0]).toEqual(['--json', 'provider', 'run', 'template.get', '--input', JSON.stringify({template_id:'tpl-owned'})]);
 });
 
 it('does not accept a generic network/auth error as a missing official template', () => {
@@ -201,18 +201,18 @@ it('does not accept a generic network/auth error as a missing official template'
 it('starts an explicitly selected application command once and requires its real process before any catalog/payload', async () => {
   vi.stubEnv('ABX_E2E_APP_START_COMMAND', 'fixture-server --port 9000');
   const abx = vi.fn()
-    .mockResolvedValueOnce({ ...result(null), stderr: '987654\n' })
+    .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
     .mockResolvedValueOnce(result([]));
   const ctx = { state: { id: 'sbx-owned-test' }, abx, fail, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('application process is not running');
-  expect(abx.mock.calls[0][0]).toEqual(['exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
+  expect(abx.mock.calls[0][0]).toEqual(['sandbox', 'exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
   expect(abx).toHaveBeenCalledTimes(2);
 });
 
 it('does not replay application startup or send payloads while catalog readiness fails', async () => {
   vi.stubEnv('ABX_E2E_APP_START_COMMAND', 'fixture-server --port 9000');
   const abx = vi.fn()
-    .mockResolvedValueOnce({ ...result(null), stderr: '987654\n' })
+    .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
     .mockResolvedValueOnce(result([{ pid: 987654 }]))
     .mockResolvedValueOnce({ ...result([], 1), out: 'unready' })
     .mockResolvedValueOnce(result([{ pid: 987654 }]))
@@ -221,8 +221,8 @@ it('does not replay application startup or send payloads while catalog readiness
     eventually: async (fn: () => Promise<void>) => { try { await fn(); } catch { await fn(); } },
   };
   await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('must expose protocol v2');
-  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'exec')).toHaveLength(1);
-  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'run')).toHaveLength(0);
+  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'sandbox' && argv[1] === 'exec')).toHaveLength(1);
+  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'sandbox' && argv[1] === 'run')).toHaveLength(0);
 });
 
 it('rejects inconsistent resource measurements and inferred managed capability claims', () => {
@@ -236,7 +236,7 @@ it('rejects inconsistent resource measurements and inferred managed capability c
 });
 
 it('revokes optimistic cleanup, persists a live owned ID through four inventories and finally kill acknowledgement', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('list')) process.stdout.write('[{"sandboxId":"sbx-owned-test"}]');`);
+  const fixture = subprocessFixture(`if (process.argv.includes('list')) process.stdout.write('{"items":[{"sandbox_id":"sbx-owned-test"}],"partial":false,"errors":[]}');`);
   fixture.tracker.killed.add('sbx-owned-test');
   const file = join(fixture.root, 'run-residual.json');
   const persist = () => writeFileSync(file, JSON.stringify({ sandboxes: [...fixture.tracker.sandboxes].filter((id) => !fixture.tracker.killed.has(id)) }));
@@ -252,7 +252,7 @@ it('revokes optimistic cleanup, persists a live owned ID through four inventorie
 });
 
 it('confirms cleanup only after inventory and exact owned-ID absence', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else process.stdout.write('[]');`);
+  const fixture = subprocessFixture(`if (process.argv.includes('status')) { process.stdout.write('{"status":"error","code":"E2009"}'); process.exitCode = 4; } else process.stdout.write('{"items":[],"partial":false,"errors":[]}');`);
   const persist = vi.fn();
   const checked = await leakCheck({ ...fixture, persist, cloudOk: true, skipOnlyOffline: false });
   expect(checked.status).toBe('pass');
@@ -261,7 +261,7 @@ it('confirms cleanup only after inventory and exact owned-ID absence', async () 
 });
 
 it('standalone recovery preserves live resources and writes partial confirmed progress', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('list')) process.stdout.write('[{"sandboxId":"sbx-still-live"}]'); else if (process.argv.includes('info') && process.argv.includes('sbx-already-gone')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; }`);
+  const fixture = subprocessFixture(`if (process.argv.includes('list')) process.stdout.write('{"items":[{"sandbox_id":"sbx-still-live"}],"partial":false,"errors":[]}'); else if (process.argv.includes('status') && process.argv.includes('sbx-already-gone')) { process.stdout.write('{"status":"error","code":"E2009"}'); process.exitCode = 4; }`);
   const record = { runId: 'fixture-run', sandboxes: ['sbx-still-live', 'sbx-already-gone'] };
   const file = join(fixture.root, 'run-fixture.json');
   writeFileSync(file, JSON.stringify(record));
@@ -273,7 +273,7 @@ it('standalone recovery preserves live resources and writes partial confirmed pr
 });
 
 it('standalone recovery removes its ledger only after independent complete absence', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else if (process.argv.includes('list')) process.stdout.write('[]');`);
+  const fixture = subprocessFixture(`if (process.argv.includes('status')) { process.stdout.write('{"status":"error","code":"E2009"}'); process.exitCode = 4; } else if (process.argv.includes('list')) process.stdout.write('{"items":[],"partial":false,"errors":[]}');`);
   const record = { runId: 'fixture-run', sandboxes: ['sbx-already-gone'] };
   const file = join(fixture.root, 'run-fixture.json');
   writeFileSync(file, JSON.stringify(record));
@@ -293,7 +293,7 @@ it('system ports rejects an authentication error while preserving its exact miss
 it.each(['create-missing-template', 'create-missing-template-json'])('retains an unexpectedly created ID before rejecting negative case %s', async (id) => {
   const journal = journalFixture();
   const track = vi.fn();
-  const abx = vi.fn(async () => ({ ...result({ ID: 'sbx-unexpected-create' }), maskedStdout: 'sbx-unexpected-create\n' }));
+  const abx = vi.fn(async () => ({ ...result({ sandbox_id: 'sbx-unexpected-create' }), maskedStdout: 'sbx-unexpected-create\n' }));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === id);
   await expect(testCase.run({ ...journal, abx, track, fail })).rejects.toThrow('unexpectedly returned');
   expect(track).toHaveBeenCalledWith('sbx-unexpected-create');
@@ -303,7 +303,7 @@ it.each(['create-missing-template', 'create-missing-template-json'])('retains an
 
 it.each([[{ command: 'sleep' }], [{ pid: null }], [{ pid: 0 }], [{ pid: '  ' }]])('never infers owned process absence from malformed process rows %j', async (malformed) => {
   const abx = vi.fn()
-    .mockResolvedValueOnce({ ...result(null), stderr: '987654\n' })
+    .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
     .mockResolvedValueOnce(result([{ pid: 987654 }]))
     .mockResolvedValueOnce({ ...result(null), stdout: 'Signal 15 sent to process 987654.' })
     .mockResolvedValueOnce(result(malformed))
@@ -314,7 +314,7 @@ it.each([[{ command: 'sleep' }], [{ pid: null }], [{ pid: 0 }], [{ pid: '  ' }]]
 });
 
 it('persists create intent before submission and retains an unresolved timeout through cleanup/recovery', async () => {
-  const fixture = subprocessFixture(`if (process.argv.includes('info')) { process.stderr.write("Sandbox wasn't found"); process.exitCode = 1; } else process.stdout.write('[]');`);
+  const fixture = subprocessFixture(`if (process.argv.includes('status')) { process.stdout.write('{"status":"error","code":"E2009"}'); process.exitCode = 4; } else process.stdout.write('{"items":[],"partial":false,"errors":[]}');`);
   const tracker = { sandboxes: new Set<string>(), killed: new Set<string>(), uncertainCreates: new Set<string>() };
   const file = join(fixture.root, 'run-uncertain.json');
   const persist = () => writeFileSync(file, JSON.stringify({ runId: 'fixture-run', sandboxes: [...tracker.sandboxes].filter((id) => !tracker.killed.has(id)), uncertainCreates: [...tracker.uncertainCreates] }));
@@ -338,8 +338,7 @@ it('persists create intent before submission and retains an unresolved timeout t
 
 it.each(['create-missing-template', 'create-missing-template-json'])('resolves only a definitive rejected create attempt in %s', async (id) => {
   const journal = journalFixture();
-  const native = id.endsWith('json');
-  const abx = vi.fn(async () => ({ ...result({ status: 'error', code: 'E2001', message: 'template no-such-template-e2e-xyz not found' }, native ? 4 : 1), maskedStdout: '', out: 'SandboxError: 404: template no-such-template-e2e-xyz not found' }));
+  const abx = vi.fn(async () => ({ ...result({ status: 'error', code: 'E2001', message: 'template no-such-template-e2e-xyz not found' }, 4), maskedStdout: '', out: 'SandboxError: 404: template no-such-template-e2e-xyz not found' }));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === id);
   const track = vi.fn();
   await testCase.run({ ...journal, abx, track, fail });
@@ -354,9 +353,8 @@ it('does not accept an authorization error as a successful package inventory', a
 
 it.each(['create-missing-template', 'create-missing-template-json'])('rejects a created ID even when %s also reports its expected error', async (id) => {
   const journal = journalFixture();
-  const native = id.endsWith('json');
   const track = vi.fn();
-  const abx = vi.fn(async () => ({ ...result({ ID: 'sbx-unexpected-create', status: 'error', code: 'E2001', message: 'template not found' }, native ? 4 : 1), maskedStdout: 'sbx-unexpected-create\n', out: '404 template not found' }));
+  const abx = vi.fn(async () => ({ ...result({ sandbox_id: 'sbx-unexpected-create', status: 'error', code: 'E2001', message: 'template not found' }, 4), maskedStdout: 'sbx-unexpected-create\n', out: '404 template not found' }));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === id);
   await expect(testCase.run({ ...journal, abx, track, fail })).rejects.toThrow('unexpectedly returned');
   expect(track).toHaveBeenCalledWith('sbx-unexpected-create');
@@ -367,17 +365,17 @@ it('keeps option-shaped ledger IDs behind an argument barrier in owned cleanup',
   const fixture = subprocessFixture("import { writeFileSync } from 'node:fs'; writeFileSync('kill-argv.json', JSON.stringify(process.argv.slice(2))); ");
   fixture.tracker.sandboxes = new Set(['--all']);
   await cleanupTrackedSandboxes({ ...fixture, persist() {} });
-  expect(JSON.parse(readFileSync(join(fixture.root, 'kill-argv.json'), 'utf8'))).toEqual(['sandbox', 'kill', '--', '--all']);
+  expect(JSON.parse(readFileSync(join(fixture.root, 'kill-argv.json'), 'utf8'))).toEqual(['--json', 'delete', '--yes', '--', '--all']);
 });
 
 it('uses the same argument barrier when inventory reconciliation reaps an owned option-shaped ID', async () => {
-  const fixture = subprocessFixture(String.raw`import { appendFileSync } from 'node:fs'; if (process.argv.includes('list')) process.stdout.write('[{"sandboxId":"--all"}]'); else appendFileSync('kill-argv.jsonl', JSON.stringify(process.argv.slice(2)) + '\n');`);
+  const fixture = subprocessFixture(String.raw`import { appendFileSync } from 'node:fs'; if (process.argv.includes('list')) process.stdout.write('{"items":[{"sandbox_id":"--all"}],"partial":false,"errors":[]}'); else appendFileSync('kill-argv.jsonl', JSON.stringify(process.argv.slice(2)) + '\n');`);
   fixture.tracker.sandboxes = new Set(['--all']);
   const checked = await leakCheck({ ...fixture, cloudOk: true, skipOnlyOffline: false, wait: async () => {} });
   expect(checked.status).toBe('fail');
   const calls = readFileSync(join(fixture.root, 'kill-argv.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
   expect(calls).toHaveLength(4);
-  for (const call of calls) expect(call).toEqual(['sandbox', 'kill', '--', '--all']);
+  for (const call of calls) expect(call).toEqual(['--json', 'delete', '--yes', '--', '--all']);
 });
 
 it.each([
@@ -408,21 +406,56 @@ it('uploads exactly one current fixture before exactly one explicitly selected s
   vi.stubEnv('ABX_E2E_APP_START_COMMAND', 'fixture-server --port 9000');
   const abx = vi.fn()
     .mockResolvedValueOnce({ code: 0 })
-    .mockResolvedValueOnce({ ...result(null), stderr: '987654\n' })
+    .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
     .mockResolvedValueOnce(result([]));
   const ctx = { state: { id: 'sbx-owned-test' }, abx, fail, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('application process is not running');
-  expect(abx.mock.calls[0][0]).toEqual(['upload', 'sbx-owned-test', 'fixture.py', '/fixture/app.py']);
-  expect(abx.mock.calls[1][0]).toEqual(['exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
+  expect(abx.mock.calls[0][0]).toEqual(['sandbox', 'upload', 'sbx-owned-test', 'fixture.py', '/fixture/app.py']);
+  expect(abx.mock.calls[1][0]).toEqual(['sandbox', 'exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
   expect(abx).toHaveBeenCalledTimes(3);
 });
 
 
 it.each(['live', 'network error', 'endpoint not found'])('retains an owned ID when an empty list hides %s from exact info', async (state) => {
-  const source = `if (process.argv.includes('list')) process.stdout.write('[]'); else if (process.argv.includes('info')) { process.stderr.write(${JSON.stringify(state)}); process.exitCode = ${state === 'live' ? 0 : 1}; }`;
+  const source = `if (process.argv.includes('list')) process.stdout.write('{"items":[],"partial":false,"errors":[]}'); else if (process.argv.includes('status')) { process.stderr.write(${JSON.stringify(state)}); process.exitCode = ${state === 'live' ? 0 : 1}; }`;
   const fixture = subprocessFixture(source);
   fixture.tracker.killed.add('sbx-owned-test');
   const checked = await leakCheck({ ...fixture, cloudOk: true, skipOnlyOffline: false, wait: async () => {} });
   expect(checked.status).toBe('fail');
   expect(fixture.tracker.killed.has('sbx-owned-test')).toBe(false);
+});
+
+const dockerModule = '../../e2e/scenarios/40-docker-deploy.mjs';
+const { default: dockerSuite } = await import(dockerModule);
+
+it('Docker deployment tracks a reported owned ID before a failed result and never replays submission', async () => {
+  const track = vi.fn();
+  const abx = vi.fn(async (_argv: string[]) => ({ ...result({sandbox_id: 'sbx-docker-owned'}, 1), out: 'lost final response' }));
+  const ctx = { ...journalFixture(), state: {name: 'owned-docker', source: '/fixture', build: '/fixture/build.json'}, abx, track, fail };
+  await expect(dockerSuite.scenarios[1].run(ctx)).rejects.toThrow('create exit 1');
+  expect(track).toHaveBeenCalledWith('sbx-docker-owned');
+  expect(abx).toHaveBeenCalledOnce();
+  expect(abx.mock.calls[0]![0]).toEqual(['--json', 'deploy', '--build', '/fixture/build.json', '--name', 'owned-docker', '--sandbox-timeout', '600', '--yes']);
+});
+
+it.each([{retained:[]}, {retained:[{kind:'image', state:'retained'}]}])('Docker cleanup keeps build recovery until all owned artifacts are absent: %j', async ({retained}) => {
+  const root = mkdtempSync(join(tmpdir(), 'abx-docker-cleanup-')); directories.push(root);
+  const build = join(root, 'build.json'); writeFileSync(build, JSON.stringify({prepared:{reference:'tpl-owned'}}));
+  const resolveCreateAttempt = vi.fn();
+  const abx = vi.fn().mockResolvedValueOnce(result({status:'deleted'}))
+    .mockResolvedValueOnce(result({status:'cleaned',retained}))
+    .mockResolvedValueOnce(result({status:'error',code:'E2001'},4));
+  const ctx = {state:{name:'owned-docker',sandbox:'sbx-owned',build,buildAttempt:'build-intent'},abx,resolveCreateAttempt,fail};
+  if (retained.length) await expect(dockerSuite.teardown(ctx)).rejects.toThrow('cleanup is unconfirmed');
+  else await dockerSuite.teardown(ctx);
+  expect(resolveCreateAttempt).toHaveBeenCalledTimes(retained.length ? 0 : 1);
+  expect(abx.mock.calls[1]![0]).toEqual(['--json','template','build','--clean',build,'--yes']);
+  expect(abx.mock.calls[2]![0]).toEqual(['--json','provider','run','template.get','--input',JSON.stringify({template_id:'tpl-owned'})]);
+});
+
+it.each([{items:[],partial:true,errors:[]},{items:[],partial:false,errors:[{provider:'alicloud-express',code:'E1001'}]}])('incomplete provider inventory never proves cleanup: %j', async inventory => {
+  const fixture = subprocessFixture(`process.stdout.write(${JSON.stringify(JSON.stringify(inventory))});`);
+  const checked = await leakCheck({...fixture,cloudOk:true,skipOnlyOffline:false});
+  expect(checked.status).toBe('fail');
+  expect(fixture.tracker.killed.size).toBe(0);
 });

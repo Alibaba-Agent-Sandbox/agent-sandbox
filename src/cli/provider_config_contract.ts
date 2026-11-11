@@ -10,7 +10,7 @@ export interface ProviderConfigUi {
     key: string;
     alternatives: readonly (readonly string[])[];
     help: string;
-    resolve(config: import("../transport/config_layers.js").LayeredConfig, options: { ci: boolean; confirm(message: string): Promise<boolean> }): Promise<string>;
+    resolve(config: import("../transport/config_layers.js").LayeredConfig, options: { confirm(message: string): Promise<boolean> }): Promise<string>;
   };
   allowed: readonly (readonly [string, string])[];
   envStored: readonly (readonly [string, string])[];

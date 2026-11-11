@@ -1,8 +1,8 @@
 import { manifestYaml } from "../helpers/templateManifest.js";
 /**
- * End-to-end CLI flows for natural-language create versus template init.
+ * End-to-end CLI source generation through template init.
  *
- * Each test enters through the real `abx` command tree (`template init`, `init`, `create`, `sandbox create`). The
+ * Each test enters through the real `abx` command tree (`template init`, plus explicit rejection of retired aliases). The
  * coding agent, image build, and sandbox API are stubbed so the run stays offline; the assertions are on the files
  * left on disk and on the calls that must not happen.
  *
@@ -12,7 +12,6 @@ import { manifestYaml } from "../helpers/templateManifest.js";
  */
 
 import "../_support/isolatedHome.js";
-import * as guidance from "../../src/cli/config_guidance.js";
 
 import fs from "node:fs";
 import path from "node:path";
@@ -32,7 +31,6 @@ import { sandboxSeams } from "../../src/cli/commands/sandbox.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
 import { cli } from "../../src/cli/main.js";
-import { SandboxInfo } from "../../src/models/sandbox.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { useTmpPath } from "../helpers/templateSupport.js";
 
@@ -90,27 +88,6 @@ function _codegenResult(tmp: string): CodegenResult {
     commandsPy,
     files: ["Dockerfile", "README.md", "commands.py", "template.yaml"],
   });
-}
-
-function _sandbox(): Sandbox {
-  const info = SandboxInfo.modelValidate({
-    sandboxID: "sbx-e2e-001",
-    templateID: "tmpl-ai-123",
-    status: "running",
-    region: "cn-hangzhou",
-    timeout: 300,
-    envdUrl: "https://sbx-e2e-001.cn-hangzhou.e2b.fc.aliyuncs.com",
-    envdAccessToken: "tok",
-  });
-  return { id: info.sandbox_id, status: info.status, url: info.envd_url, info,
-    commands: { run: vi.fn().mockResolvedValue({ exit_code: 0 }) },
-    network: { resolveEndpoint: vi.fn().mockResolvedValue({ url: "https://application.example" }) },
-    verifyApplicationOperation: vi.fn().mockResolvedValue(undefined),
-    listCommands: vi.fn().mockResolvedValue([]),
-    close: vi.fn().mockResolvedValue(undefined),
-    kill: vi.fn().mockResolvedValue(undefined),
-    isRunning: vi.fn().mockResolvedValue(false),
-  } as unknown as Sandbox;
 }
 
 interface AgentReady {
@@ -176,11 +153,6 @@ function _assertLocalTemplate(directory: string): void {
 const isFile = (p: string): boolean => fs.existsSync(p) && fs.statSync(p).isFile();
 const exists = (p: string): boolean => fs.existsSync(p);
 
-const fakeTty = (): void => {
-  sandboxSeams.stdinIsatty = () => true;
-  vi.spyOn(guidance, "canGuideConfiguration").mockImplementation((ctx, yes) => !yes && !ctx?.obj?.["json"] && !ctx?.obj?.["quiet"] && !ctx?.obj?.["ci"]);
-};
-
 const spyCreate = (value?: Sandbox) => {
   const spy = vi.spyOn(Sandbox, "create");
   if (value !== undefined) spy.mockResolvedValue(value);
@@ -196,7 +168,7 @@ it("test_scaffold_init_writes_the_given_directory", async () => {
   process.chdir(tmp);
   const dest = path.join(tmp, "nested", "my-template");
 
-  const result = await runner().invoke(cli, ["template", "scaffold", dest, "-t", "python"]);
+  const result = await runner().invoke(cli, ["template", "init", dest, "-t", "python"]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(isFile(path.join(dest, "Dockerfile"))).toBe(true);
@@ -210,7 +182,7 @@ it("test_scaffold_init_defaults_to_a_subdirectory_of_cwd", async () => {
   const tmp = tmpPath();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-t", "node", "--name", "myapp"]);
+  const result = await runner().invoke(cli, ["template", "init", "-t", "node", "--name", "myapp"]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(isFile(path.join(tmp, "myapp", "Dockerfile"))).toBe(true);
@@ -227,14 +199,14 @@ it("test_nl_init_writes_under_cwd_and_does_not_deploy", async () => {
   process.chdir(tmp);
   const create = spyCreate();
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
   expect(create).not.toHaveBeenCalled();
   expect(ready.generate).toHaveBeenCalledTimes(1);
   _assertLocalTemplate(path.join(tmp, _TEMPLATE_NAME));
-  expect(_shown(result)).toContain("template deploy");
+  expect(_shown(result)).toContain("abx deploy");
   expect(_shown(result)).not.toContain("created successfully");
 });
 
@@ -243,7 +215,7 @@ it("test_nl_init_name_selects_the_subdirectory", async () => {
   const ready = agentReady();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--name", "myapp", "--prompt", "一个数据分析环境"]);
+  const result = await runner().invoke(cli, ["template", "init", "-y", "--name", "myapp", "--prompt", "一个数据分析环境"]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -253,88 +225,28 @@ it("test_nl_init_name_selects_the_subdirectory", async () => {
 });
 
 it("test_nl_init_rejects_a_second_directory_argument", async () => {
-  // The description occupies the only positional; a path cannot ride along.
   const tmp = tmpPath();
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION, path.join(tmp, "elsewhere")]);
-
-  expect(result.exit_code).not.toBe(0);
+  const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", _DESCRIPTION, path.join(tmp, "elsewhere"), path.join(tmp, "second")]);
+  expect(result.exit_code).toBe(2);
   expect(exists(path.join(tmp, "elsewhere"))).toBe(false);
 });
 
-it("test_top_level_init_matches_template_init", async () => {
+it("test_nl_init_explicit_directory_keeps_source_local", async () => {
   const tmp = tmpPath();
   const ready = agentReady();
   process.chdir(tmp);
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "explicit"), "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
-  _assertLocalTemplate(path.join(tmp, _TEMPLATE_NAME));
+  _assertLocalTemplate(path.join(tmp, "explicit"));
 });
 
-// ---------------------------------------------------------------------------
-// create: retain the chosen target through deploy + sandbox create
-// ---------------------------------------------------------------------------
-
-it("test_create_keeps_its_target_after_interactive_confirmation", async () => {
-  const tmp = tmpPath();
-  const ready = agentReady();
-  process.chdir(tmp);
-  fakeTty();
-  const create = spyCreate(_sandbox());
-
-  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION], { input: "\ny\n" });
-
-  expect(result.exit_code, _shown(result)).toBe(0);
-  expect(_shown(result)).not.toContain("Switch to template");
-  expect(ready.deploy).toHaveBeenCalledTimes(1);
-  expect(create).toHaveBeenCalledTimes(1);
-  expect(_shown(result)).toContain("sbx-e2e-001");
-});
-
-it("test_create_yes_deploys_and_creates_a_sandbox", async () => {
-  const tmp = tmpPath();
-  const ready = agentReady();
-  process.chdir(tmp);
-  spyCreate(_sandbox());
-
-  const result = await runner().invoke(cli, ["create", "-y", "--prompt", _DESCRIPTION]);
-
-  expect(result.exit_code, _shown(result)).toBe(0);
-  expect(_shown(result)).not.toContain("Switch to template init");
-  expect(ready.deploy).toHaveBeenCalledTimes(1);
-  expect(_shown(result)).toContain("sbx-e2e-001");
-  expect(_shown(result)).toContain("created successfully");
-  expect(exists(path.join(tmp, _TEMPLATE_NAME))).toBe(false);
-});
-
-it("test_sandbox_create_yes_is_the_same_pipeline", async () => {
-  const tmp = tmpPath();
-  const ready = agentReady();
-  process.chdir(tmp);
-  spyCreate(_sandbox());
-
-  const result = await runner().invoke(cli, ["sandbox", "create", "-y", "--prompt", _DESCRIPTION]);
-
-  expect(result.exit_code, _shown(result)).toBe(0);
-  expect(ready.deploy).toHaveBeenCalledTimes(1);
-  expect(_shown(result)).toContain("sbx-e2e-001");
-});
-
-it("test_noninteractive_create_requires_confirmation_and_does_not_launch", async () => {
-  const tmp = tmpPath();
-  const ready = agentReady();
-  process.chdir(tmp);
-  const create = spyCreate();
-
-  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION]);
-
-  expect(result.exit_code).not.toBe(0);
-  const shown = _shown(result);
-  expect(shown).toContain("Confirmation required");
-  expect(ready.deploy).not.toHaveBeenCalled();
-  expect(create).not.toHaveBeenCalled();
+it.each([["create"], ["sandbox", "create"], ["init"]])("removed generation alias is rejected [%s]", async (...command) => {
+  const result = await runner().invoke(cli, [...command.flat(), "--prompt", _DESCRIPTION]);
+  expect(result.exit_code).toBe(2);
+  expect(_shown(result)).toContain("No such command");
 });
 
 // ---------------------------------------------------------------------------
@@ -392,7 +304,7 @@ it("test_nl_init_delivers_a_usable_template_not_just_a_dockerfile", async () => 
   process.chdir(tmp);
   const prompts = _fakeQwen();
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code, _shown(result)).toBe(0);
   expect(ready.deploy).not.toHaveBeenCalled();
@@ -418,7 +330,7 @@ it("test_nl_init_rejects_a_dockerfile_only_result_and_writes_nothing", async () 
   process.chdir(tmp);
   _fakeQwen(null);
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code).not.toBe(0);
   expect(_shown(result)).toContain("commands.py");
@@ -432,64 +344,9 @@ it("test_nl_init_rejects_a_commands_py_that_never_starts_the_server", async () =
   process.chdir(tmp);
   _fakeQwen("print('hello')\n");
 
-  const result = await runner().invoke(cli, ["template", "scaffold", "-y", "--prompt", _DESCRIPTION]);
+  const result = await runner().invoke(cli, ["template", "init", "-y", "--prompt", _DESCRIPTION]);
 
   expect(result.exit_code).not.toBe(0);
   expect(_shown(result)).toContain("SandboxServer");
   expect(exists(path.join(tmp, _TEMPLATE_NAME))).toBe(false);
-});
-
-it("test_create_yes_hands_the_whole_workspace_to_deploy", async () => {
-  const tmp = tmpPath();
-  const ready = realCodegen();
-  process.chdir(tmp);
-  _fakeQwen();
-  spyCreate(_sandbox());
-
-  const result = await runner().invoke(cli, ["create", "-y", "--prompt", _DESCRIPTION]);
-
-  expect(result.exit_code, _shown(result)).toBe(0);
-  expect(ready.deploy).toHaveBeenCalledTimes(1);
-  const built = String(ready.deploy.mock.calls[0]![0]);
-  expect(isFile(path.join(built, "commands.py"))).toBe(true);
-  expect(isFile(path.join(built, "Dockerfile"))).toBe(true);
-  expect(_shown(result)).toContain("sbx-e2e-001");
-});
-
-it("test_create_yes_with_a_dockerfile_only_result_never_deploys", async () => {
-  const tmp = tmpPath();
-  const ready = realCodegen();
-  process.chdir(tmp);
-  _fakeQwen(null);
-  const create = spyCreate();
-
-  const result = await runner().invoke(cli, ["create", "-y", "--prompt", _DESCRIPTION]);
-
-  expect(result.exit_code).not.toBe(0);
-  expect(_shown(result)).toContain("commands.py");
-  expect(ready.deploy).not.toHaveBeenCalled();
-  expect(create).not.toHaveBeenCalled();
-});
-
-// ---------------------------------------------------------------------------
-// No stray directories from misdirected interactive answers
-// ---------------------------------------------------------------------------
-
-it("test_answers_typed_at_the_directory_prompt_leave_no_directories", async () => {
-  // `./pandas`, `./y`, `./2 CPU 4 GB` must never appear in the working directory.
-  const tmp = tmpPath();
-  realCodegen();
-  process.chdir(tmp);
-  fakeTty();
-  _fakeQwen();
-  const before = new Set(fs.readdirSync(tmp));
-
-  // switch=n, directory="pandas" (meant as a clarification answer), confirm=y
-  spyCreate(_sandbox());
-  const result = await runner().invoke(cli, ["create", "--prompt", _DESCRIPTION], { input: "n\npandas\ny\n" });
-
-  expect(result.exit_code, _shown(result)).toBe(0);
-  expect(exists(path.join(tmp, "pandas"))).toBe(false);
-  const created = fs.readdirSync(tmp).filter((name) => !before.has(name));
-  expect(created.every((name) => name === "generated-workspace"), created.join(",")).toBe(true);
 });

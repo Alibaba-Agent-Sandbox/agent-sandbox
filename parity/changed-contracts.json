@@ -6,20 +6,20 @@
       "reason": "Issue #210: user-requested interactive configuration now saves supported credentials by default without a scope selector; existing explicit runtime/environment overrides remain temporary"
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_acr_namespace_failure_happens_before_the_build": {
-      "target": "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_namespace_guidance_is_owned_by_the_plan_aware_build",
-      "reason": "Issue #99: deploy delegates configuration to the plan-aware build, which distinguishes Dockerfile/ACR from platform steps before side effects"
+      "target": "tests/test_cli/test_template_guided_configuration.test.ts::Operation-specific template guidance::launch preparation accepts platform steps with no namespace",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
     },
     "tests/test_cli/test_create_nl.py::TestCreateRouting::test_no_description_no_template_is_usage_error": {
-      "target": "tests/test_cli/test_create_nl.py::TestCreateRouting::test_no_description_no_template_uses_base",
-      "reason": "E2B default template is base; no explicit-route usage error"
+      "target": "tests/test_cli/test_template_commands.py::TestInitInteractivePicker::test_json_mode_never_prompts",
+      "reason": "Issue #244: The implicit create/base fallback is removed; noninteractive init requires an explicit source or case."
     },
     "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::test_bare_create_is_a_usage_error": {
-      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::bare create and positional templates use the standard defaults",
-      "reason": "E2B default template is base"
+      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestDeployRequiresExplicitRoute::rejects a missing route before native creation",
+      "reason": "Issue #244: retired create defaults are replaced by explicit named deployment route validation before creation."
     },
     "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::test_error_lists_all_three_routes": {
-      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::bare create and positional templates use the standard defaults",
-      "reason": "The old route guard is replaced by default-base and positional-template assertions"
+      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestDeployRequiresExplicitRoute::rejects a missing route before native creation",
+      "reason": "Issue #244: retired create defaults are replaced by explicit named deployment route validation before creation."
     },
     "tests/test_agent/test_clarify.py::TestOutcomeDefaults::test_research_outcome_is_bool_compatible": {
       "target": "tests/test_agent/test_clarify.py::TestOutcomeDefaults::test_research_outcome_carries_the_gate_and_reason",
@@ -50,16 +50,16 @@
       "reason": "Issue #103: Writes use only the secure current store; no old-storage migration mode remains."
     },
     "tests/test_cli/test_template_commands.py::TestSandboxYamlAlias::test_install_no_yaml_mentions_both_names": {
-      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
-      "reason": "Issue #103: The canonical missing-template error names template.yaml; retired aliases are rejected."
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::requires template.yaml for a local source and preserves the original",
+      "reason": "Issue #244: Source acquisition requires canonical template.yaml or Dockerfile; retired sandbox.yaml metadata alone does not select a template."
     },
     "tests/test_cli/test_template_commands.py::TestSandboxYamlAlias::test_install_prefers_template_yaml": {
-      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_template_yaml_preferred_over_sandbox_yaml",
-      "reason": "Issue #103: Only canonical metadata is read even when a retired filename is present."
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::requires template.yaml for a local source and preserves the original",
+      "reason": "Issue #244: Source acquisition requires canonical template.yaml or Dockerfile; retired sandbox.yaml metadata alone does not select a template."
     },
     "tests/test_cli/test_template_commands.py::TestSandboxYamlAlias::test_install_sandbox_yaml_only": {
-      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
-      "reason": "Issue #103: Retired metadata filenames cannot install as canonical templates."
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::requires template.yaml for a local source and preserves the original",
+      "reason": "Issue #244: Source acquisition requires canonical template.yaml or Dockerfile; retired sandbox.yaml metadata alone does not select a template."
     },
     "tests/test_cli/test_template_commands.py::TestTemplateCommandErrorHandling::test_delete_404_friendly": {
       "target": "tests/test_cli/test_template_commands.py::TestOfficialTemplateManagementErrors::test_delete_official_error_is_reported",
@@ -78,8 +78,8 @@
       "reason": "Issue #103: Current inventory is the official control-plane list, without a legacy API selector."
     },
     "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_local_install_sandbox_yaml_only": {
-      "target": "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_retired_sandbox_yaml_does_not_supply_template_metadata",
-      "reason": "Issue #103: The old successful-alias installation is replaced by a rejection regression."
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::requires template.yaml for a local source and preserves the original",
+      "reason": "Issue #244: Canonical source detection replaces retired sandbox.yaml metadata aliases; source acquisition does not validate deployment schema."
     },
     "tests/test_agent/test_template_guide.py::TestGuideText::test_capability_tokens_are_the_standard_ones": {
       "target": "tests/test_agent/test_template_guide.py::TestGuideText::test_describes_whole_template_startup",
@@ -115,24 +115,484 @@
       "reason": "Issue #175: AccessKey identifiers follow provider-owned UI sensitivity; output is masked while stored and resolved authentication values remain exact."
     },
     "tests/test_cli/test_create_nl.py::TestTemplateOnlySwitch::test_tty_yes_writes_template_and_skips_build": {
-      "target": "tests/test_cli/test_create_nl.py::TestNaturalLanguageCreateTarget::creates a sandbox without asking to change the selected target",
-      "reason": "Natural-language create keeps its chosen target; local-only generation remains template scaffold --prompt."
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_writes_local_files_without_deploy",
+      "reason": "Issue #244: The source-only switch is removed because all init calls are source-only."
     },
     "tests/test_cli/test_create_nl.py::TestTemplateOnlySwitch::test_yes_flag_skips_the_switch_and_deploys": {
-      "target": "tests/test_cli/test_create_nl.py::TestCreateRouting::test_ai_flow_with_yes_creates_from_deployed_template",
-      "reason": "Natural-language create always follows the creation pipeline; --yes keeps its noninteractive behavior."
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_writes_local_files_without_deploy",
+      "reason": "Issue #244: --yes no longer turns authoring into deployment; init always preserves local source."
     },
     "tests/test_cli/test_sandbox_commands.py::TestKill::test_kill_abort": {
       "target": "tests/test_cli/test_sandbox_commands.py::TestKill::honors interactive kill confirmation n",
       "reason": "Native kill requires a terminal for confirmation; the rejection regression explicitly simulates one."
     },
     "tests/integration/test_nl_template_init_e2e.py::test_create_switch_stops_after_the_local_template": {
-      "target": "tests/integration/test_nl_template_init_e2e.py::test_create_keeps_its_target_after_interactive_confirmation",
-      "reason": "Natural-language create retains the creation target; scaffold remains local-only."
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_writes_under_cwd_and_does_not_deploy",
+      "reason": "Issue #244: The combined generate/deploy and source-switch routes are retired; template init writes source and makes zero cloud calls."
     },
     "tests/integration/test_nl_template_init_e2e.py::test_noninteractive_create_reminds_about_init_and_does_not_launch": {
-      "target": "tests/integration/test_nl_template_init_e2e.py::test_noninteractive_create_requires_confirmation_and_does_not_launch",
-      "reason": "Noninteractive create keeps the build confirmation without repeating alternative command targets."
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_writes_under_cwd_and_does_not_deploy",
+      "reason": "Issue #244: The combined generate/deploy and source-switch routes are retired; template init writes source and makes zero cloud calls."
+    },
+    "tests/test_cli/test_create_backend.py::TestBackendDecoupling::test_complete_assessment_reaches_the_confirmation_gate": {
+      "target": "tests/test_cli/test_create_backend.py::TestBackendDecoupling::test_complete_assessment_generates_source_without_cloud_work",
+      "reason": "Issue #244: backend clarification generates source through init without the removed deployment confirmation gate."
+    },
+    "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestCreateRequiresExplicitRoute::test_explicit_base_still_routes_to_base": {
+      "target": "tests/test_cli/test_create_route_guard_and_unknown_cmd.py::TestDeployRequiresExplicitRoute::rejects a missing route before native creation",
+      "reason": "Issue #244: retired create defaults are replaced by explicit named deployment route validation before creation."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_answers_typed_at_the_directory_prompt_leave_no_directories": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_explicit_directory_keeps_source_local",
+      "reason": "Issue #244: The single init entry owns an explicit source destination, replacing ambiguous prompt switching and the root alias."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_create_yes_deploys_and_creates_a_sandbox": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_writes_under_cwd_and_does_not_deploy",
+      "reason": "Issue #244: The combined generate/deploy and source-switch routes are retired; template init writes source and makes zero cloud calls."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_create_yes_hands_the_whole_workspace_to_deploy": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_delivers_a_usable_template_not_just_a_dockerfile",
+      "reason": "Issue #244: The whole usable workspace is delivered locally; implicit deployment handoff is removed."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_create_yes_with_a_dockerfile_only_result_never_deploys": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_rejects_a_dockerfile_only_result_and_writes_nothing",
+      "reason": "Issue #244: Invalid generated server source is rejected by init before any local delivery or cloud work."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_sandbox_create_yes_is_the_same_pipeline": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_writes_under_cwd_and_does_not_deploy",
+      "reason": "Issue #244: The combined generate/deploy and source-switch routes are retired; template init writes source and makes zero cloud calls."
+    },
+    "tests/integration/test_nl_template_init_e2e.py::test_top_level_init_matches_template_init": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_explicit_directory_keeps_source_local",
+      "reason": "Issue #244: The single init entry owns an explicit source destination, replacing ambiguous prompt switching and the root alias."
+    },
+    "tests/test_cli/test_create_nl.py::TestConfirmationAndFailures::test_build_failure_propagates": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::retains failed preparation and only cleans an unused artifact",
+      "reason": "Issue #244: Generation no longer builds; preparation failure and recoverable ownership are tested through template build."
+    },
+    "tests/test_cli/test_create_nl.py::TestConfirmationAndFailures::test_non_tty_without_yes_requires_confirmation": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_writes_local_files_without_deploy",
+      "reason": "Issue #244: Source generation is separate from billable deployment and no longer asks for deployment consent."
+    },
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_ai_flow_with_yes_creates_from_deployed_template": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_writes_local_files_without_deploy",
+      "reason": "Issue #244: The generate/build/create pipeline is removed; init produces editable source and starts no deployment."
+    },
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_create_falls_back_to_template_name_when_no_id": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
+      "reason": "Issue #244: Build returns an explicit prepared reference; implicit create-time fallback to a generated template name is retired."
+    },
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_description_with_explicit_template_is_rejected": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_rejects_scaffold_flags",
+      "reason": "Issue #244: Conflicting natural-language and built-in/source authoring inputs are rejected at template init."
+    },
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_description_with_template_and_missing_template_value_still_errors": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_rejects_scaffold_flags",
+      "reason": "Issue #244: The create parser is retired; init owns incompatible authoring modes."
+    },
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_explicit_template_bypasses_codegen": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
+      "reason": "Issue #244: Built-in init remains deterministic and does not invoke a coding agent; native deployment is separately tested."
+    },
+    "tests/test_cli/test_create_nl.py::TestCreateRouting::test_json_mode_suppresses_generated_summary": {
+      "target": "tests/test_cli/test_create_nl.py::TestPhaseStatusChannels::test_json_mode_progress_on_stderr_stdout_machine_readable",
+      "reason": "Issue #244: The current source generation result keeps JSON stdout separate from progress."
+    },
+    "tests/test_cli/test_create_nl.py::TestDescriptionClarification::test_complete_description_skips_questions_and_reaches_confirm_gate": {
+      "target": "tests/test_cli/test_create_nl.py::TestDescriptionClarification::test_complete_description_skips_questions_and_writes_source",
+      "reason": "Issue #244: Complete descriptions generate local source without the removed cloud confirmation gate."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_answer_at_the_directory_prompt_creates_no_directory": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_tty_directory_answer_is_the_project_directory",
+      "reason": "Issue #244: Init explicitly owns the directory prompt; an accepted answer is the selected source destination."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_default_location_when_dir_omitted_and_not_interactive": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_writes_local_files_without_deploy",
+      "reason": "Issue #244: Init preserves the default local source destination without creating cloud resources."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_dir_pointing_at_a_file_is_rejected": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_tty_rejects_a_file_before_generation",
+      "reason": "Issue #244: Authoring rejects a file destination before model generation."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_dir_without_description_is_a_usage_error": {
+      "target": "tests/test_cli/test_template_commands.py::TestInitInteractivePicker::test_json_mode_never_prompts",
+      "reason": "Issue #244: A destination alone is insufficient to select a generation mode in noninteractive init."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_explicit_dir_is_used_as_parent_and_not_created_by_validation": {
+      "target": "tests/integration/test_nl_template_init_e2e.py::test_nl_init_explicit_directory_keeps_source_local",
+      "reason": "Issue #244: The positional init destination is the actual project directory, replacing create --dir parent semantics."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_tty_prompt_answer_is_used": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_tty_directory_answer_is_the_project_directory",
+      "reason": "Issue #244: The directory prompt now belongs to local init."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_tty_prompts_and_enter_accepts_the_default": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_tty_asks_for_a_directory_and_enter_keeps_the_default",
+      "reason": "Issue #244: Init preserves interactive default-directory selection."
+    },
+    "tests/test_cli/test_create_nl.py::TestOutputDir::test_unwritable_parent_is_rejected_without_creating_anything": {
+      "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_tty_existing_files_fail_before_generation",
+      "reason": "Issue #244: Create-time parent-directory probing is retired; init refuses unsafe existing destinations before model generation."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_auth_token_file": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_custom_domain": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_custom_name_region": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_empty_auth_token_file_is_refused": {
+      "target": "tests/test_agent/test_mcp_http.py::TestRequireAuthToken::test_rejects_empty_token",
+      "reason": "Issue #244: FC-specific token-file generation is removed; deployed HTTP MCP uses a runtime token and refuses empty authentication."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_explicit_api_key": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_generate_token": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_help": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_missing_token_is_refused": {
+      "target": "tests/test_agent/test_mcp_http.py::TestRequireAuthToken::test_rejects_empty_token",
+      "reason": "Issue #244: FC-specific token-file generation is removed; deployed HTTP MCP uses a runtime token and refuses empty authentication."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_no_api_key_warning": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_no_session_affinity_flag": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_output_dir": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_session_affinity_flag": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_mcp_commands.py::TestMcpDeploy::test_deploy_without_output_dir": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::renders a deployable MCP service without embedding local secrets",
+      "reason": "Issue #244: The FC generator and its deploy flags are removed. init --template mcp renders editable Sandbox HTTP source, with runtime authentication and no embedded local keys; platform targeting uses ordinary deployment configuration."
+    },
+    "tests/test_cli/test_template_adopt.py::TestAdopt::test_writes_only_reserved_files_and_then_deploy_is_unchanged": {
+      "target": "tests/test_cli/test_template_adopt.py::TestAdopt::test_writes_only_reserved_files_without_deploying",
+      "reason": "Issue #244: Adoption still writes only reserved files; cloud deployment is now a separate named lifecycle."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_builtin": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
+      "reason": "Issue #244: Built-in install and root install aliases are removed; built-in authoring uses template init."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_builtin_code_interpreter": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
+      "reason": "Issue #244: Built-in install alias is retired; deterministic built-in source authoring uses init, while native template IDs use deploy --template-id."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_help_discloses_cloud_costs": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
+      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_shortcut_builtin": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
+      "reason": "Issue #244: Built-in install and root install aliases are removed; built-in authoring uses template init."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_shortcut_help": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateGroup::test_template_list_subcommands",
+      "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_shortcut_help_discloses_cloud_costs": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
+      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallDirOption::test_install_dir_deploy_passes_template_dir": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Install flags are replaced by init --from; source acquisition copies bytes without implicit build or deployment."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallDirOption::test_install_dir_download_only": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Install flags are replaced by init --from; source acquisition copies bytes without implicit build or deployment."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallDirOption::test_install_dir_nonempty_errors": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::does not replace existing source without --force",
+      "reason": "Issue #244: Source-only init preserves the destination overwrite boundary."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallDirOption::test_install_shortcut_dir_option": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateGroup::test_template_list_subcommands",
+      "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallFullPipeline::test_install_deploy_with_yes": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
+      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallFullPipeline::test_install_missing_acr_namespace_error": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
+      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallFullPipeline::test_install_non_tty_without_yes_raises": {
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
+      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_help_shows_local_example": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateGroup::test_template_list_subcommands",
+      "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_help_shows_registry_type": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateGroup::test_template_list_subcommands",
+      "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_invalid_registry_type": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::rejects an invalid registry type before source acquisition",
+      "reason": "Issue #244: source registry selection belongs to init and rejects unknown registry types."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_local_template": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Install flags are replaced by init --from; source acquisition copies bytes without implicit build or deployment."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_platform_400_friendly": {
+      "target": "tests/test_cli/test_template_commands.py::TestOfficialTemplateManagementErrors::test_info_official_error_is_reported",
+      "reason": "Issue #244: Source acquisition no longer calls a cloud template API; native control-plane errors remain surfaced by the Provider management adapter."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_shortcut_has_registry_type": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateGroup::test_template_list_subcommands",
+      "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallSubdirFormat::test_install_help_shows_subdir_examples": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::extracts a pinned GitHub subdirectory without cloud work",
+      "reason": "Issue #244: Git subdirectory acquisition remains available through init --from, separate from deployment."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallSubdirFormat::test_install_shortcut_subdir_help": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::extracts a pinned GitHub subdirectory without cloud work",
+      "reason": "Issue #244: Git subdirectory acquisition remains available through init --from, separate from deployment."
+    },
+    "tests/test_cli/test_template_commands.py::TestInstallSubdirFormat::test_install_subdir_builtin_passthrough": {
+      "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
+      "reason": "Issue #244: Built-in install and root install aliases are removed; built-in authoring uses template init."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstallFailures::test_directory_without_yaml_or_dockerfile": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::requires template.yaml for a local source and preserves the original",
+      "reason": "Issue #244: Canonical source detection replaces retired sandbox.yaml metadata aliases; source acquisition does not validate deployment schema."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstallFailures::test_dockerfile_only_is_accepted_but_has_no_yaml": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::directs Dockerfile-only projects to adoption without copying source",
+      "reason": "Issue #244: Dockerfile-only local projects now use explicit adoption; init --from refuses to copy them without canonical template metadata and leaves source intact."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstallFailures::test_invalid_yaml_is_rejected": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies malformed source for editing without executing YAML tags",
+      "reason": "Issue #244: Source-only acquisition deliberately permits future/malformed manifests for editing without evaluating YAML tags; build/deploy validate separately."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstallFailures::test_missing_directory": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::refuses a missing local path without writing output",
+      "reason": "Issue #244: Missing local sources remain a failure before destination writes."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstall::test_local_install_alias_override": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Init replaces install/cache/deploy coupling with an explicit editable source destination and JSON directory result; no alias changes the template identity."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstall::test_local_install_caches_template_files": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Init replaces install/cache/deploy coupling with an explicit editable source destination and JSON directory result; no alias changes the template identity."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstall::test_local_install_json_output": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Init replaces install/cache/deploy coupling with an explicit editable source destination and JSON directory result; no alias changes the template identity."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstall::test_local_install_long_form_equivalent": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Init replaces install/cache/deploy coupling with an explicit editable source destination and JSON directory result; no alias changes the template identity."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstall::test_local_install_relative_path_autodetected": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Init replaces install/cache/deploy coupling with an explicit editable source destination and JSON directory result; no alias changes the template identity."
+    },
+    "tests/test_templates/test_local_install.py::TestLocalInstall::test_local_install_succeeds": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
+      "reason": "Issue #244: Init replaces install/cache/deploy coupling with an explicit editable source destination and JSON directory result; no alias changes the template identity."
+    },
+    "tests/test_templates/test_local_install.py::TestMockedGithubInstallFailures::test_github_install_missing_subdir_fails": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::rejects a missing Git subdirectory without copying output",
+      "reason": "Issue #244: Git source selection refuses absent subdirectories before copying output."
+    },
+    "tests/test_templates/test_local_install.py::TestMockedGithubInstall::test_github_install_alias_override": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::extracts a pinned GitHub subdirectory without cloud work",
+      "reason": "Issue #244: The real archive extraction and copied source bytes remain tested through init --from; no implicit installation/deployment."
+    },
+    "tests/test_templates/test_local_install.py::TestMockedGithubInstall::test_github_install_default_branch_no_ref": {
+      "target": "tests/test_utils/test_registry.py::TestRegistryClientFetch::test_fetch_no_ref_uses_default_cache_key",
+      "reason": "Issue #244: Default Git refs continue using the existing Registry cache contract; init only acquires source."
+    },
+    "tests/test_templates/test_local_install.py::TestMockedGithubInstall::test_github_install_subdir": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::extracts a pinned GitHub subdirectory without cloud work",
+      "reason": "Issue #244: The real archive extraction and copied source bytes remain tested through init --from; no implicit installation/deployment."
+    },
+    "tests/test_templates/test_local_install.py::TestMockedGithubInstall::test_github_install_uses_cache_on_second_run": {
+      "target": "tests/test_utils/test_registry.py::TestRegistryClientFetch::test_fetch_with_ref_hits_ref_tarball_and_cache",
+      "reason": "Issue #244: The real two-fetch Registry cache contract remains independently tested rather than duplicated in an install/deploy UI."
+    },
+    "tests/test_templates/test_local_install.py::TestMockedGithubInstall::test_github_install_whole_repo_without_subdir_fails": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::rejects a missing Git subdirectory without copying output",
+      "reason": "Issue #244: Git source selection refuses absent subdirectories before copying output."
+    },
+    "tests/test_templates/test_local_install.py::TestOfflineGuard::test_dns_resolution_is_blocked": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::keeps the offline network tripwire active",
+      "reason": "Issue #244: The source-only suite retains actual DNS and TCP tripwires."
+    },
+    "tests/test_templates/test_local_install.py::TestOfflineGuard::test_tcp_connect_is_blocked": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::keeps the offline network tripwire active",
+      "reason": "Issue #244: The source-only suite retains actual DNS and TCP tripwires."
+    },
+    "tests/test_templates/test_local_install.py::TestSandboxYamlAliasInstall::test_template_yaml_preferred_over_sandbox_yaml": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::requires template.yaml for a local source and preserves the original",
+      "reason": "Issue #244: Canonical source detection replaces retired sandbox.yaml metadata aliases; source acquisition does not validate deployment schema."
+    },
+    "tests/test_templates/test_local_install.py::TestTarballFixture::test_tarball_contains_every_fixture_template": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::extracts a pinned GitHub subdirectory without cloud work",
+      "reason": "Issue #244: The real archive extraction and copied source bytes remain tested through init --from; no implicit installation/deployment."
+    },
+    "tests/test_templates/test_local_install.py::TestTarballFixture::test_tarball_extracts_to_loadable_templates": {
+      "target": "tests/test_templates/test_local_install.py::template init source acquisition::extracts a pinned GitHub subdirectory without cloud work",
+      "reason": "Issue #244: The real archive extraction and copied source bytes remain tested through init --from; no implicit installation/deployment."
+    },
+    "tests/test_cli/test_region_options.py::TestMcpDeployRegionSemantics::test_cli_region_overrides_config_file": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_cli_region_beats_config_file",
+      "reason": "MCP deployment UI is retired; template init --template mcp authors source. Existing shared region precedence remains tested without restoring a second deployment route."
+    },
+    "tests/test_cli/test_region_options.py::TestMcpDeployRegionSemantics::test_default_region": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_default_when_nothing_configured",
+      "reason": "MCP deployment UI is retired; template init --template mcp authors source. Existing shared region precedence remains tested without restoring a second deployment route."
+    },
+    "tests/test_cli/test_region_options.py::TestMcpDeployRegionSemantics::test_explicit_region_still_wins_over_env": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_cli_region_beats_env_var",
+      "reason": "MCP deployment UI is retired; template init --template mcp authors source. Existing shared region precedence remains tested without restoring a second deployment route."
+    },
+    "tests/test_cli/test_region_options.py::TestMcpDeployRegionSemantics::test_falls_back_to_config_file": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_config_file_fallback",
+      "reason": "MCP deployment UI is retired; template init --template mcp authors source. Existing shared region precedence remains tested without restoring a second deployment route."
+    },
+    "tests/test_cli/test_region_options.py::TestMcpDeployRegionSemantics::test_falls_back_to_env_var": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_env_var_fallback",
+      "reason": "MCP deployment UI is retired; template init --template mcp authors source. Existing shared region precedence remains tested without restoring a second deployment route."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionOptionPlacement::test_local_command_help_hides_region": {
+      "target": "tests/test_cli/test_region_options.py::Unified region selection::does not advertise a second global region spelling",
+      "reason": "Unified CLI uses --provider and --opt region=VALUE; regional provider operations keep their schema-owned options. Retired root/template regional flags are no longer advertised."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionOptionPlacement::test_local_command_rejects_region_flag": {
+      "target": "tests/test_cli/test_region_options.py::Unified region selection::rejects both retired global region spellings before I/O",
+      "reason": "One frontend rejects both retired global region spellings before any network action."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionOptionPlacement::test_regional_command_help_shows_region": {
+      "target": "tests/test_cli/test_region_options.py::Unified region selection::does not advertise a second global region spelling",
+      "reason": "Unified CLI uses --provider and --opt region=VALUE; regional provider operations keep their schema-owned options. Retired root/template regional flags are no longer advertised."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionReachesTransportConfig::test_kill_all_forwards_region_to_load_config": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionReachesTransportConfig::test_list_forwards_region_to_load_config": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionReachesTransportConfig::test_sandbox_list_command_region_reaches_http_client": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionReachesTransportConfig::test_sandbox_list_falls_back_to_config_file": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_config_file_fallback",
+      "reason": "Stored region resolution is shared by the unified management commands."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionReachesTransportConfig::test_template_list_default_region": {
+      "target": "tests/test_cli/test_region_options.py::TestResolveRegionPriority::test_default_when_nothing_configured",
+      "reason": "Native template CRUD now uses provider run; shared default region stays unchanged."
+    },
+    "tests/test_cli/test_region_options.py::TestRegionReachesTransportConfig::test_template_list_forwards_region_to_load_config": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::native provider management uses its local --region ahead of stored defaults",
+      "reason": "Cloud template inventory moved to provider run template.list; exact SDK call receives the explicitly selected region."
+    },
+    "tests/test_cli/test_region_options.py::TestRootOptionRemoved::test_old_global_region_fails_with_click_error": {
+      "target": "tests/test_cli/test_region_options.py::Unified region selection::rejects both retired global region spellings before I/O",
+      "reason": "One frontend rejects both retired global region spellings before any network action."
+    },
+    "tests/test_cli/test_region_options.py::TestRootOptionRemoved::test_old_global_short_flag_fails": {
+      "target": "tests/test_cli/test_region_options.py::Unified region selection::rejects both retired global region spellings before I/O",
+      "reason": "One frontend rejects both retired global region spellings before any network action."
+    },
+    "tests/test_cli/test_region_options.py::TestRootOptionRemoved::test_root_help_has_no_region": {
+      "target": "tests/test_cli/test_region_options.py::Unified region selection::does not advertise a second global region spelling",
+      "reason": "Unified CLI uses --provider and --opt region=VALUE; regional provider operations keep their schema-owned options. Retired root/template regional flags are no longer advertised."
+    },
+    "tests/test_cli/test_region_options.py::TestShortcutForwarding::test_kill_all_accepts_region_flag": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_region_options.py::TestShortcutForwarding::test_template_deploy_alias_inherits_region_param": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_region_options.py::TestShortcutForwarding::test_top_level_install_accepts_region": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_region_options.py::TestShortcutForwarding::test_top_level_install_forwards_region_to_template_install": {
+      "target": "tests/test_cli/test_region_options.py::Provider region routing::passes generic --opt region through the actual root parser for list",
+      "reason": "Duplicate sandbox list/kill-all/install/deploy aliases are retired; actual main argv validates explicit Provider region precedence and forwarding for unified management. Source acquisition now uses template init without cloud region."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_a_description_is_not_accepted": {
+      "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_ai_options_are_gone": {
+      "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_delegates_to_build_with_project_dir": {
+      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_explicit_dockerfile_option_skips_the_check": {
+      "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_help_has_no_ai_options_and_points_at_template_init": {
+      "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_missing_dockerfile_points_at_template_init": {
+      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::rejects an invalid manifest during preview",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_never_touches_the_coding_agent_or_llm_keys": {
+      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_nonexistent_path_is_rejected": {
+      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::rejects an invalid manifest during preview",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_path_defaults_to_current_directory": {
+      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_shares_every_template_build_option": {
+      "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_verbose_is_accepted": {
+      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
+      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+    },
+    "tests/integration/test_progress_activity_e2e.py::test_kill_all_lists_ids_under_the_header": {
+      "target": "tests/test_cli/test_command_surface.py::one command contract::rejects removed root kill",
+      "reason": "Issue #244: Account-wide kill --all and its progress header are retired; root delete requires an explicit name or ID. The command-contract regression verifies the retired entry is rejected."
     }
   }
 }

@@ -17,8 +17,8 @@ import { shlexQuote } from "../../api/_shlex.js";
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {
   // Imported lazily like the Python helper: the SDK loggers must be created after the CLI's logging bridge is
   // installed by the root group callback, otherwise `--verbose` cannot lower the package logger level.
-  const { Sandbox } = await import("../../api/sandbox.js");
-  return Sandbox.connect(sandbox_id);
+  const { connectSandboxTarget } = await import("../deployment_store.js");
+  return connectSandboxTarget(sandbox_id);
 }
 
 /** Python `str.split(None, maxsplit)`: leading whitespace ignored, the unsplit remainder keeps trailing whitespace. */
@@ -59,7 +59,7 @@ export const process_list = command("list", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox process info SANDBOX_ID PID\n" +
-    "  abx exec SANDBOX_ID --background -- CMD\n" +
+    "  abx sandbox exec --background SANDBOX_ID -- CMD\n" +
     "  abx sandbox system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
@@ -212,7 +212,7 @@ export const process_signal = command("signal", {
     "Related commands:\n" +
     "  abx sandbox process info SANDBOX_ID PID\n" +
     "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx exec SANDBOX_ID --background -- CMD",
+    "  abx sandbox exec --background SANDBOX_ID -- CMD",
   params: [
     argument(["sandbox_id"]),
     argument(["pid"], { type: INT }),
@@ -241,7 +241,7 @@ export const process_signal = command("signal", {
 
 export const process = group("process", {
   help:
-    "Inspect and signal processes inside a sandbox (to start one: abx exec --background).\n" +
+    "Inspect and signal processes inside a sandbox (to start one: abx sandbox exec --background).\n" +
     "\n" +
     "\b\n" +
     "Examples:\n" +
@@ -250,7 +250,7 @@ export const process = group("process", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx exec SANDBOX_ID --background -- CMD\n" +
+    "  abx sandbox exec --background SANDBOX_ID -- CMD\n" +
     "  abx sandbox system metrics SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);

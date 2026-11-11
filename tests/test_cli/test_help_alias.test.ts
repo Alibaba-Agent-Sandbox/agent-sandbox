@@ -134,20 +134,20 @@ describe("TestRunPassthroughCompatibility", () => {
 
   it("test_dash_h_shows_help_without_connecting", async () => {
     const connect = vi.spyOn(Sandbox, "connect").mockImplementation((async () => undefined) as never);
-    const result = await new CliRunner().invoke(cli, ["run", "sbx-1", "build", "-h"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build", "-h"]);
 
     expect(result.exit_code).toBe(0);
-    expect(result.output.startsWith("Usage: abx run")).toBe(true);
+    expect(result.output.startsWith("Usage: abx sandbox command run")).toBe(true);
     expect(connect).not.toHaveBeenCalled();
     connect.mockRestore();
   });
 
   it("test_double_dash_help_also_skips_connect", async () => {
     const connect = vi.spyOn(Sandbox, "connect").mockImplementation((async () => undefined) as never);
-    const result = await new CliRunner().invoke(cli, ["run", "sbx-1", "build", "--help"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build", "--help"]);
 
     expect(result.exit_code).toBe(0);
-    expect(result.output.startsWith("Usage: abx run")).toBe(true);
+    expect(result.output.startsWith("Usage: abx sandbox command run")).toBe(true);
     expect(connect).not.toHaveBeenCalled();
     connect.mockRestore();
   });
@@ -156,7 +156,7 @@ describe("TestRunPassthroughCompatibility", () => {
     // Named-command arguments are passed with --arg KEY=VALUE or --json-args; stray options are usage errors.
     const connect = vi.spyOn(Sandbox, "connect");
 
-    const result = await new CliRunner().invoke(cli, ["run", "sbx-1", "deploy", "--target", "staging"]);
+    const result = await new CliRunner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "deploy", "--target", "staging"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No such option");

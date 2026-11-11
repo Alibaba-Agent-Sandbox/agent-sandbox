@@ -7,6 +7,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Context, command } from "../../src/cli/kit.js";
 import { cli } from "../../src/cli/main.js";
+import { providerTemplateCli } from "../helpers/providerTemplateCli.js";
 import { guidanceSeams } from "../../src/cli/config_guidance.js";
 import * as guidance from "../../src/cli/config_guidance.js";
 import { getOperationConfig } from "../../src/utils/operation_config.js";
@@ -15,7 +16,7 @@ import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extensio
 import { _buildImage, templateSeams, withDeployConfiguration } from "../../src/providers/alicloud_express/cli/template.js";
 import { templateSeams as catalogSeams } from "../../src/cli/template_catalog.js";
 import { prepareTemplateBuildInputs } from "../../src/cli/template_project.js";
-import { launchTemplate } from "../../src/cli/template_launch.js";
+import { executeTemplateLaunch } from "../../src/cli/template_launch.js";
 import { RegistryClient } from "../../src/utils/registry.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { fakeConfig, patchLoadConfig, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
@@ -49,7 +50,7 @@ describe("Operation-specific template guidance", () => {
     if (kind === "file") fs.writeFileSync(source, "file");
     if (kind === "missing template") fs.mkdirSync(source);
     const expected = kind === "file" ? "not a directory" : kind === "missing template" ? "no template.yaml" : "does not exist";
-    await expect(launchTemplate(context(), { yes: true, template_ref: source })).rejects.toThrow(expected);
+    await expect(executeTemplateLaunch(context(), { yes: true, template_ref: source })).rejects.toThrow(expected);
   });
 
   it("rechecks Docker after a manual fix without repeating a build", async () => {
@@ -97,11 +98,11 @@ describe("Operation-specific template guidance", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it.each([["deploy"], ["template", "deploy"], ["template", "build"]])("reports the complete official build requirements before Docker: %s", async (...prefix) => {
+  it.each([["template", "deploy"], ["template", "build"]])("reports the complete official build requirements before Docker: %s", async (...prefix) => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null, api_key: "" }));
     const deploy = vi.spyOn(templateSeams, "_doDeploy");
     const build = vi.spyOn(templateSeams, "_buildImage");
-    const result = await new CliRunner().invoke(cli, [...prefix, project(), "-y", "--acr-username", "push-user", "--acr-password", "placeholder"]);
+    const result = await new CliRunner().invoke(providerTemplateCli, [...prefix, project(), "-y", "--acr-username", "push-user", "--acr-password", "placeholder"]);
     expect(result.exit_code, result.output).toBe(1);
     for (const key of ["acr_namespace", "access_key_id", "access_key_secret"]) expect(result.output).toContain(key);
     expect(result.output).not.toContain("sandbox_api_key");
@@ -159,7 +160,8 @@ describe("Operation-specific template guidance", () => {
     vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(error);
     const ctx = context(); ctx.params = { yes: true };
     await expect(CLI_EXTENSION.prepareProject(project(true), preparation(), ctx)).rejects.toBe(error);
-    expect(error.suggestion).toContain("abx template info pending-timeout");
+    expect(error.suggestion).toContain("abx provider run template.get");
+    expect(error.suggestion).toContain(JSON.stringify({ template_id: "pending-timeout" }));
     expect(error.suggestion).not.toContain("Increase the build timeout");
   });
 
@@ -191,26 +193,26 @@ describe("Operation-specific template guidance", () => {
 
   it("checks launch creation identity before downloading remote source", async () => {
     const fetch = vi.spyOn(RegistryClient.prototype, "fetch");
-    await expect(launchTemplate(context(), { yes: true, template_ref: "owner/repo" })).rejects.toThrow("sandbox_api_key");
+    await expect(executeTemplateLaunch(context(), { yes: true, template_ref: "owner/repo" })).rejects.toThrow("sandbox_api_key");
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("push does not request a Sandbox API key or platform registration identity", async () => {
     patchLoadConfig(fakeConfig({ api_key: "", access_key_id: null, access_key_secret: null }));
     const push = vi.spyOn(templateSeams, "_pushImage").mockResolvedValue(["registry/ns/local:latest", []]);
-    const result = await new CliRunner().invoke(cli, ["template", "push", "local:latest", "--acr-namespace", "ns", "--acr-username", "push-user", "--acr-password", "placeholder"]);
+    const result = await new CliRunner().invoke(providerTemplateCli, ["template", "push", "local:latest", "--acr-namespace", "ns", "--acr-username", "push-user", "--acr-password", "placeholder"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(push).toHaveBeenCalledOnce();
   });
 
-  it("keeps a downloaded template when configuration is missing", async () => {
+  it("copies source without requiring cloud configuration", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
     const source = project();
     const destination = path.join(tmpPath(), "downloaded");
-    const result = await new CliRunner().invoke(cli, ["template", "install", source, "--dir", destination, "-y"]);
-    expect(result.exit_code).toBe(1);
+    const result = await new CliRunner().invoke(cli, ["template", "init", destination, "--from", source]);
+    expect(result.exit_code, result.output).toBe(0);
     expect(fs.existsSync(path.join(destination, "template.yaml"))).toBe(true);
-    expect(result.output).toContain("access_key_id");
+    expect(result.output).not.toContain("access_key_id");
   });
 
   it("offers initialization for an existing project while retaining business files", async () => {

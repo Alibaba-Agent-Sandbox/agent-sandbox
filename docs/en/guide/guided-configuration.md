@@ -1,126 +1,39 @@
 # Guided configuration
 
-## Initialize, find and create
-
-Run `abx config init` after installation. The wizard explains where to obtain the selected provider's credentials and saves the values you enter. It generates an application access token when one is missing; existing tokens are kept. Choose **Find and launch a template**, search by name or purpose, and select the template. Any missing build settings are filled in the same operation before cloud work. The CLI then prints the sandbox, application-command and cleanup information.
-
-You can also run `abx template launch` without a reference to open the same picker, or `abx template launch opencode` to select a known catalog entry. Automation supplies a reference and all required values before using `--yes`; it never opens the picker.
-
-Application authentication is automatic. When a template declares application authentication and you have not configured a credential, the CLI generates a random token, stores it in its owner-only local credential file and supplies it when the application starts. Later CLI commands reuse it without another prompt, including when launching with `--yes`. A read-only configuration directory stops launch before template preparation or sandbox creation.
-
-For a custom credential or an external SDK/HTTP client, `ABX_SERVER_TOKEN` is the private token protecting the application API. It is separate from your Sandbox API key, cloud AccessKeys and model API keys and does not come from a cloud console. Choose a long random token yourself and set it before launch, or run `abx config set server_token` for hidden input. External clients must use the same token for their application requests. An explicit `-e ABX_SERVER_TOKEN=...` takes priority and is not saved automatically. If you supply an explicit token, keep it available for later calls; changing a local value does not update an already running application.
-
-`server_token` is a CLI-only configuration key stored as `ABX_SERVER_TOKEN` in the protected user dotenv file. Template creation, application verification and later `abx run` calls use the same value. To replace it, run `abx config set server_token` for hidden input. A template that declares no application token remains unchanged. Only declared, empty model inputs can inherit the saved CLI model profile; explicit runtime values and template defaults keep priority.
-
-The Python SDK is a library: pass parameters or use its documented environment/dotenv/configuration sources. It does not run this wizard, prompt for missing configuration or gain SDK setup commands.
-
-
-When an operation needs configuration, `abx` checks the selected Provider and the operation's build or execution plan before starting work. In an interactive terminal, it can collect missing values and continue that operation. An account permission, quota, network failure, or unsupported capability still requires the corresponding remedy; it is not treated as a missing API key.
-
-For the complete field and precedence rules, see the [configuration reference](../reference/configuration.md), [authentication](authentication.md), and [Providers guide](providers.md). The [migration guide](migrate-from-e2b.md) describes the separate standard and native command surfaces.
-
-`abx create --prompt "DESCRIPTION"` generates and launches a sandbox. To generate local files only, use `abx template scaffold --prompt "DESCRIPTION"`. Create does not ask you to choose this goal again.
-
-## Configure and continue
-
-Run a command normally to use its setup flow:
-
-```bash
-abx create dev-services
-abx template deploy ./dev-services --alias dev-services
-```
-
-Interactive setup saves supported settings to your current user's local configuration automatically. Later commands reuse them, so there is no save-scope menu. The prompt briefly identifies the provider, region and API host and explains where to obtain the requested credential. Detailed configuration-source diagnostics are available with `--verbose`; AK/SK management permissions and consent are explained when that path is used.
-
-For a temporary override, use the command's existing options or documented environment variables. Already supplied values are used without being copied into saved configuration. **Ctrl+C** or empty input cancels missing-value collection before saving.
-
-Secrets use hidden input. An invalid typed value can be entered again. Empty input cancels missing-value collection; it does not delete an existing credential. Inputs are collected before persistent writes begin. Each supported file write is atomic, but saving several fields is not a transaction: if a later write or cleanup fails, the diagnostic identifies completed fields or a possibly written field and the operation stops.
-
-Environment variables and project `.env` retain their precedence. If they override a newly saved value, setup reports the conflict before continuing. Detailed save locations are available with `--verbose` and `abx config list`.
-
-## Ask only for the current operation
-
-| Operation | Configuration checked |
-| --- | --- |
-| Standard Express sandbox commands | Sandbox API key and the effective service target |
-| Official Dockerfile deployment | Platform AccessKey pair, ACR namespace and credentials required by that path, plus local Docker prerequisites |
-| Platform build steps | Platform credentials, the effective region and a generation-2 template; no local Docker or ACR requirement |
-| Image push | The registry configuration used by the push path; no template registration identity merely because other operations use one |
-| Deploy from an existing image | The selected Provider's platform configuration, and missing paired private-registry fields when that mode is requested; no local Docker build |
-| Template generation or real adoption | Coding tool and LLM configuration; cloud requirements are added only when deploying or creating a sandbox |
-| Template launch | Known Provider/create requirements first, then build requirements after the source and plan are known |
-| Built-in scaffold, local previews, download-only | Local inputs; no cloud credential setup merely to inspect or download files |
-| Provider operations | Declared required fields and one usable authentication combination, with existing values reused |
-
-The Sandbox API key used to create or connect to sandboxes is different from the Alibaba Cloud AccessKey pair used for platform build operations. Missing Express credentials lead to ABX setup instructions, not a request to log in to E2B. The standard entry retains documented compatibility environment names, but it does not use an unrelated `~/.e2b/config.json` login as its identity.
-
-Provider-owned fields remain isolated, even when they share names such as `region` or `http2` with host settings. One complete declared authentication combination satisfies setup; the flow does not demand another combination as well. A missing or unusable Provider contract is reported instead of borrowing another Provider's credentials. Discovery, doctor, and multi-Provider aggregation keep their reporting roles. See [Provider operations](provider-commands.md).
-
-## Automation and output modes
-
-Configuration questions require terminal stdin, stdout, and stderr. They are disabled in CI, JSON or quiet output, pipes, and the existing `--yes`/`-y` operation mode. Missing required data produces the complete missing-field list and supported configuration commands; `-y` cannot supply a namespace or invent a secret.
-
-Explicit setup behaves similarly:
+Run `abx config init` to configure the selected Provider and optionally find a template to deploy. Entered supported values are saved to the current user's local configuration and reused. There is no configuration-scope menu. Existing option/environment overrides are not copied into saved configuration.
 
 ```bash
 abx config init
 abx config init --build
 abx config init --llm
-abx config init -y
-```
-
-`config init -y` prints equivalent setup commands without collecting or writing values. Machine output remains machine readable. The standard Express parser continues to reject native-only global flags where it did before; configuration guidance does not add `--json` or `--ci` to unsupported standard commands.
-
-The existing missing-directory exception remains: build/deploy with `-y` or CI consent may scaffold a missing Python project and continue. Existing files still have their separate conflict and overwrite protections. Creating project files is not a successful deployment.
-
-For an interactive deployment, omit `-y`: `abx template deploy ./codex --alias codex`. In a shell workflow, join preparation, deployment and creation with `&&` so a failed deployment cannot launch a second command. A directory name does not select a Registry template: fetch its source first with `abx template scaffold ./codex --from alibaba-agent-sandbox/awesome-templates//codex`. After deployment succeeds, use `abx create codex --detach`; `--template` is a scaffold option.
-
-## Review and change saved configuration
-
-```bash
 abx config list
-abx config set sandbox_api_key
-abx config set access_key_id
-abx config set access_key_secret
-abx config set acr_namespace
-abx config set llm_api_key
+abx --provider PROVIDER config init
 ```
 
-Omit VALUE for terminal input, especially for secrets, so the value is not placed in shell history. Existing values are preserved on empty interactive input. To remove a saved value deliberately, use the explicit delete or unset operation:
+Runtime calls need the selected Provider's API credentials and endpoint. Builds may additionally need cloud AccessKeys, Docker and registry access. Source-only `template init --from` or a built-in template needs no cloud credentials. Model-assisted `template init --prompt` or `--adopt` needs its coding tool and model key; generation writes source and stops before deployment.
+
+| Credential | Purpose and source |
+| --- | --- |
+| Sandbox API key | Runtime access; obtain it from the selected Provider |
+| Cloud AccessKey pair | Platform management; obtain an authorized RAM credential |
+| Model API key | Model requests; obtain it from the model service |
+| Application token (`ABX_SERVER_TOKEN`) | Protect the application API; generated locally by the CLI, not issued by a cloud console |
+| GitHub token | Private source/rate-limited reads; use the appropriate GitHub access token |
+
+When the template declares an empty application token, deployment generates a random value, saves it privately and reuses it for later commands. This also works with `--yes`. To choose a custom value, use hidden input with `abx config set server_token`. External clients send that application token separately from Provider traffic authentication. Changing saved configuration does not change an already running application's startup environment.
+
+Interactive prompts show the Provider, region and API host where relevant. Empty input or Ctrl+C cancels collection before saving. Secrets use hidden input. Invalid saved configuration is diagnosed rather than silently replaced. Detailed source information is available with `--verbose` and the [configuration reference](../reference/configuration.md).
 
 ```bash
+abx config set sandbox_api_key
+abx config set llm_api_key
+abx config set llm_base_url
+abx config set llm_model
 abx config delete llm_api_key
-abx provider config PROVIDER list
-abx provider config PROVIDER set KEY
-abx provider config PROVIDER unset KEY
 ```
 
-Provider settings use their actual schema storage names. For example, Express `access_key_secret` uses `ALICLOUD_ACCESS_KEY_SECRET`; a Provider-scoped inherited Sandbox API key uses that Provider's scoped variable. Use `abx config list` or `--verbose` to inspect the actual storage location. User credential dotenv files are written with owner-only permissions. Unsupported dotenv interpolation or control characters are rejected before replacing the file; ordinary spaces, hashes, quotes, backslashes, and supported multiline values are preserved.
+Automation supplies required values before `--yes`. JSON, quiet, CI and piped execution never open configuration questions. `config init --yes` prints setup guidance without collecting values. Missing permissions, quota, network access or a Provider capability cannot be solved by inventing configuration. Creating or renewing a cloud management key retains its separate explicit confirmation; writing an AccessKey locally is not that consent.
 
-Malformed or unreadable TOML/dotenv files are diagnosed by source, without showing secret contents. Invalid explicit booleans, numbers, enums, or URLs are reported instead of silently falling back to defaults. Repair the identified source; setup does not replace a damaged file with an empty configuration.
+MCP editor registration can continue offline and does not write cloud secrets into IDE files. A remote HTTP MCP service needs application authentication and runtime Provider configuration; initialize it with `abx template init ./mcp --template mcp`, then review and deploy its source. See [MCP integration](mcp-integration.md).
 
-## Project and local-tool guidance
-
-A missing build/deploy directory can be created after confirmation. If an existing directory has neither a Dockerfile nor platform build steps, the terminal flow offers scaffolding, adapting existing code, choosing another directory, or cancelling. Explicit invalid Dockerfile paths and malformed YAML are reported rather than overwritten. File previews and replacement consent still apply. Browse source templates in the [template Registry](https://registry.agent-sandbox.cn/templates/).
-
-Docker checks distinguish a missing executable from an inaccessible daemon or context. After fixing the local setup, you can request another check before building. The CLI does not run sudo, select a different Docker context, or start system services for you. GitHub rate-limit recovery retries the safe source read; access-denied and missing-reference errors remain distinct diagnostics.
-
-The platform accepts build steps only for generation 2. Set `generation: 2` in the project's `template.yaml` or pass `--generation 2` with an image and startup configuration that support that runtime. Configuration setup does not silently convert an existing generation-1 template or change its image.
-
-## MCP setup and offline work
-
-`abx mcp install` may offer Sandbox access setup, but editor registration can continue offline. Cursor, Claude, and VS Code registrations do not copy Sandbox API keys into IDE files. They retain the launch command and applicable non-secret target settings; the server reads credentials when it starts. Registering an IDE entry does not verify cloud access. Temporary setup values do not persist into a later IDE-launched process.
-
-STDIO server execution never asks configuration questions or consumes JSON-RPC input for a wizard. Its stdout remains protocol traffic. Interactive HTTP startup can collect missing Sandbox access or a non-loopback Bearer token before serving. A non-loopback listener still requires a token; automation must provide the documented token option or environment variable.
-
-`abx mcp deploy --generate-token --output-dir ./mcp-artifact` generates deployment files. Without a Sandbox key, explicitly continuing offline produces an artifact that cannot yet create sandboxes. A Bearer token remains required. The generated `config.yaml` contains deployment credentials and must be kept private; unlike IDE registration, that file is the explicit deployment destination. Artifact creation reports deployment and service verification separately and does not claim that a cloud service was deployed. See [MCP integration](mcp-integration.md).
-
-## Safe continuation
-
-Setup resumes the stage that has not yet started. It keeps the selected Provider, supported original options, generated project files, and known resource references. It does not replay code generation, Docker builds, pushes, template registration, or sandbox creation merely because a later request failed. After a timeout or ambiguous cloud submission, inspect the reported resource and use the existing query commands before retrying. No automatic configuration wizard grants permissions, activates an unavailable service, or proves remote credentials valid just because local fields are complete.
-
-## Express credential choice
-
-Missing runtime credentials offer an existing API key or AK/SK. Skipping the API-key field in `config init` offers missing AccessKey fields. Initialization does not create cloud keys. The first runtime operation separately confirms managed-key creation/renewal; only explicit `--ci` auto-confirms it. [Permissions and examples](permissions.md).
-
-Deleting a sandbox in native JSON, CI or piped mode requires explicit `--yes`; without it, `abx kill` exits without reading confirmation input.
+A missing project is initialized explicitly with `template init`. After a failed deployment, inspect `status` and `recover`; never replay an uncertain cloud submission just because local configuration is now complete.

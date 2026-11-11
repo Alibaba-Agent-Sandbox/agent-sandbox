@@ -799,7 +799,7 @@ export function getOutput(ctx: Context | null | undefined = undefined): OutputMa
 /**
  * Turn on verbose mode from a subcommand-level `-v/--verbose` flag.
  *
- * Some users type `abx create -v` instead of `abx -v create`. Key subcommands therefore accept a local `-v/--verbose`
+ * Some users type `abx deploy -v` instead of `abx -v deploy`. Key subcommands therefore accept a local `-v/--verbose`
  * flag and call this helper, which flips the shared {@link OutputManager} (stored in `ctx.meta`) to verbose and
  * re-applies DEBUG-level logging.
  */

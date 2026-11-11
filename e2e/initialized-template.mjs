@@ -32,18 +32,18 @@ owned = None
 with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     for env in (trusted, child_env):
         env.update(HOME=home, USERPROFILE=home, XDG_CONFIG_HOME=str(Path(home)/'.config'))
-    args = ['--provider', 'alicloud-express', 'config', 'init']
+    project = Path(home) / 'application'
+    project.mkdir()
+    manifest = {
+        'name': 'onboarding-application', 'spec_version': 5, 'provider': 'alicloud-express',
+        'template_id': os.environ.get('ABX_ONBOARDING_APPLICATION_TEMPLATE', 'python-hello') if application else 'base',
+        'env': {'ABX_SERVER_TOKEN': ''}, 'provides': {}
+    }
     if application:
-        project = Path(home) / 'application'
-        project.mkdir()
-        (project / 'template.yaml').write_text(json.dumps({
-            'name': 'onboarding-application', 'spec_version': 5, 'provider': 'alicloud-express', 'template_id': os.environ.get('ABX_ONBOARDING_APPLICATION_TEMPLATE', 'python-hello'),
-            'env': {'ABX_SERVER_TOKEN': ''},
-            'start_cmd': 'python3 /app/commands.py',
-            'ready_cmd': 'python3 -m agent_sandbox.server healthcheck --port 9000',
-            'provides': {'app': {'protocol':'agent-sandbox-server','version':2,'port':9000,'operations':['commands.list']}}
-        }))
-        args = ['--provider', 'alicloud-express', 'template', 'launch', str(project)]
+        manifest.update(start_cmd='python3 /app/commands.py', ready_cmd='python3 -m agent_sandbox.server healthcheck --port 9000',
+            provides={'app': {'protocol':'agent-sandbox-server','version':2,'port':9000,'operations':['commands.list']}})
+    (project / 'template.yaml').write_text(json.dumps(manifest))
+    args = ['--provider', 'alicloud-express', 'deploy', str(project), '--name', 'guided-init']
     pid, master = pty.fork()
     if pid == 0:
         os.chdir(home)
@@ -51,11 +51,9 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
     step = 0
-    steps = [(b'Sandbox API key (input masked', credential.encode() + b'\r'), (b'2/2 Region', b'\r'), (b'What would you like to do next?', b'\r'), (b'Find a template by name or purpose', b'base\r'), (b'Choose a template', b'\r'), (b'Create a billable sandbox', b'y\r')]
-    if application:
-        steps = [(b'Create a billable sandbox', b'y\r')]
-        if guided:
-            steps = [(b'Choose an authentication method', b'1\r'), (b'sandbox_api_key (input hidden)', credential.encode() + b'\r')] + steps
+    steps = [(b'Deploy guided-init?', b'y\r')]
+    if guided or not application:
+        steps += [(b'Choose an authentication method', b'1\r'), (b'sandbox_api_key (input hidden)', credential.encode() + b'\r')]
     status = None
     try:
         deadline = time.monotonic() + 150
@@ -93,7 +91,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             safe = re.sub(r'sbx-[a-zA-Z0-9_-]+', '[OWNED_SANDBOX]', safe)
             print('Terminal failure (sanitized): ' + safe[-1200:], file=sys.stderr)
         assert os.waitstatus_to_exitcode(status) == 0, 'initialization failed at step %d (raw output withheld)' % step
-        assert step == len(steps) and owned, 'initialization did not continue through catalog selection and creation'
+        assert step == len(steps) and owned, 'deployment did not continue through authorization, configuration and creation'
         saved = list(Path(home).rglob('.env'))
         assert saved, 'initialization did not save configuration'
         text = saved[0].read_text()
@@ -125,7 +123,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             assert rejected.returncode != 0 and b'401' in rejected.stdout + rejected.stderr, 'incorrect application token was not rejected with HTTP401'
             print('PASS: application authentication automatically generated, injected and reused for discovery and real hello command; wrong-token HTTP401 retained')
         else:
-            print('PASS: real terminal initialization, saved hidden input, generated application token, catalog selection, creation and remote exec')
+            print('PASS: real terminal initialization, saved hidden input, generated application token, deployment, creation and remote exec')
     finally:
         if not owned:
             candidates = re.findall(rb"['\"]sandbox_id['\"]\s*:\s*['\"]([A-Za-z0-9_-]+)['\"]", output)
@@ -139,7 +137,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             except ProcessLookupError: pass
             os.waitpid(pid, 0)
         if owned:
-            result = subprocess.run(command + ['sandbox', 'kill', owned], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            result = subprocess.run(command + ['delete', owned, '--yes'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
             assert result.returncode == 0, 'owned sandbox cleanup failed'
             api_url = trusted.get('E2B_API_URL') or trusted.get('ABX_SANDBOX_BASE_URL') or 'https://api.' + trusted['E2B_DOMAIN']
             request = urllib.request.Request(api_url.rstrip('/') + '/sandboxes/' + owned, headers={'X-API-Key': credential})

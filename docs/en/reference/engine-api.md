@@ -1,6 +1,6 @@
 # Engine HTTP API (`abx-engine/1`)
 
-The engine is a local process that hosts the provider layer once, so the CLI and every SDK (Python today; Node, Go and Java later) call the same provider code. It is the Node.js CLI running `abx provider engine serve`. An SDK that finds no engine starts one and talks to it over loopback HTTP, SSE and WebSocket. Nothing in this API needs gRPC or a code generator: any language with an HTTP client can use it.
+The engine is a local process that hosts the provider layer once, so the CLI and Python Provider client can call the same provider code. It is the Node.js CLI running `abx provider engine serve`. An SDK that finds no engine starts one and talks to it over loopback HTTP, SSE and WebSocket. Nothing in this API needs gRPC or a code generator: any language with an HTTP client can use it.
 
 Official site: <https://www.agent-sandbox.cn>. Registry website: <https://registry.agent-sandbox.cn>. The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers//<id>`. The Python SDK installer fetches `https://registry.agent-sandbox.cn/providers/index.json`.
 
@@ -71,7 +71,7 @@ A feature the provider did not declare answers `501`, the same condition the CLI
 
 These routes manage provider resources; `/sandboxes/:id/commands/run` executes a process inside a sandbox.
 Discovery reads static metadata without importing plugin code or contacting the cloud. Invocation uses the same
-validated dispatcher as `abx provider command run`. The path's `:provider` must agree with any provider in the
+validated dispatcher as `abx provider run`. The path's `:provider` must agree with any provider in the
 connection header and body. Each invocation receives its own resolved connection; management calls do not create
 or reuse sandbox sessions.
 

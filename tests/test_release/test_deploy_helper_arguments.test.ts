@@ -10,7 +10,7 @@ const folders: string[] = [];
 afterEach(() => { for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true }); });
 
 describe.skipIf(process.platform === "win32")("deployment helper parser contract", () => {
-  it.each([["build_hermes.sh", 2], ["deploy_all_templates.sh", 20]] as const)(
+  it.each([["build_hermes.sh", 2], ["deploy_all_templates.sh", 20], ["deploy_remaining.sh", 8]] as const)(
     "%s selects Express and parses every invocation before cloud work", (script, expectedCalls) => {
       const folder = mkdtempSync(join(tmpdir(), "abx-helper-contract-"));
       folders.push(folder);
@@ -38,9 +38,9 @@ process.exit(result.status ?? 1);
       const calls = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line) as string[]);
       expect(calls).toHaveLength(expectedCalls);
       for (const args of calls) {
-        expect(args.slice(0, 3)).toEqual(["--provider", "alicloud-express", "template"]);
-        expect(args.indexOf("--region")).toBeGreaterThan(3);
-        expect(args[args.indexOf("--region") + 1]).toBe("cn-shanghai");
+        expect(args.slice(0, 5)).toEqual(["--provider", "alicloud-express", "--opt", "region=cn-shanghai", "template"]);
+        expect(["init", "build"]).toContain(args[5]);
+        expect(args).toContain("--yes");
         expect(args).not.toContain("--official-api");
         expect(args).not.toContain("--legacy-api");
       }

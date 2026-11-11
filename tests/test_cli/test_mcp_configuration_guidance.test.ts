@@ -59,17 +59,15 @@ describe("MCP configuration guidance", () => {
     expect(fs.readFileSync(file, "utf8")).not.toContain("ABX_SANDBOX_API_KEY");
   });
 
-  it.each(["--json", "--ci"])("generates an offline artifact with one %s result and a private token file", async flag => {
+  it.each(["--json", "--ci"])("generates an offline editable template with one %s result and no embedded secrets", async flag => {
     const directory = path.join(iso.root, "artifact");
-    const result = await new CliRunner().invoke(cli, [flag, "mcp", "deploy", "--generate-token", "--output-dir", directory]);
+    iso.setenv("ABX_MCP_AUTH_TOKEN", "placeholder-private-token");
+    const ask = vi.spyOn(guidanceSeams, "ask");
+    const result = await new CliRunner().invoke(cli, [flag, "template", "init", directory, "--template", "mcp"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ status: "artifact-created", deployed: false, service_verified: false, sandbox_access_configured: false, bearer_token_configured: true });
-    const file = path.join(directory, "config.yaml");
-    const yaml = fs.readFileSync(file, "utf8");
-    const token = /ABX_MCP_AUTH_TOKEN:\s*([^\s]+)/.exec(yaml)?.[1];
-    expect(token).toBeTruthy();
-    expect(result.output).not.toContain(token!);
-    if (process.platform !== "win32") expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    expect(JSON.parse(result.stdout)).toMatchObject({ directory });
+    expect(fs.readFileSync(path.join(directory, "template.yaml"), "utf8")).not.toContain("placeholder-private-token");
+    expect(ask).not.toHaveBeenCalled();
   });
 
   it("does not start configuration input while serving STDIO without credentials", async () => {
@@ -89,13 +87,12 @@ describe("MCP configuration guidance", () => {
     expect(result.output).toContain("not loopback");
   });
 
-  it("does not generate an Express artifact using a different Provider's identity", async () => {
+  it("uses the selected Provider image profile for the MCP template", async () => {
     registerProvider(new MetadataProvider());
     iso.writeToml('[core]\nprovider="mcp-example"\n');
     const directory = path.join(iso.root, "artifact");
-    const result = await new CliRunner().invoke(cli, ["mcp", "deploy", "--generate-token", "--output-dir", directory]);
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("require --provider alicloud-express");
-    expect(fs.existsSync(directory)).toBe(false);
+    const result = await new CliRunner().invoke(cli, ["template", "init", directory, "--template", "mcp"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(fs.readFileSync(path.join(directory, "Dockerfile"), "utf8")).toContain("FROM python:3.12-slim");
   });
 });

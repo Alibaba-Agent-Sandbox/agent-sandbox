@@ -1,5 +1,5 @@
 /**
- * CLI tests for `abx template scaffold --adopt`.
+ * CLI tests for `abx template init --adopt`.
  *
  * The coding agent is a fake that writes a valid template into its cwd. No model, Docker or cloud call is made.
  * `abx deploy` is then checked only as far as the fixed pipeline hand-off.
@@ -16,10 +16,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import * as sandboxCommand from "../../src/cli/commands/sandbox.js";
 import * as guidance from "../../src/cli/config_guidance.js";
-import { deploySeams } from "../../src/providers/alicloud_express/cli/deploy.js";
-import { build as realBuild } from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
-import { command } from "../../src/cli/kit.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { adoptSeams } from "../../src/cli/commands/_adopt.js";
 import { useTmpPath, writeText } from "../helpers/templateSupport.js";
@@ -113,7 +110,7 @@ describe("TestFlags", () => {
     useAgent();
     const credentials = { baseUrl: "https://user:private-fixture@models.example/v1?key=query-fixture", asEnv: () => ({}) };
     vi.mocked(codingAgent.resolveCodingAgentCredentials).mockResolvedValue(credentials);
-    const result = await runner().invoke(cli, ["template", "scaffold", _project(), "--adopt", "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", _project(), "--adopt", "-y"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("models.example");
     expect(result.output).not.toContain("private-fixture");
@@ -128,7 +125,7 @@ describe("TestFlags", () => {
     vi.spyOn(adoptSeams, "_isInteractive").mockReturnValue(true);
     vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const pick = vi.spyOn(sandboxCommand, "_pickReplacementModel").mockResolvedValue("replacement-model");
-    const result = await runner().invoke(cli, ["template", "scaffold", _project(), "--adopt"], { input: "y\nn\ny\n" });
+    const result = await runner().invoke(cli, ["template", "init", _project(), "--adopt"], { input: "y\nn\ny\n" });
     expect(result.exit_code, result.output).toBe(0);
     expect(pick).toHaveBeenCalledOnce();
     expect(run).toHaveBeenCalledTimes(2);
@@ -139,14 +136,14 @@ describe("TestFlags", () => {
 
   it("forwards an explicit model to the adoption backend", async () => {
     useAgent();
-    const result = await runner().invoke(cli, ["template", "scaffold", _project(), "--adopt", "--model", "chosen-model", "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", _project(), "--adopt", "--model", "chosen-model", "-y"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(codingAgent.resolveCodingAgentCredentials).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ model: "chosen-model" }));
   });
 
   it("test_hint_and_dry_run_require_adopt", async () => {
     for (const args of [["--hint", "redis"], ["--dry-run"]]) {
-      const result = await runner().invoke(cli, ["template", "scaffold", ...args]);
+      const result = await runner().invoke(cli, ["template", "init", ...args]);
       expect(result.exit_code).toBe(2);
       expect(_text(result)).toContain("--adopt");
     }
@@ -154,13 +151,13 @@ describe("TestFlags", () => {
 
   it("test_adopt_rejects_scaffold_and_from", async () => {
     const project = _project();
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-t", "python"]);
     expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("cannot be combined");
   });
 
   it("test_a_sentence_is_not_a_directory", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", "a python app", "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", "a python app", "-y"]);
     expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("--hint");
   });
@@ -168,7 +165,7 @@ describe("TestFlags", () => {
   it("test_noninteractive_without_yes_sends_nothing", async () => {
     const agent = useAgent();
     const project = _project();
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project]);
     expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("Confirmation required");
     expect(agent.calls).toBe(0);
@@ -181,7 +178,7 @@ describe("TestConsent", () => {
     const agent = useAgent();
     vi.spyOn(adoptSeams, "_isInteractive").mockReturnValue(true);
     const project = _project();
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project], { input: "n\n" });
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project], { input: "n\n" });
     expect(result.exit_code).not.toBe(0);
     expect(_text(result)).toContain("Nothing was sent");
     expect(agent.calls).toBe(0);
@@ -194,7 +191,7 @@ describe("TestDryRun", () => {
     const agent = useAgent();
     const project = _project();
     writeText(path.join(project, ".env"), "TOKEN=value\n");
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "--dry-run"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "--dry-run"]);
     const text = _text(result);
     expect(result.exit_code, text).toBe(0);
     expect(text).toContain("app.py");
@@ -207,10 +204,10 @@ describe("TestDryRun", () => {
 });
 
 describe("TestAdopt", () => {
-  it("test_writes_only_reserved_files_and_then_deploy_is_unchanged", async () => {
+  it("test_writes_only_reserved_files_without_deploying", async () => {
     const agent = useAgent();
     const project = _project();
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "--name", "my-app", "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "--name", "my-app", "-y"]);
     const text = _text(result);
     expect(result.exit_code, text).toBe(0);
     expect(agent.calls).toBe(1);
@@ -225,33 +222,8 @@ describe("TestAdopt", () => {
     expect(read(path.join(project, "app.py"))).toBe("print('hi')\n");
     expect(text).toContain("abx deploy");
 
-    const calls: Array<Record<string, unknown>> = [];
-    const savedBuild = deploySeams.build;
-    const savedResolve = deploySeams.resolve_acr_namespace;
-    try {
-      deploySeams.build = command("build", {
-        params: [...realBuild.params],
-        callback: (_ctx: unknown, params: Record<string, unknown>) => {
-          calls.push(params);
-        },
-      });
-      deploySeams.resolve_acr_namespace = () => "ns";
+    expect(agent.calls).toBe(1);
 
-      const boom = () => {
-        throw new Error("agent");
-      };
-      vi.spyOn(codingAgent, "resolveCodingAgentBackend").mockImplementation(boom);
-      vi.spyOn(codingAgent, "ensureCodingAgentBinary").mockImplementation(boom);
-      vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockImplementation(boom);
-
-      const deployed = await runner().invoke(cli, ["deploy", project, "--acr-namespace", "ns", "-y"]);
-      expect(deployed.exit_code, _text(deployed)).toBe(0);
-      expect(calls[0]!["template_dir"]).toBe(fs.realpathSync(project));
-      expect(agent.calls).toBe(1);
-    } finally {
-      deploySeams.build = savedBuild;
-      deploySeams.resolve_acr_namespace = savedResolve;
-    }
   });
 
   it("test_agent_edits_outside_the_whitelist_do_not_land", async () => {
@@ -271,7 +243,7 @@ describe("TestAdopt", () => {
       },
     };
     vi.spyOn(codingAgent, "resolveCodingAgentBackend").mockReturnValue(nasty as never);
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-y"]);
     expect(result.exit_code, _text(result)).toBe(0);
     expect(read(path.join(project, "app.py"))).toBe("print('hi')\n");
     expect(_text(result)).toContain("app.py");
@@ -282,7 +254,7 @@ describe("TestAdopt", () => {
     const agent = useAgent();
     const project = _project();
     writeText(path.join(project, "Dockerfile"), "FROM scratch\n");
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-y"]);
     expect(result.exit_code).toBe(2);
     expect(_text(result)).toContain("without a preview");
     expect(agent.calls).toBe(0);
@@ -293,7 +265,7 @@ describe("TestAdopt", () => {
     useAgent();
     const project = _project();
     writeText(path.join(project, "Dockerfile"), "FROM scratch\n");
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "--force", "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "--force", "-y"]);
     expect(result.exit_code, _text(result)).toBe(0);
     expect(read(path.join(project, "Dockerfile"))).not.toBe("FROM scratch\n");
     expect(read(path.join(project, "Dockerfile.abx-bak"))).toBe("FROM scratch\n");
@@ -312,7 +284,7 @@ describe("TestAdopt", () => {
     vi.spyOn(codingAgent, "ensureCodingAgentBinary").mockResolvedValue("qwen");
     vi.spyOn(codingAgent, "resolveCodingAgentCredentials").mockResolvedValue({ base_url: "", baseUrl: "", asEnv: () => ({}) } as never);
     const before = read(path.join(project, "app.py"));
-    const result = await runner().invoke(cli, ["template", "scaffold", "--adopt", project, "-y"]);
+    const result = await runner().invoke(cli, ["template", "init", "--adopt", project, "-y"]);
     expect(result.exit_code).toBe(1);
     expect(_text(result)).toContain("symlink");
     expect(_text(result)).toContain("abx-adopt-");
@@ -321,14 +293,8 @@ describe("TestAdopt", () => {
   });
 
   it("test_deploy_missing_dockerfile_points_at_adopt", async () => {
-    const saved = deploySeams.resolve_acr_namespace;
-    deploySeams.resolve_acr_namespace = () => "ns";
-    try {
-      const result = await runner().invoke(cli, ["deploy", tmpPath()]);
-      expect(result.exit_code).toBe(2);
-      expect(_text(result)).toContain("scaffold --adopt");
-    } finally {
-      deploySeams.resolve_acr_namespace = saved;
-    }
+    const result = await runner().invoke(cli, ["deploy", tmpPath()]);
+    expect(result.exit_code).toBe(2);
+    expect(_text(result)).toContain("template init");
   });
 });

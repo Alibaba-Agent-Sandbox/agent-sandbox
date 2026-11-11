@@ -34,9 +34,9 @@ export async function prepareTemplateProject(ctx: Context, directory: string, ye
   }
   const argument = shlexQuote(directory);
   throw new UsageError(
-    `Path '${directory}' is not an existing directory. Create the directory and template files with 'abx template scaffold ${argument}'. ` +
+    `Path '${directory}' is not an existing directory. Create the directory and template files with 'abx template init ${argument}'. ` +
     "Or pass --yes/-y (or --ci) to create a Python template project and continue. " +
-    `For another case: abx template scaffold --template node ${argument}. ` +
+    `For another case: abx template init --template node ${argument}. ` +
     "Browse more templates: https://registry.agent-sandbox.cn/templates/",
     ctx,
   );
@@ -50,7 +50,7 @@ export async function prepareTemplateBuildInputs(ctx: Context, directory: string
     catch (error) {
       if (!(error instanceof BuildModeError)) throw error;
       if (!error.message.startsWith("No Dockerfile and no template.yaml build steps")) throw new UsageError(error.message, ctx);
-      if (!canGuideConfiguration(ctx, yes)) throw new UsageError(`${error.message} Initialize with 'abx template scaffold --template python ${shlexQuote(target)}', adapt existing code with 'abx template scaffold --adopt ${shlexQuote(target)}', or choose another project path. Existing files were preserved.`, ctx);
+      if (!canGuideConfiguration(ctx, yes)) throw new UsageError(`${error.message} Initialize with 'abx template init --template python ${shlexQuote(target)}', adapt existing code with 'abx template init --adopt ${shlexQuote(target)}', or choose another project path. Existing files were preserved.`, ctx);
       const out = getOutput(ctx);
       out.info(`Directory '${target}' has no Dockerfile or platform build steps. Existing files will be preserved unless you explicitly approve listed replacements.`);
       const choice = await select("Prepare this template project", {

@@ -4,6 +4,8 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { parseDocument } from "yaml";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { normalizeApplicationProfile } from "./profile/normalize.mjs";
+import applicationProfiles from "./profile/profiles.json" with { type: "json" };
 import templateSchema from "./template-v6.schema.json" with { type: "json" };
 import { DeployError } from "../models/errors.js";
 import type { ApplicationTemplate, ApplicationPlan, BuildReceipt, ToolchainLock } from "./types.js";
@@ -78,7 +80,7 @@ export function readYaml(file: string): unknown {
 }
 /** Validate against the owner-published spec6 schema before any preparation. */
 export function readTemplate(file: string): ApplicationTemplate {
-  const raw = readYaml(file);
+  const raw = normalizeApplicationProfile(readYaml(file), applicationProfiles);
   const validate = new Ajv2020({ strict: false, allErrors: true }).compile(templateSchema);
   if (!validate(raw)) throw new ApplicationError(`Invalid template v6: ${validate.errors?.map(e => `${e.instancePath || "/"} ${e.keyword}`).join(", ")}`);
   const template = raw as unknown as ApplicationTemplate, app = template.application;
@@ -93,6 +95,7 @@ export function readTemplate(file: string): ApplicationTemplate {
     ["sandboxAccess", ["dispatcher", "worker"]], ["clientAuth", ["gateway"]], ["internalAuth", ["dispatcher", "gateway", "worker"]], ["model", ["sandbox-creation"]]];
   for (const [key, expected] of targets) if (JSON.stringify([...(app.bindings[key]?.targets ?? [])].sort()) !== JSON.stringify(expected)) throw new ApplicationError(`Binding '${key}' has unsupported target roles.`);
   for (const binding of Object.values(app.bindings)) {
+    if (!Array.isArray(binding.targets)) throw new ApplicationError("Every binding needs supported target roles.");
     if (binding.targets.includes("sandbox-creation")) {
       if (binding.targets.length !== 1 || binding.resolverRole !== "worker" || !binding.allowedEnv?.length || binding.allowedEnv.some(key => !["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "CODEX_API_KEY"].includes(key))) throw new ApplicationError("Guest model injection requires the explicit worker resolver and a model-only environment whitelist.");
     } else if (binding.resolverRole || binding.allowedEnv) throw new ApplicationError("Guest injection fields are only valid for the sandbox-creation target.");

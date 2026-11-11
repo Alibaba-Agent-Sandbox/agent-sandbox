@@ -13,10 +13,19 @@ import { ResourceJournal } from "../../src/template/resource_journal.js";
 import * as prompts from "../../src/cli/prompts.js";
 import * as guidance from "../../src/cli/config_guidance.js";
 import { Abort } from "../../src/cli/errors.js";
-import { launchSeams } from "../../src/cli/template_launch.js";
+import { executeTemplateLaunch, launchSeams } from "../../src/cli/template_launch.js";
 import { Sandbox } from "../../src/api/sandbox.js";
-import { Context, command } from "../../src/cli/kit.js";
-import { cli } from "../../src/cli/main.js";
+import { Context, command, group, argument, option } from "../../src/cli/kit.js";
+import { cli as publicCli } from "../../src/cli/main.js";
+import { echo } from "../../src/cli/io.js";
+import { handleErrors } from "../../src/cli/error_handler.js";
+
+// Exercise the shared deployment service directly; no removed public launch alias.
+const cli = group("launch-service-test", {params: publicCli.params, ...(publicCli.callback ? {callback: publicCli.callback} : {})});
+cli.addCommand(command("prepare", {params: [argument(["template_ref"]), option(["--yes", "-y"], {is_flag: true}), option(["--build-profile"])], callback: handleErrors(async (ctx, params) => {
+  const result = await executeTemplateLaunch(ctx, params);
+  echo(JSON.stringify(result.receipt));
+})}));
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIso } from "../_support/iso.js";
 import { DockerBuildFailure, DockerSetupError, ProjectToolError, stageProject, runTool } from "../../src/providers/shared/project.js";
@@ -45,7 +54,7 @@ function setup() {
   const sandbox = { info: { template: "fixture-template" }, status: "running", url: "https://envd.fixture.example", network: {resolveEndpoint: vi.fn(async (port: number) => ({url: `https://fixture.example/${port}`}))}, id: "owned-sandbox", verifyApplicationOperation: vi.fn(async () => undefined), listCommands: vi.fn(async () => []), isRunning: vi.fn(async () => false), close: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
     commands: { run: vi.fn(async (_command: string, _options?: unknown) => ({ exit_code: 0 })) } };
   const create = vi.spyOn(launchSeams, "create").mockResolvedValue(sandbox as unknown as Sandbox);
-  return { directory, provider, sandbox, create, invoke: (extra: string[] = []) => new CliRunner().invoke(cli, ["--json", "template", "launch", directory, "-y", ...extra]) };
+  return { directory, provider, sandbox, create, invoke: (extra: string[] = []) => new CliRunner().invoke(cli, ["--json", "prepare", directory, "-y", ...extra]) };
 }
 
 describe("provider-owned project launch", () => {
@@ -54,7 +63,7 @@ describe("provider-owned project launch", () => {
     const interactive = vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const confirmation = vi.spyOn(prompts, "confirm").mockRejectedValue(new Abort());
     try {
-      const result = await new CliRunner().invoke(cli, ["--json", "template", "launch", f.directory]);
+      const result = await new CliRunner().invoke(cli, ["--json", "prepare", f.directory]);
       expect(result.exit_code).toBe(1);
       expect(result.output).toContain("Aborted!");
       expect(result.output).not.toContain("recovery journal");
@@ -71,7 +80,10 @@ describe("provider-owned project launch", () => {
       expect(result.output).toContain("Aborted!");
       expect(result.output).not.toContain("Template preparation failed");
       expect(result.output).not.toContain("recovery journal");
-      expect(fs.existsSync(path.join(iso.home, "resource-journal"))).toBe(false);
+      const journalDirectory = path.join(iso.home, "resource-journal");
+      const journals = fs.readdirSync(journalDirectory).filter(name => name.endsWith(".json"));
+      expect(journals).toHaveLength(1);
+      expect(JSON.parse(fs.readFileSync(path.join(journalDirectory, journals[0]!), "utf8")).entries).toEqual([]);
       expect(f.create).not.toHaveBeenCalled();
       expect(f.provider.close).toHaveBeenCalledOnce();
     } finally { f.create.mockRestore(); }
@@ -186,7 +198,7 @@ describe("provider-owned project launch", () => {
     const f = setup(); const open = promises.open.bind(promises); let directorySyncs = 0;
     const opened = vi.spyOn(promises, "open").mockImplementation(async (...args) => {
       const handle = await open(...args);
-      if (String(args[0]).endsWith("resource-journal") && ++directorySyncs === 2) vi.spyOn(handle, "sync").mockRejectedValue(new Error("receipt sync failed"));
+      if (String(args[0]).endsWith("resource-journal") && ++directorySyncs === 3) vi.spyOn(handle, "sync").mockRejectedValue(new Error("receipt sync failed"));
       return handle;
     });
     try {
@@ -289,7 +301,7 @@ describe("provider-owned project launch", () => {
   });
   it("requires explicit build/create consent before preparing", async () => {
     const f = setup();
-    try { const result = await new CliRunner().invoke(cli, ["template", "launch", f.directory]); expect(result.exit_code).not.toBe(0);
+    try { const result = await new CliRunner().invoke(cli, ["prepare", f.directory]); expect(result.exit_code).not.toBe(0);
       expect(f.provider.prepare).not.toHaveBeenCalled(); expect(f.create).not.toHaveBeenCalled(); }
     finally { f.create.mockRestore(); }
   });
@@ -390,7 +402,7 @@ describe("fixed template references and build profiles", () => {
     const index = catalog.parseIndex(published.replace(/provider: (alicloud-express|opensandbox|e2b)/g, `provider: ${f.provider.id}`));
     const fetchIndex = vi.spyOn(catalog, "fetchIndex").mockResolvedValue(index);
     const fetchSource = vi.spyOn(RegistryClient.prototype, "fetch");
-    try {const result = await new CliRunner().invoke(cli, ["--json", "template", "launch", name, "--yes"]);
+    try {const result = await new CliRunner().invoke(cli, ["--json", "prepare", name, "--yes"]);
       expect(result.exit_code, result.output).toBe(0); expect(fetchSource).not.toHaveBeenCalled(); expect(f.provider.prepare).not.toHaveBeenCalled();
       expect(f.create).toHaveBeenCalledWith(expect.objectContaining({template: nativeId}));
       expect(JSON.parse(result.stdout)).toMatchObject({sandbox_id: "owned-sandbox", services: {}});

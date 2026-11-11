@@ -1,33 +1,21 @@
-import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-
+/** One public parser, with terminal input kept outside option parsing. */
 import { describe, expect, it } from "vitest";
+import { group, command, argument, option } from "../../src/cli/kit.js";
+import { CliRunner } from "../helpers/cliRunner.js";
 
-import { selectCommandSurface } from "../../src/cli/entry_surface.js";
+it("passes every word after the sandbox ID to the remote command", async () => {
+  const values: unknown[] = [];
+  const root = group("abx", { params: [option("--json", { is_flag: true })] });
+  const sandbox = group("sandbox"); root.addCommand(sandbox);
+  sandbox.addCommand(command("exec", { passThroughOptions: true, params: [option("--user"), argument("id"), argument("argv", { nargs: -1, required: true })], callback: (_ctx, params) => { values.push(params); } }));
+  const result = await new CliRunner().invoke(root, ["--json", "sandbox", "exec", "--user", "root", "sandbox-id", "tool", "--help", "--provider", "remote", "--native"]);
+  expect(result.exit_code, result.output).toBe(0);
+  expect(values).toEqual([{ user: "root", id: "sandbox-id", argv: ["tool", "--help", "--provider", "remote", "--native"] }]);
+});
 
-describe("explicit project command surface", () => {
-  it("preserves the selected provider and all native command arguments", () => {
-    expect(selectCommandSurface(["--native", "--provider", "example-provider", "template", "list"]))
-      .toEqual({ native: true, args: ["--provider", "example-provider", "template", "list"] });
-  });
-
-  it("never consumes a flag in remote exec input", () => {
-    const args = ["exec", "owned-sandbox", "printf", "--native"];
-    expect(selectCommandSurface(args)).toEqual({ native: false, args });
-  });
-
-  it("keeps the default entry point unchanged", () => {
-    expect(selectCommandSurface(["template", "list"])).toEqual({ native: false, args: ["template", "list"] });
-    expect(selectCommandSurface([])).toEqual({ native: false, args: [] });
-  });
-
-  it("executes the packaged native entry without exposing cloud credentials", () => {
-    const executable = fileURLToPath(new URL("../../dist/bin/abx.js", import.meta.url));
-    const output = execFileSync(process.execPath, [executable, "--native", "config", "get", "region"], {
-      encoding: "utf8", env: { ...process.env, ALIBABA_CLOUD_REGION_ID: "cn-hangzhou" },
-    });
-    expect(output).toContain("cn-hangzhou");
-    const help = execFileSync(process.execPath, [executable, "--native", "template", "list", "--help"], { encoding: "utf8" });
-    expect(help).not.toContain("--official-api");
+describe("retired surface selector", () => {
+  it("does not expose a second native entry", async () => {
+    const { main } = await import("../../src/cli/main.js");
+    expect(await main({ args: ["--native", "config", "get", "region"] })).toBe(2);
   });
 });

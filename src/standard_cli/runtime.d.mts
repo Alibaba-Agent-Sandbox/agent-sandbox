@@ -1,3 +1,2 @@
-// Maintained declaration boundary for the pinned bundled command implementation.
-declare const runtime: { completion: Promise<void> };
-export default runtime;
+// Bundled SDK boundary; no CLI parser or import-time command execution.
+export { Sandbox, ApiClient, ConnectionConfig, CommandExitError, NotFoundError } from "e2b";

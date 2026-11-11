@@ -107,12 +107,13 @@ describe("TestSkillMatchesCode", () => {
 
   it("test_referenced_repo_paths_exist", () => {
     const text = read(SKILL_MD);
-    const candidates = [...text.matchAll(/`([^`\n]+)`/g)].map((m) => m[1] as string);
+    const candidates = [...text.matchAll(/`([^`\n]+)`/g), ...text.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1] as string);
     const paths = candidates.filter(
       (c) =>
         (c.includes("/") || c.endsWith(".md") || c.endsWith(".txt")) &&
         !c.startsWith("/") &&
         !c.startsWith("~") &&
+        c !== "tools/list" &&
         /^[\p{L}\p{N}_./-]+$/u.test(c) &&
         !c.includes("<"),
     );

@@ -1,6 +1,7 @@
 /** Native sandbox preflight, after parser validation and before any SDK request. */
 import type { Context } from "./kit.js";
 import { withGuidedConfiguration } from "./config_guidance.js";
+import { sandboxTarget } from "./deployment_store.js";
 import { cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, resolveProviderId } from "../providers/registry.js";
 import { ProviderMismatchError } from "../models/provider_errors.js";
@@ -14,7 +15,7 @@ export async function withSandboxConfiguration<T>(ctx: Context, params: Record<s
   const sandbox = path.findIndex((name) => name === "sandbox" || name === "sbx");
   const verb = sandbox >= 0 ? path[sandbox + 1] : path.length === 2 && path[0] === "abx" ? path[1] : undefined;
   const roots = new Set(["list", "info", "kill", "exec", "connect", "pause", "resume", "upload", "download", "run"]);
-  if (!verb || verb === "create" || sandbox < 0 && !roots.has(verb) || params["all_providers"]) return action();
+  if (!verb || verb === "create" || sandbox < 0 && !roots.has(verb) || params["all_providers"] || verb === "list" && params["local"]) return action();
   if (params["background"] && params["stream"]) throw new UsageError("--background and --stream cannot be combined.");
   if (verb === "run" || verb === "command" && path.at(-1) === "run") {
     const { _commandArguments } = await import("./commands/sandbox.js");
@@ -29,10 +30,11 @@ export async function withSandboxConfiguration<T>(ctx: Context, params: Record<s
   if (verb === "kill" && !params["all"] && !params["sandbox_id"] && !(params["sandbox_ids"] as unknown[] | undefined)?.length) return action();
   const raw = params["sandbox_id"] ?? params["sandbox_ids"];
   const refs = (Array.isArray(raw) ? raw : [raw]).filter((value): value is string => typeof value === "string");
+  const targets = refs.map(ref => sandboxTarget(ref));
   const explicit = cliProvider();
   const qualified = new Set<string>();
-  for (const ref of refs) {
-    const [id] = parseSandboxRef(ref);
+  for (const target of targets) {
+    const id = target.provider ?? parseSandboxRef(target.id)[0];
     if (id) {
       if (explicit && explicit !== id) throw new ProviderMismatchError(`Sandbox belongs to '${id}', which conflicts with --provider ${explicit}.`);
       qualified.add(id);
@@ -44,8 +46,9 @@ export async function withSandboxConfiguration<T>(ctx: Context, params: Record<s
   provider.require("sandbox.lifecycle");
   const feature = ({ files: "files.rw", upload: "files.rw", download: "files.rw", exec: "exec.run", process: "exec.run", connect: "pty" } as Record<string, string>)[verb];
   if (feature) provider.require(feature);
+  const target = targets.length === 1 ? targets[0] : undefined;
   return withGuidedConfiguration(ctx, { operation: ctx.commandPath, provider: provider.id, yes: Boolean(params["yes"]),
     requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined,
-    validateProvider: provider.id !== "alicloud-express", overrides: { region: params["region"] },
+    validateProvider: provider.id !== "alicloud-express", overrides: { region: params["region"], ...(target?.provider_options ? { provider_options: target.provider_options } : {}), ...(target?.api_url ? { sandbox_base_url: target.api_url } : {}), ...(target?.domain ? { sandbox_domain: target.domain } : {}) },
   }, action);
 }

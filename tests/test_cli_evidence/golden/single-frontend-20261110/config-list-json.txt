@@ -1,0 +1,17 @@
+{
+  "sandbox_api_key": null,
+  "access_key_id": null,
+  "access_key_secret": null,
+  "acr_namespace": null,
+  "server_token": "pla***ken",
+  "sandbox_base_url": "https://api.cn-hangzhou.e2b.fc.aliyuncs.com",
+  "region": "cn-hangzhou",
+  "sandbox_domain": "cn-hangzhou.e2b.fc.aliyuncs.com",
+  "http_timeout": 30.0,
+  "http2": true,
+  "llm_api_key": null,
+  "llm_model": "qwen3-coder-plus",
+  "llm_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "github_token": null
+}
+[exit_code:0]

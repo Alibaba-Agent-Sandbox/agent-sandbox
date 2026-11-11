@@ -24,23 +24,7 @@ describe("TestCLICompleteness", () => {
     expect(result.exit_code).toBe(0);
     const output = result.output;
 
-    const expected_commands = [
-      "config",
-      "connect",
-      "create",
-      "deploy",
-      "download",
-      "exec",
-      "info",
-      "install",
-      "kill",
-      "list",
-      "mcp",
-      "run",
-      "sandbox",
-      "template",
-      "upload",
-    ];
+    const expected_commands = ["config", "deploy", "list", "status", "logs", "delete", "recover", "mcp", "provider", "sandbox", "template"];
     for (const cmd of expected_commands) expect(output, `Command '${cmd}' not found in abx --help output`).toContain(cmd);
   });
 

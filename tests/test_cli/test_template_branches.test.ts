@@ -15,10 +15,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { _doDeploy, templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import { unifiedDiff } from "../../src/cli/commands/_adopt.js";
 import { cli } from "../../src/cli/main.js";
-import { CliError } from "../../src/cli/errors.js";
-import { DockerBuilder } from "../../src/providers/alicloud_express/docker_builder.js";
+import { providerTemplateCli } from "../helpers/providerTemplateCli.js";
 import { CliRunner } from "../helpers/cliRunner.js";
-import { fakeConfig, mockHttp, patchLoadConfig, patchTransport, setenv, spyAny, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
+import { fakeConfig, mockHttp, patchLoadConfig, patchTransport, useMockBuilder, useTmpPath, writeText } from "../helpers/templateSupport.js";
 
 const runner = (): CliRunner => new CliRunner();
 const tmpPath = useTmpPath();
@@ -39,17 +38,12 @@ function templateDir(): string {
   return tdir;
 }
 
-function envAliyun(): void {
-  setenv("ACR_NAMESPACE", "test-ns");
-  setenv("ALICLOUD_ACCESS_KEY_ID", "ak-test");
-  setenv("ALICLOUD_ACCESS_KEY_SECRET", "sk-test");
-}
 
 describe("TestDeployConfirmation", () => {
   it("test_deploy_early_credential_check_exits_1", async () => {
     patchLoadConfig(fakeConfig({ access_key_id: null, access_key_secret: null }));
     const tdir = templateDir();
-    const result = await runner().invoke(cli, ["template", "deploy", tdir, "--acr-namespace", "ns", "--yes"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", tdir, "--acr-namespace", "ns", "--yes"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Missing configuration");
     expect(result.output).toContain("access_key_id");
@@ -66,7 +60,7 @@ describe("TestDeployConfirmation", () => {
       Status: "ready",
       _build_logs: ["noise"],
     });
-    const result = await runner().invoke(cli, [
+    const result = await runner().invoke(providerTemplateCli, [
       "--json",
       "template",
       "deploy",
@@ -86,7 +80,7 @@ describe("TestDeployConfirmation", () => {
 
   it("test_deploy_without_yes_in_non_interactive_mode_is_usage_error", async () => {
     patchLoadConfig(fakeConfig());
-    const result = await runner().invoke(cli, ["template", "deploy", templateDir(), "--acr-namespace", "ns"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", templateDir(), "--acr-namespace", "ns"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required for deploying to cloud");
   });
@@ -96,7 +90,7 @@ describe("TestDeployConfirmation", () => {
     templateSeams.stdinIsatty = () => true;
     vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const doDeploy = vi.spyOn(templateSeams, "_doDeploy");
-    const result = await runner().invoke(cli, ["template", "deploy", templateDir(), "--acr-namespace", "ns"], { input: "n\n" });
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", templateDir(), "--acr-namespace", "ns"], { input: "n\n" });
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Push image to ns/test-tpl:latest and register template 'test-tpl'?");
     expect(result.output).toContain("Aborted!");
@@ -107,7 +101,7 @@ describe("TestDeployConfirmation", () => {
 describe("TestDeleteConfirmation", () => {
   it("test_delete_without_yes_in_non_interactive_mode_is_usage_error", async () => {
     patchLoadConfig(fakeConfig());
-    const result = await runner().invoke(cli, ["template", "delete", "tpl-1"]);
+    const result = await runner().invoke(providerTemplateCli, ["template", "delete", "tpl-1"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Confirmation required for deleting template");
   });
@@ -118,7 +112,7 @@ describe("TestDeleteConfirmation", () => {
     vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
     const http = mockHttp({ json: {} });
     patchTransport(http);
-    const result = await runner().invoke(cli, ["template", "delete", "tpl-1"], { input: "n\n" });
+    const result = await runner().invoke(providerTemplateCli, ["template", "delete", "tpl-1"], { input: "n\n" });
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Delete template 'tpl-1'? This action cannot be undone.");
     expect(result.output).toContain("Aborted!");
@@ -126,78 +120,14 @@ describe("TestDeleteConfirmation", () => {
   });
 });
 
-describe("TestInstallPipelineStatuses", () => {
-  const install = async (status: string): Promise<string> => {
-    envAliyun();
-    const tp = tmpPath();
-    const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), manifestYaml("name: st-test\n"));
-    writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
-    spyAny(templateSeams, "_doDeploy").mockResolvedValue({
-      TemplateID: "tpl-9",
-      BuildID: "b",
-      "ACR Image": "r/n/x:latest",
-      Status: status,
-      _build_logs: [],
-    });
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local", "--yes"]);
-    expect(result.exit_code, result.output).toBe(0);
-    return result.output;
-  };
-
-  it("test_install_ready_status_prints_usage_hint", async () => {
-    const out = await install("ready");
-    expect(out).toContain("Template installed, built, and ready!");
-    expect(out).toContain("Use: abx create tpl-9");
-  });
-
-  it("test_install_pushed_status_message", async () => {
-    expect(await install("pushed")).toContain("Template downloaded and image pushed; registration submitted.");
-  });
-
-  it("test_install_other_status_prints_error", async () => {
-    expect(await install("failed")).toContain("Build status: failed");
-  });
-
-  it("test_install_without_yes_in_non_interactive_mode_is_usage_error", async () => {
-    envAliyun();
-    const tp = tmpPath();
-    const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), manifestYaml("name: st-test\n"));
-    writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local"]);
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("Confirmation required for build + deploy");
-  });
-
-  it("test_install_confirmation_declined_aborts", async () => {
-    envAliyun();
-    templateSeams.stdinIsatty = () => true;
-    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
-    const tp = tmpPath();
-    const source = path.join(tp, "src");
-    writeText(path.join(source, "template.yaml"), manifestYaml("name: st-test\n"));
-    writeText(path.join(source, "Dockerfile"), "FROM ubuntu:22.04\n");
-    const doDeploy = spyAny(templateSeams, "_doDeploy");
-    const result = await runner().invoke(cli, ["template", "install", source, "--registry-type", "local"], { input: "n\n" });
-    expect(result.exit_code).toBe(1);
-    expect(result.output).toContain("Build and deploy template 'st-test'?");
-    expect(doDeploy).not.toHaveBeenCalled();
-  });
-});
-
 describe("TestInitFlagCombinations", () => {
   it("test_nl_description_cannot_combine_with_template_flag", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "--prompt", "a python web service that serves files", "-t", "python"]);
+    const result = await runner().invoke(cli, ["template", "init", "--prompt", "a python web service that serves files", "-t", "python"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("A natural-language description cannot be combined with --template/-t or --from.");
   });
 
-  it("test_from_builtin_template_is_rejected", async () => {
-    const result = await runner().invoke(cli, ["template", "scaffold", "--from", "base"]);
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("'base' is a built-in template and cannot be used with --from.");
-  });
+
 });
 
 describe("TestAdoptUnifiedDiff", () => {

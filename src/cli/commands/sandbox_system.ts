@@ -18,8 +18,8 @@ import { handleErrors } from "../error_handler.js";
 export async function _connectSandbox(sandbox_id: string): Promise<Sandbox> {
   // Imported lazily like the Python helper: the SDK loggers must be created after the CLI's logging bridge is
   // installed by the root group callback, otherwise `--verbose` cannot lower the package logger level.
-  const { Sandbox } = await import("../../api/sandbox.js");
-  return Sandbox.connect(sandbox_id);
+  const { connectSandboxTarget } = await import("../deployment_store.js");
+  return connectSandboxTarget(sandbox_id);
 }
 
 // ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ export const system_info = command("info", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx info SANDBOX_ID\n" +
+    "  abx status SANDBOX_ID\n" +
     "  abx sandbox system metrics SANDBOX_ID\n" +
     "  abx sandbox system packages SANDBOX_ID",
   params: [argument(["sandbox_id"])],
@@ -260,8 +260,8 @@ export const system_env = command("env", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox system info SANDBOX_ID\n" +
-    "  abx exec SANDBOX_ID \"env | sort\"\n" +
-    "  abx create --env KEY=VALUE",
+    "  abx sandbox exec SANDBOX_ID \"env | sort\"\n" +
+    "  abx deploy --template-id base --env KEY=VALUE --yes",
   params: [
     argument(["sandbox_id"]),
     option(["--filter", "-f", "env_filter"], {
@@ -338,7 +338,7 @@ export const system_ports = command("ports", {
     "Related commands:\n" +
     "  abx sandbox system info SANDBOX_ID\n" +
     "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx exec SANDBOX_ID \"ss -tlnp\"",
+    "  abx sandbox exec SANDBOX_ID \"ss -tlnp\"",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -381,7 +381,7 @@ export const system_packages = command("packages", {
     "\b\n" +
     "Related commands:\n" +
     "  abx sandbox system info SANDBOX_ID\n" +
-    "  abx exec SANDBOX_ID \"python3 -m pip show PACKAGE\"\n" +
+    "  abx sandbox exec SANDBOX_ID \"python3 -m pip show PACKAGE\"\n" +
     "  abx sandbox process list SANDBOX_ID",
   params: [
     argument(["sandbox_id"]),
@@ -485,7 +485,7 @@ export const system_metrics = command("metrics", {
     "Related commands:\n" +
     "  abx sandbox system info SANDBOX_ID\n" +
     "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx info SANDBOX_ID",
+    "  abx status SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -563,7 +563,7 @@ export const capabilities = command("capabilities", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx info SANDBOX_ID\n" +
+    "  abx status SANDBOX_ID\n" +
     "  abx template info TEMPLATE_ID\n" +
     "  abx sandbox system info SANDBOX_ID",
   params: [argument(["sandbox_id"])],
@@ -602,7 +602,7 @@ export const system = group("system", {
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx info SANDBOX_ID\n" +
+    "  abx status SANDBOX_ID\n" +
     "  abx sandbox process --help\n" +
     "  abx sandbox capabilities SANDBOX_ID",
   callback: (ctx) => {

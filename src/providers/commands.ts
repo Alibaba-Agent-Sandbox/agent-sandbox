@@ -8,6 +8,7 @@ import { BUILTIN_PROVIDER_ID, validateProviderId } from "../utils/config_keys.js
 import { sanitizeText } from "./epp.js";
 import { getProvider } from "./registry.js";
 import { parseCommandSection } from "./command_contract.js";
+import { templateManagerCommands, templateManagerRunner } from "./template_commands.js";
 import * as store from "./store.js";
 
 export type { ProviderCommand, ProviderCommandHandler, ProviderCommandRunner } from "./command_contract.js";
@@ -22,7 +23,9 @@ export function listProviderCommands(providerId: string): ProviderCommand[] {
   const receipt = store.readReceipt(providerId);
   if (receipt && receipt["trust"] !== "link") store.verifyIntegrity(providerId);
   const provider = getProvider(providerId);
-  return structuredClone([...parseCommandSection({ protocol: "provider-commands/1", entries: provider.commands }, provider.kind)]);
+  const declared = parseCommandSection({ protocol: "provider-commands/1", entries: provider.commands }, provider.kind);
+  // Host adapters do not grant a manifest permission to define commands (notably REST manifests).
+  return structuredClone([...parseCommandSection({ protocol: "provider-commands/1", entries: [...declared, ...templateManagerCommands(provider)] }, "builtin")]);
 }
 
 export function getProviderCommand(providerId: string, commandId: string): ProviderCommand {
@@ -81,7 +84,9 @@ export async function runProviderCommand(providerId: string, commandId: string, 
   const abort = new AbortController();
   try {
     const invocation = (async () => {
-      const prepared = await provider.buildCommandRunner(config);
+      const prepared = templateManagerCommands(provider).some(entry => entry.id === commandId)
+        ? await templateManagerRunner(provider, config, command)
+        : await provider.buildCommandRunner(config);
       runner = prepared;
       if (abort.signal.aborted) { await close(prepared); throw new ProviderTimeoutError("Provider command preparation timed out; outcome may be unknown."); }
       return prepared.run(commandId, input, abort.signal);

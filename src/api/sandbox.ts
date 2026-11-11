@@ -1,3 +1,4 @@
+import { sandboxLifecycleSchema, type SandboxLifecycle } from "../models/sandbox.js";
 /**
  * Sandbox — the primary user-facing class (port of `api/sandbox.py`).
  *
@@ -176,7 +177,7 @@ export function _effectiveOptions(prov: Provider | null, options: Record<string,
       });
     }
     if (f?.secret) {
-      throw new ProviderConfigError(`Field '${key}' is secret; set it with 'abx provider config ${schema.id} set ${key}' or the ${providerEnvName(schema.id, key)} environment variable.`);
+      throw new ProviderConfigError(`Field '${key}' is secret; set it with 'abx config set providers.${schema.id}.${key}' or the ${providerEnvName(schema.id, key)} environment variable.`);
     }
   }
   return { ...cli, ...(options ?? {}) };
@@ -212,6 +213,8 @@ export interface SandboxInit {
 }
 
 export interface CreateOptions extends BuildInfraOptions {
+  /** Supported providers only: native timeout and automatic resume policy. */
+  lifecycle?: SandboxLifecycle;
   /** Persist the owned native ID before any session binding can fail. */
   on_created?: (sandbox_id: string) => void | Promise<void>;
   template?: string;
@@ -489,6 +492,13 @@ export class Sandbox {
     if (Object.keys(volume_mounts).length && !prov.createOptions.has("volume_mounts")) {
       throw new ProviderFeatureNotSupportedError(prov.id, "volume_mounts");
     }
+    let lifecycle: SandboxLifecycle | null = null;
+    if (opts.lifecycle !== undefined) {
+      if (!prov.createOptions.has("lifecycle")) throw new ProviderFeatureNotSupportedError(prov.id, "lifecycle");
+      const parsed = sandboxLifecycleSchema.safeParse(opts.lifecycle);
+      if (!parsed.success) throw new ProviderConfigError("Invalid lifecycle: onTimeout must be pause or kill; autoResume=true requires pause.");
+      lifecycle = parsed.data;
+    }
     const secure_hint: boolean | null = opts.secure === undefined ? null : opts.secure;
 
     if (request_timeout !== null && request_timeout <= 0) {
@@ -510,6 +520,7 @@ export class Sandbox {
 
     const popts = _effectiveOptions(prov, provider_options);
     return this._createViaProvider(prov, {
+        lifecycle,
         on_created: opts.on_created,
         template: effective_template,
         timeout,
@@ -600,6 +611,7 @@ export class Sandbox {
   private static async _createViaProvider(
     prov: Provider,
     p: {
+      lifecycle: SandboxLifecycle | null;
       on_created?: (sandbox_id: string) => void | Promise<void>;
       template: string;
       timeout: number;
@@ -621,6 +633,7 @@ export class Sandbox {
     let created: SandboxInfo | null = null;
     try {
       const sandbox_config = new SandboxConfig({
+        lifecycle: p.lifecycle,
         template: p.template,
         timeout: p.timeout,
         metadata: p.metadata && Object.keys(p.metadata).length ? p.metadata : {},

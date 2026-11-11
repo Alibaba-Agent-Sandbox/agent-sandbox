@@ -4,6 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { createHash, randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
+import { releaseStoppedApplicationLock } from "../../../application/lock.js";
 import { ApplicationError, contained, record, sourceDigest, toolDigest, verifyTools, writeJson } from "../../../application/config.js";
 import { execute } from "../../../application/process.js";
 import { COMPONENT_RUNNER_SOURCE } from "../../../application/component_runner.js";
@@ -16,7 +17,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { withApplicationLock } from "../../../application/lock.js";
 
 const require = createRequire(import.meta.url);
-export interface ComponentInvocation { command: "deploy" | "info" | "remove"; resource: string; props: Record<string, unknown>; credential: CredentialSnapshot }
+export interface ComponentInvocation { command: "deploy" | "info" | "remove" | "logs"; resource: string; props: Record<string, unknown>; credential: CredentialSnapshot }
 
 /** Build children inherit only explicitly useful host settings, never unrelated API keys. */
 export function childEnvironment(home: string): NodeJS.ProcessEnv {
@@ -63,7 +64,7 @@ export async function invokeComponent(lock: ToolchainLock, invocation: Component
   try {
     const value = await runComponent(lock.node.path, lock.loader.path, lock.component.directory, home,
       { action: "invoke", command: invocation.command, resource: invocation.resource, props: invocation.props, credential: invocation.credential });
-    verifyTools(lock); return value.result;
+    verifyTools(lock); return invocation.command === "logs" ? value.logs : value.result;
   } finally { fs.rmSync(home, { recursive: true, force: true }); }
 }
 /** Prepare a digest-pinned server image and its lock before any immutable plan is generated. */
@@ -138,6 +139,7 @@ export async function removeOwnedImage(image: OwnedServerImage, credential: Cred
 }
 /** A build that entered an application lifecycle must be cleaned through its retained-resource graph. */
 export async function cleanBuild(file: string, credential: CredentialSnapshot, dependencies: BuildDependencies = {}): Promise<BuildReceipt> {
+  releaseStoppedApplicationLock(path.join(paths.abxDir, "build-locks"), fs.realpathSync(file));
   return await withApplicationLock(path.join(paths.abxDir, "build-locks"), fs.realpathSync(file), async () => await cleanBuildUnlocked(file, credential, dependencies));
 }
 async function cleanBuildUnlocked(file: string, credential: CredentialSnapshot, dependencies: BuildDependencies): Promise<BuildReceipt> {

@@ -1,0 +1,9 @@
+Usage: abx sandbox fork [options] <SANDBOX_ID>
+
+Fork a running sandbox and return the new sandbox IDs.
+
+Options:
+  -n, --count <INTEGER>
+  --timeout <INTEGER>    Lifetime in seconds (minimum 30)
+  -h, --help             Show this message and exit.
+[exit_code:0]

@@ -1,10 +1,9 @@
 /**
  * End-to-end decoupling proof for the pluggable coding-agent backend.
  *
- * `abx create "<description>"` must run entirely through the backend returned by `resolveCodingAgentBackend`: these
+ * `abx template init --prompt "<description>"` must run entirely through the backend returned by `resolveCodingAgentBackend`: these
  * tests replace the backend with a dummy (no Qwen Code anywhere) and assert that no function of the Qwen Code / codegen
- * / clarify modules is ever touched, while the rest of the create pipeline (deploy, `Sandbox.create`) still runs
- * unchanged.
+ * / clarify modules is ever touched, while no cloud deployment is started.
  *
  * The dummy also pins the message templating contract: every user-facing sentence must name the backend's
  * `displayName` / `configKey` / `envVar` instead of hard-coded "Qwen Code" strings.
@@ -284,11 +283,11 @@ describe("TestBackendDecoupling", () => {
     const mockSb = _makeSandbox();
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(mockSb);
 
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "-y", "--prompt", "dummy description"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Generated template: abx-nl-dummy-xyz");
-    expect(result.output).toContain("sbx-dummy-001");
+    expect(fs.existsSync(path.join(tmp, "generated", "template.yaml"))).toBe(true);
 
     expect(resolver).toHaveBeenCalledTimes(1);
     expect(resolver).toHaveBeenCalledWith();
@@ -302,24 +301,21 @@ describe("TestBackendDecoupling", () => {
     expect(genCall["resume_session"]).toBeNull();
     expect(genCall["env"]).toEqual({ DUMMY_AGENT_KEY: "dummy-secret" });
 
-    expect(deployMock).toHaveBeenCalledTimes(1);
-    expect(deployMock).toHaveBeenCalledWith(dummyBackend.workdir, expect.objectContaining({ ctx: expect.anything(), yes: true, template_launch: true }));
-    expect((mockCreate.mock.calls[0]![0] as Record<string, unknown>)["template"]).toBe("tmpl-dummy-1");
+    expect(deployMock).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
     _assertNoRealAgentCalls();
   });
 
-  it("test_complete_assessment_reaches_the_confirmation_gate", async () => {
+  it("test_complete_assessment_generates_source_without_cloud_work", async () => {
     dummyBackend.assessment = new ClarifyAssessment({ completeness: 0.95, question: null });
     clarify.seams.newSessionId = () => "dummy-session-1";
     _patchBackend(dummyBackend);
     const deployMock = vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "a complete dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "--prompt", "a complete dummy description"]);
 
-    // Non-interactive without --yes: generation ran, then the gate refused.
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("Confirmation required to build and deploy");
+    expect(result.exit_code, result.output).toBe(0);
 
     // Round 1 runs the research phase first, on the fresh session.
     expect(dummyBackend.research_calls).toHaveLength(1);
@@ -353,10 +349,9 @@ describe("TestBackendDecoupling", () => {
     vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "a complete dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "--prompt", "a complete dummy description"]);
 
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("Confirmation required to build and deploy");
+    expect(result.exit_code, result.output).toBe(0);
     // The research failure is a warning, never a gate.
     expect(result.output).toContain("could not research the public facts");
 
@@ -379,9 +374,9 @@ describe("TestBackendDecoupling", () => {
     vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "a complete dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "--prompt", "a complete dummy description"]);
 
-    expect(result.exit_code).toBe(2);
+    expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("could not research the public facts");
     expect(result.output).toContain("could not be started"); // reason-specific hint
     expect(result.output).not.toContain("sanitised detail"); // detail is never rendered
@@ -399,9 +394,9 @@ describe("TestBackendDecoupling", () => {
     vi.spyOn(template, "do_deploy").mockResolvedValue({});
     const mockCreate = vi.spyOn(Sandbox, "create").mockResolvedValue(_makeSandbox());
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "a vague dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "--prompt", "a vague dummy description"]);
 
-    expect(result.exit_code).toBe(2);
+    expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain(
       "Could not assess the description completeness with Dummy Agent " + "(assessment unavailable); continuing straight to generation.",
     );
@@ -419,7 +414,7 @@ describe("TestBackendDecoupling", () => {
     const backend = new _DummyBackend({ binary: null, workdir: path.join(tmp, "ws"), template_name: "abx-nl-dummy-xyz" });
     _patchBackend(backend);
 
-    const result = await runner().invoke(cli, ["create", "--prompt", "dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "--prompt", "dummy description"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Dummy Agent CLI was not found on PATH or in ~/.abx/bin.");
@@ -439,7 +434,7 @@ describe("TestBackendDecoupling", () => {
     const backend = new _RejectingBackend({ binary: dummyBackend.binary, workdir: dummyBackend.workdir, template_name: dummyBackend.template_name });
     _patchBackend(backend);
 
-    const result = await runner().invoke(cli, ["create", "-y", "--prompt", "dummy description"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmp, "generated"), "-y", "--prompt", "dummy description"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Dummy Agent is installed but no model credentials were found.");

@@ -46,16 +46,16 @@ Details: docs/en/design/architecture.md
 
 ## Key Commands
 
-Install: `npm install -g @agent-sandbox/cli`
+Install the current source CLI as described in README.md; published 0.5.10 uses the previous command layout.
 
 ```
-abx create base --detach            # create from a registered platform template
-abx template launch Alibaba-Agent-Sandbox/awesome-templates//python-hello --yes # Registry source on default Express; configure provider/build first
-abx exec <id> -- echo hello          # run command; --background starts a background process
-abx run <id> <name> --arg k=v       # named command on the in-sandbox server
-abx upload <id> ./local /remote     # file transfer
+abx deploy --template-id base --name demo --yes            # create from a registered platform template
+abx deploy python-hello --name hello --yes # Registry source on default Express; configure provider/build first
+abx sandbox exec <id> -- echo hello          # run command; --background starts a background process
+abx sandbox command run <id> <name> --arg k=v       # named command on the in-sandbox server
+abx sandbox upload <id> ./local /remote     # file transfer
 abx mcp start                       # start MCP server (STDIO)
-abx kill <id>                       # destroy sandbox
+abx delete <id> --yes                       # destroy sandbox
 ```
 
 ## Source Layout
@@ -70,8 +70,8 @@ abx kill <id>                       # destroy sandbox
 
 ## Sites
 
-- Official site: https://www.agent-sandbox.com
-- Provider registry: https://registry.agent-sandbox.com
+- Official site: https://www.agent-sandbox.cn
+- Provider registry: https://registry.agent-sandbox.cn
 - CLI catalog install: `abx provider install alibaba-agent-sandbox/awesome-providers//<id>`
 - Python SDK catalog index: https://registry.agent-sandbox.cn/providers/index.json (`python -m agent_sandbox.providers install registry:<id> --yes`; `ABX_PROVIDER_REGISTRY` overrides the URL)
 

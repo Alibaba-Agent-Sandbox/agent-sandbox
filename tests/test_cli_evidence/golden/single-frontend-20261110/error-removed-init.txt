@@ -1,0 +1,6 @@
+[exit_code:2]
+[stderr]
+Usage: abx template [options] [command]
+Try 'abx template -h' for help.
+
+Error: No such command 'scaffold'.

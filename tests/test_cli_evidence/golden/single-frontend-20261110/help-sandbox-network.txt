@@ -1,0 +1,12 @@
+Usage: abx sandbox network [options] [command]
+
+Read or update a sandbox's network policy.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  get         Read the current sandbox network policy.
+  update      Replace all egress rules from JSON (allowOut, denyOut, rules,
+              egressProxy, allowInternetAccess).
+[exit_code:0]

@@ -15,8 +15,8 @@ export const CONFIGURATION_UI: ProviderConfigUi = {
       try { return await resolveSandboxApiKey(config); }
       catch (error) {
         if (!(error instanceof ManagedKeyConsentRequiredError)) throw error;
-        if (!options.ci && !await options.confirm(`${error.message} This manages a 30-day API key stored privately on this machine. ${MANAGED_KEY_HELP} Continue?`)) throw error;
-        echo(`${options.ci ? "--ci authorized" : "Confirmed"}: managed API-key ${error.operation} in region ${error.region}, Team ${error.team}. The credential will be stored privately; its value is not displayed.`, { err: true });
+        if (!await options.confirm(`${error.message} This manages a 30-day API key stored privately on this machine. ${MANAGED_KEY_HELP} Continue?`)) throw error;
+        echo(`Confirmed: managed API-key ${error.operation} in region ${error.region}, Team ${error.team}. The credential will be stored privately; its value is not displayed.`, { err: true });
         await prepareManagedApiKey(config, {}, true);
         return resolveSandboxApiKey(config);
       }
@@ -38,7 +38,7 @@ export const CONFIGURATION_UI: ProviderConfigUi = {
     { key: "region", prompt: "Region", current: true, default: "cn-hangzhou", result: "set" },
   ],
   buildFields: [
-    { key: "acr_namespace", env: "ACR_NAMESPACE", prompt: "ACR namespace (needed by abx template install / build / deploy)", current: true, result: "set" },
+    { key: "acr_namespace", env: "ACR_NAMESPACE", prompt: "ACR namespace (needed by abx template build / deploy)", current: true, result: "set" },
     { key: "access_key_id", env: "ALICLOUD_ACCESS_KEY_ID", prompt: "Alibaba Cloud AccessKey ID (managed API keys / template deploy / ACR, input masked)", hidden: true, result: "stored" },
     { key: "access_key_secret", env: "ALICLOUD_ACCESS_KEY_SECRET", prompt: "Alibaba Cloud AccessKey Secret (input masked)", hidden: true, result: "stored" },
   ],

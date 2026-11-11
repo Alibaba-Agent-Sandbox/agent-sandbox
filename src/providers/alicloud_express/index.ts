@@ -1,3 +1,4 @@
+import { TEMPLATE_COMMANDS, isTemplateCommand, runTemplateCommand } from "./template_commands.js";
 import workflowOperations from "./workflow-operations.json" with { type: "json" };
 import { CONFIG_METADATA } from "./metadata.js";
 /** The built-in provider: Alibaba Cloud Express Edition (`alicloud-express`). */
@@ -65,14 +66,14 @@ export class AlicloudExpressProvider extends Provider {
     this.operations = workflowOperations.operations;
     this.workflow_inputs = workflowOperations.workflow_inputs;
     this.startup_modes = workflowOperations.startup_modes;
-    this.commands = [...ALICLOUD_COMMANDS, MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS];
+    this.commands = [...ALICLOUD_COMMANDS, MANAGED_KEY_COMMAND, MANAGED_KEY_RESOLVE_COMMAND, ...CONDITIONAL_COMMANDS, ...TEMPLATE_CACHE_COMMANDS, ...TEMPLATE_COMMANDS];
     // Snapshot create may take300 seconds; this is an outer deadline, not the sandbox TTL.
     this.commandTimeoutMs = 360_000;
     this.inherit = new Set(GENERIC_ENDPOINT_KEYS);
     this.configFields = fields();
   }
 
-  override createOptions = new Set(["volume_mounts"]);
+  override createOptions = new Set(["volume_mounts", "lifecycle"]);
 
   override buildSessionProtocols(http: HttpClient) {
     return { sandbox_protocol: new SandboxProtocol(http), process_protocol: new ProcessProtocol(http),
@@ -107,6 +108,7 @@ export class AlicloudExpressProvider extends Provider {
     return {
       run: (command, input, signal) => {
         if (command === MANAGED_KEY_COMMAND.id || command === MANAGED_KEY_RESOLVE_COMMAND.id) return prepareManagedApiKey(config, input, command === MANAGED_KEY_COMMAND.id);
+        if (isTemplateCommand(command)) return runTemplateCommand(config, command, input, signal);
         if (isTemplateCacheCommand(command)) return runTemplateCacheCommand(config, command, input, signal);
         if (!isConditionalCommand(command)) return runAlicloudCommand(config, command, input);
         conditional ??= buildConditionalCommandRunner(config);

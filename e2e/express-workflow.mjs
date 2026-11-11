@@ -26,7 +26,7 @@ process.env.ABX_SERVER_TOKEN ||= randomBytes(32).toString('hex');
 let sandbox, launch, error, prelaunchJournalIds;
 async function run(args, json = true) {
   const result = await new Promise(resolve => {
-  const child = execFile(process.execPath, [cli, '--native', ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => resolve({ status: error ? error.code ?? 1 : 0, stdout, stderr }));
+  const child = execFile(process.execPath, [cli, ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => resolve({ status: error ? error.code ?? 1 : 0, stdout, stderr }));
   child.stdin.end(); // Automated commands have no interactive input; unexpected prompts must fail.
   const phases = new Set();
   child.stderr.on('data', chunk => {
@@ -76,14 +76,14 @@ function imageJournals() {
 try {
   prelaunchJournalIds = journalIdsBeforeLaunch();
   // Same source reference and default build as the Registry's Express instruction.
-  launch = await run(['template','launch','Alibaba-Agent-Sandbox/awesome-templates//python-hello','--alias',alias,'--timeout','1200','--sandbox-timeout',process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600','--yes']);
+  launch = await run(["deploy", 'Alibaba-Agent-Sandbox/awesome-templates//python-hello', "--name", alias, "--build-timeout", '1200', '--sandbox-timeout', process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600', '--yes']);
   assert.equal(launch.provider,'alicloud-express');assert.ok(launch.source_digest);
   assert.equal(launch.services.app.protocol,'agent-sandbox-server');assert.equal(launch.services.app.version,2);assert.equal(launch.services.app.port,9000);assert.ok(launch.services.app.url);check('Registry source launch and declared application service');
   const entries = journals().flatMap(j=>j.entries);
   assert.ok(entries.some(e=>e.kind==='template' && e.id===launch.template_reference && e.state==='retained'));
   assert.ok(entries.some(e=>e.kind==='image' && /@sha256:[a-f0-9]{64}$/.test(e.id) && e.state==='retained'));check('exact template handoff and immutable image receipt');
-  await run(['info',launch.sandbox_id]);await run(['list']);check('CLI info and list');
-  const result = await run(['exec',launch.sandbox_id,'--','python3','-c','print(21 * 2)']);assert.equal(result.exit_code,0);assert.equal(result.stdout.trim(),'42');check('CLI exec');
+  await run(["status", launch.sandbox_id]);await run(['list']);check('CLI info and list');
+  const result = await run(["sandbox", 'exec', launch.sandbox_id, '--', 'python3', '-c', 'print(21 * 2)']);assert.equal(result.exit_code,0);assert.equal(result.stdout.trim(),'42');check('CLI exec');
   const commands = await run(['sandbox','command','list',launch.sandbox_id]);assert.ok(JSON.stringify(commands).includes('hello'));check('CLI command discovery');
   const hello = await run(['sandbox','command','run',launch.sandbox_id,'hello','--arg','name=Workflow']);assert.ok(JSON.stringify(hello).includes('Hello, Workflow!'));check('CLI named command');
   sandbox = await Sandbox.connect(launch.sandbox_id,{provider:'alicloud-express'});
@@ -91,8 +91,8 @@ try {
   const response = await requestApplication(endpoint,'/commands/hello',{method:'POST',json:{name:'HTTP'},application_token:process.env.ABX_SERVER_TOKEN});
   assert.equal(response.status_code,200);assert.equal(response.json().result,'Hello, HTTP!');check('POST /commands/hello');
   const local = path.join(directory,'input.txt'), downloaded=path.join(directory,'output.txt');fs.writeFileSync(local,'workflow file roundtrip');
-  await run(['upload',launch.sandbox_id,local,'/tmp/abx-workflow-e2e.txt'],false);
-  await run(['download',launch.sandbox_id,'/tmp/abx-workflow-e2e.txt',downloaded],false);assert.equal(fs.readFileSync(downloaded,'utf8'),'workflow file roundtrip');
+  await run(["sandbox", 'upload', launch.sandbox_id, local, '/tmp/abx-workflow-e2e.txt'],false);
+  await run(["sandbox", 'download', launch.sandbox_id, '/tmp/abx-workflow-e2e.txt', downloaded],false);assert.equal(fs.readFileSync(downloaded,'utf8'),'workflow file roundtrip');
   await run(['sandbox','files','stat',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt']);
   await run(['sandbox','files','rm',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt','--yes'],false);check('CLI upload/download/stat/remove');
   if (process.env.ABX_WORKFLOW_FULL_E2E === '1') {

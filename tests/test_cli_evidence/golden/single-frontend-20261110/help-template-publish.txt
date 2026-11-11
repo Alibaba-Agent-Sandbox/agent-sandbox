@@ -1,0 +1,12 @@
+Usage: abx template publish [options] [SOURCE]
+
+Publish a clean committed template to an existing GitHub remote using a new
+version tag. Returns a commit-pinned source reference; does not create a catalog
+listing.
+
+Options:
+  --tag <TAG>
+  --remote <REMOTE>
+  -y, --yes
+  -h, --help         Show this message and exit.
+[exit_code:0]

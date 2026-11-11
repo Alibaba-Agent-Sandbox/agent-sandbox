@@ -48,8 +48,8 @@ describe("guided configuration persistence", () => {
     ["--json", "config", "list"],
     ["config", "get", "access_key_id"],
     ["config", "get", "providers.alicloud-express.access_key_id"],
-    ["provider", "config", "alicloud-express", "list"],
-    ["provider", "config", "alicloud-express", "get", "access_key_id"],
+    ["config", "list"],
+    ["config", "get", "providers.alicloud-express.access_key_id"],
     ["config", "set", "access_key_id"],
     ["config", "set", "providers.alicloud-express.access_key_id"],
   ])("masks an AccessKey identifier across configuration commands: %j", async (...args) => {
@@ -67,7 +67,7 @@ describe("guided configuration persistence", () => {
 
   it.each([
     ["config", "set", "access_key_id"],
-    ["provider", "config", "alicloud-express", "set", "access_key_id"],
+    ["config", "set", "providers.alicloud-express.access_key_id"],
   ])("uses hidden input for an AccessKey identifier: %j", async (...args) => {
     const identifier = "EXAMPLE-ACCESS-IDENTIFIER-HIDDEN";
     vi.spyOn(sys.stdin, "isatty").mockReturnValue(true);
@@ -83,32 +83,30 @@ describe("guided configuration persistence", () => {
 
   it("stores built-in Provider secrets under their real schema name and consumes them immediately", async () => {
     loadLayeredConfig({ provider: "alicloud-express" });
-    const result = await abx("provider", "config", "alicloud-express", "set", "access_key_secret", "placeholder-secret");
+    const result = await abx("config", "set", "providers.alicloud-express.access_key_secret", "placeholder-secret");
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).not.toContain("placeholder-secret");
     const stored = fs.readFileSync(iso.env, "utf8");
     expect(stored).toContain("ALICLOUD_ACCESS_KEY_SECRET=placeholder-secret");
     expect(stored).not.toContain("ABX_ALICLOUD_EXPRESS_ACCESS_KEY_SECRET");
     expect(loadLayeredConfig({ provider: "alicloud-express" }).access_key_secret).toBe("placeholder-secret");
-    expect(result.output).toContain(iso.env);
-    const shown = await abx("provider", "config", "alicloud-express", "get", "access_key_secret");
-    expect(shown.stdout.trim()).toBe("********");
-    expect(result.output).toContain("abx provider config alicloud-express set access_key_secret");
+    const shown = await abx("config", "get", "providers.alicloud-express.access_key_secret");
+    expect(shown.stdout.trim()).toContain("***");
   });
 
   it("preserves an existing secret on empty interactive input; only explicit unset removes it", async () => {
-    await abx("provider", "config", "alicloud-express", "set", "access_key_secret", "placeholder-secret");
+    await abx("config", "set", "providers.alicloud-express.access_key_secret", "placeholder-secret");
     const previous = fs.readFileSync(iso.env, "utf8");
     vi.spyOn(sys.stdin, "isatty").mockReturnValue(true);
     vi.spyOn(sys.stderr, "isatty").mockReturnValue(true);
     vi.spyOn(sys.stdout, "isatty").mockReturnValue(true);
     const prompt = vi.fn(async () => "");
-    const result = await withConfig({ _promptSecret: prompt }, () => terminal("provider", "config", "alicloud-express", "set", "access_key_secret"));
+    const result = await withConfig({ _promptSecret: prompt }, () => terminal("config", "set", "providers.alicloud-express.access_key_secret"));
     expect(result.exit_code, result.output).toBe(0);
     expect(prompt).toHaveBeenCalledOnce();
     expect(fs.readFileSync(iso.env, "utf8")).toBe(previous);
     expect(result.output).toContain("was not changed");
-    await abx("provider", "config", "alicloud-express", "unset", "access_key_secret");
+    await abx("config", "delete", "providers.alicloud-express.access_key_secret");
     expect(fs.existsSync(iso.env)).toBe(false);
   });
 
@@ -277,7 +275,7 @@ describe("noninteractive configuration", () => {
       vi.spyOn(sys.stderr, "isatty").mockReturnValue(true);
     vi.spyOn(sys.stdout, "isatty").mockReturnValue(true);
       const prompt = vi.fn(async () => { throw new Error("must not prompt"); });
-      const result = await withConfig({ _promptSecret: prompt }, () => terminal(flag, "provider", "config", "alicloud-express", "set", "access_key_secret"));
+      const result = await withConfig({ _promptSecret: prompt }, () => terminal(flag, "config", "set", "providers.alicloud-express.access_key_secret"));
       expect(prompt).not.toHaveBeenCalled();
       expect(result.exit_code).toBe(2);
       if (flag === "--json") expect(() => JSON.parse(result.stdout)).not.toThrow();

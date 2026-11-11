@@ -413,8 +413,8 @@ describe("TestGenerateTemplateFiles", () => {
       "commands.py",
     );
     expect(String(exc)).toContain("did not create the expected file");
-    expect(exc.suggestion).toContain('abx create --prompt "<description>"');
-    expect(exc.suggestion).toContain("abx create <name> --detach");
+    expect(exc.suggestion).toContain('abx template init --prompt "<description>"');
+    expect(exc.suggestion).toContain("abx deploy --template-id <name> --name my-sandbox");
   });
 
   it("test_commands_py_with_a_syntax_error_raises", async () => {

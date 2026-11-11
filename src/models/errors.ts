@@ -159,7 +159,7 @@ export class TemplateParseError extends SandboxCreationError {
  */
 export class QwenCodeNotInstalledError extends SandboxCreationError {
   static override code = "E2005";
-  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'). For Express, bypass AI generation with 'abx create <name> --detach'; for other providers, check 'abx create --help'.";
+  static override suggestion = "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx deploy --help'). For Express, bypass AI generation with 'abx deploy --template-id <name> --name my-sandbox'; for other providers, check 'abx deploy --help'.";
 }
 
 /**
@@ -175,7 +175,7 @@ export class QwenCodeCredentialError extends SandboxCreationError {
  */
 export class AICodegenError extends SandboxCreationError {
   static override code = "E2007";
-  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx create --prompt \"<description>\"'. For Express, fall back to 'abx create <name> --detach'; for other providers, check 'abx create --help'.";
+  static override suggestion = "The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry 'abx template init --prompt \"<description>\"'. For Express, fall back to 'abx deploy --template-id <name> --name my-sandbox'; for other providers, check 'abx deploy --help'.";
 }
 
 /**
@@ -210,7 +210,7 @@ export class QwenCodeStartupError extends AICodegenError {
  */
 export class DescriptionClarificationError extends SandboxCreationError {
   static override code = "E2008";
-  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y with --prompt to generate from the current description anyway. For Express, use an existing template with 'abx create <name> --detach'; for other providers, check 'abx create --help'.";
+  static override suggestion = "Add the missing details (runtime, dependencies, entry command, ports, resources, data) to DESCRIPTION, or pass --yes/-y with --prompt to generate from the current description anyway. For Express, use an existing template with 'abx deploy --template-id <name> --name my-sandbox'; for other providers, check 'abx deploy --help'.";
 }
 
 /** No sandbox with the given ID exists (never created, expired or already killed). */

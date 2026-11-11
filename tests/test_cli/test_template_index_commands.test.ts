@@ -1,7 +1,7 @@
 /**
  * CLI integration tests for the remote template index.
  *
- * `abx template search` queries the index and `abx template install <name>` resolves bare, non-builtin names through
+ * `abx template list` queries the index and `abx template install <name>` resolves bare, non-builtin names through
  * it. Both commands are exercised fully offline: `fetchIndex` is mocked, so nothing here touches the network (or
  * GitHub rate limits).
  */
@@ -93,7 +93,7 @@ function _jsonEntries(output: string): Array<Record<string, unknown>> {
 describe("TestSearchCommand", () => {
   it("test_search_lists_matching_entries", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("qwen-code");
     expect(result.output).not.toContain("node-web");
@@ -101,7 +101,7 @@ describe("TestSearchCommand", () => {
 
   it("test_search_matches_tags_and_descriptions", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "web"]);
+    const result = await runner().invoke(cli, ["template", "list", "web"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("node-web");
     expect(result.output).not.toContain("qwen-code");
@@ -109,36 +109,36 @@ describe("TestSearchCommand", () => {
 
   it("test_search_tag_filter", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "ai-agent", "--tag", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "ai-agent", "--tag", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("qwen-code");
   });
 
   it("test_search_status_filter", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "qwen", "--status", "community"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen", "--status", "community"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("No templates matching");
   });
 
   it("test_search_no_match_message", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "zzz-not-there"]);
+    const result = await runner().invoke(cli, ["template", "list", "zzz-not-there"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("No templates matching");
   });
 
   it("test_search_prints_launch_hint_with_index_source", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("template launch <name>");
+    expect(result.output).toContain("deploy <name> --name <app>");
     expect(result.output).toContain(INDEX_URL);
   });
 
   it("test_search_json_output", async () => {
     _patchIndex(index());
-    const result = await runner().invoke(cli, ["-j", "template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["-j", "template", "list", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
     const entries = _jsonEntries(result.output);
     const names = entries.map((e) => e["name"]).filter(Boolean);
@@ -148,7 +148,7 @@ describe("TestSearchCommand", () => {
   it("test_search_forwards_index_url_token_and_refresh", async () => {
     const mocked = _patchIndex(index());
     const result = await runner().invoke(cli, [
-      "template", "search", "qwen", "--index-url", "https://mirror.test/idx.yaml", "--token", "gh-token-123", "--refresh",
+      "template", "list", "qwen", "--index-url", "https://mirror.test/idx.yaml", "--token", "gh-token-123", "--refresh",
     ]);
     expect(result.exit_code, result.output).toBe(0);
     const [url, kwargs] = mocked.mock.calls[0]! as [string, Record<string, unknown>];
@@ -160,7 +160,7 @@ describe("TestSearchCommand", () => {
   it("test_search_index_url_env_override", async () => {
     setenv("ABX_TEMPLATE_INDEX_URL", "https://mirror.test/from-env.yaml");
     const mocked = _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
     expect(mocked.mock.calls[0]![0]).toBe("https://mirror.test/from-env.yaml");
   });
@@ -171,7 +171,7 @@ describe("TestSearchCommand", () => {
     idx.notice = "GitHub rate limit exceeded while fetching the template index.";
     _patchIndex(idx);
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const combined = result.output + (result.stderr || "");
@@ -202,7 +202,7 @@ describe("TestInstallBareNameResolution", () => {
     const client = _mockRegistryClient({ resolved: qwenRef(), fetched });
     _patchIndex(index());
 
-    const result = await runner().invoke(cli, ["template", "install", "qwen-code", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "qwen-code"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Resolved 'qwen-code' via the template index");
@@ -219,7 +219,7 @@ describe("TestInstallBareNameResolution", () => {
     const client = _mockRegistryClient({ resolved: qwenRef({ tag: "v1.2.0" }), fetched });
     _patchIndex(pinnedIndex);
 
-    const result = await runner().invoke(cli, ["template", "install", "qwen-code", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "qwen-code"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(client.resolve.mock.calls[1]![0]).toBe(`${SOURCE_OF_TRUTH_REPO}//qwen-code@v1.2.0`);
@@ -227,19 +227,19 @@ describe("TestInstallBareNameResolution", () => {
 
   it("test_install_builtin_name_does_not_touch_index", async () => {
     const mocked = _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "install", "base"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--template", "python"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output.toLowerCase()).toContain("built-in");
+    expect(fs.existsSync(path.join(tmpPath(), "out", "Dockerfile"))).toBe(true);
     expect(mocked).not.toHaveBeenCalled();
   });
 
   it("test_install_unknown_bare_name_raises_friendly_not_found", async () => {
     const mocked = _patchIndex(index());
-    const result = await runner().invoke(cli, ["template", "install", "no-such-template"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "no-such-template"]);
     expect(result.exit_code).not.toBe(0);
     const combined = result.output + (result.stderr || "");
     expect(combined).toContain("not found in the template index");
-    expect(combined).toContain("abx template search");
+    expect(combined).toContain("abx template list");
     expect(((mocked.mock.calls.at(-1) as unknown[])[1] as Record<string, unknown>)["force"]).toBe(true);
   });
 
@@ -248,7 +248,7 @@ describe("TestInstallBareNameResolution", () => {
     const client = _mockRegistryClient({ resolved: qwenRef(), fetched });
     _patchIndex(index());
 
-    const result = await runner().invoke(cli, ["template", "install", "qwen-code", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "qwen-code"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(client.resolve.mock.calls[1]![0]).toBe(`${SOURCE_OF_TRUTH_REPO}//qwen-code`);
@@ -260,16 +260,16 @@ describe("published managed catalog commands", () => {
   const published = fs.readFileSync(new URL("../fixtures/catalog/awesome-templates.yaml", import.meta.url), "utf8");
   it.each(["base", "code-interpreter-v1", "desktop", "opensandbox-code-interpreter"])("search returns native identity for %s", async name => {
     const idx = parseIndex(published); _patchIndex(idx);
-    const result = await runner().invoke(cli, ["--json", "template", "search", name]);
+    const result = await runner().invoke(cli, ["--json", "template", "list", name]);
     expect(result.exit_code, result.output).toBe(0);
     expect(_jsonEntries(result.stdout).find(entry => entry.name === name)?.manifest).toEqual(idx.find(name)!.manifest);
   });
   it("redirects source installation of managed catalog entries to launch", async () => {
     _patchIndex(parseIndex(published));
     const fetch = vi.spyOn(registryMod.RegistryClient.prototype, "fetch");
-    const result = await runner().invoke(cli, ["template", "install", "desktop"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "desktop"]);
     expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("template launch desktop");
+    expect(result.output).toContain("deploy desktop --name <app>");
     expect(fetch).not.toHaveBeenCalled();
   });
 });

@@ -57,7 +57,7 @@ Selecting a provider chooses its configuration and protocol adapter. Unsupported
 
 The standard E2B command frontend is used only for Express. Qualified sandbox references enter the provider router. Other providers currently retain the project CLI syntax; selecting one does not promise that every E2B-specific option or result model is implemented there. Local generation with template scaffold can use a generic Docker profile; that changes the image contract, not the cloud backend.
 
-Template commands use the selected provider's implemented template manager or its specialized command handlers. Native FC/ACR handlers belong to Express. The public `abx --provider <id> template launch SOURCE` path uses provider-owned preparation and startup; OpenSandbox implements source preparation for the documented default recipe. Missing operations fail on the selected provider without silently switching to Express. See [launch a template](template-launch.md) for build/configuration requirements and [template workflows](template-workflows.md) for the operation checks. Natural-language cloud deployment still requires its own matching provider handler.
+Template commands use the selected provider's implemented template manager or its specialized command handlers. Native FC/ACR handlers belong to Express. The public `abx --provider <id> deploy SOURCE --name my-app` path uses provider-owned preparation and startup; OpenSandbox implements source preparation for the documented default recipe. Missing operations fail on the selected provider without silently switching to Express. See [launch a template](template-launch.md) for build/configuration requirements and [template workflows](template-workflows.md) for the operation checks. Natural-language cloud deployment still requires its own matching provider handler.
 
 The built-in provider lists its own implemented adapter features explicitly; adding a host feature must not implicitly advertise it on Express. This adapter does not advertise storage.mount, network.vpc or ports.domain as generic sandbox operations. That does not mean Alibaba lacks those cloud capabilities: resource administration and mount integration need their own implemented, verified entry points. Pause also depends on runtime/function enablement; a declaration alone is not account availability.
 
@@ -109,17 +109,17 @@ Highest priority first:
 
 | Where | Example |
 |---|---|
-| Qualified reference | `abx kill my-cloud:sbx-1` |
-| Flag (before the sandbox ID for exec) | `abx create --provider my-cloud --template base` |
+| Qualified reference | `abx delete my-cloud:sbx-1` |
+| Flag (before the sandbox ID for exec) | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
-| `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx provider default my-cloud`, `abx config set provider my-cloud`) |
+| `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx config set provider my-cloud`, `abx config set provider my-cloud`) |
 | Built-in | `alicloud-express` |
 
 ```bash
-abx provider default                   # effective default, one line (--json: {"default": ..., "source": ...})
-abx provider default my-cloud          # persist it
-abx provider default --unset           # back to alicloud-express
+abx config set provider                   # effective default, one line (--json: {"default": ..., "source": ...})
+abx config set provider my-cloud          # persist it
+abx config set provider --unset           # back to alicloud-express
 ```
 
 An unknown id exits with 4 (`E8001`). Provider options for one command are given with `--opt KEY=VALUE` (repeatable; before the sandbox ID for exec); options marked `secret` in the manifest are refused on the command line (`E8002`) so that secrets never reach shell history, set them with `abx config set providers.<id>.<key>` instead.
@@ -131,10 +131,10 @@ Every command that takes a sandbox id accepts `[provider:]sandbox_id`; the prefi
 Printed IDs use `provider:sandbox_id` for every provider, and JSON rows include `provider` while retaining the bare ID field.
 
 ```bash
-abx --provider local-process create --template base      # ID: local-process:sbx-1
-abx exec local-process:sbx-1 "echo hello"
+abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx sandbox exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # every configured provider, with a Provider column
-abx kill local-process:sbx-1 --yes
+abx delete local-process:sbx-1 --yes
 ```
 
 `list --all-providers` is an explicit native project extension even when Express is the default; ordinary list filters follow the standard contract. It skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
@@ -158,7 +158,7 @@ Installing a plugin does not implement every interface. Inspect `abx provider in
 
 Process execution, application commands, interpreters and PTY are separate interfaces. Supporting one does not imply the others. A provider's EPP transport does not itself prevent calling an application over HTTP: the selected workflow must expose a reachable application endpoint and satisfy its authentication contract. Preserve gateway headers and supply the application token explicitly.
 
-Workflow planning checks specific provider operations and consumer support; see [template workflows](template-workflows.md). `abx info` and `abx list` print `-` for a region or timeout the provider does not report.
+Workflow planning checks specific provider operations and consumer support; see [template workflows](template-workflows.md). `abx status` and `abx list` print `-` for a region or timeout the provider does not report.
 
 A manifest with `kind = "python"` is not installable. Programmatic Python `Provider` subclasses remain available in the Python SDK. An `exec` plugin may still use a Python executable and the EPP protocol.
 
@@ -232,7 +232,7 @@ abx config get providers.my-cloud.token                      # always masked
 abx config list --provider my-cloud                          # the provider's keys and where each value comes from
 ```
 
-A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx provider config <id> list|get|set|unset|init` is the same surface scoped to one provider.
+A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx --provider <id> config list|get|set|unset|init` is the same surface scoped to one provider.
 
 `abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
 
@@ -270,7 +270,7 @@ Providers may declare typed commands under a fixed namespace. These differ from 
 ```bash
 abx provider command list alicloud-express
 abx provider command info alicloud-express volume.create
-abx --json provider command run alicloud-express volume.list --input '{"max_results":10}'
+abx --json --provider alicloud-express provider run volume.list --input '{"max_results":10}'
 ```
 
 Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.

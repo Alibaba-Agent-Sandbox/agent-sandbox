@@ -1,35 +1,50 @@
 # 模板构建模式
 
-状态：现行规范。规定一个模板目录如何注册成沙箱模板。
+状态：当前源码的 Sandbox 模板准备行为。以下模式规则针对极速版适配器；其他 Provider 具有各自支持的准备能力。托管应用构建请参见[托管应用指南](../guide/managed-applications.md)。
 
-一次发布只走一条路。用户可以选择。默认根据目录内容决定。
+## 命令与产物
 
-## 模式
+```bash
+abx template build ./project --out ./.abx/build.json --timeout 600 --yes
+abx deploy --build ./.abx/build.json --name my-app --yes
+# 也可以直接准备并部署：
+abx deploy ./project --name my-app --build-timeout 600 --yes
+```
 
-`abx template build`、`abx template deploy` 和 `abx deploy` 的 `--build` 取值是 `auto`（默认）、`dockerfile`、`steps`。`template.yaml` 的 `build.mode` 用同样的三个值。命令行覆盖文件。命令行是 `auto` 且文件写了模式时，用文件里的模式。
+`template build` 准备可复用产物，不创建实例。`deploy --build FILE` 消费该产物，`--build` 不是模式选择参数。直接 `deploy SOURCE` 则准备源码并创建具名部署。源码发布是独立的 `template publish SOURCE --tag VERSION` 操作。
 
-| 模式 | 实际执行 | `CreateTemplate` 请求 |
-|---|---|---|
-| `dockerfile` | 本地 `docker build`，推到 ACR，再注册 | `sandboxConfig.image` 是推上去的镜像。不带 `steps`。 |
-| `steps` | 不跑本地 Docker，不推 ACR | `sandboxConfig.image` 是 `base.image`。`sandboxConfig.steps` 是展开后的步骤。 |
-| `auto` | 有 `Dockerfile` 走 `dockerfile`。否则只要有构建声明就走 `steps`。 | 与所选模式相同。 |
+## 选择准备路径
 
-`auto` 同时看到 `Dockerfile` 和构建声明时，走 Dockerfile，并说明平台步骤这次没有发送。
+极速版通过 `template.yaml` 中的 `build.mode` 选择 `auto`、`dockerfile` 或 `steps`。未显式选择 Dockerfile 配方时，适配器使用该字段；省略时使用 `auto`。
 
-`steps` 不读取目录里的 `Dockerfile`。环境变量里的 `ACR_NAMESPACE` 被忽略。`--build steps` 再加 `--acr-namespace` 是用法错误，退出码 2。平台步骤只走官方 `CreateTemplate`。
+| 清单模式 | 准备操作 |
+|---|---|
+| `dockerfile` | 本机构建 Dockerfile，将镜像推送到配置的仓库，再注册模板。 |
+| `steps` | 注册 `base.image` 与展开后的平台步骤，不做本地 Docker 构建或 ACR 推送。 |
+| `auto` | 优先使用已有 Dockerfile；没有时使用声明的平台步骤。 |
 
-## template.yaml
+同时存在两种配方时，`auto` 选择 Dockerfile，并提示没有发送平台步骤。显式 `steps` 不使用 Dockerfile，也不使用环境中的 ACR namespace。通过 `abx config init --build` 或受支持配置输入准备构建凭据；公开的模板编写命令不再提供原适配器专用构建选项。
 
-已经生效的字段保持不变（`name`、`capabilities`、`ports`、`resources`、`server`、`env`）。具名命令仍在 `commands.py`，不是构建步骤。
-
-`base` 可以是映射，也可以是字符串。字符串就是镜像引用（`base: python:3.12-slim` 与 `base.image` 相同）。`generation`、`start_cmd`、`ready_cmd` 可选。`abx template deploy` 会把它们发给 `CreateTemplate`。命令行（`--generation`、`--start-cmd`、`--ready-cmd`）覆盖文件。当前提供者用平台命令启动服务，且目录里有 `commands.py` 时，缺省的 `generation` 为 `2`，缺省的 `start_cmd` / `ready_cmd` 取该提供者配置。其他模板默认 generation 1，不带启动命令。generation 1 拒绝 start command。同名模板若已是 generation 1，deploy 会停下来并打印 `abx template delete <id> -y`，然后再部署一次。`--force` 会删掉那个模板再创建。`-y` 不会删。
+`template build` 或 `deploy` 的 `--build-profile NAME` 选择源码中声明的具名 Dockerfile 配方：
 
 ```yaml
-name: python-data
+build_profiles:
+  portable:
+    dockerfile: Dockerfile.portable
+    context: .
+```
+
+Dockerfile 必须是项目根目录中的文件名，context 必须为 `.`。显式选择后使用该 Dockerfile；准备失败不会回退到其他配方。
+
+## 平台步骤
+
+Sandbox 模板使用 `spec_version: 5`。在服务、资源和启动声明之外，极速版平台步骤配方可包含：
+
+```yaml
 base:
   image: python:3.12-slim
 build:
-  mode: auto
+  mode: steps
   apt_install: [build-essential]
   pip_install: ["pandas>=2.0"]
   npm_install: []
@@ -42,42 +57,29 @@ build:
       args: ["echo done"]
 ```
 
-声明按这个顺序展开，然后原样追加手写的 `build.steps`：
+适配器按以下顺序展开声明，最后追加原始 `build.steps`：
 
 | 声明 | 平台步骤 |
 |---|---|
-| `apt_install` | `{ "type": "RUN", "args": ["apt-get update && apt-get install -y <包> && rm -rf /var/lib/apt/lists/*"] }` |
-| `pip_install` | `{ "type": "RUN", "args": ["pip install --no-cache-dir <包>"] }` |
-| `npm_install` | `{ "type": "RUN", "args": ["npm install -g <包>"] }` |
-| `env` | 每个变量一条 `{ "type": "ENV", "args": ["KEY", "VAL"] }` |
-| `run` | 每条命令一步 `{ "type": "RUN", "args": ["<命令>"] }` |
-| `steps` | 按 `{ type, args }` 原样复制 |
+| `apt_install` | 执行 apt update/install 并清理包列表的 `RUN` |
+| `pip_install` | 使用 `pip install --no-cache-dir` 的 `RUN` |
+| `npm_install` | 使用 `npm install -g` 的 `RUN` |
+| `env` | 每个变量一条 `ENV`，键和值是独立参数 |
+| `run` | 每条命令一条 `RUN` |
+| `steps` | 显式 `{ type, args }` 条目；`args` 为字符串数组 |
 
-官方类型里 `type` 的示例是 `RUN`，`args` 是字符串数组。Express 的 `ENV` 要求键和值分别作为两个参数；值中的空格或等号保留在同一个参数中。平台拒绝某个 `type` 时，CLI 退出码 1，并带上平台返回的信息。平台不会可靠地把原生 `ENV` 传递给后续构建 `RUN` 或运行进程。对于显式的第二代启动/就绪命令，CLI 使用正确引用的 `/usr/bin/env` shell 包装传入最后声明的 ENV 值。值按字面保留，同名变量以后声明的值为准。没有显式运行命令时（例如第一代沙箱），运行环境行为仍由平台决定。不生成 `COPY`：本地文件不在云上构建上下文里。要拷贝文件就用 `dockerfile` 模式。
+平台步骤需要基础镜像和至少一个步骤。`base: IMAGE` 与 `base.image` 等价。Dockerfile 模式则使用 Dockerfile 的 `FROM`。缺少配方、模式非法或选定的 Dockerfile 不存在时，准备失败。
 
-`steps` 模式必须有 `base.image`，它成为 `sandboxConfig.image`。`dockerfile` 模式的基础镜像以 Dockerfile 的 `FROM` 为准，不发送 `base.image`。
+平台步骤不上传本地文件上下文，也不自动生成 `COPY`。构建需要本地应用文件时使用 Dockerfile 配方。依赖命令按提供的内容执行；构建前应审阅生成源码。
 
-## 错误
+Express 原生 `ENV` 不保证变量进入后续 `RUN` 或运行进程。对于显式启动/就绪命令，适配器使用正确引用的 `/usr/bin/env` 包装传入最后声明的步骤环境，同名变量以后声明的值为准。运行时输入应放在模板的 `env` 声明或显式部署输入中。具名应用命令属于应用代码，不是构建步骤。
 
-| 情况 | 退出码 |
-|---|---|
-| `auto`，没有 Dockerfile，也没有构建声明 | 2 |
-| `dockerfile`，没有 Dockerfile | 2 |
-| `steps`，缺少 `base.image` 或没有任何步骤 | 2 |
-| `steps` 同时有 `--acr-namespace` | 2 |
-| `build.mode` 不是 `auto`、`dockerfile`、`steps` | 2 |
-| 平台拒绝某个步骤 | 1 |
+## 就绪、期限与清理
 
-## SDK
+可复用构建和直接源码部署都会等待模板准备就绪。原生注册提交成功本身不代表就绪。可用 `abx --provider alicloud-express provider run template.get --input-file template-get.json` 检查原生状态，文件包含 `template_id` 及可选的 `team_id`。
 
-这套规则由 CLI 实现。Python 客户端不部署模板。`Sandbox.create` 不选择构建模式。
+Sandbox 准备使用 `template build --timeout SECONDS` 或 `deploy --build-timeout SECONDS` 设置预算：默认 600 秒，大于零且不超过 3600 秒。`deploy --sandbox-timeout` 单独设置实例存活时间，`--request-timeout` 配置请求期限。本地到期不证明远端工作已经停止，也不证明结果不确定的创建可以安全重试。
 
-## 自然语言创建
+具名部署失败后先用 `status` 和 `recover` 查看，再用 `delete` 清理其拥有的资源。单独准备的构建保持独立：先删除消费者，再执行 `template build --clean BUILD_FILE --yes`，并检查提示中需要手工清理的镜像。详见[模板编写](../guide/authoring-templates.md)和[部署边界](../guide/template-launch.md)。
 
-极速版 `abx create --prompt "Python 数据分析环境" --yes --detach --build steps`
-把显式模式传给生成和部署。Provider 提供已解析的基础镜像，CLI 从最终本地源码字节
-确定性组装文件传输步骤，因为不会上传 COPY 上下文。先写文件并设置 WORKDIR，再执行
-模型声明的 build.run 依赖命令，让相对路径依赖清单可用；WORKDIR 后修正所有权并恢复提供方运行用户。生成指导使用官方 PyPI 的已发布 alpha
-`agent-sandbox-server==0.4.0a6`。自然语言流水线等待 Ready 后才创建沙箱；
-直接 `template deploy --build steps` 仍只确认提交，需要另行轮询 `template info`。
-默认 Docker 路线保持不变；模型生成代码仍是需要审阅和测试的产物。
+模型辅助编写使用 `template init --prompt` 或 `--adopt`，完成源码文件后即结束。SDK 创建沙箱不会执行这条构建流水线。

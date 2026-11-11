@@ -1,6 +1,6 @@
 # 引擎 HTTP API（`abx-engine/1`）
 
-引擎是一个本机进程，把提供商这一层只实现一次，让 CLI 和所有 SDK（现在是 Python，之后是 Node、Go、Java）调用同一份提供商代码。它就是运行 `abx provider engine serve` 的 Node.js CLI。SDK 找不到引擎时会自己启动一个，并通过回环地址上的 HTTP、SSE 和 WebSocket 与它通信。这套 API 不需要 gRPC，也不需要代码生成：任何带 HTTP 客户端的语言都能用。
+引擎是一个本机进程，把提供商这一层只实现一次，让 CLI 和 Python Provider 客户端调用同一份提供商代码。它就是运行 `abx provider engine serve` 的 Node.js CLI。SDK 找不到引擎时会自己启动一个，并通过回环地址上的 HTTP、SSE 和 WebSocket 与它通信。这套 API 不需要 gRPC，也不需要代码生成：任何带 HTTP 客户端的语言都能用。
 
 官网：<https://www.agent-sandbox.cn>。提供方注册站：<https://registry.agent-sandbox.cn>。CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。Python SDK 安装器拉取 `https://registry.agent-sandbox.cn/providers/index.json`。
 
@@ -70,7 +70,7 @@ abx provider engine stop
 ## 提供方管理命令
 
 这些路由管理提供方资源；`/sandboxes/:id/commands/run` 用于在沙箱内运行进程。发现操作只读取静态元数据，
-不导入插件代码、不请求云端。调用与 `abx provider command run` 复用同一个校验与分发入口。
+不导入插件代码、不请求云端。调用与 `abx provider run` 复用同一个校验与分发入口。
 路径中的 `:provider` 必须与连接头、请求体中指定的提供方一致。每次调用使用各自解析的连接，
 管理命令不创建或复用沙箱会话。
 

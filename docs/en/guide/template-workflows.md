@@ -1,12 +1,12 @@
 # Whole-template startup
 
-Run `abx --provider PROVIDER template launch TEMPLATE --yes`. A template has one startup: the CLI prepares its contents, creates a sandbox, runs `start_cmd` when present, waits for `ready_cmd`, and resolves every service declared in `provides`. There is no workflow selector or application/exec/interpreter launch type.
+Run `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`. A template has one startup: the CLI prepares its contents, creates a sandbox, runs `start_cmd` when present, waits for `ready_cmd`, and resolves every service declared in `provides`. There is no workflow selector or application/exec/interpreter launch type.
 
-Templates use `spec_version: 5`. Keep the application's services, commands, packages and startup script together. Declare all service endpoints in `provides`; a startup script can launch multiple processes. Named business commands run only when explicitly called after launch. Known Agent Sandbox Server v2 endpoints are verified using health/discovery and command listing, without executing business commands. Other service protocols use the declared readiness command and returned Provider endpoint; launch does not claim to understand their application protocol.
+Sandbox templates use `spec_version: 5`. Managed application templates follow the separate [managed application guide](managed-applications.md). Keep the application's services, commands, packages and startup script together. Declare all service endpoints in `provides`; a startup script can launch multiple processes. Named business commands run only when explicitly called after launch. Known Agent Sandbox Server v2 endpoints are verified using health/discovery and command listing, without executing business commands. Other service protocols use the declared readiness command and returned Provider endpoint; launch does not claim to understand their application protocol.
 
 A source template uses its Dockerfile or supported platform build recipe. A fixed `image` or an owning `provider` plus `template_id` can identify an already prepared template; these are author-specified artifacts, not selectable execution modes. Image references require an immutable `@sha256:` digest. Provider credentials, upload, registration and platform addressing remain Provider responsibilities. The CLI checks required Provider operations before creating resources.
 
-For public catalog managed entries, use their catalog name, for example `abx --provider alicloud-express template launch base --yes`. The CLI reads the managed manifest directly from the catalog. For an external service that is already running, connect using its server client; launching a template always creates a sandbox.
+For public catalog managed entries, use their catalog name, for example `abx --provider alicloud-express deploy base --name my-app --yes`. The CLI reads the managed manifest directly from the catalog. For an external service that is already running, connect using its server client; launching a template always creates a sandbox.
 
 ## Migrating v4
 
@@ -14,4 +14,4 @@ Remove `workflow_contract_version`, `default_workflow` and `workflows`; set `spe
 
 Existing verification receipts remain historical evidence for their recorded versions. Static operation checks are not real-platform test results and do not establish that an account or service is ready.
 
-For an unsupported manifest version, choose a source revision containing the current spec-v5 manifest. If that remote source has already been updated but a downloaded copy is stale, remove only the template cache directory identified in the error and retry. `abx template search --refresh` refreshes the catalog index, not downloaded source files. A pinned old Git revision remains old after its cache is removed. The CLI does not modify or delete source files automatically.
+For an unsupported manifest version, choose a source revision containing the current spec-v5 manifest. If that remote source has already been updated but a downloaded copy is stale, remove only the template cache directory identified in the error and retry. `abx template list --refresh` refreshes the catalog index, not downloaded source files. A pinned old Git revision remains old after its cache is removed. The CLI does not modify or delete source files automatically.

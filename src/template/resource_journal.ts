@@ -18,6 +18,8 @@ export class ResourceJournal implements ResourceJournalCallbacks {
   constructor(readonly provider: string, readonly plan_digest: string) {
     this.file = path.join(paths.abxDir, "resource-journal", `${this.id}.json`);
   }
+  /** Make the empty, pre-request state distinguishable from a lost journal. */
+  async initialize(): Promise<void> { await this.save(); }
   private async save(): Promise<void> {
     const journalDirectory = path.dirname(this.file);
     const firstCreated = await fs.mkdir(journalDirectory, { recursive: true, mode: 0o700 });

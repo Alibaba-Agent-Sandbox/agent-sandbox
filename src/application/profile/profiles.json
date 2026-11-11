@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "fc-managed-agents": {
+      "defaults": {
+        "api": {
+          "protocol": "agent-sandbox-managed-agents/v1",
+          "compatibility": "openai-agents-inspired-subset",
+          "busyInputPolicy": "reject-unless-steerable",
+          "explicitQueue": true
+        },
+        "runtime": {
+          "placement": "in-sandbox",
+          "driver": "sandbox-local-api",
+          "profile": "managed-bridge-v1"
+        },
+        "gateway": {
+          "placement": "fc-web"
+        },
+        "sandbox": {
+          "lifetime": "per-session",
+          "workspace": "exclusive",
+          "requiredFeatures": [
+            "sandbox.lifecycle",
+            "ports.url"
+          ]
+        },
+        "sessions": {
+          "maxConcurrentTurnsPerSession": 1,
+          "closePolicy": "release-compute-retain-results",
+          "deletePolicy": "remove-public-data-retain-private-cleanup",
+          "guestRestartPolicy": "freeze-and-reconcile"
+        },
+        "state": {
+          "profile": "durable"
+        },
+        "storage": {
+          "backend": "bounded-database"
+        },
+        "deployment": {
+          "revisionStrategy": "immutable-workers-with-drain"
+        },
+        "outputs": {
+          "endpoint": {
+            "from": "publish.outputs.endpoint"
+          },
+          "protocol": "agent-sandbox-managed-agents/v1"
+        }
+      },
+      "bindings": {
+        "state": {
+          "targets": [
+            "gateway",
+            "worker",
+            "dispatcher"
+          ]
+        },
+        "sandboxAccess": {
+          "targets": [
+            "worker",
+            "dispatcher"
+          ]
+        },
+        "model": {
+          "targets": [
+            "sandbox-creation"
+          ],
+          "resolverRole": "worker",
+          "allowedEnv": [
+            "OPENAI_API_KEY",
+            "OPENAI_BASE_URL",
+            "OPENAI_MODEL"
+          ]
+        },
+        "clientAuth": {
+          "targets": [
+            "gateway"
+          ]
+        },
+        "internalAuth": {
+          "targets": [
+            "gateway",
+            "worker",
+            "dispatcher"
+          ]
+        },
+        "ingress": {
+          "targets": [
+            "deployment-publisher"
+          ]
+        }
+      }
+    }
+  }
+}

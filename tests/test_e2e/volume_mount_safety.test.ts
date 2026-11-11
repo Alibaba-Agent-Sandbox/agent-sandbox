@@ -53,7 +53,7 @@ it('tracks the sandbox immediately and cleans it when independent mount verifica
   vi.stubEnv('ABX_E2E_VOLUME_NAME', 'existing-volume');
   vi.stubEnv('ABX_E2E_VOLUME_MOUNT_PATH', '/mnt/abx-e2e/volume');
   const ctx = context();
-  ctx.rawAbx.mockResolvedValueOnce({ code: 0, stdout: JSON.stringify({ ID: 'sbx-volume-test' }) });
+  ctx.rawAbx.mockResolvedValueOnce({ code: 0, stdout: JSON.stringify({ sandbox_id: 'sbx-volume-test' }) });
   ctx.rawAbx.mockImplementationOnce(async () => {
     expect(ctx.track).toHaveBeenCalledWith('sbx-volume-test');
     return { code: 0, stdout: JSON.stringify({ exit_code: 1, stdout: 'private-mount-metadata-placeholder' }) };
@@ -63,7 +63,7 @@ it('tracks the sandbox immediately and cleans it when independent mount verifica
   await expect(suite.scenarios[0].run(ctx)).rejects.toThrow('Volume probe did not prove its postcondition; raw command output omitted');
   expect(ctx.rawAbx).toHaveBeenCalledTimes(4);
   expect(ctx.rawAbx.mock.calls[0][0]).toContain('--volume-mount');
-  expect(ctx.rawAbx.mock.calls[2][0]).toContain('kill');
+  expect(ctx.rawAbx.mock.calls[2][0]).toContain('delete');
   expect(ctx.untrack).toHaveBeenCalledWith('sbx-volume-test');
 });
 

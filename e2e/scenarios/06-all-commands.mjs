@@ -14,8 +14,7 @@ const DETAIL = join(tmpdir(), 'abx-all-commands-detail.json');
 /** Top-level names the help walk must reach: the fixed surface of docs/en/reference/cli-commands.md. */
 const EXPECTED_ROOTS = [
   'config', 'provider', 'sandbox', 'template', 'mcp',
-  'create', 'list', 'info', 'kill', 'exec', 'connect', 'upload', 'download',
-  'run', 'deploy',
+  'deploy', 'list', 'status', 'logs', 'delete', 'recover',
 ];
 
 const COMMAND_HEADINGS = new Set(['Commands:', 'Command groups:', 'Providers:', 'Sandbox shortcuts:']);
@@ -30,7 +29,7 @@ function parseCommands(text) {
     if (COMMAND_HEADINGS.has(line.trim())) { inSection = true; continue; }
     if (!inSection) continue;
     if (!line.trim()) { inSection = false; continue; }
-    const m = /^  ([a-zA-Z][a-zA-Z0-9-]*)(?:\||\s{2,}|\s+\[|\s+<)/.exec(line);
+    const m = /^  ([a-zA-Z][a-zA-Z0-9.-]*)(?:\||\s{2,}|\s+\[|\s+<)/.exec(line);
     if (m && m[1] !== 'help') cmds.push(m[1]);
     else if (!/^\s+/.test(line)) inSection = false;
   }
@@ -84,20 +83,10 @@ function planSafe(path, { isGroup, usage }) {
   if (key === 'provider list' || key === 'provider default') return { argv: [...path], code: 0, match: /alicloud-express/ };
   if (key === 'provider doctor') return { argv: [...path], code: 0, match: /installed/ };
   if (key === 'provider update') return { argv: [...path], code: 0, match: /No updates found among the checked Git providers/ };
-  if (key === 'template scaffold') return { kind: 'scaffold', argv: [...path] };
+  if (key === 'template init') return { kind: 'scaffold', argv: [...path] };
   if (key === 'mcp') return { argv: ['mcp', '--help'], code: 0, match: /Usage: abx mcp/ };
   if (key === 'mcp status') return { argv: [...path], code: 0, match: /agent-sandbox/ };
   if (key === 'mcp stop') return { argv: [...path], code: 0, match: /not running/i };
-  const rootShortcuts = ['create', 'list', 'info', 'kill', 'exec', 'connect', 'pause', 'resume'];
-  const nativeSandbox = ['upload', 'download', 'capabilities', 'files', 'process', 'command', 'system'];
-  const nativeTemplate = ['from-image', 'build', 'deploy', 'scaffold', 'install', 'push', 'search', 'info'];
-  const standard = rootShortcuts.includes(path[0])
-    || path[0] === 'sandbox' && !nativeSandbox.includes(path[1])
-    || path[0] === 'template' && !nativeTemplate.includes(path[1]);
-  if (standard) return isGroup
-    ? { argv: [...path, '--help'], code: 0, match: /Usage: abx/ }
-    : { argv: [...path, UNKNOWN], code: 1, match: /unknown option/i };
-  if (key === 'kill' || key === 'sandbox kill') return { argv: [...path], code: 2, match: /sandbox ID/ };
   if (isGroup) return { argv: [...path], code: 2, match: /Usage: abx/ };
   if (requiredPositionals(usage, path).length) return { argv: [...path], code: 2, match: /Missing argument/ };
   if (key === 'mcp install') return { argv: [...path], code: 2, match: /Missing option '--target'/ };
@@ -106,13 +95,13 @@ function planSafe(path, { isGroup, usage }) {
 
 function refuseUnsafe(argv) {
   const has = (s) => argv.includes(s);
-  if ((has('create') || argv.at(-1) === 'create') && has('--template')) {
+  if (argv[0] === 'deploy' && !has(UNKNOWN) && !has('--help')) {
     throw new Error(`refusing to create a sandbox: ${argv.join(' ')}`);
   }
   if (has('start') && argv[0] === 'mcp' && !has(UNKNOWN) && !has('--help')) {
     throw new Error(`refusing to start the MCP server: ${argv.join(' ')}`);
   }
-  if (has('kill') && has('--all')) throw new Error(`refusing kill --all: ${argv.join(' ')}`);
+  if (has('delete') && has('--all')) throw new Error(`refusing kill --all: ${argv.join(' ')}`);
 }
 
 function cloudLeak(text) {

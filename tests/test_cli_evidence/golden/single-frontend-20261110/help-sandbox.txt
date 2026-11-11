@@ -1,0 +1,29 @@
+Usage: abx sandbox [options] [command]
+
+Run commands and manage Sandbox files, processes and advanced lifecycle.
+
+Arguments accept a deployment name, raw Sandbox ID or provider-qualified ID.
+Use root deploy/list/status/logs/delete/recover for instance management.
+
+Options:
+  -h, --help    Show this message and exit.
+
+Commands:
+  capabilities  Show the capability groups available in a sandbox.
+  command       List and run the named commands registered in a sandbox.
+  connect       Open an interactive sandbox terminal.
+  download      Download a file from the sandbox to local.
+  exec          Run a command in a sandbox and preserve its exit code.
+  files         Inspect and modify files inside a sandbox.
+  fork          Fork a running sandbox and return the new sandbox IDs.
+  metrics       Read sandbox CPU, memory and disk metrics.
+  network       Read or update a sandbox's network policy.
+  pause         Pause a sandbox while retaining its state.
+  process       Inspect and signal processes inside a sandbox (to start one: abx
+                sandbox exec --background).
+  resume        Resume a paused sandbox.
+  snapshot      Create, list and delete native sandbox snapshots.
+  system        Inspect runtime environment, ports, packages, and resource
+                usage.
+  upload        Upload a local file or directory to the sandbox.
+[exit_code:0]

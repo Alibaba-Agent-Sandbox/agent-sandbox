@@ -14,13 +14,13 @@ export default {
       id: 'static-discovery', title: 'builtin management discovery works without credentials', creds: false,
       argv: ['--json', 'provider', 'command', 'list', 'alicloud-express'],
       json(j) {
-        if (!Array.isArray(j) || j.length !== 32) throw new Error('expected 32 public management commands');
+        if (!Array.isArray(j) || j.length !== 36) throw new Error('expected 36 public management commands');
         if (!['volume.create', 'api-key.prepare', 'api-key.resolve'].every(id => j.some(c => c.id === id)) || j.some((c) => c.id.startsWith('domain.'))) throw new Error('capability declarations do not match verified APIs');
       },
     },
     {
       id: 'selected-provider-root-help', title: 'ordinary root help summarizes the selected Provider without credentials', creds: false,
-      argv: ['--help'], output: ['Provider: alicloud-express', '32 provider operations', 'abx provider --help', { not: 'additionalProperties' }],
+      argv: ['--help'], output: ['Provider: alicloud-express', '36 provider operations', 'abx provider --help', { not: 'additionalProperties' }],
     },
     {
       id: 'selected-provider-directory', title: 'provider help lists complete invocation paths', creds: false,
@@ -58,18 +58,18 @@ export default {
     },
     {
       id: 'mutation-confirmation', title: 'deletes require explicit confirmation before backend access', creds: false,
-      argv: ['--json', 'provider', 'command', 'run', 'alicloud-express', 'volume.delete', '--input', '{"team_id":"placeholder","volume_id":"placeholder"}'], exit: 2,
+      argv: ['--json', "--provider", 'alicloud-express', "provider", "run", 'volume.delete', '--input', '{"team_id":"placeholder","volume_id":"placeholder"}'], exit: 2,
       output: 'E8012',
     },
     {
       id: 'input-schema-preflight', title: 'bad read parameters are rejected before credential lookup', creds: false,
-      argv: ['--json', 'provider', 'command', 'run', 'alicloud-express', 'volume.list', '--input', '{"max_results":"10"}'], exit: 2,
+      argv: ['--json', "--provider", 'alicloud-express', "provider", "run", 'volume.list', '--input', '{"max_results":"10"}'], exit: 2,
       output: 'E8002',
     },
     {
       id: 'unverified-domain-api', title: 'unpublished domain API fails closed', creds: false,
-      argv: ['--json', 'provider', 'command', 'run', 'alicloud-express', 'domain.list'], exit: 1,
-      output: 'E8004',
+      argv: ['--json', "--provider", 'alicloud-express', "provider", "run", 'domain.list'], exit: 2,
+      output: 'No such command',
     },
   ],
 };

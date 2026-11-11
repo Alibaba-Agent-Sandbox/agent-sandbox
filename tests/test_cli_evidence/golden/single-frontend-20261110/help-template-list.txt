@@ -1,0 +1,43 @@
+Usage: abx template list [options] [QUERY]
+
+Search the template catalog by name, tag, or description.
+
+Queries the template index published in the
+alibaba-agent-sandbox/awesome-templates
+repository - the single source of truth for official and community
+templates. The fetched index is cached under ~/.abx/index/ and reused for
+up to an hour; on network failures the cached copy is served with a
+warning.
+
+For private mirrors / higher rate limits a token is taken from --token,
+then the GITHUB_TOKEN environment variable, then ./.env, then the stored
+github_token (in that order); prefer 'abx config set github_token'.
+
+Examples:
+  abx template list python
+  abx template list ai-agent
+  abx template list browser --status official
+  abx template list qwen --tag deploy
+  abx template list python --refresh    # bypass the local cache
+
+Related commands:
+  abx template init --from <name>             Install a template by index name
+  abx template init --from owner/repo//subdir[@ref]
+  abx template list
+
+Options:
+  -t, --tag <TAG>          Filter by exact tag name
+  -s, --status <STATUS>    Filter by template status (choices: "official",
+                           "community", "experimental")
+  --index-url <INDEX_URL>  Template index location: HTTP(S) URL or local file
+                           path (env: ABX_TEMPLATE_INDEX_URL; default: the
+                           canonical remote index)
+  --token <TOKEN>          GitHub token for private repos / higher rate limits.
+                           Prefer 'abx config set github_token' (masked input,
+                           stored once in ~/.abx/.env); --token is a temporary
+                           override that may leak into shell history and the
+                           process list (env: GITHUB_TOKEN).
+  --refresh                Force a re-fetch of the index, ignoring the local
+                           cache
+  -h, --help               Show this message and exit.
+[exit_code:0]

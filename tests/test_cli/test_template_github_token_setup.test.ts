@@ -3,7 +3,7 @@ import * as guidance from "../../src/cli/config_guidance.js";
 /**
  * CLI tests for the one-shot GitHub-token onboarding (task 206).
  *
- * `abx template search` / `abx template install` hit GitHub's anonymous rate limit; in an interactive terminal the user
+ * `abx template list` / `abx template install` hit GitHub's anonymous rate limit; in an interactive terminal the user
  * is offered a masked `github_token` setup and the failed operation is retried exactly once. Everything runs offline:
  * the index client and the registry client are mocked.
  */
@@ -89,7 +89,7 @@ describe("TestSearchOnboarding", () => {
     const prompt = vi.fn(async () => "ghp_pasted1234567890");
     configSeams._promptSecret = prompt;
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"], { input: "y\n" });
+    const result = await runner().invoke(cli, ["template", "list", "qwen"], { input: "y\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain(FINE_GRAINED_PAT_URL);
@@ -106,7 +106,7 @@ describe("TestSearchOnboarding", () => {
     const mocked = spyAny(templateIndexMod, "fetchIndex").mockRejectedValue(_rateLimited());
     tty();
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"], { input: "n\n" });
+    const result = await runner().invoke(cli, ["template", "list", "qwen"], { input: "n\n" });
 
     expect(result.exit_code).toBe(1);
     const combined = result.output + (result.stderr || "");
@@ -122,7 +122,7 @@ describe("TestSearchOnboarding", () => {
     tty();
     configSeams._promptSecret = async () => "   ";
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"], { input: "y\n" });
+    const result = await runner().invoke(cli, ["template", "list", "qwen"], { input: "y\n" });
 
     expect(result.exit_code).toBe(1);
     expect(mocked).toHaveBeenCalledTimes(1);
@@ -134,7 +134,7 @@ describe("TestSearchOnboarding", () => {
     tty();
     configSeams._promptSecret = async () => "ghp_pasted1234567890";
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"], { input: "y\n" });
+    const result = await runner().invoke(cli, ["template", "list", "qwen"], { input: "y\n" });
 
     expect(result.exit_code).toBe(1);
     expect(mocked).toHaveBeenCalledTimes(2);
@@ -145,7 +145,7 @@ describe("TestSearchOnboarding", () => {
   it("test_non_tty_never_prompts", async () => {
     const mocked = spyAny(templateIndexMod, "fetchIndex").mockRejectedValue(_rateLimited());
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
 
     expect(result.exit_code).toBe(1);
     expect(mocked).toHaveBeenCalledTimes(1);
@@ -160,7 +160,7 @@ describe("TestSearchOnboarding", () => {
     const mocked = spyAny(templateIndexMod, "fetchIndex").mockRejectedValue(_rateLimited());
     tty();
 
-    const result = await runner().invoke(cli, ["--json", "template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["--json", "template", "list", "qwen"]);
 
     expect(result.exit_code).toBe(1);
     expect(mocked).toHaveBeenCalledTimes(1);
@@ -171,7 +171,7 @@ describe("TestSearchOnboarding", () => {
     const mocked = spyAny(templateIndexMod, "fetchIndex").mockRejectedValue(_rateLimited());
     tty();
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen", "--token", "gh-explicit-token"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen", "--token", "gh-explicit-token"]);
 
     expect(result.exit_code).toBe(1);
     expect(mocked).toHaveBeenCalledTimes(1);
@@ -183,7 +183,7 @@ describe("TestSearchOnboarding", () => {
     writeText(path.join(tmpPath(), ".env"), `${GITHUB_TOKEN_ENV_VAR}=ghp_stored1234567890\n`);
     const mocked = spyAny(templateIndexMod, "fetchIndex").mockResolvedValue(index());
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect((mocked.mock.calls.at(-1)![1] as Record<string, unknown>)["token"]).toBe("ghp_stored1234567890");
@@ -195,7 +195,7 @@ describe("TestSearchOnboarding", () => {
     const mocked = spyAny(templateIndexMod, "fetchIndex").mockResolvedValue(index());
     setenv(GITHUB_TOKEN_ENV_VAR, "ghp-env1234567890");
 
-    const result = await runner().invoke(cli, ["template", "search", "qwen"]);
+    const result = await runner().invoke(cli, ["template", "list", "qwen"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect((mocked.mock.calls.at(-1)![1] as Record<string, unknown>)["token"]).toBe("ghp-env1234567890");
@@ -230,7 +230,7 @@ describe("TestInstallOnboarding", () => {
     const prompt = vi.fn(async () => "ghp_pasted1234567890");
     configSeams._promptSecret = prompt;
 
-    const result = await runner().invoke(cli, ["template", "install", "owner/repo", "--download-only"], { input: "y\n" });
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "owner/repo"], { input: "y\n" });
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain(FINE_GRAINED_PAT_URL);
@@ -250,7 +250,7 @@ describe("TestInstallOnboarding", () => {
       return client;
     });
 
-    const result = await runner().invoke(cli, ["template", "install", "owner/repo", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "owner/repo"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(ctor.mock.calls.at(-1)![1]).toBe("ghp_stored1234567890");
@@ -262,7 +262,7 @@ describe("TestInstallOnboarding", () => {
       return first;
     });
 
-    const result = await runner().invoke(cli, ["template", "install", "owner/repo", "--download-only"]);
+    const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "owner/repo"]);
 
     expect(result.exit_code).toBe(1);
     expect(ctor).toHaveBeenCalledTimes(1);

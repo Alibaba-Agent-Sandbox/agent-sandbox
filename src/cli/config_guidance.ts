@@ -1,5 +1,5 @@
 /** Project-owned, operation-aware configuration setup. Never retries an executed cloud mutation. */
-import { getCurrentContext, type Context } from "./kit.js";
+import { type Context } from "./kit.js";
 import { Abort, CliError } from "./errors.js";
 import { canPrompt } from "./interaction.js";
 import { confirm, prompt, select, type SelectOptions } from "./prompts.js";
@@ -32,7 +32,6 @@ export interface GuidanceField {
 }
 
 export interface ConfigurationRequest {
-  ci?: boolean;
   operation: string;
   requirements?: readonly (string | GuidanceField)[];
   provider?: string;
@@ -148,7 +147,7 @@ export async function withGuidedConfiguration<T>(
         }
       } else if (groups.length > 1) {
         throw new CliError(`Missing authentication for provider '${provider.id}'. Configure one of: ` +
-          groups.map((g) => g.join(" + ")).join("; or ") + `. Run 'abx provider config ${provider.id} init' in a terminal.`);
+          groups.map((g) => g.join(" + ")).join("; or ") + `. Run 'abx --provider ${provider.id} config init' in a terminal.`);
       }
       for (const key of group) fields.set(key, { key });
     }
@@ -166,7 +165,6 @@ export async function withGuidedConfiguration<T>(
   const execute = async (): Promise<T> => {
     if (request.validateProvider !== false) provider.validateConfig(loadLayeredConfig({ provider: provider.id }));
     if (runtimeAuth && needsRuntimeAuth && !has(effective(runtimeAuth.key))) values[runtimeAuth.key] = await runtimeAuth.resolve(loadLayeredConfig({ provider: provider.id }), {
-      ci: request.ci === true || (ctx ?? getCurrentContext(true))?.obj?.["ci_explicit"] === true,
       confirm: message => guidanceSeams.interactive(ctx, request.yes) ? guidanceSeams.confirm(message) : Promise.resolve(false),
     });
     return withOperationConfig(snapshot(), () => action(Object.freeze({ ...values })));

@@ -14,7 +14,7 @@ try {
   const [bin, ...args] = parseBin(process.env.ABX_BIN ?? 'abx');
   const env = Object.fromEntries(['PATH', 'NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG', 'BUILDX_CONFIG'].filter(key => process.env[key]).map(key => [key, process.env[key]]));
   Object.assign(env, { HOME: directory, USERPROFILE: directory, XDG_CONFIG_HOME: join(directory, '.config'), ABX_NO_KEYCHAIN: '1', ABX_SANDBOX_API_KEY: 'placeholder', ALICLOUD_ACCESS_KEY_ID: 'placeholder', ALICLOUD_ACCESS_KEY_SECRET: 'placeholder', ACR_NAMESPACE: 'placeholder' });
-  const result = spawnSync(bin, [...args, '--provider', 'alicloud-express', '--json', 'template', 'launch', directory, '--yes'], { env, cwd: directory, encoding: 'utf8', timeout: 120_000 });
+  const result = spawnSync(bin, [...args, '--provider', 'alicloud-express', '--json', 'deploy', directory, '--yes'], { env, cwd: directory, encoding: 'utf8', timeout: 120_000 });
   assert.equal(result.error, undefined);
   assert.notEqual(result.status, 0);
   const error = JSON.parse(result.stdout);

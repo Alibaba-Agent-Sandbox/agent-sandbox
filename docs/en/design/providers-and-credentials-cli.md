@@ -1,6 +1,6 @@
 # Providers and Credentials — CLI spec (for the Node.js `abx`)
 
-> **Status: superseded for catalog providers** wherever this page lists a gRPC transport as future work. The current design is the Node engine: HTTP, SSE and WebSocket on `127.0.0.1`, protocol `abx-engine/1`. See [cli/docs/en/reference/engine-api.md](../reference/engine-api.md) and [Node provider architecture](node-provider-architecture.md). The checklist item below is kept as history.
+> **Status: historical specification.** The command grammar, help text and implementation plan below describe an earlier CLI and are retained for historical context; they are not current usage instructions. Use the [configuration reference](../reference/configuration.md), [Provider commands guide](../guide/provider-commands.md) and [current command tree](../reference/cli-commands.md). The current engine contract is documented in [Engine HTTP API](../reference/engine-api.md).
 
 > **Audience**: the CLI worker who applies this spec.
 >

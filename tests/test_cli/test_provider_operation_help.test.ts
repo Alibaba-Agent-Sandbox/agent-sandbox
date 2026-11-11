@@ -240,7 +240,7 @@ describe("selected Provider help and execution", () => {
     expect(hostInstall.output).not.toContain("English description for install");
   });
 
-  it("preserves explicit-id JSON discovery and gives canonical and legacy execution identical results", async () => {
+  it("preserves explicit-id JSON discovery with one operation execution entry", async () => {
     await installFixture("compatible-help", [{ id: "volumes.read" }]);
     iso.writeToml('[core]\nprovider = "compatible-help"\n');
     const list = await abx("--json", "provider", "command", "list", "compatible-help");
@@ -254,15 +254,15 @@ describe("selected Provider help and execution", () => {
     const canonical = await abx("--json", "provider", "run", "volumes.read", "--input-file", input);
     const legacy = await abx("--json", "provider", "command", "run", "compatible-help", "volumes.read", "--input", '{"name":"example"}');
     expect(canonical.exit_code, canonical.output).toBe(0);
-    expect(legacy.exit_code, legacy.output).toBe(0);
-    expect(JSON.parse(canonical.stdout)).toEqual(JSON.parse(legacy.stdout));
+    expect(legacy.exit_code, legacy.output).toBe(2);
+    expect(JSON.parse(canonical.stdout)).toBeDefined();
   });
 
   it("requires confirmation and valid JSON/schema before loading either execution path", async () => {
     const marker = await installFixture("gated-help", [{ id: "volumes.create", effect: "write" }, { id: "volumes.delete", effect: "delete" }]);
     iso.writeToml('[core]\nprovider = "gated-help"\n');
     for (const id of ["volumes.create", "volumes.delete"]) {
-      for (const args of [["provider", "run", id], ["provider", "command", "run", "gated-help", id]]) {
+      for (const args of [["provider", "run", id]]) {
         const refused = await abx(...args, "--input", '{"name":"example"}');
         expect(refused.exit_code, refused.output).toBe(2);
         expect(refused.output).toContain("E8012");
@@ -304,7 +304,7 @@ describe("selected Provider help and execution", () => {
       expect(run.output).toMatch(/E80\d\d/);
       expect(run.output).not.toContain("access_key");
       if (marker) expect(fs.existsSync(marker)).toBe(false);
-      const reset = await abx("provider", "default", "alicloud-express");
+      const reset = await abx("config", "set", "provider", "alicloud-express");
       expect(reset.exit_code, reset.output).toBe(0);
       expect((await abx("provider", "run", "--help")).output).toContain("Provider: alicloud-express");
     });

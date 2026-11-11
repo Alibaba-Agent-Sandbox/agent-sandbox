@@ -4,7 +4,7 @@
 //
 //   node scripts/capture-cli-evidence.mjs                       # offline + mocked (default), writes .agents/evidence/
 //   node scripts/capture-cli-evidence.mjs --live                # also run un-mocked category-B cases (needs E2B_API_KEY)
-//   node scripts/capture-cli-evidence.mjs --command create      # only cases whose golden name starts with "create"
+//   node scripts/capture-cli-evidence.mjs --command template    # only cases whose golden name starts with "template"
 //   node scripts/capture-cli-evidence.mjs --out <dir>           # write the documents somewhere else
 //
 // The cases need module-level mocks (spies on the API / transport / seam objects), so the capture runs inside vitest

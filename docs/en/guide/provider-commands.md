@@ -6,7 +6,7 @@ Install a Provider once; its declared operations are discovered automatically. T
 registration step. Select a default for interactive work, or select explicitly for a script:
 
 ```sh
-abx provider default alicloud-express
+abx config set provider alicloud-express
 abx --help
 abx provider --help
 abx provider run --help
@@ -26,7 +26,7 @@ visible. Actual execution fails for an invalid selection rather than silently sw
 
 `--provider ID` takes precedence over `ABX_PROVIDER`, project `.env`, user `.env`, stored configuration
 and the built-in default, using the same resolver as execution. Put the global option before the
-`provider` group, as above. `provider default ID` stores a preference; environment overrides still win.
+`provider` group, as above. `config set provider ID` stores a preference; environment overrides still win.
 
 An operation ID is one opaque argument, including dots: `snapshot.create` is not translated into
 `snapshot create`. Provider operations stay under `provider run`, so an operation named `list`,
@@ -39,13 +39,13 @@ Existing explicit-ID and machine-readable interfaces remain compatible:
 ```sh
 abx --json provider command list alicloud-express
 abx --json provider command info alicloud-express snapshot.create
-abx --json provider command run alicloud-express snapshot.create \
+abx --json --provider alicloud-express provider run snapshot.create \
   --input-file ./snapshot-input.json --yes
 ```
 
 Use these JSON interfaces for AI discovery and automation. Human help is presentation, not a stable
 JSON response contract. Provider management operations are distinct from sandbox application commands
-(`abx sandbox command`) and from template preparation (`abx template launch`). Neither management
+(`abx sandbox command`) and from template preparation (`abx deploy`). Neither management
 registration nor help creates a template or a cloud resource. This change does not automatically add
 MCP tools, shell completion entries or typed SDK methods.
 
@@ -103,17 +103,17 @@ these registered commands do not silently change the legacy native pause/resume 
 ```sh
 abx --json provider command list alicloud-express
 abx --json provider command info alicloud-express snapshot.create
-abx --json provider command run alicloud-express sandbox.pause \
+abx --json --provider alicloud-express provider run sandbox.pause \
   --input '{"sandbox_id":"<sandbox-id>"}' --yes
-abx --json provider command run alicloud-express sandbox.resume \
+abx --json --provider alicloud-express provider run sandbox.resume \
   --input '{"sandbox_id":"<sandbox-id>","timeout":600}' --yes
-abx --json provider command run alicloud-express snapshot.create \
+abx --json --provider alicloud-express provider run snapshot.create \
   --input '{"sandbox_id":"<sandbox-id>","name":"checkpoint","request_timeout":300}' --yes
-abx --json provider command run alicloud-express snapshot.list \
+abx --json --provider alicloud-express provider run snapshot.list \
   --input '{"sandbox_id":"<sandbox-id>","limit":100}'
-abx --json provider command run alicloud-express snapshot.restore \
+abx --json --provider alicloud-express provider run snapshot.restore \
   --input '{"snapshot_id":"<returned-snapshot-uuid>","timeout":300}' --yes
-abx --json provider command run alicloud-express snapshot.delete \
+abx --json --provider alicloud-express provider run snapshot.delete \
   --input '{"snapshot_id":"<returned-snapshot-uuid>"}' --yes
 ```
 
@@ -184,10 +184,10 @@ to `cache-ref.json`:
 
 ```sh
 abx --json provider command info alicloud-express template-cache.create
-abx --json provider command run alicloud-express template-cache.create --input-file ./cache-ref.json --yes
-abx --json provider command run alicloud-express template-cache.get --input-file ./cache-ref.json
-abx --json provider command run alicloud-express template-cache.list --input-file ./cache-ref.json
-abx --json provider command run alicloud-express template-cache.delete --input-file ./cache-ref.json --yes
+abx --json --provider alicloud-express provider run template-cache.create --input-file ./cache-ref.json --yes
+abx --json --provider alicloud-express provider run template-cache.get --input-file ./cache-ref.json
+abx --json --provider alicloud-express provider run template-cache.list --input-file ./cache-ref.json
+abx --json --provider alicloud-express provider run template-cache.delete --input-file ./cache-ref.json --yes
 ```
 
 Create submits one request and returns the observed cache metadata in `data`. Acceptance

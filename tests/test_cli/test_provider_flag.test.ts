@@ -89,7 +89,7 @@ describe("validation fails before any side effect", () => {
 
   it("test_secret_option_is_refused_and_never_echoed", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "--opt", "token=hunter2-secret", "info", "sbx-1");
+    const r = await abx("--provider", "local-process", "--opt", "token=hunter2-secret", "status", "sbx-1");
     expect(r.code).toBe(2);
     expect(r.err + r.out).toContain("E8002");
     expect(r.err + r.out).not.toContain("hunter2-secret");
@@ -97,28 +97,28 @@ describe("validation fails before any side effect", () => {
 
   it("test_unknown_opt_key_is_e8002", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "--opt", "nope=1", "info", "sbx-1");
+    const r = await abx("--provider", "local-process", "--opt", "nope=1", "status", "sbx-1");
     expect(r.code).toBe(2);
     expect(r.err + r.out).toContain("E8002");
   });
 
   it("test_conflicting_qualified_reference_is_e8030_exit_2", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "info", "alicloud-express:sbx-1");
+    const r = await abx("--provider", "local-process", "status", "alicloud-express:sbx-1");
     expect(r.code).toBe(2);
     expect(r.err + r.out).toContain("E8030");
   });
 
   it("test_region_flag_is_refused_for_a_provider_without_a_region_key", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "list", "--region", "cn-beijing");
+    const r = await abx("--provider", "local-process", "list", "--opt", "region=cn-beijing");
     expect(r.code).toBe(2);
-    expect(r.err + r.out).toContain("Option '--region' is not supported by provider 'local-process'");
+    expect(r.err + r.out).toContain("E8002");
   });
 
   it("test_a_plugin_provider_cannot_use_a_missing_feature_silently", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "capabilities", "sbx-unknown");
+    const r = await abx("--provider", "local-process", "sandbox", "capabilities", "sbx-unknown");
     expect(r.code).not.toBe(0);
   });
 });
@@ -126,52 +126,57 @@ describe("validation fails before any side effect", () => {
 describe.skipIf(!hasPython)("a plugin end to end through the CLI", () => {
   it("test_qualified_ids_json_provider_key_and_kill", async () => {
     await installLocal();
-    const created = await abx("--json", "--provider", "local-process", "create", "--template", "base");
+    const created = await abx("--json", "--provider", "local-process", "deploy", "--yes", "--template-id", "base");
     expect(created.code, created.err).toBe(0);
     const doc = JSON.parse(created.out);
     expect(doc.provider).toBe("local-process");
-    const sid: string = doc.ID;
+    const sid: string = doc.sandbox_id;
     expect(sid).not.toContain(":");
 
-    const listedJson = JSON.parse((await abx("--json", "--provider", "local-process", "list")).out);
-    expect(listedJson.map((r: { ID: string; provider: string }) => [r.ID, r.provider])).toContainEqual([sid, "local-process"]);
+    const listedJson = JSON.parse((await abx("--json", "--provider", "local-process", "list")).out).items;
+    expect(listedJson.map((r: { sandbox_id: string; provider: string }) => [r.sandbox_id, r.provider])).toContainEqual([sid, "local-process"]);
 
     const listedText = await abx("--provider", "local-process", "list");
-    expect(listedText.out).toContain(`local-process:${sid}`);
+    expect(listedText.out).toContain(sid);
+    expect(listedText.out).toContain("local-process");
 
-    const info = await abx("--json", "info", `local-process:${sid}`);
+    const info = await abx("--json", "status", `local-process:${sid}`);
     expect(info.code, info.err).toBe(0);
-    expect(JSON.parse(info.out)).toMatchObject({ ID: sid, provider: "local-process" });
+    expect(JSON.parse(info.out)).toMatchObject({ sandbox_id: sid });
 
-    const exec = await abx("--json", "exec", `local-process:${sid}`, "echo hi-from-plugin");
+    const exec = await abx("--json", "sandbox", "exec", `local-process:${sid}`, "echo hi-from-plugin");
     expect(exec.code, exec.err).toBe(0);
     expect(JSON.parse(exec.out).stdout).toContain("hi-from-plugin");
 
-    const killed = await abx("kill", `local-process:${sid}`, "--yes");
+    const named = await abx("--json", "sandbox", "exec", doc.name, "echo named-provider");
+    expect(named.code, named.err + named.out).toBe(0);
+    expect(JSON.parse(named.out).stdout).toContain("named-provider");
+
+    const killed = await abx("delete", `local-process:${sid}`, "--yes");
     expect(killed.code, killed.err).toBe(0);
   });
 
   it("test_a_missing_sandbox_is_exit_4", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "info", "sbx-does-not-exist");
+    const r = await abx("--provider", "local-process", "status", "sbx-does-not-exist");
     expect(r.code).toBe(4);
   });
 
   it("test_default_provider_applies_without_the_flag_and_ids_are_qualified", async () => {
     await installLocal();
-    expect((await abx("provider", "default", "local-process")).code).toBe(0);
-    const created = await abx("create", "--template", "base");
+    expect((await abx("config", "set", "provider", "local-process")).code).toBe(0);
+    const created = await abx("deploy", "--yes", "--template-id", "base");
     expect(created.code, created.err).toBe(0);
-    expect(created.out).toMatch(/local-process:/);
+    expect(created.out).toContain("local-process");
   });
 
-  it("test_list_all_providers_skips_a_failing_provider_with_a_warning", async () => {
+  it("test_list_selected_provider_does_not_probe_an_unrelated_provider", async () => {
     await installLocal();
-    await abx("--provider", "local-process", "create", "--template", "base");
-    const r = await abx("--json", "list", "--all-providers");
+    await abx("--provider", "local-process", "deploy", "--yes", "--template-id", "base");
+    const r = await abx("--json", "--provider", "local-process", "list");
     expect(r.code, r.err).toBe(0);
-    expect(r.err).toMatch(/warning: provider 'alicloud-express' skipped:/);
-    const rows = JSON.parse(r.out);
+    expect(r.err).not.toContain("alicloud-express");
+    const rows = JSON.parse(r.out).items;
     expect(rows.every((x: { provider: string }) => x.provider === "local-process")).toBe(true);
     expect(rows.length).toBeGreaterThan(0);
   });

@@ -12,16 +12,17 @@
 
 ### 核心设计原则
 
-1. **命令面保持稳定** — 命令名、选项、帮助文本、错误文本、输出通道和退出码（0–6）保持稳定，并由黄金文件守护
-2. **AI-First** — 自然语言创建沙箱、`--json` / `--quiet` / `--ci` 输出模式、MCP Server 是一等公民
-3. **零配置默认** — 安装、导出 API Key、创建沙箱
+1. **统一命令契约** — Provider 共用参数解析、输出通道和退出码，行为检查覆盖其实际差异
+2. **围绕任务组织入口** — 模板创作、沙箱操作与 MCP 复用已有服务
+3. **显式配置** — 配置所选 Provider；输出模式不授予创建凭据的权限
 
 ### 快速上手
 
+构建[当前源码 CLI](../../README.zh-CN.md#安装)，再配置所选 Provider：
+
 ```bash
-npm install -g @agent-sandbox/cli   # abx CLI（需要 Node.js 20+）
-export ABX_SANDBOX_API_KEY=your-api-key
-abx create base
+abx config init
+abx deploy --template-id base --name demo
 abx list
 ```
 
@@ -97,11 +98,11 @@ graph TB
 
 | 功能 | 状态 | 备注 |
 |------|------|------|
-| CLI（45 个命令） | **已实现** | 详见 [cli-design.md](design/cli-design.md) |
-| MCP Server（STDIO） | **已实现** | 7 个 P0 工具 |
+| 统一 CLI | **当前源码** | 详见 [cli-design.md](design/cli-design.md) |
+| MCP Server（STDIO） | **已实现** | 从运行中的服务发现实际工具 |
 | MCP Server（Streamable HTTP） | **已实现** | `agent/mcp_http.ts` |
-| `abx mcp deploy`（FC 产物生成） | **已实现** | 生成部署产物并打印手动 FC 部署步骤。详见 [mcp-server.md](design/mcp-server.md#7-fc-部署) |
-| 模板 build/push/create 流水线 | **已实现** | 通过官方 CreateTemplate API |
+| HTTP MCP 模板 | **当前源码** | `template init --template mcp` 生成可编辑源码，后续通过 `deploy` 部署。见 [MCP 职责边界](design/mcp-server.md) |
+| 模板创作与部署 | **当前源码** | `template init/build/publish`；`deploy` 通过受支持的 Provider 或应用 profile 准备所选源码 |
 | 单文件二进制（Node SEA） | **已实现** | 详见 [二进制安装](guide/binary-installation.md) |
 | Provider 命令 | **已实现**（`alicloud-express`，以及已安装的 `node`、`exec`、`rest` 提供商：`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container`） | `abx --provider <id>` 加载已安装的插件；既不是内置也未安装的 id 以 `E8001` 退出。见[提供商](guide/providers.md)和[Node 提供商架构](design/node-provider-architecture.md) |
 

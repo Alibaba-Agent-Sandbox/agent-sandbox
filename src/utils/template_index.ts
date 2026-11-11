@@ -2,8 +2,8 @@
  * Remote template index client.
  *
  * The official and community template catalog lives in a **single source of truth** repository:
- * `alibaba-agent-sandbox/awesome-templates`.  Its root index file (`awesome-templates.yaml`) is what `abx template search`
- * queries and what `abx template install <name>` resolves bare template names against.
+ * `alibaba-agent-sandbox/awesome-templates`.  Its root index file (`awesome-templates.yaml`) is what `abx template list`
+ * queries and what `abx template init ./project --from <name>` resolves bare template names against.
  *
  * Design notes
  * ------------
@@ -592,7 +592,7 @@ export async function fetchIndex(
     "Check your network connection, or point at a mirror with " +
     `--index-url / ${INDEX_URL_ENV}. For GitHub rate limits, authenticate ` +
     "with 'abx config set github_token'. As a last resort install directly " +
-    "with 'abx template install owner/repo//subdir[@ref]'.";
+    "with 'abx template init ./project --from owner/repo//subdir[@ref]'.";
 
   let resp: InstanceType<typeof httpx.Response>;
   try {

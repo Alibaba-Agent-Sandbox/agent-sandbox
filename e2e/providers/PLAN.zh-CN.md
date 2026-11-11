@@ -22,10 +22,10 @@ T0 到 T3 不需要云账号。T4 不需要阿里云。T5 不安装第三方插�
 ## 规则
 
 - 每次运行使用一次性的 `HOME`。不读写真实的 `~/.abx`。
-- 密钥只传给子进程，不打印。`provider config list` 的输出里不能出现 API key。
+- 密钥只传给子进程，不打印。`--provider ID config list` 的输出里不能出现 API key。
 - 缺少的能力应当是一次成功的 `E8004`，不是崩溃，也不是把断言跳过。
-- `abx create "一句话"` 不是 provider 测试。它会先走内置的模板流程。provider 测试使用 `abx --provider <id> create --template <镜像或名称>`。
-- 清理只销毁这次运行创建的沙箱，不用 `kill --all`。
+- Provider 生命周期测试使用 `abx --provider <id> deploy --template-id <镜像或名称> --yes`；源码生成由 `abx template init --prompt` 单独覆盖。
+- 清理只销毁这次运行创建的沙箱，不用 账号级批量删除。
 - OpenSandbox 的插件源是目录仓库的检出（`ABX_AWESOME_PROVIDERS` 或一次 clone），不是 SDK 里的一份拷贝。
 
 ## 新 provider 要补什么

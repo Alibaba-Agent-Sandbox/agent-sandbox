@@ -241,7 +241,7 @@ abx config set region cn-hangzhou
 
 # 4. Choose an interface
 abx mcp install --target cursor   # MCP for chat agents (or --target claude / vscode)
-abx exec <sandbox-id> -- echo hi   # CLI for scripts
+abx sandbox exec <sandbox-id> -- echo hi   # CLI for scripts
 ```
 
 - **Credential rules** — never paste real keys into a skill, a repository, a chat message, or a sandbox file; the full rules live in `SKILL.md` → "Credentials and security".

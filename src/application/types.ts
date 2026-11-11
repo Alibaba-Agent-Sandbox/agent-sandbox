@@ -56,6 +56,7 @@ export interface ToolchainLock {
   component: { reference: string; directory: string; sha256: string };
 }
 export interface BuildReceipt {
+  lifecycleOwner?: string;
   schemaVersion: 1;
   kind: "ManagedApplicationBuild";
   sourceDigest: string;
@@ -89,6 +90,8 @@ export interface DeploymentStep {
 export interface ApplicationPlan {
   schemaVersion: 2;
   kind: "ManagedApplicationPlan";
+  applicationId: string;
+  borrowedBuild?: boolean;
   operation: "apply" | "destroy";
   id: string;
   revision: string;

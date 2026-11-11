@@ -24,7 +24,7 @@ describe("repository health syntax and historical provenance", () => {
       export * from "real-export";
       const value = require("real-require/subpath");
       const lazy = import("real-dynamic");`;
-    expect(health.imports(text, "fixture.ts")).toEqual(["real-side-effect", "@scope/package/subpath", "real-export", "real-require/subpath", "real-dynamic"]);
+    expect(health.imports(text, "fixture.ts")).toEqual(["real-side-effect", "@scope/package/subpath", "real-export", "real-require/subpath", "real-dynamic"].map(specifier => ({ specifier, typeOnly: false })));
   });
   it("keeps a real undeclared runtime package blocking in the complete checker", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "repo-health-regression-"));
@@ -44,6 +44,46 @@ describe("repository health syntax and historical provenance", () => {
       expect(run({})).toContain("src/ imports packages missing from dependencies: undeclared-runtime");
       expect(run({})).not.toContain("dependencies: KEY=VALUE");
       expect(run({ "undeclared-runtime": "1.0.0" })).not.toContain("src/ imports packages missing from dependencies:");
+      // A development SDK is legal for erased types, never for an actual runtime load.
+      const dependencyCheck = (text: string, file = "src/fixture.ts", devDependencies: Record<string, string> = { e2b: "2.50.0" }): string => {
+        fs.rmSync(path.join(root, "src/fixture.ts"), { force: true });
+        fs.rmSync(path.join(root, "src/fixture.d.mts"), { force: true });
+        fs.writeFileSync(path.join(root, file), text);
+        fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ devDependencies: { typescript: "5.9.3", ...devDependencies } }));
+        const result = spawnSync("bash", ["scripts/check-repo-health.sh", "--quiet"], { cwd: root, encoding: "utf8", env: { ...process.env, NODE_PATH: path.resolve("node_modules") } });
+        expect(result.error).toBeUndefined();
+        return result.stdout;
+      };
+      const typeReferences = [
+        'import type { Sandbox } from "e2b";',
+        'import { type Sandbox } from "e2b";',
+        'export type { Sandbox } from "e2b";',
+        'export { type Sandbox } from "e2b";',
+        'export type * from "e2b";',
+        'import type SDK = require("e2b");',
+        'type SDK = typeof import("e2b");',
+      ];
+      for (const text of typeReferences) expect(health.imports(text, "fixture.ts")).toEqual([{ specifier: "e2b", typeOnly: true }]);
+      const typesOutput = dependencyCheck(typeReferences.join("\n"));
+      expect(typesOutput).not.toContain("imports packages missing from dependencies:");
+      expect(typesOutput).not.toContain("import undeclared packages:");
+      expect(dependencyCheck('export { Sandbox } from "e2b";', "src/fixture.d.mts")).not.toContain("imports packages missing from dependencies:");
+      expect(dependencyCheck('import type { Sandbox } from "e2b";', "src/fixture.ts", {})).toContain("type imports or tests/scripts import undeclared packages: e2b");
+      const runtimeReferences = [
+        'import { Sandbox } from "e2b";',
+        'import "e2b";',
+        'import {} from "e2b";',
+        'import { type Sandbox, ConnectionConfig } from "e2b";',
+        'import SDK, { type Sandbox } from "e2b";',
+        'export * from "e2b";',
+        'export { type Sandbox, ConnectionConfig } from "e2b";',
+        'export {} from "e2b";',
+        'const sdk = import("e2b");',
+        'const sdk = require("e2b");',
+        'import SDK = require("e2b");',
+      ];
+      for (const text of runtimeReferences) expect(health.imports(text, "fixture.ts")).toEqual([{ specifier: "e2b", typeOnly: false }]);
+      expect(dependencyCheck(runtimeReferences.join("\n"))).toContain("src/ imports packages missing from dependencies: e2b");
       fs.unlinkSync(path.join(root, "node_modules"));
       expect(run({})).toContain("repository-health requires the lockfile development toolchain; run npm ci");
     } finally {

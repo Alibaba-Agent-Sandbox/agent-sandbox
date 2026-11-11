@@ -57,13 +57,13 @@ export async function main(opts) {
   const tracker = { sandboxes: new Set(), killed: new Set(), uncertainCreates: new Set() };
   mkdirSync(STATE_DIR, { recursive: true });
   const ledger = join(STATE_DIR, `run-${RUN_ID}.json`);
-  const persist = () => writeFileSync(ledger, JSON.stringify({ runId: RUN_ID, sandboxes: [...tracker.sandboxes].filter((s) => !tracker.killed.has(s)), uncertainCreates: [...tracker.uncertainCreates] }));
+  const persist = () => writeFileSync(ledger, JSON.stringify({ runId: RUN_ID, workspace: root, sandboxes: [...tracker.sandboxes].filter((s) => !tracker.killed.has(s)), uncertainCreates: [...tracker.uncertainCreates] }), { mode: 0o600 });
 
   const skipReasons = {
     cloud: cloudOk ? null : `real-cloud credentials missing (${missingCloudCredentials(creds).join(', ')}); provide them via environment or the gitignored cli/.env`,
+    'cloud-management': (creds.ABX_ACCESS_KEY_ID || creds.ALICLOUD_ACCESS_KEY_ID) && (creds.ABX_ACCESS_KEY_SECRET || creds.ALICLOUD_ACCESS_KEY_SECRET) ? null : 'native template operations require existing cloud AccessKeys',
     github: null,
     docker: preflightDocker(),
-    killall: process.env.ABX_E2E_ALLOW_KILL_ALL === '1' ? null : 'opt-in: set ABX_E2E_ALLOW_KILL_ALL=1 (a buggy implementation could destroy every sandbox of the account)',
   };
   if (suites.some((s) => (s.needs ?? []).includes('github'))) skipReasons.github = await preflightGithub();
 
@@ -128,7 +128,7 @@ export async function main(opts) {
         console.log(`  ${flag.padEnd(5)} ${sc.id.padEnd(34)} ${String(rec.ms).padStart(6)}ms${rec.attempts > 1 ? `  (attempts: ${rec.attempts})` : ''}${rec.status !== 'pass' && rec.reason ? `\n        ${rec.reason.split('\n').slice(0, opts.verbose ? 40 : 6).join('\n        ')}` : ''}`);
         if (opts.bail && rec.status === 'fail') break;
       }
-      if (suite.teardown && !suiteSkip) { try { await suite.teardown(ctx); } catch (e) { console.log(`  teardown error: ${mask(String(e.message ?? e))}`); } }
+      if (suite.teardown && !suiteSkip) { try { await suite.teardown(ctx); } catch (e) { const reason = mask(String(e.message ?? e)); console.log(`  teardown error: ${reason}`); results.push({ suite: suite.id, id: 'teardown', title: 'owned resource cleanup', status: 'fail', reason, ms: 0, attempts: 1, notes: [] }); } }
       await cleanup();
     }
     const leak = await leakCheck({ bin, creds, root, tracker, persist, mask, cloudOk, skipOnlyOffline: suites.every((s) => !(s.needs ?? []).includes('cloud')) });
@@ -136,7 +136,7 @@ export async function main(opts) {
     console.log(`\n  ${leak.status.toUpperCase().padEnd(5)} ${leak.id}${leak.reason ? ` - ${leak.reason}` : ''}`);
   } finally {
     await cleanup();
-    if (!process.env.ABX_E2E_KEEP) rmSync(root, { recursive: true, force: true });
+    if (!process.env.ABX_E2E_KEEP && tracker.sandboxes.size === tracker.killed.size && tracker.uncertainCreates.size === 0) rmSync(root, { recursive: true, force: true });
     if (tracker.sandboxes.size === tracker.killed.size && tracker.uncertainCreates.size === 0 && existsSync(ledger)) rmSync(ledger, { force: true });
   }
 
@@ -160,7 +160,7 @@ export async function cleanupTrackedSandboxes({ bin, creds, root, tracker, persi
   mkdirSync(env.HOME, { recursive: true });
   for (const id of [...tracker.sandboxes]) {
     if (tracker.killed.has(id)) continue;
-    await runBinary({ bin, argv: ['sandbox', 'kill', '--', id], env, cwd: root, timeoutMs: 90_000 });
+    await runBinary({ bin, argv: ['--json', 'delete', '--yes', '--', id], env, cwd: root, timeoutMs: 90_000 });
     // A kill acknowledgement is not independent evidence that the resource is absent.
   }
   persist();
@@ -174,21 +174,22 @@ export async function leakCheck({ bin, creds, root, tracker, cloudOk, skipOnlyOf
   const env = baseEnv({ home: join(root, 'home-leak'), creds });
   mkdirSync(env.HOME, { recursive: true });
   for (let i = 0; i < 4; i++) {
-    const r = await runBinary({ bin, argv: ['sandbox', 'list', '--format', 'json'], env, cwd: root, timeoutMs: 90_000 });
+    const r = await runBinary({ bin, argv: ['--json', 'list'], env, cwd: root, timeoutMs: 90_000 });
     const j = parseJsonLoose(r.stdout);
     if (r.code !== 0 || j === undefined) { rec.status = 'fail'; rec.reason = `could not list sandboxes: exit ${r.code}`; return rec; }
-    if (!Array.isArray(j) || j.some((entry) => !entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.sandboxId !== 'string' || !entry.sandboxId.trim())) {
-      rec.status = 'fail'; rec.reason = 'standard inventory must be an array with nonempty sandboxId strings'; return rec;
+    if (!j || j.partial !== false || !Array.isArray(j.errors) || j.errors.length || !Array.isArray(j.items) || j.items.some((entry) => !entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.sandbox_id !== 'string' || !entry.sandbox_id.trim())) {
+      rec.status = 'fail'; rec.reason = 'deployment inventory must contain complete items with nonempty sandbox_id strings'; return rec;
     }
-    const ids = j.map((entry) => entry.sandboxId);
+    const ids = j.items.map((entry) => entry.sandbox_id);
     const leaked = [];
     for (const id of tracker.sandboxes) {
       // Inventory can lag behind creation. Only the exact owned identity's NotFound
       // response, together with inventory absence, confirms cleanup.
       let absent = false;
       if (!ids.includes(id)) {
-        const info = await runBinary({ bin, argv: ['sandbox', 'info', '--format', 'json', '--', id], env, cwd: root, timeoutMs: 90_000 });
-        absent = info.code === 1 && /wasn't found/i.test(info.stdout + info.stderr);
+        const info = await runBinary({ bin, argv: ['--json', 'status', '--', id], env, cwd: root, timeoutMs: 90_000 });
+        const error = parseJsonLoose(info.stdout);
+        absent = info.code === 4 && error?.status === 'error' && error.code === 'E2009';
       }
       if (absent) tracker.killed.add(id);
       else { tracker.killed.delete(id); leaked.push(id); }
@@ -199,7 +200,7 @@ export async function leakCheck({ bin, creds, root, tracker, cloudOk, skipOnlyOf
       if (uncertain) { rec.status = 'fail'; rec.reason = `${uncertain} unresolved create attempt(s) require reconciliation`; }
       return rec;
     }
-    for (const id of leaked) await runBinary({ bin, argv: ['sandbox', 'kill', '--', id], env, cwd: root, timeoutMs: 90_000 });
+    for (const id of leaked) await runBinary({ bin, argv: ['--json', 'delete', '--yes', '--', id], env, cwd: root, timeoutMs: 90_000 });
     rec.status = 'fail';
     rec.reason = `${leaked.length} sandbox(es) have unconfirmed absence after cleanup: ${leaked.join(', ')}`;
     if (i < 3) await wait(3000);

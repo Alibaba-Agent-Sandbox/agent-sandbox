@@ -77,7 +77,7 @@ async function inputOf(params: Params): Promise<unknown> {
 
 /** Fixed namespace for provider-specific control-plane operations. */
 export const provider_commands = group("command", {
-  help: "Discover and run provider-specific management commands.\n\nCommands manage cloud resources; sandbox application commands use 'abx sandbox command'.",
+  help: "Discover provider-specific management command schemas.\n\nCommands manage cloud resources; sandbox application commands use 'abx sandbox command'.",
 });
 
 provider_commands.addCommand(command("list", {
@@ -115,7 +115,7 @@ function operationParams(): Param[] {
 }
 
 async function executeOperation(id: string, descriptor: ProviderCommand, ctx: Context, params: Params): Promise<void> {
-  const accepted = params["yes"] === true || ctx.obj?.["ci_explicit"] === true && providerCliExtension(id)?.ciAutoConfirmCommands?.includes(descriptor.id) === true;
+  const accepted = params["yes"] === true;
   if (descriptor.effect !== "read" && !accepted) {
     if (!canGuideConfiguration(ctx)) throw new ProviderTrustError(`Command '${descriptor.id}' requires --yes (${descriptor.effect}).`);
   }
@@ -129,7 +129,6 @@ async function executeOperation(id: string, descriptor: ProviderCommand, ctx: Co
     requirements: providerCliExtension(id)?.managementRequirements?.(descriptor.id), validateProvider: id !== "alicloud-express",
   }, async () => {
     if (descriptor.effect !== "read" && !accepted) await confirm(`Run '${descriptor.id}' (${descriptor.effect}) with provider '${id}'?`, { default: false, abort: true, err: true });
-    if (ctx.obj?.["ci_explicit"] === true && providerCliExtension(id)?.ciAutoConfirmCommands?.includes(descriptor.id)) echo(`--ci authorized: ${descriptor.description}`, { err: true });
     getFormatter(ctx).printData(await runProviderCommand(id, descriptor.id, input, options));
   });
 }
@@ -152,18 +151,3 @@ export function createProviderRun(catalog: ProviderOperations): Command {
   }
   return run;
 }
-
-provider_commands.addCommand(command("run", {
-  help: "Run a declared management command. Write/delete commands require --yes.\n\nUse --input-file for JSON containing certificates or other sensitive values.",
-  params: [
-    argument("provider_id", { metavar: "ID" }),
-    argument("command_id", { metavar: "COMMAND" }),
-    ...operationParams(),
-  ],
-  callback: handleErrors(async (ctx: Context, params: Params) => {
-    const id = providerId(params);
-    const commandId = String(params["command_id"]);
-    const descriptor = getProviderCommand(id, commandId);
-    await executeOperation(id, descriptor, ctx, params);
-  }),
-}));

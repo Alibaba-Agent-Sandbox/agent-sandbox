@@ -4,9 +4,9 @@
 
 ## `--provider`：这一条命令用哪个后端
 
-只在这一次调用要走插件、或要走当前默认以外的后端时，加上 `--provider <id>`。exec 中将它放在沙箱 ID 前，其他命令保持全局选项位置（`abx create --provider my-cloud --template base`）。
+只在这一次调用要走插件、或要走当前默认以外的后端时，加上 `--provider <id>`。exec 中将它放在沙箱 ID 前，其他命令保持全局选项位置（`abx --provider my-cloud deploy --template-id base --name my-sandbox`）。
 
-每条命令都用内置的 `alicloud-express` 时，不要加这个旗标。那是默认值，沙箱 id 保持裸 id。整个 shell 都要换后端时，用 `abx provider default <id>` 或 `ABX_PROVIDER` 设成持久默认。沙箱 id 已经带已知提供者前缀（`my-cloud:sbx-1`）时，它自己就选中了那个提供者；`--provider` 必须写同一个 id。
+每条命令都用内置的 `alicloud-express` 时，不要加这个旗标。那是默认值，沙箱 id 保持裸 id。整个 shell 都要换后端时，用 `abx config set provider <id>` 或 `ABX_PROVIDER` 设成持久默认。沙箱 id 已经带已知提供者前缀（`my-cloud:sbx-1`）时，它自己就选中了那个提供者；`--provider` 必须写同一个 id。
 
 一次命令的提供者选项是 `--opt KEY=VALUE`。清单里标了 `secret` 的字段不能出现在命令行上。用 `abx config set providers.<id>.<key>` 保存，提示时会掩码。
 
@@ -16,13 +16,13 @@
 
 `--model <id>` 只出现在让编码代理写模板的命令上：
 
-- `abx create --prompt "<描述>" --model <id>`
-- `abx template scaffold --prompt "<描述>" --model <id>`
-- `abx template scaffold --adopt <目录> --model <id>`
+- `abx template init --prompt "<描述>" --model <id>`
+- `abx template init --prompt "<描述>" --model <id>`
+- `abx template init --adopt <目录> --model <id>`
 
 它只覆盖这一次命令的 `llm_model`、`ABX_LLM_MODEL` 和 `OPENAI_MODEL`。端点拒绝了已保存的模型，或这一句描述要用另一个 id 起草时，用它。交互终端可以给出替换项并保存选择；非交互运行沿用你传入的旗标。
 
-`--model` 不选择沙箱里运行的程序。`abx exec`、`abx run` 和 `abx sandbox` 不看它。
+`--model` 不选择沙箱里运行的程序。`abx sandbox exec`、`abx sandbox command run` 和 `abx sandbox` 不看它。
 
 ## `llm_model`：每次生成都用的模型
 

@@ -1,141 +1,23 @@
-# Using Templates
+# Use a template
 
-Templates are preconfigured sandbox environment definitions that include a base image, pre-installed software, declared services and startup commands, and custom commands.
-
----
-
-## What Is a Template
-
-A template is a directory containing a `template.yaml` that defines the sandbox runtime environment. Templates can:
-
-- Specify a base Docker image and pre-installed packages
-- Declare every service and its operations
-- Define custom commands
-- Set default environment variables and resource specifications
-
-Project templates require `spec_version: 5` and `provides`. A single `start_cmd` starts all application services; `ready_cmd` checks readiness. Retired `capabilities`, `tested_on` and `providers` fields are rejected; there is no implicit capability grant.
-
----
-
-## List Available Templates
-
-Use `abx template search python` to search the public catalog, and `abx template list` for templates registered with the selected provider. Download source with `abx template install <ref> --download-only`; cached source is kept under `~/.abx/templates/`.
-
----
-
-## Install Templates
-
-### Install from GitHub
+`template list` and `template info` inspect the public catalog. They do not list a cloud account's native templates. Select a source or managed entry, then deploy one named instance:
 
 ```bash
-# Basic format: owner/repo
-abx template install owner/repo
-
-# Specify a version tag
-abx template install owner/repo@v1.0
-
-# Specify a subdirectory
-abx template install owner/repo//path/to/template
-
-# Use an alias
-abx template install owner/repo --alias my-python
-
-# Private repository / higher rate limit: save the token once (masked asterisk prompt)
-abx config set github_token
-abx template install owner/private-repo
-
-# One-off override for a single command (may leak into shell history or the process list)
-abx template install owner/private-repo --token ghp_xxx
+abx template list python
+abx template info python-hello
+abx deploy python-hello --name hello --yes
+abx status hello
 ```
 
-Anonymous GitHub downloads are limited to 60 requests/hour; a saved token raises the limit to 5000/hour. Prefer `abx config set github_token` over `--token` — the latter is a one-off override that may leak into shell history or the process list. Resolution priority: `--token` > `GITHUB_TOKEN` > `./.env` > stored `github_token`. When no token is configured and the anonymous limit is hit, interactive terminals offer a guided one-shot setup (`--token` is never required).
-
-### Install from a Local Directory
+For customization, acquire editable source first. `init --from` copies files without interpreting the deployment specification; fetching a future manifest does not prove the installed CLI can deploy it.
 
 ```bash
-abx template install ./my-template --registry-type local
+abx template init ./hello --from Alibaba-Agent-Sandbox/awesome-templates//python-hello
+abx deploy ./hello --name hello-custom --yes
 ```
 
-### Shortcut
+Git references accept `owner/repository//subdirectory@COMMIT`. Pin the commit for reproducible input. For private GitHub source, use `abx config set github_token` with hidden input or `GITHUB_TOKEN` in automation. Source acquisition does not deploy, build images or create cloud resources. Managed catalog entries without source can be deployed directly but cannot be copied for editing.
 
-Install with `abx template install`:
+Sandbox applications expose declared services. Discover Server commands with `abx sandbox command list hello`, invoke with `abx sandbox command run hello COMMAND`, and remove owned resources with `abx delete hello --yes`. Managed applications expose their own business HTTP APIs; see [managed applications](managed-applications.md).
 
-```bash
-abx template install owner/repo
-```
-
----
-
-## Create a Sandbox from a Template
-
-```bash
-abx create my-python
-```
-
----
-
-## Natural Language Creation
-
-For a generated application, first configure the selected provider and model. `abx config init --llm` is the existing interactive setup; automation can use the documented `ABX_LLM_API_KEY`, `ABX_LLM_BASE_URL` and `ABX_LLM_MODEL` values for its own available model. The platform key and model key have different purposes; see [Authentication](authentication.md) and [Authoring Templates](authoring-templates.md) for build prerequisites.
-
-Set a long random application token, then start with a small standard-library command:
-
-```bash
-abx config init --llm
-```
-
-```bash
-abx create --prompt "a Python sandbox with an add command accepting two integers"
-```
-
-The CLI automatically generates and securely saves application authentication when missing, then reuses it for later commands. Custom application credentials can be supplied through `ABX_SERVER_TOKEN` or the existing `-e` option; see [configuration](guided-configuration.md). Credentials are injected only at runtime, never into generated source or build steps. Generation-only remains local. The create JSON keeps its original fields and also returns `TemplateID` and `Services` for exact cleanup and application access.
-
-`abx create --prompt "<description>"` (without an existing template positional argument) takes the generation path: it calls Qwen Code to generate a Dockerfile, a `commands.py` HTTP server entry point (`agent_sandbox.server`) and a template.yaml, builds and deploys them, then creates the sandbox from the generated template.
-
-For non-interactive use, add `--yes`; `--detach` is accepted and this generation path already returns without opening a terminal. Discover generation-specific options with `abx create --prompt "DESCRIPTION" --help`.
-
-The default uses local Docker and ACR. On Express, explicitly select the existing platform steps path when Docker is unavailable:
-
-```bash
-abx create --prompt "a Python sandbox with an add command accepting two integers" \
-  --yes --detach --build steps --dir ./generated
-```
-
-This still calls the real model. It generates self-contained `base.image` and `build.run` content, submits the template, waits for **Ready**, then creates the sandbox. Local source files are not uploaded as a COPY build context. The generated server uses the published `agent-sandbox-server==0.4.0a6` alpha from the official PyPI index; it is not a stable SDK release. Review the generated files and test their actual APIs. A model may produce invalid or unsuitable code; validation errors preserve the workspace and stop creation.
-
-For generated native steps, the CLI uses the provider-resolved image, runtime user and workdir, installs the server, and writes the final local source bytes into the build recipe. The model only supplies business files and extra dependency commands in the existing `build.run` list. It does not encode source files or duplicate provider preparation fields. Invalid output still preserves the workspace and stops before deployment.
-
-`abx template deploy --build steps` by itself still returns **submitted**; inspect `abx template info <id>` until Ready before creating from that template. Generation and deployment require model credentials, sandbox API configuration and AK/SK; steps does not require ACR credentials.
-
-The small addition example does not establish a fix for the still-open [pandas/matplotlib build timeout](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/131); large dependencies require their own build checks.
-
----
-
-## Templates and runtime operations
-
-`base` and `code-interpreter-v1` are platform template aliases. A registered alias is different from a project source directory. Use the provider's actual runtime operations and the template service declarations; installing Python in an image does not itself implement the code-interpreter protocol.
-
-Project manifests explicitly bind their application service and required operations. Inspect the sandbox with `abx sandbox capabilities <id>` and list its named application commands with `abx sandbox command list <id>`. See [Authoring Templates](authoring-templates.md) and the SDK's [Template YAML Spec](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
-
----
-
-## Custom Commands
-
-Templates can define custom commands, invoked by users with `abx sandbox command run`:
-
-```bash
-abx sandbox command run sbx-xxxx dev --arg port=8080
-```
-
----
-
-## Next Steps
-
-- [Authoring Templates](authoring-templates.md) — Create your own templates
-- [CLI Tutorial](cli-tutorial.md) — Complete CLI tutorial
-
----
-
-## Related SDK documentation
-
-Creating sandboxes from templates in Python (`Sandbox.create(template=...)`, `sandbox.run()`, `sandbox.list_commands()`) is covered by the SDK's [SDK Usage Guide](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/guide/sdk-usage.md). The `template.yaml` field reference is the [Template YAML Spec](https://github.com/alibaba-agent-sandbox/python-sdk/blob/main/docs/en/reference/template-yaml-spec.md).
+[Authoring, reusable builds and Git publication](authoring-templates.md) · [Startup and cleanup](template-launch.md)

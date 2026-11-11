@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Unify running deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 运行部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
+- Use one parser for every Provider, retain Express protocol/PTY behavior, and make Provider run the sole native management execution entry. / 所有 Provider 共用一个解析入口，保留极速版协议和 PTY 能力，原生管理统一通过 provider run 执行。
+- Reuse explicit managed-profile defaults, preserve application names independently of template names, and distinguish owned automatic builds from borrowed author builds. / 复用显式托管 profile 缺省值，应用名称与模板名称分离，区分自动构建与借用的作者构建。
+
+### Removed
+
+- Remove the app command tree, --native routing and overlapping lifecycle/template aliases. HTTP MCP creation now uses template init --template mcp. / 删除 app 命令树、--native 分流和重复生命周期及模板入口；HTTP MCP 创作统一使用 template init --template mcp。
+
+### Fixed
+
+- Keep interrupted deployment recovery observational, clean failed pre-request admissions, and preserve source modes in private build snapshots. / 中断恢复只观察、不重放；可清理请求前失败的部署，私有构建快照保留源码权限。
+- CI output mode no longer authorizes managed-key creation or renewal; list reports partial Provider failures. / CI 输出模式不再授权管理 Key 创建或续期，列表明确报告部分 Provider 查询失败。
+
 ### Documentation
 
 - Announce the expected November 15, 2026 project 1.0.0 release, preview compatibility notice, and DingTalk community contact in both README languages.

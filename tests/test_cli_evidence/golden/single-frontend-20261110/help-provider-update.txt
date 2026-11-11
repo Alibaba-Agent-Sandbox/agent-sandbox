@@ -1,0 +1,23 @@
+Usage: abx provider update [options] [ID]
+
+Update installed providers from their recorded git source.
+
+Without ID (or with --all) every git-installed provider is checked. A
+pinned install stays put unless --ref names a new commit. --check only
+reports what would change. Changes to runtime, security, features, config
+fields or inherited credentials ask for consent again. A failed handshake
+rolls back to the previous version (the data directory is preserved).
+Directory and --link installs cannot be updated: reinstall with --force.
+The bundled alicloud-express provider follows abx releases. Naming it
+reports upgrade guidance, without replacing abx or checking host releases.
+
+Options:
+  --ref <REF>                 Git tag, branch or commit to update to
+  --check                     Only report available updates
+  --all                       Update every installed git provider
+  --allow-unpinned            Allow an unpinned update in non-interactive mode
+  --allow-insecure-transport  Allow file://, git:// and http:// sources (testing
+                              only)
+  -y, --yes                   Skip the confirmation prompt
+  -h, --help                  Show this message and exit.
+[exit_code:0]
