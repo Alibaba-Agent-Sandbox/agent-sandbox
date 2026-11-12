@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Agents API delivery operations](notes/proposed/process/2026-11-12-agents-api-delivery-operations.md) · [record-placement verification](evidence/verify/2026-11-12-agents-api-delivery-operations.md).
+
 - [Template v1 adoption verification](evidence/verify/2026-11-12-template-v1-adoption.md).
 - [Native template project parser](notes/proposed/architecture/2026-11-12-native-template-project-parser.md) · [verification](evidence/verify/2026-11-12-native-template-project-parser.md).
 
