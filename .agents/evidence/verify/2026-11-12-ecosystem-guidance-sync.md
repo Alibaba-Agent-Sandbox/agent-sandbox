@@ -32,3 +32,5 @@ Follow-up parser review corrected the last `--json run` example in named-command
 help to `--json sandbox command run`. Rebuilt CLI and the named-command, MCP and
 command-surface selection passed 61 tests. The change affects help text only,
 with existing command argument/body tests retained.
+
+Final global-selector-aware audit corrected the CubeSandbox provider guide deployment example and the remaining status-help example. No operation implementation changed.

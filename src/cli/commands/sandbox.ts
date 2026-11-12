@@ -111,7 +111,7 @@ const INFO_HELP = `Show status, template, region, timeout, and URL for a sandbox
     \b
     Examples:
       abx status abc123
-      abx --json info abc123
+      abx --json status abc123
 
     \b
     Related commands:
