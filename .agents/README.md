@@ -336,3 +336,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Generated MCP workflow entry verification](evidence/verify/2026-11-10-mcp-artifact-workflow-entry.md).
 
 - [Current documentation index and build-mode verification](evidence/verify/2026-11-10-current-documentation-index.md).
+
+- [Current CLI recipes and reachable MCP help](notes/proposed/process/2026-11-12-ecosystem-guidance-sync.md) · [verification](evidence/verify/2026-11-12-ecosystem-guidance-sync.md).

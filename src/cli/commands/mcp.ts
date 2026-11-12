@@ -401,8 +401,8 @@ export const mcp = group("mcp", {
   help:
     "Configure and run Agent Sandbox as an MCP server.\n" +
     "\n" +
-    "Use local STDIO transport for IDE integrations, or generate a Streamable\n" +
-    "HTTP deployment artifact for manual deployment to Alibaba Cloud FC.\n" +
+    "Use local STDIO or HTTP transport for IDE integrations. Create an editable\n" +
+    "HTTP service with template init --template mcp, then deploy its source.\n" +
     "\n" +
     "\b\n" +
     "Examples:\n" +
@@ -410,7 +410,8 @@ export const mcp = group("mcp", {
     "  abx mcp start\n" +
     "  abx mcp start --http --background\n" +
     "  abx mcp stop\n" +
-    "  abx mcp deploy --generate-token --output-dir ./mcp-artifact\n" +
+    "  abx template init ./mcp-service --template mcp\n" +
+    "  abx deploy ./mcp-service --name mcp-service\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +

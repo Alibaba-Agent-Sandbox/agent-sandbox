@@ -1,6 +1,6 @@
 # CLI recipes
 
-These recipes use an installed `abx` CLI. Run `abx --help` to check the installed
+These recipes use the [current source CLI](../README.md#installation). Run `abx --help` to check the installed
 version's command surface. Credentials stay in the normal config/environment;
 never place their values in a script or paste them into an Issue.
 
@@ -9,16 +9,16 @@ Inspect the local installation without creating a cloud resource:
 ```bash
 abx --version
 abx provider list
-abx template search python
+abx template list python
 ```
 
 Run an owned sandbox and destroy it after use:
 
 ```bash
-abx sandbox create --template base
-# Copy the returned sandbox ID into the following commands.
-abx sandbox exec REPLACE_ME -- echo hello
-abx sandbox kill REPLACE_ME
+abx deploy --template-id base --name demo
+# The local name resolves this deployment for subsequent operations.
+abx sandbox exec demo -- echo hello
+abx delete demo --yes
 ```
 
 For exact options, configuration and plugin authoring, use the
@@ -26,4 +26,4 @@ For exact options, configuration and plugin authoring, use the
 [provider guide](../docs/en/guide/providers.md). The
 [Chinese recipes](README.zh-CN.md) describe the same operations.
 
-For the standard Express migration contract, see [Migrate from E2B](../docs/en/guide/migrate-from-e2b.md). Create takes a positional template; natural language uses `abx create --prompt`. Project template.yaml scaffolds use `abx template scaffold`; `template init` generates standard SDK build files.
+Use `abx template init` to create editable source: `--from` copies an existing template, `--prompt` generates from a description, and `--adopt` starts from existing code. Deploy the resulting source with `abx deploy SOURCE --name NAME`. See [Migrate from E2B](../docs/en/guide/migrate-from-e2b.md) for existing workflows.

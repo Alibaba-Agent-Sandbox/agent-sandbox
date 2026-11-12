@@ -9,8 +9,8 @@ Python SDK 在 https://github.com/alibaba-agent-sandbox/python-sdk。
 
 | 退役源文件 | 替代方式与归属 |
 |---|---|
-| `api/image.ts`、`api/template.ts` | Dockerfile、`template.yaml` 与 `abx template build`、`push`、`create`、`deploy`；保留 DockerBuilder 与官方 FC 模板适配器 |
-| `api/session_manager.ts`、`session/local.ts`、`models/session.ts` | Python SDK 命名会话持久化；保留 CLI 的交互式 `abx connect` |
+| `api/image.ts`、`api/template.ts` | Dockerfile、`template.yaml` 与 `abx template build/publish` 与 `abx deploy`；保留 DockerBuilder 与官方 FC 模板适配器 |
+| `api/session_manager.ts`、`session/local.ts`、`models/session.ts` | Python SDK 命名会话持久化；保留 CLI 的交互式 `abx sandbox connect` |
 | `models/config.ts` | `transport/config.ts` 分层配置与 `abx config` |
 | `utils/keychain.ts` | CLI 凭据配置；这个未使用的 SecretStore 不参与命令凭据解析 |
 | `utils/retry.ts` | 不添加通用自动重试；重试必须考虑具体操作是否可安全重放 |

@@ -24,7 +24,7 @@ and the project CLI configuration; this is not an alias in either product.
 
 ## What it does
 
-One sandbox is created through the CLI (`--native --provider alicloud-express create base --timeout 900`) and removed in `finally`, on
+One sandbox is created through the CLI (`--provider alicloud-express deploy --template-id base --sandbox-timeout 900 --yes`) and removed in `finally`, on
 SIGINT/SIGTERM, and through the ledger in `e2e/.state/` (`npm run e2e:cleanup` is the janitor). The account is
 listed before and after; the run fails if any sandbox is left (`leak check: ... leaked=0`).
 
@@ -41,7 +41,7 @@ listed before and after; the run fails if any sandbox is left (`leak check: ... 
 | `ki005-missing-sandbox` | 005 | `info` / `exec` of an unknown sandbox: exit 4, `E2009` |
 | `ki006-bad-api-key` | 006 | wrong API key: exit 3, `E1001` (`list` and `create`), the key never appears |
 | `ki003-sdk-timeout-kills-the-process` | 003 | SDK `run("sleep 113", { timeout: 3 })`: `CommandTimeoutError` (`E3001`) and the process is gone |
-| `ki003-cli-exec-timeout` | 003 | `abx --native --provider alicloud-express exec ID "sleep 114" --timeout 3`: exit 5, `E3001`, process gone |
+| `ki003-cli-exec-timeout` | 003 | `abx --provider alicloud-express sandbox exec --timeout 3 ID -- "sleep 114"`: exit 5, `E3001`, process gone |
 | `ki004-sdk-kill` | 004 | SDK `commands.kill(pid)` terminates a running process |
 | `ki004-sdk-send-input` | 004 | SDK `commands.sendInput` reaches stdin of a running `head -n 1` |
 | `ki004-cli-unsupported-signal` | 004 | `abx sandbox process signal --signal 2`: rejected with the envd message before any request |

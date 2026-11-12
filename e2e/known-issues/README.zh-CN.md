@@ -21,7 +21,7 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki
 
 ## 做了什么
 
-通过 CLI 创建一个沙箱(`--native --provider alicloud-express create base --timeout 900`),并在 `finally`、SIGINT/SIGTERM 以及 `e2e/.state/`
+通过 CLI 创建一个沙箱(`--provider alicloud-express deploy --template-id base --sandbox-timeout 900 --yes`),并在 `finally`、SIGINT/SIGTERM 以及 `e2e/.state/`
 台账中保证删除(`npm run e2e:cleanup` 是清理工具)。运行前后各列一次账户沙箱,如有残留则失败
 (`leak check: ... leaked=0`)。
 
@@ -38,7 +38,7 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki
 | `ki005-missing-sandbox` | 005 | 未知沙箱的 `info` / `exec`:退出码 4,`E2009` |
 | `ki006-bad-api-key` | 006 | 错误 API Key:退出码 3,`E1001`(`list` 与 `create`),Key 不出现在输出中 |
 | `ki003-sdk-timeout-kills-the-process` | 003 | SDK `run("sleep 113", { timeout: 3 })`:`CommandTimeoutError`(`E3001`),进程已被终止 |
-| `ki003-cli-exec-timeout` | 003 | `abx --native --provider alicloud-express exec ID "sleep 114" --timeout 3`:退出码 5,`E3001`,进程已被终止 |
+| `ki003-cli-exec-timeout` | 003 | `abx --provider alicloud-express sandbox exec --timeout 3 ID -- "sleep 114"`:退出码 5,`E3001`,进程已被终止 |
 | `ki004-sdk-kill` | 004 | SDK `commands.kill(pid)` 终止运行中的进程 |
 | `ki004-sdk-send-input` | 004 | SDK `commands.sendInput` 送达运行中的 `head -n 1` 的标准输入 |
 | `ki004-cli-unsupported-signal` | 004 | `abx sandbox process signal --signal 2`:在发送任何请求前就被拒绝并给出 envd 的说明 |
