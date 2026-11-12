@@ -224,3 +224,46 @@ Node20/remote CI, binary/SEA parser distribution, arbitrary application-input
 interactive persistence, general owned Serving lifecycle, the parent's real
 cloud/model apply/update/drain/destroy run, cross-repository publication or review.
 No cloud resources, model calls, package publication or merge occurred here.
+
+## Actual installed-npm CI gate correction
+
+The remote CI run for f26f789e98ab84ab1aa2504dce62cd996cf2197b passed both Node20
+and Node22 product suites but failed the Build package job's actual installed
+artifact check. [Run43286247486](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/43286247486)
+and [job131430038277](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/43286247486/job/131430038277)
+identify the actual failure. Package creation and installation completed; the
+script expected its built-in Provider probe to reach the closed-loopback create
+boundary, but instead received `Template v1 /: schema validation failed (required)`.
+
+The cause was the verification fixture in scripts/check-release-artifact.mjs,
+which still authored spec_version5 with root provider/template_id/provides. Only
+that fixture changes to specVersion1 with sandbox.provider, template.reference
+and services. The exact uncertain-outcome, missing-sidecar, closed-loopback,
+synthetic-credential and remaining original assertions are unchanged. No runtime,
+package dependency, server image, cloud behavior or obsolete-format admission
+was changed to make this check pass. Independent parent review approved this
+scope before implementation.
+
+Actual local verification after the correction:
+
+- `npm run build`: exit0.
+- `npm pack --pack-destination <owned-temp> --json`: exit0; candidate package
+  SHA256 `4fe27325cb49c193348d4feaa548fa5cea253d5212da670ff8fd3ddf1fa37fe6`.
+- `env -u NODE_PATH npm install --global --prefix <owned-temp-prefix> <candidate.tgz>`:
+  exit0,294 dependencies; the host's existing install-script policy was not bypassed.
+- `env -u NODE_PATH node scripts/check-release-artifact.mjs <installed-prefix>/bin/abx`:
+  exit0. The real installed executable passes version/help/config isolation,
+  built-in Provider identity through the closed-loopback failure boundary,
+  source authoring/build preflight, actual POSIX PTY cancellation and complete
+  license-notice equality. This uses the installed package, not source imports.
+- `node --check scripts/check-release-artifact.mjs` and scoped ESLint: exit0.
+- `make dist-check`: exit0, packaged CLI entry and Skill reference closure pass.
+- Repository health: exit0,106PASS/11WARN/0FAIL; `git diff --check`: exit0.
+
+This candidate retains the repository's existing0.5.10 package metadata; it was
+not published or relabeled as a public release. The package validation is Node22
+on Linux and does not establish the SEA parser's distribution readiness. The
+earlier product-suite evidence remains tied to f26; product code did not change
+in this verification-fixture correction. Latest-head remote CI/review remains
+required after push. Only owned local temporary installation/test paths were
+used, and no real cloud or model requests were made.

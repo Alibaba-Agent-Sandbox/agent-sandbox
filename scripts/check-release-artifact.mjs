@@ -69,7 +69,7 @@ try {
   // The closed loopback port prevents cloud mutation; credentials are synthetic.
   const managedProject = join(projectRoot, "managed-project");
   mkdirSync(managedProject);
-  writeFileSync(join(managedProject, "template.yaml"), "name: base\nspec_version: 5\nprovider: alicloud-express\ntemplate_id: base\nprovides: {}\n");
+  writeFileSync(join(managedProject, "template.yaml"), "specVersion: 1\nname: base\nsandbox:\n  provider: alicloud-express\n  template:\n    reference: base\n  services: {}\n");
   const managedLaunch = invokeProject(["--provider", "alicloud-express", "--json", "deploy", managedProject, "--name", "artifact-probe", "--yes"], {
     ABX_SANDBOX_API_KEY: "placeholder-test-key",
     ABX_SANDBOX_BASE_URL: "http://127.0.0.1:1",

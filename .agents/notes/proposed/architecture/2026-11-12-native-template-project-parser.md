@@ -96,3 +96,7 @@ the admitted scalar types while retaining the official expression evaluation.
 The optional FC STS token uses the same layered configuration snapshot as the access
 key pair. Its public key metadata is generated from the pinned SDK source export;
 this does not change the separate Express template-preparation limitations.
+
+Installed-artifact verification must also supply public canonical v1 intent. Its
+closed-loopback Provider-identity probe retains the original uncertain-outcome and
+missing-sidecar assertions; it must not stop at an obsolete-format parse failure.
