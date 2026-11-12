@@ -111,7 +111,7 @@ const INFO_HELP = `Show status, template, region, timeout, and URL for a sandbox
     \b
     Examples:
       abx status abc123
-      abx --json info abc123
+      abx --json status abc123
 
     \b
     Related commands:
@@ -217,7 +217,7 @@ const RUN_HELP = `Run a named command registered in the sandbox.
       abx sandbox command run abc123 build
       abx sandbox command run abc123 test --arg file=tests/
       abx sandbox command run abc123 add --json-args '{"x": 1, "y": 2}'
-      abx --json run abc123 greet --arg name=Ada
+      abx --json sandbox command run abc123 greet --arg name=Ada
 
     \b
     Related commands:

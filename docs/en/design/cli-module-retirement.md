@@ -11,8 +11,8 @@ paths; migrate before updating. No CLI command is removed by this cleanup.
 
 | Retired source | Supported replacement / ownership |
 |---|---|
-| `api/image.ts`, `api/template.ts` | Dockerfile and `template.yaml` with `abx template build`, `push`, `create` or `deploy`; current DockerBuilder and official FC template adapter remain |
-| `api/session_manager.ts`, `session/local.ts`, `models/session.ts` | Python SDK named session persistence; CLI interactive `abx connect` remains |
+| `api/image.ts`, `api/template.ts` | Dockerfile and `template.yaml` with `abx template build/publish` and `abx deploy`; current DockerBuilder and official FC template adapter remain |
+| `api/session_manager.ts`, `session/local.ts`, `models/session.ts` | Python SDK named session persistence; CLI interactive `abx sandbox connect` remains |
 | `models/config.ts` | CLI layered configuration in `transport/config.ts` and `abx config` |
 | `utils/keychain.ts` | CLI credential configuration; this unused SecretStore was not part of command credential resolution |
 | `utils/retry.ts` | No automatic retry replacement; retries require operation-specific safety |

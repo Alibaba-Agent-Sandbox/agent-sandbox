@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Align current recipes, reachable MCP help and active runner instructions with the unified CLI. / 同步当前示例、MCP 帮助与验证说明中的统一 CLI 用法。
+
 ### Changed
 
 - Unify running deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 运行部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。

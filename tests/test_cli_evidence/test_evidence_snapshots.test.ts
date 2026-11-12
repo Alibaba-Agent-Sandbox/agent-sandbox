@@ -21,7 +21,7 @@ import { _CI_ENV_VARS } from "../_support/env.js";
 import { REGISTRY, eligibleCases, formatResult, normalize, runCase } from "./evidence_cases.js";
 
 // Earlier batches remain immutable history; this batch describes the final public command tree.
-const GOLDEN_DIR = fileURLToPath(new URL("./golden/single-frontend-20261110/", import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL("./golden/", import.meta.url));
 const UPDATE = process.env["ABX_UPDATE_EVIDENCE"] === "1";
 
 /** `_suppress_ci_detection`: the CLI must never auto-enable JSON mode. */
@@ -44,9 +44,10 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   const { stdout, stderr, exit_code } = await runCase(testCase);
   const actual = normalize(formatResult(stdout, stderr, exit_code));
 
-  const goldenPath = path.join(GOLDEN_DIR, `${testCase.output_file}.txt`);
+  const batch = testCase.output_file === "help-mcp" ? "guidance-20261112" : "single-frontend-20261110";
+  const goldenPath = path.join(GOLDEN_DIR, batch, `${testCase.output_file}.txt`);
   if (UPDATE) {
-    fs.mkdirSync(GOLDEN_DIR, { recursive: true });
+    fs.mkdirSync(path.dirname(goldenPath), { recursive: true });
     fs.writeFileSync(goldenPath, actual);
     return;
   }

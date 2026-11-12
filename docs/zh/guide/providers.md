@@ -173,7 +173,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
 ```
 
 非交互安装需要 `--yes`。未钉扎的 git ref 还要 `--allow-unpinned`，或者写成 40 位十六进制的 `--ref`。Python SDK 安装器是 `python -m agent_sandbox.providers install registry:<id> --yes`。
