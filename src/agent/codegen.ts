@@ -20,9 +20,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { parseTemplateData } from "../api/capability.js";
+import { readProjectDocument } from "../template/project.js";
 import { AICodegenError } from "../models/errors.js";
 import { getLogger } from "../utils/logging.js";
-import { quoteShellLiteral as quote } from "../utils/shell.js";
 import {
   cmpCodePoint,
   cpSlice,
@@ -34,17 +34,15 @@ import {
   pySplitLines,
   pyStrip,
   readTextReplace,
-  readTextStrict,
   stripChars,
   timestampNow,
   which,
   writeTextUtf8,
 } from "./_pycompat.js";
 import { pyRepr as pyReprStr } from "./_py.js";
-import { YAMLError, dumpYaml, isMapping, loadYaml } from "../utils/yaml_io.js";
+import { YAMLError, dumpYaml, isMapping } from "../utils/yaml_io.js";
 import { type QwenCodeRunResult, type RunHeadlessOptions, excStr, runQwenCodeHeadless } from "./qwen_code.js";
-import { resolveBuildPlan, type BuildMode, type PlatformStep } from "../template/build_plan.js";
-import { SERVER_SDK_RELEASE_SPEC } from "../utils/server_sdk_pin.js";
+import { resolveBuildPlan, type BuildMode } from "../template/build_plan.js";
 import { buildTemplateGuide, REQUIRED_TEMPLATE_FILES, SERVER_ENTRYPOINT, SERVER_PORT } from "./template_guide.js";
 import {
   dockerfileCmdLine,
@@ -100,18 +98,18 @@ ${notice}必须创建的文件：
    注册与需求相关的命令 / 路由（至少一个有意义的命令，不要只留 hello）
 3. \`template.yaml\`：
    name: ${f.template_name}
-   version: "1.0.0"
-   description: <一句话中文描述，不超过 50 字>
-   spec_version: 5
-   provides:
-     app: { protocol: agent-sandbox-server, version: 2, port: ${f.server_port}, operations: [commands.list, commands.run] }
-   start_cmd: <启动模板内全部服务的命令>
-   ready_cmd: <检查服务全部就绪的命令>
-   # 不写 capabilities、tested_on 或 providers 旧字段
-   ports: <至少包含 ${f.server_port}>
-   resources:
-     cpu: <1-8 的整数>
-     memory: <512-16384 的整数，单位 MB>
+   specVersion: 1
+   sandbox:
+     template:
+       source: { dockerfile: Dockerfile, context: . }
+       props: { cpu: 2, memory: 2048 }
+     instance:
+       envs: { ABX_SERVER_TOKEN: "" }
+     start: <启动模板内全部服务的命令>
+     ready: <检查服务全部就绪的命令>
+     services:
+       app: { protocol: agent-sandbox-server, version: 2, port: ${f.server_port}, operations: [commands.list, commands.run] }
+   # 镜像、用户及工作目录仅在 Dockerfile 配置，不重复写入资源文件。
 4. \`README.md\`：模板用途、环境变量、调用示例
 
 ${f.guide}
@@ -225,7 +223,7 @@ function loadTemplateYaml(templateYaml: string, retry?: string | null): Record<s
   const hint = retry !== undefined && retry !== null ? retry : defaultRetryHint(path.dirname(templateYaml));
   let data: unknown;
   try {
-    data = loadYaml(readTextStrict(templateYaml));
+    data = readProjectDocument(templateYaml);
   } catch (exc) {
     if (exc instanceof YAMLError || (exc instanceof Error && "code" in exc)) {
       throw new AICodegenError(`Generated template.yaml could not be parsed: ${excStr(exc)}`, { suggestion: hint });
@@ -643,56 +641,6 @@ export function validateTemplateWorkspace(
   return data;
 }
 
-/** Assemble native preparation from final generated files, never model-encoded bytes. */
-function prepareGeneratedSteps(workdir: string, selectedImage?: string): void {
-  const hint = defaultRetryHint(workdir);
-  const manifestPath = path.join(workdir, "template.yaml");
-  const data = loadTemplateYaml(manifestPath, hint);
-  const profile = resolveTemplateProfile();
-  const dockerImage = /^\s*FROM\s+(\S+)/im.exec(readTextReplace(path.join(workdir, "Dockerfile")))?.[1];
-  const image = selectedImage ?? profile.base_image;
-  if (!image || /[<>]/.test(image)) throw new AICodegenError("Generated steps need the provider-resolved base image.", { suggestion: hint });
-  if (selectedImage && dockerImage !== selectedImage) {
-    throw new AICodegenError("Generated Dockerfile must preserve the selected provider base image.", { suggestion: hint });
-  }
-  const build = data["build"];
-  if (build !== undefined && !isMapping(build)) throw new AICodegenError("Generated build must be a mapping.", { suggestion: hint });
-  const recipe = (build ?? {}) as Record<string, unknown>;
-  if (Object.keys(recipe).some((key) => !["mode", "run"].includes(key))) {
-    throw new AICodegenError("Generated steps accept dependency commands in build.run only; the CLI assembles source-file delivery.", { suggestion: hint });
-  }
-  const dependencies = recipe["run"] ?? [];
-  if (!Array.isArray(dependencies) || dependencies.some((value) => typeof value !== "string" || !value.trim())) {
-    throw new AICodegenError("Generated build.run must be an array of dependency commands.", { suggestion: hint });
-  }
-  const user = profile.user || "root";
-  const destination = profile.workdir;
-  const steps: PlatformStep[] = [
-    { type: "USER", args: ["root"] },
-    { type: "RUN", args: [`python3 -m pip install --index-url https://pypi.org/simple --no-cache-dir ${quote(SERVER_SDK_RELEASE_SPEC)}`] },
-  ];
-  const root = fs.realpathSync(workdir) + path.sep;
-  for (const file of listTemplateFiles(workdir)) {
-    if (["Dockerfile", "template.yaml", "README.md", ".dockerignore"].includes(file)) continue;
-    const local = path.join(workdir, file);
-    if (!fs.realpathSync(local).startsWith(root) || !fs.lstatSync(local).isFile()) {
-      throw new AICodegenError("Generated source delivery requires regular files inside its workspace.", { suggestion: hint });
-    }
-    const remote = path.posix.join(destination, file.split(path.sep).join("/"));
-    const payload = fs.readFileSync(local).toString("base64");
-    steps.push({ type: "RUN", args: [`mkdir -p ${quote(path.posix.dirname(remote))} && printf '%s' ${quote(payload)} | base64 -d > ${quote(remote)}`] });
-  }
-  steps.push(
-    { type: "WORKDIR", args: [destination] },
-    ...dependencies.map((command): PlatformStep => ({ type: "RUN", args: [command] })),
-    { type: "RUN", args: [`python3 -m py_compile ${quote(path.posix.join(destination, SERVER_ENTRYPOINT))} && chown -R ${quote(`${user}:${user}`)} ${quote(destination)}`] },
-    { type: "USER", args: [user] },
-  );
-  data["base"] = { image };
-  data["build"] = { mode: "steps", steps };
-  writeTextUtf8(manifestPath, dumpYaml(data));
-}
-
 /**
  * Create the generation workspace and its deterministic template name.
  *
@@ -752,6 +700,7 @@ async function generateTemplateFilesImpl(
   description: string,
   opts: GenerateTemplateFilesOptions = {},
 ): Promise<CodegenResult> {
+  if (opts.buildMode === "steps") throw new AICodegenError("Template v1 source generation currently supports Dockerfile preparation. Select --build dockerfile; Provider-native steps remain available through the Provider API.");
   if (!description || !pyStrip(description)) {
     throw new AICodegenError("Cannot generate a template from an empty description.");
   }
@@ -800,11 +749,12 @@ async function generateTemplateFilesImpl(
     );
   }
 
-  if (opts.buildMode === "steps") prepareGeneratedSteps(work, opts.baseImage);
   const data = validateTemplateWorkspace(work, tmplName, { buildMode: opts.buildMode, baseImage: opts.baseImage });
 
-  if (opts.buildMode && opts.buildMode !== "auto") data["build"] = { ...(isMapping(data["build"]) ? data["build"] : {}), mode: opts.buildMode };
-  data["env"] = { ...(isMapping(data["env"]) ? data["env"] : {}), ABX_SERVER_TOKEN: "" };
+  const sandbox = data["sandbox"] as Record<string, unknown>;
+  const instance = (sandbox["instance"] ?? {}) as Record<string, unknown>;
+  instance["envs"] = { ...(isMapping(instance["envs"]) ? instance["envs"] : {}), ABX_SERVER_TOKEN: "" };
+  sandbox["instance"] = instance;
   writeTextUtf8(templateYaml, dumpYaml(data));
   logger.debug("Generated template workspace ready: %s", work);
 

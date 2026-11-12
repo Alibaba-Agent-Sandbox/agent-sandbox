@@ -20,7 +20,7 @@ import { createDestroyPlan, destroyPlan, observeReceipt, publicSummary, readRece
 import { createFcTransport, resolveDeployCredentials, verifyFunction } from "../../application/fc.js";
 import { cleanBuild } from "../../application/tools.js";
 import { checkDeploymentSelection, listDeployments, readDeployment, saveDeployment, type Deployment } from "../deployment_store.js";
-import { applicationLock, applicationServices, approve, deploymentSummary } from "./deploy.js";
+import { applicationLock, applicationControlServices, approve, deploymentSummary } from "./deploy.js";
 
 export const managementSeams = { info: Sandbox.getInfoById.bind(Sandbox), list: Sandbox.list.bind(Sandbox), kill: Sandbox.killById.bind(Sandbox), destroy: destroyPlan, observe: observeReceipt };
 const target = argument(["target"]);
@@ -135,7 +135,7 @@ export const deleteDeployment = command("delete", {
         if (value.previous) throw new ApplicationError("The failed preparation was cleaned. A previous application is retained; recover this deployment before deleting its active resources.");
         value.status = "deleted"; saveDeployment(value); getFormatter(ctx).printData(deploymentSummary(value)); return;
       }
-      const receipt = readReceipt(value.receipt), services = await applicationServices(receipt.plan, bindingFile(value, params));
+      const receipt = readReceipt(value.receipt), services = await applicationControlServices(receipt, bindingFile(value, params));
       const result = await applicationLock(receipt.plan, services.fc.accountId, async () => params.revision ? retireRevision(receipt, String(params.revision), services, value.receipt!) : managementSeams.destroy(createDestroyPlan(value.receipt!), services));
       if (!params.revision) value.status = "deleted";
       saveDeployment(value); getFormatter(ctx).printData({ ...deploymentSummary(value), ...publicSummary(result) });
@@ -157,7 +157,7 @@ export const recover = command("recover", {
     await withApplicationLock(path.join(paths.abxDir, "deployment-locks"), name, async () => {
       const value = savedTarget(name); if (!value) throw new ApplicationError("Deployment record changed before recovery.");
       if (value.kind === "application" && value.receipt && fs.existsSync(value.receipt)) {
-        const receipt = readReceipt(value.receipt), services = await applicationServices(receipt.plan, bindingFile(value, params));
+        const receipt = readReceipt(value.receipt), services = await applicationControlServices(receipt, bindingFile(value, params));
         releaseStoppedApplicationLock(path.join(paths.abxDir, "app-locks"), `${services.fc.accountId}/${receipt.plan.template.application.deployment.region}/${receipt.plan.applicationId ?? receipt.plan.template.name}`);
         getFormatter(ctx).printData(await applicationLock(receipt.plan, services.fc.accountId, () => managementSeams.observe(receipt, services, value.receipt))); return;
       }

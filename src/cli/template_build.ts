@@ -62,18 +62,18 @@ export async function buildTemplate(ctx: Context, params: Params): Promise<void>
   if (!manifest) throw new UsageError("Template source has no template.yaml.");
   const raw = readYaml(manifest);
   if (record(raw) && raw.application) {
-    const template = readTemplate(manifest), credential = await templateBuildSeams.credentials(template.application.deployment.accessRef);
+    const template = readTemplate(manifest, { configurationSource: source }), credential = await templateBuildSeams.credentials(template.application.deployment.accessRef);
     const receipt = await templateBuildSeams.buildApplication(template, projectRoot, credential, output);
-    writeJson(output, { ...receipt, projectRoot });
+    writeJson(output, { ...receipt, projectRoot, configurationSource: source });
     getFormatter(ctx).printDict({ status: "built", build: output, kind: receipt.kind, image: receipt.image });
     return;
   }
-  const base = { kind: "SandboxTemplateBuild", version: 1, provider: resolveProviderId(cliProvider()), projectRoot, sourceDigest: hash };
+  const base = { kind: "SandboxTemplateBuild", version: 1, provider: resolveProviderId(cliProvider()), projectRoot, configurationSource: source, sourceDigest: hash };
   let journalId: string | undefined, journalFile: string | undefined, target: CleanupTarget | undefined;
   const progress = (status: string) => ({ ...base, journal_id: journalId, journal_file: journalFile, target, status });
   try {
     const result = await templateBuildSeams.launch(ctx, { template_ref: projectRoot, timeout: params.timeout ?? 600,
-      build_profile: params.build_profile, alias: params.alias, yes: true }, { prepareOnly: true,
+      build_profile: params.build_profile, alias: params.alias, yes: true }, { prepareOnly: true, configurationSource: source,
       onTarget: value => { target = value; if (journalId) writeJson(output, progress("building")); },
       onJournal: journal => { journalId = journal.id; journalFile = journal.file; writeJson(output, progress("building")); } });
     if (sourceDigest(projectRoot) !== hash) throw new ApplicationError("Source changed during build; retain the journal and build a fresh snapshot.");

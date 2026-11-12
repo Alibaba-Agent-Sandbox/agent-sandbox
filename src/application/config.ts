@@ -3,10 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { parseDocument } from "yaml";
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { normalizeApplicationProfile } from "./profile/normalize.mjs";
-import applicationProfiles from "./profile/profiles.json" with { type: "json" };
-import templateSchema from "./template-v6.schema.json" with { type: "json" };
+import { resolveProject, type PrivateProject, type ProjectResolutionOptions } from "../template/project.js";
+import { validateManagedInstance } from "./instance.js";
 import { DeployError } from "../models/errors.js";
 import type { ApplicationTemplate, ApplicationPlan, BuildReceipt, ToolchainLock } from "./types.js";
 
@@ -66,7 +64,7 @@ export function rejectInlineSecrets(value: unknown, trail: string[] = []): void 
   if (Array.isArray(value)) { value.forEach(child => rejectInlineSecrets(child, trail)); return; }
   if (record(value)) {
     for (const [key, child] of Object.entries(value)) {
-      if (/(?:access_?key_?(?:id|secret)|password|api_?key|private_?key|secret|token)$/i.test(key) && child !== "" && child !== null && child !== undefined) throw new ApplicationError("Credential literals are not allowed in plans; use binding references.");
+      if (/(?:access_?key_?(?:id|secret)|password|api_?key|private_?key|secret|token)$/i.test(key) && child !== "" && child !== null && child !== undefined && !(typeof child === "string" && /^\$\{[\s\S]+\}$/.test(child))) throw new ApplicationError("Credential literals are not allowed in plans; use native configuration references.");
       rejectInlineSecrets(child, [...trail, key]);
     }
   } else if (typeof value === "string" && (/[a-z][a-z0-9+.-]*:\/\/[^\s/]+@/i.test(value) || /[?&](?:access_token|token|signature|x-oss-signature|x-amz-signature|api_key)=/i.test(value))) throw new ApplicationError("Credential-bearing URLs are not allowed in plans.");
@@ -78,14 +76,58 @@ export function readYaml(file: string): unknown {
   if (doc.errors.length) throw new ApplicationError("Invalid YAML or duplicate keys.");
   try { return doc.toJS({ maxAliasCount: 0 }); } catch { throw new ApplicationError("YAML aliases are unsupported in application plans."); }
 }
-/** Validate against the owner-published spec6 schema before any preparation. */
-export function readTemplate(file: string): ApplicationTemplate {
-  const raw = normalizeApplicationProfile(readYaml(file), applicationProfiles);
-  const validate = new Ajv2020({ strict: false, allErrors: true }).compile(templateSchema);
-  if (!validate(raw)) throw new ApplicationError(`Invalid template v6: ${validate.errors?.map(e => `${e.instancePath || "/"} ${e.keyword}`).join(", ")}`);
-  const template = raw as unknown as ApplicationTemplate, app = template.application;
+export interface PrivateManagedProject {
+  template: ApplicationTemplate;
+  bindingValues: Record<string, unknown>;
+  roleProps: Record<string, Record<string, unknown>>;
+  project: PrivateProject;
+}
+const controlledProps = ["cpu", "memorySize", "diskSize", "timeout", "instanceConcurrency", "internetAccess", "region", "runtime", "role"];
+const unmanagedProps = ["triggers", "asyncInvokeConfig", "concurrencyConfig", "provisionConfig", "scalingConfig", "vpcBinding", "supplement"];
+
+/** Resolve private inputs, retaining only original references and non-secret controls in the plan template. */
+export function readManagedProject(file: string, options: ProjectResolutionOptions = {}): PrivateManagedProject {
+  const project = resolveProject(file, options), { compiled, intent } = project;
+  if (compiled.kind !== "application" || !compiled.application || !intent.application || !intent.deployment || !compiled.roleProps || !compiled.roleResources || !compiled.bindingValues) throw new ApplicationError("Expected an agents-api application project.");
+  try { validateManagedInstance(compiled.sandbox?.instance ?? {}); }
+  catch (error) { throw new ApplicationError(error instanceof TypeError ? error.message : "Invalid Managed instance configuration."); }
+  if (project.actions.some(action => record(action.definition) ? Object.keys(action.definition).length > 0 : Boolean(action.definition)) || Object.keys(intent.deployment.flow ?? {}).length) throw new ApplicationError("Native actions/flow are parsed but are not yet supported by the Managed lifecycle; no resources were changed.");
+  const nativeControls: Record<string, Record<string, unknown>> = {};
+  for (const [role, props] of Object.entries(compiled.roleProps)) {
+    for (const key of unmanagedProps) if (Object.hasOwn(props, key)) throw new ApplicationError(`Managed ${role} props.${key} needs a resource lifecycle adapter and is currently unsupported.`);
+    for (const key of ["vpcConfig", "nasConfig", "ossMountConfig", "logConfig"]) if (props[key] === "auto") throw new ApplicationError(`Managed ${role} props.${key}: auto has no owned-resource cleanup contract; use an explicit supported existing-resource configuration.`);
+    if (props.environmentVariables !== undefined && (!record(props.environmentVariables) || Object.values(props.environmentVariables).some(value => typeof value !== "string"))) throw new ApplicationError(`Managed ${role} environmentVariables must contain string values.`);
+    nativeControls[role] = Object.fromEntries(controlledProps.filter(key => Object.hasOwn(props, key)).map(key => [key, props[key]]));
+  }
+  const app = structuredClone(compiled.application);
+  // Hook argv can also contain resolved values. Persist its original declarations.
+  if (intent.application.hooks) app.hooks = structuredClone(intent.application.hooks);
+  const nativeEnvironmentNames: Record<string, string[]> = {};
+  const rawRoleProps = Object.fromEntries(Object.entries(compiled.roleResources).map(([role, id]) => {
+    const props = structuredClone(intent.deployment!.resources[id].props) as Record<string, unknown>;
+    nativeEnvironmentNames[role] = Object.keys((compiled.roleProps![role].environmentVariables ?? {}) as Record<string, unknown>).sort();
+    delete props.environmentVariables;
+    return [role, props];
+  }));
+  const instance = compiled.sandbox?.instance ?? {}, {envs, metadata, ...instanceControls} = instance;
+  const template = { name: compiled.name, specVersion: 1, provider: compiled.provider, resources: compiled.resources,
+    start_cmd: intent.sandbox?.start ?? null, ready_cmd: intent.sandbox?.ready ?? null, provides: compiled.provides, ports: compiled.ports,
+    env: {}, application: app, sandboxInstanceControls: instanceControls,
+    sandboxEnvironmentNames: Object.keys(envs ?? {}).sort(), sandboxMetadataNames: Object.keys(metadata ?? {}).sort(),
+    nativeRoleProps: rawRoleProps, nativeControls, nativeEnvironmentNames } as unknown as ApplicationTemplate;
+  rejectInlineSecrets(template);
+  validateManagedTemplate(template, file);
+  return { template, bindingValues: compiled.bindingValues, roleProps: compiled.roleProps, project };
+}
+
+/** Plan-safe application template: private resolved credentials never leave readManagedProject's context. */
+export function readTemplate(file: string, options: ProjectResolutionOptions = {}): ApplicationTemplate {
+  return readManagedProject(file, options).template;
+}
+
+function validateManagedTemplate(template: ApplicationTemplate, file: string): void {
+  const app = template.application;
   if (app?.deployment.profile !== "fc-managed-agents" || app.runtime.profile !== "managed-bridge-v1") throw new ApplicationError("Expected the managed Agents application profile.");
-  rejectInlineSecrets(raw);
   if (app.limits.maxToolSeconds > app.limits.maxRunSeconds || Number(app.sessions.maxConcurrentTurnsPerSession) !== 1) throw new ApplicationError("Invalid managed execution budgets.");
   if (Number(app.sessions.idleTimeoutSeconds) > Number(app.sessions.maxLifetimeSeconds) || app.limits.maxRunSeconds >= Number(app.sessions.maxLifetimeSeconds)
     || Number(app.storage.maxArtifactBytes) > Number(app.storage.maxTurnArtifactBytes)
@@ -114,7 +156,6 @@ export function readTemplate(file: string): ApplicationTemplate {
     if (hook.type === "custom") contained(root, hook.cwd ?? ".");
     else if (hook.command !== "info" || !["gateway", "worker", "dispatcher"].includes(hook.step ?? "")) throw new ApplicationError("Component hooks may only inspect a declared role.");
   }
-  return template;
 }
 /** Atomic private JSON output; credentials must never be passed to this writer. */
 export function writeJson(file: string, value: unknown): void {

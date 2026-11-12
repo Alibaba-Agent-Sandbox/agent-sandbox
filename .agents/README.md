@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Native template project parser](notes/proposed/architecture/2026-11-12-native-template-project-parser.md) · [verification](evidence/verify/2026-11-12-native-template-project-parser.md).
+
 ## Recent changes — 2026-11-10
 
 - [Owner change index](notes/proposed/process/2026-11-10-recent-change-index.md) · [records verification](evidence/verify/2026-11-10-recent-change-index.md).

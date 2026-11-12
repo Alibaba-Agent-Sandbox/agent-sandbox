@@ -18,6 +18,8 @@ export interface Deployment {
   createdAt: string;
   updatedAt: string;
   source?: string;
+  /** Original local configuration source; its private values are never copied into this record. */
+  configurationSource?: string;
   sandboxId?: string;
   /** Written before entering resource requests. Absent means unknown for older records. */
   effectsStarted?: boolean;

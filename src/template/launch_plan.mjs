@@ -6,40 +6,48 @@ const strings = value => Array.isArray(value) && value.every(item => typeof item
 /** Validate application declarations without inferring platform capabilities from installed software. */
 export function validateTemplateManifest(manifest) {
   if (!object(manifest)) fail("manifest must be an object");
-  if (manifest.spec_version !== 5 || ["workflow_contract_version", "default_workflow", "workflows"].some(key => Object.hasOwn(manifest, key)))
-    fail("use spec_version: 5 and remove workflow_contract_version, default_workflow and workflows; keep start_cmd, ready_cmd and all provides services");
-  for (const key of contract.retired_keys) if (Object.hasOwn(manifest, key)) fail(`retired field ${key}`);
-  if (!object(manifest.provides)) fail("provides must be an object");
-  for (const [id, service] of Object.entries(manifest.provides)) {
+  if (manifest.specVersion !== contract.template_spec_version || Object.hasOwn(manifest, "spec_version")) fail("use the specVersion: 1 resource structure");
+  if (Object.keys(manifest).some(key => !contract.template_keys.includes(key))) fail("launch requires a standalone v1 Sandbox resource; unknown or retired root field");
+  if (typeof manifest.name !== "string" || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(manifest.name)) fail("invalid resource name");
+  const sandbox = manifest.sandbox;
+  if (!object(sandbox) || !object(sandbox.template)) fail("sandbox.template is required");
+  if (Object.keys(sandbox).some(key => !["provider", "template", "instance", "start", "ready", "services", "ports"].includes(key))) fail("unknown Sandbox field");
+  const template = sandbox.template;
+  if (["source", "image", "reference"].filter(key => Object.hasOwn(template, key)).length !== 1) fail("select exactly one template source, image or reference");
+  if (Object.keys(template).some(key => !["source", "image", "reference", "aliases", "props"].includes(key))) fail("unknown template field");
+  if (template.source !== undefined && (!object(template.source) || (template.source.dockerfile !== undefined && (typeof template.source.dockerfile !== "string" || !template.source.dockerfile)))) fail("invalid source recipe");
+  for (const key of ["image", "reference"]) if (Object.hasOwn(template, key) && (typeof template[key] !== "string" || !template[key].trim())) fail(`invalid template ${key}`);
+  for (const key of ["start", "ready", "provider"]) if (Object.hasOwn(sandbox, key) && (typeof sandbox[key] !== "string" || !sandbox[key].trim())) fail(`invalid sandbox ${key}`);
+  if (template.reference && !sandbox.provider) fail("a native template reference requires its owning provider");
+  const services = sandbox.services ?? {};
+  if (sandbox.ports !== undefined && (!Array.isArray(sandbox.ports) || sandbox.ports.some(port => !Number.isSafeInteger(port) || port < 1 || port > 65535) || new Set(sandbox.ports).size !== sandbox.ports.length)) fail("invalid additional Sandbox ports");
+  if (!object(services)) fail("sandbox.services must be an object");
+  for (const [id, service] of Object.entries(services)) {
     if (!/^[a-z][a-z0-9_-]*$/.test(id) || !object(service)) fail("invalid service declaration");
-    if (Object.keys(service).some(key => !["protocol", "version", "port", "operations"].includes(key))) fail("unknown service field");
+    if (Object.keys(service).some(key => !contract.service_keys.includes(key))) fail("unknown service field");
     if (typeof service.protocol !== "string" || !service.protocol || !Number.isSafeInteger(service.version) || service.version < 1 ||
-      !Number.isSafeInteger(service.port) || service.port < 1 || service.port > 65535 || !strings(service.operations)) fail("invalid service protocol/version/port/operations");
+      !Number.isSafeInteger(service.port) || service.port < 1 || service.port > 65535 || !strings(service.operations ?? [])) fail("invalid service protocol/version/port/operations");
   }
-  for (const key of ["start_cmd", "ready_cmd", "image", "template_id", "provider"]) {
-    if (Object.hasOwn(manifest, key) && (typeof manifest[key] !== "string" || !manifest[key].trim())) fail(`invalid ${key}`);
-  }
-  if (manifest.image && manifest.template_id) fail("image and template_id cannot both be set");
-  if (Object.hasOwn(manifest, "template_id") !== Object.hasOwn(manifest, "provider")) fail("template_id requires its owning provider");
   return structuredClone(manifest);
 }
 /** Derive platform requirements from the template; there is no selectable execution flow. */
 export function planTemplateLaunch(manifest, provider, consumer, prepared = false) {
-  validateTemplateManifest(manifest);
+  manifest = validateTemplateManifest(manifest);
+  const sandbox = manifest.sandbox, template = sandbox.template, services = sandbox.services ?? {};
   if (!["cli", "python-provider"].includes(consumer)) fail("unsupported launch consumer");
   if (!object(provider) || typeof provider.id !== "string" || !provider.id || provider.operation_contract_version !== 1 || !object(provider.operations)) fail("unsupported provider operation contract");
   const operations = provider.operations[consumer === "cli" ? "cli" : "python"];
   if (!Array.isArray(operations) || operations.some(operation => typeof operation !== "string")) fail("invalid provider operations");
-  const input = manifest.template_id ? "managed" : manifest.image ? "image" : "source";
-  const startup = manifest.start_cmd ? "exec" : input === "managed" ? "none" : "entrypoint";
-  const reason = manifest.template_id && manifest.provider !== provider.id ? "provider-mismatch"
+  const input = template.reference ? "managed" : template.image ? "image" : "source";
+  const startup = sandbox.start ? "exec" : input === "managed" ? "none" : "entrypoint";
+  const reason = sandbox.provider && sandbox.provider !== provider.id ? "provider-mismatch"
     : !(prepared && input === "source") && !provider.workflow_inputs?.includes(input) ? "input-unimplemented"
     : !provider.startup_modes?.includes(startup) ? "startup-unimplemented" : undefined;
   const required = new Set(["sandbox.create", "sandbox.delete"]);
   if (input === "source" && !prepared) required.add("template.prepare");
-  if (manifest.start_cmd || manifest.ready_cmd) required.add("exec.run");
-  if (Object.keys(manifest.provides).length) required.add("ports.resolve");
+  if (sandbox.start || sandbox.ready) required.add("exec.run");
+  if (Object.keys(services).length || sandbox.ports?.length) required.add("ports.resolve");
   const required_operations = [...required].sort();
   const missing_operations = required_operations.filter(operation => !operations.includes(operation));
-  return {supported: !reason && missing_operations.length === 0, required_operations, missing_operations, services: structuredClone(manifest.provides), ...(reason ? {reason} : {})};
+  return {supported: !reason && missing_operations.length === 0, required_operations, missing_operations, services: structuredClone(services), ...(reason ? {reason} : {})};
 }

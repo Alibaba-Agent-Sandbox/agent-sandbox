@@ -13,6 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { parse, stringify } from "yaml";
 
 import { describe, expect, it } from "vitest";
 
@@ -36,27 +37,53 @@ import { useHttpxMock } from "../helpers/httpxMock.js";
 
 const iso = useIsolatedEnv();
 const httpx_mock = useHttpxMock();
+const metadata = (name: string) => ({ specVersion: 1, name, version: "1.0.0", description: { en: "Test template", zh: "测试模板" }, author: "test", license: "Apache-2.0", readme: { en: "README.md", zh: "README.zh-CN.md" } });
 
 const INDEX_URL =
-  "https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml";
+  "https://registry.agent-sandbox.cn/templates/index.json";
 
 const INDEX_YAML = `\
-schema_version: 2
+schema_version: 3
 templates:
   - name: qwen-code
-    description: "Qwen Code agent harness"
     repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
-    tags: [qwen, ai-agent]
-    author: alibaba-agent-sandbox
     status: official
+    metadata:
+      specVersion: 1
+      name: qwen-code
+      version: 1.0.0
+      description:
+        en: Qwen Code agent harness
+        zh: 测试模板
+      author: alibaba-agent-sandbox
+      license: Apache-2.0
+      tags:
+        - qwen
+        - ai-agent
+      readme:
+        en: README.md
+        zh: README.zh-CN.md
   - name: node-web
-    description: "Node.js web service"
     repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: node-web
-    tags: [nodejs, web, deploy]
-    author: alibaba-agent-sandbox
     status: official
+    metadata:
+      specVersion: 1
+      name: node-web
+      version: 1.0.0
+      description:
+        en: Node.js web service
+        zh: 测试模板
+      author: alibaba-agent-sandbox
+      license: Apache-2.0
+      tags:
+        - nodejs
+        - web
+        - deploy
+      readme:
+        en: README.md
+        zh: README.zh-CN.md
 `;
 
 /** Write an index cache file + metadata as a previous fetch would. */
@@ -112,12 +139,12 @@ describe("TestParseIndex", () => {
   });
 
   it("test_missing_schema_version_is_rejected", () => {
-    const text = INDEX_YAML.replace("schema_version: 2\n", "");
+    const text = INDEX_YAML.replace("schema_version: 3\n", "");
     expect(() => parse_index(text)).toThrow(TemplateParseError);
   });
 
   it("test_newer_schema_version_is_rejected", () => {
-    const text = INDEX_YAML.replace("schema_version: 2", "schema_version: 99");
+    const text = INDEX_YAML.replace("schema_version: 3", "schema_version: 99");
     let err: unknown;
     try {
       parse_index(text);
@@ -131,7 +158,7 @@ describe("TestParseIndex", () => {
   });
 
   it("test_non_integer_schema_version_is_rejected", () => {
-    const text = INDEX_YAML.replace("schema_version: 2", 'schema_version: "one"');
+    const text = INDEX_YAML.replace("schema_version: 3", 'schema_version: "one"');
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/non-integer schema_version/);
   });
@@ -141,38 +168,39 @@ describe("TestParseIndex", () => {
   - name: dup
     repo: alibaba-agent-sandbox/awesome-templates
     path: dup
+    metadata: ${JSON.stringify(metadata("dup"))}
 `;
-    const text = `schema_version: 2\ntemplates:\n${entry}${entry}`;
+    const text = `schema_version: 3\ntemplates:\n${entry}${entry}`;
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/duplicate entry/);
   });
 
   it("test_missing_name_is_rejected", () => {
-    const text = "schema_version: 2\ntemplates:\n  - repo: alibaba-agent-sandbox/awesome-templates\n";
+    const text = "schema_version: 3\ntemplates:\n  - repo: alibaba-agent-sandbox/awesome-templates\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/missing the required 'name'/);
   });
 
   it("test_missing_repo_is_rejected", () => {
-    const text = "schema_version: 2\ntemplates:\n  - name: x\n";
+    const text = "schema_version: 3\ntemplates:\n  - name: x\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/missing the required 'repo'/);
   });
 
   it("test_unsupported_host_is_rejected", () => {
     const text =
-      "schema_version: 2\ntemplates:\n" + "  - name: x\n    repo: https://gitlab.com/owner/repo\n    path: x\n";
+      "schema_version: 3\ntemplates:\n" + "  - name: x\n    repo: https://gitlab.com/owner/repo\n    path: x\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
     expect(() => parse_index(text)).toThrow(/Unsupported template host/);
   });
 
   it("test_tags_must_be_a_string_list", () => {
     const text =
-      "schema_version: 2\ntemplates:\n" +
+      "schema_version: 3\ntemplates:\n" +
       "  - name: x\n    repo: alibaba-agent-sandbox/awesome-templates\n" +
       "    path: x\n    tags: [1, 2]\n";
     expect(() => parse_index(text)).toThrow(TemplateParseError);
-    expect(() => parse_index(text)).toThrow(/'tags' must be a list of strings/);
+    expect(() => parse_index(text)).toThrow(/Registry v1 metadata/);
   });
 
   it("test_invalid_yaml_is_rejected", () => {
@@ -181,8 +209,24 @@ describe("TestParseIndex", () => {
   });
 
   it("test_missing_templates_list_is_rejected", () => {
-    expect(() => parse_index("schema_version: 2\n")).toThrow(TemplateParseError);
-    expect(() => parse_index("schema_version: 2\n")).toThrow(/no 'templates' list/);
+    expect(() => parse_index("schema_version: 3\n")).toThrow(TemplateParseError);
+    expect(() => parse_index("schema_version: 3\n")).toThrow(/no 'templates' list/);
+  });
+
+  it("rejects a remote locator-only catalog instead of losing description and tag search", () => {
+    const value = { schema_version: 3, templates: [{name: "example", repo: "owner/repo", path: "example", registry: "example/registry.yaml"}] };
+    expect(() => parse_index(stringify(value), {source_url: INDEX_URL})).toThrow("generated /templates/index.json");
+  });
+
+  it("reads contained local registry metadata without evaluating expressions or requiring runtime input", async () => {
+    const root = iso.tmp_path, folder = path.join(root, "example"), file = path.join(root, "catalog.yaml"); fs.mkdirSync(folder);
+    fs.writeFileSync(path.join(folder, "registry.yaml"), stringify({...metadata("example"), tags: ["agents-api"], questions: []}));
+    fs.writeFileSync(file, stringify({schema_version: 3, templates: [{name: "example", repo: "owner/repo", path: "example", registry: "example/registry.yaml"}]}));
+    const value = await fetch_index(file);
+    expect(value.filter("agents-api")[0].description).toBe("Test template");
+    expect(fs.existsSync(path.join(folder, "template.yaml"))).toBe(false);
+    const raw = parse(fs.readFileSync(file, "utf8")); raw.templates[0].registry = "../private.yaml";
+    expect(() => parse_index(stringify(raw), {source_url: file})).toThrow("contained registry.yaml");
   });
 });
 
@@ -190,8 +234,9 @@ describe("TestInstallRef", () => {
   // `install_ref` → the exact reference handed to the registry client.
 
   const _entry = (yaml_fragment: string) => {
-    const text = `schema_version: 2\ntemplates:\n${yaml_fragment}`;
-    return parse_index(text).entries[0]!;
+    const text = `schema_version: 3\ntemplates:\n${yaml_fragment}`;
+    const value = parse(text); value.templates[0].metadata = metadata(value.templates[0].name);
+    return parse_index(stringify(value)).entries[0]!;
   };
 
   it("test_with_path", () => {
@@ -292,7 +337,7 @@ describe("TestFetchIndexNetwork", () => {
   it("test_utf8_bom_is_cached_verbatim", async () => {
     const tmp_path = iso.tmp_path;
     const raw = Buffer.from(
-      "\uFEFFschema_version: 2\ntemplates:\n  - {name: x1, repo: o/r, description: x}\n",
+      "\uFEFF" + stringify({ schema_version: 3, templates: [{ name: "x1", repo: "o/r", metadata: metadata("x1") }] }),
       "utf8",
     );
     httpx_mock.add_response({ url: INDEX_URL, content: raw });
@@ -319,7 +364,7 @@ describe("TestFetchIndexNetwork", () => {
   it("test_force_bypasses_fresh_cache", async () => {
     const tmp_path = iso.tmp_path;
     _seed_cache(tmp_path, { age: 10.0 });
-    httpx_mock.add_response({ url: INDEX_URL, text: INDEX_YAML.replace("qwen-code", "qwen-code-v2") });
+    httpx_mock.add_response({ url: INDEX_URL, text: INDEX_YAML.replaceAll("qwen-code", "qwen-code-v2") });
 
     const index = await fetch_index(INDEX_URL, { cache_dir: tmp_path, force: true });
 
@@ -343,7 +388,7 @@ describe("TestFetchIndexNetwork", () => {
     expect(meta["fetched_at"]).toBeGreaterThan(Date.now() / 1000 - 60); // metadata refreshed
   });
 
-  it("test_token_sets_authorization_header", async () => {
+  it("does not forward GitHub credentials to the public Registry index", async () => {
     const tmp_path = iso.tmp_path;
     httpx_mock.add_response({ url: INDEX_URL, text: INDEX_YAML });
 
@@ -351,7 +396,13 @@ describe("TestFetchIndexNetwork", () => {
 
     const request = httpx_mock.get_request();
     expect(request).not.toBeNull();
-    expect(request.headers.get("authorization")).toBe("Bearer secret-token");
+    expect(request.headers.get("authorization")).toBeNull();
+  });
+  it("sends a supplied token only to an explicitly selected private mirror", async () => {
+    const url = "https://raw.githubusercontent.com/private/templates/main/index.json";
+    httpx_mock.add_response({url, text: INDEX_YAML});
+    await fetch_index(url, {token: "fixture-mirror-token", cache_dir: iso.tmp_path});
+    expect(httpx_mock.get_request().headers.get("authorization")).toBe("Bearer fixture-mirror-token");
   });
 
   it("test_env_var_overrides_default_url", async () => {
@@ -498,7 +549,7 @@ describe("public source and managed catalog", () => {
       ["opensandbox-code-interpreter", "opensandbox", "opensandbox/code-interpreter:v1.1.0"],
     ]) {
       const entry = index.entries.find(item => item.name === name)!;
-      expect(entry.manifest).toMatchObject({spec_version: 5, provider, template_id, provides: {}});
+      expect(entry.manifest).toMatchObject({specVersion: 1, sandbox: {provider, template: {reference: template_id}, services: {}}});
       expect(entry.repo).toBe("");
       expect(entry.path).toBeNull();
     }
@@ -507,12 +558,13 @@ describe("public source and managed catalog", () => {
   it("reads managed entries from an existing raw-YAML cache without a network refresh", () => {
     const directory = path.join(iso.tmp_path, "old-version-cache");
     _seed_cache(directory, {text: published});
-    expect(read_cached_index(directory)!.find("base")!.manifest).toMatchObject({provider: "alicloud-express", template_id: "base"});
+    expect(read_cached_index(directory)!.find("base")!.manifest).toMatchObject({sandbox: {provider: "alicloud-express", template: {reference: "base"}}});
     expect(read_cached_index(directory)!.entries).toHaveLength(50);
   });
   it("rejects malformed managed rows and cross-list duplicate names", () => {
     expect(() => parse_index(INDEX_YAML + "managed_templates: {}\n")).toThrow(/managed_templates.*list/);
-    expect(() => parse_index(INDEX_YAML + "managed_templates:\n  - name: missing-native\n")).toThrow(/template_id/);
-    expect(() => parse_index(INDEX_YAML + "managed_templates:\n  - name: QWEN-CODE\n    spec_version: 5\n    provider: alicloud-express\n    template_id: base\n    provides: {}\n")).toThrow(/uplicate/);
+    expect(() => parse_index(INDEX_YAML + "managed_templates:\n  - name: missing-native\n")).toThrow(/v1 native resource/);
+    const duplicate = {name: "qwen-code", metadata: metadata("qwen-code"), resource: {specVersion: 1, name: "qwen-code", sandbox: {provider: "alicloud-express", template: {reference: "base"}, services: {}}}};
+    expect(() => parse_index(INDEX_YAML + stringify({managed_templates: [duplicate]}))).toThrow(/uplicate/);
   });
 });

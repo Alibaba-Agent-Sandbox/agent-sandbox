@@ -17,7 +17,7 @@ import { withTemplateEnvironment, applicationToken } from "./template_environmen
 import { pyExpandUser } from "../utils/_pyos.js";
 import { quoteShellLiteral as quote } from "../utils/shell.js";
 import type { Provider } from "../providers/base.js";
-import { loadYaml, isMapping } from "../utils/yaml_io.js";
+import { isMapping } from "../utils/yaml_io.js";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Context } from "./kit.js";
@@ -27,7 +27,10 @@ import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
-import { parseTemplateData } from "../api/capability.js";
+import { SandboxTemplate } from "../models/template.js";
+import { normalizeProjectIntent, compileResolvedProject } from "../template/definition.mjs";
+import { readProjectIntent, resolveProject, sandboxExecutionInput } from "../template/project.js";
+import { resolveDevsProject } from "../template/devs_project.js";
 import { _findTemplateYaml, acquireTemplateSource } from "./template_catalog.js";
 import { Sandbox, _effectiveOptions, type CreateOptions } from "../api/sandbox.js";
 import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager } from "../providers/template_contract.js";
@@ -42,12 +45,14 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
   if (yaml) directory = path.dirname(yaml);
   const manifestBytes = catalogManifest ? Buffer.from(JSON.stringify(catalogManifest)) : fs.readFileSync(yaml!);
   const manifestDigest = createHash("sha256").update(manifestBytes).digest("hex");
-  const raw = loadYaml(manifestBytes.toString("utf8"));
+  const raw = catalogManifest ?? readProjectIntent(yaml!, { provider: provider.id });
   if (!isMapping(raw)) throw new ProviderConfigError("Template must contain a manifest.");
-  const sourceMetadata = raw as Record<string, unknown>;
-  validateTemplateManifest(sourceMetadata);
-  const template = parseTemplateData(structuredClone(sourceMetadata));
-  const plan = planTemplateLaunch(sourceMetadata, provider, "cli");
+  const intent = normalizeProjectIntent(raw, { provider: provider.id });
+  if (!intent.sandbox || intent.application || intent.deployment) throw new ProviderConfigError("This project requires its Serving/application deployment lifecycle; it cannot launch as a standalone Sandbox.");
+  const sourceMetadata = sandboxExecutionInput(intent);
+  validateTemplateManifest(intent);
+  const template = SandboxTemplate.modelValidate(sourceMetadata);
+  const plan = planTemplateLaunch(intent, provider, "cli");
   if (!plan.supported) throw new ProviderConfigError(`Template cannot launch on this provider: ${plan.reason ?? plan.missing_operations.join(", ")}.`);
   const input = sourceMetadata["template_id"] ? "managed" : sourceMetadata["image"] ? "image" : "source";
   const aliasBase = String(params["alias"] ?? template.name);
@@ -67,7 +72,7 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
     cpu: template.cpu_count ?? 2, memory: template.memory_mb ?? 2048,
     start_cmd: sourceMetadata["start_cmd"] === undefined ? null : String(sourceMetadata["start_cmd"]),
     ready_cmd: sourceMetadata["ready_cmd"] === undefined ? null : String(sourceMetadata["ready_cmd"]) } };
-  return { directory, template, options, plan, input, sourceMetadata, manifestDigest };
+  return { directory, yaml, intent, template, options, plan, input, sourceMetadata, manifestDigest };
 }
 
 /** One explicit operation; never guesses an ID or falls back to another backend. */
@@ -80,7 +85,7 @@ export interface TemplateLaunchResult {
 export async function executeTemplateLaunch(
   ctx: Context,
   params: Record<string, unknown>,
-  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { approved?: boolean; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void } = {},
+  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { configurationSource?: string; approved?: boolean; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void } = {},
 ): Promise<TemplateLaunchResult> {
   const provider = getProvider(resolveProviderId(cliProvider()));
   const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
@@ -104,9 +109,28 @@ export async function executeTemplateLaunch(
   }
   const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest);
   directory = project.directory;
-  const { template, options, plan, input, sourceMetadata, manifestDigest } = project;
-  const withEnvironment = (callback: (environment: Record<string, string>) => Promise<TemplateLaunchResult>): Promise<TemplateLaunchResult> => creationOptions.prepareOnly ? callback({}) : withTemplateEnvironment(ctx, template.env, creationOptions.envs ?? {}, Boolean(params["yes"]), callback);
+  const withEnvironment = (callback: (environment: Record<string, string>) => Promise<TemplateLaunchResult>): Promise<TemplateLaunchResult> => creationOptions.prepareOnly ? callback({}) : withTemplateEnvironment(ctx, project.template.env, creationOptions.envs ?? {}, Boolean(params["yes"]), callback);
   return withEnvironment(async environment => {
+  // Unresolved declarations are source intent, not ambient values for env('SAME_NAME').
+  const guidedValues = Object.fromEntries(Object.entries(environment).filter(([key, value]) => value !== project.template.env[key] || !value.includes("${")));
+  const parserEnvironment = { ...process.env, ...guidedValues, ...creationOptions.envs };
+  const validation = provider.validateTemplateInput ? { validateProvider: (stage: "template.prepare" | "sandbox.create", value: Record<string, unknown>, id: string) => {
+    if (id !== provider.id) throw new TypeError("Selected Provider differs from the validation context.");
+    return provider.validateTemplateInput!(stage, value);
+  } } : {};
+  const compiled = project.yaml ? resolveProject(project.yaml, { provider: provider.id, environment: parserEnvironment, configurationSource: creationOptions.configurationSource, ...validation }).compiled
+    : compileResolvedProject(resolveDevsProject(project.intent as unknown as Record<string, unknown>, "template.yaml", parserEnvironment, { configurationSource: process.cwd() }).document, { provider: provider.id, ...validation });
+  const sourceMetadata = sandboxExecutionInput(project.intent, compiled), template = SandboxTemplate.modelValidate(sourceMetadata);
+  const plan = planTemplateLaunch(project.intent, provider, "cli"), input = project.input, manifestDigest = project.manifestDigest;
+  const recipe = compiled.sandbox?.template.source;
+  const sourceDockerfile = recipe?.dockerfile ?? "Dockerfile";
+  if (recipe && !project.options.build_profile && ((recipe.context ?? ".") !== "." || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(sourceDockerfile))) throw new ProviderConfigError("The current source preparation adapter requires a Dockerfile in the project root and context: .");
+  const options = { ...project.options, ...(recipe && !project.options.build_profile ? {build_profile: {id: "default", dockerfile: sourceDockerfile, context: "." as const}} : {}), template: { ...project.options.template,
+    cpu: template.cpu_count ?? project.options.template.cpu, memory: template.memory_mb ?? project.options.template.memory,
+    start_cmd: template.start_cmd ?? null, ready_cmd: template.ready_cmd ?? null } };
+  const instance = compiled.sandbox?.instance ?? {};
+  // Empty declarations can inherit existing CLI configuration; native expressions are resolved only here.
+  environment = { ...environment, ...Object.fromEntries(Object.entries(compiled.env ?? {}).filter(([, value]) => value !== "")), ...creationOptions.envs };
   const token = environment["ABX_SERVER_TOKEN"] || applicationToken();
   const providerOptions = _effectiveOptions(provider, null) ?? {};
   const config = loadLayeredConfig({ provider: provider.id, provider_options: providerOptions });
@@ -136,10 +160,10 @@ export async function executeTemplateLaunch(
       await snapshot.close(); throw new ProviderConfigError("Template manifest changed after planning; compute a new execution snapshot.");
     }
   }
-  const planDigest = createHash("sha256").update(JSON.stringify({ provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, manifest_digest: `sha256:${manifestDigest}`, plan, source_digest: snapshot?.digest ?? null, manifest: sourceMetadata, build_profile: options.build_profile ?? null })).digest("hex");
+  const planDigest = createHash("sha256").update(JSON.stringify({ provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, manifest_digest: `sha256:${manifestDigest}`, plan, source_digest: snapshot?.digest ?? null, manifest: project.intent, build_profile: options.build_profile ?? null })).digest("hex");
   const journal = new ResourceJournal(provider.id, planDigest);
   options.journal = journal;
-  const sandboxTimeout = sandboxTimeoutInput;
+  const sandboxTimeout = params["sandbox_timeout"] == null ? Number(instance.timeout ?? sandboxTimeoutInput) : sandboxTimeoutInput;
   let manager: ProviderTemplateManager | undefined;
   let prepared: PreparedTemplate;
   try {
@@ -207,15 +231,16 @@ export async function executeTemplateLaunch(
   };
   try {
   sandbox = await launchSeams.create({
-    lifecycle: creationOptions.lifecycle, on_created: recordCreated, provider: provider.id, template: reference,
+    ...instance,
+    lifecycle: creationOptions.lifecycle ?? instance.lifecycle as CreateOptions["lifecycle"], on_created: recordCreated, provider: provider.id, template: reference,
     api_key: provider.inherit.has("sandbox_api_key") ? config.sandbox_api_key : undefined,
     api_url: provider.inherit.has("sandbox_base_url") ? config.sandbox_base_url : undefined,
-    provider_options: { ...structuredClone(config.provider_options), ...prepared.provider_options },
+    provider_options: { ...structuredClone(config.provider_options), ...instance.provider_options as Record<string, unknown>, ...prepared.provider_options },
     ...(creationOptions.request_timeout !== undefined ? { request_timeout: creationOptions.request_timeout } : {}),
     ...(creationOptions.volume_mounts !== undefined ? { volume_mounts: creationOptions.volume_mounts } : {}),
-    metadata: {...prepared.metadata, ...creationOptions.metadata, "abx.launch": journal.id, "abx.intent": createIntent},
+    metadata: {...instance.metadata as Record<string, string>, ...prepared.metadata, ...creationOptions.metadata, "abx.launch": journal.id, "abx.intent": createIntent},
     envs: {...environment},
-    timeout: sandboxTimeout, cpu: template.cpu_count, memory: template.memory_mb });
+    timeout: sandboxTimeout, cpu: instance.cpu as number | undefined ?? template.cpu_count, memory: instance.memory as number | undefined ?? template.memory_mb });
   // Third-party create seams must also retain the known ID before journal I/O.
   if (knownSandboxId === undefined) await recordCreated(sandbox.id);
   } catch (error) {
@@ -248,7 +273,7 @@ export async function executeTemplateLaunch(
         await delay(250);
       }
     }
-    const services: Record<string, unknown> = {};
+    const services: Record<string, unknown> = {}, endpoints: Record<string, string> = {};
     for (const [id, service] of Object.entries(plan.services)) {
       const serviceOptions = {server_port: service.port, application_token: token};
       if (service.protocol === "agent-sandbox-server" && service.version === 2) {
@@ -256,15 +281,17 @@ export async function executeTemplateLaunch(
         if (service.operations.includes("commands.list")) await sandbox.listCommands(serviceOptions);
       }
       const endpoint = await sandbox.network.resolveEndpoint(service.port);
+      endpoints[String(service.port)] = endpoint.url;
       services[id] = { protocol: service.protocol, version: service.version, port: service.port, url: endpoint.url };
     }
+    for (const port of template.ports) if (!Object.hasOwn(endpoints, String(port))) endpoints[String(port)] = (await sandbox.network.resolveEndpoint(port)).url;
     await journal.mark(createIntent, "retained");
     for (const resource of prepared.owned_resources ?? []) await journal.mark(resource.intent_id, "retained");
     return {
       receipt: { sandbox_id: sandbox.id, provider: provider.id, template_reference: reference,
-        services, plan_digest: planDigest, manifest_digest: `sha256:${manifestDigest}`, provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, source_digest: snapshot?.digest ?? null, journal_id: journal.id, build_profile: options.build_profile?.id ?? null },
+        services, ports: endpoints, plan_digest: planDigest, manifest_digest: `sha256:${manifestDigest}`, provider_snapshot_digest: providerSnapshotDigest, provider_digest: providerContentIdentity, source_digest: snapshot?.digest ?? null, journal_id: journal.id, build_profile: options.build_profile?.id ?? null },
       creation: { ID: sandbox.id, Status: sandbox.status, Template: sandbox.info.template, URL: sandbox.url,
-        TemplateID: reference, Services: services,
+        TemplateID: reference, Services: services, Ports: endpoints,
         ...(sandbox.info.envd_version ? { EnvdVersion: sandbox.info.envd_version } : {}), provider: provider.id },
     };
   } catch {

@@ -10,8 +10,8 @@ import { spawnSync } from "node:child_process";
 import { Readable } from "node:stream";
 import { rootCertificates } from "node:tls";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stringify } from "yaml";
-import schemaSource from "../../src/application/schema-source.json" with { type: "json" };
+import { parse, stringify } from "yaml";
+import schemaSource from "../../src/template/contract-v1/source.json" with { type: "json" };
 import { digest, readTemplate, sourceDigest, toolDigest, writeJson } from "../../src/application/config.js";
 import { bootstrapEnvironment, businessTokenDigest, resolveBindings, stateConnectionIdentity, type ResolvedBindings } from "../../src/application/bindings.js";
 import { applyPlan, createDestroyPlan, createPlan, destroyPlan, observeReceipt, readPlan, readReceipt, retireRevision, withApplicationLock, type ApplicationServices } from "../../src/application/service.js";
@@ -23,6 +23,7 @@ import { runPreparation } from "../../src/providers/alicloud_express/application
 import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
 import { paths, _setPaths } from "../../src/transport/config_layers.js";
 import type { ApplicationPlan, BuildReceipt } from "../../src/application/types.js";
+import { applicationControlServices, deploymentSeams } from "../../src/cli/commands/deploy.js";
 
 const temporary: string[] = [];
 const scratch = (): string => { const folder = fs.mkdtempSync(path.join(os.tmpdir(), "abx-managed-test-")); temporary.push(folder); return folder; };
@@ -128,8 +129,8 @@ describe("managed application boundary", () => {
     expect(readReceipt(value.receiptFile).status).toBe("requires_reconcile");
   });
   it("keeps the schema consumer pinned to immutable producer bytes", () => {
-    const schema = fs.readFileSync(fileURLToPath(new URL("../../src/application/template-v6.schema.json", import.meta.url)));
-    expect(createHash("sha256").update(schema).digest("hex")).toBe(schemaSource.sha256); expect(schemaSource.commit).toMatch(/^[a-f0-9]{40}$/);
+    const schema = fs.readFileSync(fileURLToPath(new URL("../../src/template/contract-v1/schema.json", import.meta.url)));
+    expect(createHash("sha256").update(schema).digest("hex")).toBe(schemaSource.files["schema.json"]); expect(schemaSource.revision).toMatch(/^[a-f0-9]{40}$/);
   });
   it("freezes source and tool identity with a stable read-back plan digest", () => {
     const value = fixture(), file = path.join(value.directory, ".abx", "plan.json"); writeJson(file, value.plan); expect(readPlan(file).id).toBe(value.plan.id);
@@ -137,10 +138,10 @@ describe("managed application boundary", () => {
     fs.writeFileSync(path.join(value.directory, "new.py"), "changed"); expect(() => createPlan(value.file, value.buildFile)).toThrow(/Source changed/);
   });
   it.each(["budget", "targets", "model-env"])("rejects producer semantic violations: %s", kind => {
-    const value = fixture(); if (kind === "budget") value.template.application.sessions.idleTimeoutSeconds = 100000;
-    if (kind === "targets") value.template.application.bindings.model.targets = ["gateway"];
-    if (kind === "model-env") value.template.application.bindings.model.allowedEnv = ["ALICLOUD_ACCESS_KEY_SECRET"];
-    fs.writeFileSync(value.file, stringify(value.template)); expect(() => readTemplate(value.file)).toThrow();
+    const value = fixture(), raw = parse(fs.readFileSync(value.file, "utf8")); if (kind === "budget") raw.application.sessions = {idleTimeoutSeconds: 100000};
+    if (kind === "targets") raw.application.bindings.model.targets = ["gateway"];
+    if (kind === "model-env") raw.application.bindings.model.allowedEnv = ["ALICLOUD_ACCESS_KEY_SECRET"];
+    fs.writeFileSync(value.file, stringify(raw)); expect(() => readTemplate(value.file)).toThrow();
   });
   it("injects model secrets only into worker bootstrap and never into Gateway or Dispatcher", () => {
     const value = fixture(), input = binding();
@@ -193,6 +194,39 @@ describe("managed application boundary", () => {
   });
 });
 describe("managed application effects", () => {
+  it("observes and destroys owned resources from saved control credentials after source and model inputs disappear", async () => {
+    const value = fixture(), external = services(value.plan), previousPaths = {...paths}, home = scratch(), receiptFile = path.join(scratch(), "receipt.json");
+    _setPaths({abxDir: home});
+    try {
+      const values = sourceBindings(value.template, binding()); values.clientAuth = {generate: true}; values.internalAuth = {generate: true, roleArn: "acs:ram::123:role/managed-agents"};
+      external.deps.binding = resolveBindings(value.template.application, undefined, {values, scope: {applicationId: value.template.name, accountId: "123", region: "cn-hangzhou"}, mode: "initial-apply"});
+      const receipt = await applyPlan(value.plan, external.deps, receiptFile);
+      fs.rmSync(value.directory, {recursive: true, force: true});
+      vi.spyOn(deploymentSeams, "credentials").mockResolvedValue(external.deps.credential);
+      const services = await applicationControlServices(receipt);
+      expect(Object.keys(services.binding)).toEqual(["internal"]); expect(services.binding.internal.token).toBe(external.deps.binding.internal.token);
+      services.fc = external.deps.fc; services.deleteTemplate = external.deps.deleteTemplate;
+      await expect(observeReceipt(receipt, services, receiptFile)).resolves.toMatchObject({status: "ready"});
+      await expect(destroyPlan(createDestroyPlan(receiptFile), services)).resolves.toMatchObject({status: "destroyed"});
+      expect(external.native.size).toBe(0);
+    } finally { _setPaths(previousPaths); }
+  });
+  it("preserves resolved native Worker memory instead of replacing it with the old generated default", async () => {
+    const value = fixture(), external = services(value.plan);
+    external.deps.nativeRoleProps = { worker: { memorySize: 4096, environmentVariables: { CUSTOM_VALUE: "private-fixture-only" } } };
+    external.deps.sandboxInstance = {timeout: 3600, envs: {BUSINESS_VALUE: "guest-private-fixture"}, metadata: {business: "visible-tag"}};
+    await applyPlan(value.plan, external.deps, value.receiptFile);
+    expect(external.native.get(value.plan.identities.worker)!.memorySize).toBe(4096);
+    expect((external.native.get(value.plan.identities.worker)!.environmentVariables as Record<string, string>).CUSTOM_VALUE).toBe("private-fixture-only");
+    expect(fs.readFileSync(value.receiptFile, "utf8")).not.toContain("private-fixture-only");
+    for (const [name, props] of external.native) {
+      const env = props.environmentVariables as Record<string, string>, config = JSON.parse(env.ABX_MANAGED_CONFIG_JSON);
+      expect(config.instance).toEqual({timeout: 3600, metadata: {business: "visible-tag"}}); expect(config.instanceEnvNames).toEqual(["BUSINESS_VALUE"]);
+      if (name === value.plan.identities.worker) expect(JSON.parse(env.ABX_MANAGED_SANDBOX_ENV_JSON)).toEqual({BUSINESS_VALUE: "guest-private-fixture"});
+      else expect(env.ABX_MANAGED_SANDBOX_ENV_JSON).toBeUndefined();
+    }
+    expect(fs.readFileSync(value.receiptFile, "utf8")).not.toContain("guest-private-fixture");
+  });
   it("keeps public database CA in the verified command instead of the bounded environment", async () => {
     const value = fixture(), external = services(value.plan), chain = `${rootCertificates[0]}\n${rootCertificates[0]}\n${rootCertificates[0]}`; external.deps.binding.databaseCa = chain;
     await applyPlan(value.plan, external.deps, value.receiptFile);
@@ -208,7 +242,7 @@ describe("managed application effects", () => {
     await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/4 KiB/); expect(external.native.size).toBe(0);
   });
   it("keeps maximum-length names within the native 64-character function limit", () => {
-    const value = fixture(); value.template.name = "a".repeat(63); fs.writeFileSync(value.file, stringify(value.template));
+    const value = fixture(), raw = parse(fs.readFileSync(value.file, "utf8")); raw.name = "a".repeat(63); fs.writeFileSync(value.file, stringify(raw));
     const build = JSON.parse(fs.readFileSync(value.buildFile, "utf8")); build.sourceDigest = sourceDigest(value.directory); writeJson(value.buildFile, build);
     expect(Math.max(...Object.values(createPlan(value.file, value.buildFile).identities).map(name => name.length))).toBe(64);
   });
@@ -222,8 +256,8 @@ describe("managed application effects", () => {
     await applyPlan(value.plan, external.deps, value.receiptFile); expect(reads).toBeGreaterThanOrEqual(6); expect(updates).toBeGreaterThanOrEqual(16);
   });
   it("uses the owned random tag for FC while freezing and verifying its resolved digest", async () => {
-    const value = fixture(); delete value.template.application.deployment.serverImage; value.template.application.deployment.serverBuildRecipe = { dockerfile: "Dockerfile.server", context: "." };
-    fs.writeFileSync(value.file, stringify(value.template)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
+    const value = fixture(), raw = parse(fs.readFileSync(value.file, "utf8")); raw.application.server = { source: { dockerfile: "Dockerfile.server", context: "." } };
+    fs.writeFileSync(value.file, stringify(raw)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
     const build = JSON.parse(fs.readFileSync(value.buildFile, "utf8")), digest = `sha256:${"d".repeat(64)}`, repository = "registry.cn-hangzhou.aliyuncs.com/example/agents-api-server", localTag = `${repository}:build-test`;
     build.image = `${repository}@${digest}`; build.sourceDigest = sourceDigest(value.directory); build.ownedServerImage = { accountId: "123", region: "cn-hangzhou", namespace: "example", repository: "agents-api-server", tag: "build-test", localTag, localImageId: `sha256:${"c".repeat(64)}`, digest, state: "confirmed", journalId: "11111111-1111-1111-1111-111111111111", intentId: "test-intent" }; writeJson(value.buildFile, build);
     const plan = createPlan(value.file, value.buildFile), external = services(plan); await applyPlan(plan, external.deps, value.receiptFile);
@@ -733,8 +767,9 @@ describe("managed subprocess lifecycle", () => {
 describe("owned Server image lifecycle", () => {
   function buildFixture() {
     const value = fixture(), credential = { AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" };
-    delete value.template.application.deployment.serverImage; value.template.application.deployment.serverBuildRecipe = { dockerfile: "Dockerfile.server", context: "." };
-    fs.writeFileSync(value.file, stringify(value.template)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
+    const raw = parse(fs.readFileSync(value.file, "utf8")); raw.application.server = { source: { dockerfile: "Dockerfile.server", context: "." } };
+    fs.writeFileSync(value.file, stringify(raw)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
+    value.template = readTemplate(value.file);
     const output = path.join(value.directory, ".abx", "owned-build.json"); let pushed = false, removed = false;
     const registry: RegistryClient = { async inspect() { return pushed && !removed ? { digest: `sha256:${"d".repeat(64)}`, imageId: "c".repeat(64) } : null; }, async token() { return { username: "registry-user", password: "private-registry-token" }; }, async remove() { removed = true; } };
     const run = vi.fn(async (input: Parameters<typeof execute>[0]): Promise<string> => {

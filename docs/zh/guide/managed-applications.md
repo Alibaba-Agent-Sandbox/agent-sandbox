@@ -2,35 +2,29 @@
 
 托管应用对外提供一个 Gateway 地址，Session 按需创建隔离的 Sandbox 计算环境。
 用户在不同会话和应用升级后仍使用同一地址。此流程支持阿里云极速版与函数计算上的
-明确声明 `application.deployment.profile: fc-managed-agents` 的模板。请安装[当前源码 CLI](../../../README.zh-CN.md#安装)；已发布的 0.5.10 使用原命令布局。部署主机需要 Node.js 20+、Docker、ACR 命名空间及模板 smoke 脚本的 Python 依赖。
+声明 `specVersion: 1` 和 `application.type: agents-api` 的模板。请安装[当前源码 CLI](../../../README.zh-CN.md#安装)；已发布的 0.5.10 使用原命令布局。部署主机需要 Node.js 20+、Docker、ACR 命名空间及模板 smoke 脚本的 Python 依赖。
 
 从 [Agents API 模板](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api)开始。
-模板包含 Sandbox 镜像、Server 构建文件、绑定示例和业务验证脚本。API 是受 OpenAI Agents 启发的子集，
+模板包含 Sandbox 镜像、Server 构建文件、原生配置引用和业务验证脚本。API 是受 OpenAI Agents 启发的子集，
 明确区分排队和关闭计算；受支持请求以模板 API 指南为准。
 SSE 每次连接返回最多 20 秒的有限片段；请保存持久事件游标并通过 `Last-Event-ID` 重连。
 一次流片段结束不代表本轮任务已完成。
 
-将私有部署输入放到镜像构建上下文排除的目录：
+使用一个 `template.yaml`：`deployment` 声明原生 FC 资源，`application` 声明应用设置；本地运行不要求 `registry.yaml`。通过进程环境或私有本地 `.env` 提供原生 `${env('NAME')}` 引用。后续 apply/update 需要保留原始配置目录；密钥值不进入源码快照或持久计划。
 
-```bash
-mkdir -p .abx
-cp bindings.example.json .abx/bindings.json
-chmod 600 .abx/bindings.json
-```
-
-部署前配置示例中引用的环境变量。各绑定用途如下：
-
-| 绑定 | 输入和来源 |
+| 输入 | 用途及来源 |
 | --- | --- |
-| State | 三个 FC 函数均可访问的既有 PostgreSQL 数据库 URL。请与数据库管理员准备专用数据库及访问规则。 |
-| Sandbox access | 对应账号、地域的 Sandbox API Key、明确的 API URL、数据域名和地域，用于创建与清理计算环境。 |
-| Model | 模型服务 Key、HTTPS 地址、明确的模型 ID 和受支持适配器。仅 Worker 解析并按模板声明向 guest 注入模型环境。 |
-| Client authentication | `{ "generate": true }` 在首次部署 生成默认业务 Key；也可显式提供令牌 SHA-256 摘要、owner 和 scopes。外部客户端用原始业务 Key 作为 Bearer 令牌。 |
-| Internal authentication | `{ "generate": true, "roleArn": { "env": "AGENTS_FC_ROLE_ARN" } }` 生成私有控制 Key。既有执行角色须信任 FC，并允许调用本应用的 Worker、Dispatcher。此角色与部署主机 AccessKey 分开。 |
-| Ingress | 选择 `function-alias`，提供 `aliasName` 并显式设置 `allowTestDomain: true`；或提供既有独占 HTTPS 根域名绑定 `custom-domain` 的 `domainName`、`protocol: HTTPS`、`aliasName`。 |
+| `ABX_MANAGED_DATABASE_URL` | 已有独立 PostgreSQL 数据库的连接地址，由数据库管理员提供，三个 Server 角色均需可达。 |
+| `SANDBOX_API_KEY`、`SANDBOX_BASE_URL`、`SANDBOX_DOMAIN`、`SANDBOX_REGION` | Sandbox 服务凭据和匹配的地域端点，Worker 用它们创建和清理 Session 计算资源。 |
+| `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` | 模型服务商的 Key、HTTPS API 地址与实际可用模型；在 `application.bindings.model` 选择受支持的 `codex` 或 `qwen-code`。 |
+| `AGENTS_FC_ROLE_ARN` | 已有 FC 执行角色，允许调用 Worker/Dispatcher，填入原生 FC `role`；它与部署机 AccessKey 不同。 |
+| 部署身份 | 在 `deployment.access` 选择 Serverless Devs 凭据配置，单独准备云 AccessKey。 |
+| 业务与内部认证 | 首次部署默认分别生成，安全保存在当前用户的本机应用凭据存储中并复用，不是向云控制台申请的 Key。 |
+| 入口 | 在 `application.bindings.ingress` 选择已确认的 FC 测试别名，或已有 HTTPS 根自定义域名。 |
 
-私网数据库的 State 可写成 `{ "databaseUrl": { "env": "AGENTS_DATABASE_URL" },
-"vpcConfig": { "vpcId": "vpc-…", "vSwitchIds": ["vsw-…"], "securityGroupId": "sg-…" } }`。
+当前应用路径要求在预览/apply 前提供这些引用，暂不交互收集和保存任意应用字段。不要把密钥写入 YAML 明文或镜像上下文。
+
+私网数据库可在 `application.state.vpcConfig` 填写已有的 `vpcId`、`vSwitchIds` 和 `securityGroupId`。数据库连接地址仍放在 `application.state.databaseUrl`，例如 `${env('ABX_MANAGED_DATABASE_URL')}`。
 使用能访问数据库的既有网络 ID；CLI 不创建网络或修改访问规则，三个函数均接收此原生 VPC 配置。
 此 profile 为模型与 Sandbox 地址显式启用 FC 公网访问，并在回读中核实。
 数据库和公网地址的实际连通性仍须通过候选业务验证确认，参见
@@ -38,8 +32,8 @@ chmod 600 .abx/bindings.json
 数据库 URI 须明确指定单个主机、数据库和用户，不支持 `host`、`options` 等路由或 schema 覆盖参数。
 首次部署固定数据库持久身份，后续 revision 拒绝空库、替换后的账本或不同路由；数据库迁移须另行安排。
 凭据轮换需要同时协调保留的 Worker，各 revision 在退役前继续使用原来解析的凭据。
-数据库使用私有 CA 时，在 State 中增加 `databaseCa: { "file": "/path/to/database-ca.pem" }`，
-或 `databaseCa: { "env": "AGENTS_DATABASE_CA_PEM" }`，URI 保持 `sslmode=verify-full`。
+数据库使用私有 CA 时，在 State 中增加 `databaseCa: "${file('/path/to/database-ca.pem')}"`，
+或 `databaseCa: "${env('AGENTS_DATABASE_CA_PEM')}"`，URI 保持 `sslmode=verify-full`。
 只接受不超过 64 KiB 的证书 PEM 链；此运行时 CA 只交付三个 Server 角色，不写入镜像、计划、收据或 Sandbox 环境。
 CA 不占 FC 环境变量预算。每个角色的环境变量名与值合计不得超过 4 KiB UTF-8，包含候选认证和持久状态身份；
 编译后的配置超限时，在创建 FC 函数前拒绝。较大的 CA 链仍须满足所选 FC 容器命令的实际大小限制。
@@ -49,7 +43,7 @@ CA 不占 FC 环境变量预算。每个角色的环境变量名与值合计不�
 显式绑定只作为本次输入，不会自动复制保存。仍保留旧 revision 时，不要更换内部控制 Key。
 Sandbox 应用令牌 `ABX_SERVER_TOKEN` 是另一个独立的 guest 控制凭据。
 
-模板的 `application.deployment.accessRef` 可设为 Serverless Devs 凭据配置名、使用已配置极速版 AccessKey 的
+模板的 `deployment.access` 可设为 Serverless Devs 凭据配置名、使用已配置极速版 AccessKey 的
 `abx`，或使用显式云凭据环境变量的 `env`。执行前通过 STS 核对身份。现有极速版模板准备适配器要求部署 AccessKey，
 此流程暂不支持仅 STS 的模板准备。`deploy` 不会自动创建或续期管理 API Key。
 
@@ -57,7 +51,7 @@ Sandbox 应用令牌 `ABX_SERVER_TOKEN` 是另一个独立的 guest 控制凭据
 
 ```bash
 abx deploy . --name my-agents --plan
-abx deploy . --name my-agents --bindings .abx/bindings.json --yes
+abx deploy . --name my-agents --yes
 abx status my-agents
 ```
 
@@ -88,7 +82,7 @@ abx delete my-agents --yes
 
 ```bash
 abx template build . --out .abx/build.json --yes
-abx deploy . --build .abx/build.json --name my-agents --bindings .abx/bindings.json --yes
+abx deploy . --build .abx/build.json --name my-agents --yes
 # 所有使用该构建的应用删除后：
 abx template build --clean .abx/build.json --yes
 ```
@@ -99,3 +93,7 @@ abx template build --clean .abx/build.json --yes
 
 数据库、模型账号、执行角色及外部提供的自定义域名仍由用户管理。删除后保留数据库历史和停止接收输入的状态；
 完整删除后再创建应用，须选择新的应用名或新的空状态数据库。`deploy` 不会自动重新开放已排空的账本。
+
+托管 Sandbox 的自定义实例字段放在 `sandbox.instance`。`timeout` 是唯一最大存活期限，其他受支持资源参数传入 Session 创建。自定义环境值仅交给 Worker 的私有输入；模型与运行时变量名、归属标签属于保留项。存储卷不能覆盖 `/workspace` 或 `/home/user/.agent-sandbox`，生命周期要求超时删除且不自动恢复。当前托管生命周期不支持原生 FC 的 `auto` 网络/存储/日志资源、任意 native actions 或组件附属资源，请使用显式且已支持的已有资源配置。
+
+观察和清理复用已保存的内部控制凭据与资源归属，不要求模型 Key 或原始源码目录。控制凭据缺失时需恢复原凭据，清理过程不会生成替代控制密钥。

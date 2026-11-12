@@ -11,12 +11,14 @@ import * as path from "node:path";
 
 import { CapabilityNotSupportedError, TemplateParseError } from "../models/errors.js";
 import { SandboxTemplate } from "../models/template.js";
+import { normalizeProjectIntent } from "../template/definition.mjs";
+import { readProjectDocument } from "../template/project.js";
+import { sandboxExecutionInput } from "../template/project.js";
 import { getLogger, ExcInfo } from "../utils/logging.js";
 import { pyRepr } from "../utils/_pyformat.js";
 import { dictGet, pyExcStr } from "../utils/_pyerrors.js";
 import { rglobName } from "../utils/_pyos.js";
 import { validateTemplateSourceVersion } from "../utils/registry.js";
-import { loadYaml as safeLoad } from "../utils/yaml_io.js";
 
 const logger = getLogger("api.capability");
 
@@ -92,7 +94,7 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
   for (const yaml_path of rglobName(cacheDir, "template.yaml")) {
     let data: unknown;
     try {
-      data = safeLoad(fs.readFileSync(yaml_path, { encoding: "utf8" }));
+      data = readProjectDocument(yaml_path);
     } catch (e) {
       logger.debug("Skipping unreadable template at %s", yaml_path, new ExcInfo(e));
       continue;
@@ -127,14 +129,7 @@ export function _findLocalTemplate(template_id: string): SandboxTemplate | null 
  * Throws `ValidationError` when the manifest fails schema validation.
  */
 export function parseTemplateData(data: Record<string, any>): SandboxTemplate {
-  const resources = dictGet(data, "resources", {}) || {};
-  if ("cpu" in resources && !("cpu_count" in data)) {
-    data["cpu_count"] = resources["cpu"];
-  }
-  if ("memory" in resources && !("memory_mb" in data)) {
-    data["memory_mb"] = resources["memory"];
-  }
-  return SandboxTemplate.modelValidate(data);
+  return SandboxTemplate.modelValidate(sandboxExecutionInput(normalizeProjectIntent(data)));
 }
 
 // ---------------------------------------------------------------------------
@@ -194,7 +189,7 @@ export async function resolveCapabilities(
     if (fs.existsSync(local_yaml_path)) {
       let data: unknown;
       try {
-        data = safeLoad(fs.readFileSync(local_yaml_path, { encoding: "utf8" }));
+        data = readProjectDocument(local_yaml_path);
       } catch (e) {
         throw new TemplateParseError(`Explicit template YAML is unreadable: ${pyExcStr(e)}`);
       }

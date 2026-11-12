@@ -2,6 +2,7 @@
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
 import path from "node:path";
+import { parse, stringify } from "yaml";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useTmpPath } from "../helpers/templateSupport.js";
@@ -23,6 +24,17 @@ function project(): string {
   for (const [name, content] of renderScaffold("minimal", "example", "alicloud-express")) fs.writeFileSync(path.join(folder, name), content);
   return folder;
 }
+describe("native Serving admission", () => {
+  it.each([false, true])("rejects mixed nonManaged resources before any partial effects (plan=%s)", async preview => {
+    const folder = project(), file = path.join(folder, "template.yaml"), value = parse(fs.readFileSync(file, "utf8"));
+    value.deployment = { edition: "3.0.0", name: "native", resources: {api: {component: "fc3@0.1.26", props: {region: "cn-hangzhou"}}} };
+    fs.writeFileSync(file, stringify(value));
+    const launch = vi.spyOn(deploymentSeams, "launch"), build = vi.spyOn(deploymentSeams, "build"), apply = vi.spyOn(deploymentSeams, "apply");
+    const result = await run(["deploy", folder, "--name", "mixed", ...(preview ? ["--plan"] : ["--yes"])]);
+    expect(result.exit_code).not.toBe(0); expect(result.output).toContain("owned-resource lifecycle adapter");
+    expect(launch).not.toHaveBeenCalled(); expect(build).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
+  });
+});
 function fakeLaunch() {
   return vi.spyOn(deploymentSeams, "launch").mockImplementation(async (_ctx, params, options = {}) => {
     expect(fs.existsSync(String(params.template_ref))).toBe(true);

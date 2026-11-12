@@ -1,17 +1,26 @@
-# 整体启动模板
+# 启动 Sandbox 模板
 
-执行 `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`。模板只有一个启动入口：CLI 准备模板内容、创建沙箱、执行声明的 `start_cmd`、等待 `ready_cmd`，并解析 `provides` 中全部服务的地址。不再选择 workflow，也不再区分应用、执行命令或解释器等启动类型。
+运行 `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`。Sandbox 模板只有一个启动流程：准备源码、创建实例、运行 `sandbox.start`、等待 `sandbox.ready`，再解析 `sandbox.services` 中的全部访问地址。业务命令在启动后由用户调用。
 
-Sandbox 模板使用 `spec_version: 5`。托管应用模板请参见独立的[托管应用指南](managed-applications.md)。应用服务、命令、依赖和启动脚本属于同一个模板；`provides` 描述所有服务端点，启动脚本可以启动多个进程。业务命令在启动后按需调用，不会自动执行。Agent Sandbox Server v2 服务通过健康、协议发现和命令目录验证，不执行业务命令。其他服务协议由声明的就绪命令检查，并返回 Provider 提供的访问地址；CLI 不声称理解这些应用协议。
+使用 `specVersion: 1` 和一个本地 `template.yaml`。源码放在 `sandbox.template.source`，已有镜像使用 `sandbox.template.image`，Provider 原生模板使用 `sandbox.provider` 与 `sandbox.template.reference`。镜像引用需要固定的 `@sha256:` 摘要。镜像依赖与启动文件随项目保存；实例的期限、环境变量、标签及所选 Provider 支持的资源参数放在 `sandbox.instance`。
 
-源码模板使用 Dockerfile 或平台支持的构建配方。作者可以固定 `image`，或固定所属 `provider` 与 `template_id` 来引用已准备的制品；这些是模板内容，不是用户要选择的执行模式。镜像引用要求不可变的 `@sha256:` digest。凭据、上传、注册和平台地址仍由 Provider 处理。CLI 在创建资源前检查所需的平台操作。
+```yaml
+specVersion: 1
+name: example
+sandbox:
+  template:
+    source: {dockerfile: Dockerfile, context: .}
+    props: {cpu: 2, memory: 2048}
+  instance:
+    timeout: 300
+    envs: {ABX_SERVER_TOKEN: ""}
+  start: python3 commands.py
+  services:
+    app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+```
 
-目录中的平台内置模板直接按目录名称启动，例如 `abx --provider alicloud-express deploy base --name my-app --yes`。CLI 直接读取目录中的托管模板声明，不复制一份源码清单。已有外部服务使用 server client 连接；启动模板总会创建沙箱。
+缺少应用认证令牌时，CLI 自动生成并安全保存在本机。Provider 的流量认证是另一层凭据。完整字段及 Provider 边界见[模板 v1 规范](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md)。本地使用不要求 `registry.yaml`；上架时才在该文件填写目录元数据和初始化问题。
 
-## 从 v4 迁移
+公开目录中的原生模板可直接按名称部署，例如 `abx --provider alicloud-express deploy base --name my-app --yes`。托管 Agents 使用独立的[应用生命周期](managed-applications.md)。CLI 可以解析通用原生 Serving 项目，但暂不支持其部署和删除生命周期；没有受支持应用类型的 Sandbox/Serving 混合项目会在创建资源前停止。
 
-删除 `workflow_contract_version`、`default_workflow` 和 `workflows`，改为 `spec_version: 5`。保留全部 `provides`、`start_cmd`、`ready_cmd`、环境变量和应用代码。启动命令删除 `--workflow` 与 `--service-url`。当前 CLI 对 v4 清单给出迁移错误，不会猜测旧流程。CLI 与模板目录需要同步升级；旧二进制无法读取 v5 清单。
-
-已有验证记录保留其当时版本的历史意义。静态操作检查不等于真实平台测试，也不证明当前账号配置或服务已经就绪。
-
-遇到清单版本不符时，请选择包含当前 v5 清单的源码提交。如果远端源码已经更新，但下载的副本仍然陈旧，只删除错误提示中指明的该模板缓存目录，然后重试。`abx template list --refresh` 刷新的是目录索引，不是已下载的源码。固定的旧 Git 提交不会因为删除缓存而变成新版本。CLI 不会自动修改或删除源码文件。
+旧公开 YAML 需要按资源结构迁移到 v1，仅修改版本字段并不够。请选择当前源码版本；刷新目录不会刷新已下载源码，也不会改变固定 Git revision。CLI 不会自动改写或删除源文件。

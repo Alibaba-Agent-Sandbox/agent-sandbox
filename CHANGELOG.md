@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Isolated native Devs project resolution for the template v1 integration, preserving component props, relative references and planned action declarations without running actions during parsing.
+
 ### Documentation
 
 - Align current recipes, reachable MCP help and active runner instructions with the unified CLI. / 同步当前示例、MCP 帮助与验证说明中的统一 CLI 用法。

@@ -11,7 +11,7 @@ import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { withApplicationLock } from "../../src/application/lock.js";
 import { paths } from "../../src/transport/config_layers.js";
 import { sourceDigest } from "../../src/application/config.js";
-import { validateTemplateManifest } from "../../src/template/launch_plan.mjs";
+import { normalizeProjectIntent } from "../../src/template/definition.mjs";
 import { renderScaffold } from "../../src/cli/scaffold.js";
 import { TemplateIndex, TemplateIndexEntry } from "../../src/utils/template_index.js";
 import * as index from "../../src/utils/template_index.js";
@@ -56,10 +56,10 @@ describe("template authoring", () => {
   it("renders a deployable MCP service without embedding local secrets", () => {
     const files = renderScaffold("mcp", "my-mcp", "alicloud-express");
     const manifest = parse(files.get("template.yaml")!);
-    expect(() => validateTemplateManifest(manifest)).not.toThrow();
-    expect(manifest.provides.mcp).toMatchObject({ protocol: "http", port: 9000 });
-    expect(manifest.start_cmd).toContain("uvicorn app:app");
-    expect(manifest.env.ABX_SERVER_TOKEN).toBe("");
+    expect(() => normalizeProjectIntent(manifest)).not.toThrow();
+    expect(manifest.sandbox.services.mcp).toMatchObject({ protocol: "http", port: 9000 });
+    expect(manifest.sandbox.start).toContain("uvicorn app:app");
+    expect(manifest.sandbox.instance.envs.ABX_SERVER_TOKEN).toBe("");
     expect(files.get("app.py")).toContain("require_auth_token");
     const json = files.get("README.md")!.split("```json\n")[1].split("\n```")[0];
     expect(JSON.parse(json).method).toBe("initialize");

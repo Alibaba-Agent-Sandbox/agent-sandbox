@@ -26,26 +26,24 @@ app = create_mcp_app(
 export function mcpScaffold(profile: TemplateProfile): Map<string, string> {
   const start = `python3 -m uvicorn app:app --app-dir ${profile.workdir} --host 0.0.0.0 --port 9000`;
   return new Map([
-    ["template.yaml", `spec_version: 5
+    ["template.yaml", `specVersion: 1
 name: {name}
-version: "1.0.0"
-description: "Authenticated MCP Streamable HTTP server"
-base: ${JSON.stringify(profile.base_image)}
-workdir: ${JSON.stringify(profile.workdir)}
-${profile.server_start === "platform_start_cmd" ? "generation: 2\n" : ""}start_cmd: ${JSON.stringify(start)}
-ready_cmd: ${JSON.stringify("python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=5)\"")}
-provides:
-  mcp: { protocol: http, version: 1, port: 9000, operations: [mcp] }
-env:
-  ABX_SERVER_TOKEN: ""
-  ABX_MCP_AUTH_TOKEN: ""
-  ABX_SANDBOX_API_KEY: ""
-  ABX_SANDBOX_BASE_URL: ""
-  ABX_SANDBOX_DOMAIN: ""
-  ABX_DEFAULT_TEMPLATE: "base"
-resources:
-  cpu: 1
-  memory: 2048
+sandbox:
+  template:
+    source: { dockerfile: Dockerfile, context: . }
+    props: { cpu: 1, memory: 2048 }
+  start: ${JSON.stringify(start)}
+  ready: ${JSON.stringify("python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=5)\"")}
+  services:
+    mcp: { protocol: http, version: 1, port: 9000, operations: [mcp] }
+  instance:
+    envs:
+      ABX_SERVER_TOKEN: ""
+      ABX_MCP_AUTH_TOKEN: ""
+      ABX_SANDBOX_API_KEY: ""
+      ABX_SANDBOX_BASE_URL: ""
+      ABX_SANDBOX_DOMAIN: ""
+      ABX_DEFAULT_TEMPLATE: "base"
 `],
     ["Dockerfile", `FROM ${profile.base_image}
 WORKDIR ${profile.workdir}

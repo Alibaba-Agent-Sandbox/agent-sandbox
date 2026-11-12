@@ -1,17 +1,26 @@
-# Whole-template startup
+# Start a Sandbox template
 
-Run `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`. A template has one startup: the CLI prepares its contents, creates a sandbox, runs `start_cmd` when present, waits for `ready_cmd`, and resolves every service declared in `provides`. There is no workflow selector or application/exec/interpreter launch type.
+Run `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`. A Sandbox template has one startup: prepare its source, create the instance, run `sandbox.start`, wait for `sandbox.ready`, and resolve every endpoint in `sandbox.services`. Business commands run when called after startup.
 
-Sandbox templates use `spec_version: 5`. Managed application templates follow the separate [managed application guide](managed-applications.md). Keep the application's services, commands, packages and startup script together. Declare all service endpoints in `provides`; a startup script can launch multiple processes. Named business commands run only when explicitly called after launch. Known Agent Sandbox Server v2 endpoints are verified using health/discovery and command listing, without executing business commands. Other service protocols use the declared readiness command and returned Provider endpoint; launch does not claim to understand their application protocol.
+Use `specVersion: 1` and one local `template.yaml`. Source uses `sandbox.template.source`, an existing image uses `sandbox.template.image`, and a Provider-native reference uses `sandbox.provider` with `sandbox.template.reference`. Image references require an immutable `@sha256:` digest. Keep image dependencies and startup files with the project. Configure the instance in `sandbox.instance`, including its timeout, environment, metadata and the selected Provider's supported resource options.
 
-A source template uses its Dockerfile or supported platform build recipe. A fixed `image` or an owning `provider` plus `template_id` can identify an already prepared template; these are author-specified artifacts, not selectable execution modes. Image references require an immutable `@sha256:` digest. Provider credentials, upload, registration and platform addressing remain Provider responsibilities. The CLI checks required Provider operations before creating resources.
+```yaml
+specVersion: 1
+name: example
+sandbox:
+  template:
+    source: {dockerfile: Dockerfile, context: .}
+    props: {cpu: 2, memory: 2048}
+  instance:
+    timeout: 300
+    envs: {ABX_SERVER_TOKEN: ""}
+  start: python3 commands.py
+  services:
+    app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+```
 
-For public catalog managed entries, use their catalog name, for example `abx --provider alicloud-express deploy base --name my-app --yes`. The CLI reads the managed manifest directly from the catalog. For an external service that is already running, connect using its server client; launching a template always creates a sandbox.
+The CLI generates and privately saves a missing application token. Provider traffic authentication remains separate. See the [template v1 specification](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md) for complete fields and Provider boundaries. Local use does not require `registry.yaml`; publication metadata and initialization questions belong there when publishing a catalog template.
 
-## Migrating v4
+Public native catalog entries can be deployed by name, for example `abx --provider alicloud-express deploy base --name my-app --yes`. Managed Agents use their [application lifecycle](managed-applications.md). General native Serving projects can be parsed, but their deployment/removal lifecycle is currently unsupported by this CLI; mixed Sandbox/Serving projects without a supported application type stop before creating resources.
 
-Remove `workflow_contract_version`, `default_workflow` and `workflows`; set `spec_version: 5`. Preserve all `provides` services, `start_cmd`, `ready_cmd`, environment and application code. Remove `--workflow` and `--service-url` from launch commands. The current CLI rejects v4 manifests with a migration error instead of guessing which former workflow to execute. Update the CLI and template catalog together; old binaries cannot read v5 manifests.
-
-Existing verification receipts remain historical evidence for their recorded versions. Static operation checks are not real-platform test results and do not establish that an account or service is ready.
-
-For an unsupported manifest version, choose a source revision containing the current spec-v5 manifest. If that remote source has already been updated but a downloaded copy is stale, remove only the template cache directory identified in the error and retry. `abx template list --refresh` refreshes the catalog index, not downloaded source files. A pinned old Git revision remains old after its cache is removed. The CLI does not modify or delete source files automatically.
+Old public YAML formats must be migrated structurally to v1. Renaming their version field is insufficient. Choose a current source revision; refreshing the catalog does not refresh downloaded source files or change a pinned Git revision. The CLI does not rewrite or delete source files automatically.

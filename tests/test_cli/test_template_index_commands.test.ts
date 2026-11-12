@@ -27,22 +27,47 @@ const runner = (): CliRunner => new CliRunner();
 const tmpPath = useTmpPath();
 
 const INDEX_YAML = `\
-schema_version: 2
+schema_version: 3
 templates:
   - name: qwen-code
-    description: "Qwen Code agent harness"
     repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
-    tags: [qwen, ai-agent]
-    author: alibaba-agent-sandbox
     status: official
+    metadata:
+      specVersion: 1
+      name: qwen-code
+      version: 1.0.0
+      description:
+        en: Qwen Code agent harness
+        zh: 测试模板
+      author: alibaba-agent-sandbox
+      license: Apache-2.0
+      tags:
+        - qwen
+        - ai-agent
+      readme:
+        en: README.md
+        zh: README.zh-CN.md
   - name: node-web
-    description: "Node.js web service"
     repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: node-web
-    tags: [nodejs, web, deploy]
-    author: alibaba-agent-sandbox
     status: official
+    metadata:
+      specVersion: 1
+      name: node-web
+      version: 1.0.0
+      description:
+        en: Node.js web service
+        zh: 测试模板
+      author: alibaba-agent-sandbox
+      license: Apache-2.0
+      tags:
+        - nodejs
+        - web
+        - deploy
+      readme:
+        en: README.md
+        zh: README.zh-CN.md
 `;
 
 const INDEX_URL = "https://example.test/awesome-templates.yaml";

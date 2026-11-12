@@ -788,7 +788,10 @@ export async function acquireTemplateSource(
       if (options.allowCatalog === false) throw usageError(`'${source}' is a built-in template and cannot be used with --from. Use -t/--template for built-in cases.`);
       const entry = await _resolveIndexEntry(source, { token: active, fmt, out });
       if (entry.manifest) {
-        if (!options.allowManaged) throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} deploy ${entry.name} --name <app>' instead.`);
+        if (!options.allowManaged) {
+          const sandbox = entry.manifest.sandbox as {provider?: string} | undefined;
+          throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${sandbox?.provider} deploy ${entry.name} --name <app>' instead.`);
+        }
         return { ref, manifest: entry.manifest };
       }
       ref = await client.resolve(entry.install_ref, options.registryType);

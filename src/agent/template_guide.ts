@@ -217,30 +217,30 @@ from agent_sandbox.server import (
 - 内置接口总是存在：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、\`POST /commands/<名字>\`。
 - 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，应用请求使用 \`Authorization: Bearer <ABX_SERVER_TOKEN>\`（仅 \`/health\` 免应用鉴权，\`/capabilities\` 需要应用 token）。平台网关的 \`X-Access-Token\` 独立配置，不要混用两个 token；不要在代码里写死 token。
 - 需求是一个 Web/API 服务时：在 \`start()\` 之前用 \`subprocess.Popen([...])\` 拉起业务进程并监听自己的端口
-  （该端口写进 template.yaml 的 \`ports\` 与 Dockerfile 的 EXPOSE），或者做成 \`@command\`。
+  （该端口写进 template.yaml 的 \`sandbox.services\` 与 Dockerfile 的 EXPOSE），或者做成 \`@command\`。
   ${SERVER_PORT} 端口必须由 \`start()\` 提供。
 - 文件末尾只在 \`if __name__ == "__main__":\` 里调用 \`start(${SERVER_PORT})\`。
   导入 \`commands.py\` 时不要调用 \`start()\` 或 \`serve()\`。平台 \`--commands\` 会 import 这个文件。
 - 只使用上面列出的 API，不要臆造 SDK 里不存在的类、函数或接口。
 
 ### 5. template.yaml 规则
-必填：\`name\`（使用给定的模板名）、\`version: "1.0.0"\`、\`description\`（一句话中文，不超过 50 字）、
-\`spec_version: 5\`、\`provides\`、\`ports\`、\`resources\`。
-- \`provides.app\` 声明 HTTP 应用协议 \`agent-sandbox-server\`、版本 2、端口及 \`commands.list/commands.run\`。
-- 用 \`start_cmd\` 启动模板中的所有服务，\`ready_cmd\` 检查它们就绪；不要定义 workflows 或启动类型。
-- 普通镜像内 Python 或应用服务不代表统一解释器支持；不要写旧字段 \`capabilities\`、\`tested_on\` 或 \`providers\`。
-- \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
-- \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
+必填：\`specVersion: 1\`、\`name\`（给定模板名）以及 \`sandbox.template\`。
+- \`sandbox.template.source: { dockerfile: Dockerfile, context: . }\`；镜像、用户与工作目录由 Dockerfile 声明。
+- \`sandbox.services.app\` 声明 HTTP 应用协议 \`agent-sandbox-server\`、版本 2、端口及 \`commands.list/commands.run\`。
+- 用 \`sandbox.start\` 启动服务，\`sandbox.ready\` 检查就绪；不要定义 workflows 或启动类型。
+- 端口逐项放在 \`sandbox.services\`，与 Dockerfile EXPOSE 对齐。
+- \`sandbox.template.props.cpu\`：1-8 整数；\`memory\`：512-16384 整数（MB），以实际 Provider 支持为准。
 ${selected.resource_notes ? `- ${selected.resource_notes}` : ""}
-- \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
-${mode === "create" ? "- 新生成应用必须声明 env.ABX_SERVER_TOKEN 为空字符串；令牌由运行环境提供，CLI 在构建/创建前验证并注入，不写入镜像或生成文件。README 的 CLI/SDK/HTTP 示例都使用此应用令牌；不要声称它可选，也不要把控制面 API key 当作应用令牌。" : ""}
+- \`sandbox.instance.envs\` 声明环境变量；非敏感默认值可直接填写，密钥值留空，由 CLI 或原生 env 引用提供。
+${mode === "create" ? "- 新应用声明 sandbox.instance.envs.ABX_SERVER_TOKEN 为空；CLI 自动生成并保存在本机，不写入镜像或源码。README 的 CLI/SDK/HTTP 示例使用该应用令牌，不与控制面 API Key 混用。" : ""}
+- 本地不要求 registry.yaml；要上架时才添加 Registry v1 元数据：版本、双语简介、author、license、readme 与可选 tags/questions。不要把这些字段写到 template.yaml 根。
 - 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
   \`abx sandbox command run <app-name> <名字>\` 调用。
-- \`tags\`、\`author\` 可省略。
+
 ${
   selected.server_start === "platform_start_cmd"
-    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx deploy\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
+    ? `- 这个 provider 由平台启动服务。\`sandbox.start: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`sandbox.ready: ${JSON.stringify(selected.ready_cmd ?? "")}\` 声明启动和就绪命令；不要添加 generation 或旧根字段。`
     : ""
 }
 
