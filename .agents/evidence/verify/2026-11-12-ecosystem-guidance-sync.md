@@ -43,3 +43,12 @@ same existing credential; no credential was changed or created. Public
 producer source branches can now be pushed. Private Registry/Website main was
 fetched successfully, and the prior coordinating PRs were confirmed merged.
 This supersedes the initial delivery-authentication limitation above.
+
+## Full remote suite and current MCP help capture
+
+The initial full remote suite found one stale MCP-help snapshot (4,581 passed,
+one failed, six skipped on Node22). Kept the already merged November10 captures
+unchanged and captured current help in a new November12 batch. The existing
+actual CLI snapshot suite passes all 87 cases after this correction. The new
+capture contains template init/deploy rather than retired mcp deploy. No help
+assertion was removed; the final complete remote suites remain required.
