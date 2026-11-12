@@ -34,3 +34,12 @@ command-surface selection passed 61 tests. The change affects help text only,
 with existing command argument/body tests retained.
 
 Final global-selector-aware audit corrected the CubeSandbox provider guide deployment example and the remaining status-help example. No operation implementation changed.
+
+## Authentication and delivery follow-up
+
+The initial API Bearer request returned HTTP401, but the credential was not
+invalid. Git push/fetch and the API's Basic authentication succeeded with the
+same existing credential; no credential was changed or created. Public
+producer source branches can now be pushed. Private Registry/Website main was
+fetched successfully, and the prior coordinating PRs were confirmed merged.
+This supersedes the initial delivery-authentication limitation above.
