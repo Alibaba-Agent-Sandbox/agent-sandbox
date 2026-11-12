@@ -1,11 +1,12 @@
 {
   "repository": "https://github.com/Alibaba-Agent-Sandbox/awesome-templates",
-  "revision": "5cf448296361b3bcd8341bd8ae8131f2ca703496",
+  "revision": "ef695803cb78bf82b8473195fcb37b3e6357a363",
   "files": {
-    "normalize.mjs": "9835a1ba1c1982909ceab6a1304ba3161e837db4b0ba952ba5912d445af0a830",
-    "normalize.d.mts": "15d3dd4c52a33f57f0a1667f6ab5c34314df9aff4b903f8d409652fb41e70815",
+    "normalize.mjs": "e62ef0c4680e15dcfad8a4d810f40b0704833a4749a330552d53b78a1645b06d",
+    "normalize.d.mts": "0ed88c63e2ab96baab2239934eff67ca14d7535f709d8b8888eba183c7358435",
     "contract.json": "077e4dec79834ab9ffd21f4e1402c997b1b9bd412a201c6705b566e7a9ac39de",
-    "schema.json": "23a284608acb212c85ec969fcf9e8daf3a74d0252c037329dfc2ea2de62fb17b",
-    "registry.schema.json": "4fb481c0269065d0a7b57039abc85cab675e55acb698f9e20e3b3b20537f6546"
+    "yaml-fixtures.json": "dcd8560f1b7725a4a9b1900a52ac1fbd9a9d32fca9b12edd02fd7c132e56f283",
+    "schema.json": "b08298cf699a5dd4e5ff8a9136922acfa41ea2e56c3aefde1a0c65fac84c8f7c",
+    "registry.schema.json": "02d33fc0920e495f1eeec551eb13e4dd812e4be2decdf9c09e2539702087e2b6"
   }
 }

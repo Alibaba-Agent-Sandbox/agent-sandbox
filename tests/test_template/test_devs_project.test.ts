@@ -13,6 +13,18 @@ function project(): { root: string; file: string } {
 afterEach(() => { for (const folder of folders.splice(0)) fs.rmSync(folder, { recursive: true, force: true }); });
 
 describe("official native Devs project resolution", () => {
+  it("preserves string scalars and multiline content through the actual native parser", () => {
+    const { file } = project();
+    const literals = { FLAG: "on", WHEN: "2026-11-12", LEADING_ZERO: "0123", MULTILINE: "first line\nsecond line\n" };
+    const value = resolveDevsProject({ specVersion: 1, name: "scalars", sandbox: { instance: { envs: {
+      ...literals, FROM_ENV: "${env('ABX_TEST_WIRE_STRING')}",
+    } } }, deployment: { edition: "3.0.0", vars: { memory: 4096 }, resources: {
+      api: { component: "fc3@0.1.26", props: { memorySize: "${vars.memory}", environmentVariables: literals } },
+    } } }, file, { ...process.env, ABX_TEST_WIRE_STRING: "2026-11-12" });
+    expect(value.document.sandbox).toEqual({ instance: { envs: { ...literals, FROM_ENV: "2026-11-12" } } });
+    expect(value.document.deployment).toMatchObject({ resources: { api: { props: { memorySize: 4096, environmentVariables: literals } } } });
+  });
+
   it("resolves native vars, environment and private application payload without renaming FC props", () => {
     const { file } = project();
     const value = resolveDevsProject({ specVersion: 1, name: "test", sandbox: { instance: { envs: { MODEL: "${vars.model}" } } },

@@ -1,20 +1,17 @@
 /** Resource intent discovery and explicit private native resolution are separate operations. */
 import fs from "node:fs";
-import { parseDocument } from "yaml";
 import { TemplateParseError } from "../models/errors.js";
 import { normalizeProjectIntent, compileResolvedProject, sandboxModelInput } from "./definition.mjs";
-import type { ContractOptions, CompiledTemplateV1, TemplateV1 } from "./contract-v1/normalize.mjs";
+import { MAX_YAML_BYTES, parseYamlV1, type ContractOptions, type CompiledTemplateV1, type TemplateV1 } from "./contract-v1/normalize.mjs";
 import { resolveDevsProject, type DevsActionDeclaration, type DevsStep, type DevsResolutionOptions } from "./devs_project.js";
+
+const repairSuggestion = "Fix the reported YAML or field in template.yaml using the template v1 specification, then retry.";
 
 /** Strict bounded JSON-compatible YAML, without dotenv, native expressions or component loading. */
 export function readProjectDocument(file: string): unknown {
-  if (fs.statSync(file).size > 1024 * 1024) throw new TemplateParseError("Template YAML exceeds 1 MiB.");
-  const bytes = fs.readFileSync(file, "utf8");
-  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(bytes)) throw new TemplateParseError("Template YAML contains unsupported control characters.");
-  const doc = parseDocument(bytes, { uniqueKeys: true });
-  if (doc.errors.length || doc.warnings.length) throw new TemplateParseError("Invalid template YAML, duplicate keys or unsupported tags.");
-  try { return doc.toJS({ maxAliasCount: 0 }); }
-  catch { throw new TemplateParseError("Template YAML aliases are unsupported."); }
+  if (fs.statSync(file).size > MAX_YAML_BYTES) throw new TemplateParseError("Template YAML exceeds 1 MiB.", { suggestion: repairSuggestion });
+  try { return parseYamlV1(fs.readFileSync(file)); }
+  catch (error) { throw new TemplateParseError(error instanceof TypeError ? error.message : "Invalid template YAML.", { suggestion: repairSuggestion }); }
 }
 
 /** Load source metadata without requiring credentials, Registry metadata or native file/config resolution. */
@@ -22,7 +19,7 @@ export function readProjectIntent(file: string, options: ContractOptions = {}): 
   try { return normalizeProjectIntent(readProjectDocument(file), options); }
   catch (error) {
     if (error instanceof TemplateParseError) throw error;
-    throw new TemplateParseError(error instanceof TypeError ? error.message : "Invalid template v1 intent.");
+    throw new TemplateParseError(error instanceof TypeError ? error.message : "Invalid template v1 intent.", { suggestion: repairSuggestion });
   }
 }
 
@@ -45,7 +42,7 @@ export function resolveProject(file: string, options: ProjectResolutionOptions =
     const compiled = compileResolvedProject(native.document, options);
     return { intent, resolved: native.document as unknown as TemplateV1, compiled, steps: native.steps, actions: native.actions };
   } catch (error) {
-    throw new TemplateParseError(error instanceof TypeError ? error.message : "Invalid resolved template v1 configuration.");
+    throw new TemplateParseError(error instanceof TypeError ? error.message : "Invalid resolved template v1 configuration.", { suggestion: repairSuggestion });
   }
 }
 

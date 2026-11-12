@@ -12,6 +12,8 @@ SSE 每次连接返回最多 20 秒的有限片段；请保存持久事件游标
 
 使用一个 `template.yaml`：`deployment` 声明原生 FC 资源，`application` 声明应用设置；本地运行不要求 `registry.yaml`。通过进程环境或私有本地 `.env` 提供原生 `${env('NAME')}` 引用。后续 apply/update 需要保留原始配置目录；密钥值不进入源码快照或持久计划。
 
+托管流程只接受 `application.roles` 引用的三个资源，其资源 ID 可以自定义；额外的域名、网络或其他原生资源会在部署前明确拒绝。生产自定义域名须已存在，并独占一条指向本应用 Gateway 的 `/*` 路由，部署时更新该路由的 revision。DNS、证书和网络资源需另行准备。
+
 | 输入 | 用途及来源 |
 | --- | --- |
 | `ABX_MANAGED_DATABASE_URL` | 已有独立 PostgreSQL 数据库的连接地址，由数据库管理员提供，三个 Server 角色均需可达。 |
@@ -97,3 +99,5 @@ abx template build --clean .abx/build.json --yes
 托管 Sandbox 的自定义实例字段放在 `sandbox.instance`。`timeout` 是唯一最大存活期限，其他受支持资源参数传入 Session 创建。自定义环境值仅交给 Worker 的私有输入；模型与运行时变量名、归属标签属于保留项。存储卷不能覆盖 `/workspace` 或 `/home/user/.agent-sandbox`，生命周期要求超时删除且不自动恢复。当前托管生命周期不支持原生 FC 的 `auto` 网络/存储/日志资源、任意 native actions 或组件附属资源，请使用显式且已支持的已有资源配置。
 
 观察和清理复用已保存的内部控制凭据与资源归属，不要求模型 Key 或原始源码目录。控制凭据缺失时需恢复原凭据，清理过程不会生成替代控制密钥。
+
+FC 控制请求使用 `deployment.access: abx` 时，从同一次 CLI 配置读取 AccessKey ID、Secret 和可选 `security_token`。临时令牌可通过 `abx config set security_token` 或 `ALIBABA_CLOUD_SECURITY_TOKEN` 提供；显式 `env` 与 Serverless Devs 命名凭据配置继续使用各自解析方式。此 FC 路径的支持不代表 Express Sandbox Template 准备或模板清理已支持 STS。

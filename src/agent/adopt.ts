@@ -67,7 +67,7 @@ export const ADOPT_SESSION_TURNS = 40;
 export const MAX_FILE_BYTES = 1 << 20;
 export const MAX_FILES = 2000;
 export const MAX_BYTES = 20 << 20;
-const NAME_MAX = 128;
+const NAME_MAX = 63;
 
 /**
  * A compiled-pattern stand-in carrying Python's `re.Pattern.pattern` text. Python's `$` also matches before one
@@ -279,7 +279,7 @@ export class PromoteResult {
  * Throws `AdoptRejectedError` when `name` is empty, too long, or has other characters.
  */
 export function validateTemplateName(name: string): string {
-  if (!name || !NAME_PATTERN.match(name) || [...name].length > NAME_MAX) {
+  if (!name || !NAME_PATTERN.match(name) || /[^a-z0-9-]/.test(name) || name.length > NAME_MAX) {
     throw new AdoptRejectedError(
       `Template name ${pyRepr(name)} must match ${NAME_PATTERN.pattern} and be at most ${NAME_MAX} characters. Pass --name.`,
       { usage: true },
@@ -293,7 +293,7 @@ export function defaultTemplateName(project: string): string {
   const normalised = pyPathStr(project);
   const base = normalised === "." ? "" : path.basename(normalised);
   let slug = stripChars(base.toLowerCase().replace(/[^a-z0-9]+/g, "-"), "-");
-  slug = stripChars(cpSlice(slug, 0, 64), "-");
+  slug = stripChars(cpSlice(slug, 0, NAME_MAX), "-");
   if (!slug) {
     throw new AdoptRejectedError(
       `Cannot derive a template name from directory ${pyRepr(base)}. ` +
@@ -838,8 +838,8 @@ class PyValueError extends Error {
 }
 
 function checkPorts(dockerfile: string, commands: string, data: Record<string, unknown>, warnings: string[]): void {
-  const raw = data["ports"];
-  const ports = new Set<number>(Array.isArray(raw) ? raw.map((port) => Math.trunc(Number(port))) : []);
+  const sandbox = data.sandbox as { ports?: number[]; services?: Record<string, { port: number }> };
+  const ports = new Set<number>([...(sandbox.ports ?? []), ...Object.values(sandbox.services ?? {}).map(service => service.port)]);
   const exposed = exposedPorts(dockerfile);
   if (!ports.has(SERVER_PORT) || !exposed.has(SERVER_PORT)) {
     throw new AICodegenError(

@@ -34,7 +34,7 @@ afterEach(() => vi.restoreAllMocks());
 const context = (): Context => new Context(command("deploy"));
 function project(steps = false): string {
   const directory = path.join(tmpPath(), "app");
-  writeText(path.join(directory, "template.yaml"), manifestYaml(steps ? "name: app\ngeneration: 2\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['echo ready']\n" : "name: app\n"));
+  writeText(path.join(directory, "template.yaml"), steps ? "# Internal Provider-native step recipe; not a public v1 resource.\nname: app\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['echo ready']\n" : manifestYaml("name: app\n"));
   if (!steps) writeText(path.join(directory, "Dockerfile"), "FROM python:3.12-slim\n");
   return directory;
 }

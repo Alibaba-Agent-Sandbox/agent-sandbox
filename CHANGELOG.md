@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Preserve Core YAML 1.2 string types through native project resolution and report template v1 errors without nested legacy suggestions. / 原生项目求值保留 Core YAML 1.2 的字符串类型，模板 v1 错误不再嵌套旧版提示。
+- Reject Managed resources outside the three application roles before deployment, and read FC access keys and optional STS token from one configuration snapshot. / 托管部署前拒绝三个应用角色以外的资源，FC AccessKey 与可选 STS Token 使用同一配置快照。
 - Keep interrupted deployment recovery observational, clean failed pre-request admissions, and preserve source modes in private build snapshots. / 中断恢复只观察、不重放；可清理请求前失败的部署，私有构建快照保留源码权限。
 - CI output mode no longer authorizes managed-key creation or renewal; list reports partial Provider failures. / CI 输出模式不再授权管理 Key 创建或续期，列表明确报告部分 Provider 查询失败。
 

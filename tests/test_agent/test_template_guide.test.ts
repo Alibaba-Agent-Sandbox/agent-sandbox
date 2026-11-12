@@ -128,8 +128,8 @@ describe("TestGuideText", () => {
   });
 
   it("test_describes_whole_template_startup", () => {
-    expect(TEMPLATE_GUIDE).toContain("spec_version: 5");
-    expect(TEMPLATE_GUIDE).toContain("start_cmd");
+    expect(TEMPLATE_GUIDE).toContain("specVersion: 1");
+    expect(TEMPLATE_GUIDE).toContain("sandbox.start");
     expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
   });
 
@@ -145,9 +145,10 @@ describe("TestGuideText", () => {
 
   it("renders Express resource advice without imposing it on generic providers", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
-    expect(guide).toContain("1 <= resources.memory / 1024 / resources.cpu <= 4");
-    expect(guide).toContain("resources.cpu: 2、resources.memory: 4096");
-    expect(buildTemplateGuide("create", "opensandbox")).not.toContain("resources.memory / 1024");
+    expect(guide).toContain("每核配 1024..4096 MB 内存");
+    expect(guide).toContain("sandbox.template.props.cpu");
+    expect(guide).toContain("2 核、4096 MB");
+    expect(buildTemplateGuide("create", "opensandbox")).not.toContain("每核配 1024..4096 MB 内存");
   });
 
   it("matches CLI JSON output and distinguishes token auth from group enablement", () => {

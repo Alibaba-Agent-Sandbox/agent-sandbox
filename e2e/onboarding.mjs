@@ -136,10 +136,11 @@ def main():
         application = root / "application"
         shutil.copytree(project, application)
         (application / "template.yaml").write_text(json.dumps({
-            "name": "application", "spec_version": 5,
-            "provides": {"app": {"protocol": "agent-sandbox-server", "version": 2, "port": 9000,
-                                  "operations": ["commands.list", "commands.run"]}},
-            "env": {"ABX_SERVER_TOKEN": ""},
+            "name": "application", "specVersion": 1,
+            "sandbox": {"template": {"source": {"dockerfile": "Dockerfile"}},
+                "services": {"app": {"protocol": "agent-sandbox-server", "version": 2, "port": 9000,
+                    "operations": ["commands.list", "commands.run"]}},
+                "instance": {"envs": {"ABX_SERVER_TOKEN": ""}}},
         }))
         platform_fixture = "placeholder-platform-key"
         status, output, _ = invoke(["deploy", str(application), "--name", "source-config-cancel"], [

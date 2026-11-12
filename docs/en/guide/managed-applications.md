@@ -14,6 +14,8 @@ with `Last-Event-ID`; a finished stream slice does not mean the turn completed.
 
 Configure the one resource file, `template.yaml`. It contains the native FC resources in `deployment` and application settings in `application`; publication metadata in `registry.yaml` is optional for local use. Provide its native `${env('NAME')}` references from your process environment or a private local `.env`. Keep the original configuration directory available for later apply/update commands; secret values are excluded from source snapshots and persisted plans.
 
+The Managed lifecycle accepts exactly the three resources referenced by `application.roles`; their resource IDs can be customized. Extra domain, network or other native resources are rejected before deployment. A production custom domain must already exist with an exclusive `/*` route to this application's Gateway; deployment updates that route's revision. Prepare DNS, certificates and network resources separately.
+
 | Input | Purpose and source |
 | --- | --- |
 | `ABX_MANAGED_DATABASE_URL` | Existing dedicated PostgreSQL URL reachable by all Server roles; obtain it from your database administrator. |
@@ -57,6 +59,8 @@ Set the template's `deployment.access` to your named Serverless Devs credential 
 The selected identity is verified with STS before changes. The existing Express template preparation adapter
 requires deployment AccessKeys; STS-only template preparation is not supported in this profile.
 No management API key is automatically created or renewed by `deploy`.
+
+For FC control requests, `deployment.access: abx` reads AccessKey ID, secret and optional `security_token` from one CLI configuration snapshot. Set the temporary token with `abx config set security_token` or `ALIBABA_CLOUD_SECURITY_TOKEN`. Explicit `env` and named Serverless Devs credential profiles retain their own resolution. This FC support does not enable STS for Express Sandbox Template preparation or template cleanup.
 
 Preview and deploy under an application name:
 

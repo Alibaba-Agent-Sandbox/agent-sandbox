@@ -4,7 +4,6 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
-import { stringify } from "yaml";
 import { TemplateParseError } from "../models/errors.js";
 import { DEVS_PARSE_RUNNER_SOURCE } from "./devs_runner.js";
 
@@ -69,7 +68,8 @@ export function resolveDevsProject(document: Record<string, unknown>, file: stri
     const result = spawnSync(environment.ABX_APP_NODE || process.execPath, [runner], {
       cwd: options.configurationSource ? fs.realpathSync(options.configurationSource) : path.dirname(fs.realpathSync(file)),
       env: { ...environment, DEBUG: "", CI: "1", S_INTERACTIVE: "0", NO_COLOR: "1" },
-      input: JSON.stringify({ parserPath, command: "deploy", content: stringify(nativeProject) }),
+      // JSON is valid YAML and preserves canonical scalar types through js-yaml in the official parser.
+      input: JSON.stringify({ parserPath, command: "deploy", content: JSON.stringify(nativeProject) }),
       stdio: ["pipe", "ignore", "ignore", "pipe"], encoding: "utf8", timeout: 30000,
       maxBuffer: 4 * 1024 * 1024, killSignal: "SIGKILL",
     });

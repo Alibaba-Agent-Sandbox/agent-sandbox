@@ -102,3 +102,7 @@ export function normalizeTemplateV1(manifest: unknown, validate: SchemaValidator
 export function compileTemplateV1(manifest: unknown, validate: SchemaValidator, options?: ContractOptions): CompiledTemplateV1;
 export function pointerValue(document: unknown, pointer: string): JsonValue;
 export function normalizeRegistryV1(metadata: unknown, template: unknown, validateRegistry: SchemaValidator, validateTemplate: SchemaValidator, options?: {contract?: Record<string, unknown>}): Record<string, JsonValue>;
+
+/** Pure source reader. Unknown tags, aliases, non-string keys and unsafe numbers fail. */
+export const MAX_YAML_BYTES: 1048576;
+export function parseYamlV1(source: string | Uint8Array): JsonValue;

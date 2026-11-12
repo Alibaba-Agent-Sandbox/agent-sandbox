@@ -69,7 +69,6 @@
     "@darabonba/typescript": "1.0.5",
     "@inquirer/prompts": "^8.7.3",
     "@serverless-devs/credential": "0.0.10",
-    "@serverless-devs/engine": "0.1.6-beta.2",
     "@serverless-devs/load-component": "0.0.10-beta.7",
     "@serverless-devs/parse-spec": "0.0.29",
     "ajv": "8.18.0",

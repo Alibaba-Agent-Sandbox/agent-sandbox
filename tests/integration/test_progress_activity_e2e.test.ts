@@ -1,3 +1,4 @@
+import { manifestYaml } from "../helpers/templateManifest.js";
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Offline end-to-end: long CLI steps use one moving header.
@@ -76,7 +77,7 @@ const _combined = (result: Result): string => `${result.output}${result.stderr ?
 
 function _prepareTemplate(dir: string): void {
   fs.writeFileSync(path.join(dir, "Dockerfile"), "FROM ubuntu:22.04\n");
-  fs.writeFileSync(path.join(dir, "template.yaml"), "spec_version: 5\nprovides: {}\nname: my-template\nresources:\n  cpu: 2\n  memory: 2048\n");
+  fs.writeFileSync(path.join(dir, "template.yaml"), manifestYaml("name: my-template\nprovides: {}\nresources: {cpu: 2, memory: 2048}\n"));
 }
 
 /** Install the mocked `DockerBuilder` that streams its lines through `on_output` / `on_poll`. */

@@ -1,6 +1,8 @@
 # Decision: Resolve template projects through the native Devs parser
 
-Status: implemented locally in part; acceptance and release gates remain open
+Status: proposed
+
+Implementation is available locally in part; acceptance and release gates remain open.
 
 ## Problem
 
@@ -44,10 +46,10 @@ changing the CLI process environment. `devsActionDeclarations` only reads intent
 
 ## Dependencies
 
-Pinned `@serverless-devs/parse-spec@0.0.29` and
-`@serverless-devs/engine@0.1.6-beta.2`, installed with the repository lockfile.
-The engine dependency is available for the continuing integration; current parser
-code does not invoke it or claim arbitrary component lifecycle support.
+Pinned `@serverless-devs/parse-spec@0.0.29`, installed with the repository lockfile.
+The unused direct engine dependency from the exploratory PoC was removed, including
+51 otherwise unneeded packages. The independent engine PoC retains its own lockfile;
+this CLI does not claim arbitrary component lifecycle support.
 
 ## Test Strategy
 
@@ -84,3 +86,13 @@ planner, with no additional canonical imports; consumers must perform complete o
 schema admission before using the prerequisite planner. Shared vectors verify the
 public v1 shape. Registry can copy the planner and its launch JSON without an implicit
 private spec projection.
+
+Source parsing uses the owner's common Core YAML 1.2 reader and raw byte/text vectors,
+rather than language-specific field coercion. The official Devs parser then receives
+the canonical object as JSON, a YAML subset, because its timestamp resolver otherwise
+turns a date-shaped string into a Date which its own traversal discards. This preserves
+the admitted scalar types while retaining the official expression evaluation.
+
+The optional FC STS token uses the same layered configuration snapshot as the access
+key pair. Its public key metadata is generated from the pinned SDK source export;
+this does not change the separate Express template-preparation limitations.

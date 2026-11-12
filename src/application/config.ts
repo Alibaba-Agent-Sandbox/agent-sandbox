@@ -89,6 +89,9 @@ const unmanagedProps = ["triggers", "asyncInvokeConfig", "concurrencyConfig", "p
 export function readManagedProject(file: string, options: ProjectResolutionOptions = {}): PrivateManagedProject {
   const project = resolveProject(file, options), { compiled, intent } = project;
   if (compiled.kind !== "application" || !compiled.application || !intent.application || !intent.deployment || !compiled.roleProps || !compiled.roleResources || !compiled.bindingValues) throw new ApplicationError("Expected an agents-api application project.");
+  const roleResources = new Set(Object.values(compiled.roleResources));
+  const extraResources = Object.keys(intent.deployment.resources).filter(id => !roleResources.has(id));
+  if (extraResources.length) throw new ApplicationError(`Managed deployment resources not referenced by application.roles are unsupported: ${extraResources.join(", ")}. No resources were changed.`);
   try { validateManagedInstance(compiled.sandbox?.instance ?? {}); }
   catch (error) { throw new ApplicationError(error instanceof TypeError ? error.message : "Invalid Managed instance configuration."); }
   if (project.actions.some(action => record(action.definition) ? Object.keys(action.definition).length > 0 : Boolean(action.definition)) || Object.keys(intent.deployment.flow ?? {}).length) throw new ApplicationError("Native actions/flow are parsed but are not yet supported by the Managed lifecycle; no resources were changed.");

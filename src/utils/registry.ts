@@ -9,12 +9,12 @@ import { ValueError } from "../models/value_error.js";
 import { SandboxTemplate, TemplateRef } from "../models/template.js";
 import { asyncWith, HTTPStatusError, httpx } from "../transport/_httpx.js";
 import { PyFloat, pyStripChars } from "./_pyformat.js";
-import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, readTextPy, toOSError } from "./_pyos.js";
+import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, toOSError } from "./_pyos.js";
 import { openTarGz } from "./_tar.js";
-import { isMapping, loadYaml } from "./yaml_io.js";
+import { isMapping } from "./yaml_io.js";
 import { FINE_GRAINED_PAT_URL, rateLimitMessage, rateLimitSuggestion } from "./github_token.js";
 import { getLogger } from "./logging.js";
-import { readProjectIntent, sandboxExecutionInput } from "../template/project.js";
+import { readProjectDocument, readProjectIntent, sandboxExecutionInput } from "../template/project.js";
 
 const logger = getLogger("utils.registry");
 
@@ -441,7 +441,7 @@ export function validateTemplateSourceVersion(data: Record<string, unknown>, fil
 
 /** 从 YAML 文件加载模板定义。 */
 export function loadTemplateFromYaml(file: string): SandboxTemplate {
-  const data = loadYaml(readTextPy(file));
+  const data = readProjectDocument(file);
   if (!isMapping(data)) {
     throw new ValueError(`${file} must be a YAML mapping`);
   }

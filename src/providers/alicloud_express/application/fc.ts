@@ -24,7 +24,7 @@ export async function resolveDeployCredentials(accessRef: string): Promise<Crede
   try {
     if (accessRef === "abx") {
       const config = loadLayeredConfig({ provider: "alicloud-express" });
-      raw = { AccessKeyID: config.access_key_id, AccessKeySecret: config.access_key_secret, SecurityToken: process.env.ALIBABA_CLOUD_SECURITY_TOKEN || process.env.ALICLOUD_SECURITY_TOKEN };
+      raw = { AccessKeyID: config.access_key_id, AccessKeySecret: config.access_key_secret, SecurityToken: config.provider_options.security_token };
     } else if (accessRef === "env") raw = { AccessKeyID: process.env.ALIBABA_CLOUD_ACCESS_KEY_ID || process.env.ALICLOUD_ACCESS_KEY_ID,
       AccessKeySecret: process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET || process.env.ALICLOUD_ACCESS_KEY_SECRET,
       SecurityToken: process.env.ALIBABA_CLOUD_SECURITY_TOKEN || process.env.ALICLOUD_SECURITY_TOKEN };

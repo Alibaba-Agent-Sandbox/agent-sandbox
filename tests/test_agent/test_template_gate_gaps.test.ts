@@ -1,7 +1,8 @@
 /**
  * Gaps from the agent-template review that the adversarial cases did not pin:
- * a UTF-8 BOM in `.dockerignore` is kept (so line 1 does not match), `version: 1.0` stays a float in the
- * schema error, and invalid UTF-8 uses CPython's codec message.
+ * A UTF-8 BOM in `.dockerignore` is kept (so line 1 does not match), publication
+ * metadata is rejected in the resource document, and invalid UTF-8 is rejected
+ * before YAML admission.
  */
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -10,7 +11,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { validateTemplateWorkspace } from "../../src/agent/codegen.js";
-import { UnicodeDecodeError } from "../../src/utils/_pyos.js";
+import { AICodegenError } from "../../src/models/errors.js";
 import { dotenvValues } from "../../src/utils/_dotenv.js";
 import { DockerIgnore } from "../../src/utils/dockerignore.js";
 
@@ -35,23 +36,29 @@ describe("agent-template gaps", () => {
     expect(DockerIgnore.fromFile(file).excludes(".env")).toBe(false);
   });
 
-  it("rejects version: 1.0 (a float) with the offending field named", () => {
+  it("rejects Registry publication fields in a resource document", () => {
     const dir = workspace(
-      'name: x\nversion: 1.0\ndescription: d\nports: [9000]\nresources:\n  cpu: 1\n  memory: 512\n',
+      'specVersion: 1\nname: x\nsandbox:\n  template:\n    source: {dockerfile: Dockerfile, context: .}\nversion: 1.0\ndescription: d\n',
     );
     expect(() => validateTemplateWorkspace(dir, "demo", { providerId: "generic" })).toThrow(
-      /version/,
+      /Template v1.*schema validation failed/,
     );
   });
 
-  it("rejects invalid UTF-8 in template.yaml with CPython's codec message", () => {
+  it("rejects invalid UTF-8 in template.yaml before parsing", () => {
     const dir = workspace(Buffer.concat([Buffer.from("name: demo\n"), Buffer.from([0xff])]));
     expect(() => validateTemplateWorkspace(dir, "demo", { providerId: "generic" })).toThrow(
-      UnicodeDecodeError,
+      AICodegenError,
     );
     expect(() => validateTemplateWorkspace(dir, "demo", { providerId: "generic" })).toThrow(
-      "'utf-8' codec can't decode byte 0xff in position 11: invalid start byte",
+      "YAML must contain valid UTF-8",
     );
+    try { validateTemplateWorkspace(dir, "demo", { providerId: "generic" }); }
+    catch (error) {
+      expect(String(error)).not.toContain("capabilities are NOT granted");
+      expect(String(error)).not.toContain("Suggestion: Fix the template.yaml");
+      expect(String(error)).toContain(dir);
+    }
   });
 
   it("rejects invalid UTF-8 in a dotenv file with the byte and position", () => {

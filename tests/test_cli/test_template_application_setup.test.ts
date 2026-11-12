@@ -37,8 +37,8 @@ function answers(...values: string[]) {
 }
 function source() {
   const dir = path.join(iso.root, 'app'); fs.mkdirSync(dir);
-  fs.writeFileSync(path.join(dir, 'template.yaml'), JSON.stringify({name:'audit-app',spec_version:5,
-    provides:{app:{protocol:'agent-sandbox-server',version:2,port:9000,operations:['commands.list','commands.run']}}, env:{ABX_SERVER_TOKEN:''}}));
+  fs.writeFileSync(path.join(dir, 'template.yaml'), JSON.stringify({specVersion:1,name:'audit-app',sandbox:{
+    template:{source:{dockerfile:'Dockerfile'}},services:{app:{protocol:'agent-sandbox-server',version:2,port:9000,operations:['commands.list','commands.run']}},instance:{envs:{ABX_SERVER_TOKEN:''}}}}));
   vi.spyOn(CLI_EXTENSION, 'stageProject').mockResolvedValue({directory:dir,digest:'fixture',verify:async()=>{},close:async()=>{}} as never);
   const prepare = vi.spyOn(CLI_EXTENSION, 'prepareProject').mockResolvedValue({reference:'prepared-app',status:'ready',identity:{native_version:'prepared-app'},owned_resources:[]});
   const list = vi.fn(async () => []);

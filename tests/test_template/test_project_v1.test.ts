@@ -15,6 +15,30 @@ afterEach(() => { for (const root of folders.splice(0)) fs.rmSync(root, { recurs
 const source = () => ({ specVersion: 1, name: "example", sandbox: { template: { source: { dockerfile: "Dockerfile" }, props: { cpu: 2, memory: 2048 } }, instance: { envs: { MODEL_KEY: "${env('ABX_TEST_STATIC_MISSING_KEY')}" } }, services: {} } });
 
 describe("canonical template v1 consumer boundary", () => {
+  it("retains Core YAML string types from the source through native resolution", () => {
+    const { file } = write({});
+    fs.writeFileSync(file, `specVersion: 1
+name: scalar-example
+sandbox:
+  template:
+    source:
+      dockerfile: Dockerfile
+      context: .
+  instance:
+    envs:
+      FLAG: on
+      WHEN: 2026-11-12
+      LEADING_ZERO: "0123"
+      MULTILINE: |
+        first line
+        second line
+`);
+    const expected = { FLAG: "on", WHEN: "2026-11-12", LEADING_ZERO: "0123", MULTILINE: "first line\nsecond line\n" };
+    expect(readProjectIntent(file).sandbox?.template.source?.context).toBe(".");
+    expect(readProjectIntent(file).sandbox?.instance?.envs).toEqual(expected);
+    expect(resolveProject(file, { provider: "alicloud-express" }).compiled.env).toEqual(expected);
+  });
+
   it("loads source intent and Registry acquisition without requiring secrets or a Registry descriptor", () => {
     const { root, file } = write(source());
     expect(fs.existsSync(path.join(root, "registry.yaml"))).toBe(false);
@@ -47,6 +71,14 @@ describe("canonical template v1 consumer boundary", () => {
     expect(() => readProjectIntent(write(wrong).file)).toThrow("Template v1");
     const value = source() as Record<string, unknown>; (value.sandbox as Record<string, unknown>).provider = "opensandbox";
     expect(() => resolveProject(write(value).file, { provider: "alicloud-express" })).toThrow("conflicts");
+  });
+
+  it("rejects invalid UTF-8, control characters and unknown tags before source admission", () => {
+    const {file} = write(source());
+    fs.writeFileSync(file, Buffer.from([0x6e, 0x61, 0x6d, 0x65, 0x3a, 0x20, 0xc3, 0x28]));
+    expect(() => readProjectIntent(file)).toThrow("valid UTF-8");
+    fs.writeFileSync(file, "name: example\0\n"); expect(() => readProjectIntent(file)).toThrow("control characters");
+    fs.writeFileSync(file, "name: !unknown example\n"); expect(() => readProjectIntent(file)).toThrow("unsupported tags");
   });
 
   it("keeps the locked executor adapter private and never rewrites the resource file", () => {

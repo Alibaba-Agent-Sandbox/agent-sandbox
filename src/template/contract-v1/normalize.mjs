@@ -1,5 +1,8 @@
 /** Pure v1 admission/defaulting. Native Devs expressions are never evaluated here. */
 import defaults from './contract.json' with {type: 'json'};
+import {parseDocument, visit, isScalar} from 'yaml';
+
+export const MAX_YAML_BYTES = 1024 * 1024;
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value) && [Object.prototype, null].includes(Object.getPrototypeOf(value));
 const clone = value => structuredClone(value);
@@ -14,6 +17,40 @@ function finite(value, path = '/') {
   if (Array.isArray(value)) value.forEach((item, index) => finite(item, `${path}/${index}`));
   else if (record(value)) for (const [key, item] of Object.entries(value)) finite(item, `${path === '/' ? '' : path}/${key}`);
 }
+/** Bounded JSON-compatible YAML1.2 Core; never evaluates native expressions. */
+export function parseYamlV1(source) {
+  if (typeof source !== 'string' && !(source instanceof Uint8Array)) throw new TypeError('Template v1 /: expected YAML UTF-8 text or bytes');
+  const encoder = new TextEncoder(), decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+  let bytes, text;
+  try {
+    bytes = typeof source === 'string' ? encoder.encode(source) : source;
+    text = decoder.decode(bytes);
+    if (typeof source === 'string' && text !== source) throw new TypeError('invalid Unicode');
+  } catch { fail('/', 'YAML must contain valid UTF-8'); }
+  if (bytes.byteLength > MAX_YAML_BYTES) fail('/', 'YAML exceeds 1 MiB');
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) fail('/', 'YAML contains unsupported control characters');
+  try {
+    const doc = parseDocument(text, {schema: 'core', version: '1.2', resolveKnownTags: false, uniqueKeys: true});
+    if (doc.errors.length || doc.warnings.length || doc.directives.yaml.version !== '1.2') throw new TypeError('invalid Core document');
+    visit(doc, {
+      Alias() { throw new TypeError('aliases are unsupported'); },
+      Map(_key, node) {
+        for (const pair of node.items) if (!isScalar(pair.key) || typeof pair.key.value !== 'string') throw new TypeError('expected string keys');
+      },
+      Scalar(_key, node) {
+        if (typeof node.value === 'string' && decoder.decode(encoder.encode(node.value)) !== node.value) throw new TypeError('invalid Unicode');
+        if (node.tag && !['tag:yaml.org,2002:str', 'tag:yaml.org,2002:map', 'tag:yaml.org,2002:seq'].includes(node.tag)) {
+          const implicit = doc.schema.tags.find(tag => tag.default && tag.test?.test(node.source));
+          if (!implicit || implicit.tag !== node.tag) throw new TypeError('explicit scalar tags cannot change the Core kind');
+        }
+      },
+    });
+    const value = doc.toJS({maxAliasCount: 0});
+    finite(value);
+    return value;
+  } catch { fail('/', 'invalid JSON-compatible YAML1.2 Core: use one document with string keys; duplicate keys, aliases, unsupported tags and unsafe values are not allowed'); }
+}
+
 function checked(value, validate) {
   if (typeof validate !== 'function') throw new TypeError('Pass an actual schema validator for the selected validation stage');
   try {

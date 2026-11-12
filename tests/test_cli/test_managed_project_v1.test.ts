@@ -51,6 +51,25 @@ function planFor(original: ReturnType<typeof source>) {
 }
 
 describe("managed v1 private configuration consumption", () => {
+  it("accepts three custom native resource IDs referenced by application roles", () => {
+    const value = source(), resources = value.raw.deployment.resources;
+    value.raw.deployment.resources = { edge: resources.publicApi, task: resources.sessionWorker, timer: resources.scheduler };
+    value.raw.application.roles = { gateway: "edge", worker: "task", dispatcher: "timer" };
+    fs.writeFileSync(value.file, stringify(value.raw));
+    const result = readManagedProject(value.file);
+    expect(result.project.compiled.roleResources).toEqual({ gateway: "edge", worker: "task", dispatcher: "timer" });
+    expect(Object.keys(result.roleProps).sort()).toEqual(["dispatcher", "gateway", "worker"]);
+  });
+
+  it.each(["productionDomain", "applicationVpc"])("rejects extra Managed native resource %s instead of silently skipping it", id => {
+    const value = source();
+    value.raw.deployment.resources[id] = id === "productionDomain"
+      ? { component: "fc3-domain@0.0.29", props: { domainName: "agents.example.test" } }
+      : { component: "vpc@0.0.1", props: { region: "cn-hangzhou" } };
+    fs.writeFileSync(value.file, stringify(value.raw));
+    expect(() => readManagedProject(value.file)).toThrow(`resources not referenced by application.roles are unsupported: ${id}`);
+  });
+
   it("keeps dotenv out of snapshots/plans while actual services receive private bindings and native props", async () => {
     const original = source(), value = planFor(original);
     expect(fs.existsSync(path.join(value.snapshot, ".env"))).toBe(false);

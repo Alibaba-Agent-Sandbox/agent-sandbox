@@ -226,7 +226,7 @@ function loadTemplateYaml(templateYaml: string, retry?: string | null): Record<s
     data = readProjectDocument(templateYaml);
   } catch (exc) {
     if (exc instanceof YAMLError || (exc instanceof Error && "code" in exc)) {
-      throw new AICodegenError(`Generated template.yaml could not be parsed: ${excStr(exc)}`, { suggestion: hint });
+      throw new AICodegenError(`Generated template.yaml could not be parsed: ${exc instanceof Error ? exc.message : excStr(exc)}`, { suggestion: hint });
     }
     throw exc;
   }
@@ -627,7 +627,7 @@ export function validateTemplateWorkspace(
   try {
     parseTemplateData({ ...data });
   } catch (exc) {
-    throw new AICodegenError(`Generated template.yaml failed schema validation: ${excStr(exc)}`, { suggestion: hint });
+    throw new AICodegenError(`Generated template.yaml failed schema validation: ${exc instanceof Error ? exc.message : excStr(exc)}`, { suggestion: hint });
   }
   if (opts.buildMode && opts.buildMode !== "auto") {
     try {
@@ -636,7 +636,7 @@ export function validateTemplateWorkspace(
         throw new Error(`base.image must preserve the selected provider image ${opts.baseImage}; received ${plan.image}`);
       }
     }
-    catch (error) { throw new AICodegenError(`Generated template cannot use ${opts.buildMode}: ${excStr(error)}`, { suggestion: hint }); }
+    catch (error) { throw new AICodegenError(`Generated template cannot use ${opts.buildMode}: ${error instanceof Error ? error.message : excStr(error)}`, { suggestion: hint }); }
   }
   return data;
 }

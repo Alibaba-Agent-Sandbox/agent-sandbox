@@ -1,7 +1,7 @@
 /**
  * Adversarial review fixes (agent-template area), in-process: `shutil.copytree`, `Path.expanduser()`,
  * `load_template_from_yaml` failure texts, strict UTF-8 error text, bytes handling and `.dockerignore` BOM.
- * The Python texts were recorded from the oracle (CPython 3.11, PyYAML 6.0.3, pydantic 2.14).
+ * Utility parity retains its CPython oracle; resource YAML admission follows the shared v1 Core reader.
  */
 
 import {
@@ -141,23 +141,27 @@ describe("pyExpandUser (Path.expanduser)", () => {
 });
 
 describe("loadTemplateFromYaml rejects a document that is not a mapping", () => {
-  const cases = ["- a\n", "!!set {a}\n", "2001-01-01\n", "1.5\n", "abc\n", "true\n", "\n"];
+  const cases = ["- a\n", "2001-01-01\n", "1.5\n", "abc\n", "true\n", "\n"];
   it.each(cases)("%j", (yaml) => {
     const file = path.join(fresh(), "template.yaml");
     writeFileSync(file, yaml);
     expect(() => loadTemplateFromYaml(file)).toThrow("must be a YAML mapping");
   });
 
-  it("YAML errors carry the line and column", () => {
+  it("reports the shared safe reader error without echoing malformed source", () => {
     const file = path.join(fresh(), "template.yaml");
-    writeFileSync(file, "name: [x\nports: 1\n");
-    expect(() => loadTemplateFromYaml(file)).toThrow(/line 2, column 1/);
+    writeFileSync(file, "name: [private-source-value\nports: 1\n");
+    let message = "";
+    try { loadTemplateFromYaml(file); } catch (error) { message = String(error); }
+    expect(message).toContain("invalid JSON-compatible YAML1.2 Core");
+    expect(message).not.toContain("private-source-value");
+    expect(message).not.toContain("capabilities are NOT granted");
   });
 
-  it("a !!binary scalar is not a string", () => {
+  it.each(["!!set {a}\n", "specVersion: 1\nname: !!binary aGVsbG8=\nsandbox: {template: {source: {dockerfile: Dockerfile}}}\n"])("rejects unsupported YAML tags before resource admission: %j", yaml => {
     const file = path.join(fresh(), "template.yaml");
-    writeFileSync(file, "name: !!binary aGVsbG8=\n");
-    expect(() => loadTemplateFromYaml(file)).toThrow(/name/);
+    writeFileSync(file, yaml);
+    expect(() => loadTemplateFromYaml(file)).toThrow("unsupported tags");
   });
 });
 
