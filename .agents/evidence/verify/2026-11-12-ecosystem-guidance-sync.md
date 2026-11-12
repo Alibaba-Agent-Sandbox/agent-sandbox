@@ -27,3 +27,8 @@ The root dotenv's configured GitHub credential returned HTTP401, no alternate pr
 - Repository health: 106 passes, 11 warnings, zero failures.
 - Lychee 0.24.2 offline with fragments: all 664 tracked Markdown inputs pass.
 - The source installer edit is documentation only; no provider install or cloud operation ran.
+
+Follow-up parser review corrected the last `--json run` example in named-command
+help to `--json sandbox command run`. Rebuilt CLI and the named-command, MCP and
+command-surface selection passed 61 tests. The change affects help text only,
+with existing command argument/body tests retained.
