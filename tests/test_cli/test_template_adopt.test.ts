@@ -48,15 +48,14 @@ const YAML = `\
 specVersion: 1
 name: ignored
 sandbox:
-  template:
-    source:
-      dockerfile: Dockerfile
-      context: .
-    props:
+  agent:
+    provider: alicloud-express
+    template:
+      buildConfig:
+        dockerfile: Dockerfile
+        context: .
       cpu: 2
-      memory: 2048
-  services:
-    app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+      memorySize: 2048
 `;
 
 const _text = (result: { output: string; stderr: string }): string => (result.output || "") + (result.stderr || "");

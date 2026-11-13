@@ -12,7 +12,7 @@ function write(value: unknown): { root: string; file: string } {
   const file = path.join(root, "template.yaml"); fs.writeFileSync(file, stringify(value)); return { root, file };
 }
 afterEach(() => { for (const root of folders.splice(0)) fs.rmSync(root, { recursive: true, force: true }); });
-const source = () => ({ specVersion: 1, name: "example", sandbox: { template: { source: { dockerfile: "Dockerfile" }, props: { cpu: 2, memory: 2048 } }, instance: { envs: { MODEL_KEY: "${env('ABX_TEST_STATIC_MISSING_KEY')}" } }, services: {} } });
+const source = () => ({ specVersion: 1, name: "example", vars: {MODEL_KEY: "${env('ABX_TEST_STATIC_MISSING_KEY')}"}, sandbox: {agent: {provider: "alicloud-express", template: {buildConfig: {dockerfile: "Dockerfile"}, cpu: 2, memorySize: 2048}}} });
 
 describe("canonical template v1 consumer boundary", () => {
   it("retains Core YAML string types from the source through native resolution", () => {
@@ -20,39 +20,40 @@ describe("canonical template v1 consumer boundary", () => {
     fs.writeFileSync(file, `specVersion: 1
 name: scalar-example
 sandbox:
-  template:
-    source:
-      dockerfile: Dockerfile
-      context: .
-  instance:
-    envs:
-      FLAG: on
-      WHEN: 2026-11-12
-      LEADING_ZERO: "0123"
-      MULTILINE: |
-        first line
-        second line
+  agent:
+    provider: alicloud-express
+    template:
+      buildConfig:
+        dockerfile: Dockerfile
+        context: .
+vars:
+  FLAG: on
+  WHEN: 2026-11-12
+  LEADING_ZERO: "0123"
+  MULTILINE: |
+    first line
+    second line
 `);
     const expected = { FLAG: "on", WHEN: "2026-11-12", LEADING_ZERO: "0123", MULTILINE: "first line\nsecond line\n" };
-    expect(readProjectIntent(file).sandbox?.template.source?.context).toBe(".");
-    expect(readProjectIntent(file).sandbox?.instance?.envs).toEqual(expected);
-    expect(resolveProject(file, { provider: "alicloud-express" }).compiled.env).toEqual(expected);
+    expect(readProjectIntent(file).sandbox?.agent.template.buildConfig?.context).toBe(".");
+    expect(readProjectIntent(file).vars).toEqual(expected);
+    expect(resolveProject(file, { provider: "alicloud-express" }).compiled.vars).toEqual(expected);
   });
 
   it("loads source intent and Registry acquisition without requiring secrets or a Registry descriptor", () => {
     const { root, file } = write(source());
     expect(fs.existsSync(path.join(root, "registry.yaml"))).toBe(false);
-    expect(readProjectIntent(file).sandbox?.provider).toBeUndefined();
+    expect(readProjectIntent(file).sandbox?.agent.provider).toBe("alicloud-express");
     expect(loadTemplateFromYaml(file).name).toBe("example");
-    expect(loadTemplateFromYaml(file).env.MODEL_KEY).toBe("${env('ABX_TEST_STATIC_MISSING_KEY')}");
+    expect(loadTemplateFromYaml(file).env).toEqual({});
   });
 
-  it("uses the same owner schema and native resolution for actual instance input", () => {
+  it("uses the same owner schema and native resolution for actual resource input", () => {
     const document = source(), { file } = write(document);
     const value = resolveProject(file, { provider: "alicloud-express", environment: { ...process.env, ABX_TEST_STATIC_MISSING_KEY: "private-fixture" } });
-    expect(value.compiled.provider).toBe("alicloud-express");
-    expect(value.compiled.env).toEqual({ MODEL_KEY: "private-fixture" });
-    expect(value.compiled.resources).toMatchObject({ cpu: 2, memory: 2048 });
+    expect(value.compiled.sandbox?.agent.provider).toBe("alicloud-express");
+    expect(value.compiled.vars).toEqual({ MODEL_KEY: "private-fixture" });
+    expect(value.compiled.sandbox?.agent.template).toMatchObject({ cpu: 2, memorySize: 2048 });
     const bytes = fs.readFileSync(file, "utf8");
     expect(bytes).toContain("specVersion: 1");
     expect(bytes).not.toContain("private-fixture");
@@ -69,7 +70,7 @@ sandbox:
   it("rejects a wrong stage or conflicting Provider before native resolution", () => {
     const wrong = source() as Record<string, unknown>; (wrong.sandbox as Record<string, unknown>).cpu = 2;
     expect(() => readProjectIntent(write(wrong).file)).toThrow("Template v1");
-    const value = source() as Record<string, unknown>; (value.sandbox as Record<string, unknown>).provider = "opensandbox";
+    const value = source() as Record<string, unknown>; ((value.sandbox as Record<string, unknown>).agent as Record<string, unknown>).provider = "opensandbox";
     expect(() => resolveProject(write(value).file, { provider: "alicloud-express" })).toThrow("conflicts");
   });
 
@@ -89,8 +90,8 @@ sandbox:
   });
 
   it("admits and compiles mixed resource intent without asserting a deployment lifecycle", () => {
-    const value = { ...source(), deployment: {edition: "3.0.0", name: "native", resources: {api: {component: "fc3@0.1.26", props: {region: "cn-hangzhou"}}}} }, {file} = write(value);
+    const value = { ...source(), serving: {api: {component: "serverless-devs/fc3@0.1.26", props: {region: "cn-hangzhou"}}} }, {file} = write(value);
     const result = resolveProject(file, {provider: "alicloud-express", environment: {...process.env, ABX_TEST_STATIC_MISSING_KEY: "fixture"}});
-    expect(result.compiled.kind).toBe("serving"); expect(result.compiled.sandbox).toBeDefined(); expect(result.compiled.deployment?.resources.api).toBeDefined();
+    expect(result.compiled.kind).toBe("application"); expect(result.compiled.sandbox).toBeDefined(); expect(result.compiled.serving?.api).toBeDefined();
   });
 });

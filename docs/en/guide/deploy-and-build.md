@@ -1,22 +1,35 @@
 # Deploy and build
 
-Author source, prepare builds, deploy running instances and publish source versions as distinct tasks:
+Prepare resources directly, or build once and reuse the prepared Sandbox templates:
 
 ```bash
 abx template init ./project --template python
+abx deploy ./project --plan
 abx template build ./project --out ./.abx/build.json --yes
 abx deploy --build ./.abx/build.json --name my-app --yes
 abx status my-app
+```
+
+Direct `abx deploy ./project --name my-app --yes` combines preparation and Serving deployment. Neither command creates a dynamic Sandbox instance. `template build` prepares Sandbox templates/static volumes and runs Serving build actions; `deploy --build` borrows the prepared resources and deploys Serving. Keep the original source and native component build files unchanged until reuse is complete. Secrets remain in private configuration rather than the build record.
+
+Use the template's documented `run.py` or the SDK to start its dynamic business service. To create a bare instance explicitly:
+
+```bash
+abx sandbox create --template TEMPLATE_ID
+abx sandbox delete SANDBOX_ID
+```
+
+`buildConfig` chooses Dockerfile/context or native Steps. Docker requires a working local daemon, writable image repository and platform pull access. Native Steps produce a template ID. See [resource configuration](template-workflows.md).
+
+```bash
 abx delete my-app --yes
 abx template build --clean ./.abx/build.json --yes
 ```
 
-Use `abx deploy ./project --name my-app` when no separately reusable build is needed. `template build` starts no instance; `deploy --build` takes an artifact file, not a build mode. The manifest and Provider determine Dockerfile or supported platform-step preparation. `--build-profile` selects an explicitly declared profile and never silently switches recipes.
+Deletion removes confirmed owned templates/volumes/functions. Borrowed builds remain available until every consumer is removed. Explicitly retained volumes and image tags remain yours to manage. FC component `auto` may create or reuse logging/network/storage/role resources; those potentially shared resources are retained and listed separately, not treated as exclusively owned by the function.
 
-Docker builds need a working local Docker and writable image repository; the runtime must be able to pull the image. Platform-step runtime, file inputs and permissions depend on the Provider. Deploy does not call a model; model use belongs to `template init --prompt` or `--adopt`.
+`abx status APP` reports saved state. After an uncertain operation use `abx recover APP` to observe its identity before retrying or cleaning up; recovery does not replay deployment hooks. A local timeout does not prove a submitted cloud operation stopped. Preparation deadlines apply to waits and child component actions; Docker daemon work may need separate cancellation.
 
-Deletion cleans resources recorded as owned by that deployment. Separately prepared builds remain reusable; remove their consumers before cleaning, and inspect retained images requiring manual cleanup. On failure, use `abx status APP` and `abx recover APP` before retrying a potentially submitted create.
+`template publish SOURCE --tag VERSION` publishes committed source to a fixed GitHub version, without deploying or creating a catalog entry.
 
-`template publish SOURCE --tag VERSION` publishes committed source to an immutable version on an existing GitHub remote and returns a commit-pinned reference. It neither deploys an application nor automatically creates a catalog entry.
-
-[Full authoring guide](authoring-templates.md) · [Deployment and failure boundaries](template-launch.md)
+[Authoring](authoring-templates.md) · [Deployment and logs](template-launch.md)

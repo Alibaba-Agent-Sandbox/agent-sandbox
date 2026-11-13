@@ -88,10 +88,17 @@ export function verifyFunction(body: Record<string, unknown>, account: string, r
   if (previous && (previous.functionArn !== body.functionArn || previous.functionId !== body.functionId || previous.createdTime !== body.createdTime)) throw new ApplicationError("Native function identity changed; refusing to adopt or modify a replacement.");
 }
 /** Create one transport from explicit region and a single verified AK/STS snapshot. */
-export function createFcTransport(credential: CredentialSnapshot, region: string): FcTransport {
+export function nativeFcEndpoint(account: string, region: string, override?: string): string {
+  const value = region === "cn-heyuan-acdr-1" ? `${account}.${region}-internal.fc.aliyuncs.com` : override || `fcv3.${region}.aliyuncs.com`;
+  const url = new URL(value.includes("://") ? value : `https://${value}`);
+  if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new ApplicationError("Invalid FC API endpoint.");
+  return url.origin;
+}
+export function createFcTransport(credential: CredentialSnapshot, region: string, endpoint?: string): FcTransport {
   if (!/^[a-z][a-z0-9-]{1,63}$/.test(region)) throw new ApplicationError("Invalid FC region.");
+  const target = new URL(nativeFcEndpoint(credential.AccountID, region, endpoint));
   const client = new sdk.default(new core.$OpenApiUtil.Config({ accessKeyId: credential.AccessKeyID, accessKeySecret: credential.AccessKeySecret,
-    ...(credential.SecurityToken ? { securityToken: credential.SecurityToken } : {}), endpoint: `fcv3.${region}.aliyuncs.com`, protocol: "https", readTimeout: 30000, connectTimeout: 10000 }));
+    ...(credential.SecurityToken ? { securityToken: credential.SecurityToken } : {}), endpoint: target.host, protocol: target.protocol.slice(0, -1), readTimeout: 30000, connectTimeout: 10000 }));
   const call = (method: string, args: unknown[]): Promise<Response> => client[`${method}WithOptions`](...args, {}, runtime());
   const describeFunction = async (name: string): Promise<Record<string, unknown> | null> => {
     try { const value = objectBody(await call("getFunction", [name, model("GetFunctionRequest", { qualifier: "LATEST" })])); verifyFunction(value, credential.AccountID, region, name); return value; }

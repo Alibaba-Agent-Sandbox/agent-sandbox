@@ -1036,10 +1036,10 @@ managed_templates:
       specVersion: 1
       name: base
       sandbox:
-        provider: alicloud-express
-        template:
-          reference: base
-        services: {}
+        agent:
+          provider: alicloud-express
+          template:
+            reference: base
     metadata:
       specVersion: 1
       name: base
@@ -1059,10 +1059,10 @@ managed_templates:
       specVersion: 1
       name: code-interpreter-v1
       sandbox:
-        provider: alicloud-express
-        template:
-          reference: code-interpreter-v1
-        services: {}
+        agent:
+          provider: alicloud-express
+          template:
+            reference: code-interpreter-v1
     metadata:
       specVersion: 1
       name: code-interpreter-v1
@@ -1082,10 +1082,10 @@ managed_templates:
       specVersion: 1
       name: desktop
       sandbox:
-        provider: e2b
-        template:
-          reference: desktop
-        services: {}
+        agent:
+          provider: e2b
+          template:
+            reference: desktop
     metadata:
       specVersion: 1
       name: desktop
@@ -1105,10 +1105,10 @@ managed_templates:
       specVersion: 1
       name: opensandbox-code-interpreter
       sandbox:
-        provider: opensandbox
-        template:
-          reference: opensandbox/code-interpreter:v1.1.0
-        services: {}
+        agent:
+          provider: opensandbox
+          template:
+            reference: opensandbox/code-interpreter:v1.1.0
     metadata:
       specVersion: 1
       name: opensandbox-code-interpreter

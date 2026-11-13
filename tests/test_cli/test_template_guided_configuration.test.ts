@@ -49,7 +49,7 @@ describe("Operation-specific template guidance", () => {
     const source = path.join(tmpPath(), "invalid-source");
     if (kind === "file") fs.writeFileSync(source, "file");
     if (kind === "missing template") fs.mkdirSync(source);
-    const expected = kind === "file" ? "not a directory" : kind === "missing template" ? "no template.yaml" : "does not exist";
+    const expected = "does not create dynamic Sandbox instances";
     await expect(executeTemplateLaunch(context(), { yes: true, template_ref: source })).rejects.toThrow(expected);
   });
 
@@ -193,7 +193,7 @@ describe("Operation-specific template guidance", () => {
 
   it("checks launch creation identity before downloading remote source", async () => {
     const fetch = vi.spyOn(RegistryClient.prototype, "fetch");
-    await expect(executeTemplateLaunch(context(), { yes: true, template_ref: "owner/repo" })).rejects.toThrow("sandbox_api_key");
+    await expect(executeTemplateLaunch(context(), { yes: true, template_ref: "owner/repo" })).rejects.toThrow("does not create dynamic Sandbox instances");
     expect(fetch).not.toHaveBeenCalled();
   });
 

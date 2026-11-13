@@ -55,15 +55,14 @@ const YAML = `\
 specVersion: 1
 name: ignored
 sandbox:
-  template:
-    source:
-      dockerfile: Dockerfile
-      context: .
-    props:
+  agent:
+    provider: alicloud-express
+    template:
+      buildConfig:
+        dockerfile: Dockerfile
+        context: .
       cpu: 2
-      memory: 2048
-  services:
-    app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+      memorySize: 2048
 `;
 
 let tmpPath = "";
@@ -283,16 +282,16 @@ describe("TestPlan", () => {
     expect([...plan.replaces]).toEqual([]);
   });
 
-  it("keeps additional access ports separate from versioned services", () => {
+  it("checks additional Dockerfile ports without adding template instance fields", () => {
     const project = project_(tmpPath);
     const staged = stageProject(project, { stagingRoot: path.join(tmpPath, "stage") });
     try {
       writeAgentOutput(staged.stagingDir);
-      write(path.join(staged.stagingDir, "template.yaml"), YAML.replace("sandbox:\n", "sandbox:\n  ports: [8080]\n"));
+      write(path.join(staged.stagingDir, "Dockerfile"), DOCKER + "EXPOSE 8080\n");
       const plan = planFromStaging(project, staged, { templateName: "my-app", rawOutput: "" });
-      expect(plan.files["template.yaml"]).toContain("8080");
+      expect(plan.files["Dockerfile"]).toContain("8080");
+      expect(plan.files["template.yaml"]).not.toContain("ports:");
       expect(plan.files["template.yaml"]).not.toContain("service8080");
-      expect(plan.warnings).toContain("Port 8080 is in template.yaml but not EXPOSE.");
       expect(plan.warnings.some(warning => warning.includes("never starts a subprocess"))).toBe(true);
     } finally {
       rmStaging(staged);
@@ -317,8 +316,7 @@ describe("TestPlan", () => {
     const staged = stageProject(project, { stagingRoot: path.join(tmpPath, "stage") });
     try {
       writeAgentOutput(staged.stagingDir);
-      const yamlText = YAML.replaceAll("9000", "8080");
-      write(path.join(staged.stagingDir, "template.yaml"), yamlText);
+      write(path.join(staged.stagingDir, "Dockerfile"), DOCKER.replaceAll("9000", "8080"));
       await raises(() => planFromStaging(project, staged, { templateName: "my-app", rawOutput: "" }), AICodegenError, "9000");
     } finally {
       rmStaging(staged);

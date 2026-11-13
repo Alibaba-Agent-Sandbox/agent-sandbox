@@ -1,12 +1,12 @@
 Usage: abx logs [options] <TARGET>
 
-Read deployment logs. Sandbox service logs use the template startup log;
---source platform selects native sandbox logs.
+Read Serving logs with --resource, or native logs for a running Sandbox ID.
 
 Options:
-  --source <SOURCE>  (choices: "service", "platform")
-  --role <ROLE>      (choices: "gateway", "worker", "dispatcher")
+  --resource <RESOURCE>  Named Serving resource to read.
+  --source <SOURCE>      (choices: "service", "platform")
+  --role <ROLE>          (choices: "gateway", "worker", "dispatcher")
   -f, --follow
   --lines <INTEGER>
-  -h, --help         Show this message and exit.
+  -h, --help             Show this message and exit.
 [exit_code:0]

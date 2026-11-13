@@ -25,10 +25,16 @@ import { paths, _setPaths } from "../../src/transport/config_layers.js";
 import type { ApplicationPlan, BuildReceipt } from "../../src/application/types.js";
 import { applicationControlServices, deploymentSeams } from "../../src/cli/commands/deploy.js";
 
+// Historical receipt lifecycle tests use a captured private template, not a retired public YAML parser.
+// Production readTemplate remains closed; no compatibility reader is shipped.
+vi.mock("../../src/application/config.js", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../src/application/config.js")>();
+  return {...actual, readTemplate: (file: string) => parse(fs.readFileSync(file, "utf8"))};
+});
 const temporary: string[] = [];
 const scratch = (): string => { const folder = fs.mkdtempSync(path.join(os.tmpdir(), "abx-managed-test-")); temporary.push(folder); return folder; };
 afterEach(() => { vi.restoreAllMocks(); for (const folder of temporary.splice(0)) fs.rmSync(folder, { recursive: true, force: true }); });
-const templateFixture = fileURLToPath(new URL("../fixtures/application-managed/template.yaml", import.meta.url));
+const templateFixture = fileURLToPath(new URL("../fixtures/application-managed/receipt-template.json", import.meta.url));
 function fixture(source = templateFixture) {
   const directory = scratch(), file = path.join(directory, "template.yaml"), tools = scratch(); fs.copyFileSync(templateFixture, file);
   if (source !== templateFixture) {
@@ -137,11 +143,9 @@ describe("managed application boundary", () => {
     const modified = { ...value.plan, image: "changed" }; fs.writeFileSync(file, JSON.stringify(modified)); expect(() => readPlan(file)).toThrow(/modified/);
     fs.writeFileSync(path.join(value.directory, "new.py"), "changed"); expect(() => createPlan(value.file, value.buildFile)).toThrow(/Source changed/);
   });
-  it.each(["budget", "targets", "model-env"])("rejects producer semantic violations: %s", kind => {
-    const value = fixture(), raw = parse(fs.readFileSync(value.file, "utf8")); if (kind === "budget") raw.application.sessions = {idleTimeoutSeconds: 100000};
-    if (kind === "targets") raw.application.bindings.model.targets = ["gateway"];
-    if (kind === "model-env") raw.application.bindings.model.allowedEnv = ["ALICLOUD_ACCESS_KEY_SECRET"];
-    fs.writeFileSync(value.file, stringify(raw)); expect(() => readTemplate(value.file)).toThrow();
+  it("rejects historical receipt templates at the public resource admission boundary", async () => {
+    const {readProjectIntent} = await import("../../src/template/project.js");
+    expect(() => readProjectIntent(templateFixture)).toThrow();
   });
   it("injects model secrets only into worker bootstrap and never into Gateway or Dispatcher", () => {
     const value = fixture(), input = binding();
@@ -256,7 +260,7 @@ describe("managed application effects", () => {
     await applyPlan(value.plan, external.deps, value.receiptFile); expect(reads).toBeGreaterThanOrEqual(6); expect(updates).toBeGreaterThanOrEqual(16);
   });
   it("uses the owned random tag for FC while freezing and verifying its resolved digest", async () => {
-    const value = fixture(), raw = parse(fs.readFileSync(value.file, "utf8")); raw.application.server = { source: { dockerfile: "Dockerfile.server", context: "." } };
+    const value = fixture(), raw = parse(fs.readFileSync(value.file, "utf8")); delete raw.application.deployment.serverImage; raw.application.deployment.serverBuildRecipe = {dockerfile: "Dockerfile.server", context: "."};
     fs.writeFileSync(value.file, stringify(raw)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
     const build = JSON.parse(fs.readFileSync(value.buildFile, "utf8")), digest = `sha256:${"d".repeat(64)}`, repository = "registry.cn-hangzhou.aliyuncs.com/example/agents-api-server", localTag = `${repository}:build-test`;
     build.image = `${repository}@${digest}`; build.sourceDigest = sourceDigest(value.directory); build.ownedServerImage = { accountId: "123", region: "cn-hangzhou", namespace: "example", repository: "agents-api-server", tag: "build-test", localTag, localImageId: `sha256:${"c".repeat(64)}`, digest, state: "confirmed", journalId: "11111111-1111-1111-1111-111111111111", intentId: "test-intent" }; writeJson(value.buildFile, build);
@@ -767,7 +771,7 @@ describe("managed subprocess lifecycle", () => {
 describe("owned Server image lifecycle", () => {
   function buildFixture() {
     const value = fixture(), credential = { AccountID: "123", AccessKeyID: "test", AccessKeySecret: "test" };
-    const raw = parse(fs.readFileSync(value.file, "utf8")); raw.application.server = { source: { dockerfile: "Dockerfile.server", context: "." } };
+    const raw = parse(fs.readFileSync(value.file, "utf8")); delete raw.application.deployment.serverImage; raw.application.deployment.serverBuildRecipe = {dockerfile: "Dockerfile.server", context: "."};
     fs.writeFileSync(value.file, stringify(raw)); fs.writeFileSync(path.join(value.directory, "Dockerfile.server"), "FROM scratch\n");
     value.template = readTemplate(value.file);
     const output = path.join(value.directory, ".abx", "owned-build.json"); let pushed = false, removed = false;

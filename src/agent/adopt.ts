@@ -593,7 +593,7 @@ export function planFromStaging(
   contents["template.yaml"] = dumpYaml(data);
 
   const warnings: string[] = [];
-  checkPorts(contents["Dockerfile"] as string, contents["commands.py"] as string, data, warnings);
+  checkPorts(contents["Dockerfile"] as string, contents["commands.py"] as string, warnings);
 
   const generateIgnore = isFile(path.join(project, ".dockerignore")) === false;
   if (generateIgnore) contents[".dockerignore"] = GENERATED_DOCKERIGNORE;
@@ -830,33 +830,15 @@ function exposedPorts(dockerfile: string): Set<number> {
   return found;
 }
 
-class PyValueError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ValueError";
-  }
-}
 
-function checkPorts(dockerfile: string, commands: string, data: Record<string, unknown>, warnings: string[]): void {
-  const sandbox = data.sandbox as { ports?: number[]; services?: Record<string, { port: number }> };
-  const ports = new Set<number>([...(sandbox.ports ?? []), ...Object.values(sandbox.services ?? {}).map(service => service.port)]);
+function checkPorts(dockerfile: string, commands: string, warnings: string[]): void {
   const exposed = exposedPorts(dockerfile);
-  if (!ports.has(SERVER_PORT) || !exposed.has(SERVER_PORT)) {
-    throw new AICodegenError(
-      `template.yaml ports and Dockerfile EXPOSE must both include ${SERVER_PORT} ` + "(the SandboxServer port).",
-      { suggestion: "Regenerate, or add the port to both files." },
-    );
+  if (!exposed.has(SERVER_PORT)) {
+    throw new AICodegenError(`Dockerfile EXPOSE must include ${SERVER_PORT} (the SandboxServer port).`,
+      { suggestion: "Regenerate, or expose the server port in Dockerfile." });
   }
-  const others = [...ports].filter((port) => port !== SERVER_PORT).sort((a, b) => a - b);
-  for (const port of others) {
-    if (!exposed.has(port)) warnings.push(`Port ${port} is in template.yaml but not EXPOSE.`);
-  }
-  if (others.length > 0 && !commands.includes("subprocess")) {
-    warnings.push(
-      "template.yaml declares a port besides " +
-        `${SERVER_PORT}, but commands.py never starts a subprocess. ` +
-        "The project's own service is expected to be launched from commands.py.",
-    );
+  if ([...exposed].some(port => port !== SERVER_PORT) && !commands.includes("subprocess")) {
+    warnings.push(`Dockerfile exposes a port besides ${SERVER_PORT}, but commands.py never starts a subprocess. Confirm the additional service is started by the image or business code.`);
   }
 }
 

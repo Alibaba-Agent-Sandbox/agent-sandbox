@@ -1,5 +1,6 @@
 /** The official Devs parser resolves the one local project; no parallel expression language. */
 import fs from "node:fs";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -56,10 +57,28 @@ function environmentPaths(value: unknown, key: string, pointer = ""): string[] {
  * Actions are planned only; this function never invokes components or the Devs engine.
  */
 export function resolveDevsProject(document: Record<string, unknown>, file: string, environment: NodeJS.ProcessEnv = process.env, options: DevsResolutionOptions = {}): ResolvedDevsProject {
+  // Only resource-output references are delayed. All ordinary expressions remain native Devs expressions.
+  const deferred = new Map<string, string>();
+  const prefix = `ABX_DEFERRED_${randomUUID().replaceAll("-", "")}_`;
+  const protect = (value: unknown): unknown => {
+    if (typeof value === "string") return value.replace(/\$\{resources\.[A-Za-z_][A-Za-z0-9_-]*\.output(?:\.[A-Za-z_][A-Za-z0-9_-]*)*\}/g, reference => {
+      const token = `${prefix}${deferred.size}_END`; deferred.set(token, reference); return token;
+    });
+    if (Array.isArray(value)) return value.map(protect);
+    if (object(value)) return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, protect(item)]));
+    return value;
+  };
+  const restore = (value: unknown): unknown => {
+    if (typeof value === "string") { for (const [token, reference] of deferred) value = (value as string).split(token).join(reference); return value; }
+    if (Array.isArray(value)) return value.map(restore);
+    if (object(value)) return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, restore(item)]));
+    return value;
+  };
+  document = protect(document) as Record<string, unknown>;
   const deployment = object(document.deployment) ? document.deployment : {};
   if (Object.hasOwn(deployment, payloadKey)) throw new TemplateParseError("Reserved native project payload field.");
   const { deployment: _deployment, ...payload } = document;
-  const nativeProject = { edition: "3.0.0", name: document.name ?? "abx-project", resources: {}, ...deployment, [payloadKey]: payload };
+  const nativeProject = { edition: "3.0.0", name: document.name ?? "abx-project", resources: {}, ...deployment, ...(document.vars ? {vars: document.vars} : {}), [payloadKey]: payload };
   const parserPath = require.resolve("@serverless-devs/parse-spec");
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "abx-devs-parse-"));
   try {
@@ -91,6 +110,6 @@ export function resolveDevsProject(document: Record<string, unknown>, file: stri
       if (!object(step) || typeof step.resource !== "string" || typeof step.component !== "string") throw new TemplateParseError("Native project parser returned an invalid resource step.");
       return { resource: step.resource, component: step.component, ...(typeof step.order === "number" ? { order: step.order } : {}) };
     });
-    return { document: resolved, steps, actions: devsActionDeclarations(deployment) };
+    return { document: restore(resolved) as Record<string, unknown>, steps, actions: [...devsActionDeclarations(deployment), ...[document.sandbox, document.serving].flatMap(resources => object(resources) ? devsActionDeclarations({resources}) : [])] };
   } finally { fs.rmSync(scratch, { recursive: true, force: true }); }
 }

@@ -1,26 +1,42 @@
-# Start a Sandbox template
+# Template resources
 
-Run `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`. A Sandbox template has one startup: prepare its source, create the instance, run `sandbox.start`, wait for `sandbox.ready`, and resolve every endpoint in `sandbox.services`. Business commands run when called after startup.
-
-Use `specVersion: 1` and one local `template.yaml`. Source uses `sandbox.template.source`, an existing image uses `sandbox.template.image`, and a Provider-native reference uses `sandbox.provider` with `sandbox.template.reference`. Image references require an immutable `@sha256:` digest. Keep image dependencies and startup files with the project. Configure the instance in `sandbox.instance`, including its timeout, environment, metadata and the selected Provider's supported resource options.
+`template.yaml` declares named Sandbox templates, static volumes and Serving resources. Deploy prepares these resources; create dynamic Sandbox instances from business code or an explicit SDK/CLI call.
 
 ```yaml
 specVersion: 1
-name: example
+name: demo
+vars:
+  region: cn-hangzhou
 sandbox:
-  template:
-    source: {dockerfile: Dockerfile, context: .}
-    props: {cpu: 2, memory: 2048}
-  instance:
-    timeout: 300
-    envs: {ABX_SERVER_TOKEN: ""}
-  start: python3 commands.py
-  services:
-    app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+  agent:
+    provider: alicloud-express
+    template:
+      region: "${vars.region}"
+      image: registry.example.com/team/agent:v1
+      buildConfig:
+        dockerfile: ./sandbox/Dockerfile
+serving:
+  api:
+    component: serverless-devs/fc3@0.1.26
+    props:
+      region: "${vars.region}"
+      functionName: demo-api
+      runtime: custom-container
+      customContainerConfig:
+        image: registry.example.com/team/api:v1
+        port: 9000
+      environmentVariables:
+        SANDBOX_TEMPLATE_ID: "${resources.agent.output.templateId}"
 ```
 
-The CLI generates and privately saves a missing application token. Provider traffic authentication remains separate. See the [template v1 specification](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md) for complete fields and Provider boundaries. Local use does not require `registry.yaml`; publication metadata and initialization questions belong there when publishing a catalog template.
+Replace the example registry addresses with your existing images or writable build targets. `vars` is optional: authors choose every key, and literals can be written directly in resource properties. Catalog initialization fields belong in `registry.yaml.parameters`; editing local configuration does not require that catalog file.
 
-Public native catalog entries can be deployed by name, for example `abx --provider alicloud-express deploy base --name my-app --yes`. Managed Agents use their [application lifecycle](managed-applications.md). General native Serving projects can be parsed, but their deployment/removal lifecycle is currently unsupported by this CLI; mixed Sandbox/Serving projects without a supported application type stop before creating resources.
+Sandbox region belongs to `sandbox.NAME.template.region`; sibling volumes use that region. Express template attributes stay flat. `buildConfig` selects either `dockerfile` with optional `context`, or native `steps`, never both. Paths are relative to `template.yaml`; omitted context is the Dockerfile directory. A Dockerfile is not automatically discovered when `buildConfig` is absent.
 
-Old public YAML formats must be migrated structurally to v1. Renaming their version field is insufficient. Choose a current source revision; refreshing the catalog does not refresh downloaded source files or change a pinned Git revision. The CLI does not rewrite or delete source files automatically.
+With a Dockerfile, `image` is the build/push destination. Without a Dockerfile it is an existing source image; native Steps customize that source into a Sandbox template. Steps do not promise an exported OCI image. Omit `registryConfig` unless explicit authentication, certificates or registry networking are needed. Software installation belongs in the Dockerfile/base image. Native `startCommand` and `readyCommand` run during template preparation, not at each dynamic instance creation.
+
+Serving keeps native component `props`. Use resource-local `actions.pre-deploy` with `component: serverless-devs/fc3@0.1.26 build ...` when a Serving build is needed. Shell `run` and component actions execute on the deployment host. `success-deploy` runs after resource readiness; `fail-deploy` handles failure and `complete-deploy` runs at completion. Output references create dependency ordering; missing resources and cycles fail before deployment. Actions may run again on a new deployment attempt, so write retry-safe scripts.
+
+The named-resource executor currently supports Express and exact-version `serverless-devs/fc3` components. Other Provider instance APIs remain separate. An application's token, database, model and instance environment are application configuration, not generic template fields. Keep secrets in private environment/file references. Managed Agents API provides its own startup/publication scripts; follow that template's README.
+
+[Build and deployment](deploy-and-build.md) · [Native expressions](../design/template-v1-parser.md) · [Complete field reference](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md)

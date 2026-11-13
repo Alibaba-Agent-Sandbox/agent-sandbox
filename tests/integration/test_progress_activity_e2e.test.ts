@@ -1,3 +1,4 @@
+import { providerTemplateCli } from "../helpers/providerTemplateCli.js";
 import { manifestYaml } from "../helpers/templateManifest.js";
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
@@ -114,7 +115,7 @@ function _installBuilder(): void {
 async function _invokeBuild(dir: string, prefix: string[] = []): Promise<Result> {
   iso.monkeypatch.setenv("ACR_NAMESPACE", "test-progress");
   _installBuilder();
-  return runner().invoke(cli, [...prefix, "template", "build", dir, "--yes"]);
+  return runner().invoke(providerTemplateCli, [...prefix, "template", "build", dir, "--yes"]);
 }
 
 function _sandbox(sandbox_id = "sbx-cli-test-001") {
@@ -212,9 +213,7 @@ it("test_json_deploy_does_not_dump_build_lines", async () => {
   const result = await _invokeBuild(tmp, ["--json"]);
   expect(result.exit_code, result.output).toBe(0);
   const combined = _combined(result);
-  expect(JSON.parse(result.stdout!).status).toBe("built");
-  const artifact = JSON.parse(fs.readFileSync(JSON.parse(result.stdout!).build, "utf8"));
-  expect(artifact.prepared.reference).toBe("tpl-progress");
+  expect(JSON.parse(result.stdout!)).toMatchObject({TemplateID: "tpl-progress"});
   expect(combined).not.toContain("#5 [1/2] FROM ubuntu:22.04");
   expect(combined).not.toContain(_TOKEN);
 });
@@ -223,7 +222,7 @@ it("test_create_shows_an_elapsed_header", async () => {
   const tty = ttyStderr();
   vi.spyOn(Sandbox, "create").mockResolvedValue(_sandbox() as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["deploy", "--yes", "--template-id", "python-base", "--request-timeout", "45"]);
+  const result = await runner().invoke(cli, ["sandbox", "create", "--yes", "--template", "python-base", "--request-timeout", "45"]);
 
   expect(result.exit_code, result.output).toBe(0);
   const shown = tty.getvalue();

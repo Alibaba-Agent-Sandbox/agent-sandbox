@@ -16,7 +16,7 @@ Express supports pause/resume and Snapshot after the corresponding account/regio
 | Resume the same sandbox | `Sandbox.connect(sandbox_id)` | `abx sandbox resume "$SANDBOX_ID"` |
 | Create a snapshot | `sandbox.create_snapshot(name="checkpoint", request_timeout=300)` | `abx sandbox snapshot create "$SANDBOX_ID" --name checkpoint` |
 | List snapshots | `Sandbox.list_snapshots(sandbox_id=sandbox_id)`, consume the paginator | `abx --json sandbox snapshot list "$SANDBOX_ID"` |
-| Create from a snapshot | `Sandbox.create(template=snapshot.snapshot_id)` | `abx deploy --template-id "$SNAPSHOT_ID" --name restored --yes` |
+| Create from a snapshot | `Sandbox.create(template=snapshot.snapshot_id)` | `abx sandbox create --template "$SNAPSHOT_ID" --yes` |
 | Delete a snapshot | `Sandbox.delete_snapshot(snapshot.snapshot_id)` | `abx sandbox snapshot delete "$SNAPSHOT_ID"` |
 
 Python examples use `from agent_sandbox import Sandbox`; asynchronous callers use `AsyncSandbox` and await the appropriate operations. These standard clients are distinct from the native Provider/Server extension at `agent_sandbox.api.sandbox.Sandbox`. A native provider feature gate is not a statement that the Express standard API is unavailable. Python spells the method `create_snapshot`; TypeScript uses `createSnapshot`, with argument shapes determined by the installed SDK version.

@@ -15,11 +15,11 @@ import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js
 useMockCloudConfiguration();
 const tmp=useTmpPath(), originalPaths={...paths};
 const id="sbx-cli-test-001";
-const info=()=>SandboxInfo.modelValidate({sandboxID:id,templateID:"base",state:"running",region:"cn-hangzhou",envdAccessToken:"private-runtime-authorization"});
+const info=()=>SandboxInfo.modelValidate({sandboxID:id,templateID:"base",status:"running",region:"cn-hangzhou",envdAccessToken:"private-runtime-authorization"});
 const invoke=(args:string[])=>new CliRunner().invoke(cli,args);
 beforeEach(()=>_setPaths({abxDir:path.join(tmp(),"home")}));
 afterEach(()=>{vi.restoreAllMocks();_setPaths(originalPaths);});
-function create() { return vi.spyOn(Sandbox,"create").mockResolvedValue({id,info:info(),close:async()=>{}} as unknown as Sandbox); }
+function create() { return vi.spyOn(Sandbox,"create").mockResolvedValue({id,info:info(),status:"running",provider:"alicloud-express",url:"https://example.test",close:async()=>{}} as unknown as Sandbox); }
 function execution(exitCode=0) {
   vi.spyOn(process.stdin,Symbol.asyncIterator).mockImplementation(async function*(){});
   return vi.spyOn(NativeSandbox,"connect").mockResolvedValue({commands:{supportsStdinClose:true,
@@ -31,13 +31,13 @@ it("test_cli_create_exec_kill",async()=>{
   create();execution();let deleted=false;
   const kill=vi.spyOn(Sandbox,"killById").mockImplementation(async()=>{deleted=true;});
   vi.spyOn(Sandbox,"getInfoById").mockImplementation(async()=>{if(deleted)throw new SandboxNotFoundError(id);return info();});
-  let r=await invoke(["deploy","--template-id","base","--name","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);
-  r=await invoke(["sandbox","exec","demo","echo","hello"]);expect(r.exit_code,r.output).toBe(0);expect(r.stdout).toContain("hello");
-  r=await invoke(["delete","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);expect(kill).toHaveBeenCalledWith(id,expect.objectContaining({provider:"alicloud-express"}));expect(deleted).toBe(true);
+  let r=await invoke(["sandbox","create","--template","base","--yes"]);expect(r.exit_code,r.output).toBe(0);
+  r=await invoke(["sandbox","exec",id,"echo","hello"]);expect(r.exit_code,r.output).toBe(0);expect(r.stdout).toContain("hello");
+  r=await invoke(["sandbox","delete",id,"--yes"]);expect(r.exit_code,r.output).toBe(0);expect(kill).toHaveBeenCalledWith(id);expect(deleted).toBe(true);
 });
 it("test_cli_json_output",async()=>{
-  create();const r=await invoke(["--json","deploy","--template-id","base","--name","demo","--yes"]);
-  expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toMatchObject({name:"demo",sandbox_id:id,status:"ready",kind:"sandbox"});
+  create();const r=await invoke(["--json","sandbox","create","--template","base","--yes"]);
+  expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toMatchObject({ID:id,Status:"running"});
 });
 it("test_cli_exec_json_output",async()=>{
   execution();const r=await invoke(["--json","sandbox","exec",id,"echo","hello"]);
@@ -53,7 +53,7 @@ for(const [title,error] of [
   ["test_cli_error_auth",new AuthenticationError("Invalid API key")],
 ] as const) it(title,async()=>{
   const request=vi.spyOn(Sandbox,"create").mockRejectedValue(error);
-  const r=await invoke(["deploy","--template-id","base","--name","failed","--yes"]);
+  const r=await invoke(["sandbox","create","--template","base","--yes"]);
   expect(r.exit_code).not.toBe(0);expect(r.output+r.stderr).toContain(error.message);expect(request).toHaveBeenCalledTimes(1);
 });
 it("test_cli_list_sandboxes",async()=>{
@@ -69,6 +69,6 @@ it("test_cli_info_command",async()=>{
   const json=await invoke(["--json","status",id]);expect(JSON.parse(json.stdout)).toMatchObject({sandbox_id:id,status:"running"});expect(json.output).not.toContain("envd_access_token");
 });
 it("test_cli_quiet_mode",async()=>{
-  create();const r=await invoke(["--quiet","deploy","--template-id","base","--name","demo","--yes"]);
+  create();const r=await invoke(["--quiet","sandbox","create","--template","base","--yes"]);
   expect(r.exit_code,r.output).toBe(0);expect(r.output).toContain(id);expect(r.stderr).not.toContain("Deploy demo?");
 });

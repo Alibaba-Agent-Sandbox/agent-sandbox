@@ -1,3 +1,5 @@
+import { recoverResourceProject, resourceLogs } from "../../template/resource_executor.js";
+import { resourceDeploymentSummary, removeResourceDeployment } from "../resource_deployment.js";
 /** Common names and raw Sandbox IDs resolve to the existing lifecycle operations. */
 import fs from "node:fs";
 import path from "node:path";
@@ -78,6 +80,7 @@ export const status = command("status", {
   callback: handleErrors(async (ctx, params) => {
     const value = savedTarget(String(params.target));
     if (!value) { getFormatter(ctx).printDict(sandboxInfo(await managementSeams.info(String(params.target)))); return; }
+    if (value.kind === "resources") {getFormatter(ctx).printData(resourceDeploymentSummary(value)); return;}
     if (value.kind === "sandbox") {
       let remote: Record<string, unknown> | null = null;
       if (value.sandboxId) try { remote = sandboxInfo(await managementSeams.info(value.sandboxId, connection(value))); } catch (error) { if (!(error instanceof SandboxNotFoundError)) throw error; }
@@ -129,6 +132,7 @@ export const deleteDeployment = command("delete", {
     if (!initial) { if (params.revision) throw new UsageError("--revision requires a named application."); await managementSeams.kill(name); if (!await absentSandbox(name, {})) throw new ApplicationError("Sandbox deletion is not yet confirmed."); getFormatter(ctx).printData({ sandbox_id: name, status: "deleted" }); return; }
     await withApplicationLock(path.join(paths.abxDir, "deployment-locks"), name, async () => {
       const value = savedTarget(name); if (!value) throw new ApplicationError("Deployment record changed before deletion.");
+      if (value.kind === "resources") {await removeResourceDeployment(value); getFormatter(ctx).printData(resourceDeploymentSummary(value)); return;}
       if (value.kind === "sandbox") { if (params.revision) throw new UsageError("Sandbox deployments have no retained application revisions."); getFormatter(ctx).printData(await deleteSandboxDeployment(value)); return; }
       if (!value.receipt || !fs.existsSync(value.receipt)) {
         if (value.ownsBuild && value.build && fs.existsSync(value.build)) { const build = JSON.parse(fs.readFileSync(value.build, "utf8")); const credential = await resolveDeployCredentials(build.accessRef ?? "abx"); await cleanBuild(value.build, credential); }
@@ -156,6 +160,7 @@ export const recover = command("recover", {
     releaseStoppedApplicationLock(path.join(paths.abxDir, "deployment-locks"), name);
     await withApplicationLock(path.join(paths.abxDir, "deployment-locks"), name, async () => {
       const value = savedTarget(name); if (!value) throw new ApplicationError("Deployment record changed before recovery.");
+      if (value.kind === "resources" && value.receipt) {await recoverResourceProject(value.receipt); getFormatter(ctx).printData(resourceDeploymentSummary(value)); return;}
       if (value.kind === "application" && value.receipt && fs.existsSync(value.receipt)) {
         const receipt = readReceipt(value.receipt), services = await applicationControlServices(receipt, bindingFile(value, params));
         releaseStoppedApplicationLock(path.join(paths.abxDir, "app-locks"), `${services.fc.accountId}/${receipt.plan.template.application.deployment.region}/${receipt.plan.applicationId ?? receipt.plan.template.name}`);
@@ -171,10 +176,15 @@ export const recover = command("recover", {
   }),
 });
 export const logs = command("logs", {
-  help: "Read deployment logs. Sandbox service logs use the template startup log; --source platform selects native sandbox logs.",
-  params: [target, option(["--source"], { type: new Choice(["service", "platform"]), default: "service" }), option(["--role"], { type: new Choice(["gateway", "worker", "dispatcher"]), default: "gateway" }), option(["--follow", "-f"], { is_flag: true }), option(["--lines"], { type: INT, default: 100 })],
+  help: "Read Serving logs with --resource, or native logs for a running Sandbox ID.",
+  params: [target, option(["--resource"], {help: "Named Serving resource to read."}), option(["--source"], { type: new Choice(["service", "platform"]), default: "service" }), option(["--role"], { type: new Choice(["gateway", "worker", "dispatcher"]), default: "gateway" }), option(["--follow", "-f"], { is_flag: true }), option(["--lines"], { type: INT, default: 100 })],
   callback: handleErrors(async (ctx, params) => {
     const value = savedTarget(String(params.target));
+    if (value?.kind === "resources") {
+      if (!value.receipt) throw new ApplicationError("Resource ownership record is missing.");
+      const result = await resourceLogs(value.receipt, params.resource, Boolean(params.follow));
+      getFormatter(ctx).printData(result ?? []); return;
+    }
     if (value?.kind === "application") {
       const { applicationLogs } = await import("../../application/logs.js");
       if (!value.receipt) throw new ApplicationError("Deployment has no running application receipt.");

@@ -153,11 +153,11 @@ const cleanupSandboxes = async (templateReference, runAlias, known) => {
 try {
   sourceSubmitted = true;
   persistOwnedState();
-  const sourceCreated = await request(["--json", "deploy", "--template-id", publicSource.templateID, "--sandbox-timeout", "60", "--metadata", `abx_guided_steps_run=${alias}-source`, "--yes"], sandboxEnvironment);
+  const sourceCreated = await request(["--json", 'sandbox', 'create', '--template', publicSource.templateID, '--timeout', "60", "--metadata", `abx_guided_steps_run=${alias}-source`, "--yes"], sandboxEnvironment);
   assert.equal(sourceCreated.code, 0, "Existing public source did not create a sandbox; response withheld");
   let sourceCreatedResult;
   try { sourceCreatedResult = JSON.parse(sourceCreated.stdout); } catch { throw new Error("Source create did not return one JSON document"); }
-  sourceSandbox = sourceCreatedResult.sandbox_id;
+  sourceSandbox = sourceCreatedResult.ID;
   assert.ok(validSandboxId(sourceSandbox), "Source create did not return a single sandbox ID");
   persistOwnedState();
   const sourceExecution = await request(["sandbox", "exec", sourceSandbox, "printf", "verified-public-source-ok"], sandboxEnvironment, 60_000);
@@ -194,11 +194,11 @@ try {
 
   sandboxSubmitted = true;
   persistOwnedState();
-  const created = await request(["--json", "deploy", "--template-id", template, "--sandbox-timeout", "60", "--metadata", `abx_guided_steps_run=${alias}`, "--yes"], sandboxEnvironment);
+  const created = await request(["--json", 'sandbox', 'create', '--template', template, '--timeout', "60", "--metadata", `abx_guided_steps_run=${alias}`, "--yes"], sandboxEnvironment);
   assert.equal(created.code, 0, "Creating the owned build-marker sandbox failed; response withheld");
   let createdResult;
   try { createdResult = JSON.parse(created.stdout); } catch { throw new Error("Sandbox create did not return one JSON document"); }
-  const id = createdResult.sandbox_id;
+  const id = createdResult.ID;
   assert.ok(validSandboxId(id), "Create did not return a single sandbox ID");
   sandbox = id;
   persistOwnedState();

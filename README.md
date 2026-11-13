@@ -35,18 +35,18 @@ Configure your provider, then create a sandbox:
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo --yes
+abx sandbox create --template base --yes
 ```
 
 For Express, use a Sandbox API key for your account and region. The setup guide explains [credential sources and required permissions](docs/en/guide/permissions.md), including the optional AccessKey-based preparation flow. Interactive settings are saved locally for later commands.
 
-Use the saved deployment name in subsequent commands:
+Use the Sandbox ID returned by creation in subsequent commands:
 
 ```bash
-abx sandbox exec demo -- echo hello
-abx status demo
-abx sandbox connect demo
-abx delete demo --yes
+abx sandbox exec SANDBOX_ID -- echo hello
+abx status SANDBOX_ID
+abx sandbox connect SANDBOX_ID
+abx sandbox delete SANDBOX_ID --yes
 ```
 
 `sandbox connect` opens a terminal. Exiting it leaves the sandbox running; `delete` deletes it. See the [CLI tutorial](docs/en/guide/cli-tutorial.md) for files, background processes and other operations.
@@ -59,13 +59,15 @@ To deploy an Agents API with one stable Gateway and a separate Sandbox per Sessi
 Templates package tools such as browser automation, coding agents and web services. Choose one from the [catalog](https://registry.agent-sandbox.cn/en/templates/) and follow its setup instructions:
 
 ```bash
-abx template list python
-abx deploy python-hello --name hello --yes
+abx template init ./python-hello --from python-hello
+cd python-hello
+abx deploy . --name hello --yes
+python run.py --template TEMPLATE_ID
 ```
 
-Source templates need the selected provider's build prerequisites. Launch starts the template's declared services and returns its sandbox ID. The CLI generates and saves the default application authentication token automatically. Model credentials are needed only for templates that use a model.
+Source templates need the selected provider's build prerequisites. Deploy returns the prepared template resource ID; use it as TEMPLATE_ID. The template's run.py creates an instance and starts its service. Follow that template's README for Python SDK, application authentication and model setup.
 
-Use `abx delete hello --yes` when finished. It deletes owned sandboxes and templates; borrowed builds and images requiring manual cleanup are retained. follow the [template guide](docs/en/guide/using-templates.md) for setup and resource cleanup.
+Use `abx sandbox delete SANDBOX_ID --yes` for the runtime instance, then `abx delete hello --yes` for owned template resources; borrowed builds and images requiring manual cleanup are retained. Follow the [template guide](docs/en/guide/using-templates.md) for setup and resource cleanup.
 
 ## Use with AI tools
 

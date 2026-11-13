@@ -242,7 +242,7 @@ export const list_templates = template.command("list", {
         fmt.printTable(headers, rows);
         if (!fmt.quiet) {
             echo(`\n${results.length} template(s) found.`);
-            echo(`Launch one with: abx --provider <provider> deploy <name> --name <app> (index: ${index.source_url})`);
+            echo(`Inspect usage with: abx template info <name> (index: ${index.source_url})`);
         }
     }),
 });
@@ -759,7 +759,8 @@ export async function _resolveIndexEntry(name: string, opts: { token: string | n
       },
     );
   }
-  const identity = entry.manifest ? `${entry.manifest.provider}/${entry.manifest.template_id}` : entry.install_ref;
+  const managed = entry.manifest ? Object.values((entry.manifest.sandbox ?? {}) as Record<string, {provider?: string; template?: {reference?: string}}>)[0] : undefined;
+  const identity = managed ? `${managed.provider}/${managed.template?.reference}` : entry.install_ref;
   out.info(`Resolved '${name}' via the template index: ${identity}`);
   return entry;
 }
@@ -767,7 +768,8 @@ export async function _resolveIndexEntry(name: string, opts: { token: string | n
 export async function _resolveIndexName(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<string> {
   const entry = await _resolveIndexEntry(name, opts);
   if (entry.manifest) {
-    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} deploy ${entry.name} --name <app>' instead.`);
+    const resource = Object.values((entry.manifest.sandbox ?? {}) as Record<string, {provider?: string; template?: {reference?: string}}>)[0];
+    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${resource?.provider} sandbox create --template ${resource?.template?.reference} --yes' instead.`);
   }
   return entry.install_ref;
 }
@@ -789,8 +791,8 @@ export async function acquireTemplateSource(
       const entry = await _resolveIndexEntry(source, { token: active, fmt, out });
       if (entry.manifest) {
         if (!options.allowManaged) {
-          const sandbox = entry.manifest.sandbox as {provider?: string} | undefined;
-          throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${sandbox?.provider} deploy ${entry.name} --name <app>' instead.`);
+          const sandbox = Object.values((entry.manifest.sandbox ?? {}) as Record<string, {provider?: string; template?: {reference?: string}}>)[0];
+          throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${sandbox?.provider} sandbox create --template ${sandbox?.template?.reference} --yes' instead.`);
         }
         return { ref, manifest: entry.manifest };
       }

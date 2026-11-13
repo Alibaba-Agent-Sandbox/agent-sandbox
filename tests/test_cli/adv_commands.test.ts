@@ -143,7 +143,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-06 create --env __proto__=1 sends the key", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      await runAbx(["deploy", "--template-id", "base", "--yes", "--env", "__proto__=1", "--metadata", "__proto__=2"], { home, cwd, url: stub.url });
+      await runAbx(["sandbox", "create", "--template", "base", "--yes", "--env", "__proto__=1", "--metadata", "__proto__=2"], { home, cwd, url: stub.url });
       const post = (await log()).find((e) => e.method === "POST" && e.path === "/sandboxes");
       const body = post?.body;
       expect(JSON.stringify(body)).toContain('"__proto__":"1"');
@@ -236,7 +236,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-15 the oversized request timeout (--request-timeout 99999999999) is not clamped to 1 ms", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runAbx(["deploy", "--template-id", "base", "--yes", "--request-timeout", "99999999999"], { home, cwd, url: stub.url });
+      const r = await runAbx(["sandbox", "create", "--template", "base", "--yes", "--request-timeout", "99999999999"], { home, cwd, url: stub.url });
       expect(r.stderr).not.toContain("TimeoutOverflowWarning");
       expect(r.status).toBe(0);
     });

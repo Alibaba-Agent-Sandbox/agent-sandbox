@@ -321,7 +321,7 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
   if (raw["resource"] !== undefined) {
     try {
       const resource = normalizeProjectIntent(raw.resource);
-      if (resource.name !== name || !resource.sandbox?.template.reference || resource.application || resource.deployment) throw new Error("Not a native reference");
+      if (resource.name !== name || Object.keys(resource.serving ?? {}).length > 0 || Object.values(resource.sandbox ?? {}).length !== 1 || !Object.values(resource.sandbox ?? {})[0]?.template.reference) throw new Error("Not a native reference");
       manifest = resource as unknown as Record<string, unknown>;
     } catch { throw new TemplateParseError(`Managed entry '${name}' has an invalid v1 native resource.`); }
   }

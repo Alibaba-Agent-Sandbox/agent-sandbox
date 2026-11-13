@@ -157,7 +157,7 @@ describe("TestSearchCommand", () => {
     _patchIndex(index());
     const result = await runner().invoke(cli, ["template", "list", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("deploy <name> --name <app>");
+    expect(result.output).toContain("template info <name>");
     expect(result.output).toContain(INDEX_URL);
   });
 
@@ -294,7 +294,7 @@ describe("published managed catalog commands", () => {
     const fetch = vi.spyOn(registryMod.RegistryClient.prototype, "fetch");
     const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "desktop"]);
     expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("deploy desktop --name <app>");
+    expect(result.output).toContain("sandbox create --template desktop --yes");
     expect(fetch).not.toHaveBeenCalled();
   });
 });

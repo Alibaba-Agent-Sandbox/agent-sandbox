@@ -171,12 +171,13 @@ describe("TestPrompt", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestGenerateTemplateFiles", () => {
-  it("declares a runtime-only application token in new generated artifacts", async () => {
+  it("keeps runtime-only authentication out of generated resource definitions", async () => {
     vi.stubEnv("ABX_SERVER_TOKEN", "host-private-token-not-for-artifacts");
     patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("add API", { workdir: tmpPath });
     const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, unknown>;
-    expect((manifest["sandbox"] as any).instance.envs).toEqual({ ABX_SERVER_TOKEN: "" });
+    expect(manifest["sandbox"]).not.toHaveProperty("instance");
+    expect(manifest["sandbox"]).not.toHaveProperty("agent.instance");
     expect(fs.readFileSync(result.templateYaml, "utf8")).not.toContain("host-private-token-not-for-artifacts");
     vi.unstubAllEnvs();
   });
@@ -185,7 +186,7 @@ describe("TestGenerateTemplateFiles", () => {
     patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "dockerfile" });
     const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, unknown>;
-    expect((manifest["sandbox"] as any).template.source).toEqual({dockerfile: "Dockerfile", context: "."});
+    expect((manifest["sandbox"] as any).agent.template.buildConfig).toEqual({dockerfile: "Dockerfile", context: "."});
   });
 
   it("rejects unimplemented v1 steps source generation before running a model or writing files", async () => {
@@ -207,7 +208,7 @@ describe("TestGenerateTemplateFiles", () => {
     // The generated name replaces the model-provided one.
     const data = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, any>;
     expect(data.name).toBe(result.templateName);
-    expect(data.sandbox.template.props).toEqual({ cpu: 2, memory: 4096 });
+    expect(data.sandbox.agent.template).toMatchObject({ cpu: 2, memorySize: 4096 });
     expect(data.specVersion).toBe(1);
   });
 
@@ -316,7 +317,7 @@ describe("TestGenerateTemplateFiles", () => {
     );
     expect(String(exc)).toContain("did not create the expected file");
     expect(exc.suggestion).toContain('abx template init --prompt "<description>"');
-    expect(exc.suggestion).toContain("abx deploy --template-id <name> --name my-sandbox");
+    expect(exc.suggestion).toContain("abx sandbox create --template <name>");
   });
 
   it("test_commands_py_with_a_syntax_error_raises", async () => {
@@ -514,7 +515,7 @@ describe("TestValidateTemplateWorkspace", () => {
     const written = fs.readFileSync(result.templateYaml, "utf8");
     expect(written).toContain("specVersion: 1");
     expect(written).toContain(`name: ${result.templateName}`);
-    expect(written).toContain("ports:");
+    expect(written).toContain("memorySize: 512");
     expect(safeLoad(written)).toEqual(safeLoad(manifestYaml(`name: ${result.templateName}\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\nenv: {ABX_SERVER_TOKEN: ""}\n`)));
   });
 });

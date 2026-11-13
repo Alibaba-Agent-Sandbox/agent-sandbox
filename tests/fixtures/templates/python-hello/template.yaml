@@ -1,21 +1,11 @@
 specVersion: 1
 name: python-hello
 sandbox:
-  template:
-    source:
-      dockerfile: Dockerfile
-      context: .
-    props:
+  agent:
+    provider: alicloud-express
+    template:
+      buildConfig:
+        dockerfile: Dockerfile
+        context: .
       cpu: 2
-      memory: 2048
-  instance:
-    envs:
-      LANG: C.UTF-8
-  services:
-    app:
-      protocol: agent-sandbox-server
-      version: 2
-      port: 9000
-      operations:
-        - commands.list
-        - commands.run
+      memorySize: 2048

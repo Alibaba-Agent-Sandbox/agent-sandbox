@@ -46,22 +46,11 @@ export function resolveProject(file: string, options: ProjectResolutionOptions =
   }
 }
 
-/**
- * Private in-memory input for the existing startup executor/model.
- * This is never a public manifest and must not be serialized as template.yaml.
- */
+/** Private metadata view; template startup commands are never instance hooks. */
 export function sandboxExecutionInput(intent: TemplateV1, compiled?: CompiledTemplateV1): Record<string, unknown> {
-  const input = sandboxModelInput(intent);
-  if (compiled) {
-    for (const key of ["name", "provider", "resources", "env", "provides", "ports", "template_id", "image", "build_profiles", "aliases"] as const) {
-      if (compiled[key] !== undefined) input[key] = structuredClone(compiled[key]);
-    }
-    for (const key of ["start_cmd", "ready_cmd"] as const) if (compiled[key]) input[key] = compiled[key];
-    const props = compiled.resources;
-    if (props && typeof props.cpu === "number") input.cpu_count = props.cpu;
-    if (props && typeof props.memory === "number") input.memory_mb = props.memory;
-  }
+  const document = compiled ? {specVersion: 1 as const, ...compiled} : intent;
+  if ("kind" in document) delete (document as Record<string, unknown>).kind;
+  const input = sandboxModelInput(document);
   delete input.specVersion;
-  if (!input.template_id) delete input.provider;
   return input;
 }

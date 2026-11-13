@@ -10,7 +10,7 @@ import { getProvider, resolveProviderId } from "../providers/registry.js";
 export interface Deployment {
   version: 1;
   name: string;
-  kind: "sandbox" | "application";
+  kind: "sandbox" | "application" | "resources";
   provider: string;
   providerOptions?: Record<string, unknown>;
   connection?: { api_url?: string; domain?: string };
@@ -42,7 +42,7 @@ export function readDeployment(name: string): Deployment | undefined {
   const file = path.join(deploymentDirectory(name), "deployment.json");
   if (!fs.existsSync(file)) return undefined;
   const data: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
-  if (!record(data) || data.version !== 1 || data.name !== name || !["application", "sandbox"].includes(String(data.kind)) || typeof data.provider !== "string") throw new ApplicationError("Invalid local deployment record; preserve it for recovery.");
+  if (!record(data) || data.version !== 1 || data.name !== name || !["application", "sandbox", "resources"].includes(String(data.kind)) || typeof data.provider !== "string") throw new ApplicationError("Invalid local deployment record; preserve it for recovery.");
   return data as unknown as Deployment;
 }
 export function saveDeployment(value: Deployment): void {

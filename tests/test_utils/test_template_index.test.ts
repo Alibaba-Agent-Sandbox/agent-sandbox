@@ -220,7 +220,7 @@ describe("TestParseIndex", () => {
 
   it("reads contained local registry metadata without evaluating expressions or requiring runtime input", async () => {
     const root = iso.tmp_path, folder = path.join(root, "example"), file = path.join(root, "catalog.yaml"); fs.mkdirSync(folder);
-    fs.writeFileSync(path.join(folder, "registry.yaml"), stringify({...metadata("example"), tags: ["agents-api"], questions: []}));
+    fs.writeFileSync(path.join(folder, "registry.yaml"), stringify({...metadata("example"), tags: ["agents-api"], parameters: []}));
     fs.writeFileSync(file, stringify({schema_version: 3, templates: [{name: "example", repo: "owner/repo", path: "example", registry: "example/registry.yaml"}]}));
     const value = await fetch_index(file);
     expect(value.filter("agents-api")[0].description).toBe("Test template");
@@ -549,7 +549,7 @@ describe("public source and managed catalog", () => {
       ["opensandbox-code-interpreter", "opensandbox", "opensandbox/code-interpreter:v1.1.0"],
     ]) {
       const entry = index.entries.find(item => item.name === name)!;
-      expect(entry.manifest).toMatchObject({specVersion: 1, sandbox: {provider, template: {reference: template_id}, services: {}}});
+      expect(entry.manifest).toMatchObject({specVersion: 1, sandbox: {agent:{provider, template: {reference: template_id}}}});
       expect(entry.repo).toBe("");
       expect(entry.path).toBeNull();
     }
@@ -558,13 +558,13 @@ describe("public source and managed catalog", () => {
   it("reads managed entries from an existing raw-YAML cache without a network refresh", () => {
     const directory = path.join(iso.tmp_path, "old-version-cache");
     _seed_cache(directory, {text: published});
-    expect(read_cached_index(directory)!.find("base")!.manifest).toMatchObject({sandbox: {provider: "alicloud-express", template: {reference: "base"}}});
+    expect(read_cached_index(directory)!.find("base")!.manifest).toMatchObject({sandbox: {agent:{provider: "alicloud-express", template: {reference: "base"}}}});
     expect(read_cached_index(directory)!.entries).toHaveLength(50);
   });
   it("rejects malformed managed rows and cross-list duplicate names", () => {
     expect(() => parse_index(INDEX_YAML + "managed_templates: {}\n")).toThrow(/managed_templates.*list/);
     expect(() => parse_index(INDEX_YAML + "managed_templates:\n  - name: missing-native\n")).toThrow(/v1 native resource/);
-    const duplicate = {name: "qwen-code", metadata: metadata("qwen-code"), resource: {specVersion: 1, name: "qwen-code", sandbox: {provider: "alicloud-express", template: {reference: "base"}, services: {}}}};
+    const duplicate = {name: "qwen-code", metadata: metadata("qwen-code"), resource: {specVersion: 1, name: "qwen-code", sandbox: {agent:{provider: "alicloud-express", template: {reference: "base"}}}}};
     expect(() => parse_index(INDEX_YAML + stringify({managed_templates: [duplicate]}))).toThrow(/uplicate/);
   });
 });

@@ -587,14 +587,14 @@ function envAliyun(ns: string | null = "test-ns"): void {
 describe("TestGenerationFromYaml", () => {
   it("test_generation_from_yaml", () => {
     const tdir = path.join(tmpPath(), "gen");
-    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen\nstart_cmd: serve\nresources:\n  cpu: 1\n  memory: 512\n"));
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen\ngeneration: 2\nstart_cmd: serve\nresources:\n  cpu: 1\n  memory: 512\n"));
     const defaults = _readYamlDefaults(tdir);
     expect(defaults["generation"]).toBe(2);
   });
 
   it("test_generation_cli_overrides_yaml", async () => {
     const tdir = path.join(tmpPath(), "gen2");
-    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen2\nstart_cmd: serve\nresources:\n  cpu: 1\n"));
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen2\ngeneration: 2\nstart_cmd: serve\nresources:\n  cpu: 1\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-gen" });
@@ -743,7 +743,7 @@ describe("TestInitFromDefaultDirectory", () => {
 describe("TestBuildYamlGeneration", () => {
   it("test_build_yaml_generation_2_no_flag", async () => {
     const tdir = path.join(tmpPath(), "gen2");
-    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen2\nstart_cmd: serve\nresources:\n  cpu: 1\n  memory: 512\n"));
+    writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-gen2\ngeneration: 2\nstart_cmd: serve\nresources:\n  cpu: 1\n  memory: 512\n"));
     writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
     envAliyun();
     const mockDeploy = patchDoDeploy({ TemplateID: "tpl-gen2" });

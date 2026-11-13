@@ -1,3 +1,6 @@
+import { getOutput } from "./output.js";
+import { withTemplateEnvironment } from "./template_environment.js";
+import { deployResourceProject, deleteResourceProject } from "../template/resource_executor.js";
 /** Reusable build artifacts; preparation never starts an application instance. */
 import fs from "node:fs";
 import path from "node:path";
@@ -16,7 +19,7 @@ import { resolveDeployCredentials } from "../application/fc.js";
 import { cliProvider } from "../providers/selection.js";
 import { resolveProviderId } from "../providers/registry.js";
 
-const ignored = new Set([".git", ".abx", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
+const ignored = new Set([".git", ".abx", ".s", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
 
 /** Copy only regular source inputs into a private snapshot, preserving container-readable source modes. */
 export function snapshotTemplateSource(source: string, destination: string): string {
@@ -55,6 +58,18 @@ export async function buildTemplate(ctx: Context, params: Params): Promise<void>
   const output = path.resolve(String(params.out ?? path.join(acquired.ref.registry_type === "local" ? source : process.cwd(), ".abx", `build-${id}.json`)));
   if (fs.existsSync(output)) throw new ApplicationError("Build artifact already exists; retain its resources/journal and choose a new --out path.");
   fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+  const sourceManifest = _findTemplateYaml(source);
+  if (!sourceManifest) throw new UsageError("Template source has no template.yaml.");
+  const sourceRaw = readYaml(sourceManifest);
+  if (record(sourceRaw) && sourceRaw.specVersion === 1) {
+    const out = getOutput(ctx);
+    if (!out.useActivityLine) out.progress("Building resource templates");
+    const result = await out.activity("Building resource templates", update =>
+      withTemplateEnvironment(ctx, JSON.stringify(sourceRaw).includes("ABX_SERVER_TOKEN") ? {ABX_SERVER_TOKEN: ""} : {}, {}, true,
+        environment => deployResourceProject(sourceManifest, output, {buildOnly: true, timeoutSeconds: Number(params.timeout ?? 600),
+          onProgress: message => { if (update) update(message); else out.debug(message); }, environment: {...process.env, ...environment}})), {tick: true});
+    getFormatter(ctx).printDict({status: result.status, build: output, kind: result.kind}); return;
+  }
   const snapshotDirectory = path.join(acquired.ref.registry_type === "local" ? source : process.cwd(), ".abx");
   fs.mkdirSync(snapshotDirectory, { recursive: true, mode: 0o700 });
   const projectRoot = path.join(snapshotDirectory, `build-source-${id}`);
@@ -91,6 +106,7 @@ export async function cleanTemplateBuild(ctx: Context, input: string): Promise<v
   return withApplicationLock(path.join(paths.abxDir, "template-build-locks"), file, async () => {
   const artifact = JSON.parse(fs.readFileSync(file, "utf8"));
   if (artifact.usedBy?.length || artifact.consumers?.length) throw new UsageError("This build is used by an application; remove its consumers before cleaning the build.");
+  if (artifact.kind === "ResourceDeployment") {const result = await deleteResourceProject(file); getFormatter(ctx).printDict({status: result.status, build: file}); return;}
   if (artifact.kind === "ManagedApplicationBuild") {
     const credential = await templateBuildSeams.credentials(String(artifact.accessRef ?? "abx"));
     const result = await templateBuildSeams.cleanBuild(file, credential);

@@ -57,12 +57,11 @@ describe("template authoring", () => {
     const files = renderScaffold("mcp", "my-mcp", "alicloud-express");
     const manifest = parse(files.get("template.yaml")!);
     expect(() => normalizeProjectIntent(manifest)).not.toThrow();
-    expect(manifest.sandbox.services.mcp).toMatchObject({ protocol: "http", port: 9000 });
-    expect(manifest.sandbox.start).toContain("uvicorn app:app");
-    expect(manifest.sandbox.instance.envs.ABX_SERVER_TOKEN).toBe("");
+    expect(manifest.serving.api.component).toBe("serverless-devs/fc3@0.1.26");
+    expect(manifest.serving.api.props.customContainerConfig.port).toBe(9000);
+    expect(manifest.serving.api.props.environmentVariables.ABX_SERVER_TOKEN).toBe("${env('ABX_SERVER_TOKEN')}");
     expect(files.get("app.py")).toContain("require_auth_token");
-    const json = files.get("README.md")!.split("```json\n")[1].split("\n```")[0];
-    expect(JSON.parse(json).method).toBe("initialize");
+    expect(files.get("README.md")).toContain("Mcp-Session-Id");
   });
 
   it("freezes source and a reusable prepared artifact without creating an application", async () => {

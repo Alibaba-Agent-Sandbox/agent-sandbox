@@ -136,8 +136,11 @@ export function _readYamlDefaults(template_dir: string): Record<string, Any> {
         return {};
     try {
         const intent = readProjectIntent(yamlPath);
-        const yamlData: Any = { name: intent.name, resources: intent.sandbox?.template.props ?? {},
-            generation: intent.sandbox?.start ? 2 : null, start_cmd: intent.sandbox?.start, ready_cmd: intent.sandbox?.ready };
+        const sandboxResources = Object.values(intent.sandbox ?? {});
+        if (sandboxResources.length !== 1) throw new Error("Select a single Sandbox resource for native template defaults.");
+        const config = sandboxResources[0].template;
+        const yamlData: Any = { name: intent.name, resources: {cpu: config.cpu, memory: config.memorySize},
+            generation: config.generation, start_cmd: config.startCommand, ready_cmd: config.readyCommand };
         if (!_isDict(yamlData))
             throw new AttributeError(`'${pyTypeNameOf(yamlData)}' object has no attribute 'get'`);
         let resources: Any = Object.prototype.hasOwnProperty.call(yamlData, "resources") ? yamlData["resources"] : {};

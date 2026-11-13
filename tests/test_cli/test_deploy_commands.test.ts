@@ -1,4 +1,4 @@
-/** Public deployment behavior, including durable identity before uncertain cloud results. */
+/** Public resource deployment and separate explicit native instance lifecycle. */
 import "../_support/isolatedHome.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -8,127 +8,83 @@ import { CliRunner } from "../helpers/cliRunner.js";
 import { useTmpPath } from "../helpers/templateSupport.js";
 import { cli } from "../../src/cli/main.js";
 import { deploymentSeams } from "../../src/cli/commands/deploy.js";
-import { readDeployment, saveDeployment, sandboxTarget } from "../../src/cli/deployment_store.js";
+import { readDeployment, saveDeployment } from "../../src/cli/deployment_store.js";
 import { renderScaffold } from "../../src/cli/scaffold.js";
 import { paths, _setPaths } from "../../src/transport/config_layers.js";
-import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { sourceDigest } from "../../src/application/config.js";
-const tmp = useTmpPath();
-const run = (args: string[]) => new CliRunner().invoke(cli, args, {env: {ABX_SANDBOX_API_KEY: "test-key", ABX_REGION: "cn-hangzhou"}});
-const oldPaths = {...paths};
-beforeEach(() => _setPaths({abxDir: path.join(tmp(), "home")}));
-afterEach(() => { vi.restoreAllMocks(); _setPaths(oldPaths); });
-function project(): string {
-  const folder = path.join(tmp(), "project"); fs.mkdirSync(folder);
-  for (const [name, content] of renderScaffold("minimal", "example", "alicloud-express")) fs.writeFileSync(path.join(folder, name), content);
-  return folder;
+import { resourceServices } from "../../src/template/resource_executor.js";
+const tmp=useTmpPath(),oldPaths={...paths};
+const run=(args:string[])=>new CliRunner().invoke(cli,args,{env:{ABX_SANDBOX_API_KEY:"test-key",ABX_REGION:"cn-hangzhou"}});
+beforeEach(()=>_setPaths({abxDir:path.join(tmp(),"home")}));
+afterEach(()=>{vi.restoreAllMocks();_setPaths(oldPaths);});
+function project():string {
+  const folder=path.join(tmp(),"project");fs.mkdirSync(folder);
+  for(const [name,content] of renderScaffold("minimal","example","alicloud-express"))fs.writeFileSync(path.join(folder,name),content);
+  const file=path.join(folder,"template.yaml"),value=parse(fs.readFileSync(file,"utf8"));value.sandbox.agent.template={region:"cn-hangzhou",image:"example.com/test:v1"};fs.writeFileSync(file,stringify(value));return folder;
 }
-describe("native Serving admission", () => {
-  it.each([false, true])("rejects mixed nonManaged resources before any partial effects (plan=%s)", async preview => {
-    const folder = project(), file = path.join(folder, "template.yaml"), value = parse(fs.readFileSync(file, "utf8"));
-    value.deployment = { edition: "3.0.0", name: "native", resources: {api: {component: "fc3@0.1.26", props: {region: "cn-hangzhou"}}} };
-    fs.writeFileSync(file, stringify(value));
-    const launch = vi.spyOn(deploymentSeams, "launch"), build = vi.spyOn(deploymentSeams, "build"), apply = vi.spyOn(deploymentSeams, "apply");
-    const result = await run(["deploy", folder, "--name", "mixed", ...(preview ? ["--plan"] : ["--yes"])]);
-    expect(result.exit_code).not.toBe(0); expect(result.output).toContain("owned-resource lifecycle adapter");
-    expect(launch).not.toHaveBeenCalled(); expect(build).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
+function native() {
+  const call=vi.fn(async(action:string)=>action==="CreateTemplate"?{templateID:"tpl-test"}:{}),ready=vi.fn(async()=>({status:{state:"ready"}}));
+  const credentials=vi.spyOn(resourceServices,"credentials").mockResolvedValue({AccountID:"123",AccessKeyID:"placeholder",AccessKeySecret:"placeholder"});
+  vi.spyOn(resourceServices,"express").mockReturnValue({call,ready,team:async()=>"team-test"} as never);
+  return {call,ready,credentials};
+}
+describe("named resource admission",()=>{
+  it.each([false,true])("rejects retired deployment declarations before effects (plan=%s)",async preview=>{
+    const folder=project(),file=path.join(folder,"template.yaml"),value=parse(fs.readFileSync(file,"utf8"));value.deployment={resources:{}};fs.writeFileSync(file,stringify(value));
+    const f=native();const result=await run(["deploy",folder,"--name","mixed",...(preview?["--plan"]:["--yes"])]);
+    expect(result.exit_code).not.toBe(0);expect(result.output).toContain("schema validation");expect(f.credentials).not.toHaveBeenCalled();expect(f.call).not.toHaveBeenCalled();
+  });
+  it("previews templates without building, creating instances or writing deployment state",async()=>{
+    const source=project(),f=native(),create=vi.spyOn(Sandbox,"create");const result=await run(["--json","deploy",source,"--name","demo","--plan"]);
+    expect(result.exit_code,result.output).toBe(0);expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",status:"preview",createsDynamicInstances:false,resources:[{name:"agent",kind:"sandbox"}]});
+    expect(f.credentials).not.toHaveBeenCalled();expect(create).not.toHaveBeenCalled();expect(readDeployment("demo")).toBeUndefined();
+  });
+  it("rejects invalid manifests during preview",async()=>{const source=project();fs.writeFileSync(path.join(source,"template.yaml"),"name: example\nspec_version: 999\n");expect((await run(["deploy",source,"--plan"])).exit_code).not.toBe(0);});
+  it("prepares a named template, records ownership and reuses its unchanged identity",async()=>{
+    const source=project(),before=sourceDigest(source);fs.writeFileSync(path.join(source,".env"),"PRIVATE=do-not-copy\n");const f=native(),create=vi.spyOn(Sandbox,"create");
+    const result=await run(["--json","deploy",source,"--name","demo","--yes"]);expect(result.exit_code,result.output).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",status:"ready",resources:[{name:"agent",id:"tpl-test",kind:"template",owned:true}]});
+    expect(sourceDigest(source)).toBe(before);expect(create).not.toHaveBeenCalled();const saved=readDeployment("demo")!;expect(saved.kind).toBe("resources");expect(fs.readFileSync(saved.receipt!,"utf8")).not.toContain("do-not-copy");
+    expect((await run(["deploy",source,"--name","demo","--yes"])).exit_code).toBe(0);expect(f.call.mock.calls.filter(([action])=>action==="CreateTemplate")).toHaveLength(1);
+  });
+  it("exposes no retired instance or managed deployment options",async()=>{
+    const result=await run(["deploy","--help"]);expect(result.exit_code).toBe(0);
+    for(const flag of ["--template-id","--sandbox-timeout","--bindings","--build-profile","--env","--volume-mount"]) expect(result.output).not.toContain(flag);
+    const create=vi.spyOn(Sandbox,"create");expect((await run(["deploy","--template-id","base","--yes"])).exit_code).not.toBe(0);expect(create).not.toHaveBeenCalled();
+  });
+  it("retains a known template ID when native readiness fails",async()=>{
+    const source=project(),f=native();f.ready.mockRejectedValue(new Error("readiness-failed"));expect((await run(["deploy",source,"--name","failed","--yes"])).exit_code).not.toBe(0);
+    const saved=readDeployment("failed")!;expect(saved.status).toBe("requires_recovery");expect(JSON.parse(fs.readFileSync(saved.receipt!,"utf8"))).toMatchObject({resources:[{id:"tpl-test",kind:"template"}]});
+  });
+  it("rejects unfinished build artifacts and source drift before effects",async()=>{
+    const source=project(),file=path.join(tmp(),"build.json"),f=native();
+    for(const artifact of [{kind:"ResourceDeployment",status:"preparing",buildOnly:true,source,sourceDigest:sourceDigest(source)},{kind:"ResourceDeployment",status:"ready",buildOnly:true,source,sourceDigest:"changed"}]){
+      fs.writeFileSync(file,JSON.stringify(artifact));expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);
+    }expect(f.credentials).not.toHaveBeenCalled();
+  });
+  it("rejects deployment receipts used as build artifacts",async()=>{
+    const source=project(),file=path.join(tmp(),"build.json"),f=native();fs.writeFileSync(file,JSON.stringify({kind:"ResourceDeployment",status:"ready",source,sourceDigest:sourceDigest(source)}));
+    const result=await run(["deploy","--build",file,"--name","rejected","--yes"]);expect(result.exit_code).not.toBe(0);expect(result.output).toContain("not ready");expect(f.call).not.toHaveBeenCalled();expect(readDeployment("rejected")).toBeUndefined();
+  });
+  it("rejects duplicate mounts, absent uploads and resource instance overrides before admission",async()=>{
+    const source=project(),f=native();for(const args of [["--volume-mount","/data=one","--volume-mount","/data=two"],["--upload",path.join(tmp(),"missing")],["--env","TOKEN=private"]]){
+      expect((await run(["deploy",source,"--name","invalid","--yes",...args])).exit_code).not.toBe(0);expect(readDeployment("invalid")).toBeUndefined();
+    }expect(f.credentials).not.toHaveBeenCalled();
+    saveDeployment({version:1,name:"unknown",kind:"sandbox",provider:"alicloud-express",status:"requires_recovery",createdAt:"now",updatedAt:"now"});expect((await run(["delete","unknown","--yes"])).exit_code).not.toBe(0);expect(readDeployment("unknown")?.status).toBe("requires_recovery");
   });
 });
-function fakeLaunch() {
-  return vi.spyOn(deploymentSeams, "launch").mockImplementation(async (_ctx, params, options = {}) => {
-    expect(fs.existsSync(String(params.template_ref))).toBe(true);
-    options.onTarget?.({provider:"alicloud-express",providerOptions:{region:"cn-hangzhou"},connection:{api_url:"https://example.test",domain:"example.test"}});
-    const journal = new ResourceJournal("alicloud-express", "test"); options.onJournal?.(journal);
-    const intent = await journal.intent({kind:"sandbox",correlation_key:"demo-test",cleanup:"sandbox.delete"});
-    await journal.created(intent, "sandbox-test"); await options.onCreated?.("sandbox-test");
-    return {receipt:{sandbox_id:"sandbox-test",provider:"alicloud-express",services:{}},creation:{}};
-  });
-}
-describe("unified deploy", () => {
-  it("previews a valid Sandbox without invoking creation, building or writing a deployment", async () => {
-    const source = project(), launch = fakeLaunch();
-    const result = await run(["--json","deploy",source,"--name","demo","--plan"]);
-    expect(result.exit_code,result.output).toBe(0); expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",kind:"sandbox",builds_or_cloud_changes:false});
-    expect(launch).not.toHaveBeenCalled(); expect(readDeployment("demo")).toBeUndefined();
-  });
-  it("rejects an invalid manifest during preview", async () => {
-    const source=project(); fs.writeFileSync(path.join(source,"template.yaml"),"name: example\nspec_version: 999\n");
-    expect((await run(["deploy",source,"--plan"])).exit_code).not.toBe(0);
-  });
-  it("creates one named Sandbox, pins the resolved connection and preserves user source", async () => {
-    const source=project(), before=sourceDigest(source); fs.writeFileSync(path.join(source,".env"),"PRIVATE=do-not-copy\n");
-    const launch=fakeLaunch(); const result=await run(["--json","deploy",source,"--name","demo","--yes"]);
-    expect(result.exit_code,result.output).toBe(0); expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",sandbox_id:"sandbox-test",status:"ready"});
-    expect(launch).toHaveBeenCalledTimes(1); expect(sourceDigest(source)).toBe(before);
-    const saved=readDeployment("demo")!; expect(fs.existsSync(path.join(saved.source!,".env"))).toBe(false);
-    expect(sandboxTarget("demo")).toMatchObject({id:"sandbox-test",api_url:"https://example.test",provider_options:{region:"cn-hangzhou"}});
-    expect((await run(["deploy",source,"--name","demo","--yes"])).exit_code).not.toBe(0); expect(launch).toHaveBeenCalledTimes(1);
-    saved.status="deleted";saveDeployment(saved);
-    expect((await run(["deploy",source,"--name","demo","--yes"])).exit_code).toBe(0); expect(launch).toHaveBeenCalledTimes(2);
-  });
-  it("keeps an uncertain native create intent without retrying the cloud operation", async () => {
-    const create=vi.spyOn(Sandbox,"create").mockRejectedValue(new Error("unknown-result"));
-    const result=await run(["deploy","--template-id","base","--name","uncertain","--yes"]);
-    expect(result.exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
-    const saved=readDeployment("uncertain")!;expect(saved.status).toBe("requires_recovery");
-    const journal=JSON.parse(fs.readFileSync(saved.journal!,"utf8"));expect(journal.entries).toEqual([expect.objectContaining({kind:"sandbox",state:"intent",cleanup:"sandbox.delete"})]);
-    expect(create.mock.calls[0][0]).toMatchObject({metadata:{"abx.launch":journal.id,"abx.intent":journal.entries[0].intent_id}});
-    expect((await run(["deploy","--template-id","base","--name","uncertain","--yes"])).exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
-  });
-  it("retains the known identity when service startup fails", async () => {
-    const source=project();vi.spyOn(deploymentSeams,"launch").mockImplementation(async(_ctx,_params,options={})=>{await options.onCreated?.("known-owned");throw new Error("startup");});
-    expect((await run(["deploy",source,"--name","failed","--yes"])).exit_code).not.toBe(0);
-    expect(readDeployment("failed")).toMatchObject({sandboxId:"known-owned",status:"requires_recovery"});
-  });
-  it("rejects non-ready build artifacts and source drift before deployment", async () => {
-    const source=project(),file=path.join(tmp(),"build.json"), launch=fakeLaunch();
-    fs.writeFileSync(file,JSON.stringify({kind:"SandboxTemplateBuild",status:"building",projectRoot:source,sourceDigest:sourceDigest(source)}));
-    expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);expect(launch).not.toHaveBeenCalled();
-    fs.writeFileSync(file,JSON.stringify({kind:"SandboxTemplateBuild",status:"ready",prepared:{},projectRoot:source,sourceDigest:"changed"}));
-    expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);expect(launch).not.toHaveBeenCalled();
-  });
-  it("releases a borrowed build after real admission rejects its Provider identity before resource requests", async () => {
-    const source = project(), file = path.join(tmp(), "build.json");
-    fs.writeFileSync(file, JSON.stringify({kind:"SandboxTemplateBuild",version:1,status:"ready",provider:"alicloud-express",projectRoot:source,sourceDigest:sourceDigest(source),prepared:{reference:"base",status:"ready"},target:{provider:"alicloud-express",providerOptions:{},connection:{},provider_digest:"different-code"}}));
-    const result = await run(["deploy", "--build", file, "--name", "rejected", "--yes"]);
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("Build target or Provider implementation differs");
-    expect(readDeployment("rejected")).toMatchObject({effectsStarted:false,status:"requires_recovery"});
-    expect(JSON.parse(fs.readFileSync(file,"utf8")).consumers).toHaveLength(1);
-    const removed = await run(["delete", "rejected", "--yes"]);
-    expect(removed.exit_code,removed.output).toBe(0);
-    expect(readDeployment("rejected")?.status).toBe("deleted");
-    expect(JSON.parse(fs.readFileSync(file,"utf8")).consumers).toEqual([]);
-  });
-  it("keeps unknown records and rejects duplicate mounts or missing upload before admission", async () => {
-    const source = project(), launch = fakeLaunch();
-    for (const args of [["--volume-mount","/data=one","--volume-mount","/data=two"],["--upload",path.join(tmp(),"missing")]]) {
-      expect((await run(["deploy",source,"--name","invalid","--yes",...args])).exit_code).not.toBe(0);
-      expect(readDeployment("invalid")).toBeUndefined();
-    }
-    expect(launch).not.toHaveBeenCalled();
-    saveDeployment({version:1,name:"unknown",kind:"sandbox",provider:"alicloud-express",status:"requires_recovery",createdAt:"now",updatedAt:"now"});
-    expect((await run(["delete","unknown","--yes"])).exit_code).not.toBe(0);
-    expect(readDeployment("unknown")?.status).toBe("requires_recovery");
-  });
+it("keeps the retired source instance-launch adapter unreachable",async()=>{
+  const source=project(),launch=vi.spyOn(deploymentSeams,"launch"),f=native();const result=await run(["deploy",source,"--name","prepared","--yes"]);expect(result.exit_code,result.output).toBe(0);expect(launch).not.toHaveBeenCalled();expect(f.call).toHaveBeenCalled();
 });
 
-// Exercise the actual Docker harness argv through the public parser and build admission.
-it("Docker scenario reaches borrowed-build Provider admission without a redundant source", async () => {
-  const module = "../../e2e/scenarios/40-docker-deploy.mjs";
-  const { default: docker } = await import(module);
-  const source = project(), file = path.join(tmp(), "docker-build.json");
-  fs.writeFileSync(file, JSON.stringify({kind:"SandboxTemplateBuild",version:1,status:"ready",provider:"alicloud-express",projectRoot:source,sourceDigest:sourceDigest(source),prepared:{reference:"base",status:"ready"},target:{provider:"alicloud-express",providerOptions:{},connection:{},provider_digest:"different-code"}}));
-  let output = "";
-  const abx = vi.fn(async (argv: string[]) => {
-    const response = await run(argv); output = response.output;
-    return {code:response.exit_code,out:response.output,rawJson:()=>JSON.parse(response.stdout)};
-  });
-  const ctx = {state:{name:"docker-admission",source,build:file},abx,beginCreateAttempt:()=>"attempt",track:vi.fn(),resolveCreateAttempt:vi.fn(),fail:(message:string)=>{throw new Error(message);}};
-  await expect(docker.scenarios[1].run(ctx)).rejects.toThrow("create exit");
-  expect(abx).toHaveBeenCalledOnce();
-  expect(output, output).toContain("Build target or Provider implementation differs");
-  expect(output).not.toContain("omit SOURCE");
-  expect(readDeployment("docker-admission")).toMatchObject({effectsStarted:false,status:"requires_recovery"});
+
+it("exposes explicit sandbox create and delete without resource deployment state", async () => {
+  const create = vi.spyOn(Sandbox, "create").mockResolvedValue({id:"sbx-explicit",status:"running",url:"https://example.test",info:{sandbox_id:"sbx-explicit"}} as unknown as Sandbox);
+  const kill = vi.spyOn(Sandbox, "killById").mockResolvedValue(undefined);
+  const made = await run(["--json","sandbox","create","--template","tpl-test","--timeout","600","--yes"]);
+  expect(made.exit_code,made.output).toBe(0);expect(JSON.parse(made.stdout)).toMatchObject({ID:"sbx-explicit"});
+  expect(create.mock.calls[0][0]).toMatchObject({template:"tpl-test",timeout:600});
+  expect(readDeployment("sbx-explicit")).toBeUndefined();
+  const removed=await run(["sandbox","delete","sbx-explicit","--yes"]);expect(removed.exit_code,removed.output).toBe(0);expect(kill).toHaveBeenCalledWith("sbx-explicit");
 });

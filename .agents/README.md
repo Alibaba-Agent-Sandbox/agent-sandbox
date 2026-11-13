@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Named resource execution](notes/proposed/architecture/2026-11-13-named-resource-execution.md) · [verification](evidence/verify/2026-11-13-named-resource-execution.md). Final user contract, native component host, real Express/FC/ordinary-service checks and remaining business acceptance.
+
 - [Agents API delivery operations](notes/proposed/process/2026-11-12-agents-api-delivery-operations.md) · [record-placement verification](evidence/verify/2026-11-12-agents-api-delivery-operations.md).
 
 - [Template v1 adoption verification](evidence/verify/2026-11-12-template-v1-adoption.md).

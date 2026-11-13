@@ -4,7 +4,7 @@
 
 `template list`、`template info` 查询可复用目录。`template init --from` 复制源码，不调用云端或执行运行时校验，因此作者可以先查看尚未受运行器支持的新清单。覆盖目录须明确确认或使用 `--force`，复制不会隐式构建或部署。
 
-`deploy` 解析目录名称、Git 源码或本地项目，再校验受支持契约。Sandbox 模板声明服务与就绪条件；启动器准备 Provider 模板、创建一个 Sandbox 并启动完整服务集合。托管应用按显式 `application.type: agents-api` 选择，不根据 HTTP 服务存在与否或规范版本号猜测。
+`deploy` 解析目录名称、Git 源码或本地项目，并校验 specVersion: 1 具名资源契约。Sandbox 区块准备模板与静态卷；Serving 区块部署原生组件。动态实例和业务服务通过 SDK、显式实例命令或模板 run.py 启动。无源码的托管引用通过 `sandbox create --template` 使用。
 
 模板拥有仓库提供小型 profile 规范化契约，只在字段省略时补充固定机制值。显式冲突值和 null 保留给校验器拒绝；不自动补入凭据、地域、资源规格或业务策略。CLI 与 Registry 消费方固定契约来源并验证相同 fixtures。
 

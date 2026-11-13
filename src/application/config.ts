@@ -3,13 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { parseDocument } from "yaml";
-import { resolveProject, type PrivateProject, type ProjectResolutionOptions } from "../template/project.js";
-import { validateManagedInstance } from "./instance.js";
+import { readProjectIntent, type PrivateProject, type ProjectResolutionOptions } from "../template/project.js";
 import { DeployError } from "../models/errors.js";
 import type { ApplicationTemplate, ApplicationPlan, BuildReceipt, ToolchainLock } from "./types.js";
 
 export class ApplicationError extends DeployError {}
-const ignored = new Set([".git", ".abx", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
+const ignored = new Set([".git", ".abx", ".s", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
 export const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** Stable SHA-256 of JSON, independent of object key insertion order. */
@@ -82,84 +81,17 @@ export interface PrivateManagedProject {
   roleProps: Record<string, Record<string, unknown>>;
   project: PrivateProject;
 }
-const controlledProps = ["cpu", "memorySize", "diskSize", "timeout", "instanceConcurrency", "internetAccess", "region", "runtime", "role"];
-const unmanagedProps = ["triggers", "asyncInvokeConfig", "concurrencyConfig", "provisionConfig", "scalingConfig", "vpcBinding", "supplement"];
-
-/** Resolve private inputs, retaining only original references and non-secret controls in the plan template. */
+/** Retired manifest adapter. Stored managed receipts keep their independent cleanup contract. */
 export function readManagedProject(file: string, options: ProjectResolutionOptions = {}): PrivateManagedProject {
-  const project = resolveProject(file, options), { compiled, intent } = project;
-  if (compiled.kind !== "application" || !compiled.application || !intent.application || !intent.deployment || !compiled.roleProps || !compiled.roleResources || !compiled.bindingValues) throw new ApplicationError("Expected an agents-api application project.");
-  const roleResources = new Set(Object.values(compiled.roleResources));
-  const extraResources = Object.keys(intent.deployment.resources).filter(id => !roleResources.has(id));
-  if (extraResources.length) throw new ApplicationError(`Managed deployment resources not referenced by application.roles are unsupported: ${extraResources.join(", ")}. No resources were changed.`);
-  try { validateManagedInstance(compiled.sandbox?.instance ?? {}); }
-  catch (error) { throw new ApplicationError(error instanceof TypeError ? error.message : "Invalid Managed instance configuration."); }
-  if (project.actions.some(action => record(action.definition) ? Object.keys(action.definition).length > 0 : Boolean(action.definition)) || Object.keys(intent.deployment.flow ?? {}).length) throw new ApplicationError("Native actions/flow are parsed but are not yet supported by the Managed lifecycle; no resources were changed.");
-  const nativeControls: Record<string, Record<string, unknown>> = {};
-  for (const [role, props] of Object.entries(compiled.roleProps)) {
-    for (const key of unmanagedProps) if (Object.hasOwn(props, key)) throw new ApplicationError(`Managed ${role} props.${key} needs a resource lifecycle adapter and is currently unsupported.`);
-    for (const key of ["vpcConfig", "nasConfig", "ossMountConfig", "logConfig"]) if (props[key] === "auto") throw new ApplicationError(`Managed ${role} props.${key}: auto has no owned-resource cleanup contract; use an explicit supported existing-resource configuration.`);
-    if (props.environmentVariables !== undefined && (!record(props.environmentVariables) || Object.values(props.environmentVariables).some(value => typeof value !== "string"))) throw new ApplicationError(`Managed ${role} environmentVariables must contain string values.`);
-    nativeControls[role] = Object.fromEntries(controlledProps.filter(key => Object.hasOwn(props, key)).map(key => [key, props[key]]));
-  }
-  const app = structuredClone(compiled.application);
-  // Hook argv can also contain resolved values. Persist its original declarations.
-  if (intent.application.hooks) app.hooks = structuredClone(intent.application.hooks);
-  const nativeEnvironmentNames: Record<string, string[]> = {};
-  const rawRoleProps = Object.fromEntries(Object.entries(compiled.roleResources).map(([role, id]) => {
-    const props = structuredClone(intent.deployment!.resources[id].props) as Record<string, unknown>;
-    nativeEnvironmentNames[role] = Object.keys((compiled.roleProps![role].environmentVariables ?? {}) as Record<string, unknown>).sort();
-    delete props.environmentVariables;
-    return [role, props];
-  }));
-  const instance = compiled.sandbox?.instance ?? {}, {envs, metadata, ...instanceControls} = instance;
-  const template = { name: compiled.name, specVersion: 1, provider: compiled.provider, resources: compiled.resources,
-    start_cmd: intent.sandbox?.start ?? null, ready_cmd: intent.sandbox?.ready ?? null, provides: compiled.provides, ports: compiled.ports,
-    env: {}, application: app, sandboxInstanceControls: instanceControls,
-    sandboxEnvironmentNames: Object.keys(envs ?? {}).sort(), sandboxMetadataNames: Object.keys(metadata ?? {}).sort(),
-    nativeRoleProps: rawRoleProps, nativeControls, nativeEnvironmentNames } as unknown as ApplicationTemplate;
-  rejectInlineSecrets(template);
-  validateManagedTemplate(template, file);
-  return { template, bindingValues: compiled.bindingValues, roleProps: compiled.roleProps, project };
+  readProjectIntent(file, options);
+  throw new ApplicationError("Use the named sandbox/serving resource deployment lifecycle. Managed application recipes are no longer part of template.yaml.");
 }
 
-/** Plan-safe application template: private resolved credentials never leave readManagedProject's context. */
+/** Retained only for internal receipt code; new deployments use the resource executor. */
 export function readTemplate(file: string, options: ProjectResolutionOptions = {}): ApplicationTemplate {
   return readManagedProject(file, options).template;
 }
 
-function validateManagedTemplate(template: ApplicationTemplate, file: string): void {
-  const app = template.application;
-  if (app?.deployment.profile !== "fc-managed-agents" || app.runtime.profile !== "managed-bridge-v1") throw new ApplicationError("Expected the managed Agents application profile.");
-  if (app.limits.maxToolSeconds > app.limits.maxRunSeconds || Number(app.sessions.maxConcurrentTurnsPerSession) !== 1) throw new ApplicationError("Invalid managed execution budgets.");
-  if (Number(app.sessions.idleTimeoutSeconds) > Number(app.sessions.maxLifetimeSeconds) || app.limits.maxRunSeconds >= Number(app.sessions.maxLifetimeSeconds)
-    || Number(app.storage.maxArtifactBytes) > Number(app.storage.maxTurnArtifactBytes)
-    || Math.max(Number(app.storage.maxFileBytes), Number(app.storage.maxTurnArtifactBytes)) > Number(app.storage.maxRetainedBytesPerOwner)) throw new ApplicationError("Managed session and storage budgets are inconsistent.");
-  if (!app.bindings[app.state.bindingRef] || !app.bindings[app.deployment.ingressBindingRef]) throw new ApplicationError("State and ingress references must resolve to declared bindings.");
-  const targets: Array<[string, string[]]> = [[app.state.bindingRef, ["dispatcher", "gateway", "worker"]], [app.deployment.ingressBindingRef, ["deployment-publisher"]],
-    ["sandboxAccess", ["dispatcher", "worker"]], ["clientAuth", ["gateway"]], ["internalAuth", ["dispatcher", "gateway", "worker"]], ["model", ["sandbox-creation"]]];
-  for (const [key, expected] of targets) if (JSON.stringify([...(app.bindings[key]?.targets ?? [])].sort()) !== JSON.stringify(expected)) throw new ApplicationError(`Binding '${key}' has unsupported target roles.`);
-  for (const binding of Object.values(app.bindings)) {
-    if (!Array.isArray(binding.targets)) throw new ApplicationError("Every binding needs supported target roles.");
-    if (binding.targets.includes("sandbox-creation")) {
-      if (binding.targets.length !== 1 || binding.resolverRole !== "worker" || !binding.allowedEnv?.length || binding.allowedEnv.some(key => !["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "CODEX_API_KEY"].includes(key))) throw new ApplicationError("Guest model injection requires the explicit worker resolver and a model-only environment whitelist.");
-    } else if (binding.resolverRole || binding.allowedEnv) throw new ApplicationError("Guest injection fields are only valid for the sandbox-creation target.");
-  }
-  const provided = record(template.provides) ? Object.values(template.provides).filter(record) : [];
-  if (!provided.some(value => value.protocol === "agent-sandbox-managed-bridge" && value.version === 1 && value.port === 9000)
-    || provided.some(value => !Array.isArray(template.ports) || !template.ports.includes(value.port))) throw new ApplicationError("Managed bridge v1 on declared port 9000 is required.");
-  const root = path.dirname(file), ids = new Set<string>();
-  if (app.deployment.serverBuildRecipe) {
-    contained(root, app.deployment.serverBuildRecipe.dockerfile);
-    if (app.deployment.serverBuildRecipe.context !== ".") throw new ApplicationError("Server build context must be the template root.");
-  }
-  for (const phase of Object.values(app.hooks ?? {})) for (const hook of phase) {
-    if (ids.has(hook.id)) throw new ApplicationError("Application hook IDs must be unique.");
-    ids.add(hook.id);
-    if (hook.type === "custom") contained(root, hook.cwd ?? ".");
-    else if (hook.command !== "info" || !["gateway", "worker", "dispatcher"].includes(hook.step ?? "")) throw new ApplicationError("Component hooks may only inspect a declared role.");
-  }
-}
 /** Atomic private JSON output; credentials must never be passed to this writer. */
 export function writeJson(file: string, value: unknown): void {
   rejectInlineSecrets(value);

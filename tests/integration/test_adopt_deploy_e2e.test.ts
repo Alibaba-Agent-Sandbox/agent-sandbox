@@ -112,7 +112,7 @@ function _dockerfile(sources: string[]): string {
 }
 
 function _templateYaml(sample: Sample): string {
-  return manifestYaml(`name: ignored-by-cli\nresources: {cpu: ${sample.cpu}, memory: ${sample.memory}}\nstart_cmd: python3 /app/commands.py\n`);
+  return manifestYaml(`name: ignored-by-cli\ngeneration: 2\nresources: {cpu: ${sample.cpu}, memory: ${sample.memory}}\nstart_cmd: python3 /app/commands.py\n`);
 }
 
 /** `_no_staging_left_behind`. */
@@ -212,11 +212,11 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
 
   for (const [name, text] of Object.entries(before)) expect(read(path.join(project, name))).toBe(text);
   expect(fs.existsSync(path.join(project, "README.md"))).toBe(false);
-  const manifest = yamlParse(read(path.join(project, "template.yaml"))) as {name: string; sandbox: {template: {props: Record<string, number>}; start: string}};
+  const manifest = yamlParse(read(path.join(project, "template.yaml"))) as {name: string; sandbox: {agent:{template: {cpu:number;memorySize:number;startCommand:string}}}};
   expect(manifest["name"]).toBe(sample.name);
-  expect(manifest.sandbox.template.props["cpu"]).toBe(sample.cpu);
-  expect(manifest.sandbox.template.props["memory"]).toBe(sample.memory);
-  expect(manifest.sandbox.start).toBe("python3 /app/commands.py");
+  expect(manifest.sandbox.agent.template.cpu).toBe(sample.cpu);
+  expect(manifest.sandbox.agent.template.memorySize).toBe(sample.memory);
+  expect(manifest.sandbox.agent.template.startCommand).toBe("python3 /app/commands.py");
   const ignore = DockerIgnore.fromText(read(path.join(project, ".dockerignore")));
   expect(ignore.excludes(".env")).toBe(true);
   expect(ignore.excludes("agent_sandbox-0.0.0-py3-none-any.whl")).toBe(false);
@@ -237,8 +237,8 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
   expect(builder.build.mock.calls[0]![0]).toBe(fs.realpathSync(project));
   const registered = create.mock.calls[0]![0] as Record<string, unknown>;
   expect(registered["name"]).toBe(manifest["name"]);
-  expect(registered["cpu"]).toBe(manifest.sandbox.template.props["cpu"]);
-  expect(registered["memory_size"]).toBe(manifest.sandbox.template.props["memory"]);
+  expect(registered["cpu"]).toBe(manifest.sandbox.agent.template.cpu);
+  expect(registered["memory_size"]).toBe(manifest.sandbox.agent.template.memorySize);
   expect(registered["generation"]).toBe(2);
   expect("description" in registered).toBe(false);
   expect(String(registered["image"])).toContain(sample.name);

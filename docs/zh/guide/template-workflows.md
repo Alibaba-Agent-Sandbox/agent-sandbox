@@ -1,26 +1,42 @@
-# 启动 Sandbox 模板
+# 模板资源配置
 
-运行 `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`。Sandbox 模板只有一个启动流程：准备源码、创建实例、运行 `sandbox.start`、等待 `sandbox.ready`，再解析 `sandbox.services` 中的全部访问地址。业务命令在启动后由用户调用。
-
-使用 `specVersion: 1` 和一个本地 `template.yaml`。源码放在 `sandbox.template.source`，已有镜像使用 `sandbox.template.image`，Provider 原生模板使用 `sandbox.provider` 与 `sandbox.template.reference`。镜像引用需要固定的 `@sha256:` 摘要。镜像依赖与启动文件随项目保存；实例的期限、环境变量、标签及所选 Provider 支持的资源参数放在 `sandbox.instance`。
+`template.yaml` 声明命名的 Sandbox 模板、静态卷与 Serving。部署准备这些资源；动态沙箱实例由业务代码或明确的 SDK/CLI 调用创建。
 
 ```yaml
 specVersion: 1
-name: example
+name: demo
+vars:
+  region: cn-hangzhou
 sandbox:
-  template:
-    source: {dockerfile: Dockerfile, context: .}
-    props: {cpu: 2, memory: 2048}
-  instance:
-    timeout: 300
-    envs: {ABX_SERVER_TOKEN: ""}
-  start: python3 commands.py
-  services:
-    app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
+  agent:
+    provider: alicloud-express
+    template:
+      region: "${vars.region}"
+      image: registry.example.com/team/agent:v1
+      buildConfig:
+        dockerfile: ./sandbox/Dockerfile
+serving:
+  api:
+    component: serverless-devs/fc3@0.1.26
+    props:
+      region: "${vars.region}"
+      functionName: demo-api
+      runtime: custom-container
+      customContainerConfig:
+        image: registry.example.com/team/api:v1
+        port: 9000
+      environmentVariables:
+        SANDBOX_TEMPLATE_ID: "${resources.agent.output.templateId}"
 ```
 
-缺少应用认证令牌时，CLI 自动生成并安全保存在本机。Provider 的流量认证是另一层凭据。完整字段及 Provider 边界见[模板 v1 规范](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md)。本地使用不要求 `registry.yaml`；上架时才在该文件填写目录元数据和初始化问题。
+示例仓库地址需换成已有镜像或可写的构建目标。`vars` 可选，键名由作者自行决定，也可以直接在资源属性里填写值。目录初始化表单放在 `registry.yaml.parameters`，之后修改本地配置不依赖目录文件。
 
-公开目录中的原生模板可直接按名称部署，例如 `abx --provider alicloud-express deploy base --name my-app --yes`。托管 Agents 使用独立的[应用生命周期](managed-applications.md)。CLI 可以解析通用原生 Serving 项目，但暂不支持其部署和删除生命周期；没有受支持应用类型的 Sandbox/Serving 混合项目会在创建资源前停止。
+地域保留在 `sandbox.名称.template.region`，同级卷使用该地域。Express 模板属性保持扁平结构。`buildConfig` 选择 `dockerfile` 加可选 `context`，或者原生 `steps`，不能混用。路径相对 `template.yaml`；context 省略时采用 Dockerfile 所在目录。没有 buildConfig 时不会自动发现本机 Dockerfile。
 
-旧公开 YAML 需要按资源结构迁移到 v1，仅修改版本字段并不够。请选择当前源码版本；刷新目录不会刷新已下载源码，也不会改变固定 Git revision。CLI 不会自动改写或删除源文件。
+Dockerfile 分支的 `image` 是构建推送目标；其他分支的 image 是已有来源镜像，Steps 在此基础上准备沙箱模板，不承诺导出 OCI 镜像。无需认证、证书或仓库网络覆盖时省略整个 `registryConfig`。软件安装放在 Dockerfile 或基础镜像里。原生 `startCommand`、`readyCommand` 在模板准备阶段执行，不代表每次动态实例创建后的启动钩子。
+
+Serving 保留组件原生 `props`。需要构建 Serving 时，通过资源自己的 `actions.pre-deploy` 声明 `component: serverless-devs/fc3@0.1.26 build ...`。Shell run 和组件动作都在部署发起端执行。`success-deploy` 在该资源就绪后执行，`fail-deploy` 处理失败，`complete-deploy` 在结束时执行。输出引用决定依赖顺序，缺失引用和循环在部署前报错。新部署尝试可能再次运行动作，脚本应能处理重试。
+
+命名资源执行器当前支持 Express 和精确版本的 `serverless-devs/fc3`。其他 Provider 的实例 API 独立可用。应用令牌、数据库、模型与动态实例环境由应用自身配置，不增加通用模板字段。秘密通过私有环境或文件引用提供。Agents API 模板提供自己的启动和发布脚本，请按对应 README 使用。
+
+[构建与部署](deploy-and-build.md) · [原生表达式](../design/template-v1-parser.md) · [完整字段参考](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md)

@@ -100,16 +100,14 @@ ${notice}必须创建的文件：
    name: ${f.template_name}
    specVersion: 1
    sandbox:
-     template:
-       source: { dockerfile: Dockerfile, context: . }
-       props: { cpu: 2, memory: 2048 }
-     instance:
-       envs: { ABX_SERVER_TOKEN: "" }
-     start: <启动模板内全部服务的命令>
-     ready: <检查服务全部就绪的命令>
-     services:
-       app: { protocol: agent-sandbox-server, version: 2, port: ${f.server_port}, operations: [commands.list, commands.run] }
-   # 镜像、用户及工作目录仅在 Dockerfile 配置，不重复写入资源文件。
+     agent:
+       provider: ${f.profile.provider_id}
+       template:
+         buildConfig: { dockerfile: Dockerfile, context: . }
+         cpu: 2
+         memorySize: 2048
+   # template.yaml只准备模板；动态实例、环境变量及服务运行由业务代码/SDK/CLI控制。
+
 4. \`README.md\`：模板用途、环境变量、调用示例
 
 ${f.guide}
@@ -595,7 +593,7 @@ function validateServerEntrypoint(
  *
  * The manifest is returned as plain data (key order kept) so it can be dumped back with `dumpYaml`.
  *
- * `retry` replaces the default "inspect the workspace / fall back to `abx deploy --template-id <name> --name my-sandbox`" suggestion on every
+ * `retry` replaces the default "inspect the workspace / fall back to `abx sandbox create --template <name>`" suggestion on every
  * error.
  *
  * Throws `AICodegenError` when any check fails.
@@ -751,10 +749,6 @@ async function generateTemplateFilesImpl(
 
   const data = validateTemplateWorkspace(work, tmplName, { buildMode: opts.buildMode, baseImage: opts.baseImage });
 
-  const sandbox = data["sandbox"] as Record<string, unknown>;
-  const instance = (sandbox["instance"] ?? {}) as Record<string, unknown>;
-  instance["envs"] = { ...(isMapping(instance["envs"]) ? instance["envs"] : {}), ABX_SERVER_TOKEN: "" };
-  sandbox["instance"] = instance;
   writeTextUtf8(templateYaml, dumpYaml(data));
   logger.debug("Generated template workspace ready: %s", work);
 

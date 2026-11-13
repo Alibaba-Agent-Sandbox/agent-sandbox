@@ -6,10 +6,10 @@ Configure the selected Provider once. `config init` explains each credential and
 
 ```bash
 abx config init
-abx deploy --template-id base --name my-sandbox --yes
-abx status my-sandbox
-abx sandbox exec my-sandbox -- echo 'Hello from sandbox'
-abx delete my-sandbox --yes
+abx sandbox create --template base --yes
+abx status SANDBOX_ID
+abx sandbox exec SANDBOX_ID -- echo 'Hello from sandbox'
+abx sandbox delete SANDBOX_ID --yes
 ```
 
 To run an application, choose a catalog template instead:
@@ -17,14 +17,14 @@ To run an application, choose a catalog template instead:
 ```bash
 abx template list python
 abx template info python-hello
-abx deploy python-hello --name hello
-abx sandbox command list hello
-abx sandbox command run hello hello --arg name=Ada
+abx template init ./python-hello --from python-hello
+cd python-hello
+abx deploy . --name hello --yes
+python run.py --template TEMPLATE_ID
+abx sandbox delete SANDBOX_ID --yes
 abx delete hello --yes
 ```
 
-The CLI prepares the source, starts it and verifies declared readiness. A template requiring Docker, an image registry or model access needs those prerequisites. Application authentication is generated and saved automatically when the template declares it. Use the returned service endpoint for external HTTP clients; they must send the application token and any Provider gateway headers.
+Deployment prepares the reusable template. Read TEMPLATE_ID from its resource result; the template’s run.py creates a dynamic instance and starts its service. Read SANDBOX_ID from that runtime result. Follow the selected template README for Python SDK prerequisites and private application authentication. Runtime lifetime and environment belong to explicit creation, not deploy.
 
-For an already prepared native template, `--template-id` names the Provider's template or supported image reference. A local deployment name is a convenient handle saved on this host; an SDK instead connects to the actual Sandbox ID shown by `status`.
-
-Continue with [template authoring](authoring-templates.md), [configuration](guided-configuration.md), [Sandbox operations](operations.md) or [managed applications](managed-applications.md).
+Continue with [template authoring](authoring-templates.md), [configuration](guided-configuration.md) and [Sandbox operations](operations.md).

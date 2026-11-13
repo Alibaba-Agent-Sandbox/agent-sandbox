@@ -86,7 +86,7 @@ export const sandboxSeams: {
 // ---------------------------------------------------------------------------------------------------------------------
 
 const CREATE_HELP = `Create one Sandbox from an already registered Provider template.
-    This internal service is used by abx deploy --template-id. Source authoring
+    This internal service is used by abx sandbox create --template. Source authoring
     and generation belong to abx template init.
     `;
 
@@ -102,7 +102,7 @@ const LIST_HELP = `List sandboxes, optionally filtered by lifecycle status.
     \b
     Related commands:
       abx status SANDBOX_ID  Show one sandbox in detail
-      abx deploy --template-id base --yes   Create a sandbox
+      abx sandbox create --template base --yes   Create a sandbox
       abx delete SANDBOX_ID  Destroy a sandbox
     `;
 
@@ -136,7 +136,7 @@ const KILL_HELP = `Permanently destroy one sandbox or all running sandboxes.
     Related commands:
       abx list              Find running sandbox IDs
       abx status SANDBOX_ID   Verify a sandbox before deletion
-      abx deploy --template-id base --yes   Create a replacement sandbox
+      abx sandbox create --template base --yes   Create a replacement sandbox
     `;
 
 const EXEC_HELP = `Run a command in a sandbox and preserve its exit code.
@@ -1701,6 +1701,8 @@ export const sandbox = group("sandbox", {
   },
 });
 
+sandbox.addCommand(create, "create");
+sandbox.addCommand(kill, "delete");
 sandbox.addCommand(exec_cmd, "exec");
 sandbox.addCommand(connect);
 sandbox.addCommand(upload);

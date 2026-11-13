@@ -25,18 +25,16 @@ export function compileResolvedProject(value, options = {}) {
   return compileTemplateV1(value, validators.resolved, {...options, stage: 'resolved'});
 }
 
-/** Static SandboxTemplate view used for source discovery; unresolved resource quantities stay unknown. */
+/** Static catalog view. Multiple named resources never silently select the first Sandbox. */
 export function sandboxModelInput(value, options = {}) {
-  const intent = normalizeProjectIntent(value, options), sb = intent.sandbox;
-  if (!sb) return {specVersion: 1, name: intent.name, provides: {}, env: {}, ports: []};
-  return {specVersion: 1, name: intent.name, provides: structuredClone(sb.services), env: structuredClone(sb.instance.envs),
-    cpu_count: typeof sb.template.props?.cpu === 'number' ? sb.template.props.cpu : null,
-    memory_mb: typeof sb.template.props?.memory === 'number' ? sb.template.props.memory : null,
-    ports: [...new Set([...(sb.ports ?? []), ...Object.values(sb.services).map(service => service.port)])].sort((a,b) => a-b),
-    ...(sb.provider ? {provider: sb.provider} : {}),
-    ...(sb.template.reference ? {template_id: sb.template.reference} : {}),
-    ...(sb.template.image ? {image: sb.template.image} : {}),
-    ...(sb.template.source?.profiles ? {build_profiles: structuredClone(sb.template.source.profiles)} : {}),
-    ...(sb.start ? {start_cmd: sb.start} : {}), ...(sb.ready ? {ready_cmd: sb.ready} : {}),
+  const intent = normalizeProjectIntent(value, options), resources = Object.values(intent.sandbox ?? {});
+  const result = {specVersion: 1, name: intent.name, provides: {}, env: {}, ports: []};
+  if (resources.length !== 1) return result;
+  const sb = resources[0], template = sb.template;
+  return {...result,
+    cpu_count: typeof template.cpu === 'number' ? template.cpu : null,
+    memory_mb: typeof template.memorySize === 'number' ? template.memorySize : null,
+    ...(template.reference ? {provider: sb.provider, template_id: template.reference} : {}),
+    ...(!template.buildConfig && template.image ? {image: template.image} : {}),
   };
 }

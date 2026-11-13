@@ -8,4 +8,4 @@ Start with [getting started](getting-started.md) for configuration, deployment, 
 - [Configuration and authentication](guided-configuration.md): credential purposes, local persistence and automation overrides.
 - [Managed applications](managed-applications.md): independent business endpoints and lifecycle.
 
-Use the [CLI reference](../reference/cli-commands.md) and installed `--help` for options. Source generation creates no cloud resource; deployment creates a running instance through the selected Provider.
+Use the [CLI reference](../reference/cli-commands.md) and installed `--help` for options. Source generation creates no cloud resource; deployment prepares declared templates, volumes and Serving resources. Create dynamic instances separately with `sandbox create` or the template’s run.py.

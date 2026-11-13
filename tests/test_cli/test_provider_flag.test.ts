@@ -126,11 +126,11 @@ describe("validation fails before any side effect", () => {
 describe.skipIf(!hasPython)("a plugin end to end through the CLI", () => {
   it("test_qualified_ids_json_provider_key_and_kill", async () => {
     await installLocal();
-    const created = await abx("--json", "--provider", "local-process", "deploy", "--yes", "--template-id", "base");
+    const created = await abx("--json", "--provider", "local-process", "sandbox", "create", "--yes", "--template", "base");
     expect(created.code, created.err).toBe(0);
     const doc = JSON.parse(created.out);
     expect(doc.provider).toBe("local-process");
-    const sid: string = doc.sandbox_id;
+    const sid: string = doc.ID;
     expect(sid).not.toContain(":");
 
     const listedJson = JSON.parse((await abx("--json", "--provider", "local-process", "list")).out).items;
@@ -148,10 +148,6 @@ describe.skipIf(!hasPython)("a plugin end to end through the CLI", () => {
     expect(exec.code, exec.err).toBe(0);
     expect(JSON.parse(exec.out).stdout).toContain("hi-from-plugin");
 
-    const named = await abx("--json", "sandbox", "exec", doc.name, "echo named-provider");
-    expect(named.code, named.err + named.out).toBe(0);
-    expect(JSON.parse(named.out).stdout).toContain("named-provider");
-
     const killed = await abx("delete", `local-process:${sid}`, "--yes");
     expect(killed.code, killed.err).toBe(0);
   });
@@ -165,14 +161,14 @@ describe.skipIf(!hasPython)("a plugin end to end through the CLI", () => {
   it("test_default_provider_applies_without_the_flag_and_ids_are_qualified", async () => {
     await installLocal();
     expect((await abx("config", "set", "provider", "local-process")).code).toBe(0);
-    const created = await abx("deploy", "--yes", "--template-id", "base");
+    const created = await abx("sandbox", "create", "--yes", "--template", "base");
     expect(created.code, created.err).toBe(0);
     expect(created.out).toContain("local-process");
   });
 
   it("test_list_selected_provider_does_not_probe_an_unrelated_provider", async () => {
     await installLocal();
-    await abx("--provider", "local-process", "deploy", "--yes", "--template-id", "base");
+    await abx("--provider", "local-process", "sandbox", "create", "--yes", "--template", "base");
     const r = await abx("--json", "--provider", "local-process", "list");
     expect(r.code, r.err).toBe(0);
     expect(r.err).not.toContain("alicloud-express");

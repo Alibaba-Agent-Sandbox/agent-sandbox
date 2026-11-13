@@ -5,10 +5,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ResolvedCapabilities, parseTemplateData, _seams, resolveCapabilities, cacheDeployedTemplate } from "../../src/api/capability.js";
 import { TemplateParseError } from "../../src/models/errors.js";
-import vectors from "../test_template/fixtures/launch-vectors.json" with {type:"json"};
+
 const original = _seams.TEMPLATE_CACHE_DIR;
 const roots: string[] = [];
-function fixture(extra: Record<string, unknown> = {}) { return {...structuredClone(vectors.cases[0].input.manifest), name: "template", ...extra}; }
+function fixture(extra: Record<string, unknown> = {}) { return {specVersion:1, sandbox:{agent:{provider:"alicloud-express",template:{image:"python:3.12"}}}, name: "template", ...extra}; }
 function directory(): string { const root=mkdtempSync(join(tmpdir(),"abx-manifest-"));roots.push(root);return root; }
 afterEach(()=>{_seams.TEMPLATE_CACHE_DIR=original;for(const root of roots.splice(0))rmSync(root,{recursive:true,force:true});});
 describe("strict template discovery",()=>{
