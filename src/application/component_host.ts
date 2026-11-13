@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { ApplicationError, record } from "./config.js";
 import type { CredentialSnapshot } from "./bindings.js";
 import { COMPONENT_RUNNER_SOURCE } from "./component_runner.js";
+import { portableWorkerInvocation } from "./portable_worker.js";
 import { execute } from "./process.js";
 import { getLogger } from "../utils/logging.js";
 
@@ -87,8 +88,9 @@ export async function invokeDevsComponent(input: ComponentExecutionInput): Promi
   };
   try {
     const runner = path.join(scratch, "runner.cjs"); fs.writeFileSync(runner, COMPONENT_RUNNER_SOURCE, { mode: 0o600 });
-    const output = await execute({ argv: [process.env.ABX_APP_NODE || process.execPath, runner], cwd, env: environment(home),
-      input: JSON.stringify({ action: "invoke", events: true, loaderPath: componentHostSeams.loaderPath(), component,
+    const worker = portableWorkerInvocation("component", scratch, () => ({argv: [process.env.ABX_APP_NODE || process.execPath, runner], modulePath: componentHostSeams.loaderPath()}));
+    const output = await execute({ argv: worker.argv, cwd, env: environment(home),
+      input: JSON.stringify({ action: "invoke", events: true, loaderPath: worker.modulePath, component,
         componentReference: component, command: input.command, args: input.args ?? [], cwd, name: input.name,
         resource: input.resource, yamlPath: path.join(cwd, "template.yaml"), props: input.props,
         credential: input.credential, functionCreationGuard: input.functionCreationGuard, sensitiveValues: input.sensitiveValues ?? [] }),

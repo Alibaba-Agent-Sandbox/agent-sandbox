@@ -8,8 +8,8 @@ const write = value => fs.writeFileSync(3, JSON.stringify(value));
 const noop = () => {};
 const logger = new Proxy(noop, {get: () => noop});
 (async () => {
-  const requireFromParser = createRequire(request.parserPath);
-  const {ParseSpecForContent} = requireFromParser(request.parserPath);
+  const loaded = typeof __abxParseSpec === "function" ? __abxParseSpec() : createRequire(request.parserPath)(request.parserPath);
+  const {ParseSpecForContent} = loaded;
   const parsed = await new ParseSpecForContent(request.content, {
     argv: [request.command], logger, isPreview: false,
   }).start();

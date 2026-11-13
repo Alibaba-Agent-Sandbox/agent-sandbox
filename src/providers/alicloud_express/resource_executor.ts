@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { createRequire } from "node:module";
+import { parseArgsStringToArgv } from "string-argv";
 import { ApplicationError, record, digest, writeJson, sourceDigest } from "../../application/config.js";
 import { invokeDevsComponent, emitComponentLog } from "../../application/component_host.js";
 import { execute } from "../../application/process.js";
@@ -20,8 +20,6 @@ import { resolveDevsProject } from "../../template/devs_project.js";
 import { compileResolvedProject } from "../../template/definition.mjs";
 
 const logger = getLogger("template.resources");
-const require = createRequire(import.meta.url);
-const parseArgs = require("string-argv") as {parseArgsStringToArgv(value: string): string[]};
 type Dict = Record<string, unknown>;
 export interface ResourceEntry {
   name: string; kind: "template" | "volume" | "serving" | "image"; region: string; provider: string;
@@ -142,7 +140,7 @@ export async function deployResourceProject(file: string, receiptFile: string, o
         for (const [stream, value] of Object.entries(buffered)) if (value) logger[stream === "stderr" ? "warning" : "info"]("[%s] %s", nodeName, redact(value));
         void out;
       } else if (item.component) {
-        const [component, command, ...args] = parseArgs.parseArgsStringToArgv(item.component);
+        const [component, command, ...args] = parseArgsStringToArgv(item.component);
         if (!component || !command) throw new ApplicationError("Component actions require a component and command.");
         if (phase === "pre-deploy" && command === "build" && build?.builtServing?.[nodeName]) {
           const image = build.builtServing[nodeName].image;

@@ -80,8 +80,7 @@ if (request.command === "logs") console.log = (...values) => {
 };
 const write = value => { for (const flush of flushers) flush(); fs.writeFileSync(3, JSON.stringify(value)); };
 (async () => {
-  const requireFromLoader = createRequire(request.loaderPath);
-  const loaded = requireFromLoader(request.loaderPath);
+  const loaded = typeof __abxLoadComponent === "function" ? __abxLoadComponent() : createRequire(request.loaderPath)(request.loaderPath);
   const loadComponent = loaded.default || loaded;
   const instance = await loadComponent(request.component, {logger, cleanCache: true});
   if (!instance) throw new Error("Component loader returned no instance");

@@ -1,13 +1,14 @@
 /** Personal ACR ROA API, signed by the official OpenAPI client with explicit identity. */
-import { createRequire } from "node:module";
+import * as coreModule from "@alicloud/openapi-core";
+import * as daraModule from "@darabonba/typescript";
 import { ApplicationError, record } from "../../../application/config.js";
 import type { CredentialSnapshot } from "../../../application/bindings.js";
 import type { OwnedServerImage } from "../../../application/types.js";
+import { nativeModuleExports } from "../module_exports.js";
 
-const require = createRequire(import.meta.url);
 interface Models { Config: new (value: unknown) => unknown; Params: new (value: unknown) => unknown; OpenApiRequest: new (value: unknown) => unknown }
-const core = require("@alicloud/openapi-core") as { default: new (value: unknown) => { callApi(params: unknown, request: unknown, runtime: unknown): Promise<Record<string, unknown>> }; $OpenApiUtil: Models };
-const dara = require("@darabonba/typescript") as { RuntimeOptions: new (value: unknown) => unknown };
+const core = nativeModuleExports<{ default: new (value: unknown) => { callApi(params: unknown, request: unknown, runtime: unknown): Promise<Record<string, unknown>> }; $OpenApiUtil: Models }>(coreModule);
+const dara = nativeModuleExports<{ RuntimeOptions: new (value: unknown) => unknown }>(daraModule);
 export interface RegistryClient {
   token(): Promise<{ username: string; password: string }>;
   inspect(namespace: string, repository: string, tag: string, timeoutSeconds?: number): Promise<{ digest: string; imageId: string } | null>;

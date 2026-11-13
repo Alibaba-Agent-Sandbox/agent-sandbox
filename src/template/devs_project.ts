@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { TemplateParseError } from "../models/errors.js";
 import { DEVS_PARSE_RUNNER_SOURCE } from "./devs_runner.js";
+import { portableWorkerInvocation } from "../application/portable_worker.js";
 
 const require = createRequire(import.meta.url);
 const payloadKey = "xAbxResolvedTemplate";
@@ -79,16 +80,16 @@ export function resolveDevsProject(document: Record<string, unknown>, file: stri
   if (Object.hasOwn(deployment, payloadKey)) throw new TemplateParseError("Reserved native project payload field.");
   const { deployment: _deployment, ...payload } = document;
   const nativeProject = { edition: "3.0.0", name: document.name ?? "abx-project", resources: {}, ...deployment, ...(document.vars ? {vars: document.vars} : {}), [payloadKey]: payload };
-  const parserPath = require.resolve("@serverless-devs/parse-spec");
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "abx-devs-parse-"));
   try {
     const runner = path.join(scratch, "parse.cjs");
     fs.writeFileSync(runner, DEVS_PARSE_RUNNER_SOURCE, { mode: 0o600 });
-    const result = spawnSync(environment.ABX_APP_NODE || process.execPath, [runner], {
+    const worker = portableWorkerInvocation("parser", scratch, () => ({argv: [environment.ABX_APP_NODE || process.execPath, runner], modulePath: require.resolve("@serverless-devs/parse-spec")}));
+    const result = spawnSync(worker.argv[0], worker.argv.slice(1), {
       cwd: options.configurationSource ? fs.realpathSync(options.configurationSource) : path.dirname(fs.realpathSync(file)),
       env: { ...environment, DEBUG: "", CI: "1", S_INTERACTIVE: "0", NO_COLOR: "1" },
       // JSON is valid YAML and preserves canonical scalar types through js-yaml in the official parser.
-      input: JSON.stringify({ parserPath, command: "deploy", content: JSON.stringify(nativeProject) }),
+      input: JSON.stringify({ parserPath: worker.modulePath, command: "deploy", content: JSON.stringify(nativeProject) }),
       stdio: ["pipe", "ignore", "ignore", "pipe"], encoding: "utf8", timeout: 30000,
       maxBuffer: 4 * 1024 * 1024, killSignal: "SIGKILL",
     });

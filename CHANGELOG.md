@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
-- Unify running deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 运行部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
+- Unify resource deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 资源部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
 - Use one parser for every Provider, retain Express protocol/PTY behavior, and make Provider run the sole native management execution entry. / 所有 Provider 共用一个解析入口，保留极速版协议和 PTY 能力，原生管理统一通过 provider run 执行。
 - Use author-defined vars and Dockerfile/context or native Steps branches; template region stays under template. Application policy and publication move into template-owned code. / 采用作者自定义 vars 和 Dockerfile/context 或 Steps 分支，地域保留在 template 下；业务策略与发布归模板代码。
 
@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Remove the app command tree, --native routing and overlapping lifecycle/template aliases. HTTP MCP creation now uses template init --template mcp. / 删除 app 命令树、--native 分流和重复生命周期及模板入口；HTTP MCP 创作统一使用 template init --template mcp。
 
 ### Fixed
+
+- Bundle the official native parser and component workers into standalone binaries, with the same isolated logging and credential handling as npm installations. / 独立二进制内置官方原生解析与组件执行能力，保持与 npm 安装相同的日志及凭据隔离。
 
 - Preserve Core YAML 1.2 string types through native project resolution and report template v1 errors without nested legacy suggestions. / 原生项目求值保留 Core YAML 1.2 的字符串类型，模板 v1 错误不再嵌套旧版提示。
 - Read FC access keys and optional STS token from one configuration snapshot. / FC AccessKey 与可选 STS Token 使用同一配置快照。

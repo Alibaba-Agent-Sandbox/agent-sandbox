@@ -1,20 +1,24 @@
 /** Official FC models/transport with an immutable credential snapshot and no implicit write retries. */
-import { createRequire } from "node:module";
+import * as fcModule from "@alicloud/fc20230330";
+import * as coreModule from "@alicloud/openapi-core";
+import * as daraModule from "@darabonba/typescript";
+import * as credentialModule from "@serverless-devs/credential";
+import * as stsModule from "@alicloud/sts20150401";
 import { createHmac } from "node:crypto";
 import { Readable } from "node:stream";
 import { ApplicationError, record } from "../../../application/config.js";
 import { loadLayeredConfig } from "../../../transport/config_layers.js";
 import type { CredentialSnapshot } from "../../../application/bindings.js";
 import type { FunctionReceipt, Role } from "../../../application/types.js";
+import { nativeModuleExports } from "../module_exports.js";
 
-const require = createRequire(import.meta.url);
 type Model = new (input?: Record<string, unknown>) => unknown;
 interface Response { statusCode?: number; body?: unknown }
 type Client = Record<string, (...args: unknown[]) => Promise<Response>>;
 interface Sdk { default: new (config: unknown) => Client; [key: string]: Model | (new (config: unknown) => Client) }
-const sdk = require("@alicloud/fc20230330") as Sdk;
-const core = require("@alicloud/openapi-core") as { $OpenApiUtil: { Config: Model } };
-const dara = require("@darabonba/typescript") as { RuntimeOptions: Model };
+const sdk = nativeModuleExports<Sdk>(fcModule);
+const core = nativeModuleExports<{ $OpenApiUtil: { Config: Model } }>(coreModule);
+const dara = nativeModuleExports<{ RuntimeOptions: Model }>(daraModule);
 const runtime = (): unknown => new dara.RuntimeOptions({ autoretry: false, maxAttempts: 1, readTimeout: 30000, connectTimeout: 10000 });
 const model = (name: string, value: Record<string, unknown> = {}): unknown => new sdk[name](value);
 
@@ -30,12 +34,12 @@ export async function resolveDeployCredentials(accessRef: string): Promise<Crede
       SecurityToken: process.env.ALIBABA_CLOUD_SECURITY_TOKEN || process.env.ALICLOUD_SECURITY_TOKEN };
     else {
       if (!/^[A-Za-z0-9_-]{1,128}$/.test(accessRef)) throw new Error("Invalid reference");
-      const loaded = require("@serverless-devs/credential") as { default: new (input: unknown) => { get(name: string): Promise<{ credential: Record<string, unknown> }> } };
+      const loaded = nativeModuleExports<{ default: new (input: unknown) => { get(name: string): Promise<{ credential: Record<string, unknown> }> } }>(credentialModule);
       const reader = new loaded.default({ logger: { debug(): void {}, info(): void {}, warn(): void {}, error(): void {} } });
       raw = (await reader.get(accessRef)).credential;
     }
     if (typeof raw.AccessKeyID !== "string" || !raw.AccessKeyID || typeof raw.AccessKeySecret !== "string" || !raw.AccessKeySecret || (raw.SecurityToken !== undefined && typeof raw.SecurityToken !== "string")) throw new Error("Missing credential");
-    const sts = require("@alicloud/sts20150401") as { default: new (config: unknown) => { getCallerIdentityWithOptions(runtime: unknown): Promise<Response> } };
+    const sts = nativeModuleExports<{ default: new (config: unknown) => { getCallerIdentityWithOptions(runtime: unknown): Promise<Response> } }>(stsModule);
     const client = new sts.default(new core.$OpenApiUtil.Config({ accessKeyId: raw.AccessKeyID, accessKeySecret: raw.AccessKeySecret,
       ...(raw.SecurityToken ? { securityToken: raw.SecurityToken } : {}), endpoint: "sts.cn-hangzhou.aliyuncs.com", protocol: "https", readTimeout: 15000, connectTimeout: 10000 }));
     const response = await client.getCallerIdentityWithOptions(runtime());

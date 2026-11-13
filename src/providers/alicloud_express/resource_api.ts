@@ -1,15 +1,17 @@
 /** Current Express resource API, using the official signer without lossy generated-model projection. */
-import { createRequire } from "node:module";
+import * as sandboxModule from "@alicloud/sandbox20260820";
+import * as coreModule from "@alicloud/openapi-core";
+import * as daraModule from "@darabonba/typescript";
 import { setTimeout as delay } from "node:timers/promises";
 import type { CredentialSnapshot } from "../../application/bindings.js";
 import { ApplicationError, record } from "../../application/config.js";
+import { nativeModuleExports } from "./module_exports.js";
 
-const require = createRequire(import.meta.url);
 type Dict = Record<string, unknown>;
 type Constructor = new (value: Dict) => unknown;
-const sdk = require("@alicloud/sandbox20260820") as { default: new (value: unknown) => {callApi(params: unknown, request: unknown, runtime: unknown): Promise<unknown>} };
-const core = require("@alicloud/openapi-core") as {$OpenApiUtil: {Config: Constructor; Params: Constructor; OpenApiRequest: Constructor}};
-const dara = require("@darabonba/typescript") as {RuntimeOptions: Constructor};
+const sdk = nativeModuleExports<{ default: new (value: unknown) => {callApi(params: unknown, request: unknown, runtime: unknown): Promise<unknown>} }>(sandboxModule);
+const core = nativeModuleExports<{$OpenApiUtil: {Config: Constructor; Params: Constructor; OpenApiRequest: Constructor}}>(coreModule);
+const dara = nativeModuleExports<{RuntimeOptions: Constructor}>(daraModule);
 const routes: Record<string, [string, string]> = {
   ListTeams: ["GET", "teams"], ListVolumes: ["GET", "volumes"],
   CreateTemplate: ["POST", "templates"], GetTemplate: ["GET", "templates"], UpdateTemplate: ["PUT", "templates"], DeleteTemplate: ["DELETE", "templates"],
