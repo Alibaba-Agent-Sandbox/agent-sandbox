@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [MCP user journey](notes/proposed/process/2026-11-13-mcp-user-journey.md) · [verification](evidence/verify/2026-11-13-mcp-user-journey.md).
+
 ## Recent changes — 2026-11-10
 
 - [Owner change index](notes/proposed/process/2026-11-10-recent-change-index.md) · [records verification](evidence/verify/2026-11-10-recent-change-index.md).

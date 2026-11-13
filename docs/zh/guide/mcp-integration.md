@@ -1,10 +1,45 @@
 # MCP 集成
 
-> CLI 使用统一命令树。Provider 配置使用 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL` 和 `ABX_SANDBOX_DOMAIN`。极速版也支持 E2B 配置别名，见[迁移指南](migrate-from-e2b.md)。
-
 Agent Sandbox 提供 MCP（Model Context Protocol）Server，使 AI IDE 和工具能够直接操作沙箱。
 
 ---
+
+## 先完成一个真实任务
+
+本机 AI 助手优先使用 STDIO，让客户端负责启动 MCP 进程；需要远程接入时再用 HTTP。Skill 可提供操作指导，但不是连接 MCP 的前提。助手的模型账号、Sandbox Key、模板管理 AK/SK 和 HTTP MCP Bearer 是不同配置。
+
+1. 按[安装指南](getting-started.md)安装 CLI，检查 `abx --version` 和 `abx --help`。源码版与发行版的 CLI 命令不能混用；下方扩展工具清单以当前源码为准。
+2. 运行 `abx config init`，将自己的 Sandbox Key 和地域保存到本机。不要把密钥写入项目 MCP 文件或聊天；桌面客户端可能不继承终端环境。
+3. 配置客户端并启用服务。Qwen Code 的项目配置需要在 `/mcp` 审核批准；`Pending approval` 不代表服务已连接。
+4. 在客户端确认能发现 `agent-sandbox` 工具，再输入下面的任务。检查实际文件、退出码和清理结果，不能仅凭助手正常退出判断成功。
+
+> 通过 Agent Sandbox MCP 创建一个存活 300 秒的 base 沙箱。写入 sales.csv：表头 item,amount，两行 apple,12 和 pear,30。用 run_command 调用 python3 求和并写入 result.json。读取实际文件，确认 total 为 42；列出文件并查询状态。最后删除本次沙箱，再查询确认不存在。不要创建管理 Key，也不要删除其他资源。
+
+这条路径使用 `create_sandbox → write_file → run_command → read_file / list_files → get_sandbox → kill_sandbox`。示例的实际业务结果是 `{"total":42}`。先保存需要交付的文件，再删除自己的临时资源。普通 Python 脚本通过 `run_command` 执行；当前源码内置极速版的原生 `run_code` 入口不受支持，会返回 E8004，不应将其写成解释器成功。
+
+### Qwen Code
+
+将以下条目合并到项目 `.qwen/settings.json` 的 `mcpServers`，保留已有配置。把 `command` 换成实际可执行文件的绝对路径：macOS/Linux 用 `command -v abx`，Windows PowerShell 用 `(Get-Command abx).Source`。Windows JSON 路径中的反斜杠需转义。
+
+```json
+{
+  "mcpServers": {
+    "agent-sandbox": {
+      "command": "abx",
+      "args": ["mcp", "start", "--template", "base"]
+    }
+  }
+}
+```
+
+重新打开 Qwen Code，在 `/mcp` 查看、审核并启用项目服务。用户级配置也可使用同一个条目，放在用户的 `.qwen/settings.json`；仅配置可信来源。配置文件存在、`abx mcp status` 正常、助手进程返回 0，都不能代替客户端已连接并完成业务任务。
+
+### 结果交付与长任务
+
+- 文本：`write_file` / `read_file` 使用沙箱路径。
+- 二进制：`upload_file` 接收 base64 与 SHA-256，不会读取用户电脑上的路径；`download_file` 返回 base64 与哈希，助手或调用程序必须真的写到本机并核对。工具有大小上限，大文件使用 CLI 传输。
+- 后台：保存 `start_task` 返回的 `sandbox_id` 和 `task_id`。重连后用同一组 ID 调用 `get_task`，读取 `state`、`exit_code` 与有界日志。终态包括 `succeeded`、`failed`、`cancelled`；取消需继续查询到终态，不能只看请求接受。
+- 归属：后台任务会保留沙箱；借用、显式保留和普通临时资源的清理不同。明确告诉助手何时释放资源，不使用账号范围的批量清理。
 
 ## 什么是 MCP
 
@@ -60,17 +95,38 @@ abx --json mcp status
 
 ## 可用工具
 
-MCP Server 提供 21 个工具：下面保留七个兼容核心工具，其后列出新增闭环工具。
+MCP Server 提供 21 个工具：下面按用途列出当前源码默认 Provider 的工具；其他 Provider 与发行版以实际 tools/list 为准。
 
 | 工具名 | 说明 | 参数 |
 |--------|------|------|
 | `create_sandbox` | 创建新沙箱，并把它设为默认沙箱 | `template`（可选，省略时用 server 配置的模板）、`timeout`（可选，默认 300）、`envs`（可选） |
-| `run_code` | 在沙箱中执行代码 | `code`（必填）、`sandbox_id`（可选）、`language`（可选，默认 python）、`timeout`（可选，默认 30） |
+| `run_code` | 原生解释器入口；当前源码内置极速版返回 E8004 | `code`（必填）、`sandbox_id`（可选）、`language`（可选，默认 python）、`timeout`（可选，默认 30） |
 | `run_command` | 通过 `sh -c` 执行命令（支持管道、`&&`、`$VAR`、`cd`） | `command`（必填）、`sandbox_id`（可选）、`cwd`（可选，省略时用镜像工作目录）、`timeout`（可选，默认 60，非零退出码视为工具错误） |
 | `read_file` | 读取沙箱中的文件 | `path`（必填）、`sandbox_id`（可选）、`encoding`（可选，默认 utf-8） |
 | `write_file` | 写入文件到沙箱 | `path`、`content`（必填）、`sandbox_id`（可选） |
 | `list_files` | 列出沙箱中的目录内容 | `path`（可选，默认 `/`）、`sandbox_id`（可选） |
 | `kill_sandbox` | 销毁沙箱 | `sandbox_id`（可选；省略时销毁默认沙箱。没有默认沙箱时返回错误） |
+
+### 生命周期、文件、后台与模板工具
+
+| 工具 | 用途 | 主要参数 |
+| --- | --- | --- |
+| `get_capabilities` | 发现能力与未验证的平台依赖 | `{}` |
+| `list_sandboxes` | 只读列出资源；列表可短暂滞后 | `limit?, offset?` |
+| `get_sandbox` | 只读查询状态，不续期、不取得归属 | `sandbox_id` |
+| `set_sandbox_timeout` | 显式续期，并返回实际查询结果 | `sandbox_id, timeout` |
+| `retain_sandbox` | 明确保留会话资源 | `sandbox_id, retain` |
+| `upload_file` | 有界二进制上传并验证哈希 | `sandbox_id, path, content_base64, sha256` |
+| `download_file` | 返回二进制和哈希，客户端负责本机交付 | `sandbox_id, path, max_bytes?` |
+| `start_task` | 启动持久后台任务并保留沙箱 | `sandbox_id, command, cwd?` |
+| `get_task` | 查询原任务状态和日志 | `sandbox_id, task_id, max_bytes?` |
+| `cancel_task` | 请求取消，随后仍需查询终态 | `sandbox_id, task_id` |
+| `verify_sandbox` | 实际命令与二进制读写探针 | `sandbox_id` |
+| `submit_template_build` | 极速版模板提交，需要管理 AK/SK 和明确 Team | `team_id, name, image, generation?, cpu?, memory?, envd_inject?` |
+| `get_template_build` | 查询构建状态；就绪不等于运行验证 | `team_id, template_id` |
+| `validate_template` | 创建临时沙箱，验证运行与独立清理 | `template_id, region?` |
+
+模板构建的 `submitted`、`ready` 与实际运行验证是不同阶段。构建失败先查看 reason、镜像权限和 envd 注入条件；只有已经准备好 envd 的兼容镜像才适用 `envd_inject=false`。模板管理用 AK/SK，沙箱运行用 Sandbox Key；不自动创建管理 Key 或覆盖已有模板。
 
 > **命名说明**：MCP 工具 `run_command` 通过 `sh -c` 执行命令（SDK 中 `sandbox.commands.run(..., shell=True)`），与 SDK 中已弃用的 `Sandbox.run_command()` 方法无关——后者用于调度命名自定义命令，请使用 `Sandbox.custom()` 替代。
 >
@@ -186,7 +242,7 @@ token 比较使用常量时间算法。部署的模板默认复用 CLI 自动生
 
 ```bash
 abx template init ./my-mcp --template mcp
-abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
+abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN" # example: environment references, no literal credentials
 ```
 
 生成的源码包含 template.yaml、Dockerfile、app.py、requirements.txt、.dockerignore

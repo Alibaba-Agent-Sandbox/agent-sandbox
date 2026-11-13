@@ -1,0 +1,562 @@
+[
+  {
+    "name": "create_sandbox",
+    "description": "创建一个云端沙箱，并将其设为当前会话的默认沙箱。之后省略 sandbox_id 的工具调用都作用在这只沙箱上。省略 template 时使用 MCP server 配置的模板（abx mcp start 默认为 code-interpreter-v1）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "string",
+          "description": "沙箱模板名称，省略时使用 server 配置的模板"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "沙箱超时时间（秒），默认 300",
+          "default": 300
+        },
+        "envs": {
+          "type": "object",
+          "description": "环境变量键值对",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "cpu": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retain": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "run_code",
+    "description": "在沙箱中执行代码（通过 Code Interpreter）。支持 Python、JavaScript 等语言。省略 sandbox_id 时使用默认沙箱。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "要执行的代码"
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言，默认 python",
+          "default": "python",
+          "enum": [
+            "python",
+            "javascript",
+            "shell",
+            "typescript",
+            "r"
+          ]
+        },
+        "sandbox_id": {
+          "type": "string",
+          "description": "沙箱 ID，省略时使用默认沙箱"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "执行超时（秒），默认 30",
+          "default": 30
+        }
+      },
+      "required": [
+        "code"
+      ]
+    }
+  },
+  {
+    "name": "run_command",
+    "description": "在沙箱中通过 sh -c 执行命令，因此支持管道、&&、$VAR 和 cd。省略 sandbox_id 时使用默认沙箱。省略 cwd 时使用镜像自己的工作目录。timeout 是本次调用等待的秒数；非零退出码会标成工具错误。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "交给 sh -c 的命令"
+        },
+        "sandbox_id": {
+          "type": "string",
+          "description": "沙箱 ID"
+        },
+        "cwd": {
+          "type": "string",
+          "description": "工作目录，省略时使用镜像工作目录"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "执行超时（秒），默认 60",
+          "default": 60
+        }
+      },
+      "required": [
+        "command"
+      ]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "读取沙箱中的文件内容。省略 sandbox_id 时使用默认沙箱。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "文件绝对路径"
+        },
+        "sandbox_id": {
+          "type": "string",
+          "description": "沙箱 ID"
+        },
+        "encoding": {
+          "type": "string",
+          "description": "文件编码，默认 utf-8",
+          "default": "utf-8"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "write_file",
+    "description": "在沙箱中创建或覆写文件。省略 sandbox_id 时使用默认沙箱。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "文件绝对路径"
+        },
+        "content": {
+          "type": "string",
+          "description": "文件内容"
+        },
+        "sandbox_id": {
+          "type": "string",
+          "description": "沙箱 ID"
+        }
+      },
+      "required": [
+        "path",
+        "content"
+      ]
+    }
+  },
+  {
+    "name": "list_files",
+    "description": "列出沙箱中指定目录的文件和子目录。省略 sandbox_id 时使用默认沙箱。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "目录路径，省略时列出 /",
+          "default": "/"
+        },
+        "sandbox_id": {
+          "type": "string",
+          "description": "沙箱 ID"
+        }
+      }
+    }
+  },
+  {
+    "name": "kill_sandbox",
+    "description": "销毁指定沙箱。省略 sandbox_id 时销毁默认沙箱；当前没有默认沙箱时返回错误，而不是成功。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "description": "要销毁的沙箱 ID，省略时销毁默认沙箱"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_capabilities",
+    "description": "Inspect provider declarations and explicitly unverified platform dependencies. Declarations are not live acceptance.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "list_sandboxes",
+    "description": "Observe resources without connecting, renewing or adopting them.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_sandbox",
+    "description": "Observe sandbox metadata without renewal or ownership changes. Missing timeout/region remain unknown.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sandbox_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_sandbox_timeout",
+    "description": "Explicitly change lifetime, then query metadata. Accepted does not imply observed TTL matches.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      },
+      "required": [
+        "sandbox_id",
+        "timeout"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "retain_sandbox",
+    "description": "Preserve a session-created sandbox across disconnect (until its platform lifetime expires). Existing resources are preserved by default.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retain": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sandbox_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "upload_file",
+    "description": "Upload bounded binary data from base64, check input SHA-256 and remote read-back. Does not read local paths.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_base64": {
+          "type": "string",
+          "maxLength": 1400000
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "sandbox_id",
+        "path",
+        "content_base64",
+        "sha256"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "download_file",
+    "description": "Return bounded bytes as base64 with SHA-256. Client must write and verify the local artifact before reporting delivery.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "max_bytes": {
+          "default": 1048576,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        }
+      },
+      "required": [
+        "sandbox_id",
+        "path"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "start_task",
+    "description": "Start a Linux sh/python3 task with persistent status/logs in the sandbox; retain sandbox on disconnect. Return task_id; do not resubmit after uncertain errors.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 262144
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sandbox_id",
+        "command"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_task",
+    "description": "Recover the original task by ID and return exit status and bounded log tails. Never recreates the environment.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "max_bytes": {
+          "default": 16384,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      },
+      "required": [
+        "sandbox_id",
+        "task_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "cancel_task",
+    "description": "Signal the persisted task process group after checking process identity. Poll cancelling to a terminal state and verify observable work stopped.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        }
+      },
+      "required": [
+        "sandbox_id",
+        "task_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "verify_sandbox",
+    "description": "Check deterministic command output and binary round trip, cleaning up the probe file.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sandbox_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sandbox_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "submit_template_build",
+    "description": "Submit a new, uniquely named OCI template through the Alibaba AK/SK adapter. Submission is not readiness. Existing names are refused to preserve rollback. Other providers require their own adapter.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "default": 2,
+          "anyOf": [
+            {
+              "type": "number",
+              "const": 1
+            },
+            {
+              "type": "number",
+              "const": 2
+            }
+          ]
+        },
+        "cpu": {
+          "default": 2,
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "memory": {
+          "default": 2048,
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 9007199254740991
+        },
+        "start_command": {
+          "type": "string"
+        },
+        "ready_command": {
+          "type": "string"
+        },
+        "envd_inject": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "team_id",
+        "name",
+        "image"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_template_build",
+    "description": "Query Alibaba template build state; even ready needs runtime validation. Requires AK/SK and explicit Team.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "template_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "team_id",
+        "template_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "validate_template",
+    "description": "Create a temporary sandbox through the selected provider, verify its runtime, and verify owned cleanup separately.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "template_id"
+      ],
+      "additionalProperties": false
+    }
+  }
+]
