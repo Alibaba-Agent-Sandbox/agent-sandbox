@@ -1,0 +1,569 @@
+{
+  "checks": [
+    {
+      "name": "source discovers 21 MCP tools",
+      "passed": true
+    },
+    {
+      "name": "capabilities discovered without workload",
+      "passed": true
+    },
+    {
+      "name": "missing required ID is a tool error",
+      "passed": true
+    },
+    {
+      "name": "MCP creates real base sandbox",
+      "passed": true
+    },
+    {
+      "name": "actual state is running",
+      "passed": true
+    },
+    {
+      "name": "independent list includes native ID",
+      "passed": true
+    },
+    {
+      "name": "real command returns 42 and exit zero",
+      "passed": true
+    },
+    {
+      "name": "MCP writes input CSV",
+      "passed": true
+    },
+    {
+      "name": "MCP reads matching input",
+      "passed": true
+    },
+    {
+      "name": "MCP directory contains input",
+      "passed": true
+    },
+    {
+      "name": "unsupported native interpreter returns explicit E8004",
+      "passed": true
+    },
+    {
+      "name": "nonzero command remains tool error with exit 7",
+      "passed": true
+    },
+    {
+      "name": "binary upload readback verified",
+      "passed": true
+    },
+    {
+      "name": "independent local download bytes and hash match",
+      "passed": true
+    },
+    {
+      "name": "bad upload hash rejected",
+      "passed": true
+    },
+    {
+      "name": "sandbox command and binary probe verified",
+      "passed": true
+    },
+    {
+      "name": "explicit lifetime update accepted",
+      "passed": true
+    },
+    {
+      "name": "explicit retention set",
+      "passed": true
+    },
+    {
+      "name": "background task has durable handle",
+      "passed": true
+    },
+    {
+      "name": "reconnect observes retained original sandbox",
+      "passed": true
+    },
+    {
+      "name": "original background task completes after client restart",
+      "passed": true
+    },
+    {
+      "name": "cancellable task started",
+      "passed": true
+    },
+    {
+      "name": "cancellation accepted",
+      "passed": true
+    },
+    {
+      "name": "cancellation reaches terminal state",
+      "passed": true
+    },
+    {
+      "name": "retained sandbox preserved for HTTP continuation",
+      "passed": true
+    },
+    {
+      "name": "owned sandbox independently absent after cleanup",
+      "passed": true
+    }
+  ],
+  "events": [
+    {
+      "transport": "Stdio",
+      "tool": "get_capabilities",
+      "arguments": {},
+      "isError": false,
+      "returned": {
+        "provider": "alicloud-express",
+        "declared_features": [
+          "exec.run",
+          "exec.stream",
+          "files.rw",
+          "files.transfer",
+          "files.watch",
+          "ports.url",
+          "process.manage",
+          "pty",
+          "sandbox.lifecycle",
+          "sandbox.timeout",
+          "sessions",
+          "templates.build",
+          "templates.read"
+        ],
+        "verification": "declaration_only",
+        "platform_dependencies": [
+          "storage_mount",
+          "template_cache",
+          "warm_pool",
+          "billing",
+          "snapshot",
+          "deep_hibernation",
+          "preview_expiry",
+          "desktop_handoff",
+          "hosted_mcp"
+        ],
+        "note": "Only per-provider live evidence establishes workflow support; task wrappers need Linux, sh, python3, nohup and /proc."
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_sandbox",
+      "arguments": {},
+      "isError": true,
+      "returned": {
+        "error": "Invalid sandbox lifecycle arguments. Check the tool schema."
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "create_sandbox",
+      "arguments": {
+        "template": "base",
+        "timeout": 600
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "status": "running",
+        "url": "https://49983-<SANDBOX_1>.<CONFIGURED_E2B_DOMAIN>"
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_sandbox",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox": {
+          "sandbox_id": "<SANDBOX_1>",
+          "template": "base",
+          "status": "running",
+          "region": null,
+          "timeout": null,
+          "cpu_count": 2,
+          "memory_mb": 2048,
+          "started_at": "2026-11-13T03:18:01.803Z",
+          "end_at": "2026-11-13T03:28:01.803Z"
+        }
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "list_sandboxes",
+      "arguments": {
+        "limit": 100
+      },
+      "isError": false,
+      "returned": {
+        "sandboxes": [
+          {
+            "sandbox_id": "<SANDBOX_1>",
+            "template": "base",
+            "status": "running",
+            "region": null,
+            "timeout": null,
+            "cpu_count": 2,
+            "memory_mb": 2048,
+            "started_at": "2026-11-13T03:18:01.803Z",
+            "end_at": "2026-11-13T03:28:01.803Z"
+          }
+        ]
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "run_command",
+      "arguments": {
+        "command": "python3 -c 'print(6*7)'"
+      },
+      "isError": false,
+      "returned": {
+        "stdout": "42\n",
+        "stderr": "",
+        "exit_code": 0
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "write_file",
+      "arguments": {
+        "path": "/tmp/mcp-input.csv",
+        "content": "name,amount\napple,12\npear,30\n"
+      },
+      "isError": false,
+      "returned": {
+        "success": true,
+        "bytes_written": 29
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "read_file",
+      "arguments": {
+        "path": "/tmp/mcp-input.csv"
+      },
+      "isError": false,
+      "returned": {
+        "content": "name,amount\napple,12\npear,30\n"
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "list_files",
+      "arguments": {
+        "path": "/tmp"
+      },
+      "isError": false,
+      "returned": {
+        "files": [
+          {
+            "name": "mcp-input.csv",
+            "path": "/tmp/mcp-input.csv",
+            "type": "file",
+            "size": 29
+          },
+          {
+            "name": "python-context-debug.log",
+            "path": "/tmp/python-context-debug.log",
+            "type": "file",
+            "size": 0
+          },
+          {
+            "name": "sandbox",
+            "path": "/tmp/sandbox",
+            "type": "directory",
+            "size": 4096
+          },
+          {
+            "name": "v8-compile-cache-0",
+            "path": "/tmp/v8-compile-cache-0",
+            "type": "directory",
+            "size": 4096
+          }
+        ]
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "run_code",
+      "arguments": {
+        "code": "print(6*7)"
+      },
+      "isError": true,
+      "returned": {
+        "error": "[E8004] Provider 'selected' does not support 'code.execute'.",
+        "suggestion": "Run 'abx provider info selected' to see supported features."
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "run_command",
+      "arguments": {
+        "command": "echo diagnostic >&2; exit 7"
+      },
+      "isError": true,
+      "returned": {
+        "stdout": "",
+        "stderr": "diagnostic\n",
+        "exit_code": 7
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "upload_file",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "path": "/tmp/mcp-binary.dat",
+        "content_base64": "<BASE64_OMITTED; 43692 characters; SHA256 preserved>",
+        "sha256": "e11360251d1173650cdcd20f111d8f1ca2e412f572e8b36a4dc067121c1799b8"
+      },
+      "isError": false,
+      "returned": {
+        "path": "/tmp/mcp-binary.dat",
+        "bytes": 32768,
+        "sha256": "e11360251d1173650cdcd20f111d8f1ca2e412f572e8b36a4dc067121c1799b8",
+        "verified": true
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "download_file",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "path": "/tmp/mcp-binary.dat"
+      },
+      "isError": false,
+      "returned": {
+        "path": "/tmp/mcp-binary.dat",
+        "bytes": 32768,
+        "sha256": "e11360251d1173650cdcd20f111d8f1ca2e412f572e8b36a4dc067121c1799b8",
+        "content_base64": "<BASE64_OMITTED; 43692 characters; SHA256 preserved>"
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "upload_file",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "path": "/tmp/invalid-data",
+        "content_base64": "<BASE64_OMITTED; 43692 characters; SHA256 preserved>",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "isError": true,
+      "returned": {
+        "error": "Input SHA-256 mismatch; file was not written"
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "verify_sandbox",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>"
+      },
+      "isError": false,
+      "returned": {
+        "checks": {
+          "command_exit": true,
+          "command_output": true,
+          "binary_round_trip": true
+        },
+        "verified": true
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "set_sandbox_timeout",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "timeout": 600
+      },
+      "isError": false,
+      "returned": {
+        "accepted": true,
+        "requested_timeout": 600,
+        "sandbox": {
+          "sandbox_id": "<SANDBOX_1>",
+          "template": "base",
+          "status": "running",
+          "region": null,
+          "timeout": null,
+          "cpu_count": 2,
+          "memory_mb": 2048,
+          "started_at": "2026-11-13T03:18:01.803Z",
+          "end_at": "2026-11-13T03:28:06.000Z"
+        },
+        "timeout_verified": false
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "retain_sandbox",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "retain": true
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "retained": true
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "start_task",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "command": "sleep 2; printf 42"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_1>",
+        "state": "running",
+        "started_at": 1794539887.4612234,
+        "pid": 34,
+        "pid_start": "1107"
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_sandbox",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox": {
+          "sandbox_id": "<SANDBOX_1>",
+          "template": "base",
+          "status": "running",
+          "region": null,
+          "timeout": null,
+          "cpu_count": 2,
+          "memory_mb": 2048,
+          "started_at": "2026-11-13T03:18:01.803Z",
+          "end_at": "2026-11-13T03:28:06.000Z"
+        }
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_task",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_1>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_1>",
+        "state": "running",
+        "started_at": 1794539887.4612234,
+        "pid": 34,
+        "pid_start": "1107",
+        "stdout": "",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_task",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_1>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_1>",
+        "state": "succeeded",
+        "started_at": 1794539887.4612234,
+        "pid": 34,
+        "pid_start": "1107",
+        "exit_code": 0,
+        "finished_at": 1794539889.473136,
+        "stdout": "42",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "start_task",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "command": "while true; do echo tick; sleep 1; done"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_2>",
+        "state": "running",
+        "started_at": 1794539890.4855082,
+        "pid": 46,
+        "pid_start": "1410"
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "cancel_task",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_2>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_2>",
+        "state": "cancelled",
+        "started_at": 1794539890.4855082,
+        "pid": 46,
+        "pid_start": "1410",
+        "exit_code": -15,
+        "finished_at": 1794539890.9898887,
+        "stdout": "tick\n",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_task",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_2>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "task_id": "<TASK_2>",
+        "state": "cancelled",
+        "started_at": 1794539890.4855082,
+        "pid": 46,
+        "pid_start": "1410",
+        "exit_code": -15,
+        "finished_at": 1794539890.9898887,
+        "stdout": "tick\n",
+        "stdout_truncated": false,
+        "stderr": "",
+        "stderr_truncated": false
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "kill_sandbox",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>"
+      },
+      "isError": false,
+      "returned": {
+        "success": true,
+        "sandbox_id": "<SANDBOX_1>"
+      }
+    }
+  ]
+}

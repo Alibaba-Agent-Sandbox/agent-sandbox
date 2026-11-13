@@ -6,6 +6,7 @@
 
 - [Template v1 adoption verification](evidence/verify/2026-11-12-template-v1-adoption.md).
 - [Native template project parser](notes/proposed/architecture/2026-11-12-native-template-project-parser.md) · [verification](evidence/verify/2026-11-12-native-template-project-parser.md).
+- [MCP user journey](notes/proposed/process/2026-11-13-mcp-user-journey.md) · [verification](evidence/verify/2026-11-13-mcp-user-journey.md).
 
 ## Recent changes — 2026-11-10
 

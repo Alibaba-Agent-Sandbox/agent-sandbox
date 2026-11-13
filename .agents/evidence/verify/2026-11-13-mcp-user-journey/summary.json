@@ -1,0 +1,36 @@
+{
+  "source_revision": "16e0a2bfe50ac89b1d6c8ee21e3bcc995cd12614",
+  "tool_contracts_exercised": 21,
+  "positive_workload_tools": [
+    "cancel_task",
+    "create_sandbox",
+    "download_file",
+    "get_capabilities",
+    "get_sandbox",
+    "get_task",
+    "get_template_build",
+    "kill_sandbox",
+    "list_files",
+    "list_sandboxes",
+    "read_file",
+    "retain_sandbox",
+    "run_command",
+    "set_sandbox_timeout",
+    "start_task",
+    "submit_template_build",
+    "upload_file",
+    "validate_template",
+    "verify_sandbox",
+    "write_file"
+  ],
+  "explicitly_unsupported": {
+    "run_code": "current built-in Express native interpreter returns E8004; no positive execution claim"
+  },
+  "stdio_checks": 26,
+  "http_checks": 15,
+  "prepared_image_template_checks": 4,
+  "all_final_checks_pass": true,
+  "qwen_actual_tool_calls": 9,
+  "initial_template_failure": "retained separately; incompatible envd re-injection was not passed",
+  "historical_overall_skills_result": "PARTIAL; Issues agent-sandbox46 and python-sdk45 remain open"
+}
