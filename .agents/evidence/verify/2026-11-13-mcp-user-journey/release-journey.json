@@ -1,0 +1,77 @@
+{
+  "pin": "0.5.10",
+  "actual_linux_binary": true,
+  "commands": [
+    {
+      "command": [
+        "abx",
+        "sandbox",
+        "create",
+        "base",
+        "--detach",
+        "--timeout",
+        "300"
+      ],
+      "exit": 0,
+      "continued_from_captured_successful_create": true
+    },
+    {
+      "command": [
+        "abx",
+        "sandbox",
+        "exec",
+        "<SANDBOX_ID>",
+        "echo",
+        "hello"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "abx",
+        "upload",
+        "<SANDBOX_ID>",
+        "./local.txt",
+        "/tmp/local.txt"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "abx",
+        "download",
+        "<SANDBOX_ID>",
+        "/tmp/local.txt",
+        "./downloaded.txt"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "abx",
+        "sandbox",
+        "kill",
+        "<SANDBOX_ID>"
+      ],
+      "exit": 0
+    }
+  ],
+  "checks": [
+    {
+      "name": "released binary creates base using shown standard command",
+      "passed": true
+    },
+    {
+      "name": "released CLI executes hello",
+      "passed": true
+    },
+    {
+      "name": "released CLI upload/download delivers matching local file",
+      "passed": true
+    },
+    {
+      "name": "released CLI own resource independently absent",
+      "passed": true
+    }
+  ]
+}

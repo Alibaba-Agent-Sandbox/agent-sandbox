@@ -1,0 +1,135 @@
+{
+  "checks": [
+    {
+      "name": "HTTP health is available without secrets",
+      "passed": true
+    },
+    {
+      "name": "HTTP rejects missing Bearer before a tool call",
+      "passed": true
+    },
+    {
+      "name": "HTTP rejects wrong Bearer",
+      "passed": true
+    },
+    {
+      "name": "two actual clients receive different sessions",
+      "passed": true
+    },
+    {
+      "name": "HTTP discovers the same 21 tools",
+      "passed": true
+    },
+    {
+      "name": "HTTP creates owned base sandbox",
+      "passed": true
+    },
+    {
+      "name": "HTTP writes actual result file",
+      "passed": true
+    },
+    {
+      "name": "HTTP reads actual result JSON",
+      "passed": true
+    },
+    {
+      "name": "second session has no default sandbox to kill",
+      "passed": true
+    },
+    {
+      "name": "second-session default error preserves first resource",
+      "passed": true
+    },
+    {
+      "name": "DELETE terminates owned session",
+      "passed": true
+    },
+    {
+      "name": "separate platform query confirms HTTP-owned deletion",
+      "passed": true
+    },
+    {
+      "name": "GET MCP correctly returns 405 without SSE",
+      "passed": true
+    },
+    {
+      "name": "expired or unknown session is explicit 404",
+      "passed": true
+    },
+    {
+      "name": "HTTP fixture final independent absence",
+      "passed": true
+    }
+  ],
+  "events": [
+    {
+      "transport": "Http",
+      "tool": "create_sandbox",
+      "arguments": {
+        "template": "base",
+        "timeout": 300
+      },
+      "isError": false,
+      "returned": {
+        "sandbox_id": "<SANDBOX_1>",
+        "status": "running",
+        "url": "https://49983-<SANDBOX_1>.<CONFIGURED_E2B_DOMAIN>"
+      }
+    },
+    {
+      "transport": "Http",
+      "tool": "write_file",
+      "arguments": {
+        "path": "/tmp/http-result.json",
+        "content": "{\"total\":42}"
+      },
+      "isError": false,
+      "returned": {
+        "success": true,
+        "bytes_written": 12
+      }
+    },
+    {
+      "transport": "Http",
+      "tool": "read_file",
+      "arguments": {
+        "path": "/tmp/http-result.json"
+      },
+      "isError": false,
+      "returned": {
+        "content": "{\"total\":42}"
+      }
+    },
+    {
+      "transport": "Http",
+      "tool": "kill_sandbox",
+      "arguments": {},
+      "isError": true,
+      "returned": {
+        "success": false,
+        "error": "No sandbox to destroy. Call create_sandbox or another tool before kill_sandbox without sandbox_id."
+      }
+    },
+    {
+      "transport": "Http",
+      "tool": "get_sandbox",
+      "arguments": {
+        "sandbox_id": "<SANDBOX_1>"
+      },
+      "isError": false,
+      "returned": {
+        "sandbox": {
+          "sandbox_id": "<SANDBOX_1>",
+          "template": "base",
+          "status": "running",
+          "region": null,
+          "timeout": null,
+          "cpu_count": 2,
+          "memory_mb": 2048,
+          "started_at": "2026-11-13T03:38:09.252Z",
+          "end_at": "2026-11-13T03:43:09.252Z"
+        }
+      }
+    }
+  ]
+}

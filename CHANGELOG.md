@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Documentation
 
+- Add practical bilingual MCP client, file-delivery, background-task and diagnostic guidance, with scoped real STDIO/HTTP/Qwen/template evidence.
+- 补齐 MCP 客户端、文件交付、后台任务和排障指南，记录真实 STDIO、HTTP、Qwen 与模板测试及明确范围。
+
 - Align current recipes, reachable MCP help and active runner instructions with the unified CLI. / 同步当前示例、MCP 帮助与验证说明中的统一 CLI 用法。
 
 ### Changed

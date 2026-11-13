@@ -6,6 +6,46 @@ Agent Sandbox provides an MCP (Model Context Protocol) Server, enabling AI IDEs 
 
 ---
 
+## Complete a real task first
+
+Prefer client-managed STDIO for a local assistant; use HTTP when remote access is needed. A Skill can provide instructions but is optional for MCP connectivity. Model credentials, Sandbox keys, template-management AK/SK and HTTP MCP Bearer tokens have different purposes.
+
+1. Follow the [installation guide](getting-started.md), then inspect `abx --version` and `abx --help`. Source and release CLI commands differ; the extended-tool inventory below describes current source.
+2. Run `abx config init` to save your own Sandbox key/region locally. Keep keys out of project MCP files and chat; desktop clients may not inherit shell variables.
+3. Configure and enable your client. Qwen Code project entries require review/approval in `/mcp`; `Pending approval` is not a connected server.
+4. Confirm discovered `agent-sandbox` tools, then give the task below. Inspect files, exit codes and cleanup rather than relying on a normal assistant exit.
+
+> Use Agent Sandbox MCP to create a base sandbox for 300 seconds. Write sales.csv with header item,amount and rows apple,12 and pear,30. Use run_command with python3 to sum it into result.json. Read the actual file and confirm total is 42; list files and inspect state. Finally delete this sandbox and query again to confirm absence. Do not create management keys or delete other resources.
+
+The path is `create_sandbox → write_file → run_command → read_file / list_files → get_sandbox → kill_sandbox`. The actual example produced `{"total":42}`. Save deliverables before deleting temporary resources you own. Run ordinary Python scripts through `run_command`; the current source built-in Express provider rejects the native `run_code` entry with E8004. That rejection is not interpreter execution success.
+
+### Qwen Code
+
+Merge this entry into `mcpServers` in the project's `.qwen/settings.json`, preserving existing settings. Replace `command` with the actual absolute executable path: `command -v abx` on macOS/Linux or `(Get-Command abx).Source` in Windows PowerShell. Escape Windows backslashes in JSON.
+
+On Windows npm/source installs, if resolution returns a `.ps1`/`.cmd` wrapper, use `node.exe` from `(Get-Command node).Source` as `command`. Prepend the JS path from `Join-Path (npm root -g) '@agent-sandbox/cli/dist/bin/abx.js'` to `args`, followed by `mcp`, `start` and remaining arguments. A standalone install uses `abx.exe` directly.
+
+```json
+{
+  "mcpServers": {
+    "agent-sandbox": {
+      "command": "abx",
+      "args": ["mcp", "start", "--template", "base"]
+    }
+  }
+}
+```
+
+Reopen Qwen Code, review and enable the project entry in `/mcp`. The same entry may be placed in your user `.qwen/settings.json`; configure trusted sources only. A file, healthy `abx mcp status`, or assistant exit 0 alone proves neither connectivity nor task completion.
+
+### Delivering results and running longer tasks
+
+- Text: `write_file` / `read_file` use paths inside the sandbox.
+- Binary: `upload_file` takes base64/SHA-256, not a path on your computer. `download_file` returns base64/hash; the assistant/client must actually write and verify a local file. Tool size limits apply; use CLI transfers for large files.
+- Background: retain `sandbox_id` and `task_id` from `start_task`. After reconnecting call `get_task` with the same IDs and inspect `state`, `exit_code` and bounded logs. Terminal states include `succeeded`, `failed`, `cancelled`; poll cancellation to a terminal state rather than treating acceptance as completion.
+- Ownership: background tasks retain their sandbox. Borrowed, explicitly retained and temporary owned resources have different cleanup behavior. Give explicit retention instructions and never use account-wide cleanup.
+
+
 ## What Is MCP
 
 MCP (Model Context Protocol) is an open protocol that allows AI models to interact with external tools and services. The Agent Sandbox MCP Server runs over STDIO transport with JSON-RPC 2.0 protocol, providing sandbox operation capabilities to AI assistants. A Streamable HTTP transport is also available for remote deployments (see below).
@@ -60,12 +100,12 @@ abx --json mcp status
 
 ## Available Tools
 
-The MCP Server provides 21 tools: the seven compatible core tools below, plus the verified workflow tools listed afterwards.
+The MCP Server provides 21 tools: the core and extended tools below for the current source default provider. Other providers/releases must use actual tools/list.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `create_sandbox` | Create a sandbox and make it the default | `template` (optional; omitted means the server template), `timeout` (optional, default 300), `envs` (optional) |
-| `run_code` | Execute code in the sandbox | `code` (required), `sandbox_id` (optional), `language` (optional, default python), `timeout` (optional, default 30) |
+| `run_code` | Native interpreter entry; current source built-in Express returns E8004 | `code` (required), `sandbox_id` (optional), `language` (optional, default python), `timeout` (optional, default 30) |
 | `run_command` | Run a command via `sh -c` (pipes, `&&`, `$VAR`, `cd`) | `command` (required), `sandbox_id` (optional), `cwd` (optional; omitted uses the image workdir), `timeout` (optional, default 60; a non-zero exit is a tool error) |
 | `read_file` | Read a file from the sandbox | `path` (required), `sandbox_id` (optional), `encoding` (optional, default utf-8) |
 | `write_file` | Write a file to the sandbox | `path`, `content` (required), `sandbox_id` (optional) |
@@ -74,6 +114,28 @@ The MCP Server provides 21 tools: the seven compatible core tools below, plus th
 
 >
 > **Default sandbox**: `create_sandbox` makes that sandbox the default, so a later `write_file` / `run_code` / `kill_sandbox` that omits `sandbox_id` uses the sandbox just created. If there is no default yet, the first tool call that omits `sandbox_id` lazily creates one. An omitted `template` uses the server template (`code-interpreter-v1` for `abx mcp start`). Observation and ordinary use do not renew lifetime; use `set_sandbox_timeout` explicitly. On disconnect, only session-created ephemeral sandboxes are destroyed. Borrowed resources, explicitly retained sandboxes and background-task sandboxes survive until their platform expiry or explicit deletion.
+
+### Lifecycle, file, background and template tools
+
+| Tool | Purpose | Main parameters |
+| --- | --- | --- |
+| `get_capabilities` | Discover capabilities and unverified platform dependencies | `{}` |
+| `list_sandboxes` | List resources read-only; visibility may lag creation | `limit?, offset?` |
+| `get_sandbox` | Observe state without renewal or adoption | `sandbox_id` |
+| `set_sandbox_timeout` | Explicitly change lifetime and return queried metadata | `sandbox_id, timeout` |
+| `retain_sandbox` | Explicitly retain a session resource | `sandbox_id, retain` |
+| `upload_file` | Bounded binary upload with hash verification | `sandbox_id, path, content_base64, sha256` |
+| `download_file` | Return binary/hash; client delivers the local file | `sandbox_id, path, max_bytes?` |
+| `start_task` | Start durable background work and retain its sandbox | `sandbox_id, command, cwd?` |
+| `get_task` | Query original task state and logs | `sandbox_id, task_id, max_bytes?` |
+| `cancel_task` | Request cancellation; poll terminal state afterward | `sandbox_id, task_id` |
+| `verify_sandbox` | Actual command/binary round-trip probe | `sandbox_id` |
+| `submit_template_build` | Express template submission: management AK/SK and explicit Team required | `team_id, name, image, generation?, cpu?, memory?, envd_inject?` |
+| `get_template_build` | Inspect build state; readiness is not runtime validation | `team_id, template_id` |
+| `validate_template` | Create temporary runtime; verify effects and independent cleanup | `template_id, region?` |
+
+Template submitted, ready and runtime validation are separate states. Inspect build reason, image permissions and envd-injection prerequisites on failure; envd_inject=false only applies to a compatible image already containing envd. Management uses AK/SK; sandbox execution uses its own key. Do not automatically create management keys or overwrite existing templates.
+
 
 ---
 
@@ -185,7 +247,7 @@ Tokens are compared with constant-time comparison. The deployed template reuses 
 
 ```bash
 abx template init ./my-mcp --template mcp
-abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
+abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN" # example: environment references, no literal credentials
 ```
 
 The generated source contains template.yaml, Dockerfile, app.py, requirements.txt,

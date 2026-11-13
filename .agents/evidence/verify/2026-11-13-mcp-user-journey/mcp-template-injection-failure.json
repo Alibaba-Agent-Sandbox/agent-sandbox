@@ -1,0 +1,60 @@
+{
+  "checks": [
+    {
+      "name": "MCP submits one uniquely named real OCI template",
+      "passed": true
+    },
+    {
+      "name": "MCP build query reaches actual readiness",
+      "passed": false
+    },
+    {
+      "name": "exact owned template deleted and independently absent",
+      "passed": true
+    }
+  ],
+  "events": [
+    {
+      "transport": "Stdio",
+      "tool": "submit_template_build",
+      "arguments": {
+        "team_id": "<EXISTING_TEAM>",
+        "region": "<CONFIGURED_ALIBABA_CLOUD_REGION_ID>",
+        "image": "<EXISTING_PREPARED_BASE_IMAGE>",
+        "generation": 1,
+        "name": "mcp-guide-1794540255",
+        "cpu": 2,
+        "memory": 2048
+      },
+      "isError": false,
+      "returned": {
+        "template_id": "<OWNED_TEMPLATE>",
+        "request_id": "01A1D2EF-3DA8-5784-B85C-5B84A29CE4DC",
+        "state": "submitted",
+        "runtime_verified": false
+      }
+    },
+    {
+      "transport": "Stdio",
+      "tool": "get_template_build",
+      "arguments": {
+        "team_id": "<EXISTING_TEAM>",
+        "region": "<CONFIGURED_ALIBABA_CLOUD_REGION_ID>",
+        "template_id": "<OWNED_TEMPLATE>"
+      },
+      "isError": false,
+      "returned": {
+        "template_id": "<OWNED_TEMPLATE>",
+        "status": {
+          "finishedAt": "2026-11-13T03:24:16.948539Z",
+          "reason": {
+            "message": "template build error: envd inject failed: no acree instance endpoint matched <PLATFORM_REGISTRY><CONFIGURED_ALIBABA_CLOUD_REGION_ID>.cr.aliyuncs.com,<PLATFORM_REGISTRY><CONFIGURED_ALIBABA_CLOUD_REGION_ID>.cr.aliyuncs.com,<PLATFORM_REGISTRY><CONFIGURED_ALIBABA_CLOUD_REGION_ID>.cr.aliyuncs.com,<PLATFORM_REGISTRY><CONFIGURED_ALIBABA_CLOUD_REGION_ID>.cr.aliyuncs.com"
+          },
+          "state": "error"
+        },
+        "code": "200",
+        "runtime_verified": false
+      }
+    }
+  ]
+}

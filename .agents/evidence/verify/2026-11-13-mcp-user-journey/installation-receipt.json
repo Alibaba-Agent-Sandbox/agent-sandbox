@@ -1,0 +1,21 @@
+{
+  "platform": "Linux x64",
+  "binary": {
+    "version": "abx, version 0.5.10",
+    "upstream_installer_exit": 0,
+    "checksum_verified_by_installer": true
+  },
+  "npm": {
+    "pin": "@agent-sandbox/cli@0.5.10",
+    "installed": true,
+    "global_install_in_isolated_prefix": true,
+    "global_launcher_version": "abx, version 0.5.10"
+  },
+  "source": {
+    "revision": "16e0a2bfe50ac89b1d6c8ee21e3bcc995cd12614",
+    "locked_install_and_build_exit": 0,
+    "npm_link_in_isolated_prefix": true,
+    "linked_launcher_matches_built_source": true
+  },
+  "native_macos_windows": "NOT RUN: no native runners in this workspace"
+}
