@@ -154,3 +154,26 @@ Python SDK commit `8e610a3658040d8d6973e7951f9590ea50a4d70a` passed all 907 ledg
 entries and verified all 11 moved tests (zero failed/skipped, missing or moved-not-found).
 The immutable Python ledger was retained. Final full ESLint again reported zero
 errors (262 warnings), and final strict typecheck passed.
+
+## Native Steps cloud follow-up
+
+A final independent coverage review found that the prior image-only and Dockerfile
+exercises did not prove native Steps execution. A fresh single-template verification
+used generation 2 and the same already-tested public runtime-v2 base image. The
+new resource executor submitted `USER root` and a `RUN` writing a unique non-secret
+marker to `/opt/abx-step-proof`, then waited for ready. One explicitly-created
+dynamic instance read that file without writing it; exit status and exact marker
+content matched. This proves the step output reached the instantiated template.
+No Docker daemon, registry push, model or Serving resource was involved.
+
+Both deletion operations completed. The first verification script incorrectly
+expected `E1003` for an absent instance and read `teamID` instead of the saved
+receipt's `team` field; its cleanup verification therefore reported failure. A
+separate read-only check with the actual types/fields confirmed instance
+`SandboxNotFoundError` / `E2009` and authenticated template HTTP 404 /
+`TemplateNotFound`. The failed harness checks remain distinct from those later
+independent absence confirmations. No additional resource creation was used to
+obtain the confirmation. The template receipt records `deleted`.
+
+This confirms native Steps-to-template behavior, not OCI export or pushing the
+completed snapshot back to `template.image`.
