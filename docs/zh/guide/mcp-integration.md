@@ -21,6 +21,8 @@ Agent Sandbox 提供 MCP（Model Context Protocol）Server，使 AI IDE 和工�
 
 将以下条目合并到项目 `.qwen/settings.json` 的 `mcpServers`，保留已有配置。把 `command` 换成实际可执行文件的绝对路径：macOS/Linux 用 `command -v abx`，Windows PowerShell 用 `(Get-Command abx).Source`。Windows JSON 路径中的反斜杠需转义。
 
+Windows 的 npm/源码安装如果解析到 `.ps1` 或 `.cmd` 包装器，改用 `(Get-Command node).Source` 得到的 `node.exe` 作为 `command`，并把 `Join-Path (npm root -g) '@agent-sandbox/cli/dist/bin/abx.js'` 得到的 JS 路径放在 `args` 第一项，再跟 `mcp`、`start` 等参数。独立二进制直接使用 `abx.exe`。
+
 ```json
 {
   "mcpServers": {

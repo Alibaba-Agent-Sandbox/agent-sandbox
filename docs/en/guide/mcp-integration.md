@@ -23,6 +23,8 @@ The path is `create_sandbox → write_file → run_command → read_file / list_
 
 Merge this entry into `mcpServers` in the project's `.qwen/settings.json`, preserving existing settings. Replace `command` with the actual absolute executable path: `command -v abx` on macOS/Linux or `(Get-Command abx).Source` in Windows PowerShell. Escape Windows backslashes in JSON.
 
+On Windows npm/source installs, if resolution returns a `.ps1`/`.cmd` wrapper, use `node.exe` from `(Get-Command node).Source` as `command`. Prepend the JS path from `Join-Path (npm root -g) '@agent-sandbox/cli/dist/bin/abx.js'` to `args`, followed by `mcp`, `start` and remaining arguments. A standalone install uses `abx.exe` directly.
+
 ```json
 {
   "mcpServers": {
