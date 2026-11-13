@@ -33,3 +33,5 @@ Deletion removes confirmed owned templates/volumes/functions. Borrowed builds re
 `template publish SOURCE --tag VERSION` publishes committed source to a fixed GitHub version, without deploying or creating a catalog entry.
 
 [Authoring](authoring-templates.md) · [Deployment and logs](template-launch.md)
+
+An existing deployment stays bound to its selected reusable build. Use another deployment name, or delete it before switching to a different build artifact.

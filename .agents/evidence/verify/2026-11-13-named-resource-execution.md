@@ -1,5 +1,8 @@
 # Named-resource execution verification — 2026-11-13
 
+Result: PARTIAL. Resource-engine and ordinary-service checks passed; the new managed
+application cloud acceptance below remains BLOCKED on prepared application inputs.
+
 Scope: the user's final `specVersion: 1` contract, native Express/FC resource
 execution, application-owned startup/publication and the existing CLI presentation.
 This record supplements the [decision](../../notes/proposed/architecture/2026-11-13-named-resource-execution.md).
@@ -102,3 +105,39 @@ publication, retained-session upgrade and model-turn acceptance were not run her
 this workspace has no prepared database/execution-role inputs for that application.
 The generic resource and ordinary service exercises above do not substitute for those
 business checks. Public release and merge status must be checked independently.
+
+## Final integration checks
+
+After merging CLI main at `57c7632706aac739171fcdb7c2849938e58295ef`, the full
+`npm test` run passed 4,570 tests with 61 conditional skips (220 passing files,
+five skipped files). The previously failing native `ID` response fixture passed.
+The last build lifecycle changes separately passed 26 executor/CLI checks, then
+three additional CLI admission cases brought the deployment-command file to 15
+passing tests. Those cases reject build-to-build, source-to-build and build-to-source
+changes before credential resolution, cloud calls, actions or receipt/consumer mutation.
+Independent review confirmed that archived identities preserve ownership and new
+build consumers remain borrowed. The final contributor instructions match resource
+preparation and explicit dynamic runtime startup.
+
+`npm run lint` completed with zero errors and 262 warnings. `npm run check:hygiene`,
+package-entry dry-run checks and repository health passed (105 passes, 11 registered
+historical warnings, zero failures). Typecheck and compiled build passed.
+
+The dedicated Docker daemon and containerd were stopped after checking that no
+containers/builds/pushes were active. Its owned data, images, cache, socket, context,
+bridge and eight bridge/subnet-specific firewall rules were removed. IP forwarding
+was restored to the observed original value `0`; six independent cleanup checks
+passed. Unrelated firewall rules and installed packages were retained.
+
+A final independent hook review found that a Serving-only prebuild still ran
+`complete-deploy` via `finally`, and could swallow its failure on `continue`.
+Serving prebuild now runs its build/pre-deploy actions without deployment terminal
+hooks; actual deploy retains success/failure/complete behavior. Four success/failure
+regressions passed (18 executor tests total), with typecheck and scoped lint passing.
+
+The first full parity run additionally exposed six retired fixed-pipeline ledger
+names and an integration assertion that still rejected the now-explicit
+`sandbox create` entry. These are corrected against current observable behavior,
+not removed from the historical ledger. Six server-guide cross-checks initially
+skipped without the server SDK; using the installed published server package
+passed all 23 guide tests. The final parity result is recorded separately below.

@@ -23,7 +23,15 @@ export async function deployResources(ctx: Context, params: Params, source: stri
   await withApplicationLock(path.join(paths.abxDir, "deployment-locks"), name, async () => {
     const existing = readDeployment(name);
     if (existing && existing.kind !== "resources" && existing.status !== "deleted") throw new UsageError("This name belongs to another deployment type.");
+    const requestedBuild = params.build ? fs.realpathSync(String(params.build)) : undefined;
+    if (existing && existing.status !== "deleted" && existing.borrowedBuild !== requestedBuild) throw new UsageError("This deployment uses a different build. Use a new deployment name, or delete the existing deployment before switching its build source.");
     const folder = deploymentDirectory(name), receipt = path.join(folder, "resources.json");
+    if (existing?.status === "deleted" && fs.existsSync(receipt)) {
+      const archived = readResourceReceipt(receipt);
+      // Keep retained-resource history while allowing a fresh declaration to obtain new identities.
+      archived.resources.forEach(entry => {entry.name = `previous.${Date.now()}.${entry.name}`;});
+      writeJson(receipt, archived);
+    }
     const value: Deployment = {version: 1, name, kind: "resources", provider: "alicloud-express", status: "preparing", source,
       receipt, createdAt: existing?.createdAt ?? new Date().toISOString(), updatedAt: new Date().toISOString()};
     if (params.build) {

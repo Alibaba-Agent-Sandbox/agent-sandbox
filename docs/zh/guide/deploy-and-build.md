@@ -33,3 +33,5 @@ status 显示本地记录。操作结果不确定时，先 recover 观察保存�
 template publish SOURCE --tag VERSION 发布已提交源码的固定 GitHub 版本，不部署或自动上架。
 
 [编写模板](authoring-templates.md) · [部署和日志](template-launch.md)
+
+已有部署保持绑定所选复用构建。切换到另一构建文件时，使用新的部署名，或先删除旧部署。

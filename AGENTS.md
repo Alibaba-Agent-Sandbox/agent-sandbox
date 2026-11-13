@@ -143,15 +143,23 @@ All SDK errors live in [`models/errors.ts`](src/models/errors.ts). Error codes f
 
 Every exception carries: `code`, `message`, `suggestion`, `docs_url` (populated when documentation is available).
 
-### Whole-template startup contract
+### Template preparation and runtime contract
 
-Project manifests use spec v5 with `provides` and optional `start_cmd` / `ready_cmd`.
-`deploy` starts the complete template once, runs declared readiness commands,
-resolves every service endpoint, and checks known Agent Sandbox Server v2 endpoints
-using health/discovery. Other protocols are not automatically probed. There is no
-workflow selector. Retired workflows and capability claims are rejected with
-migration guidance. Provider preparation and resource cleanup remain provider-owned.
-See [template startup](docs/en/guide/template-workflows.md) and its
+Project manifests use `specVersion: 1`, arbitrary reusable `vars`, and named
+`sandbox` / `serving` resources. `abx deploy SOURCE --plan` previews the resource
+plan; `abx deploy SOURCE --yes` prepares reusable Sandbox templates, static volumes
+and native Serving resources. It does not create dynamic Sandbox instances.
+`abx template build SOURCE --yes` prepares build artifacts for subsequent deployment.
+
+Sandbox `template.startCommand` / `readyCommand` retain their native template
+build/snapshot meaning. Dynamic instance creation, runtime environment, application
+startup and readiness belong to explicit SDK or `abx sandbox create --template ID`
+usage; a template's `run.py` may implement that SDK workflow. Verify the actual
+application protocol and authentication after startup; template readiness alone does
+not prove a running application. Resource deletion follows recorded ownership and
+preserves borrowed or retained resources. Do not infer Provider permissions from
+installed software or reintroduce workflow selection.
+See [template workflows](docs/en/guide/template-workflows.md) and its
 [Chinese translation](docs/zh/guide/template-workflows.md).
 
 ---
@@ -226,7 +234,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 1. **Never auto-commit.** Make changes; let the human review and commit.
 2. **Never delete golden files** in `tests/test_cli_evidence/golden/`. If CLI output changes, regenerate them via `ABX_UPDATE_EVIDENCE=1 npm test`.
 3. **After modifying any CLI command**, regenerate the affected evidence files and verify they look correct.
-4. **Launch the whole template.** Derive startup prerequisites from its actual services and commands; do not infer Provider permissions from installed software or reintroduce workflow selection.
+4. **Keep preparation and runtime explicit.** Resource `deploy` prepares templates, volumes and Serving; dynamic Sandbox creation and application startup use the explicit SDK/instance workflow. Preserve native template build/snapshot command semantics and verify runtime readiness separately.
 5. **Never fabricate FC/envd API endpoints.** If you're unsure about a real backend API, flag it as a TODO rather than inventing a placeholder.
 6. **Run the full test suite** (`make test && make lint && make typecheck`) before claiming a task is done.
 7. **Secret scanning** is enforced via `.githooks/check-secrets.sh`. Never commit API keys, tokens, or passwords. Use `REPLACE_ME` or `placeholder` for examples.

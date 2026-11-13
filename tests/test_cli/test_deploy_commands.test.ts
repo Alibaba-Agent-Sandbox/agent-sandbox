@@ -13,6 +13,7 @@ import { renderScaffold } from "../../src/cli/scaffold.js";
 import { paths, _setPaths } from "../../src/transport/config_layers.js";
 import { Sandbox } from "../../src/api/sandbox.js";
 import { sourceDigest } from "../../src/application/config.js";
+import { QwenCodeBackend } from "../../src/agent/coding_agent.js";
 import { resourceServices } from "../../src/template/resource_executor.js";
 const tmp=useTmpPath(),oldPaths={...paths};
 const run=(args:string[])=>new CliRunner().invoke(cli,args,{env:{ABX_SANDBOX_API_KEY:"test-key",ABX_REGION:"cn-hangzhou"}});
@@ -40,6 +41,39 @@ describe("named resource admission",()=>{
     expect(result.exit_code,result.output).toBe(0);expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",status:"preview",createsDynamicInstances:false,resources:[{name:"agent",kind:"sandbox"}]});
     expect(f.credentials).not.toHaveBeenCalled();expect(create).not.toHaveBeenCalled();expect(readDeployment("demo")).toBeUndefined();
   });
+  it("rejects a missing manifest with template init guidance", async () => {
+    const source = project(), f = native(); fs.unlinkSync(path.join(source, "template.yaml"));
+    const result = await run(["deploy", source, "--yes"]);
+    expect(result.exit_code).not.toBe(0); expect(result.output).toContain("template.yaml"); expect(result.output).toContain("template init");
+    expect(f.credentials).not.toHaveBeenCalled(); expect(f.call).not.toHaveBeenCalled();
+  });
+  it("rejects a nonexistent local source before cloud effects", async () => {
+    const source = path.join(tmp(), "missing", "project"), f = native();
+    const result = await run(["deploy", source, "--yes"]);
+    expect(result.exit_code).not.toBe(0); expect(fs.existsSync(source)).toBe(false);
+    expect(f.credentials).not.toHaveBeenCalled(); expect(f.call).not.toHaveBeenCalled();
+  });
+  it("uses the current directory when source is omitted", async () => {
+    const source = project(), cwd = process.cwd(), f = native();
+    try {
+      process.chdir(source);
+      const result = await run(["--json", "deploy", "--name", "current", "--yes"]);
+      expect(result.exit_code, result.output).toBe(0); expect(readDeployment("current")?.source).toBe(fs.realpathSync(source));
+      expect(JSON.parse(result.stdout)).toMatchObject({name: "current", status: "ready"}); expect(f.call).toHaveBeenCalled();
+    } finally {process.chdir(cwd);}
+  });
+  it("accepts verbose during resource preparation", async () => {
+    const source = project(), f = native();
+    const result = await run(["--verbose", "deploy", source, "--name", "verbose", "--yes"]);
+    expect(result.exit_code, result.output).toBe(0); expect(readDeployment("verbose")?.status).toBe("ready"); expect(f.call).toHaveBeenCalled();
+  });
+  it("prepares resources without invoking coding agents or model credentials", async () => {
+    const source = project(), f = native();
+    const modelCredentials = vi.spyOn(QwenCodeBackend.prototype, "resolveCredentials"), generate = vi.spyOn(QwenCodeBackend.prototype, "generate"), research = vi.spyOn(QwenCodeBackend.prototype, "research");
+    const result = await run(["deploy", source, "--name", "no-ai", "--yes"]);
+    expect(result.exit_code, result.output).toBe(0); expect(f.call).toHaveBeenCalled();
+    expect(modelCredentials).not.toHaveBeenCalled(); expect(generate).not.toHaveBeenCalled(); expect(research).not.toHaveBeenCalled();
+  });
   it("rejects invalid manifests during preview",async()=>{const source=project();fs.writeFileSync(path.join(source,"template.yaml"),"name: example\nspec_version: 999\n");expect((await run(["deploy",source,"--plan"])).exit_code).not.toBe(0);});
   it("prepares a named template, records ownership and reuses its unchanged identity",async()=>{
     const source=project(),before=sourceDigest(source);fs.writeFileSync(path.join(source,".env"),"PRIVATE=do-not-copy\n");const f=native(),create=vi.spyOn(Sandbox,"create");
@@ -62,6 +96,23 @@ describe("named resource admission",()=>{
     for(const artifact of [{kind:"ResourceDeployment",status:"preparing",buildOnly:true,source,sourceDigest:sourceDigest(source)},{kind:"ResourceDeployment",status:"ready",buildOnly:true,source,sourceDigest:"changed"}]){
       fs.writeFileSync(file,JSON.stringify(artifact));expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);
     }expect(f.credentials).not.toHaveBeenCalled();
+  });
+  it.each(["build-to-build", "source-to-build", "build-to-source"])("rejects active deployment build changes before effects (%s)", async mode => {
+    const source = project(), f = native();
+    const oldBuild = path.join(tmp(), "old-build.json"), nextBuild = path.join(tmp(), "next-build.json");
+    const artifact = {kind: "ResourceDeployment", version: 1, name: "example", accountId: "123", status: "ready", buildOnly: true, source, sourceDigest: sourceDigest(source), resources: []};
+    fs.writeFileSync(oldBuild, JSON.stringify({...artifact, consumers: ["active"]}));
+    fs.writeFileSync(nextBuild, JSON.stringify({...artifact, consumers: []}));
+    saveDeployment({version: 1, name: "active", kind: "resources", provider: "alicloud-express", status: "ready", source,
+      ...(mode === "source-to-build" ? {} : {borrowedBuild: fs.realpathSync(oldBuild)}), createdAt: "now", updatedAt: "now"});
+    const before = readDeployment("active"), oldBytes = fs.readFileSync(oldBuild, "utf8"), nextBytes = fs.readFileSync(nextBuild, "utf8");
+    const hostAction = vi.spyOn(resourceServices, "run"), component = vi.spyOn(resourceServices, "component");
+    const result = await run(["deploy", ...(mode === "build-to-source" ? [source] : ["--build", nextBuild]), "--name", "active", "--yes"]);
+    expect(result.exit_code).not.toBe(0); expect(result.output).toContain("different build");
+    expect(f.credentials).not.toHaveBeenCalled(); expect(f.call).not.toHaveBeenCalled();
+    expect(hostAction).not.toHaveBeenCalled(); expect(component).not.toHaveBeenCalled();
+    expect(readDeployment("active")).toEqual(before);
+    expect(fs.readFileSync(oldBuild, "utf8")).toBe(oldBytes); expect(fs.readFileSync(nextBuild, "utf8")).toBe(nextBytes);
   });
   it("rejects deployment receipts used as build artifacts",async()=>{
     const source=project(),file=path.join(tmp(),"build.json"),f=native();fs.writeFileSync(file,JSON.stringify({kind:"ResourceDeployment",status:"ready",source,sourceDigest:sourceDigest(source)}));

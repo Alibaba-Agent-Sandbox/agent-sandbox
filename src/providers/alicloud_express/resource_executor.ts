@@ -107,6 +107,10 @@ export async function deployResourceProject(file: string, receiptFile: string, o
     accountId: credential.AccountID, source: root, status: "preparing", resources: build ? build.resources.map(entry => ({...entry, owned: false})) : [], ...(options.buildOnly ? {buildOnly: true, builtServing: {}} : {})};
   if (receipt.accountId !== credential.AccountID || receipt.name !== (options.name ?? document.name)) throw new ApplicationError("Deployment identity differs from its saved owner.");
   if (receipt.resources.some(entry => entry.status === "pending" || entry.status === "failed")) throw new ApplicationError("A previous operation is unresolved. Inspect its resource identity before retrying or deleting.");
+  receipt.source = root;
+  if (build) for (const prepared of build.resources) {
+    if (!receipt.resources.some(entry => entry.name === prepared.name && entry.status !== "deleted")) receipt.resources.push({...prepared, owned: false});
+  }
   const save = (): void => writeJson(receiptFile, receipt);
   const outputs: Record<string, ResourceOutput> = {};
   const secretValues = [credential.AccessKeyID, credential.AccessKeySecret, credential.SecurityToken ?? ""];
@@ -171,6 +175,7 @@ export async function deployResourceProject(file: string, receiptFile: string, o
       const region = identity(controls.region, "resource region");
       const secrets = record(controls.environmentVariables) ? Object.values(controls.environmentVariables).filter((v): v is string => typeof v === "string" && v.length >= 8) : [];
       secretValues.push(...secrets);
+      const deployHooks = !(options.buildOnly && node.kind === "serving");
       let failure: unknown;
       try {
         const built = await action("pre-deploy", raw.actions, node.name, controls);
@@ -317,9 +322,9 @@ export async function deployResourceProject(file: string, receiptFile: string, o
         progress(`${node.name} ready`);
       } catch (error) {
         failure = error;
-        try {await action("fail-deploy", raw.actions, node.name, controls);} catch {logger.warning("Failure action also failed for %s.", node.name);}
+        try {if (deployHooks) await action("fail-deploy", raw.actions, node.name, controls);} catch {logger.warning("Failure action also failed for %s.", node.name);}
       } finally {
-        try {await action("complete-deploy", raw.actions, node.name, controls);} catch (error) {if (!failure) failure = error; else logger.warning("Completion action also failed for %s.", node.name);}
+        try {if (deployHooks) await action("complete-deploy", raw.actions, node.name, controls);} catch (error) {if (!failure) failure = error; else logger.warning("Completion action also failed for %s.", node.name);}
       }
       if (failure) throw failure;
     }

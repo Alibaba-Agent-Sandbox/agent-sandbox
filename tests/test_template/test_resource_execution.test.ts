@@ -77,6 +77,35 @@ describe("named-resource execution", () => {
     expect((await deployResourceProject(p.file, p.receipt, {services: f.services})).status).toBe("ready");
     expect(process.env.RESOURCE_TEST_REVISION).toBeUndefined();
   });
+  it.each([
+    {buildOnly: true, buildFails: false}, {buildOnly: true, buildFails: true},
+    {buildOnly: false, buildFails: false}, {buildOnly: false, buildFails: true},
+  ])("separates Serving build from deploy hooks (buildOnly=$buildOnly, buildFails=$buildFails)", async ({buildOnly, buildFails}) => {
+    const p = project({specVersion: 1, name: "demo", serving: {api: {
+      component: "serverless-devs/fc3@0.1.26",
+      props: {region: "cn-hangzhou", functionName: "demo-api", runtime: "nodejs20"},
+      actions: {"pre-deploy": [{component: "serverless-devs/fc3@0.1.26 build"}],
+        "success-deploy": [{run: "success-hook"}], "fail-deploy": [{run: "failure-hook"}], "complete-deploy": [{run: "completion-hook"}]},
+    }}}), f = services();
+    let actual: Record<string, unknown> | null = null;
+    f.mocks.fc.mockReturnValue({describeFunction: async () => actual});
+    f.mocks.component.mockImplementation(async input => {
+      if (input.command === "build") {
+        if (buildFails) throw new Error("original build failure");
+        return {};
+      }
+      actual = {functionArn: "acs:fc:cn-hangzhou:123:functions/demo-api", functionId: "native-1", createdTime: "2026-01-01"};
+      return {};
+    });
+    if (buildOnly) f.mocks.run.mockRejectedValue(new Error("deployment hook must not run during build"));
+    const operation = deployResourceProject(p.file, p.receipt, {services: f.services, buildOnly});
+    if (buildFails) await expect(operation).rejects.toThrow("original build failure");
+    else expect((await operation).status).toBe("ready");
+    expect(f.mocks.component.mock.calls.map(([input]) => input.command)).toEqual(buildOnly || buildFails ? ["build"] : ["build", "deploy"]);
+    expect(f.mocks.run.mock.calls.map(([input]) => input.argv.at(-1))).toEqual(buildOnly ? [] : [buildFails ? "failure-hook" : "success-hook", "completion-hook"]);
+    expect(JSON.parse(fs.readFileSync(p.receipt, "utf8")).status).toBe(buildFails ? "requires_recovery" : "ready");
+    if (buildOnly) expect(f.mocks.fc).not.toHaveBeenCalled();
+  });
   it("borrows a prepared template and prevents cleanup while it has a consumer", async () => {
     const p = project({specVersion: 1, name: "demo", sandbox: {agent: sandbox}}), f = services();
     const buildFile = path.join(p.root, ".abx", "build.json"), useFile = path.join(p.root, ".abx", "use.json");
@@ -89,6 +118,11 @@ describe("named-resource execution", () => {
     await expect(deleteResourceProject(buildFile, f.services)).rejects.toThrow("used by a deployment");
     await deleteResourceProject(useFile, f.services);
     expect(f.call.mock.calls.filter(([action]) => action === "DeleteTemplate")).toHaveLength(0);
+    const retired = JSON.parse(fs.readFileSync(useFile, "utf8")); retired.resources.forEach((entry: {name: string}) => {entry.name = `previous.${entry.name}`;}); fs.writeFileSync(useFile, JSON.stringify(retired));
+    const reused = await deployResourceProject(p.file, useFile, {services: f.services, buildReceipt: buildFile, name: "consumer"});
+    expect(reused.resources.find(entry => entry.name === "agent")?.owned).toBe(false);
+    expect(f.call.mock.calls.filter(([action]) => action === "CreateTemplate")).toHaveLength(1);
+    await deleteResourceProject(useFile, f.services);
     build.consumers = []; fs.writeFileSync(buildFile, JSON.stringify(build)); await deleteResourceProject(buildFile, f.services);
     expect(f.call.mock.calls.filter(([action]) => action === "DeleteTemplate")).toHaveLength(1);
   });
