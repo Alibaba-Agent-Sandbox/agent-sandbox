@@ -141,3 +141,16 @@ names and an integration assertion that still rejected the now-explicit
 not removed from the historical ledger. Six server-guide cross-checks initially
 skipped without the server SDK; using the installed published server package
 passed all 23 guide tests. The final parity result is recorded separately below.
+
+## Final full parity result
+
+The complete Vitest parity run on `bd4026fc1ac56524d8c1a43425634fb07b5860a3` passed
+4,610 tests, zero failed and 55 conditionally pending, including integration tests
+excluded by the ordinary `npm test` command. It used the installed published server
+package for the six formerly skipped guide checks. The current workspace SDK checkout
+did not contain four historical moved-test names; this was a checkout mismatch, not
+a CLI test failure. Rechecking the same fresh JSON test report against CI's exact
+Python SDK commit `8e610a3658040d8d6973e7951f9590ea50a4d70a` passed all 907 ledger
+entries and verified all 11 moved tests (zero failed/skipped, missing or moved-not-found).
+The immutable Python ledger was retained. Final full ESLint again reported zero
+errors (262 warnings), and final strict typecheck passed.
