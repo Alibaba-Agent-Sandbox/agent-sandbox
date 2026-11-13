@@ -29,10 +29,10 @@ export function isExpressSandboxId(value) {
 
 /** Record the unnormalised deployment identity before any further assertion. */
 export function trackDetachedCreate(ctx, result, attempt) {
-  const id = result.rawJson?.()?.sandbox_id;
+  const id = result.rawJson?.()?.ID;
   if (isExpressSandboxId(id)) { ctx.track(id); if (attempt) ctx.resolveCreateAttempt(attempt); }
   if (result.code !== 0) ctx.fail(`create exit ${result.code}\n${result.out}`);
-  if (!isExpressSandboxId(id)) ctx.fail('deploy did not return one real Express sandbox ID');
+  if (!isExpressSandboxId(id)) ctx.fail('sandbox create did not return one real Express sandbox ID');
   return id;
 }
 

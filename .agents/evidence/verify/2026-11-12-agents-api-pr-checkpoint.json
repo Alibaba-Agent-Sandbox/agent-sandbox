@@ -1,0 +1,58 @@
+{
+  "scope": "remote source checkpoint before record-only follow-up; new head checks remain separate",
+  "observed_at_utc": "2026-11-12T20:36:43.000592+00:00",
+  "pull_requests": [
+    {
+      "repository": "agent-sandbox",
+      "number": 249,
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/249",
+      "head": "f1c5d0cde3219e6e15c9ceced1e180d518b5cf20",
+      "draft": true,
+      "state": "open",
+      "merged": false,
+      "checks_read_blocked": false,
+      "checks": [
+        {
+          "name": "Build package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "express",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "actual-generated-http",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Markdown links",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test (Node 20)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Typecheck (tsc)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test (Node 22)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Installer script",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "name": "@agent-sandbox/cli",
   "version": "0.5.10",
-  "description": "abx \u2014 the Agent Sandbox command-line interface (Node.js)",
+  "description": "abx — the Agent Sandbox command-line interface (Node.js)",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -70,10 +70,12 @@
     "@inquirer/prompts": "^8.7.3",
     "@serverless-devs/credential": "0.0.10",
     "@serverless-devs/load-component": "0.0.10-beta.7",
+    "@serverless-devs/parse-spec": "0.0.29",
     "ajv": "8.18.0",
     "commander": "^14.0.3",
     "diff": "^9.0.0",
     "picocolors": "^1.1.1",
+    "string-argv": "0.3.2",
     "string-width": "^8.3.0",
     "ws": "^8.22.0",
     "yaml": "^2.9.1",

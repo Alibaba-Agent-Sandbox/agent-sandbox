@@ -3,15 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { parseDocument } from "yaml";
-import { Ajv2020 } from "ajv/dist/2020.js";
-import { normalizeApplicationProfile } from "./profile/normalize.mjs";
-import applicationProfiles from "./profile/profiles.json" with { type: "json" };
-import templateSchema from "./template-v6.schema.json" with { type: "json" };
+import { readProjectIntent, type PrivateProject, type ProjectResolutionOptions } from "../template/project.js";
 import { DeployError } from "../models/errors.js";
 import type { ApplicationTemplate, ApplicationPlan, BuildReceipt, ToolchainLock } from "./types.js";
 
 export class ApplicationError extends DeployError {}
-const ignored = new Set([".git", ".abx", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
+const ignored = new Set([".git", ".abx", ".s", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
 export const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** Stable SHA-256 of JSON, independent of object key insertion order. */
@@ -66,7 +63,7 @@ export function rejectInlineSecrets(value: unknown, trail: string[] = []): void 
   if (Array.isArray(value)) { value.forEach(child => rejectInlineSecrets(child, trail)); return; }
   if (record(value)) {
     for (const [key, child] of Object.entries(value)) {
-      if (/(?:access_?key_?(?:id|secret)|password|api_?key|private_?key|secret|token)$/i.test(key) && child !== "" && child !== null && child !== undefined) throw new ApplicationError("Credential literals are not allowed in plans; use binding references.");
+      if (/(?:access_?key_?(?:id|secret)|password|api_?key|private_?key|secret|token)$/i.test(key) && child !== "" && child !== null && child !== undefined && !(typeof child === "string" && /^\$\{[\s\S]+\}$/.test(child))) throw new ApplicationError("Credential literals are not allowed in plans; use native configuration references.");
       rejectInlineSecrets(child, [...trail, key]);
     }
   } else if (typeof value === "string" && (/[a-z][a-z0-9+.-]*:\/\/[^\s/]+@/i.test(value) || /[?&](?:access_token|token|signature|x-oss-signature|x-amz-signature|api_key)=/i.test(value))) throw new ApplicationError("Credential-bearing URLs are not allowed in plans.");
@@ -78,44 +75,23 @@ export function readYaml(file: string): unknown {
   if (doc.errors.length) throw new ApplicationError("Invalid YAML or duplicate keys.");
   try { return doc.toJS({ maxAliasCount: 0 }); } catch { throw new ApplicationError("YAML aliases are unsupported in application plans."); }
 }
-/** Validate against the owner-published spec6 schema before any preparation. */
-export function readTemplate(file: string): ApplicationTemplate {
-  const raw = normalizeApplicationProfile(readYaml(file), applicationProfiles);
-  const validate = new Ajv2020({ strict: false, allErrors: true }).compile(templateSchema);
-  if (!validate(raw)) throw new ApplicationError(`Invalid template v6: ${validate.errors?.map(e => `${e.instancePath || "/"} ${e.keyword}`).join(", ")}`);
-  const template = raw as unknown as ApplicationTemplate, app = template.application;
-  if (app?.deployment.profile !== "fc-managed-agents" || app.runtime.profile !== "managed-bridge-v1") throw new ApplicationError("Expected the managed Agents application profile.");
-  rejectInlineSecrets(raw);
-  if (app.limits.maxToolSeconds > app.limits.maxRunSeconds || Number(app.sessions.maxConcurrentTurnsPerSession) !== 1) throw new ApplicationError("Invalid managed execution budgets.");
-  if (Number(app.sessions.idleTimeoutSeconds) > Number(app.sessions.maxLifetimeSeconds) || app.limits.maxRunSeconds >= Number(app.sessions.maxLifetimeSeconds)
-    || Number(app.storage.maxArtifactBytes) > Number(app.storage.maxTurnArtifactBytes)
-    || Math.max(Number(app.storage.maxFileBytes), Number(app.storage.maxTurnArtifactBytes)) > Number(app.storage.maxRetainedBytesPerOwner)) throw new ApplicationError("Managed session and storage budgets are inconsistent.");
-  if (!app.bindings[app.state.bindingRef] || !app.bindings[app.deployment.ingressBindingRef]) throw new ApplicationError("State and ingress references must resolve to declared bindings.");
-  const targets: Array<[string, string[]]> = [[app.state.bindingRef, ["dispatcher", "gateway", "worker"]], [app.deployment.ingressBindingRef, ["deployment-publisher"]],
-    ["sandboxAccess", ["dispatcher", "worker"]], ["clientAuth", ["gateway"]], ["internalAuth", ["dispatcher", "gateway", "worker"]], ["model", ["sandbox-creation"]]];
-  for (const [key, expected] of targets) if (JSON.stringify([...(app.bindings[key]?.targets ?? [])].sort()) !== JSON.stringify(expected)) throw new ApplicationError(`Binding '${key}' has unsupported target roles.`);
-  for (const binding of Object.values(app.bindings)) {
-    if (!Array.isArray(binding.targets)) throw new ApplicationError("Every binding needs supported target roles.");
-    if (binding.targets.includes("sandbox-creation")) {
-      if (binding.targets.length !== 1 || binding.resolverRole !== "worker" || !binding.allowedEnv?.length || binding.allowedEnv.some(key => !["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "CODEX_API_KEY"].includes(key))) throw new ApplicationError("Guest model injection requires the explicit worker resolver and a model-only environment whitelist.");
-    } else if (binding.resolverRole || binding.allowedEnv) throw new ApplicationError("Guest injection fields are only valid for the sandbox-creation target.");
-  }
-  const provided = record(template.provides) ? Object.values(template.provides).filter(record) : [];
-  if (!provided.some(value => value.protocol === "agent-sandbox-managed-bridge" && value.version === 1 && value.port === 9000)
-    || provided.some(value => !Array.isArray(template.ports) || !template.ports.includes(value.port))) throw new ApplicationError("Managed bridge v1 on declared port 9000 is required.");
-  const root = path.dirname(file), ids = new Set<string>();
-  if (app.deployment.serverBuildRecipe) {
-    contained(root, app.deployment.serverBuildRecipe.dockerfile);
-    if (app.deployment.serverBuildRecipe.context !== ".") throw new ApplicationError("Server build context must be the template root.");
-  }
-  for (const phase of Object.values(app.hooks ?? {})) for (const hook of phase) {
-    if (ids.has(hook.id)) throw new ApplicationError("Application hook IDs must be unique.");
-    ids.add(hook.id);
-    if (hook.type === "custom") contained(root, hook.cwd ?? ".");
-    else if (hook.command !== "info" || !["gateway", "worker", "dispatcher"].includes(hook.step ?? "")) throw new ApplicationError("Component hooks may only inspect a declared role.");
-  }
-  return template;
+export interface PrivateManagedProject {
+  template: ApplicationTemplate;
+  bindingValues: Record<string, unknown>;
+  roleProps: Record<string, Record<string, unknown>>;
+  project: PrivateProject;
 }
+/** Retired manifest adapter. Stored managed receipts keep their independent cleanup contract. */
+export function readManagedProject(file: string, options: ProjectResolutionOptions = {}): PrivateManagedProject {
+  readProjectIntent(file, options);
+  throw new ApplicationError("Use the named sandbox/serving resource deployment lifecycle. Managed application recipes are no longer part of template.yaml.");
+}
+
+/** Retained only for internal receipt code; new deployments use the resource executor. */
+export function readTemplate(file: string, options: ProjectResolutionOptions = {}): ApplicationTemplate {
+  return readManagedProject(file, options).template;
+}
+
 /** Atomic private JSON output; credentials must never be passed to this writer. */
 export function writeJson(file: string, value: unknown): void {
   rejectInlineSecrets(value);

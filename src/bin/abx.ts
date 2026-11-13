@@ -5,6 +5,8 @@
  * i.e. before any module of the CLI runs, and Python's `abx` prints nothing in that situation.
  */
 
+import {dispatchPortableWorker} from "../application/portable_worker.js";
+
 const emitWarning = process.emitWarning;
 process.emitWarning = function patchedEmitWarning(this: unknown, warning: string | Error, ...rest: unknown[]): void {
   if (typeof warning === "string" && warning.startsWith("The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR'")) return;
@@ -13,4 +15,4 @@ process.emitWarning = function patchedEmitWarning(this: unknown, warning: string
 
 // Not top-level await: the standalone binary is a CommonJS single-executable, which cannot
 // carry a top-level await. The import promise keeps the process alive until the CLI exits.
-void import("./abx_main.js");
+if (!dispatchPortableWorker()) void import("./abx_main.js");

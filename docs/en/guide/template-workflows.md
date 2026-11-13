@@ -1,17 +1,42 @@
-# Whole-template startup
+# Template resources
 
-Run `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`. A template has one startup: the CLI prepares its contents, creates a sandbox, runs `start_cmd` when present, waits for `ready_cmd`, and resolves every service declared in `provides`. There is no workflow selector or application/exec/interpreter launch type.
+`template.yaml` declares named Sandbox templates, static volumes and Serving resources. Deploy prepares these resources; create dynamic Sandbox instances from business code or an explicit SDK/CLI call.
 
-Sandbox templates use `spec_version: 5`. Managed application templates follow the separate [managed application guide](managed-applications.md). Keep the application's services, commands, packages and startup script together. Declare all service endpoints in `provides`; a startup script can launch multiple processes. Named business commands run only when explicitly called after launch. Known Agent Sandbox Server v2 endpoints are verified using health/discovery and command listing, without executing business commands. Other service protocols use the declared readiness command and returned Provider endpoint; launch does not claim to understand their application protocol.
+```yaml
+specVersion: 1
+name: demo
+vars:
+  region: cn-hangzhou
+sandbox:
+  agent:
+    provider: alicloud-express
+    template:
+      region: "${vars.region}"
+      image: registry.example.com/team/agent:v1
+      buildConfig:
+        dockerfile: ./sandbox/Dockerfile
+serving:
+  api:
+    component: serverless-devs/fc3@0.1.26
+    props:
+      region: "${vars.region}"
+      functionName: demo-api
+      runtime: custom-container
+      customContainerConfig:
+        image: registry.example.com/team/api:v1
+        port: 9000
+      environmentVariables:
+        SANDBOX_TEMPLATE_ID: "${resources.agent.output.templateId}"
+```
 
-A source template uses its Dockerfile or supported platform build recipe. A fixed `image` or an owning `provider` plus `template_id` can identify an already prepared template; these are author-specified artifacts, not selectable execution modes. Image references require an immutable `@sha256:` digest. Provider credentials, upload, registration and platform addressing remain Provider responsibilities. The CLI checks required Provider operations before creating resources.
+Replace the example registry addresses with your existing images or writable build targets. `vars` is optional: authors choose every key, and literals can be written directly in resource properties. Catalog initialization fields belong in `registry.yaml.parameters`; editing local configuration does not require that catalog file.
 
-For public catalog managed entries, use their catalog name, for example `abx --provider alicloud-express deploy base --name my-app --yes`. The CLI reads the managed manifest directly from the catalog. For an external service that is already running, connect using its server client; launching a template always creates a sandbox.
+Sandbox region belongs to `sandbox.NAME.template.region`; sibling volumes use that region. Express template attributes stay flat. `buildConfig` selects either `dockerfile` with optional `context`, or native `steps`, never both. Paths are relative to `template.yaml`; omitted context is the Dockerfile directory. A Dockerfile is not automatically discovered when `buildConfig` is absent.
 
-## Migrating v4
+With a Dockerfile, `image` is the build/push destination. Without a Dockerfile it is an existing source image; native Steps customize that source into a Sandbox template. Steps do not promise an exported OCI image. Omit `registryConfig` unless explicit authentication, certificates or registry networking are needed. Software installation belongs in the Dockerfile/base image. Native `startCommand` and `readyCommand` run during template preparation, not at each dynamic instance creation.
 
-Remove `workflow_contract_version`, `default_workflow` and `workflows`; set `spec_version: 5`. Preserve all `provides` services, `start_cmd`, `ready_cmd`, environment and application code. Remove `--workflow` and `--service-url` from launch commands. The current CLI rejects v4 manifests with a migration error instead of guessing which former workflow to execute. Update the CLI and template catalog together; old binaries cannot read v5 manifests.
+Serving keeps native component `props`. Use resource-local `actions.pre-deploy` with `component: serverless-devs/fc3@0.1.26 build ...` when a Serving build is needed. Shell `run` and component actions execute on the deployment host. `success-deploy` runs after resource readiness; `fail-deploy` handles failure and `complete-deploy` runs at completion. Output references create dependency ordering; missing resources and cycles fail before deployment. Actions may run again on a new deployment attempt, so write retry-safe scripts.
 
-Existing verification receipts remain historical evidence for their recorded versions. Static operation checks are not real-platform test results and do not establish that an account or service is ready.
+The named-resource executor currently supports Express and exact-version `serverless-devs/fc3` components. Other Provider instance APIs remain separate. An application's token, database, model and instance environment are application configuration, not generic template fields. Keep secrets in private environment/file references. Managed Agents API provides its own startup/publication scripts; follow that template's README.
 
-For an unsupported manifest version, choose a source revision containing the current spec-v5 manifest. If that remote source has already been updated but a downloaded copy is stale, remove only the template cache directory identified in the error and retry. `abx template list --refresh` refreshes the catalog index, not downloaded source files. A pinned old Git revision remains old after its cache is removed. The CLI does not modify or delete source files automatically.
+[Build and deployment](deploy-and-build.md) · [Native expressions](../design/template-v1-parser.md) · [Complete field reference](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md)

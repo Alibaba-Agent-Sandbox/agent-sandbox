@@ -4,14 +4,14 @@ CLI 按用户任务组织；[命令参考](../reference/cli-commands.md)是语�
 
 | 任务 | 入口 |
 | --- | --- |
-| 部署和管理运行实例 | `deploy`、`list`、`status`、`logs`、`delete`、`recover` |
+| 准备和管理具名资源 | `deploy`、`list`、`status`、`logs`、`delete`、`recover` |
 | 查找、创作、构建和发布可复用模板 | `template` |
 | 操作 Sandbox 内部及其扩展生命周期 | `sandbox` |
 | 配置本机默认值和凭据 | `config` |
 | 安装后端、执行原生操作 | `provider` |
 | 接入 AI 工具 | `mcp` |
 
-`deploy SOURCE --name NAME` 按模板的显式 profile 选择既有流程；`deploy --template-id ID` 使用 Provider 原生引用创建。`--plan` 只做本地预览，用户无需管理中间 plan/apply 文件。托管应用更新复用同一个名称；普通 Sandbox 部署须先删除，再用相同名称重新创建。
+`deploy SOURCE --name NAME --yes` 准备模板、静态卷及 Serving 资源；`sandbox create --template ID` 创建动态实例。`--plan` 仅预览。重复部署按归属记录更新资源；动态实例及其业务进程由调用方管理。
 
 `template init --from` 只复制源码，`template build` 准备可复用产物而不创建实例，`template publish` 通过已有 GitHub remote 发布已提交源码。Provider 云模板 CRUD 归 `provider run`。
 

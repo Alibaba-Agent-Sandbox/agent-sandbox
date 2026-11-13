@@ -1,23 +1,18 @@
 # Use a template
 
-`template list` and `template info` inspect the public catalog. They do not list a cloud account's native templates. Select a source or managed entry, then deploy one named instance:
+`template list` and `template info` inspect the public catalog. Copy source to customize its resources:
 
 ```bash
 abx template list python
 abx template info python-hello
-abx deploy python-hello --name hello --yes
+abx template init ./hello --from Alibaba-Agent-Sandbox/awesome-templates//python-hello
+abx deploy ./hello --name hello --plan
+abx deploy ./hello --name hello --yes
 abx status hello
 ```
 
-For customization, acquire editable source first. `init --from` copies files without interpreting the deployment specification; fetching a future manifest does not prove the installed CLI can deploy it.
+Deploy prepares named templates/static volumes and Serving. Run the template's documented business startup separately; ordinary service templates provide `run.py`, while managed applications publish an external Gateway. Do not use a deployment name as if it were a dynamic Sandbox ID.
 
-```bash
-abx template init ./hello --from Alibaba-Agent-Sandbox/awesome-templates//python-hello
-abx deploy ./hello --name hello-custom --yes
-```
+Repository sources accept `owner/repository//subdirectory@COMMIT`. Pin a commit for reproducibility. Private GitHub sources use configured GitHub authentication; acquiring source creates no cloud resources. A source-free managed catalog entry cannot be copied for editing.
 
-Git references accept `owner/repository//subdirectory@COMMIT`. Pin the commit for reproducible input. For private GitHub source, use `abx config set github_token` with hidden input or `GITHUB_TOKEN` in automation. Source acquisition does not deploy, build images or create cloud resources. Managed catalog entries without source can be deployed directly but cannot be copied for editing.
-
-Sandbox applications expose declared services. Discover Server commands with `abx sandbox command list hello`, invoke with `abx sandbox command run hello COMMAND`, and remove owned resources with `abx delete hello --yes`. Managed applications expose their own business HTTP APIs; see [managed applications](managed-applications.md).
-
-[Authoring, reusable builds and Git publication](authoring-templates.md) · [Startup and cleanup](template-launch.md)
+[Authoring](authoring-templates.md) · [Build and cleanup](deploy-and-build.md) · [Managed applications](managed-applications.md)

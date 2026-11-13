@@ -1,0 +1,1075 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "specVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,62}(?![\\s\\S])"
+    },
+    "vars": {
+      "type": "object"
+    },
+    "sandbox": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*(?![\\s\\S])"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "template": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "region": {
+                "type": "string",
+                "minLength": 1
+              },
+              "image": {
+                "type": "string",
+                "minLength": 1
+              },
+              "buildConfig": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dockerfile": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "steps": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "USER",
+                            "WORKDIR",
+                            "ENV",
+                            "RUN"
+                          ]
+                        },
+                        "args": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "args"
+                      ]
+                    }
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "dockerfile"
+                    ],
+                    "not": {
+                      "required": [
+                        "steps"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "steps"
+                    ],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "dockerfile"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "context"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "reference"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "buildConfig"
+                ]
+              }
+            ]
+          },
+          "volumes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*(?![\\s\\S])"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "retain": {
+                  "type": "boolean"
+                },
+                "props": {
+                  "type": "object"
+                }
+              },
+              "oneOf": [
+                {
+                  "required": [
+                    "reference"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "props"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "retain"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "props"
+                  ],
+                  "not": {
+                    "required": [
+                      "reference"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "actions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pre-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "success-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "fail-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "complete-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "provider",
+          "template"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "provider": {
+                  "const": "alicloud-express"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "template": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "reference": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "region": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "image": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "buildConfig": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "dockerfile": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "context": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "steps": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "USER",
+                                  "WORKDIR",
+                                  "ENV",
+                                  "RUN"
+                                ]
+                              },
+                              "args": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "args"
+                            ]
+                          }
+                        }
+                      },
+                      "oneOf": [
+                        {
+                          "required": [
+                            "dockerfile"
+                          ],
+                          "not": {
+                            "required": [
+                              "steps"
+                            ]
+                          }
+                        },
+                        {
+                          "required": [
+                            "steps"
+                          ],
+                          "not": {
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "dockerfile"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "context"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "registryConfig": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "authConfig": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "userName": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "password": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "certConfig": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "insecure": {
+                              "oneOf": [
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "$ref": "#/$defs/expression"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "networkConfig": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "vpcId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "vSwitchId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "securityGroupId": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "generation": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/expression"
+                        }
+                      ]
+                    },
+                    "cpu": {
+                      "oneOf": [
+                        {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        {
+                          "$ref": "#/$defs/expression"
+                        }
+                      ]
+                    },
+                    "memorySize": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        {
+                          "$ref": "#/$defs/expression"
+                        }
+                      ]
+                    },
+                    "diskSize": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "$ref": "#/$defs/expression"
+                        }
+                      ]
+                    },
+                    "internetAccess": {
+                      "oneOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "$ref": "#/$defs/expression"
+                        }
+                      ]
+                    },
+                    "logConfig": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "logstore": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "project": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "vpcConfig": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "vpcId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "securityGroupId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "vSwitchIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    },
+                    "startCommand": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "readyCommand": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "resourceTags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "anyOf": [
+                    {
+                      "required": [
+                        "reference"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "image"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "buildConfig"
+                      ]
+                    }
+                  ]
+                },
+                "volumes": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "properties": {
+                      "props": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "agenticBucketVolumeConfig": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "agenticBucket": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bucketName": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bucketPath": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "endpoint": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "readOnly": {
+                                "oneOf": [
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "$ref": "#/$defs/expression"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "agenticFSVolumeConfig": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "groupID": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "$ref": "#/$defs/expression"
+                                  }
+                                ]
+                              },
+                              "userID": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "$ref": "#/$defs/expression"
+                                  }
+                                ]
+                              },
+                              "serverAddr": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            }
+                          },
+                          "juiceFSVolumeConfig": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "baseURL": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "remoteDir": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "token": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "volumeName": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "args": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "ossVolumeConfig": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "bucketName": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bucketPath": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "endpoint": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "readOnly": {
+                                "oneOf": [
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "$ref": "#/$defs/expression"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "mountConfig": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "role": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "vpcConfig": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "vpcId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "securityGroupId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "vSwitchIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "volumeName": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "serving": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*(?![\\s\\S])"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "component": {
+            "type": "string",
+            "pattern": "^serverless-devs/[A-Za-z0-9_./-]+@[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?(?![\\s\\S])"
+          },
+          "props": {
+            "type": "object"
+          },
+          "actions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pre-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "success-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "fail-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "complete-deploy": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "run": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "run"
+                      ],
+                      "not": {
+                        "required": [
+                          "component"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "component"
+                      ],
+                      "not": {
+                        "required": [
+                          "run"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "component",
+          "props"
+        ]
+      }
+    }
+  },
+  "required": [
+    "specVersion",
+    "name"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/awesome-templates/main/spec/template-v1.schema.json",
+  "title": "Agent Sandbox named resources v1",
+  "$defs": {
+    "expression": {
+      "type": "string",
+      "pattern": "^\\$\\{[\\s\\S]+\\}(?![\\s\\S])"
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "sandbox"
+      ]
+    },
+    {
+      "required": [
+        "serving"
+      ]
+    }
+  ]
+}

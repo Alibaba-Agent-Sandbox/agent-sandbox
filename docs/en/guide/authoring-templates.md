@@ -21,11 +21,7 @@ and edited even when this CLI cannot execute their deployment contract. A
 provider-managed catalog entry without source can be deployed, but cannot be
 copied with `--from`.
 
-A project contains `template.yaml` and its source files, commonly a Dockerfile,
-application entry point and README. The manifest declares services, startup,
-readiness, resource defaults and runtime environment inputs. The selected
-Provider's image profile determines the base image and platform startup rules.
-Keep API keys and application tokens outside these source files.
+A project contains `template.yaml` and its source files. Use named `sandbox` and `serving` resources, with arbitrary optional `vars`. See [resource configuration](template-workflows.md) for image, build, region and action semantics. Runtime instance startup belongs to application code. Keep credentials outside source files.
 
 Existing files are shown before replacement. Interactive replacement needs a
 confirmation; automation must use `--force`. `--yes` alone does not overwrite
@@ -60,17 +56,9 @@ abx deploy --build BUILD_FILE --name my-app
 abx status my-app
 ```
 
-Build prepares the real image/template without starting an application. Its
-private artifact records the Provider target, prepared result, resource journal
-and a source snapshot. The default is a unique file under `.abx`; `--out FILE`
-chooses another unused path. An existing artifact is never overwritten.
-`--build-profile NAME` selects a declared Dockerfile profile; `--timeout` bounds
-sandbox template preparation.
+Build prepares Sandbox templates/static volumes and runs declared Serving build actions without deploying Serving or creating dynamic instances. Its private artifact records prepared resources and a source digest. The source directory must remain available and unchanged for reuse; the default artifact is under `.abx`. `--out FILE` chooses an unused path. Native component build files remain in the project.
 
-`deploy --build` verifies the snapshot and Provider target before reusing the
-prepared result. Editing the original project does not edit an existing build.
-For a new version, build again. Direct `abx deploy ./my-template --name my-app`
-combines preparation and deployment when a separate build is unnecessary.
+`deploy --build` borrows prepared resources. A new source version requires a new build. Direct `abx deploy ./my-template --name my-app --yes` prepares and deploys in one operation. `--timeout` bounds individual API waits/component operations; it does not cancel remote work already submitted.
 
 Service implementations belong in application code. For SandboxServer named
 commands, use the server's `@command()` registration and the application's

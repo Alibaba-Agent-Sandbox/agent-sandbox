@@ -1,3 +1,5 @@
+import { providerTemplateCli } from "../helpers/providerTemplateCli.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
 /**
  * Offline end-to-end: long CLI steps use one moving header.
@@ -76,7 +78,7 @@ const _combined = (result: Result): string => `${result.output}${result.stderr ?
 
 function _prepareTemplate(dir: string): void {
   fs.writeFileSync(path.join(dir, "Dockerfile"), "FROM ubuntu:22.04\n");
-  fs.writeFileSync(path.join(dir, "template.yaml"), "spec_version: 5\nprovides: {}\nname: my-template\nresources:\n  cpu: 2\n  memory: 2048\n");
+  fs.writeFileSync(path.join(dir, "template.yaml"), manifestYaml("name: my-template\nprovides: {}\nresources: {cpu: 2, memory: 2048}\n"));
 }
 
 /** Install the mocked `DockerBuilder` that streams its lines through `on_output` / `on_poll`. */
@@ -113,7 +115,7 @@ function _installBuilder(): void {
 async function _invokeBuild(dir: string, prefix: string[] = []): Promise<Result> {
   iso.monkeypatch.setenv("ACR_NAMESPACE", "test-progress");
   _installBuilder();
-  return runner().invoke(cli, [...prefix, "template", "build", dir, "--yes"]);
+  return runner().invoke(providerTemplateCli, [...prefix, "template", "build", dir, "--yes"]);
 }
 
 function _sandbox(sandbox_id = "sbx-cli-test-001") {
@@ -211,9 +213,7 @@ it("test_json_deploy_does_not_dump_build_lines", async () => {
   const result = await _invokeBuild(tmp, ["--json"]);
   expect(result.exit_code, result.output).toBe(0);
   const combined = _combined(result);
-  expect(JSON.parse(result.stdout!).status).toBe("built");
-  const artifact = JSON.parse(fs.readFileSync(JSON.parse(result.stdout!).build, "utf8"));
-  expect(artifact.prepared.reference).toBe("tpl-progress");
+  expect(JSON.parse(result.stdout!)).toMatchObject({TemplateID: "tpl-progress"});
   expect(combined).not.toContain("#5 [1/2] FROM ubuntu:22.04");
   expect(combined).not.toContain(_TOKEN);
 });
@@ -222,7 +222,7 @@ it("test_create_shows_an_elapsed_header", async () => {
   const tty = ttyStderr();
   vi.spyOn(Sandbox, "create").mockResolvedValue(_sandbox() as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["deploy", "--yes", "--template-id", "python-base", "--request-timeout", "45"]);
+  const result = await runner().invoke(cli, ["sandbox", "create", "--yes", "--template", "python-base", "--request-timeout", "45"]);
 
   expect(result.exit_code, result.output).toBe(0);
   const shown = tty.getvalue();

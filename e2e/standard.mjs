@@ -126,8 +126,8 @@ let primaryFailure;
 record('standard-start', {observationBudgetSeconds:210, cleanupReserveSeconds:30, graceSeconds:90});
 try {
   assert.ok(process.env.E2B_API_KEY, "E2B_API_KEY is required");
-  const output = await run(["--json", "deploy", "--template-id", "code-interpreter-v1", "--sandbox-timeout", "300", "--yes"]);
-  const id = JSON.parse(output).sandbox_id;
+  const output = await run(["--json", 'sandbox', 'create', '--template', "code-interpreter-v1", '--timeout', "300", "--yes"]);
+  const id = JSON.parse(output).ID;
   assert.match(id, /^[A-Za-z0-9_-]+$/);
   created.add(id);
   record('detached-created', {sandboxId:id});

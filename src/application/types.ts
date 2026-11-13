@@ -42,11 +42,17 @@ export interface ManagedApplication {
 }
 export interface ApplicationTemplate {
   name: string;
-  spec_version: 6;
+  specVersion?: 1;
   resources: { cpu: number; memory: number };
   start_cmd: string;
   ready_cmd: string;
   application: ManagedApplication;
+  nativeRoleProps?: Record<Role, Record<string, unknown>>;
+  nativeControls?: Record<Role, Record<string, unknown>>;
+  sandboxInstanceControls?: Record<string, unknown>;
+  sandboxEnvironmentNames?: string[];
+  sandboxMetadataNames?: string[];
+  nativeEnvironmentNames?: Record<Role, string[]>;
   [key: string]: unknown;
 }
 export interface ToolchainLock {
@@ -56,6 +62,7 @@ export interface ToolchainLock {
   component: { reference: string; directory: string; sha256: string };
 }
 export interface BuildReceipt {
+  configurationSource?: string;
   lifecycleOwner?: string;
   schemaVersion: 1;
   kind: "ManagedApplicationBuild";
@@ -88,6 +95,7 @@ export interface DeploymentStep {
   resourceIdentity?: string;
 }
 export interface ApplicationPlan {
+  configurationSource?: string;
   schemaVersion: 2;
   kind: "ManagedApplicationPlan";
   applicationId: string;

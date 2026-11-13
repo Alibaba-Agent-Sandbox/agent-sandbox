@@ -4,7 +4,7 @@ The template repository owns manifests and specifications. Registry ingests them
 
 `template list` and `template info` read the reusable catalog. `template init --from` copies source without cloud or runtime validation, so authors can inspect a newer manifest before deployment support exists. Directory overwrite requires explicit confirmation or `--force`. It does not implicitly build or deploy.
 
-`deploy` resolves a catalog name, Git source or local project, then validates the supported contract. Sandbox templates declare their services and readiness; the launcher prepares the Provider template, creates one Sandbox and starts the whole declared service set. Managed applications are selected by explicit `application.deployment.profile`, not merely by the presence of an HTTP server or by a specification number.
+`deploy` resolves catalog names, Git source or local projects and validates the specVersion: 1 named-resource contract. Sandbox prepares templates and static volumes; Serving deploys native components. SDKs, explicit instance commands or the template’s run.py start dynamic instances and business services. Managed references without source use `sandbox create --template`.
 
 The template owner supplies a small profile normalization contract. It fills fixed mechanism defaults only when omitted. Explicit conflicting or null values remain visible to validation. Credentials, region, resource sizes and business policy are not invented by normalization. CLI and Registry consumers pin this producer and verify matching fixtures.
 

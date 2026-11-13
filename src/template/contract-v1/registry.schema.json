@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/awesome-templates/main/spec/registry-v1.schema.json",
+  "title": "Registry publication and initialization metadata v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "specVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,62}(?![\\s\\S])"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "zh": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "en",
+        "zh"
+      ]
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "readme": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "zh": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "en",
+        "zh"
+      ]
+    },
+    "entry": {
+      "const": "template.yaml",
+      "default": "template.yaml"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "type": "string",
+            "pattern": "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$"
+          },
+          "title": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "zh": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "en",
+              "zh"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "zh": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "en",
+              "zh"
+            ]
+          },
+          "sensitive": {
+            "type": "boolean",
+            "default": false
+          },
+          "environmentVariable": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?![\\s\\S])"
+          }
+        },
+        "required": [
+          "target",
+          "title"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "sensitive": {
+                  "const": true
+                }
+              },
+              "required": [
+                "sensitive"
+              ]
+            },
+            "then": {
+              "required": [
+                "environmentVariable"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "environmentVariable"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "specVersion",
+    "name",
+    "version",
+    "description",
+    "author",
+    "license",
+    "readme"
+  ]
+}

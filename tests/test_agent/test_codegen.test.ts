@@ -28,26 +28,14 @@ import {
   validateTemplateWorkspace,
 } from "../../src/agent/codegen.js";
 import { pyStrip } from "../../src/agent/_pycompat.js";
-import { loadYaml as safeLoad } from "../../src/utils/yaml_io.js";
+import { parse as safeLoad } from "yaml";
 import { QwenCodeRunResult } from "../../src/agent/qwen_code.js";
 import { AICodegenError } from "../../src/models/errors.js";
-import type { PlatformStep } from "../../src/template/build_plan.js";
-
-interface GeneratedStepManifest { base: { image: string }; build: { mode: string; steps: PlatformStep[] } }
 import { findPython, itWithPython, makeTmp, raises, readGolden, rmTmp } from "../helpers/agentSupport.js";
 
 const pythonIt = itWithPython(it);
 
-const VALID_TEMPLATE_YAML = `\
-name: whatever-the-model-wrote
-spec_version: 5
-provides:
-  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
-description: 一个用于数据分析的 Python 环境
-resources:
-  cpu: 2
-  memory: 4096
-`;
+const VALID_TEMPLATE_YAML = manifestYaml("name: whatever-the-model-wrote\nresources: {cpu: 2, memory: 4096}\n");
 
 const DOCKERFILE = "FROM python:3.12-slim\nRUN pip install pandas\nCOPY commands.py .\nEXPOSE 9000\n";
 
@@ -183,115 +171,30 @@ describe("TestPrompt", () => {
 // ---------------------------------------------------------------------------
 
 describe("TestGenerateTemplateFiles", () => {
-  it("declares a runtime-only application token in new generated artifacts", async () => {
+  it("keeps runtime-only authentication out of generated resource definitions", async () => {
     vi.stubEnv("ABX_SERVER_TOKEN", "host-private-token-not-for-artifacts");
     patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("add API", { workdir: tmpPath });
     const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, unknown>;
-    expect(manifest["env"]).toEqual({ ABX_SERVER_TOKEN: "" });
+    expect(manifest["sandbox"]).not.toHaveProperty("instance");
+    expect(manifest["sandbox"]).not.toHaveProperty("agent.instance");
     expect(fs.readFileSync(result.templateYaml, "utf8")).not.toContain("host-private-token-not-for-artifacts");
     vi.unstubAllEnvs();
   });
 
   it("persists an explicit Dockerfile selection for the shared launch executor", async () => {
-    patchRun(fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbuild:\n  mode: auto\n" }));
+    patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "dockerfile" });
     const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, unknown>;
-    expect(manifest["build"]).toEqual({ mode: "dockerfile" });
+    expect((manifest["sandbox"] as any).agent.template.buildConfig).toEqual({dockerfile: "Dockerfile", context: "."});
   });
 
-  it("assembles missing native preparation from the provider image and final source bytes", async () => {
+  it("rejects unimplemented v1 steps source generation before running a model or writing files", async () => {
     const run = patchRun(fakeRunWriting());
-    const result = await generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" });
-    expect(run).toHaveBeenCalledTimes(1);
-    const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as GeneratedStepManifest;
-    expect(manifest.base).toEqual({ image: "python:3.12-slim" });
-    const steps = manifest.build.steps;
-    const delivery = steps.find((step) => step.type === "RUN" && step.args[0]!.includes("base64 -d"));
-    const payload = /printf '%s' '([^']+)'/.exec(delivery!.args[0]!)![1]!;
-    expect(Buffer.from(payload, "base64")).toEqual(Buffer.from(COMMANDS_PY));
-    expect(steps[0]).toEqual({ type: "USER", args: ["root"] });
-    expect(steps.at(-3)!.type).toBe("WORKDIR");
-    expect(steps.at(-2)!.args[0]).toContain("py_compile");
-    expect(steps.at(-2)!.args[0]).toContain("chown -R");
-    expect(steps.at(-1)).toEqual({ type: "USER", args: ["user"] });
+    await expect(generateTemplateFiles("add API", {workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim"})).rejects.toThrow("Template v1 source generation currently supports Dockerfile");
+    expect(run).not.toHaveBeenCalled(); expect(fs.readdirSync(tmpPath)).toEqual([]);
   });
 
-  it("rejects a generated Dockerfile changing the provider-resolved base image", async () => {
-    patchRun(fakeRunWriting());
-    await expect(generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:latest" })).rejects.toThrow("must preserve the selected provider base image");
-  });
-
-  it("preserves dependency commands while the CLI owns delivery and preparation", async () => {
-    const run = patchRun(fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbuild:\n  run: ['python3 -m pip install --only-binary=:all: pandas']\n" }));
-    const result = await generateTemplateFiles("data API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" });
-    expect(run.mock.calls[0]![0]).toContain("不要写 base");
-    const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as GeneratedStepManifest;
-    expect(manifest.build.mode).toBe("steps");
-    expect(manifest.build.steps).toContainEqual({ type: "RUN", args: ["python3 -m pip install --only-binary=:all: pandas"] });
-    expect(manifest.build.steps[1]!.args[0]).toContain("agent-sandbox-server==0.4.0a6");
-  });
-
-  it("rejects model-authored native delivery recipes instead of deploying stale bytes", async () => {
-    const run = patchRun(fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbuild:\n  steps: [{type: RUN, args: ['echo stale > /home/user/app/commands.py']}]\n" }));
-    await expect(generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" })).rejects.toThrow("build.run only");
-    expect(run).toHaveBeenCalledTimes(1);
-  });
-
-  pythonIt("materializes requirement files and enters the workdir before relative dependency commands", async () => {
-    patchRun(async (prompt, kwargs) => {
-      const result = await fakeRunWriting({ templateYaml: VALID_TEMPLATE_YAML + "\nbuild:\n  run: [\"python3 -c \\\"from pathlib import Path; assert Path('requirements.txt').read_text() == 'pandas\\\\n'\\\"\"]\n" })(prompt, kwargs);
-      fs.writeFileSync(path.join(kwargs.cwd, "requirements.txt"), "pandas\n");
-      return result;
-    });
-    const result = await generateTemplateFiles("data API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" });
-    const manifest = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as GeneratedStepManifest;
-    const steps = manifest.build.steps;
-    const delivery = steps.findIndex((step) => step.type === "RUN" && step.args[0]!.includes("/requirements.txt"));
-    const workdir = steps.findIndex((step) => step.type === "WORKDIR");
-    const dependency = steps.findIndex((step) => step.type === "RUN" && step.args[0]!.includes("Path('requirements.txt')"));
-    expect(delivery).toBeLessThan(workdir);
-    expect(workdir).toBeLessThan(dependency);
-    const runtime = path.join(tmpPath, "runtime");
-    const delivered = spawnSync("/bin/sh", ["-c", steps[delivery]!.args[0]!.replaceAll("/home/user/app", runtime)], { encoding: "utf8" });
-    expect(delivered.status).toBe(0);
-    expect(fs.readFileSync(path.join(runtime, "requirements.txt"), "utf8")).toBe("pandas\n");
-    const installed = spawnSync("/bin/sh", ["-c", steps[dependency]!.args[0]!], { cwd: runtime, encoding: "utf8" });
-    expect(installed.status, installed.stderr).toBe(0);
-  });
-
-  it("delivers generated business files without hidden model state or secret files", async () => {
-    patchRun(async (prompt, kwargs) => {
-      const result = await fakeRunWriting()(prompt, kwargs);
-      fs.mkdirSync(path.join(kwargs.cwd, "data"));
-      fs.writeFileSync(path.join(kwargs.cwd, "data", "orders.csv"), "total\n42\n");
-      fs.mkdirSync(path.join(kwargs.cwd, ".qwen"));
-      fs.writeFileSync(path.join(kwargs.cwd, ".qwen", "session.json"), "private-model-state");
-      fs.writeFileSync(path.join(kwargs.cwd, ".env"), "PRIVATE_KEY=do-not-copy");
-      return result;
-    });
-    const result = await generateTemplateFiles("data API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" });
-    const yaml = fs.readFileSync(result.templateYaml, "utf8");
-    expect(yaml).toContain("/home/user/app/data/orders.csv");
-    expect(yaml).not.toContain(".qwen");
-    expect(yaml).not.toContain(".env");
-    expect(yaml).not.toContain(Buffer.from("private-model-state").toString("base64"));
-    expect(yaml).not.toContain(Buffer.from("PRIVATE_KEY=do-not-copy").toString("base64"));
-  });
-
-  it("requires provider resolution when the default profile image has placeholders", async () => {
-    patchRun(fakeRunWriting());
-    await expect(generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "steps" })).rejects.toThrow("provider-resolved base image");
-  });
-
-  it("does not deliver symlinked files outside the generated workspace", async () => {
-    patchRun(async (prompt, kwargs) => {
-      const result = await fakeRunWriting()(prompt, kwargs);
-      fs.symlinkSync(process.execPath, path.join(kwargs.cwd, "outside.py"));
-      return result;
-    });
-    await expect(generateTemplateFiles("add API", { workdir: tmpPath, buildMode: "steps", baseImage: "python:3.12-slim" })).rejects.toThrow("regular files inside its workspace");
-  });
   it("test_success_writes_validated_workspace", async () => {
     patchRun(fakeRunWriting());
     const result = await generateTemplateFiles("运行 Python 数据分析", { baseDir: tmpPath });
@@ -305,8 +208,8 @@ describe("TestGenerateTemplateFiles", () => {
     // The generated name replaces the model-provided one.
     const data = safeLoad(fs.readFileSync(result.templateYaml, "utf8")) as Record<string, any>;
     expect(data.name).toBe(result.templateName);
-    expect(data.resources).toEqual({ cpu: 2, memory: 4096 });
-    expect(data.description).toBe("一个用于数据分析的 Python 环境");
+    expect(data.sandbox.agent.template).toMatchObject({ cpu: 2, memorySize: 4096 });
+    expect(data.specVersion).toBe(1);
   });
 
   it("test_passes_bounded_options_and_progress", async () => {
@@ -414,7 +317,7 @@ describe("TestGenerateTemplateFiles", () => {
     );
     expect(String(exc)).toContain("did not create the expected file");
     expect(exc.suggestion).toContain('abx template init --prompt "<description>"');
-    expect(exc.suggestion).toContain("abx deploy --template-id <name> --name my-sandbox");
+    expect(exc.suggestion).toContain("abx sandbox create --template <name>");
   });
 
   it("test_commands_py_with_a_syntax_error_raises", async () => {
@@ -591,8 +494,6 @@ describe("TestValidateTemplateWorkspace", () => {
     expect(data).toEqual({
       ...safeLoad(VALID_TEMPLATE_YAML) as Record<string, unknown>,
       name: "my-name",
-      description: "一个用于数据分析的 Python 环境",
-      resources: { cpu: 2, memory: 4096 },
     });
   });
 
@@ -612,9 +513,9 @@ describe("TestValidateTemplateWorkspace", () => {
     patchRun(fakeRunWriting({ templateYaml: manifestYaml("name: x\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\n") }));
     const result = await generateTemplateFiles("canon", { baseDir: tmpPath });
     const written = fs.readFileSync(result.templateYaml, "utf8");
-    expect(written).toContain("spec_version: 5");
+    expect(written).toContain("specVersion: 1");
     expect(written).toContain(`name: ${result.templateName}`);
-    expect(written).toContain("ports:\n- 9000\n- 8080");
+    expect(written).toContain("memorySize: 512");
     expect(safeLoad(written)).toEqual(safeLoad(manifestYaml(`name: ${result.templateName}\ndescription: 'quoted: yes'\nports: [9000, 8080]\nresources: {cpu: 1, memory: 512}\nenv: {ABX_SERVER_TOKEN: ""}\n`)));
   });
 });

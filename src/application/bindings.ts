@@ -19,6 +19,8 @@ export interface ResolvedBindings {
   credentialsFile?: string;
 }
 export interface BindingOptions {
+  /** Ephemeral native-parser-resolved values. Never include this object in a plan or receipt. */
+  values?: Record<string, unknown>;
   scope?: { applicationId: string; accountId: string; region: string };
   mode?: "initial-apply" | "existing";
   credentialDirectory?: string;
@@ -63,23 +65,37 @@ function expand(value: unknown): unknown {
   return value;
 }
 function asJson(value: string): unknown { try { return JSON.parse(value); } catch { return value; } }
-/** Binding references resolve only from an explicitly chosen file or named environment variable. */
-export function resolveBindings(app: ManagedApplication, file?: string, options: BindingOptions = {}): ResolvedBindings {
-  let source: Record<string, unknown> = {};
+function bindingSource(file?: string, values?: Record<string, unknown>): Record<string, unknown> {
+  let source: Record<string, unknown> = { ...values };
   if (file) {
     const stat = fs.lstatSync(file);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024 * 1024 || (process.platform !== "win32" && (stat.mode & 0o077) !== 0)) throw new ApplicationError("Binding input must be a private regular JSON file of at most 1 MiB.");
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
     if (!record(parsed)) throw new ApplicationError("Binding input must be a JSON object.");
-    source = parsed;
+    source = { ...source, ...parsed };
   }
-  const get = (logical: string): unknown => {
-    const binding = app.bindings[logical];
-    if (!binding) throw new ApplicationError(`Required application binding '${logical}' is missing.`);
-    const value = binding.reference.startsWith("env:") ? asJson(fromEnvironment(binding.reference.slice(4))) : Object.hasOwn(source, binding.reference)
-      ? source[binding.reference] : asJson(fromEnvironment(`ABX_APP_BINDING_${binding.reference.replace(/[^A-Za-z0-9]/g, "_").toUpperCase()}`));
-    return expand(value);
-  };
+  return source;
+}
+function bindingValue(app: ManagedApplication, source: Record<string, unknown>, logical: string): unknown {
+  const binding = app.bindings[logical];
+  if (!binding) throw new ApplicationError(`Required application binding '${logical}' is missing.`);
+  const value = binding.reference.startsWith("env:") ? asJson(fromEnvironment(binding.reference.slice(4))) : Object.hasOwn(source, binding.reference)
+    ? source[binding.reference] : asJson(fromEnvironment(`ABX_APP_BINDING_${binding.reference.replace(/[^A-Za-z0-9]/g, "_").toUpperCase()}`));
+  return expand(value);
+}
+/** Observe/cleanup resolve only the existing private control identity, without application inputs. */
+export function resolveControlBinding(app: ManagedApplication, file: string | undefined, options: BindingOptions & {generated: boolean}): Pick<ResolvedBindings, "internal" | "credentialsFile"> {
+  const source = bindingSource(file), reference = app.bindings.internalAuth.reference;
+  const raw = Object.hasOwn(source, reference) ? bindingValue(app, source, "internalAuth") : options.generated ? {generate: true} : bindingValue(app, source, "internalAuth");
+  const saved = record(raw) && raw.generate === true ? localCredentials({...options, mode: "existing"}, false, true) : undefined;
+  const internal = saved ? {token: saved.internalToken!} : raw;
+  if (!record(internal) || typeof internal.token !== "string" || internal.token.length < 32) throw new ApplicationError("Restore the existing private application control credentials before observation or cleanup.");
+  return {internal: {token: internal.token}, ...(saved ? {credentialsFile: saved.file} : {})};
+}
+/** Binding references resolve only from an explicitly chosen file or named environment variable. */
+export function resolveBindings(app: ManagedApplication, file?: string, options: BindingOptions = {}): ResolvedBindings {
+  const source = bindingSource(file, options.values);
+  const get = (logical: string): unknown => bindingValue(app, source, logical);
   const state = get(app.state.bindingRef), rawAuth = get("clientAuth"), model = get("model"), provider = get("sandboxAccess"), rawInternal = get("internalAuth"), ingress = get(app.deployment.ingressBindingRef);
   const generateBusiness = record(rawAuth) && rawAuth.generate === true, generateInternal = record(rawInternal) && rawInternal.generate === true;
   const saved = generateBusiness || generateInternal ? localCredentials(options, generateBusiness, generateInternal) : undefined;

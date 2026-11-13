@@ -112,9 +112,9 @@ export default {
       const cleanupErrors = [];
       try {
         // No retry: an unknown create outcome must not silently create another sandbox.
-        const created = await invoke(ctx, ["deploy", "--template-id", process.env.ABX_E2E_TEMPLATE || 'python-hello', "--sandbox-timeout", '600', '--volume-mount', `${config.path}=${config.name}`, "--yes"], 'Volume-mounted sandbox create', 180_000);
-        if (typeof created?.sandbox_id !== 'string' || !/^sbx-[A-Za-z0-9_-]+$/.test(created.sandbox_id)) throw new Error('create returned no usable sandbox ID; its remote outcome may be unknown and its 600-second lease must expire');
-        id = created.sandbox_id;
+        const created = await invoke(ctx, ['sandbox', 'create', '--template', process.env.ABX_E2E_TEMPLATE || 'python-hello', '--timeout', '600', '--volume-mount', `${config.path}=${config.name}`, "--yes"], 'Volume-mounted sandbox create', 180_000);
+        if (typeof created?.ID !== 'string' || !/^sbx-[A-Za-z0-9_-]+$/.test(created.ID)) throw new Error('create returned no usable sandbox ID; its remote outcome may be unknown and its 600-second lease must expire');
+        id = created.ID;
         ctx.track(id);
         await verify(ctx, id, config, 'probe');
         sentinelAttempted = true;

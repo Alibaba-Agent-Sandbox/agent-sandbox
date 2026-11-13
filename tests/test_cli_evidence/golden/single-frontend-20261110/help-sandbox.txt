@@ -12,6 +12,8 @@ Commands:
   capabilities  Show the capability groups available in a sandbox.
   command       List and run the named commands registered in a sandbox.
   connect       Open an interactive sandbox terminal.
+  create        Create one Sandbox from an already registered Provider template.
+  delete        Permanently destroy one sandbox or all running sandboxes.
   download      Download a file from the sandbox to local.
   exec          Run a command in a sandbox and preserve its exit code.
   files         Inspect and modify files inside a sandbox.

@@ -27,22 +27,47 @@ const runner = (): CliRunner => new CliRunner();
 const tmpPath = useTmpPath();
 
 const INDEX_YAML = `\
-schema_version: 2
+schema_version: 3
 templates:
   - name: qwen-code
-    description: "Qwen Code agent harness"
     repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: qwen-code
-    tags: [qwen, ai-agent]
-    author: alibaba-agent-sandbox
     status: official
+    metadata:
+      specVersion: 1
+      name: qwen-code
+      version: 1.0.0
+      description:
+        en: Qwen Code agent harness
+        zh: 测试模板
+      author: alibaba-agent-sandbox
+      license: Apache-2.0
+      tags:
+        - qwen
+        - ai-agent
+      readme:
+        en: README.md
+        zh: README.zh-CN.md
   - name: node-web
-    description: "Node.js web service"
     repo: https://github.com/alibaba-agent-sandbox/awesome-templates
     path: node-web
-    tags: [nodejs, web, deploy]
-    author: alibaba-agent-sandbox
     status: official
+    metadata:
+      specVersion: 1
+      name: node-web
+      version: 1.0.0
+      description:
+        en: Node.js web service
+        zh: 测试模板
+      author: alibaba-agent-sandbox
+      license: Apache-2.0
+      tags:
+        - nodejs
+        - web
+        - deploy
+      readme:
+        en: README.md
+        zh: README.zh-CN.md
 `;
 
 const INDEX_URL = "https://example.test/awesome-templates.yaml";
@@ -132,7 +157,7 @@ describe("TestSearchCommand", () => {
     _patchIndex(index());
     const result = await runner().invoke(cli, ["template", "list", "qwen"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(result.output).toContain("deploy <name> --name <app>");
+    expect(result.output).toContain("template info <name>");
     expect(result.output).toContain(INDEX_URL);
   });
 
@@ -269,7 +294,7 @@ describe("published managed catalog commands", () => {
     const fetch = vi.spyOn(registryMod.RegistryClient.prototype, "fetch");
     const result = await runner().invoke(cli, ["template", "init", path.join(tmpPath(), "out"), "--from", "desktop"]);
     expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("deploy desktop --name <app>");
+    expect(result.output).toContain("sandbox create --template desktop --yes");
     expect(fetch).not.toHaveBeenCalled();
   });
 });

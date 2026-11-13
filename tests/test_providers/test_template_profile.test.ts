@@ -135,7 +135,7 @@ describe("template guide text", () => {
     expect(alicloud).not.toContain("python:3.12-slim");
     expect(alicloud).toContain("agent-sandbox-server");
     expect(alicloud).toContain("/home/user/app");
-    expect(alicloud).toContain("generation: 2");
+    expect(alicloud).toContain("template.startCommand/readyCommand");
     expect(generic).toContain("FROM python:3.12-slim");
     expect(generic).toContain('CMD ["python3", "commands.py"]');
     expect(generic).toContain("no-such-provider");
@@ -163,9 +163,10 @@ describe("scaffold dockerfiles", () => {
     expect(commands).toContain("agent_sandbox.server");
     expect(commands).not.toMatch(/alicloud|opensandbox/);
     const yaml = files.get("template.yaml") ?? "";
-    expect(yaml).toContain("generation: 2");
-    expect(yaml).toContain('start_cmd: "agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py"');
-    expect(yaml).toContain('ready_cmd: "agent-sandbox-server healthcheck --port 9000"');
+    expect(yaml).toContain("specVersion: 1");
+    expect(yaml).toContain("buildConfig:");
+    expect(yaml).toContain("provider: alicloud-express");
+    expect(yaml).not.toContain("instance:");
     const minimal = renderScaffold("minimal", "demo").get("template.yaml") ?? "";
     expect(minimal).not.toContain("generation:");
     expect(minimal).not.toContain("start_cmd:");
@@ -177,13 +178,13 @@ describe("scaffold dockerfiles", () => {
     const docker = files.get("Dockerfile") ?? "";
     expect(docker.startsWith("FROM python:3.12-slim\n")).toBe(true);
     expect(docker).not.toMatch(CMD_INSTRUCTION);
-    expect(files.get("template.yaml")).toContain('start_cmd: "agent-sandbox-server serve');
+    expect(files.get("template.yaml")).toContain("provider: opensandbox");
     expect(docker).toContain("WORKDIR /app");
     expect(docker).not.toContain("fc-e2b-registry");
     expect(docker).toContain("agent-sandbox-server");
     const yaml = files.get("template.yaml") ?? "";
     expect(yaml).not.toContain("generation:");
-    expect(yaml).toContain("start_cmd:");
+    expect(yaml).toContain("buildConfig:");
   });
 });
 

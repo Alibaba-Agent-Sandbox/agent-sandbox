@@ -57,7 +57,7 @@ Python SDK 按需启动并复用引擎，需要 PATH 中的 `abx`，也可以用
 
 标准 E2B 命令前端仅用于极速版，带 Provider 前缀的沙箱引用进入 Provider 路由。其他 Provider 目前仍使用项目 CLI 参数；选择它们不代表全部 E2B 专有选项和返回模型都已适配。template scaffold 的本地生成可以采用通用 Docker profile，但这只是镜像约定，不是切换云端后端。
 
-模板命令调用所选 Provider 已实现的模板管理器或专用命令处理器，原生 FC/ACR 处理器属于极速版。公开入口 `abx --provider <id> deploy SOURCE --name my-app` 使用 Provider 自己的准备与启动实现；OpenSandbox 已实现文档所述默认配方的源码准备。缺少所需操作时在当前 Provider 上报错，不静默切换到极速版。构建和配置要求见[启动模板](template-launch.md)，操作检查见[模板工作流](template-workflows.md)。自然语言云端部署仍需要相应 Provider 自己的处理器。
+模板创作使用所选 Provider 的创作配置。当前公开具名资源执行器支持 Express 模板/静态卷和 FC Serving；其他 Provider 使用 `sandbox create --template` 创建动态实例，已有原生管理命令通过 `provider run` 使用。未实现的具名资源适配会在执行前明确报错，不静默切换 Provider。参阅[模板准备](template-launch.md)和[模板工作流](template-workflows.md)。
 
 内置 Provider 明确列出自身已实现的适配能力；增加全局能力不能自动把极速版标记为支持。当前适配器不把 storage.mount、network.vpc、ports.domain 宣称为通用沙箱操作。这不代表阿里云没有对应能力：资源管理和挂载集成需要各自已实现、已验证的入口。暂停还受运行时/函数开通条件限制，静态声明不等于账号实际可用。
 
@@ -110,7 +110,7 @@ abx provider test my-cloud -o region=eu # 通过 CLI 使用的同一批适配器
 | 位置 | 示例 |
 |---|---|
 | 限定引用 | `abx delete my-cloud:sbx-1` |
-| 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
+| 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud sandbox create --template base` |
 | 进程环境变量 | `export ABX_PROVIDER=my-cloud` |
 | `./.env`，然后 `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx config set provider my-cloud`、`abx config set provider my-cloud`） |
@@ -131,7 +131,7 @@ abx config set provider --unset           # 恢复为 alicloud-express
 所有 Provider 的文本 ID 输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。
 
 ```bash
-abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx --provider local-process sandbox create --template base --yes      # ID: local-process:sbx-1
 abx sandbox exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # 所有已配置的提供商，带 Provider 列
 abx delete local-process:sbx-1 --yes
@@ -173,7 +173,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 sandbox create --template base
 ```
 
 非交互安装需要 `--yes`。未钉扎的 git ref 还要 `--allow-unpinned`，或者写成 40 位十六进制的 `--ref`。Python SDK 安装器是 `python -m agent_sandbox.providers install registry:<id> --yes`。

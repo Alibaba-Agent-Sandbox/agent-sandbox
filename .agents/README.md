@@ -1,5 +1,13 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Current resource E2E entry points](notes/proposed/process/2026-11-13-resource-e2e-entrypoints.md) · [verification](evidence/verify/2026-11-13-resource-e2e-entrypoints.md).
+
+- [Named resource execution](notes/proposed/architecture/2026-11-13-named-resource-execution.md) · [verification](evidence/verify/2026-11-13-named-resource-execution.md). Final user contract, native component host, real Express/FC/ordinary-service checks and remaining business acceptance.
+
+- [Agents API delivery operations](notes/proposed/process/2026-11-12-agents-api-delivery-operations.md) · [record-placement verification](evidence/verify/2026-11-12-agents-api-delivery-operations.md).
+
+- [Template v1 adoption verification](evidence/verify/2026-11-12-template-v1-adoption.md).
+- [Native template project parser](notes/proposed/architecture/2026-11-12-native-template-project-parser.md) · [verification](evidence/verify/2026-11-12-native-template-project-parser.md).
 - [MCP user journey](notes/proposed/process/2026-11-13-mcp-user-journey.md) · [verification](evidence/verify/2026-11-13-mcp-user-journey.md).
 
 ## Recent changes — 2026-11-10
@@ -340,3 +348,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Current documentation index and build-mode verification](evidence/verify/2026-11-10-current-documentation-index.md).
 
 - [Current CLI recipes and reachable MCP help](notes/proposed/process/2026-11-12-ecosystem-guidance-sync.md) · [verification](evidence/verify/2026-11-12-ecosystem-guidance-sync.md).
+
+- [Portable native Devs engine](notes/proposed/architecture/2026-11-13-portable-native-engine.md) · [verification](evidence/verify/2026-11-13-portable-native-engine.md).

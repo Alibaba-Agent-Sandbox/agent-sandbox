@@ -60,9 +60,9 @@ describe("template commands honour the active provider", () => {
 describe.skipIf(!hasPython)("a plugin sandbox", () => {
   async function createSandbox(): Promise<string> {
     await installLocal();
-    const created = await abx("--json", "--provider", "local-process", "deploy", "--yes", "--template-id", "base");
+    const created = await abx("--json", "--provider", "local-process", "sandbox", "create", "--yes", "--template", "base");
     expect(created.code, created.err).toBe(0);
-    return JSON.parse(created.out).sandbox_id as string;
+    return JSON.parse(created.out).ID as string;
   }
 
   it("test_named_commands_answer_e8004_not_an_untyped_crash", async () => {

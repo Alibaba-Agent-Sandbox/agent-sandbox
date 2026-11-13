@@ -35,18 +35,18 @@ abx --help
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo --yes
+abx sandbox create --template base --yes
 ```
 
 极速版需要对应账号和地域的 Sandbox API Key。[凭据与权限指南](docs/zh/guide/permissions.md)说明凭据来源、所需授权，以及可选的 AccessKey 准备方式。交互输入的配置保存在本机，后续命令复用。
 
-后续操作使用部署名称：
+后续操作使用创建返回的 Sandbox ID：
 
 ```bash
-abx sandbox exec demo -- echo hello
-abx status demo
-abx sandbox connect demo
-abx delete demo --yes
+abx sandbox exec SANDBOX_ID -- echo hello
+abx status SANDBOX_ID
+abx sandbox connect SANDBOX_ID
+abx sandbox delete SANDBOX_ID --yes
 ```
 
 `sandbox connect` 打开远程终端，退出终端后沙箱仍在运行；`delete` 删除沙箱。文件操作、后台进程等用法见 [CLI 教程](docs/zh/guide/cli-tutorial.md)。
@@ -59,13 +59,15 @@ abx delete demo --yes
 模板封装浏览器自动化、编码 Agent、Web 服务等工具。从[模板目录](https://registry.agent-sandbox.cn/templates/)选择模板，按其说明准备配置：
 
 ```bash
-abx template list python
-abx deploy python-hello --name hello --yes
+abx template init ./python-hello --from python-hello
+cd python-hello
+abx deploy . --name hello --yes
+python run.py --template TEMPLATE_ID
 ```
 
-源码模板需要对应提供方的构建环境。启动命令会运行模板声明的服务，并返回沙箱 ID。CLI 自动生成并在本机保存默认应用认证令牌；使用模型的模板还需配置相应模型凭据。
+源码模板需要对应提供方的构建环境。deploy 返回准备好的模板资源 ID；将其填入 TEMPLATE_ID，由模板的 run.py 创建实例并启动服务。Python SDK、应用认证和模型配置按模板 README 操作。
 
-结束后执行 `abx delete hello --yes`，清理拥有的沙箱和模板；借用的构建产物及需手动清理的镜像保留。配置与资源清理见[模板使用指南](docs/zh/guide/using-templates.md)。
+结束后使用 `abx sandbox delete SANDBOX_ID --yes` 删除运行实例，再执行 `abx delete hello --yes` 清理拥有的模板；借用的构建产物及需手动清理的镜像保留。配置与资源清理见[模板使用指南](docs/zh/guide/using-templates.md)。
 
 ## 接入 AI 工具
 

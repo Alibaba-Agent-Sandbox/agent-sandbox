@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Named Sandbox template/volume and native FC Serving execution, resource output ordering, readiness and recorded ownership; component logs now follow abx output and credential redaction. / 新增命名模板/卷与原生 FC Serving 执行、资源依赖、就绪与归属记录；组件日志接入 abx 输出和脱敏。
+
+- Isolated native Devs project resolution for the template v1 integration, preserving component props, relative references and planned action declarations without running actions during parsing.
+
 ### Documentation
 
 - Add practical bilingual MCP client, file-delivery, background-task and diagnostic guidance, with scoped real STDIO/HTTP/Qwen/template evidence.
@@ -15,9 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
-- Unify running deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 运行部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
+- Unify resource deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 资源部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
 - Use one parser for every Provider, retain Express protocol/PTY behavior, and make Provider run the sole native management execution entry. / 所有 Provider 共用一个解析入口，保留极速版协议和 PTY 能力，原生管理统一通过 provider run 执行。
-- Reuse explicit managed-profile defaults, preserve application names independently of template names, and distinguish owned automatic builds from borrowed author builds. / 复用显式托管 profile 缺省值，应用名称与模板名称分离，区分自动构建与借用的作者构建。
+- Use author-defined vars and Dockerfile/context or native Steps branches; template region stays under template. Application policy and publication move into template-owned code. / 采用作者自定义 vars 和 Dockerfile/context 或 Steps 分支，地域保留在 template 下；业务策略与发布归模板代码。
 
 ### Removed
 
@@ -25,6 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Bundle the official native parser and component workers into standalone binaries, with the same isolated logging and credential handling as npm installations. / 独立二进制内置官方原生解析与组件执行能力，保持与 npm 安装相同的日志及凭据隔离。
+
+- Preserve Core YAML 1.2 string types through native project resolution and report template v1 errors without nested legacy suggestions. / 原生项目求值保留 Core YAML 1.2 的字符串类型，模板 v1 错误不再嵌套旧版提示。
+- Read FC access keys and optional STS token from one configuration snapshot. / FC AccessKey 与可选 STS Token 使用同一配置快照。
 - Keep interrupted deployment recovery observational, clean failed pre-request admissions, and preserve source modes in private build snapshots. / 中断恢复只观察、不重放；可清理请求前失败的部署，私有构建快照保留源码权限。
 - CI output mode no longer authorizes managed-key creation or renewal; list reports partial Provider failures. / CI 输出模式不再授权管理 Key 创建或续期，列表明确报告部分 Provider 查询失败。
 

@@ -839,7 +839,7 @@ describe("obsolete manifest recovery", () => {
     const file = path.join(iso.tmp_path, "template.yaml");
     fs.writeFileSync(file, oldManifest);
     expect(() => loadTemplateFromYaml(file)).toThrow(file);
-    expect(() => loadTemplateFromYaml(file)).toThrow("spec_version 4; this CLI requires spec_version: 5");
+    expect(() => loadTemplateFromYaml(file)).toThrow("this CLI requires specVersion: 1");
     expect(() => loadTemplateFromYaml(file)).toThrow("Use a source revision");
     try { loadTemplateFromYaml(file); } catch (error) {
       expect(String(error)).not.toContain("expected never");

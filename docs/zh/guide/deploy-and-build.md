@@ -1,22 +1,37 @@
 # 部署与构建
 
-源码编写、准备构建、部署运行和发布源码版本分别有独立用途：
+可以直接准备并部署资源，也可以先构建再复用：
 
 ```bash
 abx template init ./project --template python
+abx deploy ./project --plan
 abx template build ./project --out ./.abx/build.json --yes
 abx deploy --build ./.abx/build.json --name my-app --yes
 abx status my-app
+```
+
+直接 `abx deploy ./project --name my-app --yes` 会合并准备与 Serving 部署。两种路径都不创建动态 Sandbox 实例。template build 准备模板、静态卷并执行 Serving 构建动作；deploy --build 借用已准备资源并部署 Serving。复用期间保留原始源码目录和组件构建文件，内容不能改变。秘密保留在私有配置里，不写进构建记录。
+
+按模板说明使用 run.py 或 SDK 启动业务服务。只创建原生实例时可明确调用：
+
+```bash
+abx sandbox create --template TEMPLATE_ID
+abx sandbox delete SANDBOX_ID
+```
+
+buildConfig 选择 Dockerfile/context 或原生 Steps。Docker 需要本机 daemon、可写仓库及平台拉取权限；Steps 产出模板 ID，详见[资源配置](template-workflows.md)。
+
+```bash
 abx delete my-app --yes
 abx template build --clean ./.abx/build.json --yes
 ```
 
-不需要单独复用构建时，直接 `abx deploy ./project --name my-app`。`template build` 不启动实例；`deploy --build` 的参数是构建文件，不是构建模式。Dockerfile 或受支持的平台步骤由模板声明与 Provider 准备路径决定；`--build-profile` 只选择清单中明确声明的配置，不静默切换。
+删除清理已确认归属的模板、卷与函数。借用构建在消费者全部删除前保留；显式 retain 卷和镜像 tag 由你继续管理。FC 的 auto 可能创建或复用日志、网络、存储和角色资源，这些可能共享的资源会保留并单独列出，不假定由某个函数独占。
 
-Docker 构建需要可用的本机 Docker 与可写镜像仓库，运行平台必须能拉取镜像。平台步骤的运行时、文件输入与权限限制依所选 Provider。部署本身不调用模型；需要模型的是 `template init --prompt` 或 `--adopt`。
+status 显示本地记录。操作结果不确定时，先 recover 观察保存的资源身份，再决定重试或清理；recover 不重放部署动作。本机超时不能证明已提交的云操作停止。超时约束 API 等待与组件子进程，Docker daemon 作业可能需要单独取消。
 
-部署删除仅清理记录中属于该部署的资源。单独构建会保留供复用；清理前应删除使用它的应用，清理结果会列出仍需手动处理的镜像。失败后先 `abx status APP` 和 `abx recover APP`，不要盲目重复创建。
+template publish SOURCE --tag VERSION 发布已提交源码的固定 GitHub 版本，不部署或自动上架。
 
-`template publish SOURCE --tag VERSION` 发布已提交的源码到现有 GitHub remote 的不可变版本，并返回固定提交引用；它不部署应用，也不自动添加公共目录条目。
+[编写模板](authoring-templates.md) · [部署和日志](template-launch.md)
 
-[完整模板编写指南](authoring-templates.md) · [部署与故障边界](template-launch.md)
+已有部署保持绑定所选复用构建。切换到另一构建文件时，使用新的部署名，或先删除旧部署。

@@ -237,7 +237,7 @@ export class QwenCodeBackend implements CodingAgentBackend {
         `  1. Install the ${this.displayName} CLI (official standalone build):`,
         `       ${qwenCode.seams.officialInstallCommand()}`,
         "     or re-run 'abx template init --prompt \"<description>\"' and accept the install prompt",
-        "     or bypass template generation with:  abx deploy --template-id base --name my-sandbox",
+        "     or bypass template generation with:  abx sandbox create --template base",
       );
     } else {
       lines.push(

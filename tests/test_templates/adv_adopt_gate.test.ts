@@ -76,7 +76,7 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
       "template.yaml": `${TEMPLATE_OK}z: !!python/object/apply:os.system [echo pwn]\n`,
     });
     expect(firstError(run)).toBe(
-      "[E2007] Generated template.yaml could not be parsed: Unresolved tag: tag:yaml.org,2002:python/object/apply:os.system at line 8, column 4:",
+      "[E2007] Generated template.yaml could not be parsed: Template v1 /: invalid JSON-compatible YAML1.2 Core: use one document with string keys; duplicate keys, aliases, unsupported tags and unsafe values are not allowed",
     );
     expect(existsSync(path.join(sb.work, "app", "template.yaml"))).toBe(false);
   });
@@ -86,7 +86,7 @@ describe("ADV-agent-template: template init --adopt validation gate", () => {
       "template.yaml": "name: demo\0\nports: [9000]\n",
     });
     expect(firstError(run)).toBe(
-      "[E2007] Generated template.yaml could not be parsed: Unacceptable character #x0000: special characters are not allowed",
+      "[E2007] Generated template.yaml could not be parsed: Template v1 /: YAML contains unsupported control characters",
     );
     expect(existsSync(path.join(sb.work, "app", "template.yaml"))).toBe(false);
   });

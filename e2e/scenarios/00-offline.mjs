@@ -48,7 +48,7 @@ export default {
     { id: 'help-run', title: 'run --help documents --arg/--json-args', argv: ["sandbox", "command", 'run', '--help'], creds: false, stdout: ['SANDBOX_ID', 'COMMAND_NAME', '--arg', '--json-args'] },
     { id: 'exec-unknown-local-option', title: 'exec rejects unknown options before the sandbox ID', argv: ["sandbox", 'exec', '--unknown-local-option', 'sbx-x', 'true'], creds: false, exit: 2, output: 'No such option' },
     { id: 'help-kill', title: 'delete takes a deployment name or native ID', argv: ["delete", '--help'], creds: false, stdout: ['<TARGET>', '--yes'] },
-    { id: 'help-create', title: 'deploy supports sources and native template references', argv: ["deploy", '--help'], creds: false, stdout: ['--template-id', '--sandbox-timeout', '--on-timeout', '--auto-resume'] },
+    { id: 'help-create', title: 'sandbox create uses a native template and runtime options', argv: ["sandbox", "create", '--help'], creds: false, stdout: ['--template', '--timeout', '--env', '--volume-mount'] },
 
     {
       id: 'template-overwrite-consent', title: 'yes alone preserves existing template files; force discloses replacement', creds: false,
@@ -74,7 +74,7 @@ export default {
     { id: 'invalid-list-status', title: 'standard list rejects retired --status spelling', argv: ['list', '--status', 'bogus'], creds: false, exit: 2, output: /Invalid value|not one of|Allowed choices/ },
     { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of|Allowed choices/ },
     { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ["sandbox", 'upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
-    { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ["deploy", "--template-id", "base", "--yes"], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
+    { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ["sandbox", "create", "--template", "base", "--yes"], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
     { id: 'delete-missing-id', title: 'delete requires a target before I/O', argv: ['delete'], creds: false, exit: 2, output: 'Missing argument' },
 
     { id: 'no-credentials-list', title: 'standard list requires a configured key', argv: ['list'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },

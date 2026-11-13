@@ -13,6 +13,9 @@ export { withApplicationLock } from "./lock.js";
 import type { ApplicationPlan, ApplicationReceipt, FunctionReceipt, OwnedServerImage, PreparedSandbox, Role } from "./types.js";
 
 export interface ApplicationServices {
+  /** Resolved native properties live only in this execution context, never in receipts. */
+  nativeRoleProps?: Record<string, Record<string, unknown>>;
+  sandboxInstance?: Record<string, unknown>;
   fc: FcTransport;
   credential: CredentialSnapshot;
   binding: ResolvedBindings;
@@ -23,11 +26,15 @@ export interface ApplicationServices {
   probe?(endpoint: string, pathname: string, token?: string): Promise<{ status: number; body: unknown }>;
   hooks?(phase: "beforeApply" | "afterReady", receipt: ApplicationReceipt, endpoint?: string, token?: string): Promise<void>;
 }
+/** Observation and cleanup have no model, database-login or source-build dependency. */
+export type ApplicationControlServices = Pick<ApplicationServices, "fc" | "credential" | "deleteTemplate" | "removeImage"> & {binding: Pick<ResolvedBindings, "internal">};
 const roles: Role[] = ["worker", "dispatcher", "gateway"];
 export const applicationId = (plan: ApplicationPlan): string => plan.applicationId ?? plan.template.name;
 function safeName(value: string): string { return `${value.slice(0, 23)}-${digest(value).slice(0, 10)}`; }
-export function createPlan(templateFile: string, buildFile: string, previousReceipt?: string, name?: string, borrowedBuild = false): ApplicationPlan {
-  const file = fs.realpathSync(templateFile), projectRoot = path.dirname(file), template = readTemplate(file), build = readBuild(buildFile);
+export function createPlan(templateFile: string, buildFile: string, previousReceipt?: string, name?: string, borrowedBuild = false, configurationSource?: string): ApplicationPlan {
+  const file = fs.realpathSync(templateFile), projectRoot = path.dirname(file), build = readBuild(buildFile);
+  configurationSource ??= build.configurationSource;
+  const template = readTemplate(file, { configurationSource });
   if (build.sourceDigest !== sourceDigest(projectRoot)) throw new ApplicationError("Source changed after build; build the current input before planning.");
   if (borrowedBuild && build.lifecycleOwner) throw new ApplicationError("This build belongs to a deployment lifecycle. Create a reusable artifact with template build.");
   const id = name ?? template.name;
@@ -37,7 +44,7 @@ export function createPlan(templateFile: string, buildFile: string, previousRece
   const revision = `rev-${randomBytes(10).toString("hex")}`, base = safeName(id);
   const plan: ApplicationPlan = { schemaVersion: 2, kind: "ManagedApplicationPlan", applicationId: id, borrowedBuild, operation: "apply", id: "", revision,
     createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 24 * 3600000).toISOString(), projectRoot, templateFile: file,
-    sourceDigest: build.sourceDigest, template, image: build.image, toolchain: build.toolchain, buildReceipt: fs.realpathSync(buildFile), ...(!borrowedBuild && build.ownedServerImage ? { ownedServerImage: build.ownedServerImage } : {}),
+    sourceDigest: build.sourceDigest, template, image: build.image, toolchain: build.toolchain, buildReceipt: fs.realpathSync(buildFile), ...(configurationSource ? { configurationSource: fs.realpathSync(configurationSource) } : {}), ...(!borrowedBuild && build.ownedServerImage ? { ownedServerImage: build.ownedServerImage } : {}),
     identities: { gateway: previous?.plan.identities.gateway ?? `${base}-gateway`, worker: `${base}-worker-${revision.slice(4)}`, dispatcher: `${base}-dispatch-${revision.slice(4)}` },
     steps: [{ id: "sandbox-template", type: "sandbox-template", dependsOn: [] }, { id: "worker", type: "serverless-devs", dependsOn: ["sandbox-template"] },
       { id: "dispatcher", type: "serverless-devs", dependsOn: ["worker"] }, { id: "gateway", type: "serverless-devs", dependsOn: ["dispatcher"] },
@@ -65,11 +72,11 @@ function save(file: string, receipt: ApplicationReceipt): void { receipt.updated
 function assertPlan(plan: ApplicationPlan): void {
   if (Date.parse(plan.expiresAt) <= Date.now()) throw new ApplicationError("Application plan expired; compute a new plan.");
   verifyTools(plan.toolchain);
-  if (plan.operation === "apply" && (sourceDigest(plan.projectRoot) !== plan.sourceDigest || digest(readTemplate(plan.templateFile)) !== digest(plan.template))) throw new ApplicationError("Frozen application source changed; build and plan again.");
+  if (plan.operation === "apply" && (sourceDigest(plan.projectRoot) !== plan.sourceDigest || digest(readTemplate(plan.templateFile, { configurationSource: plan.configurationSource && fs.existsSync(plan.configurationSource) ? plan.configurationSource : undefined })) !== digest(plan.template))) throw new ApplicationError("Frozen application source changed; build and plan again.");
   if (plan.operation === "apply" && plan.buildReceipt) { const build = readBuild(plan.buildReceipt); if (build.image !== plan.image || (!plan.borrowedBuild && digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null))) throw new ApplicationError("The frozen Server build identity changed; compute a fresh plan."); }
   if (plan.previousReceipt && digest(readReceipt(plan.previousReceipt)) !== plan.previousDigest) throw new ApplicationError("The previous receipt changed; compute a fresh plan.");
 }
-async function control(receipt: ApplicationReceipt, services: ApplicationServices, operation: "status" | "drain", revision?: string, controller?: FunctionReceipt): Promise<Record<string, unknown>> {
+async function control(receipt: ApplicationReceipt, services: ApplicationControlServices, operation: "status" | "drain", revision?: string, controller?: FunctionReceipt): Promise<Record<string, unknown>> {
   const dispatcher = controller ?? receipt.functions.find(item => item.role === "dispatcher");
   if (!dispatcher) throw new ApplicationError("No confirmed dispatcher exists; retain unknown resources for reconciliation.");
   await inspectOwned(receipt, services, dispatcher);
@@ -78,6 +85,10 @@ async function control(receipt: ApplicationReceipt, services: ApplicationService
   return result;
 }
 function drained(value: Record<string, unknown>): boolean { return ["activeSessions", "pendingCleanup", "uncertainResources"].every(key => Number.isSafeInteger(value[key]) && value[key] === 0); }
+function validateControlBinding(receipt: ApplicationReceipt, services: ApplicationControlServices): void {
+  if (services.fc.accountId !== services.credential.AccountID || receipt.accountId !== services.fc.accountId) throw new ApplicationError("Deployment identity differs from the saved application owner.");
+  if (receipt.controlDigest && receipt.controlDigest !== businessTokenDigest(services.binding.internal.token)) throw new ApplicationError("Internal credentials changed; restore the prior control binding before cleanup.");
+}
 function validateBinding(plan: ApplicationPlan, services: ApplicationServices, previous?: ApplicationReceipt): void {
   const { binding, fc, credential } = services;
   if (fc.accountId !== credential.AccountID || (previous && previous.accountId !== fc.accountId)) throw new ApplicationError("Deployment identity differs from the saved application owner.");
@@ -88,25 +99,31 @@ function validateBinding(plan: ApplicationPlan, services: ApplicationServices, p
   if (previous?.stateIdentityDigest && previous.stateIdentityDigest !== stateConnectionIdentity(binding.databaseUrl)) throw new ApplicationError("State backend routing changed; restore the application ledger instead of switching databases during update.");
   stateConnectionIdentity(binding.databaseUrl);
 }
-function runtimeConfig(receipt: ApplicationReceipt, binding: ResolvedBindings): Record<string, unknown> {
+function runtimeConfig(receipt: ApplicationReceipt, binding: ResolvedBindings, instance: Record<string, unknown> = {timeout: receipt.plan.template.application.sessions.maxLifetimeSeconds}): Record<string, unknown> {
   const app = receipt.plan.template.application;
+  const {envs, ...safeInstance} = instance;
   return { revision: receipt.plan.revision, template: receipt.sandbox!.reference, models: { [binding.model.model]: binding.model.adapter }, applicationId: applicationId(receipt.plan), provider: app.sandbox.provider,
     modelEnvAllowlist: app.bindings.model.allowedEnv,
     ...(receipt.stateInstanceId ? { expectedStateId: receipt.stateInstanceId } : {}),
-    workspace: "/workspace", port: 9000, sessions: app.sessions, limits: app.limits, storage: Object.fromEntries(Object.entries(app.storage).filter(([key]) => key !== "backend")),
+    workspace: "/workspace", port: 9000, instance: safeInstance, instanceEnvNames: record(envs) ? Object.keys(envs).sort() : [], sessions: app.sessions, limits: app.limits, storage: Object.fromEntries(Object.entries(app.storage).filter(([key]) => key !== "backend")),
     workers: Object.fromEntries([...receipt.retained.map(item => [item.revision, item.worker]), [receipt.plan.revision, receipt.plan.identities.worker]]) };
 }
 function propsFor(receipt: ApplicationReceipt, services: ApplicationServices, role: Role, auth = services.binding.auth): Record<string, unknown> {
   const plan = receipt.plan, binding = { ...services.binding, auth };
-  const environmentVariables = bootstrapEnvironment(plan.template.application, binding, role, runtimeConfig(receipt, binding));
+  const native = services.nativeRoleProps?.[role] ?? {};
+  const guestEnvironment = services.sandboxInstance?.envs;
+  const environmentVariables = { ...(record(native.environmentVariables) ? native.environmentVariables as Record<string, string> : {}), ...bootstrapEnvironment(plan.template.application, binding, role, runtimeConfig(receipt, binding, services.sandboxInstance)),
+    ...(role === "worker" && record(guestEnvironment) && Object.keys(guestEnvironment).length ? { ABX_MANAGED_SANDBOX_ENV_JSON: JSON.stringify(guestEnvironment) } : {}) };
   const bytes = Object.entries(environmentVariables).reduce((size, [key, value]) => size + Buffer.byteLength(key, "utf8") + Buffer.byteLength(value, "utf8"), 0);
   if (bytes > 4096) throw new ApplicationError("FC bootstrap environment exceeds 4 KiB; reduce the role's resolved configuration before deployment.");
   const image = plan.ownedServerImage?.localTag ?? plan.image;
   return { functionName: plan.identities[role], description: `Agent Sandbox ${applicationId(plan)} ${plan.revision} ${receipt.operationId}`,
     runtime: "custom-container", cpu: role === "gateway" ? 1 : 2, memorySize: role === "gateway" ? 1024 : 2048, diskSize: 512, internetAccess: true, timeout: role === "worker" ? 86400 : 120,
-    role: binding.internal.roleArn, customContainerConfig: { image, port: 9000, entrypoint: ["python", "-m", "agent_sandbox.managed_agents"],
-      command: [role, ...(binding.databaseCa ? ["--database-ca-base64", ...Buffer.from(binding.databaseCa, "utf8").toString("base64").match(/.{1,1920}/g)!] : [])] },
-    ...(binding.vpcConfig ? { vpcConfig: binding.vpcConfig } : {}), environmentVariables };
+    role: binding.internal.roleArn,
+    ...(binding.vpcConfig ? { vpcConfig: binding.vpcConfig } : {}), ...native,
+    customContainerConfig: { ...(record(native.customContainerConfig) ? native.customContainerConfig : {}), image, port: 9000,
+      entrypoint: ["python", "-m", "agent_sandbox.managed_agents"], command: [role, ...(binding.databaseCa ? ["--database-ca-base64", ...Buffer.from(binding.databaseCa, "utf8").toString("base64").match(/.{1,1920}/g)!] : [])] },
+    environmentVariables };
 }
 function candidateAuthentication(receipt: ApplicationReceipt, services: ApplicationServices, sha256: string): Record<string, unknown> {
   return { ...services.binding.auth, tokens: [...services.binding.auth.tokens as unknown[], { sha256, owner: `verification:${receipt.plan.revision}`, scopes: ["agents:read", "agents:write"], expiresAt: Math.floor(Date.now() / 1000) + 3600 }] };
@@ -118,7 +135,7 @@ function preflightEnvironments(receipt: ApplicationReceipt, services: Applicatio
   for (const role of roles) propsFor(pinned, services, role);
   propsFor(pinned, services, "gateway", candidateAuthentication(pinned, services, "0".repeat(64)));
 }
-async function inspectOwned(receipt: ApplicationReceipt, services: ApplicationServices, item: FunctionReceipt): Promise<void> {
+async function inspectOwned(receipt: ApplicationReceipt, services: ApplicationControlServices, item: FunctionReceipt): Promise<void> {
   const body = await services.fc.describeFunction(item.functionName);
   if (!body) throw new ApplicationError("A recorded function is absent; recovery must not silently recreate it.");
   verifyFunction(body, receipt.accountId, receipt.plan.template.application.deployment.region, item.functionName, item);
@@ -319,8 +336,8 @@ export async function applyPlan(plan: ApplicationPlan, services: ApplicationServ
   } catch (error) { receipt.status = "requires_reconcile"; save(file, receipt); throw error; }
 }
 /** Observation never invents ownership or restarts an interrupted cloud mutation. */
-export async function observeReceipt(receipt: ApplicationReceipt, services: ApplicationServices, file?: string): Promise<Record<string, unknown>> {
-  validateBinding(receipt.plan, services, receipt);
+export async function observeReceipt(receipt: ApplicationReceipt, services: ApplicationControlServices, file?: string): Promise<Record<string, unknown>> {
+  validateControlBinding(receipt, services);
   const resources: Record<string, unknown>[] = [];
   const history = [receipt, ...receipt.retained.map(item => findHistorical(receipt, item.revision))];
   for (const entry of receipt.cleanup.filter(item => item.kind === "function")) {
@@ -342,8 +359,8 @@ export function publicSummary(receipt: ApplicationReceipt, file?: string): Recor
     recovery: [...(receipt.sandbox?.resources.filter(item => !["deleted", "retained"].includes(item.state)) ?? []), ...receipt.cleanup.filter(item => item.status !== "confirmed")] };
 }
 /** Explicit retirement cannot strand any logical Session capable of accepting another input. */
-export async function retireRevision(receipt: ApplicationReceipt, revision: string, services: ApplicationServices, file: string): Promise<ApplicationReceipt> {
-  validateBinding(receipt.plan, services, receipt);
+export async function retireRevision(receipt: ApplicationReceipt, revision: string, services: ApplicationControlServices, file: string): Promise<ApplicationReceipt> {
+  validateControlBinding(receipt, services);
   const retired = receipt.retained.find(item => item.revision === revision);
   if (!retired || revision === receipt.plan.revision || receipt.status !== "ready") throw new ApplicationError("Retire requires a non-current retained revision of a ready deployment.");
   const activity = await control(receipt, services, "drain", revision);
@@ -399,9 +416,9 @@ function findHistorical(receipt: ApplicationReceipt, revision: string): Applicat
   return current;
 }
 /** Drain is durable and bounded. Unknown resources retain the only worker/control path. */
-export async function destroyPlan(plan: ApplicationPlan, services: ApplicationServices): Promise<ApplicationReceipt> {
+export async function destroyPlan(plan: ApplicationPlan, services: ApplicationControlServices): Promise<ApplicationReceipt> {
   if (plan.operation !== "destroy" || !plan.previousReceipt) throw new ApplicationError("Destroy requires a reviewed destruction plan.");
-  assertPlan(plan); const file = plan.previousReceipt, receipt = readReceipt(file); validateBinding(receipt.plan, services, receipt);
+  assertPlan(plan); const file = plan.previousReceipt, receipt = readReceipt(file); validateControlBinding(receipt, services);
   const history = [receipt, ...receipt.retained.map(item => findHistorical(receipt, item.revision))];
   for (const item of history) {
     const templates = item.sandbox?.resources.filter(resource => resource.kind === "template") ?? [], created = templates.filter(resource => resource.state === "created");

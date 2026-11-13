@@ -35,10 +35,10 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     pid, master = pty.fork()
     if pid == 0:
         os.chdir(home)
-        os.execvpe(command[0], command + ['deploy', '--template-id', 'code-interpreter-v1', '--name', 'guided-native', '--sandbox-timeout', '60'], child_env)
+        os.execvpe(command[0], command + ['sandbox', 'create', '--template', 'code-interpreter-v1', '--timeout', '60'], child_env)
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
-    key_sent = method_sent = approved = False
+    key_sent = method_sent = False
     status = None
     try:
         deadline = time.monotonic() + 90
@@ -51,9 +51,6 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                     raise
                 if not chunk: break
                 output += chunk
-                if not approved and b'Deploy guided-native?' in output:
-                    os.write(master, b'y\r')
-                    approved = True
                 if not method_sent and b'Choose an authentication method' in output:
                     os.write(master, b'1\r')
                     method_sent = True
@@ -72,12 +69,12 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             raise AssertionError('guided terminal timed out')
         if status is None: _, status = os.waitpid(pid, 0)
         clean = re.sub(rb'\x1b\[[0-?]*[ -/]*[@-~]', b'', output).replace(b'\r', b'')
-        candidates = re.findall(rb"['\"]sandbox_id['\"]\s*:\s*['\"]([A-Za-z0-9_-]+)['\"]", clean)
+        candidates = re.findall(rb"^ID\s+([A-Za-z0-9_-]+)\s*$", clean, re.MULTILINE)
         if os.waitstatus_to_exitcode(status) == 0 and len(candidates) == 1:
             owned = candidates[0].decode()
         assert credential.encode() not in output, 'hidden input was echoed'
         assert os.waitstatus_to_exitcode(status) == 0, 'guided create failed (raw output withheld)'
-        assert approved and key_sent and owned, 'guidance did not complete and return a sandbox ID'
+        assert key_sent and owned, 'guidance did not complete and return a sandbox ID'
         assert b'Configuration scope' not in clean and b'Configuration saved.' in clean
         assert not list(Path(home).rglob('config.toml')), 'operation-only setup persisted configuration'
         saved=list(Path(home).rglob('.env'))

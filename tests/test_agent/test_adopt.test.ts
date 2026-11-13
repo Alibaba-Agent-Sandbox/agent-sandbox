@@ -52,16 +52,17 @@ EXPOSE 9000
 `;
 
 const YAML = `\
+specVersion: 1
 name: ignored
-version: "1.0.0"
-description: demo
-spec_version: 5
-provides:
-  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
-ports: [9000]
-resources:
-  cpu: 1
-  memory: 512
+sandbox:
+  agent:
+    provider: alicloud-express
+    template:
+      buildConfig:
+        dockerfile: Dockerfile
+        context: .
+      cpu: 2
+      memorySize: 2048
 `;
 
 let tmpPath = "";
@@ -281,6 +282,22 @@ describe("TestPlan", () => {
     expect([...plan.replaces]).toEqual([]);
   });
 
+  it("checks additional Dockerfile ports without adding template instance fields", () => {
+    const project = project_(tmpPath);
+    const staged = stageProject(project, { stagingRoot: path.join(tmpPath, "stage") });
+    try {
+      writeAgentOutput(staged.stagingDir);
+      write(path.join(staged.stagingDir, "Dockerfile"), DOCKER + "EXPOSE 8080\n");
+      const plan = planFromStaging(project, staged, { templateName: "my-app", rawOutput: "" });
+      expect(plan.files["Dockerfile"]).toContain("8080");
+      expect(plan.files["template.yaml"]).not.toContain("ports:");
+      expect(plan.files["template.yaml"]).not.toContain("service8080");
+      expect(plan.warnings.some(warning => warning.includes("never starts a subprocess"))).toBe(true);
+    } finally {
+      rmStaging(staged);
+    }
+  });
+
   it("test_missing_copy_source_is_rejected", async () => {
     const project = project_(tmpPath);
     const staged = stageProject(project, { stagingRoot: path.join(tmpPath, "stage") });
@@ -299,8 +316,7 @@ describe("TestPlan", () => {
     const staged = stageProject(project, { stagingRoot: path.join(tmpPath, "stage") });
     try {
       writeAgentOutput(staged.stagingDir);
-      const yamlText = YAML.replaceAll("9000", "8080");
-      write(path.join(staged.stagingDir, "template.yaml"), yamlText);
+      write(path.join(staged.stagingDir, "Dockerfile"), DOCKER.replaceAll("9000", "8080"));
       await raises(() => planFromStaging(project, staged, { templateName: "my-app", rawOutput: "" }), AICodegenError, "9000");
     } finally {
       rmStaging(staged);
@@ -438,18 +454,23 @@ describe("TestAdoptPromptGolden", () => {
 });
 
 describe("TestNameRules", () => {
-  it("accepts a trailing newline like Python's `$`, rejects empty / overlong / uppercase names", async () => {
-    expect(validateTemplateName("abc\n")).toBe("abc\n");
-    await raises(() => validateTemplateName(""), AdoptRejectedError);
-    await raises(() => validateTemplateName("a".repeat(129)), AdoptRejectedError);
-    expect(validateTemplateName("a".repeat(128))).toBe("a".repeat(128));
-    await raises(() => validateTemplateName("-x"), AdoptRejectedError);
+  it("rejects trailing line endings and names outside the v1 resource boundary", async () => {
+    for (const invalid of ["abc\n", "abc\r\n", "abc\u2028", "", "a".repeat(64), "-x", "Uppercase"]) {
+      await raises(() => validateTemplateName(invalid), AdoptRejectedError);
+    }
+    expect(validateTemplateName("a".repeat(63))).toBe("a".repeat(63));
   });
 
   it("derives a slug from the directory name", () => {
     const dir = path.join(tmpPath, "My_Cool App 2");
     fs.mkdirSync(dir);
     expect(defaultTemplateName(dir)).toBe("my-cool-app-2");
+  });
+
+  it("derives a name within the resource limit before asking an agent", () => {
+    const dir = path.join(tmpPath, "a".repeat(100));
+    fs.mkdirSync(dir);
+    expect(defaultTemplateName(dir)).toBe("a".repeat(63));
   });
 
   it("reports the usage flag on the error", async () => {
