@@ -2,12 +2,9 @@
 
 使用 `ABX_BIN=<candidate> node e2e/managed-api-key.mjs`，配置 AK/SK 和极速版 API URL/domain，验证全新用户目录中的拒绝授权、显式授权准备管理 Key（使用 `--yes`；`--ci` 本身不授权）、私有缓存跨进程复用、真实沙箱执行和续期确认。测试创建自己的 Key 与沙箱，停用/删除 Key，并核验两类资源已不存在。清理身份额外需要 `sandbox:DeleteApiKey`，见[权限指南](../docs/zh/guide/permissions.md)。
 
-使用 `ABX_BIN=<binary> node e2e/template-build-failure.mjs` 和本机 Docker 验证真实构建失败、E7020、诊断脱敏及未提交云端资源。该用例仅使用占位凭证，不创建云资源。
+使用 `ABX_BIN=<binary> node e2e/template-build-failure.mjs`，需本机 Docker daemon 和已有阿里云 AccessKey。资源引擎只读查询账号身份与 Team，随后构建一个含故意失败 RUN 指令的小型 Alpine 镜像。测试要求该指令确实执行，检查 E7020 和已知秘密脱敏，阻止 Docker 推送，并确认资源记录只有待处理镜像意图；不创建云资源。本机可能留下 Docker 构建缓存，可用 `DOCKER_HOST` 指定隔离测试 daemon。
 
-
-运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs --application` 可验证自动配置应用认证和后续命令自动复用。该模式使用已有 `python-hello` 模板（可用 `ABX_ONBOARDING_APPLICATION_TEMPLATE` 指定 ID），启动服务后调用真实认证命令，并独立核验本次沙箱的删除结果。改用 `--guided-application` 可先隐藏输入 Sandbox API Key，确认无需保存范围菜单即默认保存，并由新进程复用平台和应用凭据。
-
-运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs`，在全新用户目录中用本地 managed base 源码执行 `deploy --name guided-init`，验证计费确认、缺少密钥引导、真实极速版创建、远程执行和 HTTP 404 独立清理核验；同时检查隐藏输入及自动保存的应用令牌。所需凭证和终端支持与交互配置用例相同。
+运行 `ABX_BIN=<binary> node e2e/initialized-template.mjs`，在全新用户目录验证可编辑脚手架初始化、仅准备资源的预览、隐藏输入并保存 Sandbox API Key、显式 `sandbox create`、远程执行和独立清理。所需凭证和终端支持与交互配置用例相同。应用启动与认证业务调用由 `e2e/express-workflow.mjs` 使用选定源码的 `run.py` 验证。
 
 与语言无关的 `abx` CLI 黑盒端到端套件。它像真实用户一样启动被测二进制(argv、环境变量、stdin、退出码、
 stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定要测的 `abx` 二进制。
@@ -18,12 +15,12 @@ stdout/stderr、磁盘文件),并连接**真实云端**。用 `ABX_BIN` 指定�
 
 使用 `ABX_BIN=<独立可执行文件> npm run e2e:standard`，通过环境变量或被忽略的
 .env 配置 E2B_API_KEY、E2B_API_URL/E2B_DOMAIN。这个专项测试使用真实极速版后端和
-本地 PTY（Linux/macOS，需 Python 3），覆盖具名 deploy、stdout 与非零远程退出码、
+本地 PTY（Linux/macOS，需 Python 3），覆盖显式沙箱创建、stdout 与非零远程退出码、
 `sandbox connect` 的持续 shell、断开后借用沙箱仍存活，以及显式 delete 和独立 HTTP 404
 清理检查。不再测试已删除的 create 自动连接或退出终端时改写租期行为，错误在输出前脱敏。
 
 使用 `ABX_BIN=<独立可执行文件> node e2e/guided-configuration.mjs`，验证真实终端中的
-普通 deploy 触发的缺少密钥引导、隐藏输入、独立用户目录内持久保存、创建和远程执行。通过环境变量提供 Sandbox API Key
+显式沙箱创建触发的缺少密钥引导、隐藏输入、独立用户目录内持久保存、创建和远程执行。通过环境变量提供 Sandbox API Key
 及明确的 API URL/domain。测试先从子进程环境移除密钥，再通过提示输入，使用独立的
 用户目录；结束时删除自己创建的沙箱，并通过独立 HTTP 404 查询确认清理。需 Linux/macOS
 和 Python 3，会创建一个真实沙箱。
@@ -78,7 +75,7 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 云端命令合同
 
-`cloud-readonly` 和 `cloud-lifecycle` 使用 `deploy --template-id`、根级
+`cloud-readonly` 和 `cloud-lifecycle` 使用 `sandbox create --template`、根级
 `list/status/delete` 与 `sandbox exec`/文件/进程/应用命令。JSON 清单为
 `{items, partial, errors}`，部署结果包含 `name` 和 `sandbox_id`。原生模板 CRUD
 通过 `provider run template.list/get/create/delete` 与 JSON 输入调用，需要已有云 AK/SK；
@@ -218,21 +215,17 @@ mock 对比 oracle 的差分工具位于 [`../parity/diff/`](../parity/diff/READ
 `ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、
 `ALICLOUD_ACCESS_KEY_SECRET`、`ALIBABA_CLOUD_REGION_ID` 和 `ACR_NAMESPACE`。
 账号需要对应 ACR 命名空间的推送权限及极速版模板的创建、删除权限。
-`ABX_WORKFLOW_REPORT` 指定 JSON 报告路径；`ABX_WORKFLOW_FULL_E2E=1`
-可追加运行基于该模板的完整 CLI 测试套件。
+`ABX_WORKFLOW_REPORT` 指定 JSON 报告路径。
 
-脚本直接使用 Registry 的 `python-hello` 源码及默认 Dockerfile，核对返回的服务，验证 HTTP
-命令和 CLI 文件操作，并删除本次创建的沙箱、模板，通过独立的结构化不存在错误核对清理。此操作会产生云资源费用。
-ACR 镜像资源记录保留于 `~/.abx/resource-journal/`，供手动清理镜像；不要删除
-共享镜像仓库。脱敏报告分别记录测试结果和清理状态。
+测试先用资源 `deploy` 准备 Registry 的 `python-hello` 源码，再通过 `agent-sandbox-client==0.4.0a7` 执行其 `run.py`（可用 `ABX_WORKFLOW_PYTHON` 指定解释器），验证认证 HTTP 命令及 CLI 文件操作，最后独立核验拥有的沙箱与模板已删除。可用 `ABX_WORKFLOW_SOURCE` 指定本地源码，或用 `ABX_WORKFLOW_REF` 指定其他已审查引用。测试创建计费资源。具名部署的 `~/.abx/deployments/<name>/resources.json` 保留镜像引用，供手工清理仓库镜像；不要删除共享仓库。脱敏报告分别记录业务与清理结果。
 
 Actions 工作流通过加密的 `EXPRESS_ACCEPTANCE_*` 仓库 Secrets 注入配置
 （具体映射见工作流），仅在 `EXPRESS_ACCEPTANCE_ENABLED=true` 时执行云端步骤。
 未开启时为跳过，构建通过不代表云端实测通过。仅同仓库 PR 和手动触发可执行该任务。
 
-## 模板整体启动验收
+## 模板准备与显式实例执行
 
-构建候选 CLI 后，设置环境中的沙箱密钥和阿里云 AccessKey，执行 `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs`。先启动 spec v5 托管 base 模板，再用固定官方基础镜像和原生 steps 准备源码模板，启动两个 HTTP 服务、检查就绪、核对全部返回地址，并远程检查构建标记。脚本只清理资源日志中本次创建的沙箱和模板，并确认已不存在。`--managed-only` 跳过源码准备。本测试只覆盖极速版重点路径，不代表全部 Docker/OpenSandbox 模板矩阵；测试期间不要同时重建 dist。
+构建候选 CLI 后，运行 `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs`，提供 Sandbox 凭据及阿里云 AccessKey。测试用具名 v1 资源准备借用的 `base` 引用与原生 Steps 源，确认 deploy 不返回动态实例，再显式创建沙箱，验证远程执行及构建标记。只删除拥有的实例和模板，保留借用的 base。`--managed-only` 跳过源码准备；应用 HTTP 启动由源码工作流单独验证。运行测试时不要并发重建 `dist/`。
 
 ## MCP 生命周期的规格期望
 

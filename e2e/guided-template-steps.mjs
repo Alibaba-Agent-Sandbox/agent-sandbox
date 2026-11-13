@@ -87,13 +87,7 @@ const sandboxEnvironment = baseEnv({ home, creds: { ...base, E2B_API_KEY: sandbo
   ...(credentials.E2B_DOMAIN ? { E2B_DOMAIN: credentials.E2B_DOMAIN, ABX_SANDBOX_DOMAIN: credentials.E2B_DOMAIN } : {}) },
   extra: { ABX_NO_KEYCHAIN: "1", ABX_PROVIDER: "alicloud-express" } });
 assert.ok(!deployEnvironment.ACR_NAMESPACE && !deployEnvironment.ACR_USERNAME && !deployEnvironment.ACR_PASSWORD && !deployEnvironment.E2B_API_KEY && !deployEnvironment.ABX_SANDBOX_API_KEY);
-const yaml = [
-  `name: ${alias}`, `base: ${JSON.stringify(config.image)}`, `generation: ${config.generation}`, "resources:", `  cpu: ${runtime.cpu}`, `  memory: ${runtime.memorySize}`,
-  "build:", "  mode: steps", "  run:", `    - ${JSON.stringify(`printf '%s' '${marker}' > /tmp/abx-guided-steps-marker`)}`,
-];
-if (config.startCommand) yaml.push(`start_cmd: ${JSON.stringify(config.startCommand)}`);
-if (config.readyCommand) yaml.push(`ready_cmd: ${JSON.stringify(config.readyCommand)}`);
-writeFileSync(join(directory, "template.yaml"), yaml.join("\n") + "\n", { mode: 0o600 });
+
 let template;
 let sandbox;
 let submitted = false;

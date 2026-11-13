@@ -2,7 +2,7 @@
 /** Real OCI/platform-step builds, business artifacts, rollback and failure diagnosis; owned cleanup in finally. */
 import assert from "node:assert/strict";
 import { randomBytes, createHash } from "node:crypto";
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadCredentials, makeMasker } from "./lib/env.mjs";
@@ -56,15 +56,8 @@ save();
 try {
   for (const version of ["v1", "v2", "bad"]) {
     const name = `${run}-${version}`;
-    const directory = join(root, version); mkdirSync(directory);
     const command = version === "bad" ? "echo expected-build-failure-exit42 >&2; exit 42" :
       `mkdir -p /opt/abx-acceptance && printf '%s' '${version}' > /opt/abx-acceptance/version && python3 -c 'import json; print(json.dumps({"result":sum(x*x for x in range(1,11))}))' > /opt/abx-acceptance/business.json`;
-    const lines = ["spec_version: 5", "provides: {}", `name: ${name}`, `base: ${JSON.stringify(config.image)}`, "generation: 2",
-      "resources:", "  cpu: 2", "  memory: 2048", "build:", "  mode: steps", "  steps:", "    - type: RUN", "      args:",
-      `        - ${JSON.stringify(command)}`, "        - root"];
-    if (config.startCommand) lines.push(`start_cmd: ${JSON.stringify(config.startCommand)}`);
-    if (config.readyCommand) lines.push(`ready_cmd: ${JSON.stringify(config.readyCommand)}`);
-    writeFileSync(join(directory, "template.yaml"), lines.join("\n") + "\n");
     assert.ok(!(await inventory()).some(t => t.name === name), "Unique owned template already exists");
     const owned = { version, name, submitted: true }; report.templates.push(owned); save();
     const payload = { name, image: config.image, generation: 2, cpu: 2, memory: 2048,

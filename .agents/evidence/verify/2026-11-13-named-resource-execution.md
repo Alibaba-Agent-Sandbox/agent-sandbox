@@ -177,3 +177,24 @@ obtain the confirmation. The template receipt records `deleted`.
 
 This confirms native Steps-to-template behavior, not OCI export or pushing the
 completed snapshot back to `template.image`.
+
+## Installed package follow-up
+
+The final remote package job exposed a stale release harness that still expected
+`deploy --template-id` and the retired manifest shape. Production build/entry checks
+had passed; the harness was corrected to the explicit instance command and named
+resource preview. A newly built npm tarball (SHA-256
+`812e19359904557534bc93367c031f4033d65352c0fb52dda8eb2cc58ed2d1ef`) was actually
+installed in an isolated prefix and exercised by the complete release-artifact script.
+It passed version/help, named-resource parsing and output-dependency preview, a real
+loopback HTTP Provider request with the expected body/Bearer header and no replay
+after 403, single JSON output, missing-credential admission, actual POSIX PTY cancel
+and complete notices. The HTTP server used synthetic credentials only. ESLint and
+diff checks passed. No production code change or cloud operation was needed for
+this package-harness correction.
+
+The accompanying current E2E-entry corrections and real Docker-failure checks are
+recorded in [their owner evidence](2026-11-13-resource-e2e-entrypoints.md). The second
+dedicated Docker test daemon was stopped after that check; six independent cleanup
+assertions passed, including complete firewall-rule/policy equality with its
+pre-start baseline and restoration of IP forwarding to zero.
