@@ -1,6 +1,6 @@
 # 托管 Agents 应用
 
-[Agents API 模板](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api) 提供稳定 Gateway、按版本独立的 Worker/Dispatcher 和可复用 Sandbox 模板。Session 计算实例由业务运行时创建。
+[Agents API Harness 系列](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/agents-api-harnesses.zh-CN.md) 提供稳定 Gateway、按版本独立的 Worker/Dispatcher 和可复用 Sandbox 模板。Session 计算实例由业务运行时创建。
 
 template.yaml 使用命名 sandbox/serving 及原生 FC props；业务策略放在作者自定义变量和启动代码里。数据库、模型、认证、版本路由与发布由模板脚本承接，通用 CLI 不会仅凭三个 FC 函数推断这些职责。
 
@@ -11,3 +11,5 @@ template.yaml 使用命名 sandbox/serving 及原生 FC props；业务策略放�
 当前源码规范与较早已发布 CLI 不同，使用匹配的源码 CLI 与模板版本。Schema 可用不能替代完整业务验证。
 
 [通用资源配置](template-workflows.md) · [构建与部署](deploy-and-build.md)
+
+选择 `agents-api-codex`、`agents-api-qwen-code`、`agents-api-claude-code`、`agents-api-qoder`、`agents-api-opencode` 或 `agents-api-deepseek-harness`。业务 HTTP 合同保持一致，各 Harness 使用原生凭据。这些候选配方需要匹配的新运行时发行；旧的已发布包不提供新增适配。

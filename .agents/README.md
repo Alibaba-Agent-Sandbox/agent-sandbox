@@ -350,3 +350,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Current CLI recipes and reachable MCP help](notes/proposed/process/2026-11-12-ecosystem-guidance-sync.md) · [verification](evidence/verify/2026-11-12-ecosystem-guidance-sync.md).
 
 - [Portable native Devs engine](notes/proposed/architecture/2026-11-13-portable-native-engine.md) · [verification](evidence/verify/2026-11-13-portable-native-engine.md).
+
+- [Agents API Harness guidance](notes/proposed/process/2026-11-17-agents-api-harness-guidance.md) · [verification](evidence/verify/2026-11-17-agents-api-harness-guidance.md).

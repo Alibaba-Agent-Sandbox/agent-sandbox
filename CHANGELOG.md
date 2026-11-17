@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+- Managed application guides link the six native Agents API Harness recipes and their shared HTTP contract.
+
 ### Added
 
 - Named Sandbox template/volume and native FC Serving execution, resource output ordering, readiness and recorded ownership; component logs now follow abx output and credential redaction. / 新增命名模板/卷与原生 FC Serving 执行、资源依赖、就绪与归属记录；组件日志接入 abx 输出和脱敏。
