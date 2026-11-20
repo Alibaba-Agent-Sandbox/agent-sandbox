@@ -7,7 +7,7 @@ import { ApplicationError, record, sourceDigest } from "../../../application/con
 import { createFcTransport } from "./fc.js";
 import { childEnvironment, invokeComponent, removeOwnedImage } from "./tools.js";
 import { execute } from "../../../application/process.js";
-import { runHooks, type ApplicationServices } from "../../../application/service.js";
+import { runHooks, type ApplicationServices, type ApplicationControlServices } from "../../../application/service.js";
 import type { CredentialSnapshot, ResolvedBindings } from "../../../application/bindings.js";
 import type { ApplicationPlan, PreparedSandbox } from "../../../application/types.js";
 import { explainConfig, paths } from "../../../transport/config_layers.js";
@@ -15,9 +15,7 @@ import { deleteTemplate, getTemplate } from "../fc_template.js";
 import { TemplateNotFoundError } from "../../../models/errors.js";
 
 export function defaultServices(plan: ApplicationPlan, credential: CredentialSnapshot, binding: ResolvedBindings): ApplicationServices {
-  const fc = createFcTransport(credential, plan.template.application.deployment.region);
-  return { credential, binding, fc,
-    async removeImage(image) { await removeOwnedImage(image, credential); },
+  return { ...controlServices(plan, credential, binding.internal), binding,
     async prepare(frozen, progress) {
       if (credential.SecurityToken) throw new ApplicationError("The current Express template preparation adapter requires a long-lived deployment AK; STS preparation is not supported by that adapter.");
       const home = fs.mkdtempSync(path.join(os.tmpdir(), "abx-managed-prepare-"));
@@ -49,6 +47,20 @@ export function defaultServices(plan: ApplicationPlan, credential: CredentialSna
       } finally { fs.rmSync(home, { recursive: true, force: true }); }
     },
     async deploy(frozen, role, props) { await invokeComponent(frozen.toolchain, { command: "deploy", resource: role, props: { region: frozen.template.application.deployment.region, ...props }, credential }); },
+    async hooks(phase, receipt, endpoint, token) {
+      for (const hook of receipt.plan.template.application.hooks?.[phase] ?? []) if (hook.type === "serverless-devs") {
+        const owned = receipt.functions.find(item => item.role === hook.step);
+        if (!owned) throw new ApplicationError("Component inspection hook requires a confirmed role.");
+        await invokeComponent(receipt.plan.toolchain, { command: "info", resource: hook.step!, props: { region: receipt.plan.template.application.deployment.region, functionName: owned.functionName }, credential });
+      }
+      await runHooks(phase, receipt, endpoint, token);
+    } };
+}
+
+/** Existing ownership cleanup needs only cloud identity and the saved control token. */
+export function controlServices(plan: ApplicationPlan, credential: CredentialSnapshot, internal: ResolvedBindings["internal"]): ApplicationControlServices {
+  return {credential, binding: {internal}, fc: createFcTransport(credential, plan.template.application.deployment.region),
+    async removeImage(image) { await removeOwnedImage(image, credential); },
     async deleteTemplate(sandbox) {
       if (!sandbox.reference || !sandbox.resources.some(item => item.kind === "template" && item.id === sandbox.reference && item.state === "created" && item.cleanup === "template.delete")) throw new ApplicationError("Template cleanup requires an exact owned journal entry.");
       const options = { access_key_id: credential.AccessKeyID, access_key_secret: credential.AccessKeySecret, region: plan.template.application.deployment.region };
@@ -60,12 +72,5 @@ export function defaultServices(plan: ApplicationPlan, credential: CredentialSna
       catch (error) { if (error instanceof TemplateNotFoundError) return; throw new ApplicationError("Template deletion could not be independently confirmed."); }
       throw new ApplicationError("Template remains visible after deletion.");
     },
-    async hooks(phase, receipt, endpoint, token) {
-      for (const hook of receipt.plan.template.application.hooks?.[phase] ?? []) if (hook.type === "serverless-devs") {
-        const owned = receipt.functions.find(item => item.role === hook.step);
-        if (!owned) throw new ApplicationError("Component inspection hook requires a confirmed role.");
-        await invokeComponent(receipt.plan.toolchain, { command: "info", resource: hook.step!, props: { region: receipt.plan.template.application.deployment.region, functionName: owned.functionName }, credential });
-      }
-      await runHooks(phase, receipt, endpoint, token);
-    } };
+  };
 }

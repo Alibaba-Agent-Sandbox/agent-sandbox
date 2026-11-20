@@ -67,7 +67,7 @@ export const ADOPT_SESSION_TURNS = 40;
 export const MAX_FILE_BYTES = 1 << 20;
 export const MAX_FILES = 2000;
 export const MAX_BYTES = 20 << 20;
-const NAME_MAX = 128;
+const NAME_MAX = 63;
 
 /**
  * A compiled-pattern stand-in carrying Python's `re.Pattern.pattern` text. Python's `$` also matches before one
@@ -279,7 +279,7 @@ export class PromoteResult {
  * Throws `AdoptRejectedError` when `name` is empty, too long, or has other characters.
  */
 export function validateTemplateName(name: string): string {
-  if (!name || !NAME_PATTERN.match(name) || [...name].length > NAME_MAX) {
+  if (!name || !NAME_PATTERN.match(name) || /[^a-z0-9-]/.test(name) || name.length > NAME_MAX) {
     throw new AdoptRejectedError(
       `Template name ${pyRepr(name)} must match ${NAME_PATTERN.pattern} and be at most ${NAME_MAX} characters. Pass --name.`,
       { usage: true },
@@ -293,7 +293,7 @@ export function defaultTemplateName(project: string): string {
   const normalised = pyPathStr(project);
   const base = normalised === "." ? "" : path.basename(normalised);
   let slug = stripChars(base.toLowerCase().replace(/[^a-z0-9]+/g, "-"), "-");
-  slug = stripChars(cpSlice(slug, 0, 64), "-");
+  slug = stripChars(cpSlice(slug, 0, NAME_MAX), "-");
   if (!slug) {
     throw new AdoptRejectedError(
       `Cannot derive a template name from directory ${pyRepr(base)}. ` +
@@ -593,7 +593,7 @@ export function planFromStaging(
   contents["template.yaml"] = dumpYaml(data);
 
   const warnings: string[] = [];
-  checkPorts(contents["Dockerfile"] as string, contents["commands.py"] as string, data, warnings);
+  checkPorts(contents["Dockerfile"] as string, contents["commands.py"] as string, warnings);
 
   const generateIgnore = isFile(path.join(project, ".dockerignore")) === false;
   if (generateIgnore) contents[".dockerignore"] = GENERATED_DOCKERIGNORE;
@@ -830,33 +830,15 @@ function exposedPorts(dockerfile: string): Set<number> {
   return found;
 }
 
-class PyValueError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ValueError";
-  }
-}
 
-function checkPorts(dockerfile: string, commands: string, data: Record<string, unknown>, warnings: string[]): void {
-  const raw = data["ports"];
-  const ports = new Set<number>(Array.isArray(raw) ? raw.map((port) => Math.trunc(Number(port))) : []);
+function checkPorts(dockerfile: string, commands: string, warnings: string[]): void {
   const exposed = exposedPorts(dockerfile);
-  if (!ports.has(SERVER_PORT) || !exposed.has(SERVER_PORT)) {
-    throw new AICodegenError(
-      `template.yaml ports and Dockerfile EXPOSE must both include ${SERVER_PORT} ` + "(the SandboxServer port).",
-      { suggestion: "Regenerate, or add the port to both files." },
-    );
+  if (!exposed.has(SERVER_PORT)) {
+    throw new AICodegenError(`Dockerfile EXPOSE must include ${SERVER_PORT} (the SandboxServer port).`,
+      { suggestion: "Regenerate, or expose the server port in Dockerfile." });
   }
-  const others = [...ports].filter((port) => port !== SERVER_PORT).sort((a, b) => a - b);
-  for (const port of others) {
-    if (!exposed.has(port)) warnings.push(`Port ${port} is in template.yaml but not EXPOSE.`);
-  }
-  if (others.length > 0 && !commands.includes("subprocess")) {
-    warnings.push(
-      "template.yaml declares a port besides " +
-        `${SERVER_PORT}, but commands.py never starts a subprocess. ` +
-        "The project's own service is expected to be launched from commands.py.",
-    );
+  if ([...exposed].some(port => port !== SERVER_PORT) && !commands.includes("subprocess")) {
+    warnings.push(`Dockerfile exposes a port besides ${SERVER_PORT}, but commands.py never starts a subprocess. Confirm the additional service is started by the image or business code.`);
   }
 }
 

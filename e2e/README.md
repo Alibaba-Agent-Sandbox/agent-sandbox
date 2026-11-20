@@ -2,12 +2,9 @@
 
 Run `ABX_BIN=<candidate> node e2e/managed-api-key.mjs` with AK/SK and the Express API URL/domain to verify fresh-home consent denial, explicit key-provisioning consent (`--yes`; `--ci` alone never authorizes it), private cross-process reuse, real sandbox execution and confirmed renewal. This creates one owned key and one sandbox; cleanup disables/deletes the key and verifies both resources are absent. The test identity additionally needs `sandbox:DeleteApiKey` for cleanup. See [permissions](../docs/en/guide/permissions.md).
 
-Run `ABX_BIN=<binary> node e2e/template-build-failure.mjs` with local Docker access to verify a real failing Docker instruction, typed E7020, safe diagnostics and the absence of remote submissions. It uses placeholder credentials and creates no cloud resources.
+Run `ABX_BIN=<binary> node e2e/template-build-failure.mjs` with a running local Docker daemon and existing Alibaba Cloud AccessKeys. The resource engine reads account identity and Team, then builds a tiny Alpine image with an intentionally failing RUN instruction. The test requires that instruction to execute, checks E7020 and known-secret redaction, blocks Docker publication, and verifies that the resource receipt contains only a pending image intent. No cloud resource is created. Local Docker build cache may remain; `DOCKER_HOST` can select an isolated test daemon.
 
-
-Run `ABX_BIN=<binary> node e2e/initialized-template.mjs --application` to test automatic application authentication and saved-token reuse against an existing `python-hello` template (override its ID with `ABX_ONBOARDING_APPLICATION_TEMPLATE`). This mode starts the template service, invokes an authenticated business command and independently deletes its owned sandbox. Add `--guided-application` instead to enter a hidden Sandbox API key first, verify default persistence without scope menus, and reuse saved platform/application credentials from another process.
-
-Run `ABX_BIN=<binary> node e2e/initialized-template.mjs` for a fresh-home run of `deploy --name guided-init` using a local managed-base source. It checks billable-deploy confirmation, missing-key guidance, real Express creation, remote execution and independent HTTP 404 cleanup. It verifies masked input and a generated saved application token. Requires the same credentials and terminal support as guided configuration.
+Run `ABX_BIN=<binary> node e2e/initialized-template.mjs` for a fresh-home test of editable scaffold initialization, preparation-only preview, hidden Sandbox API key entry and persistence, explicit `sandbox create`, remote execution and independent cleanup. Requires the same credentials and terminal support as guided configuration. Application startup and authenticated business calls are covered by `e2e/express-workflow.mjs` through the selected source's `run.py`.
 
 A language-neutral, black-box end-to-end suite for the `abx` CLI. It spawns the binary under test
 exactly like a user would (argv, environment, stdin, exit code, stdout/stderr, files on disk) against
@@ -20,13 +17,13 @@ the **real cloud**. Point `ABX_BIN` at the `abx` binary you want to test.
 Run `ABX_BIN=<standalone-executable> npm run e2e:standard` with E2B_API_KEY and
 E2B_API_URL/E2B_DOMAIN in the environment or ignored .env. This focused suite uses
 the real Express backend and a real local PTY (Linux/macOS, Python 3 required).
-It verifies named deploy, stdout and nonzero remote exits, a persistent shell through
+It verifies explicit sandbox creation, stdout and nonzero remote exits, a persistent shell through
 `sandbox connect`, borrowed Sandbox survival after disconnect, and explicit delete
 with an independent HTTP 404 check. It does not test removed create/auto-attach or
 terminal-exit lease rewrites. Errors are masked before reporting.
 
 Run `ABX_BIN=<standalone-executable> node e2e/guided-configuration.mjs` to verify
-ordinary deploy through a real terminal, missing-key guidance, hidden credential
+explicit sandbox creation through a real terminal, missing-key guidance, hidden credential
 input, persistence within the isolated home, creation and remote execution. Supply a Sandbox API key and an
 explicit API URL/domain in the environment. The test removes the key from the
 child environment before entering it through the prompt, uses an isolated home,
@@ -57,9 +54,9 @@ explicit `--` separates the remote argv. The command walk checks every help node
 and safe local invocation. Template init creates source; template build prepares a
 reusable artifact. A focused pass does not certify the full CI matrix.
 
-## Whole-template startup
+## Template preparation and explicit instance execution
 
-After building the candidate CLI, run `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs` with Sandbox credentials and Alibaba Cloud AccessKeys in the environment. The test launches a spec v5 managed `base` template, then prepares a native-steps source using the pinned official base image, starts two HTTP services, checks readiness, verifies both returned endpoints and executes a build marker check. It deletes only its journaled sandboxes/templates and confirms their absence. `--managed-only` omits the source preparation case. This is focused Express evidence, not the full Docker/OpenSandbox catalog matrix. Do not rebuild `dist/` concurrently with a running binary test.
+After building the candidate CLI, run `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs` with Sandbox credentials and Alibaba Cloud AccessKeys. It prepares a borrowed `base` reference and a native-steps source using named v1 resources, checks that deploy returns no instance, explicitly creates each Sandbox, and verifies remote execution plus the source build marker. It deletes its owned instances and templates while retaining the borrowed base. `--managed-only` omits the source preparation case. Application HTTP startup is covered separately by the source workflow below. Do not rebuild `dist/` while an executable check is running.
 
 ## Quick start
 
@@ -96,7 +93,7 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 
 ## Cloud command contracts
 
-`cloud-readonly` and `cloud-lifecycle` use `deploy --template-id`, root
+`cloud-readonly` and `cloud-lifecycle` use `sandbox create --template`, root
 `list/status/delete`, and `sandbox exec`/files/process/application commands. JSON
 inventory is `{items, partial, errors}`; deployment results include `name` and
 `sandbox_id`. Native template CRUD uses `provider run template.list/get/create/delete`
@@ -262,14 +259,9 @@ Docker running. Configure `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`,
 `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`,
 `ALIBABA_CLOUD_REGION_ID` and `ACR_NAMESPACE` through the environment. The account
 must be able to push to that ACR namespace and create/delete Express templates.
-Set `ABX_WORKFLOW_REPORT` to a JSON output path; optionally set
-`ABX_WORKFLOW_FULL_E2E=1` to run the broader CLI suite against the prepared template.
+Set `ABX_WORKFLOW_REPORT` to a JSON output path.
 
-The test launches the Registry's unchanged `python-hello` source using its default
-Dockerfile, checks the returned declared services, invokes its HTTP command, exercises CLI file operations, and deletes
-its owned sandbox/template with independent typed absence readback. It creates billable resources. ACR image receipts are
-retained in `~/.abx/resource-journal/` for manual image cleanup; do not delete shared
-repositories. The sanitized report distinguishes failure and cleanup status.
+The test prepares the Registry's `python-hello` source with resource `deploy`, then runs its `run.py` using `agent-sandbox-client==0.4.0a7` (select the interpreter with `ABX_WORKFLOW_PYTHON`). It checks the authenticated HTTP command and CLI file operations, then independently verifies owned Sandbox/template deletion. Set `ABX_WORKFLOW_SOURCE` for a local source or `ABX_WORKFLOW_REF` for another reviewed source reference. It creates billable resources. The named deployment's `~/.abx/deployments/<name>/resources.json` retains image references for manual registry cleanup; do not delete shared repositories. The sanitized report separates business failure and cleanup status.
 
 The opt-in Actions workflow uses encrypted `EXPRESS_ACCEPTANCE_*` repository
 secrets (see its environment mapping) and requires `EXPRESS_ACCEPTANCE_ENABLED=true`.

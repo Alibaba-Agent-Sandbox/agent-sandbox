@@ -21,7 +21,7 @@ export default {
       async run(ctx) {
         ctx.state.name = 'e2e-' + randomUUID().slice(0, 12);
         const attempt = ctx.beginCreateAttempt(ctx.state.name);
-        const r = await ctx.abx(["--json", "deploy", "--name", ctx.state.name, "--template-id", TEMPLATE, "--sandbox-timeout", '900', "--yes"], { timeoutMs: 180_000 });
+        const r = await ctx.abx(["--json", 'sandbox', 'create', '--template', TEMPLATE, '--timeout', '900', "--yes"], { timeoutMs: 180_000 });
         const id = trackDetachedCreate(ctx, r, attempt);
         ctx.state.id = id;
         const info = await ctx.abx(['--json', 'status', id]);
@@ -355,15 +355,15 @@ export default {
         writeFileSync(join(ctx.cwd, 'seed', 'seed.txt'), 'seeded\n');
         ctx.state.name2 = 'e2e-' + randomUUID().slice(0, 12);
         const attempt = ctx.beginCreateAttempt(ctx.state.name2);
-        const r = await ctx.abx(['--json', "deploy", '--name', ctx.state.name2, "--template-id", TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', "--sandbox-timeout", '600', "--yes"]);
-        const id = r.rawJson()?.sandbox_id;
+        const r = await ctx.abx(['--json', 'sandbox', 'create', '--template', TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', '--timeout', '600', "--yes"]);
+        const id = r.rawJson()?.ID;
         if (isExpressSandboxId(id)) { ctx.track(id); ctx.resolveCreateAttempt(attempt); }
         if (r.code !== 0 || !isExpressSandboxId(id)) ctx.fail('native create did not return a valid owned sandbox identity');
         ctx.state.id2 = id;
         const x = await ctx.abx(["sandbox", 'exec', id, 'printenv E2E_FOO E2E_N; cat /home/user/seed.txt || cat /home/user/seed/seed.txt']);
         if (x.code !== 0) ctx.fail('created sandbox env/file verification failed');
         ctx.check('env+file', x.stdout, ['bar', '1', 'seeded']);
-        const k = await ctx.abx(['--json', 'delete', ctx.state.name2, '--yes']);
+        const k = await ctx.abx(['--json', 'delete', id, '--yes']);
         if (k.code !== 0) ctx.fail(`kill exit ${k.code}`);
         const absent = await ctx.abx(['--json', 'status', id]);
         if (absent.code !== 4 || absent.rawJson()?.code !== 'E2009') ctx.fail('second sandbox deletion was not confirmed');
@@ -377,7 +377,7 @@ export default {
     // ---- kill ----------------------------------------------------------------------------------------------------
     // Deletion requires explicit consent and independent absence checks.
     {
-      id: 'kill-yes-json', title: 'standard kill succeeds; info and list confirm the owned sandbox is gone', requires: ['create-json'], argv: (ctx) => ['--json', 'delete', ctx.state.name, '--yes'],
+      id: 'kill-yes-json', title: 'standard kill succeeds; info and list confirm the owned sandbox is gone', requires: ['create-json'], argv: (ctx) => ['--json', 'delete', sid(ctx), '--yes'],
       jsonShape: { status: 'string' }, json: j => { if (j.status !== 'deleted') throw new Error('delete not confirmed'); },
       async after(ctx) {
         await ctx.eventually(async () => {
@@ -391,6 +391,6 @@ export default {
         ctx.untrack(sid(ctx));
       },
     },
-    { id: 'kill-twice', title: 'killing an already-killed sandbox is idempotent', requires: ['kill-yes-json'], argv: (ctx) => ['--json', 'delete', ctx.state.name, '--yes'], exit: 0, jsonShape: { status: 'string' }, json: j => { if (j.status !== 'deleted') throw new Error('delete not idempotent'); } },
+    { id: 'kill-twice', title: 'killing an already-killed sandbox is idempotent', requires: ['kill-yes-json'], argv: (ctx) => ['--json', 'delete', sid(ctx), '--yes'], exit: 0, jsonShape: { status: 'string' }, json: j => { if (j.status !== 'deleted') throw new Error('delete not idempotent'); } },
   ],
 };

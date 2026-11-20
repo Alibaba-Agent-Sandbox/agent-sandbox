@@ -128,8 +128,9 @@ describe("TestGuideText", () => {
   });
 
   it("test_describes_whole_template_startup", () => {
-    expect(TEMPLATE_GUIDE).toContain("spec_version: 5");
-    expect(TEMPLATE_GUIDE).toContain("start_cmd");
+    expect(TEMPLATE_GUIDE).toContain("specVersion: 1");
+    expect(TEMPLATE_GUIDE).toContain("template.startCommand/readyCommand");
+    expect(TEMPLATE_GUIDE).not.toContain("sandbox.start");
     expect(TEMPLATE_GUIDE).not.toContain("`capabilities` 取自");
   });
 
@@ -145,9 +146,10 @@ describe("TestGuideText", () => {
 
   it("renders Express resource advice without imposing it on generic providers", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
-    expect(guide).toContain("1 <= resources.memory / 1024 / resources.cpu <= 4");
-    expect(guide).toContain("resources.cpu: 2、resources.memory: 4096");
-    expect(buildTemplateGuide("create", "opensandbox")).not.toContain("resources.memory / 1024");
+    expect(guide).toContain("按Provider能力校验");
+    expect(guide).toContain("sandbox.agent.template.cpu");
+    expect(guide).toContain("memorySize");
+    expect(buildTemplateGuide("create", "opensandbox")).not.toContain("每核配 1024..4096 MB 内存");
   });
 
   it("matches CLI JSON output and distinguishes token auth from group enablement", () => {
@@ -158,11 +160,11 @@ describe("TestGuideText", () => {
     expect(guide).toContain("enable_group 不会关闭其他默认组");
   });
 
-  it("keeps native delivery and runtime ownership in the CLI", () => {
+  it("distinguishes native steps from local file delivery", () => {
     const guide = buildTemplateGuide("create", "alicloud-express", "steps");
-    expect(guide).toContain("CLI 会确定性生成 base.image");
-    expect(guide).toContain("不要写 base、build.steps、base64");
-    expect(guide).toContain("build.run 字符串数组");
+    expect(guide).toContain("从 template.image 指定的已有镜像");
+    expect(guide).toContain("不与本地 Dockerfile/context 分支叠加");
+    expect(guide).toContain("steps 不自动上传本机文件");
     expect(guide).toContain("运行身份和目录可写性必须通过实际运行检查");
     expect(guide).toContain("不凭构建步骤声明已验证可写");
   });

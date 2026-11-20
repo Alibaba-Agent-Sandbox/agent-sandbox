@@ -24,7 +24,7 @@ and the project CLI configuration; this is not an alias in either product.
 
 ## What it does
 
-One sandbox is created through the CLI (`--provider alicloud-express deploy --template-id base --sandbox-timeout 900 --yes`) and removed in `finally`, on
+One sandbox is created through the CLI (`--provider alicloud-express sandbox create --template base --timeout 900 --yes`) and removed in `finally`, on
 SIGINT/SIGTERM, and through the ledger in `e2e/.state/` (`npm run e2e:cleanup` is the janitor). The account is
 listed before and after; the run fails if any sandbox is left (`leak check: ... leaked=0`).
 

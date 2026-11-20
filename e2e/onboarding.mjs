@@ -120,8 +120,7 @@ def main():
         print("PASS: actual terminal confirmation replaces selected entries and keeps unrelated data")
 
         secret_fixture = "hidden-cancel-fixture-do-not-save"
-        status, output, _ = invoke(["deploy", "--template-id", "base", "--name", "native-key-cancel"], [
-            ("Deploy native-key-cancel?", b"y\r"),
+        status, output, _ = invoke(["sandbox", "create", "--template", "base"], [
             ("Choose an authentication method", b"1\r"),
             ("sandbox_api_key (input hidden)", secret_fixture.encode() + b"\x03"),
         ])
@@ -131,60 +130,31 @@ def main():
                 assert secret_fixture.encode() not in path.read_bytes(), "Cancelling credential input must not persist a secret"
         assert requests == [], "Cancelling native credentials must not submit a request"
         assert not (home / ".abx/resource-journal").exists()
-        print("PASS: native deployment confirmation preserves hidden credential input and Ctrl-C stops before requests or secret persistence")
+        print("PASS: explicit sandbox creation preserves hidden credential input and Ctrl-C stops before requests or secret persistence")
 
         application = root / "application"
         shutil.copytree(project, application)
         (application / "template.yaml").write_text(json.dumps({
-            "name": "application", "spec_version": 5,
-            "provides": {"app": {"protocol": "agent-sandbox-server", "version": 2, "port": 9000,
-                                  "operations": ["commands.list", "commands.run"]}},
-            "env": {"ABX_SERVER_TOKEN": ""},
+            "name": "application", "specVersion": 1,
+            "sandbox": {"agent": {"provider": "alicloud-express", "template": {
+                "region": "cn-hangzhou", "image": "example.test/app:v1"}}},
         }))
-        platform_fixture = "placeholder-platform-key"
-        status, output, _ = invoke(["deploy", str(application), "--name", "source-config-cancel"], [
-            ("Deploy source-config-cancel?", b"y\r"),
-            ("Choose an authentication method", b"1\r"),
-            ("sandbox_api_key (input hidden)", platform_fixture.encode() + b"\r"),
-            ("access_key_id (input hidden)", b"\r"),
-        ])
-        assert status == 1 and "Configuration saved." in output and "Aborted!" in output
-        assert "Configuration scope" not in output and platform_fixture not in output
-        assert "Build/register" not in output, "A deployment already approved must not ask for billing consent twice"
-        assert requests == [], "Cancelling missing build credentials must not submit a request"
-        journal_directory = home / ".abx/resource-journal"
-        for journal in journal_directory.glob("*.json"):
-            assert json.loads(journal.read_text())["entries"] == [], "No resource intent is allowed before configuration completes"
-        stored = (home / ".abx/.env").read_text()
-        token = re.search(r'^ABX_SERVER_TOKEN=([a-f0-9]{64})$', stored, re.M)
-        assert token and "=" + platform_fixture in stored, "Platform and generated application credentials must be saved"
-        assert (home / ".abx/.env").stat().st_mode & 0o777 == 0o600
-        assert token[1] not in output
-        status, output, _ = invoke(["deploy", str(application), "--name", "consent-check"], [
-            ("Deploy consent-check?", b"n\r"),
-        ])
-        assert status == 1 and "Aborted!" in output
-        assert requests == [], "Declined deployment must not submit requests"
-        assert not (home / ".abx/deployments/consent-check").exists()
-        if os.environ.get("ABX_CAPTURE_ONBOARDING") == "1":
-            print("CAPTURE_BEGIN")
-            print(re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output).replace(str(root), "<TMP>"))
-            print("CAPTURE_END")
-        print("PASS: source deployment saves a hidden platform key, generates application authentication and still asks for missing build configuration before requests")
-        status, output, _ = invoke(["deploy", str(application), "--name", "consent-check"], [
-            ("Deploy consent-check?", b"\x03"),
-        ])
-        assert status == 1 and "Aborted!" in output and "recovery journal" not in output
-        assert "Template preparation failed" not in output and "Configuration saved." not in output
-        assert requests == []
-        print("PASS: Ctrl-C at creation consent exits as cancellation and restores the terminal without resource intents")
-        (home / ".abx/.env").unlink()
+        status, output, _ = invoke(["deploy", str(application), "--name", "preview", "--plan"], [])
+        assert status == 0 and "preview" in output and "agent" in output
+        assert "input hidden" not in output and requests == []
+        assert not (home / ".abx/deployments/preview").exists()
+        print("PASS: named template preview needs no credentials and writes no resource intent")
+        status, output, _ = invoke(["deploy", str(application), "--name", "unapproved"], [])
+        assert status != 0 and "--yes" in output
+        assert requests == [] and "input hidden" not in output
+        assert not (home / ".abx/deployments/unapproved").exists()
+        print("PASS: resource preparation without approval stops before credentials or resource requests")
 
         cases = [
-            (["--json", "deploy", "--template-id", "base", "--name", "auto-json", "--yes"], {}),
-            (["deploy", "--template-id", "base", "--name", "auto-plain", "--yes"], {"CI": "1"}),
-            (["--quiet", "deploy", "--template-id", "base", "--name", "auto-quiet", "--yes"], {}),
-            (["deploy", "--template-id", "base", "--name", "auto-yes", "-y"], {}),
+            (["--json", "sandbox", "create", "--template", "base", "--yes"], {}),
+            (["sandbox", "create", "--template", "base", "--yes"], {"CI": "1"}),
+            (["--quiet", "sandbox", "create", "--template", "base", "--yes"], {}),
+            (["sandbox", "create", "--template", "base", "-y"], {}),
         ]
         for arguments, extra in cases:
             status, output, _ = invoke(arguments, [], extra_environment=extra)
@@ -196,14 +166,10 @@ def main():
                 assert "sandbox_api_key" in json.loads(output)["message"], "Machine mode must emit exactly one final JSON result"
         print("PASS: real TTY plus JSON, CI, quiet and -y never asks for configuration")
 
-        status, _, _ = invoke(["delete", "auto-plain", "--yes"], [])
-        assert status == 0
-        status, terminal, result = invoke(["deploy", "--template-id", "base", "--name", "auto-plain", "--yes"], [], stdout_pipe=True)
+        status, terminal, result = invoke(["sandbox", "create", "--template", "base", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "Missing configuration" in terminal + result
         assert "Configuration scope" not in terminal + result and "input hidden" not in terminal + result, "Piped stdout must not enable credential input"
-        status, _, _ = invoke(["delete", "auto-json", "--yes"], [])
-        assert status == 0
-        status, terminal, result = invoke(["--json", "deploy", "--template-id", "base", "--name", "auto-json", "--yes"], [], stdout_pipe=True)
+        status, terminal, result = invoke(["--json", "sandbox", "create", "--template", "base", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "sandbox_api_key" in json.loads(result)["message"]
         assert "Configuration scope" not in terminal + result
         assert requests == [], "The whole fixture must stay before the first backend request"

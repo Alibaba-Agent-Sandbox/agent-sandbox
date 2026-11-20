@@ -555,8 +555,8 @@
       "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_delegates_to_build_with_project_dir": {
-      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
-      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+      "target": "tests/test_cli/test_deploy_commands.test.ts::named resource admission::prepares a named template, records ownership and reuses its unchanged identity",
+      "reason": "The final specVersion:1 deploy contract prepares named resources from the actual source. The removed fixed build shortcut is replaced by native template preparation, ownership recording and unchanged-identity reuse; it never creates a dynamic instance."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_explicit_dockerfile_option_skips_the_check": {
       "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
@@ -567,28 +567,28 @@
       "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_missing_dockerfile_points_at_template_init": {
-      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::rejects an invalid manifest during preview",
-      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+      "target": "tests/test_cli/test_deploy_commands.test.ts::named resource admission::rejects a missing manifest with template init guidance",
+      "reason": "Dockerfile is optional for image/reference/steps sources. Resource deployment requires template.yaml and points to template init when the manifest is absent, before credentials or cloud effects."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_never_touches_the_coding_agent_or_llm_keys": {
-      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
-      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+      "target": "tests/test_cli/test_deploy_commands.test.ts::named resource admission::prepares resources without invoking coding agents or model credentials",
+      "reason": "Resource deployment retains the no-generation boundary: actual deployment is tested with coding-agent generation/research and model-credential resolution spies."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_nonexistent_path_is_rejected": {
-      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::rejects an invalid manifest during preview",
-      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+      "target": "tests/test_cli/test_deploy_commands.test.ts::named resource admission::rejects a nonexistent local source before cloud effects",
+      "reason": "The local-source rejection remains required and has a direct CLI regression, independent of the retired fixed build pipeline."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_path_defaults_to_current_directory": {
-      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
-      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+      "target": "tests/test_cli/test_deploy_commands.test.ts::named resource admission::uses the current directory when source is omitted",
+      "reason": "Omitted source still selects the current directory. The CLI regression prepares its resources and verifies the persisted canonical source."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_shares_every_template_build_option": {
       "target": "tests/test_cli/test_command_surface.test.ts::one command contract::keeps authoring and image-build options out of the instance deployment command",
       "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
     },
     "tests/test_cli/test_deploy_commands.py::TestFixedPipeline::test_verbose_is_accepted": {
-      "target": "tests/test_cli/test_deploy_commands.test.ts::unified deploy::previews a valid Sandbox without invoking creation, building or writing a deployment",
-      "reason": "Issue #244: root deploy creates a named running instance; source generation and reusable image preparation moved to template init/build. The old fixed build/push/register shortcut contract is retired; current boundaries and preparation prerequisites have direct regressions."
+      "target": "tests/test_cli/test_deploy_commands.test.ts::named resource admission::accepts verbose during resource preparation",
+      "reason": "The global verbose option remains supported; the real resource preparation command succeeds and records ready state."
     },
     "tests/integration/test_progress_activity_e2e.py::test_kill_all_lists_ids_under_the_header": {
       "target": "tests/test_cli/test_command_surface.py::one command contract::rejects removed root kill",

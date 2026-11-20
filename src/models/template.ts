@@ -4,7 +4,6 @@
  * 模板管理 API 响应字段使用 camelCase（已实测验证 POST /templates 返回 templateID, buildID）。
  */
 
-import { validateTemplateManifest } from "../template/launch_plan.mjs";
 import { z } from "zod";
 
 import { defineModel, lax } from "./base.js";
@@ -112,7 +111,6 @@ export class SandboxTemplate extends defineModel(
     license: z.string().default(""),
     tags: z.array(z.string()).default(() => []),
 
-    spec_version: z.literal(5),
     provides: z.record(z.string(), z.unknown()),
     workflow_contract_version: z.never().optional(),
     default_workflow: z.never().optional(),
@@ -125,8 +123,6 @@ export class SandboxTemplate extends defineModel(
     capabilities: z.never().optional(),
     tested_on: z.never().optional(),
     providers: z.never().optional(),
-  }).superRefine((value, ctx) => {
-    try { validateTemplateManifest(value); } catch (error) { ctx.addIssue({code: "custom",message: String(error)}); }
   }),
 ) {}
 

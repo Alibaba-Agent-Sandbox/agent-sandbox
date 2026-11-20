@@ -1,0 +1,197 @@
+{
+  "name": "agents-api",
+  "specVersion": 1,
+  "provider": "alicloud-express",
+  "resources": {
+    "cpu": 2,
+    "memory": 4096
+  },
+  "start_cmd": "python -m agent_sandbox.server.managed --port 9000",
+  "ready_cmd": "agent-sandbox-server healthcheck --port 9000",
+  "provides": {
+    "app": {
+      "protocol": "agent-sandbox-managed-bridge",
+      "version": 1,
+      "port": 9000,
+      "operations": [
+        "health",
+        "capabilities",
+        "session.create",
+        "session.get",
+        "submissions.create",
+        "submissions.get",
+        "submissions.cancel"
+      ]
+    }
+  },
+  "ports": [
+    9000
+  ],
+  "env": {},
+  "application": {
+    "api": {
+      "protocol": "agent-sandbox-managed-agents/v1",
+      "compatibility": "openai-agents-inspired-subset",
+      "busyInputPolicy": "reject-unless-steerable",
+      "explicitQueue": true
+    },
+    "runtime": {
+      "placement": "in-sandbox",
+      "driver": "sandbox-local-api",
+      "profile": "managed-bridge-v1"
+    },
+    "gateway": {
+      "placement": "fc-web"
+    },
+    "sandbox": {
+      "lifetime": "per-session",
+      "workspace": "exclusive",
+      "requiredFeatures": [
+        "sandbox.lifecycle",
+        "ports.url"
+      ],
+      "provider": "alicloud-express"
+    },
+    "sessions": {
+      "maxConcurrentTurnsPerSession": 1,
+      "closePolicy": "release-compute-retain-results",
+      "deletePolicy": "remove-public-data-retain-private-cleanup",
+      "guestRestartPolicy": "freeze-and-reconcile",
+      "idleTimeoutSeconds": 900,
+      "maxLogicalSessionsPerOwner": 100,
+      "maxActiveSessions": 20,
+      "maxQueuedTurnsPerSession": 8,
+      "resultRetentionSeconds": 86400,
+      "maxLifetimeSeconds": 3600
+    },
+    "state": {
+      "profile": "durable",
+      "bindingRef": "state"
+    },
+    "storage": {
+      "backend": "bounded-database",
+      "maxFileBytes": 10485760,
+      "maxArtifactBytes": 10485760,
+      "maxTurnArtifactBytes": 10485760,
+      "maxRetainedBytesPerOwner": 104857600
+    },
+    "deployment": {
+      "revisionStrategy": "immutable-workers-with-drain",
+      "profile": "fc-managed-agents",
+      "accessRef": "default",
+      "region": "cn-hangzhou",
+      "component": "fc3@0.1.26",
+      "ingressBindingRef": "ingress",
+      "serverImage": "registry.example.test/agents@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "outputs": {
+      "endpoint": {
+        "from": "publish.outputs.endpoint"
+      },
+      "protocol": "agent-sandbox-managed-agents/v1"
+    },
+    "limits": {
+      "maxRunSeconds": 600,
+      "maxToolSeconds": 60,
+      "maxConcurrentRuns": 10,
+      "maxQueuedRuns": 80,
+      "maxRunsPerMinute": 60,
+      "maxEventsPerRun": 10000,
+      "maxOutputBytes": 8388608,
+      "maxSubscribersPerSession": 4
+    },
+    "bindings": {
+      "state": {
+        "reference": "state",
+        "targets": [
+          "gateway",
+          "worker",
+          "dispatcher"
+        ]
+      },
+      "sandboxAccess": {
+        "reference": "sandboxAccess",
+        "targets": [
+          "worker",
+          "dispatcher"
+        ]
+      },
+      "model": {
+        "reference": "model",
+        "targets": [
+          "sandbox-creation"
+        ],
+        "resolverRole": "worker",
+        "allowedEnv": [
+          "OPENAI_API_KEY",
+          "OPENAI_BASE_URL",
+          "OPENAI_MODEL"
+        ]
+      },
+      "clientAuth": {
+        "reference": "clientAuth",
+        "targets": [
+          "gateway"
+        ]
+      },
+      "internalAuth": {
+        "reference": "internalAuth",
+        "targets": [
+          "gateway",
+          "worker",
+          "dispatcher"
+        ]
+      },
+      "ingress": {
+        "reference": "ingress",
+        "targets": [
+          "deployment-publisher"
+        ]
+      }
+    }
+  },
+  "sandboxInstanceControls": {
+    "timeout": 3600
+  },
+  "sandboxEnvironmentNames": [],
+  "sandboxMetadataNames": [],
+  "nativeRoleProps": {
+    "gateway": {
+      "region": "${vars.region}",
+      "cpu": 1,
+      "memorySize": 1024
+    },
+    "worker": {
+      "region": "${vars.region}",
+      "cpu": 2,
+      "memorySize": 2048
+    },
+    "dispatcher": {
+      "region": "${vars.region}",
+      "cpu": 2,
+      "memorySize": 2048
+    }
+  },
+  "nativeControls": {
+    "gateway": {
+      "cpu": 1,
+      "memorySize": 1024,
+      "region": "cn-hangzhou"
+    },
+    "worker": {
+      "cpu": 2,
+      "memorySize": 2048,
+      "region": "cn-hangzhou"
+    },
+    "dispatcher": {
+      "cpu": 2,
+      "memorySize": 2048,
+      "region": "cn-hangzhou"
+    }
+  },
+  "nativeEnvironmentNames": {
+    "gateway": [],
+    "worker": [],
+    "dispatcher": []
+  }
+}

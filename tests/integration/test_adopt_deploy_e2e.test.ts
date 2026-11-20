@@ -1,5 +1,5 @@
 import { providerTemplateCli } from "../helpers/providerTemplateCli.js";
-import { TEMPLATE_YAML_FIELDS } from "../helpers/templateManifest.js";
+import { manifestYaml } from "../helpers/templateManifest.js";
 /**
  * Offline end-to-end: `abx template init --adopt` then native Express registration.
  *
@@ -67,7 +67,6 @@ interface Sample {
   copy: string[];
   cpu: number;
   memory: number;
-  generation: number;
 }
 
 const _SAMPLES: Record<string, Sample> = {
@@ -82,7 +81,6 @@ const _SAMPLES: Record<string, Sample> = {
     copy: ["app.py", "requirements.txt"],
     cpu: 4,
     memory: 4096,
-    generation: 2,
   },
   express: {
     name: "express-api",
@@ -95,7 +93,6 @@ const _SAMPLES: Record<string, Sample> = {
     copy: ["index.js", "package.json"],
     cpu: 2,
     memory: 2048,
-    generation: 1,
   },
 };
 
@@ -115,17 +112,7 @@ function _dockerfile(sources: string[]): string {
 }
 
 function _templateYaml(sample: Sample): string {
-  return (
-    "name: ignored-by-cli\n" +
-    'version: "1.0.0"\n' +
-    `description: ${sample.name} demo\n` +
-    TEMPLATE_YAML_FIELDS +
-    "ports: [9000]\n" +
-    `generation: ${sample.generation}\n` +
-    "resources:\n" +
-    `  cpu: ${sample.cpu}\n` +
-    `  memory: ${sample.memory}\n`
-  );
+  return manifestYaml(`name: ignored-by-cli\ngeneration: 2\nresources: {cpu: ${sample.cpu}, memory: ${sample.memory}}\nstart_cmd: python3 /app/commands.py\n`);
 }
 
 /** `_no_staging_left_behind`. */
@@ -225,12 +212,11 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
 
   for (const [name, text] of Object.entries(before)) expect(read(path.join(project, name))).toBe(text);
   expect(fs.existsSync(path.join(project, "README.md"))).toBe(false);
-  const manifest = yamlParse(read(path.join(project, "template.yaml"))) as Record<string, unknown> & { resources: Record<string, number> };
+  const manifest = yamlParse(read(path.join(project, "template.yaml"))) as {name: string; sandbox: {agent:{template: {cpu:number;memorySize:number;startCommand:string}}}};
   expect(manifest["name"]).toBe(sample.name);
-  expect(manifest.resources["cpu"]).toBe(sample.cpu);
-  expect(manifest.resources["memory"]).toBe(sample.memory);
-  expect(manifest["generation"]).toBe(sample.generation);
-  expect(manifest["description"]).toBe(`${sample.name} demo`);
+  expect(manifest.sandbox.agent.template.cpu).toBe(sample.cpu);
+  expect(manifest.sandbox.agent.template.memorySize).toBe(sample.memory);
+  expect(manifest.sandbox.agent.template.startCommand).toBe("python3 /app/commands.py");
   const ignore = DockerIgnore.fromText(read(path.join(project, ".dockerignore")));
   expect(ignore.excludes(".env")).toBe(true);
   expect(ignore.excludes("agent_sandbox-0.0.0-py3-none-any.whl")).toBe(false);
@@ -251,9 +237,9 @@ it.each(Object.keys(_SAMPLES).sort())("test_adopt_then_deploy_registers_the_writ
   expect(builder.build.mock.calls[0]![0]).toBe(fs.realpathSync(project));
   const registered = create.mock.calls[0]![0] as Record<string, unknown>;
   expect(registered["name"]).toBe(manifest["name"]);
-  expect(registered["cpu"]).toBe(manifest.resources["cpu"]);
-  expect(registered["memory_size"]).toBe(manifest.resources["memory"]);
-  expect(registered["generation"]).toBe(manifest["generation"]);
+  expect(registered["cpu"]).toBe(manifest.sandbox.agent.template.cpu);
+  expect(registered["memory_size"]).toBe(manifest.sandbox.agent.template.memorySize);
+  expect(registered["generation"]).toBe(2);
   expect("description" in registered).toBe(false);
   expect(String(registered["image"])).toContain(sample.name);
   expect(String(registered["image"])).toContain("test-ns");

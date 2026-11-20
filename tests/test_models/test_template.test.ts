@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { SandboxTemplate, TemplateRef } from "../../src/models/template.js";
 
-const workflowFields = {spec_version: 5, provides: {}};
+const workflowFields = {provides: {}};
 
 describe("TestSandboxTemplate", () => {
   // Tests for SandboxTemplate model.
@@ -36,7 +36,7 @@ describe("TestSandboxTemplate", () => {
     expect(tmpl.cpu_count).toBe(2);
     expect(tmpl.memory_mb).toBe(4096);
     expect(tmpl.tags).toEqual(["data", "python"]);
-    expect(tmpl.spec_version).toBe(5);
+    expect(tmpl).not.toHaveProperty("spec_version");
   });
 
   it("test_extra_fields_ignored", () => {

@@ -27,7 +27,7 @@
  *
  * Notes on SEA specifics:
  *
- * - Sources are bundled with esbuild (`format: esm`, which keeps top-level await).
+ * - Sources are bundled with esbuild as CJS; fixed Devs workers are embedded assets.
  *   `import.meta.url` is rewritten to the file URL of the executable, and the
  *   package version is assigned to `globalThis.__ABX_VERSION` because the
  *   executable has no `package.json` beside it.
@@ -61,6 +61,10 @@ const ENTRY_POINT = join(REPO_ROOT, "src", "bin", "abx.ts");
 const BUNDLE_PATH = join(BUILD_DIR, "abx.cjs");
 const SEA_CONFIG_PATH = join(BUILD_DIR, "sea-config.json");
 const BLOB_PATH = join(BUILD_DIR, "abx.blob");
+const WORKER_ASSETS = {
+  "abx/devs-parser.cjs": join(BUILD_DIR, "devs-parser.cjs"),
+  "abx/devs-component.cjs": join(BUILD_DIR, "devs-component.cjs"),
+};
 
 // Fixed sentinel documented by Node.js; postject flips it when the blob is injected.
 const SEA_SENTINEL_FUSE = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2";
@@ -168,12 +172,27 @@ async function bundleCli(esbuild, version) {
   }
 }
 
+/** Preserve official dependency code and filesystem requires in ordinary CJS worker assets. */
+export async function bundleWorkers(esbuild, assets = WORKER_ASSETS) {
+  const workers = [
+    {asset: "abx/devs-parser.cjs", source: "./src/template/devs_runner.ts", exported: "DEVS_PARSE_RUNNER_SOURCE", dependency: "@serverless-devs/parse-spec", injected: "__abxParseSpec"},
+    {asset: "abx/devs-component.cjs", source: "./src/application/component_runner.ts", exported: "COMPONENT_RUNNER_SOURCE", dependency: "@serverless-devs/load-component", injected: "__abxLoadComponent"},
+  ];
+  for (const worker of workers) await esbuild.build({
+    stdin: {contents: `const source = require(${JSON.stringify(worker.source)})[${JSON.stringify(worker.exported)}];
+new Function("require", ${JSON.stringify(worker.injected)}, source)(require, () => require(${JSON.stringify(worker.dependency)}));`, resolveDir: REPO_ROOT, sourcefile: worker.asset},
+    outfile: assets[worker.asset], bundle: true, platform: "node", format: "cjs", target: "node20",
+    sourcemap: false, legalComments: "none", logLevel: "warning",
+  });
+}
+
 /** Generate the SEA preparation blob with `node --experimental-sea-config`. */
 function generateBlob() {
   const config = {
     main: BUNDLE_PATH,
     output: BLOB_PATH,
     disableExperimentalSEAWarning: true,
+    assets: WORKER_ASSETS,
   };
   writeFileSync(SEA_CONFIG_PATH, JSON.stringify(config, null, 2), "utf8");
   run(process.execPath, ["--experimental-sea-config", SEA_CONFIG_PATH]);
@@ -254,6 +273,7 @@ async function main() {
   mkdirSync(DIST_DIR, { recursive: true });
 
   await bundleCli(esbuild, version);
+  await bundleWorkers(esbuild);
   generateBlob();
 
   const builtPath = join(DIST_DIR, `abx${exeSuffix}`);

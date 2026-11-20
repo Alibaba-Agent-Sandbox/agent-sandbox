@@ -1,70 +1,60 @@
 #!/usr/bin/env node
-/** Real Express whole-template startup, with exact cleanup from the CLI resource journal. */
-import assert from "node:assert/strict";
-import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
-import {loadCredentials, makeMasker} from "./lib/env.mjs";
-import {baseEnv, runBinary, parseBin} from "./lib/exec.mjs";
-const creds = loadCredentials();
-const key = process.env.ABX_SANDBOX_API_KEY || creds.E2B_API_KEY;
-const origin = process.env.ABX_SANDBOX_BASE_URL || creds.E2B_API_URL;
-assert.ok(key && origin, "Sandbox credentials and endpoint are required");
-const root = mkdtempSync(join(tmpdir(), "abx-whole-template-"));
-const home = join(root, "home"); mkdirSync(home);
-const env = baseEnv({home, creds, extra: {ABX_NO_KEYCHAIN: "1", ABX_SANDBOX_API_KEY: key, ABX_SANDBOX_BASE_URL: origin, ABX_SANDBOX_DOMAIN: process.env.ABX_SANDBOX_DOMAIN || creds.E2B_DOMAIN}});
-const mask = makeMasker(creds, [key, origin]);
-const bin = parseBin(process.env.ABX_BIN || `${process.execPath} ${new URL("../dist/bin/abx.js", import.meta.url).pathname}`);
-const run = argv => runBinary({bin, argv, env, cwd: root, timeoutMs: 660000});
-const api = (path, method = "GET") => fetch(`${origin.replace(/\/$/, "")}${path}`, {method, headers: {"X-API-Key": key}, signal: AbortSignal.timeout(30000)});
-const journalRoot = join(home, ".abx", "resource-journal");
-const journals = () => existsSync(journalRoot) ? readdirSync(journalRoot).filter(name => name.endsWith(".json")).flatMap(name => JSON.parse(readFileSync(join(journalRoot, name), "utf8")).entries) : [];
-let failure;
-let cleaned = false;
+/** Opt-in template preparation and explicit instance execution; retains uncertain ownership records. */
+import assert from 'node:assert/strict';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {loadCredentials,makeMasker} from './lib/env.mjs';
+import {baseEnv,runBinary,parseBin} from './lib/exec.mjs';
+const creds=loadCredentials(),key=process.env.ABX_SANDBOX_API_KEY||creds.E2B_API_KEY,origin=process.env.ABX_SANDBOX_BASE_URL||creds.E2B_API_URL;
+assert.ok(key&&origin,'Sandbox credentials and endpoint are required');
+const root=mkdtempSync(join(tmpdir(),'abx-template-preparation-')),home=join(root,'home');mkdirSync(home);
+const env=baseEnv({home,creds,extra:{ABX_NO_KEYCHAIN:'1',ABX_SANDBOX_API_KEY:key,ABX_SANDBOX_BASE_URL:origin,ABX_SANDBOX_DOMAIN:process.env.ABX_SANDBOX_DOMAIN||creds.E2B_DOMAIN}});
+const mask=makeMasker(creds,[key,origin]),bin=parseBin(process.env.ABX_BIN||`${process.execPath} ${new URL('../dist/bin/abx.js',import.meta.url).pathname}`);
+const run=argv=>runBinary({bin,argv,env,cwd:root,timeoutMs:660000});
+const api=(id,method='GET')=>fetch(`${origin.replace(/\/$/,'')}/sandboxes/${encodeURIComponent(id)}`,{method,headers:{'X-API-Key':key},signal:AbortSignal.timeout(30000)});
+let failure,uncertain=false;const sandboxes=[],deployments=[];
 try {
-  for (const mode of process.argv.includes("--managed-only") ? ["managed"] : ["managed", "source"]) {
-    const directory = join(root, mode); mkdirSync(directory);
-    const manifest = mode === "managed" ? {name: "managed-base", spec_version: 5, provides: {}, provider: "alicloud-express", template_id: "base"} : {
-      name: "whole-template-source", spec_version: 5, generation: 2,
-      base: "fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49", resources: {cpu: 2, memory: 2048},
-      build: {mode: "steps", run: ["printf whole-template-ready > /tmp/abx-whole-template-marker"]},
-      start_cmd: "python3 -m http.server 9101 --bind 0.0.0.0 >/tmp/abx-first.log 2>&1 & python3 -m http.server 9102 --bind 0.0.0.0 >/tmp/abx-second.log 2>&1 & wait",
-      ready_cmd: "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101'); urllib.request.urlopen('http://127.0.0.1:9102')\"",
-      provides: {first: {protocol: "http", version: 1, port: 9101, operations: []}, second: {protocol: "http", version: 1, port: 9102, operations: []}},
-    };
-    writeFileSync(join(directory, "template.yaml"), JSON.stringify(manifest));
-    const launched = await run(["--provider", "alicloud-express", "--json", "deploy", directory, "--yes", "--build-timeout", "600"]);
-    if (launched.code !== 0) throw new Error(`${mode} launch failed (exit ${launched.code}); raw response withheld`);
-    let result;
-    try {result = JSON.parse(launched.stdout);} catch {throw new Error(`${mode} launch returned invalid JSON; raw response withheld`);}
-    assert.ok(result.sandbox_id, "launch must return its sandbox ID");
-    assert.deepEqual(Object.keys(result.services), Object.keys(manifest.provides));
-    const command = mode === "source" ? "test $(cat /tmp/abx-whole-template-marker) = whole-template-ready" : "printf whole-template-ready";
-    const execution = await run(["--provider", "alicloud-express", "--json", "sandbox", "exec", result.sandbox_id, command]);
-    if (execution.code !== 0) throw new Error(`${mode} remote command failed: ${mask(execution.stderr || execution.stdout).replace(/https?:\/\/[^\s"<>]+/g, "[URL]").slice(0, 1200)}`);
-    console.log(`${mode}: launch, complete service map and remote execution PASS`);
+  for(const mode of process.argv.includes('--managed-only')?['managed']:['managed','source']){
+    const directory=join(root,mode);mkdirSync(directory);
+    const template=mode==='managed'?{reference:'base',region:env.ABX_REGION||'cn-hangzhou'}:{
+      region:env.ABX_REGION||'cn-hangzhou',generation:2,cpu:2,memorySize:2048,
+      image:'fc-e2b-registry.cn-hangzhou.cr.aliyuncs.com/runtime/base:v0.0.49',
+      buildConfig:{steps:[{type:'RUN',args:['printf whole-template-ready > /tmp/abx-whole-template-marker']}]}};
+    writeFileSync(join(directory,'template.yaml'),JSON.stringify({specVersion:1,name:`prepare-${mode}`,sandbox:{agent:{provider:'alicloud-express',template}}}));
+    const name=`prepare-${mode}`;deployments.push(name);
+    const prepared=await run(['--provider','alicloud-express','--json','deploy',directory,'--name',name,'--yes']);
+    assert.equal(prepared.code,0,`${mode} preparation failed; inspect retained private receipt`);
+    const result=JSON.parse(prepared.stdout),resource=result.resources.find(item=>item.kind==='template'&&item.name==='agent');assert.ok(resource?.id);
+    assert.equal(result.sandbox_id,undefined,'preparation must not create a dynamic instance');
+    uncertain=true;
+    const created=await run(['--provider','alicloud-express','--json','sandbox','create','--template',resource.id,'--timeout','600','--yes']);
+    const body=JSON.parse(created.stdout);if(body.ID){sandboxes.push(body.ID);uncertain=false;}
+    assert.equal(created.code,0,'instance creation failed; inspect private records');assert.ok(body.ID);
+    writeFileSync(join(root,`${mode}-instance.json`),JSON.stringify({sandbox_id:body.ID}),{mode:0o600});
+    const command=mode==='source'?'test "$(cat /tmp/abx-whole-template-marker)" = whole-template-ready':'printf whole-template-ready';
+    const executed=await run(['--provider','alicloud-express','--json','sandbox','exec',body.ID,command]);
+    assert.equal(executed.code,0,'explicit instance execution failed');
+    console.log(`${mode}: named template preparation, explicit creation and remote execution PASS`);
   }
-} catch (error) { failure = error; }
-finally {
-  try {
-    const records = journals();
-    for (const entry of records.filter(entry => entry.kind === "sandbox" && entry.id)) {
-      const deleted = await api(`/sandboxes/${encodeURIComponent(entry.id)}`, "DELETE");
-      assert.ok(deleted.ok || deleted.status === 404, "sandbox delete must be accepted");
-      const absent = await api(`/sandboxes/${encodeURIComponent(entry.id)}`);
-      assert.equal(absent.status, 404, "owned sandbox must be absent");
+}catch(error){failure=error;}
+finally{
+  try{
+    for(const id of sandboxes){const removed=await api(id,'DELETE');assert.ok(removed.ok||removed.status===404);assert.equal((await api(id)).status,404);}
+    for(const name of deployments){
+      const file=join(home,'.abx','deployments',name,'resources.json');
+      if(!existsSync(file))continue;
+      const before=JSON.parse(readFileSync(file,'utf8'));
+      const removed=await run(['delete',name,'--yes']);assert.equal(removed.code,0,'resource cleanup failed');
+      const after=JSON.parse(readFileSync(file,'utf8'));assert.ok(after.resources.every(entry=>!entry.owned||entry.status==='deleted'));
+      const fc=await import('../dist/providers/alicloud_express/fc_template.js');
+      const {TemplateNotFoundError}=await import('../dist/models/errors.js');
+      for(const entry of before.resources.filter(item=>item.kind==='template'&&item.owned&&item.id)){
+        let absent=false;await fc.getTemplate(entry.id,{access_key_id:creds.ALICLOUD_ACCESS_KEY_ID,access_key_secret:creds.ALICLOUD_ACCESS_KEY_SECRET,region:entry.region}).catch(error=>{if(error instanceof TemplateNotFoundError)absent=true;else throw error;});assert.ok(absent);
+      }
     }
-    const templates = records.filter(entry => entry.kind === "template" && entry.id);
-    if (templates.length) {
-      const fc = await import("../dist/providers/alicloud_express/fc_template.js");
-      const config = {access_key_id: creds.ALICLOUD_ACCESS_KEY_ID, access_key_secret: creds.ALICLOUD_ACCESS_KEY_SECRET, region: creds.ALIBABA_CLOUD_REGION_ID || "cn-hangzhou"};
-      for (const entry of templates) await fc.deleteTemplate(entry.id, config);
-      const inventory = await fc.listOfficialTemplates(config);
-      for (const entry of templates) assert.ok(!inventory.some(item => (item.templateID ?? item.templateId ?? item.id) === entry.id), "owned template must be absent");
-    }
-    assert.ok(!records.some(entry => !entry.id && ["intent", "uncertain"].includes(entry.state)), "unresolved resource intent requires reconciliation");
-    cleaned = true; console.log("owned sandbox/template cleanup: PASS (independent absence checks)");
-  } catch { console.error("cleanup: BLOCKED; isolated journals retained for exact resource reconciliation"); process.exitCode = 1; }
-  if (cleaned) rmSync(root, {recursive: true, force: true});
+    assert.equal(uncertain,false,'unknown instance outcome requires private-record reconciliation');
+    rmSync(root,{recursive:true,force:true});console.log('owned sandbox/template cleanup PASS; borrowed template retained');
+  }catch(error){console.error(`Cleanup incomplete; private records retained: ${mask(String(error.message))}`);process.exitCode=1;}
 }
-if (failure) {console.error(failure.message); process.exitCode = 1;}
+if(failure){console.error(mask(failure.message));process.exitCode=1;}

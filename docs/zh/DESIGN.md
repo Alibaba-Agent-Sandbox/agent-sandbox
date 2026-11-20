@@ -22,7 +22,7 @@
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo
+abx sandbox create --template base
 abx list
 ```
 

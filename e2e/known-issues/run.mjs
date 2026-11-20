@@ -185,7 +185,7 @@ scenario('ki006-bad-api-key', 'KI-006', 'wrong API key: exit 3, E1001 (list and 
   const list = await abx(['list'], { env: bad });
   must(list.code === 3 && list.text.includes('E1001'), `list: exit ${list.code}: ${excerpt(list.text)}`);
   must(!list.text.includes(bad.ABX_SANDBOX_API_KEY), 'the key leaked into the output');
-  const create = await abx(["deploy", "--template-id", TEMPLATE, "--yes"], { env: bad });
+  const create = await abx(['sandbox', 'create', '--template', TEMPLATE, "--yes"], { env: bad });
   must(create.code === 3 && create.text.includes('E1001'), `create: exit ${create.code}: ${excerpt(create.text)}`);
 });
 
@@ -275,9 +275,9 @@ async function main() {
   let exitCode = 0;
   try {
     before = await listIds();
-    const create = await abx(['--json', "deploy", "--template-id", TEMPLATE, "--sandbox-timeout", '900', "--yes"], { timeoutMs: 240_000 });
+    const create = await abx(['--json', 'sandbox', 'create', '--template', TEMPLATE, '--timeout', '900', "--yes"], { timeoutMs: 240_000 });
     must(create.code === 0, `create failed (exit ${create.code}): ${excerpt(create.text)}`);
-    state.id = create.json().sandbox_id;
+    state.id = create.json().ID;
     tracked.add(state.id);
     persist();
     console.log(`  sandbox: ${state.id.slice(0, 8)}... (tracked, killed at the end)`);

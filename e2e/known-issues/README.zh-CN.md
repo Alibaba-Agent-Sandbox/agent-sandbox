@@ -21,7 +21,7 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki
 
 ## 做了什么
 
-通过 CLI 创建一个沙箱(`--provider alicloud-express deploy --template-id base --sandbox-timeout 900 --yes`),并在 `finally`、SIGINT/SIGTERM 以及 `e2e/.state/`
+通过 CLI 创建一个沙箱(`--provider alicloud-express sandbox create --template base --timeout 900 --yes`),并在 `finally`、SIGINT/SIGTERM 以及 `e2e/.state/`
 台账中保证删除(`npm run e2e:cleanup` 是清理工具)。运行前后各列一次账户沙箱,如有残留则失败
 (`leak check: ... leaked=0`)。
 

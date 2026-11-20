@@ -201,6 +201,8 @@ export interface ProviderDescription {
  * register programmatically; that is not an installable catalog plugin.
  */
 export abstract class Provider {
+  /** Optional real synchronous validation for this selected plugin's public v1 preparation/create inputs. */
+  validateTemplateInput?: (stage: "template.prepare" | "sandbox.create", value: Record<string, unknown>) => boolean | void;
   abstract readonly id: string;
   displayName = "";
   displayNameZh = "";

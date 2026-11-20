@@ -30,7 +30,10 @@ assert.match(rootHelp.split("Command groups:\n")[1]?.split("\n\n")[0] ?? "", /^ 
 assert.match(rootHelp, /https:\/\/registry\.agent-sandbox\.cn\/templates\//);
 for (const name of ["deploy", "list", "status", "logs", "delete", "recover"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
 assert.doesNotMatch(rootHelp, /^ {2}(create|exec|run|kill|info)\s/m);
-assert.match(run(["deploy", "--help"]), /--template-id/);
+const deployHelp = run(["deploy", "--help"]);
+for (const flag of ["--name", "--build", "--plan", "--build-timeout", "--yes"]) assert.ok(deployHelp.includes(flag));
+assert.doesNotMatch(deployHelp, /--template-id|--sandbox-timeout|--bindings|--build-profile/);
+assert.match(run(["sandbox", "create", "--help"]), /--template/);
 assert.match(run(["sandbox", "exec", "--help"]), /Everything after the sandbox ID/);
 assert.match(run(["template", "init", "--help"]), /--from/);
 const providerHelp = run(["--provider", "alicloud-express", "provider", "run", "template.list", "--help"]);
@@ -59,36 +62,69 @@ try {
   assert.equal(standardHelp.status, 0, "A corrupt ~/.e2b/config.json must not affect ABX help");
   assert.match(standardHelp.stdout, /Usage:/i);
   assert.equal(readFileSync(join(projectRoot, ".e2b", "config.json"), "utf8"), "{invalid unrelated configuration", "ABX must not rewrite unrelated E2B state");
-  const missingKey = invokeProject(["deploy", "--template-id", "base", "--yes"]);
+  const missingKey = invokeProject(["sandbox", "create", "--template", "base", "--yes"]);
   assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
   assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);
   assert.match(missingKey.stdout + missingKey.stderr, /sandbox_api_key/);
   assert.doesNotMatch(missingKey.stdout + missingKey.stderr, /e2b auth login|e2b\.dev\/dashboard/i);
   assert.doesNotMatch(missingKey.stdout + missingKey.stderr, /Configuration scope|input hidden/i, "A subprocess without a terminal must never ask for credentials");
-  // Reach built-in provider execution identity in the actual delivered artifact.
-  // The closed loopback port prevents cloud mutation; credentials are synthetic.
+  // Parse the shipped named-resource schema, native props and dependencies without credentials.
   const managedProject = join(projectRoot, "managed-project");
   mkdirSync(managedProject);
-  writeFileSync(join(managedProject, "template.yaml"), "name: base\nspec_version: 5\nprovider: alicloud-express\ntemplate_id: base\nprovides: {}\n");
-  const managedLaunch = invokeProject(["--provider", "alicloud-express", "--json", "deploy", managedProject, "--name", "artifact-probe", "--yes"], {
-    ABX_SANDBOX_API_KEY: "placeholder-test-key",
-    ABX_SANDBOX_BASE_URL: "http://127.0.0.1:1",
-    ABX_SANDBOX_DOMAIN: "localhost",
-  });
-  assert.notEqual(managedLaunch.status, 0, "Closed loopback must stop before a real create");
-  const managedFailure = JSON.parse(managedLaunch.stdout);
-  assert.match(managedFailure.message, /Sandbox creation has an uncertain outcome/,
-    "Built-in provider identity must load from the artifact without sidecar source files");
+  writeFileSync(join(managedProject, "template.yaml"), JSON.stringify({specVersion: 1, name: "artifact-probe",
+    sandbox: {agent: {provider: "alicloud-express", template: {region: "cn-hangzhou", reference: "base"}}},
+    serving: {api: {component: "serverless-devs/fc3@0.1.26", props: {region: "cn-hangzhou", functionName: "artifact-probe",
+      runtime: "custom-container", customContainerConfig: {image: "example.test/artifact:v1", port: 9000},
+      environmentVariables: {TEMPLATE_ID: "${resources.agent.output.templateId}"}}}}}));
+  const preview = invokeProject(["--json", "deploy", managedProject, "--plan"]);
+  assert.equal(preview.status, 0, preview.stderr);
+  assert.deepEqual(JSON.parse(preview.stdout), {name: "artifact-probe", status: "preview", createsDynamicInstances: false,
+    resources: [{name: "agent", kind: "sandbox", provider: "alicloud-express", volumes: [], dependsOn: []},
+      {name: "api", kind: "serving", component: "serverless-devs/fc3@0.1.26", dependsOn: ["agent"]}]});
+  assert.ok(!existsSync(join(projectRoot, ".abx", "deployments")), "Preview must not persist a deployment");
+  // Exercise actual installed Provider transport against a local HTTP server. Its synthetic
+  // rejection proves the request crossed the HTTP boundary without any cloud mutation.
+  const httpProbe = String.raw`
+    const http = require("node:http"), {spawn} = require("node:child_process");
+    const requests = [];
+    const server = http.createServer((request, response) => {
+      let body = ""; request.on("data", chunk => {body += chunk;}); request.on("end", () => {
+        requests.push({method: request.method, path: request.url, authorization: request.headers["authorization"], body: JSON.parse(body)});
+        response.writeHead(403, {"Content-Type": "application/json"});
+        response.end(JSON.stringify({message: "artifact fixture rejects creation", code: 403}));
+      });
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const executable = process.argv[1];
+      const child = spawn(executable, ["--provider", "alicloud-express", "--json", "sandbox", "create", "--template", "base", "--yes"], {
+        env: {...process.env, ABX_SANDBOX_API_KEY: "placeholder-test-key", ABX_SANDBOX_BASE_URL: "http://127.0.0.1:" + server.address().port, ABX_SANDBOX_DOMAIN: "localhost"},
+        shell: process.platform === "win32" && executable.endsWith(".cmd"), stdio: ["ignore", "pipe", "pipe"]});
+      let stdout = "", stderr = "";
+      child.stdout.on("data", chunk => {stdout += chunk;}); child.stderr.on("data", chunk => {stderr += chunk;});
+      const timer = setTimeout(() => child.kill(), 45000);
+      child.on("error", error => {clearTimeout(timer); server.close(); process.stderr.write(error.message); process.exitCode = 1;});
+      child.on("close", status => {clearTimeout(timer); server.closeAllConnections(); server.close(() => process.stdout.write(JSON.stringify({status, stdout, stderr, requests})));});
+    });`;
+  const probe = spawnSync(process.execPath, ["-e", httpProbe, artifact], {cwd: projectRoot, env: environment,
+    encoding: "utf8", timeout: 55000, maxBuffer: 4 * 1024 * 1024, windowsHide: true});
+  assert.ifError(probe.error); assert.equal(probe.status, 0, probe.stderr);
+  const observed = JSON.parse(probe.stdout);
+  assert.notEqual(observed.status, 0, "The controlled HTTP rejection must fail creation");
+  assert.equal(observed.requests.length, 1, "Do not replay a rejected creation request");
+  assert.equal(observed.requests[0].method, "POST"); assert.equal(observed.requests[0].path, "/sandboxes");
+  assert.equal(observed.requests[0].authorization, "Bearer placeholder-test-key"); assert.equal(observed.requests[0].body.templateID, "base");
+  const managedFailure = JSON.parse(observed.stdout);
+  assert.ok(managedFailure.message);
   assert.doesNotMatch(managedFailure.message, /ENOENT|providers[\\/]|File or directory not found/);
   const invalid = invokeProject(["deploy", "--unknown-local-option"]);
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /No such option/i);
   assert.doesNotMatch(invalid.stdout + invalid.stderr, /Configuration scope|Missing configuration/i, "Syntax errors precede credential setup");
-  const nativeJson = invokeProject(["--json", "deploy", "--template-id", "base", "--yes"]);
+  const nativeJson = invokeProject(["--json", "sandbox", "create", "--template", "base", "--yes"]);
   assert.equal(nativeJson.status, 1);
   assert.match(JSON.parse(nativeJson.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(nativeJson.stdout + nativeJson.stderr, /Configuration scope|input hidden/i);
-  const ciCreate = invokeProject(["--ci", "deploy", "--template-id", "base", "--yes"], { CI: "1" });
+  const ciCreate = invokeProject(["--ci", "sandbox", "create", "--template", "base", "--yes"], { CI: "1" });
   assert.equal(ciCreate.status, 1);
   assert.match(JSON.parse(ciCreate.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(ciCreate.stdout + ciCreate.stderr, /Configuration scope|input hidden/i);
@@ -96,11 +132,10 @@ try {
   for (const name of ["template.yaml", "Dockerfile", "commands.py"]) assert.ok(existsSync(join(project, name)));
   const missing = invokeProject(["template", "build", project, "--yes"]);
   assert.equal(missing.status, 1, "Source build must reach Provider credential preflight");
-  assert.match(missing.stdout + missing.stderr, /Missing configuration/i);
-  assert.match(missing.stdout + missing.stderr, /access_key_id/);
+  assert.match(missing.stdout + missing.stderr, /Could not resolve and verify the selected deployment identity/);
   assert.doesNotMatch(missing.stdout + missing.stderr, /Configuration scope|input hidden/i);
   const ci = invokeProject(["--ci", "template", "build", project, "--yes"]);
-  assert.equal(ci.status, 1); assert.match(JSON.parse(ci.stdout).message, /Missing configuration/i);
+  assert.equal(ci.status, 1); assert.match(JSON.parse(ci.stdout).message, /Could not resolve and verify the selected deployment identity/);
   writeFileSync(join(project, "Dockerfile"), "keep original\n");
   const overwrite = invokeProject(["template", "init", "--template", "python", project, "-y"]);
   assert.equal(overwrite.status, 1, "Yes alone must not authorize replacement");

@@ -24,7 +24,7 @@ The four catalog providers (`opensandbox`, `e2b`, `cubesandbox`, `alicloud-conta
 - Each run uses a throwaway `HOME`. The real `~/.abx` is not read or written.
 - Secrets are passed to the child process and are not printed. `--provider ID config list` must not echo an API key.
 - A missing feature is a successful `E8004`, not a crash and not a skipped assertion.
-- Provider lifecycle tests use `abx --provider <id> deploy --template-id <image-or-name> --yes`; source generation is separately covered through `abx template init --prompt`.
+- Provider lifecycle tests use `abx --provider <id> sandbox create --template <image-or-name> --yes`; source generation is separately covered through `abx template init --prompt`.
 - Cleanup kills every sandbox the run created. It does not use account-wide deletion.
 - The plugin source under test for OpenSandbox is the catalog checkout (`ABX_AWESOME_PROVIDERS` or a clone). It is not a copy inside the SDK.
 

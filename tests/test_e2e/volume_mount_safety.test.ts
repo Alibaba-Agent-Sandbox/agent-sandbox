@@ -53,7 +53,7 @@ it('tracks the sandbox immediately and cleans it when independent mount verifica
   vi.stubEnv('ABX_E2E_VOLUME_NAME', 'existing-volume');
   vi.stubEnv('ABX_E2E_VOLUME_MOUNT_PATH', '/mnt/abx-e2e/volume');
   const ctx = context();
-  ctx.rawAbx.mockResolvedValueOnce({ code: 0, stdout: JSON.stringify({ sandbox_id: 'sbx-volume-test' }) });
+  ctx.rawAbx.mockResolvedValueOnce({ code: 0, stdout: JSON.stringify({ ID: 'sbx-volume-test' }) });
   ctx.rawAbx.mockImplementationOnce(async () => {
     expect(ctx.track).toHaveBeenCalledWith('sbx-volume-test');
     return { code: 0, stdout: JSON.stringify({ exit_code: 1, stdout: 'private-mount-metadata-placeholder' }) };

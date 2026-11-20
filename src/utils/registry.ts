@@ -9,11 +9,12 @@ import { ValueError } from "../models/value_error.js";
 import { SandboxTemplate, TemplateRef } from "../models/template.js";
 import { asyncWith, HTTPStatusError, httpx } from "../transport/_httpx.js";
 import { PyFloat, pyStripChars } from "./_pyformat.js";
-import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, readTextPy, toOSError } from "./_pyos.js";
+import { AttributeError, PyTypeError, isDir, mkdirParents, pathExists, pyJoin, pyResolve, pyTypeNameOf, toOSError } from "./_pyos.js";
 import { openTarGz } from "./_tar.js";
-import { isMapping, loadYaml } from "./yaml_io.js";
+import { isMapping } from "./yaml_io.js";
 import { FINE_GRAINED_PAT_URL, rateLimitMessage, rateLimitSuggestion } from "./github_token.js";
 import { getLogger } from "./logging.js";
+import { readProjectDocument, readProjectIntent, sandboxExecutionInput } from "../template/project.js";
 
 const logger = getLogger("utils.registry");
 
@@ -429,30 +430,21 @@ function _isStrictParent(parent: string, child: string): boolean {
 
 /** Reject obsolete source manifests with recovery scoped to their own cache directory. */
 export function validateTemplateSourceVersion(data: Record<string, unknown>, file: string, cacheDirectory: string | null = TEMPLATE_CACHE_DIR): void {
-  if (Object.hasOwn(data, "spec_version") && data["spec_version"] !== 5) {
-    const declared = typeof data["spec_version"] === "number" ? String(data["spec_version"]) : "invalid";
+  if (data.specVersion !== 1 || Object.hasOwn(data, "spec_version")) {
     const relative = cacheDirectory === null ? "" : path.relative(path.resolve(cacheDirectory), path.resolve(file));
     const cached = relative !== "" && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
-    const recovery = "Use a source revision containing spec_version: 5; updating the version number alone does not migrate an old manifest." +
+    const recovery = "Use a source revision containing the template v1 resource structure; updating only the version number does not migrate a manifest." +
       (cached ? ` If this is a downloaded copy and its remote source has already been updated, remove only its cached template directory (${path.dirname(file)}) and retry. Index refresh does not refresh source files.` : "");
-    throw new TemplateParseError(`${file}: unsupported template spec_version ${declared}; this CLI requires spec_version: 5. ${recovery}`, { suggestion: "" });
+    throw new TemplateParseError(`${file}: this CLI requires specVersion: 1. ${recovery}`, { suggestion: "" });
   }
 }
 
 /** 从 YAML 文件加载模板定义。 */
 export function loadTemplateFromYaml(file: string): SandboxTemplate {
-  const data = loadYaml(readTextPy(file));
+  const data = readProjectDocument(file);
   if (!isMapping(data)) {
     throw new ValueError(`${file} must be a YAML mapping`);
   }
   validateTemplateSourceVersion(data, file);
-  // 映射 resources 嵌套结构到扁平字段
-  const { resources, ...rest } = data;
-  const flat: Record<string, unknown> = rest;
-  if (resources !== null && typeof resources === "object" && !Array.isArray(resources)) {
-    const res = resources as Record<string, unknown>;
-    if ("cpu" in res && !("cpu_count" in flat)) flat["cpu_count"] = res["cpu"];
-    if ("memory" in res && !("memory_mb" in flat)) flat["memory_mb"] = res["memory"];
-  }
-  return SandboxTemplate.modelValidate(flat);
+  return SandboxTemplate.modelValidate(sandboxExecutionInput(readProjectIntent(file)));
 }

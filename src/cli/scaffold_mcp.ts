@@ -22,30 +22,41 @@ app = create_mcp_app(
 )
 `;
 
-/** A single MCP process keeps session affinity on one sandbox instance. */
+/** Editable native FC service. Session state remains in the service process. */
 export function mcpScaffold(profile: TemplateProfile): Map<string, string> {
-  const start = `python3 -m uvicorn app:app --app-dir ${profile.workdir} --host 0.0.0.0 --port 9000`;
   return new Map([
-    ["template.yaml", `spec_version: 5
+    ["template.yaml", `specVersion: 1
 name: {name}
-version: "1.0.0"
-description: "Authenticated MCP Streamable HTTP server"
-base: ${JSON.stringify(profile.base_image)}
-workdir: ${JSON.stringify(profile.workdir)}
-${profile.server_start === "platform_start_cmd" ? "generation: 2\n" : ""}start_cmd: ${JSON.stringify(start)}
-ready_cmd: ${JSON.stringify("python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=5)\"")}
-provides:
-  mcp: { protocol: http, version: 1, port: 9000, operations: [mcp] }
-env:
-  ABX_SERVER_TOKEN: ""
-  ABX_MCP_AUTH_TOKEN: ""
-  ABX_SANDBOX_API_KEY: ""
-  ABX_SANDBOX_BASE_URL: ""
-  ABX_SANDBOX_DOMAIN: ""
-  ABX_DEFAULT_TEMPLATE: "base"
-resources:
-  cpu: 1
-  memory: 2048
+serving:
+  api:
+    component: serverless-devs/fc3@0.1.26
+    actions:
+      pre-deploy:
+        - component: serverless-devs/fc3@0.1.26 build --dockerfile ./Dockerfile --context .
+    props:
+      region: cn-hangzhou
+      functionName: {name}
+      runtime: custom-container
+      code: .
+      cpu: 1
+      memorySize: 2048
+      timeout: 120
+      role: "\${env('FC_EXECUTION_ROLE')}"
+      customContainerConfig:
+        image: "\${env('FC_IMAGE')}"
+        port: 9000
+      environmentVariables:
+        ABX_SERVER_TOKEN: "\${env('ABX_SERVER_TOKEN')}"
+        ABX_SANDBOX_API_KEY: "\${env('ABX_SANDBOX_API_KEY')}"
+        ABX_SANDBOX_BASE_URL: "\${env('ABX_SANDBOX_BASE_URL')}"
+        ABX_SANDBOX_DOMAIN: "\${env('ABX_SANDBOX_DOMAIN')}"
+        ABX_DEFAULT_TEMPLATE: base
+      triggers:
+        - triggerName: http
+          triggerType: http
+          triggerConfig:
+            authType: anonymous
+            methods: [GET, POST, DELETE, OPTIONS]
 `],
     ["Dockerfile", `FROM ${profile.base_image}
 WORKDIR ${profile.workdir}
@@ -53,51 +64,50 @@ COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 EXPOSE 9000
+CMD ["python3", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "9000"]
 `],
     ["requirements.txt", MCP_REQUIREMENTS],
     ["app.py", MCP_APP_PY],
     [".dockerignore", ".git\n.abx\n.env\n.env.*\n.venv\n__pycache__\n"],
     ["README.md", `# {name}
 
-An editable MCP Streamable HTTP application. Change app.py and template.yaml,
-then build and deploy it with the normal template and application commands.
+An editable MCP Streamable HTTP service. Edit app.py, Dockerfile and the native FC
+props in template.yaml. The service creates Sandbox instances for MCP sessions.
 
-## Deploy
+## Configuration
 
-The MCP server creates sandboxes for its sessions. Give it the Sandbox API key,
-API URL and sandbox domain for the same account and region. These are runtime
-inputs; the CLI's ability to build an image does not configure this service.
+Set FC_IMAGE to a writable image repository and a unique version tag. Set
+FC_EXECUTION_ROLE to an existing FC execution role ARN. Supply the Sandbox API key,
+API URL and sandbox domain through ABX_SANDBOX_API_KEY, ABX_SANDBOX_BASE_URL and
+ABX_SANDBOX_DOMAIN for the same account and region. Keep credentials in local private
+configuration or environment variables, outside version control.
+
+ABX_SERVER_TOKEN authenticates MCP clients and is separate from the Sandbox API key.
+The CLI prepares its default application token when this declared input is missing;
+external clients use that token as a Bearer token. You can explicitly override it.
+
+## Deploy and call
 
 \`\`\`bash
-abx deploy . --name {name} -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
+abx deploy . --name {name}
+abx status {name}
 \`\`\`
 
-The CLI generates and saves ABX_SERVER_TOKEN on this machine when needed. The
-MCP Bearer token uses that value unless you explicitly supply ABX_MCP_AUTH_TOKEN.
-Use the deployment's mcp service URL with /mcp appended. Configure the client
-with Authorization: Bearer <MCP_TOKEN> and any provider endpoint headers returned
-for that URL. Provider traffic authentication and the MCP Bearer token are
-separate credentials; retain both when the provider requires them. Keep secrets
-out of template source and version control.
+Use the FC HTTP trigger endpoint with /mcp appended and send
+Authorization: Bearer <application-token>. The trigger accepts HTTP without FC signing;
+the application still validates its Bearer token.
 
-## HTTP usage and limits
+POST /mcp accepts JSON-RPC initialize, tools/list and tools/call. Reuse the returned
+Mcp-Session-Id header after initialization. DELETE /mcp ends a session and cleans up its
+owned sandboxes. GET /mcp returns 405; server notification SSE is unsupported.
+GET /health checks the process.
 
-POST /mcp accepts JSON-RPC initialize, tools/list and tools/call. After initialize,
-reuse the returned Mcp-Session-Id header. DELETE /mcp ends that session and cleans
-up its owned sandboxes. GET /mcp returns 405 because server notification SSE is
-not supported. GET /health checks the process. The service uses one process in
-one sandbox; sessions are kept in memory and do not survive its replacement.
+Sessions are held in process memory. FC replacement or routing a request to a different
+instance does not preserve them. Configure an appropriate native FC affinity policy and
+validate the intended scaling behavior before relying on long sessions; this starter does
+not provide distributed session persistence.
 
-For example, send POST /mcp with Content-Type: application/json,
-Authorization: Bearer <MCP_TOKEN>, and this body:
-
-\`\`\`json
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"example","version":"1"}}}
-\`\`\`
-
-Use the returned session header for subsequent requests. The MCP tools create,
-inspect and execute within separate session sandboxes. End each session with
-DELETE /mcp, then remove the application with \`abx delete {name} --yes\`.
+End each MCP session with DELETE /mcp before running \`abx delete {name} --yes\`.
 `],
   ]);
 }

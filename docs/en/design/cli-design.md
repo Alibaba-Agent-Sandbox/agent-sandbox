@@ -4,14 +4,14 @@ The CLI follows the user's task rather than implementation stages. The [command 
 
 | Task | Entry |
 | --- | --- |
-| Deploy and manage a running instance | `deploy`, `list`, `status`, `logs`, `delete`, `recover` |
+| Prepare and manage named resources | `deploy`, `list`, `status`, `logs`, `delete`, `recover` |
 | Discover, create, build and publish reusable templates | `template` |
 | Operate inside a Sandbox or use its lifecycle extensions | `sandbox` |
 | Configure local defaults and credentials | `config` |
 | Install a backend or run its native operations | `provider` |
 | Connect an AI tool | `mcp` |
 
-`deploy SOURCE --name NAME` chooses the existing workflow from the explicit template profile. `deploy --template-id ID` creates from a native Provider reference. `--plan` performs a local preview; users do not manage intermediate plan/apply files. Managed updates reuse the same name. Ordinary Sandbox deployments must be deleted before recreating the name.
+`deploy SOURCE --name NAME --yes` prepares templates, static volumes and Serving resources. `sandbox create --template ID` creates a dynamic instance. `--plan` only previews. Repeated deployment updates recorded resources; callers manage dynamic instances and their business processes.
 
 `template init --from` only copies source. `template build` prepares a reusable artifact without creating an instance. `template publish` publishes committed source through an existing GitHub remote. Provider cloud template CRUD belongs to `provider run`.
 

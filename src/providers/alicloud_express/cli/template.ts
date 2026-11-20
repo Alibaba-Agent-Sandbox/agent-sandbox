@@ -1,4 +1,5 @@
 import type { ResourceJournalCallbacks } from "../../../template/resource_journal.js";
+import { readProjectIntent } from "../../../template/project.js";
 import type { PreparedTemplate } from "../../template_contract.js";
 import { DockerSetupError, runTool } from "../../shared/project.js";
 import { prepareTemplateBuildInputs } from "../../../cli/template_project.js";
@@ -134,8 +135,12 @@ export function _readYamlDefaults(template_dir: string): Record<string, Any> {
     if (yamlPath === null)
         return {};
     try {
-        const raw = yamlSafeLoad(readTextPy(yamlPath));
-        const yamlData: Any = pyTruthy(raw) ? raw : {};
+        const intent = readProjectIntent(yamlPath);
+        const sandboxResources = Object.values(intent.sandbox ?? {});
+        if (sandboxResources.length !== 1) throw new Error("Select a single Sandbox resource for native template defaults.");
+        const config = sandboxResources[0].template;
+        const yamlData: Any = { name: intent.name, resources: {cpu: config.cpu, memory: config.memorySize},
+            generation: config.generation, start_cmd: config.startCommand, ready_cmd: config.readyCommand };
         if (!_isDict(yamlData))
             throw new AttributeError(`'${pyTypeNameOf(yamlData)}' object has no attribute 'get'`);
         let resources: Any = Object.prototype.hasOwnProperty.call(yamlData, "resources") ? yamlData["resources"] : {};

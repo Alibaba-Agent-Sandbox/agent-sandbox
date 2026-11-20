@@ -57,7 +57,7 @@ Selecting a provider chooses its configuration and protocol adapter. Unsupported
 
 The standard E2B command frontend is used only for Express. Qualified sandbox references enter the provider router. Other providers currently retain the project CLI syntax; selecting one does not promise that every E2B-specific option or result model is implemented there. Local generation with template scaffold can use a generic Docker profile; that changes the image contract, not the cloud backend.
 
-Template commands use the selected provider's implemented template manager or its specialized command handlers. Native FC/ACR handlers belong to Express. The public `abx --provider <id> deploy SOURCE --name my-app` path uses provider-owned preparation and startup; OpenSandbox implements source preparation for the documented default recipe. Missing operations fail on the selected provider without silently switching to Express. See [launch a template](template-launch.md) for build/configuration requirements and [template workflows](template-workflows.md) for the operation checks. Natural-language cloud deployment still requires its own matching provider handler.
+Template authoring uses the selected Provider’s authoring profile. Named-resource execution currently supports Express templates/static volumes and FC Serving. Other Providers create dynamic instances through `sandbox create --template`; native management remains available through `provider run`. An unsupported named-resource adapter fails before execution instead of switching Providers. See [template preparation](template-launch.md) and [template workflows](template-workflows.md).
 
 The built-in provider lists its own implemented adapter features explicitly; adding a host feature must not implicitly advertise it on Express. This adapter does not advertise storage.mount, network.vpc or ports.domain as generic sandbox operations. That does not mean Alibaba lacks those cloud capabilities: resource administration and mount integration need their own implemented, verified entry points. Pause also depends on runtime/function enablement; a declaration alone is not account availability.
 
@@ -110,7 +110,7 @@ Highest priority first:
 | Where | Example |
 |---|---|
 | Qualified reference | `abx delete my-cloud:sbx-1` |
-| Flag (before the sandbox ID for exec) | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
+| Flag (before the sandbox ID for exec) | `abx --provider my-cloud sandbox create --template base` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx config set provider my-cloud`, `abx config set provider my-cloud`) |
@@ -131,7 +131,7 @@ Every command that takes a sandbox id accepts `[provider:]sandbox_id`; the prefi
 Printed IDs use `provider:sandbox_id` for every provider, and JSON rows include `provider` while retaining the bare ID field.
 
 ```bash
-abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx --provider local-process sandbox create --template base --yes      # ID: local-process:sbx-1
 abx sandbox exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # every configured provider, with a Provider column
 abx delete local-process:sbx-1 --yes
@@ -173,7 +173,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 sandbox create --template base
 ```
 
 A non-interactive install needs `--yes`. An unpinned git ref also needs `--allow-unpinned`, or a 40-hex `--ref`. The Python SDK installer is `python -m agent_sandbox.providers install registry:<id> --yes`.

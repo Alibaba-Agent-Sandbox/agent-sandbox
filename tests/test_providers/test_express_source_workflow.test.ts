@@ -72,6 +72,7 @@ describe("Express source workflow", () => {
     vi.spyOn(DockerBuilder.prototype, "checkDocker").mockResolvedValue(true);
     const f=fixture();vi.stubEnv("ACR_NAMESPACE","fixture-namespace");
     fs.writeFileSync(path.join(f.directory,"Dockerfile.portable"),"FROM python:3.12-slim\n");
+    fs.writeFileSync(path.join(f.directory,"template.yaml"),JSON.stringify({specVersion:1,name:"fixture",sandbox:{agent:{provider:"alicloud-express",template:{buildConfig:{dockerfile:"Dockerfile.portable"}}}}}));
     f.options.build_profile={id:"portable",dockerfile:"Dockerfile.portable",context:"."};
     const build=vi.spyOn(templateSeams,"_buildImage").mockImplementation(async (_dir,options)=>{
       expect(f.journal.entries[0]).toMatchObject({kind:"image",state:"intent"});

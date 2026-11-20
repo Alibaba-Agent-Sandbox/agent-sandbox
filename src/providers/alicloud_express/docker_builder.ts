@@ -226,6 +226,7 @@ function materializedDockerfile(context: string, dockerfile: string | null): str
   if (text === original) return dockerfile;
   const out = join(context, "Dockerfile.abx-build");
   writeFileSync(out, text);
+  if (existsSync(`${source}.dockerignore`)) copyFileSync(`${source}.dockerignore`, `${out}.dockerignore`);
   return out;
 }
 
@@ -417,9 +418,10 @@ interface RunResult {
  * `true` when `docker build` can take buildx-only flags (`--provenance`, `--progress=plain`).
  * `DOCKER_BUILDKIT=0` forces the legacy builder. A missing `buildx` plugin is also the legacy builder.
  */
-export async function dockerBuildxAvailable(docker = "docker"): Promise<boolean> {
+export async function dockerBuildxAvailable(docker = "docker", timeout?: number): Promise<boolean> {
   if ((process.env["DOCKER_BUILDKIT"] ?? "1") === "0") return false;
   try {
+    if (timeout !== undefined) return (await streamLines([docker, "buildx", "version"], () => {}, Math.min(10, timeout))) === 0;
     const result = await runCaptured([docker, "buildx", "version"], { timeout: 10 });
     return result.returncode === 0;
   } catch (err) {
@@ -516,22 +518,34 @@ class LineSplitter {
  * Calls `onLine` with every output line (right-stripped, as `line.rstrip()`), resolves with the exit code. Rejects with
  * the spawn error (e.g. ENOENT).
  */
-function streamLines(cmd: string[], onLine: (line: string) => void): Promise<number> {
+function streamLines(cmd: string[], onLine: (line: string) => void, timeout?: number): Promise<number> {
+  if (timeout !== undefined && (!Number.isFinite(timeout) || timeout <= 0)) return Promise.reject(new DockerBuildError("Docker operation exceeded its deadline."));
   return new Promise<number>((resolvePromise, reject) => {
-    const child = spawn(cmd[0] as string, cmd.slice(1), { stdio: ["inherit", "pipe", "pipe"] });
+    const grouped = timeout !== undefined && process.platform !== "win32";
+    const child = spawn(cmd[0] as string, cmd.slice(1), { stdio: ["inherit", "pipe", "pipe"], ...(grouped ? {detached: true} : {}) });
     const splitters = [new LineSplitter(), new LineSplitter()];
     const decoders = [new TextDecoder(), new TextDecoder()];
-    const emit = (lines: string[]): void => {
-      for (const l of lines) onLine(l.trimEnd());
+    let failure: Error | undefined, settled = false;
+    const kill = (): void => { try { if (grouped && child.pid) process.kill(-child.pid, "SIGKILL"); else child.kill("SIGKILL"); } catch { /* Process already absent. */ } };
+    const stop = (message: string): void => { failure ??= new DockerBuildError(message); kill(); };
+    const cancel = (): void => stop("Docker operation cancelled; pushed artifacts may require reconciliation.");
+    if (timeout !== undefined) { process.prependListener("SIGINT", cancel); process.prependListener("SIGTERM", cancel); }
+    const timer = timeout === undefined ? undefined : setTimeout(() => stop("Docker operation exceeded its deadline; pushed artifacts may require reconciliation."), timeout * 1000);
+    const finish = (code: number, error?: Error): void => {
+      if (settled) return; settled = true;
+      if (timer) clearTimeout(timer);
+      if (timeout !== undefined) { process.removeListener("SIGINT", cancel); process.removeListener("SIGTERM", cancel); kill(); }
+      if (error || failure) reject(error ?? failure); else resolvePromise(code);
     };
-    child.stdout.on("data", (d: Buffer) => emit((splitters[0] as LineSplitter).feed((decoders[0] as InstanceType<typeof TextDecoder>).decode(d, { stream: true }))));
-    child.stderr.on("data", (d: Buffer) => emit((splitters[1] as LineSplitter).feed((decoders[1] as InstanceType<typeof TextDecoder>).decode(d, { stream: true }))));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      emit((splitters[0] as LineSplitter).flush());
-      emit((splitters[1] as LineSplitter).flush());
-      resolvePromise(code ?? -1);
-    });
+    const emit = (lines: string[]): void => {
+      if (failure) return;
+      try { for (const line of lines) onLine(line.trimEnd()); }
+      catch { stop("Docker output could not be processed."); }
+    };
+    child.stdout.on("data", (d: Buffer) => emit(splitters[0]!.feed(decoders[0]!.decode(d, {stream: true}))));
+    child.stderr.on("data", (d: Buffer) => emit(splitters[1]!.feed(decoders[1]!.decode(d, {stream: true}))));
+    child.once("error", error => finish(-1, error));
+    child.once("close", code => { emit(splitters[0]!.flush()); emit(splitters[1]!.flush()); finish(code ?? -1); });
   });
 }
 
@@ -558,6 +572,8 @@ export const _seams = {
 };
 
 export interface BuildOptions {
+  /** Optional wall-clock deadline in seconds, including the buildx probe. */
+  timeout?: number;
   dockerfile?: string | null;
   platform?: string;
   build_args?: Record<string, string> | null;
@@ -609,8 +625,8 @@ export class DockerBuilder {
   // ------------------------------------------------------------------ //
 
   /** `true` when this daemon accepts buildx-only `docker build` flags. */
-  private async _buildxFlags(): Promise<boolean> {
-    return dockerBuildxAvailable(this._docker);
+  private async _buildxFlags(timeout?: number): Promise<boolean> {
+    return dockerBuildxAvailable(this._docker, timeout);
   }
 
   /** Verify Docker daemon is reachable: `true` if `docker info` exits successfully. */
@@ -635,6 +651,8 @@ export class DockerBuilder {
    * @throws DockerBuildError if the build fails.
    */
   async build(context_dir: string, tag: string, opts: BuildOptions = {}): Promise<string> {
+    const started = Date.now();
+    const remaining = (): number | undefined => opts.timeout === undefined ? undefined : opts.timeout - (Date.now() - started) / 1000;
     const { dockerfile = null, platform = "linux/amd64", build_args = null, on_output = null } = opts;
     const context = resolve(String(context_dir));
     const resolvedDockerfile = materializedDockerfile(context, dockerfile);
@@ -642,10 +660,11 @@ export class DockerBuilder {
       resolvedDockerfile !== null &&
       basename(resolvedDockerfile) === "Dockerfile.abx-build" &&
       resolvedDockerfile !== (dockerfile ? resolve(dockerfile) : null);
+    try {
     const cmd: string[] = [this._docker, "build", "--platform", platform, "-t", tag];
     // --provenance and --progress=plain are buildx flags. The legacy builder rejects them.
     // DOCKER_BUILDKIT=0 forces the legacy builder; otherwise probe `docker buildx version`.
-    if (await this._buildxFlags()) {
+    if (await this._buildxFlags(remaining())) {
       cmd.splice(4, 0, "--provenance=false");
       cmd.splice(5, 0, "--progress=plain");
     }
@@ -656,13 +675,12 @@ export class DockerBuilder {
     cmd.push(context);
 
     logger.info("Building Docker image: %s", _redactedArgv(cmd));
-    try {
       const output_lines: string[] = [];
       const returncode = await streamLines(cmd, (line) => {
         output_lines.push(line);
         if (on_output) on_output(line);
         logger.debug("docker build: %s", line);
-      });
+      }, remaining());
       if (returncode !== 0) {
         throw new DockerBuildFailure(output_lines.join("\n"), returncode);
       }
@@ -676,7 +694,10 @@ export class DockerBuilder {
       }
       throw err;
     } finally {
-      if (ephemeralDockerfile && resolvedDockerfile) rmSync(resolvedDockerfile, { force: true });
+      if (ephemeralDockerfile && resolvedDockerfile) {
+        rmSync(resolvedDockerfile, { force: true });
+        rmSync(`${resolvedDockerfile}.dockerignore`, { force: true });
+      }
     }
   }
 
@@ -762,7 +783,7 @@ export class DockerBuilder {
    *
    * @throws ACRPushError if the push fails.
    */
-  async push(image_ref: string, opts: { on_output?: ((line: string) => void) | null } = {}): Promise<void> {
+  async push(image_ref: string, opts: { on_output?: ((line: string) => void) | null; timeout?: number } = {}): Promise<void> {
     const on_output = opts.on_output ?? null;
     logger.info("Pushing image: %s", image_ref);
     try {
@@ -771,7 +792,7 @@ export class DockerBuilder {
         output_lines.push(line);
         if (on_output) on_output(line);
         logger.debug("docker push: %s", line);
-      });
+      }, opts.timeout);
       if (returncode !== 0) {
         throw new ACRPushError(`Docker push failed (exit ${returncode}):\n` + output_lines.slice(-10).join("\n"));
       }

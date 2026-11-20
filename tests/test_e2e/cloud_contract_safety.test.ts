@@ -36,20 +36,34 @@ it('configures each CLI surface from the selected test account without losing ne
 
 it('tracks the real detached ID before info fails, without replaying creation', async () => {
   const track = vi.fn();
-  const abx = vi.fn().mockResolvedValueOnce({ ...result({sandbox_id: 'sbx-owned-test'}), maskedStdout: '{"sandbox_id":"sbx-owned-test"}' });
+  const abx = vi.fn().mockResolvedValueOnce({ ...result({ID: 'sbx-owned-test'}), maskedStdout: '{"ID":"sbx-owned-test"}' });
   abx.mockImplementationOnce(async () => {
     expect(track).toHaveBeenCalledWith('sbx-owned-test');
     throw new Error('info unavailable');
   });
   await expect(scenario('create-json').run({ ...journalFixture(), state: {}, abx, track, fail })).rejects.toThrow('info unavailable');
   expect(abx).toHaveBeenCalledTimes(2);
-  expect(abx.mock.calls[0][0]).toContain('--template-id');
+  expect(abx.mock.calls[0][0].slice(0, 3)).toEqual(['--json', 'sandbox', 'create']);
+  expect(abx.mock.calls[0][0]).toContain('--template');
+  expect(abx.mock.calls[0][0]).not.toContain('--name');
   expect(scenario('create-json').retries).toBeUndefined();
+});
+
+it('does not treat a deployment-shaped response as a native sandbox creation result', () => {
+  const track = vi.fn();
+  expect(() => trackDetachedCreate({ track, fail }, result({sandbox_id: 'sbx-old-shape'}))).toThrow('real Express sandbox ID');
+  expect(track).not.toHaveBeenCalled();
+});
+
+it('deletes the created native identity rather than its local create-attempt label', () => {
+  const ctx = {state: {id: 'sbx-owned-test', name: 'local-attempt'}};
+  expect(scenario('kill-yes-json').argv(ctx)).toEqual(['--json', 'delete', 'sbx-owned-test', '--yes']);
+  expect(scenario('kill-twice').argv(ctx)).toEqual(['--json', 'delete', 'sbx-owned-test', '--yes']);
 });
 
 it('retains a reported detached identity when the child exits unsuccessfully', () => {
   const track = vi.fn();
-  expect(() => trackDetachedCreate({ track, fail }, { ...result({sandbox_id: 'sbx-owned-test'}, 1), out: 'child failed' })).toThrow('create exit 1');
+  expect(() => trackDetachedCreate({ track, fail }, { ...result({ID: 'sbx-owned-test'}, 1), out: 'child failed' })).toThrow('create exit 1');
   expect(track).toHaveBeenCalledWith('sbx-owned-test');
 });
 
@@ -57,13 +71,13 @@ it('tracks the native-created identity before checking env/files, without replay
   const cwd = mkdtempSync(join(tmpdir(), 'abx-cloud-contract-'));
   directories.push(cwd);
   const track = vi.fn();
-  const abx = vi.fn().mockResolvedValueOnce(result({ sandbox_id: 'sbx-native-test' }));
+  const abx = vi.fn().mockResolvedValueOnce(result({ID: 'sbx-native-test' }));
   abx.mockImplementationOnce(async () => {
     expect(track).toHaveBeenCalledWith('sbx-native-test');
     throw new Error('env probe failed');
   });
   await expect(scenario('create-with-env-and-upload').run({ ...journalFixture(), cwd, state: {}, abx, track, fail })).rejects.toThrow('env probe failed');
-  expect(abx.mock.calls[0][0].slice(0, 2)).toEqual(['--json', 'deploy']);
+  expect(abx.mock.calls[0][0].slice(0, 3)).toEqual(['--json', 'sandbox', 'create']);
   expect(scenario('create-with-env-and-upload').retries).toBeUndefined();
 });
 
@@ -127,7 +141,7 @@ it.each(['Error', 'failed', 'sbx-XXXXX'])('never tracks an invalid native create
   const cwd = mkdtempSync(join(tmpdir(), 'abx-cloud-contract-'));
   directories.push(cwd);
   const track = vi.fn();
-  const abx = vi.fn(async () => result({ sandbox_id: id }));
+  const abx = vi.fn(async () => result({ID: id }));
   await expect(scenario('create-with-env-and-upload').run({ ...journalFixture(), cwd, state: {}, abx, track, fail })).rejects.toThrow('valid owned sandbox identity');
   expect(track).not.toHaveBeenCalled();
   expect(abx).toHaveBeenCalledTimes(1);
@@ -293,7 +307,7 @@ it('system ports rejects an authentication error while preserving its exact miss
 it.each(['create-missing-template', 'create-missing-template-json'])('retains an unexpectedly created ID before rejecting negative case %s', async (id) => {
   const journal = journalFixture();
   const track = vi.fn();
-  const abx = vi.fn(async () => ({ ...result({ sandbox_id: 'sbx-unexpected-create' }), maskedStdout: 'sbx-unexpected-create\n' }));
+  const abx = vi.fn(async () => ({ ...result({ID: 'sbx-unexpected-create' }), maskedStdout: 'sbx-unexpected-create\n' }));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === id);
   await expect(testCase.run({ ...journal, abx, track, fail })).rejects.toThrow('unexpectedly returned');
   expect(track).toHaveBeenCalledWith('sbx-unexpected-create');
@@ -354,7 +368,7 @@ it('does not accept an authorization error as a successful package inventory', a
 it.each(['create-missing-template', 'create-missing-template-json'])('rejects a created ID even when %s also reports its expected error', async (id) => {
   const journal = journalFixture();
   const track = vi.fn();
-  const abx = vi.fn(async () => ({ ...result({ sandbox_id: 'sbx-unexpected-create', status: 'error', code: 'E2001', message: 'template not found' }, 4), maskedStdout: 'sbx-unexpected-create\n', out: '404 template not found' }));
+  const abx = vi.fn(async () => ({ ...result({ID: 'sbx-unexpected-create', status: 'error', code: 'E2001', message: 'template not found' }, 4), maskedStdout: 'sbx-unexpected-create\n', out: '404 template not found' }));
   const testCase = readonlySuite.scenarios.find((item: { id: string }) => item.id === id);
   await expect(testCase.run({ ...journal, abx, track, fail })).rejects.toThrow('unexpectedly returned');
   expect(track).toHaveBeenCalledWith('sbx-unexpected-create');
@@ -430,20 +444,21 @@ const { default: dockerSuite } = await import(dockerModule);
 
 it('Docker deployment tracks a reported owned ID before a failed result and never replays submission', async () => {
   const track = vi.fn();
-  const abx = vi.fn(async (_argv: string[]) => ({ ...result({sandbox_id: 'sbx-docker-owned'}, 1), out: 'lost final response' }));
-  const ctx = { ...journalFixture(), state: {name: 'owned-docker', source: '/fixture', build: '/fixture/build.json'}, abx, track, fail };
+  const abx = vi.fn<(argv:string[])=>Promise<ReturnType<typeof result>>>().mockResolvedValueOnce(result({status:'ready'})).mockResolvedValueOnce({...result({ID:'sbx-docker-owned'},1),out:'lost final response'});
+  const ctx = { ...journalFixture(), state: {name: 'owned-docker', source: '/fixture', build: '/fixture/build.json',templateId:'tpl-owned'}, abx, track, fail };
   await expect(dockerSuite.scenarios[1].run(ctx)).rejects.toThrow('create exit 1');
   expect(track).toHaveBeenCalledWith('sbx-docker-owned');
-  expect(abx).toHaveBeenCalledOnce();
-  expect(abx.mock.calls[0]![0]).toEqual(['--json', 'deploy', '--build', '/fixture/build.json', '--name', 'owned-docker', '--sandbox-timeout', '600', '--yes']);
+  expect(abx).toHaveBeenCalledTimes(2);
+  expect(abx.mock.calls[0]![0]).toEqual(['--json','deploy','--build','/fixture/build.json','--name','owned-docker','--yes']);
+  expect(abx.mock.calls[1]![0]).toEqual(['--json','sandbox','create','--template','tpl-owned','--timeout','600','--yes']);
 });
 
 it.each([{retained:[]}, {retained:[{kind:'image', state:'retained'}]}])('Docker cleanup keeps build recovery until all owned artifacts are absent: %j', async ({retained}) => {
   const root = mkdtempSync(join(tmpdir(), 'abx-docker-cleanup-')); directories.push(root);
-  const build = join(root, 'build.json'); writeFileSync(build, JSON.stringify({prepared:{reference:'tpl-owned'}}));
+  const build = join(root, 'build.json'); writeFileSync(build, JSON.stringify({resources:[{kind:'template',name:'agent',id:'tpl-owned'},...retained.map(item=>({...item,owned:true,status:'retained'}))]}));
   const resolveCreateAttempt = vi.fn();
   const abx = vi.fn().mockResolvedValueOnce(result({status:'deleted'}))
-    .mockResolvedValueOnce(result({status:'cleaned',retained}))
+    .mockResolvedValueOnce(result({status:'deleted',retained}))
     .mockResolvedValueOnce(result({status:'error',code:'E2001'},4));
   const ctx = {state:{name:'owned-docker',sandbox:'sbx-owned',build,buildAttempt:'build-intent'},abx,resolveCreateAttempt,fail};
   if (retained.length) await expect(dockerSuite.teardown(ctx)).rejects.toThrow('cleanup is unconfirmed');

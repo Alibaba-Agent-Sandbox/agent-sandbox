@@ -38,7 +38,7 @@ async function kill(id) {
 const program = "import http.server,uuid; token=uuid.uuid4().hex; Handler=type('Handler',(http.server.BaseHTTPRequestHandler,),{'do_GET':lambda self:(self.send_response(200),self.end_headers(),self.wfile.write(token.encode())),'log_message':lambda *args:None}); http.server.HTTPServer(('127.0.0.1',8765),Handler).serve_forever()";
 const query = "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8765',timeout=3).read().decode())";
 async function create(template) {
-  const id = JSON.parse(await command(['--json', 'deploy', '--template-id', template, '--sandbox-timeout', '900', '--yes'])).sandbox_id;
+  const id = JSON.parse(await command(['--json', 'sandbox', 'create', '--template', template, '--timeout', '900', '--yes'])).ID;
   assert.match(id, /^[a-zA-Z0-9_-]+$/); sandboxes.add(id);
   await command(["sandbox", 'exec', '--background', id, 'python3', '-u', '-c', program]);
   let token;
@@ -77,7 +77,7 @@ try {
       for (const item of await snapshotList(id)) snapshots.add(item.snapshotId);
     }
     await until(async () => (await snapshotList(id)).some(item => item.snapshotId === snapshot), 'snapshot index');
-    const restored = JSON.parse(await command(["--json", "deploy", "--template-id", snapshot, "--sandbox-timeout", "300", "--yes"])).sandbox_id;
+    const restored = JSON.parse(await command(["--json", 'sandbox', 'create', '--template', snapshot, '--timeout', "300", "--yes"])).ID;
     assert.match(restored, /^[a-zA-Z0-9_-]+$/); sandboxes.add(restored);
     assert.equal((await command(["sandbox", 'exec', restored, 'python3', '-c', query])).trim(), token);
     assert.equal(await command(["sandbox", 'exec', restored, 'cat', '/tmp/conditional-file']), 'checkpoint');

@@ -243,10 +243,18 @@ it("test_nl_init_explicit_directory_keeps_source_local", async () => {
   _assertLocalTemplate(path.join(tmp, "explicit"));
 });
 
-it.each([["create"], ["sandbox", "create"], ["init"]])("removed generation alias is rejected [%s]", async (...command) => {
+it.each([["create"], ["init"]])("removed generation alias is rejected [%s]", async (...command) => {
   const result = await runner().invoke(cli, [...command.flat(), "--prompt", _DESCRIPTION]);
   expect(result.exit_code).toBe(2);
   expect(_shown(result)).toContain("No such command");
+});
+
+it("sandbox create remains an explicit instance command without generation options", async () => {
+  const create = vi.spyOn(Sandbox, "create");
+  const help = await runner().invoke(cli, ["sandbox", "create", "--help"]);
+  expect(help.exit_code, _shown(help)).toBe(0); expect(_shown(help)).toContain("--template"); expect(_shown(help)).not.toContain("--prompt");
+  const result = await runner().invoke(cli, ["sandbox", "create", "--prompt", _DESCRIPTION]);
+  expect(result.exit_code).toBe(2); expect(_shown(result)).toContain("No such option"); expect(create).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------

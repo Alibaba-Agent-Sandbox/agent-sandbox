@@ -1,17 +1,42 @@
-# 整体启动模板
+# 模板资源配置
 
-执行 `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`。模板只有一个启动入口：CLI 准备模板内容、创建沙箱、执行声明的 `start_cmd`、等待 `ready_cmd`，并解析 `provides` 中全部服务的地址。不再选择 workflow，也不再区分应用、执行命令或解释器等启动类型。
+`template.yaml` 声明命名的 Sandbox 模板、静态卷与 Serving。部署准备这些资源；动态沙箱实例由业务代码或明确的 SDK/CLI 调用创建。
 
-Sandbox 模板使用 `spec_version: 5`。托管应用模板请参见独立的[托管应用指南](managed-applications.md)。应用服务、命令、依赖和启动脚本属于同一个模板；`provides` 描述所有服务端点，启动脚本可以启动多个进程。业务命令在启动后按需调用，不会自动执行。Agent Sandbox Server v2 服务通过健康、协议发现和命令目录验证，不执行业务命令。其他服务协议由声明的就绪命令检查，并返回 Provider 提供的访问地址；CLI 不声称理解这些应用协议。
+```yaml
+specVersion: 1
+name: demo
+vars:
+  region: cn-hangzhou
+sandbox:
+  agent:
+    provider: alicloud-express
+    template:
+      region: "${vars.region}"
+      image: registry.example.com/team/agent:v1
+      buildConfig:
+        dockerfile: ./sandbox/Dockerfile
+serving:
+  api:
+    component: serverless-devs/fc3@0.1.26
+    props:
+      region: "${vars.region}"
+      functionName: demo-api
+      runtime: custom-container
+      customContainerConfig:
+        image: registry.example.com/team/api:v1
+        port: 9000
+      environmentVariables:
+        SANDBOX_TEMPLATE_ID: "${resources.agent.output.templateId}"
+```
 
-源码模板使用 Dockerfile 或平台支持的构建配方。作者可以固定 `image`，或固定所属 `provider` 与 `template_id` 来引用已准备的制品；这些是模板内容，不是用户要选择的执行模式。镜像引用要求不可变的 `@sha256:` digest。凭据、上传、注册和平台地址仍由 Provider 处理。CLI 在创建资源前检查所需的平台操作。
+示例仓库地址需换成已有镜像或可写的构建目标。`vars` 可选，键名由作者自行决定，也可以直接在资源属性里填写值。目录初始化表单放在 `registry.yaml.parameters`，之后修改本地配置不依赖目录文件。
 
-目录中的平台内置模板直接按目录名称启动，例如 `abx --provider alicloud-express deploy base --name my-app --yes`。CLI 直接读取目录中的托管模板声明，不复制一份源码清单。已有外部服务使用 server client 连接；启动模板总会创建沙箱。
+地域保留在 `sandbox.名称.template.region`，同级卷使用该地域。Express 模板属性保持扁平结构。`buildConfig` 选择 `dockerfile` 加可选 `context`，或者原生 `steps`，不能混用。路径相对 `template.yaml`；context 省略时采用 Dockerfile 所在目录。没有 buildConfig 时不会自动发现本机 Dockerfile。
 
-## 从 v4 迁移
+Dockerfile 分支的 `image` 是构建推送目标；其他分支的 image 是已有来源镜像，Steps 在此基础上准备沙箱模板，不承诺导出 OCI 镜像。无需认证、证书或仓库网络覆盖时省略整个 `registryConfig`。软件安装放在 Dockerfile 或基础镜像里。原生 `startCommand`、`readyCommand` 在模板准备阶段执行，不代表每次动态实例创建后的启动钩子。
 
-删除 `workflow_contract_version`、`default_workflow` 和 `workflows`，改为 `spec_version: 5`。保留全部 `provides`、`start_cmd`、`ready_cmd`、环境变量和应用代码。启动命令删除 `--workflow` 与 `--service-url`。当前 CLI 对 v4 清单给出迁移错误，不会猜测旧流程。CLI 与模板目录需要同步升级；旧二进制无法读取 v5 清单。
+Serving 保留组件原生 `props`。需要构建 Serving 时，通过资源自己的 `actions.pre-deploy` 声明 `component: serverless-devs/fc3@0.1.26 build ...`。Shell run 和组件动作都在部署发起端执行。`success-deploy` 在该资源就绪后执行，`fail-deploy` 处理失败，`complete-deploy` 在结束时执行。输出引用决定依赖顺序，缺失引用和循环在部署前报错。新部署尝试可能再次运行动作，脚本应能处理重试。
 
-已有验证记录保留其当时版本的历史意义。静态操作检查不等于真实平台测试，也不证明当前账号配置或服务已经就绪。
+命名资源执行器当前支持 Express 和精确版本的 `serverless-devs/fc3`。其他 Provider 的实例 API 独立可用。应用令牌、数据库、模型与动态实例环境由应用自身配置，不增加通用模板字段。秘密通过私有环境或文件引用提供。Agents API 模板提供自己的启动和发布脚本，请按对应 README 使用。
 
-遇到清单版本不符时，请选择包含当前 v5 清单的源码提交。如果远端源码已经更新，但下载的副本仍然陈旧，只删除错误提示中指明的该模板缓存目录，然后重试。`abx template list --refresh` 刷新的是目录索引，不是已下载的源码。固定的旧 Git 提交不会因为删除缓存而变成新版本。CLI 不会自动修改或删除源码文件。
+[构建与部署](deploy-and-build.md) · [原生表达式](../design/template-v1-parser.md) · [完整字段参考](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/docs/template-spec.md)

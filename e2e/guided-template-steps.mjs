@@ -87,13 +87,7 @@ const sandboxEnvironment = baseEnv({ home, creds: { ...base, E2B_API_KEY: sandbo
   ...(credentials.E2B_DOMAIN ? { E2B_DOMAIN: credentials.E2B_DOMAIN, ABX_SANDBOX_DOMAIN: credentials.E2B_DOMAIN } : {}) },
   extra: { ABX_NO_KEYCHAIN: "1", ABX_PROVIDER: "alicloud-express" } });
 assert.ok(!deployEnvironment.ACR_NAMESPACE && !deployEnvironment.ACR_USERNAME && !deployEnvironment.ACR_PASSWORD && !deployEnvironment.E2B_API_KEY && !deployEnvironment.ABX_SANDBOX_API_KEY);
-const yaml = [
-  `name: ${alias}`, `base: ${JSON.stringify(config.image)}`, `generation: ${config.generation}`, "resources:", `  cpu: ${runtime.cpu}`, `  memory: ${runtime.memorySize}`,
-  "build:", "  mode: steps", "  run:", `    - ${JSON.stringify(`printf '%s' '${marker}' > /tmp/abx-guided-steps-marker`)}`,
-];
-if (config.startCommand) yaml.push(`start_cmd: ${JSON.stringify(config.startCommand)}`);
-if (config.readyCommand) yaml.push(`ready_cmd: ${JSON.stringify(config.readyCommand)}`);
-writeFileSync(join(directory, "template.yaml"), yaml.join("\n") + "\n", { mode: 0o600 });
+
 let template;
 let sandbox;
 let submitted = false;
@@ -153,11 +147,11 @@ const cleanupSandboxes = async (templateReference, runAlias, known) => {
 try {
   sourceSubmitted = true;
   persistOwnedState();
-  const sourceCreated = await request(["--json", "deploy", "--template-id", publicSource.templateID, "--sandbox-timeout", "60", "--metadata", `abx_guided_steps_run=${alias}-source`, "--yes"], sandboxEnvironment);
+  const sourceCreated = await request(["--json", 'sandbox', 'create', '--template', publicSource.templateID, '--timeout', "60", "--metadata", `abx_guided_steps_run=${alias}-source`, "--yes"], sandboxEnvironment);
   assert.equal(sourceCreated.code, 0, "Existing public source did not create a sandbox; response withheld");
   let sourceCreatedResult;
   try { sourceCreatedResult = JSON.parse(sourceCreated.stdout); } catch { throw new Error("Source create did not return one JSON document"); }
-  sourceSandbox = sourceCreatedResult.sandbox_id;
+  sourceSandbox = sourceCreatedResult.ID;
   assert.ok(validSandboxId(sourceSandbox), "Source create did not return a single sandbox ID");
   persistOwnedState();
   const sourceExecution = await request(["sandbox", "exec", sourceSandbox, "printf", "verified-public-source-ok"], sandboxEnvironment, 60_000);
@@ -194,11 +188,11 @@ try {
 
   sandboxSubmitted = true;
   persistOwnedState();
-  const created = await request(["--json", "deploy", "--template-id", template, "--sandbox-timeout", "60", "--metadata", `abx_guided_steps_run=${alias}`, "--yes"], sandboxEnvironment);
+  const created = await request(["--json", 'sandbox', 'create', '--template', template, '--timeout', "60", "--metadata", `abx_guided_steps_run=${alias}`, "--yes"], sandboxEnvironment);
   assert.equal(created.code, 0, "Creating the owned build-marker sandbox failed; response withheld");
   let createdResult;
   try { createdResult = JSON.parse(created.stdout); } catch { throw new Error("Sandbox create did not return one JSON document"); }
-  const id = createdResult.sandbox_id;
+  const id = createdResult.ID;
   assert.ok(validSandboxId(id), "Create did not return a single sandbox ID");
   sandbox = id;
   persistOwnedState();

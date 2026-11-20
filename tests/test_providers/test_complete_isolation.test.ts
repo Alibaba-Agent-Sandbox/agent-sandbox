@@ -65,7 +65,7 @@ describe("complete backend isolation", () => {
   it("recomputes CLI options and AI tools after selecting another backend in the same process", async () => {
     const provider = new IsolatedProvider(); registerProvider(provider);
     setCliProvider("alicloud-express");
-    expect(deploy_shortcut.help).toContain("Deploy a catalog template");
+    expect(deploy_shortcut.help).toContain("Prepare named Sandbox templates and volumes");
     expect(TOOL_SCHEMAS.some(s => s.name === "submit_template_build")).toBe(true);
     expect(Object.hasOwn(TOOL_HANDLERS, "submit_template_build")).toBe(true);
     expect(build.params.some(p => p.name === "build_profile")).toBe(true);

@@ -153,6 +153,28 @@ jobs:
           npm install --global --prefix "$RUNNER_TEMP/abx-package-check" ./dist-pack/*.tgz
           node scripts/check-release-artifact.mjs "$RUNNER_TEMP/abx-package-check/bin/abx"
 
+      - name: Build and verify the standalone native engine
+        run: |
+          node scripts/build_binary.mjs
+          python3 - <<'PYCODE'
+          import hashlib, os, pathlib, urllib.request, zipfile
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "abx-native-component"
+          root.mkdir()
+          archive = root / "fc3.zip"
+          with urllib.request.urlopen("https://intl-api.devsapp.cn/v3/packages/fc3/zipball/0.1.26", timeout=60) as response:
+              content = response.read()
+          assert hashlib.sha256(content).hexdigest() == "6b16e9d84392fde4e10c6982371066ba8d366be52e66c7929307a027d8546893", "FC3 archive identity changed"
+          archive.write_bytes(content)
+          destination = root / "component"
+          destination.mkdir()
+          with zipfile.ZipFile(archive) as package:
+              for entry in package.infolist():
+                  assert (destination / entry.filename).resolve().is_relative_to(destination.resolve())
+              package.extractall(destination)
+          PYCODE
+          node scripts/check-release-artifact.mjs dist/binary
+          node scripts/verify-sea-native-engine.mjs --binary dist/binary --component-bundle "$RUNNER_TEMP/abx-native-component/component"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

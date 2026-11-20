@@ -45,17 +45,17 @@ EXPOSE 9000
 `;
 
 const YAML = `\
+specVersion: 1
 name: ignored
-version: "1.0.0"
-description: demo
-spec_version: 5
-provides:
-  app: {protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run]}
-
-ports: [9000]
-resources:
-  cpu: 1
-  memory: 512
+sandbox:
+  agent:
+    provider: alicloud-express
+    template:
+      buildConfig:
+        dockerfile: Dockerfile
+        context: .
+      cpu: 2
+      memorySize: 2048
 `;
 
 const _text = (result: { output: string; stderr: string }): string => (result.output || "") + (result.stderr || "");

@@ -37,7 +37,7 @@ Or use the CLI:
 
 ```bash
 npm install -g @agent-sandbox/cli
-abx deploy --template-id base --yes
+abx sandbox create --template base --yes
 abx sandbox exec <sandbox-id> "echo hello"
 ```
 

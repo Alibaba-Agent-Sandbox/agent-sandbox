@@ -132,10 +132,10 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 abx config set sandbox_api_key your-api-key
 ```
 
-`abx deploy --env KEY=VALUE` 设置新沙箱的运行环境；`abx sandbox exec --env KEY=VALUE NAME -- COMMAND` 只设置该进程的环境。例如：
+`abx sandbox create --env KEY=VALUE` 设置新沙箱的运行环境；`abx sandbox exec --env KEY=VALUE NAME -- COMMAND` 只设置该进程的环境。例如：
 
 ```bash
-abx deploy --template-id base --name my-sandbox --env MODE=example --yes
+abx sandbox create --template base --env MODE=example --yes
 ```
 
 > **历史说明**：macOS Keychain 集成已在过度设计清理中移除（ADR 2026-09-23）。`abx secret` CLI 命令组也已被移除。所有密钥管理现通过环境变量、`.env` 文件或 `abx config set` 完成。

@@ -42,59 +42,18 @@ if __name__ == "__main__":
     start(int(os.environ.get("ABX_SERVER_PORT", "9000")))
 `;
 
-function quoted(value: string): string {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
-
-function platformRuntime(profile: TemplateProfile): string {
-  if (profile.server_start !== "platform_start_cmd" || !profile.start_cmd) return "";
-  return `
-generation: 2
-start_cmd: ${quoted(profile.start_cmd)}
-ready_cmd: ${quoted(profile.ready_cmd ?? "")}
-`;
-}
-
-/** Describe every application service; startup is a single template command. */
-function servicesYaml(profile: TemplateProfile, minimal = false): string {
-  if (minimal) return `spec_version: 5
-provides: {}
-`;
-  const native = profile.server_start === "platform_start_cmd";
-  return `spec_version: 5
-${native ? "" : `start_cmd: ${quoted(`agent-sandbox-server serve --port 9000 --commands ${profile.workdir}/commands.py`)}\n`}
-provides:
-  app: { protocol: agent-sandbox-server, version: 2, port: 9000, operations: [commands.list, commands.run] }
-`;
-}
-
-function templateYaml(profile: TemplateProfile, description: string, cpu: number): string {
-  return `name: {name}
-version: "1.0.0"
-description: ${quoted(description)}
-
-base: ${quoted(profile.base_image)}
-user: ${quoted(profile.user)}
-workdir: ${quoted(profile.workdir)}
-${platformRuntime(profile)}
-${servicesYaml(profile)}
-
-resources:
-  cpu: ${cpu}
-  memory: 2048
-`;
-}
-
-function minimalYaml(profile: TemplateProfile): string {
-  return `name: {name}
-version: "1.0.0"
-description: "Minimal sandbox template"
-
-base: ${quoted(profile.base_image)}
-user: ${quoted(profile.user)}
-workdir: ${quoted(profile.workdir)}
-
-${servicesYaml(profile, true)}
+/** Source preparation is declarative; dynamic instances are created separately. */
+function templateYaml(profile: TemplateProfile, cpu: number, _minimal = false): string {
+  return `specVersion: 1
+name: {name}
+sandbox:
+  agent:
+    provider: ${profile.provider_id}
+    template:
+      buildConfig:
+        dockerfile: ./Dockerfile
+      cpu: ${cpu}
+      memorySize: 2048
 `;
 }
 
@@ -119,49 +78,42 @@ function dockerfile(profile: TemplateProfile, opts: { copyCommands: boolean }): 
 }
 
 function readme(blurb: string, profile: TemplateProfile): string {
-  const who = profile.user || "the image default user";
-  const deploy = `Run from this project directory. Deploy prompts for missing configuration in a terminal.
-It builds the source and starts a named application using the selected Provider.
-
-\`\`\`bash
-abx --provider ${profile.provider_id} deploy . --name {name}
-abx sandbox command run {name} hello --arg name=Ada
-abx delete {name} --yes
-\`\`\`
-
-For automation, configure the required values before adding \`--yes\` to deploy.
-The Provider must support source template preparation and application endpoints.`;
   return `# {name}
 
 ${blurb}
 
-Base image: \`${profile.base_image}\`.
-Default user: \`${who}\`. Working directory: \`${profile.workdir}\`.
+Edit the Dockerfile to install software and copy application files. Edit
+\`sandbox.agent.template\` in template.yaml for template resources and build paths.
+The build context defaults to the Dockerfile directory. No Registry file is needed locally.
 
-## What this template serves
-
-\`commands.py\` starts \`agent-sandbox-server\` on port 9000. The enabled groups are files, process, and system, plus the \`hello\` command.
-
-| Call | What it does |
-|---|---|
-| \`GET /health\` | Process is up |
-| \`GET /commands\` | Lists \`hello\` |
-| \`POST /commands/hello\` | Body \`{"name":"Ada"}\`, returns \`{"result":"Hello, Ada!"}\` |
-| \`POST /shell\` | Runs a shell command and returns stdout |
-| \`POST /files\` | Upload a file under the server base directory |
-
-## Deploy
+## Prepare the template
 
 ${profile.registry}
 
-${deploy}
+\`\`\`bash
+abx deploy . --name {name} --yes
+abx status {name}
+\`\`\`
 
-## Call it over HTTP
+Deployment prepares the reusable Sandbox template. Read its templateId from the result.
+Create dynamic instances through the Sandbox CLI or SDK using that templateId. Pass runtime
+environment variables, application authentication and mounts when creating each instance.
+The template configuration does not create a long-running instance or inject runtime secrets.
 
-Use \`abx status {name}\` to inspect the endpoint. External clients must send the
-application token as a Bearer token and include any additional traffic headers required
-by the Provider. \`ABX_SERVER_TOKEN\` is the application token generated and saved by
-abx; it is separate from the Provider's Sandbox API key.
+## Run the example service
+
+For the Python and Node cases, commands.py provides the \`hello\` HTTP command on port 9000.
+After instance creation, run \`python3 ${profile.workdir}/commands.py\` inside that instance
+with the chosen ABX_SERVER_TOKEN. Resolve port 9000 through the Provider, then call
+\`POST /commands/hello\` with \`Authorization: Bearer <application-token>\` and body
+\`{"name":"Ada"}\`. Include any additional Provider traffic authentication headers.
+ABX_SERVER_TOKEN is an application token, separate from the Sandbox API key.
+The minimal case contains no commands.py; add your own application before using this example.
+
+## Cleanup
+
+Close or delete dynamic instances through the CLI or SDK that created them.
+Use \`abx delete {name} --yes\` to remove the resources owned by the deployment.
 `;
 }
 
@@ -169,7 +121,7 @@ function caseFiles(caseName: string, profile: TemplateProfile): Map<string, stri
   if (caseName === "mcp") return mcpScaffold(profile);
   if (caseName === "python") {
     return new Map([
-      ["template.yaml", templateYaml(profile, "Python sandbox template", 2)],
+      ["template.yaml", templateYaml(profile, 2)],
       ["Dockerfile", dockerfile(profile, { copyCommands: true })],
       ["commands.py", _COMMANDS],
       ["README.md", readme("A Python sandbox template generated by `abx template init`.", profile)],
@@ -177,7 +129,7 @@ function caseFiles(caseName: string, profile: TemplateProfile): Map<string, stri
   }
   if (caseName === "node") {
     return new Map([
-      ["template.yaml", templateYaml(profile, "Node.js sandbox template", 1)],
+      ["template.yaml", templateYaml(profile, 1)],
       ["Dockerfile", dockerfile(profile, { copyCommands: true })],
       ["commands.py", _COMMANDS],
       ["README.md", readme("A Node.js sandbox template generated by `abx template init`. The base image and start style come from the selected provider template profile.", profile)],
@@ -185,7 +137,7 @@ function caseFiles(caseName: string, profile: TemplateProfile): Map<string, stri
   }
   if (caseName === "minimal") {
     return new Map([
-      ["template.yaml", minimalYaml(profile)],
+      ["template.yaml", templateYaml(profile, 2, true)],
       ["Dockerfile", dockerfile(profile, { copyCommands: false })],
       ["README.md", readme("A minimal sandbox template generated by `abx template init`.", profile)],
     ]);

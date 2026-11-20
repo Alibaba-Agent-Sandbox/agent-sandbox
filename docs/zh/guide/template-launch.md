@@ -1,24 +1,19 @@
-# 模板部署与清理
+# 部署、日志与清理
 
 ```bash
-abx --provider PROVIDER deploy SOURCE --name my-app --yes
+abx deploy SOURCE --name my-app --plan
+abx deploy SOURCE --name my-app --yes
 abx status my-app
-abx logs my-app
+abx logs my-app --resource api
 abx delete my-app --yes
 ```
 
-SOURCE 可以是目录名称、本地工程或固定 Git 引用。使用已有原生模板时改用 `--template-id TEMPLATE_ID`。当前源码使用统一命令入口；旧发行版可能不同，请检查 `abx --help`。
+SOURCE 可以是目录条目、本地目录或固定 Git 引用。命名资源执行器支持 Express 模板/静态卷及精确版本的 FC3 Serving。先配置已有云身份；构建镜像还需要 Docker 和可写仓库。组件保留其原生运行时、规格与地域限制。
 
-Sandbox 模板准备后创建一个实例，执行声明的启动和就绪条件，并解析 `provides` 中所有端点。Server v2 服务会进行健康和协议发现，但不会执行业务命令。其他 HTTP 协议依赖声明的就绪条件，不会被自动认证为应用协议兼容。托管应用使用不同的生命周期，见[托管应用](managed-applications.md)。
+FC 的 build、deploy、logs、remove 使用同一个原生组件加载器。组件和 Shell 诊断接入 abx 的详细程度、quiet 与 stderr 输出，交互终端显示进度，--json 保持机器可读。多个 Serving 时通过 --resource 选择；FC 运行日志需要已配置 SLS。模板准备没有动态实例日志流，查询沙箱日志需要实际运行中的实例 ID。
 
-配置所选 Provider 后再部署。Express 可能需要平台与镜像仓库权限；OpenSandbox 需要可达服务、Docker、可写镜像仓库，以及运行端的拉取权限。官方配方可解析已知基础镜像占位符，`ABX_BASE_IMAGE_REGION` 和 `ABX_BASE_IMAGE_TAG` 仅控制镜像输入。普通构建不需要另行检出 Python SDK；仅有意测试本地开发 wheel 时使用 `ABX_SERVER_SDK_SOURCE`。
+资源输出引用等待生产资源就绪。本机动作按声明顺序执行；应用发布由模板脚本承接。Agents API 的 FC 资源部署不等于业务验收完成，发布脚本还需要验证候选版本。旧 Session 路由和删除前 drain 见[应用模板说明](managed-applications.md)。
 
-部署的 `--build-timeout` 约束准备期限，`--sandbox-timeout` 设置实例期限，`--build-profile` 选择已声明配方。HTTP 请求等待和远端任务终止是不同概念；超时不证明远端副作用没有发生。
+执行前保存归属记录。源码消失不等于可以接管同名替代资源；recover 观察已记录身份，保留未知结果。401/403 或网络错误不能证明资源已删除。镜像、retain 卷和 FC auto 资源按保留清单处理。
 
-缺少应用令牌时，CLI 自动生成并私密保存。外部客户端分别传应用令牌与 Provider 端点认证；代理前缀、签名查询及网关请求头不能随意丢弃。
-
-失败时查看当前状态，运行 `abx recover my-app` 观察未完成操作，再按归属删除。不要把网络、401/403 或服务器错误当作资源不存在。源构建不会自动重放，失败清理结果和保留资源以命令输出为准。
-
-Docker 下载问题应检查构建容器内的 DNS、HTTPS、代理、CA 和 MTU；宿主下载成功不能证明容器网络正常。不要关闭 TLS 校验或改依赖版本掩盖网络问题。`--verbose` 可用于本机诊断，日志可能含应用自行打印的私密数据。
-
-[清单与启动语义](template-workflows.md) · [构建复用](authoring-templates.md)
+[资源语义](template-workflows.md) · [构建复用](deploy-and-build.md)

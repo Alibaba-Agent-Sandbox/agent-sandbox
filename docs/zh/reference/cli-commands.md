@@ -10,23 +10,22 @@
 
 ```bash
 abx config init
-abx deploy python-hello --name demo
+abx deploy python-hello --name demo --yes
 abx status demo
-abx logs demo
-abx delete demo
+abx delete demo --yes
 ```
 
-`deploy SOURCE` 接受目录名称、Registry 源码引用或本地模板目录。`--name` 设置独立于模板的实例名称，省略时使用模板名。`--plan` 校验源码并预览所需资源，不构建或部署。自动化使用 `--yes` 授权变更；JSON 输出不代表授权。
+`deploy SOURCE` 接受目录名称、Registry 源码引用或本地模板目录。`--name` 设置资源部署名称，省略时使用模板名。`--plan` 校验源码并预览所需资源，不构建或部署。自动化使用 `--yes` 授权变更；JSON 输出不代表授权。
 
-已有 Provider 原生模板可使用 `deploy --template-id ID`，无需准备源码。`--sandbox-timeout` 控制 Sandbox 租期，`--build-timeout` 控制模板准备期限，`sandbox exec --timeout` 控制单条命令。Express 还支持 `--on-timeout pause --auto-resume`。`--env`、`--metadata`、`--volume-mount`、`--upload` 配置 Sandbox 实例。
+`sandbox create --template ID --timeout 600 --yes` 使用已有原生模板创建动态实例。`--env`、`--metadata`、`--volume-mount` 属于该创建命令，文件使用 `sandbox upload` 上传。deploy 的 `--build-timeout` 控制资源准备期限，`sandbox exec --timeout` 控制单次命令。
 
-托管应用同样使用 `deploy`，通过 `--bindings FILE` 提供外部服务及凭据引用。对已就绪应用使用相同名称部署会更新应用，并保留仍有会话使用的版本。普通 Sandbox 部署需先删除，再使用相同名称创建。资源已删除的名称可以复用。
+Serving 使用 `serving.<名称>.props` 声明组件原生配置。外部服务和凭据通过私有环境引用，应用运行行为由业务代码与 SDK 管理。
 
 `list` 汇总本机部署记录和所选 Provider 的 Sandbox。`--local` 不查询云端；`--all-providers` 查询所有已配置 Provider；`--limit`、`--offset`、`--status` 控制远端 Sandbox 结果。本机记录状态与远端观察分别标明。
 
 `status`、`logs`、`delete` 也接受原生 Sandbox ID；同名本机部署优先，可通过带 Provider 前缀的 ID 明确访问原生资源。`status --revisions` 展示应用保留版本；`delete NAME --revision REVISION` 退役不再使用的版本。
 
-具名 Sandbox 的 `logs` 读取模板服务启动日志；`--source platform` 读取原生 Sandbox 日志。托管应用通过 `logs --role gateway|worker|dispatcher` 查询相应函数已配置的 FC 日志目的地，目前支持单次查询，需要预先启用该函数的日志配置。
+`logs NAME --resource SERVING_NAME` 读取所选 Serving 的 FC 日志；动态实例使用其 Sandbox ID 读取日志，函数须已配置日志投递。
 
 `recover NAME` 根据保留的归属记录观察中断结果，不重放结果不确定的创建或发布请求。根据输出处理后再部署或删除。本机记录位于 `~/.abx/deployments`，资源存在期间请保留；本机部署锁不协调多台机器的并发部署。
 

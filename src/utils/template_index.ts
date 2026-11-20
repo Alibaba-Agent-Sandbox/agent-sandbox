@@ -2,15 +2,13 @@
  * Remote template index client.
  *
  * The official and community template catalog lives in a **single source of truth** repository:
- * `alibaba-agent-sandbox/awesome-templates`.  Its root index file (`awesome-templates.yaml`) is what `abx template list`
- * queries and what `abx template init ./project --from <name>` resolves bare template names against.
+ * `alibaba-agent-sandbox/awesome-templates`. Registry generates a static metadata index from its source locators
+ * and registry.yaml descriptors for `abx template list` and named template initialization.
  *
  * Design notes
  * ------------
- * * The default index URL points at `raw.githubusercontent.com` — raw files are served by a CDN and are **not**
- *   subject to the 60 requests/hour anonymous limit of `api.github.com`.  A `GITHUB_TOKEN` is still honoured for
- *   private mirrors: prefer storing it once with `abx config set github_token`; `--token` remains a one-off override
- *   that may leak into shell history and process listings.
+ * * The public Registry index needs no GitHub credential. A GitHub token is used only for explicitly selected
+ *   private mirror URLs, and is never forwarded to the public Registry host.
  * * The fetched index is cached under `~/.abx/index/` together with metadata (`fetched_at` / `etag`).  Within
  *   `INDEX_MAX_AGE_SECONDS` the cache is used without touching the network; `force=true` (`--refresh`) bypasses it,
  *   and a conditional request (`If-None-Match`) keeps refreshes cheap.
@@ -20,7 +18,9 @@
  *   instead of being misinterpreted.
  */
 
-import { validateTemplateManifest } from "../template/launch_plan.mjs";
+import fs from "node:fs";
+import { normalizeCatalogMetadata, normalizeProjectIntent } from "../template/definition.mjs";
+import { readProjectDocument } from "../template/project.js";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ValueError } from "../models/value_error.js";
@@ -36,7 +36,7 @@ const logger = getLogger("utils.template_index");
 
 /** Canonical index location (single source of truth). */
 export const DEFAULT_INDEX_URL =
-  "https://raw.githubusercontent.com/alibaba-agent-sandbox/awesome-templates/main/awesome-templates.yaml";
+  "https://registry.agent-sandbox.cn/templates/index.json";
 
 /** Environment variable that overrides the index location. */
 export const INDEX_URL_ENV = "ABX_TEMPLATE_INDEX_URL";
@@ -56,7 +56,7 @@ export function _setIndexCacheDir(dir: string): string {
 }
 
 /** Index schema version understood by this client. */
-export const INDEX_SCHEMA_VERSION = 2;
+export const INDEX_SCHEMA_VERSION = 3;
 
 /** Cache freshness window for `search` / `install` (seconds). */
 export const INDEX_MAX_AGE_SECONDS = 3600;
@@ -286,27 +286,49 @@ export function _parseEntry(raw: unknown, index_url: string): TemplateIndexEntry
   }
   const repoRaw = dget(raw, "repo");
   const repo = pyStrip(truthy(repoRaw) ? pyStr(repoRaw) : "");
-  if (!repo && raw["template_id"] === undefined) {
+  if (!repo && raw["resource"] === undefined) {
     throw new TemplateParseError(`Index entry '${name}' is missing the required 'repo' field (${index_url}).`);
   }
+  if (repo) void _parseRepoSlug(repo);
   const pathRaw = dget(raw, "path");
   const refRaw = dget(raw, "ref");
-  const tagsRaw = dget(raw, "tags");
+  let metadata: ReturnType<typeof normalizeCatalogMetadata>;
+  try {
+    let value = raw.metadata;
+    if (value === undefined && !/^https?:\/\//i.test(index_url) && typeof raw.registry === "string") {
+      const catalogRoot = fs.realpathSync(path.dirname(path.resolve(index_url)));
+      const sourceRoot = fs.realpathSync(path.resolve(catalogRoot, typeof raw.path === "string" ? raw.path : path.dirname(raw.registry)));
+      const candidate = path.resolve(catalogRoot, raw.registry);
+      const within = (root: string, file: string) => { const relative = path.relative(root, file); return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative); };
+      if (path.isAbsolute(raw.registry) || raw.registry.includes("\\") || raw.registry.split("/").includes("..") || !within(catalogRoot, sourceRoot) || !within(sourceRoot, candidate) || !within(sourceRoot, fs.realpathSync(candidate))) throw new Error("Uncontained metadata");
+      value = readProjectDocument(candidate);
+    }
+    if (value === undefined) throw new Error("Missing metadata");
+    metadata = normalizeCatalogMetadata(value);
+    if (metadata.name !== name) throw new Error("Mismatched metadata");
+  } catch {
+    throw new TemplateParseError(`Index entry '${name}' requires valid Registry v1 metadata. Use the generated /templates/index.json index or a local catalog with contained registry.yaml references.`);
+  }
+  const tagsRaw = metadata.tags;
   const tags: unknown = truthy(tagsRaw) ? tagsRaw : [];
 
   if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) {
     throw new TemplateParseError(`Index entry '${name}': 'tags' must be a list of strings.`);
   }
   let manifest: Record<string, unknown> | null = null;
-  for (const retired of ["capabilities", "tested_on", "providers"]) if (Object.hasOwn(raw, retired)) throw new TemplateParseError(`Index entry '${name}' uses retired field '${retired}'.`);
+  for (const retired of ["capabilities", "tested_on", "providers", "template_id", "spec_version", "description", "tags", "author"]) if (Object.hasOwn(raw, retired)) throw new TemplateParseError(`Index entry '${name}' uses retired field '${retired}'.`);
   // Source rows are locators. Their fetched template.yaml is the only manifest authority.
-  if (raw["template_id"] !== undefined) {
-    try { manifest = validateTemplateManifest(raw); } catch (error) { throw new TemplateParseError(`Managed entry '${name}' has an invalid manifest: ${String(error)}`); }
+  if (raw["resource"] !== undefined) {
+    try {
+      const resource = normalizeProjectIntent(raw.resource);
+      if (resource.name !== name || Object.keys(resource.serving ?? {}).length > 0 || Object.values(resource.sandbox ?? {}).length !== 1 || !Object.values(resource.sandbox ?? {})[0]?.template.reference) throw new Error("Not a native reference");
+      manifest = resource as unknown as Record<string, unknown>;
+    } catch { throw new TemplateParseError(`Managed entry '${name}' has an invalid v1 native resource.`); }
   }
 
 
-  const descRaw = dget(raw, "description");
-  const authorRaw = dget(raw, "author");
+  const descRaw = metadata.description.en;
+  const authorRaw = metadata.author;
   const statusRaw = dget(raw, "status");
   const entry = new TemplateIndexEntry({
     name,
@@ -376,8 +398,8 @@ export function parseIndex(text: string, opts: ParseIndexOptions = {}): Template
     throw new TemplateParseError(`Template index 'managed_templates' must be a list (${source_url}).`);
   }
   for (const raw of managed_entries) {
-    if (!isDict(raw) || !Object.hasOwn(raw, "template_id")) {
-      throw new TemplateParseError(`Managed template entries require a native template_id (${source_url}).`);
+    if (!isDict(raw) || !Object.hasOwn(raw, "resource")) {
+      throw new TemplateParseError(`Managed template entries require a v1 native resource (${source_url}).`);
     }
   }
   const entries: TemplateIndexEntry[] = [];
@@ -581,7 +603,8 @@ export async function fetchIndex(
   }
 
   const headers: Record<string, string> = { Accept: "application/x-yaml, text/yaml, text/plain, */*" };
-  if (token) {
+  const endpoint = new URL(url);
+  if (token && endpoint.protocol === "https:" && ["github.com", "api.github.com", "raw.githubusercontent.com"].includes(endpoint.hostname) && !endpoint.username && !endpoint.password) {
     headers["Authorization"] = `Bearer ${token}`;
   }
   if (cached !== null && truthy(meta["etag"]) && !force) {

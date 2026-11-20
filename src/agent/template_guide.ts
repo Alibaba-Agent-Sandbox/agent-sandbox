@@ -94,7 +94,7 @@ function howItIsUsed(profile: TemplateProfile): string {
 \`commands.py\` 只从 \`agent_sandbox.server\` 导入，并在 \`if __name__ == "__main__"\` 里调用 \`start(${SERVER_PORT})\`。`;
   if (profile.server_start === "platform_start_cmd") {
     return `${common}
-这个 provider 的基础镜像入口保持为 PID 1。平台执行 start_cmd 加载 \`commands.py\`，不要把 \`start()\` 写在导入时会执行的位置。`;
+这个 provider 的基础镜像入口保持为 PID 1。实例创建后由业务代码/SDK/CLI显式执行服务命令加载 \`commands.py\`，不要把 \`start()\` 写在导入时会执行的位置。`;
   }
   return `${common}
 容器主进程是 \`python3 commands.py\`（镜像 \`CMD\`）。`;
@@ -110,17 +110,16 @@ function dockerfileRules(profile: TemplateProfile): string {
     : `不要写 ENTRYPOINT 指令（基础镜像的入口不可替换）。`;
   const installIntro =
     "- 安装 agent-sandbox-server，固定使用下面已发布的 PyPI alpha 测试版（不是稳定版）。" +
-    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx deploy` 改用本地 wheel：";
-  const secrets = "- 不要在镜像里写入任何密钥；需要的密钥在 template.yaml 的 `env` 里只列名字（空值或非敏感默认值）。";
+    "需要使用本地源码时由作者显式准备 wheel 并在Dockerfile中安装：";
+  const secrets = "- 不要在镜像或模板里写入运行秘密；README列出实例创建时需配置的环境变量及用途。";
   if (profile.server_start === "platform_start_cmd") {
     return `### 3. Dockerfile 规则（provider \`${profile.provider_id}\`）
 - 以这一行开头：\`FROM ${profile.base_image}\`。
 - ${entry}
-- 不要写 CMD 指令。平台用 start_cmd / ready_cmd 启动服务，而不是镜像指令：
-  - start_cmd: \`${profile.start_cmd}\`
-  - ready_cmd: \`${profile.ready_cmd ?? ""}\`
+- 不要覆盖基础镜像入口；实例创建后显式执行并检查以下服务命令：
+  - 启动: \`${profile.start_cmd}\`
+  - 就绪检查: \`${profile.ready_cmd ?? ""}\`
 - 架构 \`${profile.arch}\`。\`WORKDIR ${profile.workdir}\`。默认用户 \`${profile.user || "镜像默认"}\`${profile.user ? `，写 \`USER ${profile.user}\`` : "，不要写 USER"}。
-- \`template.yaml\` 里写 \`user: ${profile.user || '""'}\` 和 \`workdir: ${profile.workdir}\`。这是沙箱执行时的默认用户和工作目录，和 Dockerfile 保持一致。
 - ${ports}
 - 仓库：${profile.registry}
 ${installIntro}
@@ -136,7 +135,6 @@ ${secrets}`;
   用 apt-get 安装 \`python3 python3-pip\`，pip 需加 \`--break-system-packages\`）。
 - ${entry}
 - 架构 \`${profile.arch}\`。\`WORKDIR ${profile.workdir}\`${profile.user ? `，\`USER ${profile.user}\`` : ""}，\`COPY commands.py .\`（以及业务代码），\`EXPOSE ${SERVER_PORT}\`（业务端口一并 EXPOSE），
-- \`template.yaml\` 里写 \`user: ${profile.user || '""'}\` 和 \`workdir: ${profile.workdir}\`。这是沙箱执行时的默认用户和工作目录。
   最后 \`${cmd}\`。
 - ${ports}
 - 仓库：${profile.registry}
@@ -149,22 +147,14 @@ ${secrets}`;
 
 /** Native source-file transport is assembled by the CLI from final local bytes. */
 function platformStepsRules(profile: TemplateProfile): string {
-  return `### 3a. 本次发布模式：steps（必须完成，Dockerfile 不参与本次构建）
-- 仍创建可审阅的 Dockerfile、commands.py、template.yaml 和 README.md。
-- CLI 已解析基础镜像 ${profile.base_image}、运行用户 ${profile.user || "root"}、工作目录 ${profile.workdir}。
-  CLI 会确定性生成 base.image、安装 ${SERVER_SDK_RELEASE_SPEC}、上传最终业务文件、修正所有权并恢复运行用户。
-- template.yaml 中只需在已有 build.run 字符串数组列出额外依赖安装命令；没有额外依赖时省略 build。
-  不要写 base、build.steps、base64、heredoc、逐行 echo 或任何源码传输命令，不要重复安装 agent-sandbox-server。
-  build.run 只安装需求确实需要的依赖，不运行应用；CLI 会在部署时传输真实文件内容。
-- 先完成 commands.py 及确实需要的业务代码、依赖清单。不要创建生成 manifest 的辅助脚本。
-  template.yaml 用 JSON 格式写入（JSON 是合法 YAML），用本地 Python json.dumps 序列化，避免 YAML/shell 嵌套转义。
-- 不假定基础镜像的 Python 版本。pandas/matplotlib 等有官方 wheel 的包使用 --only-binary=:all:，
-  只安装需求用到的依赖；版本不兼容时报告错误，不静默改版本，不安装无关编译工具。
-- 保留 provider start_cmd / ready_cmd，commands.py 只在 __main__ 下 start，不写 CMD 或 ENTRYPOINT。
-- README 说明平台 steps 无需本地 Docker/ACR、使用 alpha SDK。运行身份和目录可写性必须通过实际运行检查，
-  不凭构建步骤声明已验证可写；不要改成 root 运行或 chmod 777。
-- 完成前用本地 Python ast.parse 检查 commands.py、json.loads 检查 template.yaml，检查四个根文件都存在。
-  不要执行云构建或安装本地依赖。`;
+  return `### 3a. Provider原生steps
+- 从 template.image 指定的已有镜像准备模板，buildConfig.steps 使用 Provider 的 USER/WORKDIR/ENV/RUN 步骤。
+- 不与本地 Dockerfile/context 分支叠加；普通源码生成选择 Dockerfile。
+- steps 不自动上传本机文件，也不承诺将模板快照导出为OCI镜像。
+- 基础镜像 ${profile.base_image} 的软件和运行用户以镜像实际内容为准。
+- 运行身份和目录可写性必须通过实际运行检查，不凭构建步骤声明已验证可写。
+- 数值依赖优先 --only-binary=:all:，不安装无关编译工具；版本不兼容时报告错误。`;
+
 }
 
 /**
@@ -217,32 +207,25 @@ from agent_sandbox.server import (
 - 内置接口总是存在：\`GET /health\`、\`GET /capabilities\`、\`GET /commands\`、\`POST /commands/<名字>\`。
 - 鉴权：设置了环境变量 \`ABX_SERVER_TOKEN\` 时，应用请求使用 \`Authorization: Bearer <ABX_SERVER_TOKEN>\`（仅 \`/health\` 免应用鉴权，\`/capabilities\` 需要应用 token）。平台网关的 \`X-Access-Token\` 独立配置，不要混用两个 token；不要在代码里写死 token。
 - 需求是一个 Web/API 服务时：在 \`start()\` 之前用 \`subprocess.Popen([...])\` 拉起业务进程并监听自己的端口
-  （该端口写进 template.yaml 的 \`ports\` 与 Dockerfile 的 EXPOSE），或者做成 \`@command\`。
+  （该端口写进 Dockerfile 的 EXPOSE，并在README说明实例端口解析），或者做成 \`@command\`。
   ${SERVER_PORT} 端口必须由 \`start()\` 提供。
 - 文件末尾只在 \`if __name__ == "__main__":\` 里调用 \`start(${SERVER_PORT})\`。
   导入 \`commands.py\` 时不要调用 \`start()\` 或 \`serve()\`。平台 \`--commands\` 会 import 这个文件。
 - 只使用上面列出的 API，不要臆造 SDK 里不存在的类、函数或接口。
 
 ### 5. template.yaml 规则
-必填：\`name\`（使用给定的模板名）、\`version: "1.0.0"\`、\`description\`（一句话中文，不超过 50 字）、
-\`spec_version: 5\`、\`provides\`、\`ports\`、\`resources\`。
-- \`provides.app\` 声明 HTTP 应用协议 \`agent-sandbox-server\`、版本 2、端口及 \`commands.list/commands.run\`。
-- 用 \`start_cmd\` 启动模板中的所有服务，\`ready_cmd\` 检查它们就绪；不要定义 workflows 或启动类型。
-- 普通镜像内 Python 或应用服务不代表统一解释器支持；不要写旧字段 \`capabilities\`、\`tested_on\` 或 \`providers\`。
-- \`ports\`：至少包含 ${SERVER_PORT}，业务端口一并列出。
-- \`resources.cpu\`：1-8 的整数；\`resources.memory\`：512-16384 的整数（MB）。
-${selected.resource_notes ? `- ${selected.resource_notes}` : ""}
-- \`env\`：环境变量的名字与非敏感默认值（如 \`LANG: C.UTF-8\`）；密钥类只列名字，值留空。
-${mode === "create" ? "- 新生成应用必须声明 env.ABX_SERVER_TOKEN 为空字符串；令牌由运行环境提供，CLI 在构建/创建前验证并注入，不写入镜像或生成文件。README 的 CLI/SDK/HTTP 示例都使用此应用令牌；不要声称它可选，也不要把控制面 API key 当作应用令牌。" : ""}
-- 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
-- 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
-  \`abx sandbox command run <app-name> <名字>\` 调用。
-- \`tags\`、\`author\` 可省略。
-${
-  selected.server_start === "platform_start_cmd"
-    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx deploy\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
-    : ""
-}
+必填：\`specVersion: 1\`、\`name\`（给定模板名），以及命名资源 \`sandbox.agent\`。
+- \`sandbox.agent.provider: ${selected.provider_id}\`。
+- \`sandbox.agent.template.buildConfig: { dockerfile: Dockerfile, context: . }\`；context可省略，默认Dockerfile目录。
+- CPU与内存写在 \`sandbox.agent.template.cpu\` 和 \`memorySize\`，按Provider能力校验。
+- \`template.region\`保留模板地域。镜像、用户与工作目录由Dockerfile声明。
+- 该文件准备模板，不创建动态实例；不要添加instance、services、start/ready或application区块。
+- 若配置template.startCommand/readyCommand，它们仅属于Provider原生模板准备阶段，不是实例创建后的启动钩子。
+- 实例的环境变量、认证、挂载与应用启动由业务代码/SDK/CLI在创建后配置；不要把运行秘密固化到镜像或模板。
+- Registry上架元数据和可选表单parameters属于registry.yaml，本地运行不依赖它。
+- 端口由进程监听和Dockerfile EXPOSE说明；通过Provider解析实际实例端口地址。
+- commands.py通过@command注册命令；README完整说明创建实例、启动服务、认证与清理。
+
 
 ### 6. 完整参考：commands.py 的最小形态
 \`\`\`python

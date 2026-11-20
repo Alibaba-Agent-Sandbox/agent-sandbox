@@ -20,11 +20,11 @@ async function run(args: string[]): Promise<{ code: number; stdout: string; stde
   }));
 }
 describe("single executable contract", () => {
-  it.each(["pause", "resume", "metrics", "snapshot", "fork", "network", "exec", "connect", "files", "process", "command", "system"])("exposes native %s capability", async name => {
+  it.each(["create", "delete", "pause", "resume", "metrics", "snapshot", "fork", "network", "exec", "connect", "files", "process", "command", "system"])("exposes native %s capability", async name => {
     const result = await run(["sandbox", name, "--help"]);
     expect(result.code, result.stderr).toBe(0); expect(result.stdout).toContain("Usage:");
   });
-  it.each(["create", "list", "info", "kill", "logs"])("has no duplicate sandbox %s management entry", async name => {
+  it.each(["list", "info", "kill", "logs"])("has no duplicate sandbox %s management entry", async name => {
     expect((await run(["sandbox", name, "--help"])).code).toBe(2);
   });
   it.each(["--json", "--quiet", "--verbose", "--no-color"])("uses the root %s option for protocol operations", async flag => {

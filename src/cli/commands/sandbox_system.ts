@@ -261,7 +261,7 @@ export const system_env = command("env", {
     "Related commands:\n" +
     "  abx sandbox system info SANDBOX_ID\n" +
     "  abx sandbox exec SANDBOX_ID \"env | sort\"\n" +
-    "  abx deploy --template-id base --env KEY=VALUE --yes",
+    "  abx sandbox create --template base --env KEY=VALUE --yes",
   params: [
     argument(["sandbox_id"]),
     option(["--filter", "-f", "env_filter"], {

@@ -10,23 +10,22 @@
 
 ```bash
 abx config init
-abx deploy python-hello --name demo
+abx deploy python-hello --name demo --yes
 abx status demo
-abx logs demo
-abx delete demo
+abx delete demo --yes
 ```
 
-`deploy SOURCE` accepts a catalog name, a Registry source reference, or a local template directory. `--name` names the instance independently of its template. Omit the name to use the template's name. `--plan` validates the source and previews required resources without building or deploying. `--yes` approves changes in automation; JSON output does not grant approval.
+`deploy SOURCE` accepts a catalog name, a Registry source reference, or a local template directory. `--name` names the resource deployment. Omit the name to use the template's name. `--plan` validates the source and previews required resources without building or deploying. `--yes` approves changes in automation; JSON output does not grant approval.
 
-Use `deploy --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `sandbox exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
+`sandbox create --template ID --timeout 600 --yes` creates a dynamic instance from an existing native template. Its `--env`, `--metadata` and `--volume-mount` options configure creation; use `sandbox upload` for files. Deploy `--build-timeout` controls resource preparation and `sandbox exec --timeout` controls one command.
 
-Managed application templates use the same `deploy` command, with `--bindings FILE` for external-service and credential references. Deploying a ready application under the same name updates it while retaining revisions needed by its sessions. Delete an ordinary Sandbox deployment before recreating it under the same name. A name whose resources were deleted can be reused.
+Serving declares native component configuration under `serving.<name>.props`. Reference external services and credentials through private environment values; application code and SDKs manage runtime behavior.
 
 `list` combines local deployment records with Sandboxes from the selected Provider. `--local` avoids cloud queries; `--all-providers` queries all configured Providers. `--limit`, `--offset` and `--status` filter remote Sandbox results. Recorded deployment state is labelled separately from remote observations.
 
 `status`, `logs` and `delete` also accept raw Sandbox IDs. A matching local name takes precedence. Use a Provider-qualified ID when you need to address a raw ID explicitly. `status --revisions` includes retained application revisions; `delete NAME --revision REVISION` retires an unused revision.
 
-For a named Sandbox, `logs` reads the template service startup log. `--source platform` reads native Sandbox logs. Managed application `logs --role gateway|worker|dispatcher` queries its configured FC log destination; one-shot queries are supported, and logging must already be enabled for that function.
+`logs NAME --resource SERVING_NAME` reads the selected Serving function’s FC logs. Use a Sandbox ID for dynamic instance logs; function log delivery must already be configured.
 
 `recover NAME` inspects interrupted effects using saved ownership records. It never repeats an uncertain creation or publication request. Follow its result before retrying deployment or deletion. Local records live under `~/.abx/deployments`; keep them while their resources exist. A local deployment lock does not coordinate deployments from different machines.
 

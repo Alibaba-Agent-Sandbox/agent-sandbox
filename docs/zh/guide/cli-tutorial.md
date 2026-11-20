@@ -8,4 +8,4 @@
 - [配置与认证](guided-configuration.md)：凭据用途、本机保存、自动化覆盖。
 - [托管应用](managed-applications.md)：独立业务端点和生命周期。
 
-命令行选项以 [CLI 参考](../reference/cli-commands.md)和当前安装版 `--help` 为准。源码生成不自动创建云资源，部署会使用所选 Provider 创建运行实例。
+命令行选项以 [CLI 参考](../reference/cli-commands.md)和当前安装版 `--help` 为准。源码生成不自动创建云资源，部署准备声明的模板、卷和 Serving 资源，动态实例通过 `sandbox create` 或模板的 run.py 单独创建。

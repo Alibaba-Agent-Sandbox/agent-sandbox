@@ -17,7 +17,7 @@ Examples:
   abx provider install https://github.com/acme/abx-provider-acme.git --ref
 4f1c2ab9e0d5c3b7a1f2e8d9c0b1a2f3e4d5c6b7
   abx config set provider acme
-  abx --provider acme deploy --template-id base --yes
+  abx --provider acme sandbox create --template base --yes
   abx list --all-providers
 
 Related commands:
