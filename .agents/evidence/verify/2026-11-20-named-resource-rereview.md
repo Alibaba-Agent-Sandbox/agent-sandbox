@@ -33,13 +33,18 @@ lines while the component runs, with diagnostics remaining separate.
   component and separate result/event channels.
 
 - `npm run typecheck` and `npm run build` passed. The compiled CLI planned all
-  six Harness recipes with private synthetic environment values, using the
-  official Devs resolver and without performing resource operations.
+  six Harness recipe sources. Preview builds the dependency plan from intent
+  and performs no resource operations. This test does not resolve dotenv values;
+  the templates repository separately tests the post-init native resolver.
 - The broad `npm test` run after the first patch reported 4,588 passed, 54
   skipped, 12 failed. Failures affect loopback MCP, TLS and WebSocket test
   expectations in this environment. This is a failed broad local run; it is
-  separate from the focused component checks and prior remote CI.
+  separate from the focused component checks and prior remote CI. Isolating
+  loopback traffic in a network namespace then passed the 39 tests across
+  MCP HTTP, TLS/proxy transport and WebSocket files.
 - `bash scripts/check-repo-health.sh` passed with 106 passes and 11 warnings.
+
+- `npm run lint` exited 0 errors, with 262 warnings.
 
 ## Cleanup
 
