@@ -405,12 +405,12 @@ export async function recoverResourceProject(file: string, services: ResourceSer
 }
 
 /** Native FC logs use the recorded identity and the same isolated component logger. */
-export async function resourceLogs(file: string, selected?: string, follow = false, services: ResourceServices = resourceServices): Promise<unknown> {
+export async function resourceLogs(file: string, selected?: string, follow = false, services: ResourceServices = resourceServices, onLogLine?: (line: string) => void): Promise<unknown> {
   const receipt = readResourceReceipt(file), entries = receipt.resources.filter(entry => entry.kind === "serving" && !["deleted", "retained"].includes(entry.status) && (!selected || entry.name === selected));
   if (entries.length !== 1) throw new ApplicationError(entries.length ? "Select one Serving resource with --resource." : "No matching Serving resource. Sandbox instance logs require a running instance ID.");
   const entry = entries[0], credential = await services.credentials();
   if (credential.AccountID !== receipt.accountId) throw new ApplicationError("Current account differs from the deployment owner.");
   sameFunction(entry, await services.fc(credential, entry.region, entry.endpoint).describeFunction(entry.nativeName));
   return services.component({component: entry.component!, command: "logs", args: follow ? ["--tail"] : [], cwd: path.dirname(fs.realpathSync(file)), name: receipt.name, resource: entry.name,
-    props: {region: entry.region, functionName: entry.nativeName, ...(entry.endpoint ? {endpoint: entry.endpoint} : {})}, credential, timeoutSeconds: follow ? 3600 : 120});
+    props: {region: entry.region, functionName: entry.nativeName, ...(entry.endpoint ? {endpoint: entry.endpoint} : {})}, credential, ...(follow ? {onLogLine} : {}), timeoutSeconds: follow ? 3600 : 120});
 }

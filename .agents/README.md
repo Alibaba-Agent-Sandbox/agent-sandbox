@@ -1,5 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Named resource execution re-review](evidence/verify/2026-11-20-named-resource-rereview.md). Native component diagnostics, current specification and remaining release gates.
+
 - [Current resource E2E entry points](notes/proposed/process/2026-11-13-resource-e2e-entrypoints.md) · [verification](evidence/verify/2026-11-13-resource-e2e-entrypoints.md).
 
 - [Named resource execution](notes/proposed/architecture/2026-11-13-named-resource-execution.md) · [verification](evidence/verify/2026-11-13-named-resource-execution.md). Final user contract, native component host, real Express/FC/ordinary-service checks and remaining business acceptance.

@@ -29,6 +29,7 @@ export interface ComponentExecutionInput {
   props: Record<string, unknown>;
   credential: CredentialSnapshot;
   onLog?: (event: ComponentLogEvent) => void;
+  onLogLine?: (line: string) => void;
   timeoutSeconds?: number;
   sensitiveValues?: string[];
   functionCreationGuard?: {endpoint: string; functionName: string};
@@ -81,6 +82,10 @@ export async function invokeDevsComponent(input: ComponentExecutionInput): Promi
       const end = pending.indexOf("\n"); if (end < 0) break;
       const line = pending.slice(0, end); pending = pending.slice(end + 1);
       const value: unknown = JSON.parse(line);
+      if (input.command === "logs" && input.onLogLine && record(value) && typeof value.line === "string") {
+        input.onLogLine(value.line);
+        continue;
+      }
       if (!record(value) || !["debug", "info", "warning", "error"].includes(String(value.level)) ||
           typeof value.message !== "string" || typeof value.component !== "string" || typeof value.resource !== "string" || typeof value.command !== "string") throw new ApplicationError("Invalid component log event.");
       (input.onLog ?? emitComponentLog)(value as unknown as ComponentLogEvent);
@@ -92,7 +97,7 @@ export async function invokeDevsComponent(input: ComponentExecutionInput): Promi
     const output = await execute({ argv: worker.argv, cwd, env: environment(home),
       input: JSON.stringify({ action: "invoke", events: true, loaderPath: worker.modulePath, component,
         componentReference: component, command: input.command, args: input.args ?? [], cwd, name: input.name,
-        resource: input.resource, yamlPath: path.join(cwd, "template.yaml"), props: input.props,
+        resource: input.resource, followLogs: input.command === "logs" && Boolean(input.onLogLine), yamlPath: path.join(cwd, "template.yaml"), props: input.props,
         credential: input.credential, functionCreationGuard: input.functionCreationGuard, sensitiveValues: input.sensitiveValues ?? [] }),
       privateResult: true, onEventData, timeoutSeconds: input.timeoutSeconds ?? 1800, maxBytes: 8 * 1024 * 1024 });
     if (pending.trim()) throw new ApplicationError("Component log stream ended with an incomplete event.");

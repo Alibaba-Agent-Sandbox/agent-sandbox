@@ -12,6 +12,10 @@ abx status my-app
 
 Direct `abx deploy ./project --name my-app --yes` combines preparation and Serving deployment. Neither command creates a dynamic Sandbox instance. `template build` prepares Sandbox templates/static volumes and runs Serving build actions; `deploy --build` borrows the prepared resources and deploys Serving. Keep the original source and native component build files unchanged until reuse is complete. Secrets remain in private configuration rather than the build record.
 
+Native component progress uses the abx log format. Known deployment credentials and database connection strings are redacted from component diagnostics.
+
+`abx logs APP --resource NAME --follow` streams Serving log lines as they arrive. With `--json`, follow mode writes one JSON string per line, and a one-time read returns a JSON array.
+
 Use the template's documented `run.py` or the SDK to start its dynamic business service. To create a bare instance explicitly:
 
 ```bash

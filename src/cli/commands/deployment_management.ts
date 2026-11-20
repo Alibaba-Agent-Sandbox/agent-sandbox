@@ -182,8 +182,12 @@ export const logs = command("logs", {
     const value = savedTarget(String(params.target));
     if (value?.kind === "resources") {
       if (!value.receipt) throw new ApplicationError("Resource ownership record is missing.");
-      const result = await resourceLogs(value.receipt, params.resource, Boolean(params.follow));
-      getFormatter(ctx).printData(result ?? []); return;
+      const formatter = getFormatter(ctx);
+      const follow = Boolean(params.follow);
+      const result = await resourceLogs(value.receipt, params.resource, follow, undefined,
+        follow ? line => formatter.printData(line) : undefined);
+      if (!follow) formatter.printData(result ?? []);
+      return;
     }
     if (value?.kind === "application") {
       const { applicationLogs } = await import("../../application/logs.js");

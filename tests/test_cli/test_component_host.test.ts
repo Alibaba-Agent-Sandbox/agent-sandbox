@@ -54,6 +54,72 @@ it("redacts logger, console, stream and error diagnostics before crossing the ev
   await expect(invokeDevsComponent({ ...invocation(root), onLog: () => {} })).rejects.toThrow("Failed with [REDACTED]");
 });
 
+it("redacts database connection strings from component output and errors", async () => {
+  const root = project(), events: ComponentLogEvent[] = [];
+  const connection = "postgresql://fixture-user:fixture-pass@db.example/agents";
+  loader(root, `return { async build(input) {
+    const url = input.props.environmentVariables.ABX_MANAGED_DATABASE_URL;
+    console.log('Connecting to %s', url);
+    throw new Error('Database check failed for ' + url);
+  }};`);
+  await expect(invokeDevsComponent({
+    ...invocation(root),
+    props: { environmentVariables: { ABX_MANAGED_DATABASE_URL: connection } },
+    onLog: event => events.push(event),
+  })).rejects.toThrow("Database check failed for [REDACTED]");
+  expect(events.map(event => event.message)).toEqual(["Connecting to [REDACTED]"]);
+});
+
+it("keeps native function log text while redacting known credentials", async () => {
+  const root = project();
+  loader(root, `return { async logs(input) {
+    const {AccessKeySecret} = await input.getCredential();
+    console.log('request completed');
+    console.log('native diagnostic: ' + AccessKeySecret);
+  }};`);
+  await expect(invokeDevsComponent({ ...invocation(root), command: "logs" })).resolves.toEqual([
+    "request completed", "native diagnostic: [REDACTED]",
+  ]);
+});
+
+it("masks secret values rendered in structured component logs", async () => {
+  const root = project(), events: ComponentLogEvent[] = [];
+  const privateValue = ["fixture private line", 'fixture "second" line'].join("\n");
+  loader(root, `return { async build(input) {
+    const credential = input.props.environmentVariables.TLS_PRIVATE_KEY;
+    logger.info(JSON.stringify({context: credential}));
+    logger.info({context: credential});
+  }};`);
+  await invokeDevsComponent({
+    ...invocation(root),
+    props: {environmentVariables: {TLS_PRIVATE_KEY: privateValue}},
+    onLog: event => events.push(event),
+  });
+  expect(events.map(event => event.message)).toEqual([
+    '{"context":"[REDACTED]"}', "{ context: '[REDACTED]' }",
+  ]);
+});
+
+it("delivers redacted tail lines while the component is still running", async () => {
+  const root = project(), lines: string[] = [], ready = path.join(root, "observed");
+  loader(root, `return { async logs(input) {
+    const fs = require('node:fs');
+    const {AccessKeySecret} = await input.getCredential();
+    console.log('first ' + AccessKeySecret);
+    while (!fs.existsSync('observed')) await new Promise(resolve => setTimeout(resolve, 10));
+    console.log('second');
+  }};`);
+  await expect(invokeDevsComponent({
+    ...invocation(root), command: "logs", args: ["--tail"], timeoutSeconds: 5,
+    onLogLine: line => {
+      lines.push(line);
+      if (lines.length === 1) fs.writeFileSync(ready, "");
+    },
+    onLog: () => {},
+  })).resolves.toEqual([]);
+  expect(lines).toEqual(["first [REDACTED]", "second"]);
+});
+
 it("rejects floating versions and prototype method dispatch before loading components", async () => {
   const root = project();
   await expect(invokeDevsComponent({ ...invocation(root), component: "fc3@latest" })).rejects.toThrow("exact version");

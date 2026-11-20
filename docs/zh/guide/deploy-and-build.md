@@ -12,6 +12,10 @@ abx status my-app
 
 直接 `abx deploy ./project --name my-app --yes` 会合并准备与 Serving 部署。两种路径都不创建动态 Sandbox 实例。template build 准备模板、静态卷并执行 Serving 构建动作；deploy --build 借用已准备资源并部署 Serving。复用期间保留原始源码目录和组件构建文件，内容不能改变。秘密保留在私有配置里，不写进构建记录。
 
+原生组件的进度使用 abx 的日志格式。组件诊断会对已知部署凭据和数据库连接串脱敏。
+
+`abx logs APP --resource NAME --follow` 持续输出 Serving 日志。使用 `--json` 时，持续读取每行输出一个 JSON 字符串，单次读取返回 JSON 数组。
+
 按模板说明使用 run.py 或 SDK 启动业务服务。只创建原生实例时可明确调用：
 
 ```bash

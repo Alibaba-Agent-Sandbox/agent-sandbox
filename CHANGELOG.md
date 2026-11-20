@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Redact known credentials in native component diagnostics and show Serving logs as they arrive with `logs --follow`. / 原生组件诊断对已知凭据脱敏，`logs --follow` 实时输出 Serving 日志。
+
 - Bundle the official native parser and component workers into standalone binaries, with the same isolated logging and credential handling as npm installations. / 独立二进制内置官方原生解析与组件执行能力，保持与 npm 安装相同的日志及凭据隔离。
 
 - Preserve Core YAML 1.2 string types through native project resolution and report template v1 errors without nested legacy suggestions. / 原生项目求值保留 Core YAML 1.2 的字符串类型，模板 v1 错误不再嵌套旧版提示。

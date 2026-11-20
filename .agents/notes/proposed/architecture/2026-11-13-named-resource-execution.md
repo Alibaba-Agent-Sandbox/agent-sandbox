@@ -42,6 +42,10 @@ producer is ready. Resource-local actions run on the deployment host in declarat
 Pre/success/fail/complete actions preserve the original failure and completed effects.
 Component execution, credentials, results and logs use the existing isolated runner.
 Logs are redacted and forwarded through abx logging; raw stdout cannot corrupt JSON.
+The worker independently treats database URLs, DSNs and private keys as sensitive when
+forwarding component diagnostics and returning command logs. This protection also applies
+to callers outside the named-resource executor. FC tail lines are delivered while
+the component is running; native diagnostics remain on the separate logging path.
 
 No public `access`, `application`, `outputs`, `runtimeConfig`, `sandboxConfig`, generic
 `build/builds`, or dynamic `instance` declaration is retained. Existing business API

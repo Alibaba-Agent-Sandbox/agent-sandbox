@@ -4,7 +4,7 @@ export const COMPONENT_RUNNER_SOURCE = String.raw`
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
-const {format, stripVTControlCharacters} = require("node:util");
+const {format, inspect, stripVTControlCharacters} = require("node:util");
 const {StringDecoder} = require("node:string_decoder");
 const {createRequire} = require("node:module");
 const request = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -12,19 +12,21 @@ ${FC_CREATION_GUARD_SOURCE}
 let logCount = 0, stage = "load", credentialRequests = 0, eventBytes = 0;
 const logs = []; let logBytes = 0;
 const secrets = new Set((request.sensitiveValues || []).filter(value => typeof value === "string" && value.length));
-const sensitiveKey = /(?:secret|password|passwd|token|authorization|api[-_]?key|access[-_]?key)/i;
+const sensitiveKey = /(?:secret|password|passwd|token|authorization|api[-_]?key|access[-_]?key|database[-_]?url|dsn|private[-_]?key)/i;
 function collect(value, sensitive = false) {
   if (typeof value === "string") { if (sensitive && value) secrets.add(value); return; }
   if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) collect(child, sensitive || sensitiveKey.test(key));
 }
 collect(request.credential); collect(request.props);
 for (const [key, value] of Object.entries(process.env)) if (sensitiveKey.test(key) && value) secrets.add(value);
-const replacements = [...secrets].sort((a, b) => b.length - a.length);
+const replacements = [...new Set([...secrets].flatMap(secret => [
+  secret, JSON.stringify(secret).slice(1, -1), inspect(secret, {maxStringLength: Infinity}).slice(1, -1),
+]))].filter(Boolean).sort((a, b) => b.length - a.length);
 function redact(value) {
   let text = stripVTControlCharacters(String(value));
   for (const secret of replacements) text = text.split(secret).join("[REDACTED]");
   return text.replace(/\b(Bearer|Basic)\s+[^\s,;]+/gi, "$1 [REDACTED]")
-    .replace(/((?:password|passwd|secret|token|authorization|api[_-]?key|access[_-]?key)(?:[A-Za-z_]*)["']?\s*[:=]\s*)["']?[^\s,;}"']+["']?/gi, "$1[REDACTED]")
+    .replace(/((?:password|passwd|secret|token|authorization|api[_-]?key|access[_-]?key|database[_-]?url|dsn|private[_-]?key)(?:[A-Za-z_]*)["']?\s*[:=]\s*)["']?[^\s,;}"']+["']?/gi, "$1[REDACTED]")
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
 }
 function emit(level, values) {
@@ -74,9 +76,14 @@ if (request.events) {
 }
 if (request.command === "logs") console.log = (...values) => {
   const line = values.map(value => typeof value === "string" ? value : JSON.stringify(value)).join(" ");
-  logBytes += Buffer.byteLength(line);
+  const sanitized = redact(line);
+  if (request.followLogs) {
+    fs.writeSync(4, JSON.stringify({line: sanitized}) + "\n");
+    return;
+  }
+  logBytes += Buffer.byteLength(sanitized);
   if (logs.length >= 10000 || logBytes > 1024 * 1024) throw new Error("Log output exceeds capture limit");
-  logs.push(stripVTControlCharacters(line));
+  logs.push(sanitized);
 };
 const write = value => { for (const flush of flushers) flush(); fs.writeFileSync(3, JSON.stringify(value)); };
 (async () => {
