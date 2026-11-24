@@ -17,6 +17,7 @@ declared services.
 ## Commands run
 
 - `npm ci`, `npm run build`, `make dist-check`, `npm run typecheck`, `npm run lint`
+- `node scripts/check-release-artifact.mjs dist/bin/abx.js` (compiled executable with an isolated loopback)
 - `bash scripts/check-repo-health.sh`, `npm run check:hygiene`, `git diff --check`
 - Focused CLI, authoring, configuration, provider operations, ownership and live help regression suites via Vitest
 - `ABX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence`
@@ -30,7 +31,7 @@ declared services.
 | Scenario | Result | Evidence |
 | --- | --- | --- |
 | Scoped lifecycle, flag and cleanup tests | PASS | Targeted parser, configuration, admission, artifact and native request tests passed. |
-| Help and local command walk | PASS | 89 offline checks and 114 command help/safe usage probes passed. POSIX PTY and real local-process Provider ran independently. |
+| Help and local command walk | PASS | 89 offline checks and 114 command help/safe usage probes passed. POSIX PTY and real local-process Provider ran independently. The compiled executable also passed package/entry-point guidance, no-key preflight and PTY cancellation. |
 | Native Express SDK request | PASS | Omission and JSON false omit `buildConfig`. Explicit generation-1 injection sends copy and envd actions. Invalid combinations fail before the SDK request. |
 | Real Express and catalog broad run | PARTIAL | 78 checks passed. The pre-existing native python-hello reference returned HTTP 502 for its application port. Docker checks were skipped. |
 | Real caller-to-application rerun | PASS | Uploaded the [fixed python-hello command file](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/52f7653bda0b6c6406207e28095ee09a87cb5018/python-hello/commands.py), used its declared startup, ran hello and its argument/negative cases. Three checks passed, including the independent leak check. |

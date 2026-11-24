@@ -299,7 +299,7 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
   }, 30_000);
 
   it("reports a missing template, an unknown option, and an undeclared feature from the CLI", async () => {
-    const missing = await abx("--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "deploy", "--yes", "--template-id", "status-404");
+    const missing = await abx("--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "create", "--yes", "--template-id", "status-404");
     expect(missing.code).toBe(4);
     expect(missing.err + missing.out).toContain("E2001");
     expect(missing.err + missing.out).toContain("template not found");
@@ -309,7 +309,7 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
     expect(region.err + region.out).toContain("E8002");
     expect(region.err + region.out).toContain("region");
 
-    const unknown = await abx("--provider", "cubesandbox", "--opt", "nope=1", "deploy", "--yes", "--template-id", "base");
+    const unknown = await abx("--provider", "cubesandbox", "--opt", "nope=1", "create", "--yes", "--template-id", "base");
     expect(unknown.code).toBe(2);
     expect(unknown.err + unknown.out).toMatch(/Unknown option/);
 
