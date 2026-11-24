@@ -4,7 +4,7 @@
 
 | 任务 | 入口 |
 | --- | --- |
-| 部署、检查和清理 | `deploy`、`list`、`status`、`logs`、`delete`、`recover` |
+| 部署、检查和清理 | `create`、`deploy`、`list`、`status`、`logs`、`delete`、`recover` |
 | 查找和编写模板 | `template list/info/init/build/publish` |
 | 执行命令、传输文件和终端连接 | `sandbox exec/connect/upload/download` |
 | 配置凭据和默认值 | `config` |

@@ -70,7 +70,7 @@ Provider operations:
   abx provider run template-cache.delete  [delete]  Delete an explicit Team/template cache; underlying template is retained.
   abx provider run template-cache.get  [read]  Get actual Template Cache status, progress and image size.
   abx provider run template-cache.list  [read]  List one Team-scoped Template Cache page; return the opaque next token.
-  abx provider run template.create  [write]  Register a native template from an image or build steps; rejects existing names. Submission does not mean ready. Use --input-file for private registry credentials.
+  abx provider run template.create  [write]  Register a native template from an image or build steps. Rejects existing names. Submission does not mean ready. Use --input-file for private registry credentials. envd_inject=true requires generation 1. Omit or pass false to use platform behavior.
   abx provider run template.delete  [delete]  Delete the selected Team's native cloud template; Sandbox instances are separate resources.
   abx provider run template.get  [read]  Read a native cloud template and its actual build status.
   abx provider run template.list  [read]  List native cloud templates in the configured Team (or the first Team returned for the same AK/SK) (all pages).

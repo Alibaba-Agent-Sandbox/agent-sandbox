@@ -87,6 +87,7 @@ describe("TestTemplateBuildHelp", () => {
     expect(result.output.includes("--dockerfile") || result.output.includes("-f")).toBe(true);
     expect(result.output).not.toContain("--legacy-api");
     expect(result.output).toContain("--acr-namespace");
+    expect(result.output).not.toContain("--no-envd-inject");
   });
 
   it("test_build_help_discloses_cloud_costs", async () => {
@@ -183,6 +184,7 @@ describe("TestTemplateCreateCommand", () => {
     const result = await runner().invoke(providerTemplateCli, ["template", "create", "--help"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["IMAGE", "--name", "--team-id", "--cpu", "--memory", "--generation", "--envd-inject"]) expect(result.output).toContain(s);
+    expect(result.output).not.toContain("--no-envd-inject");
   });
 
   it("test_create_requires_name", async () => {
@@ -228,6 +230,7 @@ describe("TestTemplateDeployOfficialAPI", () => {
     const result = await runner().invoke(providerTemplateCli, ["template", "deploy", "--help"]);
     expect(result.exit_code).toBe(0);
     for (const s of ["--team-id", "--envd-inject", "--generation", "--ready-cmd"]) expect(result.output).toContain(s);
+    expect(result.output).not.toContain("--no-envd-inject");
   });
 
   it("test_deploy_template_dir_from_env", async () => {
@@ -816,6 +819,38 @@ describe("TestBuildYamlGeneration", () => {
 });
 
 describe("TestBuildTargetImagePassthrough", () => {
+  it.each([
+    { flags: ["--no-envd-inject"], message: "No such option '--no-envd-inject'" },
+    { flags: ["--target-image", "custom-target:v1"], message: "--target-image requires --envd-inject" },
+    { flags: ["--envd-inject", "--generation", "2"], message: "--envd-inject requires generation 1" },
+  ])("rejects invalid native create flags: $flags", async ({ flags, message }) => {
+    const { create } = patchOfficialApi();
+
+    const result = await runner().invoke(providerTemplateCli, ["template", "create", "img:tag", "--name", "envd", ...flags]);
+
+    expect(result.exit_code).not.toBe(0);
+    expect(result.output).toContain(message);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { flags: ["--target-image", "custom-target:v1"], generation: 1, steps: false, message: "--target-image requires --envd-inject" },
+    { flags: ["--envd-inject"], generation: 2, steps: false, message: "--envd-inject requires generation 1" },
+    { flags: ["--envd-inject"], generation: 1, steps: true, message: "--envd-inject cannot be used with platform build steps" },
+  ])("rejects invalid native deploy flags: $message", async ({ flags, generation, steps, message }) => {
+    const tdir = tmpPath();
+    const manifest = `name: envd\ngeneration: ${generation}\nbase:\n  image: python:3.12-slim\nbuild:\n  run:\n    - echo hello\n`;
+    writeText(path.join(tdir, "template.yaml"), manifestYaml(manifest));
+    if (!steps) writeText(path.join(tdir, "Dockerfile"), "FROM ubuntu:22.04\n");
+    const deploy = patchDoDeploy();
+
+    const result = await runner().invoke(providerTemplateCli, ["template", "deploy", tdir, "--yes", ...flags]);
+
+    expect(result.exit_code).not.toBe(0);
+    expect(result.output).toContain(message);
+    expect(deploy).not.toHaveBeenCalled();
+  });
+
   it("test_build_envd_inject_target_image", async () => {
     const tdir = path.join(tmpPath(), "timg");
     writeText(path.join(tdir, "template.yaml"), manifestYaml("name: test-timg\n"));

@@ -70,7 +70,7 @@ export default {
       id: 'create-missing-template', title: 'standard detached create of an unknown template reports a definitive template rejection',
       async run(ctx) {
         const attempt = ctx.beginCreateAttempt('create-missing-template');
-        const result = await ctx.abx(["--json", "deploy", "--name", "e2e-missing-template", "--template-id", 'no-such-template-e2e-xyz', "--yes"]);
+        const result = await ctx.abx(["--json", "create", "--name", "e2e-missing-template", "--template-id", 'no-such-template-e2e-xyz', "--yes"]);
         const id = result.rawJson()?.sandbox_id;
         if (isExpressSandboxId(id)) { ctx.track(id); ctx.resolveCreateAttempt(attempt); ctx.fail('negative create unexpectedly returned a created sandbox identity'); }
         const rejected = result.code === 4 && result.rawJson()?.code === 'E2001' && /template.*(?:not found|not exist)|TemplateNotFound/i.test(result.out);
@@ -82,7 +82,7 @@ export default {
       id: 'create-missing-template-json', title: 'explicit native create rejects an unknown template while retaining any unexpected created ID',
       async run(ctx) {
         const attempt = ctx.beginCreateAttempt('create-missing-template-json');
-        const result = await ctx.abx(['--json', "deploy", '--name', 'e2e-missing-template-json', "--template-id", 'no-such-template-e2e-xyz', "--yes"]);
+        const result = await ctx.abx(['--json', "create", '--name', 'e2e-missing-template-json', "--template-id", 'no-such-template-e2e-xyz', "--yes"]);
         const body = result.rawJson();
         const id = body?.sandbox_id;
         if (isExpressSandboxId(id)) { ctx.track(id); ctx.resolveCreateAttempt(attempt); ctx.fail('negative create unexpectedly returned a created sandbox identity'); }

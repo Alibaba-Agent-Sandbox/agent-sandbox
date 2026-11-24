@@ -33,11 +33,18 @@ try {
       provides: {first: {protocol: "http", version: 1, port: 9101, operations: []}, second: {protocol: "http", version: 1, port: 9102, operations: []}},
     };
     writeFileSync(join(directory, "template.yaml"), JSON.stringify(manifest));
-    const launched = await run(["--provider", "alicloud-express", "--json", "deploy", directory, "--yes", "--build-timeout", "600"]);
-    if (launched.code !== 0) throw new Error(`${mode} launch failed (exit ${launched.code}); raw response withheld`);
+    const buildFile = join(directory, ".abx", "build.json");
+    const built = await run(["--provider", "alicloud-express", "--json", "template", "build", directory, "--out", buildFile, "--yes", "--timeout", "600"]);
+    if (built.code !== 0) throw new Error(`${mode} build failed (exit ${built.code}); raw response withheld`);
+    const build = JSON.parse(readFileSync(buildFile, "utf8"));
+    assert.equal(build.status, "ready");
+    assert.ok(!journals().some(entry => entry.kind === "sandbox" && entry.correlation_key.startsWith(manifest.name)), "preparing a template must not create an instance");
+    const launched = await run(["--provider", "alicloud-express", "--json", "create", "--build", buildFile, "--yes"]);
+    if (launched.code !== 0) throw new Error(`${mode} create failed (exit ${launched.code}); raw response withheld`);
     let result;
     try {result = JSON.parse(launched.stdout);} catch {throw new Error(`${mode} launch returned invalid JSON; raw response withheld`);}
-    assert.ok(result.sandbox_id, "launch must return its sandbox ID");
+    assert.ok(result.sandbox_id, "create must return its sandbox ID");
+    assert.equal(result.template_reference, build.prepared.reference);
     assert.deepEqual(Object.keys(result.services), Object.keys(manifest.provides));
     const command = mode === "source" ? "test $(cat /tmp/abx-whole-template-marker) = whole-template-ready" : "printf whole-template-ready";
     const execution = await run(["--provider", "alicloud-express", "--json", "sandbox", "exec", result.sandbox_id, command]);

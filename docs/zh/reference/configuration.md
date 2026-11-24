@@ -175,7 +175,7 @@ abx config set github_token ""
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API Base URL（默认 DashScope compatible-mode） |
 | `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | 阿里云 AccessKey ID（官方控制面凭据） |
 | `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret（官方控制面凭据） |
-| `acr_namespace` | `ACR_NAMESPACE` | `abx template init --from` / `abx deploy` 用的（用 `abx config init --build` 设置） ACR 命名空间 |
+| `acr_namespace` | `ACR_NAMESPACE` | `abx template build` 用的（用 `abx config init --build` 设置） ACR 命名空间 |
 | `github_token` | `GITHUB_TOKEN` | GitHub token（模板下载用，`abx template init --from` / `abx template list`；存 `~/.abx/.env`，脱敏显示） |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | 团队 id。可选。不是必填项。 |
 

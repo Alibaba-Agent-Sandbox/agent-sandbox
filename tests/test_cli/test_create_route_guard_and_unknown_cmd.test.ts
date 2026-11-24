@@ -17,18 +17,18 @@ afterEach(() => vi.unstubAllEnvs());
 // 1. deploy route validation and removed entry
 // ---------------------------------------------------------------------------
 
-describe("TestDeployRequiresExplicitRoute", () => {
+describe("TestCreateRequiresExplicitRoute", () => {
   it("rejects a missing route before native creation", async () => {
     const spy = vi.spyOn(Sandbox, "create");
-    const result = await runner().invoke(cli, ["deploy", "--name", "missing-route", "--yes"]);
+    const result = await runner().invoke(cli, ["create", "--name", "missing-route", "--yes"]);
     expect(result.exit_code).toBe(2);
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
-  it("does not retain the retired create entry", async () => {
+  it("rejects the retired create option", async () => {
     const result = await runner().invoke(cli, ["create", "--template", "base"]);
     expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such command 'create'");
+    expect(result.output).toContain("No such option");
   });
 });
 

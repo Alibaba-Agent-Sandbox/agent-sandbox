@@ -18,9 +18,9 @@ export async function providerTemplateCommand(name: string): Promise<Command | n
 }
 
 export const build = command("build", {
-  help: "Build a reusable template artifact without starting an application. Retains a private source snapshot and resource journal. --out never replaces an existing artifact.",
-  params: [argument(["source"], { default: ".", required: false }), option(["--out"]), option(["--clean"], { help: "Clean owned resources from an unused build artifact; retain its journal." }), option(["--build-profile"]),
-    option(["--alias", "-a"]), option(["--timeout"], { type: FLOAT, default: 600 }), option(["--yes", "-y"], { is_flag: true })],
+  help: "Prepare a reusable template from a Registry reference or local source without creating an instance. Use --out to save the artifact for abx create or abx deploy.",
+  params: [argument(["source"], { required: false }), option(["--out"]), option(["--clean"], { help: "Clean owned resources from an unused build artifact; retain its journal." }), option(["--build-profile"]),
+    option(["--alias", "-a"]), option(["--timeout"], { type: FLOAT, help: "Sandbox template preparation timeout in seconds (default 600)." }), option(["--yes", "-y"], { is_flag: true })],
   callback: handleErrors(buildTemplate),
 });
 template.addCommand(build);

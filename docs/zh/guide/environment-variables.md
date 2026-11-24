@@ -3,12 +3,13 @@
 宿主配置、创建时环境、单次进程环境和已经运行的应用状态是不同输入。
 
 ```bash
-abx deploy ./project --name my-app --env MODE=example --yes
+abx template build ./project --out .abx/build.json --yes
+abx create --build .abx/build.json --name my-app --env MODE=example --yes
 abx sandbox exec --env MODE=one my-app -- printenv MODE
 abx sandbox exec my-app -- sh -c 'printf "%s\n" "$HOME"'
 ```
 
-部署选项传入新运行实例。exec 覆盖仅作用于本次进程及其子进程，不会重新配置其他已运行应用。exec 选项放在目标之前：Sandbox 名称或 ID 之后的参数属于远端命令。需要变量展开或管道时显式使用远端 shell，并用引号防止本机提前展开。
+创建选项传入新运行实例。exec 覆盖仅作用于本次进程及其子进程，不会重新配置其他已运行应用。exec 选项放在目标之前：Sandbox 名称或 ID 之后的参数属于远端命令。需要变量展开或管道时显式使用远端 shell，并用引号防止本机提前展开。
 
 模板声明运行时输入。只有已声明的空模型字段继承保存的模型配置，显式值和模板默认值优先。正常应用令牌自动生成并保存。外部客户端使用相同应用令牌，并单独携带 Provider 端点要求的请求头。
 

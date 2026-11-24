@@ -3,9 +3,9 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-// The fixed top-level surface: command groups plus the sandbox shortcuts (see docs/en/reference/cli-commands.md).
-const ROOT_COMMANDS = ['config', 'deploy', 'delete', 'list', 'logs', 'mcp', 'provider', 'recover', 'sandbox', 'status', 'template'];
-const REMOVED_ROOT_COMMANDS = ['init', 'install', 'create', 'exec', 'connect', 'upload', 'download', 'run', 'info', 'kill', 'app'];
+// The fixed top-level surface (see docs/en/reference/cli-commands.md).
+const ROOT_COMMANDS = ['config', 'create', 'deploy', 'delete', 'list', 'logs', 'mcp', 'provider', 'recover', 'sandbox', 'status', 'template'];
+const REMOVED_ROOT_COMMANDS = ['init', 'install', 'exec', 'connect', 'upload', 'download', 'run', 'info', 'kill', 'app'];
 const MISSING_SANDBOX_AUTH = ['Missing configuration', 'sandbox_api_key', 'abx config set providers.alicloud-express.sandbox_api_key', { not: 'e2b auth login' }, { not: 'Configuration scope' }, { not: 'E2B_API_KEY' }];
 
 const INDEX = `schema_version: 2
@@ -41,14 +41,17 @@ export default {
     { id: 'help-sandbox-process', title: 'sandbox process --help', argv: ['sandbox', 'process', '--help'], creds: false, stdout: ['info', 'list', 'signal', { not: /^\s+start\s/m }] },
     { id: 'help-sandbox-command', title: 'sandbox command --help', argv: ['sandbox', 'command', '--help'], creds: false, stdout: ['list', 'run'] },
     { id: 'help-sandbox-system', title: 'sandbox system --help', argv: ['sandbox', 'system', '--help'], creds: false, stdout: ['env', 'info', 'metrics', 'packages', 'ports'] },
-    { id: 'help-template', title: 'template --help', argv: ['template', '--help'], creds: false, stdout: ['build', 'info', 'init', 'list', 'publish'] },
+    { id: 'help-template', title: 'template --help', argv: ['template', '--help'], creds: false, stdout: ['build', 'info', 'init', 'list', 'publish', { not: /^\s+launch\s/m }] },
+    { id: 'removed-template-launch', title: 'template launch is gone', argv: ['template', 'launch', 'base'], creds: false, exit: 2, output: 'No such command' },
+    { id: 'removed-no-envd-inject', title: 'template build rejects the former negative envd option', argv: ['template', 'build', '.', '--no-envd-inject', '--yes'], creds: false, exit: 2, output: 'No such option' },
     { id: 'help-config', title: 'config --help', argv: ['config', '--help'], creds: false, stdout: ['delete', 'get', 'init', 'list', 'set'] },
     { id: 'help-mcp', title: 'mcp --help', argv: ['mcp', '--help'], creds: false, stdout: ['install', 'start', 'status', 'stop'] },
     { id: 'help-exec', title: 'standard exec help documents pass-through and local options', argv: ["sandbox", 'exec', '--help'], creds: false, stdout: ['<SANDBOX_ID>', '<COMMAND...>', '--cwd', '--env', '--background', 'Everything after the sandbox ID'] },
     { id: 'help-run', title: 'run --help documents --arg/--json-args', argv: ["sandbox", "command", 'run', '--help'], creds: false, stdout: ['SANDBOX_ID', 'COMMAND_NAME', '--arg', '--json-args'] },
     { id: 'exec-unknown-local-option', title: 'exec rejects unknown options before the sandbox ID', argv: ["sandbox", 'exec', '--unknown-local-option', 'sbx-x', 'true'], creds: false, exit: 2, output: 'No such option' },
     { id: 'help-kill', title: 'delete takes a deployment name or native ID', argv: ["delete", '--help'], creds: false, stdout: ['<TARGET>', '--yes'] },
-    { id: 'help-create', title: 'deploy supports sources and native template references', argv: ["deploy", '--help'], creds: false, stdout: ['--template-id', '--sandbox-timeout', '--on-timeout', '--auto-resume'] },
+    { id: 'help-create', title: 'create supports prepared builds and native template references', argv: ['create', '--help'], creds: false, stdout: ['--build', '--template-id', '--sandbox-timeout', '--on-timeout', '--auto-resume'] },
+    { id: 'help-deploy', title: 'deploy accepts managed application bindings', argv: ['deploy', '--help'], creds: false, stdout: ['--bindings', { not: '--template-id' }, { not: '--sandbox-timeout' }] },
 
     {
       id: 'template-overwrite-consent', title: 'yes alone preserves existing template files; force discloses replacement', creds: false,
@@ -74,7 +77,7 @@ export default {
     { id: 'invalid-list-status', title: 'standard list rejects retired --status spelling', argv: ['list', '--status', 'bogus'], creds: false, exit: 2, output: /Invalid value|not one of|Allowed choices/ },
     { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of|Allowed choices/ },
     { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ["sandbox", 'upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
-    { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ["deploy", "--template-id", "base", "--yes"], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
+    { id: 'create-default-base-auth', title: 'create from base reaches authentication preflight', argv: ["create", "--template-id", "base", "--yes"], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
     { id: 'delete-missing-id', title: 'delete requires a target before I/O', argv: ['delete'], creds: false, exit: 2, output: 'Missing argument' },
 
     { id: 'no-credentials-list', title: 'standard list requires a configured key', argv: ['list'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
@@ -256,7 +259,7 @@ export default {
         for (const f of ['Dockerfile', 'commands.py', 'template.yaml', 'README.md']) if (!existsSync(join(cwd, 'my-tpl-dir', f))) ctx.fail(`missing scaffold file ${f}`);
         const yaml = readFileSync(join(cwd, 'my-tpl-dir', 'template.yaml'), 'utf8');
         if (!yaml.includes('my-tpl')) ctx.fail('template.yaml does not carry the template name');
-        ctx.check('output', r.out, ['my-tpl', 'abx deploy']);
+        ctx.check('output', r.out, ['my-tpl', 'abx template build']);
       },
     },
     {

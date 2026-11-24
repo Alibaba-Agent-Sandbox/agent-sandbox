@@ -1,12 +1,12 @@
 # Whole-template startup
 
-Run `abx --provider PROVIDER deploy TEMPLATE --name my-app --yes`. A template has one startup: the CLI prepares its contents, creates a sandbox, runs `start_cmd` when present, waits for `ready_cmd`, and resolves every service declared in `provides`. There is no workflow selector or application/exec/interpreter launch type.
+Use `abx template build SOURCE --out FILE --yes` to prepare a Sandbox template. Then use `abx create --build FILE --name my-app --yes` to create an instance. Create runs `start_cmd` when present, waits for `ready_cmd` and resolves every service declared in `provides`.
 
 Sandbox templates use `spec_version: 5`. Managed application templates follow the separate [managed application guide](managed-applications.md). Keep the application's services, commands, packages and startup script together. Declare all service endpoints in `provides`; a startup script can launch multiple processes. Named business commands run only when explicitly called after launch. Known Agent Sandbox Server v2 endpoints are verified using health/discovery and command listing, without executing business commands. Other service protocols use the declared readiness command and returned Provider endpoint; launch does not claim to understand their application protocol.
 
 A source template uses its Dockerfile or supported platform build recipe. A fixed `image` or an owning `provider` plus `template_id` can identify an already prepared template; these are author-specified artifacts, not selectable execution modes. Image references require an immutable `@sha256:` digest. Provider credentials, upload, registration and platform addressing remain Provider responsibilities. The CLI checks required Provider operations before creating resources.
 
-For public catalog managed entries, use their catalog name, for example `abx --provider alicloud-express deploy base --name my-app --yes`. The CLI reads the managed manifest directly from the catalog. For an external service that is already running, connect using its server client; launching a template always creates a sandbox.
+For Provider-managed catalog entries, `abx --json template info NAME` gives the existing `manifest.provider` and `manifest.template_id`. Pass those values to `abx --provider PROVIDER create --template-id TEMPLATE_ID --name my-app --yes`. For an external service that is already running, connect using its server client.
 
 ## Migrating v4
 

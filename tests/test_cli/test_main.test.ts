@@ -130,8 +130,8 @@ describe("TestTopLevelInitRemoved", () => {
     const result = await runner().invoke(cli, ["--help"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("abx config init");
-    expect(result.output).toContain("abx deploy python-hello --name demo");
-    expect(result.output).toContain("abx template init ./my-template --from python-hello");
+    expect(result.output).toContain("abx create --template-id base --name demo --yes");
+    expect(result.output).toContain("abx template build python-hello --out build.json --yes");
   });
 
   // BLOCKED-ON: cli/commands/config_cmd (init)

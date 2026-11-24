@@ -244,7 +244,8 @@ token 比较使用常量时间算法。部署的模板默认复用 CLI 自动生
 
 ```bash
 abx template init ./my-mcp --template mcp
-abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN" # example: environment references, no literal credentials
+abx template build ./my-mcp --out .abx/mcp-build.json --yes
+abx create --build .abx/mcp-build.json --name my-mcp --yes -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN" # example: environment references, no literal credentials
 ```
 
 生成的源码包含 template.yaml、Dockerfile、app.py、requirements.txt、.dockerignore
@@ -263,7 +264,7 @@ Provider 流量认证和 MCP 认证是两层独立凭据，应同时保留。
 
 后续请求复用 initialize 返回的 Mcp-Session-Id。DELETE /mcp 结束会话并清理该会话
 拥有的沙箱。GET /mcp 仍返回 405，未实现服务端通知 SSE。会话存于进程内存，不跨应用
-替换保存。先结束会话，再执行 `abx delete my-mcp --yes`。
+替换保存。先结束会话，再执行 `abx delete my-mcp --yes`。构建不再使用时，执行 `abx template build --clean .abx/mcp-build.json --yes`。
 编辑后的源码可按[模板编写指南](authoring-templates.md)构建或发布。
 
 ---

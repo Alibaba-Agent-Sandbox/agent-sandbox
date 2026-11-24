@@ -1,6 +1,6 @@
 # 编写模板
 
-模板是可复用的源码；部署模板会创建一个单独管理的命名应用。
+模板是可复用的源码。Sandbox 模板可以构建一次，创建多个独立命名的实例。
 模板命令为 `template list`、`info`、`init`、`build` 和 `publish`。
 
 ## 查找或创建源码
@@ -16,7 +16,7 @@ abx template init ./my-mcp --template mcp
 内置案例包括 `python`、`node`、`minimal` 和 `mcp`，可用 `template init --list`
 查看。`--from` 复制目录条目、仓库或本机模板的源码，不构建、不注册、不部署。
 即使当前 CLI 不支持执行某个新版本清单，也可以先取得源码再编辑。
-只有托管标识、没有源码的目录条目可以部署，但不能通过 `--from` 复制。
+Provider 管理的目录条目自带原生模板 ID，可直接用于 `create --template-id`。
 
 项目包含 `template.yaml` 及源码，常见文件为 Dockerfile、应用入口和 README。
 清单声明服务、启动方式、就绪检查、资源默认值及运行时环境输入。
@@ -44,12 +44,12 @@ abx template init --adopt ./app --dry-run
 大文件、二进制和依赖目录；已有 Docker ignore 规则必须排除密钥。
 生成后仍应检查文件，再构建或部署。
 
-## 构建一次，再部署应用
+## 构建一次，按需创建沙箱
 
 ```bash
 abx template build ./my-template --yes
 # 使用命令返回的构建文件路径：
-abx deploy --build BUILD_FILE --name my-app
+abx create --build BUILD_FILE --name my-app
 abx status my-app
 ```
 
@@ -58,9 +58,8 @@ abx status my-app
 路径，不覆盖已有产物。`--build-profile NAME` 选择清单声明的 Dockerfile 配置；
 `--timeout` 限制沙箱模板准备的期限。
 
-`deploy --build` 检查快照和 Provider 目标后复用准备结果。修改原项目不会修改已有构建，
-新版本应重新构建。不需要独立构建时，可用
-`abx deploy ./my-template --name my-app` 一次完成准备与部署。
+`create --build` 检查快照和 Provider 目标后复用准备结果。修改原项目不会修改已有构建，
+新版本应重新构建。可以继续用同一构建文件创建其他名称的实例。
 
 服务实现写在应用代码中。SandboxServer 命名命令使用服务端 `@command()` 注册，
 通过明确的应用调用入口访问。MCP 等普通 HTTP 服务声明自己的协议，并使用对应 HTTP API。
@@ -80,7 +79,7 @@ abx template publish . --tag v1.0.0 --yes
 `--remote NAME` 选择已有 remote。Git 使用你配置的认证，remote URL 不应嵌入凭据。
 
 其他用户可以通过 `template init --from REFERENCE` 复制返回的源码引用，
-或用 `abx deploy REFERENCE --name APP` 部署。目录收录遵循
+或用 `abx template build REFERENCE --yes` 直接构建，再用返回的构建文件创建沙箱。目录收录遵循
 [模板仓库贡献指南](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/CONTRIBUTING.md)。
 
 ## 资源清理

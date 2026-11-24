@@ -7,7 +7,7 @@ import { configureExpressScenario, trackDetachedCreate } from '../lib/express-sc
 
 export default {
   id: 'docker-deploy',
-  title: 'Docker: template init/build -> deploy -> independent owned cleanup',
+  title: 'Docker: template init/build -> create -> independent owned cleanup',
   needs: ['cloud', 'cloud-management', 'docker'],
   setup: configureExpressScenario,
   scenarios: [
@@ -30,10 +30,10 @@ export default {
       },
     },
     {
-      id: 'create-from-deployed-template', title: 'deploy reuses the build and sandbox exec runs in the owned instance', requires: ['deploy-minimal-template'], timeoutMs: 300_000,
+      id: 'create-from-deployed-template', title: 'create reuses the build and sandbox exec runs in the owned instance', requires: ['deploy-minimal-template'], timeoutMs: 300_000,
       async run(ctx) {
         ctx.state.deployAttempt = ctx.beginCreateAttempt(ctx.state.name);
-        const result = await ctx.abx(['--json', 'deploy', '--build', ctx.state.build, '--name', ctx.state.name, '--sandbox-timeout', '600', '--yes']);
+        const result = await ctx.abx(['--json', 'create', '--build', ctx.state.build, '--name', ctx.state.name, '--sandbox-timeout', '600', '--yes']);
         ctx.state.sandbox = trackDetachedCreate(ctx, result, ctx.state.deployAttempt);
         ctx.state.deployAttempt = undefined;
         const executed = await ctx.abx(['sandbox', 'exec', ctx.state.name, '--', 'echo', 'deployed-ok']);

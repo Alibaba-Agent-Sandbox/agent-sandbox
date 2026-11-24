@@ -15,12 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
-- Unify running deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 运行部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
+- Prepare reusable Sandbox templates with `template build` and start instances with `create --build` or `create --template-id`. Use `deploy` for managed applications. Both share `list`, `status`, `logs`, `delete` and `recover`. / `template build` 准备可复用的沙箱模板，`create --build` 或 `create --template-id` 启动实例，`deploy` 用于托管应用。共用查询、日志、删除和恢复命令。
 - Use one parser for every Provider, retain Express protocol/PTY behavior, and make Provider run the sole native management execution entry. / 所有 Provider 共用一个解析入口，保留极速版协议和 PTY 能力，原生管理统一通过 provider run 执行。
 - Reuse explicit managed-profile defaults, preserve application names independently of template names, and distinguish owned automatic builds from borrowed author builds. / 复用显式托管 profile 缺省值，应用名称与模板名称分离，区分自动构建与借用的作者构建。
 
 ### Removed
 
+- Remove the ineffective `--no-envd-inject` option. Express retains positive injection requests for generation 1 and rejects unused target-image overrides. / 删除无效的 `--no-envd-inject`。极速版保留第一代的主动注入请求，并拒绝无效的目标镜像组合。
 - Remove the app command tree, --native routing and overlapping lifecycle/template aliases. HTTP MCP creation now uses template init --template mcp. / 删除 app 命令树、--native 分流和重复生命周期及模板入口；HTTP MCP 创作统一使用 template init --template mcp。
 
 ### Fixed

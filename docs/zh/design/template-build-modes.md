@@ -6,12 +6,11 @@
 
 ```bash
 abx template build ./project --out ./.abx/build.json --timeout 600 --yes
-abx deploy --build ./.abx/build.json --name my-app --yes
+abx create --build ./.abx/build.json --name my-app --yes
 # 也可以直接准备并部署：
-abx deploy ./project --name my-app --build-timeout 600 --yes
 ```
 
-`template build` 准备可复用产物，不创建实例。`deploy --build FILE` 消费该产物，`--build` 不是模式选择参数。直接 `deploy SOURCE` 则准备源码并创建具名部署。源码发布是独立的 `template publish SOURCE --tag VERSION` 操作。
+`template build` 准备可复用产物，不创建实例。`create --build FILE` 读取该产物，创建具名沙箱。源码发布是独立的 `template publish SOURCE --tag VERSION` 操作。
 
 ## 选择准备路径
 
@@ -25,7 +24,7 @@ abx deploy ./project --name my-app --build-timeout 600 --yes
 
 同时存在两种配方时，`auto` 选择 Dockerfile，并提示没有发送平台步骤。显式 `steps` 不使用 Dockerfile，也不使用环境中的 ACR namespace。通过 `abx config init --build` 或受支持配置输入准备构建凭据；公开的模板编写命令不再提供原适配器专用构建选项。
 
-`template build` 或 `deploy` 的 `--build-profile NAME` 选择源码中声明的具名 Dockerfile 配方：
+`template build` 的 `--build-profile NAME` 选择源码中声明的具名 Dockerfile 配方：
 
 ```yaml
 build_profiles:
@@ -78,7 +77,7 @@ Express 原生 `ENV` 不保证变量进入后续 `RUN` 或运行进程。对于�
 
 可复用构建和直接源码部署都会等待模板准备就绪。原生注册提交成功本身不代表就绪。可用 `abx --provider alicloud-express provider run template.get --input-file template-get.json` 检查原生状态，文件包含 `template_id` 及可选的 `team_id`。
 
-Sandbox 准备使用 `template build --timeout SECONDS` 或 `deploy --build-timeout SECONDS` 设置预算：默认 600 秒，大于零且不超过 3600 秒。`deploy --sandbox-timeout` 单独设置实例存活时间，`--request-timeout` 配置请求期限。本地到期不证明远端工作已经停止，也不证明结果不确定的创建可以安全重试。
+Sandbox 准备使用 `template build --timeout SECONDS` 设置预算：默认 600 秒，大于零且不超过 3600 秒。`create --sandbox-timeout` 单独设置实例存活时间，`--request-timeout` 配置请求期限。本地到期不证明远端工作已经停止，也不证明结果不确定的创建可以安全重试。
 
 具名部署失败后先用 `status` 和 `recover` 查看，再用 `delete` 清理其拥有的资源。单独准备的构建保持独立：先删除消费者，再执行 `template build --clean BUILD_FILE --yes`，并检查提示中需要手工清理的镜像。详见[模板编写](../guide/authoring-templates.md)和[部署边界](../guide/template-launch.md)。
 

@@ -181,7 +181,7 @@ export async function runAdopt(ctx: Context, directory: string | null, opts: Run
       replaced: [...plan.replaces],
       backed_up: [...result.backedUp],
       not_applied: [...plan.notApplied],
-      next_steps: [`abx deploy ${dirArg} --name ${templateName} --yes`],
+      next_steps: [`abx template build ${dirArg} --out build.json --yes`, `abx create --build build.json --name ${templateName} --yes`],
     });
   } finally {
     if (cleanup) fs.rmSync(staged.stagingDir, { recursive: true, force: true });

@@ -35,7 +35,7 @@ import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager 
 export const launchSeams = { create: (options: Parameters<typeof Sandbox.create>[0]) => Sandbox.create(options) };
 
 /** Validate a known local source before any credential prompt; remote sources are validated once after acquisition. */
-function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>) {
+function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, prepared: boolean, catalogManifest?: Record<string, unknown>) {
   const yaml = catalogManifest ? null : _findTemplateYaml(directory);
   if (!yaml && !catalogManifest) throw new ProviderConfigError("Template source has no template.yaml.");
   // The YAML's parent is the build context even when a repository contains several projects.
@@ -47,7 +47,7 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
   const sourceMetadata = raw as Record<string, unknown>;
   validateTemplateManifest(sourceMetadata);
   const template = parseTemplateData(structuredClone(sourceMetadata));
-  const plan = planTemplateLaunch(sourceMetadata, provider, "cli");
+  const plan = planTemplateLaunch(sourceMetadata, provider, "cli", prepared);
   if (!plan.supported) throw new ProviderConfigError(`Template cannot launch on this provider: ${plan.reason ?? plan.missing_operations.join(", ")}.`);
   const input = sourceMetadata["template_id"] ? "managed" : sourceMetadata["image"] ? "image" : "source";
   const aliasBase = String(params["alias"] ?? template.name);
@@ -76,7 +76,7 @@ export interface TemplateLaunchResult {
   creation: Record<string, unknown>;
 }
 
-/** One preparation/create/start/readiness lifecycle shared by both CLI entry points. */
+/** Prepare a reusable template or create a Sandbox and check its services. */
 export async function executeTemplateLaunch(
   ctx: Context,
   params: Record<string, unknown>,
@@ -91,9 +91,9 @@ export async function executeTemplateLaunch(
   const isLocal = exists && fs.statSync(initialDirectory).isDirectory();
   if (exists && !isLocal) throw new UsageError("Template project source is not a directory.");
   if (!exists && (path.isAbsolute(source) || source.startsWith("./") || source.startsWith("../") || source.startsWith("~/"))) throw new UsageError("Template project directory does not exist. Create it with 'abx template init DIRECTORY' or choose an existing template source.");
-  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params) : null;
+  const localProject = isLocal ? readLaunchProject(provider, initialDirectory, params, Boolean(creationOptions.prepared)) : null;
   if (!creationOptions.approved && !params["yes"] && !canGuideConfiguration(ctx, false)) throw new UsageError("Pass --yes to build/register the template and create a billable sandbox.");
-  return withGuidedConfiguration(ctx, { operation: "Prepare template and create sandbox", provider: provider.id, yes: Boolean(params["yes"]),
+  return withGuidedConfiguration(ctx, { operation: creationOptions.prepareOnly ? "Prepare a reusable Sandbox template" : "Create a Sandbox", provider: provider.id, yes: Boolean(params["yes"]),
     requirements: provider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined }, async () => {
   let directory = initialDirectory;
   let catalogManifest: Record<string, unknown> | undefined;
@@ -102,7 +102,7 @@ export async function executeTemplateLaunch(
     directory = acquired.directory ?? initialDirectory;
     catalogManifest = acquired.manifest;
   }
-  const project = localProject ?? readLaunchProject(provider, directory, params, catalogManifest);
+  const project = localProject ?? readLaunchProject(provider, directory, params, Boolean(creationOptions.prepared), catalogManifest);
   directory = project.directory;
   const { template, options, plan, input, sourceMetadata, manifestDigest } = project;
   const withEnvironment = (callback: (environment: Record<string, string>) => Promise<TemplateLaunchResult>): Promise<TemplateLaunchResult> => creationOptions.prepareOnly ? callback({}) : withTemplateEnvironment(ctx, template.env, creationOptions.envs ?? {}, Boolean(params["yes"]), callback);
@@ -127,7 +127,7 @@ export async function executeTemplateLaunch(
     if (current !== providerSnapshotDigest) throw new ProviderConfigError("Provider code changed after planning; compute a new execution snapshot.");
   };
   const extension = providerCliExtension(provider.id);
-  const snapshot = input === "source" ? await (extension?.stageProject
+  const snapshot = input === "source" && !creationOptions.prepared ? await (extension?.stageProject
     ? extension.stageProject(directory, options)
     : stageProject(directory, { dockerfile: options.build_profile?.dockerfile })) : null;
   if (snapshot) {

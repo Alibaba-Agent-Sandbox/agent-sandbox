@@ -3,12 +3,13 @@
 Host configuration, creation-time environment, per-command environment and an already running application's state are separate inputs.
 
 ```bash
-abx deploy ./project --name my-app --env MODE=example --yes
+abx template build ./project --out .abx/build.json --yes
+abx create --build .abx/build.json --name my-app --env MODE=example --yes
 abx sandbox exec --env MODE=one my-app -- printenv MODE
 abx sandbox exec my-app -- sh -c 'printf "%s\n" "$HOME"'
 ```
 
-The deployment option is passed to the new runtime. The exec override affects that process and its children; it does not reconfigure an application already running elsewhere. Put exec options before the target: arguments after the Sandbox name/ID belong to the remote command. Use an explicit remote shell for expansion or pipelines and quote against local expansion.
+The create option is passed to the new runtime. The exec override affects that process and its children; it does not reconfigure an application already running elsewhere. Put exec options before the target: arguments after the Sandbox name/ID belong to the remote command. Use an explicit remote shell for expansion or pipelines and quote against local expansion.
 
 Templates declare their runtime inputs. Only declared empty model fields inherit the saved model profile; explicit values and template defaults take priority. Normal application tokens are generated and saved automatically. External clients need the same application token and any separate Provider endpoint headers.
 

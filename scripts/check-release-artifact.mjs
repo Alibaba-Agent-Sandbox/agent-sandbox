@@ -59,7 +59,7 @@ try {
   assert.equal(standardHelp.status, 0, "A corrupt ~/.e2b/config.json must not affect ABX help");
   assert.match(standardHelp.stdout, /Usage:/i);
   assert.equal(readFileSync(join(projectRoot, ".e2b", "config.json"), "utf8"), "{invalid unrelated configuration", "ABX must not rewrite unrelated E2B state");
-  const missingKey = invokeProject(["deploy", "--template-id", "base", "--yes"]);
+  const missingKey = invokeProject(["create", "--template-id", "base", "--yes"]);
   assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
   assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);
   assert.match(missingKey.stdout + missingKey.stderr, /sandbox_api_key/);
@@ -70,11 +70,15 @@ try {
   const managedProject = join(projectRoot, "managed-project");
   mkdirSync(managedProject);
   writeFileSync(join(managedProject, "template.yaml"), "name: base\nspec_version: 5\nprovider: alicloud-express\ntemplate_id: base\nprovides: {}\n");
-  const managedLaunch = invokeProject(["--provider", "alicloud-express", "--json", "deploy", managedProject, "--name", "artifact-probe", "--yes"], {
+  const loopbackConfig = {
     ABX_SANDBOX_API_KEY: "placeholder-test-key",
     ABX_SANDBOX_BASE_URL: "http://127.0.0.1:1",
     ABX_SANDBOX_DOMAIN: "localhost",
-  });
+  };
+  const managedBuild = join(projectRoot, "artifact-probe.json");
+  const prepared = invokeProject(["--json", "template", "build", managedProject, "--out", managedBuild, "--yes"], loopbackConfig);
+  assert.equal(prepared.status, 0, prepared.stdout + prepared.stderr);
+  const managedLaunch = invokeProject(["--json", "create", "--build", managedBuild, "--name", "artifact-probe", "--yes"], loopbackConfig);
   assert.notEqual(managedLaunch.status, 0, "Closed loopback must stop before a real create");
   const managedFailure = JSON.parse(managedLaunch.stdout);
   assert.match(managedFailure.message, /Sandbox creation has an uncertain outcome/,
@@ -84,11 +88,11 @@ try {
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /No such option/i);
   assert.doesNotMatch(invalid.stdout + invalid.stderr, /Configuration scope|Missing configuration/i, "Syntax errors precede credential setup");
-  const nativeJson = invokeProject(["--json", "deploy", "--template-id", "base", "--yes"]);
+  const nativeJson = invokeProject(["--json", "create", "--template-id", "base", "--yes"]);
   assert.equal(nativeJson.status, 1);
   assert.match(JSON.parse(nativeJson.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(nativeJson.stdout + nativeJson.stderr, /Configuration scope|input hidden/i);
-  const ciCreate = invokeProject(["--ci", "deploy", "--template-id", "base", "--yes"], { CI: "1" });
+  const ciCreate = invokeProject(["--ci", "create", "--template-id", "base", "--yes"], { CI: "1" });
   assert.equal(ciCreate.status, 1);
   assert.match(JSON.parse(ciCreate.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(ciCreate.stdout + ciCreate.stderr, /Configuration scope|input hidden/i);

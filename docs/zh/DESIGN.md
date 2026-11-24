@@ -22,7 +22,7 @@
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo
+abx create --template-id base --name demo
 abx list
 ```
 
@@ -101,8 +101,8 @@ graph TB
 | 统一 CLI | **当前源码** | 详见 [cli-design.md](design/cli-design.md) |
 | MCP Server（STDIO） | **已实现** | 从运行中的服务发现实际工具 |
 | MCP Server（Streamable HTTP） | **已实现** | `agent/mcp_http.ts` |
-| HTTP MCP 模板 | **当前源码** | `template init --template mcp` 生成可编辑源码，后续通过 `deploy` 部署。见 [MCP 职责边界](design/mcp-server.md) |
-| 模板创作与部署 | **当前源码** | `template init/build/publish`；`deploy` 通过受支持的 Provider 或应用 profile 准备所选源码 |
+| HTTP MCP 模板 | **当前源码** | `template init --template mcp` 生成可编辑源码，后续用 `template build` 构建、用 `create --build` 启动。见 [MCP 职责边界](design/mcp-server.md) |
+| 模板创作与部署 | **当前源码** | `template init/build/publish`；`create` 启动 Sandbox 实例，`deploy` 发布托管 FC 应用 |
 | 单文件二进制（Node SEA） | **已实现** | 详见 [二进制安装](guide/binary-installation.md) |
 | Provider 命令 | **已实现**（`alicloud-express`，以及已安装的 `node`、`exec`、`rest` 提供商：`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container`） | `abx --provider <id>` 加载已安装的插件；既不是内置也未安装的 id 以 `E8001` 退出。见[提供商](guide/providers.md)和[Node 提供商架构](design/node-provider-architecture.md) |
 

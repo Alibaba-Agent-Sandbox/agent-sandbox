@@ -369,7 +369,7 @@ export function preflight(project: string, opts: { force: boolean; needsConfirm:
   if (hashes["template.yaml"] !== null && !force) {
     throw new AdoptRejectedError(
       `${shown} already has template.yaml, so it is a template. ` +
-        `Run 'abx deploy ${shown}'. Pass --force to regenerate ` +
+        `Run 'abx template build ${shown}'. Pass --force to regenerate ` +
         "(the original is kept as template.yaml.abx-bak).",
       { usage: false },
     );

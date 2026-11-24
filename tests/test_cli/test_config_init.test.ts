@@ -77,6 +77,17 @@ describe("TestConfigInitNonInteractive", () => {
 });
 
 describe("TestConfigInitWizard", () => {
+  it("finishes basic setup without selecting a template or deploying", async () => {
+    const tmp = tmpPath();
+    const result = await withConfig({ ...storagePatch(tmp, { env: true }), sys: fakeTtySys() }, () =>
+      runner().invoke(cli, ["config", "init"], { input: "placeholder-sandbox-key\ncn-hangzhou\n" }),
+    );
+    expect(result.exit_code, result.output).toBe(0);
+    expect(result.output).toContain("Configuration complete");
+    expect(result.output).toContain("Next: abx template list");
+    expect(result.output).not.toContain("What would you like to do next?");
+  });
+
   it("can finish with AK/SK instead of an API key without provisioning anything", async () => {
     const tmp = tmpPath();
     const load = vi.spyOn(managedKeySeams, "loadSdk");

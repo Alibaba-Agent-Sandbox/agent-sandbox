@@ -60,7 +60,7 @@ describe("template commands honour the active provider", () => {
 describe.skipIf(!hasPython)("a plugin sandbox", () => {
   async function createSandbox(): Promise<string> {
     await installLocal();
-    const created = await abx("--json", "--provider", "local-process", "deploy", "--yes", "--template-id", "base");
+    const created = await abx("--json", "--provider", "local-process", "create", "--yes", "--template-id", "base");
     expect(created.code, created.err).toBe(0);
     return JSON.parse(created.out).sandbox_id as string;
   }

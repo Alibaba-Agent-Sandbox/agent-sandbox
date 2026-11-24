@@ -8,7 +8,7 @@ Inspect effective configuration with `abx config list` and enter secrets with hi
 
 ## Templates and source
 
-Use `abx template list` for the public catalog, `abx template init ./project --from SOURCE` for source and `abx deploy ./project --name APP` for deployment. Initialize a missing project explicitly. A future manifest can be copied, but deployment still requires a supported specification; see [startup semantics](template-workflows.md). For GitHub limits use hidden input with `abx config set github_token`. A pinned Git commit does not change when the catalog cache is refreshed.
+Use `abx template list` for the public catalog, `abx template init ./project --from SOURCE` for source and `abx template build ./project --out FILE --yes` to prepare a Sandbox template, and `abx create --build FILE --name APP --yes` to create an instance. Initialize a missing project explicitly. A future manifest can be copied, but deployment still requires a supported specification; see [startup semantics](template-workflows.md). For GitHub limits use hidden input with `abx config set github_token`. A pinned Git commit does not change when the catalog cache is refreshed.
 
 ## Model generation
 
@@ -18,7 +18,7 @@ Only template init with `--prompt` or `--adopt` needs a model. Configure a usabl
 
 Dockerfile builds need Docker, an accessible daemon and the correct context; run `docker info` first. Check package sources, DNS, HTTPS, CA, proxy and MTU inside the build container. A successful host request does not prove container connectivity. Do not disable TLS or change package pins to hide a network failure. The image repository needs write permission and the runtime needs pull access.
 
-Preparation deadlines use deploy `--build-timeout` or template build `--timeout`. More waiting does not guarantee remote cancellation; inspect state after a timeout. `--verbose` provides local diagnostics, but application/build scripts may print private data.
+Use `template build --timeout` for a Sandbox build deadline. More waiting does not guarantee remote cancellation; inspect state after a timeout. `--verbose` provides local diagnostics, but application/build scripts may print private data.
 
 ## Deployment failure and cleanup
 

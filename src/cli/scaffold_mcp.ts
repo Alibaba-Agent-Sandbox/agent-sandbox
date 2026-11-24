@@ -60,7 +60,7 @@ EXPOSE 9000
     ["README.md", `# {name}
 
 An editable MCP Streamable HTTP application. Change app.py and template.yaml,
-then build and deploy it with the normal template and application commands.
+then prepare the template and create a Sandbox.
 
 ## Deploy
 
@@ -69,7 +69,8 @@ API URL and sandbox domain for the same account and region. These are runtime
 inputs; the CLI's ability to build an image does not configure this service.
 
 \`\`\`bash
-abx deploy . --name {name} -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
+abx template build . --out .abx/mcp-build.json --yes
+abx create --build .abx/mcp-build.json --name {name} --yes -e "ABX_SANDBOX_API_KEY=$ABX_SANDBOX_API_KEY" -e "ABX_SANDBOX_BASE_URL=$ABX_SANDBOX_BASE_URL" -e "ABX_SANDBOX_DOMAIN=$ABX_SANDBOX_DOMAIN"
 \`\`\`
 
 The CLI generates and saves ABX_SERVER_TOKEN on this machine when needed. The

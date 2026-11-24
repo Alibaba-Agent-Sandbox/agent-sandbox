@@ -31,7 +31,7 @@ The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers
 | [Managed Applications](guide/managed-applications.md) | One stable Gateway, explicit deployment and session-owned Sandbox compute |
 | [Using Templates](guide/using-templates.md) | Official and community templates |
 | [Authoring Templates](guide/authoring-templates.md) | Custom templates, including `abx template init --adopt` for an existing project |
-| [Deploy & Build](guide/deploy-and-build.md) | Template lifecycle (`template init` / `--adopt` → `template build` → `deploy`) |
+| [Deploy & Build](guide/deploy-and-build.md) | Template lifecycle (`template init` / `--adopt` → `template build` → `create`) |
 | [E2E Template Workflow](guide/e2e-template-workflow.md) | Complete guide from building a template to using sandboxes |
 | [MCP Integration](guide/mcp-integration.md) | Cursor / Claude Desktop / VS Code integration |
 | [Environment Variables](guide/environment-variables.md) | Sandbox env var scopes, injection, and direct-exec semantics |

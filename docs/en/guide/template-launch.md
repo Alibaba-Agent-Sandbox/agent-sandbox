@@ -1,19 +1,21 @@
-# Deploy a template and clean up
+# Create a Sandbox and clean up
 
 ```bash
-abx --provider PROVIDER deploy SOURCE --name my-app --yes
+abx --provider PROVIDER template build SOURCE --out .abx/build.json --yes
+abx --provider PROVIDER create --build .abx/build.json --name my-app --yes
 abx status my-app
 abx logs my-app
 abx delete my-app --yes
+abx --provider PROVIDER template build --clean .abx/build.json --yes
 ```
 
-SOURCE can be a catalog name, local project or pinned Git reference. Use `--template-id TEMPLATE_ID` for an existing native template. Current source uses one command surface; an older release may differ, so inspect `abx --help`.
+SOURCE can be a catalog name, local project or pinned Git reference. Use `create --template-id TEMPLATE_ID` for an existing native template. Current source uses one command surface; an older release may differ, so inspect `abx --help`.
 
-A Sandbox template prepares and creates one instance, runs declared startup/readiness and resolves every `provides` endpoint. Server v2 receives health and protocol discovery without executing business commands. Other HTTP protocols rely on declared readiness and are not automatically certified as application-compatible. Managed applications have a different lifecycle; see [managed applications](managed-applications.md).
+Build prepares a reusable template. Create starts one instance, runs declared startup and readiness checks, and resolves every `provides` endpoint. Server v2 receives health and protocol discovery without executing business commands. Other HTTP protocols rely on declared readiness and are not automatically certified as application-compatible. Managed applications have a different lifecycle; see [managed applications](managed-applications.md).
 
 Configure the Provider first. Express may need platform and registry permissions; OpenSandbox needs a reachable server, Docker, a writable image repository and runtime pull access. Official recipes resolve known base-image placeholders; `ABX_BASE_IMAGE_REGION` and `ABX_BASE_IMAGE_TAG` control image inputs only. Ordinary builds need no separate Python SDK checkout; use `ABX_SERVER_SDK_SOURCE` only to test a local development wheel deliberately.
 
-Deployment `--build-timeout` bounds preparation, `--sandbox-timeout` sets instance lifetime and `--build-profile` selects a declared recipe. HTTP wait deadlines and termination of remote work are different; a timeout does not prove the remote side effect never happened.
+Build `--timeout` bounds preparation and `--build-profile` selects a declared recipe. Create `--sandbox-timeout` sets instance lifetime. HTTP wait deadlines and termination of remote work are different; a timeout does not prove the remote side effect never happened.
 
 Missing application tokens are generated and privately saved. External clients send application authentication separately from Provider endpoint authentication. Preserve proxy prefixes, signed queries and gateway headers.
 

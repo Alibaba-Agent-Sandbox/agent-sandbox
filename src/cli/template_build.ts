@@ -48,10 +48,23 @@ export const templateBuildSeams = { launch: executeTemplateLaunch, buildApplicat
 /** Build a source template once and retain its source and resource ownership receipt. */
 export async function buildTemplate(ctx: Context, params: Params): Promise<void> {
   if (!params.yes) throw new UsageError("Review the build target and pass --yes to permit preparation or cleanup.");
-  if (params.clean) return cleanTemplateBuild(ctx, String(params.clean));
+  if (params.clean) {
+    if ([params.source, params.out, params.alias, params.build_profile, params.timeout].some(value => value != null)) {
+      throw new UsageError("--clean cannot be combined with SOURCE, --out, --alias, --build-profile or --timeout.");
+    }
+    return cleanTemplateBuild(ctx, String(params.clean));
+  }
   const acquired = await acquireTemplateSource(ctx, String(params.source ?? "."));
   if (!acquired.directory) throw new UsageError("This catalog entry has no source to build.");
-  const source = fs.realpathSync(acquired.directory), id = randomUUID();
+  const source = fs.realpathSync(acquired.directory);
+  const sourceManifest = _findTemplateYaml(source);
+  if (!sourceManifest) throw new UsageError("Template source has no template.yaml.");
+  const input = readYaml(sourceManifest);
+  const hasSandboxFlags = [params.alias, params.build_profile, params.timeout].some(value => value != null);
+  if (record(input) && input.application && hasSandboxFlags) {
+    throw new UsageError("--alias, --build-profile and --timeout apply only to Sandbox template preparation.");
+  }
+  const id = randomUUID();
   const output = path.resolve(String(params.out ?? path.join(acquired.ref.registry_type === "local" ? source : process.cwd(), ".abx", `build-${id}.json`)));
   if (fs.existsSync(output)) throw new ApplicationError("Build artifact already exists; retain its resources/journal and choose a new --out path.");
   fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
@@ -62,6 +75,9 @@ export async function buildTemplate(ctx: Context, params: Params): Promise<void>
   if (!manifest) throw new UsageError("Template source has no template.yaml.");
   const raw = readYaml(manifest);
   if (record(raw) && raw.application) {
+    if (hasSandboxFlags) {
+      throw new UsageError("--alias, --build-profile and --timeout apply only to Sandbox template preparation.");
+    }
     const template = readTemplate(manifest), credential = await templateBuildSeams.credentials(template.application.deployment.accessRef);
     const receipt = await templateBuildSeams.buildApplication(template, projectRoot, credential, output);
     writeJson(output, { ...receipt, projectRoot });

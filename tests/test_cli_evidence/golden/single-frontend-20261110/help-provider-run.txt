@@ -55,7 +55,7 @@ Commands:
   template-cache.list    [read] List one Team-scoped Template Cache page; return
                          the opaque next token.
   template.create        [write] Register a native template from an image or
-                         build steps; rejects existing names.
+                         build steps.
   template.delete        [delete] Delete the selected Team's native cloud
                          template; Sandbox instances are separate resources.
   template.get           [read] Read a native cloud template and its actual

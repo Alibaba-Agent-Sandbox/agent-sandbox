@@ -7,7 +7,7 @@ Run `ABX_BIN=<binary> node e2e/template-build-failure.mjs` with local Docker acc
 
 Run `ABX_BIN=<binary> node e2e/initialized-template.mjs --application` to test automatic application authentication and saved-token reuse against an existing `python-hello` template (override its ID with `ABX_ONBOARDING_APPLICATION_TEMPLATE`). This mode starts the template service, invokes an authenticated business command and independently deletes its owned sandbox. Add `--guided-application` instead to enter a hidden Sandbox API key first, verify default persistence without scope menus, and reuse saved platform/application credentials from another process.
 
-Run `ABX_BIN=<binary> node e2e/initialized-template.mjs` for a fresh-home run of `deploy --name guided-init` using a local managed-base source. It checks billable-deploy confirmation, missing-key guidance, real Express creation, remote execution and independent HTTP 404 cleanup. It verifies masked input and a generated saved application token. Requires the same credentials and terminal support as guided configuration.
+Run `ABX_BIN=<binary> node e2e/initialized-template.mjs` for a fresh-home run of `create --build FILE --name guided-init` using a prepared build of a local manifest referencing the managed base template. It checks creation confirmation, missing-key guidance, real Express creation, remote execution and independent HTTP 404 cleanup. It verifies masked input and a generated saved application token. Requires the same credentials and terminal support as guided configuration.
 
 A language-neutral, black-box end-to-end suite for the `abx` CLI. It spawns the binary under test
 exactly like a user would (argv, environment, stdin, exit code, stdout/stderr, files on disk) against
@@ -20,13 +20,12 @@ the **real cloud**. Point `ABX_BIN` at the `abx` binary you want to test.
 Run `ABX_BIN=<standalone-executable> npm run e2e:standard` with E2B_API_KEY and
 E2B_API_URL/E2B_DOMAIN in the environment or ignored .env. This focused suite uses
 the real Express backend and a real local PTY (Linux/macOS, Python 3 required).
-It verifies named deploy, stdout and nonzero remote exits, a persistent shell through
+It verifies named Sandbox creation, stdout and nonzero remote exits, a persistent shell through
 `sandbox connect`, borrowed Sandbox survival after disconnect, and explicit delete
-with an independent HTTP 404 check. It does not test removed create/auto-attach or
-terminal-exit lease rewrites. Errors are masked before reporting.
+with an independent HTTP 404 check. Errors are masked before reporting.
 
 Run `ABX_BIN=<standalone-executable> node e2e/guided-configuration.mjs` to verify
-ordinary deploy through a real terminal, missing-key guidance, hidden credential
+ordinary create through a real terminal, missing-key guidance, hidden credential
 input, persistence within the isolated home, creation and remote execution. Supply a Sandbox API key and an
 explicit API URL/domain in the environment. The test removes the key from the
 child environment before entering it through the prompt, uses an isolated home,
@@ -35,7 +34,7 @@ Linux/macOS and Python 3. It creates one real sandbox.
 
 Run `ABX_BIN=<standalone-executable> node e2e/guided-template-steps.mjs` after building
 the CLI to verify real platform RUN steps without ACR configuration, a Sandbox API
-key in the deploy process, or local Docker tools. Supply AccessKeys and a Sandbox
+key in the template registration process, or local Docker tools. Supply AccessKeys and a Sandbox
 API key/endpoint through the environment. The test reads the existing public
 `code-interpreter-v1` source and preserves its image, resources and runtime commands.
 Platform RUN steps require generation 2. If that source is generation 1, the test
@@ -51,7 +50,7 @@ Submission is never replayed. If cleanup cannot be confirmed, the test fails and
 retains a mode-0600 temporary recovery file containing only owned resource references;
 credentials are never written to that file.
 
-The runner uses the current unified source CLI: deploy and named lifecycle commands,
+The runner uses the source CLI with Sandbox create and named lifecycle commands,
 with runtime operations under sandbox. Exec options precede the Sandbox ID; an
 explicit `--` separates the remote argv. The command walk checks every help node
 and safe local invocation. Template init creates source; template build prepares a
@@ -59,7 +58,7 @@ reusable artifact. A focused pass does not certify the full CI matrix.
 
 ## Whole-template startup
 
-After building the candidate CLI, run `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs` with Sandbox credentials and Alibaba Cloud AccessKeys in the environment. The test launches a spec v5 managed `base` template, then prepares a native-steps source using the pinned official base image, starts two HTTP services, checks readiness, verifies both returned endpoints and executes a build marker check. It deletes only its journaled sandboxes/templates and confirms their absence. `--managed-only` omits the source preparation case. This is focused Express evidence, not the full Docker/OpenSandbox catalog matrix. Do not rebuild `dist/` concurrently with a running binary test.
+After building the candidate CLI, run `ABX_BIN="node $PWD/dist/bin/abx.js" node e2e/unified-template-launch.mjs` with Sandbox credentials and Alibaba Cloud AccessKeys in the environment. The test prepares a spec v5 manifest referencing the managed `base` template and creates a Sandbox. It then prepares a native-steps build using the pinned official image, creates from the artifact, and verifies readiness, both HTTP endpoints and a build marker. It deletes only its journaled sandboxes/templates and confirms their absence. `--managed-only` omits the source preparation case. This is focused Express evidence, not the full Docker/OpenSandbox catalog matrix. Do not rebuild `dist/` concurrently with a running binary test.
 
 ## Quick start
 
@@ -96,7 +95,7 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 
 ## Cloud command contracts
 
-`cloud-readonly` and `cloud-lifecycle` use `deploy --template-id`, root
+`cloud-readonly` and `cloud-lifecycle` use `create --template-id`, root
 `list/status/delete`, and `sandbox exec`/files/process/application commands. JSON
 inventory is `{items, partial, errors}`; deployment results include `name` and
 `sandbox_id`. Native template CRUD uses `provider run template.list/get/create/delete`
@@ -109,14 +108,14 @@ submission, tracks any returned ID immediately, and resolves an ID-free attempt 
 on a definitive rejection. Cleanup requires complete inventory plus exact-ID typed
 NotFound; a delete acknowledgement is insufficient. Uncertain attempts and resources
 retain both the ledger and private workspace so named deployment recovery remains
-possible. Docker preparation uses template build and named deploy; it retains failed
+possible. Docker preparation uses template build and named create; it retains failed
 build artifacts until native template absence and artifact cleanup are confirmed.
 Without Docker that suite is skipped with its reason, never counted as passed.
 
 Select an already deployed `python-hello` template implementing application protocol v2
 and the documented `hello` command for the named-command check. Without `ABX_E2E_APP_START_COMMAND`, the suite requires that service to be running already.
-For a selected `startup: exec` workflow on a bare managed sandbox, supply the exact reviewed
-manifest start command. For the current python-hello manifest this is:
+For a bare managed sandbox, supply the exact start command from the selected template's
+manifest. For the current python-hello manifest this is:
 
 ```bash
 ABX_E2E_APP_START_COMMAND="agent-sandbox-server serve --port 9000 --commands /home/user/app/commands.py" \
@@ -126,7 +125,7 @@ ABX_E2E_APP_START_COMMAND="agent-sandbox-server serve --port 9000 --commands /ho
 If the selected managed image does not contain the reviewed application source, explicitly
 set both `ABX_E2E_APP_UPLOAD_SOURCE` and `ABX_E2E_APP_UPLOAD_DEST` together with that startup
 command. For example, after setting `PYTHON_HELLO_SOURCE` to the reviewed
-[python-hello source directory](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/python-hello):
+[python-hello source directory](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/52f7653bda0b6c6406207e28095ee09a87cb5018/python-hello):
 
 ```bash
 ABX_E2E_APP_UPLOAD_SOURCE="$PYTHON_HELLO_SOURCE/commands.py" \
@@ -158,9 +157,9 @@ create/connect remain covered by `e2e/standard.mjs` with a real local PTY.
 | `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template init`, local `template search --index-url` |
 | `standard-contract` | cloud + Python 3/local PTY | Named deployment, remote exit status, real PTY/connect ownership and explicit deletion |
 | `cloud-readonly` | cloud | unified authentication/listing and typed error envelopes, official template ID readback and precise missing-resource diagnostics, secret masking of `config list` |
-| `cloud-lifecycle` | cloud | named `deploy` -> `list` -> `status` -> `sandbox exec` (exit-code propagation, `--cwd`, JSON/quiet/CI output and supported command deadlines) -> `sandbox upload`/`sandbox download` (binary round-trip) -> background/streaming/command env -> `sandbox files/process/system/capabilities` -> `sandbox command list` / `sandbox run` named commands -> env/upload at create -> `delete` |
+| `cloud-lifecycle` | cloud | named `create` -> `list` -> `status` -> `sandbox exec` (exit-code propagation, `--cwd`, JSON/quiet/CI output and supported command deadlines) -> `sandbox upload`/`sandbox download` (binary round-trip) -> background/streaming/command env -> `sandbox files/process/system/capabilities` -> `sandbox command list` / `sandbox command run` named commands -> env/upload at create -> `delete` |
 | `catalog` | outbound GitHub | `template search` and `template init --from` against the remote index |
-| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template build` (docker build, ACR push, CreateTemplate) -> `deploy` -> `sandbox exec` -> `template build --clean` |
+| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template build` (docker build, ACR push, CreateTemplate) -> `create --build` -> `sandbox exec` -> `template build --clean` |
 
 ## Scenario format
 
@@ -194,7 +193,7 @@ real sandboxes through the CLI: `npm run e2e:providers` or `e2e/providers/run.sh
 | Target | Needs | What it checks |
 |---|---|---|
 | `offline` | nothing (git, python3) | hidden-until-used `provider` group, consent and `--yes` rules (`E8012`), install from a path and from a local git repo pinned to a commit, `E8003` conflict and `--force`, `doctor`/`status`, `E8001`, `E8002` (secret on the command line), `provider default`, `E8030`, tamper detection (`E8011`), uninstall |
-| `local-process` | python3 | `deploy`, `list`, `sandbox exec` (exit-code propagation), `sandbox upload`/`sandbox download` round trip, `sandbox files list`, `delete`, E4 after kill, all with qualified ids |
+| `local-process` | python3 | `create`, `list`, `sandbox exec` (exit-code propagation), `sandbox upload`/`sandbox download` round trip, `sandbox files list`, `delete`, E4 after kill, all with qualified ids |
 | `opensandbox` | a live OpenSandbox: `python-sdk/e2e/opensandbox/local-up.sh` (Docker; key `local-dev-key`, `127.0.0.1:8080`) | install by path and by git, `doctor`, `provider default opensandbox`, the full sandbox round trip with and without `--provider`, secret masking, and `abx provider test` (the contract suite) |
 | `e2b-compatible` | `E2B_API_KEY` (+ `E2B_API_URL`, `E2B_DOMAIN`) in the environment | the REST plugin inheriting the generic `sandbox_*` keys runs the same round trip on the live cloud; without the key it is reported as `SKIP` |
 
@@ -253,7 +252,7 @@ Exit code of `run.mjs`: 0 = no failures (skips allowed), 1 = at least one failur
 
 ## Provider ownership without cloud prerequisites
 
-`ABX_BIN=<built-executable> node e2e/provider-boundary.mjs` installs a local fixture into a temporary HOME and checks qualified references, conflicting/unknown/empty namespaces, remote provider flags and template/deploy refusal. It exercises the actual executable and filesystem, creates no cloud resource, and is not a real OpenSandbox deployment test.
+`ABX_BIN=<built-executable> node e2e/provider-boundary.mjs` installs a local fixture into a temporary HOME and checks qualified references, conflicting/unknown/empty namespaces, remote provider flags and template/Sandbox creation refusal. It exercises the actual executable and filesystem, creates no cloud resource, and is not a real OpenSandbox deployment test.
 
 ## Express source workflow acceptance
 
@@ -265,8 +264,8 @@ must be able to push to that ACR namespace and create/delete Express templates.
 Set `ABX_WORKFLOW_REPORT` to a JSON output path; optionally set
 `ABX_WORKFLOW_FULL_E2E=1` to run the broader CLI suite against the prepared template.
 
-The test launches the Registry's unchanged `python-hello` source using its default
-Dockerfile, checks the returned declared services, invokes its HTTP command, exercises CLI file operations, and deletes
+The test builds the Registry's unchanged `python-hello` source using its default Dockerfile,
+creates from that build, checks its services, invokes its HTTP command, exercises CLI file operations, and deletes
 its owned sandbox/template with independent typed absence readback. It creates billable resources. ACR image receipts are
 retained in `~/.abx/resource-journal/` for manual image cleanup; do not delete shared
 repositories. The sanitized report distinguishes failure and cleanup status.

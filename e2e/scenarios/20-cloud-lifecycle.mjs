@@ -21,7 +21,7 @@ export default {
       async run(ctx) {
         ctx.state.name = 'e2e-' + randomUUID().slice(0, 12);
         const attempt = ctx.beginCreateAttempt(ctx.state.name);
-        const r = await ctx.abx(["--json", "deploy", "--name", ctx.state.name, "--template-id", TEMPLATE, "--sandbox-timeout", '900', "--yes"], { timeoutMs: 180_000 });
+        const r = await ctx.abx(["--json", "create", "--name", ctx.state.name, "--template-id", TEMPLATE, "--sandbox-timeout", '900', "--yes"], { timeoutMs: 180_000 });
         const id = trackDetachedCreate(ctx, r, attempt);
         ctx.state.id = id;
         const info = await ctx.abx(['--json', 'status', id]);
@@ -295,9 +295,9 @@ export default {
 
     // ---- in-sandbox server + named commands ---------------------------------------------------------------
     {
-      id: 'run-named-command', title: 'deployed template serves current app protocol; `sandbox command list`, `run hello`, --arg and --json-args work; unknown command exits 2 (E3005)', requires: ['create-json'], timeoutMs: 180_000,
+      id: 'run-named-command', title: 'deployed template serves current app protocol; `sandbox command list`, `sandbox command run hello`, --arg and --json-args work; unknown command exits 2 (E3005)', requires: ['create-json'], timeoutMs: 180_000,
       async run(ctx) {
-        // A supplied start command is the selected manifest's exact startup:exec contract.
+        // A supplied start command comes from the selected template's manifest.
         // Without it, this scenario requires an already serving application.
         const startup = process.env.ABX_E2E_APP_START_COMMAND;
         const uploadSource = process.env.ABX_E2E_APP_UPLOAD_SOURCE;
@@ -328,20 +328,20 @@ export default {
           if (catalog.code !== 0 || !Array.isArray(commands) || !commands.some((command) => command.name === 'hello')) ctx.fail(`deployed ${TEMPLATE} must expose protocol v2 and hello on port 9000: ${catalog.out.slice(0, 200)}`);
         }, { timeoutMs: 60_000, intervalMs: 3_000, what: 'deployed protocol-v2 command catalog' });
         await confirmStartup();
-        r = await ctx.abx(["sandbox", 'run', sid(ctx), 'hello']);
+        r = await ctx.abx(["sandbox", 'command', 'run', sid(ctx), 'hello']);
         if (r.code !== 0) ctx.fail(`run hello failed: ${r.out}`);
         ctx.check('hello', r.stdout, 'Hello, World!');
-        r = await ctx.abx(["sandbox", 'run', sid(ctx), 'hello', '--arg', 'name=Bob']);
+        r = await ctx.abx(["sandbox", 'command', 'run', sid(ctx), 'hello', '--arg', 'name=Bob']);
         if (r.code !== 0) ctx.fail(`run hello --arg failed: ${r.out}`);
         ctx.check('--arg', r.stdout, 'Hello, Bob!');
-        r = await ctx.abx(['--json', "sandbox", 'run', sid(ctx), 'hello', '--json-args', '{"name": "Zed"}']);
+        r = await ctx.abx(['--json', "sandbox", 'command', 'run', sid(ctx), 'hello', '--json-args', '{"name": "Zed"}']);
         const j = ctx.parseJsonLoose(r.stdout);
         if (r.code !== 0) ctx.fail('named command JSON call failed');
         if (j?.result !== 'Hello, Zed!') ctx.fail(`--json-args json: ${JSON.stringify(j)}`);
         r = await ctx.abx(['sandbox', 'command', 'list', sid(ctx)]);
         if (r.code !== 0) ctx.fail('command list failed');
         ctx.check('command list', r.out, 'hello');
-        r = await ctx.abx(["sandbox", 'run', sid(ctx), 'no-such-command-e2e']);
+        r = await ctx.abx(["sandbox", 'command', 'run', sid(ctx), 'no-such-command-e2e']);
         if (r.code !== 2) ctx.fail(`unknown command exit ${r.code}, expected 2`);
         ctx.check('E3005', r.out, ['E3005', 'not found']);
       },
@@ -355,7 +355,7 @@ export default {
         writeFileSync(join(ctx.cwd, 'seed', 'seed.txt'), 'seeded\n');
         ctx.state.name2 = 'e2e-' + randomUUID().slice(0, 12);
         const attempt = ctx.beginCreateAttempt(ctx.state.name2);
-        const r = await ctx.abx(['--json', "deploy", '--name', ctx.state.name2, "--template-id", TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', "--sandbox-timeout", '600', "--yes"]);
+        const r = await ctx.abx(['--json', "create", '--name', ctx.state.name2, "--template-id", TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', "--sandbox-timeout", '600', "--yes"]);
         const id = r.rawJson()?.sandbox_id;
         if (isExpressSandboxId(id)) { ctx.track(id); ctx.resolveCreateAttempt(attempt); }
         if (r.code !== 0 || !isExpressSandboxId(id)) ctx.fail('native create did not return a valid owned sandbox identity');

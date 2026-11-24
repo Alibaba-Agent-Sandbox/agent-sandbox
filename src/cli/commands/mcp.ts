@@ -411,7 +411,7 @@ export const mcp = group("mcp", {
     "  abx mcp start --http --background\n" +
     "  abx mcp stop\n" +
     "  abx template init ./mcp-service --template mcp\n" +
-    "  abx deploy ./mcp-service --name mcp-service\n" +
+    "  abx template build ./mcp-service --out mcp-build.json --yes\n  abx create --build mcp-build.json --name mcp-service --yes\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +

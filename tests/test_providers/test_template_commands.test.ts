@@ -69,6 +69,37 @@ describe("provider native template CRUD", () => {
     expect(result).toMatchObject({ template: { templateID: "new", message: "submitted [REDACTED]" } });
     expect(JSON.stringify(result)).not.toContain("ready");
   });
+  it("leaves envd to the platform by default and sends a copy only when explicitly requested", async () => {
+    const help = await new CliRunner().invoke(cli, ["provider", "run", "template.create", "--help"], { env: { LANG: "C", LC_ALL: "C" } });
+    expect(help.output.replace(/\s+/g, " ")).toContain("envd_inject=true requires generation 1. Omit or pass false to use platform behavior.");
+    const { call } = fixture("createTemplate", { templateID: "new" });
+    const input = { team_id: ref.team_id, name: "example", image: "registry.test/image:v1" };
+    await runProviderCommand("alicloud-express", "template.create", input, credentials);
+    await runProviderCommand("alicloud-express", "template.create", { ...input, envd_inject: false }, credentials);
+    await runProviderCommand("alicloud-express", "template.create", { ...input, envd_inject: true, target_image: "registry.test/image:prepared" }, credentials);
+    expect(call.mock.calls[0][0].toMap()).not.toHaveProperty("body.buildConfig");
+    expect(call.mock.calls[1][0].toMap()).not.toHaveProperty("body.buildConfig");
+    expect(call.mock.calls[2][0].toMap()).toMatchObject({
+      body: {
+        runtimeConfig: { sandboxConfig: { generation: 1 } },
+        buildConfig: { copy: { enabled: true, image: "registry.test/image:prepared" }, envdInject: { enabled: true } },
+      },
+    });
+  });
+  it.each([
+    { invalid: { envd_inject: true, generation: 2 }, reason: "envd_inject=true requires generation 1" },
+    { invalid: { target_image: "registry.test/image:prepared" }, reason: "target_image requires envd_inject=true" },
+    { invalid: { envd_inject: false, target_image: "registry.test/image:prepared" }, reason: "target_image requires envd_inject=true" },
+  ])("rejects ineffective envd inputs through the public command before a cloud request: $invalid", async ({ invalid, reason }) => {
+    iso.setenv("ALICLOUD_ACCESS_KEY_ID", credentials.access_key_id); iso.setenv("ALICLOUD_ACCESS_KEY_SECRET", credentials.access_key_secret);
+    const { call, client } = fixture("createTemplate", { templateID: "new" });
+    const input = { team_id: ref.team_id, name: "example", image: "registry.test/image:v1", ...invalid };
+    const result = await new CliRunner().invoke(cli, ["--json", "provider", "run", "template.create", "--yes", "--input", JSON.stringify(input)]);
+    expect(result.exit_code).not.toBe(0);
+    expect(result.output).toContain(reason);
+    expect(client).not.toHaveBeenCalled();
+    expect(call).not.toHaveBeenCalled();
+  });
   it("resolves an omitted Team with the same AK/SK and honors configured or explicit Team", async () => {
     const getTeam = vi.spyOn(_seams, "getTeamId").mockResolvedValue("same-account-team");
     const { call } = fixture("getTemplate", { toMap: () => ({ templateID: "one" }) });

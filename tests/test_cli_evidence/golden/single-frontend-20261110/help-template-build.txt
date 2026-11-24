@@ -1,8 +1,8 @@
 Usage: abx template build [options] [SOURCE]
 
-Build a reusable template artifact without starting an application. Retains a
-private source snapshot and resource journal. --out never replaces an existing
-artifact.
+Prepare a reusable template from a Registry reference or local source without
+creating an instance. Use --out to save the artifact for abx create or abx
+deploy.
 
 Options:
   --out <OUT>
@@ -10,7 +10,8 @@ Options:
                                    artifact; retain its journal.
   --build-profile <BUILD_PROFILE>
   -a, --alias <ALIAS>
-  --timeout <FLOAT>
+  --timeout <FLOAT>                Sandbox template preparation timeout in
+                                   seconds (default 600).
   -y, --yes
   -h, --help                       Show this message and exit.
 [exit_code:0]

@@ -6,7 +6,7 @@ Configure the selected Provider once. `config init` explains each credential and
 
 ```bash
 abx config init
-abx deploy --template-id base --name my-sandbox --yes
+abx create --template-id base --name my-sandbox --yes
 abx status my-sandbox
 abx sandbox exec my-sandbox -- echo 'Hello from sandbox'
 abx delete my-sandbox --yes
@@ -17,13 +17,15 @@ To run an application, choose a catalog template instead:
 ```bash
 abx template list python
 abx template info python-hello
-abx deploy python-hello --name hello
+abx template build python-hello --out .abx/hello-build.json --yes
+abx create --build .abx/hello-build.json --name hello --yes
 abx sandbox command list hello
 abx sandbox command run hello hello --arg name=Ada
 abx delete hello --yes
+abx template build --clean .abx/hello-build.json --yes
 ```
 
-The CLI prepares the source, starts it and verifies declared readiness. A template requiring Docker, an image registry or model access needs those prerequisites. Application authentication is generated and saved automatically when the template declares it. Use the returned service endpoint for external HTTP clients; they must send the application token and any Provider gateway headers.
+Build prepares the selected source. Create starts a Sandbox from the build and verifies its declared services. The hello command returns `Hello, Ada!`. A template requiring Docker, an image registry or model access needs those prerequisites. Application authentication is generated and saved automatically when the template declares it. Use the returned service endpoint for external HTTP clients; they must send the application token and any Provider gateway headers.
 
 For an already prepared native template, `--template-id` names the Provider's template or supported image reference. A local deployment name is a convenient handle saved on this host; an SDK instead connects to the actual Sandbox ID shown by `status`.
 

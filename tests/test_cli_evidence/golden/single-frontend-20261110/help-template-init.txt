@@ -40,7 +40,8 @@ generation
 
 Related commands:
   abx template build DIRECTORY
-  abx deploy DIRECTORY --name my-app
+  abx template build DIRECTORY --out build.json --yes
+  abx create --build build.json --name my-sandbox --yes
   abx template publish DIRECTORY --tag VERSION
 
 Options:

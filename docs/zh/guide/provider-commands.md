@@ -43,8 +43,10 @@ abx --json --provider alicloud-express provider run snapshot.create \
 
 AI 和自动化应使用这些 JSON 接口。面向人的帮助不是稳定 JSON 响应契约。
 Provider 管理操作、沙箱应用命令（`abx sandbox command`）与模板准备
-（`abx deploy`）是不同职责。注册和查看帮助不会创建模板或云资源。
+（`abx template build`）是不同职责。注册和查看帮助不会创建模板或云资源。
 本次变更不会自动生成 MCP 工具、Shell 补全或 SDK 类型化方法。
+
+极速版通过 `provider run template.create` 注册原生模板时，仅第一代镜像模板可以在 JSON 输入中使用 `envd_inject: true`。省略或填写 `false` 时由平台决定如何准备镜像。用 `abx --provider alicloud-express provider run template.create --help` 查看支持的字段。
 
 ## 职责与更新
 

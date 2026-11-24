@@ -29,7 +29,7 @@ abx --help
 
 Use CLI for terminal tasks, `abx mcp install` for an MCP client, and the separate `agent-sandbox-sdk` Skill for Python code. The Node.js SDK is an HTTP client for a running application service. Do not introduce another client facade for a CLI task.
 
-The root lifecycle commands are `deploy`, `list`, `status`, `logs`, `delete`, and `recover`. The groups are `template`, `sandbox`, `config`, `provider`, and `mcp`. Inspect installed `--help` rather than inferring support from a catalog listing.
+The root lifecycle commands are `create`, `deploy`, `list`, `status`, `logs`, `delete`, and `recover`. The groups are `template`, `sandbox`, `config`, `provider`, and `mcp`. Inspect installed `--help` rather than inferring support from a catalog listing.
 
 ## Configure
 
@@ -48,7 +48,7 @@ Creating or renewing a management API key needs explicit consent. `--ci` control
 ## Creating a sandbox
 
 ```bash
-abx deploy --template-id base --name demo --sandbox-timeout 300 --yes
+abx create --template-id base --name demo --sandbox-timeout 300 --yes
 abx status demo
 abx sandbox exec demo -- python3 --version
 abx sandbox exec --cwd /tmp --timeout 60 demo -- sh -c 'printf hello'
@@ -58,7 +58,7 @@ abx sandbox download demo /home/user/input.txt ./downloaded.txt
 abx delete demo --yes
 ```
 
-`deploy --template-id` accepts a native template ID or alias. Source templates use `abx deploy python-hello --name hello --yes` or `abx deploy ./project --name hello --yes`. `--plan` previews without building or modifying cloud resources. Query actual resources when CPU, memory or region matter; requested values are not observed results.
+`create --template-id` accepts a native template ID or alias. For source, build the template, then use `create --build FILE`. Query actual resources when CPU, memory or region matter; requested values are not observed results.
 
 ## Executing code and commands
 
@@ -74,17 +74,17 @@ File operations use `sandbox upload/download` and `sandbox files`. Check downloa
 abx template list python
 abx template info python-hello
 abx template init ./my-template --from python-hello
-abx deploy ./my-template --name hello --plan
-abx deploy ./my-template --name hello --yes
+abx template build ./my-template --out .abx/hello-build.json --yes
+abx create --build .abx/hello-build.json --name hello --yes
 abx sandbox command list hello
-abx sandbox command run hello greet --json-args '{"name":"World"}'
+abx sandbox command run hello hello --json-args '{"name":"World"}'
 ```
 
 Named commands require a deployed application server and registered business function. Running a local registration decorator does not deploy the function. HTTP client examples must use the template's actual business API and authentication.
 
 Template creation uses `template init`, optionally `--prompt` or `--template mcp`. Explicit author builds use `template build`; `template publish --tag VERSION` publishes clean committed source to an existing GitHub remote and returns a pinned reference. It does not create a Registry listing. Follow [template authoring](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/authoring-templates.md) for the supported arguments and prerequisites.
 
-Managed applications use the same root lifecycle commands and one Gateway endpoint. See [managed applications](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/managed-applications.md) for private bindings and existing database requirements. Do not introduce another environment layer or assume ordinary Sandbox templates are managed applications.
+Use `deploy SOURCE --plan` to preview a managed application, then use `deploy` with its bindings to publish it. Managed applications share the root management commands and expose one Gateway endpoint. See [managed applications](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/managed-applications.md) for private bindings and existing database requirements. Do not introduce another environment layer or assume ordinary Sandbox templates are managed applications.
 
 ## Provider-native operations
 
@@ -106,7 +106,7 @@ Use `list --local` without cloud access; `list --all-providers` reports partial 
 
 ## MCP
 
-`abx mcp start` serves local STDIO; stdout is JSON-RPC and diagnostics go to stderr. `mcp start --http` serves local HTTP. Use actual `tools/list` to discover the installed tools. Do not treat discovery as execution acceptance. A deployable HTTP MCP service is an ordinary project from `template init --template mcp`, followed by `deploy`; see [MCP integration](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/mcp-integration.md).
+`abx mcp start` serves local STDIO; stdout is JSON-RPC and diagnostics go to stderr. `mcp start --http` serves local HTTP. Use actual `tools/list` to discover the installed tools. Do not treat discovery as execution acceptance. A deployable HTTP MCP service is an ordinary project from `template init --template mcp`, followed by `template build` and `create --build`; see [MCP integration](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/mcp-integration.md).
 
 MCP tool requests can create billable resources. Check ownership and the user's task scope before creating or deleting them. Validate actual command output, downloaded artifacts and cleanup, not just tool return status.
 

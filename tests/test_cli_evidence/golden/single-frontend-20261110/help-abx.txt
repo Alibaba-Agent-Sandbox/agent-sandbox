@@ -2,18 +2,18 @@ Usage: abx [options] [command]
 
 abx — Agent Sandbox CLI
 
-Deploy useful templates and manage their running instances.
+Prepare templates, create Sandboxes and deploy managed applications.
 
 Get started:
   abx config init
-  abx deploy python-hello --name demo
+  abx create --template-id base --name demo --yes
   abx status demo
-  abx delete demo
+  abx delete demo --yes
 
-Author templates:
+Use a source template:
   abx template list python
-  abx template init ./my-template --from python-hello
-  abx deploy ./my-template --name demo
+  abx template build python-hello --out build.json --yes
+  abx create --build build.json --name hello --yes
 
 Use --json for machine-readable output. --yes separately authorizes changes.
 More templates: https://registry.agent-sandbox.cn/templates/
@@ -37,7 +37,8 @@ Command groups:
   mcp                  Configure and run the local MCP server.
 
 Commands:
-  deploy               Deploy a template as a named instance.
+  create               Create a Sandbox from a ready template.
+  deploy               Deploy a managed application.
   list                 List deployments and Sandboxes.
   status               Inspect a deployment or Sandbox ID.
   logs                 Read deployment or Sandbox logs.

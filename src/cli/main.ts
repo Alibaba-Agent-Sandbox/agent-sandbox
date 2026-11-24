@@ -107,9 +107,9 @@ export const VERSION: string = (() => {
 })();
 
 const ROOT_HELP = [
-  "abx — Agent Sandbox CLI", "", "Deploy useful templates and manage their running instances.", "",
-  "Get started:", "  abx config init", "  abx deploy python-hello --name demo", "  abx status demo", "  abx delete demo", "",
-  "Author templates:", "  abx template list python", "  abx template init ./my-template --from python-hello", "  abx deploy ./my-template --name demo", "",
+  "abx — Agent Sandbox CLI", "", "Prepare templates, create Sandboxes and deploy managed applications.", "",
+  "Get started:", "  abx config init", "  abx create --template-id base --name demo --yes", "  abx status demo", "  abx delete demo --yes", "",
+  "Use a source template:", "  abx template list python", "  abx template build python-hello --out build.json --yes", "  abx create --build build.json --name hello --yes", "",
   "Use --json for machine-readable output. --yes separately authorizes changes.",
   "More templates: https://registry.agent-sandbox.cn/templates/",
 ].join("\n");

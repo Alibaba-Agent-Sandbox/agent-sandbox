@@ -8,7 +8,8 @@ export const GROUP_COMMANDS: Readonly<Record<string, {spec: string; help: string
 };
 export const HELP_GROUPS: ReadonlyArray<string> = Object.keys(GROUP_COMMANDS);
 export const ROOT_COMMANDS: Readonly<Record<string, {spec: string; help: string}>> = {
-  deploy: {spec: "commands/deploy:deploy_shortcut", help: "Deploy a template as a named instance."},
+  create: {spec: "commands/deploy:create_sandbox", help: "Create a Sandbox from a ready template."},
+  deploy: {spec: "commands/deploy:deploy_shortcut", help: "Deploy a managed application."},
   list: {spec: "commands/deployment_management:list", help: "List deployments and Sandboxes."},
   status: {spec: "commands/deployment_management:status", help: "Inspect a deployment or Sandbox ID."},
   logs: {spec: "commands/deployment_management:logs", help: "Read deployment or Sandbox logs."},

@@ -80,7 +80,7 @@ resolve_opensandbox() {
 roundtrip() {
   local provider_args=("$@")
   step "create"
-  abx --json "${provider_args[@]}" deploy --yes --template-id "${CREATE_TEMPLATE:-base}"
+  abx --json "${provider_args[@]}" create --yes --template-id "${CREATE_TEMPLATE:-base}"
   expect_rc 0 || return
   local sid; sid="$(json_get "d.get('sandbox_id')")"
   local ref="$sid"
@@ -216,7 +216,7 @@ suite_opensandbox() {
   PROVIDER_ID=
 
   step "explicit --provider with the default unset"
-  abx config delete provider >/dev/null; abx --json --provider opensandbox deploy --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
+  abx config delete provider >/dev/null; abx --json --provider opensandbox create --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
   local sid; sid="$(json_get "d.get('sandbox_id')")"; KEEP_IDS+=("opensandbox:$sid")
   abx --provider opensandbox sandbox exec "opensandbox:$sid" "echo via-flag"; expect_rc 0 && expect_out "via-flag" || return
   abx delete "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
@@ -227,7 +227,7 @@ suite_opensandbox() {
   abx provider uninstall opensandbox --yes >/dev/null 2>&1
   abx provider install "file://$repo" --allow-insecure-transport --ref "$(git -C "$repo" rev-parse HEAD)" --yes; expect_rc 0 || return
   abx provider doctor opensandbox; expect_rc 0 || return
-  abx --json --provider opensandbox deploy --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
+  abx --json --provider opensandbox create --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
   sid="$(json_get "d.get('sandbox_id')")"; KEEP_IDS+=("opensandbox:$sid")
   abx --provider opensandbox sandbox exec "opensandbox:$sid" "echo from-git"; expect_rc 0 && expect_out "from-git" || return
   abx delete "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }

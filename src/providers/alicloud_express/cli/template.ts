@@ -74,6 +74,22 @@ const IGNORED_PLATFORM_STEPS = "A Dockerfile is selected, so template.yaml build
 
 const STEPS_WITH_ACR = "--acr-namespace cannot be used with platform build steps.";
 
+function validateNativeEnvdOptions(
+    inject: boolean,
+    targetImage: string | null,
+    generation: number,
+    buildKind?: BuildPlan["kind"],
+): void {
+    if (targetImage != null && !inject) {
+        throw usageError("--target-image requires --envd-inject.");
+    }
+    if (inject && buildKind === "steps") {
+        throw usageError("--envd-inject cannot be used with platform build steps.");
+    }
+    if (inject && generation !== 1) {
+        throw usageError("--envd-inject requires generation 1.");
+    }
+}
 
 /** `dict.get(key, default)`: only a missing key falls back (a stored `null` stays `null`). */
 function _get(obj: Record<string, Any>, key: string, dflt: Any): Any {
@@ -984,7 +1000,7 @@ export const template = group("template", {
 
     \b
     Related commands:
-      abx create TEMPLATE  Launch a sandbox from a template
+      abx create --template-id ID --yes   Create a sandbox from a template
       abx deploy [PATH]               Same as 'template deploy'
       abx config --help               Configure credentials and region
     `),
@@ -1027,7 +1043,7 @@ export const install = template.command("install", {
             if (ref.is_builtin) {
                 if (BUILTIN_TEMPLATES.has(templateRef)) {
                     fmt.printSuccess(`'${templateRef}' is a built-in template. No installation needed.`);
-                    fmt.printSuccess(`Use it directly: abx create ${templateRef}`);
+                    fmt.printSuccess(`Use it directly: abx create --template-id ${templateRef} --yes`);
                     return [ref, null];
                 }
                 // Bare name that is not built-in: resolve it through the remote template index (single source of truth),
@@ -1137,11 +1153,11 @@ export const install = template.command("install", {
             fmt.printDict(deployData);
             if (buildStatus === "ready") {
                 fmt.printSuccess("Template installed, built, and ready!");
-                fmt.printSuccess(`Use: abx create ${pyStr(_get(deployData, "TemplateID", null))}`);
+                fmt.printSuccess(`Use: abx create --template-id ${pyStr(_get(deployData, "TemplateID", null))} --yes`);
             }
             else if (_get(deployData, "Build mode", null) === "steps" && buildStatus === "submitted") {
                 fmt.printSuccess("Template registration submitted from platform build steps.");
-                fmt.printSuccess(`Use: abx create ${pyStr(_get(deployData, "TemplateID", null))}`);
+                fmt.printSuccess(`When the template is ready: abx create --template-id ${pyStr(_get(deployData, "TemplateID", null))} --yes`);
             }
             else if (buildStatus === "pushed" || buildStatus === "submitted") {
                 fmt.printSuccess("Template downloaded and image pushed; registration submitted.");
@@ -1240,6 +1256,8 @@ export const create_template = template.command("create", {
     params: templateUi["create"]!.params,
     callback: handleErrors(async (ctx: Context, params: Any): Promise<void> => {
         requireTemplateFeature("templates.build");
+        const resolvedGeneration: number = params["generation"] ?? 1;
+        validateNativeEnvdOptions(params["envd_inject"], params["target_image"], resolvedGeneration);
         const required: (string | GuidanceField)[] = ["access_key_id", "access_key_secret"];
         const privateFields: Record<string, unknown> = {};
         if (params["registry_username"] || params["registry_password"]) {
@@ -1250,7 +1268,7 @@ export const create_template = template.command("create", {
         }
         return withExpressConfiguration(ctx, params, required, async () => {
         const { image, name, team_id: teamId, cpu, memory, disk_size: diskSize, internet_access: internetAccess } = params;
-        const { start_cmd: startCmd, ready_cmd: readyCmd, generation, envd_inject: envdInject, target_image: targetImage } = params;
+        const { start_cmd: startCmd, ready_cmd: readyCmd, envd_inject: envdInject, target_image: targetImage } = params;
         const { registry_type: registryType, acree_instance_id: acreeInstanceId } = params;
         const { registry_username: registryUsername, registry_password: registryPassword, region } = params;
         const fmt = getFormatter(ctx);
@@ -1266,7 +1284,6 @@ export const create_template = template.command("create", {
             sysExit(1);
         }
         const finalRegion: string = config.region;
-        const resolvedGeneration: number = generation !== null ? generation : 1;
         // Warn if start/ready commands used without generation 2
         if ((startCmd || readyCmd) && resolvedGeneration !== 2) {
             echo("Warning: --start-cmd / --ready-cmd only take effect with --generation 2 (MicroVM).", { err: true });
@@ -1306,7 +1323,7 @@ export const create_template = template.command("create", {
             fmt.printDict(data);
             const templateId = result["templateID"];
             if (pyTruthy(templateId)) {
-                fmt.printSuccess(`Template created! Use: abx create ${templateId}`);
+                fmt.printSuccess(`Template registration submitted. When ready: abx create --template-id ${templateId} --yes`);
             }
         }
         }, privateFields);
@@ -1408,6 +1425,12 @@ export const build = template.command("build", {
             if (explicitAcr)
                 throw usageError(STEPS_WITH_ACR);
         }
+        const runtime = resolveDeployRuntime(templateDir, {
+            generation: params["generation"],
+            start_cmd: params["start_cmd"],
+            ready_cmd: params["ready_cmd"],
+        });
+        validateNativeEnvdOptions(params["envd_inject"], params["target_image"], runtime.generation, plan.kind);
         return withDeployConfiguration(templateDir, { ...params, ctx, explicit_acr_namespace: explicitAcr }, async () => {
         // Resolve ACR namespace: CLI > env > .env file. Platform steps do not push an image.
         const resolvedNamespace = plan.kind === "dockerfile" ? _resolveAcrNamespace(params["acr_namespace"]) : "";
@@ -1419,11 +1442,6 @@ export const build = template.command("build", {
                 : nodePath.basename(pyResolve(templateDir));
         const resolvedCpu: number = params["cpu"] !== null ? params["cpu"] : _coerceInt(yamlDefaults["cpu"], 2);
         const resolvedMemory: number = params["memory"] !== null ? params["memory"] : _coerceInt(yamlDefaults["memory"], 2048);
-        const runtime = resolveDeployRuntime(templateDir, {
-            generation: params["generation"],
-            start_cmd: params["start_cmd"],
-            ready_cmd: params["ready_cmd"],
-        });
         const templateName: Any = params["alias"] || resolvedRepo;
         // Early credential check (before confirmation prompt)
         const config = templateSeams.loadConfig({ region: params["region"] });
@@ -1519,11 +1537,11 @@ export const build = template.command("build", {
             fmt.printDict(data);
             if (buildStatus === "ready") {
                 fmt.printSuccess("Template built and ready!");
-                fmt.printSuccess(`Use: abx create ${pyStr(_get(data, "TemplateID", null))}`);
+                fmt.printSuccess(`Use: abx create --template-id ${pyStr(_get(data, "TemplateID", null))} --yes`);
             }
             else if (_get(data, "Build mode", null) === "steps" && buildStatus === "submitted") {
                 fmt.printSuccess("Template registration submitted from platform build steps.");
-                fmt.printSuccess(`Use: abx create ${pyStr(_get(data, "TemplateID", null))}`);
+                fmt.printSuccess(`When the template is ready: abx create --template-id ${pyStr(_get(data, "TemplateID", null))} --yes`);
             }
             else if (buildStatus === "pushed" || buildStatus === "submitted") {
                 fmt.printSuccess("Image pushed to ACR; template registration submitted.");

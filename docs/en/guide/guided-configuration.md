@@ -1,6 +1,6 @@
 # Guided configuration
 
-Run `abx config init` to configure the selected Provider and optionally find a template to deploy. Entered supported values are saved to the current user's local configuration and reused. There is no configuration-scope menu. Existing option/environment overrides are not copied into saved configuration.
+Run `abx config init` to configure the selected Provider. After setup, use [the template guide](using-templates.md) to build a template and create an instance. Entered supported values are saved to the current user's local configuration and reused. There is no configuration-scope menu. Existing option/environment overrides are not copied into saved configuration.
 
 ```bash
 abx config init
@@ -20,7 +20,7 @@ Runtime calls need the selected Provider's API credentials and endpoint. Builds 
 | Application token (`ABX_SERVER_TOKEN`) | Protect the application API; generated locally by the CLI, not issued by a cloud console |
 | GitHub token | Private source/rate-limited reads; use the appropriate GitHub access token |
 
-When the template declares an empty application token, deployment generates a random value, saves it privately and reuses it for later commands. This also works with `--yes`. To choose a custom value, use hidden input with `abx config set server_token`. External clients send that application token separately from Provider traffic authentication. Changing saved configuration does not change an already running application's startup environment.
+When the template declares an empty application token, creating the Sandbox from its build generates a random value, saves it privately and reuses it for later commands. This also works with `--yes`. To choose a custom value, use hidden input with `abx config set server_token`. External clients send that application token separately from Provider traffic authentication. Changing saved configuration does not change an already running application's startup environment.
 
 Interactive prompts show the Provider, region and API host where relevant. Empty input or Ctrl+C cancels collection before saving. Secrets use hidden input. Invalid saved configuration is diagnosed rather than silently replaced. Detailed source information is available with `--verbose` and the [configuration reference](../reference/configuration.md).
 
@@ -34,6 +34,6 @@ abx config delete llm_api_key
 
 Automation supplies required values before `--yes`. JSON, quiet, CI and piped execution never open configuration questions. `config init --yes` prints setup guidance without collecting values. Missing permissions, quota, network access or a Provider capability cannot be solved by inventing configuration. Creating or renewing a cloud management key retains its separate explicit confirmation; writing an AccessKey locally is not that consent.
 
-MCP editor registration can continue offline and does not write cloud secrets into IDE files. A remote HTTP MCP service needs application authentication and runtime Provider configuration; initialize it with `abx template init ./mcp --template mcp`, then review and deploy its source. See [MCP integration](mcp-integration.md).
+MCP editor registration can continue offline and does not write cloud secrets into IDE files. A remote HTTP MCP service needs application authentication and runtime Provider configuration; initialize it with `abx template init ./mcp --template mcp`, then review and build its source before creating the Sandbox. See [MCP integration](mcp-integration.md).
 
 A missing project is initialized explicitly with `template init`. After a failed deployment, inspect `status` and `recover`; never replay an uncertain cloud submission just because local configuration is now complete.

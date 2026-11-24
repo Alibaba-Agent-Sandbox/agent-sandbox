@@ -909,7 +909,7 @@ function currentCommand(command: string[]): string[] {
   if (operation === "upload" || operation === "download") return [...command.slice(0, offset), "sandbox", ...command.slice(offset)];
   return command;
 }
-const publicHelp = [[], ["deploy"], ["list"], ["status"], ["logs"], ["delete"], ["recover"],
+const publicHelp = [[], ["create"], ["deploy"], ["list"], ["status"], ["logs"], ["delete"], ["recover"],
   ["sandbox"], ...["exec", "connect", "upload", "download", "files", "process", "command", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"].map(name => ["sandbox", name]),
   ["provider"], ...["list", "info", "install", "update", "run", "command"].map(name => ["provider", name]),
   ...["list", "info"].map(name => ["provider", "command", name]),

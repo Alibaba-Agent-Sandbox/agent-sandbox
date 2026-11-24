@@ -22,7 +22,7 @@ Build the [current source CLI](../../README.md#installation), then configure the
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo
+abx create --template-id base --name demo
 abx list
 ```
 
@@ -103,8 +103,8 @@ graph TB
 | Unified CLI | **Current source** | See [cli-design.md](design/cli-design.md) |
 | MCP Server (STDIO) | **Implemented** | Discover available tools from the running server |
 | MCP Server (Streamable HTTP) | **Implemented** | `agent/mcp_http.ts` |
-| HTTP MCP template | **Current source** | `template init --template mcp` creates editable source for `deploy`. See [MCP boundaries](design/mcp-server.md) |
-| Template authoring and deployment | **Current source** | `template init/build/publish`; `deploy` prepares the selected source through its supported Provider or application profile |
+| HTTP MCP template | **Current source** | `template init --template mcp` creates editable source for `template build` and `create --build`. See [MCP boundaries](design/mcp-server.md) |
+| Template authoring and deployment | **Current source** | `template init/build/publish`; `create` starts Sandbox instances and `deploy` publishes managed FC applications |
 | Single-file binary (Node SEA) | **Implemented** | See [Binary Installation](guide/binary-installation.md) |
 | Provider commands | **Implemented** for `alicloud-express` and installed `node`, `exec` and `rest` providers (`opensandbox`, `e2b`, `cubesandbox`, `alicloud-container`) | `abx --provider <id>` loads an installed plugin; an id that is neither built in nor installed exits `E8001`. See [Providers](guide/providers.md) and [Node provider architecture](design/node-provider-architecture.md) |
 

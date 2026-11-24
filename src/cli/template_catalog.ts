@@ -153,7 +153,9 @@ export const template = group("template", {
 
     \b
     Related commands:
-      abx deploy TEMPLATE --name APP  Deploy an application from a template
+      abx template build TEMPLATE     Prepare a source template
+      abx create --build FILE         Create a Sandbox from a ready build
+      abx deploy TEMPLATE --name APP  Deploy a managed application
       abx config --help               Configure credentials and region
 
     More templates: https://registry.agent-sandbox.cn/templates/
@@ -242,7 +244,7 @@ export const list_templates = template.command("list", {
         fmt.printTable(headers, rows);
         if (!fmt.quiet) {
             echo(`\n${results.length} template(s) found.`);
-            echo(`Launch one with: abx --provider <provider> deploy <name> --name <app> (index: ${index.source_url})`);
+            echo(`Inspect a template with: abx template info <name> (index: ${index.source_url})`);
         }
     }),
 });
@@ -455,7 +457,8 @@ export const init = template.command("init", {
     \b
     Related commands:
       abx template build DIRECTORY
-      abx deploy DIRECTORY --name my-app
+      abx template build DIRECTORY --out build.json --yes
+      abx create --build build.json --name my-sandbox --yes
       abx template publish DIRECTORY --tag VERSION
     `),
   params: [
@@ -702,7 +705,7 @@ export function _printInitSummary(fmt: Any, out: Any, target: string, created: s
         return;
     }
     const dirArg = String(target) !== process.cwd() ? String(target) : ".";
-    out.info(`  abx deploy ${dirArg} --name ${name}`);
+    out.info(`  abx template build ${JSON.stringify(dirArg)} --out build.json --yes`);
     const profile = resolveTemplateProfile();
     if (profile.registry) out.info(`  # ${profile.registry}`);
 }
@@ -767,7 +770,7 @@ export async function _resolveIndexEntry(name: string, opts: { token: string | n
 export async function _resolveIndexName(name: string, opts: { token: string | null; fmt: Any; out: Any }): Promise<string> {
   const entry = await _resolveIndexEntry(name, opts);
   if (entry.manifest) {
-    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} deploy ${entry.name} --name <app>' instead.`);
+    throw new UsageError(`Template '${name}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} create --template-id ${entry.manifest.template_id} --yes'.`);
   }
   return entry.install_ref;
 }
@@ -788,7 +791,7 @@ export async function acquireTemplateSource(
       if (options.allowCatalog === false) throw usageError(`'${source}' is a built-in template and cannot be used with --from. Use -t/--template for built-in cases.`);
       const entry = await _resolveIndexEntry(source, { token: active, fmt, out });
       if (entry.manifest) {
-        if (!options.allowManaged) throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} deploy ${entry.name} --name <app>' instead.`);
+        if (!options.allowManaged) throw usageError(`Template '${source}' is provider-managed and has no source directory to install. Use 'abx --provider ${entry.manifest.provider} create --template-id ${entry.manifest.template_id} --yes'.`);
         return { ref, manifest: entry.manifest };
       }
       ref = await client.resolve(entry.install_ref, options.registryType);

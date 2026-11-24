@@ -6,12 +6,11 @@ Status: current source behavior for Sandbox template preparation. The mode rules
 
 ```bash
 abx template build ./project --out ./.abx/build.json --timeout 600 --yes
-abx deploy --build ./.abx/build.json --name my-app --yes
+abx create --build ./.abx/build.json --name my-app --yes
 # Or prepare and deploy directly:
-abx deploy ./project --name my-app --build-timeout 600 --yes
 ```
 
-`template build` prepares a reusable artifact without creating an instance. `deploy --build FILE` consumes that artifact; `--build` does not select a mode. Direct `deploy SOURCE` prepares source and creates a named deployment. Source publication is a separate `template publish SOURCE --tag VERSION` operation.
+`template build` prepares a reusable artifact without creating an instance. `create --build FILE` consumes that artifact and starts a named Sandbox. Source publication is a separate `template publish SOURCE --tag VERSION` operation.
 
 ## Choosing the preparation path
 
@@ -25,7 +24,7 @@ For Express, set `build.mode` in `template.yaml` to `auto`, `dockerfile` or `ste
 
 When both recipes exist, `auto` selects the Dockerfile and reports that the platform steps were not sent. Explicit `steps` ignores a Dockerfile and an ambient ACR namespace. Configure build credentials through `abx config init --build` or supported configuration inputs; the public authoring commands do not expose the former adapter-specific build flags.
 
-`--build-profile NAME` on `template build` or `deploy` selects a named Dockerfile recipe declared in the source:
+`--build-profile NAME` on `template build` selects a named Dockerfile recipe declared in the source:
 
 ```yaml
 build_profiles:
@@ -78,7 +77,7 @@ Express native `ENV` is not a guarantee that a value reaches later `RUN` command
 
 Both reusable builds and direct source deployments wait for template preparation to become ready. A successful native registration submission alone is not proof of readiness. Inspect native state with `abx --provider alicloud-express provider run template.get --input-file template-get.json`, where the file contains `template_id` and optionally `team_id`.
 
-For Sandbox preparation, `template build --timeout SECONDS` and `deploy --build-timeout SECONDS` set the preparation budget: 600 seconds by default, greater than zero and at most 3600. `deploy --sandbox-timeout` separately sets instance lifetime; `--request-timeout` configures request timing. A local deadline does not prove remote work stopped or that an uncertain create can be replayed safely.
+For Sandbox preparation, `template build --timeout SECONDS` sets the preparation budget: 600 seconds by default, greater than zero and at most 3600. `create --sandbox-timeout` separately sets instance lifetime; `--request-timeout` configures request timing. A local deadline does not prove remote work stopped or that an uncertain create can be replayed safely.
 
 Use `status` and `recover` for a failed named deployment, then `delete` for resources it owns. A separately prepared build remains independent: remove its consumers before `template build --clean BUILD_FILE --yes`, and inspect reported images requiring manual cleanup. See [authoring templates](../guide/authoring-templates.md) and [deployment boundaries](../guide/template-launch.md).
 

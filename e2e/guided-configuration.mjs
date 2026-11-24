@@ -35,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     pid, master = pty.fork()
     if pid == 0:
         os.chdir(home)
-        os.execvpe(command[0], command + ['deploy', '--template-id', 'code-interpreter-v1', '--name', 'guided-native', '--sandbox-timeout', '60'], child_env)
+        os.execvpe(command[0], command + ['create', '--template-id', 'code-interpreter-v1', '--name', 'guided-native', '--sandbox-timeout', '60'], child_env)
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
     key_sent = method_sent = approved = False
@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                     raise
                 if not chunk: break
                 output += chunk
-                if not approved and b'Deploy guided-native?' in output:
+                if not approved and b'Create Sandbox guided-native?' in output:
                     os.write(master, b'y\r')
                     approved = True
                 if not method_sent and b'Choose an authentication method' in output:

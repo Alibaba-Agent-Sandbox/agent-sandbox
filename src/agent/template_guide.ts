@@ -110,7 +110,7 @@ function dockerfileRules(profile: TemplateProfile): string {
     : `不要写 ENTRYPOINT 指令（基础镜像的入口不可替换）。`;
   const installIntro =
     "- 安装 agent-sandbox-server，固定使用下面已发布的 PyPI alpha 测试版（不是稳定版）。" +
-    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx deploy` 改用本地 wheel：";
+    "设置 `ABX_SERVER_SDK_SOURCE` 时 `abx template build` 改用本地 wheel：";
   const secrets = "- 不要在镜像里写入任何密钥；需要的密钥在 template.yaml 的 `env` 里只列名字（空值或非敏感默认值）。";
   if (profile.server_start === "platform_start_cmd") {
     return `### 3. Dockerfile 规则（provider \`${profile.provider_id}\`）
@@ -240,7 +240,7 @@ ${mode === "create" ? "- 新生成应用必须声明 env.ABX_SERVER_TOKEN 为空
 - \`tags\`、\`author\` 可省略。
 ${
   selected.server_start === "platform_start_cmd"
-    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx deploy\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
+    ? `- 这个 provider 由平台启动服务。\`template.yaml\` 还要写 \`generation: 2\`、\`start_cmd: ${JSON.stringify(selected.start_cmd ?? "")}\`、\`ready_cmd: ${JSON.stringify(selected.ready_cmd ?? "")}\`。\`abx template build\` 在缺这些键且目录有 \`commands.py\` 时使用同一组默认值。generation 1 不能带 start_cmd。`
     : ""
 }
 

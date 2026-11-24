@@ -23,7 +23,7 @@ const config = loadConfig();
 const nativeOptions = { access_key_id: config.access_key_id, access_key_secret: config.access_key_secret, region: config.region };
 assert.ok(nativeOptions.access_key_id && nativeOptions.access_key_secret && config.api_key && process.env.ACR_NAMESPACE, 'Configure Express Sandbox key, AccessKeys and ACR_NAMESPACE');
 process.env.ABX_SERVER_TOKEN ||= randomBytes(32).toString('hex');
-let sandbox, launch, error, prelaunchJournalIds;
+let sandbox, launch, buildImageBinding, error, prelaunchJournalIds;
 async function run(args, json = true) {
   const result = await new Promise(resolve => {
   const child = execFile(process.execPath, [cli, ...(json ? ['--json'] : []), ...args], { encoding: 'utf8', timeout: 1_500_000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => resolve({ status: error ? error.code ?? 1 : 0, stdout, stderr }));
@@ -75,13 +75,26 @@ function imageJournals() {
 }
 try {
   prelaunchJournalIds = journalIdsBeforeLaunch();
-  // Same source reference and default build as the Registry's Express instruction.
-  launch = await run(["deploy", 'Alibaba-Agent-Sandbox/awesome-templates//python-hello', "--name", alias, "--build-timeout", '1200', '--sandbox-timeout', process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600', '--yes']);
+  const buildFile = path.join(directory, 'build.json');
+  await run(['template', 'build', 'Alibaba-Agent-Sandbox/awesome-templates//python-hello', '--out', buildFile, '--alias', alias, '--timeout', '1200', '--yes']);
+  const build = JSON.parse(fs.readFileSync(buildFile, 'utf8'));
+  assert.equal(build.status, 'ready');
+  const buildJournal = journals().find(journal => journal.id === build.journal_id);
+  assert.ok(buildJournal, 'The build must have its own resource journal');
+  launch = await run(['create', '--build', buildFile, '--name', alias, '--sandbox-timeout', process.env.ABX_WORKFLOW_FULL_E2E === '1' ? '1800' : '600', '--yes']);
   assert.equal(launch.provider,'alicloud-express');assert.ok(launch.source_digest);
-  assert.equal(launch.services.app.protocol,'agent-sandbox-server');assert.equal(launch.services.app.version,2);assert.equal(launch.services.app.port,9000);assert.ok(launch.services.app.url);check('Registry source launch and declared application service');
-  const entries = journals().flatMap(j=>j.entries);
-  assert.ok(entries.some(e=>e.kind==='template' && e.id===launch.template_reference && e.state==='retained'));
-  assert.ok(entries.some(e=>e.kind==='image' && /@sha256:[a-f0-9]{64}$/.test(e.id) && e.state==='retained'));check('exact template handoff and immutable image receipt');
+  assert.equal(launch.services.app.protocol,'agent-sandbox-server');assert.equal(launch.services.app.version,2);assert.equal(launch.services.app.port,9000);assert.ok(launch.services.app.url);check('Registry source build, Sandbox creation and declared application service');
+  assert.equal(launch.template_reference, build.prepared.reference);
+  const entries = buildJournal.entries;
+  assert.ok(entries.some(e=>e.kind==='template' && e.id===launch.template_reference && ['created', 'retained'].includes(e.state)));
+  assert.ok(entries.some(e=>e.kind==='image' && /@sha256:[a-f0-9]{64}$/.test(e.id) && ['created', 'retained'].includes(e.state)));check('exact template handoff and immutable image receipt');
+  buildImageBinding = {
+    provider: build.provider,
+    journal_id: buildJournal.id,
+    plan_digest: buildJournal.plan_digest,
+    source_digest: build.sourceDigest,
+    template_reference: launch.template_reference,
+  };
   await run(["status", launch.sandbox_id]);await run(['list']);check('CLI info and list');
   const result = await run(["sandbox", 'exec', launch.sandbox_id, '--', 'python3', '-c', 'print(21 * 2)']);assert.equal(result.exit_code,0);assert.equal(result.stdout.trim(),'42');check('CLI exec');
   const commands = await run(['sandbox','command','list',launch.sandbox_id]);assert.ok(JSON.stringify(commands).includes('hello'));check('CLI command discovery');
@@ -160,7 +173,7 @@ finally {
   catch { report.cleanup.client_close='unconfirmed';report.result='FAIL'; }
   if(error)report.result='FAIL';
   try {
-    report.owned_image_metadata = projectWorkflowImages(imageJournals(), alias, launch,
+    report.owned_image_metadata = projectWorkflowImages(imageJournals(), alias, buildImageBinding,
       {startedAt: runStartedAt, finishedAt: new Date().toISOString()}, prelaunchJournalIds);
     if(report.owned_image_metadata.status !== 'complete') report.result='FAIL';
   } catch {

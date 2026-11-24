@@ -11,7 +11,8 @@ Examples:
   abx mcp start --http --background
   abx mcp stop
   abx template init ./mcp-service --template mcp
-  abx deploy ./mcp-service --name mcp-service
+  abx template build ./mcp-service --out mcp-build.json --yes
+  abx create --build mcp-build.json --name mcp-service --yes
 
 Related commands:
   abx config set sandbox_api_key VALUE  Configure sandbox authentication

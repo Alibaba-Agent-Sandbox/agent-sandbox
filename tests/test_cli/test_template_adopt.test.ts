@@ -2,7 +2,7 @@
  * CLI tests for `abx template init --adopt`.
  *
  * The coding agent is a fake that writes a valid template into its cwd. No model, Docker or cloud call is made.
- * `abx deploy` is then checked only as far as the fixed pipeline hand-off.
+ * `abx template build` is then checked only as far as the fixed pipeline hand-off.
  */
 
 import "../_support/isolatedHome.js";
@@ -220,7 +220,7 @@ describe("TestAdopt", () => {
     expect(read(path.join(project, "template.yaml"))).toContain("name: my-app");
     expect(fs.statSync(path.join(project, ".dockerignore")).isFile()).toBe(true);
     expect(read(path.join(project, "app.py"))).toBe("print('hi')\n");
-    expect(text).toContain("abx deploy");
+    expect(text).toContain("abx template build");
 
     expect(agent.calls).toBe(1);
 

@@ -8,7 +8,7 @@
 
 ## 模板与源码
 
-`abx template list` 搜索公共目录，`abx template init ./project --from SOURCE` 获取源码，`abx deploy ./project --name APP` 部署。缺少工程时先初始化，不让部署猜测要生成的内容。未知规范可以复制保存，但部署仍需支持的清单；Sandbox 与托管应用的限制见[模板启动](template-workflows.md)。GitHub 限流用 `abx config set github_token` 隐藏输入；固定 Git 提交不会因刷新目录缓存而改变。
+`abx template list` 搜索公共目录，`abx template init ./project --from SOURCE` 获取源码，`abx template build ./project --out FILE --yes` 准备 Sandbox 模板，`abx create --build FILE --name APP --yes` 创建实例。缺少工程时先初始化，不让部署猜测要生成的内容。未知规范可以复制保存，但部署仍需支持的清单；Sandbox 与托管应用的限制见[模板启动](template-workflows.md)。GitHub 限流用 `abx config set github_token` 隐藏输入；固定 Git 提交不会因刷新目录缓存而改变。
 
 ## 模型生成
 
@@ -18,7 +18,7 @@
 
 Dockerfile 构建需要本机 Docker 可执行文件、可访问 daemon 和正确 context；先运行 `docker info`。检查构建容器内的包源、DNS、HTTPS、CA、代理和 MTU。宿主可以下载不代表容器网络正常。不要关闭 TLS 或改版本掩盖网络错误。镜像仓库需要写入权限，运行平台也要能拉取镜像。
 
-准备期限使用 `deploy --build-timeout` 或 `template build --timeout`。增加等待时间不保证远端任务取消，超时后先查看状态。`--verbose` 提供本机诊断，应用或构建脚本打印的日志可能含敏感内容。
+用 `template build --timeout` 指定 Sandbox 模板准备期限。增加等待时间不保证远端任务取消，超时后先查看状态。`--verbose` 提供本机诊断，应用或构建脚本打印的日志可能含敏感内容。
 
 ## 部署失败与清理
 

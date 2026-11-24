@@ -14,7 +14,7 @@ const DETAIL = join(tmpdir(), 'abx-all-commands-detail.json');
 /** Top-level names the help walk must reach: the fixed surface of docs/en/reference/cli-commands.md. */
 const EXPECTED_ROOTS = [
   'config', 'provider', 'sandbox', 'template', 'mcp',
-  'deploy', 'list', 'status', 'logs', 'delete', 'recover',
+  'create', 'deploy', 'list', 'status', 'logs', 'delete', 'recover',
 ];
 
 const COMMAND_HEADINGS = new Set(['Commands:', 'Command groups:', 'Providers:', 'Sandbox shortcuts:']);
@@ -95,8 +95,8 @@ function planSafe(path, { isGroup, usage }) {
 
 function refuseUnsafe(argv) {
   const has = (s) => argv.includes(s);
-  if (argv[0] === 'deploy' && !has(UNKNOWN) && !has('--help')) {
-    throw new Error(`refusing to create a sandbox: ${argv.join(' ')}`);
+  if (['create', 'deploy'].includes(argv[0]) && !has(UNKNOWN) && !has('--help')) {
+    throw new Error(`refusing to create cloud resources: ${argv.join(' ')}`);
   }
   if (has('start') && argv[0] === 'mcp' && !has(UNKNOWN) && !has('--help')) {
     throw new Error(`refusing to start the MCP server: ${argv.join(' ')}`);

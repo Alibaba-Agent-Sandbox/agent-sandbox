@@ -31,7 +31,7 @@ CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。
 | [托管应用](guide/managed-applications.md) | 统一 Gateway、显式部署与按 Session 隔离的 Sandbox 计算 |
 | [模板使用](guide/using-templates.md) | 官方与社区模板使用 |
 | [模板编写](guide/authoring-templates.md) | 自定义模板；已有项目用 `abx template init --adopt` |
-| [部署与构建](guide/deploy-and-build.md) | 模板生命周期（`template init` / `--adopt` → `template build` → `deploy`） |
+| [部署与构建](guide/deploy-and-build.md) | 模板生命周期（`template init` / `--adopt` → `template build` → `create`） |
 | [端到端模板工作流](guide/e2e-template-workflow.md) | 从零构建模板到沙箱使用完整指南 |
 | [MCP 集成](guide/mcp-integration.md) | Cursor / Claude Desktop / VS Code 集成 |
 | [环境变量](guide/environment-variables.md) | 沙箱环境变量作用域、注入方式与直接执行语义 |

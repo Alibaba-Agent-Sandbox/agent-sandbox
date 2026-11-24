@@ -126,7 +126,7 @@ let primaryFailure;
 record('standard-start', {observationBudgetSeconds:210, cleanupReserveSeconds:30, graceSeconds:90});
 try {
   assert.ok(process.env.E2B_API_KEY, "E2B_API_KEY is required");
-  const output = await run(["--json", "deploy", "--template-id", "code-interpreter-v1", "--sandbox-timeout", "300", "--yes"]);
+  const output = await run(["--json", "create", "--template-id", "code-interpreter-v1", "--sandbox-timeout", "300", "--yes"]);
   const id = JSON.parse(output).sandbox_id;
   assert.match(id, /^[A-Za-z0-9_-]+$/);
   created.add(id);
@@ -143,7 +143,7 @@ try {
   const list = JSON.parse(await run(["--json", "list"], 0, {cleanup:true, timeout:5000}));
   assert.ok(Array.isArray(list.items));
   assert.ok(!list.items.some((item) => item.sandbox_id === id && item.observation === "remote"));
-  console.log("PASS: deploy, stdout, command failure, stateful PTY, connect retention, delete and cleanup");
+  console.log("PASS: create, stdout, command failure, stateful PTY, connect retention, delete and cleanup");
 } catch (error) { primaryFailure = error; }
 finally {
   const cleanup = await Promise.allSettled([...created].map((id) => cleanupOwned(id)));

@@ -1,7 +1,6 @@
 # Authoring templates
 
-A template is reusable source. Deploying it creates a named application that you
-manage separately. The authoring commands are `template list`, `info`, `init`,
+A template is reusable source. A Sandbox template can be built once and used to create independently named instances. The authoring commands are `template list`, `info`, `init`,
 `build` and `publish`.
 
 ## Find or create source
@@ -18,8 +17,7 @@ Built-in cases are `python`, `node`, `minimal` and `mcp`; `template init --list`
 shows them. `--from` copies catalog, repository or local template source. It does
 not build, register or deploy anything. Newer manifest versions can be copied
 and edited even when this CLI cannot execute their deployment contract. A
-provider-managed catalog entry without source can be deployed, but cannot be
-copied with `--from`.
+provider-managed catalog entry without source already has a native template ID. Use it with `create --template-id`.
 
 A project contains `template.yaml` and its source files, commonly a Dockerfile,
 application entry point and README. The manifest declares services, startup,
@@ -51,12 +49,12 @@ numbered `.abx-bak` backups. An existing template or unrelated commands.py needs
 and dependency directories; existing Docker ignore rules must exclude secrets.
 Generated files still need review before building or deploying.
 
-## Build once, deploy an application
+## Build once, create Sandboxes
 
 ```bash
 abx template build ./my-template --yes
 # Use the build path printed by the command:
-abx deploy --build BUILD_FILE --name my-app
+abx create --build BUILD_FILE --name my-app
 abx status my-app
 ```
 
@@ -67,10 +65,9 @@ chooses another unused path. An existing artifact is never overwritten.
 `--build-profile NAME` selects a declared Dockerfile profile; `--timeout` bounds
 sandbox template preparation.
 
-`deploy --build` verifies the snapshot and Provider target before reusing the
+`create --build` verifies the snapshot and Provider target before reusing the
 prepared result. Editing the original project does not edit an existing build.
-For a new version, build again. Direct `abx deploy ./my-template --name my-app`
-combines preparation and deployment when a separate build is unnecessary.
+For a new version, build again. Use the same build file to create another instance with a different name.
 
 Service implementations belong in application code. For SandboxServer named
 commands, use the server's `@command()` registration and the application's
@@ -94,7 +91,7 @@ a new version. `--remote NAME` selects an existing remote. Git uses your configu
 authentication; credentials must not be embedded in the remote URL.
 
 Others can copy the returned reference with `template init --from REFERENCE` or
-deploy it with `abx deploy REFERENCE --name APP`. Catalog contributions follow the
+build it directly with `abx template build REFERENCE --yes` and create a Sandbox from the returned build file. Catalog contributions follow the
 [template repository's contribution guide](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/blob/main/CONTRIBUTING.md).
 
 ## Resource cleanup

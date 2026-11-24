@@ -49,8 +49,9 @@ Details: docs/en/design/architecture.md
 Install the current source CLI as described in README.md; published 0.5.10 uses the previous command layout.
 
 ```
-abx deploy --template-id base --name demo --yes            # create from a registered platform template
-abx deploy python-hello --name hello --yes # Registry source on default Express; configure provider/build first
+abx create --template-id base --name demo --yes            # create from a registered platform template
+abx template build python-hello --out .abx/hello-build.json --yes # build directly from Registry
+abx create --build .abx/hello-build.json --name hello --yes       # create a Sandbox from that build
 abx sandbox exec <id> -- echo hello          # run command; --background starts a background process
 abx sandbox command run <id> <name> --arg k=v       # named command on the in-sandbox server
 abx sandbox upload <id> ./local /remote     # file transfer

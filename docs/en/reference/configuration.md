@@ -175,7 +175,7 @@ The `region` key is the persistent default. Override it for one invocation with 
 | `llm_base_url` | `ABX_LLM_BASE_URL` | LLM API base URL (default: DashScope compatible-mode) |
 | `access_key_id` | `ALICLOUD_ACCESS_KEY_ID` | Alibaba Cloud AccessKey ID (official control-plane credential) |
 | `access_key_secret` | `ALICLOUD_ACCESS_KEY_SECRET` | Alibaba Cloud AccessKey Secret (official control-plane credential) |
-| `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template init --from` / `abx deploy` (set it with `abx config init --build`) |
+| `acr_namespace` | `ACR_NAMESPACE` | ACR namespace for `abx template build` (set it with `abx config init --build`) |
 | `github_token` | `GITHUB_TOKEN` | GitHub token for template downloads (`abx template init --from` / `abx template list`; stored in `~/.abx/.env`, shown masked) |
 | `team_id` | `ABX_ALICLOUD_EXPRESS_TEAM_ID` | Team id. Optional. Not required. |
 

@@ -206,7 +206,7 @@ it("test_nl_init_writes_under_cwd_and_does_not_deploy", async () => {
   expect(create).not.toHaveBeenCalled();
   expect(ready.generate).toHaveBeenCalledTimes(1);
   _assertLocalTemplate(path.join(tmp, _TEMPLATE_NAME));
-  expect(_shown(result)).toContain("abx deploy");
+  expect(_shown(result)).toContain("abx template build");
   expect(_shown(result)).not.toContain("created successfully");
 });
 

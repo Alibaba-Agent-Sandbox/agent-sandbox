@@ -73,6 +73,22 @@ describe('template application setup', () => {
     expect(fs.statSync(iso.env).mode & 0o777).toBe(0o600);
     expect(output).not.toContain(token);expect(output).not.toContain('placeholder-platform');
   });
+  it('reuses a ready source artifact without restaging or preparing it during creation', async () => {
+    const f = source();
+    iso.setenv('ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY', 'placeholder-platform');
+    const prepared = await executeTemplateLaunch(ctx(), { template_ref: f.dir, yes: true }, { prepareOnly: true });
+    expect(f.create).not.toHaveBeenCalled();
+    expect(CLI_EXTENSION.stageProject).toHaveBeenCalledOnce();
+    const receipt = prepared.receipt;
+    await executeTemplateLaunch(ctx(), { template_ref: f.dir, yes: true }, {
+      prepared: receipt.prepared as Awaited<ReturnType<typeof CLI_EXTENSION.prepareProject>>,
+      builtTarget: receipt.target as Record<string, unknown>,
+    });
+    expect(f.prepare).toHaveBeenCalledOnce();
+    expect(CLI_EXTENSION.stageProject).toHaveBeenCalledOnce();
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.list).toHaveBeenCalledOnce();
+  });
   it('saves platform input by default and keeps explicit application input unsaved', async () => {
     const f=source();
     const ask=answers('placeholder-platform');

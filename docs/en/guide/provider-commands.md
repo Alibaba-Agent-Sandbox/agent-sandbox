@@ -45,9 +45,11 @@ abx --json --provider alicloud-express provider run snapshot.create \
 
 Use these JSON interfaces for AI discovery and automation. Human help is presentation, not a stable
 JSON response contract. Provider management operations are distinct from sandbox application commands
-(`abx sandbox command`) and from template preparation (`abx deploy`). Neither management
+(`abx sandbox command`) and from template preparation (`abx template build`). Neither management
 registration nor help creates a template or a cloud resource. This change does not automatically add
 MCP tools, shell completion entries or typed SDK methods.
+
+Express native template registration accepts `envd_inject: true` in the `provider run template.create` JSON input only for generation 1 image-based templates. An omitted or false value leaves image preparation to Express. Check the operation's supported fields with `abx --provider alicloud-express provider run template.create --help`.
 
 ## Ownership and updates
 

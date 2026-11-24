@@ -1148,8 +1148,7 @@ export const init = command("init", {
     fmt.printSuccess(`Configuration complete.${destinations.length ? ` Saved to ${destinations.join(" and ")}.` : " Existing values were kept."} Review values and sources with 'abx config list'.`);
     echo("To change a value later: abx config set KEY (omit VALUE for masked secret input).", { err: true });
     if (!build && !llm) {
-      const { continueSetup } = await import("../setup.js");
-      await continueSetup(ctx);
+      echo("Next: abx template list to browse, or abx create --help to create a Sandbox from a ready template.", { err: true });
     } else if (!build || !llm) {
       const more: string[] = [];
       if (!build) more.push("template build/push: 'abx config init --build'");

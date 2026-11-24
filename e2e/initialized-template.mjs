@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Real terminal initialization, catalog selection and Express creation. Creates and cleans up one owned sandbox. */
+/** Real terminal credential setup and Express creation from a prepared template. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { loadCredentials, makeMasker } from "./lib/env.mjs";
@@ -43,7 +43,12 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         manifest.update(start_cmd='python3 /app/commands.py', ready_cmd='python3 -m agent_sandbox.server healthcheck --port 9000',
             provides={'app': {'protocol':'agent-sandbox-server','version':2,'port':9000,'operations':['commands.list']}})
     (project / 'template.yaml').write_text(json.dumps(manifest))
-    args = ['--provider', 'alicloud-express', 'deploy', str(project), '--name', 'guided-init']
+    build = project / '.abx' / 'build.json'
+    prepared = subprocess.run(command + ['--provider', 'alicloud-express', 'template', 'build', str(project), '--out', str(build), '--yes'],
+        env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+    assert prepared.returncode == 0 and build.is_file(), 'preparation of the borrowed template failed'
+    assert json.loads(build.read_text())['status'] == 'ready', 'preparation must return a ready build'
+    args = ['--provider', 'alicloud-express', 'create', '--build', str(build), '--name', 'guided-init']
     pid, master = pty.fork()
     if pid == 0:
         os.chdir(home)
@@ -51,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
     step = 0
-    steps = [(b'Deploy guided-init?', b'y\r')]
+    steps = [(b'Create Sandbox guided-init?', b'y\r')]
     if guided or not application:
         steps += [(b'Choose an authentication method', b'1\r'), (b'sandbox_api_key (input hidden)', credential.encode() + b'\r')]
     status = None
@@ -91,7 +96,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             safe = re.sub(r'sbx-[a-zA-Z0-9_-]+', '[OWNED_SANDBOX]', safe)
             print('Terminal failure (sanitized): ' + safe[-1200:], file=sys.stderr)
         assert os.waitstatus_to_exitcode(status) == 0, 'initialization failed at step %d (raw output withheld)' % step
-        assert step == len(steps) and owned, 'deployment did not continue through authorization, configuration and creation'
+        assert step == len(steps) and owned, 'creation did not continue through authorization and configuration'
         saved = list(Path(home).rglob('.env'))
         assert saved, 'initialization did not save configuration'
         text = saved[0].read_text()
@@ -123,7 +128,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             assert rejected.returncode != 0 and b'401' in rejected.stdout + rejected.stderr, 'incorrect application token was not rejected with HTTP401'
             print('PASS: application authentication automatically generated, injected and reused for discovery and real hello command; wrong-token HTTP401 retained')
         else:
-            print('PASS: real terminal initialization, saved hidden input, generated application token, deployment, creation and remote exec')
+            print('PASS: real terminal creation from a prepared build, saved hidden input, generated application token and remote exec')
     finally:
         if not owned:
             candidates = re.findall(rb"['\"]sandbox_id['\"]\s*:\s*['\"]([A-Za-z0-9_-]+)['\"]", output)
@@ -137,7 +142,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
             except ProcessLookupError: pass
             os.waitpid(pid, 0)
         if owned:
-            result = subprocess.run(command + ['delete', owned, '--yes'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            result = subprocess.run(command + ['delete', 'guided-init', '--yes'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
             assert result.returncode == 0, 'owned sandbox cleanup failed'
             api_url = trusted.get('E2B_API_URL') or trusted.get('ABX_SANDBOX_BASE_URL') or 'https://api.' + trusted['E2B_DOMAIN']
             request = urllib.request.Request(api_url.rstrip('/') + '/sandboxes/' + owned, headers={'X-API-Key': credential})

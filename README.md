@@ -35,7 +35,7 @@ Configure your provider, then create a sandbox:
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo --yes
+abx create --template-id base --name demo --yes
 ```
 
 For Express, use a Sandbox API key for your account and region. The setup guide explains [credential sources and required permissions](docs/en/guide/permissions.md), including the optional AccessKey-based preparation flow. Interactive settings are saved locally for later commands.
@@ -51,7 +51,7 @@ abx delete demo --yes
 
 `sandbox connect` opens a terminal. Exiting it leaves the sandbox running; `delete` deletes it. See the [CLI tutorial](docs/en/guide/cli-tutorial.md) for files, background processes and other operations.
 
-## Launch an application template
+## Run a catalog Sandbox template
 
 To deploy an Agents API with one stable Gateway and a separate Sandbox per Session, use the
 [managed application guide](docs/en/guide/managed-applications.md).
@@ -60,12 +60,14 @@ Templates package tools such as browser automation, coding agents and web servic
 
 ```bash
 abx template list python
-abx deploy python-hello --name hello --yes
+abx template build python-hello --out .abx/hello-build.json --yes
+abx create --build .abx/hello-build.json --name hello --yes
+abx sandbox command run hello hello --arg name=Ada
 ```
 
-Source templates need the selected provider's build prerequisites. Launch starts the template's declared services and returns its sandbox ID. The CLI generates and saves the default application authentication token automatically. Model credentials are needed only for templates that use a model.
+Build prepares the reusable template and needs the selected provider's build prerequisites. Create starts its declared services and returns the Sandbox ID. The CLI generates and saves the default application authentication token automatically. Model credentials are needed only for templates that use a model.
 
-Use `abx delete hello --yes` when finished. It deletes owned sandboxes and templates; borrowed builds and images requiring manual cleanup are retained. follow the [template guide](docs/en/guide/using-templates.md) for setup and resource cleanup.
+Use `abx delete hello --yes` to remove the instance. When you no longer need the build, run `abx template build --clean .abx/hello-build.json --yes`. Follow the [template guide](docs/en/guide/using-templates.md) for setup, reuse and cleanup.
 
 ## Use with AI tools
 

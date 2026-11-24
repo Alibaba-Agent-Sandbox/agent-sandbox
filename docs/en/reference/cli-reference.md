@@ -4,7 +4,7 @@ The [command reference](cli-commands.md) is the single list of current commands 
 
 | Task | Entry |
 | --- | --- |
-| Deploy, inspect and clean up | `deploy`, `list`, `status`, `logs`, `delete`, `recover` |
+| Deploy, inspect and clean up | `create`, `deploy`, `list`, `status`, `logs`, `delete`, `recover` |
 | Find and author templates | `template list/info/init/build/publish` |
 | Execute, transfer files and connect | `sandbox exec/connect/upload/download` |
 | Configure credentials and defaults | `config` |

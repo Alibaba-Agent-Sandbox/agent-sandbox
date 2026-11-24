@@ -4,8 +4,9 @@
 
 | 任务 | 命令 |
 | --- | --- |
-| 部署源码/目录模板 | `abx deploy SOURCE --name APP` |
-| 从原生模板创建 | `abx deploy --template-id TEMPLATE --name APP` |
+| 从源码创建沙箱 | 先用 `abx template build SOURCE --out FILE --yes`，再用 `abx create --build FILE --name APP --yes` |
+| 部署托管 FC 应用 | `abx deploy SOURCE --name APP --bindings FILE --yes` |
+| 从原生模板创建 | `abx create --template-id TEMPLATE --name APP` |
 | 查看/状态/日志 | `abx list`、`abx status APP`、`abx logs APP` |
 | 删除/恢复 | `abx delete APP --yes`、`abx recover APP` |
 | 执行进程 | `abx sandbox exec APP -- COMMAND` |

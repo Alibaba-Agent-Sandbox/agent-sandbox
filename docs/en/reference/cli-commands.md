@@ -4,23 +4,25 @@
 
 <!-- fixed-set -->
 
-`abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`.
+`abx create`, `abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`.
 
-## Deploy and manage
+## Create, deploy and manage
 
 ```bash
 abx config init
-abx deploy python-hello --name demo
+abx template build python-hello --out .abx/build.json --yes
+abx create --build .abx/build.json --name demo --yes
 abx status demo
 abx logs demo
-abx delete demo
+abx delete demo --yes
+abx template build --clean .abx/build.json --yes
 ```
 
-`deploy SOURCE` accepts a catalog name, a Registry source reference, or a local template directory. `--name` names the instance independently of its template. Omit the name to use the template's name. `--plan` validates the source and previews required resources without building or deploying. `--yes` approves changes in automation; JSON output does not grant approval.
+`template build SOURCE` accepts a catalog name, Registry source reference or local template directory. `create --build FILE` starts a Sandbox from a prepared build and verifies its declared services. Set `--name` to manage it under a chosen name. `--yes` approves changes in automation.
 
-Use `deploy --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `sandbox exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
+Use `create --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `template build --timeout` controls template preparation; `sandbox exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
 
-Managed application templates use the same `deploy` command, with `--bindings FILE` for external-service and credential references. Deploying a ready application under the same name updates it while retaining revisions needed by its sessions. Delete an ordinary Sandbox deployment before recreating it under the same name. A name whose resources were deleted can be reused.
+`deploy SOURCE` creates or updates a [managed FC application](../guide/managed-applications.md). Pass `--plan` for a preview, `--bindings FILE` for private references and `--build FILE` to reuse a managed application build. Deploying a ready application under the same name updates it while retaining revisions needed by its sessions. Delete an ordinary Sandbox deployment before recreating it under the same name. A name whose resources were deleted can be reused.
 
 `list` combines local deployment records with Sandboxes from the selected Provider. `--local` avoids cloud queries; `--all-providers` queries all configured Providers. `--limit`, `--offset` and `--status` filter remote Sandbox results. Recorded deployment state is labelled separately from remote observations.
 
@@ -40,7 +42,7 @@ abx template info python-hello
 abx template init ./my-template --from python-hello
 abx template init ./my-mcp --template mcp
 abx template build ./my-template --yes
-abx deploy --build BUILD_FILE --name demo --yes
+abx create --build BUILD_FILE --name demo --yes
 abx template publish ./my-template --tag v1.0.0 --yes
 abx template build --clean BUILD_FILE --yes
 ```
@@ -49,7 +51,7 @@ abx template build --clean BUILD_FILE --yes
 
 `init --from` copies source without validating it for execution, building images or deploying resources. `init --template` creates a local skeleton; `--prompt` and `--adopt` are authoring options. Generated files remain editable.
 
-`build` prepares a Provider-specific reusable artifact and preserves its source snapshot and resource journal. A build may perform billable remote work. The output identifies its artifact file. `deploy --build` verifies the source and target before using its prepared reference. Native Provider references can have Provider-specific mutability; they are not a universal immutable image format. A build in use cannot be cleaned. Managed application builds retain their image digest and locked component toolchain.
+`build` prepares a Provider-specific reusable artifact and preserves its source snapshot and resource journal. A build may perform billable remote work. The output identifies its artifact file. `create --build` verifies the source and target before using its prepared Sandbox reference. Native Provider references can have Provider-specific mutability; they are not a universal immutable image format. A build in use cannot be cleaned. Managed application builds retain their image digest and locked component toolchain.
 
 `publish` pushes a committed source version to an existing GitHub remote using a new tag and returns a commit-pinned Registry source reference. It does not create a catalog listing. Choose a new version tag for changed content; existing remote tags are never overwritten.
 
@@ -72,6 +74,6 @@ abx sandbox connect demo
 
 ## MCP and output
 
-`mcp install/start/status/stop` manages local MCP integration. Create an editable HTTP MCP service with `template init --template mcp`, then deploy it as a template.
+`mcp install/start/status/stop` manages local MCP integration. Create an editable HTTP MCP service with `template init --template mcp`, then build the template and create a Sandbox from the build.
 
 `--json`, `--quiet`, `--verbose`, `--no-color` and `--ci` use the same parser for every command. Streaming operations emit their documented stream output. Provider selection never changes the command parser. `--help` is the authoritative option list for each command.

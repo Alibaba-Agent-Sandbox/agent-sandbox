@@ -84,7 +84,7 @@ templateUi["install"] =  { params: _installParams({
     Related commands:
       abx template search QUERY  Find a template in the index
       abx template list          List registered templates
-      abx create ID   Launch the installed template
+      abx create --template-id ID --yes   Create a sandbox from the installed template
     `) };
 templateUi["list"] =  { params: [
     regionOption(),
@@ -124,7 +124,7 @@ templateUi["info"] =  { params: [
     \b
     Related commands:
       abx template list
-      abx create TEMPLATE_ID
+      abx create --template-id TEMPLATE_ID --yes
       abx template delete TEMPLATE_ID
     `) };
 templateUi["create"] =  { params: [
@@ -154,10 +154,10 @@ templateUi["create"] =  { params: [
         default: false,
         help: "If a generation-1 template with this name already exists, delete it and create it again.",
     }),
-    option(["--envd-inject/--no-envd-inject"], { default: false, help: "Enable envd injection in build" }),
+    option(["--envd-inject"], { is_flag: true, default: false, help: "Request platform image copy and envd injection (generation 1 only). Otherwise the platform chooses." }),
     option(["--target-image"], {
         default: null,
-        help: "Destination image ref for envd copy (auto-derived with random suffix if omitted)",
+        help: "Destination image for --envd-inject (derived from the source image if omitted)",
     }),
     option(["--registry-type"], {
         type: new Choice(["acr", "acree"]),
@@ -188,7 +188,7 @@ templateUi["create"] =  { params: [
     Related commands:
       abx template push IMAGE       Push a local image to ACR first
       abx template info TEMPLATE_ID Inspect the created template
-      abx create ID      Launch a sandbox from the template
+      abx create --template-id ID --yes   Create a sandbox after the template is ready
     `) };
 templateUi["push"] =  { params: [
     argument(["image"]),
@@ -291,7 +291,7 @@ templateUi["build"] =  { params: [
         default: null,
         help: "Team ID for official API (or env TEAM_ID / E2B_TEAM_ID)",
     }),
-    option(["--envd-inject/--no-envd-inject"], { default: false, help: "Enable envd injection (default False)" }),
+    option(["--envd-inject"], { is_flag: true, default: false, help: "Request platform image copy and envd injection (generation 1, Dockerfile only). Otherwise the platform chooses." }),
     option(["--generation"], {
         type: INT,
         default: null,
@@ -306,7 +306,7 @@ templateUi["build"] =  { params: [
     }),
     option(["--target-image"], {
         default: null,
-        help: "Destination image ref for envd copy (auto-derived with random suffix if omitted)",
+        help: "Destination image for --envd-inject (derived from the source image if omitted)",
     }),
     option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation prompt" }),
     option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
@@ -355,7 +355,7 @@ templateUi["build"] =  { params: [
     Related commands:
       abx template scaffold DIRECTORY    Scaffold template source files
       abx template push IMAGE        Push an existing local image only
-      abx create ID       Launch the completed template
+      abx create --template-id ID --yes   Create a sandbox from the completed template
     `) };
 templateUi["deploy"] =  { params: [...templateUi["build"]!.params], help: "Build, push, and create template in one step (alias of 'template build').\n\n" +
     "Builds a Docker image locally, pushes it to ACR, and creates a sandbox " +
@@ -380,7 +380,7 @@ templateUi["deploy"] =  { params: [...templateUi["build"]!.params], help: "Build
     "Related commands:\n" +
     "  abx template scaffold DIRECTORY  Scaffold a template project\n" +
     "  abx template list            Verify the registered template\n" +
-    "  abx create ID     Launch a sandbox from the template" };
+    "  abx create --template-id ID --yes   Create a sandbox from the template" };
 templateUi["delete"] =  { params: [
     argument(["template_id"]),
     option(["--yes", "-y"], { is_flag: true, default: false, help: "Skip confirmation prompt" }),

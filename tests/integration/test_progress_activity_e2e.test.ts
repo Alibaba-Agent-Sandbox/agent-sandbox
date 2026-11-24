@@ -222,7 +222,7 @@ it("test_create_shows_an_elapsed_header", async () => {
   const tty = ttyStderr();
   vi.spyOn(Sandbox, "create").mockResolvedValue(_sandbox() as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["deploy", "--yes", "--template-id", "python-base", "--request-timeout", "45"]);
+  const result = await runner().invoke(cli, ["create", "--yes", "--template-id", "python-base", "--request-timeout", "45"]);
 
   expect(result.exit_code, result.output).toBe(0);
   const shown = tty.getvalue();

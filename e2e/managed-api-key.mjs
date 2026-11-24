@@ -113,7 +113,7 @@ try {
   succeeds(["--json", "list"]);
   assert.equal(fs.readdirSync(directory).filter(file => file.endsWith(".json")).length, 1);
   console.log("PASS: explicit preparation consent, private storage and reuse across processes");
-  const created = succeeds(["--json", "deploy", "--template-id", "base", "--sandbox-timeout", "120", "--yes"]);
+  const created = succeeds(["--json", "create", "--template-id", "base", "--sandbox-timeout", "120", "--yes"]);
   ownedSandbox = JSON.parse(created.stdout).sandbox_id; assert.match(ownedSandbox, /^[A-Za-z0-9_-]+$/);
   assert.equal(succeeds(["sandbox", "exec", ownedSandbox, "echo", "managed-auth-ok"]).stdout.trim(), "managed-auth-ok");
   succeeds(["delete", ownedSandbox, "--yes"]);

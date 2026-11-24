@@ -63,7 +63,7 @@ it('tracks the native-created identity before checking env/files, without replay
     throw new Error('env probe failed');
   });
   await expect(scenario('create-with-env-and-upload').run({ ...journalFixture(), cwd, state: {}, abx, track, fail })).rejects.toThrow('env probe failed');
-  expect(abx.mock.calls[0][0].slice(0, 2)).toEqual(['--json', 'deploy']);
+  expect(abx.mock.calls[0][0].slice(0, 2)).toEqual(['--json', 'create']);
   expect(scenario('create-with-env-and-upload').retries).toBeUndefined();
 });
 
@@ -435,7 +435,7 @@ it('Docker deployment tracks a reported owned ID before a failed result and neve
   await expect(dockerSuite.scenarios[1].run(ctx)).rejects.toThrow('create exit 1');
   expect(track).toHaveBeenCalledWith('sbx-docker-owned');
   expect(abx).toHaveBeenCalledOnce();
-  expect(abx.mock.calls[0]![0]).toEqual(['--json', 'deploy', '--build', '/fixture/build.json', '--name', 'owned-docker', '--sandbox-timeout', '600', '--yes']);
+  expect(abx.mock.calls[0]![0]).toEqual(['--json', 'create', '--build', '/fixture/build.json', '--name', 'owned-docker', '--sandbox-timeout', '600', '--yes']);
 });
 
 it.each([{retained:[]}, {retained:[{kind:'image', state:'retained'}]}])('Docker cleanup keeps build recovery until all owned artifacts are absent: %j', async ({retained}) => {

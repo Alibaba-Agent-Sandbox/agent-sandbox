@@ -243,11 +243,12 @@ Tokens are compared with constant-time comparison. The deployed template reuses 
 
 ---
 
-## Deploy an editable MCP template
+## Run an editable MCP template in a Sandbox
 
 ```bash
 abx template init ./my-mcp --template mcp
-abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN" # example: environment references, no literal credentials
+abx template build ./my-mcp --out .abx/mcp-build.json --yes
+abx create --build .abx/mcp-build.json --name my-mcp --yes -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN" # example: environment references, no literal credentials
 ```
 
 The generated source contains template.yaml, Dockerfile, app.py, requirements.txt,
@@ -270,7 +271,7 @@ traffic authentication and MCP authentication are separate; retain both.
 Reuse the Mcp-Session-Id returned by initialize. DELETE /mcp terminates that session
 and cleans up its owned sandboxes. GET /mcp remains 405; server notification SSE
 is not implemented. Sessions are in memory and do not survive application
-replacement. End sessions before `abx delete my-mcp --yes`. See
+replacement. End sessions before `abx delete my-mcp --yes`. When the build is no longer needed, run `abx template build --clean .abx/mcp-build.json --yes`. See
 [template authoring](authoring-templates.md) to build or publish the edited source.
 
 ---

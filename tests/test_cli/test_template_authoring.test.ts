@@ -102,6 +102,9 @@ describe("template authoring", () => {
     const artifact = JSON.parse(fs.readFileSync(output, "utf8"));
     expect(artifact).toMatchObject({ status: "requires_reconcile", target: { provider: "alicloud-express" } });
     expect(artifact.journal_file).toContain(artifact.journal_id);
+    const rejected = await run(["template", "build", source, "--clean", output, "--out", output, "--yes"]);
+    expect(rejected.exit_code, rejected.output).toBe(2);
+    expect(rejected.output).toContain("--clean cannot be combined");
     const cleanup = vi.spyOn(templateBuildSeams, "cleanup").mockResolvedValue({ complete: true, failures: [], retained: [{ kind: "image", cleanup: "manual" }] });
     fs.writeFileSync(output, JSON.stringify({ ...artifact, consumers: ["running-app"] }));
     expect((await run(["template", "build", "--clean", output, "--yes"])).exit_code).not.toBe(0);

@@ -459,7 +459,7 @@ describe("TestDescriptionClarification", () => {
     expect(result.output).toContain("Example description:");
     expect(result.output).toContain("Python 3.12 with pandas, expose port 8888");
     expect(result.output).toContain("--yes/-y");
-    expect(result.output).toContain("abx deploy --template-id <name>");
+    expect(result.output).toContain("abx create --template-id <name>");
     expect(genMock).not.toHaveBeenCalled();
     expect(deploy).not.toHaveBeenCalled();
   });
@@ -931,7 +931,7 @@ describe("TestTemplateInitNaturalLanguage", () => {
     expect(result.output).not.toContain("Directory for the template project");
     const target = path.join(tmp, gen.templateName);
     expect(fs.readFileSync(path.join(target, "Dockerfile"), "utf-8").startsWith("FROM")).toBe(true);
-    expect(result.output).toContain("abx deploy");
+    expect(result.output).toContain("abx template build");
     expect(result.output).not.toContain("created successfully");
   });
 

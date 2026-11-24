@@ -32,7 +32,7 @@ export function trackDetachedCreate(ctx, result, attempt) {
   const id = result.rawJson?.()?.sandbox_id;
   if (isExpressSandboxId(id)) { ctx.track(id); if (attempt) ctx.resolveCreateAttempt(attempt); }
   if (result.code !== 0) ctx.fail(`create exit ${result.code}\n${result.out}`);
-  if (!isExpressSandboxId(id)) ctx.fail('deploy did not return one real Express sandbox ID');
+  if (!isExpressSandboxId(id)) ctx.fail('create did not return one real Express sandbox ID');
   return id;
 }
 
