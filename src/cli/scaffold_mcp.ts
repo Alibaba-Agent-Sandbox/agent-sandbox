@@ -1,9 +1,8 @@
 /** Editable MCP HTTP application source, deployed through the ordinary template lifecycle. */
 import type { TemplateProfile } from "../providers/template_profile.js";
-import { SERVER_SDK_RELEASE_VERSION } from "../utils/server_sdk_pin.js";
 
 export const MCP_REQUIREMENTS = `--index-url https://pypi.org/simple
-agent-sandbox-client[mcp]==${SERVER_SDK_RELEASE_VERSION}
+agent-sandbox-client[mcp]==0.4.0a7
 `;
 
 export const MCP_APP_PY = `"""Authenticated MCP Streamable HTTP application."""
@@ -69,7 +68,7 @@ API URL and sandbox domain for the same account and region. These are runtime
 inputs; the CLI's ability to build an image does not configure this service.
 
 \`\`\`bash
-abx deploy . --name {name} -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" -e ABX_SANDBOX_BASE_URL="$ABX_SANDBOX_BASE_URL" -e ABX_SANDBOX_DOMAIN="$ABX_SANDBOX_DOMAIN"
+abx deploy . --name {name} -e "ABX_SANDBOX_API_KEY=$ABX_SANDBOX_API_KEY" -e "ABX_SANDBOX_BASE_URL=$ABX_SANDBOX_BASE_URL" -e "ABX_SANDBOX_DOMAIN=$ABX_SANDBOX_DOMAIN"
 \`\`\`
 
 The CLI generates and saves ABX_SERVER_TOKEN on this machine when needed. The
@@ -83,10 +82,12 @@ out of template source and version control.
 ## HTTP usage and limits
 
 POST /mcp accepts JSON-RPC initialize, tools/list and tools/call. After initialize,
-reuse the returned Mcp-Session-Id header. DELETE /mcp ends that session and cleans
-up its owned sandboxes. GET /mcp returns 405 because server notification SSE is
-not supported. GET /health checks the process. The service uses one process in
-one sandbox; sessions are kept in memory and do not survive its replacement.
+reuse the returned Mcp-Session-Id header. DELETE /mcp ends the session and tries
+to delete the sandboxes it created. It closes connections to borrowed sandboxes
+and leaves those sandboxes running. Check owned sandbox deletion separately
+when you require confirmed cleanup. GET /mcp returns 405 because server
+notification SSE is unavailable. GET /health checks the process. The service
+uses one process in one sandbox. Sessions are lost if that process is replaced.
 
 For example, send POST /mcp with Content-Type: application/json,
 Authorization: Bearer <MCP_TOKEN>, and this body:

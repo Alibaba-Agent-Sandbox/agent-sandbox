@@ -186,7 +186,8 @@ printf '%s\n' \
 
 ## 远程服务（Streamable HTTP）
 
-团队共享或远程访问时，将 MCP Server 作为 Streamable HTTP 服务运行，而不是 STDIO。
+远程客户端使用 Streamable HTTP 接入。同一服务的调用共用已配置的 Sandbox 账号，
+只与拥有该账号操作权限的可信客户端共享。
 
 ### 本地运行
 
@@ -249,8 +250,10 @@ abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" 
 
 生成的源码包含 template.yaml、Dockerfile、app.py、requirements.txt、.dockerignore
 和 README.md。部署前可编辑应用和清单。它在 Sandbox 中以单个 HTTP 进程运行已有的
-带认证 Python MCP 应用。依赖固定为公开版 `agent-sandbox-client[mcp]==0.4.0a6`，
+带认证 Python MCP 应用。依赖固定为公开版 `agent-sandbox-client[mcp]==0.4.0a7`，
 该发行版包含匹配的运行时和 ASGI 依赖。
+如果现有生成项目仍使用 `0.4.0a6`，先更新 `requirements.txt` 并重新构建，
+再连接已有沙箱。
 
 MCP 应用需要自己的 Sandbox API Key、API 地址和沙箱域名来创建会话沙箱。
 通过运行时输入传入同账号、同地域的这些值；构建镜像的凭据不能替代它们。
@@ -261,9 +264,10 @@ ABX_MCP_AUTH_TOKEN 时使用后者。客户端配置部署结果里的 mcp 服�
 `Authorization: Bearer <TOKEN>`，以及 Provider 为此 endpoint 返回的流量认证头。
 Provider 流量认证和 MCP 认证是两层独立凭据，应同时保留。
 
-后续请求复用 initialize 返回的 Mcp-Session-Id。DELETE /mcp 结束会话并清理该会话
-拥有的沙箱。GET /mcp 仍返回 405，未实现服务端通知 SSE。会话存于进程内存，不跨应用
-替换保存。先结束会话，再执行 `abx delete my-mcp --yes`。
+后续请求复用 `initialize` 返回的 `Mcp-Session-Id`。`DELETE /mcp` 结束会话，
+并尝试删除它创建的沙箱。借用的沙箱保持运行，只断开本地连接。需要确认清理完成时，
+另行查询自有沙箱状态。`GET /mcp` 返回 405。会话存于进程内存，进程替换后会丢失。
+先结束会话，再执行 `abx delete my-mcp --yes`。
 编辑后的源码可按[模板编写指南](authoring-templates.md)构建或发布。
 
 ---
@@ -291,34 +295,48 @@ sequenceDiagram
     AI->>MCP: create_sandbox
     MCP-->>AI: sandbox_id
     AI->>MCP: write_file — 写入代码文件
-    AI->>MCP: run_code — 执行代码
+    AI->>MCP: run_command — 执行代码
     MCP-->>AI: 执行结果
     AI->>MCP: read_file — 读取结果
     AI->>MCP: kill_sandbox — 清理
     AI-->>User: 返回测试结果
 ```
 
-### 快速执行一段代码（HTTP，curl）
+### 用 curl 通过 HTTP 执行命令
 
 ```bash
-# 1. initialize（创建会话；记下 Mcp-Session-Id）
-curl -s http://localhost:9000/mcp \
+# 1. 初始化，从响应头复制 Mcp-Session-Id
+curl -si http://localhost:9000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer replace_me" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 
-# 2. 携带会话头调用工具
+# 2. 调用工具前先确认初始化
+MCP_SESSION_ID='<步骤1的会话ID>'
 curl -s http://localhost:9000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer replace_me" \
-  -H "Mcp-Session-Id: <步骤1的会话ID>" \
+  -H "Mcp-Session-Id: $MCP_SESSION_ID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
+  -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+# 3. 调用 run_command，stdout 中返回 42
+curl -s http://localhost:9000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer replace_me" \
+  -H "Mcp-Session-Id: $MCP_SESSION_ID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call",
-       "params":{"name":"run_code","arguments":{"code":"print(1+1)"}}}'
+       "params":{"name":"run_command","arguments":{"command":"printf 42"}}}'
 
-# 3. 终止会话（销毁其沙箱）
+# 4. 结束会话并清理它创建的沙箱
 curl -s -X DELETE http://localhost:9000/mcp \
   -H "Authorization: Bearer replace_me" \
-  -H "Mcp-Session-Id: <步骤1的会话ID>"
+  -H "Mcp-Session-Id: $MCP_SESSION_ID" \
+  -H "MCP-Protocol-Version: 2025-06-18"
 ```
 
 ---
@@ -345,7 +363,8 @@ curl -s -X DELETE http://localhost:9000/mcp \
 - **沙箱管理**：MCP Server 为每个会话内部维护 `SandboxManager`，管理多个沙箱实例的生命周期
 - **默认模板**：`abx mcp start` 为 `code-interpreter-v1`；HTTP 应用与 MCP 模板为 `base`。`create_sandbox` 省略 `template` 时用的就是这个 server 模板
 - **STDIO**：单条消息上限 8 MiB；超限的一行会被拒绝，进程继续服务下一条。`ping` 在工具调用进行中也会返回
-- **HTTP 会话**：空闲 TTL 3600 秒、每进程最多 100 个并发会话，容量满返回 503
+- **HTTP 会话**：随后的请求会检查 3600 秒空闲期限。每进程最多 100 个会话，
+  达到容量上限时返回 503。用完后发送 `DELETE /mcp` 结束会话。
 
 ---
 

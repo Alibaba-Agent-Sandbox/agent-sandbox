@@ -70,6 +70,8 @@ Use `abx delete hello --yes` when finished. It deletes owned sandboxes and templ
 ## Use with AI tools
 
 Run `abx mcp start` to expose sandbox operations through MCP. The repository also includes an [Agent Skill](SKILL.md) for AI coding tools.
+For remote clients, generate an authenticated HTTP MCP template with
+`abx template init ./my-mcp --template mcp`.
 
 - [MCP integration](docs/en/guide/mcp-integration.md)
 - [Install the Agent Skill](docs/en/guide/agent-skill-installation.md)

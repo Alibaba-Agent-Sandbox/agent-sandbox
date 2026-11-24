@@ -1,6 +1,7 @@
 # `.agents/` — engineering record of the cli repository
 
 - [MCP user journey](notes/proposed/process/2026-11-13-mcp-user-journey.md) · [verification](evidence/verify/2026-11-13-mcp-user-journey.md).
+- [Generated HTTP MCP session ownership](notes/proposed/feature/2026-11-24-generated-mcp-session-ownership.md) · [verification](evidence/verify/2026-11-24-generated-mcp-session-ownership.md).
 
 ## Recent changes — 2026-11-10
 

@@ -70,6 +70,7 @@ abx deploy python-hello --name hello --yes
 ## 接入 AI 工具
 
 执行 `abx mcp start`，通过 MCP 暴露沙箱操作。本仓库还提供供 AI 编码工具使用的 [Agent Skill](SKILL.md)。
+需要远程接入时，用 `abx template init ./my-mcp --template mcp` 生成带认证的 HTTP MCP 模板。
 
 - [MCP 集成](docs/zh/guide/mcp-integration.md)
 - [安装 Agent Skill](docs/zh/guide/agent-skill-installation.md)

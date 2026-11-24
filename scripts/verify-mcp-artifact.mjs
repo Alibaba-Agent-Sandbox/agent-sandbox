@@ -2,11 +2,12 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 function argument(name) {
   const index = process.argv.indexOf(name);
@@ -16,6 +17,10 @@ function argument(name) {
 const artifact = resolve(argument('--artifact'));
 const output = resolve(argument('--output'));
 const python = resolve(argument('--python'));
+const ownershipFixture = fileURLToPath(new URL('../tests/fixtures/agent/mcp_ownership_probe.py', import.meta.url));
+const requirements = readFileSync(join(artifact, 'requirements.txt'), 'utf8');
+const pinnedVersion = /^agent-sandbox-client\[mcp\]==([^\s]+)$/m.exec(requirements)?.[1];
+assert(pinnedVersion, 'Expected a fixed public MCP client dependency');
 const home = mkdtempSync(join(tmpdir(), 'abx-mcp-verification-'));
 const environment = Object.fromEntries(
   ['PATH', 'TMPDIR', 'TEMP', 'TMP', 'SYSTEMROOT', 'WINDIR', 'LANG', 'LC_ALL', 'SSL_CERT_FILE', 'SSL_CERT_DIR']
@@ -27,8 +32,8 @@ const metadata = spawnSync(python, ['-c',
   { encoding: 'utf8', env: environment });
 assert.equal(metadata.status, 0, metadata.stderr);
 const versions = JSON.parse(metadata.stdout);
-assert.equal(versions['agent-sandbox-client'], '0.4.0a6');
-assert.equal(versions['agent-sandbox-server'], '0.4.0a6');
+assert.equal(versions['agent-sandbox-client'], pinnedVersion);
+assert.equal(versions['agent-sandbox-server'], pinnedVersion);
 const token = randomBytes(32).toString('base64url');
 Object.assign(environment, {
   ABX_MCP_AUTH_TOKEN: token,
@@ -51,12 +56,12 @@ const exited = new Promise(done => {
 });
 
 /** Direct loopback HTTP avoids ambient proxy configuration and source SDK imports. */
-function request(body, auth, session) {
+function request(body, auth, session, method = 'POST') {
   return new Promise((done, fail) => {
     const headers = { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' };
     if (auth) headers.Authorization = 'Bearer ' + auth;
     if (session) headers['Mcp-Session-Id'] = session;
-    const message = http.request({ host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers }, response => {
+    const message = http.request({ host: '127.0.0.1', port, path: '/mcp', method, headers }, response => {
       let raw = '';
       response.setEncoding('utf8');
       response.on('data', text => { raw += text; });
@@ -102,7 +107,21 @@ try {
   const required = ['create_sandbox', 'list_sandboxes', 'get_sandbox', 'set_sandbox_timeout', 'run_command', 'kill_sandbox'];
   checks.current_tool_catalog = listed.status === 200 && required.every(name => names.has(name)) && names.size === tools.length;
   checks.tool_schemas = tools.every(tool => tool.inputSchema && typeof tool.inputSchema === 'object');
+  const second = await request(initialize, token);
+  checks.distinct_sessions = second.status === 200 && Boolean(initialized.session) &&
+    Boolean(second.session) && second.session !== initialized.session;
+  const ended = await request(undefined, token, initialized.session, 'DELETE');
+  const ping = { jsonrpc: '2.0', id: 3, method: 'ping' };
+  checks.closed_session_rejected = ended.status === 200 && (await request(ping, token, initialized.session)).status === 404;
+  checks.other_session_stays_open = (await request(ping, token, second.session)).status === 200;
+  checks.second_session_closed = (await request(undefined, token, second.session, 'DELETE')).status === 200;
   assert(Object.values(checks).every(Boolean), JSON.stringify(checks));
+  const ownership = spawnSync(python, [ownershipFixture, artifact], {
+    env: environment, encoding: 'utf8', timeout: 10000,
+  });
+  assert.ifError(ownership.error);
+  assert.equal(ownership.status, 0, ownership.stderr);
+  report.ownership_with_provider_fixture = JSON.parse(ownership.stdout);
   Object.assign(report, { passed: true, tool_names: [...names].sort() });
 } catch (error) {
   report.failure = error.name + ': ' + error.message;

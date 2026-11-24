@@ -61,6 +61,7 @@ describe("template authoring", () => {
     expect(manifest.start_cmd).toContain("uvicorn app:app");
     expect(manifest.env.ABX_SERVER_TOKEN).toBe("");
     expect(files.get("app.py")).toContain("require_auth_token");
+    expect(files.get("requirements.txt")).toContain("agent-sandbox-client[mcp]==0.4.0a7");
     const json = files.get("README.md")!.split("```json\n")[1].split("\n```")[0];
     expect(JSON.parse(json).method).toBe("initialize");
   });

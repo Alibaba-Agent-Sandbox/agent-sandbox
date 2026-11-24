@@ -189,7 +189,8 @@ printf '%s\n' \
 
 ## Remote Server (Streamable HTTP)
 
-For team sharing or remote access, run the MCP Server as a Streamable HTTP service instead of STDIO.
+For remote access, run the MCP server as a Streamable HTTP service. Share one
+server only with clients you trust to use its configured Sandbox account.
 
 ### Run Locally
 
@@ -253,8 +254,10 @@ abx deploy ./my-mcp --name my-mcp -e ABX_SANDBOX_API_KEY="$ABX_SANDBOX_API_KEY" 
 The generated source contains template.yaml, Dockerfile, app.py, requirements.txt,
 .dockerignore and README.md. Edit the application and template before deployment.
 It runs the existing authenticated Python MCP app as a single HTTP process in a
-Sandbox. Its dependencies pin the public `agent-sandbox-client[mcp]==0.4.0a6`,
+Sandbox. Its dependencies pin the public `agent-sandbox-client[mcp]==0.4.0a7`,
 which includes the matching runtime and ASGI dependencies.
+For an existing generated project on `0.4.0a6`, update `requirements.txt` and
+rebuild before connecting it to existing sandboxes.
 
 The MCP application needs its own Sandbox API key, API URL and domain to create
 session sandboxes. Supply these as runtime inputs for the same account and region;
@@ -267,10 +270,12 @@ client with the deployment's mcp service URL plus `/mcp`, `Authorization: Bearer
 <TOKEN>`, and any Provider traffic headers returned for that endpoint. Provider
 traffic authentication and MCP authentication are separate; retain both.
 
-Reuse the Mcp-Session-Id returned by initialize. DELETE /mcp terminates that session
-and cleans up its owned sandboxes. GET /mcp remains 405; server notification SSE
-is not implemented. Sessions are in memory and do not survive application
-replacement. End sessions before `abx delete my-mcp --yes`. See
+Reuse the `Mcp-Session-Id` returned by `initialize`. `DELETE /mcp` ends the
+session and attempts to delete its owned sandboxes. Borrowed sandboxes keep
+running and their local connections are closed. Check owned sandbox deletion
+separately when you require confirmation. `GET /mcp` returns 405. Sessions
+are in memory and are lost if the process is replaced. End sessions before
+`abx delete my-mcp --yes`. See
 [template authoring](authoring-templates.md) to build or publish the edited source.
 
 ---
@@ -298,34 +303,48 @@ sequenceDiagram
     AI->>MCP: create_sandbox
     MCP-->>AI: sandbox_id
     AI->>MCP: write_file — write code file
-    AI->>MCP: run_code — execute code
+    AI->>MCP: run_command — execute code
     MCP-->>AI: execution result
     AI->>MCP: read_file — read result
     AI->>MCP: kill_sandbox — cleanup
     AI-->>User: return test result
 ```
 
-### Run a Quick Code Snippet (HTTP, curl)
+### Run a Command over HTTP with curl
 
 ```bash
-# 1. initialize (creates a session; capture Mcp-Session-Id)
-curl -s http://localhost:9000/mcp \
+# 1. Initialize and copy Mcp-Session-Id from the response headers
+curl -si http://localhost:9000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer replace_me" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 
-# 2. call a tool with the session header
+# 2. Confirm initialization before calling a tool
+MCP_SESSION_ID='<SESSION_ID_FROM_STEP_1>'
 curl -s http://localhost:9000/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer replace_me" \
-  -H "Mcp-Session-Id: <SESSION_ID_FROM_STEP_1>" \
+  -H "Mcp-Session-Id: $MCP_SESSION_ID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
+  -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+# 3. Call run_command and read 42 in stdout
+curl -s http://localhost:9000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer replace_me" \
+  -H "Mcp-Session-Id: $MCP_SESSION_ID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call",
-       "params":{"name":"run_code","arguments":{"code":"print(1+1)"}}}'
+       "params":{"name":"run_command","arguments":{"command":"printf 42"}}}'
 
-# 3. terminate the session (destroys its sandboxes)
+# 4. End the session and start owned-sandbox cleanup
 curl -s -X DELETE http://localhost:9000/mcp \
   -H "Authorization: Bearer replace_me" \
-  -H "Mcp-Session-Id: <SESSION_ID_FROM_STEP_1>"
+  -H "Mcp-Session-Id: $MCP_SESSION_ID" \
+  -H "MCP-Protocol-Version: 2025-06-18"
 ```
 
 ---
@@ -352,7 +371,9 @@ More general issues: see the [Troubleshooting guide](troubleshooting.md) and [er
 - **Sandbox management**: the server internally maintains a `SandboxManager` per session that manages the lifecycle of multiple sandbox instances
 - **Default template**: `code-interpreter-v1` via `abx mcp start`; `base` for the HTTP app and MCP templates. `create_sandbox` uses that server template when `template` is omitted
 - **STDIO**: one message may be up to 8 MiB. A longer line is rejected and the process keeps serving. `ping` is answered while a tool call is still running
-- **HTTP sessions**: idle TTL 3600 s, max 100 concurrent sessions per process, capacity exhaustion returns 503
+- **HTTP sessions**: a later request checks the 3600 s idle TTL. Each process
+  accepts up to 100 sessions and returns 503 when its capacity is reached.
+  Send `DELETE /mcp` when finished.
 
 ---
 
