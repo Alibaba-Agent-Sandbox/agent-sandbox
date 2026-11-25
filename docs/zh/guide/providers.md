@@ -55,7 +55,7 @@ Python SDK 按需启动并复用引擎，需要 PATH 中的 `abx`，也可以用
 
 选择 Provider 就是选择它的配置和协议适配器。不支持的操作应在该 Provider 上返回 E8004，不能改用极速版重试。provider:sandbox-id 引用保留资源归属，不受默认 Provider 切换影响。未知前缀在后端请求前返回 E8001，空沙箱 ID 返回 E8002；显式 Provider 与资源前缀冲突返回 E8030。
 
-标准 E2B 命令前端仅用于极速版，带 Provider 前缀的沙箱引用进入 Provider 路由。其他 Provider 目前仍使用项目 CLI 参数；选择它们不代表全部 E2B 专有选项和返回模型都已适配。template scaffold 的本地生成可以采用通用 Docker profile，但这只是镜像约定，不是切换云端后端。
+极速版和已安装的 Provider 使用同一套 CLI 命令解析器。选择 Provider 会改变后端及可用操作，不会切换为 E2B 命令风格，也不代表兼容 E2B 的参数和返回模型。`template init` 准备本地源码；构建 profile 不会改变所选云端后端。
 
 模板命令调用所选 Provider 已实现的模板管理器或专用命令处理器，原生 FC/ACR 处理器属于极速版。公开入口 `abx --provider <id> deploy SOURCE --name my-app` 使用 Provider 自己的准备与启动实现；OpenSandbox 已实现文档所述默认配方的源码准备。缺少所需操作时在当前 Provider 上报错，不静默切换到极速版。构建和配置要求见[启动模板](template-launch.md)，操作检查见[模板工作流](template-workflows.md)。自然语言云端部署仍需要相应 Provider 自己的处理器。
 
@@ -113,13 +113,14 @@ abx provider test my-cloud -o region=eu # 通过 CLI 使用的同一批适配器
 | 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
 | 进程环境变量 | `export ABX_PROVIDER=my-cloud` |
 | `./.env`，然后 `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
-| `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx config set provider my-cloud`、`abx config set provider my-cloud`） |
+| `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx config set provider my-cloud`） |
 | 内置 | `alicloud-express` |
 
 ```bash
-abx config set provider                   # 当前生效的默认值，一行（--json：{"default": ..., "source": ...}）
+abx config get provider                   # 当前生效的默认值
 abx config set provider my-cloud          # 持久化
-abx config set provider --unset           # 恢复为 alicloud-express
+abx config delete provider                # 删除已保存的默认值；环境变量覆盖仍然生效
+abx config list                           # 查看实际生效的值和来源
 ```
 
 未知 id 以退出码 4 结束（`E8001`）。单条命令的提供商选项用 `--opt KEY=VALUE` 传入（可重复；exec 放在沙箱 ID 前）；清单中标记为 `secret` 的选项在命令行上会被拒绝（`E8002`），避免密钥进入 shell 历史，请改用 `abx config set providers.<id>.<key>`。
@@ -137,7 +138,7 @@ abx list --all-providers                                 # 所有已配置的提
 abx delete local-process:sbx-1 --yes
 ```
 
-`list --all-providers` 是显式原生项目扩展，即使默认选择极速版也使用原生路由；普通 list 筛选仍遵循标准迁移契约。它会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
+`list --all-providers` 查询各个已配置的 Provider。它会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。因此结果可能不完整，不能据此认为已查询所有 Provider。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
 
 如果命令需要提供商未声明的特性（例如在没有 `process.manage` 的提供商上使用 `abx process`），会在发出任何请求之前以 `E8004` 失败。
 
@@ -149,12 +150,12 @@ abx delete local-process:sbx-1 --yes
 
 | 要做的事 | CLI | Python ProviderSandbox |
 |---|---|---|
-| 创建、连接与清理 | `create`、`connect`、`kill` | `ProviderSandbox.create/connect`、实例 `kill/close`；`close` 仅释放本地客户端 |
+| 创建、连接与清理 | `deploy --template-id ID --name NAME`、`connect`、`delete` | `ProviderSandbox.create/connect`、实例 `kill/close`；`close` 仅释放本地客户端 |
 | 执行进程 | `exec` | `commands.run` |
 | 读写文件 | `upload`、`download` | `files.read/write` |
 | 调用模板应用 | `sandbox TARGET OPERATION`，见[命令参考](../reference/cli-commands.md) | `await application_client(port, token=...)` 后调用 `client.commands.run` |
 | 获取应用端点 | 无独立 URL 命令 | `await network.resolve(port)` 返回 URL 和网关头 |
-| 准备源码并启动 | `template launch`，见[启动指南](template-launch.md) | 使用 CLI 准备，再连接返回的沙箱或使用已准备好的引用 |
+| 准备源码并启动 | `deploy SOURCE --name NAME`，见[部署指南](template-launch.md) | 使用 CLI 准备，再连接返回的沙箱或使用已准备好的引用 |
 
 进程执行、应用命令、解释器和 PTY 是不同接口，一种接口通过不代表其他接口已实现。提供方使用 EPP 传输，不代表无法通过 HTTP 调用应用：所选工作流需要提供可达的应用端点并满足认证要求。调用时保留网关头，显式提供应用令牌。
 
@@ -232,11 +233,11 @@ abx config get providers.my-cloud.token                      # 始终掩码
 abx config list --provider my-cloud                          # 该提供商的键以及每个值的来源
 ```
 
-仅存在于另一个已安装提供商中的裸键会被拒绝，并提示 `Did you mean 'providers.<id>.<key>'?`。`abx --provider <id> config list|get|set|unset|init` 是限定到单个提供商的同一套能力。
+仅存在于另一个已安装提供商中的裸键会被拒绝，并提示 `Did you mean 'providers.<id>.<key>'?`。`abx --provider <id> config list|get|set|delete|init` 是限定到单个提供商的同一套能力。
 
 `abx config list` 打印的就是上表里的名字。不在表里的名字不会被读取。内置提供方实际读取的是 `ABX_SANDBOX_API_KEY`、`ABX_SANDBOX_BASE_URL`、`ABX_SANDBOX_DOMAIN`、`ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和 `ALIBABA_CLOUD_REGION_ID`。`E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`、`AccessKey`、`AccessSecret`、`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET` 不会被读取。缺少凭证时，错误信息会列出被读取的名字。
 
-上表及规则适用于原生 provider 和 MCP。标准极速版入口还在自身边界映射 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，其余回退到项目配置；见[迁移指南](migrate-from-e2b.md)。
+当前 CLI 使用 `ABX_SANDBOX_*` 名称。旧兼容客户端或 MCP 服务可能有自己的显式环境变量映射，但这不表示 `abx config` 支持这些别名；见[迁移指南](migrate-from-e2b.md)。
 
 ---
 
@@ -275,7 +276,7 @@ abx --json --provider alicloud-express provider run volume.list --input '{"max_r
 
 写入和删除要求 `--yes`。凭证通过配置提供，`--opt` 拒绝密钥字段；复杂输入使用 `--input-file`。发现命令不需要云凭证。FC 管理操作要求阿里云 AK/SK，不能用沙箱 API Key 鉴权。完整规范见[命令契约](../design/provider-commands.md)和[阿里云能力矩阵](../design/alicloud-provider-commands.md)，包含域名能力边界和 API Key 安全导出。
 
-挂载已有 FC Volume 时，使用原生 Python SDK 的 `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` 参数，详见 [SDK API 参考](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)。默认标准极速版 CLI 未暴露原生 `--volume-mount` 选项。
+创建实例时挂载已有 FC Volume，可向 `abx deploy --template-id TEMPLATE_ID --name NAME` 传入 `--volume-mount /mnt/workspace=workspace`，或使用原生 Python SDK 的 `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` 参数，详见 [SDK API 参考](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)。
 按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
 Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
 角色配置和挂载验证见能力矩阵。

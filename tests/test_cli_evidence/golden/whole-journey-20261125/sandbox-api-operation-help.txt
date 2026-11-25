@@ -1,0 +1,54 @@
+report_totals — Sum the supplied numbers
+POST /totals
+
+Client support: supported request contract
+JSON/UTF-8 text, or bounded response bytes with --output; no SSE or multipart responses. Availability and authorization are checked by the service.
+
+Request body (--body JSON, @FILE or -):
+{
+  "required": true,
+  "content": {
+    "application/json": {
+      "schema": {
+        "type": "object",
+        "required": [
+          "values"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "example": {
+        "values": [
+          10,
+          20,
+          30
+        ]
+      }
+    }
+  }
+}
+
+Authentication: []
+Responses:
+{
+  "200": {
+    "description": "Sum of the numbers",
+    "content": {
+      "application/json": {
+        "example": {
+          "total": 60
+        }
+      }
+    }
+  }
+}
+
+Usage: abx sandbox sbx-XXXXX report_totals [--path NAME=VALUE] [--query NAME=VALUE] [--body @request.json] [--output FILE]
+[exit_code:0]
