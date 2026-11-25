@@ -275,3 +275,27 @@ The final independent API review of 4b67161 approved the narrowed publication,
 ownership and artifact-checker merge. It explicitly retained the business Invoke
 and native application bootstrap limitations; no native changes entered the
 already frozen alpha.2 tag.
+
+### Returned template metadata triage
+
+The selected native ID travels unchanged from deployedTemplateSelection through
+createKwargs.template, Sandbox.create and SandboxConfig.toCreatePayload.templateID.
+There is no alias/base fallback on that path. The response model separately maps
+the native templateID to template; omission becomes an empty string. When both
+spellings exist, the native wire alias templateID takes precedence. The CLI does
+not overwrite observed metadata with the submitted request value.
+
+A full CLI-to-HTTP-fixture regression now covers named and direct-native create,
+each with unchanged templateID, a different reported value, and omitted templateID.
+Every outgoing payload uses the exact selected native ID; all three response shapes
+are preserved. A seventh model test fixes the dual-key precedence. Its first
+assertion assumed the opposite precedence and was corrected to the existing model
+source; production behavior was not changed to satisfy that assertion.
+
+A read-only native template list and SDK Sandbox list found no remaining Sandbox
+available for a live metadata comparison. Because the original probe discarded
+the response value, its mismatch cannot be attributed to omission, a platform
+canonical value or a dropped field. The determined disposition is insufficient
+response evidence, not a demonstrated wrong-template request or projection defect.
+No additional cloud instance was created and no response value was fabricated.
+The seven regression cases, Typecheck and focused ESLint passed.
