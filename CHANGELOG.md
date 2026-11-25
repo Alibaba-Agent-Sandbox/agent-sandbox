@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve MCP sessions and failed sandbox handles when cleanup fails; HTTP clients can retry the same DELETE, and expired-session retries are paced by the session TTL. / MCP 清理失败时保留会话与失败句柄，HTTP 客户端可重试相同 DELETE，过期会话按 Session TTL 间隔重试清理。
+
 ## [0.6.0-alpha.1] - 2026-11-25
 
 ### Fixed

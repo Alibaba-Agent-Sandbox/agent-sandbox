@@ -1,4 +1,4 @@
-import { BorrowedSandboxError } from "./lifecycle_errors.js";
+import { BorrowedSandboxError, McpCleanupError } from "./lifecycle_errors.js";
 import { hostVersion } from "../providers/host.js";
 import { qualify } from "../providers/registry.js";
 /**
@@ -133,6 +133,30 @@ export class SandboxManager {
   _default_lock = new AsyncLock();
   /** Bumped by `shutdown()` so a create still in flight can clean up after itself. */
   private _epoch = 0;
+  private closing = false;
+  private readonly cleanupLock = new AsyncLock();
+  private readonly admissions = new Set<Promise<void>>();
+
+  /** Track admitted I/O so shutdown also owns handles returned after it starts. */
+  private async admitted<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.closing) throw new CancelledError();
+    let finish!: () => void;
+    const pending = new Promise<void>(resolve => { finish = resolve; });
+    this.admissions.add(pending);
+    try { return await operation(); }
+    finally { this.admissions.delete(pending); finish(); }
+  }
+
+  private async forget(id: string, sandbox: SandboxInstance): Promise<void> {
+    await this._state_lock.runExclusive(() => {
+      if (this._sandboxes.get(id) === sandbox) {
+        this._sandboxes.delete(id);
+        this.preserved.delete(id);
+        this.borrowed.delete(id);
+      }
+      if (this._default_sandbox === sandbox) this._default_sandbox = null;
+    });
+  }
 
   constructor(options: SandboxManagerOptions = {}) {
     this._api_key = options.api_key ?? null;
@@ -157,6 +181,7 @@ export class SandboxManager {
 
   /** Explicit retention only; observation never refreshes TTL. */
   retainSandbox(id: string, retain = true): void {
+    if (this.closing) throw new CancelledError();
     if (!retain && this.borrowed.has(id)) throw new BorrowedSandboxError();
     if (retain) this.preserved.add(id);
     else this.preserved.delete(id);
@@ -192,6 +217,10 @@ export class SandboxManager {
 
   /** Create a sandbox and make it the session default. */
   async createSandbox(options: CreateSandboxOptions = {}): Promise<SandboxInstance> {
+    return this.admitted(() => this.createAdmitted(options));
+  }
+
+  private async createAdmitted(options: CreateSandboxOptions): Promise<SandboxInstance> {
     const { template = null, timeout = 300, envs = null } = options;
     const epoch = this._epoch;
     const Sandbox = await sdk.loadSandbox();
@@ -207,28 +236,24 @@ export class SandboxManager {
     if (options.region !== undefined) kwargs.provider_options = { region: options.region };
     const sandbox = await Sandbox.create(kwargs);
     const registered = await this._state_lock.runExclusive(() => {
-      // The epoch check and registration must be atomic with shutdown's snapshot.
-      if (epoch !== this._epoch) return false;
+      // Keep every returned owned handle, including a late result, for shutdown.
       this._sandboxes.set(this.reference(sandbox), sandbox);
       if (options.retain) this.preserved.add(this.reference(sandbox));
+      if (epoch !== this._epoch || this.closing) return false;
       this._default_sandbox = sandbox;
       return true;
     });
-    if (!registered) {
-      // Release the exact newly created handle without adopting or looking up any other ID.
-      try {
-        await sandbox.kill();
-      } catch {
-        logger.warning("Failed to kill sandbox created during shutdown");
-      }
-      throw new CancelledError();
-    }
+    if (!registered) throw new CancelledError();
     logger.info("Created sandbox: %s", sandbox.id);
     return sandbox;
   }
 
   /** Get a sandbox by ID, or create/return the default sandbox. */
   async getSandbox(sandboxId: string | null = null): Promise<SandboxInstance> {
+    return this.admitted(() => this.getAdmitted(sandboxId));
+  }
+
+  private async getAdmitted(sandboxId: string | null): Promise<SandboxInstance> {
     if (sandboxId) {
       const epoch = this._epoch;
       const cached = await this._state_lock.runExclusive(() => this._sandboxes.get(sandboxId));
@@ -240,17 +265,12 @@ export class SandboxManager {
       if (epoch !== this._epoch) throw new CancelledError();
       const sb = await Sandbox.connect(this._connectKwargs({ sandbox_id: sandboxId }));
       const registered = await this._state_lock.runExclusive(() => {
-        if (epoch !== this._epoch) return false;
         this._sandboxes.set(sandboxId, sb);
         this.borrowed.add(sandboxId);
         this.preserved.add(sandboxId);
-        return true;
+        return epoch === this._epoch && !this.closing;
       });
-      if (!registered) {
-        try { await sb.close?.(); }
-        catch { logger.warning("Failed to close borrowed sandbox connected during shutdown"); }
-        throw new CancelledError();
-      }
+      if (!registered) throw new CancelledError();
       return sb;
     }
 
@@ -275,6 +295,10 @@ export class SandboxManager {
    * sandbox to kill.
    */
   async killSandbox(sandboxId: string | null = null): Promise<string | null> {
+    return this.admitted(() => this.killAdmitted(sandboxId));
+  }
+
+  private async killAdmitted(sandboxId: string | null): Promise<string | null> {
     const sb = await this._state_lock.runExclusive(() => sandboxId
       ? this._sandboxes.get(sandboxId)
       : this._default_sandbox);
@@ -300,38 +324,39 @@ export class SandboxManager {
 
   /** Internal create rollback: keep the exact returned handle across observation/shutdown races. */
   async rollbackCreatedSandbox(sandbox: SandboxInstance): Promise<void> {
-    const id = this.reference(sandbox);
-    await sandbox.kill();
-    await this._state_lock.runExclusive(() => {
-      if (this._sandboxes.get(id) === sandbox) {
-        this._sandboxes.delete(id);
-        this.preserved.delete(id);
-        this.borrowed.delete(id);
-      }
-      if (this._default_sandbox === sandbox) this._default_sandbox = null;
+    await this.admitted(async () => {
+      const id = this.reference(sandbox);
+      await sandbox.kill();
+      await this.forget(id, sandbox);
     });
   }
 
-  /** Kill all sandboxes. */
+  /** Release owned resources; failed handles remain available for a cleanup retry. */
   async shutdown(): Promise<void> {
-    const items = await this._state_lock.runExclusive(() => {
-      const snapshot = [...this._sandboxes.entries()].map(([sid, sb]) => ({ sid, sb, preserve: this.borrowed.has(sid) || this.preserved.has(sid) }));
-      this._sandboxes.clear();
-      this.borrowed.clear();
-      this.preserved.clear();
-      this._default_sandbox = null;
-      this._epoch += 1;
-      return snapshot;
-    });
-    for (const { sid, sb, preserve } of items) {
-      try {
-        if (preserve) await sb.close?.();
-        else await sb.kill();
-        logger.info("Shutdown: released sandbox %s", sid);
-      } catch (exc) {
-        logger.warning("Failed to kill sandbox during shutdown");
+    await this.cleanupLock.runExclusive(async () => {
+      await this._state_lock.runExclusive(() => {
+        this.closing = true;
+        this._epoch += 1;
+      });
+      await Promise.all([...this.admissions]);
+      const items = await this._state_lock.runExclusive(() =>
+        [...this._sandboxes.entries()].map(([sid, sb]) => ({
+          sid, sb, preserve: this.borrowed.has(sid) || this.preserved.has(sid),
+        })));
+      let failed = false;
+      for (const { sid, sb, preserve } of items) {
+        try {
+          if (preserve) await sb.close?.();
+          else await sb.kill();
+          await this.forget(sid, sb);
+          logger.info("Shutdown: released sandbox %s", sid);
+        } catch {
+          failed = true;
+          logger.warning("MCP sandbox cleanup failed; retaining its handle for retry");
+        }
       }
-    }
+      if (failed) throw new McpCleanupError();
+    });
   }
 }
 
