@@ -306,3 +306,11 @@ the changed README example now explicitly require this source revision and state
 that published alpha.2 does not contain these features. No historical release facts
 or frozen release files were changed; final-head CI is rerun for this documentation
 correction.
+
+Final-head CI at 69951aa exposed three stale assertions added by the merged main:
+the shell-helper contract required --yes on both source init and pure local build.
+The scripts already omitted the removed build flag and explicitly describe local
+construction. Independent review approved a test-only correction: init must keep
+--yes, build must omit it, and every invocation still passes through the actual
+CLI parser with the explicit Express Provider. The failed CI remains a failed
+run; a later complete-head run is required.
