@@ -56,18 +56,20 @@ export function readPlan(file: string): ApplicationPlan {
   return value as unknown as ApplicationPlan;
 }
 export function readReceipt(file: string): ApplicationReceipt {
-  const value: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
+  let value: unknown;
+  try { value = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch { throw new ApplicationError("Saved application information cannot be read. Keep the local configuration and restore a trusted backup before continuing."); }
   if (!record(value) || value.kind !== "ManagedApplicationReceipt" || value.schemaVersion !== 2 || !record(value.plan) || !Array.isArray(value.functions) || !Array.isArray(value.cleanup) || !Array.isArray(value.retained) || typeof value.accountId !== "string") throw new ApplicationError("Invalid application receipt.");
   return value as unknown as ApplicationReceipt;
 }
 export function defaultReceiptFile(plan: ApplicationPlan): string { return path.join(plan.projectRoot, ".abx", "app", `${plan.revision}.receipt.json`); }
 function save(file: string, receipt: ApplicationReceipt): void { receipt.updatedAt = new Date().toISOString(); writeJson(file, receipt); }
 function assertPlan(plan: ApplicationPlan): void {
-  if (Date.parse(plan.expiresAt) <= Date.now()) throw new ApplicationError("Application plan expired; compute a new plan.");
+  if (Date.parse(plan.expiresAt) <= Date.now()) throw new ApplicationError(`Deployment approval expired. Inspect abx status ${applicationId(plan)} before starting the operation again.`);
   verifyTools(plan.toolchain);
-  if (plan.operation === "apply" && (sourceDigest(plan.projectRoot) !== plan.sourceDigest || digest(readTemplate(plan.templateFile)) !== digest(plan.template))) throw new ApplicationError("Frozen application source changed; build and plan again.");
-  if (plan.operation === "apply" && plan.buildReceipt) { const build = readBuild(plan.buildReceipt); if (build.image !== plan.image || (!plan.borrowedBuild && digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null))) throw new ApplicationError("The frozen Server build identity changed; compute a fresh plan."); }
-  if (plan.previousReceipt && digest(readReceipt(plan.previousReceipt)) !== plan.previousDigest) throw new ApplicationError("The previous receipt changed; compute a fresh plan.");
+  if (plan.operation === "apply" && (sourceDigest(plan.projectRoot) !== plan.sourceDigest || digest(readTemplate(plan.templateFile)) !== digest(plan.template))) throw new ApplicationError("Application source changed during deployment. Review your project before deploying again.");
+  if (plan.operation === "apply" && plan.buildReceipt) { const build = readBuild(plan.buildReceipt); if (build.image !== plan.image || (!plan.borrowedBuild && digest(build.ownedServerImage ?? null) !== digest(plan.ownedServerImage ?? null))) throw new ApplicationError("The Server image changed during deployment. Review the image before deploying again."); }
+  if (plan.previousReceipt && digest(readReceipt(plan.previousReceipt)) !== plan.previousDigest) throw new ApplicationError(`The saved deployment changed. Run abx recover ${applicationId(plan)} before retrying.`);
 }
 async function control(receipt: ApplicationReceipt, services: ApplicationServices, operation: "status" | "drain", revision?: string, controller?: FunctionReceipt): Promise<Record<string, unknown>> {
   const dispatcher = controller ?? receipt.functions.find(item => item.role === "dispatcher");
@@ -207,7 +209,7 @@ async function candidateHooks(receipt: ApplicationReceipt, services: Application
 export async function applyPlan(plan: ApplicationPlan, services: ApplicationServices, file = defaultReceiptFile(plan)): Promise<ApplicationReceipt> {
   if (plan.operation !== "apply") throw new ApplicationError("Use destroy for a destruction plan.");
   assertPlan(plan);
-  if (fs.existsSync(file)) throw new ApplicationError("This plan already has a receipt; inspect or reconcile it instead of repeating side effects.");
+  if (fs.existsSync(file)) throw new ApplicationError(`This deployment operation already started. Run abx recover ${applicationId(plan)} instead of repeating its effects.`);
   const previous = plan.previousReceipt ? readReceipt(plan.previousReceipt) : undefined;
   validateBinding(plan, services, previous);
   if (previous && !/^[a-f0-9]{32}$/.test(previous.stateInstanceId ?? "")) throw new ApplicationError("The previous receipt does not pin a durable state identity; reconcile that deployment before upgrading.");
@@ -334,12 +336,12 @@ export async function observeReceipt(receipt: ApplicationReceipt, services: Appl
   if (file) save(file, receipt);
   return { ...publicSummary(receipt, file), resources, ...(activity ? { activity } : {}) };
 }
-export function publicSummary(receipt: ApplicationReceipt, file?: string): Record<string, unknown> {
-  return { application_id: applicationId(receipt.plan), revision: receipt.plan.revision, status: receipt.status, phase: receipt.phase,
-    ...(file ? { receipt_file: path.resolve(file) } : {}), ...(receipt.endpoint ? { endpoint: receipt.endpoint } : {}),
-    ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}), retained_revisions: receipt.retained.map(item => item.revision),
-    retained_build_artifacts: receipt.sandbox?.resources.filter(item => item.kind === "image" && item.cleanup === "manual" && item.state !== "deleted") ?? [],
-    recovery: [...(receipt.sandbox?.resources.filter(item => !["deleted", "retained"].includes(item.state)) ?? []), ...receipt.cleanup.filter(item => item.status !== "confirmed")] };
+export function publicSummary(receipt: ApplicationReceipt, _file?: string): Record<string, unknown> {
+  const resource = (item: { kind: string; id?: string; state: string }) => ({ kind: item.kind, ...(item.id ? { id: item.id } : {}), state: item.state });
+  return { application_id: applicationId(receipt.plan), revision: receipt.plan.revision, status: receipt.status,
+    ...(receipt.endpoint ? { endpoint: receipt.endpoint } : {}), ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}), retained_revisions: receipt.retained.map(item => item.revision),
+    retained_resources: receipt.sandbox?.resources.filter(item => item.kind === "image" && item.cleanup === "manual" && item.state !== "deleted").map(resource) ?? [],
+    recovery: [...(receipt.sandbox?.resources.filter(item => !["deleted", "retained"].includes(item.state)).map(resource) ?? []), ...receipt.cleanup.filter(item => item.status !== "confirmed").map(item => resource({kind:item.kind,id:item.identity,state:item.status}))] };
 }
 /** Explicit retirement cannot strand any logical Session capable of accepting another input. */
 export async function retireRevision(receipt: ApplicationReceipt, revision: string, services: ApplicationServices, file: string): Promise<ApplicationReceipt> {
@@ -405,7 +407,7 @@ export async function destroyPlan(plan: ApplicationPlan, services: ApplicationSe
   const history = [receipt, ...receipt.retained.map(item => findHistorical(receipt, item.revision))];
   for (const item of history) {
     const templates = item.sandbox?.resources.filter(resource => resource.kind === "template") ?? [], created = templates.filter(resource => resource.state === "created");
-    if (templates.some(resource => ["intent", "uncertain"].includes(resource.state)) || created.length > 1 || (created.length === 1 && created[0].id !== item.sandbox?.reference)) throw new ApplicationError("Sandbox template creation remains uncertain; preserve the exact native journal and reconcile before declaring destruction complete.");
+    if (templates.some(resource => ["intent", "uncertain"].includes(resource.state)) || created.length > 1 || (created.length === 1 && created[0].id !== item.sandbox?.reference)) throw new ApplicationError(`Sandbox template creation remains uncertain. Run abx recover ${applicationId(plan)} before retrying deletion.`);
   }
   if (receipt.cleanup.some(item => item.kind === "function" && item.status === "uncertain" && !history.some(older => older.functions.some(owned => owned.functionName === item.identity)))) throw new ApplicationError("Uncertain resource ownership blocks automatic destruction; reconcile first.");
   const recordedGateways = history.flatMap(item => item.functions.filter(resource => resource.role === "gateway"));
@@ -424,7 +426,7 @@ export async function destroyPlan(plan: ApplicationPlan, services: ApplicationSe
       controller = candidate; break;
     }
     const activity = await control(receipt, services, "drain", undefined, controller);
-    if (activity.draining !== true || !drained(activity)) { receipt.status = "requires_reconcile"; save(file, receipt); throw new ApplicationError("Application drain is still active; resources were retained. Observe cleanup and prepare a fresh destruction plan."); }
+    if (activity.draining !== true || !drained(activity)) { receipt.status = "requires_reconcile"; save(file, receipt); throw new ApplicationError(`Application drain is still active; resources were retained. Run abx recover ${applicationId(plan)}, then retry abx delete ${applicationId(plan)} --yes when draining completes.`); }
     receipt.drainConfirmed = true; save(file, receipt);
   }
   const functions = new Map<string, FunctionReceipt>();
@@ -459,7 +461,7 @@ export async function destroyPlan(plan: ApplicationPlan, services: ApplicationSe
   if (!failed) for (const image of new Map(history.flatMap(item => [...(item.plan.ownedServerImage ? [item.plan.ownedServerImage] : []), ...(item.retainedImages ?? [])]).map(image => [image.localTag, image])).values()) await cleanup("server-image", image.localTag, async () => {
     if (!services.removeImage) throw new ApplicationError("Owned image cleanup is unavailable."); await services.removeImage(image);
   });
-  if (failed) { receipt.status = "requires_reconcile"; save(file, receipt); throw new ApplicationError("Some owned resources could not be confirmed absent; successful cleanup was retained. Reconcile and prepare a fresh destruction plan."); }
+  if (failed) { receipt.status = "requires_reconcile"; save(file, receipt); throw new ApplicationError(`Some resource deletions remain unconfirmed; successful cleanup was retained. Run abx recover ${applicationId(plan)}, then retry abx delete ${applicationId(plan)} --yes.`); }
   receipt.cleanup.forEach(item => { item.status = "confirmed"; }); if (receipt.sandbox) receipt.sandbox.resources.forEach(item => { if (item.kind === "template") item.state = "deleted"; });
   for (const item of history) await releaseBorrowedBuild(item);
   receipt.retained = []; receipt.status = "destroyed"; receipt.phase = "destroyed"; save(file, receipt); return receipt;

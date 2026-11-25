@@ -50,7 +50,12 @@ export function applicationLock<T>(plan: ApplicationPlan, account: string, work:
 }
 export function deploymentSummary(value: Deployment): Record<string, unknown> {
   const receipt = value.receipt && fs.existsSync(value.receipt) ? readReceipt(value.receipt) : undefined;
-  return { ...value.launch, name: value.name, kind: value.kind, provider: value.provider, status: value.status, ...(value.sandboxId ? { sandbox_id: value.sandboxId } : {}), ...(value.launch?.services ? { services: value.launch.services } : {}), ...(receipt ? { endpoint: receipt.endpoint, revision: receipt.plan.revision, receipt_file: value.receipt, ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}) } : {}) };
+  const services = record(value.launch?.services) ? Object.fromEntries(Object.entries(value.launch.services).filter(([, service]) => record(service)).map(([name, service]) => [name, { port: (service as Record<string, unknown>).port, url: (service as Record<string, unknown>).url }])) : undefined;
+  return { name: value.name, kind: value.kind, provider: value.provider, status: value.status,
+    ...(value.sandboxId ? { sandbox_id: value.sandboxId } : {}),
+    ...(typeof value.launch?.template_reference === "string" ? { template: value.launch.template_reference } : {}),
+    ...(services ? { services } : {}),
+    ...(receipt ? { endpoint: receipt.endpoint, revision: receipt.plan.revision, ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}) } : {}) };
 }
 function pairs(values: string[] = [], unique = false): Record<string, string> {
   const entries = values.map(value => { const index = value.indexOf("="); if (index < 1) throw new UsageError("Expected KEY=VALUE."); return [value.slice(0, index), value.slice(index + 1)] as const; });
@@ -178,7 +183,7 @@ export const deploy_shortcut = command("deploy", {
             });
           }
           const launched = await deploymentSeams.launch(ctx, { template_ref: value.source, alias: name, timeout: params.build_timeout, sandbox_timeout: params.sandbox_timeout, build_profile: params.build_profile ?? artifact?.build_profile, yes: Boolean(params.yes) }, {
-            approved: true, lifecycle, envs, metadata, volume_mounts: volumeMounts, request_timeout: params.request_timeout ?? undefined,
+            approved: true, recoveryTarget: value.name, lifecycle, envs, metadata, volume_mounts: volumeMounts, request_timeout: params.request_timeout ?? undefined,
             ...(artifact ? { prepared: artifact.prepared as PreparedTemplate, builtTarget: artifact.target as Record<string, unknown> } : {}),
             onTarget: target => { Object.assign(value, target); saveDeployment(value); },
             onVerifiedApplication: service => {

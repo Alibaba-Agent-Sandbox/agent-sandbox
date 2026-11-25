@@ -14,7 +14,7 @@ import type { SandboxInfo } from "../../models/sandbox.js";
 import { listProviders, resolveProviderId } from "../../providers/registry.js";
 import { cliProvider } from "../../providers/selection.js";
 import { paths } from "../../transport/config_layers.js";
-import { ApplicationError, writeJson } from "../../application/config.js";
+import { ApplicationError, record, writeJson } from "../../application/config.js";
 import { releaseStoppedApplicationLock } from "../../application/lock.js";
 import { createDestroyPlan, destroyPlan, observeReceipt, publicSummary, readReceipt, retireRevision, withApplicationLock } from "../../application/service.js";
 import { createFcTransport, resolveDeployCredentials, verifyFunction } from "../../application/fc.js";
@@ -103,9 +103,17 @@ export const status = command("status", {
   }),
 });
 interface JournalEntry { kind: "sandbox" | "template" | "image"; id?: string; state: string; cleanup: string; intent_id: string }
+function publicResources(entries: unknown[]): Array<Record<string, unknown>> {
+  return entries.map(item => {
+    if (!record(item) || typeof item.kind !== "string" || typeof item.state !== "string" || (item.id !== undefined && typeof item.id !== "string")) throw new ApplicationError("Saved resource information is invalid; keep the local deployment for recovery.");
+    return { kind: item.kind, ...(item.id ? { id: item.id } : {}), state: item.state };
+  });
+}
 function journal(value: Deployment): { file: string; entries: JournalEntry[]; [key: string]: unknown } | undefined {
   if (!value.journal || !fs.existsSync(value.journal)) return undefined;
-  const data = JSON.parse(fs.readFileSync(value.journal, "utf8"));
+  let data;
+  try { data = JSON.parse(fs.readFileSync(value.journal, "utf8")); }
+  catch { throw new ApplicationError("Saved resource information cannot be read. Keep the local configuration and restore a trusted backup before continuing."); }
   if (data.version !== 1 || data.provider !== value.provider || !Array.isArray(data.entries)) throw new ApplicationError("Invalid resource journal; preserve it for recovery.");
   return { ...data, file: value.journal };
 }
@@ -114,7 +122,7 @@ async function deleteSandboxDeployment(value: Deployment): Promise<Record<string
   if (value.effectsStarted === false && !value.sandboxId) {
     // Admission failed before the launcher entered any resource operation.
   } else if (value.journal && fs.existsSync(value.journal)) {
-    const result = await cleanupResourceJournal(value.journal, value); retained = result.retained;
+    const result = await cleanupResourceJournal(value.journal, value); retained = publicResources(result.retained);
     if (!result.complete) { value.status = "requires_recovery"; saveDeployment(value); throw new ApplicationError(`Cleanup remains incomplete (${result.failures.join(", ")}). Run recover ${value.name}.`); }
   } else if (value.sandboxId) {
     if (!await absentSandbox(value.sandboxId, connection(value))) await managementSeams.kill(value.sandboxId, connection(value));
@@ -125,7 +133,7 @@ async function deleteSandboxDeployment(value: Deployment): Promise<Record<string
     artifact.consumers = (artifact.consumers ?? []).filter((item: string) => item !== path.join(paths.abxDir, "deployments", value.name, "deployment.json")); writeJson(value.borrowedBuild!, artifact);
   });
   value.status = "deleted"; saveDeployment(value);
-  return { ...deploymentSummary(value), retained_build_artifacts: retained };
+  return { ...deploymentSummary(value), retained_resources: retained };
 }
 export const deleteDeployment = command("delete", {
   help: "Delete a named deployment's owned resources, or a raw Sandbox ID. Borrowed builds and external services are retained. --revision retires an unused retained application version.",
@@ -151,14 +159,9 @@ export const deleteDeployment = command("delete", {
 });
 export const recover = command("recover", {
   help: "Inspect interrupted deployment effects using saved ownership records. Never repeats a create or publication request. Use delete after resolving any uncertain ownership.",
-  params: [target, bindings, option(["--receipt"], { help: "Import an existing application receipt under this local name for inspection and cleanup." })],
+  params: [target, bindings],
   callback: handleErrors(async (ctx, params) => {
     const name = String(params.target);
-    if (params.receipt) {
-      if (readDeployment(name)) throw new UsageError("This deployment name already exists; omit --receipt to recover its saved operation.");
-      const file = fs.realpathSync(String(params.receipt)), receipt = readReceipt(file);
-      saveDeployment({ version: 1, name, kind: "application", provider: "alicloud-express", status: receipt.status === "ready" ? "ready" : receipt.status === "destroyed" ? "deleted" : "requires_recovery", receipt: file, createdAt: receipt.updatedAt, updatedAt: receipt.updatedAt, ...(params.bindings ? { bindings: fs.realpathSync(String(params.bindings)) } : {}) });
-    }
     const initial = savedTarget(name); if (!initial) throw new UsageError("Recovery requires a local deployment name.");
     releaseStoppedApplicationLock(path.join(paths.abxDir, "deployment-locks"), name);
     await withApplicationLock(path.join(paths.abxDir, "deployment-locks"), name, async () => {
@@ -173,7 +176,7 @@ export const recover = command("recover", {
         if (!value.ownsBuild || !build || build.status === "cleaned") { const previous: Deployment = JSON.parse(fs.readFileSync(value.previous, "utf8")); saveDeployment(previous); getFormatter(ctx).printData({ ...deploymentSummary(previous), recovery: "previous deployment restored; no cloud operation replayed" }); return; }
       }
       const saved = journal(value);
-      getFormatter(ctx).printData({ ...deploymentSummary(value), resources: saved?.entries ?? [], sandbox_absent: value.sandboxId ? await absentSandbox(value.sandboxId, connection(value)) : null, next: "Delete known owned resources; resolve unknown creation outcomes using their recorded correlation keys before retrying." });
+      getFormatter(ctx).printData({ ...deploymentSummary(value), resources: publicResources(saved?.entries ?? []), sandbox_absent: value.sandboxId ? await absentSandbox(value.sandboxId, connection(value)) : null, next: `Inspect the reported resources. Run abx delete ${value.name} --yes to clean confirmed owned resources; unresolved creation outcomes must be checked before another deployment.` });
     });
   }),
 });

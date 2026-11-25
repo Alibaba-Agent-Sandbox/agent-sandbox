@@ -23,7 +23,7 @@ import { handleErrors } from "../../src/cli/error_handler.js";
 // Exercise the shared deployment service directly; no removed public launch alias.
 const cli = group("launch-service-test", {params: publicCli.params, ...(publicCli.callback ? {callback: publicCli.callback} : {})});
 cli.addCommand(command("prepare", {params: [argument(["template_ref"]), option(["--yes", "-y"], {is_flag: true}), option(["--build-profile"])], callback: handleErrors(async (ctx, params) => {
-  const result = await executeTemplateLaunch(ctx, params);
+  const result = await executeTemplateLaunch(ctx, params, { recoveryTarget: "fixture-deployment" });
   echo(JSON.stringify(result.receipt));
 })}));
 import { CliRunner } from "../helpers/cliRunner.js";
@@ -97,10 +97,26 @@ describe("provider-owned project launch", () => {
     try {
       const result = await f.invoke();
       expect(result.exit_code).not.toBe(0);
-      expect(result.output).toContain("recovery journal");
+      expect(result.output).toContain("abx recover fixture-deployment");
+      expect(result.output).not.toContain("recovery journal");
       expect(result.output).not.toContain("Aborted!");
       expect(f.create).not.toHaveBeenCalled();
       expect(f.provider.close).toHaveBeenCalledOnce();
+    } finally { f.create.mockRestore(); }
+  });
+
+  it("guides unknown creation by deployment name without leaking journal identifiers", async () => {
+    const f = setup();
+    f.create.mockRejectedValue(new Error("private-transport-details"));
+    try {
+      const result = await f.invoke();
+      expect(result.exit_code).not.toBe(0);
+      expect(result.output).toContain("abx recover fixture-deployment");
+      expect(result.output).not.toMatch(/private-transport-details|journal|correlation/);
+      const entries = fs.readdirSync(path.join(iso.home, "resource-journal"));
+      expect(entries).toHaveLength(1);
+      expect(result.output).not.toContain(entries[0]!.replace(/\.json$/, ""));
+      expect(f.create).toHaveBeenCalledOnce();
     } finally { f.create.mockRestore(); }
   });
   it.each([
@@ -167,7 +183,7 @@ describe("provider-owned project launch", () => {
       expect(f.create).not.toHaveBeenCalled();
     } finally {f.create.mockRestore();}
   });
-  it("keeps the safe failed Docker phase and recovery journal visible without exposing raw output", async () => {
+  it("keeps the failed Docker phase and named recovery guidance without exposing internal files", async () => {
     const f = setup();
     f.provider.prepare.mockImplementation(async (_directory, options) => {
       await options.journal!.intent({ kind: "image", correlation_key: "published-image", cleanup: "manual" });
@@ -179,7 +195,8 @@ describe("provider-owned project launch", () => {
       expect(result.output).toContain("Docker push exceeded its time limit");
       const directory = path.join(iso.home, "resource-journal");
       const [journal] = fs.readdirSync(directory);
-      expect(result.output).toContain(`recovery journal ${path.join(directory, journal!)}`);
+      expect(result.output).toContain("abx recover fixture-deployment");
+      expect(result.output).not.toContain(path.join(directory, journal!));
       expect(f.create).not.toHaveBeenCalled();
     } finally { f.create.mockRestore(); }
   });
