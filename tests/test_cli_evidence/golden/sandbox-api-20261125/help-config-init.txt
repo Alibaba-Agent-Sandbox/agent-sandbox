@@ -20,7 +20,8 @@ build`` and ``abx deploy``).
 After basic setup, choose Find and launch a template to search the
 catalog and create without leaving the wizard. Missing build values
 are collected by the same configuration prompts. An application token
-is generated and saved for deployment and abx sandbox command run.
+is generated and saved for deployment; API bindings can select
+config:server_token.
 
 In non-TTY environments (CI, piped input) the wizard never blocks: it
 prints the equivalent non-interactive ``abx config set ...`` commands

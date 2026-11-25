@@ -141,7 +141,7 @@ export async function execute(sandbox: Sandbox, command: string, options: Sessio
 }
 
 export async function connectTerminal(sandbox: Sandbox, options: SessionOptions = {}): Promise<number> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("Terminal connection requires an interactive TTY. Use sandbox exec for piped commands.");
+  if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("Terminal connection requires an interactive TTY. Use abx exec for piped commands.");
   const previousRaw = process.stdin.isRaw;
   const size = (): { cols: number; rows: number } => ({ cols: process.stdout.columns || 80, rows: process.stdout.rows || 24 });
   process.stdin.setRawMode(true);

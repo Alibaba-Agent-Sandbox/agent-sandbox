@@ -51,7 +51,7 @@ The six template-guide skips were due to an unavailable adjacent SDK path. A pri
 - Final focused set (binding, OpenAPI, HTTP, deploy, option aliases, help, guide and captures): 397 passed with one stale config-init snapshot from the independently merged onboarding change. That snapshot was regenerated from the actual CLI; the entire capture regression then passed 86 tests. No product assertion was removed.
 - Both parser-to-service/source-generation integration suites: 22 passed, including exact syntax errors and no-generation side-effect assertions.
 - Strict help coverage: 224 passed; ordinary automatic help retains its original Usage-prefix assertion, and the custom Sandbox help has its own exact usage assertion.
-- Offline capture: 85 cases, zero skips, 10 Markdown files; historical batches unchanged.
+- Offline capture: 85 cases, zero skips, 10 Markdown files; historical batches unchanged. A final active-text audit corrected Provider setup help and the non-TTY suggestion to use the current commands. The affected help/session/capture suites passed 254 tests; an exact non-TTY diagnostic probe also passed.
 - Package entry/reference closure: PASS. The release artifact verifier passed against the built executable, including root platform tools, target-first help, retired-wrapper rejection, generated OpenAPI assets, isolated configuration, PTY cancellation and notices. This is built-artifact validation, not publication.
 - Final ESLint: no errors, 258 warnings. Hygiene passed. Repository health: 105 passed, 11 existing warnings, zero failures. The generated ignored parity report was moved out of the checkout after analysis so local temporary paths do not pollute the health scan. Delivery status is recorded with the PR.
 
