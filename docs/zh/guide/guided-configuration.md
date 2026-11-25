@@ -22,7 +22,7 @@ abx --provider PROVIDER config init
 
 模板声明空应用令牌时，部署自动生成随机值、私密保存并在后续命令中复用，`--yes` 同样适用。需要自定义时，通过 `abx config set server_token` 隐藏输入。外部客户端将该应用令牌与 Provider 流量认证分开传递。修改本机配置不会改变已经运行的应用环境。
 
-交互提示按需显示 Provider、地域和 API 主机。空输入或 Ctrl+C 会在保存前取消收集。敏感信息隐藏输入；无效的已保存配置会明确报错，不会静默覆盖。详细来源见 `--verbose` 和[配置参考](../reference/configuration.md)。
+引导显示所选 Provider 和地域，凭据输入会隐藏。在 `config init` 中，回车保留当前生效值，进程环境变量和项目 `.env` 的值不会复制到本机用户配置。输入时按 Ctrl+C 可取消当前收集。保存值被覆盖时，CLI 会提示变量和来源。更新或移除该覆盖后，本机保存值才会生效。用 `--verbose` 查看 API 主机和管理 Key 详情。
 
 ```bash
 abx config set sandbox_api_key

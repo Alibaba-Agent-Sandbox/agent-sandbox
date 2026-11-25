@@ -7,6 +7,8 @@ import { resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
 import type { StagedProject } from "../providers/shared/project.js";
 export interface ProviderCliExtension {
+  /** Check local tools for the selected source build before approval. */
+  checkProjectPrerequisites?(directory: string, buildProfile: ProjectTemplateOptions["build_profile"], ctx: Context): Promise<void>;
   /** Snapshot provider-native source inputs before any resource mutation. */
   stageProject?(directory: string, options: ProjectTemplateOptions): Promise<StagedProject>;
   id: string;

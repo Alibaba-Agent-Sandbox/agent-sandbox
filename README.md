@@ -38,7 +38,7 @@ abx config init
 abx deploy --template-id base --name demo --yes
 ```
 
-For Express, use a Sandbox API key for your account and region. The setup guide explains [credential sources and required permissions](docs/en/guide/permissions.md), including the optional AccessKey-based preparation flow. Interactive settings are saved locally for later commands.
+For Express, use a Sandbox API key for your account and region. The setup guide explains [credential sources and required permissions](docs/en/guide/permissions.md), including the optional AccessKey-based preparation flow. Interactive settings are saved locally for later commands. If an environment variable or project `.env` overrides an entered value, setup identifies the active source.
 
 Use the saved deployment name in subsequent commands:
 

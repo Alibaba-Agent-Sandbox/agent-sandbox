@@ -56,9 +56,8 @@ export const guidanceSeams = {
 const aliases: Record<string, string> = { api_key: "sandbox_api_key", api_url: "sandbox_base_url", domain: "sandbox_domain" };
 const has = (v: unknown): boolean => v !== null && v !== undefined && (typeof v !== "string" || Boolean(v.trim()));
 const canonical = (name: string): string => aliases[name] ?? name;
-const safeHost = (value: string): string => {
-  try { return new URL(value).host; } catch { return "(not configured)"; }
-};
+/** Missing local configuration diagnosed by the guided setup, with safe repair text. */
+export class ConfigurationGuidanceError extends CliError {}
 
 function configValue(config: LayeredConfig, key: string): unknown {
   if (getProvider(config.provider).configFields.some((field) => field.key === key) && !bundledConfig(config.provider)?.transportFields.has(key)) {
@@ -114,7 +113,7 @@ export async function withGuidedConfiguration<T>(
         if (!guidanceSeams.interactive(ctx, request.yes)) {
           getOutput(ctx).debug(runtimeAuth.help);
           const help = configurationFieldHelp(runtimeAuth.key, provider.id);
-          throw new CliError(`Missing configuration for ${request.operation}. Configure one authentication method: ${runtimeAuth.alternatives.map(candidate => candidate.join(" + ")).join("; or ")}. Run 'abx config set providers.${provider.id}.${runtimeAuth.key}' in a terminal, or configure the alternative credentials. ${help ? `${help} ` : ""}No cloud operation was submitted.`);
+          throw new ConfigurationGuidanceError(`Missing configuration for ${request.operation}. Configure one authentication method: ${runtimeAuth.alternatives.map(candidate => candidate.join(" + ")).join("; or ")}. Run 'abx config set providers.${provider.id}.${runtimeAuth.key}' in a terminal, or configure the alternative credentials. ${help ? `${help} ` : ""}The requested operation did not start.`);
         }
         const answer = await guidanceSeams.ask("Choose an authentication method", false, {
           choices: [...runtimeAuth.alternatives.map((candidate, index) => ({ name: candidate.join(" + "), value: String(index + 1) })), { name: "Cancel", value: "" }], default: "1", err: true,
@@ -179,16 +178,14 @@ export async function withGuidedConfiguration<T>(
   const fieldHelp = missing.map(field => configurationFieldHelp(field.key, provider.id)).filter((help): help is string => Boolean(help));
   const out = getOutput(ctx);
   if (!guidanceSeams.interactive(ctx, request.yes)) {
-    throw new CliError(`Missing configuration for ${request.operation}:\n${details}\n` +
+    throw new ConfigurationGuidanceError(`Missing configuration for ${request.operation}:\n${details}\n` +
       (fieldHelp.length ? `${fieldHelp.join("\n")}\n` : "") +
       (request.yes ? "--yes/-y skips configuration prompts. To enter missing values interactively, rerun this command without --yes/-y in a terminal.\n" : "") +
-      "Run the configuration commands in a terminal, or supply the documented environment variables in automation. No cloud operation was submitted.");
+      "Run the configuration commands in a terminal, or supply the documented environment variables in automation. The requested operation did not start.");
   }
   const target = configurationTargetSummary(provider.id, overrides);
   out.info(target.split("\n").map(line => line.replace(/ \([^)]*\)$/, "")).join(" · "));
   out.debug(target);
-  const registry = effective("acr_registry");
-  if (typeof registry === "string" && registry) out.info(`Registry host: ${safeHost(registry.includes("://") ? registry : `https://${registry}`)}`);
   out.debug(`${request.operation} needs ${missing.length} configuration value(s):\n${details}`);
   for (const help of fieldHelp) out.info(help);
   if (runtimeAuth && needsRuntimeAuth) out.debug(runtimeAuth.help);

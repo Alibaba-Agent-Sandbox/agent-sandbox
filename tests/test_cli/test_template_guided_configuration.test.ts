@@ -12,7 +12,9 @@ import { guidanceSeams } from "../../src/cli/config_guidance.js";
 import * as guidance from "../../src/cli/config_guidance.js";
 import { getOperationConfig } from "../../src/utils/operation_config.js";
 import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
+import { OUTPUT_META_KEY, OutputManager } from "../../src/cli/output.js";
 import { CLI_EXTENSION } from "../../src/providers/alicloud_express/cli/extension.js";
+import * as templateAdapter from "../../src/providers/alicloud_express/cli/template.js";
 import { _buildImage, templateSeams, withDeployConfiguration } from "../../src/providers/alicloud_express/cli/template.js";
 import { templateSeams as catalogSeams } from "../../src/cli/template_catalog.js";
 import { prepareTemplateBuildInputs } from "../../src/cli/template_project.js";
@@ -128,9 +130,22 @@ describe("Operation-specific template guidance", () => {
     expect(fs.readdirSync(tmpPath())).toEqual(["app"]);
   });
 
+  it("shows the Express registry once in interactive source preparation", async () => {
+    patchLoadConfig();
+    iso.setenv("ACR_NAMESPACE", "placeholder-namespace");
+    const ctx = context();
+    const out = new OutputManager();
+    ctx.meta[OUTPUT_META_KEY] = out;
+    const info = vi.spyOn(out, "info");
+    vi.spyOn(guidance, "canGuideConfiguration").mockReturnValue(true);
+    vi.spyOn(templateAdapter, "deployConfigured").mockResolvedValue({ TemplateID: "prepared", Status: "ready" });
+    await CLI_EXTENSION.prepareProject(project(), preparation(), ctx, true);
+    expect(info.mock.calls.filter(([message]) => message.startsWith("Registry host: "))).toHaveLength(1);
+  });
+
   it("shared steps preparation forwards supported options without resolving ACR", async () => {
     patchLoadConfig();
-    const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
+    const deploy = vi.spyOn(templateAdapter, "deployConfigured").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
     const ctx = context(); ctx.params = { yes: true, region: "cn-shanghai" };
     await CLI_EXTENSION.prepareProject(project(true), preparation("kept", 78, 3), ctx);
     expect(deploy).toHaveBeenCalledOnce();
@@ -140,7 +155,7 @@ describe("Operation-specific template guidance", () => {
 
   it("waits for a generated submitted template before returning its reference", async () => {
     patchLoadConfig();
-    vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "pending-generated", Status: "submitted" });
+    vi.spyOn(templateAdapter, "deployConfigured").mockResolvedValue({ TemplateID: "pending-generated", Status: "submitted" });
     let finish!: () => void;
     const waiting = vi.spyOn(fcTemplate, "waitForTemplateReady").mockImplementation(() => new Promise(resolve => { finish = () => resolve({ status: { state: "ready" } } as never); }));
     const ctx = context(); ctx.params = { yes: true };
@@ -155,7 +170,7 @@ describe("Operation-specific template guidance", () => {
 
   it("preserves a timed-out remote build identity and gives actionable inspection guidance", async () => {
     patchLoadConfig();
-    vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "pending-timeout", Status: "submitted" });
+    vi.spyOn(templateAdapter, "deployConfigured").mockResolvedValue({ TemplateID: "pending-timeout", Status: "submitted" });
     const error = new TemplateBuildTimeoutError("still building");
     vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(error);
     const ctx = context(); ctx.params = { yes: true };
@@ -167,7 +182,7 @@ describe("Operation-specific template guidance", () => {
 
   it("propagates failed generated build readiness without replaying deployment", async () => {
     patchLoadConfig();
-    const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "failed-generated", Status: "submitted" });
+    const deploy = vi.spyOn(templateAdapter, "deployConfigured").mockResolvedValue({ TemplateID: "failed-generated", Status: "submitted" });
     vi.spyOn(fcTemplate, "waitForTemplateReady").mockRejectedValue(new Error("platform build failed"));
     const ctx = context(); ctx.params = { yes: true };
     await expect(CLI_EXTENSION.prepareProject(project(true), preparation(), ctx)).rejects.toThrow("platform build failed");
@@ -176,7 +191,7 @@ describe("Operation-specific template guidance", () => {
 
   it("launch preparation accepts platform steps with no namespace", async () => {
     patchLoadConfig();
-    const deploy = vi.spyOn(templateSeams, "_doDeploy").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
+    const deploy = vi.spyOn(templateAdapter, "deployConfigured").mockResolvedValue({ TemplateID: "steps-reference", Status: "ready" });
     const ctx = context(); ctx.params = { yes: true };
     const result = await CLI_EXTENSION.prepareProject(project(true), { alias: "launch", timeout: 60, journal: new ResourceJournal("alicloud-express", "fixture"), template: { name: "launch", cpu: 2, memory: 512, start_cmd: null, ready_cmd: null } }, ctx);
     expect(result).toMatchObject({ reference: "steps-reference", status: "ready", identity: { native_version: "steps-reference" } });

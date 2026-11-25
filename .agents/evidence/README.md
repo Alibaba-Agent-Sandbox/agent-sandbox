@@ -12,7 +12,8 @@ script that did not survive the rewrite to Node.js; they are the behavioural ora
 it. The original index also listed `connect.md` and `run.md`; those two files are not present in this tree. To record the Node CLI, add a new
 dated file; do not regenerate these.
 
-Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
+Node CLI captures: [guided configuration and template diagnostics](cli/2026-11-25-guided-template-diagnostics.md),
+[provider commands](cli/2026-10-16-provider-commands.md) and
 [create-time Volume mount help](cli/2026-10-16-volume-mount.md).
 
 - [`cli/config/config.md`](cli/config/config.md)
@@ -35,6 +36,8 @@ Node CLI captures: [provider commands](cli/2026-10-16-provider-commands.md) and
 - [`research/2026-09-04-qwencli-and-agents-doc-audit.md`](research/2026-09-04-qwencli-and-agents-doc-audit.md)
 
 ## `verify/` — E2E runs
+
+- [Guided configuration and template diagnostics](verify/2026-11-25-guided-template-diagnostics.md)
 
 - [Bundled Express SDK artifact verification](verify/2026-10-20-bundled-provider-sdk.md)
 

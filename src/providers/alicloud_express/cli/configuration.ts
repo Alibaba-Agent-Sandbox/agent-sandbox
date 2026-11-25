@@ -11,6 +11,7 @@ export const CONFIGURATION_UI: ProviderConfigUi = {
   },
   runtimeAuthentication: {
     key: "sandbox_api_key", alternatives: [["sandbox_api_key"], ["access_key_id", "access_key_secret"]], help: MANAGED_KEY_HELP,
+    alternativeLabel: "Alibaba Cloud AccessKeys",
     async resolve(config, options) {
       try { return await resolveSandboxApiKey(config); }
       catch (error) {
@@ -34,15 +35,15 @@ export const CONFIGURATION_UI: ProviderConfigUi = {
   sensitive: ["access_key_id", "access_key_secret"],
   extraGroups: [["Alibaba Cloud registry (ACR)", ["acr_registry", "acr_repo", "acr_username", "acr_password", "acr_instance_id", "acr_vpc_id", "acr_vswitch_ids", "acr_security_group_id", "team_id"]]],
   initFields: [
-    { key: "sandbox_api_key", env: "ABX_SANDBOX_API_KEY", prompt: "Sandbox API key (input masked; Enter to configure AK/SK instead)", hidden: true, result: "stored" },
-    { key: "region", prompt: "Region", current: true, default: "cn-hangzhou", result: "set" },
+    { key: "sandbox_api_key", env: "ABX_SANDBOX_API_KEY", prompt: "Sandbox API key (input masked)", hidden: true },
+    { key: "region", prompt: "Region", current: true, default: "cn-hangzhou" },
   ],
   buildFields: [
-    { key: "acr_namespace", env: "ACR_NAMESPACE", prompt: "ACR namespace (needed by abx template build / deploy)", current: true, result: "set" },
-    { key: "access_key_id", env: "ALICLOUD_ACCESS_KEY_ID", prompt: "Alibaba Cloud AccessKey ID (managed API keys / template deploy / ACR, input masked)", hidden: true, result: "stored" },
-    { key: "access_key_secret", env: "ALICLOUD_ACCESS_KEY_SECRET", prompt: "Alibaba Cloud AccessKey Secret (input masked)", hidden: true, result: "stored" },
+    { key: "acr_namespace", env: "ACR_NAMESPACE", prompt: "ACR namespace (needed by abx template build / deploy)", current: true },
+    { key: "access_key_id", env: "ALICLOUD_ACCESS_KEY_ID", prompt: "Alibaba Cloud AccessKey ID (managed API keys / template deploy / ACR, input masked)", hidden: true },
+    { key: "access_key_secret", env: "ALICLOUD_ACCESS_KEY_SECRET", prompt: "Alibaba Cloud AccessKey Secret (input masked)", hidden: true },
   ],
-  noninteractiveInit: ["  # Option 1: existing Sandbox API key", "  abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>", "  # Option 2: AK/SK; prepare a managed API key after confirmation (or --ci)", "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>", "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>", `  # ${MANAGED_KEY_HELP}`, "  abx config set region cn-hangzhou"],
+  noninteractiveInit: ["  # Option 1: existing Sandbox API key", "  abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>", "  # Option 2: AK/SK; prepare a managed API key with provider run api-key.prepare --yes", "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>", "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>", `  # ${MANAGED_KEY_HELP}`, "  abx config set region cn-hangzhou"],
   noninteractiveBuild: ["", "  # Template build, push and install:", "  abx config set acr_namespace <ACR_NAMESPACE>", "  abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>", "  abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>"],
   environment: ["ABX_SANDBOX_API_KEY", "ALICLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_SECRET"], buildEnvironment: ["ACR_NAMESPACE", "ALICLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_SECRET"],
   help: CONFIG_HELP_TEXT,

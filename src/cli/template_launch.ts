@@ -1,6 +1,6 @@
 import { captureDeploymentTarget } from "./deployment_store.js";
 import { digest } from "../application/config.js";
-import { withGuidedConfiguration, canGuideConfiguration } from "./config_guidance.js";
+import { withGuidedConfiguration, canGuideConfiguration, ConfigurationGuidanceError } from "./config_guidance.js";
 import { confirm } from "./prompts.js";
 /** Download, ask the selected adapter to prepare, then create using its returned reference. */
 import fs from "node:fs";
@@ -12,7 +12,7 @@ import { executableContentDigest, providerContentDigest } from "../providers/con
 import { digestDir } from "../providers/store.js";
 import { DockerBuildFailure, DockerSetupError, ProjectToolError, stageProject } from "../providers/shared/project.js";
 import { ACRLoginError, ACRPushError, DockerBuildError, TemplateBuildError, TemplateBuildTimeoutError } from "../models/errors.js";
-import { ResourceJournal } from "../template/resource_journal.js";
+import { ResourceIntentWriteError, ResourceJournal } from "../template/resource_journal.js";
 import { withTemplateEnvironment, applicationToken } from "./template_environment.js";
 import { pyExpandUser } from "../utils/_pyos.js";
 import { quoteShellLiteral as quote } from "../utils/shell.js";
@@ -25,7 +25,7 @@ import { Abort, UsageError } from "./errors.js";
 import { providerCliExtension } from "./provider_extensions.js";
 import { getProvider, resolveProviderId } from "../providers/registry.js";
 import { cliProvider } from "../providers/selection.js";
-import { ProviderConfigError, ProviderFeatureNotSupportedError } from "../models/provider_errors.js";
+import { ProviderConfigError, ProviderFeatureNotSupportedError, ProviderTemplateHostError } from "../models/provider_errors.js";
 import { loadLayeredConfig } from "../transport/config_layers.js";
 import { parseTemplateData } from "../api/capability.js";
 import { _findTemplateYaml, acquireTemplateSource } from "./template_catalog.js";
@@ -33,6 +33,23 @@ import { Sandbox, _effectiveOptions, type CreateOptions } from "../api/sandbox.j
 import type { PreparedTemplate, ProjectTemplateOptions, ProviderTemplateManager } from "../providers/template_contract.js";
 
 export const launchSeams = { create: (options: Parameters<typeof Sandbox.create>[0]) => Sandbox.create(options) };
+
+function selectBuildProfile(sourceMetadata: Record<string, unknown>, selectedProfile: unknown): ProjectTemplateOptions["build_profile"] {
+  if (selectedProfile !== undefined && selectedProfile !== null) {
+    const profiles = sourceMetadata["build_profiles"];
+    const profile = isMapping(profiles) ? profiles[String(selectedProfile)] : undefined;
+    if (!isMapping(profile) || Object.keys(profile).some(key => !["dockerfile", "context"].includes(key)) || profile["context"] !== "." || typeof profile["dockerfile"] !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(profile["dockerfile"])) throw new ProviderConfigError("Select a declared root build profile with dockerfile and context: .");
+    return { id: String(selectedProfile), dockerfile: profile["dockerfile"], context: "." };
+  }
+  return undefined;
+}
+
+/** Admit local build tools before the public deployment asks for billing approval. */
+export async function checkTemplatePrerequisites(ctx: Context, provider: string, directory: string, manifest: Record<string, unknown>, selectedProfile: unknown): Promise<void> {
+  const extension = providerCliExtension(provider);
+  if (!extension?.checkProjectPrerequisites || manifest["template_id"] || manifest["image"]) return;
+  await extension.checkProjectPrerequisites(directory, selectBuildProfile(manifest, selectedProfile), ctx);
+}
 
 /** Validate a known local source before any credential prompt; remote sources are validated once after acquisition. */
 function readLaunchProject(provider: Provider, directory: string, params: Record<string, unknown>, catalogManifest?: Record<string, unknown>) {
@@ -55,14 +72,7 @@ function readLaunchProject(provider: Provider, directory: string, params: Record
   // Each build request uses a fresh correlation name; an uncertain prior request is never retried under the same name.
   const alias = `${aliasBase.slice(0, 42)}-${randomUUID().replaceAll("-", "").slice(0, 16)}`;
   const timeout = Number(params["timeout"] ?? 600);
-  const selectedProfile = params["build_profile"];
-  let buildProfile: ProjectTemplateOptions["build_profile"];
-  if (selectedProfile !== undefined && selectedProfile !== null) {
-    const profiles = sourceMetadata["build_profiles"];
-    const profile = isMapping(profiles) ? profiles[String(selectedProfile)] : undefined;
-    if (!isMapping(profile) || Object.keys(profile).some(key => !["dockerfile", "context"].includes(key)) || profile["context"] !== "." || typeof profile["dockerfile"] !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(profile["dockerfile"])) throw new ProviderConfigError("Select a declared root build profile with dockerfile and context: .");
-    buildProfile = { id: String(selectedProfile), dockerfile: profile["dockerfile"], context: "." };
-  }
+  const buildProfile = selectBuildProfile(sourceMetadata, params["build_profile"]);
   const options: ProjectTemplateOptions = { build_profile: buildProfile, alias, timeout, template: { name: template.name,
     cpu: template.cpu_count ?? 2, memory: template.memory_mb ?? 2048,
     start_cmd: sourceMetadata["start_cmd"] === undefined ? null : String(sourceMetadata["start_cmd"]),
@@ -142,9 +152,17 @@ export async function executeTemplateLaunch(
   const sandboxTimeout = sandboxTimeoutInput;
   let manager: ProviderTemplateManager | undefined;
   let prepared: PreparedTemplate;
+  let cleanupFailed = false;
+  const recoveryHint = (): string => journal.hasRecordedIntent ? ` Inspect recovery journal ${journal.file} before retrying.` : "";
+  const localStorageHint = `Check permissions and disk space under ${path.dirname(journal.file)}.`;
   try {
     await journal.initialize();
     creationOptions.onJournal?.(journal);
+  } catch {
+    await snapshot?.close().catch(() => undefined);
+    throw new ProviderConfigError("Could not save local recovery state. Template preparation did not start.", { suggestion: localStorageHint });
+  }
+  try {
     await snapshot?.verify();
     verifyProviderSnapshot();
     if (creationOptions.prepared) {
@@ -166,11 +184,11 @@ export async function executeTemplateLaunch(
     }
     }
   } catch (error) {
-    // A declined prompt has no recovery work unless preparation already recorded an intent.
-    if (error instanceof Abort && journal.entries.length === 0) throw error;
-    // This class contains fixed prerequisite text, never external stderr or credentials.
-    if (error instanceof DockerSetupError) throw error;
-    const recovery = ` Inspect recovery journal ${journal.id} before retrying any submitted operation.`;
+    const hasIntent = journal.hasRecordedIntent;
+    if (!hasIntent && (error instanceof Abort || error instanceof DockerSetupError || error instanceof ConfigurationGuidanceError || error instanceof ProviderTemplateHostError)) throw error;
+    const recovery = recoveryHint();
+    if (error instanceof ResourceIntentWriteError) throw new ProviderConfigError(error.message + recovery, { suggestion: localStorageHint });
+    if (error instanceof DockerSetupError) throw new DockerBuildError(error.message + recovery, { suggestion: error.suggestion });
     if (error instanceof DockerBuildFailure) throw new DockerBuildError(error.message + recovery, { suggestion: error.suggestion });
     // Other provider errors may contain arbitrary upstream output. Preserve the typed phase, not the raw message.
     if (error instanceof DockerBuildError) throw new DockerBuildError("Docker build failed." + recovery);
@@ -178,10 +196,20 @@ export async function executeTemplateLaunch(
     if (error instanceof ACRPushError) throw new ACRPushError("Image registry push failed." + recovery);
     if (error instanceof TemplateBuildTimeoutError) throw new TemplateBuildTimeoutError("Platform template preparation timed out." + recovery);
     if (error instanceof TemplateBuildError) throw new TemplateBuildError("Platform template preparation failed." + recovery);
-    const reason = error instanceof ProjectToolError ? error.message : "Template preparation failed.";
-    throw new ProviderConfigError(reason + recovery);
+    const reason = error instanceof ProjectToolError || error instanceof ProviderTemplateHostError
+      ? error.message
+      : hasIntent ? "Template preparation failed after a resource operation was recorded."
+        : "Template preparation failed before any build or registration was recorded.";
+    throw new ProviderConfigError(reason + recovery, {
+      suggestion: hasIntent || error instanceof ProjectToolError ? undefined
+        : "Check the template's build files and run 'abx config list' to review the Provider settings.",
+    });
   }
-  finally { await manager?.close?.(); await snapshot?.close(); }
+  finally {
+    try { await manager?.close?.(); } catch { cleanupFailed = true; }
+    try { await snapshot?.close(); } catch { cleanupFailed = true; }
+  }
+  if (cleanupFailed) throw new ProviderConfigError("Could not close template preparation resources." + recoveryHint());
   const reference = prepared?.reference;
   for (const command of [prepared?.startup_command, prepared?.ready_command]) if (command !== undefined && (typeof command !== "string" || !command.trim())) throw new ProviderConfigError("Provider preparation returned an invalid service command.");
   if (prepared?.metadata !== undefined && (typeof prepared.metadata !== "object" || prepared.metadata === null || Array.isArray(prepared.metadata) || Object.values(prepared.metadata).some(v => typeof v !== "string"))) throw new ProviderConfigError("Provider preparation returned invalid creation metadata.");
@@ -197,7 +225,10 @@ export async function executeTemplateLaunch(
   creationOptions.onTarget?.(effectiveTarget);
   verifyProviderSnapshot();
   if (creationOptions.prepareOnly) return { receipt: { kind: "SandboxTemplateBuild", version: 1, provider: provider.id, target: { ...effectiveTarget, provider_digest: providerContentIdentity }, prepared, manifest_digest: `sha256:${manifestDigest}`, journal_id: journal.id, build_profile: options.build_profile?.id ?? null }, creation: {} };
-  const createIntent = await journal.intent({ kind: "sandbox", correlation_key: options.alias, cleanup: "sandbox.delete" });
+  const createIntent = await journal.intent({ kind: "sandbox", correlation_key: options.alias, cleanup: "sandbox.delete" }).catch((error: unknown) => {
+    if (error instanceof ResourceIntentWriteError) throw new ProviderConfigError(error.message + recoveryHint(), { suggestion: localStorageHint });
+    throw error;
+  });
   let sandbox: Sandbox | undefined;
   let knownSandboxId: string | undefined;
   const recordCreated = async (id: string): Promise<void> => {

@@ -136,7 +136,9 @@ def main():
         application = root / "application"
         shutil.copytree(project, application)
         (application / "template.yaml").write_text(json.dumps({
-            "name": "application", "spec_version": 5,
+            "name": "application", "spec_version": 5, "generation": 2,
+            "base": {"image": "python:3.12-slim"},
+            "build": {"mode": "steps", "run": ["true"]},
             "provides": {"app": {"protocol": "agent-sandbox-server", "version": 2, "port": 9000,
                                   "operations": ["commands.list", "commands.run"]}},
             "env": {"ABX_SERVER_TOKEN": ""},

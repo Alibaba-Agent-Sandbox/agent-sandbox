@@ -11,7 +11,7 @@ import { Abort } from "../../src/cli/errors.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 import { useIso } from "../_support/iso.js";
 import { fakeTtySys, storagePatch, withConfig } from "../helpers/configSupport.js";
-import { loadLayeredConfig, collectSources } from "../../src/transport/config_layers.js";
+import { _setPaths, loadLayeredConfig, collectSources } from "../../src/transport/config_layers.js";
 import { CORE_KEYS } from "../../src/utils/config_keys.js";
 import { assertConfigFilesReadable, assertConfigValuesValid } from "../../src/utils/config_diagnostics.js";
 import { dotenvValues } from "../../src/utils/_dotenv.js";
@@ -141,8 +141,37 @@ describe("guided configuration persistence", () => {
       new CliRunner().invoke(cli, ["config", "init"], { input: "cn-shanghai\n" }));
     expect(result.exit_code, result.output).toBe(0);
     expect(fs.readFileSync(iso.toml, "utf8")).toContain('region = "cn-shanghai"');
-    expect(result.output).toContain("Saved values overridden");
-    expect(result.output).toContain("ALIBABA_CLOUD_REGION_ID");
+    expect(result.output).toContain("Saved region locally. Still using environment variable ALIBABA_CLOUD_REGION_ID");
+  });
+
+  it("identifies the project dotenv when it wins over a newly saved key", async () => {
+    fs.writeFileSync(".env", "ABX_SANDBOX_API_KEY=placeholder-project-key\n");
+    _setPaths({ envFiles: [".env", iso.env] });
+    const result = await withConfig({ sys: fakeTtySys(), _promptSecret: async () => "placeholder-new-key" }, () =>
+      new CliRunner().invoke(cli, ["config", "init"], { input: "\n" }));
+    expect(result.exit_code, result.output).toBe(0);
+    expect(result.output).toContain("Still using ABX_SANDBOX_API_KEY in .env");
+    expect(result.output).not.toMatch(/placeholder-(project|new)-key/);
+    expect(dotenvValues(iso.env).get("ABX_SANDBOX_API_KEY")).toBe("placeholder-new-key");
+    expect(loadLayeredConfig({ provider: "alicloud-express" }).sandbox_api_key).toBe("placeholder-project-key");
+  });
+
+  it.each(["project dotenv", "process environment"])("keeps temporary region and namespace from %s out of local files", async source => {
+    iso.writeToml('[transport]\nregion = "cn-shanghai"\n');
+    iso.writeEnv("ABX_SANDBOX_API_KEY=placeholder-api\nACR_NAMESPACE=placeholder-saved\n");
+    if (source === "project dotenv") {
+      fs.writeFileSync(".env", "ALIBABA_CLOUD_REGION_ID=cn-beijing\nACR_NAMESPACE=placeholder-temporary\n");
+      _setPaths({ envFiles: [".env", iso.env] });
+    } else {
+      iso.setenv("ALIBABA_CLOUD_REGION_ID", "cn-beijing");
+      iso.setenv("ACR_NAMESPACE", "placeholder-temporary");
+    }
+    const result = await withConfig({ sys: fakeTtySys(), _promptSecret: async label =>
+      label.includes("AccessKey") ? "placeholder-access" : "" }, () =>
+      new CliRunner().invoke(cli, ["config", "init", "--build"], { input: "\n\n" }));
+    expect(result.exit_code, result.output).toBe(0);
+    expect(fs.readFileSync(iso.toml, "utf8")).toContain('region = "cn-shanghai"');
+    expect(dotenvValues(iso.env).get("ACR_NAMESPACE")).toBe("placeholder-saved");
   });
 
   it("round trips spaces, hashes, quotes, backslashes and multiline values without damaging unrelated entries", () => {

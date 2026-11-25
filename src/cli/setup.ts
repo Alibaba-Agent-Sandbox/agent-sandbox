@@ -35,16 +35,13 @@ export async function chooseTemplate(ctx: Context): Promise<string> {
 }
 
 /** Offer a direct continuation after configuration, with an explicit finish option. */
-export async function continueSetup(ctx: Context): Promise<void> {
+export async function continueSetup(ctx: Context, preferFinish = false): Promise<void> {
   if (!canPrompt(ctx)) return;
   const next = await select("What would you like to do next?", {
     choices: [{ name: "Find and deploy a template", value: "launch" }, { name: "Finish setup", value: "" }],
-    default: "launch", err: true,
+    default: preferFinish ? "" : "launch", err: true,
   });
-  if (next !== "launch") {
-    getOutput(ctx).info("Ready. Run 'abx deploy TEMPLATE' to find and launch a template; missing build settings can be filled in the same command.");
-    return;
-  }
+  if (next !== "launch") return;
   const { deploy_shortcut } = await import("./commands/deploy.js");
   await ctx.invoke(deploy_shortcut, { source: await chooseTemplate(ctx) });
 }

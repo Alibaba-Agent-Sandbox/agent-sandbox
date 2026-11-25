@@ -1,7 +1,7 @@
 /** UI metadata for optional provider configuration workflows. Values and prompts are backend-owned data. */
 export interface ConfigPrompt {
   key: string; env?: string; prompt: string; hidden?: boolean;
-  current?: boolean; default?: string; result: "stored" | "set";
+  current?: boolean; default?: string;
 }
 export interface ProviderConfigUi {
   fieldHelp?: Readonly<Record<string, string>>;
@@ -10,6 +10,7 @@ export interface ProviderConfigUi {
     key: string;
     alternatives: readonly (readonly string[])[];
     help: string;
+    alternativeLabel?: string;
     resolve(config: import("../transport/config_layers.js").LayeredConfig, options: { confirm(message: string): Promise<boolean> }): Promise<string>;
   };
   allowed: readonly (readonly [string, string])[];

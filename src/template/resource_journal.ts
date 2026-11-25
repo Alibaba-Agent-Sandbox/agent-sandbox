@@ -10,10 +10,18 @@ export interface ResourceJournalCallbacks {
   created(intentId: string, id: string): Promise<void>;
 }
 interface Entry extends ResourceIntent { intent_id: string; state: "intent" | "created" | "uncertain" | "deleted" | "retained"; id?: string }
+/** A resource operation could not be recorded before submission. */
+export class ResourceIntentWriteError extends ProviderConfigError {
+  constructor() { super("Could not save the pending resource operation."); }
+}
+
 /** Persist intent before requests; unresolved intents remain uncertain and are never blindly retried. */
 export class ResourceJournal implements ResourceJournalCallbacks {
   readonly id = randomUUID();
   readonly entries: Entry[] = [];
+  private acknowledgedIntent = false;
+  /** True after the journal has allowed at least one operation to proceed. */
+  get hasRecordedIntent(): boolean { return this.acknowledgedIntent; }
   readonly file: string;
   constructor(readonly provider: string, readonly plan_digest: string) {
     this.file = path.join(paths.abxDir, "resource-journal", `${this.id}.json`);
@@ -54,7 +62,10 @@ export class ResourceJournal implements ResourceJournalCallbacks {
   async intent(input: ResourceIntent): Promise<string> {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._:/@-]{0,1023}$/.test(input.correlation_key)) throw new ProviderConfigError("Resource correlation key must not contain credentials or endpoint URLs.");
     const entry: Entry = { ...input, intent_id: randomUUID(), state: "intent" };
-    this.entries.push(entry); await this.save(); return entry.intent_id;
+    this.entries.push(entry);
+    try { await this.save(); } catch { throw new ResourceIntentWriteError(); }
+    this.acknowledgedIntent = true;
+    return entry.intent_id;
   }
   async created(intentId: string, id: string): Promise<void> {
     const entry = this.entries.find(value => value.intent_id === intentId);
