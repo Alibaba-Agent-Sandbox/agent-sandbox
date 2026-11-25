@@ -83,3 +83,13 @@ passed. A final stable-source isolated-network run is recorded separately when c
 
 Final scoped run after duplicate-handle, native-client and protocol corrections:
 155 tests passed across the cleanup, Sandbox API, ownership-race, lifecycle and HTTP suites.
+
+## Stable isolated-network run
+
+The final source run under an isolated user/network namespace completed with 4,590
+passed, 63 skipped and two failures. All MCP and Sandbox API tests passed, including
+the earlier raw-header-order cases. The remaining failures were the older missing-token
+fixture corrected in PR 277 and a DNS-specific transport expectation: without an
+external resolver the isolated namespace returned temporary DNS failure instead of
+NXDOMAIN. Neither result was converted into a passing assertion. The original shared-host
+failures remain above. The focused final run and real cloud journey remain separate scopes.
