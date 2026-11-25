@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Remove manual `recover --receipt` import; named recovery uses the tool's saved ownership information. / 删除手动 `recover --receipt` 导入入口；具名恢复使用工具内部保存的归属信息。
 
+### Documentation
+
+- Correct current command examples and explicit credential-preparation consent; use automatic deployment without passing internal build files. / 修正当前命令示例与显式凭据准备授权，使用自动部署流程，无需传递内部构建文件。
+
 ## [0.6.0-alpha.1] - 2026-11-25
 
 ### Fixed

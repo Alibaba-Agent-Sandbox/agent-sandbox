@@ -7,7 +7,7 @@
 | 使用场景 | 凭证和权限 |
 |---|---|
 | 用已有 Key 创建、连接、列出、释放沙箱，执行命令、文件读写、代码解释器和标准 CLI | 已有沙箱 API Key、正确端点/域名和可用模板即可；不需要额外提供 AK/SK。仍受 Key 的 Team、策略、有效期、IP 规则及运行时限制 |
-| 仅有 AK/SK，首次准备工具专用 Key | `sandbox:CreateApiKey`，作用于目标 Team 的 `apikeys/*`；继续运行沙箱还需下行的 `DescribeApiKey`；必须确认，或显式使用 `--ci` |
+| 仅有 AK/SK，首次准备工具专用 Key | `sandbox:CreateApiKey`，作用于目标 Team 的 `apikeys/*`；继续运行沙箱还需下行的 `DescribeApiKey`；必须确认，或显式使用 `provider run api-key.prepare --yes` |
 | 后续复用已管理 Key | `sandbox:DescribeApiKey`，同一 Team 的 `apikeys/*`；只读检查，不重复创建 |
 | 已管理 Key 的有效期不足一天，继续使用 | 确认后执行 `sandbox:UpdateApiKey`，同一 Team 的 `apikeys/*`；延长同一把 Key，不重置明文 |
 | `config init`、帮助、配置查看、Provider 命令发现 | 无需云权限，不会创建 Key。引导完成只说明配置已填写，不代表权限已通过验证 |
@@ -39,13 +39,12 @@ abx config set access_key_secret  # 隐藏输入
 abx config set region cn-hangzhou
 abx config set team_id <TEAM_ID>  # 可选；省略使用接口定义的默认 Team
 abx list                 # 无有效管理 Key 时，在终端请求确认
-# CI 中明确授权本次凭据准备；仍受上述 RAM 权限约束：
-abx --ci sandbox list --format json
 # 单独准备，--yes 是对这次显式写操作的确认：
 abx --provider alicloud-express provider run api-key.prepare --yes
+abx --ci list            # 准备完成后的机器可读查询
 ```
 
-普通管道、`CI=true`、JSON 输出和其他操作的 `--yes` 不等于允许隐式创建凭据。SDK、MCP 和本机引擎不会弹确认框，也不会因为持有 AK/SK 就静默创建；先通过上述 CLI 显式准备，或使用 Python 的 `prepare_api_key(confirm=True)`。`api-key.resolve` 只读解析；`api-key.prepare` 是需要确认的写操作。`--ci` 不会自动确认其他 Provider 的任意写操作。
+`--ci`、普通管道、`CI=true`、JSON 输出和其他操作的 `--yes` 不等于允许创建凭据。SDK、MCP 和本机引擎不会弹确认框，也不会因为持有 AK/SK 就静默创建；先通过上述 CLI 显式准备，或使用 Python 的 `prepare_api_key(confirm=True)`。`api-key.resolve` 只读解析；`api-key.prepare` 是需要确认的写操作。`--ci` 仅选择非交互机器可读输出，不会自动确认写操作。
 
 ## 其他功能按需增加权限
 
@@ -56,7 +55,7 @@ abx --provider alicloud-express provider run api-key.prepare --yes
 | `team.list`；原生模板流程未显式指定 Team 时的自动查询 | `sandbox:ListTeams` | `acs:sandbox:<region>:<account-id>:teams/*`，不是单个 Team ARN |
 | `team.get` / `team.create` / `team.update` / `team.delete` | 分别为 `sandbox:GetTeam` / `CreateTeam` / `UpdateTeam` / `DeleteTeam`（每项都带 `sandbox:` 前缀） | 查询/更新/删除用 `acs:sandbox:<region>:<account-id>:teams/<team-id>`；创建用 `acs:sandbox:<region>:<account-id>:teams/*`；变更资源组检查源/目标组 |
 | `provider run template.list` / `provider run template.get` | 分别为 `sandbox:ListTemplates` / `sandbox:GetTemplate` | 目标 Team 的 `templates/*` 或具体 Template；没有指定 Team 时另需 `ListTeams` |
-| `template from-image`、平台步骤构建、`template deploy` 的注册和状态等待 | `sandbox:CreateTemplate`、`sandbox:GetTemplate`；未指定 Team 时另需 `sandbox:ListTeams` | 目标 Team 的 `templates/*`；查询可限具体 Template |
+| `provider run template.create`；注册模板的源码准备流程 | `sandbox:CreateTemplate`、`sandbox:GetTemplate`；未指定 Team 时另需 `sandbox:ListTeams` | 目标 Team 的 `templates/*`；查询可限具体 Template |
 | 原生模板更新／删除 | `sandbox:UpdateTemplate` / `sandbox:DeleteTemplate` | 对应 Template ARN；构建/注册权限不包含删除权限 |
 | `api-key.list` / `api-key.get` | `sandbox:ListApiKeys` / `sandbox:DescribeApiKey` | 目标 Team 的 `apikeys/*` |
 | `api-key.create` / `api-key.update` | `sandbox:CreateApiKey` / `sandbox:UpdateApiKey` | 同上；更新策略字段时官方还要求 `CreateApiKey` |

@@ -7,7 +7,7 @@ This guide applies to `alicloud-express`. Grant permissions to the RAM identity 
 | Task | Credentials and permissions |
 |---|---|
 | Standard sandbox create/connect/list/kill, commands, files and interpreter | Existing sandbox API key, endpoint/domain and a suitable template. No caller AK/SK is needed. Key policy, Team, expiry, IP rules and runtime support still apply |
-| First managed-key preparation from AK/SK | `sandbox:CreateApiKey` on the target Team's `apikeys/*`; continuing to runtime also needs the Describe action below; explicit confirmation or `--ci` |
+| First managed-key preparation from AK/SK | `sandbox:CreateApiKey` on the target Team's `apikeys/*`; continuing to runtime also needs the Describe action below; explicit confirmation or `provider run api-key.prepare --yes` |
 | Reuse a managed key | `sandbox:DescribeApiKey` on the same Team's `apikeys/*`; no credential creation |
 | Continue when the managed key has less than one day left | Confirm `sandbox:UpdateApiKey` on the same Team's `apikeys/*`; extend the existing key without resetting its secret |
 | Help, config initialization/display and provider command discovery | No cloud permissions and no key creation. Complete configuration does not certify live permissions |
@@ -39,11 +39,11 @@ abx config set access_key_secret  # masked input
 abx config set region cn-hangzhou
 abx config set team_id <TEAM_ID>  # optional; otherwise the API's default Team
 abx list                 # asks for confirmation if preparation is needed
-abx --ci sandbox list --format json  # explicit automation consent
 abx --provider alicloud-express provider run api-key.prepare --yes  # explicit preparation
+abx --ci list             # machine-readable query after preparation
 ```
 
-A pipe, `CI=true`, JSON output or another operation's `--yes` is not implicit credential-creation consent. SDKs, MCP and the local engine never display interactive prompts or silently create a key. Prepare explicitly using the CLI above or Python `prepare_api_key(confirm=True)`. `api-key.resolve` is read-only; `api-key.prepare` is a confirmed write. `--ci` does not auto-confirm arbitrary writes from other providers.
+`--ci`, a pipe, `CI=true`, JSON output or another operation's `--yes` is not credential-creation consent. SDKs, MCP and the local engine never display interactive prompts or silently create a key. Prepare explicitly using the CLI above or Python `prepare_api_key(confirm=True)`. `api-key.resolve` is read-only; `api-key.prepare` is a confirmed write. `--ci` selects noninteractive machine-readable output and never auto-confirms writes.
 
 ## Add permissions for the features you use
 
@@ -54,7 +54,7 @@ These actions apply to native management APIs. Do not require native Sandbox RAM
 | `team.list`; native template flow without an explicit Team | `sandbox:ListTeams` | `acs:sandbox:<region>:<account-id>:teams/*`, not one Team ARN |
 | `team.get/create/update/delete` | `sandbox:GetTeam`, `sandbox:CreateTeam`, `sandbox:UpdateTeam`, `sandbox:DeleteTeam`, respectively | Get/update/delete: `acs:sandbox:<region>:<account-id>:teams/<team-id>`; create: `acs:sandbox:<region>:<account-id>:teams/*`; resource-group changes check source/destination groups |
 | `provider run template.list`, `provider run template.get` | `sandbox:ListTemplates`, `sandbox:GetTemplate` | Target Team's `templates/*` or specific Template; automatic Team lookup additionally needs `ListTeams` |
-| `template from-image`, platform-step build, registration/status polling in `template deploy` | `sandbox:CreateTemplate`, `sandbox:GetTemplate`; `sandbox:ListTeams` when Team is not explicit | Target Team's `templates/*`; lookup may use a specific Template |
+| `provider run template.create`; source preparation that registers a template | `sandbox:CreateTemplate`, `sandbox:GetTemplate`; `sandbox:ListTeams` when Team is not explicit | Target Team's `templates/*`; lookup may use a specific Template |
 | Native template update/delete | `sandbox:UpdateTemplate`, `sandbox:DeleteTemplate` | Target Template ARN; registration does not grant deletion |
 | `api-key.list/get` | `sandbox:ListApiKeys`, `sandbox:DescribeApiKey` | Target Team's `apikeys/*` |
 | `api-key.create/update` | `sandbox:CreateApiKey`, `sandbox:UpdateApiKey` | Same; policy-field updates additionally require `CreateApiKey` |

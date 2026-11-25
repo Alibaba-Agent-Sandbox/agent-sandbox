@@ -35,3 +35,17 @@ binary checks, publish as prerelease/non-latest through existing workflows, then
 independently verify public npm installation and native checksum/download.
 
 No cloud resource was created by this release preparation.
+
+## Current command and consent documentation audit
+
+A targeted scan found stale current authentication/permissions examples using
+`sandbox list` and treating `--ci` as managed-key consent. Both languages now use
+explicit Provider `api-key.prepare --yes` followed by `--ci list`; current help
+acceptance was checked without calling a management API. Historical Provider design
+records remain historical and point to current command/reference guides. Retired
+template command labels in the current permissions table were corrected.
+
+Current deployment guides no longer instruct users to hand off build/receipt files.
+They use the already-supported automatic `deploy SOURCE --name` path. This is a
+user-guide correction, not a claim that the older runtime build command became
+pure or that pending native resource migration has shipped.
