@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Pin generated Server SDK and MCP client requirements to the verified public 0.5.0a1 pair. / 生成的 Server SDK 与 MCP 客户端依赖固定为已验证公开发布的配套 0.5.0a1 版本。
+
 - Keep failed Sandbox deletion clients usable for retry, retry only local cleanup after an acknowledged deletion, and reject unsupported MCP HTTP protocol headers before session mutation. / 沙箱删除失败后保留可重试客户端，云端确认删除后仅重试本地清理，并在会话变更前拒绝不支持的 MCP HTTP 协议版本。
 - Preserve MCP sessions and failed sandbox handles when cleanup fails; HTTP clients can retry the same DELETE, and expired-session retries are paced by the session TTL. / MCP 清理失败时保留会话与失败句柄，HTTP 客户端可重试相同 DELETE，过期会话按 Session TTL 间隔重试清理。
 - Reuse verified template application authentication without copying temporary secrets, reject conflicting request inputs, and show client support separately from service availability in offline help. / 复用已验证的模板应用认证而不复制临时密钥，拒绝冲突的请求输入，并在离线帮助中区分客户端支持与服务实际可用性。
