@@ -211,3 +211,36 @@ A reachable generation-update suggestion now directs publication to deploy rathe
 than implying that local build publishes a template. Five focused suites passed
 187 tests after these changes, including the real CLI help snapshots. Provider SDK
 management flags with their own cloud behavior were retained.
+
+## Post-correction native FC publication check
+
+At 1ae2d5229e539bbb6e6781c46a4dfb0fc972b00a, the independently reviewed readiness
+change was tested with one new, uniquely named function under the same bounded
+plan. This was a regression check of the corrected implementation, not a repeat
+creation to recover the earlier missing error. No other cloud resources were
+created. The existing execution role remained borrowed.
+
+The actual CLI preview succeeded. Deploy exited 0 with recorded status deployed;
+status exited 0 with observed status unknown. Native GetFunction omitted state and
+lastUpdateStatus, and confirmed the exact function identity and ownership tag.
+These results agree with the publication/readiness distinction; they do not assert
+Active/Successful or an available business endpoint.
+
+The first native Invoke probe used a string stream chunk where the official SDK
+required bytes and failed locally before a response. The probe was corrected to
+use a Buffer and reused the same owned function. That invocation also failed; the
+retained probe result identifies NATIVE_INVOKE_FAILURE but does not retain a usable
+native response or establish its cause. No nonce response or business-code success
+is claimed, and no third function was created.
+
+The normal CLI delete exited 0 with status deleted and one JSON result. An
+independent exact GetFunction returned supported typed absence. Cleanup reported
+no unresolved owned identity. Both FC checks and the earlier static Template check
+have confirmed cleanup. Private source/configuration, role references, state and
+component-cache copies were removed after retaining sanitized summaries.
+
+The latest private npm artifact was packed and freshly installed, then passed the
+installed-artifact checker, including authentication-menu cancellation and isolated
+command guidance. Its npm shasum was 4375b5df2dafd90d6e0240a29bcd5c422a5c9fb2. This
+is an artifact built from candidate source; it is not a public release. Complete
+CI for the final reconciled candidate remains required.
