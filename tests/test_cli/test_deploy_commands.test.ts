@@ -174,3 +174,20 @@ it("auto-binds only the verified service token source without storing its value 
   expect(JSON.stringify(readDeployment("bound-app"))).not.toContain("deployment-private-token");
   expect(result.output).not.toContain("deployment-private-token");
 });
+
+it("auto-binds only the verified service token source without storing its value in the deployment", async () => {
+  const source=project();
+  for (const [name,content] of renderScaffold("python","example","alicloud-express")) fs.writeFileSync(path.join(source,name),content);
+  const launch=fakeLaunch();
+  launch.mockImplementationOnce(async (_ctx,_params,options={}) => {
+    await options.onCreated?.("sandbox-test");
+    options.onVerifiedApplication?.({port:9000,token:"deployment-private-token"});
+    return {receipt:{sandbox_id:"sandbox-test",provider:"alicloud-express",services:{}},creation:{}};
+  });
+  const result=await new CliRunner().invoke(cli,["--json","deploy",source,"--name","bound-app","--yes"],{env:{ABX_SANDBOX_API_KEY:"test-key",ABX_REGION:"cn-hangzhou",ABX_SERVER_TOKEN:"deployment-private-token"}});
+  expect(result.exit_code,result.output).toBe(0);
+  expect(readApiBinding("bound-app").credentials).toEqual({"app.token":"config:server_token"});
+  expect(readApiBinding("bound-app").credentialFingerprints).toEqual({"app.token":credentialFingerprint("deployment-private-token")});
+  expect(JSON.stringify(readDeployment("bound-app"))).not.toContain("deployment-private-token");
+  expect(result.output).not.toContain("deployment-private-token");
+});

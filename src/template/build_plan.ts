@@ -58,7 +58,7 @@ export function resolveBuildPlan(
 
   if (selected === "dockerfile") {
     if (!dockerfile) {
-      throw new BuildModeError("Build mode dockerfile needs a Dockerfile. Pass --build steps to use template.yaml build steps.");
+      throw new BuildModeError("Build mode dockerfile needs a Dockerfile. Set build.mode: steps in a source v5 template.yaml to use its native steps.");
     }
     return { kind: "dockerfile", dockerfile, ignoredSteps: hasSteps };
   }

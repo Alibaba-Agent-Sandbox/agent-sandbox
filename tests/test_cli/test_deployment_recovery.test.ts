@@ -56,9 +56,10 @@ await withApplicationLock(${JSON.stringify(path.join(home,"deployment-locks"))},
       const exited=once(child,"exit");child.kill("SIGINT");await exited;
       const directory=path.join(home,"deployment-locks");expect(fs.existsSync(lock(directory,"interrupted"))).toBe(true);
       const launch=vi.spyOn(deploymentSeams,"launch");const result=await new CliRunner().invoke(cli,["--json","recover","interrupted"]);
-      expect(result.exit_code,result.output).toBe(0);expect(JSON.parse(result.stdout).resources).toEqual([expect.objectContaining({state:"intent",correlation_key:"interrupted-create"})]);
+      expect(result.exit_code,result.output).toBe(0);expect(JSON.parse(result.stdout).resources).toEqual([{kind:"sandbox",state:"intent"}]);
+      expect(result.stdout).not.toContain("interrupted-create");
       expect(launch).not.toHaveBeenCalled();expect(fs.existsSync(lock(directory,"interrupted"))).toBe(false);
-      const value=readDeployment("interrupted")!;expect(JSON.parse(fs.readFileSync(value.journal!,"utf8")).entries[0].state).toBe("intent");
+      const value=readDeployment("interrupted")!;expect(JSON.parse(fs.readFileSync(value.journal!,"utf8")).entries[0]).toMatchObject({state:"intent",correlation_key:"interrupted-create"});
     } finally {if(child.exitCode===null)child.kill("SIGKILL");}
   },15000);
   it("keeps a lock left by another hostname even when the PID is absent locally",()=>{

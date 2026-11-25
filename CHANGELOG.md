@@ -11,6 +11,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Separate pure local `template build`, resource `deploy`, and dynamic `create`; remove public build-file handoffs and `deploy --template-id`. Source v5 deployment retains its existing service startup behavior. / 分离纯本地构建、资源部署与动态实例创建；移除公开构建文件交接及 `deploy --template-id`。v5 源码部署保留现有服务启动行为。
 - Add a resource v1 candidate for Express templates/volumes and native FC components, with named ownership, observed readiness and explicit create selection. This does not automatically bootstrap a business API. / 新增资源 v1 候选实现，覆盖极速版模板、卷和原生 FC 组件，提供按名称管理、实际就绪查询及显式实例创建；不会自动启动业务 API。
 
+### Added
+
+- Generate unambiguous scalar API options from OpenAPI, accept piped JSON with `--body -`, and save response bytes with `--output FILE` without overwriting existing files. / 从 OpenAPI 生成无歧义的标量参数选项，支持 `--body -` 读取管道 JSON，以及通过 `--output FILE` 保存原始响应字节且不覆盖已有文件。
+
+### Fixed
+
+- Reuse verified template application authentication without copying temporary secrets, reject conflicting request inputs, and show client support separately from service availability in offline help. / 复用已验证的模板应用认证而不复制临时密钥，拒绝冲突的请求输入，并在离线帮助中区分客户端支持与服务实际可用性。
+- Distinguish remote Sandbox state from saved deployment state and return consistent bounded execution JSON across Providers, including nonzero exits and unconfirmed completion. / 区分沙箱远端状态与本机部署记录；统一 Provider 执行 JSON 的大小限制、非零退出与未确认完成语义。
+- Keep deployment recovery records internal, use resource identities and named recovery instructions, and correct retired commands and configuration examples in both language guides. / 部署恢复记录保留在内部，对外使用资源身份与具名恢复指引，并修正双语指南中过时的命令与配置示例。
+
+### Removed
+
+- Remove manual `recover --receipt` import; named recovery uses the tool's saved ownership information. / 删除手动 `recover --receipt` 导入入口；具名恢复使用工具内部保存的归属信息。
+
 ## [0.6.0-alpha.1] - 2026-11-25
 
 ### Fixed

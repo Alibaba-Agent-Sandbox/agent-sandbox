@@ -13,7 +13,7 @@ abx delete work --yes
 
 Deploy returns after creating a named instance and does not automatically open a terminal. `connect` attaches a terminal and leaves the borrowed instance running on exit. Put local exec options before the target; arguments after it belong to the remote program. Remote output and exit status are preserved. Delete only owned resources, using `--yes` in automation.
 
-Express retains its documented `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN` settings as well as project `ABX_SANDBOX_*` configuration. It uses the configured Alibaba identity without E2B browser login or Team administration. Never send Express credentials to another Provider.
+Configure Express using `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL` and `ABX_SANDBOX_DOMAIN`, or their `abx config` keys. The current CLI does not read `E2B_API_KEY`, `E2B_API_URL` or `E2B_DOMAIN` as aliases. A Python compatibility client or MCP server may have a different documented mapping. Express uses the configured Alibaba identity without E2B browser login or Team administration. Never send Express credentials to another Provider.
 
 Use template list/info for the catalog, init/build/publish for source, and deploy for running instances. Native cloud-template management belongs to `provider run template.list/get/create/delete`; inspect each operation’s help and permissions. A public catalog list is not a cloud-account inventory.
 

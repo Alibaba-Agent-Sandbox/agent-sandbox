@@ -59,7 +59,7 @@ assert.match(rootHelp.split("Command groups:\n")[1]?.split("\n\n")[0] ?? "", /^ 
 assert.match(rootHelp, /https:\/\/registry\.agent-sandbox\.cn\/templates\//);
 for (const name of ["deploy", "list", "status", "logs", "delete", "recover", "sandbox", "exec", "connect", "upload", "download", "capabilities", "files", "process", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
 assert.doesNotMatch(rootHelp, /^ {2}(create|run|kill|info|registry-command)\s/m);
-assert.match(run(["deploy", "--help"]), /--template-id/);
+assert.match(run(["create", "--help"]), /--template/);
 assert.match(run(["exec", "--help"]), /Everything after the sandbox ID/);
 const sandboxHelp = run(["sandbox", "--help"]);
 assert.match(sandboxHelp, /abx sandbox TARGET \[OPERATION\]/);
@@ -144,7 +144,7 @@ try {
   assert.match(unboundHelp.stdout + unboundHelp.stderr, /No API contract is bound/);
   assert.doesNotMatch(unboundHelp.stdout + unboundHelp.stderr, /Missing configuration|Choose an authentication method|input hidden/i,
     "Target help must resolve local contracts before any credential setup or Provider request");
-  const missingKey = invokeProject(["deploy", "--template-id", "base", "--yes"]);
+  const missingKey = invokeProject(["create", "--template", "base", "--yes"]);
   assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
   assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);
   assert.match(missingKey.stdout + missingKey.stderr, /sandbox_api_key/);
@@ -169,11 +169,11 @@ try {
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /No such option/i);
   assert.doesNotMatch(invalid.stdout + invalid.stderr, /Configuration scope|Missing configuration/i, "Syntax errors precede credential setup");
-  const nativeJson = invokeProject(["--json", "deploy", "--template-id", "base", "--yes"]);
+  const nativeJson = invokeProject(["--json", "create", "--template", "base", "--yes"]);
   assert.equal(nativeJson.status, 1);
   assert.match(JSON.parse(nativeJson.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(nativeJson.stdout + nativeJson.stderr, /Configuration scope|input hidden/i);
-  const ciCreate = invokeProject(["--ci", "deploy", "--template-id", "base", "--yes"], { CI: "1" });
+  const ciCreate = invokeProject(["--ci", "create", "--template", "base", "--yes"], { CI: "1" });
   assert.equal(ciCreate.status, 1);
   assert.match(JSON.parse(ciCreate.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(ciCreate.stdout + ciCreate.stderr, /Configuration scope|input hidden/i);

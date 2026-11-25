@@ -70,7 +70,7 @@ export function acrNamespacePassedOnCli(): boolean {
     return explicitAcrNamespaceArgv();
 }
 
-const IGNORED_PLATFORM_STEPS = "A Dockerfile is selected, so template.yaml build steps were not sent. Pass --build steps to register those steps instead.";
+const IGNORED_PLATFORM_STEPS = "A Dockerfile is selected, so template.yaml build steps were not sent. Set build.mode: steps in a source v5 template.yaml to deploy those steps instead.";
 
 const STEPS_WITH_ACR = "--acr-namespace cannot be used with platform build steps.";
 

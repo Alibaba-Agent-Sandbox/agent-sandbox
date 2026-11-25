@@ -2,6 +2,8 @@
 
 - [Native resource workflow candidate](notes/proposed/architecture/2026-11-25-native-resource-workflow.md) · [verification and remaining gates](evidence/verify/2026-11-25-native-resource-workflow.md).
 
+- [Sandbox user journey corrections](notes/implemented/feature/2026-11-25-whole-journey-corrections.md) · [integrated verification](evidence/verify/2026-11-25-whole-journey-corrections.md). Request/authentication, observed state and public recovery results; this is not the native YAML migration or a new release.
+
 ## Public CLI 0.6.0-alpha.1 — 2026-11-25
 
 [Public delivery and independent consumption](evidence/verify/2026-11-25-cli-060-alpha1-public-release.md)
