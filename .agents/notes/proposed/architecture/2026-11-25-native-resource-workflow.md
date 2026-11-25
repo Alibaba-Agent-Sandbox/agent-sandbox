@@ -19,8 +19,10 @@ Source v5 deploy still performs its supported application startup. This is a
 temporary migration boundary, not a claimed final unified product. Plain v5
 Dockerfile build is local-only; v5 provider-specific deployment preparation may
 still rebuild/stage runtime dependencies rather than reuse the v1 image cache.
-Managed application builds stay automatic inside deploy. Source v1 remote catalog
-acquisition, catalog-wide replacement, full application bootstrap and automatic
+Managed application builds stay automatic inside deploy. Source acquisition was
+rechecked after the first review: the current Registry client already downloads
+source independently of v5 validation. Resource v1 follows the same strict reader
+after download. Catalog-wide replacement, full application bootstrap and automatic
 API authentication binding have not been delivered by this candidate.
 
 ## Implementation boundaries

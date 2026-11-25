@@ -127,7 +127,7 @@ describe("TestCreate", () => {
 
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
-    expect(data["ID"]).toBe("sbx-cli-test-001");
+    expect(data["sandbox_id"]).toBe("sbx-cli-test-001");
   });
 
   it("test_create_with_envs", async () => {
@@ -155,7 +155,7 @@ describe("TestCreate", () => {
     const result = await runner().invoke(cli, ["create", "--template", "base", "-m", "owner=test", "-m", "env=dev"]);
 
     expect(result.exit_code).toBe(0);
-    expect((create.mock.calls[0]![0] as Record<string, unknown>)["metadata"]).toEqual({ owner: "test", env: "dev" });
+    expect((create.mock.calls[0]![0] as Record<string, unknown>)["metadata"]).toMatchObject({ owner: "test", env: "dev", "abx.launch": expect.any(String), "abx.intent": expect.any(String) });
   });
 
   it("test_create_enforces_timeout_floor_when_default", async () => {

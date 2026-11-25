@@ -45,7 +45,7 @@ const registry = errors as unknown as Record<string, new (...args: unknown[]) =>
 const aiRetry = 'The AI generation step failed or produced incomplete files. Inspect the generated workspace (path shown above), then retry \'abx template init --prompt "<description>"\'. For Express, fall back to \'abx create --template <name> --name my-sandbox\'; for other providers, check \'abx create --help\'.';
 const currentSuggestions: Record<string, string> = {
   InvalidCredentialsError: "Check the selected provider authentication configuration (abx provider info).",
-  QwenCodeNotInstalledError: "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx create --help'). For Express, bypass AI generation with 'abx create --template <name> --name my-sandbox'; for other providers, check 'abx create --help'.",
+  QwenCodeNotInstalledError: "Install Qwen Code, then retry. Interactive install prompt: run the command again in a terminal. Or install manually via the official installer (see 'abx template init --help'). For Express, bypass AI generation with 'abx create --template <name> --name my-sandbox'; for other providers, check 'abx create --help'.",
   AICodegenError: aiRetry,
   QwenCodeTimeoutError: aiRetry,
   QwenCodeStartupError: aiRetry,

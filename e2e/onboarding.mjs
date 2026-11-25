@@ -121,7 +121,6 @@ def main():
 
         secret_fixture = "hidden-cancel-fixture-do-not-save"
         status, output, _ = invoke(["create", "--template", "base", "--name", "native-key-cancel"], [
-            ("Deploy native-key-cancel?", b"y\r"),
             ("Choose an authentication method", b"1\r"),
             ("sandbox_api_key (input hidden)", secret_fixture.encode() + b"\x03"),
         ])
@@ -131,7 +130,7 @@ def main():
                 assert secret_fixture.encode() not in path.read_bytes(), "Cancelling credential input must not persist a secret"
         assert requests == [], "Cancelling native credentials must not submit a request"
         assert not (home / ".abx/resource-journal").exists()
-        print("PASS: native deployment confirmation preserves hidden credential input and Ctrl-C stops before requests or secret persistence")
+        print("PASS: native creation preserves hidden credential input and Ctrl-C stops before requests or secret persistence")
 
         application = root / "application"
         shutil.copytree(project, application)
@@ -198,13 +197,9 @@ def main():
                 assert "sandbox_api_key" in json.loads(output)["message"], "Machine mode must emit exactly one final JSON result"
         print("PASS: real TTY plus JSON, CI, quiet and -y never asks for configuration")
 
-        status, _, _ = invoke(["delete", "auto-plain", "--yes"], [])
-        assert status == 0
         status, terminal, result = invoke(["create", "--template", "base", "--name", "auto-plain", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "Missing configuration" in terminal + result
         assert "Configuration scope" not in terminal + result and "input hidden" not in terminal + result, "Piped stdout must not enable credential input"
-        status, _, _ = invoke(["delete", "auto-json", "--yes"], [])
-        assert status == 0
         status, terminal, result = invoke(["--json", "create", "--template", "base", "--name", "auto-json", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "sandbox_api_key" in json.loads(result)["message"]
         assert "Configuration scope" not in terminal + result

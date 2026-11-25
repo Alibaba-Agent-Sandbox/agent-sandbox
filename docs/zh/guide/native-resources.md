@@ -26,6 +26,8 @@ sandbox:
 
 `vars` 可选，键名由作者定义。本地使用不依赖 `registry.yaml`；目录表单和 API 声明属于发布元数据。`buildConfig` 选择 Dockerfile/context 或原生 Steps。Dockerfile 未配置 context 时，默认使用 Dockerfile 所在目录。`template.image` 在 Dockerfile 模式是推送目标，在 Steps/已有镜像模式是输入镜像；原生 Steps 不会把完成后的 OCI 镜像导出到该地址。
 
+资源项目也可以通过目录源码名称或 `OWNER/REPO//DIRECTORY@COMMIT` 获取。需要可重复的源码时使用完整 commit SHA：分支或默认引用会复用已有本机源码缓存，不保证每次拉取远端最新内容。`template init --from REF` 只复制源码供修改；获取之后的 build、deploy 仍会校验资源契约。
+
 ```bash
 abx template build .
 abx deploy . --name tools --plan

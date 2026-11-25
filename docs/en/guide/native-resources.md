@@ -26,6 +26,8 @@ sandbox:
 
 `vars` is optional and its keys are author-defined. Local resource use does not require `registry.yaml`; catalog forms and API declarations are separate publication metadata. `buildConfig` selects Dockerfile/context or native Steps. For Dockerfile, context defaults to the Dockerfile directory. `template.image` is the Docker publication destination, or the source image for native Steps/existing-image preparation. Native Steps do not export a finished OCI image to that address.
 
+A resource project can also be loaded from a catalog source name or `OWNER/REPO//DIRECTORY@COMMIT`. Use a full commit SHA for repeatable source selection: branch/default references reuse their existing local source cache and do not promise the latest remote contents. `template init --from REF` copies source for editing; build and deploy still validate the resource contract after acquisition.
+
 ```bash
 abx template build .
 abx deploy . --name tools --plan

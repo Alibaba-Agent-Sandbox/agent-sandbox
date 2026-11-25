@@ -26,6 +26,8 @@ import * as codingAgent from "../../src/cli/commands/_coding_agent.js";
 import { codingAgentSeams } from "../../src/cli/commands/_coding_agent.js";
 import { cli } from "../../src/cli/main.js";
 import { outputSeams } from "../../src/cli/output.js";
+import {localBuildServices} from "../../src/template/local_build.js";
+import {paths, _setPaths} from "../../src/transport/config_layers.js";
 import { CliError } from "../../src/cli/errors.js";
 import { sys } from "../../src/cli/io.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
@@ -44,12 +46,15 @@ const _TOKEN = "acr-placeholder-token";
 const runner = (): CliRunner => new CliRunner();
 
 let tmp = "";
+const originalPaths = {...paths};
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-progress-"));
+  _setPaths({abxDir: path.join(tmp, ".abx")});
   for (const v of _CI_ENV_VARS) iso.monkeypatch.delenv(v);
 });
 afterEach(() => {
   vi.restoreAllMocks();
+  _setPaths(originalPaths);
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -101,6 +106,8 @@ function _installBuilder(): void {
   });
   builder.loginAcrWithAksk.mockResolvedValue({ tempUserName: "temp-user", authorizationToken: _TOKEN });
   builder.tag.mockResolvedValue(undefined);
+  vi.spyOn(localBuildServices.docker, "build").mockImplementation(builder.build as never);
+  vi.spyOn(localBuildServices, "run").mockResolvedValue(`sha256:${"a".repeat(64)}`);
   spyAny(fcTemplate, "createOfficialTemplate").mockResolvedValue({ templateID: "tpl-progress", statusCode: 200 });
   spyAny(fcTemplate, "waitForTemplateReady").mockImplementation((async (_id: string, opts: { on_poll?: (s: string, e: number) => void }) => {
     opts.on_poll?.("Creating", 0);
@@ -147,8 +154,9 @@ it("test_deploy_streams_build_lines_under_the_header", async () => {
   expect(shown).toContain("... 0s");
   expect(shown).toContain("#5 [1/2] FROM ubuntu:22.04");
   expect(shown).toContain("#5 DONE 0.1s");
-  expect(shown).toContain("Pushed my-template:latest");
-  expect(shown).toContain("Ready 2s");
+  expect(shown).not.toContain("Pushed my-template:latest");
+  expect(shown).not.toContain("Ready 2s");
+  expect(fcTemplate.createOfficialTemplate).not.toHaveBeenCalled();
   expect(shown).not.toContain(_TOKEN);
   expect(shown).not.toContain(_SECRET);
   const stdout = result.stdout ?? "";
@@ -212,8 +220,8 @@ it("test_json_deploy_does_not_dump_build_lines", async () => {
   expect(result.exit_code, result.output).toBe(0);
   const combined = _combined(result);
   expect(JSON.parse(result.stdout!).status).toBe("built");
-  const artifact = JSON.parse(fs.readFileSync(JSON.parse(result.stdout!).build, "utf8"));
-  expect(artifact.prepared.reference).toBe("tpl-progress");
+  expect(JSON.parse(result.stdout!).images).toMatchObject([{image_id:`sha256:${"a".repeat(64)}`}]);
+  expect(JSON.parse(result.stdout!)).not.toHaveProperty("build");
   expect(combined).not.toContain("#5 [1/2] FROM ubuntu:22.04");
   expect(combined).not.toContain(_TOKEN);
 });

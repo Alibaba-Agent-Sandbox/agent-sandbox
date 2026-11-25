@@ -4,6 +4,7 @@ import path from "node:path";
 import type {Context, Params} from "./kit.js";
 import {UsageError} from "./errors.js";
 import {getFormatter} from "./formatters.js";
+import {getOutput} from "./output.js";
 import {acquireTemplateSource, _findTemplateYaml} from "./template_catalog.js";
 import {buildLocalProject} from "../template/local_build.js";
 import {ApplicationError} from "../application/config.js";
@@ -30,7 +31,11 @@ export async function buildLocalTemplate(ctx: Context, params: Params): Promise<
   if (!source) throw new UsageError("This template has no local source to build.");
   const file = _findTemplateYaml(source);
   if (!file) throw new UsageError("Template source has no template.yaml.");
-  getFormatter(ctx).printData(await resourceDeploymentSeams.build(file, {timeoutSeconds: params.timeout, buildProfile: params.build_profile}));
+  const out = getOutput(ctx), message = "Building Docker image locally";
+  if (!out.useLiveStatus && !out.quiet) out.progress(message);
+  const result = await out.activity(message, update => resourceDeploymentSeams.build(file, {timeoutSeconds: params.timeout, buildProfile: params.build_profile,
+    ...(update ? {onOutput: (resource: string, line: string) => {if (line.trim()) update(`${resource}: ${line}`);}} : {})}), {tick: true});
+  getFormatter(ctx).printData(result);
 }
 export async function deployResources(ctx: Context, params: Params, file: string): Promise<void> {
   const preview = previewResourceProject(file), name = validateDeploymentName(String(params.name ?? preview.name));

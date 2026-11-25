@@ -48,7 +48,7 @@ export async function cachedLocalImage(recipe: LocalBuildRecipe, services: Local
   if (cached.version !== 1 || cached.identity !== identity || !imageId.test(cached.imageId)) return undefined;
   return await inspectImage(cached.imageId, services) === cached.imageId ? cached.imageId : undefined;
 }
-export async function buildLocalImage(recipe: LocalBuildRecipe, timeoutSeconds = 600, services: LocalBuildServices = localBuildServices): Promise<LocalImage> {
+export async function buildLocalImage(recipe: LocalBuildRecipe, timeoutSeconds = 600, services: LocalBuildServices = localBuildServices, onOutput?: (line: string) => void): Promise<LocalImage> {
   if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0 || timeoutSeconds > 3600) throw new ApplicationError("Build timeout must be in (0, 3600].");
   const identity = localBuildIdentity(recipe);
   return withApplicationLock(path.join(paths.abxDir, "local-image-locks"), identity, async () => {
@@ -57,7 +57,7 @@ export async function buildLocalImage(recipe: LocalBuildRecipe, timeoutSeconds =
     const tag = `abx-local:${identity}`;
     await withPrivateBuildContext(recipe.context, recipe.dockerfile, async staged => {
       if (localBuildIdentity({...recipe, ...staged}) !== identity) throw new ApplicationError("Build inputs changed while staging; retry after source changes finish.");
-      await services.docker.build(staged.context, tag, {dockerfile: staged.dockerfile, platform: recipe.platform, timeout: timeoutSeconds});
+      await services.docker.build(staged.context, tag, {dockerfile: staged.dockerfile, platform: recipe.platform, timeout: timeoutSeconds, on_output: onOutput});
     });
     if (localBuildIdentity(recipe) !== identity) throw new ApplicationError("Build inputs changed during construction; the image will not be reused.");
     const built = await inspectImage(tag, services);
@@ -69,7 +69,7 @@ export async function buildLocalImage(recipe: LocalBuildRecipe, timeoutSeconds =
 }
 
 /** Discover only literal local recipe inputs; unrelated runtime secrets are never resolved. */
-export async function buildLocalProject(file: string, options: {timeoutSeconds?: number; buildProfile?: string; services?: LocalBuildServices} = {}): Promise<Record<string, unknown>> {
+export async function buildLocalProject(file: string, options: {timeoutSeconds?: number; buildProfile?: string; services?: LocalBuildServices; onOutput?: (resource: string, line: string) => void} = {}): Promise<Record<string, unknown>> {
   const raw = readYaml(file), root = path.dirname(fs.realpathSync(file)), recipes: LocalBuildRecipe[] = [];
   const deferred: Array<{resource: string; reason: string}> = [];
   if (!record(raw)) throw new ApplicationError("Template must be a YAML mapping.");
@@ -95,6 +95,6 @@ export async function buildLocalProject(file: string, options: {timeoutSeconds?:
     }
   } else throw new ApplicationError("Local image builds support resource specVersion: 1 and source spec_version: 5. This application recipe uses deployment-managed builds; use abx deploy SOURCE.");
   const images: LocalImage[] = [];
-  for (const recipe of recipes) images.push(await buildLocalImage(recipe, options.timeoutSeconds, options.services));
+  for (const recipe of recipes) images.push(await buildLocalImage(recipe, options.timeoutSeconds, options.services, options.onOutput ? line => options.onOutput!(recipe.resource, line) : undefined));
   return {status: images.length ? (deferred.length ? "partially_built" : "built") : "no_local_build", images, deferred};
 }
